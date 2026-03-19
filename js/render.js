@@ -252,6 +252,24 @@ function drawBuildingEditor() {
   });
 }
 
+// ── Convex hull (Andrew's monotone chain) ─────────────────────────────────────
+function convexHull(pts) {
+  pts = [...pts].sort((a, b) => a.x !== b.x ? a.x - b.x : a.y - b.y);
+  const cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  const lower = [], upper = [];
+  for (const p of pts) {
+    while (lower.length >= 2 && cross(lower[lower.length-2], lower[lower.length-1], p) <= 0) lower.pop();
+    lower.push(p);
+  }
+  for (let i = pts.length - 1; i >= 0; i--) {
+    const p = pts[i];
+    while (upper.length >= 2 && cross(upper[upper.length-2], upper[upper.length-1], p) <= 0) upper.pop();
+    upper.push(p);
+  }
+  upper.pop(); lower.pop();
+  return lower.concat(upper);
+}
+
 // ── Shadow overlay ────────────────────────────────────────────────────────────
 /**
  * For the selected venue: draw nearby building footprints, their cast shadows,
@@ -290,37 +308,44 @@ function drawShadowOverlay(venue) {
     const dLat = -Math.cos(az * RAD) / (tanAlt * 111320);
     const dLon = -Math.sin(az * RAD) / (tanAlt * 111320 * Math.cos(avgLat * RAD));
 
-    const shadowNodes = nodes.map(n => ({ lat: n.lat + height * dLat, lon: n.lon + height * dLon }));
     const casting = pointInBuildingShadow(testLat, testLng, b, az, alt);
 
-    // Shadow polygon — only filled for buildings actually casting on the probe point
-    if (casting) {
-      ctx.beginPath();
-      shadowNodes.forEach((n, i) => {
-        const pt = map.latLngToContainerPoint([n.lat, n.lon]);
-        i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y);
-      });
-      ctx.closePath();
-      ctx.fillStyle = 'rgba(10,14,40,0.38)';
-      ctx.fill();
-    }
-
-    // Building footprint — outline only (subtle), filled if casting
-    ctx.beginPath();
-    nodes.forEach((n, i) => {
-      const pt = map.latLngToContainerPoint([n.lat, n.lon]);
-      i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y);
+    // Convert footprint + shadow nodes to pixel space
+    const footPx   = nodes.map(n => map.latLngToContainerPoint([n.lat, n.lon])).map(p => ({ x: p.x, y: p.y }));
+    const shadowPx = nodes.map(n => {
+      const p = map.latLngToContainerPoint([n.lat + height * dLat, n.lon + height * dLon]);
+      return { x: p.x, y: p.y };
     });
-    ctx.closePath();
+
+    // Unified shadow shape = convex hull of footprint + shadow vertices
+    const hull = convexHull([...footPx, ...shadowPx]);
+
     if (casting) {
-      ctx.fillStyle = 'rgba(50,60,120,0.55)';
+      // Full unified shadow
+      ctx.beginPath();
+      hull.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(10,14,40,0.40)';
       ctx.fill();
-      ctx.strokeStyle = 'rgba(120,150,255,0.6)';
+
+      // Building footprint filled on top — distinct from shadow lobe
+      ctx.beginPath();
+      footPx.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(50,60,120,0.58)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(120,150,255,0.65)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
     } else {
-      ctx.strokeStyle = 'rgba(100,120,180,0.25)';
+      // Non-casting building — subtle outline only
+      ctx.beginPath();
+      footPx.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+      ctx.closePath();
+      ctx.strokeStyle = 'rgba(100,120,180,0.22)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
     }
-    ctx.lineWidth = 1;
-    ctx.stroke();
   }
 
   // Probe dot — 2 m in front of the terrace wall
