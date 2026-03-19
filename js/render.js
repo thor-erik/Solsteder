@@ -265,6 +265,18 @@ function drawShadowOverlay(venue) {
   const tanAlt = Math.tan(alt * RAD);
   if (tanAlt <= 0) return;
 
+  // Probe point (same as venueSunState)
+  let testLat = venue.lat, testLng = venue.lng;
+  if (venue.wallSegment) {
+    const br = venue.wallSegment.bearing * RAD;
+    const wy = venue.wallSegment.my;
+    testLat = wy + Math.cos(br) * 2 / 111320;
+    testLng = venue.wallSegment.mx + Math.sin(br) * 2 / (111320 * Math.cos(wy * RAD));
+  }
+
+  // Only visualise buildings within 80 m — beyond that shadows rarely matter visually
+  const vizThresh = 80 / 111320;
+
   ctx.save();
 
   for (const b of venue.nearbyBuildings) {
@@ -272,30 +284,41 @@ function drawShadowOverlay(venue) {
     if (!nodes || nodes.length < 3 || height <= 0) continue;
 
     const avgLat = nodes.reduce((s, n) => s + n.lat, 0) / nodes.length;
+    const avgLon = nodes.reduce((s, n) => s + n.lon, 0) / nodes.length;
+    if (Math.hypot(avgLat - venue.lat, avgLon - venue.lng) > vizThresh) continue;
+
     const dLat = -Math.cos(az * RAD) / (tanAlt * 111320);
     const dLon = -Math.sin(az * RAD) / (tanAlt * 111320 * Math.cos(avgLat * RAD));
 
-    // Cast shadow polygon
     const shadowNodes = nodes.map(n => ({ lat: n.lat + height * dLat, lon: n.lon + height * dLon }));
-    ctx.beginPath();
-    shadowNodes.forEach((n, i) => {
-      const pt = map.latLngToContainerPoint([n.lat, n.lon]);
-      i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y);
-    });
-    ctx.closePath();
-    ctx.fillStyle = 'rgba(10,14,40,0.32)';
-    ctx.fill();
+    const casting = pointInBuildingShadow(testLat, testLng, b, az, alt);
 
-    // Building footprint
+    // Shadow polygon — only filled for buildings actually casting on the probe point
+    if (casting) {
+      ctx.beginPath();
+      shadowNodes.forEach((n, i) => {
+        const pt = map.latLngToContainerPoint([n.lat, n.lon]);
+        i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y);
+      });
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(10,14,40,0.38)';
+      ctx.fill();
+    }
+
+    // Building footprint — outline only (subtle), filled if casting
     ctx.beginPath();
     nodes.forEach((n, i) => {
       const pt = map.latLngToContainerPoint([n.lat, n.lon]);
       i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y);
     });
     ctx.closePath();
-    ctx.fillStyle = 'rgba(50,60,100,0.52)';
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(100,130,200,0.35)';
+    if (casting) {
+      ctx.fillStyle = 'rgba(50,60,120,0.55)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(120,150,255,0.6)';
+    } else {
+      ctx.strokeStyle = 'rgba(100,120,180,0.25)';
+    }
     ctx.lineWidth = 1;
     ctx.stroke();
   }
