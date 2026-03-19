@@ -131,9 +131,10 @@ function probePoint(wall, distM) {
  * slim format needed by the shadow caster: { geometry, height }.
  * 150 m captures shadows at typical Oslo summer sun angles (≥10° altitude).
  */
-function findNearbyBuildings(venue, buildings, radiusM = 150) {
+function findNearbyBuildings(venue, buildings, excludeBuilding = null, radiusM = 150) {
   return buildings
     .filter(b => {
+      if (b === excludeBuilding) return false;
       const c = computeCentroid(b.geometry);
       return Math.hypot(c.lat - venue.lat, c.lon - venue.lng) * 111320 <= radiusM;
     })
@@ -281,8 +282,8 @@ async function initFacings() {
 
     v.wallNormals = walls;
 
-    // ── Step 2: nearby buildings for shadow casting ───────────────────────────
-    v.nearbyBuildings = findNearbyBuildings(v, buildings);
+    // ── Step 2: nearby buildings for shadow casting (exclude own building) ──────
+    v.nearbyBuildings = findNearbyBuildings(v, buildings, building);
 
     // ── Step 3: score walls (skipped if facing already set) ───────────────────
     // 'manual' = user chose via edit tool → never overwrite.

@@ -137,9 +137,10 @@ function probePoint(wall, distM) {
   };
 }
 
-function findNearbyBuildings(venue, buildings) {
+function findNearbyBuildings(venue, buildings, excludeBuilding = null) {
   return buildings
     .filter(b => {
+      if (b === excludeBuilding) return false;
       const c = computeCentroid(b.geometry);
       return Math.hypot(c.lat - venue.lat, c.lon - venue.lng) * 111320 <= NEARBY_RADIUS_M;
     })
@@ -219,7 +220,7 @@ async function main() {
     }
 
     const walls         = getWallNormals(building.geometry);
-    const nearbyBuildings = findNearbyBuildings(v, buildings);
+    const nearbyBuildings = findNearbyBuildings(v, buildings, building);
 
     let facing = v.facing ?? 180;
     let facingSource = v.facingSource;
