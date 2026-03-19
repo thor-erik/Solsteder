@@ -1,0 +1,402 @@
+[
+  {
+    "name": "The Salmon",
+    "address": "Strandpromenaden 11, 0252 Oslo, Norway",
+    "coords": [
+      59.90793490000001,
+      10.7232369
+    ],
+    "category": "restaurant",
+    "area": "Aker Brygge",
+    "rating": 4.7,
+    "facing": 180,
+    "openingHours": {
+      "open": 11,
+      "close": 22
+    },
+    "outdoorSeating": true,
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJZzTDywdvQUYRa-0cSuNLmoI",
+    "facingSource": null
+  },
+  {
+    "name": "Yokoso Restaurant Aker Brygge",
+    "address": "Stranden 63, 0250 Oslo, Norway",
+    "coords": [
+      59.909222899999996,
+      10.7257368
+    ],
+    "category": "restaurant",
+    "area": "Aker Brygge",
+    "rating": 4.6,
+    "facing": 180,
+    "openingHours": {
+      "open": 11,
+      "close": 23
+    },
+    "outdoorSeating": true,
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJEajdotBvQUYRmbSDHGIyk_U",
+    "facingSource": null
+  },
+  {
+    "name": "Pastis Bistrobar",
+    "address": "Stranden 3, 0250 Oslo, Norway",
+    "coords": [
+      59.91006319999999,
+      10.7276933
+    ],
+    "category": "restaurant",
+    "area": "Aker Brygge",
+    "rating": 4.6,
+    "facing": 180,
+    "openingHours": {
+      "open": 8,
+      "close": 23
+    },
+    "outdoorSeating": true,
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJL2kMzkFvQUYRpQBugHuE81o",
+    "facingSource": null
+  },
+  {
+    "name": "PARADIS Gelateria Tjuvholmen",
+    "address": "Tjuvholmen allé 6, 0252 Oslo, Norway",
+    "coords": [
+      59.908560099999995,
+      10.7228967
+    ],
+    "category": "cafe",
+    "area": "Aker Brygge",
+    "rating": 4.6,
+    "facing": 180,
+    "openingHours": {
+      "open": 11,
+      "close": 22
+    },
+    "outdoorSeating": null,
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJwbyMH4JuQUYR3tusha1OZSE",
+    "facingSource": null
+  },
+  {
+    "name": "Mamma Pizza Vika Osteria di Mare",
+    "address": "Ruseløkkveien 26, 0251 Oslo, Norway",
+    "coords": [
+      59.912678899999996,
+      10.726138899999999
+    ],
+    "category": "bar",
+    "area": "Aker Brygge",
+    "rating": 4.5,
+    "facing": 180,
+    "openingHours": {
+      "open": 11,
+      "close": 22
+    },
+    "outdoorSeating": true,
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ7xA2Y6hvQUYRv2gGmQksXBU",
+    "facingSource": null
+  },
+  {
+    "name": "Gangnam Restaurant",
+    "address": "Munkedamsveien 59, 0270 Oslo, Norway",
+    "coords": [
+      59.9111706,
+      10.720908999999999
+    ],
+    "category": "restaurant",
+    "area": "Aker Brygge",
+    "rating": 4.5,
+    "facing": 180,
+    "openingHours": {
+      "open": 16,
+      "close": 22
+    },
+    "outdoorSeating": false,
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJiU9geypsQUYROO9-_4rRkVI",
+    "facingSource": null
+  },
+  {
+    "name": "THE THIEF",
+    "address": "Landgangen 1, 0252 Oslo, Norway",
+    "coords": [
+      59.90763899999999,
+      10.7210813
+    ],
+    "category": "bar",
+    "area": "Aker Brygge",
+    "rating": 4.4,
+    "facing": 180,
+    "openingHours": {
+      "open": 0,
+      "close": 22
+    },
+    "outdoorSeating": null,
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJGTp_5ylsQUYRqiIovfIyRT8",
+    "facingSource": null
+  },
+  {
+    "name": "Aker Brygge",
+    "address": "Bryggegata 3, 0250 Oslo, Norway",
+    "coords": [
+      59.909962,
+      10.7270427
+    ],
+    "category": "restaurant",
+    "area": "Aker Brygge",
+    "rating": 4.4,
+    "facing": 180,
+    "openingHours": {
+      "open": 11,
+      "close": 22
+    },
+    "outdoorSeating": null,
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJg2afGoFuQUYR-92olqBcrdg",
+    "facingSource": null
+  },
+  {
+    "name": "Latter",
+    "address": "Holmens gate 1, 0250 Oslo, Norway",
+    "coords": [
+      59.9108086,
+      10.726818999999999
+    ],
+    "category": "restaurant",
+    "area": "Aker Brygge",
+    "rating": 4.4,
+    "facing": 180,
+    "openingHours": {
+      "open": 16,
+      "close": 23
+    },
+    "outdoorSeating": true,
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJcfmLqoFuQUYRFZzNmNMT11s",
+    "facingSource": null
+  },
+  {
+    "name": "Babbo Collective Parkveien",
+    "address": "Parkveien 80, 0254 Oslo, Norway",
+    "coords": [
+      59.91199830000001,
+      10.7188596
+    ],
+    "category": "restaurant",
+    "area": "Aker Brygge",
+    "rating": 4.4,
+    "facing": 180,
+    "openingHours": {
+      "open": 8,
+      "close": 23
+    },
+    "outdoorSeating": true,
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJlwU4cpRtQUYRdXjjM6WA7yM",
+    "facingSource": null
+  },
+  {
+    "name": "Rorbua Aker Brygge",
+    "address": "Stranden 71, 0250 Oslo, Norway",
+    "coords": [
+      59.9088001,
+      10.7247293
+    ],
+    "category": "restaurant",
+    "area": "Aker Brygge",
+    "rating": 4.3,
+    "facing": 180,
+    "openingHours": {
+      "open": 12,
+      "close": 22
+    },
+    "outdoorSeating": true,
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJe4n4joFuQUYRMaNe6vdjcRM",
+    "facingSource": null
+  },
+  {
+    "name": "Louise Restaurant & Bar",
+    "address": "Stranden 3, 0250 Oslo, Norway",
+    "coords": [
+      59.9099375,
+      10.7272462
+    ],
+    "category": "bar",
+    "area": "Aker Brygge",
+    "rating": 4.3,
+    "facing": 180,
+    "openingHours": {
+      "open": 11,
+      "close": 22
+    },
+    "outdoorSeating": true,
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJg2afGoFuQUYRxzRil8hmP0c",
+    "facingSource": null
+  },
+  {
+    "name": "Skur 33",
+    "address": "Akershusstranda 11, 0150 Oslo, Norway",
+    "coords": [
+      59.907731,
+      10.7332248
+    ],
+    "category": "restaurant",
+    "area": "Aker Brygge",
+    "rating": 4.3,
+    "facing": 180,
+    "openingHours": {
+      "open": 12,
+      "close": 21
+    },
+    "outdoorSeating": true,
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ53SynIZuQUYRu4gn-yPb61M",
+    "facingSource": null
+  },
+  {
+    "name": "Olivia Aker Brygge",
+    "address": "Stranden 3, 0250 Oslo, Norway",
+    "coords": [
+      59.9101996,
+      10.728008899999999
+    ],
+    "category": "restaurant",
+    "area": "Aker Brygge",
+    "rating": 4.2,
+    "facing": 180,
+    "openingHours": {
+      "open": 11,
+      "close": 24
+    },
+    "outdoorSeating": true,
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJDbYuLdZtQUYRUG0RJiLNvd4",
+    "facingSource": null
+  },
+  {
+    "name": "New Delhi",
+    "address": "Tjuvholmen allé 2, 0252 Oslo, Norway",
+    "coords": [
+      59.90897439999999,
+      10.723378
+    ],
+    "category": "restaurant",
+    "area": "Aker Brygge",
+    "rating": 4.2,
+    "facing": 180,
+    "openingHours": {
+      "open": 14,
+      "close": 24
+    },
+    "outdoorSeating": true,
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJT8M8B4huQUYRpbV5bRtm1A0",
+    "facingSource": null
+  },
+  {
+    "name": "Lofoten Fiskerestaurant",
+    "address": "Stranden 75, 0250 Oslo, Norway",
+    "coords": [
+      59.908574,
+      10.7244802
+    ],
+    "category": "fine_dining",
+    "area": "Aker Brygge",
+    "rating": 4.2,
+    "facing": 180,
+    "openingHours": {
+      "open": 11,
+      "close": 22
+    },
+    "outdoorSeating": true,
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJR8oEhoFuQUYRovvzW3cJbHQ",
+    "facingSource": null
+  },
+  {
+    "name": "Los Tacos Aker Brygge",
+    "address": "Bryggetorget 14, 0250 Oslo, Norway",
+    "coords": [
+      59.909402500000006,
+      10.724452699999999
+    ],
+    "category": "restaurant",
+    "area": "Aker Brygge",
+    "rating": 4.2,
+    "facing": 180,
+    "openingHours": {
+      "open": 11,
+      "close": 24
+    },
+    "outdoorSeating": true,
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ6dkT6J9vQUYRj4jXeWl48Jg",
+    "facingSource": null
+  },
+  {
+    "name": "O'Learys Oslo Vika",
+    "address": "Ruseløkkveien 26, 0251 Oslo, Norway",
+    "coords": [
+      59.91249500000001,
+      10.725577999999999
+    ],
+    "category": "bar",
+    "area": "Aker Brygge",
+    "rating": 4.2,
+    "facing": 180,
+    "openingHours": {
+      "open": 11,
+      "close": 24
+    },
+    "outdoorSeating": null,
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJVQdaF1pvQUYRD9arMciX2Qw",
+    "facingSource": null
+  },
+  {
+    "name": "ASIA Aker Brygge",
+    "address": "Stranden 1, 0250 Oslo, Norway",
+    "coords": [
+      59.910502,
+      10.728508999999999
+    ],
+    "category": "restaurant",
+    "area": "Aker Brygge",
+    "rating": 4.1,
+    "facing": 180,
+    "openingHours": {
+      "open": 11,
+      "close": 24
+    },
+    "outdoorSeating": true,
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJt9SwHoFuQUYRNBsvVN5MEPk",
+    "facingSource": null
+  },
+  {
+    "name": "Olivia Restaurant Tjuvholmen",
+    "address": "Bryggegangen 4, 0252 Oslo, Norway",
+    "coords": [
+      59.9087938,
+      10.7221491
+    ],
+    "category": "restaurant",
+    "area": "Aker Brygge",
+    "rating": 4.1,
+    "facing": 180,
+    "openingHours": {
+      "open": 11,
+      "close": 24
+    },
+    "outdoorSeating": true,
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJA4vY9YFuQUYR3wOCd7StBBg",
+    "facingSource": null
+  }
+]
