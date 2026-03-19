@@ -100,16 +100,18 @@ function getWallNormals(nodes) {
   const walls = [];
   for (let i = 0; i < nodes.length - 1; i++) {
     const a = nodes[i], b = nodes[i + 1];
-    const dx = b.lon - a.lon, dy = b.lat - a.lat;
+    const mx = (a.lon+b.lon)/2, my = (a.lat+b.lat)/2;
+    const cosLat = Math.cos(my * RAD);
+    // Scale lon by cosLat so the perpendicular is computed in metric space
+    const dx = (b.lon - a.lon) * cosLat, dy = b.lat - a.lat;
     const len = Math.sqrt(dx*dx + dy*dy);
     if (len < 1e-9) continue;
     const p1x = -dy/len, p1y = dx/len;
-    const mx = (a.lon+b.lon)/2, my = (a.lat+b.lat)/2;
-    const dot = p1x*(mx-c.lon) + p1y*(my-c.lat);
+    const dot = p1x*(mx-c.lon)*cosLat + p1y*(my-c.lat);
     const ox = dot > 0 ? p1x : -p1x;
     const oy = dot > 0 ? p1y : -p1y;
     const bearing = (Math.atan2(ox, oy)*180/Math.PI+360)%360;
-    const lenM = len*111320*Math.cos(my*RAD);
+    const lenM = Math.sqrt((b.lon-a.lon)**2*cosLat**2 + (b.lat-a.lat)**2) * 111320;
     walls.push({ bearing, lenM, mx, my, aLat:a.lat, aLng:a.lon, bLat:b.lat, bLng:b.lon });
   }
   return walls;
