@@ -252,6 +252,77 @@ function drawBuildingEditor() {
   });
 }
 
+// ── Shadow overlay ────────────────────────────────────────────────────────────
+/**
+ * For the selected venue: draw nearby building footprints, their cast shadows,
+ * and a probe dot 2 m in front of the terrace wall (yellow = sun, blue = shade).
+ */
+function drawShadowOverlay(venue) {
+  if (!venue.nearbyBuildings?.length || !currentSun) return;
+  const { az, alt } = currentSun;
+  if (alt < 2) return;
+
+  const tanAlt = Math.tan(alt * RAD);
+  if (tanAlt <= 0) return;
+
+  ctx.save();
+
+  for (const b of venue.nearbyBuildings) {
+    const { geometry: nodes, height } = b;
+    if (!nodes || nodes.length < 3 || height <= 0) continue;
+
+    const avgLat = nodes.reduce((s, n) => s + n.lat, 0) / nodes.length;
+    const dLat = -Math.cos(az * RAD) / (tanAlt * 111320);
+    const dLon = -Math.sin(az * RAD) / (tanAlt * 111320 * Math.cos(avgLat * RAD));
+
+    // Cast shadow polygon
+    const shadowNodes = nodes.map(n => ({ lat: n.lat + height * dLat, lon: n.lon + height * dLon }));
+    ctx.beginPath();
+    shadowNodes.forEach((n, i) => {
+      const pt = map.latLngToContainerPoint([n.lat, n.lon]);
+      i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y);
+    });
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(10,14,40,0.32)';
+    ctx.fill();
+
+    // Building footprint
+    ctx.beginPath();
+    nodes.forEach((n, i) => {
+      const pt = map.latLngToContainerPoint([n.lat, n.lon]);
+      i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y);
+    });
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(50,60,100,0.52)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(100,130,200,0.35)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // Probe dot — 2 m in front of the terrace wall
+  if (venue.wallSegment) {
+    const br = venue.wallSegment.bearing * RAD;
+    const wy = venue.wallSegment.my;
+    const testLat = wy + Math.cos(br) * 2 / 111320;
+    const testLng = venue.wallSegment.mx + Math.sin(br) * 2 / (111320 * Math.cos(wy * RAD));
+    const pt = map.latLngToContainerPoint([testLat, testLng]);
+    const sunny = venueSunState(venue, az, alt);
+
+    const glow = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, 13);
+    glow.addColorStop(0, sunny ? 'rgba(255,184,0,0.5)' : 'rgba(100,130,210,0.45)');
+    glow.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.beginPath(); ctx.arc(pt.x, pt.y, 13, 0, Math.PI * 2);
+    ctx.fillStyle = glow; ctx.fill();
+
+    ctx.beginPath(); ctx.arc(pt.x, pt.y, 5, 0, Math.PI * 2);
+    ctx.fillStyle = sunny ? '#FFB800' : '#6080C8'; ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 1.5; ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
 // ── Zoom-based pin density ────────────────────────────────────────────────────
 // At low zoom levels only high-rated venues are shown to prevent an unreadable
 // mass of overlapping pins. Thresholds are calibrated for Oslo city scale.
@@ -283,6 +354,12 @@ function draw() {
   const bounds = map.getBounds();
   const zoom   = map.getZoom();
   let hiddenCount = 0;
+
+  // Shadow overlay for selected venue (drawn before sprites so pins sit on top)
+  if (selectedId) {
+    const sel = VENUES.find(v => v.id === selectedId);
+    if (sel) drawShadowOverlay(sel);
+  }
 
   // Pass 1: sprites — viewport-culled + zoom-density filtered
   VENUES.forEach(v => {
