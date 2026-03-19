@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:nominatim.openstreetmap.org)",
+      "Bash(curl -s -A \"SolstederGeocoder/1.0\" \"https://nominatim.openstreetmap.org/search?q=Stranden+63+Oslo&format=json&limit=3&countrycodes=no\")",
+      "Bash(curl -s -A \"SolstederGeocoder/1.0\" \"https://nominatim.openstreetmap.org/search?q=Olav+Kyrres+gate+31+Oslo&format=json&limit=3&countrycodes=no\")",
+      "Bash(node -e \":*)"
+    ]
+  }
+}

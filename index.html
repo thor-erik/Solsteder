@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solsteder — Oslo Sun Places</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #1a1a2e;
+    --panel: #16213e;
+    --accent: #FFB800;
+    --accent-dim: rgba(255,184,0,0.15);
+    --text: #f0e6d3;
+    --muted: #8a9ab0;
+    --card-bg: #1e2d4a;
+    --border: rgba(255,184,0,0.2);
+    --pill-bg: rgba(16,22,38,0.92);
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    overflow: hidden;
+  }
+
+  #app {
+    display: flex;
+    height: 100vh;
+  }
+
+  /* MAP */
+  #map-container {
+    flex: 1;
+    position: relative;
+  }
+
+  #map {
+    width: 100%;
+    height: 100%;
+  }
+
+  #canvas-overlay {
+    position: absolute;
+    top: 0; left: 0;
+    pointer-events: none;
+    z-index: 690;
+    will-change: transform;
+  }
+
+  /* Sidebar toggle button */
+  #panel-toggle {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 800;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-right: none;
+    border-radius: 8px 0 0 8px;
+    color: var(--muted);
+    width: 22px;
+    height: 52px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    transition: background 0.15s, color 0.15s;
+    padding: 0;
+  }
+  #panel-toggle:hover { background: var(--card-bg); color: var(--accent); }
+
+  /* CONTROLS */
+  .control-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .control-label {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    width: 32px;
+    flex-shrink: 0;
+  }
+
+  #date-picker {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    padding: 4px 8px;
+    outline: none;
+    flex: 1;
+  }
+
+  #date-picker::-webkit-calendar-picker-indicator {
+    filter: invert(0.7) sepia(1) saturate(3) hue-rotate(5deg);
+    cursor: pointer;
+  }
+
+
+  /* STATUS BAR */
+  #status-bar {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    z-index: 1000;
+    background: var(--pill-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 16px;
+    display: flex;
+    gap: 18px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    color: var(--muted);
+  }
+
+  .stat-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  /* POPUP */
+  .leaflet-popup-content-wrapper {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+
+  .leaflet-popup-tip {
+    background: var(--panel);
+  }
+
+  .leaflet-popup-content {
+    margin: 12px 16px;
+  }
+
+  .popup-name {
+    font-family: 'DM Serif Display', serif;
+    font-size: 15px;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+
+  .popup-meta {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .popup-address {
+    font-size: 11px;
+    color: var(--muted);
+    opacity: 0.7;
+    margin-top: 2px;
+  }
+
+  .popup-status {
+    margin-top: 6px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .popup-status.sunny { color: var(--accent); }
+  .popup-status.shaded { color: var(--muted); }
+
+  /* RIGHT PANEL */
+  #panel {
+    width: 360px;
+    background: var(--panel);
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid var(--border);
+    overflow: hidden;
+    transition: width 0.28s ease;
+    flex-shrink: 0;
+  }
+
+  #panel-header {
+    padding: 18px 20px 0;
+    flex-shrink: 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    overflow: visible;
+  }
+
+  /* Brand row: logo left, compass right */
+  #brand-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  #brand-logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: var(--accent);
+    letter-spacing: 0.3px;
+  }
+
+  #brand-logo span {
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 400;
+    color: var(--muted);
+    letter-spacing: 0;
+    margin-left: 6px;
+  }
+
+  #sun-compass {
+    display: block;
+    cursor: default;
+  }
+
+  /* Controls inside panel */
+  #panel-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-bottom: 22px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    margin-bottom: 14px;
+    overflow: visible;
+  }
+
+  /* Venue header below controls */
+  #venue-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  #panel-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 17px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+  }
+
+  #sun-badge {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--accent-dim);
+    border: 1px solid var(--border);
+    color: var(--accent);
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+
+
+  /* Search + Filter bar */
+  #search-bar {
+    padding: 0 0 8px;
+  }
+  #venue-search {
+    width: 100%;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 7px 12px;
+    outline: none;
+  }
+  #venue-search::placeholder { color: var(--muted); }
+  #venue-search:focus { border-color: rgba(255,184,0,0.4); }
+
+  #filter-bar {
+    padding: 0 0 6px;
+    display: flex;
+    gap: 5px;
+  }
+  #filter-extra {
+    padding: 0 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .filter-select {
+    flex: 1;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    padding: 4px 6px;
+    outline: none;
+    cursor: pointer;
+    min-width: 0;
+  }
+  .filter-select:focus { border-color: rgba(255,184,0,0.4); color: var(--text); }
+  .filter-toggle-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 4px 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .filter-toggle-btn:hover:not(.active) {
+    border-color: rgba(255,184,0,0.4);
+    color: var(--text);
+  }
+  .filter-toggle-btn.active {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* Venue list */
+  #venue-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 14px 20px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,184,0,0.2) transparent;
+  }
+
+  #venue-list::-webkit-scrollbar { width: 4px; }
+  #venue-list::-webkit-scrollbar-track { background: transparent; }
+  #venue-list::-webkit-scrollbar-thumb { background: rgba(255,184,0,0.2); border-radius: 2px; }
+
+  .venue-card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 13px 14px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s;
+    border-left: 3px solid transparent;
+    position: relative;
+  }
+
+  .venue-card:hover {
+    transform: translateX(-2px);
+    box-shadow: 2px 4px 16px rgba(0,0,0,0.3);
+  }
+
+  .venue-card.sunny {
+    border-left-color: var(--accent);
+  }
+
+  .venue-card.selected {
+    box-shadow: 0 0 0 1px var(--accent), 2px 4px 16px rgba(0,0,0,0.4);
+  }
+
+  .venue-card.dimmed {
+    opacity: 0.5;
+  }
+
+  .card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 5px;
+  }
+
+  .card-name {
+    font-family: 'DM Serif Display', serif;
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.3;
+    flex: 1;
+  }
+
+  .card-emoji {
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .card-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+  }
+
+  .card-badge.sunny {
+    background: rgba(255,184,0,0.2);
+    color: var(--accent);
+  }
+
+  .card-badge.shaded {
+    background: rgba(138,154,176,0.15);
+    color: var(--muted);
+  }
+  .card-badge.neutral {
+    background: rgba(138,154,176,0.15);
+    color: #7ab4ff;
+  }
+
+  .card-meta {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .card-rating {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  #hover-tooltip {
+    position: absolute;
+    z-index: 1100;
+    background: var(--pill-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    pointer-events: none;
+    display: none;
+    width: 220px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+  }
+
+  #hover-tooltip.visible { display: block; }
+
+  .ht-name {
+    font-family: 'DM Serif Display', serif;
+    font-size: 13px;
+    color: var(--accent);
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ht-meta {
+    font-size: 11px;
+    color: var(--muted);
+    display: flex;
+    gap: 5px;
+    align-items: center;
+  }
+
+  .ht-status {
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 4px;
+  }
+
+  .ht-status.sunny   { color: var(--accent); }
+  .ht-status.shaded  { color: var(--muted); }
+  .ht-status.neutral { color: #7ab4ff; }
+
+  .ht-timeline {
+    margin-top: 9px;
+  }
+
+  .ht-tl-track {
+    height: 5px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 3px;
+    position: relative;
+    margin-bottom: 4px;
+    overflow: visible;
+  }
+
+  .ht-tl-seg {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    background: linear-gradient(90deg, #ff9900, #FFB800);
+    border-radius: 3px;
+    opacity: 0.85;
+  }
+
+  .ht-tl-needle {
+    position: absolute;
+    top: -3px;
+    width: 2px;
+    height: 11px;
+    background: #fff;
+    border-radius: 1px;
+    transform: translateX(-50%);
+    box-shadow: 0 0 3px rgba(255,255,255,0.5);
+  }
+
+  .ht-tl-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    color: var(--muted);
+    opacity: 0.6;
+    margin-top: 2px;
+  }
+
+  #facing-status {
+    font-size: 11px;
+    color: var(--accent);
+    opacity: 0.75;
+    padding: 6px 0 2px;
+    min-height: 18px;
+    transition: opacity 0.5s;
+  }
+
+  .card-address {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 5px;
+    opacity: 0.7;
+  }
+
+  /* Edit facing button */
+  .card-edit-btn {
+    background: none;
+    border: 1px solid rgba(255,184,0,0.2);
+    border-radius: 6px;
+    color: var(--muted);
+    font-size: 11px;
+    padding: 2px 7px;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex-shrink: 0;
+    font-family: 'DM Sans', sans-serif;
+    opacity: 0;
+    transition: opacity 0.15s, border-color 0.15s, color 0.15s;
+  }
+
+  .venue-card:hover .card-edit-btn {
+    opacity: 1;
+  }
+
+  .card-edit-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-dim);
+  }
+
+  /* Edit mode overlay */
+  #edit-overlay {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1200;
+    display: none;
+  }
+
+  #edit-banner {
+    background: var(--pill-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,184,0,0.45);
+    border-radius: 14px;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    white-space: nowrap;
+    box-shadow: 0 4px 28px rgba(0,0,0,0.6);
+  }
+
+  #edit-info { display: flex; flex-direction: column; gap: 2px; }
+
+  #edit-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 14px;
+    color: var(--accent);
+  }
+
+  #edit-subtitle {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  #edit-venue-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    padding: 4px 10px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 8px;
+  }
+
+  #edit-facing-display {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    min-width: 72px;
+    text-align: center;
+  }
+
+  #edit-facing-display .preview {
+    color: #7ab4ff;
+  }
+
+  #edit-done-btn {
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    color: #1a1a2e;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 7px 18px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+
+  #edit-done-btn:hover { opacity: 0.85; }
+
+  /* Timeline */
+  .card-timeline {
+    margin-top: 7px;
+  }
+
+  .tl-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .tl-track {
+    flex: 1;
+    height: 6px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 3px;
+    position: relative;
+    overflow: visible;
+  }
+
+  .tl-sun-seg {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    background: linear-gradient(90deg, #ff9900, #FFB800);
+    border-radius: 3px;
+    opacity: 0.85;
+  }
+
+  .tl-needle {
+    position: absolute;
+    top: -4px;
+    width: 2px;
+    height: 14px;
+    background: #fff;
+    border-radius: 1px;
+    transform: translateX(-50%);
+    box-shadow: 0 0 4px rgba(255,255,255,0.5);
+  }
+
+  .tl-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--muted);
+    opacity: 0.6;
+  }
+
+  .tl-badge {
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+    padding: 1px 6px;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+
+  .tl-badge.sunny {
+    background: rgba(255,184,0,0.18);
+    color: var(--accent);
+  }
+
+  .tl-badge.neutral {
+    background: rgba(138,154,176,0.15);
+    color: #7ab4ff;
+  }
+
+  .tl-badge.muted {
+    background: rgba(138,154,176,0.1);
+    color: var(--muted);
+  }
+
+  /* Now button */
+  #now-btn {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  #now-btn.active {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  #now-btn:hover:not(.active) {
+    border-color: rgba(255,184,0,0.4);
+    color: var(--text);
+  }
+
+  /* Dual range slider */
+  .time-range-wrap {
+    flex: 1;
+    position: relative;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    overflow: visible;
+  }
+  .time-range-track-bg {
+    position: absolute;
+    top: 8px;
+    left: 0; right: 0; height: 4px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    pointer-events: none;
+  }
+  .time-range-track-fill {
+    position: absolute;
+    top: 8px;
+    height: 4px;
+    background: linear-gradient(90deg, #ff8c00, #FFB800);
+    border-radius: 2px;
+    pointer-events: none;
+  }
+  .time-range-wrap input[type=range] {
+    position: absolute;
+    width: 100%;
+    margin: 0;
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    pointer-events: none;
+    height: 20px;
+    outline: none;
+  }
+  .time-range-wrap input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid #16213e;
+    cursor: pointer;
+    pointer-events: all;
+    box-shadow: 0 0 6px rgba(255,184,0,0.4);
+  }
+  .time-range-wrap input[type=range]::-moz-range-thumb {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid #16213e;
+    cursor: pointer;
+    pointer-events: all;
+  }
+  .time-range-wrap input[type=range]:hover::-webkit-slider-thumb {
+    background: #ffd040;
+    box-shadow: 0 0 10px rgba(255,184,0,0.6);
+  }
+  .time-range-wrap.now-active input[type=range]::-webkit-slider-thumb {
+    background: #16213e;
+    border-color: rgba(255,184,0,0.45);
+    box-shadow: none;
+    cursor: default;
+  }
+  .time-range-wrap.now-active input[type=range]:hover::-webkit-slider-thumb {
+    background: #1e2d4a;
+    border-color: rgba(255,184,0,0.7);
+    box-shadow: 0 0 6px rgba(255,184,0,0.15);
+  }
+  .time-range-wrap.now-active .time-range-track-fill {
+    opacity: 0;
+  }
+  .time-range-sun-bg {
+    position: absolute;
+    top: 8px;
+    height: 4px;
+    background: rgba(255,184,0,0.13);
+    border-radius: 2px;
+    pointer-events: none;
+  }
+  .time-display-row {
+    position: absolute;
+    top: 22px;
+    left: 0; right: 0;
+    height: 12px;
+  }
+  .time-display-row span {
+    position: absolute;
+    transform: translateX(-50%);
+    font-size: 9px;
+    color: var(--muted);
+    white-space: nowrap;
+    transition: left 0.05s;
+  }
+
+  .tl-end-sun {
+    position: absolute;
+    top: -4px;
+    width: 2px;
+    height: 14px;
+    background: rgba(255,140,0,0.75);
+    border-radius: 1px;
+    transform: translateX(-50%);
+  }
+  .tl-end-sun-label {
+    position: absolute;
+    top: calc(100% + 5px);
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 9px;
+    color: rgba(255,140,0,0.85);
+    white-space: nowrap;
+  }
+  .tl-label-icon {
+    opacity: 0.55;
+    font-size: 8px;
+  }
+
+  /* Timeline extras */
+  .tl-shade-seg {
+    position: absolute;
+    top: 0; height: 100%;
+    background: rgba(255,255,255,0.035);
+    border-radius: 3px;
+  }
+  .tl-range-seg {
+    position: absolute;
+    top: -3px; height: calc(100% + 6px);
+    background: rgba(255,184,0,0.12);
+    border-left: 1px solid rgba(255,184,0,0.35);
+    border-right: 1px solid rgba(255,184,0,0.35);
+    border-radius: 2px;
+    pointer-events: none;
+  }
+  .tl-closed-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 8px;
+    background: rgba(255,80,80,0.1);
+    color: #ff8a8a;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .venue-card.closed-now {
+    opacity: 0.38;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- MAP -->
+  <div id="map-container">
+    <div id="map"></div>
+    <canvas id="canvas-overlay"></canvas>
+    <button id="panel-toggle" onclick="togglePanel()" title="Toggle sidebar">›</button>
+
+    <!-- HOVER TOOLTIP -->
+    <div id="hover-tooltip"></div>
+
+    <!-- EDIT FACING OVERLAY -->
+    <div id="edit-overlay">
+      <div id="edit-banner">
+        <div id="edit-info">
+          <div id="edit-title">Set terrace direction</div>
+          <div id="edit-subtitle">Hover walls to preview · click to confirm</div>
+        </div>
+        <div id="edit-venue-label">—</div>
+        <div id="edit-facing-display">—</div>
+        <button id="edit-done-btn" onclick="exitEditMode()">Done</button>
+      </div>
+    </div>
+
+    <!-- STATUS BAR -->
+    <div id="status-bar">
+      <div class="stat-item">
+        <span class="stat-label">Azimuth</span>
+        <span class="stat-value" id="stat-azimuth">—</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Altitude</span>
+        <span class="stat-value" id="stat-altitude">—</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Sunrise</span>
+        <span class="stat-value" id="stat-sunrise">—</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Sunset</span>
+        <span class="stat-value" id="stat-sunset">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div id="panel">
+    <div id="panel-header">
+      <!-- Brand + compass -->
+      <div id="brand-row">
+        <div id="brand-logo">Solsteder<span>Oslo sun places</span></div>
+        <canvas id="sun-compass" width="52" height="52"></canvas>
+      </div>
+
+      <!-- Date + time controls -->
+      <div id="panel-controls">
+        <div class="control-row">
+          <span class="control-label">Date</span>
+          <input type="date" id="date-picker">
+        </div>
+        <div class="control-row">
+          <span class="control-label">Time</span>
+          <div class="time-range-wrap" id="time-range-wrap">
+            <div class="time-range-sun-bg" id="time-range-sun-bg"></div>
+            <div class="time-range-track-bg"></div>
+            <div class="time-range-track-fill" id="time-range-fill"></div>
+            <input type="range" id="time-from" min="4" max="23" step="0.25" value="10">
+            <input type="range" id="time-to" min="4" max="23" step="0.25" value="22">
+            <div class="time-display-row">
+              <span id="time-display-from">10:00</span>
+              <span id="time-display-to">22:00</span>
+            </div>
+          </div>
+          <button id="now-btn" onclick="toggleNowMode()">Now</button>
+        </div>
+      </div>
+
+      <!-- Venue list header -->
+      <div id="venue-header">
+        <div id="panel-title">Oslo Venues</div>
+        <select class="filter-select" id="sort-by" style="flex:none;width:auto;font-size:11px">
+          <option value="sun">☀ Sun hours</option>
+          <option value="rating">★ Top rated</option>
+          <option value="distance">⊙ Nearest</option>
+        </select>
+      </div>
+      <div id="search-bar">
+        <input type="text" id="venue-search" placeholder="Search venues or areas…" autocomplete="off">
+      </div>
+      <div id="filter-bar">
+        <select class="filter-select" id="filter-type">
+          <option value="">All types</option>
+          <option value="restaurant">Restaurant</option>
+          <option value="pub">Pub</option>
+          <option value="cocktail_bar">Cocktail Bar</option>
+          <option value="wine_bar">Wine Bar</option>
+          <option value="bistro_bar">Bistro Bar</option>
+          <option value="brasserie">Brasserie</option>
+          <option value="cafe">Café</option>
+          <option value="rooftop_bar">Rooftop Bar</option>
+          <option value="fine_dining">Fine Dining</option>
+        </select>
+        <select class="filter-select" id="filter-area">
+          <option value="">All areas</option>
+          <option value="Aker Brygge">Aker Brygge</option>
+          <option value="Tjuvholmen">Tjuvholmen</option>
+          <option value="Sentrum">Sentrum</option>
+          <option value="Frogner">Frogner</option>
+          <option value="St. Hanshaugen">St. Hanshaugen</option>
+          <option value="Bislett">Bislett</option>
+        </select>
+        <select class="filter-select" id="filter-rating">
+          <option value="0">Any ★</option>
+          <option value="4">★ 4.0+</option>
+          <option value="4.3">★ 4.3+</option>
+          <option value="4.5">★ 4.5+</option>
+        </select>
+      </div>
+      <div id="filter-extra">
+        <button class="filter-toggle-btn" id="full-sun-btn" onclick="toggleFullSun()">☀ Full slot in sun</button>
+        <button class="filter-toggle-btn" id="map-view-btn" onclick="toggleMapView()">In map view</button>
+      </div>
+      <div id="facing-status"></div>
+    </div>
+    <div id="venue-list"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="js/solar.js"></script>
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script src="js/render.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/osm.js"></script>
+<script>
+loadVenues().then(() => {
+  updateRangeFill();
+  update();
+  initFacings();
+});
+</script>
+</body>
+</html>
