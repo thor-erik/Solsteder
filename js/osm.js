@@ -204,11 +204,16 @@ async function tryLoadPrecomputed() {
       v.buildingGeometry = g.buildingGeometry;
       v.wallNormals      = g.wallNormals;
       v.nearbyBuildings  = g.nearbyBuildings;
+      v.wallSegment      = g.wallSegment;
       // Respect manual override from edit tool; otherwise take pre-computed facing
       if (v.facingSource !== 'manual') {
-        v.facing      = g.facing;
+        v.facing       = g.facing;
         v.facingSource = g.facingSource;
         saveFacingCache(v.id, g.facing, g.facingSource);
+      } else {
+        // Manual facing: find matching wall segment from wallNormals
+        v.wallSegment = g.wallNormals.reduce((best, w) =>
+          Math.abs(w.bearing - v.facing) < Math.abs(best.bearing - v.facing) ? w : best, g.wallNormals[0]);
       }
       applied++;
     });
@@ -282,7 +287,12 @@ async function initFacings() {
     // ── Step 3: score walls (skipped if facing already set) ───────────────────
     // 'manual' = user chose via edit tool → never overwrite.
     // 'osm'    = previously computed and cached → skip redundant re-scoring.
-    if (v.facingSource === 'manual' || v.facingSource === 'osm') return;
+    if (v.facingSource === 'manual' || v.facingSource === 'osm') {
+      // Still resolve wallSegment for probe-point shadow testing
+      v.wallSegment = walls.reduce((best, w) =>
+        Math.abs(w.bearing - v.facing) < Math.abs(best.bearing - v.facing) ? w : best, walls[0]);
+      return;
+    }
 
     let bestWall = walls[0], bestScore = -Infinity;
     for (const wall of walls) {

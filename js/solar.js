@@ -115,8 +115,16 @@ function pointInBuildingShadow(lat, lng, building, sunAz, sunAlt) {
 function venueSunState(venue, sunAz, sunAlt) {
   if (sunAlt < 2) return false;
   if (venue.nearbyBuildings && venue.nearbyBuildings.length > 0) {
+    // Test a point 2 m in front of the terrace wall, not the entrance pin
+    let testLat = venue.lat, testLng = venue.lng;
+    if (venue.wallSegment) {
+      const br = venue.wallSegment.bearing * RAD;
+      const my = venue.wallSegment.my;
+      testLat = my + Math.cos(br) * 2 / 111320;
+      testLng = venue.wallSegment.mx + Math.sin(br) * 2 / (111320 * Math.cos(my * RAD));
+    }
     for (const b of venue.nearbyBuildings) {
-      if (pointInBuildingShadow(venue.lat, venue.lng, b, sunAz, sunAlt)) return false;
+      if (pointInBuildingShadow(testLat, testLng, b, sunAz, sunAlt)) return false;
     }
     return true;
   }

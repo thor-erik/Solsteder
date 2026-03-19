@@ -223,6 +223,7 @@ async function main() {
 
     let facing = v.facing ?? 180;
     let facingSource = v.facingSource;
+    let wallSegment;
 
     if (facingSource !== 'manual') {
       let bestWall = walls[0], bestScore = -Infinity;
@@ -232,14 +233,18 @@ async function main() {
       }
       facing = Math.round(bestWall.bearing);
       facingSource = 'osm';
+      wallSegment = bestWall;
       console.log(`  ✓ ${v.name}: ${facing}° (score ${bestScore.toFixed(0)}, wall ${bestWall.lenM.toFixed(0)} m, ${nearbyBuildings.length} nearby buildings)`);
     } else {
+      wallSegment = walls.reduce((best, w) =>
+        Math.abs(w.bearing - facing) < Math.abs(best.bearing - facing) ? w : best, walls[0]);
       console.log(`  → ${v.name}: manual facing ${facing}° preserved`);
     }
 
     output.venues[v.id] = {
       facing,
       facingSource,
+      wallSegment,
       buildingGeometry: building.geometry,
       wallNormals:      walls,
       nearbyBuildings,

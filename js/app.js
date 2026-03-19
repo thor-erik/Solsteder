@@ -70,6 +70,7 @@ function dispatchToWorker(dateStr) {
     lat:            v.lat,
     lng:            v.lng,
     nearbyBuildings: v.nearbyBuildings ?? null,
+    wallSegment:     v.wallSegment     ?? null,
   }));
   // Slice the buffer so we transfer a copy, keeping currentSunTable intact on main thread
   const transferBuf = currentSunTable.buffer.slice(0);
