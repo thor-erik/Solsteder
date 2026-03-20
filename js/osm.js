@@ -11,7 +11,7 @@ const OVERPASS_ENDPOINTS = [
   'https://overpass.kumi.systems/api/interpreter',
   'https://overpass.openstreetmap.ru/api/interpreter',
 ];
-const OSM_CACHE_KEY    = 'solsteder_osm_v5';
+const OSM_CACHE_KEY    = 'solsteder_osm_v6';
 const OSM_CACHE_TTL    = 7 * 24 * 60 * 60 * 1000; // 7 days
 // Bump this whenever the scoring / geometry pipeline changes so that a
 // stale precomputed geometry.json is rejected and the slow path reruns.
@@ -271,7 +271,7 @@ function computeAutoTerraceWallIndices(venue, walls, buildings, venueBuilding, o
     if (i2 === bestIdx) return;
     if (scores[i2] < bestScore * 0.20) return;
     if (!sharesVertex(bestWall, w2)) return;
-    if (entranceNearSharedCorner(bestWall, w2) || scores[i2] >= bestScore * 0.40) {
+    if (entranceNearSharedCorner(bestWall, w2) && scores[i2] >= bestScore * 0.40) {
       selected.push(i2);
     }
   });
