@@ -72,7 +72,7 @@
     top: 16px;
     left: 16px;
     z-index: 900;
-    width: 320px;
+    width: 336px;
   }
   #floating-search #venue-search {
     background: transparent;
@@ -136,6 +136,7 @@
     height: 72px;
     display: block;
     min-width: 0;
+    cursor: pointer;
   }
 
   /* Weather pill — right of sun arc */
@@ -404,7 +405,7 @@
     top: 72px;      /* 16 top + ~48 search card + 8 gap */
     left: 16px;
     bottom: 16px;
-    width: 320px;
+    width: 336px;
     background: rgba(22,33,62,0.88);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -1273,7 +1274,7 @@
       </div>
       <!-- Row 2: sun arc curve + current weather pill -->
       <div id="bottom-arc-row">
-        <canvas id="sun-curve"></canvas>
+        <canvas id="sun-curve" onclick="handleSunCurveClick(event)"></canvas>
         <div id="wx-now"></div>
       </div>
       <!-- Row 3: date navigation + time slider -->

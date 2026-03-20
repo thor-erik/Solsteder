@@ -423,7 +423,7 @@ function renderList() {
   if (isAfterSunset && sunCount === 0) {
     const banner = document.createElement('div');
     banner.id = 'no-sun-banner';
-    banner.innerHTML = `<span>☁ Sun has set for today</span><button onclick="advanceDay(1)">Tomorrow →</button>`;
+    banner.innerHTML = `<span>☁ Sun has set for today</span><button onclick="advanceDay(1, 12)">Tomorrow →</button>`;
     list.prepend(banner);
   }
 }

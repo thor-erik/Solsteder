@@ -11,7 +11,7 @@ const OVERPASS_ENDPOINTS = [
   'https://overpass.kumi.systems/api/interpreter',
   'https://overpass.openstreetmap.ru/api/interpreter',
 ];
-const OSM_CACHE_KEY = 'solsteder_osm_v3';
+const OSM_CACHE_KEY = 'solsteder_osm_v4';
 const OSM_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 // ── Network ───────────────────────────────────────────────────────────────────

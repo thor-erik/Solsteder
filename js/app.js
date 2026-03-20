@@ -343,10 +343,38 @@ function scheduleRenderList() {
 }
 
 // ── Day navigation ────────────────────────────────────────────────────────────
-function advanceDay(delta) {
+function advanceDay(delta, setHour) {
   const d = new Date(datePicker.value + 'T12:00:00');
   d.setDate(d.getDate() + delta);
   datePicker.value = d.toISOString().slice(0, 10);
+  if (setHour !== undefined) {
+    if (nowMode) {
+      nowMode = false;
+      nowBtn.classList.remove('active');
+      timeRangeWrap.classList.remove('now-active');
+      clearInterval(nowInterval); nowInterval = null;
+    }
+    setActiveIntentBtn(null);
+    timeFromEl.value = setHour;
+  }
+  update();
+}
+
+// ── Sun curve click → set time ────────────────────────────────────────────────
+function handleSunCurveClick(e) {
+  const rect  = e.currentTarget.getBoundingClientRect();
+  const x     = e.clientX - rect.left;
+  const PAD_X = 38, MIN_H = 4, MAX_H = 23;
+  const t     = MIN_H + (x - PAD_X) / (rect.width - PAD_X * 2) * (MAX_H - MIN_H);
+  const hour  = Math.max(MIN_H, Math.min(MAX_H, t));
+  if (nowMode) {
+    nowMode = false;
+    nowBtn.classList.remove('active');
+    timeRangeWrap.classList.remove('now-active');
+    clearInterval(nowInterval); nowInterval = null;
+  }
+  setActiveIntentBtn(null);
+  timeFromEl.value = hour;
   update();
 }
 
