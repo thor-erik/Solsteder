@@ -93,26 +93,31 @@ map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
 
 map.on('style.load', () => {
   mapLoaded = true;
-  map.setConfigProperty('basemap', 'showPointOfInterestLabels', false);
-  map.setConfigProperty('basemap', 'showTransitLabels', false);
 
-  // Boost ambient occlusion on building extrusions so they read clearly from the ground
-  map.getStyle().layers.forEach(layer => {
-    if (layer.type === 'fill-extrusion') {
-      map.setPaintProperty(layer.id, 'fill-extrusion-ambient-occlusion-intensity', 0.8);
-      map.setPaintProperty(layer.id, 'fill-extrusion-ambient-occlusion-radius', 6);
-      map.setPaintProperty(layer.id, 'fill-extrusion-opacity', 1.0);
-    }
-  });
+  const isStandard = !editSatelliteActive;
+  if (isStandard) {
+    map.setConfigProperty('basemap', 'showPointOfInterestLabels', false);
+    map.setConfigProperty('basemap', 'showTransitLabels', false);
 
-  map.setFog({
-    range: [1, 10],
-    color: 'rgba(160, 180, 210, 0.25)',
-    'horizon-blend': 0.04,
-    'high-color': '#1a3a6e',
-    'space-color': '#0a0a1e',
-    'star-intensity': 0.2
-  });
+    // Boost ambient occlusion on building extrusions so they read clearly from the ground
+    map.getStyle().layers.forEach(layer => {
+      if (layer.type === 'fill-extrusion') {
+        map.setPaintProperty(layer.id, 'fill-extrusion-ambient-occlusion-intensity', 0.8);
+        map.setPaintProperty(layer.id, 'fill-extrusion-ambient-occlusion-radius', 6);
+        map.setPaintProperty(layer.id, 'fill-extrusion-opacity', 1.0);
+      }
+    });
+
+    map.setFog({
+      range: [1, 10],
+      color: 'rgba(160, 180, 210, 0.25)',
+      'horizon-blend': 0.04,
+      'high-color': '#1a3a6e',
+      'space-color': '#0a0a1e',
+      'star-intensity': 0.2
+    });
+  }
+
   updateLightPreset();
   updateSunLighting();
 });
@@ -390,10 +395,26 @@ function enterEditMode(venueId) {
   draw();
 }
 
+let editSatelliteActive = false;
+
+function toggleEditSatellite() {
+  editSatelliteActive = !editSatelliteActive;
+  document.getElementById('edit-satellite-btn').classList.toggle('active', editSatelliteActive);
+  map.setStyle(editSatelliteActive
+    ? 'mapbox://styles/mapbox/satellite-streets-v12'
+    : 'mapbox://styles/mapbox/standard'
+  );
+}
+
 function exitEditMode() {
   editingVenueId = null;
   editHoveredWallIdx = null;
   document.getElementById('edit-overlay').style.display = 'none';
+  if (editSatelliteActive) {
+    editSatelliteActive = false;
+    document.getElementById('edit-satellite-btn').classList.remove('active');
+    map.setStyle('mapbox://styles/mapbox/standard');
+  }
   map.easeTo({ pitch: 15, bearing: 0, duration: 500 });
   draw();
   renderList();

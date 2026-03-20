@@ -664,6 +664,30 @@
     color: #7ab4ff;
   }
 
+  #edit-satellite-btn {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 7px 14px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  #edit-satellite-btn:hover { background: rgba(255,255,255,0.17); }
+
+  #edit-satellite-btn.active {
+    background: rgba(100,180,255,0.18);
+    border-color: rgba(100,180,255,0.55);
+    color: #7ab4ff;
+  }
+
   #edit-done-btn {
     background: var(--accent);
     border: none;
@@ -935,6 +959,10 @@
         </div>
         <div id="edit-venue-label">—</div>
         <div id="edit-facing-display">—</div>
+        <button id="edit-satellite-btn" onclick="toggleEditSatellite()" title="Toggle satellite view">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          Satellite
+        </button>
         <button id="edit-done-btn" onclick="exitEditMode()">Done</button>
       </div>
     </div>
