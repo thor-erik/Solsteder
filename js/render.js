@@ -506,7 +506,18 @@ canvas.addEventListener('click', e => {
     return;
   }
   const hit = hitTestVenue(cx, cy);
-  if (hit) selectVenue(hit.id, true);
+  if (hit) {
+    selectVenue(hit.id, true);
+  } else {
+    // Clicked empty map — close popup and deselect
+    if (popup) { popup.remove(); }
+    if (selectedId !== null) {
+      selectedId = null;
+      clearSpriteCache();
+      draw();
+      renderList();
+    }
+  }
 });
 
 canvas.addEventListener('mousemove', e => {
