@@ -40,6 +40,14 @@ function wallOutwardNormal(v, wall) {
   return { normX, normY, mx, my };
 }
 
+/**
+ * Effective terrace depth for a venue in metres.
+ * Priority: manual drag value → auto-detected highway distance → fallback constant.
+ */
+function getEffectiveDepth(v) {
+  return v.terraceDepth ?? v.autoTerraceDepth ?? TERRACE_DEPTH_M;
+}
+
 /** Pixels per metre at the venue's latitude (lat-direction approximation). */
 function pxPerMetre(v) {
   const base = map.project([v.lng, v.lat]);
@@ -284,7 +292,7 @@ function drawBuildingEditor() {
 
   // ── Terrace preview + depth handles ────────────────────────────────────────
   if (currentWalls.length > 0) {
-    const depth  = v.terraceDepth ?? 7;
+    const depth  = getEffectiveDepth(v);
     const pxPerM = pxPerMetre(v);
 
     currentWalls.forEach(wall => {
@@ -389,7 +397,7 @@ function drawSeatingAreas() {
     const fillShade   = 'rgba(40,80,180,0.13)';
     const strokeShade = 'rgba(80,130,220,0.35)';
 
-    const depth = v.terraceDepth ?? TERRACE_DEPTH_M;
+    const depth = getEffectiveDepth(v);
     const walls = getTerraceWalls(v);
 
     if (walls.length > 0 && walls[0].aLat != null) {
@@ -652,7 +660,7 @@ function hitTestDepthHandle(cx, cy) {
   const v = VENUES.find(x => x.id === editingVenueId);
   if (!v) return null;
   const walls  = getTerraceWalls(v);
-  const depth  = v.terraceDepth ?? 7;
+  const depth  = getEffectiveDepth(v);
   const pxPerM = pxPerMetre(v);
   for (const wall of walls) {
     const { normX, normY, mx, my } = wallOutwardNormal(v, wall);
@@ -750,7 +758,7 @@ canvas.addEventListener('mousemove', e => {
         const walls = getTerraceWalls(v);
         const wallsLabel = walls.length > 1 ? ` · ${walls.length} walls` : '';
         document.getElementById('edit-facing-display').innerHTML =
-          `${v.facing}° ${bearingToCardinal(v.facing)}${wallsLabel} · <span style="color:#64ffb4">${Math.round(v.terraceDepth)}m depth</span>`;
+          `${v.facing}° ${bearingToCardinal(v.facing)}${wallsLabel} · <span style="color:#64ffb4">${Math.round(getEffectiveDepth(v))}m depth</span>`;
       }
       return;
     }
@@ -806,7 +814,7 @@ window.addEventListener('mouseup', () => {
   if (editDraggingDepth) {
     editDraggingDepth = false;
     const v = VENUES.find(x => x.id === editingVenueId);
-    if (v) saveFacingCache(v.id, v.facing, v.facingSource, v.terraceWallIndices ?? [], v.terraceDepth ?? 7);
+    if (v) saveFacingCache(v.id, v.facing, v.facingSource, v.terraceWallIndices ?? [], v.terraceDepth);
     editDragWallObj = null;
     canvas.style.cursor = 'default';
   }

@@ -144,6 +144,52 @@ function findNearbyBuildings(venue, buildings, excludeBuilding = null, radiusM =
     }));
 }
 
+// ── Auto terrace depth ────────────────────────────────────────────────────────
+
+function raySegmentIntersect(ox, oy, dx, dy, ax, ay, bx, by) {
+  const ex = bx - ax, ey = by - ay;
+  const denom = dx * ey - dy * ex;
+  if (Math.abs(denom) < 1e-12) return null;
+  const t = ((ax - ox) * ey - (ay - oy) * ex) / denom;
+  const s = ((ax - ox) * dy - (ay - oy) * dx) / denom;
+  if (t > 1e-6 && s >= -0.01 && s <= 1.01) return t;
+  return null;
+}
+
+/**
+ * Raycast outward from three points along the terrace wall and return the
+ * nearest highway intersection depth in metres (minus 0.5 m buffer), or
+ * null if no highway is found within 20 m.
+ */
+function computeAutoTerraceDepth(wall, highways) {
+  const MAX_DIST_M = 20;
+  const br     = wall.bearing * RAD;
+  const cosLat = Math.cos(wall.my * RAD);
+  const MAX_T  = MAX_DIST_M / 111320;
+  const dx = Math.sin(br), dy = Math.cos(br);
+
+  const probeOrigins = [0.25, 0.5, 0.75].map(f => ({
+    ox: ((1 - f) * wall.aLng + f * wall.bLng) * cosLat,
+    oy:  (1 - f) * wall.aLat + f * wall.bLat,
+  }));
+
+  let minT = MAX_T;
+  for (const hw of highways) {
+    const nodes = hw.geometry || [];
+    for (let i = 0; i < nodes.length - 1; i++) {
+      const a = nodes[i], b = nodes[i + 1];
+      const ax = a.lon * cosLat, ay = a.lat;
+      const bx = b.lon * cosLat, by = b.lat;
+      for (const { ox, oy } of probeOrigins) {
+        if (Math.hypot((ax + bx) / 2 - ox, (ay + by) / 2 - oy) > MAX_T * 2) continue;
+        const t = raySegmentIntersect(ox, oy, dx, dy, ax, ay, bx, by);
+        if (t !== null && t < minT) minT = t;
+      }
+    }
+  }
+  return minT < MAX_T ? Math.max(1.5, minT * 111320 - 0.5) : null;
+}
+
 /**
  * Score a wall for how likely it is to be the terrace-facing facade.
  * Higher score = more likely to face an open, sunny, street-side space.
@@ -202,10 +248,11 @@ async function tryLoadPrecomputed() {
     VENUES.forEach(v => {
       const g = precomputed[v.id];
       if (!g) return;
-      v.buildingGeometry = g.buildingGeometry;
-      v.wallNormals      = g.wallNormals;
-      v.nearbyBuildings  = g.nearbyBuildings;
-      v.wallSegment      = g.wallSegment;
+      v.buildingGeometry  = g.buildingGeometry;
+      v.wallNormals       = g.wallNormals;
+      v.nearbyBuildings   = g.nearbyBuildings;
+      v.wallSegment       = g.wallSegment;
+      v.autoTerraceDepth  = g.autoTerraceDepth ?? null;
       // Respect manual override from edit tool; otherwise take pre-computed facing
       if (v.facingSource !== 'manual') {
         v.facing       = g.facing;
@@ -292,6 +339,7 @@ async function initFacings() {
       // Still resolve wallSegment for probe-point shadow testing
       v.wallSegment = walls.reduce((best, w) =>
         Math.abs(w.bearing - v.facing) < Math.abs(best.bearing - v.facing) ? w : best, walls[0]);
+      v.autoTerraceDepth = computeAutoTerraceDepth(v.wallSegment, highways);
       return;
     }
 
@@ -304,6 +352,7 @@ async function initFacings() {
     v.facing = Math.round(bestWall.bearing);
     v.wallSegment = bestWall;
     v.facingSource = 'osm';
+    v.autoTerraceDepth = computeAutoTerraceDepth(bestWall, highways);
     saveFacingCache(v.id, v.facing, 'osm');
     computed++;
     console.log(`${v.name}: ${v.facing}° | score ${bestScore.toFixed(0)} | wall ${bestWall.lenM.toFixed(0)} m`);

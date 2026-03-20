@@ -150,6 +150,65 @@ function findNearbyBuildings(venue, buildings, excludeBuilding = null) {
     }));
 }
 
+// ── Auto terrace depth ────────────────────────────────────────────────────────
+
+/**
+ * 2-D ray / segment intersection in the (lon*cosLat, lat) coordinate space.
+ * Returns the ray parameter t > 0 if they intersect, otherwise null.
+ */
+function raySegmentIntersect(ox, oy, dx, dy, ax, ay, bx, by) {
+  const ex = bx - ax, ey = by - ay;
+  const denom = dx * ey - dy * ex;
+  if (Math.abs(denom) < 1e-12) return null;
+  const t = ((ax - ox) * ey - (ay - oy) * ex) / denom;
+  const s = ((ax - ox) * dy - (ay - oy) * dx) / denom;
+  if (t > 1e-6 && s >= -0.01 && s <= 1.01) return t;
+  return null;
+}
+
+/**
+ * Raycast outward from three points (25 / 50 / 75%) along the terrace wall
+ * and return the nearest highway intersection distance in metres, minus a
+ * 0.5 m buffer — or null if no highway is found within MAX_DIST_M.
+ */
+function computeAutoTerraceDepth(wall, highways) {
+  const MAX_DIST_M = 20;
+  const br         = wall.bearing * RAD;
+  const cosLat     = Math.cos(wall.my * RAD);
+  const MAX_T      = MAX_DIST_M / 111320;  // in (lon*cosLat, lat) units
+
+  // Unit direction vector in (lon*cosLat, lat) space
+  const dx = Math.sin(br), dy = Math.cos(br);
+
+  // Three probe origins along the wall face (25%, 50%, 75%)
+  const probeOrigins = [0.25, 0.5, 0.75].map(f => ({
+    ox: ((1 - f) * wall.aLng + f * wall.bLng) * cosLat,
+    oy:  (1 - f) * wall.aLat + f * wall.bLat,
+  }));
+
+  let minT = MAX_T;
+
+  for (const hw of highways) {
+    const nodes = hw.geometry || [];
+    for (let i = 0; i < nodes.length - 1; i++) {
+      const a  = nodes[i], b = nodes[i + 1];
+      const ax = a.lon * cosLat, ay = a.lat;
+      const bx = b.lon * cosLat, by = b.lat;
+      for (const { ox, oy } of probeOrigins) {
+        // Quick cull: skip if midpoint of segment is far from probe origin
+        if (Math.hypot((ax + bx) / 2 - ox, (ay + by) / 2 - oy) > MAX_T * 2) continue;
+        const t = raySegmentIntersect(ox, oy, dx, dy, ax, ay, bx, by);
+        if (t !== null && t < minT) minT = t;
+      }
+    }
+  }
+
+  if (minT < MAX_T) {
+    return Math.max(1.5, minT * 111320 - 0.5);  // 0.5 m buffer, minimum 1.5 m
+  }
+  return null;
+}
+
 function scoreWall(wall, buildings, venueBuilding, openPolygons, entranceNodes, highways) {
   let score = wall.lenM;
 
@@ -242,13 +301,19 @@ async function main() {
       console.log(`  → ${v.name}: manual facing ${facing}° preserved`);
     }
 
+    const autoTerraceDepth = computeAutoTerraceDepth(wallSegment, highways);
+    if (autoTerraceDepth !== null) {
+      console.log(`    terrace depth: ${autoTerraceDepth.toFixed(1)} m (street detected)`);
+    }
+
     output.venues[v.id] = {
       facing,
       facingSource,
       wallSegment,
-      buildingGeometry: building.geometry,
-      wallNormals:      walls,
+      buildingGeometry:  building.geometry,
+      wallNormals:       walls,
       nearbyBuildings,
+      autoTerraceDepth,
     };
   }
 

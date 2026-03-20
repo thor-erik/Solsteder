@@ -43,7 +43,7 @@ function saveFacingCache(venueId, facing, facingSource, terraceWallIndices, terr
     facingSource,
     // Preserve existing terrace data when callers don't pass it (e.g. auto-OSM scoring)
     terraceWallIndices: terraceWallIndices ?? prev.terraceWallIndices ?? [],
-    terraceDepth:       terraceDepth       ?? prev.terraceDepth       ?? 7,
+    terraceDepth:       terraceDepth       ?? prev.terraceDepth       ?? null,
   };
   try { localStorage.setItem(FACING_CACHE_KEY, JSON.stringify(cache)); }
   catch (_) {}
@@ -65,7 +65,7 @@ function normalizeVenue(v) {
     openingHours:       v.openingHours,
     buildingOsmId:      v.buildingOsmId ?? null,
     googlePlaceId:      v.googlePlaceId ?? null,
-    terraceDepth:       v.terraceDepth ?? 7,
+    terraceDepth:       v.terraceDepth ?? null,  // null = not manually set; auto-depth used instead
     terraceWallIndices: v.terraceWallIndices ?? [],
   };
 }
