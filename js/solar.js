@@ -24,7 +24,12 @@ function getSun(dateStr, hour) {
   const doy = Math.round((d - new Date(d.getFullYear(), 0, 1)) / 86400000) + 1;
   const B   = (360 / 365) * (doy - 81) * RAD;
   const eot = 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B);
-  const tz  = (d.getMonth() >= 2 && d.getMonth() <= 9) ? 2 : 1;
+  // Oslo DST: UTC+2 from last Sunday of March to last Sunday of October, else UTC+1
+  const lastSunMarch   = new Date(d.getFullYear(), 3, 0); // last day of March
+  lastSunMarch.setDate(lastSunMarch.getDate() - lastSunMarch.getDay());
+  const lastSunOctober = new Date(d.getFullYear(), 10, 0); // last day of October
+  lastSunOctober.setDate(lastSunOctober.getDate() - lastSunOctober.getDay());
+  const tz = (d >= lastSunMarch && d < lastSunOctober) ? 2 : 1;
   const noon = 12 - (10.7522 - 15 * tz) / 15 - eot / 60;
   const decl = 23.45 * Math.sin((360 / 365) * (doy - 81) * RAD) * RAD;
   const lat  = OSLO_LAT * RAD;
