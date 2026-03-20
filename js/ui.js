@@ -311,7 +311,7 @@ function renderList() {
 
   if (filterMapViewActive) {
     const bounds = map.getBounds();
-    venues = venues.filter(v => bounds.contains([v.lat, v.lng]));
+    venues = venues.filter(v => bounds.contains([v.lng, v.lat]));
   }
 
   if (sortBy === 'distance' && userLocation) {

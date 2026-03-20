@@ -1,7 +1,7 @@
 /**
  * render.js — Canvas drawing: sprites, markers, building editor, map sync.
  * Depends on: map, canvas, ctx, currentSun, selectedId, editingVenueId (app.js)
- *             VENUES, catIcon (data.js) · venueInSun (solar.js)
+ *             VENUES, catIcon (data.js) · venueSunState (solar.js)
  */
 
 // ── Sprite cache ──────────────────────────────────────────────────────────────
@@ -95,25 +95,7 @@ resizeCanvas();
 window.addEventListener('resize', () => { resizeCanvas(); draw(); });
 
 map.on('move', draw);
-
-// Mirror Leaflet's CSS zoom animation on the canvas
-map.on('zoomanim', function(e) {
-  const S  = map.getZoomScale(e.zoom, map.getZoom());
-  const CP = map.latLngToContainerPoint(e.center);
-  const sz = map.getSize();
-  const Ox = (sz.x / 2 - CP.x * S) / (1 - S);
-  const Oy = (sz.y / 2 - CP.y * S) / (1 - S);
-  canvas.style.transition     = 'transform 0.25s cubic-bezier(0,0,0.25,1)';
-  canvas.style.transformOrigin = `${Ox}px ${Oy}px`;
-  canvas.style.transform      = `scale(${S})`;
-});
-
-map.on('zoomend', function() {
-  canvas.style.transition     = 'none';
-  canvas.style.transform      = '';
-  canvas.style.transformOrigin = '';
-  draw();
-});
+map.on('zoomend', draw);
 
 // ── Sun compass ───────────────────────────────────────────────────────────────
 function drawSunCompass() {
@@ -171,7 +153,7 @@ function drawBuildingEditor() {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   if (!v.buildingGeometry || !v.wallNormals) {
-    const pt = map.latLngToContainerPoint([v.lat, v.lng]);
+    const pt = map.project([v.lng, v.lat]);
     ctx.strokeStyle = 'rgba(255,184,0,0.7)'; ctx.lineWidth = 1.5; ctx.setLineDash([6,4]);
     ctx.beginPath(); ctx.moveTo(pt.x - 20, pt.y); ctx.lineTo(pt.x + 20, pt.y); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(pt.x, pt.y - 20); ctx.lineTo(pt.x, pt.y + 20); ctx.stroke();
@@ -184,15 +166,15 @@ function drawBuildingEditor() {
   // Building polygon
   ctx.beginPath();
   nodes.forEach((n, i) => {
-    const pt = map.latLngToContainerPoint([n.lat, n.lon]);
+    const pt = map.project([n.lon, n.lat]);
     i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y);
   });
   ctx.closePath();
   ctx.fillStyle = 'rgba(24,88,180,0.45)'; ctx.fill();
 
   walls.forEach((wall, idx) => {
-    const pa = map.latLngToContainerPoint([wall.aLat, wall.aLng]);
-    const pb = map.latLngToContainerPoint([wall.bLat, wall.bLng]);
+    const pa = map.project([wall.aLng, wall.aLat]);
+    const pb = map.project([wall.bLng, wall.bLat]);
     const isHovered = idx === editHoveredWallIdx;
     const isCurrent = v.wallSegment === wall;
     const mx = (pa.x + pb.x) / 2, my = (pa.y + pb.y) / 2;
@@ -203,7 +185,7 @@ function drawBuildingEditor() {
     let normX = -wdy / wl, normY = wdx / wl;
     if (v.buildingGeometry) {
       const cen   = computeCentroid(v.buildingGeometry);
-      const cenPx = map.latLngToContainerPoint([cen.lat, cen.lon]);
+      const cenPx = map.project([cen.lon, cen.lat]);
       if (normX * (cenPx.x - mx) + normY * (cenPx.y - my) > 0) { normX = -normX; normY = -normY; }
     }
 
@@ -311,9 +293,9 @@ function drawShadowOverlay(venue) {
     const casting = pointInBuildingShadow(testLat, testLng, b, az, alt);
 
     // Convert footprint + shadow nodes to pixel space
-    const footPx   = nodes.map(n => map.latLngToContainerPoint([n.lat, n.lon])).map(p => ({ x: p.x, y: p.y }));
+    const footPx   = nodes.map(n => { const p = map.project([n.lon, n.lat]); return { x: p.x, y: p.y }; });
     const shadowPx = nodes.map(n => {
-      const p = map.latLngToContainerPoint([n.lat + height * dLat, n.lon + height * dLon]);
+      const p = map.project([n.lon + height * dLon, n.lat + height * dLat]);
       return { x: p.x, y: p.y };
     });
 
@@ -352,9 +334,9 @@ function drawShadowOverlay(venue) {
   if (venue.wallSegment) {
     const br = venue.wallSegment.bearing * RAD;
     const wy = venue.wallSegment.my;
-    const testLat = wy + Math.cos(br) * 2 / 111320;
-    const testLng = venue.wallSegment.mx + Math.sin(br) * 2 / (111320 * Math.cos(wy * RAD));
-    const pt = map.latLngToContainerPoint([testLat, testLng]);
+    const tLat = wy + Math.cos(br) * 2 / 111320;
+    const tLng = venue.wallSegment.mx + Math.sin(br) * 2 / (111320 * Math.cos(wy * RAD));
+    const pt = map.project([tLng, tLat]);
     const sunny = venueSunState(venue, az, alt);
 
     const glow = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, 13);
@@ -391,7 +373,7 @@ function draw() {
   if (editingVenueId) {
     ctx.globalAlpha = 0.18;
     VENUES.forEach(v => {
-      const pt = map.latLngToContainerPoint([v.lat, v.lng]);
+      const pt = map.project([v.lng, v.lat]);
       ctx.drawImage(getSprite(v, venueSunState(v, currentSun.az, currentSun.alt), false), pt.x - SPRITE/2, pt.y - SPRITE/2);
     });
     ctx.globalAlpha = 1;
@@ -411,11 +393,11 @@ function draw() {
 
   // Pass 1: sprites — viewport-culled + zoom-density filtered
   VENUES.forEach(v => {
-    if (!bounds.contains([v.lat, v.lng])) return;
+    if (!bounds.contains([v.lng, v.lat])) return;
     if (!shouldShowAtZoom(v, zoom)) { hiddenCount++; return; }
     const sunny    = venueSunState(v, currentSun.az, currentSun.alt);
     const selected = v.id === selectedId;
-    const pt       = map.latLngToContainerPoint([v.lat, v.lng]);
+    const pt       = map.project([v.lng, v.lat]);
     ctx.drawImage(getSprite(v, sunny, selected), pt.x - SPRITE/2, pt.y - SPRITE/2);
   });
 
@@ -439,10 +421,10 @@ function draw() {
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
 
     VENUES.forEach(v => {
-      if (!bounds.contains([v.lat, v.lng])) return;
+      if (!bounds.contains([v.lng, v.lat])) return;
       if (!shouldShowAtZoom(v, zoom)) return;
       const { windows } = computeSunWindows(v, dateStr);
-      const lpt = map.latLngToContainerPoint([v.lat, v.lng]);
+      const lpt = map.project([v.lng, v.lat]);
 
       let label = null, bgColor, textColor;
       const curWin = windows.find(w => hour >= w.start && hour < w.end);
@@ -473,7 +455,7 @@ function draw() {
 function hitTestVenue(cx, cy) {
   let hit = null;
   VENUES.forEach(v => {
-    const pt = map.latLngToContainerPoint([v.lat, v.lng]);
+    const pt = map.project([v.lng, v.lat]);
     if (Math.hypot(cx - pt.x, cy - pt.y) <= 20) hit = v;
   });
   return hit;
@@ -485,8 +467,8 @@ function hitTestWall(cx, cy) {
   if (!v?.wallNormals) return null;
   let bestIdx = null, bestDistSq = 100;
   v.wallNormals.forEach((wall, idx) => {
-    const pa = map.latLngToContainerPoint([wall.aLat, wall.aLng]);
-    const pb = map.latLngToContainerPoint([wall.bLat, wall.bLng]);
+    const pa = map.project([wall.aLng, wall.aLat]);
+    const pb = map.project([wall.bLng, wall.bLat]);
     const dSq = distPointToSegmentSq(cx, cy, pa.x, pa.y, pb.x, pb.y);
     if (dSq < bestDistSq) { bestDistSq = dSq; bestIdx = idx; }
   });

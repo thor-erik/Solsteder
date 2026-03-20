@@ -20,6 +20,7 @@ let filterFullSunActive = false;
 let filterMapViewActive = false;
 let panelVisible      = true;
 let hoveredId         = null;
+let mapLoaded         = false;
 
 // ── Sun window cache ──────────────────────────────────────────────────────────
 // Keyed by `${venueId}-${dateStr}`. Populated by the worker (background) and
@@ -78,15 +79,54 @@ function dispatchToWorker(dateStr) {
 }
 
 // ── Map ───────────────────────────────────────────────────────────────────────
-const map = L.map('map', { center: [59.9125, 10.728], zoom: 13, zoomControl: false });
+mapboxgl.accessToken = MAPBOX_TOKEN; // defined in js/config.js (gitignored)
+const map = new mapboxgl.Map({
+  container: 'map',
+  style: 'mapbox://styles/mapbox/standard',
+  center: [10.728, 59.9125],
+  zoom: 13,
+  antialias: true
+});
 
-L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-  subdomains: 'abcd',
-  maxZoom: 19,
-}).addTo(map);
+map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
 
-L.control.zoom({ position: 'bottomright' }).addTo(map);
+map.on('style.load', () => {
+  mapLoaded = true;
+  updateSunLighting();
+});
+
+// ── Sun lighting (Mapbox GL v3) ───────────────────────────────────────────────
+function updateSunLighting() {
+  if (!mapLoaded || !currentSun) return;
+  const { az, alt } = currentSun;
+  if (alt > 0) {
+    map.setLights([
+      {
+        id: 'sun',
+        type: 'directional',
+        properties: {
+          direction: [az, 90 - alt],
+          'cast-shadows': true,
+          intensity: Math.min(1, 0.3 + alt / 40),
+          color: alt < 15 ? '#ffcc88' : '#ffffff'
+        }
+      },
+      {
+        id: 'ambient',
+        type: 'ambient',
+        properties: { intensity: 0.35, color: '#ffffff' }
+      }
+    ]);
+  } else {
+    map.setLights([
+      {
+        id: 'ambient',
+        type: 'ambient',
+        properties: { intensity: 0.7, color: '#8899cc' }
+      }
+    ]);
+  }
+}
 
 // ── Canvas ────────────────────────────────────────────────────────────────────
 const canvas = document.getElementById('canvas-overlay');
@@ -184,6 +224,7 @@ function update() {
   drawSunCompass();
   renderList();
   updatePopup();
+  updateSunLighting();
 
   if (hoveredId != null && tooltip.classList.contains('visible')) {
     const hv = VENUES.find(x => x.id === hoveredId);
@@ -198,23 +239,25 @@ function selectVenue(id, flyTo) {
   const v = VENUES.find(x => x.id === id);
   if (!v) return;
 
-  if (flyTo) map.flyTo([v.lat, v.lng], Math.max(map.getZoom(), 15), { duration: 0.8 });
+  if (flyTo) map.flyTo({ center: [v.lng, v.lat], zoom: Math.max(map.getZoom(), 15), duration: 800 });
 
-  if (popup) map.closePopup(popup);
+  if (popup) { popup.remove(); popup = null; }
   const sunny = currentSun ? venueSunState(v, currentSun.az, currentSun.alt) : false;
-  popup = L.popup({ closeButton: true, offset: [0, -10] })
-    .setLatLng([v.lat, v.lng])
-    .setContent(`
+  popup = new mapboxgl.Popup({ closeButton: true, offset: [0, -10] })
+    .setLngLat([v.lng, v.lat])
+    .setHTML(`
       <div class="popup-name">${catIcon(v)} ${v.name}</div>
       <div class="popup-meta">★ ${v.rating} · ${catLabel(v)}</div>
       <div class="popup-address">${v.address}</div>
       <div class="popup-status ${sunny ? 'sunny' : 'shaded'}">${sunny ? '☀ Currently in sun' : '● In shade right now'}</div>
-      <button class="popup-edit-btn" onclick="map.closePopup();enterEditMode(${v.id})">
+      <button class="popup-edit-btn" onclick="if(popup)popup.remove();enterEditMode(${v.id})">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         Edit direction
       </button>
     `)
-    .openOn(map);
+    .addTo(map);
+  canvas.style.pointerEvents = 'none';
+  popup.on('close', () => { popup = null; canvas.style.pointerEvents = 'auto'; });
 
   draw();
   renderList();
@@ -226,16 +269,16 @@ function selectVenue(id, flyTo) {
 }
 
 function updatePopup() {
-  if (!popup || !popup.isOpen() || selectedId == null) return;
+  if (!popup || selectedId == null) return;
   const v = VENUES.find(x => x.id === selectedId);
   if (!v) return;
   const sunny = currentSun ? venueSunState(v, currentSun.az, currentSun.alt) : false;
-  popup.setContent(`
+  popup.setHTML(`
     <div class="popup-name">${catIcon(v)} ${v.name}</div>
     <div class="popup-meta">★ ${v.rating} · ${catLabel(v)}</div>
     <div class="popup-address">${v.address}</div>
     <div class="popup-status ${sunny ? 'sunny' : 'shaded'}">${sunny ? '☀ Currently in sun' : '● In shade right now'}</div>
-    <button class="popup-edit-btn" onclick="map.closePopup();enterEditMode(${v.id})">
+    <button class="popup-edit-btn" onclick="if(popup)popup.remove();enterEditMode(${v.id})">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
       Edit direction
     </button>
@@ -253,18 +296,18 @@ function enterEditMode(venueId) {
   document.getElementById('edit-venue-label').textContent = `${catIcon(v)} ${v.name}`;
   document.getElementById('edit-facing-display').innerHTML = `${v.facing}° ${bearingToCardinal(v.facing)}`;
 
-  if (popup) { map.closePopup(popup); popup = null; }
+  if (popup) { popup.remove(); popup = null; }
   tooltip.classList.remove('visible');
 
   if (v.buildingGeometry) {
     const lats = v.buildingGeometry.map(n => n.lat);
     const lons = v.buildingGeometry.map(n => n.lon);
-    map.flyToBounds(
-      L.latLngBounds([Math.min(...lats), Math.min(...lons)], [Math.max(...lats), Math.max(...lons)]),
-      { padding: [110, 110], maxZoom: 19, duration: 0.9 }
+    map.fitBounds(
+      [[Math.min(...lons), Math.min(...lats)], [Math.max(...lons), Math.max(...lats)]],
+      { padding: 110, maxZoom: 19, duration: 900 }
     );
   } else {
-    map.flyTo([v.lat, v.lng], 19, { duration: 0.9 });
+    map.flyTo({ center: [v.lng, v.lat], zoom: 19, duration: 900 });
   }
   draw();
 }
@@ -301,7 +344,7 @@ function togglePanel() {
   panel.style.width          = panelVisible ? '360px' : '0';
   panel.style.borderLeftWidth = panelVisible ? '' : '0';
   btn.textContent = panelVisible ? '›' : '‹';
-  setTimeout(() => { map.invalidateSize(); resizeCanvas(); draw(); }, 290);
+  setTimeout(() => { map.resize(); resizeCanvas(); draw(); }, 290);
 }
 
 function toggleFullSun() {
@@ -318,23 +361,6 @@ function toggleMapView() {
 
 // Re-render list on map move when viewport filter is active
 map.on('moveend', () => { if (filterMapViewActive) renderList(); });
-
-// ── Popup pointer-event fix ───────────────────────────────────────────────────
-// Canvas (z-index 690) blocks Leaflet popup close button; toggle around popup lifecycle.
-map.on('popupopen',  () => { canvas.style.pointerEvents = 'none'; });
-map.on('popupclose', () => { popup = null; canvas.style.pointerEvents = 'auto'; });
-
-// Venue click via Leaflet map event (works when canvas pointer-events is none)
-map.on('click', e => {
-  if (editingVenueId) return;
-  const cp = map.latLngToContainerPoint(e.latlng);
-  let hit = null;
-  VENUES.forEach(v => {
-    const pt = map.latLngToContainerPoint([v.lat, v.lng]);
-    if (Math.hypot(cp.x - pt.x, cp.y - pt.y) <= 20) hit = v;
-  });
-  if (hit) selectVenue(hit.id, true);
-});
 
 // ── Control event listeners ───────────────────────────────────────────────────
 datePicker.value = todayStr();

@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -151,21 +151,49 @@
   }
 
   /* POPUP */
-  .leaflet-popup-content-wrapper {
+  .mapboxgl-popup {
+    z-index: 800;
+  }
+
+  .mapboxgl-popup-content {
     background: var(--panel);
     border: 1px solid var(--border);
     border-radius: 12px;
     color: var(--text);
     box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    padding: 12px 16px;
+    max-width: 240px;
   }
 
-  .leaflet-popup-tip {
-    background: var(--panel);
+  .mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip { border-top-color: var(--panel); }
+  .mapboxgl-popup-anchor-top    .mapboxgl-popup-tip { border-bottom-color: var(--panel); }
+  .mapboxgl-popup-anchor-left   .mapboxgl-popup-tip { border-right-color: var(--panel); }
+  .mapboxgl-popup-anchor-right  .mapboxgl-popup-tip { border-left-color: var(--panel); }
+
+  .mapboxgl-popup-close-button {
+    color: var(--muted);
+    font-size: 18px;
+    line-height: 1;
+    padding: 4px 8px;
+    background: none;
+    border: none;
+  }
+  .mapboxgl-popup-close-button:hover {
+    background: rgba(255,255,255,0.08);
+    border-radius: 0 12px 0 0;
+    color: var(--text);
   }
 
-  .leaflet-popup-content {
-    margin: 12px 16px;
+  /* Mapbox nav control */
+  .mapboxgl-ctrl-group {
+    background: var(--panel) !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: none !important;
   }
+  .mapboxgl-ctrl-group button {
+    background-color: transparent !important;
+  }
+  .mapboxgl-ctrl-icon { filter: invert(0.7); }
 
   .popup-name {
     font-family: 'DM Serif Display', serif;
@@ -1012,7 +1040,8 @@
   </div>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
+<script src="js/config.js"></script>
 <script src="js/solar.js"></script>
 <script src="js/data.js"></script>
 <script src="js/app.js"></script>
