@@ -220,24 +220,41 @@
     font-weight: 600;
   }
 
-  .popup-status.sunny { color: var(--accent); }
-  .popup-status.shaded { color: var(--muted); }
+  .popup-status.sunny         { color: var(--accent); }
+  .popup-status.shaded        { color: var(--muted); }
+  .popup-status.opening-soon  { color: #7ab4ff; }
 
-  .popup-edit-btn {
+  .popup-actions {
     margin-top: 10px;
     display: flex;
-    align-items: center;
     gap: 6px;
-    background: rgba(255,184,0,0.12);
-    border: 1px solid rgba(255,184,0,0.3);
-    color: var(--accent);
+  }
+
+  .popup-directions-btn, .popup-edit-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
     border-radius: 6px;
-    padding: 5px 10px;
+    padding: 6px 10px;
     font-size: 11px;
     font-family: inherit;
     cursor: pointer;
-    width: 100%;
-    justify-content: center;
+    text-decoration: none;
+  }
+
+  .popup-directions-btn {
+    background: rgba(122,180,255,0.12);
+    border: 1px solid rgba(122,180,255,0.3);
+    color: #7ab4ff;
+  }
+  .popup-directions-btn:hover { background: rgba(122,180,255,0.22); }
+
+  .popup-edit-btn {
+    background: rgba(255,184,0,0.12);
+    border: 1px solid rgba(255,184,0,0.3);
+    color: var(--accent);
   }
   .popup-edit-btn:hover { background: rgba(255,184,0,0.22); }
 
@@ -482,6 +499,14 @@
   .card-badge.shaded {
     background: rgba(138,154,176,0.15);
     color: var(--muted);
+  }
+  .card-badge.opening-soon {
+    background: rgba(122,180,255,0.15);
+    color: #7ab4ff;
+  }
+  .card-badge.closing-soon {
+    background: rgba(255,140,60,0.15);
+    color: #ffaa55;
   }
   .card-badge.neutral {
     background: rgba(138,154,176,0.15);

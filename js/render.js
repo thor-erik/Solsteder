@@ -71,7 +71,7 @@ let editDragWallObj   = null;
 const SPRITE = 72;  // px — fits marker radius 16 + pizza tip 10 + selection ring
 const spriteCache = new Map();
 
-function buildSprite(v, sunny, selected) {
+function buildSprite(v, sunny, selected, closed) {
   const oc = document.createElement('canvas');
   oc.width = oc.height = SPRITE;
   const c  = oc.getContext('2d');
@@ -79,8 +79,9 @@ function buildSprite(v, sunny, selected) {
   const markerR = 16;
   const pAngle  = (v.facing - 90) * RAD;
   const halfA   = 0.40;   // ~23° half-angle
-  const markerFill   = sunny ? '#e8a000' : '#1e3060';
-  const markerStroke = sunny ? 'rgba(255,220,80,0.8)' : 'rgba(80,110,160,0.6)';
+  const markerFill   = closed ? '#252836' : sunny ? '#e8a000' : '#1e3060';
+  const markerStroke = closed ? 'rgba(120,125,145,0.35)' : sunny ? 'rgba(255,220,80,0.8)' : 'rgba(80,110,160,0.6)';
+  if (closed) c.globalAlpha = 0.45;
 
   // Pizza point — triangle drawn first; circle fill covers its base
   const tipDist = markerR + 10;
@@ -121,9 +122,9 @@ function buildSprite(v, sunny, selected) {
   return oc;
 }
 
-function getSprite(v, sunny, selected) {
-  const key = `${v.id}-${v.facing}-${sunny ? 1 : 0}-${selected ? 1 : 0}`;
-  if (!spriteCache.has(key)) spriteCache.set(key, buildSprite(v, sunny, selected));
+function getSprite(v, sunny, selected, closed) {
+  const key = `${v.id}-${v.facing}-${sunny ? 1 : 0}-${selected ? 1 : 0}-${closed ? 1 : 0}`;
+  if (!spriteCache.has(key)) spriteCache.set(key, buildSprite(v, sunny, selected, closed));
   return spriteCache.get(key);
 }
 
@@ -671,10 +672,13 @@ function draw() {
   if (!currentSun) return;
 
   if (editingVenueId) {
+    const editHour = parseFloat(timeFromEl.value);
     ctx.globalAlpha = 0.18;
     VENUES.forEach(v => {
+      const { open, close } = v.openingHours;
+      const isOpen = editHour >= open && editHour <= close;
       const pt = map.project([v.lng, v.lat]);
-      ctx.drawImage(getSprite(v, venueSunState(v, currentSun.az, currentSun.alt), false), pt.x - SPRITE/2, pt.y - SPRITE/2);
+      ctx.drawImage(getSprite(v, isOpen && venueSunState(v, currentSun.az, currentSun.alt), false, !isOpen), pt.x - SPRITE/2, pt.y - SPRITE/2);
     });
     ctx.globalAlpha = 1;
     drawBuildingEditor();
@@ -695,13 +699,16 @@ function draw() {
   }
 
   // Pass 1: sprites — viewport-culled + zoom-density filtered
+  const currentHour = parseFloat(timeFromEl.value);
   VENUES.forEach(v => {
     if (!bounds.contains([v.lng, v.lat])) return;
     if (!shouldShowAtZoom(v, zoom)) { hiddenCount++; return; }
-    const sunny    = venueSunState(v, currentSun.az, currentSun.alt);
+    const { open, close } = v.openingHours;
+    const isOpen   = currentHour >= open && currentHour <= close;
+    const sunny    = isOpen && venueSunState(v, currentSun.az, currentSun.alt);
     const selected = v.id === selectedId;
     const pt       = map.project([v.lng, v.lat]);
-    ctx.drawImage(getSprite(v, sunny, selected), pt.x - SPRITE/2, pt.y - SPRITE/2);
+    ctx.drawImage(getSprite(v, sunny, selected, !isOpen), pt.x - SPRITE/2, pt.y - SPRITE/2);
   });
 
   // Hint when venues are hidden due to zoom density

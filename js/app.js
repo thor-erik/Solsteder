@@ -292,6 +292,60 @@ function update() {
   }
 }
 
+// ── Popup helpers ─────────────────────────────────────────────────────────────
+
+function popupSunLine(v) {
+  const dateStr = datePicker.value;
+  const hour    = parseFloat(timeFromEl.value);
+  const { windows, open, close } = computeSunWindows(v, dateStr);
+  const isOpen  = hour >= open && hour <= close;
+
+  if (!isOpen) {
+    const waitToOpen = open - hour;
+    if (waitToOpen > 0 && waitToOpen <= 0.75) {
+      return `<div class="popup-status opening-soon">Opens at ${formatHour(open)}</div>`;
+    }
+    return `<div class="popup-status shaded">Closed now</div>`;
+  }
+
+  const curWin = windows.find(w => hour >= w.start && hour < w.end);
+  if (curWin) {
+    const rem = curWin.end - hour;
+    const h = Math.floor(rem), m = Math.round((rem - h) * 60);
+    const dur = (h > 0 ? h + 'h ' : '') + (m > 0 ? m + 'm' : '');
+    return `<div class="popup-status sunny">☀ In sun until ${formatHour(curWin.end)} · ${dur.trim()} left</div>`;
+  }
+
+  const next = windows.find(w => w.start > hour);
+  if (next) {
+    const wait = next.start - hour;
+    const h = Math.floor(wait), m = Math.round((wait - h) * 60);
+    const dur = (h > 0 ? h + 'h ' : '') + (m > 0 ? m + 'm' : '');
+    return `<div class="popup-status shaded">● In shade · Sun at ${formatHour(next.start)} (${dur.trim()})</div>`;
+  }
+
+  return `<div class="popup-status shaded">${windows.length ? '● Sun passed for today' : '● No sun today'}</div>`;
+}
+
+function popupDirectionsUrl(v) {
+  return `https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lng}`;
+}
+
+const EDIT_ICON = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+const DIR_ICON  = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>`;
+
+function popupActionsHTML(v) {
+  return `
+    <div class="popup-actions">
+      <a class="popup-directions-btn" href="${popupDirectionsUrl(v)}" target="_blank" rel="noopener">
+        ${DIR_ICON} Directions
+      </a>
+      <button class="popup-edit-btn" onclick="if(popup)popup.remove();enterEditMode(${v.id})">
+        ${EDIT_ICON} Edit
+      </button>
+    </div>`;
+}
+
 // ── Venue selection + popup ───────────────────────────────────────────────────
 let _switchingVenue = false;
 
@@ -316,7 +370,6 @@ function selectVenue(id, flyTo) {
   if (popup) { popup.remove(); popup = null; }
   _switchingVenue = false;
 
-  const sunny = currentSun ? venueSunState(v, currentSun.az, currentSun.alt) : false;
   // closeOnClick:false so the canvas always receives clicks (popup z-index 800 > canvas 690)
   popup = new mapboxgl.Popup({ closeButton: true, closeOnClick: false, offset: [0, -10] })
     .setLngLat([v.lng, v.lat])
@@ -324,11 +377,8 @@ function selectVenue(id, flyTo) {
       <div class="popup-name">${catIcon(v)} ${v.name}</div>
       <div class="popup-meta">★ ${v.rating} · ${catLabel(v)}</div>
       <div class="popup-address">${v.address}</div>
-      <div class="popup-status ${sunny ? 'sunny' : 'shaded'}">${sunny ? '☀ Currently in sun' : '● In shade right now'}</div>
-      <button class="popup-edit-btn" onclick="if(popup)popup.remove();enterEditMode(${v.id})">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-        Edit direction
-      </button>
+      ${popupSunLine(v)}
+      ${popupActionsHTML(v)}
     `)
     .addTo(map);
   popup.on('close', () => {
@@ -355,16 +405,12 @@ function updatePopup() {
   if (!popup || selectedId == null) return;
   const v = VENUES.find(x => x.id === selectedId);
   if (!v) return;
-  const sunny = currentSun ? venueSunState(v, currentSun.az, currentSun.alt) : false;
   popup.setHTML(`
     <div class="popup-name">${catIcon(v)} ${v.name}</div>
     <div class="popup-meta">★ ${v.rating} · ${catLabel(v)}</div>
     <div class="popup-address">${v.address}</div>
-    <div class="popup-status ${sunny ? 'sunny' : 'shaded'}">${sunny ? '☀ Currently in sun' : '● In shade right now'}</div>
-    <button class="popup-edit-btn" onclick="if(popup)popup.remove();enterEditMode(${v.id})">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-      Edit direction
-    </button>
+    ${popupSunLine(v)}
+    ${popupActionsHTML(v)}
   `);
 }
 

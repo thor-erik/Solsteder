@@ -181,7 +181,7 @@ let _listObserver = null; // IntersectionObserver for infinite scroll
 
 /** Render a single venue card. Called per-item to keep the map() inline small. */
 function renderCard(v, dateStr, fromHour, toHour, isPoint) {
-  const closedCls = !v.isOpen ? 'closed-now' : '';
+  const closedCls = (!v.isOpen && !v.isOpeningSoon) ? 'closed-now' : '';
   const dimmedCls = !v.sunInWin ? 'dimmed' : '';
   const { windows } = computeSunWindows(v, dateStr);
 
@@ -191,14 +191,15 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
     if (curWin) {
       const rem = curWin.end - fromHour;
       const bh = Math.floor(rem), bm = Math.round((rem - bh) * 60);
-      cardBadgeText = `☀ ${bh > 0 ? bh+'h ' : ''}${bm > 0 ? bm+'m' : ''} left`;
+      const dur = (bh > 0 ? bh + 'h ' : '') + (bm > 0 ? bm + 'm' : '');
+      cardBadgeText = `☀ ${dur.trim()} · until ${formatHour(curWin.end)}`;
       cardBadgeCls = 'sunny';
     } else {
       const next = windows.find(w => w.start > fromHour);
       if (next) {
         const wait = next.start - fromHour;
         const bh = Math.floor(wait), bm = Math.round((wait - bh) * 60);
-        cardBadgeText = `☀ in ${bh > 0 ? bh+'h ' : ''}${bm > 0 ? bm+'m' : ''}`;
+        cardBadgeText = `☀ at ${formatHour(next.start)}`;
         cardBadgeCls = 'neutral';
       } else {
         cardBadgeText = windows.length ? 'Sun passed' : 'No sun';
@@ -219,6 +220,23 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
       cardBadgeText = 'No sun';
       cardBadgeCls = 'shaded';
     }
+  }
+
+  // Override badge for opening/closing-soon states
+  if (v.isOpeningSoon) {
+    const { open } = v.openingHours;
+    const wait = open - fromHour;
+    const bm = Math.round(wait * 60);
+    cardBadgeText = `Opens in ${bm}m`;
+    cardBadgeCls  = 'opening-soon';
+  } else if (v.isClosingSoon) {
+    const { close } = v.openingHours;
+    cardBadgeText = `Closes ${formatHour(close)}`;
+    cardBadgeCls  = 'closing-soon';
+  } else if (!v.isOpen) {
+    const { open } = v.openingHours;
+    cardBadgeText = `Opens ${formatHour(open)}`;
+    cardBadgeCls  = 'shaded';
   }
 
   return `
@@ -291,8 +309,10 @@ function renderList() {
   let venues = VENUES.map(v => {
     const sunInWin = venueHasSunInRange(v, dateStr, fromHour, toHour);
     const { open, close } = v.openingHours;
-    const isOpen = fromHour >= open && fromHour <= close;
-    return { ...v, sunInWin, isOpen };
+    const isOpen        = fromHour >= open && fromHour <= close;
+    const isOpeningSoon = !isOpen && (open - fromHour) > 0 && (open - fromHour) <= 0.75;
+    const isClosingSoon = isOpen  && (close - fromHour) > 0 && (close - fromHour) <= 0.5;
+    return { ...v, sunInWin, isOpen, isOpeningSoon, isClosingSoon };
   });
 
   if (searchQ) {
@@ -314,16 +334,27 @@ function renderList() {
     venues = venues.filter(v => bounds.contains([v.lng, v.lat]));
   }
 
+  // Closed venues always sink below open ones regardless of sort mode
+  function closedPenalty(v) { return (!v.isOpen && !v.isOpeningSoon) ? 1 : 0; }
+
   if (sortBy === 'distance' && userLocation) {
     venues.sort((a, b) => {
+      const cp = closedPenalty(a) - closedPenalty(b);
+      if (cp !== 0) return cp;
       const da = Math.hypot(a.lat - userLocation.lat, a.lng - userLocation.lng);
       const db = Math.hypot(b.lat - userLocation.lat, b.lng - userLocation.lng);
       return da - db;
     });
   } else if (sortBy === 'rating') {
-    venues.sort((a, b) => b.rating - a.rating);
+    venues.sort((a, b) => {
+      const cp = closedPenalty(a) - closedPenalty(b);
+      if (cp !== 0) return cp;
+      return b.rating - a.rating;
+    });
   } else {
     venues.sort((a, b) => {
+      const cp = closedPenalty(a) - closedPenalty(b);
+      if (cp !== 0) return cp;
       if (a.sunInWin !== b.sunInWin) return a.sunInWin ? -1 : 1;
       if (a.isOpen !== b.isOpen) return a.isOpen ? -1 : 1;
       return b.rating - a.rating;
