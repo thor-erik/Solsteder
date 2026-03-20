@@ -198,6 +198,20 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
   const dimmedCls = !v.sunInWin ? 'dimmed' : '';
   const { windows } = computeSunWindows(v, dateStr);
 
+  // Wind shelter indicator — only shown when wind is noticeable (≥ 3.5 m/s)
+  let windTag = '';
+  if (typeof getWeatherAt === 'function') {
+    const wx = getWeatherAt(dateStr, fromHour);
+    if (wx && wx.wspd >= 3.5) {
+      const sh = venueWindShelter(v.facing, wx.wdir);
+      if (sh >= 0.65) {
+        windTag = `<span class="wind-tag sheltered" title="Sheltered from ${windCardinal(wx.wdir)} wind">🛡</span>`;
+      } else if (sh <= 0.35) {
+        windTag = `<span class="wind-tag exposed" title="Exposed to ${Math.round(wx.wspd)} m/s ${windCardinal(wx.wdir)} wind">💨</span>`;
+      }
+    }
+  }
+
   let cardBadgeText, cardBadgeCls;
   if (isPoint || nowMode) {
     const curWin = windows.find(w => fromHour >= w.start && fromHour < w.end);
@@ -264,6 +278,7 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
         <span class="card-rating">★ ${v.rating}</span>
         <span>·</span>
         <span>${catLabel(v)}</span>
+        ${windTag ? `<span>·</span>${windTag}` : ''}
         <span>·</span>
         <span style="color:var(--muted)">${v.area ?? ''}</span>
       </div>
