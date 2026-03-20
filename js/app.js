@@ -158,12 +158,12 @@ function updateSunLighting() {
         type: 'directional',
         properties: {
           direction: [az, 90 - alt],
-          'direction-transition': { duration: 600, delay: 0 },
+          'direction-transition': { duration: 1200, delay: 0 },
           'cast-shadows': true,
           intensity: 0.9,
-          'intensity-transition': { duration: 400, delay: 0 },
+          'intensity-transition': { duration: 800, delay: 0 },
           color: alt < 10 ? '#ff9944' : alt < 25 ? '#ffdd88' : '#ffffff',
-          'color-transition': { duration: 600, delay: 0 }
+          'color-transition': { duration: 900, delay: 0 }
         }
       },
       {
@@ -249,6 +249,7 @@ function setActiveIntentBtn(intent) {
 
 function setIntent(intent) {
   setActiveIntentBtn(intent);
+  _currentPreset = null; // force lighting preset re-evaluation so sky always animates
   if (intent === 'now') {
     if (!nowMode) {
       nowMode = true;
@@ -504,6 +505,16 @@ function enterEditMode(venueId) {
   } else {
     map.flyTo({ center: [v.lng, v.lat], zoom: 19, pitch: 0, duration: 900 });
   }
+
+  // Scroll to + highlight the venue card in the sidebar
+  setTimeout(() => {
+    const card = document.querySelector(`.venue-card[data-vid="${venueId}"]`);
+    if (card) {
+      card.classList.add('editing');
+      card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, 200);
+
   draw();
 }
 
@@ -522,6 +533,7 @@ function exitEditMode() {
   editingVenueId = null;
   editHoveredWallIdx = null;
   document.getElementById('edit-overlay').style.display = 'none';
+  document.querySelectorAll('.venue-card.editing').forEach(c => c.classList.remove('editing'));
   if (editSatelliteActive) {
     editSatelliteActive = false;
     document.getElementById('edit-satellite-btn').classList.remove('active');

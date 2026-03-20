@@ -220,6 +220,17 @@ function getSprite(v, state, selected, hour, dateStr) {
 
 function clearSpriteCache() { spriteCache.clear(); }
 
+// ── Pin state transition animations ───────────────────────────────────────────
+const _pinPrevState = new Map();   // id → last rendered state string
+const _pinFadeStart = new Map();   // id → performance.now() when fade began
+const PIN_FADE_MS   = 280;
+let   _animRafId    = null;
+
+function _scheduleAnimFrame() {
+  if (_animRafId) return;
+  _animRafId = requestAnimationFrame(() => { _animRafId = null; draw(); });
+}
+
 // ── Canvas utilities ──────────────────────────────────────────────────────────
 function fillRoundRect(c, x, y, w, h, r) {
   c.beginPath();
@@ -451,7 +462,7 @@ function convexHull(pts) {
 }
 
 // ── Seating area shapes ────────────────────────────────────────────────────────
-const TERRACE_DEPTH_M = 7;  // metres outward from the terrace wall
+const TERRACE_DEPTH_M = 5;  // metres outward from the terrace wall
 
 /** 2-D line intersection (pixel space). Point p + t*dir. Returns {x,y} or null if parallel. */
 function lineIntersectPx(p1x, p1y, d1x, d1y, p2x, p2y, d2x, d2y) {
@@ -760,6 +771,8 @@ function shouldShowAtZoom(v, zoom) {
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   if (!currentSun) return;
+  const now           = performance.now();
+  let   needsAnimFrame = false;
 
   if (editingVenueId) {
     const editHour    = parseFloat(timeFromEl.value);
@@ -814,26 +827,40 @@ function draw() {
     const selected = v.id === selectedId;
     const pt       = map.project([v.lng, v.lat]);
     const spr      = getSprite(v, state, selected, currentHour, dateStr);
+
+    // State-change fade-in
+    const prevState = _pinPrevState.get(v.id);
+    if (prevState !== undefined && prevState !== state) _pinFadeStart.set(v.id, now);
+    _pinPrevState.set(v.id, state);
+    let pinAlpha = 1;
+    const fs = _pinFadeStart.get(v.id);
+    if (fs !== undefined) {
+      const t = Math.min(1, (now - fs) / PIN_FADE_MS);
+      pinAlpha = t;
+      if (t >= 1) _pinFadeStart.delete(v.id);
+      else        needsAnimFrame = true;
+    }
+
+    ctx.save();
+    if (pinAlpha < 1) ctx.globalAlpha = pinAlpha;
     ctx.drawImage(spr.canvas, pt.x - spr.anchorX, pt.y - spr.anchorY);
+    ctx.restore();
+
     if (state !== 'closed') visibleVenues.push({ v, pt, state, spr });
   });
 
-  // Pass 1b: venue name labels at high zoom — positioned to the right of the pill
-  if (zoom >= 16) {
-    ctx.font = '600 11px "DM Sans", sans-serif';
-    ctx.textBaseline = 'middle';
-    ctx.textAlign = 'left';
-    const pillCenterY = -(PILL_TIP + PILL_H / 2);  // offset from map point to pill centre
-    visibleVenues.forEach(({ v, pt, spr }) => {
-      const label = v.name;
-      const tw  = ctx.measureText(label).width;
-      const lx  = pt.x + spr.anchorX + 6;           // right edge of pill + gap
-      const ly  = pt.y + pillCenterY;
-      ctx.fillStyle = 'rgba(12, 16, 28, 0.80)';
-      fillRoundRect(ctx, lx - 5, ly - 9, tw + 10, 18, 5);
-      ctx.fillStyle = 'rgba(240,230,210,0.92)';
-      ctx.fillText(label, lx, ly);
-    });
+  // Hover glow — drawn on top of all sprites so it reads clearly
+  if (hoveredId !== null) {
+    const hEntry = visibleVenues.find(({ v }) => v.id === hoveredId);
+    if (hEntry) {
+      const { pt, spr, state } = hEntry;
+      ctx.save();
+      ctx.shadowColor = state === 'sunny' ? 'rgba(255,200,0,0.7)' :
+                        state === 'soon'  ? 'rgba(255,184,0,0.5)' : 'rgba(120,170,255,0.6)';
+      ctx.shadowBlur = 18;
+      ctx.drawImage(spr.canvas, pt.x - spr.anchorX, pt.y - spr.anchorY);
+      ctx.restore();
+    }
   }
 
   // Hint when venues are hidden due to zoom density
@@ -849,6 +876,7 @@ function draw() {
     ctx.fillText(text, canvas.width / 2, py + ph / 2);
   }
 
+  if (needsAnimFrame) _scheduleAnimFrame();
 }
 
 
@@ -1005,7 +1033,7 @@ canvas.addEventListener('mousemove', e => {
   const hit = hitTestVenue(cx, cy);
   if (hit) {
     canvas.style.cursor = 'pointer';
-    hoveredId = hit.id;
+    if (hoveredId !== hit.id) { hoveredId = hit.id; draw(); }
     tooltip.innerHTML = buildTooltipContent(hit);
     const margin = 14;
     let tx = e.clientX + margin, ty = e.clientY - tooltip.offsetHeight - margin;
@@ -1014,14 +1042,14 @@ canvas.addEventListener('mousemove', e => {
     tooltip.style.left = tx + 'px'; tooltip.style.top = ty + 'px';
     tooltip.classList.add('visible');
   } else {
-    hoveredId = null;
+    if (hoveredId !== null) { hoveredId = null; draw(); }
     canvas.style.cursor = 'default';
     tooltip.classList.remove('visible');
   }
 });
 
 canvas.addEventListener('mouseleave', () => {
-  hoveredId = null;
+  if (hoveredId !== null) { hoveredId = null; draw(); }
   tooltip.classList.remove('visible');
   if (!editDraggingDepth) canvas.style.cursor = 'default';
 });
