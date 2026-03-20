@@ -373,11 +373,12 @@ function lineIntersectPx(p1x, p1y, d1x, d1y, p2x, p2y, d2x, d2y) {
 /**
  * Build mitered terrace polygon(s) for a set of walls.
  *
- * Groups walls into connected chains (endpoints within 4 px). For each chain:
- * - Single wall → rectangle (4 pts)
- * - Multiple connected walls → proper mitered polygon: the inner edge follows
- *   the wall line, the outer edge is offset by depthPx with miter joints at
- *   every corner, eliminating gaps/overlaps between angled wall segments.
+ * Groups walls into connected chains (endpoints within 10 px after projection).
+ * For each chain:
+ * - Single wall → rectangle
+ * - Connected chain → mitered polygon with convex corners; bevel join for
+ *   concave corners (where the miter would go inside the building) and for
+ *   extreme angles (miter > 4× depth away from the junction vertex).
  *
  * Returns an array of pixel-space polygon vertex arrays (one per chain).
  */
@@ -391,8 +392,8 @@ function terracePolygons(v, walls, depthPx) {
     return { wall, pa, pb, normX, normY };
   });
 
-  // Group into connected chains by pixel-space vertex proximity
-  const THRESH = 4; // px
+  // Group into connected chains — 10 px threshold handles projection rounding
+  const THRESH = 10;
   const used   = new Array(enriched.length).fill(false);
   const chains = [];
 
@@ -405,7 +406,7 @@ function terracePolygons(v, walls, depthPx) {
       let grew = true;
       while (grew) {
         grew = false;
-        const anchor = pass === 0 ? chain[chain.length - 1] : chain[0];
+        const anchor   = pass === 0 ? chain[chain.length - 1] : chain[0];
         const anchorPt = pass === 0 ? anchor.pb : anchor.pa;
         for (let i = 0; i < enriched.length; i++) {
           if (used[i]) continue;
@@ -426,7 +427,7 @@ function terracePolygons(v, walls, depthPx) {
     chains.push(chain);
   }
 
-  // Build mitered polygon for each chain
+  // Build polygon for each chain
   return chains.map(chain => {
     const inner = [];
     const outer = [];
@@ -438,17 +439,35 @@ function terracePolygons(v, walls, depthPx) {
 
       if (i === 0) inner.push(pa);
       inner.push(pb);
-
       if (i === 0) outer.push(oA);
 
       if (i < chain.length - 1) {
-        const nx = chain[i + 1];
+        const nx  = chain[i + 1];
         const noA = { x: nx.pa.x + nx.normX * depthPx, y: nx.pa.y + nx.normY * depthPx };
         const miter = lineIntersectPx(
           oB.x, oB.y, pb.x - pa.x, pb.y - pa.y,
           noA.x, noA.y, nx.pb.x - nx.pa.x, nx.pb.y - nx.pa.y,
         );
-        outer.push(miter ?? oB);  // fallback for parallel walls
+
+        let useMiter = false;
+        if (miter) {
+          // Only use the miter if it's on the outward side of the junction vertex
+          // (both normals agree) — this rejects concave corners where the miter
+          // would fall inside the building.
+          const dx = miter.x - pb.x, dy = miter.y - pb.y;
+          const outward1 = dx * normX        + dy * normY;
+          const outward2 = dx * nx.normX     + dy * nx.normY;
+          const dist     = Math.hypot(dx, dy);
+          useMiter = outward1 >= 0 && outward2 >= 0 && dist <= depthPx * 4;
+        }
+
+        if (useMiter) {
+          outer.push(miter);
+        } else {
+          // Bevel join: emit both outer endpoints at the corner
+          outer.push(oB);
+          outer.push(noA);
+        }
       } else {
         outer.push(oB);
       }
