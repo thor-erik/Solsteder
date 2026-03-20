@@ -78,6 +78,7 @@ function renderTimeline(v, dateStr, fromHour, toHour) {
     : '';
 
   // Badge: point/now mode vs range mode
+  const curWin = windows.find(w => fromHour >= w.start && fromHour < w.end);
   let badge = '';
   if (isPoint || nowMode) {
     if (curWin) {
@@ -370,6 +371,9 @@ function renderList() {
     return;
   }
 
+  // Determine if a "Try tomorrow" nudge is appropriate
+  const isAfterSunset = currentSun && currentSun.alt < -3 && fromHour > 16;
+
   // ── Render first page, observer handles the rest ──────────────────────────
   _listFiltered = venues;
   renderListPage(list, dateStr, fromHour, toHour, isPoint, true);
@@ -386,5 +390,15 @@ function renderList() {
       countEl.textContent = `${openCount} open`;
       countEl.className = '';
     }
+  }
+
+  // "Try tomorrow" nudge when the sun has set for today
+  const existingBanner = document.getElementById('no-sun-banner');
+  if (existingBanner) existingBanner.remove();
+  if (isAfterSunset && sunCount === 0) {
+    const banner = document.createElement('div');
+    banner.id = 'no-sun-banner';
+    banner.innerHTML = `<span>☁ Sun has set for today</span><button onclick="advanceDay(1)">Tomorrow →</button>`;
+    list.prepend(banner);
   }
 }

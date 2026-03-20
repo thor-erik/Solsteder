@@ -255,7 +255,12 @@ function resizeCanvas() {
 }
 
 resizeCanvas();
-window.addEventListener('resize', () => { resizeCanvas(); draw(); });
+window.addEventListener('resize', () => {
+  resizeCanvas();
+  draw();
+  drawSunCurve(document.getElementById('sun-curve'));
+  drawSunCompass();
+});
 
 map.on('move', draw);
 map.on('zoomend', draw);
@@ -305,6 +310,112 @@ function drawSunCompass() {
     c.textAlign = 'center'; c.textBaseline = 'middle';
     c.fillText('☽', cx, cy + 1);
   }
+}
+
+// ── Sun curve (day arc) ───────────────────────────────────────────────────────
+/**
+ * Draws a sun altitude arc for the full day onto a canvas element.
+ * Shows: filled arc (golden above horizon), sunrise/sunset tick labels,
+ * current time marker (glowing dot).
+ */
+function drawSunCurve(canvasEl) {
+  if (!canvasEl || !currentSunTable) return;
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = canvasEl.clientWidth  || 400;
+  const cssH = canvasEl.clientHeight || 64;
+  const pw   = Math.round(cssW * dpr);
+  const ph   = Math.round(cssH * dpr);
+  if (canvasEl.width !== pw || canvasEl.height !== ph) { canvasEl.width = pw; canvasEl.height = ph; }
+
+  const c = canvasEl.getContext('2d');
+  c.clearRect(0, 0, pw, ph);
+  c.save();
+  c.scale(dpr, dpr);
+
+  const MIN_H = 4, MAX_H = 23;
+  const PAD_X = 38, PAD_T = 8, PAD_B = 20;
+  const cw = cssW, ch = cssH;
+
+  // Sample altitudes every 15 min
+  const samples = [];
+  let maxAlt = 5;
+  for (let t = MIN_H; t <= MAX_H + 0.01; t += 0.25) {
+    const sun = getSunFromTable(currentSunTable, Math.min(t, MAX_H));
+    if (sun.alt > maxAlt) maxAlt = sun.alt;
+    samples.push({ t: Math.min(t, MAX_H), alt: sun.alt });
+  }
+
+  const timeToX = t => PAD_X + (t - MIN_H) / (MAX_H - MIN_H) * (cw - PAD_X * 2);
+  const altToY  = a => PAD_T + (1 - Math.max(0, a) / (maxAlt * 1.15)) * (ch - PAD_T - PAD_B);
+  const horizY  = altToY(0);
+
+  // Horizon line
+  c.beginPath();
+  c.moveTo(PAD_X, horizY); c.lineTo(cw - PAD_X, horizY);
+  c.strokeStyle = 'rgba(255,255,255,0.1)'; c.lineWidth = 1; c.stroke();
+
+  // Build above-horizon segment
+  const above = samples.filter(s => s.alt > 0);
+  if (above.length > 1) {
+    // Fill
+    const grad = c.createLinearGradient(0, PAD_T, 0, horizY);
+    grad.addColorStop(0, 'rgba(255,184,0,0.25)');
+    grad.addColorStop(1, 'rgba(255,184,0,0.04)');
+    c.beginPath();
+    c.moveTo(timeToX(above[0].t), horizY);
+    above.forEach(s => c.lineTo(timeToX(s.t), altToY(s.alt)));
+    c.lineTo(timeToX(above[above.length - 1].t), horizY);
+    c.closePath();
+    c.fillStyle = grad; c.fill();
+
+    // Stroke
+    c.beginPath();
+    c.moveTo(timeToX(above[0].t), altToY(above[0].alt));
+    above.forEach(s => c.lineTo(timeToX(s.t), altToY(s.alt)));
+    c.strokeStyle = 'rgba(255,184,0,0.7)'; c.lineWidth = 1.5; c.stroke();
+  }
+
+  // Sunrise / sunset tick labels
+  const sunrise = findSunCrossingFromTable(currentSunTable, true);
+  const sunset  = findSunCrossingFromTable(currentSunTable, false);
+  c.font = '9px "DM Sans", sans-serif';
+  c.textAlign = 'center'; c.textBaseline = 'top';
+  [{ t: sunrise, label: formatHour(sunrise) }, { t: sunset, label: formatHour(sunset) }].forEach(({ t, label }) => {
+    if (t == null) return;
+    const tx = timeToX(t);
+    c.beginPath(); c.moveTo(tx, horizY - 3); c.lineTo(tx, horizY + 4);
+    c.strokeStyle = 'rgba(255,184,0,0.5)'; c.lineWidth = 1; c.stroke();
+    c.fillStyle = 'rgba(255,184,0,0.75)';
+    c.fillText(label, tx, horizY + 6);
+  });
+
+  // Current time marker
+  const fromH = parseFloat(timeFromEl.value);
+  if (fromH >= MIN_H && fromH <= MAX_H) {
+    const curSun = getSunFromTable(currentSunTable, fromH);
+    const mx = timeToX(fromH);
+    const my = altToY(Math.max(0, curSun.alt));
+    const isSun = curSun.alt > 0;
+
+    // Dashed vertical from dot to horizon
+    c.beginPath(); c.moveTo(mx, my); c.lineTo(mx, horizY);
+    c.strokeStyle = 'rgba(255,255,255,0.12)'; c.lineWidth = 1;
+    c.setLineDash([2, 3]); c.stroke(); c.setLineDash([]);
+
+    // Glow halo
+    const glow = c.createRadialGradient(mx, my, 0, mx, my, 8);
+    glow.addColorStop(0, isSun ? 'rgba(255,184,0,0.55)' : 'rgba(100,130,200,0.45)');
+    glow.addColorStop(1, 'rgba(0,0,0,0)');
+    c.beginPath(); c.arc(mx, my, 8, 0, Math.PI * 2);
+    c.fillStyle = glow; c.fill();
+
+    // Dot
+    c.beginPath(); c.arc(mx, my, 3, 0, Math.PI * 2);
+    c.fillStyle = isSun ? '#FFB800' : '#6080C8'; c.fill();
+    c.strokeStyle = 'rgba(255,255,255,0.9)'; c.lineWidth = 1.5; c.stroke();
+  }
+
+  c.restore();
 }
 
 // ── Building editor overlay ───────────────────────────────────────────────────

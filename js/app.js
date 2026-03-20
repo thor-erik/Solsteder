@@ -308,7 +308,15 @@ function updateSortBtns() {
 let _renderListTimer = null;
 function scheduleRenderList() {
   clearTimeout(_renderListTimer);
-  _renderListTimer = setTimeout(renderList, 120);
+  _renderListTimer = setTimeout(renderList, 300);
+}
+
+// ── Day navigation ────────────────────────────────────────────────────────────
+function advanceDay(delta) {
+  const d = new Date(datePicker.value + 'T12:00:00');
+  d.setDate(d.getDate() + delta);
+  datePicker.value = d.toISOString().slice(0, 10);
+  update();
 }
 
 // ── Main update cycle ─────────────────────────────────────────────────────────
@@ -329,11 +337,11 @@ function update() {
   const sunrise = findSunCrossingFromTable(currentSunTable, true);
   const sunset  = findSunCrossingFromTable(currentSunTable, false);
 
-  // Status bar
-  document.getElementById('stat-azimuth').textContent  = currentSun.alt < 0 ? '—' : `${Math.round(currentSun.az)}°`;
-  document.getElementById('stat-altitude').textContent = currentSun.alt < 0 ? 'Below horizon' : `${Math.round(currentSun.alt)}°`;
-  document.getElementById('stat-sunrise').textContent  = formatHour(sunrise);
-  document.getElementById('stat-sunset').textContent   = formatHour(sunset);
+  // Status bar (elements may be absent if removed from HTML)
+  document.getElementById('stat-azimuth')?.textContent != null && (document.getElementById('stat-azimuth').textContent  = currentSun.alt < 0 ? '—' : `${Math.round(currentSun.az)}°`);
+  document.getElementById('stat-altitude')?.textContent != null && (document.getElementById('stat-altitude').textContent = currentSun.alt < 0 ? 'Below horizon' : `${Math.round(currentSun.alt)}°`);
+  document.getElementById('stat-sunrise')?.textContent != null && (document.getElementById('stat-sunrise').textContent  = formatHour(sunrise));
+  document.getElementById('stat-sunset')?.textContent != null && (document.getElementById('stat-sunset').textContent   = formatHour(sunset));
 
   // Sunrise–sunset highlight on slider track
   const sunBg = document.getElementById('time-range-sun-bg');
@@ -348,6 +356,7 @@ function update() {
 
   draw();
   drawSunCompass();
+  drawSunCurve(document.getElementById('sun-curve'));
   scheduleRenderList();
   updatePopup();
   updateLightPreset();
