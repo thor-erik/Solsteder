@@ -220,6 +220,10 @@ function selectVenue(id, flyTo) {
       <div class="popup-meta">★ ${v.rating} · ${catLabel(v)}</div>
       <div class="popup-address">${v.address}</div>
       <div class="popup-status ${sunny ? 'sunny' : 'shaded'}">${sunny ? '☀ Currently in sun' : '● In shade right now'}</div>
+      <button class="popup-edit-btn" onclick="map.closePopup();enterEditMode(${v.id})">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Edit direction
+      </button>
     `)
     .openOn(map);
 
@@ -227,11 +231,8 @@ function selectVenue(id, flyTo) {
   renderList();
 
   setTimeout(() => {
-    document.querySelectorAll('.venue-card').forEach(card => {
-      if (card.querySelector('.card-name')?.textContent.includes(v.name)) {
-        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }
-    });
+    const card = document.querySelector(`.venue-card[data-vid="${id}"]`);
+    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, 100);
 }
 
@@ -245,6 +246,10 @@ function updatePopup() {
     <div class="popup-meta">★ ${v.rating} · ${catLabel(v)}</div>
     <div class="popup-address">${v.address}</div>
     <div class="popup-status ${sunny ? 'sunny' : 'shaded'}">${sunny ? '☀ Currently in sun' : '● In shade right now'}</div>
+    <button class="popup-edit-btn" onclick="map.closePopup();enterEditMode(${v.id})">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      Edit direction
+    </button>
   `);
 }
 
@@ -294,6 +299,7 @@ function selectWallByIdx(idx) {
   clearSpriteCache();
   sunWindowCache.clear();
   document.getElementById('edit-facing-display').innerHTML = `${v.facing}° ${bearingToCardinal(v.facing)}`;
+  dispatchToWorker(datePicker.value);
   draw();
   renderList();
 }

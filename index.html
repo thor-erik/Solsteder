@@ -195,6 +195,24 @@
   .popup-status.sunny { color: var(--accent); }
   .popup-status.shaded { color: var(--muted); }
 
+  .popup-edit-btn {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,184,0,0.12);
+    border: 1px solid rgba(255,184,0,0.3);
+    color: var(--accent);
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 11px;
+    font-family: inherit;
+    cursor: pointer;
+    width: 100%;
+    justify-content: center;
+  }
+  .popup-edit-btn:hover { background: rgba(255,184,0,0.22); }
+
   /* RIGHT PANEL */
   #panel {
     width: 360px;
@@ -312,6 +330,10 @@
     display: flex;
     align-items: center;
     gap: 8px;
+  }
+  #sort-bar {
+    padding: 6px 0 4px;
+    border-top: 1px solid var(--border);
   }
   .filter-select {
     flex: 1;
@@ -553,31 +575,6 @@
     opacity: 0.7;
   }
 
-  /* Edit facing button */
-  .card-edit-btn {
-    background: none;
-    border: 1px solid rgba(255,184,0,0.2);
-    border-radius: 6px;
-    color: var(--muted);
-    font-size: 11px;
-    padding: 2px 7px;
-    cursor: pointer;
-    transition: all 0.15s;
-    flex-shrink: 0;
-    font-family: 'DM Sans', sans-serif;
-    opacity: 0;
-    transition: opacity 0.15s, border-color 0.15s, color 0.15s;
-  }
-
-  .venue-card:hover .card-edit-btn {
-    opacity: 1;
-  }
-
-  .card-edit-btn:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-    background: var(--accent-dim);
-  }
 
   /* Edit mode overlay */
   #edit-overlay {
@@ -979,11 +976,6 @@
       <!-- Venue list header -->
       <div id="venue-header">
         <div id="panel-title">Oslo Venues</div>
-        <select class="filter-select" id="sort-by" style="flex:none;width:auto;font-size:11px">
-          <option value="sun">☀ Sun hours</option>
-          <option value="rating">★ Top rated</option>
-          <option value="distance">⊙ Nearest</option>
-        </select>
       </div>
       <div id="search-bar">
         <input type="text" id="venue-search" placeholder="Search venues or areas…" autocomplete="off">
@@ -1022,6 +1014,13 @@
         <button class="filter-toggle-btn" id="map-view-btn" onclick="toggleMapView()">In map view</button>
       </div>
       <div id="facing-status"></div>
+      <div id="sort-bar">
+        <select class="filter-select" id="sort-by" style="width:auto;font-size:11px">
+          <option value="sun">☀ Sort: Sun hours</option>
+          <option value="rating">★ Sort: Top rated</option>
+          <option value="distance">⊙ Sort: Nearest</option>
+        </select>
+      </div>
     </div>
     <div id="venue-list"></div>
   </div>

@@ -223,13 +223,10 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
 
   return `
     <div class="venue-card ${v.sunInWin ? 'sunny' : ''} ${v.id === selectedId ? 'selected' : ''} ${dimmedCls} ${closedCls}"
-         onclick="selectVenue(${v.id}, true)">
+         data-vid="${v.id}" onclick="selectVenue(${v.id}, true)">
       <div class="card-top">
         <div class="card-name">${catIcon(v)} ${v.name}</div>
-        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-          <button class="card-edit-btn" onclick="event.stopPropagation();enterEditMode(${v.id})" title="Edit facing direction">✏</button>
-          <span class="card-badge ${cardBadgeCls}">${cardBadgeText}</span>
-        </div>
+        <span class="card-badge ${cardBadgeCls}">${cardBadgeText}</span>
       </div>
       <div class="card-meta">
         <span class="card-rating">★ ${v.rating}</span>
