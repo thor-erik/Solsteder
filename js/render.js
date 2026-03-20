@@ -509,11 +509,13 @@ canvas.addEventListener('click', e => {
   if (hit) {
     selectVenue(hit.id, true);
   } else {
-    // Clicked empty map — close popup and deselect
-    if (popup) { popup.remove(); }
-    if (selectedId !== null) {
+    // Clicked empty map — close popup (close handler resets pitch/bearing/selectedId)
+    if (popup) {
+      popup.remove();
+    } else if (selectedId !== null) {
       selectedId = null;
       clearSpriteCache();
+      map.easeTo({ pitch: 15, bearing: 0, duration: 600 });
       draw();
       renderList();
     }

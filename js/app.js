@@ -85,7 +85,7 @@ const map = new mapboxgl.Map({
   style: 'mapbox://styles/mapbox/standard',
   center: [10.728, 59.9125],
   zoom: 13,
-  pitch: 20,
+  pitch: 15,
   antialias: true
 });
 
@@ -99,8 +99,8 @@ map.on('style.load', () => {
   // Boost ambient occlusion on building extrusions so they read clearly from the ground
   map.getStyle().layers.forEach(layer => {
     if (layer.type === 'fill-extrusion') {
-      map.setPaintProperty(layer.id, 'fill-extrusion-ambient-occlusion-intensity', 0.5);
-      map.setPaintProperty(layer.id, 'fill-extrusion-ambient-occlusion-radius', 4);
+      map.setPaintProperty(layer.id, 'fill-extrusion-ambient-occlusion-intensity', 0.8);
+      map.setPaintProperty(layer.id, 'fill-extrusion-ambient-occlusion-radius', 6);
       map.setPaintProperty(layer.id, 'fill-extrusion-opacity', 1.0);
     }
   });
@@ -150,15 +150,18 @@ function updateSunLighting() {
         type: 'directional',
         properties: {
           direction: [az, 90 - alt],
+          'direction-transition': { duration: 600, delay: 0 },
           'cast-shadows': true,
           intensity: 0.9,
-          color: alt < 10 ? '#ff9944' : alt < 25 ? '#ffdd88' : '#ffffff'
+          'intensity-transition': { duration: 400, delay: 0 },
+          color: alt < 10 ? '#ff9944' : alt < 25 ? '#ffdd88' : '#ffffff',
+          'color-transition': { duration: 600, delay: 0 }
         }
       },
       {
         id: 'ambient',
         type: 'ambient',
-        properties: { intensity: 0.1, color: '#ffffff' }
+        properties: { intensity: 0.08, color: '#ffffff' }
       }
     ]);
   } else {
@@ -278,15 +281,22 @@ function update() {
 }
 
 // ── Venue selection + popup ───────────────────────────────────────────────────
+let _switchingVenue = false;
+
 function selectVenue(id, flyTo) {
   selectedId = id;
   clearSpriteCache();
   const v = VENUES.find(x => x.id === id);
   if (!v) return;
 
-  if (flyTo) map.flyTo({ center: [v.lng, v.lat], zoom: Math.max(map.getZoom(), 15), pitch: 45, duration: 800 });
+  // Face the terrace wall: bearing = (facing + 180) % 360 positions camera opposite to wall
+  const targetBearing = (v.facing + 180) % 360;
+  if (flyTo) map.flyTo({ center: [v.lng, v.lat], zoom: Math.max(map.getZoom(), 15), pitch: 45, bearing: targetBearing, duration: 800 });
 
+  _switchingVenue = true;
   if (popup) { popup.remove(); popup = null; }
+  _switchingVenue = false;
+
   const sunny = currentSun ? venueSunState(v, currentSun.az, currentSun.alt) : false;
   popup = new mapboxgl.Popup({ closeButton: true, offset: [0, -10] })
     .setLngLat([v.lng, v.lat])
@@ -302,7 +312,17 @@ function selectVenue(id, flyTo) {
     `)
     .addTo(map);
   canvas.style.pointerEvents = 'none';
-  popup.on('close', () => { popup = null; canvas.style.pointerEvents = 'auto'; map.easeTo({ pitch: 20, duration: 600 }); });
+  popup.on('close', () => {
+    popup = null;
+    canvas.style.pointerEvents = 'auto';
+    if (!_switchingVenue) {
+      selectedId = null;
+      clearSpriteCache();
+      draw();
+      renderList();
+      map.easeTo({ pitch: 15, bearing: 0, duration: 600 });
+    }
+  });
 
   draw();
   renderList();
@@ -361,7 +381,7 @@ function exitEditMode() {
   editingVenueId = null;
   editHoveredWallIdx = null;
   document.getElementById('edit-overlay').style.display = 'none';
-  map.easeTo({ pitch: 20, duration: 500 });
+  map.easeTo({ pitch: 15, bearing: 0, duration: 500 });
   draw();
   renderList();
 }
