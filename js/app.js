@@ -581,15 +581,16 @@ function togglePanel() {
   const panel = document.getElementById('panel');
   const btn   = document.getElementById('panel-toggle');
   if (panelVisible) {
-    panel.style.transform = '';
-    panel.style.opacity   = '';
+    panel.style.transform    = '';
+    panel.style.opacity      = '';
     panel.style.pointerEvents = '';
+    btn.textContent = '‹';
   } else {
-    panel.style.transform = 'translateX(calc(100% + 20px))';
-    panel.style.opacity   = '0';
+    panel.style.transform    = 'translateX(calc(-100% - 20px))';
+    panel.style.opacity      = '0';
     panel.style.pointerEvents = 'none';
+    btn.textContent = '›';
   }
-  btn.textContent = panelVisible ? '›' : '‹';
   setTimeout(() => { resizeCanvas(); draw(); }, 290);
 }
 

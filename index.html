@@ -56,44 +56,88 @@
     will-change: transform;
   }
 
-  /* Floating search + intent block — top-left */
-  #floating-top {
-    position: absolute;
-    top: 16px;
-    left: 16px;
-    z-index: 900;
-    width: 286px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    pointer-events: none;
-  }
-  #floating-top > * { pointer-events: all; }
-
+  /* ── Shared floating card base ────────────────────────────────────────────── */
   .floating-card {
     background: rgba(22,33,62,0.88);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid rgba(255,184,0,0.13);
     border-radius: 14px;
-    padding: 10px 12px;
+    padding: 10px 14px;
   }
 
-  .floating-card #venue-search {
+  /* ── Top-left: search bar ──────────────────────────────────────────────────── */
+  #floating-search {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    z-index: 900;
+    width: 300px;
+  }
+  #floating-search #venue-search {
     background: transparent;
-    border-color: rgba(255,255,255,0.1);
-    padding: 7px 10px;
+    border: none;
+    padding: 4px 2px;
+    width: 100%;
+  }
+  #floating-search #venue-search:focus { border: none; outline: none; }
+
+  /* ── Top-right: brand logo ─────────────────────────────────────────────────── */
+  #floating-brand {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 900;
+  }
+  #floating-brand .floating-card {
+    padding: 10px 18px;
   }
 
-  .floating-card #intent-row {
-    padding-bottom: 0;
-    gap: 5px;
+  /* ── Bottom-center: intent chips + date/time ──────────────────────────────── */
+  #floating-bottom {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 900;
+    width: 500px;
+    pointer-events: none;
+  }
+  #floating-bottom > * { pointer-events: all; }
+  #floating-bottom .floating-card { padding: 12px 16px; }
+
+  #floating-bottom #intent-row {
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .bottom-controls-row {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  .bottom-controls-row .control-row:first-child { flex-shrink: 0; }
+  .bottom-controls-row .control-row:last-child  { flex: 1; }
+
+  /* ── Bottom-right: sun compass ─────────────────────────────────────────────── */
+  #floating-compass {
+    position: absolute;
+    bottom: 106px;   /* above Mapbox nav controls */
+    right: 16px;
+    z-index: 900;
+  }
+  #floating-compass .floating-card {
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  /* Panel toggle button — floats just left of the panel */
+  /* ── Panel toggle — on right edge of left panel ───────────────────────────── */
   #panel-toggle {
     position: absolute;
-    right: 368px;   /* panel width 340 + 16 right margin + 12 gap */
+    left: 332px;    /* panel 300 + margin 16 + gap 16 */
     top: 50%;
     transform: translateY(-50%);
     z-index: 900;
@@ -101,7 +145,8 @@
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-left: none;
+    border-radius: 0 8px 8px 0;
     color: var(--muted);
     width: 22px;
     height: 52px;
@@ -149,8 +194,9 @@
   }
 
 
-  /* STATUS BAR */
+  /* STATUS BAR — hidden (info shown in compass/status areas) */
   #status-bar {
+    display: none;
     position: absolute;
     bottom: 16px;
     left: 16px;
@@ -220,8 +266,8 @@
     color: var(--text);
   }
 
-  /* Mapbox nav control — shifted left so it isn't behind the floating panel */
-  .mapboxgl-ctrl-bottom-right { right: 372px; }
+  /* Mapbox nav control */
+  .mapboxgl-ctrl-bottom-right { right: 16px; }
   .mapboxgl-ctrl-group {
     background: rgba(22,33,62,0.88) !important;
     backdrop-filter: blur(12px);
@@ -297,13 +343,13 @@
   }
   .popup-edit-btn:hover { background: rgba(255,184,0,0.22); }
 
-  /* RIGHT PANEL — floats over the map with glass morphism */
+  /* LEFT PANEL — venue list, floats below search bar */
   #panel {
     position: absolute;
-    top: 16px;
-    right: 16px;
+    top: 72px;      /* 16 top + ~48 search card + 8 gap */
+    left: 16px;
     bottom: 16px;
-    width: 340px;
+    width: 300px;
     background: rgba(22,33,62,0.88);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -317,29 +363,20 @@
   }
 
   #panel-header {
-    padding: 18px 20px 0;
+    padding: 12px 14px 0;
     flex-shrink: 0;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
     overflow: visible;
   }
 
-  /* Brand row: logo left, compass right */
-  #brand-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 14px;
-  }
-
+  /* Brand logo (now in floating-brand) */
   #brand-logo {
     font-family: 'DM Serif Display', serif;
-    font-size: 22px;
+    font-size: 20px;
     color: var(--accent);
     letter-spacing: 0.3px;
   }
-
   #brand-logo span {
-    font-size: 13px;
+    font-size: 12px;
     font-family: 'DM Sans', sans-serif;
     font-weight: 400;
     color: var(--muted);
@@ -347,39 +384,28 @@
     margin-left: 6px;
   }
 
-  #sun-compass {
-    display: block;
-    cursor: default;
-  }
+  #sun-compass { display: block; cursor: default; }
 
-  /* Controls inside panel */
+  /* Controls (now in floating-bottom) */
   #panel-controls {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    margin-bottom: 14px;
     overflow: visible;
   }
 
-  /* Search bar */
-  #search-bar {
-    padding: 0 0 10px;
-  }
+  /* Search input */
   #venue-search {
     width: 100%;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid var(--border);
-    border-radius: 8px;
+    background: transparent;
+    border: none;
     color: var(--text);
     font-family: 'DM Sans', sans-serif;
     font-size: 13px;
-    padding: 7px 12px;
+    padding: 4px 2px;
     outline: none;
   }
   #venue-search::placeholder { color: var(--muted); }
-  #venue-search:focus { border-color: rgba(255,184,0,0.4); }
 
   /* Intent shortcuts */
   #intent-row {
@@ -1115,11 +1141,20 @@
     </div>
   </div>
 
-  <!-- Floating top-left: search + intent shortcuts -->
-  <div id="floating-top">
+  <!-- Top-left: search bar -->
+  <div id="floating-search" class="floating-card">
+    <input type="text" id="venue-search" placeholder="Search venues or areas…" autocomplete="off">
+  </div>
+
+  <!-- Top-right: brand logo -->
+  <div id="floating-brand">
     <div class="floating-card">
-      <input type="text" id="venue-search" placeholder="Search venues or areas…" autocomplete="off">
+      <div id="brand-logo">Solsteder<span>Oslo sun places</span></div>
     </div>
+  </div>
+
+  <!-- Bottom-center: intent chips + date + time slider -->
+  <div id="floating-bottom">
     <div class="floating-card">
       <div id="intent-row">
         <button class="intent-btn" data-intent="now"        onclick="setIntent('now')">Now</button>
@@ -1127,23 +1162,7 @@
         <button class="intent-btn" data-intent="after-work" onclick="setIntent('after-work')">After work</button>
         <button class="intent-btn" data-intent="evening"    onclick="setIntent('evening')">Evening</button>
       </div>
-    </div>
-  </div>
-
-  <!-- Panel toggle — floats left of the panel -->
-  <button id="panel-toggle" onclick="togglePanel()" title="Toggle sidebar">›</button>
-
-  <!-- RIGHT PANEL — floating glass -->
-  <div id="panel">
-    <div id="panel-header">
-      <!-- Brand + compass -->
-      <div id="brand-row">
-        <div id="brand-logo">Solsteder<span>Oslo sun places</span></div>
-        <canvas id="sun-compass" width="52" height="52"></canvas>
-      </div>
-
-      <!-- Date + time controls -->
-      <div id="panel-controls">
+      <div class="bottom-controls-row">
         <div class="control-row">
           <span class="control-label">Date</span>
           <input type="date" id="date-picker">
@@ -1161,7 +1180,22 @@
           <button id="now-btn" onclick="toggleNowMode()" style="display:none">Now</button>
         </div>
       </div>
+    </div>
+  </div>
 
+  <!-- Bottom-right: sun compass -->
+  <div id="floating-compass">
+    <div class="floating-card">
+      <canvas id="sun-compass" width="52" height="52"></canvas>
+    </div>
+  </div>
+
+  <!-- Panel toggle — on right edge of left panel -->
+  <button id="panel-toggle" onclick="togglePanel()" title="Toggle sidebar">‹</button>
+
+  <!-- LEFT PANEL — venue list, floats below search bar -->
+  <div id="panel">
+    <div id="panel-header">
       <!-- Area filter chips -->
       <div id="area-chips">
         <button class="area-chip active" data-area="" onclick="setAreaFilter('')">All</button>

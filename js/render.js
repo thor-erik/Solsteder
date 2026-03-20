@@ -1037,7 +1037,7 @@ canvas.addEventListener('mousemove', e => {
     tooltip.innerHTML = buildTooltipContent(hit);
     const margin = 14;
     let tx = e.clientX + margin, ty = e.clientY - tooltip.offsetHeight - margin;
-    if (tx + tooltip.offsetWidth > window.innerWidth - 370) tx = e.clientX - tooltip.offsetWidth - margin;
+    if (tx + tooltip.offsetWidth > window.innerWidth - 20) tx = e.clientX - tooltip.offsetWidth - margin;
     if (ty < 8) ty = e.clientY + margin;
     tooltip.style.left = tx + 'px'; tooltip.style.top = ty + 'px';
     tooltip.classList.add('visible');
