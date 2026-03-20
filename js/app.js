@@ -85,6 +85,7 @@ const map = new mapboxgl.Map({
   style: 'mapbox://styles/mapbox/standard',
   center: [10.728, 59.9125],
   zoom: 13,
+  pitch: 20,
   antialias: true
 });
 
@@ -94,6 +95,16 @@ map.on('style.load', () => {
   mapLoaded = true;
   map.setConfigProperty('basemap', 'showPointOfInterestLabels', false);
   map.setConfigProperty('basemap', 'showTransitLabels', false);
+
+  // Boost ambient occlusion on building extrusions so they read clearly from the ground
+  map.getStyle().layers.forEach(layer => {
+    if (layer.type === 'fill-extrusion') {
+      map.setPaintProperty(layer.id, 'fill-extrusion-ambient-occlusion-intensity', 0.5);
+      map.setPaintProperty(layer.id, 'fill-extrusion-ambient-occlusion-radius', 4);
+      map.setPaintProperty(layer.id, 'fill-extrusion-opacity', 1.0);
+    }
+  });
+
   map.setFog({
     range: [1, 10],
     color: 'rgba(160, 180, 210, 0.25)',
@@ -107,6 +118,7 @@ map.on('style.load', () => {
 });
 
 // ── Light preset (atmosphere + sky) ──────────────────────────────────────────
+let _currentPreset = null;
 function updateLightPreset() {
   if (!mapLoaded || !currentSun || !currentSunTable) return;
   const hour    = parseFloat(timeFromEl.value);
@@ -122,6 +134,8 @@ function updateLightPreset() {
   } else {
     preset = 'day';
   }
+  if (preset === _currentPreset) return; // only fire on actual change so Mapbox transition plays fully
+  _currentPreset = preset;
   map.setConfigProperty('basemap', 'lightPreset', preset);
 }
 
@@ -288,7 +302,7 @@ function selectVenue(id, flyTo) {
     `)
     .addTo(map);
   canvas.style.pointerEvents = 'none';
-  popup.on('close', () => { popup = null; canvas.style.pointerEvents = 'auto'; });
+  popup.on('close', () => { popup = null; canvas.style.pointerEvents = 'auto'; map.easeTo({ pitch: 20, duration: 600 }); });
 
   draw();
   renderList();
@@ -347,6 +361,7 @@ function exitEditMode() {
   editingVenueId = null;
   editHoveredWallIdx = null;
   document.getElementById('edit-overlay').style.display = 'none';
+  map.easeTo({ pitch: 20, duration: 500 });
   draw();
   renderList();
 }
