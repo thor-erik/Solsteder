@@ -11,7 +11,7 @@ const OVERPASS_ENDPOINTS = [
   'https://overpass.kumi.systems/api/interpreter',
   'https://overpass.openstreetmap.ru/api/interpreter',
 ];
-const OSM_CACHE_KEY    = 'solsteder_osm_v7';
+const OSM_CACHE_KEY    = 'solsteder_osm_v8';
 const OSM_CACHE_TTL    = 7 * 24 * 60 * 60 * 1000; // 7 days
 // Bump this whenever the scoring / geometry pipeline changes so that a
 // stale precomputed geometry.json is rejected and the slow path reruns.
@@ -237,46 +237,8 @@ function computeAutoTerraceWallIndices(venue, walls, buildings, venueBuilding, o
   const bestScore = Math.max(...scores);
   if (bestScore <= 0) return [0];
 
-  const bestIdx  = scores.indexOf(bestScore);
-  const bestWall = walls[bestIdx];
-  const selected = [bestIdx];
-
-  const eLat = venue.googleLocation?.lat ?? venue.lat;
-  const eLng = venue.googleLocation?.lng ?? venue.lng;
-
-  const VERTEX_M = 2 / 111320;
-  const CORNER_M = 5 / 111320;
-
-  function sharesVertex(w1, w2) {
-    const cl = Math.cos(w1.my * RAD);
-    return (
-      Math.hypot((w2.aLng - w1.aLng) * cl, w2.aLat - w1.aLat) < VERTEX_M ||
-      Math.hypot((w2.aLng - w1.bLng) * cl, w2.aLat - w1.bLat) < VERTEX_M ||
-      Math.hypot((w2.bLng - w1.aLng) * cl, w2.bLat - w1.aLat) < VERTEX_M ||
-      Math.hypot((w2.bLng - w1.bLng) * cl, w2.bLat - w1.bLat) < VERTEX_M
-    );
-  }
-
-  function entranceNearSharedCorner(w1, w2) {
-    const cl = Math.cos(eLat * RAD);
-    const ex = eLng * cl, ey = eLat;
-    for (const [lng, lat] of [[w1.aLng, w1.aLat], [w1.bLng, w1.bLat],
-                               [w2.aLng, w2.aLat], [w2.bLng, w2.bLat]]) {
-      if (Math.hypot(lng * cl - ex, lat - ey) < CORNER_M) return true;
-    }
-    return false;
-  }
-
-  walls.forEach((w2, i2) => {
-    if (i2 === bestIdx) return;
-    if (scores[i2] < bestScore * 0.20) return;
-    if (!sharesVertex(bestWall, w2)) return;
-    if (entranceNearSharedCorner(bestWall, w2) && scores[i2] >= bestScore * 0.40) {
-      selected.push(i2);
-    }
-  });
-
-  return selected;
+  const bestIdx = scores.indexOf(bestScore);
+  return [bestIdx];
 }
 
 // ── Auto terrace depth ────────────────────────────────────────────────────────
