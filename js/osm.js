@@ -11,7 +11,7 @@ const OVERPASS_ENDPOINTS = [
   'https://overpass.kumi.systems/api/interpreter',
   'https://overpass.openstreetmap.ru/api/interpreter',
 ];
-const OSM_CACHE_KEY    = 'solsteder_osm_v6';
+const OSM_CACHE_KEY    = 'solsteder_osm_v7';
 const OSM_CACHE_TTL    = 7 * 24 * 60 * 60 * 1000; // 7 days
 // Bump this whenever the scoring / geometry pipeline changes so that a
 // stale precomputed geometry.json is rejected and the slow path reruns.
@@ -531,7 +531,8 @@ async function initFacings() {
     v.facingSource         = 'osm';
     v.autoTerraceDepth       = computeAutoTerraceDepth(bestWall, highways);
     v.autoTerraceWallIndices = autoIndices;
-    saveFacingCache(v.id, v.facing, 'osm');
+    v.terraceWallIndices     = autoIndices;   // overwrite stale cached indices
+    saveFacingCache(v.id, v.facing, 'osm', autoIndices, null);
 
     // ── Step 4: terrace test-point grid ──────────────────────────────────────
     // computeTerraceTestPoints may update v.autoTerraceDepth if an OSM area is found
