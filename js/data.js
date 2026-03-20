@@ -28,7 +28,7 @@ let VENUES = [];
 // ── Facing cache ──────────────────────────────────────────────────────────────
 // Persists computed ('osm') and manual ('manual') facing directions across refreshes.
 // This means initFacings() only runs scoreWall once per venue, not every load.
-const FACING_CACHE_KEY = 'solsteder_facings_v1';
+const FACING_CACHE_KEY = 'solsteder_facings_v2';
 
 function loadFacingCache() {
   try { return JSON.parse(localStorage.getItem(FACING_CACHE_KEY) || '{}'); }

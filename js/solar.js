@@ -66,6 +66,20 @@ function pointInPolygon(lat, lng, nodes) {
   return inside;
 }
 
+/** Returns true if point (px,py) is inside triangle (a,b,c). Handles both winding orders. */
+function pointInTriangle(px, py, ax, ay, bx, by, cx, cy) {
+  const d1 = (px - bx) * (ay - by) - (ax - bx) * (py - by);
+  const d2 = (px - cx) * (by - cy) - (bx - cx) * (py - cy);
+  const d3 = (px - ax) * (cy - ay) - (cx - ax) * (py - ay);
+  return !((d1 < 0 || d2 < 0 || d3 < 0) && (d1 > 0 || d2 > 0 || d3 > 0));
+}
+
+/** Returns true if point (px,py) is inside quad (a,b,c,d) split into two triangles. */
+function pointInQuad(px, py, ax, ay, bx, by, cx, cy, dx, dy) {
+  return pointInTriangle(px, py, ax, ay, bx, by, cx, cy)
+      || pointInTriangle(px, py, ax, ay, cx, cy, dx, dy);
+}
+
 // ── Building shadow casting ───────────────────────────────────────────────────
 
 /**
@@ -98,7 +112,7 @@ function pointInBuildingShadow(lat, lng, building, sunAz, sunAlt) {
   // Inside the building footprint → always shadowed
   if (pointInPolygon(lat, lng, nodes)) return true;
 
-  // Shadow offset: per metre of height, shadow extends this far on the ground
+  // Shadow vector: per metre of height, the shadow extends this far on the ground
   const tanAlt = Math.tan(sunAlt * RAD);
   if (tanAlt <= 0) return false;
   const avgLat = nodes.reduce((s, n) => s + n.lat, 0) / nodes.length;
@@ -109,7 +123,20 @@ function pointInBuildingShadow(lat, lng, building, sunAz, sunAlt) {
     lat: n.lat + height * dLat,
     lon: n.lon + height * dLon,
   }));
-  return pointInPolygon(lat, lng, shadowNodes);
+
+  // Far end of shadow polygon
+  if (pointInPolygon(lat, lng, shadowNodes)) return true;
+
+  // Side slivers: quads connecting each building edge to its shadow-translated copy.
+  // The original "translate whole footprint" approach leaves triangular gaps at the
+  // sides that can miss a test point in oblique-angle / morning-evening scenarios.
+  for (let i = 0; i < nodes.length - 1; i++) {
+    const a = nodes[i],         b = nodes[i + 1];
+    const c = shadowNodes[i],   d = shadowNodes[i + 1];
+    if (pointInQuad(lng, lat, a.lon, a.lat, b.lon, b.lat, d.lon, d.lat, c.lon, c.lat)) return true;
+  }
+
+  return false;
 }
 
 /**
@@ -120,18 +147,19 @@ function pointInBuildingShadow(lat, lng, building, sunAz, sunAlt) {
 function venueSunState(venue, sunAz, sunAlt) {
   if (sunAlt < 2) return false;
   if (venue.nearbyBuildings && venue.nearbyBuildings.length > 0) {
-    // Test a point 2 m in front of the terrace wall, not the entrance pin
-    let testLat = venue.lat, testLng = venue.lng;
-    if (venue.wallSegment) {
-      const br = venue.wallSegment.bearing * RAD;
-      const my = venue.wallSegment.my;
-      testLat = my + Math.cos(br) * 2 / 111320;
-      testLng = venue.wallSegment.mx + Math.sin(br) * 2 / (111320 * Math.cos(my * RAD));
+    // terraceTestPoints is a pre-computed grid across the terrace area (see osm.js).
+    // Fall back to entrance pin only when geometry data is absent.
+    const pts = venue.terraceTestPoints ?? [{ lat: venue.lat, lng: venue.lng }];
+    let sunCount = 0;
+    for (const pt of pts) {
+      let shaded = false;
+      for (const b of venue.nearbyBuildings) {
+        if (pointInBuildingShadow(pt.lat, pt.lng, b, sunAz, sunAlt)) { shaded = true; break; }
+      }
+      if (!shaded) sunCount++;
     }
-    for (const b of venue.nearbyBuildings) {
-      if (pointInBuildingShadow(testLat, testLng, b, sunAz, sunAlt)) return false;
-    }
-    return true;
+    // Majority vote: "in sun" when more than half the sampled points are unshaded
+    return sunCount * 2 > pts.length;
   }
   return venueInSun(venue.facing, sunAz, sunAlt);
 }

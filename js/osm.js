@@ -11,7 +11,7 @@ const OVERPASS_ENDPOINTS = [
   'https://overpass.kumi.systems/api/interpreter',
   'https://overpass.openstreetmap.ru/api/interpreter',
 ];
-const OSM_CACHE_KEY = 'solsteder_osm_v2';
+const OSM_CACHE_KEY = 'solsteder_osm_v3';
 const OSM_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 // ── Network ───────────────────────────────────────────────────────────────────
@@ -55,6 +55,8 @@ async function fetchAllGeometry() {
   way["leisure"~"park|garden"](${bbox});
   way["landuse"~"grass|meadow|recreation_ground|cemetery"](${bbox});
   way["place"~"square"](${bbox});
+  node["leisure"="outdoor_seating"](${bbox});
+  way["leisure"="outdoor_seating"](${bbox});
 );
 out geom;`;
 
@@ -129,9 +131,10 @@ function probePoint(wall, distM) {
 /**
  * Find all buildings within radiusM metres of a venue and return them in the
  * slim format needed by the shadow caster: { geometry, height }.
- * 150 m captures shadows at typical Oslo summer sun angles (≥10° altitude).
+ * 200 m: at 10° sun altitude a 35m building casts a ~200m shadow — relevant
+ * for Oslo spring mornings and autumn evenings.
  */
-function findNearbyBuildings(venue, buildings, excludeBuilding = null, radiusM = 150) {
+function findNearbyBuildings(venue, buildings, excludeBuilding = null, radiusM = 200) {
   return buildings
     .filter(b => {
       if (b === excludeBuilding) return false;
@@ -142,6 +145,57 @@ function findNearbyBuildings(venue, buildings, excludeBuilding = null, radiusM =
       geometry: b.geometry,
       height:   extractBuildingHeight(b.tags || {}),
     }));
+}
+
+// ── Terrace test-point grid ───────────────────────────────────────────────────
+
+/**
+ * Compute the array of lat/lng points used for shadow testing across the terrace.
+ *
+ * Priority:
+ *   1. OSM `leisure=outdoor_seating` coordinate within 30 m (community-placed, most accurate)
+ *   2. Project a 3-point grid from each selected terrace wall at half the terrace depth
+ *
+ * The resulting array is stored as venue.terraceTestPoints and consumed by
+ * venueSunState() in solar.js (both main thread and worker).
+ */
+function computeTerraceTestPoints(venue, outdoorSeatingCoord) {
+  // Tier 1 — explicit OSM outdoor seating location
+  if (outdoorSeatingCoord) {
+    return [{ lat: outdoorSeatingCoord.lat, lng: outdoorSeatingCoord.lng }];
+  }
+
+  // Tier 2 — project from wall geometry
+  // Prefer autoTerraceWallIndices (computed fresh this session) over terraceWallIndices
+  // (which comes from manual cache — cleared after key bump).
+  const indices = venue.autoTerraceWallIndices?.length
+    ? venue.autoTerraceWallIndices
+    : (venue.terraceWallIndices?.length ? venue.terraceWallIndices : null);
+
+  const walls = indices?.length
+    ? indices.map(i => venue.wallNormals?.[i]).filter(Boolean)
+    : venue.wallSegment ? [venue.wallSegment] : [];
+
+  if (!walls.length) return [{ lat: venue.lat, lng: venue.lng }];
+
+  const depth     = venue.terraceDepth ?? venue.autoTerraceDepth ?? 4;
+  const testDepth = Math.max(1.5, depth * 0.5);  // mid-depth of terrace
+
+  const points = [];
+  for (const wall of walls) {
+    const br     = wall.bearing * RAD;
+    const cosLat = Math.cos(wall.my * RAD);
+    // Sample at 25 %, 50 %, 75 % along each wall's length
+    for (const f of [0.25, 0.5, 0.75]) {
+      const wLat = (1 - f) * wall.aLat + f * wall.bLat;
+      const wLng = (1 - f) * wall.aLng + f * wall.bLng;
+      points.push({
+        lat: wLat + Math.cos(br) * testDepth / 111320,
+        lng: wLng + Math.sin(br) * testDepth / (111320 * cosLat),
+      });
+    }
+  }
+  return points;
 }
 
 // ── Auto terrace wall selection ────────────────────────────────────────────────
@@ -288,7 +342,8 @@ function scoreWall(wall, buildings, venueBuilding, openPolygons, entranceNodes, 
 /**
  * Try loading data/geometry.json (pre-computed by GitHub Actions).
  * Returns true if all venues were hydrated successfully, false otherwise.
- * 'manual' facingSource in localStorage always takes precedence.
+ * After loading, terraceTestPoints are derived from the loaded geometry
+ * (or from the precomputed field if already present).
  */
 async function tryLoadPrecomputed() {
   try {
@@ -299,22 +354,18 @@ async function tryLoadPrecomputed() {
     VENUES.forEach(v => {
       const g = precomputed[v.id];
       if (!g) return;
-      v.buildingGeometry  = g.buildingGeometry;
-      v.wallNormals       = g.wallNormals;
-      v.nearbyBuildings   = g.nearbyBuildings;
-      v.wallSegment       = g.wallSegment;
+      v.buildingGeometry       = g.buildingGeometry;
+      v.wallNormals            = g.wallNormals;
+      v.nearbyBuildings        = g.nearbyBuildings;
+      v.wallSegment            = g.wallSegment;
       v.autoTerraceDepth       = g.autoTerraceDepth       ?? null;
       v.autoTerraceWallIndices = g.autoTerraceWallIndices ?? null;
-      // Respect manual override from edit tool; otherwise take pre-computed facing
-      if (v.facingSource !== 'manual') {
-        v.facing       = g.facing;
-        v.facingSource = g.facingSource;
-        saveFacingCache(v.id, g.facing, g.facingSource);
-      } else {
-        // Manual facing: find matching wall segment from wallNormals
-        v.wallSegment = g.wallNormals.reduce((best, w) =>
-          Math.abs(w.bearing - v.facing) < Math.abs(best.bearing - v.facing) ? w : best, g.wallNormals[0]);
-      }
+      // After cache key bump, facingSource is never 'manual' — all venues use precomputed.
+      v.facing       = g.facing;
+      v.facingSource = g.facingSource;
+      saveFacingCache(v.id, g.facing, g.facingSource);
+      // Derive terraceTestPoints from loaded geometry (field absent in older geometry.json)
+      v.terraceTestPoints = g.terraceTestPoints ?? computeTerraceTestPoints(v, null);
       applied++;
     });
     console.log(`OSM: loaded geometry.json (${applied}/${VENUES.length} venues)`);
@@ -355,13 +406,31 @@ async function initFacings() {
     return;
   }
 
-  const buildings     = elements.filter(e => e.type==='way' && e.tags?.building && e.geometry?.length>=4);
-  const openPolygons  = elements.filter(e => e.type==='way' && !e.tags?.building && e.geometry?.length>=3
+  const buildings          = elements.filter(e => e.type==='way' && e.tags?.building && e.geometry?.length>=4);
+  const openPolygons       = elements.filter(e => e.type==='way' && !e.tags?.building && e.geometry?.length>=3
     && (e.tags?.natural||e.tags?.leisure||e.tags?.landuse||e.tags?.place)).map(e => e.geometry);
-  const entranceNodes = elements.filter(e => e.type==='node' && e.tags?.entrance);
-  const highways      = elements.filter(e => e.type==='way' && e.tags?.highway && e.geometry?.length);
+  const entranceNodes      = elements.filter(e => e.type==='node' && e.tags?.entrance);
+  const highways           = elements.filter(e => e.type==='way' && e.tags?.highway && e.geometry?.length);
+  const outdoorSeatingNodes = elements.filter(e => e.type==='node' && e.tags?.leisure === 'outdoor_seating');
+  const outdoorSeatingAreas = elements.filter(e => e.type==='way'  && e.tags?.leisure === 'outdoor_seating' && e.geometry?.length>=3);
 
-  console.log(`OSM: ${buildings.length} buildings | ${openPolygons.length} open areas | ${entranceNodes.length} entrances | ${highways.length} streets`);
+  console.log(`OSM: ${buildings.length} buildings | ${openPolygons.length} open areas | ${entranceNodes.length} entrances | ${highways.length} streets | ${outdoorSeatingNodes.length + outdoorSeatingAreas.length} outdoor_seating`);
+
+  /** Find a community-placed outdoor_seating node/area centroid within 30 m of a venue. */
+  function findOutdoorSeatingCoord(venue) {
+    const THRESH = 30 / 111320;
+    let best = null, bestD = THRESH;
+    for (const node of outdoorSeatingNodes) {
+      const d = Math.hypot(node.lat - venue.lat, node.lon - venue.lng);
+      if (d < bestD) { bestD = d; best = { lat: node.lat, lng: node.lon }; }
+    }
+    for (const area of outdoorSeatingAreas) {
+      const c = computeCentroid(area.geometry);
+      const d = Math.hypot(c.lat - venue.lat, c.lon - venue.lng);
+      if (d < bestD) { bestD = d; best = { lat: c.lat, lng: c.lon }; }
+    }
+    return best;
+  }
 
   let computed = 0;
   VENUES.forEach(v => {
@@ -384,19 +453,9 @@ async function initFacings() {
     // ── Step 2: nearby buildings for shadow casting (exclude own building) ──────
     v.nearbyBuildings = findNearbyBuildings(v, buildings, building);
 
-    // ── Step 3: score walls (skipped if facing already set) ───────────────────
-    // 'manual' = user chose via edit tool → never overwrite.
-    // 'osm'    = previously computed and cached → skip redundant re-scoring.
-    if (v.facingSource === 'manual' || v.facingSource === 'osm') {
-      v.wallSegment = walls.reduce((best, w) =>
-        Math.abs(w.bearing - v.facing) < Math.abs(best.bearing - v.facing) ? w : best, walls[0]);
-      v.autoTerraceDepth       = computeAutoTerraceDepth(v.wallSegment, highways);
-      v.autoTerraceWallIndices = computeAutoTerraceWallIndices(v, walls, buildings, building, openPolygons, entranceNodes, highways);
-      return;
-    }
-
+    // ── Step 3: wall scoring — after cache key bump facingSource is never 'manual' ──
     const autoIndices = computeAutoTerraceWallIndices(v, walls, buildings, building, openPolygons, entranceNodes, highways);
-    const bestWall = walls[autoIndices[0]];
+    const bestWall    = walls[autoIndices[0]];
 
     v.facing               = Math.round(bestWall.bearing);
     v.wallSegment          = bestWall;
@@ -404,8 +463,14 @@ async function initFacings() {
     v.autoTerraceDepth       = computeAutoTerraceDepth(bestWall, highways);
     v.autoTerraceWallIndices = autoIndices;
     saveFacingCache(v.id, v.facing, 'osm');
+
+    // ── Step 4: terrace test-point grid ──────────────────────────────────────
+    const osmCoord       = findOutdoorSeatingCoord(v);
+    v.terraceTestPoints  = computeTerraceTestPoints(v, osmCoord);
+
     computed++;
-    console.log(`${v.name}: ${v.facing}° | score ${bestScore.toFixed(0)} | wall ${bestWall.lenM.toFixed(0)} m`);
+    const src = osmCoord ? 'osm-seating' : 'wall-projection';
+    console.log(`${v.name}: ${v.facing}° | wall ${bestWall.lenM.toFixed(0)} m | terrace pts: ${v.terraceTestPoints.length} [${src}]`);
   });
 
   clearSpriteCache();

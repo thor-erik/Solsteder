@@ -68,13 +68,14 @@ try {
 function dispatchToWorker(dateStr) {
   if (!sunWorker || !currentSunTable) return;
   const venues = VENUES.map(v => ({
-    id:             v.id,
-    facing:         v.facing,
-    openingHours:   v.openingHours,
-    lat:            v.lat,
-    lng:            v.lng,
-    nearbyBuildings: v.nearbyBuildings ?? null,
-    wallSegment:     v.wallSegment     ?? null,
+    id:              v.id,
+    facing:          v.facing,
+    openingHours:    v.openingHours,
+    lat:             v.lat,
+    lng:             v.lng,
+    nearbyBuildings:  v.nearbyBuildings   ?? null,
+    wallSegment:      v.wallSegment       ?? null,
+    terraceTestPoints: v.terraceTestPoints ?? null,
   }));
   // Slice the buffer so we transfer a copy, keeping currentSunTable intact on main thread
   const transferBuf = currentSunTable.buffer.slice(0);
