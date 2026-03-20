@@ -300,28 +300,24 @@ function drawBuildingEditor() {
   if (currentWalls.length > 0) {
     const depth  = getEffectiveDepth(v);
     const pxPerM = pxPerMetre(v);
+    const depthPx = depth * pxPerM;
 
-    currentWalls.forEach(wall => {
-      const { normX, normY, mx, my } = wallOutwardNormal(v, wall);
-
-      // Terrace rectangle preview
-      const { dLat, dLng } = meterOffsetDeg(wall.my, wall.bearing, depth);
-      const corners = [
-        map.project([wall.aLng,        wall.aLat       ]),
-        map.project([wall.bLng,        wall.bLat       ]),
-        map.project([wall.bLng + dLng, wall.bLat + dLat]),
-        map.project([wall.aLng + dLng, wall.aLat + dLat]),
-      ];
+    // Mitered terrace preview (one clean polygon per connected chain)
+    const polys = terracePolygons(v, currentWalls, depthPx);
+    polys.forEach(poly => {
       ctx.beginPath();
-      corners.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+      poly.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
       ctx.closePath();
       ctx.fillStyle = 'rgba(100,255,180,0.10)'; ctx.fill();
       ctx.strokeStyle = 'rgba(100,255,180,0.55)'; ctx.lineWidth = 1.5;
       ctx.setLineDash([5, 3]); ctx.stroke(); ctx.setLineDash([]);
+    });
 
-      // Depth handle
-      const hx = mx + normX * depth * pxPerM;
-      const hy = my + normY * depth * pxPerM;
+    // Depth handle per wall (each shows depth, drag adjusts shared depth)
+    currentWalls.forEach(wall => {
+      const { normX, normY, mx, my } = wallOutwardNormal(v, wall);
+      const hx = mx + normX * depthPx;
+      const hy = my + normY * depthPx;
 
       ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(hx, hy);
       ctx.strokeStyle = 'rgba(100,255,180,0.6)'; ctx.lineWidth = 1.5;
@@ -366,6 +362,102 @@ function convexHull(pts) {
 // ── Seating area shapes ────────────────────────────────────────────────────────
 const TERRACE_DEPTH_M = 7;  // metres outward from the terrace wall
 
+/** 2-D line intersection (pixel space). Point p + t*dir. Returns {x,y} or null if parallel. */
+function lineIntersectPx(p1x, p1y, d1x, d1y, p2x, p2y, d2x, d2y) {
+  const denom = d1x * d2y - d1y * d2x;
+  if (Math.abs(denom) < 1e-6) return null;
+  const t = ((p2x - p1x) * d2y - (p2y - p1y) * d2x) / denom;
+  return { x: p1x + t * d1x, y: p1y + t * d1y };
+}
+
+/**
+ * Build mitered terrace polygon(s) for a set of walls.
+ *
+ * Groups walls into connected chains (endpoints within 4 px). For each chain:
+ * - Single wall → rectangle (4 pts)
+ * - Multiple connected walls → proper mitered polygon: the inner edge follows
+ *   the wall line, the outer edge is offset by depthPx with miter joints at
+ *   every corner, eliminating gaps/overlaps between angled wall segments.
+ *
+ * Returns an array of pixel-space polygon vertex arrays (one per chain).
+ */
+function terracePolygons(v, walls, depthPx) {
+  if (!walls.length) return [];
+
+  const enriched = walls.map(wall => {
+    const pa = map.project([wall.aLng, wall.aLat]);
+    const pb = map.project([wall.bLng, wall.bLat]);
+    const { normX, normY } = wallOutwardNormal(v, wall);
+    return { wall, pa, pb, normX, normY };
+  });
+
+  // Group into connected chains by pixel-space vertex proximity
+  const THRESH = 4; // px
+  const used   = new Array(enriched.length).fill(false);
+  const chains = [];
+
+  for (let start = 0; start < enriched.length; start++) {
+    if (used[start]) continue;
+    const chain = [enriched[start]];
+    used[start] = true;
+
+    for (let pass = 0; pass < 2; pass++) {  // 0 = extend tail, 1 = extend head
+      let grew = true;
+      while (grew) {
+        grew = false;
+        const anchor = pass === 0 ? chain[chain.length - 1] : chain[0];
+        const anchorPt = pass === 0 ? anchor.pb : anchor.pa;
+        for (let i = 0; i < enriched.length; i++) {
+          if (used[i]) continue;
+          const d = enriched[i];
+          let item = null;
+          if (Math.hypot(d.pa.x - anchorPt.x, d.pa.y - anchorPt.y) < THRESH) {
+            item = d;
+          } else if (Math.hypot(d.pb.x - anchorPt.x, d.pb.y - anchorPt.y) < THRESH) {
+            item = { ...d, pa: d.pb, pb: d.pa };  // reversed orientation
+          }
+          if (item) {
+            pass === 0 ? chain.push(item) : chain.unshift(item);
+            used[i] = true; grew = true; break;
+          }
+        }
+      }
+    }
+    chains.push(chain);
+  }
+
+  // Build mitered polygon for each chain
+  return chains.map(chain => {
+    const inner = [];
+    const outer = [];
+
+    chain.forEach((item, i) => {
+      const { pa, pb, normX, normY } = item;
+      const oA = { x: pa.x + normX * depthPx, y: pa.y + normY * depthPx };
+      const oB = { x: pb.x + normX * depthPx, y: pb.y + normY * depthPx };
+
+      if (i === 0) inner.push(pa);
+      inner.push(pb);
+
+      if (i === 0) outer.push(oA);
+
+      if (i < chain.length - 1) {
+        const nx = chain[i + 1];
+        const noA = { x: nx.pa.x + nx.normX * depthPx, y: nx.pa.y + nx.normY * depthPx };
+        const miter = lineIntersectPx(
+          oB.x, oB.y, pb.x - pa.x, pb.y - pa.y,
+          noA.x, noA.y, nx.pb.x - nx.pa.x, nx.pb.y - nx.pa.y,
+        );
+        outer.push(miter ?? oB);  // fallback for parallel walls
+      } else {
+        outer.push(oB);
+      }
+    });
+
+    return [...inner, ...outer.reverse()];
+  });
+}
+
 /**
  * Given a bearing (compass degrees) and distance in metres, return the lat/lng
  * delta to add to a reference point.
@@ -407,24 +499,16 @@ function drawSeatingAreas() {
     const walls = getTerraceWalls(v);
 
     if (walls.length > 0 && walls[0].aLat != null) {
-      // One rectangle per anchor wall
-      walls.forEach(wall => {
-        const { dLat, dLng } = meterOffsetDeg(wall.my, wall.bearing, depth);
-        const corners = [
-          map.project([wall.aLng,        wall.aLat       ]),
-          map.project([wall.bLng,        wall.bLat       ]),
-          map.project([wall.bLng + dLng, wall.bLat + dLat]),
-          map.project([wall.aLng + dLng, wall.aLat + dLat]),
-        ];
+      // Mitered polygon(s) — handles single walls, L-shapes, and multi-wall chains
+      const polys = terracePolygons(v, walls, depth * pxPerMetre(v));
+      polys.forEach(poly => {
         ctx.beginPath();
-        corners.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+        poly.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
         ctx.closePath();
         ctx.fillStyle   = sunny ? fillSunny   : fillShade;
         ctx.fill();
         ctx.strokeStyle = sunny ? strokeSunny : strokeShade;
-        ctx.lineWidth   = 1.5;
-        ctx.setLineDash([]);
-        ctx.stroke();
+        ctx.lineWidth   = 1.5; ctx.setLineDash([]); ctx.stroke();
       });
     } else {
       // Fan fallback: sector in the facing direction
