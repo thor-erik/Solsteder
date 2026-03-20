@@ -35,9 +35,16 @@ function loadFacingCache() {
   catch (_) { return {}; }
 }
 
-function saveFacingCache(venueId, facing, facingSource) {
+function saveFacingCache(venueId, facing, facingSource, terraceWallIndices, terraceDepth) {
   const cache = loadFacingCache();
-  cache[venueId] = { facing, facingSource };
+  const prev  = cache[venueId] || {};
+  cache[venueId] = {
+    facing,
+    facingSource,
+    // Preserve existing terrace data when callers don't pass it (e.g. auto-OSM scoring)
+    terraceWallIndices: terraceWallIndices ?? prev.terraceWallIndices ?? [],
+    terraceDepth:       terraceDepth       ?? prev.terraceDepth       ?? 7,
+  };
   try { localStorage.setItem(FACING_CACHE_KEY, JSON.stringify(cache)); }
   catch (_) {}
 }
@@ -53,11 +60,13 @@ function normalizeVenue(v) {
     category:      v.category,
     area:          v.area,
     rating:        v.rating,
-    facing:        v.facing ?? 180,
-    facingSource:  v.facingSource ?? null,
-    openingHours:  v.openingHours,
-    buildingOsmId: v.buildingOsmId ?? null,
-    googlePlaceId: v.googlePlaceId ?? null,
+    facing:             v.facing ?? 180,
+    facingSource:       v.facingSource ?? null,
+    openingHours:       v.openingHours,
+    buildingOsmId:      v.buildingOsmId ?? null,
+    googlePlaceId:      v.googlePlaceId ?? null,
+    terraceDepth:       v.terraceDepth ?? 7,
+    terraceWallIndices: v.terraceWallIndices ?? [],
   };
 }
 
@@ -81,6 +90,9 @@ async function loadVenues() {
   VENUES.forEach(v => {
     const cached = facingCache[v.id];
     if (!cached) return;
+    // Terrace geometry is always restored from cache regardless of facingSource
+    if (cached.terraceWallIndices?.length) v.terraceWallIndices = cached.terraceWallIndices;
+    if (cached.terraceDepth != null)       v.terraceDepth       = cached.terraceDepth;
     // JSON-level 'manual' beats any localStorage entry (it was intentionally authored)
     if (v.facingSource === 'manual') return;
     v.facing = cached.facing;

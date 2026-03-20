@@ -402,14 +402,29 @@ function exitEditMode() {
 function selectWallByIdx(idx) {
   const v = VENUES.find(x => x.id === editingVenueId);
   if (!v?.wallNormals) return;
-  const wall = v.wallNormals[idx];
-  v.facing = Math.round(wall.bearing);
-  v.wallSegment = wall;
-  v.facingSource = 'manual';
-  saveFacingCache(v.id, v.facing, 'manual');
+
+  if (!v.terraceWallIndices) v.terraceWallIndices = [];
+  const pos = v.terraceWallIndices.indexOf(idx);
+  if (pos >= 0) {
+    v.terraceWallIndices.splice(pos, 1);   // deselect
+  } else {
+    v.terraceWallIndices.push(idx);        // add
+  }
+
+  // Primary wall = first selected; fallback to index 0
+  const primaryIdx = v.terraceWallIndices[0] ?? 0;
+  v.wallSegment    = v.wallNormals[primaryIdx];
+  v.facing         = v.terraceWallIndices.length > 0 ? Math.round(v.wallSegment.bearing) : v.facing;
+  v.facingSource   = 'manual';
+
+  saveFacingCache(v.id, v.facing, 'manual', v.terraceWallIndices, v.terraceDepth ?? 7);
   clearSpriteCache();
   sunWindowCache.clear();
-  document.getElementById('edit-facing-display').innerHTML = `${v.facing}° ${bearingToCardinal(v.facing)}`;
+  const walls = getTerraceWalls(v);
+  const label = walls.length > 1
+    ? `${v.facing}° ${bearingToCardinal(v.facing)} · ${walls.length} walls`
+    : `${v.facing}° ${bearingToCardinal(v.facing)}`;
+  document.getElementById('edit-facing-display').innerHTML = label;
   dispatchToWorker(datePicker.value);
   draw();
   renderList();

@@ -4,6 +4,53 @@
  *             VENUES, catIcon (data.js) · venueSunState (solar.js)
  */
 
+// ── Terrace wall helpers ──────────────────────────────────────────────────────
+/**
+ * Returns the array of wall objects that form the terrace for a venue.
+ * - If terraceWallIndices is populated, use those indices into wallNormals.
+ * - Otherwise fall back to the single best-match wall (wallSegment / closest bearing).
+ */
+function getTerraceWalls(v) {
+  if (!v.wallNormals?.length) return v.wallSegment ? [v.wallSegment] : [];
+  if (v.terraceWallIndices?.length) {
+    return v.terraceWallIndices.map(i => v.wallNormals[i]).filter(Boolean);
+  }
+  // Fallback: wall from wallNormals closest to v.facing
+  const best = v.wallNormals.reduce((b, w) =>
+    Math.abs(w.bearing - v.facing) < Math.abs(b.bearing - v.facing) ? w : b);
+  return [best];
+}
+
+/**
+ * Pixel-space outward unit normal for a wall, pointing away from building centroid.
+ * Returns { normX, normY, mx, my } in canvas pixel coords.
+ */
+function wallOutwardNormal(v, wall) {
+  const pa = map.project([wall.aLng, wall.aLat]);
+  const pb = map.project([wall.bLng, wall.bLat]);
+  const mx = (pa.x + pb.x) / 2, my = (pa.y + pb.y) / 2;
+  const wdx = pb.x - pa.x, wdy = pb.y - pa.y;
+  const wl  = Math.hypot(wdx, wdy) || 1;
+  let normX = -wdy / wl, normY = wdx / wl;
+  if (v.buildingGeometry) {
+    const cen   = computeCentroid(v.buildingGeometry);
+    const cenPx = map.project([cen.lon, cen.lat]);
+    if (normX * (cenPx.x - mx) + normY * (cenPx.y - my) > 0) { normX = -normX; normY = -normY; }
+  }
+  return { normX, normY, mx, my };
+}
+
+/** Pixels per metre at the venue's latitude (lat-direction approximation). */
+function pxPerMetre(v) {
+  const base = map.project([v.lng, v.lat]);
+  const ref  = map.project([v.lng, v.lat + 1 / 111320]);
+  return Math.abs(ref.y - base.y);
+}
+
+// ── Depth-drag state ──────────────────────────────────────────────────────────
+let editDraggingDepth = false;
+let editDragWallObj   = null;
+
 // ── Sprite cache ──────────────────────────────────────────────────────────────
 // Each sprite is an offscreen canvas keyed by (id, facing, sunny, selected).
 // draw() does one drawImage per visible venue instead of ~30 canvas ops.
@@ -172,11 +219,13 @@ function drawBuildingEditor() {
   ctx.closePath();
   ctx.fillStyle = 'rgba(24,88,180,0.45)'; ctx.fill();
 
+  const currentWalls = getTerraceWalls(v);
+
   walls.forEach((wall, idx) => {
     const pa = map.project([wall.aLng, wall.aLat]);
     const pb = map.project([wall.bLng, wall.bLat]);
     const isHovered = idx === editHoveredWallIdx;
-    const isCurrent = v.wallSegment === wall;
+    const isCurrent = currentWalls.includes(wall);
     const mx = (pa.x + pb.x) / 2, my = (pa.y + pb.y) / 2;
 
     // Pixel-space outward perpendicular
@@ -232,6 +281,54 @@ function drawBuildingEditor() {
       ctx.setLineDash([]);
     }
   });
+
+  // ── Terrace preview + depth handles ────────────────────────────────────────
+  if (currentWalls.length > 0) {
+    const depth  = v.terraceDepth ?? 7;
+    const pxPerM = pxPerMetre(v);
+
+    currentWalls.forEach(wall => {
+      const { normX, normY, mx, my } = wallOutwardNormal(v, wall);
+
+      // Terrace rectangle preview
+      const { dLat, dLng } = meterOffsetDeg(wall.my, wall.bearing, depth);
+      const corners = [
+        map.project([wall.aLng,        wall.aLat       ]),
+        map.project([wall.bLng,        wall.bLat       ]),
+        map.project([wall.bLng + dLng, wall.bLat + dLat]),
+        map.project([wall.aLng + dLng, wall.aLat + dLat]),
+      ];
+      ctx.beginPath();
+      corners.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(100,255,180,0.10)'; ctx.fill();
+      ctx.strokeStyle = 'rgba(100,255,180,0.55)'; ctx.lineWidth = 1.5;
+      ctx.setLineDash([5, 3]); ctx.stroke(); ctx.setLineDash([]);
+
+      // Depth handle
+      const hx = mx + normX * depth * pxPerM;
+      const hy = my + normY * depth * pxPerM;
+
+      ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(hx, hy);
+      ctx.strokeStyle = 'rgba(100,255,180,0.6)'; ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 3]); ctx.stroke(); ctx.setLineDash([]);
+
+      const draggingThis = editDraggingDepth && editDragWallObj === wall;
+      ctx.beginPath(); ctx.arc(hx, hy, draggingThis ? 10 : 8, 0, Math.PI * 2);
+      ctx.fillStyle   = draggingThis ? '#64ffb4' : 'rgba(100,255,180,0.85)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(10,14,28,0.9)'; ctx.lineWidth = 2; ctx.stroke();
+
+      // Depth label
+      ctx.font = 'bold 10px "DM Sans", sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const lx = hx + normX * 20, ly = hy + normY * 20;
+      ctx.fillStyle = 'rgba(10,14,28,0.88)';
+      fillRoundRect(ctx, lx - 15, ly - 10, 30, 20, 5);
+      ctx.fillStyle = '#64ffb4';
+      ctx.fillText(`${Math.round(depth)}m`, lx, ly);
+    });
+  }
 }
 
 // ── Convex hull (Andrew's monotone chain) ─────────────────────────────────────
@@ -292,33 +389,36 @@ function drawSeatingAreas() {
     const fillShade   = 'rgba(40,80,180,0.13)';
     const strokeShade = 'rgba(80,130,220,0.35)';
 
-    if (v.wallSegment) {
-      // Rectangle: wall edge → depth outward in the facing direction
-      const { aLat, aLng, bLat, bLng, bearing } = v.wallSegment;
-      const { dLat, dLng } = meterOffsetDeg(v.lat, bearing, TERRACE_DEPTH_M);
-      const corners = [
-        map.project([aLng,        aLat       ]),
-        map.project([bLng,        bLat       ]),
-        map.project([bLng + dLng, bLat + dLat]),
-        map.project([aLng + dLng, aLat + dLat]),
-      ];
+    const depth = v.terraceDepth ?? TERRACE_DEPTH_M;
+    const walls = getTerraceWalls(v);
 
-      ctx.beginPath();
-      corners.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
-      ctx.closePath();
-      ctx.fillStyle   = sunny ? fillSunny   : fillShade;
-      ctx.fill();
-      ctx.strokeStyle = sunny ? strokeSunny : strokeShade;
-      ctx.lineWidth   = 1.5;
-      ctx.setLineDash([]);
-      ctx.stroke();
+    if (walls.length > 0 && walls[0].aLat != null) {
+      // One rectangle per anchor wall
+      walls.forEach(wall => {
+        const { dLat, dLng } = meterOffsetDeg(wall.my, wall.bearing, depth);
+        const corners = [
+          map.project([wall.aLng,        wall.aLat       ]),
+          map.project([wall.bLng,        wall.bLat       ]),
+          map.project([wall.bLng + dLng, wall.bLat + dLat]),
+          map.project([wall.aLng + dLng, wall.aLat + dLat]),
+        ];
+        ctx.beginPath();
+        corners.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+        ctx.closePath();
+        ctx.fillStyle   = sunny ? fillSunny   : fillShade;
+        ctx.fill();
+        ctx.strokeStyle = sunny ? strokeSunny : strokeShade;
+        ctx.lineWidth   = 1.5;
+        ctx.setLineDash([]);
+        ctx.stroke();
+      });
     } else {
       // Fan fallback: sector in the facing direction
       const pt  = map.project([v.lng, v.lat]);
-      const ref = map.project([v.lng, v.lat + TERRACE_DEPTH_M / 111320]);
+      const ref = map.project([v.lng, v.lat + depth / 111320]);
       const pxR = Math.max(12, Math.abs(pt.y - ref.y));
-      const dir = (v.facing - 90) * RAD;  // canvas angle (0=right)
-      const hw  = 40 * RAD;               // half-spread ~40°
+      const dir = (v.facing - 90) * RAD;
+      const hw  = 40 * RAD;
 
       ctx.beginPath();
       ctx.moveTo(pt.x, pt.y);
@@ -547,6 +647,22 @@ function hitTestVenue(cx, cy) {
   return hit;
 }
 
+function hitTestDepthHandle(cx, cy) {
+  if (!editingVenueId) return null;
+  const v = VENUES.find(x => x.id === editingVenueId);
+  if (!v) return null;
+  const walls  = getTerraceWalls(v);
+  const depth  = v.terraceDepth ?? 7;
+  const pxPerM = pxPerMetre(v);
+  for (const wall of walls) {
+    const { normX, normY, mx, my } = wallOutwardNormal(v, wall);
+    const hx = mx + normX * depth * pxPerM;
+    const hy = my + normY * depth * pxPerM;
+    if (Math.hypot(cx - hx, cy - hy) <= 14) return wall;
+  }
+  return null;
+}
+
 function hitTestWall(cx, cy) {
   if (!editingVenueId) return null;
   const v = VENUES.find(x => x.id === editingVenueId);
@@ -568,6 +684,14 @@ canvas.addEventListener('mousedown', e => {
   const rect = canvas.getBoundingClientRect();
   const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
   if (editingVenueId) {
+    // Depth handle drag takes priority — don't forward to map
+    const handle = hitTestDepthHandle(cx, cy);
+    if (handle) {
+      editDraggingDepth = true;
+      editDragWallObj   = handle;
+      canvas.style.cursor = 'row-resize';
+      return;
+    }
     canvas.style.pointerEvents = 'none';
     const el = document.elementFromPoint(e.clientX, e.clientY);
     canvas.style.pointerEvents = 'auto';
@@ -614,6 +738,26 @@ canvas.addEventListener('mousemove', e => {
 
   if (editingVenueId) {
     tooltip.classList.remove('visible');
+
+    // Depth drag in progress
+    if (editDraggingDepth && editDragWallObj) {
+      const v = VENUES.find(x => x.id === editingVenueId);
+      if (v) {
+        const { normX, normY, mx, my } = wallOutwardNormal(v, editDragWallObj);
+        const pixelDist = (cx - mx) * normX + (cy - my) * normY;
+        v.terraceDepth = Math.max(1, Math.min(30, pixelDist / pxPerMetre(v)));
+        draw();
+        const walls = getTerraceWalls(v);
+        const wallsLabel = walls.length > 1 ? ` · ${walls.length} walls` : '';
+        document.getElementById('edit-facing-display').innerHTML =
+          `${v.facing}° ${bearingToCardinal(v.facing)}${wallsLabel} · <span style="color:#64ffb4">${Math.round(v.terraceDepth)}m depth</span>`;
+      }
+      return;
+    }
+
+    const handle = hitTestDepthHandle(cx, cy);
+    if (handle) { canvas.style.cursor = 'row-resize'; return; }
+
     const wallIdx = hitTestWall(cx, cy);
     canvas.style.cursor = wallIdx !== null ? 'pointer' : 'default';
     if (wallIdx !== editHoveredWallIdx) {
@@ -623,9 +767,12 @@ canvas.addEventListener('mousemove', e => {
       const el = document.getElementById('edit-facing-display');
       if (wallIdx !== null && v?.wallNormals) {
         const wall = v.wallNormals[wallIdx];
-        el.innerHTML = `<span class="preview">${Math.round(wall.bearing)}° ${bearingToCardinal(wall.bearing)}</span>`;
+        const sel  = v.terraceWallIndices?.includes(wallIdx) ? ' ✓' : '';
+        el.innerHTML = `<span class="preview">${Math.round(wall.bearing)}° ${bearingToCardinal(wall.bearing)}${sel}</span>`;
       } else if (v) {
-        el.innerHTML = `${v.facing}° ${bearingToCardinal(v.facing)}`;
+        const walls = getTerraceWalls(v);
+        const wallsLabel = walls.length > 1 ? ` · ${walls.length} walls` : '';
+        el.innerHTML = `${v.facing}° ${bearingToCardinal(v.facing)}${wallsLabel}`;
       }
     }
     return;
@@ -652,7 +799,17 @@ canvas.addEventListener('mousemove', e => {
 canvas.addEventListener('mouseleave', () => {
   hoveredId = null;
   tooltip.classList.remove('visible');
-  canvas.style.cursor = 'default';
+  if (!editDraggingDepth) canvas.style.cursor = 'default';
+});
+
+window.addEventListener('mouseup', () => {
+  if (editDraggingDepth) {
+    editDraggingDepth = false;
+    const v = VENUES.find(x => x.id === editingVenueId);
+    if (v) saveFacingCache(v.id, v.facing, v.facingSource, v.terraceWallIndices ?? [], v.terraceDepth ?? 7);
+    editDragWallObj = null;
+    canvas.style.cursor = 'default';
+  }
 });
 
 ['wheel', 'touchstart', 'touchmove', 'touchend'].forEach(type => {
