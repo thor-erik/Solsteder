@@ -237,14 +237,6 @@ function computeAutoTerraceWallIndices(venue, walls, buildings, venueBuilding, o
   const bestScore = Math.max(...scores);
   if (bestScore <= 0) return [0];
 
-  if (venue.name === 'Den Glade Gris') {
-    const cosLat = Math.cos(venue.lat * RAD);
-    walls.forEach((w, i) => {
-      const dist = Math.hypot((w.mx - venue.lng) * cosLat * 111320, (w.my - venue.lat) * 111320);
-      console.log(`  Wall[${i}] bearing=${Math.round(w.bearing)}° len=${w.lenM.toFixed(1)}m dist=${dist.toFixed(1)}m score=${scores[i].toFixed(2)}`);
-    });
-  }
-
   const bestIdx = scores.indexOf(bestScore);
   return [bestIdx];
 }
