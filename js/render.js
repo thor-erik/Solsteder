@@ -812,7 +812,14 @@ canvas.addEventListener('mousedown', e => {
     canvas.style.pointerEvents = 'none';
     const el = document.elementFromPoint(e.clientX, e.clientY);
     canvas.style.pointerEvents = 'auto';
-    if (el) el.dispatchEvent(new MouseEvent('mousedown', e));
+    if (el) {
+      const editOverlay = document.getElementById('edit-overlay');
+      if (editOverlay && editOverlay.contains(el)) {
+        el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+      } else {
+        el.dispatchEvent(new MouseEvent('mousedown', e));
+      }
+    }
     return;
   }
   const hit = hitTestVenue(cx, cy);
