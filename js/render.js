@@ -252,6 +252,89 @@ function convexHull(pts) {
   return lower.concat(upper);
 }
 
+// ── Seating area shapes ────────────────────────────────────────────────────────
+const TERRACE_DEPTH_M = 7;  // metres outward from the terrace wall
+
+/**
+ * Given a bearing (compass degrees) and distance in metres, return the lat/lng
+ * delta to add to a reference point.
+ */
+function meterOffsetDeg(lat, bearingDeg, meters) {
+  const br = bearingDeg * RAD;
+  return {
+    dLat: Math.cos(br) * meters / 111320,
+    dLng: Math.sin(br) * meters / (111320 * Math.cos(lat * RAD)),
+  };
+}
+
+/**
+ * Draw terrace footprints for all visible venues at zoom >= 14.
+ * - Venues with wallSegment: a rectangle (wall edge + TERRACE_DEPTH_M outward).
+ * - Venues without: a fan sector centred on the facing direction.
+ * Warm tint = in sun, cool tint = in shade.
+ */
+function drawSeatingAreas() {
+  if (!currentSun) return;
+  const zoom = map.getZoom();
+  if (zoom < 14) return;
+  const bounds = map.getBounds();
+  const { az, alt } = currentSun;
+
+  ctx.save();
+
+  VENUES.forEach(v => {
+    if (!bounds.contains([v.lng, v.lat])) return;
+    if (!shouldShowAtZoom(v, zoom)) return;
+
+    const sunny = venueSunState(v, az, alt);
+    const fillSunny   = 'rgba(255,184,0,0.20)';
+    const strokeSunny = 'rgba(255,184,0,0.65)';
+    const fillShade   = 'rgba(40,80,180,0.13)';
+    const strokeShade = 'rgba(80,130,220,0.35)';
+
+    if (v.wallSegment) {
+      // Rectangle: wall edge → depth outward in the facing direction
+      const { aLat, aLng, bLat, bLng, bearing } = v.wallSegment;
+      const { dLat, dLng } = meterOffsetDeg(v.lat, bearing, TERRACE_DEPTH_M);
+      const corners = [
+        map.project([aLng,        aLat       ]),
+        map.project([bLng,        bLat       ]),
+        map.project([bLng + dLng, bLat + dLat]),
+        map.project([aLng + dLng, aLat + dLat]),
+      ];
+
+      ctx.beginPath();
+      corners.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+      ctx.closePath();
+      ctx.fillStyle   = sunny ? fillSunny   : fillShade;
+      ctx.fill();
+      ctx.strokeStyle = sunny ? strokeSunny : strokeShade;
+      ctx.lineWidth   = 1.5;
+      ctx.setLineDash([]);
+      ctx.stroke();
+    } else {
+      // Fan fallback: sector in the facing direction
+      const pt  = map.project([v.lng, v.lat]);
+      const ref = map.project([v.lng, v.lat + TERRACE_DEPTH_M / 111320]);
+      const pxR = Math.max(12, Math.abs(pt.y - ref.y));
+      const dir = (v.facing - 90) * RAD;  // canvas angle (0=right)
+      const hw  = 40 * RAD;               // half-spread ~40°
+
+      ctx.beginPath();
+      ctx.moveTo(pt.x, pt.y);
+      ctx.arc(pt.x, pt.y, pxR, dir - hw, dir + hw);
+      ctx.closePath();
+      ctx.fillStyle   = sunny ? fillSunny   : fillShade;
+      ctx.fill();
+      ctx.strokeStyle = sunny ? strokeSunny : strokeShade;
+      ctx.lineWidth   = 1;
+      ctx.stroke();
+    }
+  });
+
+  ctx.restore();
+}
+
 // ── Shadow overlay ────────────────────────────────────────────────────────────
 /**
  * For the selected venue: draw nearby building footprints, their cast shadows,
@@ -384,6 +467,9 @@ function draw() {
   const bounds = map.getBounds();
   const zoom   = map.getZoom();
   let hiddenCount = 0;
+
+  // Terrace footprints (drawn first, below shadow overlay and sprites)
+  drawSeatingAreas();
 
   // Shadow overlay for selected venue (drawn before sprites so pins sit on top)
   if (selectedId) {
