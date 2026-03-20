@@ -11,7 +11,7 @@ const OVERPASS_ENDPOINTS = [
   'https://overpass.kumi.systems/api/interpreter',
   'https://overpass.openstreetmap.ru/api/interpreter',
 ];
-const OSM_CACHE_KEY    = 'solsteder_osm_v8';
+const OSM_CACHE_KEY    = 'solsteder_osm_v9';
 const OSM_CACHE_TTL    = 7 * 24 * 60 * 60 * 1000; // 7 days
 // Bump this whenever the scoring / geometry pipeline changes so that a
 // stale precomputed geometry.json is rejected and the slow path reruns.
@@ -351,12 +351,18 @@ function scoreWall(wall, venue, buildings, venueBuilding, openPolygons, entrance
     }
   }
 
-  // 3. Street-facing boost: highway node within 15 m of the 20 m probe (×3)
+  // 3. Street-facing boost: highway segment within 15 m of the 20 m probe (×3)
   const p20 = probePoint(wall, 20);
+  const cosLatP = Math.cos(p20.lat * RAD);
   const streetThreshSq = (15/111320)**2;
+  const px = p20.lng * cosLatP, py = p20.lat;
   outer: for (const hw of highways) {
-    for (const node of (hw.geometry || [])) {
-      if ((node.lat-p20.lat)**2+(node.lon-p20.lng)**2 < streetThreshSq) { score *= 3; break outer; }
+    const geom = hw.geometry || [];
+    for (let i = 0; i < geom.length - 1; i++) {
+      const a = geom[i], b = geom[i+1];
+      if (distPointToSegmentSq(px, py, a.lon*cosLatP, a.lat, b.lon*cosLatP, b.lat) < streetThreshSq) {
+        score *= 3; break outer;
+      }
     }
   }
 
