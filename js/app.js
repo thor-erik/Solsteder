@@ -232,6 +232,13 @@ function applyNowTime() {
   updateRangeFill();
 }
 
+// ── Debounced list render (avoids jitter when dragging time slider) ────────────
+let _renderListTimer = null;
+function scheduleRenderList() {
+  clearTimeout(_renderListTimer);
+  _renderListTimer = setTimeout(renderList, 120);
+}
+
 // ── Main update cycle ─────────────────────────────────────────────────────────
 function update() {
   const fromHour = parseFloat(timeFromEl.value);
@@ -269,7 +276,7 @@ function update() {
 
   draw();
   drawSunCompass();
-  renderList();
+  scheduleRenderList();
   updatePopup();
   updateLightPreset();
   updateSunLighting();
@@ -289,16 +296,24 @@ function selectVenue(id, flyTo) {
   const v = VENUES.find(x => x.id === id);
   if (!v) return;
 
-  // Face the terrace wall: bearing = (facing + 180) % 360 positions camera opposite to wall
-  const targetBearing = (v.facing + 180) % 360;
-  if (flyTo) map.flyTo({ center: [v.lng, v.lat], zoom: Math.max(map.getZoom(), 15), pitch: 45, bearing: targetBearing, duration: 800 });
+  // Only rotate to face the wall if we're more than 90° off — otherwise leave bearing alone
+  if (flyTo) {
+    const targetBearing = (v.facing + 180) % 360;
+    const curBearing    = ((map.getBearing() % 360) + 360) % 360;
+    let   diff          = Math.abs(targetBearing - curBearing);
+    if (diff > 180) diff = 360 - diff;
+    const flyOpts = { center: [v.lng, v.lat], zoom: Math.max(map.getZoom(), 15), pitch: 45, duration: 800 };
+    if (diff > 90) flyOpts.bearing = targetBearing;
+    map.flyTo(flyOpts);
+  }
 
   _switchingVenue = true;
   if (popup) { popup.remove(); popup = null; }
   _switchingVenue = false;
 
   const sunny = currentSun ? venueSunState(v, currentSun.az, currentSun.alt) : false;
-  popup = new mapboxgl.Popup({ closeButton: true, offset: [0, -10] })
+  // closeOnClick:false so the canvas always receives clicks (popup z-index 800 > canvas 690)
+  popup = new mapboxgl.Popup({ closeButton: true, closeOnClick: false, offset: [0, -10] })
     .setLngLat([v.lng, v.lat])
     .setHTML(`
       <div class="popup-name">${catIcon(v)} ${v.name}</div>
@@ -311,10 +326,8 @@ function selectVenue(id, flyTo) {
       </button>
     `)
     .addTo(map);
-  canvas.style.pointerEvents = 'none';
   popup.on('close', () => {
     popup = null;
-    canvas.style.pointerEvents = 'auto';
     if (!_switchingVenue) {
       selectedId = null;
       clearSpriteCache();
