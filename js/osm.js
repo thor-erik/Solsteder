@@ -11,7 +11,7 @@ const OVERPASS_ENDPOINTS = [
   'https://overpass.kumi.systems/api/interpreter',
   'https://overpass.openstreetmap.ru/api/interpreter',
 ];
-const OSM_CACHE_KEY    = 'solsteder_osm_v9';
+const OSM_CACHE_KEY    = 'solsteder_osm_v10';
 const OSM_CACHE_TTL    = 7 * 24 * 60 * 60 * 1000; // 7 days
 // Bump this whenever the scoring / geometry pipeline changes so that a
 // stale precomputed geometry.json is rejected and the slow path reruns.
@@ -474,9 +474,18 @@ async function initFacings() {
     // ── Step 1: find building + wall normals (always — needed for edit tool) ──
     let building = buildings.find(b => pointInPolygon(v.lat, v.lng, b.geometry));
     if (!building) {
-      building = buildings
-        .map(b => ({ b, d: (c => Math.hypot(c.lat-v.lat,c.lon-v.lng))(computeCentroid(b.geometry)) }))
-        .filter(x => x.d < 0.001).sort((a,b) => a.d-b.d)[0]?.b ?? null;
+      // Fallback: nearest building by closest wall edge (more reliable than centroid)
+      const cosLat = Math.cos(v.lat * RAD);
+      const px = v.lng * cosLat, py = v.lat;
+      let bestD = (50/111320)**2, bestB = null;
+      for (const b of buildings) {
+        const g = b.geometry;
+        for (let i = 0; i < g.length - 1; i++) {
+          const d = distPointToSegmentSq(px, py, g[i].lon*cosLat, g[i].lat, g[i+1].lon*cosLat, g[i+1].lat);
+          if (d < bestD) { bestD = d; bestB = b; }
+        }
+      }
+      building = bestB;
     }
     if (!building) { console.warn(`${v.name}: no building found`); return; }
 
