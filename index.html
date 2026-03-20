@@ -32,14 +32,15 @@
   }
 
   #app {
-    display: flex;
+    position: relative;
     height: 100vh;
+    overflow: hidden;
   }
 
-  /* MAP */
+  /* MAP — fills the entire viewport, sits behind all floating UI */
   #map-container {
-    flex: 1;
-    position: relative;
+    position: absolute;
+    inset: 0;
   }
 
   #map {
@@ -55,17 +56,52 @@
     will-change: transform;
   }
 
-  /* Sidebar toggle button */
+  /* Floating search + intent block — top-left */
+  #floating-top {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    z-index: 900;
+    width: 286px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+  }
+  #floating-top > * { pointer-events: all; }
+
+  .floating-card {
+    background: rgba(22,33,62,0.88);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,184,0,0.13);
+    border-radius: 14px;
+    padding: 10px 12px;
+  }
+
+  .floating-card #venue-search {
+    background: transparent;
+    border-color: rgba(255,255,255,0.1);
+    padding: 7px 10px;
+  }
+
+  .floating-card #intent-row {
+    padding-bottom: 0;
+    gap: 5px;
+  }
+
+  /* Panel toggle button — floats just left of the panel */
   #panel-toggle {
     position: absolute;
-    right: 0;
+    right: 368px;   /* panel width 340 + 16 right margin + 12 gap */
     top: 50%;
     transform: translateY(-50%);
-    z-index: 800;
-    background: var(--panel);
+    z-index: 900;
+    background: rgba(22,33,62,0.82);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--border);
-    border-right: none;
-    border-radius: 8px 0 0 8px;
+    border-radius: 8px;
     color: var(--muted);
     width: 22px;
     height: 52px;
@@ -184,9 +220,12 @@
     color: var(--text);
   }
 
-  /* Mapbox nav control */
+  /* Mapbox nav control — shifted left so it isn't behind the floating panel */
+  .mapboxgl-ctrl-bottom-right { right: 372px; }
   .mapboxgl-ctrl-group {
-    background: var(--panel) !important;
+    background: rgba(22,33,62,0.88) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--border) !important;
     box-shadow: none !important;
   }
@@ -258,16 +297,23 @@
   }
   .popup-edit-btn:hover { background: rgba(255,184,0,0.22); }
 
-  /* RIGHT PANEL */
+  /* RIGHT PANEL — floats over the map with glass morphism */
   #panel {
-    width: 360px;
-    background: var(--panel);
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    bottom: 16px;
+    width: 340px;
+    background: rgba(22,33,62,0.88);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,184,0,0.13);
+    border-radius: 16px;
     display: flex;
     flex-direction: column;
-    border-left: 1px solid var(--border);
     overflow: hidden;
-    transition: width 0.28s ease;
-    flex-shrink: 0;
+    transition: transform 0.28s ease, opacity 0.28s ease;
+    z-index: 800;
   }
 
   #panel-header {
@@ -339,7 +385,6 @@
   #intent-row {
     display: flex;
     gap: 6px;
-    padding-bottom: 12px;
   }
   .intent-btn {
     flex: 1;
@@ -1019,11 +1064,10 @@
 </head>
 <body>
 <div id="app">
-  <!-- MAP -->
+  <!-- MAP — full-screen -->
   <div id="map-container">
     <div id="map"></div>
     <canvas id="canvas-overlay"></canvas>
-    <button id="panel-toggle" onclick="togglePanel()" title="Toggle sidebar">›</button>
 
     <!-- HOVER TOOLTIP -->
     <div id="hover-tooltip"></div>
@@ -1065,7 +1109,25 @@
     </div>
   </div>
 
-  <!-- RIGHT PANEL -->
+  <!-- Floating top-left: search + intent shortcuts -->
+  <div id="floating-top">
+    <div class="floating-card">
+      <input type="text" id="venue-search" placeholder="Search venues or areas…" autocomplete="off">
+    </div>
+    <div class="floating-card">
+      <div id="intent-row">
+        <button class="intent-btn" data-intent="now"        onclick="setIntent('now')">Now</button>
+        <button class="intent-btn" data-intent="lunch"      onclick="setIntent('lunch')">Lunch</button>
+        <button class="intent-btn" data-intent="after-work" onclick="setIntent('after-work')">After work</button>
+        <button class="intent-btn" data-intent="evening"    onclick="setIntent('evening')">Evening</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel toggle — floats left of the panel -->
+  <button id="panel-toggle" onclick="togglePanel()" title="Toggle sidebar">›</button>
+
+  <!-- RIGHT PANEL — floating glass -->
   <div id="panel">
     <div id="panel-header">
       <!-- Brand + compass -->
@@ -1094,14 +1156,6 @@
         </div>
       </div>
 
-      <!-- Intent shortcuts -->
-      <div id="intent-row">
-        <button class="intent-btn" data-intent="now" onclick="setIntent('now')">Now</button>
-        <button class="intent-btn" data-intent="lunch" onclick="setIntent('lunch')">Lunch</button>
-        <button class="intent-btn" data-intent="after-work" onclick="setIntent('after-work')">After work</button>
-        <button class="intent-btn" data-intent="evening" onclick="setIntent('evening')">Evening</button>
-      </div>
-
       <!-- Area filter chips -->
       <div id="area-chips">
         <button class="area-chip active" data-area="" onclick="setAreaFilter('')">All</button>
@@ -1124,10 +1178,6 @@
         </div>
       </div>
 
-      <!-- Search -->
-      <div id="search-bar">
-        <input type="text" id="venue-search" placeholder="Search venues or areas…" autocomplete="off">
-      </div>
       <div id="facing-status"></div>
     </div>
     <div id="venue-list"></div>

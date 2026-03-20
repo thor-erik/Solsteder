@@ -568,10 +568,17 @@ function togglePanel() {
   panelVisible = !panelVisible;
   const panel = document.getElementById('panel');
   const btn   = document.getElementById('panel-toggle');
-  panel.style.width          = panelVisible ? '360px' : '0';
-  panel.style.borderLeftWidth = panelVisible ? '' : '0';
+  if (panelVisible) {
+    panel.style.transform = '';
+    panel.style.opacity   = '';
+    panel.style.pointerEvents = '';
+  } else {
+    panel.style.transform = 'translateX(calc(100% + 20px))';
+    panel.style.opacity   = '0';
+    panel.style.pointerEvents = 'none';
+  }
   btn.textContent = panelVisible ? '›' : '‹';
-  setTimeout(() => { map.resize(); resizeCanvas(); draw(); }, 290);
+  setTimeout(() => { resizeCanvas(); draw(); }, 290);
 }
 
 function toggleMapView() {

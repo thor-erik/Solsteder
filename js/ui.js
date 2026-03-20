@@ -71,10 +71,10 @@ function renderTimeline(v, dateStr, fromHour, toHour) {
     }
   }
 
-  // End-of-sun tick (when currently inside a sun window)
-  const curWin = windows.find(w => fromHour >= w.start && fromHour < w.end);
-  const endOfSunTick = curWin
-    ? `<div class="tl-end-sun" style="left:${pct(curWin.end).toFixed(2)}%"><span class="tl-end-sun-label">${formatHour(curWin.end)}</span></div>`
+  // End-of-sun tick — always marks the END of the last sun window for the day
+  const lastWin = windows.length > 0 ? windows[windows.length - 1] : null;
+  const endOfSunTick = (lastWin && lastWin.end > fromHour)
+    ? `<div class="tl-end-sun" style="left:${pct(lastWin.end).toFixed(2)}%"><span class="tl-end-sun-label">${formatHour(lastWin.end)}</span></div>`
     : '';
 
   // Badge: point/now mode vs range mode

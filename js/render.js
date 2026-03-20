@@ -66,81 +66,155 @@ let editDraggingDepth = false;
 let editDragWallObj   = null;
 
 // ── Sprite cache ──────────────────────────────────────────────────────────────
-// Each sprite is an offscreen canvas keyed by (id, facing, sunny, selected).
-// draw() does one drawImage per visible venue instead of ~30 canvas ops.
-const SPRITE = 72;  // px — fits marker radius 16 + pizza tip 10 + selection ring
+// Pill-shaped callout pins (Airbnb-style) keyed by (id, state, selected, time-bucket).
+// buildSprite returns { canvas, anchorX, anchorY } — anchor is the tip point placed
+// at the venue's map coordinate; the pill body floats above it.
+const PILL_H   = 24;   // pill body height px
+const PILL_TIP = 8;    // downward-pointing triangle height px
 const spriteCache = new Map();
 
-function buildSprite(v, state, selected) {
-  const oc = document.createElement('canvas');
-  oc.width = oc.height = SPRITE;
-  const c  = oc.getContext('2d');
-  const cx = SPRITE / 2, cy = SPRITE / 2;
+/** Draw a rounded-rect pill with a downward triangle pointer at (tipX, tipY). */
+function _pillPath(c, ox, oy, pillW, tipX, tipY) {
+  const r = PILL_H / 2;
+  c.beginPath();
+  c.moveTo(ox + r, oy);
+  c.lineTo(ox + pillW - r, oy);
+  c.arcTo(ox + pillW, oy,        ox + pillW, oy + r,        r);
+  c.lineTo(ox + pillW, oy + PILL_H - r);
+  c.arcTo(ox + pillW, oy + PILL_H, ox + pillW - r, oy + PILL_H, r);
+  c.lineTo(tipX + 5,  oy + PILL_H);
+  c.lineTo(tipX,      tipY);           // tip point
+  c.lineTo(tipX - 5,  oy + PILL_H);
+  c.lineTo(ox + r,    oy + PILL_H);
+  c.arcTo(ox,         oy + PILL_H, ox, oy + PILL_H - r, r);
+  c.lineTo(ox,        oy + r);
+  c.arcTo(ox,         oy,          ox + r, oy,           r);
+  c.closePath();
+}
 
+function buildSprite(v, state, selected, hour, dateStr) {
+  // Closed: tiny faded dot — no pill
   if (state === 'closed') {
-    c.globalAlpha = 0.3;
-    c.beginPath(); c.arc(cx, cy, 5, 0, Math.PI * 2);
+    const oc = document.createElement('canvas');
+    oc.width = oc.height = 16;
+    const c = oc.getContext('2d');
+    c.globalAlpha = 0.28;
+    c.beginPath(); c.arc(8, 8, 4, 0, Math.PI * 2);
     c.fillStyle = '#3a3d4d'; c.fill();
-    return oc;
+    return { canvas: oc, anchorX: 8, anchorY: 8 };
   }
+
+  // Determine label + visual style per state
+  let label = '·', fillColor, strokeColor, textColor, isDashed = false, alpha = 1;
 
   if (state === 'soon') {
-    c.globalAlpha = 0.75;
-    if (selected) {
-      c.beginPath(); c.arc(cx, cy, 17, 0, Math.PI * 2);
-      c.strokeStyle = 'rgba(255,184,0,0.9)'; c.lineWidth = 2.5; c.stroke();
+    const { open } = v.openingHours ?? {};
+    label       = open != null ? formatHour(open) : '—';
+    fillColor   = 'rgba(10,14,28,0.72)';
+    strokeColor = 'rgba(255,184,0,0.65)';
+    textColor   = 'rgba(255,200,80,0.95)';
+    isDashed    = true;
+    alpha       = 0.88;
+
+  } else if (state === 'sunny') {
+    if (hour !== undefined && dateStr) {
+      try {
+        const { windows } = computeSunWindows(v, dateStr);
+        const curWin = windows.find(w => hour >= w.start && hour < w.end);
+        if (curWin) {
+          const rem = curWin.end - hour;
+          const h = Math.floor(rem), m = Math.round((rem - h) * 60);
+          label = h > 0 ? `${h}h${m > 0 ? ' ' + m + 'm' : ''}` : `${m}m`;
+        } else { label = '☀'; }
+      } catch (e) { label = '☀'; }
+    } else { label = '☀'; }
+    fillColor   = '#FFB800';
+    strokeColor = 'rgba(255,230,120,0.55)';
+    textColor   = '#1a1a2e';
+
+  } else { // shaded
+    if (hour !== undefined && dateStr) {
+      try {
+        const { windows } = computeSunWindows(v, dateStr);
+        const next = windows.find(w => w.start > hour);
+        if (next) { label = formatHour(next.start); alpha = 0.92; }
+        else       { label = '·'; alpha = 0.38; }
+      } catch (e) { label = '·'; }
     }
-    c.setLineDash([4, 3]);
-    c.beginPath(); c.arc(cx, cy, 11, 0, Math.PI * 2);
-    c.strokeStyle = 'rgba(255,184,0,0.7)'; c.lineWidth = 2; c.stroke();
-    c.setLineDash([]);
-    return oc;
+    fillColor   = '#1a2850';
+    strokeColor = 'rgba(80,120,200,0.45)';
+    textColor   = '#8ab4f8';
   }
 
-  const sunny   = state === 'sunny';
-  const markerR = sunny ? 17 : 13;
-  const pAngle  = (v.facing - 90) * RAD;
-  const halfA   = 0.28;
+  // Measure text width
+  const tmpCtx = document.createElement('canvas').getContext('2d');
+  tmpCtx.font  = 'bold 11px "DM Sans", sans-serif';
+  const tw     = label ? tmpCtx.measureText(label).width : 0;
+  const pillW  = Math.max(38, tw + 24);   // min 38px, 12px padding each side
 
-  // Glow
-  if (sunny) {
-    const glow = c.createRadialGradient(cx, cy, 0, cx, cy, markerR + 14);
-    glow.addColorStop(0, 'rgba(255,184,0,0.30)');
+  // Canvas dims — add ring padding around pill
+  const rp  = selected ? 3 : 1;
+  const cW  = Math.ceil(pillW + rp * 2 + 2);
+  const cH  = Math.ceil(PILL_H + PILL_TIP + rp + 2);
+  const cxA = cW / 2;           // anchor x = horizontal center = tip center
+  const cyA = cH - 1;           // anchor y = tip point
+
+  const oc = document.createElement('canvas');
+  oc.width = cW; oc.height = cH;
+  const c  = oc.getContext('2d');
+  c.globalAlpha = alpha;
+
+  const ox = rp + 1;  // pill left edge in canvas coords
+  const oy = rp;      // pill top edge in canvas coords
+
+  // Soft glow behind sunny pills
+  if (state === 'sunny') {
+    const gCx = cxA, gCy = oy + PILL_H / 2;
+    const glow = c.createRadialGradient(gCx, gCy, 0, gCx, gCy, pillW * 0.75);
+    glow.addColorStop(0, 'rgba(255,184,0,0.28)');
     glow.addColorStop(1, 'rgba(255,184,0,0)');
-    c.beginPath(); c.arc(cx, cy, markerR + 14, 0, Math.PI * 2);
+    c.beginPath(); c.arc(gCx, gCy, pillW * 0.75, 0, Math.PI * 2);
     c.fillStyle = glow; c.fill();
   }
 
-  // Direction tip (teardrop, drawn under circle)
-  const tipDist = markerR + (sunny ? 9 : 7);
-  c.beginPath();
-  c.moveTo(cx + tipDist * Math.cos(pAngle), cy + tipDist * Math.sin(pAngle));
-  c.lineTo(cx + markerR * Math.cos(pAngle - halfA), cy + markerR * Math.sin(pAngle - halfA));
-  c.lineTo(cx + markerR * Math.cos(pAngle + halfA), cy + markerR * Math.sin(pAngle + halfA));
-  c.closePath();
-  c.fillStyle = sunny ? '#c87d00' : '#16274a'; c.fill();
-
-  // Selection ring
+  // Selection ring (slightly enlarged pill outline)
   if (selected) {
-    c.beginPath(); c.arc(cx, cy, markerR + 5, 0, Math.PI * 2);
-    c.strokeStyle = 'rgba(255,184,0,0.9)'; c.lineWidth = 2.5; c.stroke();
+    _pillPath(c, ox - 3, oy - 3, pillW + 6, cxA, cyA);
+    c.strokeStyle = 'rgba(255,184,0,0.85)';
+    c.lineWidth   = 2;
+    c.setLineDash([]);
+    c.stroke();
   }
 
-  // Circle
-  c.beginPath(); c.arc(cx, cy, markerR, 0, Math.PI * 2);
-  c.fillStyle = sunny ? '#f0a020' : '#1e3060'; c.fill();
+  // Main pill fill
+  _pillPath(c, ox, oy, pillW, cxA, cyA);
+  c.fillStyle = fillColor;
+  c.fill();
 
-  // Thin stroke
-  c.beginPath(); c.arc(cx, cy, markerR, 0, Math.PI * 2);
-  c.strokeStyle = sunny ? 'rgba(255,225,100,0.65)' : 'rgba(80,110,180,0.45)';
-  c.lineWidth = 1.5; c.stroke();
+  // Pill stroke (dashed for 'soon')
+  if (isDashed) c.setLineDash([4, 3]);
+  c.strokeStyle = strokeColor;
+  c.lineWidth   = 1.5;
+  c.stroke();
+  c.setLineDash([]);
 
-  return oc;
+  // Label text
+  if (label && label !== '·') {
+    c.font         = 'bold 11px "DM Sans", sans-serif';
+    c.fillStyle    = textColor;
+    c.textAlign    = 'center';
+    c.textBaseline = 'middle';
+    c.fillText(label, cxA, oy + PILL_H / 2);
+  }
+
+  return { canvas: oc, anchorX: cxA, anchorY: cyA };
 }
 
-function getSprite(v, state, selected) {
-  const key = `${v.id}-${v.facing}-${state}-${selected ? 1 : 0}`;
-  if (!spriteCache.has(key)) spriteCache.set(key, buildSprite(v, state, selected));
+function getSprite(v, state, selected, hour, dateStr) {
+  if (spriteCache.size > 600) spriteCache.clear(); // prevent unbounded growth
+  const tk  = (hour !== undefined) ? Math.round(hour * 4) : 0; // 15-min buckets
+  const key = `${v.id}-${state}-${selected ? 1 : 0}-${tk}`;
+  if (!spriteCache.has(key)) spriteCache.set(key, buildSprite(v, state, selected, hour, dateStr));
   return spriteCache.get(key);
 }
 
@@ -688,7 +762,8 @@ function draw() {
   if (!currentSun) return;
 
   if (editingVenueId) {
-    const editHour = parseFloat(timeFromEl.value);
+    const editHour    = parseFloat(timeFromEl.value);
+    const editDateStr = datePicker.value;
     ctx.globalAlpha = 0.18;
     VENUES.forEach(v => {
       const { open, close } = v.openingHours;
@@ -696,8 +771,9 @@ function draw() {
       const state  = isOpen
         ? (venueSunState(v, currentSun.az, currentSun.alt) ? 'sunny' : 'shaded')
         : 'closed';
-      const pt = map.project([v.lng, v.lat]);
-      ctx.drawImage(getSprite(v, state, false), pt.x - SPRITE/2, pt.y - SPRITE/2);
+      const pt  = map.project([v.lng, v.lat]);
+      const spr = getSprite(v, state, false, editHour, editDateStr);
+      ctx.drawImage(spr.canvas, pt.x - spr.anchorX, pt.y - spr.anchorY);
     });
     ctx.globalAlpha = 1;
     drawBuildingEditor();
@@ -719,6 +795,7 @@ function draw() {
 
   // Pass 1: sprites — viewport-culled + zoom-density filtered
   const currentHour = parseFloat(timeFromEl.value);
+  const dateStr     = datePicker.value;
   const visibleVenues = [];
   VENUES.forEach(v => {
     if (!bounds.contains([v.lng, v.lat])) return;
@@ -736,20 +813,23 @@ function draw() {
     }
     const selected = v.id === selectedId;
     const pt       = map.project([v.lng, v.lat]);
-    ctx.drawImage(getSprite(v, state, selected), pt.x - SPRITE/2, pt.y - SPRITE/2);
-    if (state !== 'closed') visibleVenues.push({ v, pt, state });
+    const spr      = getSprite(v, state, selected, currentHour, dateStr);
+    ctx.drawImage(spr.canvas, pt.x - spr.anchorX, pt.y - spr.anchorY);
+    if (state !== 'closed') visibleVenues.push({ v, pt, state, spr });
   });
 
-  // Pass 1b: venue name labels at high zoom
+  // Pass 1b: venue name labels at high zoom — positioned to the right of the pill
   if (zoom >= 16) {
     ctx.font = '600 11px "DM Sans", sans-serif';
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'left';
-    visibleVenues.forEach(({ v, pt }) => {
+    const pillCenterY = -(PILL_TIP + PILL_H / 2);  // offset from map point to pill centre
+    visibleVenues.forEach(({ v, pt, spr }) => {
       const label = v.name;
-      const tw = ctx.measureText(label).width;
-      const lx = pt.x + 22, ly = pt.y;
-      ctx.fillStyle = 'rgba(12, 16, 28, 0.78)';
+      const tw  = ctx.measureText(label).width;
+      const lx  = pt.x + spr.anchorX + 6;           // right edge of pill + gap
+      const ly  = pt.y + pillCenterY;
+      ctx.fillStyle = 'rgba(12, 16, 28, 0.80)';
       fillRoundRect(ctx, lx - 5, ly - 9, tw + 10, 18, 5);
       ctx.fillStyle = 'rgba(240,230,210,0.92)';
       ctx.fillText(label, lx, ly);
@@ -769,49 +849,17 @@ function draw() {
     ctx.fillText(text, canvas.width / 2, py + ph / 2);
   }
 
-  // Pass 2: time labels (zoom ≥ 13, culled + density-filtered to match Pass 1)
-  if (zoom >= 13) {
-    const dateStr = datePicker.value;
-    const hour    = parseFloat(timeFromEl.value);
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-
-    VENUES.forEach(v => {
-      if (!bounds.contains([v.lng, v.lat])) return;
-      if (!shouldShowAtZoom(v, zoom)) return;
-      const { windows } = computeSunWindows(v, dateStr);
-      const lpt = map.project([v.lng, v.lat]);
-
-      let label = null, bgColor, textColor;
-      const curWin = windows.find(w => hour >= w.start && hour < w.end);
-      if (curWin) {
-        const rem = curWin.end - hour;
-        const h = Math.floor(rem), m = Math.round((rem - h) * 60);
-        label = h > 0 ? `${h}h${m > 0 ? ' '+m+'m' : ''}` : `${m}m`;
-        bgColor = 'rgba(232,160,0,0.92)'; textColor = '#1a1a2e';
-      } else {
-        const next = windows.find(w => w.start > hour);
-        if (next) { label = formatHour(next.start); bgColor = 'rgba(70,120,200,0.85)'; textColor = '#e8f0ff'; }
-      }
-      if (!label) return;
-
-      ctx.font = 'bold 10px "DM Sans", sans-serif';
-      const tw = ctx.measureText(label).width;
-      const pw = tw + 10, ph = 14;
-      const lx = lpt.x, ly = lpt.y + SPRITE / 2 + 8;
-      ctx.fillStyle = bgColor;
-      fillRoundRect(ctx, lx - pw/2, ly - ph/2, pw, ph, 4);
-      ctx.fillStyle = textColor;
-      ctx.fillText(label, lx, ly);
-    });
-  }
 }
+
 
 // ── Hit testing ───────────────────────────────────────────────────────────────
 function hitTestVenue(cx, cy) {
+  // Pills sit above the map point. Pill body centre is ~(PILL_TIP + PILL_H/2) above pt.
+  // Hit box: ±44 px horizontal, -38..+5 px vertical relative to map point.
   let hit = null;
   VENUES.forEach(v => {
     const pt = map.project([v.lng, v.lat]);
-    if (Math.hypot(cx - pt.x, cy - pt.y) <= 20) hit = v;
+    if (Math.abs(cx - pt.x) <= 44 && cy >= pt.y - 38 && cy <= pt.y + 5) hit = v;
   });
   return hit;
 }
