@@ -12,10 +12,16 @@
  */
 function getTerraceWalls(v) {
   if (!v.wallNormals?.length) return v.wallSegment ? [v.wallSegment] : [];
+
+  // Priority 1: manual selection from editor
   if (v.terraceWallIndices?.length) {
     return v.terraceWallIndices.map(i => v.wallNormals[i]).filter(Boolean);
   }
-  // Fallback: wall from wallNormals closest to v.facing
+  // Priority 2: auto-computed (entrance location + scoring + corner adjacency)
+  if (v.autoTerraceWallIndices?.length) {
+    return v.autoTerraceWallIndices.map(i => v.wallNormals[i]).filter(Boolean);
+  }
+  // Fallback: single wall closest to v.facing
   const best = v.wallNormals.reduce((b, w) =>
     Math.abs(w.bearing - v.facing) < Math.abs(b.bearing - v.facing) ? w : b);
   return [best];

@@ -144,6 +144,57 @@ function findNearbyBuildings(venue, buildings, excludeBuilding = null, radiusM =
     }));
 }
 
+// ── Auto terrace wall selection ────────────────────────────────────────────────
+
+function computeAutoTerraceWallIndices(venue, walls, buildings, venueBuilding, openPolygons, entranceNodes, highways) {
+  if (!walls.length) return [0];
+
+  const scores    = walls.map(w => scoreWall(w, buildings, venueBuilding, openPolygons, entranceNodes, highways));
+  const bestScore = Math.max(...scores);
+  if (bestScore <= 0) return [0];
+
+  const bestIdx  = scores.indexOf(bestScore);
+  const bestWall = walls[bestIdx];
+  const selected = [bestIdx];
+
+  const eLat = venue.googleLocation?.lat ?? venue.lat;
+  const eLng = venue.googleLocation?.lng ?? venue.lng;
+
+  const VERTEX_M = 2 / 111320;
+  const CORNER_M = 5 / 111320;
+
+  function sharesVertex(w1, w2) {
+    const cl = Math.cos(w1.my * RAD);
+    return (
+      Math.hypot((w2.aLng - w1.aLng) * cl, w2.aLat - w1.aLat) < VERTEX_M ||
+      Math.hypot((w2.aLng - w1.bLng) * cl, w2.aLat - w1.bLat) < VERTEX_M ||
+      Math.hypot((w2.bLng - w1.aLng) * cl, w2.bLat - w1.aLat) < VERTEX_M ||
+      Math.hypot((w2.bLng - w1.bLng) * cl, w2.bLat - w1.bLat) < VERTEX_M
+    );
+  }
+
+  function entranceNearSharedCorner(w1, w2) {
+    const cl = Math.cos(eLat * RAD);
+    const ex = eLng * cl, ey = eLat;
+    for (const [lng, lat] of [[w1.aLng, w1.aLat], [w1.bLng, w1.bLat],
+                               [w2.aLng, w2.aLat], [w2.bLng, w2.bLat]]) {
+      if (Math.hypot(lng * cl - ex, lat - ey) < CORNER_M) return true;
+    }
+    return false;
+  }
+
+  walls.forEach((w2, i2) => {
+    if (i2 === bestIdx) return;
+    if (scores[i2] < bestScore * 0.20) return;
+    if (!sharesVertex(bestWall, w2)) return;
+    if (entranceNearSharedCorner(bestWall, w2) || scores[i2] >= bestScore * 0.40) {
+      selected.push(i2);
+    }
+  });
+
+  return selected;
+}
+
 // ── Auto terrace depth ────────────────────────────────────────────────────────
 
 function raySegmentIntersect(ox, oy, dx, dy, ax, ay, bx, by) {
@@ -252,7 +303,8 @@ async function tryLoadPrecomputed() {
       v.wallNormals       = g.wallNormals;
       v.nearbyBuildings   = g.nearbyBuildings;
       v.wallSegment       = g.wallSegment;
-      v.autoTerraceDepth  = g.autoTerraceDepth ?? null;
+      v.autoTerraceDepth       = g.autoTerraceDepth       ?? null;
+      v.autoTerraceWallIndices = g.autoTerraceWallIndices ?? null;
       // Respect manual override from edit tool; otherwise take pre-computed facing
       if (v.facingSource !== 'manual') {
         v.facing       = g.facing;
@@ -336,23 +388,21 @@ async function initFacings() {
     // 'manual' = user chose via edit tool → never overwrite.
     // 'osm'    = previously computed and cached → skip redundant re-scoring.
     if (v.facingSource === 'manual' || v.facingSource === 'osm') {
-      // Still resolve wallSegment for probe-point shadow testing
       v.wallSegment = walls.reduce((best, w) =>
         Math.abs(w.bearing - v.facing) < Math.abs(best.bearing - v.facing) ? w : best, walls[0]);
-      v.autoTerraceDepth = computeAutoTerraceDepth(v.wallSegment, highways);
+      v.autoTerraceDepth       = computeAutoTerraceDepth(v.wallSegment, highways);
+      v.autoTerraceWallIndices = computeAutoTerraceWallIndices(v, walls, buildings, building, openPolygons, entranceNodes, highways);
       return;
     }
 
-    let bestWall = walls[0], bestScore = -Infinity;
-    for (const wall of walls) {
-      const s = scoreWall(wall, buildings, building, openPolygons, entranceNodes, highways);
-      if (s > bestScore) { bestScore=s; bestWall=wall; }
-    }
+    const autoIndices = computeAutoTerraceWallIndices(v, walls, buildings, building, openPolygons, entranceNodes, highways);
+    const bestWall = walls[autoIndices[0]];
 
-    v.facing = Math.round(bestWall.bearing);
-    v.wallSegment = bestWall;
-    v.facingSource = 'osm';
-    v.autoTerraceDepth = computeAutoTerraceDepth(bestWall, highways);
+    v.facing               = Math.round(bestWall.bearing);
+    v.wallSegment          = bestWall;
+    v.facingSource         = 'osm';
+    v.autoTerraceDepth       = computeAutoTerraceDepth(bestWall, highways);
+    v.autoTerraceWallIndices = autoIndices;
     saveFacingCache(v.id, v.facing, 'osm');
     computed++;
     console.log(`${v.name}: ${v.facing}° | score ${bestScore.toFixed(0)} | wall ${bestWall.lenM.toFixed(0)} m`);

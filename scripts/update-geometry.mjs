@@ -150,6 +150,73 @@ function findNearbyBuildings(venue, buildings, excludeBuilding = null) {
     }));
 }
 
+// ── Auto terrace wall selection ────────────────────────────────────────────────
+
+/**
+ * Determine which walls should be auto-selected as terrace anchors.
+ *
+ * Algorithm:
+ *  1. Score every wall with scoreWall (existing heuristic).
+ *  2. The highest-scoring wall is always selected.
+ *  3. For each adjacent wall (shares a vertex with the best wall):
+ *     - Include it if it scores ≥ 20% of best AND either:
+ *       a) the entrance location (googleLocation > venue coords) is within 5 m
+ *          of the shared corner, OR
+ *       b) it scores ≥ 40% of best (strong enough on its own).
+ *
+ * This handles L-shaped / corner terraces without over-selecting.
+ */
+function computeAutoTerraceWallIndices(venue, walls, buildings, venueBuilding, openPolygons, entranceNodes, highways) {
+  if (!walls.length) return [0];
+
+  const scores    = walls.map(w => scoreWall(w, buildings, venueBuilding, openPolygons, entranceNodes, highways));
+  const bestScore = Math.max(...scores);
+  if (bestScore <= 0) return [0];
+
+  const bestIdx  = scores.indexOf(bestScore);
+  const bestWall = walls[bestIdx];
+  const selected = [bestIdx];
+
+  // Entrance location — googleLocation is more precise than the venue point
+  const eLat = venue.googleLocation?.lat ?? venue.lat;
+  const eLng = venue.googleLocation?.lng ?? venue.lng;
+
+  const VERTEX_M  = 2 / 111320;   // walls share a vertex if endpoints within 2 m
+  const CORNER_M  = 5 / 111320;   // entrance "near corner" threshold: 5 m
+
+  function sharesVertex(w1, w2) {
+    const cl = Math.cos(w1.my * RAD);
+    return (
+      Math.hypot((w2.aLng - w1.aLng) * cl, w2.aLat - w1.aLat) < VERTEX_M ||
+      Math.hypot((w2.aLng - w1.bLng) * cl, w2.aLat - w1.bLat) < VERTEX_M ||
+      Math.hypot((w2.bLng - w1.aLng) * cl, w2.bLat - w1.aLat) < VERTEX_M ||
+      Math.hypot((w2.bLng - w1.bLng) * cl, w2.bLat - w1.bLat) < VERTEX_M
+    );
+  }
+
+  function entranceNearSharedCorner(w1, w2) {
+    const cl = Math.cos(eLat * RAD);
+    const ex = eLng * cl, ey = eLat;
+    for (const [lng, lat] of [[w1.aLng, w1.aLat], [w1.bLng, w1.bLat],
+                               [w2.aLng, w2.aLat], [w2.bLng, w2.bLat]]) {
+      if (Math.hypot(lng * cl - ex, lat - ey) < CORNER_M) return true;
+    }
+    return false;
+  }
+
+  walls.forEach((w2, i2) => {
+    if (i2 === bestIdx) return;
+    if (scores[i2] < bestScore * 0.20) return;        // too weak
+    if (!sharesVertex(bestWall, w2)) return;           // not adjacent
+    const nearCorner = entranceNearSharedCorner(bestWall, w2);
+    if (nearCorner || scores[i2] >= bestScore * 0.40) {
+      selected.push(i2);
+    }
+  });
+
+  return selected;
+}
+
 // ── Auto terrace depth ────────────────────────────────────────────────────────
 
 /**
@@ -285,19 +352,23 @@ async function main() {
     let facingSource = v.facingSource;
     let wallSegment;
 
+    let autoTerraceWallIndices;
     if (facingSource !== 'manual') {
-      let bestWall = walls[0], bestScore = -Infinity;
-      for (const wall of walls) {
-        const s = scoreWall(wall, buildings, building, openPolygons, entranceNodes, highways);
-        if (s > bestScore) { bestScore = s; bestWall = wall; }
-      }
-      facing = Math.round(bestWall.bearing);
+      autoTerraceWallIndices = computeAutoTerraceWallIndices(v, walls, buildings, building, openPolygons, entranceNodes, highways);
+      const bestIdx = autoTerraceWallIndices[0];
+      wallSegment  = walls[bestIdx];
+      facing       = Math.round(wallSegment.bearing);
       facingSource = 'osm';
-      wallSegment = bestWall;
-      console.log(`  ✓ ${v.name}: ${facing}° (score ${bestScore.toFixed(0)}, wall ${bestWall.lenM.toFixed(0)} m, ${nearbyBuildings.length} nearby buildings)`);
+      const extraWalls = autoTerraceWallIndices.length > 1 ? ` + ${autoTerraceWallIndices.length - 1} adjacent` : '';
+      console.log(`  ✓ ${v.name}: ${facing}° (wall ${wallSegment.lenM.toFixed(0)} m${extraWalls}, ${nearbyBuildings.length} nearby buildings)${v.googleLocation ? ' [Google loc]' : ''}`);
     } else {
       wallSegment = walls.reduce((best, w) =>
         Math.abs(w.bearing - facing) < Math.abs(best.bearing - facing) ? w : best, walls[0]);
+      // Still compute multi-wall selection for manual-facing venues
+      autoTerraceWallIndices = computeAutoTerraceWallIndices(v, walls, buildings, building, openPolygons, entranceNodes, highways);
+      // But keep the manual primary wall as index 0
+      const manualIdx = walls.indexOf(wallSegment);
+      autoTerraceWallIndices = [manualIdx, ...autoTerraceWallIndices.filter(i => i !== manualIdx)];
       console.log(`  → ${v.name}: manual facing ${facing}° preserved`);
     }
 
@@ -310,10 +381,11 @@ async function main() {
       facing,
       facingSource,
       wallSegment,
-      buildingGeometry:  building.geometry,
-      wallNormals:       walls,
+      buildingGeometry:      building.geometry,
+      wallNormals:           walls,
       nearbyBuildings,
       autoTerraceDepth,
+      autoTerraceWallIndices,
     };
   }
 
