@@ -230,7 +230,7 @@ function computeTerraceTestPoints(venue, osmElement) {
 function computeAutoTerraceWallIndices(venue, walls, buildings, venueBuilding, openPolygons, entranceNodes, highways) {
   if (!walls.length) return [0];
 
-  const scores    = walls.map(w => scoreWall(w, buildings, venueBuilding, openPolygons, entranceNodes, highways));
+  const scores    = walls.map(w => scoreWall(w, venue, buildings, venueBuilding, openPolygons, entranceNodes, highways));
   const bestScore = Math.max(...scores);
   if (bestScore <= 0) return [0];
 
@@ -347,9 +347,19 @@ function computeAutoTerraceDepth(wall, highways) {
 /**
  * Score a wall for how likely it is to be the terrace-facing facade.
  * Higher score = more likely to face an open, sunny, street-side space.
+ *
+ * `venue` is required so walls far from the venue pin can be penalised.
+ * This is critical for restaurants in large city-block buildings: the pin
+ * marks the entrance corner, so walls on the opposite side of the block
+ * should not compete with walls right beside the entrance.
  */
-function scoreWall(wall, buildings, venueBuilding, openPolygons, entranceNodes, highways) {
-  let score = wall.lenM;
+function scoreWall(wall, venue, buildings, venueBuilding, openPolygons, entranceNodes, highways) {
+  // Proximity factor: exponential decay with distance from venue pin (decay = 20 m).
+  // Example: 10 m away → ×0.61, 20 m → ×0.37, 40 m → ×0.14, 80 m → ×0.02.
+  const cosLat  = Math.cos(wall.my * RAD);
+  const wallDist = Math.hypot((wall.mx - venue.lng) * cosLat * 111320,
+                               (wall.my - venue.lat) * 111320);
+  let score = wall.lenM * Math.exp(-wallDist / 20);
 
   // 1. Adjacent-building penalty: probe at 5 m and 15 m
   for (const dist of [5, 15]) {
