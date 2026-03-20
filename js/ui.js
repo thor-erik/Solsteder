@@ -198,16 +198,15 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
   const dimmedCls = !v.sunInWin ? 'dimmed' : '';
   const { windows } = computeSunWindows(v, dateStr);
 
-  // Score badge
-  let scoreBadgeHtml = '';
-  let scoreDetailHtml = '';
-  if (v.score) {
-    const s    = v.score;
+  const tempStr = v.score?.feelsLikeTemp != null ? ` · ${v.score.feelsLikeTemp}°` : '';
+  const s = v.score;
+  const scoreExpandHtml = s ? (() => {
     const tier = s.total >= 75 ? 'tier-high' : s.total >= 55 ? 'tier-mid' : s.total >= 35 ? 'tier-low' : 'tier-poor';
-    scoreBadgeHtml = `<span class="score-badge ${tier}" title="Score breakdown — ☀ Sun: ${s.sun} · 🌡 Comfort: ${s.comfort} · ⊙ Distance: ${s.distance}">⭐ ${s.total}</span>`;
-    const flStr = s.feelsLikeTemp != null ? `<span title="Feels like">· ${s.feelsLikeTemp}° feels like</span>` : '';
-    scoreDetailHtml = `<div class="score-detail"><span title="Sun score">☀ ${s.sun}</span><span title="Comfort score">🌡 ${s.comfort}</span><span title="Distance score">⊙ ${s.distance}</span>${flStr}</div>`;
-  }
+    return `<div class="card-score-row">
+      <span class="score-badge ${tier}">⭐ ${s.total}</span>
+      <span class="score-detail-inline">☀ ${s.sun} · 🌡 ${s.comfort} · ⊙ ${s.distance}</span>
+    </div>`;
+  })() : '';
 
   let cardBadgeText, cardBadgeCls;
   if (isPoint || nowMode) {
@@ -263,6 +262,9 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
     cardBadgeCls  = 'shaded';
   }
 
+  const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lng}`;
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v.name)}&query_place_id=${v.googlePlaceId ?? ''}`;
+
   return `
     <div class="venue-card ${v.sunInWin ? 'sunny' : ''} ${v.id === selectedId ? 'selected' : ''} ${dimmedCls}"
          data-vid="${v.id}" onclick="selectVenue(${v.id}, true)"
@@ -271,16 +273,16 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
         <div class="card-name">${catIcon(v)} ${v.name}</div>
         <span class="card-badge ${cardBadgeCls}">${cardBadgeText}</span>
       </div>
-      <div class="card-meta">
-        ${scoreBadgeHtml}
-        <span>·</span>
-        <span>${catLabel(v)}</span>
-        <span>·</span>
-        <span style="color:var(--muted)">${v.area ?? ''}</span>
-      </div>
-      ${scoreDetailHtml}
-      <div class="card-address">${v.address}</div>
+      <div class="card-meta">${v.area ?? ''}${v.area ? ' · ' : ''}${catLabel(v)}${tempStr}</div>
       ${renderTimeline(v, dateStr, fromHour, toHour)}
+      <div class="card-expanded">
+        ${scoreExpandHtml}
+        <div class="card-address">${v.address}</div>
+        <div class="card-actions">
+          <a class="card-action-btn" href="${directionsUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">↗ Directions</a>
+          <button class="card-action-btn" onclick="event.stopPropagation();shareVenue(${v.id})">⎘ Share</button>
+        </div>
+      </div>
     </div>`;
 }
 
