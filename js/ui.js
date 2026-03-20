@@ -198,18 +198,15 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
   const dimmedCls = !v.sunInWin ? 'dimmed' : '';
   const { windows } = computeSunWindows(v, dateStr);
 
-  // Wind shelter indicator — only shown when wind is noticeable (≥ 3.5 m/s)
-  let windTag = '';
-  if (typeof getWeatherAt === 'function') {
-    const wx = getWeatherAt(dateStr, fromHour);
-    if (wx && wx.wspd >= 3.5) {
-      const sh = venueWindShelter(v.facing, wx.wdir);
-      if (sh >= 0.65) {
-        windTag = `<span class="wind-tag sheltered" title="Sheltered from ${windCardinal(wx.wdir)} wind">🛡</span>`;
-      } else if (sh <= 0.35) {
-        windTag = `<span class="wind-tag exposed" title="Exposed to ${Math.round(wx.wspd)} m/s ${windCardinal(wx.wdir)} wind">💨</span>`;
-      }
-    }
+  // Score badge
+  let scoreBadgeHtml = '';
+  let scoreDetailHtml = '';
+  if (v.score) {
+    const s    = v.score;
+    const tier = s.total >= 75 ? 'tier-high' : s.total >= 55 ? 'tier-mid' : s.total >= 35 ? 'tier-low' : 'tier-poor';
+    scoreBadgeHtml = `<span class="score-badge ${tier}" title="Score breakdown — ☀ Sun: ${s.sun} · 🌡 Comfort: ${s.comfort} · ⊙ Distance: ${s.distance}">⭐ ${s.total}</span>`;
+    const flStr = s.feelsLikeTemp != null ? `<span title="Feels like">· ${s.feelsLikeTemp}° feels like</span>` : '';
+    scoreDetailHtml = `<div class="score-detail"><span title="Sun score">☀ ${s.sun}</span><span title="Comfort score">🌡 ${s.comfort}</span><span title="Distance score">⊙ ${s.distance}</span>${flStr}</div>`;
   }
 
   let cardBadgeText, cardBadgeCls;
@@ -275,13 +272,13 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
         <span class="card-badge ${cardBadgeCls}">${cardBadgeText}</span>
       </div>
       <div class="card-meta">
-        <span class="card-rating">★ ${v.rating}</span>
+        ${scoreBadgeHtml}
         <span>·</span>
         <span>${catLabel(v)}</span>
-        ${windTag ? `<span>·</span>${windTag}` : ''}
         <span>·</span>
         <span style="color:var(--muted)">${v.area ?? ''}</span>
       </div>
+      ${scoreDetailHtml}
       <div class="card-address">${v.address}</div>
       ${renderTimeline(v, dateStr, fromHour, toHour)}
     </div>`;
@@ -332,13 +329,18 @@ function renderList() {
   const sortBy  = activeSortBy;
 
   // ── Filter + sort (runs on full VENUES, O(n)) ─────────────────────────────
+  const wxNow = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, fromHour) : null;
+
   let venues = VENUES.map(v => {
     const sunInWin = venueHasSunInRange(v, dateStr, fromHour, toHour);
     const { open, close } = v.openingHours;
     const isOpen        = fromHour >= open && fromHour <= close;
     const isOpeningSoon = !isOpen && (open - fromHour) > 0 && (open - fromHour) <= 0.75;
     const isClosingSoon = isOpen  && (close - fromHour) > 0 && (close - fromHour) <= 0.5;
-    return { ...v, sunInWin, isOpen, isOpeningSoon, isClosingSoon };
+    const score = typeof computeVenueScore === 'function'
+      ? computeVenueScore(v, dateStr, fromHour, wxNow, userLocation)
+      : null;
+    return { ...v, sunInWin, isOpen, isOpeningSoon, isClosingSoon, score };
   });
 
   if (searchQ) {
@@ -358,7 +360,13 @@ function renderList() {
   // Closed venues always sink below open ones regardless of sort mode
   function closedPenalty(v) { return (!v.isOpen && !v.isOpeningSoon) ? 1 : 0; }
 
-  if (sortBy === 'distance' && userLocation) {
+  if (sortBy === 'score') {
+    venues.sort((a, b) => {
+      const cp = closedPenalty(a) - closedPenalty(b);
+      if (cp !== 0) return cp;
+      return (b.score?.total ?? 0) - (a.score?.total ?? 0);
+    });
+  } else if (sortBy === 'distance' && userLocation) {
     venues.sort((a, b) => {
       const cp = closedPenalty(a) - closedPenalty(b);
       if (cp !== 0) return cp;

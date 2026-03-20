@@ -44,11 +44,12 @@ async function initWeather() {
       const key = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}-${d.getHours()}`;
       const det = ts.data.instant.details;
       data.set(key, {
-        temp:   Math.round(det.air_temperature),
-        cloud:  det.cloud_area_fraction / 100,
-        wspd:   det.wind_speed,
-        wdir:   det.wind_from_direction,
-        precip: ts.data.next_1_hours?.details?.precipitation_amount ?? 0,
+        temp:     Math.round(det.air_temperature),
+        cloud:    det.cloud_area_fraction / 100,
+        wspd:     det.wind_speed,
+        wdir:     det.wind_from_direction,
+        precip:   ts.data.next_1_hours?.details?.precipitation_amount ?? 0,
+        humidity: det.relative_humidity ?? 60,
       });
     }
 
