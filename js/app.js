@@ -92,8 +92,38 @@ map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
 
 map.on('style.load', () => {
   mapLoaded = true;
+  map.setConfigProperty('basemap', 'showPointOfInterestLabels', false);
+  map.setConfigProperty('basemap', 'showTransitLabels', false);
+  map.setFog({
+    range: [1, 10],
+    color: 'rgba(160, 180, 210, 0.25)',
+    'horizon-blend': 0.04,
+    'high-color': '#1a3a6e',
+    'space-color': '#0a0a1e',
+    'star-intensity': 0.2
+  });
+  updateLightPreset();
   updateSunLighting();
 });
+
+// ── Light preset (atmosphere + sky) ──────────────────────────────────────────
+function updateLightPreset() {
+  if (!mapLoaded || !currentSun || !currentSunTable) return;
+  const hour    = parseFloat(timeFromEl.value);
+  const sunrise = findSunCrossingFromTable(currentSunTable, true);
+  const sunset  = findSunCrossingFromTable(currentSunTable, false);
+  let preset;
+  if (currentSun.alt < 0) {
+    preset = 'night';
+  } else if (sunrise && hour < sunrise + 1.5) {
+    preset = 'dawn';
+  } else if (sunset && hour > sunset - 1.5) {
+    preset = 'dusk';
+  } else {
+    preset = 'day';
+  }
+  map.setConfigProperty('basemap', 'lightPreset', preset);
+}
 
 // ── Sun lighting (Mapbox GL v3) ───────────────────────────────────────────────
 function updateSunLighting() {
@@ -107,14 +137,14 @@ function updateSunLighting() {
         properties: {
           direction: [az, 90 - alt],
           'cast-shadows': true,
-          intensity: Math.min(1, 0.3 + alt / 40),
-          color: alt < 15 ? '#ffcc88' : '#ffffff'
+          intensity: 0.9,
+          color: alt < 10 ? '#ff9944' : alt < 25 ? '#ffdd88' : '#ffffff'
         }
       },
       {
         id: 'ambient',
         type: 'ambient',
-        properties: { intensity: 0.35, color: '#ffffff' }
+        properties: { intensity: 0.1, color: '#ffffff' }
       }
     ]);
   } else {
@@ -122,7 +152,7 @@ function updateSunLighting() {
       {
         id: 'ambient',
         type: 'ambient',
-        properties: { intensity: 0.7, color: '#8899cc' }
+        properties: { intensity: 0.4, color: '#8899cc' }
       }
     ]);
   }
@@ -224,6 +254,7 @@ function update() {
   drawSunCompass();
   renderList();
   updatePopup();
+  updateLightPreset();
   updateSunLighting();
 
   if (hoveredId != null && tooltip.classList.contains('visible')) {
@@ -239,7 +270,7 @@ function selectVenue(id, flyTo) {
   const v = VENUES.find(x => x.id === id);
   if (!v) return;
 
-  if (flyTo) map.flyTo({ center: [v.lng, v.lat], zoom: Math.max(map.getZoom(), 15), duration: 800 });
+  if (flyTo) map.flyTo({ center: [v.lng, v.lat], zoom: Math.max(map.getZoom(), 15), pitch: 45, duration: 800 });
 
   if (popup) { popup.remove(); popup = null; }
   const sunny = currentSun ? venueSunState(v, currentSun.az, currentSun.alt) : false;
@@ -304,10 +335,10 @@ function enterEditMode(venueId) {
     const lons = v.buildingGeometry.map(n => n.lon);
     map.fitBounds(
       [[Math.min(...lons), Math.min(...lats)], [Math.max(...lons), Math.max(...lats)]],
-      { padding: 110, maxZoom: 19, duration: 900 }
+      { padding: 110, maxZoom: 19, pitch: 0, duration: 900 }
     );
   } else {
-    map.flyTo({ center: [v.lng, v.lat], zoom: 19, duration: 900 });
+    map.flyTo({ center: [v.lng, v.lat], zoom: 19, pitch: 0, duration: 900 });
   }
   draw();
 }
