@@ -878,11 +878,112 @@ function shouldShowAtZoom(v, zoom) {
   return v.rating >= 4.5;
 }
 
+// ── Pin clustering ────────────────────────────────────────────────────────────
+// Below CLUSTER_ZOOM, nearby pins are grouped into bubble clusters to avoid
+// an unreadable mass of overlapping pills. Clusters are clickable — they zoom
+// in to the bounding box of the member venues.
+const CLUSTER_ZOOM = 13.0;
+const CLUSTER_PX   = 52;   // screen-space radius threshold (pixels)
+let _lastClusters  = [];   // [{cx, cy, r, venues}] — populated each draw
+
+function computeClusters(projVenues) {
+  const used = new Set();
+  const clusters = [];
+  for (let i = 0; i < projVenues.length; i++) {
+    if (used.has(i)) continue;
+    const seed    = projVenues[i];
+    const members = [seed];
+    used.add(i);
+    for (let j = i + 1; j < projVenues.length; j++) {
+      if (used.has(j)) continue;
+      if (Math.hypot(projVenues[j].pt.x - seed.pt.x, projVenues[j].pt.y - seed.pt.y) < CLUSTER_PX) {
+        members.push(projVenues[j]);
+        used.add(j);
+      }
+    }
+    clusters.push(members);
+  }
+  return clusters;
+}
+
+function drawClusterBubble(cx, cy, count, sunnyCount) {
+  const r      = count >= 8 ? 20 : count >= 4 ? 17 : 14;
+  const isSun  = sunnyCount > 0;
+
+  // Pulse ring
+  ctx.beginPath(); ctx.arc(cx, cy, r + 6, 0, Math.PI * 2);
+  ctx.fillStyle = isSun ? 'rgba(255,184,0,0.08)' : 'rgba(60,100,200,0.08)'; ctx.fill();
+
+  // Main filled circle
+  const grad = ctx.createRadialGradient(cx, cy - r * 0.25, 0, cx, cy, r);
+  if (isSun) { grad.addColorStop(0, '#ffd840'); grad.addColorStop(1, '#e09000'); }
+  else       { grad.addColorStop(0, '#3868d8'); grad.addColorStop(1, '#1a3880'); }
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = grad; ctx.fill();
+  ctx.strokeStyle = isSun ? 'rgba(255,230,100,0.8)' : 'rgba(110,155,255,0.6)';
+  ctx.lineWidth = 1.5; ctx.stroke();
+
+  // Count label
+  ctx.font = `bold ${count >= 10 ? 9 : 11}px "DM Sans", sans-serif`;
+  ctx.fillStyle = isSun ? '#1a1a2e' : '#c8d8ff';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(String(count), cx, cy);
+
+  return r + 6;   // total hit radius
+}
+
+function hitTestCluster(cx, cy) {
+  for (const cl of _lastClusters) {
+    if (Math.hypot(cx - cl.cx, cy - cl.cy) <= cl.r) return cl;
+  }
+  return null;
+}
+
+function zoomToCluster(cluster) {
+  const lats = cluster.venues.map(v => v.lat);
+  const lngs = cluster.venues.map(v => v.lng);
+  map.fitBounds(
+    [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
+    { padding: 80, maxZoom: 15, duration: 500 }
+  );
+}
+
 // ── Main draw ─────────────────────────────────────────────────────────────────
+
+/**
+ * Draw a single venue pin with fade animation. Returns true if still animating
+ * (caller should schedule another rAF). Pushes to visibleVenues if not closed.
+ */
+function _drawPin(v, pt, state, currentHour, dateStr, now, visibleVenues) {
+  const selected = v.id === selectedId;
+  const spr      = getSprite(v, state, selected, currentHour, dateStr);
+
+  const prevState = _pinPrevState.get(v.id);
+  if (prevState !== undefined && prevState !== state) _pinFadeStart.set(v.id, now);
+  _pinPrevState.set(v.id, state);
+
+  let pinAlpha = 1, animating = false;
+  const fs = _pinFadeStart.get(v.id);
+  if (fs !== undefined) {
+    const t = Math.min(1, (now - fs) / PIN_FADE_MS);
+    pinAlpha = t;
+    if (t >= 1) _pinFadeStart.delete(v.id);
+    else        animating = true;
+  }
+
+  ctx.save();
+  if (pinAlpha < 1) ctx.globalAlpha = pinAlpha;
+  ctx.drawImage(spr.canvas, pt.x - spr.anchorX, pt.y - spr.anchorY);
+  ctx.restore();
+
+  if (state !== 'closed') visibleVenues.push({ v, pt, state, spr });
+  return animating;
+}
+
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   if (!currentSun) return;
-  const now           = performance.now();
+  const now            = performance.now();
   let   needsAnimFrame = false;
 
   if (editingVenueId) {
@@ -908,19 +1009,17 @@ function draw() {
   const zoom   = map.getZoom();
   let hiddenCount = 0;
 
-  // Terrace footprints (drawn first, below shadow overlay and sprites)
   drawSeatingAreas();
-
-  // Shadow overlay for selected venue (drawn before sprites so pins sit on top)
   if (selectedId) {
     const sel = VENUES.find(v => v.id === selectedId);
     if (sel) drawShadowOverlay(sel);
   }
 
-  // Pass 1: sprites — viewport-culled + zoom-density filtered
   const currentHour = parseFloat(timeFromEl.value);
   const dateStr     = datePicker.value;
-  const visibleVenues = [];
+
+  // Project + compute draw-state for all visible venues
+  const projVenues = [];
   VENUES.forEach(v => {
     if (!bounds.contains([v.lng, v.lat])) return;
     if (!shouldShowAtZoom(v, zoom)) { hiddenCount++; return; }
@@ -928,37 +1027,34 @@ function draw() {
     const isOpen        = currentHour >= open && currentHour <= close;
     const isOpeningSoon = !isOpen && (open - currentHour) > 0 && (open - currentHour) <= 0.75;
     let state;
-    if (isOpen) {
-      state = venueSunState(v, currentSun.az, currentSun.alt) ? 'sunny' : 'shaded';
-    } else if (isOpeningSoon) {
-      state = 'soon';
-    } else {
-      state = 'closed';
-    }
-    const selected = v.id === selectedId;
-    const pt       = map.project([v.lng, v.lat]);
-    const spr      = getSprite(v, state, selected, currentHour, dateStr);
-
-    // State-change fade-in
-    const prevState = _pinPrevState.get(v.id);
-    if (prevState !== undefined && prevState !== state) _pinFadeStart.set(v.id, now);
-    _pinPrevState.set(v.id, state);
-    let pinAlpha = 1;
-    const fs = _pinFadeStart.get(v.id);
-    if (fs !== undefined) {
-      const t = Math.min(1, (now - fs) / PIN_FADE_MS);
-      pinAlpha = t;
-      if (t >= 1) _pinFadeStart.delete(v.id);
-      else        needsAnimFrame = true;
-    }
-
-    ctx.save();
-    if (pinAlpha < 1) ctx.globalAlpha = pinAlpha;
-    ctx.drawImage(spr.canvas, pt.x - spr.anchorX, pt.y - spr.anchorY);
-    ctx.restore();
-
-    if (state !== 'closed') visibleVenues.push({ v, pt, state, spr });
+    if (isOpen)             state = venueSunState(v, currentSun.az, currentSun.alt) ? 'sunny' : 'shaded';
+    else if (isOpeningSoon) state = 'soon';
+    else                    state = 'closed';
+    projVenues.push({ v, state, pt: map.project([v.lng, v.lat]) });
   });
+
+  // Draw: cluster bubbles at low zoom, individual pins at neighbourhood zoom
+  const visibleVenues = [];
+  if (zoom < CLUSTER_ZOOM) {
+    _lastClusters = [];
+    computeClusters(projVenues).forEach(members => {
+      if (members.length === 1) {
+        const { v, pt, state } = members[0];
+        if (_drawPin(v, pt, state, currentHour, dateStr, now, visibleVenues)) needsAnimFrame = true;
+      } else {
+        const cx = members.reduce((s, m) => s + m.pt.x, 0) / members.length;
+        const cy = members.reduce((s, m) => s + m.pt.y, 0) / members.length;
+        const sunnyCount = members.filter(m => m.state === 'sunny').length;
+        const r = drawClusterBubble(cx, cy, members.length, sunnyCount);
+        _lastClusters.push({ cx, cy, r, venues: members.map(m => m.v) });
+      }
+    });
+  } else {
+    _lastClusters = [];
+    projVenues.forEach(({ v, pt, state }) => {
+      if (_drawPin(v, pt, state, currentHour, dateStr, now, visibleVenues)) needsAnimFrame = true;
+    });
+  }
 
   // Hover glow — drawn on top of all sprites so it reads clearly
   if (hoveredId !== null) {
@@ -1081,17 +1177,20 @@ canvas.addEventListener('click', e => {
   const hit = hitTestVenue(cx, cy);
   if (hit) {
     selectVenue(hit.id, true);
-  } else {
-    // Clicked empty map — close popup (close handler resets pitch/bearing/selectedId)
-    if (popup) {
-      popup.remove();
-    } else if (selectedId !== null) {
-      selectedId = null;
-      clearSpriteCache();
-      map.easeTo({ pitch: 15, bearing: 0, duration: 600 });
-      draw();
-      renderList();
-    }
+    return;
+  }
+  // Cluster click — zoom to bounding box
+  const cluster = hitTestCluster(cx, cy);
+  if (cluster) { zoomToCluster(cluster); return; }
+  // Clicked empty map — close popup
+  if (popup) {
+    popup.remove();
+  } else if (selectedId !== null) {
+    selectedId = null;
+    clearSpriteCache();
+    map.easeTo({ pitch: 15, bearing: 0, duration: 600 });
+    draw();
+    renderList();
   }
 });
 
@@ -1138,6 +1237,14 @@ canvas.addEventListener('mousemove', e => {
         el.innerHTML = `${v.facing}° ${bearingToCardinal(v.facing)}${wallsLabel}`;
       }
     }
+    return;
+  }
+
+  // Cluster hover cursor (no tooltip for clusters — user just clicks to zoom in)
+  if (hitTestCluster(cx, cy)) {
+    canvas.style.cursor = 'zoom-in';
+    if (hoveredId !== null) { hoveredId = null; draw(); }
+    tooltip.classList.remove('visible');
     return;
   }
 

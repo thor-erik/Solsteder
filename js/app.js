@@ -272,6 +272,13 @@ function setIntent(intent) {
   update();
 }
 
+// ── Hover from sidebar list ───────────────────────────────────────────────────
+function setHoveredVenue(id) {
+  if (hoveredId === id) return;
+  hoveredId = id;
+  draw();
+}
+
 // ── Area filter ───────────────────────────────────────────────────────────────
 function setAreaFilter(area) {
   activeArea = area;

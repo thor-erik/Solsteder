@@ -72,7 +72,7 @@
     top: 16px;
     left: 16px;
     z-index: 900;
-    width: 300px;
+    width: 320px;
   }
   #floating-search #venue-search {
     background: transparent;
@@ -169,7 +169,7 @@
   /* ── Panel toggle — on right edge of left panel ───────────────────────────── */
   #panel-toggle {
     position: absolute;
-    left: 332px;    /* panel 300 + margin 16 + gap 16 */
+    left: 352px;    /* panel 320 + margin 16 + gap 16 */
     top: 50%;
     transform: translateY(-50%);
     z-index: 900;
@@ -347,7 +347,7 @@
     top: 72px;      /* 16 top + ~48 search card + 8 gap */
     left: 16px;
     bottom: 16px;
-    width: 300px;
+    width: 320px;
     background: rgba(22,33,62,0.88);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -468,7 +468,7 @@
     color: var(--accent);
   }
 
-  /* Venue list header: count + sort + map toggle */
+  /* Venue list header: count + map-view (left) · sort buttons (right) */
   #venue-header {
     display: flex;
     align-items: center;
@@ -476,17 +476,47 @@
     padding-bottom: 8px;
     border-bottom: 1px solid rgba(255,255,255,0.05);
     margin-bottom: 8px;
+    gap: 6px;
+  }
+  .vh-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
   }
   #venue-count {
     font-size: 12px;
     font-weight: 600;
     color: var(--muted);
+    white-space: nowrap;
   }
   #venue-count.count-sunny { color: var(--accent); }
+  /* Map-view filter pill — lives next to count, not with sort buttons */
+  #map-view-btn {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.05);
+    color: var(--muted);
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  #map-view-btn:hover:not(.active) { color: var(--text); border-color: rgba(255,184,0,0.3); }
+  #map-view-btn.active {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
   #list-actions {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 3px;
+    flex-shrink: 0;
   }
   .sort-btn {
     background: none;
@@ -504,6 +534,7 @@
   .sort-btn:hover:not(.active) { color: var(--text); border-color: rgba(255,255,255,0.12); }
   .sort-btn.active { color: var(--accent); border-color: rgba(255,184,0,0.3); }
 
+  /* Legacy class — keep for any remaining references */
   .filter-toggle-btn {
     background: none;
     border: 1px solid rgba(255,255,255,0.1);
@@ -1228,14 +1259,16 @@
         <button class="area-chip" data-area="Bislett" onclick="setAreaFilter('Bislett')">Bislett</button>
       </div>
 
-      <!-- Venue list header: count + sort + map view -->
+      <!-- Venue list header: count + map-view (left) · sort (right) -->
       <div id="venue-header">
-        <span id="venue-count">—</span>
+        <div class="vh-left">
+          <span id="venue-count">—</span>
+          <button id="map-view-btn" onclick="toggleMapView()" title="Filter to current map view">⊞ In view</button>
+        </div>
         <div id="list-actions">
           <button class="sort-btn active" data-sort="sun" onclick="setSortBy('sun')" title="Sort by sun">☀ Sun</button>
           <button class="sort-btn" data-sort="rating" onclick="setSortBy('rating')" title="Sort by rating">★ Rating</button>
           <button class="sort-btn" data-sort="distance" onclick="setSortBy('distance')" title="Sort by distance">⊙ Near</button>
-          <button class="filter-toggle-btn" id="map-view-btn" onclick="toggleMapView()" title="Only show venues in current map view">Map</button>
         </div>
       </div>
 

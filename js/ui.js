@@ -186,7 +186,8 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
   if (!v.isOpen && !v.isOpeningSoon) {
     return `
       <div class="venue-card closed-card ${v.id === selectedId ? 'selected' : ''}"
-           data-vid="${v.id}" onclick="selectVenue(${v.id}, true)">
+           data-vid="${v.id}" onclick="selectVenue(${v.id}, true)"
+           onmouseenter="setHoveredVenue(${v.id})" onmouseleave="setHoveredVenue(null)">
         <div class="closed-row">
           <span class="closed-name">${catIcon(v)} ${v.name}</span>
           <span class="card-badge shaded">Opens ${formatHour(v.openingHours.open)}</span>
@@ -253,7 +254,8 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
 
   return `
     <div class="venue-card ${v.sunInWin ? 'sunny' : ''} ${v.id === selectedId ? 'selected' : ''} ${dimmedCls}"
-         data-vid="${v.id}" onclick="selectVenue(${v.id}, true)">
+         data-vid="${v.id}" onclick="selectVenue(${v.id}, true)"
+         onmouseenter="setHoveredVenue(${v.id})" onmouseleave="setHoveredVenue(null)">
       <div class="card-top">
         <div class="card-name">${catIcon(v)} ${v.name}</div>
         <span class="card-badge ${cardBadgeCls}">${cardBadgeText}</span>
