@@ -278,18 +278,14 @@ function renderList() {
 
   const dateStr  = datePicker.value;
   const fromHour = parseFloat(timeFromEl.value);
-  const toHour   = parseFloat(timeToEl.value);
-  const isPoint  = Math.abs(fromHour - toHour) < 0.01;
+  const toHour   = fromHour; // single slider — always point mode
+  const isPoint  = true;
 
   const searchQ    = (document.getElementById('venue-search')?.value ?? '').trim().toLowerCase();
   const filterType = document.getElementById('filter-type')?.value ?? '';
   const filterArea = document.getElementById('filter-area')?.value ?? '';
   const sortBy     = document.getElementById('sort-by')?.value ?? 'sun';
   const minRating  = parseFloat(document.getElementById('filter-rating')?.value ?? '0') || 0;
-
-  // Dim "full slot in sun" toggle when not applicable (point/now mode)
-  const fullSunBtn = document.getElementById('full-sun-btn');
-  if (fullSunBtn) fullSunBtn.style.opacity = isPoint ? '0.35' : '1';
 
   // ── Filter + sort (runs on full VENUES, O(n)) ─────────────────────────────
   let venues = VENUES.map(v => {
@@ -309,11 +305,8 @@ function renderList() {
   if (filterType) venues = venues.filter(v => v.category === filterType);
   if (filterArea) venues = venues.filter(v => v.area === filterArea);
   if (minRating > 0) venues = venues.filter(v => v.rating >= minRating);
-  if (filterFullSunActive && !isPoint) {
-    venues = venues.filter(v => {
-      const { windows } = computeSunWindows(v, dateStr);
-      return windows.some(w => w.start <= fromHour && w.end >= toHour);
-    });
+  if (filterFullSunActive) {
+    venues = venues.filter(v => v.sunInWin);
   }
 
   if (filterMapViewActive) {

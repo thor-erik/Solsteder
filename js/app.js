@@ -95,10 +95,7 @@ const ctx    = canvas.getContext('2d');
 // ── DOM refs (all defined after DOMContentLoaded since scripts are at end of body) ──
 const datePicker      = document.getElementById('date-picker');
 const timeFromEl      = document.getElementById('time-from');
-const timeToEl        = document.getElementById('time-to');
-const timeRangeFillEl = document.getElementById('time-range-fill');
 const timeDisplayFrom = document.getElementById('time-display-from');
-const timeDisplayTo   = document.getElementById('time-display-to');
 const nowBtn          = document.getElementById('now-btn');
 const timeRangeWrap   = document.getElementById('time-range-wrap');
 const tooltip         = document.getElementById('hover-tooltip');
@@ -121,16 +118,10 @@ function formatSliderTime(val) {
 // ── Slider ────────────────────────────────────────────────────────────────────
 function updateRangeFill() {
   const min = 4, max = 23;
-  const fv  = parseFloat(timeFromEl.value), tv = parseFloat(timeToEl.value);
+  const fv  = parseFloat(timeFromEl.value);
   const fp  = (fv - min) / (max - min) * 100;
-  const tp  = (tv - min) / (max - min) * 100;
-  timeRangeFillEl.style.left  = fp.toFixed(2) + '%';
-  timeRangeFillEl.style.width = Math.max(0, tp - fp).toFixed(2) + '%';
   timeDisplayFrom.textContent = formatSliderTime(fv);
   timeDisplayFrom.style.left  = `calc(${fp.toFixed(2)}% - ${(fp / 100 * 14 - 7).toFixed(2)}px)`;
-  const isPoint = Math.abs(fv - tv) < 0.01;
-  timeDisplayTo.textContent   = isPoint ? '' : formatSliderTime(tv);
-  timeDisplayTo.style.left    = `calc(${tp.toFixed(2)}% - ${(tp / 100 * 14 - 7).toFixed(2)}px)`;
 }
 
 function toggleNowMode() {
@@ -150,9 +141,7 @@ function toggleNowMode() {
 }
 
 function applyNowTime() {
-  const h = Math.min(23, Math.max(4, currentHour()));
-  timeFromEl.value = h;
-  if (parseFloat(timeToEl.value) < h) timeToEl.value = Math.min(23, h + 2);
+  timeFromEl.value = Math.min(23, Math.max(4, currentHour()));
   updateRangeFill();
 }
 
@@ -180,7 +169,7 @@ function update() {
   document.getElementById('stat-sunrise').textContent  = formatHour(sunrise);
   document.getElementById('stat-sunset').textContent   = formatHour(sunset);
 
-  // Sun window highlight on dual slider
+  // Sunrise–sunset highlight on slider track
   const sunBg = document.getElementById('time-range-sun-bg');
   if (sunBg && sunrise != null && sunset != null) {
     const slMin = 4, slMax = 23;
@@ -349,21 +338,12 @@ map.on('click', e => {
 
 // ── Control event listeners ───────────────────────────────────────────────────
 datePicker.value = todayStr();
-const initHour = Math.min(23, Math.max(4, currentHour()));
-timeFromEl.value = initHour;
-timeToEl.value   = Math.min(23, initHour + 3);
+timeFromEl.value = Math.min(23, Math.max(4, currentHour()));
 
 datePicker.addEventListener('change', () => { update(); });
 
 timeFromEl.addEventListener('input', () => {
   if (nowMode) { nowMode = false; nowBtn.classList.remove('active'); timeRangeWrap.classList.remove('now-active'); }
-  if (parseFloat(timeFromEl.value) > parseFloat(timeToEl.value)) timeToEl.value = timeFromEl.value;
-  updateRangeFill(); update();
-});
-
-timeToEl.addEventListener('input', () => {
-  if (nowMode) { nowMode = false; nowBtn.classList.remove('active'); timeRangeWrap.classList.remove('now-active'); }
-  if (parseFloat(timeToEl.value) < parseFloat(timeFromEl.value)) timeFromEl.value = timeToEl.value;
   updateRangeFill(); update();
 });
 

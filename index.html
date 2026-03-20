@@ -764,14 +764,6 @@
     border-radius: 2px;
     pointer-events: none;
   }
-  .time-range-track-fill {
-    position: absolute;
-    top: 8px;
-    height: 4px;
-    background: linear-gradient(90deg, #ff8c00, #FFB800);
-    border-radius: 2px;
-    pointer-events: none;
-  }
   .time-range-wrap input[type=range] {
     position: absolute;
     width: 100%;
@@ -815,9 +807,6 @@
     background: #1e2d4a;
     border-color: rgba(255,184,0,0.7);
     box-shadow: 0 0 6px rgba(255,184,0,0.15);
-  }
-  .time-range-wrap.now-active .time-range-track-fill {
-    opacity: 0;
   }
   .time-range-sun-bg {
     position: absolute;
@@ -961,12 +950,9 @@
           <div class="time-range-wrap" id="time-range-wrap">
             <div class="time-range-sun-bg" id="time-range-sun-bg"></div>
             <div class="time-range-track-bg"></div>
-            <div class="time-range-track-fill" id="time-range-fill"></div>
             <input type="range" id="time-from" min="4" max="23" step="0.25" value="10">
-            <input type="range" id="time-to" min="4" max="23" step="0.25" value="22">
             <div class="time-display-row">
               <span id="time-display-from">10:00</span>
-              <span id="time-display-to">22:00</span>
             </div>
           </div>
           <button id="now-btn" onclick="toggleNowMode()">Now</button>
@@ -1010,7 +996,7 @@
         </select>
       </div>
       <div id="filter-extra">
-        <button class="filter-toggle-btn" id="full-sun-btn" onclick="toggleFullSun()">☀ Full slot in sun</button>
+        <button class="filter-toggle-btn" id="full-sun-btn" onclick="toggleFullSun()">☀ In sun now</button>
         <button class="filter-toggle-btn" id="map-view-btn" onclick="toggleMapView()">In map view</button>
       </div>
       <div id="facing-status"></div>
