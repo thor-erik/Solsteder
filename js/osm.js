@@ -150,24 +150,52 @@ function findNearbyBuildings(venue, buildings, excludeBuilding = null, radiusM =
 // ── Terrace test-point grid ───────────────────────────────────────────────────
 
 /**
+ * When an OSM outdoor_seating area (way) is available, compute the terrace
+ * depth by projecting each polygon vertex onto the wall's outward normal and
+ * taking the maximum projection distance in metres.
+ */
+function computeDepthFromOutdoorSeatingArea(wallSegment, polygon) {
+  if (!wallSegment || !polygon?.length) return null;
+  const br     = wallSegment.bearing * RAD;
+  const cosLat = Math.cos(wallSegment.my * RAD);
+  const nx     = Math.sin(br), ny = Math.cos(br);
+  const ox     = wallSegment.mx * cosLat, oy = wallSegment.my;
+  let maxProj  = 0;
+  for (const node of polygon) {
+    const proj = (node.lon * cosLat - ox) * nx + (node.lat - oy) * ny;
+    if (proj > maxProj) maxProj = proj;
+  }
+  const depthM = maxProj * 111320;
+  return depthM > 0.5 ? depthM : null;
+}
+
+/**
  * Compute the array of lat/lng points used for shadow testing across the terrace.
  *
  * Priority:
- *   1. OSM `leisure=outdoor_seating` coordinate within 30 m (community-placed, most accurate)
- *   2. Project a 3-point grid from each selected terrace wall at half the terrace depth
+ *   1a. OSM `leisure=outdoor_seating` area (way) within 30 m — centroid used as
+ *       test point; polygon extent drives autoTerraceDepth (most accurate)
+ *   1b. OSM `leisure=outdoor_seating` node within 30 m — single accurate point
+ *   2.  Project a 3-point grid from each selected terrace wall at half depth
  *
- * The resulting array is stored as venue.terraceTestPoints and consumed by
- * venueSunState() in solar.js (both main thread and worker).
+ * `osmElement` is the full Overpass element (node or way) or null.
+ * Side-effect: sets venue.autoTerraceDepth when derived from an OSM polygon.
  */
-function computeTerraceTestPoints(venue, outdoorSeatingCoord) {
-  // Tier 1 — explicit OSM outdoor seating location
-  if (outdoorSeatingCoord) {
-    return [{ lat: outdoorSeatingCoord.lat, lng: outdoorSeatingCoord.lng }];
+function computeTerraceTestPoints(venue, osmElement) {
+  // Tier 1a — OSM area polygon: centroid + depth from polygon extent
+  if (osmElement?.geometry) {
+    const c     = computeCentroid(osmElement.geometry);
+    const depth = computeDepthFromOutdoorSeatingArea(venue.wallSegment, osmElement.geometry);
+    if (depth) venue.autoTerraceDepth = depth;
+    return [{ lat: c.lat, lng: c.lon }];
+  }
+
+  // Tier 1b — OSM node: single accurate point
+  if (osmElement) {
+    return [{ lat: osmElement.lat, lng: osmElement.lng }];
   }
 
   // Tier 2 — project from wall geometry
-  // Prefer autoTerraceWallIndices (computed fresh this session) over terraceWallIndices
-  // (which comes from manual cache — cleared after key bump).
   const indices = venue.autoTerraceWallIndices?.length
     ? venue.autoTerraceWallIndices
     : (venue.terraceWallIndices?.length ? venue.terraceWallIndices : null);
@@ -179,13 +207,12 @@ function computeTerraceTestPoints(venue, outdoorSeatingCoord) {
   if (!walls.length) return [{ lat: venue.lat, lng: venue.lng }];
 
   const depth     = venue.terraceDepth ?? venue.autoTerraceDepth ?? 4;
-  const testDepth = Math.max(1.5, depth * 0.5);  // mid-depth of terrace
+  const testDepth = Math.max(1.5, depth * 0.5);
 
   const points = [];
   for (const wall of walls) {
     const br     = wall.bearing * RAD;
     const cosLat = Math.cos(wall.my * RAD);
-    // Sample at 25 %, 50 %, 75 % along each wall's length
     for (const f of [0.25, 0.5, 0.75]) {
       const wLat = (1 - f) * wall.aLat + f * wall.bLat;
       const wLng = (1 - f) * wall.aLng + f * wall.bLng;
@@ -263,8 +290,17 @@ function raySegmentIntersect(ox, oy, dx, dy, ax, ay, bx, by) {
 
 /**
  * Raycast outward from three points along the terrace wall and return the
- * nearest highway intersection depth in metres (minus 0.5 m buffer), or
- * null if no highway is found within 20 m.
+ * estimated terrace depth in metres.
+ *
+ * Two-pass approach:
+ *   Pass 1 — roads + pedestrian zones only (excludes footway/path/service/steps).
+ *             Footways often run directly alongside buildings as covered sidewalks
+ *             and give falsely shallow readings (< 1 m) when the terrace extends
+ *             further to the road kerb.
+ *   Pass 2 — all highways (including footways) with a larger edge buffer.
+ *             Used only when no road-type highway is found within 20 m.
+ *
+ * Minimum returned depth is 2 m (one row of tables + chairs).
  */
 function computeAutoTerraceDepth(wall, highways) {
   const MAX_DIST_M = 20;
@@ -278,21 +314,34 @@ function computeAutoTerraceDepth(wall, highways) {
     oy:  (1 - f) * wall.aLat + f * wall.bLat,
   }));
 
-  let minT = MAX_T;
-  for (const hw of highways) {
-    const nodes = hw.geometry || [];
-    for (let i = 0; i < nodes.length - 1; i++) {
-      const a = nodes[i], b = nodes[i + 1];
-      const ax = a.lon * cosLat, ay = a.lat;
-      const bx = b.lon * cosLat, by = b.lat;
-      for (const { ox, oy } of probeOrigins) {
-        if (Math.hypot((ax + bx) / 2 - ox, (ay + by) / 2 - oy) > MAX_T * 2) continue;
-        const t = raySegmentIntersect(ox, oy, dx, dy, ax, ay, bx, by);
-        if (t !== null && t < minT) minT = t;
+  const NARROW = new Set(['footway', 'path', 'service', 'steps', 'track', 'cycleway']);
+
+  function raycastDepth(hwList, edgeBuffer) {
+    let minT = MAX_T;
+    for (const hw of hwList) {
+      const nodes = hw.geometry || [];
+      for (let i = 0; i < nodes.length - 1; i++) {
+        const a = nodes[i], b = nodes[i + 1];
+        const ax = a.lon * cosLat, ay = a.lat;
+        const bx = b.lon * cosLat, by = b.lat;
+        for (const { ox, oy } of probeOrigins) {
+          if (Math.hypot((ax + bx) / 2 - ox, (ay + by) / 2 - oy) > MAX_T * 2) continue;
+          const t = raySegmentIntersect(ox, oy, dx, dy, ax, ay, bx, by);
+          if (t !== null && t < minT) minT = t;
+        }
       }
     }
+    if (minT >= MAX_T) return null;
+    return Math.max(2, minT * 111320 - edgeBuffer);
   }
-  return minT < MAX_T ? Math.max(1.5, minT * 111320 - 0.5) : null;
+
+  // Pass 1: roads, pedestrian zones, living streets (not narrow paths)
+  const roadHighways = highways.filter(h => !NARROW.has(h.tags?.highway));
+  const d1 = raycastDepth(roadHighways, 0.5);
+  if (d1 !== null) return d1;
+
+  // Pass 2: include narrow paths — last resort, larger edge buffer
+  return raycastDepth(highways, 1.5);
 }
 
 /**
@@ -417,19 +466,20 @@ async function initFacings() {
   console.log(`OSM: ${buildings.length} buildings | ${openPolygons.length} open areas | ${entranceNodes.length} entrances | ${highways.length} streets | ${outdoorSeatingNodes.length + outdoorSeatingAreas.length} outdoor_seating`);
 
   /** Find a community-placed outdoor_seating node/area centroid within 30 m of a venue. */
-  function findOutdoorSeatingCoord(venue) {
+  /** Return the nearest OSM outdoor_seating element (full node or way) within 30 m. */
+  function findOutdoorSeatingElement(venue) {
     const THRESH = 30 / 111320;
     let best = null, bestD = THRESH;
     for (const node of outdoorSeatingNodes) {
       const d = Math.hypot(node.lat - venue.lat, node.lon - venue.lng);
-      if (d < bestD) { bestD = d; best = { lat: node.lat, lng: node.lon }; }
+      if (d < bestD) { bestD = d; best = node; }
     }
     for (const area of outdoorSeatingAreas) {
       const c = computeCentroid(area.geometry);
       const d = Math.hypot(c.lat - venue.lat, c.lon - venue.lng);
-      if (d < bestD) { bestD = d; best = { lat: c.lat, lng: c.lon }; }
+      if (d < bestD) { bestD = d; best = area; }
     }
-    return best;
+    return best; // full Overpass element (has .geometry for ways, .lat/.lon for nodes)
   }
 
   let computed = 0;
@@ -453,7 +503,7 @@ async function initFacings() {
     // ── Step 2: nearby buildings for shadow casting (exclude own building) ──────
     v.nearbyBuildings = findNearbyBuildings(v, buildings, building);
 
-    // ── Step 3: wall scoring — after cache key bump facingSource is never 'manual' ──
+    // ── Step 3: wall scoring ──────────────────────────────────────────────────
     const autoIndices = computeAutoTerraceWallIndices(v, walls, buildings, building, openPolygons, entranceNodes, highways);
     const bestWall    = walls[autoIndices[0]];
 
@@ -465,12 +515,14 @@ async function initFacings() {
     saveFacingCache(v.id, v.facing, 'osm');
 
     // ── Step 4: terrace test-point grid ──────────────────────────────────────
-    const osmCoord       = findOutdoorSeatingCoord(v);
-    v.terraceTestPoints  = computeTerraceTestPoints(v, osmCoord);
+    // computeTerraceTestPoints may update v.autoTerraceDepth if an OSM area is found
+    const osmEl         = findOutdoorSeatingElement(v);
+    v.terraceTestPoints = computeTerraceTestPoints(v, osmEl);
 
     computed++;
-    const src = osmCoord ? 'osm-seating' : 'wall-projection';
-    console.log(`${v.name}: ${v.facing}° | wall ${bestWall.lenM.toFixed(0)} m | terrace pts: ${v.terraceTestPoints.length} [${src}]`);
+    const src = osmEl?.geometry ? 'osm-area' : osmEl ? 'osm-node' : 'wall-projection';
+    const depthStr = v.autoTerraceDepth != null ? ` depth ${v.autoTerraceDepth.toFixed(1)} m` : '';
+    console.log(`${v.name}: ${v.facing}° |${depthStr} | pts ${v.terraceTestPoints.length} [${src}]`);
   });
 
   clearSpriteCache();
