@@ -311,45 +311,15 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding-bottom: 22px;
+    padding-bottom: 16px;
     border-bottom: 1px solid rgba(255,255,255,0.06);
     margin-bottom: 14px;
     overflow: visible;
   }
 
-  /* Venue header below controls */
-  #venue-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 12px;
-  }
-
-  #panel-title {
-    font-family: 'DM Serif Display', serif;
-    font-size: 17px;
-    color: var(--text);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex: 1;
-  }
-
-  #sun-badge {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 12px;
-    font-weight: 600;
-    background: var(--accent-dim);
-    border: 1px solid var(--border);
-    color: var(--accent);
-    padding: 3px 10px;
-    border-radius: 20px;
-  }
-
-
-  /* Search + Filter bar */
+  /* Search bar */
   #search-bar {
-    padding: 0 0 8px;
+    padding: 0 0 10px;
   }
   #venue-search {
     width: 100%;
@@ -365,54 +335,120 @@
   #venue-search::placeholder { color: var(--muted); }
   #venue-search:focus { border-color: rgba(255,184,0,0.4); }
 
-  #filter-bar {
-    padding: 0 0 6px;
+  /* Intent shortcuts */
+  #intent-row {
     display: flex;
-    gap: 5px;
+    gap: 6px;
+    padding-bottom: 12px;
   }
-  #filter-extra {
-    padding: 0 0 10px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  #sort-bar {
-    padding: 6px 0 4px;
-    border-top: 1px solid var(--border);
-    display: flex;
-    justify-content: flex-end;
-  }
-  .filter-select {
+  .intent-btn {
     flex: 1;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid var(--border);
-    border-radius: 6px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
     color: var(--muted);
     font-family: 'DM Sans', sans-serif;
-    font-size: 11px;
-    padding: 4px 6px;
-    outline: none;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 7px 4px;
     cursor: pointer;
-    min-width: 0;
+    transition: all 0.15s;
+    white-space: nowrap;
   }
-  .filter-select:focus { border-color: rgba(255,184,0,0.4); color: var(--text); }
-  .filter-toggle-btn {
-    background: none;
-    border: 1px solid var(--border);
+  .intent-btn:hover:not(.active) {
+    border-color: rgba(255,184,0,0.3);
+    color: var(--text);
+  }
+  .intent-btn.active {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* Area chips */
+  #area-chips {
+    display: flex;
+    gap: 5px;
+    overflow-x: auto;
+    padding-bottom: 12px;
+    scrollbar-width: none;
+  }
+  #area-chips::-webkit-scrollbar { display: none; }
+  .area-chip {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
     border-radius: 20px;
     color: var(--muted);
     font-family: 'DM Sans', sans-serif;
     font-size: 11px;
     font-weight: 500;
-    padding: 4px 12px;
+    padding: 4px 11px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .area-chip:hover:not(.active) {
+    border-color: rgba(255,184,0,0.3);
+    color: var(--text);
+  }
+  .area-chip.active {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* Venue list header: count + sort + map toggle */
+  #venue-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    margin-bottom: 8px;
+  }
+  #venue-count {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  #venue-count.count-sunny { color: var(--accent); }
+  #list-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .sort-btn {
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 8px;
     cursor: pointer;
     transition: all 0.15s;
     white-space: nowrap;
   }
-  .filter-toggle-btn:hover:not(.active) {
-    border-color: rgba(255,184,0,0.4);
-    color: var(--text);
+  .sort-btn:hover:not(.active) { color: var(--text); border-color: rgba(255,255,255,0.12); }
+  .sort-btn.active { color: var(--accent); border-color: rgba(255,184,0,0.3); }
+
+  .filter-toggle-btn {
+    background: none;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
   }
+  .filter-toggle-btn:hover:not(.active) { color: var(--text); }
   .filter-toggle-btn.active {
     background: var(--accent-dim);
     border-color: var(--accent);
@@ -959,8 +995,25 @@
     white-space: nowrap;
     flex-shrink: 0;
   }
-  .venue-card.closed-now {
-    opacity: 0.38;
+  .venue-card.closed-card {
+    padding: 8px 14px;
+    opacity: 0.4;
+    cursor: pointer;
+  }
+  .venue-card.closed-card:hover { opacity: 0.65; }
+  .closed-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .closed-name {
+    font-size: 12px;
+    color: var(--muted);
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 </style>
 </head>
@@ -1037,58 +1090,45 @@
               <span id="time-display-from">10:00</span>
             </div>
           </div>
-          <button id="now-btn" onclick="toggleNowMode()">Now</button>
+          <button id="now-btn" onclick="toggleNowMode()" style="display:none">Now</button>
         </div>
       </div>
 
-      <!-- Venue list header -->
-      <div id="venue-header">
-        <div id="panel-title">Oslo Venues</div>
+      <!-- Intent shortcuts -->
+      <div id="intent-row">
+        <button class="intent-btn" data-intent="now" onclick="setIntent('now')">Now</button>
+        <button class="intent-btn" data-intent="lunch" onclick="setIntent('lunch')">Lunch</button>
+        <button class="intent-btn" data-intent="after-work" onclick="setIntent('after-work')">After work</button>
+        <button class="intent-btn" data-intent="evening" onclick="setIntent('evening')">Evening</button>
       </div>
+
+      <!-- Area filter chips -->
+      <div id="area-chips">
+        <button class="area-chip active" data-area="" onclick="setAreaFilter('')">All</button>
+        <button class="area-chip" data-area="Aker Brygge" onclick="setAreaFilter('Aker Brygge')">Aker Brygge</button>
+        <button class="area-chip" data-area="Tjuvholmen" onclick="setAreaFilter('Tjuvholmen')">Tjuvholmen</button>
+        <button class="area-chip" data-area="Sentrum" onclick="setAreaFilter('Sentrum')">Sentrum</button>
+        <button class="area-chip" data-area="Frogner" onclick="setAreaFilter('Frogner')">Frogner</button>
+        <button class="area-chip" data-area="St. Hanshaugen" onclick="setAreaFilter('St. Hanshaugen')">St. H.</button>
+        <button class="area-chip" data-area="Bislett" onclick="setAreaFilter('Bislett')">Bislett</button>
+      </div>
+
+      <!-- Venue list header: count + sort + map view -->
+      <div id="venue-header">
+        <span id="venue-count">—</span>
+        <div id="list-actions">
+          <button class="sort-btn active" data-sort="sun" onclick="setSortBy('sun')" title="Sort by sun">☀ Sun</button>
+          <button class="sort-btn" data-sort="rating" onclick="setSortBy('rating')" title="Sort by rating">★ Rating</button>
+          <button class="sort-btn" data-sort="distance" onclick="setSortBy('distance')" title="Sort by distance">⊙ Near</button>
+          <button class="filter-toggle-btn" id="map-view-btn" onclick="toggleMapView()" title="Only show venues in current map view">Map</button>
+        </div>
+      </div>
+
+      <!-- Search -->
       <div id="search-bar">
         <input type="text" id="venue-search" placeholder="Search venues or areas…" autocomplete="off">
       </div>
-      <div id="filter-bar">
-        <select class="filter-select" id="filter-type">
-          <option value="">All types</option>
-          <option value="restaurant">Restaurant</option>
-          <option value="pub">Pub</option>
-          <option value="cocktail_bar">Cocktail Bar</option>
-          <option value="wine_bar">Wine Bar</option>
-          <option value="bistro_bar">Bistro Bar</option>
-          <option value="brasserie">Brasserie</option>
-          <option value="cafe">Café</option>
-          <option value="rooftop_bar">Rooftop Bar</option>
-          <option value="fine_dining">Fine Dining</option>
-        </select>
-        <select class="filter-select" id="filter-area">
-          <option value="">All areas</option>
-          <option value="Aker Brygge">Aker Brygge</option>
-          <option value="Tjuvholmen">Tjuvholmen</option>
-          <option value="Sentrum">Sentrum</option>
-          <option value="Frogner">Frogner</option>
-          <option value="St. Hanshaugen">St. Hanshaugen</option>
-          <option value="Bislett">Bislett</option>
-        </select>
-        <select class="filter-select" id="filter-rating">
-          <option value="0">Any ★</option>
-          <option value="4">★ 4.0+</option>
-          <option value="4.3">★ 4.3+</option>
-          <option value="4.5">★ 4.5+</option>
-        </select>
-      </div>
-      <div id="filter-extra">
-        <button class="filter-toggle-btn" id="full-sun-btn" onclick="toggleFullSun()">☀ In sun now</button>
-        <button class="filter-toggle-btn" id="map-view-btn" onclick="toggleMapView()">In map view</button>
-      </div>
       <div id="facing-status"></div>
-      <div id="sort-bar">
-        <select class="filter-select" id="sort-by" style="width:auto;font-size:11px">
-          <option value="sun">☀ Sort: Sun hours</option>
-          <option value="rating">★ Sort: Top rated</option>
-          <option value="distance">⊙ Sort: Nearest</option>
-        </select>
-      </div>
     </div>
     <div id="venue-list"></div>
   </div>

@@ -18,6 +18,9 @@ let nowInterval       = null;
 let userLocation      = null;
 let filterFullSunActive = false;
 let filterMapViewActive = false;
+let activeArea    = '';
+let activeSortBy  = 'sun';
+let activeIntent  = null;
 let panelVisible      = true;
 let hoveredId         = null;
 let mapLoaded         = false;
@@ -235,6 +238,69 @@ function toggleNowMode() {
 function applyNowTime() {
   timeFromEl.value = Math.min(23, Math.max(4, currentHour()));
   updateRangeFill();
+}
+
+// ── Intent shortcuts ──────────────────────────────────────────────────────────
+function setActiveIntentBtn(intent) {
+  activeIntent = intent;
+  document.querySelectorAll('.intent-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.intent === intent));
+}
+
+function setIntent(intent) {
+  setActiveIntentBtn(intent);
+  if (intent === 'now') {
+    if (!nowMode) {
+      nowMode = true;
+      nowBtn.classList.add('active');
+      timeRangeWrap.classList.add('now-active');
+      applyNowTime();
+      nowInterval = setInterval(() => { if (nowMode) { applyNowTime(); update(); } }, 30000);
+    }
+    update();
+    return;
+  }
+  if (nowMode) {
+    nowMode = false;
+    nowBtn.classList.remove('active');
+    timeRangeWrap.classList.remove('now-active');
+    clearInterval(nowInterval); nowInterval = null;
+  }
+  const times = { lunch: 12, 'after-work': 17, evening: 20 };
+  timeFromEl.value = times[intent];
+  update();
+}
+
+// ── Area filter ───────────────────────────────────────────────────────────────
+function setAreaFilter(area) {
+  activeArea = area;
+  document.querySelectorAll('.area-chip').forEach(b =>
+    b.classList.toggle('active', b.dataset.area === area));
+  renderList();
+}
+
+// ── Sort ──────────────────────────────────────────────────────────────────────
+function setSortBy(sort) {
+  if (sort === 'distance' && !userLocation) {
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        activeSortBy = 'distance';
+        updateSortBtns();
+        renderList();
+      },
+      () => {}
+    );
+    return;
+  }
+  activeSortBy = sort;
+  updateSortBtns();
+  renderList();
+}
+
+function updateSortBtns() {
+  document.querySelectorAll('.sort-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.sort === activeSortBy));
 }
 
 // ── Debounced list render (avoids jitter when dragging time slider) ────────────
@@ -508,12 +574,6 @@ function togglePanel() {
   setTimeout(() => { map.resize(); resizeCanvas(); draw(); }, 290);
 }
 
-function toggleFullSun() {
-  filterFullSunActive = !filterFullSunActive;
-  document.getElementById('full-sun-btn').classList.toggle('active', filterFullSunActive);
-  renderList();
-}
-
 function toggleMapView() {
   filterMapViewActive = !filterMapViewActive;
   document.getElementById('map-view-btn').classList.toggle('active', filterMapViewActive);
@@ -530,25 +590,18 @@ timeFromEl.value = Math.min(23, Math.max(4, currentHour()));
 datePicker.addEventListener('change', () => { update(); });
 
 timeFromEl.addEventListener('input', () => {
-  if (nowMode) { nowMode = false; nowBtn.classList.remove('active'); timeRangeWrap.classList.remove('now-active'); }
-  updateRangeFill(); update();
+  if (nowMode) {
+    nowMode = false;
+    nowBtn.classList.remove('active');
+    timeRangeWrap.classList.remove('now-active');
+    clearInterval(nowInterval); nowInterval = null;
+  }
+  setActiveIntentBtn(null);
+  updateRangeFill();
+  update();
 });
 
 document.getElementById('venue-search').addEventListener('input',  () => renderList());
-document.getElementById('filter-type').addEventListener('change',  () => renderList());
-document.getElementById('filter-area').addEventListener('change',  () => renderList());
-document.getElementById('filter-rating').addEventListener('change', () => renderList());
-
-document.getElementById('sort-by').addEventListener('change', () => {
-  if (document.getElementById('sort-by').value === 'distance' && !userLocation) {
-    navigator.geolocation.getCurrentPosition(
-      pos => { userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude }; renderList(); },
-      ()  => { document.getElementById('sort-by').value = 'sun'; renderList(); }
-    );
-    return;
-  }
-  renderList();
-});
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && editingVenueId) exitEditMode();

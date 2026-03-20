@@ -181,7 +181,18 @@ let _listObserver = null; // IntersectionObserver for infinite scroll
 
 /** Render a single venue card. Called per-item to keep the map() inline small. */
 function renderCard(v, dateStr, fromHour, toHour, isPoint) {
-  const closedCls = (!v.isOpen && !v.isOpeningSoon) ? 'closed-now' : '';
+  // Collapsed single-line card for closed venues
+  if (!v.isOpen && !v.isOpeningSoon) {
+    return `
+      <div class="venue-card closed-card ${v.id === selectedId ? 'selected' : ''}"
+           data-vid="${v.id}" onclick="selectVenue(${v.id}, true)">
+        <div class="closed-row">
+          <span class="closed-name">${catIcon(v)} ${v.name}</span>
+          <span class="card-badge shaded">Opens ${formatHour(v.openingHours.open)}</span>
+        </div>
+      </div>`;
+  }
+
   const dimmedCls = !v.sunInWin ? 'dimmed' : '';
   const { windows } = computeSunWindows(v, dateStr);
 
@@ -240,7 +251,7 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
   }
 
   return `
-    <div class="venue-card ${v.sunInWin ? 'sunny' : ''} ${v.id === selectedId ? 'selected' : ''} ${dimmedCls} ${closedCls}"
+    <div class="venue-card ${v.sunInWin ? 'sunny' : ''} ${v.id === selectedId ? 'selected' : ''} ${dimmedCls}"
          data-vid="${v.id}" onclick="selectVenue(${v.id}, true)">
       <div class="card-top">
         <div class="card-name">${catIcon(v)} ${v.name}</div>
@@ -299,11 +310,8 @@ function renderList() {
   const toHour   = fromHour; // single slider — always point mode
   const isPoint  = true;
 
-  const searchQ    = (document.getElementById('venue-search')?.value ?? '').trim().toLowerCase();
-  const filterType = document.getElementById('filter-type')?.value ?? '';
-  const filterArea = document.getElementById('filter-area')?.value ?? '';
-  const sortBy     = document.getElementById('sort-by')?.value ?? 'sun';
-  const minRating  = parseFloat(document.getElementById('filter-rating')?.value ?? '0') || 0;
+  const searchQ = (document.getElementById('venue-search')?.value ?? '').trim().toLowerCase();
+  const sortBy  = activeSortBy;
 
   // ── Filter + sort (runs on full VENUES, O(n)) ─────────────────────────────
   let venues = VENUES.map(v => {
@@ -322,12 +330,7 @@ function renderList() {
       v.address.toLowerCase().includes(searchQ)
     );
   }
-  if (filterType) venues = venues.filter(v => v.category === filterType);
-  if (filterArea) venues = venues.filter(v => v.area === filterArea);
-  if (minRating > 0) venues = venues.filter(v => v.rating >= minRating);
-  if (filterFullSunActive) {
-    venues = venues.filter(v => v.sunInWin);
-  }
+  if (activeArea) venues = venues.filter(v => v.area === activeArea);
 
   if (filterMapViewActive) {
     const bounds = map.getBounds();
@@ -370,4 +373,18 @@ function renderList() {
   // ── Render first page, observer handles the rest ──────────────────────────
   _listFiltered = venues;
   renderListPage(list, dateStr, fromHour, toHour, isPoint, true);
+
+  // Update count label
+  const openCount = venues.filter(v => v.isOpen || v.isOpeningSoon).length;
+  const sunCount  = venues.filter(v => v.sunInWin && v.isOpen).length;
+  const countEl   = document.getElementById('venue-count');
+  if (countEl) {
+    if (sunCount > 0) {
+      countEl.textContent = `${sunCount} in sun`;
+      countEl.className = 'count-sunny';
+    } else {
+      countEl.textContent = `${openCount} open`;
+      countEl.className = '';
+    }
+  }
 }

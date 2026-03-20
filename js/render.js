@@ -71,60 +71,76 @@ let editDragWallObj   = null;
 const SPRITE = 72;  // px — fits marker radius 16 + pizza tip 10 + selection ring
 const spriteCache = new Map();
 
-function buildSprite(v, sunny, selected, closed) {
+function buildSprite(v, state, selected) {
   const oc = document.createElement('canvas');
   oc.width = oc.height = SPRITE;
   const c  = oc.getContext('2d');
   const cx = SPRITE / 2, cy = SPRITE / 2;
-  const markerR = 16;
-  const pAngle  = (v.facing - 90) * RAD;
-  const halfA   = 0.40;   // ~23° half-angle
-  const markerFill   = closed ? '#252836' : sunny ? '#e8a000' : '#1e3060';
-  const markerStroke = closed ? 'rgba(120,125,145,0.35)' : sunny ? 'rgba(255,220,80,0.8)' : 'rgba(80,110,160,0.6)';
-  if (closed) c.globalAlpha = 0.45;
 
-  // Pizza point — triangle drawn first; circle fill covers its base
-  const tipDist = markerR + 10;
+  if (state === 'closed') {
+    c.globalAlpha = 0.3;
+    c.beginPath(); c.arc(cx, cy, 5, 0, Math.PI * 2);
+    c.fillStyle = '#3a3d4d'; c.fill();
+    return oc;
+  }
+
+  if (state === 'soon') {
+    c.globalAlpha = 0.75;
+    if (selected) {
+      c.beginPath(); c.arc(cx, cy, 17, 0, Math.PI * 2);
+      c.strokeStyle = 'rgba(255,184,0,0.9)'; c.lineWidth = 2.5; c.stroke();
+    }
+    c.setLineDash([4, 3]);
+    c.beginPath(); c.arc(cx, cy, 11, 0, Math.PI * 2);
+    c.strokeStyle = 'rgba(255,184,0,0.7)'; c.lineWidth = 2; c.stroke();
+    c.setLineDash([]);
+    return oc;
+  }
+
+  const sunny   = state === 'sunny';
+  const markerR = sunny ? 17 : 13;
+  const pAngle  = (v.facing - 90) * RAD;
+  const halfA   = 0.28;
+
+  // Glow
+  if (sunny) {
+    const glow = c.createRadialGradient(cx, cy, 0, cx, cy, markerR + 14);
+    glow.addColorStop(0, 'rgba(255,184,0,0.30)');
+    glow.addColorStop(1, 'rgba(255,184,0,0)');
+    c.beginPath(); c.arc(cx, cy, markerR + 14, 0, Math.PI * 2);
+    c.fillStyle = glow; c.fill();
+  }
+
+  // Direction tip (teardrop, drawn under circle)
+  const tipDist = markerR + (sunny ? 9 : 7);
   c.beginPath();
   c.moveTo(cx + tipDist * Math.cos(pAngle), cy + tipDist * Math.sin(pAngle));
-  c.lineTo(cx + markerR  * Math.cos(pAngle - halfA), cy + markerR  * Math.sin(pAngle - halfA));
-  c.lineTo(cx + markerR  * Math.cos(pAngle + halfA), cy + markerR  * Math.sin(pAngle + halfA));
+  c.lineTo(cx + markerR * Math.cos(pAngle - halfA), cy + markerR * Math.sin(pAngle - halfA));
+  c.lineTo(cx + markerR * Math.cos(pAngle + halfA), cy + markerR * Math.sin(pAngle + halfA));
   c.closePath();
-  c.fillStyle = markerFill; c.fill();
-
-  // Sunny glow
-  if (sunny) {
-    const glow = c.createRadialGradient(cx, cy, 0, cx, cy, markerR + 10);
-    glow.addColorStop(0, 'rgba(255,184,0,0.28)'); glow.addColorStop(1, 'rgba(255,184,0,0)');
-    c.beginPath(); c.arc(cx, cy, markerR + 10, 0, Math.PI * 2); c.fillStyle = glow; c.fill();
-  }
+  c.fillStyle = sunny ? '#c87d00' : '#16274a'; c.fill();
 
   // Selection ring
   if (selected) {
     c.beginPath(); c.arc(cx, cy, markerR + 5, 0, Math.PI * 2);
-    c.strokeStyle = 'rgba(255,184,0,0.85)'; c.lineWidth = 2; c.stroke();
+    c.strokeStyle = 'rgba(255,184,0,0.9)'; c.lineWidth = 2.5; c.stroke();
   }
 
-  // Circle fill (covers pizza base for seamless join)
+  // Circle
   c.beginPath(); c.arc(cx, cy, markerR, 0, Math.PI * 2);
-  c.fillStyle = markerFill; c.fill();
+  c.fillStyle = sunny ? '#f0a020' : '#1e3060'; c.fill();
 
-  // Arc stroke — skip the pizza attachment zone (~46°)
-  c.beginPath();
-  c.arc(cx, cy, markerR, pAngle + halfA, pAngle - halfA + Math.PI * 2, false);
-  c.strokeStyle = markerStroke; c.lineWidth = 1.5; c.stroke();
-
-  // Category icon
-  c.font = `${markerR - 2}px "Apple Color Emoji","Segoe UI Emoji",serif`;
-  c.textAlign = 'center'; c.textBaseline = 'middle';
-  c.fillText(catIcon(v), cx, cy + 1);
+  // Thin stroke
+  c.beginPath(); c.arc(cx, cy, markerR, 0, Math.PI * 2);
+  c.strokeStyle = sunny ? 'rgba(255,225,100,0.65)' : 'rgba(80,110,180,0.45)';
+  c.lineWidth = 1.5; c.stroke();
 
   return oc;
 }
 
-function getSprite(v, sunny, selected, closed) {
-  const key = `${v.id}-${v.facing}-${sunny ? 1 : 0}-${selected ? 1 : 0}-${closed ? 1 : 0}`;
-  if (!spriteCache.has(key)) spriteCache.set(key, buildSprite(v, sunny, selected, closed));
+function getSprite(v, state, selected) {
+  const key = `${v.id}-${v.facing}-${state}-${selected ? 1 : 0}`;
+  if (!spriteCache.has(key)) spriteCache.set(key, buildSprite(v, state, selected));
   return spriteCache.get(key);
 }
 
@@ -677,8 +693,11 @@ function draw() {
     VENUES.forEach(v => {
       const { open, close } = v.openingHours;
       const isOpen = editHour >= open && editHour <= close;
+      const state  = isOpen
+        ? (venueSunState(v, currentSun.az, currentSun.alt) ? 'sunny' : 'shaded')
+        : 'closed';
       const pt = map.project([v.lng, v.lat]);
-      ctx.drawImage(getSprite(v, isOpen && venueSunState(v, currentSun.az, currentSun.alt), false, !isOpen), pt.x - SPRITE/2, pt.y - SPRITE/2);
+      ctx.drawImage(getSprite(v, state, false), pt.x - SPRITE/2, pt.y - SPRITE/2);
     });
     ctx.globalAlpha = 1;
     drawBuildingEditor();
@@ -700,16 +719,42 @@ function draw() {
 
   // Pass 1: sprites — viewport-culled + zoom-density filtered
   const currentHour = parseFloat(timeFromEl.value);
+  const visibleVenues = [];
   VENUES.forEach(v => {
     if (!bounds.contains([v.lng, v.lat])) return;
     if (!shouldShowAtZoom(v, zoom)) { hiddenCount++; return; }
     const { open, close } = v.openingHours;
-    const isOpen   = currentHour >= open && currentHour <= close;
-    const sunny    = isOpen && venueSunState(v, currentSun.az, currentSun.alt);
+    const isOpen        = currentHour >= open && currentHour <= close;
+    const isOpeningSoon = !isOpen && (open - currentHour) > 0 && (open - currentHour) <= 0.75;
+    let state;
+    if (isOpen) {
+      state = venueSunState(v, currentSun.az, currentSun.alt) ? 'sunny' : 'shaded';
+    } else if (isOpeningSoon) {
+      state = 'soon';
+    } else {
+      state = 'closed';
+    }
     const selected = v.id === selectedId;
     const pt       = map.project([v.lng, v.lat]);
-    ctx.drawImage(getSprite(v, sunny, selected, !isOpen), pt.x - SPRITE/2, pt.y - SPRITE/2);
+    ctx.drawImage(getSprite(v, state, selected), pt.x - SPRITE/2, pt.y - SPRITE/2);
+    if (state !== 'closed') visibleVenues.push({ v, pt, state });
   });
+
+  // Pass 1b: venue name labels at high zoom
+  if (zoom >= 16) {
+    ctx.font = '600 11px "DM Sans", sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+    visibleVenues.forEach(({ v, pt }) => {
+      const label = v.name;
+      const tw = ctx.measureText(label).width;
+      const lx = pt.x + 22, ly = pt.y;
+      ctx.fillStyle = 'rgba(12, 16, 28, 0.78)';
+      fillRoundRect(ctx, lx - 5, ly - 9, tw + 10, 18, 5);
+      ctx.fillStyle = 'rgba(240,230,210,0.92)';
+      ctx.fillText(label, lx, ly);
+    });
+  }
 
   // Hint when venues are hidden due to zoom density
   if (hiddenCount > 0) {
