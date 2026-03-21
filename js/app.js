@@ -159,12 +159,9 @@ function updateSunLighting() {
         type: 'directional',
         properties: {
           direction: [az, 90 - alt],
-          'direction-transition': { duration: 1200, delay: 0 },
           'cast-shadows': true,
           intensity: 0.9,
-          'intensity-transition': { duration: 800, delay: 0 },
           color: alt < 10 ? '#ff9944' : alt < 25 ? '#ffdd88' : '#ffffff',
-          'color-transition': { duration: 900, delay: 0 }
         }
       },
       {
