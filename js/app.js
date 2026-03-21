@@ -659,23 +659,39 @@ function selectWallByIdx(idx) {
 }
 
 // ── Sidebar + filters ─────────────────────────────────────────────────────────
+function isMobile() { return window.innerWidth < 640; }
+
 function togglePanel() {
   panelVisible = !panelVisible;
-  const panel = document.getElementById('panel');
-  const btn   = document.getElementById('panel-toggle');
-  if (panelVisible) {
-    panel.style.transform    = '';
-    panel.style.opacity      = '';
-    panel.style.pointerEvents = '';
-    btn.textContent = '‹';
+  const panel  = document.getElementById('panel');
+  const btn    = document.getElementById('panel-toggle');
+  const handle = document.getElementById('panel-handle');
+  if (isMobile()) {
+    panel.classList.toggle('mobile-hidden', !panelVisible);
+    if (handle) handle.style.display = panelVisible ? 'block' : 'none';
   } else {
-    panel.style.transform    = 'translateX(calc(-100% - 20px))';
-    panel.style.opacity      = '0';
-    panel.style.pointerEvents = 'none';
-    btn.textContent = '›';
+    if (panelVisible) {
+      panel.style.transform     = '';
+      panel.style.opacity       = '';
+      panel.style.pointerEvents = '';
+      if (btn) btn.textContent  = '‹';
+    } else {
+      panel.style.transform     = 'translateX(calc(-100% - 20px))';
+      panel.style.opacity       = '0';
+      panel.style.pointerEvents = 'none';
+      if (btn) btn.textContent  = '›';
+    }
   }
   setTimeout(() => { resizeCanvas(); draw(); }, 290);
 }
+
+// Show handle on mobile init
+document.addEventListener('DOMContentLoaded', () => {
+  if (isMobile()) {
+    const h = document.getElementById('panel-handle');
+    if (h) h.style.display = 'block';
+  }
+});
 
 function toggleMapView() {
   filterMapViewActive = !filterMapViewActive;

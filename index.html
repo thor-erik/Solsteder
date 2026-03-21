@@ -760,8 +760,8 @@
 
   .sun-dial {
     flex-shrink: 0;
-    width: 84px;
-    height: 84px;
+    width: 80px;
+    height: 80px;
     opacity: 0.95;
     filter: drop-shadow(0 1px 4px rgba(0,0,0,0.4));
   }
@@ -919,6 +919,73 @@
     padding: 6px 0 2px;
     min-height: 18px;
     transition: opacity 0.5s;
+  }
+
+  /* ── Mobile — bottom sheet ────────────────────────────────────────── */
+  @media (max-width: 639px) {
+    #floating-search {
+      left: 12px;
+      right: 12px;
+      width: auto;
+      top: 12px;
+    }
+
+    #panel {
+      top: auto;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      height: 62vh;
+      border-radius: 20px 20px 0 0;
+      border-left: none;
+      border-right: none;
+      border-bottom: none;
+    }
+
+    /* Slide down instead of left when hidden on mobile */
+    #panel.mobile-hidden {
+      transform: translateY(calc(100% + 20px)) !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+
+    #panel-toggle { display: none; }
+
+    #panel-handle {
+      display: block;
+      width: 36px;
+      height: 4px;
+      background: rgba(255,255,255,0.18);
+      border-radius: 2px;
+      margin: 10px auto 0;
+      flex-shrink: 0;
+      cursor: grab;
+    }
+
+    #panel-header { padding-top: 8px; }
+
+    #venue-list { padding: 10px 16px 32px; }
+
+    .venue-card {
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      border-radius: 14px;
+    }
+
+    .card-name    { font-size: 15px; }
+    .card-badge   { font-size: 11px; padding: 4px 11px; }
+    .card-meta    { font-size: 12px; }
+    .area-chip    { font-size: 12px; padding: 6px 13px; }
+    .sort-btn     { font-size: 12px; padding: 5px 10px; }
+
+    .card-action-btn { font-size: 12px; padding: 8px 16px; }
+    .card-actions    { gap: 10px; }
+
+    .sun-dial { width: 96px; height: 96px; }
+
+    .card-expanded { max-height: 0; }
+    .venue-card.selected .card-expanded { max-height: 160px; }
   }
 
   /* Edit mode overlay */
@@ -1385,6 +1452,7 @@
 
   <!-- LEFT PANEL — venue list, floats below search bar -->
   <div id="panel">
+    <div id="panel-handle" style="display:none" onclick="togglePanel()"></div>
     <div id="panel-header">
       <!-- Area filter chips -->
       <div id="area-chips">
