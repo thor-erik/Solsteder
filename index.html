@@ -724,23 +724,44 @@
     color: #7ab4ff;
   }
 
-  .card-mid-row {
+  .card-body {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    margin-bottom: 2px;
+    gap: 10px;
+  }
+
+  .card-left {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .card-right {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
   }
 
   .card-meta {
     font-size: 11px;
     color: var(--muted);
-    flex: 1;
-    min-width: 0;
+  }
+
+  .card-dial-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(255,184,0,0.75);
+    letter-spacing: 0.1px;
   }
 
   .sun-dial {
     flex-shrink: 0;
+    width: 84px;
+    height: 84px;
     opacity: 0.95;
     filter: drop-shadow(0 1px 4px rgba(0,0,0,0.4));
   }
