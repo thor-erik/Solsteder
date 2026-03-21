@@ -751,6 +751,23 @@
     color: var(--muted);
   }
 
+  .card-stat {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+  }
+  .card-stat-score {
+    font-weight: 700;
+  }
+  .card-stat-score.tier-high { color: #ffd966; }
+  .card-stat-score.tier-mid  { color: #7dd87d; }
+  .card-stat-score.tier-low  { color: #f0b46a; }
+  .card-stat-score.tier-poor { color: var(--muted); }
+  .card-stat-dist {
+    color: var(--muted);
+  }
+
   .card-dial-label {
     font-size: 10px;
     font-weight: 600;

@@ -280,13 +280,21 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
 
   const tempStr = v.score?.feelsLikeTemp != null ? ` · ${v.score.feelsLikeTemp}°` : '';
   const s = v.score;
-  const scoreExpandHtml = s ? (() => {
-    const tier = s.total >= 75 ? 'tier-high' : s.total >= 55 ? 'tier-mid' : s.total >= 35 ? 'tier-low' : 'tier-poor';
-    return `<div class="card-score-row">
-      <span class="score-badge ${tier}">⭐ ${s.total}</span>
-      <span class="score-detail-inline">☀ ${s.sun} · 🌡 ${s.comfort} · ⊙ ${s.distance}</span>
-    </div>`;
-  })() : '';
+
+  // Stat row shown in collapsed card: score + distance
+  const tier = s ? (s.total >= 75 ? 'tier-high' : s.total >= 55 ? 'tier-mid' : s.total >= 35 ? 'tier-low' : 'tier-poor') : '';
+  const distStr = s?.distKm != null
+    ? (s.distKm < 1 ? `${Math.round(s.distKm * 1000)} m` : `${s.distKm.toFixed(1)} km`)
+    : null;
+  const statRow = s ? `<div class="card-stat">
+    <span class="card-stat-score ${tier}">★ ${s.total}</span>
+    ${distStr ? `<span class="card-stat-dist">· ${distStr}</span>` : ''}
+  </div>` : '';
+
+  const scoreExpandHtml = s ? `<div class="card-score-row">
+    <span class="score-badge ${tier}">⭐ ${s.total}</span>
+    <span class="score-detail-inline">☀ ${s.sun} · 🌡 ${s.comfort} · ⊙ ${s.distance}</span>
+  </div>` : '';
 
   let cardBadgeText, cardBadgeCls;
   if (isPoint || nowMode) {
@@ -354,6 +362,7 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
           <div class="card-name">${catIcon(v)} ${v.name}</div>
           <span class="card-badge ${cardBadgeCls}">${cardBadgeText}</span>
           <div class="card-meta">${v.area ?? ''}${v.area ? ' · ' : ''}${catLabel(v)}${tempStr}</div>
+          ${statRow}
         </div>
         <div class="card-right">
           ${dial.svg}

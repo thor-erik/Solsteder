@@ -116,11 +116,26 @@ function computeVenueScore(v, dateStr, hour, wx, userLoc) {
   const fl      = wx
     ? feelsLike(wx.temp, wx.wspd * (1 - shelter), wx.humidity)
     : null;
+
+  // Raw distance in km for display (null when no GPS)
+  let distKm = null;
+  if (userLoc) {
+    const R    = 6371;
+    const dLat = (v.lat - userLoc.lat) * Math.PI / 180;
+    const dLng = (v.lng - userLoc.lng) * Math.PI / 180;
+    const a    = Math.sin(dLat / 2) ** 2
+               + Math.cos(userLoc.lat * Math.PI / 180)
+               * Math.cos(v.lat * Math.PI / 180)
+               * Math.sin(dLng / 2) ** 2;
+    distKm = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
   return {
     total,
     sun:          Math.round(sun),
     comfort:      Math.round(comfort),
     distance:     Math.round(dist),
+    distKm,
     feelsLikeTemp: fl != null ? Math.round(fl) : null,
     shelter,
   };
