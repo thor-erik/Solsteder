@@ -501,7 +501,7 @@ function renderList() {
   const countEl   = document.getElementById('venue-count');
   if (countEl) {
     if (sunCount > 0) {
-      countEl.textContent = `${sunCount} in sun`;
+      countEl.textContent = `${sunCount} places in the sun`;
       countEl.className = 'count-sunny';
     } else {
       countEl.textContent = `${openCount} open`;

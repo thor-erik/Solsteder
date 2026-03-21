@@ -534,15 +534,8 @@
   .intent-btn:hover:not(.active)::before { background: rgba(213,196,171,0.4); }
   .intent-btn.active { color: #0d131e; }
 
-  /* Area chips */
-  #area-chips {
-    display: flex;
-    gap: 5px;
-    overflow-x: auto;
-    padding-bottom: 12px;
-    scrollbar-width: none;
-  }
-  #area-chips::-webkit-scrollbar { display: none; }
+  /* Area chips — hidden */
+  #area-chips { display: none; }
   .area-chip {
     background: rgba(81,69,50,0.1);
     border: 1px solid rgba(81,69,50,0.18);
@@ -566,56 +559,84 @@
     color: #0d131e;
   }
 
-  /* Venue list header: count + map-view (left) · sort buttons (right) */
+  /* Venue list header: title (left) · sort toggle (right) */
   #venue-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding-bottom: 8px;
-    border-bottom: 1px solid rgba(81,69,50,0.15);
-    margin-bottom: 8px;
-    gap: 6px;
+    padding-bottom: 10px;
+    gap: 8px;
   }
   .vh-left {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     min-width: 0;
   }
   #venue-count {
-    font-size: 12px;
-    font-weight: 600;
+    font-family: 'Newsreader', serif;
+    font-style: italic;
+    font-size: 19px;
+    font-weight: 700;
     color: var(--muted);
     white-space: nowrap;
+    line-height: 1;
   }
   #venue-count.count-sunny { color: var(--accent); }
-  /* Map-view filter pill — lives next to count, not with sort buttons */
+  /* Map-view filter pill */
   #map-view-btn {
-    font-size: 10px;
-    font-weight: 600;
-    padding: 2px 8px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 3px 8px;
     border-radius: 10px;
     border: 1px solid rgba(81,69,50,0.2);
     background: rgba(81,69,50,0.1);
-    color: var(--muted);
+    color: rgba(213,196,171,0.5);
     cursor: pointer;
     font-family: 'Inter', sans-serif;
     transition: all 0.15s;
     white-space: nowrap;
     flex-shrink: 0;
   }
-  #map-view-btn:hover:not(.active) { color: var(--text); border-color: rgba(255,184,0,0.3); }
+  #map-view-btn:hover:not(.active) { color: var(--muted); border-color: rgba(81,69,50,0.35); }
   #map-view-btn.active {
     background: var(--accent-dim);
     border-color: var(--accent);
     color: var(--accent);
   }
-  #list-actions {
+  /* Sort toggle button */
+  #sort-toggle-btn {
     display: flex;
     align-items: center;
-    gap: 3px;
+    gap: 4px;
+    background: none;
+    border: 1px solid rgba(81,69,50,0.18);
+    border-radius: 6px;
+    color: rgba(213,196,171,0.5);
+    font-family: 'Inter', sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    cursor: pointer;
     flex-shrink: 0;
+    transition: color 0.12s, border-color 0.12s;
   }
+  #sort-toggle-btn:hover { color: var(--muted); border-color: rgba(81,69,50,0.35); }
+  #sort-toggle-btn.open  { color: var(--accent); border-color: rgba(255,184,0,0.35); }
+  /* Sort options panel */
+  #sort-panel {
+    display: none;
+    align-items: center;
+    gap: 4px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(81,69,50,0.15);
+    margin-bottom: 8px;
+  }
+  #sort-panel.open { display: flex; }
   .sort-btn {
     background: none;
     border: none;
@@ -1522,28 +1543,19 @@
   <div id="panel">
     <div id="panel-handle" style="display:none" onclick="togglePanel()"></div>
     <div id="panel-header">
-      <!-- Area filter chips -->
-      <div id="area-chips">
-        <button class="area-chip active" data-area="" onclick="setAreaFilter('')">All</button>
-        <button class="area-chip" data-area="Aker Brygge" onclick="setAreaFilter('Aker Brygge')">Aker Brygge</button>
-        <button class="area-chip" data-area="Tjuvholmen" onclick="setAreaFilter('Tjuvholmen')">Tjuvholmen</button>
-        <button class="area-chip" data-area="Sentrum" onclick="setAreaFilter('Sentrum')">Sentrum</button>
-        <button class="area-chip" data-area="Frogner" onclick="setAreaFilter('Frogner')">Frogner</button>
-        <button class="area-chip" data-area="St. Hanshaugen" onclick="setAreaFilter('St. Hanshaugen')">St. H.</button>
-        <button class="area-chip" data-area="Bislett" onclick="setAreaFilter('Bislett')">Bislett</button>
-      </div>
-
-      <!-- Venue list header: count + map-view (left) · sort (right) -->
+      <!-- Venue count title + sort toggle -->
       <div id="venue-header">
         <div class="vh-left">
           <span id="venue-count">—</span>
           <button id="map-view-btn" onclick="toggleMapView()" title="Filter to current map view">⊞ In view</button>
         </div>
-        <div id="list-actions">
-          <button class="sort-btn active" data-sort="score" onclick="setSortBy('score')" title="Sort by score">⭐ Score</button>
-          <button class="sort-btn" data-sort="rating" onclick="setSortBy('rating')" title="Sort by rating">★ Rating</button>
-          <button class="sort-btn" data-sort="distance" onclick="setSortBy('distance')" title="Sort by distance">⊙ Near</button>
-        </div>
+        <button id="sort-toggle-btn" onclick="toggleSortPanel()">⇅ <span id="sort-label">Score</span></button>
+      </div>
+      <!-- Sort options (revealed on toggle) -->
+      <div id="sort-panel">
+        <button class="sort-btn active" data-sort="score"    onclick="setSortBy('score')"   >⭐ Score</button>
+        <button class="sort-btn"        data-sort="rating"   onclick="setSortBy('rating')"  >★ Rating</button>
+        <button class="sort-btn"        data-sort="distance" onclick="setSortBy('distance')" >⊙ Near</button>
       </div>
 
       <div id="facing-status"></div>

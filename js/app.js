@@ -370,6 +370,14 @@ function setAreaFilter(area) {
 }
 
 // ── Sort ──────────────────────────────────────────────────────────────────────
+function toggleSortPanel() {
+  const panel = document.getElementById('sort-panel');
+  const btn   = document.getElementById('sort-toggle-btn');
+  if (!panel) return;
+  const isOpen = panel.classList.toggle('open');
+  btn?.classList.toggle('open', isOpen);
+}
+
 function setSortBy(sort) {
   if (sort === 'distance' && !userLocation) {
     navigator.geolocation.getCurrentPosition(
@@ -385,12 +393,18 @@ function setSortBy(sort) {
   }
   activeSortBy = sort;
   updateSortBtns();
+  // Close panel and update label
+  document.getElementById('sort-panel')?.classList.remove('open');
+  document.getElementById('sort-toggle-btn')?.classList.remove('open');
   renderList();
 }
 
 function updateSortBtns() {
   document.querySelectorAll('.sort-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.sort === activeSortBy));
+  const labels = { score: 'Score', rating: 'Rating', distance: 'Near' };
+  const labelEl = document.getElementById('sort-label');
+  if (labelEl) labelEl.textContent = labels[activeSortBy] ?? 'Score';
 }
 
 // ── Debounced list render (avoids jitter when dragging time slider) ────────────
