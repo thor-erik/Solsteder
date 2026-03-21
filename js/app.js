@@ -628,7 +628,7 @@ function toggleEditSatellite() {
   document.getElementById('edit-satellite-btn').classList.toggle('active', editSatelliteActive);
   map.setStyle(editSatelliteActive
     ? 'mapbox://styles/mapbox/satellite-streets-v12'
-    : 'mapbox://styles/mapbox/standard'
+    : 'mapbox://styles/thor-erik/cmn0u015v00ic01s95g8yfzq7'
   );
 }
 
@@ -640,7 +640,7 @@ function exitEditMode() {
   if (editSatelliteActive) {
     editSatelliteActive = false;
     document.getElementById('edit-satellite-btn').classList.remove('active');
-    map.setStyle('mapbox://styles/mapbox/standard');
+    map.setStyle('mapbox://styles/thor-erik/cmn0u015v00ic01s95g8yfzq7');
   }
   map.easeTo({ pitch: 15, bearing: 0, duration: 500 });
   draw();
