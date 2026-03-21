@@ -63,14 +63,16 @@ function renderSunDial(v, dateStr, fromHour) {
     return parts.join('');
   }).join('');
 
-  // Last-sun pointer: tick line only — label rendered as HTML outside the SVG
+  // Last-sun pointer: amber hand from center to arc + time label at center
   const lastFuture = [...windows].reverse().find(w => w.end > fromHour);
-  let pointerEl = '';
+  let sunHand = '', centerLabel = '';
   if (lastFuture) {
     const pa = h12a(lastFuture.end);
-    const px1 = (CX + (R_ARC + 1) * Math.cos(pa)).toFixed(1), py1 = (CY + (R_ARC + 1) * Math.sin(pa)).toFixed(1);
-    const px2 = (CX + (R_ARC + 7) * Math.cos(pa)).toFixed(1), py2 = (CY + (R_ARC + 7) * Math.sin(pa)).toFixed(1);
-    pointerEl = `<line x1="${px1}" y1="${py1}" x2="${px2}" y2="${py2}" stroke="rgba(255,184,0,0.8)" stroke-width="1.5" stroke-linecap="round"/>`;
+    const px = (CX + R_ARC * Math.cos(pa)).toFixed(1), py = (CY + R_ARC * Math.sin(pa)).toFixed(1);
+    sunHand = `<line x1="${CX}" y1="${CY}" x2="${px}" y2="${py}" stroke="rgba(255,184,0,0.9)" stroke-width="1.5" stroke-linecap="round"/>`;
+    centerLabel = `<text x="${CX}" y="${CY + 1}" text-anchor="middle" dominant-baseline="middle"
+      font-size="6.5" font-family="system-ui,sans-serif" font-weight="600"
+      fill="rgba(255,184,0,1)">${formatHour(lastFuture.end)}</text>`;
   }
 
   // Clock hands
@@ -84,14 +86,14 @@ function renderSunDial(v, dateStr, fromHour) {
     <circle cx="${CX}" cy="${CY}" r="${R_ARC}" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="${SW_ARC}"/>
     ${sunArcs}
     ${hourMarkers}
-    ${pointerEl}
+    ${sunHand}
     <line x1="${CX}" y1="${CY}" x2="${hx}" y2="${hy}" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.9"/>
     <line x1="${CX}" y1="${CY}" x2="${mx}" y2="${my}" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
-    <circle cx="${CX}" cy="${CY}" r="2.5" fill="white" opacity="0.9"/>
+    ${centerLabel}
+    <circle cx="${CX}" cy="${CY}" r="2" fill="rgba(255,184,0,0.9)"/>
   </svg>`;
 
-  const label = lastFuture ? `until ${formatHour(lastFuture.end)}` : '';
-  return { svg, label };
+  return { svg, label: '' };
 }
 
 // ── Timeline strip ────────────────────────────────────────────────────────────
