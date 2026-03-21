@@ -1264,15 +1264,9 @@ canvas.addEventListener('click', e => {
   // Cluster click — zoom to bounding box
   const cluster = hitTestCluster(cx, cy);
   if (cluster) { zoomToCluster(cluster); return; }
-  // Clicked empty map — close popup
-  if (popup) {
-    popup.remove();
-  } else if (selectedId !== null) {
-    selectedId = null;
-    clearSpriteCache();
-    map.easeTo({ pitch: 15, bearing: 0, duration: 600 });
-    draw();
-    renderList();
+  // Clicked empty map — close detail panel / deselect
+  if (selectedId !== null) {
+    closeDetailPanel();
   }
 });
 

@@ -603,27 +603,7 @@ function selectVenue(id, flyTo) {
   if (popup) { popup.remove(); popup = null; }
   _switchingVenue = false;
 
-  // closeOnClick:false so the canvas always receives clicks (popup z-index 800 > canvas 690)
-  popup = new mapboxgl.Popup({ closeButton: true, closeOnClick: false, offset: [0, -10] })
-    .setLngLat([v.lng, v.lat])
-    .setHTML(`
-      <div class="popup-name">${catIcon(v)} ${v.name}</div>
-      <div class="popup-meta">★ ${v.rating} · ${catLabel(v)}</div>
-      <div class="popup-address">${v.address}</div>
-      ${popupSunLine(v)}
-      ${popupActionsHTML(v)}
-    `)
-    .addTo(map);
-  popup.on('close', () => {
-    popup = null;
-    if (!_switchingVenue) {
-      selectedId = null;
-      clearSpriteCache();
-      draw();
-      renderList();
-      map.easeTo({ pitch: 15, bearing: 0, duration: 600 });
-    }
-  });
+  openDetailPanel(v);
 
   draw();
   renderList();
@@ -635,16 +615,37 @@ function selectVenue(id, flyTo) {
 }
 
 function updatePopup() {
-  if (!popup || selectedId == null) return;
+  updateDetailPanel();
+}
+
+// ── Detail panel ──────────────────────────────────────────────────────────────
+
+function openDetailPanel(v) {
+  const dp = document.getElementById('detail-panel');
+  if (!dp) return;
+  dp.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
+  dp.classList.add('open');
+}
+
+function closeDetailPanel() {
+  const dp = document.getElementById('detail-panel');
+  if (dp) dp.classList.remove('open');
+  if (selectedId != null) {
+    selectedId = null;
+    clearSpriteCache();
+    draw();
+    renderList();
+    map.easeTo({ pitch: 15, bearing: 0, duration: 600 });
+  }
+}
+
+function updateDetailPanel() {
+  if (selectedId == null) return;
+  const dp = document.getElementById('detail-panel');
+  if (!dp || !dp.classList.contains('open')) return;
   const v = VENUES.find(x => x.id === selectedId);
   if (!v) return;
-  popup.setHTML(`
-    <div class="popup-name">${catIcon(v)} ${v.name}</div>
-    <div class="popup-meta">★ ${v.rating} · ${catLabel(v)}</div>
-    <div class="popup-address">${v.address}</div>
-    ${popupSunLine(v)}
-    ${popupActionsHTML(v)}
-  `);
+  dp.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
 }
 
 // ── Edit mode ─────────────────────────────────────────────────────────────────
@@ -844,5 +845,8 @@ timeFromEl.addEventListener('input', () => {
 document.getElementById('venue-search').addEventListener('input',  () => renderList());
 
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && editingVenueId) exitEditMode();
+  if (e.key === 'Escape') {
+    if (editingVenueId) exitEditMode();
+    else if (selectedId != null) closeDetailPanel();
+  }
 });

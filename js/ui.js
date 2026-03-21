@@ -15,7 +15,7 @@ function venueHasSunInRange(v, dateStr, fromHour, toHour) {
 
 // ── Sun dial (watch face) ─────────────────────────────────────────────────────
 
-function renderSunDial(v, dateStr, fromHour) {
+function renderSunDial(v, dateStr, fromHour, size = 72) {
   const { windows } = computeSunWindows(v, dateStr);
   const SIZE = 72, CX = 36, CY = 36;
   const R_OUT = 30;  // outer donut edge
@@ -81,7 +81,7 @@ function renderSunDial(v, dateStr, fromHour) {
       fill="rgba(255,255,255,0.38)">last sun</text>`;
   }
 
-  const svg = `<svg class="sun-dial" width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}" aria-hidden="true">
+  const svg = `<svg class="sun-dial" width="${size}" height="${size}" viewBox="0 0 ${SIZE} ${SIZE}" aria-hidden="true">
     <circle cx="${CX}" cy="${CY}" r="${R_OUT}" fill="rgba(0,0,0,0.28)"/>
     ${sunSegments}
     ${ticks}
@@ -346,16 +346,12 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
   }
 
   const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lng}`;
-  const dial = renderSunDial(v, dateStr, fromHour);
 
   return `
     <div class="venue-card ${v.sunInWin ? 'sunny' : ''} ${v.id === selectedId ? 'selected' : ''} ${dimmedCls}"
          data-vid="${v.id}" onclick="selectVenue(${v.id}, true)"
          onmouseenter="setHoveredVenue(${v.id})" onmouseleave="setHoveredVenue(null)">
       <div class="card-body">
-        <div class="card-watch">
-          ${dial.svg}
-        </div>
         <div class="card-content">
           <div class="card-top-row">
             <div class="card-name">${v.name}</div>
@@ -549,4 +545,75 @@ function renderList() {
       countEl.className = '';
     }
   }
+}
+
+// ── Detail panel content ──────────────────────────────────────────────────────
+
+function renderDetailPanelContent(v, dateStr, fromHour) {
+  const wxNow = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, fromHour) : null;
+  const s = typeof computeVenueScore === 'function'
+    ? computeVenueScore(v, dateStr, fromHour, wxNow, userLocation)
+    : null;
+  const tier = s ? (s.total >= 75 ? 'tier-high' : s.total >= 55 ? 'tier-mid' : s.total >= 35 ? 'tier-low' : 'tier-poor') : '';
+
+  const { windows } = computeSunWindows(v, dateStr);
+
+  // Sun status badge
+  const curWin = windows.find(w => fromHour >= w.start && fromHour < w.end);
+  let statusBadge;
+  if (curWin) {
+    const rem = curWin.end - fromHour;
+    const bh = Math.floor(rem), bm = Math.round((rem - bh) * 60);
+    const dur = (bh > 0 ? bh + 'h ' : '') + (bm > 0 ? bm + 'm' : '');
+    statusBadge = `<span class="score-badge tier-high">☀ ${dur.trim()} · until ${formatHour(curWin.end)}</span>`;
+  } else {
+    const next = windows.find(w => w.start > fromHour);
+    if (next) {
+      statusBadge = `<span class="score-badge tier-mid">☀ Sun at ${formatHour(next.start)}</span>`;
+    } else {
+      statusBadge = `<span class="score-badge tier-poor">${windows.length ? 'Sun passed' : 'No sun today'}</span>`;
+    }
+  }
+
+  const tempStr = s?.feelsLikeTemp != null ? ` · ${s.feelsLikeTemp}°` : '';
+  const distStr = s?.distKm != null
+    ? (s.distKm < 1 ? `${Math.round(s.distKm * 1000)} m` : `${s.distKm.toFixed(1)} km`)
+    : null;
+
+  const dial = renderSunDial(v, dateStr, fromHour, 120);
+  const timeline = renderTimeline(v, dateStr, fromHour, fromHour);
+
+  const scoreHtml = s ? `
+    <div class="dp-score-row">
+      <div class="dp-score-num ${tier}">${s.total}<span>score</span></div>
+      <div class="dp-score-breakdown">
+        <span>☀ Sun ${s.sun}</span>
+        <span>🌡 Comfort ${s.comfort}</span>
+        <span>⊙ Distance ${s.distance}</span>
+      </div>
+    </div>` : '';
+
+  const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lng}`;
+
+  return `
+    <div id="dp-scroll">
+      <div class="dp-header-row">
+        <div class="dp-venue-name">${catIcon(v)} ${v.name}</div>
+        <button id="dp-close-btn" onclick="closeDetailPanel()">✕</button>
+      </div>
+      <div class="dp-meta">${v.area ? v.area + ' · ' : ''}${catLabel(v)}${tempStr}${distStr ? ' · ' + distStr : ''}</div>
+      <div class="dp-status-badge">${statusBadge}</div>
+      <div class="dp-dial-wrap">${dial.svg}</div>
+      ${scoreHtml}
+      <div class="dp-divider"></div>
+      <div class="dp-section-label">Sun windows</div>
+      ${timeline}
+      <div class="dp-divider"></div>
+      <div class="dp-address">${v.address}</div>
+      <div class="dp-actions">
+        <a class="dp-action-btn directions" href="${directionsUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">↗ Directions</a>
+        <button class="dp-action-btn" onclick="shareVenue(${v.id})">⎘ Share</button>
+        <button class="dp-action-btn" onclick="enterEditMode(${v.id})">✎ Edit</button>
+      </div>
+    </div>`;
 }
