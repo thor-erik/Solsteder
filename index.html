@@ -115,30 +115,19 @@
   #floating-bottom > * { pointer-events: all; }
   #floating-bottom .floating-card { padding: 12px 16px; }
 
-  #bottom-top-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 0;
-  }
-  #bottom-top-row #intent-row {
-    flex: 1;
-    gap: 6px;
-  }
-  #floating-bottom #sun-compass {
-    display: block;
-    flex-shrink: 0;
-    border-radius: 50%;
-  }
-
-  /* Arc info row: date nav + time display */
+  /* Arc info row: date nav + compass + time display */
   #arc-info-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin: 8px 0 0;
-    padding-top: 8px;
-    border-top: 1px solid rgba(81,69,50,0.18);
+    margin: 0 0 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(81,69,50,0.18);
+  }
+  #arc-info-row #sun-compass {
+    display: block;
+    flex-shrink: 0;
+    border-radius: 50%;
   }
   #arc-date-nav {
     display: flex;
@@ -494,40 +483,55 @@
   }
   #venue-search::placeholder { color: var(--muted); }
 
-  /* Intent shortcuts */
-  #intent-row {
-    display: flex;
-    gap: 6px;
+  /* Intent shortcuts — positioned below arc, aligned to time positions */
+  #time-presets-row {
     position: relative;
+    height: 28px;
+    margin-top: 6px;
+    overflow: visible;
   }
   #intent-pill {
     position: absolute;
     top: 0; bottom: 0;
     background: var(--accent);
-    border-radius: 8px;
+    border-radius: 6px;
     transition: left 0.22s cubic-bezier(0.34,1.56,0.64,1), width 0.22s cubic-bezier(0.34,1.56,0.64,1);
     pointer-events: none;
     z-index: 0;
   }
   .intent-btn {
-    flex: 1;
+    position: absolute;
+    transform: translateX(-50%);
     background: transparent;
     border: none;
-    border-radius: 8px;
+    border-radius: 6px;
     color: rgba(213,196,171,0.45);
     font-family: 'Inter', sans-serif;
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    padding: 8px 4px;
+    padding: 6px 8px;
     cursor: pointer;
     transition: color 0.15s;
     white-space: nowrap;
-    position: relative;
     z-index: 1;
+    top: 0;
   }
+  .intent-btn::before {
+    content: '';
+    position: absolute;
+    top: -7px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1px;
+    height: 5px;
+    background: rgba(213,196,171,0.2);
+    transition: background 0.15s;
+  }
+  .intent-btn.active::before { background: rgba(255,184,0,0.6); }
   .intent-btn:hover:not(.active) { color: rgba(213,196,171,0.8); }
+  .intent-btn:hover:not(.active)::before { background: rgba(213,196,171,0.4); }
   .intent-btn.active { color: #0d131e; }
 
   /* Area chips */
@@ -1475,33 +1479,31 @@
     </div>
   </div>
 
-  <!-- Bottom-center: intent chips + sun arc + compass + date/time slider -->
+  <!-- Bottom-center: date/time + sun arc + intent presets -->
   <div id="floating-bottom">
     <div class="floating-card">
-      <!-- Row 1: intent shortcuts + sun compass -->
-      <div id="bottom-top-row">
-        <div id="intent-row">
-          <div id="intent-pill"></div>
-          <button class="intent-btn" data-intent="now"        onclick="setIntent('now')">Now</button>
-          <button class="intent-btn" data-intent="lunch"      onclick="setIntent('lunch')">Lunch</button>
-          <button class="intent-btn" data-intent="after-work" onclick="setIntent('after-work')">After work</button>
-          <button class="intent-btn" data-intent="evening"    onclick="setIntent('evening')">Evening</button>
-        </div>
-        <canvas id="sun-compass" width="44" height="44"></canvas>
-      </div>
-      <!-- Row 2: date nav + time display -->
+      <!-- Row 1: date nav + compass + time display -->
       <div id="arc-info-row">
         <div id="arc-date-nav">
           <button class="day-nav-btn" onclick="advanceDay(-1)">‹</button>
           <input type="date" id="date-picker">
           <button class="day-nav-btn" onclick="advanceDay(1)">›</button>
         </div>
+        <canvas id="sun-compass" width="44" height="44"></canvas>
         <span id="arc-time-display">—</span>
       </div>
-      <!-- Row 3: sun arc canvas -->
+      <!-- Row 2: sun arc canvas -->
       <div id="bottom-arc-row">
         <canvas id="sun-curve" onclick="handleSunCurveClick(event)"></canvas>
         <div id="wx-now"></div>
+      </div>
+      <!-- Row 3: time preset buttons aligned to arc -->
+      <div id="time-presets-row">
+        <div id="intent-pill"></div>
+        <button class="intent-btn" data-intent="now"        onclick="setIntent('now')">Now</button>
+        <button class="intent-btn" data-intent="lunch"      onclick="setIntent('lunch')">Lunch</button>
+        <button class="intent-btn" data-intent="after-work" onclick="setIntent('after-work')">After work</button>
+        <button class="intent-btn" data-intent="evening"    onclick="setIntent('evening')">Evening</button>
       </div>
       <!-- Hidden time input — keeps the rest of the app working unchanged -->
       <input type="range" id="time-from" min="4" max="23" step="0.25" value="10" style="display:none">

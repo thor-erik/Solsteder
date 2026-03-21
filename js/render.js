@@ -478,6 +478,25 @@ function drawSunCurve(canvasEl) {
     c.fillStyle = 'rgba(255,255,255,0.9)'; c.fill();
   }
 
+  // Hover scrub indicator
+  if (typeof arcHoverH === 'number') {
+    const hx = timeToX(arcHoverH);
+    // Vertical dashed line
+    c.beginPath(); c.moveTo(hx, PAD_T); c.lineTo(hx, horizY + 2);
+    c.strokeStyle = 'rgba(213,196,171,0.35)'; c.lineWidth = 1;
+    c.setLineDash([2, 3]); c.stroke(); c.setLineDash([]);
+    // Small circle on arc
+    const hoverSun = getSunFromTable(currentSunTable, arcHoverH);
+    const hy = altToY(Math.max(0, hoverSun.alt));
+    c.beginPath(); c.arc(hx, hy, 3, 0, Math.PI * 2);
+    c.fillStyle = 'rgba(213,196,171,0.7)'; c.fill();
+    // Time label above the line
+    c.font = '9px "Inter", sans-serif';
+    c.textAlign = 'center'; c.textBaseline = 'bottom';
+    c.fillStyle = 'rgba(213,196,171,0.8)';
+    c.fillText(formatHour(arcHoverH), hx, PAD_T - 1);
+  }
+
   c.restore();
 }
 

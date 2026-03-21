@@ -239,13 +239,51 @@ function applyNowTime() {
 }
 
 // ── Intent shortcuts ──────────────────────────────────────────────────────────
+const _PRESET_HOURS = { lunch: 12, 'after-work': 17, evening: 20 };
+const PAD_X_ARC = 38, MIN_H_ARC = 4, MAX_H_ARC = 23;
+
+function _arcTimeToLeft(h, canvasW) {
+  return PAD_X_ARC + (h - MIN_H_ARC) / (MAX_H_ARC - MIN_H_ARC) * (canvasW - PAD_X_ARC * 2);
+}
+
+function positionPresetButtons() {
+  const arcEl = document.getElementById('sun-curve');
+  const row   = document.getElementById('time-presets-row');
+  if (!arcEl || !row) return;
+  const w = arcEl.offsetWidth;
+  if (w === 0) return;
+
+  const isToday   = datePicker.value === todayStr();
+  const sunriseH  = currentSunTable ? (findSunCrossingFromTable(currentSunTable, true) ?? 7) : 7;
+  const nowH      = isToday ? Math.max(MIN_H_ARC, Math.min(MAX_H_ARC, currentHour())) : sunriseH;
+
+  const presets = [
+    { intent: 'now',        hour: nowH },
+    { intent: 'lunch',      hour: 12   },
+    { intent: 'after-work', hour: 17   },
+    { intent: 'evening',    hour: 20   },
+  ];
+
+  row.querySelectorAll('.intent-btn').forEach((btn, i) => {
+    btn.style.left = _arcTimeToLeft(presets[i].hour, w) + 'px';
+    if (btn.dataset.intent === 'now') {
+      btn.textContent = isToday ? 'Now' : 'Sunrise';
+    }
+  });
+
+  positionIntentPill();
+}
+
 function positionIntentPill() {
   const pill = document.getElementById('intent-pill');
-  const active = document.querySelector('.intent-btn.active');
-  if (!pill || !active) { if (pill) pill.style.opacity = '0'; return; }
+  const row  = document.getElementById('time-presets-row');
+  const active = row?.querySelector('.intent-btn.active');
+  if (!pill || !active || !row) { if (pill) pill.style.opacity = '0'; return; }
+  const rowRect = row.getBoundingClientRect();
+  const btnRect = active.getBoundingClientRect();
   pill.style.opacity = '1';
-  pill.style.left  = active.offsetLeft + 'px';
-  pill.style.width = active.offsetWidth + 'px';
+  pill.style.left  = (btnRect.left - rowRect.left) + 'px';
+  pill.style.width = btnRect.width + 'px';
 }
 
 function setActiveIntentBtn(intent) {
@@ -257,26 +295,33 @@ function setActiveIntentBtn(intent) {
 
 function setIntent(intent) {
   setActiveIntentBtn(intent);
-  _currentPreset = null; // force lighting preset re-evaluation so sky always animates
+  _currentPreset = null;
   if (intent === 'now') {
-    if (!nowMode) {
-      nowMode = true;
-      nowBtn.classList.add('active');
-      timeRangeWrap.classList.add('now-active');
-      applyNowTime();
-      nowInterval = setInterval(() => { if (nowMode) { applyNowTime(); update(); } }, 30000);
+    const isToday = datePicker.value === todayStr();
+    if (isToday) {
+      if (!nowMode) {
+        nowMode = true;
+        nowBtn?.classList.add('active');
+        timeRangeWrap?.classList.add('now-active');
+        applyNowTime();
+        nowInterval = setInterval(() => { if (nowMode) { applyNowTime(); update(); } }, 30000);
+      }
+    } else {
+      // Future date: jump to sunrise
+      if (nowMode) { nowMode = false; clearInterval(nowInterval); nowInterval = null; }
+      const sunriseH = currentSunTable ? (findSunCrossingFromTable(currentSunTable, true) ?? 7) : 7;
+      timeFromEl.value = Math.max(MIN_H_ARC, Math.min(MAX_H_ARC, sunriseH));
     }
     update();
     return;
   }
   if (nowMode) {
     nowMode = false;
-    nowBtn.classList.remove('active');
-    timeRangeWrap.classList.remove('now-active');
+    nowBtn?.classList.remove('active');
+    timeRangeWrap?.classList.remove('now-active');
     clearInterval(nowInterval); nowInterval = null;
   }
-  const times = { lunch: 12, 'after-work': 17, evening: 20 };
-  timeFromEl.value = times[intent];
+  timeFromEl.value = _PRESET_HOURS[intent];
   update();
 }
 
@@ -433,6 +478,7 @@ function update() {
   draw();
   drawSunCompass();
   drawSunCurve(document.getElementById('sun-curve'));
+  positionPresetButtons();
   updateWeatherDisplay();
   scheduleRenderList();
   updatePopup();
@@ -703,21 +749,35 @@ function togglePanel() {
 }
 
 // Show handle on mobile init
+let arcHoverH = null;
+
 document.addEventListener('DOMContentLoaded', () => {
   if (isMobile()) {
     const h = document.getElementById('panel-handle');
     if (h) h.style.display = 'block';
   }
 
-  // Position intent pill after layout settles
-  setTimeout(positionIntentPill, 50);
+  // Position preset buttons after layout settles, then again on resize
+  setTimeout(positionPresetButtons, 80);
+  new ResizeObserver(() => positionPresetButtons()).observe(document.getElementById('sun-curve') ?? document.body);
 
-  // Arc canvas drag support
+  // Arc canvas drag + hover support
   const arcEl = document.getElementById('sun-curve');
   if (arcEl) {
     arcEl.addEventListener('mousedown',  e => { _arcDragging = true;  _arcSetTimeFromX(e.clientX); });
     arcEl.addEventListener('touchstart', e => { e.preventDefault(); _arcSetTimeFromX(e.touches[0].clientX); }, { passive: false });
     arcEl.addEventListener('touchmove',  e => { e.preventDefault(); _arcSetTimeFromX(e.touches[0].clientX); }, { passive: false });
+    arcEl.addEventListener('mousemove',  e => {
+      if (_arcDragging) return; // dragging handled separately
+      const rect = arcEl.getBoundingClientRect();
+      const t = MIN_H_ARC + (e.clientX - rect.left - PAD_X_ARC) / (rect.width - PAD_X_ARC * 2) * (MAX_H_ARC - MIN_H_ARC);
+      arcHoverH = Math.max(MIN_H_ARC, Math.min(MAX_H_ARC, t));
+      drawSunCurve(arcEl);
+    });
+    arcEl.addEventListener('mouseleave', () => {
+      arcHoverH = null;
+      drawSunCurve(arcEl);
+    });
   }
   document.addEventListener('mousemove', e => { if (_arcDragging) _arcSetTimeFromX(e.clientX); });
   document.addEventListener('mouseup',   () => { _arcDragging = false; });
