@@ -13,44 +13,58 @@ function venueHasSunInRange(v, dateStr, fromHour, toHour) {
   return windows.some(w => w.end > fromHour && w.start < toHour);
 }
 
-// ── Sun dial ──────────────────────────────────────────────────────────────────
+// ── Sun dial (watch face) ─────────────────────────────────────────────────────
 
 function renderSunDial(v, dateStr, fromHour) {
   const { windows, open, close } = computeSunWindows(v, dateStr);
-  const CX = 24, CY = 24, R = 17, SW = 3.5, SIZE = 48;
+  const SIZE = 64, CX = 32, CY = 32;
+  const R_ARC  = 27;  // sun arc ring radius
+  const R_FACE = 22;  // clock face radius
+  const SW_ARC = 3.5;
 
-  function h2a(h) { return (h / 24) * 2 * Math.PI - Math.PI / 2; }
+  // 12h angle (0h/12h = top, clockwise)
+  function h12a(h) { return ((h % 12) / 12) * 2 * Math.PI - Math.PI / 2; }
 
+  // SVG arc path on R_ARC ring, 12h mapped
   function arcPath(h1, h2) {
-    const a1 = h2a(h1), a2 = h2a(h2);
-    const x1 = CX + R * Math.cos(a1), y1 = CY + R * Math.sin(a1);
-    const x2 = CX + R * Math.cos(a2), y2 = CY + R * Math.sin(a2);
-    const large = (h2 - h1) > 12 ? 1 : 0;
-    return `M${x1.toFixed(2)},${y1.toFixed(2)} A${R},${R} 0 ${large},1 ${x2.toFixed(2)},${y2.toFixed(2)}`;
+    const a1 = h12a(h1), a2 = h12a(h2);
+    const x1 = (CX + R_ARC * Math.cos(a1)).toFixed(2), y1 = (CY + R_ARC * Math.sin(a1)).toFixed(2);
+    const x2 = (CX + R_ARC * Math.cos(a2)).toFixed(2), y2 = (CY + R_ARC * Math.sin(a2)).toFixed(2);
+    const span12 = (h2 - h1) % 12;
+    return `M${x1},${y1} A${R_ARC},${R_ARC} 0 ${span12 > 6 ? 1 : 0},1 ${x2},${y2}`;
   }
 
-  const bgRing   = `<circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="${SW}"/>`;
-  const openArc  = open < close
-    ? `<path d="${arcPath(open, close)}" fill="none" stroke="rgba(255,255,255,0.13)" stroke-width="${SW}" stroke-linecap="round"/>`
-    : '';
-  const sunArcs  = windows.map(w =>
-    `<path d="${arcPath(w.start, w.end)}" fill="none" stroke="var(--accent)" stroke-width="${SW}" stroke-linecap="round"/>`
-  ).join('');
-
-  // Tick marks at 6 h, 12 h, 18 h
-  const ticks = [6, 12, 18].map(h => {
-    const a = h2a(h);
-    const x1 = (CX + (R - 2.5) * Math.cos(a)).toFixed(1), y1 = (CY + (R - 2.5) * Math.sin(a)).toFixed(1);
-    const x2 = (CX + (R + 2.5) * Math.cos(a)).toFixed(1), y2 = (CY + (R + 2.5) * Math.sin(a)).toFixed(1);
-    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="rgba(255,255,255,0.18)" stroke-width="1" stroke-linecap="round"/>`;
+  // Hour markers — dots at each hour position, larger at 12/3/6/9
+  const markers = Array.from({ length: 12 }, (_, i) => {
+    const a = (i / 12) * 2 * Math.PI - Math.PI / 2;
+    const main = i % 3 === 0;
+    const d = R_FACE - 3.5;
+    return `<circle cx="${(CX + d * Math.cos(a)).toFixed(1)}" cy="${(CY + d * Math.sin(a)).toFixed(1)}"
+      r="${main ? 1.8 : 1}" fill="rgba(255,255,255,${main ? 0.45 : 0.2})"/>`;
   }).join('');
 
-  // Current-time dot
-  const a = h2a(fromHour);
-  const dot = `<circle cx="${(CX + R * Math.cos(a)).toFixed(2)}" cy="${(CY + R * Math.sin(a)).toFixed(2)}" r="2.5" fill="white" opacity="0.85"/>`;
+  // Clock hands
+  const hourA  = h12a(fromHour);
+  const minA   = ((fromHour % 1) * 60 / 60) * 2 * Math.PI - Math.PI / 2;
+  const hx = (CX + 12 * Math.cos(hourA)).toFixed(1), hy = (CY + 12 * Math.sin(hourA)).toFixed(1);
+  const mx = (CX + 17 * Math.cos(minA)).toFixed(1),  my = (CY + 17 * Math.sin(minA)).toFixed(1);
+
+  // Opening hours arc (dim) + sun window arcs (amber)
+  const openArc = open < close
+    ? `<path d="${arcPath(open, close)}" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="${SW_ARC}" stroke-linecap="round"/>`
+    : '';
+  const sunArcs = windows.map(w =>
+    `<path d="${arcPath(w.start, w.end)}" fill="none" stroke="var(--accent)" stroke-width="${SW_ARC}" stroke-linecap="round"/>`
+  ).join('');
 
   return `<svg class="sun-dial" width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}" aria-hidden="true">
-    ${bgRing}${openArc}${sunArcs}${ticks}${dot}
+    <circle cx="${CX}" cy="${CY}" r="${R_FACE}" fill="rgba(0,0,0,0.18)"/>
+    <circle cx="${CX}" cy="${CY}" r="${R_ARC}" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="${SW_ARC}"/>
+    ${openArc}${sunArcs}
+    ${markers}
+    <line x1="${CX}" y1="${CY}" x2="${hx}" y2="${hy}" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.9"/>
+    <line x1="${CX}" y1="${CY}" x2="${mx}" y2="${my}" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+    <circle cx="${CX}" cy="${CY}" r="2" fill="white" opacity="0.9"/>
   </svg>`;
 }
 
