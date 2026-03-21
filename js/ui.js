@@ -70,7 +70,8 @@ function renderSunDial(v, dateStr, fromHour) {
     const pa = h12a(lastFuture.end);
     const px = (CX + R_ARC * Math.cos(pa)).toFixed(1), py = (CY + R_ARC * Math.sin(pa)).toFixed(1);
     sunHand = `<line x1="${CX}" y1="${CY}" x2="${px}" y2="${py}" stroke="rgba(255,184,0,0.9)" stroke-width="1.5" stroke-linecap="round"/>`;
-    centerLabel = `<text x="${CX}" y="${CY + 1}" text-anchor="middle" dominant-baseline="middle"
+    centerLabel = `<rect x="${CX - 9}" y="${CY - 4.5}" width="18" height="9" rx="2.5" fill="rgba(0,0,0,0.65)"/>
+    <text x="${CX}" y="${CY + 1}" text-anchor="middle" dominant-baseline="middle"
       font-size="6.5" font-family="system-ui,sans-serif" font-weight="600"
       fill="rgba(255,184,0,1)">${formatHour(lastFuture.end)}</text>`;
   }
