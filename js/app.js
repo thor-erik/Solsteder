@@ -86,7 +86,7 @@ function dispatchToWorker(dateStr) {
 mapboxgl.accessToken = MAPBOX_TOKEN; // defined in js/config.js (gitignored)
 const map = new mapboxgl.Map({
   container: 'map',
-  style: 'mapbox://styles/mapbox/standard',
+  style: 'mapbox://styles/thor-erik/cmn0u015v00ic01s95g8yfzq7',
   center: [10.728, 59.9125],
   zoom: 13,
   pitch: 15,
