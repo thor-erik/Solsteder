@@ -239,7 +239,7 @@ function applyNowTime() {
 }
 
 // ── Intent shortcuts ──────────────────────────────────────────────────────────
-const _PRESET_HOURS = { lunch: 12, 'after-work': 17, evening: 20 };
+const _PRESET_HOURS = { lunch: 11, 'after-work': 16, evening: 20 };
 const PAD_X_ARC = 38, MIN_H_ARC = 4, MAX_H_ARC = 23;
 
 function _arcTimeToLeft(h, canvasW) {
@@ -253,22 +253,28 @@ function positionPresetButtons() {
   const w = arcEl.offsetWidth;
   if (w === 0) return;
 
-  const isToday   = datePicker.value === todayStr();
-  const sunriseH  = currentSunTable ? (findSunCrossingFromTable(currentSunTable, true) ?? 7) : 7;
-  const nowH      = isToday ? Math.max(MIN_H_ARC, Math.min(MAX_H_ARC, currentHour())) : sunriseH;
+  const isToday  = datePicker.value === todayStr();
+  const sunriseH = currentSunTable ? (findSunCrossingFromTable(currentSunTable, true)  ?? 7)  : 7;
+  const sunsetH  = currentSunTable ? (findSunCrossingFromTable(currentSunTable, false) ?? 21) : 21;
+  const nowH     = isToday ? Math.max(MIN_H_ARC, Math.min(MAX_H_ARC, currentHour())) : sunriseH;
+
+  const showEvening = sunsetH >= 20;
 
   const presets = [
     { intent: 'now',        hour: nowH },
-    { intent: 'lunch',      hour: 12   },
-    { intent: 'after-work', hour: 17   },
+    { intent: 'lunch',      hour: 11   },
+    { intent: 'after-work', hour: 16   },
     { intent: 'evening',    hour: 20   },
   ];
 
-  row.querySelectorAll('.intent-btn').forEach((btn, i) => {
-    btn.style.left = _arcTimeToLeft(presets[i].hour, w) + 'px';
-    if (btn.dataset.intent === 'now') {
-      btn.textContent = isToday ? 'Now' : 'Sunrise';
+  row.querySelectorAll('.intent-btn').forEach(btn => {
+    const preset = presets.find(p => p.intent === btn.dataset.intent);
+    if (!preset) return;
+    if (btn.dataset.intent === 'evening') {
+      btn.style.display = showEvening ? '' : 'none';
     }
+    btn.style.left = _arcTimeToLeft(preset.hour, w) + 'px';
+    if (btn.dataset.intent === 'now') btn.textContent = isToday ? 'Now' : 'Sunrise';
   });
 
   positionIntentPill();
