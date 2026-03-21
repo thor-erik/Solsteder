@@ -691,6 +691,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const h = document.getElementById('panel-handle');
     if (h) h.style.display = 'block';
   }
+
+  // Request location on load so distance shows in cards without needing to sort by distance
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        renderList();
+      },
+      () => {} // silently ignore if denied
+    );
+  }
 });
 
 function toggleMapView() {
