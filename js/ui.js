@@ -16,52 +16,71 @@ function venueHasSunInRange(v, dateStr, fromHour, toHour) {
 // ── Sun dial (watch face) ─────────────────────────────────────────────────────
 
 function renderSunDial(v, dateStr, fromHour) {
-  const { windows, open, close } = computeSunWindows(v, dateStr);
+  const { windows } = computeSunWindows(v, dateStr);
   const SIZE = 64, CX = 32, CY = 32;
-  const R_ARC  = 27;  // sun arc ring radius
-  const R_FACE = 22;  // clock face radius
+  const R_ARC  = 27;
+  const R_FACE = 22;
   const SW_ARC = 3.5;
 
-  // 12h angle (0h/12h = top, clockwise)
   function h12a(h) { return ((h % 12) / 12) * 2 * Math.PI - Math.PI / 2; }
 
-  // SVG arc path on R_ARC ring, 12h mapped
   function arcPath(h1, h2) {
     const a1 = h12a(h1), a2 = h12a(h2);
     const x1 = (CX + R_ARC * Math.cos(a1)).toFixed(2), y1 = (CY + R_ARC * Math.sin(a1)).toFixed(2);
     const x2 = (CX + R_ARC * Math.cos(a2)).toFixed(2), y2 = (CY + R_ARC * Math.sin(a2)).toFixed(2);
-    const span12 = (h2 - h1) % 12;
-    return `M${x1},${y1} A${R_ARC},${R_ARC} 0 ${span12 > 6 ? 1 : 0},1 ${x2},${y2}`;
+    return `M${x1},${y1} A${R_ARC},${R_ARC} 0 ${(h2 - h1) % 12 > 6 ? 1 : 0},1 ${x2},${y2}`;
   }
 
-  // Hour markers — dots at each hour position, larger at 12/3/6/9
-  const markers = Array.from({ length: 12 }, (_, i) => {
+  // Numbers at 12, 3, 6, 9 — small dots at the other hours
+  const hourLabels = Array.from({ length: 12 }, (_, i) => {
     const a = (i / 12) * 2 * Math.PI - Math.PI / 2;
     const main = i % 3 === 0;
-    const d = R_FACE - 3.5;
-    return `<circle cx="${(CX + d * Math.cos(a)).toFixed(1)}" cy="${(CY + d * Math.sin(a)).toFixed(1)}"
-      r="${main ? 1.8 : 1}" fill="rgba(255,255,255,${main ? 0.45 : 0.2})"/>`;
+    if (main) {
+      const label = i === 0 ? '12' : String(i);
+      const r = R_FACE - 5;
+      const x = (CX + r * Math.cos(a)).toFixed(1), y = (CY + r * Math.sin(a)).toFixed(1);
+      return `<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle"
+        font-size="5.5" font-family="system-ui,sans-serif" fill="rgba(255,255,255,0.5)">${label}</text>`;
+    }
+    const r = R_FACE - 3.5;
+    return `<circle cx="${(CX + r * Math.cos(a)).toFixed(1)}" cy="${(CY + r * Math.sin(a)).toFixed(1)}" r="1" fill="rgba(255,255,255,0.2)"/>`;
   }).join('');
 
-  // Clock hands
-  const hourA  = h12a(fromHour);
-  const minA   = ((fromHour % 1) * 60 / 60) * 2 * Math.PI - Math.PI / 2;
-  const hx = (CX + 12 * Math.cos(hourA)).toFixed(1), hy = (CY + 12 * Math.sin(hourA)).toFixed(1);
-  const mx = (CX + 17 * Math.cos(minA)).toFixed(1),  my = (CY + 17 * Math.sin(minA)).toFixed(1);
+  // Sun arcs — split at fromHour: past = dim, future = bright
+  const sunArcs = windows.map(w => {
+    const parts = [];
+    if (w.start < fromHour && w.start < w.end) {
+      const pastEnd = Math.min(w.end, fromHour);
+      if (pastEnd - w.start > 0.05)
+        parts.push(`<path d="${arcPath(w.start, pastEnd)}" fill="none" stroke="var(--accent)" stroke-width="${SW_ARC}" stroke-linecap="round" opacity="0.22"/>`);
+    }
+    if (w.end > fromHour) {
+      const futStart = Math.max(w.start, fromHour);
+      if (w.end - futStart > 0.05)
+        parts.push(`<path d="${arcPath(futStart, w.end)}" fill="none" stroke="var(--accent)" stroke-width="${SW_ARC}" stroke-linecap="round"/>`);
+    }
+    return parts.join('');
+  }).join('');
 
-  // Opening hours arc (dim) + sun window arcs (amber)
-  const openArc = open < close
-    ? `<path d="${arcPath(open, close)}" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="${SW_ARC}" stroke-linecap="round"/>`
+  // Last future sun end time label
+  const lastFuture = [...windows].reverse().find(w => w.end > fromHour);
+  const lastLabel = lastFuture
+    ? `<text x="${CX}" y="${CY + 9}" text-anchor="middle" dominant-baseline="middle"
+        font-size="5" font-family="system-ui,sans-serif" fill="rgba(255,184,0,0.7)">${formatHour(lastFuture.end)}</text>`
     : '';
-  const sunArcs = windows.map(w =>
-    `<path d="${arcPath(w.start, w.end)}" fill="none" stroke="var(--accent)" stroke-width="${SW_ARC}" stroke-linecap="round"/>`
-  ).join('');
+
+  // Clock hands
+  const hourA = h12a(fromHour);
+  const minA  = ((fromHour % 1)) * 2 * Math.PI - Math.PI / 2;
+  const hx = (CX + 11 * Math.cos(hourA)).toFixed(1), hy = (CY + 11 * Math.sin(hourA)).toFixed(1);
+  const mx = (CX + 16 * Math.cos(minA)).toFixed(1),  my = (CY + 16 * Math.sin(minA)).toFixed(1);
 
   return `<svg class="sun-dial" width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}" aria-hidden="true">
-    <circle cx="${CX}" cy="${CY}" r="${R_FACE}" fill="rgba(0,0,0,0.18)"/>
+    <circle cx="${CX}" cy="${CY}" r="${R_FACE}" fill="rgba(0,0,0,0.2)"/>
     <circle cx="${CX}" cy="${CY}" r="${R_ARC}" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="${SW_ARC}"/>
-    ${openArc}${sunArcs}
-    ${markers}
+    ${sunArcs}
+    ${hourLabels}
+    ${lastLabel}
     <line x1="${CX}" y1="${CY}" x2="${hx}" y2="${hy}" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.9"/>
     <line x1="${CX}" y1="${CY}" x2="${mx}" y2="${my}" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
     <circle cx="${CX}" cy="${CY}" r="2" fill="white" opacity="0.9"/>
