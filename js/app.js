@@ -242,10 +242,20 @@ function applyNowTime() {
 }
 
 // ── Intent shortcuts ──────────────────────────────────────────────────────────
+function positionIntentPill() {
+  const pill = document.getElementById('intent-pill');
+  const active = document.querySelector('.intent-btn.active');
+  if (!pill || !active) { if (pill) pill.style.opacity = '0'; return; }
+  pill.style.opacity = '1';
+  pill.style.left  = active.offsetLeft + 'px';
+  pill.style.width = active.offsetWidth + 'px';
+}
+
 function setActiveIntentBtn(intent) {
   activeIntent = intent;
   document.querySelectorAll('.intent-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.intent === intent));
+  positionIntentPill();
 }
 
 function setIntent(intent) {
@@ -691,6 +701,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const h = document.getElementById('panel-handle');
     if (h) h.style.display = 'block';
   }
+
+  // Position intent pill after layout settles
+  setTimeout(positionIntentPill, 50);
 
   // Request location on load so distance shows in cards without needing to sort by distance
   if (navigator.geolocation) {

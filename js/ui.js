@@ -281,15 +281,10 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
   const tempStr = v.score?.feelsLikeTemp != null ? ` · ${v.score.feelsLikeTemp}°` : '';
   const s = v.score;
 
-  // Stat row shown in collapsed card: score + distance
   const tier = s ? (s.total >= 75 ? 'tier-high' : s.total >= 55 ? 'tier-mid' : s.total >= 35 ? 'tier-low' : 'tier-poor') : '';
   const distStr = s?.distKm != null
     ? (s.distKm < 1 ? `${Math.round(s.distKm * 1000)} m` : `${s.distKm.toFixed(1)} km`)
     : null;
-  const statRow = s ? `<div class="card-stat">
-    <span class="card-stat-score ${tier}">★ ${s.total}</span>
-    ${distStr ? `<span class="card-stat-dist">· ${distStr}</span>` : ''}
-  </div>` : '';
 
   const scoreExpandHtml = s ? `<div class="card-score-row">
     <span class="score-badge ${tier}">⭐ ${s.total}</span>
@@ -358,15 +353,16 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
          data-vid="${v.id}" onclick="selectVenue(${v.id}, true)"
          onmouseenter="setHoveredVenue(${v.id})" onmouseleave="setHoveredVenue(null)">
       <div class="card-body">
-        <div class="card-left">
-          <div class="card-name">${catIcon(v)} ${v.name}</div>
-          <span class="card-badge ${cardBadgeCls}">${cardBadgeText}</span>
-          <div class="card-meta">${v.area ?? ''}${v.area ? ' · ' : ''}${catLabel(v)}${tempStr}</div>
-          ${statRow}
-        </div>
-        <div class="card-right">
+        <div class="card-watch">
           ${dial.svg}
-          ${dial.label ? `<div class="card-dial-label">${dial.label}</div>` : ''}
+        </div>
+        <div class="card-content">
+          <div class="card-top-row">
+            <div class="card-name">${catIcon(v)} ${v.name}</div>
+            ${s ? `<div class="card-score-num ${tier}">${s.total}<span>score</span></div>` : ''}
+          </div>
+          <span class="card-badge ${cardBadgeCls}">${cardBadgeText}</span>
+          <div class="card-meta">${v.area ?? ''}${v.area ? ' · ' : ''}${catLabel(v)}${tempStr}${distStr ? ' · ' + distStr : ''}</div>
         </div>
       </div>
       <div class="card-expanded">

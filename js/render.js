@@ -4,6 +4,15 @@
  *             VENUES, catIcon (data.js) · venueSunState (solar.js)
  */
 
+// ── Short venue name helper ───────────────────────────────────────────────────
+/** Short name: first meaningful word(s), max 12 chars */
+function shortName(name) {
+  const words = name.split(/\s+/);
+  let out = words[0];
+  if (out.length < 4 && words[1]) out += ' ' + words[1];
+  return out.length > 12 ? out.slice(0, 11) + '…' : out;
+}
+
 // ── Terrace wall helpers ──────────────────────────────────────────────────────
 /**
  * Returns the array of wall objects that form the terrace for a venue.
@@ -117,17 +126,7 @@ function buildSprite(v, state, selected, hour, dateStr) {
     alpha       = 0.88;
 
   } else if (state === 'sunny') {
-    if (hour !== undefined && dateStr) {
-      try {
-        const { windows } = computeSunWindows(v, dateStr);
-        const curWin = windows.find(w => hour >= w.start && hour < w.end);
-        if (curWin) {
-          const rem = curWin.end - hour;
-          const h = Math.floor(rem), m = Math.round((rem - h) * 60);
-          label = h > 0 ? `${h}h${m > 0 ? ' ' + m + 'm' : ''}` : `${m}m`;
-        } else { label = '☀'; }
-      } catch (e) { label = '☀'; }
-    } else { label = '☀'; }
+    label       = shortName(v.name);
     fillColor   = '#FFB800';
     strokeColor = 'rgba(255,230,120,0.55)';
     textColor   = '#1a1a2e';
@@ -148,7 +147,7 @@ function buildSprite(v, state, selected, hour, dateStr) {
 
   // Measure text width
   const tmpCtx = document.createElement('canvas').getContext('2d');
-  tmpCtx.font  = 'bold 11px "DM Sans", sans-serif';
+  tmpCtx.font  = 'bold 11px "Inter", sans-serif';
   const tw     = label ? tmpCtx.measureText(label).width : 0;
   const pillW  = Math.max(38, tw + 24);   // min 38px, 12px padding each side
 
@@ -200,7 +199,7 @@ function buildSprite(v, state, selected, hour, dateStr) {
 
   // Label text
   if (label && label !== '·') {
-    c.font         = 'bold 11px "DM Sans", sans-serif';
+    c.font         = 'bold 11px "Inter", sans-serif';
     c.fillStyle    = textColor;
     c.textAlign    = 'center';
     c.textBaseline = 'middle';
@@ -287,7 +286,7 @@ function drawSunCompass() {
     c.strokeStyle = i === 0 ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.2)';
     c.lineWidth = i % 2 === 0 ? 1.5 : 1; c.stroke();
   }
-  c.font = 'bold 7px "DM Sans", sans-serif';
+  c.font = 'bold 7px "Inter", sans-serif';
   c.fillStyle = 'rgba(255,255,255,0.45)';
   c.textAlign = 'center'; c.textBaseline = 'middle';
   c.fillText('N', cx, cy - innerR + 6);
@@ -404,7 +403,7 @@ function drawSunCurve(canvasEl) {
   // Sunrise / sunset tick labels
   const sunrise = findSunCrossingFromTable(currentSunTable, true);
   const sunset  = findSunCrossingFromTable(currentSunTable, false);
-  c.font = '9px "DM Sans", sans-serif';
+  c.font = '9px "Inter", sans-serif';
   c.textAlign = 'center'; c.textBaseline = 'top';
   [{ t: sunrise, label: formatHour(sunrise) }, { t: sunset, label: formatHour(sunset) }].forEach(({ t, label }) => {
     if (t == null) return;
@@ -515,7 +514,7 @@ function drawBuildingEditor() {
       ctx.closePath(); ctx.fillStyle = '#FFB800'; ctx.fill();
 
       const labelText = `${Math.round(wall.bearing)}°  ${bearingToCardinal(wall.bearing)}`;
-      ctx.font = 'bold 12px "DM Sans", sans-serif';
+      ctx.font = 'bold 12px "Inter", sans-serif';
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       const tw = ctx.measureText(labelText).width;
       const lx = ex + normX * 18, ly = ey + normY * 18;
@@ -566,7 +565,7 @@ function drawBuildingEditor() {
       ctx.strokeStyle = 'rgba(10,14,28,0.9)'; ctx.lineWidth = 2; ctx.stroke();
 
       // Depth label
-      ctx.font = 'bold 10px "DM Sans", sans-serif';
+      ctx.font = 'bold 10px "Inter", sans-serif';
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       const lx = hx + normX * 20, ly = hy + normY * 20;
       ctx.fillStyle = 'rgba(10,14,28,0.88)';
@@ -947,7 +946,7 @@ function drawClusterBubble(cx, cy, count, sunnyCount) {
   ctx.lineWidth = 1.5; ctx.stroke();
 
   // Count label
-  ctx.font = `bold ${count >= 10 ? 9 : 11}px "DM Sans", sans-serif`;
+  ctx.font = `bold ${count >= 10 ? 9 : 11}px "Inter", sans-serif`;
   ctx.fillStyle = isSun ? '#1a1a2e' : '#c8d8ff';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(String(count), cx, cy);
@@ -1096,7 +1095,7 @@ function draw() {
   // Hint when venues are hidden due to zoom density
   if (hiddenCount > 0) {
     const text = `Zoom in to see ${hiddenCount} more venue${hiddenCount > 1 ? 's' : ''}`;
-    ctx.font = '11px "DM Sans", sans-serif';
+    ctx.font = '11px "Inter", sans-serif';
     const tw = ctx.measureText(text).width;
     const pw = tw + 16, ph = 22, px = (canvas.width - pw) / 2, py = canvas.height - 36;
     ctx.fillStyle = 'rgba(16,22,38,0.82)';
