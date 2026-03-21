@@ -86,7 +86,7 @@ function dispatchToWorker(dateStr) {
 mapboxgl.accessToken = MAPBOX_TOKEN; // defined in js/config.js (gitignored)
 const map = new mapboxgl.Map({
   container: 'map',
-  style: 'mapbox://styles/thor-erik/cmn0u015v00ic01s95g8yfzq7',
+  style: 'mapbox://styles/mapbox/standard',
   center: [10.728, 59.9125],
   zoom: 13,
   pitch: 15,
@@ -145,7 +145,7 @@ function updateLightPreset() {
   }
   if (preset === _currentPreset) return; // only fire on actual change so Mapbox transition plays fully
   _currentPreset = preset;
-  // map.setConfigProperty('basemap', 'lightPreset', preset); // TEST: disabled to check custom style colors
+  map.setConfigProperty('basemap', 'lightPreset', preset);
 }
 
 // ── Sun lighting (Mapbox GL v3) ───────────────────────────────────────────────
@@ -159,9 +159,12 @@ function updateSunLighting() {
         type: 'directional',
         properties: {
           direction: [az, 90 - alt],
+          'direction-transition': { duration: 1200, delay: 0 },
           'cast-shadows': true,
           intensity: 0.9,
+          'intensity-transition': { duration: 800, delay: 0 },
           color: alt < 10 ? '#ff9944' : alt < 25 ? '#ffdd88' : '#ffffff',
+          'color-transition': { duration: 900, delay: 0 }
         }
       },
       {
@@ -625,7 +628,7 @@ function toggleEditSatellite() {
   document.getElementById('edit-satellite-btn').classList.toggle('active', editSatelliteActive);
   map.setStyle(editSatelliteActive
     ? 'mapbox://styles/mapbox/satellite-streets-v12'
-    : 'mapbox://styles/thor-erik/cmn0u015v00ic01s95g8yfzq7'
+    : 'mapbox://styles/mapbox/standard'
   );
 }
 
@@ -637,7 +640,7 @@ function exitEditMode() {
   if (editSatelliteActive) {
     editSatelliteActive = false;
     document.getElementById('edit-satellite-btn').classList.remove('active');
-    map.setStyle('mapbox://styles/thor-erik/cmn0u015v00ic01s95g8yfzq7');
+    map.setStyle('mapbox://styles/mapbox/standard');
   }
   map.easeTo({ pitch: 15, bearing: 0, duration: 500 });
   draw();
