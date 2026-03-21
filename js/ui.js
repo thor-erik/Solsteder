@@ -13,6 +13,47 @@ function venueHasSunInRange(v, dateStr, fromHour, toHour) {
   return windows.some(w => w.end > fromHour && w.start < toHour);
 }
 
+// ── Sun dial ──────────────────────────────────────────────────────────────────
+
+function renderSunDial(v, dateStr, fromHour) {
+  const { windows, open, close } = computeSunWindows(v, dateStr);
+  const CX = 24, CY = 24, R = 17, SW = 3.5, SIZE = 48;
+
+  function h2a(h) { return (h / 24) * 2 * Math.PI - Math.PI / 2; }
+
+  function arcPath(h1, h2) {
+    const a1 = h2a(h1), a2 = h2a(h2);
+    const x1 = CX + R * Math.cos(a1), y1 = CY + R * Math.sin(a1);
+    const x2 = CX + R * Math.cos(a2), y2 = CY + R * Math.sin(a2);
+    const large = (h2 - h1) > 12 ? 1 : 0;
+    return `M${x1.toFixed(2)},${y1.toFixed(2)} A${R},${R} 0 ${large},1 ${x2.toFixed(2)},${y2.toFixed(2)}`;
+  }
+
+  const bgRing   = `<circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="${SW}"/>`;
+  const openArc  = open < close
+    ? `<path d="${arcPath(open, close)}" fill="none" stroke="rgba(255,255,255,0.13)" stroke-width="${SW}" stroke-linecap="round"/>`
+    : '';
+  const sunArcs  = windows.map(w =>
+    `<path d="${arcPath(w.start, w.end)}" fill="none" stroke="var(--accent)" stroke-width="${SW}" stroke-linecap="round"/>`
+  ).join('');
+
+  // Tick marks at 6 h, 12 h, 18 h
+  const ticks = [6, 12, 18].map(h => {
+    const a = h2a(h);
+    const x1 = (CX + (R - 2.5) * Math.cos(a)).toFixed(1), y1 = (CY + (R - 2.5) * Math.sin(a)).toFixed(1);
+    const x2 = (CX + (R + 2.5) * Math.cos(a)).toFixed(1), y2 = (CY + (R + 2.5) * Math.sin(a)).toFixed(1);
+    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="rgba(255,255,255,0.18)" stroke-width="1" stroke-linecap="round"/>`;
+  }).join('');
+
+  // Current-time dot
+  const a = h2a(fromHour);
+  const dot = `<circle cx="${(CX + R * Math.cos(a)).toFixed(2)}" cy="${(CY + R * Math.sin(a)).toFixed(2)}" r="2.5" fill="white" opacity="0.85"/>`;
+
+  return `<svg class="sun-dial" width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}" aria-hidden="true">
+    ${bgRing}${openArc}${sunArcs}${ticks}${dot}
+  </svg>`;
+}
+
 // ── Timeline strip ────────────────────────────────────────────────────────────
 
 function renderTimeline(v, dateStr, fromHour, toHour) {
@@ -273,8 +314,10 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
         <div class="card-name">${catIcon(v)} ${v.name}</div>
         <span class="card-badge ${cardBadgeCls}">${cardBadgeText}</span>
       </div>
-      <div class="card-meta">${v.area ?? ''}${v.area ? ' · ' : ''}${catLabel(v)}${tempStr}</div>
-      ${renderTimeline(v, dateStr, fromHour, toHour)}
+      <div class="card-mid-row">
+        <div class="card-meta">${v.area ?? ''}${v.area ? ' · ' : ''}${catLabel(v)}${tempStr}</div>
+        ${renderSunDial(v, dateStr, fromHour)}
+      </div>
       <div class="card-expanded">
         ${scoreExpandHtml}
         <div class="card-address">${v.address}</div>

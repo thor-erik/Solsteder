@@ -724,10 +724,24 @@
     color: #7ab4ff;
   }
 
+  .card-mid-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 2px;
+  }
+
   .card-meta {
     font-size: 11px;
     color: var(--muted);
-    margin-bottom: 6px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .sun-dial {
+    flex-shrink: 0;
+    opacity: 0.9;
   }
 
   /* ── Expanded section (visible when .selected) ─────────────────────── */
