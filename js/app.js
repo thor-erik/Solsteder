@@ -145,7 +145,7 @@ function updateLightPreset() {
   }
   if (preset === _currentPreset) return; // only fire on actual change so Mapbox transition plays fully
   _currentPreset = preset;
-  map.setConfigProperty('basemap', 'lightPreset', preset);
+  // map.setConfigProperty('basemap', 'lightPreset', preset); // TEST: disabled to check custom style colors
 }
 
 // ── Sun lighting (Mapbox GL v3) ───────────────────────────────────────────────
