@@ -17,10 +17,11 @@ function venueHasSunInRange(v, dateStr, fromHour, toHour) {
 
 function renderSunDial(v, dateStr, fromHour) {
   const { windows } = computeSunWindows(v, dateStr);
-  const SIZE = 64, CX = 32, CY = 32;
-  const R_ARC  = 27;
-  const R_FACE = 22;
-  const SW_ARC = 3.5;
+  // Larger internal coordinate space so SVG text renders at a readable size
+  const SIZE = 72, CX = 36, CY = 36;
+  const R_ARC  = 31;
+  const R_FACE = 26;
+  const SW_ARC = 4;
 
   function h12a(h) { return ((h % 12) / 12) * 2 * Math.PI - Math.PI / 2; }
 
@@ -31,19 +32,19 @@ function renderSunDial(v, dateStr, fromHour) {
     return `M${x1},${y1} A${R_ARC},${R_ARC} 0 ${(h2 - h1) % 12 > 6 ? 1 : 0},1 ${x2},${y2}`;
   }
 
-  // Numbers at 12, 3, 6, 9 — small dots at the other hours
-  const hourLabels = Array.from({ length: 12 }, (_, i) => {
+  // Numbers at 12, 3, 6, 9 — dots at the other hours
+  const hourMarkers = Array.from({ length: 12 }, (_, i) => {
     const a = (i / 12) * 2 * Math.PI - Math.PI / 2;
     const main = i % 3 === 0;
     if (main) {
       const label = i === 0 ? '12' : String(i);
-      const r = R_FACE - 5;
+      const r = R_FACE - 6;
       const x = (CX + r * Math.cos(a)).toFixed(1), y = (CY + r * Math.sin(a)).toFixed(1);
       return `<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle"
-        font-size="5.5" font-family="system-ui,sans-serif" fill="rgba(255,255,255,0.5)">${label}</text>`;
+        font-size="8" font-family="system-ui,sans-serif" fill="rgba(255,255,255,0.5)">${label}</text>`;
     }
-    const r = R_FACE - 3.5;
-    return `<circle cx="${(CX + r * Math.cos(a)).toFixed(1)}" cy="${(CY + r * Math.sin(a)).toFixed(1)}" r="1" fill="rgba(255,255,255,0.2)"/>`;
+    const r = R_FACE - 4;
+    return `<circle cx="${(CX + r * Math.cos(a)).toFixed(1)}" cy="${(CY + r * Math.sin(a)).toFixed(1)}" r="1.2" fill="rgba(255,255,255,0.2)"/>`;
   }).join('');
 
   // Sun arcs — split at fromHour: past = dim, future = bright
@@ -62,43 +63,35 @@ function renderSunDial(v, dateStr, fromHour) {
     return parts.join('');
   }).join('');
 
-  // Clock hands
-  const hourA = h12a(fromHour);
-  const minA  = ((fromHour % 1)) * 2 * Math.PI - Math.PI / 2;
-  const hx = (CX + 11 * Math.cos(hourA)).toFixed(1), hy = (CY + 11 * Math.sin(hourA)).toFixed(1);
-  const mx = (CX + 16 * Math.cos(minA)).toFixed(1),  my = (CY + 16 * Math.sin(minA)).toFixed(1);
-
-  // Last-sun pointer: line from arc edge outward + label
+  // Last-sun pointer: tick line only — label rendered as HTML outside the SVG
   const lastFuture = [...windows].reverse().find(w => w.end > fromHour);
   let pointerEl = '';
   if (lastFuture) {
     const pa = h12a(lastFuture.end);
-    const px1 = (CX + (R_ARC + 1) * Math.cos(pa)).toFixed(1);
-    const py1 = (CY + (R_ARC + 1) * Math.sin(pa)).toFixed(1);
-    const px2 = (CX + (R_ARC + 7) * Math.cos(pa)).toFixed(1);
-    const py2 = (CY + (R_ARC + 7) * Math.sin(pa)).toFixed(1);
-    // Label anchored beyond the tick line
-    const lx = (CX + (R_ARC + 10) * Math.cos(pa)).toFixed(1);
-    const ly = (CY + (R_ARC + 10) * Math.sin(pa)).toFixed(1);
-    const anchor = Math.cos(pa) > 0.2 ? 'start' : Math.cos(pa) < -0.2 ? 'end' : 'middle';
-    pointerEl = `
-      <line x1="${px1}" y1="${py1}" x2="${px2}" y2="${py2}" stroke="rgba(255,184,0,0.7)" stroke-width="1.2" stroke-linecap="round"/>
-      <text x="${lx}" y="${ly}" text-anchor="${anchor}" dominant-baseline="middle"
-        font-size="5" font-family="system-ui,sans-serif" fill="rgba(255,184,0,0.85)">${formatHour(lastFuture.end)}</text>`;
+    const px1 = (CX + (R_ARC + 1) * Math.cos(pa)).toFixed(1), py1 = (CY + (R_ARC + 1) * Math.sin(pa)).toFixed(1);
+    const px2 = (CX + (R_ARC + 7) * Math.cos(pa)).toFixed(1), py2 = (CY + (R_ARC + 7) * Math.sin(pa)).toFixed(1);
+    pointerEl = `<line x1="${px1}" y1="${py1}" x2="${px2}" y2="${py2}" stroke="rgba(255,184,0,0.8)" stroke-width="1.5" stroke-linecap="round"/>`;
   }
 
-  const svg = `<svg class="sun-dial" width="${SIZE}" height="${SIZE}" viewBox="-10 -10 ${SIZE+20} ${SIZE+20}" aria-hidden="true">
+  // Clock hands
+  const hourA = h12a(fromHour);
+  const minA  = (fromHour % 1) * 2 * Math.PI - Math.PI / 2;
+  const hx = (CX + 13 * Math.cos(hourA)).toFixed(1), hy = (CY + 13 * Math.sin(hourA)).toFixed(1);
+  const mx = (CX + 20 * Math.cos(minA)).toFixed(1),  my = (CY + 20 * Math.sin(minA)).toFixed(1);
+
+  const svg = `<svg class="sun-dial" width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}" aria-hidden="true">
     <circle cx="${CX}" cy="${CY}" r="${R_FACE}" fill="rgba(0,0,0,0.2)"/>
     <circle cx="${CX}" cy="${CY}" r="${R_ARC}" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="${SW_ARC}"/>
     ${sunArcs}
-    ${hourLabels}
+    ${hourMarkers}
     ${pointerEl}
     <line x1="${CX}" y1="${CY}" x2="${hx}" y2="${hy}" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.9"/>
     <line x1="${CX}" y1="${CY}" x2="${mx}" y2="${my}" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
-    <circle cx="${CX}" cy="${CY}" r="2" fill="white" opacity="0.9"/>
+    <circle cx="${CX}" cy="${CY}" r="2.5" fill="white" opacity="0.9"/>
   </svg>`;
 
-  return { svg, label: '' };
+  const label = lastFuture ? `until ${formatHour(lastFuture.end)}` : '';
+  return { svg, label };
 }
 
 // ── Timeline strip ────────────────────────────────────────────────────────────
