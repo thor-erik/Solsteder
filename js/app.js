@@ -371,22 +371,28 @@ function advanceDay(delta, setHour) {
 }
 
 // ── Sun curve click → set time ────────────────────────────────────────────────
-function handleSunCurveClick(e) {
-  const rect  = e.currentTarget.getBoundingClientRect();
-  const x     = e.clientX - rect.left;
+// ── Arc canvas time interaction ───────────────────────────────────────────────
+let _arcDragging = false;
+
+function _arcSetTimeFromX(clientX) {
+  const canvasEl = document.getElementById('sun-curve');
+  if (!canvasEl) return;
+  const rect  = canvasEl.getBoundingClientRect();
   const PAD_X = 38, MIN_H = 4, MAX_H = 23;
-  const t     = MIN_H + (x - PAD_X) / (rect.width - PAD_X * 2) * (MAX_H - MIN_H);
+  const t     = MIN_H + (clientX - rect.left - PAD_X) / (rect.width - PAD_X * 2) * (MAX_H - MIN_H);
   const hour  = Math.max(MIN_H, Math.min(MAX_H, t));
   if (nowMode) {
     nowMode = false;
-    nowBtn.classList.remove('active');
-    timeRangeWrap.classList.remove('now-active');
+    nowBtn?.classList.remove('active');
+    timeRangeWrap?.classList.remove('now-active');
     clearInterval(nowInterval); nowInterval = null;
   }
   setActiveIntentBtn(null);
   timeFromEl.value = hour;
   update();
 }
+
+function handleSunCurveClick(e) { _arcSetTimeFromX(e.clientX); }
 
 // ── Main update cycle ─────────────────────────────────────────────────────────
 function update() {
@@ -422,6 +428,10 @@ function update() {
     sunBg.style.width   = Math.max(0, ep - sp).toFixed(2) + '%';
     sunBg.style.display = 'block';
   } else if (sunBg) { sunBg.style.display = 'none'; }
+
+  // Arc time display
+  const arcTimeEl = document.getElementById('arc-time-display');
+  if (arcTimeEl) arcTimeEl.textContent = formatHour(fromHour);
 
   draw();
   drawSunCompass();
@@ -704,6 +714,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Position intent pill after layout settles
   setTimeout(positionIntentPill, 50);
+
+  // Arc canvas drag support
+  const arcEl = document.getElementById('sun-curve');
+  if (arcEl) {
+    arcEl.addEventListener('mousedown',  e => { _arcDragging = true;  _arcSetTimeFromX(e.clientX); });
+    arcEl.addEventListener('touchstart', e => { e.preventDefault(); _arcSetTimeFromX(e.touches[0].clientX); }, { passive: false });
+    arcEl.addEventListener('touchmove',  e => { e.preventDefault(); _arcSetTimeFromX(e.touches[0].clientX); }, { passive: false });
+  }
+  document.addEventListener('mousemove', e => { if (_arcDragging) _arcSetTimeFromX(e.clientX); });
+  document.addEventListener('mouseup',   () => { _arcDragging = false; });
 
   // Request location on load so distance shows in cards without needing to sort by distance
   if (navigator.geolocation) {

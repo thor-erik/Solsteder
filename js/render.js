@@ -421,24 +421,31 @@ function drawSunCurve(canvasEl) {
     c.beginPath();
     c.moveTo(timeToX(above[0].t), altToY(above[0].alt));
     above.forEach(s => c.lineTo(timeToX(s.t), altToY(s.alt)));
-    c.strokeStyle = 'rgba(255,184,0,0.75)'; c.lineWidth = 1.5; c.stroke();
+    c.strokeStyle = 'rgba(255,184,0,0.9)'; c.lineWidth = 2; c.stroke();
   }
 
-  // Sunrise / sunset tick labels
+  // Hour labels along bottom axis
   const sunrise = findSunCrossingFromTable(currentSunTable, true);
   const sunset  = findSunCrossingFromTable(currentSunTable, false);
   c.font = '9px "Inter", sans-serif';
   c.textAlign = 'center'; c.textBaseline = 'top';
+  // Sunrise + sunset with ticks
   [{ t: sunrise, label: formatHour(sunrise) }, { t: sunset, label: formatHour(sunset) }].forEach(({ t, label }) => {
     if (t == null) return;
     const tx = timeToX(t);
-    c.beginPath(); c.moveTo(tx, horizY - 3); c.lineTo(tx, horizY + 4);
-    c.strokeStyle = 'rgba(255,184,0,0.5)'; c.lineWidth = 1; c.stroke();
-    c.fillStyle = 'rgba(255,184,0,0.8)';
+    c.beginPath(); c.moveTo(tx, horizY - 2); c.lineTo(tx, horizY + 4);
+    c.strokeStyle = 'rgba(255,184,0,0.45)'; c.lineWidth = 1; c.stroke();
+    c.fillStyle = 'rgba(255,184,0,0.7)';
     c.fillText(label, tx, horizY + 6);
   });
+  // Hour marks 6 / 9 / 12 / 15 / 18
+  c.fillStyle = 'rgba(221,226,242,0.22)';
+  [6, 9, 12, 15, 18].forEach(h => {
+    const tx = timeToX(h);
+    c.fillText(String(h).padStart(2, '0') + ':00', tx, horizY + 6);
+  });
 
-  // Current time marker
+  // Current time marker — large glowing sun circle
   const fromH = parseFloat(timeFromEl.value);
   if (fromH >= MIN_H && fromH <= MAX_H) {
     const curSun = getSunFromTable(currentSunTable, fromH);
@@ -446,19 +453,29 @@ function drawSunCurve(canvasEl) {
     const my = altToY(Math.max(0, curSun.alt));
     const isSun = curSun.alt > 0;
 
-    c.beginPath(); c.moveTo(mx, my); c.lineTo(mx, horizY);
-    c.strokeStyle = 'rgba(255,255,255,0.15)'; c.lineWidth = 1;
-    c.setLineDash([2, 3]); c.stroke(); c.setLineDash([]);
+    // Dashed vertical drop line
+    c.beginPath(); c.moveTo(mx, my + 8); c.lineTo(mx, horizY);
+    c.strokeStyle = 'rgba(255,255,255,0.12)'; c.lineWidth = 1;
+    c.setLineDash([2, 4]); c.stroke(); c.setLineDash([]);
 
-    const glow = c.createRadialGradient(mx, my, 0, mx, my, 8);
-    glow.addColorStop(0, isSun ? 'rgba(255,184,0,0.6)' : 'rgba(100,130,200,0.5)');
+    // Outer glow
+    const glow = c.createRadialGradient(mx, my, 0, mx, my, 20);
+    glow.addColorStop(0, isSun ? 'rgba(255,184,0,0.45)' : 'rgba(100,130,200,0.3)');
     glow.addColorStop(1, 'rgba(0,0,0,0)');
-    c.beginPath(); c.arc(mx, my, 8, 0, Math.PI * 2);
+    c.beginPath(); c.arc(mx, my, 20, 0, Math.PI * 2);
     c.fillStyle = glow; c.fill();
 
-    c.beginPath(); c.arc(mx, my, 3, 0, Math.PI * 2);
+    // Main circle — filled amber
+    c.beginPath(); c.arc(mx, my, 7, 0, Math.PI * 2);
     c.fillStyle = isSun ? '#FFB800' : '#6080C8'; c.fill();
-    c.strokeStyle = 'rgba(255,255,255,0.9)'; c.lineWidth = 1.5; c.stroke();
+
+    // White highlight ring
+    c.beginPath(); c.arc(mx, my, 7, 0, Math.PI * 2);
+    c.strokeStyle = 'rgba(255,255,255,0.75)'; c.lineWidth = 1.5; c.stroke();
+
+    // Small white centre dot
+    c.beginPath(); c.arc(mx, my, 2, 0, Math.PI * 2);
+    c.fillStyle = 'rgba(255,255,255,0.9)'; c.fill();
   }
 
   c.restore();

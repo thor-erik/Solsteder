@@ -12,15 +12,15 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg: #1a1a2e;
-    --panel: #16213e;
+    --bg: #0d131e;
+    --panel: #0f1520;
     --accent: #FFB800;
     --accent-dim: rgba(255,184,0,0.15);
-    --text: #f0e6d3;
+    --text: #dde2f2;
     --muted: #8a9ab0;
-    --card-bg: #1e2d4a;
-    --border: rgba(255,184,0,0.2);
-    --pill-bg: rgba(16,22,38,0.92);
+    --card-bg: rgba(22,28,39,0.5);
+    --border: rgba(255,184,0,0.15);
+    --pill-bg: rgba(10,14,22,0.94);
   }
 
   html, body {
@@ -58,11 +58,11 @@
 
   /* ── Shared floating card base ────────────────────────────────────────────── */
   .floating-card {
-    background: rgba(22,33,62,0.88);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255,184,0,0.13);
-    border-radius: 14px;
+    background: rgba(11,16,26,0.92);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 20px;
     padding: 10px 14px;
   }
 
@@ -131,21 +131,43 @@
     border-radius: 50%;
   }
 
+  /* Arc info row: date nav + time display */
+  #arc-info-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 8px 0 0;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  #arc-date-nav {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  #arc-time-display {
+    font-family: 'Newsreader', serif;
+    font-style: italic;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+    letter-spacing: -0.5px;
+  }
+
   /* Sun arc canvas row */
   #bottom-arc-row {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin: 10px 0 0;
-    padding-top: 10px;
-    border-top: 1px solid rgba(255,255,255,0.06);
+    margin: 8px 0 0;
   }
   #sun-curve {
     flex: 1;
-    height: 72px;
+    height: 96px;
     display: block;
     min-width: 0;
-    cursor: pointer;
+    cursor: crosshair;
   }
 
   /* Weather pill — right of sun arc */
@@ -415,11 +437,11 @@
     left: 16px;
     bottom: 16px;
     width: 336px;
-    background: rgba(22,33,62,0.88);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255,184,0,0.13);
-    border-radius: 16px;
+    background: rgba(11,16,26,0.92);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 20px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -519,26 +541,25 @@
   #area-chips::-webkit-scrollbar { display: none; }
   .area-chip {
     background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.08);
     border-radius: 20px;
-    color: var(--muted);
+    color: rgba(221,226,242,0.45);
     font-family: 'Inter', sans-serif;
-    font-size: 11px;
-    font-weight: 500;
-    padding: 4px 11px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 12px;
     cursor: pointer;
     white-space: nowrap;
     flex-shrink: 0;
     transition: all 0.15s;
   }
-  .area-chip:hover:not(.active) {
-    border-color: rgba(255,184,0,0.3);
-    color: var(--text);
-  }
+  .area-chip:hover:not(.active) { color: rgba(221,226,242,0.75); border-color: rgba(255,184,0,0.25); }
   .area-chip.active {
-    background: var(--accent-dim);
+    background: var(--accent);
     border-color: var(--accent);
-    color: var(--accent);
+    color: #0d131e;
   }
 
   /* Venue list header: count + map-view (left) · sort buttons (right) */
@@ -593,19 +614,21 @@
   }
   .sort-btn {
     background: none;
-    border: 1px solid transparent;
+    border: none;
     border-radius: 6px;
-    color: var(--muted);
+    color: rgba(221,226,242,0.4);
     font-family: 'Inter', sans-serif;
-    font-size: 11px;
-    font-weight: 500;
-    padding: 3px 8px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 8px;
     cursor: pointer;
     transition: all 0.15s;
     white-space: nowrap;
   }
-  .sort-btn:hover:not(.active) { color: var(--text); border-color: rgba(255,255,255,0.12); }
-  .sort-btn.active { color: var(--accent); border-color: rgba(255,184,0,0.3); }
+  .sort-btn:hover:not(.active) { color: rgba(221,226,242,0.75); }
+  .sort-btn.active { background: var(--accent); color: #0d131e; border-radius: 6px; }
 
   /* Legacy class — keep for any remaining references */
   .filter-toggle-btn {
@@ -1466,32 +1489,27 @@
         </div>
         <canvas id="sun-compass" width="44" height="44"></canvas>
       </div>
-      <!-- Row 2: sun arc curve + current weather pill -->
+      <!-- Row 2: date nav + time display -->
+      <div id="arc-info-row">
+        <div id="arc-date-nav">
+          <button class="day-nav-btn" onclick="advanceDay(-1)">‹</button>
+          <input type="date" id="date-picker">
+          <button class="day-nav-btn" onclick="advanceDay(1)">›</button>
+        </div>
+        <span id="arc-time-display">—</span>
+      </div>
+      <!-- Row 3: sun arc canvas -->
       <div id="bottom-arc-row">
         <canvas id="sun-curve" onclick="handleSunCurveClick(event)"></canvas>
         <div id="wx-now"></div>
       </div>
-      <!-- Row 3: date navigation + time slider -->
-      <div class="bottom-controls-row">
-        <div class="control-row">
-          <span class="control-label">Date</span>
-          <button class="day-nav-btn" onclick="advanceDay(-1)" title="Previous day">‹</button>
-          <input type="date" id="date-picker">
-          <button class="day-nav-btn" onclick="advanceDay(1)" title="Next day">›</button>
-        </div>
-        <div class="control-row">
-          <span class="control-label">Time</span>
-          <div class="time-range-wrap" id="time-range-wrap">
-            <div class="time-range-sun-bg" id="time-range-sun-bg"></div>
-            <div class="time-range-track-bg"></div>
-            <input type="range" id="time-from" min="4" max="23" step="0.25" value="10">
-            <div class="time-display-row">
-              <span id="time-display-from">10:00</span>
-            </div>
-          </div>
-          <button id="now-btn" onclick="toggleNowMode()" style="display:none">Now</button>
-        </div>
+      <!-- Hidden time input — keeps the rest of the app working unchanged -->
+      <input type="range" id="time-from" min="4" max="23" step="0.25" value="10" style="display:none">
+      <span id="time-display-from" style="display:none"></span>
+      <div id="time-range-wrap" style="display:none">
+        <div id="time-range-sun-bg"></div>
       </div>
+      <button id="now-btn" onclick="toggleNowMode()" style="display:none">Now</button>
     </div>
   </div>
 
