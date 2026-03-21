@@ -482,14 +482,55 @@ function renderList() {
     });
   }
 
+  // ── After-sunset state: real clock vs actual sunset, today only ───────────
+  const isToday     = dateStr === todayStr();
+  const sunsetH     = currentSunTable ? findSunCrossingFromTable(currentSunTable, false) : null;
+  const realNow     = new Date().getHours() + new Date().getMinutes() / 60;
+  const isAfterSunset = isToday && sunsetH != null && realNow > sunsetH;
+
+  // Freeze / unfreeze arc interaction
+  document.getElementById('floating-bottom')?.classList.toggle('arc-frozen', isAfterSunset);
+
+  if (isAfterSunset) {
+    if (_listObserver) { _listObserver.disconnect(); _listObserver = null; }
+    list.innerHTML = '';
+    // Banner
+    const banner = document.createElement('div');
+    banner.id = 'no-sun-banner';
+    banner.innerHTML = `<span>Sun has set for today</span><button onclick="advanceDay(1, 12)">Tomorrow →</button>`;
+    list.appendChild(banner);
+    // Skeleton cards
+    const nameW = [60, 75, 48, 68, 52, 82, 44];
+    const metaW = [38, 52, 32, 46, 56, 28, 62];
+    for (let i = 0; i < 7; i++) {
+      const card = document.createElement('div');
+      card.className = 'venue-card skeleton';
+      card.innerHTML = `
+        <div class="card-body">
+          <div class="skel skel-watch"></div>
+          <div class="card-content">
+            <div class="card-top-row">
+              <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+                <div class="skel skel-line" style="width:${nameW[i]}%"></div>
+                <div class="skel skel-line" style="width:${metaW[i]}%;height:7px"></div>
+              </div>
+              <div class="skel skel-score-block"></div>
+            </div>
+          </div>
+        </div>`;
+      list.appendChild(card);
+    }
+    // Count label
+    const countEl = document.getElementById('venue-count');
+    if (countEl) { countEl.textContent = '—'; countEl.className = ''; }
+    return;
+  }
+
   if (venues.length === 0) {
     if (_listObserver) { _listObserver.disconnect(); _listObserver = null; }
     list.innerHTML = `<div style="color:var(--muted);font-size:13px;text-align:center;padding:30px 10px;">No venues match your filters</div>`;
     return;
   }
-
-  // Determine if a "Try tomorrow" nudge is appropriate
-  const isAfterSunset = currentSun && currentSun.alt < -3 && fromHour > 16;
 
   // ── Render first page, observer handles the rest ──────────────────────────
   _listFiltered = venues;
@@ -507,15 +548,5 @@ function renderList() {
       countEl.textContent = `${openCount} open`;
       countEl.className = '';
     }
-  }
-
-  // "Try tomorrow" nudge when the sun has set for today
-  const existingBanner = document.getElementById('no-sun-banner');
-  if (existingBanner) existingBanner.remove();
-  if (isAfterSunset && sunCount === 0) {
-    const banner = document.createElement('div');
-    banner.id = 'no-sun-banner';
-    banner.innerHTML = `<span>☁ Sun has set for today</span><button onclick="advanceDay(1, 12)">Tomorrow →</button>`;
-    list.prepend(banner);
   }
 }

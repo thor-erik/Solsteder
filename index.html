@@ -859,6 +859,33 @@
     filter: drop-shadow(0 1px 4px rgba(0,0,0,0.4));
   }
 
+  /* ── Skeleton placeholder cards (after-sunset state) ─────────────── */
+  .venue-card.skeleton {
+    pointer-events: none;
+    opacity: 0.28;
+    animation: none;
+  }
+  .skel {
+    background: rgba(81,69,50,0.25);
+    border-radius: 4px;
+  }
+  .skel-watch {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .skel-line { height: 9px; border-radius: 3px; }
+  .skel-score-block {
+    width: 28px; height: 36px;
+    border-radius: 6px;
+    flex-shrink: 0;
+    align-self: center;
+  }
+
+  /* ── Arc frozen state (after sunset, today only) ──────────────────── */
+  .arc-frozen #bottom-arc-row  { pointer-events: none; opacity: 0.35; }
+  .arc-frozen #time-presets-row { pointer-events: none; opacity: 0.35; }
+
   /* ── Expanded section (visible when .selected) ─────────────────────── */
   .card-expanded {
     overflow: hidden;
