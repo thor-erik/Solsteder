@@ -79,7 +79,7 @@
   }
   #search-icon {
     color: var(--muted);
-    font-size: 17px;
+    font-size: 20px;
     flex-shrink: 0;
     line-height: 1;
   }
@@ -481,8 +481,7 @@
   #intent-pill {
     position: absolute;
     top: 0; bottom: 0;
-    background: rgba(255,184,0,0.15);
-    border: 1px solid var(--accent);
+    background: var(--accent);
     border-radius: 8px;
     transition: left 0.22s cubic-bezier(0.34,1.56,0.64,1), width 0.22s cubic-bezier(0.34,1.56,0.64,1);
     pointer-events: none;
@@ -491,21 +490,23 @@
   .intent-btn {
     flex: 1;
     background: transparent;
-    border: 1px solid transparent;
+    border: none;
     border-radius: 8px;
-    color: var(--muted);
+    color: rgba(221,226,242,0.45);
     font-family: 'Inter', sans-serif;
-    font-size: 12px;
-    font-weight: 500;
-    padding: 7px 4px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 8px 4px;
     cursor: pointer;
     transition: color 0.15s;
     white-space: nowrap;
     position: relative;
     z-index: 1;
   }
-  .intent-btn:hover:not(.active) { color: var(--text); }
-  .intent-btn.active { color: var(--accent); font-weight: 600; }
+  .intent-btn:hover:not(.active) { color: rgba(221,226,242,0.75); }
+  .intent-btn.active { color: #0d131e; }
 
   /* Area chips */
   #area-chips {
@@ -646,29 +647,29 @@
   }
 
   .venue-card {
-    background: var(--card-bg);
-    border-radius: 12px;
+    background: rgba(22,28,39,0.5);
+    border-radius: 16px;
     padding: 13px 14px;
     margin-bottom: 8px;
     cursor: pointer;
-    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s;
-    border-left: 3px solid transparent;
+    transition: border-color 0.15s ease, opacity 0.2s;
+    border: 1px solid rgba(255,255,255,0.05);
     position: relative;
     animation: cardIn 0.18s ease-out;
     will-change: opacity;
   }
 
   .venue-card:hover {
-    transform: translateX(-2px);
-    box-shadow: 2px 4px 16px rgba(0,0,0,0.3);
+    border-color: rgba(255,184,0,0.2);
   }
 
   .venue-card.sunny {
-    border-left-color: var(--accent);
+    border-color: rgba(255,184,0,0.15);
   }
 
   .venue-card.selected {
-    box-shadow: 0 0 0 1px var(--accent), 2px 4px 16px rgba(0,0,0,0.4);
+    border-color: rgba(255,184,0,0.5);
+    background: rgba(22,28,39,0.7);
   }
 
   .venue-card.dimmed {

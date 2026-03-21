@@ -5,12 +5,33 @@
  */
 
 // ── Short venue name helper ───────────────────────────────────────────────────
-/** Short name: first meaningful word(s), max 12 chars */
+// Strip trailing category/location words but preserve numbers (e.g. "Skur 33").
+const _STRIP_CATEGORY = new Set([
+  'restaurant', 'bistrobar', 'bistro', 'gastropub', 'pub', 'bar',
+  'café', 'cafe', 'brasserie', 'grill', 'kitchen', 'mat', 'spiseri', 'kro',
+]);
+const _STRIP_AREA = new Set([
+  'oslo', 'frogner', 'tjuvholmen', 'sentrum', 'bislett',
+  'grünerløkka', 'majorstuen', 'grønland', 'tøyen', 'løkka',
+  'aker brygge', 'st. hanshaugen',
+]);
+
 function shortName(name) {
-  const words = name.split(/\s+/);
-  let out = words[0];
-  if (out.length < 4 && words[1]) out += ' ' + words[1];
-  return out.length > 12 ? out.slice(0, 11) + '…' : out;
+  const words = name.trim().split(/\s+/);
+  let end = words.length;
+  while (end > 1) {
+    const last  = words[end - 1].toLowerCase();
+    if (/^\d/.test(last)) break;                               // never strip numbers
+    if (_STRIP_CATEGORY.has(last)) { end--; continue; }
+    if (_STRIP_AREA.has(last))     { end--; continue; }
+    if (end > 1) {                                             // two-word area phrase
+      const two = (words[end - 2] + ' ' + last).toLowerCase();
+      if (_STRIP_AREA.has(two)) { end -= 2; continue; }
+    }
+    break;
+  }
+  const result = words.slice(0, end).join(' ');
+  return result.length > 14 ? result.slice(0, 13) + '…' : result;
 }
 
 // ── Terrace wall helpers ──────────────────────────────────────────────────────
@@ -126,7 +147,10 @@ function buildSprite(v, state, selected, hour, dateStr) {
     alpha       = 0.88;
 
   } else if (state === 'sunny') {
-    label       = shortName(v.name);
+    const ss = (hour !== undefined && dateStr && typeof sunScore === 'function')
+      ? Math.round(sunScore(v, dateStr, hour))
+      : null;
+    label     = ss != null ? `${shortName(v.name)} · ${ss}` : shortName(v.name);
     fillColor   = '#FFB800';
     strokeColor = 'rgba(255,230,120,0.55)';
     textColor   = '#1a1a2e';

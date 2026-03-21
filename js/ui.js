@@ -358,7 +358,7 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
         </div>
         <div class="card-content">
           <div class="card-top-row">
-            <div class="card-name">${catIcon(v)} ${v.name}</div>
+            <div class="card-name">${v.name}</div>
             ${s ? `<div class="card-score-num ${tier}">${s.total}<span>score</span></div>` : ''}
           </div>
           <span class="card-badge ${cardBadgeCls}">${cardBadgeText}</span>
