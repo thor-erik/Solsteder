@@ -177,11 +177,27 @@
   .wind-tag.sheltered { color: #64ffb4; opacity: 0.85; }
   .wind-tag.exposed   { color: #ffaa55; }
 
-  /* Noise level in detail panel score breakdown */
-  .dp-noise { opacity: 0.9; }
-  .dp-noise.noise-high { color: #ff8a8a; }
-  .dp-noise.noise-mid  { color: #f0b46a; }
-  .dp-noise.noise-low  { color: #7dd87d; }
+  /* ── Environment section chips (noise + wind shelter) ──────────────────── */
+  .dp-env-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 2px;
+  }
+  .dp-env-chip {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    letter-spacing: 0.02em;
+  }
+  .dp-env-chip.noise-high { color: #ff8a8a; background: rgba(255,138,138,0.1); border-color: rgba(255,138,138,0.22); }
+  .dp-env-chip.noise-mid  { color: #f0b46a; background: rgba(240,180,106,0.1); border-color: rgba(240,180,106,0.22); }
+  .dp-env-chip.noise-low  { color: #7dd87d; background: rgba(125,216,125,0.1); border-color: rgba(125,216,125,0.22); }
+  .dp-env-chip.env-sheltered { color: #64ffb4; background: rgba(100,255,180,0.08); border-color: rgba(100,255,180,0.2); }
+  .dp-env-chip.env-partial   { color: #a8d8a8; background: rgba(168,216,168,0.08); border-color: rgba(168,216,168,0.18); }
+  .dp-env-chip.env-exposed   { color: #ffaa55; background: rgba(255,170,85,0.08);  border-color: rgba(255,170,85,0.2);  }
 
   /* ── Score badge ──────────────────────────────────────────────────── */
   .score-badge {

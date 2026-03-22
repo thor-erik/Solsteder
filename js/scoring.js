@@ -96,14 +96,25 @@ function distanceScore(v, userLoc) {
 }
 
 // ── computeVenueScore ─────────────────────────────────────────────────────────
+// ── noiseScore (0–100) ────────────────────────────────────────────────────────
+// Converts official Geonorge zone (preferred) or OSM proximity estimate to score.
+function noiseScore(v) {
+  if (v.noiseZone === 'red')    return 15;  // Lden > 65 dB — clearly noisy
+  if (v.noiseZone === 'yellow') return 52;  // Lden 55–65 dB — moderate
+  if (v.noiseZone === 'none')   return 88;  // Lden < 55 dB — below threshold
+  if (v.noiseScore != null)     return Math.round(100 * Math.max(0, 1 - v.noiseScore * 1.3));
+  return 50; // neutral when no data
+}
+
 /**
  * Compute the composite score for a venue at a given time.
- * @param {Object}  v        — venue (needs .facing, .lat, .lng)
+ * Weights: sun×0.45  comfort×0.30  distance×0.15  noise×0.10
+ * @param {Object}  v        — venue (needs .facing, .lat, .lng, .noiseZone?)
  * @param {string}  dateStr  — "YYYY-MM-DD"
  * @param {number}  hour     — float hours (e.g. 14.5 = 14:30)
  * @param {Object}  wx       — WeatherSlot from getWeatherAt(), or null
  * @param {Object}  userLoc  — {lat, lng} or null
- * @returns {{ total, sun, comfort, distance, feelsLikeTemp, shelter }}
+ * @returns {{ total, sun, comfort, distance, noise, feelsLikeTemp, shelter }}
  */
 function computeVenueScore(v, dateStr, hour, wx, userLoc) {
   const sun     = sunScore(v, dateStr, hour);
@@ -112,7 +123,8 @@ function computeVenueScore(v, dateStr, hour, wx, userLoc) {
     ? comfortScore(wx.temp, wx.wspd, shelter, wx.humidity)
     : 50;
   const dist    = distanceScore(v, userLoc);
-  const total   = Math.round(sun * 0.50 + comfort * 0.35 + dist * 0.15);
+  const noise   = noiseScore(v);
+  const total   = Math.round(sun * 0.45 + comfort * 0.30 + dist * 0.15 + noise * 0.10);
   const fl      = wx
     ? feelsLike(wx.temp, wx.wspd * (1 - shelter), wx.humidity)
     : null;
@@ -135,6 +147,7 @@ function computeVenueScore(v, dateStr, hour, wx, userLoc) {
     sun:          Math.round(sun),
     comfort:      Math.round(comfort),
     distance:     Math.round(dist),
+    noise:        Math.round(noise),
     distKm,
     feelsLikeTemp: fl != null ? Math.round(fl) : null,
     shelter,

@@ -616,23 +616,31 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
 
   const timeline = renderTimeline(v, dateStr, fromHour, fromHour);
 
-  const shelterStr = s?.shelter != null
-    ? s.shelter > 0.6 ? '🛡 Well sheltered'
-    : s.shelter > 0.3 ? '🛡 Partly sheltered'
-    : '💨 Exposed to wind'
+  // Noise chip — prefer official Geonorge zone, fall back to OSM estimate
+  const noiseChip = v.noiseZone != null
+    ? v.noiseZone === 'red'    ? { label: 'High traffic noise',     cls: 'noise-high', icon: '🔊' }
+    : v.noiseZone === 'yellow' ? { label: 'Moderate noise',         cls: 'noise-mid',  icon: '🔉' }
+    :                            { label: 'Low noise level',         cls: 'noise-low',  icon: '🔈' }
+    : v.noiseScore != null
+    ? v.noiseScore > 0.65 ? { label: 'Noisy (est.)',           cls: 'noise-high', icon: '🔊' }
+    : v.noiseScore > 0.35 ? { label: 'Some traffic (est.)',    cls: 'noise-mid',  icon: '🔉' }
+    :                        { label: 'Quiet (est.)',           cls: 'noise-low',  icon: '🔈' }
     : null;
 
-  // Prefer official Geonorge data (noiseZone) over OSM proximity estimate (noiseScore)
-  const noiseInfo = v.noiseZone != null
-    ? v.noiseZone === 'red'    ? { label: 'High traffic noise',  cls: 'noise-high' }
-    : v.noiseZone === 'yellow' ? { label: 'Moderate noise',      cls: 'noise-mid'  }
-    :                            { label: 'Low noise level',      cls: 'noise-low'  }
-    : v.noiseScore != null
-    ? v.noiseScore > 0.65 ? { label: 'Noisy (est.)',         cls: 'noise-high' }
-    : v.noiseScore > 0.35 ? { label: 'Some traffic (est.)',  cls: 'noise-mid'  }
-    : v.noiseScore > 0.12 ? { label: 'Quiet (est.)',         cls: 'noise-low'  }
-    :                        { label: 'Very quiet (est.)',    cls: 'noise-low'  }
+  // Wind shelter chip
+  const shelterChip = s?.shelter != null
+    ? s.shelter > 0.6 ? { label: 'Well sheltered',   cls: 'env-sheltered', icon: '🛡' }
+    : s.shelter > 0.3 ? { label: 'Some shelter',      cls: 'env-partial',   icon: '🛡' }
+    :                   { label: 'Exposed to wind',   cls: 'env-exposed',   icon: '💨' }
     : null;
+
+  const envSection = (noiseChip || shelterChip) ? `
+    <div class="dp-divider"></div>
+    <div class="dp-section-label">Environment</div>
+    <div class="dp-env-row">
+      ${noiseChip   ? `<div class="dp-env-chip ${noiseChip.cls}">${noiseChip.icon} ${noiseChip.label}</div>` : ''}
+      ${shelterChip ? `<div class="dp-env-chip ${shelterChip.cls}">${shelterChip.icon} ${shelterChip.label}</div>` : ''}
+    </div>` : '';
 
   const scoreHtml = s ? `
     <div class="dp-divider"></div>
@@ -642,8 +650,7 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
         <span>☀ Sun ${s.sun}</span>
         <span>🌡 Comfort ${s.comfort}</span>
         <span>⊙ Distance ${s.distance}</span>
-        ${shelterStr ? `<span>${shelterStr}</span>` : ''}
-        ${noiseInfo   ? `<span class="dp-noise ${noiseInfo.cls}">🔊 ${noiseInfo.label}</span>` : ''}
+        ${s.noise != null ? `<span>🔊 Noise ${s.noise}</span>` : ''}
       </div>
     </div>` : '';
 
@@ -682,6 +689,7 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       <div class="dp-section-label">Sun today</div>
       ${timeline}
       ${scoreHtml}
+      ${envSection}
       <div class="dp-divider"></div>
       <div class="dp-section-label">Busyness</div>
       ${renderBusynessChart(v, dateStr, fromHour)}
