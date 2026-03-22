@@ -270,9 +270,12 @@ function bearingToCardinal(deg) {
 
 // ── Canvas resize + map sync ──────────────────────────────────────────────────
 function resizeCanvas() {
+  const dpr = window.devicePixelRatio || 1;
   const c = document.getElementById('map-container');
-  canvas.width  = c.offsetWidth;
-  canvas.height = c.offsetHeight;
+  canvas.width  = Math.round(c.offsetWidth  * dpr);
+  canvas.height = Math.round(c.offsetHeight * dpr);
+  canvas.style.width  = c.offsetWidth  + 'px';
+  canvas.style.height = c.offsetHeight + 'px';
 }
 
 resizeCanvas();
@@ -527,8 +530,9 @@ function drawBuildingEditor() {
   const v = VENUES.find(x => x.id === editingVenueId);
   if (!v) return;
 
+  const _dpr = window.devicePixelRatio || 1;
   ctx.fillStyle = 'rgba(10,14,28,0.58)';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, canvas.width / _dpr, canvas.height / _dpr);
 
   if (!v.buildingGeometry || !v.wallNormals) {
     const pt = map.project([v.lng, v.lat]);
@@ -1086,7 +1090,10 @@ function _drawPin(v, pt, state, currentHour, dateStr, now, visibleVenues) {
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  if (!currentSun) return;
+  const dpr = window.devicePixelRatio || 1;
+  ctx.save();
+  ctx.scale(dpr, dpr);
+  if (!currentSun) { ctx.restore(); return; }
   const now            = performance.now();
   let   needsAnimFrame = false;
 
@@ -1106,6 +1113,7 @@ function draw() {
     });
     ctx.globalAlpha = 1;
     drawBuildingEditor();
+    ctx.restore();
     return;
   }
 
@@ -1166,9 +1174,9 @@ function draw() {
     if (hEntry) {
       const { pt, spr, state } = hEntry;
       ctx.save();
-      ctx.shadowColor = state === 'sunny' ? 'rgba(255,200,0,0.7)' :
-                        state === 'soon'  ? 'rgba(255,184,0,0.5)' : 'rgba(120,170,255,0.6)';
-      ctx.shadowBlur = 18;
+      ctx.shadowColor = state === 'sunny' ? 'rgba(255,200,0,1)' :
+                        state === 'soon'  ? 'rgba(255,184,0,0.9)' : 'rgba(120,170,255,0.9)';
+      ctx.shadowBlur = 28;
       ctx.drawImage(spr.canvas, pt.x - spr.anchorX, pt.y - spr.anchorY);
       ctx.restore();
     }
@@ -1179,15 +1187,17 @@ function draw() {
     const text = `Zoom in to see ${hiddenCount} more venue${hiddenCount > 1 ? 's' : ''}`;
     ctx.font = '11px "Inter", sans-serif';
     const tw = ctx.measureText(text).width;
-    const pw = tw + 16, ph = 22, px = (canvas.width - pw) / 2, py = canvas.height - 36;
+    const cssW = canvas.width / dpr, cssH = canvas.height / dpr;
+    const pw = tw + 16, ph = 22, px = (cssW - pw) / 2, py = cssH - 36;
     ctx.fillStyle = 'rgba(16,22,38,0.82)';
     fillRoundRect(ctx, px, py, pw, ph, 11);
     ctx.fillStyle = 'rgba(240,230,211,0.7)';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(text, canvas.width / 2, py + ph / 2);
+    ctx.fillText(text, cssW / 2, py + ph / 2);
   }
 
   if (needsAnimFrame) _scheduleAnimFrame();
+  ctx.restore();
 }
 
 

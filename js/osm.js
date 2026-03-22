@@ -429,7 +429,10 @@ async function initFacings() {
   if (await tryLoadPrecomputed()) {
     clearSpriteCache();
     sunWindowCache.clear();
-    showMapToast('Building geometry loaded');
+    showMapToast('Building geometry loaded', 3000);
+    const toastEl = document.getElementById('map-toast');
+    if (toastEl) toastEl.classList.add('done');
+    setTimeout(() => { if (toastEl) toastEl.classList.remove('done'); }, 3200);
     dispatchToWorker(datePicker.value);
     draw();
     renderList();
