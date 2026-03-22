@@ -90,10 +90,12 @@ const map = new mapboxgl.Map({
   center: [10.728, 59.9125],
   zoom: 13,
   pitch: 15,
-  antialias: true
+  antialias: true,
+  attributionControl: false,
 });
 
 map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
+map.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-right');
 
 map.on('style.load', () => {
   mapLoaded = true;
