@@ -21,32 +21,58 @@ function venueHasSunInRange(v, dateStr, fromHour, toHour) {
 // Hover helpers — called by SVG arc onmouseenter/onmouseleave
 function _dialArcHover(t1, t2) {
   const e1 = document.getElementById('dp-dt1'), e2 = document.getElementById('dp-dt2');
-  if (e1) e1.textContent = t1;
-  if (e2) e2.textContent = t2;
+  if (e1) {
+    e1.textContent = t1;
+    e1.setAttribute('font-size', '30');
+    e1.setAttribute('y', '102');
+  }
+  if (e2) {
+    e2.textContent = t2;
+    e2.setAttribute('font-size', '20');
+    e2.setAttribute('letter-spacing', '0');
+    e2.setAttribute('fill', 'rgba(213,196,171,0.82)');
+    e2.setAttribute('y', '128');
+    e2.setAttribute('font-style', 'italic');
+    e2.setAttribute('font-family', 'Newsreader,serif');
+    e2.setAttribute('font-weight', '400');
+  }
 }
 function _dialArcOut() {
   const e1 = document.getElementById('dp-dt1'), e2 = document.getElementById('dp-dt2');
-  if (e1) e1.textContent = e1.dataset.d;
-  if (e2) e2.textContent = e2.dataset.d;
+  if (e1) {
+    e1.textContent = e1.dataset.d;
+    e1.setAttribute('font-size', '46');
+    e1.setAttribute('y', '100');
+  }
+  if (e2) {
+    e2.textContent = e2.dataset.d;
+    e2.setAttribute('font-size', '9');
+    e2.setAttribute('letter-spacing', '2');
+    e2.setAttribute('fill', 'rgba(213,196,171,0.4)');
+    e2.setAttribute('y', '128');
+    e2.setAttribute('font-style', 'normal');
+    e2.setAttribute('font-family', 'Inter,sans-serif');
+    e2.setAttribute('font-weight', '700');
+  }
 }
 
 function renderSunDial(v, dateStr, fromHour) {
   const { windows } = computeSunWindows(v, dateStr);
   const W = 220, H = 220, CX = 110, CY = 110, R = 88, SW = 7;
 
-  function hAngle(h) { return ((h % 12) / 12) * 2 * Math.PI - Math.PI / 2; }
+  function hAngle(h) { return (h / 24) * 2 * Math.PI - Math.PI / 2; }
   function pt(h) { const a = hAngle(h); return [CX + R * Math.cos(a), CY + R * Math.sin(a)]; }
   function arcPath(h1, h2) {
     if (Math.abs(h2 - h1) < 0.01) return '';
     const [x1, y1] = pt(h1), [x2, y2] = pt(h2);
-    const large = ((h2 - h1) + 12) % 12 > 6 ? 1 : 0;
+    const large = (h2 - h1) > 12 ? 1 : 0;
     return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${R} ${R} 0 ${large} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`;
   }
 
   // Draw arcs — each window segment gets hover handlers showing its from/to
   let arcs = '';
   for (const w of windows) {
-    const hoverArgs = `'${formatHour(w.start)}–${formatHour(w.end)}','SUN WINDOW'`;
+    const hoverArgs = `'${formatHour(w.start)}','${formatHour(w.end)}'`;
     const hover = `onmouseenter="_dialArcHover(${hoverArgs})" onmouseleave="_dialArcOut()" style="cursor:pointer"`;
     if (w.end <= fromHour) {
       const d = arcPath(w.start, w.end);
@@ -413,12 +439,14 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
     <div class="venue-card ${v.sunInWin ? 'sunny' : ''} ${v.id === selectedId ? 'selected' : ''} ${dimmedCls}"
          data-vid="${v.id}" onclick="selectVenue(${v.id}, true)"
          onmouseenter="setHoveredVenue(${v.id})" onmouseleave="setHoveredVenue(null)">
-      <div class="card-top">
-        <div class="card-name">${v.name}</div>
-        ${s ? `<div class="card-sun-badge ${tier}">${s.total}% SUN SCORE</div>` : ''}
+      <div class="card-top-row">
+        <div class="card-left">
+          <div class="card-name">${v.name}</div>
+          <div class="card-sun-line ${sunLineCls}">${sunLineCls === 'sunny' ? SUN_ICON : ''}${sunLineText}</div>
+          <div class="card-meta">${meta}</div>
+        </div>
+        ${s ? `<div class="card-score-num ${tier}">${s.total}<span>SUN SCORE</span></div>` : ''}
       </div>
-      <div class="card-sun-line ${sunLineCls}">${sunLineCls === 'sunny' ? SUN_ICON : ''}${sunLineText}</div>
-      <div class="card-meta">${meta}</div>
     </div>`;
 }
 

@@ -813,6 +813,10 @@
     from { opacity: 0; }
     to   { opacity: 1; }
   }
+  @keyframes cardInDimmed {
+    from { opacity: 0; }
+    to   { opacity: 0.5; }
+  }
 
   .venue-card {
     background: rgba(22,28,39,0.72);
@@ -845,6 +849,7 @@
 
   .venue-card.dimmed {
     opacity: 0.5;
+    animation: cardInDimmed 0.18s ease-out;
   }
 
   .venue-card.editing {
@@ -868,7 +873,15 @@
     font-weight: 600;
     color: var(--text);
     line-height: 1.25;
-    margin-bottom: 5px;
+    margin-bottom: 4px;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .card-left {
+    flex: 1;
+    min-width: 0;
   }
 
   .card-emoji {
