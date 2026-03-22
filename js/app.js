@@ -240,7 +240,7 @@ function applyNowTime() {
 
 // ── Intent shortcuts ──────────────────────────────────────────────────────────
 const _PRESET_HOURS = { lunch: 11, 'after-work': 16, evening: 20 };
-const PAD_X_ARC = 38, MIN_H_ARC = 4, MAX_H_ARC = 23;
+const PAD_X_ARC = 20, MIN_H_ARC = 4, MAX_H_ARC = 23;
 
 function _arcTimeToLeft(h, canvasW) {
   return PAD_X_ARC + (h - MIN_H_ARC) / (MAX_H_ARC - MIN_H_ARC) * (canvasW - PAD_X_ARC * 2);
@@ -440,7 +440,7 @@ function _arcSetTimeFromX(clientX) {
   const canvasEl = document.getElementById('sun-curve');
   if (!canvasEl) return;
   const rect  = canvasEl.getBoundingClientRect();
-  const PAD_X = 38, MIN_H = 4, MAX_H = 23;
+  const PAD_X = 20, MIN_H = 4, MAX_H = 23;
   const t     = MIN_H + (clientX - rect.left - PAD_X) / (rect.width - PAD_X * 2) * (MAX_H - MIN_H);
   const hour  = Math.max(MIN_H, Math.min(MAX_H, t));
   if (nowMode) {

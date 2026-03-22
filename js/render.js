@@ -354,7 +354,7 @@ function drawSunCurve(canvasEl) {
   c.scale(dpr, dpr);
 
   const MIN_H = 4, MAX_H = 23;
-  const PAD_X = 38, PAD_T = 22, PAD_B = 20;
+  const PAD_X = 20, PAD_T = 22, PAD_B = 18;
   const cw = cssW, ch = cssH;
   const dateStr = datePicker.value;
 
@@ -422,25 +422,18 @@ function drawSunCurve(canvasEl) {
     c.strokeStyle = 'rgba(255,184,0,0.9)'; c.lineWidth = 2; c.stroke();
   }
 
-  // Hour labels along bottom axis
+  // Sunrise + sunset ticks only — hover tooltip shows exact time for everything else
   const sunrise = findSunCrossingFromTable(currentSunTable, true);
   const sunset  = findSunCrossingFromTable(currentSunTable, false);
   c.font = '9px "Inter", sans-serif';
   c.textAlign = 'center'; c.textBaseline = 'top';
-  // Sunrise + sunset with ticks
   [{ t: sunrise, label: formatHour(sunrise) }, { t: sunset, label: formatHour(sunset) }].forEach(({ t, label }) => {
     if (t == null) return;
     const tx = timeToX(t);
     c.beginPath(); c.moveTo(tx, horizY - 2); c.lineTo(tx, horizY + 4);
     c.strokeStyle = 'rgba(255,184,0,0.45)'; c.lineWidth = 1; c.stroke();
-    c.fillStyle = 'rgba(255,184,0,0.7)';
-    c.fillText(label, tx, horizY + 6);
-  });
-  // Hour marks 6 / 9 / 12 / 15 / 18
-  c.fillStyle = 'rgba(221,226,242,0.22)';
-  [6, 9, 12, 15, 18].forEach(h => {
-    const tx = timeToX(h);
-    c.fillText(String(h).padStart(2, '0') + ':00', tx, horizY + 6);
+    c.fillStyle = 'rgba(255,184,0,0.65)';
+    c.fillText(label, tx, horizY + 5);
   });
 
   // Current time marker — large glowing sun circle
