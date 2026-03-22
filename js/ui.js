@@ -1,6 +1,6 @@
 /**
  * ui.js — Venue list, timeline, and tooltip rendering.
- * Depends on: solar.js (computeSunWindows, formatHour), data.js (VENUES, catIcon, catLabel),
+ * Depends on: solar.js (computeSunWindows, formatHour), data.js (VENUES, catLabel),
  *             app.js (computeSunWindows, currentSun, nowMode, selectedId, filterFullSunActive,
  *                     userLocation, datePicker, timeFromEl, timeToEl).
  */
@@ -249,7 +249,7 @@ function buildTooltipContent(v) {
   }
 
   return `
-    <div class="ht-name">${catIcon(v)} ${v.name}</div>
+    <div class="ht-name">${v.name}</div>
     <div class="ht-meta"><span style="color:var(--accent)">★ ${v.rating}</span> · ${catLabel(v)}</div>
     ${statusHtml}${tlHtml}`;
 }
@@ -269,7 +269,7 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
            data-vid="${v.id}" onclick="selectVenue(${v.id}, true)"
            onmouseenter="setHoveredVenue(${v.id})" onmouseleave="setHoveredVenue(null)">
         <div class="closed-row">
-          <span class="closed-name">${catIcon(v)} ${v.name}</span>
+          <span class="closed-name">${v.name}</span>
           <span class="card-badge shaded">Opens ${formatHour(v.openingHours.open)}</span>
         </div>
       </div>`;
@@ -647,7 +647,7 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
   return `
     <div id="dp-scroll">
       <div class="dp-header-row">
-        <div class="dp-venue-name">${catIcon(v)} ${v.name}</div>
+        <div class="dp-venue-name">${v.name}</div>
         <button id="dp-close-btn" onclick="closeDetailPanel()">✕</button>
       </div>
       <div class="dp-meta">${v.area ? v.area + ' · ' : ''}${catLabel(v)}${tempStr}${distStr ? ' · ' + distStr : ''}</div>

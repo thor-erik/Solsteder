@@ -96,133 +96,131 @@ let editDraggingDepth = false;
 let editDragWallObj   = null;
 
 // ── Sprite cache ──────────────────────────────────────────────────────────────
-// Pill-shaped callout pins (Airbnb-style) keyed by (id, state, selected, time-bucket).
-// buildSprite returns { canvas, anchorX, anchorY } — anchor is the tip point placed
-// at the venue's map coordinate; the pill body floats above it.
-const PILL_H   = 24;   // pill body height px
-const PILL_TIP = 8;    // downward-pointing triangle height px
+// Pill-shaped pins keyed by (id, state, selected, time-bucket).
+// buildSprite returns { canvas, anchorX, anchorY } — anchor is the bottom of
+// the stem, placed at the venue's map coordinate; the pill floats above it.
+const PILL_H  = 26;   // pill body height px
+const PILL_R  = 13;   // pill corner radius (= height/2 → fully rounded)
+const STEM_H  = 14;   // thin vertical stem below pill
 const spriteCache = new Map();
-
-/** Draw a rounded-rect pill with a downward triangle pointer at (tipX, tipY). */
-function _pillPath(c, ox, oy, pillW, tipX, tipY) {
-  const r = PILL_H / 2;
-  c.beginPath();
-  c.moveTo(ox + r, oy);
-  c.lineTo(ox + pillW - r, oy);
-  c.arcTo(ox + pillW, oy,        ox + pillW, oy + r,        r);
-  c.lineTo(ox + pillW, oy + PILL_H - r);
-  c.arcTo(ox + pillW, oy + PILL_H, ox + pillW - r, oy + PILL_H, r);
-  c.lineTo(tipX + 5,  oy + PILL_H);
-  c.lineTo(tipX,      tipY);           // tip point
-  c.lineTo(tipX - 5,  oy + PILL_H);
-  c.lineTo(ox + r,    oy + PILL_H);
-  c.arcTo(ox,         oy + PILL_H, ox, oy + PILL_H - r, r);
-  c.lineTo(ox,        oy + r);
-  c.arcTo(ox,         oy,          ox + r, oy,           r);
-  c.closePath();
-}
 
 function buildSprite(v, state, selected, hour, dateStr) {
   // Closed: tiny faded dot — no pill
   if (state === 'closed') {
     const oc = document.createElement('canvas');
-    oc.width = oc.height = 16;
+    oc.width = oc.height = 10;
     const c = oc.getContext('2d');
-    c.globalAlpha = 0.28;
-    c.beginPath(); c.arc(8, 8, 4, 0, Math.PI * 2);
-    c.fillStyle = '#3a3d4d'; c.fill();
-    return { canvas: oc, anchorX: 8, anchorY: 8 };
+    c.globalAlpha = 0.22;
+    c.beginPath(); c.arc(5, 5, 3, 0, Math.PI * 2);
+    c.fillStyle = 'rgba(81,69,50,0.6)'; c.fill();
+    return { canvas: oc, anchorX: 5, anchorY: 5 };
   }
 
-  // Determine label + visual style per state
-  let label = '·', fillColor, strokeColor, textColor, isDashed = false, alpha = 1;
+  // ── Label + visual style per state ─────────────────────────────────────────
+  let label = '', fillColor, strokeColor, textColor, stemColor, isDashed = false, alpha = 1;
 
   if (state === 'soon') {
     const { open } = v.openingHours ?? {};
     label       = open != null ? formatHour(open) : '—';
-    fillColor   = 'rgba(10,14,28,0.72)';
-    strokeColor = 'rgba(255,184,0,0.65)';
+    fillColor   = 'rgba(8,14,25,0.88)';
+    strokeColor = 'rgba(255,184,0,0.55)';
+    stemColor   = 'rgba(255,184,0,0.45)';
     textColor   = 'rgba(255,200,80,0.95)';
     isDashed    = true;
-    alpha       = 0.88;
+    alpha       = 0.9;
 
   } else if (state === 'sunny') {
     const ss = (hour !== undefined && dateStr && typeof sunScore === 'function')
       ? Math.round(sunScore(v, dateStr, hour))
       : null;
-    label     = ss != null ? `${shortName(v.name)} · ${ss}` : shortName(v.name);
+    label       = ss != null ? `${shortName(v.name)} · ${ss}` : shortName(v.name);
     fillColor   = '#FFB800';
-    strokeColor = 'rgba(255,230,120,0.55)';
-    textColor   = '#1a1a2e';
+    strokeColor = 'rgba(255,230,120,0.4)';
+    stemColor   = '#FFB800';
+    textColor   = '#1a1200';
 
   } else { // shaded
     if (hour !== undefined && dateStr) {
       try {
         const { windows } = computeSunWindows(v, dateStr);
         const next = windows.find(w => w.start > hour);
-        if (next) { label = formatHour(next.start); alpha = 0.92; }
-        else       { label = '·'; alpha = 0.38; }
-      } catch (e) { label = '·'; }
+        if (next) { label = formatHour(next.start); alpha = 0.85; }
+        else       { label = '';  alpha = 0.32; }
+      } catch (e) { label = ''; }
     }
-    fillColor   = '#1a2850';
-    strokeColor = 'rgba(80,120,200,0.45)';
-    textColor   = '#8ab4f8';
+    fillColor   = 'rgba(22,28,39,0.92)';
+    strokeColor = 'rgba(81,69,50,0.28)';
+    stemColor   = 'rgba(81,69,50,0.5)';
+    textColor   = 'rgba(213,196,171,0.75)';
   }
 
-  // Measure text width
+  // ── Sizing ─────────────────────────────────────────────────────────────────
   const tmpCtx = document.createElement('canvas').getContext('2d');
   tmpCtx.font  = 'bold 11px "Inter", sans-serif';
   const tw     = label ? tmpCtx.measureText(label).width : 0;
-  const pillW  = Math.max(38, tw + 24);   // min 38px, 12px padding each side
+  const pillW  = Math.max(36, tw + 22);
 
-  // Canvas dims — add ring padding around pill
-  const rp  = selected ? 3 : 1;
+  const rp  = selected ? 4 : 2;              // padding for selection ring
   const cW  = Math.ceil(pillW + rp * 2 + 2);
-  const cH  = Math.ceil(PILL_H + PILL_TIP + rp + 2);
-  const cxA = cW / 2;           // anchor x = horizontal center = tip center
-  const cyA = cH - 1;           // anchor y = tip point
+  const cH  = Math.ceil(PILL_H + STEM_H + rp + 2);
+  const cxA = cW / 2;                        // anchor x = stem center
+  const cyA = cH - 1;                        // anchor y = bottom of stem
 
   const oc = document.createElement('canvas');
   oc.width = cW; oc.height = cH;
   const c  = oc.getContext('2d');
   c.globalAlpha = alpha;
 
-  const ox = rp + 1;  // pill left edge in canvas coords
-  const oy = rp;      // pill top edge in canvas coords
+  const ox = rp + 1;   // pill left edge
+  const oy = rp;       // pill top edge
 
-  // Soft glow behind sunny pills
+  // ── Glow (sunny only) ──────────────────────────────────────────────────────
   if (state === 'sunny') {
     const gCx = cxA, gCy = oy + PILL_H / 2;
-    const glow = c.createRadialGradient(gCx, gCy, 0, gCx, gCy, pillW * 0.75);
-    glow.addColorStop(0, 'rgba(255,184,0,0.28)');
+    const glow = c.createRadialGradient(gCx, gCy, 0, gCx, gCy, pillW * 0.8);
+    glow.addColorStop(0, 'rgba(255,184,0,0.32)');
     glow.addColorStop(1, 'rgba(255,184,0,0)');
-    c.beginPath(); c.arc(gCx, gCy, pillW * 0.75, 0, Math.PI * 2);
+    c.beginPath(); c.ellipse(gCx, gCy, pillW * 0.8, PILL_H, 0, 0, Math.PI * 2);
     c.fillStyle = glow; c.fill();
   }
 
-  // Selection ring (slightly enlarged pill outline)
+  // ── Selection ring ─────────────────────────────────────────────────────────
   if (selected) {
-    _pillPath(c, ox - 3, oy - 3, pillW + 6, cxA, cyA);
-    c.strokeStyle = 'rgba(255,184,0,0.85)';
+    c.beginPath();
+    c.roundRect(ox - 3, oy - 3, pillW + 6, PILL_H + 6, PILL_R + 3);
+    c.strokeStyle = 'rgba(255,184,0,0.9)';
     c.lineWidth   = 2;
-    c.setLineDash([]);
     c.stroke();
   }
 
-  // Main pill fill
-  _pillPath(c, ox, oy, pillW, cxA, cyA);
-  c.fillStyle = fillColor;
-  c.fill();
-
-  // Pill stroke (dashed for 'soon')
-  if (isDashed) c.setLineDash([4, 3]);
-  c.strokeStyle = strokeColor;
+  // ── Stem ───────────────────────────────────────────────────────────────────
+  const stemX  = cxA;
+  const stemY0 = oy + PILL_H;
+  const stemY1 = cyA;
+  c.beginPath();
+  c.moveTo(stemX, stemY0);
+  c.lineTo(stemX, stemY1);
+  if (isDashed) c.setLineDash([3, 3]);
+  c.strokeStyle = stemColor;
   c.lineWidth   = 1.5;
   c.stroke();
   c.setLineDash([]);
 
-  // Label text
-  if (label && label !== '·') {
+  // ── Pill fill ──────────────────────────────────────────────────────────────
+  c.beginPath();
+  c.roundRect(ox, oy, pillW, PILL_H, PILL_R);
+  c.fillStyle = fillColor;
+  c.fill();
+
+  // ── Pill stroke ────────────────────────────────────────────────────────────
+  if (isDashed) c.setLineDash([4, 3]);
+  c.strokeStyle = strokeColor;
+  c.lineWidth   = 1;
+  c.stroke();
+  c.setLineDash([]);
+
+  // ── Label ──────────────────────────────────────────────────────────────────
+  if (label) {
     c.font         = 'bold 11px "Inter", sans-serif';
     c.fillStyle    = textColor;
     c.textAlign    = 'center';
@@ -1172,11 +1170,11 @@ function draw() {
 // ── Hit testing ───────────────────────────────────────────────────────────────
 function hitTestVenue(cx, cy) {
   // Pills sit above the map point. Pill body centre is ~(PILL_TIP + PILL_H/2) above pt.
-  // Hit box: ±44 px horizontal, -38..+5 px vertical relative to map point.
+  // Hit box: ±44 px horizontal, -44..+4 px vertical relative to anchor (stem bottom).
   let hit = null;
   VENUES.forEach(v => {
     const pt = map.project([v.lng, v.lat]);
-    if (Math.abs(cx - pt.x) <= 44 && cy >= pt.y - 38 && cy <= pt.y + 5) hit = v;
+    if (Math.abs(cx - pt.x) <= 44 && cy >= pt.y - 44 && cy <= pt.y + 4) hit = v;
   });
   return hit;
 }

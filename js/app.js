@@ -656,7 +656,7 @@ function enterEditMode(venueId) {
   if (!v) return;
 
   document.getElementById('edit-overlay').style.display = 'block';
-  document.getElementById('edit-venue-label').textContent = `${catIcon(v)} ${v.name}`;
+  document.getElementById('edit-venue-label').textContent = v.name;
   document.getElementById('edit-facing-display').innerHTML = `${v.facing}° ${bearingToCardinal(v.facing)}`;
 
   if (popup) { popup.remove(); popup = null; }

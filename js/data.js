@@ -5,20 +5,19 @@
  */
 
 const CATEGORIES = {
-  restaurant:   { label: 'Restaurant',   icon: '🍽' },
-  pub:          { label: 'Pub',          icon: '🍺' },
-  cocktail_bar: { label: 'Cocktail Bar', icon: '🍸' },
-  wine_bar:     { label: 'Wine Bar',     icon: '🍷' },
-  bistro_bar:   { label: 'Bistro Bar',   icon: '🥂' },
-  brasserie:    { label: 'Brasserie',    icon: '🥐' },
-  cafe:         { label: 'Café',         icon: '☕' },
-  rooftop_bar:  { label: 'Rooftop Bar',  icon: '🌆' },
-  courtyard:    { label: 'Courtyard',    icon: '🌿' },
-  beer_garden:  { label: 'Beer Garden',  icon: '🌳' },
-  fine_dining:  { label: 'Fine Dining',  icon: '★'  },
+  restaurant:   { label: 'Restaurant'   },
+  pub:          { label: 'Pub'          },
+  cocktail_bar: { label: 'Cocktail Bar' },
+  wine_bar:     { label: 'Wine Bar'     },
+  bistro_bar:   { label: 'Bistro Bar'   },
+  brasserie:    { label: 'Brasserie'    },
+  cafe:         { label: 'Café'         },
+  rooftop_bar:  { label: 'Rooftop Bar'  },
+  courtyard:    { label: 'Courtyard'    },
+  beer_garden:  { label: 'Beer Garden'  },
+  fine_dining:  { label: 'Fine Dining'  },
 };
 
-function catIcon(v)  { return (CATEGORIES[v.category] ?? CATEGORIES.restaurant).icon; }
 function catLabel(v) { return (CATEGORIES[v.category] ?? CATEGORIES.restaurant).label; }
 
 // ── Runtime venue array (populated by loadVenues) ─────────────────────────────
