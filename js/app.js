@@ -517,7 +517,7 @@ function _arcSetTimeFromX(clientX) {
   if (!canvasEl) return;
   const rect = canvasEl.getBoundingClientRect();
   const t    = MIN_H_ARC + (clientX - rect.left - PAD_X_ARC) / (rect.width - PAD_X_ARC * 2) * (MAX_H_ARC - MIN_H_ARC);
-  const hour = Math.max(MIN_H_ARC, Math.min(MAX_H_ARC, t));
+  const hour = Math.max(MIN_H_ARC, Math.min(MAX_H_ARC, Math.round(t * 4) / 4));
   if (nowMode) {
     nowMode = false;
     nowBtn?.classList.remove('active');
@@ -883,7 +883,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (_arcDragging) return; // dragging handled separately
       const rect = arcEl.getBoundingClientRect();
       const t = MIN_H_ARC + (e.clientX - rect.left - PAD_X_ARC) / (rect.width - PAD_X_ARC * 2) * (MAX_H_ARC - MIN_H_ARC);
-      arcHoverH = Math.max(MIN_H_ARC, Math.min(MAX_H_ARC, t));
+      arcHoverH = Math.max(MIN_H_ARC, Math.min(MAX_H_ARC, Math.round(t * 4) / 4));
       drawSunCurve(arcEl);
     });
     arcEl.addEventListener('mouseleave', () => {
