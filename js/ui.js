@@ -16,84 +16,90 @@ function venueHasSunInRange(v, dateStr, fromHour, toHour) {
   return windows.some(w => w.end > fromHour && (isPoint ? w.start <= fromHour : w.start < toHour));
 }
 
-// ── Sun dial (watch face) ─────────────────────────────────────────────────────
+// ── Sun dial (large clock-face style for detail panel) ────────────────────────
 
-function renderSunDial(v, dateStr, fromHour, size = 72) {
+function renderSunDial(v, dateStr, fromHour) {
   const { windows } = computeSunWindows(v, dateStr);
-  const SIZE = 72, CX = 36, CY = 36;
-  const R_OUT = 30;  // outer donut edge
-  const R_IN  = 14;  // inner hole (clear center for label)
+  const W = 220, H = 220, CX = 110, CY = 110, R = 88, SW = 7;
 
-  function h12a(h) { return ((h % 12) / 12) * 2 * Math.PI - Math.PI / 2; }
-
-  // Donut segment path between two clock hours
-  function donutPath(h1, h2) {
-    const a1 = h12a(h1), a2 = h12a(h2);
-    const large = (h2 - h1) % 12 > 6 ? 1 : 0;
-    const ox1 = (CX + R_OUT * Math.cos(a1)).toFixed(2), oy1 = (CY + R_OUT * Math.sin(a1)).toFixed(2);
-    const ox2 = (CX + R_OUT * Math.cos(a2)).toFixed(2), oy2 = (CY + R_OUT * Math.sin(a2)).toFixed(2);
-    const ix1 = (CX + R_IN  * Math.cos(a1)).toFixed(2), iy1 = (CY + R_IN  * Math.sin(a1)).toFixed(2);
-    const ix2 = (CX + R_IN  * Math.cos(a2)).toFixed(2), iy2 = (CY + R_IN  * Math.sin(a2)).toFixed(2);
-    return `M${ix1},${iy1} L${ox1},${oy1} A${R_OUT},${R_OUT} 0 ${large},1 ${ox2},${oy2} L${ix2},${iy2} A${R_IN},${R_IN} 0 ${large},0 ${ix1},${iy1} Z`;
+  // Hour → angle (12h clock, 0h/12h = top)
+  function hAngle(h) { return ((h % 12) / 12) * 2 * Math.PI - Math.PI / 2; }
+  function pt(h) {
+    const a = hAngle(h);
+    return [CX + R * Math.cos(a), CY + R * Math.sin(a)];
+  }
+  function arcPath(h1, h2) {
+    if (Math.abs(h2 - h1) < 0.01) return '';
+    const [x1, y1] = pt(h1), [x2, y2] = pt(h2);
+    const span = ((h2 - h1) + 12) % 12;
+    const large = span > 6 ? 1 : 0;
+    return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${R} ${R} 0 ${large} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`;
   }
 
-  // Tick marks on the outer rim — longer at 12/3/6/9
-  const ticks = Array.from({ length: 12 }, (_, i) => {
-    const a    = (i / 12) * 2 * Math.PI - Math.PI / 2;
-    const main = i % 3 === 0;
-    const r1   = R_OUT + 1, r2 = R_OUT + (main ? 5 : 3);
-    const x1 = (CX + r1 * Math.cos(a)).toFixed(1), y1 = (CY + r1 * Math.sin(a)).toFixed(1);
-    const x2 = (CX + r2 * Math.cos(a)).toFixed(1), y2 = (CY + r2 * Math.sin(a)).toFixed(1);
-    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"
-      stroke="rgba(255,255,255,${main ? 0.35 : 0.15})"
-      stroke-width="${main ? 1.2 : 0.8}" stroke-linecap="round"/>`;
-  }).join('');
-
-  // Sun donut segments — past dim, future bright amber
-  const sunSegments = windows.map(w => {
-    const parts = [];
-    if (w.start < fromHour) {
-      const pastEnd = Math.min(w.end, fromHour);
-      if (pastEnd - w.start > 0.05)
-        parts.push(`<path d="${donutPath(w.start, pastEnd)}" fill="rgba(255,184,0,0.18)"/>`);
+  // Sun window arcs: past = dim, future/current = bright
+  let arcs = '';
+  for (const w of windows) {
+    if (w.end <= fromHour) {
+      const d = arcPath(w.start, w.end);
+      if (d) arcs += `<path d="${d}" fill="none" stroke="rgba(255,184,0,0.18)" stroke-width="${SW}" stroke-linecap="round"/>`;
+    } else if (w.start >= fromHour) {
+      const d = arcPath(w.start, w.end);
+      if (d) arcs += `<path d="${d}" fill="none" stroke="rgba(255,184,0,0.78)" stroke-width="${SW}" stroke-linecap="round"/>`;
+    } else {
+      const dp = arcPath(w.start, fromHour);
+      if (dp) arcs += `<path d="${dp}" fill="none" stroke="rgba(255,184,0,0.18)" stroke-width="${SW}" stroke-linecap="round"/>`;
+      const df = arcPath(fromHour, w.end);
+      if (df) arcs += `<path d="${df}" fill="none" stroke="rgba(255,184,0,0.78)" stroke-width="${SW}" stroke-linecap="round"/>`;
     }
-    if (w.end > fromHour) {
-      const futStart = Math.max(w.start, fromHour);
-      if (w.end - futStart > 0.05)
-        parts.push(`<path d="${donutPath(futStart, w.end)}" fill="rgba(255,184,0,0.82)"/>`);
-    }
-    return parts.join('');
-  }).join('');
-
-  // Current time: white radial line through the donut ring only
-  const ca  = h12a(fromHour);
-  const cx1 = (CX + R_IN  * Math.cos(ca)).toFixed(1), cy1 = (CY + R_IN  * Math.sin(ca)).toFixed(1);
-  const cx2 = (CX + R_OUT * Math.cos(ca)).toFixed(1), cy2 = (CY + R_OUT * Math.sin(ca)).toFixed(1);
-  const timeLine = `<line x1="${cx1}" y1="${cy1}" x2="${cx2}" y2="${cy2}" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.9"/>`;
-
-  // Center: end-time label
-  const lastFuture = [...windows].reverse().find(w => w.end > fromHour);
-  let centerLabel = '';
-  if (lastFuture) {
-    centerLabel = `
-    <text x="${CX}" y="${CY - 2}" text-anchor="middle" dominant-baseline="middle"
-      font-size="7" font-family="system-ui,sans-serif" font-weight="700"
-      fill="rgba(255,184,0,1)">${formatHour(lastFuture.end)}</text>
-    <text x="${CX}" y="${CY + 5.5}" text-anchor="middle" dominant-baseline="middle"
-      font-size="4.5" font-family="system-ui,sans-serif"
-      fill="rgba(255,255,255,0.38)">last sun</text>`;
   }
 
-  const svg = `<svg class="sun-dial" width="${size}" height="${size}" viewBox="0 0 ${SIZE} ${SIZE}" aria-hidden="true">
-    <circle cx="${CX}" cy="${CY}" r="${R_OUT}" fill="rgba(0,0,0,0.28)"/>
-    ${sunSegments}
-    ${ticks}
-    ${timeLine}
-    <circle cx="${CX}" cy="${CY}" r="${R_IN}" fill="rgba(20,25,40,0.9)"/>
-    ${centerLabel}
+  // Current time dot on ring
+  const [tx, ty] = pt(fromHour);
+  const timeDot = `<circle cx="${tx.toFixed(2)}" cy="${ty.toFixed(2)}" r="5.5" fill="#FFB800" filter="url(#dg)"/>`;
+
+  // Center: time display
+  const h = Math.floor(fromHour), m = Math.round((fromHour - h) * 60);
+  const timeStr = `${h}:${String(m).padStart(2, '0')}`;
+
+  const svg = `<svg class="dp-dial-svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true">
+    <defs>
+      <filter id="dg" x="-100%" y="-100%" width="300%" height="300%">
+        <feGaussianBlur stdDeviation="3" result="b"/>
+        <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+    <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="${SW}"/>
+    ${arcs}
+    ${timeDot}
+    <text x="${CX}" y="${CY - 10}" text-anchor="middle" dominant-baseline="middle"
+      font-family="Newsreader,serif" font-style="italic" font-size="46" font-weight="600"
+      fill="rgba(255,255,255,0.95)">${timeStr}</text>
+    <text x="${CX}" y="${CY + 18}" text-anchor="middle" dominant-baseline="middle"
+      font-family="Inter,sans-serif" font-size="9" font-weight="700"
+      fill="rgba(213,196,171,0.4)" letter-spacing="2">CURRENT TIME</text>
   </svg>`;
 
-  return { svg, label: '' };
+  // Status pill
+  const curWin = windows.find(w => fromHour >= w.start && fromHour < w.end);
+  let pill;
+  if (curWin) {
+    const rem = curWin.end - fromHour;
+    const ph = Math.floor(rem), pm = Math.round((rem - ph) * 60);
+    const dur = (ph > 0 ? ph + 'h ' : '') + (pm > 0 ? pm + 'm' : '');
+    pill = `<div class="dp-sun-pill sunny">☀ IN SUN · ${dur.trim().toUpperCase()} LEFT</div>`;
+  } else {
+    const next = windows.find(w => w.start > fromHour);
+    if (next) {
+      const wait = next.start - fromHour;
+      const ph = Math.floor(wait), pm = Math.round((wait - ph) * 60);
+      const dur = (ph > 0 ? ph + 'h ' : '') + (pm > 0 ? pm + 'm' : '');
+      pill = `<div class="dp-sun-pill neutral">☀ SUN IN ${dur.trim().toUpperCase()}</div>`;
+    } else {
+      pill = `<div class="dp-sun-pill muted">${windows.length ? 'SUN PASSED' : 'NO SUN TODAY'}</div>`;
+    }
+  }
+
+  return { svg, pill };
 }
 
 // ── Timeline strip ────────────────────────────────────────────────────────────
@@ -344,19 +350,21 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
     cardBadgeCls  = 'shaded';
   }
 
+  const meta = [v.area, catLabel(v), distStr].filter(Boolean).join(' · ');
+
   return `
     <div class="venue-card ${v.sunInWin ? 'sunny' : ''} ${v.id === selectedId ? 'selected' : ''} ${dimmedCls}"
          data-vid="${v.id}" onclick="selectVenue(${v.id}, true)"
          onmouseenter="setHoveredVenue(${v.id})" onmouseleave="setHoveredVenue(null)">
       <div class="card-body">
-        <div class="card-content">
-          <div class="card-top-row">
-            <div class="card-name">${v.name}</div>
-            ${s ? `<div class="card-score-num ${tier}">${s.total}<span>score</span></div>` : ''}
-          </div>
-          <span class="card-badge ${cardBadgeCls}">${cardBadgeText}</span>
-          <div class="card-meta">${v.area ?? ''}${v.area ? ' · ' : ''}${catLabel(v)}${tempStr}${distStr ? ' · ' + distStr : ''}</div>
+        <div class="card-left">
+          <div class="card-name">${v.name}</div>
+          <div class="card-meta">${meta}</div>
         </div>
+        ${s ? `<div class="card-score-block">
+          <div class="card-score-big ${tier}">${s.total}</div>
+          <div class="card-score-lbl">SUN<br>SCORE</div>
+        </div>` : ''}
       </div>
     </div>`;
 }
@@ -986,19 +994,25 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       ${shelterChip ? `<div class="dp-env-chip ${shelterChip.cls}">${shelterChip.icon} ${shelterChip.label}</div>` : ''}
     </div>` : '';
 
-  const scoreHtml = s ? `
+  const experienceIndex = s ? `
     <div class="dp-divider"></div>
-    <div class="dp-score-row">
-      <div class="dp-score-num ${tier}">${s.total}<span>score</span></div>
-      <div class="dp-score-breakdown">
-        <span>☀ Sun ${s.sun}</span>
-        <span>🌡 Comfort ${s.comfort}</span>
-        <span>⊙ Distance ${s.distance}</span>
-        ${s.noise != null ? `<span>🔊 Noise ${s.noise}</span>` : ''}
-      </div>
-    </div>` : '';
+    <div class="dp-section-label">Experience Index</div>
+    <div class="dp-exp-row">
+      <span class="dp-exp-label">Sun Exposure</span>
+      <span class="dp-exp-val">${s.sun}%</span>
+    </div>
+    <div class="dp-exp-bar-wrap"><div class="dp-exp-bar-fill" style="width:${s.sun}%"></div></div>
+    <div class="dp-exp-row">
+      <span class="dp-exp-label">Comfort Level</span>
+      <span class="dp-exp-val">${s.comfort}%</span>
+    </div>
+    <div class="dp-exp-bar-wrap"><div class="dp-exp-bar-fill" style="width:${s.comfort}%"></div></div>
+    ${distStr ? `<div class="dp-exp-row" style="margin-top:10px">
+      <span class="dp-exp-label">Proximity</span>
+      <span class="dp-exp-val" style="font-style:normal;font-size:13px">${distStr}</span>
+    </div>` : ''}` : '';
 
-  const { svg: dialSvg } = renderSunDial(v, dateStr, fromHour, 120);
+  const { svg: dialSvg, pill: sunPill } = renderSunDial(v, dateStr, fromHour);
 
   const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lng}`;
   const websiteUrl    = `https://www.google.com/search?q=${encodeURIComponent(v.name + ' ' + (v.area ?? '') + ' Oslo')}`;
@@ -1021,13 +1035,12 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
         <div class="dp-venue-name">${v.name}</div>
         <button id="dp-close-btn" onclick="closeDetailPanel()">✕</button>
       </div>
-      <div class="dp-meta">
-        <span style="color:var(--accent)">★ ${v.rating}</span>
-        &nbsp;·&nbsp;${catLabel(v)}&nbsp;·&nbsp;${v.area ?? ''}${distStr ? '&nbsp;·&nbsp;' + distStr : ''}
-      </div>
-      <div class="dp-status-badge">${statusBadge}</div>
+      <div class="dp-meta">${catLabel(v)}${v.area ? ' · ' + v.area : ''}${distStr ? ' · ' + distStr : ''}</div>
 
-      <div class="dp-dial-wrap">${dialSvg}</div>
+      <div class="dp-dial-wrap">
+        ${dialSvg}
+        ${sunPill}
+      </div>
 
       <div class="dp-gm-actions">
         <a class="dp-gm-chip" href="${directionsUrl}" target="_blank" rel="noopener">${ICON_DIR}<span>Directions</span></a>
@@ -1036,10 +1049,7 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
         <button class="dp-gm-chip" onclick="enterEditMode(${v.id})">${ICON_EDIT}<span>Edit</span></button>
       </div>
 
-      <div class="dp-divider"></div>
-      <div class="dp-section-label">Sun today</div>
-      ${timeline}
-      ${scoreHtml}
+      ${experienceIndex}
       ${envSection}
       <div class="dp-divider"></div>
       <div class="dp-section-label">Wind shelter</div>
