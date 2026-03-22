@@ -547,6 +547,55 @@ function renderList() {
   }
 }
 
+// ── Busyness bar chart ────────────────────────────────────────────────────────
+
+function renderBusynessChart(v, dateStr, fromHour) {
+  const profile = getBusynessForDay(v, dateStr);
+  const { open, close } = v.openingHours;
+  const span = Math.ceil(close) - Math.floor(open);
+  if (span <= 0) return '';
+
+  const BAR_W = 6, GAP = 2, H = 36;
+  const hours = Array.from({ length: span }, (_, i) => Math.floor(open) + i);
+  const totalW = hours.length * (BAR_W + GAP) - GAP;
+
+  const nowValue = getBusynessAt(v, dateStr, fromHour);
+  const nowLabel = busynessLabel(nowValue);
+
+  const bars = hours.map(h => {
+    const val  = profile[h] ?? 0;
+    const barH = Math.max(2, Math.round(val / 100 * H));
+    const y    = H - barH;
+    const isCurrent = Math.floor(fromHour) === h;
+    const fill = isCurrent
+      ? 'rgba(255,184,0,0.95)'
+      : val > 0
+        ? `rgba(255,184,0,${(0.18 + val / 100 * 0.45).toFixed(2)})`
+        : 'rgba(81,69,50,0.12)';
+    const x = hours.indexOf(h) * (BAR_W + GAP);
+    return `<rect x="${x}" y="${y}" width="${BAR_W}" height="${barH}" rx="1.5" fill="${fill}"/>`;
+  }).join('');
+
+  // Hour labels: just first + last
+  const labelFirst = formatHour(open);
+  const labelLast  = formatHour(close);
+
+  return `
+    <div class="dp-busy-row">
+      <span class="dp-busy-now">${nowLabel}</span>
+      <span class="dp-busy-est">est.</span>
+    </div>
+    <div class="dp-busy-chart">
+      <svg width="${totalW}" height="${H}" viewBox="0 0 ${totalW} ${H}" style="display:block;overflow:visible">
+        ${bars}
+      </svg>
+      <div class="dp-busy-labels">
+        <span>${labelFirst}</span>
+        <span>${labelLast}</span>
+      </div>
+    </div>`;
+}
+
 // ── Detail panel content ──────────────────────────────────────────────────────
 
 function renderDetailPanelContent(v, dateStr, fromHour) {
@@ -608,6 +657,9 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       <div class="dp-divider"></div>
       <div class="dp-section-label">Sun windows</div>
       ${timeline}
+      <div class="dp-divider"></div>
+      <div class="dp-section-label">Busyness</div>
+      ${renderBusynessChart(v, dateStr, fromHour)}
       <div class="dp-divider"></div>
       <div class="dp-address">${v.address}</div>
       <div class="dp-actions">

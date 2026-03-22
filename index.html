@@ -1656,6 +1656,36 @@
   }
   .dp-action-btn.directions:hover { background: rgba(122,180,255,0.18); }
 
+  .dp-busy-row {
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+    margin-bottom: 6px;
+  }
+  .dp-busy-now {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .dp-busy-est {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(213,196,171,0.35);
+  }
+  .dp-busy-chart {
+    width: 100%;
+  }
+  .dp-busy-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    color: var(--muted);
+    opacity: 0.5;
+    margin-top: 4px;
+  }
+
   @media (max-width: 639px) {
     #detail-panel {
       top: auto;
@@ -1782,6 +1812,7 @@
 
 <script src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
 <script src="js/config.js"></script>
+<script src="js/busyness.js"></script>
 <script src="js/solar.js"></script>
 <script src="js/data.js"></script>
 <script src="js/weather.js"></script>
