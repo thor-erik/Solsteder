@@ -913,38 +913,52 @@
     align-items: flex-start;
     gap: 10px;
   }
-  .card-left {
-    flex: 1;
-    min-width: 0;
-  }
-  .card-score-block {
+  /* Score badge pill with tier glow */
+  .card-sun-badge {
     flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding-left: 6px;
-  }
-  .card-score-big {
-    font-family: 'Newsreader', serif;
-    font-size: 46px;
+    font-size: 11px;
     font-weight: 700;
-    line-height: 1;
+    padding: 5px 10px;
+    border-radius: 8px;
+    white-space: nowrap;
+    letter-spacing: 0.04em;
   }
-  .card-score-big.tier-high { color: #ffd966; }
-  .card-score-big.tier-mid  { color: #7dd87d; }
-  .card-score-big.tier-low  { color: #f0b46a; }
-  .card-score-big.tier-poor { color: var(--muted); }
-  .card-score-lbl {
-    font-size: 8px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
+  .card-sun-badge.tier-high {
+    background: rgba(255,184,0,0.88);
+    color: #1a1200;
+    box-shadow: 0 2px 14px rgba(255,184,0,0.45), 0 0 6px rgba(255,184,0,0.3);
+  }
+  .card-sun-badge.tier-mid {
+    background: rgba(125,216,125,0.12);
+    color: #7dd87d;
+    border: 1px solid rgba(125,216,125,0.28);
+    box-shadow: 0 2px 8px rgba(125,216,125,0.15);
+  }
+  .card-sun-badge.tier-low {
+    background: rgba(240,180,106,0.1);
+    color: #f0b46a;
+    border: 1px solid rgba(240,180,106,0.22);
+  }
+  .card-sun-badge.tier-poor {
+    background: rgba(138,154,176,0.08);
     color: var(--muted);
-    text-align: center;
-    opacity: 0.6;
-    line-height: 1.4;
-    margin-top: 1px;
+    border: 1px solid rgba(138,154,176,0.18);
   }
+  /* Sun status line */
+  .card-sun-line {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    margin: 5px 0 7px;
+  }
+  .card-sun-line.sunny   { color: var(--accent); }
+  .card-sun-line.neutral { color: rgba(122,180,255,0.85); }
+  .card-sun-line.muted   { color: var(--muted); opacity: 0.55; }
+  .card-sun-line.opening-soon { color: #7ab4ff; }
+  .card-sun-line.closing-soon { color: #ffaa55; }
 
   .card-watch {
     flex-shrink: 0;

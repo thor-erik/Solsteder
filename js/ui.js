@@ -18,48 +18,74 @@ function venueHasSunInRange(v, dateStr, fromHour, toHour) {
 
 // ── Sun dial (large clock-face style for detail panel) ────────────────────────
 
+// Hover helpers — called by SVG arc onmouseenter/onmouseleave
+function _dialArcHover(t1, t2) {
+  const e1 = document.getElementById('dp-dt1'), e2 = document.getElementById('dp-dt2');
+  if (e1) e1.textContent = t1;
+  if (e2) e2.textContent = t2;
+}
+function _dialArcOut() {
+  const e1 = document.getElementById('dp-dt1'), e2 = document.getElementById('dp-dt2');
+  if (e1) e1.textContent = e1.dataset.d;
+  if (e2) e2.textContent = e2.dataset.d;
+}
+
 function renderSunDial(v, dateStr, fromHour) {
   const { windows } = computeSunWindows(v, dateStr);
   const W = 220, H = 220, CX = 110, CY = 110, R = 88, SW = 7;
 
-  // Hour → angle (12h clock, 0h/12h = top)
   function hAngle(h) { return ((h % 12) / 12) * 2 * Math.PI - Math.PI / 2; }
-  function pt(h) {
-    const a = hAngle(h);
-    return [CX + R * Math.cos(a), CY + R * Math.sin(a)];
-  }
+  function pt(h) { const a = hAngle(h); return [CX + R * Math.cos(a), CY + R * Math.sin(a)]; }
   function arcPath(h1, h2) {
     if (Math.abs(h2 - h1) < 0.01) return '';
     const [x1, y1] = pt(h1), [x2, y2] = pt(h2);
-    const span = ((h2 - h1) + 12) % 12;
-    const large = span > 6 ? 1 : 0;
+    const large = ((h2 - h1) + 12) % 12 > 6 ? 1 : 0;
     return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${R} ${R} 0 ${large} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`;
   }
 
-  // Sun window arcs: past = dim, future/current = bright
+  // Draw arcs — each window segment gets hover handlers showing its from/to
   let arcs = '';
   for (const w of windows) {
+    const hoverArgs = `'${formatHour(w.start)}–${formatHour(w.end)}','SUN WINDOW'`;
+    const hover = `onmouseenter="_dialArcHover(${hoverArgs})" onmouseleave="_dialArcOut()" style="cursor:pointer"`;
     if (w.end <= fromHour) {
       const d = arcPath(w.start, w.end);
-      if (d) arcs += `<path d="${d}" fill="none" stroke="rgba(255,184,0,0.18)" stroke-width="${SW}" stroke-linecap="round"/>`;
+      if (d) arcs += `<path d="${d}" fill="none" stroke="rgba(255,184,0,0.18)" stroke-width="${SW}" stroke-linecap="round" ${hover}/>`;
     } else if (w.start >= fromHour) {
       const d = arcPath(w.start, w.end);
-      if (d) arcs += `<path d="${d}" fill="none" stroke="rgba(255,184,0,0.78)" stroke-width="${SW}" stroke-linecap="round"/>`;
+      if (d) arcs += `<path d="${d}" fill="none" stroke="rgba(255,184,0,0.78)" stroke-width="${SW}" stroke-linecap="round" ${hover}/>`;
     } else {
+      // Split at current time: past portion dim, future portion bright — share same hover (full window)
       const dp = arcPath(w.start, fromHour);
-      if (dp) arcs += `<path d="${dp}" fill="none" stroke="rgba(255,184,0,0.18)" stroke-width="${SW}" stroke-linecap="round"/>`;
+      if (dp) arcs += `<path d="${dp}" fill="none" stroke="rgba(255,184,0,0.18)" stroke-width="${SW}" stroke-linecap="round" ${hover}/>`;
       const df = arcPath(fromHour, w.end);
-      if (df) arcs += `<path d="${df}" fill="none" stroke="rgba(255,184,0,0.78)" stroke-width="${SW}" stroke-linecap="round"/>`;
+      if (df) arcs += `<path d="${df}" fill="none" stroke="rgba(255,184,0,0.78)" stroke-width="${SW}" stroke-linecap="round" ${hover}/>`;
     }
   }
 
-  // Current time dot on ring
+  // Current time dot
   const [tx, ty] = pt(fromHour);
-  const timeDot = `<circle cx="${tx.toFixed(2)}" cy="${ty.toFixed(2)}" r="5.5" fill="#FFB800" filter="url(#dg)"/>`;
 
-  // Center: time display
-  const h = Math.floor(fromHour), m = Math.round((fromHour - h) * 60);
-  const timeStr = `${h}:${String(m).padStart(2, '0')}`;
+  // Smart center: "last sun" time is the most important info
+  const lastWin = windows.length ? windows[windows.length - 1] : null;
+  const curWin  = windows.find(w => fromHour >= w.start && fromHour < w.end);
+  const nextWin = windows.find(w => w.start > fromHour);
+
+  let centerTime, centerLabel;
+  if (!lastWin) {
+    centerTime = '—'; centerLabel = 'NO SUN TODAY';
+  } else if (lastWin.end <= fromHour) {
+    centerTime = formatHour(lastWin.end); centerLabel = 'SUN PASSED AT';
+  } else if (curWin) {
+    // In sun — show end of current window; if there are more after, note it
+    const hasBreak = nextWin && nextWin !== curWin;
+    centerTime = formatHour(curWin.end);
+    centerLabel = hasBreak ? 'BREAK THEN MORE' : 'LAST SUN AT';
+  } else if (nextWin) {
+    centerTime = formatHour(nextWin.start); centerLabel = 'SUN RESUMES AT';
+  } else {
+    centerTime = formatHour(lastWin.end); centerLabel = 'LAST SUN AT';
+  }
 
   const svg = `<svg class="dp-dial-svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true">
     <defs>
@@ -70,33 +96,29 @@ function renderSunDial(v, dateStr, fromHour) {
     </defs>
     <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="${SW}"/>
     ${arcs}
-    ${timeDot}
-    <text x="${CX}" y="${CY - 10}" text-anchor="middle" dominant-baseline="middle"
+    <circle cx="${tx.toFixed(2)}" cy="${ty.toFixed(2)}" r="5.5" fill="#FFB800" filter="url(#dg)"/>
+    <text id="dp-dt1" data-d="${centerTime}" x="${CX}" y="${CY - 10}" text-anchor="middle" dominant-baseline="middle"
       font-family="Newsreader,serif" font-style="italic" font-size="46" font-weight="600"
-      fill="rgba(255,255,255,0.95)">${timeStr}</text>
-    <text x="${CX}" y="${CY + 18}" text-anchor="middle" dominant-baseline="middle"
+      fill="rgba(255,255,255,0.95)">${centerTime}</text>
+    <text id="dp-dt2" data-d="${centerLabel}" x="${CX}" y="${CY + 18}" text-anchor="middle" dominant-baseline="middle"
       font-family="Inter,sans-serif" font-size="9" font-weight="700"
-      fill="rgba(213,196,171,0.4)" letter-spacing="2">CURRENT TIME</text>
+      fill="rgba(213,196,171,0.4)" letter-spacing="2">${centerLabel}</text>
   </svg>`;
 
   // Status pill
-  const curWin = windows.find(w => fromHour >= w.start && fromHour < w.end);
   let pill;
   if (curWin) {
     const rem = curWin.end - fromHour;
     const ph = Math.floor(rem), pm = Math.round((rem - ph) * 60);
     const dur = (ph > 0 ? ph + 'h ' : '') + (pm > 0 ? pm + 'm' : '');
     pill = `<div class="dp-sun-pill sunny">☀ IN SUN · ${dur.trim().toUpperCase()} LEFT</div>`;
+  } else if (nextWin) {
+    const wait = nextWin.start - fromHour;
+    const ph = Math.floor(wait), pm = Math.round((wait - ph) * 60);
+    const dur = (ph > 0 ? ph + 'h ' : '') + (pm > 0 ? pm + 'm' : '');
+    pill = `<div class="dp-sun-pill neutral">☀ SUN IN ${dur.trim().toUpperCase()}</div>`;
   } else {
-    const next = windows.find(w => w.start > fromHour);
-    if (next) {
-      const wait = next.start - fromHour;
-      const ph = Math.floor(wait), pm = Math.round((wait - ph) * 60);
-      const dur = (ph > 0 ? ph + 'h ' : '') + (pm > 0 ? pm + 'm' : '');
-      pill = `<div class="dp-sun-pill neutral">☀ SUN IN ${dur.trim().toUpperCase()}</div>`;
-    } else {
-      pill = `<div class="dp-sun-pill muted">${windows.length ? 'SUN PASSED' : 'NO SUN TODAY'}</div>`;
-    }
+    pill = `<div class="dp-sun-pill muted">${windows.length ? 'SUN PASSED' : 'NO SUN TODAY'}</div>`;
   }
 
   return { svg, pill };
@@ -350,22 +372,53 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
     cardBadgeCls  = 'shaded';
   }
 
-  const meta = [v.area, catLabel(v), distStr].filter(Boolean).join(' · ');
+  // Sun status line text (uppercase, matches screenshot style)
+  let sunLineText, sunLineCls;
+  if (isPoint || nowMode) {
+    const curWin = windows.find(w => fromHour >= w.start && fromHour < w.end);
+    if (curWin) {
+      const rem = curWin.end - fromHour;
+      const bh = Math.floor(rem), bm = Math.round((rem - bh) * 60);
+      const dur = (bh > 0 ? bh + 'H ' : '') + (bm > 0 ? bm + 'M' : '');
+      sunLineText = `${dur.trim()} · UNTIL ${formatHour(curWin.end)}`;
+      sunLineCls = 'sunny';
+    } else {
+      const next = windows.find(w => w.start > fromHour);
+      if (next) { sunLineText = `SUN AT ${formatHour(next.start)}`; sunLineCls = 'neutral'; }
+      else { sunLineText = windows.length ? 'SUN PASSED' : 'NO SUN'; sunLineCls = 'muted'; }
+    }
+  } else {
+    let totalSun = 0;
+    for (const w of windows) { const ov = Math.min(w.end, toHour) - Math.max(w.start, fromHour); if (ov > 0) totalSun += ov; }
+    if (totalSun > 0) {
+      const bh = Math.floor(totalSun), bm = Math.round((totalSun - bh) * 60);
+      sunLineText = `${bh > 0 ? bh+'H ' : ''}${bm > 0 ? bm+'M' : ''} SUN`.trim();
+      sunLineCls = 'sunny';
+    } else { sunLineText = 'NO SUN'; sunLineCls = 'muted'; }
+  }
+  if (v.isOpeningSoon) {
+    sunLineText = `OPENS IN ${Math.round((v.openingHours.open - fromHour) * 60)}M`;
+    sunLineCls = 'opening-soon';
+  } else if (v.isClosingSoon) {
+    sunLineText = `CLOSES ${formatHour(v.openingHours.close)}`;
+    sunLineCls = 'closing-soon';
+  }
+
+  const tempStr2 = s?.feelsLikeTemp != null ? `${s.feelsLikeTemp}°` : null;
+  const meta = [v.area, catLabel(v), tempStr2, distStr].filter(Boolean).join(' · ');
+
+  const SUN_ICON = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/><line x1="4.22" y1="4.22" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.78" y2="19.78"/><line x1="4.22" y1="19.78" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.78" y2="4.22"/></svg>`;
 
   return `
     <div class="venue-card ${v.sunInWin ? 'sunny' : ''} ${v.id === selectedId ? 'selected' : ''} ${dimmedCls}"
          data-vid="${v.id}" onclick="selectVenue(${v.id}, true)"
          onmouseenter="setHoveredVenue(${v.id})" onmouseleave="setHoveredVenue(null)">
-      <div class="card-body">
-        <div class="card-left">
-          <div class="card-name">${v.name}</div>
-          <div class="card-meta">${meta}</div>
-        </div>
-        ${s ? `<div class="card-score-block">
-          <div class="card-score-big ${tier}">${s.total}</div>
-          <div class="card-score-lbl">SUN<br>SCORE</div>
-        </div>` : ''}
+      <div class="card-top">
+        <div class="card-name">${v.name}</div>
+        ${s ? `<div class="card-sun-badge ${tier}">${s.total}% SUN SCORE</div>` : ''}
       </div>
+      <div class="card-sun-line ${sunLineCls}">${sunLineCls === 'sunny' ? SUN_ICON : ''}${sunLineText}</div>
+      <div class="card-meta">${meta}</div>
     </div>`;
 }
 
@@ -994,23 +1047,22 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       ${shelterChip ? `<div class="dp-env-chip ${shelterChip.cls}">${shelterChip.icon} ${shelterChip.label}</div>` : ''}
     </div>` : '';
 
-  const experienceIndex = s ? `
+  const shelterPct = s?.shelter != null ? Math.round(s.shelter * 100) : null;
+  const sunScoreSection = s ? `
     <div class="dp-divider"></div>
-    <div class="dp-section-label">Experience Index</div>
-    <div class="dp-exp-row">
-      <span class="dp-exp-label">Sun Exposure</span>
-      <span class="dp-exp-val">${s.sun}%</span>
-    </div>
+    <div class="dp-section-label">Sun Score</div>
+    <div class="dp-exp-row"><span class="dp-exp-label">Sun Exposure</span><span class="dp-exp-val">${s.sun}%</span></div>
     <div class="dp-exp-bar-wrap"><div class="dp-exp-bar-fill" style="width:${s.sun}%"></div></div>
-    <div class="dp-exp-row">
-      <span class="dp-exp-label">Comfort Level</span>
-      <span class="dp-exp-val">${s.comfort}%</span>
-    </div>
+    <div class="dp-exp-row"><span class="dp-exp-label">Comfort Level</span><span class="dp-exp-val">${s.comfort}%</span></div>
     <div class="dp-exp-bar-wrap"><div class="dp-exp-bar-fill" style="width:${s.comfort}%"></div></div>
-    ${distStr ? `<div class="dp-exp-row" style="margin-top:10px">
-      <span class="dp-exp-label">Proximity</span>
-      <span class="dp-exp-val" style="font-style:normal;font-size:13px">${distStr}</span>
-    </div>` : ''}` : '';
+    ${s.noise != null ? `
+    <div class="dp-exp-row"><span class="dp-exp-label">Noise</span><span class="dp-exp-val">${s.noise}%</span></div>
+    <div class="dp-exp-bar-wrap"><div class="dp-exp-bar-fill" style="width:${s.noise}%"></div></div>` : ''}
+    ${shelterPct != null ? `
+    <div class="dp-exp-row"><span class="dp-exp-label">Wind Shelter</span><span class="dp-exp-val">${shelterPct}%</span></div>
+    <div class="dp-exp-bar-wrap"><div class="dp-exp-bar-fill" style="width:${shelterPct}%"></div></div>` : ''}
+    ${distStr ? `<div class="dp-exp-row" style="margin-top:8px"><span class="dp-exp-label">Proximity</span><span class="dp-exp-val" style="font-style:normal;font-size:13px">${distStr}</span></div>` : ''}
+  ` : '';
 
   const { svg: dialSvg, pill: sunPill } = renderSunDial(v, dateStr, fromHour);
 
@@ -1049,8 +1101,7 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
         <button class="dp-gm-chip" onclick="enterEditMode(${v.id})">${ICON_EDIT}<span>Edit</span></button>
       </div>
 
-      ${experienceIndex}
-      ${envSection}
+      ${sunScoreSection}
       <div class="dp-divider"></div>
       <div class="dp-section-label">Wind shelter</div>
       <canvas id="dp-shelter-canvas" width="268" height="180" style="display:block;width:100%;border-radius:10px;border:1px solid rgba(81,69,50,0.18);"></canvas>
