@@ -440,45 +440,42 @@ function drawSunCurve(canvasEl) {
     c.fillText(label, tx, horizY + 5);
   });
 
-  // Current time marker — large glowing sun circle
+  // Current time marker — thumb sits on the horizon, drop line + label above
   const fromH = parseFloat(timeFromEl.value);
   if (fromH >= MIN_H && fromH <= MAX_H) {
     const curSun = getSunFromTable(currentSunTable, fromH);
-    const mx = timeToX(fromH);
-    const my = altToY(Math.max(0, curSun.alt));
+    const mx    = timeToX(fromH);
+    const arcY  = altToY(Math.max(0, curSun.alt)); // position on the arc
+    const thumbY = horizY;                          // thumb always at baseline
     const isSun = curSun.alt > 0;
 
-    // Dashed vertical drop line
-    c.beginPath(); c.moveTo(mx, my + 8); c.lineTo(mx, horizY);
-    c.strokeStyle = 'rgba(255,255,255,0.12)'; c.lineWidth = 1;
+    // Dashed drop line from arc down to horizon
+    c.beginPath(); c.moveTo(mx, arcY + 4); c.lineTo(mx, thumbY - 8);
+    c.strokeStyle = 'rgba(255,255,255,0.15)'; c.lineWidth = 1;
     c.setLineDash([2, 4]); c.stroke(); c.setLineDash([]);
 
-    // Outer glow
-    const glow = c.createRadialGradient(mx, my, 0, mx, my, 20);
-    glow.addColorStop(0, isSun ? 'rgba(255,184,0,0.45)' : 'rgba(100,130,200,0.3)');
+    // Outer glow at thumb (horizon)
+    const glow = c.createRadialGradient(mx, thumbY, 0, mx, thumbY, 16);
+    glow.addColorStop(0, isSun ? 'rgba(255,184,0,0.4)' : 'rgba(100,130,200,0.28)');
     glow.addColorStop(1, 'rgba(0,0,0,0)');
-    c.beginPath(); c.arc(mx, my, 20, 0, Math.PI * 2);
+    c.beginPath(); c.arc(mx, thumbY, 16, 0, Math.PI * 2);
     c.fillStyle = glow; c.fill();
 
-    // Main circle — filled amber
-    c.beginPath(); c.arc(mx, my, 7, 0, Math.PI * 2);
+    // Thumb circle at horizon
+    c.beginPath(); c.arc(mx, thumbY, 6, 0, Math.PI * 2);
     c.fillStyle = isSun ? '#FFB800' : '#6080C8'; c.fill();
-
-    // White highlight ring
-    c.beginPath(); c.arc(mx, my, 7, 0, Math.PI * 2);
+    c.beginPath(); c.arc(mx, thumbY, 6, 0, Math.PI * 2);
     c.strokeStyle = 'rgba(255,255,255,0.75)'; c.lineWidth = 1.5; c.stroke();
-
-    // Small white centre dot
-    c.beginPath(); c.arc(mx, my, 2, 0, Math.PI * 2);
+    c.beginPath(); c.arc(mx, thumbY, 2, 0, Math.PI * 2);
     c.fillStyle = 'rgba(255,255,255,0.9)'; c.fill();
 
-    // Thumb time label — pill just above the dot
+    // Time label pill — above the arc position
     const thumbText = formatHour(fromH);
     const _tmp = document.createElement('canvas').getContext('2d');
     _tmp.font = 'bold 12px "Inter", sans-serif';
     const tlw = _tmp.measureText(thumbText).width + 14, tlh = 18;
     const tlx = Math.max(tlw / 2 + 4, Math.min(cw - tlw / 2 - 4, mx));
-    const tly = Math.max(2, my - 12 - tlh);
+    const tly = Math.max(2, arcY - 10 - tlh);
     c.beginPath(); c.roundRect(tlx - tlw / 2, tly, tlw, tlh, 6);
     c.fillStyle = 'rgba(8,14,25,0.92)'; c.fill();
     c.strokeStyle = 'rgba(255,184,0,0.6)'; c.lineWidth = 1; c.stroke();
@@ -1168,16 +1165,24 @@ function draw() {
     });
   }
 
-  // Hover glow — drawn on top of all sprites so it reads clearly
+  // Hover glow — radial gradient centred on the pill only (not the stem)
   if (hoveredId !== null) {
     const hEntry = visibleVenues.find(({ v }) => v.id === hoveredId);
     if (hEntry) {
-      const { pt, spr, state } = hEntry;
+      const { pt, state } = hEntry;
+      // Pill centre is STEM_H + PILL_H/2 above the map anchor point
+      const pillCx = pt.x;
+      const pillCy = pt.y - STEM_H - PILL_H / 2;
+      const [r, g, b] = state === 'sunny' ? [255, 200, 0] : state === 'soon' ? [255, 184, 0] : [120, 170, 255];
+      const glowR = 38;
       ctx.save();
-      ctx.shadowColor = state === 'sunny' ? 'rgba(255,200,0,1)' :
-                        state === 'soon'  ? 'rgba(255,184,0,0.9)' : 'rgba(120,170,255,0.9)';
-      ctx.shadowBlur = 28;
-      ctx.drawImage(spr.canvas, pt.x - spr.anchorX, pt.y - spr.anchorY);
+      const glowGrad = ctx.createRadialGradient(pillCx, pillCy, 0, pillCx, pillCy, glowR);
+      glowGrad.addColorStop(0, `rgba(${r},${g},${b},0.52)`);
+      glowGrad.addColorStop(1, `rgba(${r},${g},${b},0)`);
+      ctx.beginPath();
+      ctx.ellipse(pillCx, pillCy, glowR, glowR * 0.6, 0, 0, Math.PI * 2);
+      ctx.fillStyle = glowGrad;
+      ctx.fill();
       ctx.restore();
     }
   }

@@ -10,7 +10,10 @@
 function venueHasSunInRange(v, dateStr, fromHour, toHour) {
   const { windows, open, close } = computeSunWindows(v, dateStr);
   if (toHour < open || fromHour > close) return false;
-  return windows.some(w => w.end > fromHour && w.start < toHour);
+  // In point mode (fromHour == toHour), use <= so a window starting exactly at
+  // the selected hour is counted as "in sun" (fixes dimming of venues at window open)
+  const isPoint = Math.abs(fromHour - toHour) < 0.01;
+  return windows.some(w => w.end > fromHour && (isPoint ? w.start <= fromHour : w.start < toHour));
 }
 
 // ── Sun dial (watch face) ─────────────────────────────────────────────────────

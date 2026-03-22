@@ -338,25 +338,18 @@
     color: var(--text);
   }
 
-  /* ── Mapbox nav controls — glass container ───────────────────────────────── */
+  /* ── Mapbox nav controls — glass applied to the control group, not outer wrapper ── */
   .mapboxgl-ctrl-bottom-right {
     right: 16px;
     bottom: 16px;
+  }
+  .mapboxgl-ctrl-group {
     background: rgba(6,12,26,0.58) !important;
     backdrop-filter: blur(32px) !important;
     -webkit-backdrop-filter: blur(32px) !important;
     border: 1px solid rgba(81,69,50,0.18) !important;
-    border-radius: 12px !important;
+    border-radius: 14px !important;
     padding: 4px !important;
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    gap: 0 !important;
-  }
-  .mapboxgl-ctrl-group {
-    background: transparent !important;
-    border: none !important;
-    border-radius: 0 !important;
     box-shadow: none !important;
     overflow: visible !important;
     display: flex !important;
@@ -364,10 +357,10 @@
     gap: 4px !important;
   }
   .mapboxgl-ctrl-group button {
-    width: 36px !important;
-    height: 36px !important;
+    width: 34px !important;
+    height: 34px !important;
     border-radius: 50% !important;
-    background: rgba(22,28,39,0.72) !important;
+    background: rgba(22,28,39,0.5) !important;
     border: 1px solid rgba(81,69,50,0.18) !important;
     box-shadow: none !important;
     transition: background 0.15s, border-color 0.15s !important;
@@ -544,55 +537,48 @@
   }
   #venue-search::placeholder { color: var(--muted); }
 
-  /* Intent shortcuts — positioned below arc, aligned to time positions */
+  /* Intent shortcuts — segmented control row below the arc */
   #time-presets-row {
     position: relative;
-    height: 26px;
-    margin-top: 2px;
-    overflow: visible;
+    display: flex;
+    gap: 2px;
+    padding: 3px;
+    margin-top: 8px;
+    background: rgba(81,69,50,0.08);
+    border: 1px solid rgba(81,69,50,0.14);
+    border-radius: 10px;
   }
   #intent-pill {
     position: absolute;
-    top: 0; bottom: 0;
     background: var(--accent);
-    border-radius: 6px;
-    transition: left 0.22s cubic-bezier(0.34,1.56,0.64,1), width 0.22s cubic-bezier(0.34,1.56,0.64,1);
+    border-radius: 7px;
+    transition: left 0.22s cubic-bezier(0.34,1.56,0.64,1),
+                top  0.22s cubic-bezier(0.34,1.56,0.64,1),
+                width 0.22s cubic-bezier(0.34,1.56,0.64,1),
+                height 0.22s cubic-bezier(0.34,1.56,0.64,1);
     pointer-events: none;
     z-index: 0;
   }
   .intent-btn {
-    position: absolute;
-    transform: translateX(-50%);
+    position: relative;
+    flex: 1;
     background: transparent;
     border: none;
-    border-radius: 6px;
-    color: rgba(213,196,171,0.45);
+    border-radius: 7px;
+    color: rgba(213,196,171,0.5);
     font-family: 'Inter', sans-serif;
     font-size: 9px;
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    padding: 6px 8px;
+    padding: 5px 4px;
     cursor: pointer;
     transition: color 0.15s;
     white-space: nowrap;
     z-index: 1;
-    top: 0;
+    text-align: center;
   }
-  .intent-btn::before {
-    content: '';
-    position: absolute;
-    top: -7px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 1px;
-    height: 5px;
-    background: rgba(213,196,171,0.2);
-    transition: background 0.15s;
-  }
-  .intent-btn.active::before { background: rgba(255,184,0,0.6); }
-  .intent-btn:hover:not(.active) { color: rgba(213,196,171,0.8); }
-  .intent-btn:hover:not(.active)::before { background: rgba(213,196,171,0.4); }
+  .intent-btn:hover:not(.active) { color: rgba(213,196,171,0.85); }
   .intent-btn.active { color: #0d131e; }
 
   /* Area chips — hidden */

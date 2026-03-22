@@ -250,40 +250,12 @@ function _arcTimeToLeft(h, canvasW) {
 }
 
 function positionPresetButtons() {
-  const arcEl = document.getElementById('sun-curve');
-  const row   = document.getElementById('time-presets-row');
-  if (!arcEl || !row) return;
-  const w = arcEl.offsetWidth;
-  if (w === 0) return;
+  const isToday = datePicker.value === todayStr();
+  const sunsetH = currentSunTable ? (findSunCrossingFromTable(currentSunTable, false) ?? 21) : 21;
 
-  const isToday  = datePicker.value === todayStr();
-  const sunriseH = currentSunTable ? (findSunCrossingFromTable(currentSunTable, true)  ?? 7)  : 7;
-  const sunsetH  = currentSunTable ? (findSunCrossingFromTable(currentSunTable, false) ?? 21) : 21;
-  const nowH     = isToday ? Math.max(MIN_H_ARC, Math.min(MAX_H_ARC, currentHour())) : sunriseH;
-
-  const showEvening = sunsetH >= 20;
-
-  const presets = [
-    { intent: 'now',        hour: nowH },
-    { intent: 'lunch',      hour: 11   },
-    { intent: 'after-work', hour: 16   },
-    { intent: 'evening',    hour: 20   },
-  ];
-
-  // Resolve x positions, then nudge buttons apart if they're too close (< 48px)
-  const placed = presets.map(p => ({ ...p, x: _arcTimeToLeft(p.hour, w) }));
-  for (let i = 1; i < placed.length; i++) {
-    if (placed[i].x - placed[i - 1].x < 48) placed[i].x = placed[i - 1].x + 48;
-  }
-
-  row.querySelectorAll('.intent-btn').forEach(btn => {
-    const p = placed.find(p => p.intent === btn.dataset.intent);
-    if (!p) return;
-    if (btn.dataset.intent === 'evening') {
-      btn.style.display = showEvening ? '' : 'none';
-    }
-    btn.style.left = p.x + 'px';
-    if (btn.dataset.intent === 'now') btn.textContent = isToday ? 'Now' : 'Sunrise';
+  document.querySelectorAll('.intent-btn').forEach(btn => {
+    if (btn.dataset.intent === 'evening') btn.style.display = sunsetH >= 20 ? '' : 'none';
+    if (btn.dataset.intent === 'now')     btn.textContent = isToday ? 'Now' : 'Sunrise';
   });
 
   positionIntentPill();
@@ -297,8 +269,10 @@ function positionIntentPill() {
   const rowRect = row.getBoundingClientRect();
   const btnRect = active.getBoundingClientRect();
   pill.style.opacity = '1';
-  pill.style.left  = (btnRect.left - rowRect.left) + 'px';
-  pill.style.width = btnRect.width + 'px';
+  pill.style.left   = (btnRect.left   - rowRect.left) + 'px';
+  pill.style.top    = (btnRect.top    - rowRect.top)  + 'px';
+  pill.style.width  = btnRect.width  + 'px';
+  pill.style.height = btnRect.height + 'px';
 }
 
 function setActiveIntentBtn(intent) {
