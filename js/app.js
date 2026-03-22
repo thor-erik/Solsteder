@@ -705,6 +705,16 @@ function openDetailPanel(v) {
   if (!dp) return;
   dp.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
   dp.classList.add('open');
+  _drawShelterDiagram(v);
+}
+
+function _drawShelterDiagram(v) {
+  const canvas = document.getElementById('dp-shelter-canvas');
+  if (!canvas) return;
+  const wx = typeof getWeatherAt === 'function'
+    ? getWeatherAt(datePicker.value, parseFloat(timeFromEl.value))
+    : null;
+  drawShelterDiagram(v, wx, canvas);
 }
 
 function closeDetailPanel() {
@@ -726,6 +736,7 @@ function updateDetailPanel() {
   const v = VENUES.find(x => x.id === selectedId);
   if (!v) return;
   dp.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
+  _drawShelterDiagram(v);
 }
 
 // ── Edit mode ─────────────────────────────────────────────────────────────────
