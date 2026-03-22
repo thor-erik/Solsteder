@@ -568,15 +568,16 @@ function drawShelterDiagram(v, wx, canvas) {
   }
 
   let ISO_SCALE = 4;
-  const CX = W * 0.5, CY = H * 0.52; // extra headroom above roof
+  let CY = H * 0.52;
+  const CX = W * 0.5;
 
   function toIso(x, y, z) {
     return { sx: CX + (x - y) * ISO_SCALE, sy: CY + (x + y) * ISO_SCALE * 0.5 - z * ISO_SCALE };
   }
 
   // ── Collect geometry ────────────────────────────────────────────────────────
-  const VENUE_H     = 12;
-  const terrDepth   = v.autoTerraceDepth ?? 6;
+  const VENUE_H   = 16;   // exaggerated slightly for visible 3D effect
+  const terrDepth = v.autoTerraceDepth ?? 6;
 
   let venueNodes = (v.buildingGeometry || []).map(n => toLocal(n.lat, n.lon));
   if (venueNodes.length < 3) {
@@ -598,22 +599,24 @@ function drawShelterDiagram(v, wx, canvas) {
       return Math.hypot(cx, cy) < 55;
     });
 
-  // ── Auto-scale: fit building footprint + height + terrace into canvas ───────
-  const allNodes = [...venueNodes, ...nearbyBlds.flatMap(b => b.nodes)];
-  if (allNodes.length >= 2) {
-    // Horizontal extent in iso: max |x - y| across all nodes
-    const maxHoriz = Math.max(1, ...allNodes.map(n => Math.abs(n.x - n.y)));
-    // Vertical extent in iso: (x+y)*0.5*scale for ground + VENUE_H*scale for height
-    //   + terrace extends another terrDepth * √2 * 0.5 * scale downward
-    const maxGndY  = Math.max(1, ...allNodes.map(n => Math.abs(n.x + n.y)));
-    const vertSpan = maxGndY * 0.5 + VENUE_H + terrDepth * 0.707;
+  // ── Auto-scale: derived from venue building only ────────────────────────────
+  // Nearby buildings use the same scale but never shrink it — they may
+  // overflow the canvas edges, which looks fine and keeps the main building legible.
+  const allNodes   = [...venueNodes, ...nearbyBlds.flatMap(b => b.nodes)];
+  const venueHoriz = Math.max(1, ...venueNodes.map(n => Math.abs(n.x - n.y)));
+  const venueGndY  = Math.max(1, ...venueNodes.map(n => n.x + n.y));
+  // vertSpan = depth of ground plane (iso) + building height + terrace projection downward
+  const vertSpan   = Math.max(venueGndY, 1) * 0.5 + VENUE_H + terrDepth * 0.707;
 
-    ISO_SCALE = Math.min(
-      (W * 0.38) / maxHoriz,
-      (H * 0.58) / vertSpan,
-      5.5                    // hard cap so large buildings don't dominate
-    );
-  }
+  ISO_SCALE = Math.min(
+    (W * 0.42) / venueHoriz,
+    (H * 0.60) / vertSpan,
+    6.0
+  );
+  ISO_SCALE = Math.max(ISO_SCALE, 1.5);
+
+  // CY: place so the roof sits ~18px from the top with room for the terrace below
+  CY = Math.min(VENUE_H * ISO_SCALE + 18, H * 0.56);
 
   // ── Background ──────────────────────────────────────────────────────────────
   ctx.fillStyle = '#090f1c';
