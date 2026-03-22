@@ -382,9 +382,15 @@ function setAreaFilter(area) {
 function toggleSortPanel() {
   const panel = document.getElementById('sort-panel');
   const btn   = document.getElementById('sort-toggle-btn');
-  if (!panel) return;
+  if (!panel || !btn) return;
   const isOpen = panel.classList.toggle('open');
-  btn?.classList.toggle('open', isOpen);
+  btn.classList.toggle('open', isOpen);
+  if (isOpen) {
+    const r = btn.getBoundingClientRect();
+    panel.style.top  = (r.bottom + 4) + 'px';
+    panel.style.left = r.right + 'px';
+    panel.style.transform = 'translateX(-100%)';
+  }
 }
 
 function setSortBy(sort) {
@@ -812,6 +818,16 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   document.addEventListener('mousemove', e => { if (_arcDragging) _arcSetTimeFromX(e.clientX); });
   document.addEventListener('mouseup',   () => { _arcDragging = false; });
+
+  // Close sort panel when clicking outside it
+  document.addEventListener('click', e => {
+    const btn   = document.getElementById('sort-toggle-btn');
+    const panel = document.getElementById('sort-panel');
+    if (panel?.classList.contains('open') && !btn?.contains(e.target) && !panel?.contains(e.target)) {
+      panel.classList.remove('open');
+      btn?.classList.remove('open');
+    }
+  });
 
   // Request location on load so distance shows in cards without needing to sort by distance
   if (navigator.geolocation) {

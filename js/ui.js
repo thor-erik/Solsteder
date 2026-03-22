@@ -616,6 +616,12 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
 
   const timeline = renderTimeline(v, dateStr, fromHour, fromHour);
 
+  const shelterStr = s?.shelter != null
+    ? s.shelter > 0.6 ? '🛡 Well sheltered'
+    : s.shelter > 0.3 ? '🛡 Partly sheltered'
+    : '💨 Exposed to wind'
+    : null;
+
   const scoreHtml = s ? `
     <div class="dp-divider"></div>
     <div class="dp-score-row">
@@ -624,8 +630,11 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
         <span>☀ Sun ${s.sun}</span>
         <span>🌡 Comfort ${s.comfort}</span>
         <span>⊙ Distance ${s.distance}</span>
+        ${shelterStr ? `<span>${shelterStr}</span>` : ''}
       </div>
     </div>` : '';
+
+  const { svg: dialSvg } = renderSunDial(v, dateStr, fromHour, 120);
 
   const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lng}`;
   const websiteUrl    = `https://www.google.com/search?q=${encodeURIComponent(v.name + ' ' + (v.area ?? '') + ' Oslo')}`;
@@ -646,6 +655,8 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
         &nbsp;·&nbsp;${catLabel(v)}&nbsp;·&nbsp;${v.area ?? ''}${distStr ? '&nbsp;·&nbsp;' + distStr : ''}
       </div>
       <div class="dp-status-badge">${statusBadge}</div>
+
+      <div class="dp-dial-wrap">${dialSvg}</div>
 
       <div class="dp-gm-actions">
         <a class="dp-gm-chip" href="${directionsUrl}" target="_blank" rel="noopener">${ICON_DIR}<span>Directions</span></a>
