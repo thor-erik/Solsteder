@@ -241,6 +241,53 @@ function computeAutoTerraceWallIndices(venue, walls, buildings, venueBuilding, o
   return [bestIdx];
 }
 
+// ── Traffic noise score ───────────────────────────────────────────────────────
+
+const _HW_NOISE = {
+  motorway:      1.0,
+  trunk:         0.88,
+  primary:       0.72,
+  secondary:     0.56,
+  tertiary:      0.40,
+  unclassified:  0.28,
+  residential:   0.22,
+  living_street: 0.12,
+  service:       0.10,
+  pedestrian:    0.08,
+  footway:       0.04,
+};
+
+/**
+ * Compute a noise score 0–1 for a venue based on nearby OSM highways.
+ * Weights road type × inverse-square distance decay (ref: 30 m).
+ * Roads further than 120 m are ignored.
+ */
+function computeNoiseScore(venue, highways) {
+  const REF_M  = 30;
+  const MAX_M  = 120;
+  const cosLat = Math.cos(venue.lat * RAD);
+  const px     = venue.lng * cosLat, py = venue.lat;
+  const maxSq  = (MAX_M / 111320) ** 2;
+
+  let total = 0;
+  for (const hw of highways) {
+    const weight = _HW_NOISE[hw.tags?.highway] ?? 0.04;
+    const geom   = hw.geometry || [];
+    for (let i = 0; i < geom.length - 1; i++) {
+      const a = geom[i], b = geom[i + 1];
+      const ax = a.lon * cosLat, ay = a.lat;
+      const bx = b.lon * cosLat, by = b.lat;
+      // Quick midpoint reject before expensive distPointToSegmentSq
+      if (((ax + bx) / 2 - px) ** 2 + ((ay + by) / 2 - py) ** 2 > maxSq * 4) continue;
+      const dSq = distPointToSegmentSq(px, py, ax, ay, bx, by);
+      if (dSq > maxSq) continue;
+      const dM   = Math.sqrt(dSq) * 111320;
+      total += weight / (1 + dM / REF_M) ** 2;
+    }
+  }
+  return Math.min(1, total);
+}
+
 // ── Auto terrace depth ────────────────────────────────────────────────────────
 
 function raySegmentIntersect(ox, oy, dx, dy, ax, ay, bx, by) {
@@ -519,17 +566,20 @@ async function initFacings() {
     v.autoTerraceDepth       = computeAutoTerraceDepth(bestWall, highways);
     v.autoTerraceWallIndices = autoIndices;
     v.terraceWallIndices     = autoIndices;   // overwrite stale cached indices
-    saveFacingCache(v.id, v.facing, 'osm', autoIndices, null);
 
     // ── Step 4: terrace test-point grid ──────────────────────────────────────
     // computeTerraceTestPoints may update v.autoTerraceDepth if an OSM area is found
     const osmEl         = findOutdoorSeatingElement(v);
     v.terraceTestPoints = computeTerraceTestPoints(v, osmEl);
 
+    // ── Step 5: traffic noise score ───────────────────────────────────────────
+    v.noiseScore = computeNoiseScore(v, highways);
+    saveFacingCache(v.id, v.facing, 'osm', autoIndices, null, v.noiseScore);
+
     computed++;
     const src = osmEl?.geometry ? 'osm-area' : osmEl ? 'osm-node' : 'wall-projection';
     const depthStr = v.autoTerraceDepth != null ? ` depth ${v.autoTerraceDepth.toFixed(1)} m` : '';
-    console.log(`${v.name}: ${v.facing}° |${depthStr} | pts ${v.terraceTestPoints.length} [${src}]`);
+    console.log(`${v.name}: ${v.facing}° |${depthStr} | pts ${v.terraceTestPoints.length} [${src}] | noise ${v.noiseScore?.toFixed(2)}`);
   });
 
   clearSpriteCache();

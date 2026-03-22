@@ -622,6 +622,13 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
     : '💨 Exposed to wind'
     : null;
 
+  const noiseInfo = v.noiseScore != null
+    ? v.noiseScore > 0.65 ? { label: 'Noisy street',   cls: 'noise-high' }
+    : v.noiseScore > 0.35 ? { label: 'Some traffic',   cls: 'noise-mid'  }
+    : v.noiseScore > 0.12 ? { label: 'Quiet street',   cls: 'noise-low'  }
+    :                        { label: 'Very quiet',     cls: 'noise-low'  }
+    : null;
+
   const scoreHtml = s ? `
     <div class="dp-divider"></div>
     <div class="dp-score-row">
@@ -631,6 +638,7 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
         <span>🌡 Comfort ${s.comfort}</span>
         <span>⊙ Distance ${s.distance}</span>
         ${shelterStr ? `<span>${shelterStr}</span>` : ''}
+        ${noiseInfo   ? `<span class="dp-noise ${noiseInfo.cls}">🔊 ${noiseInfo.label}</span>` : ''}
       </div>
     </div>` : '';
 

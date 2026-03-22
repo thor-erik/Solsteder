@@ -34,7 +34,7 @@ function loadFacingCache() {
   catch (_) { return {}; }
 }
 
-function saveFacingCache(venueId, facing, facingSource, terraceWallIndices, terraceDepth) {
+function saveFacingCache(venueId, facing, facingSource, terraceWallIndices, terraceDepth, noiseScore) {
   const cache = loadFacingCache();
   const prev  = cache[venueId] || {};
   cache[venueId] = {
@@ -43,6 +43,7 @@ function saveFacingCache(venueId, facing, facingSource, terraceWallIndices, terr
     // Preserve existing terrace data when callers don't pass it (e.g. auto-OSM scoring)
     terraceWallIndices: terraceWallIndices ?? prev.terraceWallIndices ?? [],
     terraceDepth:       terraceDepth       ?? prev.terraceDepth       ?? null,
+    noiseScore:         noiseScore         ?? prev.noiseScore         ?? null,
   };
   try { localStorage.setItem(FACING_CACHE_KEY, JSON.stringify(cache)); }
   catch (_) {}
@@ -89,9 +90,10 @@ async function loadVenues() {
   VENUES.forEach(v => {
     const cached = facingCache[v.id];
     if (!cached) return;
-    // Terrace geometry is always restored from cache regardless of facingSource
+    // Terrace geometry + noise always restored from cache regardless of facingSource
     if (cached.terraceWallIndices?.length) v.terraceWallIndices = cached.terraceWallIndices;
     if (cached.terraceDepth != null)       v.terraceDepth       = cached.terraceDepth;
+    if (cached.noiseScore   != null)       v.noiseScore         = cached.noiseScore;
     // JSON-level 'manual' beats any localStorage entry (it was intentionally authored)
     if (v.facingSource === 'manual') return;
     v.facing = cached.facing;
