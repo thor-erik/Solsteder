@@ -126,6 +126,7 @@
   #floating-date {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
     background: rgba(6,12,26,0.58);
     backdrop-filter: blur(32px);
@@ -589,10 +590,10 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    background: none;
-    border: 1px solid rgba(81,69,50,0.18);
+    background: rgba(81,69,50,0.14);
+    border: 1px solid rgba(81,69,50,0.35);
     border-radius: 6px;
-    color: rgba(213,196,171,0.5);
+    color: var(--muted);
     font-family: 'Inter', sans-serif;
     font-size: 9px;
     font-weight: 700;
@@ -601,10 +602,10 @@
     padding: 4px 8px;
     cursor: pointer;
     flex-shrink: 0;
-    transition: color 0.12s, border-color 0.12s;
+    transition: color 0.12s, border-color 0.12s, background 0.12s;
   }
-  #sort-toggle-btn:hover { color: var(--muted); border-color: rgba(81,69,50,0.35); }
-  #sort-toggle-btn.open  { color: var(--accent); border-color: rgba(255,184,0,0.35); }
+  #sort-toggle-btn:hover { color: var(--text); border-color: rgba(81,69,50,0.55); background: rgba(81,69,50,0.22); }
+  #sort-toggle-btn.open  { color: var(--accent); border-color: rgba(255,184,0,0.45); background: rgba(255,184,0,0.08); }
   /* Sort options panel */
   #sort-panel {
     display: none;
@@ -1770,7 +1771,6 @@
       <div id="venue-header">
         <div class="vh-left">
           <span id="venue-count">—</span>
-          <button id="map-view-btn" onclick="toggleMapView()" title="Filter to current map view">⊞ In view</button>
         </div>
         <button id="sort-toggle-btn" onclick="toggleSortPanel()">⇅ <span id="sort-label">Score</span></button>
       </div>
