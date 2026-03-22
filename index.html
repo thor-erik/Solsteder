@@ -317,23 +317,47 @@
     color: var(--text);
   }
 
-  /* Mapbox nav control — glass morphism to match floating cards */
+  /* ── Mapbox nav controls — circular glass buttons ───────────────────────── */
   .mapboxgl-ctrl-bottom-right { right: 16px; }
   .mapboxgl-ctrl-group {
-    background: rgba(13,19,30,0.88) !important;
-    backdrop-filter: blur(20px) !important;
-    -webkit-backdrop-filter: blur(20px) !important;
-    border: 1px solid rgba(81,69,50,0.2) !important;
-    border-radius: 12px !important;
-    overflow: hidden !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
     box-shadow: none !important;
+    overflow: visible !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
   }
   .mapboxgl-ctrl-group button {
-    background-color: transparent !important;
-    border-bottom-color: rgba(81,69,50,0.15) !important;
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 50% !important;
+    background: rgba(6,12,26,0.78) !important;
+    backdrop-filter: blur(24px) !important;
+    -webkit-backdrop-filter: blur(24px) !important;
+    border: 1px solid rgba(81,69,50,0.25) !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.35) !important;
+    transition: background 0.15s, border-color 0.15s !important;
   }
-  .mapboxgl-ctrl-group button:hover { background: rgba(255,255,255,0.06) !important; }
-  .mapboxgl-ctrl-icon { filter: invert(0.7); }
+  .mapboxgl-ctrl-group button:hover {
+    background: rgba(20,28,44,0.92) !important;
+    border-color: rgba(255,184,0,0.4) !important;
+  }
+  /* Zoom + icon */
+  .mapboxgl-ctrl-zoom-in .mapboxgl-ctrl-icon {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'%3E%3Cpath d='M10 4v12M4 10h12' stroke='rgba(213,196,171,0.8)' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E") !important;
+    filter: none !important;
+  }
+  /* Zoom - icon */
+  .mapboxgl-ctrl-zoom-out .mapboxgl-ctrl-icon {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'%3E%3Cpath d='M4 10h12' stroke='rgba(213,196,171,0.8)' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E") !important;
+    filter: none !important;
+  }
+  /* Compass icon */
+  .mapboxgl-ctrl-compass .mapboxgl-ctrl-icon { filter: none !important; }
+  .mapboxgl-ctrl-compass-arrow { fill: rgba(213,196,171,0.75) !important; }
+  .mapboxgl-ctrl-compass-arrow path:first-child { fill: #FFB800 !important; }
 
   .popup-name {
     font-family: 'Newsreader', serif;
