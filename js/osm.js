@@ -414,15 +414,22 @@ async function tryLoadPrecomputed() {
 // ── Entry point ───────────────────────────────────────────────────────────────
 
 async function initFacings() {
-  const statusEl = document.getElementById('facing-status');
-  statusEl.textContent = 'Loading building geometry…';
+  function showMapToast(msg, duration = 3000) {
+    const el = document.getElementById('map-toast');
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.add('visible');
+    clearTimeout(showMapToast._timer);
+    if (duration > 0) showMapToast._timer = setTimeout(() => el.classList.remove('visible'), duration);
+  }
+
+  showMapToast('Loading building geometry…', 0);
 
   // Fast path: pre-computed geometry.json served from the repo
   if (await tryLoadPrecomputed()) {
     clearSpriteCache();
     sunWindowCache.clear();
-    statusEl.textContent = 'Building geometry loaded';
-    setTimeout(() => { statusEl.textContent = ''; }, 3000);
+    showMapToast('Building geometry loaded');
     dispatchToWorker(datePicker.value);
     draw();
     renderList();
@@ -430,7 +437,7 @@ async function initFacings() {
   }
 
   // Slow path: fetch raw geometry from Overpass and compute locally
-  statusEl.textContent = 'Fetching building geometry…';
+  showMapToast('Fetching building geometry…', 0);
   let elements;
   try {
     const data = await fetchAllGeometry();
@@ -438,7 +445,7 @@ async function initFacings() {
     console.log(`OSM: fetched ${elements.length} elements`);
   } catch (err) {
     console.error('OSM fetch failed:', err);
-    statusEl.innerHTML = 'Building data unavailable · <button onclick="initFacings()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:11px;padding:0;text-decoration:underline">Retry</button>';
+    showMapToast('Building data unavailable — check console');
     return;
   }
 
@@ -524,10 +531,9 @@ async function initFacings() {
 
   clearSpriteCache();
   sunWindowCache.clear();
-  statusEl.textContent = computed > 0
+  showMapToast(computed > 0
     ? `${computed} direction${computed > 1 ? 's' : ''} computed from OSM`
-    : 'Building geometry loaded';
-  setTimeout(() => { statusEl.textContent = ''; }, 4000);
+    : 'Building geometry loaded');
 
   // Re-dispatch worker with shadow data now populated
   dispatchToWorker(datePicker.value);
