@@ -337,6 +337,93 @@ function updateWeatherDisplay() {
   el.classList.add('loaded');
 }
 
+// ── Date display button + weather strip ──────────────────────────────────────
+function updateDateDisplayBtn() {
+  const btn = document.getElementById('date-display-btn');
+  if (!btn) return;
+  const val  = datePicker.value;
+  const d    = new Date(val + 'T12:00:00');
+  const tod  = todayStr();
+  const tom  = new Date(); tom.setDate(tom.getDate() + 1);
+  const tomS = tom.toISOString().slice(0, 10);
+  const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const MONS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  if (val === tod)  btn.textContent = `Today · ${d.getDate()} ${MONS[d.getMonth()]}`;
+  else if (val === tomS) btn.textContent = `Tomorrow · ${d.getDate()} ${MONS[d.getMonth()]}`;
+  else btn.textContent = `${DAYS[d.getDay()]} ${d.getDate()} ${MONS[d.getMonth()]}`;
+}
+
+function updateDateWeatherStrip() {
+  const el = document.getElementById('date-wx-strip');
+  if (!el) return;
+  const wx = typeof getWeatherAt === 'function'
+    ? getWeatherAt(datePicker.value, parseFloat(timeFromEl.value))
+    : null;
+  if (!wx) { el.style.display = 'none'; return; }
+  el.style.display = '';
+  const ARROWS = ['↑','↗','→','↘','↓','↙','←','↖'];
+  const arrow   = ARROWS[Math.round(((wx.wdir + 180) % 360) / 45) % 8];
+  const rain    = wx.precip >= 0.2
+    ? `<span class="wx-rain">🌧 ${wx.precip.toFixed(1)}</span>`
+    : '';
+  el.innerHTML = `<span>${skyIcon(wx.cloud)}</span>`
+    + `<span class="wx-temp-strip">${wx.temp}°</span>`
+    + `<span class="wx-sep">·</span>`
+    + `<span class="wx-wind">${arrow} ${Math.round(wx.wspd)} m/s</span>`
+    + rain;
+}
+
+// ── Date calendar picker ──────────────────────────────────────────────────────
+function renderDateCalendar() {
+  const cal = document.getElementById('date-calendar');
+  if (!cal) return;
+  const selected = datePicker.value;
+  const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  let html = '<div class="dc-grid">';
+  for (let i = 0; i < 14; i++) {
+    const d    = new Date(); d.setDate(d.getDate() + i);
+    const dStr = d.toISOString().slice(0, 10);
+    const summ = typeof getDayWeatherSummary === 'function' ? getDayWeatherSummary(dStr) : null;
+    let cls = 'dc-tile';
+    if (i === 0)        cls += ' today';
+    if (dStr === selected) cls += ' selected';
+    if (summ) {
+      if (summ.avgCloud < 0.30) cls += ' sun-high';
+      else if (summ.avgCloud < 0.60) cls += ' sun-mid';
+    } else {
+      cls += ' no-data';
+    }
+    const icon = summ ? summ.icon : '·';
+    const temp = summ ? `${summ.peakTemp}°` : '';
+    html += `<button class="${cls}" onclick="selectCalendarDate('${dStr}')">`
+      + `<span class="dc-day">${DAYS[d.getDay()]}</span>`
+      + `<span class="dc-num">${d.getDate()}</span>`
+      + `<span class="dc-icon">${icon}</span>`
+      + `<span class="dc-temp">${temp}</span>`
+      + `</button>`;
+  }
+  html += '</div>';
+  cal.innerHTML = html;
+}
+
+function toggleDateCalendar() {
+  const cal = document.getElementById('date-calendar');
+  const btn = document.getElementById('date-display-btn');
+  if (!cal) return;
+  const isOpen = cal.classList.toggle('open');
+  if (btn) btn.classList.toggle('open', isOpen);
+  if (isOpen) renderDateCalendar();
+}
+
+function selectCalendarDate(dateStr) {
+  datePicker.value = dateStr;
+  const cal = document.getElementById('date-calendar');
+  const btn = document.getElementById('date-display-btn');
+  if (cal) cal.classList.remove('open');
+  if (btn) btn.classList.remove('open');
+  update();
+}
+
 // ── Hover from sidebar list ───────────────────────────────────────────────────
 function setHoveredVenue(id) {
   if (hoveredId === id) return;
@@ -499,6 +586,9 @@ function update() {
     const hv = VENUES.find(x => x.id === hoveredId);
     if (hv) tooltip.innerHTML = buildTooltipContent(hv);
   }
+
+  updateDateDisplayBtn();
+  updateDateWeatherStrip();
 }
 
 // ── Popup helpers ─────────────────────────────────────────────────────────────
@@ -800,6 +890,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (panel?.classList.contains('open') && !btn?.contains(e.target) && !panel?.contains(e.target)) {
       panel.classList.remove('open');
       btn?.classList.remove('open');
+    }
+    // Close date calendar when clicking outside it
+    const cal       = document.getElementById('date-calendar');
+    const dateArea  = document.getElementById('floating-date');
+    const displayBtn = document.getElementById('date-display-btn');
+    if (cal?.classList.contains('open') && !dateArea?.contains(e.target)) {
+      cal.classList.remove('open');
+      displayBtn?.classList.remove('open');
     }
   });
 

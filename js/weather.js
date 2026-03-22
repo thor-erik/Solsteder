@@ -119,5 +119,18 @@ function skyLabel(cf) {
   return 'Overcast';
 }
 
+/**
+ * Aggregate daytime weather for a date → icon, peakTemp, avgCloud.
+ * Samples hours 8, 10, 12, 14, 16. Returns null if no forecast data.
+ */
+function getDayWeatherSummary(dateStr) {
+  const slots = [8, 10, 12, 14, 16].map(h => getWeatherAt(dateStr, h)).filter(Boolean);
+  if (!slots.length) return null;
+  const avgCloud  = slots.reduce((s, w) => s + w.cloud, 0) / slots.length;
+  const peakTemp  = Math.max(...slots.map(w => w.temp));
+  const totPrecip = slots.reduce((s, w) => s + w.precip, 0);
+  return { avgCloud, peakTemp, totPrecip, icon: skyIcon(avgCloud) };
+}
+
 // Auto-refresh every 30 min
 setInterval(initWeather, 30 * 60 * 1000);
