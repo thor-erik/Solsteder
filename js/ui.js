@@ -440,7 +440,7 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
       const rem = curWin.end - fromHour;
       const bh = Math.floor(rem), bm = Math.round((rem - bh) * 60);
       const dur = (bh > 0 ? bh + 'H ' : '') + (bm > 0 ? bm + 'M' : '');
-      sunLineText = `${dur.trim()} · UNTIL ${formatHour(curWin.end)}`;
+      sunLineText = `UNTIL ${formatHour(curWin.end)} · ${dur.trim()}`;
       sunLineCls = 'sunny';
     } else {
       const next = windows.find(w => w.start > fromHour);
