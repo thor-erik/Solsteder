@@ -268,13 +268,19 @@ function positionPresetButtons() {
     { intent: 'evening',    hour: 20   },
   ];
 
+  // Resolve x positions, then nudge buttons apart if they're too close (< 48px)
+  const placed = presets.map(p => ({ ...p, x: _arcTimeToLeft(p.hour, w) }));
+  for (let i = 1; i < placed.length; i++) {
+    if (placed[i].x - placed[i - 1].x < 48) placed[i].x = placed[i - 1].x + 48;
+  }
+
   row.querySelectorAll('.intent-btn').forEach(btn => {
-    const preset = presets.find(p => p.intent === btn.dataset.intent);
-    if (!preset) return;
+    const p = placed.find(p => p.intent === btn.dataset.intent);
+    if (!p) return;
     if (btn.dataset.intent === 'evening') {
       btn.style.display = showEvening ? '' : 'none';
     }
-    btn.style.left = _arcTimeToLeft(preset.hour, w) + 'px';
+    btn.style.left = p.x + 'px';
     if (btn.dataset.intent === 'now') btn.textContent = isToday ? 'Now' : 'Sunrise';
   });
 
