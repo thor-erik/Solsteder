@@ -568,7 +568,7 @@ function drawShelterDiagram(v, wx, canvas) {
   }
 
   let ISO_SCALE = 4;
-  const CX = W * 0.5, CY = H * 0.42;
+  const CX = W * 0.5, CY = H * 0.52; // extra headroom above roof
 
   function toIso(x, y, z) {
     return { sx: CX + (x - y) * ISO_SCALE, sy: CY + (x + y) * ISO_SCALE * 0.5 - z * ISO_SCALE };
@@ -598,11 +598,21 @@ function drawShelterDiagram(v, wx, canvas) {
       return Math.hypot(cx, cy) < 55;
     });
 
-  // ── Auto-scale from venue building ─────────────────────────────────────────
+  // ── Auto-scale: fit building footprint + height + terrace into canvas ───────
   const allNodes = [...venueNodes, ...nearbyBlds.flatMap(b => b.nodes)];
   if (allNodes.length >= 2) {
-    const maxAbs = Math.max(1, ...allNodes.map(n => Math.max(Math.abs(n.x), Math.abs(n.y))));
-    ISO_SCALE = Math.min((W * 0.32) / maxAbs, (H * 0.28) / maxAbs, 7.5);
+    // Horizontal extent in iso: max |x - y| across all nodes
+    const maxHoriz = Math.max(1, ...allNodes.map(n => Math.abs(n.x - n.y)));
+    // Vertical extent in iso: (x+y)*0.5*scale for ground + VENUE_H*scale for height
+    //   + terrace extends another terrDepth * √2 * 0.5 * scale downward
+    const maxGndY  = Math.max(1, ...allNodes.map(n => Math.abs(n.x + n.y)));
+    const vertSpan = maxGndY * 0.5 + VENUE_H + terrDepth * 0.707;
+
+    ISO_SCALE = Math.min(
+      (W * 0.38) / maxHoriz,
+      (H * 0.58) / vertSpan,
+      5.5                    // hard cap so large buildings don't dominate
+    );
   }
 
   // ── Background ──────────────────────────────────────────────────────────────
