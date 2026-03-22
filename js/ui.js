@@ -286,10 +286,6 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
     ? (s.distKm < 1 ? `${Math.round(s.distKm * 1000)} m` : `${s.distKm.toFixed(1)} km`)
     : null;
 
-  const scoreExpandHtml = s ? `<div class="card-score-row">
-    <span class="score-badge ${tier}">⭐ ${s.total}</span>
-    <span class="score-detail-inline">☀ ${s.sun} · 🌡 ${s.comfort} · ⊙ ${s.distance}</span>
-  </div>` : '';
 
   let cardBadgeText, cardBadgeCls;
   if (isPoint || nowMode) {
@@ -345,8 +341,6 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
     cardBadgeCls  = 'shaded';
   }
 
-  const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lng}`;
-
   return `
     <div class="venue-card ${v.sunInWin ? 'sunny' : ''} ${v.id === selectedId ? 'selected' : ''} ${dimmedCls}"
          data-vid="${v.id}" onclick="selectVenue(${v.id}, true)"
@@ -359,14 +353,6 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
           </div>
           <span class="card-badge ${cardBadgeCls}">${cardBadgeText}</span>
           <div class="card-meta">${v.area ?? ''}${v.area ? ' · ' : ''}${catLabel(v)}${tempStr}${distStr ? ' · ' + distStr : ''}</div>
-        </div>
-      </div>
-      <div class="card-expanded">
-        ${scoreExpandHtml}
-        <div class="card-address">${v.address}</div>
-        <div class="card-actions">
-          <a class="card-action-btn" href="${directionsUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">↗ Directions</a>
-          <button class="card-action-btn" onclick="event.stopPropagation();shareVenue(${v.id})">⎘ Share</button>
         </div>
       </div>
     </div>`;
