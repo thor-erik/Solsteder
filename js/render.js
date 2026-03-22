@@ -354,7 +354,7 @@ function drawSunCurve(canvasEl) {
   c.scale(dpr, dpr);
 
   const MIN_H = 4, MAX_H = 23;
-  const PAD_X = 38, PAD_T = 8, PAD_B = 20;
+  const PAD_X = 38, PAD_T = 22, PAD_B = 20;
   const cw = cssW, ch = cssH;
   const dateStr = datePicker.value;
 
@@ -474,6 +474,20 @@ function drawSunCurve(canvasEl) {
     // Small white centre dot
     c.beginPath(); c.arc(mx, my, 2, 0, Math.PI * 2);
     c.fillStyle = 'rgba(255,255,255,0.9)'; c.fill();
+
+    // Thumb time label — pill just above the dot
+    const thumbText = formatHour(fromH);
+    const _tmp = document.createElement('canvas').getContext('2d');
+    _tmp.font = 'bold 10px "Inter", sans-serif';
+    const tlw = _tmp.measureText(thumbText).width + 12, tlh = 16;
+    const tlx = Math.max(tlw / 2 + 4, Math.min(cw - tlw / 2 - 4, mx));
+    const tly = Math.max(2, my - 12 - tlh);
+    c.beginPath(); c.roundRect(tlx - tlw / 2, tly, tlw, tlh, 5);
+    c.fillStyle = 'rgba(8,14,25,0.88)'; c.fill();
+    c.strokeStyle = 'rgba(255,184,0,0.55)'; c.lineWidth = 1; c.stroke();
+    c.font = 'bold 10px "Inter", sans-serif';
+    c.fillStyle = '#FFB800'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(thumbText, tlx, tly + tlh / 2);
   }
 
   // Hover scrub indicator
@@ -488,11 +502,24 @@ function drawSunCurve(canvasEl) {
     const hy = altToY(Math.max(0, hoverSun.alt));
     c.beginPath(); c.arc(hx, hy, 3, 0, Math.PI * 2);
     c.fillStyle = 'rgba(213,196,171,0.7)'; c.fill();
-    // Time label above the line
-    c.font = '9px "Inter", sans-serif';
-    c.textAlign = 'center'; c.textBaseline = 'bottom';
-    c.fillStyle = 'rgba(213,196,171,0.8)';
-    c.fillText(formatHour(arcHoverH), hx, PAD_T - 1);
+
+    // Hover label pill — time + temp + wind at top of canvas
+    let hoverText = formatHour(arcHoverH);
+    const wx = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, arcHoverH) : null;
+    if (wx) {
+      const wc = typeof windCardinal === 'function' ? windCardinal(wx.wdir) : '';
+      hoverText += `  ${wx.temp}°  ${wc} ${Math.round(wx.wspd)} m/s`;
+    }
+    const _tmp2 = document.createElement('canvas').getContext('2d');
+    _tmp2.font = '10px "Inter", sans-serif';
+    const hlw = _tmp2.measureText(hoverText).width + 14, hlh = 17;
+    const hlx = Math.max(hlw / 2 + 4, Math.min(cw - hlw / 2 - 4, hx));
+    c.beginPath(); c.roundRect(hlx - hlw / 2, 2, hlw, hlh, 5);
+    c.fillStyle = 'rgba(8,14,25,0.92)'; c.fill();
+    c.strokeStyle = 'rgba(213,196,171,0.22)'; c.lineWidth = 1; c.stroke();
+    c.font = '10px "Inter", sans-serif';
+    c.fillStyle = 'rgba(213,196,171,0.9)'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(hoverText, hlx, 2 + hlh / 2);
   }
 
   c.restore();

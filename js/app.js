@@ -491,10 +491,6 @@ function update() {
     sunBg.style.display = 'block';
   } else if (sunBg) { sunBg.style.display = 'none'; }
 
-  // Arc time display
-  const arcTimeEl = document.getElementById('arc-time-display');
-  if (arcTimeEl) arcTimeEl.textContent = formatHour(fromHour);
-
   draw();
   drawSunCompass();
   drawSunCurve(document.getElementById('sun-curve'));
