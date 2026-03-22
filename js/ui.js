@@ -557,8 +557,8 @@ function drawShelterDiagram(v, wx, canvas) {
   // ── Coordinate helpers ──────────────────────────────────────────────────────
   const cosLat = Math.cos(v.lat * Math.PI / 180);
 
-  // Rotate so v.facing → bearing 45° (NE = iso "front-bottom")
-  const θ    = (v.facing - 45) * Math.PI / 180;
+  // Rotate so v.facing → bearing 0° (N = local y-axis = left face in iso), terrace wall diagonal
+  const θ    = v.facing * Math.PI / 180;
   const cosθ = Math.cos(θ), sinθ = Math.sin(θ);
 
   function toLocal(lat, lng) {
@@ -569,14 +569,14 @@ function drawShelterDiagram(v, wx, canvas) {
 
   let ISO_SCALE = 4;
   let CY = H * 0.52;
-  const CX = W * 0.5;
+  const CX = W * 0.56; // shifted right: terrace extends left (local +y = iso left)
 
   function toIso(x, y, z) {
     return { sx: CX + (x - y) * ISO_SCALE, sy: CY + (x + y) * ISO_SCALE * 0.5 - z * ISO_SCALE };
   }
 
   // ── Collect geometry ────────────────────────────────────────────────────────
-  const VENUE_H   = 16;   // exaggerated slightly for visible 3D effect
+  const VENUE_H   = 22;   // exaggerated for visible 3D effect, helps shallow buildings
   const terrDepth = v.autoTerraceDepth ?? 6;
 
   let venueNodes = (v.buildingGeometry || []).map(n => toLocal(n.lat, n.lon));
@@ -605,8 +605,8 @@ function drawShelterDiagram(v, wx, canvas) {
   const allNodes   = [...venueNodes, ...nearbyBlds.flatMap(b => b.nodes)];
   const venueHoriz = Math.max(1, ...venueNodes.map(n => Math.abs(n.x - n.y)));
   const venueGndY  = Math.max(1, ...venueNodes.map(n => n.x + n.y));
-  // vertSpan = depth of ground plane (iso) + building height + terrace projection downward
-  const vertSpan   = Math.max(venueGndY, 1) * 0.5 + VENUE_H + terrDepth * 0.707;
+  // vertSpan = ground depth + building height + terrace (extends in +y → 0.5 factor in iso)
+  const vertSpan   = Math.max(venueGndY + terrDepth, 1) * 0.5 + VENUE_H;
 
   ISO_SCALE = Math.min(
     (W * 0.42) / venueHoriz,
@@ -640,10 +640,9 @@ function drawShelterDiagram(v, wx, canvas) {
   ctx.restore();
 
   // ── Wind + shelter setup ────────────────────────────────────────────────────
-  // In our rotated frame, facing = bearing 45°; sheltered when wind from ~225°
   const shelter     = wx ? venueWindShelter(v.facing, wx.wdir) : null;
   const rotWindDir  = (wx?.wdir != null)
-    ? ((wx.wdir - v.facing + 45) + 360) % 360
+    ? ((wx.wdir - v.facing) + 360) % 360
     : null;
 
   // ── Wind wake cone ──────────────────────────────────────────────────────────
@@ -764,16 +763,15 @@ function drawShelterDiagram(v, wx, canvas) {
   }
 
   // ── Terrace zone ────────────────────────────────────────────────────────────
-  // Terrace extends from the wall in the facing direction (NE = +0.707, +0.707 in rotated frame)
+  // Facing direction → NE (0.707, 0.707) in local frame; terrace extends toward viewer
   if (v.wallSegment) {
     const ws = v.wallSegment;
     const a  = toLocal(ws.aLat, ws.aLng);
     const b  = toLocal(ws.bLat, ws.bLng);
-    const td = terrDepth * 0.7071; // sin/cos 45°
-    const pA0 = toIso(a.x,      a.y,      0.1);
-    const pB0 = toIso(b.x,      b.y,      0.1);
-    const pB1 = toIso(b.x + td, b.y + td, 0.1);
-    const pA1 = toIso(a.x + td, a.y + td, 0.1);
+    const pA0 = toIso(a.x, a.y,              0.1);
+    const pB0 = toIso(b.x, b.y,              0.1);
+    const pB1 = toIso(b.x, b.y + terrDepth, 0.1);
+    const pA1 = toIso(a.x, a.y + terrDepth, 0.1);
 
     ctx.save();
     ctx.beginPath();
@@ -830,9 +828,8 @@ function drawShelterDiagram(v, wx, canvas) {
     const ws = v.wallSegment;
     const a  = toLocal(ws.aLat, ws.aLng);
     const b  = toLocal(ws.bLat, ws.bLng);
-    const td = terrDepth * 0.7071;
-    const mx = (a.x + b.x) / 2 + td * 0.5;
-    const my = (a.y + b.y) / 2 + td * 0.5;
+    const mx = (a.x + b.x) / 2;
+    const my = (a.y + b.y) / 2 + terrDepth * 0.5;
     const tPt = toIso(mx, my, 0.5);
     ctx.save();
     ctx.font = '500 8px Inter,sans-serif';
@@ -844,7 +841,7 @@ function drawShelterDiagram(v, wx, canvas) {
 
   // North indicator (where north is in the rotated diagram)
   {
-    const northBearing = ((45 - v.facing) + 360) % 360;
+    const northBearing = (360 - v.facing) % 360;
     const nRad = northBearing * Math.PI / 180;
     const nDist = Math.min(32, 28 / Math.max(ISO_SCALE, 1));
     const nPt = toIso(Math.sin(nRad) * nDist, Math.cos(nRad) * nDist, 0.5);
