@@ -1614,6 +1614,31 @@
     opacity: 1;
     pointer-events: auto;
   }
+  /* ── Venue photo gallery ────────────────────────────────────────────────── */
+  .dp-photos {
+    display: flex;
+    gap: 3px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin: -14px -16px 14px;
+    scroll-snap-type: x mandatory;
+    border-radius: 10px 10px 0 0;
+    overflow: hidden;         /* clip rounded corners */
+    overflow-x: auto;         /* re-enable horizontal scroll */
+  }
+  .dp-photos::-webkit-scrollbar { display: none; }
+  .dp-photo {
+    width: 268px;
+    height: 190px;
+    object-fit: cover;
+    flex-shrink: 0;
+    scroll-snap-align: start;
+    background: rgba(22,28,39,0.6);
+  }
+  .dp-photo:first-child:last-child {
+    width: 100%; /* single photo fills full width */
+  }
+
   #dp-scroll {
     flex: 1;
     overflow-y: auto;
@@ -1943,6 +1968,7 @@
 
 <script src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
 <script src="js/config.js"></script>
+<script src="js/places.js"></script>
 <script src="js/busyness.js"></script>
 <script src="js/solar.js"></script>
 <script src="js/data.js"></script>
@@ -1959,6 +1985,7 @@ loadVenues().then(() => {
   initFacings();
   initWeather();     // fetch MET Norway forecast (async, re-renders when data arrives)
   initNoiseLevels(); // fetch Geonorge official road noise zones (async, cached 30 days)
+  initPlaces();      // fetch Google Places photos (async, cached 7 days)
 });
 </script>
 </body>
