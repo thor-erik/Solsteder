@@ -60,13 +60,45 @@ function renderSunDial(v, dateStr, fromHour) {
   const { windows } = computeSunWindows(v, dateStr);
   const W = 220, H = 220, CX = 110, CY = 110, R = 88, SW = 7;
 
-  function hAngle(h) { return (h / 24) * 2 * Math.PI - Math.PI / 2; }
+  function hAngle(h) { return ((h % 12) / 12) * 2 * Math.PI - Math.PI / 2; }
   function pt(h) { const a = hAngle(h); return [CX + R * Math.cos(a), CY + R * Math.sin(a)]; }
   function arcPath(h1, h2) {
-    if (Math.abs(h2 - h1) < 0.01) return '';
+    const dur = h2 - h1;
+    if (dur < 0.01) return '';
+    if (dur >= 12) {
+      // Full circle — split into two half-arcs (SVG can't arc from a point to itself)
+      const [x1, y1] = pt(h1), [xm, ym] = pt(h1 + 6);
+      return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${R} ${R} 0 1 1 ${xm.toFixed(2)} ${ym.toFixed(2)} A ${R} ${R} 0 1 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
+    }
     const [x1, y1] = pt(h1), [x2, y2] = pt(h2);
-    const large = (h2 - h1) > 12 ? 1 : 0;
+    const large = dur > 6 ? 1 : 0;
     return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${R} ${R} 0 ${large} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`;
+  }
+
+  // Hour tick marks — 12 positions, major at 12/3/6/9
+  let ticks = '';
+  for (let h = 0; h < 12; h++) {
+    const angle  = (h / 12) * 2 * Math.PI - Math.PI / 2;
+    const isMaj  = h % 3 === 0;
+    const r1     = isMaj ? R - 10 : R - 6;
+    const x1t    = (CX + r1       * Math.cos(angle)).toFixed(1);
+    const y1t    = (CY + r1       * Math.sin(angle)).toFixed(1);
+    const x2t    = (CX + (R - 1)  * Math.cos(angle)).toFixed(1);
+    const y2t    = (CY + (R - 1)  * Math.sin(angle)).toFixed(1);
+    ticks += `<line x1="${x1t}" y1="${y1t}" x2="${x2t}" y2="${y2t}"
+      stroke="rgba(213,196,171,${isMaj ? 0.22 : 0.11})" stroke-width="${isMaj ? 1.4 : 0.8}" stroke-linecap="round"/>`;
+  }
+
+  // Hour numbers at 12, 3, 6, 9
+  const NR = R - 20;
+  let hourNums = '';
+  for (const [h, lbl] of [[0,'12'],[3,'3'],[6,'6'],[9,'9']]) {
+    const angle = (h / 12) * 2 * Math.PI - Math.PI / 2;
+    const nx = (CX + NR * Math.cos(angle)).toFixed(1);
+    const ny = (CY + NR * Math.sin(angle)).toFixed(1);
+    hourNums += `<text x="${nx}" y="${ny}" text-anchor="middle" dominant-baseline="middle"
+      font-family="Inter,sans-serif" font-size="7" font-weight="500"
+      fill="rgba(213,196,171,0.2)" letter-spacing="0">${lbl}</text>`;
   }
 
   // Draw arcs — each window segment gets hover handlers showing its from/to
@@ -121,6 +153,8 @@ function renderSunDial(v, dateStr, fromHour) {
       </filter>
     </defs>
     <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="${SW}"/>
+    ${ticks}
+    ${hourNums}
     ${arcs}
     <circle cx="${tx.toFixed(2)}" cy="${ty.toFixed(2)}" r="5.5" fill="#FFB800" filter="url(#dg)"/>
     <text id="dp-dt1" data-d="${centerTime}" x="${CX}" y="${CY - 10}" text-anchor="middle" dominant-baseline="middle"
