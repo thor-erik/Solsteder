@@ -353,8 +353,9 @@ function drawSunCurve(canvasEl) {
   c.save();
   c.scale(dpr, dpr);
 
-  const MIN_H = 4, MAX_H = 23;
-  const PAD_X = 20, PAD_T = 22, PAD_B = 18;
+  const MIN_H = (typeof MIN_H_ARC !== 'undefined') ? MIN_H_ARC : 4;
+  const MAX_H = (typeof MAX_H_ARC !== 'undefined') ? MAX_H_ARC : 23;
+  const PAD_X = 20, PAD_T = 22, PAD_B = 16;
   const cw = cssW, ch = cssH;
   const dateStr = datePicker.value;
 
@@ -471,14 +472,14 @@ function drawSunCurve(canvasEl) {
     // Thumb time label — pill just above the dot
     const thumbText = formatHour(fromH);
     const _tmp = document.createElement('canvas').getContext('2d');
-    _tmp.font = 'bold 10px "Inter", sans-serif';
-    const tlw = _tmp.measureText(thumbText).width + 12, tlh = 16;
+    _tmp.font = 'bold 12px "Inter", sans-serif';
+    const tlw = _tmp.measureText(thumbText).width + 14, tlh = 18;
     const tlx = Math.max(tlw / 2 + 4, Math.min(cw - tlw / 2 - 4, mx));
     const tly = Math.max(2, my - 12 - tlh);
-    c.beginPath(); c.roundRect(tlx - tlw / 2, tly, tlw, tlh, 5);
-    c.fillStyle = 'rgba(8,14,25,0.88)'; c.fill();
-    c.strokeStyle = 'rgba(255,184,0,0.55)'; c.lineWidth = 1; c.stroke();
-    c.font = 'bold 10px "Inter", sans-serif';
+    c.beginPath(); c.roundRect(tlx - tlw / 2, tly, tlw, tlh, 6);
+    c.fillStyle = 'rgba(8,14,25,0.92)'; c.fill();
+    c.strokeStyle = 'rgba(255,184,0,0.6)'; c.lineWidth = 1; c.stroke();
+    c.font = 'bold 12px "Inter", sans-serif';
     c.fillStyle = '#FFB800'; c.textAlign = 'center'; c.textBaseline = 'middle';
     c.fillText(thumbText, tlx, tly + tlh / 2);
   }
@@ -497,22 +498,25 @@ function drawSunCurve(canvasEl) {
     c.fillStyle = 'rgba(213,196,171,0.7)'; c.fill();
 
     // Hover label pill — time + temp + wind at top of canvas
-    let hoverText = formatHour(arcHoverH);
     const wx = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, arcHoverH) : null;
+    let hoverText = formatHour(arcHoverH);
+    let windArrow = '';
     if (wx) {
-      const wc = typeof windCardinal === 'function' ? windCardinal(wx.wdir) : '';
-      hoverText += `  ${wx.temp}°  ${wc} ${Math.round(wx.wspd)} m/s`;
+      // Arrow points direction wind travels toward (opposite of "from")
+      const _arrows = ['↑','↗','→','↘','↓','↙','←','↖'];
+      windArrow = _arrows[Math.round(((wx.wdir + 180) % 360) / 45) % 8];
+      hoverText += `   ${wx.temp}°   ${windArrow} ${Math.round(wx.wspd)} m/s`;
     }
     const _tmp2 = document.createElement('canvas').getContext('2d');
-    _tmp2.font = '10px "Inter", sans-serif';
-    const hlw = _tmp2.measureText(hoverText).width + 14, hlh = 17;
+    _tmp2.font = '600 12px "Inter", sans-serif';
+    const hlw = _tmp2.measureText(hoverText).width + 16, hlh = 20;
     const hlx = Math.max(hlw / 2 + 4, Math.min(cw - hlw / 2 - 4, hx));
-    c.beginPath(); c.roundRect(hlx - hlw / 2, 2, hlw, hlh, 5);
-    c.fillStyle = 'rgba(8,14,25,0.92)'; c.fill();
-    c.strokeStyle = 'rgba(213,196,171,0.22)'; c.lineWidth = 1; c.stroke();
-    c.font = '10px "Inter", sans-serif';
-    c.fillStyle = 'rgba(213,196,171,0.9)'; c.textAlign = 'center'; c.textBaseline = 'middle';
-    c.fillText(hoverText, hlx, 2 + hlh / 2);
+    c.beginPath(); c.roundRect(hlx - hlw / 2, 1, hlw, hlh, 6);
+    c.fillStyle = 'rgba(8,14,25,0.94)'; c.fill();
+    c.strokeStyle = 'rgba(213,196,171,0.2)'; c.lineWidth = 1; c.stroke();
+    c.font = '600 12px "Inter", sans-serif';
+    c.fillStyle = 'rgba(213,196,171,0.95)'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(hoverText, hlx, 1 + hlh / 2);
   }
 
   c.restore();

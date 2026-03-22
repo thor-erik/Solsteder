@@ -240,7 +240,8 @@ function applyNowTime() {
 
 // ── Intent shortcuts ──────────────────────────────────────────────────────────
 const _PRESET_HOURS = { lunch: 11, 'after-work': 16, evening: 20 };
-const PAD_X_ARC = 20, MIN_H_ARC = 4, MAX_H_ARC = 23;
+const PAD_X_ARC = 20;
+let MIN_H_ARC = 4, MAX_H_ARC = 23; // updated dynamically from sunrise/sunset
 
 function _arcTimeToLeft(h, canvasW) {
   return PAD_X_ARC + (h - MIN_H_ARC) / (MAX_H_ARC - MIN_H_ARC) * (canvasW - PAD_X_ARC * 2);
@@ -439,10 +440,9 @@ let _arcDragging = false;
 function _arcSetTimeFromX(clientX) {
   const canvasEl = document.getElementById('sun-curve');
   if (!canvasEl) return;
-  const rect  = canvasEl.getBoundingClientRect();
-  const PAD_X = 20, MIN_H = 4, MAX_H = 23;
-  const t     = MIN_H + (clientX - rect.left - PAD_X) / (rect.width - PAD_X * 2) * (MAX_H - MIN_H);
-  const hour  = Math.max(MIN_H, Math.min(MAX_H, t));
+  const rect = canvasEl.getBoundingClientRect();
+  const t    = MIN_H_ARC + (clientX - rect.left - PAD_X_ARC) / (rect.width - PAD_X_ARC * 2) * (MAX_H_ARC - MIN_H_ARC);
+  const hour = Math.max(MIN_H_ARC, Math.min(MAX_H_ARC, t));
   if (nowMode) {
     nowMode = false;
     nowBtn?.classList.remove('active');
@@ -473,6 +473,12 @@ function update() {
   currentSun = getSunFromTable(currentSunTable, fromHour);
   const sunrise = findSunCrossingFromTable(currentSunTable, true);
   const sunset  = findSunCrossingFromTable(currentSunTable, false);
+
+  // Dynamic arc range — hug sunrise/sunset so the curve fills the canvas naturally
+  if (sunrise != null && sunset != null) {
+    MIN_H_ARC = Math.max(3, Math.floor(sunrise - 0.75));
+    MAX_H_ARC = Math.min(24, Math.ceil(sunset  + 0.75));
+  }
 
   // Status bar (elements may be absent if removed from HTML)
   document.getElementById('stat-azimuth')?.textContent != null && (document.getElementById('stat-azimuth').textContent  = currentSun.alt < 0 ? '—' : `${Math.round(currentSun.az)}°`);
