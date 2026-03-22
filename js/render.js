@@ -355,7 +355,7 @@ function drawSunCurve(canvasEl) {
 
   const MIN_H = (typeof MIN_H_ARC !== 'undefined') ? MIN_H_ARC : 4;
   const MAX_H = (typeof MAX_H_ARC !== 'undefined') ? MAX_H_ARC : 23;
-  const PAD_X = 20, PAD_T = 22, PAD_B = 16;
+  const PAD_X = 20, PAD_T = 16, PAD_B = 8;
   const cw = cssW, ch = cssH;
   const dateStr = datePicker.value;
 
