@@ -414,6 +414,89 @@ function scoreWall(wall, venue, buildings, venueBuilding, openPolygons, entrance
   return score;
 }
 
+// ── Geonorge official noise zones (T-1442) ────────────────────────────────────
+
+const NOISE_CACHE_KEY = 'solsteder_noise_v1';
+const NOISE_CACHE_TTL = 30 * 24 * 60 * 60 * 1000; // 30 days — noise maps rarely update
+
+/** Convert GeoJSON [lon, lat] ring to {lat, lon}[] for pointInPolygon(). */
+function _geoRingToNodes(ring) {
+  return ring.map(([lon, lat]) => ({ lat, lon }));
+}
+
+/** True if lat/lng is inside any polygon of a GeoJSON Feature. */
+function pointInGeoJSONFeature(lat, lng, feature) {
+  const geom = feature.geometry;
+  if (!geom) return false;
+  const polys = geom.type === 'Polygon'     ? [geom.coordinates]
+              : geom.type === 'MultiPolygon' ? geom.coordinates
+              : [];
+  for (const poly of polys) {
+    if (pointInPolygon(lat, lng, _geoRingToNodes(poly[0]))) return true;
+  }
+  return false;
+}
+
+/**
+ * Fetch official road noise zones from Geonorge (Statens vegvesen T-1442).
+ * Classifies each venue as 'red' (>65 dB Lden), 'yellow' (>55 dB), or 'none'.
+ * Results cached in localStorage for 30 days.
+ */
+async function initNoiseLevels() {
+  // Restore from cache
+  try {
+    const raw = localStorage.getItem(NOISE_CACHE_KEY);
+    if (raw) {
+      const { ts, zones } = JSON.parse(raw);
+      if (Date.now() - ts < NOISE_CACHE_TTL) {
+        VENUES.forEach(v => { if (zones[v.id] != null) v.noiseZone = zones[v.id]; });
+        renderList();
+        if (typeof updateDetailPanel === 'function') updateDetailPanel();
+        console.log('Noise: using cached Geonorge data');
+        return;
+      }
+    }
+  } catch (_) {}
+
+  // Bounding box covering all venues (lat/lon axis order for EPSG:4326)
+  const lats = VENUES.map(v => v.lat), lngs = VENUES.map(v => v.lng);
+  const s = (Math.min(...lats) - 0.006).toFixed(6);
+  const n = (Math.max(...lats) + 0.006).toFixed(6);
+  const w = (Math.min(...lngs) - 0.007).toFixed(6);
+  const e = (Math.max(...lngs) + 0.007).toFixed(6);
+
+  const url = 'https://wfs.geonorge.no/skwms1/wfs.stoy_veg' +
+    '?service=WFS&version=2.0.0&request=GetFeature' +
+    '&typeNames=stoy_veg:stoy&outputFormat=application/json' +
+    `&srsName=EPSG:4326&bbox=${s},${w},${n},${e},EPSG:4326`;
+
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    const features = data.features || [];
+
+    const zones = {};
+    VENUES.forEach(v => {
+      for (const feat of features) {
+        if (!pointInGeoJSONFeature(v.lat, v.lng, feat)) continue;
+        const cat = (feat.properties?.støysonekategori ?? '').toLowerCase();
+        zones[v.id] = (cat.includes('rød') || cat.includes('rod') || cat.includes('65')) ? 'red' : 'yellow';
+        break;
+      }
+      zones[v.id] ??= 'none';
+      v.noiseZone = zones[v.id];
+    });
+
+    try { localStorage.setItem(NOISE_CACHE_KEY, JSON.stringify({ ts: Date.now(), zones })); } catch (_) {}
+    console.log(`Noise: ${features.length} zones from Geonorge → ${VENUES.length} venues classified`);
+    renderList();
+    if (typeof updateDetailPanel === 'function') updateDetailPanel();
+  } catch (err) {
+    console.warn('Geonorge noise WFS unavailable:', err.message);
+  }
+}
+
 // ── Pre-computed geometry (geometry.json) ────────────────────────────────────
 
 /**

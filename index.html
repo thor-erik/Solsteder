@@ -1941,7 +1941,8 @@ loadVenues().then(() => {
   updateRangeFill();
   update();
   initFacings();
-  initWeather(); // fetch MET Norway forecast (async, re-renders when data arrives)
+  initWeather();     // fetch MET Norway forecast (async, re-renders when data arrives)
+  initNoiseLevels(); // fetch Geonorge official road noise zones (async, cached 30 days)
 });
 </script>
 </body>

@@ -622,11 +622,16 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
     : '💨 Exposed to wind'
     : null;
 
-  const noiseInfo = v.noiseScore != null
-    ? v.noiseScore > 0.65 ? { label: 'Noisy street',   cls: 'noise-high' }
-    : v.noiseScore > 0.35 ? { label: 'Some traffic',   cls: 'noise-mid'  }
-    : v.noiseScore > 0.12 ? { label: 'Quiet street',   cls: 'noise-low'  }
-    :                        { label: 'Very quiet',     cls: 'noise-low'  }
+  // Prefer official Geonorge data (noiseZone) over OSM proximity estimate (noiseScore)
+  const noiseInfo = v.noiseZone != null
+    ? v.noiseZone === 'red'    ? { label: 'High traffic noise',  cls: 'noise-high' }
+    : v.noiseZone === 'yellow' ? { label: 'Moderate noise',      cls: 'noise-mid'  }
+    :                            { label: 'Low noise level',      cls: 'noise-low'  }
+    : v.noiseScore != null
+    ? v.noiseScore > 0.65 ? { label: 'Noisy (est.)',         cls: 'noise-high' }
+    : v.noiseScore > 0.35 ? { label: 'Some traffic (est.)',  cls: 'noise-mid'  }
+    : v.noiseScore > 0.12 ? { label: 'Quiet (est.)',         cls: 'noise-low'  }
+    :                        { label: 'Very quiet (est.)',    cls: 'noise-low'  }
     : null;
 
   const scoreHtml = s ? `
