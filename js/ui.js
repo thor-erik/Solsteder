@@ -735,17 +735,31 @@ function drawShelterDiagram(v, wx, canvas) {
     return ca - cb;
   });
 
+  // Warm ground glow under venue building
+  if (venueNodes.length >= 3) {
+    ctx.save();
+    ctx.beginPath();
+    const sn = venueNodes.slice(0, -1);
+    const s0 = toIso(sn[0].x, sn[0].y, 0);
+    ctx.moveTo(s0.sx, s0.sy);
+    for (let i = 1; i < sn.length; i++) { const p = toIso(sn[i].x, sn[i].y, 0); ctx.lineTo(p.sx, p.sy); }
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255,184,0,0.07)';
+    ctx.fill();
+    ctx.restore();
+  }
+
   for (const bld of allBlds) {
     drawIsoBlock(bld.nodes, bld.height, bld.isVenue ? {
-      wallBack:  'rgba(36,46,76,0.95)',
-      wallFront: 'rgba(48,60,98,0.95)',
-      roof:      'rgba(54,68,110,0.95)',
-      edge:      'rgba(255,184,0,0.30)',
+      wallBack:  'rgba(30,45,95,0.97)',    // deep blue shadow side
+      wallFront: 'rgba(68,88,165,0.97)',   // brighter lit side
+      roof:      'rgba(78,100,180,0.97)',  // brightest = roof
+      edge:      'rgba(255,184,0,0.55)',   // strong amber outline
     } : {
-      wallBack:  'rgba(16,22,38,0.88)',
-      wallFront: 'rgba(22,29,50,0.88)',
-      roof:      'rgba(25,33,56,0.88)',
-      edge:      'rgba(81,69,50,0.16)',
+      wallBack:  'rgba(20,28,52,0.92)',
+      wallFront: 'rgba(32,42,72,0.92)',
+      roof:      'rgba(38,50,82,0.92)',
+      edge:      'rgba(81,69,50,0.25)',
     });
   }
 

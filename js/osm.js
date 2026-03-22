@@ -566,6 +566,7 @@ async function initFacings() {
     dispatchToWorker(datePicker.value);
     draw();
     renderList();
+    if (typeof updateDetailPanel === 'function') updateDetailPanel();
     return;
   }
 
@@ -675,4 +676,5 @@ async function initFacings() {
   dispatchToWorker(datePicker.value);
   draw();
   renderList();
+  if (typeof updateDetailPanel === 'function') updateDetailPanel();
 }
