@@ -174,14 +174,20 @@ function buildSprite(v, state, selected, hour, dateStr) {
   const ox = rp + 1;   // pill left edge
   const oy = rp;       // pill top edge
 
-  // ── Glow (sunny only) ──────────────────────────────────────────────────────
+  // ── Glow (sunny only) — pill-shaped halo behind the label ─────────────────
   if (state === 'sunny') {
     const gCx = cxA, gCy = oy + PILL_H / 2;
-    const glow = c.createRadialGradient(gCx, gCy, 0, gCx, gCy, pillW * 0.8);
-    glow.addColorStop(0, 'rgba(255,184,0,0.32)');
+    // Use scale trick so the radial gradient follows the pill's aspect ratio
+    const scaleX = (pillW * 0.72) / PILL_H;
+    c.save();
+    c.translate(gCx, gCy);
+    c.scale(scaleX, 1);
+    const glow = c.createRadialGradient(0, 0, 0, 0, 0, PILL_H);
+    glow.addColorStop(0, 'rgba(255,184,0,0.18)');
     glow.addColorStop(1, 'rgba(255,184,0,0)');
-    c.beginPath(); c.ellipse(gCx, gCy, pillW * 0.8, PILL_H, 0, 0, Math.PI * 2);
+    c.beginPath(); c.arc(0, 0, PILL_H, 0, Math.PI * 2);
     c.fillStyle = glow; c.fill();
+    c.restore();
   }
 
   // ── Selection ring ─────────────────────────────────────────────────────────
@@ -1158,21 +1164,28 @@ function draw() {
     projVenues.push({ v, state, pt: map.project([v.lng, v.lat]) });
   });
 
-  // Hover glow — drawn behind pins so it doesn't overlay them
+  // Hover glow — pill-shaped halo drawn behind pins
   if (hoveredId !== null) {
     const hEntry = projVenues.find(({ v }) => v.id === hoveredId);
     if (hEntry) {
       const { pt, state } = hEntry;
       const pillCx = pt.x;
       const pillCy = pt.y - STEM_H - PILL_H / 2;
-      const [r, g, b] = state === 'sunny' ? [255, 200, 0] : state === 'soon' ? [255, 184, 0] : [120, 170, 255];
-      const glowR = 38;
+      const [r, g, b] = state === 'sunny' ? [255, 190, 0] : state === 'soon' ? [255, 184, 0] : [120, 170, 255];
+      // Derive pill width from sprite canvas so glow matches the actual label
+      const _hovSpr = getSprite(hEntry.v, state, hEntry.v.id === selectedId, currentHour, dateStr);
+      const pillW = _hovSpr ? (_hovSpr.canvas.width - 4) : 60;
+      const glowH = PILL_H + 10;  // slightly larger than pill height
+      const glowScaleX = (pillW * 0.85) / glowH;
       ctx.save();
-      const glowGrad = ctx.createRadialGradient(pillCx, pillCy, 0, pillCx, pillCy, glowR);
-      glowGrad.addColorStop(0, `rgba(${r},${g},${b},0.52)`);
-      glowGrad.addColorStop(1, `rgba(${r},${g},${b},0)`);
+      ctx.translate(pillCx, pillCy);
+      ctx.scale(glowScaleX, 1);
+      const glowGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, glowH);
+      glowGrad.addColorStop(0,   `rgba(${r},${g},${b},0.42)`);
+      glowGrad.addColorStop(0.55,`rgba(${r},${g},${b},0.14)`);
+      glowGrad.addColorStop(1,   `rgba(${r},${g},${b},0)`);
       ctx.beginPath();
-      ctx.ellipse(pillCx, pillCy, glowR, glowR * 0.6, 0, 0, Math.PI * 2);
+      ctx.arc(0, 0, glowH, 0, Math.PI * 2);
       ctx.fillStyle = glowGrad;
       ctx.fill();
       ctx.restore();
