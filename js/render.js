@@ -124,7 +124,7 @@ function buildSprite(v, state, selected, hour, dateStr) {
     label       = open != null ? formatHour(open) : '—';
     fillColor   = 'rgba(8,14,25,0.88)';
     strokeColor = 'rgba(255,184,0,0.55)';
-    stemColor   = 'rgba(255,184,0,0.45)';
+    stemColor   = 'rgba(255,184,0,0.70)';
     textColor   = 'rgba(255,200,80,0.95)';
     isDashed    = true;
     alpha       = 0.9;
@@ -150,7 +150,7 @@ function buildSprite(v, state, selected, hour, dateStr) {
     }
     fillColor   = 'rgba(22,28,39,0.92)';
     strokeColor = 'rgba(81,69,50,0.28)';
-    stemColor   = 'rgba(81,69,50,0.5)';
+    stemColor   = 'rgba(150,132,110,0.78)';
     textColor   = 'rgba(213,196,171,0.75)';
   }
 
@@ -208,9 +208,12 @@ function buildSprite(v, state, selected, hour, dateStr) {
   c.lineTo(stemX, stemY1);
   if (isDashed) c.setLineDash([3, 3]);
   c.strokeStyle = stemColor;
-  c.lineWidth   = 1.5;
+  c.lineWidth   = 2;
   c.stroke();
   c.setLineDash([]);
+  // Anchor dot at stem tip (map point)
+  c.beginPath(); c.arc(stemX, stemY1, 2, 0, Math.PI * 2);
+  c.fillStyle = stemColor; c.fill();
 
   // ── Pill fill ──────────────────────────────────────────────────────────────
   c.beginPath();
@@ -1070,16 +1073,36 @@ function computePinLayout(projVenues, currentHour, dateStr) {
 
 function _drawExtStem(pt, extraStem, state) {
   const col = state === 'sunny' ? '#FFB800' :
-              state === 'soon'  ? 'rgba(255,184,0,0.45)' :
-                                  'rgba(81,69,50,0.5)';
+              state === 'soon'  ? 'rgba(255,184,0,0.70)' :
+                                  'rgba(150,132,110,0.78)';
   ctx.beginPath();
   ctx.moveTo(pt.x, pt.y - extraStem);
   ctx.lineTo(pt.x, pt.y);
   if (state === 'soon') ctx.setLineDash([3, 3]);
   ctx.strokeStyle = col;
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = 2;
   ctx.stroke();
   ctx.setLineDash([]);
+  // Anchor dot at map point
+  ctx.beginPath(); ctx.arc(pt.x, pt.y, 2, 0, Math.PI * 2);
+  ctx.fillStyle = col; ctx.fill();
+}
+
+function _drawDotHover(pt, state) {
+  const isSunny = state === 'sunny', isSoon = state === 'soon';
+  ctx.save();
+  // Outer glow ring
+  ctx.beginPath(); ctx.arc(pt.x, pt.y, DOT_R + 6, 0, Math.PI * 2);
+  ctx.fillStyle = isSunny ? 'rgba(255,184,0,0.22)' : isSoon ? 'rgba(255,184,0,0.16)' : 'rgba(120,150,220,0.18)';
+  ctx.fill();
+  // Enlarged dot
+  ctx.beginPath(); ctx.arc(pt.x, pt.y, DOT_R + 1.5, 0, Math.PI * 2);
+  ctx.fillStyle = isSunny ? '#FFB800' : isSoon ? 'rgba(255,184,0,0.9)' : 'rgba(120,150,200,0.85)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.restore();
 }
 
 function _drawDot(pt, state) {
@@ -1093,6 +1116,23 @@ function _drawDot(pt, state) {
   ctx.fillStyle = isSunny ? '#FFB800' : isSoon ? 'rgba(255,184,0,0.8)' : 'rgba(100,120,170,0.65)';
   ctx.fill();
   ctx.restore();
+}
+
+// ── Map pan helper ────────────────────────────────────────────────────────────
+/**
+ * Pan so the venue pin appears centred in the visible area (accounting for
+ * the detail sidebar on desktop).
+ */
+function panToVenueCenter(v) {
+  const isMobile = window.innerWidth < 768;
+  const sidebar  = document.getElementById('sidebar');
+  const padLeft  = (!isMobile && sidebar && sidebar.offsetParent !== null)
+    ? (sidebar.offsetWidth || 368) : 0;
+  map.easeTo({
+    center:  [v.lng, v.lat],
+    padding: { left: padLeft, right: 0, top: 60, bottom: 0 },
+    duration: 360,
+  });
 }
 
 // ── Main draw ─────────────────────────────────────────────────────────────────
@@ -1157,61 +1197,42 @@ function draw() {
   // Compute anti-overlap layout before drawing (hover glow needs stemH too)
   _lastLayout = computePinLayout(projVenues, currentHour, dateStr);
 
-  // Hover glow — pill-shaped halo drawn behind pins, uses actual layout stemH
-  if (hoveredId !== null) {
-    const hEntry = _lastLayout.find(e => !e.isDot && e.v.id === hoveredId);
-    if (hEntry) {
-      const { pt, state, stemH, spr } = hEntry;
-      const pillCx = pt.x;
-      const pillCy = pt.y - stemH - PILL_H / 2;
-      const [r, g, b] = state === 'sunny' ? [255, 190, 0] : state === 'soon' ? [255, 184, 0] : [120, 170, 255];
-      const pillW = spr ? (spr.canvas.width - 4) : 60;
-      const glowH = PILL_H + 10;
-      const glowScaleX = (pillW * 0.85) / glowH;
-      ctx.save();
-      ctx.translate(pillCx, pillCy);
-      ctx.scale(glowScaleX, 1);
-      const glowGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, glowH);
-      glowGrad.addColorStop(0,   `rgba(${r},${g},${b},0.42)`);
-      glowGrad.addColorStop(0.55,`rgba(${r},${g},${b},0.14)`);
-      glowGrad.addColorStop(1,   `rgba(${r},${g},${b},0)`);
-      ctx.beginPath();
-      ctx.arc(0, 0, glowH, 0, Math.PI * 2);
-      ctx.fillStyle = glowGrad;
-      ctx.fill();
-      ctx.restore();
-    }
+  // Draw pins from layout — two passes so pills always sit above all stems
+  const visibleVenues = [];
+
+  // Pre-scan: register dot↔pill transitions before any drawing
+  for (const { v, isDot } of _lastLayout) {
+    const wasDot = _pinWasDot.get(v.id);
+    if (wasDot !== undefined && wasDot !== isDot) _pinDotFade.set(v.id, { fromDot: wasDot, start: now });
+    _pinWasDot.set(v.id, isDot);
   }
 
-  // Draw pins from layout — pills with variable stems, dots as fallback
-  const visibleVenues = [];
+  // Pass 1 — extended stems only (all stems drawn before any pill)
+  for (const { v, pt, state, stemH, isDot } of _lastLayout) {
+    if (isDot || _pinDotFade.has(v.id)) continue;
+    const extraStem = stemH - STEM_H;
+    if (extraStem > 0) _drawExtStem(pt, extraStem, state);
+  }
+
+  // Pass 2 — morph animations, dots, pills (on top of all stems)
   for (const entry of _lastLayout) {
     const { v, pt, state, stemH, isDot, spr } = entry;
     const extraStem = stemH - STEM_H;
 
-    // ── Dot↔pill morph animation ────────────────────────────────────────────
-    const wasDot = _pinWasDot.get(v.id);
-    if (wasDot !== undefined && wasDot !== isDot) {
-      _pinDotFade.set(v.id, { fromDot: wasDot, start: now });
-    }
-    _pinWasDot.set(v.id, isDot);
-
+    // Morph animation (handles its own ext stem so z-order is preserved within it)
     const morphFade = _pinDotFade.get(v.id);
     if (morphFade) {
       const t = Math.min(1, (now - morphFade.start) / DOT_FADE_MS);
-      if (t >= 1) {
-        _pinDotFade.delete(v.id);
-      } else {
+      if (t >= 1) { _pinDotFade.delete(v.id); }
+      else {
         needsAnimFrame = true;
         ctx.save();
         if (morphFade.fromDot) {
-          // dot → pill: dot fades out, pill fades in
           ctx.globalAlpha = 1 - t; _drawDot(pt, state);
           ctx.globalAlpha = t;
           if (extraStem > 0) _drawExtStem(pt, extraStem, state);
           ctx.drawImage(spr.canvas, pt.x - spr.anchorX, pt.y - spr.anchorY - extraStem);
         } else {
-          // pill → dot: pill fades out, dot fades in
           ctx.globalAlpha = 1 - t;
           if (extraStem > 0) _drawExtStem(pt, extraStem, state);
           ctx.drawImage(spr.canvas, pt.x - spr.anchorX, pt.y - spr.anchorY - extraStem);
@@ -1222,9 +1243,11 @@ function draw() {
       }
     }
 
-    // ── Normal drawing ───────────────────────────────────────────────────────
     if (isDot) {
-      if (state !== 'closed') _drawDot(pt, state);
+      if (state !== 'closed') {
+        if (v.id === hoveredId) _drawDotHover(pt, state);
+        else _drawDot(pt, state);
+      }
       continue;
     }
 
@@ -1238,13 +1261,30 @@ function draw() {
       const t = Math.min(1, (now - fs) / PIN_FADE_MS);
       pinAlpha = t;
       if (t >= 1) _pinFadeStart.delete(v.id);
-      else        needsAnimFrame = true;
+      else needsAnimFrame = true;
     }
+
+    const isHovered = v.id === hoveredId;
+    const rp = (v.id === selectedId ? 4 : 2) + 1;
+    const sprLeft = pt.x - spr.anchorX;
+    const sprTop  = pt.y - spr.anchorY - extraStem;
 
     ctx.save();
     if (pinAlpha < 1) ctx.globalAlpha = pinAlpha;
-    if (extraStem > 0) _drawExtStem(pt, extraStem, state);
-    ctx.drawImage(spr.canvas, pt.x - spr.anchorX, pt.y - spr.anchorY - extraStem);
+
+    // Hover: bright outline ring peeking outside the pill edges
+    if (isHovered) {
+      const pillW = spr.canvas.width - rp * 2 - 2;
+      ctx.beginPath();
+      ctx.roundRect(sprLeft + rp - 3.5, sprTop + rp - 3.5, pillW + 7, PILL_H + 7, PILL_R + 3.5);
+      ctx.strokeStyle = state === 'sunny' ? 'rgba(255,220,100,0.7)' :
+                        state === 'soon'  ? 'rgba(255,200,80,0.6)'  :
+                                            'rgba(200,190,175,0.45)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    ctx.drawImage(spr.canvas, sprLeft, sprTop);
     ctx.restore();
     if (state !== 'closed') visibleVenues.push(entry);
   }
@@ -1369,6 +1409,7 @@ canvas.addEventListener('click', e => {
   const hit = hitTestVenue(cx, cy) || hitTestDot(cx, cy);
   if (hit) {
     selectVenue(hit.id, true);
+    panToVenueCenter(hit);
     return;
   }
   // Clicked empty map — close detail panel / deselect
