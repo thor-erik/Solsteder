@@ -561,7 +561,8 @@ function _arcSetTimeFromX(clientX) {
 
 function handleSunCurveClick(e) { _arcSetTimeFromX(e.clientX); }
 
-function animateToTime(targetHour) {
+function animateToTime(targetHour, durationMs) {
+  const dur     = durationMs ?? TIME_ANIM_MS;
   const current = parseFloat(timeFromEl.value);
   if (Math.abs(current - targetHour) < 0.02) { update(); return; }
   if (_timeAnimId) cancelAnimationFrame(_timeAnimId);
@@ -569,7 +570,7 @@ function animateToTime(targetHour) {
   _timeAnimTo    = targetHour;
   _timeAnimStart = performance.now();
   function tick() {
-    const t    = Math.min(1, (performance.now() - _timeAnimStart) / TIME_ANIM_MS);
+    const t    = Math.min(1, (performance.now() - _timeAnimStart) / dur);
     const ease = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2; // ease-in-out cubic
     timeFromEl.value = _timeAnimFrom + (_timeAnimTo - _timeAnimFrom) * ease;
     update();
@@ -580,6 +581,23 @@ function animateToTime(targetHour) {
 }
 
 // ── Quick Controls Bar ────────────────────────────────────────────────────────
+function updateQcIndicator(h) {
+  const el = document.getElementById('qc-indicator');
+  if (!el) return;
+  const hour   = h ?? parseFloat(timeFromEl.value);
+  const dateStr = datePicker.value;
+  const wx      = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, hour) : null;
+  const icon    = wx && typeof skyIcon === 'function' ? skyIcon(wx.cloud) : '';
+  const ARROWS  = ['↑','↗','→','↘','↓','↙','←','↖'];
+  const arrow   = wx ? ARROWS[Math.round(((wx.wdir + 180) % 360) / 45) % 8] : '';
+  const wind    = wx ? `${arrow} ${Math.round(wx.wspd)} m/s` : '';
+  const temp    = wx ? `${wx.temp}°` : '';
+  el.innerHTML = `<span class="qci-time">${formatHour(hour)}</span>`
+    + (icon ? `<span class="qci-icon">${icon}</span>` : '')
+    + (temp ? `<span class="qci-temp">${temp}</span>` : '')
+    + (wind ? `<span class="qci-wind">${wind}</span>` : '');
+}
+
 function updateQcLabels() {
   const dateLabel = document.getElementById('qc-date-label');
   const timeLabel = document.getElementById('qc-time-label');
@@ -790,6 +808,7 @@ function update() {
   updateDateDisplayBtn();
   updateDateWeatherStrip();
   updateQcLabels();
+  updateQcIndicator(null);
   if (_qcActiveSection === 'time') drawSunCurve(document.getElementById('qc-arc'));
 }
 
@@ -1100,7 +1119,21 @@ document.addEventListener('DOMContentLoaded', () => {
   // qc-arc drag + hover support
   const qcArcEl = document.getElementById('qc-arc');
   if (qcArcEl) {
-    qcArcEl.addEventListener('mousedown',  e => { _qcArcDragging = true; _qcArcSetTimeFromX(e.clientX); });
+    qcArcEl.addEventListener('mousedown', e => {
+      _qcArcDragging = true;
+      // Animate to clicked position; drag mousemove will cancel if user starts dragging
+      const rect = qcArcEl.getBoundingClientRect();
+      const t    = MIN_H_ARC + (e.clientX - rect.left - PAD_X_ARC) / (rect.width - PAD_X_ARC * 2) * (MAX_H_ARC - MIN_H_ARC);
+      const hour = _clampHour(t);
+      if (nowMode) {
+        nowMode = false;
+        nowBtn?.classList.remove('active');
+        timeRangeWrap?.classList.remove('now-active');
+        clearInterval(nowInterval); nowInterval = null;
+      }
+      setActiveIntentBtn(null);
+      animateToTime(hour, 280);
+    });
     qcArcEl.addEventListener('touchstart', e => { e.preventDefault(); _qcArcSetTimeFromX(e.touches[0].clientX); }, { passive: false });
     qcArcEl.addEventListener('touchmove',  e => { e.preventDefault(); _qcArcSetTimeFromX(e.touches[0].clientX); }, { passive: false });
     qcArcEl.addEventListener('mousemove',  e => {
@@ -1109,8 +1142,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const t = MIN_H_ARC + (e.clientX - rect.left - PAD_X_ARC) / (rect.width - PAD_X_ARC * 2) * (MAX_H_ARC - MIN_H_ARC);
       arcHoverH = _clampHour(t);
       drawSunCurve(qcArcEl);
+      updateQcIndicator(arcHoverH);
     });
-    qcArcEl.addEventListener('mouseleave', () => { arcHoverH = null; drawSunCurve(qcArcEl); });
+    qcArcEl.addEventListener('mouseleave', () => { arcHoverH = null; drawSunCurve(qcArcEl); updateQcIndicator(null); });
   }
 
   // Arc canvas drag + hover support

@@ -1804,7 +1804,7 @@
   #qc-panel {
     overflow: hidden;
     max-height: 0;
-    transition: max-height 0.3s ease;
+    transition: max-height 0.44s cubic-bezier(0.4, 0, 0.2, 1);
     margin-top: 6px;
   }
   #qc-panel.open { max-height: var(--qc-panel-h, 360px); }
@@ -1813,7 +1813,8 @@
     backdrop-filter: blur(32px);
     -webkit-backdrop-filter: blur(32px);
     border: 1px solid rgba(81,69,50,0.18);
-    border-radius: 16px;
+    border-top: none;
+    border-radius: 0 0 16px 16px;
     overflow: hidden;
   }
   #qc-date-section { display: none; padding: 10px 8px 8px; overflow-y: auto; }
@@ -1836,6 +1837,22 @@
     cursor: crosshair;
     min-height: 60px;
   }
+  #qc-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(8,14,25,0.55);
+    border-radius: 10px;
+    border: 1px solid rgba(81,69,50,0.2);
+    flex-shrink: 0;
+    min-height: 40px;
+  }
+  .qci-time { font-family: 'Newsreader', serif; font-style: italic; font-size: 17px; color: var(--accent); font-weight: 700; }
+  .qci-icon { font-size: 17px; line-height: 1; }
+  .qci-temp { font-size: 14px; font-weight: 600; color: var(--text); }
+  .qci-wind { font-size: 12px; color: var(--muted); }
   #qc-presets {
     display: flex;
     gap: 2px;
@@ -2280,6 +2297,7 @@
         </div>
         <div id="qc-time-section">
           <canvas id="qc-arc"></canvas>
+          <div id="qc-indicator"></div>
           <div id="qc-presets">
             <button class="qc-preset-btn" data-intent="now"        onclick="setIntent('now')">Now</button>
             <button class="qc-preset-btn" data-intent="lunch"      onclick="setIntent('lunch')">Lunch</button>

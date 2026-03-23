@@ -367,7 +367,7 @@ function drawSunCurve(canvasEl) {
 
   const MIN_H = (typeof MIN_H_ARC !== 'undefined') ? MIN_H_ARC : 4;
   const MAX_H = (typeof MAX_H_ARC !== 'undefined') ? MAX_H_ARC : 23;
-  const PAD_X = 20, PAD_T = 20, PAD_B = 12;
+  const PAD_X = 20, PAD_T = 10, PAD_B = 18;
   const cw = cssW, ch = cssH;
   const dateStr = datePicker.value;
 
@@ -388,6 +388,13 @@ function drawSunCurve(canvasEl) {
   c.beginPath();
   c.moveTo(PAD_X, horizY); c.lineTo(cw - PAD_X, horizY);
   c.strokeStyle = 'rgba(255,255,255,0.1)'; c.lineWidth = 1; c.stroke();
+
+  // Hour grid lines — draw before arc fill
+  for (let h = Math.ceil(MIN_H); h <= MAX_H; h++) {
+    if (h % 2 !== 0) continue;
+    c.beginPath(); c.moveTo(timeToX(h), PAD_T); c.lineTo(timeToX(h), horizY);
+    c.strokeStyle = 'rgba(255,255,255,0.055)'; c.lineWidth = 1; c.stroke();
+  }
 
   // Build above-horizon segment
   const above = samples.filter(s => s.alt > 0);
@@ -435,7 +442,7 @@ function drawSunCurve(canvasEl) {
     c.strokeStyle = 'rgba(255,184,0,0.9)'; c.lineWidth = 2; c.stroke();
   }
 
-  // Sunrise + sunset ticks only — hover tooltip shows exact time for everything else
+  // Sunrise + sunset ticks only
   const sunrise = findSunCrossingFromTable(currentSunTable, true);
   const sunset  = findSunCrossingFromTable(currentSunTable, false);
   c.font = '9px "Inter", sans-serif';
@@ -449,10 +456,20 @@ function drawSunCurve(canvasEl) {
     c.fillText(label, tx, horizY + 5);
   });
 
-  // Current time marker — thumb sits on the horizon, drop line + label above
+  // Hour labels
+  for (let h = Math.ceil(MIN_H); h <= MAX_H; h++) {
+    if (h % 2 !== 0) continue;
+    if (sunrise != null && Math.abs(h - sunrise) < 0.8) continue;
+    if (sunset  != null && Math.abs(h - sunset)  < 0.8) continue;
+    c.font = '9px "Inter", sans-serif';
+    c.textAlign = 'center'; c.textBaseline = 'bottom';
+    c.fillStyle = 'rgba(213,196,171,0.32)';
+    c.fillText(`${h}`, timeToX(h), ch - 3);
+  }
+
   const fromH = parseFloat(timeFromEl.value);
 
-  // Past-time dim — on today, fade the arc area behind the current time
+  // Past-time dim — today only, covers area before selected time
   if (dateStr === todayStr() && fromH > MIN_H) {
     const pastX = timeToX(Math.max(MIN_H, Math.min(fromH, MAX_H)));
     const rectW = pastX - PAD_X;
@@ -463,88 +480,34 @@ function drawSunCurve(canvasEl) {
       fadeGrad.addColorStop(1,   'rgba(8,14,25,0)');
       c.save();
       c.fillStyle = fadeGrad;
-      c.fillRect(PAD_X, 0, rectW, horizY); // only up to the horizon, not the labels
+      c.fillRect(PAD_X, 0, rectW, horizY);
       c.restore();
     }
   }
-  if (fromH >= MIN_H && fromH <= MAX_H) {
-    const curSun = getSunFromTable(currentSunTable, fromH);
-    const mx    = timeToX(fromH);
-    const arcY  = altToY(Math.max(0, curSun.alt)); // position on the arc
-    const thumbY = horizY;                          // thumb always at baseline
-    const isSun = curSun.alt > 0;
 
-    // Drop line from arc point to thumb — solid and clearly visible
-    c.beginPath(); c.moveTo(mx, arcY + 4); c.lineTo(mx, thumbY - 8);
-    c.strokeStyle = 'rgba(255,255,255,0.55)'; c.lineWidth = 1.5; c.stroke();
+  // Scrub indicator — permanent at selected time, moves to hover position
+  const scrubH = (typeof arcHoverH === 'number') ? arcHoverH : fromH;
+  const isHovering = typeof arcHoverH === 'number';
+  if (scrubH >= MIN_H && scrubH <= MAX_H) {
+    const sx = timeToX(scrubH);
+    const scrubSun = getSunFromTable(currentSunTable, scrubH);
+    const sy = altToY(Math.max(0, scrubSun.alt));
 
-    // Outer glow at thumb (horizon)
-    const glow = c.createRadialGradient(mx, thumbY, 0, mx, thumbY, 16);
-    glow.addColorStop(0, isSun ? 'rgba(255,184,0,0.4)' : 'rgba(100,130,200,0.28)');
-    glow.addColorStop(1, 'rgba(0,0,0,0)');
-    c.beginPath(); c.arc(mx, thumbY, 16, 0, Math.PI * 2);
-    c.fillStyle = glow; c.fill();
-
-    // Thumb circle at horizon
-    c.beginPath(); c.arc(mx, thumbY, 6, 0, Math.PI * 2);
-    c.fillStyle = isSun ? '#FFB800' : '#6080C8'; c.fill();
-    c.beginPath(); c.arc(mx, thumbY, 6, 0, Math.PI * 2);
-    c.strokeStyle = 'rgba(255,255,255,0.75)'; c.lineWidth = 1.5; c.stroke();
-    c.beginPath(); c.arc(mx, thumbY, 2, 0, Math.PI * 2);
-    c.fillStyle = 'rgba(255,255,255,0.9)'; c.fill();
-
-    // Time label pill — above the arc position
-    const thumbText = formatHour(fromH);
-    const _tmp = document.createElement('canvas').getContext('2d');
-    _tmp.font = 'bold 12px "Inter", sans-serif';
-    const tlw = _tmp.measureText(thumbText).width + 14, tlh = 18;
-    const tlx = Math.max(tlw / 2 + 4, Math.min(cw - tlw / 2 - 4, mx));
-    const tly = Math.max(2, arcY - 10 - tlh);
-    c.beginPath(); c.roundRect(tlx - tlw / 2, tly, tlw, tlh, 6);
-    c.fillStyle = 'rgba(8,14,25,0.92)'; c.fill();
-    c.strokeStyle = 'rgba(255,184,0,0.6)'; c.lineWidth = 1; c.stroke();
-    c.font = 'bold 12px "Inter", sans-serif';
-    c.fillStyle = '#FFB800'; c.textAlign = 'center'; c.textBaseline = 'middle';
-    c.fillText(thumbText, tlx, tly + tlh / 2);
-  }
-
-  // Hover scrub indicator
-  if (typeof arcHoverH === 'number') {
-    const hx = timeToX(arcHoverH);
     // Vertical dashed line
-    c.beginPath(); c.moveTo(hx, PAD_T); c.lineTo(hx, horizY + 2);
-    c.strokeStyle = 'rgba(213,196,171,0.35)'; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(sx, PAD_T); c.lineTo(sx, horizY - 1);
+    c.strokeStyle = 'rgba(213,196,171,0.38)'; c.lineWidth = 1;
     c.setLineDash([2, 3]); c.stroke(); c.setLineDash([]);
-    // Small circle on arc
-    const hoverSun = getSunFromTable(currentSunTable, arcHoverH);
-    const hy = altToY(Math.max(0, hoverSun.alt));
-    c.beginPath(); c.arc(hx, hy, 3, 0, Math.PI * 2);
-    c.fillStyle = 'rgba(213,196,171,0.7)'; c.fill();
-    // Ghost thumb at horizon
-    c.beginPath(); c.arc(hx, horizY, 6, 0, Math.PI * 2);
-    c.fillStyle = 'rgba(213,196,171,0.15)'; c.fill();
-    c.strokeStyle = 'rgba(213,196,171,0.55)'; c.lineWidth = 1.5; c.stroke();
 
-    // Hover label pill — time + temp + wind at top of canvas
-    const wx = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, arcHoverH) : null;
-    let hoverText = formatHour(arcHoverH);
-    let windArrow = '';
-    if (wx) {
-      // Arrow points direction wind travels toward (opposite of "from")
-      const _arrows = ['↑','↗','→','↘','↓','↙','←','↖'];
-      windArrow = _arrows[Math.round(((wx.wdir + 180) % 360) / 45) % 8];
-      hoverText += `   ${wx.temp}°   ${windArrow} ${Math.round(wx.wspd)} m/s`;
-    }
-    const _tmp2 = document.createElement('canvas').getContext('2d');
-    _tmp2.font = '600 12px "Inter", sans-serif';
-    const hlw = _tmp2.measureText(hoverText).width + 16, hlh = 20;
-    const hlx = Math.max(hlw / 2 + 4, Math.min(cw - hlw / 2 - 4, hx));
-    c.beginPath(); c.roundRect(hlx - hlw / 2, 1, hlw, hlh, 6);
-    c.fillStyle = 'rgba(8,14,25,0.94)'; c.fill();
-    c.strokeStyle = 'rgba(213,196,171,0.2)'; c.lineWidth = 1; c.stroke();
-    c.font = '600 12px "Inter", sans-serif';
-    c.fillStyle = 'rgba(213,196,171,0.95)'; c.textAlign = 'center'; c.textBaseline = 'middle';
-    c.fillText(hoverText, hlx, 1 + hlh / 2);
+    // Dot on arc
+    c.beginPath(); c.arc(sx, sy, 4, 0, Math.PI * 2);
+    c.fillStyle = isHovering ? 'rgba(213,196,171,0.88)' : 'rgba(255,184,0,0.92)';
+    c.fill();
+
+    // Ghost thumb at horizon
+    c.beginPath(); c.arc(sx, horizY, isHovering ? 7 : 6, 0, Math.PI * 2);
+    c.fillStyle = isHovering ? 'rgba(213,196,171,0.18)' : 'rgba(255,184,0,0.14)'; c.fill();
+    c.strokeStyle = isHovering ? 'rgba(213,196,171,0.58)' : 'rgba(255,184,0,0.72)';
+    c.lineWidth = 1.5; c.stroke();
   }
 
   c.restore();
@@ -1022,9 +985,10 @@ const DOT_R      = 4.5;   // dot radius (px)
 const PILL_GAP   = 8;     // min gap between pill bounding boxes (px)
 const DOT_FADE_MS = 240;  // pill↔dot morph duration
 
-let _lastLayout = [];             // [{v, pt, state, stemH, isDot, spr}] per frame
-const _pinWasDot  = new Map();    // id → bool — was this pin a dot last frame
-const _pinDotFade = new Map();    // id → {fromDot, start} — active morph animations
+let _lastLayout = [];             // [{v, pt, state, stemH, isDot, spr, drawStemH}] per frame
+const _pinWasDot    = new Map();  // id → bool — was this pin a dot last frame
+const _pinDotFade   = new Map();  // id → {fromDot, start} — active morph animations
+const _pinAnimStemH = new Map();  // id → animated stem height (px, float) for smooth transitions
 
 /**
  * Assigns each venue a stem height (or isDot flag). Greedy by priority:
@@ -1034,6 +998,9 @@ const _pinDotFade = new Map();    // id → {fromDot, start} — active morph an
 function computePinLayout(projVenues, currentHour, dateStr) {
   const PRI = { sunny: 0, soon: 1, shaded: 2, closed: 3 };
   const sorted = [...projVenues].sort((a, b) => {
+    // Hovered venue (from sidebar or map) always gets first pick — never collapses to dot
+    if (a.v.id === hoveredId) return -1;
+    if (b.v.id === hoveredId) return 1;
     const pd = PRI[a.state] - PRI[b.state];
     if (pd !== 0) return pd;
     try {
@@ -1129,14 +1096,24 @@ function _drawDot(pt, state) {
 function panToVenueCenter(v) {
   const isMobile = window.innerWidth < 768;
   const panel    = document.getElementById('detail-panel');
-  // Use the right edge of the detail panel as the left boundary
+  // Use layout position (unaffected by CSS transform during open animation)
   const padLeft  = (!isMobile && panel && panel.classList.contains('open'))
-    ? Math.round(panel.getBoundingClientRect().right) : 0;
-  map.easeTo({
-    center:  [v.lng, v.lat],
-    padding: { left: padLeft, right: 0, top: 60, bottom: 0 },
-    duration: 360,
-  });
+    ? (panel.offsetLeft + panel.offsetWidth) : 0;
+
+  const targetBearing = (v.facing + 180) % 360;
+  const curBearing    = ((map.getBearing() % 360) + 360) % 360;
+  let   diff          = Math.abs(targetBearing - curBearing);
+  if (diff > 180) diff = 360 - diff;
+
+  const opts = {
+    center:   [v.lng, v.lat],
+    zoom:     Math.max(map.getZoom(), 15),
+    pitch:    45,
+    padding:  { left: padLeft, right: 0, top: 60, bottom: 0 },
+    duration: 480,
+  };
+  if (diff > 90) opts.bearing = targetBearing;
+  map.easeTo(opts);
 }
 
 // ── Main draw ─────────────────────────────────────────────────────────────────
@@ -1201,6 +1178,24 @@ function draw() {
   // Compute anti-overlap layout before drawing (hover glow needs stemH too)
   _lastLayout = computePinLayout(projVenues, currentHour, dateStr);
 
+  // Smooth stem height transitions — lerp each pin toward its target stemH
+  let stemAnimDirty = false;
+  for (const entry of _lastLayout) {
+    if (entry.isDot) { _pinAnimStemH.delete(entry.v.id); entry.drawStemH = STEM_H; continue; }
+    const target  = entry.stemH;
+    const current = _pinAnimStemH.get(entry.v.id) ?? target;
+    if (Math.abs(current - target) < 0.5) {
+      _pinAnimStemH.set(entry.v.id, target);
+      entry.drawStemH = target;
+    } else {
+      const next = current + (target - current) * 0.14;
+      _pinAnimStemH.set(entry.v.id, next);
+      entry.drawStemH = next;
+      stemAnimDirty = true;
+    }
+  }
+  if (stemAnimDirty) needsAnimFrame = true;
+
   // Draw pins from layout — two passes so pills always sit above all stems
   const visibleVenues = [];
 
@@ -1212,16 +1207,17 @@ function draw() {
   }
 
   // Pass 1 — extended stems only (all stems drawn before any pill)
-  for (const { v, pt, state, stemH, isDot } of _lastLayout) {
+  for (const entry of _lastLayout) {
+    const { v, pt, state, isDot } = entry;
     if (isDot || _pinDotFade.has(v.id)) continue;
-    const extraStem = stemH - STEM_H;
+    const extraStem = (entry.drawStemH ?? entry.stemH) - STEM_H;
     if (extraStem > 0) _drawExtStem(pt, extraStem, state);
   }
 
   // Pass 2 — morph animations, dots, pills (on top of all stems)
   for (const entry of _lastLayout) {
     const { v, pt, state, stemH, isDot, spr } = entry;
-    const extraStem = stemH - STEM_H;
+    const extraStem = (entry.drawStemH ?? stemH) - STEM_H;
 
     // Morph animation (handles its own ext stem so z-order is preserved within it)
     const morphFade = _pinDotFade.get(v.id);
@@ -1315,9 +1311,10 @@ function draw() {
 // ── Hit testing ───────────────────────────────────────────────────────────────
 function hitTestVenue(cx, cy) {
   // Use layout for accurate pill bounds (variable stem heights)
-  for (const { v, pt, isDot, spr, stemH } of _lastLayout) {
+  for (const entry of _lastLayout) {
+    const { v, pt, isDot, spr, stemH } = entry;
     if (isDot) continue;
-    const extraStem = stemH - STEM_H;
+    const extraStem = (entry.drawStemH ?? stemH) - STEM_H;
     const rx = pt.x - spr.anchorX - 4;
     const ry = pt.y - spr.anchorY - extraStem - 4;
     const rw = spr.canvas.width + 8;
@@ -1412,7 +1409,7 @@ canvas.addEventListener('click', e => {
   }
   const hit = hitTestVenue(cx, cy) || hitTestDot(cx, cy);
   if (hit) {
-    selectVenue(hit.id, true);
+    selectVenue(hit.id, false);
     panToVenueCenter(hit);
     return;
   }
