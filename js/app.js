@@ -490,6 +490,22 @@ function scheduleRenderList() {
   _renderListTimer = setTimeout(renderList, 300);
 }
 
+// ── Toast notifications ───────────────────────────────────────────────────────
+function showToast(msg) {
+  let t = document.getElementById('app-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'app-toast';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.classList.add('visible');
+  clearTimeout(t._tid);
+  t._tid = setTimeout(() => t.classList.remove('visible'), 3500);
+}
+
+let _autoAdvancedAfterSunset = false;
+
 // ── Day navigation ────────────────────────────────────────────────────────────
 function advanceDay(delta, setHour) {
   const d = new Date(datePicker.value + 'T12:00:00');
@@ -512,12 +528,18 @@ function advanceDay(delta, setHour) {
 // ── Arc canvas time interaction ───────────────────────────────────────────────
 let _arcDragging = false;
 
+function _clampHour(t) {
+  const snapped = Math.round(t * 4) / 4;
+  const minH = (datePicker.value === todayStr()) ? Math.round(currentHour() * 4) / 4 : MIN_H_ARC;
+  return Math.max(Math.max(MIN_H_ARC, minH), Math.min(MAX_H_ARC, snapped));
+}
+
 function _arcSetTimeFromX(clientX) {
   const canvasEl = document.getElementById('sun-curve');
   if (!canvasEl) return;
   const rect = canvasEl.getBoundingClientRect();
   const t    = MIN_H_ARC + (clientX - rect.left - PAD_X_ARC) / (rect.width - PAD_X_ARC * 2) * (MAX_H_ARC - MIN_H_ARC);
-  const hour = Math.max(MIN_H_ARC, Math.min(MAX_H_ARC, Math.round(t * 4) / 4));
+  const hour = _clampHour(t);
   if (nowMode) {
     nowMode = false;
     nowBtn?.classList.remove('active');
@@ -553,6 +575,19 @@ function update() {
   if (sunrise != null && sunset != null) {
     MIN_H_ARC = Math.max(3, Math.floor(sunrise - 0.75));
     MAX_H_ARC = Math.min(24, Math.ceil(sunset  + 0.75));
+  }
+
+  // Auto-advance to tomorrow after sunset (once per session startup)
+  if (!_autoAdvancedAfterSunset && dateStr === todayStr() && sunset != null) {
+    const realNow = new Date().getHours() + new Date().getMinutes() / 60;
+    if (realNow > sunset) {
+      _autoAdvancedAfterSunset = true;
+      setTimeout(() => {
+        advanceDay(1, 12);
+        showToast('Sun has set — showing tomorrow');
+      }, 0);
+      return;
+    }
   }
 
   // Status bar (elements may be absent if removed from HTML)
@@ -845,16 +880,19 @@ function togglePanel() {
     panel.classList.toggle('mobile-hidden', !panelVisible);
     if (handle) handle.style.display = panelVisible ? 'block' : 'none';
   } else {
+    const revealBtn = document.getElementById('panel-reveal-btn');
     if (panelVisible) {
       panel.style.transform     = '';
       panel.style.opacity       = '';
       panel.style.pointerEvents = '';
       if (btn) btn.textContent  = '‹';
+      if (revealBtn) revealBtn.style.display = 'none';
     } else {
       panel.style.transform     = 'translateX(calc(-100% - 20px))';
       panel.style.opacity       = '0';
       panel.style.pointerEvents = 'none';
       if (btn) btn.textContent  = '›';
+      if (revealBtn) revealBtn.style.display = 'flex';
     }
   }
   setTimeout(() => { resizeCanvas(); draw(); }, 290);
@@ -883,7 +921,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (_arcDragging) return; // dragging handled separately
       const rect = arcEl.getBoundingClientRect();
       const t = MIN_H_ARC + (e.clientX - rect.left - PAD_X_ARC) / (rect.width - PAD_X_ARC * 2) * (MAX_H_ARC - MIN_H_ARC);
-      arcHoverH = Math.max(MIN_H_ARC, Math.min(MAX_H_ARC, Math.round(t * 4) / 4));
+      arcHoverH = _clampHour(t);
       drawSunCurve(arcEl);
     });
     arcEl.addEventListener('mouseleave', () => {

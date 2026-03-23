@@ -1142,6 +1142,27 @@ function draw() {
     projVenues.push({ v, state, pt: map.project([v.lng, v.lat]) });
   });
 
+  // Hover glow — drawn behind pins so it doesn't overlay them
+  if (hoveredId !== null) {
+    const hEntry = projVenues.find(({ v }) => v.id === hoveredId);
+    if (hEntry) {
+      const { pt, state } = hEntry;
+      const pillCx = pt.x;
+      const pillCy = pt.y - STEM_H - PILL_H / 2;
+      const [r, g, b] = state === 'sunny' ? [255, 200, 0] : state === 'soon' ? [255, 184, 0] : [120, 170, 255];
+      const glowR = 38;
+      ctx.save();
+      const glowGrad = ctx.createRadialGradient(pillCx, pillCy, 0, pillCx, pillCy, glowR);
+      glowGrad.addColorStop(0, `rgba(${r},${g},${b},0.52)`);
+      glowGrad.addColorStop(1, `rgba(${r},${g},${b},0)`);
+      ctx.beginPath();
+      ctx.ellipse(pillCx, pillCy, glowR, glowR * 0.6, 0, 0, Math.PI * 2);
+      ctx.fillStyle = glowGrad;
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
   // Draw: cluster bubbles at low zoom, individual pins at neighbourhood zoom
   const visibleVenues = [];
   if (zoom < CLUSTER_ZOOM) {
@@ -1163,28 +1184,6 @@ function draw() {
     projVenues.forEach(({ v, pt, state }) => {
       if (_drawPin(v, pt, state, currentHour, dateStr, now, visibleVenues)) needsAnimFrame = true;
     });
-  }
-
-  // Hover glow — radial gradient centred on the pill only (not the stem)
-  if (hoveredId !== null) {
-    const hEntry = visibleVenues.find(({ v }) => v.id === hoveredId);
-    if (hEntry) {
-      const { pt, state } = hEntry;
-      // Pill centre is STEM_H + PILL_H/2 above the map anchor point
-      const pillCx = pt.x;
-      const pillCy = pt.y - STEM_H - PILL_H / 2;
-      const [r, g, b] = state === 'sunny' ? [255, 200, 0] : state === 'soon' ? [255, 184, 0] : [120, 170, 255];
-      const glowR = 38;
-      ctx.save();
-      const glowGrad = ctx.createRadialGradient(pillCx, pillCy, 0, pillCx, pillCy, glowR);
-      glowGrad.addColorStop(0, `rgba(${r},${g},${b},0.52)`);
-      glowGrad.addColorStop(1, `rgba(${r},${g},${b},0)`);
-      ctx.beginPath();
-      ctx.ellipse(pillCx, pillCy, glowR, glowR * 0.6, 0, 0, Math.PI * 2);
-      ctx.fillStyle = glowGrad;
-      ctx.fill();
-      ctx.restore();
-    }
   }
 
   // Hint when venues are hidden due to zoom density

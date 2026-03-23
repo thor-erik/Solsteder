@@ -19,32 +19,36 @@ function venueHasSunInRange(v, dateStr, fromHour, toHour) {
 // ── Sun dial (large clock-face style for detail panel) ────────────────────────
 
 // Hover helpers — called by SVG arc onmouseenter/onmouseleave
+let _dialHoverTimer = null;
 function _dialArcHover(t1, t2) {
   const e1 = document.getElementById('dp-dt1'), e2 = document.getElementById('dp-dt2');
-  if (e1) {
+  if (!e1 || !e2) return;
+  clearTimeout(_dialHoverTimer);
+  e1.style.opacity = '0'; e2.style.opacity = '0';
+  _dialHoverTimer = setTimeout(() => {
     e1.textContent = t1;
-    e1.setAttribute('font-size', '30');
-    e1.setAttribute('y', '102');
-  }
-  if (e2) {
+    e1.setAttribute('font-size', '32');
+    e1.setAttribute('y', '101');
     e2.textContent = t2;
-    e2.setAttribute('font-size', '20');
+    e2.setAttribute('font-size', '22');
     e2.setAttribute('letter-spacing', '0');
-    e2.setAttribute('fill', 'rgba(213,196,171,0.82)');
-    e2.setAttribute('y', '128');
+    e2.setAttribute('fill', 'rgba(213,196,171,0.75)');
+    e2.setAttribute('y', '127');
     e2.setAttribute('font-style', 'italic');
     e2.setAttribute('font-family', 'Newsreader,serif');
     e2.setAttribute('font-weight', '400');
-  }
+    e1.style.opacity = ''; e2.style.opacity = '';
+  }, 110);
 }
 function _dialArcOut() {
   const e1 = document.getElementById('dp-dt1'), e2 = document.getElementById('dp-dt2');
-  if (e1) {
+  if (!e1 || !e2) return;
+  clearTimeout(_dialHoverTimer);
+  e1.style.opacity = '0'; e2.style.opacity = '0';
+  _dialHoverTimer = setTimeout(() => {
     e1.textContent = e1.dataset.d;
     e1.setAttribute('font-size', '46');
     e1.setAttribute('y', '100');
-  }
-  if (e2) {
     e2.textContent = e2.dataset.d;
     e2.setAttribute('font-size', '9');
     e2.setAttribute('letter-spacing', '2');
@@ -53,7 +57,8 @@ function _dialArcOut() {
     e2.setAttribute('font-style', 'normal');
     e2.setAttribute('font-family', 'Inter,sans-serif');
     e2.setAttribute('font-weight', '700');
-  }
+    e1.style.opacity = ''; e2.style.opacity = '';
+  }, 110);
 }
 
 function renderSunDial(v, dateStr, fromHour) {
@@ -102,23 +107,27 @@ function renderSunDial(v, dateStr, fromHour) {
   }
 
   // Draw arcs — each window segment gets hover handlers showing its from/to
+  // Hit paths are wide+transparent; visual paths have pointer-events:none
   let arcs = '';
+  function arcSegment(d, color) {
+    if (!d) return '';
+    return `<path d="${d}" fill="none" stroke="transparent" stroke-width="22" stroke-linecap="round" style="cursor:pointer" pointer-events="stroke"/>`
+         + `<path d="${d}" fill="none" stroke="${color}" stroke-width="${SW}" stroke-linecap="round" pointer-events="none"/>`;
+  }
   for (const w of windows) {
     const hoverArgs = `'${formatHour(w.start)}','${formatHour(w.end)}'`;
-    const hover = `onmouseenter="_dialArcHover(${hoverArgs})" onmouseleave="_dialArcOut()" style="cursor:pointer"`;
+    const hoverAttrs = `onmouseenter="_dialArcHover(${hoverArgs})" onmouseleave="_dialArcOut()"`;
+    // Wrap each window's paths in a group so hover fires for the whole window
+    arcs += `<g ${hoverAttrs}>`;
     if (w.end <= fromHour) {
-      const d = arcPath(w.start, w.end);
-      if (d) arcs += `<path d="${d}" fill="none" stroke="rgba(255,184,0,0.18)" stroke-width="${SW}" stroke-linecap="round" ${hover}/>`;
+      arcs += arcSegment(arcPath(w.start, w.end), 'rgba(255,184,0,0.18)');
     } else if (w.start >= fromHour) {
-      const d = arcPath(w.start, w.end);
-      if (d) arcs += `<path d="${d}" fill="none" stroke="rgba(255,184,0,0.78)" stroke-width="${SW}" stroke-linecap="round" ${hover}/>`;
+      arcs += arcSegment(arcPath(w.start, w.end), 'rgba(255,184,0,0.78)');
     } else {
-      // Split at current time: past portion dim, future portion bright — share same hover (full window)
-      const dp = arcPath(w.start, fromHour);
-      if (dp) arcs += `<path d="${dp}" fill="none" stroke="rgba(255,184,0,0.18)" stroke-width="${SW}" stroke-linecap="round" ${hover}/>`;
-      const df = arcPath(fromHour, w.end);
-      if (df) arcs += `<path d="${df}" fill="none" stroke="rgba(255,184,0,0.78)" stroke-width="${SW}" stroke-linecap="round" ${hover}/>`;
+      arcs += arcSegment(arcPath(w.start, fromHour), 'rgba(255,184,0,0.18)');
+      arcs += arcSegment(arcPath(fromHour, w.end), 'rgba(255,184,0,0.78)');
     }
+    arcs += '</g>';
   }
 
   // Current time dot
@@ -159,10 +168,10 @@ function renderSunDial(v, dateStr, fromHour) {
     <circle cx="${tx.toFixed(2)}" cy="${ty.toFixed(2)}" r="5.5" fill="#FFB800" filter="url(#dg)"/>
     <text id="dp-dt1" data-d="${centerTime}" x="${CX}" y="${CY - 10}" text-anchor="middle" dominant-baseline="middle"
       font-family="Newsreader,serif" font-style="italic" font-size="46" font-weight="600"
-      fill="rgba(255,255,255,0.95)">${centerTime}</text>
+      fill="rgba(255,255,255,0.95)" style="transition:opacity 0.1s">${centerTime}</text>
     <text id="dp-dt2" data-d="${centerLabel}" x="${CX}" y="${CY + 18}" text-anchor="middle" dominant-baseline="middle"
       font-family="Inter,sans-serif" font-size="9" font-weight="700"
-      fill="rgba(213,196,171,0.4)" letter-spacing="2">${centerLabel}</text>
+      fill="rgba(213,196,171,0.4)" letter-spacing="2" style="transition:opacity 0.1s">${centerLabel}</text>
   </svg>`;
 
   // Status pill
@@ -1165,12 +1174,10 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
 
       ${sunScoreSection}
       <div class="dp-divider"></div>
-      <div class="dp-section-label">Wind shelter</div>
-      <canvas id="dp-shelter-canvas" width="268" height="180" style="display:block;width:100%;border-radius:10px;border:1px solid rgba(81,69,50,0.18);"></canvas>
-      <div class="dp-divider"></div>
       <div class="dp-section-label">Busyness</div>
       ${renderBusynessChart(v, dateStr, fromHour)}
       <div class="dp-divider"></div>
-      <div class="dp-address">${v.address}</div>
+      <div class="dp-section-label">Wind shelter</div>
+      <canvas id="dp-shelter-canvas" width="268" height="180" style="display:block;width:100%;border-radius:10px;border:1px solid rgba(81,69,50,0.18);"></canvas>
     </div>`;
 }

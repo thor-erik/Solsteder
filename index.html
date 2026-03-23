@@ -229,7 +229,7 @@
   .dc-tile.selected    { background: rgba(255,184,0,0.18) !important; border-color: rgba(255,184,0,0.75) !important; }
   .dc-tile.sun-high    { background: rgba(255,184,0,0.11); border-color: rgba(255,184,0,0.2); }
   .dc-tile.sun-mid     { background: rgba(255,184,0,0.05); }
-  .dc-tile.no-data     { opacity: 0.3; pointer-events: none; }
+  .dc-tile.no-data     { opacity: 0.4; }
   .dc-day  { font-size: 7px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(213,196,171,0.4); line-height: 1; }
   .dc-num  { font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.1; font-family: 'Newsreader', serif; }
   .dc-icon { font-size: 11px; line-height: 1.2; }
@@ -356,6 +356,53 @@
     margin-left: auto;
   }
   #panel-toggle-icon:hover { color: var(--muted); background: rgba(81,69,50,0.14); }
+
+  #panel-reveal-btn {
+    position: fixed;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 26px;
+    height: 52px;
+    background: rgba(22,28,39,0.92);
+    border: 1px solid rgba(81,69,50,0.28);
+    border-left: none;
+    border-radius: 0 10px 10px 0;
+    color: rgba(213,196,171,0.55);
+    font-size: 13px;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    transition: color 0.15s, background 0.15s;
+  }
+  #panel-reveal-btn:hover { color: var(--accent); background: rgba(28,36,52,0.95); }
+
+  #app-toast {
+    position: fixed;
+    bottom: 130px;
+    left: 50%;
+    transform: translateX(-50%) translateY(12px);
+    background: rgba(18,24,36,0.97);
+    border: 1px solid rgba(255,184,0,0.22);
+    color: rgba(213,196,171,0.9);
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    padding: 8px 18px;
+    border-radius: 20px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    z-index: 9999;
+    white-space: nowrap;
+  }
+  #app-toast.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 
   /* CONTROLS */
   .control-row {
@@ -2085,6 +2132,9 @@
       <button id="now-btn" onclick="toggleNowMode()" style="display:none">Now</button>
     </div>
   </div>
+
+  <!-- Panel reveal button — shown when sidebar is hidden -->
+  <button id="panel-reveal-btn" onclick="togglePanel()" title="Show sidebar">›</button>
 
   <!-- RIGHT DETAIL PANEL — opens when a venue is selected -->
   <div id="detail-panel"></div>

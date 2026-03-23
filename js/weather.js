@@ -124,7 +124,15 @@ function skyLabel(cf) {
  * Samples hours 8, 10, 12, 14, 16. Returns null if no forecast data.
  */
 function getDayWeatherSummary(dateStr) {
-  const slots = [8, 10, 12, 14, 16].map(h => getWeatherAt(dateStr, h)).filter(Boolean);
+  // Scan all 24 hours to handle both hourly and 6-hourly forecast intervals
+  const pad = n => String(n).padStart(2, '0');
+  const d   = new Date(dateStr + 'T12:00:00');
+  const base = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const slots = [];
+  for (let h = 0; h <= 23; h++) {
+    const w = _wxData.get(`${base}-${h}`);
+    if (w) slots.push(w);
+  }
   if (!slots.length) return null;
   const avgCloud  = slots.reduce((s, w) => s + w.cloud, 0) / slots.length;
   const peakTemp  = Math.max(...slots.map(w => w.temp));
