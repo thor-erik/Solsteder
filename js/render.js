@@ -1125,9 +1125,10 @@ function _drawDot(pt, state) {
  */
 function panToVenueCenter(v) {
   const isMobile = window.innerWidth < 768;
-  const sidebar  = document.getElementById('sidebar');
-  const padLeft  = (!isMobile && sidebar && sidebar.offsetParent !== null)
-    ? (sidebar.offsetWidth || 368) : 0;
+  const panel    = document.getElementById('detail-panel');
+  // Use the right edge of the detail panel as the left boundary
+  const padLeft  = (!isMobile && panel && panel.classList.contains('open'))
+    ? Math.round(panel.getBoundingClientRect().right) : 0;
   map.easeTo({
     center:  [v.lng, v.lat],
     padding: { left: padLeft, right: 0, top: 60, bottom: 0 },
