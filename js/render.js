@@ -1037,8 +1037,7 @@ function computePinLayout(projVenues, currentHour, dateStr) {
     const stemMax  = MAX_STEM_H;
     const stemDir  = isHover ? -STEM_STEP : STEM_STEP;
     const stemStart = isHover ? stemMax : stemMin;
-    const stemEnd   = isHover ? stemMin - STEM_STEP : stemMax + STEM_STEP;
-    for (let stemH = stemStart; stemH !== stemEnd; stemH += stemDir) {
+    for (let stemH = stemStart; isHover ? stemH >= stemMin : stemH <= stemMax; stemH += stemDir) {
       const extraStem = stemH - STEM_H;
       const rx = pt.x - spr.anchorX;
       const ry = pt.y - spr.anchorY - extraStem;
