@@ -24,6 +24,8 @@ let activeIntent  = null;
 let panelVisible      = true;
 let hoveredId         = null;
 let mapLoaded         = false;
+let _qcActiveSection  = null; // 'date' | 'time' | null
+let _qcArcDragging    = false;
 
 // ── Sun window cache ──────────────────────────────────────────────────────────
 // Keyed by `${venueId}-${dateStr}`. Populated by the worker (background) and
@@ -553,6 +555,120 @@ function _arcSetTimeFromX(clientX) {
 
 function handleSunCurveClick(e) { _arcSetTimeFromX(e.clientX); }
 
+// ── Quick Controls Bar ────────────────────────────────────────────────────────
+function updateQcLabels() {
+  const dateLabel = document.getElementById('qc-date-label');
+  const timeLabel = document.getElementById('qc-time-label');
+  if (!dateLabel || !timeLabel) return;
+
+  const val  = datePicker.value;
+  const tod  = todayStr();
+  const tom  = new Date(); tom.setDate(tom.getDate() + 1);
+  const tomS = tom.toISOString().slice(0, 10);
+
+  if (val === tod)       dateLabel.textContent = 'Today';
+  else if (val === tomS) dateLabel.textContent = 'Tomorrow';
+  else {
+    const d    = new Date(val + 'T12:00:00');
+    const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const MONS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    dateLabel.textContent = `${DAYS[d.getDay()]} ${d.getDate()} ${MONS[d.getMonth()]}`;
+  }
+
+  timeLabel.textContent = formatHour(parseFloat(timeFromEl.value));
+
+  // Sync qc preset buttons with main intent
+  document.querySelectorAll('.qc-preset-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.intent === activeIntent));
+}
+
+function _closeQcPanel() {
+  document.getElementById('qc-panel')?.classList.remove('open');
+  document.getElementById('qc-date-section')?.classList.remove('active');
+  document.getElementById('qc-time-section')?.classList.remove('active');
+  document.getElementById('qc-date-pill')?.classList.remove('active');
+  document.getElementById('qc-time-pill')?.classList.remove('active');
+  _qcActiveSection = null;
+}
+
+function toggleQcPanel(section) {
+  const panel = document.getElementById('qc-panel');
+  if (!panel) return;
+
+  if (_qcActiveSection === section) {
+    _closeQcPanel();
+    return;
+  }
+
+  _qcActiveSection = section;
+  panel.classList.add('open');
+  document.getElementById('qc-date-section')?.classList.toggle('active', section === 'date');
+  document.getElementById('qc-time-section')?.classList.toggle('active', section === 'time');
+  document.getElementById('qc-date-pill')?.classList.toggle('active', section === 'date');
+  document.getElementById('qc-time-pill')?.classList.toggle('active', section === 'time');
+
+  if (section === 'date') {
+    renderQcCalendar();
+  } else if (section === 'time') {
+    setTimeout(() => drawSunCurve(document.getElementById('qc-arc')), 50);
+  }
+}
+
+function renderQcCalendar() {
+  const cal = document.getElementById('qc-cal');
+  if (!cal) return;
+  const selected = datePicker.value;
+  const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  let html = '<div class="dc-grid">';
+  for (let i = 0; i < 14; i++) {
+    const d    = new Date(); d.setDate(d.getDate() + i);
+    const dStr = d.toISOString().slice(0, 10);
+    const summ = typeof getDayWeatherSummary === 'function' ? getDayWeatherSummary(dStr) : null;
+    let cls = 'dc-tile';
+    if (i === 0)           cls += ' today';
+    if (dStr === selected) cls += ' selected';
+    if (summ) {
+      if (summ.avgCloud < 0.30)      cls += ' sun-high';
+      else if (summ.avgCloud < 0.60) cls += ' sun-mid';
+    } else {
+      cls += ' no-data';
+    }
+    const icon = summ ? summ.icon : '·';
+    const temp = summ ? `${summ.peakTemp}°` : '';
+    html += `<button class="${cls}" onclick="selectQcDate('${dStr}')">`
+      + `<span class="dc-day">${DAYS[d.getDay()]}</span>`
+      + `<span class="dc-num">${d.getDate()}</span>`
+      + `<span class="dc-icon">${icon}</span>`
+      + `<span class="dc-temp">${temp}</span>`
+      + `</button>`;
+  }
+  html += '</div>';
+  cal.innerHTML = html;
+}
+
+function selectQcDate(dateStr) {
+  datePicker.value = dateStr;
+  _closeQcPanel();
+  update();
+}
+
+function _qcArcSetTimeFromX(clientX) {
+  const canvasEl = document.getElementById('qc-arc');
+  if (!canvasEl) return;
+  const rect = canvasEl.getBoundingClientRect();
+  const t    = MIN_H_ARC + (clientX - rect.left - PAD_X_ARC) / (rect.width - PAD_X_ARC * 2) * (MAX_H_ARC - MIN_H_ARC);
+  const hour = _clampHour(t);
+  if (nowMode) {
+    nowMode = false;
+    nowBtn?.classList.remove('active');
+    timeRangeWrap?.classList.remove('now-active');
+    clearInterval(nowInterval); nowInterval = null;
+  }
+  setActiveIntentBtn(null);
+  timeFromEl.value = hour;
+  update();
+}
+
 // ── Main update cycle ─────────────────────────────────────────────────────────
 function update() {
   const fromHour = parseFloat(timeFromEl.value);
@@ -624,6 +740,8 @@ function update() {
 
   updateDateDisplayBtn();
   updateDateWeatherStrip();
+  updateQcLabels();
+  if (_qcActiveSection === 'time') drawSunCurve(document.getElementById('qc-arc'));
 }
 
 // ── Popup helpers ─────────────────────────────────────────────────────────────
@@ -882,6 +1000,7 @@ function togglePanel() {
   } else {
     const revealBtn   = document.getElementById('panel-reveal-btn');
     const detailPanel = document.getElementById('detail-panel');
+    const qcWrap      = document.getElementById('qc-wrap');
     if (panelVisible) {
       panel.style.transform     = '';
       panel.style.opacity       = '';
@@ -889,6 +1008,7 @@ function togglePanel() {
       if (btn) btn.textContent  = '‹';
       if (revealBtn) revealBtn.style.display = 'none';
       if (detailPanel) detailPanel.style.left = '';
+      if (qcWrap) qcWrap.style.left = '';
     } else {
       panel.style.transform     = 'translateX(calc(-100% - 20px))';
       panel.style.opacity       = '0';
@@ -896,6 +1016,7 @@ function togglePanel() {
       if (btn) btn.textContent  = '›';
       if (revealBtn) revealBtn.style.display = 'flex';
       if (detailPanel) detailPanel.style.left = '16px';
+      if (qcWrap) qcWrap.style.left = '16px';
     }
   }
   setTimeout(() => { resizeCanvas(); draw(); }, 290);
@@ -913,6 +1034,31 @@ document.addEventListener('DOMContentLoaded', () => {
   // Position preset buttons after layout settles, then again on resize
   setTimeout(positionPresetButtons, 80);
   new ResizeObserver(() => positionPresetButtons()).observe(document.getElementById('sun-curve') ?? document.body);
+
+  // Push detail panel below qc-wrap when qc-panel expands/collapses
+  const _qcWrapEl      = document.getElementById('qc-wrap');
+  const _detailPanelEl = document.getElementById('detail-panel');
+  if (_qcWrapEl && _detailPanelEl) {
+    new ResizeObserver(() => {
+      _detailPanelEl.style.top = (_qcWrapEl.offsetTop + _qcWrapEl.offsetHeight + 8) + 'px';
+    }).observe(_qcWrapEl);
+  }
+
+  // qc-arc drag + hover support
+  const qcArcEl = document.getElementById('qc-arc');
+  if (qcArcEl) {
+    qcArcEl.addEventListener('mousedown',  e => { _qcArcDragging = true; _qcArcSetTimeFromX(e.clientX); });
+    qcArcEl.addEventListener('touchstart', e => { e.preventDefault(); _qcArcSetTimeFromX(e.touches[0].clientX); }, { passive: false });
+    qcArcEl.addEventListener('touchmove',  e => { e.preventDefault(); _qcArcSetTimeFromX(e.touches[0].clientX); }, { passive: false });
+    qcArcEl.addEventListener('mousemove',  e => {
+      if (_qcArcDragging) return;
+      const rect = qcArcEl.getBoundingClientRect();
+      const t = MIN_H_ARC + (e.clientX - rect.left - PAD_X_ARC) / (rect.width - PAD_X_ARC * 2) * (MAX_H_ARC - MIN_H_ARC);
+      arcHoverH = _clampHour(t);
+      drawSunCurve(qcArcEl);
+    });
+    qcArcEl.addEventListener('mouseleave', () => { arcHoverH = null; drawSunCurve(qcArcEl); });
+  }
 
   // Arc canvas drag + hover support
   const arcEl = document.getElementById('sun-curve');
@@ -932,8 +1078,11 @@ document.addEventListener('DOMContentLoaded', () => {
       drawSunCurve(arcEl);
     });
   }
-  document.addEventListener('mousemove', e => { if (_arcDragging) _arcSetTimeFromX(e.clientX); });
-  document.addEventListener('mouseup',   () => { _arcDragging = false; });
+  document.addEventListener('mousemove', e => {
+    if (_arcDragging)    _arcSetTimeFromX(e.clientX);
+    if (_qcArcDragging) _qcArcSetTimeFromX(e.clientX);
+  });
+  document.addEventListener('mouseup', () => { _arcDragging = false; _qcArcDragging = false; });
 
   // Close sort panel when clicking outside it
   document.addEventListener('click', e => {
@@ -950,6 +1099,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cal?.classList.contains('open') && !dateArea?.contains(e.target)) {
       cal.classList.remove('open');
       displayBtn?.classList.remove('open');
+    }
+    // Close qc-panel when clicking outside it
+    const qcPanel = document.getElementById('qc-panel');
+    const qcWrap  = document.getElementById('qc-wrap');
+    if (qcPanel?.classList.contains('open') && !qcWrap?.contains(e.target)) {
+      _closeQcPanel();
     }
   });
 
