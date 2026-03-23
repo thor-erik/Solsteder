@@ -999,9 +999,9 @@ const _pinAnimStemH = new Map();  // id → animated stem height (px, float) for
 function computePinLayout(projVenues, currentHour, dateStr) {
   const PRI = { sunny: 0, soon: 1, shaded: 2, closed: 3 };
   const sorted = [...projVenues].sort((a, b) => {
-    // Hovered venue (from sidebar or map) always gets first pick — never collapses to dot
-    if (a.v.id === hoveredId) return -1;
-    if (b.v.id === hoveredId) return 1;
+    // Hovered venue is processed last so it can claim the highest available position
+    if (a.v.id === hoveredId) return 1;
+    if (b.v.id === hoveredId) return -1;
     const pd = PRI[a.state] - PRI[b.state];
     if (pd !== 0) return pd;
     // Tie-break within same state: non-open venues by time until opening (sooner = higher priority);
@@ -1025,12 +1025,20 @@ function computePinLayout(projVenues, currentHour, dateStr) {
 
   for (const { v, pt, state } of sorted) {
     const selected = v.id === selectedId;
+    const isHover  = v.id === hoveredId;
     const spr = getSprite(v, state, selected, currentHour, dateStr);
     const rw  = spr.canvas.width;
     const rh  = spr.canvas.height - STEM_H;  // pill area (excludes baked stem)
 
     let resolved = false;
-    for (let stemH = STEM_H; stemH <= MAX_STEM_H; stemH += STEM_STEP) {
+    // Hovered venue: search from tallest stem downward so it sits highest among neighbours.
+    // All other venues: search from shortest stem upward (normal greedy placement).
+    const stemMin  = STEM_H;
+    const stemMax  = MAX_STEM_H;
+    const stemDir  = isHover ? -STEM_STEP : STEM_STEP;
+    const stemStart = isHover ? stemMax : stemMin;
+    const stemEnd   = isHover ? stemMin - STEM_STEP : stemMax + STEM_STEP;
+    for (let stemH = stemStart; stemH !== stemEnd; stemH += stemDir) {
       const extraStem = stemH - STEM_H;
       const rx = pt.x - spr.anchorX;
       const ry = pt.y - spr.anchorY - extraStem;
@@ -1045,7 +1053,8 @@ function computePinLayout(projVenues, currentHour, dateStr) {
         break;
       }
     }
-    if (!resolved) result.push({ v, pt, state, stemH: STEM_H, isDot: true, spr });
+    // Hovered venue never degrades to dot; others do if no stem height works
+    if (!resolved) result.push({ v, pt, state, stemH: isHover ? stemMin : STEM_H, isDot: !isHover, spr });
   }
 
   return result;

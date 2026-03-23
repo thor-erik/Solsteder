@@ -73,8 +73,19 @@ function getWeatherAt(dateStr, hour) {
   const h   = Math.round(hour);
   const pad = n => String(n).padStart(2, '0');
   const d   = new Date(dateStr + 'T12:00:00');
-  const key = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}-${h}`;
-  return _wxData.get(key) ?? null;
+  const base = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const exact = _wxData.get(`${base}-${h}`);
+  if (exact) return exact;
+  // Fallback: nearest available slot for this date (API switches to 6-hourly for days 3+)
+  let best = null, bestDist = Infinity;
+  for (let i = 0; i <= 23; i++) {
+    const slot = _wxData.get(`${base}-${i}`);
+    if (slot) {
+      const dist = Math.abs(i - h);
+      if (dist < bestDist) { bestDist = dist; best = slot; }
+    }
+  }
+  return best;
 }
 
 /**
