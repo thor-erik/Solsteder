@@ -442,6 +442,15 @@ function drawSunCurve(canvasEl) {
 
   // Current time marker — thumb sits on the horizon, drop line + label above
   const fromH = parseFloat(timeFromEl.value);
+
+  // Past-time dim overlay — on today, grey out the portion before the selected time
+  if (dateStr === todayStr()) {
+    const pastX = timeToX(Math.max(MIN_H, Math.min(fromH, MAX_H)));
+    c.save();
+    c.fillStyle = 'rgba(0,0,0,0.32)';
+    c.fillRect(PAD_X, 0, Math.max(0, pastX - PAD_X), ch);
+    c.restore();
+  }
   if (fromH >= MIN_H && fromH <= MAX_H) {
     const curSun = getSunFromTable(currentSunTable, fromH);
     const mx    = timeToX(fromH);

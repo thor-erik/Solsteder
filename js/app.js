@@ -880,19 +880,22 @@ function togglePanel() {
     panel.classList.toggle('mobile-hidden', !panelVisible);
     if (handle) handle.style.display = panelVisible ? 'block' : 'none';
   } else {
-    const revealBtn = document.getElementById('panel-reveal-btn');
+    const revealBtn   = document.getElementById('panel-reveal-btn');
+    const detailPanel = document.getElementById('detail-panel');
     if (panelVisible) {
       panel.style.transform     = '';
       panel.style.opacity       = '';
       panel.style.pointerEvents = '';
       if (btn) btn.textContent  = '‹';
       if (revealBtn) revealBtn.style.display = 'none';
+      if (detailPanel) detailPanel.style.left = '';
     } else {
       panel.style.transform     = 'translateX(calc(-100% - 20px))';
       panel.style.opacity       = '0';
       panel.style.pointerEvents = 'none';
       if (btn) btn.textContent  = '›';
       if (revealBtn) revealBtn.style.display = 'flex';
+      if (detailPanel) detailPanel.style.left = '16px';
     }
   }
   setTimeout(() => { resizeCanvas(); draw(); }, 290);

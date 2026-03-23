@@ -20,45 +20,39 @@ function venueHasSunInRange(v, dateStr, fromHour, toHour) {
 
 // Hover helpers — called by SVG arc onmouseenter/onmouseleave
 let _dialHoverTimer = null;
-function _dialArcHover(t1, t2) {
+let _dialLocked = false;
+
+function _dialSetText(t1, t2) {
   const e1 = document.getElementById('dp-dt1'), e2 = document.getElementById('dp-dt2');
   if (!e1 || !e2) return;
   clearTimeout(_dialHoverTimer);
   e1.style.opacity = '0'; e2.style.opacity = '0';
   _dialHoverTimer = setTimeout(() => {
     e1.textContent = t1;
-    e1.setAttribute('font-size', '32');
-    e1.setAttribute('y', '101');
     e2.textContent = t2;
-    e2.setAttribute('font-size', '22');
-    e2.setAttribute('letter-spacing', '0');
-    e2.setAttribute('fill', 'rgba(213,196,171,0.75)');
-    e2.setAttribute('y', '127');
-    e2.setAttribute('font-style', 'italic');
-    e2.setAttribute('font-family', 'Newsreader,serif');
-    e2.setAttribute('font-weight', '400');
     e1.style.opacity = ''; e2.style.opacity = '';
-  }, 110);
+  }, 100);
+}
+
+function _dialArcHover(t1, t2) {
+  if (_dialLocked) return;
+  _dialSetText(t1, '→ ' + t2);
 }
 function _dialArcOut() {
+  if (_dialLocked) return;
   const e1 = document.getElementById('dp-dt1'), e2 = document.getElementById('dp-dt2');
-  if (!e1 || !e2) return;
-  clearTimeout(_dialHoverTimer);
-  e1.style.opacity = '0'; e2.style.opacity = '0';
-  _dialHoverTimer = setTimeout(() => {
-    e1.textContent = e1.dataset.d;
-    e1.setAttribute('font-size', '46');
-    e1.setAttribute('y', '100');
-    e2.textContent = e2.dataset.d;
-    e2.setAttribute('font-size', '9');
-    e2.setAttribute('letter-spacing', '2');
-    e2.setAttribute('fill', 'rgba(213,196,171,0.4)');
-    e2.setAttribute('y', '128');
-    e2.setAttribute('font-style', 'normal');
-    e2.setAttribute('font-family', 'Inter,sans-serif');
-    e2.setAttribute('font-weight', '700');
-    e1.style.opacity = ''; e2.style.opacity = '';
-  }, 110);
+  if (e1 && e2) _dialSetText(e1.dataset.d, e2.dataset.d);
+}
+function _dialToggleLock(t1, t2) {
+  _dialLocked = !_dialLocked;
+  const svg = document.querySelector('.dp-dial-svg');
+  if (svg) svg.classList.toggle('dp-dial-locked', _dialLocked);
+  if (_dialLocked) {
+    _dialSetText(t1, '→ ' + t2);
+  } else {
+    const e1 = document.getElementById('dp-dt1'), e2 = document.getElementById('dp-dt2');
+    if (e1 && e2) _dialSetText(e1.dataset.d, e2.dataset.d);
+  }
 }
 
 function renderSunDial(v, dateStr, fromHour) {
@@ -116,7 +110,7 @@ function renderSunDial(v, dateStr, fromHour) {
   }
   for (const w of windows) {
     const hoverArgs = `'${formatHour(w.start)}','${formatHour(w.end)}'`;
-    const hoverAttrs = `onmouseenter="_dialArcHover(${hoverArgs})" onmouseleave="_dialArcOut()"`;
+    const hoverAttrs = `onmouseenter="_dialArcHover(${hoverArgs})" onmouseleave="_dialArcOut()" onclick="_dialToggleLock(${hoverArgs})" style="cursor:pointer"`;
     // Wrap each window's paths in a group so hover fires for the whole window
     arcs += `<g ${hoverAttrs}>`;
     if (w.end <= fromHour) {
@@ -1048,7 +1042,7 @@ function renderBusynessChart(v, dateStr, fromHour) {
       <span class="dp-busy-est">est.</span>
     </div>
     <div class="dp-busy-chart">
-      <svg width="${totalW}" height="${H}" viewBox="0 0 ${totalW} ${H}" style="display:block;overflow:visible">
+      <svg width="100%" height="${H}" viewBox="0 0 ${totalW} ${H}" preserveAspectRatio="none" style="display:block">
         ${bars}
       </svg>
       <div class="dp-busy-labels">
@@ -1090,8 +1084,6 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
     ? (s.distKm < 1 ? `${Math.round(s.distKm * 1000)} m` : `${s.distKm.toFixed(1)} km`)
     : null;
 
-  const timeline = renderTimeline(v, dateStr, fromHour, fromHour);
-
   // Noise chip — prefer official Geonorge zone, fall back to OSM estimate
   const noiseChip = v.noiseZone != null
     ? v.noiseZone === 'red'    ? { label: 'High traffic noise',     cls: 'noise-high', icon: '🔊' }
@@ -1122,15 +1114,15 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
   const sunScoreSection = s ? `
     <div class="dp-divider"></div>
     <div class="dp-section-label">Sun Score</div>
-    <div class="dp-exp-row"><span class="dp-exp-label">Sun Exposure</span><span class="dp-exp-val">${s.sun}%</span></div>
+    <div class="dp-exp-row"><span><span class="dp-exp-label">Sun Exposure</span><div class="dp-exp-hint">Hours of direct sun vs. opening hours</div></span><span class="dp-exp-val">${s.sun}%</span></div>
     <div class="dp-exp-bar-wrap"><div class="dp-exp-bar-fill" style="width:${s.sun}%"></div></div>
-    <div class="dp-exp-row"><span class="dp-exp-label">Comfort Level</span><span class="dp-exp-val">${s.comfort}%</span></div>
+    <div class="dp-exp-row"><span><span class="dp-exp-label">Comfort Level</span><div class="dp-exp-hint">Feels-like temperature &amp; wind speed</div></span><span class="dp-exp-val">${s.comfort}%</span></div>
     <div class="dp-exp-bar-wrap"><div class="dp-exp-bar-fill" style="width:${s.comfort}%"></div></div>
     ${s.noise != null ? `
-    <div class="dp-exp-row"><span class="dp-exp-label">Noise</span><span class="dp-exp-val">${s.noise}%</span></div>
+    <div class="dp-exp-row"><span><span class="dp-exp-label">Noise</span><div class="dp-exp-hint">Estimated traffic noise at this location</div></span><span class="dp-exp-val">${s.noise}%</span></div>
     <div class="dp-exp-bar-wrap"><div class="dp-exp-bar-fill" style="width:${s.noise}%"></div></div>` : ''}
     ${shelterPct != null ? `
-    <div class="dp-exp-row"><span class="dp-exp-label">Wind Shelter</span><span class="dp-exp-val">${shelterPct}%</span></div>
+    <div class="dp-exp-row"><span><span class="dp-exp-label">Wind Shelter</span><div class="dp-exp-hint">How sheltered the terrace is from wind</div></span><span class="dp-exp-val">${shelterPct}%</span></div>
     <div class="dp-exp-bar-wrap"><div class="dp-exp-bar-fill" style="width:${shelterPct}%"></div></div>` : ''}
     ${distStr ? `<div class="dp-exp-row" style="margin-top:8px"><span class="dp-exp-label">Proximity</span><span class="dp-exp-val" style="font-style:normal;font-size:13px">${distStr}</span></div>` : ''}
   ` : '';
