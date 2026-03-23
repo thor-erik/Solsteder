@@ -27,6 +27,13 @@ let mapLoaded         = false;
 let _qcActiveSection  = null; // 'date' | 'time' | null
 let _qcArcDragging    = false;
 
+// ── Time animation ────────────────────────────────────────────────────────────
+const TIME_ANIM_MS = 520;
+let _timeAnimId    = null;
+let _timeAnimFrom  = 0;
+let _timeAnimTo    = 0;
+let _timeAnimStart = 0;
+
 // ── Sun window cache ──────────────────────────────────────────────────────────
 // Keyed by `${venueId}-${dateStr}`. Populated by the worker (background) and
 // by computeSunWindows() on cache miss (sync fallback on the main thread).
@@ -294,16 +301,15 @@ function setIntent(intent) {
         nowMode = true;
         nowBtn?.classList.add('active');
         timeRangeWrap?.classList.add('now-active');
-        applyNowTime();
         nowInterval = setInterval(() => { if (nowMode) { applyNowTime(); update(); } }, 30000);
       }
+      animateToTime(Math.min(23, Math.max(4, currentHour())));
     } else {
-      // Future date: jump to sunrise
+      // Future date: animate to sunrise
       if (nowMode) { nowMode = false; clearInterval(nowInterval); nowInterval = null; }
       const sunriseH = currentSunTable ? (findSunCrossingFromTable(currentSunTable, true) ?? 7) : 7;
-      timeFromEl.value = Math.max(MIN_H_ARC, Math.min(MAX_H_ARC, sunriseH));
+      animateToTime(Math.max(MIN_H_ARC, Math.min(MAX_H_ARC, sunriseH)));
     }
-    update();
     return;
   }
   if (nowMode) {
@@ -312,8 +318,7 @@ function setIntent(intent) {
     timeRangeWrap?.classList.remove('now-active');
     clearInterval(nowInterval); nowInterval = null;
   }
-  timeFromEl.value = _PRESET_HOURS[intent];
-  update();
+  animateToTime(_PRESET_HOURS[intent]);
 }
 
 // ── Weather display ───────────────────────────────────────────────────────────
@@ -537,6 +542,7 @@ function _clampHour(t) {
 }
 
 function _arcSetTimeFromX(clientX) {
+  if (_timeAnimId) { cancelAnimationFrame(_timeAnimId); _timeAnimId = null; }
   const canvasEl = document.getElementById('sun-curve');
   if (!canvasEl) return;
   const rect = canvasEl.getBoundingClientRect();
@@ -554,6 +560,24 @@ function _arcSetTimeFromX(clientX) {
 }
 
 function handleSunCurveClick(e) { _arcSetTimeFromX(e.clientX); }
+
+function animateToTime(targetHour) {
+  const current = parseFloat(timeFromEl.value);
+  if (Math.abs(current - targetHour) < 0.02) { update(); return; }
+  if (_timeAnimId) cancelAnimationFrame(_timeAnimId);
+  _timeAnimFrom  = current;
+  _timeAnimTo    = targetHour;
+  _timeAnimStart = performance.now();
+  function tick() {
+    const t    = Math.min(1, (performance.now() - _timeAnimStart) / TIME_ANIM_MS);
+    const ease = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2; // ease-in-out cubic
+    timeFromEl.value = _timeAnimFrom + (_timeAnimTo - _timeAnimFrom) * ease;
+    update();
+    if (t < 1) { _timeAnimId = requestAnimationFrame(tick); }
+    else        { _timeAnimId = null; }
+  }
+  _timeAnimId = requestAnimationFrame(tick);
+}
 
 // ── Quick Controls Bar ────────────────────────────────────────────────────────
 function updateQcLabels() {
@@ -588,6 +612,7 @@ function _closeQcPanel() {
   document.getElementById('qc-time-section')?.classList.remove('active');
   document.getElementById('qc-date-pill')?.classList.remove('active');
   document.getElementById('qc-time-pill')?.classList.remove('active');
+  document.getElementById('qc-bar')?.classList.remove('underlined'); // triggers slow fade-out
   _qcActiveSection = null;
 }
 
@@ -602,11 +627,13 @@ function toggleQcPanel(section) {
 
   _qcActiveSection = section;
   panel.classList.add('open');
+  document.getElementById('qc-bar')?.classList.add('underlined'); // fast fade-in
   document.getElementById('qc-date-section')?.classList.toggle('active', section === 'date');
   document.getElementById('qc-time-section')?.classList.toggle('active', section === 'time');
   document.getElementById('qc-date-pill')?.classList.toggle('active', section === 'date');
   document.getElementById('qc-time-pill')?.classList.toggle('active', section === 'time');
 
+  _syncQcPanelHeight();
   if (section === 'date') {
     renderQcCalendar();
   } else if (section === 'time') {
@@ -652,7 +679,21 @@ function selectQcDate(dateStr) {
   update();
 }
 
+function _syncQcPanelHeight() {
+  const firstCard = document.querySelector('#venue-list .venue-card:not(.skeleton)');
+  const qcWrap    = document.getElementById('qc-wrap');
+  const qcPanel   = document.getElementById('qc-panel');
+  if (!firstCard || !qcWrap || !qcPanel) return;
+  const h = Math.max(120, Math.round(firstCard.getBoundingClientRect().bottom - qcWrap.getBoundingClientRect().bottom - 8));
+  const dateSection = document.getElementById('qc-date-section');
+  const timeSection = document.getElementById('qc-time-section');
+  if (dateSection) dateSection.style.height = h + 'px';
+  if (timeSection) timeSection.style.height = h + 'px';
+  qcPanel.style.setProperty('--qc-panel-h', (h + 20) + 'px');
+}
+
 function _qcArcSetTimeFromX(clientX) {
+  if (_timeAnimId) { cancelAnimationFrame(_timeAnimId); _timeAnimId = null; }
   const canvasEl = document.getElementById('qc-arc');
   if (!canvasEl) return;
   const rect = canvasEl.getBoundingClientRect();
@@ -729,6 +770,7 @@ function update() {
   positionPresetButtons();
   updateWeatherDisplay();
   scheduleRenderList();
+  setTimeout(_syncQcPanelHeight, 420);
   updatePopup();
   updateLightPreset();
   updateSunLighting();
@@ -1044,6 +1086,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }).observe(_qcWrapEl);
   }
 
+  // Sync qc panel height on resize
+  window.addEventListener('resize', _syncQcPanelHeight);
+  setTimeout(_syncQcPanelHeight, 600);
+
   // qc-arc drag + hover support
   const qcArcEl = document.getElementById('qc-arc');
   if (qcArcEl) {
@@ -1136,6 +1182,7 @@ timeFromEl.value = Math.min(23, Math.max(4, currentHour()));
 datePicker.addEventListener('change', () => { update(); });
 
 timeFromEl.addEventListener('input', () => {
+  if (_timeAnimId) { cancelAnimationFrame(_timeAnimId); _timeAnimId = null; }
   if (nowMode) {
     nowMode = false;
     nowBtn.classList.remove('active');
