@@ -874,6 +874,7 @@
     transition: border-color 0.15s ease, background 0.15s ease, opacity 0.2s, transform 0.15s ease, box-shadow 0.15s ease;
     border: 1px solid rgba(81,69,50,0.12);
     position: relative;
+    overflow: hidden;
     animation: cardIn 0.18s ease-out;
     will-change: opacity;
   }
@@ -1070,18 +1071,17 @@
   .card-score-num.tier-low  { color: #f0b46a; }
   .card-score-num.tier-poor { color: var(--muted); }
 
-  /* Bloom glow — radial gradient behind the score in top-right corner */
+  /* Bloom glow — radiates from the top-right corner, gold→blue by score */
   .card-bloom {
     position: absolute;
-    top: -24px; right: -24px;
-    width: 130px; height: 130px;
-    border-radius: 50%;
+    top: 0; right: 0;
+    width: 190px; height: 160px;
     pointer-events: none;
   }
-  .card-bloom.tier-high { background: radial-gradient(circle, rgba(255,184,0,0.22) 0%, transparent 70%); }
-  .card-bloom.tier-mid  { background: radial-gradient(circle, rgba(255,184,0,0.12) 0%, transparent 70%); }
-  .card-bloom.tier-low  { background: radial-gradient(circle, rgba(255,184,0,0.07) 0%, transparent 70%); }
-  .card-bloom.tier-poor { background: radial-gradient(circle, rgba(255,184,0,0.03) 0%, transparent 70%); }
+  .card-bloom.tier-high { background: radial-gradient(circle at top right, rgba(255,184,0,0.30) 0%, transparent 65%); }
+  .card-bloom.tier-mid  { background: radial-gradient(circle at top right, rgba(220,172,55,0.20) 0%, transparent 65%); }
+  .card-bloom.tier-low  { background: radial-gradient(circle at top right, rgba(168,164,130,0.13) 0%, transparent 65%); }
+  .card-bloom.tier-poor { background: radial-gradient(circle at top right, rgba(120,158,210,0.09) 0%, transparent 65%); }
 
   .card-dial-label {
     font-size: 10px;
