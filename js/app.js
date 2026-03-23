@@ -494,7 +494,7 @@ function updateSortBtns() {
 let _renderListTimer = null;
 function scheduleRenderList() {
   clearTimeout(_renderListTimer);
-  _renderListTimer = setTimeout(renderList, 300);
+  _renderListTimer = setTimeout(() => { renderList(); setTimeout(_syncQcPanelHeight, 80); }, 300);
 }
 
 // ── Toast notifications ───────────────────────────────────────────────────────
@@ -633,7 +633,6 @@ function toggleQcPanel(section) {
   document.getElementById('qc-date-pill')?.classList.toggle('active', section === 'date');
   document.getElementById('qc-time-pill')?.classList.toggle('active', section === 'time');
 
-  _syncQcPanelHeight();
   if (section === 'date') {
     renderQcCalendar();
   } else if (section === 'time') {
@@ -679,17 +678,22 @@ function selectQcDate(dateStr) {
   update();
 }
 
+let _qcPanelHeight = 0; // cached, set on load/resize/list-render
+
 function _syncQcPanelHeight() {
   const firstCard = document.querySelector('#venue-list .venue-card:not(.skeleton)');
-  const qcWrap    = document.getElementById('qc-wrap');
+  const qcBar     = document.getElementById('qc-bar');   // bar height is always stable
   const qcPanel   = document.getElementById('qc-panel');
-  if (!firstCard || !qcWrap || !qcPanel) return;
-  const h = Math.max(120, Math.round(firstCard.getBoundingClientRect().bottom - qcWrap.getBoundingClientRect().bottom - 8));
+  if (!firstCard || !qcBar || !qcPanel) return;
+  // Anchor to the bar's bottom (never changes with panel open/closed)
+  const h = Math.max(120, Math.round(firstCard.getBoundingClientRect().bottom - qcBar.getBoundingClientRect().bottom - 8));
+  if (h === _qcPanelHeight) return; // no change
+  _qcPanelHeight = h;
   const dateSection = document.getElementById('qc-date-section');
   const timeSection = document.getElementById('qc-time-section');
   if (dateSection) dateSection.style.height = h + 'px';
   if (timeSection) timeSection.style.height = h + 'px';
-  qcPanel.style.setProperty('--qc-panel-h', (h + 20) + 'px');
+  qcPanel.style.setProperty('--qc-panel-h', (h + 10) + 'px');
 }
 
 function _qcArcSetTimeFromX(clientX) {
@@ -770,7 +774,6 @@ function update() {
   positionPresetButtons();
   updateWeatherDisplay();
   scheduleRenderList();
-  setTimeout(_syncQcPanelHeight, 420);
   updatePopup();
   updateLightPreset();
   updateSunLighting();
