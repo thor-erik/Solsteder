@@ -601,6 +601,12 @@ function updateQcLabels() {
 
   timeLabel.textContent = formatHour(parseFloat(timeFromEl.value));
 
+  // "Now" only makes sense today — show "Sunrise" on future dates
+  const isToday = datePicker.value === todayStr();
+  document.querySelectorAll('.qc-preset-btn[data-intent="now"]').forEach(b => {
+    b.textContent = isToday ? 'Now' : 'Sunrise';
+  });
+
   // Sync qc preset buttons with main intent
   document.querySelectorAll('.qc-preset-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.intent === activeIntent));
@@ -612,7 +618,6 @@ function _closeQcPanel() {
   document.getElementById('qc-time-section')?.classList.remove('active');
   document.getElementById('qc-date-pill')?.classList.remove('active');
   document.getElementById('qc-time-pill')?.classList.remove('active');
-  document.getElementById('qc-bar')?.classList.remove('underlined'); // triggers slow fade-out
   _qcActiveSection = null;
 }
 
@@ -627,7 +632,6 @@ function toggleQcPanel(section) {
 
   _qcActiveSection = section;
   panel.classList.add('open');
-  document.getElementById('qc-bar')?.classList.add('underlined'); // fast fade-in
   document.getElementById('qc-date-section')?.classList.toggle('active', section === 'date');
   document.getElementById('qc-time-section')?.classList.toggle('active', section === 'time');
   document.getElementById('qc-date-pill')?.classList.toggle('active', section === 'date');
@@ -1176,7 +1180,13 @@ function toggleMapView() {
 }
 
 // Re-render list on map move when viewport filter is active
-map.on('moveend', () => { if (filterMapViewActive) renderList(); });
+map.on('moveend', () => {
+  if (!filterMapViewActive) return;
+  const list = document.getElementById('venue-list');
+  if (list) list.dataset.noAnim = '1';
+  renderList();
+  requestAnimationFrame(() => { if (list) delete list.dataset.noAnim; });
+});
 
 // ── Control event listeners ───────────────────────────────────────────────────
 datePicker.value = todayStr();

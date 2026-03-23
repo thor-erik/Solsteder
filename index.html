@@ -1780,23 +1780,6 @@
     -webkit-backdrop-filter: blur(32px);
     border: 1px solid rgba(81,69,50,0.18);
     border-radius: 16px;
-    position: relative;
-  }
-  /* Linger line — fades in when panel opens, lingers when it closes */
-  #qc-bar::after {
-    content: '';
-    position: absolute;
-    bottom: -5px; left: 14px; right: 14px;
-    height: 1px;
-    background: rgba(81,69,50,0.4);
-    border-radius: 1px;
-    opacity: 0;
-    transition: opacity 0.55s ease 0.08s;
-    pointer-events: none;
-  }
-  #qc-bar.underlined::after {
-    opacity: 1;
-    transition: opacity 0.12s ease;
   }
   .qc-pill {
     flex: 1;
@@ -1865,10 +1848,10 @@
   }
   .qc-preset-btn {
     flex: 1;
-    background: transparent;
-    border: none;
+    background: rgba(22,28,39,0.55);
+    border: 1px solid rgba(81,69,50,0.22);
     border-radius: 7px;
-    color: rgba(213,196,171,0.5);
+    color: rgba(213,196,171,0.65);
     font-family: 'Inter', sans-serif;
     font-size: 9px;
     font-weight: 700;
@@ -1876,11 +1859,17 @@
     text-transform: uppercase;
     padding: 5px 4px;
     cursor: pointer;
-    transition: color 0.15s;
+    transition: color 0.12s, background 0.12s, border-color 0.12s;
     text-align: center;
   }
-  .qc-preset-btn:hover:not(.active) { color: rgba(213,196,171,0.85); }
-  .qc-preset-btn.active { background: var(--accent); color: #0d131e; }
+  .qc-preset-btn:hover:not(.active) {
+    color: rgba(213,196,171,0.95);
+    background: rgba(28,36,52,0.8);
+    border-color: rgba(255,184,0,0.28);
+  }
+  .qc-preset-btn.active { background: var(--accent); color: #0d131e; border-color: var(--accent); }
+  /* Suppress venue card enter animation on map-pan re-renders */
+  #venue-list[data-no-anim] .venue-card { animation: none !important; }
   @media (max-width: 639px) { #qc-wrap { display: none; } }
 
   #detail-panel {
@@ -1901,7 +1890,7 @@
     transform: translateX(-12px);
     opacity: 0;
     pointer-events: none;
-    transition: transform 0.26s ease, opacity 0.26s ease, left 0.28s ease, top 0.3s ease;
+    transition: transform 0.26s ease, opacity 0.26s ease, left 0.28s ease;
   }
   #detail-panel.open {
     transform: translateX(0);

@@ -474,10 +474,9 @@ function drawSunCurve(canvasEl) {
     const thumbY = horizY;                          // thumb always at baseline
     const isSun = curSun.alt > 0;
 
-    // Dashed drop line from arc down to horizon
+    // Drop line from arc point to thumb — solid and clearly visible
     c.beginPath(); c.moveTo(mx, arcY + 4); c.lineTo(mx, thumbY - 8);
-    c.strokeStyle = 'rgba(255,255,255,0.15)'; c.lineWidth = 1;
-    c.setLineDash([2, 4]); c.stroke(); c.setLineDash([]);
+    c.strokeStyle = 'rgba(255,255,255,0.55)'; c.lineWidth = 1.5; c.stroke();
 
     // Outer glow at thumb (horizon)
     const glow = c.createRadialGradient(mx, thumbY, 0, mx, thumbY, 16);
@@ -521,6 +520,10 @@ function drawSunCurve(canvasEl) {
     const hy = altToY(Math.max(0, hoverSun.alt));
     c.beginPath(); c.arc(hx, hy, 3, 0, Math.PI * 2);
     c.fillStyle = 'rgba(213,196,171,0.7)'; c.fill();
+    // Ghost thumb at horizon
+    c.beginPath(); c.arc(hx, horizY, 6, 0, Math.PI * 2);
+    c.fillStyle = 'rgba(213,196,171,0.15)'; c.fill();
+    c.strokeStyle = 'rgba(213,196,171,0.55)'; c.lineWidth = 1.5; c.stroke();
 
     // Hover label pill — time + temp + wind at top of canvas
     const wx = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, arcHoverH) : null;
