@@ -384,10 +384,11 @@ function drawSunCurve(canvasEl) {
   const altToY  = a => PAD_T + (1 - Math.max(0, a) / (maxAlt * 1.15)) * (ch - PAD_T - PAD_B);
   const horizY  = altToY(0);
 
-  // Horizon line
+  // Horizon line — thicker to read as a scrubbable track
   c.beginPath();
   c.moveTo(PAD_X, horizY); c.lineTo(cw - PAD_X, horizY);
-  c.strokeStyle = 'rgba(255,255,255,0.1)'; c.lineWidth = 1; c.stroke();
+  c.strokeStyle = 'rgba(255,255,255,0.18)'; c.lineWidth = 3;
+  c.lineCap = 'round'; c.stroke(); c.lineCap = 'butt';
 
   // Hour grid lines — draw before arc fill
   for (let h = Math.ceil(MIN_H); h <= MAX_H; h++) {
@@ -1003,6 +1004,15 @@ function computePinLayout(projVenues, currentHour, dateStr) {
     if (b.v.id === hoveredId) return 1;
     const pd = PRI[a.state] - PRI[b.state];
     if (pd !== 0) return pd;
+    // Tie-break within same state: non-open venues by time until opening (sooner = higher priority);
+    // open venues (sunny/shaded) by sun score (higher = higher priority)
+    if (a.state === 'soon' || a.state === 'closed') {
+      const openA = a.v.openingHours?.open ?? Infinity;
+      const openB = b.v.openingHours?.open ?? Infinity;
+      const waitA = openA > currentHour ? openA - currentHour : Infinity;
+      const waitB = openB > currentHour ? openB - currentHour : Infinity;
+      return waitA - waitB;  // less wait = lower value = sorts first
+    }
     try {
       const sa = typeof sunScore === 'function' ? (sunScore(a.v, dateStr, currentHour) ?? 0) : (a.v.rating ?? 0);
       const sb = typeof sunScore === 'function' ? (sunScore(b.v, dateStr, currentHour) ?? 0) : (b.v.rating ?? 0);
