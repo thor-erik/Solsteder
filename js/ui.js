@@ -36,7 +36,7 @@ function _dialSetText(t1, t2) {
 
 function _dialArcHover(t1, t2) {
   if (_dialLocked) return;
-  _dialSetText(t1, '→ ' + t2);
+  _dialSetText(t1, 'UNTIL ' + t2);
 }
 function _dialArcOut() {
   if (_dialLocked) return;
@@ -48,7 +48,7 @@ function _dialToggleLock(t1, t2) {
   const svg = document.querySelector('.dp-dial-svg');
   if (svg) svg.classList.toggle('dp-dial-locked', _dialLocked);
   if (_dialLocked) {
-    _dialSetText(t1, '→ ' + t2);
+    _dialSetText(t1, 'UNTIL ' + t2);
   } else {
     const e1 = document.getElementById('dp-dt1'), e2 = document.getElementById('dp-dt2');
     if (e1 && e2) _dialSetText(e1.dataset.d, e2.dataset.d);
@@ -58,6 +58,15 @@ function _dialToggleLock(t1, t2) {
 function renderSunDial(v, dateStr, fromHour) {
   const { windows } = computeSunWindows(v, dateStr);
   const W = 220, H = 220, CX = 110, CY = 110, R = 88, SW = 7;
+
+  // Cloud-aware arc colors
+  const wxNow    = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, fromHour) : null;
+  const cloud    = wxNow?.cloud ?? 0;
+  const isOvercast    = cloud > 0.65;
+  const isPartlyCloudy = cloud > 0.38 && !isOvercast;
+  const arcBright = isOvercast ? 'rgba(120,158,210,0.75)' : isPartlyCloudy ? 'rgba(210,185,110,0.75)' : 'rgba(255,184,0,0.78)';
+  const arcDim    = isOvercast ? 'rgba(120,158,210,0.20)' : isPartlyCloudy ? 'rgba(210,185,110,0.20)' : 'rgba(255,184,0,0.18)';
+  const dotColor  = isOvercast ? '#78A0D8' : '#FFB800';
 
   function hAngle(h) { return ((h % 12) / 12) * 2 * Math.PI - Math.PI / 2; }
   function pt(h) { const a = hAngle(h); return [CX + R * Math.cos(a), CY + R * Math.sin(a)]; }
@@ -114,12 +123,12 @@ function renderSunDial(v, dateStr, fromHour) {
     // Wrap each window's paths in a group so hover fires for the whole window
     arcs += `<g ${hoverAttrs}>`;
     if (w.end <= fromHour) {
-      arcs += arcSegment(arcPath(w.start, w.end), 'rgba(255,184,0,0.18)');
+      arcs += arcSegment(arcPath(w.start, w.end), arcDim);
     } else if (w.start >= fromHour) {
-      arcs += arcSegment(arcPath(w.start, w.end), 'rgba(255,184,0,0.78)');
+      arcs += arcSegment(arcPath(w.start, w.end), arcBright);
     } else {
-      arcs += arcSegment(arcPath(w.start, fromHour), 'rgba(255,184,0,0.18)');
-      arcs += arcSegment(arcPath(fromHour, w.end), 'rgba(255,184,0,0.78)');
+      arcs += arcSegment(arcPath(w.start, fromHour), arcDim);
+      arcs += arcSegment(arcPath(fromHour, w.end), arcBright);
     }
     arcs += '</g>';
   }
@@ -133,19 +142,23 @@ function renderSunDial(v, dateStr, fromHour) {
   const nextWin = windows.find(w => w.start > fromHour);
 
   let centerTime, centerLabel;
+  const cloudyTag = isOvercast ? 'CLOUDY · ' : '';
   if (!lastWin) {
-    centerTime = '—'; centerLabel = 'NO SUN TODAY';
+    centerTime  = '—';
+    centerLabel = isOvercast ? 'OVERCAST TODAY' : 'NO SUN TODAY';
   } else if (lastWin.end <= fromHour) {
-    centerTime = formatHour(lastWin.end); centerLabel = 'SUN PASSED AT';
+    centerTime  = formatHour(lastWin.end);
+    centerLabel = 'SUN ENDED AT';
   } else if (curWin) {
-    // In sun — show end of current window; if there are more after, note it
     const hasBreak = nextWin && nextWin !== curWin;
-    centerTime = formatHour(curWin.end);
-    centerLabel = hasBreak ? 'BREAK THEN MORE' : 'LAST SUN AT';
+    centerTime  = formatHour(curWin.end);
+    centerLabel = cloudyTag + (hasBreak ? 'BREAK AT' : 'SUN UNTIL');
   } else if (nextWin) {
-    centerTime = formatHour(nextWin.start); centerLabel = 'SUN RESUMES AT';
+    centerTime  = formatHour(nextWin.start);
+    centerLabel = cloudyTag + 'SUN FROM';
   } else {
-    centerTime = formatHour(lastWin.end); centerLabel = 'LAST SUN AT';
+    centerTime  = formatHour(lastWin.end);
+    centerLabel = 'SUN ENDED AT';
   }
 
   const svg = `<svg class="dp-dial-svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true">
@@ -159,13 +172,13 @@ function renderSunDial(v, dateStr, fromHour) {
     ${ticks}
     ${hourNums}
     ${arcs}
-    <circle cx="${tx.toFixed(2)}" cy="${ty.toFixed(2)}" r="5.5" fill="#FFB800" filter="url(#dg)"/>
+    <circle cx="${tx.toFixed(2)}" cy="${ty.toFixed(2)}" r="5.5" fill="${dotColor}" filter="url(#dg)"/>
     <text id="dp-dt1" data-d="${centerTime}" x="${CX}" y="${CY - 10}" text-anchor="middle" dominant-baseline="middle"
       font-family="Newsreader,serif" font-style="italic" font-size="46" font-weight="600"
       fill="rgba(255,255,255,0.95)" style="transition:opacity 0.1s">${centerTime}</text>
     <text id="dp-dt2" data-d="${centerLabel}" x="${CX}" y="${CY + 18}" text-anchor="middle" dominant-baseline="middle"
       font-family="Inter,sans-serif" font-size="9" font-weight="700"
-      fill="rgba(213,196,171,0.4)" letter-spacing="2" style="transition:opacity 0.1s">${centerLabel}</text>
+      fill="rgba(213,196,171,0.62)" letter-spacing="2" style="transition:opacity 0.1s">${centerLabel}</text>
   </svg>`;
 
   // Status pill
@@ -476,6 +489,7 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
     <div class="venue-card ${v.sunInWin ? 'sunny' : ''} ${v.id === selectedId ? 'selected' : ''} ${dimmedCls}"
          data-vid="${v.id}" onclick="selectVenue(${v.id}, true)"
          onmouseenter="setHoveredVenue(${v.id})" onmouseleave="setHoveredVenue(null)">
+      ${s ? `<div class="card-bloom ${tier}"></div>` : ''}
       <div class="card-top-row">
         <div class="card-left">
           <div class="card-name">${v.name}</div>

@@ -443,13 +443,20 @@ function drawSunCurve(canvasEl) {
   // Current time marker — thumb sits on the horizon, drop line + label above
   const fromH = parseFloat(timeFromEl.value);
 
-  // Past-time dim overlay — on today, grey out the portion before the selected time
-  if (dateStr === todayStr()) {
+  // Past-time dim — on today, fade the arc area behind the current time
+  if (dateStr === todayStr() && fromH > MIN_H) {
     const pastX = timeToX(Math.max(MIN_H, Math.min(fromH, MAX_H)));
-    c.save();
-    c.fillStyle = 'rgba(0,0,0,0.32)';
-    c.fillRect(PAD_X, 0, Math.max(0, pastX - PAD_X), ch);
-    c.restore();
+    const rectW = pastX - PAD_X;
+    if (rectW > 2) {
+      const fadeGrad = c.createLinearGradient(PAD_X, 0, pastX, 0);
+      fadeGrad.addColorStop(0,   'rgba(8,14,25,0.55)');
+      fadeGrad.addColorStop(0.75,'rgba(8,14,25,0.3)');
+      fadeGrad.addColorStop(1,   'rgba(8,14,25,0)');
+      c.save();
+      c.fillStyle = fadeGrad;
+      c.fillRect(PAD_X, 0, rectW, horizY); // only up to the horizon, not the labels
+      c.restore();
+    }
   }
   if (fromH >= MIN_H && fromH <= MAX_H) {
     const curSun = getSunFromTable(currentSunTable, fromH);

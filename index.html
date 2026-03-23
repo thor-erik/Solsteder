@@ -1070,6 +1070,19 @@
   .card-score-num.tier-low  { color: #f0b46a; }
   .card-score-num.tier-poor { color: var(--muted); }
 
+  /* Bloom glow — radial gradient behind the score in top-right corner */
+  .card-bloom {
+    position: absolute;
+    top: -24px; right: -24px;
+    width: 130px; height: 130px;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .card-bloom.tier-high { background: radial-gradient(circle, rgba(255,184,0,0.22) 0%, transparent 70%); }
+  .card-bloom.tier-mid  { background: radial-gradient(circle, rgba(255,184,0,0.12) 0%, transparent 70%); }
+  .card-bloom.tier-low  { background: radial-gradient(circle, rgba(255,184,0,0.07) 0%, transparent 70%); }
+  .card-bloom.tier-poor { background: radial-gradient(circle, rgba(255,184,0,0.03) 0%, transparent 70%); }
+
   .card-dial-label {
     font-size: 10px;
     font-weight: 600;
