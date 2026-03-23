@@ -1005,107 +1005,97 @@ function shouldShowAtZoom(v, zoom) {
   return v.rating >= 4.5;
 }
 
-// ── Pin clustering ────────────────────────────────────────────────────────────
-// Below CLUSTER_ZOOM, nearby pins are grouped into bubble clusters to avoid
-// an unreadable mass of overlapping pills. Clusters are clickable — they zoom
-// in to the bounding box of the member venues.
-const CLUSTER_ZOOM = 13.0;
-const CLUSTER_PX   = 52;   // screen-space radius threshold (pixels)
-let _lastClusters  = [];   // [{cx, cy, r, venues}] — populated each draw
+// ── Pin layout: anti-overlap via variable stem, dot fallback ──────────────────
+// Each pin tries increasing stem heights until it clears all higher-priority
+// pills. If no stem works it degrades to a small dot. Sorting by relevance
+// (sunny > soon > shaded, then by sun score) means important venues always
+// keep their preferred position.
+const MAX_STEM_H = 80;    // max extended stem before pin becomes a dot
+const STEM_STEP  = 14;    // stem extension increment (px)
+const DOT_R      = 4.5;   // dot radius (px)
+const PILL_GAP   = 8;     // min gap between pill bounding boxes (px)
+const DOT_FADE_MS = 240;  // pill↔dot morph duration
 
-function computeClusters(projVenues) {
-  const used = new Set();
-  const clusters = [];
-  for (let i = 0; i < projVenues.length; i++) {
-    if (used.has(i)) continue;
-    const seed    = projVenues[i];
-    const members = [seed];
-    used.add(i);
-    for (let j = i + 1; j < projVenues.length; j++) {
-      if (used.has(j)) continue;
-      if (Math.hypot(projVenues[j].pt.x - seed.pt.x, projVenues[j].pt.y - seed.pt.y) < CLUSTER_PX) {
-        members.push(projVenues[j]);
-        used.add(j);
+let _lastLayout = [];             // [{v, pt, state, stemH, isDot, spr}] per frame
+const _pinWasDot  = new Map();    // id → bool — was this pin a dot last frame
+const _pinDotFade = new Map();    // id → {fromDot, start} — active morph animations
+
+/**
+ * Assigns each venue a stem height (or isDot flag). Greedy by priority:
+ * high-relevance venues get the preferred height, lower ones get bumped up
+ * or collapsed to a dot when no stem height avoids overlap.
+ */
+function computePinLayout(projVenues, currentHour, dateStr) {
+  const PRI = { sunny: 0, soon: 1, shaded: 2, closed: 3 };
+  const sorted = [...projVenues].sort((a, b) => {
+    const pd = PRI[a.state] - PRI[b.state];
+    if (pd !== 0) return pd;
+    try {
+      const sa = typeof sunScore === 'function' ? (sunScore(a.v, dateStr, currentHour) ?? 0) : (a.v.rating ?? 0);
+      const sb = typeof sunScore === 'function' ? (sunScore(b.v, dateStr, currentHour) ?? 0) : (b.v.rating ?? 0);
+      return sb - sa;
+    } catch { return 0; }
+  });
+
+  const placed = [];   // committed pill rects {rx,ry,rw,rh}
+  const result = [];
+
+  for (const { v, pt, state } of sorted) {
+    const selected = v.id === selectedId;
+    const spr = getSprite(v, state, selected, currentHour, dateStr);
+    const rw  = spr.canvas.width;
+    const rh  = spr.canvas.height - STEM_H;  // pill area (excludes baked stem)
+
+    let resolved = false;
+    for (let stemH = STEM_H; stemH <= MAX_STEM_H; stemH += STEM_STEP) {
+      const extraStem = stemH - STEM_H;
+      const rx = pt.x - spr.anchorX;
+      const ry = pt.y - spr.anchorY - extraStem;
+      const clear = placed.every(p =>
+        rx + rw + PILL_GAP <= p.rx || p.rx + p.rw + PILL_GAP <= rx ||
+        ry + rh + PILL_GAP <= p.ry || p.ry + p.rh + PILL_GAP <= ry
+      );
+      if (clear) {
+        placed.push({ rx, ry, rw, rh });
+        result.push({ v, pt, state, stemH, isDot: false, spr });
+        resolved = true;
+        break;
       }
     }
-    clusters.push(members);
+    if (!resolved) result.push({ v, pt, state, stemH: STEM_H, isDot: true, spr });
   }
-  return clusters;
+
+  return result;
 }
 
-function drawClusterBubble(cx, cy, count, sunnyCount) {
-  const r      = count >= 8 ? 20 : count >= 4 ? 17 : 14;
-  const isSun  = sunnyCount > 0;
-
-  // Pulse ring
-  ctx.beginPath(); ctx.arc(cx, cy, r + 6, 0, Math.PI * 2);
-  ctx.fillStyle = isSun ? 'rgba(255,184,0,0.08)' : 'rgba(60,100,200,0.08)'; ctx.fill();
-
-  // Main filled circle
-  const grad = ctx.createRadialGradient(cx, cy - r * 0.25, 0, cx, cy, r);
-  if (isSun) { grad.addColorStop(0, '#ffd840'); grad.addColorStop(1, '#e09000'); }
-  else       { grad.addColorStop(0, '#3868d8'); grad.addColorStop(1, '#1a3880'); }
-  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.fillStyle = grad; ctx.fill();
-  ctx.strokeStyle = isSun ? 'rgba(255,230,100,0.8)' : 'rgba(110,155,255,0.6)';
-  ctx.lineWidth = 1.5; ctx.stroke();
-
-  // Count label
-  ctx.font = `bold ${count >= 10 ? 9 : 11}px "Inter", sans-serif`;
-  ctx.fillStyle = isSun ? '#1a1a2e' : '#c8d8ff';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(String(count), cx, cy);
-
-  return r + 6;   // total hit radius
+function _drawExtStem(pt, extraStem, state) {
+  const col = state === 'sunny' ? '#FFB800' :
+              state === 'soon'  ? 'rgba(255,184,0,0.45)' :
+                                  'rgba(81,69,50,0.5)';
+  ctx.beginPath();
+  ctx.moveTo(pt.x, pt.y - extraStem);
+  ctx.lineTo(pt.x, pt.y);
+  if (state === 'soon') ctx.setLineDash([3, 3]);
+  ctx.strokeStyle = col;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.setLineDash([]);
 }
 
-function hitTestCluster(cx, cy) {
-  for (const cl of _lastClusters) {
-    if (Math.hypot(cx - cl.cx, cy - cl.cy) <= cl.r) return cl;
-  }
-  return null;
-}
-
-function zoomToCluster(cluster) {
-  const lats = cluster.venues.map(v => v.lat);
-  const lngs = cluster.venues.map(v => v.lng);
-  map.fitBounds(
-    [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]],
-    { padding: 80, maxZoom: 15, duration: 500 }
-  );
+function _drawDot(pt, state) {
+  const isSunny = state === 'sunny', isSoon = state === 'soon';
+  ctx.save();
+  ctx.globalAlpha = isSunny ? 0.9 : isSoon ? 0.7 : 0.4;
+  ctx.beginPath(); ctx.arc(pt.x, pt.y, DOT_R + 2.5, 0, Math.PI * 2);
+  ctx.fillStyle = isSunny ? 'rgba(255,184,0,0.18)' : isSoon ? 'rgba(255,184,0,0.12)' : 'rgba(100,120,180,0.12)';
+  ctx.fill();
+  ctx.beginPath(); ctx.arc(pt.x, pt.y, DOT_R, 0, Math.PI * 2);
+  ctx.fillStyle = isSunny ? '#FFB800' : isSoon ? 'rgba(255,184,0,0.8)' : 'rgba(100,120,170,0.65)';
+  ctx.fill();
+  ctx.restore();
 }
 
 // ── Main draw ─────────────────────────────────────────────────────────────────
-
-/**
- * Draw a single venue pin with fade animation. Returns true if still animating
- * (caller should schedule another rAF). Pushes to visibleVenues if not closed.
- */
-function _drawPin(v, pt, state, currentHour, dateStr, now, visibleVenues) {
-  const selected = v.id === selectedId;
-  const spr      = getSprite(v, state, selected, currentHour, dateStr);
-
-  const prevState = _pinPrevState.get(v.id);
-  if (prevState !== undefined && prevState !== state) _pinFadeStart.set(v.id, now);
-  _pinPrevState.set(v.id, state);
-
-  let pinAlpha = 1, animating = false;
-  const fs = _pinFadeStart.get(v.id);
-  if (fs !== undefined) {
-    const t = Math.min(1, (now - fs) / PIN_FADE_MS);
-    pinAlpha = t;
-    if (t >= 1) _pinFadeStart.delete(v.id);
-    else        animating = true;
-  }
-
-  ctx.save();
-  if (pinAlpha < 1) ctx.globalAlpha = pinAlpha;
-  ctx.drawImage(spr.canvas, pt.x - spr.anchorX, pt.y - spr.anchorY);
-  ctx.restore();
-
-  if (state !== 'closed') visibleVenues.push({ v, pt, state, spr });
-  return animating;
-}
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -1164,18 +1154,19 @@ function draw() {
     projVenues.push({ v, state, pt: map.project([v.lng, v.lat]) });
   });
 
-  // Hover glow — pill-shaped halo drawn behind pins
+  // Compute anti-overlap layout before drawing (hover glow needs stemH too)
+  _lastLayout = computePinLayout(projVenues, currentHour, dateStr);
+
+  // Hover glow — pill-shaped halo drawn behind pins, uses actual layout stemH
   if (hoveredId !== null) {
-    const hEntry = projVenues.find(({ v }) => v.id === hoveredId);
+    const hEntry = _lastLayout.find(e => !e.isDot && e.v.id === hoveredId);
     if (hEntry) {
-      const { pt, state } = hEntry;
+      const { pt, state, stemH, spr } = hEntry;
       const pillCx = pt.x;
-      const pillCy = pt.y - STEM_H - PILL_H / 2;
+      const pillCy = pt.y - stemH - PILL_H / 2;
       const [r, g, b] = state === 'sunny' ? [255, 190, 0] : state === 'soon' ? [255, 184, 0] : [120, 170, 255];
-      // Derive pill width from sprite canvas so glow matches the actual label
-      const _hovSpr = getSprite(hEntry.v, state, hEntry.v.id === selectedId, currentHour, dateStr);
-      const pillW = _hovSpr ? (_hovSpr.canvas.width - 4) : 60;
-      const glowH = PILL_H + 10;  // slightly larger than pill height
+      const pillW = spr ? (spr.canvas.width - 4) : 60;
+      const glowH = PILL_H + 10;
       const glowScaleX = (pillW * 0.85) / glowH;
       ctx.save();
       ctx.translate(pillCx, pillCy);
@@ -1192,27 +1183,70 @@ function draw() {
     }
   }
 
-  // Draw: cluster bubbles at low zoom, individual pins at neighbourhood zoom
+  // Draw pins from layout — pills with variable stems, dots as fallback
   const visibleVenues = [];
-  if (zoom < CLUSTER_ZOOM) {
-    _lastClusters = [];
-    computeClusters(projVenues).forEach(members => {
-      if (members.length === 1) {
-        const { v, pt, state } = members[0];
-        if (_drawPin(v, pt, state, currentHour, dateStr, now, visibleVenues)) needsAnimFrame = true;
+  for (const entry of _lastLayout) {
+    const { v, pt, state, stemH, isDot, spr } = entry;
+    const extraStem = stemH - STEM_H;
+
+    // ── Dot↔pill morph animation ────────────────────────────────────────────
+    const wasDot = _pinWasDot.get(v.id);
+    if (wasDot !== undefined && wasDot !== isDot) {
+      _pinDotFade.set(v.id, { fromDot: wasDot, start: now });
+    }
+    _pinWasDot.set(v.id, isDot);
+
+    const morphFade = _pinDotFade.get(v.id);
+    if (morphFade) {
+      const t = Math.min(1, (now - morphFade.start) / DOT_FADE_MS);
+      if (t >= 1) {
+        _pinDotFade.delete(v.id);
       } else {
-        const cx = members.reduce((s, m) => s + m.pt.x, 0) / members.length;
-        const cy = members.reduce((s, m) => s + m.pt.y, 0) / members.length;
-        const sunnyCount = members.filter(m => m.state === 'sunny').length;
-        const r = drawClusterBubble(cx, cy, members.length, sunnyCount);
-        _lastClusters.push({ cx, cy, r, venues: members.map(m => m.v) });
+        needsAnimFrame = true;
+        ctx.save();
+        if (morphFade.fromDot) {
+          // dot → pill: dot fades out, pill fades in
+          ctx.globalAlpha = 1 - t; _drawDot(pt, state);
+          ctx.globalAlpha = t;
+          if (extraStem > 0) _drawExtStem(pt, extraStem, state);
+          ctx.drawImage(spr.canvas, pt.x - spr.anchorX, pt.y - spr.anchorY - extraStem);
+        } else {
+          // pill → dot: pill fades out, dot fades in
+          ctx.globalAlpha = 1 - t;
+          if (extraStem > 0) _drawExtStem(pt, extraStem, state);
+          ctx.drawImage(spr.canvas, pt.x - spr.anchorX, pt.y - spr.anchorY - extraStem);
+          ctx.globalAlpha = t; _drawDot(pt, state);
+        }
+        ctx.restore();
+        continue;
       }
-    });
-  } else {
-    _lastClusters = [];
-    projVenues.forEach(({ v, pt, state }) => {
-      if (_drawPin(v, pt, state, currentHour, dateStr, now, visibleVenues)) needsAnimFrame = true;
-    });
+    }
+
+    // ── Normal drawing ───────────────────────────────────────────────────────
+    if (isDot) {
+      if (state !== 'closed') _drawDot(pt, state);
+      continue;
+    }
+
+    // State-change fade
+    const prevState = _pinPrevState.get(v.id);
+    if (prevState !== undefined && prevState !== state) _pinFadeStart.set(v.id, now);
+    _pinPrevState.set(v.id, state);
+    let pinAlpha = 1;
+    const fs = _pinFadeStart.get(v.id);
+    if (fs !== undefined) {
+      const t = Math.min(1, (now - fs) / PIN_FADE_MS);
+      pinAlpha = t;
+      if (t >= 1) _pinFadeStart.delete(v.id);
+      else        needsAnimFrame = true;
+    }
+
+    ctx.save();
+    if (pinAlpha < 1) ctx.globalAlpha = pinAlpha;
+    if (extraStem > 0) _drawExtStem(pt, extraStem, state);
+    ctx.drawImage(spr.canvas, pt.x - spr.anchorX, pt.y - spr.anchorY - extraStem);
+    ctx.restore();
+    if (state !== 'closed') visibleVenues.push(entry);
   }
 
   // Hint when venues are hidden due to zoom density
@@ -1236,14 +1270,25 @@ function draw() {
 
 // ── Hit testing ───────────────────────────────────────────────────────────────
 function hitTestVenue(cx, cy) {
-  // Pills sit above the map point. Pill body centre is ~(PILL_TIP + PILL_H/2) above pt.
-  // Hit box: ±44 px horizontal, -44..+4 px vertical relative to anchor (stem bottom).
-  let hit = null;
-  VENUES.forEach(v => {
-    const pt = map.project([v.lng, v.lat]);
-    if (Math.abs(cx - pt.x) <= 44 && cy >= pt.y - 44 && cy <= pt.y + 4) hit = v;
-  });
-  return hit;
+  // Use layout for accurate pill bounds (variable stem heights)
+  for (const { v, pt, isDot, spr, stemH } of _lastLayout) {
+    if (isDot) continue;
+    const extraStem = stemH - STEM_H;
+    const rx = pt.x - spr.anchorX - 4;
+    const ry = pt.y - spr.anchorY - extraStem - 4;
+    const rw = spr.canvas.width + 8;
+    const rh = spr.canvas.height - STEM_H + 8;
+    if (cx >= rx && cx <= rx + rw && cy >= ry && cy <= ry + rh) return v;
+  }
+  return null;
+}
+
+function hitTestDot(cx, cy) {
+  for (const { v, pt, isDot, state } of _lastLayout) {
+    if (!isDot || state === 'closed') continue;
+    if (Math.hypot(cx - pt.x, cy - pt.y) <= DOT_R + 8) return v;
+  }
+  return null;
 }
 
 function hitTestDepthHandle(cx, cy) {
@@ -1304,7 +1349,7 @@ canvas.addEventListener('mousedown', e => {
     }
     return;
   }
-  const hit = hitTestVenue(cx, cy);
+  const hit = hitTestVenue(cx, cy) || hitTestDot(cx, cy);
   if (!hit) {
     canvas.style.pointerEvents = 'none';
     const el = document.elementFromPoint(e.clientX, e.clientY);
@@ -1321,14 +1366,11 @@ canvas.addEventListener('click', e => {
     if (wallIdx !== null) selectWallByIdx(wallIdx);
     return;
   }
-  const hit = hitTestVenue(cx, cy);
+  const hit = hitTestVenue(cx, cy) || hitTestDot(cx, cy);
   if (hit) {
     selectVenue(hit.id, true);
     return;
   }
-  // Cluster click — zoom to bounding box
-  const cluster = hitTestCluster(cx, cy);
-  if (cluster) { zoomToCluster(cluster); return; }
   // Clicked empty map — close detail panel / deselect
   if (selectedId !== null) {
     closeDetailPanel();
@@ -1381,15 +1423,7 @@ canvas.addEventListener('mousemove', e => {
     return;
   }
 
-  // Cluster hover cursor (no tooltip for clusters — user just clicks to zoom in)
-  if (hitTestCluster(cx, cy)) {
-    canvas.style.cursor = 'zoom-in';
-    if (hoveredId !== null) { hoveredId = null; draw(); }
-    tooltip.classList.remove('visible');
-    return;
-  }
-
-  const hit = hitTestVenue(cx, cy);
+  const hit = hitTestVenue(cx, cy) || hitTestDot(cx, cy);
   if (hit) {
     canvas.style.cursor = 'pointer';
     if (hoveredId !== hit.id) { hoveredId = hit.id; draw(); }
