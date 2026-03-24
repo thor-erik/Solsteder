@@ -576,8 +576,10 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
       <div class="card-name">${v.name}</div>
       <div class="card-meta">${meta}</div>
       <div class="card-sun-row">
-        <div class="card-dial-col">${dialSvg}</div>
-        ${durHtml}
+        <div class="card-sun-left">
+          <div class="card-dial-col">${dialSvg}</div>
+          ${durHtml}
+        </div>
         <div class="card-sun-info ${sunLineCls}">
           <div class="card-sun-label">${sunLabel}</div>
           ${sunTime ? `<span class="card-sun-time">${sunTime}</span>` : ''}
