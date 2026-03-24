@@ -368,7 +368,7 @@ let _listFiltered = []; // current sorted+filtered result
 let _listObserver = null; // IntersectionObserver for infinite scroll
 
 /** Small 56×56 clock-face dial for venue cards — no text, just arc + dot. */
-function buildCardDial(v, dateStr, fromHour) {
+function buildCardDial(v, dateStr, fromHour, isSunny) {
   const { windows } = computeSunWindows(v, dateStr);
   const W = 56, H = 56, CX = 28, CY = 28, R = 21, SW = 3.5;
 
@@ -377,7 +377,7 @@ function buildCardDial(v, dateStr, fromHour) {
   const isOvercast = cloud > 0.65, isPartly = cloud > 0.38 && !isOvercast;
   const arcBright = isOvercast ? 'rgba(120,158,210,0.78)' : isPartly ? 'rgba(210,185,110,0.78)' : 'rgba(255,184,0,0.82)';
   const arcDim    = isOvercast ? 'rgba(120,158,210,0.18)' : isPartly ? 'rgba(210,185,110,0.18)' : 'rgba(255,184,0,0.18)';
-  const dotColor  = isOvercast ? '#78A0D8' : '#FFB800';
+  const dotColor  = isOvercast ? '#78A0D8' : isSunny ? '#FFB800' : 'rgba(213,196,171,0.55)';
 
   const hAngle = h => ((h % 12) / 12) * 2 * Math.PI - Math.PI / 2;
   const pt     = h => { const a = hAngle(h); return [CX + R * Math.cos(a), CY + R * Math.sin(a)]; };
@@ -558,7 +558,7 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
     ? `<span class="card-sun-dur">${[sunDurH, sunDurM].filter(Boolean).join('<br>')}</span>`
     : '';
 
-  const dialSvg = buildCardDial(v, dateStr, fromHour);
+  const dialSvg = buildCardDial(v, dateStr, fromHour, !!v.sunInWin);
 
   return `
     <div class="venue-card ${v.sunInWin ? 'sunny' : ''} ${v.id === selectedId ? 'selected' : ''} ${dimmedCls}"
