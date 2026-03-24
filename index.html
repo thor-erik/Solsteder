@@ -1090,8 +1090,7 @@
     filter: drop-shadow(0 1px 3px rgba(0,0,0,0.35));
   }
   .card-sun-dur {
-    flex: 1;
-    text-align: center;
+    flex-shrink: 0;
     font-family: 'Inter', sans-serif;
     font-size: 12px;
     font-weight: 600;
@@ -1899,10 +1898,10 @@
   #qc-panel {
     overflow: hidden;
     max-height: 0;
-    transition: max-height 0.5s ease-in-out;
+    transition: max-height 0.28s cubic-bezier(0.4, 0, 0.2, 1);
     margin-top: 6px;
   }
-  #qc-panel.open { max-height: var(--qc-panel-h, 360px); }
+  #qc-panel.open { max-height: var(--qc-panel-h, 360px); transition: max-height 0.32s cubic-bezier(0.4, 0, 0.2, 1); }
   #qc-panel-inner {
     background: rgba(6,12,26,0.58);
     backdrop-filter: blur(32px);
@@ -1910,21 +1909,21 @@
     border: 1px solid rgba(81,69,50,0.18);
     border-radius: 16px;
     overflow: hidden;
-    /* Fade out quickly on close so the border never shows as a thin line */
     opacity: 1;
-    transition: opacity 0.15s ease 0.08s;
+    transform: translateY(0) scaleY(1);
+    transform-origin: top center;
+    transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   }
   #qc-panel:not(.open) #qc-panel-inner {
     opacity: 0;
-    transition: opacity 0.08s ease;
+    transform: translateY(-6px) scaleY(0.96);
+    transition: opacity 0.18s ease, transform 0.18s cubic-bezier(0.4, 0, 0.2, 1);
     pointer-events: none;
   }
-  #qc-date-section { display: none; padding: 10px 8px 8px; overflow-y: auto; }
-  #qc-date-section.active { display: flex; flex-direction: column; justify-content: center; }
-  /* Larger tiles inside the qc-bar calendar — more room than the old compact bottom bar */
-  #qc-date-section.active { justify-content: flex-start; }  /* let grid fill height, no centering */
-  #qc-cal { width: 100%; }
-  #qc-cal .dc-grid  { grid-auto-rows: 1fr; flex: 1; height: 100%; width: 100%; }
+  #qc-date-section { display: none; padding: 10px 10px 10px; overflow-y: auto; box-sizing: border-box; width: 100%; }
+  #qc-date-section.active { display: flex; flex-direction: column; justify-content: flex-start; }
+  #qc-cal { width: 100%; box-sizing: border-box; }
+  #qc-cal .dc-grid  { grid-auto-rows: 1fr; flex: 1; height: 100%; width: 100%; box-sizing: border-box; }
   #qc-cal .dc-tile  { padding: 4px 2px; gap: 2px; }
   #qc-cal .dc-day   { font-size: 8px; }
   #qc-cal .dc-num   { font-size: 15px; }

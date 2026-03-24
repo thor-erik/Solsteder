@@ -738,6 +738,12 @@ function renderList() {
   }
   if (activeArea) venues = venues.filter(v => v.area === activeArea);
 
+  // Remove venues that get no sun at all on the selected day
+  venues = venues.filter(v => {
+    const { windows } = computeSunWindows(v, dateStr);
+    return windows.length > 0;
+  });
+
   if (filterMapViewActive) {
     const bounds = map.getBounds();
     venues = venues.filter(v => bounds.contains([v.lng, v.lat]));
@@ -1336,8 +1342,8 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       <div class="dp-meta">${catLabel(v)}${v.area ? ' · ' + v.area : ''}${distStr ? ' · ' + distStr : ''}</div>
 
       <div class="dp-dial-wrap">
-        ${dialSvg}
         ${sunPill}
+        ${dialSvg}
       </div>
 
       <div class="dp-gm-actions">
