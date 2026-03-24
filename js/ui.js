@@ -738,10 +738,13 @@ function renderList() {
   }
   if (activeArea) venues = venues.filter(v => v.area === activeArea);
 
-  // Remove venues that get no sun at all on the selected day
+  // Remove venues with no sun windows, or (today only) all sun already past
+  const isToday = dateStr === todayStr();
   venues = venues.filter(v => {
     const { windows } = computeSunWindows(v, dateStr);
-    return windows.length > 0;
+    if (!windows.length) return false;
+    if (isToday) return windows.some(w => w.end > fromHour);
+    return true;
   });
 
   if (filterMapViewActive) {

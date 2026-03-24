@@ -1898,11 +1898,25 @@
   #qc-panel {
     overflow: hidden;
     max-height: 0;
-    transition: max-height 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-    margin-top: 6px;
+    margin-top: 0;
+    visibility: hidden;
+    /* on close: height collapses (0.28s), then margin snaps to 0 instantly */
+    transition: max-height 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                margin-top 0s linear 0.28s,
+                visibility 0s linear 0.28s;
   }
-  #qc-panel.open { max-height: var(--qc-panel-h, 360px); transition: max-height 0.32s cubic-bezier(0.4, 0, 0.2, 1); }
+  #qc-panel.open {
+    max-height: var(--qc-panel-h, 360px);
+    margin-top: 6px;
+    visibility: visible;
+    /* on open: margin and visibility appear immediately, height expands */
+    transition: max-height 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+                margin-top 0s linear,
+                visibility 0s linear;
+  }
   #qc-panel-inner {
+    width: 100%;
+    box-sizing: border-box;
     background: rgba(6,12,26,0.58);
     backdrop-filter: blur(32px);
     -webkit-backdrop-filter: blur(32px);
@@ -1910,20 +1924,17 @@
     border-radius: 16px;
     overflow: hidden;
     opacity: 1;
-    transform: translateY(0) scaleY(1);
-    transform-origin: top center;
-    transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.26s ease;
   }
   #qc-panel:not(.open) #qc-panel-inner {
     opacity: 0;
-    transform: translateY(-6px) scaleY(0.96);
-    transition: opacity 0.18s ease, transform 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.18s ease;
     pointer-events: none;
   }
-  #qc-date-section { display: none; padding: 10px 10px 10px; overflow-y: auto; box-sizing: border-box; width: 100%; }
-  #qc-date-section.active { display: flex; flex-direction: column; justify-content: flex-start; }
-  #qc-cal { width: 100%; box-sizing: border-box; }
-  #qc-cal .dc-grid  { grid-auto-rows: 1fr; flex: 1; height: 100%; width: 100%; box-sizing: border-box; }
+  #qc-date-section { display: none; padding: 8px; box-sizing: border-box; width: 100%; }
+  #qc-date-section.active { display: block; }
+  #qc-cal { display: block; width: 100%; box-sizing: border-box; }
+  #qc-cal .dc-grid  { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; width: 100%; box-sizing: border-box; grid-auto-rows: auto; }
   #qc-cal .dc-tile  { padding: 4px 2px; gap: 2px; }
   #qc-cal .dc-day   { font-size: 8px; }
   #qc-cal .dc-num   { font-size: 15px; }
