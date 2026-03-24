@@ -524,9 +524,8 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
     sunLineCls = 'closing-soon';
   }
 
-  const scoreHtml = s ? `<span class="card-meta-score">${s.total} Score</span>` : null;
   const metaBase = [v.area, catLabel(v), distStr].filter(Boolean).join(' · ');
-  const meta = metaBase + (scoreHtml ? ' · ' + scoreHtml : '');
+  const meta = metaBase + (s ? ` · <span class="card-meta-score">${s.total} Score</span>` : '');
 
   // Sun info for right side of card sun row
   let sunLabel, sunTime = '', sunDurH = '', sunDurM = '';
@@ -567,10 +566,7 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
          onmouseenter="setHoveredVenue(${v.id})" onmouseleave="setHoveredVenue(null)">
       ${s ? `<div class="card-bloom ${tier}"></div>` : ''}
       <div class="card-name">${v.name}</div>
-      <div class="card-meta">
-        <span>${metaBase}</span>
-        ${s ? `<span class="card-meta-score">${s.total} Score</span>` : ''}
-      </div>
+      <div class="card-meta">${meta}</div>
       <div class="card-sun-row">
         <div class="card-dial-col">
           ${dialSvg}

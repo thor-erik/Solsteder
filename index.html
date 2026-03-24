@@ -1042,22 +1042,14 @@
   }
 
   .card-meta {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 8px;
     font-size: 11px;
     color: var(--muted);
     margin: 2px 0 8px;
-  }
-  .card-meta > span:first-child {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    min-width: 0;
   }
   .card-meta-score {
-    flex-shrink: 0;
     color: rgba(255,184,0,0.82);
     font-weight: 700;
   }
@@ -1065,7 +1057,7 @@
   /* ── New card sun row (dial-col left, sun-info right) ──────────────── */
   .card-sun-row {
     display: flex;
-    align-items: center;
+    align-items: stretch;
     gap: 14px;
   }
   .card-dial-col {
@@ -1082,13 +1074,12 @@
   .card-sun-info {
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    gap: 1px;
+    justify-content: space-between;
     min-width: 0;
   }
   .card-sun-label {
     font-family: 'Inter', sans-serif;
-    font-size: 8px;
+    font-size: 9px;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -1099,12 +1090,12 @@
   .card-sun-info.opening-soon .card-sun-label { color: rgba(122,180,255,0.65); }
   .card-sun-info.closing-soon .card-sun-label { color: rgba(255,170,85,0.65); }
   .card-sun-time {
-    font-family: 'Newsreader', serif;
-    font-style: normal;
-    font-size: 34px;
-    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+    font-weight: 800;
+    font-size: 44px;
     color: var(--text);
     line-height: 1;
+    letter-spacing: -0.02em;
   }
   .card-sun-info.sunny   .card-sun-time { color: var(--accent); }
   .card-sun-info.neutral .card-sun-time { color: rgba(122,180,255,0.9); }
@@ -1112,7 +1103,7 @@
     font-family: 'Inter', sans-serif;
     font-size: 12px;
     font-weight: 600;
-    color: rgba(255,184,0,0.52);
+    color: rgba(255,184,0,0.82);
     line-height: 1;
     text-align: center;
   }
