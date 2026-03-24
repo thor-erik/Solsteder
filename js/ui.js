@@ -221,7 +221,18 @@ function buildDialCallouts(windows, fromHour, dateStr, CX, CY, R, H) {
     // ── Sun window ──────────────────────────────────────────────────────────
     if (w.end > fromHour) {
       const isCur  = curWin === w;
-      const callH  = isCur ? (fromHour + w.end) / 2 : (w.start + w.end) / 2;
+      // For the current window, anchor dot to the clear/sunny portion (before first overcast/rain)
+      // so the "Sun until" label doesn't point into the grey arc.
+      let callH;
+      if (isCur) {
+        let clearEnd = w.end;
+        for (let h = Math.floor(fromHour); h < Math.ceil(w.end); h++) {
+          if (precipAt(h) > 0.3 || cloudAt(h) > 0.65) { clearEnd = Math.max(fromHour, h); break; }
+        }
+        callH = (fromHour + Math.min(clearEnd, w.end)) / 2;
+      } else {
+        callH = (w.start + w.end) / 2;
+      }
       const term   = wxterm(isCur ? fromHour : w.start);
       const tag    = wxtag(isCur ? fromHour : w.start);
       let label;
@@ -290,22 +301,23 @@ function buildDialCallouts(windows, fromHour, dateStr, CX, CY, R, H) {
       if (rE <= rS + 0.001) continue;
       const prec = precipAt(h);
       const cld  = cloudAt(h);
-      const cond = prec > 0.3 ? 'rainy' : cld > 0.65 ? 'overcast' : 'clear';
+      const cond = prec > 0.3 ? 'rainy' : cld > 0.65 ? 'overcast' : cld > 0.38 ? 'cloudy' : 'clear';
       if (wxRuns.length && wxRuns[wxRuns.length - 1].cond === cond) {
         wxRuns[wxRuns.length - 1].end = rE;
       } else {
         wxRuns.push({ start: rS, end: rE, cond });
       }
     }
-    // Only annotate notable conditions (overcast, rainy) — skip clear
+    // Annotate overcast, rainy, and partly cloudy runs — skip clear
     for (const run of wxRuns) {
       if (run.cond === 'clear') continue;
-      // Skip if the whole window is this condition (the window callout already says it)
+      // Skip if the whole future portion of the window is this one condition
       if (run.start <= scanStart + 0.001 && run.end >= w.end - 0.001) continue;
       const callH = (run.start + run.end) / 2;
-      const label = run.cond === 'rainy'
-        ? `🌧 Rain ${fh(run.start)}–${fh(run.end)}`
-        : `☁ Overcast ${fh(run.start)}–${fh(run.end)}`;
+      // Short label: emoji + time range only (fits the narrow label area)
+      const label = run.cond === 'rainy'   ? `🌧 ${fh(run.start)}–${fh(run.end)}`
+                  : run.cond === 'overcast' ? `☁ ${fh(run.start)}–${fh(run.end)}`
+                  :                           `🌤 ${fh(run.start)}–${fh(run.end)}`;
       segs.push({ callH, label, type: run.cond });
     }
   }
@@ -314,8 +326,8 @@ function buildDialCallouts(windows, fromHour, dateStr, CX, CY, R, H) {
 
   // ── Geometry ──────────────────────────────────────────────────────────────
   const OUTSET     = 5;
-  const DIAG       = 20;
-  const TICK_W     = 26;
+  const DIAG       = 10;
+  const TICK_W     = 14;
   const TICK_END_X = CX + R + OUTSET + DIAG + TICK_W;
   const LABEL_X    = TICK_END_X + 4;
   const MIN_Y = 10, MAX_Y = H - 10;
@@ -352,9 +364,9 @@ function buildDialCallouts(windows, fromHour, dateStr, CX, CY, R, H) {
 
   let out = '';
   for (const s of segs) {
-    const sun     = s.type === 'sun';
-    const rain    = s.type === 'rainy';
-    const overcast = s.type === 'overcast';
+    const sun      = s.type === 'sun';
+    const rain     = s.type === 'rainy';
+    const overcast = s.type === 'overcast' || s.type === 'cloudy';
     const lc = rain ? 'rgba(100,145,210,0.48)' : overcast ? 'rgba(165,170,178,0.48)' : sun ? 'rgba(255,184,0,0.48)' : 'rgba(160,170,185,0.38)';
     const tc = rain ? 'rgba(100,145,210,0.88)' : overcast ? 'rgba(165,170,178,0.88)' : sun ? 'rgba(255,184,0,0.88)' : 'rgba(160,170,185,0.78)';
     out += `<circle cx="${s.dotX.toFixed(1)}" cy="${s.dotY.toFixed(1)}" r="2.5" fill="${lc}"/>`;
