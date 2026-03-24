@@ -43,32 +43,44 @@ function wxColor(dateStr, h, bright) {
 }
 
 /**
- * Splits a sun window [wStart, wEnd] into hour-sized segments, each colored
- * by the weather at that hour. Segments before fromHour use dim colors,
- * segments at/after fromHour use bright colors.
+ * Splits a sun window [wStart, wEnd] into runs of the same color, each
+ * colored by the weather at that hour. Consecutive same-color hours are
+ * merged into one path to avoid dot artifacts from stroke-linecap="round".
+ * Segments before fromHour use dim colors, at/after use bright colors.
  * Returns an array of SVG <path> strings.
  */
 function wxArcPaths(dateStr, wStart, wEnd, fromHour, arcPathFn, sw) {
-  const paths = [];
+  // Build color runs by merging consecutive same-color hour sub-segments
+  const runs = []; // [{start, end, color}]
   const hFloor = Math.floor(wStart);
   const hCeil  = Math.ceil(wEnd);
   for (let h = hFloor; h < hCeil; h++) {
     const segS = Math.max(wStart, h);
     const segE = Math.min(wEnd, h + 1);
     if (segE <= segS + 0.001) continue;
-    // Split this segment at fromHour
-    const pastE  = Math.min(segE, fromHour);
-    const futS   = Math.max(segS, fromHour);
+    const pastE = Math.min(segE, fromHour);
+    const futS  = Math.max(segS, fromHour);
     if (pastE > segS + 0.001) {
-      const d = arcPathFn(segS, pastE);
-      if (d) paths.push(`<path d="${d}" fill="none" stroke="${wxColor(dateStr, h, false)}" stroke-width="${sw}" stroke-linecap="round"/>`);
+      const color = wxColor(dateStr, h, false);
+      if (runs.length && runs[runs.length - 1].color === color) {
+        runs[runs.length - 1].end = pastE;
+      } else {
+        runs.push({ start: segS, end: pastE, color });
+      }
     }
     if (futS < segE - 0.001) {
-      const d = arcPathFn(futS, segE);
-      if (d) paths.push(`<path d="${d}" fill="none" stroke="${wxColor(dateStr, h, true)}" stroke-width="${sw}" stroke-linecap="round"/>`);
+      const color = wxColor(dateStr, h, true);
+      if (runs.length && runs[runs.length - 1].color === color) {
+        runs[runs.length - 1].end = segE;
+      } else {
+        runs.push({ start: futS, end: segE, color });
+      }
     }
   }
-  return paths;
+  return runs.map(r => {
+    const d = arcPathFn(r.start, r.end);
+    return d ? `<path d="${d}" fill="none" stroke="${r.color}" stroke-width="${sw}" stroke-linecap="round"/>` : '';
+  }).filter(Boolean);
 }
 
 // ── Sun dial (large clock-face style for detail panel) ────────────────────────
@@ -265,6 +277,39 @@ function buildDialCallouts(windows, fromHour, dateStr, CX, CY, R, H) {
     }
   });
 
+  // ── Weather-transition callouts within future sun windows ────────────────
+  // For each future window, scan hourly weather and annotate overcast/rain runs.
+  for (const w of windows) {
+    if (w.end <= fromHour) continue;
+    const scanStart = Math.max(w.start, fromHour);
+    // Build weather condition runs inside the future portion of this window
+    const wxRuns = [];
+    for (let h = Math.floor(scanStart); h < Math.ceil(w.end); h++) {
+      const rS = Math.max(scanStart, h);
+      const rE = Math.min(w.end, h + 1);
+      if (rE <= rS + 0.001) continue;
+      const prec = precipAt(h);
+      const cld  = cloudAt(h);
+      const cond = prec > 0.3 ? 'rainy' : cld > 0.65 ? 'overcast' : 'clear';
+      if (wxRuns.length && wxRuns[wxRuns.length - 1].cond === cond) {
+        wxRuns[wxRuns.length - 1].end = rE;
+      } else {
+        wxRuns.push({ start: rS, end: rE, cond });
+      }
+    }
+    // Only annotate notable conditions (overcast, rainy) — skip clear
+    for (const run of wxRuns) {
+      if (run.cond === 'clear') continue;
+      // Skip if the whole window is this condition (the window callout already says it)
+      if (run.start <= scanStart + 0.001 && run.end >= w.end - 0.001) continue;
+      const callH = (run.start + run.end) / 2;
+      const label = run.cond === 'rainy'
+        ? `🌧 Rain ${fh(run.start)}–${fh(run.end)}`
+        : `☁ Overcast ${fh(run.start)}–${fh(run.end)}`;
+      segs.push({ callH, label, type: run.cond });
+    }
+  }
+
   if (!segs.length) return '';
 
   // ── Geometry ──────────────────────────────────────────────────────────────
@@ -307,10 +352,11 @@ function buildDialCallouts(windows, fromHour, dateStr, CX, CY, R, H) {
 
   let out = '';
   for (const s of segs) {
-    const sun = s.type === 'sun';
-    const rain = s.type === 'rainy';
-    const lc  = rain ? 'rgba(100,145,210,0.48)' : sun ? 'rgba(255,184,0,0.48)'  : 'rgba(160,170,185,0.38)';
-    const tc  = rain ? 'rgba(100,145,210,0.88)' : sun ? 'rgba(255,184,0,0.88)'  : 'rgba(160,170,185,0.78)';
+    const sun     = s.type === 'sun';
+    const rain    = s.type === 'rainy';
+    const overcast = s.type === 'overcast';
+    const lc = rain ? 'rgba(100,145,210,0.48)' : overcast ? 'rgba(165,170,178,0.48)' : sun ? 'rgba(255,184,0,0.48)' : 'rgba(160,170,185,0.38)';
+    const tc = rain ? 'rgba(100,145,210,0.88)' : overcast ? 'rgba(165,170,178,0.88)' : sun ? 'rgba(255,184,0,0.88)' : 'rgba(160,170,185,0.78)';
     out += `<circle cx="${s.dotX.toFixed(1)}" cy="${s.dotY.toFixed(1)}" r="2.5" fill="${lc}"/>`;
     out += `<polyline points="${s.dotX.toFixed(1)},${s.dotY.toFixed(1)} ${s.elbX.toFixed(1)},${s.labelY.toFixed(1)} ${TICK_END_X},${s.labelY.toFixed(1)}"
       fill="none" stroke="${lc}" stroke-width="0.9" stroke-linecap="round" stroke-linejoin="round"/>`;
