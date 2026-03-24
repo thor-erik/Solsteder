@@ -370,7 +370,7 @@ let _listObserver = null; // IntersectionObserver for infinite scroll
 /** Small 56×56 clock-face dial for venue cards — no text, just arc + dot. */
 function buildCardDial(v, dateStr, fromHour, isSunny) {
   const { windows } = computeSunWindows(v, dateStr);
-  const W = 58, H = 58, CX = 29, CY = 29, R = 22, SW = 3.5;
+  const W = 76, H = 76, CX = 38, CY = 38, R = 29, SW = 4;
 
   const wxNow = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, fromHour) : null;
   const cloud = wxNow?.cloud ?? 0;
