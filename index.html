@@ -1056,35 +1056,39 @@
     font-weight: 700;
   }
 
-  /* ── New card sun row (dial-col left, sun-info right) ──────────────── */
+  /* ── Card sun row: dial + duration left, label+time pushed right ─────── */
   .card-sun-row {
     display: flex;
-    align-items: flex-start;
-    gap: 14px;
+    align-items: center;
+    gap: 10px;
   }
   .card-dial-col {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
     flex-shrink: 0;
-    gap: 3px;
   }
   .card-dial {
+    display: block;
     opacity: 0.92;
     filter: drop-shadow(0 1px 3px rgba(0,0,0,0.35));
   }
-  /* Right column: absolute-pin label to top, time to bottom of a fixed-height box.
-     Height = 56px dial + 3px gap + 12px dur = 71px — matches left column exactly. */
+  .card-sun-dur {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+  }
+  .card-sun-dur.dur-sunny    { color: rgba(255,184,0,0.82); }
+  .card-sun-dur.dur-cloudy   { color: rgba(210,185,110,0.82); }
+  .card-sun-dur.dur-overcast { color: rgba(120,158,210,0.82); }
+  /* Right block: pushed to far right, label + time stacked with 5px gap */
   .card-sun-info {
-    position: relative;
-    flex: 1;
-    height: 71px;
+    margin-left: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
     min-width: 0;
   }
   .card-sun-label {
-    position: absolute;
-    top: 0;
-    left: 0;
     font-family: 'Inter', sans-serif;
     font-size: 9px;
     font-weight: 700;
@@ -1098,9 +1102,6 @@
   .card-sun-info.opening-soon .card-sun-label { color: rgba(122,180,255,0.65); }
   .card-sun-info.closing-soon .card-sun-label { color: rgba(255,170,85,0.65); }
   .card-sun-time {
-    position: absolute;
-    bottom: 0;
-    left: 0;
     font-family: 'Inter', sans-serif;
     font-weight: 800;
     font-size: 44px;
@@ -1110,16 +1111,6 @@
   }
   .card-sun-info.sunny   .card-sun-time { color: var(--accent); }
   .card-sun-info.neutral .card-sun-time { color: rgba(122,180,255,0.9); }
-  .card-sun-dur {
-    font-family: 'Inter', sans-serif;
-    font-size: 12px;
-    font-weight: 600;
-    line-height: 1;
-    text-align: center;
-  }
-  .card-sun-dur.dur-sunny    { color: rgba(255,184,0,0.82); }
-  .card-sun-dur.dur-cloudy   { color: rgba(210,185,110,0.82); }
-  .card-sun-dur.dur-overcast { color: rgba(120,158,210,0.82); }
 
   .card-score-num {
     flex-shrink: 0;
@@ -1444,7 +1435,7 @@
     .card-badge   { font-size: 11px; padding: 4px 11px; }
     .card-meta    { font-size: 12px; }
     .card-sun-time { font-size: 32px; }
-    .card-dial    { width: 60px; height: 60px; }
+    .card-dial    { width: 62px; height: 62px; }
     .area-chip    { font-size: 12px; padding: 6px 13px; }
     .sort-btn     { font-size: 12px; padding: 5px 10px; }
 

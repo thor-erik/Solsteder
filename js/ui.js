@@ -370,7 +370,7 @@ let _listObserver = null; // IntersectionObserver for infinite scroll
 /** Small 56×56 clock-face dial for venue cards — no text, just arc + dot. */
 function buildCardDial(v, dateStr, fromHour, isSunny) {
   const { windows } = computeSunWindows(v, dateStr);
-  const W = 56, H = 56, CX = 28, CY = 28, R = 21, SW = 3.5;
+  const W = 58, H = 58, CX = 29, CY = 29, R = 22, SW = 3.5;
 
   const wxNow = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, fromHour) : null;
   const cloud = wxNow?.cloud ?? 0;
@@ -576,10 +576,8 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
       <div class="card-name">${v.name}</div>
       <div class="card-meta">${meta}</div>
       <div class="card-sun-row">
-        <div class="card-dial-col">
-          ${dialSvg}
-          ${durHtml}
-        </div>
+        <div class="card-dial-col">${dialSvg}</div>
+        ${durHtml}
         <div class="card-sun-info ${sunLineCls}">
           <div class="card-sun-label">${sunLabel}</div>
           ${sunTime ? `<span class="card-sun-time">${sunTime}</span>` : ''}
