@@ -21,14 +21,22 @@ function venueHasSunInRange(v, dateStr, fromHour, toHour) {
 function renderSunDial(v, dateStr, fromHour) {
   const { windows } = computeSunWindows(v, dateStr);
   // Circle sits left; label area fills the right portion of the viewBox
-  const W = 300, H = 210, CX = 70, CY = 105, R = 62, SW = 5;
+  const W = 320, H = 220, CX = 70, CY = 110, R = 62, SW = 5;
 
   const wxNow = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, fromHour) : null;
   const cloud = wxNow?.cloud ?? 0;
-  const isOvercast = cloud > 0.65, isPartly = cloud > 0.38 && !isOvercast;
-  const arcBright = isOvercast ? 'rgba(120,158,210,0.75)' : isPartly ? 'rgba(210,185,110,0.75)' : 'rgba(255,184,0,0.78)';
-  const arcDim    = isOvercast ? 'rgba(120,158,210,0.20)' : isPartly ? 'rgba(210,185,110,0.20)' : 'rgba(255,184,0,0.18)';
-  const dotColor  = isOvercast ? '#78A0D8' : '#FFB800';
+  const precip = wxNow?.precip ?? 0;
+  const isRainy = precip > 0.3;
+  const isOvercast = !isRainy && cloud > 0.65, isPartly = cloud > 0.38 && !isOvercast && !isRainy;
+  const arcBright = isRainy    ? 'rgba(100,145,210,0.75)'
+                  : isOvercast ? 'rgba(165,170,178,0.75)'
+                  : isPartly   ? 'rgba(210,185,110,0.75)'
+                  :              'rgba(255,184,0,0.78)';
+  const arcDim    = isRainy    ? 'rgba(100,145,210,0.20)'
+                  : isOvercast ? 'rgba(165,170,178,0.20)'
+                  : isPartly   ? 'rgba(210,185,110,0.20)'
+                  :              'rgba(255,184,0,0.18)';
+  const dotColor  = isRainy ? '#6491D2' : isOvercast ? '#A5AABB' : '#FFB800';
 
   const hAngle = h => ((h % 12) / 12) * 2 * Math.PI - Math.PI / 2;
   const pt = h => { const a = hAngle(h); return [CX + R * Math.cos(a), CY + R * Math.sin(a)]; };
@@ -80,7 +88,7 @@ function renderSunDial(v, dateStr, fromHour) {
   }
 
   const [tx, ty] = pt(fromHour);
-  const callouts  = buildDialCallouts(windows, CX, CY, R, H, arcBright);
+  const callouts  = buildDialCallouts(windows, fromHour, dateStr, CX, CY, R, H);
 
   const svg = `<svg class="dp-dial-svg" width="100%" viewBox="0 0 ${W} ${H}" style="display:block" aria-hidden="true">
     <defs>
@@ -98,17 +106,20 @@ function renderSunDial(v, dateStr, fromHour) {
   // Status pill
   const curWin  = windows.find(w => fromHour >= w.start && fromHour < w.end);
   const nextWin = windows.find(w => w.start > fromHour);
+  const wxTerm = isRainy ? 'RAIN' : isOvercast ? 'LIGHT' : 'SUN';
+  const wxIcon = isRainy ? '🌧' : isOvercast ? '☁' : '☀';
   let pill;
   if (curWin) {
     const rem = curWin.end - fromHour;
     const ph = Math.floor(rem), pm = Math.round((rem - ph) * 60);
-    pill = `<div class="dp-sun-pill sunny">☀ IN SUN · ${(ph>0?ph+'h ':'')}${pm>0?pm+'m':''} LEFT</div>`;
+    const pillCls = isRainy ? 'rainy' : isOvercast ? 'overcast' : 'sunny';
+    pill = `<div class="dp-sun-pill ${pillCls}">${wxIcon} IN ${wxTerm} · ${(ph>0?ph+'h ':'')}${pm>0?pm+'m':''} LEFT</div>`;
   } else if (nextWin) {
     const wait = nextWin.start - fromHour;
     const ph = Math.floor(wait), pm = Math.round((wait - ph) * 60);
-    pill = `<div class="dp-sun-pill neutral">☀ SUN IN ${(ph>0?ph+'h ':'')}${pm>0?pm+'m':''}</div>`;
+    pill = `<div class="dp-sun-pill neutral">${wxIcon} ${wxTerm} IN ${(ph>0?ph+'h ':'')}${pm>0?pm+'m':''}</div>`;
   } else {
-    pill = `<div class="dp-sun-pill muted">${windows.length ? 'SUN PASSED' : 'NO SUN TODAY'}</div>`;
+    pill = `<div class="dp-sun-pill muted">${windows.length ? `${wxTerm} PASSED` : `NO ${wxTerm} TODAY`}</div>`;
   }
 
   return { svg, pill };
@@ -116,92 +127,150 @@ function renderSunDial(v, dateStr, fromHour) {
 
 /**
  * Build SVG callout annotations for dial segments.
- * Each sun window and shadow gap gets a diagonal→horizontal leader line and a label.
+ *
+ * Rules:
+ *  - Past segments (end <= fromHour) get no callout.
+ *  - Current sun window: "Sun until HH:MM" or "X min left" if < 1h; weather-aware.
+ *  - Current shadow gap: "Sun in X min" if < 1h, else "Xh Ym shadow left".
+ *  - Future shadow gaps: always show duration ("X min shadow" / "Xh shadow").
+ *  - Future sun windows: "Next sun HH:MM", "Sun HH:MM–HH:MM", "Last sun HH:MM–HH:MM"; weather-aware.
  */
-function buildDialCallouts(windows, CX, CY, R, H, arcBright) {
+function buildDialCallouts(windows, fromHour, dateStr, CX, CY, R, H) {
   if (!windows.length) return '';
 
   const hAngle = h => ((h % 12) / 12) * 2 * Math.PI - Math.PI / 2;
-  const fh = h => formatHour(h);
-  const n = windows.length;
+  const fh     = h => formatHour(h);
+  const n      = windows.length;
 
-  // Build segment descriptors
-  const segs = [];
+  // Weather helpers
+  const wxAt    = h => typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, h) : null;
+  const cloudAt = h => wxAt(h)?.cloud ?? 0;
+  const precipAt = h => wxAt(h)?.precip ?? 0;
+  const wxterm  = h => {
+    if (precipAt(h) > 0.3) return 'rain';
+    const c = cloudAt(h);
+    return c > 0.65 ? 'light' : c > 0.38 ? 'sun' : 'sun';
+  };
+  const wxtag   = h => {
+    if (precipAt(h) > 0.3) return 'rainy';
+    const c = cloudAt(h);
+    return c > 0.65 ? 'overcast' : c > 0.38 ? 'cloudy' : '';
+  };
+
+  const curWin = windows.find(w => fromHour >= w.start && fromHour < w.end);
+  const segs   = [];
+  let firstFutureSun = true;
+
   windows.forEach((w, i) => {
-    const midH = (w.start + w.end) / 2;
-    let label;
-    if (n === 1)      label = `Sun ${fh(w.start)} – ${fh(w.end)}`;
-    else if (i === 0) label = `First sun ${fh(w.start)}`;
-    else if (i===n-1) label = `Last sun ${fh(w.start)} – ${fh(w.end)}`;
-    else              label = `Sun ${fh(w.start)} – ${fh(w.end)}`;
-    segs.push({ midH, label, type: 'sun' });
+    // ── Sun window ──────────────────────────────────────────────────────────
+    if (w.end > fromHour) {
+      const isCur  = curWin === w;
+      const callH  = isCur ? (fromHour + w.end) / 2 : (w.start + w.end) / 2;
+      const term   = wxterm(isCur ? fromHour : w.start);
+      const tag    = wxtag(isCur ? fromHour : w.start);
+      let label;
 
-    // Shadow gap to the next window
+      if (isCur) {
+        const rem  = w.end - fromHour;
+        if (rem < 1) {
+          const mins = Math.round(rem * 60);
+          label = tag === 'rainy' ? `🌧 Rain · ${mins} min left` : `${mins} min ${term} left`;
+        } else {
+          label = tag === 'rainy' ? `🌧 Rain until ${fh(w.end)}` : `${term[0].toUpperCase() + term.slice(1)} until ${fh(w.end)}`;
+        }
+      } else {
+        const isFirst = firstFutureSun;
+        const isLast  = i === n - 1 && n > 1;
+        firstFutureSun = false;
+        const prefix = tag === 'rainy' ? '🌧 Rain' : tag === 'overcast' ? 'Light' : tag === 'cloudy' ? 'Sun' : 'Sun';
+        if (isLast) {
+          label = `Last ${term} ${fh(w.start)} – ${fh(w.end)}`;
+        } else if (isFirst) {
+          label = tag === 'rainy' ? `🌧 Rain at ${fh(w.start)}` : `Next ${term} ${fh(w.start)}`;
+        } else {
+          label = tag === 'rainy' ? `🌧 Rain ${fh(w.start)} – ${fh(w.end)}` : `${prefix} ${fh(w.start)} – ${fh(w.end)}`;
+        }
+      }
+      segs.push({ callH, label, type: tag === 'rainy' ? 'rainy' : 'sun' });
+    }
+
+    // ── Shadow gap after this window ─────────────────────────────────────────
     if (i < n - 1) {
       const gS = w.end, gE = windows[i+1].start, gH = gE - gS;
-      const mins = Math.round(gH * 60);
-      let gLabel;
-      if (gH < 1)      gLabel = `${mins} min shadow`;
-      else if (gH < 3) gLabel = `Shadow at ${fh(gS)}`;
-      else             gLabel = `${Math.floor(gH)}h shadow`;
-      segs.push({ midH: (gS+gE)/2, label: gLabel, type: 'shadow' });
+      if (gE > fromHour) {
+        const inGap = fromHour >= gS && fromHour < gE;
+        const callH = inGap ? (fromHour + gE) / 2 : (gS + gE) / 2;
+        let label;
+        if (inGap) {
+          const rem = gE - fromHour;
+          if (rem < 1) {
+            label = `Sun in ${Math.round(rem * 60)} min`;
+          } else {
+            const gh = Math.floor(rem), gm = Math.round((rem - gh) * 60);
+            label = gm > 0 ? `${gh}h ${gm}m shadow left` : `${gh}h shadow left`;
+          }
+        } else {
+          const gh = Math.floor(gH), gm = Math.round((gH - gh) * 60);
+          label = gH < 1
+            ? `${Math.round(gH * 60)} min shadow`
+            : (gm > 0 ? `${gh}h ${gm}m shadow` : `${gh}h shadow`);
+        }
+        segs.push({ callH, label, type: 'shadow' });
+      }
     }
   });
 
-  // Geometry: dot just outside arc, short diagonal, then horizontal to label column
-  const OUTSET  = 5;   // clearance beyond arc stroke
-  const DIAG    = 20;  // diagonal segment length
-  const TICK_W  = 26;  // horizontal tick length
+  if (!segs.length) return '';
+
+  // ── Geometry ──────────────────────────────────────────────────────────────
+  const OUTSET     = 5;
+  const DIAG       = 20;
+  const TICK_W     = 26;
   const TICK_END_X = CX + R + OUTSET + DIAG + TICK_W;
   const LABEL_X    = TICK_END_X + 4;
   const MIN_Y = 10, MAX_Y = H - 10;
+  const MIN_GAP = 19, FONT = 11.5;
 
   segs.forEach(s => {
-    const a = hAngle(s.midH);
+    const a  = hAngle(s.callH);
     const ca = Math.cos(a), sa = Math.sin(a);
     s.dotX = CX + (R + OUTSET) * ca;
     s.dotY = CY + (R + OUTSET) * sa;
-    // For left-half segments redirect diagonal rightward rather than further left
-    if (ca >= -0.1) {
-      s.elbX = s.dotX + ca * DIAG;
-      s.elbY = s.dotY + sa * DIAG;
-    } else {
-      s.elbX = s.dotX + 0.82 * DIAG;
-      s.elbY = s.dotY + (sa >= 0 ? 0.57 : -0.57) * DIAG;
-    }
+    s.elbX = ca >= -0.1 ? s.dotX + ca * DIAG : s.dotX + 0.82 * DIAG;
+    s.elbY = ca >= -0.1 ? s.dotY + sa * DIAG : s.dotY + (sa >= 0 ? 0.57 : -0.57) * DIAG;
     s.labelY = Math.max(MIN_Y, Math.min(MAX_Y, s.elbY));
   });
 
-  // Y-collision avoidance: spread labels apart when too close
-  const MIN_GAP = 16;
+  // Y-collision avoidance
   segs.sort((a, b) => a.labelY - b.labelY);
-  for (let pass = 0; pass < 6; pass++) {
+  for (let pass = 0; pass < 8; pass++) {
     for (let i = 1; i < segs.length; i++) {
       if (segs[i].labelY - segs[i-1].labelY < MIN_GAP) {
         const mid = (segs[i].labelY + segs[i-1].labelY) / 2;
-        segs[i-1].labelY = Math.max(MIN_Y, mid - MIN_GAP/2);
-        segs[i].labelY   = Math.min(MAX_Y, mid + MIN_GAP/2);
+        segs[i-1].labelY = Math.max(MIN_Y, mid - MIN_GAP / 2);
+        segs[i].labelY   = Math.min(MAX_Y, mid + MIN_GAP / 2);
       }
     }
-    for (let i = segs.length-2; i >= 0; i--) {
+    for (let i = segs.length - 2; i >= 0; i--) {
       if (segs[i+1].labelY - segs[i].labelY < MIN_GAP) {
         const mid = (segs[i+1].labelY + segs[i].labelY) / 2;
-        segs[i].labelY   = Math.max(MIN_Y, mid - MIN_GAP/2);
-        segs[i+1].labelY = Math.min(MAX_Y, mid + MIN_GAP/2);
+        segs[i].labelY   = Math.max(MIN_Y, mid - MIN_GAP / 2);
+        segs[i+1].labelY = Math.min(MAX_Y, mid + MIN_GAP / 2);
       }
     }
   }
 
   let out = '';
   for (const s of segs) {
-    const sun  = s.type === 'sun';
-    const lc   = sun ? 'rgba(255,184,0,0.48)'    : 'rgba(120,158,210,0.36)';
-    const tc   = sun ? 'rgba(255,184,0,0.82)'    : 'rgba(120,158,210,0.72)';
+    const sun = s.type === 'sun';
+    const rain = s.type === 'rainy';
+    const lc  = rain ? 'rgba(100,145,210,0.48)' : sun ? 'rgba(255,184,0,0.48)'  : 'rgba(160,170,185,0.38)';
+    const tc  = rain ? 'rgba(100,145,210,0.88)' : sun ? 'rgba(255,184,0,0.88)'  : 'rgba(160,170,185,0.78)';
     out += `<circle cx="${s.dotX.toFixed(1)}" cy="${s.dotY.toFixed(1)}" r="2.5" fill="${lc}"/>`;
     out += `<polyline points="${s.dotX.toFixed(1)},${s.dotY.toFixed(1)} ${s.elbX.toFixed(1)},${s.labelY.toFixed(1)} ${TICK_END_X},${s.labelY.toFixed(1)}"
-      fill="none" stroke="${lc}" stroke-width="0.85" stroke-linecap="round" stroke-linejoin="round"/>`;
+      fill="none" stroke="${lc}" stroke-width="0.9" stroke-linecap="round" stroke-linejoin="round"/>`;
     out += `<text x="${LABEL_X}" y="${s.labelY.toFixed(1)}" dominant-baseline="middle"
-      font-family="Inter,sans-serif" font-size="9.5" font-weight="500" fill="${tc}">${s.label}</text>`;
+      font-family="Inter,sans-serif" font-size="${FONT}" font-weight="500" fill="${tc}">${s.label}</text>`;
   }
   return out;
 }
@@ -271,21 +340,28 @@ function renderTimeline(v, dateStr, fromHour, toHour) {
     : '';
 
   // Badge: point/now mode vs range mode
+  const wxTl = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, fromHour) : null;
+  const tlRainy = (wxTl?.precip ?? 0) > 0.3;
+  const tlOvercast = !tlRainy && (wxTl?.cloud ?? 0) > 0.65;
+  const tlTerm = tlRainy ? 'rain' : tlOvercast ? 'light' : 'sun';
+  const tlIcon = tlRainy ? '🌧' : tlOvercast ? '☁' : '☀';
+  const tlCls  = tlRainy ? 'neutral' : 'sunny';
+
   const curWin = windows.find(w => fromHour >= w.start && fromHour < w.end);
   let badge = '';
   if (isPoint || nowMode) {
     if (curWin) {
       const rem = curWin.end - fromHour;
       const h = Math.floor(rem), m = Math.round((rem - h) * 60);
-      badge = `<span class="tl-badge sunny">☀ ${h > 0 ? h+'h ' : ''}${m > 0 ? m+'m' : ''} left</span>`;
+      badge = `<span class="tl-badge ${tlCls}">${tlIcon} ${h > 0 ? h+'h ' : ''}${m > 0 ? m+'m' : ''} ${tlTerm} left</span>`;
     } else {
       const next = windows.find(w => w.start > fromHour);
       if (next) {
         const wait = next.start - fromHour;
         const h = Math.floor(wait), m = Math.round((wait - h) * 60);
-        badge = `<span class="tl-badge neutral">☀ in ${h > 0 ? h+'h ' : ''}${m > 0 ? m+'m' : ''}</span>`;
+        badge = `<span class="tl-badge neutral">${tlIcon} ${tlTerm} in ${h > 0 ? h+'h ' : ''}${m > 0 ? m+'m' : ''}</span>`;
       } else {
-        badge = `<span class="tl-badge muted">${windows.length ? 'Sun passed' : 'No sun'}</span>`;
+        badge = `<span class="tl-badge muted">${windows.length ? `${tlTerm} passed` : `No ${tlTerm}`}</span>`;
       }
     }
   } else {
@@ -296,9 +372,9 @@ function renderTimeline(v, dateStr, fromHour, toHour) {
     }
     if (totalSun > 0) {
       const h = Math.floor(totalSun), m = Math.round((totalSun - h) * 60);
-      badge = `<span class="tl-badge sunny">☀ ${h > 0 ? h+'h ' : ''}${m > 0 ? m+'m' : ''} sun</span>`;
+      badge = `<span class="tl-badge ${tlCls}">${tlIcon} ${h > 0 ? h+'h ' : ''}${m > 0 ? m+'m' : ''} ${tlTerm}</span>`;
     } else {
-      badge = `<span class="tl-badge muted">No sun</span>`;
+      badge = `<span class="tl-badge muted">No ${tlTerm}</span>`;
     }
   }
 
@@ -323,24 +399,30 @@ function buildTooltipContent(v) {
   const span = close - open;
 
   // Status + timing
+  const wxTip = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, hour) : null;
+  const tipRainy = (wxTip?.precip ?? 0) > 0.3;
+  const tipOvercast = !tipRainy && (wxTip?.cloud ?? 0) > 0.65;
+  const tipTerm = tipRainy ? 'rain' : tipOvercast ? 'light' : 'sun';
+  const tipIcon = tipRainy ? '🌧' : tipOvercast ? '☁' : '☀';
   let statusHtml = '';
   const curWin = windows.find(w => hour >= w.start && hour < w.end);
   if (curWin) {
     const rem = curWin.end - hour;
     const h = Math.floor(rem), m = Math.round((rem - h) * 60);
     const t = h > 0 ? `${h}h${m > 0 ? ' '+m+'m' : ''}` : `${m}m`;
-    statusHtml = `<div class="ht-status sunny">☀ In sun · ${t} left</div>`;
+    const cls = tipRainy ? 'rainy' : tipOvercast ? 'overcast' : 'sunny';
+    statusHtml = `<div class="ht-status ${cls}">${tipIcon} In ${tipTerm} · ${t} left</div>`;
   } else {
     const next = windows.find(w => w.start > hour);
     if (next) {
       const wait = next.start - hour;
       const h = Math.floor(wait), m = Math.round((wait - h) * 60);
       const t = h > 0 ? `${h}h${m > 0 ? ' '+m+'m' : ''}` : `${m}m`;
-      statusHtml = `<div class="ht-status neutral">☀ Sun in ${t} · at ${formatHour(next.start)}</div>`;
+      statusHtml = `<div class="ht-status neutral">${tipIcon} ${tipTerm} in ${t} · at ${formatHour(next.start)}</div>`;
     } else if (windows.length > 0) {
-      statusHtml = `<div class="ht-status shaded">No more sun today</div>`;
+      statusHtml = `<div class="ht-status shaded">No more ${tipTerm} today</div>`;
     } else {
-      statusHtml = `<div class="ht-status shaded">No sun today</div>`;
+      statusHtml = `<div class="ht-status shaded">No ${tipTerm} today</div>`;
     }
   }
 
@@ -380,10 +462,18 @@ function buildCardDial(v, dateStr, fromHour, isSunny) {
 
   const wxNow = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, fromHour) : null;
   const cloud = wxNow?.cloud ?? 0;
-  const isOvercast = cloud > 0.65, isPartly = cloud > 0.38 && !isOvercast;
-  const arcBright = isOvercast ? 'rgba(120,158,210,0.78)' : isPartly ? 'rgba(210,185,110,0.78)' : 'rgba(255,184,0,0.82)';
-  const arcDim    = isOvercast ? 'rgba(120,158,210,0.18)' : isPartly ? 'rgba(210,185,110,0.18)' : 'rgba(255,184,0,0.18)';
-  const dotColor  = isOvercast ? '#78A0D8' : isSunny ? '#FFB800' : 'rgba(213,196,171,0.55)';
+  const precip = wxNow?.precip ?? 0;
+  const isRainy = precip > 0.3;
+  const isOvercast = !isRainy && cloud > 0.65, isPartly = cloud > 0.38 && !isOvercast && !isRainy;
+  const arcBright = isRainy    ? 'rgba(100,145,210,0.78)'
+                  : isOvercast ? 'rgba(165,170,178,0.78)'
+                  : isPartly   ? 'rgba(210,185,110,0.78)'
+                  :              'rgba(255,184,0,0.82)';
+  const arcDim    = isRainy    ? 'rgba(100,145,210,0.18)'
+                  : isOvercast ? 'rgba(165,170,178,0.18)'
+                  : isPartly   ? 'rgba(210,185,110,0.18)'
+                  :              'rgba(255,184,0,0.18)';
+  const dotColor  = isRainy ? '#6491D2' : isOvercast ? '#A5AABB' : isSunny ? '#FFB800' : 'rgba(213,196,171,0.55)';
 
   const hAngle = h => ((h % 12) / 12) * 2 * Math.PI - Math.PI / 2;
   const pt     = h => { const a = hAngle(h); return [CX + R * Math.cos(a), CY + R * Math.sin(a)]; };
@@ -443,6 +533,15 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
     ? (s.distKm < 1 ? `${Math.round(s.distKm * 1000)} m` : `${s.distKm.toFixed(1)} km`)
     : null;
 
+  // Weather-aware terminology and color class
+  const wxCard    = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, fromHour) : null;
+  const cloudCard = wxCard?.cloud ?? 0;
+  const precipCard = wxCard?.precip ?? 0;
+  const cardRainy = precipCard > 0.3;
+  const cardOvercast = !cardRainy && cloudCard > 0.65;
+  const cardTerm  = cardRainy ? 'RAIN' : cardOvercast ? 'LIGHT' : 'SUN';
+  const cardIcon  = cardRainy ? '🌧' : cardOvercast ? '☁' : '☀';
+  const durCls    = cardRainy ? 'dur-rainy' : cardOvercast ? 'dur-overcast' : cloudCard > 0.38 ? 'dur-cloudy' : 'dur-sunny';
 
   let cardBadgeText, cardBadgeCls;
   if (isPoint || nowMode) {
@@ -451,17 +550,15 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
       const rem = curWin.end - fromHour;
       const bh = Math.floor(rem), bm = Math.round((rem - bh) * 60);
       const dur = (bh > 0 ? bh + 'h ' : '') + (bm > 0 ? bm + 'm' : '');
-      cardBadgeText = `☀ ${dur.trim()} · until ${formatHour(curWin.end)}`;
-      cardBadgeCls = 'sunny';
+      cardBadgeText = `${cardIcon} ${dur.trim()} · until ${formatHour(curWin.end)}`;
+      cardBadgeCls = cardRainy ? 'neutral' : 'sunny';
     } else {
       const next = windows.find(w => w.start > fromHour);
       if (next) {
-        const wait = next.start - fromHour;
-        const bh = Math.floor(wait), bm = Math.round((wait - bh) * 60);
-        cardBadgeText = `☀ at ${formatHour(next.start)}`;
+        cardBadgeText = `${cardIcon} at ${formatHour(next.start)}`;
         cardBadgeCls = 'neutral';
       } else {
-        cardBadgeText = windows.length ? 'Sun passed' : 'No sun';
+        cardBadgeText = windows.length ? `${cardTerm.toLowerCase()} passed` : `No ${cardTerm.toLowerCase()}`;
         cardBadgeCls = 'shaded';
       }
     }
@@ -473,10 +570,10 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
     }
     if (totalSun > 0) {
       const bh = Math.floor(totalSun), bm = Math.round((totalSun - bh) * 60);
-      cardBadgeText = `☀ ${bh > 0 ? bh+'h ' : ''}${bm > 0 ? bm+'m' : ''} sun`;
-      cardBadgeCls = 'sunny';
+      cardBadgeText = `${cardIcon} ${bh > 0 ? bh+'h ' : ''}${bm > 0 ? bm+'m' : ''} ${cardTerm.toLowerCase()}`;
+      cardBadgeCls = cardRainy ? 'neutral' : 'sunny';
     } else {
-      cardBadgeText = 'No sun';
+      cardBadgeText = `No ${cardTerm.toLowerCase()}`;
       cardBadgeCls = 'shaded';
     }
   }
@@ -498,36 +595,18 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
     cardBadgeCls  = 'shaded';
   }
 
-  // Sun status line text (uppercase, matches screenshot style)
-  let sunLineText, sunLineCls;
-  if (isPoint || nowMode) {
+  // Sun status line (not rendered in this layout but sunLineCls drives card-sun-info colour)
+  let sunLineCls;
+  {
     const curWin = windows.find(w => fromHour >= w.start && fromHour < w.end);
     if (curWin) {
-      const rem = curWin.end - fromHour;
-      const bh = Math.floor(rem), bm = Math.round((rem - bh) * 60);
-      const dur = (bh > 0 ? bh + 'H ' : '') + (bm > 0 ? bm + 'M' : '');
-      sunLineText = `UNTIL ${formatHour(curWin.end)} · ${dur.trim()}`;
-      sunLineCls = 'sunny';
+      sunLineCls = cardRainy ? 'rainy' : cardOvercast ? 'overcast' : 'sunny';
     } else {
       const next = windows.find(w => w.start > fromHour);
-      if (next) { sunLineText = `SUN AT ${formatHour(next.start)}`; sunLineCls = 'neutral'; }
-      else { sunLineText = windows.length ? 'SUN PASSED' : 'NO SUN'; sunLineCls = 'muted'; }
+      sunLineCls = next ? 'neutral' : 'muted';
     }
-  } else {
-    let totalSun = 0;
-    for (const w of windows) { const ov = Math.min(w.end, toHour) - Math.max(w.start, fromHour); if (ov > 0) totalSun += ov; }
-    if (totalSun > 0) {
-      const bh = Math.floor(totalSun), bm = Math.round((totalSun - bh) * 60);
-      sunLineText = `${bh > 0 ? bh+'H ' : ''}${bm > 0 ? bm+'M' : ''} SUN`.trim();
-      sunLineCls = 'sunny';
-    } else { sunLineText = 'NO SUN'; sunLineCls = 'muted'; }
-  }
-  if (v.isOpeningSoon) {
-    sunLineText = `OPENS IN ${Math.round((v.openingHours.open - fromHour) * 60)}M`;
-    sunLineCls = 'opening-soon';
-  } else if (v.isClosingSoon) {
-    sunLineText = `CLOSES ${formatHour(v.openingHours.close)}`;
-    sunLineCls = 'closing-soon';
+    if (v.isOpeningSoon)  sunLineCls = 'opening-soon';
+    else if (v.isClosingSoon) sunLineCls = 'closing-soon';
   }
 
   const metaParts = [v.area, catLabel(v), distStr].filter(Boolean);
@@ -543,30 +622,25 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
     if (curWin) {
       const rem = curWin.end - fromHour;
       const bh = Math.floor(rem), bm = Math.round((rem - bh) * 60);
-      sunLabel = 'SUN UNTIL'; sunTime = formatHour(curWin.end);
+      sunLabel = `${cardTerm} UNTIL`; sunTime = formatHour(curWin.end);
       sunDurH = bh > 0 ? `${bh}H` : ''; sunDurM = bm > 0 ? `${bm}M` : '';
     } else {
       const next = windows.find(w => w.start > fromHour);
-      if (next) { sunLabel = 'SUN AT'; sunTime = formatHour(next.start); }
-      else { sunLabel = windows.length ? 'SUN PASSED' : 'NO SUN'; }
+      if (next) { sunLabel = `${cardTerm} AT`; sunTime = formatHour(next.start); }
+      else { sunLabel = windows.length ? `${cardTerm} PASSED` : `NO ${cardTerm}`; }
     }
   } else {
     let totalSun = 0;
     for (const w of windows) { const ov = Math.min(w.end, toHour) - Math.max(w.start, fromHour); if (ov > 0) totalSun += ov; }
     if (totalSun > 0) {
       const bh = Math.floor(totalSun), bm = Math.round((totalSun - bh) * 60);
-      sunLabel = 'SUN TODAY'; sunTime = bh > 0 ? `${bh}H` : '';
+      sunLabel = `${cardTerm} TODAY`; sunTime = bh > 0 ? `${bh}H` : '';
       sunDurM = bm > 0 ? `${bm}M` : '';
       if (!sunTime) { sunTime = sunDurM; sunDurM = ''; }
-    } else { sunLabel = 'NO SUN'; }
+    } else { sunLabel = `NO ${cardTerm}`; }
   }
   if (v.isOpeningSoon) { sunLabel = `OPENS IN ${Math.round((v.openingHours.open - fromHour) * 60)}M`; sunTime = ''; }
   else if (v.isClosingSoon) { sunLabel = `CLOSES ${formatHour(v.openingHours.close)}`; }
-
-  // Weather-aware duration color class — matches the dial arc colour
-  const wxCard   = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, fromHour) : null;
-  const cloudCard = wxCard?.cloud ?? 0;
-  const durCls = cloudCard > 0.65 ? 'dur-overcast' : cloudCard > 0.38 ? 'dur-cloudy' : 'dur-sunny';
 
   const durHtml = (sunDurH || sunDurM)
     ? `<div class="card-sun-dur ${durCls}">${[sunDurH, sunDurM].filter(Boolean).join(' ')}</div>`

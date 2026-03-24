@@ -1013,9 +1013,11 @@
     font-weight: 700;
     letter-spacing: 0.06em;
   }
-  .card-sun-line.sunny   { color: var(--accent); }
-  .card-sun-line.neutral { color: rgba(122,180,255,0.85); }
-  .card-sun-line.muted   { color: var(--muted); opacity: 0.55; }
+  .card-sun-line.sunny        { color: var(--accent); }
+  .card-sun-line.overcast     { color: rgba(165,170,178,0.85); }
+  .card-sun-line.rainy        { color: rgba(100,145,210,0.85); }
+  .card-sun-line.neutral      { color: rgba(165,170,178,0.85); }
+  .card-sun-line.muted        { color: var(--muted); opacity: 0.55; }
   .card-sun-line.opening-soon { color: #7ab4ff; }
   .card-sun-line.closing-soon { color: #ffaa55; }
 
@@ -1097,7 +1099,8 @@
   }
   .card-sun-dur.dur-sunny    { color: rgba(255,184,0,0.82); }
   .card-sun-dur.dur-cloudy   { color: rgba(210,185,110,0.82); }
-  .card-sun-dur.dur-overcast { color: rgba(120,158,210,0.82); }
+  .card-sun-dur.dur-overcast { color: rgba(165,170,178,0.82); }
+  .card-sun-dur.dur-rainy    { color: rgba(100,145,210,0.82); }
   /* Right block: pushed to far right, label + time stacked with 5px gap */
   .card-sun-info {
     flex: 1;
@@ -1117,8 +1120,10 @@
     text-transform: uppercase;
     color: rgba(213,196,171,0.5);
   }
-  .card-sun-info.sunny   .card-sun-label { color: rgba(255,184,0,0.65); }
-  .card-sun-info.neutral .card-sun-label { color: rgba(122,180,255,0.65); }
+  .card-sun-info.sunny        .card-sun-label { color: rgba(255,184,0,0.65); }
+  .card-sun-info.overcast     .card-sun-label { color: rgba(165,170,178,0.65); }
+  .card-sun-info.rainy        .card-sun-label { color: rgba(100,145,210,0.65); }
+  .card-sun-info.neutral      .card-sun-label { color: rgba(165,170,178,0.65); }
   .card-sun-info.opening-soon .card-sun-label { color: rgba(122,180,255,0.65); }
   .card-sun-info.closing-soon .card-sun-label { color: rgba(255,170,85,0.65); }
   .card-sun-time {
@@ -1129,8 +1134,10 @@
     line-height: 1;
     letter-spacing: -0.02em;
   }
-  .card-sun-info.sunny   .card-sun-time { color: var(--accent); }
-  .card-sun-info.neutral .card-sun-time { color: rgba(122,180,255,0.9); }
+  .card-sun-info.sunny    .card-sun-time { color: var(--accent); }
+  .card-sun-info.overcast .card-sun-time { color: rgba(165,170,178,0.9); }
+  .card-sun-info.rainy    .card-sun-time { color: rgba(100,145,210,0.9); }
+  .card-sun-info.neutral  .card-sun-time { color: rgba(165,170,178,0.9); }
 
   .card-score-num {
     flex-shrink: 0;
@@ -1309,9 +1316,11 @@
     margin-top: 4px;
   }
 
-  .ht-status.sunny   { color: var(--accent); }
-  .ht-status.shaded  { color: var(--muted); }
-  .ht-status.neutral { color: #7ab4ff; }
+  .ht-status.sunny    { color: var(--accent); }
+  .ht-status.overcast { color: rgba(165,170,178,0.9); }
+  .ht-status.rainy    { color: rgba(100,145,210,0.9); }
+  .ht-status.shaded   { color: var(--muted); }
+  .ht-status.neutral  { color: rgba(165,170,178,0.85); }
 
   .ht-timeline {
     margin-top: 9px;
@@ -2104,9 +2113,11 @@
     font-weight: 700;
     letter-spacing: 0.08em;
   }
-  .dp-sun-pill.sunny   { background: rgba(255,184,0,0.88); color: #1a1200; }
-  .dp-sun-pill.neutral { background: rgba(255,184,0,0.12); color: var(--accent); border: 1px solid rgba(255,184,0,0.28); }
-  .dp-sun-pill.muted   { background: rgba(81,69,50,0.15); color: var(--muted); border: 1px solid rgba(81,69,50,0.22); }
+  .dp-sun-pill.sunny    { background: rgba(255,184,0,0.88); color: #1a1200; }
+  .dp-sun-pill.overcast { background: rgba(165,170,178,0.18); color: rgba(165,170,178,0.9); border: 1px solid rgba(165,170,178,0.28); }
+  .dp-sun-pill.rainy    { background: rgba(100,145,210,0.18); color: rgba(100,145,210,0.9); border: 1px solid rgba(100,145,210,0.28); }
+  .dp-sun-pill.neutral  { background: rgba(255,184,0,0.12); color: var(--accent); border: 1px solid rgba(255,184,0,0.28); }
+  .dp-sun-pill.muted    { background: rgba(81,69,50,0.15); color: var(--muted); border: 1px solid rgba(81,69,50,0.22); }
   /* Experience Index */
   .dp-exp-row {
     display: flex;
