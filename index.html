@@ -1087,6 +1087,17 @@
     align-items: flex-end;
     gap: 5px;
     min-width: 0;
+    position: relative;
+    padding-left: 14px;
+  }
+  .card-sun-info::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 10%;
+    height: 80%;
+    width: 1px;
+    background: rgba(213,196,171,0.15);
   }
   .card-sun-label {
     font-family: 'Inter', sans-serif;
