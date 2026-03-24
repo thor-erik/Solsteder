@@ -557,8 +557,13 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
   if (v.isOpeningSoon) { sunLabel = `OPENS IN ${Math.round((v.openingHours.open - fromHour) * 60)}M`; sunTime = ''; }
   else if (v.isClosingSoon) { sunLabel = `CLOSES ${formatHour(v.openingHours.close)}`; }
 
+  // Weather-aware duration color class — matches the dial arc colour
+  const wxCard   = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, fromHour) : null;
+  const cloudCard = wxCard?.cloud ?? 0;
+  const durCls = cloudCard > 0.65 ? 'dur-overcast' : cloudCard > 0.38 ? 'dur-cloudy' : 'dur-sunny';
+
   const durHtml = (sunDurH || sunDurM)
-    ? `<div class="card-sun-dur">${[sunDurH, sunDurM].filter(Boolean).join(' ')}</div>`
+    ? `<div class="card-sun-dur ${durCls}">${[sunDurH, sunDurM].filter(Boolean).join(' ')}</div>`
     : '';
 
   const dialSvg = buildCardDial(v, dateStr, fromHour, !!v.sunInWin);

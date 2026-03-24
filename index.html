@@ -1047,7 +1047,7 @@
     align-items: baseline;
     font-size: 11px;
     color: var(--muted);
-    margin: 2px 0 8px;
+    margin: 5px 0 12px;
   }
   .card-meta-item { white-space: nowrap; }
   .card-meta-dot  { opacity: 0.4; }
@@ -1076,9 +1076,9 @@
   .card-sun-info {
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
     min-width: 0;
   }
+  .card-sun-info .card-sun-time { margin-top: auto; }
   .card-sun-label {
     font-family: 'Inter', sans-serif;
     font-size: 9px;
@@ -1105,10 +1105,12 @@
     font-family: 'Inter', sans-serif;
     font-size: 12px;
     font-weight: 600;
-    color: rgba(255,184,0,0.82);
     line-height: 1;
     text-align: center;
   }
+  .card-sun-dur.dur-sunny    { color: rgba(255,184,0,0.82); }
+  .card-sun-dur.dur-cloudy   { color: rgba(210,185,110,0.82); }
+  .card-sun-dur.dur-overcast { color: rgba(120,158,210,0.82); }
 
   .card-score-num {
     flex-shrink: 0;
