@@ -994,6 +994,7 @@ const PILL_GAP   = 8;     // min gap between pill bounding boxes (px)
 const DOT_FADE_MS = 240;  // pill↔dot morph duration
 
 let _lastLayout = [];             // [{v, pt, state, stemH, isDot, spr, drawStemH}] per frame
+let _hoverClearTimer = null;     // debounce timer for clearing hover state
 const _pinWasDot    = new Map();  // id → bool — was this pin a dot last frame
 const _pinDotFade   = new Map();  // id → {fromDot, start} — active morph animations
 const _pinAnimStemH = new Map();  // id → animated stem height (px, float) for smooth transitions
@@ -1492,6 +1493,8 @@ canvas.addEventListener('mousemove', e => {
 
   const hit = hitTestVenue(cx, cy) || hitTestDot(cx, cy);
   if (hit) {
+    // Cancel any pending clear — we're over a venue
+    if (_hoverClearTimer) { clearTimeout(_hoverClearTimer); _hoverClearTimer = null; }
     canvas.style.cursor = 'pointer';
     if (hoveredId !== hit.id) { hoveredId = hit.id; draw(); }
     tooltip.innerHTML = buildTooltipContent(hit);
@@ -1502,13 +1505,24 @@ canvas.addEventListener('mousemove', e => {
     tooltip.style.left = tx + 'px'; tooltip.style.top = ty + 'px';
     tooltip.classList.add('visible');
   } else {
-    if (hoveredId !== null) { hoveredId = null; draw(); }
-    canvas.style.cursor = 'default';
-    tooltip.classList.remove('visible');
+    // Debounce clearing so adjacent pins don't jitter when cursor moves between them
+    if (hoveredId !== null && !_hoverClearTimer) {
+      _hoverClearTimer = setTimeout(() => {
+        _hoverClearTimer = null;
+        hoveredId = null;
+        draw();
+        canvas.style.cursor = 'default';
+        tooltip.classList.remove('visible');
+      }, 80);
+    } else if (hoveredId === null) {
+      canvas.style.cursor = 'default';
+      tooltip.classList.remove('visible');
+    }
   }
 });
 
 canvas.addEventListener('mouseleave', () => {
+  if (_hoverClearTimer) { clearTimeout(_hoverClearTimer); _hoverClearTimer = null; }
   if (hoveredId !== null) { hoveredId = null; draw(); }
   tooltip.classList.remove('visible');
   if (!editDraggingDepth) canvas.style.cursor = 'default';

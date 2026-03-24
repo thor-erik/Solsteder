@@ -1100,15 +1100,16 @@
   .card-sun-dur.dur-cloudy   { color: rgba(210,185,110,0.82); }
   .card-sun-dur.dur-overcast { color: rgba(165,170,178,0.82); }
   .card-sun-dur.dur-rainy    { color: rgba(100,145,210,0.82); }
-  /* Right block: centered between separator and right edge */
+  /* Right block: left-aligned within its half */
   .card-sun-info {
     flex: 1;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
     gap: 2px;
     min-width: 0;
+    padding-left: 8px;
   }
   .card-sun-label {
     font-family: 'Inter', sans-serif;

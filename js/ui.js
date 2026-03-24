@@ -16,6 +16,60 @@ function venueHasSunInRange(v, dateStr, fromHour, toHour) {
   return windows.some(w => w.end > fromHour && (isPoint ? w.start <= fromHour : w.start < toHour));
 }
 
+// ── Weather-aware arc color helper ────────────────────────────────────────────
+/**
+ * Returns the arc stroke color for a given hour, based on weather data.
+ * bright=true → full opacity (future segments); false → dim (past segments).
+ */
+function wxColor(dateStr, h, bright) {
+  const wx = (typeof getWeatherAt === 'function') ? getWeatherAt(dateStr, h) : null;
+  const precip = wx?.precip ?? 0;
+  const cloud  = wx?.cloud  ?? 0;
+  const isRainy    = precip > 0.3;
+  const isOvercast = !isRainy && cloud > 0.65;
+  const isPartly   = !isRainy && !isOvercast && cloud > 0.38;
+  if (bright) {
+    if (isRainy)    return 'rgba(100,145,210,0.75)';
+    if (isOvercast) return 'rgba(165,170,178,0.75)';
+    if (isPartly)   return 'rgba(210,185,110,0.75)';
+    return 'rgba(255,184,0,0.78)';
+  } else {
+    if (isRainy)    return 'rgba(100,145,210,0.20)';
+    if (isOvercast) return 'rgba(165,170,178,0.20)';
+    if (isPartly)   return 'rgba(210,185,110,0.20)';
+    return 'rgba(255,184,0,0.18)';
+  }
+}
+
+/**
+ * Splits a sun window [wStart, wEnd] into hour-sized segments, each colored
+ * by the weather at that hour. Segments before fromHour use dim colors,
+ * segments at/after fromHour use bright colors.
+ * Returns an array of SVG <path> strings.
+ */
+function wxArcPaths(dateStr, wStart, wEnd, fromHour, arcPathFn, sw) {
+  const paths = [];
+  const hFloor = Math.floor(wStart);
+  const hCeil  = Math.ceil(wEnd);
+  for (let h = hFloor; h < hCeil; h++) {
+    const segS = Math.max(wStart, h);
+    const segE = Math.min(wEnd, h + 1);
+    if (segE <= segS + 0.001) continue;
+    // Split this segment at fromHour
+    const pastE  = Math.min(segE, fromHour);
+    const futS   = Math.max(segS, fromHour);
+    if (pastE > segS + 0.001) {
+      const d = arcPathFn(segS, pastE);
+      if (d) paths.push(`<path d="${d}" fill="none" stroke="${wxColor(dateStr, h, false)}" stroke-width="${sw}" stroke-linecap="round"/>`);
+    }
+    if (futS < segE - 0.001) {
+      const d = arcPathFn(futS, segE);
+      if (d) paths.push(`<path d="${d}" fill="none" stroke="${wxColor(dateStr, h, true)}" stroke-width="${sw}" stroke-linecap="round"/>`);
+    }
+  }
+  return paths;
+}
+
 // ── Sun dial (large clock-face style for detail panel) ────────────────────────
 
 function renderSunDial(v, dateStr, fromHour) {
@@ -26,17 +80,9 @@ function renderSunDial(v, dateStr, fromHour) {
   const wxNow = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, fromHour) : null;
   const cloud = wxNow?.cloud ?? 0;
   const precip = wxNow?.precip ?? 0;
-  const isRainy = precip > 0.3;
-  const isOvercast = !isRainy && cloud > 0.65, isPartly = cloud > 0.38 && !isOvercast && !isRainy;
-  const arcBright = isRainy    ? 'rgba(100,145,210,0.75)'
-                  : isOvercast ? 'rgba(165,170,178,0.75)'
-                  : isPartly   ? 'rgba(210,185,110,0.75)'
-                  :              'rgba(255,184,0,0.78)';
-  const arcDim    = isRainy    ? 'rgba(100,145,210,0.20)'
-                  : isOvercast ? 'rgba(165,170,178,0.20)'
-                  : isPartly   ? 'rgba(210,185,110,0.20)'
-                  :              'rgba(255,184,0,0.18)';
-  const dotColor  = isRainy ? '#6491D2' : isOvercast ? '#A5AABB' : '#FFB800';
+  const isRainy    = precip > 0.3;
+  const isOvercast = !isRainy && cloud > 0.65;
+  const dotColor   = isRainy ? '#6491D2' : isOvercast ? '#A5AABB' : '#FFB800';
 
   const hAngle = h => ((h % 12) / 12) * 2 * Math.PI - Math.PI / 2;
   const pt = h => { const a = hAngle(h); return [CX + R * Math.cos(a), CY + R * Math.sin(a)]; };
@@ -71,20 +117,10 @@ function renderSunDial(v, dateStr, fromHour) {
       font-size="8.5" font-weight="600" fill="rgba(213,196,171,0.3)">${lbl}</text>`;
   }
 
-  // Arc segments
+  // Arc segments — per-hour weather coloring
   let arcs = '';
   for (const w of windows) {
-    if (w.end <= fromHour) {
-      const d = arcPath(w.start, w.end);
-      if (d) arcs += `<path d="${d}" fill="none" stroke="${arcDim}" stroke-width="${SW}" stroke-linecap="round"/>`;
-    } else if (w.start >= fromHour) {
-      const d = arcPath(w.start, w.end);
-      if (d) arcs += `<path d="${d}" fill="none" stroke="${arcBright}" stroke-width="${SW}" stroke-linecap="round"/>`;
-    } else {
-      const dp = arcPath(w.start, fromHour), df = arcPath(fromHour, w.end);
-      if (dp) arcs += `<path d="${dp}" fill="none" stroke="${arcDim}" stroke-width="${SW}" stroke-linecap="round"/>`;
-      if (df) arcs += `<path d="${df}" fill="none" stroke="${arcBright}" stroke-width="${SW}" stroke-linecap="round"/>`;
-    }
+    arcs += wxArcPaths(dateStr, w.start, w.end, fromHour, arcPath, SW).join('');
   }
 
   const [tx, ty] = pt(fromHour);
@@ -109,11 +145,18 @@ function renderSunDial(v, dateStr, fromHour) {
   const wxIcon = isRainy ? '🌧' : isOvercast ? '☁' : '☀';
   let pill;
   if (curWin) {
-    const rem = curWin.end - fromHour;
-    const ph = Math.floor(rem), pm = Math.round((rem - ph) * 60);
-    const pillCls = isRainy ? 'rainy' : isOvercast ? 'overcast' : 'sunny';
     const lastWinDp = windows[windows.length - 1];
-    pill = `<div class="dp-sun-pill ${pillCls}">${wxIcon} until ${formatHour(lastWinDp.end)} · ${(ph>0?ph+'h ':'')}${pm>0?pm+'m':''} left</div>`;
+    // Total remaining light and gap time between now and last window end
+    let remLight = 0;
+    for (const w of windows) {
+      if (w.end > fromHour) remLight += w.end - Math.max(w.start, fromHour);
+    }
+    const totalSpan = lastWinDp.end - fromHour;
+    const gapTotal  = Math.max(0, totalSpan - remLight);
+    const fmtHM = h => { const fh = Math.floor(h), fm = Math.round((h - fh) * 60); return (fh > 0 ? fh+'h ' : '') + (fm > 0 ? fm+'m' : (fh > 0 ? '' : '0m')); };
+    const pillCls = isRainy ? 'rainy' : isOvercast ? 'overcast' : 'sunny';
+    const gapPart = gapTotal > 1/12 ? ` · ${fmtHM(gapTotal)} gap` : '';
+    pill = `<div class="dp-sun-pill ${pillCls}">${wxIcon} until ${formatHour(lastWinDp.end)}${gapPart} · ${fmtHM(remLight)} left</div>`;
   } else if (nextWin) {
     const wait = nextWin.start - fromHour;
     const ph = Math.floor(wait), pm = Math.round((wait - ph) * 60);
@@ -465,16 +508,8 @@ function buildCardDial(v, dateStr, fromHour, isSunny) {
   const cloud = wxNow?.cloud ?? 0;
   const precip = wxNow?.precip ?? 0;
   const isRainy = precip > 0.3;
-  const isOvercast = !isRainy && cloud > 0.65, isPartly = cloud > 0.38 && !isOvercast && !isRainy;
-  const arcBright = isRainy    ? 'rgba(100,145,210,0.78)'
-                  : isOvercast ? 'rgba(165,170,178,0.78)'
-                  : isPartly   ? 'rgba(210,185,110,0.78)'
-                  :              'rgba(255,184,0,0.82)';
-  const arcDim    = isRainy    ? 'rgba(100,145,210,0.18)'
-                  : isOvercast ? 'rgba(165,170,178,0.18)'
-                  : isPartly   ? 'rgba(210,185,110,0.18)'
-                  :              'rgba(255,184,0,0.18)';
-  const dotColor  = isRainy ? '#6491D2' : isOvercast ? '#A5AABB' : isSunny ? '#FFB800' : 'rgba(213,196,171,0.55)';
+  const isOvercast = !isRainy && cloud > 0.65;
+  const dotColor = isRainy ? '#6491D2' : isOvercast ? '#A5AABB' : isSunny ? '#FFB800' : 'rgba(213,196,171,0.55)';
 
   const hAngle = h => ((h % 12) / 12) * 2 * Math.PI - Math.PI / 2;
   const pt     = h => { const a = hAngle(h); return [CX + R * Math.cos(a), CY + R * Math.sin(a)]; };
@@ -489,16 +524,10 @@ function buildCardDial(v, dateStr, fromHour, isSunny) {
     return `M${x1.toFixed(2)} ${y1.toFixed(2)} A${R} ${R} 0 ${dur>6?1:0} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`;
   }
 
+  // Per-hour weather coloring
   let arcs = '';
   for (const w of windows) {
-    if (w.start < fromHour && w.end > fromHour) {
-      const dp = arcPath(w.start, fromHour), df = arcPath(fromHour, w.end);
-      if (dp) arcs += `<path d="${dp}" fill="none" stroke="${arcDim}" stroke-width="${SW}" stroke-linecap="round"/>`;
-      if (df) arcs += `<path d="${df}" fill="none" stroke="${arcBright}" stroke-width="${SW}" stroke-linecap="round"/>`;
-    } else {
-      const d = arcPath(w.start, w.end);
-      if (d) arcs += `<path d="${d}" fill="none" stroke="${w.end<=fromHour?arcDim:arcBright}" stroke-width="${SW}" stroke-linecap="round"/>`;
-    }
+    arcs += wxArcPaths(dateStr, w.start, w.end, fromHour, arcPath, SW).join('');
   }
   const wxIcon = typeof skyIcon === 'function' ? skyIcon(cloud) : '☀';
   return `<svg class="card-dial" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true">
@@ -748,8 +777,21 @@ function renderList() {
   });
 
   if (filterMapViewActive) {
-    const bounds = map.getBounds();
-    venues = venues.filter(v => bounds.contains([v.lng, v.lat]));
+    if (_navMode && selectedId != null) {
+      // After clicking a pin/card: show all venues within ~5 km of the selected venue
+      const sel = VENUES.find(x => x.id === selectedId);
+      if (sel) {
+        const cosLat = Math.cos(sel.lat * Math.PI / 180);
+        venues = venues.filter(v => {
+          const dLat = (v.lat - sel.lat) * 111000;
+          const dLng = (v.lng - sel.lng) * 111000 * cosLat;
+          return Math.sqrt(dLat * dLat + dLng * dLng) < 5000;
+        });
+      }
+    } else {
+      const bounds = map.getBounds();
+      venues = venues.filter(v => bounds.contains([v.lng, v.lat]));
+    }
   }
 
   // Closed venues always sink below open ones regardless of sort mode

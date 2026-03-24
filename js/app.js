@@ -26,6 +26,7 @@ let hoveredId         = null;
 let mapLoaded         = false;
 let _qcActiveSection  = null; // 'date' | 'time' | null
 let _qcArcDragging    = false;
+let _navMode          = false; // true after clicking a pin/card — use radius filter instead of map bounds
 
 // ── Time animation ────────────────────────────────────────────────────────────
 const TIME_ANIM_MS = 520;
@@ -899,6 +900,7 @@ let _switchingVenue = false;
 
 function selectVenue(id, flyTo) {
   selectedId = id;
+  _navMode   = true;   // show all venues in radius, not just current map view
   clearSpriteCache();
   const v = VENUES.find(x => x.id === id);
   if (!v) return;
@@ -1226,6 +1228,11 @@ function toggleMapView() {
   document.getElementById('map-view-btn').classList.toggle('active', filterMapViewActive);
   renderList();
 }
+
+// User dragging = navigating freely → revert to viewport filter
+map.on('dragstart', () => {
+  _navMode = false;
+});
 
 // Re-render list on map move when viewport filter is active
 map.on('moveend', () => {
