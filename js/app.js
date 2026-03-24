@@ -631,12 +631,26 @@ function updateQcLabels() {
 }
 
 function _closeQcPanel() {
-  document.getElementById('qc-panel')?.classList.remove('open');
-  document.getElementById('qc-date-section')?.classList.remove('active');
-  document.getElementById('qc-time-section')?.classList.remove('active');
+  const panel = document.getElementById('qc-panel');
+  if (!panel) return;
+
+  // Pills and state reset immediately
   document.getElementById('qc-date-pill')?.classList.remove('active');
   document.getElementById('qc-time-pill')?.classList.remove('active');
   _qcActiveSection = null;
+
+  // Keep sections active so content is present during the closing animation.
+  // Remove 'open' — this starts the max-height + opacity transitions.
+  panel.classList.remove('open');
+
+  // After the animation ends, remove active from sections (resets display:none)
+  const cleanup = e => {
+    if (e.propertyName !== 'max-height') return;
+    panel.removeEventListener('transitionend', cleanup);
+    document.getElementById('qc-date-section')?.classList.remove('active');
+    document.getElementById('qc-time-section')?.classList.remove('active');
+  };
+  panel.addEventListener('transitionend', cleanup);
 }
 
 function toggleQcPanel(section) {

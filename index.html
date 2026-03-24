@@ -1898,21 +1898,11 @@
   #qc-panel {
     overflow: hidden;
     max-height: 0;
-    margin-top: 0;
-    visibility: hidden;
-    /* on close: height collapses (0.28s), then margin snaps to 0 instantly */
-    transition: max-height 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-                margin-top 0s linear 0.28s,
-                visibility 0s linear 0.28s;
+    margin-top: 6px;
+    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
   #qc-panel.open {
     max-height: var(--qc-panel-h, 360px);
-    margin-top: 6px;
-    visibility: visible;
-    /* on open: margin and visibility appear immediately, height expands */
-    transition: max-height 0.32s cubic-bezier(0.4, 0, 0.2, 1),
-                margin-top 0s linear,
-                visibility 0s linear;
   }
   #qc-panel-inner {
     width: 100%;
@@ -1924,11 +1914,11 @@
     border-radius: 16px;
     overflow: hidden;
     opacity: 1;
-    transition: opacity 0.26s ease;
+    transition: opacity 0.25s ease;
   }
   #qc-panel:not(.open) #qc-panel-inner {
     opacity: 0;
-    transition: opacity 0.18s ease;
+    transition: opacity 0.2s ease;
     pointer-events: none;
   }
   #qc-date-section { display: none; padding: 8px; box-sizing: border-box; width: 100%; overflow: hidden; }
