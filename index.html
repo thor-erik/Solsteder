@@ -917,7 +917,7 @@
   .card-name {
     font-family: 'Newsreader', serif;
     font-style: italic;
-    font-size: 19px;
+    font-size: 21px;
     font-weight: 600;
     color: var(--text);
     line-height: 1.2;
@@ -1045,6 +1045,13 @@
     font-size: 11px;
     color: var(--muted);
     margin: 2px 0 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .card-meta-score {
+    color: rgba(255,184,0,0.82);
+    font-weight: 700;
   }
 
   /* ── New card sun row (dial + label/time) ─────────────────────────── */
@@ -1065,9 +1072,9 @@
     min-width: 0;
   }
   .card-sun-label {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.09em;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     color: rgba(213,196,171,0.5);
   }
@@ -1082,8 +1089,8 @@
   }
   .card-sun-time {
     font-family: 'Newsreader', serif;
-    font-style: italic;
-    font-size: 26px;
+    font-style: normal;
+    font-size: 34px;
     font-weight: 700;
     color: var(--text);
     line-height: 1;
@@ -1093,7 +1100,7 @@
   .card-sun-dur {
     font-size: 12px;
     font-weight: 600;
-    color: rgba(213,196,171,0.65);
+    color: rgba(255,184,0,0.52);
     line-height: 1.35;
   }
 
@@ -1419,7 +1426,7 @@
     .card-name    { font-size: 16px; }
     .card-badge   { font-size: 11px; padding: 4px 11px; }
     .card-meta    { font-size: 12px; }
-    .card-sun-time { font-size: 28px; }
+    .card-sun-time { font-size: 32px; }
     .card-dial    { width: 60px; height: 60px; }
     .area-chip    { font-size: 12px; padding: 6px 13px; }
     .sort-btn     { font-size: 12px; padding: 5px 10px; }

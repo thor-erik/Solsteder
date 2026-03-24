@@ -403,11 +403,11 @@ function buildCardDial(v, dateStr, fromHour, isSunny) {
       if (d) arcs += `<path d="${d}" fill="none" stroke="${w.end<=fromHour?arcDim:arcBright}" stroke-width="${SW}" stroke-linecap="round"/>`;
     }
   }
-  const [tx,ty] = pt(fromHour);
+  const wxIcon = typeof skyIcon === 'function' ? skyIcon(cloud) : '☀';
   return `<svg class="card-dial" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true">
     <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="${SW}"/>
     ${arcs}
-    <circle cx="${tx.toFixed(2)}" cy="${ty.toFixed(2)}" r="3.5" fill="${dotColor}"/>
+    <text x="${CX}" y="${CY}" text-anchor="middle" dominant-baseline="middle" font-size="15" style="user-select:none">${wxIcon}</text>
   </svg>`;
 }
 
@@ -524,8 +524,9 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
     sunLineCls = 'closing-soon';
   }
 
-  const scoreStr = s ? `${s.total} Score` : null;
-  const meta = [v.area, catLabel(v), distStr, scoreStr].filter(Boolean).join(' · ');
+  const scoreHtml = s ? `<span class="card-meta-score">${s.total} Score</span>` : null;
+  const metaBase = [v.area, catLabel(v), distStr].filter(Boolean).join(' · ');
+  const meta = metaBase + (scoreHtml ? ' · ' + scoreHtml : '');
 
   // Sun info for right side of card sun row
   let sunLabel, sunTime = '', sunDurH = '', sunDurM = '';
@@ -555,7 +556,7 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
   else if (v.isClosingSoon) { sunLabel = `CLOSES ${formatHour(v.openingHours.close)}`; }
 
   const durHtml = (sunDurH || sunDurM)
-    ? `<span class="card-sun-dur">${[sunDurH, sunDurM].filter(Boolean).join('<br>')}</span>`
+    ? `<span class="card-sun-dur">· ${[sunDurH, sunDurM].filter(Boolean).join(' ')}</span>`
     : '';
 
   const dialSvg = buildCardDial(v, dateStr, fromHour, !!v.sunInWin);
