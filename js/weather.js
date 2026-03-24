@@ -114,11 +114,11 @@ function windCardinal(deg) {
 
 /** Sky condition emoji from cloud fraction (0–1). */
 function skyIcon(cf) {
-  if (cf < 0.15) return '☀';
+  if (cf < 0.15) return '☀\uFE0F';
   if (cf < 0.40) return '🌤';
   if (cf < 0.65) return '⛅';
   if (cf < 0.85) return '🌥';
-  return '☁';
+  return '☁\uFE0F';
 }
 
 /** Short sky condition label. */

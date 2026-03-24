@@ -367,7 +367,7 @@ function drawSunCurve(canvasEl) {
 
   const MIN_H = (typeof MIN_H_ARC !== 'undefined') ? MIN_H_ARC : 4;
   const MAX_H = (typeof MAX_H_ARC !== 'undefined') ? MAX_H_ARC : 23;
-  const PAD_X = 20, PAD_T = 10, PAD_B = 18;
+  const PAD_X = 10, PAD_T = 10, PAD_B = 18;
   const cw = cssW, ch = cssH;
   const dateStr = datePicker.value;
 
@@ -397,38 +397,54 @@ function drawSunCurve(canvasEl) {
     c.strokeStyle = 'rgba(255,255,255,0.055)'; c.lineWidth = 1; c.stroke();
   }
 
-  // Build above-horizon segment
+  // Build above-horizon segment — split at fromH for today (past=faded, future=bright)
   const above = samples.filter(s => s.alt > 0);
   if (above.length > 1) {
-    // 1 — Golden arc fill
-    const grad = c.createLinearGradient(0, PAD_T, 0, horizY);
-    grad.addColorStop(0, 'rgba(255,184,0,0.28)');
-    grad.addColorStop(1, 'rgba(255,184,0,0.04)');
-    c.beginPath();
-    c.moveTo(timeToX(above[0].t), horizY);
-    above.forEach(s => c.lineTo(timeToX(s.t), altToY(s.alt)));
-    c.lineTo(timeToX(above[above.length - 1].t), horizY);
-    c.closePath();
-    c.fillStyle = grad; c.fill();
+    const isToday = dateStr === todayStr();
+    const splitH  = (isToday && fromH > MIN_H) ? fromH : null;
+    const pastSamp = splitH ? above.filter(s => s.t <= splitH) : [];
+    const futureSamp = splitH ? above.filter(s => s.t >= splitH) : above;
 
-    // 2 — Cloud cover overlay clipped to the arc shape
-    //     Grey bands proportional to cloud fraction, only where sun is above horizon.
-    //     Draw order: fill first, clouds on top, then the arc stroke over everything.
-    if (typeof getWeatherAt === 'function') {
-      c.save();
-      // Clip to the arc polygon so cloud rects don't spill outside the arc
+    // 1a — Past arc fill (very faint)
+    if (pastSamp.length > 1) {
+      const pg = c.createLinearGradient(0, PAD_T, 0, horizY);
+      pg.addColorStop(0, 'rgba(255,184,0,0.07)');
+      pg.addColorStop(1, 'rgba(255,184,0,0.01)');
       c.beginPath();
-      c.moveTo(timeToX(above[0].t), horizY);
-      above.forEach(s => c.lineTo(timeToX(s.t), altToY(s.alt)));
-      c.lineTo(timeToX(above[above.length - 1].t), horizY);
+      c.moveTo(timeToX(pastSamp[0].t), horizY);
+      pastSamp.forEach(s => c.lineTo(timeToX(s.t), altToY(s.alt)));
+      c.lineTo(timeToX(pastSamp[pastSamp.length-1].t), horizY);
+      c.closePath();
+      c.fillStyle = pg; c.fill();
+    }
+
+    // 1b — Future arc fill
+    if (futureSamp.length > 1) {
+      const grad = c.createLinearGradient(0, PAD_T, 0, horizY);
+      grad.addColorStop(0, 'rgba(255,184,0,0.28)');
+      grad.addColorStop(1, 'rgba(255,184,0,0.04)');
+      c.beginPath();
+      c.moveTo(timeToX(futureSamp[0].t), horizY);
+      futureSamp.forEach(s => c.lineTo(timeToX(s.t), altToY(s.alt)));
+      c.lineTo(timeToX(futureSamp[futureSamp.length-1].t), horizY);
+      c.closePath();
+      c.fillStyle = grad; c.fill();
+    }
+
+    // 2 — Cloud cover overlay clipped to future arc only
+    if (typeof getWeatherAt === 'function' && futureSamp.length > 1) {
+      c.save();
+      c.beginPath();
+      c.moveTo(timeToX(futureSamp[0].t), horizY);
+      futureSamp.forEach(s => c.lineTo(timeToX(s.t), altToY(s.alt)));
+      c.lineTo(timeToX(futureSamp[futureSamp.length-1].t), horizY);
       c.closePath();
       c.clip();
-
-      for (let t = MIN_H; t < MAX_H; t++) {
+      const cloudFrom = splitH ?? MIN_H;
+      for (let t = cloudFrom; t < MAX_H; t++) {
         const wx = getWeatherAt(dateStr, t);
         if (!wx || wx.cloud < 0.15) continue;
         const x1 = timeToX(t), x2 = timeToX(t + 1);
-        // Alpha scales with cloud fraction: 0.15 cloud → barely visible; 1.0 → opaque grey
         const alpha = Math.min(0.85, wx.cloud * 0.72);
         c.fillStyle = `rgba(105,120,148,${alpha.toFixed(2)})`;
         c.fillRect(x1, PAD_T, x2 - x1, horizY - PAD_T);
@@ -436,11 +452,19 @@ function drawSunCurve(canvasEl) {
       c.restore();
     }
 
-    // 3 — Arc stroke drawn on top of cloud overlay so the golden outline stays crisp
-    c.beginPath();
-    c.moveTo(timeToX(above[0].t), altToY(above[0].alt));
-    above.forEach(s => c.lineTo(timeToX(s.t), altToY(s.alt)));
-    c.strokeStyle = 'rgba(255,184,0,0.9)'; c.lineWidth = 2; c.stroke();
+    // 3 — Arc stroke: past=dim, future=bright
+    if (pastSamp.length > 1) {
+      c.beginPath();
+      c.moveTo(timeToX(pastSamp[0].t), altToY(pastSamp[0].alt));
+      pastSamp.forEach(s => c.lineTo(timeToX(s.t), altToY(s.alt)));
+      c.strokeStyle = 'rgba(255,184,0,0.2)'; c.lineWidth = 1.5; c.stroke();
+    }
+    if (futureSamp.length > 1) {
+      c.beginPath();
+      c.moveTo(timeToX(futureSamp[0].t), altToY(futureSamp[0].alt));
+      futureSamp.forEach(s => c.lineTo(timeToX(s.t), altToY(s.alt)));
+      c.strokeStyle = 'rgba(255,184,0,0.9)'; c.lineWidth = 2; c.stroke();
+    }
   }
 
   // Sunrise + sunset ticks only
@@ -462,29 +486,13 @@ function drawSunCurve(canvasEl) {
     if (h % 2 !== 0) continue;
     if (sunrise != null && Math.abs(h - sunrise) < 0.8) continue;
     if (sunset  != null && Math.abs(h - sunset)  < 0.8) continue;
-    c.font = '9px "Inter", sans-serif';
+    c.font = '11px "Inter", sans-serif';
     c.textAlign = 'center'; c.textBaseline = 'bottom';
-    c.fillStyle = 'rgba(213,196,171,0.32)';
-    c.fillText(`${h}`, timeToX(h), ch - 3);
+    c.fillStyle = 'rgba(213,196,171,0.45)';
+    c.fillText(`${h}`, timeToX(h), ch - 2);
   }
 
   const fromH = parseFloat(timeFromEl.value);
-
-  // Past-time dim — today only, covers area before selected time
-  if (dateStr === todayStr() && fromH > MIN_H) {
-    const pastX = timeToX(Math.max(MIN_H, Math.min(fromH, MAX_H)));
-    const rectW = pastX - PAD_X;
-    if (rectW > 2) {
-      const fadeGrad = c.createLinearGradient(PAD_X, 0, pastX, 0);
-      fadeGrad.addColorStop(0,   'rgba(8,14,25,0.55)');
-      fadeGrad.addColorStop(0.75,'rgba(8,14,25,0.3)');
-      fadeGrad.addColorStop(1,   'rgba(8,14,25,0)');
-      c.save();
-      c.fillStyle = fadeGrad;
-      c.fillRect(PAD_X, 0, rectW, horizY);
-      c.restore();
-    }
-  }
 
   // Scrub indicator — permanent at selected time, moves to hover position
   const scrubH = (typeof arcHoverH === 'number') ? arcHoverH : fromH;

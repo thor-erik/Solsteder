@@ -62,13 +62,13 @@ function renderSunDial(v, dateStr, fromHour) {
   }
 
   // Hour labels (12, 3, 6, 9)
-  const NR = R - 15;
+  const NR = R - 14;
   let hourNums = '';
   for (const [h, lbl] of [[0,'12'],[3,'3'],[6,'6'],[9,'9']]) {
     const a = (h/12)*2*Math.PI - Math.PI/2;
     hourNums += `<text x="${(CX+NR*Math.cos(a)).toFixed(1)}" y="${(CY+NR*Math.sin(a)).toFixed(1)}"
       text-anchor="middle" dominant-baseline="middle" font-family="Inter,sans-serif"
-      font-size="6" font-weight="500" fill="rgba(213,196,171,0.18)">${lbl}</text>`;
+      font-size="8.5" font-weight="600" fill="rgba(213,196,171,0.3)">${lbl}</text>`;
   }
 
   // Arc segments
@@ -106,20 +106,20 @@ function renderSunDial(v, dateStr, fromHour) {
   // Status pill
   const curWin  = windows.find(w => fromHour >= w.start && fromHour < w.end);
   const nextWin = windows.find(w => w.start > fromHour);
-  const wxTerm = isRainy ? 'RAIN' : isOvercast ? 'LIGHT' : 'SUN';
   const wxIcon = isRainy ? '🌧' : isOvercast ? '☁' : '☀';
   let pill;
   if (curWin) {
     const rem = curWin.end - fromHour;
     const ph = Math.floor(rem), pm = Math.round((rem - ph) * 60);
     const pillCls = isRainy ? 'rainy' : isOvercast ? 'overcast' : 'sunny';
-    pill = `<div class="dp-sun-pill ${pillCls}">${wxIcon} IN ${wxTerm} · ${(ph>0?ph+'h ':'')}${pm>0?pm+'m':''} LEFT</div>`;
+    const lastWinDp = windows[windows.length - 1];
+    pill = `<div class="dp-sun-pill ${pillCls}">${wxIcon} until ${formatHour(lastWinDp.end)} · ${(ph>0?ph+'h ':'')}${pm>0?pm+'m':''} left</div>`;
   } else if (nextWin) {
     const wait = nextWin.start - fromHour;
     const ph = Math.floor(wait), pm = Math.round((wait - ph) * 60);
-    pill = `<div class="dp-sun-pill neutral">${wxIcon} ${wxTerm} IN ${(ph>0?ph+'h ':'')}${pm>0?pm+'m':''}</div>`;
+    pill = `<div class="dp-sun-pill neutral">${wxIcon} in ${(ph>0?ph+'h ':'')}${pm>0?pm+'m':''} · at ${formatHour(nextWin.start)}</div>`;
   } else {
-    pill = `<div class="dp-sun-pill muted">${windows.length ? `${wxTerm} PASSED` : `NO ${wxTerm} TODAY`}</div>`;
+    pill = `<div class="dp-sun-pill muted">${windows.length ? 'No more today' : 'No sun today'}</div>`;
   }
 
   return { svg, pill };
@@ -230,7 +230,7 @@ function buildDialCallouts(windows, fromHour, dateStr, CX, CY, R, H) {
   const TICK_END_X = CX + R + OUTSET + DIAG + TICK_W;
   const LABEL_X    = TICK_END_X + 4;
   const MIN_Y = 10, MAX_Y = H - 10;
-  const MIN_GAP = 19, FONT = 11.5;
+  const MIN_GAP = 19, FONT = 13;
 
   segs.forEach(s => {
     const a  = hAngle(s.callH);
@@ -623,7 +623,8 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
     if (curWin) {
       const rem = curWin.end - fromHour;
       const bh = Math.floor(rem), bm = Math.round((rem - bh) * 60);
-      sunLabel = `${cardTerm} UNTIL`; sunTime = formatHour(curWin.end);
+      const lastWin = windows[windows.length - 1];
+      sunLabel = `${cardTerm} UNTIL`; sunTime = formatHour(lastWin.end);
       sunDurH = bh > 0 ? `${bh}H` : ''; sunDurM = bm > 0 ? `${bm}M` : '';
     } else {
       const next = windows.find(w => w.start > fromHour);
