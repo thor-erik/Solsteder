@@ -367,6 +367,50 @@ const LIST_PAGE = 30; // cards rendered per batch
 let _listFiltered = []; // current sorted+filtered result
 let _listObserver = null; // IntersectionObserver for infinite scroll
 
+/** Small 56×56 clock-face dial for venue cards — no text, just arc + dot. */
+function buildCardDial(v, dateStr, fromHour) {
+  const { windows } = computeSunWindows(v, dateStr);
+  const W = 56, H = 56, CX = 28, CY = 28, R = 21, SW = 3.5;
+
+  const wxNow = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, fromHour) : null;
+  const cloud = wxNow?.cloud ?? 0;
+  const isOvercast = cloud > 0.65, isPartly = cloud > 0.38 && !isOvercast;
+  const arcBright = isOvercast ? 'rgba(120,158,210,0.78)' : isPartly ? 'rgba(210,185,110,0.78)' : 'rgba(255,184,0,0.82)';
+  const arcDim    = isOvercast ? 'rgba(120,158,210,0.18)' : isPartly ? 'rgba(210,185,110,0.18)' : 'rgba(255,184,0,0.18)';
+  const dotColor  = isOvercast ? '#78A0D8' : '#FFB800';
+
+  const hAngle = h => ((h % 12) / 12) * 2 * Math.PI - Math.PI / 2;
+  const pt     = h => { const a = hAngle(h); return [CX + R * Math.cos(a), CY + R * Math.sin(a)]; };
+  function arcPath(h1, h2) {
+    const dur = h2 - h1;
+    if (dur < 0.01) return '';
+    if (dur >= 12) {
+      const [x1,y1]=pt(h1),[xm,ym]=pt(h1+6);
+      return `M${x1.toFixed(2)} ${y1.toFixed(2)} A${R} ${R} 0 1 1 ${xm.toFixed(2)} ${ym.toFixed(2)} A${R} ${R} 0 1 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
+    }
+    const [x1,y1]=pt(h1),[x2,y2]=pt(h2);
+    return `M${x1.toFixed(2)} ${y1.toFixed(2)} A${R} ${R} 0 ${dur>6?1:0} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`;
+  }
+
+  let arcs = '';
+  for (const w of windows) {
+    if (w.start < fromHour && w.end > fromHour) {
+      const dp = arcPath(w.start, fromHour), df = arcPath(fromHour, w.end);
+      if (dp) arcs += `<path d="${dp}" fill="none" stroke="${arcDim}" stroke-width="${SW}" stroke-linecap="round"/>`;
+      if (df) arcs += `<path d="${df}" fill="none" stroke="${arcBright}" stroke-width="${SW}" stroke-linecap="round"/>`;
+    } else {
+      const d = arcPath(w.start, w.end);
+      if (d) arcs += `<path d="${d}" fill="none" stroke="${w.end<=fromHour?arcDim:arcBright}" stroke-width="${SW}" stroke-linecap="round"/>`;
+    }
+  }
+  const [tx,ty] = pt(fromHour);
+  return `<svg class="card-dial" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true">
+    <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="${SW}"/>
+    ${arcs}
+    <circle cx="${tx.toFixed(2)}" cy="${ty.toFixed(2)}" r="3.5" fill="${dotColor}"/>
+  </svg>`;
+}
+
 /** Render a single venue card. Called per-item to keep the map() inline small. */
 function renderCard(v, dateStr, fromHour, toHour, isPoint) {
   // Collapsed single-line card for closed venues
@@ -480,23 +524,57 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
     sunLineCls = 'closing-soon';
   }
 
-  const tempStr2 = s?.feelsLikeTemp != null ? `${s.feelsLikeTemp}°` : null;
-  const meta = [v.area, catLabel(v), tempStr2, distStr].filter(Boolean).join(' · ');
+  const scoreStr = s ? `${s.total} Score` : null;
+  const meta = [v.area, catLabel(v), distStr, scoreStr].filter(Boolean).join(' · ');
 
-  const SUN_ICON = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/><line x1="4.22" y1="4.22" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.78" y2="19.78"/><line x1="4.22" y1="19.78" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.78" y2="4.22"/></svg>`;
+  // Sun info for right side of card sun row
+  let sunLabel, sunTime = '', sunDurH = '', sunDurM = '';
+  if (isPoint || nowMode) {
+    const curWin = windows.find(w => fromHour >= w.start && fromHour < w.end);
+    if (curWin) {
+      const rem = curWin.end - fromHour;
+      const bh = Math.floor(rem), bm = Math.round((rem - bh) * 60);
+      sunLabel = 'SUN UNTIL'; sunTime = formatHour(curWin.end);
+      sunDurH = bh > 0 ? `${bh}H` : ''; sunDurM = bm > 0 ? `${bm}M` : '';
+    } else {
+      const next = windows.find(w => w.start > fromHour);
+      if (next) { sunLabel = 'SUN AT'; sunTime = formatHour(next.start); }
+      else { sunLabel = windows.length ? 'SUN PASSED' : 'NO SUN'; }
+    }
+  } else {
+    let totalSun = 0;
+    for (const w of windows) { const ov = Math.min(w.end, toHour) - Math.max(w.start, fromHour); if (ov > 0) totalSun += ov; }
+    if (totalSun > 0) {
+      const bh = Math.floor(totalSun), bm = Math.round((totalSun - bh) * 60);
+      sunLabel = 'SUN TODAY'; sunTime = bh > 0 ? `${bh}H` : '';
+      sunDurM = bm > 0 ? `${bm}M` : '';
+      if (!sunTime) { sunTime = sunDurM; sunDurM = ''; }
+    } else { sunLabel = 'NO SUN'; }
+  }
+  if (v.isOpeningSoon) { sunLabel = `OPENS IN ${Math.round((v.openingHours.open - fromHour) * 60)}M`; sunTime = ''; }
+  else if (v.isClosingSoon) { sunLabel = `CLOSES ${formatHour(v.openingHours.close)}`; }
+
+  const durHtml = (sunDurH || sunDurM)
+    ? `<span class="card-sun-dur">${[sunDurH, sunDurM].filter(Boolean).join('<br>')}</span>`
+    : '';
+
+  const dialSvg = buildCardDial(v, dateStr, fromHour);
 
   return `
     <div class="venue-card ${v.sunInWin ? 'sunny' : ''} ${v.id === selectedId ? 'selected' : ''} ${dimmedCls}"
          data-vid="${v.id}" onclick="selectVenue(${v.id}, true)"
          onmouseenter="setHoveredVenue(${v.id})" onmouseleave="setHoveredVenue(null)">
       ${s ? `<div class="card-bloom ${tier}"></div>` : ''}
-      <div class="card-top-row">
-        <div class="card-left">
-          <div class="card-name">${v.name}</div>
-          <div class="card-sun-line ${sunLineCls}">${sunLineCls === 'sunny' ? SUN_ICON : ''}${sunLineText}</div>
-          <div class="card-meta">${meta}</div>
+      <div class="card-name">${v.name}</div>
+      <div class="card-meta">${meta}</div>
+      <div class="card-sun-row">
+        ${dialSvg}
+        <div class="card-sun-info ${sunLineCls}">
+          <div class="card-sun-label">${sunLabel}</div>
+          ${sunTime ? `<div class="card-sun-bottom">
+            <span class="card-sun-time">${sunTime}</span>${durHtml}
+          </div>` : ''}
         </div>
-        ${s ? `<div class="card-score-num ${tier}">${s.total}<span>SUN SCORE</span></div>` : ''}
       </div>
     </div>`;
 }

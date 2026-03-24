@@ -917,15 +917,14 @@
   .card-name {
     font-family: 'Newsreader', serif;
     font-style: italic;
-    font-size: 20px;
+    font-size: 19px;
     font-weight: 600;
     color: var(--text);
-    line-height: 1.25;
-    margin-bottom: 4px;
+    line-height: 1.2;
     white-space: nowrap;
     overflow: hidden;
-    -webkit-mask-image: linear-gradient(to right, black 70%, transparent 100%);
-    mask-image: linear-gradient(to right, black 70%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, black 72%, transparent 100%);
+    mask-image: linear-gradient(to right, black 72%, transparent 100%);
   }
   .card-left {
     flex: 1;
@@ -1013,7 +1012,6 @@
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.06em;
-    margin: 5px 0 7px;
   }
   .card-sun-line.sunny   { color: var(--accent); }
   .card-sun-line.neutral { color: rgba(122,180,255,0.85); }
@@ -1046,6 +1044,57 @@
   .card-meta {
     font-size: 11px;
     color: var(--muted);
+    margin: 2px 0 8px;
+  }
+
+  /* ── New card sun row (dial + label/time) ─────────────────────────── */
+  .card-sun-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .card-dial {
+    flex-shrink: 0;
+    opacity: 0.92;
+    filter: drop-shadow(0 1px 3px rgba(0,0,0,0.35));
+  }
+  .card-sun-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .card-sun-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(213,196,171,0.5);
+  }
+  .card-sun-info.sunny   .card-sun-label { color: rgba(255,184,0,0.65); }
+  .card-sun-info.neutral .card-sun-label { color: rgba(122,180,255,0.65); }
+  .card-sun-info.opening-soon .card-sun-label { color: rgba(122,180,255,0.65); }
+  .card-sun-info.closing-soon .card-sun-label { color: rgba(255,170,85,0.65); }
+  .card-sun-bottom {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .card-sun-time {
+    font-family: 'Newsreader', serif;
+    font-style: italic;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1;
+  }
+  .card-sun-info.sunny   .card-sun-time { color: var(--accent); }
+  .card-sun-info.neutral .card-sun-time { color: rgba(122,180,255,0.9); }
+  .card-sun-dur {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    line-height: 1.35;
   }
 
   .card-score-num {
@@ -1367,9 +1416,11 @@
       border-radius: 14px;
     }
 
-    .card-name    { font-size: 15px; }
+    .card-name    { font-size: 16px; }
     .card-badge   { font-size: 11px; padding: 4px 11px; }
     .card-meta    { font-size: 12px; }
+    .card-sun-time { font-size: 28px; }
+    .card-dial    { width: 60px; height: 60px; }
     .area-chip    { font-size: 12px; padding: 6px 13px; }
     .sort-btn     { font-size: 12px; padding: 5px 10px; }
 
