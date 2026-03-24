@@ -1061,6 +1061,17 @@
     display: flex;
     align-items: center;
     gap: 10px;
+    position: relative;
+  }
+  .card-sun-row::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 10%;
+    height: 80%;
+    width: 1px;
+    background: rgba(213,196,171,0.15);
+    pointer-events: none;
   }
   .card-dial-col {
     flex-shrink: 0;
@@ -1084,20 +1095,9 @@
     margin-left: auto;
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
+    align-items: flex-start;
     gap: 5px;
     min-width: 0;
-    position: relative;
-    padding-left: 14px;
-  }
-  .card-sun-info::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 10%;
-    height: 80%;
-    width: 1px;
-    background: rgba(213,196,171,0.15);
   }
   .card-sun-label {
     font-family: 'Inter', sans-serif;
