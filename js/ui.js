@@ -215,48 +215,41 @@ function buildDialCallouts(windows, fromHour, dateStr, CX, CY, R, H) {
 
   const curWin = windows.find(w => fromHour >= w.start && fromHour < w.end);
   const segs   = [];
-  let firstFutureSun = true;
+
+  // Find midpoint of the first clear run in a window starting from refH.
+  // Used to anchor window callouts to the gold arc, not grey/beige sections.
+  const clearAnchor = (w, refH) => {
+    let clearS = null, clearE = null;
+    for (let h = Math.floor(refH); h < Math.ceil(w.end); h++) {
+      const rS = Math.max(refH, h), rE = Math.min(w.end, h + 1);
+      if (rE <= rS + 0.001) continue;
+      if (precipAt(h) <= 0.3 && cloudAt(h) <= 0.65) {
+        if (clearS === null) clearS = rS;
+        clearE = rE;
+      } else if (clearS !== null) break; // first clear run ends
+    }
+    return clearS !== null ? (clearS + clearE) / 2 : (refH + w.end) / 2;
+  };
 
   windows.forEach((w, i) => {
     // ── Sun window ──────────────────────────────────────────────────────────
     if (w.end > fromHour) {
-      const isCur  = curWin === w;
-      // For the current window, anchor dot to the clear/sunny portion (before first overcast/rain)
-      // so the "Sun until" label doesn't point into the grey arc.
-      let callH;
-      if (isCur) {
-        let clearEnd = w.end;
-        for (let h = Math.floor(fromHour); h < Math.ceil(w.end); h++) {
-          if (precipAt(h) > 0.3 || cloudAt(h) > 0.65) { clearEnd = Math.max(fromHour, h); break; }
-        }
-        callH = (fromHour + Math.min(clearEnd, w.end)) / 2;
-      } else {
-        callH = (w.start + w.end) / 2;
-      }
-      const term   = wxterm(isCur ? fromHour : w.start);
-      const tag    = wxtag(isCur ? fromHour : w.start);
+      const isCur = curWin === w;
+      const refH  = isCur ? fromHour : w.start;
+      const callH = clearAnchor(w, refH);
+      const tag   = wxtag(refH);
       let label;
 
       if (isCur) {
-        const rem  = w.end - fromHour;
+        const rem = w.end - fromHour;
         if (rem < 1) {
           const mins = Math.round(rem * 60);
-          label = tag === 'rainy' ? `🌧 Rain · ${mins} min left` : `${mins} min ${term} left`;
+          label = tag === 'rainy' ? `🌧 ${mins} min left` : `☀ ${mins} min left`;
         } else {
-          label = tag === 'rainy' ? `🌧 Rain until ${fh(w.end)}` : `${term[0].toUpperCase() + term.slice(1)} until ${fh(w.end)}`;
+          label = tag === 'rainy' ? `🌧 until ${fh(w.end)}` : `☀ until ${fh(w.end)}`;
         }
       } else {
-        const isFirst = firstFutureSun;
-        const isLast  = i === n - 1 && n > 1;
-        firstFutureSun = false;
-        const prefix = tag === 'rainy' ? '🌧 Rain' : tag === 'overcast' ? 'Light' : tag === 'cloudy' ? 'Sun' : 'Sun';
-        if (isLast) {
-          label = `Last ${term} ${fh(w.start)} – ${fh(w.end)}`;
-        } else if (isFirst) {
-          label = tag === 'rainy' ? `🌧 Rain at ${fh(w.start)}` : `Next ${term} ${fh(w.start)}`;
-        } else {
-          label = tag === 'rainy' ? `🌧 Rain ${fh(w.start)} – ${fh(w.end)}` : `${prefix} ${fh(w.start)} – ${fh(w.end)}`;
-        }
+        label = tag === 'rainy' ? `🌧 ${fh(w.start)} – ${fh(w.end)}` : `☀ ${fh(w.start)} – ${fh(w.end)}`;
       }
       segs.push({ callH, label, type: tag === 'rainy' ? 'rainy' : 'sun' });
     }
