@@ -370,6 +370,7 @@ function drawSunCurve(canvasEl) {
   const PAD_X = 10, PAD_T = 10, PAD_B = 18;
   const cw = cssW, ch = cssH;
   const dateStr = datePicker.value;
+  const fromH = parseFloat(timeFromEl.value);
 
   // Sample altitudes every 15 min
   const samples = [];
@@ -491,8 +492,6 @@ function drawSunCurve(canvasEl) {
     c.fillStyle = 'rgba(213,196,171,0.45)';
     c.fillText(`${h}`, timeToX(h), ch - 2);
   }
-
-  const fromH = parseFloat(timeFromEl.value);
 
   // Scrub indicator — permanent at selected time, moves to hover position
   const scrubH = (typeof arcHoverH === 'number') ? arcHoverH : fromH;
