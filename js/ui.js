@@ -18,150 +18,71 @@ function venueHasSunInRange(v, dateStr, fromHour, toHour) {
 
 // ── Sun dial (large clock-face style for detail panel) ────────────────────────
 
-// Hover helpers — called by SVG arc onmouseenter/onmouseleave
-let _dialHoverTimer = null;
-let _dialLocked = false;
-
-function _dialSetText(t1, t2) {
-  const e1 = document.getElementById('dp-dt1'), e2 = document.getElementById('dp-dt2');
-  if (!e1 || !e2) return;
-  clearTimeout(_dialHoverTimer);
-  e1.style.opacity = '0'; e2.style.opacity = '0';
-  _dialHoverTimer = setTimeout(() => {
-    e1.textContent = t1;
-    e2.textContent = t2;
-    e1.style.opacity = ''; e2.style.opacity = '';
-  }, 100);
-}
-
-function _dialArcHover(t1, t2) {
-  if (_dialLocked) return;
-  _dialSetText(t1, 'UNTIL ' + t2);
-}
-function _dialArcOut() {
-  if (_dialLocked) return;
-  const e1 = document.getElementById('dp-dt1'), e2 = document.getElementById('dp-dt2');
-  if (e1 && e2) _dialSetText(e1.dataset.d, e2.dataset.d);
-}
-function _dialToggleLock(t1, t2) {
-  _dialLocked = !_dialLocked;
-  const svg = document.querySelector('.dp-dial-svg');
-  if (svg) svg.classList.toggle('dp-dial-locked', _dialLocked);
-  if (_dialLocked) {
-    _dialSetText(t1, 'UNTIL ' + t2);
-  } else {
-    const e1 = document.getElementById('dp-dt1'), e2 = document.getElementById('dp-dt2');
-    if (e1 && e2) _dialSetText(e1.dataset.d, e2.dataset.d);
-  }
-}
-
 function renderSunDial(v, dateStr, fromHour) {
   const { windows } = computeSunWindows(v, dateStr);
-  const W = 220, H = 220, CX = 110, CY = 110, R = 88, SW = 7;
+  // Circle sits left; label area fills the right portion of the viewBox
+  const W = 300, H = 210, CX = 70, CY = 105, R = 62, SW = 5;
 
-  // Cloud-aware arc colors
-  const wxNow    = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, fromHour) : null;
-  const cloud    = wxNow?.cloud ?? 0;
-  const isOvercast    = cloud > 0.65;
-  const isPartlyCloudy = cloud > 0.38 && !isOvercast;
-  const arcBright = isOvercast ? 'rgba(120,158,210,0.75)' : isPartlyCloudy ? 'rgba(210,185,110,0.75)' : 'rgba(255,184,0,0.78)';
-  const arcDim    = isOvercast ? 'rgba(120,158,210,0.20)' : isPartlyCloudy ? 'rgba(210,185,110,0.20)' : 'rgba(255,184,0,0.18)';
+  const wxNow = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, fromHour) : null;
+  const cloud = wxNow?.cloud ?? 0;
+  const isOvercast = cloud > 0.65, isPartly = cloud > 0.38 && !isOvercast;
+  const arcBright = isOvercast ? 'rgba(120,158,210,0.75)' : isPartly ? 'rgba(210,185,110,0.75)' : 'rgba(255,184,0,0.78)';
+  const arcDim    = isOvercast ? 'rgba(120,158,210,0.20)' : isPartly ? 'rgba(210,185,110,0.20)' : 'rgba(255,184,0,0.18)';
   const dotColor  = isOvercast ? '#78A0D8' : '#FFB800';
 
-  function hAngle(h) { return ((h % 12) / 12) * 2 * Math.PI - Math.PI / 2; }
-  function pt(h) { const a = hAngle(h); return [CX + R * Math.cos(a), CY + R * Math.sin(a)]; }
+  const hAngle = h => ((h % 12) / 12) * 2 * Math.PI - Math.PI / 2;
+  const pt = h => { const a = hAngle(h); return [CX + R * Math.cos(a), CY + R * Math.sin(a)]; };
   function arcPath(h1, h2) {
     const dur = h2 - h1;
     if (dur < 0.01) return '';
     if (dur >= 12) {
-      // Full circle — split into two half-arcs (SVG can't arc from a point to itself)
-      const [x1, y1] = pt(h1), [xm, ym] = pt(h1 + 6);
+      const [x1,y1]=pt(h1),[xm,ym]=pt(h1+6);
       return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${R} ${R} 0 1 1 ${xm.toFixed(2)} ${ym.toFixed(2)} A ${R} ${R} 0 1 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
     }
-    const [x1, y1] = pt(h1), [x2, y2] = pt(h2);
-    const large = dur > 6 ? 1 : 0;
-    return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${R} ${R} 0 ${large} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`;
+    const [x1,y1]=pt(h1),[x2,y2]=pt(h2);
+    return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${R} ${R} 0 ${dur>6?1:0} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`;
   }
 
-  // Hour tick marks — 12 positions, major at 12/3/6/9
+  // Tick marks
   let ticks = '';
   for (let h = 0; h < 12; h++) {
-    const angle  = (h / 12) * 2 * Math.PI - Math.PI / 2;
-    const isMaj  = h % 3 === 0;
-    const r1     = isMaj ? R - 10 : R - 6;
-    const x1t    = (CX + r1       * Math.cos(angle)).toFixed(1);
-    const y1t    = (CY + r1       * Math.sin(angle)).toFixed(1);
-    const x2t    = (CX + (R - 1)  * Math.cos(angle)).toFixed(1);
-    const y2t    = (CY + (R - 1)  * Math.sin(angle)).toFixed(1);
-    ticks += `<line x1="${x1t}" y1="${y1t}" x2="${x2t}" y2="${y2t}"
-      stroke="rgba(213,196,171,${isMaj ? 0.22 : 0.11})" stroke-width="${isMaj ? 1.4 : 0.8}" stroke-linecap="round"/>`;
+    const a = (h/12)*2*Math.PI - Math.PI/2, maj = h%3===0;
+    const r1 = maj ? R-8 : R-5;
+    ticks += `<line x1="${(CX+r1*Math.cos(a)).toFixed(1)}" y1="${(CY+r1*Math.sin(a)).toFixed(1)}"
+      x2="${(CX+(R-1)*Math.cos(a)).toFixed(1)}" y2="${(CY+(R-1)*Math.sin(a)).toFixed(1)}"
+      stroke="rgba(213,196,171,${maj?0.2:0.1})" stroke-width="${maj?1.2:0.7}" stroke-linecap="round"/>`;
   }
 
-  // Hour numbers at 12, 3, 6, 9
-  const NR = R - 20;
+  // Hour labels (12, 3, 6, 9)
+  const NR = R - 15;
   let hourNums = '';
   for (const [h, lbl] of [[0,'12'],[3,'3'],[6,'6'],[9,'9']]) {
-    const angle = (h / 12) * 2 * Math.PI - Math.PI / 2;
-    const nx = (CX + NR * Math.cos(angle)).toFixed(1);
-    const ny = (CY + NR * Math.sin(angle)).toFixed(1);
-    hourNums += `<text x="${nx}" y="${ny}" text-anchor="middle" dominant-baseline="middle"
-      font-family="Inter,sans-serif" font-size="7" font-weight="500"
-      fill="rgba(213,196,171,0.2)" letter-spacing="0">${lbl}</text>`;
+    const a = (h/12)*2*Math.PI - Math.PI/2;
+    hourNums += `<text x="${(CX+NR*Math.cos(a)).toFixed(1)}" y="${(CY+NR*Math.sin(a)).toFixed(1)}"
+      text-anchor="middle" dominant-baseline="middle" font-family="Inter,sans-serif"
+      font-size="6" font-weight="500" fill="rgba(213,196,171,0.18)">${lbl}</text>`;
   }
 
-  // Draw arcs — each window segment gets hover handlers showing its from/to
-  // Hit paths are wide+transparent; visual paths have pointer-events:none
+  // Arc segments
   let arcs = '';
-  function arcSegment(d, color) {
-    if (!d) return '';
-    return `<path d="${d}" fill="none" stroke="transparent" stroke-width="22" stroke-linecap="round" style="cursor:pointer" pointer-events="stroke"/>`
-         + `<path d="${d}" fill="none" stroke="${color}" stroke-width="${SW}" stroke-linecap="round" pointer-events="none"/>`;
-  }
   for (const w of windows) {
-    const hoverArgs = `'${formatHour(w.start)}','${formatHour(w.end)}'`;
-    const hoverAttrs = `onmouseenter="_dialArcHover(${hoverArgs})" onmouseleave="_dialArcOut()" onclick="_dialToggleLock(${hoverArgs})" style="cursor:pointer"`;
-    // Wrap each window's paths in a group so hover fires for the whole window
-    arcs += `<g ${hoverAttrs}>`;
     if (w.end <= fromHour) {
-      arcs += arcSegment(arcPath(w.start, w.end), arcDim);
+      const d = arcPath(w.start, w.end);
+      if (d) arcs += `<path d="${d}" fill="none" stroke="${arcDim}" stroke-width="${SW}" stroke-linecap="round"/>`;
     } else if (w.start >= fromHour) {
-      arcs += arcSegment(arcPath(w.start, w.end), arcBright);
+      const d = arcPath(w.start, w.end);
+      if (d) arcs += `<path d="${d}" fill="none" stroke="${arcBright}" stroke-width="${SW}" stroke-linecap="round"/>`;
     } else {
-      arcs += arcSegment(arcPath(w.start, fromHour), arcDim);
-      arcs += arcSegment(arcPath(fromHour, w.end), arcBright);
+      const dp = arcPath(w.start, fromHour), df = arcPath(fromHour, w.end);
+      if (dp) arcs += `<path d="${dp}" fill="none" stroke="${arcDim}" stroke-width="${SW}" stroke-linecap="round"/>`;
+      if (df) arcs += `<path d="${df}" fill="none" stroke="${arcBright}" stroke-width="${SW}" stroke-linecap="round"/>`;
     }
-    arcs += '</g>';
   }
 
-  // Current time dot
   const [tx, ty] = pt(fromHour);
+  const callouts  = buildDialCallouts(windows, CX, CY, R, H, arcBright);
 
-  // Smart center: "last sun" time is the most important info
-  const lastWin = windows.length ? windows[windows.length - 1] : null;
-  const curWin  = windows.find(w => fromHour >= w.start && fromHour < w.end);
-  const nextWin = windows.find(w => w.start > fromHour);
-
-  let centerTime, centerLabel;
-  const cloudyTag = isOvercast ? 'CLOUDY · ' : '';
-  if (!lastWin) {
-    centerTime  = '—';
-    centerLabel = isOvercast ? 'OVERCAST TODAY' : 'NO SUN TODAY';
-  } else if (lastWin.end <= fromHour) {
-    centerTime  = formatHour(lastWin.end);
-    centerLabel = 'SUN ENDED AT';
-  } else if (curWin) {
-    const hasBreak = nextWin && nextWin !== curWin;
-    centerTime  = formatHour(curWin.end);
-    centerLabel = cloudyTag + (hasBreak ? 'BREAK AT' : 'SUN UNTIL');
-  } else if (nextWin) {
-    centerTime  = formatHour(nextWin.start);
-    centerLabel = cloudyTag + 'SUN FROM';
-  } else {
-    centerTime  = formatHour(lastWin.end);
-    centerLabel = 'SUN ENDED AT';
-  }
-
-  const svg = `<svg class="dp-dial-svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true">
+  const svg = `<svg class="dp-dial-svg" width="100%" viewBox="0 0 ${W} ${H}" style="display:block" aria-hidden="true">
     <defs>
       <filter id="dg" x="-100%" y="-100%" width="300%" height="300%">
         <feGaussianBlur stdDeviation="3" result="b"/>
@@ -169,35 +90,120 @@ function renderSunDial(v, dateStr, fromHour) {
       </filter>
     </defs>
     <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="${SW}"/>
-    ${ticks}
-    ${hourNums}
-    ${arcs}
-    <circle cx="${tx.toFixed(2)}" cy="${ty.toFixed(2)}" r="5.5" fill="${dotColor}" filter="url(#dg)"/>
-    <text id="dp-dt1" data-d="${centerTime}" x="${CX}" y="${CY - 10}" text-anchor="middle" dominant-baseline="middle"
-      font-family="Newsreader,serif" font-style="italic" font-size="46" font-weight="600"
-      fill="rgba(255,255,255,0.95)" style="transition:opacity 0.1s">${centerTime}</text>
-    <text id="dp-dt2" data-d="${centerLabel}" x="${CX}" y="${CY + 18}" text-anchor="middle" dominant-baseline="middle"
-      font-family="Inter,sans-serif" font-size="9" font-weight="700"
-      fill="rgba(213,196,171,0.62)" letter-spacing="2" style="transition:opacity 0.1s">${centerLabel}</text>
+    ${ticks}${hourNums}${arcs}
+    <circle cx="${tx.toFixed(2)}" cy="${ty.toFixed(2)}" r="5" fill="${dotColor}" filter="url(#dg)"/>
+    ${callouts}
   </svg>`;
 
   // Status pill
+  const curWin  = windows.find(w => fromHour >= w.start && fromHour < w.end);
+  const nextWin = windows.find(w => w.start > fromHour);
   let pill;
   if (curWin) {
     const rem = curWin.end - fromHour;
     const ph = Math.floor(rem), pm = Math.round((rem - ph) * 60);
-    const dur = (ph > 0 ? ph + 'h ' : '') + (pm > 0 ? pm + 'm' : '');
-    pill = `<div class="dp-sun-pill sunny">☀ IN SUN · ${dur.trim().toUpperCase()} LEFT</div>`;
+    pill = `<div class="dp-sun-pill sunny">☀ IN SUN · ${(ph>0?ph+'h ':'')}${pm>0?pm+'m':''} LEFT</div>`;
   } else if (nextWin) {
     const wait = nextWin.start - fromHour;
     const ph = Math.floor(wait), pm = Math.round((wait - ph) * 60);
-    const dur = (ph > 0 ? ph + 'h ' : '') + (pm > 0 ? pm + 'm' : '');
-    pill = `<div class="dp-sun-pill neutral">☀ SUN IN ${dur.trim().toUpperCase()}</div>`;
+    pill = `<div class="dp-sun-pill neutral">☀ SUN IN ${(ph>0?ph+'h ':'')}${pm>0?pm+'m':''}</div>`;
   } else {
     pill = `<div class="dp-sun-pill muted">${windows.length ? 'SUN PASSED' : 'NO SUN TODAY'}</div>`;
   }
 
   return { svg, pill };
+}
+
+/**
+ * Build SVG callout annotations for dial segments.
+ * Each sun window and shadow gap gets a diagonal→horizontal leader line and a label.
+ */
+function buildDialCallouts(windows, CX, CY, R, H, arcBright) {
+  if (!windows.length) return '';
+
+  const hAngle = h => ((h % 12) / 12) * 2 * Math.PI - Math.PI / 2;
+  const fh = h => formatHour(h);
+  const n = windows.length;
+
+  // Build segment descriptors
+  const segs = [];
+  windows.forEach((w, i) => {
+    const midH = (w.start + w.end) / 2;
+    let label;
+    if (n === 1)      label = `Sun ${fh(w.start)} – ${fh(w.end)}`;
+    else if (i === 0) label = `First sun ${fh(w.start)}`;
+    else if (i===n-1) label = `Last sun ${fh(w.start)} – ${fh(w.end)}`;
+    else              label = `Sun ${fh(w.start)} – ${fh(w.end)}`;
+    segs.push({ midH, label, type: 'sun' });
+
+    // Shadow gap to the next window
+    if (i < n - 1) {
+      const gS = w.end, gE = windows[i+1].start, gH = gE - gS;
+      const mins = Math.round(gH * 60);
+      let gLabel;
+      if (gH < 1)      gLabel = `${mins} min shadow`;
+      else if (gH < 3) gLabel = `Shadow at ${fh(gS)}`;
+      else             gLabel = `${Math.floor(gH)}h shadow`;
+      segs.push({ midH: (gS+gE)/2, label: gLabel, type: 'shadow' });
+    }
+  });
+
+  // Geometry: dot just outside arc, short diagonal, then horizontal to label column
+  const OUTSET  = 5;   // clearance beyond arc stroke
+  const DIAG    = 20;  // diagonal segment length
+  const TICK_W  = 26;  // horizontal tick length
+  const TICK_END_X = CX + R + OUTSET + DIAG + TICK_W;
+  const LABEL_X    = TICK_END_X + 4;
+  const MIN_Y = 10, MAX_Y = H - 10;
+
+  segs.forEach(s => {
+    const a = hAngle(s.midH);
+    const ca = Math.cos(a), sa = Math.sin(a);
+    s.dotX = CX + (R + OUTSET) * ca;
+    s.dotY = CY + (R + OUTSET) * sa;
+    // For left-half segments redirect diagonal rightward rather than further left
+    if (ca >= -0.1) {
+      s.elbX = s.dotX + ca * DIAG;
+      s.elbY = s.dotY + sa * DIAG;
+    } else {
+      s.elbX = s.dotX + 0.82 * DIAG;
+      s.elbY = s.dotY + (sa >= 0 ? 0.57 : -0.57) * DIAG;
+    }
+    s.labelY = Math.max(MIN_Y, Math.min(MAX_Y, s.elbY));
+  });
+
+  // Y-collision avoidance: spread labels apart when too close
+  const MIN_GAP = 16;
+  segs.sort((a, b) => a.labelY - b.labelY);
+  for (let pass = 0; pass < 6; pass++) {
+    for (let i = 1; i < segs.length; i++) {
+      if (segs[i].labelY - segs[i-1].labelY < MIN_GAP) {
+        const mid = (segs[i].labelY + segs[i-1].labelY) / 2;
+        segs[i-1].labelY = Math.max(MIN_Y, mid - MIN_GAP/2);
+        segs[i].labelY   = Math.min(MAX_Y, mid + MIN_GAP/2);
+      }
+    }
+    for (let i = segs.length-2; i >= 0; i--) {
+      if (segs[i+1].labelY - segs[i].labelY < MIN_GAP) {
+        const mid = (segs[i+1].labelY + segs[i].labelY) / 2;
+        segs[i].labelY   = Math.max(MIN_Y, mid - MIN_GAP/2);
+        segs[i+1].labelY = Math.min(MAX_Y, mid + MIN_GAP/2);
+      }
+    }
+  }
+
+  let out = '';
+  for (const s of segs) {
+    const sun  = s.type === 'sun';
+    const lc   = sun ? 'rgba(255,184,0,0.48)'    : 'rgba(120,158,210,0.36)';
+    const tc   = sun ? 'rgba(255,184,0,0.82)'    : 'rgba(120,158,210,0.72)';
+    out += `<circle cx="${s.dotX.toFixed(1)}" cy="${s.dotY.toFixed(1)}" r="2.5" fill="${lc}"/>`;
+    out += `<polyline points="${s.dotX.toFixed(1)},${s.dotY.toFixed(1)} ${s.elbX.toFixed(1)},${s.labelY.toFixed(1)} ${TICK_END_X},${s.labelY.toFixed(1)}"
+      fill="none" stroke="${lc}" stroke-width="0.85" stroke-linecap="round" stroke-linejoin="round"/>`;
+    out += `<text x="${LABEL_X}" y="${s.labelY.toFixed(1)}" dominant-baseline="middle"
+      font-family="Inter,sans-serif" font-size="9.5" font-weight="500" fill="${tc}">${s.label}</text>`;
+  }
+  return out;
 }
 
 // ── Timeline strip ────────────────────────────────────────────────────────────
