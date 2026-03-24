@@ -524,8 +524,11 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
     sunLineCls = 'closing-soon';
   }
 
-  const metaBase = [v.area, catLabel(v), distStr].filter(Boolean).join(' · ');
-  const meta = metaBase + (s ? ` · <span class="card-meta-score">${s.total} Score</span>` : '');
+  const metaParts = [v.area, catLabel(v), distStr].filter(Boolean);
+  if (s) metaParts.push(`<span class="card-meta-score">${s.total} Score</span>`);
+  const meta = metaParts.map((p, i) =>
+    (i > 0 ? '<span class="card-meta-dot">·</span>' : '') + `<span class="card-meta-item">${p}</span>`
+  ).join('');
 
   // Sun info for right side of card sun row
   let sunLabel, sunTime = '', sunDurH = '', sunDurM = '';

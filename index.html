@@ -1042,13 +1042,15 @@
   }
 
   .card-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
     font-size: 11px;
     color: var(--muted);
     margin: 2px 0 8px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
+  .card-meta-item { white-space: nowrap; }
+  .card-meta-dot  { opacity: 0.4; }
   .card-meta-score {
     color: rgba(255,184,0,0.82);
     font-weight: 700;
