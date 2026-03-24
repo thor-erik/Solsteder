@@ -1042,39 +1042,55 @@
   }
 
   .card-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
     font-size: 11px;
     color: var(--muted);
     margin: 2px 0 8px;
+  }
+  .card-meta > span:first-child {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    min-width: 0;
   }
   .card-meta-score {
+    flex-shrink: 0;
     color: rgba(255,184,0,0.82);
     font-weight: 700;
   }
 
-  /* ── New card sun row (dial + label/time) ─────────────────────────── */
+  /* ── New card sun row (dial-col left, sun-info right) ──────────────── */
   .card-sun-row {
     display: flex;
     align-items: center;
     gap: 14px;
   }
-  .card-dial {
+  .card-dial-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     flex-shrink: 0;
+    gap: 3px;
+  }
+  .card-dial {
     opacity: 0.92;
     filter: drop-shadow(0 1px 3px rgba(0,0,0,0.35));
   }
   .card-sun-info {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    justify-content: center;
+    gap: 1px;
     min-width: 0;
   }
   .card-sun-label {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
+    font-family: 'Inter', sans-serif;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: rgba(213,196,171,0.5);
   }
@@ -1082,11 +1098,6 @@
   .card-sun-info.neutral .card-sun-label { color: rgba(122,180,255,0.65); }
   .card-sun-info.opening-soon .card-sun-label { color: rgba(122,180,255,0.65); }
   .card-sun-info.closing-soon .card-sun-label { color: rgba(255,170,85,0.65); }
-  .card-sun-bottom {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
   .card-sun-time {
     font-family: 'Newsreader', serif;
     font-style: normal;
@@ -1098,10 +1109,12 @@
   .card-sun-info.sunny   .card-sun-time { color: var(--accent); }
   .card-sun-info.neutral .card-sun-time { color: rgba(122,180,255,0.9); }
   .card-sun-dur {
+    font-family: 'Inter', sans-serif;
     font-size: 12px;
     font-weight: 600;
     color: rgba(255,184,0,0.52);
-    line-height: 1.35;
+    line-height: 1;
+    text-align: center;
   }
 
   .card-score-num {

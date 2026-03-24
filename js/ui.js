@@ -556,7 +556,7 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
   else if (v.isClosingSoon) { sunLabel = `CLOSES ${formatHour(v.openingHours.close)}`; }
 
   const durHtml = (sunDurH || sunDurM)
-    ? `<span class="card-sun-dur">· ${[sunDurH, sunDurM].filter(Boolean).join(' ')}</span>`
+    ? `<div class="card-sun-dur">${[sunDurH, sunDurM].filter(Boolean).join(' ')}</div>`
     : '';
 
   const dialSvg = buildCardDial(v, dateStr, fromHour, !!v.sunInWin);
@@ -567,14 +567,18 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
          onmouseenter="setHoveredVenue(${v.id})" onmouseleave="setHoveredVenue(null)">
       ${s ? `<div class="card-bloom ${tier}"></div>` : ''}
       <div class="card-name">${v.name}</div>
-      <div class="card-meta">${meta}</div>
+      <div class="card-meta">
+        <span>${metaBase}</span>
+        ${s ? `<span class="card-meta-score">${s.total} Score</span>` : ''}
+      </div>
       <div class="card-sun-row">
-        ${dialSvg}
+        <div class="card-dial-col">
+          ${dialSvg}
+          ${durHtml}
+        </div>
         <div class="card-sun-info ${sunLineCls}">
           <div class="card-sun-label">${sunLabel}</div>
-          ${sunTime ? `<div class="card-sun-bottom">
-            <span class="card-sun-time">${sunTime}</span>${durHtml}
-          </div>` : ''}
+          ${sunTime ? `<span class="card-sun-time">${sunTime}</span>` : ''}
         </div>
       </div>
     </div>`;
