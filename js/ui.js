@@ -131,7 +131,7 @@ function renderSunDial(v, dateStr, fromHour) {
  * Rules:
  *  - Past segments (end <= fromHour) get no callout.
  *  - Current sun window: "Sun until HH:MM" or "X min left" if < 1h; weather-aware.
- *  - Current shadow gap: "Sun in X min" if < 1h, else "Xh Ym shadow left".
+ *  - Current shadow gap: "Sun/Light/Rain in X min" if < 1h, else "Xh Ym shadow left".
  *  - Future shadow gaps: always show duration ("X min shadow" / "Xh shadow").
  *  - Future sun windows: "Next sun HH:MM", "Sun HH:MM–HH:MM", "Last sun HH:MM–HH:MM"; weather-aware.
  */
@@ -203,8 +203,9 @@ function buildDialCallouts(windows, fromHour, dateStr, CX, CY, R, H) {
         let label;
         if (inGap) {
           const rem = gE - fromHour;
+          const nextTerm = wxterm(gE);
           if (rem < 1) {
-            label = `Sun in ${Math.round(rem * 60)} min`;
+            label = `${nextTerm[0].toUpperCase() + nextTerm.slice(1)} in ${Math.round(rem * 60)} min`;
           } else {
             const gh = Math.floor(rem), gm = Math.round((rem - gh) * 60);
             label = gm > 0 ? `${gh}h ${gm}m shadow left` : `${gh}h shadow left`;
