@@ -739,11 +739,11 @@ function renderList() {
   if (activeArea) venues = venues.filter(v => v.area === activeArea);
 
   // Remove venues with no sun windows, or (today only) all sun already past
-  const isToday = dateStr === todayStr();
+  const isTodayFilter = dateStr === todayStr();
   venues = venues.filter(v => {
     const { windows } = computeSunWindows(v, dateStr);
     if (!windows.length) return false;
-    if (isToday) return windows.some(w => w.end > fromHour);
+    if (isTodayFilter) return windows.some(w => w.end > fromHour);
     return true;
   });
 
