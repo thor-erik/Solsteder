@@ -1057,16 +1057,12 @@
   }
 
   /* ── New card sun row (dial-col left, sun-info right) ──────────────── */
-  /*  Grid rows mirror the left column: 56px dial | 3px gap | 12px dur   */
   .card-sun-row {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    grid-template-rows: 56px 3px 12px;
-    column-gap: 14px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
   }
   .card-dial-col {
-    grid-column: 1;
-    grid-row: 1 / 4;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1077,15 +1073,18 @@
     opacity: 0.92;
     filter: drop-shadow(0 1px 3px rgba(0,0,0,0.35));
   }
+  /* Right column: absolute-pin label to top, time to bottom of a fixed-height box.
+     Height = 56px dial + 3px gap + 12px dur = 71px — matches left column exactly. */
   .card-sun-info {
-    grid-column: 2;
-    grid-row: 1 / 4;
-    display: flex;
-    flex-direction: column;
+    position: relative;
+    flex: 1;
+    height: 71px;
     min-width: 0;
   }
-  .card-sun-info .card-sun-time { margin-top: auto; }
   .card-sun-label {
+    position: absolute;
+    top: 0;
+    left: 0;
     font-family: 'Inter', sans-serif;
     font-size: 9px;
     font-weight: 700;
@@ -1099,6 +1098,9 @@
   .card-sun-info.opening-soon .card-sun-label { color: rgba(122,180,255,0.65); }
   .card-sun-info.closing-soon .card-sun-label { color: rgba(255,170,85,0.65); }
   .card-sun-time {
+    position: absolute;
+    bottom: 0;
+    left: 0;
     font-family: 'Inter', sans-serif;
     font-weight: 800;
     font-size: 44px;
