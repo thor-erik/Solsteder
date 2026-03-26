@@ -258,7 +258,10 @@ function buildDialCallouts(windows, fromHour, dateStr, CX, CY, R, H) {
           label = `${icon} until ${fh(w.end)}`;
         }
       } else {
-        label = `${icon} ${fh(w.start)} – ${fh(w.end)}`;
+        const dur = w.end - w.start;
+        label = dur <= 1
+          ? `${icon} ${Math.round(dur * 60)} min`
+          : `${icon} ${fh(w.start)} – ${fh(w.end)}`;
       }
       segs.push({ callH, label, type: iconType });
     }
