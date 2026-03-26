@@ -331,7 +331,7 @@ async function main() {
 
   console.log(`${buildings.length} buildings | ${openPolygons.length} open areas | ${entranceNodes.length} entrances | ${highways.length} streets`);
 
-  const output = { generated: new Date().toISOString(), venues: {} };
+  const output = { version: 2, generated: new Date().toISOString(), venues: {} };
 
   for (const v of VENUES) {
     let building = buildings.find(b => pointInPolygon(v.lat, v.lng, b.geometry));
