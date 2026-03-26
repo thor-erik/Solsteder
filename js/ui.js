@@ -283,10 +283,9 @@ function buildDialCallouts(windows, fromHour, dateStr, CX, CY, R, H) {
             label = gm > 0 ? `${gh}h ${gm}m shadow left` : `${gh}h shadow left`;
           }
         } else {
-          const gh = Math.floor(gH), gm = Math.round((gH - gh) * 60);
-          label = gH < 1
+          label = gH <= 1
             ? `${Math.round(gH * 60)} min shadow`
-            : (gm > 0 ? `${gh}h ${gm}m shadow` : `${gh}h shadow`);
+            : `${fh(gS)} – ${fh(gE)} shadow`;
         }
         segs.push({ callH, label, type: 'shadow' });
       }
