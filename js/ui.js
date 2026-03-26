@@ -237,21 +237,30 @@ function buildDialCallouts(windows, fromHour, dateStr, CX, CY, R, H) {
       const isCur = curWin === w;
       const refH  = isCur ? fromHour : w.start;
       const callH = clearAnchor(w, refH);
-      const tag   = wxtag(refH);
-      let label;
 
+      // Derive icon from the weather at the actual callout position — so the
+      // symbol always matches the arc color the line is pointing to.
+      const wxC    = wxAt(Math.round(callH));
+      const cPrec  = wxC?.precip ?? 0;
+      const cCloud = wxC?.cloud  ?? 0;
+      const cRainy    = cPrec > 0.3;
+      const cOvercast = !cRainy && cCloud > 0.65;
+      const cCloudy   = !cRainy && !cOvercast && cCloud > 0.38;
+      const icon     = cRainy ? '🌧' : cOvercast ? '☁' : cCloudy ? '🌤' : '☀';
+      const iconType = cRainy ? 'rainy' : cOvercast ? 'overcast' : cCloudy ? 'cloudy' : 'sun';
+
+      let label;
       if (isCur) {
         const rem = w.end - fromHour;
         if (rem < 1) {
-          const mins = Math.round(rem * 60);
-          label = tag === 'rainy' ? `🌧 ${mins} min left` : `☀ ${mins} min left`;
+          label = `${icon} ${Math.round(rem * 60)} min left`;
         } else {
-          label = tag === 'rainy' ? `🌧 until ${fh(w.end)}` : `☀ until ${fh(w.end)}`;
+          label = `${icon} until ${fh(w.end)}`;
         }
       } else {
-        label = tag === 'rainy' ? `🌧 ${fh(w.start)} – ${fh(w.end)}` : `☀ ${fh(w.start)} – ${fh(w.end)}`;
+        label = `${icon} ${fh(w.start)} – ${fh(w.end)}`;
       }
-      segs.push({ callH, label, type: tag === 'rainy' ? 'rainy' : 'sun' });
+      segs.push({ callH, label, type: iconType });
     }
 
     // ── Shadow gap after this window ─────────────────────────────────────────
