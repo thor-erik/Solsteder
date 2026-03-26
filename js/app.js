@@ -23,6 +23,7 @@ let activeSortBy  = 'score';
 let activeIntent  = null;
 let panelVisible      = true;
 let hoveredId         = null;
+let hoverFromList     = false; // true = list hover (pin lifts); false = map canvas hover (no lift)
 let mapLoaded         = false;
 let _qcActiveSection  = null; // 'date' | 'time' | null
 let _qcArcDragging    = false;
@@ -434,8 +435,9 @@ function selectCalendarDate(dateStr) {
 
 // ── Hover from sidebar list ───────────────────────────────────────────────────
 function setHoveredVenue(id) {
-  if (hoveredId === id) return;
+  if (hoveredId === id && hoverFromList) return;
   hoveredId = id;
+  hoverFromList = true;
   draw();
 }
 
@@ -986,6 +988,7 @@ function enterEditMode(venueId) {
   document.getElementById('edit-overlay').style.display = 'block';
   document.getElementById('edit-venue-label').textContent = v.name;
   document.getElementById('edit-facing-display').innerHTML = `${v.facing}° ${bearingToCardinal(v.facing)}`;
+  _syncTerraceTypeUI(v.terraceType ?? 'street');
 
   if (popup) { popup.remove(); popup = null; }
   tooltip.classList.remove('visible');
@@ -1065,6 +1068,45 @@ function selectWallByIdx(idx) {
     ? `${v.facing}° ${bearingToCardinal(v.facing)} · ${walls.length} walls`
     : `${v.facing}° ${bearingToCardinal(v.facing)}`;
   document.getElementById('edit-facing-display').innerHTML = label;
+  dispatchToWorker(datePicker.value);
+  draw();
+  renderList();
+}
+
+function _syncTerraceTypeUI(type) {
+  document.querySelectorAll('.edit-type-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.type === type);
+  });
+  // Wall selection is irrelevant for rooftops — hide the instruction
+  const subtitle = document.getElementById('edit-subtitle');
+  if (subtitle) subtitle.style.visibility = type === 'rooftop' ? 'hidden' : 'visible';
+}
+
+function setTerraceType(type) {
+  const v = VENUES.find(x => x.id === editingVenueId);
+  if (!v) return;
+  v.terraceType = type;
+  _syncTerraceTypeUI(type);
+
+  if (type === 'rooftop') {
+    // Rooftop: recompute test points from building centroid, no wall needed
+    v.terraceTestPoints = (v.buildingGeometry?.length)
+      ? (() => { const c = computeCentroid(v.buildingGeometry); return [{ lat: c.lat, lng: c.lon }]; })()
+      : [{ lat: v.lat, lng: v.lng }];
+    document.getElementById('edit-facing-display').innerHTML = 'Rooftop';
+  } else {
+    // Restore wall-based test points
+    v.terraceTestPoints = computeTerraceTestPoints(v, null);
+    const walls = getTerraceWalls(v);
+    const label = walls.length > 1
+      ? `${v.facing}° ${bearingToCardinal(v.facing)} · ${walls.length} walls`
+      : `${v.facing}° ${bearingToCardinal(v.facing)}`;
+    document.getElementById('edit-facing-display').innerHTML = label;
+  }
+
+  saveFacingCache(v.id, v.facing, v.facingSource,
+    v.terraceWallIndices, v.terraceDepth, v.noiseScore, type);
+  sunWindowCache.clear();
   dispatchToWorker(datePicker.value);
   draw();
   renderList();

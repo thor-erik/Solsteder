@@ -377,6 +377,26 @@ async function main() {
       console.log(`    terrace depth: ${autoTerraceDepth.toFixed(1)} m (street detected)`);
     }
 
+    // Pre-compute terraceTestPoints so the fast-path load skips re-derivation at runtime.
+    let terraceTestPoints;
+    if (v.terraceType === 'rooftop') {
+      const c = computeCentroid(building.geometry);
+      terraceTestPoints = [{ lat: c.lat, lng: c.lon }];
+    } else {
+      const depth     = autoTerraceDepth ?? 4;
+      const testDepth = Math.max(1.5, depth * 0.5);
+      const usedWalls = autoTerraceWallIndices.map(i => walls[i]).filter(Boolean);
+      terraceTestPoints = usedWalls.flatMap(w => {
+        const br = w.bearing * (Math.PI / 180);
+        const cl = Math.cos(w.my * (Math.PI / 180));
+        return [0.25, 0.5, 0.75].map(f => ({
+          lat: (1 - f) * w.aLat + f * w.bLat + Math.cos(br) * testDepth / 111320,
+          lng: (1 - f) * w.aLng + f * w.bLng + Math.sin(br) * testDepth / (111320 * cl),
+        }));
+      });
+      if (!terraceTestPoints.length) terraceTestPoints = [{ lat: v.lat, lng: v.lng }];
+    }
+
     output.venues[v.id] = {
       facing,
       facingSource,
@@ -386,6 +406,7 @@ async function main() {
       nearbyBuildings,
       autoTerraceDepth,
       autoTerraceWallIndices,
+      terraceTestPoints,
     };
   }
 

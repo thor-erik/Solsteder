@@ -1535,6 +1535,32 @@
     color: #7ab4ff;
   }
 
+  #edit-type-selector {
+    display: flex;
+    gap: 4px;
+  }
+
+  .edit-type-btn {
+    background: rgba(81,69,50,0.15);
+    border: 1px solid rgba(81,69,50,0.28);
+    border-radius: 8px;
+    color: var(--muted);
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 11px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+
+  .edit-type-btn:hover { background: rgba(81,69,50,0.25); color: var(--text); }
+
+  .edit-type-btn.active {
+    background: rgba(255,184,0,0.15);
+    border-color: rgba(255,184,0,0.55);
+    color: var(--accent);
+  }
+
   #edit-satellite-btn {
     background: rgba(81,69,50,0.15);
     border: 1px solid rgba(81,69,50,0.28);
@@ -2319,6 +2345,10 @@
         </div>
         <div id="edit-venue-label">—</div>
         <div id="edit-facing-display">—</div>
+        <div id="edit-type-selector">
+          <button class="edit-type-btn active" data-type="street" onclick="setTerraceType('street')" title="Street-level terrace">Street</button>
+          <button class="edit-type-btn" data-type="rooftop" onclick="setTerraceType('rooftop')" title="Rooftop terrace">Rooftop</button>
+        </div>
         <button id="edit-satellite-btn" onclick="toggleEditSatellite()" title="Toggle satellite view">
           🛰 Satellite
         </button>

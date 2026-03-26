@@ -34,7 +34,7 @@ function loadFacingCache() {
   catch (_) { return {}; }
 }
 
-function saveFacingCache(venueId, facing, facingSource, terraceWallIndices, terraceDepth, noiseScore) {
+function saveFacingCache(venueId, facing, facingSource, terraceWallIndices, terraceDepth, noiseScore, terraceType) {
   const cache = loadFacingCache();
   const prev  = cache[venueId] || {};
   cache[venueId] = {
@@ -44,6 +44,7 @@ function saveFacingCache(venueId, facing, facingSource, terraceWallIndices, terr
     terraceWallIndices: terraceWallIndices ?? prev.terraceWallIndices ?? [],
     terraceDepth:       terraceDepth       ?? prev.terraceDepth       ?? null,
     noiseScore:         noiseScore         ?? prev.noiseScore         ?? null,
+    terraceType:        terraceType        ?? prev.terraceType        ?? null,
   };
   try { localStorage.setItem(FACING_CACHE_KEY, JSON.stringify(cache)); }
   catch (_) {}
@@ -67,6 +68,7 @@ function normalizeVenue(v) {
     googlePlaceId:      v.googlePlaceId ?? null,
     terraceDepth:       v.terraceDepth ?? null,  // null = not manually set; auto-depth used instead
     terraceWallIndices: v.terraceWallIndices ?? [],
+    terraceType:        v.terraceType ?? 'street',
   };
 }
 
@@ -94,6 +96,7 @@ async function loadVenues() {
     if (cached.terraceWallIndices?.length) v.terraceWallIndices = cached.terraceWallIndices;
     if (cached.terraceDepth != null)       v.terraceDepth       = cached.terraceDepth;
     if (cached.noiseScore   != null)       v.noiseScore         = cached.noiseScore;
+    if (cached.terraceType  != null)       v.terraceType        = cached.terraceType;
     // JSON-level 'manual' beats any localStorage entry (it was intentionally authored)
     if (v.facingSource === 'manual') return;
     v.facing = cached.facing;

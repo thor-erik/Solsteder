@@ -1043,9 +1043,10 @@ function computePinLayout(projVenues, currentHour, dateStr) {
     // All other venues: search from shortest stem upward (normal greedy placement).
     const stemMin  = STEM_H;
     const stemMax  = MAX_STEM_H;
-    const stemDir  = isHover ? -STEM_STEP : STEM_STEP;
-    const stemStart = isHover ? stemMax : stemMin;
-    for (let stemH = stemStart; isHover ? stemH >= stemMin : stemH <= stemMax; stemH += stemDir) {
+    const shouldLift = isHover && hoverFromList;
+    const stemDir  = shouldLift ? -STEM_STEP : STEM_STEP;
+    const stemStart = shouldLift ? stemMax : stemMin;
+    for (let stemH = stemStart; shouldLift ? stemH >= stemMin : stemH <= stemMax; stemH += stemDir) {
       const extraStem = stemH - STEM_H;
       const rx = pt.x - spr.anchorX;
       const ry = pt.y - spr.anchorY - extraStem;
@@ -1061,7 +1062,7 @@ function computePinLayout(projVenues, currentHour, dateStr) {
       }
     }
     // Hovered venue never degrades to dot; others do if no stem height works
-    if (!resolved) result.push({ v, pt, state, stemH: isHover ? stemMin : STEM_H, isDot: !isHover, spr });
+    if (!resolved) result.push({ v, pt, state, stemH: STEM_H, isDot: !isHover, spr });
   }
 
   return result;
@@ -1496,7 +1497,7 @@ canvas.addEventListener('mousemove', e => {
     // Cancel any pending clear — we're over a venue
     if (_hoverClearTimer) { clearTimeout(_hoverClearTimer); _hoverClearTimer = null; }
     canvas.style.cursor = 'pointer';
-    if (hoveredId !== hit.id) { hoveredId = hit.id; draw(); }
+    if (hoveredId !== hit.id || hoverFromList) { hoveredId = hit.id; hoverFromList = false; draw(); }
     tooltip.innerHTML = buildTooltipContent(hit);
     const margin = 14;
     let tx = e.clientX + margin, ty = e.clientY - tooltip.offsetHeight - margin;

@@ -1,7 +1,7 @@
 [
   {
     "id": 1,
-    "name": "Nedre Foss Gård",
+    "name": "Nedre Foss G\u00e5rd",
     "address": "Nordre gate 2, Oslo",
     "coords": [
       59.92217650000001,
@@ -21,7 +21,7 @@
   },
   {
     "id": 2,
-    "name": "Grünerhaven Uteservering",
+    "name": "Gr\u00fcnerhaven Uteservering",
     "address": "Thorvald Meyers gate 57, Oslo",
     "coords": [
       59.9233621,
@@ -122,7 +122,7 @@
   {
     "id": 7,
     "name": "Skansen",
-    "address": "Rådhusgata 32, Oslo",
+    "address": "R\u00e5dhusgata 32, Oslo",
     "coords": [
       59.91020100000001,
       10.738914
@@ -241,7 +241,7 @@
   },
   {
     "id": 13,
-    "name": "Fyret mat & Drikke - og Noe til Båten AS",
+    "name": "Fyret mat & Drikke - og Noe til B\u00e5ten AS",
     "address": "Youngstorget 6, Oslo",
     "coords": [
       59.91528229999999,
@@ -321,7 +321,7 @@
   },
   {
     "id": 17,
-    "name": "Café Cathedral",
+    "name": "Caf\u00e9 Cathedral",
     "address": "Dronningens gt. 27, Oslo",
     "coords": [
       59.9118463,
@@ -381,8 +381,8 @@
   },
   {
     "id": 20,
-    "name": "Åpent Eventlokale",
-    "address": "Henny Mürers gang 4, Oslo",
+    "name": "\u00c5pent Eventlokale",
+    "address": "Henny M\u00fcrers gang 4, Oslo",
     "coords": [
       59.9082793,
       10.753971
@@ -501,8 +501,8 @@
   },
   {
     "id": 26,
-    "name": "Kjøkken og Bar",
-    "address": "Møllergata 16, Oslo",
+    "name": "Kj\u00f8kken og Bar",
+    "address": "M\u00f8llergata 16, Oslo",
     "coords": [
       59.9147945,
       10.7476966
@@ -522,7 +522,7 @@
   {
     "id": 27,
     "name": "Pappabuene",
-    "address": "Rådhusbrygge 1 1, Oslo",
+    "address": "R\u00e5dhusbrygge 1 1, Oslo",
     "coords": [
       59.9102571,
       10.7340608
@@ -562,7 +562,7 @@
   {
     "id": 29,
     "name": "Mamma Pizza Vika Osteria di Mare",
-    "address": "Ruseløkkveien 26, Oslo",
+    "address": "Rusel\u00f8kkveien 26, Oslo",
     "coords": [
       59.9126789,
       10.7261389
@@ -581,7 +581,7 @@
   },
   {
     "id": 30,
-    "name": "Café Tekehtopa",
+    "name": "Caf\u00e9 Tekehtopa",
     "address": "St. Olavs Plass 2, Oslo",
     "coords": [
       59.91820939999999,
@@ -621,7 +621,7 @@
   },
   {
     "id": 32,
-    "name": "Café Sara",
+    "name": "Caf\u00e9 Sara",
     "address": "Hausmanns gate 29, Oslo",
     "coords": [
       59.91760679999999,
@@ -681,7 +681,7 @@
   },
   {
     "id": 35,
-    "name": "Døgnvill Burger Tjuvholmen",
+    "name": "D\u00f8gnvill Burger Tjuvholmen",
     "address": "Lille Stranden 10, Oslo",
     "coords": [
       59.9083321,
@@ -937,12 +937,13 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJhxTybn1uQUYR5wfXVLeg0rs",
-    "facingSource": null
+    "facingSource": null,
+    "terraceType": "rooftop"
   },
   {
     "id": 48,
     "name": "Baba bar",
-    "address": "Strøget passasjen, Storgata 13, Oslo",
+    "address": "Str\u00f8get passasjen, Storgata 13, Oslo",
     "coords": [
       59.91352629999999,
       10.7493426
@@ -1021,7 +1022,7 @@
   },
   {
     "id": 52,
-    "name": "Kafé Republik",
+    "name": "Kaf\u00e9 Republik",
     "address": "Storgata 37, Oslo",
     "coords": [
       59.9149858,
@@ -1041,8 +1042,8 @@
   },
   {
     "id": 53,
-    "name": "Kafé Celsius",
-    "address": "Rådhusgata 19, Oslo",
+    "name": "Kaf\u00e9 Celsius",
+    "address": "R\u00e5dhusgata 19, Oslo",
     "coords": [
       59.91017220000001,
       10.7403009
@@ -1061,7 +1062,7 @@
   },
   {
     "id": 54,
-    "name": "Cafe Sør",
+    "name": "Cafe S\u00f8r",
     "address": "Torggata 11, Oslo",
     "coords": [
       59.9141819,
@@ -1128,7 +1129,7 @@
       10.7288783
     ],
     "category": "bar",
-    "area": "Grünerløkka",
+    "area": "Gr\u00fcnerl\u00f8kka",
     "rating": 4.2,
     "facing": null,
     "openingHours": {
@@ -1148,7 +1149,7 @@
       10.7236333
     ],
     "category": "restaurant",
-    "area": "Grünerløkka",
+    "area": "Gr\u00fcnerl\u00f8kka",
     "rating": 4.5,
     "facing": null,
     "openingHours": {
@@ -1168,7 +1169,7 @@
       10.7187486
     ],
     "category": "bar",
-    "area": "Grünerløkka",
+    "area": "Gr\u00fcnerl\u00f8kka",
     "rating": 5,
     "facing": null,
     "openingHours": {
@@ -1188,7 +1189,7 @@
       10.7510437
     ],
     "category": "bar",
-    "area": "Grünerløkka",
+    "area": "Gr\u00fcnerl\u00f8kka",
     "rating": 4.5,
     "facing": null,
     "openingHours": {
@@ -1208,7 +1209,7 @@
       10.7313775
     ],
     "category": "bar",
-    "area": "Grünerløkka",
+    "area": "Gr\u00fcnerl\u00f8kka",
     "rating": 4.2,
     "facing": null,
     "openingHours": {
@@ -1221,14 +1222,14 @@
   },
   {
     "id": 62,
-    "name": "Store Stå Pub",
+    "name": "Store St\u00e5 Pub",
     "address": "Thereses gate 51, Oslo",
     "coords": [
       59.92580409999999,
       10.7306929
     ],
     "category": "bar",
-    "area": "Grünerløkka",
+    "area": "Gr\u00fcnerl\u00f8kka",
     "rating": 4.1,
     "facing": null,
     "openingHours": {
@@ -1248,7 +1249,7 @@
       10.7380861
     ],
     "category": "bar",
-    "area": "Grünerløkka",
+    "area": "Gr\u00fcnerl\u00f8kka",
     "rating": 4.1,
     "facing": null,
     "openingHours": {
@@ -1268,7 +1269,7 @@
       10.739154
     ],
     "category": "bar",
-    "area": "Grünerløkka",
+    "area": "Gr\u00fcnerl\u00f8kka",
     "rating": 4.5,
     "facing": null,
     "openingHours": {
@@ -1288,7 +1289,7 @@
       10.7148659
     ],
     "category": "bar",
-    "area": "Grünerløkka",
+    "area": "Gr\u00fcnerl\u00f8kka",
     "rating": 4.3,
     "facing": null,
     "openingHours": {
@@ -1308,7 +1309,7 @@
       10.7487028
     ],
     "category": "bar",
-    "area": "Grünerløkka",
+    "area": "Gr\u00fcnerl\u00f8kka",
     "rating": 4.2,
     "facing": null,
     "openingHours": {
@@ -1328,7 +1329,7 @@
       10.7518132
     ],
     "category": "bar",
-    "area": "Grünerløkka",
+    "area": "Gr\u00fcnerl\u00f8kka",
     "rating": 4.2,
     "facing": null,
     "openingHours": {
@@ -1348,7 +1349,7 @@
       10.739899
     ],
     "category": "bar",
-    "area": "Grünerløkka",
+    "area": "Gr\u00fcnerl\u00f8kka",
     "rating": 4.5,
     "facing": null,
     "openingHours": {
@@ -1368,7 +1369,7 @@
       10.7183832
     ],
     "category": "cafe",
-    "area": "Grünerløkka",
+    "area": "Gr\u00fcnerl\u00f8kka",
     "rating": 4.6,
     "facing": null,
     "openingHours": {
@@ -1381,14 +1382,14 @@
   },
   {
     "id": 70,
-    "name": "Babbo Collective Øvrefoss",
-    "address": "Øvrefoss 4, Oslo",
+    "name": "Babbo Collective \u00d8vrefoss",
+    "address": "\u00d8vrefoss 4, Oslo",
     "coords": [
       59.9273265,
       10.7568113
     ],
     "category": "restaurant",
-    "area": "Grønland",
+    "area": "Gr\u00f8nland",
     "rating": 4.1,
     "facing": null,
     "openingHours": {
@@ -1402,13 +1403,13 @@
   {
     "id": 71,
     "name": "Dattera til Hagen",
-    "address": "Grønland 10, Oslo",
+    "address": "Gr\u00f8nland 10, Oslo",
     "coords": [
       59.913317,
       10.7602293
     ],
     "category": "bar",
-    "area": "Grønland",
+    "area": "Gr\u00f8nland",
     "rating": 4.1,
     "facing": null,
     "openingHours": {
@@ -1428,7 +1429,7 @@
       10.7626111
     ],
     "category": "bar",
-    "area": "Grønland",
+    "area": "Gr\u00f8nland",
     "rating": 4.5,
     "facing": null,
     "openingHours": {
@@ -1442,13 +1443,13 @@
   {
     "id": 73,
     "name": "Apostrophe",
-    "address": "Kirkegårdsgata 7A, Oslo",
+    "address": "Kirkeg\u00e5rdsgata 7A, Oslo",
     "coords": [
       59.92132579999999,
       10.7637088
     ],
     "category": "restaurant",
-    "area": "Grønland",
+    "area": "Gr\u00f8nland",
     "rating": 4.5,
     "facing": null,
     "openingHours": {
@@ -1468,7 +1469,7 @@
       10.7599378
     ],
     "category": "restaurant",
-    "area": "Grønland",
+    "area": "Gr\u00f8nland",
     "rating": 4.2,
     "facing": null,
     "openingHours": {
@@ -1482,13 +1483,13 @@
   {
     "id": 75,
     "name": "Kafe Asylet",
-    "address": "Grønland 28, Oslo",
+    "address": "Gr\u00f8nland 28, Oslo",
     "coords": [
       59.9129361,
       10.7623861
     ],
     "category": "restaurant",
-    "area": "Grønland",
+    "area": "Gr\u00f8nland",
     "rating": 4.2,
     "facing": null,
     "openingHours": {
@@ -1502,13 +1503,13 @@
   {
     "id": 76,
     "name": "Oslo Mekaniske Verksted",
-    "address": "Tøyenbekken 34, Oslo",
+    "address": "T\u00f8yenbekken 34, Oslo",
     "coords": [
       59.9113807,
       10.7623996
     ],
     "category": "bar",
-    "area": "Grønland",
+    "area": "Gr\u00f8nland",
     "rating": 4.5,
     "facing": null,
     "openingHours": {
@@ -1528,7 +1529,7 @@
       10.7560795
     ],
     "category": "restaurant",
-    "area": "Grønland",
+    "area": "Gr\u00f8nland",
     "rating": 3.8,
     "facing": null,
     "openingHours": {
@@ -1537,7 +1538,8 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJXdi_zWhvQUYRqzS0ZzUDtpo",
-    "facingSource": null
+    "facingSource": null,
+    "terraceType": "rooftop"
   },
   {
     "id": 78,
@@ -1548,7 +1550,7 @@
       10.755277
     ],
     "category": "bar",
-    "area": "Grønland",
+    "area": "Gr\u00f8nland",
     "rating": 4,
     "facing": null,
     "openingHours": {
@@ -1568,7 +1570,7 @@
       10.7630118
     ],
     "category": "bar",
-    "area": "Grønland",
+    "area": "Gr\u00f8nland",
     "rating": 4.5,
     "facing": null,
     "openingHours": {
@@ -1588,7 +1590,7 @@
       10.7603869
     ],
     "category": "bar",
-    "area": "Grønland",
+    "area": "Gr\u00f8nland",
     "rating": 4.3,
     "facing": null,
     "openingHours": {
@@ -1608,7 +1610,7 @@
       10.7516456
     ],
     "category": "cafe",
-    "area": "Grønland",
+    "area": "Gr\u00f8nland",
     "rating": 4.7,
     "facing": null,
     "openingHours": {
@@ -1621,14 +1623,14 @@
   },
   {
     "id": 82,
-    "name": "Papegøye",
+    "name": "Papeg\u00f8ye",
     "address": "Urtegata 48, Oslo",
     "coords": [
       59.9136937,
       10.7661473
     ],
     "category": "bar",
-    "area": "Grønland",
+    "area": "Gr\u00f8nland",
     "rating": 4.8,
     "facing": null,
     "openingHours": {
@@ -1648,7 +1650,7 @@
       10.7701915
     ],
     "category": "cafe",
-    "area": "Grønland",
+    "area": "Gr\u00f8nland",
     "rating": 3.9,
     "facing": null,
     "openingHours": {
@@ -1721,7 +1723,7 @@
   },
   {
     "id": 87,
-    "name": "Grotten øl- & vinbar",
+    "name": "Grotten \u00f8l- & vinbar",
     "address": "Wergelandsveien 5, Oslo",
     "coords": [
       59.9184559,
@@ -1762,7 +1764,7 @@
   {
     "id": 89,
     "name": "Perrongen Drift",
-    "address": "Sørkedalsveien 1, Oslo",
+    "address": "S\u00f8rkedalsveien 1, Oslo",
     "coords": [
       59.92984349999999,
       10.7141667
@@ -1781,7 +1783,7 @@
   },
   {
     "id": 90,
-    "name": "Anne på landet - Frognerparken",
+    "name": "Anne p\u00e5 landet - Frognerparken",
     "address": "Frognerveien 67, Oslo",
     "coords": [
       59.9249236,
@@ -1801,8 +1803,8 @@
   },
   {
     "id": 91,
-    "name": "Kaffebrenneriet avd Løvenskioldsgate",
-    "address": "Løvenskiolds gate 2A, Oslo",
+    "name": "Kaffebrenneriet avd L\u00f8venskioldsgate",
+    "address": "L\u00f8venskiolds gate 2A, Oslo",
     "coords": [
       59.91942379999999,
       10.709191
@@ -1821,7 +1823,7 @@
   },
   {
     "id": 92,
-    "name": "Åpent bakeri",
+    "name": "\u00c5pent bakeri",
     "address": "Inkognito Terrasse 1, Oslo",
     "coords": [
       59.91664119999999,
@@ -1921,7 +1923,7 @@
   },
   {
     "id": 97,
-    "name": "Brødrene Bergh",
+    "name": "Br\u00f8drene Bergh",
     "address": "Karl Johans gt. 35, Oslo",
     "coords": [
       59.91408979999999,
@@ -1957,12 +1959,13 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJb18ELTNvQUYRaGnLZPA9VP4",
-    "facingSource": null
+    "facingSource": null,
+    "terraceType": "rooftop"
   },
   {
     "id": 99,
     "name": "Castello Restaurant - Oslo",
-    "address": "Sørengkaia 99, Oslo",
+    "address": "S\u00f8rengkaia 99, Oslo",
     "coords": [
       59.9027978,
       10.753187
@@ -2042,7 +2045,7 @@
   {
     "id": 103,
     "name": "Seaport Restaurant",
-    "address": "Sørengkaia 101, Oslo",
+    "address": "S\u00f8rengkaia 101, Oslo",
     "coords": [
       59.902654,
       10.752936
@@ -2102,7 +2105,7 @@
   {
     "id": 106,
     "name": "PROSECCHERIA",
-    "address": "Rådhusgata 30B, Oslo",
+    "address": "R\u00e5dhusgata 30B, Oslo",
     "coords": [
       59.9100745,
       10.7394026
@@ -2162,7 +2165,7 @@
   {
     "id": 109,
     "name": "Kaffebrenneriet",
-    "address": "Grønlandsleiret 32, Oslo",
+    "address": "Gr\u00f8nlandsleiret 32, Oslo",
     "coords": [
       59.91161709999999,
       10.7669282

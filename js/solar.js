@@ -6,8 +6,8 @@
 const RAD         = Math.PI / 180;
 const OSLO_LAT    = 59.9139;          // degrees
 
-// Sun table: 15-minute steps from 03:00 → 24:00  (84 slots)
-const SOLAR_STEP  = 0.25;
+// Sun table: 5-minute steps from 03:00 → 24:00  (252 slots)
+const SOLAR_STEP  = 1 / 12;
 const SOLAR_START = 3;
 const SOLAR_END   = 24;
 const SOLAR_SLOTS = Math.round((SOLAR_END - SOLAR_START) / SOLAR_STEP); // 84
@@ -146,6 +146,12 @@ function pointInBuildingShadow(lat, lng, building, sunAz, sunAlt) {
  */
 function venueSunState(venue, sunAz, sunAlt) {
   if (sunAlt < 2) return false;
+
+  // Rooftop: sun shines whenever altitude is sufficient — azimuth and wall facing irrelevant.
+  // Use a slightly higher threshold (5°) to avoid the very flat early/late light that
+  // grazes rather than illuminates a roof.
+  if (venue.terraceType === 'rooftop') return sunAlt > 5;
+
   if (venue.nearbyBuildings && venue.nearbyBuildings.length > 0) {
     // terraceTestPoints is a pre-computed grid across the terrace area (see osm.js).
     // Fall back to entrance pin only when geometry data is absent.
