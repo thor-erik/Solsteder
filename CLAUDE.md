@@ -3,6 +3,10 @@
 Solar-optimized venue finder for Oslo. Pure frontend — no build step, no tests, no bundler.
 Open `index.html` directly in a browser or serve statically.
 
+## Workflow
+
+After any response that modifies files, always commit and push before finishing — without waiting to be asked. Use a concise commit message. Skip this only if the user explicitly says not to commit yet.
+
 ## File map
 
 | File | Role |
