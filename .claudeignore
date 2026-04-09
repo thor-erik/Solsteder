@@ -1,0 +1,10 @@
+# Large intermediate pipeline artifacts — rarely relevant during feature work
+data/venues-fetched.json
+data/venues-candidates.json
+data/venue-photos.json
+
+# Auto-generated — read via targeted grep/read if needed, not full index
+data/geometry.json
+
+# System
+.DS_Store

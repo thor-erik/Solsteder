@@ -987,8 +987,12 @@ function enterEditMode(venueId) {
 
   document.getElementById('edit-overlay').style.display = 'block';
   document.getElementById('edit-venue-label').textContent = v.name;
-  document.getElementById('edit-facing-display').innerHTML = `${v.facing}° ${bearingToCardinal(v.facing)}`;
-  _syncTerraceTypeUI(v.terraceType ?? 'street');
+  const type = v.terraceType ?? 'street';
+  if (type === 'rooftop')   document.getElementById('edit-facing-display').innerHTML = 'Rooftop';
+  else if (type === 'courtyard') document.getElementById('edit-facing-display').innerHTML = 'Courtyard';
+  else if (type === 'detached')  document.getElementById('edit-facing-display').innerHTML = 'Detached';
+  else document.getElementById('edit-facing-display').innerHTML = `${v.facing}° ${bearingToCardinal(v.facing)}`;
+  _syncTerraceTypeUI(type);
 
   if (popup) { popup.remove(); popup = null; }
   tooltip.classList.remove('visible');
@@ -1073,13 +1077,19 @@ function selectWallByIdx(idx) {
   renderList();
 }
 
+const _TYPE_SUBTITLES = {
+  street:    'Click walls to add/remove · drag ● to set depth',
+  rooftop:   'Sun based on altitude only — no wall or shadow logic',
+  courtyard: 'Sun reaches floor only at high altitude (~midday in summer)',
+  detached:  'Click the map to place the terrace location',
+};
+
 function _syncTerraceTypeUI(type) {
   document.querySelectorAll('.edit-type-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.type === type);
   });
-  // Wall selection is irrelevant for rooftops — hide the instruction
   const subtitle = document.getElementById('edit-subtitle');
-  if (subtitle) subtitle.style.visibility = type === 'rooftop' ? 'hidden' : 'visible';
+  if (subtitle) subtitle.textContent = _TYPE_SUBTITLES[type] ?? _TYPE_SUBTITLES.street;
 }
 
 function setTerraceType(type) {
@@ -1088,28 +1098,45 @@ function setTerraceType(type) {
   v.terraceType = type;
   _syncTerraceTypeUI(type);
 
-  if (type === 'rooftop') {
-    // Rooftop: recompute test points from building centroid, no wall needed
-    v.terraceTestPoints = (v.buildingGeometry?.length)
+  const facingEl = document.getElementById('edit-facing-display');
+
+  if (type === 'rooftop' || type === 'courtyard') {
+    v.terraceTestPoints = v.buildingGeometry?.length
       ? (() => { const c = computeCentroid(v.buildingGeometry); return [{ lat: c.lat, lng: c.lon }]; })()
       : [{ lat: v.lat, lng: v.lng }];
-    document.getElementById('edit-facing-display').innerHTML = 'Rooftop';
+    facingEl.innerHTML = type === 'rooftop' ? 'Rooftop' : 'Courtyard';
+  } else if (type === 'detached') {
+    if (!v.terraceDetachedLocation) v.terraceDetachedLocation = { lat: v.lat, lng: v.lng };
+    v.terraceTestPoints = [{ ...v.terraceDetachedLocation }];
+    facingEl.innerHTML = 'Detached';
   } else {
-    // Restore wall-based test points
+    // street
     v.terraceTestPoints = computeTerraceTestPoints(v, null);
     const walls = getTerraceWalls(v);
-    const label = walls.length > 1
+    facingEl.innerHTML = walls.length > 1
       ? `${v.facing}° ${bearingToCardinal(v.facing)} · ${walls.length} walls`
       : `${v.facing}° ${bearingToCardinal(v.facing)}`;
-    document.getElementById('edit-facing-display').innerHTML = label;
   }
 
   saveFacingCache(v.id, v.facing, v.facingSource,
-    v.terraceWallIndices, v.terraceDepth, v.noiseScore, type);
+    v.terraceWallIndices, v.terraceDepth, v.noiseScore, type, v.terraceDetachedLocation);
   sunWindowCache.clear();
   dispatchToWorker(datePicker.value);
   draw();
   renderList();
+}
+
+/** Called from render.js when user clicks/drags the detached pin. */
+function setDetachedLocation(lat, lng) {
+  const v = VENUES.find(x => x.id === editingVenueId);
+  if (!v || v.terraceType !== 'detached') return;
+  v.terraceDetachedLocation = { lat, lng };
+  v.terraceTestPoints = [{ lat, lng }];
+  saveFacingCache(v.id, v.facing, v.facingSource,
+    v.terraceWallIndices, v.terraceDepth, v.noiseScore, 'detached', { lat, lng });
+  sunWindowCache.clear();
+  dispatchToWorker(datePicker.value);
+  draw();
 }
 
 // ── Sidebar + filters ─────────────────────────────────────────────────────────

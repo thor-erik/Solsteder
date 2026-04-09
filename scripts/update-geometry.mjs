@@ -379,10 +379,15 @@ async function main() {
 
     // Pre-compute terraceTestPoints so the fast-path load skips re-derivation at runtime.
     let terraceTestPoints;
-    if (v.terraceType === 'rooftop') {
+    if (v.terraceType === 'rooftop' || v.terraceType === 'courtyard') {
+      // Centroid of building footprint (rooftop = exposed sky; courtyard = interior)
       const c = computeCentroid(building.geometry);
       terraceTestPoints = [{ lat: c.lat, lng: c.lon }];
+    } else if (v.terraceType === 'detached' && v.terraceDetachedLocation) {
+      // User-placed pin — bake current value; user may update at runtime
+      terraceTestPoints = [{ lat: v.terraceDetachedLocation.lat, lng: v.terraceDetachedLocation.lng }];
     } else {
+      // Street: wall-projection grid
       const depth     = autoTerraceDepth ?? 4;
       const testDepth = Math.max(1.5, depth * 0.5);
       const usedWalls = autoTerraceWallIndices.map(i => walls[i]).filter(Boolean);

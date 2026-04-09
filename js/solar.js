@@ -148,9 +148,15 @@ function venueSunState(venue, sunAz, sunAlt) {
   if (sunAlt < 2) return false;
 
   // Rooftop: sun shines whenever altitude is sufficient — azimuth and wall facing irrelevant.
-  // Use a slightly higher threshold (5°) to avoid the very flat early/late light that
-  // grazes rather than illuminates a roof.
+  // Use a slightly higher threshold (5°) to avoid very flat grazing light.
   if (venue.terraceType === 'rooftop') return sunAlt > 5;
+
+  // Courtyard: standard shadow casting can't be used because the test point would be inside
+  // the building footprint, triggering pointInBuildingShadow's footprint-containment check.
+  // Instead, use an altitude cutoff: sun reaches the courtyard floor only when high enough
+  // to clear the surrounding walls. 20° is a reasonable proxy for a typical Oslo inner courtyard
+  // (~3-4 storey walls, ~10–15 m wide opening).
+  if (venue.terraceType === 'courtyard') return sunAlt > 20;
 
   if (venue.nearbyBuildings && venue.nearbyBuildings.length > 0) {
     // terraceTestPoints is a pre-computed grid across the terrace area (see osm.js).

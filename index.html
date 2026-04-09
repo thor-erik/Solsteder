@@ -2346,8 +2346,10 @@
         <div id="edit-venue-label">—</div>
         <div id="edit-facing-display">—</div>
         <div id="edit-type-selector">
-          <button class="edit-type-btn active" data-type="street" onclick="setTerraceType('street')" title="Street-level terrace">Street</button>
-          <button class="edit-type-btn" data-type="rooftop" onclick="setTerraceType('rooftop')" title="Rooftop terrace">Rooftop</button>
+          <button class="edit-type-btn active" data-type="street"    onclick="setTerraceType('street')"    title="Street-level terrace">Street</button>
+          <button class="edit-type-btn"         data-type="rooftop"  onclick="setTerraceType('rooftop')"  title="Rooftop terrace">Rooftop</button>
+          <button class="edit-type-btn"         data-type="courtyard" onclick="setTerraceType('courtyard')" title="Enclosed courtyard">Courtyard</button>
+          <button class="edit-type-btn"         data-type="detached" onclick="setTerraceType('detached')" title="Terrace separate from building">Detached</button>
         </div>
         <button id="edit-satellite-btn" onclick="toggleEditSatellite()" title="Toggle satellite view">
           🛰 Satellite
@@ -2486,8 +2488,15 @@
 <script src="js/weather.js"></script>
 <script src="js/scoring.js"></script>
 <script src="js/app.js"></script>
-<script src="js/render.js"></script>
-<script src="js/ui.js"></script>
+<script src="js/render-helpers.js"></script>
+<script src="js/render-arc.js"></script>
+<script src="js/render-seating.js"></script>
+<script src="js/render-editor.js"></script>
+<script src="js/render-pins.js"></script>
+<script src="js/ui-shared.js"></script>
+<script src="js/ui-list.js"></script>
+<script src="js/ui-shelter.js"></script>
+<script src="js/ui-detail.js"></script>
 <script src="js/osm.js"></script>
 <script>
 loadVenues().then(() => {

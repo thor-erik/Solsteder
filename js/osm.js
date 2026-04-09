@@ -185,10 +185,21 @@ function computeDepthFromOutdoorSeatingArea(wallSegment, polygon) {
  * Side-effect: sets venue.autoTerraceDepth when derived from an OSM polygon.
  */
 function computeTerraceTestPoints(venue, osmElement) {
-  // Rooftop: use the building footprint centroid — the entire roof is exposed to sky
+  // Rooftop: building centroid — entire roof exposed to sky
   if (venue.terraceType === 'rooftop' && venue.buildingGeometry?.length) {
     const c = computeCentroid(venue.buildingGeometry);
     return [{ lat: c.lat, lng: c.lon }];
+  }
+
+  // Courtyard: building centroid for display context; sun logic uses altitude cutoff in venueSunState
+  if (venue.terraceType === 'courtyard' && venue.buildingGeometry?.length) {
+    const c = computeCentroid(venue.buildingGeometry);
+    return [{ lat: c.lat, lng: c.lon }];
+  }
+
+  // Detached: user-placed coordinate — terrace is separate from the building
+  if (venue.terraceType === 'detached' && venue.terraceDetachedLocation) {
+    return [{ lat: venue.terraceDetachedLocation.lat, lng: venue.terraceDetachedLocation.lng }];
   }
 
   // Tier 1a — OSM area polygon: centroid + depth from polygon extent
