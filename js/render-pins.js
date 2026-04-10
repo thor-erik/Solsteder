@@ -1,7 +1,7 @@
 /**
  * render-pins.js — Map pins (sprites, layout, animation), main draw loop,
  *                  hit testing, and canvas event handling.
- * Depends on: map, canvas, ctx, currentSun, selectedId, hoveredId, hoverFromList,
+ * Depends on: map, canvas, ctx, currentSun, selectedId, hoveredId, hoverFromList, raisedId,
  *             editingVenueId, editHoveredWallIdx, VENUES (app.js / data.js)
  *             venueSunState (solar.js)
  *             computeSunWindows, sunScore, formatHour (app.js / scoring.js)
@@ -228,9 +228,9 @@ const _pinAnimStemH = new Map();  // id → animated stem height (px, float) for
 function computePinLayout(projVenues, currentHour, dateStr) {
   const PRI = { sunny: 0, soon: 1, shaded: 2, closed: 3 };
   const sorted = [...projVenues].sort((a, b) => {
-    // Hovered venue is processed last so it can claim the highest available position
-    if (a.v.id === hoveredId) return 1;
-    if (b.v.id === hoveredId) return -1;
+    // Raised pin (from sidebar) is processed last so it can claim the highest available position
+    if (a.v.id === raisedId) return 1;
+    if (b.v.id === raisedId) return -1;
     const pd = PRI[a.state] - PRI[b.state];
     if (pd !== 0) return pd;
     // Tie-break within same state: non-open venues by time until opening (sooner = higher priority);
@@ -254,17 +254,17 @@ function computePinLayout(projVenues, currentHour, dateStr) {
 
   for (const { v, pt, state } of sorted) {
     const selected = v.id === selectedId;
-    const isHover  = v.id === hoveredId;
+    const isHover  = v.id === raisedId;
     const spr = getSprite(v, state, selected, currentHour, dateStr);
     const rw  = spr.canvas.width;
     const rh  = spr.canvas.height - STEM_H;  // pill area (excludes baked stem)
 
     let resolved = false;
-    // Hovered venue: search from tallest stem downward so it sits highest among neighbours.
+    // Raised pin (sidebar hover): search from tallest stem downward so it sits highest.
     // All other venues: search from shortest stem upward (normal greedy placement).
     const stemMin  = STEM_H;
     const stemMax  = MAX_STEM_H;
-    const shouldLift = isHover && hoverFromList;
+    const shouldLift = isHover;
     const stemDir  = shouldLift ? -STEM_STEP : STEM_STEP;
     const stemStart = shouldLift ? stemMax : stemMin;
     for (let stemH = stemStart; shouldLift ? stemH >= stemMin : stemH <= stemMax; stemH += stemDir) {
@@ -282,7 +282,7 @@ function computePinLayout(projVenues, currentHour, dateStr) {
         break;
       }
     }
-    // Hovered venue never degrades to dot; others do if no stem height works
+    // Raised pin never degrades to dot; others do if no stem height works
     if (!resolved) result.push({ v, pt, state, stemH: STEM_H, isDot: !isHover, spr });
   }
 
@@ -512,7 +512,7 @@ function draw() {
       else needsAnimFrame = true;
     }
 
-    const isHovered = v.id === hoveredId;
+    const isHovered = v.id === hoveredId || v.id === raisedId;
     const rp = (v.id === selectedId ? 4 : 2) + 1;
     const sprLeft = pt.x - spr.anchorX;
     const sprTop  = pt.y - spr.anchorY - extraStem;
@@ -520,16 +520,21 @@ function draw() {
     ctx.save();
     if (pinAlpha < 1) ctx.globalAlpha = pinAlpha;
 
-    // Hover: bright outline ring peeking outside the pill edges
+    // Hover/raised: glowing outline ring around the pill
     if (isHovered) {
       const pillW = spr.canvas.width - rp * 2 - 2;
+      const glowCol = state === 'sunny' ? 'rgba(255,225,80,0.9)' :
+                      state === 'soon'  ? 'rgba(255,205,70,0.8)' :
+                                          'rgba(210,200,185,0.75)';
+      ctx.save();
+      ctx.shadowBlur = 9;
+      ctx.shadowColor = glowCol;
       ctx.beginPath();
       ctx.roundRect(sprLeft + rp - 3.5, sprTop + rp - 3.5, pillW + 7, PILL_H + 7, PILL_R + 3.5);
-      ctx.strokeStyle = state === 'sunny' ? 'rgba(255,220,100,0.7)' :
-                        state === 'soon'  ? 'rgba(255,200,80,0.6)'  :
-                                            'rgba(200,190,175,0.45)';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = glowCol;
+      ctx.lineWidth = 2.5;
       ctx.stroke();
+      ctx.restore();
     }
 
     ctx.drawImage(spr.canvas, sprLeft, sprTop);
@@ -784,7 +789,8 @@ canvas.addEventListener('mousemove', e => {
 
 canvas.addEventListener('mouseleave', () => {
   if (_hoverClearTimer) { clearTimeout(_hoverClearTimer); _hoverClearTimer = null; }
-  if (hoveredId !== null) { hoveredId = null; draw(); }
+  // Only clear map-canvas hover; raisedId (from sidebar) stays raised
+  if (hoveredId !== null && !hoverFromList) { hoveredId = null; draw(); }
   tooltip.classList.remove('visible');
   if (!editDraggingDepth) canvas.style.cursor = 'default';
 });

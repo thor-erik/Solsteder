@@ -24,6 +24,7 @@ let activeIntent  = null;
 let panelVisible      = true;
 let hoveredId         = null;
 let hoverFromList     = false; // true = list hover (pin lifts); false = map canvas hover (no lift)
+let raisedId          = null;  // last list-hovered pin; stays raised after cursor leaves sidebar
 let mapLoaded         = false;
 let _qcActiveSection  = null; // 'date' | 'time' | null
 let _qcArcDragging    = false;
@@ -435,9 +436,15 @@ function selectCalendarDate(dateStr) {
 
 // ── Hover from sidebar list ───────────────────────────────────────────────────
 function setHoveredVenue(id) {
-  if (hoveredId === id && hoverFromList) return;
-  hoveredId = id;
-  hoverFromList = true;
+  if (id !== null) {
+    raisedId = id;      // remember as persistently raised
+    hoveredId = id;
+    hoverFromList = true;
+  } else {
+    hoveredId = null;   // clear active list highlight
+    hoverFromList = false;
+    // raisedId intentionally kept — pin stays raised after cursor leaves sidebar
+  }
   draw();
 }
 
