@@ -383,9 +383,10 @@ function panToVenueCenter(v) {
   let   diff          = Math.abs(targetBearing - curBearing);
   if (diff > 180) diff = 360 - diff;
 
+  const targetZoom = Math.max(map.getZoom(), 16.5);
   const opts = {
     center:   [v.lng, v.lat],
-    zoom:     Math.max(map.getZoom(), 15),
+    zoom:     targetZoom,
     pitch:    45,
     padding:  { left: padLeft, right: 0, top: 60, bottom: 0 },
     duration: 480,
