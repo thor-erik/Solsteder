@@ -917,10 +917,10 @@ function selectVenue(id, flyTo) {
   const v = VENUES.find(x => x.id === id);
   if (!v) return;
 
-  // Only rotate/pitch to face the wall when buildings are visible (zoom >= 15)
+  // Only rotate/pitch to face the wall when buildings are visible (zoom >= 17)
   if (flyTo) {
-    const targetZoom    = Math.max(map.getZoom(), 15);
-    const buildingsVisible = map.getZoom() >= 15;
+    const targetZoom    = Math.max(map.getZoom(), 17);
+    const buildingsVisible = map.getZoom() >= 17;
     const flyOpts = { center: [v.lng, v.lat], zoom: targetZoom, duration: 800 };
     if (buildingsVisible) {
       const targetBearing = (v.facing + 180) % 360;
