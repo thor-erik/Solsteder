@@ -917,14 +917,19 @@ function selectVenue(id, flyTo) {
   const v = VENUES.find(x => x.id === id);
   if (!v) return;
 
-  // Only rotate to face the wall if we're more than 90° off — otherwise leave bearing alone
+  // Only rotate/pitch to face the wall when buildings are visible (zoom >= 15)
   if (flyTo) {
-    const targetBearing = (v.facing + 180) % 360;
-    const curBearing    = ((map.getBearing() % 360) + 360) % 360;
-    let   diff          = Math.abs(targetBearing - curBearing);
-    if (diff > 180) diff = 360 - diff;
-    const flyOpts = { center: [v.lng, v.lat], zoom: Math.max(map.getZoom(), 15), pitch: 45, duration: 800 };
-    if (diff > 90) flyOpts.bearing = targetBearing;
+    const targetZoom    = Math.max(map.getZoom(), 15);
+    const buildingsVisible = map.getZoom() >= 15;
+    const flyOpts = { center: [v.lng, v.lat], zoom: targetZoom, duration: 800 };
+    if (buildingsVisible) {
+      const targetBearing = (v.facing + 180) % 360;
+      const curBearing    = ((map.getBearing() % 360) + 360) % 360;
+      let   diff          = Math.abs(targetBearing - curBearing);
+      if (diff > 180) diff = 360 - diff;
+      flyOpts.pitch = 45;
+      if (diff > 90) flyOpts.bearing = targetBearing;
+    }
     map.flyTo(flyOpts);
   }
 
