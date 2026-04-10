@@ -114,7 +114,7 @@ map.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-right
 
 // TEMP: camera stats indicator
 const _camEl = document.createElement('div');
-_camEl.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.7);color:#fff;font:bold 13px monospace;padding:4px 12px;border-radius:6px;z-index:9999;pointer-events:none;white-space:nowrap';
+_camEl.style.cssText = 'position:fixed;top:12px;right:12px;background:rgba(0,0,0,0.7);color:#fff;font:bold 13px monospace;padding:4px 12px;border-radius:6px;z-index:9999;pointer-events:none;white-space:nowrap';
 document.body.appendChild(_camEl);
 const _updateCam = () => {
   _camEl.textContent = `zoom: ${map.getZoom().toFixed(2)}  bearing: ${map.getBearing().toFixed(1)}°  pitch: ${map.getPitch().toFixed(1)}°`;
