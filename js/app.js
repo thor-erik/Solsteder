@@ -1011,6 +1011,9 @@ function enterEditMode(venueId) {
   document.getElementById('edit-overlay').style.display = 'block';
   document.getElementById('floating-search').style.display = 'none';
   document.getElementById('panel').style.display = 'none';
+  document.getElementById('detail-panel').style.display = 'none';
+  document.getElementById('qc-panel').style.display = 'none';
+  document.getElementById('panel-reveal-btn').style.display = 'none';
   document.getElementById('edit-venue-label').textContent = v.name;
   const type = v.terraceType ?? 'street';
   if (type === 'rooftop')   document.getElementById('edit-facing-display').innerHTML = 'Rooftop';
@@ -1076,6 +1079,9 @@ function exitEditMode() {
   document.getElementById('edit-overlay').style.display = 'none';
   document.getElementById('floating-search').style.display = '';
   document.getElementById('panel').style.display = '';
+  document.getElementById('detail-panel').style.display = '';
+  document.getElementById('qc-panel').style.display = '';
+  document.getElementById('panel-reveal-btn').style.display = '';
   document.querySelectorAll('.venue-card.editing').forEach(c => c.classList.remove('editing'));
   if (editSatelliteActive) {
     editSatelliteActive = false;
