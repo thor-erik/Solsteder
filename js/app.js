@@ -112,6 +112,14 @@ const map = new mapboxgl.Map({
 map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
 map.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-right');
 
+// TEMP: zoom level indicator
+const _zoomEl = document.createElement('div');
+_zoomEl.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.7);color:#fff;font:bold 14px monospace;padding:4px 10px;border-radius:6px;z-index:9999;pointer-events:none';
+document.body.appendChild(_zoomEl);
+const _updateZoom = () => { _zoomEl.textContent = `zoom: ${map.getZoom().toFixed(2)}`; };
+map.on('zoom', _updateZoom);
+map.on('load', _updateZoom);
+
 map.on('style.load', () => {
   mapLoaded = true;
 
