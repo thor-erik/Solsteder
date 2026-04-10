@@ -51,6 +51,42 @@ function saveFacingCache(venueId, facing, facingSource, terraceWallIndices, terr
   catch (_) {}
 }
 
+// ── Corrections log ───────────────────────────────────────────────────────────
+// Records every manual edit (correction) or confirmation that the model was right.
+// Exported via exportCorrections() for analysis by scripts/analyze-corrections.mjs.
+const CORRECTIONS_KEY = 'solsteder_corrections_v1';
+
+function loadCorrections() {
+  try { return JSON.parse(localStorage.getItem(CORRECTIONS_KEY) || '[]'); }
+  catch (_) { return []; }
+}
+
+/**
+ * Save one feedback record.
+ * @param {'correction'|'confirmed'} type
+ * @param {object} venueSnapshot  - { id, name, category, before, after, autoState }
+ */
+function saveCorrection(type, venueSnapshot) {
+  const corrections = loadCorrections();
+  corrections.push({ type, timestamp: new Date().toISOString(), ...venueSnapshot });
+  try { localStorage.setItem(CORRECTIONS_KEY, JSON.stringify(corrections)); }
+  catch (_) {}
+}
+
+/**
+ * Download all stored corrections as a JSON file.
+ * The file can be passed to scripts/analyze-corrections.mjs for pattern analysis.
+ */
+function exportCorrections() {
+  const data = loadCorrections();
+  if (!data.length) { alert('No corrections recorded yet.'); return; }
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = `solsteder-corrections-${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); URL.revokeObjectURL(url);
+}
+
 // ── JSON → runtime format ─────────────────────────────────────────────────────
 function normalizeVenue(v) {
   return {

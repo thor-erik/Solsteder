@@ -12,6 +12,7 @@ let currentDateStr    = null;   // tracks which date the table belongs to
 let selectedId        = null;
 let editingVenueId    = null;
 let editHoveredWallIdx = null;
+let _editBeforeSnapshot = null;   // venue state captured when entering edit mode
 let popup             = null;
 let nowMode           = false;
 let nowInterval       = null;
@@ -988,11 +989,24 @@ function updateDetailPanel() {
 }
 
 // ── Edit mode ─────────────────────────────────────────────────────────────────
+function _venueEditSnapshot(v) {
+  return {
+    terraceType:             v.terraceType ?? 'street',
+    terraceWallIndices:      (v.terraceWallIndices ?? []).slice(),
+    terraceDepth:            v.terraceDepth ?? null,
+    facing:                  v.facing,
+    facingSource:            v.facingSource ?? null,
+    terraceDetachedLocation: v.terraceDetachedLocation ? { ...v.terraceDetachedLocation } : null,
+  };
+}
+
 function enterEditMode(venueId) {
   editingVenueId = venueId;
   editHoveredWallIdx = null;
   const v = VENUES.find(x => x.id === venueId);
   if (!v) return;
+
+  _editBeforeSnapshot = _venueEditSnapshot(v);
 
   document.getElementById('edit-overlay').style.display = 'block';
   document.getElementById('edit-venue-label').textContent = v.name;
@@ -1041,6 +1055,20 @@ function toggleEditSatellite() {
 }
 
 function exitEditMode() {
+  // Detect and record corrections before clearing state
+  if (editingVenueId && _editBeforeSnapshot) {
+    const v    = VENUES.find(x => x.id === editingVenueId);
+    const after = v ? _venueEditSnapshot(v) : null;
+    if (v && after && JSON.stringify(_editBeforeSnapshot) !== JSON.stringify(after)) {
+      saveCorrection('correction', {
+        id: v.id, name: v.name, category: v.category,
+        before: _editBeforeSnapshot,
+        after,
+        buildingNodeCount: v.buildingGeometry?.length ?? null,
+      });
+    }
+  }
+  _editBeforeSnapshot = null;
   editingVenueId = null;
   editHoveredWallIdx = null;
   document.getElementById('edit-overlay').style.display = 'none';
@@ -1053,6 +1081,21 @@ function exitEditMode() {
   map.easeTo({ pitch: 15, bearing: 0, duration: 500 });
   draw();
   renderList();
+}
+
+/** User confirmed the model is already correct — record as positive signal and close. */
+function confirmEditCorrect() {
+  if (editingVenueId && _editBeforeSnapshot) {
+    const v = VENUES.find(x => x.id === editingVenueId);
+    if (v) {
+      saveCorrection('confirmed', {
+        id: v.id, name: v.name, category: v.category,
+        state: _editBeforeSnapshot,
+        buildingNodeCount: v.buildingGeometry?.length ?? null,
+      });
+    }
+  }
+  exitEditMode();
 }
 
 function selectWallByIdx(idx) {

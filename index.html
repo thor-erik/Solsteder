@@ -1585,6 +1585,25 @@
     color: #7ab4ff;
   }
 
+  #edit-confirm-btn {
+    background: rgba(100,255,180,0.12);
+    border: 1px solid rgba(100,255,180,0.4);
+    border-radius: 8px;
+    color: #64ffb4;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 7px 14px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    white-space: nowrap;
+  }
+
+  #edit-confirm-btn:hover {
+    background: rgba(100,255,180,0.22);
+    border-color: rgba(100,255,180,0.65);
+  }
+
   #edit-done-btn {
     background: var(--accent);
     border: none;
@@ -1599,6 +1618,22 @@
   }
 
   #edit-done-btn:hover { opacity: 0.85; }
+
+  #edit-export-btn {
+    background: transparent;
+    border: 1px solid rgba(81,69,50,0.35);
+    border-radius: 8px;
+    color: var(--muted);
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+  }
+
+  #edit-export-btn:hover { background: rgba(81,69,50,0.15); color: var(--text); }
 
   /* Timeline */
   .card-timeline {
@@ -2354,7 +2389,9 @@
         <button id="edit-satellite-btn" onclick="toggleEditSatellite()" title="Toggle satellite view">
           🛰 Satellite
         </button>
-        <button id="edit-done-btn" onclick="exitEditMode()">Done</button>
+        <button id="edit-confirm-btn" onclick="confirmEditCorrect()" title="Model is already correct — record as confirmed">Ser riktig ut ✓</button>
+        <button id="edit-done-btn" onclick="exitEditMode()">Lagre</button>
+        <button id="edit-export-btn" onclick="exportCorrections()" title="Download corrections log for analysis">Eksporter</button>
       </div>
     </div>
 
