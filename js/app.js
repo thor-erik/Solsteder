@@ -1009,6 +1009,8 @@ function enterEditMode(venueId) {
   _editBeforeSnapshot = _venueEditSnapshot(v);
 
   document.getElementById('edit-overlay').style.display = 'block';
+  document.getElementById('floating-search').style.display = 'none';
+  document.getElementById('panel').style.display = 'none';
   document.getElementById('edit-venue-label').textContent = v.name;
   const type = v.terraceType ?? 'street';
   if (type === 'rooftop')   document.getElementById('edit-facing-display').innerHTML = 'Rooftop';
@@ -1072,6 +1074,8 @@ function exitEditMode() {
   editingVenueId = null;
   editHoveredWallIdx = null;
   document.getElementById('edit-overlay').style.display = 'none';
+  document.getElementById('floating-search').style.display = '';
+  document.getElementById('panel').style.display = '';
   document.querySelectorAll('.venue-card.editing').forEach(c => c.classList.remove('editing'));
   if (editSatelliteActive) {
     editSatelliteActive = false;
