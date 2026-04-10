@@ -919,8 +919,8 @@ function selectVenue(id, flyTo) {
 
   // Only rotate/pitch to face the wall when buildings are visible (zoom >= 17)
   if (flyTo) {
-    const targetZoom    = Math.max(map.getZoom(), 17);
-    const buildingsVisible = map.getZoom() >= 17;
+    const targetZoom    = Math.max(map.getZoom(), 18);
+    const buildingsVisible = targetZoom >= 17;
     const flyOpts = { center: [v.lng, v.lat], zoom: targetZoom, duration: 800 };
     if (buildingsVisible) {
       const targetBearing = (v.facing + 180) % 360;
