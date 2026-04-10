@@ -1012,6 +1012,7 @@ function enterEditMode(venueId) {
   document.getElementById('floating-search').style.display = 'none';
   document.getElementById('panel').style.display = 'none';
   document.getElementById('detail-panel').style.display = 'none';
+  document.getElementById('qc-wrap').style.display = 'none';
   document.getElementById('qc-panel').style.display = 'none';
   document.getElementById('panel-reveal-btn').style.display = 'none';
   document.getElementById('edit-venue-label').textContent = v.name;
@@ -1080,6 +1081,7 @@ function exitEditMode() {
   document.getElementById('floating-search').style.display = '';
   document.getElementById('panel').style.display = '';
   document.getElementById('detail-panel').style.display = '';
+  document.getElementById('qc-wrap').style.display = '';
   document.getElementById('qc-panel').style.display = '';
   document.getElementById('panel-reveal-btn').style.display = '';
   document.querySelectorAll('.venue-card.editing').forEach(c => c.classList.remove('editing'));
