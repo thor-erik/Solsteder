@@ -391,7 +391,7 @@ function panToVenueCenter(v) {
     padding:  { left: padLeft, right: 0, top: 60, bottom: 0 },
     duration: 480,
   };
-  if (diff > 90) opts.bearing = targetBearing;
+  if (diff > 60) opts.bearing = targetBearing;
   map.easeTo(opts);
 }
 

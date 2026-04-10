@@ -940,7 +940,7 @@ function selectVenue(id, flyTo) {
       let   diff          = Math.abs(targetBearing - curBearing);
       if (diff > 180) diff = 360 - diff;
       flyOpts.pitch = 45;
-      if (diff > 90) flyOpts.bearing = targetBearing;
+      if (diff > 60) flyOpts.bearing = targetBearing;
     }
     map.flyTo(flyOpts);
   }
