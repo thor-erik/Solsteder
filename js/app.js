@@ -22,9 +22,11 @@ let activeArea    = '';
 let activeSortBy  = 'score';
 let activeIntent  = null;
 let panelVisible      = true;
-let hoveredId         = null;
-let hoverFromList     = false; // true = list hover (pin lifts); false = map canvas hover (no lift)
-let raisedId          = null;  // last list-hovered pin; stays raised after cursor leaves sidebar
+// Consolidated hover/raise state.
+//   id       — currently highlighted pin (drives glow ring); null when nothing is hovered
+//   source   — 'map' | 'list'
+//   raisedId — last list-hovered pin; drives pin lift; persists after cursor leaves sidebar
+const highlight = { id: null, source: null, raisedId: null };
 let mapLoaded         = false;
 let _qcActiveSection  = null; // 'date' | 'time' | null
 let _qcArcDragging    = false;
@@ -437,13 +439,13 @@ function selectCalendarDate(dateStr) {
 // ── Hover from sidebar list ───────────────────────────────────────────────────
 function setHoveredVenue(id) {
   if (id !== null) {
-    raisedId = id;      // remember as persistently raised
-    hoveredId = id;
-    hoverFromList = true;
+    highlight.id = id;
+    highlight.source = 'list';
+    highlight.raisedId = id;   // persists after cursor leaves sidebar
   } else {
-    hoveredId = null;   // clear active list highlight
-    hoverFromList = false;
-    // raisedId intentionally kept — pin stays raised after cursor leaves sidebar
+    highlight.id = null;
+    highlight.source = null;
+    // highlight.raisedId intentionally kept
   }
   draw();
 }
@@ -824,8 +826,8 @@ function update() {
   updateLightPreset();
   updateSunLighting();
 
-  if (hoveredId != null && tooltip.classList.contains('visible')) {
-    const hv = VENUES.find(x => x.id === hoveredId);
+  if (highlight.id != null && tooltip.classList.contains('visible')) {
+    const hv = VENUES.find(x => x.id === highlight.id);
     if (hv) tooltip.innerHTML = buildTooltipContent(hv);
   }
 

@@ -1,7 +1,7 @@
 /**
  * render-pins.js — Map pins (sprites, layout, animation), main draw loop,
  *                  hit testing, and canvas event handling.
- * Depends on: map, canvas, ctx, currentSun, selectedId, hoveredId, hoverFromList, raisedId,
+ * Depends on: map, canvas, ctx, currentSun, selectedId, highlight,
  *             editingVenueId, editHoveredWallIdx, VENUES (app.js / data.js)
  *             venueSunState (solar.js)
  *             computeSunWindows, sunScore, formatHour (app.js / scoring.js)
@@ -204,43 +204,49 @@ map.on('move', draw);
 map.on('zoomend', draw);
 
 // ── Pin layout: anti-overlap via variable stem, dot fallback ──────────────────
-// Each pin tries increasing stem heights until it clears all higher-priority
-// pills. If no stem works it degrades to a small dot. Sorting by relevance
+// Each pin tries increasing extra-stem values until it clears all higher-priority
+// pills. If no value works it degrades to a small dot. Sorting by relevance
 // (sunny > soon > shaded, then by sun score) means important venues always
 // keep their preferred position.
-const MAX_STEM_H = 80;    // max extended stem before pin becomes a dot
-const STEM_STEP  = 14;    // stem extension increment (px)
-const DOT_R      = 4.5;   // dot radius (px)
-const PILL_GAP   = 8;     // min gap between pill bounding boxes (px)
-const DOT_FADE_MS = 240;  // pill↔dot morph duration
+//
+// extraStem is 0-based: 0 = stem flush with sprite bottom, 14 = one step raised, etc.
+// The sprite always bakes a fixed STEM_H stem; extraStem extends it further.
+const MAX_EXTRA_STEM = 56;  // max extra stem before pin becomes a dot (4 × STEM_STEP)
+const STEM_STEP  = 14;      // stem extension increment (px)
+const DOT_R      = 4.5;     // dot radius (px)
+const PILL_GAP   = 8;       // min gap between pill bounding boxes (px)
+const DOT_FADE_MS = 240;    // pill↔dot morph duration
+const GRID_CELL  = 64;      // AABB grid cell size (px) for O(1) overlap queries
 
-let _lastLayout = [];             // [{v, pt, state, stemH, isDot, spr, drawStemH}] per frame
-let _hoverClearTimer = null;     // debounce timer for clearing hover state
+let _lastLayout = [];             // [{v, pt, state, extraStem, isDot, spr, drawExtraStem}] per frame
+let _hoverClearTimer = null;      // debounce timer for clearing map hover
 const _pinWasDot    = new Map();  // id → bool — was this pin a dot last frame
 const _pinDotFade   = new Map();  // id → {fromDot, start} — active morph animations
-const _pinAnimStemH = new Map();  // id → animated stem height (px, float) for smooth transitions
+const _pinAnimStemH = new Map();  // id → animated extraStem (px, float) for smooth transitions
 
 /**
- * Assigns each venue a stem height (or isDot flag). Greedy by priority:
- * high-relevance venues get the preferred height, lower ones get bumped up
- * or collapsed to a dot when no stem height avoids overlap.
+ * Assigns each venue an extraStem (or isDot flag). Greedy by priority:
+ * high-relevance venues get the preferred height, lower ones are bumped up
+ * or collapsed to a dot when no stem value avoids overlap.
+ *
+ * Uses an AABB spatial grid so overlap queries are O(1) instead of O(n).
  */
 function computePinLayout(projVenues, currentHour, dateStr) {
   const PRI = { sunny: 0, soon: 1, shaded: 2, closed: 3 };
   const sorted = [...projVenues].sort((a, b) => {
-    // Raised pin (from sidebar) is processed last so it can claim the highest available position
-    if (a.v.id === raisedId) return 1;
-    if (b.v.id === raisedId) return -1;
+    // Raised pin processed last so it can claim the highest available position
+    if (a.v.id === highlight.raisedId) return 1;
+    if (b.v.id === highlight.raisedId) return -1;
     const pd = PRI[a.state] - PRI[b.state];
     if (pd !== 0) return pd;
-    // Tie-break within same state: non-open venues by time until opening (sooner = higher priority);
-    // open venues (sunny/shaded) by sun score (higher = higher priority)
+    // Tie-break within same state: non-open venues by time until opening (sooner first);
+    // open venues (sunny/shaded) by sun score (higher first)
     if (a.state === 'soon' || a.state === 'closed') {
       const openA = a.v.openingHours?.open ?? Infinity;
       const openB = b.v.openingHours?.open ?? Infinity;
       const waitA = openA > currentHour ? openA - currentHour : Infinity;
       const waitB = openB > currentHour ? openB - currentHour : Infinity;
-      return waitA - waitB;  // less wait = lower value = sorts first
+      return waitA - waitB;
     }
     try {
       const sa = typeof sunScore === 'function' ? (sunScore(a.v, dateStr, currentHour) ?? 0) : (a.v.rating ?? 0);
@@ -249,41 +255,65 @@ function computePinLayout(projVenues, currentHour, dateStr) {
     } catch { return 0; }
   });
 
-  const placed = [];   // committed pill rects {rx,ry,rw,rh}
+  // Spatial grid: cell key → array of placed rects {rx,ry,rw,rh}
+  const placedGrid = new Map();
+
+  function gridCells(rx, ry, rw, rh) {
+    const x0 = Math.floor(rx / GRID_CELL), x1 = Math.floor((rx + rw) / GRID_CELL);
+    const y0 = Math.floor(ry / GRID_CELL), y1 = Math.floor((ry + rh) / GRID_CELL);
+    const cells = [];
+    for (let gx = x0; gx <= x1; gx++)
+      for (let gy = y0; gy <= y1; gy++)
+        cells.push(`${gx},${gy}`);
+    return cells;
+  }
+
+  function isClear(rx, ry, rw, rh) {
+    for (const key of gridCells(rx, ry, rw, rh)) {
+      for (const p of (placedGrid.get(key) ?? [])) {
+        if (!(rx + rw + PILL_GAP <= p.rx || p.rx + p.rw + PILL_GAP <= rx ||
+              ry + rh + PILL_GAP <= p.ry || p.ry + p.rh + PILL_GAP <= ry)) return false;
+      }
+    }
+    return true;
+  }
+
+  function addPlaced(rx, ry, rw, rh) {
+    const rect = { rx, ry, rw, rh };
+    for (const key of gridCells(rx, ry, rw, rh)) {
+      if (!placedGrid.has(key)) placedGrid.set(key, []);
+      placedGrid.get(key).push(rect);
+    }
+  }
+
   const result = [];
 
   for (const { v, pt, state } of sorted) {
     const selected = v.id === selectedId;
-    const isHover  = v.id === raisedId;
+    const isRaised = v.id === highlight.raisedId;
     const spr = getSprite(v, state, selected, currentHour, dateStr);
     const rw  = spr.canvas.width;
-    const rh  = spr.canvas.height - STEM_H;  // pill area (excludes baked stem)
+    const rh  = spr.canvas.height - STEM_H;  // pill area only (excludes baked stem)
+
+    // Raised pin: search from tallest extraStem downward (claims highest spot).
+    // All others: search from zero upward (minimal stem preferred).
+    const stemDir   = isRaised ? -STEM_STEP : STEM_STEP;
+    const stemStart = isRaised ? MAX_EXTRA_STEM : 0;
+    const stemEnd   = isRaised ? 0 : MAX_EXTRA_STEM;
 
     let resolved = false;
-    // Raised pin (sidebar hover): search from tallest stem downward so it sits highest.
-    // All other venues: search from shortest stem upward (normal greedy placement).
-    const stemMin  = STEM_H;
-    const stemMax  = MAX_STEM_H;
-    const shouldLift = isHover;
-    const stemDir  = shouldLift ? -STEM_STEP : STEM_STEP;
-    const stemStart = shouldLift ? stemMax : stemMin;
-    for (let stemH = stemStart; shouldLift ? stemH >= stemMin : stemH <= stemMax; stemH += stemDir) {
-      const extraStem = stemH - STEM_H;
+    for (let ex = stemStart; isRaised ? ex >= stemEnd : ex <= stemEnd; ex += stemDir) {
       const rx = pt.x - spr.anchorX;
-      const ry = pt.y - spr.anchorY - extraStem;
-      const clear = placed.every(p =>
-        rx + rw + PILL_GAP <= p.rx || p.rx + p.rw + PILL_GAP <= rx ||
-        ry + rh + PILL_GAP <= p.ry || p.ry + p.rh + PILL_GAP <= ry
-      );
-      if (clear) {
-        placed.push({ rx, ry, rw, rh });
-        result.push({ v, pt, state, stemH, isDot: false, spr });
+      const ry = pt.y - spr.anchorY - ex;
+      if (isClear(rx, ry, rw, rh)) {
+        addPlaced(rx, ry, rw, rh);
+        result.push({ v, pt, state, extraStem: ex, isDot: false, spr });
         resolved = true;
         break;
       }
     }
-    // Raised pin never degrades to dot; others do if no stem height works
-    if (!resolved) result.push({ v, pt, state, stemH: STEM_H, isDot: !isHover, spr });
+    // Raised pin never degrades to dot; others do if no extraStem works
+    if (!resolved) result.push({ v, pt, state, extraStem: 0, isDot: !isRaised, spr });
   }
 
   return result;
@@ -423,22 +453,22 @@ function draw() {
     projVenues.push({ v, state, pt: map.project([v.lng, v.lat]) });
   });
 
-  // Compute anti-overlap layout before drawing (hover glow needs stemH too)
+  // Compute anti-overlap layout before drawing (glow ring needs extraStem too)
   _lastLayout = computePinLayout(projVenues, currentHour, dateStr);
 
-  // Smooth stem height transitions — lerp each pin toward its target stemH
+  // Smooth stem transitions — lerp each pin toward its target extraStem
   let stemAnimDirty = false;
   for (const entry of _lastLayout) {
-    if (entry.isDot) { _pinAnimStemH.delete(entry.v.id); entry.drawStemH = STEM_H; continue; }
-    const target  = entry.stemH;
+    if (entry.isDot) { _pinAnimStemH.delete(entry.v.id); entry.drawExtraStem = 0; continue; }
+    const target  = entry.extraStem;
     const current = _pinAnimStemH.get(entry.v.id) ?? target;
     if (Math.abs(current - target) < 0.5) {
       _pinAnimStemH.set(entry.v.id, target);
-      entry.drawStemH = target;
+      entry.drawExtraStem = target;
     } else {
       const next = current + (target - current) * 0.14;
       _pinAnimStemH.set(entry.v.id, next);
-      entry.drawStemH = next;
+      entry.drawExtraStem = next;
       stemAnimDirty = true;
     }
   }
@@ -458,14 +488,14 @@ function draw() {
   for (const entry of _lastLayout) {
     const { v, pt, state, isDot } = entry;
     if (isDot || _pinDotFade.has(v.id)) continue;
-    const extraStem = (entry.drawStemH ?? entry.stemH) - STEM_H;
+    const extraStem = entry.drawExtraStem ?? entry.extraStem;
     if (extraStem > 0) _drawExtStem(pt, extraStem, state);
   }
 
   // Pass 2 — morph animations, dots, pills (on top of all stems)
   for (const entry of _lastLayout) {
-    const { v, pt, state, stemH, isDot, spr } = entry;
-    const extraStem = (entry.drawStemH ?? stemH) - STEM_H;
+    const { v, pt, state, extraStem: targetExtraStem, isDot, spr } = entry;
+    const extraStem = entry.drawExtraStem ?? targetExtraStem;
 
     // Morph animation (handles its own ext stem so z-order is preserved within it)
     const morphFade = _pinDotFade.get(v.id);
@@ -493,7 +523,7 @@ function draw() {
 
     if (isDot) {
       if (state !== 'closed') {
-        if (v.id === hoveredId) _drawDotHover(pt, state);
+        if (v.id === highlight.id) _drawDotHover(pt, state);
         else _drawDot(pt, state);
       }
       continue;
@@ -512,7 +542,7 @@ function draw() {
       else needsAnimFrame = true;
     }
 
-    const isHovered = v.id === hoveredId || v.id === raisedId;
+    const isHovered = v.id === highlight.id || v.id === highlight.raisedId;
     const rp = (v.id === selectedId ? 4 : 2) + 1;
     const sprLeft = pt.x - spr.anchorX;
     const sprTop  = pt.y - spr.anchorY - extraStem;
@@ -565,9 +595,9 @@ function draw() {
 function hitTestVenue(cx, cy) {
   // Use layout for accurate pill bounds (variable stem heights)
   for (const entry of _lastLayout) {
-    const { v, pt, isDot, spr, stemH } = entry;
+    const { v, pt, isDot, spr } = entry;
     if (isDot) continue;
-    const extraStem = (entry.drawStemH ?? stemH) - STEM_H;
+    const extraStem = entry.drawExtraStem ?? entry.extraStem;
     const rx = pt.x - spr.anchorX - 4;
     const ry = pt.y - spr.anchorY - extraStem - 4;
     const rw = spr.canvas.width + 8;
@@ -762,7 +792,12 @@ canvas.addEventListener('mousemove', e => {
     // Cancel any pending clear — we're over a venue
     if (_hoverClearTimer) { clearTimeout(_hoverClearTimer); _hoverClearTimer = null; }
     canvas.style.cursor = 'pointer';
-    if (hoveredId !== hit.id || hoverFromList) { hoveredId = hit.id; hoverFromList = false; draw(); }
+    // Override list highlight with map hover (different id, or switching from list source)
+    if (highlight.id !== hit.id || highlight.source === 'list') {
+      highlight.id = hit.id;
+      highlight.source = 'map';
+      draw();
+    }
     tooltip.innerHTML = buildTooltipContent(hit);
     const margin = 14;
     let tx = e.clientX + margin, ty = e.clientY - tooltip.offsetHeight - margin;
@@ -772,15 +807,16 @@ canvas.addEventListener('mousemove', e => {
     tooltip.classList.add('visible');
   } else {
     // Debounce clearing so adjacent pins don't jitter when cursor moves between them
-    if (hoveredId !== null && !_hoverClearTimer) {
+    if (highlight.id !== null && !_hoverClearTimer) {
       _hoverClearTimer = setTimeout(() => {
         _hoverClearTimer = null;
-        hoveredId = null;
+        highlight.id = null;
+        highlight.source = null;
         draw();
         canvas.style.cursor = 'default';
         tooltip.classList.remove('visible');
       }, 80);
-    } else if (hoveredId === null) {
+    } else if (highlight.id === null) {
       canvas.style.cursor = 'default';
       tooltip.classList.remove('visible');
     }
@@ -789,8 +825,12 @@ canvas.addEventListener('mousemove', e => {
 
 canvas.addEventListener('mouseleave', () => {
   if (_hoverClearTimer) { clearTimeout(_hoverClearTimer); _hoverClearTimer = null; }
-  // Only clear map-canvas hover; raisedId (from sidebar) stays raised
-  if (hoveredId !== null && !hoverFromList) { hoveredId = null; draw(); }
+  // Clear map hover; highlight.raisedId (from sidebar) stays raised
+  if (highlight.id !== null && highlight.source === 'map') {
+    highlight.id = null;
+    highlight.source = null;
+    draw();
+  }
   tooltip.classList.remove('visible');
   if (!editDraggingDepth) canvas.style.cursor = 'default';
 });
