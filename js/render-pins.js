@@ -373,8 +373,9 @@ function _drawDot(pt, state) {
  */
 function panToVenueCenter(v) {
   if (_preSelectZoom === null) {
-    _preSelectZoom = map.getZoom();
-    _frozenBounds  = map.getBounds();
+    _preSelectZoom   = map.getZoom();
+    _preSelectCenter = map.getCenter();
+    _frozenBounds    = map.getBounds();
   }
 
   const isMobile = window.innerWidth < 768;
