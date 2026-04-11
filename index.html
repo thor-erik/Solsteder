@@ -2448,17 +2448,19 @@
       top: auto;
       left: 0; right: 0; bottom: 0;
       width: 100%;
-      height: 62vh;
+      height: auto;
+      max-height: 72vh;
       border-radius: 20px 20px 0 0;
       border-left: none; border-right: none; border-bottom: none;
       transform: translateY(100%);
       opacity: 1;
       z-index: 850;
-      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), height 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-radius 0.3s ease;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-radius 0.3s ease;
     }
     #detail-panel.open { transform: translateY(0); }
     #detail-panel.dp-fullscreen {
       height: 100dvh;
+      max-height: 100dvh;
       border-radius: 0;
     }
     #dp-handle { display: flex; }
@@ -2649,24 +2651,24 @@
 </div>
 
 <script src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
-<script src="js/config.js"></script>
-<script src="js/places.js"></script>
-<script src="js/busyness.js"></script>
-<script src="js/solar.js"></script>
-<script src="js/data.js"></script>
-<script src="js/weather.js"></script>
-<script src="js/scoring.js"></script>
-<script src="js/app.js"></script>
-<script src="js/render-helpers.js"></script>
-<script src="js/render-arc.js"></script>
-<script src="js/render-seating.js"></script>
-<script src="js/render-editor.js"></script>
-<script src="js/render-pins.js"></script>
-<script src="js/ui-shared.js"></script>
-<script src="js/ui-list.js"></script>
-<script src="js/ui-shelter.js"></script>
-<script src="js/ui-detail.js"></script>
-<script src="js/osm.js"></script>
+<script src="js/config.js?v=20260411"></script>
+<script src="js/places.js?v=20260411"></script>
+<script src="js/busyness.js?v=20260411"></script>
+<script src="js/solar.js?v=20260411"></script>
+<script src="js/data.js?v=20260411"></script>
+<script src="js/weather.js?v=20260411"></script>
+<script src="js/scoring.js?v=20260411"></script>
+<script src="js/app.js?v=20260411"></script>
+<script src="js/render-helpers.js?v=20260411"></script>
+<script src="js/render-arc.js?v=20260411"></script>
+<script src="js/render-seating.js?v=20260411"></script>
+<script src="js/render-editor.js?v=20260411"></script>
+<script src="js/render-pins.js?v=20260411"></script>
+<script src="js/ui-shared.js?v=20260411"></script>
+<script src="js/ui-list.js?v=20260411"></script>
+<script src="js/ui-shelter.js?v=20260411"></script>
+<script src="js/ui-detail.js?v=20260411"></script>
+<script src="js/osm.js?v=20260411"></script>
 <script>
 loadVenues().then(() => {
   updateRangeFill();
