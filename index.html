@@ -1410,6 +1410,9 @@
 
   /* ── Mobile — bottom sheet ────────────────────────────────────────── */
   @media (max-width: 639px) {
+    /* Hide brand logo — saves top-right space */
+    #floating-brand { display: none; }
+
     #floating-search {
       left: 12px;
       right: 12px;
@@ -1417,6 +1420,16 @@
       top: 12px;
     }
 
+    /* Date + time pills — repositioned under search bar */
+    #qc-wrap {
+      left: 12px;
+      right: 12px;
+      top: 68px;
+      width: auto;
+      --qc-panel-h: 270px;
+    }
+
+    /* Venue list — default "peek" state: 110px visible from bottom */
     #panel {
       top: auto;
       left: 0;
@@ -1428,9 +1441,15 @@
       border-left: none;
       border-right: none;
       border-bottom: none;
+      transform: translateY(calc(100% - 110px));
     }
 
-    /* Slide down instead of left when hidden on mobile */
+    /* Expanded state — tap handle to open */
+    #panel.mobile-expanded {
+      transform: translateY(0);
+    }
+
+    /* Fully hidden (covered by detail panel etc.) */
     #panel.mobile-hidden {
       transform: translateY(calc(100% + 20px)) !important;
       opacity: 0 !important;
@@ -1439,18 +1458,35 @@
 
     #panel-toggle-icon { display: none; }
 
+    /* Handle: flex column — pill + chevron */
     #panel-handle {
-      display: block;
-      width: 36px;
-      height: 4px;
-      background: rgba(81,69,50,0.35);
-      border-radius: 2px;
-      margin: 10px auto 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      padding: 10px 0 4px;
       flex-shrink: 0;
-      cursor: grab;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
     }
 
-    #panel-header { padding-top: 8px; }
+    #panel-handle-pill {
+      width: 36px;
+      height: 4px;
+      background: rgba(213,196,171,0.25);
+      border-radius: 2px;
+    }
+
+    #panel-handle-chevron {
+      transition: transform 0.25s ease;
+      opacity: 0.4;
+    }
+
+    #panel.mobile-expanded #panel-handle-chevron {
+      transform: rotate(180deg);
+    }
+
+    #panel-header { padding-top: 4px; }
 
     #venue-list { padding: 10px 16px 32px; }
 
@@ -1475,6 +1511,12 @@
 
     .card-expanded { max-height: 0; }
     .venue-card.selected .card-expanded { max-height: 160px; }
+
+    /* Push map zoom controls above the peek panel */
+    .mapboxgl-ctrl-bottom-right {
+      bottom: 120px;
+      right: 12px;
+    }
   }
 
   /* Edit mode overlay */
@@ -2052,7 +2094,7 @@
   .qc-preset-btn.active { background: var(--accent); color: #0d131e; border-color: var(--accent); }
   /* Suppress venue card enter animation on map-pan re-renders */
   #venue-list[data-no-anim] .venue-card { animation: none !important; }
-  @media (max-width: 639px) { #qc-wrap { display: none; } }
+  /* qc-wrap mobile styles handled in the main mobile block above */
 
   #detail-panel {
     position: absolute;
@@ -2491,7 +2533,12 @@
 
   <!-- LEFT PANEL — venue list, floats below search bar -->
   <div id="panel">
-    <div id="panel-handle" style="display:none" onclick="togglePanel()"></div>
+    <div id="panel-handle" style="display:none" onclick="togglePanel()">
+      <div id="panel-handle-pill"></div>
+      <svg id="panel-handle-chevron" width="14" height="8" viewBox="0 0 14 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M1 6.5L7 1.5L13 6.5" stroke="rgba(213,196,171,0.7)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
     <div id="panel-header">
       <!-- Venue count title + toggle button -->
       <div id="venue-header">

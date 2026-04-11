@@ -745,6 +745,7 @@ function selectQcDate(dateStr) {
 let _qcPanelHeight = 0; // cached, set on load/resize/list-render
 
 function _syncQcPanelHeight() {
+  if (isMobile()) return; // height fixed via CSS on mobile
   const firstCard = document.querySelector('#venue-list .venue-card:not(.skeleton)');
   const qcBar     = document.getElementById('qc-bar');   // bar height is always stable
   const qcPanel   = document.getElementById('qc-panel');
@@ -1238,34 +1239,47 @@ function setDetachedLocation(lat, lng) {
 function isMobile() { return window.innerWidth < 640; }
 
 function togglePanel() {
-  panelVisible = !panelVisible;
   const panel  = document.getElementById('panel');
   const btn    = document.getElementById('panel-toggle');
   const handle = document.getElementById('panel-handle');
+
   if (isMobile()) {
-    panel.classList.toggle('mobile-hidden', !panelVisible);
-    if (handle) handle.style.display = panelVisible ? 'block' : 'none';
-  } else {
-    const revealBtn   = document.getElementById('panel-reveal-btn');
-    const detailPanel = document.getElementById('detail-panel');
-    const qcWrap      = document.getElementById('qc-wrap');
-    if (panelVisible) {
-      panel.style.transform     = '';
-      panel.style.opacity       = '';
-      panel.style.pointerEvents = '';
-      if (btn) btn.textContent  = '‹';
-      if (revealBtn) revealBtn.style.display = 'none';
-      if (detailPanel) detailPanel.style.left = '';
-      if (qcWrap) qcWrap.style.left = '';
+    if (panel.classList.contains('mobile-expanded')) {
+      // expanded → peek
+      panel.classList.remove('mobile-expanded');
+    } else if (!panel.classList.contains('mobile-hidden')) {
+      // peek → expanded
+      panel.classList.add('mobile-expanded');
     } else {
-      panel.style.transform     = 'translateX(calc(-100% - 20px))';
-      panel.style.opacity       = '0';
-      panel.style.pointerEvents = 'none';
-      if (btn) btn.textContent  = '›';
-      if (revealBtn) revealBtn.style.display = 'flex';
-      if (detailPanel) detailPanel.style.left = '16px';
-      if (qcWrap) qcWrap.style.left = '16px';
+      // hidden → peek
+      panel.classList.remove('mobile-hidden');
     }
+    panelVisible = true;
+    if (handle) handle.style.display = 'flex';
+    setTimeout(() => { resizeCanvas(); draw(); }, 290);
+    return;
+  }
+
+  panelVisible = !panelVisible;
+  const revealBtn   = document.getElementById('panel-reveal-btn');
+  const detailPanel = document.getElementById('detail-panel');
+  const qcWrap      = document.getElementById('qc-wrap');
+  if (panelVisible) {
+    panel.style.transform     = '';
+    panel.style.opacity       = '';
+    panel.style.pointerEvents = '';
+    if (btn) btn.textContent  = '‹';
+    if (revealBtn) revealBtn.style.display = 'none';
+    if (detailPanel) detailPanel.style.left = '';
+    if (qcWrap) qcWrap.style.left = '';
+  } else {
+    panel.style.transform     = 'translateX(calc(-100% - 20px))';
+    panel.style.opacity       = '0';
+    panel.style.pointerEvents = 'none';
+    if (btn) btn.textContent  = '›';
+    if (revealBtn) revealBtn.style.display = 'flex';
+    if (detailPanel) detailPanel.style.left = '16px';
+    if (qcWrap) qcWrap.style.left = '16px';
   }
   setTimeout(() => { resizeCanvas(); draw(); }, 290);
 }
@@ -1276,7 +1290,7 @@ let arcHoverH = null;
 document.addEventListener('DOMContentLoaded', () => {
   if (isMobile()) {
     const h = document.getElementById('panel-handle');
-    if (h) h.style.display = 'block';
+    if (h) h.style.display = 'flex';
   }
 
   // Position preset buttons after layout settles, then again on resize
@@ -1288,7 +1302,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const _detailPanelEl = document.getElementById('detail-panel');
   if (_qcWrapEl && _detailPanelEl) {
     new ResizeObserver(() => {
-      _detailPanelEl.style.top = (_qcWrapEl.offsetTop + _qcWrapEl.offsetHeight + 8) + 'px';
+      if (!isMobile()) {
+        _detailPanelEl.style.top = (_qcWrapEl.offsetTop + _qcWrapEl.offsetHeight + 8) + 'px';
+      }
     }).observe(_qcWrapEl);
   }
 
