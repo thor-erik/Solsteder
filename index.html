@@ -1420,15 +1420,6 @@
       top: 12px;
     }
 
-    /* Date + time pills — repositioned under search bar */
-    #qc-wrap {
-      left: 12px;
-      right: 12px;
-      top: 68px;
-      width: auto;
-      --qc-panel-h: 270px;
-    }
-
     /* Venue list — default "peek" state: 110px visible from bottom */
     #panel {
       top: auto;
@@ -2094,7 +2085,16 @@
   .qc-preset-btn.active { background: var(--accent); color: #0d131e; border-color: var(--accent); }
   /* Suppress venue card enter animation on map-pan re-renders */
   #venue-list[data-no-anim] .venue-card { animation: none !important; }
-  /* qc-wrap mobile styles handled in the main mobile block above */
+  /* Date + time pills — below search bar on mobile (must come after the global #qc-wrap rule) */
+  @media (max-width: 639px) {
+    #qc-wrap {
+      left: 12px;
+      right: 12px;
+      top: 68px;
+      width: auto;
+      --qc-panel-h: 270px;
+    }
+  }
 
   #detail-panel {
     position: absolute;
@@ -2395,7 +2395,8 @@
       height: 75vh;
       border-radius: 20px 20px 0 0;
       border-left: none; border-right: none; border-bottom: none;
-      transform: translateY(20px);
+      transform: translateY(100%);
+      opacity: 1; /* slide-up only, no fade */
       z-index: 850;
     }
     #detail-panel.open { transform: translateY(0); }

@@ -982,6 +982,13 @@ function openDetailPanel(v) {
   dp.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
   dp.classList.add('open');
   _drawShelterDiagram(v);
+  if (isMobile()) {
+    const panel = document.getElementById('panel');
+    if (panel) {
+      panel.classList.remove('mobile-expanded');
+      panel.classList.add('mobile-hidden');
+    }
+  }
 }
 
 function _drawShelterDiagram(v) {
@@ -996,6 +1003,13 @@ function _drawShelterDiagram(v) {
 function closeDetailPanel() {
   const dp = document.getElementById('detail-panel');
   if (dp) dp.classList.remove('open');
+  if (isMobile()) {
+    const panel = document.getElementById('panel');
+    if (panel) {
+      panel.classList.remove('mobile-hidden');
+      panel.classList.remove('mobile-expanded'); // restore to peek
+    }
+  }
   if (selectedId != null) {
     selectedId = null;
     _frozenBounds  = null;
@@ -1291,6 +1305,23 @@ document.addEventListener('DOMContentLoaded', () => {
   if (isMobile()) {
     const h = document.getElementById('panel-handle');
     if (h) h.style.display = 'flex';
+
+    // Swipe-up / swipe-down gesture on the panel handle
+    const panelEl = document.getElementById('panel');
+    if (h && panelEl) {
+      let _swipeY0 = 0;
+      h.addEventListener('touchstart', e => {
+        _swipeY0 = e.touches[0].clientY;
+      }, { passive: true });
+      h.addEventListener('touchend', e => {
+        const dy = e.changedTouches[0].clientY - _swipeY0;
+        if (Math.abs(dy) > 30) {
+          e.preventDefault(); // suppress the click → togglePanel
+          if (dy < 0) panelEl.classList.add('mobile-expanded');    // swipe up
+          else        panelEl.classList.remove('mobile-expanded'); // swipe down
+        }
+      }, { passive: false });
+    }
   }
 
   // Position preset buttons after layout settles, then again on resize

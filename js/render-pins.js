@@ -858,11 +858,52 @@ window.addEventListener('mouseup', () => {
   }
 });
 
-['wheel', 'touchstart', 'touchmove', 'touchend'].forEach(type => {
+// wheel + touchstart + touchmove: pass through to map for pan/zoom
+['wheel', 'touchstart', 'touchmove'].forEach(type => {
   canvas.addEventListener(type, e => {
     canvas.style.pointerEvents = 'none';
-    const el = document.elementFromPoint(e.clientX || e.touches?.[0]?.clientX, e.clientY || e.touches?.[0]?.clientY);
+    const el = document.elementFromPoint(
+      e.clientX ?? e.touches?.[0]?.clientX,
+      e.clientY ?? e.touches?.[0]?.clientY
+    );
     canvas.style.pointerEvents = 'auto';
     if (el) el.dispatchEvent(new (e.constructor)(type, e));
   }, { passive: true });
 });
+
+// Record touch start so we can detect taps vs drags
+let _touchStartX = 0, _touchStartY = 0;
+canvas.addEventListener('touchstart', e => {
+  const t = e.touches?.[0];
+  if (t) { _touchStartX = t.clientX; _touchStartY = t.clientY; }
+}, { passive: true });
+
+// touchend: attempt pin hit-test first; only pass through to map if no hit
+canvas.addEventListener('touchend', e => {
+  const t = e.changedTouches?.[0];
+  if (t) {
+    const dx = t.clientX - _touchStartX, dy = t.clientY - _touchStartY;
+    const isTap = dx * dx + dy * dy < 100; // ≤10 px movement
+    if (isTap && !editingVenueId) {
+      const rect = canvas.getBoundingClientRect();
+      const cx = t.clientX - rect.left, cy = t.clientY - rect.top;
+      const hit = hitTestVenue(cx, cy) || hitTestDot(cx, cy);
+      if (hit) {
+        selectVenue(hit.id, false);
+        panToVenueCenter(hit);
+        e.preventDefault(); // suppress synthetic click
+        return;
+      }
+      if (selectedId !== null) {
+        closeDetailPanel();
+        e.preventDefault();
+        return;
+      }
+    }
+  }
+  // No pin hit — forward to map so it can handle its own tap/drag logic
+  canvas.style.pointerEvents = 'none';
+  const el = t ? document.elementFromPoint(t.clientX, t.clientY) : null;
+  canvas.style.pointerEvents = 'auto';
+  if (el) el.dispatchEvent(new TouchEvent('touchend', e));
+}, { passive: false });
