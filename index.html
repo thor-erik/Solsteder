@@ -41,6 +41,7 @@
   #map-container {
     position: absolute;
     inset: 0;
+    touch-action: none;
   }
 
   #map {
@@ -1505,6 +1506,10 @@
     .venue-card.selected .card-expanded { max-height: 160px; }
 
     /* Hide Mapbox zoom/compass controls — gesture-only on mobile */
+    .mapboxgl-ctrl-bottom-right,
+    .mapboxgl-ctrl-bottom-left,
+    .mapboxgl-ctrl-top-right,
+    .mapboxgl-ctrl-top-left,
     .mapboxgl-ctrl-group,
     .mapboxgl-ctrl-attrib { display: none !important; }
 

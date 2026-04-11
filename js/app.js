@@ -1333,14 +1333,29 @@ document.addEventListener('DOMContentLoaded', () => {
       }, { passive: false });
     }
 
-    // ── Venue list scroll → fullscreen when near top ──
+    // ── Prevent iOS browser pinch-to-zoom on the map ──
+    const mapCont = document.getElementById('map-container');
+    if (mapCont) {
+      mapCont.addEventListener('touchmove', e => {
+        if (e.touches.length > 1) e.preventDefault();
+      }, { passive: false });
+    }
+    document.addEventListener('gesturestart', e => e.preventDefault(), { passive: false });
+    document.addEventListener('gesturechange', e => e.preventDefault(), { passive: false });
+
+    // ── Venue list overscroll → fullscreen / back to expanded ──
     const venueList = document.getElementById('venue-list');
     if (venueList && panelEl) {
-      venueList.addEventListener('scroll', () => {
-        if (!panelEl.classList.contains('mobile-expanded') && !panelEl.classList.contains('mobile-fullscreen')) return;
-        if (venueList.scrollTop > 10) {
+      let _listY0 = 0, _listAtTop = false;
+      venueList.addEventListener('touchstart', e => {
+        _listY0 = e.touches[0].clientY;
+        _listAtTop = venueList.scrollTop === 0;
+      }, { passive: true });
+      venueList.addEventListener('touchend', e => {
+        const dy = e.changedTouches[0].clientY - _listY0;
+        if (_listAtTop && dy < -40 && panelEl.classList.contains('mobile-expanded') && !panelEl.classList.contains('mobile-fullscreen')) {
           panelEl.classList.add('mobile-fullscreen');
-        } else {
+        } else if (panelEl.classList.contains('mobile-fullscreen') && venueList.scrollTop === 0 && dy > 40) {
           panelEl.classList.remove('mobile-fullscreen');
         }
       }, { passive: true });
