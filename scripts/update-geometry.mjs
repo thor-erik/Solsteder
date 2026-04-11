@@ -169,7 +169,25 @@ function findNearbyBuildings(venue, buildings, excludeBuilding = null) {
 function computeAutoTerraceWallIndices(venue, walls, buildings, venueBuilding, openPolygons, entranceNodes, highways) {
   if (!walls.length) return [0];
 
-  const scores    = walls.map(w => scoreWall(w, buildings, venueBuilding, openPolygons, entranceNodes, highways));
+  const rawScores = walls.map(w => scoreWall(w, buildings, venueBuilding, openPolygons, entranceNodes, highways));
+
+  // Entrance location — googleLocation is more precise than the venue point
+  const eLat = venue.googleLocation?.lat ?? venue.lat;
+  const eLng = venue.googleLocation?.lng ?? venue.lng;
+
+  // Proximity bonus: registered coords are typically at the street entrance.
+  // Use an ADDITIVE bonus for walls within 5m so it dominates any multiplicative
+  // building-blocking penalty (which can reduce rawScore to 0.01× base).
+  const scores = rawScores.map((s, i) => {
+    const w = walls[i];
+    if (w.lenM < 4) return s; // skip tiny walls
+    const distM = Math.sqrt(distPointToSegmentSq(eLng, eLat, w.aLng, w.aLat, w.bLng, w.bLat)) * 111320;
+    if (distM < 5)  return s + 1e6; // additive: dominates all multipliers/penalties
+    if (distM < 15) return s * 5;
+    if (distM < 30) return s * 2;
+    return s;
+  });
+
   const bestScore = Math.max(...scores);
   if (bestScore <= 0) return [0];
 
@@ -177,12 +195,8 @@ function computeAutoTerraceWallIndices(venue, walls, buildings, venueBuilding, o
   const bestWall = walls[bestIdx];
   const selected = [bestIdx];
 
-  // Entrance location — googleLocation is more precise than the venue point
-  const eLat = venue.googleLocation?.lat ?? venue.lat;
-  const eLng = venue.googleLocation?.lng ?? venue.lng;
-
-  const VERTEX_M  = 2 / 111320;   // walls share a vertex if endpoints within 2 m
-  const CORNER_M  = 5 / 111320;   // entrance "near corner" threshold: 5 m
+  const VERTEX_M = 2 / 111320;
+  const CORNER_M = 5 / 111320;
 
   function sharesVertex(w1, w2) {
     const cl = Math.cos(w1.my * RAD);
@@ -206,8 +220,8 @@ function computeAutoTerraceWallIndices(venue, walls, buildings, venueBuilding, o
 
   walls.forEach((w2, i2) => {
     if (i2 === bestIdx) return;
-    if (scores[i2] < bestScore * 0.20) return;        // too weak
-    if (!sharesVertex(bestWall, w2)) return;           // not adjacent
+    if (scores[i2] < bestScore * 0.20) return;
+    if (!sharesVertex(bestWall, w2)) return;
     const nearCorner = entranceNearSharedCorner(bestWall, w2);
     if (nearCorner || scores[i2] >= bestScore * 0.40) {
       selected.push(i2);
@@ -279,12 +293,12 @@ function computeAutoTerraceDepth(wall, highways) {
 function scoreWall(wall, buildings, venueBuilding, openPolygons, entranceNodes, highways) {
   let score = wall.lenM;
 
-  for (const dist of [5, 15]) {
-    const p = probePoint(wall, dist);
-    for (const b of buildings) {
-      if (b === venueBuilding || !b.geometry?.length) continue;
-      if (pointInPolygon(p.lat, p.lng, b.geometry)) return score * 0.01;
-    }
+  // Probe at 5m only — 15m was causing false positives for walls facing narrow streets
+  // (building on the other side of a 8-10m street triggered the penalty incorrectly)
+  const p5 = probePoint(wall, 5);
+  for (const b of buildings) {
+    if (b === venueBuilding || !b.geometry?.length) continue;
+    if (pointInPolygon(p5.lat, p5.lng, b.geometry)) return score * 0.01;
   }
 
   const entrThreshSq = (4 / 111320) ** 2;
@@ -294,6 +308,19 @@ function scoreWall(wall, buildings, venueBuilding, openPolygons, entranceNodes, 
     }
   }
 
+  // Strong bonus: wall directly borders a street (highway node within 6m of the wall segment itself)
+  const wallBorderThreshSq = (6 / 111320) ** 2;
+  let directlyBordersStreet = false;
+  outerBorder: for (const hw of highways) {
+    for (const node of (hw.geometry || [])) {
+      if (distPointToSegmentSq(node.lon, node.lat, wall.aLng, wall.aLat, wall.bLng, wall.bLat) < wallBorderThreshSq) {
+        directlyBordersStreet = true; break outerBorder;
+      }
+    }
+  }
+  if (directlyBordersStreet) score *= 8;
+
+  // Weaker bonus: highway is nearby within 20m probe radius
   const p20 = probePoint(wall, 20);
   const streetThreshSq = (15 / 111320) ** 2;
   outer: for (const hw of highways) {
