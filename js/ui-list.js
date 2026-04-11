@@ -295,21 +295,9 @@ function renderList() {
   });
 
   if (filterMapViewActive) {
-    if (_navMode && selectedId != null) {
-      // After clicking a pin/card: show all venues within ~5 km of the selected venue
-      const sel = VENUES.find(x => x.id === selectedId);
-      if (sel) {
-        const cosLat = Math.cos(sel.lat * Math.PI / 180);
-        venues = venues.filter(v => {
-          const dLat = (v.lat - sel.lat) * 111000;
-          const dLng = (v.lng - sel.lng) * 111000 * cosLat;
-          return Math.sqrt(dLat * dLat + dLng * dLng) < 5000;
-        });
-      }
-    } else {
-      const bounds = map.getBounds();
-      venues = venues.filter(v => bounds.contains([v.lng, v.lat]));
-    }
+    // While a venue is selected, keep the list frozen at the pre-zoom viewport
+    const bounds = (selectedId != null && _frozenBounds) ? _frozenBounds : map.getBounds();
+    venues = venues.filter(v => bounds.contains([v.lng, v.lat]));
   }
 
   // Closed venues always sink below open ones regardless of sort mode

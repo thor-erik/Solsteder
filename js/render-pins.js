@@ -372,6 +372,11 @@ function _drawDot(pt, state) {
  * the detail sidebar on desktop).
  */
 function panToVenueCenter(v) {
+  if (_preSelectZoom === null) {
+    _preSelectZoom = map.getZoom();
+    _frozenBounds  = map.getBounds();
+  }
+
   const isMobile = window.innerWidth < 768;
   const panel    = document.getElementById('detail-panel');
   // Use layout position (unaffected by CSS transform during open animation)
@@ -384,7 +389,7 @@ function panToVenueCenter(v) {
   let   diff          = Math.abs(targetBearing - curBearing);
   if (diff > 180) diff = 360 - diff;
 
-  const targetZoom = Math.max(map.getZoom(), 16.5);
+  const targetZoom = 17.70;
   const opts = {
     center:   [v.lng, v.lat],
     zoom:     targetZoom,

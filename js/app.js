@@ -32,6 +32,8 @@ let mapLoaded         = false;
 let _qcActiveSection  = null; // 'date' | 'time' | null
 let _qcArcDragging    = false;
 let _navMode          = false; // true after clicking a pin/card — use radius filter instead of map bounds
+let _preSelectZoom    = null;  // zoom level saved before zooming into a selected venue
+let _frozenBounds     = null;  // map bounds frozen at the moment of venue selection (for list filter)
 
 // ── Time animation ────────────────────────────────────────────────────────────
 const TIME_ANIM_MS = 520;
@@ -931,7 +933,11 @@ function selectVenue(id, flyTo) {
 
   // Only rotate/pitch to face the wall when buildings are visible (zoom >= 16)
   if (flyTo) {
-    const targetZoom    = Math.max(map.getZoom(), 16);
+    if (_preSelectZoom === null) {
+      _preSelectZoom = map.getZoom();
+      _frozenBounds  = map.getBounds();
+    }
+    const targetZoom    = 17.70;
     const buildingsVisible = targetZoom >= 16;
     const flyOpts = { center: [v.lng, v.lat], zoom: targetZoom, duration: 800 };
     if (buildingsVisible) {
@@ -989,10 +995,13 @@ function closeDetailPanel() {
   if (dp) dp.classList.remove('open');
   if (selectedId != null) {
     selectedId = null;
+    _frozenBounds  = null;
     clearSpriteCache();
     draw();
     renderList();
-    map.easeTo({ pitch: 15, bearing: 0, duration: 600 });
+    const restoreZoom = _preSelectZoom ?? map.getZoom();
+    _preSelectZoom = null;
+    map.easeTo({ zoom: restoreZoom, pitch: 15, bearing: 0, duration: 600 });
   }
 }
 
