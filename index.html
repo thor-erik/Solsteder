@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Solsteder — Oslo Sun Places</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -54,6 +54,7 @@
     pointer-events: none;
     z-index: 690;
     will-change: transform;
+    touch-action: none; /* prevent browser-level pinch-zoom; Mapbox handles gestures */
   }
 
   /* ── Shared floating card base ────────────────────────────────────────────── */
@@ -1503,10 +1504,27 @@
     .card-expanded { max-height: 0; }
     .venue-card.selected .card-expanded { max-height: 160px; }
 
-    /* Push map zoom controls above the peek panel */
-    .mapboxgl-ctrl-bottom-right {
-      bottom: 120px;
-      right: 12px;
+    /* Hide Mapbox zoom/compass controls — gesture-only on mobile */
+    .mapboxgl-ctrl-group,
+    .mapboxgl-ctrl-attrib { display: none !important; }
+
+    /* In peek state: only the handle/header area should intercept touches.
+       The rest of the (off-screen) panel must not block map interaction. */
+    #panel:not(.mobile-expanded):not(.mobile-hidden):not(.mobile-fullscreen) {
+      pointer-events: none;
+    }
+    #panel:not(.mobile-expanded):not(.mobile-hidden):not(.mobile-fullscreen) #panel-handle,
+    #panel:not(.mobile-expanded):not(.mobile-hidden):not(.mobile-fullscreen) #venue-header,
+    #panel:not(.mobile-expanded):not(.mobile-hidden):not(.mobile-fullscreen) #sort-row {
+      pointer-events: auto;
+    }
+
+    /* Fullscreen state: panel covers everything */
+    #panel.mobile-fullscreen {
+      transform: translateY(0) !important;
+      height: 100dvh;
+      border-radius: 0;
+      z-index: 910;
     }
   }
 
@@ -2190,6 +2208,7 @@
     transition: background 0.12s, color 0.12s;
   }
   #dp-close-btn:hover { background: rgba(81,69,50,0.22); color: var(--text); }
+  .dp-close-back { display: none; }  /* shown on mobile only */
   .dp-meta {
     font-size: 11px;
     color: var(--muted);
@@ -2387,6 +2406,28 @@
     margin-top: 4px;
   }
 
+  /* Detail panel drag handle */
+  #dp-handle {
+    display: none; /* shown on mobile only */
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    padding: 10px 0 4px;
+    flex-shrink: 0;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+  }
+  #dp-handle-pill {
+    width: 36px;
+    height: 4px;
+    background: rgba(213,196,171,0.25);
+    border-radius: 2px;
+  }
+
+  /* Hide UI elements when detail panel is open on mobile */
+  .mobile-ui-hidden { display: none !important; }
+
   @media (max-width: 639px) {
     #detail-panel {
       top: auto;
@@ -2396,11 +2437,36 @@
       border-radius: 20px 20px 0 0;
       border-left: none; border-right: none; border-bottom: none;
       transform: translateY(100%);
-      opacity: 1; /* slide-up only, no fade */
+      opacity: 1;
       z-index: 850;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), height 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-radius 0.3s ease;
     }
     #detail-panel.open { transform: translateY(0); }
+    #detail-panel.dp-fullscreen {
+      height: 100dvh;
+      border-radius: 0;
+    }
+    #dp-handle { display: flex; }
+    /* Back button style on mobile: chevron + "Venues" */
+    #dp-close-btn {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      background: rgba(81,69,50,0.1);
+      border: 1px solid rgba(81,69,50,0.2);
+      border-radius: 8px;
+      padding: 5px 10px;
+      width: auto;
+      height: auto;
+    }
+    #dp-close-btn::before { content: '‹'; font-size: 16px; line-height: 1; }
+    .dp-close-x    { display: none; }
+    .dp-close-back { display: inline; }
     .dp-venue-name { font-size: 19px; }
+    #dp-scroll { padding-top: 0; }
   }
 </style>
 </head>
@@ -2530,7 +2596,10 @@
   </div>
 
   <!-- RIGHT DETAIL PANEL — opens when a venue is selected -->
-  <div id="detail-panel"></div>
+  <div id="detail-panel">
+    <div id="dp-handle"><div id="dp-handle-pill"></div></div>
+    <div id="dp-content"></div>
+  </div>
 
   <!-- LEFT PANEL — venue list, floats below search bar -->
   <div id="panel">

@@ -569,7 +569,7 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       ${photosHtml}
       <div class="dp-header-row">
         <div class="dp-venue-name">${v.name}</div>
-        <button id="dp-close-btn" onclick="closeDetailPanel()">✕</button>
+        <button id="dp-close-btn" onclick="closeDetailPanel()"><span class="dp-close-x">✕</span><span class="dp-close-back">Venues</span></button>
       </div>
       <div class="dp-meta">${catLabel(v)}${v.area ? ' · ' + v.area : ''}${distStr ? ' · ' + distStr : ''}</div>
 

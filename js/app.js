@@ -977,17 +977,21 @@ function updatePopup() {
 // ── Detail panel ──────────────────────────────────────────────────────────────
 
 function openDetailPanel(v) {
-  const dp = document.getElementById('detail-panel');
-  if (!dp) return;
-  dp.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
+  const dp      = document.getElementById('detail-panel');
+  const content = document.getElementById('dp-content');
+  if (!dp || !content) return;
+  content.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
+  dp.classList.remove('dp-fullscreen');
   dp.classList.add('open');
   _drawShelterDiagram(v);
   if (isMobile()) {
     const panel = document.getElementById('panel');
     if (panel) {
-      panel.classList.remove('mobile-expanded');
+      panel.classList.remove('mobile-expanded', 'mobile-fullscreen');
       panel.classList.add('mobile-hidden');
     }
+    document.getElementById('floating-search')?.classList.add('mobile-ui-hidden');
+    document.getElementById('qc-wrap')?.classList.add('mobile-ui-hidden');
   }
 }
 
@@ -1002,13 +1006,14 @@ function _drawShelterDiagram(v) {
 
 function closeDetailPanel() {
   const dp = document.getElementById('detail-panel');
-  if (dp) dp.classList.remove('open');
+  if (dp) { dp.classList.remove('open', 'dp-fullscreen'); }
   if (isMobile()) {
     const panel = document.getElementById('panel');
     if (panel) {
-      panel.classList.remove('mobile-hidden');
-      panel.classList.remove('mobile-expanded'); // restore to peek
+      panel.classList.remove('mobile-hidden', 'mobile-expanded', 'mobile-fullscreen');
     }
+    document.getElementById('floating-search')?.classList.remove('mobile-ui-hidden');
+    document.getElementById('qc-wrap')?.classList.remove('mobile-ui-hidden');
   }
   if (selectedId != null) {
     selectedId = null;
@@ -1026,11 +1031,12 @@ function closeDetailPanel() {
 
 function updateDetailPanel() {
   if (selectedId == null) return;
-  const dp = document.getElementById('detail-panel');
-  if (!dp || !dp.classList.contains('open')) return;
+  const dp      = document.getElementById('detail-panel');
+  const content = document.getElementById('dp-content');
+  if (!dp || !dp.classList.contains('open') || !content) return;
   const v = VENUES.find(x => x.id === selectedId);
   if (!v) return;
-  dp.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
+  content.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
   _drawShelterDiagram(v);
 }
 
@@ -1303,11 +1309,11 @@ let arcHoverH = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   if (isMobile()) {
-    const h = document.getElementById('panel-handle');
+    const h       = document.getElementById('panel-handle');
+    const panelEl = document.getElementById('panel');
     if (h) h.style.display = 'flex';
 
-    // Swipe-up / swipe-down gesture on the panel handle
-    const panelEl = document.getElementById('panel');
+    // ── Panel handle: tap toggles peek↔expanded; swipe up/down ──
     if (h && panelEl) {
       let _swipeY0 = 0;
       h.addEventListener('touchstart', e => {
@@ -1316,11 +1322,59 @@ document.addEventListener('DOMContentLoaded', () => {
       h.addEventListener('touchend', e => {
         const dy = e.changedTouches[0].clientY - _swipeY0;
         if (Math.abs(dy) > 30) {
-          e.preventDefault(); // suppress the click → togglePanel
-          if (dy < 0) panelEl.classList.add('mobile-expanded');    // swipe up
-          else        panelEl.classList.remove('mobile-expanded'); // swipe down
+          e.preventDefault();
+          if (dy < 0) {
+            panelEl.classList.add('mobile-expanded');
+            panelEl.classList.remove('mobile-fullscreen');
+          } else {
+            panelEl.classList.remove('mobile-expanded', 'mobile-fullscreen');
+          }
         }
       }, { passive: false });
+    }
+
+    // ── Venue list scroll → fullscreen when near top ──
+    const venueList = document.getElementById('venue-list');
+    if (venueList && panelEl) {
+      venueList.addEventListener('scroll', () => {
+        if (!panelEl.classList.contains('mobile-expanded') && !panelEl.classList.contains('mobile-fullscreen')) return;
+        if (venueList.scrollTop > 10) {
+          panelEl.classList.add('mobile-fullscreen');
+        } else {
+          panelEl.classList.remove('mobile-fullscreen');
+        }
+      }, { passive: true });
+    }
+
+    // ── Map canvas touch → collapse panel to peek ──
+    // Use capture on the map container so we catch touches before Mapbox
+    document.getElementById('map-container')?.addEventListener('touchstart', () => {
+      if (panelEl && !panelEl.classList.contains('mobile-hidden')) {
+        panelEl.classList.remove('mobile-expanded', 'mobile-fullscreen');
+      }
+    }, { passive: true, capture: true });
+
+    // ── Detail panel drag handle: swipe up to fullscreen, down to dismiss ──
+    const dpHandle = document.getElementById('dp-handle');
+    const dpEl     = document.getElementById('detail-panel');
+    if (dpHandle && dpEl) {
+      let _dpY0 = 0, _dpDragging = false;
+      dpHandle.addEventListener('touchstart', e => {
+        _dpY0 = e.touches[0].clientY;
+        _dpDragging = true;
+      }, { passive: true });
+      dpHandle.addEventListener('touchend', e => {
+        if (!_dpDragging) return;
+        _dpDragging = false;
+        const dy = e.changedTouches[0].clientY - _dpY0;
+        if (dy < -40) {
+          // swipe up → fullscreen
+          dpEl.classList.add('dp-fullscreen');
+        } else if (dy > 40) {
+          // swipe down → dismiss (close)
+          closeDetailPanel();
+        }
+      }, { passive: true });
     }
   }
 
