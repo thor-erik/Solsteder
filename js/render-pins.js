@@ -378,7 +378,8 @@ function panToVenueCenter(v) {
   const padLeft  = (!isMobile && panel && panel.classList.contains('open'))
     ? (panel.offsetLeft + panel.offsetWidth) : 0;
 
-  const targetBearing = (v.facing + 180) % 360;
+  const wallBearing   = v.wallSegment?.bearing ?? v.facing;
+  const targetBearing = (wallBearing + 180) % 360;
   const curBearing    = ((map.getBearing() % 360) + 360) % 360;
   let   diff          = Math.abs(targetBearing - curBearing);
   if (diff > 180) diff = 360 - diff;
