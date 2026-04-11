@@ -2139,6 +2139,14 @@
     opacity: 1;
     pointer-events: auto;
   }
+  /* dp-content wraps the rendered content so dp-handle can sit above the scroll area */
+  #dp-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+  }
   /* ── Venue photo gallery ────────────────────────────────────────────────── */
   .dp-photos {
     display: flex;
