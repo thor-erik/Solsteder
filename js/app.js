@@ -6,12 +6,16 @@
  */
 
 // ── iOS Safari viewport height fix ───────────────────────────────────────────
-// window.innerHeight is the actual visible height; iOS Safari's vh unit
-// uses the full layout viewport (incl. address bar), making panels taller than visible.
+// window.visualViewport.height gives the true visible area on iOS Safari 15+
+// (excludes bottom address bar overlay, keyboard, etc.). Falls back to innerHeight.
+function _trueVH() {
+  return window.visualViewport ? window.visualViewport.height : window.innerHeight;
+}
 function _setVhVar() {
-  document.documentElement.style.setProperty('--vh', (window.innerHeight * 0.01) + 'px');
+  document.documentElement.style.setProperty('--vh', (_trueVH() * 0.01) + 'px');
 }
 window.addEventListener('resize', _setVhVar);
+if (window.visualViewport) window.visualViewport.addEventListener('resize', _setVhVar);
 _setVhVar();
 
 // ── Mutable state ─────────────────────────────────────────────────────────────
@@ -985,6 +989,8 @@ function openDetailPanel(v) {
   dp.classList.add('open');
   _drawShelterDiagram(v);
   if (isMobile()) {
+    // Set explicit pixel height using the true visible viewport to bypass iOS Safari quirks
+    dp.style.height = Math.round(_trueVH() * 0.70) + 'px';
     const panel = document.getElementById('panel');
     if (panel) {
       panel.classList.remove('mobile-expanded', 'mobile-fullscreen');
@@ -1006,7 +1012,10 @@ function _drawShelterDiagram(v) {
 
 function closeDetailPanel() {
   const dp = document.getElementById('detail-panel');
-  if (dp) { dp.classList.remove('open', 'dp-fullscreen'); }
+  if (dp) {
+    dp.classList.remove('open', 'dp-fullscreen');
+    dp.style.height = ''; // clear JS-set inline height
+  }
   if (isMobile()) {
     // Delay restoring the venue list until the detail panel has finished its
     // 300ms close animation, so the two panels are never visible at the same time.
@@ -1388,6 +1397,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (dy < -40) {
           // swipe up → fullscreen
           dpEl.classList.add('dp-fullscreen');
+          dpEl.style.height = _trueVH() + 'px';
         } else if (dy > 40) {
           // swipe down → dismiss (close)
           closeDetailPanel();
