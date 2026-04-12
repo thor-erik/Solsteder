@@ -6,12 +6,15 @@
  */
 
 // ── iOS Safari viewport height fix ───────────────────────────────────────────
-// window.visualViewport.height gives the true visible area on iOS Safari 15+
-// (excludes bottom address bar overlay, keyboard, etc.). Falls back to innerHeight.
+// Set --vh ONCE from the initial visible viewport height and never update it.
+// Updating on resize causes iOS Safari toolbar-collapse events to expand panels
+// mid-interaction, pushing the top of the panel off-screen.
 function _trueVH() {
   return window.visualViewport ? window.visualViewport.height : window.innerHeight;
 }
 function _setVhVar() {
+  // Don't update while a detail panel is open — toolbar collapse would resize panels
+  if (document.getElementById('detail-panel')?.classList.contains('open')) return;
   document.documentElement.style.setProperty('--vh', (_trueVH() * 0.01) + 'px');
 }
 window.addEventListener('resize', _setVhVar);
@@ -990,17 +993,7 @@ function openDetailPanel(v) {
   dp.classList.add('open');
   _drawShelterDiagram(v);
   if (isMobile()) {
-    // Measure actual content height and cap at 85% of visible viewport.
-    // Do this after a frame so the DOM has rendered and scrollHeight is accurate.
-    requestAnimationFrame(() => {
-      const maxH = Math.round(_trueVH() * 0.85);
-      // Temporarily unconstrain height so scrollHeight reflects true content height
-      dp.style.height = 'auto';
-      dp.style.maxHeight = 'none';
-      const naturalH = dp.scrollHeight;
-      dp.style.height = Math.min(naturalH, maxH) + 'px';
-      dp.style.maxHeight = '';
-    });
+    dp.style.height = '';  // let CSS handle it (--vh is frozen while panel is open)
     const panel = document.getElementById('panel');
     if (panel) {
       panel.classList.remove('mobile-expanded', 'mobile-fullscreen');
