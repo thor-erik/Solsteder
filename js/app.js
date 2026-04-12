@@ -989,8 +989,6 @@ function openDetailPanel(v) {
   dp.classList.add('open');
   _drawShelterDiagram(v);
   if (isMobile()) {
-    // Set explicit pixel height using the true visible viewport to bypass iOS Safari quirks
-    dp.style.height = Math.round(_trueVH() * 0.70) + 'px';
     const panel = document.getElementById('panel');
     if (panel) {
       panel.classList.remove('mobile-expanded', 'mobile-fullscreen');
@@ -1394,10 +1392,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!_dpDragging) return;
         _dpDragging = false;
         const dy = e.changedTouches[0].clientY - _dpY0;
-        if (dy < -40) {
-          // swipe up → fullscreen
+        if (dy < -80) {
+          // swipe up (deliberate) → fullscreen
           dpEl.classList.add('dp-fullscreen');
-          dpEl.style.height = _trueVH() + 'px';
         } else if (dy > 40) {
           // swipe down → dismiss (close)
           closeDetailPanel();
