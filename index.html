@@ -2488,7 +2488,12 @@
     .dp-venue-name { font-size: 19px; }
     #dp-scroll {
       padding-top: 0;
-      max-height: calc(var(--vh, 1vh) * 78); /* cap so dp-scroll scrolls when content is tall */
+      flex: none;            /* don't expand — let panel shrink-wrap content */
+      height: auto;
+      max-height: calc(var(--vh, 1vh) * 78); /* scroll if content taller than this */
+    }
+    #dp-content {
+      flex: none;            /* don't expand greedily in auto-height panel */
     }
   }
 </style>
