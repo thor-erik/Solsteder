@@ -5,21 +5,7 @@
  * bottom of index.html after all files are loaded.
  */
 
-// ── iOS Safari viewport height fix ───────────────────────────────────────────
-// Set --vh ONCE from the initial visible viewport height and never update it.
-// Updating on resize causes iOS Safari toolbar-collapse events to expand panels
-// mid-interaction, pushing the top of the panel off-screen.
-function _trueVH() {
-  return window.visualViewport ? window.visualViewport.height : window.innerHeight;
-}
-function _setVhVar() {
-  // Don't update while a detail panel is open — toolbar collapse would resize panels
-  if (document.getElementById('detail-panel')?.classList.contains('open')) return;
-  document.documentElement.style.setProperty('--vh', (_trueVH() * 0.01) + 'px');
-}
-window.addEventListener('resize', _setVhVar);
-if (window.visualViewport) window.visualViewport.addEventListener('resize', _setVhVar);
-_setVhVar();
+// No JS viewport-height fix needed — mobile panels use position:fixed + svh units.
 
 // ── Mutable state ─────────────────────────────────────────────────────────────
 let currentSun        = null;   // {az, alt} for the FROM time
@@ -993,12 +979,6 @@ function openDetailPanel(v) {
   dp.classList.add('open');
   _drawShelterDiagram(v);
   if (isMobile()) {
-    // Force a synchronous reflow so scrollHeight is accurate, then lock height
-    // as a px value. This prevents the "auto height computed wrong until Tab" bug.
-    dp.style.height = 'auto';
-    const maxH = Math.round(_trueVH() * 0.85);
-    void dp.offsetHeight; // trigger reflow
-    dp.style.height = Math.min(dp.scrollHeight, maxH) + 'px';
     const panel = document.getElementById('panel');
     if (panel) {
       panel.classList.remove('mobile-expanded', 'mobile-fullscreen');
@@ -1022,7 +1002,6 @@ function closeDetailPanel() {
   const dp = document.getElementById('detail-panel');
   if (dp) {
     dp.classList.remove('open', 'dp-fullscreen');
-    dp.style.height = ''; // clear JS-set inline height
   }
   if (isMobile()) {
     // Delay restoring the venue list until the detail panel has finished its
@@ -1405,7 +1384,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (dy < -80) {
           // swipe up (deliberate) → fullscreen
           dpEl.classList.add('dp-fullscreen');
-          dpEl.style.height = _trueVH() + 'px';
         } else if (dy > 40) {
           // swipe down → dismiss (close)
           closeDetailPanel();

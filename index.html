@@ -34,7 +34,7 @@
   #app {
     position: relative;
     height: 100vh;
-    height: calc(var(--vh, 1vh) * 100); /* JS-computed: uses window.innerHeight, bypasses iOS Safari address-bar bug */
+    height: 100svh;
     overflow: hidden;
   }
 
@@ -1424,12 +1424,13 @@
 
     /* Venue list — default "peek" state: 110px visible from bottom */
     #panel {
+      position: fixed;  /* fixed avoids parent height/overflow issues on iOS */
       top: auto;
       left: 0;
       right: 0;
       bottom: 0;
       width: 100%;
-      height: calc(var(--vh, 1vh) * 62);
+      height: 62svh;    /* svh = small viewport height: stable, unaffected by toolbar */
       border-radius: 20px 20px 0 0;
       border-left: none;
       border-right: none;
@@ -1528,7 +1529,7 @@
     /* Fullscreen state: panel covers everything */
     #panel.mobile-fullscreen {
       transform: translateY(0) !important;
-      height: calc(var(--vh, 1vh) * 100);
+      height: 100svh;
       border-radius: 0;
       z-index: 910;
     }
@@ -2448,22 +2449,22 @@
 
   @media (max-width: 639px) {
     #detail-panel {
+      position: fixed;  /* fixed avoids parent height issues; bottom:0 anchors to visual viewport */
       top: auto;
       left: 0; right: 0; bottom: 0;
       width: 100%;
-      height: auto;          /* fits content — no empty black space */
-      max-height: calc(var(--vh, 1vh) * 85);
+      height: 78svh;    /* svh = small viewport height: never changes when toolbar collapses */
+      max-height: none;
       border-radius: 20px 20px 0 0;
       border-left: none; border-right: none; border-bottom: none;
       transform: translateY(100%);
       opacity: 1;
       z-index: 920;
-      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-radius 0.3s ease;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), height 0.3s ease, border-radius 0.3s ease;
     }
     #detail-panel.open { transform: translateY(0); }
     #detail-panel.dp-fullscreen {
-      height: calc(var(--vh, 1vh) * 100);
-      max-height: none;
+      height: 100svh;
       border-radius: 0;
     }
     #dp-handle { display: flex; }
@@ -2486,7 +2487,7 @@
     .dp-close-x    { display: none; }
     .dp-close-back { display: inline; }
     .dp-venue-name { font-size: 19px; }
-    #dp-scroll { padding-top: 0; }
+    #dp-scroll { padding-top: 0; overflow-y: auto; }
   }
 </style>
 </head>
@@ -2661,7 +2662,7 @@
 <script src="js/data.js?v=20260411b"></script>
 <script src="js/weather.js?v=20260411b"></script>
 <script src="js/scoring.js?v=20260411b"></script>
-<script src="js/app.js?v=20260412d"></script>
+<script src="js/app.js?v=20260412e"></script>
 <script src="js/render-helpers.js?v=20260411b"></script>
 <script src="js/render-arc.js?v=20260411b"></script>
 <script src="js/render-seating.js?v=20260411b"></script>
