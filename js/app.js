@@ -989,6 +989,17 @@ function openDetailPanel(v) {
   dp.classList.add('open');
   _drawShelterDiagram(v);
   if (isMobile()) {
+    // Measure actual content height and cap at 85% of visible viewport.
+    // Do this after a frame so the DOM has rendered and scrollHeight is accurate.
+    requestAnimationFrame(() => {
+      const maxH = Math.round(_trueVH() * 0.85);
+      // Temporarily unconstrain height so scrollHeight reflects true content height
+      dp.style.height = 'auto';
+      dp.style.maxHeight = 'none';
+      const naturalH = dp.scrollHeight;
+      dp.style.height = Math.min(naturalH, maxH) + 'px';
+      dp.style.maxHeight = '';
+    });
     const panel = document.getElementById('panel');
     if (panel) {
       panel.classList.remove('mobile-expanded', 'mobile-fullscreen');
@@ -1395,6 +1406,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (dy < -80) {
           // swipe up (deliberate) → fullscreen
           dpEl.classList.add('dp-fullscreen');
+          dpEl.style.height = _trueVH() + 'px';
         } else if (dy > 40) {
           // swipe down → dismiss (close)
           closeDetailPanel();

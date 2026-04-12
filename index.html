@@ -2486,15 +2486,8 @@
     .dp-close-x    { display: none; }
     .dp-close-back { display: inline; }
     .dp-venue-name { font-size: 19px; }
-    #dp-scroll {
-      padding-top: 0;
-      flex: none;            /* don't expand — let panel shrink-wrap content */
-      height: auto;
-      max-height: calc(var(--vh, 1vh) * 78); /* scroll if content taller than this */
-    }
-    #dp-content {
-      flex: none;            /* don't expand greedily in auto-height panel */
-    }
+    #dp-scroll { padding-top: 0; }
+    #dp-content { overflow: visible; }
   }
 </style>
 </head>
@@ -2669,7 +2662,7 @@
 <script src="js/data.js?v=20260411b"></script>
 <script src="js/weather.js?v=20260411b"></script>
 <script src="js/scoring.js?v=20260411b"></script>
-<script src="js/app.js?v=20260411b"></script>
+<script src="js/app.js?v=20260412a"></script>
 <script src="js/render-helpers.js?v=20260411b"></script>
 <script src="js/render-arc.js?v=20260411b"></script>
 <script src="js/render-seating.js?v=20260411b"></script>
