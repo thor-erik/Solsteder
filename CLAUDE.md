@@ -84,6 +84,22 @@ To inspect the schema without reading the full file:
 python3 -c "import json; d=json.load(open('data/venues.json')); print(list(d[0].keys()))"
 ```
 
+## Layout debugging protocol
+
+For any layout or visual bug, follow this sequence — no exceptions:
+
+1. **Audit first.** Run `node scripts/audit-layout.mjs <element>` before reading any code.
+   - Example: `node scripts/audit-layout.mjs detail-panel`
+   - Example: `node scripts/audit-layout.mjs height overflow`
+2. **Map the full constraint chain.** Identify every rule touching the element: CSS cascade, media queries, JS inline overrides, CSS vars. Write it out before proposing a fix.
+3. **One precise change.** Fix the root cause, not the symptom. Do not make multiple small attempts. If the root cause is unclear, say so — don't guess and commit.
+4. **No speculative iteration.** Do not commit a "try this" change. Only commit when the fix is well-reasoned.
+
+Mobile-specific caveats:
+- iOS Safari viewport bugs (address bar, safe areas) cannot be verified without a real device. Say so explicitly rather than iterating blindly.
+- `--vh` is set by JS (`app.js:15`) from `visualViewport.height`. Any height relying on `--vh` depends on JS running.
+- `#detail-panel.open` has intentionally separate transforms per media query (translateX desktop, translateY mobile) — the audit script flags these as conflicts but they are not.
+
 ## Key constraints
 
 - No npm/node during runtime — all deps are CDN-loaded in `index.html`
