@@ -993,7 +993,12 @@ function openDetailPanel(v) {
   dp.classList.add('open');
   _drawShelterDiagram(v);
   if (isMobile()) {
-    dp.style.height = '';  // let CSS handle it (--vh is frozen while panel is open)
+    // Force a synchronous reflow so scrollHeight is accurate, then lock height
+    // as a px value. This prevents the "auto height computed wrong until Tab" bug.
+    dp.style.height = 'auto';
+    const maxH = Math.round(_trueVH() * 0.85);
+    void dp.offsetHeight; // trigger reflow
+    dp.style.height = Math.min(dp.scrollHeight, maxH) + 'px';
     const panel = document.getElementById('panel');
     if (panel) {
       panel.classList.remove('mobile-expanded', 'mobile-fullscreen');
