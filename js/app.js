@@ -999,12 +999,16 @@ function closeDetailPanel() {
   const dp = document.getElementById('detail-panel');
   if (dp) { dp.classList.remove('open', 'dp-fullscreen'); }
   if (isMobile()) {
-    const panel = document.getElementById('panel');
-    if (panel) {
-      panel.classList.remove('mobile-hidden', 'mobile-expanded', 'mobile-fullscreen');
-    }
-    document.getElementById('floating-search')?.classList.remove('mobile-ui-hidden');
-    document.getElementById('qc-wrap')?.classList.remove('mobile-ui-hidden');
+    // Delay restoring the venue list until the detail panel has finished its
+    // 300ms close animation, so the two panels are never visible at the same time.
+    setTimeout(() => {
+      const panel = document.getElementById('panel');
+      if (panel) {
+        panel.classList.remove('mobile-hidden', 'mobile-expanded', 'mobile-fullscreen');
+      }
+      document.getElementById('floating-search')?.classList.remove('mobile-ui-hidden');
+      document.getElementById('qc-wrap')?.classList.remove('mobile-ui-hidden');
+    }, 320);
   }
   if (selectedId != null) {
     selectedId = null;
