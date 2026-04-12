@@ -1322,15 +1322,14 @@ document.addEventListener('DOMContentLoaded', () => {
       }, { passive: false });
     }
 
-    // ── Prevent iOS browser pinch-to-zoom on the map ──
-    const mapCont = document.getElementById('map-container');
-    if (mapCont) {
-      mapCont.addEventListener('touchmove', e => {
-        if (e.touches.length > 1) e.preventDefault();
-      }, { passive: false });
-    }
-    document.addEventListener('gesturestart', e => e.preventDefault(), { passive: false });
-    document.addEventListener('gesturechange', e => e.preventDefault(), { passive: false });
+    // ── Prevent iOS browser pinch-to-zoom (but not Mapbox's) ──
+    // Only block gestures that originate outside the map container
+    document.addEventListener('gesturestart', e => {
+      if (!document.getElementById('map-container')?.contains(e.target)) e.preventDefault();
+    }, { passive: false });
+    document.addEventListener('gesturechange', e => {
+      if (!document.getElementById('map-container')?.contains(e.target)) e.preventDefault();
+    }, { passive: false });
 
     // ── Venue list overscroll → fullscreen / back to expanded ──
     const venueList = document.getElementById('venue-list');

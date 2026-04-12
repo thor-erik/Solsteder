@@ -663,7 +663,11 @@ function hitTestWall(cx, cy) {
 }
 
 // ── Canvas event handling ─────────────────────────────────────────────────────
-canvas.style.pointerEvents = 'auto';
+// On touch devices, keep canvas pointer-events:none so Mapbox receives native
+// touch events directly (enabling pan + pinch-zoom). Tap detection is handled
+// via document-level touchend below. On desktop, auto so mouse events work.
+const _isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+canvas.style.pointerEvents = _isTouchDevice ? 'none' : 'auto';
 
 canvas.addEventListener('mousedown', e => {
   const rect = canvas.getBoundingClientRect();
@@ -858,52 +862,37 @@ window.addEventListener('mouseup', () => {
   }
 });
 
-// wheel + touchstart + touchmove: pass through to map for pan/zoom
-['wheel', 'touchstart', 'touchmove'].forEach(type => {
-  canvas.addEventListener(type, e => {
-    canvas.style.pointerEvents = 'none';
-    const el = document.elementFromPoint(
-      e.clientX ?? e.touches?.[0]?.clientX,
-      e.clientY ?? e.touches?.[0]?.clientY
-    );
-    canvas.style.pointerEvents = 'auto';
-    if (el) el.dispatchEvent(new (e.constructor)(type, e));
-  }, { passive: true });
-});
-
-// Record touch start so we can detect taps vs drags
-let _touchStartX = 0, _touchStartY = 0;
-canvas.addEventListener('touchstart', e => {
-  const t = e.touches?.[0];
-  if (t) { _touchStartX = t.clientX; _touchStartY = t.clientY; }
+// wheel: pass through to map (desktop only — touch devices use native events)
+canvas.addEventListener('wheel', e => {
+  canvas.style.pointerEvents = 'none';
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  canvas.style.pointerEvents = 'auto';
+  if (el) el.dispatchEvent(new WheelEvent('wheel', e));
 }, { passive: true });
 
-// touchend: attempt pin hit-test first; only pass through to map if no hit
-canvas.addEventListener('touchend', e => {
-  const t = e.changedTouches?.[0];
-  if (t) {
+// Touch pin-tap detection (touch devices only).
+// Canvas is pointer-events:none so Mapbox gets all native touch events for
+// pan/pinch-zoom. We listen at document level to detect taps on pins.
+if (_isTouchDevice) {
+  let _touchStartX = 0, _touchStartY = 0;
+
+  document.addEventListener('touchstart', e => {
+    const t = e.touches?.[0];
+    if (t) { _touchStartX = t.clientX; _touchStartY = t.clientY; }
+  }, { passive: true });
+
+  document.addEventListener('touchend', e => {
+    if (editingVenueId) return;
+    const t = e.changedTouches?.[0];
+    if (!t) return;
     const dx = t.clientX - _touchStartX, dy = t.clientY - _touchStartY;
-    const isTap = dx * dx + dy * dy < 100; // ≤10 px movement
-    if (isTap && !editingVenueId) {
-      const rect = canvas.getBoundingClientRect();
-      const cx = t.clientX - rect.left, cy = t.clientY - rect.top;
-      const hit = hitTestVenue(cx, cy) || hitTestDot(cx, cy);
-      if (hit) {
-        selectVenue(hit.id, false);
-        panToVenueCenter(hit);
-        e.preventDefault(); // suppress synthetic click
-        return;
-      }
-      if (selectedId !== null) {
-        closeDetailPanel();
-        e.preventDefault();
-        return;
-      }
+    if (dx * dx + dy * dy >= 100) return; // not a tap
+    const rect = canvas.getBoundingClientRect();
+    const cx = t.clientX - rect.left, cy = t.clientY - rect.top;
+    const hit = hitTestVenue(cx, cy) || hitTestDot(cx, cy);
+    if (hit) {
+      selectVenue(hit.id, false);
+      panToVenueCenter(hit);
     }
-  }
-  // No pin hit — forward to map so it can handle its own tap/drag logic
-  canvas.style.pointerEvents = 'none';
-  const el = t ? document.elementFromPoint(t.clientX, t.clientY) : null;
-  canvas.style.pointerEvents = 'auto';
-  if (el) el.dispatchEvent(new TouchEvent('touchend', e));
-}, { passive: false });
+  }, { passive: true });
+}
