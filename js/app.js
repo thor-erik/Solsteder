@@ -937,8 +937,9 @@ function selectVenue(id, flyTo) {
   const v = VENUES.find(x => x.id === id);
   if (!v) return;
 
-  // Only rotate/pitch to face the wall when buildings are visible (zoom >= 16)
-  if (flyTo) {
+  // On mobile the detail panel is the focus — skip map animation to avoid
+  // triggering iOS Safari toolbar collapse (which resizes viewport mid-open).
+  if (flyTo && !isMobile()) {
     if (_preSelectZoom === null) {
       _preSelectZoom   = map.getZoom();
       _preSelectCenter = map.getCenter();
