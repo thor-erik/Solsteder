@@ -1314,28 +1314,55 @@ document.addEventListener('DOMContentLoaded', () => {
     if (h) h.style.display = 'flex';
 
     // ── Panel drag-to-resize (bottom-sheet) ─────────────────────────────────
-    // Handle drag: finger follows panel in real-time.
-    // On release: if finger is in upper 45% of screen → fullscreen; else → peek.
-    // Tap (< 10px movement): toggles peek ↔ expanded as before.
-    // Venue list pull-down at top: same drag behaviour when panel is expanded.
+    // Three states: peek → expanded → fullscreen
+    //
+    // Velocity-based (swipe): steps one state in the swipe direction.
+    //   Swipe up:   peek→expanded, expanded→fullscreen
+    //   Swipe down: fullscreen→expanded, expanded→peek
+    //
+    // Position-based (slow drag): snaps to nearest state by release Y.
+    //
+    // Tap (<10px movement): toggles peek↔expanded.
+    //
+    // Venue list at top + pull-down: drags panel like the handle.
+    // Venue list at top + fast swipe (no drag mode started): same state machine.
     if (h && panelEl) {
       let _dragY0 = 0, _dragT0 = 0, _dragActive = false, _dragFromList = false;
+      let _dragStartState = 'peek', _dragStartTime = 0;
 
       function _panelTranslateNow() {
         return new DOMMatrix(getComputedStyle(panelEl).transform).m42;
       }
 
+      function _currentState() {
+        if (panelEl.classList.contains('mobile-fullscreen')) return 'fullscreen';
+        if (panelEl.classList.contains('mobile-expanded'))   return 'expanded';
+        return 'peek';
+      }
+
+      function _applyState(state) {
+        if (state === 'fullscreen') {
+          panelEl.classList.add('mobile-fullscreen', 'mobile-expanded');
+        } else if (state === 'expanded') {
+          panelEl.classList.add('mobile-expanded');
+          panelEl.classList.remove('mobile-fullscreen');
+        } else {
+          panelEl.classList.remove('mobile-expanded', 'mobile-fullscreen');
+        }
+      }
+
       function _beginDrag(y) {
-        _dragY0      = y;
-        _dragT0      = _panelTranslateNow();
-        _dragActive  = true;
-        panelEl.style.transition = 'none'; // disable transition while dragging
+        _dragY0         = y;
+        _dragT0         = _panelTranslateNow();
+        _dragActive     = true;
+        _dragStartState = _currentState();
+        _dragStartTime  = Date.now();
+        panelEl.style.transition = 'none';
       }
 
       function _trackDrag(y) {
         if (!_dragActive) return;
         const panelH = panelEl.offsetHeight;
-        // Clamp: 0 = fully visible top; panelH−80 = deep peek (80px still visible)
         const newT = Math.max(0, Math.min(panelH - 80, _dragT0 + (y - _dragY0)));
         panelEl.style.transform = `translateY(${newT}px)`;
       }
@@ -1344,14 +1371,31 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!_dragActive) return;
         _dragActive   = false;
         _dragFromList = false;
-        const screenH = window.visualViewport?.height ?? window.innerHeight;
+
+        const dy       = y - _dragY0;
+        const dt       = Math.max(1, Date.now() - _dragStartTime);
+        const velocity = dy / dt; // px/ms, positive = downward
+
         panelEl.style.transition = ''; // restore CSS transition → snap animates
         panelEl.style.transform  = ''; // hand control back to CSS classes
-        if (y < screenH * 0.45) {
-          panelEl.classList.add('mobile-fullscreen', 'mobile-expanded');
+
+        const SWIPE_V = 0.3; // px/ms — deliberate swipe threshold
+        let target;
+        if (velocity < -SWIPE_V) {
+          // Fast swipe up → advance one step
+          target = _dragStartState === 'peek' ? 'expanded' : 'fullscreen';
+        } else if (velocity > SWIPE_V) {
+          // Fast swipe down → retreat one step
+          target = _dragStartState === 'fullscreen' ? 'expanded' : 'peek';
         } else {
-          panelEl.classList.remove('mobile-expanded', 'mobile-fullscreen');
+          // Slow drag → snap by release position
+          const screenH = window.visualViewport?.height ?? window.innerHeight;
+          if (y < screenH * 0.30)      target = 'fullscreen';
+          else if (y < screenH * 0.65) target = 'expanded';
+          else                          target = 'peek';
         }
+
+        _applyState(target);
       }
 
       // Handle touch events
@@ -1371,19 +1415,14 @@ document.addEventListener('DOMContentLoaded', () => {
           _dragActive = false;
           panelEl.style.transition = '';
           panelEl.style.transform  = '';
-          if (panelEl.classList.contains('mobile-expanded')) {
-            panelEl.classList.remove('mobile-expanded', 'mobile-fullscreen');
-          } else if (!panelEl.classList.contains('mobile-hidden')) {
-            panelEl.classList.add('mobile-expanded');
-            panelEl.classList.remove('mobile-fullscreen');
-          }
+          const s = _currentState();
+          _applyState(s === 'expanded' || s === 'fullscreen' ? 'peek' : 'expanded');
         } else {
           _commitDrag(e.changedTouches[0].clientY);
         }
       }, { passive: true });
 
       // ── Prevent iOS browser pinch-to-zoom (but not Mapbox's) ──
-      // Only block gestures that originate outside the map container
       document.addEventListener('gesturestart', e => {
         if (!document.getElementById('map-container')?.contains(e.target)) e.preventDefault();
       }, { passive: false });
@@ -1391,14 +1430,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!document.getElementById('map-container')?.contains(e.target)) e.preventDefault();
       }, { passive: false });
 
-      // ── Venue list: pull-down at top follows panel; upswipe → fullscreen ──
+      // ── Venue list: pull-down at top → drag panel; fast upswipe → advance state ──
       const venueList = document.getElementById('venue-list');
       if (venueList) {
         let _listY0 = 0, _listAtTop = false;
 
         venueList.addEventListener('touchstart', e => {
-          _listY0     = e.touches[0].clientY;
-          _listAtTop  = venueList.scrollTop === 0;
+          _listY0    = e.touches[0].clientY;
+          _listAtTop = venueList.scrollTop === 0;
         }, { passive: true });
 
         venueList.addEventListener('touchmove', e => {
@@ -1417,13 +1456,14 @@ document.addEventListener('DOMContentLoaded', () => {
         venueList.addEventListener('touchend', e => {
           if (_dragActive && _dragFromList) {
             _commitDrag(e.changedTouches[0].clientY);
-          } else {
-            // Upswipe at top → fullscreen; downswipe in fullscreen → expanded
+          } else if (_listAtTop) {
+            // Fast swipe without drag mode (e.g. quick flick) → state machine
             const dy = e.changedTouches[0].clientY - _listY0;
-            if (_listAtTop && dy < -40 && panelEl.classList.contains('mobile-expanded') && !panelEl.classList.contains('mobile-fullscreen')) {
-              panelEl.classList.add('mobile-fullscreen');
-            } else if (_listAtTop && dy > 40 && panelEl.classList.contains('mobile-fullscreen')) {
-              panelEl.classList.remove('mobile-fullscreen');
+            if (Math.abs(dy) > 30) {
+              const s = _currentState();
+              if (dy < 0 && s === 'expanded') _applyState('fullscreen');
+              else if (dy > 0 && s === 'fullscreen') _applyState('expanded');
+              else if (dy > 0 && s === 'expanded') _applyState('peek');
             }
           }
         }, { passive: true });
