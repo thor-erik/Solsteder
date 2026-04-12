@@ -5,6 +5,15 @@
  * bottom of index.html after all files are loaded.
  */
 
+// ── iOS Safari viewport height fix ───────────────────────────────────────────
+// window.innerHeight is the actual visible height; iOS Safari's vh unit
+// uses the full layout viewport (incl. address bar), making panels taller than visible.
+function _setVhVar() {
+  document.documentElement.style.setProperty('--vh', (window.innerHeight * 0.01) + 'px');
+}
+window.addEventListener('resize', _setVhVar);
+_setVhVar();
+
 // ── Mutable state ─────────────────────────────────────────────────────────────
 let currentSun        = null;   // {az, alt} for the FROM time
 let currentSunTable   = null;   // Float64Array built once per date

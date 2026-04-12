@@ -34,7 +34,7 @@
   #app {
     position: relative;
     height: 100vh;
-    height: 100dvh; /* dynamic: excludes iOS Safari browser chrome */
+    height: calc(var(--vh, 1vh) * 100); /* JS-computed: uses window.innerHeight, bypasses iOS Safari address-bar bug */
     overflow: hidden;
   }
 
@@ -1429,7 +1429,7 @@
       right: 0;
       bottom: 0;
       width: 100%;
-      height: 62dvh;
+      height: calc(var(--vh, 1vh) * 62);
       border-radius: 20px 20px 0 0;
       border-left: none;
       border-right: none;
@@ -1528,7 +1528,7 @@
     /* Fullscreen state: panel covers everything */
     #panel.mobile-fullscreen {
       transform: translateY(0) !important;
-      height: 100dvh;
+      height: calc(var(--vh, 1vh) * 100);
       border-radius: 0;
       z-index: 910;
     }
@@ -2451,7 +2451,7 @@
       top: auto;
       left: 0; right: 0; bottom: 0;
       width: 100%;
-      height: 70dvh;
+      height: calc(var(--vh, 1vh) * 70);
       border-radius: 20px 20px 0 0;
       border-left: none; border-right: none; border-bottom: none;
       transform: translateY(100%);
@@ -2461,7 +2461,7 @@
     }
     #detail-panel.open { transform: translateY(0); }
     #detail-panel.dp-fullscreen {
-      height: 100dvh;
+      height: calc(var(--vh, 1vh) * 100);
       border-radius: 0;
     }
     #dp-handle { display: flex; }
