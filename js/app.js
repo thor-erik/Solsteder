@@ -1313,51 +1313,121 @@ document.addEventListener('DOMContentLoaded', () => {
     const panelEl = document.getElementById('panel');
     if (h) h.style.display = 'flex';
 
-    // ── Panel handle: tap toggles peek↔expanded; swipe up/down ──
+    // ── Panel drag-to-resize (bottom-sheet) ─────────────────────────────────
+    // Handle drag: finger follows panel in real-time.
+    // On release: if finger is in upper 45% of screen → fullscreen; else → peek.
+    // Tap (< 10px movement): toggles peek ↔ expanded as before.
+    // Venue list pull-down at top: same drag behaviour when panel is expanded.
     if (h && panelEl) {
-      let _swipeY0 = 0;
+      let _dragY0 = 0, _dragT0 = 0, _dragActive = false, _dragFromList = false;
+
+      function _panelTranslateNow() {
+        return new DOMMatrix(getComputedStyle(panelEl).transform).m42;
+      }
+
+      function _beginDrag(y) {
+        _dragY0      = y;
+        _dragT0      = _panelTranslateNow();
+        _dragActive  = true;
+        panelEl.style.transition = 'none'; // disable transition while dragging
+      }
+
+      function _trackDrag(y) {
+        if (!_dragActive) return;
+        const panelH = panelEl.offsetHeight;
+        // Clamp: 0 = fully visible top; panelH−80 = deep peek (80px still visible)
+        const newT = Math.max(0, Math.min(panelH - 80, _dragT0 + (y - _dragY0)));
+        panelEl.style.transform = `translateY(${newT}px)`;
+      }
+
+      function _commitDrag(y) {
+        if (!_dragActive) return;
+        _dragActive   = false;
+        _dragFromList = false;
+        const screenH = window.visualViewport?.height ?? window.innerHeight;
+        panelEl.style.transition = ''; // restore CSS transition → snap animates
+        panelEl.style.transform  = ''; // hand control back to CSS classes
+        if (y < screenH * 0.45) {
+          panelEl.classList.add('mobile-fullscreen', 'mobile-expanded');
+        } else {
+          panelEl.classList.remove('mobile-expanded', 'mobile-fullscreen');
+        }
+      }
+
+      // Handle touch events
       h.addEventListener('touchstart', e => {
-        _swipeY0 = e.touches[0].clientY;
+        _beginDrag(e.touches[0].clientY);
       }, { passive: true });
+
+      h.addEventListener('touchmove', e => {
+        e.preventDefault();
+        _trackDrag(e.touches[0].clientY);
+      }, { passive: false });
+
       h.addEventListener('touchend', e => {
-        const dy = e.changedTouches[0].clientY - _swipeY0;
-        if (Math.abs(dy) > 30) {
-          e.preventDefault();
-          if (dy < 0) {
+        const totalDy = e.changedTouches[0].clientY - _dragY0;
+        if (Math.abs(totalDy) < 10) {
+          // Tap: toggle peek ↔ expanded
+          _dragActive = false;
+          panelEl.style.transition = '';
+          panelEl.style.transform  = '';
+          if (panelEl.classList.contains('mobile-expanded')) {
+            panelEl.classList.remove('mobile-expanded', 'mobile-fullscreen');
+          } else if (!panelEl.classList.contains('mobile-hidden')) {
             panelEl.classList.add('mobile-expanded');
             panelEl.classList.remove('mobile-fullscreen');
-          } else {
-            panelEl.classList.remove('mobile-expanded', 'mobile-fullscreen');
           }
+        } else {
+          _commitDrag(e.changedTouches[0].clientY);
         }
+      }, { passive: true });
+
+      // ── Prevent iOS browser pinch-to-zoom (but not Mapbox's) ──
+      // Only block gestures that originate outside the map container
+      document.addEventListener('gesturestart', e => {
+        if (!document.getElementById('map-container')?.contains(e.target)) e.preventDefault();
       }, { passive: false });
-    }
+      document.addEventListener('gesturechange', e => {
+        if (!document.getElementById('map-container')?.contains(e.target)) e.preventDefault();
+      }, { passive: false });
 
-    // ── Prevent iOS browser pinch-to-zoom (but not Mapbox's) ──
-    // Only block gestures that originate outside the map container
-    document.addEventListener('gesturestart', e => {
-      if (!document.getElementById('map-container')?.contains(e.target)) e.preventDefault();
-    }, { passive: false });
-    document.addEventListener('gesturechange', e => {
-      if (!document.getElementById('map-container')?.contains(e.target)) e.preventDefault();
-    }, { passive: false });
+      // ── Venue list: pull-down at top follows panel; upswipe → fullscreen ──
+      const venueList = document.getElementById('venue-list');
+      if (venueList) {
+        let _listY0 = 0, _listAtTop = false;
 
-    // ── Venue list overscroll → fullscreen / back to expanded ──
-    const venueList = document.getElementById('venue-list');
-    if (venueList && panelEl) {
-      let _listY0 = 0, _listAtTop = false;
-      venueList.addEventListener('touchstart', e => {
-        _listY0 = e.touches[0].clientY;
-        _listAtTop = venueList.scrollTop === 0;
-      }, { passive: true });
-      venueList.addEventListener('touchend', e => {
-        const dy = e.changedTouches[0].clientY - _listY0;
-        if (_listAtTop && dy < -40 && panelEl.classList.contains('mobile-expanded') && !panelEl.classList.contains('mobile-fullscreen')) {
-          panelEl.classList.add('mobile-fullscreen');
-        } else if (panelEl.classList.contains('mobile-fullscreen') && venueList.scrollTop === 0 && dy > 40) {
-          panelEl.classList.remove('mobile-fullscreen');
-        }
-      }, { passive: true });
+        venueList.addEventListener('touchstart', e => {
+          _listY0     = e.touches[0].clientY;
+          _listAtTop  = venueList.scrollTop === 0;
+        }, { passive: true });
+
+        venueList.addEventListener('touchmove', e => {
+          const dy = e.touches[0].clientY - _listY0;
+          // Pull-down at list top → start panel drag
+          if (!_dragActive && dy > 8 && _listAtTop && panelEl.classList.contains('mobile-expanded')) {
+            _dragFromList = true;
+            _beginDrag(e.touches[0].clientY);
+          }
+          if (_dragActive && _dragFromList) {
+            e.preventDefault();
+            _trackDrag(e.touches[0].clientY);
+          }
+        }, { passive: false });
+
+        venueList.addEventListener('touchend', e => {
+          if (_dragActive && _dragFromList) {
+            _commitDrag(e.changedTouches[0].clientY);
+          } else {
+            // Upswipe at top → fullscreen; downswipe in fullscreen → expanded
+            const dy = e.changedTouches[0].clientY - _listY0;
+            if (_listAtTop && dy < -40 && panelEl.classList.contains('mobile-expanded') && !panelEl.classList.contains('mobile-fullscreen')) {
+              panelEl.classList.add('mobile-fullscreen');
+            } else if (_listAtTop && dy > 40 && panelEl.classList.contains('mobile-fullscreen')) {
+              panelEl.classList.remove('mobile-fullscreen');
+            }
+          }
+        }, { passive: true });
+      }
     }
 
     // ── Map canvas touch → collapse panel to peek ──
