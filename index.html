@@ -2178,7 +2178,10 @@
 
   #dp-scroll {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
     padding: 14px 16px 24px;
     scrollbar-width: thin;
     scrollbar-color: rgba(255,184,0,0.2) transparent;
@@ -2445,7 +2448,7 @@
       top: auto;
       left: 0; right: 0; bottom: 0;
       width: 100%;
-      height: 55vh;
+      height: 70vh;
       border-radius: 20px 20px 0 0;
       border-left: none; border-right: none; border-bottom: none;
       transform: translateY(100%);
