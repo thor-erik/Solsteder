@@ -220,12 +220,14 @@ function currentHour() { const n = new Date(); return n.getHours() + n.getMinute
 
 function formatHour(h) {
   if (h == null) return '—';
-  const hr = Math.floor(h), min = Math.round((h - hr) * 60);
+  const total = Math.round(h * 60);
+  const hr = Math.floor(total / 60), min = total % 60;
   return `${String(hr).padStart(2,'0')}:${String(min).padStart(2,'0')}`;
 }
 
 function formatSliderTime(val) {
-  const h = Math.floor(val), m = Math.round((val - h) * 60);
+  const total = Math.round(val * 60);
+  const h = Math.floor(total / 60), m = total % 60;
   return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
 }
 

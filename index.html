@@ -1441,11 +1441,12 @@
       transform: translateY(0);
     }
 
-    /* Fully hidden (covered by detail panel etc.) */
+    /* Fully hidden (covered by detail panel etc.) — no transition so it disappears instantly */
     #panel.mobile-hidden {
       transform: translateY(calc(100% + 20px)) !important;
       opacity: 0 !important;
       pointer-events: none !important;
+      transition: none !important;
     }
 
     #panel-toggle-icon { display: none; }
@@ -2448,12 +2449,12 @@
       top: auto;
       left: 0; right: 0; bottom: 0;
       width: 100%;
-      height: 70vh;
+      height: calc(70vh + env(safe-area-inset-bottom, 0px));
       border-radius: 20px 20px 0 0;
       border-left: none; border-right: none; border-bottom: none;
       transform: translateY(100%);
       opacity: 1;
-      z-index: 850;
+      z-index: 920;
       transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), height 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-radius 0.3s ease;
     }
     #detail-panel.open { transform: translateY(0); }
@@ -2481,7 +2482,7 @@
     .dp-close-x    { display: none; }
     .dp-close-back { display: inline; }
     .dp-venue-name { font-size: 19px; }
-    #dp-scroll { padding-top: 0; }
+    #dp-scroll { padding-top: 0; padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
   }
 </style>
 </head>
