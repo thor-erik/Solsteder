@@ -1051,6 +1051,7 @@ function updateDetailPanel() {
   const dp      = document.getElementById('detail-panel');
   const content = document.getElementById('dp-content');
   if (!dp || !dp.classList.contains('open') || !content) return;
+  if (!authCurrentUser()) return;
   const v = VENUES.find(x => x.id === selectedId);
   if (!v) return;
   content.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
