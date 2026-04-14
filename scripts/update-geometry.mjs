@@ -447,4 +447,13 @@ async function main() {
   console.log(`\nWritten ${outPath} (${(JSON.stringify(output).length / 1024).toFixed(1)} KB)`);
 }
 
-main().catch(err => { console.error(err); process.exit(1); });
+main().catch(err => {
+  // Overpass API outage — keep existing geometry.json, exit cleanly so the
+  // nightly workflow doesn't send a failure email for transient network issues.
+  if (/HTTP|timeout|ECONNRESET|ENOTFOUND|fetch/i.test(err.message)) {
+    console.warn(`\nOverpass fetch failed (${err.message}) — keeping existing geometry.json`);
+    process.exit(0);
+  }
+  console.error(err);
+  process.exit(1);
+});
