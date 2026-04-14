@@ -974,6 +974,23 @@ function openDetailPanel(v) {
   const dp      = document.getElementById('detail-panel');
   const content = document.getElementById('dp-content');
   if (!dp || !content) return;
+
+  if (!authCurrentUser()) {
+    content.innerHTML = renderLoginGate(v);
+    dp.classList.remove('dp-fullscreen');
+    dp.classList.add('open');
+    if (isMobile()) {
+      const panel = document.getElementById('panel');
+      if (panel) {
+        panel.classList.remove('mobile-expanded', 'mobile-fullscreen');
+        panel.classList.add('mobile-hidden');
+      }
+      document.getElementById('floating-search')?.classList.add('mobile-ui-hidden');
+      document.getElementById('qc-wrap')?.classList.add('mobile-ui-hidden');
+    }
+    return;
+  }
+
   content.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
   dp.classList.remove('dp-fullscreen');
   dp.classList.add('open');
