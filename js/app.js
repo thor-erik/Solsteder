@@ -124,6 +124,26 @@ const map = new mapboxgl.Map({
 map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
 map.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-right');
 
+// ── User location dot ─────────────────────────────────────────────────────────
+function _updateLocationDot() {
+  const el = document.getElementById('user-location-dot');
+  if (!el || !mapLoaded) return;
+  if (!userLocation) { el.style.display = 'none'; return; }
+  const pt = map.project([userLocation.lng, userLocation.lat]);
+  el.style.left    = Math.round(pt.x) + 'px';
+  el.style.top     = Math.round(pt.y) + 'px';
+  el.style.display = '';
+}
+
+function locateUser() {
+  if (!userLocation) return;
+  const btn = document.getElementById('locate-btn');
+  if (btn) { btn.classList.add('tracking'); setTimeout(() => btn.classList.remove('tracking'), 1200); }
+  map.flyTo({ center: [userLocation.lng, userLocation.lat], zoom: Math.max(map.getZoom(), 15), duration: 600 });
+}
+
+map.on('move',    _updateLocationDot);
+map.on('zoomend', _updateLocationDot);
 
 map.on('style.load', () => {
   mapLoaded = true;
@@ -1637,23 +1657,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Request location for distance sorting + intro map centering
+  // Request location for distance sorting, intro centering, and live dot on map
   if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        userLocation    = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        _introCenter    = [pos.coords.longitude, pos.coords.latitude];
-        _introGeoReady  = true;
-        _introCheckReady();
-        renderList();
-      },
-      () => {
-        // Denied or unavailable — use Oslo fallback, proceed with intro
+    const _onGeoPos = pos => {
+      const wasNull   = !userLocation;
+      userLocation    = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      if (wasNull) {
+        _introCenter   = [pos.coords.longitude, pos.coords.latitude];
         _introGeoReady = true;
         _introCheckReady();
-      },
-      { timeout: 5000 }
-    );
+        renderList();
+      }
+      _updateLocationDot();
+    };
+    const _onGeoErr = () => {
+      if (!userLocation) { _introGeoReady = true; _introCheckReady(); }
+    };
+    // watchPosition keeps the dot fresh as the user moves
+    navigator.geolocation.watchPosition(_onGeoPos, _onGeoErr,
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 });
   } else {
     _introGeoReady = true;
     _introCheckReady();

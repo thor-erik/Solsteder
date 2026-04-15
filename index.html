@@ -58,6 +58,68 @@
     touch-action: none; /* prevent browser-level pinch-zoom; Mapbox handles gestures */
   }
 
+  /* ── User location dot ────────────────────────────────────────────────────── */
+  #user-location-dot {
+    position: absolute;
+    pointer-events: none;
+    z-index: 685;               /* below canvas-overlay (690): venue pins draw on top */
+    width: 14px;
+    height: 14px;
+    transform: translate(-50%, -50%);
+  }
+  .loc-pulse {
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(74,144,226,0.55);
+    animation: loc-pulse 2.4s ease-out infinite;
+  }
+  .loc-dot {
+    position: relative;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #4A90E2;
+    border: 2.5px solid rgba(255,255,255,0.95);
+    box-shadow: 0 1px 5px rgba(0,0,0,0.4), 0 0 10px rgba(74,144,226,0.45);
+  }
+  @keyframes loc-pulse {
+    0%   { transform: scale(1);   opacity: 0.9; }
+    70%  { transform: scale(3.2); opacity: 0; }
+    100% { transform: scale(3.2); opacity: 0; }
+  }
+
+  /* ── Locate-me button ──────────────────────────────────────────────────────── */
+  #locate-btn {
+    position: absolute;
+    right: 16px;
+    bottom: 148px;   /* above NavigationControl (~118px) + 14px gap */
+    z-index: 900;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    border-radius: 50%;
+    background: rgba(14,26,52,0.58);
+    backdrop-filter: blur(32px);
+    -webkit-backdrop-filter: blur(32px);
+    border: 1px solid rgba(156,189,231,0.18);
+    color: rgba(156,189,231,0.8);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  #locate-btn:hover {
+    background: rgba(24,52,95,0.85);
+    border-color: rgba(255,175,133,0.35);
+    color: rgba(255,175,133,0.9);
+  }
+  #locate-btn.tracking {
+    border-color: rgba(74,144,226,0.7);
+    color: #4A90E2;
+  }
+
   /* ── Shared floating card base ────────────────────────────────────────────── */
   .floating-card {
     background: rgba(14,26,52,0.58);
@@ -1598,6 +1660,9 @@
 
     #panel-toggle-icon { display: none; }
 
+    /* Locate button: sit just above the peek strip so panel sheet slides over it */
+    #locate-btn { bottom: 122px; }
+
     /* Handle: flex column — pill + chevron */
     #panel-handle {
       display: flex;
@@ -2676,6 +2741,12 @@
     <div id="map"></div>
     <canvas id="canvas-overlay" class="intro-hidden"></canvas>
 
+    <!-- USER LOCATION DOT -->
+    <div id="user-location-dot" style="display:none">
+      <div class="loc-pulse"></div>
+      <div class="loc-dot"></div>
+    </div>
+
     <!-- HOVER TOOLTIP -->
     <div id="hover-tooltip"></div>
 
@@ -2717,6 +2788,14 @@
 
   <!-- Profile popover — anchored below search bar -->
   <div id="profile-panel"></div>
+
+  <!-- Bottom-right: locate-me button -->
+  <button id="locate-btn" class="intro-hidden" onclick="locateUser()" title="Gå til min posisjon" aria-label="Gå til min posisjon">
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="9" cy="9" r="3" stroke="currentColor" stroke-width="1.8"/>
+      <path d="M9 1.5v4M9 12.5v4M1.5 9h4M12.5 9h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    </svg>
+  </button>
 
   <!-- Top-right: brand logo + sun compass -->
   <div id="floating-brand" class="intro-hidden">
