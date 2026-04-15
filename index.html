@@ -1470,15 +1470,6 @@
       border-radius: 2px;
     }
 
-    #panel-handle-chevron {
-      transition: transform 0.25s ease;
-      opacity: 0.4;
-    }
-
-    #panel.mobile-expanded #panel-handle-chevron {
-      transform: rotate(180deg);
-    }
-
     #panel-header { padding-top: 4px; }
 
     #venue-list { padding: 10px 16px 32px; }
@@ -2670,9 +2661,6 @@
   <div id="panel" class="intro-hidden">
     <div id="panel-handle" style="display:none" onclick="togglePanel()">
       <div id="panel-handle-pill"></div>
-      <svg id="panel-handle-chevron" width="14" height="8" viewBox="0 0 14 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M1 6.5L7 1.5L13 6.5" stroke="rgba(156,189,231,0.7)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
     </div>
     <div id="panel-header">
       <!-- Venue count title + toggle button -->

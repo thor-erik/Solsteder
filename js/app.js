@@ -1426,29 +1426,38 @@ document.addEventListener('DOMContentLoaded', () => {
         _applyState(target);
       }
 
-      // Handle touch events
-      h.addEventListener('touchstart', e => {
-        _beginDrag(e.touches[0].clientY);
-      }, { passive: true });
+      // Wire a swipe target: touchstart/move/end → panel drag state machine
+      function _wireSwipeTarget(el) {
+        el.addEventListener('touchstart', e => {
+          _beginDrag(e.touches[0].clientY);
+        }, { passive: true });
 
-      h.addEventListener('touchmove', e => {
-        e.preventDefault();
-        _trackDrag(e.touches[0].clientY);
-      }, { passive: false });
+        el.addEventListener('touchmove', e => {
+          e.preventDefault();
+          _trackDrag(e.touches[0].clientY);
+        }, { passive: false });
 
-      h.addEventListener('touchend', e => {
-        const totalDy = e.changedTouches[0].clientY - _dragY0;
-        if (Math.abs(totalDy) < 10) {
-          // Tap: toggle peek ↔ expanded
-          _dragActive = false;
-          panelEl.style.transition = '';
-          panelEl.style.transform  = '';
-          const s = _currentState();
-          _applyState(s === 'expanded' || s === 'fullscreen' ? 'peek' : 'expanded');
-        } else {
-          _commitDrag(e.changedTouches[0].clientY);
-        }
-      }, { passive: true });
+        el.addEventListener('touchend', e => {
+          const totalDy = e.changedTouches[0].clientY - _dragY0;
+          if (Math.abs(totalDy) < 10) {
+            // Tap: toggle peek ↔ expanded
+            _dragActive = false;
+            panelEl.style.transition = '';
+            panelEl.style.transform  = '';
+            const s = _currentState();
+            _applyState(s === 'expanded' || s === 'fullscreen' ? 'peek' : 'expanded');
+          } else {
+            _commitDrag(e.changedTouches[0].clientY);
+          }
+        }, { passive: true });
+      }
+
+      // Wire the drag handle, panel header, and sort row — all above the list
+      _wireSwipeTarget(h);
+      const panelHeader = document.getElementById('panel-header');
+      const sortRow     = document.getElementById('sort-row');
+      if (panelHeader) _wireSwipeTarget(panelHeader);
+      if (sortRow)     _wireSwipeTarget(sortRow);
 
       // ── Prevent iOS browser pinch-to-zoom (but not Mapbox's) ──
       document.addEventListener('gesturestart', e => {
