@@ -2510,15 +2510,33 @@
     opacity: 0;
     pointer-events: none !important;
   }
-  #panel.intro-hidden {
-    transform: translateY(28px);
+
+  /* Splash loading pulse */
+  #splash-brand {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Inter', sans-serif;
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    color: rgba(221, 226, 242, 0.25);
+    animation: splash-pulse 2s ease-in-out infinite;
+    user-select: none;
+  }
+  @keyframes splash-pulse {
+    0%, 100% { opacity: 0.25; }
+    50%       { opacity: 0.7; }
   }
 </style>
 </head>
 <body>
 <div id="app">
   <!-- INTRO SPLASH — covers everything until geo + map are ready -->
-  <div id="splash"></div>
+  <div id="splash">
+    <div id="splash-brand">Shades</div>
+  </div>
 
   <!-- MAP — full-screen -->
   <div id="map-container">

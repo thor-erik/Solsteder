@@ -1816,8 +1816,16 @@ function _introRevealUI(search, brand, qcWrap, panel) {
     requestAnimationFrame(() => el.classList.remove('intro-hidden'));
   });
   if (panel) {
-    panel.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-    requestAnimationFrame(() => panel.classList.remove('intro-hidden'));
+    // Start panel fully off-screen below, then animate up into its natural CSS position.
+    // Works on both mobile (peek = translateY(calc(100% - 110px))) and desktop (translateY(0)).
+    panel.style.transition = 'none';
+    panel.style.transform  = 'translateY(100%)';
+    panel.style.opacity    = '0';
+    panel.classList.remove('intro-hidden'); // restore pointer-events etc.
+    panel.getBoundingClientRect();          // force reflow so browser sees start state
+    panel.style.transition = 'opacity 0.5s ease, transform 0.65s cubic-bezier(0.2, 0.8, 0.3, 1)';
+    panel.style.transform  = '';           // let CSS natural value take over → slides up
+    panel.style.opacity    = '';           // → fades in
   }
 }
 
