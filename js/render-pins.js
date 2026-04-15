@@ -201,7 +201,8 @@ window.addEventListener('resize', () => {
 });
 
 map.on('move', draw);
-map.on('zoomend', draw);
+map.on('moveend',  () => { _layoutStale = true; draw(); });
+map.on('zoomend',  () => { _layoutStale = true; draw(); });
 
 // ── Pin layout: anti-overlap via variable stem, dot fallback ──────────────────
 // Each pin tries increasing extra-stem values until it clears all higher-priority
@@ -223,6 +224,18 @@ let _hoverClearTimer = null;      // debounce timer for clearing map hover
 const _pinWasDot    = new Map();  // id → bool — was this pin a dot last frame
 const _pinDotFade   = new Map();  // id → {fromDot, start} — active morph animations
 const _pinAnimStemH = new Map();  // id → animated extraStem (px, float) for smooth transitions
+
+// ── Layout stability cache ────────────────────────────────────────────────────
+// Layout (isDot / extraStem per venue) is only recomputed when the map has
+// settled (moveend/zoomend) or when the time/date changes. During panning,
+// screen positions update every frame but layout decisions remain frozen,
+// eliminating the pill↔dot jitter caused by the greedy algorithm seeing
+// slightly different pixel positions each frame.
+let _layoutStale = true;          // force recompute on first draw
+let _layoutHour  = null;          // hour at last layout compute
+let _layoutDate  = null;          // date at last layout compute
+const _venueIsDot    = new Map(); // id → stable isDot decision
+const _venueExtStem  = new Map(); // id → stable extraStem decision
 
 /**
  * Assigns each venue an extraStem (or isDot flag). Greedy by priority:
@@ -292,6 +305,27 @@ function computePinLayout(projVenues, currentHour, dateStr) {
     const selected = v.id === selectedId;
     const isRaised = v.id === highlight.raisedId;
     const spr = getSprite(v, state, selected, currentHour, dateStr);
+
+    // Venues that are always dots — skip the grid so they don't displace pills.
+    // • closed: not open yet / today
+    // • shaded with no future sun window: renders as a near-invisible pill with
+    //   no label, causing a visible stem line attached to what looks like a dot.
+    if (state === 'closed') {
+      result.push({ v, pt, state, extraStem: 0, isDot: true, spr });
+      continue;
+    }
+    if (state === 'shaded') {
+      let hasFutureSun = false;
+      try {
+        const { windows } = computeSunWindows(v, dateStr);
+        hasFutureSun = windows.some(w => w.start > currentHour);
+      } catch {}
+      if (!hasFutureSun) {
+        result.push({ v, pt, state, extraStem: 0, isDot: true, spr });
+        continue;
+      }
+    }
+
     const rw  = spr.canvas.width;
     const rh  = spr.canvas.height - STEM_H;  // pill area only (excludes baked stem)
 
@@ -461,8 +495,37 @@ function draw() {
     projVenues.push({ v, state, pt: map.project([v.lng, v.lat]) });
   });
 
-  // Compute anti-overlap layout before drawing (glow ring needs extraStem too)
-  _lastLayout = computePinLayout(projVenues, currentHour, dateStr);
+  // Recompute anti-overlap layout only when the map has settled or time/date
+  // changed. During panning, screen positions update every frame but the
+  // pill/dot assignments stay frozen, preventing per-frame layout jitter.
+  if (_layoutStale || currentHour !== _layoutHour || dateStr !== _layoutDate) {
+    _layoutStale = false;
+    _layoutHour  = currentHour;
+    _layoutDate  = dateStr;
+    const fresh = computePinLayout(projVenues, currentHour, dateStr);
+    const seen  = new Set();
+    for (const e of fresh) {
+      _venueIsDot.set(e.v.id, e.isDot);
+      _venueExtStem.set(e.v.id, e.extraStem);
+      seen.add(e.v.id);
+    }
+    // Evict decisions for venues no longer in view
+    for (const id of [..._venueIsDot.keys()]) {
+      if (!seen.has(id)) { _venueIsDot.delete(id); _venueExtStem.delete(id); }
+    }
+  }
+
+  // Build _lastLayout from stable decisions + current screen positions.
+  // New venues entering the viewport during a pan default to dot until moveend.
+  _lastLayout = projVenues.map(({ v, pt, state }) => {
+    const sel = v.id === selectedId;
+    const spr = getSprite(v, state, sel, currentHour, dateStr);
+    return {
+      v, pt, state, spr,
+      isDot:     _venueIsDot.get(v.id)   ?? true,
+      extraStem: _venueExtStem.get(v.id) ?? 0,
+    };
+  });
 
   // Smooth stem transitions — lerp each pin toward its target extraStem
   let stemAnimDirty = false;
