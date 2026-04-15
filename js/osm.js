@@ -610,16 +610,10 @@ async function initFacings() {
     if (duration > 0) showMapToast._timer = setTimeout(() => el.classList.remove('visible'), duration);
   }
 
-  showMapToast('Loading building geometry…', 0);
-
   // Fast path: pre-computed geometry.json served from the repo
   if (await tryLoadPrecomputed()) {
     clearSpriteCache();
     sunWindowCache.clear();
-    showMapToast('Building geometry loaded', 3000);
-    const toastEl = document.getElementById('map-toast');
-    if (toastEl) toastEl.classList.add('done');
-    setTimeout(() => { if (toastEl) toastEl.classList.remove('done'); }, 3200);
     dispatchToWorker(datePicker.value);
     draw();
     renderList();
@@ -628,7 +622,6 @@ async function initFacings() {
   }
 
   // Slow path: fetch raw geometry from Overpass and compute locally
-  showMapToast('Fetching building geometry…', 0);
   let elements;
   try {
     const data = await fetchAllGeometry();
@@ -636,7 +629,6 @@ async function initFacings() {
     console.log(`OSM: fetched ${elements.length} elements`);
   } catch (err) {
     console.error('OSM fetch failed:', err);
-    showMapToast('Building data unavailable — check console');
     return;
   }
 
@@ -725,9 +717,6 @@ async function initFacings() {
 
   clearSpriteCache();
   sunWindowCache.clear();
-  showMapToast(computed > 0
-    ? `${computed} direction${computed > 1 ? 's' : ''} computed from OSM`
-    : 'Building geometry loaded');
 
   // Re-dispatch worker with shadow data now populated
   dispatchToWorker(datePicker.value);

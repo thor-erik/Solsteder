@@ -214,7 +214,7 @@
     position: absolute;
     top: calc(16px + 48px + 8px); /* search top + search height + gap */
     left: 16px;
-    width: 280px;
+    width: 300px;
     z-index: 1100;
     background: rgba(10,18,38,0.96);
     backdrop-filter: blur(32px);
@@ -2216,6 +2216,16 @@
   }
   .qc-pill:hover { background: rgba(24,52,95,0.85); border-color: rgba(255,175,133,0.25); }
   .qc-pill.active { background: rgba(255,175,133,0.12); border-color: rgba(255,175,133,0.45); color: var(--accent); }
+  #qc-notice {
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+    padding: 4px 8px 0;
+    opacity: 0;
+    transition: opacity 0.4s;
+    pointer-events: none;
+  }
+  #qc-notice.visible { opacity: 1; }
   #qc-panel {
     overflow: hidden;
     max-height: 0;
@@ -2858,6 +2868,7 @@
         <span id="qc-time-label">—</span>
       </button>
     </div>
+    <div id="qc-notice"></div>
     <div id="qc-panel">
       <div id="qc-panel-inner">
         <div id="qc-date-section">

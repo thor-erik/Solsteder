@@ -548,6 +548,16 @@ function scheduleRenderList() {
   _renderListTimer = setTimeout(() => { renderList(); setTimeout(_syncQcPanelHeight, 80); }, 300);
 }
 
+// ── QC notice (below date/time picker) ───────────────────────────────────────
+function showQcNotice(msg) {
+  const el = document.getElementById('qc-notice');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add('visible');
+  clearTimeout(el._tid);
+  el._tid = setTimeout(() => el.classList.remove('visible'), 4000);
+}
+
 // ── Toast notifications ───────────────────────────────────────────────────────
 function showToast(msg) {
   let t = document.getElementById('app-toast');
@@ -569,6 +579,8 @@ function advanceDay(delta, setHour) {
   const d = new Date(datePicker.value + 'T12:00:00');
   d.setDate(d.getDate() + delta);
   datePicker.value = d.toISOString().slice(0, 10);
+  // When jumping forward and sun is currently below horizon, default to noon
+  if (setHour === undefined && delta > 0 && currentSun && currentSun.alt < 0) setHour = 12;
   if (setHour !== undefined) {
     if (nowMode) {
       nowMode = false;
@@ -833,7 +845,7 @@ function update() {
       _autoAdvancedAfterSunset = true;
       setTimeout(() => {
         advanceDay(1, 12);
-        showToast('Sun has set — showing tomorrow');
+        showQcNotice('Sun has set — showing tomorrow');
       }, 0);
       return;
     }
