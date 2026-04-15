@@ -150,6 +150,9 @@ function _profilePanelOutsideClick(e) {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
+// Populate panel immediately (logged-out state) so it's never an empty div
+_updateUserIndicator();
+
 _supabase.auth.getSession().then(({ data: { session } }) => {
   _currentUser = session?.user ?? null;
   _updateUserIndicator();
