@@ -1676,4 +1676,38 @@ document.addEventListener('keydown', e => {
     if (editingVenueId) exitEditMode();
     else if (selectedId != null) closeDetailPanel();
   }
+
+  // Pitch controls: [ to decrease, ] to increase
+  if (e.key === '[') {
+    map.easeTo({ pitch: Math.max(0, map.getPitch() - 10), duration: 200 });
+  }
+  if (e.key === ']') {
+    map.easeTo({ pitch: Math.min(85, map.getPitch() + 10), duration: 200 });
+  }
 });
+
+// ── Zoom / pitch / bearing debug overlay ─────────────────────────────────────
+(function initDebugOverlay() {
+  const el = document.createElement('div');
+  el.id = 'map-debug';
+  el.style.cssText = `
+    position: fixed; bottom: 60px; left: 10px; z-index: 9999;
+    background: rgba(0,0,0,0.65); color: #fff; font: 11px/1.6 monospace;
+    padding: 4px 8px; border-radius: 4px; pointer-events: none;
+    white-space: pre;
+  `;
+  document.body.appendChild(el);
+
+  function update() {
+    el.textContent =
+      `zoom    ${map.getZoom().toFixed(2)}\n` +
+      `pitch   ${map.getPitch().toFixed(1)}°\n` +
+      `bearing ${map.getBearing().toFixed(1)}°`;
+  }
+
+  map.on('move', update);
+  map.on('zoom', update);
+  map.on('pitch', update);
+  map.on('rotate', update);
+  map.on('load', update);
+})();
