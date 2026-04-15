@@ -2489,14 +2489,41 @@
     .dp-venue-name { font-size: 19px; }
     #dp-scroll { padding-top: 0; overflow-y: auto; }
   }
+
+  /* ── Intro splash overlay ─────────────────────────────────────────────────── */
+  #splash {
+    position: fixed;
+    inset: 0;
+    z-index: 9997;
+    background: #0d131e;
+    transition: opacity 0.4s ease;
+    pointer-events: all;
+    cursor: default;
+  }
+  #splash.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Elements hidden during intro sequence */
+  .intro-hidden {
+    opacity: 0;
+    pointer-events: none !important;
+  }
+  #panel.intro-hidden {
+    transform: translateY(28px);
+  }
 </style>
 </head>
 <body>
 <div id="app">
+  <!-- INTRO SPLASH — covers everything until geo + map are ready -->
+  <div id="splash"></div>
+
   <!-- MAP — full-screen -->
   <div id="map-container">
     <div id="map"></div>
-    <canvas id="canvas-overlay"></canvas>
+    <canvas id="canvas-overlay" class="intro-hidden"></canvas>
 
     <!-- HOVER TOOLTIP -->
     <div id="hover-tooltip"></div>
@@ -2531,13 +2558,13 @@
   </div>
 
   <!-- Top-left: search bar -->
-  <div id="floating-search" class="floating-card">
+  <div id="floating-search" class="floating-card intro-hidden">
     <span id="search-icon">⌕</span>
     <input type="text" id="venue-search" placeholder="Search venues or areas…" autocomplete="off">
   </div>
 
   <!-- Top-right: brand logo + sun compass -->
-  <div id="floating-brand">
+  <div id="floating-brand" class="intro-hidden">
     <div class="floating-card">
       <div id="brand-logo">Shades</div>
       <canvas id="sun-compass" width="36" height="36"></canvas>
@@ -2592,7 +2619,7 @@
   <button id="panel-reveal-btn" onclick="togglePanel()" title="Show sidebar">›</button>
 
   <!-- Quick Controls Bar — date + time pills, same column as detail panel -->
-  <div id="qc-wrap">
+  <div id="qc-wrap" class="intro-hidden">
     <div id="qc-bar">
       <button class="qc-pill" id="qc-date-pill" onclick="toggleQcPanel('date')">
         <span id="qc-date-label">Today</span>
@@ -2627,7 +2654,7 @@
   </div>
 
   <!-- LEFT PANEL — venue list, floats below search bar -->
-  <div id="panel">
+  <div id="panel" class="intro-hidden">
     <div id="panel-handle" style="display:none" onclick="togglePanel()">
       <div id="panel-handle-pill"></div>
       <svg id="panel-handle-chevron" width="14" height="8" viewBox="0 0 14 8" fill="none" xmlns="http://www.w3.org/2000/svg">

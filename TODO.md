@@ -18,3 +18,4 @@
 - [ ] Push-varsler — "sol på din favoritt-terasse om 30 min"
 - [ ] Favoritter synket på tvers av enheter (krever backend/Supabase)
 - [ ] 7-dagers sol-prognose (pro-funksjon)
+- [ ] Intro-sekvens: hopp over for tilbakevendende brukere via localStorage (én gang per sesjon e.l.) — avgjøres når vi har nok brukere til å si at animasjonen er kjent

@@ -45,6 +45,13 @@ let _timeAnimFrom  = 0;
 let _timeAnimTo    = 0;
 let _timeAnimStart = 0;
 
+// ── Intro sequence state ──────────────────────────────────────────────────────
+let _introMapReady  = false;
+let _introGeoReady  = false;
+let _introCenter    = [10.728, 59.9125]; // Oslo fallback
+let _introRunning   = false;
+let _introSeqId     = 0; // incremented on skip to invalidate pending timeouts
+
 // ── Sun window cache ──────────────────────────────────────────────────────────
 // Keyed by `${venueId}-${dateStr}`. Populated by the worker (background) and
 // by computeSunWindows() on cache miss (sync fallback on the main thread).
@@ -147,6 +154,9 @@ map.on('style.load', () => {
 
   updateLightPreset();
   updateSunLighting();
+
+  _introMapReady = true;
+  _introCheckReady();
 });
 
 // ── Light preset (atmosphere + sky) ──────────────────────────────────────────
@@ -1618,15 +1628,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Request location on load so distance shows in cards without needing to sort by distance
+  // Request location for distance sorting + intro map centering
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
       pos => {
-        userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        userLocation    = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        _introCenter    = [pos.coords.longitude, pos.coords.latitude];
+        _introGeoReady  = true;
+        _introCheckReady();
         renderList();
       },
-      () => {} // silently ignore if denied
+      () => {
+        // Denied or unavailable — use Oslo fallback, proceed with intro
+        _introGeoReady = true;
+        _introCheckReady();
+      },
+      { timeout: 5000 }
     );
+  } else {
+    _introGeoReady = true;
+    _introCheckReady();
   }
 });
 
@@ -1711,3 +1732,127 @@ document.addEventListener('keydown', e => {
   map.on('rotate', update);
   map.on('load', update);
 })();
+
+// ── Intro sequence ────────────────────────────────────────────────────────────
+
+function _introCheckReady() {
+  if (_introMapReady && _introGeoReady && !_introRunning) {
+    _introRunning = true;
+    _runIntroSequence();
+  }
+}
+
+function _runIntroSequence() {
+  const seqId  = ++_introSeqId;
+  const splash = document.getElementById('splash');
+  const canvas = document.getElementById('canvas-overlay');
+  const search = document.getElementById('floating-search');
+  const brand  = document.getElementById('floating-brand');
+  const qcWrap = document.getElementById('qc-wrap');
+  const panel  = document.getElementById('panel');
+
+  // Compute intro start time: sunrise or sunset, whichever is furthest from now
+  const table   = currentSunTable ?? buildSunTable(datePicker.value);
+  const sunrise = findSunCrossingFromTable(table, true)  ?? 6;
+  const sunset  = findSunCrossingFromTable(table, false) ?? 21;
+  const now     = currentHour();
+  const introHour = Math.abs(now - sunrise) > Math.abs(now - sunset) ? sunrise : sunset;
+
+  // Set time to intro hour and render shadows at that time
+  if (_timeAnimId) { cancelAnimationFrame(_timeAnimId); _timeAnimId = null; }
+  timeFromEl.value = Math.max(SOLAR_START, Math.min(23.9, introHour));
+  update();
+
+  // Position map at user location, cinematic settings — instant, before splash fades
+  map.jumpTo({ center: _introCenter, zoom: 15, pitch: 45, bearing: 0 });
+
+  // Enable skip after 600ms (let splash fade complete before accepting skips)
+  let skipEnabled = false;
+  setTimeout(() => { if (_introSeqId === seqId) skipEnabled = true; }, 600);
+
+  const skipHandler = () => {
+    if (!skipEnabled || _introSeqId !== seqId) return;
+    _skipIntro(seqId);
+  };
+  document.addEventListener('click', skipHandler);
+  document.addEventListener('touchstart', skipHandler);
+
+  // Step 1: Fade out splash
+  setTimeout(() => {
+    if (_introSeqId !== seqId) return;
+    splash.classList.add('hidden');
+
+    // Step 2: Scrub time → now (1800ms) + slow zoom in to 15.3 (concurrent)
+    animateToTime(Math.min(23, Math.max(4, now)), 1800);
+    map.easeTo({ zoom: 15.3, pitch: 45, duration: 1800, easing: t => t * t * (3 - 2 * t) });
+
+    // Step 3: Zoom out + detilt (starts when step 2 ends)
+    setTimeout(() => {
+      if (_introSeqId !== seqId) return;
+      map.easeTo({ zoom: 13, pitch: 15, bearing: 0, duration: 700 });
+
+      // Step 4: Fade in pins
+      setTimeout(() => {
+        if (_introSeqId !== seqId) return;
+        canvas.style.transition = 'opacity 0.4s ease';
+        canvas.classList.remove('intro-hidden');
+
+        // Step 5: Fade in UI + slide up panel
+        setTimeout(() => {
+          if (_introSeqId !== seqId) return;
+          _introRevealUI(search, brand, qcWrap, panel);
+          document.removeEventListener('click', skipHandler);
+          document.removeEventListener('touchstart', skipHandler);
+        }, 350);
+      }, 700);
+    }, 1900);
+  }, 80);
+}
+
+function _introRevealUI(search, brand, qcWrap, panel) {
+  [search, brand, qcWrap].forEach(el => {
+    if (!el) return;
+    el.style.transition = 'opacity 0.5s ease';
+    requestAnimationFrame(() => el.classList.remove('intro-hidden'));
+  });
+  if (panel) {
+    panel.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+    requestAnimationFrame(() => panel.classList.remove('intro-hidden'));
+  }
+}
+
+function _skipIntro(seqId) {
+  if (seqId !== undefined && _introSeqId !== seqId) return;
+  ++_introSeqId; // invalidate all pending timeouts
+
+  const splash = document.getElementById('splash');
+  const canvas = document.getElementById('canvas-overlay');
+  const search = document.getElementById('floating-search');
+  const brand  = document.getElementById('floating-brand');
+  const qcWrap = document.getElementById('qc-wrap');
+  const panel  = document.getElementById('panel');
+
+  // Cancel time animation
+  if (_timeAnimId) { cancelAnimationFrame(_timeAnimId); _timeAnimId = null; }
+
+  // Set time to now
+  timeFromEl.value = Math.min(23, Math.max(4, currentHour()));
+  update();
+
+  // Snap map to default view (centered on user location or Oslo)
+  map.stop();
+  map.easeTo({ center: _introCenter, zoom: 13, pitch: 15, bearing: 0, duration: 400 });
+
+  // Instantly hide splash
+  splash.style.transition = 'none';
+  splash.classList.add('hidden');
+
+  // Instantly reveal all UI
+  [canvas, search, brand, qcWrap, panel].forEach(el => {
+    if (!el) return;
+    el.style.transition = 'none';
+    el.classList.remove('intro-hidden');
+    // Allow styles to reset on next frame
+    requestAnimationFrame(() => { el.style.transition = ''; });
+  });
+}
