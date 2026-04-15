@@ -23,7 +23,7 @@ function drawBuildingEditor() {
 
   if (!v.buildingGeometry || !v.wallNormals) {
     const pt = map.project([v.lng, v.lat]);
-    ctx.strokeStyle = 'rgba(255,184,0,0.7)'; ctx.lineWidth = 1.5; ctx.setLineDash([6,4]);
+    ctx.strokeStyle = 'rgba(255,175,133,0.7)'; ctx.lineWidth = 1.5; ctx.setLineDash([6,4]);
     ctx.beginPath(); ctx.moveTo(pt.x - 20, pt.y); ctx.lineTo(pt.x + 20, pt.y); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(pt.x, pt.y - 20); ctx.lineTo(pt.x, pt.y + 20); ctx.stroke();
     ctx.setLineDash([]);
@@ -41,7 +41,7 @@ function drawBuildingEditor() {
   });
   ctx.closePath();
   // Tint varies by type: rooftop = amber, courtyard = purple, detached = dim, street = blue
-  const bldFill = { rooftop: 'rgba(255,184,0,0.18)', courtyard: 'rgba(160,100,255,0.20)',
+  const bldFill = { rooftop: 'rgba(255,175,133,0.18)', courtyard: 'rgba(160,100,255,0.20)',
                     detached: 'rgba(24,88,180,0.22)', street: 'rgba(24,88,180,0.45)' };
   ctx.fillStyle = bldFill[terrType] ?? bldFill.street;
   ctx.fill();
@@ -52,17 +52,17 @@ function drawBuildingEditor() {
     const pt  = map.project([loc.lng, loc.lat]);
     const R   = _detachedDragging ? 13 : 11;
     ctx.beginPath(); ctx.arc(pt.x, pt.y, R, 0, Math.PI * 2);
-    ctx.fillStyle   = 'rgba(255,184,0,0.18)'; ctx.fill();
-    ctx.strokeStyle = '#FFB800'; ctx.lineWidth = 2.5; ctx.stroke();
+    ctx.fillStyle   = 'rgba(255,175,133,0.18)'; ctx.fill();
+    ctx.strokeStyle = '#FFAF85'; ctx.lineWidth = 2.5; ctx.stroke();
     const L = R + 7;
     ctx.beginPath();
     ctx.moveTo(pt.x - L, pt.y); ctx.lineTo(pt.x + L, pt.y);
     ctx.moveTo(pt.x, pt.y - L); ctx.lineTo(pt.x, pt.y + L);
-    ctx.strokeStyle = 'rgba(255,184,0,0.70)'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,175,133,0.70)'; ctx.lineWidth = 1.5; ctx.stroke();
     ctx.font = '11px Inter, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
     ctx.fillStyle = 'rgba(10,14,28,0.80)';
     fillRoundRect(ctx, pt.x + R + 6, pt.y - 11, 88, 22, 5);
-    ctx.fillStyle = '#FFB800';
+    ctx.fillStyle = '#FFAF85';
     ctx.fillText('Drag to move', pt.x + R + 12, pt.y);
     return;
   }
@@ -76,7 +76,7 @@ function drawBuildingEditor() {
     const tw = ctx.measureText(label).width;
     ctx.fillStyle = 'rgba(10,14,28,0.80)';
     fillRoundRect(ctx, cenPx.x - tw / 2 - 10, cenPx.y - 13, tw + 20, 26, 7);
-    ctx.fillStyle = terrType === 'rooftop' ? '#FFB800' : '#C07AFF';
+    ctx.fillStyle = terrType === 'rooftop' ? '#FFAF85' : '#C07AFF';
     ctx.fillText(label, cenPx.x, cenPx.y);
     return;
   }
@@ -104,14 +104,14 @@ function drawBuildingEditor() {
     // Wall line
     ctx.setLineDash([]);
     ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y);
-    ctx.strokeStyle = isHovered ? '#FFB800' : isCurrent ? '#FFD060' : 'rgba(120,180,255,0.75)';
+    ctx.strokeStyle = isHovered ? '#FFAF85' : isCurrent ? '#FFCBAA' : 'rgba(120,180,255,0.75)';
     ctx.lineWidth   = isHovered ? 6 : isCurrent ? 4 : 2.5;
     ctx.stroke();
 
     if (isHovered || isCurrent) {
       [pa, pb].forEach(p => {
         ctx.beginPath(); ctx.arc(p.x, p.y, isHovered ? 5 : 4, 0, Math.PI * 2);
-        ctx.fillStyle = isHovered ? '#FFB800' : '#FFD060'; ctx.fill();
+        ctx.fillStyle = isHovered ? '#FFAF85' : '#FFCBAA'; ctx.fill();
         ctx.strokeStyle = 'rgba(10,14,28,0.7)'; ctx.lineWidth = 1.5; ctx.stroke();
       });
     }
@@ -119,13 +119,13 @@ function drawBuildingEditor() {
     if (isHovered) {
       const arrowLen = 55, ex = mx + normX * arrowLen, ey = my + normY * arrowLen;
       ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(ex, ey);
-      ctx.strokeStyle = '#FFB800'; ctx.lineWidth = 2.5; ctx.setLineDash([]); ctx.stroke();
+      ctx.strokeStyle = '#FFAF85'; ctx.lineWidth = 2.5; ctx.setLineDash([]); ctx.stroke();
       const hl = 11, pA = Math.atan2(normY, normX);
       ctx.beginPath();
       ctx.moveTo(ex, ey);
       ctx.lineTo(ex - hl * Math.cos(pA - 0.4), ey - hl * Math.sin(pA - 0.4));
       ctx.lineTo(ex - hl * Math.cos(pA + 0.4), ey - hl * Math.sin(pA + 0.4));
-      ctx.closePath(); ctx.fillStyle = '#FFB800'; ctx.fill();
+      ctx.closePath(); ctx.fillStyle = '#FFAF85'; ctx.fill();
 
       const labelText = `${Math.round(wall.bearing)}°  ${bearingToCardinal(wall.bearing)}`;
       ctx.font = 'bold 12px "Inter", sans-serif';
@@ -134,13 +134,13 @@ function drawBuildingEditor() {
       const lx = ex + normX * 18, ly = ey + normY * 18;
       ctx.fillStyle = 'rgba(10,14,28,0.88)';
       fillRoundRect(ctx, lx - tw / 2 - 8, ly - 12, tw + 16, 24, 6);
-      ctx.fillStyle = '#FFB800'; ctx.fillText(labelText, lx, ly);
+      ctx.fillStyle = '#FFAF85'; ctx.fillText(labelText, lx, ly);
     }
 
     if (isCurrent && !isHovered) {
       const arrowLen = 32, ex = mx + normX * arrowLen, ey = my + normY * arrowLen;
       ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(ex, ey);
-      ctx.strokeStyle = '#FFD060'; ctx.lineWidth = 2; ctx.setLineDash([5, 4]); ctx.stroke();
+      ctx.strokeStyle = '#FFCBAA'; ctx.lineWidth = 2; ctx.setLineDash([5, 4]); ctx.stroke();
       ctx.setLineDash([]);
     }
   });

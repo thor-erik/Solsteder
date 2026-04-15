@@ -18,7 +18,7 @@ function drawSunCompass() {
   c.clearRect(0, 0, w, h);
   c.beginPath(); c.arc(cx, cy, outerR, 0, Math.PI * 2);
   c.fillStyle = 'rgba(255,255,255,0.04)'; c.fill();
-  c.strokeStyle = 'rgba(255,184,0,0.18)'; c.lineWidth = 1; c.stroke();
+  c.strokeStyle = 'rgba(255,175,133,0.18)'; c.lineWidth = 1; c.stroke();
 
   for (let i = 0; i < 8; i++) {
     const angle = (i * 45 - 90) * RAD;
@@ -41,11 +41,11 @@ function drawSunCompass() {
     const sr = outerR - 3;
     const sx = cx + sr * Math.cos(sunAngle), sy = cy + sr * Math.sin(sunAngle);
     c.beginPath(); c.moveTo(cx, cy); c.lineTo(sx, sy);
-    c.strokeStyle = 'rgba(255,184,0,0.25)'; c.lineWidth = 1; c.stroke();
+    c.strokeStyle = 'rgba(255,175,133,0.25)'; c.lineWidth = 1; c.stroke();
     const glow = c.createRadialGradient(sx, sy, 0, sx, sy, 9);
-    glow.addColorStop(0, 'rgba(255,184,0,0.55)'); glow.addColorStop(1, 'rgba(255,184,0,0)');
+    glow.addColorStop(0, 'rgba(255,175,133,0.55)'); glow.addColorStop(1, 'rgba(255,175,133,0)');
     c.beginPath(); c.arc(sx, sy, 9, 0, Math.PI * 2); c.fillStyle = glow; c.fill();
-    c.beginPath(); c.arc(sx, sy, 3.5, 0, Math.PI * 2); c.fillStyle = '#FFB800'; c.fill();
+    c.beginPath(); c.arc(sx, sy, 3.5, 0, Math.PI * 2); c.fillStyle = '#FFAF85'; c.fill();
   } else {
     c.font = '13px serif';
     c.fillStyle = 'rgba(255,255,255,0.18)';
@@ -118,8 +118,8 @@ function drawSunCurve(canvasEl) {
     // 1a — Past arc fill (very faint)
     if (pastSamp.length > 1) {
       const pg = c.createLinearGradient(0, PAD_T, 0, horizY);
-      pg.addColorStop(0, 'rgba(255,184,0,0.07)');
-      pg.addColorStop(1, 'rgba(255,184,0,0.01)');
+      pg.addColorStop(0, 'rgba(255,175,133,0.07)');
+      pg.addColorStop(1, 'rgba(255,175,133,0.01)');
       c.beginPath();
       c.moveTo(timeToX(pastSamp[0].t), horizY);
       pastSamp.forEach(s => c.lineTo(timeToX(s.t), altToY(s.alt)));
@@ -131,8 +131,8 @@ function drawSunCurve(canvasEl) {
     // 1b — Future arc fill
     if (futureSamp.length > 1) {
       const grad = c.createLinearGradient(0, PAD_T, 0, horizY);
-      grad.addColorStop(0, 'rgba(255,184,0,0.28)');
-      grad.addColorStop(1, 'rgba(255,184,0,0.04)');
+      grad.addColorStop(0, 'rgba(255,175,133,0.28)');
+      grad.addColorStop(1, 'rgba(255,175,133,0.04)');
       c.beginPath();
       c.moveTo(timeToX(futureSamp[0].t), horizY);
       futureSamp.forEach(s => c.lineTo(timeToX(s.t), altToY(s.alt)));
@@ -167,13 +167,13 @@ function drawSunCurve(canvasEl) {
       c.beginPath();
       c.moveTo(timeToX(pastSamp[0].t), altToY(pastSamp[0].alt));
       pastSamp.forEach(s => c.lineTo(timeToX(s.t), altToY(s.alt)));
-      c.strokeStyle = 'rgba(255,184,0,0.2)'; c.lineWidth = 1.5; c.stroke();
+      c.strokeStyle = 'rgba(255,175,133,0.2)'; c.lineWidth = 1.5; c.stroke();
     }
     if (futureSamp.length > 1) {
       c.beginPath();
       c.moveTo(timeToX(futureSamp[0].t), altToY(futureSamp[0].alt));
       futureSamp.forEach(s => c.lineTo(timeToX(s.t), altToY(s.alt)));
-      c.strokeStyle = 'rgba(255,184,0,0.9)'; c.lineWidth = 2; c.stroke();
+      c.strokeStyle = 'rgba(255,175,133,0.9)'; c.lineWidth = 2; c.stroke();
     }
   }
 
@@ -186,8 +186,8 @@ function drawSunCurve(canvasEl) {
     if (t == null) return;
     const tx = timeToX(t);
     c.beginPath(); c.moveTo(tx, horizY - 2); c.lineTo(tx, horizY + 4);
-    c.strokeStyle = 'rgba(255,184,0,0.45)'; c.lineWidth = 1; c.stroke();
-    c.fillStyle = 'rgba(255,184,0,0.65)';
+    c.strokeStyle = 'rgba(255,175,133,0.45)'; c.lineWidth = 1; c.stroke();
+    c.fillStyle = 'rgba(255,175,133,0.65)';
     c.fillText(label, tx, horizY + 5);
   });
 
@@ -198,7 +198,7 @@ function drawSunCurve(canvasEl) {
     if (sunset  != null && Math.abs(h - sunset)  < 0.8) continue;
     c.font = '11px "Inter", sans-serif';
     c.textAlign = 'center'; c.textBaseline = 'bottom';
-    c.fillStyle = 'rgba(213,196,171,0.45)';
+    c.fillStyle = 'rgba(156,189,231,0.45)';
     c.fillText(`${h}`, timeToX(h), ch - 2);
   }
 
@@ -212,18 +212,18 @@ function drawSunCurve(canvasEl) {
 
     // Vertical dashed line
     c.beginPath(); c.moveTo(sx, PAD_T); c.lineTo(sx, horizY - 1);
-    c.strokeStyle = 'rgba(213,196,171,0.38)'; c.lineWidth = 1;
+    c.strokeStyle = 'rgba(156,189,231,0.38)'; c.lineWidth = 1;
     c.setLineDash([2, 3]); c.stroke(); c.setLineDash([]);
 
     // Dot on arc
     c.beginPath(); c.arc(sx, sy, 4, 0, Math.PI * 2);
-    c.fillStyle = isHovering ? 'rgba(213,196,171,0.88)' : 'rgba(255,184,0,0.92)';
+    c.fillStyle = isHovering ? 'rgba(156,189,231,0.88)' : 'rgba(255,175,133,0.92)';
     c.fill();
 
     // Ghost thumb at horizon
     c.beginPath(); c.arc(sx, horizY, isHovering ? 7 : 6, 0, Math.PI * 2);
-    c.fillStyle = isHovering ? 'rgba(213,196,171,0.18)' : 'rgba(255,184,0,0.14)'; c.fill();
-    c.strokeStyle = isHovering ? 'rgba(213,196,171,0.58)' : 'rgba(255,184,0,0.72)';
+    c.fillStyle = isHovering ? 'rgba(156,189,231,0.18)' : 'rgba(255,175,133,0.14)'; c.fill();
+    c.strokeStyle = isHovering ? 'rgba(156,189,231,0.58)' : 'rgba(255,175,133,0.72)';
     c.lineWidth = 1.5; c.stroke();
   }
 

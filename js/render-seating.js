@@ -39,8 +39,8 @@ function drawSeatingAreas() {
     if (!shouldShowAtZoom(v, zoom)) return;
 
     const sunny = venueSunState(v, az, alt);
-    const fillSunny   = 'rgba(255,184,0,0.20)';
-    const strokeSunny = 'rgba(255,184,0,0.65)';
+    const fillSunny   = 'rgba(255,175,133,0.20)';
+    const strokeSunny = 'rgba(255,175,133,0.65)';
     const fillShade   = 'rgba(40,80,180,0.13)';
     const strokeShade = 'rgba(80,130,220,0.35)';
 
@@ -170,13 +170,13 @@ function drawShadowOverlay(venue) {
     const sunny = venueSunState(venue, az, alt);
 
     const glow = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, 13);
-    glow.addColorStop(0, sunny ? 'rgba(255,184,0,0.5)' : 'rgba(100,130,210,0.45)');
+    glow.addColorStop(0, sunny ? 'rgba(255,175,133,0.5)' : 'rgba(100,130,210,0.45)');
     glow.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.beginPath(); ctx.arc(pt.x, pt.y, 13, 0, Math.PI * 2);
     ctx.fillStyle = glow; ctx.fill();
 
     ctx.beginPath(); ctx.arc(pt.x, pt.y, 5, 0, Math.PI * 2);
-    ctx.fillStyle = sunny ? '#FFB800' : '#6080C8'; ctx.fill();
+    ctx.fillStyle = sunny ? '#FFAF85' : '#6080C8'; ctx.fill();
     ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 1.5; ctx.stroke();
   }
 
