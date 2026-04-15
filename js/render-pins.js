@@ -26,29 +26,35 @@ const STEM_H  = 14;   // thin vertical stem below pill
 const spriteCache = new Map();
 
 function buildSprite(v, state, selected, hour, dateStr) {
+  const dpr = window.devicePixelRatio || 1;
+
   // Closed: tiny faded dot — no pill
   if (state === 'closed') {
     const oc = document.createElement('canvas');
-    oc.width = oc.height = 10;
+    oc.width = oc.height = Math.ceil(10 * dpr);
     const c = oc.getContext('2d');
+    c.scale(dpr, dpr);
     c.globalAlpha = 0.22;
     c.beginPath(); c.arc(5, 5, 3, 0, Math.PI * 2);
     c.fillStyle = 'rgba(156,189,231,0.6)'; c.fill();
-    return { canvas: oc, anchorX: 5, anchorY: 5 };
+    return { canvas: oc, anchorX: 5, anchorY: 5, cssW: 10, cssH: 10 };
   }
 
   // ── Label + visual style per state ─────────────────────────────────────────
+  // Colors follow the Solaris Oslo design system:
+  //   surface #0D131E · outline-variant #514532 · primary #FFB800
+  //   on-surface-variant #d5c4ab (warm cream, never cool blue)
   let label = '', fillColor, strokeColor, textColor, stemColor, isDashed = false, alpha = 1;
 
   if (state === 'soon') {
     const { open } = v.openingHours ?? {};
     label       = open != null ? formatHour(open) : '—';
-    fillColor   = 'rgba(10,20,42,0.88)';
-    strokeColor = 'rgba(255,175,133,0.55)';
-    stemColor   = 'rgba(255,175,133,0.70)';
-    textColor   = 'rgba(255,200,80,0.95)';
+    fillColor   = 'rgba(13,19,30,0.92)';          // surface #0D131E
+    strokeColor = 'rgba(81,69,50,0.50)';           // outline-variant #514532
+    stemColor   = 'rgba(255,184,0,0.65)';          // primary #FFB800 — sun on its way
+    textColor   = 'rgba(255,184,0,0.95)';          // primary #FFB800
     isDashed    = true;
-    alpha       = 0.9;
+    alpha       = 0.92;
 
   } else if (state === 'sunny') {
     const ss = (hour !== undefined && dateStr && typeof sunScore === 'function')
@@ -60,7 +66,7 @@ function buildSprite(v, state, selected, hour, dateStr) {
     stemColor   = '#FFAF85';
     textColor   = '#1a1200';
 
-  } else { // shaded
+  } else { // shaded — only reaches here when a future sun window exists
     if (hour !== undefined && dateStr) {
       try {
         const { windows } = computeSunWindows(v, dateStr);
@@ -69,10 +75,10 @@ function buildSprite(v, state, selected, hour, dateStr) {
         else       { label = '';  alpha = 0.32; }
       } catch (e) { label = ''; }
     }
-    fillColor   = 'rgba(20,46,82,0.92)';
-    strokeColor = 'rgba(156,189,231,0.28)';
-    stemColor   = 'rgba(150,132,110,0.78)';
-    textColor   = 'rgba(156,189,231,0.75)';
+    fillColor   = 'rgba(13,19,30,0.92)';           // surface #0D131E
+    strokeColor = 'rgba(81,69,50,0.30)';            // outline-variant #514532
+    stemColor   = 'rgba(213,196,171,0.45)';         // on-surface-variant warm cream
+    textColor   = 'rgba(213,196,171,0.80)';         // on-surface-variant warm cream
   }
 
   // ── Sizing ─────────────────────────────────────────────────────────────────
@@ -82,14 +88,19 @@ function buildSprite(v, state, selected, hour, dateStr) {
   const pillW  = Math.max(36, tw + 22);
 
   const rp  = selected ? 4 : 2;              // padding for selection ring
-  const cW  = Math.ceil(pillW + rp * 2 + 2);
+  const cW  = Math.ceil(pillW + rp * 2 + 2); // CSS pixels
   const cH  = Math.ceil(PILL_H + STEM_H + rp + 2);
-  const cxA = cW / 2;                        // anchor x = stem center
-  const cyA = cH - 1;                        // anchor y = bottom of stem
+  const cxA = cW / 2;                        // anchor x = stem center (CSS px)
+  const cyA = cH - 1;                        // anchor y = bottom of stem (CSS px)
 
+  // Build at DPR resolution for crisp rendering on retina displays.
+  // Inside the sprite we draw in CSS pixel coordinates; c.scale(dpr, dpr)
+  // maps them to physical pixels.
   const oc = document.createElement('canvas');
-  oc.width = cW; oc.height = cH;
-  const c  = oc.getContext('2d');
+  oc.width  = Math.ceil(cW * dpr);
+  oc.height = Math.ceil(cH * dpr);
+  const c   = oc.getContext('2d');
+  c.scale(dpr, dpr);
   c.globalAlpha = alpha;
 
   const ox = rp + 1;   // pill left edge
@@ -158,7 +169,7 @@ function buildSprite(v, state, selected, hour, dateStr) {
     c.fillText(label, cxA, oy + PILL_H / 2);
   }
 
-  return { canvas: oc, anchorX: cxA, anchorY: cyA };
+  return { canvas: oc, anchorX: cxA, anchorY: cyA, cssW: cW, cssH: cH };
 }
 
 function getSprite(v, state, selected, hour, dateStr) {
@@ -326,8 +337,8 @@ function computePinLayout(projVenues, currentHour, dateStr) {
       }
     }
 
-    const rw  = spr.canvas.width;
-    const rh  = spr.canvas.height - STEM_H;  // pill area only (excludes baked stem)
+    const rw  = spr.cssW;
+    const rh  = spr.cssH - STEM_H;  // pill area only (excludes baked stem)
 
     // Raised pin: search from tallest extraStem downward (claims highest spot).
     // All others: search from zero upward (minimal stem preferred).
@@ -459,7 +470,7 @@ function draw() {
         : 'closed';
       const pt  = map.project([v.lng, v.lat]);
       const spr = getSprite(v, state, false, editHour, editDateStr);
-      ctx.drawImage(spr.canvas, pt.x - spr.anchorX, pt.y - spr.anchorY);
+      ctx.drawImage(spr.canvas, pt.x - spr.anchorX, pt.y - spr.anchorY, spr.cssW, spr.cssH);
     });
     ctx.globalAlpha = 1;
     drawBuildingEditor();
@@ -580,11 +591,11 @@ function draw() {
           ctx.globalAlpha = 1 - t; _drawDot(pt, state);
           ctx.globalAlpha = t;
           if (extraStem > 0) _drawExtStem(pt, extraStem, state);
-          ctx.drawImage(spr.canvas, pt.x - spr.anchorX, pt.y - spr.anchorY - extraStem);
+          ctx.drawImage(spr.canvas, pt.x - spr.anchorX, pt.y - spr.anchorY - extraStem, spr.cssW, spr.cssH);
         } else {
           ctx.globalAlpha = 1 - t;
           if (extraStem > 0) _drawExtStem(pt, extraStem, state);
-          ctx.drawImage(spr.canvas, pt.x - spr.anchorX, pt.y - spr.anchorY - extraStem);
+          ctx.drawImage(spr.canvas, pt.x - spr.anchorX, pt.y - spr.anchorY - extraStem, spr.cssW, spr.cssH);
           ctx.globalAlpha = t; _drawDot(pt, state);
         }
         ctx.restore();
@@ -623,7 +634,7 @@ function draw() {
 
     // Hover/raised: glowing outline ring around the pill
     if (isHovered) {
-      const pillW = spr.canvas.width - rp * 2 - 2;
+      const pillW = spr.cssW - rp * 2 - 2;
       const glowCol = state === 'sunny' ? 'rgba(255,225,80,0.9)' :
                       state === 'soon'  ? 'rgba(255,205,70,0.8)' :
                                           'rgba(210,200,185,0.75)';
@@ -638,7 +649,7 @@ function draw() {
       ctx.restore();
     }
 
-    ctx.drawImage(spr.canvas, sprLeft, sprTop);
+    ctx.drawImage(spr.canvas, sprLeft, sprTop, spr.cssW, spr.cssH);
     ctx.restore();
     if (state !== 'closed') visibleVenues.push(entry);
   }
@@ -671,8 +682,8 @@ function hitTestVenue(cx, cy) {
     const extraStem = entry.drawExtraStem ?? entry.extraStem;
     const rx = pt.x - spr.anchorX - 4;
     const ry = pt.y - spr.anchorY - extraStem - 4;
-    const rw = spr.canvas.width + 8;
-    const rh = spr.canvas.height - STEM_H + 8;
+    const rw = spr.cssW + 8;
+    const rh = spr.cssH - STEM_H + 8;
     if (cx >= rx && cx <= rx + rw && cy >= ry && cy <= ry + rh) return v;
   }
   return null;
