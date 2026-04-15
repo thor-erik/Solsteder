@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Shades — Steder i Solen</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="shades-logo.png">
+<meta name="theme-color" content="#142E52">
 <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -2527,7 +2530,7 @@
 <div id="app">
   <!-- INTRO SPLASH — covers everything until geo + map are ready -->
   <div id="splash">
-    <img id="splash-brand" src="Shades Logo.png" alt="Shades">
+    <img id="splash-brand" src="shades-logo.png" alt="Shades">
   </div>
 
   <!-- MAP — full-screen -->
@@ -2576,7 +2579,7 @@
   <!-- Top-right: brand logo + sun compass -->
   <div id="floating-brand" class="intro-hidden">
     <div class="floating-card">
-      <div id="brand-logo"><img src="Shades Logo.png" alt="Shades"></div>
+      <div id="brand-logo"><img src="shades-logo.png" alt="Shades"></div>
       <canvas id="sun-compass" width="36" height="36"></canvas>
       <button id="auth-user-btn" onclick="authSignOut()" title="Logg ut" style="
         display:none;align-items:center;justify-content:center;
