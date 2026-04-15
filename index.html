@@ -102,6 +102,144 @@
   }
   #floating-search #venue-search:focus { border: none; outline: none; }
 
+  #search-profile-btn {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: none;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.15s;
+  }
+  #search-profile-btn:hover { opacity: 0.8; }
+  #search-profile-btn img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: block;
+  }
+  #search-profile-btn .profile-initials {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: #000;
+  }
+  #search-profile-btn .profile-anon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--card);
+    border: 1.5px solid rgba(255,255,255,0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+  }
+
+  /* ── Profile popover ──────────────────────────────────────────────────────── */
+  #profile-panel {
+    position: absolute;
+    top: calc(16px + 48px + 8px); /* search top + search height + gap */
+    left: 16px;
+    width: 280px;
+    z-index: 1100;
+    background: var(--card);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+    overflow: hidden;
+    display: none;
+  }
+  #profile-panel.open { display: block; }
+  .profile-panel-header {
+    padding: 20px 20px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+  .profile-panel-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    object-fit: cover;
+  }
+  .profile-panel-avatar-initials {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 700;
+    color: #000;
+  }
+  .profile-panel-info { min-width: 0; }
+  .profile-panel-name {
+    font-family: 'Newsreader', serif;
+    font-size: 16px;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .profile-panel-email {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .profile-panel-body { padding: 12px 0; }
+  .profile-panel-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px;
+    font-size: 14px;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .profile-panel-row:hover { background: rgba(255,255,255,0.05); }
+  .profile-panel-row svg { flex-shrink: 0; color: var(--muted); }
+  .profile-panel-footer {
+    border-top: 1px solid rgba(255,255,255,0.07);
+    padding: 12px 0 4px;
+  }
+  .profile-panel-signout {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px;
+    font-size: 14px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    font-family: 'Inter', sans-serif;
+  }
+  .profile-panel-signout:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+
   /* ── Top-right: brand logo ─────────────────────────────────────────────────── */
   #floating-brand {
     position: absolute;
@@ -1420,6 +1558,13 @@
       top: 12px;
     }
 
+    #profile-panel {
+      left: 12px;
+      right: 12px;
+      width: auto;
+      top: calc(12px + 48px + 8px);
+    }
+
     /* Venue list — default "peek" state: 110px visible from bottom */
     #panel {
       position: fixed;  /* fixed avoids parent height/overflow issues on iOS */
@@ -2565,17 +2710,17 @@
   <div id="floating-search" class="floating-card intro-hidden">
     <span id="search-icon">⌕</span>
     <input type="text" id="venue-search" placeholder="Search venues or areas…" autocomplete="off">
+    <button id="search-profile-btn" onclick="toggleProfilePanel(event)" title="Profil"></button>
   </div>
+
+  <!-- Profile popover — anchored below search bar -->
+  <div id="profile-panel"></div>
 
   <!-- Top-right: brand logo + sun compass -->
   <div id="floating-brand" class="intro-hidden">
     <div class="floating-card">
       <div id="brand-logo"><img src="logo-images/logo-pack-svg/logo-color-2000w.svg" alt="Shades"></div>
       <canvas id="sun-compass" width="36" height="36"></canvas>
-      <button id="auth-user-btn" onclick="authSignOut()" title="Logg ut" style="
-        display:none;align-items:center;justify-content:center;
-        background:none;border:none;padding:0;margin-left:6px;cursor:pointer;
-      "></button>
     </div>
   </div>
 
