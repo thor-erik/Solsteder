@@ -22,7 +22,7 @@ function renderSunDial(v, dateStr, fromHour) {
   const precip = wxNow?.precip ?? 0;
   const isRainy    = precip > 0.3;
   const isOvercast = !isRainy && cloud > 0.65;
-  const dotColor   = isRainy ? '#6491D2' : isOvercast ? '#A5AABB' : '#FFB800';
+  const dotColor   = isRainy ? '#6491D2' : isOvercast ? '#A5AABB' : '#FFAF85';
 
   const hAngle = h => ((h % 12) / 12) * 2 * Math.PI - Math.PI / 2;
   const pt = h => { const a = hAngle(h); return [CX + R * Math.cos(a), CY + R * Math.sin(a)]; };
@@ -44,7 +44,7 @@ function renderSunDial(v, dateStr, fromHour) {
     const r1 = maj ? R-8 : R-5;
     ticks += `<line x1="${(CX+r1*Math.cos(a)).toFixed(1)}" y1="${(CY+r1*Math.sin(a)).toFixed(1)}"
       x2="${(CX+(R-1)*Math.cos(a)).toFixed(1)}" y2="${(CY+(R-1)*Math.sin(a)).toFixed(1)}"
-      stroke="rgba(213,196,171,${maj?0.2:0.1})" stroke-width="${maj?1.2:0.7}" stroke-linecap="round"/>`;
+      stroke="rgba(156,189,231,${maj?0.2:0.1})" stroke-width="${maj?1.2:0.7}" stroke-linecap="round"/>`;
   }
 
   // Hour labels (12, 3, 6, 9)
@@ -54,7 +54,7 @@ function renderSunDial(v, dateStr, fromHour) {
     const a = (h/12)*2*Math.PI - Math.PI/2;
     hourNums += `<text x="${(CX+NR*Math.cos(a)).toFixed(1)}" y="${(CY+NR*Math.sin(a)).toFixed(1)}"
       text-anchor="middle" dominant-baseline="middle" font-family="Inter,sans-serif"
-      font-size="8.5" font-weight="600" fill="rgba(213,196,171,0.3)">${lbl}</text>`;
+      font-size="8.5" font-weight="600" fill="rgba(156,189,231,0.3)">${lbl}</text>`;
   }
 
   // Arc segments — per-hour weather coloring
@@ -298,8 +298,8 @@ function buildDialCallouts(windows, fromHour, dateStr, CX, CY, R, H) {
     const sun      = s.type === 'sun';
     const rain     = s.type === 'rainy';
     const overcast = s.type === 'overcast' || s.type === 'cloudy';
-    const lc = rain ? 'rgba(100,145,210,0.48)' : overcast ? 'rgba(165,170,178,0.48)' : sun ? 'rgba(255,184,0,0.48)' : 'rgba(160,170,185,0.38)';
-    const tc = rain ? 'rgba(100,145,210,0.88)' : overcast ? 'rgba(165,170,178,0.88)' : sun ? 'rgba(255,184,0,0.88)' : 'rgba(160,170,185,0.78)';
+    const lc = rain ? 'rgba(156,189,231,0.48)' : overcast ? 'rgba(165,170,178,0.48)' : sun ? 'rgba(255,175,133,0.48)' : 'rgba(160,170,185,0.38)';
+    const tc = rain ? 'rgba(156,189,231,0.88)' : overcast ? 'rgba(165,170,178,0.88)' : sun ? 'rgba(255,175,133,0.88)' : 'rgba(160,170,185,0.78)';
     out += `<circle cx="${s.dotX.toFixed(1)}" cy="${s.dotY.toFixed(1)}" r="2.5" fill="${lc}"/>`;
     out += `<polyline points="${s.dotX.toFixed(1)},${s.dotY.toFixed(1)} ${s.elbX.toFixed(1)},${s.labelY.toFixed(1)} ${TICK_END_X},${s.labelY.toFixed(1)}"
       fill="none" stroke="${lc}" stroke-width="0.9" stroke-linecap="round" stroke-linejoin="round"/>`;
@@ -445,10 +445,10 @@ function renderBusynessChart(v, dateStr, fromHour) {
     const y    = H - barH;
     const isCurrent = Math.floor(fromHour) === h;
     const fill = isCurrent
-      ? 'rgba(255,184,0,0.95)'
+      ? 'rgba(255,175,133,0.95)'
       : val > 0
-        ? `rgba(255,184,0,${(0.18 + val / 100 * 0.45).toFixed(2)})`
-        : 'rgba(81,69,50,0.12)';
+        ? `rgba(255,175,133,${(0.18 + val / 100 * 0.45).toFixed(2)})`
+        : 'rgba(156,189,231,0.12)';
     const x = hours.indexOf(h) * (BAR_W + GAP);
     return `<rect x="${x}" y="${y}" width="${BAR_W}" height="${barH}" rx="1.5" fill="${fill}"/>`;
   }).join('');
@@ -591,6 +591,6 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       ${renderBusynessChart(v, dateStr, fromHour)}
       <div class="dp-divider"></div>
       <div class="dp-section-label">Wind shelter</div>
-      <canvas id="dp-shelter-canvas" width="268" height="180" style="display:block;width:100%;border-radius:10px;border:1px solid rgba(81,69,50,0.18);"></canvas>
+      <canvas id="dp-shelter-canvas" width="268" height="180" style="display:block;width:100%;border-radius:10px;border:1px solid rgba(156,189,231,0.18);"></canvas>
     </div>`;
 }

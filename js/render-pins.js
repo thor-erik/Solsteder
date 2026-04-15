@@ -33,7 +33,7 @@ function buildSprite(v, state, selected, hour, dateStr) {
     const c = oc.getContext('2d');
     c.globalAlpha = 0.22;
     c.beginPath(); c.arc(5, 5, 3, 0, Math.PI * 2);
-    c.fillStyle = 'rgba(81,69,50,0.6)'; c.fill();
+    c.fillStyle = 'rgba(156,189,231,0.6)'; c.fill();
     return { canvas: oc, anchorX: 5, anchorY: 5 };
   }
 
@@ -43,9 +43,9 @@ function buildSprite(v, state, selected, hour, dateStr) {
   if (state === 'soon') {
     const { open } = v.openingHours ?? {};
     label       = open != null ? formatHour(open) : '—';
-    fillColor   = 'rgba(8,14,25,0.88)';
-    strokeColor = 'rgba(255,184,0,0.55)';
-    stemColor   = 'rgba(255,184,0,0.70)';
+    fillColor   = 'rgba(10,20,42,0.88)';
+    strokeColor = 'rgba(255,175,133,0.55)';
+    stemColor   = 'rgba(255,175,133,0.70)';
     textColor   = 'rgba(255,200,80,0.95)';
     isDashed    = true;
     alpha       = 0.9;
@@ -55,9 +55,9 @@ function buildSprite(v, state, selected, hour, dateStr) {
       ? Math.round(sunScore(v, dateStr, hour))
       : null;
     label       = ss != null ? `${shortName(v.name)} · ${ss}` : shortName(v.name);
-    fillColor   = '#FFB800';
+    fillColor   = '#FFAF85';
     strokeColor = 'rgba(255,230,120,0.4)';
-    stemColor   = '#FFB800';
+    stemColor   = '#FFAF85';
     textColor   = '#1a1200';
 
   } else { // shaded
@@ -69,10 +69,10 @@ function buildSprite(v, state, selected, hour, dateStr) {
         else       { label = '';  alpha = 0.32; }
       } catch (e) { label = ''; }
     }
-    fillColor   = 'rgba(22,28,39,0.92)';
-    strokeColor = 'rgba(81,69,50,0.28)';
+    fillColor   = 'rgba(20,46,82,0.92)';
+    strokeColor = 'rgba(156,189,231,0.28)';
     stemColor   = 'rgba(150,132,110,0.78)';
-    textColor   = 'rgba(213,196,171,0.75)';
+    textColor   = 'rgba(156,189,231,0.75)';
   }
 
   // ── Sizing ─────────────────────────────────────────────────────────────────
@@ -104,8 +104,8 @@ function buildSprite(v, state, selected, hour, dateStr) {
     c.translate(gCx, gCy);
     c.scale(scaleX, 1);
     const glow = c.createRadialGradient(0, 0, 0, 0, 0, PILL_H);
-    glow.addColorStop(0, 'rgba(255,184,0,0.18)');
-    glow.addColorStop(1, 'rgba(255,184,0,0)');
+    glow.addColorStop(0, 'rgba(255,175,133,0.18)');
+    glow.addColorStop(1, 'rgba(255,175,133,0)');
     c.beginPath(); c.arc(0, 0, PILL_H, 0, Math.PI * 2);
     c.fillStyle = glow; c.fill();
     c.restore();
@@ -115,7 +115,7 @@ function buildSprite(v, state, selected, hour, dateStr) {
   if (selected) {
     c.beginPath();
     c.roundRect(ox - 3, oy - 3, pillW + 6, PILL_H + 6, PILL_R + 3);
-    c.strokeStyle = 'rgba(255,184,0,0.9)';
+    c.strokeStyle = 'rgba(255,175,133,0.9)';
     c.lineWidth   = 2;
     c.stroke();
   }
@@ -320,8 +320,8 @@ function computePinLayout(projVenues, currentHour, dateStr) {
 }
 
 function _drawExtStem(pt, extraStem, state) {
-  const col = state === 'sunny' ? '#FFB800' :
-              state === 'soon'  ? 'rgba(255,184,0,0.70)' :
+  const col = state === 'sunny' ? '#FFAF85' :
+              state === 'soon'  ? 'rgba(255,175,133,0.70)' :
                                   'rgba(150,132,110,0.78)';
   ctx.beginPath();
   ctx.moveTo(pt.x, pt.y - extraStem);
@@ -341,11 +341,11 @@ function _drawDotHover(pt, state) {
   ctx.save();
   // Outer glow ring
   ctx.beginPath(); ctx.arc(pt.x, pt.y, DOT_R + 6, 0, Math.PI * 2);
-  ctx.fillStyle = isSunny ? 'rgba(255,184,0,0.22)' : isSoon ? 'rgba(255,184,0,0.16)' : 'rgba(120,150,220,0.18)';
+  ctx.fillStyle = isSunny ? 'rgba(255,175,133,0.22)' : isSoon ? 'rgba(255,175,133,0.16)' : 'rgba(120,150,220,0.18)';
   ctx.fill();
   // Enlarged dot
   ctx.beginPath(); ctx.arc(pt.x, pt.y, DOT_R + 1.5, 0, Math.PI * 2);
-  ctx.fillStyle = isSunny ? '#FFB800' : isSoon ? 'rgba(255,184,0,0.9)' : 'rgba(120,150,200,0.85)';
+  ctx.fillStyle = isSunny ? '#FFAF85' : isSoon ? 'rgba(255,175,133,0.9)' : 'rgba(120,150,200,0.85)';
   ctx.fill();
   ctx.strokeStyle = 'rgba(255,255,255,0.55)';
   ctx.lineWidth = 1.5;
@@ -358,10 +358,10 @@ function _drawDot(pt, state) {
   ctx.save();
   ctx.globalAlpha = isSunny ? 0.9 : isSoon ? 0.7 : 0.4;
   ctx.beginPath(); ctx.arc(pt.x, pt.y, DOT_R + 2.5, 0, Math.PI * 2);
-  ctx.fillStyle = isSunny ? 'rgba(255,184,0,0.18)' : isSoon ? 'rgba(255,184,0,0.12)' : 'rgba(100,120,180,0.12)';
+  ctx.fillStyle = isSunny ? 'rgba(255,175,133,0.18)' : isSoon ? 'rgba(255,175,133,0.12)' : 'rgba(100,120,180,0.12)';
   ctx.fill();
   ctx.beginPath(); ctx.arc(pt.x, pt.y, DOT_R, 0, Math.PI * 2);
-  ctx.fillStyle = isSunny ? '#FFB800' : isSoon ? 'rgba(255,184,0,0.8)' : 'rgba(100,120,170,0.65)';
+  ctx.fillStyle = isSunny ? '#FFAF85' : isSoon ? 'rgba(255,175,133,0.8)' : 'rgba(100,120,170,0.65)';
   ctx.fill();
   ctx.restore();
 }

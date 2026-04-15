@@ -27,7 +27,7 @@ function buildCardDial(v, dateStr, fromHour, isSunny) {
   const precip = wxNow?.precip ?? 0;
   const isRainy = precip > 0.3;
   const isOvercast = !isRainy && cloud > 0.65;
-  const dotColor = isRainy ? '#6491D2' : isOvercast ? '#A5AABB' : isSunny ? '#FFB800' : 'rgba(213,196,171,0.55)';
+  const dotColor = isRainy ? '#6491D2' : isOvercast ? '#A5AABB' : isSunny ? '#FFAF85' : 'rgba(156,189,231,0.55)';
 
   const hAngle = h => ((h % 12) / 12) * 2 * Math.PI - Math.PI / 2;
   const pt     = h => { const a = hAngle(h); return [CX + R * Math.cos(a), CY + R * Math.sin(a)]; };
