@@ -36,7 +36,10 @@ const OVERPASS_ENDPOINTS = [
 async function postOverpass(endpoint, query) {
   const resp = await fetch(endpoint, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'User-Agent': 'Solsteder/1.0 (solar venue finder Oslo; github.com/thor-erik/Solsteder)',
+    },
     body: 'data=' + encodeURIComponent(query),
     signal: AbortSignal.timeout(90_000),
   });
@@ -67,6 +70,8 @@ out geom;`;
     } catch (err) {
       console.warn(`  ✗ ${endpoint}: ${err.message}`);
       lastErr = err;
+      // Back off before trying the next endpoint (helps with 429s)
+      await new Promise(r => setTimeout(r, 10_000));
     }
   }
   throw lastErr;
