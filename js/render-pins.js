@@ -887,6 +887,8 @@ if (_isTouchDevice) {
     if (!t) return;
     const dx = t.clientX - _touchStartX, dy = t.clientY - _touchStartY;
     if (dx * dx + dy * dy >= 100) return; // not a tap
+    // Ignore taps on UI overlays — only hit-test when the touch is on the map itself
+    if (e.target && e.target.closest('#qc-wrap, #panel, #search-wrap, #floating-date, #detail-panel, .mapboxgl-ctrl, .mapboxgl-popup')) return;
     const rect = canvas.getBoundingClientRect();
     const cx = t.clientX - rect.left, cy = t.clientY - rect.top;
     const hit = hitTestVenue(cx, cy) || hitTestDot(cx, cy);
