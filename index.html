@@ -137,7 +137,10 @@
     left: 16px;
     z-index: 900;
     width: 336px;
-    border-radius: 24px;   /* full pill shape, overrides .floating-card 20px */
+    height: 46px;
+    box-sizing: border-box;
+    padding: 0 14px;       /* override .floating-card vertical padding */
+    border-radius: 23px;   /* true pill — half of 46px height */
     display: flex;
     align-items: center;
     gap: 8px;
@@ -153,15 +156,16 @@
   }
   #search-icon {
     color: var(--muted);
-    font-size: 20px;
+    font-size: 18px;
     flex-shrink: 0;
     line-height: 1;
   }
   #floating-search #venue-search {
     background: transparent;
     border: none;
-    padding: 4px 2px;
+    padding: 0;
     width: 100%;
+    font-size: 15px;
   }
   #floating-search #venue-search:focus { border: none; outline: none; }
 
@@ -213,7 +217,7 @@
   /* ── Profile popover ──────────────────────────────────────────────────────── */
   #profile-panel {
     position: absolute;
-    top: calc(16px + 48px + 8px); /* search top + search height + gap */
+    top: calc(16px + 46px + 8px); /* search top + search height + gap */
     left: 16px;
     width: 300px;
     z-index: 1100;
@@ -797,7 +801,7 @@
   /* LEFT PANEL — venue list, floats below search bar */
   #panel {
     position: absolute;
-    top: 120px;     /* 16 search-top + 48 search-h + 8 gap + 40 pills-h + 8 gap */
+    top: 118px;     /* 16 search-top + 46 search-h + 8 gap + 40 pills-h + 8 gap */
     left: 16px;
     bottom: 16px;
     width: 336px;
@@ -849,8 +853,8 @@
     border: none;
     color: var(--text);
     font-family: 'Avenir Next', 'Avenir', 'Gill Sans MT', 'Gill Sans', system-ui, sans-serif;
-    font-size: 13px;
-    padding: 4px 2px;
+    font-size: 15px;
+    padding: 0;
     outline: none;
   }
   #venue-search::placeholder { color: var(--muted); }
@@ -1627,7 +1631,7 @@
       left: 12px;
       right: 12px;
       width: auto;
-      top: calc(12px + 48px + 8px);
+      top: calc(12px + 46px + 8px);
     }
 
     /* Venue list — default "peek" state: 110px visible from bottom */
@@ -2181,7 +2185,7 @@
   #qc-wrap {
     position: absolute;
     left: 16px;
-    top: 72px;     /* search top(16) + search height(48) + gap(8) */
+    top: 70px;     /* search top(16) + search height(46) + gap(8) */
     width: 336px;
     z-index: 820;
     display: flex;
@@ -2194,17 +2198,17 @@
   }
   .qc-pill {
     flex: 1;
-    background: rgba(14,26,52,0.72);
+    background: rgba(14,26,52,0.82);
     backdrop-filter: blur(32px);
     -webkit-backdrop-filter: blur(32px);
-    border: 1px solid rgba(156,189,231,0.18);
+    border: 1px solid rgba(156,189,231,0.22);
     border-radius: 20px;
     height: 40px;
     padding: 0 14px;
     color: var(--text);
     font-family: 'Avenir Next', 'Avenir', 'Gill Sans MT', 'Gill Sans', system-ui, sans-serif;
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -2213,10 +2217,22 @@
     transition: background 0.12s, border-color 0.12s, color 0.12s;
     white-space: nowrap;
     box-shadow: 0 2px 8px rgba(0,0,0,0.22);
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+    appearance: none;
+    -webkit-appearance: none;
   }
-  .qc-pill:hover { background: rgba(24,52,95,0.9); border-color: rgba(255,175,133,0.25); }
-  .qc-pill.active { background: rgba(255,175,133,0.12); border-color: rgba(255,175,133,0.45); color: var(--accent); }
-  .qc-pill-icon { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.7; }
+  .qc-pill:focus, .qc-pill:focus-visible { outline: none; background: rgba(14,26,52,0.82); }
+  .qc-pill:hover { background: rgba(24,52,95,0.92); border-color: rgba(255,175,133,0.3); }
+  .qc-pill.active {
+    background: rgba(255,175,133,0.18);
+    border-color: rgba(255,175,133,0.55);
+    color: var(--accent);
+  }
+  .qc-pill.active:focus, .qc-pill.active:focus-visible {
+    background: rgba(255,175,133,0.18);
+  }
+  .qc-pill-icon { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.75; }
   #qc-notice {
     font-size: 11px;
     color: var(--muted);
@@ -2335,7 +2351,7 @@
 
   #detail-panel {
     position: absolute;
-    top: 120px;
+    top: 118px;
     left: 368px;   /* 16 + 336 + 16 */
     bottom: 16px;
     width: 300px;

@@ -1407,7 +1407,7 @@ function togglePanel() {
       detailPanel.style.left = '16px';
       detailPanel.style.top  = qcWrap
         ? (qcWrap.offsetTop + qcWrap.offsetHeight + 8) + 'px'
-        : '120px';
+        : '118px';
     }
     if (qcWrap) qcWrap.style.left = '16px';
   }
