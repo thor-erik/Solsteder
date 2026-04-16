@@ -990,8 +990,26 @@ function selectVenue(id, flyTo) {
       }
       map.flyTo(flyOpts);
     } else {
-      // Mobile: gentle center on venue without 3D effects to avoid iOS Safari toolbar issues
-      map.easeTo({ center: [v.lng, v.lat], zoom: Math.max(map.getZoom(), 14), duration: 450 });
+      // Mobile: same 3D fly-over, centered in visible map area above the detail panel
+      if (_preSelectZoom === null) {
+        _preSelectZoom   = map.getZoom();
+        _preSelectCenter = map.getCenter();
+        _frozenBounds    = map.getBounds();
+      }
+      const targetZoom = 17.70;
+      const panelH = Math.round((window.visualViewport?.height ?? window.innerHeight) * 0.69);
+      const flyOpts = { center: [v.lng, v.lat], zoom: targetZoom, duration: 800,
+                        padding: { top: 0, bottom: panelH, left: 0, right: 0 } };
+      if (targetZoom >= 16) {
+        const wallBearing   = v.wallSegment?.bearing ?? v.facing;
+        const targetBearing = (wallBearing + 180) % 360;
+        const curBearing    = ((map.getBearing() % 360) + 360) % 360;
+        let   diff          = Math.abs(targetBearing - curBearing);
+        if (diff > 180) diff = 360 - diff;
+        flyOpts.pitch = 45;
+        if (diff > 60) flyOpts.bearing = targetBearing;
+      }
+      map.flyTo(flyOpts);
     }
   }
 
@@ -1088,7 +1106,8 @@ function closeDetailPanel() {
     const restoreCenter = _preSelectCenter ?? map.getCenter();
     _preSelectZoom   = null;
     _preSelectCenter = null;
-    map.easeTo({ center: restoreCenter, zoom: restoreZoom, pitch: 15, bearing: 0, duration: 600 });
+    map.easeTo({ center: restoreCenter, zoom: restoreZoom, pitch: 15, bearing: 0, duration: 600,
+                 padding: { top: 0, bottom: 0, left: 0, right: 0 } });
   }
 }
 
@@ -1415,20 +1434,31 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
 
+      let _dragInitH = 0; // panel height at drag start (px)
+
       function _beginDrag(y) {
         _dragY0         = y;
         _dragT0         = _panelTranslateNow();
         _dragActive     = true;
         _dragStartState = _currentState();
         _dragStartTime  = Date.now();
+        _dragInitH      = panelEl.offsetHeight;
         panelEl.style.transition = 'none';
       }
 
       function _trackDrag(y) {
         if (!_dragActive) return;
-        const panelH = panelEl.offsetHeight;
-        const newT = Math.max(0, Math.min(panelH - 80, _dragT0 + (y - _dragY0)));
-        panelEl.style.transform = `translateY(${newT}px)`;
+        const dy = y - _dragY0;
+        if (dy < 0) {
+          // Upward — expand panel height toward fullscreen
+          const screenH = window.visualViewport?.height ?? window.innerHeight;
+          panelEl.style.height    = `${Math.min(screenH - 8, _dragInitH - dy)}px`;
+          panelEl.style.transform = `translateY(${_dragT0}px)`;
+        } else {
+          // Downward — slide panel down with translateY
+          panelEl.style.height    = '';
+          panelEl.style.transform = `translateY(${Math.min(_dragInitH - 80, _dragT0 + dy)}px)`;
+        }
       }
 
       function _commitDrag(y) {
@@ -1440,24 +1470,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const dt       = Math.max(1, Date.now() - _dragStartTime);
         const velocity = dy / dt; // px/ms, positive = downward
 
-        panelEl.style.transition = ''; // restore CSS transition → snap animates
-        panelEl.style.transform  = ''; // hand control back to CSS classes
+        panelEl.style.transition = '';
+        panelEl.style.transform  = '';
+        panelEl.style.height     = '';
 
-        const SWIPE_V = 0.2; // px/ms — deliberate swipe threshold
+        const SWIPE_V = 0.2, SAFE_DY = 40;
         let target;
-        if (velocity < -SWIPE_V) {
-          // Fast swipe up → advance one step
-          target = _dragStartState === 'peek' ? 'expanded' : 'fullscreen';
-        } else if (velocity > SWIPE_V) {
-          // Fast swipe down → retreat one step
-          target = _dragStartState === 'fullscreen' ? 'expanded' : 'peek';
-        } else {
-          // Slow drag → snap by release position
-          const screenH = window.visualViewport?.height ?? window.innerHeight;
-          if (y < screenH * 0.30)      target = 'fullscreen';
-          else if (y < screenH * 0.65) target = 'expanded';
-          else                          target = 'peek';
-        }
+        if      (velocity < -SWIPE_V)            target = _dragStartState === 'peek' ? 'expanded' : 'fullscreen';
+        else if (velocity >  SWIPE_V)            target = _dragStartState === 'fullscreen' ? 'expanded' : 'peek';
+        else if (Math.abs(dy) <= SAFE_DY)        target = _dragStartState; // safe zone → snap back
+        else if (dy < 0)                         target = _dragStartState === 'peek' ? 'expanded' : 'fullscreen';
+        else                                     target = _dragStartState === 'fullscreen' ? 'expanded' : 'peek';
 
         _applyState(target);
       }
@@ -1503,47 +1526,34 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!document.getElementById('map-container')?.contains(e.target)) e.preventDefault();
       }, { passive: false });
 
-      // ── Venue list: pull-down at top → drag panel; fast upswipe → advance state ──
+      // ── Venue list: finger scrolling up past the venue-header zone → drag panel ──
+      // When the finger crosses into the venue-header area while scrolling the list,
+      // the panel starts following the finger (both up and down). Release logic:
+      //   safe zone (< SAFE_DY from start) → snap back; outside → advance/retreat state.
       const venueList = document.getElementById('venue-list');
       if (venueList) {
-        let _listY0 = 0, _listAtTop = false;
-
-        venueList.addEventListener('touchstart', e => {
-          _listY0    = e.touches[0].clientY;
-          _listAtTop = venueList.scrollTop === 0;
+        venueList.addEventListener('touchstart', () => {
+          // nothing to record; drag is triggered dynamically in touchmove
         }, { passive: true });
 
         venueList.addEventListener('touchmove', e => {
-          const dy = e.touches[0].clientY - _listY0;
-          // Pull-down at list top → start panel drag
-          if (!_dragActive && dy > 8 && _listAtTop && panelEl.classList.contains('mobile-expanded')) {
-            _dragFromList = true;
-            _beginDrag(e.touches[0].clientY);
+          const cy = e.touches[0].clientY;
+          if (!_dragActive) {
+            // Trigger: finger has crossed into the venue-header zone
+            const headerEl = document.getElementById('venue-header') ?? document.getElementById('sort-row');
+            if (headerEl && cy <= headerEl.getBoundingClientRect().bottom) {
+              _dragFromList = true;
+              _beginDrag(cy);
+            }
           }
           if (_dragActive && _dragFromList) {
             e.preventDefault();
-            _trackDrag(e.touches[0].clientY);
+            _trackDrag(cy);
           }
         }, { passive: false });
 
         venueList.addEventListener('touchend', e => {
-          if (_dragActive && _dragFromList) {
-            _commitDrag(e.changedTouches[0].clientY);
-          } else if (_listAtTop) {
-            const releaseY = e.changedTouches[0].clientY;
-            const screenH  = window.visualViewport?.height ?? window.innerHeight;
-            const dy = releaseY - _listY0;
-            // Finger passed the trigger zone upward → go fullscreen on release
-            if (dy < 0 && releaseY < screenH * 0.35) {
-              _applyState('fullscreen');
-            } else if (Math.abs(dy) > 20) {
-              // Fast swipe without drag mode → state machine
-              const s = _currentState();
-              if (dy < 0 && s === 'expanded') _applyState('fullscreen');
-              else if (dy > 0 && s === 'fullscreen') _applyState('expanded');
-              else if (dy > 0 && s === 'expanded') _applyState('peek');
-            }
-          }
+          if (_dragActive && _dragFromList) _commitDrag(e.changedTouches[0].clientY);
         }, { passive: true });
       }
     }
@@ -1556,35 +1566,91 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }, { passive: true, capture: true });
 
-    // ── Detail panel drag handle: live follow + swipe up to fullscreen, down to dismiss ──
+    // ── Detail panel: live-follow drag from handle OR from dp-scroll scrolling into handle ──
+    // States: 'normal' (65svh) ↔ 'fullscreen' (100svh), or dismiss.
+    // Safe zone: |dy| < SAFE_DY and slow → snap back. Outside: commit to next state.
     const dpHandle = document.getElementById('dp-handle');
     const dpEl     = document.getElementById('detail-panel');
     if (dpHandle && dpEl) {
-      let _dpY0 = 0, _dpDragging = false;
-      dpHandle.addEventListener('touchstart', e => {
-        _dpY0 = e.touches[0].clientY;
-        _dpDragging = true;
+      let _dpY0 = 0, _dpDragging = false, _dpStartState = 'normal', _dpStartTime = 0, _dpInitH = 0;
+
+      function _dpCurrentState() {
+        return dpEl.classList.contains('dp-fullscreen') ? 'fullscreen' : 'normal';
+      }
+      function _beginDpDrag(y) {
+        _dpY0         = y;
+        _dpDragging   = true;
+        _dpStartState = _dpCurrentState();
+        _dpStartTime  = Date.now();
+        _dpInitH      = dpEl.offsetHeight;
         dpEl.style.transition = 'none';
-      }, { passive: true });
+      }
+      function _trackDpDrag(y) {
+        const dy = y - _dpY0;
+        const screenH = window.visualViewport?.height ?? window.innerHeight;
+        if (dy < 0) {
+          // Upward — expand panel height toward fullscreen
+          dpEl.style.height    = `${Math.min(screenH, _dpInitH - dy)}px`;
+          dpEl.style.transform = 'translateY(0)';
+        } else {
+          // Downward — slide panel down
+          dpEl.style.height    = '';
+          dpEl.style.transform = `translateY(${dy}px)`;
+        }
+      }
+      function _commitDpDrag(y) {
+        dpEl.style.transition = '';
+        dpEl.style.transform  = '';
+        dpEl.style.height     = '';
+        _dpDragging = false;
+
+        const dy       = y - _dpY0;
+        const dt       = Math.max(1, Date.now() - _dpStartTime);
+        const velocity = dy / dt;
+        const SWIPE_V  = 0.2, SAFE_DY = 40;
+
+        if (Math.abs(dy) <= SAFE_DY && Math.abs(velocity) < SWIPE_V) return; // safe zone
+
+        if (velocity < -SWIPE_V || dy < -SAFE_DY) {
+          if (_dpStartState === 'normal') dpEl.classList.add('dp-fullscreen');
+        } else if (velocity > SWIPE_V || dy > SAFE_DY) {
+          if (_dpStartState === 'fullscreen') dpEl.classList.remove('dp-fullscreen');
+          else closeDetailPanel();
+        }
+      }
+
+      // Handle drag (starts immediately on touch)
+      dpHandle.addEventListener('touchstart', e => _beginDpDrag(e.touches[0].clientY), { passive: true });
       dpHandle.addEventListener('touchmove', e => {
         if (!_dpDragging) return;
         e.preventDefault();
-        const dy = e.touches[0].clientY - _dpY0;
-        if (dy > 0) dpEl.style.transform = `translateY(${dy}px)`;
-        else         dpEl.style.transform = '';
+        _trackDpDrag(e.touches[0].clientY);
       }, { passive: false });
       dpHandle.addEventListener('touchend', e => {
         if (!_dpDragging) return;
-        _dpDragging = false;
-        dpEl.style.transition = '';
-        dpEl.style.transform  = '';
-        const dy = e.changedTouches[0].clientY - _dpY0;
-        if (dy < -80) {
-          dpEl.classList.add('dp-fullscreen');
-        } else if (dy > 40) {
-          closeDetailPanel();
-        }
+        _commitDpDrag(e.changedTouches[0].clientY);
       }, { passive: true });
+
+      // dp-scroll drag: finger scrolling up into the handle zone triggers panel drag
+      const dpScroll = document.getElementById('dp-scroll');
+      if (dpScroll) {
+        dpScroll.addEventListener('touchmove', e => {
+          const cy = e.touches[0].clientY;
+          if (!_dpDragging) {
+            if (cy <= dpHandle.getBoundingClientRect().bottom) {
+              _beginDpDrag(cy);
+            }
+          }
+          if (_dpDragging) {
+            e.preventDefault();
+            _trackDpDrag(cy);
+          }
+        }, { passive: false });
+
+        dpScroll.addEventListener('touchend', e => {
+          if (_dpDragging) _commitDpDrag(e.changedTouches[0].clientY);
+        }, { passive: true });
+      }
     }
   }
 
