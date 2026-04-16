@@ -1085,8 +1085,7 @@ function _startWindForVenue(v) {
 }
 
 function closeDetailPanel(expandList = true) {
-  console.log('[closeDetailPanel] expandList=', expandList, new Error().stack);
-  if (typeof stopWindOverlay === 'function') stopWindOverlay();
+if (typeof stopWindOverlay === 'function') stopWindOverlay();
   const dp = document.getElementById('detail-panel');
   if (dp) {
     dp.classList.remove('open', 'dp-fullscreen');
@@ -1102,8 +1101,7 @@ function closeDetailPanel(expandList = true) {
         panel.classList.remove('mobile-hidden', 'mobile-fullscreen');
         if (expandList) panel.classList.add('mobile-expanded');
         else            panel.classList.remove('mobile-expanded');
-        console.log('[closeDetailPanel timeout] panel classes after:', panel.className);
-      }
+}
       document.getElementById('floating-search')?.classList.remove('mobile-ui-hidden');
       document.getElementById('qc-wrap')?.classList.remove('mobile-ui-hidden');
     }, 320);
@@ -1375,7 +1373,6 @@ function togglePanel() {
       panel.classList.remove('mobile-expanded');
     } else if (!panel.classList.contains('mobile-hidden')) {
       // peek → expanded
-      console.log('[togglePanel] adding mobile-expanded', new Error().stack);
       panel.classList.add('mobile-expanded');
     } else {
       // hidden → peek
@@ -1448,7 +1445,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       function _applyState(state) {
-        console.log('[_applyState]', state, new Error().stack);
         if (state === 'fullscreen') {
           panelEl.classList.add('mobile-fullscreen', 'mobile-expanded');
         } else if (state === 'expanded') {
