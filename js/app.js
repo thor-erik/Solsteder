@@ -1886,6 +1886,10 @@ document.addEventListener('keydown', e => {
 function _introCheckReady() {
   if (_introMapReady && _introGeoReady && !_introRunning) {
     _introRunning = true;
+    // Skip intro animation if this is an OAuth redirect return
+    const isOAuthReturn = window.location.hash.includes('access_token=') ||
+                          new URLSearchParams(window.location.search).has('code');
+    if (isOAuthReturn) { _skipIntro(); return; }
     _runIntroSequence();
   }
 }
