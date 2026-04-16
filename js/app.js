@@ -1006,8 +1006,7 @@ function selectVenue(id, flyTo) {
       _preSelectCenter = map.getCenter();
       _frozenBounds    = map.getBounds();
     }
-    _mapMovedWhileDetailOpen = false; // reset interaction flag for this new selection
-    _flyToVenue(v);
+    _mapMovedWhileDetailOpen = false;
   }
 
   _switchingVenue = true;
@@ -1015,9 +1014,13 @@ function selectVenue(id, flyTo) {
   _switchingVenue = false;
 
   openDetailPanel(v);
-
   draw();
   renderList();
+
+  // Fly LAST — panel must be open and DOM mutations must be complete before
+  // starting the camera animation, otherwise they cancel easeTo.
+  // This matches the original panToVenueCenter ordering that worked.
+  if (flyTo) _flyToVenue(v);
 
   setTimeout(() => {
     const card = document.querySelector(`.venue-card[data-vid="${id}"]`);
