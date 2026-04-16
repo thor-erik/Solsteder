@@ -2217,6 +2217,7 @@
   }
   .qc-pill:hover { background: rgba(24,52,95,0.85); border-color: rgba(255,175,133,0.25); }
   .qc-pill.active { background: rgba(255,175,133,0.12); border-color: rgba(255,175,133,0.45); color: var(--accent); }
+  .qc-pill-icon { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.7; }
   #qc-notice {
     font-size: 11px;
     color: var(--muted);
@@ -2894,9 +2895,18 @@
   <div id="qc-wrap" class="intro-hidden">
     <div id="qc-bar">
       <button class="qc-pill" id="qc-date-pill" onclick="toggleQcPanel('date')">
+        <svg class="qc-pill-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="2" y="3.5" width="12" height="10.5" rx="2" stroke="currentColor" stroke-width="1.3"/>
+          <path d="M5 2v3M11 2v3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+          <path d="M2 7h12" stroke="currentColor" stroke-width="1.3"/>
+        </svg>
         <span id="qc-date-label">Today</span>
       </button>
       <button class="qc-pill" id="qc-time-pill" onclick="toggleQcPanel('time')">
+        <svg class="qc-pill-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.3"/>
+          <path d="M8 5.5V8l1.75 1.75" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
         <span id="qc-time-label">—</span>
       </button>
     </div>

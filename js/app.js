@@ -681,7 +681,7 @@ function updateQcLabels() {
     dateLabel.textContent = `${DAYS[d.getDay()]} ${d.getDate()} ${MONS[d.getMonth()]}`;
   }
 
-  timeLabel.textContent = formatHour(parseFloat(timeFromEl.value));
+  timeLabel.textContent = nowMode ? 'Now' : formatHour(parseFloat(timeFromEl.value));
 
   // "Now" only makes sense today — show "Sunrise" on future dates
   const isToday = datePicker.value === todayStr();
