@@ -516,22 +516,13 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
     :                        { label: 'Quiet (est.)',           cls: 'noise-low',  icon: '🔈' }
     : null;
 
-  // Wind shelter chip
-  const shelterChip = s?.shelter != null
-    ? s.shelter > 0.6 ? { label: 'Well sheltered',   cls: 'env-sheltered', icon: '🛡' }
-    : s.shelter > 0.3 ? { label: 'Some shelter',      cls: 'env-partial',   icon: '🛡' }
-    :                   { label: 'Exposed to wind',   cls: 'env-exposed',   icon: '💨' }
-    : null;
-
-  const envSection = (noiseChip || shelterChip) ? `
+  const envSection = noiseChip ? `
     <div class="dp-divider"></div>
     <div class="dp-section-label">Environment</div>
     <div class="dp-env-row">
-      ${noiseChip   ? `<div class="dp-env-chip ${noiseChip.cls}">${noiseChip.icon} ${noiseChip.label}</div>` : ''}
-      ${shelterChip ? `<div class="dp-env-chip ${shelterChip.cls}">${shelterChip.icon} ${shelterChip.label}</div>` : ''}
+      ${noiseChip ? `<div class="dp-env-chip ${noiseChip.cls}">${noiseChip.icon} ${noiseChip.label}</div>` : ''}
     </div>` : '';
 
-  const shelterPct = s?.shelter != null ? Math.round(s.shelter * 100) : null;
   const sunScoreSection = s ? `
     <div class="dp-divider"></div>
     <div class="dp-section-label">Sun Score</div>
@@ -542,9 +533,6 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
     ${s.noise != null ? `
     <div class="dp-exp-row"><span><span class="dp-exp-label">Noise</span><div class="dp-exp-hint">Estimated traffic noise at this location</div></span><span class="dp-exp-val">${s.noise}%</span></div>
     <div class="dp-exp-bar-wrap"><div class="dp-exp-bar-fill" style="width:${s.noise}%"></div></div>` : ''}
-    ${shelterPct != null ? `
-    <div class="dp-exp-row"><span><span class="dp-exp-label">Wind Shelter</span><div class="dp-exp-hint">How sheltered the terrace is from wind</div></span><span class="dp-exp-val">${shelterPct}%</span></div>
-    <div class="dp-exp-bar-wrap"><div class="dp-exp-bar-fill" style="width:${shelterPct}%"></div></div>` : ''}
     ${distStr ? `<div class="dp-exp-row" style="margin-top:8px"><span class="dp-exp-label">Proximity</span><span class="dp-exp-val" style="font-style:normal;font-size:13px">${distStr}</span></div>` : ''}
   ` : '';
 
@@ -589,8 +577,5 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       <div class="dp-divider"></div>
       <div class="dp-section-label">Busyness</div>
       ${renderBusynessChart(v, dateStr, fromHour)}
-      <div class="dp-divider"></div>
-      <div class="dp-section-label">Wind shelter</div>
-      <canvas id="dp-shelter-canvas" width="268" height="180" style="display:block;width:100%;border-radius:10px;border:1px solid rgba(156,189,231,0.18);"></canvas>
     </div>`;
 }

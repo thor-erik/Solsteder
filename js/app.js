@@ -1059,7 +1059,6 @@ function openDetailPanel(v) {
   content.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
   dp.classList.remove('dp-fullscreen');
   dp.classList.add('open');
-  _drawShelterDiagram(v);
   _startWindForVenue(v);
   if (isMobile()) {
     const panel = document.getElementById('panel');
@@ -1076,12 +1075,6 @@ function _getWxNow() {
   return typeof getWeatherAt === 'function'
     ? getWeatherAt(datePicker.value, parseFloat(timeFromEl.value))
     : null;
-}
-
-function _drawShelterDiagram(v) {
-  const canvas = document.getElementById('dp-shelter-canvas');
-  if (!canvas) return;
-  drawShelterDiagram(v, _getWxNow(), canvas);
 }
 
 function _startWindForVenue(v) {
@@ -1143,7 +1136,6 @@ function updateDetailPanel() {
   const v = VENUES.find(x => x.id === selectedId);
   if (!v) return;
   content.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
-  _drawShelterDiagram(v);
   _startWindForVenue(v); // restart with updated weather snapshot
 }
 
