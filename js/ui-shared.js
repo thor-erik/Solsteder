@@ -29,15 +29,15 @@ function wxColor(dateStr, h, bright) {
   const isOvercast = !isRainy && cloud > 0.65;
   const isPartly   = !isRainy && !isOvercast && cloud > 0.38;
   if (bright) {
-    if (isRainy)    return 'rgba(100,145,210,0.80)';
-    if (isOvercast) return 'rgba(165,170,178,0.75)';
-    if (isPartly)   return 'rgba(210,185,110,0.75)';
+    if (isRainy)    return 'rgba(156,189,231,0.25)';
+    if (isOvercast) return 'rgba(156,189,231,0.45)';
+    if (isPartly)   return 'rgba(156,189,231,0.70)';
     return 'rgba(255,175,133,0.85)';
   } else {
-    // Past arcs: clearly colored but visually receded (~half the bright opacity)
-    if (isRainy)    return 'rgba(100,145,210,0.38)';
-    if (isOvercast) return 'rgba(165,170,178,0.38)';
-    if (isPartly)   return 'rgba(210,185,110,0.38)';
+    // Past arcs: dimmed versions of the same colors
+    if (isRainy)    return 'rgba(156,189,231,0.12)';
+    if (isOvercast) return 'rgba(156,189,231,0.22)';
+    if (isPartly)   return 'rgba(156,189,231,0.35)';
     return 'rgba(255,175,133,0.40)';
   }
 }

@@ -22,7 +22,7 @@ function renderSunDial(v, dateStr, fromHour) {
   const precip = wxNow?.precip ?? 0;
   const isRainy    = precip > 0.3;
   const isOvercast = !isRainy && cloud > 0.65;
-  const dotColor   = isRainy ? '#6491D2' : isOvercast ? '#A5AABB' : '#FFAF85';
+  const dotColor   = '#FFAF85'; // Current time dot always uses sun accent color
 
   const hAngle = h => ((h % 12) / 12) * 2 * Math.PI - Math.PI / 2;
   const pt = h => { const a = hAngle(h); return [CX + R * Math.cos(a), CY + R * Math.sin(a)]; };
@@ -54,7 +54,7 @@ function renderSunDial(v, dateStr, fromHour) {
     const a = (h/12)*2*Math.PI - Math.PI/2;
     hourNums += `<text x="${(CX+NR*Math.cos(a)).toFixed(1)}" y="${(CY+NR*Math.sin(a)).toFixed(1)}"
       text-anchor="middle" dominant-baseline="middle" font-family="Inter,sans-serif"
-      font-size="8.5" font-weight="600" fill="rgba(156,189,231,0.3)">${lbl}</text>`;
+      font-size="8.5" font-weight="600" fill="rgba(156,189,231,0.4)">${lbl}</text>`;
   }
 
   // Arc segments — per-hour weather coloring
@@ -73,7 +73,7 @@ function renderSunDial(v, dateStr, fromHour) {
         <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
       </filter>
     </defs>
-    <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="${SW}"/>
+    <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="rgba(156,189,231,0.12)" stroke-width="${SW}"/>
     ${ticks}${hourNums}${arcs}
     <circle cx="${tx.toFixed(2)}" cy="${ty.toFixed(2)}" r="5" fill="${dotColor}" filter="url(#dg)"/>
     ${callouts}
@@ -445,10 +445,10 @@ function renderBusynessChart(v, dateStr, fromHour) {
     const y    = H - barH;
     const isCurrent = Math.floor(fromHour) === h;
     const fill = isCurrent
-      ? 'rgba(255,175,133,0.95)'
+      ? '#FFAF85'
       : val > 0
-        ? `rgba(255,175,133,${(0.18 + val / 100 * 0.45).toFixed(2)})`
-        : 'rgba(156,189,231,0.12)';
+        ? `rgba(255,175,133,${(0.20 + val / 100 * 0.60).toFixed(2)})`
+        : 'rgba(255,175,133,0.2)';
     const x = hours.indexOf(h) * (BAR_W + GAP);
     return `<rect x="${x}" y="${y}" width="${BAR_W}" height="${barH}" rx="1.5" fill="${fill}"/>`;
   }).join('');

@@ -158,7 +158,7 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
   }
 
   const metaParts = [v.area, catLabel(v), distStr].filter(Boolean);
-  if (s) metaParts.push(`<span class="card-meta-score">${s.total} Score</span>`);
+  if (s) metaParts.push(`<span class="card-meta-score">${s.total}</span>`);
   const meta = metaParts.map((p, i) =>
     (i > 0 ? '<span class="card-meta-dot">·</span>' : '') + `<span class="card-meta-item">${p}</span>`
   ).join('');
