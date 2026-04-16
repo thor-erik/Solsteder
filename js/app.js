@@ -968,27 +968,31 @@ function selectVenue(id, flyTo) {
   const v = VENUES.find(x => x.id === id);
   if (!v) return;
 
-  // On mobile the detail panel is the focus — skip map animation to avoid
-  // triggering iOS Safari toolbar collapse (which resizes viewport mid-open).
-  if (flyTo && !isMobile()) {
-    if (_preSelectZoom === null) {
-      _preSelectZoom   = map.getZoom();
-      _preSelectCenter = map.getCenter();
-      _frozenBounds    = map.getBounds();
+  if (flyTo) {
+    if (!isMobile()) {
+      // Desktop: cinematic 3D fly-over
+      if (_preSelectZoom === null) {
+        _preSelectZoom   = map.getZoom();
+        _preSelectCenter = map.getCenter();
+        _frozenBounds    = map.getBounds();
+      }
+      const targetZoom    = 17.70;
+      const buildingsVisible = targetZoom >= 16;
+      const flyOpts = { center: [v.lng, v.lat], zoom: targetZoom, duration: 800 };
+      if (buildingsVisible) {
+        const wallBearing   = v.wallSegment?.bearing ?? v.facing;
+        const targetBearing = (wallBearing + 180) % 360;
+        const curBearing    = ((map.getBearing() % 360) + 360) % 360;
+        let   diff          = Math.abs(targetBearing - curBearing);
+        if (diff > 180) diff = 360 - diff;
+        flyOpts.pitch = 45;
+        if (diff > 60) flyOpts.bearing = targetBearing;
+      }
+      map.flyTo(flyOpts);
+    } else {
+      // Mobile: gentle center on venue without 3D effects to avoid iOS Safari toolbar issues
+      map.easeTo({ center: [v.lng, v.lat], zoom: Math.max(map.getZoom(), 14), duration: 450 });
     }
-    const targetZoom    = 17.70;
-    const buildingsVisible = targetZoom >= 16;
-    const flyOpts = { center: [v.lng, v.lat], zoom: targetZoom, duration: 800 };
-    if (buildingsVisible) {
-      const wallBearing   = v.wallSegment?.bearing ?? v.facing;
-      const targetBearing = (wallBearing + 180) % 360;
-      const curBearing    = ((map.getBearing() % 360) + 360) % 360;
-      let   diff          = Math.abs(targetBearing - curBearing);
-      if (diff > 180) diff = 360 - diff;
-      flyOpts.pitch = 45;
-      if (diff > 60) flyOpts.bearing = targetBearing;
-    }
-    map.flyTo(flyOpts);
   }
 
   _switchingVenue = true;
@@ -1439,7 +1443,7 @@ document.addEventListener('DOMContentLoaded', () => {
         panelEl.style.transition = ''; // restore CSS transition → snap animates
         panelEl.style.transform  = ''; // hand control back to CSS classes
 
-        const SWIPE_V = 0.3; // px/ms — deliberate swipe threshold
+        const SWIPE_V = 0.2; // px/ms — deliberate swipe threshold
         let target;
         if (velocity < -SWIPE_V) {
           // Fast swipe up → advance one step
@@ -1526,9 +1530,14 @@ document.addEventListener('DOMContentLoaded', () => {
           if (_dragActive && _dragFromList) {
             _commitDrag(e.changedTouches[0].clientY);
           } else if (_listAtTop) {
-            // Fast swipe without drag mode (e.g. quick flick) → state machine
-            const dy = e.changedTouches[0].clientY - _listY0;
-            if (Math.abs(dy) > 30) {
+            const releaseY = e.changedTouches[0].clientY;
+            const screenH  = window.visualViewport?.height ?? window.innerHeight;
+            const dy = releaseY - _listY0;
+            // Finger passed the trigger zone upward → go fullscreen on release
+            if (dy < 0 && releaseY < screenH * 0.35) {
+              _applyState('fullscreen');
+            } else if (Math.abs(dy) > 20) {
+              // Fast swipe without drag mode → state machine
               const s = _currentState();
               if (dy < 0 && s === 'expanded') _applyState('fullscreen');
               else if (dy > 0 && s === 'fullscreen') _applyState('expanded');
@@ -1547,7 +1556,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }, { passive: true, capture: true });
 
-    // ── Detail panel drag handle: swipe up to fullscreen, down to dismiss ──
+    // ── Detail panel drag handle: live follow + swipe up to fullscreen, down to dismiss ──
     const dpHandle = document.getElementById('dp-handle');
     const dpEl     = document.getElementById('detail-panel');
     if (dpHandle && dpEl) {
@@ -1555,16 +1564,24 @@ document.addEventListener('DOMContentLoaded', () => {
       dpHandle.addEventListener('touchstart', e => {
         _dpY0 = e.touches[0].clientY;
         _dpDragging = true;
+        dpEl.style.transition = 'none';
       }, { passive: true });
+      dpHandle.addEventListener('touchmove', e => {
+        if (!_dpDragging) return;
+        e.preventDefault();
+        const dy = e.touches[0].clientY - _dpY0;
+        if (dy > 0) dpEl.style.transform = `translateY(${dy}px)`;
+        else         dpEl.style.transform = '';
+      }, { passive: false });
       dpHandle.addEventListener('touchend', e => {
         if (!_dpDragging) return;
         _dpDragging = false;
+        dpEl.style.transition = '';
+        dpEl.style.transform  = '';
         const dy = e.changedTouches[0].clientY - _dpY0;
         if (dy < -80) {
-          // swipe up (deliberate) → fullscreen
           dpEl.classList.add('dp-fullscreen');
         } else if (dy > 40) {
-          // swipe down → dismiss (close)
           closeDetailPanel();
         }
       }, { passive: true });

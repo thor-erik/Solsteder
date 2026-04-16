@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Shades — Steder i Solen</title>
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="logo-images/logo-pack-png-512x512/logo-color-1600h.png">
+<link rel="apple-touch-icon" href="logo-images/logo-pack-png-512x512/logo-color-1600h-small-text.png">
 <meta name="theme-color" content="#142E52">
 <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css">
 <style>
@@ -2648,12 +2648,28 @@
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     touch-action: none;
+    position: relative;
   }
   #dp-handle-pill {
     width: 36px;
     height: 4px;
     background: rgba(156,189,231,0.25);
     border-radius: 2px;
+  }
+  #dp-close-x {
+    display: none; /* shown on mobile only */
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: rgba(156,189,231,0.45);
+    font-size: 18px;
+    line-height: 1;
+    padding: 6px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
   }
 
   /* Hide UI elements when detail panel is open on mobile */
@@ -2665,7 +2681,7 @@
       top: auto;
       left: 0; right: 0; bottom: 0;
       width: 100%;
-      height: 78svh;    /* svh = small viewport height: never changes when toolbar collapses */
+      height: 65svh;    /* svh = small viewport height: never changes when toolbar collapses */
       max-height: none;
       border-radius: 20px 20px 0 0;
       border-left: none; border-right: none; border-bottom: none;
@@ -2680,6 +2696,10 @@
       border-radius: 0;
     }
     #dp-handle { display: flex; }
+    #dp-close-x { display: block; }
+    /* More air between photos and drag handle on mobile */
+    #dp-scroll { padding-top: 10px; }
+    .dp-photos { margin-top: 0; }
     /* Back button style on mobile: chevron + "Venues" */
     #dp-close-btn {
       display: flex;
@@ -2890,7 +2910,10 @@
 
   <!-- RIGHT DETAIL PANEL — opens when a venue is selected -->
   <div id="detail-panel">
-    <div id="dp-handle"><div id="dp-handle-pill"></div></div>
+    <div id="dp-handle">
+      <div id="dp-handle-pill"></div>
+      <button id="dp-close-x" onclick="closeDetailPanel()" aria-label="Lukk">✕</button>
+    </div>
     <div id="dp-content"></div>
   </div>
 
