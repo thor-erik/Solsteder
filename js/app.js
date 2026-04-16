@@ -1449,16 +1449,10 @@ document.addEventListener('DOMContentLoaded', () => {
       function _trackDrag(y) {
         if (!_dragActive) return;
         const dy = y - _dragY0;
-        if (dy < 0) {
-          // Upward — expand panel height toward fullscreen
-          const screenH = window.visualViewport?.height ?? window.innerHeight;
-          panelEl.style.height    = `${Math.min(screenH - 8, _dragInitH - dy)}px`;
-          panelEl.style.transform = `translateY(${_dragT0}px)`;
-        } else {
-          // Downward — slide panel down with translateY
-          panelEl.style.height    = '';
-          panelEl.style.transform = `translateY(${Math.min(_dragInitH - 80, _dragT0 + dy)}px)`;
-        }
+        // Pure translateY in both directions — no height changes → no reflow
+        // Upward (dy<0): panel slides up, appearing taller (bottom fixed)
+        // Downward (dy>0): panel slides down, clamped so ≥80px stays visible
+        panelEl.style.transform = `translateY(${Math.min(_dragInitH - 80, _dragT0 + dy)}px)`;
       }
 
       function _commitDrag(y) {
@@ -1532,18 +1526,25 @@ document.addEventListener('DOMContentLoaded', () => {
       //   safe zone (< SAFE_DY from start) → snap back; outside → advance/retreat state.
       const venueList = document.getElementById('venue-list');
       if (venueList) {
-        venueList.addEventListener('touchstart', () => {
-          // nothing to record; drag is triggered dynamically in touchmove
+        let _listStartY = 0, _venueHeaderBottom = 0;
+        venueList.addEventListener('touchstart', e => {
+          _listStartY = e.touches[0].clientY;
+          // Cache header bottom once so touchmove never triggers getBoundingClientRect
+          const headerEl = document.getElementById('venue-header') ?? document.getElementById('sort-row');
+          _venueHeaderBottom = headerEl ? headerEl.getBoundingClientRect().bottom : 0;
         }, { passive: true });
 
         venueList.addEventListener('touchmove', e => {
           const cy = e.touches[0].clientY;
           if (!_dragActive) {
-            // Trigger: finger has crossed into the venue-header zone
-            const headerEl = document.getElementById('venue-header') ?? document.getElementById('sort-row');
-            if (headerEl && cy <= headerEl.getBoundingClientRect().bottom) {
-              _dragFromList = true;
-              _beginDrag(cy);
+            // Early scroll lock: at top of list and moving up → prevent scroll rubber-banding immediately
+            if (venueList.scrollTop === 0 && cy < _listStartY) {
+              e.preventDefault();
+              // Trigger panel drag once finger crosses into the header zone
+              if (cy <= _venueHeaderBottom) {
+                _dragFromList = true;
+                _beginDrag(cy);
+              }
             }
           }
           if (_dragActive && _dragFromList) {
@@ -1587,16 +1588,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       function _trackDpDrag(y) {
         const dy = y - _dpY0;
-        const screenH = window.visualViewport?.height ?? window.innerHeight;
-        if (dy < 0) {
-          // Upward — expand panel height toward fullscreen
-          dpEl.style.height    = `${Math.min(screenH, _dpInitH - dy)}px`;
-          dpEl.style.transform = 'translateY(0)';
-        } else {
-          // Downward — slide panel down
-          dpEl.style.height    = '';
-          dpEl.style.transform = `translateY(${dy}px)`;
-        }
+        // Pure translateY — no height changes → no reflow
+        dpEl.style.transform = `translateY(${dy}px)`;
       }
       function _commitDpDrag(y) {
         dpEl.style.transition = '';
@@ -1634,11 +1627,20 @@ document.addEventListener('DOMContentLoaded', () => {
       // dp-scroll drag: finger scrolling up into the handle zone triggers panel drag
       const dpScroll = document.getElementById('dp-scroll');
       if (dpScroll) {
+        let _dpScrollStartY = 0, _dpHandleBottom = 0;
+        dpScroll.addEventListener('touchstart', e => {
+          _dpScrollStartY = e.touches[0].clientY;
+          // Cache handle bottom once so touchmove never triggers getBoundingClientRect
+          _dpHandleBottom = dpHandle.getBoundingClientRect().bottom;
+        }, { passive: true });
+
         dpScroll.addEventListener('touchmove', e => {
           const cy = e.touches[0].clientY;
           if (!_dpDragging) {
-            if (cy <= dpHandle.getBoundingClientRect().bottom) {
-              _beginDpDrag(cy);
+            // Early scroll lock: at top of scroll and moving up → prevent rubber-banding
+            if (dpScroll.scrollTop === 0 && cy < _dpScrollStartY) {
+              e.preventDefault();
+              if (cy <= _dpHandleBottom) _beginDpDrag(cy);
             }
           }
           if (_dpDragging) {
