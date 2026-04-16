@@ -250,7 +250,7 @@ function _draw() {
   for (const p of _particles) {
     const t = Math.min(p.life / p.maxLife, 1);
     // Fade in quickly, fade out gently near end of life
-    const alpha = Math.min(t * 7, 1) * Math.min((1 - t) * 5, 1) * 0.70;
+    const alpha = Math.min(t * 7, 1) * Math.min((1 - t) * 5, 1) * 0.90;
     if (alpha < 0.03) continue;
 
     // Head and tail positions in screen space
@@ -258,14 +258,26 @@ function _draw() {
     const tail = _toScreen(p.x - p.vx * 5, p.y - p.vy * 5);
 
     _ctx.save();
-    _ctx.globalAlpha = alpha;
-    _ctx.strokeStyle = 'rgba(160,215,255,0.9)';
-    _ctx.lineWidth   = 1.4 * _dpr;
-    _ctx.lineCap     = 'round';
+    _ctx.lineCap = 'round';
+
+    // Glow pass — wider, softer halo so particles read against any map tile
+    _ctx.globalAlpha = alpha * 0.35;
+    _ctx.strokeStyle = 'rgba(200,235,255,1)';
+    _ctx.lineWidth   = 5 * _dpr;
     _ctx.beginPath();
     _ctx.moveTo(tail.x, tail.y);
     _ctx.lineTo(head.x, head.y);
     _ctx.stroke();
+
+    // Core stroke — bright white-blue, crisp
+    _ctx.globalAlpha = alpha;
+    _ctx.strokeStyle = 'rgba(220,242,255,1)';
+    _ctx.lineWidth   = 1.8 * _dpr;
+    _ctx.beginPath();
+    _ctx.moveTo(tail.x, tail.y);
+    _ctx.lineTo(head.x, head.y);
+    _ctx.stroke();
+
     _ctx.restore();
   }
 }
