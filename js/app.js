@@ -294,6 +294,15 @@ function applyNowTime() {
   updateRangeFill();
 }
 
+function _activateNowMode() {
+  if (nowMode) return;
+  nowMode = true;
+  nowBtn?.classList.add('active');
+  timeRangeWrap?.classList.add('now-active');
+  setActiveIntentBtn('now');
+  nowInterval = setInterval(() => { if (nowMode) { applyNowTime(); update(); } }, 30000);
+}
+
 // ── Intent shortcuts ──────────────────────────────────────────────────────────
 const _PRESET_HOURS = { lunch: 11, 'after-work': 16, evening: 20 };
 const PAD_X_ARC = 20;
@@ -1953,6 +1962,8 @@ function _runIntroSequence() {
         setTimeout(() => {
           if (_introSeqId !== seqId) return;
           _introRevealUI(search, brand, qcWrap, panel);
+          _activateNowMode();
+          update();
           document.removeEventListener('click', skipHandler);
           document.removeEventListener('touchstart', skipHandler);
         }, 350);
@@ -2004,8 +2015,9 @@ function _skipIntro(seqId) {
   // Cancel time animation
   if (_timeAnimId) { cancelAnimationFrame(_timeAnimId); _timeAnimId = null; }
 
-  // Set time to now
+  // Set time to now and activate now mode
   timeFromEl.value = Math.min(23, Math.max(4, currentHour()));
+  _activateNowMode();
   update();
 
   // Snap map to default view (centered on user location or Oslo)
