@@ -775,7 +775,12 @@ canvas.addEventListener('mousedown', e => {
     return;
   }
   const hit = hitTestVenue(cx, cy) || hitTestDot(cx, cy);
-  if (!hit) {
+  if (hit) {
+    // Prevent Mapbox from starting drag-tracking on this mousedown — otherwise
+    // Mapbox will call map.stop() during drag-end processing and cancel our
+    // subsequent easeTo camera animation.
+    e.stopPropagation();
+  } else {
     canvas.style.pointerEvents = 'none';
     const el = document.elementFromPoint(e.clientX, e.clientY);
     canvas.style.pointerEvents = 'auto';
@@ -799,6 +804,9 @@ canvas.addEventListener('click', e => {
   }
   const hit = hitTestVenue(cx, cy) || hitTestDot(cx, cy);
   if (hit) {
+    // Stop the click from bubbling to Mapbox's container.  Mapbox calls map.stop()
+    // during its click/drag-end processing which would cancel our easeTo animation.
+    e.stopPropagation();
     selectVenue(hit.id, true);
     return;
   }
