@@ -1084,7 +1084,7 @@ function _startWindForVenue(v) {
   if (typeof startWindOverlay === 'function') startWindOverlay(v, _getWxNow());
 }
 
-function closeDetailPanel() {
+function closeDetailPanel(expandList = true) {
   if (typeof stopWindOverlay === 'function') stopWindOverlay();
   const dp = document.getElementById('detail-panel');
   if (dp) {
@@ -1093,12 +1093,14 @@ function closeDetailPanel() {
   if (isMobile()) {
     // Delay restoring the venue list until the detail panel has finished its
     // 300ms close animation, so the two panels are never visible at the same time.
-    // Restore in mobile-expanded state so the list is immediately browsable.
+    // expandList=true (< Venues back button): restore expanded so the list is immediately browsable.
+    // expandList=false (X button / swipe down): restore to peek state.
     setTimeout(() => {
       const panel = document.getElementById('panel');
       if (panel) {
         panel.classList.remove('mobile-hidden', 'mobile-fullscreen');
-        panel.classList.add('mobile-expanded');
+        if (expandList) panel.classList.add('mobile-expanded');
+        else            panel.classList.remove('mobile-expanded');
       }
       document.getElementById('floating-search')?.classList.remove('mobile-ui-hidden');
       document.getElementById('qc-wrap')?.classList.remove('mobile-ui-hidden');
@@ -1627,7 +1629,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (_dpStartState === 'normal') dpEl.classList.add('dp-fullscreen');
         } else if (velocity > SWIPE_V || dy > SAFE_DY) {
           if (_dpStartState === 'fullscreen') dpEl.classList.remove('dp-fullscreen');
-          else closeDetailPanel();
+          else closeDetailPanel(false);
         }
       }
 
