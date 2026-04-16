@@ -2696,21 +2696,6 @@
     background: rgba(156,189,231,0.25);
     border-radius: 2px;
   }
-  #dp-close-x {
-    display: none; /* shown on mobile only */
-    position: absolute;
-    right: 14px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    color: rgba(156,189,231,0.45);
-    font-size: 18px;
-    line-height: 1;
-    padding: 6px;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-  }
 
   /* Hide UI elements when detail panel is open on mobile */
   .mobile-ui-hidden { display: none !important; }
@@ -2736,9 +2721,7 @@
       border-radius: 0;
     }
     #dp-handle { display: flex; }
-    #dp-close-x { display: block; }
-    /* More air between photos and drag handle on mobile */
-    #dp-scroll { padding-top: 10px; }
+    #dp-scroll { padding-top: 4px; }
     .dp-photos { margin-top: 0; }
     /* Back button style on mobile: chevron + "Venues" */
     #dp-close-btn {
@@ -2759,7 +2742,7 @@
     .dp-close-x    { display: none; }
     .dp-close-back { display: inline; }
     .dp-venue-name { font-size: 19px; }
-    #dp-scroll { padding-top: 0; overflow-y: auto; }
+    #dp-scroll { overflow-y: auto; }
   }
 
   /* ── Intro splash overlay ─────────────────────────────────────────────────── */
@@ -2961,7 +2944,6 @@
   <div id="detail-panel">
     <div id="dp-handle">
       <div id="dp-handle-pill"></div>
-      <button id="dp-close-x" onclick="closeDetailPanel(false)" aria-label="Lukk">✕</button>
     </div>
     <div id="dp-content"></div>
   </div>
