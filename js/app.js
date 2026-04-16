@@ -1657,41 +1657,42 @@ document.addEventListener('DOMContentLoaded', () => {
         _commitDpDrag(e.changedTouches[0].clientY);
       }, { passive: true });
 
-      // dp-scroll drag: finger scrolling up into the handle zone triggers panel drag
-      const dpScroll = document.getElementById('dp-scroll');
-      if (dpScroll) {
-        let _dpScrollStartY = 0, _dpHandleBottom = 0;
-        dpScroll.addEventListener('touchstart', e => {
-          _dpScrollStartY = e.touches[0].clientY;
-          // Cache handle bottom once so touchmove never triggers getBoundingClientRect
-          _dpHandleBottom = dpHandle.getBoundingClientRect().bottom;
-        }, { passive: true });
+      // dp-scroll drag: delegate to dpEl since #dp-scroll is injected dynamically
+      // and doesn't exist at DOMContentLoaded when listeners are wired.
+      let _dpScrollStartY = 0, _dpHandleBottom = 0;
+      dpEl.addEventListener('touchstart', e => {
+        if (!e.target.closest('#dp-scroll')) return;
+        _dpScrollStartY = e.touches[0].clientY;
+        _dpHandleBottom = dpHandle.getBoundingClientRect().bottom;
+      }, { passive: true });
 
-        dpScroll.addEventListener('touchmove', e => {
-          const cy = e.touches[0].clientY;
-          if (!_dpDragging) {
-            if (dpScroll.scrollTop === 0) {
-              if (cy < _dpScrollStartY) {
-                // Moving up at top → prevent rubber-banding; trigger drag once in handle zone
-                e.preventDefault();
-                if (cy <= _dpHandleBottom) _beginDpDrag(cy);
-              } else if (cy > _dpScrollStartY) {
-                // Moving down at top → pull-to-dismiss
-                e.preventDefault();
-                _beginDpDrag(cy);
-              }
+      dpEl.addEventListener('touchmove', e => {
+        const dpScroll = e.target.closest('#dp-scroll');
+        if (!dpScroll) return;
+        const cy = e.touches[0].clientY;
+        if (!_dpDragging) {
+          if (dpScroll.scrollTop === 0) {
+            if (cy < _dpScrollStartY) {
+              // Moving up at top → prevent rubber-banding; trigger drag once in handle zone
+              e.preventDefault();
+              if (cy <= _dpHandleBottom) _beginDpDrag(cy);
+            } else if (cy > _dpScrollStartY) {
+              // Moving down at top → pull-to-dismiss
+              e.preventDefault();
+              _beginDpDrag(cy);
             }
           }
-          if (_dpDragging) {
-            e.preventDefault();
-            _trackDpDrag(cy);
-          }
-        }, { passive: false });
+        }
+        if (_dpDragging) {
+          e.preventDefault();
+          _trackDpDrag(cy);
+        }
+      }, { passive: false });
 
-        dpScroll.addEventListener('touchend', e => {
-          if (_dpDragging) _commitDpDrag(e.changedTouches[0].clientY);
-        }, { passive: true });
-      }
+      dpEl.addEventListener('touchend', e => {
+        if (!e.target.closest('#dp-scroll')) return;
+        if (_dpDragging) _commitDpDrag(e.changedTouches[0].clientY);
+      }, { passive: true });
     }
   }
 
