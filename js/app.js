@@ -1828,22 +1828,30 @@ function _runIntroSequence() {
 
 function _introRevealUI(search, brand, qcWrap, panel) {
   const locateBtn = document.getElementById('locate-btn');
-  [search, brand, qcWrap, locateBtn].forEach(el => {
+  const isMobile  = window.innerWidth < 640;
+
+  const fadeEls = [search, brand, qcWrap, locateBtn];
+  if (!isMobile && panel) fadeEls.push(panel);
+
+  fadeEls.forEach(el => {
     if (!el) return;
     el.style.transition = 'opacity 0.5s ease';
-    requestAnimationFrame(() => el.classList.remove('intro-hidden'));
+    requestAnimationFrame(() => {
+      el.classList.remove('intro-hidden');
+      // Restore CSS transitions after fade so subsequent animations (height, transform) still work
+      setTimeout(() => { el.style.transition = ''; }, 600);
+    });
   });
-  if (panel) {
-    // Slide up from off-screen — no opacity fade, pure transform so the motion is the reveal.
-    // On mobile: translateY(100%) → translateY(calc(100% - 110px))  [peek position]
-    // On desktop: translateY(100%) → translateY(0)
-    panel.style.transition = 'none';              // kill existing CSS transitions
-    panel.style.opacity    = '1';                 // fully opaque immediately
-    panel.style.transform  = 'translateY(100%)';  // start fully below viewport
-    panel.classList.remove('intro-hidden');        // restore pointer-events
-    panel.getBoundingClientRect();                 // force reflow — browser commits start state
+
+  if (panel && isMobile) {
+    // Mobile: slide up from off-screen — translateY(100%) → natural position (peek state)
+    panel.style.transition = 'none';
+    panel.style.opacity    = '1';
+    panel.style.transform  = 'translateY(100%)';
+    panel.classList.remove('intro-hidden');
+    panel.getBoundingClientRect();               // force reflow — browser commits start state
     panel.style.transition = 'transform 0.65s cubic-bezier(0.2, 0.8, 0.3, 1)';
-    panel.style.transform  = '';                  // animate to natural CSS position
+    panel.style.transform  = '';
   }
 }
 

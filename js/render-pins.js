@@ -635,8 +635,8 @@ function draw() {
     // Hover/raised: glowing outline ring around the pill
     if (isHovered) {
       const pillW = spr.cssW - rp * 2 - 2;
-      const glowCol = state === 'sunny' ? 'rgba(255,225,80,0.9)' :
-                      state === 'soon'  ? 'rgba(255,205,70,0.8)' :
+      const glowCol = state === 'sunny' ? 'rgba(255,175,133,0.9)' :
+                      state === 'soon'  ? 'rgba(255,184,0,0.85)' :
                                           'rgba(210,200,185,0.75)';
       ctx.save();
       ctx.shadowBlur = 9;
