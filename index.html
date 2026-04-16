@@ -2222,15 +2222,27 @@
     appearance: none;
     -webkit-appearance: none;
   }
-  .qc-pill:focus, .qc-pill:focus-visible { outline: none; background: rgba(14,26,52,0.82); }
-  .qc-pill:hover { background: rgba(24,52,95,0.92); border-color: rgba(255,175,133,0.3); }
-  .qc-pill.active {
-    background: rgba(255,175,133,0.18);
-    border-color: rgba(255,175,133,0.55);
-    color: var(--accent);
+  /* Reset ALL properties on focus so a previously-active button looks identical to a resting one */
+  .qc-pill:focus:not(.active),
+  .qc-pill:focus-visible:not(.active) {
+    outline: none;
+    background: rgba(14,26,52,0.82);
+    border-color: rgba(156,189,231,0.22);
+    color: var(--text);
   }
-  .qc-pill.active:focus, .qc-pill.active:focus-visible {
-    background: rgba(255,175,133,0.18);
+  .qc-pill:hover { background: rgba(24,52,95,0.92); border-color: rgba(255,175,133,0.3); }
+  /* Active: solid opaque accent fill with dark text — stays readable regardless of map tile behind */
+  .qc-pill.active {
+    background: rgba(255,175,133,0.90);
+    border-color: transparent;
+    color: #0D1A2E;
+  }
+  .qc-pill.active .qc-pill-icon { opacity: 0.8; }
+  .qc-pill.active:focus,
+  .qc-pill.active:focus-visible {
+    outline: none;
+    background: rgba(255,175,133,0.90);
+    color: #0D1A2E;
   }
   .qc-pill-icon { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.75; }
   #qc-notice {
