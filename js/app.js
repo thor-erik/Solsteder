@@ -964,13 +964,20 @@ let _switchingVenue = false;
 
 // ── Shared venue fly-to ───────────────────────────────────────────────────────
 // Single source of truth for pin-click AND list-click camera animation.
-// Both selectVenue() paths call this; future tuning only needed here.
+// Single place for all venue camera animations — pin clicks, list clicks, all go here.
 function _flyToVenue(v) {
   const targetZoom = 17.70;
   const flyOpts = { center: [v.lng, v.lat], zoom: targetZoom, duration: 800 };
   if (isMobile()) {
     const panelH = Math.round((window.visualViewport?.height ?? window.innerHeight) * 0.69);
     flyOpts.padding = { top: 0, bottom: panelH, left: 0, right: 0 };
+  } else {
+    // On desktop, if the detail panel is already open (venue switching), offset
+    // the camera so the venue isn't hidden behind the panel.
+    const dp = document.getElementById('detail-panel');
+    const padLeft = (dp && dp.classList.contains('open'))
+      ? (dp.offsetLeft + dp.offsetWidth) : 0;
+    if (padLeft > 0) flyOpts.padding = { left: padLeft, right: 0, top: 60, bottom: 0 };
   }
   if (targetZoom >= 16) {
     const wallBearing   = v.wallSegment?.bearing ?? v.facing;

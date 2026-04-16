@@ -799,8 +799,7 @@ canvas.addEventListener('click', e => {
   }
   const hit = hitTestVenue(cx, cy) || hitTestDot(cx, cy);
   if (hit) {
-    selectVenue(hit.id, false);
-    panToVenueCenter(hit);
+    selectVenue(hit.id, true);
     return;
   }
   // Clicked empty map — close detail panel / deselect
@@ -967,8 +966,7 @@ if (_isTouchDevice) {
     const cx = t.clientX - rect.left, cy = t.clientY - rect.top;
     const hit = hitTestVenue(cx, cy) || hitTestDot(cx, cy);
     if (hit) {
-      selectVenue(hit.id, false);
-      panToVenueCenter(hit);
+      selectVenue(hit.id, true);
     }
   }, { passive: true });
 }
