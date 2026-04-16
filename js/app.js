@@ -1049,6 +1049,7 @@ function openDetailPanel(v) {
   dp.classList.remove('dp-fullscreen');
   dp.classList.add('open');
   _drawShelterDiagram(v);
+  _startWindForVenue(v);
   if (isMobile()) {
     const panel = document.getElementById('panel');
     if (panel) {
@@ -1060,25 +1061,24 @@ function openDetailPanel(v) {
   }
 }
 
+function _getWxNow() {
+  return typeof getWeatherAt === 'function'
+    ? getWeatherAt(datePicker.value, parseFloat(timeFromEl.value))
+    : null;
+}
+
 function _drawShelterDiagram(v) {
   const canvas = document.getElementById('dp-shelter-canvas');
   if (!canvas) return;
-  const wx = typeof getWeatherAt === 'function'
-    ? getWeatherAt(datePicker.value, parseFloat(timeFromEl.value))
-    : null;
-  drawShelterDiagram(v, wx, canvas);
+  drawShelterDiagram(v, _getWxNow(), canvas);
 }
 
-function _cancelShelterAnimation() {
-  const canvas = document.getElementById('dp-shelter-canvas');
-  if (!canvas) return;
-  if (canvas._shelterRafId)   { cancelAnimationFrame(canvas._shelterRafId); canvas._shelterRafId = null; }
-  if (canvas._shelterDelayId) { clearTimeout(canvas._shelterDelayId);       canvas._shelterDelayId = null; }
-  if (canvas._shelterLoopToken) { canvas._shelterLoopToken.cancelled = true; canvas._shelterLoopToken = null; }
+function _startWindForVenue(v) {
+  if (typeof startWindOverlay === 'function') startWindOverlay(v, _getWxNow());
 }
 
 function closeDetailPanel() {
-  _cancelShelterAnimation();
+  if (typeof stopWindOverlay === 'function') stopWindOverlay();
   const dp = document.getElementById('detail-panel');
   if (dp) {
     dp.classList.remove('open', 'dp-fullscreen');
@@ -1131,6 +1131,7 @@ function updateDetailPanel() {
   if (!v) return;
   content.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
   _drawShelterDiagram(v);
+  _startWindForVenue(v); // restart with updated weather snapshot
 }
 
 // ── Edit mode ─────────────────────────────────────────────────────────────────
@@ -1146,6 +1147,7 @@ function _venueEditSnapshot(v) {
 }
 
 function enterEditMode(venueId) {
+  if (typeof stopWindOverlay === 'function') stopWindOverlay();
   editingVenueId = venueId;
   editHoveredWallIdx = null;
   const v = VENUES.find(x => x.id === venueId);
