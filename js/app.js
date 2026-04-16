@@ -1395,7 +1395,7 @@ function togglePanel() {
     panel.style.pointerEvents = '';
     if (btn) btn.textContent  = '‹';
     if (revealBtn) revealBtn.style.display = 'none';
-    if (detailPanel) detailPanel.style.left = '';
+    if (detailPanel) { detailPanel.style.left = ''; detailPanel.style.top = ''; }
     if (qcWrap) qcWrap.style.left = '';
   } else {
     panel.style.transform     = 'translateX(calc(-100% - 20px))';
@@ -1403,7 +1403,12 @@ function togglePanel() {
     panel.style.pointerEvents = 'none';
     if (btn) btn.textContent  = '›';
     if (revealBtn) revealBtn.style.display = 'flex';
-    if (detailPanel) detailPanel.style.left = '16px';
+    if (detailPanel) {
+      detailPanel.style.left = '16px';
+      detailPanel.style.top  = qcWrap
+        ? (qcWrap.offsetTop + qcWrap.offsetHeight + 8) + 'px'
+        : '120px';
+    }
     if (qcWrap) qcWrap.style.left = '16px';
   }
   setTimeout(() => { resizeCanvas(); draw(); }, 290);
@@ -1682,13 +1687,18 @@ document.addEventListener('DOMContentLoaded', () => {
   setTimeout(positionPresetButtons, 80);
   new ResizeObserver(() => positionPresetButtons()).observe(document.getElementById('sun-curve') ?? document.body);
 
-  // Push detail panel below qc-wrap when qc-panel expands/collapses
+  // Push detail panel below qc-wrap only when panel is hidden (same left column).
+  // When panel is visible, detail-panel is in the right column and unaffected.
   const _qcWrapEl      = document.getElementById('qc-wrap');
   const _detailPanelEl = document.getElementById('detail-panel');
   if (_qcWrapEl && _detailPanelEl) {
     new ResizeObserver(() => {
       if (!isMobile()) {
-        _detailPanelEl.style.top = (_qcWrapEl.offsetTop + _qcWrapEl.offsetHeight + 8) + 'px';
+        if (panelVisible) {
+          _detailPanelEl.style.top = '';   // let CSS handle it (120px)
+        } else {
+          _detailPanelEl.style.top = (_qcWrapEl.offsetTop + _qcWrapEl.offsetHeight + 8) + 'px';
+        }
       }
     }).observe(_qcWrapEl);
   }

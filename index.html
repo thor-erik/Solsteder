@@ -137,6 +137,7 @@
     left: 16px;
     z-index: 900;
     width: 336px;
+    border-radius: 24px;   /* full pill shape, overrides .floating-card 20px */
     display: flex;
     align-items: center;
     gap: 8px;
@@ -796,7 +797,7 @@
   /* LEFT PANEL — venue list, floats below search bar */
   #panel {
     position: absolute;
-    top: 72px;      /* 16 top + ~48 search card + 8 gap */
+    top: 120px;     /* 16 search-top + 48 search-h + 8 gap + 40 pills-h + 8 gap */
     left: 16px;
     bottom: 16px;
     width: 336px;
@@ -2179,9 +2180,9 @@
   /* ── Quick Controls Bar ─────────────────────────────────────────────── */
   #qc-wrap {
     position: absolute;
-    left: 368px;
-    top: 16px;
-    width: 300px;
+    left: 16px;
+    top: 72px;     /* search top(16) + search height(48) + gap(8) */
+    width: 336px;
     z-index: 820;
     display: flex;
     flex-direction: column;
@@ -2189,20 +2190,17 @@
   }
   #qc-bar {
     display: flex;
-    gap: 6px;
-    padding: 6px;
-    background: rgba(14,26,52,0.58);
-    backdrop-filter: blur(32px);
-    -webkit-backdrop-filter: blur(32px);
-    border: 1px solid rgba(156,189,231,0.18);
-    border-radius: 16px;
+    gap: 8px;
   }
   .qc-pill {
     flex: 1;
-    background: rgba(20,46,82,0.6);
+    background: rgba(14,26,52,0.72);
+    backdrop-filter: blur(32px);
+    -webkit-backdrop-filter: blur(32px);
     border: 1px solid rgba(156,189,231,0.18);
-    border-radius: 10px;
-    padding: 7px 12px;
+    border-radius: 20px;
+    height: 40px;
+    padding: 0 14px;
     color: var(--text);
     font-family: 'Avenir Next', 'Avenir', 'Gill Sans MT', 'Gill Sans', system-ui, sans-serif;
     font-size: 13px;
@@ -2214,8 +2212,9 @@
     gap: 6px;
     transition: background 0.12s, border-color 0.12s, color 0.12s;
     white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.22);
   }
-  .qc-pill:hover { background: rgba(24,52,95,0.85); border-color: rgba(255,175,133,0.25); }
+  .qc-pill:hover { background: rgba(24,52,95,0.9); border-color: rgba(255,175,133,0.25); }
   .qc-pill.active { background: rgba(255,175,133,0.12); border-color: rgba(255,175,133,0.45); color: var(--accent); }
   .qc-pill-icon { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.7; }
   #qc-notice {
@@ -2336,7 +2335,7 @@
 
   #detail-panel {
     position: absolute;
-    top: 72px;
+    top: 120px;
     left: 368px;   /* 16 + 336 + 16 */
     bottom: 16px;
     width: 300px;
