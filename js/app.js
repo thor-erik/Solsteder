@@ -1827,7 +1827,8 @@ function _runIntroSequence() {
 }
 
 function _introRevealUI(search, brand, qcWrap, panel) {
-  [search, brand, qcWrap].forEach(el => {
+  const locateBtn = document.getElementById('locate-btn');
+  [search, brand, qcWrap, locateBtn].forEach(el => {
     if (!el) return;
     el.style.transition = 'opacity 0.5s ease';
     requestAnimationFrame(() => el.classList.remove('intro-hidden'));
@@ -1873,7 +1874,8 @@ function _skipIntro(seqId) {
   splash.classList.add('hidden');
 
   // Instantly reveal all UI
-  [canvas, search, brand, qcWrap, panel].forEach(el => {
+  const locateBtnEl = document.getElementById('locate-btn');
+  [canvas, search, brand, qcWrap, panel, locateBtnEl].forEach(el => {
     if (!el) return;
     el.style.transition = 'none';
     el.classList.remove('intro-hidden');
