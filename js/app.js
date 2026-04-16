@@ -962,33 +962,34 @@ function popupActionsHTML(v) {
 // ── Venue selection + popup ───────────────────────────────────────────────────
 let _switchingVenue = false;
 
-// ── Shared venue fly-to ───────────────────────────────────────────────────────
-// Single source of truth for pin-click AND list-click camera animation.
-// Single place for all venue camera animations — pin clicks, list clicks, all go here.
+// ── Shared venue camera animation ────────────────────────────────────────────
+// Single place for all venue camera animations — pin clicks AND list clicks.
+// Uses easeTo (smooth interpolation) so the animation looks correct whether
+// the user is already zoomed in (pin click) or coming from overview (list click).
 function _flyToVenue(v) {
   const targetZoom = 17.70;
-  const flyOpts = { center: [v.lng, v.lat], zoom: targetZoom, duration: 800 };
+  const opts = { center: [v.lng, v.lat], zoom: targetZoom, pitch: 45, duration: 600 };
+
   if (isMobile()) {
     const panelH = Math.round((window.visualViewport?.height ?? window.innerHeight) * 0.69);
-    flyOpts.padding = { top: 0, bottom: panelH, left: 0, right: 0 };
+    opts.padding = { top: 0, bottom: panelH, left: 0, right: 0 };
   } else {
     // On desktop, if the detail panel is already open (venue switching), offset
     // the camera so the venue isn't hidden behind the panel.
     const dp = document.getElementById('detail-panel');
     const padLeft = (dp && dp.classList.contains('open'))
       ? (dp.offsetLeft + dp.offsetWidth) : 0;
-    if (padLeft > 0) flyOpts.padding = { left: padLeft, right: 0, top: 60, bottom: 0 };
+    if (padLeft > 0) opts.padding = { left: padLeft, right: 0, top: 60, bottom: 0 };
   }
-  if (targetZoom >= 16) {
-    const wallBearing   = v.wallSegment?.bearing ?? v.facing;
-    const targetBearing = (wallBearing + 180) % 360;
-    const curBearing    = ((map.getBearing() % 360) + 360) % 360;
-    let   diff          = Math.abs(targetBearing - curBearing);
-    if (diff > 180) diff = 360 - diff;
-    flyOpts.pitch = 45;
-    if (diff > 60) flyOpts.bearing = targetBearing;
-  }
-  map.flyTo(flyOpts);
+
+  const wallBearing   = v.wallSegment?.bearing ?? v.facing;
+  const targetBearing = (wallBearing + 180) % 360;
+  const curBearing    = ((map.getBearing() % 360) + 360) % 360;
+  let   diff          = Math.abs(targetBearing - curBearing);
+  if (diff > 180) diff = 360 - diff;
+  if (diff > 60) opts.bearing = targetBearing;
+
+  map.easeTo(opts);
 }
 
 function selectVenue(id, flyTo) {
