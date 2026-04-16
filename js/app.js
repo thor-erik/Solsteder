@@ -1017,10 +1017,10 @@ function selectVenue(id, flyTo) {
   draw();
   renderList();
 
-  // Fly LAST — panel must be open and DOM mutations must be complete before
-  // starting the camera animation, otherwise they cancel easeTo.
-  // This matches the original panToVenueCenter ordering that worked.
-  if (flyTo) _flyToVenue(v);
+  // Fly in the next task — panel/DOM mutations must be complete AND all
+  // synchronous event handlers (touchend → pointerup) must have finished,
+  // otherwise Mapbox calls map.stop() after our easeTo and cancels it.
+  if (flyTo) setTimeout(() => _flyToVenue(v), 0);
 
   setTimeout(() => {
     const card = document.querySelector(`.venue-card[data-vid="${id}"]`);
