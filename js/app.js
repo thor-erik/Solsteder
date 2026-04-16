@@ -1448,11 +1448,15 @@ document.addEventListener('DOMContentLoaded', () => {
       function _applyState(state) {
         if (state === 'fullscreen') {
           panelEl.classList.add('mobile-fullscreen', 'mobile-expanded');
+          panelEl.classList.remove('mobile-hidden');
         } else if (state === 'expanded') {
           panelEl.classList.add('mobile-expanded');
-          panelEl.classList.remove('mobile-fullscreen');
-        } else {
+          panelEl.classList.remove('mobile-fullscreen', 'mobile-hidden');
+        } else if (state === 'hidden') {
+          panelEl.classList.add('mobile-hidden');
           panelEl.classList.remove('mobile-expanded', 'mobile-fullscreen');
+        } else {
+          panelEl.classList.remove('mobile-expanded', 'mobile-fullscreen', 'mobile-hidden');
         }
       }
 
@@ -1473,8 +1477,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const dy = y - _dragY0;
         // Pure translateY in both directions — no height changes → no reflow
         // Upward (dy<0): panel slides up, appearing taller (bottom fixed)
-        // Downward (dy>0): panel slides down, clamped so ≥80px stays visible
-        panelEl.style.transform = `translateY(${Math.min(_dragInitH - 80, _dragT0 + dy)}px)`;
+        // Downward (dy>0): from peek, allow full off-screen (dismiss); otherwise clamp ≥80px visible
+        const maxY = _dragStartState === 'peek' ? _dragInitH : _dragInitH - 80;
+        panelEl.style.transform = `translateY(${Math.min(maxY, _dragT0 + dy)}px)`;
       }
 
       function _commitDrag(y) {
@@ -1493,10 +1498,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const SWIPE_V = 0.2, SAFE_DY = 40;
         let target;
         if      (velocity < -SWIPE_V)            target = _dragStartState === 'peek' ? 'expanded' : 'fullscreen';
-        else if (velocity >  SWIPE_V)            target = _dragStartState === 'fullscreen' ? 'expanded' : 'peek';
+        else if (velocity >  SWIPE_V)            target = _dragStartState === 'fullscreen' ? 'expanded' : _dragStartState === 'expanded' ? 'peek' : 'hidden';
         else if (Math.abs(dy) <= SAFE_DY)        target = _dragStartState; // safe zone → snap back
         else if (dy < 0)                         target = _dragStartState === 'peek' ? 'expanded' : 'fullscreen';
-        else                                     target = _dragStartState === 'fullscreen' ? 'expanded' : 'peek';
+        else                                     target = _dragStartState === 'fullscreen' ? 'expanded' : _dragStartState === 'expanded' ? 'peek' : 'hidden';
 
         _applyState(target);
       }
@@ -1559,11 +1564,17 @@ document.addEventListener('DOMContentLoaded', () => {
         venueList.addEventListener('touchmove', e => {
           const cy = e.touches[0].clientY;
           if (!_dragActive) {
-            // Early scroll lock: at top of list and moving up → prevent scroll rubber-banding immediately
-            if (venueList.scrollTop === 0 && cy < _listStartY) {
-              e.preventDefault();
-              // Trigger panel drag once finger crosses into the header zone
-              if (cy <= _venueHeaderBottom) {
+            if (venueList.scrollTop === 0) {
+              if (cy < _listStartY) {
+                // Moving up at top → prevent rubber-banding; trigger drag once in header zone
+                e.preventDefault();
+                if (cy <= _venueHeaderBottom) {
+                  _dragFromList = true;
+                  _beginDrag(cy);
+                }
+              } else if (cy > _listStartY) {
+                // Moving down at top → pull-to-dismiss
+                e.preventDefault();
                 _dragFromList = true;
                 _beginDrag(cy);
               }
@@ -1659,10 +1670,16 @@ document.addEventListener('DOMContentLoaded', () => {
         dpScroll.addEventListener('touchmove', e => {
           const cy = e.touches[0].clientY;
           if (!_dpDragging) {
-            // Early scroll lock: at top of scroll and moving up → prevent rubber-banding
-            if (dpScroll.scrollTop === 0 && cy < _dpScrollStartY) {
-              e.preventDefault();
-              if (cy <= _dpHandleBottom) _beginDpDrag(cy);
+            if (dpScroll.scrollTop === 0) {
+              if (cy < _dpScrollStartY) {
+                // Moving up at top → prevent rubber-banding; trigger drag once in handle zone
+                e.preventDefault();
+                if (cy <= _dpHandleBottom) _beginDpDrag(cy);
+              } else if (cy > _dpScrollStartY) {
+                // Moving down at top → pull-to-dismiss
+                e.preventDefault();
+                _beginDpDrag(cy);
+              }
             }
           }
           if (_dpDragging) {
