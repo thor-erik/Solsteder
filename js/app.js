@@ -37,6 +37,7 @@ let _navMode          = false; // true after clicking a pin/card — use radius 
 let _preSelectZoom    = null;  // zoom level saved before zooming into a selected venue
 let _preSelectCenter  = null;  // map center saved before zooming into a selected venue
 let _frozenBounds     = null;  // map bounds frozen at the moment of venue selection (for list filter)
+let _mapMovedWhileDetailOpen = false; // true if user panned/zoomed while detail panel was open
 
 // ── Time animation ────────────────────────────────────────────────────────────
 const TIME_ANIM_MS = 520;
@@ -961,6 +962,28 @@ function popupActionsHTML(v) {
 // ── Venue selection + popup ───────────────────────────────────────────────────
 let _switchingVenue = false;
 
+// ── Shared venue fly-to ───────────────────────────────────────────────────────
+// Single source of truth for pin-click AND list-click camera animation.
+// Both selectVenue() paths call this; future tuning only needed here.
+function _flyToVenue(v) {
+  const targetZoom = 17.70;
+  const flyOpts = { center: [v.lng, v.lat], zoom: targetZoom, duration: 800 };
+  if (isMobile()) {
+    const panelH = Math.round((window.visualViewport?.height ?? window.innerHeight) * 0.69);
+    flyOpts.padding = { top: 0, bottom: panelH, left: 0, right: 0 };
+  }
+  if (targetZoom >= 16) {
+    const wallBearing   = v.wallSegment?.bearing ?? v.facing;
+    const targetBearing = (wallBearing + 180) % 360;
+    const curBearing    = ((map.getBearing() % 360) + 360) % 360;
+    let   diff          = Math.abs(targetBearing - curBearing);
+    if (diff > 180) diff = 360 - diff;
+    flyOpts.pitch = 45;
+    if (diff > 60) flyOpts.bearing = targetBearing;
+  }
+  map.flyTo(flyOpts);
+}
+
 function selectVenue(id, flyTo) {
   selectedId = id;
   _navMode   = true;   // show all venues in radius, not just current map view
@@ -969,48 +992,14 @@ function selectVenue(id, flyTo) {
   if (!v) return;
 
   if (flyTo) {
-    if (!isMobile()) {
-      // Desktop: cinematic 3D fly-over
-      if (_preSelectZoom === null) {
-        _preSelectZoom   = map.getZoom();
-        _preSelectCenter = map.getCenter();
-        _frozenBounds    = map.getBounds();
-      }
-      const targetZoom    = 17.70;
-      const buildingsVisible = targetZoom >= 16;
-      const flyOpts = { center: [v.lng, v.lat], zoom: targetZoom, duration: 800 };
-      if (buildingsVisible) {
-        const wallBearing   = v.wallSegment?.bearing ?? v.facing;
-        const targetBearing = (wallBearing + 180) % 360;
-        const curBearing    = ((map.getBearing() % 360) + 360) % 360;
-        let   diff          = Math.abs(targetBearing - curBearing);
-        if (diff > 180) diff = 360 - diff;
-        flyOpts.pitch = 45;
-        if (diff > 60) flyOpts.bearing = targetBearing;
-      }
-      map.flyTo(flyOpts);
-    } else {
-      // Mobile: same 3D fly-over, centered in visible map area above the detail panel
-      if (_preSelectZoom === null) {
-        _preSelectZoom   = map.getZoom();
-        _preSelectCenter = map.getCenter();
-        _frozenBounds    = map.getBounds();
-      }
-      const targetZoom = 17.70;
-      const panelH = Math.round((window.visualViewport?.height ?? window.innerHeight) * 0.69);
-      const flyOpts = { center: [v.lng, v.lat], zoom: targetZoom, duration: 800,
-                        padding: { top: 0, bottom: panelH, left: 0, right: 0 } };
-      if (targetZoom >= 16) {
-        const wallBearing   = v.wallSegment?.bearing ?? v.facing;
-        const targetBearing = (wallBearing + 180) % 360;
-        const curBearing    = ((map.getBearing() % 360) + 360) % 360;
-        let   diff          = Math.abs(targetBearing - curBearing);
-        if (diff > 180) diff = 360 - diff;
-        flyOpts.pitch = 45;
-        if (diff > 60) flyOpts.bearing = targetBearing;
-      }
-      map.flyTo(flyOpts);
+    // Save pre-select state (guarded so switching venues while one is open doesn't overwrite)
+    if (_preSelectZoom === null) {
+      _preSelectZoom   = map.getZoom();
+      _preSelectCenter = map.getCenter();
+      _frozenBounds    = map.getBounds();
     }
+    _mapMovedWhileDetailOpen = false; // reset interaction flag for this new selection
+    _flyToVenue(v);
   }
 
   _switchingVenue = true;
@@ -1035,6 +1024,7 @@ function updatePopup() {
 // ── Detail panel ──────────────────────────────────────────────────────────────
 
 function openDetailPanel(v) {
+  _mapMovedWhileDetailOpen = false; // reset each time a panel opens
   const dp      = document.getElementById('detail-panel');
   const content = document.getElementById('dp-content');
   if (!dp || !content) return;
@@ -1079,7 +1069,16 @@ function _drawShelterDiagram(v) {
   drawShelterDiagram(v, wx, canvas);
 }
 
+function _cancelShelterAnimation() {
+  const canvas = document.getElementById('dp-shelter-canvas');
+  if (!canvas) return;
+  if (canvas._shelterRafId)   { cancelAnimationFrame(canvas._shelterRafId); canvas._shelterRafId = null; }
+  if (canvas._shelterDelayId) { clearTimeout(canvas._shelterDelayId);       canvas._shelterDelayId = null; }
+  if (canvas._shelterLoopToken) { canvas._shelterLoopToken.cancelled = true; canvas._shelterLoopToken = null; }
+}
+
 function closeDetailPanel() {
+  _cancelShelterAnimation();
   const dp = document.getElementById('detail-panel');
   if (dp) {
     dp.classList.remove('open', 'dp-fullscreen');
@@ -1087,10 +1086,12 @@ function closeDetailPanel() {
   if (isMobile()) {
     // Delay restoring the venue list until the detail panel has finished its
     // 300ms close animation, so the two panels are never visible at the same time.
+    // Restore in mobile-expanded state so the list is immediately browsable.
     setTimeout(() => {
       const panel = document.getElementById('panel');
       if (panel) {
-        panel.classList.remove('mobile-hidden', 'mobile-expanded', 'mobile-fullscreen');
+        panel.classList.remove('mobile-hidden', 'mobile-fullscreen');
+        panel.classList.add('mobile-expanded');
       }
       document.getElementById('floating-search')?.classList.remove('mobile-ui-hidden');
       document.getElementById('qc-wrap')?.classList.remove('mobile-ui-hidden');
@@ -1102,12 +1103,21 @@ function closeDetailPanel() {
     clearSpriteCache();
     draw();
     renderList();
+    const interacted    = _mapMovedWhileDetailOpen;
+    _mapMovedWhileDetailOpen = false;
     const restoreZoom   = _preSelectZoom  ?? map.getZoom();
     const restoreCenter = _preSelectCenter ?? map.getCenter();
     _preSelectZoom   = null;
     _preSelectCenter = null;
-    map.easeTo({ center: restoreCenter, zoom: restoreZoom, pitch: 15, bearing: 0, duration: 600,
-                 padding: { top: 0, bottom: 0, left: 0, right: 0 } });
+    if (interacted) {
+      // User panned/zoomed in mini-map while panel was open — keep their position,
+      // only reset tilt back to standard.
+      map.easeTo({ pitch: 15, bearing: 0, duration: 500,
+                   padding: { top: 0, bottom: 0, left: 0, right: 0 } });
+    } else {
+      map.easeTo({ center: restoreCenter, zoom: restoreZoom, pitch: 15, bearing: 0, duration: 600,
+                   padding: { top: 0, bottom: 0, left: 0, right: 0 } });
+    }
   }
 }
 
@@ -1788,6 +1798,12 @@ function toggleMapView() {
 // User dragging = navigating freely → revert to viewport filter
 map.on('dragstart', () => {
   _navMode = false;
+});
+
+// Track user-initiated map movement while detail panel is open, so we know
+// whether to restore pre-select camera position or just reset tilt on close.
+map.on('movestart', (e) => {
+  if (e.originalEvent && selectedId != null) _mapMovedWhileDetailOpen = true;
 });
 
 // Re-render list on map move when viewport filter is active

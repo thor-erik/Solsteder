@@ -22,12 +22,13 @@
 ### Desktop UX
 - [x] "Locate me"-knapp er ikke på rad med (eller like stor som) navigasjonsknappene
 - [x] Venuelisten på desktop skal ikke animere inn fra bunnen — fade inn som øvrige elementer
+- [x] "Locate me"-knappen skjules ikke når venuelisten ekspanderes — den skal dekkes av listen
 
 ### Kart og detaljpanel
-- [ ] Pin-klikk og liste-klikk skal dele samme fly-over/pan/zoom-logikk; X/swipe ned på detaljpanel resetter til kameratilstand før valg — begge veier må bruke felles kode slik at fremtidige forbedringer kun trengs ett sted
-- [ ] Hvis man har panna/zoomet i mini-kartet over åpen detail panel og deretter lukker panelet (X eller swipe): behold pan og zoom, men reset tilt til standard
-- [ ] "<Venues"-knappen i detail panel: swipe ned på panelet og åpne venuelisten i ekspandert tilstand
-- [ ] Vind-partikelanimasjon i bygningsruten over detail panel: hastighet skalerer etter faktisk vindstyrke; partiklene tar hensyn til bygningspolygonet og viser hvordan vinden treffer bygget; på sikt: hensyn til nabobygg; optimaliser — vurder en kort delay før animasjonen starter dersom bruker blar raskt mellom venues
+- [x] Pin-klikk og liste-klikk skal dele samme fly-over/pan/zoom-logikk; X/swipe ned på detaljpanel resetter til kameratilstand før valg — begge veier må bruke felles kode slik at fremtidige forbedringer kun trengs ett sted
+- [x] Hvis man har panna/zoomet i mini-kartet over åpen detail panel og deretter lukker panelet (X eller swipe): behold pan og zoom, men reset tilt til standard
+- [x] "<Venues"-knappen i detail panel: swipe ned på panelet og åpne venuelisten i ekspandert tilstand
+- [x] Vind-partikelanimasjon i bygningsruten over detail panel: hastighet skalerer etter faktisk vindstyrke; partiklene tar hensyn til bygningspolygonet og viser hvordan vinden treffer bygget; på sikt: hensyn til nabobygg; optimaliser — vurder en kort delay før animasjonen starter dersom bruker blar raskt mellom venues
 - [ ] Skyggescrubber-slider i kartruten over detail panel: lar brukeren skrubbe gjennom timer på dagen og se skyggene bevege seg i sanntid; vis klokkeslett-indikator; vurder om ruten trenger mer plass; lukking av panelet resetter til forrige valgte tidspunkt i kartet
 
 ### Dato/tid-picker

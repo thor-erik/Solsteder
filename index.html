@@ -1648,6 +1648,7 @@
     /* Expanded state — tap handle to open */
     #panel.mobile-expanded {
       transform: translateY(0);
+      z-index: 910;  /* above locate-btn (900) so button is covered by list */
     }
 
     /* Fully hidden (covered by detail panel etc.) — no transition so it disappears instantly */
