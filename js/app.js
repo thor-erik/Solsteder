@@ -1606,14 +1606,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const dpHandle = document.getElementById('dp-handle');
     const dpEl     = document.getElementById('detail-panel');
     if (dpHandle && dpEl) {
-      let _dpY0 = 0, _dpDragging = false, _dpStartState = 'normal', _dpStartTime = 0, _dpInitH = 0;
+      let _dpY0 = 0, _dpDragging = false, _dpStartState = 'normal', _dpStartTime = 0, _dpInitH = 0, _dpFromScroll = false;
 
       function _dpCurrentState() {
         return dpEl.classList.contains('dp-fullscreen') ? 'fullscreen' : 'normal';
       }
-      function _beginDpDrag(y) {
+      function _beginDpDrag(y, fromScroll = false) {
         _dpY0         = y;
         _dpDragging   = true;
+        _dpFromScroll = fromScroll;
         _dpStartState = _dpCurrentState();
         _dpStartTime  = Date.now();
         _dpInitH      = dpEl.offsetHeight;
@@ -1621,8 +1622,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       function _trackDpDrag(y) {
         const dy = y - _dpY0;
-        // Pure translateY — no height changes → no reflow
-        dpEl.style.transform = `translateY(${dy}px)`;
+        // When initiated from scroll, clamp to downward-only (dismiss only, no expand)
+        dpEl.style.transform = `translateY(${_dpFromScroll ? Math.max(0, dy) : dy}px)`;
       }
       function _commitDpDrag(y) {
         dpEl.style.transition = '';
@@ -1671,16 +1672,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!dpScroll) return;
         const cy = e.touches[0].clientY;
         if (!_dpDragging) {
-          if (dpScroll.scrollTop === 0) {
-            if (cy < _dpScrollStartY) {
-              // Moving up at top → prevent rubber-banding; trigger drag once in handle zone
-              e.preventDefault();
-              if (cy <= _dpHandleBottom) _beginDpDrag(cy);
-            } else if (cy > _dpScrollStartY) {
-              // Moving down at top → pull-to-dismiss
-              e.preventDefault();
-              _beginDpDrag(cy);
-            }
+          // Only trigger drag when pulling DOWN at the top of the scroll (dismiss only)
+          if (dpScroll.scrollTop === 0 && cy > _dpScrollStartY) {
+            e.preventDefault();
+            _beginDpDrag(cy, true);
           }
         }
         if (_dpDragging) {
