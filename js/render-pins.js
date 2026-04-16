@@ -743,6 +743,20 @@ function hitTestWall(cx, cy) {
 const _isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
 canvas.style.pointerEvents = _isTouchDevice ? 'none' : 'auto';
 
+// Mapbox GL v3 uses Pointer Events (pointerdown/pointerup), not mousedown/mouseup.
+// When a pin is hit we must stop BOTH mousedown and pointerdown from reaching
+// Mapbox's container — otherwise Mapbox starts drag-tracking and calls map.stop()
+// during drag-end, which cancels our subsequent easeTo camera animation.
+function _pinHitAtEvent(e) {
+  const rect = canvas.getBoundingClientRect();
+  const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
+  return !editingVenueId && (hitTestVenue(cx, cy) || hitTestDot(cx, cy));
+}
+
+canvas.addEventListener('pointerdown', e => {
+  if (_pinHitAtEvent(e)) e.stopPropagation();
+});
+
 canvas.addEventListener('mousedown', e => {
   const rect = canvas.getBoundingClientRect();
   const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
@@ -776,9 +790,6 @@ canvas.addEventListener('mousedown', e => {
   }
   const hit = hitTestVenue(cx, cy) || hitTestDot(cx, cy);
   if (hit) {
-    // Prevent Mapbox from starting drag-tracking on this mousedown — otherwise
-    // Mapbox will call map.stop() during drag-end processing and cancel our
-    // subsequent easeTo camera animation.
     e.stopPropagation();
   } else {
     canvas.style.pointerEvents = 'none';
