@@ -589,12 +589,15 @@ const MAP_STYLE = {
           // Fallback
           '#F0E8DA'
         ],
-        'fill-extrusion-height':        ['coalesce', ['get', 'height'],     0],
-        'fill-extrusion-base':          ['coalesce', ['get', 'min_height'], 0],
-        'fill-extrusion-vertical-scale': [
+        'fill-extrusion-height': [
           'interpolate', ['linear'], ['zoom'],
-          13, 0,
-          15, 1
+          15, 0,
+          15.05, ['get', 'height']
+        ],
+        'fill-extrusion-base': [
+          'interpolate', ['linear'], ['zoom'],
+          15, 0,
+          15.05, ['get', 'min_height']
         ],
         'fill-extrusion-opacity': 1.0
       }
