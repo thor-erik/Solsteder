@@ -608,7 +608,7 @@ const MAP_STYLE = {
       type:          'fill-extrusion',
       source:        'streets',
       'source-layer': 'building',
-      filter: ['all', ['==', 'extrude', 'true'], ['has', 'height']],
+      filter: ['all', ['==', 'extrude', 'true'], ['>', 'height', 0]],
       minzoom: 14,
       paint: {
         'fill-extrusion-color': [
@@ -628,9 +628,7 @@ const MAP_STYLE = {
         ],
         'fill-extrusion-height': ['coalesce', ['get', 'height'],     0],
         'fill-extrusion-base':   ['coalesce', ['get', 'min_height'], 0],
-        'fill-extrusion-opacity': 1.0,
-        'fill-extrusion-ambient-occlusion-intensity': 0.8,
-        'fill-extrusion-ambient-occlusion-radius':    6
+        'fill-extrusion-opacity': 1.0
       }
     },
 
