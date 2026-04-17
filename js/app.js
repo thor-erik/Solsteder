@@ -1335,6 +1335,58 @@ function _venueEditSnapshot(v) {
   };
 }
 
+/** Apply a snapshot back to a venue object and its localStorage cache (used when reverting a proposal). */
+function _applyVenueSnapshot(v, snap) {
+  v.terraceType             = snap.terraceType;
+  v.terraceWallIndices      = (snap.terraceWallIndices ?? []).slice();
+  v.terraceDepth            = snap.terraceDepth;
+  v.facing                  = snap.facing;
+  v.facingSource            = snap.facingSource;
+  v.terraceDetachedLocation = snap.terraceDetachedLocation ? { ...snap.terraceDetachedLocation } : null;
+  saveFacingCache(v.id, v.facing, v.facingSource,
+    v.terraceWallIndices, v.terraceDepth, null, v.terraceType, v.terraceDetachedLocation);
+}
+
+/** Called from auth.js adminApproveEdit — applies an approved proposal to local state. */
+function applyVenueEditProposal(venueId, afterState) {
+  const v = VENUES.find(x => x.id === venueId);
+  if (!v) return;
+  _applyVenueSnapshot(v, afterState);
+  saveCorrection('correction', {
+    id: v.id, name: v.name, category: v.category,
+    before: _venueEditSnapshot(v),
+    after: afterState,
+    buildingNodeCount: v.buildingGeometry?.length ?? null,
+  });
+  sunWindowCache.clear();
+  dispatchToWorker(datePicker.value);
+  clearSpriteCache();
+  draw();
+  renderList();
+}
+
+/** Submit a proposed edit from a non-admin user to Supabase. */
+async function submitEditProposal(v, before, after) {
+  const user = authCurrentUser();
+  if (!user) return;
+  const { error } = await _supabase
+    .from('pending_edits')
+    .insert({
+      venue_id:    v.id,
+      venue_name:  v.name,
+      user_id:     user.id,
+      user_email:  user.email,
+      user_name:   user.user_metadata?.name ?? null,
+      before_state: before,
+      after_state:  after,
+    });
+  if (error) {
+    showMapToast('Kunne ikke sende forslag. Prøv igjen.', 3500);
+  } else {
+    showMapToast('Forslag sendt for godkjenning!', 3000);
+  }
+}
+
 function enterEditMode(venueId) {
   if (typeof stopWindOverlay === 'function') stopWindOverlay();
   editingVenueId = venueId;
@@ -1352,6 +1404,7 @@ function enterEditMode(venueId) {
   document.getElementById('qc-panel').style.display = 'none';
   document.getElementById('panel-reveal-btn').style.display = 'none';
   document.getElementById('edit-venue-label').textContent = v.name;
+  document.getElementById('edit-done-btn').textContent = authCanDirectEdit() ? 'Lagre' : 'Send forslag';
   const type = v.terraceType ?? 'street';
   if (type === 'rooftop')   document.getElementById('edit-facing-display').innerHTML = 'Rooftop';
   else if (type === 'courtyard') document.getElementById('edit-facing-display').innerHTML = 'Courtyard';
@@ -1402,12 +1455,21 @@ function exitEditMode() {
     const v    = VENUES.find(x => x.id === editingVenueId);
     const after = v ? _venueEditSnapshot(v) : null;
     if (v && after && JSON.stringify(_editBeforeSnapshot) !== JSON.stringify(after)) {
-      saveCorrection('correction', {
-        id: v.id, name: v.name, category: v.category,
-        before: _editBeforeSnapshot,
-        after,
-        buildingNodeCount: v.buildingGeometry?.length ?? null,
-      });
+      if (authCanDirectEdit()) {
+        // Admin: save directly to corrections log
+        saveCorrection('correction', {
+          id: v.id, name: v.name, category: v.category,
+          before: _editBeforeSnapshot,
+          after,
+          buildingNodeCount: v.buildingGeometry?.length ?? null,
+        });
+      } else {
+        // Regular user: submit proposal, revert local state
+        submitEditProposal(v, _editBeforeSnapshot, after);
+        _applyVenueSnapshot(v, _editBeforeSnapshot);
+        sunWindowCache.clear();
+        dispatchToWorker(datePicker.value);
+      }
     }
   }
   _editBeforeSnapshot = null;
