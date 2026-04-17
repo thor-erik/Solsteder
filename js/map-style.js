@@ -590,14 +590,14 @@ const MAP_STYLE = {
           '#F0E8DA'
         ],
         'fill-extrusion-height': [
-          'interpolate', ['linear'], ['zoom'],
-          14, 0,
-          14.5, ['coalesce', ['get', 'height'], 0]
+          '*',
+          ['coalesce', ['get', 'height'], 0],
+          ['interpolate', ['linear'], ['zoom'], 14, 0, 14.5, 1]
         ],
         'fill-extrusion-base': [
-          'interpolate', ['linear'], ['zoom'],
-          14, 0,
-          14.5, ['coalesce', ['get', 'min_height'], 0]
+          '*',
+          ['coalesce', ['get', 'min_height'], 0],
+          ['interpolate', ['linear'], ['zoom'], 14, 0, 14.5, 1]
         ],
         'fill-extrusion-opacity': 1.0
       }
