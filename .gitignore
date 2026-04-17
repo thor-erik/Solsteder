@@ -2,3 +2,5 @@
 .DS_Store
 .claude/
 js/config.js
+data/venues-fetched.json
+data/venues-candidates.json

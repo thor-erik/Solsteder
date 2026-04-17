@@ -65,7 +65,11 @@ Avhenger av at Fase 3 er på plass.
 
 ### Redaksjonelt / innhold
 - [~] Vink-integrasjon: vis Vink-symbol på pins, i listen og i detaljpanel; lenke til Vink-artikkel; vurder Vink-filter og prioritering av omtalte venues
-- [~] Venue-redigering med rettigheter: kun admins godkjenner endringer; vanlige brukere kan foreslå endringer som går til admin-gjennomgang
+- [ ] Adgangsnivåer for venue-redigering:
+  - Admin (du): full tilgang til å redigere og godkjenne direkte
+  - Innloggede brukere: kan foreslå endringer, men ikke publisere — forslaget sendes til admin-kø
+  - Admin-flyt: varsling ved nye forslag, enkel godkjenn/avvis-UI (e-post eller dashboard)
+  - Vurder Supabase Row-Level Security + en enkel `pending_edits`-tabell som mellomlagring
 
 ### Infrastruktur / lansering
 - [~] Lanseringsklarhet: kartlegg robusthet ved plutselig høy trafikk (f.eks. 17. mai); vurder auto-skalering av backend/Supabase
