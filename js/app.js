@@ -118,7 +118,7 @@ function dispatchToWorker(dateStr) {
 mapboxgl.accessToken = MAPBOX_TOKEN; // defined in js/config.js (gitignored)
 const map = new mapboxgl.Map({
   container: 'map',
-  style: 'mapbox://styles/mapbox/standard',
+  style: MAP_STYLE,
   center: [10.728, 59.9125],
   zoom: 13,
   pitch: 15,
@@ -1450,7 +1450,7 @@ function toggleEditSatellite() {
   document.getElementById('edit-satellite-btn').classList.toggle('active', editSatelliteActive);
   map.setStyle(editSatelliteActive
     ? 'mapbox://styles/mapbox/satellite-streets-v12'
-    : 'mapbox://styles/mapbox/standard'
+    : MAP_STYLE
   );
 }
 
@@ -1492,7 +1492,7 @@ function exitEditMode() {
   if (editSatelliteActive) {
     editSatelliteActive = false;
     document.getElementById('edit-satellite-btn').classList.remove('active');
-    map.setStyle('mapbox://styles/mapbox/standard');
+    map.setStyle(MAP_STYLE);
   }
   map.easeTo({ pitch: 15, bearing: 0, duration: 500 });
   draw();
