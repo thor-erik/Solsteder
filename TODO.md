@@ -10,25 +10,22 @@
 ### Fase 1 — Fiks eksisterende 109 venues
 Mål: eksisterende venues representerer realiteten før vi skalerer.
 
-- [ ] Oppdater åpningstider for alle 109 venues: OSM `opening_hours`-tag først, Google Places Contact-felt som fallback; lagre full ukesplan (`mo-su`) ikke bare `open/close` i timer
-- [ ] Sjekk `business_status: CLOSED_PERMANENTLY` for alle 109 venues — fjern stengte
-- [ ] Valider at alle 109 `googlePlaceId`-er fortsatt er gyldige
+- [x] Skriv `scripts/refresh-opening-hours.mjs`: OSM Overpass først (gratis), Google Places Contact-tier som fallback; lagrer full ukesplan i `openingHoursWeekly`; sjekker `CLOSED_PERMANENTLY` og skriver rapport
+- [ ] Kjør `node scripts/refresh-opening-hours.mjs` og review `data/closed-venues-report.json`
+- [ ] Fjern eventuelle stengte venues fra `venues.json`
 
 ### Fase 2 — Utvid Oslo-dekning
 Mål: ~400–600 venues, hele Oslo kommune dekket.
 
-- [ ] Legg til ~14 søkepunkter i `fetch-venues-places.mjs` for å dekke alle bydeler utenfor Ring 2
-- [ ] Bruk union av `outdoorSeating: true` (Places API v1) og keyword `uteservering` — dedup på `place_id`
-- [ ] Kjør `update-geometry.mjs` for nye venues; flagg venues uten bygningsgeometri i UI ("Soldata begrenset")
-- [ ] Manuell review av `venues-fetched.json` → merge
+- [x] Utvidet `fetch-venues-places.mjs`: 20 søkepunkter (alle bydeler), Places API v1 union-filter (`outdoorSeating: true` + keyword `uteservering`), lagrer `discoverySignal` per venue
+- [ ] Kjør `node scripts/fetch-venues-places.mjs` og review `data/venues-fetched.json`
+- [ ] Merge og kjør `update-geometry.mjs`
+- [ ] Flagg venues uten bygningsgeometri i UI ("Soldata begrenset")
 
 ### Fase 4 — Brukerforslag i søkefeltet
 Mål: sikkerhetsnett for venues automatikken ikke fanger.
 
-- [ ] Når søk gir ingen treff: vis "Foreslå [query] →"
-- [ ] Google Places-oppslag uten uteservering-filter for å finne stedet
-- [ ] Bruker bekrefter at det finnes uteservering
-- [ ] Opprett GitHub Issue automatisk med venue-navn, adresse og placeId forhåndsutfylt
+- [x] Implementert: ingen treff + søkeord → "Suggest this venue →" knapp → Google Places-oppslag → bekreftelse → åpner GitHub Issue med forhåndsutfylt innhold
 
 ### Fase 3 — Automatisering (GitHub Actions)
 Avhenger av at Fase 1 og 2 er stabile.

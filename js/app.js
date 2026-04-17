@@ -2065,6 +2065,77 @@ document.addEventListener('keydown', e => {
   }
 });
 
+// ── Venue suggestion flow ─────────────────────────────────────────────────────
+// Called when a user searches for a venue not in our list and clicks "Suggest".
+// 1. Look up the query in Google Places (no outdoor filter)
+// 2. Show a confirmation card in the list
+// 3. On confirm → open pre-filled GitHub issue in new tab
+
+async function suggestVenueFlow(query) {
+  const list = document.getElementById('venue-list');
+  list.innerHTML = `<div class="suggest-empty"><span>Looking up "<strong>${query}</strong>"…</span></div>`;
+
+  let found = null;
+  try {
+    const resp = await fetch('https://places.googleapis.com/v1/places:searchText', {
+      method: 'POST',
+      headers: {
+        'Content-Type':     'application/json',
+        'X-Goog-Api-Key':   GOOGLE_PLACES_KEY,
+        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.types',
+      },
+      body: JSON.stringify({
+        textQuery:      `${query} Oslo`,
+        locationBias:   { circle: { center: { latitude: 59.9139, longitude: 10.7522 }, radius: 20000 } },
+        maxResultCount: 1,
+      }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      found = data.places?.[0] ?? null;
+    }
+  } catch (_) {}
+
+  if (!found) {
+    list.innerHTML = `
+      <div class="suggest-empty">
+        <span>Couldn't find "<strong>${query}</strong>" in Oslo.</span>
+        <button class="suggest-btn" onclick="document.getElementById('venue-search').value='';renderList();">Clear search</button>
+      </div>`;
+    return;
+  }
+
+  const name    = found.displayName?.text ?? query;
+  const address = found.formattedAddress ?? '';
+  const lat     = found.location?.latitude ?? '';
+  const lng     = found.location?.longitude ?? '';
+  const placeId = found.id ?? '';
+
+  const issueTitle = encodeURIComponent(`Venue suggestion: ${name}`);
+  const issueBody  = encodeURIComponent(
+    `**Venue:** ${name}\n**Address:** ${address}\n**Coordinates:** ${lat}, ${lng}\n**Google Place ID:** ${placeId}\n\n` +
+    `*Suggested by a user via the app search. Please verify outdoor seating before adding.*`
+  );
+  const issueUrl = `https://github.com/thor-erik/Solsteder/issues/new?title=${issueTitle}&body=${issueBody}`;
+
+  list.innerHTML = `
+    <div class="suggest-confirm">
+      <div class="suggest-confirm-name">${name}</div>
+      <div class="suggest-confirm-address">${address}</div>
+      <p class="suggest-confirm-prompt">Does this venue have outdoor seating (uteservering)?</p>
+      <div class="suggest-confirm-actions">
+        <a class="suggest-btn suggest-btn-primary" href="${issueUrl}" target="_blank" rel="noopener"
+           onclick="setTimeout(()=>{document.getElementById('venue-search').value='';renderList();},300)">
+          Yes, suggest it →
+        </a>
+        <button class="suggest-btn" onclick="document.getElementById('venue-search').value='';renderList();">
+          Cancel
+        </button>
+      </div>
+    </div>`;
+}
+
 // ── Intro sequence ────────────────────────────────────────────────────────────
 
 function _introCheckReady() {

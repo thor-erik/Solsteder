@@ -379,7 +379,17 @@ function renderList() {
 
   if (venues.length === 0) {
     if (_listObserver) { _listObserver.disconnect(); _listObserver = null; }
-    list.innerHTML = `<div style="color:var(--muted);font-size:13px;text-align:center;padding:30px 10px;">No venues match your filters</div>`;
+    if (searchQ) {
+      list.innerHTML = `
+        <div class="suggest-empty">
+          <span>No results for "<strong>${searchQ}</strong>"</span>
+          <button class="suggest-btn" onclick="suggestVenueFlow(${JSON.stringify(searchQ)})">
+            Suggest this venue →
+          </button>
+        </div>`;
+    } else {
+      list.innerHTML = `<div style="color:var(--muted);font-size:13px;text-align:center;padding:30px 10px;">No venues match your filters</div>`;
+    }
     return;
   }
 
