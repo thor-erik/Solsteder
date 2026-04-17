@@ -6,6 +6,17 @@
 // Philosophy: buildings + shadows are primary. Visual hierarchy is strict:
 //   buildings (lightest) → pedestrian areas → ground → roads → everything else.
 
+// The app was written for Mapbox Standard which has a 'basemap' style import.
+// Our custom style has no imports, so setConfigProperty('basemap', ...) would
+// throw an uncaught error inside style.load and prevent the app from starting.
+// Patch the prototype once so those calls silently become no-ops.
+(function patchSetConfigProperty() {
+  const _orig = mapboxgl.Map.prototype.setConfigProperty;
+  mapboxgl.Map.prototype.setConfigProperty = function (importId, cfg, val) {
+    try { return _orig.call(this, importId, cfg, val); } catch (_) { /* no-op for missing imports */ }
+  };
+}());
+
 const MAP_STYLE = {
   version: 8,
   name: 'Shades',
@@ -38,57 +49,9 @@ const MAP_STYLE = {
       }
     },
 
-    // ── 3. Landcover (below landuse so landuse wins) ──────────────────────────
-    {
-      id:            'landcover-wood',
-      type:          'fill',
-      source:        'streets',
-      'source-layer': 'landcover',
-      filter: ['==', 'class', 'wood'],
-      paint: { 'fill-color': '#96A088', 'fill-opacity': 0.85 }
-    },
-    {
-      id:            'landcover-grass',
-      type:          'fill',
-      source:        'streets',
-      'source-layer': 'landcover',
-      filter: ['==', 'class', 'grass'],
-      paint: { 'fill-color': '#A2A894', 'fill-opacity': 0.85 }
-    },
-    {
-      id:            'landcover-scrub',
-      type:          'fill',
-      source:        'streets',
-      'source-layer': 'landcover',
-      filter: ['==', 'class', 'scrub'],
-      paint: { 'fill-color': '#AEA79C', 'fill-opacity': 0.75 }
-    },
-    {
-      id:            'landcover-crop',
-      type:          'fill',
-      source:        'streets',
-      'source-layer': 'landcover',
-      filter: ['==', 'class', 'crop'],
-      paint: { 'fill-color': '#B0AA9E', 'fill-opacity': 0.75 }
-    },
-    {
-      id:            'landcover-snow',
-      type:          'fill',
-      source:        'streets',
-      'source-layer': 'landcover',
-      filter: ['==', 'class', 'snow'],
-      paint: { 'fill-color': '#E8E4E0', 'fill-opacity': 0.8 }
-    },
-    {
-      id:            'landcover-wetland',
-      type:          'fill',
-      source:        'streets',
-      'source-layer': 'landcover',
-      filter: ['==', 'class', 'wetland'],
-      paint: { 'fill-color': '#A2A894', 'fill-opacity': 0.6 }
-    },
-
-    // ── 4. Landuse ───────────────────────────────────────────────────────────
+    // ── 3. Landuse ───────────────────────────────────────────────────────────
+    // Note: mapbox-streets-v8 has no 'landcover' source layer — all landcover
+    // classes (wood, grass, scrub, etc.) are in the 'landuse' source layer.
     {
       id:            'landuse-residential',
       type:          'fill',
