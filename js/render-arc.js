@@ -54,11 +54,16 @@ function drawSunCompass() {
   }
 }
 
-// ── Sun curve (day arc) ───────────────────────────────────────────────────────
+// ── Sun curve / temperature curve (day arc) ───────────────────────────────────
 /**
- * Draws a sun altitude arc for the full day onto a canvas element.
- * Shows: filled arc (golden above horizon), sunrise/sunset tick labels,
- * current time marker (glowing dot).
+ * Draws the time-picker chart for the given canvas element.
+ *
+ * When hourly weather data is available: renders a temperature curve with
+ * cloud-cover bands and precipitation bars. The band width equals the actual
+ * data interval (1 h for near-term, 6 h for days 3+), making data resolution
+ * visible at a glance.
+ *
+ * Falls back to a solar altitude arc when no weather data is available.
  */
 function drawSunCurve(canvasEl) {
   if (!canvasEl || !currentSunTable) return;
@@ -76,12 +81,205 @@ function drawSunCurve(canvasEl) {
 
   const MIN_H = (typeof MIN_H_ARC !== 'undefined') ? MIN_H_ARC : 4;
   const MAX_H = (typeof MAX_H_ARC !== 'undefined') ? MAX_H_ARC : 23;
-  const PAD_X = 10, PAD_T = 10, PAD_B = 18;
+  // PAD_X intentionally matches PAD_X_ARC in app.js so click-to-time mapping is exact
+  const PAD_X = (typeof PAD_X_ARC !== 'undefined') ? PAD_X_ARC : 20;
   const cw = cssW, ch = cssH;
   const dateStr = datePicker.value;
-  const fromH = parseFloat(timeFromEl.value);
+  const fromH   = parseFloat(timeFromEl.value);
+  const isToday = dateStr === todayStr();
 
-  // Sample altitudes every 15 min
+  const timeToX = t => PAD_X + (t - MIN_H) / (MAX_H - MIN_H) * (cw - PAD_X * 2);
+
+  // Determine whether weather data exists for this date
+  const wxHours = (typeof getWeatherHoursForDate === 'function') ? getWeatherHoursForDate(dateStr) : [];
+  const hasWx   = wxHours.length > 0 && typeof getWeatherAt === 'function';
+
+  if (!hasWx) {
+    _drawSunArc(c, cw, ch, dateStr, fromH, isToday, MIN_H, MAX_H, PAD_X, timeToX);
+    c.restore();
+    return;
+  }
+
+  // ── Temperature + weather mode ──────────────────────────────────────────────
+  const PAD_T    = 8;
+  const PRECIP_H = 10;   // precipitation bars area
+  const PAD_B    = 18;   // hour labels at bottom
+  const CHART_H  = ch - PAD_T - PRECIP_H - PAD_B;
+  const baseY    = PAD_T + CHART_H;   // baseline between chart and precip area
+  const bottomY  = baseY + PRECIP_H;  // top of label area
+
+  // Collect temperature samples (0.25h steps for smooth curve)
+  let minTemp = Infinity, maxTemp = -Infinity;
+  const tempSamples = [];
+  for (let t = MIN_H; t <= MAX_H + 0.01; t += 0.25) {
+    const wx = getWeatherAt(dateStr, Math.min(t, MAX_H));
+    if (wx) {
+      if (wx.temp < minTemp) minTemp = wx.temp;
+      if (wx.temp > maxTemp) maxTemp = wx.temp;
+    }
+    tempSamples.push({ t: Math.min(t, MAX_H), wx });
+  }
+
+  // Ensure a visible range even if temperature is flat
+  const tempRange = Math.max(4, maxTemp - minTemp);
+  const tempPad   = tempRange * 0.20;
+  const tMin = minTemp - tempPad;
+  const tMax = maxTemp + tempPad * 1.6; // extra headroom for labels
+  const tempToY = temp => PAD_T + (1 - (temp - tMin) / (tMax - tMin)) * CHART_H;
+
+  // ── 1. Cloud-cover bands — width = data interval, conveying resolution ──────
+  for (let i = 0; i < wxHours.length; i++) {
+    const h    = wxHours[i];
+    if (h > MAX_H) continue;
+    const nextH = i + 1 < wxHours.length ? Math.min(wxHours[i + 1], MAX_H) : MAX_H;
+    const wx   = getWeatherAt(dateStr, h);
+    if (!wx) continue;
+
+    const x1 = timeToX(Math.max(h, MIN_H));
+    const x2 = timeToX(nextH);
+    if (x2 <= x1) continue;
+
+    // Color: warm-tinted for clear, cool/grey for clouds — alpha conveys severity
+    let r, g, b, alpha;
+    if (wx.cloud < 0.15)      { r=255; g=220; b=150; alpha=0.00; } // clear: no fill
+    else if (wx.cloud < 0.40) { r=200; g=200; b=220; alpha=0.08; }
+    else if (wx.cloud < 0.65) { r=110; g=130; b=175; alpha=0.18; }
+    else if (wx.cloud < 0.85) { r= 80; g=105; b=155; alpha=0.28; }
+    else                      { r= 60; g= 85; b=135; alpha=0.40; }
+
+    if (alpha > 0) {
+      c.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+      c.fillRect(x1, PAD_T, x2 - x1, CHART_H);
+    }
+
+    // Subtle left-edge tick marks each data slot boundary so users can see resolution
+    if (h >= MIN_H) {
+      c.beginPath();
+      c.moveTo(x1, PAD_T); c.lineTo(x1, PAD_T + 5);
+      c.strokeStyle = 'rgba(156,189,231,0.22)'; c.lineWidth = 1; c.stroke();
+    }
+  }
+
+  // ── 2. Precipitation bars ───────────────────────────────────────────────────
+  const MAX_PRECIP_MM = 4; // cap for bar height scaling
+  for (let i = 0; i < wxHours.length; i++) {
+    const h  = wxHours[i];
+    if (h > MAX_H || h < MIN_H) continue;
+    const wx = getWeatherAt(dateStr, h);
+    if (!wx || wx.precip <= 0) continue;
+    const nextH = i + 1 < wxHours.length ? Math.min(wxHours[i + 1], MAX_H) : MAX_H;
+    const barH  = Math.min(1, wx.precip / MAX_PRECIP_MM) * PRECIP_H;
+    const x1    = timeToX(h);
+    const x2    = timeToX(nextH);
+    const alpha = Math.min(0.85, 0.35 + wx.precip * 0.12);
+    c.fillStyle = `rgba(100,165,255,${alpha.toFixed(2)})`;
+    c.fillRect(x1 + 0.5, baseY + (PRECIP_H - barH), Math.max(1, x2 - x1 - 1), barH);
+  }
+
+  // ── 3. Temperature curve ────────────────────────────────────────────────────
+  const splitH    = isToday ? fromH : null;
+  const validPts  = tempSamples.filter(s => s.wx != null);
+  const pastPts   = splitH ? validPts.filter(s => s.t <= splitH) : [];
+  const futurePts = splitH ? validPts.filter(s => s.t >= splitH) : validPts;
+
+  // Fill under curve
+  const _fillCurve = (pts, fillStyle) => {
+    if (pts.length < 2) return;
+    c.beginPath();
+    c.moveTo(timeToX(pts[0].t), baseY);
+    pts.forEach(s => c.lineTo(timeToX(s.t), tempToY(s.wx.temp)));
+    c.lineTo(timeToX(pts[pts.length - 1].t), baseY);
+    c.closePath();
+    c.fillStyle = fillStyle; c.fill();
+  };
+
+  if (pastPts.length > 1) {
+    _fillCurve(pastPts, 'rgba(255,175,133,0.04)');
+  }
+  if (futurePts.length > 1) {
+    const fg = c.createLinearGradient(0, PAD_T, 0, baseY);
+    fg.addColorStop(0, 'rgba(255,175,133,0.18)');
+    fg.addColorStop(1, 'rgba(255,175,133,0.02)');
+    _fillCurve(futurePts, fg);
+  }
+
+  // Curve stroke
+  const _strokeCurve = (pts, strokeStyle, lineWidth) => {
+    if (pts.length < 2) return;
+    c.beginPath();
+    pts.forEach((s, i) => {
+      const x = timeToX(s.t), y = tempToY(s.wx.temp);
+      i === 0 ? c.moveTo(x, y) : c.lineTo(x, y);
+    });
+    c.strokeStyle = strokeStyle; c.lineWidth = lineWidth; c.stroke();
+  };
+
+  if (pastPts.length > 1)   _strokeCurve(pastPts,   'rgba(255,175,133,0.22)', 1.5);
+  if (futurePts.length > 1) _strokeCurve(futurePts, 'rgba(255,175,133,0.90)', 2);
+
+  // ── 4. Sunrise / sunset ticks ───────────────────────────────────────────────
+  const sunrise = findSunCrossingFromTable(currentSunTable, true);
+  const sunset  = findSunCrossingFromTable(currentSunTable, false);
+  c.font = '9px "Inter", sans-serif';
+  c.textAlign = 'center'; c.textBaseline = 'top';
+  [{ t: sunrise }, { t: sunset }].forEach(({ t }) => {
+    if (t == null) return;
+    const tx = timeToX(t);
+    c.beginPath(); c.moveTo(tx, PAD_T); c.lineTo(tx, bottomY);
+    c.strokeStyle = 'rgba(255,175,133,0.20)'; c.lineWidth = 1;
+    c.setLineDash([2, 3]); c.stroke(); c.setLineDash([]);
+    c.fillStyle = 'rgba(255,175,133,0.50)';
+    c.fillText(formatHour(t), tx, bottomY + 2);
+  });
+
+  // ── 5. Hour labels ──────────────────────────────────────────────────────────
+  for (let h = Math.ceil(MIN_H); h <= MAX_H; h++) {
+    if (h % 2 !== 0) continue;
+    if (sunrise != null && Math.abs(h - sunrise) < 0.8) continue;
+    if (sunset  != null && Math.abs(h - sunset)  < 0.8) continue;
+    c.font = '11px "Inter", sans-serif';
+    c.textAlign = 'center'; c.textBaseline = 'bottom';
+    c.fillStyle = 'rgba(156,189,231,0.45)';
+    c.fillText(`${h}`, timeToX(h), ch - 2);
+  }
+
+  // ── 6. Scrub indicator ──────────────────────────────────────────────────────
+  const scrubH    = (typeof arcHoverH === 'number') ? arcHoverH : fromH;
+  const isHovering = typeof arcHoverH === 'number';
+
+  if (scrubH >= MIN_H && scrubH <= MAX_H) {
+    const sx     = timeToX(scrubH);
+    const wxSlot = getWeatherAt(dateStr, scrubH); // plain WeatherSlot | null
+    const tempY  = wxSlot ? tempToY(wxSlot.temp) : PAD_T + CHART_H / 2;
+
+    // Full-height vertical scrub line
+    c.beginPath(); c.moveTo(sx, PAD_T); c.lineTo(sx, bottomY);
+    c.strokeStyle = isHovering ? 'rgba(156,189,231,0.65)' : 'rgba(255,255,255,0.30)';
+    c.lineWidth = 1; c.setLineDash([2, 3]); c.stroke(); c.setLineDash([]);
+
+    // Dot on temperature curve
+    if (wxSlot) {
+      c.beginPath(); c.arc(sx, tempY, 3.5, 0, Math.PI * 2);
+      c.fillStyle = isHovering ? 'rgba(156,189,231,0.95)' : 'rgba(255,175,133,0.95)';
+      c.fill();
+    }
+
+    // Drag thumb — fixed at baseline, large and easy to grab
+    const thumbR = isHovering ? 7 : 6;
+    c.beginPath(); c.arc(sx, baseY, thumbR, 0, Math.PI * 2);
+    c.fillStyle   = isHovering ? 'rgba(156,189,231,0.22)' : 'rgba(255,175,133,0.16)'; c.fill();
+    c.strokeStyle = isHovering ? 'rgba(156,189,231,0.80)' : 'rgba(255,175,133,0.80)';
+    c.lineWidth   = isHovering ? 2 : 1.5; c.stroke();
+  }
+
+  c.restore();
+}
+
+// ── Sun arc fallback (no weather data available) ──────────────────────────────
+function _drawSunArc(c, cw, ch, dateStr, fromH, isToday, MIN_H, MAX_H, PAD_X, timeToX) {
+  const PAD_T = 10, PAD_B = 18;
+
+  // Sample sun altitudes every 15 min
   const samples = [];
   let maxAlt = 5;
   for (let t = MIN_H; t <= MAX_H + 0.01; t += 0.25) {
@@ -90,32 +288,29 @@ function drawSunCurve(canvasEl) {
     samples.push({ t: Math.min(t, MAX_H), alt: sun.alt });
   }
 
-  const timeToX = t => PAD_X + (t - MIN_H) / (MAX_H - MIN_H) * (cw - PAD_X * 2);
-  const altToY  = a => PAD_T + (1 - Math.max(0, a) / (maxAlt * 1.15)) * (ch - PAD_T - PAD_B);
-  const horizY  = altToY(0);
+  const altToY = a => PAD_T + (1 - Math.max(0, a) / (maxAlt * 1.15)) * (ch - PAD_T - PAD_B);
+  const horizY = altToY(0);
 
-  // Horizon line — thicker to read as a scrubbable track
+  // Horizon track
   c.beginPath();
   c.moveTo(PAD_X, horizY); c.lineTo(cw - PAD_X, horizY);
   c.strokeStyle = 'rgba(255,255,255,0.18)'; c.lineWidth = 3;
   c.lineCap = 'round'; c.stroke(); c.lineCap = 'butt';
 
-  // Hour grid lines — draw before arc fill
+  // Hour grid
   for (let h = Math.ceil(MIN_H); h <= MAX_H; h++) {
     if (h % 2 !== 0) continue;
     c.beginPath(); c.moveTo(timeToX(h), PAD_T); c.lineTo(timeToX(h), horizY);
     c.strokeStyle = 'rgba(255,255,255,0.055)'; c.lineWidth = 1; c.stroke();
   }
 
-  // Build above-horizon segment — split at fromH for today (past=faded, future=bright)
+  // Arc fill + stroke (past dim, future bright)
   const above = samples.filter(s => s.alt > 0);
   if (above.length > 1) {
-    const isToday = dateStr === todayStr();
-    const splitH  = (isToday && fromH > MIN_H) ? fromH : null;
-    const pastSamp = splitH ? above.filter(s => s.t <= splitH) : [];
+    const splitH    = isToday ? fromH : null;
+    const pastSamp   = splitH ? above.filter(s => s.t <= splitH) : [];
     const futureSamp = splitH ? above.filter(s => s.t >= splitH) : above;
 
-    // 1a — Past arc fill (very faint)
     if (pastSamp.length > 1) {
       const pg = c.createLinearGradient(0, PAD_T, 0, horizY);
       pg.addColorStop(0, 'rgba(255,175,133,0.07)');
@@ -124,11 +319,12 @@ function drawSunCurve(canvasEl) {
       c.moveTo(timeToX(pastSamp[0].t), horizY);
       pastSamp.forEach(s => c.lineTo(timeToX(s.t), altToY(s.alt)));
       c.lineTo(timeToX(pastSamp[pastSamp.length-1].t), horizY);
-      c.closePath();
-      c.fillStyle = pg; c.fill();
+      c.closePath(); c.fillStyle = pg; c.fill();
+      c.beginPath();
+      c.moveTo(timeToX(pastSamp[0].t), altToY(pastSamp[0].alt));
+      pastSamp.forEach(s => c.lineTo(timeToX(s.t), altToY(s.alt)));
+      c.strokeStyle = 'rgba(255,175,133,0.2)'; c.lineWidth = 1.5; c.stroke();
     }
-
-    // 1b — Future arc fill
     if (futureSamp.length > 1) {
       const grad = c.createLinearGradient(0, PAD_T, 0, horizY);
       grad.addColorStop(0, 'rgba(255,175,133,0.28)');
@@ -137,39 +333,7 @@ function drawSunCurve(canvasEl) {
       c.moveTo(timeToX(futureSamp[0].t), horizY);
       futureSamp.forEach(s => c.lineTo(timeToX(s.t), altToY(s.alt)));
       c.lineTo(timeToX(futureSamp[futureSamp.length-1].t), horizY);
-      c.closePath();
-      c.fillStyle = grad; c.fill();
-    }
-
-    // 2 — Cloud cover overlay clipped to future arc only
-    if (typeof getWeatherAt === 'function' && futureSamp.length > 1) {
-      c.save();
-      c.beginPath();
-      c.moveTo(timeToX(futureSamp[0].t), horizY);
-      futureSamp.forEach(s => c.lineTo(timeToX(s.t), altToY(s.alt)));
-      c.lineTo(timeToX(futureSamp[futureSamp.length-1].t), horizY);
-      c.closePath();
-      c.clip();
-      const cloudFrom = splitH ?? MIN_H;
-      for (let t = cloudFrom; t < MAX_H; t++) {
-        const wx = getWeatherAt(dateStr, t);
-        if (!wx || wx.cloud < 0.15) continue;
-        const x1 = timeToX(t), x2 = timeToX(t + 1);
-        const alpha = Math.min(0.85, wx.cloud * 0.72);
-        c.fillStyle = `rgba(105,120,148,${alpha.toFixed(2)})`;
-        c.fillRect(x1, PAD_T, x2 - x1, horizY - PAD_T);
-      }
-      c.restore();
-    }
-
-    // 3 — Arc stroke: past=dim, future=bright
-    if (pastSamp.length > 1) {
-      c.beginPath();
-      c.moveTo(timeToX(pastSamp[0].t), altToY(pastSamp[0].alt));
-      pastSamp.forEach(s => c.lineTo(timeToX(s.t), altToY(s.alt)));
-      c.strokeStyle = 'rgba(255,175,133,0.2)'; c.lineWidth = 1.5; c.stroke();
-    }
-    if (futureSamp.length > 1) {
+      c.closePath(); c.fillStyle = grad; c.fill();
       c.beginPath();
       c.moveTo(timeToX(futureSamp[0].t), altToY(futureSamp[0].alt));
       futureSamp.forEach(s => c.lineTo(timeToX(s.t), altToY(s.alt)));
@@ -177,18 +341,18 @@ function drawSunCurve(canvasEl) {
     }
   }
 
-  // Sunrise + sunset ticks only
+  // Sunrise / sunset ticks
   const sunrise = findSunCrossingFromTable(currentSunTable, true);
   const sunset  = findSunCrossingFromTable(currentSunTable, false);
   c.font = '9px "Inter", sans-serif';
   c.textAlign = 'center'; c.textBaseline = 'top';
-  [{ t: sunrise, label: formatHour(sunrise) }, { t: sunset, label: formatHour(sunset) }].forEach(({ t, label }) => {
+  [{ t: sunrise }, { t: sunset }].forEach(({ t }) => {
     if (t == null) return;
     const tx = timeToX(t);
     c.beginPath(); c.moveTo(tx, horizY - 2); c.lineTo(tx, horizY + 4);
     c.strokeStyle = 'rgba(255,175,133,0.45)'; c.lineWidth = 1; c.stroke();
     c.fillStyle = 'rgba(255,175,133,0.65)';
-    c.fillText(label, tx, horizY + 5);
+    c.fillText(formatHour(t), tx, horizY + 5);
   });
 
   // Hour labels
@@ -202,30 +366,24 @@ function drawSunCurve(canvasEl) {
     c.fillText(`${h}`, timeToX(h), ch - 2);
   }
 
-  // Scrub indicator — permanent at selected time, moves to hover position
-  const scrubH = (typeof arcHoverH === 'number') ? arcHoverH : fromH;
+  // Scrub indicator (horizon-based, matching original UX)
+  const scrubH    = (typeof arcHoverH === 'number') ? arcHoverH : fromH;
   const isHovering = typeof arcHoverH === 'number';
   if (scrubH >= MIN_H && scrubH <= MAX_H) {
-    const sx = timeToX(scrubH);
+    const sx       = timeToX(scrubH);
     const scrubSun = getSunFromTable(currentSunTable, scrubH);
-    const sy = altToY(Math.max(0, scrubSun.alt));
+    const sy       = altToY(Math.max(0, scrubSun.alt));
 
-    // Vertical dashed line
     c.beginPath(); c.moveTo(sx, PAD_T); c.lineTo(sx, horizY - 1);
     c.strokeStyle = 'rgba(156,189,231,0.38)'; c.lineWidth = 1;
     c.setLineDash([2, 3]); c.stroke(); c.setLineDash([]);
 
-    // Dot on arc
     c.beginPath(); c.arc(sx, sy, 4, 0, Math.PI * 2);
-    c.fillStyle = isHovering ? 'rgba(156,189,231,0.88)' : 'rgba(255,175,133,0.92)';
-    c.fill();
+    c.fillStyle = isHovering ? 'rgba(156,189,231,0.88)' : 'rgba(255,175,133,0.92)'; c.fill();
 
-    // Ghost thumb at horizon
     c.beginPath(); c.arc(sx, horizY, isHovering ? 7 : 6, 0, Math.PI * 2);
-    c.fillStyle = isHovering ? 'rgba(156,189,231,0.18)' : 'rgba(255,175,133,0.14)'; c.fill();
+    c.fillStyle   = isHovering ? 'rgba(156,189,231,0.18)' : 'rgba(255,175,133,0.14)'; c.fill();
     c.strokeStyle = isHovering ? 'rgba(156,189,231,0.58)' : 'rgba(255,175,133,0.72)';
     c.lineWidth = 1.5; c.stroke();
   }
-
-  c.restore();
 }

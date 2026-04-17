@@ -32,6 +32,9 @@ let panelVisible      = true;
 const highlight = { id: null, source: null, raisedId: null };
 let mapLoaded         = false;
 let _qcActiveSection  = null; // 'date' | 'time' | null
+let _qcCalExpanded    = false; // true = full month calendar
+let _qcCalViewYear    = null;  // year shown in expanded view
+let _qcCalViewMonth   = null;  // month shown in expanded view (0–11)
 let _qcArcDragging    = false;
 let _navMode          = false; // true after clicking a pin/card — use radius filter instead of map bounds
 let _preSelectZoom    = null;  // zoom level saved before zooming into a selected venue
@@ -711,6 +714,7 @@ function _closeQcPanel() {
   document.getElementById('qc-date-pill')?.classList.remove('active');
   document.getElementById('qc-time-pill')?.classList.remove('active');
   _qcActiveSection = null;
+  _qcCalExpanded   = false; // reset expand state on close
 
   // Keep sections active so content is present during the closing animation.
   // Remove 'open' — this starts the max-height + opacity transitions.
@@ -752,33 +756,204 @@ function toggleQcPanel(section) {
 function renderQcCalendar() {
   const cal = document.getElementById('qc-cal');
   if (!cal) return;
-  const selected = datePicker.value;
+  if (_qcCalExpanded) {
+    _renderQcCalendarMonth(cal);
+  } else {
+    _renderQcCalendarStrip(cal);
+  }
+}
+
+// Determine how many days ahead have weather forecast data by checking
+// the first date where getDayWeatherSummary returns null.
+function _wxForecastDays() {
+  let limit = 0;
+  for (let i = 0; i < 20; i++) {
+    const d = new Date(); d.setDate(d.getDate() + i);
+    const dStr = d.toISOString().slice(0, 10);
+    if (typeof getDayWeatherSummary === 'function' && getDayWeatherSummary(dStr)) {
+      limit = i + 1;
+    } else if (limit > 0) {
+      break;
+    }
+  }
+  return limit || 10; // fallback if weather not loaded yet
+}
+
+function _dcTileHtml(dStr, todayStr_, selected) {
+  const d    = new Date(dStr + 'T12:00:00');
   const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  let html = '<div class="dc-grid">';
+  const summ = typeof getDayWeatherSummary === 'function' ? getDayWeatherSummary(dStr) : null;
+  const hasForecast = summ != null;
+
+  let cls = 'dc-tile';
+  if (dStr === todayStr_)  cls += ' today';
+  if (dStr === selected)   cls += ' selected';
+  if (hasForecast) {
+    if (summ.avgCloud < 0.30)      cls += ' sun-high';
+    else if (summ.avgCloud < 0.60) cls += ' sun-mid';
+  } else {
+    cls += ' solar-only'; // beyond forecast window — solar data only
+  }
+
+  const icon = hasForecast ? summ.icon : '☀\uFE0F';
+  const temp = hasForecast ? `${summ.peakTemp}°` : '';
+
+  return `<button class="${cls}" onclick="selectQcDate('${dStr}')" title="${hasForecast ? '' : 'No forecast — sun/shadow only'}">`
+    + `<span class="dc-day">${DAYS[d.getDay()]}</span>`
+    + `<span class="dc-num">${d.getDate()}</span>`
+    + `<span class="dc-icon">${icon}</span>`
+    + `<span class="dc-temp">${temp}</span>`
+    + `</button>`;
+}
+
+function _renderQcCalendarStrip(cal) {
+  const today_   = todayStr();
+  const selected = datePicker.value;
+  const fxDays   = _wxForecastDays();
+
+  let html = `<div class="dc-header">
+    <span class="dc-header-label">2 weeks</span>
+    <button class="dc-expand-btn" onclick="_toggleQcCalExpand()" title="Show full calendar">
+      <svg viewBox="0 0 16 16" fill="none" width="14" height="14">
+        <rect x="1.5" y="2.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.3"/>
+        <rect x="9.5" y="2.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.3"/>
+        <rect x="1.5" y="10.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.3"/>
+        <rect x="9.5" y="10.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.3"/>
+      </svg>
+    </button>
+  </div>`;
+  html += '<div class="dc-grid">';
+
   for (let i = 0; i < 14; i++) {
     const d    = new Date(); d.setDate(d.getDate() + i);
     const dStr = d.toISOString().slice(0, 10);
-    const summ = typeof getDayWeatherSummary === 'function' ? getDayWeatherSummary(dStr) : null;
-    let cls = 'dc-tile';
-    if (i === 0)           cls += ' today';
-    if (dStr === selected) cls += ' selected';
-    if (summ) {
-      if (summ.avgCloud < 0.30)      cls += ' sun-high';
-      else if (summ.avgCloud < 0.60) cls += ' sun-mid';
-    } else {
-      cls += ' no-data';
-    }
-    const icon = summ ? summ.icon : '·';
-    const temp = summ ? `${summ.peakTemp}°` : '';
-    html += `<button class="${cls}" onclick="selectQcDate('${dStr}')">`
-      + `<span class="dc-day">${DAYS[d.getDay()]}</span>`
-      + `<span class="dc-num">${d.getDate()}</span>`
-      + `<span class="dc-icon">${icon}</span>`
-      + `<span class="dc-temp">${temp}</span>`
-      + `</button>`;
+    html += _dcTileHtml(dStr, today_, selected);
   }
+
+  // Forecast boundary note — shown below the grid when some days lack data
+  const allHaveForecast = fxDays >= 14;
   html += '</div>';
+  if (!allHaveForecast && fxDays > 0) {
+    html += `<div class="dc-forecast-note">☁ Forecast up to ${fxDays} days — sun/shadow only beyond</div>`;
+  }
+
   cal.innerHTML = html;
+}
+
+function _renderQcCalendarMonth(cal) {
+  const now      = new Date();
+  const today_   = todayStr();
+  const selected = datePicker.value;
+  const fxDays   = _wxForecastDays();
+
+  // Init view to current month if not already set
+  if (_qcCalViewYear == null) {
+    _qcCalViewYear  = now.getFullYear();
+    _qcCalViewMonth = now.getMonth();
+  }
+
+  const year  = _qcCalViewYear;
+  const month = _qcCalViewMonth;
+  const MONTH_NAMES = ['January','February','March','April','May','June',
+                       'July','August','September','October','November','December'];
+  const DAY_ABBR = ['M','T','W','T','F','S','S']; // Mon-first
+
+  // First day of month and total days
+  const firstDay = new Date(year, month, 1);
+  const totalDays = new Date(year, month + 1, 0).getDate();
+  // Offset: Mon=0 … Sun=6
+  const startOffset = (firstDay.getDay() + 6) % 7;
+
+  // Can navigate back only to current month
+  const nowMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const viewMonth = new Date(year, month, 1);
+  const canGoBack = viewMonth > nowMonth;
+
+  let html = `<div class="dc-header">
+    <button class="dc-nav-btn${canGoBack ? '' : ' disabled'}" onclick="_qcCalNav(-1)">‹</button>
+    <span class="dc-header-label">${MONTH_NAMES[month]} ${year}</span>
+    <button class="dc-nav-btn" onclick="_qcCalNav(1)">›</button>
+    <button class="dc-expand-btn active" onclick="_toggleQcCalExpand()" title="Collapse calendar">
+      <svg viewBox="0 0 16 16" fill="none" width="14" height="14">
+        <rect x="1.5" y="2.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.3"/>
+        <rect x="9.5" y="2.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.3"/>
+        <rect x="1.5" y="10.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.3"/>
+        <rect x="9.5" y="10.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.3"/>
+      </svg>
+    </button>
+  </div>`;
+
+  // Weekday headers (Mon–Sun)
+  html += '<div class="dc-weekday-row">';
+  DAY_ABBR.forEach(d => { html += `<span class="dc-weekday">${d}</span>`; });
+  html += '</div>';
+
+  // Day grid — padded to start on Monday
+  html += '<div class="dc-grid dc-month-grid">';
+
+  // Empty cells before the 1st
+  for (let i = 0; i < startOffset; i++) {
+    html += '<div class="dc-tile dc-tile-empty"></div>';
+  }
+
+  // Day cells
+  for (let day = 1; day <= totalDays; day++) {
+    const d    = new Date(year, month, day);
+    const dStr = d.toISOString().slice(0, 10);
+    const isPast = dStr < today_;
+    const daysSince = Math.round((d - now) / 86400000);
+
+    if (isPast) {
+      html += `<div class="dc-tile dc-tile-past"><span class="dc-num">${day}</span></div>`;
+    } else {
+      html += _dcTileHtml(dStr, today_, selected);
+    }
+  }
+
+  html += '</div>';
+
+  // Forecast boundary note
+  html += `<div class="dc-forecast-note">☁ Forecast up to ${fxDays} days — ☀\uFE0F sun/shadow beyond</div>`;
+
+  cal.innerHTML = html;
+
+  // Update panel height for expanded view
+  _syncQcPanelHeightExpanded();
+}
+
+function _toggleQcCalExpand() {
+  _qcCalExpanded = !_qcCalExpanded;
+  if (_qcCalExpanded) {
+    const now = new Date();
+    _qcCalViewYear  = now.getFullYear();
+    _qcCalViewMonth = now.getMonth();
+  }
+  renderQcCalendar();
+  if (!_qcCalExpanded) {
+    // Reset panel height back to computed (desktop) or CSS default (mobile)
+    const qcPanel     = document.getElementById('qc-panel');
+    const dateSection = document.getElementById('qc-date-section');
+    if (qcPanel)     qcPanel.style.removeProperty('--qc-panel-h');
+    if (dateSection) dateSection.style.removeProperty('height');
+    _syncQcPanelHeight();
+  }
+}
+
+function _qcCalNav(dir) {
+  const d = new Date(_qcCalViewYear, _qcCalViewMonth + dir, 1);
+  _qcCalViewYear  = d.getFullYear();
+  _qcCalViewMonth = d.getMonth();
+  renderQcCalendar();
+}
+
+function _syncQcPanelHeightExpanded() {
+  const qcPanel     = document.getElementById('qc-panel');
+  const dateSection = document.getElementById('qc-date-section');
+  if (!qcPanel || !dateSection) return;
+  // Use a fixed generous height for the month view
+  const h = 340;
+  dateSection.style.height = h + 'px';
+  qcPanel.style.setProperty('--qc-panel-h', (h + 10) + 'px');
 }
 
 function selectQcDate(dateStr) {

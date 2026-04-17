@@ -66,6 +66,22 @@ async function initWeather() {
 }
 
 /**
+ * Return the exact integer hours that have weather data for a given date.
+ * Used to determine data resolution (hourly → many entries, 6-hourly → few entries).
+ * E.g. [0,1,2,...,23] for a near-term day, [0,6,12,18] for a day 3+ days out.
+ */
+function getWeatherHoursForDate(dateStr) {
+  const pad = n => String(n).padStart(2, '0');
+  const d   = new Date(dateStr + 'T12:00:00');
+  const base = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const hours = [];
+  for (let h = 0; h <= 23; h++) {
+    if (_wxData.has(`${base}-${h}`)) hours.push(h);
+  }
+  return hours;
+}
+
+/**
  * Return weather for a given local date string ("YYYY-MM-DD") and hour (float).
  * Rounds to the nearest integer hour. Returns null when data is unavailable.
  */
