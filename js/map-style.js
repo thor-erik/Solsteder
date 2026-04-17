@@ -9,8 +9,8 @@
 const MAP_STYLE = {
   version: 8,
   name: 'Shades',
-  sprite: 'mapbox://sprites/mapbox/light-v11',
-  glyphs:  'mapbox://fonts/mapbox/{fontstack}/{range}.pbf',
+  // No sprite — all symbol layers use text only, no icon-image references
+  glyphs: 'mapbox://fonts/mapbox/{fontstack}/{range}.pbf',
   sources: {
     streets: {
       type: 'vector',
