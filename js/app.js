@@ -1750,9 +1750,9 @@ document.addEventListener('DOMContentLoaded', () => {
           if (!_dragActive) {
             if (venueList.scrollTop === 0) {
               if (cy < _listStartY) {
-                // Moving up at top → prevent rubber-banding; trigger drag once in header zone
-                e.preventDefault();
+                // Moving up at top → trigger drag (and prevent default) only once in header zone
                 if (cy <= _venueHeaderBottom) {
+                  e.preventDefault();
                   _dragFromList = true;
                   _beginDrag(cy);
                 }
