@@ -33,7 +33,7 @@
 - [~] Venue-redigering med rettigheter: kun admins godkjenner endringer; vanlige brukere kan foreslå endringer som går til admin-gjennomgang
 
 ### Data og venues
-- [ ] Utvid venue-discovery til hele Oslo kommune (~400–600 venues): legg til ~14 søkepunkter i `fetch-venues-places.mjs`; bytt keyword-filter til strukturert `outdoorSeating: true` felt i Places API v1
+- [ ] Utvid venue-discovery til hele Oslo kommune (~400–600 venues): legg til ~14 søkepunkter i `fetch-venues-places.mjs`; bruk kombinasjon av strukturert `outdoorSeating: true` (Places API v1) og keyword `uteservering` — union av begge for å minimere falske negativer
 - [ ] GitHub Actions scheduled workflow: månedlig discovery (nye venues + `CLOSED_PERMANENTLY`-filter) + refresh av åpningstider; ingen re-fetch av bilder med mindre URL gir 404
 - [ ] Brukerforslag via søkefelt: når søk gir ingen treff, vis "Foreslå [query] →"; slå opp stedet i Google Places uten uteservering-filter; bruker bekrefter at det finnes uteservering; sendes inn som GitHub Issue med venue-navn, adresse og placeId forhåndsutfylt
 
