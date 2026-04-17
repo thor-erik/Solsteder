@@ -882,10 +882,7 @@ canvas.addEventListener('mousemove', e => {
         const pixelDist = (cx - mx) * normX + (cy - my) * normY;
         v.terraceDepth = Math.max(1, Math.min(30, pixelDist / pxPerMetre(v)));
         draw();
-        const walls = getTerraceWalls(v);
-        const wallsLabel = walls.length > 1 ? ` · ${walls.length} walls` : '';
-        document.getElementById('edit-facing-display').innerHTML =
-          `${v.facing}° ${bearingToCardinal(v.facing)}${wallsLabel} · <span style="color:#64ffb4">${Math.round(getEffectiveDepth(v))}m depth</span>`;
+        _updateEditDepthDisplay();
       }
       return;
     }
@@ -911,17 +908,6 @@ canvas.addEventListener('mousemove', e => {
     if (wallIdx !== editHoveredWallIdx) {
       editHoveredWallIdx = wallIdx;
       draw();
-      const v  = VENUES.find(x => x.id === editingVenueId);
-      const el = document.getElementById('edit-facing-display');
-      if (wallIdx !== null && v?.wallNormals) {
-        const wall = v.wallNormals[wallIdx];
-        const sel  = v.terraceWallIndices?.includes(wallIdx) ? ' ✓' : '';
-        el.innerHTML = `<span class="preview">${Math.round(wall.bearing)}° ${bearingToCardinal(wall.bearing)}${sel}</span>`;
-      } else if (v) {
-        const walls = getTerraceWalls(v);
-        const wallsLabel = walls.length > 1 ? ` · ${walls.length} walls` : '';
-        el.innerHTML = `${v.facing}° ${bearingToCardinal(v.facing)}${wallsLabel}`;
-      }
     }
     return;
   }
@@ -987,6 +973,8 @@ window.addEventListener('mouseup', () => {
       null, v.terraceType, v.terraceDetachedLocation, v.terraceWallTrimStart, v.terraceWallTrimEnd);
     editDragWallObj = null;
     canvas.style.cursor = 'default';
+    _updateEditDepthDisplay();
+    _setEditChanged();
   }
   if (editDraggingWidth) {
     editDraggingWidth = false;
@@ -995,6 +983,7 @@ window.addEventListener('mouseup', () => {
       null, v.terraceType, v.terraceDetachedLocation, v.terraceWallTrimStart, v.terraceWallTrimEnd);
     editWidthWall = null;
     canvas.style.cursor = 'default';
+    _setEditChanged();
   }
 });
 
@@ -1088,10 +1077,7 @@ if (_isTouchDevice) {
         const pixelDist = (cx - mx) * normX + (cy - my) * normY;
         v.terraceDepth = Math.max(1, Math.min(30, pixelDist / pxPerMetre(v)));
         draw();
-        const walls = getTerraceWalls(v);
-        const wallsLabel = walls.length > 1 ? ` · ${walls.length} walls` : '';
-        document.getElementById('edit-facing-display').innerHTML =
-          `${v.facing}° ${bearingToCardinal(v.facing)}${wallsLabel} · <span style="color:#64ffb4">${Math.round(getEffectiveDepth(v))}m depth</span>`;
+        _updateEditDepthDisplay();
       }
       e.preventDefault(); return;
     }
@@ -1107,6 +1093,8 @@ if (_isTouchDevice) {
       editDraggingDepth = false; editDragWallObj = null;
       editDraggingWidth = false; editWidthWall   = null;
       _editTouchId = null;
+      _updateEditDepthDisplay();
+      _setEditChanged();
       draw();
       return;
     }

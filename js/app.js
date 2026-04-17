@@ -15,6 +15,7 @@ let selectedId        = null;
 let editingVenueId    = null;
 let editHoveredWallIdx = null;
 let _editBeforeSnapshot = null;   // venue state captured when entering edit mode
+let _editHasChanges    = false;   // true once any edit-mode modification is made
 let popup             = null;
 let nowMode           = false;
 let nowInterval       = null;
@@ -1400,8 +1401,9 @@ function enterEditMode(venueId) {
   if (!v) return;
 
   _editBeforeSnapshot = _venueEditSnapshot(v);
+  _editHasChanges = false;
 
-  document.getElementById('edit-overlay').style.display = 'block';
+  document.getElementById('edit-overlay').style.display = 'flex';
   document.getElementById('floating-search').style.display = 'none';
   document.getElementById('panel').style.display = 'none';
   document.getElementById('detail-panel').style.display = 'none';
@@ -1409,16 +1411,11 @@ function enterEditMode(venueId) {
   document.getElementById('qc-panel').style.display = 'none';
   document.getElementById('panel-reveal-btn').style.display = 'none';
   document.getElementById('edit-venue-label').textContent = v.name;
-  document.getElementById('edit-done-btn').textContent = authCanDirectEdit() ? 'Lagre' : 'Send forslag';
-  // "Ser riktig ut" only makes sense when the model was auto-computed (not already manually set)
-  const confirmBtn = document.getElementById('edit-confirm-btn');
-  if (confirmBtn) confirmBtn.style.display = v.facingSource === 'manual' ? 'none' : '';
   const type = v.terraceType ?? 'street';
-  if (type === 'rooftop')   document.getElementById('edit-facing-display').innerHTML = 'Rooftop';
-  else if (type === 'courtyard') document.getElementById('edit-facing-display').innerHTML = 'Courtyard';
-  else if (type === 'detached')  document.getElementById('edit-facing-display').innerHTML = 'Detached';
-  else document.getElementById('edit-facing-display').innerHTML = `${v.facing}° ${bearingToCardinal(v.facing)}`;
   _syncTerraceTypeUI(type);
+  _updateEditDepthDisplay();
+  _updateEditDirectionDisplay(v);
+  _updateEditActionBtn();
 
   if (popup) { popup.remove(); popup = null; }
   tooltip.classList.remove('visible');
@@ -1481,6 +1478,7 @@ function exitEditMode() {
     }
   }
   _editBeforeSnapshot = null;
+  _editHasChanges = false;
   editingVenueId = null;
   editHoveredWallIdx = null;
   document.getElementById('edit-overlay').style.display = 'none';
@@ -1516,6 +1514,52 @@ function confirmEditCorrect() {
   exitEditMode();
 }
 
+/** Single adaptive button handler: confirm (no changes) or save/submit (changes made). */
+function onEditActionBtn() {
+  if (_editHasChanges) {
+    exitEditMode();
+  } else {
+    confirmEditCorrect();
+  }
+}
+
+function _setEditChanged() {
+  _editHasChanges = true;
+  _updateEditActionBtn();
+}
+
+function _updateEditActionBtn() {
+  const btn = document.getElementById('edit-action-btn');
+  if (!btn) return;
+  if (!_editHasChanges) {
+    btn.textContent = 'Looks good ✓';
+    btn.className = 'ghost';
+  } else {
+    btn.textContent = authCanDirectEdit() ? 'Save' : 'Send suggestion';
+    btn.className = 'primary';
+  }
+}
+
+function _updateEditDepthDisplay() {
+  const el = document.getElementById('edit-depth-display');
+  if (!el) return;
+  const v = VENUES.find(x => x.id === editingVenueId);
+  if (!v || (v.terraceType && v.terraceType !== 'street')) { el.textContent = '—'; return; }
+  const depth = getEffectiveDepth(v);
+  el.textContent = `${Math.round(depth * 10) / 10} m`;
+}
+
+function _updateEditDirectionDisplay(v) {
+  const el = document.getElementById('edit-direction-display');
+  if (!el || !v) return;
+  const type = v.terraceType ?? 'street';
+  if (type === 'rooftop')   { el.textContent = 'Rooftop';   return; }
+  if (type === 'courtyard') { el.textContent = 'Courtyard'; return; }
+  if (type === 'detached')  { el.textContent = 'Detached';  return; }
+  const walls = getTerraceWalls(v);
+  el.textContent = walls.length ? bearingToCardinal(v.facing) : '—';
+}
+
 function selectWallByIdx(idx) {
   const v = VENUES.find(x => x.id === editingVenueId);
   if (!v?.wallNormals) return;
@@ -1537,11 +1581,8 @@ function selectWallByIdx(idx) {
   saveFacingCache(v.id, v.facing, 'manual', v.terraceWallIndices, v.terraceDepth ?? 7);
   clearSpriteCache();
   sunWindowCache.clear();
-  const walls = getTerraceWalls(v);
-  const label = walls.length > 1
-    ? `${v.facing}° ${bearingToCardinal(v.facing)} · ${walls.length} walls`
-    : `${v.facing}° ${bearingToCardinal(v.facing)}`;
-  document.getElementById('edit-facing-display').innerHTML = label;
+  _updateEditDirectionDisplay(v);
+  _setEditChanged();
   dispatchToWorker(datePicker.value);
   draw();
   renderList();
@@ -1557,8 +1598,8 @@ const _TYPE_SUBTITLES = {
 function _syncTerraceTypeUI(type) {
   const sel = document.getElementById('edit-type-select');
   if (sel) sel.value = type;
-  const subtitle = document.getElementById('edit-subtitle');
-  if (subtitle) subtitle.textContent = _TYPE_SUBTITLES[type] ?? _TYPE_SUBTITLES.street;
+  const instr = document.getElementById('edit-instruction');
+  if (instr) instr.textContent = _TYPE_SUBTITLES[type] ?? _TYPE_SUBTITLES.street;
 }
 
 function setTerraceType(type) {
@@ -1567,25 +1608,21 @@ function setTerraceType(type) {
   v.terraceType = type;
   _syncTerraceTypeUI(type);
 
-  const facingEl = document.getElementById('edit-facing-display');
-
   if (type === 'rooftop' || type === 'courtyard') {
     v.terraceTestPoints = v.buildingGeometry?.length
       ? (() => { const c = computeCentroid(v.buildingGeometry); return [{ lat: c.lat, lng: c.lon }]; })()
       : [{ lat: v.lat, lng: v.lng }];
-    facingEl.innerHTML = type === 'rooftop' ? 'Rooftop' : 'Courtyard';
   } else if (type === 'detached') {
     if (!v.terraceDetachedLocation) v.terraceDetachedLocation = { lat: v.lat, lng: v.lng };
     v.terraceTestPoints = [{ ...v.terraceDetachedLocation }];
-    facingEl.innerHTML = 'Detached';
   } else {
     // street
     v.terraceTestPoints = computeTerraceTestPoints(v, null);
-    const walls = getTerraceWalls(v);
-    facingEl.innerHTML = walls.length > 1
-      ? `${v.facing}° ${bearingToCardinal(v.facing)} · ${walls.length} walls`
-      : `${v.facing}° ${bearingToCardinal(v.facing)}`;
   }
+
+  _updateEditDirectionDisplay(v);
+  _updateEditDepthDisplay();
+  _setEditChanged();
 
   saveFacingCache(v.id, v.facing, v.facingSource,
     v.terraceWallIndices, v.terraceDepth, v.noiseScore, type, v.terraceDetachedLocation);
@@ -1604,6 +1641,7 @@ function setDetachedLocation(lat, lng) {
   saveFacingCache(v.id, v.facing, v.facingSource,
     v.terraceWallIndices, v.terraceDepth, v.noiseScore, 'detached', { lat, lng });
   sunWindowCache.clear();
+  _setEditChanged();
   dispatchToWorker(datePicker.value);
   draw();
 }

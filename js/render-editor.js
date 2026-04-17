@@ -166,8 +166,8 @@ function drawBuildingEditor() {
       ctx.beginPath();
       poly.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
       ctx.closePath();
-      ctx.fillStyle = 'rgba(100,255,180,0.10)'; ctx.fill();
-      ctx.strokeStyle = 'rgba(100,255,180,0.55)'; ctx.lineWidth = 1.5;
+      ctx.fillStyle = 'rgba(255,175,133,0.10)'; ctx.fill();
+      ctx.strokeStyle = 'rgba(255,175,133,0.45)'; ctx.lineWidth = 1.5;
       ctx.setLineDash([5, 3]); ctx.stroke(); ctx.setLineDash([]);
     });
 
@@ -178,12 +178,12 @@ function drawBuildingEditor() {
       const hy = my + normY * depthPx;
 
       ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(hx, hy);
-      ctx.strokeStyle = 'rgba(100,255,180,0.6)'; ctx.lineWidth = 1.5;
+      ctx.strokeStyle = 'rgba(255,175,133,0.55)'; ctx.lineWidth = 1.5;
       ctx.setLineDash([4, 3]); ctx.stroke(); ctx.setLineDash([]);
 
       const draggingThis = editDraggingDepth && editDragWallObj === wall;
       ctx.beginPath(); ctx.arc(hx, hy, draggingThis ? 10 : 8, 0, Math.PI * 2);
-      ctx.fillStyle   = draggingThis ? '#64ffb4' : 'rgba(100,255,180,0.85)';
+      ctx.fillStyle   = draggingThis ? 'rgba(156,189,231,0.9)' : 'rgba(156,189,231,0.7)';
       ctx.fill();
       ctx.strokeStyle = 'rgba(10,14,28,0.9)'; ctx.lineWidth = 2; ctx.stroke();
 
@@ -193,7 +193,7 @@ function drawBuildingEditor() {
       const lx = hx + normX * 20, ly = hy + normY * 20;
       ctx.fillStyle = 'rgba(10,14,28,0.88)';
       fillRoundRect(ctx, lx - 15, ly - 10, 30, 20, 5);
-      ctx.fillStyle = '#64ffb4';
+      ctx.fillStyle = '#FFAF85';
       ctx.fillText(`${Math.round(depth)}m`, lx, ly);
     });
 
