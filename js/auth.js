@@ -15,12 +15,17 @@ function authRole()          { return _currentRole; }
 
 async function authLoadRole() {
   if (!_currentUser) { _currentRole = null; return; }
-  const { data } = await _supabase
+  const { data, error } = await _supabase
     .from('profiles')
     .select('role')
     .eq('id', _currentUser.id)
     .single();
-  _currentRole = data?.role ?? 'user';
+  if (error) {
+    console.warn('[auth] authLoadRole failed — profiles table may not exist yet.', error.message);
+    _currentRole = 'user';
+  } else {
+    _currentRole = data?.role ?? 'user';
+  }
   _renderProfilePanel();
 }
 

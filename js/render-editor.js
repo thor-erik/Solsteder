@@ -12,6 +12,12 @@ let editDraggingDepth    = false;
 let editDragWallObj      = null;
 let _detachedDragging    = false;
 
+// ── Width-trim drag state ─────────────────────────────────────────────────────
+// editDraggingWidth: 'start' | 'end' | false
+let editDraggingWidth    = false;
+// The primary wall used for width trimming (first selected wall)
+let editWidthWall        = null;
+
 // ── Building editor overlay ───────────────────────────────────────────────────
 function drawBuildingEditor() {
   const v = VENUES.find(x => x.id === editingVenueId);
@@ -147,12 +153,15 @@ function drawBuildingEditor() {
 
   // ── Terrace preview + depth handles ────────────────────────────────────────
   if (currentWalls.length > 0) {
-    const depth  = getEffectiveDepth(v);
-    const pxPerM = pxPerMetre(v);
+    const depth   = getEffectiveDepth(v);
+    const pxPerM  = pxPerMetre(v);
     const depthPx = depth * pxPerM;
 
+    // Apply width trim to first wall for terrace preview
+    const trimmedWalls = _applyTrimToWalls(v, currentWalls, pxPerM);
+
     // Mitered terrace preview (one clean polygon per connected chain)
-    const polys = terracePolygons(v, currentWalls, depthPx);
+    const polys = terracePolygons(v, trimmedWalls, depthPx);
     polys.forEach(poly => {
       ctx.beginPath();
       poly.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
@@ -187,5 +196,107 @@ function drawBuildingEditor() {
       ctx.fillStyle = '#64ffb4';
       ctx.fillText(`${Math.round(depth)}m`, lx, ly);
     });
+
+    // Width trim handles on first selected wall (diamond handles at endpoints)
+    _drawWidthHandles(v, currentWalls[0], pxPerM);
   }
+}
+
+// ── Width trim helpers ────────────────────────────────────────────────────────
+
+/**
+ * Apply terraceWallTrimStart/End to the first wall of a wall array,
+ * returning new wall copies with interpolated lat/lng endpoints.
+ */
+function _applyTrimToWalls(v, walls, pxPerM) {
+  if (!walls.length) return walls;
+  const sM = v.terraceWallTrimStart ?? 0;
+  const eM = v.terraceWallTrimEnd   ?? 0;
+  if (sM === 0 && eM === 0) return walls;
+
+  const result = walls.slice();
+  const w = walls[0];
+  // Compute wall length in metres
+  const pa = map.project([w.aLng, w.aLat]);
+  const pb = map.project([w.bLng, w.bLat]);
+  const lenPx = Math.hypot(pb.x - pa.x, pb.y - pa.y) || 1;
+  const lenM  = lenPx / pxPerM;
+
+  const sfrac = Math.min(0.48, sM / lenM);
+  const efrac = Math.min(0.48, eM / lenM);
+
+  result[0] = {
+    ...w,
+    aLat: w.aLat + (w.bLat - w.aLat) * sfrac,
+    aLng: w.aLng + (w.bLng - w.aLng) * sfrac,
+    bLat: w.bLat - (w.bLat - w.aLat) * efrac,
+    bLng: w.bLng - (w.bLng - w.aLng) * efrac,
+  };
+  return result;
+}
+
+/** Compute pixel position of width handle at start or end of wall with trim applied. */
+function _getWidthHandlePos(v, wall, side, pxPerM) {
+  const pa  = map.project([wall.aLng, wall.aLat]);
+  const pb  = map.project([wall.bLng, wall.bLat]);
+  const len = Math.hypot(pb.x - pa.x, pb.y - pa.y) || 1;
+  const sM  = v.terraceWallTrimStart ?? 0;
+  const eM  = v.terraceWallTrimEnd   ?? 0;
+  const sFrac = Math.min(0.48, sM / (len / pxPerM));
+  const eFrac = Math.min(0.48, eM / (len / pxPerM));
+
+  if (side === 'start') {
+    return { x: pa.x + (pb.x - pa.x) * sFrac, y: pa.y + (pb.y - pa.y) * sFrac };
+  } else {
+    return { x: pb.x - (pb.x - pa.x) * eFrac, y: pb.y - (pb.y - pa.y) * eFrac };
+  }
+}
+
+function _drawWidthHandles(v, wall, pxPerM) {
+  if (!wall) return;
+  for (const side of ['start', 'end']) {
+    const { x, y } = _getWidthHandlePos(v, wall, side, pxPerM);
+    const dragging  = editDraggingWidth === side && editWidthWall === wall;
+    const R = dragging ? 10 : 8;
+
+    // Diamond shape
+    ctx.save();
+    ctx.translate(x, y); ctx.rotate(Math.PI / 4);
+    ctx.beginPath();
+    ctx.rect(-R * 0.65, -R * 0.65, R * 1.3, R * 1.3);
+    ctx.fillStyle   = dragging ? '#FFAF85' : 'rgba(255,175,133,0.85)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(10,14,28,0.9)'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.restore();
+
+    // Label: trim amount
+    const trimM = side === 'start' ? (v.terraceWallTrimStart ?? 0) : (v.terraceWallTrimEnd ?? 0);
+    if (trimM > 0.5) {
+      ctx.font = 'bold 10px "Inter", sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const pa = map.project([wall.aLng, wall.aLat]);
+      const pb = map.project([wall.bLng, wall.bLat]);
+      const len = Math.hypot(pb.x - pa.x, pb.y - pa.y) || 1;
+      const nx = -(pb.y - pa.y) / len, ny = (pb.x - pa.x) / len;
+      ctx.fillStyle = 'rgba(10,14,28,0.85)';
+      fillRoundRect(ctx, x + nx * 20 - 14, y + ny * 20 - 10, 28, 20, 5);
+      ctx.fillStyle = '#FFAF85';
+      ctx.fillText(`${Math.round(trimM)}m`, x + nx * 20, y + ny * 20);
+    }
+  }
+}
+
+/** Hit test for width handles. Returns 'start', 'end', or null. */
+function hitTestWidthHandle(cx, cy) {
+  if (!editingVenueId) return null;
+  const v = VENUES.find(x => x.id === editingVenueId);
+  if (!v) return null;
+  const walls = getTerraceWalls(v);
+  if (!walls.length) return null;
+  const pxPerM = pxPerMetre(v);
+  for (const side of ['start', 'end']) {
+    const { x, y } = _getWidthHandlePos(v, walls[0], side, pxPerM);
+    if (Math.hypot(cx - x, cy - y) < 14) return { side, wall: walls[0] };
+  }
+  return null;
 }

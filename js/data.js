@@ -34,7 +34,7 @@ function loadFacingCache() {
   catch (_) { return {}; }
 }
 
-function saveFacingCache(venueId, facing, facingSource, terraceWallIndices, terraceDepth, noiseScore, terraceType, terraceDetachedLocation) {
+function saveFacingCache(venueId, facing, facingSource, terraceWallIndices, terraceDepth, noiseScore, terraceType, terraceDetachedLocation, terraceWallTrimStart, terraceWallTrimEnd) {
   const cache = loadFacingCache();
   const prev  = cache[venueId] || {};
   cache[venueId] = {
@@ -46,6 +46,8 @@ function saveFacingCache(venueId, facing, facingSource, terraceWallIndices, terr
     noiseScore:              noiseScore              ?? prev.noiseScore              ?? null,
     terraceType:             terraceType             ?? prev.terraceType             ?? null,
     terraceDetachedLocation: terraceDetachedLocation ?? prev.terraceDetachedLocation ?? null,
+    terraceWallTrimStart:    terraceWallTrimStart    ?? prev.terraceWallTrimStart    ?? null,
+    terraceWallTrimEnd:      terraceWallTrimEnd      ?? prev.terraceWallTrimEnd      ?? null,
   };
   try { localStorage.setItem(FACING_CACHE_KEY, JSON.stringify(cache)); }
   catch (_) {}
@@ -136,6 +138,8 @@ async function loadVenues() {
     if (cached.noiseScore   != null)       v.noiseScore         = cached.noiseScore;
     if (cached.terraceType             != null) v.terraceType             = cached.terraceType;
     if (cached.terraceDetachedLocation != null) v.terraceDetachedLocation = cached.terraceDetachedLocation;
+    if (cached.terraceWallTrimStart    != null) v.terraceWallTrimStart    = cached.terraceWallTrimStart;
+    if (cached.terraceWallTrimEnd      != null) v.terraceWallTrimEnd      = cached.terraceWallTrimEnd;
     // JSON-level 'manual' beats any localStorage entry (it was intentionally authored)
     if (v.facingSource === 'manual') return;
     v.facing = cached.facing;

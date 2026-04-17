@@ -1329,6 +1329,8 @@ function _venueEditSnapshot(v) {
     terraceType:             v.terraceType ?? 'street',
     terraceWallIndices:      (v.terraceWallIndices ?? []).slice(),
     terraceDepth:            v.terraceDepth ?? null,
+    terraceWallTrimStart:    v.terraceWallTrimStart ?? null,
+    terraceWallTrimEnd:      v.terraceWallTrimEnd   ?? null,
     facing:                  v.facing,
     facingSource:            v.facingSource ?? null,
     terraceDetachedLocation: v.terraceDetachedLocation ? { ...v.terraceDetachedLocation } : null,
@@ -1340,11 +1342,14 @@ function _applyVenueSnapshot(v, snap) {
   v.terraceType             = snap.terraceType;
   v.terraceWallIndices      = (snap.terraceWallIndices ?? []).slice();
   v.terraceDepth            = snap.terraceDepth;
+  v.terraceWallTrimStart    = snap.terraceWallTrimStart ?? null;
+  v.terraceWallTrimEnd      = snap.terraceWallTrimEnd   ?? null;
   v.facing                  = snap.facing;
   v.facingSource            = snap.facingSource;
   v.terraceDetachedLocation = snap.terraceDetachedLocation ? { ...snap.terraceDetachedLocation } : null;
   saveFacingCache(v.id, v.facing, v.facingSource,
-    v.terraceWallIndices, v.terraceDepth, null, v.terraceType, v.terraceDetachedLocation);
+    v.terraceWallIndices, v.terraceDepth, null, v.terraceType, v.terraceDetachedLocation,
+    v.terraceWallTrimStart, v.terraceWallTrimEnd);
 }
 
 /** Called from auth.js adminApproveEdit — applies an approved proposal to local state. */
@@ -1405,6 +1410,9 @@ function enterEditMode(venueId) {
   document.getElementById('panel-reveal-btn').style.display = 'none';
   document.getElementById('edit-venue-label').textContent = v.name;
   document.getElementById('edit-done-btn').textContent = authCanDirectEdit() ? 'Lagre' : 'Send forslag';
+  // "Ser riktig ut" only makes sense when the model was auto-computed (not already manually set)
+  const confirmBtn = document.getElementById('edit-confirm-btn');
+  if (confirmBtn) confirmBtn.style.display = v.facingSource === 'manual' ? 'none' : '';
   const type = v.terraceType ?? 'street';
   if (type === 'rooftop')   document.getElementById('edit-facing-display').innerHTML = 'Rooftop';
   else if (type === 'courtyard') document.getElementById('edit-facing-display').innerHTML = 'Courtyard';
@@ -1547,9 +1555,8 @@ const _TYPE_SUBTITLES = {
 };
 
 function _syncTerraceTypeUI(type) {
-  document.querySelectorAll('.edit-type-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.type === type);
-  });
+  const sel = document.getElementById('edit-type-select');
+  if (sel) sel.value = type;
   const subtitle = document.getElementById('edit-subtitle');
   if (subtitle) subtitle.textContent = _TYPE_SUBTITLES[type] ?? _TYPE_SUBTITLES.street;
 }

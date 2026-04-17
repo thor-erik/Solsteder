@@ -1879,30 +1879,32 @@
     color: #9CBDE7;
   }
 
-  #edit-type-selector {
-    display: flex;
-    gap: 4px;
-  }
-
-  .edit-type-btn {
+  #edit-type-select {
     background: rgba(156,189,231,0.15);
     border: 1px solid rgba(156,189,231,0.28);
     border-radius: 8px;
-    color: var(--muted);
+    color: var(--text);
     font-family: 'Inter', sans-serif;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
-    padding: 5px 11px;
+    padding: 7px 28px 7px 12px;
     cursor: pointer;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239CBDE7' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    transition: border-color 0.15s, background-color 0.15s;
+    min-width: 100px;
   }
 
-  .edit-type-btn:hover { background: rgba(156,189,231,0.25); color: var(--text); }
+  #edit-type-select:focus { border-color: rgba(255,175,133,0.55); }
 
-  .edit-type-btn.active {
-    background: rgba(255,175,133,0.15);
-    border-color: rgba(255,175,133,0.55);
-    color: var(--accent);
+  #edit-type-select option {
+    background: #0d1f35;
+    color: var(--text);
+    font-weight: 600;
   }
 
   #edit-satellite-btn {
@@ -1963,21 +1965,6 @@
 
   #edit-done-btn:hover { opacity: 0.85; }
 
-  #edit-export-btn {
-    background: transparent;
-    border: 1px solid rgba(156,189,231,0.35);
-    border-radius: 8px;
-    color: var(--muted);
-    font-family: 'Inter', sans-serif;
-    font-size: 11px;
-    font-weight: 500;
-    padding: 5px 10px;
-    cursor: pointer;
-    transition: background 0.15s, color 0.15s;
-    white-space: nowrap;
-  }
-
-  #edit-export-btn:hover { background: rgba(156,189,231,0.15); color: var(--text); }
 
   /* ── Profile panel additions ─────────────────────────────────────────────── */
   .profile-panel-section {
@@ -2206,22 +2193,13 @@
       border-bottom: none;
     }
 
-    #edit-info { order: 1; flex: 1 0 100%; }
-    #edit-venue-label { order: 2; align-self: center; }
+    #edit-info           { order: 1; flex: 1 0 100%; }
+    #edit-venue-label    { order: 2; align-self: center; }
     #edit-facing-display { order: 3; min-width: unset; }
-
-    #edit-type-selector {
-      order: 4;
-      flex: 1 0 100%;
-      flex-wrap: wrap;
-    }
-
-    .edit-type-btn { flex: 1; text-align: center; }
-
-    #edit-satellite-btn { order: 5; flex: 1; justify-content: center; }
-    #edit-confirm-btn   { order: 6; flex: 1; }
-    #edit-done-btn      { order: 7; flex: 1; }
-    #edit-export-btn    { order: 8; flex: 1; }
+    #edit-type-select    { order: 4; flex: 1 0 auto; }
+    #edit-satellite-btn  { order: 5; flex: 1; justify-content: center; }
+    #edit-confirm-btn    { order: 6; flex: 1; }
+    #edit-done-btn       { order: 7; flex: 1; }
   }
 
   /* Timeline */
@@ -3219,18 +3197,17 @@
         </div>
         <div id="edit-venue-label">—</div>
         <div id="edit-facing-display">—</div>
-        <div id="edit-type-selector">
-          <button class="edit-type-btn active" data-type="street"    onclick="setTerraceType('street')"    title="Street-level terrace">Street</button>
-          <button class="edit-type-btn"         data-type="rooftop"  onclick="setTerraceType('rooftop')"  title="Rooftop terrace">Rooftop</button>
-          <button class="edit-type-btn"         data-type="courtyard" onclick="setTerraceType('courtyard')" title="Enclosed courtyard">Courtyard</button>
-          <button class="edit-type-btn"         data-type="detached" onclick="setTerraceType('detached')" title="Terrace separate from building">Detached</button>
-        </div>
+        <select id="edit-type-select" onchange="setTerraceType(this.value)" title="Terrace type">
+          <option value="street">Street</option>
+          <option value="rooftop">Rooftop</option>
+          <option value="courtyard">Courtyard</option>
+          <option value="detached">Detached</option>
+        </select>
         <button id="edit-satellite-btn" onclick="toggleEditSatellite()" title="Toggle satellite view">
           🛰 Satellite
         </button>
-        <button id="edit-confirm-btn" onclick="confirmEditCorrect()" title="Model is already correct — record as confirmed">Ser riktig ut ✓</button>
+        <button id="edit-confirm-btn" onclick="confirmEditCorrect()" title="Looks right — record auto model as confirmed" style="display:none">Ser riktig ut ✓</button>
         <button id="edit-done-btn" onclick="exitEditMode()">Lagre</button>
-        <button id="edit-export-btn" onclick="exportCorrections()" title="Download corrections log for analysis">Eksporter</button>
       </div>
     </div>
 

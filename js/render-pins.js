@@ -767,6 +767,14 @@ canvas.addEventListener('mousedown', e => {
       canvas.style.cursor = 'grabbing';
       return;
     }
+    // Width trim handle drag
+    const wh = hitTestWidthHandle(cx, cy);
+    if (wh) {
+      editDraggingWidth = wh.side;
+      editWidthWall     = wh.wall;
+      canvas.style.cursor = 'ew-resize';
+      return;
+    }
     // Depth handle drag takes priority — don't forward to map
     const handle = hitTestDepthHandle(cx, cy);
     if (handle) {
@@ -842,6 +850,30 @@ canvas.addEventListener('mousemove', e => {
       return;
     }
 
+    // Width trim drag in progress
+    if (editDraggingWidth && editWidthWall) {
+      const v = VENUES.find(x => x.id === editingVenueId);
+      if (v) {
+        const wall = editWidthWall;
+        const pa   = map.project([wall.aLng, wall.aLat]);
+        const pb   = map.project([wall.bLng, wall.bLat]);
+        // Project cursor onto wall axis (0 = a-end, 1 = b-end)
+        const wdx = pb.x - pa.x, wdy = pb.y - pa.y;
+        const lenSq = wdx * wdx + wdy * wdy || 1;
+        const t = ((cx - pa.x) * wdx + (cy - pa.y) * wdy) / lenSq;
+        const pxPerM = pxPerMetre(v);
+        const lenM   = Math.sqrt(lenSq) / pxPerM;
+        if (editDraggingWidth === 'start') {
+          v.terraceWallTrimStart = Math.max(0, Math.min(lenM * 0.48, t * lenM));
+        } else {
+          v.terraceWallTrimEnd = Math.max(0, Math.min(lenM * 0.48, (1 - t) * lenM));
+        }
+        draw();
+        canvas.style.cursor = 'ew-resize';
+      }
+      return;
+    }
+
     // Depth drag in progress
     if (editDraggingDepth && editDragWallObj) {
       const v = VENUES.find(x => x.id === editingVenueId);
@@ -867,6 +899,9 @@ canvas.addEventListener('mousemove', e => {
       canvas.style.cursor = 'default';
       return;
     }
+
+    const wHandle = hitTestWidthHandle(cx, cy);
+    if (wHandle) { canvas.style.cursor = 'ew-resize'; return; }
 
     const handle = hitTestDepthHandle(cx, cy);
     if (handle) { canvas.style.cursor = 'row-resize'; return; }
@@ -936,7 +971,7 @@ canvas.addEventListener('mouseleave', () => {
     draw();
   }
   tooltip.classList.remove('visible');
-  if (!editDraggingDepth) canvas.style.cursor = 'default';
+  if (!editDraggingDepth && !editDraggingWidth) canvas.style.cursor = 'default';
 });
 
 window.addEventListener('mouseup', () => {
@@ -948,8 +983,17 @@ window.addEventListener('mouseup', () => {
   if (editDraggingDepth) {
     editDraggingDepth = false;
     const v = VENUES.find(x => x.id === editingVenueId);
-    if (v) saveFacingCache(v.id, v.facing, v.facingSource, v.terraceWallIndices ?? [], v.terraceDepth);
+    if (v) saveFacingCache(v.id, v.facing, v.facingSource, v.terraceWallIndices ?? [], v.terraceDepth,
+      null, v.terraceType, v.terraceDetachedLocation, v.terraceWallTrimStart, v.terraceWallTrimEnd);
     editDragWallObj = null;
+    canvas.style.cursor = 'default';
+  }
+  if (editDraggingWidth) {
+    editDraggingWidth = false;
+    const v = VENUES.find(x => x.id === editingVenueId);
+    if (v) saveFacingCache(v.id, v.facing, v.facingSource, v.terraceWallIndices ?? [], v.terraceDepth,
+      null, v.terraceType, v.terraceDetachedLocation, v.terraceWallTrimStart, v.terraceWallTrimEnd);
+    editWidthWall = null;
     canvas.style.cursor = 'default';
   }
 });
@@ -967,14 +1011,125 @@ canvas.addEventListener('wheel', e => {
 // pan/pinch-zoom. We listen at document level to detect taps on pins.
 if (_isTouchDevice) {
   let _touchStartX = 0, _touchStartY = 0;
+  let _editTouchId = null; // tracking identifier for edit-mode drag
 
   document.addEventListener('touchstart', e => {
     const t = e.touches?.[0];
-    if (t) { _touchStartX = t.clientX; _touchStartY = t.clientY; }
-  }, { passive: true });
+    if (!t) return;
+    _touchStartX = t.clientX; _touchStartY = t.clientY;
+
+    if (!editingVenueId) return;
+    // In edit mode: capture canvas-relative position and check for drag handles
+    const rect = canvas.getBoundingClientRect();
+    const cx = t.clientX - rect.left, cy = t.clientY - rect.top;
+
+    // Detached pin drag
+    if (hitTestDetachedPin(cx, cy)) {
+      _detachedDragging = true;
+      _editTouchId = t.identifier;
+      e.preventDefault();
+      return;
+    }
+    // Width trim handle
+    const wh = hitTestWidthHandle(cx, cy);
+    if (wh) {
+      editDraggingWidth = wh.side;
+      editWidthWall     = wh.wall;
+      _editTouchId = t.identifier;
+      e.preventDefault();
+      return;
+    }
+    // Depth handle
+    const dh = hitTestDepthHandle(cx, cy);
+    if (dh) {
+      editDraggingDepth = true;
+      editDragWallObj   = dh;
+      _editTouchId = t.identifier;
+      e.preventDefault();
+      return;
+    }
+  }, { passive: false });
+
+  document.addEventListener('touchmove', e => {
+    if (!editingVenueId) return;
+    const t = Array.from(e.touches).find(tt => tt.identifier === _editTouchId) ?? e.touches[0];
+    if (!t) return;
+    const rect = canvas.getBoundingClientRect();
+    const cx = t.clientX - rect.left, cy = t.clientY - rect.top;
+
+    if (_detachedDragging) {
+      const ll = map.unproject([cx, cy]);
+      setDetachedLocation(ll.lat, ll.lng);
+      e.preventDefault(); return;
+    }
+    if (editDraggingWidth && editWidthWall) {
+      const v = VENUES.find(x => x.id === editingVenueId);
+      if (v) {
+        const wall = editWidthWall;
+        const pa   = map.project([wall.aLng, wall.aLat]);
+        const pb   = map.project([wall.bLng, wall.bLat]);
+        const wdx = pb.x - pa.x, wdy = pb.y - pa.y;
+        const lenSq = wdx * wdx + wdy * wdy || 1;
+        const t2 = ((cx - pa.x) * wdx + (cy - pa.y) * wdy) / lenSq;
+        const lenM = Math.sqrt(lenSq) / pxPerMetre(v);
+        if (editDraggingWidth === 'start') {
+          v.terraceWallTrimStart = Math.max(0, Math.min(lenM * 0.48, t2 * lenM));
+        } else {
+          v.terraceWallTrimEnd = Math.max(0, Math.min(lenM * 0.48, (1 - t2) * lenM));
+        }
+        draw();
+      }
+      e.preventDefault(); return;
+    }
+    if (editDraggingDepth && editDragWallObj) {
+      const v = VENUES.find(x => x.id === editingVenueId);
+      if (v) {
+        const { normX, normY, mx, my } = wallOutwardNormal(v, editDragWallObj);
+        const pixelDist = (cx - mx) * normX + (cy - my) * normY;
+        v.terraceDepth = Math.max(1, Math.min(30, pixelDist / pxPerMetre(v)));
+        draw();
+        const walls = getTerraceWalls(v);
+        const wallsLabel = walls.length > 1 ? ` · ${walls.length} walls` : '';
+        document.getElementById('edit-facing-display').innerHTML =
+          `${v.facing}° ${bearingToCardinal(v.facing)}${wallsLabel} · <span style="color:#64ffb4">${Math.round(getEffectiveDepth(v))}m depth</span>`;
+      }
+      e.preventDefault(); return;
+    }
+  }, { passive: false });
 
   document.addEventListener('touchend', e => {
-    if (editingVenueId) return;
+    // Save state after any edit drag
+    if (editingVenueId && (_detachedDragging || editDraggingDepth || editDraggingWidth)) {
+      const v = VENUES.find(x => x.id === editingVenueId);
+      if (v) saveFacingCache(v.id, v.facing, v.facingSource, v.terraceWallIndices ?? [], v.terraceDepth,
+        null, v.terraceType, v.terraceDetachedLocation, v.terraceWallTrimStart, v.terraceWallTrimEnd);
+      _detachedDragging = false;
+      editDraggingDepth = false; editDragWallObj = null;
+      editDraggingWidth = false; editWidthWall   = null;
+      _editTouchId = null;
+      draw();
+      return;
+    }
+
+    if (editingVenueId) {
+      // Wall tap in edit mode
+      const t = e.changedTouches?.[0];
+      if (!t) return;
+      const dx = t.clientX - _touchStartX, dy = t.clientY - _touchStartY;
+      if (dx * dx + dy * dy >= 100) return; // not a tap
+      const rect = canvas.getBoundingClientRect();
+      const cx = t.clientX - rect.left, cy = t.clientY - rect.top;
+      const v = VENUES.find(x => x.id === editingVenueId);
+      if (v?.terraceType === 'detached') {
+        const ll = map.unproject([cx, cy]);
+        setDetachedLocation(ll.lat, ll.lng);
+      } else {
+        const wallIdx = hitTestWall(cx, cy);
+        if (wallIdx !== null && (!v?.terraceType || v.terraceType === 'street')) selectWallByIdx(wallIdx);
+      }
+      return;
+    }
+
     const t = e.changedTouches?.[0];
     if (!t) return;
     const dx = t.clientX - _touchStartX, dy = t.clientY - _touchStartY;
