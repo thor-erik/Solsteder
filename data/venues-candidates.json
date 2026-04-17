@@ -1,5 +1,1120 @@
 [
   {
+    "id": 110,
+    "name": "Grand Café Oslo",
+    "address": "Karl Johans gt. 31, 0159 Oslo, Norway",
+    "coords": [
+      59.913869700000006,
+      10.7390261
+    ],
+    "category": "restaurant",
+    "area": "Sentrum",
+    "rating": 4.2,
+    "facing": null,
+    "openingHours": {
+      "open": 7,
+      "close": 21
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 7,
+        "close": 10.5
+      },
+      "1": {
+        "open": 12,
+        "close": 16
+      },
+      "2": {
+        "open": 12,
+        "close": 21
+      },
+      "3": {
+        "open": 12,
+        "close": 21
+      },
+      "4": {
+        "open": 12,
+        "close": 21
+      },
+      "5": {
+        "open": 12,
+        "close": 21
+      },
+      "6": {
+        "open": 7,
+        "close": 21
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJvZf2bn1uQUYRmWuqdBpxS8E",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 111,
+    "name": "Williamsburg",
+    "address": "Karl Johans gt. 35, 0162 Oslo, Norway",
+    "coords": [
+      59.91413379999999,
+      10.7381028
+    ],
+    "category": "bar",
+    "area": "Sentrum",
+    "rating": 3.9,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 23
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJbZOS8b9vQUYRevPyTUXilPU",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 112,
+    "name": "Egon",
+    "address": "Karl Johans gt. 37, 0162 Oslo, Norway",
+    "coords": [
+      59.914251,
+      10.7379968
+    ],
+    "category": "restaurant",
+    "area": "Sentrum",
+    "rating": 3.9,
+    "facing": null,
+    "openingHours": {
+      "open": 10,
+      "close": 23.5
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 11,
+        "close": 23
+      },
+      "1": {
+        "open": 10,
+        "close": 23.5
+      },
+      "2": {
+        "open": 10,
+        "close": 23.5
+      },
+      "3": {
+        "open": 10,
+        "close": 23.5
+      },
+      "4": {
+        "open": 10,
+        "close": 23.5
+      },
+      "5": {
+        "open": 10,
+        "close": 23.5
+      },
+      "6": {
+        "open": 10,
+        "close": 23.5
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJA8iwdX1uQUYRwd38Sxs8rsw",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 113,
+    "name": "Andy's Pub",
+    "address": "Stortingsgata 8, 0161 Oslo, Norway",
+    "coords": [
+      59.9132372,
+      10.7374235
+    ],
+    "category": "bar",
+    "area": "Sentrum",
+    "rating": 3.9,
+    "facing": null,
+    "openingHours": {
+      "open": 13,
+      "close": 3.5
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 3.5
+      },
+      "1": {
+        "open": 15,
+        "close": 3.5
+      },
+      "2": {
+        "open": 15,
+        "close": 3.5
+      },
+      "3": {
+        "open": 15,
+        "close": 3.5
+      },
+      "4": {
+        "open": 15,
+        "close": 3.5
+      },
+      "5": {
+        "open": 15,
+        "close": 3.5
+      },
+      "6": {
+        "open": 13,
+        "close": 3.5
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ6UDFgX1uQUYRR0wX7K4HV3M",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 114,
+    "name": "Kolonialen",
+    "address": "Sofies gate 16, 0170 Oslo, Norway",
+    "coords": [
+      59.922903999999996,
+      10.7353018
+    ],
+    "category": "bar",
+    "area": "Grünerløkka",
+    "rating": 4.4,
+    "facing": null,
+    "openingHours": {
+      "open": 12,
+      "close": 24
+    },
+    "openingHoursWeekly": {
+      "1": {
+        "open": 17,
+        "close": 24
+      },
+      "2": {
+        "open": 17,
+        "close": 24
+      },
+      "3": {
+        "open": 17,
+        "close": 24
+      },
+      "4": {
+        "open": 17,
+        "close": 24
+      },
+      "5": {
+        "open": 17,
+        "close": 24
+      },
+      "6": {
+        "open": 12,
+        "close": 24
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJh202oihvQUYRPfBspCtatRE",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 115,
+    "name": "Deiglig",
+    "address": "Fyrhuset, Pilestredet 44, 0167 Oslo, Norway",
+    "coords": [
+      59.9223513,
+      10.733484299999999
+    ],
+    "category": "cafe",
+    "area": "Grünerløkka",
+    "rating": 4.4,
+    "facing": null,
+    "openingHours": {
+      "open": 10,
+      "close": 16
+    },
+    "openingHoursWeekly": {
+      "1": {
+        "open": 10,
+        "close": 16
+      },
+      "2": {
+        "open": 10,
+        "close": 16
+      },
+      "3": {
+        "open": 10,
+        "close": 16
+      },
+      "4": {
+        "open": 10,
+        "close": 16
+      },
+      "5": {
+        "open": 10,
+        "close": 16
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJizjWpnluQUYRDM-gOH9hi-M",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 116,
+    "name": "Südøst Restaurant",
+    "address": "Trondheimsveien 5, 0560 Oslo, Norway",
+    "coords": [
+      59.918137,
+      10.76055
+    ],
+    "category": "restaurant",
+    "area": "Grønland",
+    "rating": 4.2,
+    "facing": null,
+    "openingHours": {
+      "open": 14,
+      "close": 24
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 14,
+        "close": 22
+      },
+      "1": {
+        "open": 16,
+        "close": 21
+      },
+      "2": {
+        "open": 16,
+        "close": 21
+      },
+      "3": {
+        "open": 16,
+        "close": 23
+      },
+      "4": {
+        "open": 16,
+        "close": 23
+      },
+      "5": {
+        "open": 16,
+        "close": 24
+      },
+      "6": {
+        "open": 16,
+        "close": 24
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ4fIDQmduQUYRO9LjaRetGeY",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 117,
+    "name": "Bettola",
+    "address": "Trondheimsveien 2, 0560 Oslo, Norway",
+    "coords": [
+      59.9183664,
+      10.7596382
+    ],
+    "category": "bar",
+    "area": "Grønland",
+    "rating": 4.4,
+    "facing": null,
+    "openingHours": {
+      "open": 16,
+      "close": 24
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 16,
+        "close": 24
+      },
+      "1": {
+        "open": 16,
+        "close": 24
+      },
+      "2": {
+        "open": 16,
+        "close": 24
+      },
+      "3": {
+        "open": 16,
+        "close": 24
+      },
+      "4": {
+        "open": 16,
+        "close": 1
+      },
+      "5": {
+        "open": 16,
+        "close": 2
+      },
+      "6": {
+        "open": 16,
+        "close": 2
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJjR3ZamduQUYRuzVd_4CzUOo",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 118,
+    "name": "Zarathustra Meyhane",
+    "address": "Thorvald Meyers gate 80, 0550 Oslo, Norway",
+    "coords": [
+      59.9185691,
+      10.7596986
+    ],
+    "category": "restaurant",
+    "area": "Grønland",
+    "rating": 4.3,
+    "facing": null,
+    "openingHours": {
+      "open": 16,
+      "close": 22
+    },
+    "openingHoursWeekly": {
+      "2": {
+        "open": 16,
+        "close": 22
+      },
+      "3": {
+        "open": 16,
+        "close": 22
+      },
+      "4": {
+        "open": 16,
+        "close": 22
+      },
+      "5": {
+        "open": 16,
+        "close": 22
+      },
+      "6": {
+        "open": 16,
+        "close": 22
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJy327uGpvQUYR9E1EMPSAi5Q",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 119,
+    "name": "Nedre Løkka Cocktailbar & Selskapslokaler",
+    "address": "Thorvald Meyers gate 89, 0550 Oslo, Norway",
+    "coords": [
+      59.918749600000005,
+      10.7592282
+    ],
+    "category": "bar",
+    "area": "Grønland",
+    "rating": 4.2,
+    "facing": null,
+    "openingHours": {
+      "open": 16,
+      "close": 3
+    },
+    "openingHoursWeekly": {
+      "1": {
+        "open": 16,
+        "close": 1
+      },
+      "2": {
+        "open": 16,
+        "close": 1
+      },
+      "3": {
+        "open": 16,
+        "close": 1
+      },
+      "4": {
+        "open": 16,
+        "close": 1
+      },
+      "5": {
+        "open": 16,
+        "close": 3
+      },
+      "6": {
+        "open": 16,
+        "close": 3
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJK_v8GGduQUYRraQO5m9mUu4",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 120,
+    "name": "Trancher Entrecôte",
+    "address": "Thorvald Meyers gate 78, 0550 Oslo, Norway",
+    "coords": [
+      59.9188889,
+      10.759722199999999
+    ],
+    "category": "restaurant",
+    "area": "Grønland",
+    "rating": 4.5,
+    "facing": null,
+    "openingHours": {
+      "open": 16,
+      "close": 22
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 16,
+        "close": 22
+      },
+      "1": {
+        "open": 16,
+        "close": 22
+      },
+      "2": {
+        "open": 16,
+        "close": 22
+      },
+      "3": {
+        "open": 16,
+        "close": 22
+      },
+      "4": {
+        "open": 16,
+        "close": 22
+      },
+      "5": {
+        "open": 16,
+        "close": 22
+      },
+      "6": {
+        "open": 16,
+        "close": 22
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ3YK-GWduQUYRzudfq168yqg",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 121,
+    "name": "Skjenkestua Studentbar",
+    "address": "Chr. Krohgs gate 32, 0186 Oslo, Norway",
+    "coords": [
+      59.916062600000004,
+      10.7601093
+    ],
+    "category": "bar",
+    "area": "Grønland",
+    "rating": 4.7,
+    "facing": null,
+    "openingHours": {
+      "open": 17,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "4": {
+        "open": 17,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ7w0MuWBuQUYREQbBX5uguRI",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 122,
+    "name": "Thorvalds",
+    "address": "Thorvald Meyers gate 78, 0550 Oslo, Norway",
+    "coords": [
+      59.91893399999999,
+      10.7596657
+    ],
+    "category": "bar",
+    "area": "Grønland",
+    "rating": 4.6,
+    "facing": null,
+    "openingHours": {
+      "open": 14,
+      "close": 3
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 14,
+        "close": 3
+      },
+      "1": {
+        "open": 14,
+        "close": 3
+      },
+      "2": {
+        "open": 14,
+        "close": 3
+      },
+      "3": {
+        "open": 14,
+        "close": 3
+      },
+      "4": {
+        "open": 14,
+        "close": 3
+      },
+      "5": {
+        "open": 14,
+        "close": 3
+      },
+      "6": {
+        "open": 14,
+        "close": 3
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJWWBcvsRvQUYRNEdGLfcS2m4",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 123,
+    "name": "Jamal’s Falafel",
+    "address": "Heimdalsgata 2C, 0561 Oslo, Norway",
+    "coords": [
+      59.9185633,
+      10.7620123
+    ],
+    "category": "restaurant",
+    "area": "Grønland",
+    "rating": 4.9,
+    "facing": null,
+    "openingHours": {
+      "open": 10,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 10,
+        "close": 23
+      },
+      "1": {
+        "open": 10,
+        "close": 23
+      },
+      "2": {
+        "open": 10,
+        "close": 23
+      },
+      "3": {
+        "open": 10,
+        "close": 23
+      },
+      "4": {
+        "open": 10,
+        "close": 23
+      },
+      "5": {
+        "open": 10,
+        "close": 23
+      },
+      "6": {
+        "open": 10,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ8ddfBgBvQUYRGjruChzymZ4",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 124,
+    "name": "Delicatessen Grünerløkka",
+    "address": "Søndre gate 8, 0550 Oslo, Norway",
+    "coords": [
+      59.918760999999996,
+      10.758253000000002
+    ],
+    "category": "restaurant",
+    "area": "Grønland",
+    "rating": 4.4,
+    "facing": null,
+    "openingHours": {
+      "open": 12,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 22
+      },
+      "1": {
+        "open": 12,
+        "close": 22
+      },
+      "2": {
+        "open": 12,
+        "close": 22
+      },
+      "3": {
+        "open": 12,
+        "close": 22
+      },
+      "4": {
+        "open": 12,
+        "close": 22
+      },
+      "5": {
+        "open": 12,
+        "close": 23
+      },
+      "6": {
+        "open": 12,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJxZBd4GZuQUYR0nQLhIK_KiY",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 125,
+    "name": "Bonita Cafe & Brunch / De La Casa",
+    "address": "Briskebyveien 28, 0259 Oslo, Norway",
+    "coords": [
+      59.9199478,
+      10.7179083
+    ],
+    "category": "cafe",
+    "area": "Bislett",
+    "rating": 4.7,
+    "facing": null,
+    "openingHours": {
+      "open": 8,
+      "close": 17
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 9,
+        "close": 17
+      },
+      "1": {
+        "open": 8,
+        "close": 17
+      },
+      "2": {
+        "open": 8,
+        "close": 17
+      },
+      "3": {
+        "open": 8,
+        "close": 17
+      },
+      "4": {
+        "open": 8,
+        "close": 17
+      },
+      "5": {
+        "open": 8,
+        "close": 17
+      },
+      "6": {
+        "open": 9,
+        "close": 17
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJFXcZG9RtQUYRo2ZLjS-9-Xg",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 126,
+    "name": "Mocca Oslo",
+    "address": "Niels Juels gate 70, 0259 Oslo, Norway",
+    "coords": [
+      59.9194325,
+      10.718625
+    ],
+    "category": "cafe",
+    "area": "Bislett",
+    "rating": 4.7,
+    "facing": null,
+    "openingHours": {
+      "open": 7.5,
+      "close": 17
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 10,
+        "close": 17
+      },
+      "1": {
+        "open": 7.5,
+        "close": 17
+      },
+      "2": {
+        "open": 7.5,
+        "close": 17
+      },
+      "3": {
+        "open": 7.5,
+        "close": 17
+      },
+      "4": {
+        "open": 7.5,
+        "close": 17
+      },
+      "5": {
+        "open": 7.5,
+        "close": 17
+      },
+      "6": {
+        "open": 10,
+        "close": 17
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJxbvtFdRtQUYRfpR2UhLV46s",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 127,
+    "name": "Kafé Albin",
+    "address": "Briskebyveien 42, 0259 Oslo, Norway",
+    "coords": [
+      59.920473,
+      10.717103
+    ],
+    "category": "cafe",
+    "area": "Bislett",
+    "rating": 4.7,
+    "facing": null,
+    "openingHours": {
+      "open": 12,
+      "close": 21
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 17
+      },
+      "2": {
+        "open": 12,
+        "close": 21
+      },
+      "3": {
+        "open": 12,
+        "close": 21
+      },
+      "4": {
+        "open": 12,
+        "close": 21
+      },
+      "5": {
+        "open": 12,
+        "close": 21
+      },
+      "6": {
+        "open": 12,
+        "close": 21
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJyVX_NNFtQUYRit3onLbaST8",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 128,
+    "name": "Restaurant Sawan",
+    "address": "President Harbitz' gate 4, 0259 Oslo, Norway",
+    "coords": [
+      59.918762199999996,
+      10.715558999999999
+    ],
+    "category": "restaurant",
+    "area": "Bislett",
+    "rating": 4.5,
+    "facing": null,
+    "openingHours": {
+      "open": 16,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "1": {
+        "open": 17,
+        "close": 23
+      },
+      "2": {
+        "open": 17,
+        "close": 23
+      },
+      "3": {
+        "open": 17,
+        "close": 23
+      },
+      "4": {
+        "open": 17,
+        "close": 23
+      },
+      "5": {
+        "open": 17,
+        "close": 23
+      },
+      "6": {
+        "open": 16,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJudk5idNtQUYRz2DPv1M20wM",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 129,
+    "name": "Victor's Vinbar",
+    "address": "Skovveien 15, 0257 Oslo, Norway",
+    "coords": [
+      59.9178275,
+      10.7184186
+    ],
+    "category": "bar",
+    "area": "Bislett",
+    "rating": 4.6,
+    "facing": null,
+    "openingHours": {
+      "open": 16,
+      "close": 24
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 16,
+        "close": 20
+      },
+      "2": {
+        "open": 16,
+        "close": 23
+      },
+      "3": {
+        "open": 16,
+        "close": 23
+      },
+      "4": {
+        "open": 16,
+        "close": 23
+      },
+      "5": {
+        "open": 16,
+        "close": 24
+      },
+      "6": {
+        "open": 16,
+        "close": 24
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ3yVhv9ZtQUYReH_-rSWTy8E",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 130,
+    "name": "Michaels",
+    "address": "Briskebyveien 31, 0260 Oslo, Norway",
+    "coords": [
+      59.92257919999999,
+      10.715546100000001
+    ],
+    "category": "restaurant",
+    "area": "Bislett",
+    "rating": 4,
+    "facing": null,
+    "openingHours": {
+      "open": 12,
+      "close": 24
+    },
+    "openingHoursWeekly": {
+      "3": {
+        "open": 17,
+        "close": 23
+      },
+      "4": {
+        "open": 17,
+        "close": 24
+      },
+      "5": {
+        "open": 16,
+        "close": 1
+      },
+      "6": {
+        "open": 12,
+        "close": 1
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJFXKztMptQUYRFhaUFucTBY8",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 131,
+    "name": "Valkyrien Grill",
+    "address": "Skovveien 8, 0257 Oslo, Norway",
+    "coords": [
+      59.9168483,
+      10.7157988
+    ],
+    "category": "restaurant",
+    "area": "Bislett",
+    "rating": 4.4,
+    "facing": null,
+    "openingHours": {
+      "open": 12,
+      "close": 24
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 24
+      },
+      "1": {
+        "open": 12,
+        "close": 24
+      },
+      "2": {
+        "open": 12,
+        "close": 24
+      },
+      "3": {
+        "open": 12,
+        "close": 24
+      },
+      "4": {
+        "open": 12,
+        "close": 4
+      },
+      "5": {
+        "open": 12,
+        "close": 4
+      },
+      "6": {
+        "open": 12,
+        "close": 4
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJObDWJQltQUYRsOtJs1zeNaI",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 132,
+    "name": "Sjømagasinet",
+    "address": "Tjuvholmen allé 14, 0252 Oslo, Norway",
+    "coords": [
+      59.90785270000001,
+      10.7219274
+    ],
+    "category": "restaurant",
+    "area": "Frogner",
+    "rating": 4.3,
+    "facing": null,
+    "openingHours": {
+      "open": 11.5,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "1": {
+        "open": 11.5,
+        "close": 23
+      },
+      "2": {
+        "open": 11.5,
+        "close": 23
+      },
+      "3": {
+        "open": 11.5,
+        "close": 23
+      },
+      "4": {
+        "open": 11.5,
+        "close": 23
+      },
+      "5": {
+        "open": 11.5,
+        "close": 23
+      },
+      "6": {
+        "open": 13,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJN1_VGoJuQUYRmLx2kbijkyI",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 133,
+    "name": "Kenzai Restaurant",
+    "address": "Olav Selvaags plass 1, 0252 Oslo, Norway",
+    "coords": [
+      59.908242699999995,
+      10.7227005
+    ],
+    "category": "restaurant",
+    "area": "Frogner",
+    "rating": 4.4,
+    "facing": null,
+    "openingHours": {
+      "open": 16,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "1": {
+        "open": 16,
+        "close": 23
+      },
+      "2": {
+        "open": 16,
+        "close": 23
+      },
+      "3": {
+        "open": 16,
+        "close": 23
+      },
+      "4": {
+        "open": 16,
+        "close": 23
+      },
+      "5": {
+        "open": 16,
+        "close": 23
+      },
+      "6": {
+        "open": 16,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJw5M_WbRvQUYRtDp4YxlSRd0",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 134,
     "name": "The Salmon",
     "address": "Strandpromenaden 11, 0252 Oslo, Norway",
     "coords": [
@@ -7,39 +1122,3814 @@
       10.7232369
     ],
     "category": "restaurant",
-    "area": "Aker Brygge",
+    "area": "Frogner",
     "rating": 4.7,
-    "facing": 180,
+    "facing": null,
     "openingHours": {
-      "open": 11,
+      "open": 11.5,
       "close": 22
     },
-    "outdoorSeating": true,
+    "openingHoursWeekly": {
+      "0": {
+        "open": 11.5,
+        "close": 22
+      },
+      "1": {
+        "open": 11.5,
+        "close": 22
+      },
+      "2": {
+        "open": 11.5,
+        "close": 22
+      },
+      "3": {
+        "open": 11.5,
+        "close": 22
+      },
+      "4": {
+        "open": 11.5,
+        "close": 22
+      },
+      "5": {
+        "open": 11.5,
+        "close": 22
+      },
+      "6": {
+        "open": 11.5,
+        "close": 22
+      }
+    },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJZzTDywdvQUYRa-0cSuNLmoI",
-    "facingSource": null
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
   },
   {
-    "name": "Yokoso Restaurant Aker Brygge",
-    "address": "Stranden 63, 0250 Oslo, Norway",
+    "id": 135,
+    "name": "AMAZONIA by BAR",
+    "address": "Bryggegangen 6, 0252 Oslo, Norway",
     "coords": [
-      59.909222899999996,
-      10.7257368
+      59.9086705,
+      10.7219407
     ],
     "category": "restaurant",
-    "area": "Aker Brygge",
-    "rating": 4.6,
-    "facing": 180,
+    "area": "Frogner",
+    "rating": 3.4,
+    "facing": null,
+    "openingHours": {
+      "open": 12,
+      "close": 22
+    },
+    "openingHoursWeekly": {
+      "3": {
+        "open": 17,
+        "close": 22
+      },
+      "4": {
+        "open": 17,
+        "close": 22
+      },
+      "5": {
+        "open": 17,
+        "close": 3
+      },
+      "6": {
+        "open": 12,
+        "close": 3
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJt8pajyZvQUYR9j_6MOqzdCI",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 136,
+    "name": "VIN Tjuvholmen",
+    "address": "Lille Stranden 4, 0252 Oslo, Norway",
+    "coords": [
+      59.908298099999996,
+      10.7232142
+    ],
+    "category": "bar",
+    "area": "Frogner",
+    "rating": 5,
+    "facing": null,
+    "openingHours": {
+      "open": 14,
+      "close": 24
+    },
+    "openingHoursWeekly": {
+      "2": {
+        "open": 16,
+        "close": 24
+      },
+      "3": {
+        "open": 16,
+        "close": 24
+      },
+      "4": {
+        "open": 16,
+        "close": 24
+      },
+      "5": {
+        "open": 15,
+        "close": 1
+      },
+      "6": {
+        "open": 14,
+        "close": 1
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJG3Q68jVvQUYRhkCaXUj0bPE",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 137,
+    "name": "New Delhi",
+    "address": "Tjuvholmen allé 2, 0252 Oslo, Norway",
+    "coords": [
+      59.90897439999999,
+      10.723378
+    ],
+    "category": "restaurant",
+    "area": "Frogner",
+    "rating": 4.3,
+    "facing": null,
     "openingHours": {
       "open": 11,
       "close": 23
     },
-    "outdoorSeating": true,
+    "openingHoursWeekly": {
+      "0": {
+        "open": 14,
+        "close": 22
+      },
+      "1": {
+        "open": 11,
+        "close": 23
+      },
+      "2": {
+        "open": 11,
+        "close": 23
+      },
+      "3": {
+        "open": 11,
+        "close": 23
+      },
+      "4": {
+        "open": 11,
+        "close": 23
+      },
+      "5": {
+        "open": 11,
+        "close": 23
+      },
+      "6": {
+        "open": 11,
+        "close": 23
+      }
+    },
     "buildingOsmId": null,
-    "googlePlaceId": "ChIJEajdotBvQUYRmbSDHGIyk_U",
-    "facingSource": null
+    "googlePlaceId": "ChIJT8M8B4huQUYRpbV5bRtm1A0",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
   },
   {
+    "id": 138,
+    "name": "Lofoten Fiskerestaurant",
+    "address": "Stranden 75, 0250 Oslo, Norway",
+    "coords": [
+      59.908574,
+      10.7244802
+    ],
+    "category": "restaurant",
+    "area": "Frogner",
+    "rating": 4.2,
+    "facing": null,
+    "openingHours": {
+      "open": 11.5,
+      "close": 22
+    },
+    "openingHoursWeekly": {
+      "1": {
+        "open": 11.5,
+        "close": 22
+      },
+      "2": {
+        "open": 11.5,
+        "close": 22
+      },
+      "3": {
+        "open": 11.5,
+        "close": 22
+      },
+      "4": {
+        "open": 11.5,
+        "close": 22
+      },
+      "5": {
+        "open": 11.5,
+        "close": 22
+      },
+      "6": {
+        "open": 12,
+        "close": 22
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJR8oEhoFuQUYRovvzW3cJbHQ",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 139,
+    "name": "Rorbua Aker Brygge",
+    "address": "Stranden 71, 0250 Oslo, Norway",
+    "coords": [
+      59.9088001,
+      10.7247293
+    ],
+    "category": "restaurant",
+    "area": "Frogner",
+    "rating": 4.3,
+    "facing": null,
+    "openingHours": {
+      "open": 12,
+      "close": 21.5
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 15,
+        "close": 21.5
+      },
+      "1": {
+        "open": 15,
+        "close": 21.5
+      },
+      "2": {
+        "open": 15,
+        "close": 21.5
+      },
+      "3": {
+        "open": 15,
+        "close": 21.5
+      },
+      "4": {
+        "open": 15,
+        "close": 21.5
+      },
+      "5": {
+        "open": 15,
+        "close": 21.5
+      },
+      "6": {
+        "open": 12,
+        "close": 21.5
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJe4n4joFuQUYRMaNe6vdjcRM",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 140,
+    "name": "Arts restaurant",
+    "address": "Samme inngang som Galleri Fineart Oslo, Filipstad Brygge 2, 0252 Oslo, Norway",
+    "coords": [
+      59.909726,
+      10.7227962
+    ],
+    "category": "bar",
+    "area": "Frogner",
+    "rating": 4.5,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 23
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJkYfnSWJvQUYR1GtHZ57kHnE",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 141,
+    "name": "Eataly",
+    "address": "Bryggetorget 18, 0250 Oslo, Norway",
+    "coords": [
+      59.9093787,
+      10.7242657
+    ],
+    "category": "restaurant",
+    "area": "Frogner",
+    "rating": 4.2,
+    "facing": null,
+    "openingHours": {
+      "open": 11.5,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 21
+      },
+      "1": {
+        "open": 11.5,
+        "close": 21
+      },
+      "2": {
+        "open": 11.5,
+        "close": 21
+      },
+      "3": {
+        "open": 11.5,
+        "close": 21
+      },
+      "4": {
+        "open": 11.5,
+        "close": 21
+      },
+      "5": {
+        "open": 11.5,
+        "close": 23
+      },
+      "6": {
+        "open": 12,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJTZvGlYFuQUYR1iYfs2Ftk24",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 142,
+    "name": "Brasserie Opera",
+    "address": "Kirsten Flagstads plass 1, 0150 Oslo, Norway",
+    "coords": [
+      59.907164300000005,
+      10.752178299999999
+    ],
+    "category": "restaurant",
+    "area": "Aker Brygge",
+    "rating": 3.7,
+    "facing": null,
+    "openingHours": {
+      "open": 12,
+      "close": 20
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 20
+      },
+      "1": {
+        "open": 12,
+        "close": 20
+      },
+      "2": {
+        "open": 12,
+        "close": 20
+      },
+      "3": {
+        "open": 12,
+        "close": 20
+      },
+      "4": {
+        "open": 12,
+        "close": 20
+      },
+      "5": {
+        "open": 12,
+        "close": 20
+      },
+      "6": {
+        "open": 12,
+        "close": 20
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJr_ULvItuQUYR41hxdq1gREI",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 143,
+    "name": "Restauranthuset Operaen",
+    "address": "Kirsten Flagstads plass 1, 0150 Oslo, Norway",
+    "coords": [
+      59.907593299999995,
+      10.752594799999999
+    ],
+    "category": "restaurant",
+    "area": "Aker Brygge",
+    "rating": 3.6,
+    "facing": null,
+    "openingHours": {
+      "open": 12,
+      "close": 22
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 20
+      },
+      "1": {
+        "open": 13,
+        "close": 20
+      },
+      "2": {
+        "open": 12,
+        "close": 22
+      },
+      "3": {
+        "open": 12,
+        "close": 22
+      },
+      "4": {
+        "open": 12,
+        "close": 22
+      },
+      "5": {
+        "open": 12,
+        "close": 22
+      },
+      "6": {
+        "open": 12,
+        "close": 22
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJr_ULvItuQUYRUMr7fNvQ8iE",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 144,
+    "name": "MUNCH skybar & restaurant",
+    "address": "Edvard Munchs Plass 1, 0194 Oslo, Norway",
+    "coords": [
+      59.90586179999999,
+      10.755276799999999
+    ],
+    "category": "restaurant",
+    "area": "Aker Brygge",
+    "rating": 4.1,
+    "facing": null,
+    "openingHours": {
+      "open": 10,
+      "close": 21
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 10,
+        "close": 18
+      },
+      "1": {
+        "open": 10,
+        "close": 18
+      },
+      "2": {
+        "open": 10,
+        "close": 18
+      },
+      "3": {
+        "open": 10,
+        "close": 21
+      },
+      "4": {
+        "open": 10,
+        "close": 21
+      },
+      "5": {
+        "open": 10,
+        "close": 21
+      },
+      "6": {
+        "open": 10,
+        "close": 21
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJX0ul_rtvQUYRCIb8tNkb0sE",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 145,
+    "name": "Munch Deli & Coffee",
+    "address": "Edvard Munchs Plass 1, 0194 Oslo, Norway",
+    "coords": [
+      59.90588549999999,
+      10.7553526
+    ],
+    "category": "restaurant",
+    "area": "Aker Brygge",
+    "rating": 3.7,
+    "facing": null,
+    "openingHours": {
+      "open": 10,
+      "close": 18
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 10,
+        "close": 18
+      },
+      "1": {
+        "open": 10,
+        "close": 17
+      },
+      "2": {
+        "open": 10,
+        "close": 17
+      },
+      "3": {
+        "open": 10,
+        "close": 17
+      },
+      "4": {
+        "open": 10,
+        "close": 17
+      },
+      "5": {
+        "open": 10,
+        "close": 17
+      },
+      "6": {
+        "open": 10,
+        "close": 18
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJx4oxbbNvQUYR-QRq0SeZWHM",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 146,
+    "name": "Døgnvill Burger Bjørvika",
+    "address": "Operagata 6, 0150 Oslo, Norway",
+    "coords": [
+      59.9083598,
+      10.753734399999999
+    ],
+    "category": "restaurant",
+    "area": "Aker Brygge",
+    "rating": 4.4,
+    "facing": null,
+    "openingHours": {
+      "open": 11.5,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 22
+      },
+      "1": {
+        "open": 11.5,
+        "close": 22
+      },
+      "2": {
+        "open": 11.5,
+        "close": 22
+      },
+      "3": {
+        "open": 11.5,
+        "close": 22
+      },
+      "4": {
+        "open": 11.5,
+        "close": 22
+      },
+      "5": {
+        "open": 11.5,
+        "close": 23
+      },
+      "6": {
+        "open": 12,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJV3YvLQlvQUYR6kREs_jIUhg",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 147,
+    "name": "Hønse-Lovisas house",
+    "address": "Sandakerveien 2, 0473 Oslo, Norway",
+    "coords": [
+      59.930783600000005,
+      10.7576936
+    ],
+    "category": "cafe",
+    "area": "Sagene",
+    "rating": 4.4,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 17
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 11,
+        "close": 17
+      },
+      "1": {
+        "open": 11,
+        "close": 17
+      },
+      "2": {
+        "open": 11,
+        "close": 17
+      },
+      "3": {
+        "open": 11,
+        "close": 17
+      },
+      "4": {
+        "open": 11,
+        "close": 17
+      },
+      "5": {
+        "open": 11,
+        "close": 17
+      },
+      "6": {
+        "open": 11,
+        "close": 17
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJIfdDbmxuQUYR-ZlO1wQS35k",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 148,
+    "name": "Fomoto Café",
+    "address": "Sandakerveien 10T, 0473 Oslo, Norway",
+    "coords": [
+      59.931628399999994,
+      10.7588486
+    ],
+    "category": "cafe",
+    "area": "Sagene",
+    "rating": 4.6,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 17
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 11,
+        "close": 16
+      },
+      "1": {
+        "open": 11,
+        "close": 17
+      },
+      "2": {
+        "open": 11,
+        "close": 17
+      },
+      "3": {
+        "open": 11,
+        "close": 17
+      },
+      "4": {
+        "open": 11,
+        "close": 17
+      },
+      "5": {
+        "open": 11,
+        "close": 17
+      },
+      "6": {
+        "open": 11,
+        "close": 16
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJLajffWxuQUYRG1ruWyPMDBA",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 149,
+    "name": "Perugina Pizzeria",
+    "address": "Sandakerveien 10, 0473 Oslo, Norway",
+    "coords": [
+      59.9323057,
+      10.759588899999999
+    ],
+    "category": "restaurant",
+    "area": "Sagene",
+    "rating": 4.9,
+    "facing": null,
+    "openingHours": {
+      "open": 12,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 23
+      },
+      "1": {
+        "open": 16,
+        "close": 23
+      },
+      "2": {
+        "open": 16,
+        "close": 23
+      },
+      "3": {
+        "open": 16,
+        "close": 23
+      },
+      "4": {
+        "open": 16,
+        "close": 23
+      },
+      "5": {
+        "open": 16,
+        "close": 23
+      },
+      "6": {
+        "open": 16,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJp3-MWDhvQUYRUM7ocoZ-5D8",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 150,
+    "name": "Jonoe Ringnes Park",
+    "address": "Thorvald Meyers gate 14, 0555 Oslo, Norway",
+    "coords": [
+      59.9287516,
+      10.7594668
+    ],
+    "category": "restaurant",
+    "area": "Sagene",
+    "rating": 4.4,
+    "facing": null,
+    "openingHours": {
+      "open": 14,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 14,
+        "close": 22.5
+      },
+      "1": {
+        "open": 14,
+        "close": 22.5
+      },
+      "2": {
+        "open": 14,
+        "close": 22.5
+      },
+      "3": {
+        "open": 14,
+        "close": 22.5
+      },
+      "4": {
+        "open": 14,
+        "close": 22.5
+      },
+      "5": {
+        "open": 14,
+        "close": 23
+      },
+      "6": {
+        "open": 14,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJwaC24mtuQUYR36r9Di7o0jI",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 151,
+    "name": "Rikkes Hage",
+    "address": "Sannergata 1b, 0557 Oslo, Norway",
+    "coords": [
+      59.9277465,
+      10.7560138
+    ],
+    "category": "bar",
+    "area": "Sagene",
+    "rating": null,
+    "facing": null,
+    "openingHours": {
+      "open": 12,
+      "close": 19
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 19
+      },
+      "1": {
+        "open": 14,
+        "close": 19
+      },
+      "2": {
+        "open": 14,
+        "close": 19
+      },
+      "3": {
+        "open": 14,
+        "close": 19
+      },
+      "4": {
+        "open": 14,
+        "close": 19
+      },
+      "5": {
+        "open": 14,
+        "close": 19
+      },
+      "6": {
+        "open": 12,
+        "close": 19
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJW_vGr5tvQUYRqw_saQUiAew",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 152,
+    "name": "Nazar café-bar",
+    "address": "Kristiansands gate 2, 0463 Oslo, Norway",
+    "coords": [
+      59.9382742,
+      10.752510899999999
+    ],
+    "category": "bar",
+    "area": "Nydalen",
+    "rating": 4.4,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 22
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 11,
+        "close": 22
+      },
+      "1": {
+        "open": 11,
+        "close": 22
+      },
+      "2": {
+        "open": 11,
+        "close": 22
+      },
+      "3": {
+        "open": 11,
+        "close": 22
+      },
+      "4": {
+        "open": 11,
+        "close": 22
+      },
+      "5": {
+        "open": 11,
+        "close": 22
+      },
+      "6": {
+        "open": 11,
+        "close": 22
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJpQJigA1uQUYREmIlHqAObdI",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 153,
+    "name": "Ballaro Pizzeria Rosticceria",
+    "address": "Mogata 6B, 0464 Oslo, Norway",
+    "coords": [
+      59.9397349,
+      10.7526988
+    ],
+    "category": "restaurant",
+    "area": "Nydalen",
+    "rating": 5,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 23
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ-RLDL8tvQUYRvKYWeyfHWHM",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 154,
+    "name": "Kaffebrenneriet avd Sagene",
+    "address": "Dannevigsveien 18A, 0463 Oslo, Norway",
+    "coords": [
+      59.937391999999996,
+      10.752424999999999
+    ],
+    "category": "cafe",
+    "area": "Nydalen",
+    "rating": 4.3,
+    "facing": null,
+    "openingHours": {
+      "open": 6.5,
+      "close": 19
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 8,
+        "close": 18
+      },
+      "1": {
+        "open": 6.5,
+        "close": 19
+      },
+      "2": {
+        "open": 6.5,
+        "close": 19
+      },
+      "3": {
+        "open": 6.5,
+        "close": 19
+      },
+      "4": {
+        "open": 6.5,
+        "close": 19
+      },
+      "5": {
+        "open": 6.5,
+        "close": 19
+      },
+      "6": {
+        "open": 8,
+        "close": 18
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJzSzbnBJuQUYRB3CWGPRi654",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 155,
+    "name": "Espresso House",
+    "address": "Kirkeveien 166, 0450 Oslo, Norway",
+    "coords": [
+      59.938092,
+      10.735287
+    ],
+    "category": "cafe",
+    "area": "Nydalen",
+    "rating": 3.7,
+    "facing": null,
+    "openingHours": {
+      "open": 7,
+      "close": 17
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 9,
+        "close": 17
+      },
+      "1": {
+        "open": 7,
+        "close": 17
+      },
+      "2": {
+        "open": 7,
+        "close": 17
+      },
+      "3": {
+        "open": 7,
+        "close": 17
+      },
+      "4": {
+        "open": 7,
+        "close": 17
+      },
+      "5": {
+        "open": 7,
+        "close": 17
+      },
+      "6": {
+        "open": 9,
+        "close": 17
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJoc6O3ftvQUYRAVAKIq-WKNE",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 156,
+    "name": "Sagene Bar",
+    "address": "Bentsegata 1 A, 0465 Oslo, Norway",
+    "coords": [
+      59.9378761,
+      10.7566679
+    ],
+    "category": "bar",
+    "area": "Nydalen",
+    "rating": 4.4,
+    "facing": null,
+    "openingHours": {
+      "open": 12,
+      "close": 1
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 1
+      },
+      "1": {
+        "open": 12,
+        "close": 1
+      },
+      "2": {
+        "open": 12,
+        "close": 1
+      },
+      "3": {
+        "open": 12,
+        "close": 1
+      },
+      "4": {
+        "open": 12,
+        "close": 1
+      },
+      "5": {
+        "open": 12,
+        "close": 1
+      },
+      "6": {
+        "open": 12,
+        "close": 1
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ0XOnWyRvQUYRbnvEUCy8rm0",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 157,
+    "name": "Folkvang Sagene",
+    "address": "Maridalsveien 153B, 0461 Oslo, Norway",
+    "coords": [
+      59.937597399999994,
+      10.7565507
+    ],
+    "category": "bar",
+    "area": "Nydalen",
+    "rating": 4.1,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 20
+      },
+      "1": {
+        "open": 12,
+        "close": 20
+      },
+      "2": {
+        "open": 11,
+        "close": 22
+      },
+      "3": {
+        "open": 11,
+        "close": 22
+      },
+      "4": {
+        "open": 11,
+        "close": 22
+      },
+      "5": {
+        "open": 11,
+        "close": 23
+      },
+      "6": {
+        "open": 12,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ_aUa-RJuQUYR4RM5jHuykAk",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 158,
+    "name": "Bella Notte",
+    "address": "Carl Berners plass 2, 0568 Oslo, Norway",
+    "coords": [
+      59.926452499999996,
+      10.775874799999999
+    ],
+    "category": "bar",
+    "area": "Tøyen",
+    "rating": 4.1,
+    "facing": null,
+    "openingHours": {
+      "open": 10,
+      "close": 1
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 10,
+        "close": 1
+      },
+      "1": {
+        "open": 10,
+        "close": 1
+      },
+      "2": {
+        "open": 10,
+        "close": 1
+      },
+      "3": {
+        "open": 10,
+        "close": 1
+      },
+      "4": {
+        "open": 10,
+        "close": 1
+      },
+      "5": {
+        "open": 10,
+        "close": 1
+      },
+      "6": {
+        "open": 10,
+        "close": 1
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ0eVJ9kNuQUYRUviy1r0S0X8",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 159,
+    "name": "Kaffebrenneriet avd Carl Berner",
+    "address": "Trondheimsveien 127, 0571 Oslo, Norway",
+    "coords": [
+      59.926595,
+      10.7767468
+    ],
+    "category": "cafe",
+    "area": "Tøyen",
+    "rating": 4.2,
+    "facing": null,
+    "openingHours": {
+      "open": 7,
+      "close": 19
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 9,
+        "close": 18
+      },
+      "1": {
+        "open": 7,
+        "close": 19
+      },
+      "2": {
+        "open": 7,
+        "close": 19
+      },
+      "3": {
+        "open": 7,
+        "close": 19
+      },
+      "4": {
+        "open": 7,
+        "close": 19
+      },
+      "5": {
+        "open": 7,
+        "close": 19
+      },
+      "6": {
+        "open": 8,
+        "close": 18
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJG-fx-RZvQUYRqNvmeGyspHw",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 160,
+    "name": "Kaffe Lykke",
+    "address": "Københavngata 20, 0567 Oslo, Norway",
+    "coords": [
+      59.928332700000006,
+      10.7688084
+    ],
+    "category": "cafe",
+    "area": "Tøyen",
+    "rating": 4.7,
+    "facing": null,
+    "openingHours": {
+      "open": 8,
+      "close": 15
+    },
+    "openingHoursWeekly": {
+      "1": {
+        "open": 8,
+        "close": 15
+      },
+      "2": {
+        "open": 8,
+        "close": 15
+      },
+      "3": {
+        "open": 8,
+        "close": 15
+      },
+      "4": {
+        "open": 8,
+        "close": 15
+      },
+      "5": {
+        "open": 8,
+        "close": 15
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJb1U090FuQUYRyUDfU2Z04bU",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 161,
+    "name": "Evviva",
+    "address": "Københavngata 18, 0566 Oslo, Norway",
+    "coords": [
+      59.928269400000005,
+      10.7684541
+    ],
+    "category": "bar",
+    "area": "Tøyen",
+    "rating": 5,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 24
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 11,
+        "close": 17
+      },
+      "3": {
+        "open": 11,
+        "close": 23
+      },
+      "4": {
+        "open": 11,
+        "close": 23
+      },
+      "5": {
+        "open": 11,
+        "close": 24
+      },
+      "6": {
+        "open": 11,
+        "close": 24
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJyUfsAwBvQUYRYJvnCI7L1qs",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 162,
+    "name": "ART bar",
+    "address": "Københavngata 18, 0566 Oslo, Norway",
+    "coords": [
+      59.928292299999995,
+      10.7683614
+    ],
+    "category": "bar",
+    "area": "Tøyen",
+    "rating": 4.7,
+    "facing": null,
+    "openingHours": {
+      "open": 16,
+      "close": 1
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 16,
+        "close": 1
+      },
+      "1": {
+        "open": 16,
+        "close": 1
+      },
+      "2": {
+        "open": 16,
+        "close": 1
+      },
+      "3": {
+        "open": 16,
+        "close": 1
+      },
+      "4": {
+        "open": 16,
+        "close": 1
+      },
+      "5": {
+        "open": 16,
+        "close": 1
+      },
+      "6": {
+        "open": 16,
+        "close": 1
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJGZzrbntvQUYRiZr0NDltz2o",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 163,
+    "name": "Thai Express",
+    "address": "Trondheimsveien 154, 0570 Oslo, Norway",
+    "coords": [
+      59.9289165,
+      10.7771071
+    ],
+    "category": "restaurant",
+    "area": "Tøyen",
+    "rating": 3.5,
+    "facing": null,
+    "openingHours": {
+      "open": 15,
+      "close": 22
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 15,
+        "close": 22
+      },
+      "1": {
+        "open": 15,
+        "close": 22
+      },
+      "2": {
+        "open": 15,
+        "close": 22
+      },
+      "3": {
+        "open": 15,
+        "close": 22
+      },
+      "4": {
+        "open": 15,
+        "close": 22
+      },
+      "5": {
+        "open": 15,
+        "close": 22
+      },
+      "6": {
+        "open": 15,
+        "close": 22
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJTzdqTLpvQUYRk3AseuO3PnI",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 164,
+    "name": "Peppes Pizza - Løren",
+    "address": "Lørenveien 42, 0580 Oslo, Norway",
+    "coords": [
+      59.9308638,
+      10.7926161
+    ],
+    "category": "restaurant",
+    "area": "Sinsen",
+    "rating": 3.8,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 23
+      },
+      "1": {
+        "open": 11,
+        "close": 23
+      },
+      "2": {
+        "open": 11,
+        "close": 23
+      },
+      "3": {
+        "open": 11,
+        "close": 23
+      },
+      "4": {
+        "open": 11,
+        "close": 23
+      },
+      "5": {
+        "open": 11,
+        "close": 23
+      },
+      "6": {
+        "open": 13,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJIw5vzEluQUYRszWBBpwIDpY",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 165,
+    "name": "Fryd Gastropub Løren",
+    "address": "Lørenveien 44, 0585 Oslo, Norway",
+    "coords": [
+      59.930792600000004,
+      10.793323700000002
+    ],
+    "category": "bar",
+    "area": "Sinsen",
+    "rating": 4.2,
+    "facing": null,
+    "openingHours": {
+      "open": 12,
+      "close": 23.5
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 23
+      },
+      "1": {
+        "open": 12,
+        "close": 23.5
+      },
+      "2": {
+        "open": 12,
+        "close": 23.5
+      },
+      "3": {
+        "open": 12,
+        "close": 23.5
+      },
+      "4": {
+        "open": 12,
+        "close": 23.5
+      },
+      "5": {
+        "open": 12,
+        "close": 1
+      },
+      "6": {
+        "open": 12,
+        "close": 1
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ9XKaH3VvQUYRwPvAieE9ndw",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 166,
+    "name": "Titt-tei – kafé og lekerom",
+    "address": "Børsteveien 13, 0585 Oslo, Norway",
+    "coords": [
+      59.933323099999996,
+      10.79557
+    ],
+    "category": "cafe",
+    "area": "Sinsen",
+    "rating": 4.7,
+    "facing": null,
+    "openingHours": {
+      "open": 10,
+      "close": 18
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 10,
+        "close": 14
+      },
+      "2": {
+        "open": 10,
+        "close": 18
+      },
+      "3": {
+        "open": 10,
+        "close": 18
+      },
+      "4": {
+        "open": 10,
+        "close": 18
+      },
+      "5": {
+        "open": 10,
+        "close": 18
+      },
+      "6": {
+        "open": 10,
+        "close": 18
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ01WL6qpvQUYRV09Sk5HJcIk",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 167,
+    "name": "Kaffebrenneriet",
+    "address": "Lørenveien 43, 0585 Oslo, Norway",
+    "coords": [
+      59.9304838,
+      10.7924236
+    ],
+    "category": "cafe",
+    "area": "Sinsen",
+    "rating": 4.4,
+    "facing": null,
+    "openingHours": {
+      "open": 6.5,
+      "close": 19
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 8,
+        "close": 18
+      },
+      "1": {
+        "open": 6.5,
+        "close": 19
+      },
+      "2": {
+        "open": 6.5,
+        "close": 19
+      },
+      "3": {
+        "open": 6.5,
+        "close": 19
+      },
+      "4": {
+        "open": 6.5,
+        "close": 19
+      },
+      "5": {
+        "open": 6.5,
+        "close": 19
+      },
+      "6": {
+        "open": 8,
+        "close": 18
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJSaqYykluQUYRpo1FZsDZ7gQ",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 168,
+    "name": "Kammis Grill Løren",
+    "address": "Lørenveien 44b, 0585 Oslo, Norway",
+    "coords": [
+      59.930737199999996,
+      10.7935132
+    ],
+    "category": "restaurant",
+    "area": "Sinsen",
+    "rating": 4.5,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 22.5
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 11,
+        "close": 22.5
+      },
+      "1": {
+        "open": 12,
+        "close": 22.5
+      },
+      "2": {
+        "open": 11,
+        "close": 22.5
+      },
+      "3": {
+        "open": 11,
+        "close": 2
+      },
+      "4": {
+        "open": 11,
+        "close": 2
+      },
+      "5": {
+        "open": 11,
+        "close": 3
+      },
+      "6": {
+        "open": 11,
+        "close": 3
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJlRrd0E1vQUYREyYPyegXgwU",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 169,
+    "name": "Sanjay's Indian Restaurant & Bar",
+    "address": "Norge, Lørenveien 44, Oslo, Norway",
+    "coords": [
+      59.9304619,
+      10.793506599999999
+    ],
+    "category": "bar",
+    "area": "Sinsen",
+    "rating": 4.3,
+    "facing": null,
+    "openingHours": {
+      "open": 14,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 14,
+        "close": 21
+      },
+      "1": {
+        "open": 15,
+        "close": 22
+      },
+      "2": {
+        "open": 15,
+        "close": 22
+      },
+      "3": {
+        "open": 15,
+        "close": 22
+      },
+      "4": {
+        "open": 15,
+        "close": 22
+      },
+      "5": {
+        "open": 15,
+        "close": 23
+      },
+      "6": {
+        "open": 15,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ0yusZsVvQUYR2saI3Rcg9zI",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 170,
+    "name": "Wembley Sports Bar AS",
+    "address": "Schouterrassen 25, 0573 Oslo, Norway",
+    "coords": [
+      59.9315628,
+      10.783008299999999
+    ],
+    "category": "bar",
+    "area": "Sinsen",
+    "rating": 4.1,
+    "facing": null,
+    "openingHours": {
+      "open": 14,
+      "close": 1
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 14,
+        "close": 0.5
+      },
+      "1": {
+        "open": 17,
+        "close": 1
+      },
+      "2": {
+        "open": 17,
+        "close": 1
+      },
+      "3": {
+        "open": 15.5,
+        "close": 1
+      },
+      "4": {
+        "open": 15.5,
+        "close": 1
+      },
+      "5": {
+        "open": 15,
+        "close": 1
+      },
+      "6": {
+        "open": 14,
+        "close": 1
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJpXam4XRvQUYRmPTMI9Q2WdU",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 171,
+    "name": "MOLTO trattoria",
+    "address": "Lørenfaret 1A, 0585 Oslo, Norway",
+    "coords": [
+      59.93101029999999,
+      10.7997208
+    ],
+    "category": "restaurant",
+    "area": "Sinsen",
+    "rating": 4.1,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 21
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 20
+      },
+      "1": {
+        "open": 15,
+        "close": 21
+      },
+      "2": {
+        "open": 15,
+        "close": 21
+      },
+      "3": {
+        "open": 15,
+        "close": 21
+      },
+      "4": {
+        "open": 15,
+        "close": 21
+      },
+      "5": {
+        "open": 11,
+        "close": 21
+      },
+      "6": {
+        "open": 13,
+        "close": 21
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJXbSdPxVvQUYRUw9X0dFQbfI",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 172,
+    "name": "Renna",
+    "address": "Trondheimsveien 187, 0570 Oslo, Norway",
+    "coords": [
+      59.935095700000005,
+      10.7803381
+    ],
+    "category": "restaurant",
+    "area": "Sinsen",
+    "rating": 3.9,
+    "facing": null,
+    "openingHours": {
+      "open": 12,
+      "close": 24
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 1
+      },
+      "1": {
+        "open": 13,
+        "close": 1
+      },
+      "2": {
+        "open": 13,
+        "close": 24
+      },
+      "3": {
+        "open": 13,
+        "close": 1
+      },
+      "4": {
+        "open": 12,
+        "close": 1
+      },
+      "5": {
+        "open": 13,
+        "close": 1
+      },
+      "6": {
+        "open": 12,
+        "close": 1
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJkTkkzjhuQUYR8pCnyrD6_Bo",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 173,
+    "name": "RED Rooftop Bar and Terrace",
+    "address": "Lørenfaret 3, 0585 Oslo, Norway",
+    "coords": [
+      59.9304193,
+      10.799211699999999
+    ],
+    "category": "bar",
+    "area": "Sinsen",
+    "rating": 4.4,
+    "facing": null,
+    "openingHours": {
+      "open": 15,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "1": {
+        "open": 16,
+        "close": 23
+      },
+      "2": {
+        "open": 16,
+        "close": 23
+      },
+      "3": {
+        "open": 16,
+        "close": 23
+      },
+      "4": {
+        "open": 16,
+        "close": 23
+      },
+      "5": {
+        "open": 15,
+        "close": 1
+      },
+      "6": {
+        "open": 16,
+        "close": 1
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJx3FNyrhvQUYRImlslEQoby8",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 174,
+    "name": "Laboratoriet",
+    "address": "Harbitzalléen 3, 0275 Oslo, Norway",
+    "coords": [
+      59.9244264,
+      10.6741058
+    ],
+    "category": "bar",
+    "area": "Majorstuen",
+    "rating": 4,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 24
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 11,
+        "close": 23
+      },
+      "1": {
+        "open": 11,
+        "close": 23
+      },
+      "2": {
+        "open": 11,
+        "close": 23
+      },
+      "3": {
+        "open": 11,
+        "close": 23
+      },
+      "4": {
+        "open": 11,
+        "close": 24
+      },
+      "5": {
+        "open": 11,
+        "close": 24
+      },
+      "6": {
+        "open": 11,
+        "close": 24
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJf3oGJRJtQUYRyty5BapRU8U",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 175,
+    "name": "Barstars Oslo",
+    "address": "Harbitzalléen 3, 0275 Oslo, Norway",
+    "coords": [
+      59.924363899999996,
+      10.6728159
+    ],
+    "category": "bar",
+    "area": "Majorstuen",
+    "rating": 4.9,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 18.5
+    },
+    "openingHoursWeekly": {
+      "1": {
+        "open": 11,
+        "close": 17
+      },
+      "2": {
+        "open": 11,
+        "close": 17
+      },
+      "3": {
+        "open": 11,
+        "close": 17
+      },
+      "4": {
+        "open": 11,
+        "close": 17
+      },
+      "5": {
+        "open": 11,
+        "close": 17
+      },
+      "6": {
+        "open": 11,
+        "close": 18.5
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJAQDwrKxvQUYRlvnb_C8NovY",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 176,
+    "name": "Qui",
+    "address": "Karenslyst Allé 55, 0277 Oslo, Norway",
+    "coords": [
+      59.9215458,
+      10.6785271
+    ],
+    "category": "restaurant",
+    "area": "Majorstuen",
+    "rating": 4.1,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 21.5
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 20.5
+      },
+      "1": {
+        "open": 11,
+        "close": 20.5
+      },
+      "2": {
+        "open": 11,
+        "close": 21.5
+      },
+      "3": {
+        "open": 11,
+        "close": 21.5
+      },
+      "4": {
+        "open": 11,
+        "close": 21.5
+      },
+      "5": {
+        "open": 11,
+        "close": 21.5
+      },
+      "6": {
+        "open": 12,
+        "close": 21.5
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJYUxxj7NtQUYRktf4GxK2CYs",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 177,
+    "name": "botniabanan",
+    "address": "Huk Aveny 2, 0287 Oslo, Norway",
+    "coords": [
+      59.90719659999999,
+      10.695537
+    ],
+    "category": "bar",
+    "area": "Skøyen",
+    "rating": 4.1,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 23
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJAQxP5jBsQUYRsHEk0Ans30w",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 178,
+    "name": "Kafe Arkadia",
+    "address": "Museumsveien 10, 0287 Oslo, Norway",
+    "coords": [
+      59.90746139999999,
+      10.6867953
+    ],
+    "category": "cafe",
+    "area": "Skøyen",
+    "rating": 4.1,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 17
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 11,
+        "close": 17
+      },
+      "2": {
+        "open": 11,
+        "close": 17
+      },
+      "3": {
+        "open": 11,
+        "close": 17
+      },
+      "4": {
+        "open": 11,
+        "close": 17
+      },
+      "5": {
+        "open": 11,
+        "close": 17
+      },
+      "6": {
+        "open": 11,
+        "close": 17
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJbcQbpTdsQUYR3tUF5AVYA98",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 179,
+    "name": "Lille Herbern",
+    "address": "Herbernveien, 0286 Oslo, Norway",
+    "coords": [
+      59.898590899999995,
+      10.6935063
+    ],
+    "category": "bar",
+    "area": "Skøyen",
+    "rating": 4.3,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 23
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJHzko6T1sQUYRqjWoAeH8rRs",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 180,
+    "name": "Kongsgården Gardening",
+    "address": "Museumsveien 15, 0287 Oslo, Norway",
+    "coords": [
+      59.90984410000001,
+      10.6847581
+    ],
+    "category": "restaurant",
+    "area": "Skøyen",
+    "rating": 4.5,
+    "facing": null,
+    "openingHours": {
+      "open": 11.5,
+      "close": 16.5
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 11.5,
+        "close": 16.5
+      },
+      "6": {
+        "open": 11.5,
+        "close": 16.5
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJj9dMIjZsQUYRN-ONLCrLy5g",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 181,
+    "name": "Olsen På Bryn",
+    "address": "Østensjøveien 64, 0667 Oslo, Norway",
+    "coords": [
+      59.9076001,
+      10.8182793
+    ],
+    "category": "restaurant",
+    "area": "Helsfyr",
+    "rating": 4.4,
+    "facing": null,
+    "openingHours": {
+      "open": 15,
+      "close": 22
+    },
+    "openingHoursWeekly": {
+      "3": {
+        "open": 17,
+        "close": 22
+      },
+      "4": {
+        "open": 17,
+        "close": 22
+      },
+      "5": {
+        "open": 16,
+        "close": 1
+      },
+      "6": {
+        "open": 15,
+        "close": 1
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ72UcU2NvQUYRTSGdW2RgtvE",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 182,
+    "name": "Trewerket",
+    "address": "Innspurten 11-13, 0667 Oslo, Norway",
+    "coords": [
+      59.9162934,
+      10.805384
+    ],
+    "category": "restaurant",
+    "area": "Helsfyr",
+    "rating": 4.5,
+    "facing": null,
+    "openingHours": {
+      "open": 8,
+      "close": 16
+    },
+    "openingHoursWeekly": {
+      "1": {
+        "open": 8,
+        "close": 16
+      },
+      "2": {
+        "open": 8,
+        "close": 16
+      },
+      "3": {
+        "open": 8,
+        "close": 16
+      },
+      "4": {
+        "open": 8,
+        "close": 16
+      },
+      "5": {
+        "open": 8,
+        "close": 16
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJAXfRtiRvQUYRKbsJa3FJqH4",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 183,
+    "name": "Øst",
+    "address": "Innspurten 16 F, 0663 Oslo, Norway",
+    "coords": [
+      59.9170133,
+      10.8063369
+    ],
+    "category": "bar",
+    "area": "Helsfyr",
+    "rating": 4.4,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 23.5
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 11,
+        "close": 21.5
+      },
+      "1": {
+        "open": 11.5,
+        "close": 23
+      },
+      "2": {
+        "open": 11.5,
+        "close": 23
+      },
+      "3": {
+        "open": 11.5,
+        "close": 23
+      },
+      "4": {
+        "open": 11.5,
+        "close": 23
+      },
+      "5": {
+        "open": 11.5,
+        "close": 23.5
+      },
+      "6": {
+        "open": 13,
+        "close": 23.5
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ-9EYva1vQUYR7dealnfxaEs",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 184,
+    "name": "Sushi & Thai Oppsal",
+    "address": "Vetlandsveien 111, 0685 Oslo, Norway",
+    "coords": [
+      59.8930892,
+      10.841586999999999
+    ],
+    "category": "restaurant",
+    "area": "Bryn",
+    "rating": 4.2,
+    "facing": null,
+    "openingHours": {
+      "open": 14,
+      "close": 21
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 14,
+        "close": 21
+      },
+      "1": {
+        "open": 14,
+        "close": 21
+      },
+      "2": {
+        "open": 14,
+        "close": 21
+      },
+      "3": {
+        "open": 14,
+        "close": 21
+      },
+      "4": {
+        "open": 14,
+        "close": 21
+      },
+      "5": {
+        "open": 14,
+        "close": 21
+      },
+      "6": {
+        "open": 14,
+        "close": 21
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJufk8e6xvQUYRcb7_ZcrIi-E",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 185,
+    "name": "Østensjø Havn",
+    "address": "Vetlandsveien 111, 0686 Oslo, Norway",
+    "coords": [
+      59.892995799999994,
+      10.8414178
+    ],
+    "category": "restaurant",
+    "area": "Bryn",
+    "rating": 4.5,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 20
+      },
+      "2": {
+        "open": 11,
+        "close": 22
+      },
+      "3": {
+        "open": 11,
+        "close": 22
+      },
+      "4": {
+        "open": 11,
+        "close": 22
+      },
+      "5": {
+        "open": 11,
+        "close": 23
+      },
+      "6": {
+        "open": 12,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJz-Yh92pvQUYRswTTz3O5WRw",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 186,
+    "name": "Sky grill",
+    "address": "Raschs vei 42, 1158 Karlsrud, Norway",
+    "coords": [
+      59.8797681,
+      10.8056898
+    ],
+    "category": "restaurant",
+    "area": "Østensjø",
+    "rating": 3.8,
+    "facing": null,
+    "openingHours": {
+      "open": 10,
+      "close": 4
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 11,
+        "close": 2
+      },
+      "1": {
+        "open": 10,
+        "close": 2
+      },
+      "2": {
+        "open": 10,
+        "close": 2
+      },
+      "3": {
+        "open": 10,
+        "close": 2
+      },
+      "4": {
+        "open": 10,
+        "close": 2
+      },
+      "5": {
+        "open": 10,
+        "close": 2
+      },
+      "6": {
+        "open": 11,
+        "close": 4
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ8Vry-htvQUYR3IkebWA4mMY",
+    "facingSource": null,
+    "discoverySignal": "outdoorSeating"
+  },
+  {
+    "id": 187,
+    "name": "Karlsrud Mat og Vinhus",
+    "address": "Raschs vei 38, 1153 Oslo, Norway",
+    "coords": [
+      59.8796953,
+      10.804212
+    ],
+    "category": "restaurant",
+    "area": "Østensjø",
+    "rating": 4.2,
+    "facing": null,
+    "openingHours": {
+      "open": 13,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 23
+      },
+      "2": {
+        "open": 15,
+        "close": 23
+      },
+      "3": {
+        "open": 15,
+        "close": 23
+      },
+      "4": {
+        "open": 15,
+        "close": 23
+      },
+      "5": {
+        "open": 15,
+        "close": 23
+      },
+      "6": {
+        "open": 15,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ1acGrvpvQUYRET3Q2Kl0Op0",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 188,
+    "name": "Olivia Østbanehallen",
+    "address": "Jernbanetorget 1, 0154 Oslo, Norway",
+    "coords": [
+      59.910424799999994,
+      10.7512243
+    ],
+    "category": "restaurant",
+    "area": "Sentrum",
+    "rating": 4.1,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 24
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 22
+      },
+      "1": {
+        "open": 11,
+        "close": 23
+      },
+      "2": {
+        "open": 11,
+        "close": 23
+      },
+      "3": {
+        "open": 11,
+        "close": 23
+      },
+      "4": {
+        "open": 11,
+        "close": 23
+      },
+      "5": {
+        "open": 11,
+        "close": 24
+      },
+      "6": {
+        "open": 11,
+        "close": 24
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJrR6qEIpuQUYRgDKho0RmkUw",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 189,
+    "name": "Stortorvets Gjæstgiveri",
+    "address": "Grensen 1, 0159 Oslo, Norway",
+    "coords": [
+      59.9133797,
+      10.744708099999999
+    ],
+    "category": "bar",
+    "area": "Sentrum",
+    "rating": 4,
+    "facing": null,
+    "openingHours": {
+      "open": 12,
+      "close": 22
+    },
+    "openingHoursWeekly": {
+      "2": {
+        "open": 12,
+        "close": 22
+      },
+      "3": {
+        "open": 12,
+        "close": 22
+      },
+      "4": {
+        "open": 12,
+        "close": 22
+      },
+      "5": {
+        "open": 12,
+        "close": 22
+      },
+      "6": {
+        "open": 12,
+        "close": 22
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJOej1lmJuQUYR6JfMQSTwC8s",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 190,
+    "name": "Fat City",
+    "address": "Thorvald Meyers gate 30, 0555 Oslo, Norway",
+    "coords": [
+      59.925214700000005,
+      10.7593968
+    ],
+    "category": "restaurant",
+    "area": "Grünerløkka",
+    "rating": 4.8,
+    "facing": null,
+    "openingHours": {
+      "open": 12,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 20
+      },
+      "2": {
+        "open": 14,
+        "close": 23
+      },
+      "3": {
+        "open": 14,
+        "close": 23
+      },
+      "4": {
+        "open": 14,
+        "close": 23
+      },
+      "5": {
+        "open": 12,
+        "close": 1
+      },
+      "6": {
+        "open": 12,
+        "close": 1
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJicIMORhvQUYR9kxZwhAsZ30",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 191,
+    "name": "Grønland Boulebar",
+    "address": "Grønlandsleiret 27, 0190 Oslo, Norway",
+    "coords": [
+      59.9116416,
+      10.7664856
+    ],
+    "category": "restaurant",
+    "area": "Grønland",
+    "rating": 4.2,
+    "facing": null,
+    "openingHours": {
+      "open": 13,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 14,
+        "close": 20
+      },
+      "1": {
+        "open": 15,
+        "close": 22
+      },
+      "2": {
+        "open": 15,
+        "close": 22
+      },
+      "3": {
+        "open": 15,
+        "close": 23
+      },
+      "4": {
+        "open": 15,
+        "close": 23
+      },
+      "5": {
+        "open": 15,
+        "close": 0.5
+      },
+      "6": {
+        "open": 13,
+        "close": 0.5
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJg4AtmhdvQUYRlomPTYxKa6o",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 192,
+    "name": "La Villa Restaurant",
+    "address": "Tøyengata 2, 0190 Oslo, Norway",
+    "coords": [
+      59.9126553,
+      10.7637035
+    ],
+    "category": "restaurant",
+    "area": "Grønland",
+    "rating": 4.4,
+    "facing": null,
+    "openingHours": {
+      "open": 10,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 23
+      },
+      "1": {
+        "open": 10,
+        "close": 23
+      },
+      "2": {
+        "open": 10,
+        "close": 23
+      },
+      "3": {
+        "open": 10,
+        "close": 23
+      },
+      "4": {
+        "open": 10,
+        "close": 23
+      },
+      "5": {
+        "open": 10,
+        "close": 23
+      },
+      "6": {
+        "open": 10,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJU9wNu19uQUYRGklkX-be5Rs",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 193,
+    "name": "Polskie Jadło",
+    "address": "Grønland 2a, 0188 Oslo, Norway",
+    "coords": [
+      59.913516,
+      10.7585791
+    ],
+    "category": "restaurant",
+    "area": "Grønland",
+    "rating": 4.8,
+    "facing": null,
+    "openingHours": {
+      "open": 13,
+      "close": 20.5
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 20.5
+      },
+      "1": {
+        "open": 14,
+        "close": 20.5
+      },
+      "2": {
+        "open": 14,
+        "close": 20.5
+      },
+      "3": {
+        "open": 14,
+        "close": 20.5
+      },
+      "4": {
+        "open": 14,
+        "close": 20.5
+      },
+      "5": {
+        "open": 14,
+        "close": 20.5
+      },
+      "6": {
+        "open": 13,
+        "close": 20.5
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJGzpe9Z9vQUYRMOfzO-WDAss",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 194,
+    "name": "Park 29",
+    "address": "Parkveien 29, 0350 Oslo, Norway",
+    "coords": [
+      59.92030989999999,
+      10.7275703
+    ],
+    "category": "bar",
+    "area": "Bislett",
+    "rating": 4.1,
+    "facing": null,
+    "openingHours": {
+      "open": 11.5,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "1": {
+        "open": 11.5,
+        "close": 23
+      },
+      "2": {
+        "open": 11.5,
+        "close": 23
+      },
+      "3": {
+        "open": 11.5,
+        "close": 23
+      },
+      "4": {
+        "open": 11.5,
+        "close": 23
+      },
+      "5": {
+        "open": 11.5,
+        "close": 23
+      },
+      "6": {
+        "open": 11.5,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJFb1VpXhuQUYR5ahaQqDGLD8",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 195,
+    "name": "St. Lars restaurant",
+    "address": "Thereses gate 45, 0354 Oslo, Norway",
+    "coords": [
+      59.9265385,
+      10.731153299999999
+    ],
+    "category": "restaurant",
+    "area": "Bislett",
+    "rating": 4.4,
+    "facing": null,
+    "openingHours": {
+      "open": 16.5,
+      "close": 22
+    },
+    "openingHoursWeekly": {
+      "1": {
+        "open": 16.5,
+        "close": 22
+      },
+      "2": {
+        "open": 16.5,
+        "close": 22
+      },
+      "3": {
+        "open": 16.5,
+        "close": 22
+      },
+      "4": {
+        "open": 16.5,
+        "close": 22
+      },
+      "5": {
+        "open": 16.5,
+        "close": 22
+      },
+      "6": {
+        "open": 16.5,
+        "close": 22
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJd0nD6nduQUYRhBLG8jKcEpg",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 196,
+    "name": "Delicatessen Majorstuen",
+    "address": "Vibes gate 8A, 0356 Oslo, Norway",
+    "coords": [
+      59.926452999999995,
+      10.722589
+    ],
+    "category": "bar",
+    "area": "Bislett",
+    "rating": 4.3,
+    "facing": null,
+    "openingHours": {
+      "open": 12,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 21.5
+      },
+      "1": {
+        "open": 12,
+        "close": 22
+      },
+      "2": {
+        "open": 12,
+        "close": 22
+      },
+      "3": {
+        "open": 12,
+        "close": 22
+      },
+      "4": {
+        "open": 12,
+        "close": 22
+      },
+      "5": {
+        "open": 12,
+        "close": 23
+      },
+      "6": {
+        "open": 12,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJb7Ya29ltQUYR6KVNbYYKq6o",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 197,
+    "name": "Vesuvio pizzeria (Bislett)",
+    "address": "Thereses gate 30 e, 0168 Oslo, Norway",
+    "coords": [
+      59.9281554,
+      10.732495799999999
+    ],
+    "category": "restaurant",
+    "area": "Bislett",
+    "rating": null,
+    "facing": null,
+    "openingHours": {
+      "open": 13,
+      "close": 22
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 21
+      },
+      "2": {
+        "open": 15,
+        "close": 21
+      },
+      "3": {
+        "open": 15,
+        "close": 21
+      },
+      "4": {
+        "open": 15,
+        "close": 21
+      },
+      "5": {
+        "open": 13,
+        "close": 22
+      },
+      "6": {
+        "open": 13,
+        "close": 22
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJjdtqJm9vQUYRX7aVE8iMnTw",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 198,
+    "name": "Jubel på Adamstuen",
+    "address": "Ullevålsveien 68, 0454 Oslo, Norway",
+    "coords": [
+      59.9314884,
+      10.7361759
+    ],
+    "category": "bar",
+    "area": "Bislett",
+    "rating": 4.4,
+    "facing": null,
+    "openingHours": {
+      "open": 10,
+      "close": 24
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 20
+      },
+      "2": {
+        "open": 10,
+        "close": 24
+      },
+      "3": {
+        "open": 10,
+        "close": 24
+      },
+      "4": {
+        "open": 10,
+        "close": 24
+      },
+      "5": {
+        "open": 10,
+        "close": 1
+      },
+      "6": {
+        "open": 12,
+        "close": 1
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJOQ-xbgBvQUYRxr11wv41Gz8",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 199,
+    "name": "Café Laundromat",
+    "address": "Underhaugsveien 2, 0354 Oslo, Norway",
+    "coords": [
+      59.925406100000004,
+      10.7305474
+    ],
+    "category": "restaurant",
+    "area": "Bislett",
+    "rating": 4.1,
+    "facing": null,
+    "openingHours": {
+      "open": 10,
+      "close": 24
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 10,
+        "close": 23
+      },
+      "1": {
+        "open": 11,
+        "close": 24
+      },
+      "2": {
+        "open": 11,
+        "close": 24
+      },
+      "3": {
+        "open": 11,
+        "close": 24
+      },
+      "4": {
+        "open": 10,
+        "close": 1
+      },
+      "5": {
+        "open": 10,
+        "close": 1
+      },
+      "6": {
+        "open": 10,
+        "close": 1
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJj4Za9HduQUYRwqEfMgOUEV0",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 200,
+    "name": "Kastellet Oslo",
+    "address": "Hegdehaugsveien 25, 0352 Oslo, Norway",
+    "coords": [
+      59.9212847,
+      10.72777
+    ],
+    "category": "restaurant",
+    "area": "Bislett",
+    "rating": 4.4,
+    "facing": null,
+    "openingHours": {
+      "open": 14,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "2": {
+        "open": 16,
+        "close": 23
+      },
+      "3": {
+        "open": 16,
+        "close": 23
+      },
+      "4": {
+        "open": 16,
+        "close": 23
+      },
+      "5": {
+        "open": 14,
+        "close": 1
+      },
+      "6": {
+        "open": 14,
+        "close": 1
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJL2B240hvQUYRNdnnVOA7RU0",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 201,
+    "name": "J2 Restaurant BBQ",
+    "address": "Pilestredet 63A, 0350 Oslo, Norway",
+    "coords": [
+      59.92383530000001,
+      10.731121000000002
+    ],
+    "category": "restaurant",
+    "area": "Bislett",
+    "rating": 4.9,
+    "facing": null,
+    "openingHours": {
+      "open": 17,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "2": {
+        "open": 18,
+        "close": 20.5
+      },
+      "3": {
+        "open": 18,
+        "close": 20.5
+      },
+      "4": {
+        "open": 17,
+        "close": 23
+      },
+      "5": {
+        "open": 17,
+        "close": 23
+      },
+      "6": {
+        "open": 17,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJR9JTjD5vQUYRzvP-odfvke0",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 202,
+    "name": "Kanpai Izakaya",
+    "address": "Parkveien 1b, 0350 Oslo, Norway",
+    "coords": [
+      59.9224244,
+      10.7317573
+    ],
+    "category": "restaurant",
+    "area": "Bislett",
+    "rating": 4.5,
+    "facing": null,
+    "openingHours": {
+      "open": 16,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 16,
+        "close": 22
+      },
+      "2": {
+        "open": 16,
+        "close": 23
+      },
+      "3": {
+        "open": 16,
+        "close": 23
+      },
+      "4": {
+        "open": 16,
+        "close": 23
+      },
+      "5": {
+        "open": 16,
+        "close": 23
+      },
+      "6": {
+        "open": 16,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJL8ijAJFvQUYRECyoVqQZoDA",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 203,
+    "name": "Colonel Mustard",
+    "address": "Darres gate 2, 0175 Oslo, Norway",
+    "coords": [
+      59.927874,
+      10.751424
+    ],
+    "category": "bar",
+    "area": "Bislett",
+    "rating": 4.1,
+    "facing": null,
+    "openingHours": {
+      "open": 12,
+      "close": 24
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 22
+      },
+      "1": {
+        "open": 12,
+        "close": 22
+      },
+      "2": {
+        "open": 12,
+        "close": 24
+      },
+      "3": {
+        "open": 12,
+        "close": 24
+      },
+      "4": {
+        "open": 12,
+        "close": 24
+      },
+      "5": {
+        "open": 12,
+        "close": 2
+      },
+      "6": {
+        "open": 12,
+        "close": 2
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJuTxTQm5uQUYRiqQX3qpcvgI",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 204,
+    "name": "Cordial",
+    "address": "Frognerveien 12b, 0263 Oslo, Norway",
+    "coords": [
+      59.9165268,
+      10.713397299999999
+    ],
+    "category": "restaurant",
+    "area": "Frogner",
+    "rating": 4.9,
+    "facing": null,
+    "openingHours": {
+      "open": 16.5,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "2": {
+        "open": 16.5,
+        "close": 23
+      },
+      "3": {
+        "open": 16.5,
+        "close": 23
+      },
+      "4": {
+        "open": 16.5,
+        "close": 23
+      },
+      "5": {
+        "open": 16.5,
+        "close": 23
+      },
+      "6": {
+        "open": 16.5,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJxXO1XgBtQUYRijFcke-LXAU",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 205,
+    "name": "Kolonihagen Frogner",
+    "address": "Frognerveien 33, 0263 Oslo, Norway",
+    "coords": [
+      59.918879800000006,
+      10.710022400000001
+    ],
+    "category": "restaurant",
+    "area": "Frogner",
+    "rating": 4.5,
+    "facing": null,
+    "openingHours": {
+      "open": 17,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "2": {
+        "open": 17,
+        "close": 22
+      },
+      "3": {
+        "open": 17,
+        "close": 22
+      },
+      "4": {
+        "open": 17,
+        "close": 22
+      },
+      "5": {
+        "open": 17,
+        "close": 23
+      },
+      "6": {
+        "open": 17,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJZxeP-UZuQUYR9KlaL7Ji9GY",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 206,
+    "name": "Herregårdskroen",
+    "address": "Frognerveien 67, 0266 Oslo, Norway",
+    "coords": [
+      59.92451140000001,
+      10.702494399999999
+    ],
+    "category": "restaurant",
+    "area": "Frogner",
+    "rating": 3.9,
+    "facing": null,
+    "openingHours": {
+      "open": 12,
+      "close": 18
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 18
+      },
+      "3": {
+        "open": 12,
+        "close": 18
+      },
+      "4": {
+        "open": 12,
+        "close": 18
+      },
+      "5": {
+        "open": 12,
+        "close": 18
+      },
+      "6": {
+        "open": 12,
+        "close": 18
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJFV4hyM9tQUYRFcATsFZyo64",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 207,
+    "name": "Babbo Collective Frogner",
+    "address": "Bygdøy allé 15, 0257 Oslo, Norway",
+    "coords": [
+      59.91588360000001,
+      10.713999999999999
+    ],
+    "category": "restaurant",
+    "area": "Frogner",
+    "rating": 3.8,
+    "facing": null,
+    "openingHours": {
+      "open": 10,
+      "close": 17
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 10,
+        "close": 17
+      },
+      "3": {
+        "open": 10,
+        "close": 17
+      },
+      "4": {
+        "open": 10,
+        "close": 17
+      },
+      "5": {
+        "open": 10,
+        "close": 17
+      },
+      "6": {
+        "open": 10,
+        "close": 17
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJQ28ZJMFtQUYRrrskKsJVcFM",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 208,
+    "name": "Vineria Ventidue",
+    "address": "Gimleveien 22, 0266 Oslo, Norway",
+    "coords": [
+      59.9201095,
+      10.7055399
+    ],
+    "category": "restaurant",
+    "area": "Frogner",
+    "rating": 4,
+    "facing": null,
+    "openingHours": {
+      "open": 13,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 22
+      },
+      "1": {
+        "open": 16,
+        "close": 22
+      },
+      "2": {
+        "open": 16,
+        "close": 22
+      },
+      "3": {
+        "open": 13,
+        "close": 22
+      },
+      "4": {
+        "open": 13,
+        "close": 22
+      },
+      "5": {
+        "open": 13,
+        "close": 23
+      },
+      "6": {
+        "open": 13,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ2dFk7M1tQUYR6AE_qg2TgsA",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 209,
+    "name": "Frenchie Solli Plass",
+    "address": "Henrik Ibsens gate 100, 0255 Oslo, Norway",
+    "coords": [
+      59.91450489999999,
+      10.719077200000001
+    ],
+    "category": "restaurant",
+    "area": "Frogner",
+    "rating": 4.3,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 22
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12.5,
+        "close": 21.5
+      },
+      "1": {
+        "open": 11,
+        "close": 21.5
+      },
+      "2": {
+        "open": 11,
+        "close": 21.5
+      },
+      "3": {
+        "open": 11,
+        "close": 22
+      },
+      "4": {
+        "open": 11,
+        "close": 22
+      },
+      "5": {
+        "open": 11,
+        "close": 22
+      },
+      "6": {
+        "open": 12.5,
+        "close": 22
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJu4R79yptQUYR3y0FUZnR_5s",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 210,
+    "name": "Keyser Social Frogner",
+    "address": "Frognerveien 9c, 0257 Oslo, Norway",
+    "coords": [
+      59.91646979999999,
+      10.7148602
+    ],
+    "category": "bar",
+    "area": "Frogner",
+    "rating": 4.5,
+    "facing": null,
+    "openingHours": {
+      "open": 16,
+      "close": 21
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 16,
+        "close": 20.5
+      },
+      "1": {
+        "open": 17,
+        "close": 20.5
+      },
+      "2": {
+        "open": 17,
+        "close": 20.5
+      },
+      "3": {
+        "open": 17,
+        "close": 20.5
+      },
+      "4": {
+        "open": 17,
+        "close": 21
+      },
+      "5": {
+        "open": 16,
+        "close": 21
+      },
+      "6": {
+        "open": 16,
+        "close": 21
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ4aCEEc1tQUYRnWaV51l_e7A",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 211,
+    "name": "L'Atelier",
+    "address": "Munkedamsveien 100, 0270 Oslo, Norway",
+    "coords": [
+      59.91265370000001,
+      10.709942199999999
+    ],
+    "category": "bar",
+    "area": "Frogner",
+    "rating": 4.4,
+    "facing": null,
+    "openingHours": {
+      "open": 13,
+      "close": 3
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 16,
+        "close": 1
+      },
+      "1": {
+        "open": 16,
+        "close": 1
+      },
+      "2": {
+        "open": 16,
+        "close": 1
+      },
+      "3": {
+        "open": 16,
+        "close": 1
+      },
+      "4": {
+        "open": 16,
+        "close": 1
+      },
+      "5": {
+        "open": 16,
+        "close": 3
+      },
+      "6": {
+        "open": 13,
+        "close": 3
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJv_pfcVttQUYRMzyvYKgu08M",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 212,
+    "name": "Brasserie Ouest",
+    "address": "Elisenbergveien 19, 0265 Oslo, Norway",
+    "coords": [
+      59.9187354,
+      10.7061778
+    ],
+    "category": "restaurant",
+    "area": "Frogner",
+    "rating": 4.4,
+    "facing": null,
+    "openingHours": {
+      "open": 14,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 16,
+        "close": 21.5
+      },
+      "2": {
+        "open": 17,
+        "close": 23
+      },
+      "3": {
+        "open": 17,
+        "close": 23
+      },
+      "4": {
+        "open": 17,
+        "close": 23
+      },
+      "5": {
+        "open": 17,
+        "close": 23
+      },
+      "6": {
+        "open": 14,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ-6UJg81tQUYRNIX8xkm68LU",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 213,
+    "name": "De La Casa Pasta & Wine Bar",
+    "address": "Frognerveien 35A, 0266 Oslo, Norway",
+    "coords": [
+      59.919705500000006,
+      10.7086954
+    ],
+    "category": "restaurant",
+    "area": "Frogner",
+    "rating": 4.6,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 22
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 11,
+        "close": 22
+      },
+      "1": {
+        "open": 11,
+        "close": 22
+      },
+      "2": {
+        "open": 11,
+        "close": 22
+      },
+      "3": {
+        "open": 11,
+        "close": 22
+      },
+      "4": {
+        "open": 11,
+        "close": 22
+      },
+      "5": {
+        "open": 11,
+        "close": 22
+      },
+      "6": {
+        "open": 11,
+        "close": 22
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJpylgJextQUYRj7pWshHXbnE",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 214,
+    "name": "Libertine Vinbar",
+    "address": "Frognerveien 2, 0257 Oslo, Norway",
+    "coords": [
+      59.91532729999999,
+      10.716949999999999
+    ],
+    "category": "bar",
+    "area": "Frogner",
+    "rating": 4.3,
+    "facing": null,
+    "openingHours": {
+      "open": 15,
+      "close": 3
+    },
+    "openingHoursWeekly": {
+      "2": {
+        "open": 16,
+        "close": 2
+      },
+      "3": {
+        "open": 16,
+        "close": 2
+      },
+      "4": {
+        "open": 16,
+        "close": 3
+      },
+      "5": {
+        "open": 15,
+        "close": 3
+      },
+      "6": {
+        "open": 15,
+        "close": 3
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJueMKJxhtQUYR7U4zuNdgwyU",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 215,
     "name": "Pastis Bistrobar",
     "address": "Stranden 3, 0250 Oslo, Norway",
     "coords": [
@@ -49,177 +4939,240 @@
     "category": "restaurant",
     "area": "Aker Brygge",
     "rating": 4.6,
-    "facing": 180,
+    "facing": null,
     "openingHours": {
       "open": 8,
-      "close": 23
+      "close": 22.5
     },
-    "outdoorSeating": true,
+    "openingHoursWeekly": {
+      "0": {
+        "open": 9,
+        "close": 22
+      },
+      "1": {
+        "open": 8,
+        "close": 22
+      },
+      "2": {
+        "open": 8,
+        "close": 22
+      },
+      "3": {
+        "open": 8,
+        "close": 22
+      },
+      "4": {
+        "open": 8,
+        "close": 22.5
+      },
+      "5": {
+        "open": 8,
+        "close": 22.5
+      },
+      "6": {
+        "open": 9,
+        "close": 22.5
+      }
+    },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJL2kMzkFvQUYRpQBugHuE81o",
-    "facingSource": null
+    "facingSource": null,
+    "discoverySignal": "both"
   },
   {
-    "name": "PARADIS Gelateria Tjuvholmen",
-    "address": "Tjuvholmen allé 6, 0252 Oslo, Norway",
+    "id": 216,
+    "name": "Jarmann Gastropub",
+    "address": "Stranden 1, 0250 Oslo, Norway",
     "coords": [
-      59.908560099999995,
-      10.7228967
+      59.910286500000005,
+      10.728264099999999
     ],
-    "category": "cafe",
+    "category": "bar",
+    "area": "Aker Brygge",
+    "rating": 4.2,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 24
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 22
+      },
+      "1": {
+        "open": 11,
+        "close": 22
+      },
+      "2": {
+        "open": 11,
+        "close": 22
+      },
+      "3": {
+        "open": 11,
+        "close": 22
+      },
+      "4": {
+        "open": 11,
+        "close": 24
+      },
+      "5": {
+        "open": 11,
+        "close": 24
+      },
+      "6": {
+        "open": 12,
+        "close": 24
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJt9SwHoFuQUYRZ44PGPtO5xA",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 217,
+    "name": "Vesuvio - Vista mare",
+    "address": "Stranden 30, 0250 Oslo, Norway",
+    "coords": [
+      59.9086326,
+      10.725907099999999
+    ],
+    "category": "restaurant",
     "area": "Aker Brygge",
     "rating": 4.6,
-    "facing": 180,
+    "facing": null,
     "openingHours": {
-      "open": 11,
-      "close": 22
+      "open": 16,
+      "close": 21
     },
-    "outdoorSeating": null,
+    "openingHoursWeekly": {
+      "2": {
+        "open": 16,
+        "close": 21
+      },
+      "3": {
+        "open": 16,
+        "close": 21
+      },
+      "4": {
+        "open": 16,
+        "close": 21
+      },
+      "5": {
+        "open": 16,
+        "close": 21
+      },
+      "6": {
+        "open": 16,
+        "close": 21
+      }
+    },
     "buildingOsmId": null,
-    "googlePlaceId": "ChIJwbyMH4JuQUYR3tusha1OZSE",
-    "facingSource": null
+    "googlePlaceId": "ChIJh0ExzvFvQUYR0qFu-a1PeYU",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
   },
   {
-    "name": "Mamma Pizza Vika Osteria di Mare",
-    "address": "Ruseløkkveien 26, 0251 Oslo, Norway",
+    "id": 218,
+    "name": "Delicatessen Aker Brygge",
+    "address": "Holmens gate 2, 0250 Oslo, Norway",
     "coords": [
-      59.912678899999996,
-      10.726138899999999
+      59.910590000000006,
+      10.727077999999999
     ],
     "category": "bar",
     "area": "Aker Brygge",
-    "rating": 4.5,
-    "facing": 180,
+    "rating": 4.2,
+    "facing": null,
     "openingHours": {
-      "open": 11,
-      "close": 22
-    },
-    "outdoorSeating": true,
-    "buildingOsmId": null,
-    "googlePlaceId": "ChIJ7xA2Y6hvQUYRv2gGmQksXBU",
-    "facingSource": null
-  },
-  {
-    "name": "Gangnam Restaurant",
-    "address": "Munkedamsveien 59, 0270 Oslo, Norway",
-    "coords": [
-      59.9111706,
-      10.720908999999999
-    ],
-    "category": "restaurant",
-    "area": "Aker Brygge",
-    "rating": 4.5,
-    "facing": 180,
-    "openingHours": {
-      "open": 16,
-      "close": 22
-    },
-    "outdoorSeating": false,
-    "buildingOsmId": null,
-    "googlePlaceId": "ChIJiU9geypsQUYROO9-_4rRkVI",
-    "facingSource": null
-  },
-  {
-    "name": "THE THIEF",
-    "address": "Landgangen 1, 0252 Oslo, Norway",
-    "coords": [
-      59.90763899999999,
-      10.7210813
-    ],
-    "category": "bar",
-    "area": "Aker Brygge",
-    "rating": 4.4,
-    "facing": 180,
-    "openingHours": {
-      "open": 0,
-      "close": 22
-    },
-    "outdoorSeating": null,
-    "buildingOsmId": null,
-    "googlePlaceId": "ChIJGTp_5ylsQUYRqiIovfIyRT8",
-    "facingSource": null
-  },
-  {
-    "name": "Aker Brygge",
-    "address": "Bryggegata 3, 0250 Oslo, Norway",
-    "coords": [
-      59.909962,
-      10.7270427
-    ],
-    "category": "restaurant",
-    "area": "Aker Brygge",
-    "rating": 4.4,
-    "facing": 180,
-    "openingHours": {
-      "open": 11,
-      "close": 22
-    },
-    "outdoorSeating": null,
-    "buildingOsmId": null,
-    "googlePlaceId": "ChIJg2afGoFuQUYR-92olqBcrdg",
-    "facingSource": null
-  },
-  {
-    "name": "Latter",
-    "address": "Holmens gate 1, 0250 Oslo, Norway",
-    "coords": [
-      59.9108086,
-      10.726818999999999
-    ],
-    "category": "restaurant",
-    "area": "Aker Brygge",
-    "rating": 4.4,
-    "facing": 180,
-    "openingHours": {
-      "open": 16,
+      "open": 12,
       "close": 23
     },
-    "outdoorSeating": true,
-    "buildingOsmId": null,
-    "googlePlaceId": "ChIJcfmLqoFuQUYRFZzNmNMT11s",
-    "facingSource": null
-  },
-  {
-    "name": "Babbo Collective Parkveien",
-    "address": "Parkveien 80, 0254 Oslo, Norway",
-    "coords": [
-      59.91199830000001,
-      10.7188596
-    ],
-    "category": "restaurant",
-    "area": "Aker Brygge",
-    "rating": 4.4,
-    "facing": 180,
-    "openingHours": {
-      "open": 8,
-      "close": 23
+    "openingHoursWeekly": {
+      "0": {
+        "open": 14,
+        "close": 21
+      },
+      "1": {
+        "open": 12,
+        "close": 22
+      },
+      "2": {
+        "open": 12,
+        "close": 22
+      },
+      "3": {
+        "open": 12,
+        "close": 22
+      },
+      "4": {
+        "open": 12,
+        "close": 22
+      },
+      "5": {
+        "open": 12,
+        "close": 23
+      },
+      "6": {
+        "open": 12,
+        "close": 23
+      }
     },
-    "outdoorSeating": true,
     "buildingOsmId": null,
-    "googlePlaceId": "ChIJlwU4cpRtQUYRdXjjM6WA7yM",
-    "facingSource": null
+    "googlePlaceId": "ChIJy_zNAIFuQUYRINr79WcSLuQ",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
   },
   {
-    "name": "Rorbua Aker Brygge",
-    "address": "Stranden 71, 0250 Oslo, Norway",
+    "id": 219,
+    "name": "Stranden 30 // Vågen // Hekla",
+    "address": "Stranden 30, 0259 Oslo, Norway",
     "coords": [
-      59.9088001,
-      10.7247293
+      59.90847909999999,
+      10.726006499999999
     ],
     "category": "restaurant",
     "area": "Aker Brygge",
     "rating": 4.3,
-    "facing": 180,
+    "facing": null,
     "openingHours": {
-      "open": 12,
-      "close": 22
+      "open": 11,
+      "close": 24
     },
-    "outdoorSeating": true,
+    "openingHoursWeekly": {
+      "1": {
+        "open": 11,
+        "close": 24
+      },
+      "2": {
+        "open": 11,
+        "close": 24
+      },
+      "3": {
+        "open": 11,
+        "close": 24
+      },
+      "4": {
+        "open": 11,
+        "close": 24
+      },
+      "5": {
+        "open": 11,
+        "close": 2
+      },
+      "6": {
+        "open": 12,
+        "close": 2
+      }
+    },
     "buildingOsmId": null,
-    "googlePlaceId": "ChIJe4n4joFuQUYRMaNe6vdjcRM",
-    "facingSource": null
+    "googlePlaceId": "ChIJw0UHBQNvQUYROJfvo6M630o",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
   },
   {
+    "id": 220,
     "name": "Louise Restaurant & Bar",
     "address": "Stranden 3, 0250 Oslo, Norway",
     "coords": [
@@ -229,174 +5182,3801 @@
     "category": "bar",
     "area": "Aker Brygge",
     "rating": 4.3,
-    "facing": 180,
+    "facing": null,
     "openingHours": {
       "open": 11,
-      "close": 22
+      "close": 23
     },
-    "outdoorSeating": true,
     "buildingOsmId": null,
     "googlePlaceId": "ChIJg2afGoFuQUYRxzRil8hmP0c",
-    "facingSource": null
+    "facingSource": null,
+    "discoverySignal": "uteservering"
   },
   {
-    "name": "Skur 33",
-    "address": "Akershusstranda 11, 0150 Oslo, Norway",
+    "id": 221,
+    "name": "Beer Palace",
+    "address": "Holmens gate 3, 0250 Oslo, Norway",
     "coords": [
-      59.907731,
-      10.7332248
-    ],
-    "category": "restaurant",
-    "area": "Aker Brygge",
-    "rating": 4.3,
-    "facing": 180,
-    "openingHours": {
-      "open": 12,
-      "close": 21
-    },
-    "outdoorSeating": true,
-    "buildingOsmId": null,
-    "googlePlaceId": "ChIJ53SynIZuQUYRu4gn-yPb61M",
-    "facingSource": null
-  },
-  {
-    "name": "Olivia Aker Brygge",
-    "address": "Stranden 3, 0250 Oslo, Norway",
-    "coords": [
-      59.9101996,
-      10.728008899999999
-    ],
-    "category": "restaurant",
-    "area": "Aker Brygge",
-    "rating": 4.2,
-    "facing": 180,
-    "openingHours": {
-      "open": 11,
-      "close": 24
-    },
-    "outdoorSeating": true,
-    "buildingOsmId": null,
-    "googlePlaceId": "ChIJDbYuLdZtQUYRUG0RJiLNvd4",
-    "facingSource": null
-  },
-  {
-    "name": "New Delhi",
-    "address": "Tjuvholmen allé 2, 0252 Oslo, Norway",
-    "coords": [
-      59.90897439999999,
-      10.723378
-    ],
-    "category": "restaurant",
-    "area": "Aker Brygge",
-    "rating": 4.2,
-    "facing": 180,
-    "openingHours": {
-      "open": 14,
-      "close": 24
-    },
-    "outdoorSeating": true,
-    "buildingOsmId": null,
-    "googlePlaceId": "ChIJT8M8B4huQUYRpbV5bRtm1A0",
-    "facingSource": null
-  },
-  {
-    "name": "Lofoten Fiskerestaurant",
-    "address": "Stranden 75, 0250 Oslo, Norway",
-    "coords": [
-      59.908574,
-      10.7244802
-    ],
-    "category": "fine_dining",
-    "area": "Aker Brygge",
-    "rating": 4.2,
-    "facing": 180,
-    "openingHours": {
-      "open": 11,
-      "close": 22
-    },
-    "outdoorSeating": true,
-    "buildingOsmId": null,
-    "googlePlaceId": "ChIJR8oEhoFuQUYRovvzW3cJbHQ",
-    "facingSource": null
-  },
-  {
-    "name": "Los Tacos Aker Brygge",
-    "address": "Bryggetorget 14, 0250 Oslo, Norway",
-    "coords": [
-      59.909402500000006,
-      10.724452699999999
-    ],
-    "category": "restaurant",
-    "area": "Aker Brygge",
-    "rating": 4.2,
-    "facing": 180,
-    "openingHours": {
-      "open": 11,
-      "close": 24
-    },
-    "outdoorSeating": true,
-    "buildingOsmId": null,
-    "googlePlaceId": "ChIJ6dkT6J9vQUYRj4jXeWl48Jg",
-    "facingSource": null
-  },
-  {
-    "name": "O'Learys Oslo Vika",
-    "address": "Ruseløkkveien 26, 0251 Oslo, Norway",
-    "coords": [
-      59.91249500000001,
-      10.725577999999999
+      59.9106139,
+      10.726165
     ],
     "category": "bar",
     "area": "Aker Brygge",
     "rating": 4.2,
-    "facing": 180,
+    "facing": null,
     "openingHours": {
-      "open": 11,
-      "close": 24
+      "open": 13,
+      "close": 3.5
     },
-    "outdoorSeating": null,
+    "openingHoursWeekly": {
+      "0": {
+        "open": 15,
+        "close": 1.5
+      },
+      "1": {
+        "open": 15,
+        "close": 1.5
+      },
+      "2": {
+        "open": 15,
+        "close": 1.5
+      },
+      "3": {
+        "open": 15,
+        "close": 1.5
+      },
+      "4": {
+        "open": 15,
+        "close": 1.5
+      },
+      "5": {
+        "open": 15,
+        "close": 3.5
+      },
+      "6": {
+        "open": 13,
+        "close": 3.5
+      }
+    },
     "buildingOsmId": null,
-    "googlePlaceId": "ChIJVQdaF1pvQUYRD9arMciX2Qw",
-    "facingSource": null
+    "googlePlaceId": "ChIJX3KhqYFuQUYRZLBbyx7FraA",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
   },
   {
-    "name": "ASIA Aker Brygge",
-    "address": "Stranden 1, 0250 Oslo, Norway",
+    "id": 222,
+    "name": "Grisen",
+    "address": "Torshovgata 2, 0476 Oslo, Norway",
     "coords": [
-      59.910502,
-      10.728508999999999
+      59.9341897,
+      10.762795599999999
     ],
-    "category": "restaurant",
-    "area": "Aker Brygge",
+    "category": "bar",
+    "area": "Sagene",
     "rating": 4.1,
-    "facing": 180,
+    "facing": null,
     "openingHours": {
       "open": 11,
       "close": 24
     },
-    "outdoorSeating": true,
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 20
+      },
+      "1": {
+        "open": 15,
+        "close": 22.5
+      },
+      "2": {
+        "open": 11,
+        "close": 23
+      },
+      "3": {
+        "open": 11,
+        "close": 23
+      },
+      "4": {
+        "open": 11,
+        "close": 23.5
+      },
+      "5": {
+        "open": 11,
+        "close": 24
+      },
+      "6": {
+        "open": 12,
+        "close": 24
+      }
+    },
     "buildingOsmId": null,
-    "googlePlaceId": "ChIJt9SwHoFuQUYRNBsvVN5MEPk",
-    "facingSource": null
+    "googlePlaceId": "ChIJ97fxLWtuQUYRrOsIvEhK1JU",
+    "facingSource": null,
+    "discoverySignal": "both"
   },
   {
-    "name": "Olivia Restaurant Tjuvholmen",
-    "address": "Bryggegangen 4, 0252 Oslo, Norway",
+    "id": 223,
+    "name": "Cafe Teater & Bistro AS",
+    "address": "Torshovgata 33, 0476 Oslo, Norway",
     "coords": [
-      59.9087938,
-      10.7221491
+      59.9327778,
+      10.7680556
     ],
     "category": "restaurant",
-    "area": "Aker Brygge",
-    "rating": 4.1,
-    "facing": 180,
+    "area": "Sagene",
+    "rating": 4,
+    "facing": null,
     "openingHours": {
       "open": 11,
       "close": 24
     },
-    "outdoorSeating": true,
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 24
+      },
+      "1": {
+        "open": 11,
+        "close": 24
+      },
+      "2": {
+        "open": 11,
+        "close": 24
+      },
+      "3": {
+        "open": 11,
+        "close": 24
+      },
+      "4": {
+        "open": 11,
+        "close": 24
+      },
+      "5": {
+        "open": 11,
+        "close": 24
+      },
+      "6": {
+        "open": 11,
+        "close": 24
+      }
+    },
     "buildingOsmId": null,
-    "googlePlaceId": "ChIJA4vY9YFuQUYR3wOCd7StBBg",
-    "facingSource": null
+    "googlePlaceId": "ChIJP-o9u2puQUYRzH5eTujr1Kk",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 224,
+    "name": "Lille Ó",
+    "address": "Sandakerveien 100a, 0484 Oslo, Norway",
+    "coords": [
+      59.9446242,
+      10.771141700000001
+    ],
+    "category": "bar",
+    "area": "Sagene",
+    "rating": 4.6,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 24
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 22
+      },
+      "1": {
+        "open": 12,
+        "close": 22
+      },
+      "2": {
+        "open": 11,
+        "close": 24
+      },
+      "3": {
+        "open": 11,
+        "close": 24
+      },
+      "4": {
+        "open": 11,
+        "close": 24
+      },
+      "5": {
+        "open": 11,
+        "close": 24
+      },
+      "6": {
+        "open": 12,
+        "close": 24
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJk561PpxvQUYRmp2nOs0cf1U",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 225,
+    "name": "Mat & Mer",
+    "address": "Bergensgata 2, 0468 Oslo, Norway",
+    "coords": [
+      59.940155399999995,
+      10.758868
+    ],
+    "category": "restaurant",
+    "area": "Sagene",
+    "rating": 4.5,
+    "facing": null,
+    "openingHours": {
+      "open": 16,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 16,
+        "close": 22
+      },
+      "3": {
+        "open": 16,
+        "close": 23
+      },
+      "4": {
+        "open": 16,
+        "close": 23
+      },
+      "5": {
+        "open": 16,
+        "close": 23
+      },
+      "6": {
+        "open": 16,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJiXvZ0xNuQUYRuHEY8zK29To",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 226,
+    "name": "Kompis Lillo Gård",
+    "address": "Sandakerveien 102D, 0484 Oslo, Norway",
+    "coords": [
+      59.9449425,
+      10.7717836
+    ],
+    "category": "restaurant",
+    "area": "Sagene",
+    "rating": 4.3,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 22
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 21
+      },
+      "1": {
+        "open": 12,
+        "close": 21
+      },
+      "2": {
+        "open": 12,
+        "close": 21
+      },
+      "3": {
+        "open": 12,
+        "close": 21
+      },
+      "4": {
+        "open": 12,
+        "close": 21
+      },
+      "5": {
+        "open": 11,
+        "close": 22
+      },
+      "6": {
+        "open": 11,
+        "close": 22
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJSy2lg8ZvQUYRf_3_BIAwo64",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 227,
+    "name": "Liminal",
+    "address": "Torshovgata 15, 0476 Oslo, Norway",
+    "coords": [
+      59.93317569999999,
+      10.7670142
+    ],
+    "category": "restaurant",
+    "area": "Sagene",
+    "rating": 4.7,
+    "facing": null,
+    "openingHours": {
+      "open": 16,
+      "close": 22
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 16,
+        "close": 20
+      },
+      "3": {
+        "open": 17,
+        "close": 22
+      },
+      "4": {
+        "open": 17,
+        "close": 22
+      },
+      "5": {
+        "open": 17,
+        "close": 22
+      },
+      "6": {
+        "open": 17,
+        "close": 22
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJQ0YIJfVvQUYRImW8QJ7PlmU",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 228,
+    "name": "Norð Bjølsen Bakeri",
+    "address": "Bergensgata 12, 0468 Oslo, Norway",
+    "coords": [
+      59.94171049999999,
+      10.7591424
+    ],
+    "category": "cafe",
+    "area": "Sagene",
+    "rating": 4.4,
+    "facing": null,
+    "openingHours": {
+      "open": 8,
+      "close": 17
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 9,
+        "close": 17
+      },
+      "1": {
+        "open": 8,
+        "close": 17
+      },
+      "2": {
+        "open": 8,
+        "close": 17
+      },
+      "3": {
+        "open": 8,
+        "close": 17
+      },
+      "4": {
+        "open": 8,
+        "close": 17
+      },
+      "5": {
+        "open": 8,
+        "close": 17
+      },
+      "6": {
+        "open": 9,
+        "close": 17
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJFfwZnxFuQUYRcHOX7Cl7zbY",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 229,
+    "name": "Cafe Stamboul AS",
+    "address": "Vogts gate 45A, 0477 Oslo, Norway",
+    "coords": [
+      59.934186399999994,
+      10.7643974
+    ],
+    "category": "cafe",
+    "area": "Sagene",
+    "rating": 4.1,
+    "facing": null,
+    "openingHours": {
+      "open": 12,
+      "close": 1
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 1
+      },
+      "1": {
+        "open": 13,
+        "close": 1
+      },
+      "2": {
+        "open": 13,
+        "close": 1
+      },
+      "3": {
+        "open": 13,
+        "close": 1
+      },
+      "4": {
+        "open": 13,
+        "close": 1
+      },
+      "5": {
+        "open": 13,
+        "close": 1
+      },
+      "6": {
+        "open": 13,
+        "close": 1
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJB8egMmtuQUYR_jzxEDfZ_O0",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 230,
+    "name": "Tiffany's",
+    "address": "Bentsebrugata 31D, 0469 Oslo, Norway",
+    "coords": [
+      59.9394731,
+      10.7591574
+    ],
+    "category": "restaurant",
+    "area": "Sagene",
+    "rating": 4.5,
+    "facing": null,
+    "openingHours": {
+      "open": 13,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 22
+      },
+      "1": {
+        "open": 16,
+        "close": 22
+      },
+      "2": {
+        "open": 16,
+        "close": 22
+      },
+      "3": {
+        "open": 16,
+        "close": 22
+      },
+      "4": {
+        "open": 16,
+        "close": 22
+      },
+      "5": {
+        "open": 16,
+        "close": 23
+      },
+      "6": {
+        "open": 13,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJFTBjZf9vQUYRHrQultfUHXA",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 232,
+    "name": "Saigon Express Sagene",
+    "address": "Maridalsveien 157, 0465 Oslo, Norway",
+    "coords": [
+      59.9382094,
+      10.7570266
+    ],
+    "category": "restaurant",
+    "area": "Sagene",
+    "rating": 4.2,
+    "facing": null,
+    "openingHours": {
+      "open": 13,
+      "close": 21
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 21
+      },
+      "1": {
+        "open": 13,
+        "close": 21
+      },
+      "2": {
+        "open": 13,
+        "close": 21
+      },
+      "3": {
+        "open": 13,
+        "close": 21
+      },
+      "4": {
+        "open": 13,
+        "close": 21
+      },
+      "5": {
+        "open": 13,
+        "close": 21
+      },
+      "6": {
+        "open": 13,
+        "close": 21
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJc6ezVhJuQUYR-i_yuVtiEIE",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 233,
+    "name": "Bamboo -Sagene",
+    "address": "Stockfleths gate 53B, 0461 Oslo, Norway",
+    "coords": [
+      59.936983000000005,
+      10.752423499999999
+    ],
+    "category": "restaurant",
+    "area": "Sagene",
+    "rating": 4.2,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 21
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 21
+      },
+      "1": {
+        "open": 11,
+        "close": 21
+      },
+      "2": {
+        "open": 11,
+        "close": 21
+      },
+      "3": {
+        "open": 11,
+        "close": 21
+      },
+      "4": {
+        "open": 11,
+        "close": 21
+      },
+      "5": {
+        "open": 11,
+        "close": 21
+      },
+      "6": {
+        "open": 13,
+        "close": 21
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJU83jnRJuQUYRsLIuND3Nw3s",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 234,
+    "name": "Bønder i Byen Grünerløkka",
+    "address": "Seilduksgata 15, 0553 Oslo, Norway",
+    "coords": [
+      59.925428000000004,
+      10.7587242
+    ],
+    "category": "restaurant",
+    "area": "Sagene",
+    "rating": 4.7,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 22
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 20
+      },
+      "1": {
+        "open": 11,
+        "close": 22
+      },
+      "2": {
+        "open": 11,
+        "close": 22
+      },
+      "3": {
+        "open": 11,
+        "close": 22
+      },
+      "4": {
+        "open": 11,
+        "close": 22
+      },
+      "5": {
+        "open": 11,
+        "close": 22
+      },
+      "6": {
+        "open": 11,
+        "close": 22
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ37FJIEdvQUYRfID7gtdWe-E",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 235,
+    "name": "Pancettapizza - Bjølsen",
+    "address": "Bentsebrugata 31B, 0469 Oslo, Norway",
+    "coords": [
+      59.93930239999999,
+      10.7592915
+    ],
+    "category": "restaurant",
+    "area": "Sagene",
+    "rating": 4.4,
+    "facing": null,
+    "openingHours": {
+      "open": 13,
+      "close": 22
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 22
+      },
+      "1": {
+        "open": 14,
+        "close": 22
+      },
+      "2": {
+        "open": 14,
+        "close": 22
+      },
+      "3": {
+        "open": 14,
+        "close": 22
+      },
+      "4": {
+        "open": 14,
+        "close": 22
+      },
+      "5": {
+        "open": 14,
+        "close": 22
+      },
+      "6": {
+        "open": 13,
+        "close": 22
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ2S1yxhNuQUYRu4weaVGbv4k",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 236,
+    "name": "Mamma Pizza Nydalen",
+    "address": "Nydalsveien 30 A, 0484 Oslo, Norway",
+    "coords": [
+      59.9501259,
+      10.7645311
+    ],
+    "category": "restaurant",
+    "area": "Nydalen",
+    "rating": 4.3,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 22
+      },
+      "1": {
+        "open": 11,
+        "close": 22
+      },
+      "2": {
+        "open": 11,
+        "close": 22
+      },
+      "3": {
+        "open": 11,
+        "close": 22
+      },
+      "4": {
+        "open": 11,
+        "close": 22
+      },
+      "5": {
+        "open": 11,
+        "close": 23
+      },
+      "6": {
+        "open": 12,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJw-3_dQBvQUYRaEI0YQcsNuQ",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 237,
+    "name": "Salatfabrikken as",
+    "address": "Nydalsveien 33, 0484 Oslo, Norway",
+    "coords": [
+      59.9494405,
+      10.7656967
+    ],
+    "category": "restaurant",
+    "area": "Nydalen",
+    "rating": 4.7,
+    "facing": null,
+    "openingHours": {
+      "open": 8.5,
+      "close": 19
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 10,
+        "close": 18
+      },
+      "1": {
+        "open": 8.5,
+        "close": 19
+      },
+      "2": {
+        "open": 8.5,
+        "close": 19
+      },
+      "3": {
+        "open": 8.5,
+        "close": 19
+      },
+      "4": {
+        "open": 8.5,
+        "close": 19
+      },
+      "5": {
+        "open": 8.5,
+        "close": 18
+      },
+      "6": {
+        "open": 10,
+        "close": 18
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJoZOc9yNvQUYRmcLkFCeLcJo",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 238,
+    "name": "Peppes Pizza - Nydalen",
+    "address": "Nydalsveien 36, 0484 Oslo, Norway",
+    "coords": [
+      59.9499833,
+      10.7664792
+    ],
+    "category": "restaurant",
+    "area": "Nydalen",
+    "rating": 4,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 23
+      },
+      "1": {
+        "open": 11,
+        "close": 22.5
+      },
+      "2": {
+        "open": 11,
+        "close": 22.5
+      },
+      "3": {
+        "open": 11,
+        "close": 22.5
+      },
+      "4": {
+        "open": 11,
+        "close": 22.5
+      },
+      "5": {
+        "open": 11,
+        "close": 22.5
+      },
+      "6": {
+        "open": 13,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJLXvd2xtuQUYRTP4YZxNikW0",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 239,
+    "name": "Trattoria Crudo",
+    "address": "Gullhaug Torg 2A, 0484 Oslo, Norway",
+    "coords": [
+      59.95008719999999,
+      10.7655709
+    ],
+    "category": "restaurant",
+    "area": "Nydalen",
+    "rating": 4.2,
+    "facing": null,
+    "openingHours": {
+      "open": 11.5,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "2": {
+        "open": 11.5,
+        "close": 23
+      },
+      "3": {
+        "open": 11.5,
+        "close": 23
+      },
+      "4": {
+        "open": 11.5,
+        "close": 23
+      },
+      "5": {
+        "open": 11.5,
+        "close": 23
+      },
+      "6": {
+        "open": 12,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ3R7EzzhvQUYRk34e6WZwHTY",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 240,
+    "name": "N 33 RESTAURANT & BAR",
+    "address": "Nydalsveien 33, 0484 Oslo, Norway",
+    "coords": [
+      59.949108200000005,
+      10.7658557
+    ],
+    "category": "restaurant",
+    "area": "Nydalen",
+    "rating": 3.1,
+    "facing": null,
+    "openingHours": {
+      "open": 11.5,
+      "close": 22.5
+    },
+    "openingHoursWeekly": {
+      "1": {
+        "open": 11.5,
+        "close": 22.5
+      },
+      "2": {
+        "open": 11.5,
+        "close": 22.5
+      },
+      "3": {
+        "open": 11.5,
+        "close": 22.5
+      },
+      "4": {
+        "open": 11.5,
+        "close": 22.5
+      },
+      "5": {
+        "open": 11.5,
+        "close": 22.5
+      },
+      "6": {
+        "open": 11.5,
+        "close": 22.5
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJq6oazhtuQUYRyad4jLhlHnI",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 241,
+    "name": "Nydalen Sushi & Wok",
+    "address": "Nydalen allé 1, 0484 Oslo, Norway",
+    "coords": [
+      59.9486881,
+      10.7666819
+    ],
+    "category": "restaurant",
+    "area": "Nydalen",
+    "rating": 4.1,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 21
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 21
+      },
+      "1": {
+        "open": 11,
+        "close": 21
+      },
+      "2": {
+        "open": 11,
+        "close": 21
+      },
+      "3": {
+        "open": 11,
+        "close": 21
+      },
+      "4": {
+        "open": 11,
+        "close": 21
+      },
+      "5": {
+        "open": 11,
+        "close": 21
+      },
+      "6": {
+        "open": 12,
+        "close": 21
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJH-PKKhpuQUYRorn8ei0fLpo",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 242,
+    "name": "Brasserie Ceres",
+    "address": "Vitaminveien 23, 0485 Oslo, Norway",
+    "coords": [
+      59.947118,
+      10.7722081
+    ],
+    "category": "bar",
+    "area": "Nydalen",
+    "rating": 4.5,
+    "facing": null,
+    "openingHours": {
+      "open": 17,
+      "close": 22
+    },
+    "openingHoursWeekly": {
+      "1": {
+        "open": 17,
+        "close": 22
+      },
+      "2": {
+        "open": 17,
+        "close": 22
+      },
+      "3": {
+        "open": 17,
+        "close": 22
+      },
+      "4": {
+        "open": 17,
+        "close": 22
+      },
+      "5": {
+        "open": 17,
+        "close": 22
+      },
+      "6": {
+        "open": 17,
+        "close": 22
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJG2TrfeFvQUYRwQAmX5m_GLQ",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 243,
+    "name": "Godt Brød Nydalen NY28",
+    "address": "Nydalsveien 28, 0484 Oslo, Norway",
+    "coords": [
+      59.94974990000001,
+      10.7640639
+    ],
+    "category": "restaurant",
+    "area": "Nydalen",
+    "rating": 4.3,
+    "facing": null,
+    "openingHours": {
+      "open": 7,
+      "close": 17
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 9,
+        "close": 17
+      },
+      "1": {
+        "open": 7,
+        "close": 17
+      },
+      "2": {
+        "open": 7,
+        "close": 17
+      },
+      "3": {
+        "open": 7,
+        "close": 17
+      },
+      "4": {
+        "open": 7,
+        "close": 17
+      },
+      "5": {
+        "open": 7,
+        "close": 17
+      },
+      "6": {
+        "open": 9,
+        "close": 17
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJOa3wpBtuQUYRbTMxhz3HZtg",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 244,
+    "name": "Postkontoret",
+    "address": "Hagegata 27, 0653 Oslo, Norway",
+    "coords": [
+      59.91408859999999,
+      10.7750721
+    ],
+    "category": "bar",
+    "area": "Tøyen",
+    "rating": 4.2,
+    "facing": null,
+    "openingHours": {
+      "open": 12,
+      "close": 24
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 21
+      },
+      "1": {
+        "open": 12,
+        "close": 22
+      },
+      "2": {
+        "open": 12,
+        "close": 22
+      },
+      "3": {
+        "open": 12,
+        "close": 22
+      },
+      "4": {
+        "open": 12,
+        "close": 23
+      },
+      "5": {
+        "open": 12,
+        "close": 24
+      },
+      "6": {
+        "open": 12,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJyXvBuF5uQUYR4hFR8UILF0M",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 245,
+    "name": "Hagestuen Cafe",
+    "address": "Hagegata 34, 0653 Oslo, Norway",
+    "coords": [
+      59.9136682,
+      10.7761192
+    ],
+    "category": "bar",
+    "area": "Tøyen",
+    "rating": 4.2,
+    "facing": null,
+    "openingHours": {
+      "open": 12,
+      "close": 24
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 23
+      },
+      "2": {
+        "open": 12,
+        "close": 23
+      },
+      "3": {
+        "open": 12,
+        "close": 23
+      },
+      "4": {
+        "open": 12,
+        "close": 23
+      },
+      "5": {
+        "open": 12,
+        "close": 1
+      },
+      "6": {
+        "open": 12,
+        "close": 24
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJz2ACpVluQUYRYkwa9EdoS8E",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 246,
+    "name": "Pillefyken",
+    "address": "Monrads gate 1, Oslo, Norway",
+    "coords": [
+      59.915251,
+      10.7733399
+    ],
+    "category": "restaurant",
+    "area": "Tøyen",
+    "rating": 4.5,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 16
+    },
+    "openingHoursWeekly": {
+      "5": {
+        "open": 12,
+        "close": 15
+      },
+      "6": {
+        "open": 11,
+        "close": 16
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ2yxNOWZvQUYRFFD7MZ6IK8U",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 247,
+    "name": "Backstube Tøyen Torg",
+    "address": "Tøyengata, 0653 Oslo, Norway",
+    "coords": [
+      59.914792600000006,
+      10.7755972
+    ],
+    "category": "cafe",
+    "area": "Tøyen",
+    "rating": 4.3,
+    "facing": null,
+    "openingHours": {
+      "open": 6.5,
+      "close": 20
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 8,
+        "close": 19
+      },
+      "1": {
+        "open": 6.5,
+        "close": 20
+      },
+      "2": {
+        "open": 6.5,
+        "close": 20
+      },
+      "3": {
+        "open": 6.5,
+        "close": 20
+      },
+      "4": {
+        "open": 6.5,
+        "close": 20
+      },
+      "5": {
+        "open": 6.5,
+        "close": 20
+      },
+      "6": {
+        "open": 8,
+        "close": 19
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJVxQsdlluQUYRTsKBvZuK8yQ",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 248,
+    "name": "Tøyen pizza og grill",
+    "address": "Økernveien 5B, 0653 Oslo, Norway",
+    "coords": [
+      59.91435920000001,
+      10.776529799999999
+    ],
+    "category": "restaurant",
+    "area": "Tøyen",
+    "rating": 3.6,
+    "facing": null,
+    "openingHours": {
+      "open": 10,
+      "close": 24
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 10,
+        "close": 24
+      },
+      "1": {
+        "open": 10,
+        "close": 24
+      },
+      "2": {
+        "open": 10,
+        "close": 24
+      },
+      "3": {
+        "open": 10,
+        "close": 24
+      },
+      "4": {
+        "open": 10,
+        "close": 24
+      },
+      "5": {
+        "open": 10,
+        "close": 3.5
+      },
+      "6": {
+        "open": 10,
+        "close": 3.5
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJJadGhlluQUYRFphksO-gVHI",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 249,
+    "name": "Anatolia",
+    "address": "Økernveien 9, 0653 Oslo, Norway",
+    "coords": [
+      59.9146312,
+      10.7759688
+    ],
+    "category": "restaurant",
+    "area": "Tøyen",
+    "rating": 4.2,
+    "facing": null,
+    "openingHours": {
+      "open": 12.5,
+      "close": 22
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12.5,
+        "close": 22
+      },
+      "1": {
+        "open": 14,
+        "close": 22
+      },
+      "2": {
+        "open": 14,
+        "close": 22
+      },
+      "3": {
+        "open": 14,
+        "close": 22
+      },
+      "4": {
+        "open": 14,
+        "close": 22
+      },
+      "5": {
+        "open": 14,
+        "close": 22
+      },
+      "6": {
+        "open": 14,
+        "close": 22
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJoe8gdVluQUYRXKmtS_QhcT8",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 250,
+    "name": "Carls",
+    "address": "Trondheimsveien 113, 0571 Oslo, Norway",
+    "coords": [
+      59.92645889999999,
+      10.7775786
+    ],
+    "category": "bar",
+    "area": "Sinsen",
+    "rating": 4.1,
+    "facing": null,
+    "openingHours": {
+      "open": 9,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 21
+      },
+      "1": {
+        "open": 9,
+        "close": 22
+      },
+      "2": {
+        "open": 9,
+        "close": 23
+      },
+      "3": {
+        "open": 9,
+        "close": 23
+      },
+      "4": {
+        "open": 9,
+        "close": 23
+      },
+      "5": {
+        "open": 9,
+        "close": 1
+      },
+      "6": {
+        "open": 12,
+        "close": 1
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJj8V7RKdvQUYRnZGIv3R16c4",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 251,
+    "name": "Campino Sinsen",
+    "address": "Hans Nielsen Hauges gate 37, 0481 Oslo, Norway",
+    "coords": [
+      59.9386011,
+      10.7806091
+    ],
+    "category": "restaurant",
+    "area": "Sinsen",
+    "rating": 4.3,
+    "facing": null,
+    "openingHours": {
+      "open": 14,
+      "close": 22
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 14,
+        "close": 22
+      },
+      "1": {
+        "open": 14,
+        "close": 22
+      },
+      "2": {
+        "open": 14,
+        "close": 22
+      },
+      "3": {
+        "open": 14,
+        "close": 22
+      },
+      "4": {
+        "open": 14,
+        "close": 22
+      },
+      "5": {
+        "open": 14,
+        "close": 22
+      },
+      "6": {
+        "open": 14,
+        "close": 22
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJLwIxp49vQUYR94u1l-mvMsY",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 252,
+    "name": "Backstube Carl Berners Plass",
+    "address": "Carl Berners Plass 2, 0568 Oslo, Norway",
+    "coords": [
+      59.9264617,
+      10.7757433
+    ],
+    "category": "cafe",
+    "area": "Sinsen",
+    "rating": 3.8,
+    "facing": null,
+    "openingHours": {
+      "open": 7,
+      "close": 19
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 8,
+        "close": 19
+      },
+      "1": {
+        "open": 7,
+        "close": 19
+      },
+      "2": {
+        "open": 7,
+        "close": 19
+      },
+      "3": {
+        "open": 7,
+        "close": 19
+      },
+      "4": {
+        "open": 7,
+        "close": 19
+      },
+      "5": {
+        "open": 7,
+        "close": 19
+      },
+      "6": {
+        "open": 8,
+        "close": 19
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJJzSka-ZvQUYRL0RcTSFV6kc",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 253,
+    "name": "Hasle Linie Gastropub",
+    "address": "Bøkkerveien 4, 0579 Oslo, Norway",
+    "coords": [
+      59.927042900000004,
+      10.793697
+    ],
+    "category": "bar",
+    "area": "Sinsen",
+    "rating": 4,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 21
+      },
+      "1": {
+        "open": 11,
+        "close": 21
+      },
+      "2": {
+        "open": 11,
+        "close": 23
+      },
+      "3": {
+        "open": 11,
+        "close": 23
+      },
+      "4": {
+        "open": 11,
+        "close": 23
+      },
+      "5": {
+        "open": 11,
+        "close": 0.5
+      },
+      "6": {
+        "open": 12,
+        "close": 0.5
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJbXJU--5vQUYRtUKqVUnyFdc",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 254,
+    "name": "Tiffany's Løren",
+    "address": "Peter Møllers vei 5, 0585 Oslo, Norway",
+    "coords": [
+      59.930224499999994,
+      10.792541199999999
+    ],
+    "category": "restaurant",
+    "area": "Sinsen",
+    "rating": 4.5,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 11,
+        "close": 22
+      },
+      "1": {
+        "open": 14,
+        "close": 22
+      },
+      "2": {
+        "open": 14,
+        "close": 22
+      },
+      "3": {
+        "open": 14,
+        "close": 22
+      },
+      "4": {
+        "open": 14,
+        "close": 22
+      },
+      "5": {
+        "open": 14,
+        "close": 23
+      },
+      "6": {
+        "open": 11,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ_QTgkPVvQUYR8WQpWUK3g8Y",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 255,
+    "name": "Lio's Café Bar",
+    "address": "Schleppegrells gt. 30, 0557 Oslo, Norway",
+    "coords": [
+      59.927377400000005,
+      10.7647145
+    ],
+    "category": "cafe",
+    "area": "Sinsen",
+    "rating": 4.8,
+    "facing": null,
+    "openingHours": {
+      "open": 11.5,
+      "close": 20
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 11.5,
+        "close": 17
+      },
+      "2": {
+        "open": 11.5,
+        "close": 20
+      },
+      "3": {
+        "open": 11.5,
+        "close": 20
+      },
+      "4": {
+        "open": 11.5,
+        "close": 20
+      },
+      "5": {
+        "open": 11.5,
+        "close": 20
+      },
+      "6": {
+        "open": 11.5,
+        "close": 17
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJQXXD7GluQUYRf7Z70DfuqjU",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 256,
+    "name": "Kverneriet Majorstua",
+    "address": "Kirkeveien 64B, 0366 Oslo, Norway",
+    "coords": [
+      59.9292322,
+      10.7147787
+    ],
+    "category": "bar",
+    "area": "Majorstuen",
+    "rating": 4.5,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 22
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 21
+      },
+      "1": {
+        "open": 16,
+        "close": 21
+      },
+      "2": {
+        "open": 11,
+        "close": 22
+      },
+      "3": {
+        "open": 11,
+        "close": 22
+      },
+      "4": {
+        "open": 11,
+        "close": 22
+      },
+      "5": {
+        "open": 11,
+        "close": 22
+      },
+      "6": {
+        "open": 12,
+        "close": 22
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJtV2k_NptQUYRc1t_cOjm4PQ",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 257,
+    "name": "Santa Rosa",
+    "address": "Bogstadveien 58, 0366 Oslo, Norway",
+    "coords": [
+      59.92812419999999,
+      10.7173532
+    ],
+    "category": "restaurant",
+    "area": "Majorstuen",
+    "rating": 4.7,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 23.5
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 23
+      },
+      "1": {
+        "open": 11,
+        "close": 23
+      },
+      "2": {
+        "open": 11,
+        "close": 23
+      },
+      "3": {
+        "open": 11,
+        "close": 23
+      },
+      "4": {
+        "open": 11,
+        "close": 23
+      },
+      "5": {
+        "open": 11,
+        "close": 23.5
+      },
+      "6": {
+        "open": 11,
+        "close": 23.5
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJIzHQfORtQUYR2IaK-LBnmP4",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 258,
+    "name": "The Broker",
+    "address": "Bogstadveien 27, 0355 Oslo, Norway",
+    "coords": [
+      59.9262958,
+      10.721688
+    ],
+    "category": "bar",
+    "area": "Majorstuen",
+    "rating": 4,
+    "facing": null,
+    "openingHours": {
+      "open": 11.5,
+      "close": 24
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 20
+      },
+      "1": {
+        "open": 11.5,
+        "close": 22.5
+      },
+      "2": {
+        "open": 11.5,
+        "close": 22.5
+      },
+      "3": {
+        "open": 11.5,
+        "close": 23
+      },
+      "4": {
+        "open": 11.5,
+        "close": 24
+      },
+      "5": {
+        "open": 11.5,
+        "close": 2.5
+      },
+      "6": {
+        "open": 12,
+        "close": 2.5
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ5TvP4NltQUYRc7oJtuz8DIo",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 259,
+    "name": "Café Billabong",
+    "address": "Bogstadveien 53 a, 0366 Oslo, Norway",
+    "coords": [
+      59.92945349999999,
+      10.7142144
+    ],
+    "category": "cafe",
+    "area": "Majorstuen",
+    "rating": 4.1,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 24
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 24
+      },
+      "1": {
+        "open": 11,
+        "close": 1
+      },
+      "2": {
+        "open": 11,
+        "close": 1
+      },
+      "3": {
+        "open": 11,
+        "close": 1
+      },
+      "4": {
+        "open": 11,
+        "close": 1
+      },
+      "5": {
+        "open": 11,
+        "close": 3
+      },
+      "6": {
+        "open": 11,
+        "close": 3
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJxfSDV9ptQUYRhoggOTX_3Dw",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 260,
+    "name": "Larsen Restaurant",
+    "address": "Sørkedalsveien 1B, 0369 Oslo, Norway",
+    "coords": [
+      59.9298443,
+      10.7136491
+    ],
+    "category": "restaurant",
+    "area": "Majorstuen",
+    "rating": 4.3,
+    "facing": null,
+    "openingHours": {
+      "open": 12,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 23
+      },
+      "1": {
+        "open": 12,
+        "close": 0.5
+      },
+      "2": {
+        "open": 12,
+        "close": 0.5
+      },
+      "3": {
+        "open": 12,
+        "close": 0.5
+      },
+      "4": {
+        "open": 12,
+        "close": 0.5
+      },
+      "5": {
+        "open": 12,
+        "close": 0.5
+      },
+      "6": {
+        "open": 13,
+        "close": 0.5
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJyUFJJNttQUYRSOmGvRcyWa4",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 261,
+    "name": "Frenchie Frognerparken",
+    "address": "Middelthuns gate 17, 0368 Oslo, Norway",
+    "coords": [
+      59.9277285,
+      10.710410999999999
+    ],
+    "category": "restaurant",
+    "area": "Majorstuen",
+    "rating": 4.5,
+    "facing": null,
+    "openingHours": {
+      "open": 11.5,
+      "close": 24
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 22
+      },
+      "1": {
+        "open": 11.5,
+        "close": 22.5
+      },
+      "2": {
+        "open": 11.5,
+        "close": 22.5
+      },
+      "3": {
+        "open": 11.5,
+        "close": 23
+      },
+      "4": {
+        "open": 11.5,
+        "close": 24
+      },
+      "5": {
+        "open": 11.5,
+        "close": 24
+      },
+      "6": {
+        "open": 12,
+        "close": 24
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ90-cVMNtQUYRFC2T1yvTS6Y",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 262,
+    "name": "El Camino",
+    "address": "Bogstadveien 20, 0355 Oslo, Norway",
+    "coords": [
+      59.9252379,
+      10.7224171
+    ],
+    "category": "restaurant",
+    "area": "Majorstuen",
+    "rating": 3.9,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 21
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 11.5,
+        "close": 21
+      },
+      "1": {
+        "open": 11,
+        "close": 21
+      },
+      "2": {
+        "open": 11,
+        "close": 21
+      },
+      "3": {
+        "open": 11,
+        "close": 21
+      },
+      "4": {
+        "open": 11,
+        "close": 21
+      },
+      "5": {
+        "open": 11,
+        "close": 21
+      },
+      "6": {
+        "open": 11.5,
+        "close": 21
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJff1YoEJtQUYR4eggqNw8kbI",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 263,
+    "name": "Oslo Mikrobryggeri",
+    "address": "Bogstadveien 6, 0355 Oslo, Norway",
+    "coords": [
+      59.9243579,
+      10.7241915
+    ],
+    "category": "bar",
+    "area": "Majorstuen",
+    "rating": 4.5,
+    "facing": null,
+    "openingHours": {
+      "open": 13,
+      "close": 2.5
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 15,
+        "close": 0.5
+      },
+      "1": {
+        "open": 15,
+        "close": 0.5
+      },
+      "2": {
+        "open": 15,
+        "close": 0.5
+      },
+      "3": {
+        "open": 15,
+        "close": 0.5
+      },
+      "4": {
+        "open": 15,
+        "close": 0.5
+      },
+      "5": {
+        "open": 15,
+        "close": 2.5
+      },
+      "6": {
+        "open": 13,
+        "close": 2.5
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJI3M8mNdtQUYRujD6wTju9RE",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 264,
+    "name": "Grains Majorstuen - Bakeri & Crêperie",
+    "address": "Valkyriegata 21C, 0366 Oslo, Norway",
+    "coords": [
+      59.9300449,
+      10.715812999999999
+    ],
+    "category": "cafe",
+    "area": "Majorstuen",
+    "rating": 4.2,
+    "facing": null,
+    "openingHours": {
+      "open": 7,
+      "close": 20
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 9,
+        "close": 19
+      },
+      "1": {
+        "open": 7,
+        "close": 20
+      },
+      "2": {
+        "open": 7,
+        "close": 20
+      },
+      "3": {
+        "open": 7,
+        "close": 20
+      },
+      "4": {
+        "open": 7,
+        "close": 20
+      },
+      "5": {
+        "open": 7,
+        "close": 20
+      },
+      "6": {
+        "open": 9,
+        "close": 19
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJZUKxuyFtQUYRYV-jj0sEJBw",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 265,
+    "name": "Limón Frogner",
+    "address": "Hegdehaugsveien 27, 0352 Oslo, Norway",
+    "coords": [
+      59.9214901,
+      10.7273102
+    ],
+    "category": "restaurant",
+    "area": "Majorstuen",
+    "rating": 4.5,
+    "facing": null,
+    "openingHours": {
+      "open": 10.5,
+      "close": 20
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 20
+      },
+      "1": {
+        "open": 10.5,
+        "close": 20
+      },
+      "2": {
+        "open": 10.5,
+        "close": 20
+      },
+      "3": {
+        "open": 10.5,
+        "close": 20
+      },
+      "4": {
+        "open": 10.5,
+        "close": 20
+      },
+      "5": {
+        "open": 10.5,
+        "close": 20
+      },
+      "6": {
+        "open": 12,
+        "close": 20
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJXd-FRDFvQUYRfIE2mhRm_ow",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 266,
+    "name": "Little Italy",
+    "address": "Slemdalsveien 72, 0373 Oslo, Norway",
+    "coords": [
+      59.9425864,
+      10.704623
+    ],
+    "category": "restaurant",
+    "area": "Vindern",
+    "rating": 4.6,
+    "facing": null,
+    "openingHours": {
+      "open": 14,
+      "close": 21
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 14,
+        "close": 20.5
+      },
+      "2": {
+        "open": 14,
+        "close": 20.5
+      },
+      "3": {
+        "open": 14,
+        "close": 20.5
+      },
+      "4": {
+        "open": 14,
+        "close": 20.5
+      },
+      "5": {
+        "open": 14,
+        "close": 21
+      },
+      "6": {
+        "open": 14,
+        "close": 21
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJwx_YtuttQUYRp5lhe5aKZ_8",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 267,
+    "name": "Piazza Italia",
+    "address": "Frognerveien 58, 0266 Oslo, Norway",
+    "coords": [
+      59.9222988,
+      10.7042827
+    ],
+    "category": "restaurant",
+    "area": "Vindern",
+    "rating": 4.6,
+    "facing": null,
+    "openingHours": {
+      "open": 13,
+      "close": 23.5
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 22
+      },
+      "2": {
+        "open": 16,
+        "close": 22.5
+      },
+      "3": {
+        "open": 16,
+        "close": 22.5
+      },
+      "4": {
+        "open": 16,
+        "close": 22.5
+      },
+      "5": {
+        "open": 16,
+        "close": 23
+      },
+      "6": {
+        "open": 13,
+        "close": 23.5
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJDxtp0VptQUYR1W5NhVPW_Hs",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 268,
+    "name": "Peloton Skøyen",
+    "address": "Drammensveien 130, 0277 Oslo, Norway",
+    "coords": [
+      59.9215019,
+      10.687953
+    ],
+    "category": "restaurant",
+    "area": "Skøyen",
+    "rating": 4.4,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 23.5
+    },
+    "openingHoursWeekly": {
+      "1": {
+        "open": 16,
+        "close": 21
+      },
+      "2": {
+        "open": 11,
+        "close": 22.5
+      },
+      "3": {
+        "open": 11,
+        "close": 22.5
+      },
+      "4": {
+        "open": 11,
+        "close": 23.5
+      },
+      "5": {
+        "open": 11,
+        "close": 23.5
+      },
+      "6": {
+        "open": 12,
+        "close": 22.5
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJB80Pm5ltQUYRA3MA4riGzzc",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 269,
+    "name": "Sabaki Skøyen",
+    "address": "Drammensveien 126B, 0277 Oslo, Norway",
+    "coords": [
+      59.921150999999995,
+      10.6886061
+    ],
+    "category": "restaurant",
+    "area": "Skøyen",
+    "rating": 4.5,
+    "facing": null,
+    "openingHours": {
+      "open": 11.5,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "2": {
+        "open": 11.5,
+        "close": 23
+      },
+      "3": {
+        "open": 11.5,
+        "close": 23
+      },
+      "4": {
+        "open": 11.5,
+        "close": 23
+      },
+      "5": {
+        "open": 11.5,
+        "close": 23
+      },
+      "6": {
+        "open": 13,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJLUeRWShtQUYRP00mkf-Rbx0",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 270,
+    "name": "Sjølyst Marina Restaurant",
+    "address": "Drammensveien 164, 0277 Oslo, Norway",
+    "coords": [
+      59.92002879999999,
+      10.6737577
+    ],
+    "category": "restaurant",
+    "area": "Skøyen",
+    "rating": 4.6,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 23
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJrYyR4bJtQUYRNBDpxt-TEGc",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 271,
+    "name": "Maschmanns Matmarked",
+    "address": "Karenslyst Allé 51, 0279 Oslo, Norway",
+    "coords": [
+      59.921506799999996,
+      10.6805832
+    ],
+    "category": "restaurant",
+    "area": "Skøyen",
+    "rating": 4.5,
+    "facing": null,
+    "openingHours": {
+      "open": 10,
+      "close": 19
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 11,
+        "close": 18
+      },
+      "1": {
+        "open": 11,
+        "close": 18
+      },
+      "2": {
+        "open": 11,
+        "close": 18
+      },
+      "3": {
+        "open": 11,
+        "close": 18
+      },
+      "4": {
+        "open": 10,
+        "close": 18
+      },
+      "5": {
+        "open": 10,
+        "close": 19
+      },
+      "6": {
+        "open": 10,
+        "close": 18
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ4YXFiLNtQUYR83Mx91sbR4U",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 272,
+    "name": "Peppes Pizza - Skøyen",
+    "address": "Karenslyst Allé 18, 0278 Oslo, Norway",
+    "coords": [
+      59.9199058,
+      10.6841311
+    ],
+    "category": "restaurant",
+    "area": "Skøyen",
+    "rating": 3.9,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 23
+      },
+      "1": {
+        "open": 11,
+        "close": 23
+      },
+      "2": {
+        "open": 11,
+        "close": 23
+      },
+      "3": {
+        "open": 11,
+        "close": 23
+      },
+      "4": {
+        "open": 11,
+        "close": 23
+      },
+      "5": {
+        "open": 11,
+        "close": 23
+      },
+      "6": {
+        "open": 12,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJUZdRAbVtQUYRU_x_WxWQ1eU",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 273,
+    "name": "Osteria de Campo",
+    "address": "Bygdøy allé 53, 0265 Oslo, Norway",
+    "coords": [
+      59.9183136,
+      10.706122700000002
+    ],
+    "category": "restaurant",
+    "area": "Skøyen",
+    "rating": 4.4,
+    "facing": null,
+    "openingHours": {
+      "open": 13,
+      "close": 22
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 14,
+        "close": 21
+      },
+      "2": {
+        "open": 16,
+        "close": 22
+      },
+      "3": {
+        "open": 16,
+        "close": 22
+      },
+      "4": {
+        "open": 16,
+        "close": 22
+      },
+      "5": {
+        "open": 16,
+        "close": 22
+      },
+      "6": {
+        "open": 13,
+        "close": 22
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ-ys2HABtQUYR69q3BYZhLK4",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 274,
+    "name": "Holgerslyst Kafé og Bistro",
+    "address": "Holgerslystveien 22, inngang Blokkaveien, 0280 Oslo, Norway",
+    "coords": [
+      59.924498,
+      10.6546418
+    ],
+    "category": "restaurant",
+    "area": "Ullern",
+    "rating": 4.8,
+    "facing": null,
+    "openingHours": {
+      "open": 12,
+      "close": 21
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 21
+      },
+      "3": {
+        "open": 12,
+        "close": 21
+      },
+      "4": {
+        "open": 12,
+        "close": 21
+      },
+      "5": {
+        "open": 12,
+        "close": 21
+      },
+      "6": {
+        "open": 12,
+        "close": 21
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJTd4aIABtQUYRusbH3bjNoco",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 275,
+    "name": "Mats & Martin",
+    "address": "Lilleakerveien 16, 0283 Oslo, Norway",
+    "coords": [
+      59.918543199999995,
+      10.6357479
+    ],
+    "category": "restaurant",
+    "area": "Ullern",
+    "rating": 4.2,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 20
+    },
+    "openingHoursWeekly": {
+      "1": {
+        "open": 11,
+        "close": 20
+      },
+      "2": {
+        "open": 11,
+        "close": 20
+      },
+      "3": {
+        "open": 11,
+        "close": 20
+      },
+      "4": {
+        "open": 11,
+        "close": 20
+      },
+      "5": {
+        "open": 11,
+        "close": 20
+      },
+      "6": {
+        "open": 11,
+        "close": 18
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJzQidUPxsQUYRwP6jhZUOCwI",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 276,
+    "name": "Pier 31",
+    "address": "Lysaker Brygge 31, 1366 Lysaker, Norway",
+    "coords": [
+      59.909722200000004,
+      10.642499899999999
+    ],
+    "category": "restaurant",
+    "area": "Ullern",
+    "rating": 4.3,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 22
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 22
+      },
+      "1": {
+        "open": 11,
+        "close": 22
+      },
+      "2": {
+        "open": 11,
+        "close": 22
+      },
+      "3": {
+        "open": 11,
+        "close": 22
+      },
+      "4": {
+        "open": 11,
+        "close": 22
+      },
+      "5": {
+        "open": 11,
+        "close": 22
+      },
+      "6": {
+        "open": 12,
+        "close": 22
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ8fC6L_hsQUYRprcWAXRFeto",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 277,
+    "name": "Da Capo Restaurant & Bar",
+    "address": "Lilleakerveien 23, 0283 Oslo, Norway",
+    "coords": [
+      59.9188623,
+      10.6367897
+    ],
+    "category": "restaurant",
+    "area": "Ullern",
+    "rating": 4.3,
+    "facing": null,
+    "openingHours": {
+      "open": 13,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 23
+      },
+      "1": {
+        "open": 13,
+        "close": 23
+      },
+      "2": {
+        "open": 13,
+        "close": 23
+      },
+      "3": {
+        "open": 13,
+        "close": 23
+      },
+      "4": {
+        "open": 13,
+        "close": 23
+      },
+      "5": {
+        "open": 13,
+        "close": 23
+      },
+      "6": {
+        "open": 13,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJcZbx8rVtQUYRDcJ1FAB3sYA",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 278,
+    "name": "Niwa Sushi",
+    "address": "Lilleakerveien 16, 0283 Oslo, Norway",
+    "coords": [
+      59.918543199999995,
+      10.6357479
+    ],
+    "category": "restaurant",
+    "area": "Ullern",
+    "rating": 4.4,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 21
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 15,
+        "close": 20
+      },
+      "1": {
+        "open": 11,
+        "close": 21
+      },
+      "2": {
+        "open": 11,
+        "close": 21
+      },
+      "3": {
+        "open": 11,
+        "close": 21
+      },
+      "4": {
+        "open": 11,
+        "close": 21
+      },
+      "5": {
+        "open": 11,
+        "close": 21
+      },
+      "6": {
+        "open": 11,
+        "close": 21
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJK2CXAf1sQUYRe1Nfb5fnLZo",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 279,
+    "name": "Svovelstikka",
+    "address": "Karoline Kristiansens vei 9, 0661 Oslo, Norway",
+    "coords": [
+      59.91420189999999,
+      10.796983299999999
+    ],
+    "category": "restaurant",
+    "area": "Helsfyr",
+    "rating": 4.3,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 21
+      },
+      "1": {
+        "open": 11,
+        "close": 21
+      },
+      "2": {
+        "open": 11,
+        "close": 23
+      },
+      "3": {
+        "open": 11,
+        "close": 23
+      },
+      "4": {
+        "open": 11,
+        "close": 23
+      },
+      "5": {
+        "open": 11,
+        "close": 1
+      },
+      "6": {
+        "open": 12,
+        "close": 1
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJv3WlbgBvQUYRh3t8FOteCTc",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 280,
+    "name": "Fresh Asian Fusion Helsfyr",
+    "address": "Grensesvingen 7, 0661 Oslo, Norway",
+    "coords": [
+      59.9140085,
+      10.798689999999999
+    ],
+    "category": "restaurant",
+    "area": "Helsfyr",
+    "rating": 4.3,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 21
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 21
+      },
+      "1": {
+        "open": 11,
+        "close": 21
+      },
+      "2": {
+        "open": 11,
+        "close": 21
+      },
+      "3": {
+        "open": 11,
+        "close": 21
+      },
+      "4": {
+        "open": 11,
+        "close": 21
+      },
+      "5": {
+        "open": 11,
+        "close": 21
+      },
+      "6": {
+        "open": 13,
+        "close": 21
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJU6DEpbZvQUYRC1JiZX1mqWU",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 281,
+    "name": "Smia galleri",
+    "address": "Opplandgata 19, 0657 Oslo, Norway",
+    "coords": [
+      59.9064469,
+      10.7853342
+    ],
+    "category": "restaurant",
+    "area": "Helsfyr",
+    "rating": 4.7,
+    "facing": null,
+    "openingHours": {
+      "open": 13,
+      "close": 24
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 23
+      },
+      "2": {
+        "open": 16,
+        "close": 24
+      },
+      "3": {
+        "open": 16,
+        "close": 24
+      },
+      "4": {
+        "open": 16,
+        "close": 24
+      },
+      "5": {
+        "open": 16,
+        "close": 24
+      },
+      "6": {
+        "open": 13,
+        "close": 24
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJVcKs1vhuQUYRvDaOovUMzKA",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 282,
+    "name": "Frøken Smillas",
+    "address": "Gladengveien 4, 0661 Oslo, Norway",
+    "coords": [
+      59.915356800000005,
+      10.7885216
+    ],
+    "category": "bar",
+    "area": "Helsfyr",
+    "rating": 4.1,
+    "facing": null,
+    "openingHours": {
+      "open": 14,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 14,
+        "close": 22
+      },
+      "1": {
+        "open": 15,
+        "close": 23
+      },
+      "2": {
+        "open": 15,
+        "close": 23
+      },
+      "3": {
+        "open": 15,
+        "close": 23
+      },
+      "4": {
+        "open": 15,
+        "close": 23
+      },
+      "5": {
+        "open": 15,
+        "close": 23
+      },
+      "6": {
+        "open": 14,
+        "close": 22
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ-dbrRFFuQUYR7KV5C0vOmAE",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 283,
+    "name": "Café Passabel",
+    "address": "Rolf Hofmos gate 3, 0658 Oslo, Norway",
+    "coords": [
+      59.912076899999995,
+      10.7862733
+    ],
+    "category": "restaurant",
+    "area": "Helsfyr",
+    "rating": 4.7,
+    "facing": null,
+    "openingHours": {
+      "open": 11.5,
+      "close": 20
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 16
+      },
+      "2": {
+        "open": 11.5,
+        "close": 18
+      },
+      "3": {
+        "open": 11.5,
+        "close": 18
+      },
+      "4": {
+        "open": 11.5,
+        "close": 20
+      },
+      "5": {
+        "open": 11.5,
+        "close": 20
+      },
+      "6": {
+        "open": 13,
+        "close": 20
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJGaX74pdvQUYRfe1fbfXSrR4",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 284,
+    "name": "SVINGEN - på Sletta -",
+    "address": "Ballplassveien 2, 1181 Oslo, Norway",
+    "coords": [
+      59.897734799999995,
+      10.782409
+    ],
+    "category": "restaurant",
+    "area": "Helsfyr",
+    "rating": 4.8,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 21
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 11,
+        "close": 18
+      },
+      "3": {
+        "open": 11,
+        "close": 18
+      },
+      "4": {
+        "open": 11,
+        "close": 21
+      },
+      "5": {
+        "open": 11,
+        "close": 21
+      },
+      "6": {
+        "open": 11,
+        "close": 18
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJH-nxM91vQUYRq_RlcTR9qFQ",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 285,
+    "name": "Kraft Restaurant",
+    "address": "Turbinveien 26, 0195 Oslo, Norway",
+    "coords": [
+      59.9042055,
+      10.7895103
+    ],
+    "category": "restaurant",
+    "area": "Helsfyr",
+    "rating": 4.6,
+    "facing": null,
+    "openingHours": {
+      "open": 13,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 22
+      },
+      "2": {
+        "open": 16.5,
+        "close": 23
+      },
+      "3": {
+        "open": 16.5,
+        "close": 23
+      },
+      "4": {
+        "open": 16.5,
+        "close": 23
+      },
+      "5": {
+        "open": 16.5,
+        "close": 23
+      },
+      "6": {
+        "open": 13,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJG2KJj_hvQUYRDbpBMcbMdnQ",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 286,
+    "name": "Bryn Cafe",
+    "address": "Nils Hansens vei 15, 0667 Oslo, Norway",
+    "coords": [
+      59.91083559999999,
+      10.8203298
+    ],
+    "category": "restaurant",
+    "area": "Bryn",
+    "rating": 4,
+    "facing": null,
+    "openingHours": {
+      "open": 10,
+      "close": 18
+    },
+    "openingHoursWeekly": {
+      "1": {
+        "open": 10,
+        "close": 18
+      },
+      "2": {
+        "open": 10,
+        "close": 18
+      },
+      "3": {
+        "open": 10,
+        "close": 18
+      },
+      "4": {
+        "open": 10,
+        "close": 18
+      },
+      "5": {
+        "open": 10,
+        "close": 18
+      },
+      "6": {
+        "open": 10,
+        "close": 18
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJJVAwJtxvQUYR-dgG4VbUH1g",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 287,
+    "name": "Meraki Eat Greek Bryn center - Greek Gyros",
+    "address": "Østensjøveien 79, 0667 Oslo, Norway",
+    "coords": [
+      59.90335520000001,
+      10.8213466
+    ],
+    "category": "restaurant",
+    "area": "Bryn",
+    "rating": 4.4,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 20.5
+    },
+    "openingHoursWeekly": {
+      "1": {
+        "open": 11,
+        "close": 20.5
+      },
+      "2": {
+        "open": 11,
+        "close": 20.5
+      },
+      "3": {
+        "open": 11,
+        "close": 20.5
+      },
+      "4": {
+        "open": 11,
+        "close": 20.5
+      },
+      "5": {
+        "open": 11,
+        "close": 20.5
+      },
+      "6": {
+        "open": 11,
+        "close": 20
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJraUAGABvQUYRxQzvMNK31l8",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 288,
+    "name": "2eat AS",
+    "address": "Brynsveien 11, 0667 Oslo, Norway",
+    "coords": [
+      59.9107348,
+      10.811072099999999
+    ],
+    "category": "restaurant",
+    "area": "Bryn",
+    "rating": 5,
+    "facing": null,
+    "openingHours": {
+      "open": 7,
+      "close": 16
+    },
+    "openingHoursWeekly": {
+      "1": {
+        "open": 7,
+        "close": 16
+      },
+      "2": {
+        "open": 7,
+        "close": 16
+      },
+      "3": {
+        "open": 7,
+        "close": 16
+      },
+      "4": {
+        "open": 7,
+        "close": 16
+      },
+      "5": {
+        "open": 7,
+        "close": 16
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJFQF3ZhhvQUYRCeFDT0--wq8",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 289,
+    "name": "Jonathan sushi Bryn",
+    "address": "Østensjøveien 79, 0667 Oslo, Norway",
+    "coords": [
+      59.9035048,
+      10.8216998
+    ],
+    "category": "restaurant",
+    "area": "Bryn",
+    "rating": 4.6,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 21
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 14,
+        "close": 20
+      },
+      "1": {
+        "open": 11,
+        "close": 21
+      },
+      "2": {
+        "open": 11,
+        "close": 21
+      },
+      "3": {
+        "open": 11,
+        "close": 21
+      },
+      "4": {
+        "open": 11,
+        "close": 21
+      },
+      "5": {
+        "open": 11,
+        "close": 21
+      },
+      "6": {
+        "open": 11,
+        "close": 20
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJaxQgUYhvQUYRH2Bmy1X0SBk",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 291,
+    "name": "al dente",
+    "address": "Harry Fetts vei 5B, 0667 Oslo, Norway",
+    "coords": [
+      59.9034603,
+      10.821717099999999
+    ],
+    "category": "restaurant",
+    "area": "Bryn",
+    "rating": 3.6,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 23
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ0UWFgwlvQUYRPltTtEpwAUc",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 292,
+    "name": "Østmarkseteren Restaurant",
+    "address": "Østmarkveien 140, 0687 Oslo, Norway",
+    "coords": [
+      59.8901441,
+      10.8647457
+    ],
+    "category": "restaurant",
+    "area": "Østensjø",
+    "rating": 4.6,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 23
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJkR8qG4hlQUYREUsTigT9ZCM",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 293,
+    "name": "ESSA",
+    "address": "Ljabruveien 87, 1266 Oslo, Norway",
+    "coords": [
+      59.849629799999995,
+      10.801280499999999
+    ],
+    "category": "restaurant",
+    "area": "Nordstrand",
+    "rating": 4.4,
+    "facing": null,
+    "openingHours": {
+      "open": 12,
+      "close": 21
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 18
+      },
+      "4": {
+        "open": 14,
+        "close": 21
+      },
+      "5": {
+        "open": 14,
+        "close": 21
+      },
+      "6": {
+        "open": 12,
+        "close": 21
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJCR8jpqNpQUYRdFOulg-0eq4",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 294,
+    "name": "Egon",
+    "address": "Ekebergveien 228 B, 1162 Oslo, Norway",
+    "coords": [
+      59.8612518,
+      10.8004875
+    ],
+    "category": "restaurant",
+    "area": "Nordstrand",
+    "rating": 3.9,
+    "facing": null,
+    "openingHours": {
+      "open": 10,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 11,
+        "close": 23
+      },
+      "1": {
+        "open": 10,
+        "close": 23
+      },
+      "2": {
+        "open": 10,
+        "close": 23
+      },
+      "3": {
+        "open": 10,
+        "close": 23
+      },
+      "4": {
+        "open": 10,
+        "close": 23
+      },
+      "5": {
+        "open": 10,
+        "close": 23
+      },
+      "6": {
+        "open": 10,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJvSCHLTNvQUYR5YILhHgIEHE",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 295,
+    "name": "W.B. Samson",
+    "address": "Nordstrandveien 40, 1162 Oslo, Norway",
+    "coords": [
+      59.86101579999999,
+      10.8013717
+    ],
+    "category": "cafe",
+    "area": "Nordstrand",
+    "rating": 4.2,
+    "facing": null,
+    "openingHours": {
+      "open": 8,
+      "close": 22
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 9,
+        "close": 20
+      },
+      "1": {
+        "open": 8,
+        "close": 21
+      },
+      "2": {
+        "open": 8,
+        "close": 21
+      },
+      "3": {
+        "open": 8,
+        "close": 22
+      },
+      "4": {
+        "open": 8,
+        "close": 22
+      },
+      "5": {
+        "open": 8,
+        "close": 22
+      },
+      "6": {
+        "open": 9,
+        "close": 22
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ45K6SjNvQUYRNj6y9x8Ui_s",
+    "facingSource": null,
+    "discoverySignal": "both"
+  },
+  {
+    "id": 296,
+    "name": "NS pizza & Grill",
+    "address": "Ekebergveien 235, 1162 Oslo, Norway",
+    "coords": [
+      59.8609923,
+      10.799902099999999
+    ],
+    "category": "restaurant",
+    "area": "Nordstrand",
+    "rating": 4.2,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 24
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 14,
+        "close": 21
+      },
+      "1": {
+        "open": 11,
+        "close": 22
+      },
+      "2": {
+        "open": 11,
+        "close": 22
+      },
+      "3": {
+        "open": 11,
+        "close": 22
+      },
+      "4": {
+        "open": 11,
+        "close": 22
+      },
+      "5": {
+        "open": 11,
+        "close": 24
+      },
+      "6": {
+        "open": 13,
+        "close": 1
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ6ylG08xoQUYRVs0qibRn9nM",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 297,
+    "name": "STOCK Restaurant",
+    "address": "Dronning Eufemias gate 14, 0191 Oslo, Norway",
+    "coords": [
+      59.90808989999999,
+      10.757885
+    ],
+    "category": "bar",
+    "area": "Nordstrand",
+    "rating": 4.5,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 23.5
+    },
+    "openingHoursWeekly": {
+      "1": {
+        "open": 11,
+        "close": 23.5
+      },
+      "2": {
+        "open": 11,
+        "close": 23.5
+      },
+      "3": {
+        "open": 11,
+        "close": 23.5
+      },
+      "4": {
+        "open": 11,
+        "close": 23.5
+      },
+      "5": {
+        "open": 11,
+        "close": 23.5
+      },
+      "6": {
+        "open": 12,
+        "close": 23.5
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJB_JNKotuQUYR0qvt1JnRYcY",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 298,
+    "name": "Coyo - Meksikansk Restaurant & Taquilla Bar Sørenga",
+    "address": "Sørengkaia 165, 167, 0194 Oslo, Norway",
+    "coords": [
+      59.9017624,
+      10.7512489
+    ],
+    "category": "restaurant",
+    "area": "Ljan",
+    "rating": 3.9,
+    "facing": null,
+    "openingHours": {
+      "open": 13,
+      "close": 23
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 15,
+        "close": 21.5
+      },
+      "1": {
+        "open": 16,
+        "close": 22
+      },
+      "2": {
+        "open": 16,
+        "close": 22
+      },
+      "3": {
+        "open": 16,
+        "close": 22
+      },
+      "4": {
+        "open": 16,
+        "close": 22
+      },
+      "5": {
+        "open": 16,
+        "close": 23
+      },
+      "6": {
+        "open": 13,
+        "close": 23
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJBUwKdI1uQUYRLHr2AEdEf4A",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 299,
+    "name": "Norlaks sushi",
+    "address": "Ekebergveien 228B, 1162 Oslo, Norway",
+    "coords": [
+      59.861081999999996,
+      10.800730699999999
+    ],
+    "category": "restaurant",
+    "area": "Nordstrand vest",
+    "rating": 4,
+    "facing": null,
+    "openingHours": {
+      "open": 14,
+      "close": 21
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 14,
+        "close": 21
+      },
+      "1": {
+        "open": 14,
+        "close": 21
+      },
+      "2": {
+        "open": 14,
+        "close": 21
+      },
+      "3": {
+        "open": 14,
+        "close": 21
+      },
+      "4": {
+        "open": 14,
+        "close": 21
+      },
+      "5": {
+        "open": 14,
+        "close": 21
+      },
+      "6": {
+        "open": 14,
+        "close": 21
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ3UmtQPxvQUYRATpFUQQMD54",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 300,
+    "name": "Boho House",
+    "address": "Skovveien 1, 0257 Oslo, Norway",
+    "coords": [
+      59.915672099999995,
+      10.7157884
+    ],
+    "category": "restaurant",
+    "area": "Nordstrand vest",
+    "rating": 4.4,
+    "facing": null,
+    "openingHours": {
+      "open": 17,
+      "close": 1
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 17,
+        "close": 1
+      },
+      "2": {
+        "open": 17,
+        "close": 1
+      },
+      "3": {
+        "open": 17,
+        "close": 1
+      },
+      "4": {
+        "open": 17,
+        "close": 1
+      },
+      "5": {
+        "open": 17,
+        "close": 1
+      },
+      "6": {
+        "open": 17,
+        "close": 1
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJTftzUpZtQUYRzi0WZna8bZw",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
+  },
+  {
+    "id": 301,
+    "name": "Mirabel Sørenga",
+    "address": "Sørengkaia 163, 0194 Oslo, Norway",
+    "coords": [
+      59.9024569,
+      10.7519833
+    ],
+    "category": "bar",
+    "area": "Nordstrand vest",
+    "rating": 4.1,
+    "facing": null,
+    "openingHours": {
+      "open": 12,
+      "close": 23.5
+    },
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 22
+      },
+      "1": {
+        "open": 12,
+        "close": 23
+      },
+      "2": {
+        "open": 12,
+        "close": 23
+      },
+      "3": {
+        "open": 12,
+        "close": 23
+      },
+      "4": {
+        "open": 12,
+        "close": 23
+      },
+      "5": {
+        "open": 12,
+        "close": 23
+      },
+      "6": {
+        "open": 12,
+        "close": 23.5
+      }
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJlS8XBY1uQUYRGBZCPpUsTcg",
+    "facingSource": null,
+    "discoverySignal": "uteservering"
   }
 ]
