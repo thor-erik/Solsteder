@@ -1,7 +1,7 @@
 [
   {
     "id": 1,
-    "name": "Nedre Foss G\u00e5rd",
+    "name": "Nedre Foss Gård",
     "address": "Nordre gate 2, Oslo",
     "coords": [
       59.92217650000001,
@@ -13,15 +13,47 @@
     "facing": null,
     "openingHours": {
       "open": 12,
-      "close": 21
+      "close": 21.5
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJJZIg6WVuQUYR4glnL2osba4",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 20
+      },
+      "1": {
+        "open": 12,
+        "close": 21.5
+      },
+      "2": {
+        "open": 12,
+        "close": 21.5
+      },
+      "3": {
+        "open": 12,
+        "close": 21.5
+      },
+      "4": {
+        "open": 12,
+        "close": 21.5
+      },
+      "5": {
+        "open": 12,
+        "close": 21.5
+      },
+      "6": {
+        "open": 12,
+        "close": 21.5
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 2,
-    "name": "Gr\u00fcnerhaven Uteservering",
+    "name": "Grünerhaven Uteservering",
     "address": "Thorvald Meyers gate 57, Oslo",
     "coords": [
       59.9233621,
@@ -32,12 +64,43 @@
     "rating": 3.8,
     "facing": null,
     "openingHours": {
-      "open": 12,
+      "open": 8,
       "close": 22
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJddpHn2huQUYRQUWBkuiX4x4",
-    "facingSource": null
+    "facingSource": null,
+    "openingHoursWeekly": {
+      "0": {
+        "open": 11,
+        "close": 21
+      },
+      "1": {
+        "open": 8,
+        "close": 21
+      },
+      "2": {
+        "open": 8,
+        "close": 21
+      },
+      "3": {
+        "open": 8,
+        "close": 21
+      },
+      "4": {
+        "open": 8,
+        "close": 22
+      },
+      "5": {
+        "open": 8,
+        "close": 22
+      },
+      "6": {
+        "open": 10,
+        "close": 22
+      }
+    },
+    "hoursSource": "osm"
   },
   {
     "id": 3,
@@ -57,7 +120,35 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ5YRE0f9vQUYRMYbC09dqK40",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "1": {
+        "open": 16,
+        "close": 23
+      },
+      "2": {
+        "open": 11,
+        "close": 23
+      },
+      "3": {
+        "open": 11,
+        "close": 23
+      },
+      "4": {
+        "open": 11,
+        "close": 23
+      },
+      "5": {
+        "open": 11,
+        "close": 23
+      },
+      "6": {
+        "open": 14.5,
+        "close": 23
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 4,
@@ -77,7 +168,35 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJt-Ib_rlvQUYRCQSt4bwCdQU",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "1": {
+        "open": 11,
+        "close": 22
+      },
+      "2": {
+        "open": 11,
+        "close": 22
+      },
+      "3": {
+        "open": 11,
+        "close": 22
+      },
+      "4": {
+        "open": 11,
+        "close": 22
+      },
+      "5": {
+        "open": 11,
+        "close": 22
+      },
+      "6": {
+        "open": 14,
+        "close": 22
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 5,
@@ -97,7 +216,39 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJDbYuLdZtQUYRiIbC0KtC0iE",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 21.5
+      },
+      "1": {
+        "open": 11,
+        "close": 22
+      },
+      "2": {
+        "open": 11,
+        "close": 22
+      },
+      "3": {
+        "open": 11,
+        "close": 22
+      },
+      "4": {
+        "open": 11,
+        "close": 22
+      },
+      "5": {
+        "open": 11,
+        "close": 23
+      },
+      "6": {
+        "open": 11,
+        "close": 23
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 6,
@@ -117,12 +268,36 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJHY2MlxptQUYRIfIDIRiO-7E",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "2": {
+        "open": 12,
+        "close": 23
+      },
+      "3": {
+        "open": 12,
+        "close": 23
+      },
+      "4": {
+        "open": 12,
+        "close": 23
+      },
+      "5": {
+        "open": 12,
+        "close": 24
+      },
+      "6": {
+        "open": 12,
+        "close": 24
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 7,
     "name": "Skansen",
-    "address": "R\u00e5dhusgata 32, Oslo",
+    "address": "Rådhusgata 32, Oslo",
     "coords": [
       59.91020100000001,
       10.738914
@@ -132,12 +307,44 @@
     "rating": 4.1,
     "facing": null,
     "openingHours": {
-      "open": 11,
+      "open": 11.5,
       "close": 22
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJtWx6zIduQUYRgF6rQN56ydo",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 17
+      },
+      "1": {
+        "open": 11.5,
+        "close": 22
+      },
+      "2": {
+        "open": 11.5,
+        "close": 22
+      },
+      "3": {
+        "open": 11.5,
+        "close": 22
+      },
+      "4": {
+        "open": 11.5,
+        "close": 22
+      },
+      "5": {
+        "open": 11.5,
+        "close": 22
+      },
+      "6": {
+        "open": 12,
+        "close": 22
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 8,
@@ -157,7 +364,8 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJl0MwCGFuQUYR-tMel_ej3nU",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL"
   },
   {
     "id": 9,
@@ -172,12 +380,40 @@
     "rating": 4.5,
     "facing": null,
     "openingHours": {
-      "open": 11,
+      "open": 11.5,
       "close": 23
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJowEvk4huQUYROE70i3p_oUU",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "1": {
+        "open": 11.5,
+        "close": 23
+      },
+      "2": {
+        "open": 11.5,
+        "close": 23
+      },
+      "3": {
+        "open": 11.5,
+        "close": 23
+      },
+      "4": {
+        "open": 11.5,
+        "close": 23
+      },
+      "5": {
+        "open": 11.5,
+        "close": 23
+      },
+      "6": {
+        "open": 16,
+        "close": 23
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 10,
@@ -197,7 +433,35 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJHUEmdmJuQUYRQ1qIk8FacQg",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "1": {
+        "open": 11,
+        "close": 22
+      },
+      "2": {
+        "open": 11,
+        "close": 22
+      },
+      "3": {
+        "open": 11,
+        "close": 22
+      },
+      "4": {
+        "open": 11,
+        "close": 22
+      },
+      "5": {
+        "open": 11,
+        "close": 22
+      },
+      "6": {
+        "open": 11,
+        "close": 22
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 11,
@@ -217,7 +481,39 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJDbYuLdZtQUYRUG0RJiLNvd4",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 22
+      },
+      "1": {
+        "open": 11,
+        "close": 23
+      },
+      "2": {
+        "open": 11,
+        "close": 23
+      },
+      "3": {
+        "open": 11,
+        "close": 23
+      },
+      "4": {
+        "open": 11,
+        "close": 23
+      },
+      "5": {
+        "open": 11,
+        "close": 24
+      },
+      "6": {
+        "open": 11,
+        "close": 24
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 12,
@@ -237,11 +533,39 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJCU6jUZ9vQUYRcZNY_OdXdNQ",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "1": {
+        "open": 11,
+        "close": 16
+      },
+      "2": {
+        "open": 11,
+        "close": 22
+      },
+      "3": {
+        "open": 11,
+        "close": 22
+      },
+      "4": {
+        "open": 11,
+        "close": 22
+      },
+      "5": {
+        "open": 11,
+        "close": 22
+      },
+      "6": {
+        "open": 12,
+        "close": 22
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 13,
-    "name": "Fyret mat & Drikke - og Noe til B\u00e5ten AS",
+    "name": "Fyret mat & Drikke - og Noe til Båten AS",
     "address": "Youngstorget 6, Oslo",
     "coords": [
       59.91528229999999,
@@ -253,11 +577,39 @@
     "facing": null,
     "openingHours": {
       "open": 11,
-      "close": 3
+      "close": 2
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJpT6uUmJuQUYR-4B_EXaAuWI",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "1": {
+        "open": 11,
+        "close": 1
+      },
+      "2": {
+        "open": 11,
+        "close": 1
+      },
+      "3": {
+        "open": 11,
+        "close": 1
+      },
+      "4": {
+        "open": 11,
+        "close": 1
+      },
+      "5": {
+        "open": 11,
+        "close": 2
+      },
+      "6": {
+        "open": 12,
+        "close": 2
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 14,
@@ -277,7 +629,35 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJpT6uUmJuQUYRXchhzI7y0W8",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "1": {
+        "open": 11,
+        "close": 24
+      },
+      "2": {
+        "open": 11,
+        "close": 1
+      },
+      "3": {
+        "open": 11,
+        "close": 1
+      },
+      "4": {
+        "open": 11,
+        "close": 1
+      },
+      "5": {
+        "open": 11,
+        "close": 1
+      },
+      "6": {
+        "open": 11,
+        "close": 1
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 15,
@@ -292,12 +672,39 @@
     "rating": 4.3,
     "facing": null,
     "openingHours": {
-      "open": 12,
-      "close": 21
+      "open": 11.5,
+      "close": 22
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ53SynIZuQUYRu4gn-yPb61M",
-    "facingSource": null
+    "facingSource": null,
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 20
+      },
+      "2": {
+        "open": 16,
+        "close": 22
+      },
+      "3": {
+        "open": 11.5,
+        "close": 22
+      },
+      "4": {
+        "open": 11.5,
+        "close": 22
+      },
+      "5": {
+        "open": 11.5,
+        "close": 22
+      },
+      "6": {
+        "open": 11.5,
+        "close": 22
+      }
+    },
+    "hoursSource": "osm"
   },
   {
     "id": 16,
@@ -313,15 +720,43 @@
     "facing": null,
     "openingHours": {
       "open": 12,
-      "close": 23
+      "close": 23.5
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJLY_ZY4ZuQUYRY4TaMjHPqGE",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "1": {
+        "open": 12,
+        "close": 23.5
+      },
+      "2": {
+        "open": 12,
+        "close": 23.5
+      },
+      "3": {
+        "open": 12,
+        "close": 23.5
+      },
+      "4": {
+        "open": 12,
+        "close": 23.5
+      },
+      "5": {
+        "open": 12,
+        "close": 23.5
+      },
+      "6": {
+        "open": 12,
+        "close": 23.5
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 17,
-    "name": "Caf\u00e9 Cathedral",
+    "name": "Café Cathedral",
     "address": "Dronningens gt. 27, Oslo",
     "coords": [
       59.9118463,
@@ -332,12 +767,44 @@
     "rating": 4.1,
     "facing": null,
     "openingHours": {
-      "open": 9,
+      "open": 9.5,
       "close": 23
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJHUEmdmJuQUYRYLZuZ708vJY",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 9.5,
+        "close": 22
+      },
+      "1": {
+        "open": 9.5,
+        "close": 22
+      },
+      "2": {
+        "open": 9.5,
+        "close": 22
+      },
+      "3": {
+        "open": 9.5,
+        "close": 22
+      },
+      "4": {
+        "open": 9.5,
+        "close": 22
+      },
+      "5": {
+        "open": 9.5,
+        "close": 23
+      },
+      "6": {
+        "open": 9.5,
+        "close": 23
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 18,
@@ -357,7 +824,39 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ76Zu8mtvQUYRjBABcCjp25A",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 22
+      },
+      "1": {
+        "open": 11,
+        "close": 23
+      },
+      "2": {
+        "open": 11,
+        "close": 23
+      },
+      "3": {
+        "open": 11,
+        "close": 23
+      },
+      "4": {
+        "open": 11,
+        "close": 23
+      },
+      "5": {
+        "open": 11,
+        "close": 23
+      },
+      "6": {
+        "open": 11,
+        "close": 23
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 19,
@@ -372,17 +871,41 @@
     "rating": 4.3,
     "facing": null,
     "openingHours": {
-      "open": 11,
+      "open": 11.5,
       "close": 22
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJNUctz4duQUYRft4pW7dWnMI",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "2": {
+        "open": 11.5,
+        "close": 22
+      },
+      "3": {
+        "open": 11.5,
+        "close": 22
+      },
+      "4": {
+        "open": 11.5,
+        "close": 22
+      },
+      "5": {
+        "open": 11.5,
+        "close": 22
+      },
+      "6": {
+        "open": 13,
+        "close": 22
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 20,
-    "name": "\u00c5pent Eventlokale",
-    "address": "Henny M\u00fcrers gang 4, Oslo",
+    "name": "Åpent Eventlokale",
+    "address": "Henny Mürers gang 4, Oslo",
     "coords": [
       59.9082793,
       10.753971
@@ -397,7 +920,8 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJD8q5pBhvQUYRnfaG2QjLLzo",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL"
   },
   {
     "id": 21,
@@ -417,7 +941,39 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJtUA5xoJvQUYR2zm47HkQ3Ic",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 20
+      },
+      "1": {
+        "open": 12,
+        "close": 20
+      },
+      "2": {
+        "open": 12,
+        "close": 21
+      },
+      "3": {
+        "open": 12,
+        "close": 21
+      },
+      "4": {
+        "open": 12,
+        "close": 21
+      },
+      "5": {
+        "open": 12,
+        "close": 21
+      },
+      "6": {
+        "open": 12,
+        "close": 21
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 22,
@@ -432,12 +988,40 @@
     "rating": 4.3,
     "facing": null,
     "openingHours": {
-      "open": 11,
+      "open": 11.5,
       "close": 22
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJm9sGLIZuQUYR5KJdmBBz5z8",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "1": {
+        "open": 16,
+        "close": 22
+      },
+      "2": {
+        "open": 11.5,
+        "close": 22
+      },
+      "3": {
+        "open": 11.5,
+        "close": 22
+      },
+      "4": {
+        "open": 11.5,
+        "close": 22
+      },
+      "5": {
+        "open": 11.5,
+        "close": 22
+      },
+      "6": {
+        "open": 16,
+        "close": 22
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 23,
@@ -452,12 +1036,43 @@
     "rating": 4.2,
     "facing": null,
     "openingHours": {
-      "open": 11,
-      "close": 24
+      "open": 8,
+      "close": 20
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJv7od831uQUYRMuaJ6vTHM4M",
-    "facingSource": null
+    "facingSource": null,
+    "openingHoursWeekly": {
+      "0": {
+        "open": 10,
+        "close": 19
+      },
+      "1": {
+        "open": 8,
+        "close": 20
+      },
+      "2": {
+        "open": 8,
+        "close": 20
+      },
+      "3": {
+        "open": 8,
+        "close": 20
+      },
+      "4": {
+        "open": 8,
+        "close": 20
+      },
+      "5": {
+        "open": 8,
+        "close": 20
+      },
+      "6": {
+        "open": 10,
+        "close": 19
+      }
+    },
+    "hoursSource": "osm"
   },
   {
     "id": 24,
@@ -473,11 +1088,42 @@
     "facing": null,
     "openingHours": {
       "open": 11,
-      "close": 21
+      "close": 22
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJsccBuIluQUYR-6IZ8lW-kdA",
-    "facingSource": null
+    "facingSource": null,
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 22
+      },
+      "1": {
+        "open": 11,
+        "close": 22
+      },
+      "2": {
+        "open": 11,
+        "close": 22
+      },
+      "3": {
+        "open": 11,
+        "close": 22
+      },
+      "4": {
+        "open": 11,
+        "close": 22
+      },
+      "5": {
+        "open": 11,
+        "close": 22
+      },
+      "6": {
+        "open": 12,
+        "close": 22
+      }
+    },
+    "hoursSource": "osm"
   },
   {
     "id": 25,
@@ -497,12 +1143,44 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJFRMIqfhvQUYRHSOnc2LW-w0",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 22
+      },
+      "1": {
+        "open": 15,
+        "close": 22
+      },
+      "2": {
+        "open": 15,
+        "close": 22
+      },
+      "3": {
+        "open": 15,
+        "close": 22
+      },
+      "4": {
+        "open": 15,
+        "close": 23
+      },
+      "5": {
+        "open": 15,
+        "close": 23
+      },
+      "6": {
+        "open": 12,
+        "close": 23
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 26,
-    "name": "Kj\u00f8kken og Bar",
-    "address": "M\u00f8llergata 16, Oslo",
+    "name": "Kjøkken og Bar",
+    "address": "Møllergata 16, Oslo",
     "coords": [
       59.9147945,
       10.7476966
@@ -517,12 +1195,44 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ16RtVmJuQUYRcu76N76Rh2k",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 3
+      },
+      "1": {
+        "open": 11,
+        "close": 1
+      },
+      "2": {
+        "open": 11,
+        "close": 1
+      },
+      "3": {
+        "open": 11,
+        "close": 1
+      },
+      "4": {
+        "open": 11,
+        "close": 1
+      },
+      "5": {
+        "open": 11,
+        "close": 3
+      },
+      "6": {
+        "open": 11,
+        "close": 3
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 27,
     "name": "Pappabuene",
-    "address": "R\u00e5dhusbrygge 1 1, Oslo",
+    "address": "Rådhusbrygge 1 1, Oslo",
     "coords": [
       59.9102571,
       10.7340608
@@ -537,7 +1247,8 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJYTFu6IZuQUYR6JHUhq9tXQ0",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL"
   },
   {
     "id": 28,
@@ -557,12 +1268,13 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJxTPmTuhvQUYRZMQnxQyvjEo",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL"
   },
   {
     "id": 29,
     "name": "Mamma Pizza Vika Osteria di Mare",
-    "address": "Rusel\u00f8kkveien 26, Oslo",
+    "address": "Ruseløkkveien 26, Oslo",
     "coords": [
       59.9126789,
       10.7261389
@@ -573,15 +1285,47 @@
     "facing": null,
     "openingHours": {
       "open": 11,
-      "close": 21
+      "close": 21.5
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ7xA2Y6hvQUYRv2gGmQksXBU",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 21.5
+      },
+      "1": {
+        "open": 11,
+        "close": 21.5
+      },
+      "2": {
+        "open": 11,
+        "close": 21.5
+      },
+      "3": {
+        "open": 11,
+        "close": 21.5
+      },
+      "4": {
+        "open": 11,
+        "close": 21.5
+      },
+      "5": {
+        "open": 11,
+        "close": 21.5
+      },
+      "6": {
+        "open": 12,
+        "close": 21.5
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 30,
-    "name": "Caf\u00e9 Tekehtopa",
+    "name": "Café Tekehtopa",
     "address": "St. Olavs Plass 2, Oslo",
     "coords": [
       59.91820939999999,
@@ -597,7 +1341,35 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJU16FhHxuQUYR-w4eekZdzn4",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "1": {
+        "open": 11,
+        "close": 24
+      },
+      "2": {
+        "open": 11,
+        "close": 24
+      },
+      "3": {
+        "open": 11,
+        "close": 24
+      },
+      "4": {
+        "open": 11,
+        "close": 24
+      },
+      "5": {
+        "open": 11,
+        "close": 24
+      },
+      "6": {
+        "open": 12,
+        "close": 24
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 31,
@@ -612,16 +1384,43 @@
     "rating": 4.6,
     "facing": null,
     "openingHours": {
-      "open": 12,
-      "close": 21
+      "open": 11,
+      "close": 22
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJQRB2oX5uQUYRTwy1N2whyOE",
-    "facingSource": null
+    "facingSource": null,
+    "openingHoursWeekly": {
+      "1": {
+        "open": 16,
+        "close": 22
+      },
+      "2": {
+        "open": 11,
+        "close": 22
+      },
+      "3": {
+        "open": 11,
+        "close": 22
+      },
+      "4": {
+        "open": 11,
+        "close": 22
+      },
+      "5": {
+        "open": 11,
+        "close": 22
+      },
+      "6": {
+        "open": 12,
+        "close": 22
+      }
+    },
+    "hoursSource": "osm"
   },
   {
     "id": 32,
-    "name": "Caf\u00e9 Sara",
+    "name": "Café Sara",
     "address": "Hausmanns gate 29, Oslo",
     "coords": [
       59.91760679999999,
@@ -633,11 +1432,42 @@
     "facing": null,
     "openingHours": {
       "open": 11,
-      "close": 3
+      "close": 23.5
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJbbryrGZuQUYRtz169fSMEG4",
-    "facingSource": null
+    "facingSource": null,
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 23.5
+      },
+      "1": {
+        "open": 11,
+        "close": 2.5
+      },
+      "2": {
+        "open": 11,
+        "close": 2.5
+      },
+      "3": {
+        "open": 11,
+        "close": 2.5
+      },
+      "4": {
+        "open": 11,
+        "close": 2.5
+      },
+      "5": {
+        "open": 11,
+        "close": 2.5
+      },
+      "6": {
+        "open": 11,
+        "close": 2.5
+      }
+    },
+    "hoursSource": "osm"
   },
   {
     "id": 33,
@@ -652,12 +1482,44 @@
     "rating": 4.4,
     "facing": null,
     "openingHours": {
-      "open": 11,
+      "open": 11.5,
       "close": 22
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ-0BgKytsQUYRkE6pNHUvzz4",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 14,
+        "close": 21
+      },
+      "1": {
+        "open": 16,
+        "close": 21
+      },
+      "2": {
+        "open": 11.5,
+        "close": 22
+      },
+      "3": {
+        "open": 11.5,
+        "close": 22
+      },
+      "4": {
+        "open": 11.5,
+        "close": 22
+      },
+      "5": {
+        "open": 11.5,
+        "close": 22
+      },
+      "6": {
+        "open": 14,
+        "close": 22
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 34,
@@ -672,16 +1534,44 @@
     "rating": 4,
     "facing": null,
     "openingHours": {
-      "open": 12,
+      "open": 17,
       "close": 22
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJQRXtti5vQUYRYw7CMt8oIS0",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "1": {
+        "open": 17,
+        "close": 21
+      },
+      "2": {
+        "open": 17,
+        "close": 21
+      },
+      "3": {
+        "open": 17,
+        "close": 21
+      },
+      "4": {
+        "open": 17,
+        "close": 22
+      },
+      "5": {
+        "open": 17,
+        "close": 22
+      },
+      "6": {
+        "open": 17,
+        "close": 22
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 35,
-    "name": "D\u00f8gnvill Burger Tjuvholmen",
+    "name": "Døgnvill Burger Tjuvholmen",
     "address": "Lille Stranden 10, Oslo",
     "coords": [
       59.9083321,
@@ -692,12 +1582,44 @@
     "rating": 4.4,
     "facing": null,
     "openingHours": {
-      "open": 11,
+      "open": 11.5,
       "close": 23
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJE__sioFuQUYRaitV-XFJleM",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 22
+      },
+      "1": {
+        "open": 11.5,
+        "close": 22
+      },
+      "2": {
+        "open": 11.5,
+        "close": 22
+      },
+      "3": {
+        "open": 11.5,
+        "close": 22
+      },
+      "4": {
+        "open": 11.5,
+        "close": 22
+      },
+      "5": {
+        "open": 11.5,
+        "close": 23
+      },
+      "6": {
+        "open": 12,
+        "close": 23
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 36,
@@ -717,7 +1639,39 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJEajdotBvQUYRmbSDHGIyk_U",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 22
+      },
+      "1": {
+        "open": 11,
+        "close": 22
+      },
+      "2": {
+        "open": 11,
+        "close": 22.5
+      },
+      "3": {
+        "open": 11,
+        "close": 22.5
+      },
+      "4": {
+        "open": 11,
+        "close": 22.5
+      },
+      "5": {
+        "open": 11,
+        "close": 23
+      },
+      "6": {
+        "open": 11,
+        "close": 23
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 37,
@@ -737,7 +1691,31 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ005LLj1tQUYRjlt2KWhyyFg",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "2": {
+        "open": 17,
+        "close": 23
+      },
+      "3": {
+        "open": 17,
+        "close": 23
+      },
+      "4": {
+        "open": 17,
+        "close": 23
+      },
+      "5": {
+        "open": 17,
+        "close": 23
+      },
+      "6": {
+        "open": 17,
+        "close": 23
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 38,
@@ -757,7 +1735,31 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ2y4Hwz1vQUYR_Z2_kblubOY",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "2": {
+        "open": 11,
+        "close": 23
+      },
+      "3": {
+        "open": 11,
+        "close": 23
+      },
+      "4": {
+        "open": 11,
+        "close": 23
+      },
+      "5": {
+        "open": 11,
+        "close": 1
+      },
+      "6": {
+        "open": 11,
+        "close": 1
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 39,
@@ -777,7 +1779,8 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJQ5qYhIFuQUYRy2xSW6xK3Co",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL"
   },
   {
     "id": 40,
@@ -797,7 +1800,39 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJfRnaFopuQUYRn1QT-35v2v0",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 10,
+        "close": 19
+      },
+      "1": {
+        "open": 7,
+        "close": 21
+      },
+      "2": {
+        "open": 7,
+        "close": 21
+      },
+      "3": {
+        "open": 7,
+        "close": 21
+      },
+      "4": {
+        "open": 7,
+        "close": 21
+      },
+      "5": {
+        "open": 7,
+        "close": 21
+      },
+      "6": {
+        "open": 10,
+        "close": 19
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 41,
@@ -813,11 +1848,35 @@
     "facing": null,
     "openingHours": {
       "open": 8,
-      "close": 22
+      "close": 23
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJcWAvE8tvQUYRmQOOXSKP1_k",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "1": {
+        "open": 8,
+        "close": 22
+      },
+      "2": {
+        "open": 8,
+        "close": 22
+      },
+      "3": {
+        "open": 8,
+        "close": 22
+      },
+      "4": {
+        "open": 8,
+        "close": 23
+      },
+      "5": {
+        "open": 8,
+        "close": 23
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 42,
@@ -837,7 +1896,18 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJn0JV9jJvQUYRzQ1KG0nFH4s",
-    "facingSource": null
+    "facingSource": null,
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 23
+      },
+      "6": {
+        "open": 12,
+        "close": 23
+      }
+    },
+    "hoursSource": "osm"
   },
   {
     "id": 43,
@@ -853,11 +1923,43 @@
     "facing": null,
     "openingHours": {
       "open": 11,
-      "close": 24
+      "close": 23.5
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJB1SQmGhuQUYRQA-E7GbwhPQ",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 11,
+        "close": 23.5
+      },
+      "1": {
+        "open": 11,
+        "close": 0.5
+      },
+      "2": {
+        "open": 11,
+        "close": 0.5
+      },
+      "3": {
+        "open": 11,
+        "close": 0.5
+      },
+      "4": {
+        "open": 11,
+        "close": 0.5
+      },
+      "5": {
+        "open": 11,
+        "close": 2
+      },
+      "6": {
+        "open": 11,
+        "close": 2
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 44,
@@ -877,7 +1979,8 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJPS6kjoxuQUYRiTPjAiosgHo",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL"
   },
   {
     "id": 45,
@@ -897,7 +2000,35 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJZ4bIIupvQUYR9o0VpS8nQBw",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 20
+      },
+      "2": {
+        "open": 13,
+        "close": 24
+      },
+      "3": {
+        "open": 13,
+        "close": 24
+      },
+      "4": {
+        "open": 13,
+        "close": 1
+      },
+      "5": {
+        "open": 13,
+        "close": 2
+      },
+      "6": {
+        "open": 13,
+        "close": 2
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 46,
@@ -917,7 +2048,39 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJA2dbXF9vQUYRSUH5czSggxg",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 24
+      },
+      "1": {
+        "open": 15,
+        "close": 22
+      },
+      "2": {
+        "open": 15,
+        "close": 22
+      },
+      "3": {
+        "open": 15,
+        "close": 22
+      },
+      "4": {
+        "open": 15,
+        "close": 22
+      },
+      "5": {
+        "open": 12,
+        "close": 24
+      },
+      "6": {
+        "open": 12,
+        "close": 24
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 47,
@@ -938,12 +2101,32 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJhxTybn1uQUYR5wfXVLeg0rs",
     "facingSource": null,
-    "terraceType": "rooftop"
+    "terraceType": "rooftop",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "3": {
+        "open": 16,
+        "close": 24
+      },
+      "4": {
+        "open": 16,
+        "close": 24
+      },
+      "5": {
+        "open": 16,
+        "close": 1
+      },
+      "6": {
+        "open": 16,
+        "close": 1
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 48,
     "name": "Baba bar",
-    "address": "Str\u00f8get passasjen, Storgata 13, Oslo",
+    "address": "Strøget passasjen, Storgata 13, Oslo",
     "coords": [
       59.91352629999999,
       10.7493426
@@ -954,11 +2137,35 @@
     "facing": null,
     "openingHours": {
       "open": 16,
-      "close": 23
+      "close": 23.5
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJQy1FHTRvQUYR0CNiRZlrmhs",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "2": {
+        "open": 16,
+        "close": 23.5
+      },
+      "3": {
+        "open": 16,
+        "close": 1
+      },
+      "4": {
+        "open": 16,
+        "close": 2
+      },
+      "5": {
+        "open": 16,
+        "close": 3
+      },
+      "6": {
+        "open": 16,
+        "close": 3
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 49,
@@ -978,7 +2185,38 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJK2EqT4puQUYRmEaO3ZefmmQ",
-    "facingSource": null
+    "facingSource": null,
+    "openingHoursWeekly": {
+      "0": {
+        "open": 11,
+        "close": 23
+      },
+      "1": {
+        "open": 11,
+        "close": 23
+      },
+      "2": {
+        "open": 11,
+        "close": 24
+      },
+      "3": {
+        "open": 11,
+        "close": 24
+      },
+      "4": {
+        "open": 11,
+        "close": 24
+      },
+      "5": {
+        "open": 11,
+        "close": 24
+      },
+      "6": {
+        "open": 11,
+        "close": 24
+      }
+    },
+    "hoursSource": "osm"
   },
   {
     "id": 50,
@@ -993,12 +2231,44 @@
     "rating": 3.8,
     "facing": null,
     "openingHours": {
-      "open": 11,
-      "close": 23
+      "open": 12,
+      "close": 21
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJe0naWn1uQUYRpi_4epZQTzw",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 21
+      },
+      "1": {
+        "open": 12,
+        "close": 21
+      },
+      "2": {
+        "open": 12,
+        "close": 21
+      },
+      "3": {
+        "open": 12,
+        "close": 21
+      },
+      "4": {
+        "open": 12,
+        "close": 21
+      },
+      "5": {
+        "open": 12,
+        "close": 21
+      },
+      "6": {
+        "open": 12,
+        "close": 21
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 51,
@@ -1018,11 +2288,43 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJp0BZUGBuQUYRAxuQpJmcpiw",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 9,
+        "close": 18
+      },
+      "1": {
+        "open": 7,
+        "close": 18
+      },
+      "2": {
+        "open": 7,
+        "close": 18
+      },
+      "3": {
+        "open": 7,
+        "close": 18
+      },
+      "4": {
+        "open": 7,
+        "close": 18
+      },
+      "5": {
+        "open": 7,
+        "close": 18
+      },
+      "6": {
+        "open": 9,
+        "close": 18
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 52,
-    "name": "Kaf\u00e9 Republik",
+    "name": "Kafé Republik",
     "address": "Storgata 37, Oslo",
     "coords": [
       59.9149858,
@@ -1038,12 +2340,40 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJyfcA0mNvQUYR2rVhF0eSPwk",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "1": {
+        "open": 11,
+        "close": 22
+      },
+      "2": {
+        "open": 11,
+        "close": 22
+      },
+      "3": {
+        "open": 11,
+        "close": 22
+      },
+      "4": {
+        "open": 11,
+        "close": 24
+      },
+      "5": {
+        "open": 11,
+        "close": 24
+      },
+      "6": {
+        "open": 11,
+        "close": 24
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 53,
-    "name": "Kaf\u00e9 Celsius",
-    "address": "R\u00e5dhusgata 19, Oslo",
+    "name": "Kafé Celsius",
+    "address": "Rådhusgata 19, Oslo",
     "coords": [
       59.91017220000001,
       10.7403009
@@ -1058,11 +2388,35 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJJx671YduQUYR2dWlpWPbYPc",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "1": {
+        "open": 11,
+        "close": 22
+      },
+      "2": {
+        "open": 11,
+        "close": 22
+      },
+      "3": {
+        "open": 11,
+        "close": 22
+      },
+      "5": {
+        "open": 13,
+        "close": 19
+      },
+      "6": {
+        "open": 13,
+        "close": 19
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 54,
-    "name": "Cafe S\u00f8r",
+    "name": "Cafe Sør",
     "address": "Torggata 11, Oslo",
     "coords": [
       59.9141819,
@@ -1073,12 +2427,43 @@
     "rating": 4.2,
     "facing": null,
     "openingHours": {
-      "open": 12,
+      "open": 10,
       "close": 3
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ-ajWRGJuQUYRbrBu3Piy4to",
-    "facingSource": null
+    "facingSource": null,
+    "openingHoursWeekly": {
+      "0": {
+        "open": 10,
+        "close": 3
+      },
+      "1": {
+        "open": 10,
+        "close": 3
+      },
+      "2": {
+        "open": 10,
+        "close": 3
+      },
+      "3": {
+        "open": 10,
+        "close": 3
+      },
+      "4": {
+        "open": 10,
+        "close": 3
+      },
+      "5": {
+        "open": 10,
+        "close": 3
+      },
+      "6": {
+        "open": 10,
+        "close": 3
+      }
+    },
+    "hoursSource": "osm"
   },
   {
     "id": 55,
@@ -1098,7 +2483,39 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJJy0dKlBvQUYRuMBPoztBpWc",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 9,
+        "close": 19
+      },
+      "1": {
+        "open": 8,
+        "close": 20
+      },
+      "2": {
+        "open": 8,
+        "close": 20
+      },
+      "3": {
+        "open": 8,
+        "close": 20
+      },
+      "4": {
+        "open": 8,
+        "close": 20
+      },
+      "5": {
+        "open": 8,
+        "close": 20
+      },
+      "6": {
+        "open": 9,
+        "close": 19
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 56,
@@ -1118,7 +2535,35 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJXzUw43RvQUYRTmXEPfSLHws",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 10,
+        "close": 18
+      },
+      "2": {
+        "open": 10,
+        "close": 20
+      },
+      "3": {
+        "open": 10,
+        "close": 20
+      },
+      "4": {
+        "open": 10,
+        "close": 20
+      },
+      "5": {
+        "open": 10,
+        "close": 20
+      },
+      "6": {
+        "open": 10,
+        "close": 18
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 57,
@@ -1129,16 +2574,48 @@
       10.7288783
     ],
     "category": "bar",
-    "area": "Gr\u00fcnerl\u00f8kka",
+    "area": "Grünerløkka",
     "rating": 4.2,
     "facing": null,
     "openingHours": {
       "open": 11,
-      "close": 3
+      "close": 3.5
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJG6_3wHhuQUYRQNMA9X1UR5I",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 1
+      },
+      "1": {
+        "open": 11,
+        "close": 1
+      },
+      "2": {
+        "open": 11,
+        "close": 3.5
+      },
+      "3": {
+        "open": 11,
+        "close": 3.5
+      },
+      "4": {
+        "open": 11,
+        "close": 3.5
+      },
+      "5": {
+        "open": 11,
+        "close": 3.5
+      },
+      "6": {
+        "open": 11,
+        "close": 3.5
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 58,
@@ -1149,16 +2626,40 @@
       10.7236333
     ],
     "category": "restaurant",
-    "area": "Gr\u00fcnerl\u00f8kka",
+    "area": "Grünerløkka",
     "rating": 4.5,
     "facing": null,
     "openingHours": {
-      "open": 11,
+      "open": 11.5,
       "close": 23
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJmevBDbptQUYR6wd0g_eEr0g",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "2": {
+        "open": 11.5,
+        "close": 23
+      },
+      "3": {
+        "open": 11.5,
+        "close": 23
+      },
+      "4": {
+        "open": 11.5,
+        "close": 23
+      },
+      "5": {
+        "open": 11.5,
+        "close": 23
+      },
+      "6": {
+        "open": 11.5,
+        "close": 23
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 59,
@@ -1169,7 +2670,7 @@
       10.7187486
     ],
     "category": "bar",
-    "area": "Gr\u00fcnerl\u00f8kka",
+    "area": "Grünerløkka",
     "rating": 5,
     "facing": null,
     "openingHours": {
@@ -1178,7 +2679,8 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJMdN_lH5tQUYRsZ-p2q9yxmc",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL"
   },
   {
     "id": 60,
@@ -1189,16 +2691,48 @@
       10.7510437
     ],
     "category": "bar",
-    "area": "Gr\u00fcnerl\u00f8kka",
+    "area": "Grünerløkka",
     "rating": 4.5,
     "facing": null,
     "openingHours": {
       "open": 15,
-      "close": 24
+      "close": 3
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJwQWez2RvQUYRgmGuUlk9kcw",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 15,
+        "close": 0.5
+      },
+      "1": {
+        "open": 16,
+        "close": 0.5
+      },
+      "2": {
+        "open": 16,
+        "close": 0.5
+      },
+      "3": {
+        "open": 16,
+        "close": 0.5
+      },
+      "4": {
+        "open": 16,
+        "close": 0.5
+      },
+      "5": {
+        "open": 15,
+        "close": 3
+      },
+      "6": {
+        "open": 15,
+        "close": 3
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 61,
@@ -1209,7 +2743,7 @@
       10.7313775
     ],
     "category": "bar",
-    "area": "Gr\u00fcnerl\u00f8kka",
+    "area": "Grünerløkka",
     "rating": 4.2,
     "facing": null,
     "openingHours": {
@@ -1218,18 +2752,38 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJHTAMKqZvQUYRjytErnosKK4",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "3": {
+        "open": 18,
+        "close": 1
+      },
+      "4": {
+        "open": 18,
+        "close": 1
+      },
+      "5": {
+        "open": 18,
+        "close": 3
+      },
+      "6": {
+        "open": 18,
+        "close": 3
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 62,
-    "name": "Store St\u00e5 Pub",
+    "name": "Store Stå Pub",
     "address": "Thereses gate 51, Oslo",
     "coords": [
       59.92580409999999,
       10.7306929
     ],
     "category": "bar",
-    "area": "Gr\u00fcnerl\u00f8kka",
+    "area": "Grünerløkka",
     "rating": 4.1,
     "facing": null,
     "openingHours": {
@@ -1238,7 +2792,39 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJdUHu8nduQUYRmh8E0LL-Wc8",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 23
+      },
+      "1": {
+        "open": 14,
+        "close": 23
+      },
+      "2": {
+        "open": 14,
+        "close": 23
+      },
+      "3": {
+        "open": 14,
+        "close": 24
+      },
+      "4": {
+        "open": 14,
+        "close": 24
+      },
+      "5": {
+        "open": 12,
+        "close": 2
+      },
+      "6": {
+        "open": 12,
+        "close": 2
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 63,
@@ -1249,7 +2835,7 @@
       10.7380861
     ],
     "category": "bar",
-    "area": "Gr\u00fcnerl\u00f8kka",
+    "area": "Grünerløkka",
     "rating": 4.1,
     "facing": null,
     "openingHours": {
@@ -1258,7 +2844,39 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJxUdpoGJuQUYRmUAGYdnaFKA",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 1
+      },
+      "1": {
+        "open": 11,
+        "close": 1
+      },
+      "2": {
+        "open": 11,
+        "close": 2
+      },
+      "3": {
+        "open": 11,
+        "close": 2
+      },
+      "4": {
+        "open": 11,
+        "close": 3
+      },
+      "5": {
+        "open": 11,
+        "close": 3
+      },
+      "6": {
+        "open": 11,
+        "close": 3
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 64,
@@ -1269,16 +2887,48 @@
       10.739154
     ],
     "category": "bar",
-    "area": "Gr\u00fcnerl\u00f8kka",
+    "area": "Grünerløkka",
     "rating": 4.5,
     "facing": null,
     "openingHours": {
       "open": 15,
-      "close": 3
+      "close": 3.5
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJyV-xo6pvQUYR5UKNyD7IgEs",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 16,
+        "close": 2
+      },
+      "1": {
+        "open": 16,
+        "close": 2
+      },
+      "2": {
+        "open": 16,
+        "close": 2
+      },
+      "3": {
+        "open": 16,
+        "close": 2
+      },
+      "4": {
+        "open": 16,
+        "close": 2
+      },
+      "5": {
+        "open": 15,
+        "close": 3.5
+      },
+      "6": {
+        "open": 15,
+        "close": 3.5
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 65,
@@ -1289,16 +2939,44 @@
       10.7148659
     ],
     "category": "bar",
-    "area": "Gr\u00fcnerl\u00f8kka",
+    "area": "Grünerløkka",
     "rating": 4.3,
     "facing": null,
     "openingHours": {
       "open": 12,
-      "close": 24
+      "close": 21.5
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJwbfdY9NtQUYRmOMzx2hXMr8",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 21.5
+      },
+      "2": {
+        "open": 12,
+        "close": 0.5
+      },
+      "3": {
+        "open": 12,
+        "close": 0.5
+      },
+      "4": {
+        "open": 12,
+        "close": 0.5
+      },
+      "5": {
+        "open": 12,
+        "close": 0.5
+      },
+      "6": {
+        "open": 12,
+        "close": 0.5
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 66,
@@ -1309,7 +2987,7 @@
       10.7487028
     ],
     "category": "bar",
-    "area": "Gr\u00fcnerl\u00f8kka",
+    "area": "Grünerløkka",
     "rating": 4.2,
     "facing": null,
     "openingHours": {
@@ -1318,7 +2996,38 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJUwtEQWJuQUYRUaSol8XAzvk",
-    "facingSource": null
+    "facingSource": null,
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 23
+      },
+      "1": {
+        "open": 15,
+        "close": 22
+      },
+      "2": {
+        "open": 15,
+        "close": 22
+      },
+      "3": {
+        "open": 15,
+        "close": 22
+      },
+      "4": {
+        "open": 15,
+        "close": 23
+      },
+      "5": {
+        "open": 12,
+        "close": 23
+      },
+      "6": {
+        "open": 12,
+        "close": 23
+      }
+    },
+    "hoursSource": "osm"
   },
   {
     "id": 67,
@@ -1329,16 +3038,48 @@
       10.7518132
     ],
     "category": "bar",
-    "area": "Gr\u00fcnerl\u00f8kka",
+    "area": "Grünerløkka",
     "rating": 4.2,
     "facing": null,
     "openingHours": {
-      "open": 15,
-      "close": 23
+      "open": 13,
+      "close": 24
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJyx8Mfm9uQUYRHvY8R4ox2Bo",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 24
+      },
+      "1": {
+        "open": 15,
+        "close": 24
+      },
+      "2": {
+        "open": 15,
+        "close": 24
+      },
+      "3": {
+        "open": 15,
+        "close": 24
+      },
+      "4": {
+        "open": 15,
+        "close": 24
+      },
+      "5": {
+        "open": 15,
+        "close": 3
+      },
+      "6": {
+        "open": 13,
+        "close": 3
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 68,
@@ -1349,16 +3090,48 @@
       10.739899
     ],
     "category": "bar",
-    "area": "Gr\u00fcnerl\u00f8kka",
+    "area": "Grünerløkka",
     "rating": 4.5,
     "facing": null,
     "openingHours": {
-      "open": 7,
+      "open": 7.5,
       "close": 24
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJc8XN8nxuQUYRVgqbPUEYzLE",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 9,
+        "close": 20
+      },
+      "1": {
+        "open": 7.5,
+        "close": 20
+      },
+      "2": {
+        "open": 7.5,
+        "close": 20
+      },
+      "3": {
+        "open": 7.5,
+        "close": 24
+      },
+      "4": {
+        "open": 7.5,
+        "close": 24
+      },
+      "5": {
+        "open": 7.5,
+        "close": 1
+      },
+      "6": {
+        "open": 9,
+        "close": 1
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 69,
@@ -1369,7 +3142,7 @@
       10.7183832
     ],
     "category": "cafe",
-    "area": "Gr\u00fcnerl\u00f8kka",
+    "area": "Grünerløkka",
     "rating": 4.6,
     "facing": null,
     "openingHours": {
@@ -1378,18 +3151,46 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJZW3YNdptQUYRLtyicLtJ_oA",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "1": {
+        "open": 9,
+        "close": 17
+      },
+      "2": {
+        "open": 9,
+        "close": 17
+      },
+      "3": {
+        "open": 9,
+        "close": 17
+      },
+      "4": {
+        "open": 9,
+        "close": 17
+      },
+      "5": {
+        "open": 9,
+        "close": 17
+      },
+      "6": {
+        "open": 10,
+        "close": 16
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 70,
-    "name": "Babbo Collective \u00d8vrefoss",
-    "address": "\u00d8vrefoss 4, Oslo",
+    "name": "Babbo Collective Øvrefoss",
+    "address": "Øvrefoss 4, Oslo",
     "coords": [
       59.9273265,
       10.7568113
     ],
     "category": "restaurant",
-    "area": "Gr\u00f8nland",
+    "area": "Grønland",
     "rating": 4.1,
     "facing": null,
     "openingHours": {
@@ -1398,18 +3199,50 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJkyszrGlvQUYRENMC06tZEXg",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 9,
+        "close": 18
+      },
+      "1": {
+        "open": 8,
+        "close": 18
+      },
+      "2": {
+        "open": 8,
+        "close": 18
+      },
+      "3": {
+        "open": 8,
+        "close": 23
+      },
+      "4": {
+        "open": 8,
+        "close": 23
+      },
+      "5": {
+        "open": 8,
+        "close": 23
+      },
+      "6": {
+        "open": 9,
+        "close": 23
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 71,
     "name": "Dattera til Hagen",
-    "address": "Gr\u00f8nland 10, Oslo",
+    "address": "Grønland 10, Oslo",
     "coords": [
       59.913317,
       10.7602293
     ],
     "category": "bar",
-    "area": "Gr\u00f8nland",
+    "area": "Grønland",
     "rating": 4.1,
     "facing": null,
     "openingHours": {
@@ -1418,7 +3251,35 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJWcbDcGBuQUYRX3-G130GXNs",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 21
+      },
+      "2": {
+        "open": 12,
+        "close": 24
+      },
+      "3": {
+        "open": 12,
+        "close": 0.5
+      },
+      "4": {
+        "open": 12,
+        "close": 1.5
+      },
+      "5": {
+        "open": 12,
+        "close": 3.5
+      },
+      "6": {
+        "open": 12,
+        "close": 3.5
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 72,
@@ -1429,27 +3290,54 @@
       10.7626111
     ],
     "category": "bar",
-    "area": "Gr\u00f8nland",
+    "area": "Grønland",
     "rating": 4.5,
     "facing": null,
     "openingHours": {
       "open": 11,
-      "close": 24
+      "close": 22
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJA3sxAF5uQUYRJ-xMVd5xIPM",
-    "facingSource": null
+    "facingSource": null,
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 17
+      },
+      "2": {
+        "open": 11,
+        "close": 22
+      },
+      "3": {
+        "open": 11,
+        "close": 22
+      },
+      "4": {
+        "open": 11,
+        "close": 22
+      },
+      "5": {
+        "open": 11,
+        "close": 22
+      },
+      "6": {
+        "open": 12,
+        "close": 22
+      }
+    },
+    "hoursSource": "osm"
   },
   {
     "id": 73,
     "name": "Apostrophe",
-    "address": "Kirkeg\u00e5rdsgata 7A, Oslo",
+    "address": "Kirkegårdsgata 7A, Oslo",
     "coords": [
       59.92132579999999,
       10.7637088
     ],
     "category": "restaurant",
-    "area": "Gr\u00f8nland",
+    "area": "Grønland",
     "rating": 4.5,
     "facing": null,
     "openingHours": {
@@ -1458,7 +3346,27 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJEYOIclZvQUYRp4xIMswDgSw",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "3": {
+        "open": 16,
+        "close": 22
+      },
+      "4": {
+        "open": 16,
+        "close": 22
+      },
+      "5": {
+        "open": 16,
+        "close": 23
+      },
+      "6": {
+        "open": 14,
+        "close": 23
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 74,
@@ -1469,7 +3377,7 @@
       10.7599378
     ],
     "category": "restaurant",
-    "area": "Gr\u00f8nland",
+    "area": "Grønland",
     "rating": 4.2,
     "facing": null,
     "openingHours": {
@@ -1478,18 +3386,50 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJFRLUbmduQUYRzXOGF7yq8ew",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 22
+      },
+      "1": {
+        "open": 11,
+        "close": 21
+      },
+      "2": {
+        "open": 11,
+        "close": 22
+      },
+      "3": {
+        "open": 11,
+        "close": 22
+      },
+      "4": {
+        "open": 11,
+        "close": 22
+      },
+      "5": {
+        "open": 11,
+        "close": 22
+      },
+      "6": {
+        "open": 12,
+        "close": 22
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 75,
     "name": "Kafe Asylet",
-    "address": "Gr\u00f8nland 28, Oslo",
+    "address": "Grønland 28, Oslo",
     "coords": [
       59.9129361,
       10.7623861
     ],
     "category": "restaurant",
-    "area": "Gr\u00f8nland",
+    "area": "Grønland",
     "rating": 4.2,
     "facing": null,
     "openingHours": {
@@ -1498,27 +3438,91 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJk6u6xl9uQUYRpjcOjfdjDIE",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 22
+      },
+      "1": {
+        "open": 11,
+        "close": 22
+      },
+      "2": {
+        "open": 11,
+        "close": 22
+      },
+      "3": {
+        "open": 11,
+        "close": 23
+      },
+      "4": {
+        "open": 11,
+        "close": 24
+      },
+      "5": {
+        "open": 11,
+        "close": 24
+      },
+      "6": {
+        "open": 12,
+        "close": 24
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 76,
     "name": "Oslo Mekaniske Verksted",
-    "address": "T\u00f8yenbekken 34, Oslo",
+    "address": "Tøyenbekken 34, Oslo",
     "coords": [
       59.9113807,
       10.7623996
     ],
     "category": "bar",
-    "area": "Gr\u00f8nland",
+    "area": "Grønland",
     "rating": 4.5,
     "facing": null,
     "openingHours": {
       "open": 15,
-      "close": 24
+      "close": 2
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJpVMx9F9uQUYR6OyVZ4zkMQI",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 15,
+        "close": 0.5
+      },
+      "1": {
+        "open": 15,
+        "close": 0.5
+      },
+      "2": {
+        "open": 15,
+        "close": 0.5
+      },
+      "3": {
+        "open": 15,
+        "close": 2
+      },
+      "4": {
+        "open": 15,
+        "close": 2
+      },
+      "5": {
+        "open": 15,
+        "close": 2
+      },
+      "6": {
+        "open": 15,
+        "close": 2
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 77,
@@ -1529,7 +3533,7 @@
       10.7560795
     ],
     "category": "restaurant",
-    "area": "Gr\u00f8nland",
+    "area": "Grønland",
     "rating": 3.8,
     "facing": null,
     "openingHours": {
@@ -1539,7 +3543,39 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJXdi_zWhvQUYRqzS0ZzUDtpo",
     "facingSource": null,
-    "terraceType": "rooftop"
+    "terraceType": "rooftop",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 16,
+        "close": 23
+      },
+      "1": {
+        "open": 16,
+        "close": 23
+      },
+      "2": {
+        "open": 16,
+        "close": 23
+      },
+      "3": {
+        "open": 16,
+        "close": 23
+      },
+      "4": {
+        "open": 16,
+        "close": 23
+      },
+      "5": {
+        "open": 16,
+        "close": 23
+      },
+      "6": {
+        "open": 16,
+        "close": 23
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 78,
@@ -1550,7 +3586,7 @@
       10.755277
     ],
     "category": "bar",
-    "area": "Gr\u00f8nland",
+    "area": "Grønland",
     "rating": 4,
     "facing": null,
     "openingHours": {
@@ -1559,7 +3595,39 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJsVM202FuQUYRQJf5uNwqSXQ",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 24
+      },
+      "1": {
+        "open": 11,
+        "close": 24
+      },
+      "2": {
+        "open": 11,
+        "close": 24
+      },
+      "3": {
+        "open": 11,
+        "close": 24
+      },
+      "4": {
+        "open": 11,
+        "close": 24
+      },
+      "5": {
+        "open": 11,
+        "close": 1
+      },
+      "6": {
+        "open": 11,
+        "close": 1
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 79,
@@ -1570,7 +3638,7 @@
       10.7630118
     ],
     "category": "bar",
-    "area": "Gr\u00f8nland",
+    "area": "Grønland",
     "rating": 4.5,
     "facing": null,
     "openingHours": {
@@ -1579,7 +3647,38 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJvY72iF9uQUYRhzdPkEUTqTA",
-    "facingSource": null
+    "facingSource": null,
+    "openingHoursWeekly": {
+      "0": {
+        "open": 14,
+        "close": 23
+      },
+      "1": {
+        "open": 14,
+        "close": 23
+      },
+      "2": {
+        "open": 14,
+        "close": 23
+      },
+      "3": {
+        "open": 14,
+        "close": 23
+      },
+      "4": {
+        "open": 14,
+        "close": 23
+      },
+      "5": {
+        "open": 13,
+        "close": 24
+      },
+      "6": {
+        "open": 13,
+        "close": 24
+      }
+    },
+    "hoursSource": "osm"
   },
   {
     "id": 80,
@@ -1590,7 +3689,7 @@
       10.7603869
     ],
     "category": "bar",
-    "area": "Gr\u00f8nland",
+    "area": "Grønland",
     "rating": 4.3,
     "facing": null,
     "openingHours": {
@@ -1599,7 +3698,31 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ0RM63fRuQUYRQpztbbGKrKo",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "2": {
+        "open": 15,
+        "close": 24
+      },
+      "3": {
+        "open": 15,
+        "close": 24
+      },
+      "4": {
+        "open": 15,
+        "close": 24
+      },
+      "5": {
+        "open": 15,
+        "close": 2
+      },
+      "6": {
+        "open": 15,
+        "close": 2
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 81,
@@ -1610,7 +3733,7 @@
       10.7516456
     ],
     "category": "cafe",
-    "area": "Gr\u00f8nland",
+    "area": "Grønland",
     "rating": 4.7,
     "facing": null,
     "openingHours": {
@@ -1619,18 +3742,50 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJnRudfgVtQUYR_xXPW_GJEPw",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 10,
+        "close": 19
+      },
+      "1": {
+        "open": 10,
+        "close": 19
+      },
+      "2": {
+        "open": 10,
+        "close": 17
+      },
+      "3": {
+        "open": 10,
+        "close": 19
+      },
+      "4": {
+        "open": 10,
+        "close": 19
+      },
+      "5": {
+        "open": 10,
+        "close": 19
+      },
+      "6": {
+        "open": 10,
+        "close": 19
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 82,
-    "name": "Papeg\u00f8ye",
+    "name": "Papegøye",
     "address": "Urtegata 48, Oslo",
     "coords": [
       59.9136937,
       10.7661473
     ],
     "category": "bar",
-    "area": "Gr\u00f8nland",
+    "area": "Grønland",
     "rating": 4.8,
     "facing": null,
     "openingHours": {
@@ -1639,7 +3794,39 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJk7dtFzRvQUYRuiBdIV2SPQI",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 8,
+        "close": 18
+      },
+      "1": {
+        "open": 7,
+        "close": 19
+      },
+      "2": {
+        "open": 7,
+        "close": 19
+      },
+      "3": {
+        "open": 7,
+        "close": 23
+      },
+      "4": {
+        "open": 7,
+        "close": 23
+      },
+      "5": {
+        "open": 7,
+        "close": 23
+      },
+      "6": {
+        "open": 8,
+        "close": 23
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 83,
@@ -1650,7 +3837,7 @@
       10.7701915
     ],
     "category": "cafe",
-    "area": "Gr\u00f8nland",
+    "area": "Grønland",
     "rating": 3.9,
     "facing": null,
     "openingHours": {
@@ -1659,7 +3846,35 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJmYGolFxuQUYRcu15Iqqq018",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 10,
+        "close": 16
+      },
+      "2": {
+        "open": 10,
+        "close": 16
+      },
+      "3": {
+        "open": 10,
+        "close": 16
+      },
+      "4": {
+        "open": 10,
+        "close": 16
+      },
+      "5": {
+        "open": 10,
+        "close": 16
+      },
+      "6": {
+        "open": 10,
+        "close": 16
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 84,
@@ -1679,7 +3894,39 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJEV6gStptQUYRESgrKGPAUsA",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 22
+      },
+      "1": {
+        "open": 11,
+        "close": 23
+      },
+      "2": {
+        "open": 11,
+        "close": 23
+      },
+      "3": {
+        "open": 11,
+        "close": 23
+      },
+      "4": {
+        "open": 11,
+        "close": 23
+      },
+      "5": {
+        "open": 11,
+        "close": 23
+      },
+      "6": {
+        "open": 12,
+        "close": 23
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 85,
@@ -1699,7 +3946,39 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJD75UJettQUYRd_Lv0NFPxeI",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 8,
+        "close": 23
+      },
+      "1": {
+        "open": 7,
+        "close": 23
+      },
+      "2": {
+        "open": 7,
+        "close": 23
+      },
+      "3": {
+        "open": 7,
+        "close": 24
+      },
+      "4": {
+        "open": 7,
+        "close": 24
+      },
+      "5": {
+        "open": 7,
+        "close": 0.5
+      },
+      "6": {
+        "open": 8,
+        "close": 1
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 86,
@@ -1719,11 +3998,43 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJk5OLV9ptQUYR_MuSo7j1998",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 24
+      },
+      "1": {
+        "open": 12,
+        "close": 24
+      },
+      "2": {
+        "open": 12,
+        "close": 24
+      },
+      "3": {
+        "open": 12,
+        "close": 1
+      },
+      "4": {
+        "open": 12,
+        "close": 1
+      },
+      "5": {
+        "open": 12,
+        "close": 3
+      },
+      "6": {
+        "open": 12,
+        "close": 3
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 87,
-    "name": "Grotten \u00f8l- & vinbar",
+    "name": "Grotten øl- & vinbar",
     "address": "Wergelandsveien 5, Oslo",
     "coords": [
       59.9184559,
@@ -1734,12 +4045,40 @@
     "rating": 4.8,
     "facing": null,
     "openingHours": {
-      "open": 16,
+      "open": 16.5,
       "close": 24
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJW3ema0VvQUYRuYHm0lqr8qE",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 16.5,
+        "close": 23
+      },
+      "2": {
+        "open": 16.5,
+        "close": 24
+      },
+      "3": {
+        "open": 16.5,
+        "close": 24
+      },
+      "4": {
+        "open": 16.5,
+        "close": 24
+      },
+      "5": {
+        "open": 16.5,
+        "close": 24
+      },
+      "6": {
+        "open": 16.5,
+        "close": 24
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 88,
@@ -1759,12 +4098,43 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJQwPDGNptQUYR276Fswo8tfo",
-    "facingSource": null
+    "facingSource": null,
+    "openingHoursWeekly": {
+      "0": {
+        "open": 14,
+        "close": 24
+      },
+      "1": {
+        "open": 15,
+        "close": 24
+      },
+      "2": {
+        "open": 15,
+        "close": 1
+      },
+      "3": {
+        "open": 15,
+        "close": 1
+      },
+      "4": {
+        "open": 15,
+        "close": 1
+      },
+      "5": {
+        "open": 13,
+        "close": 1
+      },
+      "6": {
+        "open": 13,
+        "close": 1
+      }
+    },
+    "hoursSource": "osm"
   },
   {
     "id": 89,
     "name": "Perrongen Drift",
-    "address": "S\u00f8rkedalsveien 1, Oslo",
+    "address": "Sørkedalsveien 1, Oslo",
     "coords": [
       59.92984349999999,
       10.7141667
@@ -1779,11 +4149,43 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJyUFJJNttQUYRaaqW5olmQQk",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 23
+      },
+      "1": {
+        "open": 12,
+        "close": 23
+      },
+      "2": {
+        "open": 12,
+        "close": 23
+      },
+      "3": {
+        "open": 12,
+        "close": 23
+      },
+      "4": {
+        "open": 12,
+        "close": 23
+      },
+      "5": {
+        "open": 12,
+        "close": 23
+      },
+      "6": {
+        "open": 12,
+        "close": 23
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 90,
-    "name": "Anne p\u00e5 landet - Frognerparken",
+    "name": "Anne på landet - Frognerparken",
     "address": "Frognerveien 67, Oslo",
     "coords": [
       59.9249236,
@@ -1799,12 +4201,44 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJhzIj-s5tQUYRcMA7xPzceHA",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 11,
+        "close": 17
+      },
+      "1": {
+        "open": 11,
+        "close": 17
+      },
+      "2": {
+        "open": 11,
+        "close": 17
+      },
+      "3": {
+        "open": 11,
+        "close": 17
+      },
+      "4": {
+        "open": 11,
+        "close": 17
+      },
+      "5": {
+        "open": 11,
+        "close": 17
+      },
+      "6": {
+        "open": 11,
+        "close": 17
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 91,
-    "name": "Kaffebrenneriet avd L\u00f8venskioldsgate",
-    "address": "L\u00f8venskiolds gate 2A, Oslo",
+    "name": "Kaffebrenneriet avd Løvenskioldsgate",
+    "address": "Løvenskiolds gate 2A, Oslo",
     "coords": [
       59.91942379999999,
       10.709191
@@ -1814,16 +4248,48 @@
     "rating": 4.3,
     "facing": null,
     "openingHours": {
-      "open": 6,
+      "open": 6.5,
       "close": 19
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJRZPfQdJtQUYRe2agy-gqRlo",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 8,
+        "close": 18
+      },
+      "1": {
+        "open": 6.5,
+        "close": 19
+      },
+      "2": {
+        "open": 6.5,
+        "close": 19
+      },
+      "3": {
+        "open": 6.5,
+        "close": 19
+      },
+      "4": {
+        "open": 6.5,
+        "close": 19
+      },
+      "5": {
+        "open": 6.5,
+        "close": 19
+      },
+      "6": {
+        "open": 8,
+        "close": 18
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 92,
-    "name": "\u00c5pent bakeri",
+    "name": "Åpent bakeri",
     "address": "Inkognito Terrasse 1, Oslo",
     "coords": [
       59.91664119999999,
@@ -1834,12 +4300,44 @@
     "rating": 4.6,
     "facing": null,
     "openingHours": {
-      "open": 7,
+      "open": 7.5,
       "close": 17
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJCdzSAtVtQUYRdvT0HPeS3n4",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 9,
+        "close": 16
+      },
+      "1": {
+        "open": 7.5,
+        "close": 17
+      },
+      "2": {
+        "open": 7.5,
+        "close": 17
+      },
+      "3": {
+        "open": 7.5,
+        "close": 17
+      },
+      "4": {
+        "open": 7.5,
+        "close": 17
+      },
+      "5": {
+        "open": 7.5,
+        "close": 17
+      },
+      "6": {
+        "open": 8,
+        "close": 17
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 93,
@@ -1859,7 +4357,39 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJhaCRVRxtQUYRo38W3JvsvWI",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 10,
+        "close": 17
+      },
+      "1": {
+        "open": 7,
+        "close": 18
+      },
+      "2": {
+        "open": 7,
+        "close": 18
+      },
+      "3": {
+        "open": 7,
+        "close": 18
+      },
+      "4": {
+        "open": 7,
+        "close": 18
+      },
+      "5": {
+        "open": 7,
+        "close": 18
+      },
+      "6": {
+        "open": 9,
+        "close": 18
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 94,
@@ -1875,11 +4405,42 @@
     "facing": null,
     "openingHours": {
       "open": 11,
-      "close": 24
+      "close": 23
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJA4vY9YFuQUYR3wOCd7StBBg",
-    "facingSource": null
+    "facingSource": null,
+    "openingHoursWeekly": {
+      "0": {
+        "open": 11,
+        "close": 23
+      },
+      "1": {
+        "open": 11,
+        "close": 23
+      },
+      "2": {
+        "open": 11,
+        "close": 23
+      },
+      "3": {
+        "open": 11,
+        "close": 23
+      },
+      "4": {
+        "open": 11,
+        "close": 23
+      },
+      "5": {
+        "open": 11,
+        "close": 23
+      },
+      "6": {
+        "open": 11,
+        "close": 23
+      }
+    },
+    "hoursSource": "osm"
   },
   {
     "id": 95,
@@ -1895,11 +4456,43 @@
     "facing": null,
     "openingHours": {
       "open": 10,
-      "close": 23
+      "close": 24
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJowC-3C1sQUYRkBX3jm6gIZI",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 10,
+        "close": 23
+      },
+      "1": {
+        "open": 10,
+        "close": 23
+      },
+      "2": {
+        "open": 10,
+        "close": 23
+      },
+      "3": {
+        "open": 10,
+        "close": 23
+      },
+      "4": {
+        "open": 10,
+        "close": 24
+      },
+      "5": {
+        "open": 10,
+        "close": 24
+      },
+      "6": {
+        "open": 10,
+        "close": 24
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 96,
@@ -1919,11 +4512,39 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJzcR-AIJuQUYR2DlFt0juc4o",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "1": {
+        "open": 11,
+        "close": 23
+      },
+      "2": {
+        "open": 11,
+        "close": 23
+      },
+      "3": {
+        "open": 11,
+        "close": 23
+      },
+      "4": {
+        "open": 11,
+        "close": 23
+      },
+      "5": {
+        "open": 11,
+        "close": 24
+      },
+      "6": {
+        "open": 13,
+        "close": 24
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 97,
-    "name": "Br\u00f8drene Bergh",
+    "name": "Brødrene Bergh",
     "address": "Karl Johans gt. 35, Oslo",
     "coords": [
       59.91408979999999,
@@ -1939,7 +4560,39 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJK0kmY_hvQUYRy1iqgxnVkcA",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 24
+      },
+      "1": {
+        "open": 11,
+        "close": 1
+      },
+      "2": {
+        "open": 11,
+        "close": 1
+      },
+      "3": {
+        "open": 11,
+        "close": 1
+      },
+      "4": {
+        "open": 11,
+        "close": 1
+      },
+      "5": {
+        "open": 11,
+        "close": 3
+      },
+      "6": {
+        "open": 11,
+        "close": 3
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 98,
@@ -1960,12 +4613,36 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJb18ELTNvQUYRaGnLZPA9VP4",
     "facingSource": null,
-    "terraceType": "rooftop"
+    "terraceType": "rooftop",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "2": {
+        "open": 15,
+        "close": 22
+      },
+      "3": {
+        "open": 15,
+        "close": 22
+      },
+      "4": {
+        "open": 15,
+        "close": 22
+      },
+      "5": {
+        "open": 15,
+        "close": 22
+      },
+      "6": {
+        "open": 12,
+        "close": 22
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 99,
     "name": "Castello Restaurant - Oslo",
-    "address": "S\u00f8rengkaia 99, Oslo",
+    "address": "Sørengkaia 99, Oslo",
     "coords": [
       59.9027978,
       10.753187
@@ -1980,7 +4657,39 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ5cRcHwZvQUYRVYh_sxWzEAI",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 22
+      },
+      "1": {
+        "open": 12,
+        "close": 23
+      },
+      "2": {
+        "open": 12,
+        "close": 23
+      },
+      "3": {
+        "open": 12,
+        "close": 23
+      },
+      "4": {
+        "open": 12,
+        "close": 23
+      },
+      "5": {
+        "open": 12,
+        "close": 23
+      },
+      "6": {
+        "open": 12,
+        "close": 23
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 100,
@@ -2000,7 +4709,39 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ3Q8RdfJuQUYRY2LIZ8ZBlxA",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 20
+      },
+      "1": {
+        "open": 12,
+        "close": 21
+      },
+      "2": {
+        "open": 12,
+        "close": 21
+      },
+      "3": {
+        "open": 12,
+        "close": 21
+      },
+      "4": {
+        "open": 12,
+        "close": 21
+      },
+      "5": {
+        "open": 12,
+        "close": 21
+      },
+      "6": {
+        "open": 12,
+        "close": 21
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 101,
@@ -2020,7 +4761,35 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJbVuybQBvQUYReFJL-NXoQ7A",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 9,
+        "close": 17
+      },
+      "2": {
+        "open": 8,
+        "close": 18
+      },
+      "3": {
+        "open": 8,
+        "close": 18
+      },
+      "4": {
+        "open": 8,
+        "close": 18
+      },
+      "5": {
+        "open": 8,
+        "close": 18
+      },
+      "6": {
+        "open": 8,
+        "close": 18
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 102,
@@ -2040,12 +4809,40 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJpTVO_SRvQUYRMAwCsfsBe_M",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "1": {
+        "open": 16,
+        "close": 22
+      },
+      "2": {
+        "open": 11,
+        "close": 22
+      },
+      "3": {
+        "open": 11,
+        "close": 22
+      },
+      "4": {
+        "open": 11,
+        "close": 22
+      },
+      "5": {
+        "open": 11,
+        "close": 23
+      },
+      "6": {
+        "open": 12,
+        "close": 23
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 103,
     "name": "Seaport Restaurant",
-    "address": "S\u00f8rengkaia 101, Oslo",
+    "address": "Sørengkaia 101, Oslo",
     "coords": [
       59.902654,
       10.752936
@@ -2056,11 +4853,39 @@
     "facing": null,
     "openingHours": {
       "open": 12,
-      "close": 24
+      "close": 23
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJoUVfDY1uQUYRI9tIEkOXOZo",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 23
+      },
+      "2": {
+        "open": 17,
+        "close": 23
+      },
+      "3": {
+        "open": 12,
+        "close": 23
+      },
+      "4": {
+        "open": 12,
+        "close": 23
+      },
+      "5": {
+        "open": 12,
+        "close": 23
+      },
+      "6": {
+        "open": 12,
+        "close": 0.5
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 104,
@@ -2080,7 +4905,38 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJXQgIRVxvQUYRB2bkfIvasJY",
-    "facingSource": null
+    "facingSource": null,
+    "openingHoursWeekly": {
+      "0": {
+        "open": 11,
+        "close": 23
+      },
+      "1": {
+        "open": 11,
+        "close": 23
+      },
+      "2": {
+        "open": 11,
+        "close": 23
+      },
+      "3": {
+        "open": 11,
+        "close": 23
+      },
+      "4": {
+        "open": 11,
+        "close": 23
+      },
+      "5": {
+        "open": 11,
+        "close": 23
+      },
+      "6": {
+        "open": 11,
+        "close": 23
+      }
+    },
+    "hoursSource": "osm"
   },
   {
     "id": 105,
@@ -2096,16 +4952,48 @@
     "facing": null,
     "openingHours": {
       "open": 12,
-      "close": 23
+      "close": 23.5
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ_5Lf9H1uQUYROdCUZPuMeqY",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 15,
+        "close": 22
+      },
+      "1": {
+        "open": 12,
+        "close": 22
+      },
+      "2": {
+        "open": 12,
+        "close": 22
+      },
+      "3": {
+        "open": 12,
+        "close": 22.5
+      },
+      "4": {
+        "open": 12,
+        "close": 23
+      },
+      "5": {
+        "open": 12,
+        "close": 23.5
+      },
+      "6": {
+        "open": 12,
+        "close": 23.5
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 106,
     "name": "PROSECCHERIA",
-    "address": "R\u00e5dhusgata 30B, Oslo",
+    "address": "Rådhusgata 30B, Oslo",
     "coords": [
       59.9100745,
       10.7394026
@@ -2120,7 +5008,39 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJlZALzYduQUYRMO0XGwFLljU",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 14,
+        "close": 21
+      },
+      "1": {
+        "open": 11,
+        "close": 22.5
+      },
+      "2": {
+        "open": 11,
+        "close": 22.5
+      },
+      "3": {
+        "open": 11,
+        "close": 22.5
+      },
+      "4": {
+        "open": 11,
+        "close": 22.5
+      },
+      "5": {
+        "open": 11,
+        "close": 22.5
+      },
+      "6": {
+        "open": 12,
+        "close": 23
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 107,
@@ -2140,7 +5060,39 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJtWs_PqBvQUYRAQ6q80dI9DA",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 18
+      },
+      "1": {
+        "open": 12,
+        "close": 23
+      },
+      "2": {
+        "open": 12,
+        "close": 24
+      },
+      "3": {
+        "open": 12,
+        "close": 24
+      },
+      "4": {
+        "open": 12,
+        "close": 24
+      },
+      "5": {
+        "open": 12,
+        "close": 24
+      },
+      "6": {
+        "open": 12,
+        "close": 24
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 108,
@@ -2160,12 +5112,44 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJ01BhCmBuQUYRNZQrys4yxwI",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 10,
+        "close": 19
+      },
+      "1": {
+        "open": 9,
+        "close": 19
+      },
+      "2": {
+        "open": 9,
+        "close": 19
+      },
+      "3": {
+        "open": 9,
+        "close": 19
+      },
+      "4": {
+        "open": 9,
+        "close": 19
+      },
+      "5": {
+        "open": 9,
+        "close": 19
+      },
+      "6": {
+        "open": 9,
+        "close": 19
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 109,
     "name": "Kaffebrenneriet",
-    "address": "Gr\u00f8nlandsleiret 32, Oslo",
+    "address": "Grønlandsleiret 32, Oslo",
     "coords": [
       59.91161709999999,
       10.7669282
@@ -2180,6 +5164,38 @@
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJqwScaV9uQUYRElHuCHBYD70",
-    "facingSource": null
+    "facingSource": null,
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 9,
+        "close": 18
+      },
+      "1": {
+        "open": 7,
+        "close": 18
+      },
+      "2": {
+        "open": 7,
+        "close": 18
+      },
+      "3": {
+        "open": 7,
+        "close": 18
+      },
+      "4": {
+        "open": 7,
+        "close": 18
+      },
+      "5": {
+        "open": 7,
+        "close": 18
+      },
+      "6": {
+        "open": 9,
+        "close": 18
+      }
+    },
+    "hoursSource": "google"
   }
 ]
