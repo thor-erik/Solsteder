@@ -1206,6 +1206,7 @@
     font-size: 16px;
     font-weight: 600;
     letter-spacing: -0.01em;
+    text-transform: none;
     color: #FFF2EB;
     line-height: 1.2;
     white-space: nowrap;
@@ -2599,10 +2600,10 @@
   }
   .qc-pill {
     flex: 1;
-    background: rgba(14,26,52,0.82);
-    backdrop-filter: blur(32px);
-    -webkit-backdrop-filter: blur(32px);
-    border: 1px solid rgba(156,189,231,0.22);
+    background: rgba(20, 46, 82, 0.55);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(156, 189, 231, 0.18);
     border-radius: 20px;
     height: 40px;
     padding: 0 14px;
@@ -2627,8 +2628,8 @@
   .qc-pill:focus:not(.active),
   .qc-pill:focus-visible:not(.active) {
     outline: none;
-    background: rgba(14,26,52,0.82);
-    border-color: rgba(156,189,231,0.22);
+    background: rgba(20, 46, 82, 0.55);
+    border-color: rgba(156, 189, 231, 0.18);
     color: var(--text);
   }
   .qc-pill:hover { background: rgba(24,52,95,0.92); border-color: rgba(255,175,133,0.3); }
@@ -2777,10 +2778,10 @@
     left: 368px;   /* 16 + 336 + 16 */
     bottom: 16px;
     width: 300px;
-    background: var(--glass-panel-bg);
-    backdrop-filter: var(--glass-blur-panel);
-    -webkit-backdrop-filter: var(--glass-blur-panel);
-    border: var(--glass-border);
+    background: rgba(20, 46, 82, 0.55);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(156, 189, 231, 0.18);
     border-radius: 16px;
     display: flex;
     flex-direction: column;
@@ -2866,6 +2867,7 @@
     font-size: 26px;
     font-weight: 700;
     letter-spacing: -0.02em;
+    text-transform: none;
     color: #FFF2EB;
     line-height: 1.15;
     flex: 1;

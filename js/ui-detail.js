@@ -82,7 +82,7 @@ function renderSunDial(v, dateStr, fromHour) {
   // Status pill
   const curWin  = windows.find(w => fromHour >= w.start && fromHour < w.end);
   const nextWin = windows.find(w => w.start > fromHour);
-  const wxIcon = isRainy ? '🌧' : isOvercast ? '☁' : '☀';
+  const wxIcon = isRainy ? '🌧' : isOvercast ? '☁' : '☀️';
   let pill;
   if (curWin) {
     const lastWinDp = windows[windows.length - 1];
