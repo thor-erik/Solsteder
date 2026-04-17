@@ -7,7 +7,10 @@
 // never breaks the rest.
 
 function applyShadeStyle(map) {
-  map.getStyle().layers.forEach(layer => {
+  const layers = map.getStyle().layers;
+  console.log('[Shades] applyShadeStyle — layer count:', layers.length);
+  console.log('[Shades] layer ids:', layers.map(l => l.type + ':' + l.id).join(', '));
+  layers.forEach(layer => {
     const { id, type } = layer;
     const sl = (layer['source-layer'] || '').toLowerCase();
     const lc = id.toLowerCase();
