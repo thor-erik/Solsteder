@@ -57,6 +57,7 @@ function buildCardDial(v, dateStr, fromHour, isSunny) {
 
 /** Render a single venue card. Called per-item to keep the map() inline small. */
 function renderCard(v, dateStr, fromHour, toHour, isPoint) {
+  const dayHours = getVenueHoursForDay(v, dateStr);
   // Collapsed single-line card for closed venues
   if (!v.isOpen && !v.isOpeningSoon) {
     return `
@@ -65,7 +66,7 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
            onmouseenter="setHoveredVenue(${v.id})" onmouseleave="setHoveredVenue(null)">
         <div class="closed-row">
           <span class="closed-name">${v.name}</span>
-          <span class="card-badge shaded">Opens ${formatHour(v.openingHours.open)}</span>
+          <span class="card-badge shaded">Opens ${formatHour(dayHours.open)}</span>
         </div>
       </div>`;
   }
@@ -128,18 +129,15 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
 
   // Override badge for opening/closing-soon states
   if (v.isOpeningSoon) {
-    const { open } = v.openingHours;
-    const wait = open - fromHour;
+    const wait = dayHours.open - fromHour;
     const bm = Math.round(wait * 60);
     cardBadgeText = `Opens in ${bm}m`;
     cardBadgeCls  = 'opening-soon';
   } else if (v.isClosingSoon) {
-    const { close } = v.openingHours;
-    cardBadgeText = `Closes ${formatHour(close)}`;
+    cardBadgeText = `Closes ${formatHour(dayHours.close)}`;
     cardBadgeCls  = 'closing-soon';
   } else if (!v.isOpen) {
-    const { open } = v.openingHours;
-    cardBadgeText = `Opens ${formatHour(open)}`;
+    cardBadgeText = `Opens ${formatHour(dayHours.open)}`;
     cardBadgeCls  = 'shaded';
   }
 
@@ -188,8 +186,8 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
       if (!sunTime) { sunTime = sunDurM; sunDurM = ''; }
     } else { sunLabel = `NO ${cardTerm}`; }
   }
-  if (v.isOpeningSoon) { sunLabel = `OPENS IN ${Math.round((v.openingHours.open - fromHour) * 60)}M`; sunTime = ''; }
-  else if (v.isClosingSoon) { sunLabel = `CLOSES ${formatHour(v.openingHours.close)}`; }
+  if (v.isOpeningSoon) { sunLabel = `OPENS IN ${Math.round((dayHours.open - fromHour) * 60)}M`; sunTime = ''; }
+  else if (v.isClosingSoon) { sunLabel = `CLOSES ${formatHour(dayHours.close)}`; }
 
   const durHtml = (sunDurH || sunDurM)
     ? `<div class="card-sun-dur ${durCls}">${[sunDurH, sunDurM].filter(Boolean).join(' ')}</div>`
@@ -266,7 +264,7 @@ function renderList() {
 
   let venues = VENUES.map(v => {
     const sunInWin = venueHasSunInRange(v, dateStr, fromHour, toHour);
-    const { open, close } = v.openingHours;
+    const { open, close } = getVenueHoursForDay(v, dateStr);
     const isOpen        = fromHour >= open && fromHour <= close;
     const isOpeningSoon = !isOpen && (open - fromHour) > 0 && (open - fromHour) <= 0.75;
     const isClosingSoon = isOpen  && (close - fromHour) > 0 && (close - fromHour) <= 0.5;

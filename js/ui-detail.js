@@ -428,7 +428,7 @@ function renderTimeline(v, dateStr, fromHour, toHour) {
 
 function renderBusynessChart(v, dateStr, fromHour) {
   const profile = getBusynessForDay(v, dateStr);
-  const { open, close } = v.openingHours;
+  const { open, close } = getVenueHoursForDay(v, dateStr);
   const span = Math.ceil(close) - Math.floor(open);
   if (span <= 0) return '';
 
@@ -552,6 +552,11 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       }</div>`
     : '';
 
+  const limitedSolarNotice = v.facing == null ? `
+    <div class="dp-limited-solar">
+      Solar data limited — building geometry not yet computed for this venue.
+    </div>` : '';
+
   return `
     <div id="dp-scroll">
       ${photosHtml}
@@ -565,6 +570,7 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
         ${sunPill}
         ${dialSvg}
       </div>
+      ${limitedSolarNotice}
 
       <div class="dp-gm-actions">
         <a class="dp-gm-chip" href="${directionsUrl}" target="_blank" rel="noopener">${ICON_DIR}<span>Directions</span></a>

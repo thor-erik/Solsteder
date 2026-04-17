@@ -23,9 +23,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Inject Mapbox token
+      - name: Inject API keys
         run: |
           echo "const MAPBOX_TOKEN = '${{ secrets.MAPBOX_TOKEN }}';" > js/config.js
+          echo "const GOOGLE_PLACES_KEY = '${{ secrets.GOOGLE_PLACES_KEY }}';" >> js/config.js
 
       - uses: actions/configure-pages@v5
 

@@ -1,0 +1,86 @@
+name: Validate photo URLs
+
+# Runs quarterly to detect expired Google CDN photo URLs.
+# Venues with broken photos are logged; re-fetch is triggered if any found.
+
+on:
+  schedule:
+    - cron: '0 3 1 1,4,7,10 *'   # 03:00 UTC on 1 Jan, 1 Apr, 1 Jul, 1 Oct
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Write .env
+        run: echo "GOOGLE_PLACES_KEY=${{ secrets.GOOGLE_PLACES_KEY }}" > .env
+
+      - name: Check and re-fetch broken photo URLs
+        run: |
+          node -e "
+          const fs = require('fs');
+          const path = require('path');
+
+          async function run() {
+            const photosPath = 'data/venue-photos.json';
+            const entries = JSON.parse(fs.readFileSync(photosPath, 'utf8'));
+            const broken = [];
+
+            for (const entry of entries) {
+              for (const url of (entry.photoUrls ?? [])) {
+                try {
+                  const r = await fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(8000) });
+                  if (!r.ok) { broken.push(entry.id); break; }
+                } catch {
+                  broken.push(entry.id);
+                  break;
+                }
+              }
+              await new Promise(r => setTimeout(r, 80));
+            }
+
+            if (broken.length === 0) {
+              console.log('All photo URLs valid.');
+              return;
+            }
+
+            console.log('Broken photo URLs for venue IDs:', broken.join(', '));
+            fs.writeFileSync('data/broken-photos.json', JSON.stringify(broken, null, 2));
+            process.exit(1); // signal re-fetch step
+          }
+
+          run().catch(e => { console.error(e); process.exit(1); });
+          "
+
+      - name: Re-fetch broken photos
+        if: failure()
+        run: |
+          node -e "
+          // Mark only broken venues as needing re-fetch by clearing their photoUrls
+          const fs = require('fs');
+          const broken = new Set(JSON.parse(fs.readFileSync('data/broken-photos.json','utf8')));
+          const photos = JSON.parse(fs.readFileSync('data/venue-photos.json','utf8'));
+          for (const e of photos) {
+            if (broken.has(e.id)) e.photoUrls = [];
+          }
+          fs.writeFileSync('data/venue-photos.json', JSON.stringify(photos, null, 2));
+          "
+          node scripts/fetch-photos.mjs
+
+      - name: Commit refreshed photos
+        if: failure()
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/venue-photos.json
+          git diff --cached --quiet && echo "No changes" || git commit -m "chore: refresh broken photo URLs [skip ci]"
+          git push

@@ -104,7 +104,8 @@ function _heuristicProfile(venue, dateStr) {
     let v = base[h];
     if (isWeekend) v = Math.min(100, v * _WEEKEND_BOOST[h]);
     // Zero out outside opening hours
-    const { open, close } = venue.openingHours;
+    const day = String(new Date(dateStr + 'T12:00:00').getDay());
+    const { open, close } = venue.openingHoursWeekly?.[day] ?? venue.openingHours;
     if (h < Math.floor(open) || h >= Math.ceil(close)) v = 0;
     out[h] = v;
   }

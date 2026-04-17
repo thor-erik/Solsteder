@@ -5,6 +5,18 @@
  * Depends on: computeSunWindows (app.js), getWeatherAt (weather.js)
  */
 
+// ── Opening hours helpers ─────────────────────────────────────────────────────
+
+/**
+ * Returns { open, close } for the specific day of dateStr.
+ * Uses openingHoursWeekly (day-specific) when available,
+ * falls back to the widest-window openingHours.
+ */
+function getVenueHoursForDay(venue, dateStr) {
+  const day = String(new Date(dateStr + 'T12:00:00').getDay()); // 0=Sun … 6=Sat
+  return venue.openingHoursWeekly?.[day] ?? venue.openingHours;
+}
+
 // ── Venue list helpers ────────────────────────────────────────────────────────
 
 function venueHasSunInRange(v, dateStr, fromHour, toHour) {

@@ -1,0 +1,48 @@
+name: Refresh opening hours
+
+# Runs weekly (OSM is free, Google Places only for OSM misses).
+# Also triggers on 1 April and 1 September for seasonal changeovers.
+# Can be triggered manually from the Actions tab.
+
+on:
+  schedule:
+    - cron: '0 4 * * 1'      # 04:00 UTC every Monday
+    - cron: '0 4 1 4 *'      # 04:00 UTC 1 April (summer season opens)
+    - cron: '0 4 1 9 *'      # 04:00 UTC 1 September (summer season closes)
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Write .env
+        run: echo "GOOGLE_PLACES_KEY=${{ secrets.GOOGLE_PLACES_KEY }}" > .env
+
+      - name: Refresh opening hours
+        run: node scripts/refresh-opening-hours.mjs
+
+      - name: Commit if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/venues.json
+          git diff --cached --quiet && echo "No changes" || git commit -m "chore: refresh opening hours [skip ci]"
+          git push
+
+      - name: Upload closed-venues report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: closed-venues-report
+          path: data/closed-venues-report.json
+          if-no-files-found: ignore
+          retention-days: 30
