@@ -7,6 +7,45 @@
 
 ## Backlog
 
+### Fase 1 — Fiks eksisterende 109 venues
+Mål: eksisterende venues representerer realiteten før vi skalerer.
+
+- [ ] Oppdater åpningstider for alle 109 venues: OSM `opening_hours`-tag først, Google Places Contact-felt som fallback; lagre full ukesplan (`mo-su`) ikke bare `open/close` i timer
+- [ ] Sjekk `business_status: CLOSED_PERMANENTLY` for alle 109 venues — fjern stengte
+- [ ] Valider at alle 109 `googlePlaceId`-er fortsatt er gyldige
+
+### Fase 2 — Utvid Oslo-dekning
+Mål: ~400–600 venues, hele Oslo kommune dekket.
+
+- [ ] Legg til ~14 søkepunkter i `fetch-venues-places.mjs` for å dekke alle bydeler utenfor Ring 2
+- [ ] Bruk union av `outdoorSeating: true` (Places API v1) og keyword `uteservering` — dedup på `place_id`
+- [ ] Kjør `update-geometry.mjs` for nye venues; flagg venues uten bygningsgeometri i UI ("Soldata begrenset")
+- [ ] Manuell review av `venues-fetched.json` → merge
+
+### Fase 4 — Brukerforslag i søkefeltet
+Mål: sikkerhetsnett for venues automatikken ikke fanger.
+
+- [ ] Når søk gir ingen treff: vis "Foreslå [query] →"
+- [ ] Google Places-oppslag uten uteservering-filter for å finne stedet
+- [ ] Bruker bekrefter at det finnes uteservering
+- [ ] Opprett GitHub Issue automatisk med venue-navn, adresse og placeId forhåndsutfylt
+
+### Fase 3 — Automatisering (GitHub Actions)
+Avhenger av at Fase 1 og 2 er stabile.
+
+- [ ] Ukentlig jobb: OSM-sync av åpningstider for alle venues (gratis)
+- [ ] Månedlig jobb: Google Places-refresh for venues uten OSM-data + `CLOSED_PERMANENTLY`-sjekk + ny discovery (field masking — kun be om felt vi bruker)
+- [ ] Sesong-trigger 1. april + 1. september: full åpningstider-refresh + bilder-404-sjekk
+- [ ] Automatisk diff: nye venues flagges som kandidater, stengte fjernes — ingen manuell review for endringer, kun for nye tillegg
+
+### Fase 5 — Hele Norge
+Avhenger av at Fase 3 er på plass.
+
+- [ ] Bygg automatisk kvalitetsfilter for discovery (minimum rating, minimum antall anmeldelser) så manuell review ikke skalerer lineært
+- [ ] Rull ut geografisk: Akershus først, deretter resten av Norge
+
+---
+
 ### Visuelle feil
 - [~] Hover-markøren over venues (etter solnedgang) er samme ikon som geolokasjons-ikonet — bytt til vanlig pointer
 - [~] Ulik høyde på søkefelt og dato/tid-picker — juster slik at de er like høye
@@ -29,13 +68,7 @@
 
 ### Redaksjonelt / innhold
 - [~] Vink-integrasjon: vis Vink-symbol på pins, i listen og i detaljpanel; lenke til Vink-artikkel; vurder Vink-filter og prioritering av omtalte venues
-- [~] Foreslå venue: knapp under profilikonet for å foreslå en venue som mangler — avklar håndteringsflyt
 - [~] Venue-redigering med rettigheter: kun admins godkjenner endringer; vanlige brukere kan foreslå endringer som går til admin-gjennomgang
-
-### Data og venues
-- [ ] Utvid venue-discovery til hele Oslo kommune (~400–600 venues): legg til ~14 søkepunkter i `fetch-venues-places.mjs`; bruk kombinasjon av strukturert `outdoorSeating: true` (Places API v1) og keyword `uteservering` — union av begge for å minimere falske negativer
-- [ ] GitHub Actions scheduled workflow: månedlig discovery (nye venues + `CLOSED_PERMANENTLY`-filter) + refresh av åpningstider; ingen re-fetch av bilder med mindre URL gir 404
-- [ ] Brukerforslag via søkefelt: når søk gir ingen treff, vis "Foreslå [query] →"; slå opp stedet i Google Places uten uteservering-filter; bruker bekrefter at det finnes uteservering; sendes inn som GitHub Issue med venue-navn, adresse og placeId forhåndsutfylt
 
 ### Infrastruktur / lansering
 - [~] Lanseringsklarhet: kartlegg robusthet ved plutselig høy trafikk (f.eks. 17. mai); vurder auto-skalering av backend/Supabase
