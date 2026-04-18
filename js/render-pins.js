@@ -262,9 +262,15 @@ function buildSprite(v, state, selected, hour, dateStr) {
   if (label) {
     c.font         = 'bold 11px "Inter", sans-serif';
     c.fillStyle    = textColor;
-    c.textAlign    = 'center';
     c.textBaseline = 'middle';
-    c.fillText(label, cxA, oy + PILL_H / 2);
+    if (sunFraction !== null) {
+      // Left-aligned within the pill body, clear of the left rounded cap
+      c.textAlign = 'left';
+      c.fillText(label, ox + 11, oy + PILL_H / 2);
+    } else {
+      c.textAlign = 'center';
+      c.fillText(label, cxA, oy + PILL_H / 2);
+    }
   }
 
   // ── Sun fill icon (sunny state only) ───────────────────────────────────────
