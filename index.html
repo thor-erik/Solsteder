@@ -537,8 +537,10 @@
   .dc-tile.sun-high    { background: rgba(255,175,133,0.11); border-color: rgba(255,175,133,0.2); }
   .dc-tile.sun-mid     { background: rgba(255,175,133,0.05); }
   .dc-tile.no-data     { opacity: 0.4; }
-  .dc-tile.solar-only  { opacity: 0.55; }
-  .dc-tile.solar-only .dc-temp { display: none; }
+  .dc-tile.solar-only  { background: rgba(255,160,60,0.07); border-color: rgba(255,160,60,0.2); }
+  .dc-tile.solar-only:hover:not(.no-data) { background: rgba(255,160,60,0.13); border-color: rgba(255,160,60,0.38); }
+  .dc-tile.solar-only .dc-icon { opacity: 0.75; }
+  .dc-tile.solar-only .dc-temp { color: rgba(255,160,60,0.5); }
   .dc-tile-past        { opacity: 0.22; cursor: default; pointer-events: none; border-color: transparent; background: transparent; }
   .dc-tile-empty       { border: none; background: transparent; pointer-events: none; }
   .dc-day  { font-size: 7px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(156,189,231,0.4); line-height: 1; }
@@ -556,14 +558,23 @@
     flex: 1; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700;
     color: rgba(156,189,231,0.55); letter-spacing: 0.06em; text-transform: uppercase;
   }
-  .dc-expand-btn {
-    display: flex; align-items: center; justify-content: center;
-    background: rgba(20,46,82,0.55); border: 1px solid rgba(156,189,231,0.2);
-    border-radius: 6px; padding: 4px; cursor: pointer; color: rgba(156,189,231,0.6);
-    transition: background 0.12s, color 0.12s, border-color 0.12s; flex-shrink: 0;
+  .dc-expand-btn-wide {
+    width: 100%; margin-top: 6px; padding: 8px 12px; box-sizing: border-box;
+    background: rgba(20,46,82,0.35); border: 1px solid rgba(156,189,231,0.14);
+    border-radius: 8px; cursor: pointer;
+    font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 600;
+    color: rgba(156,189,231,0.48); letter-spacing: 0.07em; text-transform: uppercase;
+    transition: background 0.12s, color 0.12s, border-color 0.12s;
+    display: block; text-align: center; flex-shrink: 0;
   }
-  .dc-expand-btn:hover { background: rgba(30,58,102,0.8); color: rgba(156,189,231,0.9); border-color: rgba(156,189,231,0.35); }
-  .dc-expand-btn.active { background: rgba(255,175,133,0.18); border-color: rgba(255,175,133,0.45); color: var(--accent); }
+  .dc-expand-btn-wide:hover { background: rgba(30,58,102,0.65); color: rgba(156,189,231,0.9); border-color: rgba(156,189,231,0.28); }
+  .dc-expand-btn-wide.active { background: rgba(255,175,133,0.08); border-color: rgba(255,175,133,0.22); color: rgba(255,175,133,0.6); }
+  .dc-expand-btn-wide.active:hover { background: rgba(255,175,133,0.14); border-color: rgba(255,175,133,0.38); }
+  @keyframes dc-cal-in {
+    from { opacity: 0; transform: scaleY(0.96); }
+    to   { opacity: 1; transform: scaleY(1); }
+  }
+  .dc-cal-entering { animation: dc-cal-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards; transform-origin: top center; }
   .dc-nav-btn {
     background: none; border: none; color: rgba(156,189,231,0.6); font-size: 16px;
     cursor: pointer; padding: 0 4px; line-height: 1; transition: color 0.12s;
@@ -3634,7 +3645,10 @@ loadVenues().then(() => {
   updateRangeFill();
   update();
   initFacings();
-  initWeather();     // fetch MET Norway forecast (async, re-renders when data arrives)
+  const _wxLats = VENUES.map(v => v.lat), _wxLngs = VENUES.map(v => v.lng);
+  const _wxLat  = (Math.min(..._wxLats) + Math.max(..._wxLats)) / 2;
+  const _wxLng  = (Math.min(..._wxLngs) + Math.max(..._wxLngs)) / 2;
+  initWeather(_wxLat, _wxLng); // fetch MET Norway forecast (async, re-renders when data arrives)
   initNoiseLevels(); // fetch Geonorge official road noise zones (async, cached 30 days)
   initPlaces();      // fetch Google Places photos (async, cached 7 days)
   loadApprovedSuggestions(); // merge admin-approved user submissions into VENUES

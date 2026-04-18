@@ -799,18 +799,7 @@ function _renderQcCalendarStrip(cal) {
   const selected = datePicker.value;
   const fxDays   = _wxForecastDays();
 
-  let html = `<div class="dc-header">
-    <span class="dc-header-label">2 weeks</span>
-    <button class="dc-expand-btn" onclick="_toggleQcCalExpand()" title="Show full calendar">
-      <svg viewBox="0 0 16 16" fill="none" width="14" height="14">
-        <rect x="1.5" y="2.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.3"/>
-        <rect x="9.5" y="2.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.3"/>
-        <rect x="1.5" y="10.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.3"/>
-        <rect x="9.5" y="10.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.3"/>
-      </svg>
-    </button>
-  </div>`;
-  html += '<div class="dc-grid">';
+  let html = '<div class="dc-grid">';
 
   for (let i = 0; i < 14; i++) {
     const d    = new Date(); d.setDate(d.getDate() + i);
@@ -818,12 +807,13 @@ function _renderQcCalendarStrip(cal) {
     html += _dcTileHtml(dStr, today_, selected);
   }
 
-  // Forecast boundary note — shown below the grid when some days lack data
-  const allHaveForecast = fxDays >= 14;
   html += '</div>';
-  if (!allHaveForecast && fxDays > 0) {
-    html += `<div class="dc-forecast-note">☁ Forecast up to ${fxDays} days — sun/shadow only beyond</div>`;
+
+  if (fxDays > 0 && fxDays < 14) {
+    html += `<div class="dc-forecast-note">☁ ${fxDays} days of weather · ☀️ solar only beyond</div>`;
   }
+
+  html += `<button class="dc-expand-btn-wide" onclick="_toggleQcCalExpand()">Show full calendar</button>`;
 
   cal.innerHTML = html;
 }
@@ -861,14 +851,6 @@ function _renderQcCalendarMonth(cal) {
     <button class="dc-nav-btn${canGoBack ? '' : ' disabled'}" onclick="_qcCalNav(-1)">‹</button>
     <span class="dc-header-label">${MONTH_NAMES[month]} ${year}</span>
     <button class="dc-nav-btn" onclick="_qcCalNav(1)">›</button>
-    <button class="dc-expand-btn active" onclick="_toggleQcCalExpand()" title="Collapse calendar">
-      <svg viewBox="0 0 16 16" fill="none" width="14" height="14">
-        <rect x="1.5" y="2.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.3"/>
-        <rect x="9.5" y="2.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.3"/>
-        <rect x="1.5" y="10.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.3"/>
-        <rect x="9.5" y="10.5" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.3"/>
-      </svg>
-    </button>
   </div>`;
 
   // Weekday headers (Mon–Sun)
@@ -901,7 +883,9 @@ function _renderQcCalendarMonth(cal) {
   html += '</div>';
 
   // Forecast boundary note
-  html += `<div class="dc-forecast-note">☁ Forecast up to ${fxDays} days — ☀\uFE0F sun/shadow beyond</div>`;
+  html += `<div class="dc-forecast-note">☁ ${fxDays} days of weather · ☀\uFE0F solar only beyond</div>`;
+
+  html += `<button class="dc-expand-btn-wide active" onclick="_toggleQcCalExpand()">Collapse calendar</button>`;
 
   cal.innerHTML = html;
 
@@ -917,6 +901,13 @@ function _toggleQcCalExpand() {
     _qcCalViewMonth = now.getMonth();
   }
   renderQcCalendar();
+  // Trigger entry animation on the new content
+  const _calEl = document.getElementById('qc-cal');
+  if (_calEl) {
+    _calEl.classList.remove('dc-cal-entering');
+    void _calEl.offsetWidth; // force reflow
+    _calEl.classList.add('dc-cal-entering');
+  }
   if (!_qcCalExpanded) {
     // Reset panel height back to computed (desktop) or CSS default (mobile)
     const qcPanel     = document.getElementById('qc-panel');
@@ -939,7 +930,7 @@ function _syncQcPanelHeightExpanded() {
   const dateSection = document.getElementById('qc-date-section');
   if (!qcPanel || !dateSection) return;
   // Use a fixed generous height for the month view
-  const h = 340;
+  const h = 375;
   dateSection.style.height = h + 'px';
   qcPanel.style.setProperty('--qc-panel-h', (h + 10) + 'px');
 }
