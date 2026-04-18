@@ -476,7 +476,10 @@ async function openAdminReviewPanel() {
   const body = document.getElementById('admin-review-body');
   if (!body) return;
   if (error || !edits?.length) {
-    body.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:24px 0;text-align:center">${error ? 'Feil ved lasting.' : 'Ingen ventende forslag.'}</div>`;
+    const msg = error?.code === '42P01'
+      ? 'pending_edits table not set up yet.'
+      : error ? 'Feil ved lasting.' : 'Ingen ventende endringer.';
+    body.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:24px 0;text-align:center">${msg}</div>`;
     return;
   }
 

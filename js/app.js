@@ -2314,16 +2314,14 @@ async function suggestVenueFlow(query) {
   _renderSuggestConfirm({ name, address, lat, lng, osmId: null });
 }
 
-// Show confirmation card inside the venue list.
+// Show a centered modal for venue suggestion confirmation.
 // Used both by suggestVenueFlow (Places lookup) and _showCandidateConfirm (OSM candidate).
 function _renderSuggestConfirm({ name, address, lat, lng, osmId }) {
-  const list = document.getElementById('venue-list');
-  if (!list) return;
   const user = typeof authCurrentUser === 'function' ? authCurrentUser() : null;
 
-  const loginHint = user ? '' : `<p class="suggest-login-hint">${t('suggest_login_hint')}</p>`;
+  const loginHint = user ? '' : `
+    <p style="font-size:12px;color:var(--muted);margin:0 0 12px;line-height:1.5">${t('suggest_login_hint')}</p>`;
 
-  // Fallback: GitHub issue (used if not logged in)
   const issueTitle = encodeURIComponent(`Venue suggestion: ${name}`);
   const issueBody  = encodeURIComponent(
     `**Venue:** ${name}\n**Address:** ${address}\n**Coordinates:** ${lat}, ${lng}\n\n` +
@@ -2333,37 +2331,54 @@ function _renderSuggestConfirm({ name, address, lat, lng, osmId }) {
 
   const dataAttr = encodeURIComponent(JSON.stringify({ name, address, lat, lng, osmId }));
 
-  list.innerHTML = `
-    <div class="suggest-confirm">
-      <div class="suggest-confirm-name">${name}</div>
-      <div class="suggest-confirm-address">${address}</div>
-      <p class="suggest-confirm-prompt">Does this venue have outdoor seating (uteservering)?</p>
-      ${loginHint}
-      <div class="suggest-confirm-actions">
-        ${user
-          ? `<button class="suggest-btn suggest-btn-primary" onclick="_submitSuggestion('${dataAttr}')">Yes, suggest it →</button>`
-          : `<a class="suggest-btn suggest-btn-primary" href="${issueUrl}" target="_blank" rel="noopener"
-               onclick="setTimeout(renderList, 300)">Yes, suggest it →</a>`
-        }
-        <button class="suggest-btn" onclick="renderList()">Cancel</button>
+  // Remove any existing suggest modal
+  document.getElementById('suggest-modal')?.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'suggest-modal';
+  modal.className = 'admin-modal';
+  modal.innerHTML = `
+    <div class="admin-modal-inner" style="max-width:360px">
+      <div class="admin-modal-header">
+        <div class="admin-modal-title">Suggest venue</div>
+        <button class="admin-modal-close" onclick="document.getElementById('suggest-modal').remove()">✕</button>
+      </div>
+      <div class="admin-modal-body" style="padding:16px 20px 20px">
+        <div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:4px">${name}</div>
+        ${address ? `<div style="font-size:13px;color:var(--muted);margin-bottom:16px">${address}</div>` : '<div style="margin-bottom:16px"></div>'}
+        <p style="font-size:13px;color:rgba(255,242,235,0.7);margin:0 0 16px;line-height:1.5">
+          Does this venue have outdoor seating (uteservering)?
+        </p>
+        ${loginHint}
+        <div style="display:flex;gap:8px">
+          ${user
+            ? `<button class="suggest-btn suggest-btn-primary" style="flex:1" onclick="_submitSuggestion('${dataAttr}')">Yes, suggest it →</button>`
+            : `<a class="suggest-btn suggest-btn-primary" style="flex:1;text-align:center" href="${issueUrl}" target="_blank" rel="noopener"
+                 onclick="setTimeout(()=>document.getElementById('suggest-modal')?.remove(),300)">Yes, suggest it →</a>`
+          }
+          <button class="suggest-btn" onclick="document.getElementById('suggest-modal').remove()">Cancel</button>
+        </div>
       </div>
     </div>`;
+  document.body.appendChild(modal);
 }
 
 // Submits to Supabase when user is logged in
 async function _submitSuggestion(dataAttrEncoded) {
   const { name, address, lat, lng, osmId } = JSON.parse(decodeURIComponent(dataAttrEncoded));
-  const list = document.getElementById('venue-list');
-  if (list) list.innerHTML = `<div class="suggest-empty"><span>Submitting…</span></div>`;
+
+  const modal = document.getElementById('suggest-modal');
+  const btn = modal?.querySelector('.suggest-btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
 
   const result = await submitVenueSuggestion({ name, address, lat, lng, osmId });
   if (result?.error) {
-    if (list) list.innerHTML = `<div class="suggest-empty"><span style="color:#ff6b6b">Error: ${result.error.message ?? result.error}</span><br><button class="suggest-btn" onclick="renderList()" style="margin-top:8px">Back</button></div>`;
+    if (btn) { btn.disabled = false; btn.textContent = 'Yes, suggest it →'; }
+    showQcNotice('Error: ' + (result.error.message ?? result.error));
     return;
   }
+  modal?.remove();
   showQcNotice(t('suggest_submitted'));
-  renderList();
-  // Refresh "My suggestions" in the profile panel
   if (typeof _loadMySuggestions === 'function') _loadMySuggestions();
 }
 
