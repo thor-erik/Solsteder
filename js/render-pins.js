@@ -25,8 +25,6 @@ const PILL_R  = 13;   // pill corner radius (= height/2 → fully rounded)
 const STEM_H  = 14;   // thin vertical stem below pill
 const spriteCache = new Map();
 
-const ICON_PILL_GAP = 2; // px gap between pill right edge and icon white ring
-
 function _sunRemainingHours(v, dateStr, hour) {
   try {
     const { windows, open, close } = computeSunWindows(v, dateStr);
@@ -47,14 +45,25 @@ function _sunFillFraction(hours) {
   return 0.0;
 }
 
+// Draws the pill shape with a concave circular notch on the right side where
+// the icon sits. nCx/nCy is the icon centre; nR is the notch radius (slightly
+// larger than the icon so a gap is left between notch edge and icon edge).
+function _pillNotchPath(c, ox, oy, pillW, pillH, pillR, nCx, nCy, nR) {
+  const rightX   = ox + pillW;
+  const topAngle = Math.atan2(oy - nCy, rightX - nCx);
+  const botAngle = Math.atan2((oy + pillH) - nCy, rightX - nCx);
+  c.beginPath();
+  c.moveTo(ox + pillR, oy);
+  c.lineTo(rightX, oy);
+  // Concave notch: counterclockwise arc curves left (into pill) from top corner to bottom corner
+  c.arc(nCx, nCy, nR, topAngle, botAngle, true);
+  c.lineTo(ox + pillR, oy + pillH);
+  // Left rounded cap: clockwise arc from bottom to top around the left semicircle
+  c.arc(ox + pillR, oy + pillH / 2, pillR, Math.PI / 2, -Math.PI / 2, false);
+  c.closePath();
+}
+
 function _drawSunFillIcon(c, cx, cy, r, fraction) {
-  // Transparent ring — punches a gap between pill body and icon
-  c.save();
-  c.globalCompositeOperation = 'destination-out';
-  c.beginPath(); c.arc(cx, cy, r + 2, 0, Math.PI * 2);
-  c.fillStyle = 'rgba(0,0,0,1)';
-  c.fill();
-  c.restore();
   // Dark background circle
   c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2);
   c.fillStyle = '#0D131E';
@@ -136,10 +145,14 @@ function buildSprite(v, state, selected, hour, dateStr) {
   const tw     = label ? tmpCtx.measureText(label).width : 0;
   const pillW  = Math.max(36, tw + 22);
 
-  // Sun fill icon: circle of same height as pill, attached to right with a gap
-  const iconR    = PILL_H / 2;  // radius 13 — matches pill height exactly
-  const iconRing = 2;           // transparent ring thickness (gap separator)
-  const iconWide = sunFraction !== null ? ICON_PILL_GAP + (iconR + iconRing) * 2 : 0;
+  // Sun fill icon: circle of same height as pill with concave notch cut into pill right side
+  const iconR   = PILL_H / 2;   // radius 13 — matches pill height exactly
+  const notchGap = 2.5;         // gap between notch edge and icon edge (px)
+  const notchR  = iconR + notchGap;
+  // Horizontal offset of icon centre from pill right edge, so notch arc passes
+  // through the pill's top-right and bottom-right corners exactly
+  const iconDx  = sunFraction !== null ? Math.sqrt(notchR * notchR - iconR * iconR) : 0;
+  const iconWide = sunFraction !== null ? Math.ceil(iconDx + iconR + 2) : 0;
 
   const rp  = selected ? 4 : 2;                          // padding for selection ring
   const cW  = Math.ceil(pillW + rp * 2 + 2 + iconWide);  // CSS pixels
@@ -147,7 +160,10 @@ function buildSprite(v, state, selected, hour, dateStr) {
   const cxA = sunFraction !== null
     ? rp + 1 + pillW / 2   // stem under pill centre — icon extends to the right
     : cW / 2;              // anchor x = stem centre (CSS px)
-  const cyA = cH - 1;                        // anchor y = bottom of stem (CSS px)
+  const cyA = cH - 1;      // anchor y = bottom of stem (CSS px)
+  // Icon centre (CSS px) — precomputed for use in drawing sections below
+  const iconX = sunFraction !== null ? rp + 1 + pillW + iconDx : 0;
+  const iconY = sunFraction !== null ? rp + PILL_H / 2 : 0;
 
   // Build at DPR resolution for crisp rendering on retina displays.
   // Inside the sprite we draw in CSS pixel coordinates; c.scale(dpr, dpr)
@@ -180,11 +196,20 @@ function buildSprite(v, state, selected, hour, dateStr) {
 
   // ── Selection ring ─────────────────────────────────────────────────────────
   if (selected) {
-    c.beginPath();
-    c.roundRect(ox - 3, oy - 3, pillW + 6, PILL_H + 6, PILL_R + 3);
+    if (sunFraction !== null) {
+      _pillNotchPath(c, ox - 3, oy - 3, pillW + 6, PILL_H + 6, PILL_R + 3, iconX, iconY, notchR - 3);
+    } else {
+      c.beginPath();
+      c.roundRect(ox - 3, oy - 3, pillW + 6, PILL_H + 6, PILL_R + 3);
+    }
     c.strokeStyle = 'rgba(255,175,133,0.9)';
     c.lineWidth   = 2;
     c.stroke();
+    // For sunny: also stroke a ring around the icon itself
+    if (sunFraction !== null) {
+      c.beginPath(); c.arc(iconX, iconY, iconR + 3, 0, Math.PI * 2);
+      c.stroke();
+    }
   }
 
   // ── Stem ───────────────────────────────────────────────────────────────────
@@ -204,8 +229,12 @@ function buildSprite(v, state, selected, hour, dateStr) {
   c.fillStyle = stemColor; c.fill();
 
   // ── Pill fill ──────────────────────────────────────────────────────────────
-  c.beginPath();
-  c.roundRect(ox, oy, pillW, PILL_H, PILL_R);
+  if (sunFraction !== null) {
+    _pillNotchPath(c, ox, oy, pillW, PILL_H, PILL_R, iconX, iconY, notchR);
+  } else {
+    c.beginPath();
+    c.roundRect(ox, oy, pillW, PILL_H, PILL_R);
+  }
   c.fillStyle = fillColor;
   c.fill();
 
@@ -227,8 +256,6 @@ function buildSprite(v, state, selected, hour, dateStr) {
 
   // ── Sun fill icon (sunny state only) ───────────────────────────────────────
   if (sunFraction !== null) {
-    const iconX = rp + 1 + pillW + ICON_PILL_GAP + iconRing + iconR;
-    const iconY = oy + PILL_H / 2;
     _drawSunFillIcon(c, iconX, iconY, iconR, sunFraction);
   }
 
