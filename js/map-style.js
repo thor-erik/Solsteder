@@ -143,27 +143,34 @@ function buildShadeStyle() {
       },
 
       // ── Buildings — 3D extrusion with grow animation ────────────────────────
-      // fill-extrusion-height interpolates 0→actual-height between zoom 15–15.05.
-      // This is the official Mapbox pattern for the "buildings rise" effect.
+      // minzoom: 15 prevents flat footprint rendering below the grow range.
+      // fill-extrusion-height interpolates 0→actual-height over a full zoom
+      // level (15→16) so tall landmarks rise smoothly instead of popping.
+      // Opacity also fades in over the same range to avoid abrupt appearance.
       {
         id: 'building',
         type: 'fill-extrusion',
         source: 'composite',
         'source-layer': 'building',
+        minzoom: 15,
         filter: ['==', ['get', 'extrude'], 'true'],
         paint: {
           'fill-extrusion-color': '#F0E8DA',
           'fill-extrusion-height': [
             'interpolate', ['linear'], ['zoom'],
             15, 0,
-            15.05, ['get', 'height'],
+            16, ['get', 'height'],
           ],
           'fill-extrusion-base': [
             'interpolate', ['linear'], ['zoom'],
             15, 0,
-            15.05, ['coalesce', ['get', 'min_height'], 0],
+            16, ['coalesce', ['get', 'min_height'], 0],
           ],
-          'fill-extrusion-opacity': 1.0,
+          'fill-extrusion-opacity': [
+            'interpolate', ['linear'], ['zoom'],
+            15, 0,
+            15.5, 1,
+          ],
         },
       },
 
