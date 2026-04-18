@@ -25,6 +25,54 @@ const PILL_R  = 13;   // pill corner radius (= height/2 → fully rounded)
 const STEM_H  = 14;   // thin vertical stem below pill
 const spriteCache = new Map();
 
+const ICON_PILL_GAP = 2; // px gap between pill right edge and icon white ring
+
+function _sunRemainingHours(v, dateStr, hour) {
+  try {
+    const { windows, open, close } = computeSunWindows(v, dateStr);
+    for (const w of windows) {
+      const wStart = Math.max(w.start, open);
+      const wEnd   = Math.min(w.end, close);
+      if (hour >= wStart && hour < wEnd) return Math.max(0, wEnd - hour);
+    }
+  } catch (e) {}
+  return 0;
+}
+
+function _sunFillFraction(hours) {
+  if (hours >= 2.5) return 1.0;
+  if (hours >= 1.5) return 0.75;
+  if (hours >= 1.0) return 0.50;
+  if (hours >= 0.5) return 0.25;
+  return 0.0;
+}
+
+function _drawSunFillIcon(c, cx, cy, r, fraction) {
+  // Transparent ring — punches a gap between pill body and icon
+  c.save();
+  c.globalCompositeOperation = 'destination-out';
+  c.beginPath(); c.arc(cx, cy, r + 2, 0, Math.PI * 2);
+  c.fillStyle = 'rgba(0,0,0,1)';
+  c.fill();
+  c.restore();
+  // Dark background circle
+  c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2);
+  c.fillStyle = '#0D131E';
+  c.fill();
+  // Sun fill — same peach as pill so top portion merges visually with pill background
+  if (fraction > 0) {
+    const lineY = cy + r * (2 * fraction - 1);
+    c.save();
+    c.beginPath();
+    c.rect(cx - r - 1, cy - r - 1, (r + 1) * 2, lineY - (cy - r) + 1);
+    c.clip();
+    c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2);
+    c.fillStyle = '#FFAF85';
+    c.fill();
+    c.restore();
+  }
+}
+
 function buildSprite(v, state, selected, hour, dateStr) {
   const dpr = window.devicePixelRatio || 1;
 
@@ -45,6 +93,7 @@ function buildSprite(v, state, selected, hour, dateStr) {
   //   surface #0D131E · outline-variant #514532 · primary #FFB800
   //   on-surface-variant #d5c4ab (warm cream, never cool blue)
   let label = '', fillColor, strokeColor, textColor, stemColor, isDashed = false, alpha = 1;
+  let sunFraction = null; // non-null for sunny pins: 0–1 fill level
 
   if (state === 'soon') {
     const { open } = v.openingHours ?? {};
@@ -57,14 +106,14 @@ function buildSprite(v, state, selected, hour, dateStr) {
     alpha       = 0.92;
 
   } else if (state === 'sunny') {
-    const ss = (hour !== undefined && dateStr && typeof sunScore === 'function')
-      ? Math.round(sunScore(v, dateStr, hour))
-      : null;
-    label       = ss != null ? `${shortName(v.name)} · ${ss}` : shortName(v.name);
+    label       = shortName(v.name);
     fillColor   = '#FFAF85';
     strokeColor = 'rgba(255,230,120,0.4)';
     stemColor   = '#FFAF85';
     textColor   = '#1a1200';
+    if (hour !== undefined && dateStr) {
+      sunFraction = _sunFillFraction(_sunRemainingHours(v, dateStr, hour));
+    }
 
   } else { // shaded — only reaches here when a future sun window exists
     if (hour !== undefined && dateStr) {
@@ -87,10 +136,17 @@ function buildSprite(v, state, selected, hour, dateStr) {
   const tw     = label ? tmpCtx.measureText(label).width : 0;
   const pillW  = Math.max(36, tw + 22);
 
-  const rp  = selected ? 4 : 2;              // padding for selection ring
-  const cW  = Math.ceil(pillW + rp * 2 + 2); // CSS pixels
+  // Sun fill icon: circle of same height as pill, attached to right with a gap
+  const iconR    = PILL_H / 2;  // radius 13 — matches pill height exactly
+  const iconRing = 2;           // transparent ring thickness (gap separator)
+  const iconWide = sunFraction !== null ? ICON_PILL_GAP + (iconR + iconRing) * 2 : 0;
+
+  const rp  = selected ? 4 : 2;                          // padding for selection ring
+  const cW  = Math.ceil(pillW + rp * 2 + 2 + iconWide);  // CSS pixels
   const cH  = Math.ceil(PILL_H + STEM_H + rp + 2);
-  const cxA = cW / 2;                        // anchor x = stem center (CSS px)
+  const cxA = sunFraction !== null
+    ? rp + 1 + pillW / 2   // stem under pill centre — icon extends to the right
+    : cW / 2;              // anchor x = stem centre (CSS px)
   const cyA = cH - 1;                        // anchor y = bottom of stem (CSS px)
 
   // Build at DPR resolution for crisp rendering on retina displays.
@@ -167,6 +223,13 @@ function buildSprite(v, state, selected, hour, dateStr) {
     c.textAlign    = 'center';
     c.textBaseline = 'middle';
     c.fillText(label, cxA, oy + PILL_H / 2);
+  }
+
+  // ── Sun fill icon (sunny state only) ───────────────────────────────────────
+  if (sunFraction !== null) {
+    const iconX = rp + 1 + pillW + ICON_PILL_GAP + iconRing + iconR;
+    const iconY = oy + PILL_H / 2;
+    _drawSunFillIcon(c, iconX, iconY, iconR, sunFraction);
   }
 
   return { canvas: oc, anchorX: cxA, anchorY: cyA, cssW: cW, cssH: cH };
