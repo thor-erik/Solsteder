@@ -27,11 +27,9 @@ const spriteCache = new Map();
 
 function _sunRemainingHours(v, dateStr, hour) {
   try {
-    const { windows, open, close } = computeSunWindows(v, dateStr);
+    const { windows } = computeSunWindows(v, dateStr);
     for (const w of windows) {
-      const wStart = Math.max(w.start, open);
-      const wEnd   = Math.min(w.end, close);
-      if (hour >= wStart && hour < wEnd) return Math.max(0, wEnd - hour);
+      if (hour >= w.start && hour < w.end) return Math.max(0, w.end - hour);
     }
   } catch (e) {}
   return 0;
@@ -173,8 +171,8 @@ function buildSprite(v, state, selected, hour, dateStr) {
   const cW  = Math.ceil(pillW + rp * 2 + 2 + iconWide);  // CSS pixels
   const cH  = Math.ceil(PILL_H + STEM_H + rp + 2);
   const cxA = sunFraction !== null
-    ? rp + 1 + pillW / 2   // stem under pill centre — icon extends to the right
-    : cW / 2;              // anchor x = stem centre (CSS px)
+    ? rp + 1 + (pillW + iconDx + iconR) / 2  // stem under centre of pill+icon combined
+    : cW / 2;                                  // anchor x = stem centre (CSS px)
   const cyA = cH - 1;      // anchor y = bottom of stem (CSS px)
   // Icon centre (CSS px) — precomputed for use in drawing sections below
   const iconX = sunFraction !== null ? rp + 1 + pillW + iconDx : 0;
