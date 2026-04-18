@@ -688,7 +688,15 @@ function draw() {
     if (extraStem > 0) _drawExtStem(pt, extraStem, state);
   }
 
-  // Pass 2 — morph animations, dots, pills (on top of all stems)
+  // Pass 2a — dots only, drawn before pills so pills always sit on top
+  for (const entry of _lastLayout) {
+    const { v, pt, state, isDot } = entry;
+    if (_pinDotFade.has(v.id) || !isDot || state === 'closed') continue;
+    if (v.id === highlight.id) _drawDotHover(pt, state);
+    else _drawDot(pt, state);
+  }
+
+  // Pass 2b — morph animations + pills (always above dots)
   for (const entry of _lastLayout) {
     const { v, pt, state, extraStem: targetExtraStem, isDot, spr } = entry;
     const extraStem = entry.drawExtraStem ?? targetExtraStem;
@@ -717,13 +725,7 @@ function draw() {
       }
     }
 
-    if (isDot) {
-      if (state !== 'closed') {
-        if (v.id === highlight.id) _drawDotHover(pt, state);
-        else _drawDot(pt, state);
-      }
-      continue;
-    }
+    if (isDot) continue; // already drawn in Pass 2a
 
     // State-change fade
     const prevState = _pinPrevState.get(v.id);
