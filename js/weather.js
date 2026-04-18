@@ -25,12 +25,12 @@ let _wxData     = new Map();
 let _wxExpiry   = 0;
 let _wxFetching = false;
 
-async function initWeather() {
+async function initWeather(lat = 59.9125, lng = 10.728) {
   if (_wxFetching || Date.now() < _wxExpiry) return;
   _wxFetching = true;
   try {
     const res = await fetch(
-      'https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=59.9125&lon=10.728',
+      `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${lat.toFixed(4)}&lon=${lng.toFixed(4)}`,
       { headers: { 'User-Agent': 'Solsteder/1.0 (solsteder.app)' } }
     );
     if (!res.ok) throw new Error(`HTTP ${res.status}`);

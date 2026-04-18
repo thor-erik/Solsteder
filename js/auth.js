@@ -163,6 +163,8 @@ function _renderProfilePanel() {
           <div class="profile-pref-pills">
             <button class="pref-pill${lang === 'en' ? ' active' : ''}" onclick="setPrefLang('en')">EN</button>
             <button class="pref-pill${lang === 'no' ? ' active' : ''}" onclick="setPrefLang('no')">NO</button>
+            <button class="pref-pill${lang === 'sv' ? ' active' : ''}" onclick="setPrefLang('sv')">SV</button>
+            <button class="pref-pill${lang === 'da' ? ' active' : ''}" onclick="setPrefLang('da')">DA</button>
           </div>
         </div>
         <div class="profile-pref-row">
