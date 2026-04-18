@@ -101,9 +101,12 @@ function _renderProfilePanel() {
   if (!panel) return;
 
   if (_currentUser) {
-    const avatar = _currentUser.user_metadata?.avatar_url;
-    const name   = _currentUser.user_metadata?.name ?? '';
-    const email  = _currentUser.email ?? '';
+    const avatar   = _currentUser.user_metadata?.avatar_url;
+    const name     = _currentUser.user_metadata?.name ?? '';
+    const email    = _currentUser.email ?? '';
+    const lang     = typeof prefLang     === 'function' ? prefLang()     : 'no';
+    const tempUnit = typeof prefTempUnit === 'function' ? prefTempUnit() : 'C';
+
     const avatarHtml = avatar
       ? `<img class="profile-panel-avatar" src="${avatar}" alt="${name}">`
       : `<div class="profile-panel-avatar-initials">${(name || email)[0].toUpperCase()}</div>`;
@@ -121,8 +124,17 @@ function _renderProfilePanel() {
             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
           </svg>
-          <span>Ventende forslag</span>
+          <span>${t('pending_edits')}</span>
           <span id="pending-count-badge" class="pending-badge" style="display:none">…</span>
+        </button>
+        <button class="profile-panel-row profile-admin-row" onclick="openAdminVenueSuggestionsPanel();closeProfilePanel()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="16"/>
+            <line x1="8" y1="12" x2="16" y2="12"/>
+          </svg>
+          <span>${t('admin_venue_suggestions')}</span>
+          <span id="venue-suggestions-count-badge" class="pending-badge" style="display:none">…</span>
         </button>
         <button class="profile-panel-row profile-admin-row" onclick="openRoleManagerPanel();closeProfilePanel()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -131,7 +143,7 @@ function _renderProfilePanel() {
             <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
             <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
           </svg>
-          <span>Administrer brukere</span>
+          <span>${t('manage_users')}</span>
         </button>
       </div>` : '';
 
@@ -144,19 +156,42 @@ function _renderProfilePanel() {
         </div>
       </div>
       ${adminSection}
+      <div class="profile-panel-section profile-settings-section">
+        <div class="profile-section-label">${t('settings')}</div>
+        <div class="profile-pref-row">
+          <span class="profile-pref-label">${t('language')}</span>
+          <div class="profile-pref-pills">
+            <button class="pref-pill${lang === 'en' ? ' active' : ''}" onclick="setPrefLang('en')">EN</button>
+            <button class="pref-pill${lang === 'no' ? ' active' : ''}" onclick="setPrefLang('no')">NO</button>
+          </div>
+        </div>
+        <div class="profile-pref-row">
+          <span class="profile-pref-label">${t('temperature')}</span>
+          <div class="profile-pref-pills">
+            <button class="pref-pill${tempUnit === 'C' ? ' active' : ''}" onclick="setPrefTempUnit('C')">°C</button>
+            <button class="pref-pill${tempUnit === 'F' ? ' active' : ''}" onclick="setPrefTempUnit('F')">°F</button>
+          </div>
+        </div>
+      </div>
+      <div class="profile-panel-section" id="my-suggestions-section" style="display:none">
+        <div class="profile-section-label">${t('my_suggestions')}</div>
+        <div id="my-suggestions-list" style="color:var(--muted);font-size:12px;padding:4px 16px 8px">${t('no_suggestions_yet')}</div>
+      </div>
       <div class="profile-panel-footer">
+        <a href="privacy.html" target="_blank" rel="noopener" class="profile-privacy-link">${t('privacy_policy')}</a>
         <button class="profile-panel-signout" onclick="authSignOut();closeProfilePanel()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
             <polyline points="16 17 21 12 16 7"/>
             <line x1="21" y1="12" x2="9" y2="12"/>
           </svg>
-          Logg ut
+          ${t('signout')}
         </button>
       </div>
     `;
 
-    if (authIsAdmin()) _loadPendingCount();
+    if (authIsAdmin()) { _loadPendingCount(); _loadVenueSuggestionsCount(); }
+    _loadMySuggestions();
   } else {
     panel.innerHTML = `
       <div class="profile-panel-body">
@@ -167,8 +202,11 @@ function _renderProfilePanel() {
             <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/>
             <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/>
           </svg>
-          Logg inn med Google
+          ${t('signin_google')}
         </button>
+        <div style="border-top:1px solid rgba(255,255,255,0.07);padding:10px 0 4px;margin-top:4px;text-align:center;">
+          <a href="privacy.html" target="_blank" rel="noopener" class="profile-privacy-link">${t('privacy_policy')}</a>
+        </div>
       </div>
     `;
   }
@@ -221,6 +259,191 @@ async function _loadPendingCount() {
   } else {
     badge.style.display = 'none';
   }
+}
+
+// ── My suggestions ────────────────────────────────────────────────────────────
+
+async function _loadMySuggestions() {
+  if (!_currentUser) return;
+  const section = document.getElementById('my-suggestions-section');
+  const listEl  = document.getElementById('my-suggestions-list');
+  if (!section || !listEl) return;
+
+  const { data, error } = await _supabase
+    .from('suggested_venues')
+    .select('id, name, status, created_at')
+    .eq('user_id', _currentUser.id)
+    .neq('status', 'withdrawn')
+    .order('created_at', { ascending: false });
+
+  if (error || !data?.length) { section.style.display = 'none'; return; }
+
+  section.style.display = '';
+  const statusKey = { pending: 'status_pending', approved: 'status_approved', rejected: 'status_rejected' };
+  listEl.innerHTML = data.map(s => `
+    <div class="my-suggestion-row">
+      <div class="my-suggestion-info">
+        <span class="my-suggestion-name">${s.name}</span>
+        <span class="suggestion-status-badge ${s.status}">${t(statusKey[s.status] ?? s.status)}</span>
+      </div>
+      ${s.status === 'pending'
+        ? `<button class="suggestion-withdraw-btn" onclick="withdrawSuggestion('${s.id}')">${t('withdraw')}</button>`
+        : ''}
+    </div>`).join('');
+}
+
+async function withdrawSuggestion(id) {
+  if (!confirm(t('withdraw_confirm'))) return;
+  const { error } = await _supabase
+    .from('suggested_venues')
+    .update({ status: 'withdrawn' })
+    .eq('id', id)
+    .eq('user_id', _currentUser.id);
+  if (!error) _loadMySuggestions();
+}
+
+async function submitVenueSuggestion({ name, lat, lng, address, osmId, notes }) {
+  if (!_currentUser) return { error: 'not_logged_in' };
+  return _supabase.from('suggested_venues').insert({
+    user_id:    _currentUser.id,
+    user_email: _currentUser.email,
+    user_name:  _currentUser.user_metadata?.name ?? '',
+    name, lat, lng,
+    address: address ?? '',
+    osm_id:  osmId   ?? null,
+    notes:   notes   ?? '',
+    status: 'pending',
+  });
+}
+
+async function _loadVenueSuggestionsCount() {
+  const badge = document.getElementById('venue-suggestions-count-badge');
+  if (!badge) return;
+  const { count } = await _supabase
+    .from('suggested_venues')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'pending');
+  if (count > 0) {
+    badge.textContent = count;
+    badge.style.display = 'inline-flex';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// ── Load approved suggested venues into VENUES ────────────────────────────────
+// Called after VENUES is populated. Merges in admin-approved user submissions
+// so they appear on the map and list for all users.
+
+async function loadApprovedSuggestions() {
+  try {
+    const { data, error } = await _supabase
+      .from('suggested_venues')
+      .select('id, name, lat, lng, address')
+      .eq('status', 'approved');
+    if (error || !data?.length) return;
+
+    if (typeof VENUES === 'undefined') return;
+    const existingIds = new Set(VENUES.map(v => String(v.id)));
+    let added = 0;
+    for (const s of data) {
+      const synId = `sv_${s.id.replace(/-/g, '').slice(0, 10)}`;
+      if (existingIds.has(synId)) continue;
+      VENUES.push({
+        id:       synId,
+        name:     s.name,
+        coords:   [s.lat, s.lng],
+        address:  s.address ?? '',
+        area:     '',
+        category: 'restaurant',
+        _source:  'suggested',
+      });
+      added++;
+    }
+    if (added > 0 && typeof renderList === 'function') renderList();
+  } catch (e) {
+    console.warn('[auth] loadApprovedSuggestions:', e.message);
+  }
+}
+
+// ── Admin venue suggestions panel ─────────────────────────────────────────────
+
+async function openAdminVenueSuggestionsPanel() {
+  let modal = document.getElementById('venue-suggestions-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'venue-suggestions-modal';
+    modal.className = 'admin-modal';
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML = `<div class="admin-modal-inner">
+    <div class="admin-modal-header">
+      <div class="admin-modal-title">${t('admin_venue_suggestions')}</div>
+      <button class="admin-modal-close" onclick="document.getElementById('venue-suggestions-modal').remove()">✕</button>
+    </div>
+    <div class="admin-modal-body" id="venue-suggestions-body">
+      <div style="color:var(--muted);font-size:13px;padding:24px 0;text-align:center">Laster…</div>
+    </div>
+  </div>`;
+  modal.style.display = 'flex';
+
+  const { data: suggestions, error } = await _supabase
+    .from('suggested_venues')
+    .select('*')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false });
+
+  const body = document.getElementById('venue-suggestions-body');
+  if (!body) return;
+  if (error || !suggestions?.length) {
+    body.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:24px 0;text-align:center">${error ? 'Feil ved lasting.' : 'Ingen ventende stedforslag.'}</div>`;
+    return;
+  }
+
+  body.innerHTML = suggestions.map(s => `
+    <div class="admin-edit-card" id="vsug-${s.id}">
+      <div class="admin-edit-header">
+        <div class="admin-edit-venue">${s.name}</div>
+        <div class="admin-edit-meta">${s.user_name ?? s.user_email ?? 'Ukjent'} · ${new Date(s.created_at).toLocaleDateString('no-NO')}</div>
+      </div>
+      <div class="admin-diff-row" style="font-size:12px;color:var(--muted)">
+        ${s.address ? `${s.address} · ` : ''}${s.lat?.toFixed(5)}, ${s.lng?.toFixed(5)}
+        ${s.notes ? `<br><em>${s.notes}</em>` : ''}
+      </div>
+      <div class="admin-edit-actions">
+        <button class="admin-approve-btn" onclick="adminApproveVenueSuggestion('${s.id}')">Godkjenn</button>
+        <button class="admin-reject-btn"  onclick="adminRejectVenueSuggestion('${s.id}')">Avvis</button>
+      </div>
+    </div>`).join('');
+}
+
+async function adminApproveVenueSuggestion(id) {
+  await _supabase.from('suggested_venues').update({
+    status: 'approved',
+    reviewed_at: new Date().toISOString(),
+    reviewed_by: _currentUser.id,
+  }).eq('id', id);
+  const card = document.getElementById(`vsug-${id}`);
+  if (card) {
+    card.style.opacity = '0.4';
+    card.querySelector('.admin-edit-actions').innerHTML = '<span style="color:#64ffb4;font-size:12px">✓ Godkjent</span>';
+  }
+  _loadVenueSuggestionsCount();
+  loadApprovedSuggestions();
+}
+
+async function adminRejectVenueSuggestion(id) {
+  await _supabase.from('suggested_venues').update({
+    status: 'rejected',
+    reviewed_at: new Date().toISOString(),
+    reviewed_by: _currentUser.id,
+  }).eq('id', id);
+  const card = document.getElementById(`vsug-${id}`);
+  if (card) {
+    card.style.opacity = '0.4';
+    card.querySelector('.admin-edit-actions').innerHTML = '<span style="color:#ff6b6b;font-size:12px">✗ Avvist</span>';
+  }
+  _loadVenueSuggestionsCount();
 }
 
 // ── Admin review panel ────────────────────────────────────────────────────────

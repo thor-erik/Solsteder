@@ -381,7 +381,7 @@ function updateWeatherDisplay() {
     : '';
 
   el.innerHTML = `
-    <span class="wx-temp">${wx.temp}°</span>
+    <span class="wx-temp">${formatTemp(wx.temp)}</span>
     <span>${skyIcon(wx.cloud)} ${Math.round(wx.cloud * 100)}%</span>
     ${windLine}
     ${rainLine}
@@ -419,7 +419,7 @@ function updateDateWeatherStrip() {
     ? `<span class="wx-rain">🌧 ${wx.precip.toFixed(1)}</span>`
     : '';
   el.innerHTML = `<span>${skyIcon(wx.cloud)}</span>`
-    + `<span class="wx-temp-strip">${wx.temp}°</span>`
+    + `<span class="wx-temp-strip">${formatTemp(wx.temp)}</span>`
     + `<span class="wx-sep">·</span>`
     + `<span class="wx-wind">${arrow} ${Math.round(wx.wspd)} m/s</span>`
     + rain;
@@ -446,7 +446,7 @@ function renderDateCalendar() {
       cls += ' no-data';
     }
     const icon = summ ? summ.icon : '·';
-    const temp = summ ? `${summ.peakTemp}°` : '';
+    const temp = summ ? formatTemp(summ.peakTemp) : '';
     html += `<button class="${cls}" onclick="selectCalendarDate('${dStr}')">`
       + `<span class="dc-day">${DAYS[d.getDay()]}</span>`
       + `<span class="dc-num">${d.getDate()}</span>`
@@ -2142,39 +2142,77 @@ timeFromEl.addEventListener('input', () => {
   update();
 });
 
+// ── Oslo candidate index (lazy-loaded on first search miss) ───────────────────
+
+let _candidates = null;          // null = not yet loaded; [] = loaded, empty
+let _candidatesLoading = false;
+
+async function _ensureCandidates() {
+  if (_candidates !== null || _candidatesLoading) return;
+  _candidatesLoading = true;
+  try {
+    const resp = await fetch('data/oslo-candidates.json');
+    _candidates = resp.ok ? await resp.json() : [];
+  } catch (_) {
+    _candidates = [];
+  }
+  _candidatesLoading = false;
+}
+
 // ── Search dropdown (live results under the search bar) ───────────────────────
 
-const _searchInput = document.getElementById('venue-search');
+const _searchInput    = document.getElementById('venue-search');
 const _searchDropdown = document.getElementById('search-dropdown');
 
 function _renderSearchDropdown() {
   const q = _searchInput.value.trim().toLowerCase();
   if (!q) { _searchDropdown.classList.remove('open'); return; }
 
-  const MAX = 6;
-  const matches = (VENUES || []).filter(v =>
+  const MAX_CURATED   = 5;
+  const MAX_CANDIDATE = 3;
+
+  const curated = (VENUES || []).filter(v =>
     v.name.toLowerCase().includes(q) ||
     (v.area ?? '').toLowerCase().includes(q) ||
     v.address.toLowerCase().includes(q)
-  ).slice(0, MAX);
+  ).slice(0, MAX_CURATED);
 
-  let html = matches.map(v => `
-    <div class="sd-row" onmousedown="_sdPick(${v.id})">
+  // Candidate venues not already in VENUES
+  const curatedNames = new Set(VENUES.map(v => v.name.toLowerCase()));
+  const candidateHits = (_candidates ?? []).filter(c =>
+    c.name.toLowerCase().includes(q) &&
+    !curatedNames.has(c.name.toLowerCase())
+  ).slice(0, MAX_CANDIDATE);
+
+  let html = curated.map(v => `
+    <div class="sd-row" onmousedown="_sdPick(${JSON.stringify(v.id)})">
       <span class="sd-row-name">${v.name}</span>
       ${v.area ? `<span class="sd-row-area">${v.area}</span>` : ''}
     </div>`).join('');
 
-  const noMatch = matches.length === 0;
-  const label = noMatch
-    ? `No results for "<strong>${_searchInput.value.trim()}</strong>"`
-    : `Not seeing your venue?`;
+  html += candidateHits.map(c => `
+    <div class="sd-row" onmousedown="_sdPickCandidate(${JSON.stringify(c)})">
+      <span class="sd-row-name">${c.name}</span>
+      <span class="sd-candidate-badge">${t('candidate_badge')}</span>
+    </div>`).join('');
+
+  const noMatch = curated.length === 0 && candidateHits.length === 0;
+  const rawQ    = _searchInput.value.trim();
+  const label   = noMatch
+    ? `${t('no_results_for')} "<strong>${rawQ}</strong>"`
+    : t('not_seeing_venue');
   html += `<div class="sd-suggest-row">
     <span class="sd-suggest-label">${label}</span>
-    <button class="sd-suggest-btn" onmousedown="_sdSuggest()">Suggest venue →</button>
+    <button class="sd-suggest-btn" onmousedown="_sdSuggest()">${t('suggest_venue')}</button>
   </div>`;
 
   _searchDropdown.innerHTML = html;
   _searchDropdown.classList.add('open');
+
+  // Kick off candidate loading in the background if not yet loaded
+  if (_candidates === null) _ensureCandidates().then(() => {
+    if (_searchInput.value.trim()) _renderSearchDropdown();
+  });
 }
 
 function _sdPick(id) {
@@ -2182,6 +2220,13 @@ function _sdPick(id) {
   _searchDropdown.classList.remove('open');
   selectVenue(id, true);
   renderList();
+}
+
+function _sdPickCandidate(c) {
+  _searchInput.value = '';
+  _searchDropdown.classList.remove('open');
+  renderList();
+  _showCandidateConfirm(c);
 }
 
 function _sdSuggest() {
@@ -2215,14 +2260,20 @@ document.addEventListener('keydown', e => {
 });
 
 // ── Venue suggestion flow ─────────────────────────────────────────────────────
-// Called when a user searches for a venue not in our list and clicks "Suggest".
-// 1. Look up the query in Google Places (no outdoor filter)
-// 2. Show a confirmation card in the list
-// 3. On confirm → open pre-filled GitHub issue in new tab
+// Entry point for searching a venue not in our curated list.
+// 1. Look up via Google Places to confirm location
+// 2. Show confirm card in list
+// 3. Logged-in → submit to Supabase (owned by user account)
+//    Anonymous  → open pre-filled GitHub issue
 
 async function suggestVenueFlow(query) {
   const list = document.getElementById('venue-list');
+  if (!list) return;
   list.innerHTML = `<div class="suggest-empty"><span>Looking up "<strong>${query}</strong>"…</span></div>`;
+
+  // Open the panel so the user can see the confirm card
+  const panel = document.getElementById('panel');
+  if (panel && !panel.classList.contains('open')) panel.classList.add('open');
 
   let found = null;
   try {
@@ -2234,8 +2285,8 @@ async function suggestVenueFlow(query) {
         'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.types',
       },
       body: JSON.stringify({
-        textQuery:      `${query} Oslo`,
-        locationBias:   { circle: { center: { latitude: 59.9139, longitude: 10.7522 }, radius: 20000 } },
+        textQuery:    `${query} Oslo`,
+        locationBias: { circle: { center: { latitude: 59.9139, longitude: 10.7522 }, radius: 20000 } },
         maxResultCount: 1,
       }),
       signal: AbortSignal.timeout(10_000),
@@ -2250,39 +2301,79 @@ async function suggestVenueFlow(query) {
     list.innerHTML = `
       <div class="suggest-empty">
         <span>Couldn't find "<strong>${query}</strong>" in Oslo.</span>
-        <button class="suggest-btn" onclick="document.getElementById('venue-search').value='';renderList();">Clear search</button>
+        <button class="suggest-btn" onclick="renderList()">Clear</button>
       </div>`;
     return;
   }
 
   const name    = found.displayName?.text ?? query;
-  const address = found.formattedAddress ?? '';
-  const lat     = found.location?.latitude ?? '';
-  const lng     = found.location?.longitude ?? '';
-  const placeId = found.id ?? '';
+  const address = found.formattedAddress  ?? '';
+  const lat     = found.location?.latitude  ?? 0;
+  const lng     = found.location?.longitude ?? 0;
 
+  _renderSuggestConfirm({ name, address, lat, lng, osmId: null });
+}
+
+// Show confirmation card inside the venue list.
+// Used both by suggestVenueFlow (Places lookup) and _showCandidateConfirm (OSM candidate).
+function _renderSuggestConfirm({ name, address, lat, lng, osmId }) {
+  const list = document.getElementById('venue-list');
+  if (!list) return;
+  const user = typeof authCurrentUser === 'function' ? authCurrentUser() : null;
+
+  const loginHint = user ? '' : `<p class="suggest-login-hint">${t('suggest_login_hint')}</p>`;
+
+  // Fallback: GitHub issue (used if not logged in)
   const issueTitle = encodeURIComponent(`Venue suggestion: ${name}`);
   const issueBody  = encodeURIComponent(
-    `**Venue:** ${name}\n**Address:** ${address}\n**Coordinates:** ${lat}, ${lng}\n**Google Place ID:** ${placeId}\n\n` +
-    `*Suggested by a user via the app search. Please verify outdoor seating before adding.*`
+    `**Venue:** ${name}\n**Address:** ${address}\n**Coordinates:** ${lat}, ${lng}\n\n` +
+    `*Suggested via the app search. Please verify outdoor seating before adding.*`
   );
   const issueUrl = `https://github.com/thor-erik/Solsteder/issues/new?title=${issueTitle}&body=${issueBody}`;
+
+  const dataAttr = encodeURIComponent(JSON.stringify({ name, address, lat, lng, osmId }));
 
   list.innerHTML = `
     <div class="suggest-confirm">
       <div class="suggest-confirm-name">${name}</div>
       <div class="suggest-confirm-address">${address}</div>
       <p class="suggest-confirm-prompt">Does this venue have outdoor seating (uteservering)?</p>
+      ${loginHint}
       <div class="suggest-confirm-actions">
-        <a class="suggest-btn suggest-btn-primary" href="${issueUrl}" target="_blank" rel="noopener"
-           onclick="setTimeout(()=>{document.getElementById('venue-search').value='';renderList();},300)">
-          Yes, suggest it →
-        </a>
-        <button class="suggest-btn" onclick="document.getElementById('venue-search').value='';renderList();">
-          Cancel
-        </button>
+        ${user
+          ? `<button class="suggest-btn suggest-btn-primary" onclick="_submitSuggestion('${dataAttr}')">Yes, suggest it →</button>`
+          : `<a class="suggest-btn suggest-btn-primary" href="${issueUrl}" target="_blank" rel="noopener"
+               onclick="setTimeout(renderList, 300)">Yes, suggest it →</a>`
+        }
+        <button class="suggest-btn" onclick="renderList()">Cancel</button>
       </div>
     </div>`;
+}
+
+// Submits to Supabase when user is logged in
+async function _submitSuggestion(dataAttrEncoded) {
+  const { name, address, lat, lng, osmId } = JSON.parse(decodeURIComponent(dataAttrEncoded));
+  const list = document.getElementById('venue-list');
+  if (list) list.innerHTML = `<div class="suggest-empty"><span>Submitting…</span></div>`;
+
+  const result = await submitVenueSuggestion({ name, address, lat, lng, osmId });
+  if (result?.error) {
+    if (list) list.innerHTML = `<div class="suggest-empty"><span style="color:#ff6b6b">Error: ${result.error.message ?? result.error}</span><br><button class="suggest-btn" onclick="renderList()" style="margin-top:8px">Back</button></div>`;
+    return;
+  }
+  showQcNotice(t('suggest_submitted'));
+  renderList();
+  // Refresh "My suggestions" in the profile panel
+  if (typeof _loadMySuggestions === 'function') _loadMySuggestions();
+}
+
+// Called when user clicks a candidate from the search dropdown
+function _showCandidateConfirm(c) {
+  const list = document.getElementById('venue-list');
+  if (!list) return;
+  const panel = document.getElementById('panel');
+  if (panel && !panel.classList.contains('open')) panel.classList.add('open');
+  _renderSuggestConfirm({ name: c.name, address: c.address, lat: c.lat, lng: c.lng, osmId: c.osmId });
 }
 
 // ── Intro sequence ────────────────────────────────────────────────────────────
