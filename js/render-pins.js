@@ -61,12 +61,17 @@ function _pillNotchPath(c, ox, oy, pillW, pillH, pillR, nCx, nCy, nR) {
   c.closePath();
 }
 
-// Pre-load the 5 status icon PNGs. Order: index 0 = empty (1.png) … index 4 = full (5.png).
-// When each image loads, clear the sprite cache so pins are rebuilt with the real image.
+// Pre-load all 5 status icon PNGs. Wait until every image has settled (load or
+// error) before rebuilding sprites — avoids partial redraws where some icons
+// are ready and others still show the dark fallback.
 const _sunIcons = [];
+let _sunIconsReady = 0;
 [1, 2, 3, 4, 5].forEach(n => {
   const img = new Image();
-  img.onload = () => { clearSpriteCache(); draw(); };
+  img.onload = img.onerror = () => {
+    _sunIconsReady++;
+    if (_sunIconsReady === 5) { clearSpriteCache(); draw(); }
+  };
   img.src = `design/status-icon-svg/${n}.png`;
   _sunIcons.push(img);
 });
