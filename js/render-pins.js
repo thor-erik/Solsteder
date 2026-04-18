@@ -63,23 +63,38 @@ function _pillNotchPath(c, ox, oy, pillW, pillH, pillR, nCx, nCy, nR) {
   c.closePath();
 }
 
+// Pre-load the 5 status icon PNGs. Order: index 0 = empty (1.png) … index 4 = full (5.png).
+// When each image loads, clear the sprite cache so pins are rebuilt with the real image.
+const _sunIcons = [];
+[1, 2, 3, 4, 5].forEach(n => {
+  const img = new Image();
+  img.onload = () => { clearSpriteCache(); draw(); };
+  img.src = `design/status-icon-svg/${n}.png`;
+  _sunIcons.push(img);
+});
+
+function _fractionToIconIdx(fraction) {
+  if (fraction >= 1.0) return 4;
+  if (fraction >= 0.75) return 3;
+  if (fraction >= 0.5)  return 2;
+  if (fraction >= 0.25) return 1;
+  return 0;
+}
+
 function _drawSunFillIcon(c, cx, cy, r, fraction) {
-  // Dark background circle
+  const img = _sunIcons[_fractionToIconIdx(fraction)];
+  c.save();
+  // Clip to circle so PNG corners don't show
   c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2);
-  c.fillStyle = '#0D131E';
-  c.fill();
-  // Sun fill — same peach as pill so top portion merges visually with pill background
-  if (fraction > 0) {
-    const lineY = cy + r * (2 * fraction - 1);
-    c.save();
-    c.beginPath();
-    c.rect(cx - r - 1, cy - r - 1, (r + 1) * 2, lineY - (cy - r) + 1);
-    c.clip();
-    c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2);
-    c.fillStyle = '#FFAF85';
+  c.clip();
+  if (img && img.complete && img.naturalWidth > 0) {
+    c.drawImage(img, cx - r, cy - r, r * 2, r * 2);
+  } else {
+    // Fallback while image is loading
+    c.fillStyle = '#0D131E';
     c.fill();
-    c.restore();
   }
+  c.restore();
 }
 
 function buildSprite(v, state, selected, hour, dateStr) {
