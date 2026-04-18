@@ -2142,11 +2142,66 @@ timeFromEl.addEventListener('input', () => {
   update();
 });
 
-document.getElementById('venue-search').addEventListener('input',  () => renderList());
+// ── Search dropdown (live results under the search bar) ───────────────────────
+
+const _searchInput = document.getElementById('venue-search');
+const _searchDropdown = document.getElementById('search-dropdown');
+
+function _renderSearchDropdown() {
+  const q = _searchInput.value.trim().toLowerCase();
+  if (!q) { _searchDropdown.classList.remove('open'); return; }
+
+  const MAX = 6;
+  const matches = (VENUES || []).filter(v =>
+    v.name.toLowerCase().includes(q) ||
+    (v.area ?? '').toLowerCase().includes(q) ||
+    v.address.toLowerCase().includes(q)
+  ).slice(0, MAX);
+
+  let html = matches.map(v => `
+    <div class="sd-row" onmousedown="_sdPick(${v.id})">
+      <span class="sd-row-name">${v.name}</span>
+      ${v.area ? `<span class="sd-row-area">${v.area}</span>` : ''}
+    </div>`).join('');
+
+  const noMatch = matches.length === 0;
+  const label = noMatch
+    ? `No results for "<strong>${_searchInput.value.trim()}</strong>"`
+    : `Not seeing your venue?`;
+  html += `<div class="sd-suggest-row">
+    <span class="sd-suggest-label">${label}</span>
+    <button class="sd-suggest-btn" onmousedown="_sdSuggest()">Suggest venue →</button>
+  </div>`;
+
+  _searchDropdown.innerHTML = html;
+  _searchDropdown.classList.add('open');
+}
+
+function _sdPick(id) {
+  _searchInput.value = '';
+  _searchDropdown.classList.remove('open');
+  selectVenue(id, true);
+  renderList();
+}
+
+function _sdSuggest() {
+  const q = _searchInput.value.trim();
+  _searchInput.value = '';
+  _searchDropdown.classList.remove('open');
+  renderList();
+  if (q) suggestVenueFlow(q);
+}
+
+_searchInput.addEventListener('input', () => { renderList(); _renderSearchDropdown(); });
+_searchInput.addEventListener('blur',  () => setTimeout(() => _searchDropdown.classList.remove('open'), 150));
+_searchInput.addEventListener('focus', () => { if (_searchInput.value.trim()) _renderSearchDropdown(); });
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
-    if (editingVenueId) exitEditMode();
+    if (_searchDropdown.classList.contains('open')) {
+      _searchDropdown.classList.remove('open');
+      _searchInput.blur();
+    } else if (editingVenueId) exitEditMode();
     else if (selectedId != null) closeDetailPanel();
   }
 

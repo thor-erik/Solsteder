@@ -231,6 +231,83 @@
     color: var(--muted);
   }
 
+  /* ── Search dropdown ─────────────────────────────────────────────────────── */
+  #search-dropdown {
+    position: absolute;
+    top: calc(16px + 46px + 6px);
+    left: 16px;
+    width: 336px;
+    z-index: 1050;
+    background: var(--glass-panel-bg);
+    backdrop-filter: var(--glass-blur-panel);
+    -webkit-backdrop-filter: var(--glass-blur-panel);
+    border: var(--glass-border);
+    border-radius: 14px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.55);
+    overflow: hidden;
+    display: none;
+  }
+  #search-dropdown.open { display: block; }
+  .sd-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    transition: background 0.1s;
+    gap: 8px;
+  }
+  .sd-row:last-child { border-bottom: none; }
+  .sd-row:hover { background: rgba(255,175,133,0.09); }
+  .sd-row-name {
+    font-size: 14px;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+  }
+  .sd-row-area {
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .sd-suggest-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    transition: background 0.1s;
+  }
+  .sd-suggest-row:hover { background: rgba(255,175,133,0.09); }
+  .sd-suggest-label {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .sd-suggest-btn {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    background: rgba(255,175,133,0.12);
+    border: 1px solid rgba(255,175,133,0.35);
+    border-radius: 8px;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    transition: background 0.15s;
+    flex-shrink: 0;
+  }
+  .sd-suggest-btn:hover { background: rgba(255,175,133,0.22); }
+  @media (max-width: 639px) {
+    #search-dropdown {
+      left: 12px;
+      right: 12px;
+      width: auto;
+    }
+  }
+
   /* ── Profile popover ──────────────────────────────────────────────────────── */
   #profile-panel {
     position: absolute;
@@ -3275,6 +3352,9 @@
     <button id="search-profile-btn" onclick="toggleProfilePanel(event)" title="Profil"></button>
   </div>
 
+  <!-- Search dropdown — live results, anchored below search bar -->
+  <div id="search-dropdown"></div>
+
   <!-- Profile popover — anchored below search bar -->
   <div id="profile-panel"></div>
 
@@ -3303,7 +3383,7 @@
       <div id="arc-date-nav">
         <button class="day-nav-btn" onclick="advanceDay(-1)">‹</button>
         <button id="date-display-btn" onclick="toggleDateCalendar()">—</button>
-        <button class="day-nav-btn" onclick="advanceDay(1)">›</button>
+        <button class="day-nav-btn" onclick="advanceDay(1, 12)">›</button>
       </div>
       <!-- Current weather strip -->
       <div id="date-wx-strip" style="display:none"></div>
