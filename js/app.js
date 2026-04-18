@@ -167,8 +167,6 @@ map.on('style.load', () => {
       }
     });
 
-    applyShadeStyle(map);
-
     map.setFog({
       range: [1, 10],
       color: 'rgba(160, 180, 210, 0.25)',
@@ -181,6 +179,7 @@ map.on('style.load', () => {
 
   updateLightPreset();
   updateSunLighting();
+  if (isStandard) applyShadeStyle(map); // after light preset so overrides land last
 
   _introMapReady = true;
   _introCheckReady();
