@@ -1,161 +1,196 @@
 'use strict';
 
-// ── Shades visual overrides for Mapbox Standard style ────────────────────────
-// Called from style.load in app.js, after updateLightPreset(), so our
-// overrides are applied last and not clobbered by config changes.
+// ── Shades custom Mapbox GL style ─────────────────────────────────────────────
+// Returns a complete style JSON object for mapboxgl.Map({ style: ... }).
+// Using a custom style (rather than the Standard basemap URL) gives us full
+// color control while still supporting map.setLights() for directional sun
+// shadows and map.setFog() for depth.
 //
-// KEY INSIGHT: map.getStyle().layers returns 0 for Standard style (layers
-// live inside the basemap import fragment). map.getLayer(id) does reach
-// imported layers. Every override is guarded with map.getLayer(id) so
-// missing layers are skipped silently.
+// Building grow animation: fill-extrusion-height interpolates from 0→actual
+// between zoom 15 and 15.05 — buildings visually rise as you zoom in.
 //
-// DO NOT touch fill-extrusion-height / fill-extrusion-base — those drive
-// the native building grow animation and must stay as-is.
+// DO NOT set fill-extrusion-ambient-occlusion-* here — those are
+// Standard-pipeline-only properties and will cause style validation failure.
 
-function applyShadeStyle(map) {
+function buildShadeStyle() {
+  return {
+    version: 8,
+    name: 'Shades',
+    glyphs: 'mapbox://fonts/mapbox/{fontstack}/{range}',
+    sources: {
+      composite: {
+        type: 'vector',
+        url: 'mapbox://mapbox.mapbox-streets-v8',
+      },
+    },
+    layers: [
 
-  // ── 0. Discover accessible layer IDs ─────────────────────────────────────
-  // map.getStyle().layers returns 0 for Standard style (import fragment).
-  // Probe a comprehensive list of known Standard style IDs so the console
-  // log tells us exactly what's reachable via map.getLayer().
-  const _probe = [
-    'background', 'land', 'land-1', 'land-2',
-    'water', 'water-depth', 'water-shadow', 'water-line', 'waterway',
-    'landuse', 'national-park', 'park', 'grass', 'scrub', 'farmland',
-    'cemetery', 'pitch', 'wood', 'rock', 'sand', 'snow',
-    'building', 'building-extrusion', '3d-buildings',
-    'road-motorway-trunk', 'road-motorway', 'road-trunk',
-    'road-primary', 'road-secondary', 'road-secondary-tertiary',
-    'road-tertiary', 'road-minor', 'road-street', 'road-service',
-    'road-pedestrian', 'road-pedestrian-polygon', 'road-path',
-    'road-steps', 'road-cycleway', 'bridge-case', 'bridge',
-    'rail', 'rail-label',
-    'road-label', 'road-number-shield', 'road-exit-shield',
-    'waterway-label', 'natural-line-label', 'natural-point-label',
-    'water-line-label', 'water-point-label',
-    'poi-label', 'transit-label', 'airport-label', 'park-label',
-    'settlement-subdivision-label', 'settlement-label',
-    'settlement-major-label', 'settlement-minor-label',
-    'country-label', 'state-label',
-    'pedestrian-polygon', 'pedestrian-area', 'plaza', 'square',
-  ];
-  const _found = _probe.filter(id => !!map.getLayer(id));
-  console.log('[Shades] map.getStyle().layers count:', map.getStyle().layers.length);
-  console.log('[Shades] accessible Standard layers:', _found.join(', '));
+      // ── Background ─────────────────────────────────────────────────────────
+      {
+        id: 'background',
+        type: 'background',
+        paint: { 'background-color': '#B8AFA3' },
+      },
 
-  // Helper — apply only when layer exists, swallow per-property errors
-  function set(id, method, ...args) {
-    if (!map.getLayer(id)) return;
-    try { map[method](id, ...args); } catch (_) {}
-  }
+      // ── Water ──────────────────────────────────────────────────────────────
+      {
+        id: 'water',
+        type: 'fill',
+        source: 'composite',
+        'source-layer': 'water',
+        paint: { 'fill-color': '#9CBDE7', 'fill-opacity': 0.55 },
+      },
+      {
+        id: 'waterway',
+        type: 'line',
+        source: 'composite',
+        'source-layer': 'waterway',
+        paint: {
+          'line-color': '#9CBDE7',
+          'line-opacity': 0.45,
+          'line-width': ['interpolate', ['linear'], ['zoom'], 10, 0.5, 16, 2],
+        },
+      },
 
-  // ── 1. Buildings ─────────────────────────────────────────────────────────
-  // Find building extrusion layers (Standard may use different name).
-  // Do NOT touch fill-extrusion-height or fill-extrusion-base.
-  ['building', 'building-extrusion', '3d-buildings'].forEach(id => {
-    set(id, 'setPaintProperty', 'fill-extrusion-color', '#F0E8DA');
-    set(id, 'setPaintProperty', 'fill-extrusion-opacity', 1.0);
-  });
+      // ── Landuse ────────────────────────────────────────────────────────────
+      {
+        id: 'landuse-green',
+        type: 'fill',
+        source: 'composite',
+        'source-layer': 'landuse',
+        filter: ['match', ['get', 'class'],
+          ['park', 'national_park', 'nature_reserve', 'grass', 'pitch', 'golf_course'], true, false],
+        paint: { 'fill-color': '#9EA890' },
+      },
+      {
+        id: 'landuse-wood',
+        type: 'fill',
+        source: 'composite',
+        'source-layer': 'landuse',
+        filter: ['match', ['get', 'class'], ['wood', 'forest', 'scrub'], true, false],
+        paint: { 'fill-color': '#96A088' },
+      },
+      {
+        id: 'landuse-other',
+        type: 'fill',
+        source: 'composite',
+        'source-layer': 'landuse',
+        filter: ['match', ['get', 'class'],
+          ['cemetery', 'sand', 'rock', 'snow', 'farmland'], true, false],
+        paint: { 'fill-color': '#AEA79C' },
+      },
+      {
+        id: 'landuse-pedestrian',
+        type: 'fill',
+        source: 'composite',
+        'source-layer': 'landuse',
+        filter: ['match', ['get', 'class'], ['pedestrian', 'plaza'], true, false],
+        paint: { 'fill-color': '#C8BFB3' },
+      },
 
-  // ── 2. Water ─────────────────────────────────────────────────────────────
-  ['water', 'water-depth', 'water-shadow', 'water-line'].forEach(id => {
-    set(id, 'setPaintProperty', 'fill-color',   '#9CBDE7');
-    set(id, 'setPaintProperty', 'fill-opacity', 0.55);
-  });
-  ['waterway'].forEach(id => {
-    set(id, 'setPaintProperty', 'line-color',   '#9CBDE7');
-    set(id, 'setPaintProperty', 'line-opacity', 0.45);
-  });
+      // ── Roads ──────────────────────────────────────────────────────────────
+      {
+        id: 'road-motorway',
+        type: 'line',
+        source: 'composite',
+        'source-layer': 'road',
+        filter: ['match', ['get', 'class'], ['motorway', 'trunk'], true, false],
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: {
+          'line-color': '#7A726A',
+          'line-width': ['interpolate', ['linear'], ['zoom'], 10, 1.5, 16, 7],
+        },
+      },
+      {
+        id: 'road-primary',
+        type: 'line',
+        source: 'composite',
+        'source-layer': 'road',
+        filter: ['==', ['get', 'class'], 'primary'],
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: {
+          'line-color': '#82796E',
+          'line-width': ['interpolate', ['linear'], ['zoom'], 10, 1, 16, 5],
+        },
+      },
+      {
+        id: 'road-secondary',
+        type: 'line',
+        source: 'composite',
+        'source-layer': 'road',
+        filter: ['match', ['get', 'class'], ['secondary', 'tertiary'], true, false],
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: {
+          'line-color': '#8A8278',
+          'line-width': ['interpolate', ['linear'], ['zoom'], 10, 0.5, 16, 4],
+        },
+      },
+      {
+        id: 'road-minor',
+        type: 'line',
+        source: 'composite',
+        'source-layer': 'road',
+        filter: ['match', ['get', 'class'],
+          ['street', 'street_limited', 'service', 'track', 'path',
+           'pedestrian', 'steps', 'cycleway',
+           'motorway_link', 'trunk_link', 'primary_link',
+           'secondary_link', 'tertiary_link'], true, false],
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: {
+          'line-color': '#9A9288',
+          'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.5, 16, 2.5],
+        },
+      },
 
-  // ── 3. Land / background ─────────────────────────────────────────────────
-  ['background', 'land', 'land-1', 'land-2'].forEach(id => {
-    const layer = map.getLayer(id);
-    if (!layer) return;
-    try {
-      if (layer.type === 'background') {
-        map.setPaintProperty(id, 'background-color', '#B8AFA3');
-      } else {
-        map.setPaintProperty(id, 'fill-color', '#B8AFA3');
-      }
-    } catch (_) {}
-  });
+      // ── Buildings — 3D extrusion with grow animation ────────────────────────
+      // fill-extrusion-height interpolates 0→actual-height between zoom 15–15.05.
+      // This is the official Mapbox pattern for the "buildings rise" effect.
+      {
+        id: 'building',
+        type: 'fill-extrusion',
+        source: 'composite',
+        'source-layer': 'building',
+        filter: ['==', ['get', 'extrude'], 'true'],
+        paint: {
+          'fill-extrusion-color': '#F0E8DA',
+          'fill-extrusion-height': [
+            'interpolate', ['linear'], ['zoom'],
+            15, 0,
+            15.05, ['get', 'height'],
+          ],
+          'fill-extrusion-base': [
+            'interpolate', ['linear'], ['zoom'],
+            15, 0,
+            15.05, ['coalesce', ['get', 'min_height'], 0],
+          ],
+          'fill-extrusion-opacity': 1.0,
+        },
+      },
 
-  // ── 4. Roads — colors only, no width changes ──────────────────────────────
-  const _roads = {
-    'road-motorway-trunk':       '#7A726A',
-    'road-motorway':             '#7A726A',
-    'road-trunk':                '#7A726A',
-    'road-primary':              '#82796E',
-    'road-secondary':            '#8A8278',
-    'road-secondary-tertiary':   '#8A8278',
-    'road-tertiary':             '#928A80',
-    'road-minor':                '#9A9288',
-    'road-street':               '#9A9288',
-    'road-service':              '#9A9288',
-    'road-pedestrian':           '#C8BFB3',
-    'road-pedestrian-polygon':   '#C8BFB3',
-    'road-path':                 '#C0B8AC',
-    'road-steps':                '#B8B0A4',
-    'road-cycleway':             '#9A9490',
+      // ── Place labels — subdued, no road/POI labels ──────────────────────────
+      {
+        id: 'place-label',
+        type: 'symbol',
+        source: 'composite',
+        'source-layer': 'place_label',
+        filter: ['match', ['get', 'type'],
+          ['city', 'town', 'village', 'suburb', 'neighbourhood'], true, false],
+        layout: {
+          'text-field': ['get', 'name'],
+          'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'],
+          'text-size': ['interpolate', ['linear'], ['zoom'], 8, 10, 14, 15],
+          'text-max-width': 8,
+          'symbol-sort-key': ['get', 'symbolrank'],
+          'icon-image': '',
+        },
+        paint: {
+          'text-color': '#7A7268',
+          'text-opacity': 0.55,
+          'text-halo-color': '#B8AFA3',
+          'text-halo-width': 1.5,
+        },
+      },
+
+    ],
   };
-  Object.entries(_roads).forEach(([id, color]) => {
-    set(id, 'setPaintProperty', 'line-color', color);
-  });
-
-  // ── 5. Parks and green areas ─────────────────────────────────────────────
-  const _green = {
-    'national-park':  '#98A08A',
-    'park':           '#9EA890',
-    'landuse':        '#9EA890',
-    'wood':           '#96A088',
-    'grass':          '#A2A894',
-    'scrub':          '#AEA79C',
-    'farmland':       '#B0AA9E',
-    'cemetery':       '#A8AD9E',
-    'pitch':          '#9AA090',
-    'rock':           '#AEA79C',
-    'sand':           '#AEA79C',
-    'snow':           '#E8E4E0',
-  };
-  Object.entries(_green).forEach(([id, color]) => {
-    set(id, 'setPaintProperty', 'fill-color', color);
-  });
-
-  // ── 6. Pedestrian areas and plazas ────────────────────────────────────────
-  ['pedestrian-polygon', 'pedestrian-area', 'pedestrian'].forEach(id => {
-    set(id, 'setPaintProperty', 'fill-color', '#C8BFB3');
-  });
-  ['plaza', 'square'].forEach(id => {
-    set(id, 'setPaintProperty', 'fill-color', '#CCB8A8');
-  });
-
-  // ── 7. Labels — hide road, water, POI, transit, park ─────────────────────
-  [
-    'road-label', 'road-number-shield', 'road-exit-shield',
-    'waterway-label', 'natural-line-label', 'natural-point-label',
-    'water-line-label', 'water-point-label',
-    'poi-label', 'transit-label', 'airport-label', 'park-label',
-    'settlement-subdivision-label',
-  ].forEach(id => {
-    set(id, 'setLayoutProperty', 'visibility', 'none');
-  });
-
-  // ── 8. Place labels — keep but subdue ────────────────────────────────────
-  ['settlement-label', 'settlement-major-label', 'settlement-minor-label',
-   'country-label', 'state-label'].forEach(id => {
-    set(id, 'setPaintProperty', 'text-color',       '#7A7268');
-    set(id, 'setPaintProperty', 'text-opacity',     0.55);
-    set(id, 'setPaintProperty', 'text-halo-width',  0);
-  });
-
-  // ── 9. POI icons — hide all (labels already hidden via setConfigProperty) ─
-  // Fallback: any remaining symbol layer with an icon gets opacity 0
-  map.getStyle().layers                    // returns user layers only, so likely 0
-    .filter(l => l.type === 'symbol')
-    .forEach(l => {
-      if (map.getLayer(l.id)) {
-        try { map.setLayoutProperty(l.id, 'icon-opacity', 0); } catch (_) {}
-      }
-    });
-
 }

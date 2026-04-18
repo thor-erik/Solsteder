@@ -118,7 +118,7 @@ function dispatchToWorker(dateStr) {
 mapboxgl.accessToken = MAPBOX_TOKEN; // defined in js/config.js (gitignored)
 const map = new mapboxgl.Map({
   container: 'map',
-  style: 'mapbox://styles/mapbox/standard',
+  style: buildShadeStyle(),
   center: [10.728, 59.9125],
   zoom: 13,
   pitch: 15,
@@ -153,20 +153,7 @@ map.on('zoomend', _updateLocationDot);
 map.on('style.load', () => {
   mapLoaded = true;
 
-  const isStandard = !editSatelliteActive;
-  if (isStandard) {
-    map.setConfigProperty('basemap', 'showPointOfInterestLabels', false);
-    map.setConfigProperty('basemap', 'showTransitLabels', false);
-
-    // Boost ambient occlusion on building extrusions so they read clearly from the ground
-    map.getStyle().layers.forEach(layer => {
-      if (layer.type === 'fill-extrusion') {
-        map.setPaintProperty(layer.id, 'fill-extrusion-ambient-occlusion-intensity', 0.8);
-        map.setPaintProperty(layer.id, 'fill-extrusion-ambient-occlusion-radius', 6);
-        map.setPaintProperty(layer.id, 'fill-extrusion-opacity', 1.0);
-      }
-    });
-
+  if (!editSatelliteActive) {
     map.setFog({
       range: [1, 10],
       color: 'rgba(160, 180, 210, 0.25)',
@@ -179,7 +166,6 @@ map.on('style.load', () => {
 
   updateLightPreset();
   updateSunLighting();
-  if (isStandard) applyShadeStyle(map); // after light preset so overrides land last
 
   _introMapReady = true;
   _introCheckReady();
@@ -204,7 +190,7 @@ function updateLightPreset() {
   }
   if (preset === _currentPreset) return; // only fire on actual change so Mapbox transition plays fully
   _currentPreset = preset;
-  map.setConfigProperty('basemap', 'lightPreset', preset);
+  try { map.setConfigProperty('basemap', 'lightPreset', preset); } catch (_) {}
 }
 
 // ── Sun lighting (Mapbox GL v3) ───────────────────────────────────────────────
@@ -1451,7 +1437,7 @@ function toggleEditSatellite() {
   document.getElementById('edit-satellite-btn').classList.toggle('active', editSatelliteActive);
   map.setStyle(editSatelliteActive
     ? 'mapbox://styles/mapbox/satellite-streets-v12'
-    : 'mapbox://styles/mapbox/standard'
+    : buildShadeStyle()
   );
 }
 
@@ -1493,7 +1479,7 @@ function exitEditMode() {
   if (editSatelliteActive) {
     editSatelliteActive = false;
     document.getElementById('edit-satellite-btn').classList.remove('active');
-    map.setStyle('mapbox://styles/mapbox/standard');
+    map.setStyle(buildShadeStyle());
   }
   map.easeTo({ pitch: 15, bearing: 0, duration: 500 });
   draw();
