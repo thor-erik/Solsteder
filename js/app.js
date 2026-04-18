@@ -809,11 +809,7 @@ function _renderQcCalendarStrip(cal) {
 
   html += '</div>';
 
-  if (fxDays > 0 && fxDays < 14) {
-    html += `<div class="dc-forecast-note">☁ ${fxDays} days of weather · ☀️ solar only beyond</div>`;
-  }
-
-  html += `<button class="dc-expand-btn-wide" onclick="_toggleQcCalExpand()">Show full calendar</button>`;
+  html += `<button class="dc-expand-btn-wide" onclick="event.stopPropagation();_toggleQcCalExpand()">Show full calendar</button>`;
 
   cal.innerHTML = html;
 }
@@ -882,10 +878,7 @@ function _renderQcCalendarMonth(cal) {
 
   html += '</div>';
 
-  // Forecast boundary note
-  html += `<div class="dc-forecast-note">☁ ${fxDays} days of weather · ☀\uFE0F solar only beyond</div>`;
-
-  html += `<button class="dc-expand-btn-wide active" onclick="_toggleQcCalExpand()">Collapse calendar</button>`;
+  html += `<button class="dc-expand-btn-wide active" onclick="event.stopPropagation();_toggleQcCalExpand()">Collapse calendar</button>`;
 
   cal.innerHTML = html;
 
