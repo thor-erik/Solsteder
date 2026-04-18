@@ -2266,25 +2266,17 @@ async function suggestVenueFlow(query) {
   lookupToast.textContent = `Looking up "${query}"…`;
   document.body.appendChild(lookupToast);
 
+  // Use the legacy Places Text Search API — same key as photos, works from browser without CORS issues.
   let found = null;
   try {
-    const resp = await fetch('https://places.googleapis.com/v1/places:searchText', {
-      method: 'POST',
-      headers: {
-        'Content-Type':     'application/json',
-        'X-Goog-Api-Key':   GOOGLE_PLACES_KEY,
-        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.types',
-      },
-      body: JSON.stringify({
-        textQuery:    `${query} Oslo`,
-        locationBias: { circle: { center: { latitude: 59.9139, longitude: 10.7522 }, radius: 20000 } },
-        maxResultCount: 1,
-      }),
-      signal: AbortSignal.timeout(10_000),
-    });
+    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json` +
+      `?query=${encodeURIComponent(query + ' Oslo')}` +
+      `&location=59.9139,10.7522&radius=20000` +
+      `&key=${GOOGLE_PLACES_KEY}`;
+    const resp = await fetch(url, { signal: AbortSignal.timeout(10_000) });
     if (resp.ok) {
       const data = await resp.json();
-      found = data.places?.[0] ?? null;
+      found = data.results?.[0] ?? null;
     }
   } catch (_) {}
 
@@ -2295,10 +2287,10 @@ async function suggestVenueFlow(query) {
     return;
   }
 
-  const name    = found.displayName?.text ?? query;
-  const address = found.formattedAddress  ?? '';
-  const lat     = found.location?.latitude  ?? 0;
-  const lng     = found.location?.longitude ?? 0;
+  const name    = found.name                        ?? query;
+  const address = found.formatted_address           ?? '';
+  const lat     = found.geometry?.location?.lat     ?? 0;
+  const lng     = found.geometry?.location?.lng     ?? 0;
 
   // Fly the map to the found location so the user can see it before confirming
   if (typeof map !== 'undefined') {
