@@ -2185,13 +2185,13 @@ function _renderSearchDropdown() {
   ).slice(0, MAX_CANDIDATE);
 
   let html = curated.map(v => `
-    <div class="sd-row" onmousedown="_sdPick(${JSON.stringify(v.id)})">
+    <div class="sd-row" onclick="_sdPick(${JSON.stringify(v.id)})">
       <span class="sd-row-name">${v.name}</span>
       ${v.area ? `<span class="sd-row-area">${v.area}</span>` : ''}
     </div>`).join('');
 
   html += candidateHits.map(c => `
-    <div class="sd-row" onmousedown="_sdPickCandidate(${JSON.stringify(c)})">
+    <div class="sd-row" onclick="_sdPickCandidate(${JSON.stringify(c)})">
       <span class="sd-row-name">${c.name}</span>
       <span class="sd-candidate-badge">${t('candidate_badge')}</span>
     </div>`).join('');
@@ -2203,7 +2203,7 @@ function _renderSearchDropdown() {
     : t('not_seeing_venue');
   html += `<div class="sd-suggest-row">
     <span class="sd-suggest-label">${label}</span>
-    <button class="sd-suggest-btn" onmousedown="_sdSuggest()">${t('suggest_venue')}</button>
+    <button class="sd-suggest-btn" onclick="_sdSuggest()">${t('suggest_venue')}</button>
   </div>`;
 
   _searchDropdown.innerHTML = html;
@@ -2241,6 +2241,11 @@ _searchInput.addEventListener('input', () => { renderList(); _renderSearchDropdo
 _searchInput.addEventListener('blur',  () => setTimeout(() => _searchDropdown.classList.remove('open'), 150));
 _searchInput.addEventListener('focus', () => { if (_searchInput.value.trim()) _renderSearchDropdown(); });
 
+// Prevent the search input from losing focus when the user taps/clicks inside
+// the dropdown — this keeps the dropdown visible so click handlers fire normally.
+_searchDropdown.addEventListener('mousedown', e => e.preventDefault());
+_searchDropdown.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
+
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     if (_searchDropdown.classList.contains('open')) {
@@ -2267,13 +2272,15 @@ document.addEventListener('keydown', e => {
 //    Anonymous  → open pre-filled GitHub issue
 
 async function suggestVenueFlow(query) {
-  const list = document.getElementById('venue-list');
-  if (!list) return;
-  list.innerHTML = `<div class="suggest-empty"><span>Looking up "<strong>${query}</strong>"…</span></div>`;
-
-  // Open the panel so the user can see the confirm card
-  const panel = document.getElementById('panel');
-  if (panel && !panel.classList.contains('open')) panel.classList.add('open');
+  // Show a brief inline notice in the dropdown area while we look up the place
+  const lookupToast = document.createElement('div');
+  lookupToast.style.cssText =
+    'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);' +
+    'background:rgba(13,31,53,0.92);border:1px solid rgba(156,189,231,0.22);' +
+    'color:var(--text);font-size:13px;padding:8px 16px;border-radius:20px;' +
+    'z-index:3100;white-space:nowrap;pointer-events:none;';
+  lookupToast.textContent = `Looking up "${query}"…`;
+  document.body.appendChild(lookupToast);
 
   let found = null;
   try {
@@ -2297,12 +2304,10 @@ async function suggestVenueFlow(query) {
     }
   } catch (_) {}
 
+  lookupToast.remove();
+
   if (!found) {
-    list.innerHTML = `
-      <div class="suggest-empty">
-        <span>Couldn't find "<strong>${query}</strong>" in Oslo.</span>
-        <button class="suggest-btn" onclick="renderList()">Clear</button>
-      </div>`;
+    showQcNotice(`Couldn't find "${query}" in Oslo`);
     return;
   }
 
@@ -2310,6 +2315,11 @@ async function suggestVenueFlow(query) {
   const address = found.formattedAddress  ?? '';
   const lat     = found.location?.latitude  ?? 0;
   const lng     = found.location?.longitude ?? 0;
+
+  // Fly the map to the found location so the user can see it before confirming
+  if (typeof map !== 'undefined') {
+    map.flyTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), 15), duration: 800 });
+  }
 
   _renderSuggestConfirm({ name, address, lat, lng, osmId: null });
 }
@@ -2384,10 +2394,10 @@ async function _submitSuggestion(dataAttrEncoded) {
 
 // Called when user clicks a candidate from the search dropdown
 function _showCandidateConfirm(c) {
-  const list = document.getElementById('venue-list');
-  if (!list) return;
-  const panel = document.getElementById('panel');
-  if (panel && !panel.classList.contains('open')) panel.classList.add('open');
+  // Fly map to the candidate's location so the user can assess it before confirming
+  if (typeof map !== 'undefined') {
+    map.flyTo({ center: [c.lng, c.lat], zoom: Math.max(map.getZoom(), 15), duration: 800 });
+  }
   _renderSuggestConfirm({ name: c.name, address: c.address, lat: c.lat, lng: c.lng, osmId: c.osmId });
 }
 
