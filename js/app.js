@@ -1085,7 +1085,7 @@ function update() {
   updateDateWeatherStrip();
   updateQcLabels();
   updateQcIndicator(null);
-  drawSunCurve(document.getElementById('qc-arc'));
+  drawTimeBar(document.getElementById('qc-arc'));
 }
 
 // ── Popup helpers ─────────────────────────────────────────────────────────────
@@ -2043,10 +2043,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const rect = qcArcEl.getBoundingClientRect();
       const t = MIN_H_ARC + (e.clientX - rect.left - PAD_X_ARC) / (rect.width - PAD_X_ARC * 2) * (MAX_H_ARC - MIN_H_ARC);
       arcHoverH = _clampHour(t);
-      drawSunCurve(qcArcEl);
+      drawTimeBar(qcArcEl);
       updateQcIndicator(arcHoverH);
     });
-    qcArcEl.addEventListener('mouseleave', () => { arcHoverH = null; drawSunCurve(qcArcEl); updateQcIndicator(null); });
+    qcArcEl.addEventListener('mouseleave', () => { arcHoverH = null; drawTimeBar(qcArcEl); updateQcIndicator(null); });
   }
 
   // Arc canvas drag + hover support

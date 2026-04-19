@@ -407,3 +407,154 @@ function _drawSunArc(c, cw, ch, dateStr, fromH, isToday, MIN_H, MAX_H, PAD_X, ti
     c.restore();
   }
 }
+
+// ── Time bar (panel-time-bar arc canvas) ──────────────────────────────────────
+/**
+ * Draws a segmented pill bar: per-hour color segments (amber=sun, tinted for
+ * cloud/rain, empty/dark for night) + a glass capsule thumb at the selected time.
+ * No arc, no temperature curve.
+ */
+function drawTimeBar(canvasEl) {
+  if (!canvasEl || !currentSunTable) return;
+
+  const dpr  = window.devicePixelRatio || 1;
+  const cssW = canvasEl.clientWidth  || 280;
+  const cssH = canvasEl.clientHeight || 36;
+  const pw   = Math.round(cssW * dpr);
+  const ph   = Math.round(cssH * dpr);
+  if (canvasEl.width !== pw || canvasEl.height !== ph) {
+    canvasEl.width  = pw;
+    canvasEl.height = ph;
+  }
+
+  const c = canvasEl.getContext('2d');
+  c.clearRect(0, 0, pw, ph);
+  c.save();
+  c.scale(dpr, dpr);
+
+  const MIN_H   = (typeof MIN_H_ARC !== 'undefined') ? MIN_H_ARC : 4;
+  const MAX_H   = (typeof MAX_H_ARC !== 'undefined') ? MAX_H_ARC : 23;
+  const PAD_X   = (typeof PAD_X_ARC !== 'undefined') ? PAD_X_ARC : 20;
+  const PAD_B   = 14;                     // label area below pill
+  const PILL_H  = cssH - PAD_B;
+  const PILL_R  = PILL_H / 2;             // fully rounded ends
+  const BAR_W   = cssW - PAD_X * 2;
+  const BAR_X   = PAD_X;
+  const dateStr = datePicker.value;
+  const fromH   = parseFloat(timeFromEl.value);
+  const isHov   = typeof arcHoverH === 'number';
+  const showH   = isHov ? arcHoverH : fromH;
+
+  const timeToX = t => BAR_X + (t - MIN_H) / (MAX_H - MIN_H) * BAR_W;
+
+  // Rounded-rect path helper
+  const pillPath = () => {
+    c.beginPath();
+    c.moveTo(BAR_X + PILL_R, 0);
+    c.lineTo(BAR_X + BAR_W - PILL_R, 0);
+    c.arcTo(BAR_X + BAR_W, 0,           BAR_X + BAR_W, PILL_R,      PILL_R);
+    c.lineTo(BAR_X + BAR_W, PILL_H - PILL_R);
+    c.arcTo(BAR_X + BAR_W, PILL_H,      BAR_X + BAR_W - PILL_R, PILL_H, PILL_R);
+    c.lineTo(BAR_X + PILL_R, PILL_H);
+    c.arcTo(BAR_X, PILL_H,              BAR_X, PILL_H - PILL_R,  PILL_R);
+    c.lineTo(BAR_X, PILL_R);
+    c.arcTo(BAR_X, 0,                   BAR_X + PILL_R, 0,        PILL_R);
+    c.closePath();
+  };
+
+  // 1. Background pill
+  pillPath();
+  c.fillStyle = 'rgba(10, 20, 42, 0.55)';
+  c.fill();
+
+  // 2. Per-hour segments (clipped to pill)
+  const wxHours = (typeof getWeatherHoursForDate === 'function')
+    ? getWeatherHoursForDate(dateStr) : [];
+  const hasWx   = wxHours.length > 0 && typeof getWeatherAt === 'function';
+  const STEP    = 0.25;
+
+  c.save();
+  pillPath();
+  c.clip();
+
+  for (let t = MIN_H; t < MAX_H; t += STEP) {
+    const midT = t + STEP / 2;
+    const sun  = getSunFromTable(currentSunTable, midT);
+    if (sun.alt <= 0) continue;  // night — leave dark background
+
+    let r = 255, g = 175, b = 133, a = 0.85;
+
+    if (hasWx) {
+      const wx    = getWeatherAt(dateStr, midT);
+      const cloud = wx ? wx.cloud : 0;
+      const rain  = wx ? (wx.precip ?? wx.prec ?? 0) > 0.3 : false;
+      if (rain) {
+        r = 100; g = 165; b = 240; a = 0.72;
+      } else if (cloud < 0.20) {
+        r = 255; g = 175; b = 133; a = 0.88;
+      } else if (cloud < 0.50) {
+        r = 255; g = 175; b = 133; a = 0.58;
+      } else if (cloud < 0.75) {
+        r = 175; g = 155; b = 130; a = 0.40;
+      } else {
+        r = 120; g = 135; b = 160; a = 0.35;
+      }
+    }
+
+    const x1 = timeToX(t);
+    const x2 = timeToX(t + STEP);
+    c.fillStyle = `rgba(${r},${g},${b},${a})`;
+    c.fillRect(x1, 0, x2 - x1 + 0.5, PILL_H);
+  }
+
+  c.restore(); // end pill clip
+
+  // 3. Sunrise / sunset labels
+  const sunrise = findSunCrossingFromTable(currentSunTable, true);
+  const sunset  = findSunCrossingFromTable(currentSunTable, false);
+  c.font = '9px "Inter", sans-serif';
+  c.fillStyle = 'rgba(156,189,231,0.50)';
+  c.textBaseline = 'bottom';
+
+  if (sunrise != null && sunrise >= MIN_H && sunrise <= MAX_H) {
+    const sx = timeToX(sunrise);
+    c.textAlign = sx < BAR_X + 30 ? 'left' : 'center';
+    c.fillText(formatHour(sunrise), sx, cssH - 1);
+  }
+  if (sunset != null && sunset >= MIN_H && sunset <= MAX_H) {
+    const sx = timeToX(sunset);
+    c.textAlign = sx > BAR_X + BAR_W - 30 ? 'right' : 'center';
+    c.fillText(formatHour(sunset), sx, cssH - 1);
+  }
+
+  // 4. Glass capsule thumb
+  if (showH >= MIN_H && showH <= MAX_H) {
+    const sx = timeToX(showH);
+    const tW = 11;
+    const tH = Math.round(PILL_H * 0.54);
+    const tX = sx - tW / 2;
+    const tY = (PILL_H - tH) / 2;
+    const tR = tW / 2;
+
+    c.save();
+    c.shadowColor   = 'rgba(0,0,0,0.42)';
+    c.shadowBlur    = 7;
+    c.shadowOffsetY = 1;
+    c.beginPath();
+    c.moveTo(tX + tR, tY);
+    c.lineTo(tX + tW - tR, tY);
+    c.arcTo(tX + tW, tY,      tX + tW, tY + tR,      tR);
+    c.lineTo(tX + tW, tY + tH - tR);
+    c.arcTo(tX + tW, tY + tH, tX + tW - tR, tY + tH, tR);
+    c.lineTo(tX + tR, tY + tH);
+    c.arcTo(tX,       tY + tH, tX, tY + tH - tR,      tR);
+    c.lineTo(tX,      tY + tR);
+    c.arcTo(tX,       tY,      tX + tR, tY,            tR);
+    c.closePath();
+    c.fillStyle = isHov ? 'rgba(200,225,255,0.95)' : 'rgba(255,252,248,0.92)';
+    c.fill();
+    c.restore();
+  }
+
+  c.restore(); // dpr scale
+}

@@ -724,6 +724,9 @@
   .day-nav-btn:hover { color: var(--accent); border-color: rgba(255,175,133,0.35); }
 
   /* ── Panel toggle icon — inside sidebar panel header ──────────────────────── */
+  /* Hidden on desktop; shown on mobile via the @media block below */
+  #panel-handle { display: none; }
+
   #panel-toggle-icon {
     background: none;
     border: none;
@@ -1811,7 +1814,7 @@
       top: calc(12px + 46px + 8px);
     }
 
-    /* Venue list — default "peek" state: 164px visible from bottom (handle + time bar) */
+    /* Venue list — default "peek" state: 100px visible from bottom (handle + time bar) */
     #panel {
       position: fixed;  /* fixed avoids parent height/overflow issues on iOS */
       top: auto;
@@ -1824,7 +1827,7 @@
       border-left: none;
       border-right: none;
       border-bottom: none;
-      transform: translateY(calc(100% - 164px));
+      transform: translateY(calc(100% - 100px));
     }
 
     /* Expanded state — tap handle to open */
@@ -1844,7 +1847,7 @@
     #panel-toggle-icon { display: none; }
 
     /* Locate button: sit just above the peek strip so panel sheet slides over it */
-    #locate-btn { bottom: 176px; }
+    #locate-btn { bottom: 114px; }
 
     /* Handle: flex column — pill + chevron */
     #panel-handle {
@@ -2920,7 +2923,7 @@
   }
   #qc-arc {
     flex: 1;
-    height: 64px;
+    height: 36px;
     display: block;
     cursor: ew-resize;
     min-width: 0;
@@ -2946,7 +2949,7 @@
       width: auto;
       top: auto;
       /* float above the panel peek */
-      bottom: 172px;
+      bottom: 108px;
     }
   }
 
@@ -3048,7 +3051,7 @@
       /* Float just above the panel peek strip */
       left: 50%;
       transform: translateX(-50%);
-      bottom: 172px;  /* peek height (164px) + 8px gap */
+      bottom: 108px;  /* peek height (100px) + 8px gap */
     }
   }
 
@@ -3657,7 +3660,7 @@
 
   <!-- LEFT PANEL — venue list, floats below search bar -->
   <div id="panel" class="intro-hidden">
-    <div id="panel-handle" style="display:none" onclick="togglePanel()">
+    <div id="panel-handle" onclick="togglePanel()">
       <div id="panel-handle-pill"></div>
     </div>
 
