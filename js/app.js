@@ -652,10 +652,8 @@ function animateToTime(targetHour, durationMs) {
   _timeAnimId = requestAnimationFrame(tick);
 }
 
-// ── Quick Controls Bar ────────────────────────────────────────────────────────
+// ── Time strip + panel controls ───────────────────────────────────────────────
 function updateQcIndicator(h) {
-  const el = document.getElementById('qc-indicator');
-  if (!el) return;
   const hour   = h ?? parseFloat(timeFromEl.value);
   const dateStr = datePicker.value;
   const wx      = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, hour) : null;
@@ -664,40 +662,44 @@ function updateQcIndicator(h) {
   const arrow   = wx ? ARROWS[Math.round(((wx.wdir + 180) % 360) / 45) % 8] : '';
   const wind    = wx ? `${arrow} ${Math.round(wx.wspd)} m/s` : '';
   const temp    = wx ? `${wx.temp}°` : '';
-  el.innerHTML = `<span class="qci-time">${formatHour(hour)}</span>`
-    + (icon ? `<span class="qci-icon">${icon}</span>` : '')
-    + (temp ? `<span class="qci-temp">${temp}</span>` : '')
-    + (wind ? `<span class="qci-wind">${wind}</span>` : '');
+
+  // Update always-visible notification strip
+  const tsTime = document.getElementById('ts-time');
+  const tsWx   = document.getElementById('ts-wx');
+  if (tsTime) tsTime.textContent = nowMode ? t('now') + ' · ' + formatHour(hour) : formatHour(hour);
+  if (tsWx)   tsWx.textContent  = [icon, temp, wind].filter(Boolean).join('  ');
 }
 
 function updateQcLabels() {
-  const dateLabel = document.getElementById('qc-date-label');
-  const timeLabel = document.getElementById('qc-time-label');
-  if (!dateLabel || !timeLabel) return;
-
   const val  = datePicker.value;
   const tod  = todayStr();
   const tom  = new Date(); tom.setDate(tom.getDate() + 1);
   const tomS = tom.toISOString().slice(0, 10);
 
-  if (val === tod)       dateLabel.textContent = t('today');
-  else if (val === tomS) dateLabel.textContent = t('tomorrow');
+  let dateText;
+  if (val === tod)       dateText = t('today');
+  else if (val === tomS) dateText = t('tomorrow');
   else {
     const d    = new Date(val + 'T12:00:00');
     const DAYS = tA('days_short');
     const MONS = tA('months_short');
-    dateLabel.textContent = `${DAYS[d.getDay()]} ${d.getDate()} ${MONS[d.getMonth()]}`;
+    dateText = `${DAYS[d.getDay()]} ${d.getDate()} ${MONS[d.getMonth()]}`;
   }
 
-  timeLabel.textContent = nowMode ? t('now') : formatHour(parseFloat(timeFromEl.value));
+  // Floating date label above panel
+  const fdlText = document.getElementById('fdl-text');
+  if (fdlText) fdlText.textContent = dateText;
+
+  // Date button active state reflects calendar open state
+  document.getElementById('ptb-date-btn')?.classList.toggle('active', _qcActiveSection === 'date');
 
   // "Now" only makes sense today — show "Sunrise" on future dates
-  const isToday = datePicker.value === todayStr();
+  const isToday = val === tod;
   document.querySelectorAll('.qc-preset-btn[data-intent="now"]').forEach(b => {
     b.textContent = isToday ? t('now') : t('sunrise');
   });
 
-  // Sync qc preset buttons with main intent
+  // Sync preset buttons with active intent
   document.querySelectorAll('.qc-preset-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.intent === activeIntent));
 }
@@ -706,49 +708,40 @@ function _closeQcPanel() {
   const panel = document.getElementById('qc-panel');
   if (!panel) return;
 
-  // Pills and state reset immediately
-  document.getElementById('qc-date-pill')?.classList.remove('active');
-  document.getElementById('qc-time-pill')?.classList.remove('active');
   _qcActiveSection = null;
-  _qcCalExpanded   = false; // reset expand state on close
+  _qcCalExpanded   = false;
 
-  // Keep sections active so content is present during the closing animation.
-  // Remove 'open' — this starts the max-height + opacity transitions.
+  document.getElementById('ptb-date-btn')?.classList.remove('active');
+
   panel.classList.remove('open');
   panel.classList.remove('cal-expanded');
   panel.style.removeProperty('--qc-panel-h');
 
-  // After the animation ends, remove active from sections (resets display:none)
   const cleanup = e => {
     if (e.propertyName !== 'max-height') return;
     panel.removeEventListener('transitionend', cleanup);
     document.getElementById('qc-date-section')?.classList.remove('active');
-    document.getElementById('qc-time-section')?.classList.remove('active');
   };
   panel.addEventListener('transitionend', cleanup);
 }
 
 function toggleQcPanel(section) {
+  // Only 'date' section is used now; arc is always visible in panel-time-bar
+  if (section !== 'date') return;
+
   const panel = document.getElementById('qc-panel');
   if (!panel) return;
 
-  if (_qcActiveSection === section) {
+  if (_qcActiveSection === 'date') {
     _closeQcPanel();
     return;
   }
 
-  _qcActiveSection = section;
+  _qcActiveSection = 'date';
   panel.classList.add('open');
-  document.getElementById('qc-date-section')?.classList.toggle('active', section === 'date');
-  document.getElementById('qc-time-section')?.classList.toggle('active', section === 'time');
-  document.getElementById('qc-date-pill')?.classList.toggle('active', section === 'date');
-  document.getElementById('qc-time-pill')?.classList.toggle('active', section === 'time');
-
-  if (section === 'date') {
-    renderQcCalendar();
-  } else if (section === 'time') {
-    setTimeout(() => drawSunCurve(document.getElementById('qc-arc')), 50);
-  }
+  document.getElementById('qc-date-section')?.classList.add('active');
+  document.getElementById('ptb-date-btn')?.classList.add('active');
+  renderQcCalendar();
 }
 
 function renderQcCalendar() {
@@ -987,19 +980,14 @@ function selectQcDate(dateStr) {
 let _qcPanelHeight = 0; // cached, set on load/resize/list-render
 
 function _syncQcPanelHeight() {
-  if (isMobile()) return; // height fixed via CSS on mobile
-  const firstCard = document.querySelector('#venue-list .venue-card:not(.skeleton)');
-  const qcBar     = document.getElementById('qc-bar');   // bar height is always stable
-  const qcPanel   = document.getElementById('qc-panel');
-  if (!firstCard || !qcBar || !qcPanel) return;
-  // Anchor to the bar's bottom (never changes with panel open/closed)
-  const h = Math.max(120, Math.round(firstCard.getBoundingClientRect().bottom - qcBar.getBoundingClientRect().bottom - 8));
-  if (h === _qcPanelHeight) return; // no change
+  // Calendar is now inside the panel; give it a fixed reasonable height.
+  const qcPanel = document.getElementById('qc-panel');
+  if (!qcPanel) return;
+  const h = 280;
+  if (h === _qcPanelHeight) return;
   _qcPanelHeight = h;
   const dateSection = document.getElementById('qc-date-section');
-  const timeSection = document.getElementById('qc-time-section');
   if (dateSection) dateSection.style.height = h + 'px';
-  if (timeSection) timeSection.style.height = h + 'px';
   qcPanel.style.setProperty('--qc-panel-h', (h + 10) + 'px');
 }
 
@@ -1094,7 +1082,7 @@ function update() {
   updateDateWeatherStrip();
   updateQcLabels();
   updateQcIndicator(null);
-  if (_qcActiveSection === 'time') drawSunCurve(document.getElementById('qc-arc'));
+  drawSunCurve(document.getElementById('qc-arc'));
 }
 
 // ── Popup helpers ─────────────────────────────────────────────────────────────
@@ -2098,10 +2086,10 @@ document.addEventListener('DOMContentLoaded', () => {
       cal.classList.remove('open');
       displayBtn?.classList.remove('open');
     }
-    // Close qc-panel when clicking outside it
-    const qcPanel = document.getElementById('qc-panel');
-    const qcWrap  = document.getElementById('qc-wrap');
-    if (qcPanel?.classList.contains('open') && !qcWrap?.contains(e.target)) {
+    // Close qc-panel (calendar) when clicking outside the panel-time-bar
+    const qcPanel   = document.getElementById('qc-panel');
+    const ptbBar    = document.getElementById('panel-time-bar');
+    if (qcPanel?.classList.contains('open') && !ptbBar?.contains(e.target)) {
       _closeQcPanel();
     }
   });
@@ -2519,10 +2507,11 @@ function _runIntroSequence() {
 }
 
 function _introRevealUI(search, brand, qcWrap, panel) {
-  const locateBtn = document.getElementById('locate-btn');
-  const isMobile  = window.innerWidth < 640;
+  const locateBtn   = document.getElementById('locate-btn');
+  const fdlEl       = document.getElementById('floating-date-label');
+  const isMobile    = window.innerWidth < 640;
 
-  const fadeEls = [search, brand, qcWrap, locateBtn];
+  const fadeEls = [search, brand, qcWrap, locateBtn, fdlEl];
   if (!isMobile && panel) fadeEls.push(panel);
 
   fadeEls.forEach(el => {
@@ -2576,7 +2565,8 @@ function _skipIntro(seqId) {
 
   // Instantly reveal all UI
   const locateBtnEl = document.getElementById('locate-btn');
-  [canvas, search, brand, qcWrap, panel, locateBtnEl].forEach(el => {
+  const fdlElSkip   = document.getElementById('floating-date-label');
+  [canvas, search, brand, qcWrap, panel, locateBtnEl, fdlElSkip].forEach(el => {
     if (!el) return;
     el.style.transition = 'none';
     el.classList.remove('intro-hidden');
