@@ -248,7 +248,7 @@ const _STRINGS = {
     cat_beer_garden:     'Ølhage',
     cat_fine_dining:     'Fine Dining',
   },
-  sv: {
+  se: {
     signout:            'Logga ut',
     signin_google:      'Logga in med Google',
     pending_edits:      'Väntande ändringar',
@@ -364,7 +364,7 @@ const _STRINGS = {
     cat_beer_garden:     'Ölträdgård',
     cat_fine_dining:     'Fine Dining',
   },
-  da: {
+  dk: {
     signout:            'Log ud',
     signin_google:      'Log ind med Google',
     pending_edits:      'Afventende ændringer',
@@ -482,7 +482,15 @@ const _STRINGS = {
   },
 };
 
-function prefLang()     { return localStorage.getItem('pref_lang') || 'no'; }
+function _browserLang() {
+  const nav = (navigator.language || 'no').toLowerCase();
+  if (nav.startsWith('sv')) return 'se';
+  if (nav.startsWith('da')) return 'dk';
+  if (nav.startsWith('nb') || nav.startsWith('nn') || nav.startsWith('no')) return 'no';
+  if (nav.startsWith('en')) return 'en';
+  return 'no';
+}
+function prefLang()     { return localStorage.getItem('pref_lang') || _browserLang(); }
 function prefTempUnit() { return localStorage.getItem('pref_temp') || 'C'; }
 
 function setPrefLang(l) {
@@ -490,6 +498,7 @@ function setPrefLang(l) {
   const inp = document.getElementById('venue-search');
   if (inp) inp.placeholder = t('search_placeholder');
   if (typeof _renderProfilePanel === 'function') _renderProfilePanel();
+  if (typeof update === 'function') update();
 }
 
 function setPrefTempUnit(u) {
