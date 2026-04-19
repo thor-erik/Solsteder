@@ -831,32 +831,32 @@ function _renderQcCalendarMonth(cal) {
   const MONTH_NAMES = tA('months_long');
   const DAY_ABBR    = tA('day_abbr');
 
-  // Sticky weekday header row (stays visible as months scroll)
-  let html = '<div class="dc-weekday-row dc-weekday-sticky">';
+  // Weekday row — outside the scroll area, always visible
+  let html = '<div class="dc-weekday-row">';
   DAY_ABBR.forEach(a => { html += `<span class="dc-weekday">${a}</span>`; });
   html += '</div>';
 
-  // Render current month + next 2 months stacked vertically
-  for (let mi = 0; mi < 3; mi++) {
+  // Scrollable content — 12 months stacked continuously
+  html += '<div class="dc-cal-scroll">';
+
+  for (let mi = 0; mi < 12; mi++) {
     const d     = new Date(now.getFullYear(), now.getMonth() + mi, 1);
     const year  = d.getFullYear();
     const month = d.getMonth();
     const firstDay    = new Date(year, month, 1);
     const totalDays   = new Date(year, month + 1, 0).getDate();
-    const startOffset = (firstDay.getDay() + 6) % 7; // Mon = 0
-    const totalCells  = Math.ceil((startOffset + totalDays) / 7) * 7;
-    const trailingCount = totalCells - startOffset - totalDays;
+    const startOffset = (firstDay.getDay() + 6) % 7; // Mon=0
 
-    html += `<div class="dc-month-section${mi === 0 ? ' first' : ''}">`;
+    // Sticky month label — slides up and is replaced as the user scrolls
     html += `<div class="dc-month-label">${MONTH_NAMES[month]} ${year}</div>`;
     html += '<div class="dc-grid dc-month-grid">';
 
-    // Leading blank cells
+    // Leading blank cells (no previous-month overflow — avoids duplicate dates)
     for (let i = 0; i < startOffset; i++) {
       html += '<div class="dc-tile dc-tile-empty"></div>';
     }
 
-    // Day cells
+    // Day tiles
     for (let day = 1; day <= totalDays; day++) {
       const dt   = new Date(year, month, day);
       const dStr = dt.toISOString().slice(0, 10);
@@ -867,20 +867,14 @@ function _renderQcCalendarMonth(cal) {
       }
     }
 
-    // Trailing cells — first days of next month to fill the last week row
-    for (let i = 1; i <= trailingCount; i++) {
-      const dt   = new Date(year, month + 1, i);
-      const dStr = dt.toISOString().slice(0, 10);
-      if (dStr < today_) {
-        html += `<div class="dc-tile dc-tile-past dc-tile-overflow"><span class="dc-num">${i}</span></div>`;
-      } else {
-        html += _dcTileHtml(dStr, today_, selected).replace('"dc-tile', '"dc-tile dc-tile-overflow');
-      }
-    }
-
-    html += '</div></div>'; // close grid + month-section
+    html += '</div>'; // .dc-grid
   }
 
+  // Sticky fade at bottom of scroll area — signals more content below
+  html += '<div class="dc-cal-fade"></div>';
+  html += '</div>'; // .dc-cal-scroll
+
+  // Collapse button — outside scroll, anchored to bottom of panel
   html += `<button class="dc-expand-btn-wide active" onclick="event.stopPropagation();_toggleQcCalExpand()">Collapse calendar</button>`;
 
   cal.innerHTML = html;
