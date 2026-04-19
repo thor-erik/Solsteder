@@ -537,12 +537,11 @@
   .dc-tile.sun-high    { background: rgba(255,175,133,0.11); border-color: rgba(255,175,133,0.2); }
   .dc-tile.sun-mid     { background: rgba(255,175,133,0.05); }
   .dc-tile.no-data     { opacity: 0.4; }
-  .dc-tile.solar-only  { background: rgba(255,160,60,0.07); border-color: rgba(255,160,60,0.2); }
-  .dc-tile.solar-only:hover:not(.no-data) { background: rgba(255,160,60,0.13); border-color: rgba(255,160,60,0.38); }
+  .dc-tile.solar-only  { background: rgba(12,28,55,0.35); border-color: rgba(156,189,231,0.12); border-style: dashed; opacity: 0.6; }
+  .dc-tile.solar-only:hover:not(.no-data) { background: rgba(18,38,70,0.55); border-color: rgba(156,189,231,0.22); opacity: 0.8; }
   /* Solar-only: no weather icon, "Sol" label in temp slot, icon span preserved for layout */
   .dc-tile.solar-only .dc-icon { min-height: 11px; }
-  .dc-tile.solar-only .dc-temp { color: rgba(255,160,60,0.55); }
-  .dc-tile.solar-only .dc-temp { color: rgba(255,160,60,0.5); }
+  .dc-tile.solar-only .dc-temp { color: rgba(156,189,231,0.3); }
   .dc-tile-past        { opacity: 0.22; cursor: default; pointer-events: none; border-color: transparent; background: transparent; }
   .dc-tile-empty       { border: none; background: transparent; pointer-events: none; }
   .dc-day  { font-size: 7px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(156,189,231,0.4); line-height: 1; }
@@ -565,10 +564,10 @@
   .dc-expand-btn-wide.active { background: rgba(255,175,133,0.1); border-color: rgba(255,175,133,0.28); color: rgba(255,175,133,0.72); }
   .dc-expand-btn-wide.active:hover { background: rgba(255,175,133,0.18); border-color: rgba(255,175,133,0.45); color: var(--accent); }
   @keyframes dc-cal-in {
-    from { opacity: 0; transform: scaleY(0.96); }
-    to   { opacity: 1; transform: scaleY(1); }
+    from { opacity: 0; }
+    to   { opacity: 1; }
   }
-  .dc-cal-entering { animation: dc-cal-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards; transform-origin: top center; }
+  .dc-cal-entering { animation: dc-cal-in 0.22s ease forwards; }
 
   /* Weekday header row */
   .dc-weekday-row {
@@ -586,6 +585,7 @@
     font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 700;
     color: rgba(156,189,231,0.6); text-transform: uppercase; letter-spacing: 0.09em;
     padding: 6px 2px 4px; flex-shrink: 0;
+    transition: opacity 0.15s ease;
   }
   /* Week number column */
   .dc-week-num {
@@ -596,7 +596,7 @@
   /* Month label row — spans all 8 columns inside the continuous grid */
   .dc-month-row-label {
     grid-column: 1 / -1;
-    font-family: 'Inter', sans-serif; font-size: 9px; font-weight: 700;
+    font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 700;
     color: rgba(156,189,231,0.45); text-transform: uppercase; letter-spacing: 0.09em;
     padding: 8px 2px 3px;
   }

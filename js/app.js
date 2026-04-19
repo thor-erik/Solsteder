@@ -914,12 +914,18 @@ function _renderQcCalendarMonth(cal) {
   const hdrEl    = cal.querySelector('.dc-cal-month-hdr');
   const updateHdr = () => {
     if (!hdrEl || !scrollEl) return;
-    const top = scrollEl.getBoundingClientRect().top;
+    const scrollTop = scrollEl.getBoundingClientRect().top;
+    const hdrBottom = hdrEl.getBoundingClientRect().bottom;
     let label = '';
+    let overlapping = false;
     for (const lbl of scrollEl.querySelectorAll('.dc-month-row-label')) {
-      if (lbl.getBoundingClientRect().top <= top + 4) label = lbl.dataset.label;
+      const lblTop = lbl.getBoundingClientRect().top;
+      if (lblTop <= scrollTop + 4) label = lbl.dataset.label;
+      // If an inline label is rising into the fixed header zone → fade header out
+      if (lblTop <= hdrBottom + 2 && lblTop >= scrollTop - 2) overlapping = true;
     }
     hdrEl.textContent = label || scrollEl.querySelector('.dc-month-row-label')?.dataset.label || '';
+    hdrEl.style.opacity = overlapping ? '0' : '1';
   };
   scrollEl?.addEventListener('scroll', updateHdr, { passive: true });
   updateHdr();
