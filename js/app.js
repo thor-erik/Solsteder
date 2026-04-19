@@ -828,87 +828,75 @@ function _renderQcCalendarMonth(cal) {
   const now      = new Date();
   const today_   = todayStr();
   const selected = datePicker.value;
-  const fxDays   = _wxForecastDays();
-
-  // Init view to current month if not already set
-  if (_qcCalViewYear == null) {
-    _qcCalViewYear  = now.getFullYear();
-    _qcCalViewMonth = now.getMonth();
-  }
-
-  const year  = _qcCalViewYear;
-  const month = _qcCalViewMonth;
   const MONTH_NAMES = tA('months_long');
   const DAY_ABBR    = tA('day_abbr');
 
-  // First day of month and total days
-  const firstDay = new Date(year, month, 1);
-  const totalDays = new Date(year, month + 1, 0).getDate();
-  // Offset: Mon=0 … Sun=6
-  const startOffset = (firstDay.getDay() + 6) % 7;
-
-  // Can navigate back only to current month
-  const nowMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const viewMonth = new Date(year, month, 1);
-  const canGoBack = viewMonth > nowMonth;
-
-  let html = `<div class="dc-header">
-    <button class="dc-nav-btn${canGoBack ? '' : ' disabled'}" onclick="_qcCalNav(-1)">‹</button>
-    <span class="dc-header-label">${MONTH_NAMES[month]} ${year}</span>
-    <button class="dc-nav-btn" onclick="_qcCalNav(1)">›</button>
-  </div>`;
-
-  // Weekday headers (Mon–Sun)
-  html += '<div class="dc-weekday-row">';
-  DAY_ABBR.forEach(d => { html += `<span class="dc-weekday">${d}</span>`; });
+  // Sticky weekday header row (stays visible as months scroll)
+  let html = '<div class="dc-weekday-row dc-weekday-sticky">';
+  DAY_ABBR.forEach(a => { html += `<span class="dc-weekday">${a}</span>`; });
   html += '</div>';
 
-  // Day grid — padded to start on Monday
-  html += '<div class="dc-grid dc-month-grid">';
+  // Render current month + next 2 months stacked vertically
+  for (let mi = 0; mi < 3; mi++) {
+    const d     = new Date(now.getFullYear(), now.getMonth() + mi, 1);
+    const year  = d.getFullYear();
+    const month = d.getMonth();
+    const firstDay    = new Date(year, month, 1);
+    const totalDays   = new Date(year, month + 1, 0).getDate();
+    const startOffset = (firstDay.getDay() + 6) % 7; // Mon = 0
+    const totalCells  = Math.ceil((startOffset + totalDays) / 7) * 7;
+    const trailingCount = totalCells - startOffset - totalDays;
 
-  // Empty cells before the 1st
-  for (let i = 0; i < startOffset; i++) {
-    html += '<div class="dc-tile dc-tile-empty"></div>';
-  }
+    html += `<div class="dc-month-section${mi === 0 ? ' first' : ''}">`;
+    html += `<div class="dc-month-label">${MONTH_NAMES[month]} ${year}</div>`;
+    html += '<div class="dc-grid dc-month-grid">';
 
-  // Day cells
-  for (let day = 1; day <= totalDays; day++) {
-    const d    = new Date(year, month, day);
-    const dStr = d.toISOString().slice(0, 10);
-    const isPast = dStr < today_;
-    const daysSince = Math.round((d - now) / 86400000);
-
-    if (isPast) {
-      html += `<div class="dc-tile dc-tile-past"><span class="dc-num">${day}</span></div>`;
-    } else {
-      html += _dcTileHtml(dStr, today_, selected);
+    // Leading blank cells
+    for (let i = 0; i < startOffset; i++) {
+      html += '<div class="dc-tile dc-tile-empty"></div>';
     }
-  }
 
-  html += '</div>';
+    // Day cells
+    for (let day = 1; day <= totalDays; day++) {
+      const dt   = new Date(year, month, day);
+      const dStr = dt.toISOString().slice(0, 10);
+      if (dStr < today_) {
+        html += `<div class="dc-tile dc-tile-past"><span class="dc-num">${day}</span></div>`;
+      } else {
+        html += _dcTileHtml(dStr, today_, selected);
+      }
+    }
+
+    // Trailing cells — first days of next month to fill the last week row
+    for (let i = 1; i <= trailingCount; i++) {
+      const dt   = new Date(year, month + 1, i);
+      const dStr = dt.toISOString().slice(0, 10);
+      if (dStr < today_) {
+        html += `<div class="dc-tile dc-tile-past dc-tile-overflow"><span class="dc-num">${i}</span></div>`;
+      } else {
+        html += _dcTileHtml(dStr, today_, selected).replace('"dc-tile', '"dc-tile dc-tile-overflow');
+      }
+    }
+
+    html += '</div></div>'; // close grid + month-section
+  }
 
   html += `<button class="dc-expand-btn-wide active" onclick="event.stopPropagation();_toggleQcCalExpand()">Collapse calendar</button>`;
 
   cal.innerHTML = html;
-
-  // Update panel height for expanded view
   _syncQcPanelHeightExpanded();
 }
 
 function _toggleQcCalExpand() {
   _qcCalExpanded = !_qcCalExpanded;
-  if (_qcCalExpanded) {
-    const now = new Date();
-    _qcCalViewYear  = now.getFullYear();
-    _qcCalViewMonth = now.getMonth();
-  }
   renderQcCalendar();
-  // Trigger entry animation on the new content
+  // Trigger entry animation — double-rAF ensures class removal is painted first
   const _calEl = document.getElementById('qc-cal');
   if (_calEl) {
     _calEl.classList.remove('dc-cal-entering');
-    void _calEl.offsetWidth; // force reflow
-    _calEl.classList.add('dc-cal-entering');
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      _calEl.classList.add('dc-cal-entering');
+    }));
   }
   if (!_qcCalExpanded) {
     const qcPanel = document.getElementById('qc-panel');
@@ -920,12 +908,6 @@ function _toggleQcCalExpand() {
   }
 }
 
-function _qcCalNav(dir) {
-  const d = new Date(_qcCalViewYear, _qcCalViewMonth + dir, 1);
-  _qcCalViewYear  = d.getFullYear();
-  _qcCalViewMonth = d.getMonth();
-  renderQcCalendar();
-}
 
 function _syncQcPanelHeightExpanded() {
   const qcPanel = document.getElementById('qc-panel');
