@@ -715,6 +715,8 @@ function _closeQcPanel() {
   // Keep sections active so content is present during the closing animation.
   // Remove 'open' — this starts the max-height + opacity transitions.
   panel.classList.remove('open');
+  panel.classList.remove('cal-expanded');
+  panel.style.removeProperty('--qc-panel-h');
 
   // After the animation ends, remove active from sections (resets display:none)
   const cleanup = e => {
@@ -909,11 +911,11 @@ function _toggleQcCalExpand() {
     _calEl.classList.add('dc-cal-entering');
   }
   if (!_qcCalExpanded) {
-    // Reset panel height back to computed (desktop) or CSS default (mobile)
-    const qcPanel     = document.getElementById('qc-panel');
-    const dateSection = document.getElementById('qc-date-section');
-    if (qcPanel)     qcPanel.style.removeProperty('--qc-panel-h');
-    if (dateSection) dateSection.style.removeProperty('height');
+    const qcPanel = document.getElementById('qc-panel');
+    if (qcPanel) {
+      qcPanel.classList.remove('cal-expanded');
+      qcPanel.style.removeProperty('--qc-panel-h');
+    }
     _syncQcPanelHeight();
   }
 }
@@ -926,13 +928,13 @@ function _qcCalNav(dir) {
 }
 
 function _syncQcPanelHeightExpanded() {
-  const qcPanel     = document.getElementById('qc-panel');
-  const dateSection = document.getElementById('qc-date-section');
-  if (!qcPanel || !dateSection) return;
-  // Use a fixed generous height for the month view
-  const h = 375;
-  dateSection.style.height = h + 'px';
-  qcPanel.style.setProperty('--qc-panel-h', (h + 10) + 'px');
+  const qcPanel = document.getElementById('qc-panel');
+  if (!qcPanel) return;
+  // Mark expanded so CSS applies max-height + scroll to #qc-cal.
+  // --qc-panel-h only needs to be large enough for the transition to open fully;
+  // the panel shrinks to content height because overflow:hidden clips to natural height.
+  qcPanel.classList.add('cal-expanded');
+  qcPanel.style.setProperty('--qc-panel-h', '520px');
 }
 
 function selectQcDate(dateStr) {
