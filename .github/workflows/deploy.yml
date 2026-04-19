@@ -28,6 +28,14 @@ jobs:
           echo "const MAPBOX_TOKEN = '${{ secrets.MAPBOX_TOKEN }}';" > js/config.js
           echo "const GOOGLE_PLACES_KEY = '${{ secrets.GOOGLE_PLACES_KEY }}';" >> js/config.js
 
+      - name: Inject cache-busting version
+        run: |
+          SHA=$(git rev-parse --short HEAD)
+          # Update existing ?v=... params to the current commit hash
+          sed -i "s/?v=[A-Za-z0-9]*\"/?v=${SHA}\"/g" index.html
+          # Add ?v=... to local .js files that don't have one yet
+          sed -i "s/\.js\"/.js?v=${SHA}\"/g" index.html
+
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3
