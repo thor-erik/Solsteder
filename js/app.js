@@ -825,14 +825,12 @@ function _renderQcCalendarStrip(cal) {
 }
 
 function _isoWeek(year, month, day) {
-  // ISO 8601 week number — use UTC to avoid DST arithmetic issues
   const d = new Date(Date.UTC(year, month, day));
-  const dow = d.getUTCDay() || 7; // Mon=1…Sun=7
-  d.setUTCDate(d.getUTCDate() + 4 - dow); // Thursday of this ISO week
+  const dow = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dow);
   const y1 = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
   return Math.ceil(((d - y1) / 86400000 + 1) / 7);
 }
-
 
 function _renderQcCalendarMonth(cal) {
   const now      = new Date();
@@ -842,115 +840,110 @@ function _renderQcCalendarMonth(cal) {
   const DAY_ABBR    = tA('day_abbr');
   const _p2 = n => String(n).padStart(2, '0');
 
-  // Fixed month header (outside scroll — updated by scroll listener)
-  let html = `<div class="dc-cal-month-hdr"></div>`;
+  // Fixed month header — updated by scroll listener, not inline
+  let html = '<div class="dc-cal-month-hdr"></div>';
 
-  // Weekday row: blank column for week numbers, then Mon–Sun
+  // Weekday row (outside scroll, always visible)
   html += '<div class="dc-weekday-row">';
-  html += '<span class="dc-weekday" style="opacity:0">W</span>'; // week-num col placeholder
+  html += '<span class="dc-weekday"></span>'; // blank above week-number column
   DAY_ABBR.forEach(a => { html += `<span class="dc-weekday">${a}</span>`; });
   html += '</div>';
 
-  // Scrollable area
-  html += '<div class="dc-cal-scroll">';
+  // Single continuous grid inside the scroll container —
+  // weeks are rendered in order, month labels span all 8 columns when Monday crosses a month boundary.
+  // This eliminates duplicate dates entirely.
+  html += '<div class="dc-cal-scroll"><div class="dc-grid dc-month-grid">';
 
-  for (let mi = 0; mi < 12; mi++) {
-    const d     = new Date(now.getFullYear(), now.getMonth() + mi, 1);
-    const year  = d.getFullYear();
-    const month = d.getMonth();
-    const firstDay    = new Date(year, month, 1);
-    const totalDays   = new Date(year, month + 1, 0).getDate();
-    const startOffset = (firstDay.getDay() + 6) % 7; // Mon=0
-    const numRows     = Math.ceil((startOffset + totalDays) / 7);
-    const totalCells  = numRows * 7;
-    const trailingCount = totalCells - startOffset - totalDays;
+  // Start from Monday of current week
+  const todayDate  = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const todayDow   = (todayDate.getDay() + 6) % 7; // Mon=0
+  const startMon   = new Date(todayDate);
+  startMon.setDate(todayDate.getDate() - todayDow);
 
-    // Section wrapper carries the label for the scroll listener
-    html += `<div class="dc-cal-month-sec" data-label="${MONTH_NAMES[month]} ${year}">`;
-    html += '<div class="dc-grid dc-month-grid">';
+  let prevMonthKey = null;
 
-    for (let row = 0; row < numRows; row++) {
-      // Week number cell (ISO 8601)
-      const monDay  = 1 - startOffset + row * 7;
-      const monDate = new Date(year, month, monDay);
-      const wk = _isoWeek(monDate.getFullYear(), monDate.getMonth(), monDate.getDate());
-      html += `<div class="dc-week-num">${wk}</div>`;
+  for (let w = 0; w < 56; w++) { // ~13 months of weeks
+    // Monday of this week
+    const mon = new Date(startMon);
+    mon.setDate(startMon.getDate() + w * 7);
+    const monY = mon.getFullYear();
+    const monM = mon.getMonth();
 
-      for (let col = 0; col < 7; col++) {
-        const pos = row * 7 + col;
-
-        if (pos < startOffset) {
-          // Leading blank
-          html += '<div class="dc-tile dc-tile-empty"></div>';
-
-        } else {
-          const day = pos - startOffset + 1;
-
-          if (day <= totalDays) {
-            // Current month
-            const dStr = `${year}-${_p2(month+1)}-${_p2(day)}`;
-            if (dStr < today_) {
-              html += `<div class="dc-tile dc-tile-past"><span class="dc-num">${day}</span><span class="dc-icon"></span><span class="dc-temp"></span></div>`;
-            } else {
-              html += _dcTileHtml(dStr, today_, selected);
-            }
-          } else {
-            // Trailing overflow — next month, completes the last week row
-            const od   = day - totalDays;
-            const odt  = new Date(year, month + 1, od);
-            const oy   = odt.getFullYear();
-            const om   = odt.getMonth();
-            const odStr = `${oy}-${_p2(om+1)}-${_p2(od)}`;
-            if (odStr < today_) {
-              html += `<div class="dc-tile dc-tile-past dc-tile-overflow"><span class="dc-num">${od}</span><span class="dc-icon"></span><span class="dc-temp"></span></div>`;
-            } else {
-              html += _dcTileHtml(odStr, today_, selected).replace('"dc-tile', '"dc-tile dc-tile-overflow');
-            }
-          }
-        }
-      }
+    // Insert month label whenever Monday crosses into a new month
+    const mk = `${monY}-${monM}`;
+    if (mk !== prevMonthKey) {
+      prevMonthKey = mk;
+      const label = `${MONTH_NAMES[monM]} ${monY}`;
+      html += `<div class="dc-month-row-label" data-label="${label}">${label}</div>`;
     }
 
-    html += '</div></div>'; // .dc-grid .dc-cal-month-sec
+    // Week number
+    const wk = _isoWeek(monY, monM, mon.getDate());
+    html += `<div class="dc-week-num">${wk}</div>`;
+
+    // 7 day tiles Mon–Sun
+    for (let d = 0; d < 7; d++) {
+      const day  = new Date(startMon);
+      day.setDate(startMon.getDate() + w * 7 + d);
+      const yr   = day.getFullYear();
+      const mo   = day.getMonth();
+      const dt   = day.getDate();
+      const dStr = `${yr}-${_p2(mo+1)}-${_p2(dt)}`;
+      const isOv = mo !== monM; // day belongs to a different month than this week's Monday
+
+      if (dStr < today_) {
+        const cls = isOv ? 'dc-tile dc-tile-past dc-tile-overflow' : 'dc-tile dc-tile-past';
+        html += `<div class="${cls}"><span class="dc-num">${dt}</span><span class="dc-icon"></span><span class="dc-temp"></span></div>`;
+      } else {
+        let tile = _dcTileHtml(dStr, today_, selected);
+        if (isOv) tile = tile.replace('"dc-tile', '"dc-tile dc-tile-overflow');
+        html += tile;
+      }
+    }
   }
 
-  // Sticky fade at bottom signals more content below
-  html += '<div class="dc-cal-fade"></div>';
-  html += '</div>'; // .dc-cal-scroll
+  html += '</div></div>'; // .dc-month-grid .dc-cal-scroll
 
-  // Collapse button — outside scroll, stays at bottom
+  // Collapse button outside scroll, fixed at bottom of panel
   html += `<button class="dc-expand-btn-wide active" onclick="event.stopPropagation();_toggleQcCalExpand()">Collapse calendar</button>`;
 
   cal.innerHTML = html;
 
-  // Scroll listener: update fixed month header based on scroll position
+  // Scroll listener: keep fixed header in sync with visible month
   const scrollEl = cal.querySelector('.dc-cal-scroll');
   const hdrEl    = cal.querySelector('.dc-cal-month-hdr');
-  const sections = () => scrollEl.querySelectorAll('.dc-cal-month-sec');
   const updateHdr = () => {
+    if (!hdrEl || !scrollEl) return;
+    const top = scrollEl.getBoundingClientRect().top;
     let label = '';
-    for (const sec of sections()) {
-      if (sec.offsetTop <= scrollEl.scrollTop + 4) label = sec.dataset.label;
+    for (const lbl of scrollEl.querySelectorAll('.dc-month-row-label')) {
+      if (lbl.getBoundingClientRect().top <= top + 4) label = lbl.dataset.label;
     }
-    if (hdrEl) hdrEl.textContent = label || (sections()[0]?.dataset.label ?? '');
+    hdrEl.textContent = label || scrollEl.querySelector('.dc-month-row-label')?.dataset.label || '';
   };
   scrollEl?.addEventListener('scroll', updateHdr, { passive: true });
-  updateHdr(); // set initial label
+  updateHdr();
 
   _syncQcPanelHeightExpanded();
 }
 
+
 function _toggleQcCalExpand() {
   _qcCalExpanded = !_qcCalExpanded;
-  renderQcCalendar();
-  // Trigger entry animation — double-rAF ensures class removal is painted first
+  // Hide before render to prevent flash of un-animated content
   const _calEl = document.getElementById('qc-cal');
   if (_calEl) {
     _calEl.classList.remove('dc-cal-entering');
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      _calEl.classList.add('dc-cal-entering');
-    }));
+    _calEl.style.opacity = '0';
   }
+  renderQcCalendar();
+  // Single rAF: restore visibility and start animation
+  requestAnimationFrame(() => {
+    if (_calEl) {
+      _calEl.style.removeProperty('opacity');
+      _calEl.classList.add('dc-cal-entering');
+    }
+  });
   if (!_qcCalExpanded) {
     const qcPanel = document.getElementById('qc-panel');
     if (qcPanel) {

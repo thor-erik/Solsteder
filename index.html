@@ -593,13 +593,14 @@
     font-family: 'Inter', sans-serif; font-size: 7px; font-weight: 600;
     color: rgba(156,189,231,0.22); line-height: 1;
   }
-  /* Fade overlay — sticky to bottom of scroll viewport, signals more content below */
-  .dc-cal-fade {
-    position: sticky; bottom: -1px;
-    height: 52px; margin-top: -52px;
-    background: linear-gradient(to bottom, transparent, rgba(10, 26, 54, 0.96));
-    pointer-events: none; z-index: 3; display: block;
+  /* Month label row — spans all 8 columns inside the continuous grid */
+  .dc-month-row-label {
+    grid-column: 1 / -1;
+    font-family: 'Inter', sans-serif; font-size: 9px; font-weight: 700;
+    color: rgba(156,189,231,0.45); text-transform: uppercase; letter-spacing: 0.09em;
+    padding: 8px 2px 3px;
   }
+  .dc-month-row-label:first-child { padding-top: 2px; }
   /* Month grid — smaller tiles than strip to fit ~5 rows */
   .dc-month-grid { grid-auto-rows: auto; }
   .dc-month-grid .dc-tile { padding: 3px 1px; gap: 1px; }
@@ -2900,6 +2901,8 @@
   #qc-cal .dc-cal-scroll {
     height: 300px; overflow-y: auto; -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
+    mask-image: linear-gradient(to bottom, black 88%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 88%, transparent 100%);
   }
   #qc-cal .dc-cal-scroll::-webkit-scrollbar { display: none; }
   /* Strip grid: equal-height rows fill available space */
