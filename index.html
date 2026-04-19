@@ -2888,9 +2888,9 @@
   }
   #qc-date-section { display: none; padding: 8px; box-sizing: border-box; width: 100%; overflow: hidden; }
   #qc-date-section.active { display: flex; flex-direction: column; }
-  #qc-cal { flex: 1; min-height: 0; display: flex; flex-direction: column; width: 100%; box-sizing: border-box; overflow: hidden; }
+  #qc-cal { flex: 1; min-height: 0; display: flex; flex-direction: column; width: 100%; box-sizing: border-box; overflow: clip; }
   /* Month view: .dc-cal-scroll is the actual scroll container; #qc-cal just stacks vertically */
-  #qc-panel.cal-expanded #qc-cal { overflow: hidden; flex: 1; }
+  #qc-panel.cal-expanded #qc-cal { overflow: clip; flex: 1; }
   #qc-cal .dc-cal-scroll {
     height: 310px; overflow-y: auto; -webkit-overflow-scrolling: touch;
     scrollbar-width: none; flex: 1;

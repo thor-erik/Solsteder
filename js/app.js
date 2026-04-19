@@ -856,10 +856,10 @@ function _renderQcCalendarMonth(cal) {
       html += '<div class="dc-tile dc-tile-empty"></div>';
     }
 
-    // Day tiles
+    // Day tiles — use local date string (not toISOString which shifts date in UTC+2)
+    const _p2 = n => String(n).padStart(2, '0');
     for (let day = 1; day <= totalDays; day++) {
-      const dt   = new Date(year, month, day);
-      const dStr = dt.toISOString().slice(0, 10);
+      const dStr = `${year}-${_p2(month+1)}-${_p2(day)}`;
       if (dStr < today_) {
         html += `<div class="dc-tile dc-tile-past"><span class="dc-num">${day}</span></div>`;
       } else {
