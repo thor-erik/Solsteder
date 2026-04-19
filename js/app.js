@@ -712,6 +712,7 @@ function _closeQcPanel() {
   _qcCalExpanded   = false;
 
   document.getElementById('ptb-date-btn')?.classList.remove('active');
+  document.getElementById('ptb-cal-float')?.classList.remove('open');
 
   panel.classList.remove('open');
   panel.classList.remove('cal-expanded');
@@ -729,7 +730,8 @@ function toggleQcPanel(section) {
   // Only 'date' section is used now; arc is always visible in panel-time-bar
   if (section !== 'date') return;
 
-  const panel = document.getElementById('qc-panel');
+  const panel   = document.getElementById('qc-panel');
+  const calFloat = document.getElementById('ptb-cal-float');
   if (!panel) return;
 
   if (_qcActiveSection === 'date') {
@@ -738,6 +740,7 @@ function toggleQcPanel(section) {
   }
 
   _qcActiveSection = 'date';
+  calFloat?.classList.add('open');
   panel.classList.add('open');
   document.getElementById('qc-date-section')?.classList.add('active');
   document.getElementById('ptb-date-btn')?.classList.add('active');
@@ -2086,10 +2089,13 @@ document.addEventListener('DOMContentLoaded', () => {
       cal.classList.remove('open');
       displayBtn?.classList.remove('open');
     }
-    // Close qc-panel (calendar) when clicking outside the panel-time-bar
+    // Close calendar when clicking outside the float AND outside the date button
     const qcPanel   = document.getElementById('qc-panel');
-    const ptbBar    = document.getElementById('panel-time-bar');
-    if (qcPanel?.classList.contains('open') && !ptbBar?.contains(e.target)) {
+    const calFloat  = document.getElementById('ptb-cal-float');
+    const dateBtn   = document.getElementById('ptb-date-btn');
+    if (qcPanel?.classList.contains('open')
+        && !calFloat?.contains(e.target)
+        && !dateBtn?.contains(e.target)) {
       _closeQcPanel();
     }
   });

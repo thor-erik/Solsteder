@@ -977,7 +977,7 @@
   /* LEFT PANEL — venue list, floats below search bar */
   #panel {
     position: absolute;
-    top: 118px;     /* 16 search-top + 46 search-h + 8 gap + 40 pills-h + 8 gap */
+    top: 116px;     /* 16 search-top + 46 search-h + 8 gap + 38 time-strip-h + 8 gap */
     left: 16px;
     bottom: 16px;
     width: 336px;
@@ -2877,17 +2877,16 @@
     border-radius: 20px;
   }
 
-  /* ── Panel time bar — sticky at top of venue list panel ─────────────── */
+  /* ── Panel time bar: date circle + arc canvas ───────────────────────── */
   #panel-time-bar {
     flex-shrink: 0;
-    padding: 8px 14px 10px;
+    padding: 10px 14px 10px;
     border-bottom: 1px solid rgba(156, 189, 231, 0.1);
   }
   #ptb-top-row {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 6px;
   }
   #ptb-date-btn {
     width: 30px;
@@ -2927,6 +2926,30 @@
     min-width: 0;
   }
   #qc-arc:active { cursor: grabbing; }
+
+  /* ── Calendar float — outside #panel, position: fixed so it escapes transforms ── */
+  #ptb-cal-float {
+    position: fixed;
+    z-index: 830;
+    display: none;
+    /* desktop: flush with panel left edge, just above panel */
+    left: 16px;
+    width: 336px;
+    top: 70px;   /* sits over the time-strip area; overridden on mobile */
+    transition: left 0.28s ease;
+  }
+  #ptb-cal-float.open { display: block; }
+  @media (max-width: 639px) {
+    #ptb-cal-float {
+      left: 12px;
+      right: 12px;
+      width: auto;
+      top: auto;
+      /* float above the panel peek */
+      bottom: 172px;
+    }
+  }
+
   #qc-presets {
     display: flex;
     gap: 2px;
@@ -3620,13 +3643,25 @@
     <span id="fdl-text">Today</span>
   </div>
 
+  <!-- Calendar float — positioned above the panel, opened by the date button in panel-time-bar.
+       Lives OUTSIDE #panel so it escapes the panel's transform context. -->
+  <div id="ptb-cal-float">
+    <div id="qc-panel">
+      <div id="qc-panel-inner">
+        <div id="qc-date-section">
+          <div id="qc-cal"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- LEFT PANEL — venue list, floats below search bar -->
   <div id="panel" class="intro-hidden">
     <div id="panel-handle" style="display:none" onclick="togglePanel()">
       <div id="panel-handle-pill"></div>
     </div>
 
-    <!-- Sticky time control bar: date button + scrubable arc + presets + calendar -->
+    <!-- Time bar: date circle button + scrubable arc canvas -->
     <div id="panel-time-bar">
       <div id="ptb-top-row">
         <button id="ptb-date-btn" onclick="toggleQcPanel('date')" title="Change date">
@@ -3637,20 +3672,6 @@
           </svg>
         </button>
         <canvas id="qc-arc"></canvas>
-      </div>
-      <div id="qc-presets">
-        <button class="qc-preset-btn" data-intent="now"        onclick="setIntent('now')">Now</button>
-        <button class="qc-preset-btn" data-intent="lunch"      onclick="setIntent('lunch')">Lunch</button>
-        <button class="qc-preset-btn" data-intent="after-work" onclick="setIntent('after-work')">After work</button>
-        <button class="qc-preset-btn" data-intent="evening"    onclick="setIntent('evening')">Evening</button>
-      </div>
-      <!-- Calendar section: collapses/expands via toggleQcPanel('date') -->
-      <div id="qc-panel">
-        <div id="qc-panel-inner">
-          <div id="qc-date-section">
-            <div id="qc-cal"></div>
-          </div>
-        </div>
       </div>
     </div>
 

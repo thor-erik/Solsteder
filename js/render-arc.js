@@ -243,33 +243,42 @@ function drawSunCurve(canvasEl) {
     c.fillText(`${h}`, timeToX(h), ch - 2);
   }
 
-  // ── 6. Scrub indicator ──────────────────────────────────────────────────────
-  const scrubH    = (typeof arcHoverH === 'number') ? arcHoverH : fromH;
+  // ── 6. Scrub indicator — half-height glass pill thumb ───────────────────────
+  const scrubH     = (typeof arcHoverH === 'number') ? arcHoverH : fromH;
   const isHovering = typeof arcHoverH === 'number';
 
   if (scrubH >= MIN_H && scrubH <= MAX_H) {
-    const sx     = timeToX(scrubH);
-    const wxSlot = getWeatherAt(dateStr, scrubH); // plain WeatherSlot | null
-    const tempY  = wxSlot ? tempToY(wxSlot.temp) : PAD_T + CHART_H / 2;
+    const sx = timeToX(scrubH);
 
-    // Full-height vertical scrub line
-    c.beginPath(); c.moveTo(sx, PAD_T); c.lineTo(sx, bottomY);
-    c.strokeStyle = isHovering ? 'rgba(156,189,231,0.65)' : 'rgba(255,255,255,0.30)';
-    c.lineWidth = 1; c.setLineDash([2, 3]); c.stroke(); c.setLineDash([]);
+    // Half-height pill thumb centered in the chart+precip area
+    const barH   = CHART_H + PRECIP_H;   // total colored band height
+    const tW     = 11;
+    const tH     = Math.round(barH * 0.54);
+    const tX     = sx - tW / 2;
+    const tY     = PAD_T + (barH - tH) / 2;
+    const tR     = tW / 2;                // capsule: radius = half width
 
-    // Dot on temperature curve
-    if (wxSlot) {
-      c.beginPath(); c.arc(sx, tempY, 3.5, 0, Math.PI * 2);
-      c.fillStyle = isHovering ? 'rgba(156,189,231,0.95)' : 'rgba(255,175,133,0.95)';
-      c.fill();
-    }
+    // Drop shadow
+    c.save();
+    c.shadowColor   = 'rgba(0,0,0,0.40)';
+    c.shadowBlur    = 6;
+    c.shadowOffsetY = 1;
 
-    // Drag thumb — fixed at baseline, large and easy to grab
-    const thumbR = isHovering ? 7 : 6;
-    c.beginPath(); c.arc(sx, baseY, thumbR, 0, Math.PI * 2);
-    c.fillStyle   = isHovering ? 'rgba(156,189,231,0.22)' : 'rgba(255,175,133,0.16)'; c.fill();
-    c.strokeStyle = isHovering ? 'rgba(156,189,231,0.80)' : 'rgba(255,175,133,0.80)';
-    c.lineWidth   = isHovering ? 2 : 1.5; c.stroke();
+    // Fill
+    c.beginPath();
+    c.moveTo(tX + tR, tY);
+    c.lineTo(tX + tW - tR, tY);
+    c.arcTo(tX + tW, tY,       tX + tW, tY + tR,       tR);
+    c.lineTo(tX + tW, tY + tH - tR);
+    c.arcTo(tX + tW, tY + tH,  tX + tW - tR, tY + tH,  tR);
+    c.lineTo(tX + tR, tY + tH);
+    c.arcTo(tX,       tY + tH,  tX, tY + tH - tR,       tR);
+    c.lineTo(tX,      tY + tR);
+    c.arcTo(tX,       tY,       tX + tR, tY,             tR);
+    c.closePath();
+    c.fillStyle = isHovering ? 'rgba(200,225,255,0.95)' : 'rgba(255,252,248,0.92)';
+    c.fill();
+    c.restore();
   }
 
   c.restore();
@@ -366,24 +375,35 @@ function _drawSunArc(c, cw, ch, dateStr, fromH, isToday, MIN_H, MAX_H, PAD_X, ti
     c.fillText(`${h}`, timeToX(h), ch - 2);
   }
 
-  // Scrub indicator (horizon-based, matching original UX)
-  const scrubH    = (typeof arcHoverH === 'number') ? arcHoverH : fromH;
+  // Scrub indicator — half-height glass pill thumb (arc/no-weather mode)
+  const scrubH     = (typeof arcHoverH === 'number') ? arcHoverH : fromH;
   const isHovering = typeof arcHoverH === 'number';
   if (scrubH >= MIN_H && scrubH <= MAX_H) {
-    const sx       = timeToX(scrubH);
-    const scrubSun = getSunFromTable(currentSunTable, scrubH);
-    const sy       = altToY(Math.max(0, scrubSun.alt));
+    const sx   = timeToX(scrubH);
+    const barH = horizY - PAD_T;          // height of arc area above horizon
+    const tW   = 11;
+    const tH   = Math.round(barH * 0.54);
+    const tX   = sx - tW / 2;
+    const tY   = PAD_T + (barH - tH) / 2;
+    const tR   = tW / 2;
 
-    c.beginPath(); c.moveTo(sx, PAD_T); c.lineTo(sx, horizY - 1);
-    c.strokeStyle = 'rgba(156,189,231,0.38)'; c.lineWidth = 1;
-    c.setLineDash([2, 3]); c.stroke(); c.setLineDash([]);
-
-    c.beginPath(); c.arc(sx, sy, 4, 0, Math.PI * 2);
-    c.fillStyle = isHovering ? 'rgba(156,189,231,0.88)' : 'rgba(255,175,133,0.92)'; c.fill();
-
-    c.beginPath(); c.arc(sx, horizY, isHovering ? 7 : 6, 0, Math.PI * 2);
-    c.fillStyle   = isHovering ? 'rgba(156,189,231,0.18)' : 'rgba(255,175,133,0.14)'; c.fill();
-    c.strokeStyle = isHovering ? 'rgba(156,189,231,0.58)' : 'rgba(255,175,133,0.72)';
-    c.lineWidth = 1.5; c.stroke();
+    c.save();
+    c.shadowColor   = 'rgba(0,0,0,0.40)';
+    c.shadowBlur    = 6;
+    c.shadowOffsetY = 1;
+    c.beginPath();
+    c.moveTo(tX + tR, tY);
+    c.lineTo(tX + tW - tR, tY);
+    c.arcTo(tX + tW, tY,       tX + tW, tY + tR,       tR);
+    c.lineTo(tX + tW, tY + tH - tR);
+    c.arcTo(tX + tW, tY + tH,  tX + tW - tR, tY + tH,  tR);
+    c.lineTo(tX + tR, tY + tH);
+    c.arcTo(tX,       tY + tH,  tX, tY + tH - tR,       tR);
+    c.lineTo(tX,      tY + tR);
+    c.arcTo(tX,       tY,       tX + tR, tY,             tR);
+    c.closePath();
+    c.fillStyle = isHovering ? 'rgba(200,225,255,0.95)' : 'rgba(255,252,248,0.92)';
+    c.fill();
+    c.restore();
   }
 }
