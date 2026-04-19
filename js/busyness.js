@@ -125,9 +125,9 @@ function _heuristicProfile(venue, dateStr) {
 
 // ── Busyness label ────────────────────────────────────────────────────────────
 function busynessLabel(value) {
-  if (value >= 80) return 'Very busy';
-  if (value >= 60) return 'Busy';
-  if (value >= 40) return 'Moderately busy';
-  if (value >= 20) return 'Not too busy';
-  return 'Quiet';
+  if (value >= 80) return t('busy_very');
+  if (value >= 60) return t('busy_high');
+  if (value >= 40) return t('busy_mid');
+  if (value >= 20) return t('busy_not_too');
+  return t('busy_low');
 }

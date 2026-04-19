@@ -5,20 +5,20 @@
  */
 
 const CATEGORIES = {
-  restaurant:   { label: 'Restaurant'   },
-  pub:          { label: 'Pub'          },
-  cocktail_bar: { label: 'Cocktail Bar' },
-  wine_bar:     { label: 'Wine Bar'     },
-  bistro_bar:   { label: 'Bistro Bar'   },
-  brasserie:    { label: 'Brasserie'    },
-  cafe:         { label: 'Café'         },
-  rooftop_bar:  { label: 'Rooftop Bar'  },
-  courtyard:    { label: 'Courtyard'    },
-  beer_garden:  { label: 'Beer Garden'  },
-  fine_dining:  { label: 'Fine Dining'  },
+  restaurant:   'cat_restaurant',
+  pub:          'cat_pub',
+  cocktail_bar: 'cat_cocktail_bar',
+  wine_bar:     'cat_wine_bar',
+  bistro_bar:   'cat_bistro_bar',
+  brasserie:    'cat_brasserie',
+  cafe:         'cat_cafe',
+  rooftop_bar:  'cat_rooftop_bar',
+  courtyard:    'cat_courtyard',
+  beer_garden:  'cat_beer_garden',
+  fine_dining:  'cat_fine_dining',
 };
 
-function catLabel(v) { return (CATEGORIES[v.category] ?? CATEGORIES.restaurant).label; }
+function catLabel(v) { return t(CATEGORIES[v.category] ?? CATEGORIES.restaurant); }
 
 // ── Runtime venue array (populated by loadVenues) ─────────────────────────────
 // Mutated by initFacings() — adds: buildingGeometry, wallNormals, wallSegment.

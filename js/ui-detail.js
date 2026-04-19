@@ -95,14 +95,14 @@ function renderSunDial(v, dateStr, fromHour) {
     const gapTotal  = Math.max(0, totalSpan - remLight);
     const fmtHM = h => { const fh = Math.floor(h), fm = Math.round((h - fh) * 60); return (fh > 0 ? fh+'h ' : '') + (fm > 0 ? fm+'m' : (fh > 0 ? '' : '0m')); };
     const pillCls = isRainy ? 'rainy' : isOvercast ? 'overcast' : 'sunny';
-    const gapPart = gapTotal > 1/12 ? ` · ${fmtHM(gapTotal)} gap` : '';
-    pill = `<div class="dp-sun-pill ${pillCls}">${wxIcon} until ${formatHour(lastWinDp.end)}${gapPart} · ${fmtHM(remLight)} left</div>`;
+    const gapPart = gapTotal > 1/12 ? ` · ${fmtHM(gapTotal)} ${t('word_gap')}` : '';
+    pill = `<div class="dp-sun-pill ${pillCls}">${wxIcon} ${t('word_until')} ${formatHour(lastWinDp.end)}${gapPart} · ${fmtHM(remLight)} ${t('word_left')}</div>`;
   } else if (nextWin) {
     const wait = nextWin.start - fromHour;
     const ph = Math.floor(wait), pm = Math.round((wait - ph) * 60);
-    pill = `<div class="dp-sun-pill neutral">${wxIcon} in ${(ph>0?ph+'h ':'')}${pm>0?pm+'m':''} · at ${formatHour(nextWin.start)}</div>`;
+    pill = `<div class="dp-sun-pill neutral">${wxIcon} ${t('word_in_time')} ${(ph>0?ph+'h ':'')}${pm>0?pm+'m':''} · ${t('word_at')} ${formatHour(nextWin.start)}</div>`;
   } else {
-    pill = `<div class="dp-sun-pill muted">${windows.length ? 'No more today' : 'No sun today'}</div>`;
+    pill = `<div class="dp-sun-pill muted">${windows.length ? t('no_more_today') : t('no_sun_today')}</div>`;
   }
 
   return { svg, pill };
@@ -180,9 +180,9 @@ function buildDialCallouts(windows, fromHour, dateStr, CX, CY, R, H) {
       if (isCur) {
         const rem = w.end - fromHour;
         if (rem < 1) {
-          label = `${icon} ${Math.round(rem * 60)} min left`;
+          label = `${icon} ${t('sun_min_left', { min: Math.round(rem * 60) })}`;
         } else {
-          label = `${icon} until ${fh(w.end)}`;
+          label = `${icon} ${t('sun_until_dial', { time: fh(w.end) })}`;
         }
       } else {
         const dur = w.end - w.start;
@@ -202,17 +202,18 @@ function buildDialCallouts(windows, fromHour, dateStr, CX, CY, R, H) {
         let label;
         if (inGap) {
           const rem = gE - fromHour;
-          const nextTerm = wxterm(gE);
+          const nextTermKey = wxterm(gE);
           if (rem < 1) {
-            label = `${nextTerm[0].toUpperCase() + nextTerm.slice(1)} in ${Math.round(rem * 60)} min`;
+            const termCap = t('term_' + nextTermKey);
+            label = t('next_term_in', { term: termCap.charAt(0).toUpperCase() + termCap.slice(1), min: Math.round(rem * 60) });
           } else {
             const gh = Math.floor(rem), gm = Math.round((rem - gh) * 60);
-            label = gm > 0 ? `${gh}h ${gm}m shadow left` : `${gh}h shadow left`;
+            label = gm > 0 ? t('shadow_left_hm', { h: gh, m: gm }) : t('shadow_left_h', { h: gh });
           }
         } else {
           label = gH <= 1
-            ? `${Math.round(gH * 60)} min shadow`
-            : `${fh(gS)} – ${fh(gE)} shadow`;
+            ? t('min_shadow', { min: Math.round(gH * 60) })
+            : t('shadow_range', { start: fh(gS), end: fh(gE) });
         }
         segs.push({ callH, label, type: 'shadow' });
       }
@@ -325,11 +326,11 @@ function renderTimeline(v, dateStr, fromHour, toHour) {
     <div class="card-timeline">
       <div class="tl-row">
         <div class="tl-track" style="opacity:0.35"></div>
-        <span class="tl-closed-badge">Closed</span>
+        <span class="tl-closed-badge">${t('tl_closed')}</span>
       </div>
       <div class="tl-labels">
-        <span>Opens ${formatHour(open)}</span>
-        <span>Closes ${formatHour(close)}</span>
+        <span>${t('opens_at', { time: formatHour(open) })}</span>
+        <span>${t('closes_at', { time: formatHour(close) })}</span>
       </div>
     </div>`;
   }
@@ -377,7 +378,8 @@ function renderTimeline(v, dateStr, fromHour, toHour) {
   const wxTl = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, fromHour) : null;
   const tlRainy = (wxTl?.precip ?? 0) > 0.3;
   const tlOvercast = !tlRainy && (wxTl?.cloud ?? 0) > 0.65;
-  const tlTerm = tlRainy ? 'rain' : tlOvercast ? 'light' : 'sun';
+  const tlTermKey = tlRainy ? 'term_rain' : tlOvercast ? 'term_light' : 'term_sun';
+  const tlTerm = t(tlTermKey);
   const tlIcon = tlRainy ? '🌧' : tlOvercast ? '☁' : '☀';
   const tlCls  = tlRainy ? 'neutral' : 'sunny';
 
@@ -387,15 +389,17 @@ function renderTimeline(v, dateStr, fromHour, toHour) {
     if (curWin) {
       const rem = curWin.end - fromHour;
       const h = Math.floor(rem), m = Math.round((rem - h) * 60);
-      badge = `<span class="tl-badge ${tlCls}">${tlIcon} ${h > 0 ? h+'h ' : ''}${m > 0 ? m+'m' : ''} ${tlTerm} left</span>`;
+      const dur = `${h > 0 ? h+'h ' : ''}${m > 0 ? m+'m' : ''}`;
+      badge = `<span class="tl-badge ${tlCls}">${tlIcon} ${dur} ${t('tl_left', { term: tlTerm })}</span>`;
     } else {
       const next = windows.find(w => w.start > fromHour);
       if (next) {
         const wait = next.start - fromHour;
         const h = Math.floor(wait), m = Math.round((wait - h) * 60);
-        badge = `<span class="tl-badge neutral">${tlIcon} ${tlTerm} in ${h > 0 ? h+'h ' : ''}${m > 0 ? m+'m' : ''}</span>`;
+        const waitStr = `${h > 0 ? h+'h ' : ''}${m > 0 ? m+'m' : ''}`;
+        badge = `<span class="tl-badge neutral">${tlIcon} ${t('tl_in', { term: tlTerm, wait: waitStr })}</span>`;
       } else {
-        badge = `<span class="tl-badge muted">${windows.length ? `${tlTerm} passed` : `No ${tlTerm}`}</span>`;
+        badge = `<span class="tl-badge muted">${windows.length ? t('tl_passed', { term: tlTerm }) : t('tl_no', { term: tlTerm })}</span>`;
       }
     }
   } else {
@@ -408,7 +412,7 @@ function renderTimeline(v, dateStr, fromHour, toHour) {
       const h = Math.floor(totalSun), m = Math.round((totalSun - h) * 60);
       badge = `<span class="tl-badge ${tlCls}">${tlIcon} ${h > 0 ? h+'h ' : ''}${m > 0 ? m+'m' : ''} ${tlTerm}</span>`;
     } else {
-      badge = `<span class="tl-badge muted">No ${tlTerm}</span>`;
+      badge = `<span class="tl-badge muted">${t('tl_no', { term: tlTerm })}</span>`;
     }
   }
 
@@ -418,8 +422,8 @@ function renderTimeline(v, dateStr, fromHour, toHour) {
         <div class="tl-track">${shadeSegs}${sunSegs}${needle}${endOfSunTick}</div>
       </div>
       <div class="tl-labels">
-        <span>Opens ${formatHour(open)}</span>
-        <span>Closes ${formatHour(close)}</span>
+        <span>${t('opens_at', { time: formatHour(open) })}</span>
+        <span>${t('closes_at', { time: formatHour(close) })}</span>
       </div>
     </div>`;
 }
@@ -491,13 +495,13 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
     const rem = curWin.end - fromHour;
     const bh = Math.floor(rem), bm = Math.round((rem - bh) * 60);
     const dur = (bh > 0 ? bh + 'h ' : '') + (bm > 0 ? bm + 'm' : '');
-    statusBadge = `<span class="score-badge tier-high">☀ ${dur.trim()} · until ${formatHour(curWin.end)}</span>`;
+    statusBadge = `<span class="score-badge tier-high">☀ ${dur.trim()} · ${t('sun_until_dial', { time: formatHour(curWin.end) })}</span>`;
   } else {
     const next = windows.find(w => w.start > fromHour);
     if (next) {
-      statusBadge = `<span class="score-badge tier-mid">☀ Sun at ${formatHour(next.start)}</span>`;
+      statusBadge = `<span class="score-badge tier-mid">☀ ${t('sun_at_detail', { time: formatHour(next.start) })}</span>`;
     } else {
-      statusBadge = `<span class="score-badge tier-poor">${windows.length ? 'Sun passed' : 'No sun today'}</span>`;
+      statusBadge = `<span class="score-badge tier-poor">${windows.length ? t('sun_passed') : t('no_sun_today')}</span>`;
     }
   }
 
@@ -507,33 +511,33 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
 
   // Noise chip — prefer official Geonorge zone, fall back to OSM estimate
   const noiseChip = v.noiseZone != null
-    ? v.noiseZone === 'red'    ? { label: 'High traffic noise',     cls: 'noise-high', icon: '🔊' }
-    : v.noiseZone === 'yellow' ? { label: 'Moderate noise',         cls: 'noise-mid',  icon: '🔉' }
-    :                            { label: 'Low noise level',         cls: 'noise-low',  icon: '🔈' }
+    ? v.noiseZone === 'red'    ? { label: t('noise_high'),     cls: 'noise-high', icon: '🔊' }
+    : v.noiseZone === 'yellow' ? { label: t('noise_mid'),      cls: 'noise-mid',  icon: '🔉' }
+    :                            { label: t('noise_low'),      cls: 'noise-low',  icon: '🔈' }
     : v.noiseScore != null
-    ? v.noiseScore > 0.65 ? { label: 'Noisy (est.)',           cls: 'noise-high', icon: '🔊' }
-    : v.noiseScore > 0.35 ? { label: 'Some traffic (est.)',    cls: 'noise-mid',  icon: '🔉' }
-    :                        { label: 'Quiet (est.)',           cls: 'noise-low',  icon: '🔈' }
+    ? v.noiseScore > 0.65 ? { label: t('noise_high_est'), cls: 'noise-high', icon: '🔊' }
+    : v.noiseScore > 0.35 ? { label: t('noise_mid_est'),  cls: 'noise-mid',  icon: '🔉' }
+    :                        { label: t('noise_low_est'),  cls: 'noise-low',  icon: '🔈' }
     : null;
 
   const envSection = noiseChip ? `
     <div class="dp-divider"></div>
-    <div class="dp-section-label">Environment</div>
+    <div class="dp-section-label">${t('environment')}</div>
     <div class="dp-env-row">
       ${noiseChip ? `<div class="dp-env-chip ${noiseChip.cls}">${noiseChip.icon} ${noiseChip.label}</div>` : ''}
     </div>` : '';
 
   const sunScoreSection = s ? `
     <div class="dp-divider"></div>
-    <div class="dp-section-label">Sun Score</div>
-    <div class="dp-exp-row"><span><span class="dp-exp-label">Sun Exposure</span><div class="dp-exp-hint">Hours of direct sun vs. opening hours</div></span><span class="dp-exp-val">${s.sun}%</span></div>
+    <div class="dp-section-label">${t('sun_score')}</div>
+    <div class="dp-exp-row"><span><span class="dp-exp-label">${t('sun_exposure')}</span><div class="dp-exp-hint">${t('sun_exposure_hint')}</div></span><span class="dp-exp-val">${s.sun}%</span></div>
     <div class="dp-exp-bar-wrap"><div class="dp-exp-bar-fill" style="width:${s.sun}%"></div></div>
-    <div class="dp-exp-row"><span><span class="dp-exp-label">Comfort Level</span><div class="dp-exp-hint">Feels-like temperature &amp; wind speed</div></span><span class="dp-exp-val">${s.comfort}%</span></div>
+    <div class="dp-exp-row"><span><span class="dp-exp-label">${t('comfort_level')}</span><div class="dp-exp-hint">${t('comfort_hint')}</div></span><span class="dp-exp-val">${s.comfort}%</span></div>
     <div class="dp-exp-bar-wrap"><div class="dp-exp-bar-fill" style="width:${s.comfort}%"></div></div>
     ${s.noise != null ? `
-    <div class="dp-exp-row"><span><span class="dp-exp-label">Noise</span><div class="dp-exp-hint">Estimated traffic noise at this location</div></span><span class="dp-exp-val">${s.noise}%</span></div>
+    <div class="dp-exp-row"><span><span class="dp-exp-label">${t('noise_section')}</span><div class="dp-exp-hint">${t('noise_hint')}</div></span><span class="dp-exp-val">${s.noise}%</span></div>
     <div class="dp-exp-bar-wrap"><div class="dp-exp-bar-fill" style="width:${s.noise}%"></div></div>` : ''}
-    ${distStr ? `<div class="dp-exp-row" style="margin-top:8px"><span class="dp-exp-label">Proximity</span><span class="dp-exp-val" style="font-style:normal;font-size:13px">${distStr}</span></div>` : ''}
+    ${distStr ? `<div class="dp-exp-row" style="margin-top:8px"><span class="dp-exp-label">${t('proximity')}</span><span class="dp-exp-val" style="font-style:normal;font-size:13px">${distStr}</span></div>` : ''}
   ` : '';
 
   const { svg: dialSvg, pill: sunPill } = renderSunDial(v, dateStr, fromHour);
@@ -554,7 +558,7 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
 
   const limitedSolarNotice = v.facing == null ? `
     <div class="dp-limited-solar">
-      Solar data limited — building geometry not yet computed for this venue.
+      ${t('solar_limited')}
     </div>` : '';
 
   return `
@@ -562,7 +566,7 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       ${photosHtml}
       <div class="dp-header-row">
         <div class="dp-venue-name">${v.name}</div>
-        <button id="dp-close-btn" onclick="closeDetailPanel()"><span class="dp-close-x">✕</span><span class="dp-close-back">Venues</span></button>
+        <button id="dp-close-btn" onclick="closeDetailPanel()"><span class="dp-close-x">✕</span><span class="dp-close-back">${t('venues_back')}</span></button>
       </div>
       <div class="dp-meta">${catLabel(v)}${v.area ? ' · ' + v.area : ''}${distStr ? ' · ' + distStr : ''}</div>
 
@@ -573,15 +577,15 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       ${limitedSolarNotice}
 
       <div class="dp-gm-actions">
-        <a class="dp-gm-chip" href="${directionsUrl}" target="_blank" rel="noopener">${ICON_DIR}<span>Directions</span></a>
-        <a class="dp-gm-chip" href="${websiteUrl}" target="_blank" rel="noopener">${ICON_WEB}<span>Website</span></a>
-        <button class="dp-gm-chip" onclick="shareVenue(${v.id})">${ICON_SHARE}<span>Share</span></button>
-        <button class="dp-gm-chip" onclick="enterEditMode(${v.id})">${ICON_EDIT}<span>Edit</span></button>
+        <a class="dp-gm-chip" href="${directionsUrl}" target="_blank" rel="noopener">${ICON_DIR}<span>${t('directions')}</span></a>
+        <a class="dp-gm-chip" href="${websiteUrl}" target="_blank" rel="noopener">${ICON_WEB}<span>${t('website')}</span></a>
+        <button class="dp-gm-chip" onclick="shareVenue(${v.id})">${ICON_SHARE}<span>${t('share')}</span></button>
+        <button class="dp-gm-chip" onclick="enterEditMode(${v.id})">${ICON_EDIT}<span>${t('edit')}</span></button>
       </div>
 
       ${sunScoreSection}
       <div class="dp-divider"></div>
-      <div class="dp-section-label">Busyness</div>
+      <div class="dp-section-label">${t('busyness')}</div>
       ${renderBusynessChart(v, dateStr, fromHour)}
     </div>`;
 }

@@ -66,7 +66,7 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
            onmouseenter="setHoveredVenue(${v.id})" onmouseleave="setHoveredVenue(null)">
         <div class="closed-row">
           <span class="closed-name">${v.name}</span>
-          <span class="card-badge shaded">Opens ${formatHour(dayHours.open)}</span>
+          <span class="card-badge shaded">${t('opens_at', { time: formatHour(dayHours.open) })}</span>
         </div>
       </div>`;
   }
@@ -88,7 +88,9 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
   const precipCard = wxCard?.precip ?? 0;
   const cardRainy = precipCard > 0.3;
   const cardOvercast = !cardRainy && cloudCard > 0.65;
-  const cardTerm  = cardRainy ? 'RAIN' : cardOvercast ? 'LIGHT' : 'SUN';
+  const cardTermKey = cardRainy ? 'term_rain' : cardOvercast ? 'term_light' : 'term_sun';
+  const cardTerm  = t(cardTermKey).toUpperCase();
+  const cardTermLc = t(cardTermKey);
   const cardIcon  = cardRainy ? '🌧' : cardOvercast ? '☁' : '☀';
   const durCls    = cardRainy ? 'dur-rainy' : cardOvercast ? 'dur-overcast' : cloudCard > 0.38 ? 'dur-cloudy' : 'dur-sunny';
 
@@ -99,15 +101,15 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
       const rem = curWin.end - fromHour;
       const bh = Math.floor(rem), bm = Math.round((rem - bh) * 60);
       const dur = (bh > 0 ? bh + 'h ' : '') + (bm > 0 ? bm + 'm' : '');
-      cardBadgeText = `${cardIcon} ${dur.trim()} · until ${formatHour(curWin.end)}`;
+      cardBadgeText = `${cardIcon} ${dur.trim()} · ${t('word_until')} ${formatHour(curWin.end)}`;
       cardBadgeCls = cardRainy ? 'neutral' : 'sunny';
     } else {
       const next = windows.find(w => w.start > fromHour);
       if (next) {
-        cardBadgeText = `${cardIcon} at ${formatHour(next.start)}`;
+        cardBadgeText = `${cardIcon} ${t('word_at')} ${formatHour(next.start)}`;
         cardBadgeCls = 'neutral';
       } else {
-        cardBadgeText = windows.length ? `${cardTerm.toLowerCase()} passed` : `No ${cardTerm.toLowerCase()}`;
+        cardBadgeText = windows.length ? t('tl_passed', { term: cardTermLc }) : t('tl_no', { term: cardTermLc });
         cardBadgeCls = 'shaded';
       }
     }
@@ -119,10 +121,10 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
     }
     if (totalSun > 0) {
       const bh = Math.floor(totalSun), bm = Math.round((totalSun - bh) * 60);
-      cardBadgeText = `${cardIcon} ${bh > 0 ? bh+'h ' : ''}${bm > 0 ? bm+'m' : ''} ${cardTerm.toLowerCase()}`;
+      cardBadgeText = `${cardIcon} ${bh > 0 ? bh+'h ' : ''}${bm > 0 ? bm+'m' : ''} ${cardTermLc}`;
       cardBadgeCls = cardRainy ? 'neutral' : 'sunny';
     } else {
-      cardBadgeText = `No ${cardTerm.toLowerCase()}`;
+      cardBadgeText = t('tl_no', { term: cardTermLc });
       cardBadgeCls = 'shaded';
     }
   }
@@ -131,13 +133,13 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
   if (v.isOpeningSoon) {
     const wait = dayHours.open - fromHour;
     const bm = Math.round(wait * 60);
-    cardBadgeText = `Opens in ${bm}m`;
+    cardBadgeText = t('opens_in', { min: bm });
     cardBadgeCls  = 'opening-soon';
   } else if (v.isClosingSoon) {
-    cardBadgeText = `Closes ${formatHour(dayHours.close)}`;
+    cardBadgeText = t('closes_at', { time: formatHour(dayHours.close) });
     cardBadgeCls  = 'closing-soon';
   } else if (!v.isOpen) {
-    cardBadgeText = `Opens ${formatHour(dayHours.open)}`;
+    cardBadgeText = t('opens_at', { time: formatHour(dayHours.open) });
     cardBadgeCls  = 'shaded';
   }
 
@@ -169,25 +171,25 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
       const rem = curWin.end - fromHour;
       const bh = Math.floor(rem), bm = Math.round((rem - bh) * 60);
       const lastWin = windows[windows.length - 1];
-      sunLabel = `${cardTerm} UNTIL`; sunTime = formatHour(lastWin.end);
+      sunLabel = t('label_until', { term: cardTerm }); sunTime = formatHour(lastWin.end);
       sunDurH = bh > 0 ? `${bh}H` : ''; sunDurM = bm > 0 ? `${bm}M` : '';
     } else {
       const next = windows.find(w => w.start > fromHour);
-      if (next) { sunLabel = `${cardTerm} AT`; sunTime = formatHour(next.start); }
-      else { sunLabel = windows.length ? `${cardTerm} PASSED` : `NO ${cardTerm}`; }
+      if (next) { sunLabel = t('label_at', { term: cardTerm }); sunTime = formatHour(next.start); }
+      else { sunLabel = windows.length ? t('label_passed', { term: cardTerm }) : t('label_no', { term: cardTerm }); }
     }
   } else {
     let totalSun = 0;
     for (const w of windows) { const ov = Math.min(w.end, toHour) - Math.max(w.start, fromHour); if (ov > 0) totalSun += ov; }
     if (totalSun > 0) {
       const bh = Math.floor(totalSun), bm = Math.round((totalSun - bh) * 60);
-      sunLabel = `${cardTerm} TODAY`; sunTime = bh > 0 ? `${bh}H` : '';
+      sunLabel = t('label_today', { term: cardTerm }); sunTime = bh > 0 ? `${bh}H` : '';
       sunDurM = bm > 0 ? `${bm}M` : '';
       if (!sunTime) { sunTime = sunDurM; sunDurM = ''; }
-    } else { sunLabel = `NO ${cardTerm}`; }
+    } else { sunLabel = t('label_no', { term: cardTerm }); }
   }
-  if (v.isOpeningSoon) { sunLabel = `OPENS IN ${Math.round((dayHours.open - fromHour) * 60)}M`; sunTime = ''; }
-  else if (v.isClosingSoon) { sunLabel = `CLOSES ${formatHour(dayHours.close)}`; }
+  if (v.isOpeningSoon) { sunLabel = t('label_opens_in', { min: Math.round((dayHours.open - fromHour) * 60) }); sunTime = ''; }
+  else if (v.isClosingSoon) { sunLabel = t('label_closes', { time: formatHour(dayHours.close) }); }
 
   const durHtml = (sunDurH || sunDurM)
     ? `<div class="card-sun-dur ${durCls}">${[sunDurH, sunDurM].filter(Boolean).join(' ')}</div>`
@@ -346,7 +348,7 @@ function renderList() {
     // Banner
     const banner = document.createElement('div');
     banner.id = 'no-sun-banner';
-    banner.innerHTML = `<span>Sun has set for today</span><button onclick="advanceDay(1, 12)">Tomorrow →</button>`;
+    banner.innerHTML = `<span>${t('sun_set_today')}</span><button onclick="advanceDay(1, 12)">${t('tomorrow_arrow')}</button>`;
     list.appendChild(banner);
     // Skeleton cards
     const nameW = [60, 75, 48, 68, 52, 82, 44];
@@ -380,13 +382,13 @@ function renderList() {
     if (searchQ) {
       list.innerHTML = `
         <div class="suggest-empty">
-          <span>No results for "<strong>${searchQ}</strong>"</span>
+          <span>${t('no_results_for')} "<strong>${searchQ}</strong>"</span>
           <button class="suggest-btn" onclick="suggestVenueFlow(${JSON.stringify(searchQ)})">
-            Suggest this venue →
+            ${t('suggest_this_venue')}
           </button>
         </div>`;
     } else {
-      list.innerHTML = `<div style="color:var(--muted);font-size:13px;text-align:center;padding:30px 10px;">No venues match your filters</div>`;
+      list.innerHTML = `<div style="color:var(--muted);font-size:13px;text-align:center;padding:30px 10px;">${t('no_venues_filters')}</div>`;
     }
     return;
   }
@@ -401,10 +403,10 @@ function renderList() {
   const countEl   = document.getElementById('venue-count');
   if (countEl) {
     if (sunCount > 0) {
-      countEl.textContent = `${sunCount} places in the sun`;
+      countEl.textContent = t('places_in_sun', { count: sunCount });
       countEl.className = 'count-sunny';
     } else {
-      countEl.textContent = `${openCount} open`;
+      countEl.textContent = t('count_open', { count: openCount });
       countEl.className = '';
     }
   }

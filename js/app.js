@@ -309,7 +309,7 @@ function positionPresetButtons() {
 
   document.querySelectorAll('.intent-btn').forEach(btn => {
     if (btn.dataset.intent === 'evening') btn.style.display = sunsetH >= 20 ? '' : 'none';
-    if (btn.dataset.intent === 'now')     btn.textContent = isToday ? 'Now' : 'Sunrise';
+    if (btn.dataset.intent === 'now')     btn.textContent = isToday ? t('now') : t('sunrise');
   });
 
   positionIntentPill();
@@ -398,11 +398,12 @@ function updateDateDisplayBtn() {
   const tod  = todayStr();
   const tom  = new Date(); tom.setDate(tom.getDate() + 1);
   const tomS = tom.toISOString().slice(0, 10);
-  const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  const MONS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  if (val === tod)  btn.textContent = `Today · ${d.getDate()} ${MONS[d.getMonth()]}`;
-  else if (val === tomS) btn.textContent = `Tomorrow · ${d.getDate()} ${MONS[d.getMonth()]}`;
-  else btn.textContent = `${DAYS[d.getDay()]} ${d.getDate()} ${MONS[d.getMonth()]}`;
+  const DAYS = tA('days_short');
+  const MONS = tA('months_short');
+  const dateStr = `${d.getDate()} ${MONS[d.getMonth()]}`;
+  if (val === tod)       btn.textContent = t('today_date',    { date: dateStr });
+  else if (val === tomS) btn.textContent = t('tomorrow_date', { date: dateStr });
+  else btn.textContent = `${DAYS[d.getDay()]} ${dateStr}`;
 }
 
 function updateDateWeatherStrip() {
@@ -430,7 +431,7 @@ function renderDateCalendar() {
   const cal = document.getElementById('date-calendar');
   if (!cal) return;
   const selected = datePicker.value;
-  const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const DAYS = tA('days_short');
   let html = '<div class="dc-grid">';
   for (let i = 0; i < 14; i++) {
     const d    = new Date(); d.setDate(d.getDate() + i);
@@ -469,6 +470,13 @@ function toggleDateCalendar() {
 
 function selectCalendarDate(dateStr) {
   datePicker.value = dateStr;
+  if (dateStr !== todayStr() && nowMode) {
+    nowMode = false;
+    clearInterval(nowInterval); nowInterval = null;
+    nowBtn?.classList.remove('active');
+    timeRangeWrap?.classList.remove('now-active');
+    timeFromEl.value = 12;
+  }
   const cal = document.getElementById('date-calendar');
   const btn = document.getElementById('date-display-btn');
   if (cal) cal.classList.remove('open');
@@ -672,21 +680,21 @@ function updateQcLabels() {
   const tom  = new Date(); tom.setDate(tom.getDate() + 1);
   const tomS = tom.toISOString().slice(0, 10);
 
-  if (val === tod)       dateLabel.textContent = 'Today';
-  else if (val === tomS) dateLabel.textContent = 'Tomorrow';
+  if (val === tod)       dateLabel.textContent = t('today');
+  else if (val === tomS) dateLabel.textContent = t('tomorrow');
   else {
     const d    = new Date(val + 'T12:00:00');
-    const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-    const MONS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const DAYS = tA('days_short');
+    const MONS = tA('months_short');
     dateLabel.textContent = `${DAYS[d.getDay()]} ${d.getDate()} ${MONS[d.getMonth()]}`;
   }
 
-  timeLabel.textContent = nowMode ? 'Now' : formatHour(parseFloat(timeFromEl.value));
+  timeLabel.textContent = nowMode ? t('now') : formatHour(parseFloat(timeFromEl.value));
 
   // "Now" only makes sense today — show "Sunrise" on future dates
   const isToday = datePicker.value === todayStr();
   document.querySelectorAll('.qc-preset-btn[data-intent="now"]').forEach(b => {
-    b.textContent = isToday ? 'Now' : 'Sunrise';
+    b.textContent = isToday ? t('now') : t('sunrise');
   });
 
   // Sync qc preset buttons with main intent
@@ -769,7 +777,7 @@ function _wxForecastDays() {
 
 function _dcTileHtml(dStr, todayStr_, selected) {
   const d    = new Date(dStr + 'T12:00:00');
-  const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const DAYS = tA('days_short');
   const summ = typeof getDayWeatherSummary === 'function' ? getDayWeatherSummary(dStr) : null;
   const hasForecast = summ != null;
 
@@ -828,9 +836,8 @@ function _renderQcCalendarMonth(cal) {
 
   const year  = _qcCalViewYear;
   const month = _qcCalViewMonth;
-  const MONTH_NAMES = ['January','February','March','April','May','June',
-                       'July','August','September','October','November','December'];
-  const DAY_ABBR = ['M','T','W','T','F','S','S']; // Mon-first
+  const MONTH_NAMES = tA('months_long');
+  const DAY_ABBR    = tA('day_abbr');
 
   // First day of month and total days
   const firstDay = new Date(year, month, 1);
@@ -930,6 +937,13 @@ function _syncQcPanelHeightExpanded() {
 
 function selectQcDate(dateStr) {
   datePicker.value = dateStr;
+  if (dateStr !== todayStr() && nowMode) {
+    nowMode = false;
+    clearInterval(nowInterval); nowInterval = null;
+    nowBtn?.classList.remove('active');
+    timeRangeWrap?.classList.remove('now-active');
+    timeFromEl.value = 12;
+  }
   _closeQcPanel();
   update();
 }
@@ -1002,7 +1016,7 @@ function update() {
       _autoAdvancedAfterSunset = true;
       setTimeout(() => {
         advanceDay(1, 12);
-        showQcNotice('Sun has set — showing tomorrow');
+        showQcNotice(t('sunset_notice'));
       }, 0);
       return;
     }
@@ -1095,7 +1109,7 @@ function shareVenue(venueId) {
   } else {
     navigator.clipboard?.writeText(url).then(() => {
       const btn = document.querySelector(`.venue-card[data-vid="${venueId}"] .card-action-btn:last-child`);
-      if (btn) { btn.textContent = 'Copied!'; setTimeout(() => btn.textContent = '⎘ Share', 1500); }
+      if (btn) { btn.textContent = t('copied'); setTimeout(() => btn.textContent = '⎘ ' + t('share'), 1500); }
     });
   }
 }
@@ -2111,7 +2125,16 @@ map.on('moveend', () => {
 datePicker.value = todayStr();
 timeFromEl.value = Math.min(23, Math.max(4, currentHour()));
 
-datePicker.addEventListener('change', () => { update(); });
+datePicker.addEventListener('change', () => {
+  if (datePicker.value !== todayStr() && nowMode) {
+    nowMode = false;
+    clearInterval(nowInterval); nowInterval = null;
+    nowBtn?.classList.remove('active');
+    timeRangeWrap?.classList.remove('now-active');
+    timeFromEl.value = 12;
+  }
+  update();
+});
 
 timeFromEl.addEventListener('input', () => {
   if (_timeAnimId) { cancelAnimationFrame(_timeAnimId); _timeAnimId = null; }
