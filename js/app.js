@@ -793,8 +793,8 @@ function _dcTileHtml(dStr, todayStr_, selected) {
     cls += ' solar-only'; // beyond forecast window — solar data only
   }
 
-  const icon = hasForecast ? summ.icon : '☀\uFE0F';
-  const temp = hasForecast ? `${summ.peakTemp}°` : '';
+  const icon = hasForecast ? summ.icon : '';
+  const temp = hasForecast ? `${summ.peakTemp}°` : 'Sol';
 
   return `<button class="${cls}" onclick="selectQcDate('${dStr}')" title="${hasForecast ? '' : 'No forecast — sun/shadow only'}">`
     + `<span class="dc-day">${DAYS[d.getDay()]}</span>`
@@ -824,19 +824,34 @@ function _renderQcCalendarStrip(cal) {
   cal.innerHTML = html;
 }
 
+function _isoWeek(year, month, day) {
+  // ISO 8601 week number — use UTC to avoid DST arithmetic issues
+  const d = new Date(Date.UTC(year, month, day));
+  const dow = d.getUTCDay() || 7; // Mon=1…Sun=7
+  d.setUTCDate(d.getUTCDate() + 4 - dow); // Thursday of this ISO week
+  const y1 = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil(((d - y1) / 86400000 + 1) / 7);
+}
+
+
 function _renderQcCalendarMonth(cal) {
   const now      = new Date();
   const today_   = todayStr();
   const selected = datePicker.value;
   const MONTH_NAMES = tA('months_long');
   const DAY_ABBR    = tA('day_abbr');
+  const _p2 = n => String(n).padStart(2, '0');
 
-  // Weekday row — outside the scroll area, always visible
-  let html = '<div class="dc-weekday-row">';
+  // Fixed month header (outside scroll — updated by scroll listener)
+  let html = `<div class="dc-cal-month-hdr"></div>`;
+
+  // Weekday row: blank column for week numbers, then Mon–Sun
+  html += '<div class="dc-weekday-row">';
+  html += '<span class="dc-weekday" style="opacity:0">W</span>'; // week-num col placeholder
   DAY_ABBR.forEach(a => { html += `<span class="dc-weekday">${a}</span>`; });
   html += '</div>';
 
-  // Scrollable content — 12 months stacked continuously
+  // Scrollable area
   html += '<div class="dc-cal-scroll">';
 
   for (let mi = 0; mi < 12; mi++) {
@@ -846,38 +861,82 @@ function _renderQcCalendarMonth(cal) {
     const firstDay    = new Date(year, month, 1);
     const totalDays   = new Date(year, month + 1, 0).getDate();
     const startOffset = (firstDay.getDay() + 6) % 7; // Mon=0
+    const numRows     = Math.ceil((startOffset + totalDays) / 7);
+    const totalCells  = numRows * 7;
+    const trailingCount = totalCells - startOffset - totalDays;
 
-    // Sticky month label — slides up and is replaced as the user scrolls
-    html += `<div class="dc-month-label">${MONTH_NAMES[month]} ${year}</div>`;
+    // Section wrapper carries the label for the scroll listener
+    html += `<div class="dc-cal-month-sec" data-label="${MONTH_NAMES[month]} ${year}">`;
     html += '<div class="dc-grid dc-month-grid">';
 
-    // Leading blank cells (no previous-month overflow — avoids duplicate dates)
-    for (let i = 0; i < startOffset; i++) {
-      html += '<div class="dc-tile dc-tile-empty"></div>';
-    }
+    for (let row = 0; row < numRows; row++) {
+      // Week number cell (ISO 8601)
+      const monDay  = 1 - startOffset + row * 7;
+      const monDate = new Date(year, month, monDay);
+      const wk = _isoWeek(monDate.getFullYear(), monDate.getMonth(), monDate.getDate());
+      html += `<div class="dc-week-num">${wk}</div>`;
 
-    // Day tiles — use local date string (not toISOString which shifts date in UTC+2)
-    const _p2 = n => String(n).padStart(2, '0');
-    for (let day = 1; day <= totalDays; day++) {
-      const dStr = `${year}-${_p2(month+1)}-${_p2(day)}`;
-      if (dStr < today_) {
-        html += `<div class="dc-tile dc-tile-past"><span class="dc-num">${day}</span></div>`;
-      } else {
-        html += _dcTileHtml(dStr, today_, selected);
+      for (let col = 0; col < 7; col++) {
+        const pos = row * 7 + col;
+
+        if (pos < startOffset) {
+          // Leading blank
+          html += '<div class="dc-tile dc-tile-empty"></div>';
+
+        } else {
+          const day = pos - startOffset + 1;
+
+          if (day <= totalDays) {
+            // Current month
+            const dStr = `${year}-${_p2(month+1)}-${_p2(day)}`;
+            if (dStr < today_) {
+              html += `<div class="dc-tile dc-tile-past"><span class="dc-num">${day}</span><span class="dc-icon"></span><span class="dc-temp"></span></div>`;
+            } else {
+              html += _dcTileHtml(dStr, today_, selected);
+            }
+          } else {
+            // Trailing overflow — next month, completes the last week row
+            const od   = day - totalDays;
+            const odt  = new Date(year, month + 1, od);
+            const oy   = odt.getFullYear();
+            const om   = odt.getMonth();
+            const odStr = `${oy}-${_p2(om+1)}-${_p2(od)}`;
+            if (odStr < today_) {
+              html += `<div class="dc-tile dc-tile-past dc-tile-overflow"><span class="dc-num">${od}</span><span class="dc-icon"></span><span class="dc-temp"></span></div>`;
+            } else {
+              html += _dcTileHtml(odStr, today_, selected).replace('"dc-tile', '"dc-tile dc-tile-overflow');
+            }
+          }
+        }
       }
     }
 
-    html += '</div>'; // .dc-grid
+    html += '</div></div>'; // .dc-grid .dc-cal-month-sec
   }
 
-  // Sticky fade at bottom of scroll area — signals more content below
+  // Sticky fade at bottom signals more content below
   html += '<div class="dc-cal-fade"></div>';
   html += '</div>'; // .dc-cal-scroll
 
-  // Collapse button — outside scroll, anchored to bottom of panel
+  // Collapse button — outside scroll, stays at bottom
   html += `<button class="dc-expand-btn-wide active" onclick="event.stopPropagation();_toggleQcCalExpand()">Collapse calendar</button>`;
 
   cal.innerHTML = html;
+
+  // Scroll listener: update fixed month header based on scroll position
+  const scrollEl = cal.querySelector('.dc-cal-scroll');
+  const hdrEl    = cal.querySelector('.dc-cal-month-hdr');
+  const sections = () => scrollEl.querySelectorAll('.dc-cal-month-sec');
+  const updateHdr = () => {
+    let label = '';
+    for (const sec of sections()) {
+      if (sec.offsetTop <= scrollEl.scrollTop + 4) label = sec.dataset.label;
+    }
+    if (hdrEl) hdrEl.textContent = label || (sections()[0]?.dataset.label ?? '');
+  };
+  scrollEl?.addEventListener('scroll', updateHdr, { passive: true });
+  updateHdr(); // set initial label
+
   _syncQcPanelHeightExpanded();
 }
 

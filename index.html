@@ -539,7 +539,9 @@
   .dc-tile.no-data     { opacity: 0.4; }
   .dc-tile.solar-only  { background: rgba(255,160,60,0.07); border-color: rgba(255,160,60,0.2); }
   .dc-tile.solar-only:hover:not(.no-data) { background: rgba(255,160,60,0.13); border-color: rgba(255,160,60,0.38); }
-  .dc-tile.solar-only .dc-icon { opacity: 0.75; }
+  /* Solar-only: no weather icon, "Sol" label in temp slot, icon span preserved for layout */
+  .dc-tile.solar-only .dc-icon { min-height: 11px; }
+  .dc-tile.solar-only .dc-temp { color: rgba(255,160,60,0.55); }
   .dc-tile.solar-only .dc-temp { color: rgba(255,160,60,0.5); }
   .dc-tile-past        { opacity: 0.22; cursor: default; pointer-events: none; border-color: transparent; background: transparent; }
   .dc-tile-empty       { border: none; background: transparent; pointer-events: none; }
@@ -578,14 +580,18 @@
     color: rgba(156,189,231,0.35); text-align: center; text-transform: uppercase;
     letter-spacing: 0.05em;
   }
-  /* Sticky month label — sticks to top of .dc-cal-scroll viewport, slides out when next month arrives */
-  .dc-month-label {
-    position: sticky; top: 0; z-index: 2;
-    background: rgba(10, 26, 54, 0.97);
-    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-    font-family: 'Inter', sans-serif; font-size: 9px; font-weight: 700;
-    color: rgba(156,189,231,0.5); text-transform: uppercase; letter-spacing: 0.09em;
-    padding: 7px 2px 4px;
+
+  /* Fixed month name header — updated by scroll listener */
+  .dc-cal-month-hdr {
+    font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 700;
+    color: rgba(156,189,231,0.6); text-transform: uppercase; letter-spacing: 0.09em;
+    padding: 6px 2px 4px; flex-shrink: 0;
+  }
+  /* Week number column */
+  .dc-week-num {
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Inter', sans-serif; font-size: 7px; font-weight: 600;
+    color: rgba(156,189,231,0.22); line-height: 1;
   }
   /* Fade overlay — sticky to bottom of scroll viewport, signals more content below */
   .dc-cal-fade {
@@ -2892,8 +2898,8 @@
   /* Month view: .dc-cal-scroll is the actual scroll container; #qc-cal just stacks vertically */
   #qc-panel.cal-expanded #qc-cal { overflow: clip; flex: 1; }
   #qc-cal .dc-cal-scroll {
-    height: 310px; overflow-y: auto; -webkit-overflow-scrolling: touch;
-    scrollbar-width: none; flex: 1;
+    height: 300px; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
   }
   #qc-cal .dc-cal-scroll::-webkit-scrollbar { display: none; }
   /* Strip grid: equal-height rows fill available space */
@@ -2904,12 +2910,12 @@
   #qc-cal .dc-grid:not(.dc-month-grid) .dc-icon  { font-size: 17px; line-height: 1.1; }
   #qc-cal .dc-grid:not(.dc-month-grid) .dc-temp  { font-size: 12px; font-weight: 700; color: rgba(156,189,231,0.72); }
   /* Month grid: auto rows, compact tiles */
-  #qc-cal .dc-month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; width: 100%; box-sizing: border-box; }
+  #qc-cal .dc-month-grid { display: grid; grid-template-columns: 22px repeat(7, 1fr); gap: 2px; width: 100%; box-sizing: border-box; }
   #qc-cal .dc-month-grid .dc-tile { padding: 5px 2px 4px; gap: 2px; }
   #qc-cal .dc-month-grid .dc-num  { font-size: 14px; }
-  #qc-cal .dc-month-grid .dc-icon { font-size: 11px; line-height: 1.1; }
+  #qc-cal .dc-month-grid .dc-icon { font-size: 11px; line-height: 1.1; min-height: 12px; }
   #qc-cal .dc-month-grid .dc-temp { font-size: 8px; font-weight: 600; color: rgba(156,189,231,0.62); }
-  #qc-cal .dc-weekday-row { gap: 2px; }
+  #qc-cal .dc-weekday-row { gap: 2px; display: grid; grid-template-columns: 22px repeat(7, 1fr); }
   #qc-time-section { display: none; padding: 8px 12px 10px; overflow: hidden; }
   #qc-time-section.active { display: flex; flex-direction: column; }
   #qc-arc {
