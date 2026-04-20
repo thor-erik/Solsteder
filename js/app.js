@@ -871,12 +871,12 @@ function _dcTileHtml(dStr, todayStr_, selected) {
   }
 
   const icon = hasForecast ? summ.icon : '';
-  const temp = hasForecast ? `${summ.peakTemp}°` : 'Sol';
+  const temp = hasForecast ? `${summ.peakTemp}°` : '';
 
-  // Today indicator: --accent dot sits between the day number and the weather icon
+  // Today indicator: --accent dot, centered in flow, below day number / glyph
   const todayDot = dStr === todayStr_ ? '<span class="dc-today-dot" aria-hidden="true"></span>' : '';
 
-  return `<button class="${cls}" onclick="selectQcDate('${dStr}')" title="${hasForecast ? '' : 'No forecast — sun/shadow only'}">`
+  return `<button class="${cls}" onclick="selectQcDate('${dStr}')" title="${hasForecast ? '' : 'Ingen prognose — sol/skygge kun'}">`
     + `<span class="dc-day">${DAYS[d.getDay()]}</span>`
     + `<span class="dc-num">${d.getDate()}</span>`
     + todayDot
@@ -900,7 +900,8 @@ function _renderQcCalendarStrip(cal) {
 
   html += '</div>';
 
-  html += `<button class="dc-expand-btn-wide" onclick="event.stopPropagation();_toggleQcCalExpand()">Show full calendar</button>`;
+  const chevDown = `<svg class="dc-btn-chev" width="10" height="6" viewBox="0 0 10 6" fill="currentColor" aria-hidden="true"><path d="M0 0 L10 0 L5 6 Z"/></svg>`;
+  html += `<button class="dc-expand-btn-wide" onclick="event.stopPropagation();_toggleQcCalExpand()">Vis full kalender ${chevDown}</button>`;
 
   cal.innerHTML = html;
 }
@@ -921,48 +922,41 @@ function _renderQcCalendarMonth(cal) {
   const DAY_ABBR    = tA('day_abbr');
   const _p2 = n => String(n).padStart(2, '0');
 
-  // Fixed month header — updated by scroll listener, not inline
-  let html = '<div class="dc-cal-month-hdr"></div>';
+  // Scroll container wraps both the sticky weekday row AND the month grid.
+  // CSS sticky handles month-label pinning — no JS scroll listener needed.
+  let html = '<div class="dc-cal-scroll">';
 
-  // Weekday row (outside scroll, always visible)
+  // Weekday row — sticky at top of scroll area (position: sticky; top: 0 in CSS)
   html += '<div class="dc-weekday-row">';
-  html += '<span class="dc-weekday"></span>'; // blank above week-number column
   DAY_ABBR.forEach(a => { html += `<span class="dc-weekday">${a}</span>`; });
   html += '</div>';
 
-  // Single continuous grid inside the scroll container —
-  // weeks are rendered in order, month labels span all 8 columns when Monday crosses a month boundary.
-  // This eliminates duplicate dates entirely.
-  html += '<div class="dc-cal-scroll"><div class="dc-grid dc-month-grid">';
+  // Continuous month grid — no week-number column; 7-column pure day grid
+  html += '<div class="dc-grid dc-month-grid">';
 
   // Start from Monday of current week
-  const todayDate  = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const todayDow   = (todayDate.getDay() + 6) % 7; // Mon=0
-  const startMon   = new Date(todayDate);
+  const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const todayDow  = (todayDate.getDay() + 6) % 7; // Mon=0
+  const startMon  = new Date(todayDate);
   startMon.setDate(todayDate.getDate() - todayDow);
 
   let prevMonthKey = null;
 
   for (let w = 0; w < 56; w++) { // ~13 months of weeks
-    // Monday of this week
-    const mon = new Date(startMon);
+    const mon  = new Date(startMon);
     mon.setDate(startMon.getDate() + w * 7);
     const monY = mon.getFullYear();
     const monM = mon.getMonth();
 
-    // Insert month label whenever Monday crosses into a new month
+    // Insert month label when Monday crosses into a new month.
+    // The label is sticky (CSS) — it pins just below the weekday row as user scrolls.
     const mk = `${monY}-${monM}`;
     if (mk !== prevMonthKey) {
       prevMonthKey = mk;
-      const label = `${MONTH_NAMES[monM]} ${monY}`;
-      html += `<div class="dc-month-row-label" data-label="${label}">${label}</div>`;
+      html += `<div class="dc-month-row-label">${MONTH_NAMES[monM]} ${monY}</div>`;
     }
 
-    // Week number
-    const wk = _isoWeek(monY, monM, mon.getDate());
-    html += `<div class="dc-week-num">${wk}</div>`;
-
-    // 7 day tiles Mon–Sun
+    // 7 day tiles Mon–Sun (no week-number cell)
     for (let d = 0; d < 7; d++) {
       const day  = new Date(startMon);
       day.setDate(startMon.getDate() + w * 7 + d);
@@ -970,7 +964,7 @@ function _renderQcCalendarMonth(cal) {
       const mo   = day.getMonth();
       const dt   = day.getDate();
       const dStr = `${yr}-${_p2(mo+1)}-${_p2(dt)}`;
-      const isOv = mo !== monM; // day belongs to a different month than this week's Monday
+      const isOv = mo !== monM;
 
       if (dStr < today_) {
         const cls = isOv ? 'dc-tile dc-tile-past dc-tile-overflow' : 'dc-tile dc-tile-past';
@@ -983,37 +977,15 @@ function _renderQcCalendarMonth(cal) {
     }
   }
 
-  html += '</div></div>'; // .dc-month-grid .dc-cal-scroll
+  html += '</div>'; // .dc-month-grid
+  html += '</div>'; // .dc-cal-scroll
 
-  // Footnote: explain that beyond 10 days, weather data is unavailable
   html += `<p class="dc-forecast-note">Værvarsel er tilgjengelig for de neste 10 dagene.</p>`;
 
-  // Collapse button outside scroll, fixed at bottom of panel
-  html += `<button class="dc-expand-btn-wide active" onclick="event.stopPropagation();_toggleQcCalExpand()">Collapse calendar</button>`;
+  const chevUp = `<svg class="dc-btn-chev dc-btn-chev-up" width="10" height="6" viewBox="0 0 10 6" fill="currentColor" aria-hidden="true"><path d="M0 0 L10 0 L5 6 Z"/></svg>`;
+  html += `<button class="dc-expand-btn-wide" onclick="event.stopPropagation();_toggleQcCalExpand()">Skjul full kalender ${chevUp}</button>`;
 
   cal.innerHTML = html;
-
-  // Scroll listener: keep fixed header in sync with visible month
-  const scrollEl = cal.querySelector('.dc-cal-scroll');
-  const hdrEl    = cal.querySelector('.dc-cal-month-hdr');
-  const updateHdr = () => {
-    if (!hdrEl || !scrollEl) return;
-    const scrollTop = scrollEl.getBoundingClientRect().top;
-    const hdrBottom = hdrEl.getBoundingClientRect().bottom;
-    let label = '';
-    let overlapping = false;
-    for (const lbl of scrollEl.querySelectorAll('.dc-month-row-label')) {
-      const lblTop = lbl.getBoundingClientRect().top;
-      if (lblTop <= scrollTop + 4) label = lbl.dataset.label;
-      // If an inline label is rising into the fixed header zone → fade header out
-      if (lblTop <= hdrBottom + 2 && lblTop >= scrollTop - 2) overlapping = true;
-    }
-    hdrEl.textContent = label || scrollEl.querySelector('.dc-month-row-label')?.dataset.label || '';
-    hdrEl.style.opacity = overlapping ? '0' : '1';
-  };
-  scrollEl?.addEventListener('scroll', updateHdr, { passive: true });
-  updateHdr();
-
   _syncQcPanelHeightExpanded();
 }
 

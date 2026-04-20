@@ -539,22 +539,19 @@
   .dc-tile.sun-high    { background: rgba(255,175,133,0.11); border-color: rgba(255,175,133,0.2); }
   .dc-tile.sun-mid     { background: rgba(255,175,133,0.05); }
   .dc-tile.no-data     { opacity: 0.4; }
-  .dc-tile.solar-only  { background: rgba(12,28,55,0.35); border-color: rgba(156,189,231,0.12); border-style: dashed; opacity: 0.6; }
-  .dc-tile.solar-only:hover:not(.no-data) { background: rgba(18,38,70,0.55); border-color: rgba(156,189,231,0.22); opacity: 0.8; }
-  /* Solar-only: no weather icon, "Sol" label in temp slot, icon span preserved for layout */
-  .dc-tile.solar-only .dc-icon { min-height: 11px; }
-  .dc-tile.solar-only .dc-temp { color: rgba(156,189,231,0.3); }
+  /* Beyond-horizon tiles: reduced-opacity glass, muted number, no glyph — no dashed borders */
+  .dc-tile.solar-only  { background: rgba(20,46,82,0.25); border-color: rgba(156,189,231,0.10); }
+  .dc-tile.solar-only:hover:not(.no-data) { background: rgba(20,46,82,0.40); border-color: rgba(156,189,231,0.18); }
   /* Past tiles: 0.45 opacity matches the time bar past-state rule */
   .dc-tile-past        { opacity: 0.45; cursor: default; pointer-events: none; border-color: transparent; background: transparent; }
-  /* Today dot — 4px accent dot below the day number */
+  /* Today dot — 4px accent dot, inline in flex column, centered below day number */
   .dc-today-dot {
-    position: absolute;
-    top: 4px;
-    right: 4px;
     width: 4px;
     height: 4px;
     border-radius: 50%;
     background: var(--accent);
+    flex-shrink: 0;
+    align-self: center;
   }
   .dc-tile-empty       { border: none; background: transparent; pointer-events: none; }
   .dc-day  { font-size: 7px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(156,189,231,0.4); line-height: 1; }
@@ -564,67 +561,58 @@
   .dc-tile.today .dc-day { color: rgba(255,175,133,0.75); }
   .dc-tile.selected .dc-num { color: var(--accent); }
 
+  /* Mode-toggle buttons: glass-action flavor, no accent — secondary chrome */
   .dc-expand-btn-wide {
-    width: 100%; margin-top: 7px; padding: 11px 12px; box-sizing: border-box;
-    background: rgba(20,46,82,0.45); border: 1px solid rgba(156,189,231,0.18);
-    border-radius: 9px; cursor: pointer;
-    font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
-    color: rgba(156,189,231,0.62); letter-spacing: 0.03em;
-    transition: background 0.12s, color 0.12s, border-color 0.12s;
-    display: block; text-align: center; flex-shrink: 0;
+    width: 100%; margin-top: 7px; height: 44px; padding: 0 14px; box-sizing: border-box;
+    background: rgba(20,46,82,0.45);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(156,189,231,0.18);
+    border-radius: 12px; cursor: pointer;
+    font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
+    color: var(--text);
+    transition: background 0.12s, border-color 0.12s;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    flex-shrink: 0; -webkit-tap-highlight-color: transparent; outline: none;
   }
-  .dc-expand-btn-wide:hover { background: rgba(30,58,102,0.75); color: rgba(156,189,231,0.95); border-color: rgba(156,189,231,0.35); }
-  .dc-expand-btn-wide.active { background: rgba(255,175,133,0.1); border-color: rgba(255,175,133,0.28); color: rgba(255,175,133,0.72); }
-  .dc-expand-btn-wide.active:hover { background: rgba(255,175,133,0.18); border-color: rgba(255,175,133,0.45); color: var(--accent); }
+  .dc-expand-btn-wide:hover { background: rgba(20,46,82,0.55); border-color: rgba(156,189,231,0.28); }
+  .dc-expand-btn-wide:active { background: rgba(20,46,82,0.35); }
+  /* Trailing chevron inside mode-toggle buttons */
+  .dc-btn-chev { display: inline-block; color: var(--muted); flex-shrink: 0; }
+  .dc-btn-chev-up { transform: rotate(180deg); }
   @keyframes dc-cal-in {
     from { opacity: 0; }
     to   { opacity: 1; }
   }
   .dc-cal-entering { animation: dc-cal-in 0.22s ease forwards; }
 
-  /* Weekday header row */
+  /* Weekday header row — 7 columns matching the day grid */
   .dc-weekday-row {
     display: grid; grid-template-columns: repeat(7, 1fr);
-    gap: 3px; margin-bottom: 3px; flex-shrink: 0;
+    gap: 3px; flex-shrink: 0;
   }
   .dc-weekday {
     font-family: 'Inter', sans-serif; font-size: 8px; font-weight: 700;
     color: rgba(156,189,231,0.35); text-align: center; text-transform: uppercase;
     letter-spacing: 0.05em;
   }
-
-  /* Fixed month name header — updated by scroll listener */
-  .dc-cal-month-hdr {
-    font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 700;
-    color: rgba(156,189,231,0.6); text-transform: uppercase; letter-spacing: 0.09em;
-    padding: 6px 2px 4px; flex-shrink: 0;
-    transition: opacity 0.15s ease;
-  }
-  /* Week number column */
-  .dc-week-num {
-    display: flex; align-items: center; justify-content: center;
-    font-family: 'Inter', sans-serif; font-size: 7px; font-weight: 600;
-    color: rgba(156,189,231,0.22); line-height: 1;
-  }
-  /* Month label row — spans all 8 columns inside the continuous grid */
+  /* Month label row — spans all 7 columns, sticky handled in #qc-cal scope */
   .dc-month-row-label {
     grid-column: 1 / -1;
     font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 700;
-    color: rgba(156,189,231,0.45); text-transform: uppercase; letter-spacing: 0.09em;
-    padding: 8px 2px 3px;
+    color: rgba(156,189,231,0.55); text-transform: uppercase; letter-spacing: 0.09em;
+    padding: 8px 2px 4px;
   }
-  .dc-month-row-label:first-child { padding-top: 2px; }
-  /* Month grid — smaller tiles than strip to fit ~5 rows */
+  /* Month grid — 7-column day grid, no week-number sidebar */
   .dc-month-grid { grid-auto-rows: auto; }
   .dc-month-grid .dc-tile { padding: 5px 1px 4px; gap: 2px; }
-  .dc-month-grid .dc-tile .dc-day  { display: none; } /* no day-of-week abbr in month view */
-  .dc-month-grid .dc-tile .dc-num  { font-size: 14px; font-weight: 600; }
-  .dc-month-grid .dc-tile .dc-icon { font-size: 11px; line-height: 1.2; }
-  .dc-month-grid .dc-tile .dc-temp { display: none; } /* temperature not shown in full-calendar */
-  /* Beyond-horizon tiles: number only, no glyph, muted to signal no forecast */
+  .dc-month-grid .dc-tile .dc-day  { display: none; }
+  .dc-month-grid .dc-tile .dc-num  { font-size: 15px; font-weight: 600; }
+  .dc-month-grid .dc-tile .dc-icon { font-size: 14px; line-height: 1.2; }
+  .dc-month-grid .dc-tile .dc-temp { display: none; }
+  /* Beyond-horizon tiles: muted number, no glyph */
   .dc-month-grid .dc-tile.solar-only .dc-icon { display: none; }
   .dc-month-grid .dc-tile.solar-only .dc-num  { color: var(--muted); }
-  .dc-month-grid .dc-tile-past .dc-num { font-size: 14px; }
+  .dc-month-grid .dc-tile-past .dc-num { font-size: 15px; }
   /* Forecast boundary note */
   .dc-forecast-note {
     margin-top: 5px; padding: 4px 6px; flex-shrink: 0;
@@ -3198,9 +3186,9 @@
     #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-num  { font-size: 20px; font-weight: 700; line-height: 1; }
     #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-icon { font-size: 18px; line-height: 1.2; }
     #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-temp { font-size: 11px; font-weight: 500; color: rgba(156,189,231,0.72); }
-    /* Month-view full calendar on mobile: sensible sizing */
+    /* Month-view full calendar on mobile */
     #ptb-cal-float #qc-cal .dc-cal-scroll { height: 55vh; }
-    #ptb-cal-float #qc-cal .dc-month-grid .dc-tile { height: 52px; }
+    #ptb-cal-float #qc-cal .dc-month-grid .dc-tile { height: 48px; }
   }
 
   #qc-presets {
@@ -3279,12 +3267,29 @@
   #qc-cal .dc-grid:not(.dc-month-grid) .dc-num   { font-size: 15px; }
   #qc-cal .dc-grid:not(.dc-month-grid) .dc-icon  { font-size: 17px; line-height: 1.1; }
   #qc-cal .dc-grid:not(.dc-month-grid) .dc-temp  { font-size: 12px; font-weight: 700; color: rgba(156,189,231,0.72); }
-  #qc-cal .dc-month-grid { display: grid; grid-template-columns: 22px repeat(7, 1fr); gap: 2px; width: 100%; box-sizing: border-box; }
-  #qc-cal .dc-month-grid .dc-tile { padding: 5px 2px 4px; gap: 2px; }
-  #qc-cal .dc-month-grid .dc-num  { font-size: 14px; }
-  #qc-cal .dc-month-grid .dc-icon { font-size: 11px; line-height: 1.1; min-height: 12px; }
-  #qc-cal .dc-month-grid .dc-temp { font-size: 8px; font-weight: 600; color: rgba(156,189,231,0.62); }
-  #qc-cal .dc-weekday-row { gap: 2px; display: grid; grid-template-columns: 22px repeat(7, 1fr); }
+  /* Full-calendar month grid: 7 columns, 4px gap, 48px tiles */
+  #qc-cal .dc-month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; width: 100%; box-sizing: border-box; }
+  #qc-cal .dc-month-grid .dc-tile { padding: 4px 2px; gap: 2px; height: 48px; justify-content: center; }
+  #qc-cal .dc-month-grid .dc-num  { font-size: 15px; font-weight: 600; }
+  #qc-cal .dc-month-grid .dc-icon { font-size: 14px; line-height: 1.1; }
+  /* Weekday row: 7 columns matching day grid, sticky at scroll-area top */
+  #qc-cal .dc-weekday-row {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
+    height: 24px; align-items: center;
+    position: sticky; top: 0; z-index: 2;
+    background: rgba(20,46,82,0.88);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(156,189,231,0.12);
+    margin-bottom: 2px;
+  }
+  /* Month label: sticky just below weekday row, same backdrop */
+  #qc-cal .dc-month-row-label {
+    position: sticky; top: 26px; /* weekday row (24px) + bottom border (1px) + gap (1px) */
+    z-index: 1;
+    background: rgba(20,46,82,0.88);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    padding: 4px 2px;
+  }
 
   /* Suppress venue card enter animation on map-pan re-renders */
   #venue-list[data-no-anim] .venue-card { animation: none !important; }

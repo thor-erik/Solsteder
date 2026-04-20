@@ -197,23 +197,27 @@ Opens from the date button in row 1 of the readout panel. Never covers the time 
 - **Session mode persistence:** the picker remembers whether the user was in 10-day or full-calendar mode. Reopening the picker restores the last-used mode within the session. `_closeQcPanel()` does not reset the expanded state.
 - The sheet is a `role="dialog"` element with `aria-modal="true"`. On open, focus moves to today's tile. Escape closes.
 
+**Today-dot rule (both views):** The today-dot sits centered below the day's content (number or glyph) in all picker views. `4px` diameter, `--accent`. Never top-right, never floating. Rendered as an inline flex element — not `position: absolute`. When a day is both today and selected, both the selection ring and the dot are shown; the dot stays `--accent`.
+
 **Default state: 10-day mode (5 × 2 grid)**
 - All 10 forecast days visible at once in a **5-column × 2-row CSS grid** — no horizontal scroll. Row 1: days 1–5 (today through +4). Row 2: days 6–10 (+5 through +9). Column gap `8px`, row gap `8px`.
 - On all viewports: tiles fill `(100% − 4×8px) / 5` of sheet width. Tile height `88px`. Radius `10px`.
-- Tile content (top to bottom): weekday abbreviation (11pt / 600 / `--muted`, letter-spacing 0.5px), day number (20pt / 700 / `--text`), today dot (4px `--accent` circle, only on today), weather glyph (18px), **high temperature only** (11pt / 500 / `--muted`, format `18°` — no low temp; space at this tile size does not accommodate two values).
+- Tile content (top to bottom): weekday abbreviation (11pt / 600 / `--muted`, letter-spacing 0.5px), day number (20pt / 700 / `--text`), today dot (if today), weather glyph (18px), **high temperature only** (11pt / 500 / `--muted`, format `18°` — no low temp).
 - Tile background: glass-card neutral. **Do not fill with weather-ramp color** — weather is carried by the glyph + temp text only (see collision rule).
 - **Selected state:** `box-shadow: inset 0 0 0 2px var(--accent)` ring + subtle `--accent-dim` glow. Day number shifts to `--accent`. No border change (avoids layout shift). No background fill.
-- **Today indicator:** 4px `--accent` dot between the day number and the weather glyph. Shown whether or not the tile is selected.
 - **Past days:** `opacity: 0.45`, non-selectable — same rule as the time bar (see Past / disabled state section).
+- **Mode toggle button:** Below the grid, a glass-action pill button labeled `Vis full kalender ▾` (Norwegian). Height `44px`, radius `12px`, `13pt / 600 / --text`. No accent treatment — this is secondary chrome. Trailing SVG triangle chevron in `--muted`.
 
 **Expand to full calendar:**
-- Below the grid, an action-pill button: "Show full calendar ▾". On tap, a continuous week-grid month view appears.
-- Month grid: 7 columns (Mon–Sun), week-number column on the left, month-label rows spanning the full width.
-- Tile height in month view: `52–56px` (mobile). Tile content: day number (14pt / 600) top-aligned; weather glyph (11px) below; **no temperature** — month-grid density (35–42 visible tiles) makes temperature unreadable at any viewport width.
-- **Beyond-horizon tiles (>10 days):** day number only, `--muted` color, no glyph, dashed border. Signals "solar data only."
-- Month navigation: `‹ April 2026 ›` header row, chevrons in 44×44 tap targets.
-- Collapse button: "Collapse calendar ▴" returns to 10-day mode.
-- **Forecast horizon footnote:** Norwegian text below the grid: *"Værvarsel er tilgjengelig for de neste 10 dagene."*
+
+*Scroll behavior:* A single weekday row (`M T O T F L S`) is pinned at the very top of the scroll area (`position: sticky; top: 0`). Each month has one inline label (`APRIL 2026`, `MAY 2026`, etc.) that is also sticky, pinned just below the weekday row (`top: weekday-row-height`). As the user scrolls, the current month's label stays put; when the next month's label reaches the same pin position, it naturally pushes the previous one up and off-screen. Both sticky elements use `background: rgba(20,46,82,0.88); backdrop-filter: blur(12px)` so tiles scrolling beneath don't bleed through.
+
+- Month grid: **7 columns only** (Mon–Sun). No week-number sidebar — week numbers are useful for work scheduling but irrelevant for leisure date picking.
+- Tile dimensions: `48px` tall, `gap: 4px` (horizontal and vertical).
+- Tile content: day number (`15pt / 600 / --text`) centered; weather glyph (`14px`) below if within 10-day forecast horizon; today dot (if today); **no temperature** — month-grid density makes it unreadable.
+- **Beyond-horizon tiles (>10 days):** glass-card background at reduced opacity (`rgba(20,46,82,0.25)`), border at reduced opacity (`rgba(156,189,231,0.10)`), day number in `--muted`, no glyph. Remain selectable — tapping sets the date. **No dashed borders anywhere in the calendar.** Dashed borders are not part of this design system.
+- **Collapse button:** `Skjul full kalender ▴` (Norwegian). Same glass-action spec as the expand button. Trailing SVG chevron rotated 180°.
+- **Forecast horizon footnote:** *"Værvarsel er tilgjengelig for de neste 10 dagene."*
 
 **Sheet spec:**
 - Background: `rgba(20, 46, 82, 0.97)` / `blur(20px)` (slightly more opaque than glass-panel, for readability over map).
@@ -273,3 +277,4 @@ Secondary controls (sort, filter, alternate views) appear with the content they 
 - Don't create shadow values ad hoc. Use the three documented elevation levels.
 - Don't open pickers or secondary sheets that cover the primary output they affect. The user needs to see the result while picking (see Principle 5).
 - Don't fill calendar tile backgrounds with weather-ramp colors. Weather lives in sub-elements (glyph, temperature text). The tile container stays neutral so selection rings are unambiguous.
+- Don't use dashed borders anywhere in the calendar or the wider UI. Dashed borders read as prototype placeholders and are not part of this design system. Use reduced-opacity solid borders to signal reduced availability.
