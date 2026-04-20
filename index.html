@@ -2840,12 +2840,6 @@
     border-bottom: 1px solid rgba(156, 189, 231, 0.08);
     transition: background 120ms ease-out;
   }
-  #readout-row1 {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 8px;
-  }
   #readout-time {
     font-family: 'Inter', sans-serif;
     font-size: 24px;
@@ -2855,13 +2849,20 @@
     line-height: 1;
     transition: opacity 50ms;
   }
-  /* Task 3: two-line weather stack on right side of readout */
-  #readout-meta {
+  #readout-row1 {
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 2px;
-    flex-shrink: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  /* Row 2: sun count (left) + wind (right) — same flex row so they align */
+  #readout-row2 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 4px;
+    min-height: 17px;
   }
   #readout-meta-wx {
     font-family: 'Inter', sans-serif;
@@ -2874,6 +2875,7 @@
     gap: 6px;
     transition: opacity 50ms;
     line-height: 1;
+    flex-shrink: 0;
   }
   #readout-meta-wx .wx-icon { font-size: 22px; line-height: 1; }
   #readout-meta-wind {
@@ -2884,14 +2886,19 @@
     white-space: nowrap;
     text-align: right;
     transition: opacity 50ms;
+    flex-shrink: 0;
+  }
+  /* Fixed-width arrow glyph so changing direction never shifts the container */
+  #readout-meta-wind .wind-arrow {
+    display: inline-block;
+    width: 1.1em;
+    text-align: center;
   }
   #readout-sun {
     font-family: 'Inter', sans-serif;
     font-size: 14px;
     font-weight: 500;
     color: var(--text);
-    margin-top: 3px;
-    min-height: 17px;
     transition: opacity 50ms;
   }
 
@@ -3672,12 +3679,12 @@
         <div id="time-readout">
           <div id="readout-row1">
             <span id="readout-time">—</span>
-            <div id="readout-meta">
-              <span id="readout-meta-wx"><span class="wx-icon"></span><span id="readout-meta-temp"></span></span>
-              <span id="readout-meta-wind"></span>
-            </div>
+            <span id="readout-meta-wx"><span class="wx-icon"></span><span id="readout-meta-temp"></span></span>
           </div>
-          <div id="readout-sun"></div>
+          <div id="readout-row2">
+            <div id="readout-sun"></div>
+            <span id="readout-meta-wind"></span>
+          </div>
         </div>
         <!-- Bar row — date pill + scrub canvas -->
         <div id="ptb-top-row">

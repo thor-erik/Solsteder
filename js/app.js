@@ -685,7 +685,10 @@ function updateQcIndicator(h) {
   const wx      = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, dispH) : null;
   const ARROWS  = ['↑','↗','→','↘','↓','↙','←','↖'];
   const arrow   = wx ? ARROWS[Math.round(((wx.wdir + 180) % 360) / 45) % 8] : '';
-  const wind    = wx ? `${arrow} ${Math.round(wx.wspd)} m/s` : '';
+  // Arrow wrapped in fixed-width span so glyph width never shifts container
+  const windHtml = wx
+    ? `<span class="wind-arrow">${arrow}</span>${Math.round(wx.wspd)} m/s`
+    : '';
   const temp    = wx ? `${Math.round(wx.temp)}°` : '';
   const icon    = wx && typeof skyIcon === 'function' ? skyIcon(wx.cloud) : '';
 
@@ -716,8 +719,8 @@ function updateQcIndicator(h) {
   if (wxWindEl) {
     if (animate) {
       wxWindEl.style.opacity = '0';
-      setTimeout(() => { wxWindEl.textContent = wind; wxWindEl.style.opacity = ''; }, 55);
-    } else { wxWindEl.textContent = wind; }
+      setTimeout(() => { wxWindEl.innerHTML = windHtml; wxWindEl.style.opacity = ''; }, 55);
+    } else { wxWindEl.innerHTML = windHtml; }
   }
 
   _readoutSet(document.getElementById('readout-sun'), sunLabel, animate);
