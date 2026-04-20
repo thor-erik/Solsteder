@@ -44,6 +44,32 @@ let _preSelectCenter  = null;  // map center saved before zooming into a selecte
 let _frozenBounds     = null;  // map bounds frozen at the moment of venue selection (for list filter)
 let _mapMovedWhileDetailOpen = false; // true if user panned/zoomed while detail panel was open
 
+// ── Back-button / browser history nav ────────────────────────────────────────
+// Each "layer" (venue panel, dp-fullscreen, qc-panel, sort panel) pushes one
+// history entry via _navPush(). Pressing the browser back button (or mobile
+// back gesture) fires popstate, which closes the top-most layer without
+// navigating away. When a layer is closed via in-app UI instead of back, we
+// call _navDrop(n) which calls history.go(-n) and ignores the resulting popstate.
+let _navDepth            = 0;    // how many entries we have pushed
+let _navHandlingPop      = false; // true while popstate handler is running
+let _navDropPending      = false; // true while history.go(-n) is in-flight from UI close
+let _navDepthAtVenueOpen = 0;    // _navDepth snapshot just before venue push
+let _navDepthAtQcOpen    = 0;    // _navDepth snapshot just before qc-panel push
+let _navDepthAtSortOpen  = 0;    // _navDepth snapshot just before sort-panel push
+
+function _navPush() {
+  _navDepth++;
+  history.pushState({ navDepth: _navDepth }, '');
+}
+
+// Drop `count` history entries that we own (called from in-app UI, not back btn).
+function _navDrop(count) {
+  if (count <= 0 || _navDepth < count) return;
+  _navDepth -= count;
+  _navDropPending = true;
+  history.go(-count);
+}
+
 // ── Time animation ────────────────────────────────────────────────────────────
 const TIME_ANIM_MS = 520;
 let _timeAnimId    = null;
@@ -83,17 +109,26 @@ function computeSunWindows(venue, dateStr) {
 // Workers require a server origin (http://). On file:// the constructor throws a
 // SecurityError, so we wrap it and fall back to sync computation gracefully.
 let sunWorker = null;
+// Generation counter: incremented on each dispatch so stale results from an
+// earlier dispatch (e.g. the pre-initFacings() worker that lacks nearbyBuildings)
+// are silently discarded instead of overwriting the correct cache.
+let _workerGeneration = 0;
 try {
   sunWorker = new Worker('js/worker.js');
   sunWorker.onmessage = function(e) {
-    const { type, dateStr, result } = e.data;
+    const { type, dateStr, result, generation } = e.data;
     if (type !== 'result') return;
     // Discard stale results if the user changed the date while the worker was running
     if (dateStr !== datePicker.value) return;
+    // Discard results from an older dispatch (e.g. pre-initFacings worker)
+    if (generation !== _workerGeneration) return;
     for (const [idStr, windows] of Object.entries(result)) {
       sunWindowCache.set(`${idStr}-${dateStr}`, windows);
     }
-    // Re-render with worker-computed data (usually identical to sync fallback)
+    // Sprites may have been built against the sync-fallback windows; rebuild them
+    // now that the worker has confirmed (or corrected) the sun window data.
+    clearSpriteCache();
+    // Re-render with worker-computed data
     draw();
     renderList();
   };
@@ -103,19 +138,21 @@ try {
 
 function dispatchToWorker(dateStr) {
   if (!sunWorker || !currentSunTable) return;
+  const gen = ++_workerGeneration;
   const venues = VENUES.map(v => ({
-    id:              v.id,
-    facing:          v.facing,
-    openingHours:    v.openingHours,
-    lat:             v.lat,
-    lng:             v.lng,
+    id:               v.id,
+    facing:           v.facing,
+    openingHours:     v.openingHours,
+    lat:              v.lat,
+    lng:              v.lng,
+    terraceType:      v.terraceType       ?? null,
     nearbyBuildings:  v.nearbyBuildings   ?? null,
     wallSegment:      v.wallSegment       ?? null,
     terraceTestPoints: v.terraceTestPoints ?? null,
   }));
   // Slice the buffer so we transfer a copy, keeping currentSunTable intact on main thread
   const transferBuf = currentSunTable.buffer.slice(0);
-  sunWorker.postMessage({ type: 'compute', venues, sunTableBuffer: transferBuf, dateStr }, [transferBuf]);
+  sunWorker.postMessage({ type: 'compute', venues, sunTableBuffer: transferBuf, dateStr, generation: gen }, [transferBuf]);
 }
 
 // ── Map ───────────────────────────────────────────────────────────────────────
@@ -1163,6 +1200,7 @@ function update() {
     currentSunTable  = buildSunTable(dateStr);
     currentDateStr   = dateStr;
     sunWindowCache.clear();
+    clearSpriteCache();
     dispatchToWorker(dateStr);
   }
 

@@ -13,7 +13,7 @@
 importScripts('solar.js');
 
 self.onmessage = function(e) {
-  const { type, venues, sunTableBuffer, dateStr } = e.data;
+  const { type, venues, sunTableBuffer, dateStr, generation } = e.data;
   if (type !== 'compute') return;
 
   const table  = new Float64Array(sunTableBuffer);
@@ -23,5 +23,5 @@ self.onmessage = function(e) {
     result[v.id] = computeSunWindowsFromTable(v, table);
   }
 
-  self.postMessage({ type: 'result', dateStr, result });
+  self.postMessage({ type: 'result', dateStr, result, generation });
 };
