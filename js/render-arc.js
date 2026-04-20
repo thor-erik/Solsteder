@@ -410,16 +410,16 @@ function _drawSunArc(c, cw, ch, dateStr, fromH, isToday, MIN_H, MAX_H, PAD_X, ti
 
 // ── Time bar (panel-time-bar arc canvas) ──────────────────────────────────────
 /**
- * Draws a slim segmented track: per-hour color segments (amber=sun, tinted for
- * cloud/rain, empty/dark for night) + a large glass capsule thumb that protrudes
- * above and below the track. Hourly labels every 2h at the bottom.
+ * Hourly weather segments (DESIGN.md ramp) + weather glyphs + hour labels.
+ * Thumb: 2px line + 10px circle cap at top edge, in --text color.
+ * NÅ tick: dashed line + label.
  */
 function drawTimeBar(canvasEl) {
   if (!canvasEl || !currentSunTable) return;
 
   const dpr  = window.devicePixelRatio || 1;
   const cssW = canvasEl.clientWidth  || 280;
-  const cssH = canvasEl.clientHeight || 36;
+  const cssH = canvasEl.clientHeight || 56;
   const pw   = Math.round(cssW * dpr);
   const ph   = Math.round(cssH * dpr);
   if (canvasEl.width !== pw || canvasEl.height !== ph) {
@@ -432,88 +432,120 @@ function drawTimeBar(canvasEl) {
   c.save();
   c.scale(dpr, dpr);
 
-  const MIN_H    = (typeof MIN_H_ARC !== 'undefined') ? MIN_H_ARC : 4;
-  const MAX_H    = (typeof MAX_H_ARC !== 'undefined') ? MAX_H_ARC : 23;
-  const PAD_X    = (typeof PAD_X_ARC !== 'undefined') ? PAD_X_ARC : 20;
-  const PAD_B    = 14;                     // label area at bottom
-  const AVAIL    = cssH - PAD_B;           // space above labels for track + thumb
-  const TRACK_H  = 7;                      // slim track height
-  const TRACK_R  = TRACK_H / 2;
-  const TRACK_Y  = Math.round((AVAIL - TRACK_H) / 2);
-  const BAR_W    = cssW - PAD_X * 2;
-  const BAR_X    = PAD_X;
-  const dateStr  = datePicker.value;
-  const fromH    = parseFloat(timeFromEl.value);
-  const isHov    = typeof arcHoverH === 'number';
-  const showH    = isHov ? arcHoverH : fromH;
+  const MIN_H   = (typeof MIN_H_ARC !== 'undefined') ? MIN_H_ARC : 4;
+  const MAX_H   = (typeof MAX_H_ARC !== 'undefined') ? MAX_H_ARC : 23;
+  const PAD_X   = (typeof PAD_X_ARC !== 'undefined') ? PAD_X_ARC : 20;
+  const PAD_T   = 14;  // room for NÅ label + thumb circle above bar
+  const PAD_B   = 13;  // hour labels at bottom
+  const TRACK_Y = PAD_T;
+  const TRACK_H = cssH - PAD_T - PAD_B;
+  const TRACK_R = 3;
+  const BAR_W   = cssW - PAD_X * 2;
+  const BAR_X   = PAD_X;
+  const dateStr = datePicker.value;
+  const fromH   = parseFloat(timeFromEl.value);
+  const isHov   = typeof arcHoverH === 'number';
+  const showH   = isHov ? arcHoverH : fromH;
 
   const timeToX = t => BAR_X + (t - MIN_H) / (MAX_H - MIN_H) * BAR_W;
 
-  // Slim track path helper
+  // Track rounded-rect clip helper
   const trackPath = () => {
     c.beginPath();
     c.moveTo(BAR_X + TRACK_R, TRACK_Y);
     c.lineTo(BAR_X + BAR_W - TRACK_R, TRACK_Y);
-    c.arcTo(BAR_X + BAR_W, TRACK_Y,           BAR_X + BAR_W, TRACK_Y + TRACK_R,       TRACK_R);
+    c.arcTo(BAR_X + BAR_W, TRACK_Y,           BAR_X + BAR_W, TRACK_Y + TRACK_R,          TRACK_R);
     c.lineTo(BAR_X + BAR_W, TRACK_Y + TRACK_H - TRACK_R);
     c.arcTo(BAR_X + BAR_W, TRACK_Y + TRACK_H, BAR_X + BAR_W - TRACK_R, TRACK_Y + TRACK_H, TRACK_R);
     c.lineTo(BAR_X + TRACK_R, TRACK_Y + TRACK_H);
-    c.arcTo(BAR_X, TRACK_Y + TRACK_H,         BAR_X, TRACK_Y + TRACK_H - TRACK_R,     TRACK_R);
+    c.arcTo(BAR_X, TRACK_Y + TRACK_H,         BAR_X, TRACK_Y + TRACK_H - TRACK_R,         TRACK_R);
     c.lineTo(BAR_X, TRACK_Y + TRACK_R);
-    c.arcTo(BAR_X, TRACK_Y,                   BAR_X + TRACK_R, TRACK_Y,               TRACK_R);
+    c.arcTo(BAR_X, TRACK_Y,                   BAR_X + TRACK_R, TRACK_Y,                   TRACK_R);
     c.closePath();
   };
 
-  // 1. Track background
+  // 1. Track background (night color from ramp)
   trackPath();
-  c.fillStyle = 'rgba(10, 20, 42, 0.55)';
+  c.fillStyle = '#1C2B4A';
   c.fill();
 
-  // 2. Per-hour segments (clipped to track)
+  // 2. Hourly weather segments — DESIGN.md ramp
   const wxHours = (typeof getWeatherHoursForDate === 'function')
     ? getWeatherHoursForDate(dateStr) : [];
-  const hasWx   = wxHours.length > 0 && typeof getWeatherAt === 'function';
-  const STEP    = 0.25;
+  const hasWx = wxHours.length > 0 && typeof getWeatherAt === 'function';
 
   c.save();
   trackPath();
   c.clip();
 
-  for (let t = MIN_H; t < MAX_H; t += STEP) {
-    const midT = t + STEP / 2;
-    const sun  = getSunFromTable(currentSunTable, midT);
-    if (sun.alt <= 0) continue;  // night — leave dark background
+  for (let h = MIN_H; h < MAX_H; h++) {
+    const sun = getSunFromTable(currentSunTable, h + 0.5);  // sample hour midpoint
+    if (sun.alt <= 0) continue;  // night — leave #1C2B4A background
 
-    let r = 255, g = 175, b = 133, a = 0.88;
-
+    let color = '#FFD488';  // full sun default
     if (hasWx) {
-      const wx    = getWeatherAt(dateStr, midT);
-      const cloud = wx ? wx.cloud : 0;
-      const rain  = wx ? (wx.precip ?? wx.prec ?? 0) > 0.3 : false;
-      if (rain) {
-        r = 100; g = 165; b = 240; a = 0.72;
-      } else if (cloud < 0.20) {
-        r = 255; g = 175; b = 133; a = 0.88;
-      } else if (cloud < 0.50) {
-        r = 255; g = 175; b = 133; a = 0.58;
-      } else if (cloud < 0.75) {
-        r = 175; g = 155; b = 130; a = 0.40;
-      } else {
-        r = 120; g = 135; b = 160; a = 0.35;
-      }
+      const wx   = getWeatherAt(dateStr, h + 0.5);
+      const rain = wx ? (wx.precip ?? wx.prec ?? 0) > 0.3 : false;
+      const cf   = wx ? (wx.cloud ?? 0) : 0;
+      if      (rain)       color = '#5E7CA8';  // rain
+      else if (cf < 0.20)  color = '#FFD488';  // full sun
+      else if (cf < 0.60)  color = '#E6C08A';  // partly sunny
+      else                 color = '#8EA0B8';  // overcast
     }
 
-    const x1 = timeToX(t);
-    const x2 = timeToX(t + STEP);
-    c.fillStyle = `rgba(${r},${g},${b},${a})`;
+    const x1 = timeToX(h);
+    const x2 = timeToX(h + 1);
+    c.fillStyle = color;
     c.fillRect(x1, TRACK_Y, x2 - x1 + 0.5, TRACK_H);
   }
 
-  c.restore(); // end track clip
+  c.restore();  // end track clip
 
-  // 3. Hour labels every 2 hours
+  // 3. Hour dividers (subtle, between day segments)
+  c.save();
+  trackPath();
+  c.clip();
+  c.strokeStyle = 'rgba(0,0,0,0.15)';
+  c.lineWidth = 1;
+  for (let h = MIN_H + 1; h < MAX_H; h++) {
+    const x = timeToX(h);
+    c.beginPath();
+    c.moveTo(x, TRACK_Y);
+    c.lineTo(x, TRACK_Y + TRACK_H);
+    c.stroke();
+  }
+  c.restore();
+
+  // 4. Weather glyphs — centered in each hour segment, dropped if segment < 24px
+  if (hasWx) {
+    const GLYPH_FONT_SIZE = 11;
+    c.font = `${GLYPH_FONT_SIZE}px "Inter", sans-serif`;
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.globalAlpha = 0.55;
+    for (let h = MIN_H; h < MAX_H; h++) {
+      const sun = getSunFromTable(currentSunTable, h + 0.5);
+      if (sun.alt <= 0) continue;
+      const x1 = timeToX(h);
+      const x2 = timeToX(h + 1);
+      if (x2 - x1 < 24) continue;
+      const wx   = getWeatherAt(dateStr, h + 0.5);
+      const rain = wx ? (wx.precip ?? wx.prec ?? 0) > 0.3 : false;
+      const cf   = wx ? (wx.cloud ?? 0) : 0;
+      let glyph;
+      if      (rain)       glyph = '⛆';
+      else if (cf < 0.20)  glyph = '☀';
+      else if (cf < 0.60)  glyph = '⛅';
+      else                 glyph = '☁';
+      c.fillStyle = '#9CBDE7';
+      c.fillText(glyph, (x1 + x2) / 2, TRACK_Y + TRACK_H / 2);
+    }
+    c.globalAlpha = 1;
+  }
+
+  // 5. Hour labels every 2 hours
   c.font = '9px "Inter", sans-serif';
-  c.fillStyle = 'rgba(156,189,231,0.38)';
+  c.fillStyle = 'rgba(156,189,231,0.40)';
   c.textBaseline = 'bottom';
   c.textAlign = 'center';
   for (let h = Math.ceil(MIN_H); h <= MAX_H; h++) {
@@ -523,54 +555,54 @@ function drawTimeBar(canvasEl) {
     c.fillText(`${h}`, lx, cssH - 1);
   }
 
-  // 4. Large glass capsule thumb — protrudes above and below the track
-  if (showH >= MIN_H && showH <= MAX_H) {
-    const sx = timeToX(showH);
-    const tW = 13;
-    const tH = Math.round(AVAIL * 0.90);
-    const tX = Math.round(sx - tW / 2);
-    const tY = Math.round((AVAIL - tH) / 2);
-    const tR = tW / 2;
-
-    const capsulePath = () => {
-      c.beginPath();
-      c.moveTo(tX + tR, tY);
-      c.lineTo(tX + tW - tR, tY);
-      c.arcTo(tX + tW, tY,      tX + tW, tY + tR,      tR);
-      c.lineTo(tX + tW, tY + tH - tR);
-      c.arcTo(tX + tW, tY + tH, tX + tW - tR, tY + tH, tR);
-      c.lineTo(tX + tR, tY + tH);
-      c.arcTo(tX,       tY + tH, tX, tY + tH - tR,     tR);
-      c.lineTo(tX,      tY + tR);
-      c.arcTo(tX,       tY,      tX + tR, tY,           tR);
-      c.closePath();
-    };
-
-    // Base fill with drop shadow
+  // 6. NÅ tick — dashed vertical line + label, only on today's date
+  const nowH    = new Date().getHours() + new Date().getMinutes() / 60;
+  const isToday = (typeof todayStr === 'function') && datePicker.value === todayStr();
+  if (isToday && nowH >= MIN_H && nowH <= MAX_H) {
+    const nx = timeToX(nowH);
     c.save();
-    c.shadowColor   = 'rgba(0,0,0,0.45)';
-    c.shadowBlur    = 9;
-    c.shadowOffsetY = 2;
-    capsulePath();
-    c.fillStyle = isHov ? 'rgba(220,235,255,0.96)' : 'rgba(255,252,248,0.93)';
-    c.fill();
-    c.restore();
-
-    // Left-edge highlight gradient (glass sheen)
-    c.save();
-    capsulePath();
-    const hlGrad = c.createLinearGradient(tX, tY, tX + tW, tY);
-    hlGrad.addColorStop(0,   'rgba(255,255,255,0.62)');
-    hlGrad.addColorStop(0.4, 'rgba(255,255,255,0.10)');
-    hlGrad.addColorStop(1,   'rgba(255,255,255,0.02)');
-    c.fillStyle = hlGrad;
-    c.fill();
-
-    // Fine border
-    capsulePath();
-    c.strokeStyle = 'rgba(255,255,255,0.68)';
-    c.lineWidth = 0.8;
+    c.setLineDash([2, 3]);
+    c.strokeStyle = 'rgba(156,189,231,0.55)';
+    c.lineWidth = 1;
+    c.beginPath();
+    c.moveTo(nx, TRACK_Y);
+    c.lineTo(nx, TRACK_Y + TRACK_H);
     c.stroke();
+    c.setLineDash([]);
+
+    c.font = '700 9px "Inter", sans-serif';
+    c.fillStyle = 'rgba(156,189,231,0.60)';
+    c.textAlign = 'center';
+    c.textBaseline = 'bottom';
+    c.fillText('NÅ', nx, TRACK_Y - 2);
+    c.restore();
+  }
+
+  // 7. Thumb — 2px line in --text extending 4px above/below, 10px circle at top edge
+  if (showH >= MIN_H && showH <= MAX_H) {
+    const sx       = timeToX(showH);
+    const LINE_TOP = TRACK_Y - 4;
+    const LINE_BOT = TRACK_Y + TRACK_H + 4;
+    const CIR_R    = 5;
+
+    c.save();
+    c.shadowColor   = 'rgba(0,0,0,0.40)';
+    c.shadowBlur    = 5;
+    c.shadowOffsetY = 1;
+
+    c.strokeStyle = '#FFF2EB';
+    c.lineWidth   = 2;
+    c.lineCap     = 'round';
+    c.beginPath();
+    c.moveTo(sx, LINE_TOP);
+    c.lineTo(sx, LINE_BOT);
+    c.stroke();
+
+    c.fillStyle = '#FFF2EB';
+    c.beginPath();
+    c.arc(sx, TRACK_Y, CIR_R, 0, Math.PI * 2);
+    c.fill();
+
     c.restore();
   }
 

@@ -1814,7 +1814,7 @@
       top: calc(12px + 46px + 8px);
     }
 
-    /* Venue list — default "peek" state: 100px visible from bottom (handle + time bar) */
+    /* Venue list — peek state: handle (34px) + readout (72px) + gap (8px) + bar (78px) ≈ 192px */
     #panel {
       position: fixed;  /* fixed avoids parent height/overflow issues on iOS */
       top: auto;
@@ -1827,7 +1827,7 @@
       border-left: none;
       border-right: none;
       border-bottom: none;
-      transform: translateY(calc(100% - 100px));
+      transform: translateY(calc(100% - 192px));
     }
 
     /* Expanded state — tap handle to open */
@@ -1847,7 +1847,7 @@
     #panel-toggle-icon { display: none; }
 
     /* Locate button: sit just above the peek strip so panel sheet slides over it */
-    #locate-btn { bottom: 114px; }
+    #locate-btn { bottom: 206px; }
 
     /* Handle: flex column — pill + chevron */
     #panel-handle {
@@ -2817,37 +2817,61 @@
   }
   #qc-notice.visible { opacity: 1; }
 
-  /* ── Floating date label — hovers above panel peek on mobile ────────── */
-  #floating-date-label {
-    position: fixed;
-    z-index: 821;
-    pointer-events: none;
-    /* desktop: sit alongside the panel header */
-    left: 16px;
-    bottom: 16px;  /* overridden per breakpoint */
-  }
-  #fdl-text {
-    display: inline-block;
-    font-family: 'Inter', sans-serif;
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.03em;
-    color: rgba(156, 189, 231, 0.62);
-    padding: 4px 10px;
-    background: rgba(10, 20, 42, 0.55);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(156, 189, 231, 0.14);
-    border-radius: 20px;
-    white-space: nowrap;
-  }
-
-  /* ── Panel time bar: date circle + arc canvas ───────────────────────── */
+  /* ── Panel time bar: date circle + readout + arc canvas ────────────── */
   #panel-time-bar {
     flex-shrink: 0;
-    padding: 10px 14px 10px;
+    padding: 10px 14px 12px;
     border-bottom: 1px solid rgba(156, 189, 231, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
+
+  /* ── Readout panel — docked above the time bar ───────────────────────── */
+  #time-readout {
+    background: rgba(20, 46, 82, 0.55);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(156, 189, 231, 0.18);
+    border-radius: 10px;
+    padding: 8px 12px 7px;
+    transition: background 120ms ease-out;
+  }
+  #readout-row1 {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  #readout-time {
+    font-family: 'Inter', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -0.01em;
+    line-height: 1;
+    transition: opacity 50ms;
+  }
+  #readout-meta {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+    text-align: right;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: opacity 50ms;
+  }
+  #readout-sun {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    margin-top: 3px;
+    min-height: 17px;
+    transition: opacity 50ms;
+  }
+
   #ptb-top-row {
     display: flex;
     align-items: center;
@@ -2885,7 +2909,7 @@
   }
   #qc-arc {
     flex: 1;
-    height: 36px;
+    height: 56px;
     display: block;
     cursor: ew-resize;
     min-width: 0;
@@ -2910,8 +2934,8 @@
       right: 12px;
       width: auto;
       top: auto;
-      /* float above the panel peek */
-      bottom: 108px;
+      /* float above the panel peek (192px) */
+      bottom: 200px;
     }
   }
 
@@ -3001,19 +3025,13 @@
   /* Suppress venue card enter animation on map-pan re-renders */
   #venue-list[data-no-anim] .venue-card { animation: none !important; }
 
-  /* Time strip + floating date label — mobile overrides */
+  /* Mobile overrides */
   @media (max-width: 639px) {
     #qc-wrap {
       left: 12px;
       right: 12px;
       top: 68px;
       width: auto;
-    }
-    #floating-date-label {
-      /* Float just above the panel peek strip */
-      left: 50%;
-      transform: translateX(-50%);
-      bottom: 108px;  /* peek height (100px) + 8px gap */
     }
   }
 
@@ -3598,11 +3616,6 @@
     <div id="dp-content"></div>
   </div>
 
-  <!-- Floating date label — floats above panel peek on mobile, above panel on desktop -->
-  <div id="floating-date-label" class="intro-hidden">
-    <span id="fdl-text">Today</span>
-  </div>
-
   <!-- Calendar float — positioned above the panel, opened by the date button in panel-time-bar.
        Lives OUTSIDE #panel so it escapes the panel's transform context. -->
   <div id="ptb-cal-float">
@@ -3621,8 +3634,16 @@
       <div id="panel-handle-pill"></div>
     </div>
 
-    <!-- Time bar: date circle button + scrubable arc canvas -->
+    <!-- Time bar: readout + date circle + arc canvas -->
     <div id="panel-time-bar">
+      <!-- Readout — docked above time bar, three-tier hierarchy -->
+      <div id="time-readout">
+        <div id="readout-row1">
+          <span id="readout-time">—</span>
+          <span id="readout-meta"></span>
+        </div>
+        <div id="readout-sun"></div>
+      </div>
       <div id="ptb-top-row">
         <button id="ptb-date-btn" onclick="toggleQcPanel('date')" title="Change date">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">

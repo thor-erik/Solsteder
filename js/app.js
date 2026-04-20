@@ -652,60 +652,72 @@ function animateToTime(targetHour, durationMs) {
   _timeAnimId = requestAnimationFrame(tick);
 }
 
-// ── Floating label + panel controls ──────────────────────────────────────────
+// ── Readout panel ─────────────────────────────────────────────────────────────
+// Cross-fade helper: animates only when not actively scrubbing (animate=true).
+function _readoutSet(el, newText, animate) {
+  if (!el) return;
+  if (el.textContent === newText) return;
+  if (!animate) { el.textContent = newText; return; }
+  el.style.opacity = '0';
+  setTimeout(() => {
+    el.textContent = newText;
+    el.style.opacity = '';
+  }, 55);
+}
+
 function updateQcIndicator(h) {
-  const hour    = (typeof h === 'number') ? h : parseFloat(timeFromEl.value);
+  const isHover = typeof h === 'number';
+  const hour    = isHover ? h : parseFloat(timeFromEl.value);
+  // Snap to 15-min increments for display
+  const dispH   = Math.round(hour * 4) / 4;
   const dateStr = datePicker.value;
-  const wx      = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, hour) : null;
+  const wx      = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, dispH) : null;
   const ARROWS  = ['↑','↗','→','↘','↓','↙','←','↖'];
   const arrow   = wx ? ARROWS[Math.round(((wx.wdir + 180) % 360) / 45) % 8] : '';
   const wind    = wx ? `${arrow} ${Math.round(wx.wspd)} m/s` : '';
-  const temp    = wx ? `${wx.temp}°` : '';
+  const temp    = wx ? `${Math.round(wx.temp)}°` : '';
   const icon    = wx && typeof skyIcon === 'function' ? skyIcon(wx.cloud) : '';
-  const timeStr = (nowMode && typeof h !== 'number') ? t('now') + ' · ' + formatHour(hour) : formatHour(hour);
 
-  // Compute date label
-  const tod  = todayStr();
-  const tom  = new Date(); tom.setDate(tom.getDate() + 1);
-  const tomS = tom.toISOString().slice(0, 10);
-  let dateText;
-  if (dateStr === tod)       dateText = t('today');
-  else if (dateStr === tomS) dateText = t('tomorrow');
-  else {
-    const d    = new Date(dateStr + 'T12:00:00');
-    const DAYS = tA('days_short');
-    const MONS = tA('months_short');
-    dateText = `${DAYS[d.getDay()]} ${d.getDate()} ${MONS[d.getMonth()]}`;
+  // Tier 1: selected time
+  const timeLabel = formatHour(dispH);
+  // Tier 3: weather metadata (right-aligned)
+  const metaParts = [];
+  if (icon && temp) metaParts.push(`${icon} ${temp}`);
+  else if (temp)    metaParts.push(temp);
+  if (wind)         metaParts.push(wind);
+  const metaLabel = metaParts.join('  ');
+
+  // Tier 2: sun result — count venues with sun at this time
+  let sunLabel = '';
+  if (typeof VENUES !== 'undefined' && typeof venueHasSunInRange === 'function') {
+    const cnt = VENUES.filter(v => venueHasSunInRange(v, dateStr, dispH, dispH)).length;
+    sunLabel = cnt > 0 ? t('places_in_sun', { count: cnt }) : '';
   }
 
-  // Update floating pill with full context
-  const fdlText = document.getElementById('fdl-text');
-  if (fdlText) {
-    const parts = [dateText, timeStr];
-    if (icon && temp) parts.push(`${icon} ${temp}`);
-    else if (temp)    parts.push(temp);
-    if (wind)         parts.push(wind);
-    fdlText.textContent = parts.join(' · ');
+  const animate = !isHover;  // cross-fade only on non-hover (deliberate) updates
+  _readoutSet(document.getElementById('readout-time'), timeLabel, animate);
+  _readoutSet(document.getElementById('readout-meta'), metaLabel, animate);
+  _readoutSet(document.getElementById('readout-sun'),  sunLabel,  animate);
+
+  // Hue-shift: tint readout background toward weather ramp during hover/drag
+  const readout = document.getElementById('time-readout');
+  if (readout) {
+    if (isHover && wx) {
+      const rain = (wx.precip ?? wx.prec ?? 0) > 0.3;
+      const cf   = wx.cloud ?? 0;
+      let [tr, tg, tb] = rain ? [28,50,88] : cf < 0.20 ? [36,54,78] : cf < 0.60 ? [32,50,76] : [26,46,80];
+      readout.style.background = `rgba(${tr},${tg},${tb},0.60)`;
+    } else {
+      readout.style.background = '';
+    }
   }
 }
 
 function updateQcLabels() {
-  const val  = datePicker.value;
-  const tod  = todayStr();
-  const tom  = new Date(); tom.setDate(tom.getDate() + 1);
-  const tomS = tom.toISOString().slice(0, 10);
+  const val = datePicker.value;
+  const tod = todayStr();
 
-  let dateText;
-  if (val === tod)       dateText = t('today');
-  else if (val === tomS) dateText = t('tomorrow');
-  else {
-    const d    = new Date(val + 'T12:00:00');
-    const DAYS = tA('days_short');
-    const MONS = tA('months_short');
-    dateText = `${DAYS[d.getDay()]} ${d.getDate()} ${MONS[d.getMonth()]}`;
-  }
-
-  // Floating pill gets full context from updateQcIndicator
+  // Refresh readout (sun count changes with date)
   updateQcIndicator(null);
 
   // Date button active state reflects calendar open state
@@ -2532,10 +2544,9 @@ function _runIntroSequence() {
 
 function _introRevealUI(search, brand, qcWrap, panel) {
   const locateBtn   = document.getElementById('locate-btn');
-  const fdlEl       = document.getElementById('floating-date-label');
   const isMobile    = window.innerWidth < 640;
 
-  const fadeEls = [search, brand, qcWrap, locateBtn, fdlEl];
+  const fadeEls = [search, brand, qcWrap, locateBtn];
   if (!isMobile && panel) fadeEls.push(panel);
 
   fadeEls.forEach(el => {
@@ -2589,8 +2600,7 @@ function _skipIntro(seqId) {
 
   // Instantly reveal all UI
   const locateBtnEl = document.getElementById('locate-btn');
-  const fdlElSkip   = document.getElementById('floating-date-label');
-  [canvas, search, brand, qcWrap, panel, locateBtnEl, fdlElSkip].forEach(el => {
+  [canvas, search, brand, qcWrap, panel, locateBtnEl].forEach(el => {
     if (!el) return;
     el.style.transition = 'none';
     el.classList.remove('intro-hidden');
