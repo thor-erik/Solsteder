@@ -438,7 +438,7 @@ function drawTimeBar(canvasEl) {
   const PAD_B   = 4;   // bottom clearance so thumb pill doesn't clip
   const TRACK_Y = PAD_T;
   const TRACK_H = cssH - PAD_T - PAD_B;  // e.g. 38-8-4=26px
-  const TRACK_R = 0;   // #qc-arc-track's overflow:hidden handles all corner clipping
+  const TRACK_R = 8;   // rounded ends on track segments
   const BAR_W   = cssW; // bar fills full canvas width
   const BAR_X   = 0;
   const dateStr = datePicker.value;

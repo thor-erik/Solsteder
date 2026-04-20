@@ -160,7 +160,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    transition: border-color 0.15s, box-shadow 0.15s;
+    transition: border-color 0.15s, box-shadow 0.15s, opacity 180ms ease-out;
   }
   #floating-search:hover {
     border-color: rgba(255,175,133,0.3);
@@ -527,6 +527,7 @@
     cursor: pointer;
     transition: border-color 0.12s, background 0.12s;
     font-family: 'Inter', sans-serif;
+    position: relative;
   }
   .dc-tile:hover:not(.no-data) {
     background: rgba(24,52,95,0.9);
@@ -547,13 +548,14 @@
   .dc-tile-past        { opacity: 0.45; cursor: default; pointer-events: none; border-color: transparent; background: transparent; }
   /* Today dot — 4px accent dot below the day number */
   .dc-today-dot {
-    display: block;
+    position: absolute;
+    bottom: 5px;
+    left: 50%;
+    transform: translateX(-50%);
     width: 4px;
     height: 4px;
     border-radius: 50%;
     background: var(--accent);
-    margin: 1px auto 0;
-    flex-shrink: 0;
   }
   .dc-tile-empty       { border: none; background: transparent; pointer-events: none; }
   .dc-day  { font-size: 7px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(156,189,231,0.4); line-height: 1; }
@@ -3071,8 +3073,6 @@
   }
   /* Track wrapper: overflow:hidden + border-radius clips canvas corners cleanly */
   #qc-arc-track {
-    overflow: hidden;
-    border-radius: 12px;
     width: 100%;
     flex-shrink: 0;
   }
@@ -3143,6 +3143,12 @@
       transform: translateY(0);
       opacity: 1;
       pointer-events: auto;
+    }
+    /* Fade the search bar while the calendar picker is open */
+    body:has(#ptb-cal-float.open) #floating-search {
+      opacity: 0.2;
+      pointer-events: none;
+      transition: opacity 180ms ease-out;
     }
     /* Inner panel: no extra animation on mobile — the outer float handles reveal */
     #ptb-cal-float #qc-panel {
@@ -3881,7 +3887,7 @@
 
   <!-- LEFT PANEL — venue list, floats below search bar -->
   <div id="panel" class="intro-hidden">
-    <div id="panel-handle" onclick="togglePanel()">
+    <div id="panel-handle">
       <div id="panel-handle-pill"></div>
       <div id="panel-handle-chevron">
         <svg width="14" height="8" viewBox="0 0 14 8" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">

@@ -1973,7 +1973,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const timeBar   = document.getElementById('panel-time-bar');
       const venuePeek = document.getElementById('venue-peek');
       const panelHeader = document.getElementById('panel-header');
-      if (timeBar)    _wireSwipeTarget(timeBar);
       if (venuePeek)  _wireSwipeTarget(venuePeek);
       if (panelHeader) _wireSwipeTarget(panelHeader);
 
