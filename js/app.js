@@ -566,18 +566,28 @@ function setAreaFilter(area) {
 }
 
 // ── Sort ──────────────────────────────────────────────────────────────────────
+function _closeSortPanel() {
+  if (!_navHandlingPop) {
+    const toDrop = _navDepth - _navDepthAtSortOpen;
+    if (toDrop > 0) _navDrop(toDrop);
+  }
+  document.getElementById('sort-panel')?.classList.remove('open');
+  document.getElementById('sort-toggle-btn')?.classList.remove('open');
+}
+
 function toggleSortPanel() {
   const panel = document.getElementById('sort-panel');
   const btn   = document.getElementById('sort-toggle-btn');
   if (!panel || !btn) return;
-  const isOpen = panel.classList.toggle('open');
-  btn.classList.toggle('open', isOpen);
-  if (isOpen) {
-    const r = btn.getBoundingClientRect();
-    panel.style.top  = (r.bottom + 4) + 'px';
-    panel.style.left = r.right + 'px';
-    panel.style.transform = 'translateX(-100%)';
-  }
+  if (panel.classList.contains('open')) { _closeSortPanel(); return; }
+  _navDepthAtSortOpen = _navDepth;
+  _navPush();
+  panel.classList.add('open');
+  btn.classList.add('open');
+  const r = btn.getBoundingClientRect();
+  panel.style.top  = (r.bottom + 4) + 'px';
+  panel.style.left = r.right + 'px';
+  panel.style.transform = 'translateX(-100%)';
 }
 
 function setSortBy(sort) {
@@ -595,9 +605,7 @@ function setSortBy(sort) {
   }
   activeSortBy = sort;
   updateSortBtns();
-  // Close panel and update label
-  document.getElementById('sort-panel')?.classList.remove('open');
-  document.getElementById('sort-toggle-btn')?.classList.remove('open');
+  _closeSortPanel();
   renderList();
 }
 
@@ -820,6 +828,10 @@ function _closeQcPanel() {
   const panel = document.getElementById('qc-panel');
   if (!panel) return;
 
+  if (!_navHandlingPop) {
+    const toDrop = _navDepth - _navDepthAtQcOpen;
+    if (toDrop > 0) _navDrop(toDrop);
+  }
   _qcActiveSection = null;
   // _qcCalExpanded is intentionally NOT reset here — session mode (strip/month) persists
 
@@ -865,6 +877,8 @@ function toggleQcPanel(section) {
   }
 
   _qcActiveSection = 'date';
+  _navDepthAtQcOpen = _navDepth;
+  _navPush();
   calFloat?.classList.add('open');
   document.getElementById('floating-search')?.classList.add('cal-dimmed');
   // On mobile, collapse list to peek so picker has room; restore on close
@@ -1384,6 +1398,7 @@ function _flyToVenue(v) {
 }
 
 function selectVenue(id, flyTo) {
+  const freshOpen = selectedId === null; // opening panel for the first time (not switching venues)
   selectedId = id;
   _navMode   = true;   // show all venues in radius, not just current map view
   clearSpriteCache();
@@ -1403,6 +1418,8 @@ function selectVenue(id, flyTo) {
   _switchingVenue = true;
   if (popup) { popup.remove(); popup = null; }
   _switchingVenue = false;
+
+  if (freshOpen) { _navDepthAtVenueOpen = _navDepth; _navPush(); }
 
   openDetailPanel(v);
   draw();
@@ -1473,6 +1490,12 @@ function _startWindForVenue(v) {
 }
 
 function closeDetailPanel(expandList = true) {
+  if (!_navHandlingPop) {
+    // Closed via in-app UI (back button, X, swipe) — drop all entries we pushed
+    // for this venue session (may be 1 for normal, 2 if dp-fullscreen was open).
+    const toDrop = _navDepth - _navDepthAtVenueOpen;
+    if (toDrop > 0) _navDrop(toDrop);
+  }
 if (typeof stopWindOverlay === 'function') stopWindOverlay();
   const dp = document.getElementById('detail-panel');
   if (dp) {
@@ -2167,9 +2190,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (Math.abs(dy) <= SAFE_DY && Math.abs(velocity) < SWIPE_V) return; // safe zone
 
         if (velocity < -SWIPE_V || dy < -SAFE_DY) {
-          if (_dpStartState === 'normal') dpEl.classList.add('dp-fullscreen');
+          if (_dpStartState === 'normal') { dpEl.classList.add('dp-fullscreen'); _navPush(); }
         } else if (velocity > SWIPE_V || dy > SAFE_DY) {
-          if (_dpStartState === 'fullscreen') dpEl.classList.remove('dp-fullscreen');
+          if (_dpStartState === 'fullscreen') { dpEl.classList.remove('dp-fullscreen'); if (!_navHandlingPop) _navDrop(1); }
           else closeDetailPanel(false);
         }
       }
@@ -2345,8 +2368,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btn   = document.getElementById('sort-toggle-btn');
     const panel = document.getElementById('sort-panel');
     if (panel?.classList.contains('open') && !btn?.contains(e.target) && !panel?.contains(e.target)) {
-      panel.classList.remove('open');
-      btn?.classList.remove('open');
+      _closeSortPanel();
     }
     // Close date calendar when clicking outside it
     const cal       = document.getElementById('date-calendar');
@@ -2938,3 +2960,32 @@ function _skipIntro(seqId) {
 
   if (_sharedVenueId) selectVenue(_sharedVenueId, true);
 }
+
+// ── Back-button / popstate handler ───────────────────────────────────────────
+// Fires when the user presses the browser back button or a mobile back gesture.
+// We close the top-most dismissible layer in priority order without navigating away.
+window.addEventListener('popstate', () => {
+  if (_navDropPending) {
+    // This popstate was triggered by _navDrop() from in-app UI — already handled.
+    _navDropPending = false;
+    return;
+  }
+  if (_navDepth === 0) return; // nothing we own on the stack
+  _navDepth--;
+  _navHandlingPop = true;
+
+  const dp = document.getElementById('detail-panel');
+  if (dp?.classList.contains('dp-fullscreen')) {
+    // Collapse fullscreen → normal (venue stays open)
+    dp.classList.remove('dp-fullscreen');
+  } else if (selectedId != null) {
+    // Close the detail panel entirely
+    closeDetailPanel(true);
+  } else if (document.getElementById('qc-panel')?.classList.contains('open')) {
+    _closeQcPanel();
+  } else if (document.getElementById('sort-panel')?.classList.contains('open')) {
+    _closeSortPanel();
+  }
+
+  _navHandlingPop = false;
+});
