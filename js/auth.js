@@ -40,6 +40,15 @@ async function authSetUserRole(email, role) {
 }
 
 async function authSignInWithGoogle() {
+  // Persist current app state so it can be restored after the OAuth redirect returns
+  try {
+    sessionStorage.setItem('solsteder_auth_restore', JSON.stringify({
+      date:    typeof datePicker !== 'undefined' ? datePicker.value           : null,
+      time:    typeof timeFromEl !== 'undefined' ? parseFloat(timeFromEl.value) : null,
+      nowMode: typeof nowMode    !== 'undefined' ? nowMode                    : false,
+      venueId: typeof selectedId !== 'undefined' ? selectedId                 : null,
+    }));
+  } catch (_) {}
   await _supabase.auth.signInWithOAuth({
     provider: 'google',
     options: { redirectTo: window.location.origin }

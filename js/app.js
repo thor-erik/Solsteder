@@ -2662,13 +2662,44 @@ function _showCandidateConfirm(c) {
 
 // ── Intro sequence ────────────────────────────────────────────────────────────
 
+/**
+ * Restore date/time/venue saved by authSignInWithGoogle() before the OAuth redirect.
+ * Called only on OAuth return, after _skipIntro() has already snapped the UI to now.
+ */
+function _restorePreAuthState() {
+  let saved;
+  try { saved = JSON.parse(sessionStorage.getItem('solsteder_auth_restore') ?? 'null'); } catch (_) {}
+  if (!saved) return;
+  sessionStorage.removeItem('solsteder_auth_restore');
+
+  if (saved.date) datePicker.value = saved.date;
+
+  if (!saved.nowMode && saved.time != null) {
+    // _skipIntro() activated nowMode; deactivate it and restore the saved time
+    if (nowMode) {
+      nowMode = false;
+      clearInterval(nowInterval); nowInterval = null;
+      nowBtn?.classList.remove('active');
+      timeRangeWrap?.classList.remove('now-active');
+    }
+    timeFromEl.value = saved.time;
+    updateRangeFill();
+  }
+  update();
+
+  if (saved.venueId != null) {
+    // Small delay: let auth state settle and list render before opening the panel
+    setTimeout(() => { if (typeof selectVenue === 'function') selectVenue(saved.venueId, true); }, 300);
+  }
+}
+
 function _introCheckReady() {
   if (_introMapReady && _introGeoReady && !_introRunning) {
     _introRunning = true;
     // Skip intro animation if this is an OAuth redirect return
     const isOAuthReturn = window.location.hash.includes('access_token=') ||
                           new URLSearchParams(window.location.search).has('code');
-    if (isOAuthReturn) { _skipIntro(); return; }
+    if (isOAuthReturn) { _skipIntro(); _restorePreAuthState(); return; }
 
     // If opened via a share link (#v=<id>), focus the intro on that venue
     const hashMatch = window.location.hash.match(/^#v=(\d+)$/);
