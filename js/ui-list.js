@@ -397,7 +397,10 @@ function renderList() {
   _listFiltered = venues;
   renderListPage(list, dateStr, fromHour, toHour, isPoint, true);
 
-  // Update count label
+  // Update venue-peek with first ranked venue (mobile collapsed state)
+  if (typeof updateVenuePeek === 'function') updateVenuePeek(venues);
+
+  // Update count label (desktop only — mobile uses readout Tier 2)
   const openCount = venues.filter(v => v.isOpen || v.isOpeningSoon).length;
   const sunCount  = venues.filter(v => v.sunInWin && v.isOpen).length;
   const countEl   = document.getElementById('venue-count');

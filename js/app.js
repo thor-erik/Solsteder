@@ -1054,6 +1054,39 @@ function _syncQcPanelHeight() {
   qcPanel.style.setProperty('--qc-panel-h', (h + 10) + 'px');
 }
 
+// ── Peek height: measure handle + time bar + venue-peek and write --peek-h ───
+function _updatePeekHeight() {
+  if (!isMobile()) return;
+  const panel   = document.getElementById('panel');
+  const handle  = document.getElementById('panel-handle');
+  const timebar = document.getElementById('panel-time-bar');
+  const peek    = document.getElementById('venue-peek');
+  if (!panel || !handle || !timebar) return;
+  const h = handle.offsetHeight + timebar.offsetHeight + (peek ? peek.offsetHeight : 0);
+  panel.style.setProperty('--peek-h', Math.max(h, 160) + 'px');
+}
+
+// ── Venue peek: render top of first venue card into #venue-peek ──────────────
+function updateVenuePeek(venues) {
+  const el = document.getElementById('venue-peek');
+  if (!el) return;
+  const v = venues && venues[0];
+  if (!v) { el.innerHTML = ''; _updatePeekHeight(); return; }
+
+  const name  = (typeof shortName === 'function' ? shortName(v.name) : v.name) || '';
+  const score = v.sunScore != null ? Math.round(v.sunScore) : null;
+  const scoreTxt = score != null ? `${score}%` : '';
+  const metaParts = [scoreTxt].filter(Boolean);
+
+  el.innerHTML = `<div id="venue-peek-card">
+    <div id="venue-peek-name">${name}</div>
+    <div id="venue-peek-meta">${metaParts.join(' · ')}</div>
+  </div>`;
+
+  // Measure after content is set
+  requestAnimationFrame(_updatePeekHeight);
+}
+
 function _qcArcSetTimeFromX(clientX) {
   if (_timeAnimId) { cancelAnimationFrame(_timeAnimId); _timeAnimId = null; }
   const canvasEl = document.getElementById('qc-arc');
@@ -1895,12 +1928,29 @@ document.addEventListener('DOMContentLoaded', () => {
         }, { passive: true });
       }
 
-      // Wire the drag handle, panel header, and sort row — all above the list
+      // Wire drag targets: handle + time bar + venue-peek + panel-header (sort now inside it)
       _wireSwipeTarget(h);
+      const timeBar   = document.getElementById('panel-time-bar');
+      const venuePeek = document.getElementById('venue-peek');
       const panelHeader = document.getElementById('panel-header');
-      const sortRow     = document.getElementById('sort-row');
+      if (timeBar)    _wireSwipeTarget(timeBar);
+      if (venuePeek)  _wireSwipeTarget(venuePeek);
       if (panelHeader) _wireSwipeTarget(panelHeader);
-      if (sortRow)     _wireSwipeTarget(sortRow);
+
+      // ── First-run nudge: bounce sheet up 20px after 800ms, once only ──────
+      if (!localStorage.getItem('sol_peek_nudged')) {
+        setTimeout(() => {
+          if (_currentState() === 'peek') {
+            panelEl.style.transition = 'transform 220ms ease-out';
+            panelEl.style.transform  = 'translateY(-20px)';
+            setTimeout(() => {
+              panelEl.style.transform = '';
+              setTimeout(() => { panelEl.style.transition = ''; }, 240);
+            }, 300);
+          }
+          localStorage.setItem('sol_peek_nudged', '1');
+        }, 800);
+      }
 
       // ── Prevent iOS browser pinch-to-zoom (but not Mapbox's) ──
       document.addEventListener('gesturestart', e => {
@@ -2075,8 +2125,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Sync qc panel height on resize
-  window.addEventListener('resize', _syncQcPanelHeight);
-  setTimeout(_syncQcPanelHeight, 600);
+  window.addEventListener('resize', () => { _syncQcPanelHeight(); _updatePeekHeight(); });
+  setTimeout(() => { _syncQcPanelHeight(); _updatePeekHeight(); }, 600);
 
   // qc-arc drag + hover support
   const qcArcEl = document.getElementById('qc-arc');

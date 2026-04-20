@@ -136,22 +136,38 @@ The readout and the time bar are one docked control group, not two stacked surfa
 - They share the same glass level (glass-panel: `rgba(20,46,82,0.55)` / `blur(16px)`).
 - They live inside a single wrapper with matching border, radius `12–14px`, and `overflow: hidden`. No visible seam where they meet.
 - Reduce the separator between readout and bar to a hairline: `1px solid rgba(156,189,231,0.08)`.
+- **The unified wrapper has `16–20px` vertical padding on all internal content. No child control should sit flush against the wrapper's edge.**
 
 Three-tier hierarchy inside the readout:
 - **Tier 1** — selected time: 24pt, 700, `--accent`. Dominant.
-- **Tier 2** — sun result ("78 steder i solen"): 14pt, 500, `--text`. Secondary line below the time.
+- **Tier 2** — sun result ("78 steder i solen"): 14pt, 500, `--text`. Secondary line below the time. Shown once — in the readout only. Never duplicated in adjacent list headers.
 - **Tier 3** — weather metadata: two-line stack on the right, same baseline as Tier 1:
   - Top: weather icon (22–24px) + temperature (17pt, 600, `--text`). Gap 6–8px between icon and number.
-  - Bottom: wind direction + speed (12pt, 500, `--muted`). Format: `↘ 3 m/s`.
+  - Bottom: wind direction + speed (12pt, 500, `--muted`). Format: `↘ 3 m/s`. Arrow wrapped in fixed-width span to prevent layout shift.
 - Do not show the date here — it lives on the date pill.
 - Hue-shift (optional): during scrub, the group wrapper tints toward the weather ramp color at the current thumb position, max 10–15% saturation, 120ms ease-out. Easy to overdo; stay subtle.
 
 ### Date pill
 
 - Always a labeled pill (action-pill flavor): calendar icon + readable label (e.g. `Lør 25 Apr`). **Never icon-only** — the date must be readable at a glance without tapping.
-- Height matches the adjacent time bar so they read as one unified row, not a cluster of mismatched shapes.
+- Standard height: `36–40px`. Vertically centered against the taller time bar row (they share a container rhythm, not a height).
+- Adjacent controls use harmonious proportions — share the same container rhythm, baseline grid, and visual language — but primary inputs may be visibly larger than secondary controls. Equal visual weight is not the same as visual cohesion.
 - Width follows content; no forced minimum beyond the standard pill spec.
-- Rule: controls docked adjacent to a tall primary input match that input's height.
+- On narrow screens, the weekday abbreviation may be omitted (`20 Apr` instead of `Lør 20 Apr`). Never hide the date entirely.
+
+### List peek (collapsed state)
+
+In the mobile bottom-sheet collapsed state, three affordances together communicate "swipe up for a list":
+
+1. **Grabber pill** — 36×4px, `rgba(156,189,231,0.25)`.
+2. **Up-chevron** — small `∧` glyph below the pill, `--muted` at reduced opacity. Makes the swipe direction explicit.
+3. **First-venue peek** — the top ~40–50px of the first venue card is visible below the control group. Shows name and score. Fades at the bottom edge.
+
+The entire readout+bar surface (not just the grabber strip) is a drag target. The grabber is a visual hint only.
+
+### Progressive disclosure
+
+Secondary controls (sort, filter, alternate views) appear with the content they operate on, not preemptively. They must not occupy vertical space in states where they cannot act on anything. Sort is invisible in collapsed state; it surfaces at the top of the list header when the sheet is expanded.
 
 ### Icons
 
