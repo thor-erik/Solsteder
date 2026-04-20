@@ -869,7 +869,26 @@ function _pinHitAtEvent(e) {
   return !editingVenueId && (hitTestVenue(cx, cy) || hitTestDot(cx, cy));
 }
 
+// Selector for interactive UI overlays that must receive clicks without
+// interference from the canvas. Must be defined before the pointerdown handler.
+const _UI_OVERLAY_SELECTOR = '#qc-wrap, #panel, #floating-search, #search-dropdown, #ptb-cal-float, ' +
+  '#profile-panel, #search-wrap, #floating-date, #detail-panel, .mapboxgl-ctrl, .mapboxgl-popup';
+
 canvas.addEventListener('pointerdown', e => {
+  // Check for a UI overlay FIRST — before mousedown fires. Setting pointer-events:none
+  // here means the subsequent mousedown, mouseup, and click are all hit-tested against
+  // the canvas being absent, so they land on the UI element natively.
+  canvas.style.pointerEvents = 'none';
+  const elUnder = document.elementFromPoint(e.clientX, e.clientY);
+  if (elUnder && elUnder.closest(_UI_OVERLAY_SELECTOR)) {
+    // Keep transparent through the full click cycle; restore on pointer release.
+    const restore = () => { canvas.style.pointerEvents = 'auto'; };
+    window.addEventListener('pointerup',     restore, { once: true });
+    window.addEventListener('pointercancel', restore, { once: true });
+    e.stopPropagation(); // prevent Mapbox from drag-tracking this interaction
+    return;
+  }
+  canvas.style.pointerEvents = 'auto';
   if (_pinHitAtEvent(e)) e.stopPropagation();
 });
 
@@ -918,23 +937,10 @@ canvas.addEventListener('mousedown', e => {
   } else {
     canvas.style.pointerEvents = 'none';
     const el = document.elementFromPoint(e.clientX, e.clientY);
-    if (el && el.closest(_UI_OVERLAY_SELECTOR)) {
-      // UI overlay detected — keep canvas transparent so the native mouseup + click
-      // are delivered directly to the UI element without any synthetic dispatch.
-      // Restore pointer-events once the pointer is released.
-      window.addEventListener('pointerup', () => { canvas.style.pointerEvents = 'auto'; }, { once: true });
-    } else {
-      canvas.style.pointerEvents = 'auto';
-    }
+    canvas.style.pointerEvents = 'auto';
     if (el) el.dispatchEvent(new MouseEvent('mousedown', e));
   }
 });
-
-// Selector for interactive UI overlays that sit above the canvas.
-// When a mousedown lands here the canvas stays pointer-events:none through the
-// full click cycle so native events reach the UI element directly.
-const _UI_OVERLAY_SELECTOR = '#qc-wrap, #panel, #floating-search, #search-dropdown, #ptb-cal-float, ' +
-  '#profile-panel, #search-wrap, #floating-date, #detail-panel, .mapboxgl-ctrl, .mapboxgl-popup';
 
 canvas.addEventListener('click', e => {
   const rect = canvas.getBoundingClientRect();
