@@ -1925,8 +1925,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const dy = y - _dragY0;
         // Pure translateY in both directions — no height changes → no reflow
         // Upward (dy<0): panel slides up, appearing taller (bottom fixed)
-        // Downward (dy>0): from peek, allow full off-screen (dismiss); otherwise clamp ≥80px visible
-        const maxY = _dragStartState === 'peek' ? _dragInitH : _dragInitH - 80;
+        // Downward (dy>0): clamp so ≥80px always stays on screen (peek is the floor)
+        const maxY = _dragInitH - 80;
         panelEl.style.transform = `translateY(${Math.min(maxY, _dragT0 + dy)}px)`;
       }
 
@@ -1946,10 +1946,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const SWIPE_V = 0.2, SAFE_DY = 40;
         let target;
         if      (velocity < -SWIPE_V)            target = _dragStartState === 'peek' ? 'expanded' : 'fullscreen';
-        else if (velocity >  SWIPE_V)            target = _dragStartState === 'fullscreen' ? 'expanded' : _dragStartState === 'expanded' ? 'peek' : 'hidden';
+        else if (velocity >  SWIPE_V)            target = _dragStartState === 'fullscreen' ? 'expanded' : 'peek'; // peek is the floor — no hidden via swipe
         else if (Math.abs(dy) <= SAFE_DY)        target = _dragStartState; // safe zone → snap back
         else if (dy < 0)                         target = _dragStartState === 'peek' ? 'expanded' : 'fullscreen';
-        else                                     target = _dragStartState === 'fullscreen' ? 'expanded' : _dragStartState === 'expanded' ? 'peek' : 'hidden';
+        else                                     target = _dragStartState === 'fullscreen' ? 'expanded' : 'peek'; // peek is the floor
 
         _applyState(target);
       }
