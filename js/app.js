@@ -255,6 +255,17 @@ function formatSliderTime(val) {
   return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
 }
 
+function formatDatePill(dateStr) {
+  // Returns e.g. "Lør 25 Apr" in Norwegian
+  const d = new Date(dateStr + 'T12:00:00');
+  const day = d.toLocaleDateString('nb-NO', { weekday: 'short' });
+  const num = d.getDate();
+  const mon = d.toLocaleDateString('nb-NO', { month: 'short' });
+  // Capitalise first letter, strip trailing dot
+  const cap = s => s.charAt(0).toUpperCase() + s.slice(1).replace(/\.$/, '');
+  return `${cap(day)} ${num} ${cap(mon)}`;
+}
+
 // ── Slider ────────────────────────────────────────────────────────────────────
 function updateRangeFill() {
   const min = 4, max = 23;
@@ -680,12 +691,6 @@ function updateQcIndicator(h) {
 
   // Tier 1: selected time
   const timeLabel = formatHour(dispH);
-  // Tier 3: weather metadata (right-aligned)
-  const metaParts = [];
-  if (icon && temp) metaParts.push(`${icon} ${temp}`);
-  else if (temp)    metaParts.push(temp);
-  if (wind)         metaParts.push(wind);
-  const metaLabel = metaParts.join('  ');
 
   // Tier 2: sun result — count venues with sun at this time
   let sunLabel = '';
@@ -694,21 +699,39 @@ function updateQcIndicator(h) {
     sunLabel = cnt > 0 ? t('places_in_sun', { count: cnt }) : '';
   }
 
+  // Task 3: two-line weather stack (icon+temp top, wind bottom)
   const animate = !isHover;  // cross-fade only on non-hover (deliberate) updates
   _readoutSet(document.getElementById('readout-time'), timeLabel, animate);
-  _readoutSet(document.getElementById('readout-meta'), metaLabel, animate);
-  _readoutSet(document.getElementById('readout-sun'),  sunLabel,  animate);
 
-  // Hue-shift: tint readout background toward weather ramp during hover/drag
-  const readout = document.getElementById('time-readout');
-  if (readout) {
+  const wxIconEl = document.querySelector('#readout-meta-wx .wx-icon');
+  const wxTempEl = document.getElementById('readout-meta-temp');
+  const wxWindEl = document.getElementById('readout-meta-wind');
+  if (wxIconEl) wxIconEl.textContent = icon;
+  if (wxTempEl) {
+    if (animate) {
+      wxTempEl.style.opacity = '0';
+      setTimeout(() => { wxTempEl.textContent = temp; wxTempEl.style.opacity = ''; }, 55);
+    } else { wxTempEl.textContent = temp; }
+  }
+  if (wxWindEl) {
+    if (animate) {
+      wxWindEl.style.opacity = '0';
+      setTimeout(() => { wxWindEl.textContent = wind; wxWindEl.style.opacity = ''; }, 55);
+    } else { wxWindEl.textContent = wind; }
+  }
+
+  _readoutSet(document.getElementById('readout-sun'), sunLabel, animate);
+
+  // Hue-shift: tint the unified control group toward weather ramp during hover/drag
+  const ctrlGroup = document.getElementById('qc-control-group');
+  if (ctrlGroup) {
     if (isHover && wx) {
       const rain = (wx.precip ?? wx.prec ?? 0) > 0.3;
       const cf   = wx.cloud ?? 0;
       let [tr, tg, tb] = rain ? [28,50,88] : cf < 0.20 ? [36,54,78] : cf < 0.60 ? [32,50,76] : [26,46,80];
-      readout.style.background = `rgba(${tr},${tg},${tb},0.60)`;
+      ctrlGroup.style.background = `rgba(${tr},${tg},${tb},0.60)`;
     } else {
-      readout.style.background = '';
+      ctrlGroup.style.background = '';
     }
   }
 }
@@ -719,6 +742,10 @@ function updateQcLabels() {
 
   // Refresh readout (sun count changes with date)
   updateQcIndicator(null);
+
+  // Date pill label
+  const dateLabelEl = document.getElementById('ptb-date-label');
+  if (dateLabelEl) dateLabelEl.textContent = formatDatePill(val);
 
   // Date button active state reflects calendar open state
   document.getElementById('ptb-date-btn')?.classList.toggle('active', _qcActiveSection === 'date');

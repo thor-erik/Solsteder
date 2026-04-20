@@ -62,7 +62,7 @@ Font: Inter (already loaded in `index.html`).
 | Title | 17–18pt | 600 | `--text` | Venue names, panel headers |
 | Body | 14pt | 500 | `--text` | Standard text |
 | Meta | 12–13pt | 500 | `--muted` | Stats, secondary info, sub-lines |
-| Caption | 10–11pt | 500 | `--muted` | Axis labels, tiny hints |
+| Caption | 10–11pt | 500–600 | `--muted` | Axis labels, tiny hints. Axis labels on primary inputs (time bar) use `11pt / 600`; generic captions cap at `10pt / 500`. |
 
 **Display color rule:** use `--accent` when the value is the direct answer to what the user just picked (e.g. currently-selected time). Use `--text` for computed or contextual numbers (temperatures, distances, counts). Do not use `--accent` for decorative large text.
 
@@ -111,17 +111,20 @@ Selected state for either: background `--accent`, text `--accent-on` (`#2a1a0c`)
 ### Time bar (primary input)
 
 - Height: `44–56px`
-- Segments: **hour granularity only.** No sub-hour ticks. Dividers between hours: `1px solid rgba(0,0,0,0.15)` or omitted entirely.
+- Container: radius `12–14px`. Clip segments inside the container so leftmost/rightmost segments inherit rounded edges naturally.
+- Segments: **hour granularity only.** No sub-hour ticks. Default: no dividers. If two adjacent segments are perceptually indistinct, an optional `1px rgba(0,0,0,0.08)` seam is the maximum allowed.
+- Container inset shadow: `inset 0 1px 2px rgba(0,0,0,0.15)` — makes the bar feel recessed, not pasted on.
 - Segment fill: from weather ramp above.
 - Optional weather glyph: centered in segment, 10–12px, `--muted`. Drop the glyphs if segments are narrower than 24px.
 - Scrub is continuous; snap the **display text only** to 15-minute increments. The underlying `timeFromEl.value` and thumb position remain continuous — do not snap the thumb.
 
 ### Thumb (time bar)
 
-- Vertical line: 2px wide, `--text` color, extends 4px above and below the bar.
-- Circle cap: 10px diameter, `--text`, sits on top edge of bar.
+- Single vertical line: 2px wide, `--text` color, extending 6px above AND 6px below the bar (symmetric).
+- Soft accent-orange glow: `box-shadow: 0 0 8px rgba(255,175,133,0.4)` signals active state.
+- **No circle cap.** The symmetric line is the complete thumb.
 - **No text inside the thumb.** Selected time lives in the readout.
-- **Do not use `--accent`** on the thumb — it collides with full-sun segments.
+- **Do not use `--accent`** on the line color — it collides with full-sun segments.
 
 ### "NÅ" tick
 
@@ -129,19 +132,32 @@ Thin dashed vertical line (`1px dashed --muted`), full height of bar. Tiny `NÅ`
 
 ### Readout panel (answers "what did I pick?")
 
-- Docked ~8px above the time bar, matching width and border radius (so they read as one control group).
-- Glass-panel level background, `16px` blur.
-- Three-tier hierarchy:
-  - **Tier 1** — selected time: 24pt, 700, `--accent`. Dominant.
-  - **Tier 2** — sun result ("78 steder i solen"): 14pt, 500, `--text`. Secondary line.
-  - **Tier 3** — weather metadata (`⛅ 10° ↘ 2 m/s`): 12pt, 500, `--muted`. Right-aligned on the same line as the time.
+The readout and the time bar are one docked control group, not two stacked surfaces:
+- They share the same glass level (glass-panel: `rgba(20,46,82,0.55)` / `blur(16px)`).
+- They live inside a single wrapper with matching border, radius `12–14px`, and `overflow: hidden`. No visible seam where they meet.
+- Reduce the separator between readout and bar to a hairline: `1px solid rgba(156,189,231,0.08)`.
+
+Three-tier hierarchy inside the readout:
+- **Tier 1** — selected time: 24pt, 700, `--accent`. Dominant.
+- **Tier 2** — sun result ("78 steder i solen"): 14pt, 500, `--text`. Secondary line below the time.
+- **Tier 3** — weather metadata: two-line stack on the right, same baseline as Tier 1:
+  - Top: weather icon (22–24px) + temperature (17pt, 600, `--text`). Gap 6–8px between icon and number.
+  - Bottom: wind direction + speed (12pt, 500, `--muted`). Format: `↘ 3 m/s`.
 - Do not show the date here — it lives on the date pill.
-- Hue-shift (optional): during scrub, the panel's background tints toward the weather ramp color at the current thumb position, max 10–15% saturation, 120ms ease-out. Easy to overdo; stay subtle.
+- Hue-shift (optional): during scrub, the group wrapper tints toward the weather ramp color at the current thumb position, max 10–15% saturation, 120ms ease-out. Easy to overdo; stay subtle.
 
 ### Date pill
 
-- Action pill flavor, with calendar icon + label.
-- Always shows the selected date in readable form (e.g. `Lør 25 Apr`). Never reduce to icon-only — users should see the date at a glance.
+- Always a labeled pill (action-pill flavor): calendar icon + readable label (e.g. `Lør 25 Apr`). **Never icon-only** — the date must be readable at a glance without tapping.
+- Height matches the adjacent time bar so they read as one unified row, not a cluster of mismatched shapes.
+- Width follows content; no forced minimum beyond the standard pill spec.
+- Rule: controls docked adjacent to a tall primary input match that input's height.
+
+### Icons
+
+- In-field leading icons (search bar, input fields): `18–20px`.
+- Icons inside action-pill components: `16px`.
+- Icon-only action-circle buttons: `20px` inside a `44×44` touch target.
 
 ## Don't
 

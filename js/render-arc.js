@@ -435,11 +435,11 @@ function drawTimeBar(canvasEl) {
   const MIN_H   = (typeof MIN_H_ARC !== 'undefined') ? MIN_H_ARC : 4;
   const MAX_H   = (typeof MAX_H_ARC !== 'undefined') ? MAX_H_ARC : 23;
   const PAD_X   = (typeof PAD_X_ARC !== 'undefined') ? PAD_X_ARC : 20;
-  const PAD_T   = 14;  // room for NÅ label + thumb circle above bar
-  const PAD_B   = 13;  // hour labels at bottom
+  const PAD_T   = 12;  // room for NÅ label above bar
+  const PAD_B   = 18;  // hour labels below bar (11px label + 4px gap + 3px margin)
   const TRACK_Y = PAD_T;
   const TRACK_H = cssH - PAD_T - PAD_B;
-  const TRACK_R = 3;
+  const TRACK_R = 13;  // Task 1: rounded container
   const BAR_W   = cssW - PAD_X * 2;
   const BAR_X   = PAD_X;
   const dateStr = datePicker.value;
@@ -501,19 +501,15 @@ function drawTimeBar(canvasEl) {
 
   c.restore();  // end track clip
 
-  // 3. Hour dividers (subtle, between day segments)
+  // 3. Inset shadow — subtle top darkening so bar feels recessed
   c.save();
   trackPath();
   c.clip();
-  c.strokeStyle = 'rgba(0,0,0,0.15)';
-  c.lineWidth = 1;
-  for (let h = MIN_H + 1; h < MAX_H; h++) {
-    const x = timeToX(h);
-    c.beginPath();
-    c.moveTo(x, TRACK_Y);
-    c.lineTo(x, TRACK_Y + TRACK_H);
-    c.stroke();
-  }
+  const insetGrad = c.createLinearGradient(0, TRACK_Y, 0, TRACK_Y + 5);
+  insetGrad.addColorStop(0, 'rgba(0,0,0,0.22)');
+  insetGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  c.fillStyle = insetGrad;
+  c.fillRect(BAR_X, TRACK_Y, BAR_W, TRACK_H);
   c.restore();
 
   // 4. Weather glyphs — centered in each hour segment, dropped if segment < 24px
@@ -543,16 +539,17 @@ function drawTimeBar(canvasEl) {
     c.globalAlpha = 1;
   }
 
-  // 5. Hour labels every 2 hours
-  c.font = '9px "Inter", sans-serif';
-  c.fillStyle = 'rgba(156,189,231,0.40)';
-  c.textBaseline = 'bottom';
+  // 5. Hour labels every 3 hours (6, 9, 12, 15, 18, 21) — 11pt/600, 4px gap below bar
+  c.font = '600 11px "Inter", sans-serif';
+  c.fillStyle = 'rgba(156,189,231,0.65)';
+  c.textBaseline = 'top';
   c.textAlign = 'center';
+  const LABEL_Y = TRACK_Y + TRACK_H + 4;  // 4px gap below bar
   for (let h = Math.ceil(MIN_H); h <= MAX_H; h++) {
-    if (h % 2 !== 0) continue;
+    if (h % 3 !== 0) continue;
     const lx = timeToX(h);
     if (lx < BAR_X + 4 || lx > BAR_X + BAR_W - 4) continue;
-    c.fillText(`${h}`, lx, cssH - 1);
+    c.fillText(`${h}`, lx, LABEL_Y);
   }
 
   // 6. NÅ tick — dashed vertical line + label, only on today's date
@@ -578,18 +575,16 @@ function drawTimeBar(canvasEl) {
     c.restore();
   }
 
-  // 7. Thumb — 2px line in --text extending 4px above/below, 10px circle at top edge
+  // 7. Thumb — 2px line in --text, symmetric 6px above/below, accent-orange glow
   if (showH >= MIN_H && showH <= MAX_H) {
     const sx       = timeToX(showH);
-    const LINE_TOP = TRACK_Y - 4;
-    const LINE_BOT = TRACK_Y + TRACK_H + 4;
-    const CIR_R    = 5;
+    const LINE_TOP = TRACK_Y - 6;
+    const LINE_BOT = TRACK_Y + TRACK_H + 6;
 
     c.save();
-    c.shadowColor   = 'rgba(0,0,0,0.40)';
-    c.shadowBlur    = 5;
-    c.shadowOffsetY = 1;
-
+    // Accent-orange glow signals active state
+    c.shadowColor = 'rgba(255,175,133,0.45)';
+    c.shadowBlur  = 8;
     c.strokeStyle = '#FFF2EB';
     c.lineWidth   = 2;
     c.lineCap     = 'round';
@@ -597,12 +592,6 @@ function drawTimeBar(canvasEl) {
     c.moveTo(sx, LINE_TOP);
     c.lineTo(sx, LINE_BOT);
     c.stroke();
-
-    c.fillStyle = '#FFF2EB';
-    c.beginPath();
-    c.arc(sx, TRACK_Y, CIR_R, 0, Math.PI * 2);
-    c.fill();
-
     c.restore();
   }
 
