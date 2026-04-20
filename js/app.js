@@ -1274,12 +1274,19 @@ function popupDirectionsUrl(v) {
   return `https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lng}`;
 }
 
+function _venueSlug(v) {
+  return v.name.toLowerCase()
+    .replace(/æ/g, 'ae').replace(/ø/g, 'o').replace(/å/g, 'a')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
 function shareVenue(venueId) {
   const v = VENUES.find(x => x.id === venueId);
   if (!v) return;
-  const d   = datePicker.value;
-  const h   = Math.round(parseFloat(timeFromEl.value));
-  const url = `${location.origin}${location.pathname}#v=${venueId}&d=${d}&t=${h}`;
+  const slug = _venueSlug(v);
+  const d    = datePicker.value.replace(/-/g, '');          // 20260420
+  const h    = String(Math.round(parseFloat(timeFromEl.value))).padStart(2, '0');
+  const url  = `${location.origin}${location.pathname}#${slug}-${venueId}/${d}T${h}`;
   if (navigator.share) {
     navigator.share({ title: `${v.name} — ${v.area}`, url }).catch(() => {});
   } else {
@@ -2705,24 +2712,42 @@ function _introCheckReady() {
                           new URLSearchParams(window.location.search).has('code');
     if (isOAuthReturn) { _skipIntro(); _restorePreAuthState(); return; }
 
-    // If opened via a share link (#v=<id>&d=<date>&t=<hour>), focus on that venue at the sender's time
-    const hash = window.location.hash.slice(1); // strip leading #
+    // If opened via a share link, focus on that venue at the sender's time.
+    // New format: #venue-name-<id>/20260420T16
+    // Old format (backward compat): #v=<id>&d=YYYY-MM-DD&t=<hour>
+    const hash = window.location.hash.slice(1);
+    let vid = null, rawDate = null, rawHour = null;
     if (hash.startsWith('v=')) {
+      // Legacy format
       const params = new URLSearchParams(hash);
-      const vid    = parseInt(params.get('v'), 10);
+      vid     = parseInt(params.get('v'), 10);
+      rawDate = params.get('d');           // YYYY-MM-DD
+      rawHour = params.get('t');
+    } else if (hash) {
+      // New format: <slug>-<id>/<YYYYMMDD>T<HH>
+      const slashIdx = hash.indexOf('/');
+      const slugPart = slashIdx >= 0 ? hash.slice(0, slashIdx) : hash;
+      const dtPart   = slashIdx >= 0 ? hash.slice(slashIdx + 1) : '';
+      const idMatch  = slugPart.match(/-(\d+)$/);
+      if (idMatch) vid = parseInt(idMatch[1], 10);
+      const dtMatch = dtPart.match(/^(\d{8})T(\d{1,2})$/);
+      if (dtMatch) {
+        const s = dtMatch[1];
+        rawDate = `${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}`;
+        rawHour = dtMatch[2];
+      }
+    }
+    if (vid !== null) {
       const sharedVenue = VENUES.find(x => x.id === vid);
       if (sharedVenue) {
         _sharedVenueId = vid;
         _introCenter   = [sharedVenue.lng, sharedVenue.lat];
-
-        const d = params.get('d');
-        const t = params.get('t');
-        if (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
-          _sharedDate = d;
-          datePicker.value = d;
+        if (rawDate && /^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
+          _sharedDate      = rawDate;
+          datePicker.value = rawDate;
         }
-        if (t !== null && isFinite(+t)) {
-          _sharedHour = Math.min(23, Math.max(4, parseFloat(t)));
+        if (rawHour !== null && isFinite(+rawHour)) {
+          _sharedHour = Math.min(23, Math.max(4, parseFloat(rawHour)));
         }
       }
     }
