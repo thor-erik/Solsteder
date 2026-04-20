@@ -8,6 +8,7 @@ One source of truth for visual language. Before making UI changes — manually o
 2. **Color carries meaning; don't waste it on decoration.** Every color token has one job. Using `--accent` for "this looks nice here" is how design drift starts.
 3. **Weather data and UI chrome use separate palettes.** Never overlap them. Orange accent is never a weather color; amber sun is never a UI color.
 4. **No more than three type scales visible in one composition.** If a panel shows five different text sizes, it's cluttered regardless of the content.
+5. **Pickers and secondary inputs must preserve the context their selection affects.** If changing value X updates display Y, Y must remain visible while the picker is open. This is why the date picker does not cover the time bar or readout — the user needs to see the effect while choosing.
 
 ## Color tokens
 
@@ -51,6 +52,8 @@ A single perceptual axis from full sun to no light. Do not split into categorica
 **Scope:** use these colors only for direct forecast data visualization — the time bar segments, temperature curves, precipitation overlays, and similar data-ink. Venue-level sun status (score badges, availability labels, "steder i solen" count) uses `--accent`, not this ramp — those indicate a UI state, not a weather measurement.
 
 Rule: weather colors never touch UI chrome and `--accent` never touches forecast data. If you need to indicate "this weather segment is currently selected," don't recolor the segment — use the thumb.
+
+**Collision rule:** when an element could simultaneously show weather data and a selected/focused state, weather goes in a sub-element (glyph, inline color, small ramp chip) and the outer container stays neutral. Selected state uses `--accent` on the outer container (ring, border, or text). Never paint weather-ramp color on a container that also needs to signal selection. This rule generalises the time bar thumb principle to all components (including calendar day tiles).
 
 ## Typography
 
@@ -111,12 +114,13 @@ Selected state for either: background `--accent`, text `--accent-on` (`#2a1a0c`)
 ### Time bar (primary input)
 
 - Height: `44–56px`
-- Container: radius `12–14px`. Clip segments inside the container so leftmost/rightmost segments inherit rounded edges naturally.
+- Container: radius `12–14px`, `overflow: hidden`. Segments fill the full canvas width so their left and right edges reach the container's rounded corners naturally. The canvas has no horizontal padding.
 - Segments: **hour granularity only.** No sub-hour ticks. Default: no dividers. If two adjacent segments are perceptually indistinct, an optional `1px rgba(0,0,0,0.08)` seam is the maximum allowed.
 - Container inset shadow: `inset 0 1px 2px rgba(0,0,0,0.15)` — makes the bar feel recessed, not pasted on.
 - Segment fill: from weather ramp above.
 - Optional weather glyph: centered in segment, 10–12px, `--muted`. Drop the glyphs if segments are narrower than 24px.
 - Scrub is continuous; snap the **display text only** to 15-minute increments. The underlying `timeFromEl.value` and thumb position remain continuous — do not snap the thumb.
+- Hour labels sit below the track, outside the canvas clip region, so they are never obscured by the bar's rounded corners. A minimum 4px inset from either edge prevents edge clipping.
 
 ### Thumb (time bar)
 
@@ -144,7 +148,7 @@ The readout and the time bar are one docked control group, not two stacked surfa
 - **The unified wrapper has `16–20px` vertical padding on all internal content. No child control should sit flush against the wrapper's edge.**
 
 Three-tier hierarchy inside the readout:
-- **Tier 1** — inline date + time phrase on one line: `[12px calendar icon, --muted] [date portion, --muted, 24pt/700] [time portion, --accent, 24pt/700]`. Examples: `📅 Today, 12:45` / `📅 Man 20 Apr, 12:45`. The icon and date portion together form the calendar trigger (a `<button>` with aria-label "Change date"). The time portion is not interactive. The line must never wrap; on narrow widths degrade by dropping the weekday abbreviation first. No separate date pill exists — this phrase is the only date entry point.
+- **Tier 1** — inline date + time phrase on one line: `[date portion, --muted, 24pt/700][▾ chevron, --muted, 10–12px][comma, --muted][space][time portion, --accent, 24pt/700]`. Examples: `Today ▾, 12:45` / `Man 20 Apr ▾, 12:45`. The date portion and the chevron together form the calendar trigger (a `<button>` with `aria-label="Change date"` and `aria-expanded`). The time portion is not interactive. The line must never wrap; on narrow widths degrade by dropping the weekday abbreviation first; the chevron is the last thing to drop. No leading icon — the chevron is the sole visual affordance. The comma and trailing space sit outside the button, as a separate non-interactive span. No separate date pill exists.
 - **Tier 2** — sun result ("78 steder i solen"): 14pt, 500, `--text`. Secondary line below Tier 1. Shown once — in the readout only. Never duplicated in adjacent list headers.
 - **Tier 3** — weather metadata: two-line stack on the right, same baseline as Tier 1:
   - Top: weather icon (22–24px) + temperature (17pt, 600, `--text`). Gap 6–8px between icon and number.
@@ -155,9 +159,46 @@ Three-tier hierarchy inside the readout:
 
 Date selection now lives inline in the Tier 1 readout phrase — see **Readout panel** above. A separate date pill is no longer part of the system. Do not reintroduce a standalone date control.
 
+### Calendar picker (sheet)
+
+Opens from the Tier 1 date chevron. Never covers the time bar, readout, or list peek — those must remain visible so the user sees live updates as they browse dates (Principle 5).
+
+**Opening / closing:**
+- Trigger: tap the date portion + chevron in the readout. The chevron rotates 180° when open (`aria-expanded="true"`).
+- On **mobile**: a glass-panel sheet slides in from the top of the viewport (`transform: translateY` animation, `--transition-base` 220ms ease-out). Dismiss by tapping the chevron again, tapping the map, swiping up, or pressing Escape.
+- On **wider viewports**: the sheet expands downward from the panel, appearing just above or beside the control group.
+- The sheet is a `role="dialog"` element with `aria-modal="true"`. On open, focus moves to today's tile. Escape closes.
+
+**Default state: 10-day strip**
+- Horizontal scrolling strip of up to 14 days starting from today.
+- On mobile: each tile fills 1/5 of the sheet width (5 visible at once); remaining tiles scroll horizontally with `scroll-snap-type: x mandatory`.
+- On wider viewports: tiles have a fixed minimum width (~60–72px).
+- Tile height: `88px`. Radius: `10px`. Gap: `8px`.
+- Tile content (top to bottom): weekday abbreviation (11pt / 600 / `--muted`, letter-spacing 0.5px), day number (20pt / 700 / `--text`), today dot (4px `--accent` circle, only on today), weather glyph (16px / `--muted`), high temp (11pt / 500 / `--muted`).
+- Tile background: glass-card neutral. **Do not fill with weather-ramp color** — weather is carried by the glyph + temp text only (see collision rule).
+- **Selected state:** ring treatment: `2px solid --accent` border + subtle `--accent-dim` inset glow. Day number shifts to `--accent`. No background fill.
+- **Today indicator:** 4px `--accent` dot between the day number and the weather glyph. Shown whether or not the tile is selected.
+- **Past days:** `opacity: 0.45`, non-selectable — same rule as the time bar (see Past / disabled state section).
+
+**Expand to full month:**
+- Below the strip, an action-pill button: "Show full calendar ▾". On tap, a continuous week-grid month view appears.
+- Month grid: 7 columns (Mon–Sun), week-number column on the left, month-label rows spanning the full width.
+- Tile height in month view: ~44–52px to fit the sheet. Day number (14pt / 600); weather glyph only (no temps on mobile due to space).
+- Month navigation: `‹ April 2026 ›` header row, chevrons in 44×44 tap targets.
+- Collapse button: "Collapse calendar ▴" returns to 10-day-only mode.
+- **Forecast horizon:** tiles beyond ~10 days show day number only — no glyph, no temps, `--muted` color, dashed border. A Norwegian footnote below the grid: *"Værvarsel er tilgjengelig for de neste 10 dagene."*
+
+**Sheet spec:**
+- Background: glass-panel (`rgba(20,46,82,0.55)` / `blur(16px)`). Same level as the readout+bar wrapper.
+- Border: `1px solid rgba(156,189,231,0.18)` on the bottom edge only (mobile top-sheet).
+- Elevation: `mid` (`0 6px 24px rgba(0,0,0,0.50)`).
+- Padding: `16px` all sides.
+
 ### Past / disabled state for data inputs
 
-Data inputs that represent time (time bar, day arc, similar) dim their past portion to 40–50% opacity to communicate that it is not a valid selection. This applies to segments, weather glyphs, and axis labels.
+Data inputs that represent time (time bar, calendar strip, day arc, similar) dim their past portion to `opacity: 0.45` to communicate that it is not a valid selection. This applies to segments, weather glyphs, axis labels, and calendar day tiles.
+
+For the **time bar** specifically, past hours have their weather-color fill removed entirely (the night background `#1C2B4A` shows through) — dimming an amber segment to 0.45 opacity makes it perceptually indistinguishable from overcast grey. Removing the fill avoids this ambiguity.
 
 Interaction is soft-clamped at the present moment — the thumb cannot be released in the past and springs back to NÅ if dragged there. The spring uses `--transition-base` (220ms) ease-out. During drag the thumb is visually held at NÅ (clamped); the spring plays on release to reinforce the boundary.
 
@@ -194,3 +235,5 @@ Secondary controls (sort, filter, alternate views) appear with the content they 
 - Don't animate on every value change. Rapid scrubs turn into visual noise. A 100ms cross-fade on numeric updates is the ceiling.
 - Don't introduce glass surface variants outside the three documented levels. If the existing levels don't fit, update this document.
 - Don't create shadow values ad hoc. Use the three documented elevation levels.
+- Don't open pickers or secondary sheets that cover the primary output they affect. The user needs to see the result while picking (see Principle 5).
+- Don't fill calendar tile backgrounds with weather-ramp colors. Weather lives in sub-elements (glyph, temperature text). The tile container stays neutral so selection rings are unambiguous.

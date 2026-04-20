@@ -533,7 +533,8 @@
     border-color: rgba(255,175,133,0.3);
   }
   .dc-tile.today       { border-color: rgba(255,175,133,0.4); }
-  .dc-tile.selected    { background: rgba(255,175,133,0.18) !important; border-color: rgba(255,175,133,0.75) !important; }
+  /* Selected: ring treatment — 2px accent border + subtle accent-dim inset glow. No weather-ramp fill. */
+  .dc-tile.selected    { background: rgba(255,175,133,0.08) !important; border: 2px solid var(--accent) !important; box-shadow: inset 0 0 8px rgba(255,175,133,0.10) !important; }
   .dc-tile.sun-high    { background: rgba(255,175,133,0.11); border-color: rgba(255,175,133,0.2); }
   .dc-tile.sun-mid     { background: rgba(255,175,133,0.05); }
   .dc-tile.no-data     { opacity: 0.4; }
@@ -542,7 +543,18 @@
   /* Solar-only: no weather icon, "Sol" label in temp slot, icon span preserved for layout */
   .dc-tile.solar-only .dc-icon { min-height: 11px; }
   .dc-tile.solar-only .dc-temp { color: rgba(156,189,231,0.3); }
-  .dc-tile-past        { opacity: 0.22; cursor: default; pointer-events: none; border-color: transparent; background: transparent; }
+  /* Past tiles: 0.45 opacity matches the time bar past-state rule */
+  .dc-tile-past        { opacity: 0.45; cursor: default; pointer-events: none; border-color: transparent; background: transparent; }
+  /* Today dot — 4px accent dot below the day number */
+  .dc-today-dot {
+    display: block;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--accent);
+    margin: 1px auto 0;
+    flex-shrink: 0;
+  }
   .dc-tile-empty       { border: none; background: transparent; pointer-events: none; }
   .dc-day  { font-size: 7px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(156,189,231,0.4); line-height: 1; }
   .dc-num  { font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.1; font-family: 'Inter', sans-serif; }
@@ -2946,16 +2958,40 @@
     transition: color 120ms;
     vertical-align: baseline;
   }
-  #readout-date-btn:hover { color: var(--accent); }
+  /* Hover/focus: subtle background pill on the button (pointer devices only) */
+  #readout-date-btn:hover,
+  #readout-date-btn:focus-visible {
+    color: var(--accent);
+    background: rgba(156,189,231,0.08);
+    border-radius: 6px;
+    padding: 0 2px;
+    margin: 0 -2px;
+  }
   #readout-date-btn.active { color: var(--accent); }
-  /* SVG sits just below the text baseline */
-  #readout-date-btn svg {
+  /* Trailing chevron — inline, same baseline as text */
+  .readout-chevron {
     display: inline-block;
-    vertical-align: -2px;
-    margin-right: 6px;
+    vertical-align: -1px;
+    margin-left: 4px;
     color: var(--muted);
-    opacity: 0.7;
+    opacity: 0.75;
     flex-shrink: 0;
+    transition: opacity 120ms, transform 120ms;
+  }
+  #readout-date-btn.active .readout-chevron {
+    opacity: 1;
+    color: var(--accent);
+    transform: rotate(180deg);
+  }
+  /* Comma + space sits outside the button — not interactive */
+  .readout-comma {
+    font-family: 'Inter', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--muted);
+    letter-spacing: -0.01em;
+    line-height: 1;
+    white-space: pre; /* preserve the space after the comma */
   }
   #readout-date-label {
     /* inherits font/color/size from #readout-date-btn */
@@ -3025,7 +3061,7 @@
   #ptb-top-row {
     display: flex;
     align-items: center;
-    padding: 6px 10px 16px;
+    padding: 6px 0 16px; /* horizontal padding removed — bar fills edge-to-edge to container radius */
   }
   #qc-arc {
     flex: 1;
@@ -3048,15 +3084,90 @@
     transition: left 0.28s ease;
   }
   #ptb-cal-float.open { display: block; }
+
+  /* ── Mobile: calendar slides in from the top of the screen ─────────────── */
   @media (max-width: 639px) {
+    /* Override display:none with a transform-based show/hide so we can animate */
     #ptb-cal-float {
-      left: 12px;
-      right: 12px;
+      display: block !important; /* always in layout; visibility via transform+opacity */
+      left: 0;
+      right: 0;
       width: auto;
-      top: auto;
-      /* float above the panel peek */
-      bottom: calc(var(--peek-h, 252px) + 8px);
+      top: 0;
+      bottom: auto;
+      padding: 16px 16px 20px;
+      box-sizing: border-box;
+      background: rgba(20, 46, 82, 0.97);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(156, 189, 231, 0.18);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.50);
+      transform: translateY(-110%);
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 220ms ease-out, opacity 180ms ease-out;
+      z-index: 850;
     }
+    #ptb-cal-float.open {
+      display: block !important;
+      transform: translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    /* Inner panel: no extra animation on mobile — the outer float handles reveal */
+    #ptb-cal-float #qc-panel {
+      overflow: visible;
+      max-height: none !important;
+      margin-top: 0;
+      transition: none;
+    }
+    #ptb-cal-float #qc-panel.open { max-height: none !important; }
+    #ptb-cal-float #qc-panel-inner {
+      background: transparent;
+      border: none;
+      border-radius: 0;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      overflow: visible;
+      opacity: 1 !important;
+      pointer-events: auto !important;
+    }
+    #ptb-cal-float #qc-date-section {
+      padding: 0;
+      overflow: visible;
+    }
+    /* Strip: horizontal single-row scroll, 5 tiles visible at once */
+    #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      gap: 8px;
+      scrollbar-width: none;
+      grid-template-columns: unset;
+      grid-auto-rows: unset;
+      width: auto;
+    }
+    #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid)::-webkit-scrollbar { display: none; }
+    #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-tile {
+      flex: 0 0 calc(20% - 6.4px); /* 5 visible + scrollable for rest */
+      min-width: 0;
+      height: 88px;
+      justify-content: center;
+      border-radius: 10px;
+      scroll-snap-align: start;
+      gap: 4px;
+      padding: 8px 4px 6px;
+    }
+    #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-day  { font-size: 11px; font-weight: 600; letter-spacing: 0.5px; }
+    #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-num  { font-size: 20px; font-weight: 700; line-height: 1; }
+    #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-icon { font-size: 16px; line-height: 1.2; }
+    #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-temp { font-size: 11px; font-weight: 500; color: rgba(156,189,231,0.72); }
+    /* Month-view full calendar on mobile: sensible sizing */
+    #ptb-cal-float #qc-cal .dc-cal-scroll { height: 55vh; }
+    #ptb-cal-float #qc-cal .dc-month-grid .dc-tile { height: 44px; }
   }
 
   #qc-presets {
@@ -3738,7 +3849,7 @@
 
   <!-- Calendar float — positioned above the panel, opened by the date button in panel-time-bar.
        Lives OUTSIDE #panel so it escapes the panel's transform context. -->
-  <div id="ptb-cal-float">
+  <div id="ptb-cal-float" role="dialog" aria-modal="true" aria-label="Velg dato">
     <div id="qc-panel">
       <div id="qc-panel-inner">
         <div id="qc-date-section">
@@ -3767,14 +3878,13 @@
           <div id="readout-row1">
             <!-- Inline phrase: [icon] [date,] [time] — date portion is the calendar trigger -->
             <div id="readout-phrase">
-              <button id="readout-date-btn" onclick="toggleQcPanel('date')" aria-label="Change date">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                  <rect x="2" y="3.5" width="12" height="10.5" rx="2" stroke="currentColor" stroke-width="1.4"/>
-                  <path d="M5 2v3M11 2v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-                  <path d="M2 7h12" stroke="currentColor" stroke-width="1.4"/>
+              <button id="readout-date-btn" onclick="toggleQcPanel('date')" aria-label="Change date" aria-expanded="false"><!--
+                date text + chevron — no leading icon, chevron is the sole affordance
+              --><span id="readout-date-label">—</span><!--
+              --><svg class="readout-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-                <span id="readout-date-label">—</span>
-              </button><span id="readout-time">—</span>
+              </button><span class="readout-comma">, </span><span id="readout-time">—</span>
             </div>
             <span id="readout-meta-wx"><span class="wx-icon"></span><span id="readout-meta-temp"></span></span>
           </div>

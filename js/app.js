@@ -256,19 +256,20 @@ function formatSliderTime(val) {
 }
 
 function formatDatePill(dateStr) {
-  // Returns inline readout phrase date portion with trailing comma, e.g.:
-  //   "Today, "  /  "I morgen, "  /  "Man 20 Apr, "
+  // Returns inline readout phrase date portion WITHOUT trailing comma.
+  // The comma is a separate span in HTML so it falls outside the button hit area.
+  // e.g.: "Today"  /  "I morgen"  /  "Man 20 Apr"
   const today = todayStr();
   const tom   = new Date(); tom.setDate(tom.getDate() + 1);
   const tomS  = tom.toISOString().slice(0, 10);
-  if (dateStr === today) return t('today') + ', ';
-  if (dateStr === tomS)  return t('tomorrow') + ', ';
+  if (dateStr === today) return t('today');
+  if (dateStr === tomS)  return t('tomorrow');
   const d   = new Date(dateStr + 'T12:00:00');
   const day = d.toLocaleDateString('nb-NO', { weekday: 'short' });
   const num = d.getDate();
   const mon = d.toLocaleDateString('nb-NO', { month: 'short' });
   const cap = s => s.charAt(0).toUpperCase() + s.slice(1).replace(/\.$/, '');
-  return `${cap(day)} ${num} ${cap(mon)}, `;
+  return `${cap(day)} ${num} ${cap(mon)}`;
 }
 
 // ── Slider ────────────────────────────────────────────────────────────────────
@@ -776,7 +777,8 @@ function _closeQcPanel() {
   _qcActiveSection = null;
   _qcCalExpanded   = false;
 
-  document.getElementById('readout-date-btn')?.classList.remove('active');
+  const dateBtn = document.getElementById('readout-date-btn');
+  if (dateBtn) { dateBtn.classList.remove('active'); dateBtn.setAttribute('aria-expanded', 'false'); }
   document.getElementById('ptb-cal-float')?.classList.remove('open');
 
   panel.classList.remove('open');
@@ -808,7 +810,8 @@ function toggleQcPanel(section) {
   calFloat?.classList.add('open');
   panel.classList.add('open');
   document.getElementById('qc-date-section')?.classList.add('active');
-  document.getElementById('readout-date-btn')?.classList.add('active');
+  const dateBtn = document.getElementById('readout-date-btn');
+  if (dateBtn) { dateBtn.classList.add('active'); dateBtn.setAttribute('aria-expanded', 'true'); }
   renderQcCalendar();
 }
 
@@ -857,9 +860,13 @@ function _dcTileHtml(dStr, todayStr_, selected) {
   const icon = hasForecast ? summ.icon : '';
   const temp = hasForecast ? `${summ.peakTemp}°` : 'Sol';
 
+  // Today indicator: --accent dot sits between the day number and the weather icon
+  const todayDot = dStr === todayStr_ ? '<span class="dc-today-dot" aria-hidden="true"></span>' : '';
+
   return `<button class="${cls}" onclick="selectQcDate('${dStr}')" title="${hasForecast ? '' : 'No forecast — sun/shadow only'}">`
     + `<span class="dc-day">${DAYS[d.getDay()]}</span>`
     + `<span class="dc-num">${d.getDate()}</span>`
+    + todayDot
     + `<span class="dc-icon">${icon}</span>`
     + `<span class="dc-temp">${temp}</span>`
     + `</button>`;
@@ -964,6 +971,9 @@ function _renderQcCalendarMonth(cal) {
   }
 
   html += '</div></div>'; // .dc-month-grid .dc-cal-scroll
+
+  // Footnote: explain that beyond 10 days, weather data is unavailable
+  html += `<p class="dc-forecast-note">Værvarsel er tilgjengelig for de neste 10 dagene.</p>`;
 
   // Collapse button outside scroll, fixed at bottom of panel
   html += `<button class="dc-expand-btn-wide active" onclick="event.stopPropagation();_toggleQcCalExpand()">Collapse calendar</button>`;
@@ -1114,7 +1124,7 @@ function _qcArcSetTimeFromX(clientX) {
   const canvasEl = document.getElementById('qc-arc');
   if (!canvasEl) return;
   const rect = canvasEl.getBoundingClientRect();
-  const t    = MIN_H_ARC + (clientX - rect.left - PAD_X_ARC) / (rect.width - PAD_X_ARC * 2) * (MAX_H_ARC - MIN_H_ARC);
+  const t    = MIN_H_ARC + (clientX - rect.left) / rect.width * (MAX_H_ARC - MIN_H_ARC); // bar fills edge-to-edge
   const hour = _clampHour(t);
   if (nowMode) {
     nowMode = false;
@@ -2158,7 +2168,7 @@ document.addEventListener('DOMContentLoaded', () => {
       window._qcThumbActive = true;
       // Animate to clicked position; drag mousemove will cancel if user starts dragging
       const rect = qcArcEl.getBoundingClientRect();
-      const t    = MIN_H_ARC + (e.clientX - rect.left - PAD_X_ARC) / (rect.width - PAD_X_ARC * 2) * (MAX_H_ARC - MIN_H_ARC);
+      const t    = MIN_H_ARC + (e.clientX - rect.left) / rect.width * (MAX_H_ARC - MIN_H_ARC); // bar fills edge-to-edge
       const hour = _clampHour(t);
       if (nowMode) {
         nowMode = false;
@@ -2184,7 +2194,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Spring back if touch released in past region
       if (lastX != null && datePicker.value === todayStr()) {
         const rect = qcArcEl.getBoundingClientRect();
-        const raw  = MIN_H_ARC + (lastX - rect.left - PAD_X_ARC) / (rect.width - PAD_X_ARC * 2) * (MAX_H_ARC - MIN_H_ARC);
+        const raw  = MIN_H_ARC + (lastX - rect.left) / rect.width * (MAX_H_ARC - MIN_H_ARC);
         const nh   = new Date().getHours() + new Date().getMinutes() / 60;
         if (raw < nh) _qcSpringBackThumb(qcArcEl);
       }
@@ -2192,7 +2202,7 @@ document.addEventListener('DOMContentLoaded', () => {
     qcArcEl.addEventListener('mousemove',  e => {
       if (_qcArcDragging) return;
       const rect = qcArcEl.getBoundingClientRect();
-      const t = MIN_H_ARC + (e.clientX - rect.left - PAD_X_ARC) / (rect.width - PAD_X_ARC * 2) * (MAX_H_ARC - MIN_H_ARC);
+      const t = MIN_H_ARC + (e.clientX - rect.left) / rect.width * (MAX_H_ARC - MIN_H_ARC);
       arcHoverH = _clampHour(t);
       drawTimeBar(qcArcEl);
       updateQcIndicator(arcHoverH);
@@ -2232,7 +2242,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Spring back if released in past region
       if (wasQcDragging && canvasEl && datePicker.value === todayStr()) {
         const rect = canvasEl.getBoundingClientRect();
-        const raw  = MIN_H_ARC + (e.clientX - rect.left - PAD_X_ARC) / (rect.width - PAD_X_ARC * 2) * (MAX_H_ARC - MIN_H_ARC);
+        const raw  = MIN_H_ARC + (e.clientX - rect.left) / rect.width * (MAX_H_ARC - MIN_H_ARC);
         const nh   = new Date().getHours() + new Date().getMinutes() / 60;
         if (raw < nh) _qcSpringBackThumb(canvasEl);
       }
@@ -2264,6 +2274,11 @@ document.addEventListener('DOMContentLoaded', () => {
         && !dateBtn?.contains(e.target)) {
       _closeQcPanel();
     }
+  });
+
+  // Escape closes the calendar picker
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && _qcActiveSection === 'date') _closeQcPanel();
   });
 
   // Request location for distance sorting, intro centering, and live dot on map

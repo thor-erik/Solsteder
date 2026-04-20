@@ -434,14 +434,13 @@ function drawTimeBar(canvasEl) {
 
   const MIN_H   = (typeof MIN_H_ARC !== 'undefined') ? MIN_H_ARC : 4;
   const MAX_H   = (typeof MAX_H_ARC !== 'undefined') ? MAX_H_ARC : 23;
-  const PAD_X   = (typeof PAD_X_ARC !== 'undefined') ? PAD_X_ARC : 20;
   const PAD_T   = 12;  // room for NÅ label above bar
   const PAD_B   = 18;  // hour labels below bar (11px label + 4px gap + 3px margin)
   const TRACK_Y = PAD_T;
   const TRACK_H = cssH - PAD_T - PAD_B;
-  const TRACK_R = 13;  // Task 1: rounded container
-  const BAR_W   = cssW - PAD_X * 2;
-  const BAR_X   = PAD_X;
+  const TRACK_R = 13;  // matches #qc-control-group border-radius
+  const BAR_W   = cssW; // bar fills full canvas width (container's overflow:hidden clips to radius)
+  const BAR_X   = 0;
   const dateStr = datePicker.value;
   const fromH   = parseFloat(timeFromEl.value);
   const isHov   = typeof arcHoverH === 'number';
