@@ -170,8 +170,18 @@ function venueSunState(venue, sunAz, sunAlt) {
       }
       if (!shaded) sunCount++;
     }
-    // Majority vote: "in sun" when more than half the sampled points are unshaded
-    return sunCount * 2 > pts.length;
+    // Majority vote: "in sun" when more than half the sampled points are unshaded.
+    if (!(sunCount * 2 > pts.length)) return false;
+    // Even with no nearby-building shadow, the venue's own building blocks the sun
+    // once it swings past the terrace wall plane. ±90° from the facing direction is
+    // the physical half-space limit for a flat wall — beyond this the building itself
+    // is between the sun and the terrace regardless of height or distance.
+    if (venue.facing != null) {
+      let diff = Math.abs(sunAz - venue.facing);
+      if (diff > 180) diff = 360 - diff;
+      if (diff > 90) return false;
+    }
+    return true;
   }
   return venueInSun(venue.facing, sunAz, sunAlt);
 }
