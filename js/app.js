@@ -2400,6 +2400,7 @@ datePicker.addEventListener('change', () => {
   update();
 });
 
+let _lastSliderStep = null;
 timeFromEl.addEventListener('input', () => {
   if (_timeAnimId) { cancelAnimationFrame(_timeAnimId); _timeAnimId = null; }
   if (nowMode) {
@@ -2409,6 +2410,10 @@ timeFromEl.addEventListener('input', () => {
     clearInterval(nowInterval); nowInterval = null;
   }
   setActiveIntentBtn(null);
+  // Haptic tick on each 15-min step boundary (Android only; no-op elsewhere)
+  const step = Math.round(parseFloat(timeFromEl.value) * 4);
+  if (_lastSliderStep !== null && step !== _lastSliderStep) navigator.vibrate?.(6);
+  _lastSliderStep = step;
   updateRangeFill();
   update();
 });
