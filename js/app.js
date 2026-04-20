@@ -763,7 +763,7 @@ function updateQcIndicator(h) {
     sunLabel = cnt > 0 ? t('places_in_sun', { count: cnt }) : t('no_places_in_sun');
   }
 
-  const animate = !isHover;  // cross-fade only on non-hover (deliberate) updates
+  const animate = !isHover && !_sliderDragging;  // no cross-fade while dragging or hovering
   _readoutSet(document.getElementById('readout-time'), timeLabel, animate);
 
   // Inline weather row: icon + temp + separator (wx-sep, static) + wind
@@ -2467,6 +2467,10 @@ datePicker.addEventListener('change', () => {
 });
 
 let _lastSliderStep = null;
+let _sliderDragging = false;
+timeFromEl.addEventListener('pointerdown', () => { _sliderDragging = true; });
+timeFromEl.addEventListener('pointerup',   () => { _sliderDragging = false; });
+timeFromEl.addEventListener('blur',        () => { _sliderDragging = false; });
 timeFromEl.addEventListener('input', () => {
   if (_timeAnimId) { cancelAnimationFrame(_timeAnimId); _timeAnimId = null; }
   if (nowMode) {
