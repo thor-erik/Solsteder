@@ -57,6 +57,7 @@ let _introGeoReady  = false;
 let _introCenter    = [10.728, 59.9125]; // Oslo fallback
 let _introRunning   = false;
 let _introSeqId     = 0; // incremented on skip to invalidate pending timeouts
+let _sharedVenueId  = null; // set when page is loaded via a #v= share link
 
 // ── Sun window cache ──────────────────────────────────────────────────────────
 // Keyed by `${venueId}-${dateStr}`. Populated by the worker (background) and
@@ -2668,6 +2669,18 @@ function _introCheckReady() {
     const isOAuthReturn = window.location.hash.includes('access_token=') ||
                           new URLSearchParams(window.location.search).has('code');
     if (isOAuthReturn) { _skipIntro(); return; }
+
+    // If opened via a share link (#v=<id>), focus the intro on that venue
+    const hashMatch = window.location.hash.match(/^#v=(\d+)$/);
+    if (hashMatch) {
+      const vid = parseInt(hashMatch[1], 10);
+      const sharedVenue = VENUES.find(x => x.id === vid);
+      if (sharedVenue) {
+        _sharedVenueId = vid;
+        _introCenter   = [sharedVenue.lng, sharedVenue.lat];
+      }
+    }
+
     _runIntroSequence();
   }
 }
@@ -2735,6 +2748,7 @@ function _runIntroSequence() {
           update();
           document.removeEventListener('click', skipHandler);
           document.removeEventListener('touchstart', skipHandler);
+          if (_sharedVenueId) selectVenue(_sharedVenueId, true);
         }, 350);
       }, 700);
     }, 1900);
@@ -2806,4 +2820,6 @@ function _skipIntro(seqId) {
     // Allow styles to reset on next frame
     requestAnimationFrame(() => { el.style.transition = ''; });
   });
+
+  if (_sharedVenueId) selectVenue(_sharedVenueId, true);
 }
