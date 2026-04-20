@@ -980,7 +980,7 @@
   /* LEFT PANEL — venue list, floats below search bar */
   #panel {
     position: absolute;
-    top: 116px;     /* 16 search-top + 46 search-h + 8 gap + 38 time-strip-h + 8 gap */
+    top: 70px;      /* 16 search-top + 46 search-h + 8 gap */
     left: 16px;
     bottom: 16px;
     width: 336px;
@@ -2796,53 +2796,15 @@
   }
 
   /* ── RIGHT DETAIL PANEL ───────────────────────────────────────────── */
-  /* ── Time/weather notification strip ────────────────────────────────── */
+  /* ── Toast notice strip ─────────────────────────────────────────────── */
   #qc-wrap {
     position: absolute;
     left: 16px;
     top: 70px;     /* search top(16) + search height(46) + gap(8) */
     width: 336px;
     z-index: 820;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    transition: left 0.28s ease;
-  }
-  #time-strip {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    padding: 7px 14px;
-    background: rgba(10, 20, 42, 0.52);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(156, 189, 231, 0.12);
-    border-radius: 10px;
     pointer-events: none;
-    user-select: none;
-    min-height: 32px;
-    box-sizing: border-box;
-  }
-  #ts-time {
-    font-family: 'Inter', sans-serif;
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--accent);
-    letter-spacing: 0.03em;
-    white-space: nowrap;
-  }
-  .ts-sep {
-    color: rgba(156, 189, 231, 0.28);
-    font-size: 11px;
-    flex-shrink: 0;
-  }
-  #ts-wx {
-    font-family: 'Inter', sans-serif;
-    font-size: 12px;
-    color: rgba(156, 189, 231, 0.68);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    transition: left 0.28s ease;
   }
   #qc-notice {
     font-size: 11px;
@@ -2868,16 +2830,16 @@
     display: inline-block;
     font-family: 'Inter', sans-serif;
     font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
-    color: rgba(156, 189, 231, 0.55);
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: rgba(156, 189, 231, 0.62);
     padding: 4px 10px;
     background: rgba(10, 20, 42, 0.55);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(156, 189, 231, 0.14);
     border-radius: 20px;
+    white-space: nowrap;
   }
 
   /* ── Panel time bar: date circle + arc canvas ───────────────────────── */
@@ -2938,7 +2900,7 @@
     /* desktop: flush with panel left edge, just above panel */
     left: 16px;
     width: 336px;
-    top: 70px;   /* sits over the time-strip area; overridden on mobile */
+    top: 70px;   /* aligned with panel top; overridden on mobile */
     transition: left 0.28s ease;
   }
   #ptb-cal-float.open { display: block; }
@@ -3623,13 +3585,8 @@
   <!-- Panel reveal button — shown when sidebar is hidden -->
   <button id="panel-reveal-btn" onclick="togglePanel()" title="Show sidebar">›</button>
 
-  <!-- Time/weather notification strip — always visible below search bar, read-only -->
+  <!-- Toast notice (qc-wrap kept for qc-notice toasts) -->
   <div id="qc-wrap" class="intro-hidden">
-    <div id="time-strip">
-      <span id="ts-time">—</span>
-      <span class="ts-sep">·</span>
-      <span id="ts-wx"></span>
-    </div>
     <div id="qc-notice"></div>
   </div>
 

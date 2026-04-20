@@ -410,9 +410,9 @@ function _drawSunArc(c, cw, ch, dateStr, fromH, isToday, MIN_H, MAX_H, PAD_X, ti
 
 // ── Time bar (panel-time-bar arc canvas) ──────────────────────────────────────
 /**
- * Draws a segmented pill bar: per-hour color segments (amber=sun, tinted for
- * cloud/rain, empty/dark for night) + a glass capsule thumb at the selected time.
- * No arc, no temperature curve.
+ * Draws a slim segmented track: per-hour color segments (amber=sun, tinted for
+ * cloud/rain, empty/dark for night) + a large glass capsule thumb that protrudes
+ * above and below the track. Hourly labels every 2h at the bottom.
  */
 function drawTimeBar(canvasEl) {
   if (!canvasEl || !currentSunTable) return;
@@ -432,49 +432,51 @@ function drawTimeBar(canvasEl) {
   c.save();
   c.scale(dpr, dpr);
 
-  const MIN_H   = (typeof MIN_H_ARC !== 'undefined') ? MIN_H_ARC : 4;
-  const MAX_H   = (typeof MAX_H_ARC !== 'undefined') ? MAX_H_ARC : 23;
-  const PAD_X   = (typeof PAD_X_ARC !== 'undefined') ? PAD_X_ARC : 20;
-  const PAD_B   = 14;                     // label area below pill
-  const PILL_H  = cssH - PAD_B;
-  const PILL_R  = PILL_H / 2;             // fully rounded ends
-  const BAR_W   = cssW - PAD_X * 2;
-  const BAR_X   = PAD_X;
-  const dateStr = datePicker.value;
-  const fromH   = parseFloat(timeFromEl.value);
-  const isHov   = typeof arcHoverH === 'number';
-  const showH   = isHov ? arcHoverH : fromH;
+  const MIN_H    = (typeof MIN_H_ARC !== 'undefined') ? MIN_H_ARC : 4;
+  const MAX_H    = (typeof MAX_H_ARC !== 'undefined') ? MAX_H_ARC : 23;
+  const PAD_X    = (typeof PAD_X_ARC !== 'undefined') ? PAD_X_ARC : 20;
+  const PAD_B    = 14;                     // label area at bottom
+  const AVAIL    = cssH - PAD_B;           // space above labels for track + thumb
+  const TRACK_H  = 7;                      // slim track height
+  const TRACK_R  = TRACK_H / 2;
+  const TRACK_Y  = Math.round((AVAIL - TRACK_H) / 2);
+  const BAR_W    = cssW - PAD_X * 2;
+  const BAR_X    = PAD_X;
+  const dateStr  = datePicker.value;
+  const fromH    = parseFloat(timeFromEl.value);
+  const isHov    = typeof arcHoverH === 'number';
+  const showH    = isHov ? arcHoverH : fromH;
 
   const timeToX = t => BAR_X + (t - MIN_H) / (MAX_H - MIN_H) * BAR_W;
 
-  // Rounded-rect path helper
-  const pillPath = () => {
+  // Slim track path helper
+  const trackPath = () => {
     c.beginPath();
-    c.moveTo(BAR_X + PILL_R, 0);
-    c.lineTo(BAR_X + BAR_W - PILL_R, 0);
-    c.arcTo(BAR_X + BAR_W, 0,           BAR_X + BAR_W, PILL_R,      PILL_R);
-    c.lineTo(BAR_X + BAR_W, PILL_H - PILL_R);
-    c.arcTo(BAR_X + BAR_W, PILL_H,      BAR_X + BAR_W - PILL_R, PILL_H, PILL_R);
-    c.lineTo(BAR_X + PILL_R, PILL_H);
-    c.arcTo(BAR_X, PILL_H,              BAR_X, PILL_H - PILL_R,  PILL_R);
-    c.lineTo(BAR_X, PILL_R);
-    c.arcTo(BAR_X, 0,                   BAR_X + PILL_R, 0,        PILL_R);
+    c.moveTo(BAR_X + TRACK_R, TRACK_Y);
+    c.lineTo(BAR_X + BAR_W - TRACK_R, TRACK_Y);
+    c.arcTo(BAR_X + BAR_W, TRACK_Y,           BAR_X + BAR_W, TRACK_Y + TRACK_R,       TRACK_R);
+    c.lineTo(BAR_X + BAR_W, TRACK_Y + TRACK_H - TRACK_R);
+    c.arcTo(BAR_X + BAR_W, TRACK_Y + TRACK_H, BAR_X + BAR_W - TRACK_R, TRACK_Y + TRACK_H, TRACK_R);
+    c.lineTo(BAR_X + TRACK_R, TRACK_Y + TRACK_H);
+    c.arcTo(BAR_X, TRACK_Y + TRACK_H,         BAR_X, TRACK_Y + TRACK_H - TRACK_R,     TRACK_R);
+    c.lineTo(BAR_X, TRACK_Y + TRACK_R);
+    c.arcTo(BAR_X, TRACK_Y,                   BAR_X + TRACK_R, TRACK_Y,               TRACK_R);
     c.closePath();
   };
 
-  // 1. Background pill
-  pillPath();
+  // 1. Track background
+  trackPath();
   c.fillStyle = 'rgba(10, 20, 42, 0.55)';
   c.fill();
 
-  // 2. Per-hour segments (clipped to pill)
+  // 2. Per-hour segments (clipped to track)
   const wxHours = (typeof getWeatherHoursForDate === 'function')
     ? getWeatherHoursForDate(dateStr) : [];
   const hasWx   = wxHours.length > 0 && typeof getWeatherAt === 'function';
   const STEP    = 0.25;
 
   c.save();
-  pillPath();
+  trackPath();
   c.clip();
 
   for (let t = MIN_H; t < MAX_H; t += STEP) {
@@ -482,7 +484,7 @@ function drawTimeBar(canvasEl) {
     const sun  = getSunFromTable(currentSunTable, midT);
     if (sun.alt <= 0) continue;  // night — leave dark background
 
-    let r = 255, g = 175, b = 133, a = 0.85;
+    let r = 255, g = 175, b = 133, a = 0.88;
 
     if (hasWx) {
       const wx    = getWeatherAt(dateStr, midT);
@@ -504,55 +506,71 @@ function drawTimeBar(canvasEl) {
     const x1 = timeToX(t);
     const x2 = timeToX(t + STEP);
     c.fillStyle = `rgba(${r},${g},${b},${a})`;
-    c.fillRect(x1, 0, x2 - x1 + 0.5, PILL_H);
+    c.fillRect(x1, TRACK_Y, x2 - x1 + 0.5, TRACK_H);
   }
 
-  c.restore(); // end pill clip
+  c.restore(); // end track clip
 
-  // 3. Sunrise / sunset labels
-  const sunrise = findSunCrossingFromTable(currentSunTable, true);
-  const sunset  = findSunCrossingFromTable(currentSunTable, false);
+  // 3. Hour labels every 2 hours
   c.font = '9px "Inter", sans-serif';
-  c.fillStyle = 'rgba(156,189,231,0.50)';
+  c.fillStyle = 'rgba(156,189,231,0.38)';
   c.textBaseline = 'bottom';
-
-  if (sunrise != null && sunrise >= MIN_H && sunrise <= MAX_H) {
-    const sx = timeToX(sunrise);
-    c.textAlign = sx < BAR_X + 30 ? 'left' : 'center';
-    c.fillText(formatHour(sunrise), sx, cssH - 1);
-  }
-  if (sunset != null && sunset >= MIN_H && sunset <= MAX_H) {
-    const sx = timeToX(sunset);
-    c.textAlign = sx > BAR_X + BAR_W - 30 ? 'right' : 'center';
-    c.fillText(formatHour(sunset), sx, cssH - 1);
+  c.textAlign = 'center';
+  for (let h = Math.ceil(MIN_H); h <= MAX_H; h++) {
+    if (h % 2 !== 0) continue;
+    const lx = timeToX(h);
+    if (lx < BAR_X + 4 || lx > BAR_X + BAR_W - 4) continue;
+    c.fillText(`${h}`, lx, cssH - 1);
   }
 
-  // 4. Glass capsule thumb
+  // 4. Large glass capsule thumb — protrudes above and below the track
   if (showH >= MIN_H && showH <= MAX_H) {
     const sx = timeToX(showH);
-    const tW = 11;
-    const tH = Math.round(PILL_H * 0.54);
-    const tX = sx - tW / 2;
-    const tY = (PILL_H - tH) / 2;
+    const tW = 13;
+    const tH = Math.round(AVAIL * 0.90);
+    const tX = Math.round(sx - tW / 2);
+    const tY = Math.round((AVAIL - tH) / 2);
     const tR = tW / 2;
 
+    const capsulePath = () => {
+      c.beginPath();
+      c.moveTo(tX + tR, tY);
+      c.lineTo(tX + tW - tR, tY);
+      c.arcTo(tX + tW, tY,      tX + tW, tY + tR,      tR);
+      c.lineTo(tX + tW, tY + tH - tR);
+      c.arcTo(tX + tW, tY + tH, tX + tW - tR, tY + tH, tR);
+      c.lineTo(tX + tR, tY + tH);
+      c.arcTo(tX,       tY + tH, tX, tY + tH - tR,     tR);
+      c.lineTo(tX,      tY + tR);
+      c.arcTo(tX,       tY,      tX + tR, tY,           tR);
+      c.closePath();
+    };
+
+    // Base fill with drop shadow
     c.save();
-    c.shadowColor   = 'rgba(0,0,0,0.42)';
-    c.shadowBlur    = 7;
-    c.shadowOffsetY = 1;
-    c.beginPath();
-    c.moveTo(tX + tR, tY);
-    c.lineTo(tX + tW - tR, tY);
-    c.arcTo(tX + tW, tY,      tX + tW, tY + tR,      tR);
-    c.lineTo(tX + tW, tY + tH - tR);
-    c.arcTo(tX + tW, tY + tH, tX + tW - tR, tY + tH, tR);
-    c.lineTo(tX + tR, tY + tH);
-    c.arcTo(tX,       tY + tH, tX, tY + tH - tR,      tR);
-    c.lineTo(tX,      tY + tR);
-    c.arcTo(tX,       tY,      tX + tR, tY,            tR);
-    c.closePath();
-    c.fillStyle = isHov ? 'rgba(200,225,255,0.95)' : 'rgba(255,252,248,0.92)';
+    c.shadowColor   = 'rgba(0,0,0,0.45)';
+    c.shadowBlur    = 9;
+    c.shadowOffsetY = 2;
+    capsulePath();
+    c.fillStyle = isHov ? 'rgba(220,235,255,0.96)' : 'rgba(255,252,248,0.93)';
     c.fill();
+    c.restore();
+
+    // Left-edge highlight gradient (glass sheen)
+    c.save();
+    capsulePath();
+    const hlGrad = c.createLinearGradient(tX, tY, tX + tW, tY);
+    hlGrad.addColorStop(0,   'rgba(255,255,255,0.62)');
+    hlGrad.addColorStop(0.4, 'rgba(255,255,255,0.10)');
+    hlGrad.addColorStop(1,   'rgba(255,255,255,0.02)');
+    c.fillStyle = hlGrad;
+    c.fill();
+
+    // Fine border
+    capsulePath();
+    c.strokeStyle = 'rgba(255,255,255,0.68)';
+    c.lineWidth = 0.8;
+    c.stroke();
     c.restore();
   }
 

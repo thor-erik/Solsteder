@@ -652,22 +652,41 @@ function animateToTime(targetHour, durationMs) {
   _timeAnimId = requestAnimationFrame(tick);
 }
 
-// ── Time strip + panel controls ───────────────────────────────────────────────
+// ── Floating label + panel controls ──────────────────────────────────────────
 function updateQcIndicator(h) {
-  const hour   = h ?? parseFloat(timeFromEl.value);
+  const hour    = (typeof h === 'number') ? h : parseFloat(timeFromEl.value);
   const dateStr = datePicker.value;
   const wx      = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, hour) : null;
-  const icon    = wx && typeof skyIcon === 'function' ? skyIcon(wx.cloud) : '';
   const ARROWS  = ['↑','↗','→','↘','↓','↙','←','↖'];
   const arrow   = wx ? ARROWS[Math.round(((wx.wdir + 180) % 360) / 45) % 8] : '';
   const wind    = wx ? `${arrow} ${Math.round(wx.wspd)} m/s` : '';
   const temp    = wx ? `${wx.temp}°` : '';
+  const icon    = wx && typeof skyIcon === 'function' ? skyIcon(wx.cloud) : '';
+  const timeStr = (nowMode && typeof h !== 'number') ? t('now') + ' · ' + formatHour(hour) : formatHour(hour);
 
-  // Update always-visible notification strip
-  const tsTime = document.getElementById('ts-time');
-  const tsWx   = document.getElementById('ts-wx');
-  if (tsTime) tsTime.textContent = nowMode ? t('now') + ' · ' + formatHour(hour) : formatHour(hour);
-  if (tsWx)   tsWx.textContent  = [icon, temp, wind].filter(Boolean).join('  ');
+  // Compute date label
+  const tod  = todayStr();
+  const tom  = new Date(); tom.setDate(tom.getDate() + 1);
+  const tomS = tom.toISOString().slice(0, 10);
+  let dateText;
+  if (dateStr === tod)       dateText = t('today');
+  else if (dateStr === tomS) dateText = t('tomorrow');
+  else {
+    const d    = new Date(dateStr + 'T12:00:00');
+    const DAYS = tA('days_short');
+    const MONS = tA('months_short');
+    dateText = `${DAYS[d.getDay()]} ${d.getDate()} ${MONS[d.getMonth()]}`;
+  }
+
+  // Update floating pill with full context
+  const fdlText = document.getElementById('fdl-text');
+  if (fdlText) {
+    const parts = [dateText, timeStr];
+    if (icon && temp) parts.push(`${icon} ${temp}`);
+    else if (temp)    parts.push(temp);
+    if (wind)         parts.push(wind);
+    fdlText.textContent = parts.join(' · ');
+  }
 }
 
 function updateQcLabels() {
@@ -686,9 +705,8 @@ function updateQcLabels() {
     dateText = `${DAYS[d.getDay()]} ${d.getDate()} ${MONS[d.getMonth()]}`;
   }
 
-  // Floating date label above panel
-  const fdlText = document.getElementById('fdl-text');
-  if (fdlText) fdlText.textContent = dateText;
+  // Floating pill gets full context from updateQcIndicator
+  updateQcIndicator(null);
 
   // Date button active state reflects calendar open state
   document.getElementById('ptb-date-btn')?.classList.toggle('active', _qcActiveSection === 'date');
