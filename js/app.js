@@ -315,6 +315,7 @@ function _activateNowMode() {
 const _PRESET_HOURS = { lunch: 11, 'after-work': 16, evening: 20 };
 const PAD_X_ARC = 20;
 let MIN_H_ARC = 4, MAX_H_ARC = 23; // updated dynamically from sunrise/sunset
+let SUNRISE_H_ARC = null, SUNSET_H_ARC = null; // exact crossing hours
 
 function _arcTimeToLeft(h, canvasW) {
   return PAD_X_ARC + (h - MIN_H_ARC) / (MAX_H_ARC - MIN_H_ARC) * (canvasW - PAD_X_ARC * 2);
@@ -1165,10 +1166,17 @@ function update() {
   const sunrise = findSunCrossingFromTable(currentSunTable, true);
   const sunset  = findSunCrossingFromTable(currentSunTable, false);
 
-  // Dynamic arc range — hug sunrise/sunset so the curve fills the canvas naturally
+  // Dynamic arc range — place sunrise/sunset labels inside the pill's curved ends.
+  // PAD_FRAC 0.06 means sunrise/sunset land ~6% from each pill edge, which equals
+  // roughly TRACK_R pixels (≈13px) on a ~220px bar, consistently across all seasons.
   if (sunrise != null && sunset != null) {
-    MIN_H_ARC = Math.max(3, Math.floor(sunrise - 0.75));
-    MAX_H_ARC = Math.min(24, Math.ceil(sunset  + 0.75));
+    SUNRISE_H_ARC = sunrise;
+    SUNSET_H_ARC  = sunset;
+    const _dayLen = sunset - sunrise;
+    const _range  = _dayLen / (1 - 2 * 0.06);
+    const _buf    = _range * 0.06;
+    MIN_H_ARC = Math.max(2, sunrise - _buf);
+    MAX_H_ARC = Math.min(24, sunset  + _buf);
   }
 
   // Auto-advance to tomorrow after sunset (once per session startup)

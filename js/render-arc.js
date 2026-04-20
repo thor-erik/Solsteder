@@ -550,7 +550,9 @@ function drawTimeBar(canvasEl) {
   }
 
   // 5. Hour labels rendered in #qc-arc-labels HTML element (outside overflow:hidden track)
-  _renderArcLabels(canvasEl, MIN_H, MAX_H, BAR_W, isToday_, nowH_);
+  const sunriseH_ = (typeof SUNRISE_H_ARC !== 'undefined') ? SUNRISE_H_ARC : null;
+  const sunsetH_  = (typeof SUNSET_H_ARC  !== 'undefined') ? SUNSET_H_ARC  : null;
+  _renderArcLabels(canvasEl, MIN_H, MAX_H, BAR_W, isToday_, nowH_, sunriseH_, sunsetH_);
 
   // 6. NÅ tick — dashed vertical line + label, only on today's date
   const nowH    = new Date().getHours() + new Date().getMinutes() / 60;
@@ -617,24 +619,47 @@ function drawTimeBar(canvasEl) {
 
 // ── Hour labels for the time bar ──────────────────────────────────────────────
 // Renders hour labels into #qc-arc-labels (a sibling outside overflow:hidden).
-// Called by drawTimeBar() after canvas drawing is complete.
-function _renderArcLabels(canvasEl, MIN_H, MAX_H, BAR_W, isToday_, nowH_) {
+// Sunrise and sunset are anchored first (they sit inside the pill's curved ends).
+// Even-hour labels fill the remaining space, skipping positions too close to anchors.
+function _renderArcLabels(canvasEl, MIN_H, MAX_H, BAR_W, isToday_, nowH_, sunriseH, sunsetH) {
   const el = document.getElementById('qc-arc-labels');
   if (!el) return;
 
-  const MIN_GAP = 22;  // minimum px gap between label centres
+  const MIN_GAP = 22;
   const timeToX = t => (t - MIN_H) / (MAX_H - MIN_H) * BAR_W;
-  let lastLx = -Infinity;
-  let html = '';
 
+  // Format exact hours as "H:MM" (e.g. 6:15) or just "H" when on the hour
+  const fmtH = h => {
+    const hr = Math.floor(h), min = Math.round((h - hr) * 60);
+    return min ? `${hr}:${String(min).padStart(2, '0')}` : `${hr}`;
+  };
+
+  const reserved = []; // pixel positions already claimed
+  const parts    = []; // { lx, text, dim }
+
+  const tryAdd = (lx, text, dim) => {
+    if (lx < 2 || lx > BAR_W - 2) return;
+    if (reserved.some(px => Math.abs(lx - px) < MIN_GAP)) return;
+    reserved.push(lx);
+    parts.push({ lx, text, dim });
+  };
+
+  // 1. Anchor: sunrise (leftmost label, inside left curve)
+  if (sunriseH != null) tryAdd(timeToX(sunriseH), fmtH(sunriseH), isToday_ && sunriseH <= nowH_);
+
+  // 2. Anchor: sunset (rightmost label, inside right curve)
+  if (sunsetH != null) tryAdd(timeToX(sunsetH), fmtH(sunsetH), isToday_ && sunsetH <= nowH_);
+
+  // 3. Even-hour fill labels — skip any within MIN_GAP of sunrise/sunset
   for (let h = Math.ceil(MIN_H); h <= MAX_H; h++) {
     if (h % 2 !== 0) continue;
     const lx = timeToX(h);
     if (lx < 4 || lx > BAR_W - 4) continue;
-    if (lx - lastLx < MIN_GAP) continue;
-    lastLx = lx;
-    const dim = isToday_ && h <= nowH_;
-    html += `<span style="left:${lx}px;color:rgba(156,189,231,${dim ? '0.35' : '0.65'})">${h}</span>`;
+    tryAdd(lx, `${h}`, isToday_ && h <= nowH_);
   }
-  el.innerHTML = html;
+
+  el.innerHTML = parts
+    .map(({ lx, text, dim }) =>
+      `<span style="left:${lx}px;color:rgba(156,189,231,${dim ? '0.35' : '0.65'})">${text}</span>`)
+    .join('');
 }
