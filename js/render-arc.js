@@ -434,12 +434,12 @@ function drawTimeBar(canvasEl) {
 
   const MIN_H   = (typeof MIN_H_ARC !== 'undefined') ? MIN_H_ARC : 4;
   const MAX_H   = (typeof MAX_H_ARC !== 'undefined') ? MAX_H_ARC : 23;
-  const PAD_T   = 12;  // room for NÅ label above bar
-  const PAD_B   = 18;  // hour labels below bar (11px label + 4px gap + 3px margin)
+  const PAD_T   = 8;   // space above bar for NÅ label
+  const PAD_B   = 4;   // bottom clearance so thumb pill doesn't clip
   const TRACK_Y = PAD_T;
-  const TRACK_H = cssH - PAD_T - PAD_B;
-  const TRACK_R = 13;  // matches #qc-control-group border-radius
-  const BAR_W   = cssW; // bar fills full canvas width (container's overflow:hidden clips to radius)
+  const TRACK_H = cssH - PAD_T - PAD_B;  // e.g. 38-8-4=26px
+  const TRACK_R = 0;   // #qc-arc-track's overflow:hidden handles all corner clipping
+  const BAR_W   = cssW; // bar fills full canvas width
   const BAR_X   = 0;
   const dateStr = datePicker.value;
   const fromH   = parseFloat(timeFromEl.value);
@@ -549,25 +549,8 @@ function drawTimeBar(canvasEl) {
     c.globalAlpha = 1;
   }
 
-  // 5. Hour labels every 2 hours — 11pt/600, 4px gap below bar
-  c.font = '600 11px "Inter", sans-serif';
-  c.textBaseline = 'top';
-  c.textAlign = 'center';
-  const LABEL_Y  = TRACK_Y + TRACK_H + 4;  // 4px gap below bar
-  const MIN_GAP  = 22;  // minimum px between label centres; skip label if too tight
-  let lastLabelX = -Infinity;
-  for (let h = Math.ceil(MIN_H); h <= MAX_H; h++) {
-    if (h % 2 !== 0) continue;
-    const lx = timeToX(h);
-    if (lx < BAR_X + 4 || lx > BAR_X + BAR_W - 4) continue;
-    if (lx - lastLabelX < MIN_GAP) continue;  // guard against overlap on narrow bars
-    lastLabelX = lx;
-    // Past labels dimmer (today only)
-    c.fillStyle = (isToday_ && h <= nowH_)
-      ? 'rgba(156,189,231,0.35)'
-      : 'rgba(156,189,231,0.65)';
-    c.fillText(`${h}`, lx, LABEL_Y);
-  }
+  // 5. Hour labels rendered in #qc-arc-labels HTML element (outside overflow:hidden track)
+  _renderArcLabels(canvasEl, MIN_H, MAX_H, BAR_W, isToday_, nowH_);
 
   // 6. NÅ tick — dashed vertical line + label, only on today's date
   const nowH    = new Date().getHours() + new Date().getMinutes() / 60;
@@ -587,11 +570,11 @@ function drawTimeBar(canvasEl) {
     c.setLineDash([]);
 
     if (!thumbNear) {
-      c.font = '700 9px "Inter", sans-serif';
+      c.font = '700 8px "Inter", sans-serif';
       c.fillStyle = 'rgba(156,189,231,0.60)';
       c.textAlign = 'center';
-      c.textBaseline = 'bottom';
-      c.fillText('NÅ', nx, TRACK_Y - 2);
+      c.textBaseline = 'top';
+      c.fillText('NÅ', nx, 0);  // fits in PAD_T=8 space above the track
     }
     c.restore();
   }
@@ -630,4 +613,28 @@ function drawTimeBar(canvasEl) {
   }
 
   c.restore(); // dpr scale
+}
+
+// ── Hour labels for the time bar ──────────────────────────────────────────────
+// Renders hour labels into #qc-arc-labels (a sibling outside overflow:hidden).
+// Called by drawTimeBar() after canvas drawing is complete.
+function _renderArcLabels(canvasEl, MIN_H, MAX_H, BAR_W, isToday_, nowH_) {
+  const el = document.getElementById('qc-arc-labels');
+  if (!el) return;
+
+  const MIN_GAP = 22;  // minimum px gap between label centres
+  const timeToX = t => (t - MIN_H) / (MAX_H - MIN_H) * BAR_W;
+  let lastLx = -Infinity;
+  let html = '';
+
+  for (let h = Math.ceil(MIN_H); h <= MAX_H; h++) {
+    if (h % 2 !== 0) continue;
+    const lx = timeToX(h);
+    if (lx < 4 || lx > BAR_W - 4) continue;
+    if (lx - lastLx < MIN_GAP) continue;
+    lastLx = lx;
+    const dim = isToday_ && h <= nowH_;
+    html += `<span style="left:${lx}px;color:rgba(156,189,231,${dim ? '0.35' : '0.65'})">${h}</span>`;
+  }
+  el.innerHTML = html;
 }

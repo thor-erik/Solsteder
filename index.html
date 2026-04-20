@@ -533,8 +533,8 @@
     border-color: rgba(255,175,133,0.3);
   }
   .dc-tile.today       { border-color: rgba(255,175,133,0.4); }
-  /* Selected: ring treatment — 2px accent border + subtle accent-dim inset glow. No weather-ramp fill. */
-  .dc-tile.selected    { background: rgba(255,175,133,0.08) !important; border: 2px solid var(--accent) !important; box-shadow: inset 0 0 8px rgba(255,175,133,0.10) !important; }
+  /* Selected: inset box-shadow ring (no border change → no layout shift) */
+  .dc-tile.selected    { background: rgba(255,175,133,0.08) !important; box-shadow: inset 0 0 0 2px var(--accent), inset 0 0 8px rgba(255,175,133,0.10) !important; border-color: transparent !important; }
   .dc-tile.sun-high    { background: rgba(255,175,133,0.11); border-color: rgba(255,175,133,0.2); }
   .dc-tile.sun-mid     { background: rgba(255,175,133,0.05); }
   .dc-tile.no-data     { opacity: 0.4; }
@@ -615,12 +615,15 @@
   .dc-month-row-label:first-child { padding-top: 2px; }
   /* Month grid — smaller tiles than strip to fit ~5 rows */
   .dc-month-grid { grid-auto-rows: auto; }
-  .dc-month-grid .dc-tile { padding: 3px 1px; gap: 1px; }
+  .dc-month-grid .dc-tile { padding: 5px 1px 4px; gap: 2px; }
   .dc-month-grid .dc-tile .dc-day  { display: none; } /* no day-of-week abbr in month view */
-  .dc-month-grid .dc-tile .dc-num  { font-size: 12px; }
-  .dc-month-grid .dc-tile .dc-icon { font-size: 9px; line-height: 1.1; }
-  .dc-month-grid .dc-tile .dc-temp { font-size: 7px; }
-  .dc-month-grid .dc-tile-past .dc-num { font-size: 12px; }
+  .dc-month-grid .dc-tile .dc-num  { font-size: 14px; font-weight: 600; }
+  .dc-month-grid .dc-tile .dc-icon { font-size: 11px; line-height: 1.2; }
+  .dc-month-grid .dc-tile .dc-temp { display: none; } /* temperature not shown in full-calendar */
+  /* Beyond-horizon tiles: number only, no glyph, muted to signal no forecast */
+  .dc-month-grid .dc-tile.solar-only .dc-icon { display: none; }
+  .dc-month-grid .dc-tile.solar-only .dc-num  { color: var(--muted); }
+  .dc-month-grid .dc-tile-past .dc-num { font-size: 14px; }
   /* Forecast boundary note */
   .dc-forecast-note {
     margin-top: 5px; padding: 4px 6px; flex-shrink: 0;
@@ -2968,18 +2971,20 @@
     margin: 0 -2px;
   }
   #readout-date-btn.active { color: var(--accent); }
-  /* Trailing chevron — inline, same baseline as text */
+  /* Trailing chevron — filled triangle, inline, slightly below text centre */
   .readout-chevron {
     display: inline-block;
-    vertical-align: -1px;
-    margin-left: 4px;
+    vertical-align: 2px;   /* sits just below text cap-height baseline */
+    margin-left: 6px;
     color: var(--muted);
-    opacity: 0.75;
     flex-shrink: 0;
-    transition: opacity 120ms, transform 120ms;
+    transition: color 120ms, transform 120ms;
+  }
+  #readout-date-btn:hover .readout-chevron,
+  #readout-date-btn:focus-visible .readout-chevron {
+    color: var(--text);
   }
   #readout-date-btn.active .readout-chevron {
-    opacity: 1;
     color: var(--accent);
     transform: rotate(180deg);
   }
@@ -3060,17 +3065,41 @@
 
   #ptb-top-row {
     display: flex;
-    align-items: center;
-    padding: 6px 0 16px; /* horizontal padding removed — bar fills edge-to-edge to container radius */
+    flex-direction: column;
+    padding: 6px 0 4px; /* no horizontal padding — track fills edge-to-edge; labels below */
+    gap: 0;
   }
+  /* Track wrapper: overflow:hidden + border-radius clips canvas corners cleanly */
+  #qc-arc-track {
+    overflow: hidden;
+    border-radius: 12px;
+    width: 100%;
+    flex-shrink: 0;
+  }
+  /* Canvas fills the track wrapper completely — no internal padding */
   #qc-arc {
-    flex: 1;
-    height: 56px;
     display: block;
+    width: 100%;
+    height: 38px; /* PAD_T(8) + TRACK_H(26) + pill-clearance(4) */
     cursor: ew-resize;
     min-width: 0;
   }
   #qc-arc:active { cursor: grabbing; }
+  /* Hour labels live outside the overflow:hidden track wrapper */
+  #qc-arc-labels {
+    position: relative;
+    height: 18px;
+    margin-top: 3px;
+    overflow: visible;
+    flex-shrink: 0;
+  }
+  #qc-arc-labels span {
+    position: absolute;
+    transform: translateX(-50%);
+    font: 600 11px/1 'Inter', sans-serif;
+    white-space: nowrap;
+    pointer-events: none;
+  }
 
   /* ── Calendar float — outside #panel, position: fixed so it escapes transforms ── */
   #ptb-cal-float {
@@ -3085,7 +3114,7 @@
   }
   #ptb-cal-float.open { display: block; }
 
-  /* ── Mobile: calendar slides in from the top of the screen ─────────────── */
+  /* ── Mobile: calendar slides in from below the search bar ──────────────── */
   @media (max-width: 639px) {
     /* Override display:none with a transform-based show/hide so we can animate */
     #ptb-cal-float {
@@ -3093,13 +3122,14 @@
       left: 0;
       right: 0;
       width: auto;
-      top: 0;
+      top: calc(12px + 46px); /* aligns with bottom of search bar (top:12px + height:46px) */
       bottom: auto;
-      padding: 16px 16px 20px;
+      padding: 12px 16px 20px;
       box-sizing: border-box;
       background: rgba(20, 46, 82, 0.97);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
+      border-radius: 0 0 14px 14px; /* top edge joins search bar flush; bottom corners rounded */
       border-bottom: 1px solid rgba(156, 189, 231, 0.18);
       box-shadow: 0 6px 24px rgba(0, 0, 0, 0.50);
       transform: translateY(-110%);
@@ -3136,38 +3166,28 @@
       padding: 0;
       overflow: visible;
     }
-    /* Strip: horizontal single-row scroll, 5 tiles visible at once */
+    /* 10-day grid: 5 columns × 2 rows — all days visible at once, no scroll */
     #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) {
-      display: flex;
-      flex-direction: row;
-      flex-wrap: nowrap;
-      overflow-x: auto;
-      scroll-snap-type: x mandatory;
-      -webkit-overflow-scrolling: touch;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      grid-template-rows: repeat(2, 88px);
       gap: 8px;
-      scrollbar-width: none;
-      grid-template-columns: unset;
-      grid-auto-rows: unset;
-      width: auto;
+      overflow: visible;
     }
-    #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid)::-webkit-scrollbar { display: none; }
     #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-tile {
-      flex: 0 0 calc(20% - 6.4px); /* 5 visible + scrollable for rest */
-      min-width: 0;
       height: 88px;
       justify-content: center;
       border-radius: 10px;
-      scroll-snap-align: start;
       gap: 4px;
       padding: 8px 4px 6px;
     }
     #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-day  { font-size: 11px; font-weight: 600; letter-spacing: 0.5px; }
     #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-num  { font-size: 20px; font-weight: 700; line-height: 1; }
-    #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-icon { font-size: 16px; line-height: 1.2; }
+    #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-icon { font-size: 18px; line-height: 1.2; }
     #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-temp { font-size: 11px; font-weight: 500; color: rgba(156,189,231,0.72); }
     /* Month-view full calendar on mobile: sensible sizing */
     #ptb-cal-float #qc-cal .dc-cal-scroll { height: 55vh; }
-    #ptb-cal-float #qc-cal .dc-month-grid .dc-tile { height: 44px; }
+    #ptb-cal-float #qc-cal .dc-month-grid .dc-tile { height: 52px; }
   }
 
   #qc-presets {
@@ -3881,8 +3901,8 @@
               <button id="readout-date-btn" onclick="toggleQcPanel('date')" aria-label="Change date" aria-expanded="false"><!--
                 date text + chevron — no leading icon, chevron is the sole affordance
               --><span id="readout-date-label">—</span><!--
-              --><svg class="readout-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                  <path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              --><svg class="readout-chevron" width="10" height="6" viewBox="0 0 10 6" fill="currentColor" aria-hidden="true">
+                  <path d="M0 0 L10 0 L5 6 Z"/>
                 </svg>
               </button><span class="readout-comma">, </span><span id="readout-time">—</span>
             </div>
@@ -3893,9 +3913,12 @@
             <span id="readout-meta-wind"></span>
           </div>
         </div>
-        <!-- Bar row — scrub canvas only (date pill removed, lives inline in readout) -->
+        <!-- Bar row: track wrapper clips corners; labels sibling sits outside overflow:hidden -->
         <div id="ptb-top-row">
-          <canvas id="qc-arc"></canvas>
+          <div id="qc-arc-track">
+            <canvas id="qc-arc"></canvas>
+          </div>
+          <div id="qc-arc-labels" aria-hidden="true"></div>
         </div>
       </div>
     </div>

@@ -114,13 +114,14 @@ Selected state for either: background `--accent`, text `--accent-on` (`#2a1a0c`)
 ### Time bar (primary input)
 
 - Height: `44–56px`
-- Container: radius `12–14px`, `overflow: hidden`. Segments fill the full canvas width so their left and right edges reach the container's rounded corners naturally. The canvas has no horizontal padding.
+- Container (`#qc-arc-track`): `overflow: hidden; border-radius: 12px; padding: 0`. This wrapper is the sole source of corner clipping — the canvas itself draws no rounded corners (TRACK_R = 0). Segments fill the full canvas width with no internal horizontal padding; the container clips them to the correct radius.
+- Canvas height: ~38px. Top 8px reserved for the "NÅ" label; remaining ~26px is the colored track; bottom 4px clearance for the thumb pill.
 - Segments: **hour granularity only.** No sub-hour ticks. Default: no dividers. If two adjacent segments are perceptually indistinct, an optional `1px rgba(0,0,0,0.08)` seam is the maximum allowed.
 - Container inset shadow: `inset 0 1px 2px rgba(0,0,0,0.15)` — makes the bar feel recessed, not pasted on.
 - Segment fill: from weather ramp above.
 - Optional weather glyph: centered in segment, 10–12px, `--muted`. Drop the glyphs if segments are narrower than 24px.
 - Scrub is continuous; snap the **display text only** to 15-minute increments. The underlying `timeFromEl.value` and thumb position remain continuous — do not snap the thumb.
-- Hour labels sit below the track, outside the canvas clip region, so they are never obscured by the bar's rounded corners. A minimum 4px inset from either edge prevents edge clipping.
+- Hour labels live in `#qc-arc-labels`, a sibling div **outside** `#qc-arc-track` (and therefore outside `overflow: hidden`). They are absolutely positioned within that div using the same `timeToX` formula as the canvas. A minimum 4px inset from either edge prevents edge clipping. Do not draw labels inside the canvas — they would be clipped by the container's border-radius at extreme hours.
 
 ### Thumb (time bar)
 
@@ -135,7 +136,7 @@ Slim vertical pill — not a tick mark.
 
 ### "NÅ" tick
 
-Thin dashed vertical line (`1px dashed --muted`), full height of bar. Tiny `NÅ` label above, 9pt / 700 / `--muted`, letter-spacing 0.5px.
+Thin dashed vertical line (`1px dashed --muted`), full height of bar. Tiny `NÅ` label drawn at the top of the canvas (within the 8px PAD_T space above the colored track), 8px / 700 / `--muted`, `textBaseline='top'`.
 
 **Label collision hide:** when the thumb is within ~30 minutes of the NÅ position, suppress the `NÅ` label and dim the dashed line to 50% opacity. Fade the label back when the thumb moves away, over `--transition-fast`.
 
@@ -148,7 +149,7 @@ The readout and the time bar are one docked control group, not two stacked surfa
 - **The unified wrapper has `16–20px` vertical padding on all internal content. No child control should sit flush against the wrapper's edge.**
 
 Three-tier hierarchy inside the readout:
-- **Tier 1** — inline date + time phrase on one line: `[date portion, --muted, 24pt/700][▾ chevron, --muted, 10–12px][comma, --muted][space][time portion, --accent, 24pt/700]`. Examples: `Today ▾, 12:45` / `Man 20 Apr ▾, 12:45`. The date portion and the chevron together form the calendar trigger (a `<button>` with `aria-label="Change date"` and `aria-expanded`). The time portion is not interactive. The line must never wrap; on narrow widths degrade by dropping the weekday abbreviation first; the chevron is the last thing to drop. No leading icon — the chevron is the sole visual affordance. The comma and trailing space sit outside the button, as a separate non-interactive span. No separate date pill exists.
+- **Tier 1** — inline date + time phrase on one line: `[date portion, --muted, 24pt/700][▼ chevron, --muted][comma, --muted][space][time portion, --accent, 24pt/700]`. Examples: `Today ▼, 12:45` / `Man 20 Apr ▼, 12:45`. The date portion and the chevron together form the calendar trigger (a `<button>` with `aria-label="Change date"` and `aria-expanded`). The chevron is a **10×6px filled-triangle SVG** (`<path d="M0 0 L10 0 L5 6 Z"/>`), not a Unicode glyph — it inherits `currentColor` from the button (idle `--muted`; hover/focus `--text`; open/active `--accent`). The chevron rotates 180° when the picker is open. 6px gap between date text and chevron. The time portion is not interactive. The line must never wrap; on narrow widths degrade by dropping the weekday abbreviation first; the chevron is the last thing to drop. No leading icon. The comma and trailing space sit outside the button, as a separate non-interactive span. No separate date pill exists.
 - **Tier 2** — sun result ("78 steder i solen"): 14pt, 500, `--text`. Secondary line below Tier 1. Shown once — in the readout only. Never duplicated in adjacent list headers.
 - **Tier 3** — weather metadata: two-line stack on the right, same baseline as Tier 1:
   - Top: weather icon (22–24px) + temperature (17pt, 600, `--text`). Gap 6–8px between icon and number.
@@ -165,34 +166,35 @@ Opens from the Tier 1 date chevron. Never covers the time bar, readout, or list 
 
 **Opening / closing:**
 - Trigger: tap the date portion + chevron in the readout. The chevron rotates 180° when open (`aria-expanded="true"`).
-- On **mobile**: a glass-panel sheet slides in from the top of the viewport (`transform: translateY` animation, `--transition-base` 220ms ease-out). Dismiss by tapping the chevron again, tapping the map, swiping up, or pressing Escape.
+- On **mobile**: a glass-panel sheet slides in from **below the search bar** — `top: calc(search-bar-top + search-bar-height)`. The sheet never overlaps the search bar; top chrome stays fully interactive while the picker is open. Top edge border-radius `0` (joins flush with the search bar bottom); bottom edge radius `14px`. Animation: `transform: translateY` from `-110%` to `0`, `--transition-base` 220ms ease-out. Dismiss by tapping the chevron again, tapping outside, or pressing Escape.
 - On **wider viewports**: the sheet expands downward from the panel, appearing just above or beside the control group.
+- **Auto-dismiss on selection:** tapping any selectable tile commits the date and closes the picker in a single action. The chevron returns to idle (pointing down). Focus returns to the date button. Tapping the currently-selected tile also closes the picker.
+- **Session mode persistence:** the picker remembers whether the user was in 10-day or full-calendar mode. Reopening the picker restores the last-used mode within the session. `_closeQcPanel()` does not reset the expanded state.
 - The sheet is a `role="dialog"` element with `aria-modal="true"`. On open, focus moves to today's tile. Escape closes.
 
-**Default state: 10-day strip**
-- Horizontal scrolling strip of up to 14 days starting from today.
-- On mobile: each tile fills 1/5 of the sheet width (5 visible at once); remaining tiles scroll horizontally with `scroll-snap-type: x mandatory`.
-- On wider viewports: tiles have a fixed minimum width (~60–72px).
-- Tile height: `88px`. Radius: `10px`. Gap: `8px`.
-- Tile content (top to bottom): weekday abbreviation (11pt / 600 / `--muted`, letter-spacing 0.5px), day number (20pt / 700 / `--text`), today dot (4px `--accent` circle, only on today), weather glyph (16px / `--muted`), high temp (11pt / 500 / `--muted`).
+**Default state: 10-day mode (5 × 2 grid)**
+- All 10 forecast days visible at once in a **5-column × 2-row CSS grid** — no horizontal scroll. Row 1: days 1–5 (today through +4). Row 2: days 6–10 (+5 through +9). Column gap `8px`, row gap `8px`.
+- On all viewports: tiles fill `(100% − 4×8px) / 5` of sheet width. Tile height `88px`. Radius `10px`.
+- Tile content (top to bottom): weekday abbreviation (11pt / 600 / `--muted`, letter-spacing 0.5px), day number (20pt / 700 / `--text`), today dot (4px `--accent` circle, only on today), weather glyph (18px), **high temperature only** (11pt / 500 / `--muted`, format `18°` — no low temp; space at this tile size does not accommodate two values).
 - Tile background: glass-card neutral. **Do not fill with weather-ramp color** — weather is carried by the glyph + temp text only (see collision rule).
-- **Selected state:** ring treatment: `2px solid --accent` border + subtle `--accent-dim` inset glow. Day number shifts to `--accent`. No background fill.
+- **Selected state:** `box-shadow: inset 0 0 0 2px var(--accent)` ring + subtle `--accent-dim` glow. Day number shifts to `--accent`. No border change (avoids layout shift). No background fill.
 - **Today indicator:** 4px `--accent` dot between the day number and the weather glyph. Shown whether or not the tile is selected.
 - **Past days:** `opacity: 0.45`, non-selectable — same rule as the time bar (see Past / disabled state section).
 
-**Expand to full month:**
-- Below the strip, an action-pill button: "Show full calendar ▾". On tap, a continuous week-grid month view appears.
+**Expand to full calendar:**
+- Below the grid, an action-pill button: "Show full calendar ▾". On tap, a continuous week-grid month view appears.
 - Month grid: 7 columns (Mon–Sun), week-number column on the left, month-label rows spanning the full width.
-- Tile height in month view: ~44–52px to fit the sheet. Day number (14pt / 600); weather glyph only (no temps on mobile due to space).
+- Tile height in month view: `52–56px` (mobile). Tile content: day number (14pt / 600) top-aligned; weather glyph (11px) below; **no temperature** — month-grid density (35–42 visible tiles) makes temperature unreadable at any viewport width.
+- **Beyond-horizon tiles (>10 days):** day number only, `--muted` color, no glyph, dashed border. Signals "solar data only."
 - Month navigation: `‹ April 2026 ›` header row, chevrons in 44×44 tap targets.
-- Collapse button: "Collapse calendar ▴" returns to 10-day-only mode.
-- **Forecast horizon:** tiles beyond ~10 days show day number only — no glyph, no temps, `--muted` color, dashed border. A Norwegian footnote below the grid: *"Værvarsel er tilgjengelig for de neste 10 dagene."*
+- Collapse button: "Collapse calendar ▴" returns to 10-day mode.
+- **Forecast horizon footnote:** Norwegian text below the grid: *"Værvarsel er tilgjengelig for de neste 10 dagene."*
 
 **Sheet spec:**
-- Background: glass-panel (`rgba(20,46,82,0.55)` / `blur(16px)`). Same level as the readout+bar wrapper.
+- Background: `rgba(20, 46, 82, 0.97)` / `blur(20px)` (slightly more opaque than glass-panel, for readability over map).
 - Border: `1px solid rgba(156,189,231,0.18)` on the bottom edge only (mobile top-sheet).
 - Elevation: `mid` (`0 6px 24px rgba(0,0,0,0.50)`).
-- Padding: `16px` all sides.
+- Padding: `12px 16px 20px` on mobile.
 
 ### Past / disabled state for data inputs
 

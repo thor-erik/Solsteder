@@ -775,7 +775,7 @@ function _closeQcPanel() {
   if (!panel) return;
 
   _qcActiveSection = null;
-  _qcCalExpanded   = false;
+  // _qcCalExpanded is intentionally NOT reset here — session mode (strip/month) persists
 
   const dateBtn = document.getElementById('readout-date-btn');
   if (dateBtn) { dateBtn.classList.remove('active'); dateBtn.setAttribute('aria-expanded', 'false'); }
@@ -785,12 +785,18 @@ function _closeQcPanel() {
   panel.classList.remove('cal-expanded');
   panel.style.removeProperty('--qc-panel-h');
 
+  // Remove active class via transitionend (desktop) with a fallback for mobile
+  // where max-height:none !important means the transitionend never fires.
+  const dateSection = document.getElementById('qc-date-section');
   const cleanup = e => {
     if (e.propertyName !== 'max-height') return;
     panel.removeEventListener('transitionend', cleanup);
-    document.getElementById('qc-date-section')?.classList.remove('active');
+    dateSection?.classList.remove('active');
   };
   panel.addEventListener('transitionend', cleanup);
+  // Fallback: if panel has no transition (mobile override), clean up immediately
+  const cs = getComputedStyle(panel).transition;
+  if (!cs || cs === 'none' || cs === 'all 0s') dateSection?.classList.remove('active');
 }
 
 function toggleQcPanel(section) {
@@ -879,7 +885,7 @@ function _renderQcCalendarStrip(cal) {
 
   let html = '<div class="dc-grid">';
 
-  for (let i = 0; i < 14; i++) {
+  for (let i = 0; i < 10; i++) {
     const d    = new Date(); d.setDate(d.getDate() + i);
     const dStr = d.toISOString().slice(0, 10);
     html += _dcTileHtml(dStr, today_, selected);
@@ -961,7 +967,7 @@ function _renderQcCalendarMonth(cal) {
 
       if (dStr < today_) {
         const cls = isOv ? 'dc-tile dc-tile-past dc-tile-overflow' : 'dc-tile dc-tile-past';
-        html += `<div class="${cls}"><span class="dc-num">${dt}</span><span class="dc-icon"></span><span class="dc-temp"></span></div>`;
+        html += `<div class="${cls}"><span class="dc-num">${dt}</span></div>`;
       } else {
         let tile = _dcTileHtml(dStr, today_, selected);
         if (isOv) tile = tile.replace('"dc-tile', '"dc-tile dc-tile-overflow');
@@ -1052,6 +1058,8 @@ function selectQcDate(dateStr) {
     timeFromEl.value = 12;
   }
   _closeQcPanel();
+  // Return focus to the date button so keyboard users can continue scrubbing
+  document.getElementById('readout-date-btn')?.focus();
   update();
 }
 
