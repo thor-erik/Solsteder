@@ -33,6 +33,7 @@ let panelVisible      = true;
 const highlight = { id: null, source: null, raisedId: null };
 let mapLoaded         = false;
 let _qcActiveSection  = null; // 'date' | 'time' | null
+let _preCalPanelState = null; // saved panel state before calendar open (mobile)
 let _qcCalExpanded    = false; // true = full month calendar
 let _qcCalViewYear    = null;  // year shown in expanded view
 let _qcCalViewMonth   = null;  // month shown in expanded view (0–11)
@@ -786,6 +787,11 @@ function _closeQcPanel() {
   if (dateBtn) { dateBtn.classList.remove('active'); dateBtn.setAttribute('aria-expanded', 'false'); }
   document.getElementById('ptb-cal-float')?.classList.remove('open');
   document.getElementById('floating-search')?.classList.remove('cal-dimmed');
+  // Restore panel state saved before calendar opened
+  if (_preCalPanelState && isMobile() && typeof window._applyMobilePanelState === 'function') {
+    window._applyMobilePanelState(_preCalPanelState);
+    _preCalPanelState = null;
+  }
 
   panel.classList.remove('open');
   panel.classList.remove('cal-expanded');
@@ -821,6 +827,11 @@ function toggleQcPanel(section) {
   _qcActiveSection = 'date';
   calFloat?.classList.add('open');
   document.getElementById('floating-search')?.classList.add('cal-dimmed');
+  // On mobile, collapse list to peek so picker has room; restore on close
+  if (isMobile() && typeof window._applyMobilePanelState === 'function') {
+    _preCalPanelState = window._currentMobilePanelState?.() ?? null;
+    if (_preCalPanelState !== 'peek') window._applyMobilePanelState('peek');
+  }
   panel.classList.add('open');
   document.getElementById('qc-date-section')?.classList.add('active');
   const dateBtn = document.getElementById('readout-date-btn');
@@ -879,9 +890,9 @@ function _dcTileHtml(dStr, todayStr_, selected) {
   return `<button class="${cls}" onclick="selectQcDate('${dStr}')" title="${hasForecast ? '' : 'Ingen prognose — sol/skygge kun'}">`
     + `<span class="dc-day">${DAYS[d.getDay()]}</span>`
     + `<span class="dc-num">${d.getDate()}</span>`
-    + todayDot
     + `<span class="dc-icon">${icon}</span>`
     + `<span class="dc-temp">${temp}</span>`
+    + todayDot
     + `</button>`;
 }
 
@@ -1979,6 +1990,10 @@ document.addEventListener('DOMContentLoaded', () => {
           localStorage.setItem('sol_peek_nudged', '1');
         }, 800);
       }
+
+      // Expose panel state helpers for use by toggleQcPanel / _closeQcPanel
+      window._applyMobilePanelState  = _applyState;
+      window._currentMobilePanelState = _currentState;
 
       // ── Prevent iOS browser pinch-to-zoom (but not Mapbox's) ──
       document.addEventListener('gesturestart', e => {

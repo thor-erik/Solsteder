@@ -191,18 +191,19 @@ Opens from the date button in row 1 of the readout panel. Never covers the time 
 
 **Opening / closing:**
 - Trigger: tap the date button (calendar icon + label + chevron). The chevron rotates 180° when open (`aria-expanded="true"`).
-- On **mobile**: a glass-panel sheet slides in from **below the search bar** — `top: calc(search-bar-top + search-bar-height)`. The sheet never overlaps the search bar; top chrome stays fully interactive while the picker is open. Top edge border-radius `0` (joins flush with the search bar bottom); bottom edge radius `14px`. Animation: `transform: translateY` from `-110%` to `0`, `--transition-base` 220ms ease-out. Dismiss by tapping the chevron again, tapping outside, or pressing Escape.
-- On **wider viewports**: the sheet expands downward from the panel, appearing just above or beside the control group.
+- On **mobile**: the search bar **slides up and out** of the viewport (`translateY(calc(-100% - 24px))` + `opacity: 0`) simultaneously with the picker sliding down. The picker sheet starts from `top: 0` (full-height) with top padding equal to `env(safe-area-inset-top) + 16px`. Both transitions use `--transition-base` (220ms ease-out). On dismiss, the search bar slides back in. Top edge border-radius `0`; bottom edge radius `14px`. Dismiss by tapping the chevron again, tapping outside, or pressing Escape.
+- On **mobile**: opening the picker also **auto-collapses the list to peek**. The prior panel state is saved; closing the picker restores it. This ensures the picker has unobstructed screen space while remaining dismissible by the list's swipe-up gesture.
+- On **wider viewports**: the sheet expands downward from the panel, appearing just above or beside the control group. Search bar is not hidden on desktop.
 - **Auto-dismiss on selection:** tapping any selectable tile commits the date and closes the picker in a single action. The chevron returns to idle (pointing down). Focus returns to the date button. Tapping the currently-selected tile also closes the picker.
 - **Session mode persistence:** the picker remembers whether the user was in 10-day or full-calendar mode. Reopening the picker restores the last-used mode within the session. `_closeQcPanel()` does not reset the expanded state.
 - The sheet is a `role="dialog"` element with `aria-modal="true"`. On open, focus moves to today's tile. Escape closes.
 
-**Today-dot rule (both views):** The today-dot sits centered below the day's content (number or glyph) in all picker views. `4px` diameter, `--accent`. Never top-right, never floating. Rendered as an inline flex element — not `position: absolute`. When a day is both today and selected, both the selection ring and the dot are shown; the dot stays `--accent`.
+**Today-dot rule (both views):** The today-dot is the **last child** of the tile's flex column — after the temperature (or day number for beyond-horizon tiles). Order in DOM: weekday abbr → day number → weather glyph → temp → today-dot. `4px` diameter, `--accent`. Rendered as an inline flex element — not `position: absolute`. When a day is both today and selected, both the selection ring and the dot are shown; the dot stays `--accent`.
 
 **Default state: 10-day mode (5 × 2 grid)**
 - All 10 forecast days visible at once in a **5-column × 2-row CSS grid** — no horizontal scroll. Row 1: days 1–5 (today through +4). Row 2: days 6–10 (+5 through +9). Column gap `8px`, row gap `8px`.
 - On all viewports: tiles fill `(100% − 4×8px) / 5` of sheet width. Tile height `88px`. Radius `10px`.
-- Tile content (top to bottom): weekday abbreviation (11pt / 600 / `--muted`, letter-spacing 0.5px), day number (20pt / 700 / `--text`), today dot (if today), weather glyph (18px), **high temperature only** (11pt / 500 / `--muted`, format `18°` — no low temp).
+- Tile content (top to bottom): weekday abbreviation (11pt / 600 / `--muted`, letter-spacing 0.5px), day number (20pt / 700 / `--text`), weather glyph (18px), **high temperature only** (11pt / 500 / `--muted`, format `18°` — no low temp), today-dot (if today).
 - Tile background: glass-card neutral. **Do not fill with weather-ramp color** — weather is carried by the glyph + temp text only (see collision rule).
 - **Selected state:** `box-shadow: inset 0 0 0 2px var(--accent)` ring + subtle `--accent-dim` glow. Day number shifts to `--accent`. No border change (avoids layout shift). No background fill.
 - **Past days:** `opacity: 0.45`, non-selectable — same rule as the time bar (see Past / disabled state section).
@@ -214,16 +215,20 @@ Opens from the date button in row 1 of the readout panel. Never covers the time 
 
 - Month grid: **7 columns only** (Mon–Sun). No week-number sidebar — week numbers are useful for work scheduling but irrelevant for leisure date picking.
 - Tile dimensions: `48px` tall, `gap: 4px` (horizontal and vertical).
-- Tile content: day number (`15pt / 600 / --text`) centered; weather glyph (`14px`) below if within 10-day forecast horizon; today dot (if today); **no temperature** — month-grid density makes it unreadable.
-- **Beyond-horizon tiles (>10 days):** glass-card background at reduced opacity (`rgba(20,46,82,0.25)`), border at reduced opacity (`rgba(156,189,231,0.10)`), day number in `--muted`, no glyph. Remain selectable — tapping sets the date. **No dashed borders anywhere in the calendar.** Dashed borders are not part of this design system.
+- Tile content: day number (`15pt / 600 / --text`) centered; weather glyph (`14px`) below if within 10-day forecast horizon; **no temperature** — month-grid density makes it unreadable; today-dot (if today) last.
+- **Beyond-horizon tiles (>10 days):** `34px` tall (vs `48px` forecast tiles) — visually distinguishes them from data-rich tiles. Glass-card background at reduced opacity (`rgba(20,46,82,0.25)`), border at reduced opacity (`rgba(156,189,231,0.10)`), day number `15pt / 500 / --muted`, no glyph. Remain selectable — tapping sets the date. **No dashed borders anywhere in the calendar.** Dashed borders are not part of this design system.
 - **Collapse button:** `Skjul full kalender ▴` (Norwegian). Same glass-action spec as the expand button. Trailing SVG chevron rotated 180°.
 - **Forecast horizon footnote:** *"Værvarsel er tilgjengelig for de neste 10 dagene."*
 
-**Sheet spec:**
-- Background: `rgba(20, 46, 82, 0.97)` / `blur(20px)` (slightly more opaque than glass-panel, for readability over map).
-- Border: `1px solid rgba(156,189,231,0.18)` on the bottom edge only (mobile top-sheet).
+**Sheet spec (mobile full-screen overlay):**
+- Background: `rgba(20, 46, 82, 0.97)` / `blur(20px)` — solid overlay panel covering the map.
+- Border: `1px solid rgba(156,189,231,0.18)` on the bottom edge only.
 - Elevation: `mid` (`0 6px 24px rgba(0,0,0,0.50)`).
-- Padding: `12px 16px 20px` on mobile.
+- Padding: `calc(env(safe-area-inset-top) + 16px) 16px 20px` on mobile (top padding adapts to device notch).
+
+**Inner panel `#qc-panel-inner` (desktop — glass floating panel):**
+- Background: `rgba(20, 46, 82, 0.55)` + `backdrop-filter: blur(16px) saturate(120%)`.
+- Sticky month/weekday header rows keep `rgba(20,46,82,0.88)` + `blur(12px)` so tile content doesn't bleed through on scroll.
 
 ### Past / disabled state for data inputs
 
@@ -243,6 +248,7 @@ If the selected time is exactly NÅ (e.g. on first load), the thumb renders clea
 - Format: `6 steder i solen` (Norwegian). Empty-state format: `Ingen steder i solen akkurat nå`.
 - Vertical padding: `12px` top, `8px` bottom. Horizontal padding matches venue cards' left/right content edge (aligns with card titles).
 - The sort chip sits at the **right** of this header row on expanded state. Both the count text and the sort chip share the same header row. Sort chip is hidden in collapsed/peek state.
+- **Sort chip styling:** glass-action flavor — `36px` height, `13pt / 600 / --text`, `--muted` trailing chevron. No accent treatment (accent is reserved for interactive-selected state only). On open: border brightens to `rgba(156,189,231,0.35)`, background to `rgba(24,52,95,0.65)` — no color change. The chevron rotates 180° (`transition: transform 180ms ease`) when the sort menu is open.
 - **Visibility in peek state:** the header is visible in the ~40–50px peek zone, directly below the control group. It makes the peek more informative — users see "6 steder i solen" before expanding the list.
 
 ### List peek (collapsed state)

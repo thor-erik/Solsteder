@@ -160,7 +160,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    transition: border-color 0.15s, box-shadow 0.15s, opacity 180ms ease-out;
+    transition: border-color 0.15s, box-shadow 0.15s, opacity 200ms ease-out, transform 220ms ease-out;
   }
   #floating-search:hover {
     border-color: rgba(255,175,133,0.3);
@@ -609,9 +609,10 @@
   .dc-month-grid .dc-tile .dc-num  { font-size: 15px; font-weight: 600; }
   .dc-month-grid .dc-tile .dc-icon { font-size: 14px; line-height: 1.2; }
   .dc-month-grid .dc-tile .dc-temp { display: none; }
-  /* Beyond-horizon tiles: muted number, no glyph */
+  /* Beyond-horizon tiles: 34px, muted number only, no glyph */
+  .dc-month-grid .dc-tile.solar-only { height: 34px; }
   .dc-month-grid .dc-tile.solar-only .dc-icon { display: none; }
-  .dc-month-grid .dc-tile.solar-only .dc-num  { color: var(--muted); }
+  .dc-month-grid .dc-tile.solar-only .dc-num  { color: var(--muted); font-size: 15px; font-weight: 500; }
   .dc-month-grid .dc-tile-past .dc-num { font-size: 15px; }
   /* Forecast boundary note */
   .dc-forecast-note {
@@ -1204,16 +1205,21 @@
     color: var(--text);
     font-family: 'Inter', sans-serif;
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     flex-shrink: 0;
     transition: color 0.12s, border-color 0.12s, background 0.12s;
     -webkit-tap-highlight-color: transparent;
     outline: none;
   }
-  #sort-toggle-btn .sort-chevron { color: var(--muted); }
+  #sort-toggle-btn .sort-chevron {
+    color: var(--muted);
+    display: inline-block;
+    transition: transform 0.18s ease;
+  }
   #sort-toggle-btn:hover { border-color: rgba(156,189,231,0.4); background: rgba(24,52,95,0.8); }
-  #sort-toggle-btn.open  { color: var(--accent); border-color: rgba(255,175,133,0.45); background: rgba(255,175,133,0.08); }
+  #sort-toggle-btn.open  { border-color: rgba(156,189,231,0.35); background: rgba(24,52,95,0.65); }
+  #sort-toggle-btn.open .sort-chevron { transform: rotate(180deg); }
 
   /* Legacy class — keep for any remaining references */
   .filter-toggle-btn {
@@ -3118,8 +3124,8 @@
       width: auto;
       top: 0; /* extends from top of screen — covers behind search bar */
       bottom: auto;
-      /* top padding = search-top(12) + search-height(46) + gap(12) = 70px */
-      padding: 70px 16px 20px;
+      /* search bar slides away — pad by safe-area + small breathing room */
+      padding: calc(env(safe-area-inset-top, var(--safe-area-top, 0px)) + 16px) 16px 20px;
       box-sizing: border-box;
       background: rgba(20, 46, 82, 0.97);
       backdrop-filter: blur(20px);
@@ -3139,9 +3145,10 @@
       opacity: 1;
       pointer-events: auto;
     }
-    /* Dim the search bar while the calendar picker is open (JS adds .cal-dimmed) */
+    /* Slide search bar up/out when calendar picker opens (JS adds .cal-dimmed) */
     #floating-search.cal-dimmed {
-      opacity: 0.25;
+      transform: translateY(calc(-100% - 24px));
+      opacity: 0;
       pointer-events: none;
     }
     /* Inner panel: no extra animation on mobile — the outer float handles reveal */
@@ -3188,7 +3195,8 @@
     #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-temp { font-size: 11px; font-weight: 500; color: rgba(156,189,231,0.72); }
     /* Month-view full calendar on mobile */
     #ptb-cal-float #qc-cal .dc-cal-scroll { height: 55vh; }
-    #ptb-cal-float #qc-cal .dc-month-grid .dc-tile { height: 48px; }
+    #ptb-cal-float #qc-cal .dc-month-grid .dc-tile:not(.solar-only) { height: 48px; }
+    #ptb-cal-float #qc-cal .dc-month-grid .dc-tile.solar-only { height: 34px; }
   }
 
   #qc-presets {
@@ -3238,7 +3246,9 @@
   #qc-panel-inner {
     width: 100%;
     box-sizing: border-box;
-    background: rgba(10, 20, 42, 0.45);
+    background: rgba(20, 46, 82, 0.55);
+    backdrop-filter: blur(16px) saturate(120%);
+    -webkit-backdrop-filter: blur(16px) saturate(120%);
     border: 1px solid rgba(156, 189, 231, 0.12);
     border-radius: 12px;
     overflow: hidden;
@@ -3269,7 +3279,8 @@
   #qc-cal .dc-grid:not(.dc-month-grid) .dc-temp  { font-size: 12px; font-weight: 700; color: rgba(156,189,231,0.72); }
   /* Full-calendar month grid: 7 columns, 4px gap, 48px tiles */
   #qc-cal .dc-month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; width: 100%; box-sizing: border-box; }
-  #qc-cal .dc-month-grid .dc-tile { padding: 4px 2px; gap: 2px; height: 48px; justify-content: center; }
+  #qc-cal .dc-month-grid .dc-tile:not(.solar-only) { padding: 4px 2px; gap: 2px; height: 48px; justify-content: center; }
+  #qc-cal .dc-month-grid .dc-tile.solar-only { padding: 0 2px; gap: 0; height: 34px; justify-content: center; }
   #qc-cal .dc-month-grid .dc-num  { font-size: 15px; font-weight: 600; }
   #qc-cal .dc-month-grid .dc-icon { font-size: 14px; line-height: 1.1; }
   /* Weekday row: 7 columns matching day grid, sticky at scroll-area top */
