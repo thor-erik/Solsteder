@@ -959,12 +959,23 @@ function _renderQcCalendarMonth(cal) {
     const monY = mon.getFullYear();
     const monM = mon.getMonth();
 
-    // Insert month label when Monday crosses into a new month.
-    // The label is sticky (CSS) — it pins just below the weekday row as user scrolls.
-    const mk = `${monY}-${monM}`;
-    if (mk !== prevMonthKey) {
-      prevMonthKey = mk;
-      html += `<div class="dc-month-row-label">${MONTH_NAMES[monM]} ${monY}</div>`;
+    // Insert month label on the week that contains the 1st of a new month.
+    // (Not when Monday crosses months — if the 1st falls mid-week the Monday
+    //  is still in the previous month, so we scan all 7 days instead.)
+    // For the very first week, fall back to Monday's month if no 1st is present.
+    let labelM = null, labelY = null;
+    for (let sd = 0; sd < 7; sd++) {
+      const probe = new Date(startMon);
+      probe.setDate(startMon.getDate() + w * 7 + sd);
+      if (probe.getDate() === 1) { labelM = probe.getMonth(); labelY = probe.getFullYear(); break; }
+    }
+    if (w === 0 && labelM === null) { labelM = monM; labelY = monY; }
+    if (labelM !== null) {
+      const mk = `${labelY}-${labelM}`;
+      if (mk !== prevMonthKey) {
+        prevMonthKey = mk;
+        html += `<div class="dc-month-row-label">${MONTH_NAMES[labelM]} ${labelY}</div>`;
+      }
     }
 
     // 7 day tiles Mon–Sun (no week-number cell)
