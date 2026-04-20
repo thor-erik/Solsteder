@@ -481,6 +481,9 @@ function drawTimeBar(canvasEl) {
   c.clip();
 
   for (let h = MIN_H; h < MAX_H; h++) {
+    // Past hours on today: leave the night background (#1C2B4A) — no colored fill
+    if (isToday_ && h + 1 <= nowH_) continue;
+
     const sun = getSunFromTable(currentSunTable, h + 0.5);  // sample hour midpoint
     if (sun.alt <= 0) continue;  // night — leave #1C2B4A background
 
@@ -495,17 +498,15 @@ function drawTimeBar(canvasEl) {
       else                 color = '#8EA0B8';  // overcast
     }
 
-    // Past segments: dim to 0.45 opacity (today only)
-    if (isToday_ && h + 1 <= nowH_) c.globalAlpha = 0.45;
-    else if (isToday_ && h < nowH_) c.globalAlpha = 0.45 + (1 - 0.45) * (nowH_ - h);  // partial hour
-    else c.globalAlpha = 1;
-
-    const x1 = timeToX(h);
-    const x2 = timeToX(h + 1);
+    // Partial current hour: draw only the future fraction
+    const drawFrom = (isToday_ && h < nowH_) ? nowH_ : h;
+    // Pixel-snap segment edges so adjacent fills share exact integer boundaries (no seams)
+    const x1 = Math.round(timeToX(drawFrom));
+    const x2 = Math.round(timeToX(h + 1));
+    if (x2 <= x1) continue;
     c.fillStyle = color;
-    c.fillRect(x1, TRACK_Y, x2 - x1 + 0.5, TRACK_H);
+    c.fillRect(x1, TRACK_Y, x2 - x1, TRACK_H);
   }
-  c.globalAlpha = 1;
 
   c.restore();  // end track clip
 
@@ -526,7 +527,10 @@ function drawTimeBar(canvasEl) {
     c.font = `${GLYPH_FONT_SIZE}px "Inter", sans-serif`;
     c.textAlign = 'center';
     c.textBaseline = 'middle';
+    c.globalAlpha = 0.55;
     for (let h = MIN_H; h < MAX_H; h++) {
+      // No glyphs for past hours (segment already cleared to background)
+      if (isToday_ && h + 1 <= nowH_) continue;
       const sun = getSunFromTable(currentSunTable, h + 0.5);
       if (sun.alt <= 0) continue;
       const x1 = timeToX(h);
@@ -540,23 +544,25 @@ function drawTimeBar(canvasEl) {
       else if (cf < 0.20)  glyph = '☀';
       else if (cf < 0.60)  glyph = '⛅';
       else                 glyph = '☁';
-      // Dim glyphs for past hours
-      c.globalAlpha = (isToday_ && h + 1 <= nowH_) ? 0.55 * 0.45 : 0.55;
       c.fillStyle = '#9CBDE7';
       c.fillText(glyph, (x1 + x2) / 2, TRACK_Y + TRACK_H / 2);
     }
     c.globalAlpha = 1;
   }
 
-  // 5. Hour labels every 3 hours (6, 9, 12, 15, 18, 21) — 11pt/600, 4px gap below bar
+  // 5. Hour labels every 2 hours — 11pt/600, 4px gap below bar
   c.font = '600 11px "Inter", sans-serif';
   c.textBaseline = 'top';
   c.textAlign = 'center';
-  const LABEL_Y = TRACK_Y + TRACK_H + 4;  // 4px gap below bar
+  const LABEL_Y  = TRACK_Y + TRACK_H + 4;  // 4px gap below bar
+  const MIN_GAP  = 22;  // minimum px between label centres; skip label if too tight
+  let lastLabelX = -Infinity;
   for (let h = Math.ceil(MIN_H); h <= MAX_H; h++) {
-    if (h % 3 !== 0) continue;
+    if (h % 2 !== 0) continue;
     const lx = timeToX(h);
     if (lx < BAR_X + 4 || lx > BAR_X + BAR_W - 4) continue;
+    if (lx - lastLabelX < MIN_GAP) continue;  // guard against overlap on narrow bars
+    lastLabelX = lx;
     // Past labels dimmer (today only)
     c.fillStyle = (isToday_ && h <= nowH_)
       ? 'rgba(156,189,231,0.35)'

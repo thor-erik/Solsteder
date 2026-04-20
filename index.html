@@ -1873,11 +1873,12 @@
     }
 
     #panel-handle-chevron {
-      font-size: 10px;
       color: rgba(156,189,231,0.45);
-      line-height: 1;
-      letter-spacing: 0;
+      line-height: 0;
       user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     /* In expanded/fullscreen, hide the up-chevron — it's no longer needed */
@@ -2917,7 +2918,7 @@
   }
   /* Inline phrase: icon + date (--muted) + time (--accent) on one line */
   #readout-phrase {
-    display: inline-flex;
+    display: flex;
     align-items: baseline;
     gap: 0;
     white-space: nowrap;
@@ -2925,10 +2926,9 @@
     min-width: 0;
     flex-shrink: 1;
   }
+  /* Button rendered as inline so its baseline matches adjacent span naturally */
   #readout-date-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
+    display: inline;
     background: none;
     border: none;
     padding: 0;
@@ -2943,14 +2943,22 @@
     -webkit-tap-highlight-color: transparent;
     outline: none;
     white-space: nowrap;
-    flex-shrink: 0;
     transition: color 120ms;
+    vertical-align: baseline;
   }
   #readout-date-btn:hover { color: var(--accent); }
   #readout-date-btn.active { color: var(--accent); }
-  #readout-date-btn svg { color: var(--muted); opacity: 0.7; flex-shrink: 0; margin-bottom: 1px; }
+  /* SVG sits just below the text baseline */
+  #readout-date-btn svg {
+    display: inline-block;
+    vertical-align: -2px;
+    margin-right: 6px;
+    color: var(--muted);
+    opacity: 0.7;
+    flex-shrink: 0;
+  }
   #readout-date-label {
-    /* inherits font/color from #readout-date-btn */
+    /* inherits font/color/size from #readout-date-btn */
   }
   #readout-time {
     font-family: 'Inter', sans-serif;
@@ -3744,7 +3752,11 @@
   <div id="panel" class="intro-hidden">
     <div id="panel-handle" onclick="togglePanel()">
       <div id="panel-handle-pill"></div>
-      <div id="panel-handle-chevron">∧</div>
+      <div id="panel-handle-chevron">
+        <svg width="14" height="8" viewBox="0 0 14 8" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M1 7L7 2L13 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
     </div>
 
     <!-- Time bar: unified control group (readout docked above bar) -->
@@ -3756,7 +3768,7 @@
             <!-- Inline phrase: [icon] [date,] [time] — date portion is the calendar trigger -->
             <div id="readout-phrase">
               <button id="readout-date-btn" onclick="toggleQcPanel('date')" aria-label="Change date">
-                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="flex-shrink:0">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                   <rect x="2" y="3.5" width="12" height="10.5" rx="2" stroke="currentColor" stroke-width="1.4"/>
                   <path d="M5 2v3M11 2v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
                   <path d="M2 7h12" stroke="currentColor" stroke-width="1.4"/>
