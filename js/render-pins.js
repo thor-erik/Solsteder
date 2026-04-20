@@ -918,13 +918,21 @@ canvas.addEventListener('mousedown', e => {
   } else {
     canvas.style.pointerEvents = 'none';
     const el = document.elementFromPoint(e.clientX, e.clientY);
-    canvas.style.pointerEvents = 'auto';
+    if (el && el.closest(_UI_OVERLAY_SELECTOR)) {
+      // UI overlay detected — keep canvas transparent so the native mouseup + click
+      // are delivered directly to the UI element without any synthetic dispatch.
+      // Restore pointer-events once the pointer is released.
+      window.addEventListener('pointerup', () => { canvas.style.pointerEvents = 'auto'; }, { once: true });
+    } else {
+      canvas.style.pointerEvents = 'auto';
+    }
     if (el) el.dispatchEvent(new MouseEvent('mousedown', e));
   }
 });
 
 // Selector for interactive UI overlays that sit above the canvas.
-// Clicks on these must never trigger pin selection.
+// When a mousedown lands here the canvas stays pointer-events:none through the
+// full click cycle so native events reach the UI element directly.
 const _UI_OVERLAY_SELECTOR = '#qc-wrap, #panel, #floating-search, #search-dropdown, #ptb-cal-float, ' +
   '#profile-panel, #search-wrap, #floating-date, #detail-panel, .mapboxgl-ctrl, .mapboxgl-popup';
 
@@ -940,16 +948,6 @@ canvas.addEventListener('click', e => {
     }
     const wallIdx = hitTestWall(cx, cy);
     if (wallIdx !== null && (!v?.terraceType || v.terraceType === 'street')) selectWallByIdx(wallIdx);
-    return;
-  }
-  // Guard: if a UI overlay is at this position, forward the click to it and bail.
-  // The canvas intercepts all pointer events; we must re-deliver clicks to UI elements.
-  canvas.style.pointerEvents = 'none';
-  const elUnder = document.elementFromPoint(e.clientX, e.clientY);
-  canvas.style.pointerEvents = 'auto';
-  if (elUnder && elUnder.closest(_UI_OVERLAY_SELECTOR)) {
-    elUnder.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true,
-      clientX: e.clientX, clientY: e.clientY, screenX: e.screenX, screenY: e.screenY }));
     return;
   }
   const hit = hitTestVenue(cx, cy) || hitTestDot(cx, cy);
