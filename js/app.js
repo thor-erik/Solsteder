@@ -754,7 +754,12 @@ function updateQcIndicator(h) {
   // List header sun count — lives in #list-sun-count, not in readout
   let sunLabel = '';
   if (typeof VENUES !== 'undefined' && typeof venueHasSunInRange === 'function') {
-    const cnt = VENUES.filter(v => venueHasSunInRange(v, dateStr, dispH, dispH)).length;
+    let sunVenues = VENUES.filter(v => venueHasSunInRange(v, dateStr, dispH, dispH));
+    if (filterMapViewActive && typeof map !== 'undefined') {
+      const bounds = (selectedId != null && _frozenBounds) ? _frozenBounds : map.getBounds();
+      sunVenues = sunVenues.filter(v => bounds.contains([v.lng, v.lat]));
+    }
+    const cnt = sunVenues.length;
     sunLabel = cnt > 0 ? t('places_in_sun', { count: cnt }) : t('no_places_in_sun');
   }
 
@@ -2442,6 +2447,7 @@ map.on('moveend', () => {
   const list = document.getElementById('venue-list');
   if (list) list.dataset.noAnim = '1';
   renderList();
+  updateQcIndicator(null);
   requestAnimationFrame(() => { if (list) delete list.dataset.noAnim; });
 });
 
