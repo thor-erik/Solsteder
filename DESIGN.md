@@ -211,7 +211,7 @@ Opens from the date button in row 1 of the readout panel. Never covers the time 
 
 **Expand to full calendar:**
 
-*Scroll behavior:* A single weekday row (`M T O T F L S`) is pinned at the very top of the scroll area (`position: sticky; top: 0`). Each month has one inline label (`APRIL 2026`, `MAY 2026`, etc.) that is also sticky, pinned just below the weekday row (`top: weekday-row-height`). As the user scrolls, the current month's label stays put; when the next month's label reaches the same pin position, it naturally pushes the previous one up and off-screen. Both sticky elements use `background: rgba(20,46,82,0.88); backdrop-filter: blur(12px)` so tiles scrolling beneath don't bleed through.
+*Scroll behavior:* A single weekday row (`M T O T F L S`) is pinned at the very top of the scroll area (`position: sticky; top: 0`). Each month has one inline label (`APRIL 2026`, `MAY 2026`, etc.) that is also sticky, pinned just below the weekday row (`top: weekday-row-height`). As the user scrolls, the current month's label stays put; when the next month's label reaches the same pin position, it naturally pushes the previous one up and off-screen. Both sticky elements use `background: rgba(20,46,82,0.85); backdrop-filter: blur(12px)` so tiles scrolling beneath don't bleed through.
 
 - Month grid: **7 columns only** (Mon–Sun). No week-number sidebar — week numbers are useful for work scheduling but irrelevant for leisure date picking.
 - Tile dimensions: `48px` tall, `gap: 4px` (horizontal and vertical).
@@ -221,7 +221,8 @@ Opens from the date button in row 1 of the readout panel. Never covers the time 
 - **Forecast horizon footnote:** *"Værvarsel er tilgjengelig for de neste 10 dagene."*
 
 **Sheet spec (mobile full-screen overlay):**
-- Background: `rgba(20, 46, 82, 0.97)` / `blur(20px)` — solid overlay panel covering the map.
+- Background: glass-panel — `rgba(20, 46, 82, 0.55)` / `backdrop-filter: blur(16px) saturate(120%)`. The map must remain faintly visible behind the sheet. **Never apply a solid or near-solid fill to the sheet base — the picker must read as an overlay, not a new screen.**
+- Sticky headers (weekday row, month labels) use a denser variant — `rgba(20,46,82,0.85)` / `blur(12px)` — so tiles scrolling beneath them don't show through. Only the sticky headers need this elevated opacity; the sheet base stays translucent.
 - Border: `1px solid rgba(156,189,231,0.18)` on the bottom edge only.
 - Elevation: `mid` (`0 6px 24px rgba(0,0,0,0.50)`).
 - Padding: `calc(env(safe-area-inset-top) + 16px) 16px 20px` on mobile (top padding adapts to device notch).

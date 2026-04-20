@@ -3127,9 +3127,9 @@
       /* search bar slides away — pad by safe-area + small breathing room */
       padding: calc(env(safe-area-inset-top, var(--safe-area-top, 0px)) + 16px) 16px 20px;
       box-sizing: border-box;
-      background: rgba(20, 46, 82, 0.97);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      background: rgba(20, 46, 82, 0.55);
+      backdrop-filter: blur(16px) saturate(120%);
+      -webkit-backdrop-filter: blur(16px) saturate(120%);
       border-radius: 0 0 14px 14px;
       border-bottom: 1px solid rgba(156, 189, 231, 0.18);
       box-shadow: 0 6px 24px rgba(0, 0, 0, 0.50);
@@ -3249,7 +3249,7 @@
     background: rgba(20, 46, 82, 0.55);
     backdrop-filter: blur(16px) saturate(120%);
     -webkit-backdrop-filter: blur(16px) saturate(120%);
-    border: 1px solid rgba(156, 189, 231, 0.12);
+    border: 1px solid rgba(156, 189, 231, 0.18);
     border-radius: 12px;
     overflow: hidden;
     opacity: 1;
@@ -3288,7 +3288,7 @@
     display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
     height: 24px; align-items: center;
     position: sticky; top: 0; z-index: 2;
-    background: rgba(20,46,82,0.88);
+    background: rgba(20,46,82,0.85);
     backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
     border-bottom: 1px solid rgba(156,189,231,0.12);
     margin-bottom: 2px;
@@ -3297,7 +3297,7 @@
   #qc-cal .dc-month-row-label {
     position: sticky; top: 26px; /* weekday row (24px) + bottom border (1px) + gap (1px) */
     z-index: 1;
-    background: rgba(20,46,82,0.88);
+    background: rgba(20,46,82,0.85);
     backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
     padding: 4px 2px;
   }
