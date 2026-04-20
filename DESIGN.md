@@ -47,7 +47,7 @@ A single perceptual axis from full sun to no light. Do not split into categorica
 | partly sunny | `#E6C08A` | 40–80% sun availability |
 | overcast | `#8EA0B8` | 0–40%, no precipitation |
 | rain | `#5E7CA8` | precipitation |
-| night | `#1C2B4A` | before sunrise / after sunset |
+| night | `#2A3B5E` | before sunrise / after sunset (bumped from `#1C2B4A` for JND contrast vs panel background) |
 
 **Scope:** use these colors only for direct forecast data visualization — the time bar segments, temperature curves, precipitation overlays, and similar data-ink. Venue-level sun status (score badges, availability labels, "steder i solen" count) uses `--accent`, not this ramp — those indicate a UI state, not a weather measurement.
 
@@ -99,10 +99,10 @@ Three levels, matching glass surfaces. No other shadow values.
 
 **Action pill** (labeled)
 - Background: glass-action level
-- Padding: `0 14px`, min-height `56px`
+- Padding: `0 12–14px`, height `36px` for compact controls (date button); `56px` for standalone CTAs
 - Radius: `16px`
 - Text: 13pt / 600 / `--text`
-- Icon (optional): 16px, `--muted` opacity 0.85
+- Icon (optional): 16px, `--muted`
 
 **Action circle** (icon-only)
 - Size: `44×44px`, circular (not 34px — that fails touch targets)
@@ -113,26 +113,34 @@ Selected state for either: background `--accent`, text `--accent-on` (`#2a1a0c`)
 
 ### Time bar (primary input)
 
-- Height: `44–56px`
+- Height: `36–40px`. Do not go below `36px` — segments get cramped and weather-ramp perceptibility degrades.
 - Container (`#qc-arc-track`): `overflow: hidden; border-radius: 12px; padding: 0`. This wrapper is the sole source of corner clipping — the canvas itself draws no rounded corners (TRACK_R = 0). Segments fill the full canvas width with no internal horizontal padding; the container clips them to the correct radius.
-- Canvas height: ~38px. Top 8px reserved for the "NÅ" label; remaining ~26px is the colored track; bottom 4px clearance for the thumb pill.
+- Container inner-edge: `inset 0 0 0 1px rgba(156,189,231,0.10)` — ensures the track extent is readable regardless of which segment color sits at the edge.
+- Canvas height: ~38px. Top 8px reserved for the "NÅ" label; remaining ~26px is the colored track; bottom 4px clearance for the thumb.
 - Segments: **hour granularity only.** No sub-hour ticks. Default: no dividers. If two adjacent segments are perceptually indistinct, an optional `1px rgba(0,0,0,0.08)` seam is the maximum allowed.
 - Container inset shadow: `inset 0 1px 2px rgba(0,0,0,0.15)` — makes the bar feel recessed, not pasted on.
-- Segment fill: from weather ramp above.
+- Segment fill: from weather ramp above. Night background: `#2A3B5E` (bumped from `#1C2B4A` for JND contrast vs panel background).
 - Optional weather glyph: centered in segment, 10–12px, `--muted`. Drop the glyphs if segments are narrower than 24px.
 - Scrub is continuous; snap the **display text only** to 15-minute increments. The underlying `timeFromEl.value` and thumb position remain continuous — do not snap the thumb.
 - Hour labels live in `#qc-arc-labels`, a sibling div **outside** `#qc-arc-track` (and therefore outside `overflow: hidden`). They are absolutely positioned within that div using the same `timeToX` formula as the canvas. A minimum 4px inset from either edge prevents edge clipping. Do not draw labels inside the canvas — they would be clipped by the container's border-radius at extreme hours.
 
 ### Thumb (time bar)
 
-Slim vertical pill — not a tick mark.
+> **The thumb is called the "sunglass"** — a glass disc that lenses the weather color at the current time. The name is deliberate and worth preserving; it reinforces the product's mental model.
 
-- Size: `4–5px` wide × `~120%` of bar height (extends ~3px above and ~3px below the track edges, symmetric).
-- Fill: `--text` (`#FFF2EB`). Radius: `3px` (rounded ends).
-- Glow: `box-shadow: 0 0 8px rgba(255,175,133,0.40)` at rest.
-- **On active drag:** widen to 6px and increase glow to `rgba(255,175,133,0.60)`. Revert with `--transition-fast` (120ms) on release.
-- **No text inside the thumb.** Selected time lives in the readout.
-- **Do not use `--accent` as the fill** — it collides with full-sun segments. The accent lives in the glow only.
+Circular frosted-glass disc — not a pill, not a tick mark.
+
+- **Shape:** circular. Not a pill.
+- **Diameter:** `28px`. Center aligns with the bar's vertical midpoint; extends ~4–6px above and below the track edges, giving a generous touch target without needing a taller bar.
+- **Fill:** frosted glass. Background: `rgba(255, 242, 235, 0.18)` (`--text` at 18% opacity). Backdrop saturate (in canvas: approximated by translucent fill over ramp color): `saturate(120%)` intent — the weather-ramp color behind shows through, so the disc reads as a lens.
+- **Border:** `1.5px solid rgba(255, 242, 235, 0.75)`. High-opacity `--text`-tinted ring ensures visibility on any ramp color.
+- **Inner highlight:** `inset 0 1px 0 rgba(255, 255, 255, 0.30)` — 1px top-inner arc sheen, the classic glass-surface cue.
+- **Drop shadow:** `0 2px 6px rgba(0, 0, 0, 0.35)` lifts it off the bar.
+- **Accent glow at rest:** `0 0 12px rgba(255, 175, 133, 0.35)` — same accent-orange halo, wrapped around the circle.
+- **On active drag:** scale to `1.08×` (centered on disc center); glow intensifies to `rgba(255, 175, 133, 0.55)`. Revert on release with `--transition-fast` (120ms).
+- **No text inside the thumb.** Selected time lives in the row-2 time label, left of the slider.
+- **Do not use `--accent` as the fill or border** — it collides with full-sun segments. The accent lives in the glow only.
+- **NÅ tick collision:** when the thumb is within ~30 minutes of the NÅ tick, suppress the `NÅ` text label and dim the dashed line to 50% opacity. Fade back when thumb moves away, over `--transition-fast`.
 
 ### "NÅ" tick
 
@@ -142,30 +150,47 @@ Thin dashed vertical line (`1px dashed --muted`), full height of bar. Tiny `NÅ`
 
 ### Readout panel (answers "what did I pick?")
 
-The readout and the time bar are one docked control group, not two stacked surfaces:
-- They share the same glass level (glass-panel: `rgba(20,46,82,0.55)` / `blur(16px)`).
-- They live inside a single wrapper with matching border, radius `12–14px`, and `overflow: hidden`. No visible seam where they meet.
-- Reduce the separator between readout and bar to a hairline: `1px solid rgba(156,189,231,0.08)`.
-- **The unified wrapper has `16–20px` vertical padding on all internal content. No child control should sit flush against the wrapper's edge.**
+> **The date button and the selected-time label sit in separate rows; do not recombine them into an inline phrase.**
 
-Three-tier hierarchy inside the readout:
-- **Tier 1** — inline date + time phrase on one line: `[date portion, --muted, 24pt/700][▼ chevron, --muted][comma, --muted][space][time portion, --accent, 24pt/700]`. Examples: `Today ▼, 12:45` / `Man 20 Apr ▼, 12:45`. The date portion and the chevron together form the calendar trigger (a `<button>` with `aria-label="Change date"` and `aria-expanded`). The chevron is a **10×6px filled-triangle SVG** (`<path d="M0 0 L10 0 L5 6 Z"/>`), not a Unicode glyph — it inherits `currentColor` from the button (idle `--muted`; hover/focus `--text`; open/active `--accent`). The chevron rotates 180° when the picker is open. 6px gap between date text and chevron. The time portion is not interactive. The line must never wrap; on narrow widths degrade by dropping the weekday abbreviation first; the chevron is the last thing to drop. No leading icon. The comma and trailing space sit outside the button, as a separate non-interactive span. No separate date pill exists.
-- **Tier 2** — sun result ("78 steder i solen"): 14pt, 500, `--text`. Secondary line below Tier 1. Shown once — in the readout only. Never duplicated in adjacent list headers.
-- **Tier 3** — weather metadata: two-line stack on the right, same baseline as Tier 1:
-  - Top: weather icon (22–24px) + temperature (17pt, 600, `--text`). Gap 6–8px between icon and number.
-  - Bottom: wind direction + speed (12pt, 500, `--muted`). Format: `↘ 3 m/s`. Arrow wrapped in fixed-width span to prevent layout shift.
-- Hue-shift (optional): during scrub, the group wrapper tints toward the weather ramp color at the current thumb position, max 10–15% saturation, 120ms ease-out. Easy to overdo; stay subtle.
+The readout and the time bar are one docked control group, sharing glass-panel level (`rgba(20,46,82,0.55)` / `blur(16px)`), radius `14px`, `overflow: hidden`. Vertical padding: `12px` top and bottom. Horizontal padding: `16px`.
 
-### Date pill *(retired)*
+**Three-row compact layout:**
 
-Date selection now lives inline in the Tier 1 readout phrase — see **Readout panel** above. A separate date pill is no longer part of the system. Do not reintroduce a standalone date control.
+- **Row 1 — Controls** (height: `36px`, items center-aligned):
+  - **Left:** calendar button — action-pill flavor, `36px` height. Contains: calendar icon (`16px`, `--muted`), date label (`13pt / 600 / --text`), SVG filled-triangle chevron (`--muted` at rest, rotates 180° when picker open, `--accent` when active). Width follows content. This is the calendar picker trigger (`aria-expanded` state).
+  - **Right:** weather inline row: `[icon, 18px, --muted] [temp, 13pt/600/--text] · [wind arrow+speed, 13pt/500/--muted]`. Middle-dot separator in `--muted`. Temp is the only element in `--text`; everything else `--muted`.
+  - Gap between row 1 and row 2: `10px`.
+
+- **Row 2 — Time + slider:**
+  - **Left:** selected-time label, fixed width `~64px`. Typography: `24pt / 700 / --accent`. Baseline-aligned with the slider's vertical center.
+  - **Right:** slider fills remaining width (see Time bar spec). Gap between label and slider: `12px`.
+  - Gap between row 2 and axis: `4px`.
+
+- **Row 3 — Axis labels:**
+  - Plain hour labels only: `6  8  10  12  14  16  18  20`. No sunrise/sunset precise timestamps — the color ramp transition IS the sunrise/sunset signal.
+  - Typography: `11pt / 600 / --muted`, letter-spacing 0.5.
+  - Labels sit `4px` below the slider, left-indented to align with the slider's start (not the time label's start).
+
+- Hue-shift (optional): during scrub, the group wrapper tints toward the weather ramp color at the current thumb position, max 10–15% saturation, 120ms ease-out. Stay subtle.
+
+### Date pill
+
+Action-pill flavor, `36px` height. Functions as the calendar picker trigger.
+
+- Content (left to right): calendar icon (`16px`, `--muted`), date label (`13pt / 600 / --text`), trailing SVG filled-triangle chevron (`--muted` at rest; `--accent` when picker is open; rotates 180° when open).
+- Background: glass-action level (`rgba(20,46,82,0.45)` / `blur(10px)`).
+- Width follows content (min-width limited to label + icon + chevron + padding).
+- Label format: `I dag` / `I morgen` / `Lør 25 Apr` (Norwegian short form).
+- `aria-expanded` state drives chevron rotation and active color. Focus returns to this button on picker close.
+
+The date button sits in row 1 of the readout panel (left side). It is separate from the selected-time label in row 2. Do not recombine them.
 
 ### Calendar picker (sheet)
 
-Opens from the Tier 1 date chevron. Never covers the time bar, readout, or list peek — those must remain visible so the user sees live updates as they browse dates (Principle 5).
+Opens from the date button in row 1 of the readout panel. Never covers the time bar, readout, or list peek — those must remain visible so the user sees live updates as they browse dates (Principle 5).
 
 **Opening / closing:**
-- Trigger: tap the date portion + chevron in the readout. The chevron rotates 180° when open (`aria-expanded="true"`).
+- Trigger: tap the date button (calendar icon + label + chevron). The chevron rotates 180° when open (`aria-expanded="true"`).
 - On **mobile**: a glass-panel sheet slides in from **below the search bar** — `top: calc(search-bar-top + search-bar-height)`. The sheet never overlaps the search bar; top chrome stays fully interactive while the picker is open. Top edge border-radius `0` (joins flush with the search bar bottom); bottom edge radius `14px`. Animation: `transform: translateY` from `-110%` to `0`, `--transition-base` 220ms ease-out. Dismiss by tapping the chevron again, tapping outside, or pressing Escape.
 - On **wider viewports**: the sheet expands downward from the panel, appearing just above or beside the control group.
 - **Auto-dismiss on selection:** tapping any selectable tile commits the date and closes the picker in a single action. The chevron returns to idle (pointing down). Focus returns to the date button. Tapping the currently-selected tile also closes the picker.
@@ -200,21 +225,30 @@ Opens from the Tier 1 date chevron. Never covers the time bar, readout, or list 
 
 Data inputs that represent time (time bar, calendar strip, day arc, similar) dim their past portion to `opacity: 0.45` to communicate that it is not a valid selection. This applies to segments, weather glyphs, axis labels, and calendar day tiles.
 
-For the **time bar** specifically, past hours have their weather-color fill removed entirely (the night background `#1C2B4A` shows through) — dimming an amber segment to 0.45 opacity makes it perceptually indistinguishable from overcast grey. Removing the fill avoids this ambiguity.
+For the **time bar** specifically, past hours have their weather-color fill removed entirely (the night background `#2A3B5E` shows through) — dimming an amber segment to 0.45 opacity makes it perceptually indistinguishable from overcast grey. Removing the fill avoids this ambiguity.
 
 Interaction is soft-clamped at the present moment — the thumb cannot be released in the past and springs back to NÅ if dragged there. The spring uses `--transition-base` (220ms) ease-out. During drag the thumb is visually held at NÅ (clamped); the spring plays on release to reinforce the boundary.
 
 If the selected time is exactly NÅ (e.g. on first load), the thumb renders cleanly on top of the NÅ tick (z-order: thumb above tick).
 
+### List header
+
+"X steder i solen" appears exactly once on screen — in this header, above the venue list. It is the result surface for the input surface above (the control group). Never duplicate this count in the readout or elsewhere.
+
+- Typography: `15pt / 600 / --text`. Section header weight, but below display scale.
+- Format: `6 steder i solen` (Norwegian). Empty-state format: `Ingen steder i solen akkurat nå`.
+- Vertical padding: `12px` top, `8px` bottom. Horizontal padding matches venue cards' left/right content edge (aligns with card titles).
+- The sort chip sits at the **right** of this header row on expanded state. Both the count text and the sort chip share the same header row. Sort chip is hidden in collapsed/peek state.
+- **Visibility in peek state:** the header is visible in the ~40–50px peek zone, directly below the control group. It makes the peek more informative — users see "6 steder i solen" before expanding the list.
+
 ### List peek (collapsed state)
 
-In the mobile bottom-sheet collapsed state, three affordances together communicate "swipe up for a list":
+In the mobile bottom-sheet collapsed state, two affordances together communicate "swipe up for a list":
 
-1. **Grabber pill** — 36×4px, `rgba(156,189,231,0.25)`.
-2. **Up-chevron** — small `∧` glyph below the pill, `--muted` at reduced opacity. Makes the swipe direction explicit.
-3. **First-venue peek** — the top ~40–50px of the first venue card is visible below the control group. Shows name and score. Fades at the bottom edge.
+1. **Grabber pill** — 36×4px, `rgba(156,189,231,0.25)`. Sits 8px above the control group. The up-chevron that previously appeared below the pill is retired — the venue peek below carries the swipe-up signal.
+2. **List sun header + first-venue peek** — "X steder i solen" is visible directly below the control group, followed by the top ~40–50px of the first venue card. The combination communicates both result count and entry point.
 
-The entire readout+bar surface (not just the grabber strip) is a drag target. The grabber is a visual hint only.
+The entire control-group surface (not just the grabber strip) is a drag target. The grabber is a visual hint only.
 
 ### Progressive disclosure
 
@@ -233,7 +267,7 @@ Secondary controls (sort, filter, alternate views) appear with the content they 
 - Don't encode weather with brand colors or vice versa.
 - Don't use more than three type scales in one composition.
 - Don't use sub-hour segmentation on the time bar. Scrub continuously, paint discretely.
-- Don't duplicate information across adjacent elements (e.g., sun count in both the readout and the list header).
+- Don't duplicate information across adjacent elements. Sun count ("X steder i solen") lives in the list header only — never in the readout.
 - Don't animate on every value change. Rapid scrubs turn into visual noise. A 100ms cross-fade on numeric updates is the ceiling.
 - Don't introduce glass surface variants outside the three documented levels. If the existing levels don't fit, update this document.
 - Don't create shadow values ad hoc. Use the three documented elevation levels.

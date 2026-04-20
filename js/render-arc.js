@@ -463,9 +463,9 @@ function drawTimeBar(canvasEl) {
     c.closePath();
   };
 
-  // 1. Track background (night color from ramp)
+  // 1. Track background (night color from ramp — #2A3B5E for JND contrast vs panel bg)
   trackPath();
-  c.fillStyle = '#1C2B4A';
+  c.fillStyle = '#2A3B5E';
   c.fill();
 
   // 2. Hourly weather segments — DESIGN.md ramp
@@ -550,9 +550,7 @@ function drawTimeBar(canvasEl) {
   }
 
   // 5. Hour labels rendered in #qc-arc-labels HTML element (outside overflow:hidden track)
-  const sunriseH_ = (typeof SUNRISE_H_ARC !== 'undefined') ? SUNRISE_H_ARC : null;
-  const sunsetH_  = (typeof SUNSET_H_ARC  !== 'undefined') ? SUNSET_H_ARC  : null;
-  _renderArcLabels(canvasEl, MIN_H, MAX_H, BAR_W, isToday_, nowH_, sunriseH_, sunsetH_);
+  _renderArcLabels(canvasEl, MIN_H, MAX_H, BAR_W, isToday_, nowH_);
 
   // 6. NÅ tick — dashed vertical line + label, only on today's date
   const nowH    = new Date().getHours() + new Date().getMinutes() / 60;
@@ -581,81 +579,93 @@ function drawTimeBar(canvasEl) {
     c.restore();
   }
 
-  // 7. Thumb — slim rounded-rect pill in --text, 3px above/below track, accent-orange glow
+  // 7. Sunglass thumb — circular frosted-glass disc, 28px diameter
+  //    The "sunglass" name is deliberate: a glass disc that lenses the weather color at the
+  //    current time position. Accent glow wraps the circle; no text inside; no --accent fill.
   if (showH >= MIN_H && showH <= MAX_H) {
     const isActive  = !!(window._qcThumbActive);
     const springOff = (typeof window._qcSpringOffset === 'number') ? window._qcSpringOffset : 0;
-    const sx        = timeToX(showH) + springOff;
-    const PW        = isActive ? 6 : 5;      // pill width, slightly wider on drag
-    const PILL_H    = TRACK_H + 6;           // 3px above + 3px below
-    const PILL_TOP  = TRACK_Y - 3;
-    const PILL_R    = 3;
+    const sx   = timeToX(showH) + springOff;
+    const cy_  = TRACK_Y + TRACK_H / 2;
+    const R    = 14;   // 28px diameter
+    const glow = isActive ? 'rgba(255,175,133,0.55)' : 'rgba(255,175,133,0.35)';
 
     c.save();
-    c.shadowColor = isActive ? 'rgba(255,175,133,0.60)' : 'rgba(255,175,133,0.40)';
-    c.shadowBlur  = 8;
-    c.fillStyle   = '#FFF2EB';
+    // Subtle scale on active drag (1.08×), centered on disc
+    c.translate(sx, cy_);
+    c.scale(isActive ? 1.08 : 1.0, isActive ? 1.08 : 1.0);
+    c.translate(-sx, -cy_);
 
-    // Rounded-rect pill path
-    const px = sx - PW / 2;
-    const py = PILL_TOP;
-    c.beginPath();
-    c.moveTo(px + PILL_R, py);
-    c.lineTo(px + PW - PILL_R, py);
-    c.arcTo(px + PW, py,          px + PW, py + PILL_R,          PILL_R);
-    c.lineTo(px + PW, py + PILL_H - PILL_R);
-    c.arcTo(px + PW, py + PILL_H, px + PW - PILL_R, py + PILL_H, PILL_R);
-    c.lineTo(px + PILL_R, py + PILL_H);
-    c.arcTo(px,          py + PILL_H, px,          py + PILL_H - PILL_R, PILL_R);
-    c.lineTo(px,          py + PILL_R);
-    c.arcTo(px,          py,          px + PILL_R, py,                   PILL_R);
-    c.closePath();
+    // Pass 1: accent glow halo (orange, 12px blur, no fill substance)
+    c.save();
+    c.shadowColor   = glow;
+    c.shadowBlur    = 12;
+    c.shadowOffsetX = 0;
+    c.shadowOffsetY = 0;
+    c.beginPath(); c.arc(sx, cy_, R, 0, Math.PI * 2);
+    c.fillStyle = 'rgba(255,242,235,0.01)'; // near-invisible fill triggers shadow render
     c.fill();
     c.restore();
+
+    // Pass 2: drop shadow + frosted fill
+    c.save();
+    c.shadowColor   = 'rgba(0,0,0,0.35)';
+    c.shadowBlur    = 6;
+    c.shadowOffsetX = 0;
+    c.shadowOffsetY = 2;
+    c.beginPath(); c.arc(sx, cy_, R, 0, Math.PI * 2);
+    c.fillStyle = 'rgba(255,242,235,0.18)';   // frosted glass: --text at 18%
+    c.fill();
+    c.restore();
+
+    // Pass 3: border ring — high-opacity --text ring, legible on any ramp segment
+    c.save();
+    c.beginPath(); c.arc(sx, cy_, R - 0.75, 0, Math.PI * 2);
+    c.strokeStyle = 'rgba(255,242,235,0.75)';
+    c.lineWidth   = 1.5;
+    c.stroke();
+    c.restore();
+
+    // Pass 4: inner top highlight — 1px arc sheen, classic glass-surface cue
+    c.save();
+    c.beginPath();
+    c.arc(sx, cy_ - 2, R - 4, Math.PI * 1.1, Math.PI * 1.9);
+    c.strokeStyle = 'rgba(255,255,255,0.30)';
+    c.lineWidth   = 1.2;
+    c.stroke();
+    c.restore();
+
+    c.restore(); // scale transform
   }
 
   c.restore(); // dpr scale
 }
 
 // ── Hour labels for the time bar ──────────────────────────────────────────────
-// Renders hour labels into #qc-arc-labels (a sibling outside overflow:hidden).
-// Sunrise and sunset are anchored first (they sit inside the pill's curved ends).
-// Even-hour labels fill the remaining space, skipping positions too close to anchors.
-function _renderArcLabels(canvasEl, MIN_H, MAX_H, BAR_W, isToday_, nowH_, sunriseH, sunsetH) {
+// Renders plain even-hour labels into #qc-arc-labels (outside overflow:hidden).
+// No sunrise/sunset precise timestamps — the color ramp segments carry that signal.
+// Every other hour on all viewports; the collision check prevents edge clipping.
+function _renderArcLabels(canvasEl, MIN_H, MAX_H, BAR_W, isToday_, nowH_) {
   const el = document.getElementById('qc-arc-labels');
   if (!el) return;
 
   const MIN_GAP = 22;
   const timeToX = t => (t - MIN_H) / (MAX_H - MIN_H) * BAR_W;
 
-  // Format exact hours as "H:MM" (e.g. 6:15) or just "H" when on the hour
-  const fmtH = h => {
-    const hr = Math.floor(h), min = Math.round((h - hr) * 60);
-    return min ? `${hr}:${String(min).padStart(2, '0')}` : `${hr}`;
-  };
-
-  const reserved = []; // pixel positions already claimed
-  const parts    = []; // { lx, text, dim }
+  const reserved = [];
+  const parts    = [];
 
   const tryAdd = (lx, text, dim) => {
-    if (lx < 2 || lx > BAR_W - 2) return;
+    if (lx < 4 || lx > BAR_W - 4) return;
     if (reserved.some(px => Math.abs(lx - px) < MIN_GAP)) return;
     reserved.push(lx);
     parts.push({ lx, text, dim });
   };
 
-  // 1. Anchor: sunrise (leftmost label, inside left curve)
-  if (sunriseH != null) tryAdd(timeToX(sunriseH), fmtH(sunriseH), isToday_ && sunriseH <= nowH_);
-
-  // 2. Anchor: sunset (rightmost label, inside right curve)
-  if (sunsetH != null) tryAdd(timeToX(sunsetH), fmtH(sunsetH), isToday_ && sunsetH <= nowH_);
-
-  // 3. Even-hour fill labels — skip any within MIN_GAP of sunrise/sunset
+  // Even-hour labels only: 6 8 10 12 14 16 18 20
   for (let h = Math.ceil(MIN_H); h <= MAX_H; h++) {
     if (h % 2 !== 0) continue;
-    const lx = timeToX(h);
-    if (lx < 4 || lx > BAR_W - 4) continue;
-    tryAdd(lx, `${h}`, isToday_ && h <= nowH_);
+    tryAdd(timeToX(h), `${h}`, isToday_ && h <= nowH_);
   }
 
   el.innerHTML = parts

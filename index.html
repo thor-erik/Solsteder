@@ -1869,13 +1869,12 @@
     /* Locate button: sit just above the peek strip so panel sheet slides over it */
     #locate-btn { bottom: calc(var(--peek-h, 252px) + 14px); }
 
-    /* Handle: flex column — pill + chevron */
+    /* Handle: grabber pill only — chevron retired (venue peek carries swipe-up signal) */
     #panel-handle {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 5px;
-      padding: 12px 0 6px;
+      padding: 8px 0 0;
       flex-shrink: 0;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
@@ -1886,21 +1885,6 @@
       height: 4px;
       background: rgba(156,189,231,0.25);
       border-radius: 2px;
-    }
-
-    #panel-handle-chevron {
-      color: rgba(156,189,231,0.45);
-      line-height: 0;
-      user-select: none;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    /* In expanded/fullscreen, hide the up-chevron — it's no longer needed */
-    #panel.mobile-expanded #panel-handle-chevron,
-    #panel.mobile-fullscreen #panel-handle-chevron {
-      opacity: 0;
     }
 
     /* Venue peek: top of first card visible in collapsed state */
@@ -1955,13 +1939,14 @@
     #venue-count { display: none; }
     #venue-header { display: none; }
 
-    /* Sort row: hidden in collapsed, visible with list; right-edge matches venue cards (16px) */
-    #sort-row { margin-top: 0; padding: 4px 16px 4px; }
-    #panel:not(.mobile-expanded):not(.mobile-fullscreen) #sort-row {
+    /* List sun header: sun count (left) + sort toggle (right).
+       Sort toggle hidden in collapsed/peek state; sun count always visible. */
+    #list-sun-header { padding: 10px 14px 6px; }
+    #panel:not(.mobile-expanded):not(.mobile-fullscreen) #sort-toggle-btn {
       display: none;
     }
 
-    #panel-header { padding-top: 6px; }
+    #panel-header { padding-top: 0; }
 
     #venue-list { padding: 10px 16px 32px; }
 
@@ -2926,57 +2911,66 @@
     overflow: hidden;
     transition: background 120ms ease-out;
   }
-  /* ── Readout panel — top tier inside the grouped control ─────────────── */
+  /* ── Compact 3-row readout: rows 1-3 all inside #time-readout ─────────── */
   #time-readout {
-    padding: 16px 14px 10px;
-    border-bottom: 1px solid rgba(156, 189, 231, 0.08);
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
     transition: background 120ms ease-out;
   }
-  /* Inline phrase: icon + date (--muted) + time (--accent) on one line */
-  #readout-phrase {
+
+  /* ── Row 1: calendar button (left) + inline weather (right) ─────────── */
+  #readout-row1 {
     display: flex;
-    align-items: baseline;
-    gap: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    min-width: 0;
-    flex-shrink: 1;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    height: 36px;
   }
-  /* Button rendered as inline so its baseline matches adjacent span naturally */
+
+  /* Date button — action-pill flavor, 36px height, glass-action bg */
   #readout-date-btn {
-    display: inline;
-    background: none;
-    border: none;
-    padding: 0;
-    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 36px;
+    padding: 0 12px;
+    background: rgba(20,46,82,0.45);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(156,189,231,0.18);
+    border-radius: 16px;
     cursor: pointer;
-    color: var(--muted);
-    font-family: 'Inter', sans-serif;
-    font-size: 24px;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-    line-height: 1;
     -webkit-tap-highlight-color: transparent;
     outline: none;
     white-space: nowrap;
-    transition: color 120ms;
-    vertical-align: baseline;
+    flex-shrink: 0;
+    transition: background 120ms, border-color 120ms;
   }
-  /* Hover/focus: subtle background pill on the button (pointer devices only) */
   #readout-date-btn:hover,
   #readout-date-btn:focus-visible {
-    color: var(--accent);
-    background: rgba(156,189,231,0.08);
-    border-radius: 6px;
-    padding: 0 2px;
-    margin: 0 -2px;
+    background: rgba(20,46,82,0.60);
+    border-color: rgba(156,189,231,0.30);
   }
-  #readout-date-btn.active { color: var(--accent); }
-  /* Trailing chevron — filled triangle, inline, slightly below text centre */
+  /* Calendar icon: --muted at rest */
+  .date-cal-icon {
+    color: var(--muted);
+    flex-shrink: 0;
+    transition: color 120ms;
+  }
+  /* Date label: --text, 13pt/600 */
+  #readout-date-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1;
+    transition: color 120ms;
+  }
+  /* Trailing chevron — filled triangle, rotates 180° when picker open */
   .readout-chevron {
     display: inline-block;
-    vertical-align: 2px;   /* sits just below text cap-height baseline */
-    margin-left: 6px;
     color: var(--muted);
     flex-shrink: 0;
     transition: color 120ms, transform 120ms;
@@ -2985,23 +2979,66 @@
   #readout-date-btn:focus-visible .readout-chevron {
     color: var(--text);
   }
+  #readout-date-btn.active {
+    border-color: rgba(255,175,133,0.35);
+  }
+  #readout-date-btn.active .date-cal-icon { color: var(--accent); }
+  #readout-date-btn.active #readout-date-label { color: var(--accent); }
   #readout-date-btn.active .readout-chevron {
     color: var(--accent);
     transform: rotate(180deg);
   }
-  /* Comma + space sits outside the button — not interactive */
-  .readout-comma {
-    font-family: 'Inter', sans-serif;
-    font-size: 24px;
-    font-weight: 700;
-    color: var(--muted);
-    letter-spacing: -0.01em;
+
+  /* Inline weather: [icon 18px] [temp 13pt/600/--text] · [wind 13pt/500/--muted] */
+  #readout-meta-wx {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
     line-height: 1;
-    white-space: pre; /* preserve the space after the comma */
+    transition: opacity 50ms;
   }
-  #readout-date-label {
-    /* inherits font/color/size from #readout-date-btn */
+  #readout-meta-wx .wx-icon {
+    font-size: 18px;
+    line-height: 1;
+    color: var(--muted);
   }
+  #readout-meta-temp {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    transition: opacity 50ms;
+  }
+  .wx-sep {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    margin: 0 1px;
+  }
+  #readout-meta-wind {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    white-space: nowrap;
+    transition: opacity 50ms;
+  }
+  #readout-meta-wind .wind-arrow {
+    display: inline-block;
+    width: 1.1em;
+    text-align: center;
+  }
+
+  /* ── Row 2: time label (left, fixed width) + bar column (right, flex 1) ─ */
+  #readout-row2 {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  /* Selected-time: 24pt/700/--accent, fixed ~64px, baseline-aligned with bar center */
   #readout-time {
     font-family: 'Inter', sans-serif;
     font-size: 24px;
@@ -3009,86 +3046,40 @@
     color: var(--accent);
     letter-spacing: -0.01em;
     line-height: 1;
-    transition: opacity 50ms;
-  }
-  #readout-row1 {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-  }
-  /* Row 2: sun count (left) + wind (right) — same flex row so they align */
-  #readout-row2 {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    margin-top: 4px;
-    min-height: 17px;
-  }
-  #readout-meta-wx {
-    font-family: 'Inter', sans-serif;
-    font-size: 17px;
-    font-weight: 600;
-    color: var(--text);
-    white-space: nowrap;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    transition: opacity 50ms;
-    line-height: 1;
+    width: 64px;
     flex-shrink: 0;
-  }
-  #readout-meta-wx .wx-icon { font-size: 22px; line-height: 1; }
-  #readout-meta-wind {
-    font-family: 'Inter', sans-serif;
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--muted);
-    white-space: nowrap;
     text-align: right;
     transition: opacity 50ms;
-    flex-shrink: 0;
   }
-  /* Fixed-width arrow glyph so changing direction never shifts the container */
-  #readout-meta-wind .wind-arrow {
-    display: inline-block;
-    width: 1.1em;
-    text-align: center;
-  }
-  #readout-sun {
-    font-family: 'Inter', sans-serif;
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--text);
-    transition: opacity 50ms;
-  }
-
-  #ptb-top-row {
+  /* Bar column: contains track + axis labels, fills remaining row width */
+  #qc-bar-col {
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
-    padding: 6px 14px 4px; /* 14px matches #time-readout horizontal padding */
-    gap: 0;
   }
   /* Track wrapper: overflow:hidden + border-radius clips canvas corners cleanly */
   #qc-arc-track {
     width: 100%;
+    overflow: hidden;
+    border-radius: 12px;
     flex-shrink: 0;
+    box-shadow: inset 0 0 0 1px rgba(156,189,231,0.10); /* inner-edge so track extent is always readable */
   }
-  /* Canvas fills the track wrapper completely — no internal padding */
+  /* Canvas fills the track wrapper — no internal padding */
   #qc-arc {
     display: block;
     width: 100%;
-    height: 38px; /* PAD_T(8) + TRACK_H(26) + pill-clearance(4) */
+    height: 38px; /* PAD_T(8) + TRACK_H(26) + thumb-clearance(4); within 36-40px spec */
     cursor: ew-resize;
     min-width: 0;
   }
   #qc-arc:active { cursor: grabbing; }
-  /* Hour labels live outside the overflow:hidden track wrapper */
+  /* ── Row 3: axis labels — 4px below slider, aligned with slider's left edge ─ */
   #qc-arc-labels {
     position: relative;
     height: 18px;
-    margin-top: 3px;
+    margin-top: 4px;
     overflow: visible;
     flex-shrink: 0;
   }
@@ -3098,6 +3089,22 @@
     font: 600 11px/1 'Inter', sans-serif;
     white-space: nowrap;
     pointer-events: none;
+  }
+
+  /* ── List sun header: "X steder i solen" + sort toggle ───────────────── */
+  #list-sun-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px 8px;
+    flex-shrink: 0;
+  }
+  #list-sun-count {
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1;
   }
 
   /* ── Calendar float — outside #panel, position: fixed so it escapes transforms ── */
@@ -3889,60 +3896,64 @@
   <div id="panel" class="intro-hidden">
     <div id="panel-handle">
       <div id="panel-handle-pill"></div>
-      <div id="panel-handle-chevron">
-        <svg width="14" height="8" viewBox="0 0 14 8" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <path d="M1 7L7 2L13 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+    </div>
+
+    <!-- Time bar: unified control group (compact 3-row docked surface) -->
+    <div id="panel-time-bar">
+      <div id="qc-control-group">
+        <div id="time-readout">
+          <!-- Row 1: calendar button (left) + inline weather (right) -->
+          <div id="readout-row1">
+            <button id="readout-date-btn" onclick="toggleQcPanel('date')" aria-label="Change date" aria-expanded="false">
+              <svg class="date-cal-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <rect x="1.5" y="3" width="13" height="11.5" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                <line x1="1.5" y1="6.5" x2="14.5" y2="6.5" stroke="currentColor" stroke-width="1.5"/>
+                <line x1="5" y1="1.5" x2="5" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <line x1="11" y1="1.5" x2="11" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+              <span id="readout-date-label">—</span>
+              <svg class="readout-chevron" width="10" height="6" viewBox="0 0 10 6" fill="currentColor" aria-hidden="true">
+                <path d="M0 0 L10 0 L5 6 Z"/>
+              </svg>
+            </button>
+            <span id="readout-meta-wx">
+              <span class="wx-icon"></span>
+              <span id="readout-meta-temp"></span>
+              <span class="wx-sep">·</span>
+              <span id="readout-meta-wind"></span>
+            </span>
+          </div>
+          <!-- Row 2: selected-time label (left, accent, fixed width) + slider (right) -->
+          <div id="readout-row2">
+            <span id="readout-time">—</span>
+            <div id="qc-bar-col">
+              <div id="qc-arc-track">
+                <canvas id="qc-arc"></canvas>
+              </div>
+              <!-- Row 3: axis labels — outside overflow:hidden track, aligned with slider -->
+              <div id="qc-arc-labels" aria-hidden="true"></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Time bar: unified control group (readout docked above bar) -->
-    <div id="panel-time-bar">
-      <div id="qc-control-group">
-        <!-- Readout — top tier of grouped control -->
-        <div id="time-readout">
-          <div id="readout-row1">
-            <!-- Inline phrase: [icon] [date,] [time] — date portion is the calendar trigger -->
-            <div id="readout-phrase">
-              <button id="readout-date-btn" onclick="toggleQcPanel('date')" aria-label="Change date" aria-expanded="false"><!--
-                date text + chevron — no leading icon, chevron is the sole affordance
-              --><span id="readout-date-label">—</span><!--
-              --><svg class="readout-chevron" width="10" height="6" viewBox="0 0 10 6" fill="currentColor" aria-hidden="true">
-                  <path d="M0 0 L10 0 L5 6 Z"/>
-                </svg>
-              </button><span class="readout-comma">, </span><span id="readout-time">—</span>
-            </div>
-            <span id="readout-meta-wx"><span class="wx-icon"></span><span id="readout-meta-temp"></span></span>
-          </div>
-          <div id="readout-row2">
-            <div id="readout-sun"></div>
-            <span id="readout-meta-wind"></span>
-          </div>
-        </div>
-        <!-- Bar row: track wrapper clips corners; labels sibling sits outside overflow:hidden -->
-        <div id="ptb-top-row">
-          <div id="qc-arc-track">
-            <canvas id="qc-arc"></canvas>
-          </div>
-          <div id="qc-arc-labels" aria-hidden="true"></div>
-        </div>
-      </div>
+    <!-- Sun count header: visible in peek, owns "X steder i solen" exactly once -->
+    <div id="list-sun-header">
+      <span id="list-sun-count"></span>
+      <button id="sort-toggle-btn" onclick="toggleSortPanel()">Sort: <span id="sort-label">Score</span><span class="sort-chevron"> ▾</span></button>
     </div>
 
     <!-- Venue peek: first card preview visible in collapsed state -->
     <div id="venue-peek"></div>
 
     <div id="panel-header">
-      <!-- Venue count title + toggle button -->
+      <!-- Venue count title + toggle button (desktop only) -->
       <div id="venue-header">
         <span id="venue-count">—</span>
         <button id="panel-toggle-icon" onclick="togglePanel()" title="Hide sidebar">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
         </button>
-      </div>
-      <!-- Sort: only visible with the list (expanded state) -->
-      <div id="sort-row">
-        <button id="sort-toggle-btn" onclick="toggleSortPanel()">Sort: <span id="sort-label">Score</span><span class="sort-chevron"> ▾</span></button>
       </div>
     </div>
     <div id="venue-list"></div>

@@ -699,24 +699,27 @@ function updateQcIndicator(h) {
   const temp    = wx ? `${Math.round(wx.temp)}°` : '';
   const icon    = wx && typeof skyIcon === 'function' ? skyIcon(wx.cloud) : '';
 
-  // Tier 1: selected time
+  // Row 2: selected time label (24pt/700/--accent)
   const timeLabel = formatHour(dispH);
 
-  // Tier 2: sun result — count venues with sun at this time
+  // List header sun count — lives in #list-sun-count, not in readout
   let sunLabel = '';
   if (typeof VENUES !== 'undefined' && typeof venueHasSunInRange === 'function') {
     const cnt = VENUES.filter(v => venueHasSunInRange(v, dateStr, dispH, dispH)).length;
-    sunLabel = cnt > 0 ? t('places_in_sun', { count: cnt }) : '';
+    sunLabel = cnt > 0 ? t('places_in_sun', { count: cnt }) : t('no_places_in_sun');
   }
 
-  // Task 3: two-line weather stack (icon+temp top, wind bottom)
   const animate = !isHover;  // cross-fade only on non-hover (deliberate) updates
   _readoutSet(document.getElementById('readout-time'), timeLabel, animate);
 
+  // Inline weather row: icon + temp + separator (wx-sep, static) + wind
   const wxIconEl = document.querySelector('#readout-meta-wx .wx-icon');
   const wxTempEl = document.getElementById('readout-meta-temp');
   const wxWindEl = document.getElementById('readout-meta-wind');
+  const wxSepEl  = document.querySelector('#readout-meta-wx .wx-sep');
   if (wxIconEl) wxIconEl.textContent = icon;
+  // Show separator + wind only when weather data exists
+  if (wxSepEl)  wxSepEl.style.display  = wx ? '' : 'none';
   if (wxTempEl) {
     if (animate) {
       wxTempEl.style.opacity = '0';
@@ -730,7 +733,8 @@ function updateQcIndicator(h) {
     } else { wxWindEl.innerHTML = windHtml; }
   }
 
-  _readoutSet(document.getElementById('readout-sun'), sunLabel, animate);
+  // Sun count: belongs to list header, not readout
+  _readoutSet(document.getElementById('list-sun-count'), sunLabel, animate);
 
   // Hue-shift: tint the unified control group toward weather ramp during hover/drag
   const ctrlGroup = document.getElementById('qc-control-group');
@@ -1080,15 +1084,18 @@ function _syncQcPanelHeight() {
   qcPanel.style.setProperty('--qc-panel-h', (h + 10) + 'px');
 }
 
-// ── Peek height: measure handle + time bar + venue-peek and write --peek-h ───
+// ── Peek height: measure handle + time bar + list-sun-header + venue-peek ────
 function _updatePeekHeight() {
   if (!isMobile()) return;
-  const panel   = document.getElementById('panel');
-  const handle  = document.getElementById('panel-handle');
-  const timebar = document.getElementById('panel-time-bar');
-  const peek    = document.getElementById('venue-peek');
+  const panel     = document.getElementById('panel');
+  const handle    = document.getElementById('panel-handle');
+  const timebar   = document.getElementById('panel-time-bar');
+  const sunHeader = document.getElementById('list-sun-header');
+  const peek      = document.getElementById('venue-peek');
   if (!panel || !handle || !timebar) return;
-  const h = handle.offsetHeight + timebar.offsetHeight + (peek ? peek.offsetHeight : 0);
+  const h = handle.offsetHeight + timebar.offsetHeight
+          + (sunHeader ? sunHeader.offsetHeight : 0)
+          + (peek ? peek.offsetHeight : 0);
   panel.style.setProperty('--peek-h', Math.max(h, 160) + 'px');
 }
 
