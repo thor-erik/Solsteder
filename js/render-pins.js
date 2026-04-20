@@ -925,8 +925,8 @@ canvas.addEventListener('mousedown', e => {
 
 // Selector for interactive UI overlays that sit above the canvas.
 // Clicks on these must never trigger pin selection.
-const _UI_OVERLAY_SELECTOR = '#qc-wrap, #panel, #search-dropdown, #ptb-cal-float, #profile-panel, ' +
-  '#search-wrap, #floating-date, #detail-panel, .mapboxgl-ctrl, .mapboxgl-popup';
+const _UI_OVERLAY_SELECTOR = '#qc-wrap, #panel, #floating-search, #search-dropdown, #ptb-cal-float, ' +
+  '#profile-panel, #search-wrap, #floating-date, #detail-panel, .mapboxgl-ctrl, .mapboxgl-popup';
 
 canvas.addEventListener('click', e => {
   const rect = canvas.getBoundingClientRect();
@@ -942,11 +942,16 @@ canvas.addEventListener('click', e => {
     if (wallIdx !== null && (!v?.terraceType || v.terraceType === 'street')) selectWallByIdx(wallIdx);
     return;
   }
-  // Guard: if a UI overlay is visually on top at this position, ignore the click.
+  // Guard: if a UI overlay is at this position, forward the click to it and bail.
+  // The canvas intercepts all pointer events; we must re-deliver clicks to UI elements.
   canvas.style.pointerEvents = 'none';
   const elUnder = document.elementFromPoint(e.clientX, e.clientY);
   canvas.style.pointerEvents = 'auto';
-  if (elUnder && elUnder.closest(_UI_OVERLAY_SELECTOR)) return;
+  if (elUnder && elUnder.closest(_UI_OVERLAY_SELECTOR)) {
+    elUnder.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true,
+      clientX: e.clientX, clientY: e.clientY, screenX: e.screenX, screenY: e.screenY }));
+    return;
+  }
   const hit = hitTestVenue(cx, cy) || hitTestDot(cx, cy);
   if (hit) {
     // Stop the click from bubbling to Mapbox's container.  Mapbox calls map.stop()
