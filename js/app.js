@@ -58,6 +58,8 @@ let _introCenter    = [10.728, 59.9125]; // Oslo fallback
 let _introRunning   = false;
 let _introSeqId     = 0; // incremented on skip to invalidate pending timeouts
 let _sharedVenueId  = null; // set when page is loaded via a #v= share link
+let _sharedDate     = null; // date string from share link (YYYY-MM-DD)
+let _sharedHour     = null; // hour (float) from share link
 
 // ── Sun window cache ──────────────────────────────────────────────────────────
 // Keyed by `${venueId}-${dateStr}`. Populated by the worker (background) and
@@ -1275,7 +1277,9 @@ function popupDirectionsUrl(v) {
 function shareVenue(venueId) {
   const v = VENUES.find(x => x.id === venueId);
   if (!v) return;
-  const url = `${location.origin}${location.pathname}#v=${venueId}`;
+  const d   = datePicker.value;
+  const h   = Math.round(parseFloat(timeFromEl.value));
+  const url = `${location.origin}${location.pathname}#v=${venueId}&d=${d}&t=${h}`;
   if (navigator.share) {
     navigator.share({ title: `${v.name} — ${v.area}`, url }).catch(() => {});
   } else {
@@ -2701,14 +2705,25 @@ function _introCheckReady() {
                           new URLSearchParams(window.location.search).has('code');
     if (isOAuthReturn) { _skipIntro(); _restorePreAuthState(); return; }
 
-    // If opened via a share link (#v=<id>), focus the intro on that venue
-    const hashMatch = window.location.hash.match(/^#v=(\d+)$/);
-    if (hashMatch) {
-      const vid = parseInt(hashMatch[1], 10);
+    // If opened via a share link (#v=<id>&d=<date>&t=<hour>), focus on that venue at the sender's time
+    const hash = window.location.hash.slice(1); // strip leading #
+    if (hash.startsWith('v=')) {
+      const params = new URLSearchParams(hash);
+      const vid    = parseInt(params.get('v'), 10);
       const sharedVenue = VENUES.find(x => x.id === vid);
       if (sharedVenue) {
         _sharedVenueId = vid;
         _introCenter   = [sharedVenue.lng, sharedVenue.lat];
+
+        const d = params.get('d');
+        const t = params.get('t');
+        if (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
+          _sharedDate = d;
+          datePicker.value = d;
+        }
+        if (t !== null && isFinite(+t)) {
+          _sharedHour = Math.min(23, Math.max(4, parseFloat(t)));
+        }
       }
     }
 
@@ -2756,8 +2771,9 @@ function _runIntroSequence() {
     if (_introSeqId !== seqId) return;
     splash.classList.add('hidden');
 
-    // Step 2: Scrub time → now (1800ms) + slow zoom in to 15.3 (concurrent)
-    animateToTime(Math.min(23, Math.max(4, now)), 1800);
+    // Step 2: Scrub time → target time (1800ms) + slow zoom in to 15.3 (concurrent)
+    const timeTarget = _sharedHour ?? Math.min(23, Math.max(4, now));
+    animateToTime(timeTarget, 1800);
     map.easeTo({ zoom: 15.3, pitch: 45, duration: 1800, easing: t => t * t * (3 - 2 * t) });
 
     // Step 3: Zoom out + detilt (starts when step 2 ends)
@@ -2775,7 +2791,7 @@ function _runIntroSequence() {
         setTimeout(() => {
           if (_introSeqId !== seqId) return;
           _introRevealUI(search, brand, qcWrap, panel);
-          _activateNowMode();
+          if (_sharedHour === null) _activateNowMode();
           update();
           document.removeEventListener('click', skipHandler);
           document.removeEventListener('touchstart', skipHandler);
@@ -2829,9 +2845,9 @@ function _skipIntro(seqId) {
   // Cancel time animation
   if (_timeAnimId) { cancelAnimationFrame(_timeAnimId); _timeAnimId = null; }
 
-  // Set time to now and activate now mode
-  timeFromEl.value = Math.min(23, Math.max(4, currentHour()));
-  _activateNowMode();
+  // Set time to shared time (if share link) or now, and activate now mode if appropriate
+  timeFromEl.value = _sharedHour ?? Math.min(23, Math.max(4, currentHour()));
+  if (_sharedHour === null) _activateNowMode();
   update();
 
   // Snap map to default view (centered on user location or Oslo)
