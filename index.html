@@ -610,7 +610,7 @@
   .dc-month-grid .dc-tile .dc-icon { font-size: 14px; line-height: 1.2; }
   .dc-month-grid .dc-tile .dc-temp { display: none; }
   /* Beyond-horizon tiles: 34px, muted number only, no glyph */
-  .dc-month-grid .dc-tile.solar-only { height: 34px; }
+  .dc-month-grid .dc-tile.solar-only { min-height: 34px; }
   .dc-month-grid .dc-tile.solar-only .dc-icon { display: none; }
   .dc-month-grid .dc-tile.solar-only .dc-num  { color: var(--muted); font-size: 15px; font-weight: 500; }
   .dc-month-grid .dc-tile-past .dc-num { font-size: 15px; }
@@ -3196,7 +3196,7 @@
     /* Month-view full calendar on mobile */
     #ptb-cal-float #qc-cal .dc-cal-scroll { height: 55vh; }
     #ptb-cal-float #qc-cal .dc-month-grid .dc-tile:not(.solar-only) { height: 48px; }
-    #ptb-cal-float #qc-cal .dc-month-grid .dc-tile.solar-only { height: 34px; }
+    #ptb-cal-float #qc-cal .dc-month-grid .dc-tile.solar-only { min-height: 34px; }
   }
 
   #qc-presets {
@@ -3280,7 +3280,7 @@
   /* Full-calendar month grid: 7 columns, 4px gap, 48px tiles */
   #qc-cal .dc-month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; width: 100%; box-sizing: border-box; }
   #qc-cal .dc-month-grid .dc-tile:not(.solar-only) { padding: 4px 2px; gap: 2px; height: 48px; justify-content: center; }
-  #qc-cal .dc-month-grid .dc-tile.solar-only { padding: 0 2px; gap: 0; height: 34px; justify-content: center; }
+  #qc-cal .dc-month-grid .dc-tile.solar-only { padding: 0 2px; gap: 0; min-height: 34px; justify-content: center; }
   #qc-cal .dc-month-grid .dc-num  { font-size: 15px; font-weight: 600; }
   #qc-cal .dc-month-grid .dc-icon { font-size: 14px; line-height: 1.1; }
   /* Weekday row: 7 columns matching day grid, sticky at scroll-area top */
