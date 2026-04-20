@@ -142,13 +142,18 @@ function buildSprite(v, state, selected, hour, dateStr) {
       sunFraction = _sunFillFraction(_sunRemainingHours(v, dateStr, hour));
     }
 
-  } else { // shaded — only reaches here when a future sun window exists
+  } else { // shaded
     if (hour !== undefined && dateStr) {
       try {
         const { windows } = computeSunWindows(v, dateStr);
         const next = windows.find(w => w.start > hour);
-        if (next) { label = formatHour(next.start); alpha = 0.85; }
-        else       { label = '';  alpha = 0.32; }
+        if (next) {
+          label = formatHour(next.start); alpha = 0.85;  // sun coming later today
+        } else if (windows.length > 0) {
+          label = shortName(v.name); alpha = 0.55;       // sun has passed for today
+        } else {
+          label = '';  alpha = 0.32;                     // no sun at all today
+        }
       } catch (e) { label = ''; }
     }
     fillColor   = 'rgba(13,19,30,0.92)';           // surface #0D131E
@@ -440,12 +445,15 @@ function computePinLayout(projVenues, currentHour, dateStr) {
       continue;
     }
     if (state === 'shaded') {
-      let hasFutureSun = false;
+      let hasFutureSun = false, hadAnySun = false;
       try {
         const { windows } = computeSunWindows(v, dateStr);
         hasFutureSun = windows.some(w => w.start > currentHour);
+        hadAnySun    = windows.length > 0;
       } catch {}
-      if (!hasFutureSun) {
+      // Dot only for venues that never get sun today — "sun passed" venues keep
+      // their pill so the map stays informative rather than losing pins mid-day.
+      if (!hasFutureSun && !hadAnySun) {
         result.push({ v, pt, state, extraStem: 0, isDot: true, spr });
         continue;
       }
