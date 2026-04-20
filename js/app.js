@@ -1954,36 +1954,47 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       // Wire a swipe target: touchstart/move/end → panel drag state machine
-      function _wireSwipeTarget(el) {
+      // opts.excludeInteractive: skip drag when touch starts on a button/a/input/canvas
+      // opts.tapToggle: if false, taps on this element don't toggle panel state (default true)
+      function _wireSwipeTarget(el, opts = {}) {
+        const _INTERACTIVE = 'button, a, input, select, textarea, canvas';
         el.addEventListener('touchstart', e => {
+          if (opts.excludeInteractive && e.target.closest(_INTERACTIVE)) return;
           _beginDrag(e.touches[0].clientY);
         }, { passive: true });
 
         el.addEventListener('touchmove', e => {
+          if (!_dragActive) return;
           e.preventDefault();
           _trackDrag(e.touches[0].clientY);
         }, { passive: false });
 
         el.addEventListener('touchend', e => {
+          if (!_dragActive) return;
           const totalDy = e.changedTouches[0].clientY - _dragY0;
           if (Math.abs(totalDy) < 10) {
-            // Tap: toggle peek ↔ expanded
+            // Tap: toggle peek ↔ expanded (unless caller opted out)
             _dragActive = false;
             panelEl.style.transition = '';
             panelEl.style.transform  = '';
-            const s = _currentState();
-            _applyState(s === 'expanded' || s === 'fullscreen' ? 'peek' : 'expanded');
+            if (opts.tapToggle !== false) {
+              const s = _currentState();
+              _applyState(s === 'expanded' || s === 'fullscreen' ? 'peek' : 'expanded');
+            }
           } else {
             _commitDrag(e.changedTouches[0].clientY);
           }
         }, { passive: true });
       }
 
-      // Wire drag targets: handle + time bar + venue-peek + panel-header (sort now inside it)
+      // Wire drag targets: handle + time bar + venue-peek + panel-header + sun-count header
       _wireSwipeTarget(h);
-      const timeBar   = document.getElementById('panel-time-bar');
-      const venuePeek = document.getElementById('venue-peek');
-      const panelHeader = document.getElementById('panel-header');
+      const timeBar      = document.getElementById('panel-time-bar');
+      const listSunHdr   = document.getElementById('list-sun-header');
+      const venuePeek    = document.getElementById('venue-peek');
+      const panelHeader  = document.getElementById('panel-header');
+      if (timeBar)    _wireSwipeTarget(timeBar,    { excludeInteractive: true, tapToggle: false });
+      if (listSunHdr) _wireSwipeTarget(listSunHdr, { excludeInteractive: true, tapToggle: false });
       if (venuePeek)  _wireSwipeTarget(venuePeek);
       if (panelHeader) _wireSwipeTarget(panelHeader);
 
@@ -2127,11 +2138,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // dp-scroll drag: delegate to dpEl since #dp-scroll is injected dynamically
       // and doesn't exist at DOMContentLoaded when listeners are wired.
-      let _dpScrollStartY = 0, _dpHandleBottom = 0;
+      const _DP_INTERACTIVE = 'button, a, input, select, textarea, canvas';
+      let _dpScrollStartY = 0, _dpHandleBottom = 0, _dpScrollOnInteractive = false;
       dpEl.addEventListener('touchstart', e => {
         if (!e.target.closest('#dp-scroll')) return;
         _dpScrollStartY = e.touches[0].clientY;
         _dpHandleBottom = dpHandle.getBoundingClientRect().bottom;
+        _dpScrollOnInteractive = !!e.target.closest(_DP_INTERACTIVE);
       }, { passive: true });
 
       dpEl.addEventListener('touchmove', e => {
@@ -2139,10 +2152,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!dpScroll) return;
         const cy = e.touches[0].clientY;
         if (!_dpDragging) {
-          // Only trigger drag when pulling DOWN at the top of the scroll (dismiss only)
-          if (dpScroll.scrollTop === 0 && cy > _dpScrollStartY) {
-            e.preventDefault();
-            _beginDpDrag(cy, true);
+          if (dpScroll.scrollTop === 0) {
+            if (cy > _dpScrollStartY) {
+              // Pull down at top → dismiss (fromScroll=true clamps to downward only)
+              e.preventDefault();
+              _beginDpDrag(cy, true);
+            } else if (cy < _dpScrollStartY && !_dpScrollOnInteractive) {
+              // Pull up at top, non-interactive target → expand (full bidirectional drag)
+              e.preventDefault();
+              _beginDpDrag(cy, false);
+            }
           }
         }
         if (_dpDragging) {
