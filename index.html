@@ -1934,16 +1934,17 @@
       flex-shrink: 0;
     }
 
-    /* Hide venue-count in mobile (readout shows the count) */
+    /* Hide venue-count and the now-empty venue-header row on mobile */
     #venue-count { display: none; }
+    #venue-header { display: none; }
 
-    /* Sort row: hidden in collapsed, visible with list */
-    #sort-row { margin-top: 2px; }
+    /* Sort row: hidden in collapsed, visible with list; right-edge matches venue cards (16px) */
+    #sort-row { margin-top: 0; padding: 4px 16px 4px; }
     #panel:not(.mobile-expanded):not(.mobile-fullscreen) #sort-row {
       display: none;
     }
 
-    #panel-header { padding-top: 8px; }
+    #panel-header { padding-top: 6px; }
 
     #venue-list { padding: 10px 16px 32px; }
 
@@ -2914,6 +2915,43 @@
     border-bottom: 1px solid rgba(156, 189, 231, 0.08);
     transition: background 120ms ease-out;
   }
+  /* Inline phrase: icon + date (--muted) + time (--accent) on one line */
+  #readout-phrase {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    min-width: 0;
+    flex-shrink: 1;
+  }
+  #readout-date-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    color: var(--muted);
+    font-family: 'Inter', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: color 120ms;
+  }
+  #readout-date-btn:hover { color: var(--accent); }
+  #readout-date-btn.active { color: var(--accent); }
+  #readout-date-btn svg { color: var(--muted); opacity: 0.7; flex-shrink: 0; margin-bottom: 1px; }
+  #readout-date-label {
+    /* inherits font/color from #readout-date-btn */
+  }
   #readout-time {
     font-family: 'Inter', sans-serif;
     font-size: 24px;
@@ -2979,45 +3017,7 @@
   #ptb-top-row {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 10px 16px;
-  }
-  /* Date pill — secondary control, 38px, vertically centered against bar */
-  #ptb-date-btn {
-    flex-shrink: 0;
-    height: 38px;
-    padding: 0 12px;
-    background: rgba(20, 46, 82, 0.45);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(156, 189, 231, 0.22);
-    border-radius: 10px;
-    color: rgba(156, 189, 231, 0.7);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    transition: color 0.12s, border-color 0.12s, background 0.12s;
-    -webkit-tap-highlight-color: transparent;
-    outline: none;
-    white-space: nowrap;
-  }
-  #ptb-date-btn:hover {
-    color: var(--accent);
-    border-color: rgba(255, 175, 133, 0.4);
-    background: rgba(24, 52, 95, 0.85);
-  }
-  #ptb-date-btn.active {
-    background: rgba(255, 175, 133, 0.15);
-    border-color: rgba(255, 175, 133, 0.55);
-    color: var(--accent);
-  }
-  #ptb-date-label {
-    font-family: 'Inter', sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    color: inherit;
-    letter-spacing: 0.01em;
+    padding: 6px 10px 16px;
   }
   #qc-arc {
     flex: 1;
@@ -3753,7 +3753,17 @@
         <!-- Readout — top tier of grouped control -->
         <div id="time-readout">
           <div id="readout-row1">
-            <span id="readout-time">—</span>
+            <!-- Inline phrase: [icon] [date,] [time] — date portion is the calendar trigger -->
+            <div id="readout-phrase">
+              <button id="readout-date-btn" onclick="toggleQcPanel('date')" aria-label="Change date">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="flex-shrink:0">
+                  <rect x="2" y="3.5" width="12" height="10.5" rx="2" stroke="currentColor" stroke-width="1.4"/>
+                  <path d="M5 2v3M11 2v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                  <path d="M2 7h12" stroke="currentColor" stroke-width="1.4"/>
+                </svg>
+                <span id="readout-date-label">—</span>
+              </button><span id="readout-time">—</span>
+            </div>
             <span id="readout-meta-wx"><span class="wx-icon"></span><span id="readout-meta-temp"></span></span>
           </div>
           <div id="readout-row2">
@@ -3761,16 +3771,8 @@
             <span id="readout-meta-wind"></span>
           </div>
         </div>
-        <!-- Bar row — date pill + scrub canvas -->
+        <!-- Bar row — scrub canvas only (date pill removed, lives inline in readout) -->
         <div id="ptb-top-row">
-          <button id="ptb-date-btn" onclick="toggleQcPanel('date')" title="Change date">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="flex-shrink:0">
-              <rect x="2" y="3.5" width="12" height="10.5" rx="2" stroke="currentColor" stroke-width="1.4"/>
-              <path d="M5 2v3M11 2v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-              <path d="M2 7h12" stroke="currentColor" stroke-width="1.4"/>
-            </svg>
-            <span id="ptb-date-label">—</span>
-          </button>
           <canvas id="qc-arc"></canvas>
         </div>
       </div>

@@ -473,6 +473,8 @@ function drawTimeBar(canvasEl) {
   const wxHours = (typeof getWeatherHoursForDate === 'function')
     ? getWeatherHoursForDate(dateStr) : [];
   const hasWx = wxHours.length > 0 && typeof getWeatherAt === 'function';
+  const nowH_ = new Date().getHours() + new Date().getMinutes() / 60;
+  const isToday_ = (typeof todayStr === 'function') && datePicker.value === todayStr();
 
   c.save();
   trackPath();
@@ -493,11 +495,17 @@ function drawTimeBar(canvasEl) {
       else                 color = '#8EA0B8';  // overcast
     }
 
+    // Past segments: dim to 0.45 opacity (today only)
+    if (isToday_ && h + 1 <= nowH_) c.globalAlpha = 0.45;
+    else if (isToday_ && h < nowH_) c.globalAlpha = 0.45 + (1 - 0.45) * (nowH_ - h);  // partial hour
+    else c.globalAlpha = 1;
+
     const x1 = timeToX(h);
     const x2 = timeToX(h + 1);
     c.fillStyle = color;
     c.fillRect(x1, TRACK_Y, x2 - x1 + 0.5, TRACK_H);
   }
+  c.globalAlpha = 1;
 
   c.restore();  // end track clip
 
@@ -518,7 +526,6 @@ function drawTimeBar(canvasEl) {
     c.font = `${GLYPH_FONT_SIZE}px "Inter", sans-serif`;
     c.textAlign = 'center';
     c.textBaseline = 'middle';
-    c.globalAlpha = 0.55;
     for (let h = MIN_H; h < MAX_H; h++) {
       const sun = getSunFromTable(currentSunTable, h + 0.5);
       if (sun.alt <= 0) continue;
@@ -533,6 +540,8 @@ function drawTimeBar(canvasEl) {
       else if (cf < 0.20)  glyph = '☀';
       else if (cf < 0.60)  glyph = '⛅';
       else                 glyph = '☁';
+      // Dim glyphs for past hours
+      c.globalAlpha = (isToday_ && h + 1 <= nowH_) ? 0.55 * 0.45 : 0.55;
       c.fillStyle = '#9CBDE7';
       c.fillText(glyph, (x1 + x2) / 2, TRACK_Y + TRACK_H / 2);
     }
@@ -541,7 +550,6 @@ function drawTimeBar(canvasEl) {
 
   // 5. Hour labels every 3 hours (6, 9, 12, 15, 18, 21) — 11pt/600, 4px gap below bar
   c.font = '600 11px "Inter", sans-serif';
-  c.fillStyle = 'rgba(156,189,231,0.65)';
   c.textBaseline = 'top';
   c.textAlign = 'center';
   const LABEL_Y = TRACK_Y + TRACK_H + 4;  // 4px gap below bar
@@ -549,6 +557,10 @@ function drawTimeBar(canvasEl) {
     if (h % 3 !== 0) continue;
     const lx = timeToX(h);
     if (lx < BAR_X + 4 || lx > BAR_X + BAR_W - 4) continue;
+    // Past labels dimmer (today only)
+    c.fillStyle = (isToday_ && h <= nowH_)
+      ? 'rgba(156,189,231,0.35)'
+      : 'rgba(156,189,231,0.65)';
     c.fillText(`${h}`, lx, LABEL_Y);
   }
 
@@ -557,9 +569,11 @@ function drawTimeBar(canvasEl) {
   const isToday = (typeof todayStr === 'function') && datePicker.value === todayStr();
   if (isToday && nowH >= MIN_H && nowH <= MAX_H) {
     const nx = timeToX(nowH);
+    // Hide the NÅ label when thumb is within 30 minutes (0.5h) to avoid collision
+    const thumbNear = Math.abs(showH - nowH) < 0.5;
     c.save();
     c.setLineDash([2, 3]);
-    c.strokeStyle = 'rgba(156,189,231,0.55)';
+    c.strokeStyle = thumbNear ? 'rgba(156,189,231,0.28)' : 'rgba(156,189,231,0.55)';
     c.lineWidth = 1;
     c.beginPath();
     c.moveTo(nx, TRACK_Y);
@@ -567,31 +581,46 @@ function drawTimeBar(canvasEl) {
     c.stroke();
     c.setLineDash([]);
 
-    c.font = '700 9px "Inter", sans-serif';
-    c.fillStyle = 'rgba(156,189,231,0.60)';
-    c.textAlign = 'center';
-    c.textBaseline = 'bottom';
-    c.fillText('NÅ', nx, TRACK_Y - 2);
+    if (!thumbNear) {
+      c.font = '700 9px "Inter", sans-serif';
+      c.fillStyle = 'rgba(156,189,231,0.60)';
+      c.textAlign = 'center';
+      c.textBaseline = 'bottom';
+      c.fillText('NÅ', nx, TRACK_Y - 2);
+    }
     c.restore();
   }
 
-  // 7. Thumb — 2px line in --text, symmetric 6px above/below, accent-orange glow
+  // 7. Thumb — slim rounded-rect pill in --text, 3px above/below track, accent-orange glow
   if (showH >= MIN_H && showH <= MAX_H) {
-    const sx       = timeToX(showH);
-    const LINE_TOP = TRACK_Y - 6;
-    const LINE_BOT = TRACK_Y + TRACK_H + 6;
+    const isActive  = !!(window._qcThumbActive);
+    const springOff = (typeof window._qcSpringOffset === 'number') ? window._qcSpringOffset : 0;
+    const sx        = timeToX(showH) + springOff;
+    const PW        = isActive ? 6 : 5;      // pill width, slightly wider on drag
+    const PILL_H    = TRACK_H + 6;           // 3px above + 3px below
+    const PILL_TOP  = TRACK_Y - 3;
+    const PILL_R    = 3;
 
     c.save();
-    // Accent-orange glow signals active state
-    c.shadowColor = 'rgba(255,175,133,0.45)';
+    c.shadowColor = isActive ? 'rgba(255,175,133,0.60)' : 'rgba(255,175,133,0.40)';
     c.shadowBlur  = 8;
-    c.strokeStyle = '#FFF2EB';
-    c.lineWidth   = 2;
-    c.lineCap     = 'round';
+    c.fillStyle   = '#FFF2EB';
+
+    // Rounded-rect pill path
+    const px = sx - PW / 2;
+    const py = PILL_TOP;
     c.beginPath();
-    c.moveTo(sx, LINE_TOP);
-    c.lineTo(sx, LINE_BOT);
-    c.stroke();
+    c.moveTo(px + PILL_R, py);
+    c.lineTo(px + PW - PILL_R, py);
+    c.arcTo(px + PW, py,          px + PW, py + PILL_R,          PILL_R);
+    c.lineTo(px + PW, py + PILL_H - PILL_R);
+    c.arcTo(px + PW, py + PILL_H, px + PW - PILL_R, py + PILL_H, PILL_R);
+    c.lineTo(px + PILL_R, py + PILL_H);
+    c.arcTo(px,          py + PILL_H, px,          py + PILL_H - PILL_R, PILL_R);
+    c.lineTo(px,          py + PILL_R);
+    c.arcTo(px,          py,          px + PILL_R, py,                   PILL_R);
+    c.closePath();
+    c.fill();
     c.restore();
   }
 

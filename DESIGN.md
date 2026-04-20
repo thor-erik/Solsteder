@@ -120,15 +120,20 @@ Selected state for either: background `--accent`, text `--accent-on` (`#2a1a0c`)
 
 ### Thumb (time bar)
 
-- Single vertical line: 2px wide, `--text` color, extending 6px above AND 6px below the bar (symmetric).
-- Soft accent-orange glow: `box-shadow: 0 0 8px rgba(255,175,133,0.4)` signals active state.
-- **No circle cap.** The symmetric line is the complete thumb.
+Slim vertical pill — not a tick mark.
+
+- Size: `4–5px` wide × `~120%` of bar height (extends ~3px above and ~3px below the track edges, symmetric).
+- Fill: `--text` (`#FFF2EB`). Radius: `3px` (rounded ends).
+- Glow: `box-shadow: 0 0 8px rgba(255,175,133,0.40)` at rest.
+- **On active drag:** widen to 6px and increase glow to `rgba(255,175,133,0.60)`. Revert with `--transition-fast` (120ms) on release.
 - **No text inside the thumb.** Selected time lives in the readout.
-- **Do not use `--accent`** on the line color — it collides with full-sun segments.
+- **Do not use `--accent` as the fill** — it collides with full-sun segments. The accent lives in the glow only.
 
 ### "NÅ" tick
 
 Thin dashed vertical line (`1px dashed --muted`), full height of bar. Tiny `NÅ` label above, 9pt / 700 / `--muted`, letter-spacing 0.5px.
+
+**Label collision hide:** when the thumb is within ~30 minutes of the NÅ position, suppress the `NÅ` label and dim the dashed line to 50% opacity. Fade the label back when the thumb moves away, over `--transition-fast`.
 
 ### Readout panel (answers "what did I pick?")
 
@@ -139,21 +144,24 @@ The readout and the time bar are one docked control group, not two stacked surfa
 - **The unified wrapper has `16–20px` vertical padding on all internal content. No child control should sit flush against the wrapper's edge.**
 
 Three-tier hierarchy inside the readout:
-- **Tier 1** — selected time: 24pt, 700, `--accent`. Dominant.
-- **Tier 2** — sun result ("78 steder i solen"): 14pt, 500, `--text`. Secondary line below the time. Shown once — in the readout only. Never duplicated in adjacent list headers.
+- **Tier 1** — inline date + time phrase on one line: `[12px calendar icon, --muted] [date portion, --muted, 24pt/700] [time portion, --accent, 24pt/700]`. Examples: `📅 Today, 12:45` / `📅 Man 20 Apr, 12:45`. The icon and date portion together form the calendar trigger (a `<button>` with aria-label "Change date"). The time portion is not interactive. The line must never wrap; on narrow widths degrade by dropping the weekday abbreviation first. No separate date pill exists — this phrase is the only date entry point.
+- **Tier 2** — sun result ("78 steder i solen"): 14pt, 500, `--text`. Secondary line below Tier 1. Shown once — in the readout only. Never duplicated in adjacent list headers.
 - **Tier 3** — weather metadata: two-line stack on the right, same baseline as Tier 1:
   - Top: weather icon (22–24px) + temperature (17pt, 600, `--text`). Gap 6–8px between icon and number.
   - Bottom: wind direction + speed (12pt, 500, `--muted`). Format: `↘ 3 m/s`. Arrow wrapped in fixed-width span to prevent layout shift.
-- Do not show the date here — it lives on the date pill.
 - Hue-shift (optional): during scrub, the group wrapper tints toward the weather ramp color at the current thumb position, max 10–15% saturation, 120ms ease-out. Easy to overdo; stay subtle.
 
-### Date pill
+### Date pill *(retired)*
 
-- Always a labeled pill (action-pill flavor): calendar icon + readable label (e.g. `Lør 25 Apr`). **Never icon-only** — the date must be readable at a glance without tapping.
-- Standard height: `36–40px`. Vertically centered against the taller time bar row (they share a container rhythm, not a height).
-- Adjacent controls use harmonious proportions — share the same container rhythm, baseline grid, and visual language — but primary inputs may be visibly larger than secondary controls. Equal visual weight is not the same as visual cohesion.
-- Width follows content; no forced minimum beyond the standard pill spec.
-- On narrow screens, the weekday abbreviation may be omitted (`20 Apr` instead of `Lør 20 Apr`). Never hide the date entirely.
+Date selection now lives inline in the Tier 1 readout phrase — see **Readout panel** above. A separate date pill is no longer part of the system. Do not reintroduce a standalone date control.
+
+### Past / disabled state for data inputs
+
+Data inputs that represent time (time bar, day arc, similar) dim their past portion to 40–50% opacity to communicate that it is not a valid selection. This applies to segments, weather glyphs, and axis labels.
+
+Interaction is soft-clamped at the present moment — the thumb cannot be released in the past and springs back to NÅ if dragged there. The spring uses `--transition-base` (220ms) ease-out. During drag the thumb is visually held at NÅ (clamped); the spring plays on release to reinforce the boundary.
+
+If the selected time is exactly NÅ (e.g. on first load), the thumb renders cleanly on top of the NÅ tick (z-order: thumb above tick).
 
 ### List peek (collapsed state)
 
@@ -182,7 +190,7 @@ Secondary controls (sort, filter, alternate views) appear with the content they 
 - Don't encode weather with brand colors or vice versa.
 - Don't use more than three type scales in one composition.
 - Don't use sub-hour segmentation on the time bar. Scrub continuously, paint discretely.
-- Don't duplicate information across adjacent elements (e.g., date in both the readout and the date pill).
+- Don't duplicate information across adjacent elements (e.g., sun count in both the readout and the list header).
 - Don't animate on every value change. Rapid scrubs turn into visual noise. A 100ms cross-fade on numeric updates is the ceiling.
 - Don't introduce glass surface variants outside the three documented levels. If the existing levels don't fit, update this document.
 - Don't create shadow values ad hoc. Use the three documented elevation levels.

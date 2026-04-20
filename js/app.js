@@ -256,14 +256,19 @@ function formatSliderTime(val) {
 }
 
 function formatDatePill(dateStr) {
-  // Returns e.g. "Lør 25 Apr" in Norwegian
-  const d = new Date(dateStr + 'T12:00:00');
+  // Returns inline readout phrase date portion with trailing comma, e.g.:
+  //   "Today, "  /  "I morgen, "  /  "Man 20 Apr, "
+  const today = todayStr();
+  const tom   = new Date(); tom.setDate(tom.getDate() + 1);
+  const tomS  = tom.toISOString().slice(0, 10);
+  if (dateStr === today) return t('today') + ', ';
+  if (dateStr === tomS)  return t('tomorrow') + ', ';
+  const d   = new Date(dateStr + 'T12:00:00');
   const day = d.toLocaleDateString('nb-NO', { weekday: 'short' });
   const num = d.getDate();
   const mon = d.toLocaleDateString('nb-NO', { month: 'short' });
-  // Capitalise first letter, strip trailing dot
   const cap = s => s.charAt(0).toUpperCase() + s.slice(1).replace(/\.$/, '');
-  return `${cap(day)} ${num} ${cap(mon)}`;
+  return `${cap(day)} ${num} ${cap(mon)}, `;
 }
 
 // ── Slider ────────────────────────────────────────────────────────────────────
@@ -746,12 +751,12 @@ function updateQcLabels() {
   // Refresh readout (sun count changes with date)
   updateQcIndicator(null);
 
-  // Date pill label
-  const dateLabelEl = document.getElementById('ptb-date-label');
+  // Readout date label (inline phrase)
+  const dateLabelEl = document.getElementById('readout-date-label');
   if (dateLabelEl) dateLabelEl.textContent = formatDatePill(val);
 
   // Date button active state reflects calendar open state
-  document.getElementById('ptb-date-btn')?.classList.toggle('active', _qcActiveSection === 'date');
+  document.getElementById('readout-date-btn')?.classList.toggle('active', _qcActiveSection === 'date');
 
   // "Now" only makes sense today — show "Sunrise" on future dates
   const isToday = val === tod;
@@ -771,7 +776,7 @@ function _closeQcPanel() {
   _qcActiveSection = null;
   _qcCalExpanded   = false;
 
-  document.getElementById('ptb-date-btn')?.classList.remove('active');
+  document.getElementById('readout-date-btn')?.classList.remove('active');
   document.getElementById('ptb-cal-float')?.classList.remove('open');
 
   panel.classList.remove('open');
@@ -803,7 +808,7 @@ function toggleQcPanel(section) {
   calFloat?.classList.add('open');
   panel.classList.add('open');
   document.getElementById('qc-date-section')?.classList.add('active');
-  document.getElementById('ptb-date-btn')?.classList.add('active');
+  document.getElementById('readout-date-btn')?.classList.add('active');
   renderQcCalendar();
 }
 
@@ -1085,6 +1090,23 @@ function updateVenuePeek(venues) {
 
   // Measure after content is set
   requestAnimationFrame(_updatePeekHeight);
+}
+
+// Spring-back animation: briefly offsets thumb toward future then eases to 0
+function _qcSpringBackThumb(canvasEl) {
+  if (!canvasEl) return;
+  window._qcSpringOffset = 8;
+  const start    = performance.now();
+  const duration = 220;
+  function step(now) {
+    const p = Math.min((now - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - p, 2);  // ease-out quad
+    window._qcSpringOffset = 8 * (1 - eased);
+    drawTimeBar(canvasEl);
+    if (p < 1) requestAnimationFrame(step);
+    else { window._qcSpringOffset = 0; drawTimeBar(canvasEl); }
+  }
+  requestAnimationFrame(step);
 }
 
 function _qcArcSetTimeFromX(clientX) {
@@ -2133,6 +2155,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (qcArcEl) {
     qcArcEl.addEventListener('mousedown', e => {
       _qcArcDragging = true;
+      window._qcThumbActive = true;
       // Animate to clicked position; drag mousemove will cancel if user starts dragging
       const rect = qcArcEl.getBoundingClientRect();
       const t    = MIN_H_ARC + (e.clientX - rect.left - PAD_X_ARC) / (rect.width - PAD_X_ARC * 2) * (MAX_H_ARC - MIN_H_ARC);
@@ -2145,9 +2168,27 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       setActiveIntentBtn(null);
       animateToTime(hour, 280);
+      drawTimeBar(qcArcEl);
     });
-    qcArcEl.addEventListener('touchstart', e => { e.preventDefault(); _qcArcSetTimeFromX(e.touches[0].clientX); }, { passive: false });
+    qcArcEl.addEventListener('touchstart', e => {
+      e.preventDefault();
+      window._qcThumbActive = true;
+      _qcArcSetTimeFromX(e.touches[0].clientX);
+      drawTimeBar(qcArcEl);
+    }, { passive: false });
     qcArcEl.addEventListener('touchmove',  e => { e.preventDefault(); _qcArcSetTimeFromX(e.touches[0].clientX); }, { passive: false });
+    qcArcEl.addEventListener('touchend', e => {
+      const lastX = e.changedTouches[0]?.clientX;
+      window._qcThumbActive = false;
+      drawTimeBar(qcArcEl);
+      // Spring back if touch released in past region
+      if (lastX != null && datePicker.value === todayStr()) {
+        const rect = qcArcEl.getBoundingClientRect();
+        const raw  = MIN_H_ARC + (lastX - rect.left - PAD_X_ARC) / (rect.width - PAD_X_ARC * 2) * (MAX_H_ARC - MIN_H_ARC);
+        const nh   = new Date().getHours() + new Date().getMinutes() / 60;
+        if (raw < nh) _qcSpringBackThumb(qcArcEl);
+      }
+    }, { passive: true });
     qcArcEl.addEventListener('mousemove',  e => {
       if (_qcArcDragging) return;
       const rect = qcArcEl.getBoundingClientRect();
@@ -2181,7 +2222,22 @@ document.addEventListener('DOMContentLoaded', () => {
     if (_arcDragging)    _arcSetTimeFromX(e.clientX);
     if (_qcArcDragging) _qcArcSetTimeFromX(e.clientX);
   });
-  document.addEventListener('mouseup', () => { _arcDragging = false; _qcArcDragging = false; });
+  document.addEventListener('mouseup', e => {
+    const wasQcDragging = _qcArcDragging;
+    _arcDragging = false; _qcArcDragging = false;
+    if (window._qcThumbActive) {
+      window._qcThumbActive = false;
+      const canvasEl = document.getElementById('qc-arc');
+      if (canvasEl) drawTimeBar(canvasEl);
+      // Spring back if released in past region
+      if (wasQcDragging && canvasEl && datePicker.value === todayStr()) {
+        const rect = canvasEl.getBoundingClientRect();
+        const raw  = MIN_H_ARC + (e.clientX - rect.left - PAD_X_ARC) / (rect.width - PAD_X_ARC * 2) * (MAX_H_ARC - MIN_H_ARC);
+        const nh   = new Date().getHours() + new Date().getMinutes() / 60;
+        if (raw < nh) _qcSpringBackThumb(canvasEl);
+      }
+    }
+  });
 
   // Close sort panel when clicking outside it
   document.addEventListener('click', e => {
@@ -2202,7 +2258,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Close calendar when clicking outside the float AND outside the date button
     const qcPanel   = document.getElementById('qc-panel');
     const calFloat  = document.getElementById('ptb-cal-float');
-    const dateBtn   = document.getElementById('ptb-date-btn');
+    const dateBtn   = document.getElementById('readout-date-btn');
     if (qcPanel?.classList.contains('open')
         && !calFloat?.contains(e.target)
         && !dateBtn?.contains(e.target)) {
