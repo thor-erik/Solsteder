@@ -549,9 +549,8 @@
   /* Today dot — 4px accent dot below the day number */
   .dc-today-dot {
     position: absolute;
-    bottom: 5px;
-    left: 50%;
-    transform: translateX(-50%);
+    top: 4px;
+    right: 4px;
     width: 4px;
     height: 4px;
     border-radius: 50%;
@@ -3122,14 +3121,15 @@
       left: 0;
       right: 0;
       width: auto;
-      top: calc(12px + 46px); /* aligns with bottom of search bar (top:12px + height:46px) */
+      top: 0; /* extends from top of screen — covers behind search bar */
       bottom: auto;
-      padding: 12px 16px 20px;
+      /* top padding = search-top(12) + search-height(46) + gap(12) = 70px */
+      padding: 70px 16px 20px;
       box-sizing: border-box;
       background: rgba(20, 46, 82, 0.97);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-      border-radius: 0 0 14px 14px; /* top edge joins search bar flush; bottom corners rounded */
+      border-radius: 0 0 14px 14px;
       border-bottom: 1px solid rgba(156, 189, 231, 0.18);
       box-shadow: 0 6px 24px rgba(0, 0, 0, 0.50);
       transform: translateY(-110%);
@@ -3144,11 +3144,10 @@
       opacity: 1;
       pointer-events: auto;
     }
-    /* Fade the search bar while the calendar picker is open */
-    body:has(#ptb-cal-float.open) #floating-search {
-      opacity: 0.2;
+    /* Dim the search bar while the calendar picker is open (JS adds .cal-dimmed) */
+    #floating-search.cal-dimmed {
+      opacity: 0.25;
       pointer-events: none;
-      transition: opacity 180ms ease-out;
     }
     /* Inner panel: no extra animation on mobile — the outer float handles reveal */
     #ptb-cal-float #qc-panel {
@@ -3171,6 +3170,7 @@
     #ptb-cal-float #qc-date-section {
       padding: 0;
       overflow: visible;
+      height: auto !important; /* override JS _syncQcPanelHeight inline height */
     }
     /* 10-day grid: 5 columns × 2 rows — all days visible at once, no scroll */
     #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) {

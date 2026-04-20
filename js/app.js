@@ -780,6 +780,7 @@ function _closeQcPanel() {
   const dateBtn = document.getElementById('readout-date-btn');
   if (dateBtn) { dateBtn.classList.remove('active'); dateBtn.setAttribute('aria-expanded', 'false'); }
   document.getElementById('ptb-cal-float')?.classList.remove('open');
+  document.getElementById('floating-search')?.classList.remove('cal-dimmed');
 
   panel.classList.remove('open');
   panel.classList.remove('cal-expanded');
@@ -814,6 +815,7 @@ function toggleQcPanel(section) {
 
   _qcActiveSection = 'date';
   calFloat?.classList.add('open');
+  document.getElementById('floating-search')?.classList.add('cal-dimmed');
   panel.classList.add('open');
   document.getElementById('qc-date-section')?.classList.add('active');
   const dateBtn = document.getElementById('readout-date-btn');
