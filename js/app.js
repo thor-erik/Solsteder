@@ -2484,7 +2484,14 @@ _searchInput.addEventListener('focus', () => { if (_searchInput.value.trim()) _r
 // Prevent the search input from losing focus when the user taps/clicks inside
 // the dropdown — this keeps the dropdown visible so click handlers fire normally.
 _searchDropdown.addEventListener('mousedown', e => e.preventDefault());
+// On touch, preventDefault on touchstart suppresses the synthetic click event,
+// so onclick attributes on rows would never fire. Instead we keep preventDefault
+// (to prevent blur) but manually trigger the row action on touchend.
 _searchDropdown.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
+_searchDropdown.addEventListener('touchend', e => {
+  const row = e.target.closest('[onclick]');
+  if (row) { e.preventDefault(); row.click(); }
+}, { passive: false });
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
