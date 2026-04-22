@@ -142,10 +142,28 @@ function buildShadeStyle() {
         },
       },
 
+      // ── Buildings (non-extruded) — flat footprints with same minzoom ────────
+      {
+        id: 'building-flat',
+        type: 'fill',
+        source: 'composite',
+        'source-layer': 'building',
+        minzoom: 13,
+        filter: ['!=', ['get', 'extrude'], 'true'],
+        paint: {
+          'fill-color': '#F0E8DA',
+          'fill-opacity': [
+            'interpolate', ['linear'], ['zoom'],
+            13, 0,
+            13.5, 1,
+          ],
+        },
+      },
+
       // ── Buildings — 3D extrusion with grow animation ────────────────────────
-      // minzoom: 14 prevents flat footprint rendering below the grow range.
+      // minzoom: 13 allows buildings to appear and grow smoothly.
       // fill-extrusion-height interpolates 0→actual-height over a zoom
-      // range (14→15) so tall landmarks rise smoothly instead of popping.
+      // range (13→15) so all buildings rise smoothly instead of popping.
       // Opacity also fades in over the same range to avoid abrupt appearance.
       {
         id: 'building',
@@ -167,24 +185,6 @@ function buildShadeStyle() {
             15, ['coalesce', ['get', 'min_height'], 0],
           ],
           'fill-extrusion-opacity': [
-            'interpolate', ['linear'], ['zoom'],
-            13, 0,
-            13.5, 1,
-          ],
-        },
-      },
-
-      // ── Buildings (non-extruded) — flat footprints with same minzoom ────────
-      {
-        id: 'building-flat',
-        type: 'fill',
-        source: 'composite',
-        'source-layer': 'building',
-        minzoom: 13,
-        filter: ['!=', ['get', 'extrude'], 'true'],
-        paint: {
-          'fill-color': '#F0E8DA',
-          'fill-opacity': [
             'interpolate', ['linear'], ['zoom'],
             13, 0,
             13.5, 1,
