@@ -32,16 +32,18 @@
     --muted: #9CBDE7;                    /* on-surface-variant — Jordy Blue */
     --card-bg: rgba(20,46,82,0.4);       /* surface-container-low, Polynesian Blue tint */
     --border: rgba(156,189,231,0.18);    /* outline-variant — Jordy Blue at 18% */
-    --pill-bg: rgba(10,20,42,0.96);      /* surface-container-lowest */
-    /* Glass levels */
-    --glass-panel-bg: rgba(20,46,82,0.55);
-    --glass-card-bg: rgba(20,46,82,0.50);
-    --glass-action-bg: rgba(20,46,82,0.45);
-    --glass-blur-panel: blur(16px);
-    --glass-blur-card: blur(12px);
-    --glass-blur-action: blur(10px);
+    --pill-bg: rgba(20,46,82,0.45);      /* surface-container-lowest (migrated from legacy rgba(10,20,42)) */
+    /* Glass levels — Shades Glass recipe */
+    --glass-panel-bg: linear-gradient(135deg, rgba(20,46,82,0.48) 0%, rgba(32,73,131,0.30) 100%), rgba(20,46,82,0.55);
+    --glass-card-bg:  linear-gradient(135deg, rgba(20,46,82,0.42) 0%, rgba(32,73,131,0.26) 100%), rgba(20,46,82,0.50);
+    --glass-action-bg: linear-gradient(135deg, rgba(20,46,82,0.36) 0%, rgba(32,73,131,0.22) 100%), rgba(20,46,82,0.45);
+    --glass-blur-panel: blur(16px) saturate(160%);
+    --glass-blur-card:  blur(12px) saturate(160%);
+    --glass-blur-action: blur(10px) saturate(160%);
     --glass-border: 1px solid rgba(156,189,231,0.18);
     --glass-border-light: 1px solid rgba(156,189,231,0.15);
+    /* Shades Glass inset shadows — top sheen + bottom shade shared across all levels */
+    --glass-inset: inset 0 1px 0 rgba(255,242,235,0.14), inset 0 -1px 0 rgba(20,46,82,0.35);
   }
 
   html, body {
@@ -53,7 +55,51 @@
   }
 
   @supports not (backdrop-filter: blur(1px)) {
-    .glass-panel { background: rgba(20,46,82,0.85) !important; }
+    .glass-panel, .glass-card, .glass-action { background: rgba(17, 30, 56, 0.97) !important; }
+  }
+
+  /* ── Shades Glass — canonical class definitions ──────────────────────────── */
+  /* Apply these three classes (or the tokens below) to every glass surface.    */
+  /* Panels carry a ::before spec-highlight at the top edge; cards/actions skip */
+  /* it (too much shine at small sizes).                                         */
+  .glass-panel {
+    background: var(--glass-panel-bg);
+    backdrop-filter: var(--glass-blur-panel);
+    -webkit-backdrop-filter: var(--glass-blur-panel);
+    border: var(--glass-border);
+    box-shadow:
+      var(--glass-inset),
+      0 6px 24px rgba(0,0,0,0.50);
+    position: relative;
+  }
+  .glass-panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 8%; right: 8%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,242,235,0.35), transparent);
+    pointer-events: none;
+    z-index: 1;
+  }
+  .glass-card {
+    background: var(--glass-card-bg);
+    backdrop-filter: var(--glass-blur-card);
+    -webkit-backdrop-filter: var(--glass-blur-card);
+    border: var(--glass-border);
+    box-shadow:
+      var(--glass-inset),
+      0 2px 8px rgba(0,0,0,0.35);
+    position: relative;
+  }
+  .glass-action {
+    background: var(--glass-action-bg);
+    backdrop-filter: var(--glass-blur-action);
+    -webkit-backdrop-filter: var(--glass-blur-action);
+    border: var(--glass-border);
+    box-shadow:
+      var(--glass-inset),
+      0 2px 8px rgba(0,0,0,0.35);
+    position: relative;
   }
 
   #app {
@@ -124,10 +170,11 @@
     height: 34px;
     padding: 0;
     border-radius: 50%;
-    background: rgba(14,26,52,0.58);
-    backdrop-filter: blur(32px);
-    -webkit-backdrop-filter: blur(32px);
-    border: 1px solid rgba(156,189,231,0.18);
+    background: var(--glass-action-bg);
+    backdrop-filter: var(--glass-blur-action);
+    -webkit-backdrop-filter: var(--glass-blur-action);
+    border: var(--glass-border);
+    box-shadow: var(--glass-inset);
     color: rgba(156,189,231,0.8);
     cursor: pointer;
     display: flex;
@@ -153,6 +200,8 @@
     border: var(--glass-border);
     border-radius: 16px;
     padding: 10px 14px;
+    box-shadow: var(--glass-inset), 0 6px 24px rgba(0,0,0,0.50);
+    position: relative;
   }
 
   /* ── Top-left: search bar ──────────────────────────────────────────────────── */
@@ -247,12 +296,8 @@
     left: 16px;
     width: 336px;
     z-index: 1050;
-    background: var(--glass-panel-bg);
-    backdrop-filter: var(--glass-blur-panel);
-    -webkit-backdrop-filter: var(--glass-blur-panel);
-    border: var(--glass-border);
     border-radius: 14px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.55);
+    box-shadow: var(--glass-inset), 0 8px 32px rgba(0,0,0,0.55);
     overflow: hidden;
     display: none;
   }
@@ -324,12 +369,8 @@
     left: 16px;
     width: 300px;
     z-index: 1100;
-    background: var(--glass-panel-bg);
-    backdrop-filter: var(--glass-blur-panel);
-    -webkit-backdrop-filter: var(--glass-blur-panel);
-    border: var(--glass-border);
     border-radius: 16px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.55);
+    box-shadow: var(--glass-inset), 0 8px 32px rgba(0,0,0,0.55);
     overflow: hidden;
     display: none;
   }
@@ -575,10 +616,10 @@
   /* Mode-toggle buttons: glass-action flavor, no accent — secondary chrome */
   .dc-expand-btn-wide {
     width: 100%; margin-top: 7px; height: 44px; padding: 0 14px; box-sizing: border-box;
-    background: rgba(20,46,82,0.45);
-    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(156,189,231,0.18);
+    background: var(--glass-action-bg);
+    border: var(--glass-border);
     border-radius: 12px; cursor: pointer;
+    box-shadow: var(--glass-inset);
     font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
     color: var(--text);
     transition: background 0.12s, border-color 0.12s;
@@ -765,7 +806,7 @@
     transform: translateY(-50%);
     width: 26px;
     height: 52px;
-    background: rgba(20,46,82,0.92);
+    background: var(--glass-panel-bg);
     border: 1px solid rgba(156,189,231,0.28);
     border-left: none;
     border-radius: 0 10px 10px 0;
@@ -785,8 +826,11 @@
     bottom: 130px;
     left: 50%;
     transform: translateX(-50%) translateY(12px);
-    background: rgba(10,20,42,0.97);
-    border: 1px solid rgba(255,175,133,0.22);
+    background: var(--glass-action-bg);
+    backdrop-filter: var(--glass-blur-action);
+    -webkit-backdrop-filter: var(--glass-blur-action);
+    border: var(--glass-border);
+    box-shadow: var(--glass-inset), 0 4px 20px rgba(0,0,0,0.50);
     color: rgba(156,189,231,0.9);
     font-family: 'Inter', sans-serif;
     font-size: 12px;
@@ -833,9 +877,10 @@
     border: var(--glass-border);
     border-radius: 12px;
     color: var(--text);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    box-shadow: var(--glass-inset), 0 8px 32px rgba(0,0,0,0.5);
     padding: 12px 16px;
     max-width: 240px;
+    position: relative;
   }
 
   .mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip { border-top-color: rgba(20,46,82,0.55); }
@@ -863,10 +908,10 @@
     bottom: 16px;
   }
   .mapboxgl-ctrl-group {
-    background: rgba(14,26,52,0.58) !important;
-    backdrop-filter: blur(32px) !important;
-    -webkit-backdrop-filter: blur(32px) !important;
-    border: 1px solid rgba(156,189,231,0.18) !important;
+    background: var(--glass-action-bg) !important;
+    backdrop-filter: var(--glass-blur-action) !important;
+    -webkit-backdrop-filter: var(--glass-blur-action) !important;
+    border: var(--glass-border) !important;
     border-radius: 14px !important;
     padding: 4px !important;
     box-shadow: none !important;
@@ -1000,10 +1045,6 @@
     left: 16px;
     bottom: 16px;
     width: 336px;
-    background: var(--glass-panel-bg);
-    backdrop-filter: var(--glass-blur-panel);
-    -webkit-backdrop-filter: var(--glass-blur-panel);
-    border: var(--glass-border);
     border-radius: 16px;
     display: flex;
     flex-direction: column;
@@ -1173,16 +1214,12 @@
   #sort-panel {
     position: fixed;
     z-index: 1100;
-    background: var(--glass-panel-bg);
-    backdrop-filter: var(--glass-blur-panel);
-    -webkit-backdrop-filter: var(--glass-blur-panel);
-    border: var(--glass-border);
     border-radius: 10px;
     padding: 4px;
     display: none;
     flex-direction: column;
     min-width: 130px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    box-shadow: var(--glass-inset), 0 8px 32px rgba(0,0,0,0.6);
   }
   #sort-panel.open { display: flex; }
   .sort-btn {
@@ -1208,11 +1245,10 @@
     gap: 4px;
     height: 36px;
     padding: 0 12px;
-    background: rgba(20,46,82,0.45);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(156,189,231,0.22);
+    background: var(--glass-action-bg);
+    border: var(--glass-border);
     border-radius: 10px;
+    box-shadow: var(--glass-inset);
     color: var(--text);
     font-family: 'Inter', sans-serif;
     font-size: 13px;
@@ -1279,11 +1315,12 @@
     background: var(--glass-card-bg);
     backdrop-filter: var(--glass-blur-card);
     -webkit-backdrop-filter: var(--glass-blur-card);
-    border: 1px solid rgba(156,189,231,0.15);
+    border: var(--glass-border);
     border-radius: 12px;
     padding: 10px 16px;
     margin-bottom: 8px;
     cursor: pointer;
+    box-shadow: var(--glass-inset), 0 2px 8px rgba(0,0,0,0.35);
     transition: border-color 0.15s ease, background 0.15s ease, opacity 0.2s, transform 0.15s ease, box-shadow 0.15s ease;
     position: relative;
     overflow: hidden;
@@ -1689,16 +1726,16 @@
   #hover-tooltip {
     position: absolute;
     z-index: 1100;
-    background: var(--glass-panel-bg);
-    backdrop-filter: var(--glass-blur-panel);
-    -webkit-backdrop-filter: var(--glass-blur-panel);
+    background: var(--glass-action-bg);
+    backdrop-filter: var(--glass-blur-action);
+    -webkit-backdrop-filter: var(--glass-blur-action);
     border: var(--glass-border);
     border-radius: 10px;
     padding: 10px 14px;
     pointer-events: none;
     display: none;
     width: 220px;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    box-shadow: var(--glass-inset), 0 4px 24px rgba(0,0,0,0.5);
   }
 
   #hover-tooltip.visible { display: block; }
@@ -1782,11 +1819,12 @@
     left: 50%;
     transform: translateX(-50%) translateY(-8px);
     z-index: 950;
-    background: var(--glass-panel-bg);
-    backdrop-filter: var(--glass-blur-panel);
-    -webkit-backdrop-filter: var(--glass-blur-panel);
+    background: var(--glass-action-bg);
+    backdrop-filter: var(--glass-blur-action);
+    -webkit-backdrop-filter: var(--glass-blur-action);
     border: var(--glass-border);
     border-radius: 12px;
+    box-shadow: var(--glass-inset), 0 4px 20px rgba(0,0,0,0.40);
     padding: 8px 14px;
     font-size: 12px;
     color: var(--muted);
@@ -2029,16 +2067,16 @@
   }
 
   #edit-banner {
-    background: rgba(20, 46, 82, 0.55);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(156, 189, 231, 0.18);
+    background: var(--glass-panel-bg);
+    backdrop-filter: var(--glass-blur-panel);
+    -webkit-backdrop-filter: var(--glass-blur-panel);
+    border: var(--glass-border);
     border-radius: 14px;
     padding: 16px 20px;
     display: flex;
     flex-direction: column;
     gap: 14px;
-    box-shadow: 0 4px 28px rgba(0,0,0,0.6);
+    box-shadow: var(--glass-inset), 0 4px 28px rgba(0,0,0,0.6);
     width: 360px;
   }
 
@@ -2107,10 +2145,8 @@
   }
 
   #edit-type-select {
-    background: rgba(20, 46, 82, 0.45);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(156,189,231,0.15);
+    background: var(--glass-action-bg);
+    border: var(--glass-border);
     border-radius: 12px;
     color: #FFF2EB;
     font-family: 'Inter', sans-serif;
@@ -2134,10 +2170,8 @@
   }
 
   #edit-satellite-btn {
-    background: rgba(20, 46, 82, 0.45);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(156,189,231,0.15);
+    background: var(--glass-action-bg);
+    border: var(--glass-border);
     border-radius: 12px;
     color: #9CBDE7;
     font-family: 'Inter', sans-serif;
@@ -2908,10 +2942,6 @@
 
   /* ── Unified control group: readout + bar as one docked surface ─────── */
   #qc-control-group {
-    background: rgba(20, 46, 82, 0.55);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(156, 189, 231, 0.18);
     border-radius: 14px;
     overflow: hidden;
     transition: background 120ms ease-out;
@@ -2941,11 +2971,10 @@
     gap: 6px;
     height: 36px;
     padding: 0 12px;
-    background: rgba(20,46,82,0.45);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(156,189,231,0.18);
+    background: var(--glass-action-bg);
+    border: var(--glass-border);
     border-radius: 16px;
+    box-shadow: var(--glass-inset);
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     outline: none;
@@ -3139,12 +3168,12 @@
       /* search bar slides away — pad by safe-area + small breathing room */
       padding: calc(env(safe-area-inset-top, var(--safe-area-top, 0px)) + 16px) 16px 20px;
       box-sizing: border-box;
-      background: rgba(20, 46, 82, 0.55);
-      backdrop-filter: blur(16px) saturate(120%);
-      -webkit-backdrop-filter: blur(16px) saturate(120%);
+      background: var(--glass-panel-bg);
+      backdrop-filter: var(--glass-blur-panel);
+      -webkit-backdrop-filter: var(--glass-blur-panel);
       border-radius: 0 0 14px 14px;
-      border-bottom: 1px solid rgba(156, 189, 231, 0.18);
-      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.50);
+      border-bottom: var(--glass-border);
+      box-shadow: var(--glass-inset), 0 6px 24px rgba(0, 0, 0, 0.50);
       transform: translateY(-110%);
       opacity: 0;
       pointer-events: none;
@@ -3258,11 +3287,12 @@
   #qc-panel-inner {
     width: 100%;
     box-sizing: border-box;
-    background: rgba(20, 46, 82, 0.55);
-    backdrop-filter: blur(16px) saturate(120%);
-    -webkit-backdrop-filter: blur(16px) saturate(120%);
-    border: 1px solid rgba(156, 189, 231, 0.18);
+    background: var(--glass-panel-bg);
+    backdrop-filter: var(--glass-blur-panel);
+    -webkit-backdrop-filter: var(--glass-blur-panel);
+    border: var(--glass-border);
     border-radius: 12px;
+    box-shadow: var(--glass-inset), 0 6px 24px rgba(0,0,0,0.50);
     overflow: hidden;
     opacity: 1;
     transition: opacity 0.25s ease;
@@ -3333,10 +3363,6 @@
     left: 368px;   /* 16 + 336 + 16 */
     bottom: 16px;
     width: 300px;
-    background: rgba(20, 46, 82, 0.55);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(156, 189, 231, 0.18);
     border-radius: 16px;
     display: flex;
     flex-direction: column;
@@ -3583,10 +3609,9 @@
     gap: 5px;
     padding: 10px 6px 8px;
     background: var(--glass-action-bg);
-    backdrop-filter: var(--glass-blur-action);
-    -webkit-backdrop-filter: var(--glass-blur-action);
-    border: var(--glass-border-light);
+    border: var(--glass-border);
     border-radius: 12px;
+    box-shadow: var(--glass-inset);
     color: #FFAF85;
     font-size: 12px;
     font-weight: 500;
@@ -3610,10 +3635,9 @@
     font-weight: 500;
     padding: 7px 10px;
     border-radius: 12px;
-    border: var(--glass-border-light);
+    border: var(--glass-border);
     background: var(--glass-action-bg);
-    backdrop-filter: var(--glass-blur-action);
-    -webkit-backdrop-filter: var(--glass-blur-action);
+    box-shadow: var(--glass-inset);
     color: #FFAF85;
     cursor: pointer;
     text-decoration: none;
@@ -3624,7 +3648,7 @@
   .dp-action-btn:hover { background: rgba(20,46,82,0.65); }
   .dp-action-btn.directions {
     background: var(--glass-action-bg);
-    border: var(--glass-border-light);
+    border: var(--glass-border);
     color: #FFAF85;
   }
   .dp-action-btn.directions:hover { background: rgba(20,46,82,0.65); }
@@ -3751,6 +3775,26 @@
     pointer-events: none !important;
   }
 
+  /* ── Sliding surfaces — will-change only on panels that translate ────────── */
+  /* No will-change: backdrop-filter anywhere — it bloats GPU memory.          */
+  #detail-panel, #ptb-cal-float { will-change: transform; }
+  @media (max-width: 639px) {
+    #panel { will-change: transform; }
+  }
+
+  /* ── Performance & accessibility — reduced transparency ─────────────────── */
+  @media (prefers-reduced-transparency: reduce) {
+    .glass-panel, .glass-card, .glass-action,
+    #panel, #detail-panel, #qc-control-group, #search-dropdown,
+    #profile-panel, #sort-panel, #hover-tooltip, #map-toast,
+    #app-toast, .venue-card, .floating-card, .mapboxgl-popup-content,
+    #qc-panel-inner, #edit-banner {
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      background: rgba(17, 30, 56, 0.97);
+    }
+  }
+
 </style>
 </head>
 <body>
@@ -3818,10 +3862,10 @@
   </div>
 
   <!-- Search dropdown — live results, anchored below search bar -->
-  <div id="search-dropdown"></div>
+  <div id="search-dropdown" class="glass-panel"></div>
 
   <!-- Profile popover — anchored below search bar -->
-  <div id="profile-panel"></div>
+  <div id="profile-panel" class="glass-panel"></div>
 
   <!-- Bottom-right: locate-me button -->
   <button id="locate-btn" class="intro-hidden" onclick="locateUser()" title="Gå til min posisjon" aria-label="Gå til min posisjon">
@@ -3888,7 +3932,7 @@
   </div>
 
   <!-- RIGHT DETAIL PANEL — opens when a venue is selected -->
-  <div id="detail-panel">
+  <div id="detail-panel" class="glass-panel">
     <div id="dp-handle" onclick="closeDetailPanel()">
       <div id="dp-handle-pill"></div>
     </div>
@@ -3908,14 +3952,14 @@
   </div>
 
   <!-- LEFT PANEL — venue list, floats below search bar -->
-  <div id="panel" class="intro-hidden">
+  <div id="panel" class="intro-hidden glass-panel">
     <div id="panel-handle">
       <div id="panel-handle-pill"></div>
     </div>
 
     <!-- Time bar: unified control group (compact 3-row docked surface) -->
     <div id="panel-time-bar">
-      <div id="qc-control-group">
+      <div id="qc-control-group" class="glass-panel">
         <div id="time-readout">
           <!-- Row 1: calendar button (left) + inline weather (right) -->
           <div id="readout-row1">
@@ -3975,7 +4019,7 @@
   </div>
 
   <!-- Sort panel: fixed overlay, positioned by JS from button origin -->
-  <div id="sort-panel">
+  <div id="sort-panel" class="glass-panel">
     <button class="sort-btn active" data-sort="score"    onclick="setSortBy('score')">⭐ Score</button>
     <button class="sort-btn"        data-sort="rating"   onclick="setSortBy('rating')">★ Rating</button>
     <button class="sort-btn"        data-sort="distance" onclick="setSortBy('distance')">⊙ Near</button>

@@ -1,5 +1,7 @@
 # Solsteder Design System
 
+**Shades is the in-app name for the design language.** Shades is a deliberate double-entendre: *shadows* (the product's subject matter) and *sunglasses* (the visual metaphor). Surfaces behave like polarised lenses — deep Delft Blue tint, clean rim, bright spec along the top edge. Pins, panels, and controls all belong to the same optical family.
+
 One source of truth for visual language. Before making UI changes — manually or with AI tools — start here. If a change wants to break a rule in this doc, update the doc first and justify the change in the commit message.
 
 ## Principles
@@ -36,6 +38,42 @@ Never use `#FFFFFF` or `rgba(255,255,255,1)` for text or interactive fills. Use 
 Border for all glass: `1px solid rgba(156,189,231,0.18)`.
 
 No other background/blur combinations should be introduced. Map controls, overlays, and floating buttons all use one of these three levels. `rgba(14,26,52,...)` and `rgba(10,20,42,...)` are legacy values that should be migrated.
+
+### Glass finish (required on every level)
+
+The Shades Glass recipe is applied on top of every glass surface. Use the CSS classes `.glass-panel`, `.glass-card`, or `.glass-action` — or replicate these properties exactly.
+
+```css
+/* Applied to every .glass-panel, .glass-card, .glass-action */
+background:
+  linear-gradient(135deg, rgba(20,46,82,<level-A>) 0%, rgba(32,73,131,<level-B>) 100%),
+  rgba(20,46,82,<level-base>);   /* legacy single-color fallback */
+backdrop-filter: blur(<level-blur>) saturate(160%);
+-webkit-backdrop-filter: blur(<level-blur>) saturate(160%);
+border: 1px solid rgba(156,189,231,0.18);
+box-shadow:
+  inset 0 1px 0 rgba(255,242,235,0.14),    /* top inner sheen */
+  inset 0 -1px 0 rgba(20,46,82,0.35),       /* bottom inner shade */
+  <elevation-shadow>;                        /* from elevation scale */
+```
+
+Level values:
+
+| Level | A | B | base | blur |
+|-------|---|---|------|------|
+| panel | 0.48 | 0.30 | 0.55 | 16px |
+| card | 0.42 | 0.26 | 0.50 | 12px |
+| action | 0.36 | 0.22 | 0.45 | 10px |
+
+The gradient stops are tuned so the diagonal reads as "light entering from the upper-left." Do not flip the angle per component — this 135° direction is the signature of the language.
+
+### Spec highlight
+
+Panels (level = panel) carry a `::before` pseudo-element painting a 1px horizontal highlight at the top edge: `top: 0; left: 8%; right: 8%; height: 1px; background: linear-gradient(90deg, transparent, rgba(255,242,235,0.35), transparent)`. Cards and actions skip this — too much highlight at small sizes reads as visual clutter.
+
+### Tooltip / transient surface
+
+`#hover-tooltip`, `#map-toast`, and similar ephemeral floating elements use **action-level** glass: gradient A=0.36 B=0.22 over base 0.45, blur 10px, saturate 160%, rim + top-sheen inset shadows, 1px Jordy border, elevation `low`. No spec-highlight `::before` — too small to benefit.
 
 ### Weather data ramp (USE ONLY for forecast visualizations)
 
@@ -141,6 +179,8 @@ Circular frosted-glass disc — not a pill, not a tick mark.
 - **No text inside the thumb.** Selected time lives in the row-2 time label, left of the slider.
 - **Do not use `--accent` as the fill or border** — it collides with full-sun segments. The accent lives in the glow only.
 - **NÅ tick collision:** when the thumb is within ~30 minutes of the NÅ tick, suppress the `NÅ` text label and dim the dashed line to 50% opacity. Fade back when thumb moves away, over `--transition-fast`.
+
+> The thumb is the seed example of Shades Glass. Every other glass surface in the app — panels, cards, actions, pins — inherits the same optical treatment (diagonal Delft tint, top-rim sheen, bright 1px edge, subtle saturate). When a new surface is added, the thumb is the reference.
 
 ### "NÅ" tick
 
@@ -271,6 +311,29 @@ Secondary controls (sort, filter, alternate views) appear with the content they 
 - Icons inside action-pill components: `16px`.
 - Icon-only action-circle buttons: `20px` inside a `44×44` touch target.
 
+### Pins
+
+Pins are canvas-drawn but belong to the Shades Glass family. Pill body uses a canvas-painted linear gradient matching the CSS glass recipe (`rgba(20,46,82,0.88) → rgba(32,73,131,0.82)` at 135°), a 1px top-inner sheen (`rgba(255,242,235,0.18)`), and a `rgba(156,189,231,0.18)` 1px border. Exception: the **sunny** state keeps `--accent` (`#FFAF85`) as the pill fill — the pin *is* the sun indicator, and accent ownership of "this is sunny right now" is the system's most important color contract. Stems, text, and dashed styling as documented below.
+
+**No pin may reference values outside the color-token section.** The legacy Solaris Oslo palette (`#0D131E`, `#514532`, `#FFB800`, `#d5c4ab`) is retired — delete on sight.
+
+| State | Fill | Stem | Text | Stroke |
+|-------|------|------|------|--------|
+| sunny | `#FFAF85` (accent) | `rgba(255,175,133,0.7)` | `#1a1200` | `rgba(255,230,120,0.4)` warm glow |
+| soon | Delft gradient (glass) | `rgba(255,175,133,0.7)` (accent-tinted) | `#9CBDE7` (muted) | `rgba(156,189,231,0.18)` dashed |
+| shaded | Delft gradient (glass) | `rgba(156,189,231,0.55)` (muted) | `#9CBDE7` (muted) | `rgba(156,189,231,0.18)` |
+| closed | Tiny dot, no pill | — | — | — |
+
+## Performance & accessibility rules
+
+1. **`backdrop-filter` is only applied to the three glass levels** and nothing nested inside them. A card inside a panel doesn't need its own `backdrop-filter` — the panel has already painted the glass below it. Exception: calendar sticky headers inside the calendar sheet, which need their own backdrop to prevent tile content bleeding through on scroll.
+
+2. **Reduced transparency.** The `@media (prefers-reduced-transparency: reduce)` block at the bottom of the CSS replaces all glass backgrounds with solid `rgba(17, 30, 56, 0.97)` and removes all `backdrop-filter`. The spec-highlight `::before` stays — it's cheap and preserves visual identity without transparency.
+
+3. **`will-change: transform`** is only set on `#detail-panel`, `#ptb-cal-float` (calendar sheet), and `#panel` (mobile only, since it slides vertically). No `will-change: backdrop-filter` anywhere — it bloats GPU memory.
+
+4. **No animation of `backdrop-filter` itself.** Cross-fades, slide-ins, and rotations animate `opacity` and `transform` only. The glass stays constant.
+
 ## Don't
 
 - Don't use pure white (`#FFFFFF`) or pure-white glows for interactive elements or text. Use `--text` (`#FFF2EB`).
@@ -285,3 +348,7 @@ Secondary controls (sort, filter, alternate views) appear with the content they 
 - Don't open pickers or secondary sheets that cover the primary output they affect. The user needs to see the result while picking (see Principle 5).
 - Don't fill calendar tile backgrounds with weather-ramp colors. Weather lives in sub-elements (glyph, temperature text). The tile container stays neutral so selection rings are unambiguous.
 - Don't use dashed borders anywhere in the calendar or the wider UI. Dashed borders read as prototype placeholders and are not part of this design system. Use reduced-opacity solid borders to signal reduced availability.
+- Don't introduce `html2canvas`-based background sampling for glass effects. It janks mobile and the cost scales with every map redraw.
+- Don't use `backdrop-filter: url(#svg-filter)` for refraction. Safari / iOS — our primary target — does not support it. The effect would be invisible to most users while still costing complexity.
+- Don't apply `backdrop-filter` to nested elements inside an already-glass surface. Redundant GPU work (exception: calendar sticky headers, which need it to prevent scroll bleed-through).
+- Don't migrate the pin **sunny** state off `--accent`. The fill is a system-level promise ("this venue has sun right now"); owning the accent role there is intentional.
