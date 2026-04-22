@@ -750,17 +750,17 @@
     display: none;
   }
 
-  /* Task 6: Adjust list sheet positioning for floating slider */
+  /* Task 6: Adjust list sheet positioning for floating slider (desktop) */
   body.floating-time-slider #panel {
     bottom: calc(var(--safe-area-bottom, 0px) + 12px + 52px + 8px);
   }
 
   /* Expanded list scroll padding to clear floating slider */
   body.floating-time-slider #venue-list {
-    padding-bottom: calc(var(--safe-area-bottom, 0px) + 52px + 12px + 24px) !important;
+    padding-bottom: calc(52px + 12px + 24px) !important;
   }
 
-  /* Task 7: Adjust detail panel when floating slider is active */
+  /* Task 7: Adjust detail panel when floating slider is active (desktop) */
   body.floating-time-slider #detail-panel {
     top: calc(118px + 72px);
   }
@@ -2481,6 +2481,28 @@
       height: 100svh;
       border-radius: 0;
       z-index: 910;
+    }
+
+    /* ── Round 12: floating time slider — mobile overrides ────────────────── */
+    /* Raise the panel above the floating pill so peek content doesn't overlap */
+    body.floating-time-slider #panel {
+      bottom: 72px; /* pill(52) + pill-margin(12) + gap(8) */
+    }
+
+    /* In expanded state the panel still starts at pill top (bottom:72px),
+       panel height stays 62svh — add scroll padding so last card clears pill */
+    body.floating-time-slider #panel.mobile-expanded {
+      transform: translateY(0);
+    }
+
+    /* Fullscreen must override back to bottom:0 */
+    body.floating-time-slider #panel.mobile-fullscreen {
+      bottom: 0;
+    }
+
+    /* Locate button: adjust to sit above raised peek */
+    body.floating-time-slider #locate-btn {
+      bottom: calc(var(--peek-h, 160px) + 72px + 14px);
     }
   }
 
@@ -4523,9 +4545,20 @@
       backface-visibility: hidden;
     }
     #detail-panel.open { transform: translateY(0); }
+    /* Round 12: detail panel leaves room for floating pill */
+    body.floating-time-slider #detail-panel {
+      height: calc(69svh - 72px);
+    }
+    body.floating-time-slider #detail-panel.open {
+      bottom: 72px; /* pill(52) + margin(12) + gap(8) */
+    }
     #detail-panel.dp-fullscreen {
       height: 100svh;
       border-radius: 0;
+    }
+    body.floating-time-slider #detail-panel.dp-fullscreen {
+      height: 100svh;
+      bottom: 0;
     }
     #dp-handle { display: flex; }
     #dp-scroll { padding-top: 4px; }
