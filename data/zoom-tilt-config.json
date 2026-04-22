@@ -9,17 +9,17 @@
     {
       "step": 1,
       "name": "Splash Visible - Jump to Zoom Level",
-      "zoom": 14.5,
-      "pitch": 15,
+      "zoom": 14,
+      "pitch": 0,
       "duration": "instant",
       "notes": "Jump from default zoom 13 to 15, pitch stays at default 15"
     },
     {
       "step": 2,
       "name": "Time Scrub + Zoom In + Tilt Up",
-      "zoomStart": 15,
-      "zoomEnd": 15.3,
-      "pitchStart": 15,
+      "zoomStart": 14,
+      "zoomEnd": 15,
+      "pitchStart": 0,
       "pitchEnd": 45,
       "duration": 1800,
       "durationUnit": "ms",
@@ -28,7 +28,7 @@
     {
       "step": 3,
       "name": "Zoom Out + Detilt",
-      "zoom": 13,
+      "zoom": 14.5,
       "pitch": 15,
       "duration": 700,
       "durationUnit": "ms",
@@ -37,7 +37,7 @@
     {
       "step": "skip",
       "name": "Skip Intro",
-      "zoom": 13,
+      "zoom": 14.5,
       "pitch": 15,
       "duration": 400,
       "durationUnit": "ms",
@@ -50,8 +50,8 @@
       "zoomStart": 14,
       "zoomEnd": 15,
       "heightInterpolation": "0 → actual",
-      "opacityStart": 15,
-      "opacityEnd": 15.5,
+      "opacityStart": 14,
+      "opacityEnd": 14.5,
       "notes": "Buildings fade in (opacity) and grow from 0 to full height"
     },
     {
@@ -126,7 +126,7 @@
   "venueInteractions": [
     {
       "action": "Locate User Button",
-      "zoom": "Math.max(current, 15)",
+      "zoom": "Math.max(current, 14.5)",
       "pitch": null,
       "duration": 600,
       "durationUnit": "ms",
@@ -134,7 +134,7 @@
     },
     {
       "action": "Click Venue (Detail Panel Open)",
-      "zoom": 17.7,
+      "zoom": 17,
       "pitch": 45,
       "duration": 600,
       "durationUnit": "ms",
@@ -176,7 +176,7 @@
   "detailPanelStates": [
     {
       "state": "Open",
-      "zoom": 17.7,
+      "zoom": 17,
       "pitch": 45,
       "duration": 600,
       "durationUnit": "ms",

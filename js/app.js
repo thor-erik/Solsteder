@@ -201,7 +201,7 @@ function locateUser() {
   if (!userLocation) return;
   const btn = document.getElementById('locate-btn');
   if (btn) { btn.classList.add('tracking'); setTimeout(() => btn.classList.remove('tracking'), 1200); }
-  map.flyTo({ center: [userLocation.lng, userLocation.lat], zoom: Math.max(map.getZoom(), 15), duration: 600 });
+  map.flyTo({ center: [userLocation.lng, userLocation.lat], zoom: Math.max(map.getZoom(), 14.5), duration: 600 });
 }
 
 map.on('move',    _updateLocationDot);
@@ -1419,7 +1419,7 @@ let _switchingVenue = false;
 // Uses easeTo (smooth interpolation) so the animation looks correct whether
 // the user is already zoomed in (pin click) or coming from overview (list click).
 function _flyToVenue(v) {
-  const targetZoom = 17.70;
+  const targetZoom = 17;
   const opts = { center: [v.lng, v.lat], zoom: targetZoom, pitch: 45, duration: 600 };
 
   if (isMobile()) {
@@ -2891,7 +2891,7 @@ function _runIntroSequence() {
 
   // Position map at user location — instant, before splash fades
   // Pitch will gradually increase to 45° during step 2
-  map.jumpTo({ center: _introCenter, zoom: 15, pitch: 15, bearing: 0 });
+  map.jumpTo({ center: _introCenter, zoom: 14, pitch: 0, bearing: 0 });
 
   // Enable skip after 600ms (let splash fade complete before accepting skips)
   let skipEnabled = false;
@@ -2912,12 +2912,12 @@ function _runIntroSequence() {
     // Step 2: Scrub time → target time (1800ms) + zoom in + tilt up to cinematic angle (all concurrent)
     const timeTarget = _sharedHour ?? Math.min(23, Math.max(4, now));
     animateToTime(timeTarget, 1800);
-    map.easeTo({ zoom: 15.3, pitch: 45, duration: 1800, easing: t => t * t * (3 - 2 * t) });
+    map.easeTo({ zoom: 15, pitch: 45, duration: 1800, easing: t => t * t * (3 - 2 * t) });
 
     // Step 3: Zoom out + detilt (starts when step 2 ends)
     setTimeout(() => {
       if (_introSeqId !== seqId) return;
-      map.easeTo({ zoom: 13, pitch: 15, bearing: 0, duration: 700 });
+      map.easeTo({ zoom: 14.5, pitch: 15, bearing: 0, duration: 700 });
 
       // Step 4: Fade in pins
       setTimeout(() => {
@@ -2997,7 +2997,7 @@ function _skipIntro(seqId) {
 
   // Snap map to default view (centered on user location or Oslo)
   map.stop();
-  map.easeTo({ center: _introCenter, zoom: 13, pitch: 15, bearing: 0, duration: 400 });
+  map.easeTo({ center: _introCenter, zoom: 14.5, pitch: 15, bearing: 0, duration: 400 });
 
   // Instantly hide splash
   splash.style.transition = 'none';
