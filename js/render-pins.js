@@ -29,23 +29,18 @@ const SHADOW_PAD     = 6;    // extra canvas padding on all sides for drop shado
 const spriteCache = new Map();
 
 // ── Icon loading ──────────────────────────────────────────────────────────────
-// Sun series:    sun-0 … sun-100  (5 icons, index 0–4)
 // Shadow series: shadow-25 … shadow-100  (4 icons, index 0–3)
-// Wait until ALL 9 images have settled before rebuilding sprites.
+// Sun series PNGs (sun-0 … sun-100) are used by detail panel / day-arc only —
+// they are no longer drawn on pins. Load them in whichever module consumes them.
+// Wait until ALL 4 shadow images have settled before rebuilding sprites.
 let _iconsReadyCount = 0;
-const _ICON_TOTAL    = 9;
+const _ICON_TOTAL    = 4;
 
 function _onIconLoad() {
   _iconsReadyCount++;
   if (_iconsReadyCount === _ICON_TOTAL) { clearSpriteCache(); draw(); }
 }
 
-const _sunIcons = ['0', '25', '50', '75', '100'].map(p => {
-  const img = new Image();
-  img.onload = img.onerror = _onIconLoad;
-  img.src = `design/shades-status-icons/sun-${p}-percent.png`;
-  return img;
-});
 const _shadowIcons = ['25', '50', '75', '100'].map(p => {
   const img = new Image();
   img.onload = img.onerror = _onIconLoad;
@@ -54,18 +49,7 @@ const _shadowIcons = ['25', '50', '75', '100'].map(p => {
 });
 
 // ── Icon index helpers ─────────────────────────────────────────────────────────
-// Sun series fills from bottom as time in the window expands.
 // Shadow series retreats from the top as sun approaches.
-// Together they form one continuous scale, played forward/backward by the slider.
-
-// Tier 1: pick sun icon by remaining hours in the current sun window.
-function _sunIconIdx(hoursLeft) {
-  if (hoursLeft >= 2.5) return 4;  // sun-100
-  if (hoursLeft >= 1.5) return 3;  // sun-75
-  if (hoursLeft >= 1.0) return 2;  // sun-50
-  if (hoursLeft >= 0.5) return 1;  // sun-25
-  return 0;                         // sun-0
-}
 
 // Tier 2a: pick shadow icon by minutes until sun arrives.
 function _shadowIconIdx(minutesUntilSun) {
