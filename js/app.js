@@ -2945,9 +2945,16 @@ function _skipIntro(seqId) {
   // Cancel time animation
   if (_timeAnimId) { cancelAnimationFrame(_timeAnimId); _timeAnimId = null; }
 
-  // Set time to shared time (if share link) or now, and activate now mode if appropriate
-  timeFromEl.value = _sharedHour ?? Math.min(23, Math.max(4, currentHour()));
-  if (_sharedHour === null) _activateNowMode();
+  // Set time to shared time (if share link) or now, and activate now mode if appropriate.
+  // If the date was auto-advanced to tomorrow (after-sunset), keep the 12:00 default
+  // that advanceDay() already set — don't overwrite it with the current real hour.
+  if (_sharedHour !== null) {
+    timeFromEl.value = _sharedHour;
+  } else if (datePicker.value === todayStr()) {
+    timeFromEl.value = Math.min(23, Math.max(4, currentHour()));
+    _activateNowMode();
+  }
+  // else: date already advanced to tomorrow by auto-advance — leave timeFromEl as-is (12:00)
   update();
 
   // Snap map to default view (centered on user location or Oslo)
