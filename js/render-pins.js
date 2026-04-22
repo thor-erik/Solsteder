@@ -121,7 +121,9 @@ function classifyPin(v, dateStr, hour) {
 // Baseline values are for a ~1000×900 px viewport (≈ 900 000 px²).
 // Caps scale linearly with viewport area so iPhone SE and iPad Pro get sensible limits.
 const HERO_CAP    = 10;  // baseline hero cap (zoom 14–15, ~1000×900 viewport)
-const WAITING_CAP = 15;  // baseline waiting cap (zoom 14–15, ~1000×900 viewport)
+const WAITING_CAP = 8;   // baseline waiting cap (zoom 14–15, ~1000×900 viewport)
+// Halved from 15: waiting pills are lower priority than hero; err on fewer to reduce
+// blue visual noise. Easier to raise later than to deal with cluttered maps now.
 
 const _VIEWPORT_BASELINE_PX2 = 900_000;  // 1000×900 px reference
 
@@ -135,14 +137,26 @@ function _getDensityCaps(zoom) {
   const scale = area / _VIEWPORT_BASELINE_PX2;
 
   let baseHero, baseWaiting;
-  if (zoom >= 16)      { baseHero = 15; baseWaiting = 20; }
-  else if (zoom >= 14) { baseHero = HERO_CAP; baseWaiting = WAITING_CAP; }
-  else                 { baseHero = 6; baseWaiting = 8; }
+  if (zoom >= 16)      { baseHero = 15; baseWaiting = 12; }  // waiting halved from 20
+  else if (zoom >= 14) { baseHero = HERO_CAP; baseWaiting = WAITING_CAP; }  // 10/8
+  else                 { baseHero = 6; baseWaiting = 4; }
 
   return {
     heroCap:    Math.round(Math.min(20, Math.max(4, baseHero    * scale))),
     waitingCap: Math.round(Math.min(30, Math.max(6, baseWaiting * scale))),
   };
+}
+
+// UX-tuning constant: each km of distance from map center adds this many "virtual minutes"
+// to a waiting pin's sort score. Closer venues beat farther ones even if slightly later sun.
+// Pure hypothesis — tune after real-world testing.
+const WAITING_DISTANCE_PENALTY_MIN_PER_KM = 30;
+
+// Flat-earth distance in km, accurate enough for Oslo-scale distances (<50 km).
+function _geoDistKm(lat1, lng1, lat2, lng2) {
+  const dlat = (lat2 - lat1) * 111.0;
+  const dlng = (lng2 - lng1) * 111.0 * Math.cos(lat1 * Math.PI / 180);
+  return Math.sqrt(dlat * dlat + dlng * dlng);
 }
 
 // Stable tier IDs from the last full-recompute (moveend/zoomend or time change).
@@ -194,8 +208,18 @@ function _applyDensityFilter(projVenues, zoom, currentHour, dateStr, isFullRecom
 
   // ── Waiting cap ───────────────────────────────────────────────────────────
   if (waiting.length > waitingCap) {
+    // Sort score: minutesUntil + distance-from-centre penalty.
+    // Venues close to the map centre are prioritised over distant venues even
+    // if their sun arrives slightly later. WAITING_DISTANCE_PENALTY_MIN_PER_KM
+    // is the tuning knob.
+    const centre = map.getCenter();
+    function _waitingScore(e) {
+      const d = _geoDistKm(e.v.lat, e.v.lng, centre.lat, centre.lng);
+      return (e.classResult.minutesUntil ?? 240) + d * WAITING_DISTANCE_PENALTY_MIN_PER_KM;
+    }
+
     if (isFullRecompute) {
-      waiting.sort((a, b) => (a.classResult.minutesUntil ?? 240) - (b.classResult.minutesUntil ?? 240));
+      waiting.sort((a, b) => _waitingScore(a) - _waitingScore(b));
       for (let i = waitingCap; i < waiting.length; i++) {
         waiting[i].classResult = { tier: 'context', hasSunLaterToday: true, closedOpeningIntoSun: false };
       }
@@ -203,7 +227,7 @@ function _applyDensityFilter(projVenues, zoom, currentHour, dateStr, isFullRecom
       // Pan frame: keep previously-stable waiting pins; demote newcomers first
       const stable = waiting.filter(w => _stableWaitingIds.has(w.v.id));
       const fresh  = waiting.filter(w => !_stableWaitingIds.has(w.v.id));
-      fresh.sort((a, b) => (a.classResult.minutesUntil ?? 240) - (b.classResult.minutesUntil ?? 240));
+      fresh.sort((a, b) => _waitingScore(a) - _waitingScore(b));
       for (let i = Math.max(0, waitingCap - stable.length); i < fresh.length; i++) {
         fresh[i].classResult = { tier: 'context', hasSunLaterToday: true, closedOpeningIntoSun: false };
       }
