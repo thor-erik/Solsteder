@@ -128,10 +128,15 @@ function classifyPin(v, dateStr, hour) {
 // Rule of thumb: cap ≥ (realistic max in-view count) → cap is never the constraint,
 // spatial overlap is. Tune downward only if very-low-zoom clutter becomes a problem.
 function _getDensityCaps(zoom) {
-  if (zoom >= 16) return { heroCap: Infinity, waitingCap: Infinity };
-  if (zoom >= 14) return { heroCap: 20, waitingCap: 14 };
-  if (zoom >= 12) return { heroCap: 12, waitingCap: 8 };
-  return             { heroCap: 6,  waitingCap: 4 };
+  // Hero cap is always generous/infinite — every venue currently in sun should
+  // get a named pill if there is space (spatial layout handles the rest).
+  // Waiting cap is intentionally lower: at high zoom the user is looking at
+  // specific sun venues, not browsing candidates; too many waiting pills add noise.
+  if (zoom >= 17) return { heroCap: Infinity, waitingCap: 6 };
+  if (zoom >= 16) return { heroCap: Infinity, waitingCap: 8 };
+  if (zoom >= 14) return { heroCap: 20,       waitingCap: 10 };
+  if (zoom >= 12) return { heroCap: 12,       waitingCap: 6 };
+  return             { heroCap: 6,        waitingCap: 3 };
 }
 
 // UX-tuning constant: each km of distance from map center adds this many "virtual minutes"
