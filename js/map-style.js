@@ -153,7 +153,6 @@ function buildShadeStyle() {
         source: 'composite',
         'source-layer': 'building',
         minzoom: 14,
-        filter: ['==', ['get', 'extrude'], 'true'],
         paint: {
           'fill-extrusion-color': '#F0E8DA',
           'fill-extrusion-height': [
