@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shades — List & Detail Redesign</title>
+<link rel="preconnect" href="https://rsms.me/">
+<link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+<style>
+/* ── Tokens from DESIGN.md ──────────────────────────────────────────────── */
+:root {
+  --bg: #111E38;
+  --text: #FFF2EB;
+  --muted: #9CBDE7;
+  --accent: #FFAF85;
+  --accent-dim: rgba(255,175,133,0.15);
+  --accent-on: #2a1a0c;
+
+  --panel-blur: 16px;
+  --card-blur: 12px;
+  --action-blur: 10px;
+
+  --border: 1px solid rgba(156,189,231,0.18);
+  --border-soft: 1px solid rgba(156,189,231,0.10);
+
+  --shadow-low:  0 2px 8px rgba(0,0,0,0.35);
+  --shadow-mid:  0 6px 24px rgba(0,0,0,0.50);
+  --shadow-high: 0 12px 48px rgba(0,0,0,0.60);
+
+  /* weather ramp */
+  --wx-sun:    #FFD488;
+  --wx-partly: #E6C08A;
+  --wx-over:   #8EA0B8;
+  --wx-rain:   #5E7CA8;
+  --wx-night:  #2A3B5E;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: #0a1222;
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+body {
+  display: flex; gap: 32px; padding: 32px; justify-content: center;
+  background:
+    radial-gradient(ellipse at top, #1a2e54 0%, #0a1222 60%),
+    #0a1222;
+  background-attachment: fixed;
+}
+
+/* ── Phone frame (showcase chrome only, not part of design) ─────────────── */
+.phone {
+  width: 400px; height: 860px;
+  border-radius: 44px;
+  background: var(--bg);
+  border: 8px solid #1a2542;
+  box-shadow: var(--shadow-high);
+  overflow: hidden;
+  position: relative;
+  display: flex; flex-direction: column;
+}
+.phone-label {
+  position: absolute; top: -26px; left: 0; right: 0;
+  text-align: center;
+  font-size: 12px; font-weight: 600;
+  color: rgba(255,242,235,0.45);
+  letter-spacing: 1px; text-transform: uppercase;
+}
+
+/* ── Shades Glass recipe (applied to panel / card / action) ─────────────── */
+.glass-panel {
+  background:
+    linear-gradient(135deg, rgba(20,46,82,0.48) 0%, rgba(32,73,131,0.30) 100%),
+    rgba(20,46,82,0.55);
+  backdrop-filter: blur(var(--panel-blur)) saturate(160%);
+  -webkit-backdrop-filter: blur(var(--panel-blur)) saturate(160%);
+  border: var(--border);
+  box-shadow:
+    inset 0 1px 0 rgba(255,242,235,0.14),
+    inset 0 -1px 0 rgba(20,46,82,0.35),
+    var(--shadow-mid);
+  position: relative;
+}
+.glass-panel::before {
+  content:''; position:absolute; top:0; left:8%; right:8%; height:1px;
+  background: linear-gradient(90deg, transparent, rgba(255,242,235,0.35), transparent);
+  pointer-events: none;
+}
+.glass-card {
+  background:
+    linear-gradient(135deg, rgba(20,46,82,0.42) 0%, rgba(32,73,131,0.26) 100%),
+    rgba(20,46,82,0.50);
+  backdrop-filter: blur(var(--card-blur)) saturate(160%);
+  -webkit-backdrop-filter: blur(var(--card-blur)) saturate(160%);
+  border: var(--border);
+  box-shadow:
+    inset 0 1px 0 rgba(255,242,235,0.14),
+    inset 0 -1px 0 rgba(20,46,82,0.35),
+    var(--shadow-low);
+}
+.glass-action {
+  background:
+    linear-gradient(135deg, rgba(20,46,82,0.36) 0%, rgba(32,73,131,0.22) 100%),
+    rgba(20,46,82,0.45);
+  backdrop-filter: blur(var(--action-blur)) saturate(160%);
+  -webkit-backdrop-filter: blur(var(--action-blur)) saturate(160%);
+  border: var(--border);
+  box-shadow:
+    inset 0 1px 0 rgba(255,242,235,0.14),
+    inset 0 -1px 0 rgba(20,46,82,0.35),
+    var(--shadow-low);
+}
+
+/* ── Readout panel (reused from current app — unchanged) ────────────────── */
+.readout {
+  margin: 14px; padding: 12px 16px;
+  border-radius: 14px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.readout-row1 { display: flex; align-items: center; justify-content: space-between; height: 36px; }
+.date-pill {
+  display: flex; align-items: center; gap: 6px;
+  padding: 0 12px; height: 36px;
+  border-radius: 16px;
+  font-size: 13px; font-weight: 600;
+}
+.date-pill .chev { opacity: 0.6; }
+.wx-inline { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.wx-inline .temp { font-weight: 600; }
+.wx-inline .wind { color: var(--muted); font-weight: 500; }
+.wx-inline .dot { color: var(--muted); opacity: 0.6; }
+.wx-inline .icon { font-size: 18px; color: var(--muted); }
+.readout-row2 { display: flex; align-items: center; gap: 12px; }
+.time-label { width: 64px; font-size: 24px; font-weight: 700; color: var(--accent); }
+.time-bar {
+  flex: 1; height: 38px; border-radius: 12px; overflow: hidden;
+  background: var(--wx-night);
+  position: relative;
+  box-shadow: inset 0 0 0 1px rgba(156,189,231,0.10), inset 0 1px 2px rgba(0,0,0,0.15);
+}
+.time-bar-fill {
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg,
+    var(--wx-night) 0%, var(--wx-night) 42%,
+    var(--wx-over) 42%, var(--wx-over) 68%,
+    var(--wx-partly) 68%, var(--wx-partly) 82%,
+    var(--wx-sun) 82%, var(--wx-sun) 100%);
+  opacity: 1;
+}
+.time-bar-fill.past { background: var(--wx-night); opacity: 1; }
+.time-thumb {
+  position: absolute; top: 50%; left: 60%;
+  width: 28px; height: 28px;
+  transform: translate(-50%, -50%);
+  background: rgba(255,242,235,0.18);
+  border: 1.5px solid rgba(255,242,235,0.75);
+  border-radius: 50%;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.30),
+    0 2px 6px rgba(0,0,0,0.35),
+    0 0 12px rgba(255,175,133,0.35);
+}
+.readout-row3 {
+  display: flex; justify-content: space-between;
+  padding: 0 4px 0 76px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.5px;
+  color: var(--muted);
+}
+
+/* ── List header ────────────────────────────────────────────────────────── */
+.list-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px 10px;
+}
+.list-header .count {
+  font-size: 15px; font-weight: 600; color: var(--text);
+}
+.list-header .count em {
+  font-style: normal; color: var(--muted); font-weight: 500;
+}
+.sort-chip {
+  display: flex; align-items: center; gap: 6px;
+  padding: 0 12px; height: 36px;
+  border-radius: 16px;
+  font-size: 13px; font-weight: 600;
+}
+.sort-chip .chev { opacity: 0.6; }
+
+/* ── Venue list ─────────────────────────────────────────────────────────── */
+.venue-list { padding: 0 14px 20px; display: flex; flex-direction: column; gap: 10px; }
+
+.venue-card {
+  position: relative;
+  padding: 14px 16px;
+  border-radius: 16px;
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  grid-template-rows: auto auto auto;
+  column-gap: 12px;
+  row-gap: 4px;
+  align-items: center;
+  transition: border-color 120ms;
+}
+.venue-card.selected { border-color: rgba(255,175,133,0.45); box-shadow: inset 0 0 0 1px rgba(255,175,133,0.45), var(--shadow-low); }
+
+.venue-card .card-icon {
+  grid-row: 1 / 3;
+  grid-column: 1;
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  align-self: start;
+  margin-top: 2px;
+}
+.venue-card .card-icon img { width: 24px; height: 24px; display: block; }
+
+.venue-card .card-name {
+  grid-column: 2;
+  grid-row: 1;
+  font-size: 17px; font-weight: 600; color: var(--text);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.venue-card .card-score {
+  grid-column: 3;
+  grid-row: 1;
+  font-size: 22px; font-weight: 700;
+  line-height: 1; padding-top: 2px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.venue-card.hero .card-score { color: var(--accent); }
+
+.venue-card .card-meta {
+  grid-column: 2 / 4;
+  grid-row: 2;
+  font-size: 12.5px; font-weight: 500; color: var(--muted);
+  display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+}
+.venue-card .card-meta .dot { opacity: 0.45; }
+
+.venue-card .card-status {
+  grid-column: 2 / 4;
+  grid-row: 3;
+  font-size: 13.5px; font-weight: 500;
+  color: var(--muted);
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 2px;
+}
+.venue-card.hero .card-status { color: rgba(255,175,133,0.85); }
+.venue-card .card-status .dot { opacity: 0.4; }
+
+/* Closed card — compact single-line variant */
+.venue-card.closed {
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto;
+  padding: 12px 16px;
+  opacity: 0.72;
+}
+.venue-card.closed .closed-name {
+  font-size: 15px; font-weight: 600; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.venue-card.closed .closed-time {
+  font-size: 12px; font-weight: 600; color: var(--muted);
+  letter-spacing: 0.3px;
+  padding: 4px 10px; border-radius: 10px;
+  background: rgba(156,189,231,0.08);
+}
+
+/* ── DETAIL PANEL ───────────────────────────────────────────────────────── */
+.detail {
+  display: flex; flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.detail::-webkit-scrollbar { display: none; }
+
+.dp-photos {
+  position: relative;
+  display: grid; grid-template-columns: 2fr 1fr; gap: 3px;
+  height: 220px;
+  overflow: hidden;
+}
+.dp-photos .dp-photo {
+  background: linear-gradient(135deg, #3a4a6b 0%, #2a3a55 100%);
+  position: relative;
+  overflow: hidden;
+}
+.dp-photos .dp-photo::after {
+  content: ''; position: absolute; inset: 0;
+  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="rgba(255,242,235,0.15)"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>') no-repeat center / 40px;
+  opacity: 0.35;
+}
+.dp-close {
+  position: absolute; top: 16px; right: 16px;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; color: var(--text);
+  cursor: pointer;
+  border: var(--border);
+  z-index: 2;
+}
+
+.dp-body { padding: 18px 20px 28px; display: flex; flex-direction: column; gap: 16px; }
+
+.dp-title { font-size: 24px; font-weight: 700; line-height: 1.15; letter-spacing: -0.015em; }
+.dp-meta { font-size: 13px; font-weight: 500; color: var(--muted); }
+.dp-meta .dot { opacity: 0.45; margin: 0 6px; }
+
+.dp-status-pill {
+  align-self: flex-start;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 14px; border-radius: 18px;
+  font-size: 14px; font-weight: 600;
+  color: var(--accent);
+}
+.dp-status-pill img { width: 18px; height: 18px; }
+.dp-status-pill .dot { color: var(--muted); opacity: 0.5; }
+.dp-status-pill .muted { color: var(--muted); font-weight: 500; }
+
+/* ── Sun dial — redesigned ──────────────────────────────────────────────── */
+.dp-dial-wrap {
+  display: flex; justify-content: center;
+  padding: 4px 0 12px;
+}
+.dp-dial { width: 260px; height: 260px; position: relative; }
+.dp-dial svg { width: 100%; height: 100%; }
+.dp-dial .dial-center {
+  position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 72px; height: 72px;
+  display: flex; align-items: center; justify-content: center;
+}
+.dp-dial .dial-center img { width: 72px; height: 72px; }
+.dp-dial .dial-center-label {
+  position: absolute; left: 50%; top: calc(50% + 46px);
+  transform: translate(-50%, 0);
+  font-size: 11px; font-weight: 600; color: var(--muted);
+  letter-spacing: 0.6px; text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* ── Action row ─────────────────────────────────────────────────────────── */
+.dp-actions { display: flex; gap: 8px; }
+.dp-action {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  height: 48px; border-radius: 14px;
+  font-size: 13px; font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+}
+.dp-action svg { width: 18px; height: 18px; stroke: var(--accent); }
+.dp-action-edit {
+  align-self: flex-end;
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--muted); font-weight: 500;
+  padding: 6px 0;
+  text-decoration: none;
+  border: none; background: transparent;
+  cursor: pointer;
+  margin-top: -4px;
+}
+.dp-action-edit svg { width: 14px; height: 14px; stroke: currentColor; }
+
+/* ── SOLSCORE block ─────────────────────────────────────────────────────── */
+.dp-score-card {
+  padding: 18px 18px 16px;
+  border-radius: 16px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.dp-score-top {
+  display: flex; align-items: baseline; justify-content: space-between;
+}
+.dp-score-top .label {
+  font-size: 10px; font-weight: 600; color: var(--muted);
+  letter-spacing: 0.8px; text-transform: uppercase;
+}
+.dp-score-top .total {
+  font-size: 28px; font-weight: 700; color: var(--text);
+  font-variant-numeric: tabular-nums; line-height: 1;
+}
+.dp-score-top .total-hint { font-size: 11px; color: var(--muted); font-weight: 500; margin-left: 8px; }
+
+.dp-score-row { display: flex; flex-direction: column; gap: 6px; }
+.dp-score-row + .dp-score-row { padding-top: 12px; border-top: var(--border-soft); }
+.dp-score-row-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+}
+.dp-score-row-head .name { font-size: 14px; font-weight: 600; color: var(--text); }
+.dp-score-row-head .val {
+  font-size: 14px; font-weight: 700; color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.dp-score-row-hint { font-size: 12px; color: var(--muted); font-weight: 500; }
+.dp-score-bar {
+  height: 4px; border-radius: 2px;
+  background: rgba(156,189,231,0.12);
+  overflow: hidden;
+  margin-top: 4px;
+}
+.dp-score-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, rgba(255,175,133,0.55), var(--accent));
+  border-radius: 2px;
+}
+
+/* ── Annotations (outside the phone, for communicating intent) ──────────── */
+.note {
+  position: absolute;
+  background: rgba(255,242,235,0.06);
+  border: 1px dashed rgba(255,242,235,0.3);
+  color: rgba(255,242,235,0.8);
+  font-size: 11px; font-weight: 500; line-height: 1.4;
+  padding: 8px 10px; border-radius: 8px;
+  max-width: 220px;
+  pointer-events: none;
+}
+.note::before {
+  content:''; position: absolute;
+  width: 40px; height: 1px;
+  background: rgba(255,242,235,0.3);
+}
+</style>
+</head>
+<body>
+
+<!-- ── LEFT: venue list ─────────────────────────────────────────────────── -->
+<div class="phone">
+  <div class="phone-label">Venue list — redesigned</div>
+
+  <!-- Readout (unchanged from current app) -->
+  <div class="readout glass-panel">
+    <div class="readout-row1">
+      <div class="date-pill glass-action">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted)"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span>I dag</span>
+        <svg class="chev" width="10" height="6" viewBox="0 0 10 6"><path d="M0 0 L5 6 L10 0 Z" fill="currentColor" style="color:var(--muted)"/></svg>
+      </div>
+      <div class="wx-inline">
+        <span class="icon">☁</span>
+        <span class="temp">20°</span>
+        <span class="dot">·</span>
+        <span class="wind">↘ 3 m/s</span>
+      </div>
+    </div>
+    <div class="readout-row2">
+      <div class="time-label">17:15</div>
+      <div class="time-bar">
+        <div class="time-bar-fill"></div>
+        <div class="time-thumb"></div>
+      </div>
+    </div>
+    <div class="readout-row3">
+      <span>6</span><span>8</span><span>10</span><span>12</span><span>14</span><span>16</span><span>18</span><span>20</span>
+    </div>
+  </div>
+
+  <!-- List header -->
+  <div class="list-header">
+    <div class="count">10 steder i solen <em>· til 20:25</em></div>
+    <div class="sort-chip glass-action">
+      Score
+      <svg class="chev" width="10" height="6" viewBox="0 0 10 6"><path d="M0 0 L5 6 L10 0 Z" fill="currentColor" style="color:var(--muted)"/></svg>
+    </div>
+  </div>
+
+  <!-- Cards -->
+  <div class="venue-list">
+
+    <!-- Hero: sunny, high score, selected -->
+    <div class="venue-card glass-card hero selected">
+      <div class="card-icon"><img src="./shades-status-icons/sun-100-percent.png" alt=""></div>
+      <div class="card-name">Mamma Pizza Vika Osteria</div>
+      <div class="card-score">93</div>
+      <div class="card-meta">
+        <span>Sentrum</span><span class="dot">·</span>
+        <span>Restaurant</span><span class="dot">·</span>
+        <span>221 m</span>
+      </div>
+      <div class="card-status">3t 10m i solen <span class="dot">·</span> til 20:25</div>
+    </div>
+
+    <!-- Hero: sunny, mid duration -->
+    <div class="venue-card glass-card hero">
+      <div class="card-icon"><img src="./shades-status-icons/sun-75-percent.png" alt=""></div>
+      <div class="card-name">Olivia Tjuvholmen</div>
+      <div class="card-score">91</div>
+      <div class="card-meta">
+        <span>Frogner</span><span class="dot">·</span>
+        <span>Restaurant</span><span class="dot">·</span>
+        <span>592 m</span>
+      </div>
+      <div class="card-status">2t 40m i solen <span class="dot">·</span> til 19:55</div>
+    </div>
+
+    <!-- Waiting: shadow icon, sun coming -->
+    <div class="venue-card glass-card">
+      <div class="card-icon"><img src="./shades-status-icons/shadow-50-percent.png" alt=""></div>
+      <div class="card-name">AMAZONIA by BAR</div>
+      <div class="card-score">74</div>
+      <div class="card-meta">
+        <span>Frogner</span><span class="dot">·</span>
+        <span>Restaurant</span><span class="dot">·</span>
+        <span>607 m</span>
+      </div>
+      <div class="card-status">Sol om 35m <span class="dot">·</span> fra 17:50</div>
+    </div>
+
+    <!-- Overcast but open: lower score, muted icon -->
+    <div class="venue-card glass-card">
+      <div class="card-icon"><img src="./shades-status-icons/sun-25-percent.png" alt="" style="opacity:0.75"></div>
+      <div class="card-name">Arts restaurant</div>
+      <div class="card-score">61</div>
+      <div class="card-meta">
+        <span>Frogner</span><span class="dot">·</span>
+        <span>Restaurant</span><span class="dot">·</span>
+        <span>485 m</span>
+      </div>
+      <div class="card-status">35m i solen <span class="dot">·</span> til 18:10</div>
+    </div>
+
+    <!-- Closed: compact single-line -->
+    <div class="venue-card glass-card closed">
+      <span class="closed-name">Nodee Sky</span>
+      <span class="closed-time">Åpner 11:00</span>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── RIGHT: detail panel ──────────────────────────────────────────────── -->
+<div class="phone">
+  <div class="phone-label">Detail panel — redesigned</div>
+
+  <div class="detail">
+
+    <div class="dp-photos">
+      <div class="dp-photo"></div>
+      <div class="dp-photo"></div>
+      <button class="dp-close glass-action" aria-label="Lukk">✕</button>
+    </div>
+
+    <div class="dp-body">
+      <div>
+        <div class="dp-title">Mamma Pizza Vika Osteria di Mare</div>
+        <div class="dp-meta">Restaurant<span class="dot">·</span>Sentrum<span class="dot">·</span>226 m</div>
+      </div>
+
+      <div class="dp-status-pill glass-action">
+        <img src="./shades-status-icons/sun-100-percent.png" alt="">
+        <span>3t 10m i solen</span>
+        <span class="dot">·</span>
+        <span class="muted">til 20:25</span>
+      </div>
+
+      <!-- Sun dial — clock numbers removed, weather callouts hug the arc -->
+      <div class="dp-dial-wrap">
+        <div class="dp-dial">
+          <svg viewBox="0 0 260 260">
+            <!-- outer ring (background) -->
+            <circle cx="130" cy="130" r="108" fill="none" stroke="rgba(156,189,231,0.14)" stroke-width="10"/>
+
+            <!-- sun windows along arc -->
+            <!-- full sun window: 17:15–19:00 (approx arc 70°–180°) -->
+            <circle cx="130" cy="130" r="108" fill="none"
+              stroke="#FFD488" stroke-width="10"
+              stroke-dasharray="120 679" stroke-dashoffset="-78"
+              transform="rotate(-90 130 130)" opacity="0.9"/>
+            <!-- partly: 19:00–20:00 -->
+            <circle cx="130" cy="130" r="108" fill="none"
+              stroke="#E6C08A" stroke-width="10"
+              stroke-dasharray="62 737" stroke-dashoffset="-200"
+              transform="rotate(-90 130 130)" opacity="0.9"/>
+            <!-- overcast: 20:00–20:25 -->
+            <circle cx="130" cy="130" r="108" fill="none"
+              stroke="#8EA0B8" stroke-width="10"
+              stroke-dasharray="24 775" stroke-dashoffset="-264"
+              transform="rotate(-90 130 130)" opacity="0.9"/>
+
+            <!-- sunrise marker -->
+            <line x1="130" y1="22" x2="130" y2="40" stroke="rgba(156,189,231,0.4)" stroke-width="1"/>
+            <text x="130" y="14" fill="#9CBDE7" font-size="10" font-weight="600" text-anchor="middle" letter-spacing="0.5" font-family="Inter">05:37 OPP</text>
+
+            <!-- sunset marker -->
+            <line x1="130" y1="220" x2="130" y2="238" stroke="rgba(156,189,231,0.4)" stroke-width="1"/>
+            <text x="130" y="251" fill="#9CBDE7" font-size="10" font-weight="600" text-anchor="middle" letter-spacing="0.5" font-family="Inter">20:51 NED</text>
+
+            <!-- current-time indicator along arc: position where 17:15 sits on the arc -->
+            <circle cx="38" cy="168" r="6" fill="#FFF2EB" stroke="#FFAF85" stroke-width="2"/>
+
+            <!-- callouts inside arc, tucked close -->
+            <g font-family="Inter" font-size="11" fill="#FFF2EB" font-weight="500">
+              <!-- now -->
+              <text x="64" y="172" text-anchor="start" fill="#FFAF85" font-weight="600">17:15 nå</text>
+
+              <!-- sun window end -->
+              <text x="130" y="115" text-anchor="middle" font-size="13" font-weight="700" fill="#FFD488">3t 10m</text>
+              <text x="130" y="132" text-anchor="middle" font-size="11" fill="#FFF2EB" opacity="0.75">sammenhengende</text>
+              <text x="130" y="149" text-anchor="middle" font-size="11" fill="#FFF2EB" opacity="0.75">sol nå</text>
+            </g>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Actions: three equal + Edit demoted to text link -->
+      <div class="dp-actions">
+        <a class="dp-action glass-action" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+          Veibeskrivelse
+        </a>
+        <a class="dp-action glass-action" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          Nettside
+        </a>
+        <button class="dp-action glass-action">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          Del
+        </button>
+      </div>
+
+      <!-- SOLSCORE: unified typography, bars, total at top -->
+      <div class="dp-score-card glass-card">
+        <div class="dp-score-top">
+          <span class="label">Solscore</span>
+          <div>
+            <span class="total">93</span>
+            <span class="total-hint">/ 100</span>
+          </div>
+        </div>
+
+        <div class="dp-score-row">
+          <div class="dp-score-row-head">
+            <span class="name">Soleksponering</span>
+            <span class="val">100</span>
+          </div>
+          <div class="dp-score-row-hint">Timer med direkte sol vs. åpningstider</div>
+          <div class="dp-score-bar"><div class="dp-score-bar-fill" style="width:100%"></div></div>
+        </div>
+
+        <div class="dp-score-row">
+          <div class="dp-score-row-head">
+            <span class="name">Komfortnivå</span>
+            <span class="val">100</span>
+          </div>
+          <div class="dp-score-row-hint">Føles-som temperatur og vindhastighet</div>
+          <div class="dp-score-bar"><div class="dp-score-bar-fill" style="width:100%"></div></div>
+        </div>
+
+        <div class="dp-score-row">
+          <div class="dp-score-row-head">
+            <span class="name">Støy</span>
+            <span class="val">50</span>
+          </div>
+          <div class="dp-score-row-hint">Estimert trafikkstøy</div>
+          <div class="dp-score-bar"><div class="dp-score-bar-fill" style="width:50%"></div></div>
+        </div>
+
+        <div class="dp-score-row">
+          <div class="dp-score-row-head">
+            <span class="name">Nærhet</span>
+            <span class="val">85</span>
+          </div>
+          <div class="dp-score-row-hint">226 m unna deg</div>
+          <div class="dp-score-bar"><div class="dp-score-bar-fill" style="width:85%"></div></div>
+        </div>
+      </div>
+
+      <!-- Demoted edit action -->
+      <button class="dp-action-edit">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Foreslå endringer
+      </button>
+
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
