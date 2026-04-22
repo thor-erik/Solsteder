@@ -3842,6 +3842,328 @@
   /* Hide UI elements when detail panel is open on mobile */
   .mobile-ui-hidden { display: none !important; }
 
+  /* ──── New Detail Panel CSS (Tasks 5-8) ────────────────────────────────────── */
+  .detail-new-photos {
+    height: 180px;
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 14px;
+    background: linear-gradient(135deg, #3a4b6e, #2a3a5c);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .detail-new-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .detail-new-title {
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.15;
+    flex: 1;
+  }
+
+  .detail-new-sub {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  .detail-new-back {
+    padding: 8px 14px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 13px;
+    flex-shrink: 0;
+    color: var(--text);
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .detail-new-back:hover {
+    background: rgba(20,46,82,0.65);
+  }
+
+  /* Primary action row: wide button + icon buttons */
+  .primary-action {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+
+  .btn-primary {
+    flex: 1;
+    background: var(--accent);
+    color: #2a1a0a;
+    padding: 14px;
+    border-radius: 14px;
+    font-weight: 700;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: none;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .btn-primary:hover {
+    opacity: 0.9;
+  }
+
+  .btn-icon-sec {
+    width: 48px;
+    height: 48px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    cursor: pointer;
+    flex-shrink: 0;
+    text-decoration: none;
+  }
+
+  .btn-icon-sec:hover {
+    background: rgba(20,46,82,0.65);
+  }
+
+  /* Sun section */
+  .sun-section {
+    background: rgba(20,46,82,0.28);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+
+  .sun-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 12px;
+  }
+
+  .sun-section-main {
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .sun-section-main .hi {
+    color: var(--accent);
+  }
+
+  .sun-section-sub {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .big-timeline {
+    position: relative;
+    height: 28px;
+    margin-bottom: 6px;
+  }
+
+  .big-timeline-track {
+    position: absolute;
+    top: 10px;
+    left: 0;
+    right: 0;
+    height: 10px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 5px;
+    overflow: hidden;
+  }
+
+  .big-timeline-sun {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, var(--accent), #FFD4AF);
+  }
+
+  .big-timeline-cloud {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    background: rgba(156,189,231,0.3);
+  }
+
+  .big-timeline-now {
+    position: absolute;
+    top: 4px;
+    width: 2px;
+    height: 22px;
+    background: #fff;
+    border-radius: 1px;
+    box-shadow: 0 0 6px rgba(255,255,255,0.6);
+  }
+
+  .big-timeline-scale {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  /* Sol-retning section */
+  .spatial-section {
+    background: rgba(20,46,82,0.28);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+
+  .spatial-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .spatial-body {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+  }
+
+  .mini-dial {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.1);
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .mini-dial-tick {
+    position: absolute;
+    font-size: 9px;
+    color: var(--muted);
+  }
+
+  .mini-dial-tick.n {
+    top: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .mini-dial-tick.s {
+    bottom: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .spatial-text {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .spatial-text .strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  .spatial-text .muted {
+    color: var(--muted);
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+  }
+
+  /* Info rows (busyness, noise, hours) */
+  .info-list {
+    background: rgba(20,46,82,0.28);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+
+  .info-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .info-row:last-child {
+    border-bottom: none;
+  }
+
+  .info-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .info-label {
+    flex: 1;
+    font-size: 14px;
+  }
+
+  .info-label-strong {
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .info-label-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .info-value {
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 500;
+    text-align: right;
+  }
+
+  /* Footer buttons */
+  .secondary-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    padding: 8px 0 0;
+    margin-top: 12px;
+  }
+
+  .secondary-link {
+    font-size: 13px;
+    color: var(--muted);
+    padding: 8px 14px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .secondary-link:hover {
+    background: rgba(20,46,82,0.35);
+  }
+
   @media (max-width: 639px) {
     #detail-panel {
       position: fixed;  /* fixed avoids parent height issues; bottom:0 anchors to visual viewport */

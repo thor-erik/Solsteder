@@ -70,6 +70,30 @@ function getVenueHoursForDay(venue, dateStr) {
   return venue.openingHoursWeekly?.[day] ?? venue.openingHours;
 }
 
+// ── Data helpers for detail panel ──────────────────────────────────────────────
+
+/**
+ * Calculate walk time from distance in meters.
+ * Assumes 4.8 km/h walking speed (80 meters/min).
+ * Returns rounded minutes; under 1 min shows "< 1 min".
+ */
+function calcWalkTime(distanceMeters) {
+  if (!distanceMeters) return null;
+  const minutes = Math.round(distanceMeters / 80);
+  return minutes < 1 ? '< 1 min' : `${minutes} min`;
+}
+
+/**
+ * Map noise score (0–100) to a label and description.
+ * 0–33: Rolig, 34–66: Moderat trafikkstøy, 67–100: Mye trafikkstøy.
+ */
+function noiseScoreToBucket(score) {
+  if (score == null) return null;
+  if (score <= 33) return { label: 'Rolig', score: score };
+  if (score <= 66) return { label: 'Moderat trafikkstøy', score: score };
+  return { label: 'Mye trafikkstøy', score: score };
+}
+
 // ── Venue list helpers ────────────────────────────────────────────────────────
 
 function venueHasSunInRange(v, dateStr, fromHour, toHour) {

@@ -477,115 +477,212 @@ function renderBusynessChart(v, dateStr, fromHour) {
     </div>`;
 }
 
-// ── Detail panel content ──────────────────────────────────────────────────────
+// ── Detail panel content (Task 5-8) ────────────────────────────────────────────
 
 function renderDetailPanelContent(v, dateStr, fromHour) {
-  const wxNow = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, fromHour) : null;
   const s = typeof computeVenueScore === 'function'
-    ? computeVenueScore(v, dateStr, fromHour, wxNow, userLocation)
+    ? computeVenueScore(v, dateStr, fromHour, typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, fromHour) : null, userLocation)
     : null;
-  const tier = s ? (s.total >= 75 ? 'tier-high' : s.total >= 55 ? 'tier-mid' : s.total >= 35 ? 'tier-low' : 'tier-poor') : '';
 
   const { windows } = computeSunWindows(v, dateStr);
-
-  // Sun status badge
-  const curWin = windows.find(w => fromHour >= w.start && fromHour < w.end);
-  let statusBadge;
-  if (curWin) {
-    const rem = curWin.end - fromHour;
-    const bh = Math.floor(rem), bm = Math.round((rem - bh) * 60);
-    const dur = (bh > 0 ? bh + 'h ' : '') + (bm > 0 ? bm + 'm' : '');
-    statusBadge = `<span class="score-badge tier-high">☀ ${dur.trim()} · ${t('sun_until_dial', { time: formatHour(curWin.end) })}</span>`;
-  } else {
-    const next = windows.find(w => w.start > fromHour);
-    if (next) {
-      statusBadge = `<span class="score-badge tier-mid">☀ ${t('sun_at_detail', { time: formatHour(next.start) })}</span>`;
-    } else {
-      statusBadge = `<span class="score-badge tier-poor">${windows.length ? t('sun_passed') : t('no_sun_today')}</span>`;
-    }
-  }
-
+  const distMeters = s?.distKm != null ? s.distKm * 1000 : null;
   const distStr = s?.distKm != null
     ? (s.distKm < 1 ? `${Math.round(s.distKm * 1000)} m` : `${s.distKm.toFixed(1)} km`)
     : null;
 
-  // Noise chip — prefer official Geonorge zone, fall back to OSM estimate
-  const noiseChip = v.noiseZone != null
-    ? v.noiseZone === 'red'    ? { label: t('noise_high'),     cls: 'noise-high', icon: '🔊' }
-    : v.noiseZone === 'yellow' ? { label: t('noise_mid'),      cls: 'noise-mid',  icon: '🔉' }
-    :                            { label: t('noise_low'),      cls: 'noise-low',  icon: '🔈' }
-    : v.noiseScore != null
-    ? v.noiseScore > 0.65 ? { label: t('noise_high_est'), cls: 'noise-high', icon: '🔊' }
-    : v.noiseScore > 0.35 ? { label: t('noise_mid_est'),  cls: 'noise-mid',  icon: '🔉' }
-    :                        { label: t('noise_low_est'),  cls: 'noise-low',  icon: '🔈' }
-    : null;
+  // Task 5: Header + primary action row
+  const walkTime = typeof calcWalkTime === 'function' ? calcWalkTime(distMeters) : null;
 
-  const envSection = noiseChip ? `
-    <div class="dp-divider"></div>
-    <div class="dp-section-label">${t('environment')}</div>
-    <div class="dp-env-row">
-      ${noiseChip ? `<div class="dp-env-chip ${noiseChip.cls}">${noiseChip.icon} ${noiseChip.label}</div>` : ''}
+  const haPhone = v.phone ? `<a href="tel:${encodeURIComponent(v.phone)}" class="btn-icon-sec" title="Ring">📞</a>` : '';
+  const hasWebsite = v.website ? `<a href="${v.website}" target="_blank" rel="noopener" class="btn-icon-sec" title="Nettside">🌐</a>` : '';
+
+  // Task 6: Sun section headline based on state
+  const state = typeof venueState === 'function' ? venueState(v, fromHour) :
+    { state: 'sun', mainText: '—', subText: '', className: 'state-sun' };
+
+  let sunHeadline = '';
+  if (state.state === 'sun') {
+    const lastWin = windows[windows.length - 1];
+    const curWin = windows.find(w => fromHour >= w.start && fromHour < w.end);
+    const remaining = curWin ? Math.floor(curWin.end - fromHour) : 0;
+    const remH = Math.floor(remaining), remM = Math.round((remaining - remH) * 60);
+    const remStr = remH > 0 ? `${remH}t ${remM}m` : `${remM} min`;
+    sunHeadline = `Sol til ${formatHour(lastWin.end)} · <span class="hi">${remStr} igjen</span>`;
+  } else if (state.state === 'shadow') {
+    const lastWin = windows[windows.length - 1];
+    const nextWin = windows.find(w => w.start > fromHour);
+    const waitH = Math.floor(nextWin.start - fromHour), waitM = Math.round((nextWin.start - fromHour - waitH) * 60);
+    const waitStr = waitH > 0 ? `${waitH}t ${waitM}m` : `${waitM} min`;
+    sunHeadline = `Sol fra ${formatHour(nextWin.start)} · <span class="hi">om ${waitStr}</span>`;
+  } else {
+    const lastWin = windows[windows.length - 1];
+    sunHeadline = `Sol ferdig i dag`;
+  }
+
+  // Find intra-day sun window breaks for "next pause" text
+  let nextPauseText = '';
+  if (windows.length > 1) {
+    for (let i = 0; i < windows.length - 1; i++) {
+      if (windows[i].end > fromHour) {
+        nextPauseText = `Neste pause ${formatHour(windows[i].end)}`;
+        break;
+      }
+    }
+  }
+
+  // Task 7: Sol-retning section (direction)
+  const sunPos = typeof getSun === 'function' ? getSun(dateStr, fromHour) : { az: 0 };
+  const azimuth = sunPos.az;
+  const azbuckets = ['N', 'NØ', 'Ø', 'SØ', 'S', 'SV', 'V', 'NV'];
+  const bucketIdx = Math.round((azimuth + 360) / 45) % 8;
+  const bucketName = azbuckets[bucketIdx];
+  const directionMap = {
+    'N': { text: 'nord', seat: 'nordsiden' },
+    'NØ': { text: 'nordøst', seat: 'nordøstsiden' },
+    'Ø': { text: 'øst', seat: 'østsiden' },
+    'SØ': { text: 'sørost', seat: 'sørostsiden' },
+    'S': { text: 'sør', seat: 'sørsiden' },
+    'SV': { text: 'sørvest', seat: 'sørvestsiden' },
+    'V': { text: 'vest', seat: 'vestsiden' },
+    'NV': { text: 'nordvest', seat: 'nordvestsiden' }
+  };
+  const dir = directionMap[bucketName];
+  const solRetningMain = `Solen står ${dir.text}`;
+  const solRetningSub = `Sett deg på ${dir.seat} av terrassen`;
+
+  // Task 8: Info list
+  const infoRows = [];
+
+  // Busyness row
+  const busynessNow = typeof getBusynessAt === 'function' ? getBusynessAt(v, dateStr, fromHour) : null;
+  if (busynessNow != null) {
+    infoRows.push(`
+      <div class="info-row">
+        <div class="info-icon">👥</div>
+        <div class="info-label">
+          <div class="info-label-strong">Travelt nå</div>
+          <div class="info-label-sub">~${Math.round(busynessNow)}%</div>
+        </div>
+      </div>`);
+  }
+
+  // Noise row
+  const noiseScore = v.noiseScore != null ? v.noiseScore * 100 : null;
+  if (noiseScore != null) {
+    const noiseBucket = typeof noiseScoreToBucket === 'function' ? noiseScoreToBucket(noiseScore) : null;
+    if (noiseBucket) {
+      infoRows.push(`
+        <div class="info-row">
+          <div class="info-icon">🔊</div>
+          <div class="info-label">
+            <div class="info-label-strong">${noiseBucket.label}</div>
+          </div>
+        </div>`);
+    }
+  }
+
+  // Hours row
+  const hours = getVenueHoursForDay(v, dateStr);
+  const closingStr = hours.close != null ? formatHour(hours.close) : 'Åpent';
+  let hoursSubtext = '';
+  if (v.kitchenCloseHour != null) {
+    hoursSubtext = `Kjøkken til ${formatHour(v.kitchenCloseHour)}`;
+  }
+  infoRows.push(`
+    <div class="info-row">
+      <div class="info-icon">🕐</div>
+      <div class="info-label">
+        <div class="info-label-strong">Åpent til ${closingStr}</div>
+        ${hoursSubtext ? `<div class="info-label-sub">${hoursSubtext}</div>` : ''}
+      </div>
+      <div class="info-value">Åpent</div>
+    </div>`);
+
+  const infoListHtml = infoRows.length > 0 ? `
+    <div class="info-list">
+      ${infoRows.join('')}
     </div>` : '';
 
-  const sunScoreSection = s ? `
-    <div class="dp-divider"></div>
-    <div class="dp-section-label">${t('sun_score')}</div>
-    <div class="dp-exp-row"><span><span class="dp-exp-label">${t('sun_exposure')}</span><div class="dp-exp-hint">${t('sun_exposure_hint')}</div></span><span class="dp-exp-val">${s.sun}%</span></div>
-    <div class="dp-exp-bar-wrap"><div class="dp-exp-bar-fill" style="width:${s.sun}%"></div></div>
-    <div class="dp-exp-row"><span><span class="dp-exp-label">${t('comfort_level')}</span><div class="dp-exp-hint">${t('comfort_hint')}</div></span><span class="dp-exp-val">${s.comfort}%</span></div>
-    <div class="dp-exp-bar-wrap"><div class="dp-exp-bar-fill" style="width:${s.comfort}%"></div></div>
-    ${s.noise != null ? `
-    <div class="dp-exp-row"><span><span class="dp-exp-label">${t('noise_section')}</span><div class="dp-exp-hint">${t('noise_hint')}</div></span><span class="dp-exp-val">${s.noise}%</span></div>
-    <div class="dp-exp-bar-wrap"><div class="dp-exp-bar-fill" style="width:${s.noise}%"></div></div>` : ''}
-    ${distStr ? `<div class="dp-exp-row" style="margin-top:8px"><span class="dp-exp-label">${t('proximity')}</span><span class="dp-exp-val" style="font-style:normal;font-size:13px">${distStr}</span></div>` : ''}
-  ` : '';
-
-  const { svg: dialSvg, pill: sunPill } = renderSunDial(v, dateStr, fromHour);
-
-  const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lng}`;
-  const websiteUrl    = `https://www.google.com/search?q=${encodeURIComponent(v.name + ' ' + (v.area ?? '') + ' Oslo')}`;
-
-  const ICON_DIR   = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>`;
-  const ICON_WEB   = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`;
-  const ICON_SHARE = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>`;
-  const ICON_EDIT  = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+  // Footer with edit/report
+  const footerHtml = `
+    <div class="secondary-row">
+      <button class="secondary-link" onclick="enterEditMode(${v.id})">Rediger informasjon</button>
+      <button class="secondary-link" onclick="alert('Rapportfunksjon kommer snart')">Rapporter feil</button>
+    </div>`;
 
   const photosHtml = v.photoUrls?.length
-    ? `<div class="dp-photos">${
-        v.photoUrls.map(url => `<img class="dp-photo" src="${url}" loading="lazy" alt="">`).join('')
+    ? `<div class="detail-new-photos">${
+        v.photoUrls.map(url => `<img src="${url}" loading="lazy" alt="" style="width:100%;height:100%;object-fit:cover">`).join('')
       }</div>`
-    : '';
-
-  const limitedSolarNotice = v.facing == null ? `
-    <div class="dp-limited-solar">
-      ${t('solar_limited')}
-    </div>` : '';
+    : '<div class="detail-new-photos">[Bilde]</div>';
 
   return `
     <div id="dp-scroll">
       ${photosHtml}
-      <div class="dp-header-row">
-        <div class="dp-venue-name">${v.name}</div>
-        <button id="dp-close-btn" onclick="closeDetailPanel()"><span class="dp-close-x">✕</span><span class="dp-close-back">${t('venues_back')}</span></button>
-      </div>
-      <div class="dp-meta">${catLabel(v)}${v.area ? ' · ' + v.area : ''}${distStr ? ' · ' + distStr : ''}</div>
 
-      <div class="dp-dial-wrap">
-        ${sunPill}
-        ${dialSvg}
-      </div>
-      ${limitedSolarNotice}
-
-      <div class="dp-gm-actions">
-        <a class="dp-gm-chip" href="${directionsUrl}" target="_blank" rel="noopener">${ICON_DIR}<span>${t('directions')}</span></a>
-        <a class="dp-gm-chip" href="${websiteUrl}" target="_blank" rel="noopener">${ICON_WEB}<span>${t('website')}</span></a>
-        <button class="dp-gm-chip" onclick="shareVenue(${v.id})">${ICON_SHARE}<span>${t('share')}</span></button>
-        <button class="dp-gm-chip" onclick="enterEditMode(${v.id})">${ICON_EDIT}<span>${t('edit')}</span></button>
+      <div class="detail-new-header">
+        <div>
+          <div class="detail-new-title">${v.name}</div>
+          <div class="detail-new-sub">${catLabel(v)}${v.area ? ' · ' + v.area : ''}${distStr ? ' · ' + distStr : ''}</div>
+        </div>
+        <button class="detail-new-back" onclick="closeDetailPanel()">‹ Steder</button>
       </div>
 
-      ${sunScoreSection}
-      <div class="dp-divider"></div>
-      <div class="dp-section-label">${t('busyness')}</div>
-      ${renderBusynessChart(v, dateStr, fromHour)}
+      <div class="primary-action">
+        <button class="btn-primary">↗ Veibeskrivelse · ${walkTime || '—'}</button>
+        ${haPhone}
+        ${hasWebsite}
+        <button class="btn-icon-sec" title="Del" onclick="shareVenue(${v.id})">⇪</button>
+      </div>
+
+      <div class="sun-section">
+        <div class="sun-section-header">
+          <div class="sun-section-main">${sunHeadline}</div>
+          ${nextPauseText ? `<div class="sun-section-sub">${nextPauseText}</div>` : ''}
+        </div>
+        <div class="big-timeline">
+          <div class="big-timeline-track">
+            ${renderSunTimelineSegments(windows, fromHour)}
+            <div class="big-timeline-now" style="left:${((fromHour - 6) / 16) * 100}%"></div>
+          </div>
+        </div>
+        <div class="big-timeline-scale">
+          <span>6</span><span>9</span><span>12</span><span>15</span><span>18</span><span>21</span>
+        </div>
+      </div>
+
+      <div class="spatial-section">
+        <div class="spatial-label">Sol-retning akkurat nå</div>
+        <div class="spatial-body">
+          <div class="mini-dial">
+            <span class="mini-dial-tick n">N</span>
+            <span class="mini-dial-tick s">S</span>
+          </div>
+          <div class="spatial-text">
+            <span class="strong">${solRetningMain}</span>
+            <span class="muted">${solRetningSub}</span>
+          </div>
+        </div>
+      </div>
+
+      ${infoListHtml}
+
+      ${footerHtml}
     </div>`;
+}
+
+/** Helper: render sun/cloud timeline segments for detail panel (10px track). */
+function renderSunTimelineSegments(windows, fromHour) {
+  const START_H = 6, END_H = 22, RANGE = END_H - START_H;
+  let segments = '';
+
+  for (const w of windows) {
+    const sPos = Math.max(0, Math.min(100, ((Math.max(w.start, START_H) - START_H) / RANGE) * 100));
+    const ePos = Math.max(0, Math.min(100, ((Math.min(w.end, END_H) - START_H) / RANGE) * 100));
+    if (ePos > sPos) {
+      segments += `<div class="big-timeline-sun" style="left:${sPos}%;width:${ePos-sPos}%"></div>`;
+    }
+  }
+
+  return segments;
 }
