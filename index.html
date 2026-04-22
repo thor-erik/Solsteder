@@ -2055,7 +2055,9 @@
       border-left: none;
       border-right: none;
       border-bottom: none;
-      transform: translateY(calc(100% - var(--peek-h, 252px)));
+      transform: translateY(calc(100% - var(--peek-h, 252px))) translateZ(0);
+      will-change: transform, height;
+      backface-visibility: hidden;
     }
 
     /* Expanded state — tap handle to open */

@@ -2082,6 +2082,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       let _dragInitH = 0; // panel height at drag start (px)
+      let _dragRafId = null;
 
       function _beginDrag(y) {
         _dragY0         = y;
@@ -2095,16 +2096,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
       function _trackDrag(y) {
         if (!_dragActive) return;
-        const dy = y - _dragY0;
-        // Pure translateY in both directions — no height changes → no reflow
-        // Upward (dy<0): panel slides up, appearing taller (bottom fixed)
-        // Downward (dy>0): clamp so ≥80px always stays on screen (peek is the floor)
-        const maxY = _dragInitH - 80;
-        panelEl.style.transform = `translateY(${Math.min(maxY, _dragT0 + dy)}px)`;
+        if (_dragRafId) cancelAnimationFrame(_dragRafId);
+        _dragRafId = requestAnimationFrame(() => {
+          const dy = y - _dragY0;
+          const newY = Math.min(_dragInitH - 80, _dragT0 + dy);
+          panelEl.style.transform = `translateY(${newY}px)`;
+
+          // Expand panel height when dragging up to fill visible area (prevent showing background)
+          if (newY < _dragT0) {
+            panelEl.style.height = `${_dragInitH + Math.abs(newY - _dragT0)}px`;
+          } else {
+            panelEl.style.height = '';
+          }
+          _dragRafId = null;
+        });
       }
 
       function _commitDrag(y) {
         if (!_dragActive) return;
+        if (_dragRafId) cancelAnimationFrame(_dragRafId);
+        _dragRafId = null;
         _dragActive   = false;
         _dragFromList = false;
 
