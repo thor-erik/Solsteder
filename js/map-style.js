@@ -184,7 +184,7 @@ function buildShadeStyle() {
           ['city', 'town', 'village', 'suburb', 'neighbourhood'], true, false],
         layout: {
           'text-field': ['get', 'name'],
-          'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'],
+          'text-font': ['Open Sans Bold', 'Arial Unicode MS Regular'],
           'text-size': ['interpolate', ['linear'], ['zoom'], 8, 10, 14, 15],
           'text-max-width': 8,
           'symbol-sort-key': ['get', 'symbolrank'],

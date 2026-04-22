@@ -262,14 +262,22 @@ function _profilePanelOutsideClick(e) {
 async function _loadPendingCount() {
   const badge = document.getElementById('pending-count-badge');
   if (!badge) return;
-  const { count } = await _supabase
-    .from('pending_edits')
-    .select('*', { count: 'exact', head: true })
-    .eq('status', 'pending');
-  if (count > 0) {
-    badge.textContent = count;
-    badge.style.display = 'inline-flex';
-  } else {
+  try {
+    const { count, error } = await _supabase
+      .from('pending_edits')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'pending');
+    if (error) {
+      badge.style.display = 'none';
+      return;
+    }
+    if (count > 0) {
+      badge.textContent = count;
+      badge.style.display = 'inline-flex';
+    } else {
+      badge.style.display = 'none';
+    }
+  } catch (err) {
     badge.style.display = 'none';
   }
 }
@@ -480,11 +488,19 @@ async function openAdminReviewPanel() {
   </div>`;
   modal.style.display = 'flex';
 
-  const { data: edits, error } = await _supabase
-    .from('pending_edits')
-    .select('*')
-    .eq('status', 'pending')
-    .order('created_at', { ascending: false });
+  let edits = null;
+  let error = null;
+  try {
+    const result = await _supabase
+      .from('pending_edits')
+      .select('*')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+    edits = result.data;
+    error = result.error;
+  } catch (err) {
+    error = { code: '42P01', message: 'pending_edits table not set up yet.' };
+  }
 
   const body = document.getElementById('admin-review-body');
   if (!body) return;
@@ -524,11 +540,15 @@ async function openAdminReviewPanel() {
 async function adminApproveEdit(editId, venueId, afterStateJson) {
   const afterState = JSON.parse(afterStateJson);
   if (typeof applyVenueEditProposal === 'function') applyVenueEditProposal(venueId, afterState);
-  await _supabase.from('pending_edits').update({
-    status: 'approved',
-    reviewed_at: new Date().toISOString(),
-    reviewed_by: _currentUser.id,
-  }).eq('id', editId);
+  try {
+    await _supabase.from('pending_edits').update({
+      status: 'approved',
+      reviewed_at: new Date().toISOString(),
+      reviewed_by: _currentUser.id,
+    }).eq('id', editId);
+  } catch (err) {
+    console.warn('Failed to approve edit:', err.message);
+  }
   const card = document.getElementById(`admin-edit-${editId}`);
   if (card) {
     card.style.opacity = '0.4';
@@ -538,11 +558,15 @@ async function adminApproveEdit(editId, venueId, afterStateJson) {
 }
 
 async function adminRejectEdit(editId) {
-  await _supabase.from('pending_edits').update({
-    status: 'rejected',
-    reviewed_at: new Date().toISOString(),
-    reviewed_by: _currentUser.id,
-  }).eq('id', editId);
+  try {
+    await _supabase.from('pending_edits').update({
+      status: 'rejected',
+      reviewed_at: new Date().toISOString(),
+      reviewed_by: _currentUser.id,
+    }).eq('id', editId);
+  } catch (err) {
+    console.warn('Failed to reject edit:', err.message);
+  }
   const card = document.getElementById(`admin-edit-${editId}`);
   if (card) {
     card.style.opacity = '0.4';
