@@ -232,6 +232,7 @@ function toggleProfilePanel(e) {
     closeProfilePanel();
   } else {
     panel.classList.add('open');
+    window._navPush?.('profile');
     // Close on outside click
     setTimeout(() => {
       document.addEventListener('click', _profilePanelOutsideClick, { once: true });
@@ -240,6 +241,7 @@ function toggleProfilePanel(e) {
 }
 
 function closeProfilePanel() {
+  window._navDropLayer?.('profile');
   const panel = document.getElementById('profile-panel');
   if (panel) panel.classList.remove('open');
 }

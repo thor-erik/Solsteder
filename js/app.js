@@ -45,30 +45,40 @@ let _frozenBounds     = null;  // map bounds frozen at the moment of venue selec
 let _mapMovedWhileDetailOpen = false; // true if user panned/zoomed while detail panel was open
 
 // ── Back-button / browser history nav ────────────────────────────────────────
-// Each "layer" (venue panel, dp-fullscreen, qc-panel, sort panel) pushes one
-// history entry via _navPush(). Pressing the browser back button (or mobile
-// back gesture) fires popstate, which closes the top-most layer without
-// navigating away. When a layer is closed via in-app UI instead of back, we
-// call _navDrop(n) which calls history.go(-n) and ignores the resulting popstate.
-let _navDepth            = 0;    // how many entries we have pushed
-let _navHandlingPop      = false; // true while popstate handler is running
-let _navDropPending      = false; // true while history.go(-n) is in-flight from UI close
-let _navDepthAtVenueOpen = 0;    // _navDepth snapshot just before venue push
-let _navDepthAtQcOpen    = 0;    // _navDepth snapshot just before qc-panel push
-let _navDepthAtSortOpen  = 0;    // _navDepth snapshot just before sort-panel push
+// LIFO stack of named layers pushed to history. Each "layer" is a string
+// ('venue', 'dp-fullscreen', 'qc', 'sort', 'profile', 'edit',
+//  'list-expanded', 'list-fullscreen').
+// Pressing back fires popstate → we pop the top layer and dismiss it.
+// In-app UI closes call _navDropLayer(name) which removes entries from the
+// stack and calls history.go(-n), then ignores the resulting popstate.
+const _navStack = [];
+let _navHandlingPop = false; // true while popstate handler is running
+let _navDropPending = false; // true while history.go(-n) is in-flight from UI
 
-function _navPush() {
-  _navDepth++;
-  history.pushState({ navDepth: _navDepth }, '');
+function _navPush(layer) {
+  _navStack.push(layer);
+  history.pushState({ navLayer: layer, navDepth: _navStack.length }, '');
 }
 
-// Drop `count` history entries that we own (called from in-app UI, not back btn).
+// Drop n entries from the top of the stack and go back in history.
 function _navDrop(count) {
-  if (count <= 0 || _navDepth < count) return;
-  _navDepth -= count;
+  if (count <= 0 || _navStack.length < count) return;
+  _navStack.splice(_navStack.length - count, count);
   _navDropPending = true;
   history.go(-count);
 }
+
+// Drop everything from the last occurrence of `layerName` to the top of the stack.
+// Used by UI-close paths (X button, swipe, etc.) to sync history with state.
+function _navDropLayer(layerName) {
+  const idx = _navStack.lastIndexOf(layerName);
+  if (idx < 0) return;
+  _navDrop(_navStack.length - idx);
+}
+
+// Safe version for calls from auth.js / other files — also guards _navHandlingPop.
+window._navPush       = _navPush;
+window._navDropLayer  = function(l) { if (!_navHandlingPop) _navDropLayer(l); };
 
 // ── Time animation ────────────────────────────────────────────────────────────
 const TIME_ANIM_MS = 520;
@@ -567,10 +577,7 @@ function setAreaFilter(area) {
 
 // ── Sort ──────────────────────────────────────────────────────────────────────
 function _closeSortPanel() {
-  if (!_navHandlingPop) {
-    const toDrop = _navDepth - _navDepthAtSortOpen;
-    if (toDrop > 0) _navDrop(toDrop);
-  }
+  if (!_navHandlingPop) _navDropLayer('sort');
   document.getElementById('sort-panel')?.classList.remove('open');
   document.getElementById('sort-toggle-btn')?.classList.remove('open');
 }
@@ -580,8 +587,7 @@ function toggleSortPanel() {
   const btn   = document.getElementById('sort-toggle-btn');
   if (!panel || !btn) return;
   if (panel.classList.contains('open')) { _closeSortPanel(); return; }
-  _navDepthAtSortOpen = _navDepth;
-  _navPush();
+  _navPush('sort');
   panel.classList.add('open');
   btn.classList.add('open');
   const r = btn.getBoundingClientRect();
@@ -828,10 +834,7 @@ function _closeQcPanel() {
   const panel = document.getElementById('qc-panel');
   if (!panel) return;
 
-  if (!_navHandlingPop) {
-    const toDrop = _navDepth - _navDepthAtQcOpen;
-    if (toDrop > 0) _navDrop(toDrop);
-  }
+  if (!_navHandlingPop) _navDropLayer('qc');
   _qcActiveSection = null;
   // _qcCalExpanded is intentionally NOT reset here — session mode (strip/month) persists
 
@@ -877,8 +880,7 @@ function toggleQcPanel(section) {
   }
 
   _qcActiveSection = 'date';
-  _navDepthAtQcOpen = _navDepth;
-  _navPush();
+  _navPush('qc');
   calFloat?.classList.add('open');
   document.getElementById('floating-search')?.classList.add('cal-dimmed');
   // On mobile, collapse list to peek so picker has room; restore on close
@@ -1419,7 +1421,7 @@ function selectVenue(id, flyTo) {
   if (popup) { popup.remove(); popup = null; }
   _switchingVenue = false;
 
-  if (freshOpen) { _navDepthAtVenueOpen = _navDepth; _navPush(); }
+  if (freshOpen) _navPush('venue');
 
   openDetailPanel(v);
   draw();
@@ -1490,12 +1492,9 @@ function _startWindForVenue(v) {
 }
 
 function closeDetailPanel(expandList = true) {
-  if (!_navHandlingPop) {
-    // Closed via in-app UI (back button, X, swipe) — drop all entries we pushed
-    // for this venue session (may be 1 for normal, 2 if dp-fullscreen was open).
-    const toDrop = _navDepth - _navDepthAtVenueOpen;
-    if (toDrop > 0) _navDrop(toDrop);
-  }
+  // Closed via in-app UI — drop 'venue' and everything stacked on top of it
+  // (e.g. 'dp-fullscreen'). Skipped when triggered by the popstate handler.
+  if (!_navHandlingPop) _navDropLayer('venue');
 if (typeof stopWindOverlay === 'function') stopWindOverlay();
   const dp = document.getElementById('detail-panel');
   if (dp) {
@@ -1631,6 +1630,7 @@ function enterEditMode(venueId) {
 
   _editBeforeSnapshot = _venueEditSnapshot(v);
   _editHasChanges = false;
+  _navPush('edit');
 
   document.getElementById('edit-overlay').style.display = 'flex';
   document.getElementById('floating-search').style.display = 'none';
@@ -1684,6 +1684,7 @@ function toggleEditSatellite() {
 }
 
 function exitEditMode() {
+  if (!_navHandlingPop) _navDropLayer('edit');
   // Detect and record corrections before clearing state
   if (editingVenueId && _editBeforeSnapshot) {
     const v    = VENUES.find(x => x.id === editingVenueId);
@@ -2024,6 +2025,16 @@ document.addEventListener('DOMContentLoaded', () => {
         else                                     target = _dragStartState === 'fullscreen' ? 'expanded' : 'peek'; // peek is the floor
 
         _applyState(target);
+
+        // Sync browser history so back-gesture can collapse the list
+        if (target !== _dragStartState) {
+          if      (target === 'expanded'  && _dragStartState === 'peek')      _navPush('list-expanded');
+          else if (target === 'fullscreen' && _dragStartState === 'expanded') _navPush('list-fullscreen');
+          else if (target === 'fullscreen' && _dragStartState === 'peek')     { _navPush('list-expanded'); _navPush('list-fullscreen'); }
+          else if (target === 'expanded'  && _dragStartState === 'fullscreen') _navDropLayer('list-fullscreen');
+          else if (target === 'peek'      && _dragStartState === 'expanded')   _navDropLayer('list-expanded');
+          else if (target === 'peek'      && _dragStartState === 'fullscreen') _navDropLayer('list-expanded'); // drops both (list-expanded is below list-fullscreen)
+        }
       }
 
       // Wire a swipe target: touchstart/move/end → panel drag state machine
@@ -2190,9 +2201,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (Math.abs(dy) <= SAFE_DY && Math.abs(velocity) < SWIPE_V) return; // safe zone
 
         if (velocity < -SWIPE_V || dy < -SAFE_DY) {
-          if (_dpStartState === 'normal') { dpEl.classList.add('dp-fullscreen'); _navPush(); }
+          if (_dpStartState === 'normal') { dpEl.classList.add('dp-fullscreen'); _navPush('dp-fullscreen'); }
         } else if (velocity > SWIPE_V || dy > SAFE_DY) {
-          if (_dpStartState === 'fullscreen') { dpEl.classList.remove('dp-fullscreen'); if (!_navHandlingPop) _navDrop(1); }
+          if (_dpStartState === 'fullscreen') { dpEl.classList.remove('dp-fullscreen'); _navDropLayer('dp-fullscreen'); }
           else closeDetailPanel(false);
         }
       }
@@ -2970,25 +2981,39 @@ function _skipIntro(seqId) {
 // We close the top-most dismissible layer in priority order without navigating away.
 window.addEventListener('popstate', () => {
   if (_navDropPending) {
-    // This popstate was triggered by _navDrop() from in-app UI — already handled.
+    // This popstate was triggered by _navDrop() from in-app UI — ignore it.
     _navDropPending = false;
     return;
   }
-  if (_navDepth === 0) return; // nothing we own on the stack
-  _navDepth--;
+  if (_navStack.length === 0) return; // nothing we own on the stack
+  const layer = _navStack.pop();
   _navHandlingPop = true;
 
-  const dp = document.getElementById('detail-panel');
-  if (dp?.classList.contains('dp-fullscreen')) {
-    // Collapse fullscreen → normal (venue stays open)
-    dp.classList.remove('dp-fullscreen');
-  } else if (selectedId != null) {
-    // Close the detail panel entirely
-    closeDetailPanel(true);
-  } else if (document.getElementById('qc-panel')?.classList.contains('open')) {
-    _closeQcPanel();
-  } else if (document.getElementById('sort-panel')?.classList.contains('open')) {
-    _closeSortPanel();
+  switch (layer) {
+    case 'venue':
+      closeDetailPanel(true);
+      break;
+    case 'dp-fullscreen':
+      document.getElementById('detail-panel')?.classList.remove('dp-fullscreen');
+      break;
+    case 'qc':
+      _closeQcPanel();
+      break;
+    case 'sort':
+      _closeSortPanel();
+      break;
+    case 'profile':
+      closeProfilePanel();
+      break;
+    case 'edit':
+      exitEditMode();
+      break;
+    case 'list-fullscreen':
+      window._applyMobilePanelState?.('expanded');
+      break;
+    case 'list-expanded':
+      window._applyMobilePanelState?.('peek');
+      break;
   }
 
   _navHandlingPop = false;
