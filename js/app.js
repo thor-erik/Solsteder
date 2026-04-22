@@ -2881,17 +2881,14 @@ function _runIntroSequence() {
   const qcWrap = document.getElementById('qc-wrap');
   const panel  = document.getElementById('panel');
 
-  // Compute intro time range: min and max of "day" light preset
-  // "day" preset is active from sunrise+1.5h to sunset-1.5h
+  // Compute intro time range: sunrise to sunset (no threshold for stable lighting)
   const table   = currentSunTable ?? buildSunTable(datePicker.value);
   const sunrise = findSunCrossingFromTable(table, true)  ?? 6;
   const sunset  = findSunCrossingFromTable(table, false) ?? 21;
-  const dayStart = sunrise + 1.5;  // start of "day" preset
-  const dayEnd = sunset - 1.5;     // end of "day" preset
   const now     = currentHour();
 
-  // Start at day min time for intro scrubbing
-  const introStartTime = Math.max(SOLAR_START, Math.min(23.9, dayStart));
+  // Start at sunrise for intro scrubbing
+  const introStartTime = Math.max(SOLAR_START, Math.min(23.9, sunrise));
 
   // Set time to intro start and render shadows at that time
   if (_timeAnimId) { cancelAnimationFrame(_timeAnimId); _timeAnimId = null; }
@@ -2918,9 +2915,9 @@ function _runIntroSequence() {
     if (_introSeqId !== seqId) return;
     splash.classList.add('hidden');
 
-    // Step 2: Scrub time through "day" preset range (1800ms) + zoom in + tilt up to cinematic angle (all concurrent)
-    // Scrub from sunrise+1.5h to sunset-1.5h to show full "day" lighting range
-    animateToTime(dayEnd, 1800);
+    // Step 2: Scrub time from sunrise to sunset (1800ms) + zoom in + tilt up to cinematic angle (all concurrent)
+    // No threshold for stable, consistent lighting throughout
+    animateToTime(sunset, 1800);
     map.easeTo({ zoom: 16, pitch: 60, duration: 1800, easing: t => t * t * (3 - 2 * t) });
 
     // Step 3: Zoom out + detilt (starts when step 2 ends)
