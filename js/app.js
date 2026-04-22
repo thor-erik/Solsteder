@@ -251,9 +251,6 @@ function _initZoomDebugVisibility() {
 map.on('style.load', () => {
   mapLoaded = true;
 
-  // Ensure map is properly sized when style loads
-  map.resize();
-
   if (!editSatelliteActive) {
     map.setFog({
       range: [1, 10],
@@ -2926,8 +2923,6 @@ function _runIntroSequence() {
   setTimeout(() => {
     if (_introSeqId !== seqId) return;
     splash.classList.add('hidden');
-    // Tell map to resize now that splash is hidden and map container is visible
-    if (map) map.resize();
 
     // Step 2: Scrub time from day preset start to end (1800ms) + zoom in + tilt up to cinematic angle (all concurrent)
     // Uses dynamic day preset boundaries to maintain consistent color throughout the year
