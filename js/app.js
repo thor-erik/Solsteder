@@ -281,6 +281,14 @@ map.on('error', (e) => {
   }
 });
 
+// Fallback: if map style never loads, proceed after 8 seconds
+setTimeout(() => {
+  if (!_introMapReady) {
+    _introMapReady = true;
+    _introCheckReady();
+  }
+}, 8000);
+
 // ── Light preset (atmosphere + sky) ──────────────────────────────────────────
 let _currentPreset = null;
 function updateLightPreset() {
@@ -2477,6 +2485,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // watchPosition keeps the dot fresh as the user moves
     navigator.geolocation.watchPosition(_onGeoPos, _onGeoErr,
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 });
+    // Fallback: if geolocation never settles, proceed after 5 seconds
+    setTimeout(() => {
+      if (!_introGeoReady) {
+        _introGeoReady = true;
+        _introCheckReady();
+      }
+    }, 5000);
   } else {
     _introGeoReady = true;
     _introCheckReady();
