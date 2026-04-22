@@ -311,18 +311,122 @@ Secondary controls (sort, filter, alternate views) appear with the content they 
 - Icons inside action-pill components: `16px`.
 - Icon-only action-circle buttons: `20px` inside a `44×44` touch target.
 
+### Icons
+
+Sun-series and shadow-series icons live in `design/shades-status-icons/`. Together they form one continuous state scale, played forward or backward by the slider:
+
+```
+shadow-100 → shadow-75 → shadow-50 → shadow-25 → (sun arrives) →
+sun-100 → sun-75 → sun-50 → sun-25 → sun-0 → (shadow returns)
+```
+
+**Sun series** (5 icons, `_sunIcons[0–4]`): fills from bottom as remaining time in the sun window grows.
+
+| Index | File | Threshold (hoursLeft) |
+|-------|------|-----------------------|
+| 4 | `sun-100-percent.png` | ≥ 2.5 h |
+| 3 | `sun-75-percent.png`  | ≥ 1.5 h |
+| 2 | `sun-50-percent.png`  | ≥ 1.0 h |
+| 1 | `sun-25-percent.png`  | ≥ 0.5 h |
+| 0 | `sun-0-percent.png`   | < 0.5 h |
+
+**Shadow series** (4 icons, `_shadowIcons[0–3]`): retreats from the top as sun approaches.
+
+| Index | File | Threshold (minutesUntilSun) |
+|-------|------|-----------------------------|
+| 0 | `shadow-25-percent.png`  | ≤ 15 min |
+| 1 | `shadow-50-percent.png`  | ≤ 45 min |
+| 2 | `shadow-75-percent.png`  | ≤ 90 min |
+| 3 | `shadow-100-percent.png` | > 90 min  |
+
+Thresholds are tunable constants in `render-pins.js` (`_sunIconIdx`, `_shadowIconIdx`).
+
 ### Pins
 
-Pins are canvas-drawn but belong to the Shades Glass family. Pill body uses a canvas-painted linear gradient matching the CSS glass recipe (`rgba(20,46,82,0.88) → rgba(32,73,131,0.82)` at 135°), a 1px top-inner sheen (`rgba(255,242,235,0.18)`), and a `rgba(156,189,231,0.18)` 1px border. Exception: the **sunny** state keeps `--accent` (`#FFAF85`) as the pill fill — the pin *is* the sun indicator, and accent ownership of "this is sunny right now" is the system's most important color contract. Stems, text, and dashed styling as documented below.
+Pins are canvas-drawn and belong to the Shades Glass family. **No pin may reference values outside the color-token section.** The legacy Solaris Oslo palette (`#0D131E`, `#514532`, `#FFB800`, `#d5c4ab`) is retired — delete on sight.
 
-**No pin may reference values outside the color-token section.** The legacy Solaris Oslo palette (`#0D131E`, `#514532`, `#FFB800`, `#d5c4ab`) is retired — delete on sight.
+No pin type shows an absolute clock time in now-mode. The icon series carries state; the relative time carries urgency; the name carries identity. The old notched-pill shape is retired — single flat-pill silhouette for both Tier 1 and Tier 2a.
 
-| State | Fill | Stem | Text | Stroke |
-|-------|------|------|------|--------|
-| sunny | `#FFAF85` (accent) | `rgba(255,175,133,0.7)` | `#1a1200` | `rgba(255,230,120,0.4)` warm glow |
-| soon | Delft gradient (glass) | `rgba(255,175,133,0.7)` (accent-tinted) | `#9CBDE7` (muted) | `rgba(156,189,231,0.18)` dashed |
-| shaded | Delft gradient (glass) | `rgba(156,189,231,0.55)` (muted) | `#9CBDE7` (muted) | `rgba(156,189,231,0.18)` |
-| closed | Tiny dot, no pill | — | — | — |
+#### Tier taxonomy
+
+State is a spectrum (*how near is sun in time?*) plus a binary modifier (*open / closed at selected time*). Not four peers.
+
+| Tier | Name | Condition | Visual |
+|------|------|-----------|--------|
+| 1 | **Hero** | Venue has sun at the selected time | Tangerine pill, sun icon left, venue name right, solid stem |
+| 2a | **Waiting** | Sun arrives within `WAITING_HORIZON_MIN` (120 min) | Glass pill, shadow icon left, time right, dashed stem |
+| 2b | **Context** | Everything else | Small glass dot, no text, no stem |
+
+`WAITING_HORIZON_MIN = 120` — delta beats absolute within 2 h; past 2 h, the information is too distant to be actionable as "soon".
+
+#### Tier × icon series × layout table
+
+| Tier | Icon series | Icon size | Icon position | Text | Text color |
+|------|-------------|-----------|---------------|------|------------|
+| Hero | Sun (0–4) | 22×22 px | Left inset 2 px | `shortName(v.name)` | `#1a1200` |
+| Waiting | Shadow (0–3) | 14×14 px | Left inset 6 px | Delta or clock (see Time display) | `#FFAF85` |
+| Context | — | — | — | None | — |
+
+Icon is **always on the left** in both Hero and Waiting pills. Consistent scan anchor across tiers.
+
+#### Pill specifications
+
+| Property | Hero | Waiting |
+|----------|------|---------|
+| Height | 26 px | 24 px |
+| Radius | 13 px | 12 px |
+| Fill | `#FFAF85` (--accent) | Delft gradient `rgba(20,46,82,0.42)→rgba(32,73,131,0.26)` at 135° |
+| Inner top sheen | `rgba(255,242,235,0.45)` | `rgba(255,242,235,0.18)` |
+| Border | `rgba(255,230,120,0.4)` | `rgba(156,189,231,0.18)` |
+| Stem | Solid `rgba(255,175,133,0.70)` | Dashed `rgba(156,189,231,0.55)` |
+| Stem dash | — | `[3, 3]` |
+
+Context dot: 10×10 px, gradient fill `rgba(20,46,82,0.55)→rgba(32,73,131,0.38)`, 1 px `rgba(156,189,231,0.18)` border. No stem, no text.
+
+#### Modifiers
+
+**Closed-opens-into-sun badge** (Tier 2a only): when a venue is closed at the selected hour but its next sun window starts at or after its opening time, a 6 px clock badge appears in the bottom-right corner of the Tier 2a icon.
+
+- Fill: `#142E52` (Delft Blue — dark, sits on glass pill)
+- Border: 1.5 px stroke, `#9CBDE7` (--muted)
+- Clock hands: two 1 px strokes in `#9CBDE7`; the *shape* carries more signal than the hands at 6 px
+
+Badge is included in the sprite cache key (`closedOpeningIntoSun` boolean). Context dots don't distinguish open vs. closed via badge; they use the opacity modifier (0.42 when no sun at all today).
+
+#### Time display on pins
+
+No pin shows an absolute clock time in now-mode. In now-mode, Tier 2a shows a relative delta (`+15m`, `+1h 20m`). When the slider is scrubbed (not in now-mode), Tier 2a shows the absolute arrival time (`16:45`).
+
+Rule: **match the user's mental anchor.** If they're thinking `now + X`, show `+X`. If they're thinking in clock time because they scrubbed, show clock time. Hero pins never show time — the sun icon is the full state signal.
+
+`formatDelta(minutesUntil, isNowMode)` returns a delta string or `null`. When `null`, callers use `formatHour(nextStart)` for the absolute time.
+
+#### Elevation
+
+| Tier | Level | Shadow |
+|------|-------|--------|
+| Hero | low + accent glow | `shadowBlur: 8, offsetY: 3, rgba(0,0,0,0.40)` |
+| Waiting | low | `shadowBlur: 6, offsetY: 2, rgba(0,0,0,0.35)` |
+| Context | micro | `shadowBlur: 3, offsetY: 1, rgba(0,0,0,0.30)` |
+
+Drop shadows are baked into the sprite canvas (`buildSprite`), not applied in the draw loop. Zero per-frame cost.
+
+#### Selection ring
+
+Consistent across all three tiers: `rgba(255,175,133,0.9)`, 2 px stroke, offset 2 px outside the pin's visual bounds. No second ring. No notched-icon ring.
+
+#### Density rules
+
+Every venue has a claim to attention, but not every venue has a claim to the user's attention simultaneously. The viewport's top candidates get names; the rest signal presence.
+
+| Zoom | Hero cap | Waiting cap |
+|------|----------|-------------|
+| < 14 | 5 | 5 |
+| 14–15 | 8 (`HERO_CAP`) | 10 (`WAITING_CAP`) |
+| 16 | 12 | 15 |
+| ≥ 17 | unlimited | unlimited |
+
+Ranking: Hero candidates sorted by `sunScore` desc; Waiting candidates by `minutesUntil` asc (closest to sun first). Excess candidates are demoted to Context for that render; demotion is per-render only and does not persist.
 
 ## Performance & accessibility rules
 
