@@ -93,8 +93,8 @@ function _drawSunFillIcon(c, cx, cy, r, fraction) {
   if (img && img.complete && img.naturalWidth > 0) {
     c.drawImage(img, cx - r, cy - r, r * 2, r * 2);
   } else {
-    // Fallback while image is loading
-    c.fillStyle = '#0D131E';
+    // Fallback while image is loading — use Delft Blue
+    c.fillStyle = 'rgba(20,46,82,0.88)';
     c.fill();
   }
   c.restore();
@@ -116,28 +116,30 @@ function buildSprite(v, state, selected, hour, dateStr) {
   }
 
   // ── Label + visual style per state ─────────────────────────────────────────
-  // Colors follow the Solaris Oslo design system:
-  //   surface #0D131E · outline-variant #514532 · primary #FFB800
-  //   on-surface-variant #d5c4ab (warm cream, never cool blue)
-  let label = '', fillColor, strokeColor, textColor, stemColor, isDashed = false, alpha = 1;
+  // Colors follow the Shades design system — same palette as the CSS glass surfaces.
+  //   gradient fill  rgba(20,46,82,0.88)→rgba(32,73,131,0.82)  (Delft Blue, 135°)
+  //   rim            rgba(156,189,231,0.18)                    (Jordy Blue)
+  //   text/stem      #9CBDE7 (--muted)                        for shaded/soon
+  //   accent         #FFAF85 (--accent)                        for sunny only
+  let label = '', strokeColor, textColor, stemColor, isDashed = false, alpha = 1;
   let sunFraction = null; // non-null for sunny pins: 0–1 fill level
+  let useGlassGradient = false; // shaded/soon use Delft gradient; sunny keeps accent fill
 
   if (state === 'soon') {
     const { open } = v.openingHours ?? {};
-    label       = open != null ? formatHour(open) : '—';
-    fillColor   = 'rgba(13,19,30,0.92)';          // surface #0D131E
-    strokeColor = 'rgba(81,69,50,0.50)';           // outline-variant #514532
-    stemColor   = 'rgba(255,184,0,0.65)';          // primary #FFB800 — sun on its way
-    textColor   = 'rgba(255,184,0,0.95)';          // primary #FFB800
-    isDashed    = true;
-    alpha       = 0.92;
+    label          = open != null ? formatHour(open) : '—';
+    strokeColor    = 'rgba(156,189,231,0.18)';          // Jordy rim, dashed
+    stemColor      = 'rgba(255,175,133,0.70)';           // accent-tinted — sun coming
+    textColor      = '#9CBDE7';                          // --muted
+    isDashed       = true;
+    alpha          = 0.92;
+    useGlassGradient = true;
 
   } else if (state === 'sunny') {
     label       = shortName(v.name);
-    fillColor   = '#FFAF85';
-    strokeColor = 'rgba(255,230,120,0.4)';
-    stemColor   = '#FFAF85';
-    textColor   = '#1a1200';
+    strokeColor = 'rgba(255,230,120,0.4)';               // warm sun-glow cue (not chrome)
+    stemColor   = 'rgba(255,175,133,0.70)';              // --accent tinted
+    textColor   = '#1a1200';                             // readable on tangerine
     if (hour !== undefined && dateStr) {
       sunFraction = _sunFillFraction(_sunRemainingHours(v, dateStr, hour));
     }
@@ -156,10 +158,10 @@ function buildSprite(v, state, selected, hour, dateStr) {
         }
       } catch (e) { label = ''; }
     }
-    fillColor   = 'rgba(13,19,30,0.92)';           // surface #0D131E
-    strokeColor = 'rgba(81,69,50,0.30)';            // outline-variant #514532
-    stemColor   = 'rgba(213,196,171,0.45)';         // on-surface-variant warm cream
-    textColor   = 'rgba(213,196,171,0.80)';         // on-surface-variant warm cream
+    strokeColor    = 'rgba(156,189,231,0.18)';           // Jordy rim
+    stemColor      = 'rgba(156,189,231,0.55)';           // --muted
+    textColor      = '#9CBDE7';                          // --muted
+    useGlassGradient = true;
   }
 
   // ── Sizing ─────────────────────────────────────────────────────────────────
@@ -258,7 +260,16 @@ function buildSprite(v, state, selected, hour, dateStr) {
     c.beginPath();
     c.roundRect(ox, oy, pillW, PILL_H, PILL_R);
   }
-  c.fillStyle = fillColor;
+  if (useGlassGradient) {
+    // Shades Glass recipe: 135° Delft gradient matching CSS glass surfaces
+    const grad = c.createLinearGradient(ox, oy, ox + pillW, oy + PILL_H);
+    grad.addColorStop(0, 'rgba(20,46,82,0.88)');
+    grad.addColorStop(1, 'rgba(32,73,131,0.82)');
+    c.fillStyle = grad;
+  } else {
+    // Sunny: accent fill — the pin IS the sun indicator
+    c.fillStyle = '#FFAF85';
+  }
   c.fill();
 
   // ── Pill stroke ────────────────────────────────────────────────────────────
@@ -267,6 +278,25 @@ function buildSprite(v, state, selected, hour, dateStr) {
   c.lineWidth   = 1;
   c.stroke();
   c.setLineDash([]);
+
+  // ── Inner top-edge sheen (glass cue, all pill states except closed dot) ───
+  // Canvas equivalent of `inset 0 1px 0 rgba(255,242,235,0.14)` in CSS glass.
+  // Must clip to pill shape so sheen stays inside rounded corners.
+  if (sunFraction !== null) {
+    _pillNotchPath(c, ox, oy, pillW, PILL_H, PILL_R, iconX, iconY, notchR);
+  } else {
+    c.beginPath();
+    c.roundRect(ox, oy, pillW, PILL_H, PILL_R);
+  }
+  c.save();
+  c.clip();
+  c.strokeStyle = 'rgba(255,242,235,0.18)';
+  c.lineWidth   = 1;
+  c.beginPath();
+  c.moveTo(ox + PILL_R, oy + 0.5);
+  c.lineTo(ox + pillW - PILL_R, oy + 0.5);
+  c.stroke();
+  c.restore();
 
   // ── Label ──────────────────────────────────────────────────────────────────
   if (label) {
