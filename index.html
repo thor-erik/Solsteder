@@ -289,6 +289,21 @@
     color: var(--muted);
   }
 
+  /* ── Zoom debug helper ───────────────────────────────────────────────────── */
+  #zoom-debug {
+    position: absolute;
+    top: calc(16px + 46px + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 899;
+    padding: 8px 16px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+    white-space: nowrap;
+    border-radius: 12px;
+  }
+
   /* ── Search dropdown ─────────────────────────────────────────────────────── */
   #search-dropdown {
     position: absolute;
@@ -2011,6 +2026,14 @@
       right: 12px;
       width: auto;
       top: calc(12px + 46px + 8px);
+    }
+
+    #zoom-debug {
+      left: 12px;
+      right: 12px;
+      top: calc(12px + 46px + 8px);
+      transform: none;
+      width: auto;
     }
 
     /* Venue list — peek state height driven by --peek-h CSS var, set by JS */
@@ -4324,6 +4347,9 @@
 
   <!-- Profile popover — anchored below search bar -->
   <div id="profile-panel" class="glass-panel"></div>
+
+  <!-- Zoom debug helper — centered below search bar -->
+  <div id="zoom-debug" class="floating-card intro-hidden"></div>
 
   <!-- Bottom-right: locate-me button -->
   <button id="locate-btn" class="intro-hidden" onclick="locateUser()" title="Gå til min posisjon" aria-label="Gå til min posisjon">

@@ -206,6 +206,14 @@ function locateUser() {
 
 map.on('move',    _updateLocationDot);
 map.on('zoomend', _updateLocationDot);
+map.on('zoom',    _updateZoomDebug);
+
+function _updateZoomDebug() {
+  const zoomDebug = document.getElementById('zoom-debug');
+  if (zoomDebug) {
+    zoomDebug.textContent = `zoom: ${map.getZoom().toFixed(2)}`;
+  }
+}
 
 map.on('style.load', () => {
   mapLoaded = true;
