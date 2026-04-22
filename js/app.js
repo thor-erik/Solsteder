@@ -1534,9 +1534,9 @@ function openDetailPanel(v) {
   }
 
   content.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
-  // Draw the sol-retning compass (deferred to ensure canvas exists)
+  // Draw the sol-retning compass (deferred to next animation frame for smooth rendering)
   if (typeof drawDetailCompass === 'function') {
-    setTimeout(() => drawDetailCompass(datePicker.value, parseFloat(timeFromEl.value)), 0);
+    requestAnimationFrame(() => drawDetailCompass(datePicker.value, parseFloat(timeFromEl.value)));
   }
   dp.classList.remove('dp-fullscreen');
   dp.classList.add('open');

@@ -612,7 +612,7 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
 
   const photosHtml = v.photoUrls?.length
     ? `<div class="detail-new-photos">${
-        v.photoUrls.map(url => `<img src="${url}" loading="lazy" alt="" style="width:100%;height:100%;object-fit:cover">`).join('')
+        v.photoUrls.map(url => `<img src="${url}" loading="lazy" alt="">`).join('')
       }</div>`
     : '<div class="detail-new-photos">[Bilde]</div>';
 
@@ -632,7 +632,7 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
         <button class="btn-primary">↗ Veibeskrivelse · ${walkTime || '—'}</button>
         ${haPhone}
         ${hasWebsite}
-        <button class="btn-icon-sec" title="Del" onclick="shareVenue(${v.id})">⤴</button>
+        <button class="btn-icon-sec" title="Del" onclick="shareVenue(${v.id})">↗</button>
       </div>
 
       <div class="sun-section">
