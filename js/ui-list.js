@@ -46,7 +46,7 @@ function buildMiniSunTimeline(v, dateStr, fromHour) {
       const wx = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, h) : null;
       const cloud = wx?.cloud ?? 0;
       const precip = wx?.precip ?? 0;
-      const isCloud = !precip > 0.3 && cloud > 0.38;
+      const isCloud = !(precip > 0.3) && cloud > 0.38;
       if (isCloud) {
         const sPos = Math.max(0, Math.min(100, ((h - START_H) / RANGE) * 100));
         const ePos = Math.max(0, Math.min(100, ((h + 1 - START_H) / RANGE) * 100));
