@@ -212,7 +212,11 @@ map.on('pitch',   _updateZoomDebug);
 function _updateZoomDebug() {
   const zoomDebug = document.getElementById('zoom-debug');
   if (zoomDebug && !zoomDebug.classList.contains('hidden')) {
-    zoomDebug.textContent = `zoom: ${map.getZoom().toFixed(2)} | tilt: ${map.getPitch().toFixed(1)}°`;
+    const hour = parseFloat(timeFromEl.value);
+    const h = Math.floor(hour);
+    const m = Math.round((hour - h) * 60);
+    const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+    zoomDebug.textContent = `${timeStr} | zoom: ${map.getZoom().toFixed(2)} | tilt: ${map.getPitch().toFixed(1)}°`;
   }
 }
 
