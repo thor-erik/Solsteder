@@ -77,8 +77,10 @@ function _shadowIconIdx(minutesUntilSun) {
 
 // ── Pin tier classification ────────────────────────────────────────────────────
 // WAITING_HORIZON_MIN: the only user-visible magic number for "waiting" tier.
-// Delta beats absolute within 2h; past 2h, the info is too distant to be actionable.
-const WAITING_HORIZON_MIN = 120;
+// 240 min (4h): covers the common Oslo afternoon case where sun arrives ~3h from now.
+// Delta (+Xm/+Xh) is shown only when minutesUntil < 60 in now-mode; beyond that the
+// pill shows the absolute arrival time, which matches how the user thinks in clock time.
+const WAITING_HORIZON_MIN = 240;
 
 /**
  * Classify a venue into Hero / Waiting / Context for the given hour and date.
@@ -116,14 +118,14 @@ function classifyPin(v, dateStr, hour) {
 }
 
 // ── Density caps ──────────────────────────────────────────────────────────────
-const HERO_CAP    = 8;   // max Hero pins in a viewport (zoom 14–15)
-const WAITING_CAP = 10;  // max Waiting pins in a viewport (zoom 14–15)
+const HERO_CAP    = 10;  // max Hero pins in a viewport (zoom 14–15)
+const WAITING_CAP = 15;  // max Waiting pins in a viewport (zoom 14–15)
 
 function _getDensityCaps(zoom) {
   if (zoom >= 17) return { heroCap: Infinity, waitingCap: Infinity };
-  if (zoom >= 16) return { heroCap: 12, waitingCap: 15 };
+  if (zoom >= 16) return { heroCap: 15, waitingCap: 20 };
   if (zoom >= 14) return { heroCap: HERO_CAP, waitingCap: WAITING_CAP };
-  return { heroCap: 5, waitingCap: 5 };
+  return { heroCap: 6, waitingCap: 8 };
 }
 
 /**

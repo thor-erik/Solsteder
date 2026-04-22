@@ -357,7 +357,7 @@ State is a spectrum (*how near is sun in time?*) plus a binary modifier (*open /
 | 2a | **Waiting** | Sun arrives within `WAITING_HORIZON_MIN` (120 min) | Glass pill, shadow icon left, time right, dashed stem |
 | 2b | **Context** | Everything else | Small glass dot, no text, no stem |
 
-`WAITING_HORIZON_MIN = 120` — delta beats absolute within 2 h; past 2 h, the information is too distant to be actionable as "soon".
+`WAITING_HORIZON_MIN = 240` — covers the common case where sun arrives 3–4 h from now (typical Oslo afternoon). Delta format (`+Xm`/`+Xh`) is shown only for pins within 60 min; beyond that the pill shows the absolute arrival time, matching how the user thinks in clock time.
 
 #### Tier × icon series × layout table
 
@@ -421,9 +421,9 @@ Every venue has a claim to attention, but not every venue has a claim to the use
 
 | Zoom | Hero cap | Waiting cap |
 |------|----------|-------------|
-| < 14 | 5 | 5 |
-| 14–15 | 8 (`HERO_CAP`) | 10 (`WAITING_CAP`) |
-| 16 | 12 | 15 |
+| < 14 | 6 | 8 |
+| 14–15 | 10 (`HERO_CAP`) | 15 (`WAITING_CAP`) |
+| 16 | 15 | 20 |
 | ≥ 17 | unlimited | unlimited |
 
 Ranking: Hero candidates sorted by `sunScore` desc; Waiting candidates by `minutesUntil` asc (closest to sun first). Excess candidates are demoted to Context for that render; demotion is per-render only and does not persist.
