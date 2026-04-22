@@ -176,3 +176,32 @@ function wxArcPaths(dateStr, wStart, wEnd, fromHour, arcPathFn, sw) {
     return d ? `<path d="${d}" fill="none" stroke="${r.color}" stroke-width="${sw}" stroke-linecap="round"/>` : '';
   }).filter(Boolean);
 }
+
+// ── Google Maps-style SVG icons for detail panel ────────────────────────────────
+/**
+ * Returns Google Maps-style SVG icon as inline HTML.
+ * Icons use thin strokes (1.5-2px), minimal geometry, 24x24 viewBox.
+ */
+function getMapsIcon(type) {
+  const strokeW = 1.5;
+  const size = 24;
+  const viewBox = `0 0 ${size} ${size}`;
+
+  const icons = {
+    people: `<svg viewBox="${viewBox}" width="24" height="24" fill="none" stroke="currentColor" stroke-width="${strokeW}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M 6 14 Q 6 12 12 12 Q 18 12 18 14 L 18 16 Q 18 18 12 18 Q 6 18 6 16 Z"/></svg>`,
+
+    volume: `<svg viewBox="${viewBox}" width="24" height="24" fill="none" stroke="currentColor" stroke-width="${strokeW}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M 3 9 L 7 9 L 12 4 L 12 20 L 7 15 L 3 15 Z"/><path d="M 17 7 Q 19 9 19 12 Q 19 15 17 17"/><path d="M 19 4 Q 22 7 22 12 Q 22 17 19 20"/></svg>`,
+
+    clock: `<svg viewBox="${viewBox}" width="24" height="24" fill="none" stroke="currentColor" stroke-width="${strokeW}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M 12 6 L 12 12 L 16 15"/></svg>`,
+
+    phone: `<svg viewBox="${viewBox}" width="24" height="24" fill="none" stroke="currentColor" stroke-width="${strokeW}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M 9 3 L 5 7 Q 5 13 11 19 Q 17 25 23 25 L 27 21 L 23 17 Q 21 18 19 16 Q 17 14 18 12 L 22 8 Z" transform="translate(-1, -1) scale(0.9)"/><path d="M 6 3 L 3 6 Q 3 15 12 24 Q 21 33 30 33 L 33 30 L 30 27 Q 27 28 25 26 Q 23 24 24 22 L 27 19 Z" transform="translate(-2, -2) scale(0.65)"/></svg>`,
+
+    globe: `<svg viewBox="${viewBox}" width="24" height="24" fill="none" stroke="currentColor" stroke-width="${strokeW}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M 2 12 L 22 12"/><path d="M 12 2 Q 16 8 16 12 Q 16 16 12 22 Q 8 16 8 12 Q 8 8 12 2"/></svg>`,
+
+    share: `<svg viewBox="${viewBox}" width="24" height="24" fill="none" stroke="currentColor" stroke-width="${strokeW}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M 15.88 6.12 L 8.12 10.88"/><path d="M 15.88 17.88 L 8.12 13.12"/></svg>`,
+
+    directions: `<svg viewBox="${viewBox}" width="24" height="24" fill="none" stroke="currentColor" stroke-width="${strokeW}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="3"/><path d="M 12 8 L 7 18 L 12 16 L 17 18 Z"/></svg>`,
+  };
+
+  return icons[type] || '';
+}

@@ -493,8 +493,13 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
   // Task 5: Header + primary action row
   const walkTime = typeof calcWalkTime === 'function' ? calcWalkTime(distMeters) : null;
 
-  const haPhone = v.phone ? `<a href="tel:${encodeURIComponent(v.phone)}" class="btn-icon-sec" title="Ring">📞</a>` : '';
-  const hasWebsite = v.website ? `<a href="${v.website}" target="_blank" rel="noopener" class="btn-icon-sec" title="Nettside">🌐</a>` : '';
+  const phoneIcon = typeof getMapsIcon === 'function' ? getMapsIcon('phone') : '📞';
+  const globeIcon = typeof getMapsIcon === 'function' ? getMapsIcon('globe') : '🌐';
+  const shareIcon = typeof getMapsIcon === 'function' ? getMapsIcon('share') : '↗';
+  const dirIcon = typeof getMapsIcon === 'function' ? getMapsIcon('directions') : '↗';
+
+  const haPhone = v.phone ? `<a href="tel:${encodeURIComponent(v.phone)}" class="btn-icon-sec" title="Ring">${phoneIcon}</a>` : '';
+  const hasWebsite = v.website ? `<a href="${v.website}" target="_blank" rel="noopener" class="btn-icon-sec" title="Nettside">${globeIcon}</a>` : '';
 
   // Task 6: Sun section headline based on state
   const state = typeof venueState === 'function' ? venueState(v, fromHour) :
@@ -556,9 +561,10 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
   // Busyness row
   const busynessNow = typeof getBusynessAt === 'function' ? getBusynessAt(v, dateStr, fromHour) : null;
   if (busynessNow != null) {
+    const peopleIcon = typeof getMapsIcon === 'function' ? getMapsIcon('people') : '👥';
     infoRows.push(`
       <div class="info-row">
-        <div class="info-icon">👥</div>
+        <div class="info-icon">${peopleIcon}</div>
         <div class="info-label">
           <div class="info-label-strong">Travelt nå</div>
           <div class="info-label-sub">~${Math.round(busynessNow)}%</div>
@@ -571,9 +577,10 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
   if (noiseScore != null) {
     const noiseBucket = typeof noiseScoreToBucket === 'function' ? noiseScoreToBucket(noiseScore) : null;
     if (noiseBucket) {
+      const volumeIcon = typeof getMapsIcon === 'function' ? getMapsIcon('volume') : '🔊';
       infoRows.push(`
         <div class="info-row">
-          <div class="info-icon">🔊</div>
+          <div class="info-icon">${volumeIcon}</div>
           <div class="info-label">
             <div class="info-label-strong">${noiseBucket.label}</div>
           </div>
@@ -588,9 +595,10 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
   if (v.kitchenCloseHour != null) {
     hoursSubtext = `Kjøkken til ${formatHour(v.kitchenCloseHour)}`;
   }
+  const clockIcon = typeof getMapsIcon === 'function' ? getMapsIcon('clock') : '🕐';
   infoRows.push(`
     <div class="info-row">
-      <div class="info-icon">🕐</div>
+      <div class="info-icon">${clockIcon}</div>
       <div class="info-label">
         <div class="info-label-strong">Åpent til ${closingStr}</div>
         ${hoursSubtext ? `<div class="info-label-sub">${hoursSubtext}</div>` : ''}
@@ -629,10 +637,10 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       </div>
 
       <div class="primary-action">
-        <button class="btn-primary">↗ Veibeskrivelse · ${walkTime || '—'}</button>
+        <button class="btn-primary">${dirIcon} Veibeskrivelse · ${walkTime || '—'}</button>
         ${haPhone}
         ${hasWebsite}
-        <button class="btn-icon-sec" title="Del" onclick="shareVenue(${v.id})">↗</button>
+        <button class="btn-icon-sec" title="Del" onclick="shareVenue(${v.id})">${shareIcon}</button>
       </div>
 
       <div class="sun-section">
