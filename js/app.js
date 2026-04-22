@@ -1955,6 +1955,11 @@ function togglePanel() {
   const btn    = document.getElementById('panel-toggle');
   const handle = document.getElementById('panel-handle');
 
+  function redrawAfterTransition() {
+    resizeCanvas();
+    draw();
+  }
+
   if (isMobile()) {
     if (panel.classList.contains('mobile-expanded')) {
       // expanded → peek
@@ -1968,7 +1973,16 @@ function togglePanel() {
     }
     panelVisible = true;
     if (handle) handle.style.display = 'flex';
-    setTimeout(() => { resizeCanvas(); draw(); }, 290);
+    // Redraw when transition completes, with fallback timeout
+    const handleTransitionEnd = (e) => {
+      if (e.propertyName === 'transform' || e.propertyName === 'height') {
+        panel.removeEventListener('transitionend', handleTransitionEnd);
+        clearTimeout(tid);
+        redrawAfterTransition();
+      }
+    };
+    panel.addEventListener('transitionend', handleTransitionEnd);
+    const tid = setTimeout(redrawAfterTransition, 240);
     return;
   }
 
@@ -1998,7 +2012,16 @@ function togglePanel() {
     }
     if (qcWrap) qcWrap.style.left = '16px';
   }
-  setTimeout(() => { resizeCanvas(); draw(); }, 290);
+  // Redraw when transition completes, with fallback timeout
+  const handleTransitionEnd = (e) => {
+    if (e.propertyName === 'transform' || e.propertyName === 'opacity') {
+      panel.removeEventListener('transitionend', handleTransitionEnd);
+      clearTimeout(tid);
+      redrawAfterTransition();
+    }
+  };
+  panel.addEventListener('transitionend', handleTransitionEnd);
+  const tid = setTimeout(redrawAfterTransition, 240);
 }
 
 // Show handle on mobile init
