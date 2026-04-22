@@ -230,42 +230,40 @@
      NEW DESIGN — compact list card with inline sun timeline
      ═══════════════════════════════════════════════════════════════════ */
   .card-new {
-    padding: 14px 16px;
+    padding: 12px 14px;
     margin-bottom: 8px;
-  }
-  .card-new-row1 {
     display: flex;
-    align-items: baseline;
-    gap: 10px;
-    margin-bottom: 2px;
+    gap: 14px;
+    align-items: stretch;
+  }
+  .card-new-left {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
   .card-new-name {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 700;
-    flex: 1;
+    line-height: 1.25;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .card-new-dist {
-    font-size: 13px;
-    color: var(--muted);
-    flex-shrink: 0;
-  }
   .card-new-meta {
     font-size: 12px;
     color: var(--muted);
-    margin-bottom: 12px;
   }
   .card-new-meta .dot { opacity: 0.4; margin: 0 4px; }
   .card-new-timeline {
     position: relative;
-    height: 16px;
-    margin-bottom: 12px;
+    height: 14px;
+    margin-top: auto;
   }
   .timeline-track {
     position: absolute;
-    top: 5px;
+    top: 4px;
     left: 0; right: 0;
     height: 6px;
     background: rgba(255,255,255,0.06);
@@ -285,56 +283,50 @@
   }
   .timeline-now {
     position: absolute;
-    top: 1px;
+    top: 0;
     width: 2px;
     height: 14px;
     background: #fff;
     border-radius: 1px;
     box-shadow: 0 0 6px rgba(255,255,255,0.6);
   }
-  /* State-aware hero: status + what's next */
-  .card-new-hero {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-  }
-  .card-new-status-icon {
-    color: var(--accent);
-    font-size: 18px;
-    line-height: 1.2;
+  /* Right column: distance on top, state info below */
+  .card-new-right {
     flex-shrink: 0;
+    width: 96px;
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 4px;
   }
-  .card-new-status {
-    flex: 1;
-    min-width: 0;
-  }
-  .card-new-status-main {
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--accent);
-    line-height: 1.2;
-    margin-bottom: 3px;
-    letter-spacing: 0.01em;
-  }
-  .card-new-status-main .accent { color: var(--accent); }
-  .card-new-status-sub {
+  .card-new-dist {
     font-size: 12px;
     color: var(--muted);
-    line-height: 1.35;
+    line-height: 1;
   }
-  /* State: currently in shadow, but sun coming back */
-  .card-new.state-shadow .card-new-status-icon { color: var(--muted); }
-  .card-new.state-shadow .card-new-status-main {
+  .card-new-hero {
+    text-align: right;
+  }
+  .card-new-hero-main {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .card-new-hero-sub {
+    font-size: 11px;
     color: var(--muted);
-    font-weight: 600;
+    margin-top: 3px;
+    font-variant-numeric: tabular-nums;
   }
+  /* State: currently in shadow, sun returning */
+  .card-new.state-shadow .card-new-hero-main { color: var(--text); font-weight: 600; }
   /* State: no more sun today */
   .card-new.state-done { opacity: 0.5; }
-  .card-new.state-done .card-new-status-icon { color: var(--muted); }
-  .card-new.state-done .card-new-status-main {
-    color: var(--muted);
-    font-weight: 600;
-  }
+  .card-new.state-done .card-new-hero-main { color: var(--muted); font-weight: 600; }
 
   /* ═══════════════════════════════════════════════════════════════════
      CURRENT DETAIL PANEL
@@ -885,150 +877,144 @@
           <div class="sort-chip">Sol nå ▾</div>
         </div>
 
-        <!-- State: in sun now, break coming -->
+        <!-- In sun, break coming -->
         <div class="glass-card card-new">
-          <div class="card-new-row1">
+          <div class="card-new-left">
             <div class="card-new-name">Mamma Pizza Vika Osteria di Mare</div>
+            <div class="card-new-meta">Sentrum<span class="dot">·</span>Restaurant</div>
+            <div class="card-new-timeline">
+              <div class="timeline-track">
+                <div class="timeline-sun" style="left:25%; width:15%;"></div>
+                <div class="timeline-sun" style="left:55%; width:26%;"></div>
+                <div class="timeline-cloud" style="left:81%; width:6%;"></div>
+                <div class="timeline-sun" style="left:87%; width:3%;"></div>
+              </div>
+              <div class="timeline-now" style="left:70%;"></div>
+            </div>
+          </div>
+          <div class="card-new-right">
             <div class="card-new-dist">221 m</div>
-          </div>
-          <div class="card-new-meta">Sentrum<span class="dot">·</span>Restaurant</div>
-          <div class="card-new-timeline">
-            <div class="timeline-track">
-              <div class="timeline-sun" style="left:25%; width:15%;"></div>
-              <div class="timeline-sun" style="left:55%; width:26%;"></div>
-              <div class="timeline-cloud" style="left:81%; width:6%;"></div>
-              <div class="timeline-sun" style="left:87%; width:3%;"></div>
-            </div>
-            <div class="timeline-now" style="left:70%;"></div>
-          </div>
-          <div class="card-new-hero">
-            <span class="card-new-status-icon">☼</span>
-            <div class="card-new-status">
-              <div class="card-new-status-main">I SOL · 1t 45m igjen</div>
-              <div class="card-new-status-sub">Pause 19:00–20:00, så sol til 20:25</div>
+            <div class="card-new-hero">
+              <div class="card-new-hero-main">☼ 1t 45m</div>
+              <div class="card-new-hero-sub">til 20:25</div>
             </div>
           </div>
         </div>
 
-        <!-- State: in sun, no more breaks -->
+        <!-- In sun, no breaks -->
         <div class="glass-card card-new">
-          <div class="card-new-row1">
+          <div class="card-new-left">
             <div class="card-new-name">Olivia Restaurant Tjuvholmen</div>
+            <div class="card-new-meta">Frogner<span class="dot">·</span>Restaurant</div>
+            <div class="card-new-timeline">
+              <div class="timeline-track">
+                <div class="timeline-sun" style="left:38%; width:52%;"></div>
+              </div>
+              <div class="timeline-now" style="left:70%;"></div>
+            </div>
+          </div>
+          <div class="card-new-right">
             <div class="card-new-dist">592 m</div>
-          </div>
-          <div class="card-new-meta">Frogner<span class="dot">·</span>Restaurant</div>
-          <div class="card-new-timeline">
-            <div class="timeline-track">
-              <div class="timeline-sun" style="left:38%; width:52%;"></div>
-            </div>
-            <div class="timeline-now" style="left:70%;"></div>
-          </div>
-          <div class="card-new-hero">
-            <span class="card-new-status-icon">☼</span>
-            <div class="card-new-status">
-              <div class="card-new-status-main">I SOL · 3t 10m igjen</div>
-              <div class="card-new-status-sub">Solen varer ut dagen, ingen pauser</div>
+            <div class="card-new-hero">
+              <div class="card-new-hero-main">☼ 3t 10m</div>
+              <div class="card-new-hero-sub">til 20:25</div>
             </div>
           </div>
         </div>
 
-        <!-- State: in sun, very little left -->
+        <!-- In sun, little left -->
         <div class="glass-card card-new">
-          <div class="card-new-row1">
+          <div class="card-new-left">
             <div class="card-new-name">Brasserie France</div>
+            <div class="card-new-meta">Sentrum<span class="dot">·</span>Bistro</div>
+            <div class="card-new-timeline">
+              <div class="timeline-track">
+                <div class="timeline-sun" style="left:25%; width:46%;"></div>
+                <div class="timeline-cloud" style="left:71%; width:9%;"></div>
+                <div class="timeline-sun" style="left:80%; width:9%;"></div>
+              </div>
+              <div class="timeline-now" style="left:70%;"></div>
+            </div>
+          </div>
+          <div class="card-new-right">
             <div class="card-new-dist">310 m</div>
-          </div>
-          <div class="card-new-meta">Sentrum<span class="dot">·</span>Bistro</div>
-          <div class="card-new-timeline">
-            <div class="timeline-track">
-              <div class="timeline-sun" style="left:25%; width:46%;"></div>
-              <div class="timeline-cloud" style="left:71%; width:9%;"></div>
-              <div class="timeline-sun" style="left:80%; width:9%;"></div>
-            </div>
-            <div class="timeline-now" style="left:70%;"></div>
-          </div>
-          <div class="card-new-hero">
-            <span class="card-new-status-icon">☼</span>
-            <div class="card-new-status">
-              <div class="card-new-status-main">I SOL · 15 min igjen</div>
-              <div class="card-new-status-sub">Pause 1t 20m, så sol til 20:20</div>
+            <div class="card-new-hero">
+              <div class="card-new-hero-main">☼ 15 min</div>
+              <div class="card-new-hero-sub">til 20:20</div>
             </div>
           </div>
         </div>
 
-        <!-- State: shadow now, sun returning -->
+        <!-- Shadow now, sun returning -->
         <div class="glass-card card-new state-shadow">
-          <div class="card-new-row1">
+          <div class="card-new-left">
             <div class="card-new-name">AMAZONIA by BAR</div>
+            <div class="card-new-meta">Frogner<span class="dot">·</span>Restaurant</div>
+            <div class="card-new-timeline">
+              <div class="timeline-track">
+                <div class="timeline-sun" style="left:19%; width:25%;"></div>
+                <div class="timeline-cloud" style="left:44%; width:32%;"></div>
+                <div class="timeline-sun" style="left:76%; width:13%;"></div>
+              </div>
+              <div class="timeline-now" style="left:70%;"></div>
+            </div>
+          </div>
+          <div class="card-new-right">
             <div class="card-new-dist">607 m</div>
-          </div>
-          <div class="card-new-meta">Frogner<span class="dot">·</span>Restaurant</div>
-          <div class="card-new-timeline">
-            <div class="timeline-track">
-              <div class="timeline-sun" style="left:19%; width:25%;"></div>
-              <div class="timeline-cloud" style="left:44%; width:32%;"></div>
-              <div class="timeline-sun" style="left:76%; width:13%;"></div>
-            </div>
-            <div class="timeline-now" style="left:70%;"></div>
-          </div>
-          <div class="card-new-hero">
-            <span class="card-new-status-icon">◐</span>
-            <div class="card-new-status">
-              <div class="card-new-status-main">SKYGGE · <span class="accent">sol om 1t</span></div>
-              <div class="card-new-status-sub">Sol 18:15–20:20</div>
+            <div class="card-new-hero">
+              <div class="card-new-hero-main">Sol om 1t</div>
+              <div class="card-new-hero-sub">til 20:20</div>
             </div>
           </div>
         </div>
 
-        <!-- State: in sun briefly, break, then more -->
+        <!-- In sun briefly, break, then more -->
         <div class="glass-card card-new">
-          <div class="card-new-row1">
+          <div class="card-new-left">
             <div class="card-new-name">Arts restaurant</div>
-            <div class="card-new-dist">485 m</div>
-          </div>
-          <div class="card-new-meta">Frogner<span class="dot">·</span>Restaurant</div>
-          <div class="card-new-timeline">
-            <div class="timeline-track">
-              <div class="timeline-sun" style="left:66%; width:12%;"></div>
-              <div class="timeline-cloud" style="left:78%; width:5%;"></div>
-              <div class="timeline-sun" style="left:83%; width:6%;"></div>
+            <div class="card-new-meta">Frogner<span class="dot">·</span>Restaurant</div>
+            <div class="card-new-timeline">
+              <div class="timeline-track">
+                <div class="timeline-sun" style="left:66%; width:12%;"></div>
+                <div class="timeline-cloud" style="left:78%; width:5%;"></div>
+                <div class="timeline-sun" style="left:83%; width:6%;"></div>
+              </div>
+              <div class="timeline-now" style="left:70%;"></div>
             </div>
-            <div class="timeline-now" style="left:70%;"></div>
           </div>
-          <div class="card-new-hero">
-            <span class="card-new-status-icon">☼</span>
-            <div class="card-new-status">
-              <div class="card-new-status-main">I SOL · 1t 15m igjen</div>
-              <div class="card-new-status-sub">Pause 45m, så sol til 20:25</div>
+          <div class="card-new-right">
+            <div class="card-new-dist">485 m</div>
+            <div class="card-new-hero">
+              <div class="card-new-hero-main">☼ 1t 15m</div>
+              <div class="card-new-hero-sub">til 20:25</div>
             </div>
           </div>
         </div>
 
-        <!-- State: done for the day -->
+        <!-- Done for the day -->
         <div class="glass-card card-new state-done">
-          <div class="card-new-row1">
+          <div class="card-new-left">
             <div class="card-new-name">Café Skansen</div>
-            <div class="card-new-dist">420 m</div>
-          </div>
-          <div class="card-new-meta">Sentrum<span class="dot">·</span>Café</div>
-          <div class="card-new-timeline">
-            <div class="timeline-track">
-              <div class="timeline-sun" style="left:19%; width:25%;"></div>
+            <div class="card-new-meta">Sentrum<span class="dot">·</span>Café</div>
+            <div class="card-new-timeline">
+              <div class="timeline-track">
+                <div class="timeline-sun" style="left:19%; width:25%;"></div>
+              </div>
+              <div class="timeline-now" style="left:70%;"></div>
             </div>
-            <div class="timeline-now" style="left:70%;"></div>
           </div>
-          <div class="card-new-hero">
-            <span class="card-new-status-icon">☾</span>
-            <div class="card-new-status">
-              <div class="card-new-status-main">SOL FERDIG I DAG</div>
-              <div class="card-new-status-sub">Siste sol var 13:00–15:00</div>
+          <div class="card-new-right">
+            <div class="card-new-dist">420 m</div>
+            <div class="card-new-hero">
+              <div class="card-new-hero-main">Ferdig</div>
+              <div class="card-new-hero-sub">sist 15:00</div>
             </div>
           </div>
         </div>
       </div>
 
       <div class="annotation">
-        <strong>Tilstandsbevisst hero:</strong> kortet svarer først på "hva er det NÅ?" — <strong>I SOL</strong> (oransje), <strong>SKYGGE · sol om 1t</strong> (muted status + accent på det positive), eller <strong>SOL FERDIG I DAG</strong> (dempet hele kortet). Sub-linjen forklarer videre forløp. Mini-timeline er fortsatt en visuell sparkline som bekrefter hero-teksten. NÅ-markøren sitter nå riktig i forhold til status. Listen blir dynamisk — venues som er i sol nå skiller seg visuelt fra de som venter.
+        <strong>To-kolonne-layout:</strong> navn + meta + timeline til venstre, solinfo til høyre. Reduserer høyden fra 4 rader til 3. Sentence case (ikke CAPS) — matcher design-systemet. Hero viser det som varierer mest mellom venues (<strong>gjenværende tid</strong>) som primær, og sluttid som sub. Når de fleste venues deler samme "til 20:25" blir repetisjonen nedtonet, og blikket finner differensiatoren: er det 3t eller 15 min igjen? Timeline-formen gir visuelt fingeravtrykk uten å bruke tekst. Tre tilstander: ☼ oransje (i sol), muted (skygge, sol på vei tilbake), dimmet hele kortet (ferdig).
       </div>
     </div>
 
