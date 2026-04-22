@@ -120,32 +120,18 @@ function classifyPin(v, dateStr, hour) {
 // ── Density caps ──────────────────────────────────────────────────────────────
 // Baseline values are for a ~1000×900 px viewport (≈ 900 000 px²).
 // Caps scale linearly with viewport area so iPhone SE and iPad Pro get sensible limits.
-const HERO_CAP    = 10;  // baseline hero cap (zoom 14–15, ~1000×900 viewport)
-const WAITING_CAP = 8;   // baseline waiting cap (zoom 14–15, ~1000×900 viewport)
-// Halved from 15: waiting pills are lower priority than hero; err on fewer to reduce
-// blue visual noise. Easier to raise later than to deal with cluttered maps now.
-
-const _VIEWPORT_BASELINE_PX2 = 900_000;  // 1000×900 px reference
-
+// Density caps are soft backstops only — the spatial layout (computePinLayout)
+// is the primary authority on whether a pin shows as pill or dot.
+// Caps kick in only at low zoom where many venues flood the viewport;
+// at zoom ≥ 16 they are disabled so every hero/waiting gets a pill if space allows.
+//
+// Rule of thumb: cap ≥ (realistic max in-view count) → cap is never the constraint,
+// spatial overlap is. Tune downward only if very-low-zoom clutter becomes a problem.
 function _getDensityCaps(zoom) {
-  if (zoom >= 17) return { heroCap: Infinity, waitingCap: Infinity };
-
-  // Viewport-area scaling: large screens (iPad) get more pins; small screens
-  // get at least the baseline. Scale is clamped to ≥1 so mobile never drops
-  // below the reference caps — the baseline was tuned for a phone-ish viewport.
-  const el    = map.getContainer();
-  const area  = (el.offsetWidth || 1000) * (el.offsetHeight || 900);
-  const scale = Math.max(1.0, area / _VIEWPORT_BASELINE_PX2);
-
-  let baseHero, baseWaiting;
-  if (zoom >= 16)      { baseHero = 15; baseWaiting = 12; }
-  else if (zoom >= 14) { baseHero = HERO_CAP; baseWaiting = WAITING_CAP; }  // 10/8
-  else                 { baseHero = 6; baseWaiting = 4; }
-
-  return {
-    heroCap:    Math.round(Math.min(25, baseHero    * scale)),
-    waitingCap: Math.round(Math.min(35, baseWaiting * scale)),
-  };
+  if (zoom >= 16) return { heroCap: Infinity, waitingCap: Infinity };
+  if (zoom >= 14) return { heroCap: 20, waitingCap: 14 };
+  if (zoom >= 12) return { heroCap: 12, waitingCap: 8 };
+  return             { heroCap: 6,  waitingCap: 4 };
 }
 
 // UX-tuning constant: each km of distance from map center adds this many "virtual minutes"
