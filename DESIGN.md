@@ -290,6 +290,7 @@ If the selected time is exactly NÅ (e.g. on first load), the thumb renders clea
 - Vertical padding: `12px` top, `8px` bottom. Horizontal padding matches venue cards' left/right content edge (aligns with card titles).
 - The sort chip sits at the **right** of this header row on expanded state. Both the count text and the sort chip share the same header row. Sort chip is hidden in collapsed/peek state.
 - **Sort chip styling:** glass-action flavor — `36px` height, `13pt / 600 / --text`, `--muted` trailing chevron. No accent treatment (accent is reserved for interactive-selected state only). On open: border brightens to `rgba(156,189,231,0.35)`, background to `rgba(24,52,95,0.65)` — no color change. The chevron rotates 180° (`transition: transform 180ms ease`) when the sort menu is open.
+- **Default sort label:** `Sol nå ▾` (was `Score` before redesign). Ranks venues by: 1) sun-remaining-duration descending, 2) distance ascending, 3) state (`sun` before `shadow` before `done`).
 - **Visibility in peek state:** the header is visible in the ~40–50px peek zone, directly below the control group. It makes the peek more informative — users see "6 steder i solen" before expanding the list.
 
 ### List peek (collapsed state)
@@ -427,6 +428,185 @@ Every venue has a claim to attention, but not every venue has a claim to the use
 | ≥ 17 | unlimited | unlimited |
 
 Ranking: Hero candidates sorted by `sunScore` desc; Waiting candidates by `minutesUntil` asc (closest to sun first). Excess candidates are demoted to Context for that render; demotion is per-render only and does not persist.
+
+### Venue card (redesigned)
+
+Two-column layout optimized for scanning. Height: `85–90px` on mobile.
+
+**Left column** (`flex: 1, min-width: 0`):
+- **Venue name:** `15pt / 700 / --text`, single-line ellipsis
+- **Meta:** `{område} · {type}` in `12pt / 500 / --muted` (distance removed from list card)
+- **Mini sun-timeline:** Horizontal track, `6px` tall, spans full left-column width. Shows sun windows (orange) and cloud/overcast periods (muted blue) from `06:00–22:00`. Includes `2px` white vertical line marking wall-clock "now" (not the slider's selected time).
+
+**Right column** (`~96px` fixed, right-aligned, stretches to match left height):
+- **Distance:** `12pt / 500 / --muted`, top-aligned. Format: `221 m` or `2.3 km`
+- **Hero block:** State-dependent (see Venue state model below)
+
+**Removed from card:**
+- Score badge (sort now handles ranking)
+- Sun dial ring with arc
+- Duplicate duration text (`3H 10M`)
+- Per-venue weather (weather is global, in docked group row 1)
+
+**Card background, border, radius:** glass-card per Shades Glass recipe. Margin-bottom: `8px`.
+
+### Venue state model
+
+Three states encode a venue's relationship to sun availability at the currently selected time. All list cards, detail headers, and future sun-presentation surfaces use these states and their display conventions.
+
+| State | Condition | Hero main | Hero sub | Card class |
+|-------|-----------|-----------|----------|------------|
+| `sun` | Currently inside a sun window | `☼ {remaining_time}` (e.g. `☼ 3t 10m`) | `til {end_of_last_window_today}` | `state-sun` |
+| `shadow` | No sun now, but sun windows exist later | `Sol om {time_until_next}` (e.g. `Sol om 15 min`) | `til {end_of_last_window_today}` | `state-shadow` |
+| `done` | No further sun windows today | `Ferdig` | `sist {end_of_last_window_today}` | `state-done` |
+
+**Hero block typography:**
+- `sun` state main: `--accent` color, `15pt / 700 / --text`
+- `shadow` state main: `--text` color, `15pt / 600 / --text`
+- `done` state: whole card at `50%` opacity
+- Sub-text (all states): `11pt / --muted`
+
+**Duration format:** `3t 10m`, `1t 45m`, `15 min`, `5 min`. Use `min` under one hour. No zero-padding. Minimum shown: `5 min` (rounded up).
+
+**Edge cases:**
+- Current window ends in `< 5 min`: stays `sun`, shows `☼ 5 min`
+- Next window starts in `< 10 min`: shows `Sol om 8 min`
+- Venue closed at selected time: omitted from list (existing filter behavior)
+
+### Mini sun-timeline
+
+Horizontal sparkline showing sun availability across the day without text overhead.
+
+**Dimensions:**
+- Height: `6px` (track only, full viewport height is `14px`)
+- Time range: `06:00–22:00` (mapped linearly)
+- Container: `flex:1` on venue card's left column, spans full width
+
+**Segments:**
+- **Orange** (`--accent` at `0.85` opacity): direct sun windows
+- **Muted blue** (`--muted` at `0.35` opacity): cloud/overcast within sun windows (bridges between windows)
+- **Now marker:** `2px` white vertical line at wall-clock current time (not the slider's selected hour). Includes `0 0 6px rgba(255,255,255,0.6)` glow. This line orients the user to "where are we now in the day" regardless of which hour is selected.
+
+**Shared vocabulary with detail panel:** The detail panel's larger sun-timeline (below) uses the same visual language at `10px` track height.
+
+### Detail panel header
+
+Below the photos strip.
+
+**Title row:**
+- Name: `22pt / 700 / --text`, up to 2 lines with ellipsis if longer
+- Meta: `{type} · {område} · {distance}` in `13pt / 500 / --muted`
+- Back button: `‹ Steder`, action-pill flavor, `36px` height, top-right aligned
+
+**Spec:** Flex layout `gap: 12px`, title and meta stack in a flex column, back button flex-shrink: 0.
+
+### Primary action row (detail panel)
+
+Asymmetric row: one wide button + icon buttons.
+
+**Left button (primary CTA):**
+- Label: `↗ Veibeskrivelse · {walk_time} min` (e.g. `↗ Veibeskrivelse · 3 min`)
+- Background: `--accent` solid
+- Text: `--accent-on` (`#2a1a0c`)
+- `flex: 1`, `44px` tall, `15pt / 700`
+- Includes walk time calculated as `distance_meters ÷ 80 = minutes` (4.8 km/h pace), rounded, under 1 min shows `< 1 min`
+
+**Icon buttons** (right of primary, only if data exists):
+- `📞 Ring` (if `venue.phone` truthy): `tel:` link, `48×48`, glass-card background
+- `🌐 Nettside` (if `venue.website` truthy): external link, same dimensions
+- `⇪ Del` (always present): Web Share API with navigator.clipboard fallback
+
+**Row gap:** `8px` between primary and icon buttons. Icon buttons gap: `8px`.
+
+### Detail panel sun section
+
+Bordered glass-card with state-aware headline.
+
+**Headline** (state-dependent per Venue state model):
+- `sun` state: `Sol til {end} · {remaining} igjen` (e.g. `Sol til 20:25 · 3t 10m igjen`)
+- `shadow` state: `Sol fra {next_start} · om {time_until}` (e.g. `Sol fra 17:30 · om 45 min`)
+- `done` state: `Sol ferdig i dag`
+
+**Right-aligned sub** (same row, optional): `Neste pause {time}` — hide if no intra-day breaks in sun windows.
+
+**Timeline:** Same vocabulary as Mini sun-timeline, scaled to `10px` track height. Range `06:00–22:00`. Includes orange, blue, and white-glow now-marker.
+
+**Scale labels below timeline:** `6  9  12  15  18  21` in `11pt / 600 / --muted`.
+
+### Sol-retning section
+
+Compact wind-shelter/direction indicator, replacing the oversized sun dial.
+
+**Layout:** Two columns
+- **Left:** 80px diameter dial showing sun azimuth as an arc position. North (`N`) and South (`S`) ticks only — drop secondary ornamentation. Reuses `render-arc.js` draw logic. Shows direction only, not elevation.
+- **Right:** Text block with:
+  - **Primary:** `Solen står {direction}` (e.g. `Solen står vest-sørvest`) — `15pt / 600 / --text`
+  - **Sub:** `Sett deg på {side} av terrassen` (e.g. `Sett deg på sørvestsiden`) — `13pt / 500 / --muted`
+
+**Azimuth-to-text mapping** (8-point compass):
+| Azimuth | Bucket | Text | Seating |
+|---------|--------|------|---------|
+| 0–45° | N | nord | nordsiden |
+| 45–90° | NØ | nordøst | nordøstsiden |
+| 90–135° | Ø | øst | østsiden |
+| 135–180° | SØ | sørost | sørostsiden |
+| 180–225° | S | sør | sørsiden |
+| 225–270° | SV | sørvest | sørvestsiden |
+| 270–315° | V | vest | vestsiden |
+| 315–360° | NV | nordvest | nordvestsiden |
+
+**Spec:** Bordered glass-card, `padding: 14px`, `margin-bottom: 12px`.
+
+### Info row (detail panel info list)
+
+Pattern for structured key-value information rows. Replaces old `SOLSCORE` percentage blocks.
+
+**Layout:** `[icon, 18px, --accent] [label] [optional value or sub]`
+- Icon: `32×32`, centered, `18px` symbol, `--accent` color
+- Label: `flex: 1`, primary text `14pt / 600 / --text`, optional sub-text `12pt / 500 / --muted` below, `margin-top: 2px`
+- Value (optional): right-aligned, `13pt / 500 / --accent`, or empty for structural spacing
+
+**Info rows shown in detail panel** (in order):
+1. **Busyness** (if available): `👥 Travelt nå` sub-label, right value `~{percentage}%`
+2. **Noise** (if available): `🔊 {label}` where label is bucketed from 0–100 score:
+   - `0–33`: Rolig
+   - `34–66`: Moderat trafikkstøy
+   - `67–100`: Mye trafikkstøy
+   - No sub-text (was attempting to show "nearest street" but this data is sparse; drop it for now)
+3. **Hours** (always): `🕐 Åpent til {closing_time}`, sub-text `Kjøkken til {kitchen_close}` if available
+
+**Card spec:** Bordered glass-card, `overflow: hidden`, rows separated by `border-bottom: 1px solid var(--border)`. Last row has no border. `margin-bottom: 14px`.
+
+### Detail panel footer
+
+Two centered button links:
+- `Rediger informasjon`
+- `Rapporter feil`
+
+Both: `13pt / 500 / --muted`, `border: 1px solid var(--border)`, glass-card background, `8px 14px` padding, `border-radius: 10px`. Centered row, `gap: 10px`.
+
+## Typography
+
+Add these global rules to the Typography section:
+
+### Capitalization
+
+- **ALL CAPS** is reserved for small metadata labels only (e.g. old `LYS TIL`, `SOLSCORE` patterns — though both are retired in this redesign). Do not use CAPS on primary hero text or section headlines. Primary hero text uses sentence case.
+
+### Tabular numerals
+
+Apply `font-variant-numeric: tabular-nums` to all time and duration values to prevent layout shift as numbers change during scrub or time updates:
+- Absolute times: `14:15`, `09:30`
+- Durations: `3t 10m`, `15 min`, `1t 45m`
+- Percentages in data contexts: `~70%`
+
+### Duration format
+
+- Format: `3t 10m`, `1t 45m`, `15 min`, `5 min`
+- "t" = "timer" (hours), "min" = "minutter" (minutes)
+- Use `min` alone under one hour
+- No zero-padding (e.g. `3t 5m` not `03:05`)
+- Minimum displayed: `5 min` (round up any window shorter than 5 minutes)
 
 ## Performance & accessibility rules
 
