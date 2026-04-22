@@ -1,6 +1,6 @@
 {
   "mapInitialization": {
-    "defaultZoom": 13,
+    "defaultZoom": 14.5,
     "defaultPitch": 15,
     "defaultCenter": [10.728, 59.9125],
     "description": "Oslo fallback center point"
@@ -9,7 +9,7 @@
     {
       "step": 1,
       "name": "Splash Visible - Jump to Zoom Level",
-      "zoom": 15,
+      "zoom": 14.5,
       "pitch": 15,
       "duration": "instant",
       "notes": "Jump from default zoom 13 to 15, pitch stays at default 15"
@@ -47,8 +47,8 @@
   "buildingVisualization": [
     {
       "feature": "3D Growth Animation",
-      "zoomStart": 15,
-      "zoomEnd": 16,
+      "zoomStart": 14,
+      "zoomEnd": 15,
       "heightInterpolation": "0 → actual",
       "opacityStart": 15,
       "opacityEnd": 15.5,
@@ -56,12 +56,12 @@
     },
     {
       "feature": "Max Height",
-      "zoomMin": 16,
+      "zoomMin": 15,
       "notes": "Stays at full height"
     },
     {
       "feature": "Terrace Footprints",
-      "zoomMin": 14,
+      "zoomMin": 16,
       "notes": "Seating area shapes visible"
     }
   ],
@@ -123,22 +123,80 @@
       "description": "6 hero labels + 3 waiting"
     }
   ],
+  "venueInteractions": [
+    {
+      "action": "Locate User Button",
+      "zoom": "Math.max(current, 15)",
+      "pitch": null,
+      "duration": 600,
+      "durationUnit": "ms",
+      "notes": "Fly to user location; zoom to at least 15 but don't zoom out if already closer"
+    },
+    {
+      "action": "Click Venue (Detail Panel Open)",
+      "zoom": 17.7,
+      "pitch": 45,
+      "duration": 600,
+      "durationUnit": "ms",
+      "notes": "Fly to venue with cinematic zoom and tilt"
+    },
+    {
+      "action": "Close Detail Panel (no user interaction)",
+      "zoom": "restore pre-select",
+      "pitch": 15,
+      "duration": 600,
+      "durationUnit": "ms",
+      "notes": "Restore zoom/center to state before detail panel opened"
+    },
+    {
+      "action": "Close Detail Panel (user panned/zoomed)",
+      "zoom": "keep current",
+      "pitch": 15,
+      "duration": 500,
+      "durationUnit": "ms",
+      "notes": "Keep user's zoom/pan, only reset tilt and bearing"
+    },
+    {
+      "action": "Enter Edit Mode (Venue Editor)",
+      "zoom": 19,
+      "pitch": 0,
+      "duration": 900,
+      "durationUnit": "ms",
+      "notes": "Maximum zoom for editing building footprint; fits building bounds if available"
+    },
+    {
+      "action": "Suggest Venue (Places/Candidate Search)",
+      "zoom": "Math.max(current, 15)",
+      "pitch": null,
+      "duration": 800,
+      "durationUnit": "ms",
+      "notes": "Fly to search result location before confirmation; zoom to at least 15"
+    }
+  ],
   "detailPanelStates": [
     {
       "state": "Open",
-      "zoom": 15.3,
+      "zoom": 17.7,
       "pitch": 45,
       "duration": 600,
       "durationUnit": "ms",
       "notes": "Fly to venue location with cinematic angle"
     },
     {
-      "state": "Close",
-      "zoom": 13,
+      "state": "Close (no interaction)",
+      "zoom": "restore",
       "pitch": 15,
       "duration": 600,
       "durationUnit": "ms",
-      "notes": "Reset to default exploration view"
+      "notes": "Restore to pre-select zoom/center/bearing"
+    },
+    {
+      "state": "Close (user interacted)",
+      "zoom": "keep",
+      "pitch": 15,
+      "duration": 500,
+      "durationUnit": "ms",
+      "notes": "Keep user's position, only reset tilt and bearing"
     }
   ]
 }

@@ -15,5 +15,12 @@ Pin Labels,Close,16+,–,–,–,All hero labels + 8 waiting
 Pin Labels,Medium,14+,–,–,–,20 hero + 10 waiting
 Pin Labels,Far,12+,–,–,–,12 hero + 6 waiting
 Pin Labels,Distance,–,12,–,–,6 hero + 3 waiting
-Detail Panel,Open,15.3,,45,600,Fly to venue with cinematic angle
-Detail Panel,Close,13,,15,600,Reset to default exploration view
+Venue Interactions,Locate User Button,≥15,–,–,600,Fly to user location; minimum zoom 15
+Venue Interactions,Click Venue (Detail Open),17.7,,45,600,Fly to venue with cinematic zoom/tilt
+Venue Interactions,Close Detail Panel (no interact),restore,,15,600,Restore pre-select zoom/center
+Venue Interactions,Close Detail Panel (user interact),keep,,15,500,Keep user position; only reset tilt/bearing
+Venue Interactions,Enter Edit Mode,19,,0,900,Maximum zoom for building editor; flattened
+Venue Interactions,Suggest Venue (Places),≥15,–,–,800,Fly to search result before confirmation
+Detail Panel,Open,17.7,,45,600,Fly to venue location with cinematic angle
+Detail Panel,Close (no interaction),restore,,15,600,Restore to pre-select zoom/center/bearing
+Detail Panel,Close (user interacted),keep,,15,500,Keep user position; only reset tilt/bearing
