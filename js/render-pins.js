@@ -118,46 +118,100 @@ function classifyPin(v, dateStr, hour) {
 }
 
 // ── Density caps ──────────────────────────────────────────────────────────────
-const HERO_CAP    = 10;  // max Hero pins in a viewport (zoom 14–15)
-const WAITING_CAP = 15;  // max Waiting pins in a viewport (zoom 14–15)
+// Baseline values are for a ~1000×900 px viewport (≈ 900 000 px²).
+// Caps scale linearly with viewport area so iPhone SE and iPad Pro get sensible limits.
+const HERO_CAP    = 10;  // baseline hero cap (zoom 14–15, ~1000×900 viewport)
+const WAITING_CAP = 15;  // baseline waiting cap (zoom 14–15, ~1000×900 viewport)
+
+const _VIEWPORT_BASELINE_PX2 = 900_000;  // 1000×900 px reference
 
 function _getDensityCaps(zoom) {
   if (zoom >= 17) return { heroCap: Infinity, waitingCap: Infinity };
-  if (zoom >= 16) return { heroCap: 15, waitingCap: 20 };
-  if (zoom >= 14) return { heroCap: HERO_CAP, waitingCap: WAITING_CAP };
-  return { heroCap: 6, waitingCap: 8 };
+
+  // Viewport-area scaling: larger screen → more pins, smaller → fewer.
+  // Clamped so caps never drop below minimums or exceed maximums.
+  const el    = map.getContainer();
+  const area  = (el.offsetWidth || 1000) * (el.offsetHeight || 900);
+  const scale = area / _VIEWPORT_BASELINE_PX2;
+
+  let baseHero, baseWaiting;
+  if (zoom >= 16)      { baseHero = 15; baseWaiting = 20; }
+  else if (zoom >= 14) { baseHero = HERO_CAP; baseWaiting = WAITING_CAP; }
+  else                 { baseHero = 6; baseWaiting = 8; }
+
+  return {
+    heroCap:    Math.round(Math.min(20, Math.max(4, baseHero    * scale))),
+    waitingCap: Math.round(Math.min(30, Math.max(6, baseWaiting * scale))),
+  };
 }
+
+// Stable tier IDs from the last full-recompute (moveend/zoomend or time change).
+// Used for hysteresis: during active pan, prefer pins that were already visible
+// over newly-entered candidates at the same cap budget.
+const _stableHeroIds    = new Set();
+const _stableWaitingIds = new Set();
 
 /**
  * Apply density filter in-place: demote excess Hero / Waiting entries to Context.
- * projVenues: [{v, pt, classResult}], dateStr and hour for sun-score tie-breaking.
+ *
+ * isFullRecompute = true  → full re-sort + demote; rebuild stable sets afterwards.
+ *                           Triggered by moveend / zoomend / time/date change.
+ * isFullRecompute = false → pan frame; keep stable IDs, demote newcomers first.
+ *                           Prevents existing pills from flashing away during pan.
  */
-function _applyDensityFilter(projVenues, zoom, currentHour, dateStr) {
+function _applyDensityFilter(projVenues, zoom, currentHour, dateStr, isFullRecompute) {
   const { heroCap, waitingCap } = _getDensityCaps(zoom);
+
+  function _heroScore(e) {
+    try { return typeof sunScore === 'function' ? (sunScore(e.v, dateStr, currentHour) ?? 0) : (e.v.rating ?? 0); }
+    catch { return 0; }
+  }
 
   const heroes  = projVenues.filter(e => e.classResult.tier === 'hero');
   const waiting = projVenues.filter(e => e.classResult.tier === 'waiting');
 
-  // Cap heroes by sunScore desc
+  // ── Hero cap ──────────────────────────────────────────────────────────────
   if (heroes.length > heroCap) {
-    heroes.sort((a, b) => {
-      try {
-        const sa = typeof sunScore === 'function' ? (sunScore(a.v, dateStr, currentHour) ?? 0) : (a.v.rating ?? 0);
-        const sb = typeof sunScore === 'function' ? (sunScore(b.v, dateStr, currentHour) ?? 0) : (b.v.rating ?? 0);
-        return sb - sa;
-      } catch { return 0; }
-    });
-    for (let i = heroCap; i < heroes.length; i++) {
-      heroes[i].classResult = { tier: 'context', hasSunLaterToday: true, closedOpeningIntoSun: false };
+    if (isFullRecompute) {
+      heroes.sort((a, b) => _heroScore(b) - _heroScore(a));
+      for (let i = heroCap; i < heroes.length; i++) {
+        heroes[i].classResult = { tier: 'context', hasSunLaterToday: true, closedOpeningIntoSun: false };
+      }
+    } else {
+      // Pan frame: keep previously-stable heroes; demote newcomers first
+      const stable = heroes.filter(h => _stableHeroIds.has(h.v.id));
+      const fresh  = heroes.filter(h => !_stableHeroIds.has(h.v.id));
+      fresh.sort((a, b) => _heroScore(b) - _heroScore(a));
+      for (let i = Math.max(0, heroCap - stable.length); i < fresh.length; i++) {
+        fresh[i].classResult = { tier: 'context', hasSunLaterToday: true, closedOpeningIntoSun: false };
+      }
     }
   }
+  if (isFullRecompute) {
+    _stableHeroIds.clear();
+    projVenues.forEach(e => { if (e.classResult.tier === 'hero') _stableHeroIds.add(e.v.id); });
+  }
 
-  // Cap waiting by minutesUntil asc (closest to sun first)
+  // ── Waiting cap ───────────────────────────────────────────────────────────
   if (waiting.length > waitingCap) {
-    waiting.sort((a, b) => (a.classResult.minutesUntil ?? 120) - (b.classResult.minutesUntil ?? 120));
-    for (let i = waitingCap; i < waiting.length; i++) {
-      waiting[i].classResult = { tier: 'context', hasSunLaterToday: true, closedOpeningIntoSun: false };
+    if (isFullRecompute) {
+      waiting.sort((a, b) => (a.classResult.minutesUntil ?? 240) - (b.classResult.minutesUntil ?? 240));
+      for (let i = waitingCap; i < waiting.length; i++) {
+        waiting[i].classResult = { tier: 'context', hasSunLaterToday: true, closedOpeningIntoSun: false };
+      }
+    } else {
+      // Pan frame: keep previously-stable waiting pins; demote newcomers first
+      const stable = waiting.filter(w => _stableWaitingIds.has(w.v.id));
+      const fresh  = waiting.filter(w => !_stableWaitingIds.has(w.v.id));
+      fresh.sort((a, b) => (a.classResult.minutesUntil ?? 240) - (b.classResult.minutesUntil ?? 240));
+      for (let i = Math.max(0, waitingCap - stable.length); i < fresh.length; i++) {
+        fresh[i].classResult = { tier: 'context', hasSunLaterToday: true, closedOpeningIntoSun: false };
+      }
     }
+  }
+  if (isFullRecompute) {
+    _stableWaitingIds.clear();
+    projVenues.forEach(e => { if (e.classResult.tier === 'waiting') _stableWaitingIds.add(e.v.id); });
   }
 }
 
@@ -584,7 +638,8 @@ map.on('zoomend',  () => { _layoutStale = true; draw(); });
 //
 // extraStem is 0-based: 0 = stem flush with sprite bottom, 14 = one step raised, etc.
 // The sprite always bakes a fixed STEM_H stem; extraStem extends it further.
-const MAX_EXTRA_STEM = 56;  // max extra stem before pin becomes a dot (4 × STEM_STEP)
+const MAX_EXTRA_STEM = 28;  // max extra stem before pin becomes a dot (2 × STEM_STEP)
+// At 56px the user loses the spatial anchor between pin and venue. 28px is the sweet spot.
 const STEM_STEP  = 14;      // stem extension increment (px)
 const DOT_R      = 4.5;     // dot radius for overlap-demoted pins (px)
 const PILL_GAP   = 8;       // min gap between pill bounding boxes (px)
@@ -834,11 +889,16 @@ function draw() {
     projVenues.push({ v, classResult, pt: map.project([v.lng, v.lat]) });
   });
 
+  // Compute once: drives both density hysteresis and layout recompute decision.
+  // true  = map just settled (moveend/zoomend) or time/date changed → full re-rank.
+  // false = pan frame → keep stable pins, demote newcomers.
+  const isFullRecompute = _layoutStale || currentHour !== _layoutHour || dateStr !== _layoutDate;
+
   // Apply density filter (in-place, mutates classResult for excess venues)
-  _applyDensityFilter(projVenues, zoom, currentHour, dateStr);
+  _applyDensityFilter(projVenues, zoom, currentHour, dateStr, isFullRecompute);
 
   // Recompute anti-overlap layout only when map has settled or time/date changed
-  if (_layoutStale || currentHour !== _layoutHour || dateStr !== _layoutDate) {
+  if (isFullRecompute) {
     _layoutStale = false;
     _layoutHour  = currentHour;
     _layoutDate  = dateStr;
