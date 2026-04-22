@@ -1,0 +1,143 @@
+{
+  "mapInitialization": {
+    "defaultZoom": 13,
+    "defaultPitch": 15,
+    "defaultCenter": [10.728, 59.9125],
+    "description": "Oslo fallback center point"
+  },
+  "introSequence": [
+    {
+      "step": 1,
+      "name": "Splash Visible - Jump to Cinematic",
+      "zoom": 15,
+      "pitch": 45,
+      "duration": "instant",
+      "notes": "Jump from default zoom 13 to 15"
+    },
+    {
+      "step": 2,
+      "name": "Time Scrub + Zoom In",
+      "zoomStart": 15,
+      "zoomEnd": 15.3,
+      "pitch": 45,
+      "duration": 1800,
+      "durationUnit": "ms",
+      "notes": "Concurrent with time animation"
+    },
+    {
+      "step": 3,
+      "name": "Zoom Out + Detilt",
+      "zoom": 13,
+      "pitch": 15,
+      "duration": 700,
+      "durationUnit": "ms",
+      "notes": "Returns to default exploration view, starts when step 2 ends"
+    },
+    {
+      "step": "skip",
+      "name": "Skip Intro",
+      "zoom": 13,
+      "pitch": 15,
+      "duration": 400,
+      "durationUnit": "ms",
+      "notes": "Direct jump if user skips"
+    }
+  ],
+  "buildingVisualization": [
+    {
+      "feature": "3D Growth Animation",
+      "zoomStart": 15,
+      "zoomEnd": 16,
+      "heightInterpolation": "0 → actual",
+      "opacityStart": 15,
+      "opacityEnd": 15.5,
+      "notes": "Buildings fade in (opacity) and grow from 0 to full height"
+    },
+    {
+      "feature": "Max Height",
+      "zoomMin": 16,
+      "notes": "Stays at full height"
+    },
+    {
+      "feature": "Terrace Footprints",
+      "zoomMin": 14,
+      "notes": "Seating area shapes visible"
+    }
+  ],
+  "pinDensityFiltering": [
+    {
+      "level": "Neighbourhood",
+      "zoomMin": 13,
+      "criteria": "Show all venues",
+      "description": "Highest zoom, show everything"
+    },
+    {
+      "level": "District",
+      "zoomMin": 11,
+      "zoomMax": 12,
+      "criteria": "Rating ≥ 4.3",
+      "description": "Medium zoom, filter by rating"
+    },
+    {
+      "level": "City-wide",
+      "zoomMax": 11,
+      "criteria": "Rating ≥ 4.5",
+      "description": "Lowest zoom, only top-rated venues"
+    }
+  ],
+  "pinLabelCaps": [
+    {
+      "level": "Crowded",
+      "zoomMin": 17,
+      "heroCap": "Infinity",
+      "waitingCap": 6,
+      "description": "All hero labels + 6 waiting"
+    },
+    {
+      "level": "Close",
+      "zoomMin": 16,
+      "heroCap": "Infinity",
+      "waitingCap": 8,
+      "description": "All hero labels + 8 waiting"
+    },
+    {
+      "level": "Medium",
+      "zoomMin": 14,
+      "heroCap": 20,
+      "waitingCap": 10,
+      "description": "20 hero labels + 10 waiting"
+    },
+    {
+      "level": "Far",
+      "zoomMin": 12,
+      "heroCap": 12,
+      "waitingCap": 6,
+      "description": "12 hero labels + 6 waiting"
+    },
+    {
+      "level": "Distance",
+      "zoomMax": 12,
+      "heroCap": 6,
+      "waitingCap": 3,
+      "description": "6 hero labels + 3 waiting"
+    }
+  ],
+  "detailPanelStates": [
+    {
+      "state": "Open",
+      "zoom": 15.3,
+      "pitch": 45,
+      "duration": 600,
+      "durationUnit": "ms",
+      "notes": "Fly to venue location with cinematic angle"
+    },
+    {
+      "state": "Close",
+      "zoom": 13,
+      "pitch": 15,
+      "duration": 600,
+      "durationUnit": "ms",
+      "notes": "Reset to default exploration view"
+    }
+  ]
+}

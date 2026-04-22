@@ -1,0 +1,19 @@
+Category,Feature/Level,Zoom Min,Zoom Max,Pitch,Duration (ms),Notes
+Map Initialization,Default State,13,,15,0,Oslo center [10.728 59.9125]
+Intro Sequence,Step 1: Jump to Cinematic,15,,45,0,Jump from default zoom 13 to 15
+Intro Sequence,Step 2: Time Scrub + Zoom In,15,15.3,45,1800,Concurrent with time animation
+Intro Sequence,Step 3: Zoom Out + Detilt,13,,15,700,Returns to default after step 2
+Intro Sequence,Skip Intro,13,,15,400,Direct jump if user skips
+Buildings,3D Growth Animation,15,16,–,–,Opacity 15→15.5; Height 0→actual
+Buildings,Max Height,16+,–,–,–,Stays at full height
+Buildings,Terrace Footprints,14+,–,–,–,Seating area shapes visible
+Pin Density,Neighbourhood,13+,–,–,–,Show all venues
+Pin Density,District,11,12,–,–,Rating ≥ 4.3
+Pin Density,City-wide,–,11,–,–,Rating ≥ 4.5
+Pin Labels,Crowded,17+,–,–,–,All hero labels + 6 waiting
+Pin Labels,Close,16+,–,–,–,All hero labels + 8 waiting
+Pin Labels,Medium,14+,–,–,–,20 hero + 10 waiting
+Pin Labels,Far,12+,–,–,–,12 hero + 6 waiting
+Pin Labels,Distance,–,12,–,–,6 hero + 3 waiting
+Detail Panel,Open,15.3,,45,600,Fly to venue with cinematic angle
+Detail Panel,Close,13,,15,600,Reset to default exploration view
