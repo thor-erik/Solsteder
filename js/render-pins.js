@@ -130,20 +130,21 @@ const _VIEWPORT_BASELINE_PX2 = 900_000;  // 1000×900 px reference
 function _getDensityCaps(zoom) {
   if (zoom >= 17) return { heroCap: Infinity, waitingCap: Infinity };
 
-  // Viewport-area scaling: larger screen → more pins, smaller → fewer.
-  // Clamped so caps never drop below minimums or exceed maximums.
+  // Viewport-area scaling: large screens (iPad) get more pins; small screens
+  // get at least the baseline. Scale is clamped to ≥1 so mobile never drops
+  // below the reference caps — the baseline was tuned for a phone-ish viewport.
   const el    = map.getContainer();
   const area  = (el.offsetWidth || 1000) * (el.offsetHeight || 900);
-  const scale = area / _VIEWPORT_BASELINE_PX2;
+  const scale = Math.max(1.0, area / _VIEWPORT_BASELINE_PX2);
 
   let baseHero, baseWaiting;
-  if (zoom >= 16)      { baseHero = 15; baseWaiting = 12; }  // waiting halved from 20
+  if (zoom >= 16)      { baseHero = 15; baseWaiting = 12; }
   else if (zoom >= 14) { baseHero = HERO_CAP; baseWaiting = WAITING_CAP; }  // 10/8
   else                 { baseHero = 6; baseWaiting = 4; }
 
   return {
-    heroCap:    Math.round(Math.min(20, Math.max(4, baseHero    * scale))),
-    waitingCap: Math.round(Math.min(30, Math.max(6, baseWaiting * scale))),
+    heroCap:    Math.round(Math.min(25, baseHero    * scale)),
+    waitingCap: Math.round(Math.min(35, baseWaiting * scale)),
   };
 }
 
@@ -670,8 +671,8 @@ map.on('zoomend',  () => { _layoutStale = true; draw(); });
 //
 // extraStem is 0-based: 0 = stem flush with sprite bottom, 14 = one step raised, etc.
 // The sprite always bakes a fixed STEM_H stem; extraStem extends it further.
-const MAX_EXTRA_STEM = 28;  // max extra stem before pin becomes a dot (2 × STEM_STEP)
-// At 56px the user loses the spatial anchor between pin and venue. 28px is the sweet spot.
+const MAX_EXTRA_STEM = 42;  // max extra stem before pin becomes a dot (3 × STEM_STEP)
+// Gives the layout 4 tries (0, 14, 28, 42) before demoting to a dot.
 const STEM_STEP  = 14;      // stem extension increment (px)
 const DOT_R      = 4.5;     // dot radius for overlap-demoted pins (px)
 const PILL_GAP   = 8;       // min gap between pill bounding boxes (px)
