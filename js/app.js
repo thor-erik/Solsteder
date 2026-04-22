@@ -767,8 +767,7 @@ function updateQcIndicator(h) {
     sunLabel = cnt > 0 ? t('places_in_sun', { count: cnt }) : t('no_places_in_sun');
   }
 
-  const animate = !isHover && !_sliderDragging;  // cross-fade only on deliberate time jumps
-  _readoutSet(document.getElementById('readout-time'), timeLabel, animate);
+  _readoutSet(document.getElementById('readout-time'), timeLabel, false);
 
   // Inline weather row: icon + temp + separator (wx-sep, static) + wind
   const wxIconEl = document.querySelector('#readout-meta-wx .wx-icon');
@@ -784,7 +783,7 @@ function updateQcIndicator(h) {
   if (wxWindEl) wxWindEl.innerHTML    = windHtml;
 
   // Sun count: belongs to list header, not readout
-  _readoutSet(document.getElementById('list-sun-count'), sunLabel, animate);
+  _readoutSet(document.getElementById('list-sun-count'), sunLabel, false);
 
   // Hue-shift: tint the unified control group toward weather ramp during hover/drag
   const ctrlGroup = document.getElementById('qc-control-group');
@@ -2463,10 +2462,6 @@ datePicker.addEventListener('change', () => {
 });
 
 let _lastSliderStep = null;
-let _sliderDragging = false;
-timeFromEl.addEventListener('pointerdown', () => { _sliderDragging = true; });
-timeFromEl.addEventListener('pointerup',   () => { _sliderDragging = false; });
-timeFromEl.addEventListener('blur',        () => { _sliderDragging = false; });
 timeFromEl.addEventListener('input', () => {
   if (_timeAnimId) { cancelAnimationFrame(_timeAnimId); _timeAnimId = null; }
   if (nowMode) {
