@@ -2889,8 +2889,9 @@ function _runIntroSequence() {
   timeFromEl.value = Math.max(SOLAR_START, Math.min(23.9, introHour));
   update();
 
-  // Position map at user location, cinematic settings — instant, before splash fades
-  map.jumpTo({ center: _introCenter, zoom: 15, pitch: 45, bearing: 0 });
+  // Position map at user location — instant, before splash fades
+  // Pitch will gradually increase to 45° during step 2
+  map.jumpTo({ center: _introCenter, zoom: 15, pitch: 15, bearing: 0 });
 
   // Enable skip after 600ms (let splash fade complete before accepting skips)
   let skipEnabled = false;
@@ -2908,7 +2909,7 @@ function _runIntroSequence() {
     if (_introSeqId !== seqId) return;
     splash.classList.add('hidden');
 
-    // Step 2: Scrub time → target time (1800ms) + slow zoom in to 15.3 (concurrent)
+    // Step 2: Scrub time → target time (1800ms) + zoom in + tilt up to cinematic angle (all concurrent)
     const timeTarget = _sharedHour ?? Math.min(23, Math.max(4, now));
     animateToTime(timeTarget, 1800);
     map.easeTo({ zoom: 15.3, pitch: 45, duration: 1800, easing: t => t * t * (3 - 2 * t) });

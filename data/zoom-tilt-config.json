@@ -8,21 +8,22 @@
   "introSequence": [
     {
       "step": 1,
-      "name": "Splash Visible - Jump to Cinematic",
+      "name": "Splash Visible - Jump to Zoom Level",
       "zoom": 15,
-      "pitch": 45,
+      "pitch": 15,
       "duration": "instant",
-      "notes": "Jump from default zoom 13 to 15"
+      "notes": "Jump from default zoom 13 to 15, pitch stays at default 15"
     },
     {
       "step": 2,
-      "name": "Time Scrub + Zoom In",
+      "name": "Time Scrub + Zoom In + Tilt Up",
       "zoomStart": 15,
       "zoomEnd": 15.3,
-      "pitch": 45,
+      "pitchStart": 15,
+      "pitchEnd": 45,
       "duration": 1800,
       "durationUnit": "ms",
-      "notes": "Concurrent with time animation"
+      "notes": "Concurrent: zoom, tilt up to cinematic angle, and time animation"
     },
     {
       "step": 3,
