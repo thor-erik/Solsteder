@@ -490,6 +490,138 @@
     gap: 10px;
   }
 
+  /* ── Floating time slider — round 12 ─────────────────────────────────────── */
+  /* Pill container: glass-action, full-pill shape, fixed above safe area */
+  body.fts #fts {
+    display: flex !important;
+    position: fixed;
+    left: 16px; right: 16px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+    z-index: 925;            /* above detail-panel(920), below calendar(950 mobile) */
+    height: 52px;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 999px;
+    background: var(--glass-action-bg);
+    backdrop-filter: var(--glass-blur-action);
+    -webkit-backdrop-filter: var(--glass-blur-action);
+    border: var(--glass-border);
+    box-shadow: var(--glass-inset), 0 8px 24px rgba(0,0,0,0.25);
+    transition: transform 220ms ease-out, opacity 220ms ease-out;
+    will-change: transform;
+  }
+
+  /* Calendar button — date pill */
+  #fts-date-btn {
+    display: flex; align-items: center; justify-content: center;
+    gap: 6px;
+    height: 40px; min-width: 40px;
+    padding: 0 12px;
+    background: var(--glass-action-bg);
+    backdrop-filter: var(--glass-blur-action);
+    -webkit-backdrop-filter: var(--glass-blur-action);
+    border: var(--glass-border);
+    border-radius: 999px;
+    box-shadow: var(--glass-inset);
+    color: var(--text);
+    font: 600 13px/1 'Inter', sans-serif;
+    cursor: pointer;
+    flex-shrink: 0;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+    transition: background 120ms, border-color 120ms;
+  }
+  #fts-date-btn:hover { background: rgba(20,46,82,0.60); border-color: rgba(156,189,231,0.30); }
+  #fts-date-btn.active { border-color: rgba(255,175,133,0.35); }
+  #fts-date-btn.active .fts-cal-icon,
+  #fts-date-btn.active #fts-date-label { color: var(--accent); }
+  #fts-date-btn.active .fts-chevron { color: var(--accent); transform: rotate(180deg); }
+  .fts-cal-icon { color: var(--muted); flex-shrink: 0; }
+  #fts-date-label { transition: color 120ms; }
+  .fts-chevron { color: var(--muted); flex-shrink: 0; transition: color 120ms, transform 120ms; }
+  /* Today: icon only — no label, no chevron, circle shape */
+  #fts-date-btn.fts-today { padding: 0; width: 40px; }
+  #fts-date-btn.fts-today #fts-date-label,
+  #fts-date-btn.fts-today .fts-chevron { display: none; }
+
+  /* Slider track — canvas fills remaining width */
+  #fts-track {
+    flex: 1 1 0; min-width: 0;
+    height: 40px;
+    border-radius: 13px;
+    overflow: hidden;
+    cursor: ew-resize;
+    touch-action: none;    /* prevent scroll during drag */
+  }
+  #fts-canvas {
+    display: block;
+    width: 100%; height: 100%;
+  }
+
+  /* Scrub popup — anchored above track, centered on thumb */
+  #fts-popup {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;                /* repositioned by JS to follow thumb */
+    transform: translateX(-50%);
+    z-index: 10;
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px;
+    background: var(--glass-panel-bg);
+    backdrop-filter: var(--glass-blur-panel);
+    -webkit-backdrop-filter: var(--glass-blur-panel);
+    border: var(--glass-border);
+    border-radius: 12px;
+    box-shadow: var(--glass-inset), 0 4px 12px rgba(0,0,0,0.3);
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 120ms ease-out;
+  }
+  #fts-popup.visible { opacity: 1; }
+  #fts-popup-time { font: 700 15px/1 'Inter', sans-serif; color: var(--text); font-variant-numeric: tabular-nums; }
+  .fts-dot { font: 400 13px/1 'Inter', sans-serif; color: var(--muted); }
+  #fts-popup-wx { font: 600 13px/1 'Inter', sans-serif; color: var(--text); }
+  #fts-popup-wind { font: 500 13px/1 'Inter', sans-serif; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  /* Picker-open: slide down & out */
+  body.fts #fts.fts-hidden {
+    transform: translateY(calc(100% + env(safe-area-inset-bottom, 0px) + 24px));
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* When flag is on: hide docked group in list panel */
+  body.fts #panel-time-bar { display: none !important; }
+
+  /* ── Mobile overrides for floating slider ───────────────────────────── */
+  @media (max-width: 639px) {
+    body.fts #fts {
+      left: 12px; right: 12px;   /* tighter margins match mobile search bar */
+    }
+    /* Peek state: shift panel up by pill reserved space so peek sits above pill */
+    body.fts #panel:not(.mobile-expanded):not(.mobile-fullscreen):not(.mobile-hidden) {
+      transform: translateY(calc(100% - var(--peek-h, 160px) - 72px)) translateZ(0);
+    }
+    /* Expanded: panel fills from bottom:0 as normal — list padding clears pill */
+    body.fts #venue-list {
+      padding-bottom: 88px !important;  /* 52+12+24 */
+    }
+    /* Locate button: account for raised peek */
+    body.fts #locate-btn {
+      bottom: calc(var(--peek-h, 160px) + 72px + 14px);
+    }
+    /* Detail panel (mobile): reduce height so pill sits above top edge */
+    body.fts #detail-panel {
+      height: calc(69svh - 72px);
+    }
+    body.fts #detail-panel.dp-fullscreen {
+      height: 100svh;
+    }
+  }
+
   /* ── Bottom-center: date pill + sun arc + intent presets ──────────────────── */
   #floating-bottom {
     position: absolute;
@@ -4559,6 +4691,30 @@
     <button class="sort-btn"        data-sort="rating"   onclick="setSortBy('rating')">★ Rating</button>
     <button class="sort-btn"        data-sort="distance" onclick="setSortBy('distance')">⊙ Near</button>
   </div>
+
+  <!-- Floating time slider (round 12) — outside #panel to escape transform context -->
+  <div id="fts" style="display:none">
+    <button id="fts-date-btn" onclick="toggleQcPanel('date')" aria-label="Velg dato">
+      <svg class="fts-cal-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <rect x="1.5" y="3" width="13" height="11.5" rx="2" stroke="currentColor" stroke-width="1.5"/>
+        <line x1="1.5" y1="6.5" x2="14.5" y2="6.5" stroke="currentColor" stroke-width="1.5"/>
+        <line x1="5" y1="1.5" x2="5" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="11" y1="1.5" x2="11" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <span id="fts-date-label"></span>
+      <svg class="fts-chevron" width="10" height="6" viewBox="0 0 10 6" fill="currentColor"><path d="M0 0 L10 0 L5 6 Z"/></svg>
+    </button>
+    <div id="fts-track">
+      <canvas id="fts-canvas"></canvas>
+    </div>
+    <div id="fts-popup">
+      <span id="fts-popup-time"></span>
+      <span class="fts-dot">·</span>
+      <span id="fts-popup-wx"></span>
+      <span class="fts-dot">·</span>
+      <span id="fts-popup-wind"></span>
+    </div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -4573,7 +4729,7 @@
 <script src="js/weather.js?v=20260411b"></script>
 <script src="js/scoring.js?v=20260411b"></script>
 <script src="js/map-style.js?v=20260418b"></script>
-<script src="js/app.js?v=20260420a"></script>
+<script src="js/app.js?v=20260423b"></script>
 <script src="js/render-helpers.js?v=20260411b"></script>
 <script src="js/render-arc.js?v=20260411b"></script>
 <script src="js/render-seating.js?v=20260411b"></script>
@@ -4586,9 +4742,12 @@
 <script src="js/ui-detail.js?v=20260411b"></script>
 <script src="js/osm.js?v=20260411b"></script>
 <script>
+if (USE_FLOATING_TIME_SLIDER) document.body.classList.add('fts');
+
 loadVenues().then(() => {
   updateRangeFill();
   update();
+  if (USE_FLOATING_TIME_SLIDER) initFts();
   initFacings();
   const _wxLats = VENUES.map(v => v.lat), _wxLngs = VENUES.map(v => v.lng);
   const _wxLat  = (Math.min(..._wxLats) + Math.max(..._wxLats)) / 2;

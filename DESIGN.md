@@ -281,6 +281,45 @@ Interaction is soft-clamped at the present moment — the thumb cannot be releas
 
 If the selected time is exactly NÅ (e.g. on first load), the thumb renders cleanly on top of the NÅ tick (z-order: thumb above tick).
 
+### Floating compact time slider (round 12)
+
+> Round 12 introduces a floating compact time slider as the default layout. The round-7 docked-group styling remains in the codebase behind `USE_FLOATING_TIME_SLIDER = false` for rollback.
+
+A persistent floating glass pill (`#fts`) that sits above every surface (map, list, detail panel). It replaces the docked time-bar group in the list panel, freeing the panel entirely for venue content.
+
+**Container:**
+- `position: fixed; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom) + 12px)`
+- Height: `52px`. Border-radius: `999px` (full pill).
+- Glass: action level (`rgba(20,46,82,0.45)` / `blur(10px)`).
+- Shadow: `var(--glass-inset), 0 8px 24px rgba(0,0,0,0.25)`.
+- z-index: `925` — above detail-panel (920), below calendar picker (850/950).
+- Mobile (`<640px`): margins tighten to `12px`.
+
+**Layout (left to right):**
+1. **Date button** (`#fts-date-btn`) — action-pill, `40px` height, `999px` radius. Contains calendar icon + label + chevron. Label logic:
+   - Today → icon-only (circle, no label/chevron, `width: 40px`).
+   - Tomorrow → "I morgen".
+   - Same week (2–6 days) → "tor 23" (Norwegian abbreviated day + date).
+   - Further → "23. apr" (date + abbreviated month).
+   - Active state: border `rgba(255,175,133,0.35)`, icon + label + chevron in `--accent`.
+2. **Canvas track** (`#fts-track`) — flex: 1, `40px` height, `13px` radius, `overflow: hidden`, `touch-action: none`. Contains `#fts-canvas` which renders the weather-ramp segments + sunglass thumb (same rendering as the docked time bar, but with 24px diameter thumb).
+
+**Scrub popup** (`#fts-popup`):
+- Anchored above the pill, `8px` gap. Glass-panel level.
+- Content: `[time, 15pt/700] · [weather label] · [wind m/s]`.
+- Appears on drag start and on appstart (2s auto-hide). Follows thumb position horizontally, clamped to pill edges.
+- Fade: `opacity 120ms ease-out`.
+
+**Picker integration:**
+- When calendar picker opens, the pill slides down and out (`fts-hidden` class: `translateY(100% + safe-area + 24px)`, `opacity: 0`).
+- When picker closes, the pill slides back up.
+
+**Panel adjustments (mobile):**
+- Peek-state panel transform adds `-72px` offset to clear the pill.
+- Venue list gets `padding-bottom: 88px` to prevent last card from being hidden.
+- Locate button shifts up by `72px`.
+- Detail panel height reduced by `72px`; fullscreen remains `100svh`.
+
 ### List header
 
 "X steder i solen" appears exactly once on screen — in this header, above the venue list. It is the result surface for the input surface above (the control group). Never duplicate this count in the readout or elsewhere.

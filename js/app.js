@@ -7,6 +7,9 @@
 
 // No JS viewport-height fix needed — mobile panels use position:fixed + svh units.
 
+// ── Feature flags ─────────────────────────────────────────────────────────────
+const USE_FLOATING_TIME_SLIDER = true; // round 12 — set false to revert to round-7 docked group
+
 // ── Mutable state ─────────────────────────────────────────────────────────────
 let currentSun        = null;   // {az, alt} for the FROM time
 let currentSunTable   = null;   // Float64Array built once per date
@@ -102,6 +105,368 @@ let _introSeqId     = 0; // incremented on skip to invalidate pending timeouts
 let _sharedVenueId  = null; // set when page is loaded via a #v= share link
 let _sharedDate     = null; // date string from share link (YYYY-MM-DD)
 let _sharedHour     = null; // hour (float) from share link
+
+// ── Floating time slider (round 12) ──────────────────────────────────────────
+let _ftsAppstartDone   = false; // one-shot appstart popup
+let _ftsDragging       = false; // true during scrub
+let _ftsHideTimeout    = null;  // scrub popup auto-hide timer
+
+// Norwegian day/month abbreviations for FTS date button
+const _ftsDays   = ['søn','man','tir','ons','tor','fre','lør'];
+const _ftsMonths = ['jan','feb','mar','apr','mai','jun','jul','aug','sep','okt','nov','des'];
+
+/** Initialise the floating time slider: bind events, draw canvas, show appstart popup. */
+function initFts() {
+  const canvas = document.getElementById('fts-canvas');
+  const track  = document.getElementById('fts-track');
+  if (!canvas || !track) return;
+
+  updateFtsDateBtn();
+  drawFtsCanvas();
+
+  // -- Pointer / touch events on the track --
+  const setTimeFromPointer = (clientX) => {
+    const rect = canvas.getBoundingClientRect();
+    const t    = MIN_H_ARC + (clientX - rect.left) / rect.width * (MAX_H_ARC - MIN_H_ARC);
+    const hour = _clampHour(t);
+    if (nowMode) {
+      nowMode = false;
+      nowBtn?.classList.remove('active');
+      timeRangeWrap?.classList.remove('now-active');
+      clearInterval(nowInterval); nowInterval = null;
+    }
+    setActiveIntentBtn(null);
+    timeFromEl.value = hour;
+    update();
+    showFtsPopup(hour);
+  };
+
+  // Pointer down — start drag
+  track.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    _ftsDragging = true;
+    track.setPointerCapture(e.pointerId);
+    window._qcThumbActive = true;
+    setTimeFromPointer(e.clientX);
+  });
+
+  // Pointer move — drag scrub
+  track.addEventListener('pointermove', e => {
+    if (!_ftsDragging) return;
+    setTimeFromPointer(e.clientX);
+  });
+
+  // Pointer up — end drag
+  track.addEventListener('pointerup', e => {
+    if (!_ftsDragging) return;
+    _ftsDragging = false;
+    window._qcThumbActive = false;
+    drawFtsCanvas();
+    _qcSpringBackFts();
+    scheduleFtsPopupHide();
+  });
+
+  // Pointer cancel
+  track.addEventListener('pointercancel', () => {
+    _ftsDragging = false;
+    window._qcThumbActive = false;
+    drawFtsCanvas();
+    hideFtsPopup();
+  });
+
+  // Appstart popup: show time once for 2s, then fade
+  if (!_ftsAppstartDone) {
+    _ftsAppstartDone = true;
+    const h = parseFloat(timeFromEl.value);
+    showFtsPopup(h);
+    scheduleFtsPopupHide(2000);
+  }
+}
+
+/** Draw the weather-ramp canvas inside the floating slider track. */
+function drawFtsCanvas() {
+  const canvasEl = document.getElementById('fts-canvas');
+  if (!canvasEl || !currentSunTable) return;
+
+  const dpr  = window.devicePixelRatio || 1;
+  const cssW = canvasEl.clientWidth  || 200;
+  const cssH = canvasEl.clientHeight || 40;
+  const pw   = Math.round(cssW * dpr);
+  const ph   = Math.round(cssH * dpr);
+  if (canvasEl.width !== pw || canvasEl.height !== ph) {
+    canvasEl.width  = pw;
+    canvasEl.height = ph;
+  }
+
+  const c = canvasEl.getContext('2d');
+  c.clearRect(0, 0, pw, ph);
+  c.save();
+  c.scale(dpr, dpr);
+
+  const MIN_H   = MIN_H_ARC;
+  const MAX_H   = MAX_H_ARC;
+  const TRACK_H = cssH;
+  const TRACK_R = Math.floor(TRACK_H / 2);
+  const BAR_W   = cssW;
+  const dateStr = datePicker.value;
+  const fromH   = parseFloat(timeFromEl.value);
+
+  const timeToX = t => (t - MIN_H) / (MAX_H - MIN_H) * BAR_W;
+
+  // 1. Background — night color
+  c.beginPath();
+  c.rect(0, 0, cssW, cssH);
+  c.fillStyle = '#2A3B5E';
+  c.fill();
+
+  // 2. Hourly weather-ramp segments
+  const wxHours = (typeof getWeatherHoursForDate === 'function')
+    ? getWeatherHoursForDate(dateStr) : [];
+  const hasWx = wxHours.length > 0 && typeof getWeatherAt === 'function';
+  const nowH_ = new Date().getHours() + new Date().getMinutes() / 60;
+  const isToday_ = datePicker.value === todayStr();
+
+  for (let h = MIN_H; h < MAX_H; h++) {
+    if (isToday_ && h + 1 <= nowH_) continue;
+    const sun = getSunFromTable(currentSunTable, h + 0.5);
+    if (sun.alt <= 0) continue;
+
+    let color = '#FFD488';
+    if (hasWx) {
+      const wx   = getWeatherAt(dateStr, h + 0.5);
+      const rain = wx ? (wx.precip ?? wx.prec ?? 0) > 0.3 : false;
+      const cf   = wx ? (wx.cloud ?? 0) : 0;
+      if      (rain)       color = '#5E7CA8';
+      else if (cf < 0.20)  color = '#FFD488';
+      else if (cf < 0.60)  color = '#E6C08A';
+      else                 color = '#8EA0B8';
+    }
+
+    const drawFrom = (isToday_ && h < nowH_) ? nowH_ : h;
+    const x1 = Math.round(timeToX(drawFrom));
+    const x2 = Math.round(timeToX(h + 1));
+    if (x2 <= x1) continue;
+    c.fillStyle = color;
+    c.fillRect(x1, 0, x2 - x1, TRACK_H);
+  }
+
+  // 3. Inset shadow
+  const insetGrad = c.createLinearGradient(0, 0, 0, 5);
+  insetGrad.addColorStop(0, 'rgba(0,0,0,0.22)');
+  insetGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  c.fillStyle = insetGrad;
+  c.fillRect(0, 0, BAR_W, TRACK_H);
+
+  // 4. NÅ tick
+  const nowH = new Date().getHours() + new Date().getMinutes() / 60;
+  const isToday = datePicker.value === todayStr();
+  if (isToday && nowH >= MIN_H && nowH <= MAX_H) {
+    const nx = timeToX(nowH);
+    const thumbPx = Math.abs(timeToX(fromH) - nx);
+    if (thumbPx >= 12) {
+      c.save();
+      c.setLineDash([2, 3]);
+      c.strokeStyle = 'rgba(156,189,231,0.55)';
+      c.lineWidth = 1;
+      c.beginPath();
+      c.moveTo(nx, 0);
+      c.lineTo(nx, TRACK_H);
+      c.stroke();
+      c.setLineDash([]);
+      c.restore();
+    }
+  }
+
+  // 5. Sunglass thumb
+  if (fromH >= MIN_H && fromH <= MAX_H) {
+    const isActive  = !!(window._qcThumbActive);
+    const springOff = (typeof window._ftsSpringOffset === 'number') ? window._ftsSpringOffset : 0;
+    const sx   = timeToX(fromH) + springOff;
+    const cy_  = TRACK_H / 2;
+    const R    = 12;   // 24px diameter — slightly smaller for 40px track
+
+    c.save();
+    c.translate(sx, cy_);
+    c.scale(isActive ? 1.08 : 1.0, isActive ? 1.08 : 1.0);
+    c.translate(-sx, -cy_);
+
+    // Glow halo
+    c.save();
+    c.shadowColor   = isActive ? 'rgba(255,175,133,0.55)' : 'rgba(255,175,133,0.35)';
+    c.shadowBlur    = 10;
+    c.beginPath(); c.arc(sx, cy_, R, 0, Math.PI * 2);
+    c.fillStyle = 'rgba(255,242,235,0.01)';
+    c.fill();
+    c.restore();
+
+    // Drop shadow + frosted fill
+    c.save();
+    c.shadowColor   = 'rgba(0,0,0,0.35)';
+    c.shadowBlur    = 5;
+    c.shadowOffsetY = 1;
+    c.beginPath(); c.arc(sx, cy_, R, 0, Math.PI * 2);
+    c.fillStyle = 'rgba(255,242,235,0.18)';
+    c.fill();
+    c.restore();
+
+    // Border ring
+    c.save();
+    c.beginPath(); c.arc(sx, cy_, R - 0.75, 0, Math.PI * 2);
+    c.strokeStyle = 'rgba(255,242,235,0.75)';
+    c.lineWidth   = 1.5;
+    c.stroke();
+    c.restore();
+
+    // Inner highlight
+    c.save();
+    c.beginPath();
+    c.arc(sx, cy_ - 1.5, R - 3, Math.PI * 1.1, Math.PI * 1.9);
+    c.strokeStyle = 'rgba(255,255,255,0.30)';
+    c.lineWidth   = 1;
+    c.stroke();
+    c.restore();
+
+    c.restore(); // scale
+  }
+
+  c.restore(); // dpr
+}
+
+/** Spring-back animation for the FTS thumb. */
+function _qcSpringBackFts() {
+  window._ftsSpringOffset = 6;
+  const start    = performance.now();
+  const duration = 220;
+  function step(now) {
+    const p = Math.min((now - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - p, 2);
+    window._ftsSpringOffset = 6 * (1 - eased);
+    drawFtsCanvas();
+    if (p < 1) requestAnimationFrame(step);
+    else { window._ftsSpringOffset = 0; drawFtsCanvas(); }
+  }
+  requestAnimationFrame(step);
+}
+
+/** Update the calendar button label based on selected date. */
+function updateFtsDateBtn() {
+  const btn   = document.getElementById('fts-date-btn');
+  const label = document.getElementById('fts-date-label');
+  if (!btn || !label) return;
+
+  const sel   = datePicker.value;
+  const today = todayStr();
+
+  if (sel === today) {
+    // Today: icon-only circle
+    btn.classList.add('fts-today');
+    label.textContent = '';
+  } else {
+    btn.classList.remove('fts-today');
+    const d = new Date(sel + 'T12:00:00');
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+
+    // Check if same week (within 6 days)
+    const diffDays = Math.round((d - new Date(today + 'T12:00:00')) / 86400000);
+
+    if (sel === tomorrowStr) {
+      label.textContent = 'I morgen';
+    } else if (diffDays > 0 && diffDays <= 6) {
+      // Same week: "tor 23"
+      label.textContent = _ftsDays[d.getDay()] + ' ' + d.getDate();
+    } else {
+      // Further: "23. apr"
+      label.textContent = d.getDate() + '. ' + _ftsMonths[d.getMonth()];
+    }
+  }
+
+  // Highlight when calendar is open
+  if (_qcActiveSection === 'date') {
+    btn.classList.add('active');
+  } else {
+    btn.classList.remove('active');
+  }
+}
+
+/** Show the scrub popup with time + weather info. */
+function showFtsPopup(hour) {
+  const popup   = document.getElementById('fts-popup');
+  const timeEl  = document.getElementById('fts-popup-time');
+  const wxEl    = document.getElementById('fts-popup-wx');
+  const windEl  = document.getElementById('fts-popup-wind');
+  const canvas  = document.getElementById('fts-canvas');
+  if (!popup || !timeEl) return;
+
+  // Clear any pending hide
+  if (_ftsHideTimeout) { clearTimeout(_ftsHideTimeout); _ftsHideTimeout = null; }
+
+  // Time
+  timeEl.textContent = formatHour(hour);
+
+  // Weather
+  const dateStr = datePicker.value;
+  if (typeof getWeatherAt === 'function') {
+    const wx = getWeatherAt(dateStr, hour);
+    if (wx) {
+      const rain = (wx.precip ?? wx.prec ?? 0) > 0.3;
+      const cf   = wx.cloud ?? 0;
+      if      (rain)       wxEl.textContent = 'Regn';
+      else if (cf < 0.20)  wxEl.textContent = 'Sol';
+      else if (cf < 0.60)  wxEl.textContent = 'Delvis sol';
+      else                 wxEl.textContent = 'Overskyet';
+
+      if (wx.wind != null) {
+        windEl.textContent = Math.round(wx.wind) + ' m/s';
+      } else {
+        windEl.textContent = '';
+      }
+    } else {
+      wxEl.textContent = '';
+      windEl.textContent = '';
+    }
+  }
+
+  // Position popup horizontally centered on thumb
+  if (canvas) {
+    const ftsEl    = document.getElementById('fts');
+    const trackEl  = document.getElementById('fts-track');
+    if (ftsEl && trackEl) {
+      const trackLeft = trackEl.offsetLeft;
+      const trackW    = trackEl.offsetWidth;
+      const MIN_H     = MIN_H_ARC, MAX_H = MAX_H_ARC;
+      const thumbX    = trackLeft + (hour - MIN_H) / (MAX_H - MIN_H) * trackW;
+      const ftsW      = ftsEl.offsetWidth;
+      // Clamp so popup doesn't overflow edges
+      const popupW    = popup.offsetWidth || 160;
+      const left      = Math.max(popupW / 2 + 8, Math.min(ftsW - popupW / 2 - 8, thumbX));
+      popup.style.left = left + 'px';
+    }
+  }
+
+  popup.classList.add('visible');
+}
+
+/** Hide the scrub popup. */
+function hideFtsPopup() {
+  const popup = document.getElementById('fts-popup');
+  if (popup) popup.classList.remove('visible');
+  if (_ftsHideTimeout) { clearTimeout(_ftsHideTimeout); _ftsHideTimeout = null; }
+}
+
+/** Schedule popup auto-hide after a delay. */
+function scheduleFtsPopupHide(ms) {
+  if (_ftsHideTimeout) clearTimeout(_ftsHideTimeout);
+  _ftsHideTimeout = setTimeout(hideFtsPopup, ms || 1500);
+}
+
+/** Sync floating slider state with current app state (called from update). */
+function syncFts() {
+  if (!USE_FLOATING_TIME_SLIDER) return;
+  drawFtsCanvas();
+  updateFtsDateBtn();
+}
 
 // ── Sun window cache ──────────────────────────────────────────────────────────
 // Keyed by `${venueId}-${dateStr}`. Populated by the worker (background) and
@@ -915,6 +1280,11 @@ function _closeQcPanel() {
   if (dateBtn) { dateBtn.classList.remove('active'); dateBtn.setAttribute('aria-expanded', 'false'); }
   document.getElementById('ptb-cal-float')?.classList.remove('open');
   document.getElementById('floating-search')?.classList.remove('cal-dimmed');
+  // Show floating slider again when picker closes
+  if (USE_FLOATING_TIME_SLIDER) {
+    document.getElementById('fts')?.classList.remove('fts-hidden');
+    updateFtsDateBtn();
+  }
   // Restore panel state saved before calendar opened
   if (_preCalPanelState && isMobile() && typeof window._applyMobilePanelState === 'function') {
     window._applyMobilePanelState(_preCalPanelState);
@@ -956,6 +1326,11 @@ function toggleQcPanel(section) {
   _navPush('qc');
   calFloat?.classList.add('open');
   document.getElementById('floating-search')?.classList.add('cal-dimmed');
+  // Hide floating slider while picker is open
+  if (USE_FLOATING_TIME_SLIDER) {
+    document.getElementById('fts')?.classList.add('fts-hidden');
+    document.getElementById('fts-date-btn')?.classList.add('active');
+  }
   // On mobile, collapse list to peek so picker has room; restore on close
   if (isMobile() && typeof window._applyMobilePanelState === 'function') {
     _preCalPanelState = window._currentMobilePanelState?.() ?? null;
@@ -1360,6 +1735,7 @@ function update() {
   updateQcLabels();
   updateQcIndicator(null);
   drawTimeBar(document.getElementById('qc-arc'));
+  syncFts();
 }
 
 // ── Popup helpers ─────────────────────────────────────────────────────────────
