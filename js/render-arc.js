@@ -557,26 +557,35 @@ function drawTimeBar(canvasEl) {
   const isToday = (typeof todayStr === 'function') && datePicker.value === todayStr();
   if (isToday && nowH >= MIN_H && nowH <= MAX_H) {
     const nx = timeToX(nowH);
-    // Hide the NÅ label when thumb is within 30 minutes (0.5h) to avoid collision
-    const thumbNear = Math.abs(showH - nowH) < 0.5;
-    c.save();
-    c.setLineDash([2, 3]);
-    c.strokeStyle = thumbNear ? 'rgba(156,189,231,0.28)' : 'rgba(156,189,231,0.55)';
-    c.lineWidth = 1;
-    c.beginPath();
-    c.moveTo(nx, TRACK_Y);
-    c.lineTo(nx, TRACK_Y + TRACK_H);
-    c.stroke();
-    c.setLineDash([]);
+    // Collision: the thumb disc (R=14) has a translucent glass fill (0.18), so a dashed
+    // line running through it bleeds through as a dark vertical seam — reads as broken
+    // glass. When the disc overlaps the tick horizontally, suppress the line entirely;
+    // the thumb itself is the NÅ indicator at that moment. Label hides a touch earlier.
+    const thumbPx      = Math.abs(timeToX(showH) - nx);
+    const suppressTick = thumbPx < 16;            // disc radius + ~2px breathing room
+    const suppressLbl  = Math.abs(showH - nowH) < 0.5;
+    if (!suppressTick) {
+      c.save();
+      c.setLineDash([2, 3]);
+      c.strokeStyle = suppressLbl ? 'rgba(156,189,231,0.28)' : 'rgba(156,189,231,0.55)';
+      c.lineWidth = 1;
+      c.beginPath();
+      c.moveTo(nx, TRACK_Y);
+      c.lineTo(nx, TRACK_Y + TRACK_H);
+      c.stroke();
+      c.setLineDash([]);
+      c.restore();
+    }
 
-    if (!thumbNear) {
+    if (!suppressLbl) {
+      c.save();
       c.font = '700 8px "Inter", sans-serif';
       c.fillStyle = 'rgba(156,189,231,0.60)';
       c.textAlign = 'center';
       c.textBaseline = 'top';
       c.fillText('NÅ', nx, 0);  // fits in PAD_T=8 space above the track
+      c.restore();
     }
-    c.restore();
   }
 
   // 7. Sunglass thumb — circular frosted-glass disc, 28px diameter

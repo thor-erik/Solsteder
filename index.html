@@ -565,6 +565,10 @@
     grid-template-columns: repeat(7, 1fr);
     gap: 3px;
   }
+  /* Calendar day tile — glass-card level (gradient + rim + top sheen). No backdrop-filter:
+     the parent sheet already paints a blur, and nesting another blur is wasted GPU work
+     (see DESIGN.md "Performance & accessibility rules"). Weather still lives in sub-elements
+     (glyph + temp) — background stays neutral so selection rings are unambiguous. */
   .dc-tile {
     display: flex;
     flex-direction: column;
@@ -572,28 +576,31 @@
     gap: 1px;
     padding: 5px 2px 4px;
     border-radius: 8px;
-    border: 1px solid rgba(156,189,231,0.12);
-    background: rgba(20,46,82,0.45);
+    border: var(--glass-border);
+    background: var(--glass-card-bg);
+    box-shadow: var(--glass-inset);
     cursor: pointer;
-    transition: border-color 0.12s, background 0.12s;
+    transition: border-color 0.12s, box-shadow 0.12s;
     font-family: 'Inter', sans-serif;
     position: relative;
   }
   .dc-tile:hover:not(.no-data) {
-    background: rgba(24,52,95,0.9);
     border-color: rgba(255,175,133,0.3);
   }
   .dc-tile.today       { border-color: rgba(255,175,133,0.4); }
-  /* Selected: inset box-shadow ring (no border change → no layout shift) */
-  .dc-tile.selected    { background: rgba(255,175,133,0.08) !important; box-shadow: inset 0 0 0 2px var(--accent), inset 0 0 8px rgba(255,175,133,0.10) !important; border-color: transparent !important; }
-  .dc-tile.sun-high    { background: rgba(255,175,133,0.11); border-color: rgba(255,175,133,0.2); }
-  .dc-tile.sun-mid     { background: rgba(255,175,133,0.05); }
+  /* Selected: inset accent ring + subtle glow; keep glass top-sheen for continuity (no bg fill) */
+  .dc-tile.selected    { box-shadow: inset 0 0 0 2px var(--accent), inset 0 0 10px rgba(255,175,133,0.12), inset 0 1px 0 rgba(255,242,235,0.14) !important; border-color: transparent !important; }
+  .dc-tile.sun-high    { border-color: rgba(255,175,133,0.2); }
   .dc-tile.no-data     { opacity: 0.4; }
-  /* Beyond-horizon tiles: reduced-opacity glass, muted number, no glyph — no dashed borders */
-  .dc-tile.solar-only  { background: rgba(20,46,82,0.25); border-color: rgba(156,189,231,0.10); }
-  .dc-tile.solar-only:hover:not(.no-data) { background: rgba(20,46,82,0.40); border-color: rgba(156,189,231,0.18); }
+  /* Beyond-horizon tiles: reduced-opacity glass with the same diagonal gradient — no dashed borders */
+  .dc-tile.solar-only  {
+    background: linear-gradient(135deg, rgba(20,46,82,0.26) 0%, rgba(32,73,131,0.16) 100%), rgba(20,46,82,0.30);
+    border-color: rgba(156,189,231,0.12);
+    box-shadow: inset 0 1px 0 rgba(255,242,235,0.08);
+  }
+  .dc-tile.solar-only:hover:not(.no-data) { border-color: rgba(156,189,231,0.22); }
   /* Past tiles: 0.45 opacity matches the time bar past-state rule */
-  .dc-tile-past        { opacity: 0.45; cursor: default; pointer-events: none; border-color: transparent; background: transparent; }
+  .dc-tile-past        { opacity: 0.45; cursor: default; pointer-events: none; border-color: transparent; background: transparent; box-shadow: none; }
   /* Today dot — 4px accent dot, inline in flex column, centered below day number */
   .dc-today-dot {
     width: 4px;
@@ -3309,8 +3316,9 @@
   #qc-cal .dc-cal-scroll {
     height: 260px; overflow-y: auto; -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    mask-image: linear-gradient(to bottom, black 88%, transparent 100%);
-    -webkit-mask-image: linear-gradient(to bottom, black 88%, transparent 100%);
+    /* Soft bottom fade hints at more content without eating into the last row of tiles. */
+    mask-image: linear-gradient(to bottom, black 96%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 96%, transparent 100%);
   }
   #qc-cal .dc-cal-scroll::-webkit-scrollbar { display: none; }
   #qc-cal .dc-grid:not(.dc-month-grid) { display: grid; grid-template-columns: repeat(7, 1fr); grid-auto-rows: 1fr; gap: 3px; flex: 1; min-height: 0; width: 100%; box-sizing: border-box; }
