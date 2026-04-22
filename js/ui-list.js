@@ -57,9 +57,11 @@ function buildMiniSunTimeline(v, dateStr, fromHour) {
     }
   }
 
-  return `<div class="timeline-track">
-    ${segments}
-    <div class="timeline-now" style="left:${nowPos}%"></div>
+  return `<div class="card-new-timeline">
+    <div class="timeline-track">
+      ${segments}
+      <div class="timeline-now" style="left:${nowPos}%"></div>
+    </div>
   </div>`;
 }
 

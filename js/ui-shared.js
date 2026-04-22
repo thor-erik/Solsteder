@@ -23,6 +23,11 @@ function venueState(venue, selectedTime) {
   const nextWindow = windows.find(w => w.start > fromHour);
   const lastWindow = windows[windows.length - 1];
 
+  // Debug: log first few venues to understand window structure
+  if (venue.id <= 3) {
+    console.debug(`[venueState] ${venue.name} at ${fromHour.toFixed(2)}: windows=${windows.map(w => `[${w.start.toFixed(2)}-${w.end.toFixed(2)}]`).join(',')}, currentWindow=${currentWindow ? `[${currentWindow.start.toFixed(2)}-${currentWindow.end.toFixed(2)}]` : 'none'}, nextWindow=${nextWindow ? `[${nextWindow.start.toFixed(2)}-${nextWindow.end.toFixed(2)}]` : 'none'}`);
+  }
+
   // Format duration as 3t 10m, 1t 45m, 15 min, 5 min
   const formatDuration = (hours) => {
     const h = Math.floor(hours);

@@ -566,8 +566,8 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       </div>`);
   }
 
-  // Noise row
-  const noiseScore = v.noiseScore != null ? v.noiseScore * 100 : null;
+  // Noise row (from scoring.js noiseScore calculation)
+  const noiseScore = s?.noise != null ? s.noise : (v.noiseScore != null ? v.noiseScore * 100 : null);
   if (noiseScore != null) {
     const noiseBucket = typeof noiseScoreToBucket === 'function' ? noiseScoreToBucket(noiseScore) : null;
     if (noiseBucket) {
@@ -632,7 +632,7 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
         <button class="btn-primary">↗ Veibeskrivelse · ${walkTime || '—'}</button>
         ${haPhone}
         ${hasWebsite}
-        <button class="btn-icon-sec" title="Del" onclick="shareVenue(${v.id})">⇪</button>
+        <button class="btn-icon-sec" title="Del" onclick="shareVenue(${v.id})">⤴</button>
       </div>
 
       <div class="sun-section">
@@ -654,10 +654,7 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       <div class="spatial-section">
         <div class="spatial-label">Sol-retning akkurat nå</div>
         <div class="spatial-body">
-          <div class="mini-dial">
-            <span class="mini-dial-tick n">N</span>
-            <span class="mini-dial-tick s">S</span>
-          </div>
+          <canvas id="detail-compass" class="detail-compass-canvas" width="80" height="80" style="flex-shrink:0"></canvas>
           <div class="spatial-text">
             <span class="strong">${solRetningMain}</span>
             <span class="muted">${solRetningSub}</span>
@@ -685,4 +682,78 @@ function renderSunTimelineSegments(windows, fromHour) {
   }
 
   return segments;
+}
+
+/** Draw compass arc for detail panel sol-retning section. */
+function drawDetailCompass(dateStr, fromHour) {
+  const canvas = document.getElementById('detail-compass');
+  if (!canvas) return;
+
+  const c = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height, cx = w / 2, cy = h / 2;
+  const outerR = Math.min(w, h) / 2 - 2;
+
+  // Clear and draw circle
+  c.clearRect(0, 0, w, h);
+  c.beginPath();
+  c.arc(cx, cy, outerR, 0, Math.PI * 2);
+  c.fillStyle = 'rgba(255,255,255,0.04)';
+  c.fill();
+  c.strokeStyle = 'rgba(156,189,231,0.18)';
+  c.lineWidth = 1;
+  c.stroke();
+
+  // Draw cardinal ticks (N, S only)
+  c.strokeStyle = 'rgba(156,189,231,0.3)';
+  c.lineWidth = 1;
+  // N
+  c.beginPath();
+  c.moveTo(cx, cy - outerR + 2);
+  c.lineTo(cx, cy - outerR + 6);
+  c.stroke();
+  // S
+  c.beginPath();
+  c.moveTo(cx, cy + outerR - 2);
+  c.lineTo(cx, cy + outerR - 6);
+  c.stroke();
+
+  // Draw N label
+  c.font = '9px "Inter", sans-serif';
+  c.fillStyle = 'rgba(156,189,231,0.6)';
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  c.fillText('N', cx, cy - outerR + 10);
+
+  // Get sun position and draw arc/dot
+  const sunPos = typeof getSun === 'function' ? getSun(dateStr, fromHour) : { az: 0, alt: -10 };
+  const RAD = Math.PI / 180;
+
+  if (sunPos.alt > 0) {
+    const sunAngle = (sunPos.az - 90) * RAD;
+    const sr = outerR - 4;
+    const sx = cx + sr * Math.cos(sunAngle);
+    const sy = cy + sr * Math.sin(sunAngle);
+
+    // Draw arc from center to sun position
+    c.beginPath();
+    c.moveTo(cx, cy);
+    c.lineTo(sx, sy);
+    c.strokeStyle = 'rgba(255,175,133,0.35)';
+    c.lineWidth = 1.5;
+    c.stroke();
+
+    // Draw sun dot with glow
+    const glow = c.createRadialGradient(sx, sy, 0, sx, sy, 7);
+    glow.addColorStop(0, 'rgba(255,175,133,0.5)');
+    glow.addColorStop(1, 'rgba(255,175,133,0)');
+    c.beginPath();
+    c.arc(sx, sy, 7, 0, Math.PI * 2);
+    c.fillStyle = glow;
+    c.fill();
+
+    c.beginPath();
+    c.arc(sx, sy, 2.5, 0, Math.PI * 2);
+    c.fillStyle = '#FFAF85';
+    c.fill();
+  }
 }
