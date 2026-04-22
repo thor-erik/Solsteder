@@ -490,281 +490,6 @@
     gap: 10px;
   }
 
-  /* ── Floating time slider pill (round 12, hidden by default) ──────────────── */
-  /* Hide floating slider by default (when flag is off) */
-  #floating-time-slider {
-    display: none !important;
-  }
-
-  /* Show and style floating slider when flag is on */
-  body.floating-time-slider #floating-time-slider {
-    position: fixed;
-    left: 16px;
-    right: 16px;
-    bottom: calc(var(--safe-area-bottom, 0px) + 12px);
-    z-index: 950;
-    height: 52px;
-    display: flex !important;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 8px;
-    border-radius: 999px;
-    background: var(--glass-action-bg);
-    backdrop-filter: var(--glass-blur-action);
-    -webkit-backdrop-filter: var(--glass-blur-action);
-    border: var(--glass-border);
-    box-shadow:
-      var(--glass-inset),
-      0 8px 24px rgba(0,0,0,0.25);
-    pointer-events: all;
-    transform: translateY(0);
-    opacity: 1 !important;
-    transition: transform 220ms ease-out, opacity 220ms ease-out;
-  }
-
-  /* Override intro-hidden when not hiding for picker */
-  body.floating-time-slider #floating-time-slider:not(.picker-open) {
-    opacity: 1 !important;
-    pointer-events: all;
-  }
-  body.floating-time-slider #floating-time-slider.picker-open {
-    opacity: 0 !important;
-    pointer-events: none !important;
-  }
-
-  /* Calendar button in floating pill */
-  body.floating-time-slider #floating-date-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    height: 40px;
-    padding: 0 12px;
-    background: var(--glass-action-bg);
-    border: var(--glass-border);
-    border-radius: 16px;
-    box-shadow: var(--glass-inset);
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    outline: none;
-    white-space: nowrap;
-    flex-shrink: 0;
-    transition: background 120ms, border-color 120ms;
-    font-family: 'Inter', sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text);
-    line-height: 1;
-  }
-  body.floating-time-slider #floating-date-btn:hover,
-  body.floating-time-slider #floating-date-btn:focus-visible {
-    background: rgba(20,46,82,0.60);
-    border-color: rgba(156,189,231,0.30);
-  }
-  body.floating-time-slider #floating-date-btn.active {
-    border-color: rgba(255,175,133,0.35);
-  }
-  body.floating-time-slider #floating-date-btn.active .date-cal-icon { color: var(--accent); }
-  body.floating-time-slider #floating-date-btn.active #floating-date-label { color: var(--accent); }
-  body.floating-time-slider #floating-date-btn.active .floating-date-chevron {
-    color: var(--accent);
-    transform: rotate(180deg);
-  }
-
-  /* Calendar icon styling */
-  body.floating-time-slider #floating-date-btn .date-cal-icon {
-    color: var(--muted);
-    flex-shrink: 0;
-    transition: color 120ms;
-  }
-
-  /* Date label styling */
-  body.floating-time-slider #floating-date-label {
-    transition: color 120ms;
-  }
-
-  /* Chevron styling */
-  body.floating-time-slider .floating-date-chevron {
-    display: none;
-    color: var(--muted);
-    flex-shrink: 0;
-    transition: color 120ms, transform 120ms;
-  }
-  body.floating-time-slider #floating-date-btn.has-label .floating-date-chevron {
-    display: inline-block;
-  }
-  body.floating-time-slider #floating-date-btn:hover .floating-date-chevron,
-  body.floating-time-slider #floating-date-btn:focus-visible .floating-date-chevron {
-    color: var(--text);
-  }
-
-  /* Today variant: icon only, round 40×40 button */
-  body.floating-time-slider #floating-date-btn:not(.has-label) {
-    width: 40px;
-    height: 40px;
-    padding: 0;
-    border-radius: 50%;
-  }
-  body.floating-time-slider #floating-date-btn:not(.has-label) .date-cal-icon {
-    margin: 0;
-  }
-
-  /* Floating slider track and input */
-  body.floating-time-slider #floating-slider-track {
-    flex: 1 1 0;
-    position: relative;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    min-width: 0;
-  }
-
-  body.floating-time-slider #floating-slider-ramp {
-    position: absolute;
-    inset: 0;
-    border-radius: 13px;
-    z-index: 1;
-    pointer-events: none;
-  }
-
-  body.floating-time-slider #floating-time-input {
-    position: relative;
-    width: 100%;
-    height: 26px;
-    z-index: 2;
-    cursor: ew-resize;
-    -webkit-appearance: none;
-    appearance: none;
-    background: transparent;
-    border: none;
-    outline: none;
-    padding: 0;
-    margin: 0;
-  }
-
-  body.floating-time-slider #floating-time-input::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: var(--glass-panel-bg);
-    border: 1px solid var(--text);
-    box-shadow: 0 0 0 2px rgba(255,242,235,0.1), inset 0 1px 0 rgba(255,242,235,0.14), inset 0 -1px 0 rgba(20,46,82,0.35);
-    cursor: grab;
-    transition: transform 120ms;
-  }
-  body.floating-time-slider #floating-time-input::-webkit-slider-thumb:active {
-    cursor: grabbing;
-    transform: scale(1.15);
-  }
-
-  body.floating-time-slider #floating-time-input::-moz-range-thumb {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: var(--glass-panel-bg);
-    border: 1px solid var(--text);
-    box-shadow: 0 0 0 2px rgba(255,242,235,0.1), inset 0 1px 0 rgba(255,242,235,0.14), inset 0 -1px 0 rgba(20,46,82,0.35);
-    cursor: grab;
-    transition: transform 120ms;
-  }
-  body.floating-time-slider #floating-time-input::-moz-range-thumb:active {
-    cursor: grabbing;
-    transform: scale(1.15);
-  }
-
-  /* Scrub popup styling */
-  body.floating-time-slider .scrub-popup {
-    position: absolute;
-    bottom: calc(100% + 8px);
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 10;
-    background: var(--glass-panel-bg);
-    backdrop-filter: var(--glass-blur-panel);
-    -webkit-backdrop-filter: var(--glass-blur-panel);
-    border: var(--glass-border);
-    border-radius: 12px;
-    padding: 8px 12px;
-    box-shadow: var(--glass-inset), 0 4px 12px rgba(0,0,0,0.3);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    white-space: nowrap;
-    font-family: 'Inter', sans-serif;
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--text);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 120ms ease-out;
-  }
-  body.floating-time-slider .scrub-popup.visible {
-    opacity: 1;
-  }
-
-  body.floating-time-slider #scrub-time {
-    font-variant-numeric: tabular-nums;
-  }
-
-  body.floating-time-slider .scrub-sep {
-    color: var(--muted);
-    font-size: 13px;
-    font-weight: 400;
-  }
-
-  body.floating-time-slider #scrub-weather {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 13px;
-    font-weight: 600;
-  }
-
-  body.floating-time-slider .scrub-wx-icon {
-    font-size: 14px;
-    line-height: 1;
-  }
-
-  body.floating-time-slider #scrub-temp {
-    font-variant-numeric: tabular-nums;
-  }
-
-  body.floating-time-slider #scrub-wind {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--muted);
-    font-variant-numeric: tabular-nums;
-  }
-
-  /* Hide floating slider when calendar picker is open */
-  body.floating-time-slider #floating-time-slider.picker-open {
-    transform: translateY(calc(100% + var(--safe-area-bottom, 0px) + 12px));
-    opacity: 0;
-    pointer-events: none;
-    transition: transform 220ms ease-out, opacity 220ms ease-out;
-  }
-
-  /* Hide docked group when floating slider is active */
-  body.floating-time-slider #panel-time-bar {
-    display: none;
-  }
-
-  /* Task 6: Adjust list sheet positioning for floating slider (desktop) */
-  body.floating-time-slider #panel {
-    bottom: calc(var(--safe-area-bottom, 0px) + 12px + 52px + 8px);
-  }
-
-  /* Expanded list scroll padding to clear floating slider */
-  body.floating-time-slider #venue-list {
-    padding-bottom: calc(52px + 12px + 24px) !important;
-  }
-
-  /* Task 7: Adjust detail panel when floating slider is active (desktop) */
-  body.floating-time-slider #detail-panel {
-    top: calc(118px + 72px);
-  }
-
   /* ── Bottom-center: date pill + sun arc + intent presets ──────────────────── */
   #floating-bottom {
     position: absolute;
@@ -2481,28 +2206,6 @@
       height: 100svh;
       border-radius: 0;
       z-index: 910;
-    }
-
-    /* ── Round 12: floating time slider — mobile overrides ────────────────── */
-    /* Raise the panel above the floating pill so peek content doesn't overlap */
-    body.floating-time-slider #panel {
-      bottom: 72px; /* pill(52) + pill-margin(12) + gap(8) */
-    }
-
-    /* In expanded state the panel still starts at pill top (bottom:72px),
-       panel height stays 62svh — add scroll padding so last card clears pill */
-    body.floating-time-slider #panel.mobile-expanded {
-      transform: translateY(0);
-    }
-
-    /* Fullscreen must override back to bottom:0 */
-    body.floating-time-slider #panel.mobile-fullscreen {
-      bottom: 0;
-    }
-
-    /* Locate button: adjust to sit above raised peek */
-    body.floating-time-slider #locate-btn {
-      bottom: calc(var(--peek-h, 160px) + 72px + 14px);
     }
   }
 
@@ -4545,20 +4248,9 @@
       backface-visibility: hidden;
     }
     #detail-panel.open { transform: translateY(0); }
-    /* Round 12: detail panel leaves room for floating pill */
-    body.floating-time-slider #detail-panel {
-      height: calc(69svh - 72px);
-    }
-    body.floating-time-slider #detail-panel.open {
-      bottom: 72px; /* pill(52) + margin(12) + gap(8) */
-    }
     #detail-panel.dp-fullscreen {
       height: 100svh;
       border-radius: 0;
-    }
-    body.floating-time-slider #detail-panel.dp-fullscreen {
-      height: 100svh;
-      bottom: 0;
     }
     #dp-handle { display: flex; }
     #dp-scroll { padding-top: 4px; }
@@ -4726,37 +4418,6 @@
     </div>
   </div>
 
-  <!-- Floating time slider pill (round 12, replaces docked group) -->
-  <div id="floating-time-slider" class="glass-action intro-hidden">
-    <button id="floating-date-btn" onclick="toggleQcPanel('date')" aria-label="Change date" aria-expanded="false">
-      <svg class="date-cal-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <rect x="1.5" y="3" width="13" height="11.5" rx="2" stroke="currentColor" stroke-width="1.5"/>
-        <line x1="1.5" y1="6.5" x2="14.5" y2="6.5" stroke="currentColor" stroke-width="1.5"/>
-        <line x1="5" y1="1.5" x2="5" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        <line x1="11" y1="1.5" x2="11" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-      </svg>
-      <span id="floating-date-label">—</span>
-      <svg class="floating-date-chevron" width="10" height="6" viewBox="0 0 10 6" fill="currentColor" aria-hidden="true">
-        <path d="M0 0 L10 0 L5 6 Z"/>
-      </svg>
-    </button>
-    <div id="floating-slider-track" class="floating-slider-track">
-      <div id="floating-slider-ramp"></div>
-      <input type="range" id="floating-time-input" min="4" max="23" step="0.25" value="10" aria-label="Time">
-    </div>
-    <!-- Scrub popup rendered on demand -->
-    <div id="scrub-popup" class="scrub-popup" style="display:none">
-      <span id="scrub-time">—</span>
-      <span class="scrub-sep">·</span>
-      <span id="scrub-weather">
-        <span class="scrub-wx-icon"></span>
-        <span id="scrub-temp">—</span>
-      </span>
-      <span class="scrub-sep">·</span>
-      <span id="scrub-wind">—</span>
-    </div>
-  </div>
-
   <!-- Bottom-center: date pill + sun arc + intent presets (hidden — replaced by qc-bar) -->
   <div id="floating-bottom" style="display:none">
     <!-- Date navigation — separate pill above the arc card -->
@@ -4912,7 +4573,7 @@
 <script src="js/weather.js?v=20260411b"></script>
 <script src="js/scoring.js?v=20260411b"></script>
 <script src="js/map-style.js?v=20260418b"></script>
-<script src="js/app.js?v=20260422a"></script>
+<script src="js/app.js?v=20260420a"></script>
 <script src="js/render-helpers.js?v=20260411b"></script>
 <script src="js/render-arc.js?v=20260411b"></script>
 <script src="js/render-seating.js?v=20260411b"></script>
@@ -4925,15 +4586,9 @@
 <script src="js/ui-detail.js?v=20260411b"></script>
 <script src="js/osm.js?v=20260411b"></script>
 <script>
-// Apply feature flag classes
-if (typeof USE_FLOATING_TIME_SLIDER !== 'undefined' && USE_FLOATING_TIME_SLIDER) {
-  document.body.classList.add('floating-time-slider');
-}
-
 loadVenues().then(() => {
   updateRangeFill();
   update();
-  if (typeof initFloatingSlider === 'function') initFloatingSlider();
   initFacings();
   const _wxLats = VENUES.map(v => v.lat), _wxLngs = VENUES.map(v => v.lng);
   const _wxLat  = (Math.min(..._wxLats) + Math.max(..._wxLats)) / 2;

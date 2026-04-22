@@ -7,9 +7,6 @@
 
 // No JS viewport-height fix needed — mobile panels use position:fixed + svh units.
 
-// ── Feature flags ────────────────────────────────────────────────────────────────
-const USE_FLOATING_TIME_SLIDER = true; // round 12 — set to false to revert to round-7 docked group
-
 // ── Mutable state ─────────────────────────────────────────────────────────────
 let currentSun        = null;   // {az, alt} for the FROM time
 let currentSunTable   = null;   // Float64Array built once per date
@@ -105,11 +102,6 @@ let _introSeqId     = 0; // incremented on skip to invalidate pending timeouts
 let _sharedVenueId  = null; // set when page is loaded via a #v= share link
 let _sharedDate     = null; // date string from share link (YYYY-MM-DD)
 let _sharedHour     = null; // hour (float) from share link
-
-// ── Floating time slider state (round 12) ─────────────────────────────────────
-let _floatingSliderAppStartPopupShown = false; // one-shot on first render
-let _floatingSliderScrubTimeoutId = null; // hide popup timer
-let _floatingSliderDragging = false; // true while scrubbing
 
 // ── Sun window cache ──────────────────────────────────────────────────────────
 // Keyed by `${venueId}-${dateStr}`. Populated by the worker (background) and
@@ -254,258 +246,6 @@ function _initZoomDebugVisibility() {
   if (!shouldShow) {
     zoomDebug.classList.add('hidden');
   }
-}
-
-// ── Floating time slider (round 12) ──────────────────────────────────────────
-/**
- * Update the calendar button label in the floating slider based on the selected date.
- * Today: icon only (no label, no chevron)
- * Tomorrow: "I morgen"
- * Same week (2–6 days): "tor 23" (day abbr + date)
- * Further: "23. apr" (date + month abbr)
- */
-function updateFloatingDateBtn() {
-  if (!USE_FLOATING_TIME_SLIDER) return;
-  const btn = document.getElementById('floating-date-btn');
-  const label = document.getElementById('floating-date-label');
-  const chevron = document.querySelector('.floating-date-chevron');
-  if (!btn || !label || !chevron) return;
-
-  const selected = new Date(datePicker.value);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  selected.setHours(0, 0, 0, 0);
-
-  const diffMs = selected - today;
-  const diffDays = diffMs / (1000 * 60 * 60 * 24);
-
-  if (diffDays === 0) {
-    // Today: icon only
-    label.textContent = '';
-    chevron.style.display = 'none';
-    btn.classList.remove('has-label');
-  } else if (diffDays === 1) {
-    // Tomorrow
-    label.textContent = 'I morgen';
-    chevron.style.display = '';
-    btn.classList.add('has-label');
-  } else if (diffDays >= 2 && diffDays <= 6) {
-    // Same week: "tor 23"
-    const dayAbbrs = ['søn', 'man', 'tir', 'ons', 'tor', 'fre', 'lør'];
-    const dayAbbr = dayAbbrs[selected.getDay()];
-    const date = selected.getDate();
-    label.textContent = `${dayAbbr} ${date}`;
-    chevron.style.display = '';
-    btn.classList.add('has-label');
-  } else {
-    // Further: "23. apr"
-    const monthAbbrs = ['jan', 'feb', 'mar', 'apr', 'mai', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'des'];
-    const date = selected.getDate();
-    const monthAbbr = monthAbbrs[selected.getMonth()];
-    label.textContent = `${date}. ${monthAbbr}`;
-    chevron.style.display = '';
-    btn.classList.add('has-label');
-  }
-}
-
-/**
- * Show the scrub popup above the slider thumb with time + weather + wind.
- * Auto-hides after 800ms if not actively scrubbing.
- */
-function showFloatingScrubPopup(hour, dateStr) {
-  if (!USE_FLOATING_TIME_SLIDER) return;
-  const popup = document.getElementById('scrub-popup');
-  if (!popup) return;
-
-  // Cancel any pending hide
-  if (_floatingSliderScrubTimeoutId) {
-    clearTimeout(_floatingSliderScrubTimeoutId);
-    _floatingSliderScrubTimeoutId = null;
-  }
-
-  // Update popup content
-  const h = Math.floor(hour);
-  const m = Math.round((hour - h) * 60);
-  const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-  const timeEl = document.getElementById('scrub-time');
-  if (timeEl) timeEl.textContent = timeStr;
-
-  // Weather + temp
-  const wx = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, hour) : null;
-  const wxIcon = wx ? (typeof skyIcon === 'function' ? skyIcon(wx, true) : '—') : '—';
-  const temp = wx?.temp != null ? Math.round(wx.temp) : '—';
-  const wxIconEl = document.querySelector('.scrub-wx-icon');
-  const tempEl = document.getElementById('scrub-temp');
-  if (wxIconEl) wxIconEl.textContent = wxIcon;
-  if (tempEl) tempEl.textContent = `${temp}°`;
-
-  // Wind
-  const wind = wx?.wind ?? null;
-  const windStr = wind != null ? `↑ ${wind.toFixed(0)} m/s` : '—';
-  const windEl = document.getElementById('scrub-wind');
-  if (windEl) windEl.textContent = windStr;
-
-  // Show popup with fade-in
-  popup.classList.add('visible');
-  popup.style.display = '';
-}
-
-/**
- * Hide the scrub popup with fade-out after a delay.
- * If still scrubbing (dragging), the hide is deferred until release.
- */
-function hideFloatingScrubPopup(immediate = false) {
-  if (!USE_FLOATING_TIME_SLIDER) return;
-  const popup = document.getElementById('scrub-popup');
-  if (!popup) return;
-
-  if (_floatingSliderScrubTimeoutId) {
-    clearTimeout(_floatingSliderScrubTimeoutId);
-    _floatingSliderScrubTimeoutId = null;
-  }
-
-  if (immediate) {
-    popup.classList.remove('visible');
-    setTimeout(() => popup.style.display = 'none', 200);
-  } else {
-    // Hide after 800ms hold time
-    _floatingSliderScrubTimeoutId = setTimeout(() => {
-      popup.classList.remove('visible');
-      setTimeout(() => popup.style.display = 'none', 200);
-      _floatingSliderScrubTimeoutId = null;
-    }, 800);
-  }
-}
-
-/**
- * Initialize floating time slider event handlers and show appstart popup.
- */
-function initFloatingSlider() {
-  if (!USE_FLOATING_TIME_SLIDER) return;
-
-  const floatingSlider = document.getElementById('floating-time-slider');
-  const floatingInput = document.getElementById('floating-time-input');
-  if (!floatingSlider || !floatingInput) return;
-
-  // Show floating slider with intro-hidden fade
-  floatingSlider.classList.remove('intro-hidden');
-
-  // Sync input with timeFromEl
-  floatingInput.value = timeFromEl.value;
-  floatingInput.min = timeFromEl.min;
-  floatingInput.max = timeFromEl.max;
-  floatingInput.step = timeFromEl.step;
-
-  // Update calendar button label
-  updateFloatingDateBtn();
-
-  // Bind input change event
-  floatingInput.addEventListener('input', (e) => {
-    timeFromEl.value = e.target.value;
-    _floatingSliderDragging = true;
-    showFloatingScrubPopup(parseFloat(e.target.value), datePicker.value);
-    update();
-  });
-
-  // Bind touch/pointer events for scrub popup
-  floatingInput.addEventListener('pointerdown', (e) => {
-    _floatingSliderDragging = true;
-    showFloatingScrubPopup(parseFloat(floatingInput.value), datePicker.value);
-  });
-
-  floatingInput.addEventListener('pointerup', (e) => {
-    _floatingSliderDragging = false;
-    hideFloatingScrubPopup(false); // fade out after 800ms
-  });
-
-  floatingInput.addEventListener('touchstart', (e) => {
-    _floatingSliderDragging = true;
-    showFloatingScrubPopup(parseFloat(floatingInput.value), datePicker.value);
-  });
-
-  floatingInput.addEventListener('touchend', (e) => {
-    _floatingSliderDragging = false;
-    hideFloatingScrubPopup(false);
-  });
-
-  // Show appstart popup for 2 seconds, then fade out
-  if (!_floatingSliderAppStartPopupShown) {
-    _floatingSliderAppStartPopupShown = true;
-    showFloatingScrubPopup(parseFloat(floatingInput.value), datePicker.value);
-    setTimeout(() => {
-      hideFloatingScrubPopup(false);
-    }, 2000);
-  }
-}
-
-/**
- * Sync floating slider input with time state (called from update() or when timeFromEl changes).
- */
-function syncFloatingSlider() {
-  if (!USE_FLOATING_TIME_SLIDER) return;
-  const floatingInput = document.getElementById('floating-time-input');
-  if (floatingInput && !_floatingSliderDragging) {
-    floatingInput.value = timeFromEl.value;
-  }
-}
-
-/**
- * Draw weather ramp gradient to the floating slider track.
- * Uses the same weather ramp logic as the sun curve (DESIGN.md ramp colors).
- */
-function drawFloatingSliderWeatherRamp(dateStr) {
-  if (!USE_FLOATING_TIME_SLIDER || !currentSunTable) return;
-  const rampEl = document.getElementById('floating-slider-ramp');
-  if (!rampEl) return;
-
-  const MIN_H = typeof MIN_H_ARC !== 'undefined' ? MIN_H_ARC : 4;
-  const MAX_H = typeof MAX_H_ARC !== 'undefined' ? MAX_H_ARC : 23;
-  const RANGE = MAX_H - MIN_H;
-
-  const wxHours = typeof getWeatherHoursForDate === 'function'
-    ? getWeatherHoursForDate(dateStr) : [];
-  const hasWx = wxHours.length > 0 && typeof getWeatherAt === 'function';
-  const nowH = new Date().getHours() + new Date().getMinutes() / 60;
-  const isToday = typeof todayStr === 'function' && dateStr === todayStr();
-
-  let gradient = `linear-gradient(to right, `;
-  const segments = [];
-
-  for (let h = MIN_H; h < MAX_H; h++) {
-    // Past hours on today: night color
-    if (isToday && h + 1 <= nowH) {
-      segments.push('#2A3B5E');
-      continue;
-    }
-
-    const sun = getSunFromTable(currentSunTable, h + 0.5);
-    if (sun.alt <= 0) {
-      segments.push('#2A3B5E');  // night
-      continue;
-    }
-
-    let color = '#FFD488';  // full sun default
-    if (hasWx) {
-      const wx = getWeatherAt(dateStr, h + 0.5);
-      const rain = wx ? (wx.precip ?? wx.prec ?? 0) > 0.3 : false;
-      const cf = wx ? (wx.cloud ?? 0) : 0;
-      if (rain) color = '#5E7CA8';           // rain
-      else if (cf < 0.20) color = '#FFD488';  // full sun
-      else if (cf < 0.60) color = '#E6C08A';  // partly sunny
-      else color = '#8EA0B8';                 // overcast
-    }
-    segments.push(color);
-  }
-
-  // Build gradient stops
-  for (let i = 0; i < segments.length; i++) {
-    const start = (i / segments.length) * 100;
-    const end = ((i + 1) / segments.length) * 100;
-    gradient += `${segments[i]} ${start}%, ${segments[i]} ${end}%${i < segments.length - 1 ? ', ' : ''}`;
-  }
-  gradient += ')';
-
-  rampEl.style.background = gradient;
 }
 
 map.on('style.load', () => {
@@ -1173,19 +913,8 @@ function _closeQcPanel() {
 
   const dateBtn = document.getElementById('readout-date-btn');
   if (dateBtn) { dateBtn.classList.remove('active'); dateBtn.setAttribute('aria-expanded', 'false'); }
-  const floatingDateBtn = document.getElementById('floating-date-btn');
-  if (floatingDateBtn) { floatingDateBtn.classList.remove('active'); floatingDateBtn.setAttribute('aria-expanded', 'false'); }
   document.getElementById('ptb-cal-float')?.classList.remove('open');
   document.getElementById('floating-search')?.classList.remove('cal-dimmed');
-
-  // Task 8: Show floating slider again when picker closes
-  if (USE_FLOATING_TIME_SLIDER) {
-    const floatingSlider = document.getElementById('floating-time-slider');
-    if (floatingSlider) {
-      floatingSlider.classList.remove('picker-open');
-    }
-  }
-
   // Restore panel state saved before calendar opened
   if (_preCalPanelState && isMobile() && typeof window._applyMobilePanelState === 'function') {
     window._applyMobilePanelState(_preCalPanelState);
@@ -1227,15 +956,6 @@ function toggleQcPanel(section) {
   _navPush('qc');
   calFloat?.classList.add('open');
   document.getElementById('floating-search')?.classList.add('cal-dimmed');
-
-  // Task 8: Hide floating slider when picker opens
-  if (USE_FLOATING_TIME_SLIDER) {
-    const floatingSlider = document.getElementById('floating-time-slider');
-    if (floatingSlider) {
-      floatingSlider.classList.add('picker-open');
-    }
-  }
-
   // On mobile, collapse list to peek so picker has room; restore on close
   if (isMobile() && typeof window._applyMobilePanelState === 'function') {
     _preCalPanelState = window._currentMobilePanelState?.() ?? null;
@@ -1245,8 +965,6 @@ function toggleQcPanel(section) {
   document.getElementById('qc-date-section')?.classList.add('active');
   const dateBtn = document.getElementById('readout-date-btn');
   if (dateBtn) { dateBtn.classList.add('active'); dateBtn.setAttribute('aria-expanded', 'true'); }
-  const floatingDateBtn = document.getElementById('floating-date-btn');
-  if (floatingDateBtn) { floatingDateBtn.classList.add('active'); floatingDateBtn.setAttribute('aria-expanded', 'true'); }
   renderQcCalendar();
 }
 
@@ -1642,13 +1360,6 @@ function update() {
   updateQcLabels();
   updateQcIndicator(null);
   drawTimeBar(document.getElementById('qc-arc'));
-
-  // Update floating slider (round 12)
-  if (USE_FLOATING_TIME_SLIDER) {
-    syncFloatingSlider();
-    updateFloatingDateBtn();
-    drawFloatingSliderWeatherRamp(dateStr);
-  }
 }
 
 // ── Popup helpers ─────────────────────────────────────────────────────────────

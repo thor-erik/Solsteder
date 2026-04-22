@@ -151,8 +151,6 @@ Selected state for either: background `--accent`, text `--accent-on` (`#2a1a0c`)
 
 ### Time bar (primary input)
 
-**Round 12 note:** A floating compact time slider is now the default layout. Round-7 docked-group styling remains in the codebase behind `USE_FLOATING_TIME_SLIDER = false` for rollback.
-
 - Height: `36–40px`. Do not go below `36px` — segments get cramped and weather-ramp perceptibility degrades.
 - Container (`#qc-arc-track`): `overflow: hidden; border-radius: 12px; padding: 0`. This wrapper is the sole source of corner clipping — the canvas itself draws no rounded corners (TRACK_R = 0). Segments fill the full canvas width with no internal horizontal padding; the container clips them to the correct radius.
 - Container inner-edge: `inset 0 0 0 1px rgba(156,189,231,0.10)` — ensures the track extent is readable regardless of which segment color sits at the edge.
@@ -163,62 +161,6 @@ Selected state for either: background `--accent`, text `--accent-on` (`#2a1a0c`)
 - Optional weather glyph: centered in segment, 10–12px, `--muted`. Drop the glyphs if segments are narrower than 24px.
 - Scrub is continuous; snap the **display text only** to 15-minute increments. The underlying `timeFromEl.value` and thumb position remain continuous — do not snap the thumb.
 - Hour labels live in `#qc-arc-labels`, a sibling div **outside** `#qc-arc-track` (and therefore outside `overflow: hidden`). They are absolutely positioned within that div using the same `timeToX` formula as the canvas. A minimum 4px inset from either edge prevents edge clipping. Do not draw labels inside the canvas — they would be clipped by the container's border-radius at extreme hours.
-
-### Floating compact time slider (round 12)
-
-When `USE_FLOATING_TIME_SLIDER` is enabled (default), the time controls move from the docked-group in the list panel to a persistent floating pill above the bottom safe area.
-
-**Container** (`#floating-time-slider`):
-- Position: `fixed`, bottom `calc(var(--safe-area-bottom, 0px) + 12px)` — 12px above the safe-area bottom.
-- Horizontal margin: `16px` left and right (creates floating feel).
-- Height: `52px`.
-- Background: glass-action level (`rgba(20,46,82,0.45)` / `blur(10px)`).
-- Border: `1px solid rgba(156,189,231,0.18)`.
-- Border-radius: `999px` (full pill).
-- Drop shadow: `0 8px 24px rgba(0,0,0,0.25)` — reads as clearly floating, not flush.
-- Layout: flexbox, `align-items: center`, `gap: 8px`, `padding: 6px 8px`.
-
-**Calendar button** (left):
-- Function: opens the date picker (same behavior as docked group).
-- Dynamic label based on selected date:
-  - **Today:** icon only, no label, no chevron. Button shape: circle, `40×40px`.
-  - **Tomorrow:** label `I morgen`. Button shape: rounded pill, `height: 40px`, `padding: 0 12px 0 10px`. Calendar icon `16×16px` leading, `6px` gap.
-  - **Same week (2–6 days out):** `tor 23` format — Norwegian day abbreviation (lowercase) + date number, no period. Pill shape, same padding.
-  - **Further out:** `23. apr` format — date number + period + Norwegian month abbreviation (lowercase). Pill shape.
-  - Background: glass-action, border `1px solid rgba(156,189,231,0.18)`.
-  - Typography: `13pt / 600 / --text` (label only; icon is `--muted`).
-  - Trailing chevron: `10×6px` SVG triangle, `--muted`, `6px` gap from label (hidden on today-only variant).
-
-**Slider track** (right, flex: 1):
-- Height: `40px`, displays weather-ramp gradient background, `border-radius: 13px`.
-- Input: native range element, styled as a 36px sunglass thumb (same as docked variant).
-- Range: `4` to `23` (hours), `0.25` step (15 minutes).
-- No axis labels in this floating variant — the ramp color, thumb position, and scrub popup communicate the time.
-- Weather-ramp colors: `#FFD488` (full sun), `#E6C08A` (partly sunny), `#8EA0B8` (overcast), `#5E7CA8` (rain), `#2A3B5E` (night).
-
-**Scrub popup** (appears on interaction, positioned above thumb):
-- Trigger: `pointerdown` / `touchstart` on slider shows popup; `pointerup` / `touchend` starts 800ms hold timer, then fade-out.
-- Appstart behavior: on first app render, popup is visible for 2 seconds over the NÅ position, then fades.
-- Content (row layout, `gap: 10px`, centered):
-  - Time: `15pt / 700 / --text`, tabular-nums, e.g. `14:20`.
-  - Separator dot: `·` in `--muted`.
-  - Weather: glyph `16×16px` + temperature `14pt / 600 / --text`, e.g. `☀ 14°`.
-  - Separator dot: `·` in `--muted`.
-  - Wind: `↑ 1 m/s` in `13pt / 500 / --muted`.
-- Visual: glass-panel background, `1px solid rgba(156,189,231,0.18)` border, `12px` radius, `8px 12px` padding, drop shadow `0 4px 12px rgba(0,0,0,0.3)`.
-- Positioning: absolute, anchored above thumb, `left: 50%` (thumb x), clamped horizontally with `8px` margin from pill edges.
-- Animation: fade-in `120ms ease-out` on scrub-start; fade-out `200ms ease-out` after 800ms hold on release.
-
-**Calendar picker integration:**
-- When the date picker opens, the floating slider slides down and out: `transform: translateY(calc(100% + var(--safe-area-bottom, 0px) + 12px))` + `opacity: 0` over `220ms ease-out`.
-- Picker-open and slider-hide animations are synchronized.
-- When the picker closes, the slider slides back and fades in, same `220ms ease-out`.
-- `pointer-events: none` while hidden.
-
-**Layout adjustments for floating slider:**
-- **List peek:** `bottom: calc(var(--safe-area-bottom, 0px) + 12px + 52px + 8px)` — sits `8px` above the pill.
-- **Expanded list scroll padding:** `padding-bottom: calc(var(--safe-area-bottom, 0px) + 52px + 12px + 24px)` — last card clears the pill with room to breathe.
-- **Detail panel:** `top` position increases by `72px` (pill + margins) — pill sits just above the panel's top edge with `8px` gap.
 
 ### Thumb (time bar)
 
