@@ -2920,9 +2920,11 @@ function _runIntroSequence() {
     map.easeTo({ zoom: 16, pitch: 60, duration: 1800, easing: t => t * t * (3 - 2 * t) });
 
     // Step 3: Zoom out + detilt (starts when step 2 ends)
+    // Also fade in UI elements in parallel
     setTimeout(() => {
       if (_introSeqId !== seqId) return;
       map.easeTo({ zoom: 15.2, pitch: 15, bearing: 0, duration: 700 });
+      _introRevealUI(search, brand, qcWrap, panel);
 
       // Step 4: Return to current time (after step 3 completes)
       setTimeout(() => {
@@ -2936,10 +2938,9 @@ function _runIntroSequence() {
         canvas.style.transition = 'opacity 0.4s ease';
         canvas.classList.remove('intro-hidden');
 
-        // Step 5: Fade in UI + slide up panel
+        // Step 5: After pins fade in, clean up and activate features
         setTimeout(() => {
           if (_introSeqId !== seqId) return;
-          _introRevealUI(search, brand, qcWrap, panel);
           if (_sharedHour === null) _activateNowMode();
           update();
           document.removeEventListener('click', skipHandler);
