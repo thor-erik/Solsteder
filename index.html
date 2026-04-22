@@ -4261,19 +4261,24 @@
   /* ── Intro splash overlay ─────────────────────────────────────────────────── */
   #splash {
     position: fixed;
-    inset: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     z-index: 9997;
     background: #FFF2EB;
     display: flex;
     align-items: center;
     justify-content: center;
     opacity: 1;
+    visibility: visible;
     transition: opacity 0.4s ease;
     pointer-events: all;
     cursor: default;
   }
   #splash.hidden {
     opacity: 0;
+    visibility: hidden;
     pointer-events: none;
   }
 
