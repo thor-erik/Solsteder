@@ -675,9 +675,6 @@ let _hoverClearTimer = null;      // debounce timer for clearing map hover
 const _pinWasDot    = new Map();  // id → bool — was this pin a dot last frame
 const _pinDotFade   = new Map();  // id → {fromDot, start} — active morph animations
 const _pinAnimStemH = new Map();  // id → animated extraStem (px, float) for smooth transitions
-const _pinIconIdx   = new Map();  // id → last sun/shadow icon index (for slider pulse)
-const _pinSprPulse  = new Map();  // id → performance.now() when icon index changed
-const SPR_PULSE_MS  = 100;        // icon change pulse duration (0.8→1.0 alpha)
 
 // ── Layout stability cache ────────────────────────────────────────────────────
 let _layoutStale = true;
@@ -1076,33 +1073,13 @@ function draw() {
       else needsAnimFrame = true;
     }
 
-    // Icon-change pulse: 0.80→1.0 over SPR_PULSE_MS when sun/shadow icon index
-    // changes (slider crosses a threshold). Keeps the pill feeling responsive
-    // without an instant hard swap.
-    const curIconIdx = tier === 'hero'
-      ? _sunIconIdx(classResult.hoursLeft ?? 0)
-      : (tier === 'waiting' ? _shadowIconIdx(classResult.minutesUntil ?? 240) : -1);
-    const prevIconIdx = _pinIconIdx.get(v.id);
-    if (prevIconIdx !== undefined && prevIconIdx !== curIconIdx && curIconIdx >= 0) {
-      _pinSprPulse.set(v.id, now);
-    }
-    if (curIconIdx >= 0) _pinIconIdx.set(v.id, curIconIdx);
-    let pulseAlpha = 1;
-    const ps = _pinSprPulse.get(v.id);
-    if (ps !== undefined) {
-      const pt2 = Math.min(1, (now - ps) / SPR_PULSE_MS);
-      if (pt2 >= 1) { _pinSprPulse.delete(v.id); }
-      else { pulseAlpha = 0.80 + 0.20 * pt2; needsAnimFrame = true; }
-    }
-
     const isHovered = v.id === highlight.id || v.id === highlight.raisedId;
     const rp = (v.id === selectedId ? 4 : 2) + 1;
     const sprLeft = pt.x - spr.anchorX;
     const sprTop  = pt.y - spr.anchorY - extraStem;
 
     ctx.save();
-    const combinedAlpha = pinAlpha * pulseAlpha;
-    if (combinedAlpha < 1) ctx.globalAlpha = combinedAlpha;
+    if (pinAlpha < 1) ctx.globalAlpha = pinAlpha;
 
     // Hover/raised: glowing outline ring around the pill
     if (isHovered && spr.pillW > 0) {
