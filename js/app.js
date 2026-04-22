@@ -284,6 +284,15 @@ map.on('error', (e) => {
   }
 });
 
+// Safety timeout: if map style never loads, proceed after 10 seconds anyway
+setTimeout(() => {
+  if (!_introMapReady) {
+    console.warn('Map style loading timeout — proceeding without map');
+    _introMapReady = true;
+    _introCheckReady();
+  }
+}, 10000);
+
 // ── Light preset (atmosphere + sky) ──────────────────────────────────────────
 let _currentPreset = null;
 function updateLightPreset() {
@@ -2480,6 +2489,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // watchPosition keeps the dot fresh as the user moves
     navigator.geolocation.watchPosition(_onGeoPos, _onGeoErr,
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 });
+    // Safety timeout: if geo doesn't settle within 8 seconds, proceed anyway (handles slow/denied geolocation)
+    setTimeout(() => {
+      if (!_introGeoReady) {
+        _introGeoReady = true;
+        _introCheckReady();
+      }
+    }, 8000);
   } else {
     _introGeoReady = true;
     _introCheckReady();
