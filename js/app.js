@@ -694,6 +694,10 @@ function _arcSetTimeFromX(clientX) {
     clearInterval(nowInterval); nowInterval = null;
   }
   setActiveIntentBtn(null);
+  // Haptic tick on each 15-min step boundary
+  const step = Math.round(hour * 4);
+  if (_lastSliderStep !== null && step !== _lastSliderStep) navigator.vibrate?.(6);
+  _lastSliderStep = step;
   timeFromEl.value = hour;
   update();
 }
@@ -2480,10 +2484,6 @@ timeFromEl.addEventListener('input', () => {
     clearInterval(nowInterval); nowInterval = null;
   }
   setActiveIntentBtn(null);
-  // Haptic tick on each 15-min step boundary (Android only; no-op elsewhere)
-  const step = Math.round(parseFloat(timeFromEl.value) * 4);
-  if (_lastSliderStep !== null && step !== _lastSliderStep) navigator.vibrate?.(6);
-  _lastSliderStep = step;
   updateRangeFill();
   update();
 });
