@@ -4,8 +4,8 @@
  * Depends on: map, canvas, ctx, currentSun, selectedId, highlight,
  *             editingVenueId, editHoveredWallIdx, VENUES (app.js / data.js)
  *             venueSunState (solar.js)
- *             computeSunWindows, sunScore, formatHour, nowMode (app.js / scoring.js)
- *             shortName, fillRoundRect (render-helpers.js)
+ *             computeSunWindows, sunScore (app.js / scoring.js)
+ *             shortName, fillRoundRect, formatHourAsClock (render-helpers.js)
  *             drawBuildingEditor, editDraggingDepth, editDragWallObj,
  *             _detachedDragging, hitTestDetachedPin, hitTestDepthHandle,
  *             hitTestWall (render-editor.js)
@@ -60,15 +60,17 @@ function _shadowIconIdx(minutesUntilSun) {
 }
 
 // ── Pin tier classification ────────────────────────────────────────────────────
-// WAITING_HORIZON_MIN: the only user-visible magic number for "waiting" tier.
+// WAITING_HORIZON_MIN: venues count as Waiting if sun arrives within this window.
 // 240 min (4h): covers the common Oslo afternoon case where sun arrives ~3h from now.
-// Delta (+Xm/+Xh) is shown only when minutesUntil < 60 in now-mode; beyond that the
-// pill shows the absolute arrival time, which matches how the user thinks in clock time.
-const WAITING_HORIZON_MIN = 240;
+// HERO_ACTIONABLE_MIN: Hero pill shows `Name · til HH:mm` when this little sun is left.
+// 60 min: the point where the user needs to decide whether to head there or stay.
+const WAITING_HORIZON_MIN  = 240;
+const HERO_ACTIONABLE_MIN  = 60;
 
 /**
  * Classify a venue into Hero / Waiting / Context for the given hour and date.
- * Returns an object: { tier, hoursLeft?, minutesUntil?, nextStart?,
+ * Returns an object: { tier, actionable?, endHour?, minsLeft?,
+ *                      minutesUntil?, nextStart?,
  *                      hasSunLaterToday?, closedOpeningIntoSun? }
  */
 function classifyPin(v, dateStr, hour) {
@@ -85,7 +87,14 @@ function classifyPin(v, dateStr, hour) {
   // Tier 1: venue has sun right now
   const nowInSun = windows.find(w => hour >= w.start && hour < w.end);
   if (nowInSun) {
-    return { tier: 'hero', hoursLeft: Math.max(0, nowInSun.end - hour), closedOpeningIntoSun: false };
+    const minsLeft = Math.round(Math.max(0, nowInSun.end - hour) * 60);
+    return {
+      tier:       'hero',
+      actionable: minsLeft <= HERO_ACTIONABLE_MIN,
+      endHour:    nowInSun.end,
+      minsLeft,
+      closedOpeningIntoSun: false,
+    };
   }
 
   // Tier 2a: sun arrives within WAITING_HORIZON_MIN
@@ -223,20 +232,6 @@ function _applyDensityFilter(projVenues, zoom, currentHour, dateStr, isFullRecom
   }
 }
 
-// ── Relative time formatter ────────────────────────────────────────────────────
-// No pin shows an absolute clock time in now-mode.
-// In scrubbed mode (not now-mode), Tier 2a shows the absolute arrival time.
-// When in doubt, match the user's mental anchor:
-//   now-mode anchor = "now + X" → show "+X"
-//   scrubbed anchor = clock time (slider readout) → show clock time
-function formatDelta(minutesUntil, isNowMode) {
-  if (!isNowMode) return null;
-  if (minutesUntil < 60) return `+${minutesUntil}m`;
-  const h = Math.floor(minutesUntil / 60);
-  const m = minutesUntil % 60;
-  return m === 0 ? `+${h}h` : `+${h}h ${m}m`;
-}
-
 // ── Icon draw helper ──────────────────────────────────────────────────────────
 function _drawIcon(c, cx, cy, r, imgArr, idx) {
   const img = imgArr[Math.max(0, Math.min(imgArr.length - 1, idx))];
@@ -263,7 +258,7 @@ function _drawIcon(c, cx, cy, r, imgArr, idx) {
  * Tier 2a — Waiting: glass pill, shadow icon left, time right, stem dashed.
  * Tier 2b — Context: 10×10 glass dot, no stem, no text.
  */
-function buildSprite(v, tier, tierData, selected, isNowMode) {
+function buildSprite(v, tier, tierData, selected) {
   const dpr = window.devicePixelRatio || 1;
   const rp  = selected ? 4 : 2;  // selection ring padding
 
@@ -317,19 +312,35 @@ function buildSprite(v, tier, tierData, selected, isNowMode) {
   }
 
   // ── Hero pill (Tier 1) ────────────────────────────────────────────────────────
+  // Default (>60 min sun left): tangerine pill, name only. No icon.
+  // Actionable (≤60 min left): same pill, contents "Name · til HH:mm". No icon.
+  // The tangerine fill IS the "in sun" signal; `til` disambiguates end-time from arrival.
   if (tier === 'hero') {
-    const iconDiam = 22;
-    const iconR    = iconDiam / 2;
-    const hoursLeft = tierData?.hoursLeft ?? 0;
-    const sunIdx    = _sunIconIdx(hoursLeft);
-    const name      = shortName(v.name);
+    const actionable = tierData?.actionable ?? false;
+    const endHour    = tierData?.endHour ?? 0;
+    // Name budget: tighter when actionable (til HH:mm adds ~50px)
+    const name = shortName(v.name, actionable ? 9 : 14);
 
     const tmpCtx = document.createElement('canvas').getContext('2d');
     tmpCtx.font  = 'bold 11px "Inter", sans-serif';
-    const tw     = tmpCtx.measureText(name).width;
+    const nameW  = tmpCtx.measureText(name).width;
 
-    // Layout: 2px inset + 22px icon + 4px gap + text + 10px right
-    const pillW = Math.max(44, 2 + iconDiam + 4 + Math.ceil(tw) + 10);
+    let pillW;
+    if (actionable) {
+      // Layout: 12px | name | ·(3+3) | "til"(600) | 4px | "HH:mm"(700) | 12px
+      const tilText  = 'til';   // i18n TODO: locale equivalent for other languages
+      const timeText = formatHourAsClock(endHour);
+      tmpCtx.font = '600 11px "Inter", sans-serif';
+      const tilW  = tmpCtx.measureText(tilText).width;
+      tmpCtx.font = 'bold 11px "Inter", sans-serif';
+      const dotW  = tmpCtx.measureText('·').width;
+      const timeW = tmpCtx.measureText(timeText).width;
+      pillW = Math.max(60, 12 + Math.ceil(nameW) + 3 + Math.ceil(dotW) + 3 + Math.ceil(tilW) + 4 + Math.ceil(timeW) + 12);
+    } else {
+      // Layout: 12px | name | 12px
+      pillW = Math.max(44, 12 + Math.ceil(nameW) + 12);
+    }
+
     const pillH = PILL_H;
     const pillR = PILL_R;
 
@@ -340,9 +351,7 @@ function buildSprite(v, tier, tierData, selected, isNowMode) {
     const stemX = ox + pillW / 2;
     const cyA   = oy + pillH + STEM_H; // anchor y (bottom of stem)
     const cxA   = stemX;
-
-    const iconCx = ox + 2 + iconR;     // icon center x
-    const iconCy = oy + pillH / 2;     // icon center y
+    const textY = oy + pillH / 2;      // vertical center for all text
 
     const oc = document.createElement('canvas');
     oc.width  = Math.ceil(cW * dpr);
@@ -393,18 +402,18 @@ function buildSprite(v, tier, tierData, selected, isNowMode) {
     c.shadowOffsetY = 3;
     c.beginPath();
     c.roundRect(ox, oy, pillW, pillH, pillR);
-    c.fillStyle = '#FFAF85';  // --accent: the pin IS the sun indicator
+    c.fillStyle = '#FFAF85';  // --accent: the pill color IS the "in sun" signal
     c.fill();
     c.restore();
 
-    // Outer stroke (warm glow cue, not chrome)
+    // Outer stroke (warm glow cue)
     c.beginPath();
     c.roundRect(ox, oy, pillW, pillH, pillR);
     c.strokeStyle = 'rgba(255,230,120,0.4)';
     c.lineWidth   = 1;
     c.stroke();
 
-    // Inner top-edge sheen — bright top-sheen equivalent for tangerine pill
+    // Inner top-edge sheen
     c.save();
     c.beginPath(); c.roundRect(ox, oy, pillW, pillH, pillR);
     c.clip();
@@ -416,15 +425,43 @@ function buildSprite(v, tier, tierData, selected, isNowMode) {
     c.stroke();
     c.restore();
 
-    // Venue name: right of icon, dark text on tangerine
-    c.font         = 'bold 11px "Inter", sans-serif';
-    c.fillStyle    = '#1a1200';
+    // Text (no icon — the tangerine fill is the full "sunny now" signal)
     c.textBaseline = 'middle';
     c.textAlign    = 'left';
-    c.fillText(name, ox + 2 + iconDiam + 4, iconCy);
 
-    // Sun icon: always on the left — primary state signal, primary position
-    _drawIcon(c, iconCx, iconCy, iconR, _sunIcons, sunIdx);
+    if (!actionable) {
+      // Default: name only, bold 700, dark on tangerine
+      c.font      = 'bold 11px "Inter", sans-serif';
+      c.fillStyle = '#2a1a0c';
+      c.fillText(name, ox + 12, textY);
+    } else {
+      // Actionable: name · til HH:mm (no icon, no glyph)
+      const tilText  = 'til';   // i18n TODO
+      const timeText = formatHourAsClock(endHour);
+
+      // name (bold 700, full contrast)
+      c.font      = 'bold 11px "Inter", sans-serif';
+      c.fillStyle = '#2a1a0c';
+      c.fillText(name, ox + 12, textY);
+      let x = ox + 12 + c.measureText(name).width;
+
+      // separator · (dimmed)
+      c.fillStyle = 'rgba(42,26,12,0.5)';
+      x += 3;
+      c.fillText('·', x, textY);
+      x += c.measureText('·').width + 3;
+
+      // "til" (600 weight, lower contrast — name is the foreground)
+      c.font      = '600 11px "Inter", sans-serif';
+      c.fillStyle = 'rgba(42,26,12,0.72)';
+      c.fillText(tilText, x, textY);
+      x += c.measureText(tilText).width + 4;
+
+      // end time (bold 700, same lower-contrast color as til)
+      c.font      = 'bold 11px "Inter", sans-serif';
+      c.fillStyle = 'rgba(42,26,12,0.72)';
+      c.fillText(timeText, x, textY);
+    }
 
     return { canvas: oc, anchorX: cxA, anchorY: cyA, cssW: cW, cssH: cH, pillW, pillH, pillR };
   }
@@ -436,9 +473,8 @@ function buildSprite(v, tier, tierData, selected, isNowMode) {
     const { minutesUntil = 120, nextStart = 0, closedOpeningIntoSun = false } = tierData ?? {};
     const shadowIdx = _shadowIconIdx(minutesUntil);
 
-    // Time label: delta (+15m) when in now-mode, absolute clock when scrubbed
-    const rawDelta = formatDelta(minutesUntil, isNowMode);
-    const timeText = rawDelta ?? formatHour(nextStart);
+    // Time label: absolute clock always — one format, always.
+    const timeText = formatHourAsClock(nextStart);
 
     const tmpCtx = document.createElement('canvas').getContext('2d');
     tmpCtx.font  = 'bold 11px "Inter", sans-serif';
@@ -578,28 +614,34 @@ function buildSprite(v, tier, tierData, selected, isNowMode) {
 
 /**
  * Get or build a cached sprite.
- * Cache key includes tier, icon index, selected, modifier flags.
- * For waiting-in-nowMode: key on shadowIdx (buckets at 15/45/90 min) — high cache-hit rate during scrub.
- * For waiting-not-nowMode: key also includes the absolute arrival time bucket.
+ * Cache key includes tier, actionable/icon flags, selected, and time buckets.
+ *
+ * Hero default:    key on (id, tier, actionable=0, selected)
+ * Hero actionable: key on (id, tier, actionable=1, endHour bucketed to 5 min, selected)
+ *                  — 5-min buckets bound re-renders as the slider ticks forward
+ * Waiting:         key on (id, tier, shadowIdx threshold, selected, closedBadge, nextStart bucket)
+ *                  — shadowIdx already buckets at 15/45/90 min, keeping hit rate high
+ * Context:         key on (id, tier, selected, hasSunLaterToday)
  */
-function getSprite(v, tier, tierData, selected, hour, dateStr, isNowMode) {
+function getSprite(v, tier, tierData, selected, hour, dateStr) {
   if (spriteCache.size > 600) spriteCache.clear();
   let key;
   if (tier === 'hero') {
-    const idx = _sunIconIdx(tierData?.hoursLeft ?? 0);
-    key = `${v.id}-hero-${idx}-${selected ? 1 : 0}`;
+    const actionable = tierData?.actionable ? 1 : 0;
+    // End-hour bucket: round to nearest 5 min (endHour * 12 → integer)
+    const endBucket = actionable ? Math.round((tierData?.endHour ?? 0) * 12) : 0;
+    key = `${v.id}-hero-${actionable}-${endBucket}-${selected ? 1 : 0}`;
   } else if (tier === 'waiting') {
     const idx    = _shadowIconIdx(tierData?.minutesUntil ?? 120);
     const badge  = tierData?.closedOpeningIntoSun ? 1 : 0;
-    const nm     = isNowMode ? 1 : 0;
-    // In non-nowMode, the absolute time shown is nextStart (fixed per venue-day), bucketed to 15 min
-    const timeBucket = isNowMode ? 0 : Math.round((tierData?.nextStart ?? 0) * 4);
-    key = `${v.id}-waiting-${idx}-${selected ? 1 : 0}-${badge}-${nm}-${timeBucket}`;
+    // Arrival time bucketed to 15 min for stable cache hits during scrub
+    const timeBucket = Math.round((tierData?.nextStart ?? 0) * 4);
+    key = `${v.id}-waiting-${idx}-${selected ? 1 : 0}-${badge}-${timeBucket}`;
   } else {
     const hasSun = tierData?.hasSunLaterToday ? 1 : 0;
     key = `${v.id}-context-${selected ? 1 : 0}-${hasSun}`;
   }
-  if (!spriteCache.has(key)) spriteCache.set(key, buildSprite(v, tier, tierData, selected, isNowMode));
+  if (!spriteCache.has(key)) spriteCache.set(key, buildSprite(v, tier, tierData, selected));
   return spriteCache.get(key);
 }
 
@@ -732,7 +774,7 @@ function computePinLayout(projVenues, currentHour, dateStr) {
     const { tier } = classResult;
     const selected = v.id === selectedId;
     const isRaised = v.id === highlight.raisedId;
-    const spr = getSprite(v, tier, classResult, selected, currentHour, dateStr, nowMode);
+    const spr = getSprite(v, tier, classResult, selected, currentHour, dateStr);
 
     // Context is always a dot; density-demoted hero/waiting is also always a dot
     if (tier === 'context' || classResult.demoted) {
@@ -866,7 +908,7 @@ function draw() {
     VENUES.forEach(v => {
       const classResult = classifyPin(v, editDateStr, editHour);
       const pt  = map.project([v.lng, v.lat]);
-      const spr = getSprite(v, classResult.tier, classResult, false, editHour, editDateStr, false);
+      const spr = getSprite(v, classResult.tier, classResult, false, editHour, editDateStr);
       ctx.drawImage(spr.canvas, pt.x - spr.anchorX, pt.y - spr.anchorY, spr.cssW, spr.cssH);
     });
     ctx.globalAlpha = 1;
@@ -925,7 +967,7 @@ function draw() {
   // Build _lastLayout from stable decisions + current screen positions.
   _lastLayout = projVenues.map(({ v, pt, classResult }) => {
     const sel = v.id === selectedId;
-    const spr = getSprite(v, classResult.tier, classResult, sel, currentHour, dateStr, nowMode);
+    const spr = getSprite(v, classResult.tier, classResult, sel, currentHour, dateStr);
     return {
       v, pt, classResult, spr,
       isDot:     _venueIsDot.get(v.id)   ?? true,

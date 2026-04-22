@@ -16,7 +16,7 @@ const _STRIP_AREA = new Set([
   'aker brygge', 'st. hanshaugen',
 ]);
 
-function shortName(name) {
+function shortName(name, maxLen = 14) {
   const words = name.trim().split(/\s+/);
   let end = words.length;
   while (end > 1) {
@@ -31,7 +31,18 @@ function shortName(name) {
     break;
   }
   const result = words.slice(0, end).join(' ');
-  return result.length > 14 ? result.slice(0, 13) + '…' : result;
+  return result.length > maxLen ? result.slice(0, maxLen - 1) + '…' : result;
+}
+
+// ── Clock time formatter ──────────────────────────────────────────────────────
+// Converts an hour-as-float (e.g. 15.75) to a clock string ("15:45").
+// Does NOT round to 5/15-minute intervals — showing 15:47 is more honest than 15:45.
+// (Sprite cache buckets to 5 min separately, so rendering cost stays bounded.)
+function formatHourAsClock(hourFloat) {
+  const h = Math.floor(hourFloat);
+  const m = Math.round((hourFloat - h) * 60);
+  if (m === 60) return `${String(h + 1).padStart(2, '0')}:00`;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
 // ── Terrace wall helpers ──────────────────────────────────────────────────────
