@@ -267,6 +267,12 @@ map.on('style.load', () => {
   _updateZoomDebug();
   _initZoomDebugVisibility();
 
+  // Hide splash immediately if intro hasn't started yet (fast map load)
+  if (!_introRunning) {
+    const splash = document.getElementById('splash');
+    if (splash) splash.classList.add('hidden');
+  }
+
   _introMapReady = true;
   _introCheckReady();
 });
