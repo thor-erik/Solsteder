@@ -2259,6 +2259,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const dpEl     = document.getElementById('detail-panel');
     if (dpHandle && dpEl) {
       let _dpY0 = 0, _dpDragging = false, _dpStartState = 'normal', _dpStartTime = 0, _dpInitH = 0, _dpFromScroll = false;
+      let _dpLastFrameY = 0, _dpRafId = null;
 
       function _dpCurrentState() {
         return dpEl.classList.contains('dp-fullscreen') ? 'fullscreen' : 'normal';
@@ -2270,14 +2271,31 @@ document.addEventListener('DOMContentLoaded', () => {
         _dpStartState = _dpCurrentState();
         _dpStartTime  = Date.now();
         _dpInitH      = dpEl.offsetHeight;
+        _dpLastFrameY = y;
         dpEl.style.transition = 'none';
       }
       function _trackDpDrag(y) {
-        const dy = y - _dpY0;
-        // When initiated from scroll, clamp to downward-only (dismiss only, no expand)
-        dpEl.style.transform = `translateY(${_dpFromScroll ? Math.max(0, dy) : dy}px)`;
+        _dpLastFrameY = y;
+        // Cancel any pending frame and schedule a new one for smooth 60fps updates
+        if (_dpRafId) cancelAnimationFrame(_dpRafId);
+        _dpRafId = requestAnimationFrame(() => {
+          const dy = _dpLastFrameY - _dpY0;
+          // When initiated from scroll, clamp to downward-only (dismiss only, no expand)
+          const clampedDy = _dpFromScroll ? Math.max(0, dy) : dy;
+          dpEl.style.transform = `translateY(${clampedDy}px)`;
+
+          // Expand panel height when dragging up to fill the space (prevent showing background)
+          if (clampedDy < 0) {
+            dpEl.style.height = `${_dpInitH + Math.abs(clampedDy)}px`;
+          } else {
+            dpEl.style.height = '';
+          }
+          _dpRafId = null;
+        });
       }
       function _commitDpDrag(y) {
+        if (_dpRafId) cancelAnimationFrame(_dpRafId);
+        _dpRafId = null;
         dpEl.style.transition = '';
         dpEl.style.transform  = '';
         dpEl.style.height     = '';
