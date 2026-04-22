@@ -18,9 +18,9 @@
       "step": 2,
       "name": "Time Scrub + Zoom In + Tilt Up",
       "zoomStart": 15,
-      "zoomEnd": 15.5,
+      "zoomEnd": 16,
       "pitchStart": 0,
-      "pitchEnd": 45,
+      "pitchEnd": 60,
       "duration": 1800,
       "durationUnit": "ms",
       "notes": "Concurrent: zoom, tilt up to cinematic angle, and time animation"

@@ -2912,7 +2912,7 @@ function _runIntroSequence() {
     // Step 2: Scrub time → target time (1800ms) + zoom in + tilt up to cinematic angle (all concurrent)
     const timeTarget = _sharedHour ?? Math.min(23, Math.max(4, now));
     animateToTime(timeTarget, 1800);
-    map.easeTo({ zoom: 15.5, pitch: 45, duration: 1800, easing: t => t * t * (3 - 2 * t) });
+    map.easeTo({ zoom: 16, pitch: 60, duration: 1800, easing: t => t * t * (3 - 2 * t) });
 
     // Step 3: Zoom out + detilt (starts when step 2 ends)
     setTimeout(() => {
