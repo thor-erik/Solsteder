@@ -45,40 +45,46 @@ let _frozenBounds     = null;  // map bounds frozen at the moment of venue selec
 let _mapMovedWhileDetailOpen = false; // true if user panned/zoomed while detail panel was open
 
 // ── Back-button / browser history nav ────────────────────────────────────────
-// LIFO stack of named layers pushed to history. Each "layer" is a string
-// ('venue', 'dp-fullscreen', 'qc', 'sort', 'profile', 'edit',
-//  'list-expanded', 'list-fullscreen').
-// Pressing back fires popstate → we pop the top layer and dismiss it.
-// In-app UI closes call _navDropLayer(name) which removes entries from the
-// stack and calls history.go(-n), then ignores the resulting popstate.
+// Each dismissible layer ('venue', 'dp-fullscreen', 'qc', 'sort', 'profile',
+// 'edit') pushes one history entry. Pressing back fires popstate → pop the top
+// layer, check if it's still open, and dismiss it.
+//
+// UI closes (X, swipe, outside-click) call _navDropLayer() which ONLY updates
+// the logical stack — it never calls history.go(). This avoids triggering
+// browser navigation (which would interrupt touch gestures on mobile). The
+// resulting "dead" history entries are consumed silently in the popstate handler
+// via _navIsLayerOpen().
 const _navStack = [];
 let _navHandlingPop = false; // true while popstate handler is running
-let _navDropPending = false; // true while history.go(-n) is in-flight from UI
 
 function _navPush(layer) {
   _navStack.push(layer);
   history.pushState({ navLayer: layer, navDepth: _navStack.length }, '');
 }
 
-// Drop n entries from the top of the stack and go back in history.
-function _navDrop(count) {
-  if (count <= 0 || _navStack.length < count) return;
-  _navStack.splice(_navStack.length - count, count);
-  _navDropPending = true;
-  history.go(-count);
-}
-
-// Drop everything from the last occurrence of `layerName` to the top of the stack.
-// Used by UI-close paths (X button, swipe, etc.) to sync history with state.
+// Remove a layer (and anything stacked on top) from the logical stack.
+// Does NOT touch browser history — safe to call mid-gesture.
 function _navDropLayer(layerName) {
   const idx = _navStack.lastIndexOf(layerName);
-  if (idx < 0) return;
-  _navDrop(_navStack.length - idx);
+  if (idx >= 0) _navStack.splice(idx, _navStack.length - idx);
 }
 
-// Safe version for calls from auth.js / other files — also guards _navHandlingPop.
-window._navPush       = _navPush;
-window._navDropLayer  = function(l) { if (!_navHandlingPop) _navDropLayer(l); };
+// Returns true if the given layer is currently active in the UI.
+// Used to detect dead history entries left by UI closes.
+function _navIsLayerOpen(layer) {
+  switch (layer) {
+    case 'venue':         return selectedId != null;
+    case 'dp-fullscreen': return !!document.getElementById('detail-panel')?.classList.contains('dp-fullscreen');
+    case 'qc':            return _qcActiveSection != null;
+    case 'sort':          return !!document.getElementById('sort-panel')?.classList.contains('open');
+    case 'profile':       return !!document.getElementById('profile-panel')?.classList.contains('open');
+    case 'edit':          return editingVenueId != null;
+    default:              return false;
+  }
+}
+
+window._navPush      = _navPush;
+window._navDropLayer = _navDropLayer;
 
 // ── Time animation ────────────────────────────────────────────────────────────
 const TIME_ANIM_MS = 520;
@@ -2025,16 +2031,6 @@ document.addEventListener('DOMContentLoaded', () => {
         else                                     target = _dragStartState === 'fullscreen' ? 'expanded' : 'peek'; // peek is the floor
 
         _applyState(target);
-
-        // Sync browser history so back-gesture can collapse the list
-        if (target !== _dragStartState) {
-          if      (target === 'expanded'  && _dragStartState === 'peek')      _navPush('list-expanded');
-          else if (target === 'fullscreen' && _dragStartState === 'expanded') _navPush('list-fullscreen');
-          else if (target === 'fullscreen' && _dragStartState === 'peek')     { _navPush('list-expanded'); _navPush('list-fullscreen'); }
-          else if (target === 'expanded'  && _dragStartState === 'fullscreen') _navDropLayer('list-fullscreen');
-          else if (target === 'peek'      && _dragStartState === 'expanded')   _navDropLayer('list-expanded');
-          else if (target === 'peek'      && _dragStartState === 'fullscreen') _navDropLayer('list-expanded'); // drops both (list-expanded is below list-fullscreen)
-        }
       }
 
       // Wire a swipe target: touchstart/move/end → panel drag state machine
@@ -2977,43 +2973,30 @@ function _skipIntro(seqId) {
 }
 
 // ── Back-button / popstate handler ───────────────────────────────────────────
-// Fires when the user presses the browser back button or a mobile back gesture.
-// We close the top-most dismissible layer in priority order without navigating away.
+// Fires on browser back button or mobile back gesture.
+// Pops the top layer; if it's a dead entry (already closed via UI), silently
+// consumes it. Otherwise closes the layer.
 window.addEventListener('popstate', () => {
-  if (_navDropPending) {
-    // This popstate was triggered by _navDrop() from in-app UI — ignore it.
-    _navDropPending = false;
+  if (_navStack.length === 0) return; // nothing we own
+
+  const layer = _navStack[_navStack.length - 1];
+
+  if (!_navIsLayerOpen(layer)) {
+    // Dead entry: layer was already closed via in-app UI. Consume silently.
+    _navStack.pop();
     return;
   }
-  if (_navStack.length === 0) return; // nothing we own on the stack
-  const layer = _navStack.pop();
+
+  _navStack.pop();
   _navHandlingPop = true;
 
   switch (layer) {
-    case 'venue':
-      closeDetailPanel(true);
-      break;
-    case 'dp-fullscreen':
-      document.getElementById('detail-panel')?.classList.remove('dp-fullscreen');
-      break;
-    case 'qc':
-      _closeQcPanel();
-      break;
-    case 'sort':
-      _closeSortPanel();
-      break;
-    case 'profile':
-      closeProfilePanel();
-      break;
-    case 'edit':
-      exitEditMode();
-      break;
-    case 'list-fullscreen':
-      window._applyMobilePanelState?.('expanded');
-      break;
-    case 'list-expanded':
-      window._applyMobilePanelState?.('peek');
-      break;
+    case 'venue':         closeDetailPanel(true); break;
+    case 'dp-fullscreen': document.getElementById('detail-panel')?.classList.remove('dp-fullscreen'); break;
+    case 'qc':            _closeQcPanel(); break;
+    case 'sort':          _closeSortPanel(); break;
+    case 'profile':       closeProfilePanel(); break;
+    case 'edit':          exitEditMode(); break;
   }
 
   _navHandlingPop = false;
