@@ -174,6 +174,24 @@ function buildShadeStyle() {
         },
       },
 
+      // ── Buildings (non-extruded) — flat footprints with same minzoom ────────
+      {
+        id: 'building-flat',
+        type: 'fill',
+        source: 'composite',
+        'source-layer': 'building',
+        minzoom: 14,
+        filter: ['!=', ['get', 'extrude'], 'true'],
+        paint: {
+          'fill-color': '#F0E8DA',
+          'fill-opacity': [
+            'interpolate', ['linear'], ['zoom'],
+            14, 0,
+            14.5, 1,
+          ],
+        },
+      },
+
       // ── Place labels — subdued, no road/POI labels ──────────────────────────
       {
         id: 'place-label',
