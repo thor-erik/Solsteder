@@ -5,6 +5,20 @@
     "defaultCenter": [10.728, 59.9125],
     "description": "Oslo fallback center point"
   },
+  "introSequenceTiming": {
+    "delayBeforeStart": 0,
+    "delayUnit": "ms",
+    "startTime": "auto",
+    "startTimeDescription": "auto = furthest from current time (sunrise or sunset), or specify hour (0-23)",
+    "endTime": "auto",
+    "endTimeDescription": "auto = same as startTime, or specify hour (0-23)",
+    "returnToCurrentTime": true,
+    "returnToCurrentTimeDelay": 500,
+    "returnToCurrentTimeDelayUnit": "ms",
+    "returnToCurrentTimeDuration": 1200,
+    "returnToCurrentTimeDurationUnit": "ms",
+    "notes": "Controls timing of intro time scrubbing animation and return to current time"
+  },
   "introSequence": [
     {
       "step": 1,
@@ -21,9 +35,11 @@
       "zoomEnd": 16,
       "pitchStart": 0,
       "pitchEnd": 60,
+      "timeStart": "auto",
+      "timeEnd": "auto",
       "duration": 1800,
       "durationUnit": "ms",
-      "notes": "Concurrent: zoom, tilt up to cinematic angle, and time animation"
+      "notes": "Concurrent: zoom, tilt up to cinematic angle, and time animation. timeStart/End controlled by introSequenceTiming"
     },
     {
       "step": 3,

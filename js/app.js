@@ -2919,6 +2919,12 @@ function _runIntroSequence() {
       if (_introSeqId !== seqId) return;
       map.easeTo({ zoom: 15.2, pitch: 15, bearing: 0, duration: 700 });
 
+      // Step 4: Return to current time (after step 3 completes)
+      setTimeout(() => {
+        if (_introSeqId !== seqId) return;
+        animateToTime(now, 1200);
+      }, 500);
+
       // Step 4: Fade in pins
       setTimeout(() => {
         if (_introSeqId !== seqId) return;
