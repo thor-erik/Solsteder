@@ -2881,14 +2881,13 @@ function _runIntroSequence() {
   const qcWrap = document.getElementById('qc-wrap');
   const panel  = document.getElementById('panel');
 
-  // Compute intro time range: sunrise to sunset (no threshold for stable lighting)
-  const table   = currentSunTable ?? buildSunTable(datePicker.value);
-  const sunrise = findSunCrossingFromTable(table, true)  ?? 6;
-  const sunset  = findSunCrossingFromTable(table, false) ?? 21;
-  const now     = currentHour();
-
-  // Start at sunrise for intro scrubbing
-  const introStartTime = Math.max(SOLAR_START, Math.min(23.9, sunrise));
+  // Compute intro time range: use "day" light preset boundaries (sunrise+1.5h to sunset-1.5h)
+  // This ensures consistent color lighting throughout the year as sun position changes
+  const sunrise = findSunCrossingFromTable(currentSunTable, true);
+  const sunset = findSunCrossingFromTable(currentSunTable, false);
+  const introStartTime = sunrise && sunrise + 1.5 > 4 ? sunrise + 1.5 : 7.25;  // fallback to 07:15
+  const introEndTime = sunset && sunset - 1.5 < 22 ? sunset - 1.5 : 17.25;      // fallback to 17:15
+  const now = currentHour();
 
   // Set time to intro start and render shadows at that time
   if (_timeAnimId) { cancelAnimationFrame(_timeAnimId); _timeAnimId = null; }
@@ -2915,9 +2914,9 @@ function _runIntroSequence() {
     if (_introSeqId !== seqId) return;
     splash.classList.add('hidden');
 
-    // Step 2: Scrub time from sunrise to sunset (1800ms) + zoom in + tilt up to cinematic angle (all concurrent)
-    // No threshold for stable, consistent lighting throughout
-    animateToTime(sunset, 1800);
+    // Step 2: Scrub time from day preset start to end (1800ms) + zoom in + tilt up to cinematic angle (all concurrent)
+    // Uses dynamic day preset boundaries to maintain consistent color throughout the year
+    animateToTime(introEndTime, 1800);
     map.easeTo({ zoom: 16, pitch: 60, duration: 1800, easing: t => t * t * (3 - 2 * t) });
 
     // Step 3: Zoom out + detilt (starts when step 2 ends)
