@@ -2877,16 +2877,21 @@ function _runIntroSequence() {
   const qcWrap = document.getElementById('qc-wrap');
   const panel  = document.getElementById('panel');
 
-  // Compute intro start time: sunrise or sunset, whichever is furthest from now
+  // Compute intro time range: min and max of "day" light preset
+  // "day" preset is active from sunrise+1.5h to sunset-1.5h
   const table   = currentSunTable ?? buildSunTable(datePicker.value);
   const sunrise = findSunCrossingFromTable(table, true)  ?? 6;
   const sunset  = findSunCrossingFromTable(table, false) ?? 21;
+  const dayStart = sunrise + 1.5;  // start of "day" preset
+  const dayEnd = sunset - 1.5;     // end of "day" preset
   const now     = currentHour();
-  const introHour = Math.abs(now - sunrise) > Math.abs(now - sunset) ? sunrise : sunset;
 
-  // Set time to intro hour and render shadows at that time
+  // Start at day min time for intro scrubbing
+  const introStartTime = Math.max(SOLAR_START, Math.min(23.9, dayStart));
+
+  // Set time to intro start and render shadows at that time
   if (_timeAnimId) { cancelAnimationFrame(_timeAnimId); _timeAnimId = null; }
-  timeFromEl.value = Math.max(SOLAR_START, Math.min(23.9, introHour));
+  timeFromEl.value = introStartTime;
   update();
 
   // Position map at user location — instant, before splash fades
@@ -2909,9 +2914,9 @@ function _runIntroSequence() {
     if (_introSeqId !== seqId) return;
     splash.classList.add('hidden');
 
-    // Step 2: Scrub time → target time (1800ms) + zoom in + tilt up to cinematic angle (all concurrent)
-    const timeTarget = _sharedHour ?? Math.min(23, Math.max(4, now));
-    animateToTime(timeTarget, 1800);
+    // Step 2: Scrub time through "day" preset range (1800ms) + zoom in + tilt up to cinematic angle (all concurrent)
+    // Scrub from sunrise+1.5h to sunset-1.5h to show full "day" lighting range
+    animateToTime(dayEnd, 1800);
     map.easeTo({ zoom: 16, pitch: 60, duration: 1800, easing: t => t * t * (3 - 2 * t) });
 
     // Step 3: Zoom out + detilt (starts when step 2 ends)
@@ -2925,7 +2930,7 @@ function _runIntroSequence() {
         animateToTime(now, 1200);
       }, 500);
 
-      // Step 4: Fade in pins
+      // Step 5: Fade in pins
       setTimeout(() => {
         if (_introSeqId !== seqId) return;
         canvas.style.transition = 'opacity 0.4s ease';
