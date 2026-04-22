@@ -5,7 +5,11 @@ Open `index.html` directly in a browser or serve statically.
 
 ## Workflow
 
-After any response that modifies files, always commit and push before finishing — without waiting to be asked. Use a concise commit message. Skip this only if the user explicitly says not to commit yet.
+After any response that modifies files, always **commit AND PUSH** before finishing — without waiting to be asked.
+
+**CRITICAL:** Commits alone do NOT deploy. You must `git push origin master` to trigger the GitHub Actions workflow, which deploys to GitHub Pages automatically within 1–2 minutes. If you commit without pushing, changes stay local and won't go live.
+
+Use concise commit messages. Skip this only if the user explicitly says not to commit yet.
 
 ## File map
 
