@@ -767,7 +767,7 @@ function updateQcIndicator(h) {
     sunLabel = cnt > 0 ? t('places_in_sun', { count: cnt }) : t('no_places_in_sun');
   }
 
-  const animate = !isHover && !_sliderDragging;  // no cross-fade while dragging or hovering
+  const animate = !isHover && !_sliderDragging;  // cross-fade only on deliberate time jumps
   _readoutSet(document.getElementById('readout-time'), timeLabel, animate);
 
   // Inline weather row: icon + temp + separator (wx-sep, static) + wind
@@ -778,18 +778,10 @@ function updateQcIndicator(h) {
   if (wxIconEl) wxIconEl.textContent = icon;
   // Show separator + wind only when weather data exists
   if (wxSepEl)  wxSepEl.style.display  = wx ? '' : 'none';
-  if (wxTempEl) {
-    if (animate) {
-      wxTempEl.style.opacity = '0';
-      setTimeout(() => { wxTempEl.textContent = temp; wxTempEl.style.opacity = ''; }, 55);
-    } else { wxTempEl.textContent = temp; }
-  }
-  if (wxWindEl) {
-    if (animate) {
-      wxWindEl.style.opacity = '0';
-      setTimeout(() => { wxWindEl.innerHTML = windHtml; wxWindEl.style.opacity = ''; }, 55);
-    } else { wxWindEl.innerHTML = windHtml; }
-  }
+  // Always update instantly — temp/wind are small status numbers where a crossfade
+  // causes visible flicker during scrubbing without adding meaningful polish.
+  if (wxTempEl) wxTempEl.textContent = temp;
+  if (wxWindEl) wxWindEl.innerHTML    = windHtml;
 
   // Sun count: belongs to list header, not readout
   _readoutSet(document.getElementById('list-sun-count'), sunLabel, animate);
