@@ -3751,25 +3751,12 @@
     pointer-events: none !important;
   }
 
-  /* Splash logo pulse */
-  #splash-brand {
-    width: 220px;
-    height: auto;
-    animation: splash-pulse 2s ease-in-out infinite;
-    user-select: none;
-  }
-  @keyframes splash-pulse {
-    0%, 100% { opacity: 0.5; }
-    50%       { opacity: 1; }
-  }
 </style>
 </head>
 <body>
 <div id="app">
   <!-- INTRO SPLASH — covers everything until geo + map are ready -->
-  <div id="splash">
-    <img id="splash-brand" src="design/logo-pack-svg/logo-color-2000w-small-text.svg" alt="Shades">
-  </div>
+  <div id="splash"></div>
 
   <!-- MAP — full-screen -->
   <div id="map-container">
