@@ -271,6 +271,16 @@ map.on('style.load', () => {
   _introCheckReady();
 });
 
+map.on('error', (e) => {
+  console.error('Mapbox GL error:', e.error);
+  // If style fails to load, still mark as ready so intro can proceed
+  if (!mapLoaded) {
+    mapLoaded = true;
+    _introMapReady = true;
+    _introCheckReady();
+  }
+});
+
 // ── Light preset (atmosphere + sky) ──────────────────────────────────────────
 let _currentPreset = null;
 function updateLightPreset() {
