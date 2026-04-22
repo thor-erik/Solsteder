@@ -166,7 +166,10 @@ const _stableHeroIds    = new Set();
 const _stableWaitingIds = new Set();
 
 /**
- * Apply density filter in-place: demote excess Hero / Waiting entries to Context.
+ * Apply density filter in-place: demote excess Hero / Waiting entries.
+ * Overflow pins get { demoted: true } added to their classResult — tier stays
+ * 'hero' / 'waiting' so solar identity is always preserved. They render as
+ * coloured dots (orange = hero, blue = waiting), never as context glass dots.
  *
  * isFullRecompute = true  → full re-sort + demote; rebuild stable sets afterwards.
  *                           Triggered by moveend / zoomend / time/date change.
@@ -189,29 +192,31 @@ function _applyDensityFilter(projVenues, zoom, currentHour, dateStr, isFullRecom
     if (isFullRecompute) {
       heroes.sort((a, b) => _heroScore(b) - _heroScore(a));
       for (let i = heroCap; i < heroes.length; i++) {
-        heroes[i].classResult = { tier: 'context', hasSunLaterToday: true, closedOpeningIntoSun: false };
+        // Keep tier:'hero' — solar identity is non-negotiable. demoted=true → orange dot.
+        heroes[i].classResult = { ...heroes[i].classResult, demoted: true };
       }
     } else {
-      // Pan frame: keep previously-stable heroes; demote newcomers first
+      // Pan frame: keep previously-stable heroes (pills); demote newcomers first
       const stable = heroes.filter(h => _stableHeroIds.has(h.v.id));
       const fresh  = heroes.filter(h => !_stableHeroIds.has(h.v.id));
       fresh.sort((a, b) => _heroScore(b) - _heroScore(a));
       for (let i = Math.max(0, heroCap - stable.length); i < fresh.length; i++) {
-        fresh[i].classResult = { tier: 'context', hasSunLaterToday: true, closedOpeningIntoSun: false };
+        fresh[i].classResult = { ...fresh[i].classResult, demoted: true };
       }
     }
   }
   if (isFullRecompute) {
+    // Stable set = only pill-heroes (non-demoted). Demoted heroes join the fresh
+    // pool on the next pan frame so they're bumped before any newly-visible heroes.
     _stableHeroIds.clear();
-    projVenues.forEach(e => { if (e.classResult.tier === 'hero') _stableHeroIds.add(e.v.id); });
+    projVenues.forEach(e => {
+      if (e.classResult.tier === 'hero' && !e.classResult.demoted) _stableHeroIds.add(e.v.id);
+    });
   }
 
   // ── Waiting cap ───────────────────────────────────────────────────────────
   if (waiting.length > waitingCap) {
     // Sort score: minutesUntil + distance-from-centre penalty.
-    // Venues close to the map centre are prioritised over distant venues even
-    // if their sun arrives slightly later. WAITING_DISTANCE_PENALTY_MIN_PER_KM
-    // is the tuning knob.
     const centre = map.getCenter();
     function _waitingScore(e) {
       const d = _geoDistKm(e.v.lat, e.v.lng, centre.lat, centre.lng);
@@ -221,7 +226,8 @@ function _applyDensityFilter(projVenues, zoom, currentHour, dateStr, isFullRecom
     if (isFullRecompute) {
       waiting.sort((a, b) => _waitingScore(a) - _waitingScore(b));
       for (let i = waitingCap; i < waiting.length; i++) {
-        waiting[i].classResult = { tier: 'context', hasSunLaterToday: true, closedOpeningIntoSun: false };
+        // Keep tier:'waiting' — blue dot, distinct from context grey dot.
+        waiting[i].classResult = { ...waiting[i].classResult, demoted: true };
       }
     } else {
       // Pan frame: keep previously-stable waiting pins; demote newcomers first
@@ -229,13 +235,15 @@ function _applyDensityFilter(projVenues, zoom, currentHour, dateStr, isFullRecom
       const fresh  = waiting.filter(w => !_stableWaitingIds.has(w.v.id));
       fresh.sort((a, b) => _waitingScore(a) - _waitingScore(b));
       for (let i = Math.max(0, waitingCap - stable.length); i < fresh.length; i++) {
-        fresh[i].classResult = { tier: 'context', hasSunLaterToday: true, closedOpeningIntoSun: false };
+        fresh[i].classResult = { ...fresh[i].classResult, demoted: true };
       }
     }
   }
   if (isFullRecompute) {
     _stableWaitingIds.clear();
-    projVenues.forEach(e => { if (e.classResult.tier === 'waiting') _stableWaitingIds.add(e.v.id); });
+    projVenues.forEach(e => {
+      if (e.classResult.tier === 'waiting' && !e.classResult.demoted) _stableWaitingIds.add(e.v.id);
+    });
   }
 }
 
@@ -750,8 +758,8 @@ function computePinLayout(projVenues, currentHour, dateStr) {
     const isRaised = v.id === highlight.raisedId;
     const spr = getSprite(v, tier, classResult, selected, currentHour, dateStr, nowMode);
 
-    // Context is always a dot — never enters the grid
-    if (tier === 'context') {
+    // Context is always a dot; density-demoted hero/waiting is also always a dot
+    if (tier === 'context' || classResult.demoted) {
       result.push({ v, pt, classResult, extraStem: 0, isDot: true, spr });
       continue;
     }
@@ -973,6 +981,19 @@ function draw() {
     const wasDot = _pinWasDot.get(v.id);
     if (wasDot !== undefined && wasDot !== isDot) _pinDotFade.set(v.id, { fromDot: wasDot, start: now });
     _pinWasDot.set(v.id, isDot);
+  }
+
+  // Pre-pass — subtle tangerine halo behind every hero anchor point (pill + dot)
+  // Drawn before stems and pills so it never occludes any pin chrome.
+  for (const { pt, classResult } of _lastLayout) {
+    if (classResult.tier !== 'hero') continue;
+    const grd = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, 20);
+    grd.addColorStop(0, 'rgba(255,175,133,0.10)');
+    grd.addColorStop(1, 'rgba(255,175,133,0)');
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, 20, 0, Math.PI * 2);
+    ctx.fillStyle = grd;
+    ctx.fill();
   }
 
   // Pass 1 — extended stems only (all stems drawn before any pill)
