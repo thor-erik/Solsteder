@@ -207,11 +207,12 @@ function locateUser() {
 map.on('move',    _updateLocationDot);
 map.on('zoomend', _updateLocationDot);
 map.on('zoom',    _updateZoomDebug);
+map.on('pitch',   _updateZoomDebug);
 
 function _updateZoomDebug() {
   const zoomDebug = document.getElementById('zoom-debug');
   if (zoomDebug) {
-    zoomDebug.textContent = `zoom: ${map.getZoom().toFixed(2)}`;
+    zoomDebug.textContent = `zoom: ${map.getZoom().toFixed(2)} | tilt: ${map.getPitch().toFixed(1)}°`;
   }
 }
 
@@ -231,6 +232,7 @@ map.on('style.load', () => {
 
   updateLightPreset();
   updateSunLighting();
+  _updateZoomDebug();
 
   _introMapReady = true;
   _introCheckReady();
