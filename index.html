@@ -302,6 +302,11 @@
     color: var(--accent);
     white-space: nowrap;
     border-radius: 12px;
+    transition: opacity 200ms ease-out;
+  }
+  #zoom-debug.hidden {
+    opacity: 0;
+    pointer-events: none;
   }
 
   /* ── Search dropdown ─────────────────────────────────────────────────────── */
@@ -2034,6 +2039,7 @@
       top: calc(12px + 46px + 8px + 50px);
       transform: none;
       width: auto;
+      text-align: center;
     }
 
     /* Venue list — peek state height driven by --peek-h CSS var, set by JS */

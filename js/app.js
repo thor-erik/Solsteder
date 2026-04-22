@@ -211,8 +211,36 @@ map.on('pitch',   _updateZoomDebug);
 
 function _updateZoomDebug() {
   const zoomDebug = document.getElementById('zoom-debug');
-  if (zoomDebug) {
+  if (zoomDebug && !zoomDebug.classList.contains('hidden')) {
     zoomDebug.textContent = `zoom: ${map.getZoom().toFixed(2)} | tilt: ${map.getPitch().toFixed(1)}°`;
+  }
+}
+
+function toggleZoomDebugHelper() {
+  // Admin-only feature
+  if (typeof authIsAdmin !== 'function' || !authIsAdmin()) return;
+
+  const zoomDebug = document.getElementById('zoom-debug');
+  const label = document.getElementById('zoom-debug-toggle-label');
+  if (!zoomDebug || !label) return;
+
+  const isHidden = zoomDebug.classList.toggle('hidden');
+  label.textContent = isHidden ? 'Show Debug' : 'Hide Debug';
+  localStorage.setItem('solsteder_zoom_debug_visible', !isHidden);
+
+  if (!isHidden) {
+    _updateZoomDebug();
+  }
+}
+
+function _initZoomDebugVisibility() {
+  const zoomDebug = document.getElementById('zoom-debug');
+  if (!zoomDebug) return;
+
+  // Start hidden by default, only show if explicitly enabled by admin
+  const shouldShow = localStorage.getItem('solsteder_zoom_debug_visible') === 'true';
+  if (!shouldShow) {
+    zoomDebug.classList.add('hidden');
   }
 }
 
@@ -233,6 +261,7 @@ map.on('style.load', () => {
   updateLightPreset();
   updateSunLighting();
   _updateZoomDebug();
+  _initZoomDebugVisibility();
 
   _introMapReady = true;
   _introCheckReady();
