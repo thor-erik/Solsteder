@@ -1,6 +1,6 @@
 {
   "mapInitialization": {
-    "defaultZoom": 14.5,
+    "defaultZoom": 15.2,
     "defaultPitch": 15,
     "defaultCenter": [10.728, 59.9125],
     "description": "Oslo fallback center point"
@@ -9,7 +9,7 @@
     {
       "step": 1,
       "name": "Splash Visible - Jump to Zoom Level",
-      "zoom": 14,
+      "zoom": 15,
       "pitch": 0,
       "duration": "instant",
       "notes": "Jump from default zoom 13 to 15, pitch stays at default 15"
@@ -17,8 +17,8 @@
     {
       "step": 2,
       "name": "Time Scrub + Zoom In + Tilt Up",
-      "zoomStart": 14,
-      "zoomEnd": 15,
+      "zoomStart": 15,
+      "zoomEnd": 15.5,
       "pitchStart": 0,
       "pitchEnd": 45,
       "duration": 1800,
@@ -28,7 +28,7 @@
     {
       "step": 3,
       "name": "Zoom Out + Detilt",
-      "zoom": 14.5,
+      "zoom": 15.2,
       "pitch": 15,
       "duration": 700,
       "durationUnit": "ms",
@@ -37,7 +37,7 @@
     {
       "step": "skip",
       "name": "Skip Intro",
-      "zoom": 14.5,
+      "zoom": 15.2,
       "pitch": 15,
       "duration": 400,
       "durationUnit": "ms",
@@ -47,11 +47,11 @@
   "buildingVisualization": [
     {
       "feature": "3D Growth Animation",
-      "zoomStart": 14,
-      "zoomEnd": 15,
+      "zoomStart": 15,
+      "zoomEnd": 15.2,
       "heightInterpolation": "0 → actual",
-      "opacityStart": 14,
-      "opacityEnd": 14.5,
+      "opacityStart": 15,
+      "opacityEnd": 15.2,
       "notes": "Buildings fade in (opacity) and grow from 0 to full height"
     },
     {
@@ -61,7 +61,7 @@
     },
     {
       "feature": "Terrace Footprints",
-      "zoomMin": 16,
+      "zoomMin": 16.5,
       "notes": "Seating area shapes visible"
     }
   ],
@@ -126,7 +126,7 @@
   "venueInteractions": [
     {
       "action": "Locate User Button",
-      "zoom": "Math.max(current, 14.5)",
+      "zoom": "Math.max(current, 15.2)",
       "pitch": null,
       "duration": 600,
       "durationUnit": "ms",

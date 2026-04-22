@@ -148,46 +148,46 @@ function buildShadeStyle() {
         type: 'fill',
         source: 'composite',
         'source-layer': 'building',
-        minzoom: 13,
+        minzoom: 15,
         filter: ['!=', ['get', 'extrude'], 'true'],
         paint: {
           'fill-color': '#F0E8DA',
           'fill-opacity': [
             'interpolate', ['linear'], ['zoom'],
-            13, 0,
-            13.5, 1,
+            15, 0,
+            15.2, 1,
           ],
         },
       },
 
       // ── Buildings — 3D extrusion with grow animation ────────────────────────
-      // minzoom: 13 allows buildings to appear and grow smoothly.
+      // minzoom: 15 aligns with when detailed building data appears in tileset.
       // fill-extrusion-height interpolates 0→actual-height over a zoom
-      // range (13→15) so all buildings rise smoothly instead of popping.
+      // range (15→15.2) so buildings rise smoothly as new data loads.
       // Opacity also fades in over the same range to avoid abrupt appearance.
       {
         id: 'building',
         type: 'fill-extrusion',
         source: 'composite',
         'source-layer': 'building',
-        minzoom: 13,
+        minzoom: 15,
         filter: ['has', 'height'],
         paint: {
           'fill-extrusion-color': '#F0E8DA',
           'fill-extrusion-height': [
             'interpolate', ['linear'], ['zoom'],
-            13, 0,
-            15, ['get', 'height'],
+            15, 0,
+            15.2, ['get', 'height'],
           ],
           'fill-extrusion-base': [
             'interpolate', ['linear'], ['zoom'],
-            13, 0,
-            15, ['coalesce', ['get', 'min_height'], 0],
+            15, 0,
+            15.2, ['coalesce', ['get', 'min_height'], 0],
           ],
           'fill-extrusion-opacity': [
             'interpolate', ['linear'], ['zoom'],
-            13, 0,
-            13.5, 1,
+            15, 0,
+            15.2, 1,
           ],
         },
       },

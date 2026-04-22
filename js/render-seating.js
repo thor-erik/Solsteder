@@ -20,7 +20,7 @@ function shouldShowAtZoom(v, zoom) {
 
 // ── Seating area shapes ────────────────────────────────────────────────────────
 /**
- * Draw terrace footprints for all visible venues at zoom >= 14.
+ * Draw terrace footprints for all visible venues at zoom >= 16.5.
  * - Venues with wallSegment: a rectangle (wall edge + TERRACE_DEPTH_M outward).
  * - Venues without: a fan sector centred on the facing direction.
  * Warm tint = in sun, cool tint = in shade.
@@ -28,7 +28,7 @@ function shouldShowAtZoom(v, zoom) {
 function drawSeatingAreas() {
   if (!currentSun) return;
   const zoom = map.getZoom();
-  if (zoom < 14) return;
+  if (zoom < 16.5) return;
   const bounds = map.getBounds();
   const { az, alt } = currentSun;
 
