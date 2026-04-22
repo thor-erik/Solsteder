@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shades — Pin tier sketch (navn først, ikon som separator)</title>
+<style>
+  :root {
+    --tangerine:   #FFAF85;
+    --tangerine-d: #E87A46;
+    --accent-on:   #2a1a0c;
+    --seashell:    #FFF2EB;
+    --text:        #FFF2EB;
+    --muted:       #9CBDE7;
+    --delft:       #142E52;
+    --polynesian:  #204983;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif;
+    color: var(--text);
+    overflow: hidden;
+  }
+
+  .map {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 50% 45% at 78% 22%, rgba(255,175,133,.42) 0%, rgba(255,175,133,0) 60%),
+      radial-gradient(ellipse 70% 60% at 15% 85%, rgba(32,73,131,.6) 0%, rgba(20,46,82,0) 60%),
+      linear-gradient(160deg, #0b1a30 0%, #123051 45%, #1d4a7a 75%, #2a6a9e 100%);
+  }
+  .block { position: absolute; background: rgba(10, 22, 42, 0.62); border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,.4); }
+  .road  { position: absolute; background: rgba(255,255,255,0.035); }
+  .b1 { top: 14%; left: 12%; width: 180px; height: 80px; transform: rotate(5deg); }
+  .b2 { top: 32%; left: 28%; width: 140px; height: 120px; transform: rotate(-3deg); }
+  .b3 { top: 52%; left: 8%; width: 220px; height: 100px; transform: rotate(2deg); }
+  .b4 { top: 28%; left: 55%; width: 100px; height: 160px; transform: rotate(-6deg); }
+  .b5 { top: 58%; left: 42%; width: 180px; height: 110px; transform: rotate(3deg); }
+  .b6 { top: 18%; left: 74%; width: 150px; height: 90px; transform: rotate(-4deg); }
+  .b7 { top: 62%; left: 68%; width: 160px; height: 130px; transform: rotate(2deg); }
+  .r1 { top: 22%; left: 0; width: 100%; height: 10px; transform: rotate(3deg); }
+  .r2 { top: 48%; left: 0; width: 100%; height: 8px; transform: rotate(-2deg); }
+  .r3 { top: 70%; left: 0; width: 100%; height: 9px; transform: rotate(1deg); }
+
+  /* Shades Glass */
+  .glass {
+    background:
+      linear-gradient(135deg, rgba(20,46,82,0.48) 0%, rgba(32,73,131,0.30) 100%),
+      rgba(20,46,82,0.55);
+    backdrop-filter: blur(16px) saturate(160%);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    border: 1px solid rgba(156,189,231,0.18);
+    box-shadow:
+      inset 0 1px 0 rgba(255,242,235,0.14),
+      inset 0 -1px 0 rgba(20,46,82,0.35),
+      0 6px 24px rgba(0,0,0,0.50);
+  }
+  .glass.sm {
+    background:
+      linear-gradient(135deg, rgba(20,46,82,0.42) 0%, rgba(32,73,131,0.26) 100%),
+      rgba(20,46,82,0.50);
+    backdrop-filter: blur(12px) saturate(160%);
+    -webkit-backdrop-filter: blur(12px) saturate(160%);
+    box-shadow:
+      inset 0 1px 0 rgba(255,242,235,0.14),
+      inset 0 -1px 0 rgba(20,46,82,0.35),
+      0 2px 8px rgba(0,0,0,0.35);
+  }
+
+  /* Pins */
+  .pin {
+    position: absolute;
+    transform: translate(-50%, -100%);
+    display: flex; flex-direction: column; align-items: center;
+    pointer-events: auto;
+    /* drop shadow — vil flyttes inn i sprite ved implementasjon */
+    filter: drop-shadow(0 3px 6px rgba(0,0,0,0.35));
+  }
+  .pin .stem {
+    width: 2px; height: 14px;
+    background: currentColor;
+  }
+  .pin .stem.dashed {
+    background: repeating-linear-gradient(to bottom, currentColor 0 3px, transparent 3px 6px);
+  }
+  .pin .dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: currentColor;
+    transform: translateY(-1px);
+  }
+
+  /* Round status-ikon */
+  .icon {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background-size: cover; background-position: center;
+    flex: none;
+    box-shadow: inset 0 0 0 1px rgba(255,242,235,0.15);
+  }
+  .icon-sm { width: 14px; height: 14px; }
+  .icon-lg { width: 28px; height: 28px; }
+
+  /* Shadow-serien (brukes bare på Waiting) */
+  .ic-sh100{ background-image: url("design/shades-status-icons/shadow-100-percent.png"); }
+  .ic-sh75 { background-image: url("design/shades-status-icons/shadow-75-percent.png"); }
+  .ic-sh50 { background-image: url("design/shades-status-icons/shadow-50-percent.png"); }
+  .ic-sh25 { background-image: url("design/shades-status-icons/shadow-25-percent.png"); }
+
+  /* Sol-serien — beholdes for legend/referanse, ikke brukt på pins lenger */
+  .ic-s100 { background-image: url("design/shades-status-icons/sun-100-percent.png"); }
+  .ic-s75  { background-image: url("design/shades-status-icons/sun-75-percent.png"); }
+  .ic-s50  { background-image: url("design/shades-status-icons/sun-50-percent.png"); }
+  .ic-s25  { background-image: url("design/shades-status-icons/sun-25-percent.png"); }
+  .ic-s0   { background-image: url("design/shades-status-icons/sun-0-percent.png"); }
+
+  /* Sunset-glyph — halv sol over horisont, vises bare på Hero når ≤60 min sol igjen */
+  .sunset {
+    width: 14px; height: 11px;
+    flex: none;
+    display: block;
+  }
+
+  /* Tier 1 — Hero (default: bare navn, tangerine pill) */
+  .pin.hero { color: var(--tangerine); }
+  .pin.hero .pill {
+    display: flex; align-items: center;
+    height: 26px;
+    background: var(--tangerine);
+    border-radius: 13px;
+    padding: 0 12px;
+    box-shadow:
+      inset 0 1px 0 rgba(255,242,235,0.45),
+      0 0 18px rgba(255,175,133,0.28),
+      0 2px 6px rgba(0,0,0,0.35);
+    color: var(--accent-on);
+    font-size: 11px; font-weight: 700;
+    white-space: nowrap;
+  }
+  .pin.hero .pill .name { letter-spacing: 0.1px; }
+
+  /* Hero — actionable (≤60 min sol igjen): navn [sunset] tid
+     Ikon erstatter separator — gjør dobbel jobb. */
+  .pin.hero.actionable .pill {
+    padding: 0 12px;
+    gap: 6px;
+  }
+  .pin.hero.actionable .pill .sunset { color: var(--accent-on); }
+  .pin.hero.actionable .pill .dt {
+    color: rgba(42,26,12,0.72);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Tier 2a — Waiting (glass pill: navn [shadow-icon] tid)
+     Ikon erstatter separator. */
+  .pin.waiting { color: rgba(156,189,231,0.55); }
+  .pin.waiting .pill {
+    display: flex; align-items: center; gap: 6px;
+    height: 24px; padding: 0 10px;
+    border-radius: 12px;
+    color: var(--text);
+    font-size: 11px; font-weight: 600;
+    white-space: nowrap;
+  }
+  .pin.waiting .pill .name { letter-spacing: 0.1px; }
+  .pin.waiting .pill .dt {
+    color: var(--tangerine);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .pin.waiting .icon-sm {
+    box-shadow: inset 0 0 0 1px rgba(255,242,235,0.3);
+  }
+
+  /* Closed-modifier — liten badge på nedre høyre hjørne av ikonet */
+  .icon-wrap {
+    position: relative;
+    width: 14px; height: 14px;
+    flex: none;
+  }
+  .icon-wrap .closed-badge {
+    position: absolute;
+    right: -3px; bottom: -3px;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--delft);
+    border: 1.5px solid var(--seashell);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--seashell);
+    font-size: 6px;
+    line-height: 1;
+  }
+  .icon-wrap .closed-badge::before {
+    content: '';
+    width: 4px; height: 4px; border-radius: 50%;
+    border: 1px solid var(--seashell);
+    border-top-color: transparent; border-right-color: transparent;
+    transform: rotate(-45deg);
+  }
+
+  /* Tier 2b — Context (små glass-dotter) */
+  .pin.context { color: rgba(156,189,231,0.35); }
+  .pin.context .ctx-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background:
+      linear-gradient(135deg, rgba(20,46,82,0.55), rgba(32,73,131,0.35)),
+      rgba(20,46,82,0.6);
+    border: 1px solid rgba(156,189,231,0.25);
+    box-shadow:
+      inset 0 0.5px 0 rgba(255,242,235,0.18),
+      0 1px 4px rgba(0,0,0,0.35);
+  }
+
+  .pin.closed-tier { opacity: 0.55; filter: saturate(0.8) drop-shadow(0 3px 6px rgba(0,0,0,0.35)); }
+  .pin.selected .pill,
+  .pin.selected .ctx-dot {
+    outline: 2px solid rgba(255,175,133,0.9);
+    outline-offset: 2px;
+  }
+
+  /* Legend */
+  .legend {
+    position: absolute;
+    top: 20px; right: 20px;
+    width: 320px;
+    padding: 16px 18px;
+    border-radius: 16px;
+    z-index: 20;
+    font-size: 11px; line-height: 1.5;
+    color: var(--text);
+  }
+  .legend h2 {
+    font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 10px;
+  }
+  .legend h3 {
+    font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+    color: var(--tangerine); margin: 14px 0 8px;
+  }
+  .legend .row {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 6px 0;
+  }
+  .legend .row .demo { flex: 0 0 44px; display: flex; justify-content: center; align-items: center; }
+  .legend .row .txt { flex: 1; font-size: 11px; color: var(--muted); }
+  .legend .row .txt b { color: var(--text); font-weight: 600; font-size: 11.5px; display: block; margin-bottom: 1px; }
+
+  .icon-strip { display: flex; gap: 6px; margin: 4px 0 10px; padding: 4px; border-radius: 8px; background: rgba(20,46,82,0.4); }
+  .icon-strip .icon { width: 22px; height: 22px; }
+  .icon-strip-label { font-size: 9px; font-weight: 600; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; margin-top: 4px; }
+
+  /* Title strip */
+  .title-strip {
+    position: absolute;
+    top: 20px; left: 20px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    z-index: 20;
+    font-size: 12px; font-weight: 600; letter-spacing: 0.2px;
+  }
+  .title-strip .sub { font-size: 10px; font-weight: 500; color: var(--muted); margin-top: 2px; letter-spacing: 0.5px; }
+
+  /* Readout */
+  .readout {
+    position: absolute;
+    left: 20px; right: 360px; bottom: 20px;
+    max-width: 520px;
+    padding: 14px 18px;
+    border-radius: 14px;
+    z-index: 20;
+  }
+  .readout .row { display: flex; align-items: center; gap: 14px; }
+  .readout .date {
+    display: flex; align-items: center; gap: 6px;
+    padding: 0 12px; height: 34px;
+    border-radius: 16px;
+    font-size: 13px; font-weight: 600;
+    background: linear-gradient(135deg, rgba(20,46,82,0.36) 0%, rgba(32,73,131,0.22) 100%), rgba(20,46,82,0.45);
+    box-shadow: inset 0 1px 0 rgba(255,242,235,0.14), inset 0 -1px 0 rgba(20,46,82,0.35);
+  }
+  .readout .time { font-size: 24px; font-weight: 700; color: var(--tangerine); font-variant-numeric: tabular-nums; }
+  .readout .track { flex: 1; position: relative; height: 4px; background: rgba(156,189,231,.2); border-radius: 2px; }
+  .readout .fill { position: absolute; left: 0; top: 0; bottom: 0; width: 42%; background: linear-gradient(90deg, #8EA0B8, #FFD488); border-radius: 2px; }
+  .readout .thumb { position: absolute; left: 42%; top: 50%; transform: translate(-50%, -50%); width: 22px; height: 22px; border-radius: 50%; background: rgba(255,242,235,0.22); border: 1.5px solid rgba(255,242,235,0.75); box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), 0 2px 6px rgba(0,0,0,0.35), 0 0 12px rgba(255,175,133,0.35); }
+  .readout .subline { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 11px; color: var(--muted); padding-left: 4px; }
+</style>
+</head>
+<body>
+
+<div class="map">
+  <div class="block b1"></div><div class="block b2"></div>
+  <div class="block b3"></div><div class="block b4"></div>
+  <div class="block b5"></div><div class="block b6"></div>
+  <div class="block b7"></div>
+  <div class="road r1"></div><div class="road r2"></div><div class="road r3"></div>
+
+  <!-- SVG symbol for sunset-glyph -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="sunset-sym" viewBox="0 0 16 12">
+        <!-- halv sol over horisont -->
+        <path d="M3.5 10 A4.5 4.5 0 0 1 12.5 10 Z" fill="currentColor"/>
+        <line x1="1.2" y1="10.5" x2="14.8" y2="10.5"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </symbol>
+    </defs>
+  </svg>
+
+  <!-- ───── Tier 1 HERO — default (>60 min sol igjen): bare navn ───── -->
+  <div class="pin hero selected" style="left: 30%; top: 35%;">
+    <div class="pill"><span class="name">Vippa</span></div>
+    <div class="stem"></div><div class="dot"></div>
+  </div>
+
+  <div class="pin hero" style="left: 58%; top: 26%;">
+    <div class="pill"><span class="name">Salt</span></div>
+    <div class="stem"></div><div class="dot"></div>
+  </div>
+
+  <div class="pin hero" style="left: 82%; top: 50%;">
+    <div class="pill"><span class="name">Olivia</span></div>
+    <div class="stem"></div><div class="dot"></div>
+  </div>
+
+  <!-- ───── Tier 1 HERO — actionable (≤60 min igjen): navn [sunset] tid ───── -->
+  <div class="pin hero actionable" style="left: 20%; top: 62%;">
+    <div class="pill">
+      <span class="name">Mocca</span>
+      <svg class="sunset"><use href="#sunset-sym"/></svg>
+      <span class="dt">15:05</span>
+    </div>
+    <div class="stem"></div><div class="dot"></div>
+  </div>
+
+  <div class="pin hero actionable" style="left: 72%; top: 58%;">
+    <div class="pill">
+      <span class="name">Bar Boca</span>
+      <svg class="sunset"><use href="#sunset-sym"/></svg>
+      <span class="dt">15:20</span>
+    </div>
+    <div class="stem"></div><div class="dot"></div>
+  </div>
+
+  <!-- ───── Tier 2a WAITING — glass pill: navn [shadow-icon] tid ───── -->
+  <div class="pin waiting" style="left: 45%; top: 45%;">
+    <div class="pill glass sm">
+      <span class="name">Tim W.</span>
+      <div class="icon icon-sm ic-sh25"></div>
+      <span class="dt">14:45</span>
+    </div>
+    <div class="stem dashed"></div><div class="dot"></div>
+  </div>
+
+  <div class="pin waiting" style="left: 68%; top: 78%;">
+    <div class="pill glass sm">
+      <span class="name">Kaia</span>
+      <div class="icon icon-sm ic-sh50"></div>
+      <span class="dt">15:15</span>
+    </div>
+    <div class="stem dashed"></div><div class="dot"></div>
+  </div>
+
+  <div class="pin waiting" style="left: 15%; top: 42%;">
+    <div class="pill glass sm">
+      <span class="name">Lorry</span>
+      <div class="icon icon-sm ic-sh75"></div>
+      <span class="dt">15:50</span>
+    </div>
+    <div class="stem dashed"></div><div class="dot"></div>
+  </div>
+
+  <!-- Waiting med closed-modifier (ikon badge nede til høyre) -->
+  <div class="pin waiting" style="left: 52%; top: 66%;">
+    <div class="pill glass sm">
+      <span class="name">Noura</span>
+      <div class="icon-wrap">
+        <div class="icon icon-sm ic-sh50"></div>
+        <div class="closed-badge"></div>
+      </div>
+      <span class="dt">15:00</span>
+    </div>
+    <div class="stem dashed"></div><div class="dot"></div>
+  </div>
+
+  <!-- ───── Tier 2b CONTEXT — små glass-dotter ───── -->
+  <div class="pin context" style="left: 38%; top: 20%;"><div class="ctx-dot"></div><div class="stem"></div><div class="dot"></div></div>
+  <div class="pin context" style="left: 10%; top: 78%;"><div class="ctx-dot"></div><div class="stem"></div><div class="dot"></div></div>
+  <div class="pin context" style="left: 48%; top: 15%;"><div class="ctx-dot"></div><div class="stem"></div><div class="dot"></div></div>
+  <div class="pin context" style="left: 88%; top: 68%;"><div class="ctx-dot"></div><div class="stem"></div><div class="dot"></div></div>
+  <div class="pin context" style="left: 25%; top: 88%;"><div class="ctx-dot"></div><div class="stem"></div><div class="dot"></div></div>
+
+  <!-- Closed / ingen sol i dag -->
+  <div class="pin context closed-tier" style="left: 64%; top: 14%;"><div class="ctx-dot"></div><div class="stem"></div><div class="dot"></div></div>
+  <div class="pin context closed-tier" style="left: 35%; top: 78%;"><div class="ctx-dot"></div><div class="stem"></div><div class="dot"></div></div>
+</div>
+
+<!-- Title -->
+<div class="title-strip glass">
+  Pin tiers — navn først, ikon som separator
+  <div class="sub">14:30 · Oslo sentrum · ikon erstatter midtprikk</div>
+</div>
+
+<!-- Legend -->
+<div class="legend glass">
+  <h2>Pin-grammatikk</h2>
+
+  <div class="row">
+    <div class="demo">
+      <div style="display:inline-flex;align-items:center;height:22px;background:var(--tangerine);border-radius:11px;padding:0 10px;color:var(--accent-on);font-size:10px;font-weight:700;">Vippa</div>
+    </div>
+    <div class="txt"><b>Hero — default</b>Sol nå, &gt;60 min igjen. Bare navn, tangerine pill.</div>
+  </div>
+
+  <div class="row">
+    <div class="demo">
+      <div style="display:inline-flex;align-items:center;gap:5px;height:22px;background:var(--tangerine);border-radius:11px;padding:0 10px;color:var(--accent-on);font-size:10px;font-weight:700;">
+        <span>Mocca</span>
+        <svg class="sunset" style="width:11px;height:9px;"><use href="#sunset-sym"/></svg>
+        <span style="opacity:.72;font-variant-numeric:tabular-nums;">15:05</span>
+      </div>
+    </div>
+    <div class="txt"><b>Hero — sol slutter snart</b>≤60 min igjen. Navn · sunset-glyph · sluttid.</div>
+  </div>
+
+  <div class="row">
+    <div class="demo">
+      <div style="display:inline-flex;align-items:center;gap:5px;height:22px;background:rgba(20,46,82,0.5);border-radius:11px;padding:0 8px;color:var(--text);font-size:10px;font-weight:600;border:1px solid rgba(156,189,231,0.18);">
+        <span>Kaia</span>
+        <div class="icon icon-sm ic-sh50"></div>
+        <span style="color:var(--tangerine);font-weight:700;font-variant-numeric:tabular-nums;">15:15</span>
+      </div>
+    </div>
+    <div class="txt"><b>Waiting</b>≤120 min til sol. Navn · shadow-ikon · ankomsttid.</div>
+  </div>
+
+  <div class="row">
+    <div class="demo">
+      <div style="width:10px;height:10px;border-radius:50%;background:rgba(20,46,82,0.6);border:1px solid rgba(156,189,231,0.25);"></div>
+    </div>
+    <div class="txt"><b>Kontekst</b>Finnes her — ingen sol relevant nå.</div>
+  </div>
+
+  <h3>Shadow-skala (Waiting)</h3>
+  <div class="icon-strip">
+    <div class="icon ic-sh25"></div>
+    <div class="icon ic-sh50"></div>
+    <div class="icon ic-sh75"></div>
+    <div class="icon ic-sh100"></div>
+  </div>
+  <div style="font-size:10px;color:var(--muted);margin-top:-4px;">Skygge trekker seg tilbake →</div>
+</div>
+
+<!-- Readout -->
+<div class="readout glass">
+  <div class="row">
+    <div class="date">📅 I dag</div>
+    <div class="time">14:30</div>
+    <div class="track"><div class="fill"></div><div class="thumb"></div></div>
+  </div>
+  <div class="subline">3 steder i solen · 4 kommer snart · 2 med &lt;60 min igjen</div>
+</div>
+
+</body>
+</html>
