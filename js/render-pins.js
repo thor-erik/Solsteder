@@ -4,7 +4,7 @@
  * Depends on: map, canvas, ctx, currentSun, selectedId, highlight,
  *             editingVenueId, editHoveredWallIdx, VENUES (app.js / data.js)
  *             venueSunState (solar.js)
- *             computeSunWindows, sunScore, formatHour (app.js / scoring.js)
+ *             computeSunWindows, sunScore, formatHour, nowMode (app.js / scoring.js)
  *             shortName, fillRoundRect (render-helpers.js)
  *             drawBuildingEditor, editDraggingDepth, editDragWallObj,
  *             _detachedDragging, hitTestDetachedPin, hitTestDepthHandle,
@@ -17,322 +17,532 @@
  */
 
 // ── Sprite cache ──────────────────────────────────────────────────────────────
-// Pill-shaped pins keyed by (id, state, selected, time-bucket).
-// buildSprite returns { canvas, anchorX, anchorY } — anchor is the bottom of
-// the stem, placed at the venue's map coordinate; the pill floats above it.
-const PILL_H  = 26;   // pill body height px
-const PILL_R  = 13;   // pill corner radius (= height/2 → fully rounded)
-const STEM_H  = 14;   // thin vertical stem below pill
+// Pill-shaped pins keyed by tier + icon index + selected + modifier flags.
+// buildSprite returns { canvas, anchorX, anchorY, cssW, cssH, pillW, pillH, pillR }
+// anchorX/Y = the point in the sprite placed at the venue's map coordinate.
+const PILL_H         = 26;   // Hero pill height px
+const WAITING_PILL_H = 24;   // Waiting pill height px
+const PILL_R         = 13;   // Hero pill radius (height / 2 → fully rounded)
+const WAITING_PILL_R = 12;   // Waiting pill radius
+const STEM_H         = 14;   // stem height px
+const SHADOW_PAD     = 6;    // extra canvas padding on all sides for drop shadows
 const spriteCache = new Map();
 
-function _sunRemainingHours(v, dateStr, hour) {
-  try {
-    const { windows } = computeSunWindows(v, dateStr);
-    for (const w of windows) {
-      if (hour >= w.start && hour < w.end) return Math.max(0, w.end - hour);
-    }
-  } catch (e) {}
-  return 0;
+// ── Icon loading ──────────────────────────────────────────────────────────────
+// Sun series:    sun-0 … sun-100  (5 icons, index 0–4)
+// Shadow series: shadow-25 … shadow-100  (4 icons, index 0–3)
+// Wait until ALL 9 images have settled before rebuilding sprites.
+let _iconsReadyCount = 0;
+const _ICON_TOTAL    = 9;
+
+function _onIconLoad() {
+  _iconsReadyCount++;
+  if (_iconsReadyCount === _ICON_TOTAL) { clearSpriteCache(); draw(); }
 }
 
-function _sunFillFraction(hours) {
-  if (hours >= 2.5) return 1.0;
-  if (hours >= 1.5) return 0.75;
-  if (hours >= 1.0) return 0.50;
-  if (hours >= 0.5) return 0.25;
-  return 0.0;
-}
-
-// Draws the pill shape with a concave circular notch on the right side where
-// the icon sits. nCx/nCy is the icon centre; nR is the notch radius (slightly
-// larger than the icon so a gap is left between notch edge and icon edge).
-function _pillNotchPath(c, ox, oy, pillW, pillH, pillR, nCx, nCy, nR) {
-  const rightX   = ox + pillW;
-  const topAngle = Math.atan2(oy - nCy, rightX - nCx);
-  const botAngle = Math.atan2((oy + pillH) - nCy, rightX - nCx);
-  c.beginPath();
-  c.moveTo(ox + pillR, oy);
-  c.lineTo(rightX, oy);
-  // Concave notch: counterclockwise arc curves left (into pill) from top corner to bottom corner
-  c.arc(nCx, nCy, nR, topAngle, botAngle, true);
-  c.lineTo(ox + pillR, oy + pillH);
-  // Left rounded cap: clockwise arc from bottom to top around the left semicircle
-  c.arc(ox + pillR, oy + pillH / 2, pillR, Math.PI / 2, -Math.PI / 2, false);
-  c.closePath();
-}
-
-// Pre-load all 5 status icon PNGs. Wait until every image has settled (load or
-// error) before rebuilding sprites — avoids partial redraws where some icons
-// are ready and others still show the dark fallback.
-const _sunIcons = [];
-let _sunIconsReady = 0;
-[1, 2, 3, 4, 5].forEach(n => {
+const _sunIcons = ['0', '25', '50', '75', '100'].map(p => {
   const img = new Image();
-  img.onload = img.onerror = () => {
-    _sunIconsReady++;
-    if (_sunIconsReady === 5) { clearSpriteCache(); draw(); }
-  };
-  img.src = `design/status-icon-svg/${n}.png`;
-  _sunIcons.push(img);
+  img.onload = img.onerror = _onIconLoad;
+  img.src = `design/shades-status-icons/sun-${p}-percent.png`;
+  return img;
+});
+const _shadowIcons = ['25', '50', '75', '100'].map(p => {
+  const img = new Image();
+  img.onload = img.onerror = _onIconLoad;
+  img.src = `design/shades-status-icons/shadow-${p}-percent.png`;
+  return img;
 });
 
-function _fractionToIconIdx(fraction) {
-  if (fraction >= 1.0) return 4;
-  if (fraction >= 0.75) return 3;
-  if (fraction >= 0.5)  return 2;
-  if (fraction >= 0.25) return 1;
-  return 0;
+// ── Icon index helpers ─────────────────────────────────────────────────────────
+// Sun series fills from bottom as time in the window expands.
+// Shadow series retreats from the top as sun approaches.
+// Together they form one continuous scale, played forward/backward by the slider.
+
+// Tier 1: pick sun icon by remaining hours in the current sun window.
+function _sunIconIdx(hoursLeft) {
+  if (hoursLeft >= 2.5) return 4;  // sun-100
+  if (hoursLeft >= 1.5) return 3;  // sun-75
+  if (hoursLeft >= 1.0) return 2;  // sun-50
+  if (hoursLeft >= 0.5) return 1;  // sun-25
+  return 0;                         // sun-0
 }
 
-function _drawSunFillIcon(c, cx, cy, r, fraction) {
-  const img = _sunIcons[_fractionToIconIdx(fraction)];
+// Tier 2a: pick shadow icon by minutes until sun arrives.
+function _shadowIconIdx(minutesUntilSun) {
+  if (minutesUntilSun <= 15) return 0;   // shadow-25
+  if (minutesUntilSun <= 45) return 1;   // shadow-50
+  if (minutesUntilSun <= 90) return 2;   // shadow-75
+  return 3;                               // shadow-100
+}
+
+// ── Pin tier classification ────────────────────────────────────────────────────
+// WAITING_HORIZON_MIN: the only user-visible magic number for "waiting" tier.
+// Delta beats absolute within 2h; past 2h, the info is too distant to be actionable.
+const WAITING_HORIZON_MIN = 120;
+
+/**
+ * Classify a venue into Hero / Waiting / Context for the given hour and date.
+ * Returns an object: { tier, hoursLeft?, minutesUntil?, nextStart?,
+ *                      hasSunLaterToday?, closedOpeningIntoSun? }
+ */
+function classifyPin(v, dateStr, hour) {
+  let windows;
+  try {
+    ({ windows } = computeSunWindows(v, dateStr));
+  } catch (e) {
+    return { tier: 'context', hasSunLaterToday: false, closedOpeningIntoSun: false };
+  }
+
+  const { open: vOpen, close: vClose } = v.openingHours ?? {};
+  const isOpen = vOpen != null && hour >= vOpen && hour <= vClose;
+
+  // Tier 1: venue has sun right now
+  const nowInSun = windows.find(w => hour >= w.start && hour < w.end);
+  if (nowInSun) {
+    return { tier: 'hero', hoursLeft: Math.max(0, nowInSun.end - hour), closedOpeningIntoSun: false };
+  }
+
+  // Tier 2a: sun arrives within WAITING_HORIZON_MIN
+  const next = windows.find(w => w.start > hour);
+  if (next && (next.start - hour) * 60 <= WAITING_HORIZON_MIN) {
+    const mins = Math.round((next.start - hour) * 60);
+    // Badge: venue is currently closed but will be open when sun arrives
+    const closedOpeningIntoSun = !isOpen && vOpen != null && next.start >= vOpen;
+    return { tier: 'waiting', minutesUntil: mins, nextStart: next.start, closedOpeningIntoSun };
+  }
+
+  // Tier 2b: context dot
+  return { tier: 'context', hasSunLaterToday: !!next, closedOpeningIntoSun: false };
+}
+
+// ── Density caps ──────────────────────────────────────────────────────────────
+const HERO_CAP    = 8;   // max Hero pins in a viewport (zoom 14–15)
+const WAITING_CAP = 10;  // max Waiting pins in a viewport (zoom 14–15)
+
+function _getDensityCaps(zoom) {
+  if (zoom >= 17) return { heroCap: Infinity, waitingCap: Infinity };
+  if (zoom >= 16) return { heroCap: 12, waitingCap: 15 };
+  if (zoom >= 14) return { heroCap: HERO_CAP, waitingCap: WAITING_CAP };
+  return { heroCap: 5, waitingCap: 5 };
+}
+
+/**
+ * Apply density filter in-place: demote excess Hero / Waiting entries to Context.
+ * projVenues: [{v, pt, classResult}], dateStr and hour for sun-score tie-breaking.
+ */
+function _applyDensityFilter(projVenues, zoom, currentHour, dateStr) {
+  const { heroCap, waitingCap } = _getDensityCaps(zoom);
+
+  const heroes  = projVenues.filter(e => e.classResult.tier === 'hero');
+  const waiting = projVenues.filter(e => e.classResult.tier === 'waiting');
+
+  // Cap heroes by sunScore desc
+  if (heroes.length > heroCap) {
+    heroes.sort((a, b) => {
+      try {
+        const sa = typeof sunScore === 'function' ? (sunScore(a.v, dateStr, currentHour) ?? 0) : (a.v.rating ?? 0);
+        const sb = typeof sunScore === 'function' ? (sunScore(b.v, dateStr, currentHour) ?? 0) : (b.v.rating ?? 0);
+        return sb - sa;
+      } catch { return 0; }
+    });
+    for (let i = heroCap; i < heroes.length; i++) {
+      heroes[i].classResult = { tier: 'context', hasSunLaterToday: true, closedOpeningIntoSun: false };
+    }
+  }
+
+  // Cap waiting by minutesUntil asc (closest to sun first)
+  if (waiting.length > waitingCap) {
+    waiting.sort((a, b) => (a.classResult.minutesUntil ?? 120) - (b.classResult.minutesUntil ?? 120));
+    for (let i = waitingCap; i < waiting.length; i++) {
+      waiting[i].classResult = { tier: 'context', hasSunLaterToday: true, closedOpeningIntoSun: false };
+    }
+  }
+}
+
+// ── Relative time formatter ────────────────────────────────────────────────────
+// No pin shows an absolute clock time in now-mode.
+// In scrubbed mode (not now-mode), Tier 2a shows the absolute arrival time.
+// When in doubt, match the user's mental anchor:
+//   now-mode anchor = "now + X" → show "+X"
+//   scrubbed anchor = clock time (slider readout) → show clock time
+function formatDelta(minutesUntil, isNowMode) {
+  if (!isNowMode) return null;
+  if (minutesUntil < 60) return `+${minutesUntil}m`;
+  const h = Math.floor(minutesUntil / 60);
+  const m = minutesUntil % 60;
+  return m === 0 ? `+${h}h` : `+${h}h ${m}m`;
+}
+
+// ── Icon draw helper ──────────────────────────────────────────────────────────
+function _drawIcon(c, cx, cy, r, imgArr, idx) {
+  const img = imgArr[Math.max(0, Math.min(imgArr.length - 1, idx))];
   c.save();
-  // Clip to circle so PNG corners don't show
   c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2);
   c.clip();
   if (img && img.complete && img.naturalWidth > 0) {
     c.drawImage(img, cx - r, cy - r, r * 2, r * 2);
   } else {
-    // Fallback while image is loading — use Delft Blue
+    // Fallback while image is loading
     c.fillStyle = 'rgba(20,46,82,0.88)';
     c.fill();
   }
   c.restore();
 }
 
-function buildSprite(v, state, selected, hour, dateStr) {
+// ── buildSprite ────────────────────────────────────────────────────────────────
+/**
+ * Build a sprite canvas for the given tier + tierData.
+ * Returns { canvas, anchorX, anchorY, cssW, cssH, pillW, pillH, pillR }
+ * anchors are in CSS pixels; sprite is built at DPR resolution.
+ *
+ * Tier 1 — Hero:    tangerine pill, sun icon left, venue name right, stem solid.
+ * Tier 2a — Waiting: glass pill, shadow icon left, time right, stem dashed.
+ * Tier 2b — Context: 10×10 glass dot, no stem, no text.
+ */
+function buildSprite(v, tier, tierData, selected, isNowMode) {
   const dpr = window.devicePixelRatio || 1;
+  const rp  = selected ? 4 : 2;  // selection ring padding
 
-  // Closed: tiny faded dot — no pill
-  if (state === 'closed') {
+  // ── Context dot ──────────────────────────────────────────────────────────────
+  if (tier === 'context') {
+    const DOT_D  = 10;
+    const dotR   = DOT_D / 2;
+    const cW     = DOT_D + SHADOW_PAD * 2;
+    const cH     = DOT_D + SHADOW_PAD * 2;
+    const cx     = SHADOW_PAD + dotR;
+    const cy     = SHADOW_PAD + dotR;
+
     const oc = document.createElement('canvas');
-    oc.width = oc.height = Math.ceil(10 * dpr);
-    const c = oc.getContext('2d');
+    oc.width  = Math.ceil(cW * dpr);
+    oc.height = Math.ceil(cH * dpr);
+    const c   = oc.getContext('2d');
     c.scale(dpr, dpr);
-    c.globalAlpha = 0.22;
-    c.beginPath(); c.arc(5, 5, 3, 0, Math.PI * 2);
-    c.fillStyle = 'rgba(156,189,231,0.6)'; c.fill();
-    return { canvas: oc, anchorX: 5, anchorY: 5, cssW: 10, cssH: 10 };
-  }
 
-  // ── Label + visual style per state ─────────────────────────────────────────
-  // Colors follow the Shades design system — same palette as the CSS glass surfaces.
-  //   gradient fill  rgba(20,46,82,0.88)→rgba(32,73,131,0.82)  (Delft Blue, 135°)
-  //   rim            rgba(156,189,231,0.18)                    (Jordy Blue)
-  //   text/stem      #9CBDE7 (--muted)                        for shaded/soon
-  //   accent         #FFAF85 (--accent)                        for sunny only
-  let label = '', strokeColor, textColor, stemColor, isDashed = false, alpha = 1;
-  let sunFraction = null; // non-null for sunny pins: 0–1 fill level
-  let useGlassGradient = false; // shaded/soon use Delft gradient; sunny keeps accent fill
+    // Dim if no sun at all today
+    c.globalAlpha = (tierData && !tierData.hasSunLaterToday) ? 0.42 : 1.0;
 
-  if (state === 'soon') {
-    const { open } = v.openingHours ?? {};
-    label          = open != null ? formatHour(open) : '—';
-    strokeColor    = 'rgba(156,189,231,0.18)';          // Jordy rim, dashed
-    stemColor      = 'rgba(255,175,133,0.70)';           // accent-tinted — sun coming
-    textColor      = '#9CBDE7';                          // --muted
-    isDashed       = true;
-    alpha          = 0.92;
-    useGlassGradient = true;
-
-  } else if (state === 'sunny') {
-    label       = shortName(v.name);
-    strokeColor = 'rgba(255,230,120,0.4)';               // warm sun-glow cue (not chrome)
-    stemColor   = 'rgba(255,175,133,0.70)';              // --accent tinted
-    textColor   = '#1a1200';                             // readable on tangerine
-    if (hour !== undefined && dateStr) {
-      sunFraction = _sunFillFraction(_sunRemainingHours(v, dateStr, hour));
-    }
-
-  } else { // shaded
-    if (hour !== undefined && dateStr) {
-      try {
-        const { windows } = computeSunWindows(v, dateStr);
-        const next = windows.find(w => w.start > hour);
-        if (next) {
-          label = formatHour(next.start); alpha = 0.85;  // sun coming later today
-        } else if (windows.length > 0) {
-          label = shortName(v.name); alpha = 0.55;       // sun has passed for today
-        } else {
-          label = '';  alpha = 0.32;                     // no sun at all today
-        }
-      } catch (e) { label = ''; }
-    }
-    strokeColor    = 'rgba(156,189,231,0.18)';           // Jordy rim
-    stemColor      = 'rgba(156,189,231,0.55)';           // --muted
-    textColor      = '#9CBDE7';                          // --muted
-    useGlassGradient = true;
-  }
-
-  // ── Sizing ─────────────────────────────────────────────────────────────────
-  const tmpCtx = document.createElement('canvas').getContext('2d');
-  tmpCtx.font  = 'bold 11px "Inter", sans-serif';
-  const tw     = label ? tmpCtx.measureText(label).width : 0;
-  const pillW  = Math.max(36, tw + 22);
-
-  // Sun fill icon: circle of same height as pill with concave notch cut into pill right side
-  const iconR   = PILL_H / 2;   // radius 13 — matches pill height exactly
-  const notchGap = 2.5;         // gap between notch edge and icon edge (px)
-  const notchR  = iconR + notchGap;
-  // Horizontal offset of icon centre from pill right edge, so notch arc passes
-  // through the pill's top-right and bottom-right corners exactly
-  const iconDx  = sunFraction !== null ? Math.sqrt(notchR * notchR - iconR * iconR) : 0;
-  const iconWide = sunFraction !== null ? Math.ceil(iconDx + iconR + 2) : 0;
-
-  const rp  = selected ? 4 : 2;                          // padding for selection ring
-  const cW  = Math.ceil(pillW + rp * 2 + 2 + iconWide);  // CSS pixels
-  const cH  = Math.ceil(PILL_H + STEM_H + rp + 2);
-  const cxA = sunFraction !== null
-    ? rp + 1 + (pillW + iconDx + iconR) / 2  // stem under centre of pill+icon combined
-    : cW / 2;                                  // anchor x = stem centre (CSS px)
-  const cyA = cH - 1;      // anchor y = bottom of stem (CSS px)
-  // Icon centre (CSS px) — precomputed for use in drawing sections below
-  const iconX = sunFraction !== null ? rp + 1 + pillW + iconDx : 0;
-  const iconY = sunFraction !== null ? rp + PILL_H / 2 : 0;
-
-  // Build at DPR resolution for crisp rendering on retina displays.
-  // Inside the sprite we draw in CSS pixel coordinates; c.scale(dpr, dpr)
-  // maps them to physical pixels.
-  const oc = document.createElement('canvas');
-  oc.width  = Math.ceil(cW * dpr);
-  oc.height = Math.ceil(cH * dpr);
-  const c   = oc.getContext('2d');
-  c.scale(dpr, dpr);
-  c.globalAlpha = alpha;
-
-  const ox = rp + 1;   // pill left edge
-  const oy = rp;       // pill top edge
-
-  // ── Glow (sunny only) — pill-shaped halo behind the label ─────────────────
-  if (state === 'sunny') {
-    const gCx = cxA, gCy = oy + PILL_H / 2;
-    // Use scale trick so the radial gradient follows the pill's aspect ratio
-    const scaleX = (pillW * 0.72) / PILL_H;
+    // Drop shadow (micro)
     c.save();
-    c.translate(gCx, gCy);
-    c.scale(scaleX, 1);
-    const glow = c.createRadialGradient(0, 0, 0, 0, 0, PILL_H);
-    glow.addColorStop(0, 'rgba(255,175,133,0.18)');
-    glow.addColorStop(1, 'rgba(255,175,133,0)');
-    c.beginPath(); c.arc(0, 0, PILL_H, 0, Math.PI * 2);
-    c.fillStyle = glow; c.fill();
+    c.shadowColor   = 'rgba(0,0,0,0.30)';
+    c.shadowBlur    = 3;
+    c.shadowOffsetY = 1;
+    c.beginPath(); c.arc(cx, cy, dotR, 0, Math.PI * 2);
+    const dotGrad = c.createLinearGradient(cx - dotR, cy - dotR, cx + dotR, cy + dotR);
+    dotGrad.addColorStop(0, 'rgba(20,46,82,0.55)');
+    dotGrad.addColorStop(1, 'rgba(32,73,131,0.38)');
+    c.fillStyle = dotGrad;
+    c.fill();
     c.restore();
-  }
 
-  // ── Selection ring ─────────────────────────────────────────────────────────
-  if (selected) {
-    if (sunFraction !== null) {
-      _pillNotchPath(c, ox - 3, oy - 3, pillW + 6, PILL_H + 6, PILL_R + 3, iconX, iconY, notchR - 3);
-    } else {
-      c.beginPath();
-      c.roundRect(ox - 3, oy - 3, pillW + 6, PILL_H + 6, PILL_R + 3);
-    }
-    c.strokeStyle = 'rgba(255,175,133,0.9)';
-    c.lineWidth   = 2;
+    // 1px Jordy border
+    c.beginPath(); c.arc(cx, cy, dotR - 0.5, 0, Math.PI * 2);
+    c.strokeStyle = 'rgba(156,189,231,0.18)';
+    c.lineWidth   = 1;
     c.stroke();
-    // For sunny: also stroke a ring around the icon itself
-    if (sunFraction !== null) {
-      c.beginPath(); c.arc(iconX, iconY, iconR + 3, 0, Math.PI * 2);
+
+    // Selection ring (2px, offset 2px outside dot)
+    if (selected) {
+      c.beginPath(); c.arc(cx, cy, dotR + 2, 0, Math.PI * 2);
+      c.strokeStyle = 'rgba(255,175,133,0.9)';
+      c.lineWidth   = 2;
       c.stroke();
     }
+
+    // Anchor = center of dot
+    return { canvas: oc, anchorX: cx, anchorY: cy, cssW: cW, cssH: cH, pillW: 0, pillH: 0, pillR: 0 };
   }
 
-  // ── Stem ───────────────────────────────────────────────────────────────────
-  const stemX  = cxA;
-  const stemY0 = oy + PILL_H;
-  const stemY1 = cyA;
-  c.beginPath();
-  c.moveTo(stemX, stemY0);
-  c.lineTo(stemX, stemY1);
-  if (isDashed) c.setLineDash([3, 3]);
-  c.strokeStyle = stemColor;
-  c.lineWidth   = 2;
-  c.stroke();
-  c.setLineDash([]);
-  // Anchor dot at stem tip (map point)
-  c.beginPath(); c.arc(stemX, stemY1, 2, 0, Math.PI * 2);
-  c.fillStyle = stemColor; c.fill();
+  // ── Hero pill (Tier 1) ────────────────────────────────────────────────────────
+  if (tier === 'hero') {
+    const iconDiam = 22;
+    const iconR    = iconDiam / 2;
+    const hoursLeft = tierData?.hoursLeft ?? 0;
+    const sunIdx    = _sunIconIdx(hoursLeft);
+    const name      = shortName(v.name);
 
-  // ── Pill fill ──────────────────────────────────────────────────────────────
-  if (sunFraction !== null) {
-    _pillNotchPath(c, ox, oy, pillW, PILL_H, PILL_R, iconX, iconY, notchR);
-  } else {
-    c.beginPath();
-    c.roundRect(ox, oy, pillW, PILL_H, PILL_R);
-  }
-  if (useGlassGradient) {
-    // Shades Glass recipe: 135° Delft gradient matching CSS glass surfaces
-    const grad = c.createLinearGradient(ox, oy, ox + pillW, oy + PILL_H);
-    grad.addColorStop(0, 'rgba(20,46,82,0.88)');
-    grad.addColorStop(1, 'rgba(32,73,131,0.82)');
-    c.fillStyle = grad;
-  } else {
-    // Sunny: accent fill — the pin IS the sun indicator
-    c.fillStyle = '#FFAF85';
-  }
-  c.fill();
+    const tmpCtx = document.createElement('canvas').getContext('2d');
+    tmpCtx.font  = 'bold 11px "Inter", sans-serif';
+    const tw     = tmpCtx.measureText(name).width;
 
-  // ── Pill stroke ────────────────────────────────────────────────────────────
-  if (isDashed) c.setLineDash([4, 3]);
-  c.strokeStyle = strokeColor;
-  c.lineWidth   = 1;
-  c.stroke();
-  c.setLineDash([]);
+    // Layout: 2px inset + 22px icon + 4px gap + text + 10px right
+    const pillW = Math.max(44, 2 + iconDiam + 4 + Math.ceil(tw) + 10);
+    const pillH = PILL_H;
+    const pillR = PILL_R;
 
-  // ── Inner top-edge sheen (glass cue, all pill states except closed dot) ───
-  // Canvas equivalent of `inset 0 1px 0 rgba(255,242,235,0.14)` in CSS glass.
-  // Must clip to pill shape so sheen stays inside rounded corners.
-  if (sunFraction !== null) {
-    _pillNotchPath(c, ox, oy, pillW, PILL_H, PILL_R, iconX, iconY, notchR);
-  } else {
-    c.beginPath();
-    c.roundRect(ox, oy, pillW, PILL_H, PILL_R);
-  }
-  c.save();
-  c.clip();
-  c.strokeStyle = 'rgba(255,242,235,0.18)';
-  c.lineWidth   = 1;
-  c.beginPath();
-  c.moveTo(ox + PILL_R, oy + 0.5);
-  c.lineTo(ox + pillW - PILL_R, oy + 0.5);
-  c.stroke();
-  c.restore();
+    const cW  = Math.ceil(pillW + rp * 2 + 2 + SHADOW_PAD * 2);
+    const cH  = Math.ceil(pillH + STEM_H + rp + SHADOW_PAD * 2);
+    const ox  = SHADOW_PAD + rp + 1;   // pill left edge
+    const oy  = SHADOW_PAD + rp;       // pill top edge
+    const stemX = ox + pillW / 2;
+    const cyA   = oy + pillH + STEM_H; // anchor y (bottom of stem)
+    const cxA   = stemX;
 
-  // ── Label ──────────────────────────────────────────────────────────────────
-  if (label) {
-    c.font         = 'bold 11px "Inter", sans-serif';
-    c.fillStyle    = textColor;
-    c.textBaseline = 'middle';
-    if (sunFraction !== null) {
-      // Left-aligned within the pill body, clear of the left rounded cap
-      c.textAlign = 'left';
-      c.fillText(label, ox + 11, oy + PILL_H / 2);
-    } else {
-      c.textAlign = 'center';
-      c.fillText(label, cxA, oy + PILL_H / 2);
+    const iconCx = ox + 2 + iconR;     // icon center x
+    const iconCy = oy + pillH / 2;     // icon center y
+
+    const oc = document.createElement('canvas');
+    oc.width  = Math.ceil(cW * dpr);
+    oc.height = Math.ceil(cH * dpr);
+    const c   = oc.getContext('2d');
+    c.scale(dpr, dpr);
+
+    // Soft tangerine accent glow behind pill
+    {
+      const gCx = ox + pillW / 2, gCy = oy + pillH / 2;
+      const scaleX = (pillW * 0.72) / pillH;
+      c.save();
+      c.translate(gCx, gCy);
+      c.scale(scaleX, 1);
+      const glow = c.createRadialGradient(0, 0, 0, 0, 0, pillH);
+      glow.addColorStop(0, 'rgba(255,175,133,0.18)');
+      glow.addColorStop(1, 'rgba(255,175,133,0)');
+      c.beginPath(); c.arc(0, 0, pillH, 0, Math.PI * 2);
+      c.fillStyle = glow; c.fill();
+      c.restore();
     }
+
+    // Selection ring (2px, offset 2px outside pill bounds)
+    if (selected) {
+      c.beginPath();
+      c.roundRect(ox - rp, oy - rp, pillW + rp * 2, pillH + rp * 2, pillR + rp);
+      c.strokeStyle = 'rgba(255,175,133,0.9)';
+      c.lineWidth   = 2;
+      c.stroke();
+    }
+
+    // Solid tangerine stem
+    c.beginPath();
+    c.moveTo(stemX, oy + pillH);
+    c.lineTo(stemX, cyA);
+    c.strokeStyle = 'rgba(255,175,133,0.70)';
+    c.lineWidth   = 2;
+    c.stroke();
+    // Anchor dot
+    c.beginPath(); c.arc(stemX, cyA, 2, 0, Math.PI * 2);
+    c.fillStyle = 'rgba(255,175,133,0.70)'; c.fill();
+
+    // Pill fill with drop shadow
+    c.save();
+    c.shadowColor   = 'rgba(0,0,0,0.40)';
+    c.shadowBlur    = 8;
+    c.shadowOffsetX = 0;
+    c.shadowOffsetY = 3;
+    c.beginPath();
+    c.roundRect(ox, oy, pillW, pillH, pillR);
+    c.fillStyle = '#FFAF85';  // --accent: the pin IS the sun indicator
+    c.fill();
+    c.restore();
+
+    // Outer stroke (warm glow cue, not chrome)
+    c.beginPath();
+    c.roundRect(ox, oy, pillW, pillH, pillR);
+    c.strokeStyle = 'rgba(255,230,120,0.4)';
+    c.lineWidth   = 1;
+    c.stroke();
+
+    // Inner top-edge sheen — bright top-sheen equivalent for tangerine pill
+    c.save();
+    c.beginPath(); c.roundRect(ox, oy, pillW, pillH, pillR);
+    c.clip();
+    c.strokeStyle = 'rgba(255,242,235,0.45)';
+    c.lineWidth   = 1;
+    c.beginPath();
+    c.moveTo(ox + pillR, oy + 0.5);
+    c.lineTo(ox + pillW - pillR, oy + 0.5);
+    c.stroke();
+    c.restore();
+
+    // Venue name: right of icon, dark text on tangerine
+    c.font         = 'bold 11px "Inter", sans-serif';
+    c.fillStyle    = '#1a1200';
+    c.textBaseline = 'middle';
+    c.textAlign    = 'left';
+    c.fillText(name, ox + 2 + iconDiam + 4, iconCy);
+
+    // Sun icon: always on the left — primary state signal, primary position
+    _drawIcon(c, iconCx, iconCy, iconR, _sunIcons, sunIdx);
+
+    return { canvas: oc, anchorX: cxA, anchorY: cyA, cssW: cW, cssH: cH, pillW, pillH, pillR };
   }
 
-  // ── Sun fill icon (sunny state only) ───────────────────────────────────────
-  if (sunFraction !== null) {
-    _drawSunFillIcon(c, iconX, iconY, iconR, sunFraction);
+  // ── Waiting pill (Tier 2a) ────────────────────────────────────────────────────
+  if (tier === 'waiting') {
+    const iconDiam = 14;
+    const iconR    = iconDiam / 2;
+    const { minutesUntil = 120, nextStart = 0, closedOpeningIntoSun = false } = tierData ?? {};
+    const shadowIdx = _shadowIconIdx(minutesUntil);
+
+    // Time label: delta (+15m) when in now-mode, absolute clock when scrubbed
+    const rawDelta = formatDelta(minutesUntil, isNowMode);
+    const timeText = rawDelta ?? formatHour(nextStart);
+
+    const tmpCtx = document.createElement('canvas').getContext('2d');
+    tmpCtx.font  = 'bold 11px "Inter", sans-serif';
+    const tw     = tmpCtx.measureText(timeText).width;
+
+    // Layout: 6px inset + 14px icon + 4px gap + text + 10px right
+    const pillW = Math.max(36, 6 + iconDiam + 4 + Math.ceil(tw) + 10);
+    const pillH = WAITING_PILL_H;
+    const pillR = WAITING_PILL_R;
+
+    const cW  = Math.ceil(pillW + rp * 2 + 2 + SHADOW_PAD * 2);
+    const cH  = Math.ceil(pillH + STEM_H + rp + SHADOW_PAD * 2);
+    const ox  = SHADOW_PAD + rp + 1;
+    const oy  = SHADOW_PAD + rp;
+    const stemX = ox + pillW / 2;
+    const cyA   = oy + pillH + STEM_H;
+    const cxA   = stemX;
+
+    const iconCx = ox + 6 + iconR;
+    const iconCy = oy + pillH / 2;
+    // Badge: bottom-right corner of icon bounding box
+    const iconRight  = ox + 6 + iconDiam;
+    const iconBottom = oy + (pillH - iconDiam) / 2 + iconDiam;
+
+    const oc = document.createElement('canvas');
+    oc.width  = Math.ceil(cW * dpr);
+    oc.height = Math.ceil(cH * dpr);
+    const c   = oc.getContext('2d');
+    c.scale(dpr, dpr);
+
+    // Selection ring
+    if (selected) {
+      c.beginPath();
+      c.roundRect(ox - rp, oy - rp, pillW + rp * 2, pillH + rp * 2, pillR + rp);
+      c.strokeStyle = 'rgba(255,175,133,0.9)';
+      c.lineWidth   = 2;
+      c.stroke();
+    }
+
+    // Dashed Jordy Blue stem
+    c.beginPath();
+    c.moveTo(stemX, oy + pillH);
+    c.lineTo(stemX, cyA);
+    c.setLineDash([3, 3]);
+    c.strokeStyle = 'rgba(156,189,231,0.55)';
+    c.lineWidth   = 2;
+    c.stroke();
+    c.setLineDash([]);
+    c.beginPath(); c.arc(stemX, cyA, 2, 0, Math.PI * 2);
+    c.fillStyle = 'rgba(156,189,231,0.55)'; c.fill();
+
+    // Pill fill with drop shadow (Shades Glass action level)
+    c.save();
+    c.shadowColor   = 'rgba(0,0,0,0.35)';
+    c.shadowBlur    = 6;
+    c.shadowOffsetX = 0;
+    c.shadowOffsetY = 2;
+    c.beginPath();
+    c.roundRect(ox, oy, pillW, pillH, pillR);
+    const grad = c.createLinearGradient(ox, oy, ox + pillW, oy + pillH);
+    grad.addColorStop(0, 'rgba(20,46,82,0.42)');
+    grad.addColorStop(1, 'rgba(32,73,131,0.26)');
+    c.fillStyle = grad;
+    c.fill();
+    c.restore();
+
+    // 1px Jordy border
+    c.beginPath();
+    c.roundRect(ox, oy, pillW, pillH, pillR);
+    c.strokeStyle = 'rgba(156,189,231,0.18)';
+    c.lineWidth   = 1;
+    c.stroke();
+
+    // Inner top-edge sheen (Shades Glass recipe)
+    c.save();
+    c.beginPath(); c.roundRect(ox, oy, pillW, pillH, pillR);
+    c.clip();
+    c.strokeStyle = 'rgba(255,242,235,0.18)';
+    c.lineWidth   = 1;
+    c.beginPath();
+    c.moveTo(ox + pillR, oy + 0.5);
+    c.lineTo(ox + pillW - pillR, oy + 0.5);
+    c.stroke();
+    c.restore();
+
+    // Time label: tangerine text (icon is the state signal; time is urgency)
+    c.font         = 'bold 11px "Inter", sans-serif';
+    c.fillStyle    = '#FFAF85';
+    c.textBaseline = 'middle';
+    c.textAlign    = 'left';
+    c.fillText(timeText, ox + 6 + iconDiam + 4, iconCy);
+
+    // Shadow icon: always on the left
+    _drawIcon(c, iconCx, iconCy, iconR, _shadowIcons, shadowIdx);
+
+    // Clock badge: venue closed now, but opens into the sun window
+    if (closedOpeningIntoSun) {
+      const badgeR  = 3;   // 6px diameter
+      const badgeCx = iconRight - 1;
+      const badgeCy = iconBottom - 1;
+
+      c.save();
+      // Badge fill (Delft Blue — dark so it reads on glass pill)
+      c.beginPath(); c.arc(badgeCx, badgeCy, badgeR + 0.75, 0, Math.PI * 2);
+      c.fillStyle = '#142E52';
+      c.fill();
+      // Badge border (--muted)
+      c.strokeStyle = '#9CBDE7';
+      c.lineWidth   = 1.5;
+      c.stroke();
+      // Clock hands (two 1px strokes in --muted; shape carries more signal than detail at 6px)
+      c.strokeStyle = '#9CBDE7';
+      c.lineWidth   = 1;
+      const handLen = badgeR - 0.5;
+      // Minute hand: 12 o'clock (top)
+      c.beginPath();
+      c.moveTo(badgeCx, badgeCy);
+      c.lineTo(badgeCx, badgeCy - handLen);
+      c.stroke();
+      // Hour hand: ~2 o'clock (60° from top)
+      const hAngle = -Math.PI / 2 + Math.PI / 3;
+      c.beginPath();
+      c.moveTo(badgeCx, badgeCy);
+      c.lineTo(badgeCx + Math.cos(hAngle) * handLen, badgeCy + Math.sin(hAngle) * handLen);
+      c.stroke();
+      c.restore();
+    }
+
+    return { canvas: oc, anchorX: cxA, anchorY: cyA, cssW: cW, cssH: cH, pillW, pillH, pillR };
   }
 
-  return { canvas: oc, anchorX: cxA, anchorY: cyA, cssW: cW, cssH: cH };
+  // Fallback (should not be reached)
+  const oc = document.createElement('canvas');
+  oc.width = oc.height = 1;
+  return { canvas: oc, anchorX: 0.5, anchorY: 0.5, cssW: 1, cssH: 1, pillW: 0, pillH: 0, pillR: 0 };
 }
 
-function getSprite(v, state, selected, hour, dateStr) {
-  if (spriteCache.size > 600) spriteCache.clear(); // prevent unbounded growth
-  const tk  = (hour !== undefined) ? Math.round(hour * 4) : 0; // 15-min buckets
-  const key = `${v.id}-${state}-${selected ? 1 : 0}-${tk}`;
-  if (!spriteCache.has(key)) spriteCache.set(key, buildSprite(v, state, selected, hour, dateStr));
+/**
+ * Get or build a cached sprite.
+ * Cache key includes tier, icon index, selected, modifier flags.
+ * For waiting-in-nowMode: key on shadowIdx (buckets at 15/45/90 min) — high cache-hit rate during scrub.
+ * For waiting-not-nowMode: key also includes the absolute arrival time bucket.
+ */
+function getSprite(v, tier, tierData, selected, hour, dateStr, isNowMode) {
+  if (spriteCache.size > 600) spriteCache.clear();
+  let key;
+  if (tier === 'hero') {
+    const idx = _sunIconIdx(tierData?.hoursLeft ?? 0);
+    key = `${v.id}-hero-${idx}-${selected ? 1 : 0}`;
+  } else if (tier === 'waiting') {
+    const idx    = _shadowIconIdx(tierData?.minutesUntil ?? 120);
+    const badge  = tierData?.closedOpeningIntoSun ? 1 : 0;
+    const nm     = isNowMode ? 1 : 0;
+    // In non-nowMode, the absolute time shown is nextStart (fixed per venue-day), bucketed to 15 min
+    const timeBucket = isNowMode ? 0 : Math.round((tierData?.nextStart ?? 0) * 4);
+    key = `${v.id}-waiting-${idx}-${selected ? 1 : 0}-${badge}-${nm}-${timeBucket}`;
+  } else {
+    const hasSun = tierData?.hasSunLaterToday ? 1 : 0;
+    key = `${v.id}-context-${selected ? 1 : 0}-${hasSun}`;
+  }
+  if (!spriteCache.has(key)) spriteCache.set(key, buildSprite(v, tier, tierData, selected, isNowMode));
   return spriteCache.get(key);
 }
 
 function clearSpriteCache() { spriteCache.clear(); }
 
-// ── Pin state transition animations ───────────────────────────────────────────
-const _pinPrevState = new Map();   // id → last rendered state string
+// ── Pin tier transition animations ────────────────────────────────────────────
+const _pinPrevTier  = new Map();   // id → last rendered tier string
 const _pinFadeStart = new Map();   // id → performance.now() when fade began
 const PIN_FADE_MS   = 280;
 let   _animRafId    = null;
@@ -366,66 +576,58 @@ map.on('zoomend',  () => { _layoutStale = true; draw(); });
 
 // ── Pin layout: anti-overlap via variable stem, dot fallback ──────────────────
 // Each pin tries increasing extra-stem values until it clears all higher-priority
-// pills. If no value works it degrades to a small dot. Sorting by relevance
-// (sunny > soon > shaded, then by sun score) means important venues always
+// pills. If no value works it degrades to a small dot. Context pins are always dots.
+// Sorting by tier (hero > waiting > context) means important venues always
 // keep their preferred position.
 //
 // extraStem is 0-based: 0 = stem flush with sprite bottom, 14 = one step raised, etc.
 // The sprite always bakes a fixed STEM_H stem; extraStem extends it further.
 const MAX_EXTRA_STEM = 56;  // max extra stem before pin becomes a dot (4 × STEM_STEP)
 const STEM_STEP  = 14;      // stem extension increment (px)
-const DOT_R      = 4.5;     // dot radius (px)
+const DOT_R      = 4.5;     // dot radius for overlap-demoted pins (px)
 const PILL_GAP   = 8;       // min gap between pill bounding boxes (px)
 const DOT_FADE_MS = 240;    // pill↔dot morph duration
 const GRID_CELL  = 64;      // AABB grid cell size (px) for O(1) overlap queries
 
-let _lastLayout = [];             // [{v, pt, state, extraStem, isDot, spr, drawExtraStem}] per frame
+let _lastLayout = [];             // [{v, pt, classResult, extraStem, isDot, spr, drawExtraStem}] per frame
 let _hoverClearTimer = null;      // debounce timer for clearing map hover
 const _pinWasDot    = new Map();  // id → bool — was this pin a dot last frame
 const _pinDotFade   = new Map();  // id → {fromDot, start} — active morph animations
 const _pinAnimStemH = new Map();  // id → animated extraStem (px, float) for smooth transitions
 
 // ── Layout stability cache ────────────────────────────────────────────────────
-// Layout (isDot / extraStem per venue) is only recomputed when the map has
-// settled (moveend/zoomend) or when the time/date changes. During panning,
-// screen positions update every frame but layout decisions remain frozen,
-// eliminating the pill↔dot jitter caused by the greedy algorithm seeing
-// slightly different pixel positions each frame.
-let _layoutStale = true;          // force recompute on first draw
-let _layoutHour  = null;          // hour at last layout compute
-let _layoutDate  = null;          // date at last layout compute
-const _venueIsDot    = new Map(); // id → stable isDot decision
-const _venueExtStem  = new Map(); // id → stable extraStem decision
+let _layoutStale = true;
+let _layoutHour  = null;
+let _layoutDate  = null;
+const _venueIsDot    = new Map();
+const _venueExtStem  = new Map();
 
 /**
  * Assigns each venue an extraStem (or isDot flag). Greedy by priority:
  * high-relevance venues get the preferred height, lower ones are bumped up
  * or collapsed to a dot when no stem value avoids overlap.
- *
- * Uses an AABB spatial grid so overlap queries are O(1) instead of O(n).
+ * Context tier is always a dot and never enters the grid.
  */
 function computePinLayout(projVenues, currentHour, dateStr) {
-  const PRI = { sunny: 0, soon: 1, shaded: 2, closed: 3 };
+  const PRI = { hero: 0, waiting: 1, context: 2 };
   const sorted = [...projVenues].sort((a, b) => {
-    // Raised pin processed last so it can claim the highest available position
     if (a.v.id === highlight.raisedId) return 1;
     if (b.v.id === highlight.raisedId) return -1;
-    const pd = PRI[a.state] - PRI[b.state];
+    const tierA = a.classResult.tier, tierB = b.classResult.tier;
+    const pd = (PRI[tierA] ?? 2) - (PRI[tierB] ?? 2);
     if (pd !== 0) return pd;
-    // Tie-break within same state: non-open venues by time until opening (sooner first);
-    // open venues (sunny/shaded) by sun score (higher first)
-    if (a.state === 'soon' || a.state === 'closed') {
-      const openA = a.v.openingHours?.open ?? Infinity;
-      const openB = b.v.openingHours?.open ?? Infinity;
-      const waitA = openA > currentHour ? openA - currentHour : Infinity;
-      const waitB = openB > currentHour ? openB - currentHour : Infinity;
-      return waitA - waitB;
+    // Tie-break within same tier
+    if (tierA === 'hero') {
+      try {
+        const sa = typeof sunScore === 'function' ? (sunScore(a.v, dateStr, currentHour) ?? 0) : (a.v.rating ?? 0);
+        const sb = typeof sunScore === 'function' ? (sunScore(b.v, dateStr, currentHour) ?? 0) : (b.v.rating ?? 0);
+        return sb - sa;
+      } catch { return 0; }
     }
-    try {
-      const sa = typeof sunScore === 'function' ? (sunScore(a.v, dateStr, currentHour) ?? 0) : (a.v.rating ?? 0);
-      const sb = typeof sunScore === 'function' ? (sunScore(b.v, dateStr, currentHour) ?? 0) : (b.v.rating ?? 0);
-      return sb - sa;
-    } catch { return 0; }
+    if (tierA === 'waiting') {
+      return (a.classResult.minutesUntil ?? 120) - (b.classResult.minutesUntil ?? 120);
+    }
+    return 0;
   });
 
   // Spatial grid: cell key → array of placed rects {rx,ry,rw,rh}
@@ -461,36 +663,20 @@ function computePinLayout(projVenues, currentHour, dateStr) {
 
   const result = [];
 
-  for (const { v, pt, state } of sorted) {
+  for (const { v, pt, classResult } of sorted) {
+    const { tier } = classResult;
     const selected = v.id === selectedId;
     const isRaised = v.id === highlight.raisedId;
-    const spr = getSprite(v, state, selected, currentHour, dateStr);
+    const spr = getSprite(v, tier, classResult, selected, currentHour, dateStr, nowMode);
 
-    // Venues that are always dots — skip the grid so they don't displace pills.
-    // • closed: not open yet / today
-    // • shaded with no future sun window: renders as a near-invisible pill with
-    //   no label, causing a visible stem line attached to what looks like a dot.
-    if (state === 'closed') {
-      result.push({ v, pt, state, extraStem: 0, isDot: true, spr });
+    // Context is always a dot — never enters the grid
+    if (tier === 'context') {
+      result.push({ v, pt, classResult, extraStem: 0, isDot: true, spr });
       continue;
     }
-    if (state === 'shaded') {
-      let hasFutureSun = false, hadAnySun = false;
-      try {
-        const { windows } = computeSunWindows(v, dateStr);
-        hasFutureSun = windows.some(w => w.start > currentHour);
-        hadAnySun    = windows.length > 0;
-      } catch {}
-      // Dot only for venues that never get sun today — "sun passed" venues keep
-      // their pill so the map stays informative rather than losing pins mid-day.
-      if (!hasFutureSun && !hadAnySun) {
-        result.push({ v, pt, state, extraStem: 0, isDot: true, spr });
-        continue;
-      }
-    }
 
-    const rw  = spr.cssW;
-    const rh  = spr.cssH - STEM_H;  // pill area only (excludes baked stem)
+    const rw = spr.cssW;
+    const rh = spr.cssH - STEM_H;  // pill area only (excludes baked stem)
 
     // Raised pin: search from tallest extraStem downward (claims highest spot).
     // All others: search from zero upward (minimal stem preferred).
@@ -504,28 +690,28 @@ function computePinLayout(projVenues, currentHour, dateStr) {
       const ry = pt.y - spr.anchorY - ex;
       if (isClear(rx, ry, rw, rh)) {
         addPlaced(rx, ry, rw, rh);
-        result.push({ v, pt, state, extraStem: ex, isDot: false, spr });
+        result.push({ v, pt, classResult, extraStem: ex, isDot: false, spr });
         resolved = true;
         break;
       }
     }
     // Raised pin never degrades to dot; others do if no extraStem works
-    if (!resolved) result.push({ v, pt, state, extraStem: 0, isDot: !isRaised, spr });
+    if (!resolved) result.push({ v, pt, classResult, extraStem: 0, isDot: !isRaised, spr });
   }
 
   return result;
 }
 
-function _drawExtStem(pt, extraStem, state) {
-  const col = state === 'sunny' ? '#FFAF85' :
-              state === 'soon'  ? 'rgba(255,175,133,0.70)' :
-                                  'rgba(150,132,110,0.78)';
+// ── Extended stem drawing ─────────────────────────────────────────────────────
+function _drawExtStem(pt, extraStem, tier) {
+  const isDashed = tier === 'waiting';
+  const col = tier === 'hero' ? 'rgba(255,175,133,0.70)' : 'rgba(156,189,231,0.55)';
   ctx.beginPath();
   ctx.moveTo(pt.x, pt.y - extraStem);
   ctx.lineTo(pt.x, pt.y);
-  if (state === 'soon') ctx.setLineDash([3, 3]);
+  if (isDashed) ctx.setLineDash([3, 3]);
   ctx.strokeStyle = col;
-  ctx.lineWidth = 2;
+  ctx.lineWidth   = 2;
   ctx.stroke();
   ctx.setLineDash([]);
   // Anchor dot at map point
@@ -533,32 +719,31 @@ function _drawExtStem(pt, extraStem, state) {
   ctx.fillStyle = col; ctx.fill();
 }
 
-function _drawDotHover(pt, state) {
-  const isSunny = state === 'sunny', isSoon = state === 'soon';
+// ── Dot drawing (overlap-demoted hero/waiting pins) ───────────────────────────
+function _drawDotHover(pt, tier) {
+  const isHero = tier === 'hero';
   ctx.save();
-  // Outer glow ring
   ctx.beginPath(); ctx.arc(pt.x, pt.y, DOT_R + 6, 0, Math.PI * 2);
-  ctx.fillStyle = isSunny ? 'rgba(255,175,133,0.22)' : isSoon ? 'rgba(255,175,133,0.16)' : 'rgba(120,150,220,0.18)';
+  ctx.fillStyle = isHero ? 'rgba(255,175,133,0.22)' : 'rgba(120,150,220,0.18)';
   ctx.fill();
-  // Enlarged dot
   ctx.beginPath(); ctx.arc(pt.x, pt.y, DOT_R + 1.5, 0, Math.PI * 2);
-  ctx.fillStyle = isSunny ? '#FFAF85' : isSoon ? 'rgba(255,175,133,0.9)' : 'rgba(120,150,200,0.85)';
+  ctx.fillStyle = isHero ? '#FFAF85' : 'rgba(120,150,200,0.85)';
   ctx.fill();
   ctx.strokeStyle = 'rgba(255,255,255,0.55)';
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth   = 1.5;
   ctx.stroke();
   ctx.restore();
 }
 
-function _drawDot(pt, state) {
-  const isSunny = state === 'sunny', isSoon = state === 'soon';
+function _drawDot(pt, tier) {
+  const isHero = tier === 'hero';
   ctx.save();
-  ctx.globalAlpha = isSunny ? 0.9 : isSoon ? 0.7 : 0.4;
+  ctx.globalAlpha = isHero ? 0.9 : 0.7;
   ctx.beginPath(); ctx.arc(pt.x, pt.y, DOT_R + 2.5, 0, Math.PI * 2);
-  ctx.fillStyle = isSunny ? 'rgba(255,175,133,0.18)' : isSoon ? 'rgba(255,175,133,0.12)' : 'rgba(100,120,180,0.12)';
+  ctx.fillStyle = isHero ? 'rgba(255,175,133,0.18)' : 'rgba(100,120,180,0.12)';
   ctx.fill();
   ctx.beginPath(); ctx.arc(pt.x, pt.y, DOT_R, 0, Math.PI * 2);
-  ctx.fillStyle = isSunny ? '#FFAF85' : isSoon ? 'rgba(255,175,133,0.8)' : 'rgba(100,120,170,0.65)';
+  ctx.fillStyle = isHero ? '#FFAF85' : 'rgba(100,120,170,0.65)';
   ctx.fill();
   ctx.restore();
 }
@@ -577,7 +762,6 @@ function panToVenueCenter(v) {
 
   const isMobile = window.innerWidth < 768;
   const panel    = document.getElementById('detail-panel');
-  // Use layout position (unaffected by CSS transform during open animation)
   const padLeft  = (!isMobile && panel && panel.classList.contains('open'))
     ? (panel.offsetLeft + panel.offsetWidth) : 0;
 
@@ -615,13 +799,9 @@ function draw() {
     const editDateStr = datePicker.value;
     ctx.globalAlpha = 0.18;
     VENUES.forEach(v => {
-      const { open, close } = v.openingHours;
-      const isOpen = editHour >= open && editHour <= close;
-      const state  = isOpen
-        ? (venueSunState(v, currentSun.az, currentSun.alt) ? 'sunny' : 'shaded')
-        : 'closed';
+      const classResult = classifyPin(v, editDateStr, editHour);
       const pt  = map.project([v.lng, v.lat]);
-      const spr = getSprite(v, state, false, editHour, editDateStr);
+      const spr = getSprite(v, classResult.tier, classResult, false, editHour, editDateStr, false);
       ctx.drawImage(spr.canvas, pt.x - spr.anchorX, pt.y - spr.anchorY, spr.cssW, spr.cssH);
     });
     ctx.globalAlpha = 1;
@@ -643,24 +823,19 @@ function draw() {
   const currentHour = parseFloat(timeFromEl.value);
   const dateStr     = datePicker.value;
 
-  // Project + compute draw-state for all visible venues
+  // Project + classify all visible venues
   const projVenues = [];
   VENUES.forEach(v => {
     if (!bounds.contains([v.lng, v.lat])) return;
     if (!shouldShowAtZoom(v, zoom)) { hiddenCount++; return; }
-    const { open, close } = v.openingHours;
-    const isOpen        = currentHour >= open && currentHour <= close;
-    const isOpeningSoon = !isOpen && (open - currentHour) > 0 && (open - currentHour) <= 0.75;
-    let state;
-    if (isOpen)             state = venueSunState(v, currentSun.az, currentSun.alt) ? 'sunny' : 'shaded';
-    else if (isOpeningSoon) state = 'soon';
-    else                    state = 'closed';
-    projVenues.push({ v, state, pt: map.project([v.lng, v.lat]) });
+    const classResult = classifyPin(v, dateStr, currentHour);
+    projVenues.push({ v, classResult, pt: map.project([v.lng, v.lat]) });
   });
 
-  // Recompute anti-overlap layout only when the map has settled or time/date
-  // changed. During panning, screen positions update every frame but the
-  // pill/dot assignments stay frozen, preventing per-frame layout jitter.
+  // Apply density filter (in-place, mutates classResult for excess venues)
+  _applyDensityFilter(projVenues, zoom, currentHour, dateStr);
+
+  // Recompute anti-overlap layout only when map has settled or time/date changed
   if (_layoutStale || currentHour !== _layoutHour || dateStr !== _layoutDate) {
     _layoutStale = false;
     _layoutHour  = currentHour;
@@ -672,19 +847,17 @@ function draw() {
       _venueExtStem.set(e.v.id, e.extraStem);
       seen.add(e.v.id);
     }
-    // Evict decisions for venues no longer in view
     for (const id of [..._venueIsDot.keys()]) {
       if (!seen.has(id)) { _venueIsDot.delete(id); _venueExtStem.delete(id); }
     }
   }
 
   // Build _lastLayout from stable decisions + current screen positions.
-  // New venues entering the viewport during a pan default to dot until moveend.
-  _lastLayout = projVenues.map(({ v, pt, state }) => {
+  _lastLayout = projVenues.map(({ v, pt, classResult }) => {
     const sel = v.id === selectedId;
-    const spr = getSprite(v, state, sel, currentHour, dateStr);
+    const spr = getSprite(v, classResult.tier, classResult, sel, currentHour, dateStr, nowMode);
     return {
-      v, pt, state, spr,
+      v, pt, classResult, spr,
       isDot:     _venueIsDot.get(v.id)   ?? true,
       extraStem: _venueExtStem.get(v.id) ?? 0,
     };
@@ -708,11 +881,9 @@ function draw() {
   }
   if (stemAnimDirty) needsAnimFrame = true;
 
-  // Draw pins from layout — two passes so pills always sit above all stems
-  const visibleVenues = [];
-
-  // Pre-scan: register dot↔pill transitions before any drawing
-  for (const { v, isDot } of _lastLayout) {
+  // Pre-scan: register dot↔pill transitions for non-context pins (context never has pills)
+  for (const { v, isDot, classResult } of _lastLayout) {
+    if (classResult.tier === 'context') continue;
     const wasDot = _pinWasDot.get(v.id);
     if (wasDot !== undefined && wasDot !== isDot) _pinDotFade.set(v.id, { fromDot: wasDot, start: now });
     _pinWasDot.set(v.id, isDot);
@@ -720,26 +891,43 @@ function draw() {
 
   // Pass 1 — extended stems only (all stems drawn before any pill)
   for (const entry of _lastLayout) {
-    const { v, pt, state, isDot } = entry;
+    const { v, pt, classResult, isDot } = entry;
     if (isDot || _pinDotFade.has(v.id)) continue;
     const extraStem = entry.drawExtraStem ?? entry.extraStem;
-    if (extraStem > 0) _drawExtStem(pt, extraStem, state);
+    if (extraStem > 0) _drawExtStem(pt, extraStem, classResult.tier);
   }
 
-  // Pass 2a — dots only, drawn before pills so pills always sit on top
+  // Pass 2a — dots, drawn before pills so pills always sit on top
   for (const entry of _lastLayout) {
-    const { v, pt, state, isDot } = entry;
-    if (_pinDotFade.has(v.id) || !isDot || state === 'closed') continue;
-    if (v.id === highlight.id) _drawDotHover(pt, state);
-    else _drawDot(pt, state);
+    const { v, pt, classResult, isDot, spr } = entry;
+    if (_pinDotFade.has(v.id) || !isDot) continue;
+    const tier = classResult.tier;
+    if (tier === 'context') {
+      // Context dots: drawn as sprites (include glass finish + drop shadow)
+      ctx.drawImage(spr.canvas, pt.x - spr.anchorX, pt.y - spr.anchorY, spr.cssW, spr.cssH);
+      // Hover ring on context dot
+      if (v.id === highlight.id) {
+        ctx.save();
+        ctx.beginPath(); ctx.arc(pt.x, pt.y, 7, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255,175,133,0.9)';
+        ctx.lineWidth   = 2;
+        ctx.stroke();
+        ctx.restore();
+      }
+    } else {
+      // Overlap-demoted hero/waiting: simple colored dot
+      if (v.id === highlight.id) _drawDotHover(pt, tier);
+      else _drawDot(pt, tier);
+    }
   }
 
   // Pass 2b — morph animations + pills (always above dots)
   for (const entry of _lastLayout) {
-    const { v, pt, state, extraStem: targetExtraStem, isDot, spr } = entry;
+    const { v, pt, classResult, extraStem: targetExtraStem, isDot, spr } = entry;
     const extraStem = entry.drawExtraStem ?? targetExtraStem;
+    const tier = classResult.tier;
 
-    // Morph animation (handles its own ext stem so z-order is preserved within it)
+    // Morph animation
     const morphFade = _pinDotFade.get(v.id);
     if (morphFade) {
       const t = Math.min(1, (now - morphFade.start) / DOT_FADE_MS);
@@ -748,15 +936,15 @@ function draw() {
         needsAnimFrame = true;
         ctx.save();
         if (morphFade.fromDot) {
-          ctx.globalAlpha = 1 - t; _drawDot(pt, state);
+          ctx.globalAlpha = 1 - t; _drawDot(pt, tier);
           ctx.globalAlpha = t;
-          if (extraStem > 0) _drawExtStem(pt, extraStem, state);
+          if (extraStem > 0) _drawExtStem(pt, extraStem, tier);
           ctx.drawImage(spr.canvas, pt.x - spr.anchorX, pt.y - spr.anchorY - extraStem, spr.cssW, spr.cssH);
         } else {
           ctx.globalAlpha = 1 - t;
-          if (extraStem > 0) _drawExtStem(pt, extraStem, state);
+          if (extraStem > 0) _drawExtStem(pt, extraStem, tier);
           ctx.drawImage(spr.canvas, pt.x - spr.anchorX, pt.y - spr.anchorY - extraStem, spr.cssW, spr.cssH);
-          ctx.globalAlpha = t; _drawDot(pt, state);
+          ctx.globalAlpha = t; _drawDot(pt, tier);
         }
         ctx.restore();
         continue;
@@ -765,10 +953,10 @@ function draw() {
 
     if (isDot) continue; // already drawn in Pass 2a
 
-    // State-change fade
-    const prevState = _pinPrevState.get(v.id);
-    if (prevState !== undefined && prevState !== state) _pinFadeStart.set(v.id, now);
-    _pinPrevState.set(v.id, state);
+    // Tier-change fade
+    const prevTier = _pinPrevTier.get(v.id);
+    if (prevTier !== undefined && prevTier !== tier) _pinFadeStart.set(v.id, now);
+    _pinPrevTier.set(v.id, tier);
     let pinAlpha = 1;
     const fs = _pinFadeStart.get(v.id);
     if (fs !== undefined) {
@@ -787,25 +975,24 @@ function draw() {
     if (pinAlpha < 1) ctx.globalAlpha = pinAlpha;
 
     // Hover/raised: glowing outline ring around the pill
-    if (isHovered) {
-      const pillW = spr.cssW - rp * 2 - 2;
-      const glowCol = state === 'sunny' ? 'rgba(255,175,133,0.9)' :
-                      state === 'soon'  ? 'rgba(255,184,0,0.85)' :
-                                          'rgba(210,200,185,0.75)';
+    if (isHovered && spr.pillW > 0) {
+      const glowCol = tier === 'hero' ? 'rgba(255,175,133,0.9)' : 'rgba(210,200,185,0.75)';
+      const pillScreenLeft = sprLeft + SHADOW_PAD + rp;
+      const pillScreenTop  = sprTop  + SHADOW_PAD + rp;
       ctx.save();
-      ctx.shadowBlur = 9;
+      ctx.shadowBlur  = 9;
       ctx.shadowColor = glowCol;
       ctx.beginPath();
-      ctx.roundRect(sprLeft + rp - 3.5, sprTop + rp - 3.5, pillW + 7, PILL_H + 7, PILL_R + 3.5);
+      ctx.roundRect(pillScreenLeft - 3.5, pillScreenTop - 3.5,
+                    spr.pillW + 7, spr.pillH + 7, spr.pillR + 3.5);
       ctx.strokeStyle = glowCol;
-      ctx.lineWidth = 2.5;
+      ctx.lineWidth   = 2.5;
       ctx.stroke();
       ctx.restore();
     }
 
     ctx.drawImage(spr.canvas, sprLeft, sprTop, spr.cssW, spr.cssH);
     ctx.restore();
-    if (state !== 'closed') visibleVenues.push(entry);
   }
 
   // Hint when venues are hidden due to zoom density
@@ -829,7 +1016,6 @@ function draw() {
 
 // ── Hit testing ───────────────────────────────────────────────────────────────
 function hitTestVenue(cx, cy) {
-  // Use layout for accurate pill bounds (variable stem heights)
   for (const entry of _lastLayout) {
     const { v, pt, isDot, spr } = entry;
     if (isDot) continue;
@@ -844,8 +1030,8 @@ function hitTestVenue(cx, cy) {
 }
 
 function hitTestDot(cx, cy) {
-  for (const { v, pt, isDot, state } of _lastLayout) {
-    if (!isDot || state === 'closed') continue;
+  for (const { v, pt, isDot } of _lastLayout) {
+    if (!isDot) continue;
     if (Math.hypot(cx - pt.x, cy - pt.y) <= DOT_R + 8) return v;
   }
   return null;
@@ -913,17 +1099,13 @@ const _UI_OVERLAY_SELECTOR = '#qc-wrap, #panel, #floating-search, #search-dropdo
   '#profile-panel, #search-wrap, #floating-date, #detail-panel, .mapboxgl-ctrl, .mapboxgl-popup';
 
 canvas.addEventListener('pointerdown', e => {
-  // Check for a UI overlay FIRST — before mousedown fires. Setting pointer-events:none
-  // here means the subsequent mousedown, mouseup, and click are all hit-tested against
-  // the canvas being absent, so they land on the UI element natively.
   canvas.style.pointerEvents = 'none';
   const elUnder = document.elementFromPoint(e.clientX, e.clientY);
   if (elUnder && elUnder.closest(_UI_OVERLAY_SELECTOR)) {
-    // Keep transparent through the full click cycle; restore on pointer release.
     const restore = () => { canvas.style.pointerEvents = 'auto'; };
     window.addEventListener('pointerup',     restore, { once: true });
     window.addEventListener('pointercancel', restore, { once: true });
-    e.stopPropagation(); // prevent Mapbox from drag-tracking this interaction
+    e.stopPropagation();
     return;
   }
   canvas.style.pointerEvents = 'auto';
@@ -996,13 +1178,10 @@ canvas.addEventListener('click', e => {
   }
   const hit = hitTestVenue(cx, cy) || hitTestDot(cx, cy);
   if (hit) {
-    // Stop the click from bubbling to Mapbox's container.  Mapbox calls map.stop()
-    // during its click/drag-end processing which would cancel our easeTo animation.
     e.stopPropagation();
     selectVenue(hit.id, true);
     return;
   }
-  // Clicked empty map — close detail panel / deselect
   if (selectedId !== null) {
     closeDetailPanel();
   }
@@ -1015,7 +1194,6 @@ canvas.addEventListener('mousemove', e => {
   if (editingVenueId) {
     tooltip.classList.remove('visible');
 
-    // Detached pin drag in progress
     if (_detachedDragging) {
       const ll = map.unproject([cx, cy]);
       setDetachedLocation(ll.lat, ll.lng);
@@ -1023,14 +1201,12 @@ canvas.addEventListener('mousemove', e => {
       return;
     }
 
-    // Width trim drag in progress
     if (editDraggingWidth && editWidthWall) {
       const v = VENUES.find(x => x.id === editingVenueId);
       if (v) {
         const wall = editWidthWall;
         const pa   = map.project([wall.aLng, wall.aLat]);
         const pb   = map.project([wall.bLng, wall.bLat]);
-        // Project cursor onto wall axis (0 = a-end, 1 = b-end)
         const wdx = pb.x - pa.x, wdy = pb.y - pa.y;
         const lenSq = wdx * wdx + wdy * wdy || 1;
         const t = ((cx - pa.x) * wdx + (cy - pa.y) * wdy) / lenSq;
@@ -1047,7 +1223,6 @@ canvas.addEventListener('mousemove', e => {
       return;
     }
 
-    // Depth drag in progress
     if (editDraggingDepth && editDragWallObj) {
       const v = VENUES.find(x => x.id === editingVenueId);
       if (v) {
@@ -1087,10 +1262,8 @@ canvas.addEventListener('mousemove', e => {
 
   const hit = hitTestVenue(cx, cy) || hitTestDot(cx, cy);
   if (hit) {
-    // Cancel any pending clear — we're over a venue
     if (_hoverClearTimer) { clearTimeout(_hoverClearTimer); _hoverClearTimer = null; }
     canvas.style.cursor = 'pointer';
-    // Override list highlight with map hover (different id, or switching from list source)
     if (highlight.id !== hit.id || highlight.source === 'list') {
       highlight.id = hit.id;
       highlight.source = 'map';
@@ -1104,7 +1277,6 @@ canvas.addEventListener('mousemove', e => {
     tooltip.style.left = tx + 'px'; tooltip.style.top = ty + 'px';
     tooltip.classList.add('visible');
   } else {
-    // Debounce clearing so adjacent pins don't jitter when cursor moves between them
     if (highlight.id !== null && !_hoverClearTimer) {
       _hoverClearTimer = setTimeout(() => {
         _hoverClearTimer = null;
@@ -1123,7 +1295,6 @@ canvas.addEventListener('mousemove', e => {
 
 canvas.addEventListener('mouseleave', () => {
   if (_hoverClearTimer) { clearTimeout(_hoverClearTimer); _hoverClearTimer = null; }
-  // Clear map hover; highlight.raisedId (from sidebar) stays raised
   if (highlight.id !== null && highlight.source === 'map') {
     highlight.id = null;
     highlight.source = null;
@@ -1169,11 +1340,9 @@ canvas.addEventListener('wheel', e => {
 }, { passive: true });
 
 // Touch pin-tap detection (touch devices only).
-// Canvas is pointer-events:none so Mapbox gets all native touch events for
-// pan/pinch-zoom. We listen at document level to detect taps on pins.
 if (_isTouchDevice) {
   let _touchStartX = 0, _touchStartY = 0;
-  let _editTouchId = null; // tracking identifier for edit-mode drag
+  let _editTouchId = null;
 
   document.addEventListener('touchstart', e => {
     const t = e.touches?.[0];
@@ -1181,18 +1350,15 @@ if (_isTouchDevice) {
     _touchStartX = t.clientX; _touchStartY = t.clientY;
 
     if (!editingVenueId) return;
-    // In edit mode: capture canvas-relative position and check for drag handles
     const rect = canvas.getBoundingClientRect();
     const cx = t.clientX - rect.left, cy = t.clientY - rect.top;
 
-    // Detached pin drag
     if (hitTestDetachedPin(cx, cy)) {
       _detachedDragging = true;
       _editTouchId = t.identifier;
       e.preventDefault();
       return;
     }
-    // Width trim handle
     const wh = hitTestWidthHandle(cx, cy);
     if (wh) {
       editDraggingWidth = wh.side;
@@ -1201,7 +1367,6 @@ if (_isTouchDevice) {
       e.preventDefault();
       return;
     }
-    // Depth handle
     const dh = hitTestDepthHandle(cx, cy);
     if (dh) {
       editDraggingDepth = true;
@@ -1257,7 +1422,6 @@ if (_isTouchDevice) {
   }, { passive: false });
 
   document.addEventListener('touchend', e => {
-    // Save state after any edit drag
     if (editingVenueId && (_detachedDragging || editDraggingDepth || editDraggingWidth)) {
       const v = VENUES.find(x => x.id === editingVenueId);
       if (v) saveFacingCache(v.id, v.facing, v.facingSource, v.terraceWallIndices ?? [], v.terraceDepth,
@@ -1273,11 +1437,10 @@ if (_isTouchDevice) {
     }
 
     if (editingVenueId) {
-      // Wall tap in edit mode
       const t = e.changedTouches?.[0];
       if (!t) return;
       const dx = t.clientX - _touchStartX, dy = t.clientY - _touchStartY;
-      if (dx * dx + dy * dy >= 100) return; // not a tap
+      if (dx * dx + dy * dy >= 100) return;
       const rect = canvas.getBoundingClientRect();
       const cx = t.clientX - rect.left, cy = t.clientY - rect.top;
       const v = VENUES.find(x => x.id === editingVenueId);
@@ -1294,8 +1457,7 @@ if (_isTouchDevice) {
     const t = e.changedTouches?.[0];
     if (!t) return;
     const dx = t.clientX - _touchStartX, dy = t.clientY - _touchStartY;
-    if (dx * dx + dy * dy >= 100) return; // not a tap
-    // Ignore taps on UI overlays — only hit-test when the touch is on the map itself
+    if (dx * dx + dy * dy >= 100) return;
     if (e.target && e.target.closest(_UI_OVERLAY_SELECTOR)) return;
     const rect = canvas.getBoundingClientRect();
     const cx = t.clientX - rect.left, cy = t.clientY - rect.top;
