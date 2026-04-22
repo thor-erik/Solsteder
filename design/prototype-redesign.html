@@ -230,7 +230,7 @@
      NEW DESIGN — compact list card with inline sun timeline
      ═══════════════════════════════════════════════════════════════════ */
   .card-new {
-    padding: 12px 14px;
+    padding: 14px 16px;
     margin-bottom: 8px;
   }
   .card-new-row1 {
@@ -255,17 +255,17 @@
   .card-new-meta {
     font-size: 12px;
     color: var(--muted);
-    margin-bottom: 10px;
+    margin-bottom: 12px;
   }
   .card-new-meta .dot { opacity: 0.4; margin: 0 4px; }
   .card-new-timeline {
     position: relative;
-    height: 18px;
-    margin-bottom: 6px;
+    height: 16px;
+    margin-bottom: 12px;
   }
   .timeline-track {
     position: absolute;
-    top: 6px;
+    top: 5px;
     left: 0; right: 0;
     height: 6px;
     background: rgba(255,255,255,0.06);
@@ -285,25 +285,52 @@
   }
   .timeline-now {
     position: absolute;
-    top: 2px;
+    top: 1px;
     width: 2px;
     height: 14px;
     background: #fff;
     border-radius: 1px;
     box-shadow: 0 0 6px rgba(255,255,255,0.6);
   }
-  .card-new-row3 {
+  /* Hero sun info — the most important signal on the card */
+  .card-new-hero {
     display: flex;
+    align-items: baseline;
     justify-content: space-between;
-    align-items: center;
-    font-size: 12px;
+    gap: 12px;
   }
-  .card-new-sunbox {
+  .card-new-sun {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .card-new-sun-icon {
     color: var(--accent);
-    font-weight: 600;
+    font-size: 18px;
+    line-height: 1;
   }
-  .card-new-wx {
+  .card-new-sun-label {
+    font-size: 12px;
     color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .card-new-sun-time {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .card-new-next {
+    font-size: 12px;
+    color: var(--muted);
+    text-align: right;
+    line-height: 1.3;
+  }
+  .card-new-next-strong {
+    color: var(--text);
+    font-weight: 500;
   }
 
   /* ═══════════════════════════════════════════════════════════════════
@@ -864,16 +891,24 @@
           <div class="card-new-meta">Sentrum<span class="dot">·</span>Restaurant</div>
           <div class="card-new-timeline">
             <div class="timeline-track">
-              <!-- shows day sun windows 6-22 -->
               <div class="timeline-sun" style="left:14%; width:24%;"></div>
               <div class="timeline-cloud" style="left:68%; width:14%;"></div>
               <div class="timeline-sun" style="left:82%; width:4%;"></div>
             </div>
             <div class="timeline-now" style="left:69%;"></div>
           </div>
-          <div class="card-new-row3">
-            <span class="card-new-sunbox">☼ Sol til 20:25</span>
-            <span class="card-new-wx">☁ 20° · ↘ 3 m/s</span>
+          <div class="card-new-hero">
+            <div class="card-new-sun">
+              <span class="card-new-sun-icon">☼</span>
+              <div>
+                <div class="card-new-sun-label">Sol til</div>
+                <div class="card-new-sun-time">20:25</div>
+              </div>
+            </div>
+            <div class="card-new-next">
+              <div><span class="card-new-next-strong">Skygge 19:00</span></div>
+              <div>varer 1t</div>
+            </div>
           </div>
         </div>
 
@@ -885,15 +920,24 @@
           <div class="card-new-meta">Frogner<span class="dot">·</span>Restaurant</div>
           <div class="card-new-timeline">
             <div class="timeline-track">
-              <div class="timeline-sun" style="left:14%; width:24%;"></div>
-              <div class="timeline-cloud" style="left:68%; width:14%;"></div>
+              <div class="timeline-sun" style="left:14%; width:50%;"></div>
+              <div class="timeline-cloud" style="left:78%; width:4%;"></div>
               <div class="timeline-sun" style="left:82%; width:4%;"></div>
             </div>
             <div class="timeline-now" style="left:69%;"></div>
           </div>
-          <div class="card-new-row3">
-            <span class="card-new-sunbox">☼ Sol til 20:25</span>
-            <span class="card-new-wx">☁ 20° · ↘ 3 m/s</span>
+          <div class="card-new-hero">
+            <div class="card-new-sun">
+              <span class="card-new-sun-icon">☼</span>
+              <div>
+                <div class="card-new-sun-label">Sol til</div>
+                <div class="card-new-sun-time">20:25</div>
+              </div>
+            </div>
+            <div class="card-new-next">
+              <div><span class="card-new-next-strong">Solen varer ut dagen</span></div>
+              <div>uten pauser</div>
+            </div>
           </div>
         </div>
 
@@ -905,15 +949,24 @@
           <div class="card-new-meta">Frogner<span class="dot">·</span>Restaurant</div>
           <div class="card-new-timeline">
             <div class="timeline-track">
-              <div class="timeline-sun" style="left:20%; width:18%;"></div>
+              <div class="timeline-sun" style="left:20%; width:45%;"></div>
               <div class="timeline-cloud" style="left:65%; width:10%;"></div>
               <div class="timeline-sun" style="left:75%; width:11%;"></div>
             </div>
             <div class="timeline-now" style="left:69%;"></div>
           </div>
-          <div class="card-new-row3">
-            <span class="card-new-sunbox">☼ Sol til 20:20</span>
-            <span class="card-new-wx">⛅ 20° · ↘ 3 m/s</span>
+          <div class="card-new-hero">
+            <div class="card-new-sun">
+              <span class="card-new-sun-icon">☼</span>
+              <div>
+                <div class="card-new-sun-label">Sol til</div>
+                <div class="card-new-sun-time">20:20</div>
+              </div>
+            </div>
+            <div class="card-new-next">
+              <div><span class="card-new-next-strong">Overskyet 18:15</span></div>
+              <div>varer 30 min</div>
+            </div>
           </div>
         </div>
 
@@ -925,15 +978,24 @@
           <div class="card-new-meta">Frogner<span class="dot">·</span>Restaurant</div>
           <div class="card-new-timeline">
             <div class="timeline-track">
-              <div class="timeline-sun" style="left:30%; width:14%;"></div>
+              <div class="timeline-sun" style="left:30%; width:28%;"></div>
               <div class="timeline-cloud" style="left:60%; width:8%;"></div>
               <div class="timeline-sun" style="left:70%; width:16%;"></div>
             </div>
             <div class="timeline-now" style="left:69%;"></div>
           </div>
-          <div class="card-new-row3">
-            <span class="card-new-sunbox">☼ Sol til 20:25</span>
-            <span class="card-new-wx">☁ 20° · ↘ 3 m/s</span>
+          <div class="card-new-hero">
+            <div class="card-new-sun">
+              <span class="card-new-sun-icon">☼</span>
+              <div>
+                <div class="card-new-sun-label">Sol til</div>
+                <div class="card-new-sun-time">20:25</div>
+              </div>
+            </div>
+            <div class="card-new-next">
+              <div><span class="card-new-next-strong">Skygge 18:30</span></div>
+              <div>varer 45 min</div>
+            </div>
           </div>
         </div>
 
@@ -945,15 +1007,24 @@
           <div class="card-new-meta">Sentrum<span class="dot">·</span>Bistro</div>
           <div class="card-new-timeline">
             <div class="timeline-track">
-              <div class="timeline-sun" style="left:10%; width:30%;"></div>
+              <div class="timeline-sun" style="left:10%; width:45%;"></div>
               <div class="timeline-cloud" style="left:55%; width:20%;"></div>
               <div class="timeline-sun" style="left:77%; width:8%;"></div>
             </div>
             <div class="timeline-now" style="left:69%;"></div>
           </div>
-          <div class="card-new-row3">
-            <span class="card-new-sunbox">☼ Sol til 20:20</span>
-            <span class="card-new-wx">☁ 20° · ↘ 3 m/s</span>
+          <div class="card-new-hero">
+            <div class="card-new-sun">
+              <span class="card-new-sun-icon">☼</span>
+              <div>
+                <div class="card-new-sun-label">Sol til</div>
+                <div class="card-new-sun-time">20:20</div>
+              </div>
+            </div>
+            <div class="card-new-next">
+              <div><span class="card-new-next-strong">Overskyet 17:30</span></div>
+              <div>varer 1t 20m</div>
+            </div>
           </div>
         </div>
 
@@ -967,7 +1038,7 @@
       </div>
 
       <div class="annotation">
-        <strong>Mini-timeline</strong> viser når solen treffer gjennom dagen — lys oransje = sol, grått = skygge, hvit strek = nå. Man ser umiddelbart "har stedet sol nå, og hvor lenge?" uten å lese tall. <strong>5–6 venues synlig</strong> på samme plass som 2–3 før. Score droppet — sortering gjør samme jobb.
+        <strong>"Sol til 20:25"</strong> er hovedbudskapet — stort, oransje, umulig å overse. Under i muted tekst: <strong>neste skygge/overskyet-periode og hvor lenge den varer</strong>, så brukeren kan planlegge. Mini-timeline viser hele dagen (lys oransje = sol, grått = skygge/skyet, hvit strek = nå). Vær/vind fjernet — det er global info som hører hjemme i toppbaren, ikke per venue.
       </div>
     </div>
 
@@ -1070,6 +1141,7 @@
 
         <div class="primary-action">
           <button class="btn-primary">↗ Veibeskrivelse · 3 min</button>
+          <div class="btn-icon-sec" title="Ring">📞</div>
           <div class="btn-icon-sec" title="Nettside">🌐</div>
           <div class="btn-icon-sec" title="Del">⇪</div>
         </div>
@@ -1108,14 +1180,6 @@
 
         <div class="info-list">
           <div class="info-row">
-            <div class="info-icon">☁</div>
-            <div class="info-label">
-              <div class="info-label-strong">20° · føles som 18°</div>
-              <div class="info-label-sub">Lettskyet · svak bris fra nordvest</div>
-            </div>
-            <div class="info-value">3 m/s ↘</div>
-          </div>
-          <div class="info-row">
             <div class="info-icon">👥</div>
             <div class="info-label">
               <div class="info-label-strong">Travelt nå</div>
@@ -1148,7 +1212,7 @@
       </div>
 
       <div class="annotation">
-        <strong>Veibeskrivelse</strong> som primær-handling (med gangtid innebygd). Sun dial krympet til en liten retningsindikator — den svarer på "hvor skal jeg sitte?", ikke "når". Timeline øverst svarer på "når". Prosent-score byttet ut med <strong>konkrete tall og tekst</strong> brukeren kan tolke selv: 20°, 3 m/s, "moderat støy", "travelt nå". Busyness er ny informasjon — ofte avgjørende for om man går dit.
+        <strong>Veibeskrivelse</strong> som primær-handling (med gangtid innebygd). Telefon, nettside og del som sekundære ikoner. Sun dial krympet til en retningsindikator — svarer på "hvor skal jeg sitte?". Timeline øverst svarer på "når?". Prosent-score erstattet med konkrete tall og tekst. Vær fjernet — hører hjemme i toppbaren, ikke per venue. Busyness er ny info.
       </div>
     </div>
 
@@ -1157,12 +1221,13 @@
   <div class="legend">
     <h3>Oppsummering av endringer</h3>
     <ul>
-      <li><strong>Liste:</strong> kort halvert i høyde, dobbelt så mange venues synlig. Mini-sol-timeline erstatter ring + tekst-duplisering.</li>
-      <li><strong>Score:</strong> droppet fra kortet. Sortering overtar jobben. Kan eventuelt komme tilbake som subtil bakgrunn-fyll hvis rask sammenligning viser seg viktig.</li>
-      <li><strong>Sun dial:</strong> krympet og flyttet til en dedikert "hvor skal jeg sitte?"-seksjon. Horisontal timeline tar over "når?"-jobben.</li>
-      <li><strong>Solscore-prosenter:</strong> erstattet med konkrete tall og tekst. Brukeren skal ikke måtte tolke abstraksjoner.</li>
-      <li><strong>Actions:</strong> Veibeskrivelse er primær (med gangtid), resten er små ikoner. Rediger flyttet helt nederst.</li>
-      <li><strong>Busyness:</strong> lagt inn som info-rad — informasjon som allerede finnes i koden, men som ikke vises i detail panel nå.</li>
+      <li><strong>Liste:</strong> kompakt kort med stort <strong>"Sol til 20:25"</strong> som hovedbudskap. Neste skygge/overskyet-periode + varighet vises ved siden av. Vær/vind fjernet fra kort (global info, ikke per venue).</li>
+      <li><strong>Mini-timeline:</strong> viser sol-vinduer gjennom hele dagen som en visuell sparkline. Erstatter ring + 3H 10M + LYS TIL-duplisering.</li>
+      <li><strong>Score:</strong> droppet fra kortet. Sortering overtar jobben.</li>
+      <li><strong>Sun dial:</strong> krympet og flyttet til en "hvor skal jeg sitte?"-seksjon. Horisontal timeline tar over "når?"-jobben.</li>
+      <li><strong>Solscore-prosenter:</strong> erstattet med konkrete tall og tekst (støy, busyness, åpningstider).</li>
+      <li><strong>Actions:</strong> Veibeskrivelse som primær CTA med gangtid. Telefon + nettside + del som sekundære ikoner. Rediger nederst.</li>
+      <li><strong>Busyness:</strong> ny info-rad i detail panel — koden har allerede <code>busyness.js</code>.</li>
     </ul>
   </div>
 
