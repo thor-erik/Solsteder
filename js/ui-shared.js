@@ -5,6 +5,59 @@
  * Depends on: computeSunWindows (app.js), getWeatherAt (weather.js)
  */
 
+// ── Venue state model (Task 2) ─────────────────────────────────────────────────
+/**
+ * Computes a venue's state at the currently selected time.
+ * One of: 'sun' (in sun now), 'shadow' (no sun now, but sun later), 'done' (no more sun today).
+ * Returns { state, mainText, subText, className }.
+ * Duration format: '3t 10m', '1t 45m', '15 min', '5 min'.
+ */
+function venueState(venue, selectedTime) {
+  const dateStr = datePicker?.value || todayStr?.() || '';
+  const fromHour = selectedTime ?? 0;
+
+  const { windows } = computeSunWindows(venue, dateStr);
+  if (!windows.length) return { state: 'done', mainText: 'Ferdig', subText: '', className: 'state-done' };
+
+  const currentWindow = windows.find(w => fromHour >= w.start && fromHour < w.end);
+  const nextWindow = windows.find(w => w.start > fromHour);
+  const lastWindow = windows[windows.length - 1];
+
+  // Format duration as 3t 10m, 1t 45m, 15 min, 5 min
+  const formatDuration = (hours) => {
+    const h = Math.floor(hours);
+    const m = Math.round((hours - h) * 60);
+    if (h > 0 && m > 0) return `${h}t ${m}m`;
+    if (h > 0) return `${h}t`;
+    if (m > 0) return `${m} min`;
+    return '5 min'; // Minimum show 5 min for windows < 5 min
+  };
+
+  if (currentWindow) {
+    // In sun now
+    const remaining = Math.max(5/60, currentWindow.end - fromHour); // At least 5 min
+    const mainText = `☼ ${formatDuration(remaining)}`;
+    const subText = `til ${formatHour(lastWindow.end)}`;
+    return { state: 'sun', mainText, subText, className: 'state-sun' };
+  }
+
+  if (nextWindow) {
+    // Shadow: sun coming later
+    const timeUntil = Math.max(8/60, nextWindow.start - fromHour); // At least 8 min shown
+    const mainText = `Sol om ${formatDuration(timeUntil)}`;
+    const subText = `til ${formatHour(lastWindow.end)}`;
+    return { state: 'shadow', mainText, subText, className: 'state-shadow' };
+  }
+
+  // Done: no more sun today
+  return {
+    state: 'done',
+    mainText: 'Ferdig',
+    subText: `sist ${formatHour(lastWindow.end)}`,
+    className: 'state-done'
+  };
+}
+
 // ── Opening hours helpers ─────────────────────────────────────────────────────
 
 /**

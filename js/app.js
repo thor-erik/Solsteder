@@ -624,9 +624,9 @@ function setSortBy(sort) {
 function updateSortBtns() {
   document.querySelectorAll('.sort-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.sort === activeSortBy));
-  const labels = { score: 'Score', rating: 'Rating', distance: 'Near' };
+  const labels = { score: 'Sol nå', rating: 'Rating', distance: 'Near' };
   const labelEl = document.getElementById('sort-label');
-  if (labelEl) labelEl.textContent = labels[activeSortBy] ?? 'Score';
+  if (labelEl) labelEl.textContent = labels[activeSortBy] ?? 'Sol nå';
 }
 
 // ── Debounced list render (avoids jitter when dragging time slider) ────────────

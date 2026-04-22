@@ -17,47 +17,56 @@ const LIST_PAGE = 30; // cards rendered per batch
 let _listFiltered = []; // current sorted+filtered result
 let _listObserver = null; // IntersectionObserver for infinite scroll
 
-/** Small 56×56 clock-face dial for venue cards — no text, just arc + dot. */
-function buildCardDial(v, dateStr, fromHour, isSunny) {
+/** Mini sun-timeline sparkline: 6px tall, 06:00–22:00 range, shows sun/cloud/now. */
+function buildMiniSunTimeline(v, dateStr, fromHour) {
   const { windows } = computeSunWindows(v, dateStr);
-  const W = 76, H = 76, CX = 38, CY = 38, R = 29, SW = 4;
+  const TRACK_H = 6;
+  const VIEWPORT_H = 14;
+  const START_H = 6, END_H = 22;
+  const RANGE = END_H - START_H;
 
-  const wxNow = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, fromHour) : null;
-  const cloud = wxNow?.cloud ?? 0;
-  const precip = wxNow?.precip ?? 0;
-  const isRainy = precip > 0.3;
-  const isOvercast = !isRainy && cloud > 0.65;
-  const dotColor = isRainy ? '#6491D2' : isOvercast ? '#A5AABB' : isSunny ? '#FFAF85' : 'rgba(156,189,231,0.55)';
+  // "Now" position based on wall-clock time (not slider)
+  const now = new Date();
+  const nowHour = now.getHours() + now.getMinutes() / 60;
+  const nowPos = Math.max(0, Math.min(100, ((nowHour - START_H) / RANGE) * 100));
 
-  const hAngle = h => ((h % 12) / 12) * 2 * Math.PI - Math.PI / 2;
-  const pt     = h => { const a = hAngle(h); return [CX + R * Math.cos(a), CY + R * Math.sin(a)]; };
-  function arcPath(h1, h2) {
-    const dur = h2 - h1;
-    if (dur < 0.01) return '';
-    if (dur >= 12) {
-      const [x1,y1]=pt(h1),[xm,ym]=pt(h1+6);
-      return `M${x1.toFixed(2)} ${y1.toFixed(2)} A${R} ${R} 0 1 1 ${xm.toFixed(2)} ${ym.toFixed(2)} A${R} ${R} 0 1 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
-    }
-    const [x1,y1]=pt(h1),[x2,y2]=pt(h2);
-    return `M${x1.toFixed(2)} ${y1.toFixed(2)} A${R} ${R} 0 ${dur>6?1:0} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`;
-  }
-
-  // Per-hour weather coloring
-  let arcs = '';
+  // Build sun segments from windows
+  let segments = '';
   for (const w of windows) {
-    arcs += wxArcPaths(dateStr, w.start, w.end, fromHour, arcPath, SW).join('');
+    const sPos = Math.max(0, Math.min(100, ((Math.max(w.start, START_H) - START_H) / RANGE) * 100));
+    const ePos = Math.max(0, Math.min(100, ((Math.min(w.end, END_H) - START_H) / RANGE) * 100));
+    if (ePos > sPos) {
+      segments += `<div class="timeline-sun" style="left:${sPos}%;width:${ePos-sPos}%"></div>`;
+    }
   }
-  const wxIcon = typeof skyIcon === 'function' ? skyIcon(cloud) : '☀';
-  return `<svg class="card-dial" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true">
-    <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="${SW}"/>
-    ${arcs}
-    <text x="${CX}" y="${CY}" text-anchor="middle" dominant-baseline="middle" font-size="15" style="user-select:none">${wxIcon}</text>
-  </svg>`;
+
+  // Add cloud/overcast segments for future hours in windows
+  for (const w of windows) {
+    for (let h = Math.ceil(Math.max(w.start, START_H)); h < Math.floor(Math.min(w.end, END_H)); h++) {
+      const wx = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, h) : null;
+      const cloud = wx?.cloud ?? 0;
+      const precip = wx?.precip ?? 0;
+      const isCloud = !precip > 0.3 && cloud > 0.38;
+      if (isCloud) {
+        const sPos = Math.max(0, Math.min(100, ((h - START_H) / RANGE) * 100));
+        const ePos = Math.max(0, Math.min(100, ((h + 1 - START_H) / RANGE) * 100));
+        if (ePos > sPos) {
+          segments += `<div class="timeline-cloud" style="left:${sPos}%;width:${ePos-sPos}%"></div>`;
+        }
+      }
+    }
+  }
+
+  return `<div class="timeline-track">
+    ${segments}
+    <div class="timeline-now" style="left:${nowPos}%"></div>
+  </div>`;
 }
 
-/** Render a single venue card. Called per-item to keep the map() inline small. */
+/** Render a single venue card — new two-column redesign. */
 function renderCard(v, dateStr, fromHour, toHour, isPoint) {
   const dayHours = getVenueHoursForDay(v, dateStr);
+
   // Collapsed single-line card for closed venues
   if (!v.isOpen && !v.isOpeningSoon) {
     return `
@@ -71,147 +80,37 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
       </div>`;
   }
 
-  const dimmedCls = !v.sunInWin ? 'dimmed' : '';
-  const { windows } = computeSunWindows(v, dateStr);
-
-  const tempStr = v.score?.feelsLikeTemp != null ? ` · ${v.score.feelsLikeTemp}°` : '';
   const s = v.score;
-
-  const tier = s ? (s.total >= 75 ? 'tier-high' : s.total >= 55 ? 'tier-mid' : s.total >= 35 ? 'tier-low' : 'tier-poor') : '';
   const distStr = s?.distKm != null
     ? (s.distKm < 1 ? `${Math.round(s.distKm * 1000)} m` : `${s.distKm.toFixed(1)} km`)
     : null;
 
-  // Weather-aware terminology and color class
-  const wxCard    = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, fromHour) : null;
-  const cloudCard = wxCard?.cloud ?? 0;
-  const precipCard = wxCard?.precip ?? 0;
-  const cardRainy = precipCard > 0.3;
-  const cardOvercast = !cardRainy && cloudCard > 0.65;
-  const cardTermKey = cardRainy ? 'term_rain' : cardOvercast ? 'term_light' : 'term_sun';
-  const cardTerm  = t(cardTermKey).toUpperCase();
-  const cardTermLc = t(cardTermKey);
-  const cardIcon  = cardRainy ? '🌧' : cardOvercast ? '☁' : '☀';
-  const durCls    = cardRainy ? 'dur-rainy' : cardOvercast ? 'dur-overcast' : cloudCard > 0.38 ? 'dur-cloudy' : 'dur-sunny';
+  // Get venue state (sun/shadow/done) from the state model
+  const state = typeof venueState === 'function' ? venueState(v, fromHour) :
+    { state: 'sun', mainText: '☼ —', subText: '', className: 'state-sun' };
 
-  let cardBadgeText, cardBadgeCls;
-  if (isPoint || nowMode) {
-    const curWin = windows.find(w => fromHour >= w.start && fromHour < w.end);
-    if (curWin) {
-      const rem = curWin.end - fromHour;
-      const bh = Math.floor(rem), bm = Math.round((rem - bh) * 60);
-      const dur = (bh > 0 ? bh + 'h ' : '') + (bm > 0 ? bm + 'm' : '');
-      cardBadgeText = `${cardIcon} ${dur.trim()} · ${t('word_until')} ${formatHour(curWin.end)}`;
-      cardBadgeCls = cardRainy ? 'neutral' : 'sunny';
-    } else {
-      const next = windows.find(w => w.start > fromHour);
-      if (next) {
-        cardBadgeText = `${cardIcon} ${t('word_at')} ${formatHour(next.start)}`;
-        cardBadgeCls = 'neutral';
-      } else {
-        cardBadgeText = windows.length ? t('tl_passed', { term: cardTermLc }) : t('tl_no', { term: cardTermLc });
-        cardBadgeCls = 'shaded';
-      }
-    }
-  } else {
-    let totalSun = 0;
-    for (const w of windows) {
-      const ov = Math.min(w.end, toHour) - Math.max(w.start, fromHour);
-      if (ov > 0) totalSun += ov;
-    }
-    if (totalSun > 0) {
-      const bh = Math.floor(totalSun), bm = Math.round((totalSun - bh) * 60);
-      cardBadgeText = `${cardIcon} ${bh > 0 ? bh+'h ' : ''}${bm > 0 ? bm+'m' : ''} ${cardTermLc}`;
-      cardBadgeCls = cardRainy ? 'neutral' : 'sunny';
-    } else {
-      cardBadgeText = t('tl_no', { term: cardTermLc });
-      cardBadgeCls = 'shaded';
-    }
-  }
-
-  // Override badge for opening/closing-soon states
-  if (v.isOpeningSoon) {
-    const wait = dayHours.open - fromHour;
-    const bm = Math.round(wait * 60);
-    cardBadgeText = t('opens_in', { min: bm });
-    cardBadgeCls  = 'opening-soon';
-  } else if (v.isClosingSoon) {
-    cardBadgeText = t('closes_at', { time: formatHour(dayHours.close) });
-    cardBadgeCls  = 'closing-soon';
-  } else if (!v.isOpen) {
-    cardBadgeText = t('opens_at', { time: formatHour(dayHours.open) });
-    cardBadgeCls  = 'shaded';
-  }
-
-  // Sun status line (not rendered in this layout but sunLineCls drives card-sun-info colour)
-  let sunLineCls;
-  {
-    const curWin = windows.find(w => fromHour >= w.start && fromHour < w.end);
-    if (curWin) {
-      sunLineCls = cardRainy ? 'rainy' : cardOvercast ? 'overcast' : 'sunny';
-    } else {
-      const next = windows.find(w => w.start > fromHour);
-      sunLineCls = next ? 'neutral' : 'muted';
-    }
-    if (v.isOpeningSoon)  sunLineCls = 'opening-soon';
-    else if (v.isClosingSoon) sunLineCls = 'closing-soon';
-  }
-
-  const metaParts = [v.area, catLabel(v), distStr].filter(Boolean);
-  if (s) metaParts.push(`<span class="card-meta-score">${s.total}</span>`);
-  const meta = metaParts.map((p, i) =>
-    (i > 0 ? '<span class="card-meta-dot">·</span>' : '') + `<span class="card-meta-item">${p}</span>`
+  // Build meta row: area · type (drop distance)
+  const metaParts = [v.area, catLabel(v)].filter(Boolean);
+  const metaHtml = metaParts.map((p, i) =>
+    (i > 0 ? '<span class="card-meta-dot">·</span>' : '') + `<span>${p}</span>`
   ).join('');
 
-  // Sun info for right side of card sun row
-  let sunLabel, sunTime = '', sunDurH = '', sunDurM = '';
-  if (isPoint || nowMode) {
-    const curWin = windows.find(w => fromHour >= w.start && fromHour < w.end);
-    if (curWin) {
-      const rem = curWin.end - fromHour;
-      const bh = Math.floor(rem), bm = Math.round((rem - bh) * 60);
-      const lastWin = windows[windows.length - 1];
-      sunLabel = t('label_until', { term: cardTerm }); sunTime = formatHour(lastWin.end);
-      sunDurH = bh > 0 ? `${bh}H` : ''; sunDurM = bm > 0 ? `${bm}M` : '';
-    } else {
-      const next = windows.find(w => w.start > fromHour);
-      if (next) { sunLabel = t('label_at', { term: cardTerm }); sunTime = formatHour(next.start); }
-      else { sunLabel = windows.length ? t('label_passed', { term: cardTerm }) : t('label_no', { term: cardTerm }); }
-    }
-  } else {
-    let totalSun = 0;
-    for (const w of windows) { const ov = Math.min(w.end, toHour) - Math.max(w.start, fromHour); if (ov > 0) totalSun += ov; }
-    if (totalSun > 0) {
-      const bh = Math.floor(totalSun), bm = Math.round((totalSun - bh) * 60);
-      sunLabel = t('label_today', { term: cardTerm }); sunTime = bh > 0 ? `${bh}H` : '';
-      sunDurM = bm > 0 ? `${bm}M` : '';
-      if (!sunTime) { sunTime = sunDurM; sunDurM = ''; }
-    } else { sunLabel = t('label_no', { term: cardTerm }); }
-  }
-  if (v.isOpeningSoon) { sunLabel = t('label_opens_in', { min: Math.round((dayHours.open - fromHour) * 60) }); sunTime = ''; }
-  else if (v.isClosingSoon) { sunLabel = t('label_closes', { time: formatHour(dayHours.close) }); }
-
-  const durHtml = (sunDurH || sunDurM)
-    ? `<div class="card-sun-dur ${durCls}">${[sunDurH, sunDurM].filter(Boolean).join(' ')}</div>`
-    : '';
-
-  const dialSvg = buildCardDial(v, dateStr, fromHour, !!v.sunInWin);
+  const miniTimeline = buildMiniSunTimeline(v, dateStr, fromHour);
 
   return `
-    <div class="venue-card ${v.sunInWin ? 'sunny' : ''} ${v.id === selectedId ? 'selected' : ''} ${dimmedCls}"
+    <div class="venue-card ${state.className} ${v.id === selectedId ? 'selected' : ''}"
          data-vid="${v.id}" onclick="selectVenue(${v.id}, true)"
          onmouseenter="setHoveredVenue(${v.id})" onmouseleave="setHoveredVenue(null)">
-      ${s ? `<div class="card-bloom ${tier}"></div>` : ''}
-      <div class="card-name">${v.name}</div>
-      <div class="card-meta">${meta}</div>
-      <div class="card-sun-row">
-        <div class="card-sun-left">
-          <div class="card-dial-col">${dialSvg}</div>
-          ${durHtml}
-        </div>
-        <div class="card-sun-info ${sunLineCls}">
-          <div class="card-sun-label">${sunLabel}</div>
-          ${sunTime ? `<span class="card-sun-time">${sunTime}</span>` : ''}
+      <div class="card-new-left">
+        <div class="card-new-name">${v.name}</div>
+        <div class="card-new-meta">${metaHtml}</div>
+        ${miniTimeline}
+      </div>
+      <div class="card-new-right">
+        <div class="card-new-dist">${distStr || ''}</div>
+        <div class="card-new-hero">
+          <div class="card-new-hero-main">${state.mainText}</div>
+          <div class="card-new-hero-sub">${state.subText}</div>
         </div>
       </div>
     </div>`;
@@ -304,10 +203,47 @@ function renderList() {
   function closedPenalty(v) { return (!v.isOpen && !v.isOpeningSoon) ? 1 : 0; }
 
   if (sortBy === 'score') {
+    // Task 4: New default "Sol nå" sort — most remaining sun first
     venues.sort((a, b) => {
       const cp = closedPenalty(a) - closedPenalty(b);
       if (cp !== 0) return cp;
-      return (b.score?.total ?? 0) - (a.score?.total ?? 0);
+
+      // Compute remaining sun duration for each venue
+      const getRemainingSun = (v) => {
+        const { windows } = computeSunWindows(v, dateStr);
+        let rem = 0;
+        for (const w of windows) {
+          if (w.end > fromHour) {
+            rem += w.end - Math.max(w.start, fromHour);
+          }
+        }
+        return rem;
+      };
+
+      // Primary: sun-remaining-duration descending
+      const remA = getRemainingSun(a);
+      const remB = getRemainingSun(b);
+      if (remA !== remB) return remB - remA;
+
+      // Secondary: distance ascending
+      if (a.score?.distKm != null && b.score?.distKm != null) {
+        return a.score.distKm - b.score.distKm;
+      }
+
+      // Tertiary: sun state before shadow before done
+      const getState = (v) => {
+        const { windows } = computeSunWindows(v, dateStr);
+        if (!windows.length) return 'done';
+        const curWin = windows.find(w => fromHour >= w.start && fromHour < w.end);
+        if (curWin) return 'sun';
+        return windows.find(w => w.start > fromHour) ? 'shadow' : 'done';
+      };
+      const stateOrder = { 'sun': 0, 'shadow': 1, 'done': 2 };
+      const stateA = stateOrder[getState(a)] ?? 2;
+      const stateB = stateOrder[getState(b)] ?? 2;
+      if (stateA !== stateB) return stateA - stateB;
+
+      return 0;
     });
   } else if (sortBy === 'distance' && userLocation) {
     venues.sort((a, b) => {
@@ -324,6 +260,7 @@ function renderList() {
       return b.rating - a.rating;
     });
   } else {
+    // Default case (if sortBy is something else or undefined)
     venues.sort((a, b) => {
       const cp = closedPenalty(a) - closedPenalty(b);
       if (cp !== 0) return cp;
