@@ -646,7 +646,6 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
           <div class="detail-new-title">${v.name}</div>
           <div class="detail-new-sub">${catLabel(v)}${v.area ? ' · ' + v.area : ''}${distStr ? ' · ' + distStr : ''}</div>
         </div>
-        <button class="detail-new-back" onclick="closeDetailPanel()">‹ Steder</button>
       </div>
 
       <div class="primary-action">
@@ -654,6 +653,7 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
         ${haPhone}
         ${hasWebsite}
         <button class="btn-icon-sec" title="Del" onclick="shareVenue(${v.id})">${shareIcon}</button>
+        <button class="detail-new-back" onclick="closeDetailPanel()">‹ Steder</button>
       </div>
 
       <div class="sun-section">
