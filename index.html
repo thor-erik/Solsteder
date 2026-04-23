@@ -230,7 +230,7 @@
   }
   #search-icon {
     color: var(--muted);
-    font-size: 20px;
+    font-size: 24px;
     flex-shrink: 0;
     line-height: 1;
   }
@@ -334,6 +334,11 @@
   }
   .sd-row:last-child { border-bottom: none; }
   .sd-row:hover { background: rgba(255,175,133,0.09); }
+  .sd-row:active, .sd-row.sd-row-clicked {
+    background: rgba(255,175,133,0.22);
+    transform: scale(0.98);
+    transition: background 0.05s, transform 0.05s;
+  }
   .sd-row-name {
     font-size: 14px;
     color: var(--text);
@@ -2689,16 +2694,56 @@
     transition: color 0.12s;
   }
   .profile-privacy-link:hover { color: var(--text); }
-  /* Candidate badge in search dropdown */
-  .sd-candidate-badge {
-    font-size: 10px;
+  /* Candidate "Suggest venue" badge in search dropdown */
+  .sd-candidate-btn {
+    font-size: 11px;
     font-weight: 600;
-    color: rgba(156,189,231,0.7);
-    border: 1px solid rgba(156,189,231,0.25);
-    border-radius: 5px;
-    padding: 1px 5px;
+    color: var(--accent);
+    background: rgba(255,175,133,0.1);
+    border: 1px solid rgba(255,175,133,0.25);
+    border-radius: 12px;
+    padding: 3px 10px;
     white-space: nowrap;
     flex-shrink: 0;
+    pointer-events: none; /* row handles click */
+  }
+  .sd-row-candidate:hover .sd-candidate-btn {
+    background: rgba(255,175,133,0.2);
+    border-color: rgba(255,175,133,0.4);
+  }
+
+  /* ── Candidate loading panel ──────────────────────────────────────────────── */
+  .candidate-loading-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 280px;
+    padding: 32px 24px;
+    text-align: center;
+  }
+  .candidate-loading-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 28px;
+  }
+  .candidate-loading-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid rgba(255,175,133,0.15);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: candidate-spin 0.8s linear infinite;
+    margin-bottom: 20px;
+  }
+  @keyframes candidate-spin {
+    to { transform: rotate(360deg); }
+  }
+  .candidate-loading-status {
+    font-size: 13px;
+    color: var(--muted);
+    transition: opacity 0.2s;
   }
 
   /* ── Admin modals ─────────────────────────────────────────────────────────── */

@@ -82,6 +82,111 @@ out geom;`;
   throw lastErr;
 }
 
+// ── Single-venue geometry fetch (for candidate venues) ───────────────────────
+
+/**
+ * Fetch OSM geometry in a small bbox around a single lat/lng and compute
+ * facing, walls, shadows, terrace test points — same as initFacings() but
+ * for one venue. Returns the enriched venue object, or null on failure.
+ */
+async function fetchAndComputeGeometryForVenue(venue) {
+  const pad = 0.003; // ~330 m
+  const padLng = 0.004;
+  const s = (venue.lat - pad).toFixed(6);
+  const n = (venue.lat + pad).toFixed(6);
+  const w = (venue.lng - padLng).toFixed(6);
+  const e = (venue.lng + padLng).toFixed(6);
+  const bbox = `${s},${w},${n},${e}`;
+
+  const query = `[out:json][timeout:30];
+(
+  way["building"](${bbox});
+  node["entrance"](${bbox});
+  way["highway"~"primary|secondary|tertiary|residential|service|footway|pedestrian|living_street|unclassified"](${bbox});
+  way["natural"~"water|coastline"](${bbox});
+  way["leisure"~"park|garden"](${bbox});
+  way["landuse"~"grass|meadow|recreation_ground|cemetery"](${bbox});
+  way["place"~"square"](${bbox});
+  node["leisure"="outdoor_seating"](${bbox});
+  way["leisure"="outdoor_seating"](${bbox});
+);
+out geom;`;
+
+  let elements;
+  for (const endpoint of OVERPASS_ENDPOINTS) {
+    try {
+      const data = await postOverpass(endpoint, query);
+      elements = data.elements;
+      break;
+    } catch (err) {
+      console.warn(`OSM single-venue: ${endpoint} failed —`, err.message);
+    }
+  }
+  if (!elements) return null;
+
+  const buildings          = elements.filter(el => el.type === 'way' && el.tags?.building && el.geometry?.length >= 4);
+  const openPolygons       = elements.filter(el => el.type === 'way' && !el.tags?.building && el.geometry?.length >= 3
+    && (el.tags?.natural || el.tags?.leisure || el.tags?.landuse || el.tags?.place)).map(el => el.geometry);
+  const entranceNodes      = elements.filter(el => el.type === 'node' && el.tags?.entrance);
+  const highways           = elements.filter(el => el.type === 'way' && el.tags?.highway && el.geometry?.length);
+  const outdoorSeatingNodes = elements.filter(el => el.type === 'node' && el.tags?.leisure === 'outdoor_seating');
+  const outdoorSeatingAreas = elements.filter(el => el.type === 'way'  && el.tags?.leisure === 'outdoor_seating' && el.geometry?.length >= 3);
+
+  // Find building containing or nearest to venue
+  const v = venue;
+  let building = buildings.find(b => pointInPolygon(v.lat, v.lng, b.geometry));
+  if (!building) {
+    const cosLat = Math.cos(v.lat * RAD);
+    const px = v.lng * cosLat, py = v.lat;
+    let bestD = (50 / 111320) ** 2, bestB = null;
+    for (const b of buildings) {
+      const g = b.geometry;
+      for (let i = 0; i < g.length - 1; i++) {
+        const d = distPointToSegmentSq(px, py, g[i].lon * cosLat, g[i].lat, g[i + 1].lon * cosLat, g[i + 1].lat);
+        if (d < bestD) { bestD = d; bestB = b; }
+      }
+    }
+    building = bestB;
+  }
+  if (!building) return null;
+
+  v.buildingGeometry = building.geometry;
+
+  const walls = getWallNormals(building.geometry);
+  if (!walls.length) return null;
+
+  v.wallNormals = walls;
+  v.nearbyBuildings = findNearbyBuildings(v, buildings, building);
+
+  const autoIndices = computeAutoTerraceWallIndices(v, walls, buildings, building, openPolygons, entranceNodes, highways);
+  const bestWall    = walls[autoIndices[0]];
+
+  v.facing               = Math.round(bestWall.bearing);
+  v.wallSegment          = bestWall;
+  v.facingSource         = 'osm';
+  v.autoTerraceDepth       = computeAutoTerraceDepth(bestWall, highways);
+  v.autoTerraceWallIndices = autoIndices;
+  v.terraceWallIndices     = autoIndices;
+
+  // Find nearby outdoor seating element
+  const THRESH = 30 / 111320;
+  let osmEl = null, bestOsmD = THRESH;
+  for (const node of outdoorSeatingNodes) {
+    const d = Math.hypot(node.lat - v.lat, node.lon - v.lng);
+    if (d < bestOsmD) { bestOsmD = d; osmEl = node; }
+  }
+  for (const area of outdoorSeatingAreas) {
+    const c = computeCentroid(area.geometry);
+    const d = Math.hypot(c.lat - v.lat, c.lon - v.lng);
+    if (d < bestOsmD) { bestOsmD = d; osmEl = area; }
+  }
+
+  v.terraceTestPoints = computeTerraceTestPoints(v, osmEl);
+  v.noiseScore = computeNoiseScore(v, highways);
+
+  return v;
+}
+
 // ── Geometry helpers ──────────────────────────────────────────────────────────
 // pointInPolygon lives in solar.js (shared with worker). Available here via global scope.
 

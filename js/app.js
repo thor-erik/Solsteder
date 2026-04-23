@@ -2099,6 +2099,10 @@ if (typeof stopWindOverlay === 'function') stopWindOverlay();
     }, 320);
   }
   if (selectedId != null) {
+    // Remove temporary candidate venue from VENUES if present
+    const idx = VENUES.findIndex(v => v.id === selectedId && v._isCandidate);
+    if (idx !== -1) VENUES.splice(idx, 1);
+
     selectedId = null;
     _frozenBounds  = null;
     clearSpriteCache();
@@ -3160,11 +3164,14 @@ function _renderSearchDropdown() {
       ${v.area ? `<span class="sd-row-area">${v.area}</span>` : ''}
     </div>`).join('');
 
-  html += candidateHits.map(c => `
-    <div class="sd-row" onclick="_sdPickCandidate(${JSON.stringify(c)})">
+  html += candidateHits.map(c => {
+    const cData = encodeURIComponent(JSON.stringify(c));
+    return `
+    <div class="sd-row sd-row-candidate" onclick="_sdPickCandidate(decodeURIComponent('${cData}'))">
       <span class="sd-row-name">${c.name}</span>
-      <span class="sd-candidate-badge">${t('candidate_badge')}</span>
-    </div>`).join('');
+      <span class="sd-candidate-btn">${t('candidate_badge')}</span>
+    </div>`;
+  }).join('');
 
   const noMatch = curated.length === 0 && candidateHits.length === 0;
   const rawQ    = _searchInput.value.trim();
@@ -3192,11 +3199,112 @@ function _sdPick(id) {
   renderList();
 }
 
-function _sdPickCandidate(c) {
+async function _sdPickCandidate(encodedOrObj) {
+  const c = typeof encodedOrObj === 'string' ? JSON.parse(encodedOrObj) : encodedOrObj;
   _searchInput.value = '';
   _searchDropdown.classList.remove('open');
+
+  // ── Create a temporary venue object ──────────────────────────────────────
+  const tmpId = -Date.now(); // negative to avoid collisions with real IDs
+  const tmpVenue = {
+    id:             tmpId,
+    name:           c.name,
+    address:        c.address || '',
+    coords:         [c.lat, c.lng],
+    lat:            c.lat,
+    lng:            c.lng,
+    category:       c.amenity || 'restaurant',
+    area:           '',
+    rating:         null,
+    facing:         null,
+    openingHours:   { open: 11, close: 23 },
+    buildingOsmId:  null,
+    googlePlaceId:  null,
+    facingSource:   null,
+    _isCandidate:   true,
+    _candidateData: c,
+  };
+
+  // ── Fly to the venue ─────────────────────────────────────────────────────
+  if (typeof map !== 'undefined') {
+    map.flyTo({ center: [c.lng, c.lat], zoom: Math.max(map.getZoom(), 17), duration: 1000 });
+  }
+
+  // ── Show loading detail panel ────────────────────────────────────────────
+  const dp      = document.getElementById('detail-panel');
+  const content = document.getElementById('dp-content');
+  if (!dp || !content) return;
+
+  content.innerHTML = _renderCandidateLoadingPanel(c.name);
+  dp.classList.remove('dp-fullscreen');
+  dp.classList.add('open');
+  if (isMobile()) {
+    const panel = document.getElementById('panel');
+    if (panel) {
+      panel.classList.remove('mobile-expanded', 'mobile-fullscreen');
+      panel.classList.add('mobile-hidden');
+      _syncFtsPosition();
+    }
+    document.getElementById('floating-search')?.classList.add('mobile-ui-hidden');
+    document.getElementById('qc-wrap')?.classList.add('mobile-ui-hidden');
+  }
+
+  const statusEl = document.getElementById('candidate-loading-status');
+  const _setStatus = (key) => { if (statusEl) statusEl.textContent = t(key); };
+
+  // ── Step 1: Fetch building geometry from OSM ─────────────────────────────
+  _setStatus('loading_geometry');
+  const enriched = await fetchAndComputeGeometryForVenue(tmpVenue);
+  if (!enriched) {
+    content.innerHTML = _renderCandidateErrorPanel(c.name);
+    return;
+  }
+
+  // ── Step 2: Show "estimating sun" ────────────────────────────────────────
+  _setStatus('loading_sun');
+
+  // Add to VENUES temporarily so computeSunWindows and the rest works
+  VENUES.push(enriched);
+  sunWindowCache.clear();
+
+  // Small delay so the user sees the status progress
+  await new Promise(r => setTimeout(r, 400));
+
+  // ── Step 3: Show "finding seating" ───────────────────────────────────────
+  _setStatus('loading_seating');
+  await new Promise(r => setTimeout(r, 300));
+
+  _setStatus('loading_almost');
+  await new Promise(r => setTimeout(r, 200));
+
+  // ── Step 4: Render real detail panel ─────────────────────────────────────
+  selectedId = tmpId;
+  _navPush('venue');
+  clearSpriteCache();
+  openDetailPanel(enriched);
+  draw();
   renderList();
-  _showCandidateConfirm(c);
+}
+
+function _renderCandidateLoadingPanel(name) {
+  return `
+    <div class="candidate-loading-panel">
+      <div class="candidate-loading-name">${name}</div>
+      <div class="candidate-loading-spinner"></div>
+      <div id="candidate-loading-status" class="candidate-loading-status">${t('loading_geometry')}</div>
+    </div>`;
+}
+
+function _renderCandidateErrorPanel(name) {
+  return `
+    <div class="candidate-loading-panel">
+      <div class="candidate-loading-name">${name}</div>
+      <div style="font-size:14px;color:var(--muted);margin-top:16px">
+        Could not find building geometry for this location.
+      </div>
+      <button class="sd-suggest-btn" style="margin-top:16px"
+        onclick="closeDetailPanel()">Close</button>
+    </div>`;
 }
 
 function _sdSuggest() {
@@ -3207,7 +3315,14 @@ function _sdSuggest() {
   if (q) suggestVenueFlow(q);
 }
 
-_searchInput.addEventListener('input', () => { renderList(); _renderSearchDropdown(); });
+let _searchListTimer = null;
+_searchInput.addEventListener('input', () => {
+  // Render dropdown immediately (lightweight filter) but debounce the
+  // expensive renderList() which runs solar math on every venue.
+  _renderSearchDropdown();
+  clearTimeout(_searchListTimer);
+  _searchListTimer = setTimeout(renderList, 300);
+});
 _searchInput.addEventListener('blur',  () => setTimeout(() => _searchDropdown.classList.remove('open'), 150));
 _searchInput.addEventListener('focus', () => { if (_searchInput.value.trim()) _renderSearchDropdown(); });
 
