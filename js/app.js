@@ -717,7 +717,6 @@ function _initZoomDebugVisibility() {
 function _onMapStyleReady() {
   if (mapLoaded) return;           // already handled
   mapLoaded = true;
-  console.log('[intro] map style ready');
 
   if (!editSatelliteActive) {
     map.setFog({
@@ -764,11 +763,10 @@ setTimeout(() => {
   }
 }, 8000);
 
-// Hard safety net: if splash is still visible after 12s, force-skip
+// Safety net: if splash is still visible after 12s, force-skip
 setTimeout(() => {
   const splash = document.getElementById('splash');
   if (splash && !splash.classList.contains('hidden')) {
-    console.warn('[intro] Safety net — splash stuck. map:', _introMapReady, 'geo:', _introGeoReady, 'running:', _introRunning);
     _introMapReady = true;
     _introGeoReady = true;
     if (!_introRunning) _skipIntro();
@@ -3397,7 +3395,6 @@ function _restorePreAuthState() {
 }
 
 function _introCheckReady() {
-  console.log('[intro] checkReady — map:', _introMapReady, 'geo:', _introGeoReady, 'running:', _introRunning);
   if (_introMapReady && _introGeoReady && !_introRunning) {
     _introRunning = true;
     // Skip intro animation if this is an OAuth redirect return
@@ -3457,6 +3454,12 @@ function _runIntroSequence() {
   const brand  = document.getElementById('floating-brand');
   const qcWrap = document.getElementById('qc-wrap');
   const panel  = document.getElementById('panel');
+
+  // Ensure sun table exists (it's built by update(), which may not have run yet)
+  if (!currentSunTable) {
+    currentSunTable = buildSunTable(datePicker.value);
+    currentDateStr  = datePicker.value;
+  }
 
   // Compute intro time range: use "day" light preset boundaries (sunrise+1.5h to sunset-1.5h)
   // This ensures consistent color lighting throughout the year as sun position changes
