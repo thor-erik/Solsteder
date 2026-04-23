@@ -4427,6 +4427,10 @@
     pointer-events: all;
     cursor: default;
   }
+  #splash-logo {
+    width: 120px;
+    height: auto;
+  }
   #splash.hidden {
     opacity: 0;
     visibility: hidden;
@@ -4464,7 +4468,9 @@
 <body>
 <div id="app">
   <!-- INTRO SPLASH — covers everything until geo + map are ready -->
-  <div id="splash"></div>
+  <div id="splash">
+    <img src="design/logo-pack-svg/logo-color-2000w-big-text.svg" alt="Shades" id="splash-logo">
+  </div>
 
   <!-- MAP — full-screen -->
   <div id="map-container">
