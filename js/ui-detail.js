@@ -641,12 +641,12 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
     <div id="dp-scroll">
       ${photosHtml}
 
+      <button class="detail-new-back" onclick="closeDetailPanel()">‹ Steder</button>
       <div class="detail-new-header">
         <div>
           <div class="detail-new-title">${v.name}</div>
           <div class="detail-new-sub">${catLabel(v)}${v.area ? ' · ' + v.area : ''}${distStr ? ' · ' + distStr : ''}</div>
         </div>
-        <button class="detail-new-back" onclick="closeDetailPanel()">‹ Steder</button>
       </div>
 
       <div class="primary-action">
