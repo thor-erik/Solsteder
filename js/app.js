@@ -115,8 +115,29 @@ const FTS_GAP          = 8;    // px gap between pill and panel top edge
 /** Update --fts-bottom CSS var so the pill tracks the panel's top edge. */
 function _syncFtsPosition() {
   if (!USE_FLOATING_TIME_SLIDER || !isMobile()) return;
+  const ftsEl = document.getElementById('fts');
   const panel = document.getElementById('panel');
+  const dp    = document.getElementById('detail-panel');
   if (!panel) return;
+
+  // Detail panel open? Track the detail panel instead of the venue list
+  const dpOpen = dp?.classList.contains('open');
+  const dpFull = dp?.classList.contains('dp-fullscreen');
+  if (dpOpen) {
+    if (dpFull) {
+      // Fullscreen detail panel: hide the pill
+      if (ftsEl) { ftsEl.style.opacity = '0'; ftsEl.style.pointerEvents = 'none'; }
+      return;
+    }
+    // Normal detail panel (62svh) — pill sits above it
+    if (ftsEl) { ftsEl.style.opacity = ''; ftsEl.style.pointerEvents = ''; }
+    document.body.style.setProperty('--fts-bottom', `calc(62svh + ${FTS_GAP}px)`);
+    return;
+  }
+
+  // Restore pill visibility when detail panel is closed
+  if (ftsEl) { ftsEl.style.opacity = ''; ftsEl.style.pointerEvents = ''; }
+
   const isHidden   = panel.classList.contains('mobile-hidden');
   const isExpanded = panel.classList.contains('mobile-expanded');
   const isFull     = panel.classList.contains('mobile-fullscreen');
@@ -125,7 +146,6 @@ function _syncFtsPosition() {
     bottom = `${FTS_GAP}px`;
   } else if (isFull) {
     // Fullscreen: pill at top of screen — content sits below it
-    // bottom = viewportH - safeAreaTop - pillH - topGap
     bottom = `calc(100svh - env(safe-area-inset-top, 0px) - 46px - 16px)`;
   } else if (isExpanded) {
     // Expanded: pill above panel top edge
@@ -2654,6 +2674,36 @@ document.addEventListener('DOMContentLoaded', () => {
       if (venuePeek)  _wireSwipeTarget(venuePeek);
       if (panelHeader) _wireSwipeTarget(panelHeader);
 
+      // Wire the entire panel background for peek state: tap anywhere to expand, drag to swipe
+      // Uses a custom handler that only activates in peek state to avoid interfering with list scrolling
+      {
+        const _PANEL_INTERACTIVE = 'button, a, input, select, textarea, canvas, #venue-list';
+        panelEl.addEventListener('touchstart', e => {
+          if (_currentState() !== 'peek') return;
+          if (e.target.closest(_PANEL_INTERACTIVE)) return;
+          _beginDrag(e.touches[0].clientY);
+        }, { passive: true });
+        panelEl.addEventListener('touchmove', e => {
+          if (!_dragActive) return;
+          e.preventDefault();
+          _trackDrag(e.touches[0].clientY);
+        }, { passive: false });
+        panelEl.addEventListener('touchend', e => {
+          if (!_dragActive) return;
+          const totalDy = e.changedTouches[0].clientY - _dragY0;
+          if (Math.abs(totalDy) < 10) {
+            _dragActive = false;
+            panelEl.style.transition = '';
+            panelEl.style.transform  = '';
+            const _ftsEl = document.getElementById('fts');
+            if (_ftsEl) { _ftsEl.style.transition = ''; _ftsEl.style.bottom = ''; }
+            _applyState('expanded');
+          } else {
+            _commitDrag(e.changedTouches[0].clientY);
+          }
+        }, { passive: true });
+      }
+
       // ── First-run nudge: bounce sheet up 20px after 800ms, once only ──────
       if (!localStorage.getItem('sol_peek_nudged')) {
         setTimeout(() => {
@@ -2791,9 +2841,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (Math.abs(dy) <= SAFE_DY && Math.abs(velocity) < SWIPE_V) return; // safe zone
 
         if (velocity < -SWIPE_V || dy < -SAFE_DY) {
-          if (_dpStartState === 'normal') { dpEl.classList.add('dp-fullscreen'); _navPush('dp-fullscreen'); }
+          if (_dpStartState === 'normal') { dpEl.classList.add('dp-fullscreen'); _navPush('dp-fullscreen'); _syncFtsPosition(); }
         } else if (velocity > SWIPE_V || dy > SAFE_DY) {
-          if (_dpStartState === 'fullscreen') { dpEl.classList.remove('dp-fullscreen'); _navDropLayer('dp-fullscreen'); }
+          if (_dpStartState === 'fullscreen') { dpEl.classList.remove('dp-fullscreen'); _navDropLayer('dp-fullscreen'); _syncFtsPosition(); }
           else closeDetailPanel(false);
         }
       }
@@ -3609,7 +3659,7 @@ window.addEventListener('popstate', () => {
 
   switch (layer) {
     case 'venue':         closeDetailPanel(true); break;
-    case 'dp-fullscreen': document.getElementById('detail-panel')?.classList.remove('dp-fullscreen'); break;
+    case 'dp-fullscreen': document.getElementById('detail-panel')?.classList.remove('dp-fullscreen'); _syncFtsPosition(); break;
     case 'qc':            _closeQcPanel(); break;
     case 'sort':          _closeSortPanel(); break;
     case 'profile':       closeProfilePanel(); break;

@@ -606,7 +606,7 @@
 
   /* Fullscreen: pill is at the top — push all panel content below it */
   body.fts #panel.mobile-fullscreen #panel-handle {
-    height: calc(env(safe-area-inset-top, 0px) + 16px + 46px + 8px);  /* safe + gap + pill + gap */
+    height: calc(env(safe-area-inset-top, 0px) + 16px + 46px + 16px);  /* safe + gap + pill + drag zone */
   }
 
   /* ── Bottom-center: date pill + sun arc + intent presets ──────────────────── */
@@ -4356,7 +4356,7 @@
       top: auto;
       left: 0; right: 0; bottom: 0;
       width: 100%;
-      height: 69svh;    /* svh = small viewport height: never changes when toolbar collapses */
+      height: 62svh;    /* svh = small viewport height; lowered from 69svh to make room for floating pill */
       max-height: none;
       border-radius: 20px 20px 0 0;
       border-left: none; border-right: none; border-bottom: none;
@@ -4727,7 +4727,7 @@
 <script src="js/weather.js?v=20260411b"></script>
 <script src="js/scoring.js?v=20260411b"></script>
 <script src="js/map-style.js?v=20260418b"></script>
-<script src="js/app.js?v=20260423k"></script>
+<script src="js/app.js?v=20260423m"></script>
 <script src="js/render-helpers.js?v=20260411b"></script>
 <script src="js/render-arc.js?v=20260411b"></script>
 <script src="js/render-seating.js?v=20260411b"></script>
