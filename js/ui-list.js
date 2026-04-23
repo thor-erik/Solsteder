@@ -136,8 +136,12 @@ function renderListPage(list, dateStr, fromHour, toHour, isPoint, reset) {
   if (reset) {
     list.innerHTML = html;
   } else {
+    // Suppress entry animation for scroll-paginated cards
+    list.setAttribute('data-no-anim', '');
     document.getElementById('list-sentinel')?.remove();
     list.insertAdjacentHTML('beforeend', html);
+    // Re-enable animation after current frame so future resets still animate
+    requestAnimationFrame(() => list.removeAttribute('data-no-anim'));
   }
 
   // Attach sentinel + observer if more cards remain
@@ -205,47 +209,28 @@ function renderList() {
   function closedPenalty(v) { return (!v.isOpen && !v.isOpeningSoon) ? 1 : 0; }
 
   if (sortBy === 'score') {
-    // Task 4: New default "Sol nå" sort — most remaining sun first
+    // Pre-compute sun remaining + state once per venue (not inside comparator)
+    for (const v of venues) {
+      const { windows } = computeSunWindows(v, dateStr);
+      let rem = 0;
+      for (const w of windows) {
+        if (w.end > fromHour) rem += w.end - Math.max(w.start, fromHour);
+      }
+      v._sunRem = rem;
+      if (!windows.length) { v._sunOrd = 2; }
+      else if (windows.some(w => fromHour >= w.start && fromHour < w.end)) { v._sunOrd = 0; }
+      else if (windows.some(w => w.start > fromHour)) { v._sunOrd = 1; }
+      else { v._sunOrd = 2; }
+    }
     venues.sort((a, b) => {
       const cp = closedPenalty(a) - closedPenalty(b);
       if (cp !== 0) return cp;
-
-      // Compute remaining sun duration for each venue
-      const getRemainingSun = (v) => {
-        const { windows } = computeSunWindows(v, dateStr);
-        let rem = 0;
-        for (const w of windows) {
-          if (w.end > fromHour) {
-            rem += w.end - Math.max(w.start, fromHour);
-          }
-        }
-        return rem;
-      };
-
-      // Primary: sun-remaining-duration descending
-      const remA = getRemainingSun(a);
-      const remB = getRemainingSun(b);
-      if (remA !== remB) return remB - remA;
-
-      // Secondary: distance ascending
+      if (a._sunRem !== b._sunRem) return b._sunRem - a._sunRem;
       if (a.score?.distKm != null && b.score?.distKm != null) {
-        return a.score.distKm - b.score.distKm;
+        const dd = a.score.distKm - b.score.distKm;
+        if (dd !== 0) return dd;
       }
-
-      // Tertiary: sun state before shadow before done
-      const getState = (v) => {
-        const { windows } = computeSunWindows(v, dateStr);
-        if (!windows.length) return 'done';
-        const curWin = windows.find(w => fromHour >= w.start && fromHour < w.end);
-        if (curWin) return 'sun';
-        return windows.find(w => w.start > fromHour) ? 'shadow' : 'done';
-      };
-      const stateOrder = { 'sun': 0, 'shadow': 1, 'done': 2 };
-      const stateA = stateOrder[getState(a)] ?? 2;
-      const stateB = stateOrder[getState(b)] ?? 2;
-      if (stateA !== stateB) return stateA - stateB;
-
-      return 0;
+      return a._sunOrd - b._sunOrd;
     });
   } else if (sortBy === 'distance' && userLocation) {
     venues.sort((a, b) => {

@@ -1464,19 +1464,19 @@
 
   .venue-card {
     background: var(--glass-card-bg);
-    backdrop-filter: var(--glass-blur-card);
-    -webkit-backdrop-filter: var(--glass-blur-card);
+    /* No backdrop-filter — cards sit inside #panel which already blurs.
+       Removing per-card blur eliminates ~30 GPU compositing layers during scroll. */
     border: var(--glass-border);
     border-radius: 12px;
     padding: 12px 14px;
     margin-bottom: 8px;
     cursor: pointer;
     box-shadow: var(--glass-inset), 0 2px 8px rgba(0,0,0,0.35);
-    transition: border-color 0.15s ease, background 0.15s ease, opacity 0.2s, transform 0.15s ease, box-shadow 0.15s ease;
+    transition: border-color 0.15s ease, background 0.15s ease, opacity 0.2s;
     position: relative;
     overflow: hidden;
     animation: cardIn 0.18s ease-out;
-    will-change: opacity;
+    contain: layout style paint;
     display: flex;
     gap: 14px;
     align-items: stretch;
@@ -1486,8 +1486,6 @@
   .venue-card:hover {
     border-color: rgba(255,175,133,0.28);
     background: rgba(20,46,82,0.65);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0,0,0,0.35);
   }
 
   .venue-card.sunny {
@@ -2331,6 +2329,18 @@
       height: 100svh;
       border-radius: 0;
       z-index: 910;
+    }
+
+    /* Kill expensive effects while the user is actively dragging the panel */
+    #panel.panel-dragging {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      background: rgba(17, 30, 56, 0.97) !important;
+      transition: none !important;
+    }
+    #panel.panel-dragging .venue-card {
+      animation: none !important;
+      transition: none !important;
     }
   }
 

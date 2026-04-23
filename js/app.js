@@ -2578,31 +2578,36 @@ document.addEventListener('DOMContentLoaded', () => {
         _dragStartTime  = Date.now();
         _dragInitH      = panelEl.offsetHeight;
         panelEl.style.transition = 'none';
+        panelEl.classList.add('panel-dragging');
       }
 
+      let _ftsEl = null; // cache FTS element ref to avoid DOM lookup per frame
       function _trackDrag(y) {
         if (!_dragActive) return;
         if (_dragRafId) cancelAnimationFrame(_dragRafId);
         _dragRafId = requestAnimationFrame(() => {
           const dy = y - _dragY0;
           const newY = Math.min(_dragInitH - 80, _dragT0 + dy);
-          panelEl.style.transform = `translateY(${newY}px)`;
-
-          // Expand panel height when dragging up to fill visible area (prevent showing background)
+          // Use a single composite transform: translateY for position + scaleY to
+          // stretch the panel downward when dragging up, avoiding style.height
+          // which triggers synchronous layout recalc every frame.
           if (newY < _dragT0) {
-            panelEl.style.height = `${_dragInitH + Math.abs(newY - _dragT0)}px`;
+            const extra = Math.abs(newY - _dragT0);
+            const scale = (_dragInitH + extra) / _dragInitH;
+            panelEl.style.transform = `translateY(${newY}px) scaleY(${scale})`;
+            panelEl.style.transformOrigin = 'top center';
           } else {
-            panelEl.style.height = '';
+            panelEl.style.transform = `translateY(${newY}px)`;
           }
 
           // Track pill with panel during drag
           if (USE_FLOATING_TIME_SLIDER) {
-            const fts = document.getElementById('fts');
-            if (fts) {
+            if (!_ftsEl) _ftsEl = document.getElementById('fts');
+            if (_ftsEl) {
               const panelTop = panelEl.getBoundingClientRect().top;
               const viewH    = window.innerHeight;
-              fts.style.transition = 'none';
-              fts.style.bottom = (viewH - panelTop + FTS_GAP) + 'px';
+              _ftsEl.style.transition = 'none';
+              _ftsEl.style.bottom = (viewH - panelTop + FTS_GAP) + 'px';
             }
           }
 
@@ -2621,12 +2626,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const dt       = Math.max(1, Date.now() - _dragStartTime);
         const velocity = dy / dt; // px/ms, positive = downward
 
+        panelEl.classList.remove('panel-dragging');
         panelEl.style.transition = '';
         panelEl.style.transform  = '';
+        panelEl.style.transformOrigin = '';
         // Restore pill transition after drag
-        const ftsEl = document.getElementById('fts');
-        if (ftsEl) { ftsEl.style.transition = ''; ftsEl.style.bottom = ''; }
-        panelEl.style.height     = '';
+        if (!_ftsEl) _ftsEl = document.getElementById('fts');
+        if (_ftsEl) { _ftsEl.style.transition = ''; _ftsEl.style.bottom = ''; }
 
         const SWIPE_V = 0.2, SAFE_DY = 40;
         let target;
@@ -2661,9 +2667,11 @@ document.addEventListener('DOMContentLoaded', () => {
           if (Math.abs(totalDy) < 10) {
             // Tap: toggle peek ↔ expanded (unless caller opted out)
             _dragActive = false;
+            panelEl.classList.remove('panel-dragging');
             panelEl.style.transition = '';
             panelEl.style.transform  = '';
-            const _ftsEl = document.getElementById('fts');
+            panelEl.style.transformOrigin = '';
+            if (!_ftsEl) _ftsEl = document.getElementById('fts');
             if (_ftsEl) { _ftsEl.style.transition = ''; _ftsEl.style.bottom = ''; }
             if (opts.tapToggle !== false) {
               const s = _currentState();
@@ -2705,9 +2713,11 @@ document.addEventListener('DOMContentLoaded', () => {
           const totalDy = e.changedTouches[0].clientY - _dragY0;
           if (Math.abs(totalDy) < 10) {
             _dragActive = false;
+            panelEl.classList.remove('panel-dragging');
             panelEl.style.transition = '';
             panelEl.style.transform  = '';
-            const _ftsEl = document.getElementById('fts');
+            panelEl.style.transformOrigin = '';
+            if (!_ftsEl) _ftsEl = document.getElementById('fts');
             if (_ftsEl) { _ftsEl.style.transition = ''; _ftsEl.style.bottom = ''; }
             _applyState('expanded');
           } else {
