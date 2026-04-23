@@ -121,6 +121,9 @@ function initFts() {
   const track  = document.getElementById('fts-track');
   if (!canvas || !track) return;
 
+  // Recalculate peek height now that #panel-time-bar is hidden (display:none → offsetHeight=0)
+  requestAnimationFrame(_updatePeekHeight);
+
   updateFtsDateBtn();
   drawFtsCanvas();
 
