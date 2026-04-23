@@ -243,7 +243,15 @@ function drawFtsCanvas() {
 
   const timeToX = t => (t - MIN_H) / (MAX_H - MIN_H) * BAR_W;
 
-  // 1. Background — night color
+  // Helper: rounded-rect path for the track shape
+  function trackRoundRect() {
+    c.beginPath();
+    c.roundRect(0, 0, BAR_W, TRACK_H, TRACK_R);
+  }
+
+  // 1. Background — night color, clipped to rounded rect
+  c.save();
+  trackRoundRect(); c.clip();
   c.fillStyle = '#2A3B5E';
   c.fillRect(0, 0, cssW, cssH);
 
@@ -306,6 +314,7 @@ function drawFtsCanvas() {
   insetGrad.addColorStop(1, 'rgba(0,0,0,0)');
   c.fillStyle = insetGrad;
   c.fillRect(0, 0, BAR_W, TRACK_H);
+  c.restore(); // exit rounded-rect clip — thumb + NÅ tick draw unclipped
 
   // 6. NÅ tick
   const nowH = new Date().getHours() + new Date().getMinutes() / 60;
@@ -444,11 +453,12 @@ function updateFtsDateBtn() {
 
 /** Show the scrub popup with time + weather info. */
 function showFtsPopup(hour) {
-  const popup   = document.getElementById('fts-popup');
-  const timeEl  = document.getElementById('fts-popup-time');
-  const wxEl    = document.getElementById('fts-popup-wx');
-  const windEl  = document.getElementById('fts-popup-wind');
-  const canvas  = document.getElementById('fts-canvas');
+  const popup    = document.getElementById('fts-popup');
+  const timeEl   = document.getElementById('fts-popup-time');
+  const wxIconEl = document.getElementById('fts-popup-wx-icon');
+  const tempEl   = document.getElementById('fts-popup-temp');
+  const windEl   = document.getElementById('fts-popup-wind');
+  const canvas   = document.getElementById('fts-canvas');
   if (!popup || !timeEl) return;
 
   // Clear any pending hide
@@ -457,26 +467,23 @@ function showFtsPopup(hour) {
   // Time
   timeEl.textContent = formatHour(hour);
 
-  // Weather
+  // Weather: icon on row 1, temp + wind on row 2
   const dateStr = datePicker.value;
   if (typeof getWeatherAt === 'function') {
     const wx = getWeatherAt(dateStr, hour);
     if (wx) {
       const rain = (wx.precip ?? wx.prec ?? 0) > 0.3;
       const cf   = wx.cloud ?? 0;
-      if      (rain)       wxEl.textContent = 'Regn';
-      else if (cf < 0.20)  wxEl.textContent = 'Sol';
-      else if (cf < 0.60)  wxEl.textContent = 'Delvis sol';
-      else                 wxEl.textContent = 'Overskyet';
-
-      if (wx.wind != null) {
-        windEl.textContent = Math.round(wx.wind) + ' m/s';
-      } else {
-        windEl.textContent = '';
-      }
+      // Weather icon (emoji)
+      if (wxIconEl) wxIconEl.textContent = rain ? '🌧' : (typeof skyIcon === 'function' ? skyIcon(cf) : '☀️');
+      // Temperature
+      if (tempEl) tempEl.textContent = wx.temp != null ? Math.round(wx.temp) + '°' : '';
+      // Wind
+      if (windEl) windEl.textContent = wx.wind != null ? Math.round(wx.wind) + ' m/s' : '';
     } else {
-      wxEl.textContent = '';
-      windEl.textContent = '';
+      if (wxIconEl) wxIconEl.textContent = '';
+      if (tempEl)   tempEl.textContent = '';
+      if (windEl)   windEl.textContent = '';
     }
   }
 
@@ -712,6 +719,17 @@ setTimeout(() => {
     _introCheckReady();
   }
 }, 8000);
+
+// Hard safety net: if splash is still visible after 12s, force-skip
+setTimeout(() => {
+  const splash = document.getElementById('splash');
+  if (splash && !splash.classList.contains('hidden')) {
+    console.warn('[intro] Safety net — splash stuck. map:', _introMapReady, 'geo:', _introGeoReady, 'running:', _introRunning);
+    _introMapReady = true;
+    _introGeoReady = true;
+    if (!_introRunning) _skipIntro();
+  }
+}, 12000);
 
 // ── Light preset (atmosphere + sky) ──────────────────────────────────────────
 let _currentPreset = null;
@@ -1333,8 +1351,12 @@ function _closeQcPanel() {
   if (dateBtn) { dateBtn.classList.remove('active'); dateBtn.setAttribute('aria-expanded', 'false'); }
   document.getElementById('ptb-cal-float')?.classList.remove('open');
   document.getElementById('floating-search')?.classList.remove('cal-dimmed');
-  // Update floating slider date button when picker closes
-  if (USE_FLOATING_TIME_SLIDER) updateFtsDateBtn();
+  // Update floating slider: remove active state, restore visibility, update date label
+  if (USE_FLOATING_TIME_SLIDER) {
+    document.getElementById('fts-date-btn')?.classList.remove('active');
+    document.getElementById('fts')?.classList.remove('fts-cal-open');
+    updateFtsDateBtn();
+  }
   // Restore panel state saved before calendar opened
   if (_preCalPanelState && isMobile() && typeof window._applyMobilePanelState === 'function') {
     window._applyMobilePanelState(_preCalPanelState);
@@ -1376,9 +1398,10 @@ function toggleQcPanel(section) {
   _navPush('qc');
   calFloat?.classList.add('open');
   document.getElementById('floating-search')?.classList.add('cal-dimmed');
-  // Hide floating slider while picker is open
+  // Mark floating slider as cal-open (hides track, keeps button visible for toggle-back)
   if (USE_FLOATING_TIME_SLIDER) {
     document.getElementById('fts-date-btn')?.classList.add('active');
+    document.getElementById('fts')?.classList.add('fts-cal-open');
   }
   // On mobile, collapse list to peek so picker has room; restore on close
   if (isMobile() && typeof window._applyMobilePanelState === 'function') {
@@ -3352,6 +3375,7 @@ function _restorePreAuthState() {
 }
 
 function _introCheckReady() {
+  console.log('[intro] checkReady — map:', _introMapReady, 'geo:', _introGeoReady, 'running:', _introRunning);
   if (_introMapReady && _introGeoReady && !_introRunning) {
     _introRunning = true;
     // Skip intro animation if this is an OAuth redirect return

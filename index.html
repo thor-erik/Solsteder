@@ -554,7 +554,7 @@
     flex: 1 1 0; min-width: 0;
     height: 38px;
     border-radius: 19px;
-    overflow: hidden;
+    overflow: visible;       /* let active thumb glow extend beyond track */
     cursor: ew-resize;
     touch-action: none;    /* prevent scroll during drag */
   }
@@ -570,8 +570,8 @@
     left: 50%;                /* repositioned by JS to follow thumb */
     transform: translateX(-50%);
     z-index: 10;
-    display: flex; align-items: center; gap: 10px;
-    padding: 8px 12px;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    padding: 8px 14px;
     background: var(--glass-panel-bg);
     backdrop-filter: var(--glass-blur-panel);
     -webkit-backdrop-filter: var(--glass-blur-panel);
@@ -584,10 +584,17 @@
     transition: opacity 120ms ease-out;
   }
   #fts-popup.visible { opacity: 1; }
-  #fts-popup-time { font: 700 15px/1 'Inter', sans-serif; color: var(--text); font-variant-numeric: tabular-nums; }
-  .fts-dot { font: 400 13px/1 'Inter', sans-serif; color: var(--muted); }
-  #fts-popup-wx { font: 600 13px/1 'Inter', sans-serif; color: var(--text); }
-  #fts-popup-wind { font: 500 13px/1 'Inter', sans-serif; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .fts-popup-row { display: flex; align-items: center; gap: 6px; }
+  .fts-popup-primary { gap: 6px; }
+  #fts-popup-time { font: 700 16px/1 'Inter', sans-serif; color: var(--text); font-variant-numeric: tabular-nums; }
+  #fts-popup-wx-icon { font-size: 16px; line-height: 1; }
+  .fts-popup-secondary { gap: 6px; }
+  #fts-popup-temp { font: 500 12px/1 'Inter', sans-serif; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .fts-dot { font: 400 12px/1 'Inter', sans-serif; color: rgba(156,189,231,0.4); }
+  #fts-popup-wind { font: 500 12px/1 'Inter', sans-serif; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  /* When calendar picker is open: hide the FTS pill */
+  #fts.fts-cal-open { opacity: 0; pointer-events: none; transition: opacity 180ms ease-out; }
 
   /* When flag is on: hide docked group in list panel */
   body.fts #panel-time-bar { display: none !important; }
@@ -2188,8 +2195,9 @@
 
     #panel-toggle-icon { display: none; }
 
-    /* Locate button: sit just above the peek strip so panel sheet slides over it */
-    #locate-btn { bottom: calc(var(--peek-h, 252px) + 14px); }
+    /* Locate button: sit above the floating pill (or above peek strip if no FTS) */
+    #locate-btn { bottom: calc(var(--peek-h, 252px) + 14px); right: 12px; }
+    body.fts #locate-btn { bottom: calc(var(--fts-bottom, 160px) + 46px + 12px); transition: bottom 0.45s cubic-bezier(0.2, 0.8, 0.3, 1); }
 
     /* Handle: grabber pill only — chevron retired (venue peek carries swipe-up signal) */
     #panel-handle {
@@ -4694,11 +4702,15 @@
       <canvas id="fts-canvas"></canvas>
     </div>
     <div id="fts-popup">
-      <span id="fts-popup-time"></span>
-      <span class="fts-dot">·</span>
-      <span id="fts-popup-wx"></span>
-      <span class="fts-dot">·</span>
-      <span id="fts-popup-wind"></span>
+      <div class="fts-popup-row fts-popup-primary">
+        <span id="fts-popup-time"></span>
+        <span id="fts-popup-wx-icon"></span>
+      </div>
+      <div class="fts-popup-row fts-popup-secondary">
+        <span id="fts-popup-temp"></span>
+        <span class="fts-dot">·</span>
+        <span id="fts-popup-wind"></span>
+      </div>
     </div>
   </div>
 </div>
@@ -4745,6 +4757,13 @@ loadVenues().then(() => {
   // Apply i18n to search placeholder on load
   const inp = document.getElementById('venue-search');
   if (inp) inp.placeholder = t('search_placeholder');
+}).catch(e => {
+  console.error('loadVenues chain error:', e);
+  // Ensure intro proceeds even if initialization throws
+  if (!_introGeoReady) {
+    _introGeoReady = true;
+    _introCheckReady();
+  }
 });
 </script>
 </body>
