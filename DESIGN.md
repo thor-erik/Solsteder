@@ -267,9 +267,12 @@ Opens from the date button in row 1 of the readout panel. Never covers the time 
 - Elevation: `mid` (`0 6px 24px rgba(0,0,0,0.50)`).
 - Padding: `calc(env(safe-area-inset-top) + 16px) 16px 20px` on mobile (top padding adapts to device notch).
 
+**Single glass layer rule:** The picker sheet has exactly one glass layer. Content (grids, tiles, buttons, labels) sits directly on the sheet with no nested container, border, or background. The structural wrapper `#qc-panel-inner` is kept for layout but must have all visual treatment stripped on mobile (`background: transparent; border: none; box-shadow: none; border-radius: 0; backdrop-filter: none`). Only the sticky weekday row and the currently-pinned sticky month label use the denser glass treatment, rendered as full-width horizontal bars — never as bordered panels.
+
 **Inner panel `#qc-panel-inner` (desktop — glass floating panel):**
-- Background: `rgba(20, 46, 82, 0.55)` + `backdrop-filter: blur(16px) saturate(120%)`.
-- Sticky month/weekday header rows keep `rgba(20,46,82,0.88)` + `blur(12px)` so tile content doesn't bleed through on scroll.
+- On desktop, `#qc-panel-inner` IS the single glass layer (since `#ptb-cal-float` has no background on desktop). Background: `rgba(20, 46, 82, 0.55)` + `backdrop-filter: blur(16px) saturate(120%)`.
+- On mobile, `#ptb-cal-float` is the glass sheet; `#qc-panel-inner` must be fully transparent.
+- Sticky month/weekday header rows keep `rgba(20,46,82,0.85)` + `blur(12px)` so tile content doesn't bleed through on scroll.
 
 ### Past / disabled state for data inputs
 
