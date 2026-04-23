@@ -588,6 +588,19 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
     }
   }
 
+  // Beer price row
+  if (v.beerPrice) {
+    const beerIcon = typeof getMapsIcon === 'function' ? getMapsIcon('beer') : '🍺';
+    infoRows.push(`
+      <div class="info-row">
+        <div class="info-icon">${beerIcon}</div>
+        <div class="info-label">
+          <div class="info-label-strong">${v.beerPrice} kr / 0,5 l</div>
+          <div class="info-label-sub">Kilde: <a href="https://pilsguiden.no" target="_blank" rel="noopener" style="color:var(--accent)">Pilsguiden</a></div>
+        </div>
+      </div>`);
+  }
+
   // Hours row
   const hours = getVenueHoursForDay(v, dateStr);
   const closingStr = hours.close != null ? formatHour(hours.close) : 'Åpent';

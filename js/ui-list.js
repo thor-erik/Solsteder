@@ -91,8 +91,8 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
   const state = typeof venueState === 'function' ? venueState(v, fromHour) :
     { state: 'sun', mainText: '☼ —', subText: '', className: 'state-sun' };
 
-  // Build meta row: area · type (drop distance)
-  const metaParts = [v.area, catLabel(v)].filter(Boolean);
+  // Build meta row: area · type · beer price (drop distance)
+  const metaParts = [v.area, catLabel(v), v.beerPrice ? `🍺 ${v.beerPrice} kr` : null].filter(Boolean);
   const metaHtml = metaParts.map((p, i) =>
     (i > 0 ? '<span class="card-meta-dot">·</span>' : '') + `<span>${p}</span>`
   ).join('');
@@ -246,6 +246,16 @@ function renderList() {
       if (cp !== 0) return cp;
       return b.rating - a.rating;
     });
+  } else if (sortBy === 'beer') {
+    venues.sort((a, b) => {
+      const cp = closedPenalty(a) - closedPenalty(b);
+      if (cp !== 0) return cp;
+      // Venues without beer price go last
+      if (a.beerPrice && !b.beerPrice) return -1;
+      if (!a.beerPrice && b.beerPrice) return 1;
+      if (!a.beerPrice && !b.beerPrice) return b.rating - a.rating;
+      return a.beerPrice - b.beerPrice;
+    });
   } else {
     // Default case (if sortBy is something else or undefined)
     venues.sort((a, b) => {
@@ -394,6 +404,6 @@ function buildTooltipContent(v) {
 
   return `
     <div class="ht-name">${v.name}</div>
-    <div class="ht-meta"><span style="color:var(--accent)">★ ${v.rating}</span> · ${catLabel(v)}</div>
+    <div class="ht-meta"><span style="color:var(--accent)">★ ${v.rating}</span> · ${catLabel(v)}${v.beerPrice ? ` · 🍺 ${v.beerPrice} kr` : ''}</div>
     ${statusHtml}${tlHtml}`;
 }

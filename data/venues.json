@@ -101,7 +101,8 @@
       }
     },
     "hoursSource": "google",
-    "businessStatus": "OPERATIONAL"
+    "businessStatus": "OPERATIONAL",
+    "beerPrice": 115
   },
   {
     "id": 3,
@@ -197,7 +198,8 @@
         "close": 22
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 132
   },
   {
     "id": 5,
@@ -249,7 +251,8 @@
         "close": 23
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 136
   },
   {
     "id": 6,
@@ -345,7 +348,8 @@
         "close": 22
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 136
   },
   {
     "id": 8,
@@ -366,7 +370,8 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJl0MwCGFuQUYR-tMel_ej3nU",
     "facingSource": null,
-    "businessStatus": "OPERATIONAL"
+    "businessStatus": "OPERATIONAL",
+    "beerPrice": 126
   },
   {
     "id": 9,
@@ -514,7 +519,8 @@
         "close": 24
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 136
   },
   {
     "id": 12,
@@ -562,7 +568,8 @@
         "close": 22
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 129
   },
   {
     "id": 13,
@@ -610,7 +617,8 @@
         "close": 2
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 112
   },
   {
     "id": 14,
@@ -658,7 +666,8 @@
         "close": 1
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 115
   },
   {
     "id": 15,
@@ -702,7 +711,8 @@
       }
     },
     "hoursSource": "google",
-    "businessStatus": "OPERATIONAL"
+    "businessStatus": "OPERATIONAL",
+    "beerPrice": 150
   },
   {
     "id": 16,
@@ -802,7 +812,8 @@
         "close": 23
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 136
   },
   {
     "id": 18,
@@ -1071,7 +1082,8 @@
       }
     },
     "hoursSource": "google",
-    "businessStatus": "OPERATIONAL"
+    "businessStatus": "OPERATIONAL",
+    "beerPrice": 115
   },
   {
     "id": 24,
@@ -1123,7 +1135,8 @@
       }
     },
     "hoursSource": "google",
-    "businessStatus": "OPERATIONAL"
+    "businessStatus": "OPERATIONAL",
+    "beerPrice": 143
   },
   {
     "id": 25,
@@ -1321,7 +1334,8 @@
         "close": 21.5
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 143
   },
   {
     "id": 30,
@@ -1369,7 +1383,8 @@
         "close": 24
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 116
   },
   {
     "id": 31,
@@ -1421,7 +1436,8 @@
       }
     },
     "hoursSource": "google",
-    "businessStatus": "OPERATIONAL"
+    "businessStatus": "OPERATIONAL",
+    "beerPrice": 145
   },
   {
     "id": 32,
@@ -1473,7 +1489,8 @@
       }
     },
     "hoursSource": "google",
-    "businessStatus": "OPERATIONAL"
+    "businessStatus": "OPERATIONAL",
+    "beerPrice": 99
   },
   {
     "id": 33,
@@ -1573,7 +1590,8 @@
         "close": 22
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 148
   },
   {
     "id": 35,
@@ -1625,7 +1643,8 @@
         "close": 23
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 148
   },
   {
     "id": 36,
@@ -1882,7 +1901,8 @@
         "close": 23
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 99
   },
   {
     "id": 42,
@@ -2007,7 +2027,8 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJPS6kjoxuQUYRiTPjAiosgHo",
     "facingSource": null,
-    "businessStatus": "OPERATIONAL"
+    "businessStatus": "OPERATIONAL",
+    "beerPrice": 121
   },
   {
     "id": 45,
@@ -2055,7 +2076,8 @@
         "close": 2
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 125
   },
   {
     "id": 46,
@@ -2148,7 +2170,8 @@
         "close": 1
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 140
   },
   {
     "id": 48,
@@ -2192,7 +2215,8 @@
         "close": 3
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 97
   },
   {
     "id": 49,
@@ -2296,7 +2320,8 @@
         "close": 21
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 130
   },
   {
     "id": 51,
@@ -2492,7 +2517,8 @@
       }
     },
     "hoursSource": "google",
-    "businessStatus": "OPERATIONAL"
+    "businessStatus": "OPERATIONAL",
+    "beerPrice": 136
   },
   {
     "id": 55,
@@ -2644,7 +2670,8 @@
         "close": 3.5
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 132
   },
   {
     "id": 58,
@@ -2761,7 +2788,8 @@
         "close": 3
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 122
   },
   {
     "id": 61,
@@ -2801,7 +2829,8 @@
         "close": 3
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 109
   },
   {
     "id": 62,
@@ -2853,7 +2882,8 @@
         "close": 2
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 112
   },
   {
     "id": 63,
@@ -2905,7 +2935,8 @@
         "close": 3
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 122
   },
   {
     "id": 64,
@@ -2957,7 +2988,8 @@
         "close": 3.5
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 108
   },
   {
     "id": 65,
@@ -3005,7 +3037,8 @@
         "close": 0.5
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 136
   },
   {
     "id": 66,
@@ -3057,7 +3090,8 @@
       }
     },
     "hoursSource": "google",
-    "businessStatus": "OPERATIONAL"
+    "businessStatus": "OPERATIONAL",
+    "beerPrice": 135
   },
   {
     "id": 67,
@@ -3109,7 +3143,8 @@
         "close": 3
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 122
   },
   {
     "id": 68,
@@ -3161,7 +3196,8 @@
         "close": 1
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 120
   },
   {
     "id": 69,
@@ -3309,7 +3345,8 @@
         "close": 3.5
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 127
   },
   {
     "id": 72,
@@ -3445,7 +3482,8 @@
         "close": 22
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 118
   },
   {
     "id": 75,
@@ -3497,7 +3535,8 @@
         "close": 24
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 103
   },
   {
     "id": 76,
@@ -3549,7 +3588,8 @@
         "close": 2
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 126
   },
   {
     "id": 77,
@@ -3602,7 +3642,8 @@
         "close": 23
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 142
   },
   {
     "id": 78,
@@ -3654,7 +3695,8 @@
         "close": 1
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 96
   },
   {
     "id": 79,
@@ -3706,7 +3748,8 @@
       }
     },
     "hoursSource": "google",
-    "businessStatus": "OPERATIONAL"
+    "businessStatus": "OPERATIONAL",
+    "beerPrice": 95
   },
   {
     "id": 80,
@@ -3750,7 +3793,8 @@
         "close": 2
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 123
   },
   {
     "id": 81,
@@ -3854,7 +3898,8 @@
         "close": 23
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 105
   },
   {
     "id": 83,
@@ -3954,7 +3999,8 @@
         "close": 23
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 143
   },
   {
     "id": 85,
@@ -4006,7 +4052,8 @@
         "close": 1
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 130
   },
   {
     "id": 86,
@@ -4058,7 +4105,8 @@
         "close": 3
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 130
   },
   {
     "id": 87,
@@ -4470,7 +4518,8 @@
       }
     },
     "hoursSource": "google",
-    "businessStatus": "OPERATIONAL"
+    "businessStatus": "OPERATIONAL",
+    "beerPrice": 136
   },
   {
     "id": 95,
@@ -4522,7 +4571,8 @@
         "close": 24
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 146
   },
   {
     "id": 96,
@@ -4622,7 +4672,8 @@
         "close": 3
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 122
   },
   {
     "id": 98,
@@ -4719,7 +4770,8 @@
         "close": 23
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 135
   },
   {
     "id": 100,
@@ -4771,7 +4823,8 @@
         "close": 21
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 130
   },
   {
     "id": 101,
@@ -4967,7 +5020,8 @@
       }
     },
     "hoursSource": "google",
-    "businessStatus": "OPERATIONAL"
+    "businessStatus": "OPERATIONAL",
+    "beerPrice": 143
   },
   {
     "id": 105,
@@ -5123,7 +5177,8 @@
         "close": 24
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 140
   },
   {
     "id": 108,
@@ -5408,7 +5463,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 106
   },
   {
     "id": 114,
@@ -5702,7 +5758,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 140
   },
   {
     "id": 120,
@@ -5837,7 +5894,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 120
   },
   {
     "id": 123,
@@ -5943,7 +6001,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 162
   },
   {
     "id": 125,
@@ -6098,7 +6157,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 98
   },
   {
     "id": 128,
@@ -6237,7 +6297,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 178
   },
   {
     "id": 131,
@@ -6482,7 +6543,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 162
   },
   {
     "id": 136,
@@ -6580,7 +6642,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 148
   },
   {
     "id": 138,
@@ -6682,7 +6745,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 128
   },
   {
     "id": 140,
@@ -6969,7 +7033,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 143
   },
   {
     "id": 146,
@@ -7022,7 +7087,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 148
   },
   {
     "id": 147,
@@ -7340,7 +7406,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 115
   },
   {
     "id": 153,
@@ -7521,7 +7588,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 79
   },
   {
     "id": 157,
@@ -7574,7 +7642,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 120
   },
   {
     "id": 158,
@@ -7627,7 +7696,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 99
   },
   {
     "id": 159,
@@ -7823,7 +7893,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 117
   },
   {
     "id": 163,
@@ -7982,7 +8053,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 108
   },
   {
     "id": 166,
@@ -8243,7 +8315,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 69
   },
   {
     "id": 171,
@@ -8296,7 +8369,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 111
   },
   {
     "id": 172,
@@ -8349,7 +8423,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 75
   },
   {
     "id": 173,
@@ -8398,7 +8473,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 155
   },
   {
     "id": 174,
@@ -8451,7 +8527,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 126
   },
   {
     "id": 175,
@@ -8720,7 +8797,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 112
   },
   {
     "id": 182,
@@ -9075,7 +9153,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 136
   },
   {
     "id": 189,
@@ -9222,7 +9301,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 122
   },
   {
     "id": 192,
@@ -9479,7 +9559,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 165
   },
   {
     "id": 197,
@@ -9577,7 +9658,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 116
   },
   {
     "id": 199,
@@ -9630,7 +9712,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 135
   },
   {
     "id": 200,
@@ -9822,7 +9905,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 132
   },
   {
     "id": 204,
@@ -9912,7 +9996,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 125
   },
   {
     "id": 206,
@@ -9957,7 +10042,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 161
   },
   {
     "id": 207,
@@ -10055,7 +10141,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 149
   },
   {
     "id": 209,
@@ -10108,7 +10195,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 130
   },
   {
     "id": 210,
@@ -10361,7 +10449,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 132
   },
   {
     "id": 215,
@@ -10414,7 +10503,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 141
   },
   {
     "id": 216,
@@ -10467,7 +10557,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 128
   },
   {
     "id": 217,
@@ -10565,7 +10656,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 162
   },
   {
     "id": 219,
@@ -10689,7 +10781,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 134
   },
   {
     "id": 222,
@@ -10742,7 +10835,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 142
   },
   {
     "id": 223,
@@ -10848,7 +10942,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 130
   },
   {
     "id": 225,
@@ -11097,7 +11192,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 95
   },
   {
     "id": 230,
@@ -11150,7 +11246,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 123
   },
   {
     "id": 232,
@@ -11521,7 +11618,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 136
   },
   {
     "id": 239,
@@ -11872,7 +11970,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 102
   },
   {
     "id": 246,
@@ -11905,7 +12004,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 110
   },
   {
     "id": 247,
@@ -12117,7 +12217,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 130
   },
   {
     "id": 251,
@@ -12276,7 +12377,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 132
   },
   {
     "id": 254,
@@ -12378,7 +12480,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 109
   },
   {
     "id": 256,
@@ -12537,7 +12640,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 132
   },
   {
     "id": 259,
@@ -12590,7 +12694,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 128
   },
   {
     "id": 260,
@@ -12643,7 +12748,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 109
   },
   {
     "id": 261,
@@ -12696,7 +12802,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 147
   },
   {
     "id": 262,
@@ -12749,7 +12856,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 123
   },
   {
     "id": 263,
@@ -12802,7 +12910,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 137
   },
   {
     "id": 264,
@@ -12855,7 +12964,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 130
   },
   {
     "id": 265,
@@ -13055,7 +13165,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 122
   },
   {
     "id": 269,
@@ -13477,7 +13588,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 98
   },
   {
     "id": 278,
@@ -13583,7 +13695,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 114
   },
   {
     "id": 280,
@@ -13636,7 +13749,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 95
   },
   {
     "id": 281,
@@ -13685,7 +13799,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 116
   },
   {
     "id": 282,
@@ -13738,7 +13853,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 95
   },
   {
     "id": 283,
@@ -13787,7 +13903,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 98
   },
   {
     "id": 284,
@@ -13881,7 +13998,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 98
   },
   {
     "id": 286,
@@ -14161,7 +14279,8 @@
     "googlePlaceId": "ChIJCR8jpqNpQUYRdFOulg-0eq4",
     "facingSource": null,
     "discoverySignal": "both",
-    "businessStatus": "OPERATIONAL"
+    "businessStatus": "OPERATIONAL",
+    "beerPrice": 115
   },
   {
     "id": 294,
@@ -14267,7 +14386,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 109
   },
   {
     "id": 296,
@@ -14422,7 +14542,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "beerPrice": 145
   },
   {
     "id": 299,
