@@ -602,7 +602,7 @@
       left: 12px; right: 12px;   /* tighter margins match mobile search bar */
     }
     /* Peek state: shift panel up by pill reserved space so peek sits above pill */
-    body.fts #panel:not(.mobile-expanded):not(.mobile-fullscreen):not(.mobile-hidden):not(.intro-hidden) {
+    body.fts #panel:not(.mobile-expanded):not(.mobile-fullscreen):not(.mobile-hidden) {
       transform: translateY(calc(100% - var(--peek-h, 160px) - 72px)) translateZ(0);
     }
     /* Expanded: panel fills from bottom:0 as normal — list padding clears pill */
@@ -4699,7 +4699,7 @@
   </div>
 
   <!-- Floating time slider (round 12) — outside #panel to escape transform context -->
-  <div id="fts" class="intro-hidden" style="display:none">
+  <div id="fts" style="display:none">
     <button id="fts-date-btn" onclick="toggleQcPanel('date')" aria-label="Velg dato">
       <svg class="fts-cal-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
         <rect x="1.5" y="3" width="13" height="11.5" rx="2" stroke="currentColor" stroke-width="1.5"/>
@@ -4735,7 +4735,7 @@
 <script src="js/weather.js?v=20260411b"></script>
 <script src="js/scoring.js?v=20260411b"></script>
 <script src="js/map-style.js?v=20260418b"></script>
-<script src="js/app.js?v=20260423d"></script>
+<script src="js/app.js?v=20260423e"></script>
 <script src="js/render-helpers.js?v=20260411b"></script>
 <script src="js/render-arc.js?v=20260411b"></script>
 <script src="js/render-seating.js?v=20260411b"></script>
@@ -4748,7 +4748,8 @@
 <script src="js/ui-detail.js?v=20260411b"></script>
 <script src="js/osm.js?v=20260411b"></script>
 <script>
-if (USE_FLOATING_TIME_SLIDER) document.body.classList.add('fts');
+// body.fts class is added later by _introRevealUI / _skipIntro — not here,
+// so the floating slider stays display:none during the intro sequence.
 
 loadVenues().then(() => {
   updateRangeFill();

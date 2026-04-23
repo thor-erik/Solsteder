@@ -178,7 +178,8 @@ function initFts() {
   });
 
   // Appstart popup: show time once for 2s, then fade
-  if (!_ftsAppstartDone) {
+  // Deferred until body.fts is active (after intro) so element is visible
+  if (!_ftsAppstartDone && document.body.classList.contains('fts')) {
     _ftsAppstartDone = true;
     const h = parseFloat(timeFromEl.value);
     showFtsPopup(h);
@@ -190,6 +191,7 @@ function initFts() {
 function drawFtsCanvas() {
   const canvasEl = document.getElementById('fts-canvas');
   if (!canvasEl || !currentSunTable) return;
+  if (!canvasEl.clientWidth) return;  // not yet visible (display:none before intro)
 
   const dpr  = window.devicePixelRatio || 1;
   const cssW = canvasEl.clientWidth  || 200;
@@ -469,6 +471,13 @@ function syncFts() {
   if (!USE_FLOATING_TIME_SLIDER) return;
   drawFtsCanvas();
   updateFtsDateBtn();
+  // Trigger appstart popup on first sync after FTS becomes visible
+  if (!_ftsAppstartDone && document.body.classList.contains('fts')) {
+    _ftsAppstartDone = true;
+    const h = parseFloat(timeFromEl.value);
+    showFtsPopup(h);
+    scheduleFtsPopupHide(2000);
+  }
 }
 
 // ── Sun window cache ──────────────────────────────────────────────────────────
@@ -3410,10 +3419,9 @@ function _runIntroSequence() {
 
 function _introRevealUI(search, brand, qcWrap, panel) {
   const locateBtn   = document.getElementById('locate-btn');
-  const fts         = document.getElementById('fts');
   const isMobile    = window.innerWidth < 640;
 
-  const fadeEls = [search, brand, qcWrap, locateBtn, fts];
+  const fadeEls = [search, brand, qcWrap, locateBtn];
   if (!isMobile && panel) fadeEls.push(panel);
 
   fadeEls.forEach(el => {
@@ -3433,8 +3441,17 @@ function _introRevealUI(search, brand, qcWrap, panel) {
     panel.style.transform  = 'translateY(100%)';
     panel.classList.remove('intro-hidden');
     panel.getBoundingClientRect();               // force reflow — browser commits start state
+    // Activate FTS AFTER removing intro-hidden so peek transform uses correct --peek-h
+    if (USE_FLOATING_TIME_SLIDER) {
+      document.body.classList.add('fts');
+      requestAnimationFrame(() => { _updatePeekHeight(); syncFts(); });
+    }
     panel.style.transition = 'transform 0.65s cubic-bezier(0.2, 0.8, 0.3, 1)';
     panel.style.transform  = '';
+  } else if (USE_FLOATING_TIME_SLIDER) {
+    // Desktop: just activate FTS
+    document.body.classList.add('fts');
+    requestAnimationFrame(() => syncFts());
   }
 }
 
@@ -3474,14 +3491,19 @@ function _skipIntro(seqId) {
 
   // Instantly reveal all UI
   const locateBtnEl = document.getElementById('locate-btn');
-  const ftsEl       = document.getElementById('fts');
-  [canvas, search, brand, qcWrap, panel, locateBtnEl, ftsEl].forEach(el => {
+  [canvas, search, brand, qcWrap, panel, locateBtnEl].forEach(el => {
     if (!el) return;
     el.style.transition = 'none';
     el.classList.remove('intro-hidden');
     // Allow styles to reset on next frame
     requestAnimationFrame(() => { el.style.transition = ''; });
   });
+
+  // Activate floating time slider after UI is revealed
+  if (USE_FLOATING_TIME_SLIDER) {
+    document.body.classList.add('fts');
+    requestAnimationFrame(() => { _updatePeekHeight(); syncFts(); });
+  }
 
   if (_sharedVenueId) selectVenue(_sharedVenueId, true);
 }
