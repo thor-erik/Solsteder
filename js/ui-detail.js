@@ -558,6 +558,19 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
   // Task 8: Info list
   const infoRows = [];
 
+  // Beer price row (first)
+  if (v.beerPrice) {
+    const beerIcon = typeof getMapsIcon === 'function' ? getMapsIcon('beer') : '🍺';
+    infoRows.push(`
+      <div class="info-row">
+        <div class="info-icon">${beerIcon}</div>
+        <div class="info-label">
+          <div class="info-label-strong">${v.beerPrice} kr / 0,5 l</div>
+          <div class="info-label-sub">Kilde: <a href="https://pilsguiden.no" target="_blank" rel="noopener" style="color:var(--accent)">Pilsguiden</a></div>
+        </div>
+      </div>`);
+  }
+
   // Busyness row
   const busynessNow = typeof getBusynessAt === 'function' ? getBusynessAt(v, dateStr, fromHour) : null;
   if (busynessNow != null) {
@@ -586,19 +599,6 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
           </div>
         </div>`);
     }
-  }
-
-  // Beer price row
-  if (v.beerPrice) {
-    const beerIcon = typeof getMapsIcon === 'function' ? getMapsIcon('beer') : '🍺';
-    infoRows.push(`
-      <div class="info-row">
-        <div class="info-icon">${beerIcon}</div>
-        <div class="info-label">
-          <div class="info-label-strong">${v.beerPrice} kr / 0,5 l</div>
-          <div class="info-label-sub">Kilde: <a href="https://pilsguiden.no" target="_blank" rel="noopener" style="color:var(--accent)">Pilsguiden</a></div>
-        </div>
-      </div>`);
   }
 
   // Hours row
@@ -644,7 +644,7 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       <div class="detail-new-header">
         <div>
           <div class="detail-new-title">${v.name}</div>
-          <div class="detail-new-sub">${catLabel(v)}${v.beerPrice ? ' · ' + v.beerPrice + ' kr/0,5 l' : ''}${v.area ? ' · ' + v.area : ''}${distStr ? ' · ' + distStr : ''}</div>
+          <div class="detail-new-sub">${catLabel(v)}${v.area ? ' · ' + v.area : ''}${distStr ? ' · ' + distStr : ''}</div>
         </div>
         <button class="detail-new-back" onclick="closeDetailPanel()">‹ Steder</button>
       </div>
@@ -672,6 +672,8 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
         </div>
       </div>
 
+      ${infoListHtml}
+
       <div class="spatial-section">
         <div class="spatial-label">Sol-retning akkurat nå</div>
         <div class="spatial-body">
@@ -682,8 +684,6 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
           </div>
         </div>
       </div>
-
-      ${infoListHtml}
 
       ${footerHtml}
     </div>`;

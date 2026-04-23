@@ -94,8 +94,8 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
   const state = typeof venueState === 'function' ? venueState(v, fromHour) :
     { state: 'sun', mainText: '☼ —', subText: '', className: 'state-sun' };
 
-  // Build meta row: area · type
-  const metaParts = [v.area, catLabel(v)].filter(Boolean);
+  // Build meta row: area · type · beer price
+  const metaParts = [v.area, catLabel(v), v.beerPrice ? v.beerPrice + ' kr' : null].filter(Boolean);
   const metaHtml = metaParts.map((p, i) =>
     (i > 0 ? '<span class="card-meta-dot">·</span>' : '') + `<span>${p}</span>`
   ).join('');
@@ -112,7 +112,7 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
         ${miniTimeline}
       </div>
       <div class="card-new-right">
-        <div class="card-new-dist">${distStr || ''}${v.beerPrice ? `${distStr ? ' · ' : ''}<span class="card-beer">${beerSvgMini} ${v.beerPrice} kr</span>` : ''}</div>
+        <div class="card-new-dist">${distStr || ''}</div>
         <div class="card-new-hero">
           <div class="card-new-hero-main">${state.mainText}</div>
           <div class="card-new-hero-sub">${state.subText}</div>
