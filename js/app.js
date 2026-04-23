@@ -3414,9 +3414,10 @@ function _runIntroSequence() {
 
 function _introRevealUI(search, brand, qcWrap, panel) {
   const locateBtn   = document.getElementById('locate-btn');
+  const fts         = document.getElementById('fts');
   const isMobile    = window.innerWidth < 640;
 
-  const fadeEls = [search, brand, qcWrap, locateBtn];
+  const fadeEls = [search, brand, qcWrap, locateBtn, fts];
   if (!isMobile && panel) fadeEls.push(panel);
 
   fadeEls.forEach(el => {
@@ -3477,7 +3478,8 @@ function _skipIntro(seqId) {
 
   // Instantly reveal all UI
   const locateBtnEl = document.getElementById('locate-btn');
-  [canvas, search, brand, qcWrap, panel, locateBtnEl].forEach(el => {
+  const ftsEl       = document.getElementById('fts');
+  [canvas, search, brand, qcWrap, panel, locateBtnEl, ftsEl].forEach(el => {
     if (!el) return;
     el.style.transition = 'none';
     el.classList.remove('intro-hidden');
