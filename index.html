@@ -656,9 +656,11 @@
 
   /* Fullscreen: pill is at the top — push all panel content below it */
   body.fts #panel.mobile-fullscreen #panel-handle {
-    height: calc(env(safe-area-inset-top, 0px) + 16px + 46px + 14px + 4px + 14px);  /* safe + gap + pill + gap + grab bar + bottom gap */
-    justify-content: flex-end;
-    padding-bottom: 14px;
+    /* Grab bar sits at top (safe-area + 16px padding). FTS pill floats below it.
+       Total height = safe-area + handle padding + gap to clear pill + pill + gap below pill */
+    height: calc(env(safe-area-inset-top, 0px) + 16px + 4px + 14px + 46px + 14px);
+    padding-top: calc(env(safe-area-inset-top, 0px) + 16px);
+    padding-bottom: 0;
   }
 
   /* ── Bottom-center: date pill + sun arc + intent presets ──────────────────── */
@@ -4839,7 +4841,7 @@
 <script src="js/weather.js?v=20260411b"></script>
 <script src="js/scoring.js?v=20260411b"></script>
 <script src="js/map-style.js?v=20260418b"></script>
-<script src="js/app.js?v=20260423s"></script>
+<script src="js/app.js?v=20260423t"></script>
 <script src="js/render-helpers.js?v=20260411b"></script>
 <script src="js/render-arc.js?v=20260411b"></script>
 <script src="js/render-seating.js?v=20260411b"></script>

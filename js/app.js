@@ -147,8 +147,8 @@ function _syncFtsPosition() {
   if (isHidden) {
     bottom = `${FTS_GAP}px`;
   } else if (isFull) {
-    // Fullscreen: pill at top of screen — content sits below it
-    bottom = `calc(100svh - env(safe-area-inset-top, 0px) - 46px - 16px)`;
+    // Fullscreen: pill below grab bar — safe-area + 16px pad + 4px bar + 14px gap
+    bottom = `calc(100svh - env(safe-area-inset-top, 0px) - 46px - 16px - 4px - 14px)`;
   } else if (isExpanded) {
     // Expanded: pill above panel top edge
     bottom = `calc(62svh + ${FTS_GAP}px)`;
@@ -2636,7 +2636,10 @@ document.addEventListener('DOMContentLoaded', () => {
           panelEl.classList.add('mobile-hidden');
           panelEl.classList.remove('mobile-expanded', 'mobile-fullscreen');
         } else {
+          // Returning to peek — venue-peek goes from display:none to visible,
+          // so recalc peek height after layout settles
           panelEl.classList.remove('mobile-expanded', 'mobile-fullscreen', 'mobile-hidden');
+          requestAnimationFrame(_updatePeekHeight);
         }
         _syncFtsPosition();
       }
