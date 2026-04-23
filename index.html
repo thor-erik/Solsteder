@@ -656,7 +656,9 @@
 
   /* Fullscreen: pill is at the top — push all panel content below it */
   body.fts #panel.mobile-fullscreen #panel-handle {
-    height: calc(env(safe-area-inset-top, 0px) + 16px + 46px + 14px);  /* safe + gap above pill + pill + 14px gap below (matches dp-handle) */
+    height: calc(env(safe-area-inset-top, 0px) + 16px + 46px + 14px + 4px + 14px);  /* safe + gap + pill + gap + grab bar + bottom gap */
+    justify-content: flex-end;
+    padding-bottom: 14px;
   }
 
   /* ── Bottom-center: date pill + sun arc + intent presets ──────────────────── */
@@ -2268,11 +2270,12 @@
     /* Venue peek: top of first card visible in collapsed state */
     #venue-peek {
       flex-shrink: 0;
-      padding: 8px 14px 0;
+      padding: 0 14px;
       overflow: hidden;
+      max-height: 52px;
       /* mask-image fades the bottom of the peek row */
-      -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
-      mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+      mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
     }
 
     /* Hide peek when list is visible */
@@ -4836,7 +4839,7 @@
 <script src="js/weather.js?v=20260411b"></script>
 <script src="js/scoring.js?v=20260411b"></script>
 <script src="js/map-style.js?v=20260418b"></script>
-<script src="js/app.js?v=20260423r"></script>
+<script src="js/app.js?v=20260423s"></script>
 <script src="js/render-helpers.js?v=20260411b"></script>
 <script src="js/render-arc.js?v=20260411b"></script>
 <script src="js/render-seating.js?v=20260411b"></script>
