@@ -592,6 +592,12 @@
   /* When flag is on: hide docked group in list panel */
   body.fts #panel-time-bar { display: none !important; }
 
+  /* Venue list padding so last cards clear the floating pill */
+  body.fts #panel.mobile-expanded #venue-list,
+  body.fts #panel.mobile-fullscreen #venue-list {
+    padding-bottom: 72px !important;  /* 48 pill + 12 gap + 12 breathing */
+  }
+
   /* ── Bottom-center: date pill + sun arc + intent presets ──────────────────── */
   #floating-bottom {
     position: absolute;
@@ -4705,7 +4711,7 @@
 <script src="js/weather.js?v=20260411b"></script>
 <script src="js/scoring.js?v=20260411b"></script>
 <script src="js/map-style.js?v=20260418b"></script>
-<script src="js/app.js?v=20260423h"></script>
+<script src="js/app.js?v=20260423i"></script>
 <script src="js/render-helpers.js?v=20260411b"></script>
 <script src="js/render-arc.js?v=20260411b"></script>
 <script src="js/render-seating.js?v=20260411b"></script>

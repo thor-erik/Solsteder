@@ -123,14 +123,11 @@ function _syncFtsPosition() {
   let bottom;
   if (isHidden) {
     bottom = `${FTS_GAP}px`;
-  } else if (isFull) {
-    // Fullscreen: pill sits above panel (100svh)
-    bottom = `calc(100svh + ${FTS_GAP}px)`;
-  } else if (isExpanded) {
-    // Expanded: panel fills 62svh
-    bottom = `calc(62svh + ${FTS_GAP}px)`;
+  } else if (isFull || isExpanded) {
+    // Expanded / fullscreen: pill stays near bottom, list scrolls behind it
+    bottom = `calc(env(safe-area-inset-bottom, 0px) + 12px)`;
   } else {
-    // Peek: panel shows --peek-h
+    // Peek: pill sits above panel top edge
     const peekH = panel.style.getPropertyValue('--peek-h') || '160px';
     bottom = `calc(${peekH} + ${FTS_GAP}px)`;
   }
