@@ -4420,10 +4420,12 @@
     right: 0;
     bottom: 0;
     z-index: 9997;
-    background: #FFF2EB;
+    background: #FFDDCA;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 32px;
     opacity: 1;
     visibility: visible;
     transition: opacity 0.4s ease;
@@ -4431,8 +4433,19 @@
     cursor: default;
   }
   #splash-logo {
-    width: 120px;
+    width: 160px;
     height: auto;
+  }
+  #splash-loader {
+    width: 28px;
+    height: 28px;
+    border: 2.5px solid rgba(255,175,133,0.3);
+    border-top-color: #FFAF85;
+    border-radius: 50%;
+    animation: splash-spin 0.8s linear infinite;
+  }
+  @keyframes splash-spin {
+    to { transform: rotate(360deg); }
   }
   #splash.hidden {
     opacity: 0;
@@ -4473,6 +4486,7 @@
   <!-- INTRO SPLASH — covers everything until geo + map are ready -->
   <div id="splash">
     <img src="design/logo-pack-svg/logo-color-2000w-big-text.svg" alt="Shades" id="splash-logo">
+    <div id="splash-loader"></div>
   </div>
 
   <!-- MAP — full-screen -->
