@@ -95,7 +95,7 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
     { state: 'sun', mainText: '☼ —', subText: '', className: 'state-sun' };
 
   // Build meta row: area · type · beer price
-  const metaParts = [v.area, catLabel(v), v.beerPrice ? v.beerPrice + ' kr' : null].filter(Boolean);
+  const metaParts = [v.area, catLabel(v), v.beerPrice ? `${beerSvgMini} ${v.beerPrice} kr` : null].filter(Boolean);
   const metaHtml = metaParts.map((p, i) =>
     (i > 0 ? '<span class="card-meta-dot">·</span>' : '') + `<span>${p}</span>`
   ).join('');
