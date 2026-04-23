@@ -1231,7 +1231,7 @@ function updateSortBtns() {
     b.classList.toggle('active', b.dataset.sort === activeSortBy));
   const labels = { score: 'Mest sol', latest: 'Senest sol', distance: 'Avstand', beer: 'Ølpris' };
   const labelEl = document.getElementById('sort-label');
-  if (labelEl) labelEl.textContent = labels[activeSortBy] ?? 'Sol nå';
+  if (labelEl) labelEl.textContent = labels[activeSortBy] ?? 'Mest sol';
 }
 
 // ── Debounced list render (avoids jitter when dragging time slider) ────────────
