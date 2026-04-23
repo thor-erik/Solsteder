@@ -641,6 +641,10 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
     <div id="dp-scroll">
       ${photosHtml}
 
+      <div class="detail-back-row">
+        <button class="detail-new-back" onclick="closeDetailPanel()">‹ Steder</button>
+      </div>
+
       <div class="detail-new-header">
         <div>
           <div class="detail-new-title">${v.name}</div>
@@ -653,7 +657,6 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
         ${haPhone}
         ${hasWebsite}
         <button class="btn-icon-sec" title="Del" onclick="shareVenue(${v.id})">${shareIcon}</button>
-        <button class="detail-new-back" onclick="closeDetailPanel()">‹ Steder</button>
       </div>
 
       <div class="sun-section">
