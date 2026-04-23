@@ -121,9 +121,6 @@ function initFts() {
   const track  = document.getElementById('fts-track');
   if (!canvas || !track) return;
 
-  // Recalculate peek height now that #panel-time-bar is hidden (display:none → offsetHeight=0)
-  requestAnimationFrame(_updatePeekHeight);
-
   updateFtsDateBtn();
   drawFtsCanvas();
 
@@ -3440,14 +3437,13 @@ function _introRevealUI(search, brand, qcWrap, panel) {
     panel.style.opacity    = '1';
     panel.style.transform  = 'translateY(100%)';
     panel.classList.remove('intro-hidden');
-    panel.getBoundingClientRect();               // force reflow — browser commits start state
-    // Activate FTS AFTER removing intro-hidden so peek transform uses correct --peek-h
-    if (USE_FLOATING_TIME_SLIDER) {
-      document.body.classList.add('fts');
-      requestAnimationFrame(() => { _updatePeekHeight(); syncFts(); });
-    }
+    // Activate FTS before reflow so timebar hides and --peek-h is correct for the animation target
+    if (USE_FLOATING_TIME_SLIDER) document.body.classList.add('fts');
+    _updatePeekHeight();                         // measure now (timebar hidden by body.fts CSS)
+    panel.getBoundingClientRect();                // force reflow — browser commits start state
     panel.style.transition = 'transform 0.65s cubic-bezier(0.2, 0.8, 0.3, 1)';
     panel.style.transform  = '';
+    if (USE_FLOATING_TIME_SLIDER) requestAnimationFrame(() => syncFts());
   } else if (USE_FLOATING_TIME_SLIDER) {
     // Desktop: just activate FTS
     document.body.classList.add('fts');
@@ -3502,7 +3498,8 @@ function _skipIntro(seqId) {
   // Activate floating time slider after UI is revealed
   if (USE_FLOATING_TIME_SLIDER) {
     document.body.classList.add('fts');
-    requestAnimationFrame(() => { _updatePeekHeight(); syncFts(); });
+    _updatePeekHeight();  // synchronous — timebar is now hidden by body.fts CSS
+    requestAnimationFrame(() => syncFts());
   }
 
   if (_sharedVenueId) selectVenue(_sharedVenueId, true);
