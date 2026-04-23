@@ -172,9 +172,20 @@ function initFts() {
   updateFtsDateBtn();
   drawFtsCanvas();
 
+  // Wire calendar button tap directly (onclick can be unreliable on mobile in some edge cases)
+  const calBtn = document.getElementById('fts-date-btn');
+  if (calBtn) {
+    calBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleQcPanel('date');
+    });
+    // Remove the inline onclick to avoid double-fire
+    calBtn.removeAttribute('onclick');
+  }
+
   // -- Pointer / touch events on the track --
   const setTimeFromPointer = (clientX) => {
-    const rect = canvas.getBoundingClientRect();
+    const rect = track.getBoundingClientRect();
     const t    = MIN_H_ARC + (clientX - rect.left) / rect.width * (MAX_H_ARC - MIN_H_ARC);
     const hour = _clampHour(t);
     if (nowMode) {
@@ -240,7 +251,9 @@ function drawFtsCanvas() {
 
   const dpr  = window.devicePixelRatio || 1;
   const cssW = canvasEl.clientWidth  || 200;
-  const cssH = canvasEl.clientHeight || 38;
+  const cssH = canvasEl.clientHeight || 50;
+  const BLEED = 6;            // px bleed top/bottom for thumb overflow
+  const TRACK_H = cssH - BLEED * 2;  // 38px — actual ramp height
   const pw   = Math.round(cssW * dpr);
   const ph   = Math.round(cssH * dpr);
   if (canvasEl.width !== pw || canvasEl.height !== ph) {
@@ -255,7 +268,6 @@ function drawFtsCanvas() {
 
   const MIN_H   = MIN_H_ARC;
   const MAX_H   = MAX_H_ARC;
-  const TRACK_H = cssH;
   const TRACK_R = Math.floor(TRACK_H / 2);  // 19px — matches CSS border-radius
   const BAR_W   = cssW;
   const dateStr = datePicker.value;
@@ -263,17 +275,17 @@ function drawFtsCanvas() {
 
   const timeToX = t => (t - MIN_H) / (MAX_H - MIN_H) * BAR_W;
 
-  // Helper: rounded-rect path for the track shape
+  // Helper: rounded-rect path for the track shape (offset by BLEED)
   function trackRoundRect() {
     c.beginPath();
-    c.roundRect(0, 0, BAR_W, TRACK_H, TRACK_R);
+    c.roundRect(0, BLEED, BAR_W, TRACK_H, TRACK_R);
   }
 
   // 1. Background — night color, clipped to rounded rect
   c.save();
   trackRoundRect(); c.clip();
   c.fillStyle = '#2A3B5E';
-  c.fillRect(0, 0, cssW, cssH);
+  c.fillRect(0, BLEED, cssW, TRACK_H);
 
   // 2. Collect hourly weather-ramp segments
   const wxHours = (typeof getWeatherHoursForDate === 'function')
@@ -310,30 +322,28 @@ function drawFtsCanvas() {
   if (segments.length > 0) {
     const first = segments[0];
     const last  = segments[segments.length - 1];
-    // Left end: extend first color from x=0 to first segment start
     if (first.x1 > 0) {
       c.fillStyle = first.color;
-      c.fillRect(0, 0, first.x1, TRACK_H);
+      c.fillRect(0, BLEED, first.x1, TRACK_H);
     }
-    // Right end: extend last color from last segment end to full width
     if (last.x2 < BAR_W) {
       c.fillStyle = last.color;
-      c.fillRect(last.x2, 0, BAR_W - last.x2, TRACK_H);
+      c.fillRect(last.x2, BLEED, BAR_W - last.x2, TRACK_H);
     }
   }
 
   // 4. Draw weather segments
   for (const seg of segments) {
     c.fillStyle = seg.color;
-    c.fillRect(seg.x1, 0, seg.x2 - seg.x1, TRACK_H);
+    c.fillRect(seg.x1, BLEED, seg.x2 - seg.x1, TRACK_H);
   }
 
   // 5. Inset shadow
-  const insetGrad = c.createLinearGradient(0, 0, 0, 5);
+  const insetGrad = c.createLinearGradient(0, BLEED, 0, BLEED + 5);
   insetGrad.addColorStop(0, 'rgba(0,0,0,0.22)');
   insetGrad.addColorStop(1, 'rgba(0,0,0,0)');
   c.fillStyle = insetGrad;
-  c.fillRect(0, 0, BAR_W, TRACK_H);
+  c.fillRect(0, BLEED, BAR_W, TRACK_H);
   c.restore(); // exit rounded-rect clip — thumb + NÅ tick draw unclipped
 
   // 6. NÅ tick
@@ -349,8 +359,8 @@ function drawFtsCanvas() {
       c.strokeStyle = 'rgba(156,189,231,0.55)';
       c.lineWidth = 1;
       c.beginPath();
-      c.moveTo(nx, 0);
-      c.lineTo(nx, TRACK_H);
+      c.moveTo(nx, BLEED);
+      c.lineTo(nx, BLEED + TRACK_H);
       c.stroke();
       c.setLineDash([]);
       c.restore();
@@ -363,7 +373,7 @@ function drawFtsCanvas() {
     const springOff = (typeof window._ftsSpringOffset === 'number') ? window._ftsSpringOffset : 0;
     const rawX = timeToX(fromH) + springOff;
     const sx   = Math.max(TRACK_R, Math.min(BAR_W - TRACK_R, rawX));
-    const cy_  = TRACK_H / 2;
+    const cy_  = BLEED + TRACK_H / 2;
     const R    = TRACK_R;  // thumb diameter = track height
 
     c.save();
@@ -2005,6 +2015,7 @@ function openDetailPanel(v) {
       }
       document.getElementById('floating-search')?.classList.add('mobile-ui-hidden');
       document.getElementById('qc-wrap')?.classList.add('mobile-ui-hidden');
+      document.getElementById('locate-btn')?.classList.add('mobile-ui-hidden');
     }
     return;
   }
@@ -2063,6 +2074,7 @@ if (typeof stopWindOverlay === 'function') stopWindOverlay();
       }
       document.getElementById('floating-search')?.classList.remove('mobile-ui-hidden');
       document.getElementById('qc-wrap')?.classList.remove('mobile-ui-hidden');
+      document.getElementById('locate-btn')?.classList.remove('mobile-ui-hidden');
     }, 320);
   }
   if (selectedId != null) {
@@ -2670,7 +2682,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const venuePeek    = document.getElementById('venue-peek');
       const panelHeader  = document.getElementById('panel-header');
       if (timeBar)    _wireSwipeTarget(timeBar,    { excludeInteractive: true, tapToggle: false });
-      if (listSunHdr) _wireSwipeTarget(listSunHdr, { excludeInteractive: true, tapToggle: false });
+      if (listSunHdr) _wireSwipeTarget(listSunHdr, { excludeInteractive: true });
       if (venuePeek)  _wireSwipeTarget(venuePeek);
       if (panelHeader) _wireSwipeTarget(panelHeader);
 
@@ -2860,44 +2872,8 @@ document.addEventListener('DOMContentLoaded', () => {
         _commitDpDrag(e.changedTouches[0].clientY);
       }, { passive: true });
 
-      // dp-scroll drag: delegate to dpEl since #dp-scroll is injected dynamically
-      // and doesn't exist at DOMContentLoaded when listeners are wired.
-      const _DP_INTERACTIVE = 'button, a, input, select, textarea, canvas';
-      let _dpScrollStartY = 0, _dpHandleBottom = 0, _dpScrollOnInteractive = false;
-      dpEl.addEventListener('touchstart', e => {
-        if (!e.target.closest('#dp-scroll')) return;
-        _dpScrollStartY = e.touches[0].clientY;
-        _dpHandleBottom = dpHandle.getBoundingClientRect().bottom;
-        _dpScrollOnInteractive = !!e.target.closest(_DP_INTERACTIVE);
-      }, { passive: true });
-
-      dpEl.addEventListener('touchmove', e => {
-        const dpScroll = e.target.closest('#dp-scroll');
-        if (!dpScroll) return;
-        const cy = e.touches[0].clientY;
-        if (!_dpDragging) {
-          if (dpScroll.scrollTop === 0) {
-            if (cy > _dpScrollStartY) {
-              // Pull down at top → dismiss (fromScroll=true clamps to downward only)
-              e.preventDefault();
-              _beginDpDrag(cy, true);
-            } else if (cy < _dpScrollStartY && !_dpScrollOnInteractive) {
-              // Pull up at top, non-interactive target → expand (full bidirectional drag)
-              e.preventDefault();
-              _beginDpDrag(cy, false);
-            }
-          }
-        }
-        if (_dpDragging) {
-          e.preventDefault();
-          _trackDpDrag(cy);
-        }
-      }, { passive: false });
-
-      dpEl.addEventListener('touchend', e => {
-        if (!e.target.closest('#dp-scroll')) return;
-        if (_dpDragging) _commitDpDrag(e.changedTouches[0].clientY);
-      }, { passive: true });
+      // dp-scroll: no drag interception — content scrolls normally.
+      // Only the dp-handle area (above the gallery) triggers panel drag.
     }
   }
 

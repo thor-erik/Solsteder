@@ -555,12 +555,17 @@
     height: 38px;
     border-radius: 19px;
     overflow: visible;       /* let active thumb glow extend beyond track */
+    position: relative;
     cursor: ew-resize;
     touch-action: none;    /* prevent scroll during drag */
   }
   #fts-canvas {
     display: block;
-    width: 100%; height: 100%;
+    position: absolute;
+    top: -6px; left: 0;       /* 6px bleed top/bottom for thumb glow + scale */
+    width: 100%;
+    height: calc(100% + 12px); /* 38 + 12 = 50px total canvas */
+    pointer-events: none;      /* touch events go to track, not canvas */
   }
 
   /* Scrub popup — anchored above track, centered on thumb */
@@ -4727,7 +4732,7 @@
 <script src="js/weather.js?v=20260411b"></script>
 <script src="js/scoring.js?v=20260411b"></script>
 <script src="js/map-style.js?v=20260418b"></script>
-<script src="js/app.js?v=20260423m"></script>
+<script src="js/app.js?v=20260423n"></script>
 <script src="js/render-helpers.js?v=20260411b"></script>
 <script src="js/render-arc.js?v=20260411b"></script>
 <script src="js/render-seating.js?v=20260411b"></script>
