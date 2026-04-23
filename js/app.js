@@ -3557,15 +3557,15 @@ function _runIntroSequence() {
         }, 1900);
       }, 250);
 
-      // Phase 4: Fade out logo (starts 150ms after background begins fading)
+      // Phase 4: Fade out logo at ~mid zoom-in (1150ms after bg fade starts)
       setTimeout(() => {
         if (splashLogo) splashLogo.classList.add('fade-out');
-      }, 150);
+      }, 1150);
 
-      // Phase 5: Fully remove splash from layout after all transitions complete
+      // Phase 5: Fully remove splash after logo has faded (1150 + 400ms transition)
       setTimeout(() => {
         splash.classList.add('done');
-      }, 600);
+      }, 1600);
 
     }, loaderFadeMs);
   }, waitMs);
