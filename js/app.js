@@ -1283,11 +1283,8 @@ function _closeQcPanel() {
   if (dateBtn) { dateBtn.classList.remove('active'); dateBtn.setAttribute('aria-expanded', 'false'); }
   document.getElementById('ptb-cal-float')?.classList.remove('open');
   document.getElementById('floating-search')?.classList.remove('cal-dimmed');
-  // Show floating slider again when picker closes
-  if (USE_FLOATING_TIME_SLIDER) {
-    document.getElementById('fts')?.classList.remove('fts-hidden');
-    updateFtsDateBtn();
-  }
+  // Update floating slider date button when picker closes
+  if (USE_FLOATING_TIME_SLIDER) updateFtsDateBtn();
   // Restore panel state saved before calendar opened
   if (_preCalPanelState && isMobile() && typeof window._applyMobilePanelState === 'function') {
     window._applyMobilePanelState(_preCalPanelState);
@@ -1331,7 +1328,6 @@ function toggleQcPanel(section) {
   document.getElementById('floating-search')?.classList.add('cal-dimmed');
   // Hide floating slider while picker is open
   if (USE_FLOATING_TIME_SLIDER) {
-    document.getElementById('fts')?.classList.add('fts-hidden');
     document.getElementById('fts-date-btn')?.classList.add('active');
   }
   // On mobile, collapse list to peek so picker has room; restore on close
@@ -1591,13 +1587,16 @@ function _updatePeekHeight() {
   const panel     = document.getElementById('panel');
   const handle    = document.getElementById('panel-handle');
   const timebar   = document.getElementById('panel-time-bar');
+  const fts       = document.getElementById('fts');
   const sunHeader = document.getElementById('list-sun-header');
   const peek      = document.getElementById('venue-peek');
-  if (!panel || !handle || !timebar) return;
-  const h = handle.offsetHeight + timebar.offsetHeight
+  if (!panel || !handle) return;
+  const h = handle.offsetHeight
+          + (timebar ? timebar.offsetHeight : 0)
+          + (fts ? fts.offsetHeight : 0)
           + (sunHeader ? sunHeader.offsetHeight : 0)
           + (peek ? peek.offsetHeight : 0);
-  panel.style.setProperty('--peek-h', Math.max(h, 160) + 'px');
+  panel.style.setProperty('--peek-h', Math.max(h, 100) + 'px');
 }
 
 // ── Venue peek: render top of first venue card into #venue-peek ──────────────
@@ -3437,18 +3436,13 @@ function _introRevealUI(search, brand, qcWrap, panel) {
     panel.style.opacity    = '1';
     panel.style.transform  = 'translateY(100%)';
     panel.classList.remove('intro-hidden');
-    // Activate FTS before reflow so timebar hides and --peek-h is correct for the animation target
-    if (USE_FLOATING_TIME_SLIDER) document.body.classList.add('fts');
-    _updatePeekHeight();                         // measure now (timebar hidden by body.fts CSS)
+    _updatePeekHeight();                         // measure with correct content
     panel.getBoundingClientRect();                // force reflow — browser commits start state
     panel.style.transition = 'transform 0.65s cubic-bezier(0.2, 0.8, 0.3, 1)';
     panel.style.transform  = '';
-    if (USE_FLOATING_TIME_SLIDER) requestAnimationFrame(() => syncFts());
-  } else if (USE_FLOATING_TIME_SLIDER) {
-    // Desktop: just activate FTS
-    document.body.classList.add('fts');
-    requestAnimationFrame(() => syncFts());
   }
+
+  if (USE_FLOATING_TIME_SLIDER) requestAnimationFrame(() => syncFts());
 }
 
 function _skipIntro(seqId) {
@@ -3495,12 +3489,8 @@ function _skipIntro(seqId) {
     requestAnimationFrame(() => { el.style.transition = ''; });
   });
 
-  // Activate floating time slider after UI is revealed
-  if (USE_FLOATING_TIME_SLIDER) {
-    document.body.classList.add('fts');
-    _updatePeekHeight();  // synchronous — timebar is now hidden by body.fts CSS
-    requestAnimationFrame(() => syncFts());
-  }
+  _updatePeekHeight();
+  if (USE_FLOATING_TIME_SLIDER) requestAnimationFrame(() => syncFts());
 
   if (_sharedVenueId) selectVenue(_sharedVenueId, true);
 }
