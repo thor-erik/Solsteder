@@ -667,6 +667,9 @@ function _updateLocationDot() {
 
 function locateUser() {
   if (!userLocation) return;
+  // Dismiss keyboard / search if active so the map is visible
+  const si = document.getElementById('venue-search');
+  if (si && document.activeElement === si) si.blur();
   const btn = document.getElementById('locate-btn');
   if (btn) { btn.classList.add('tracking'); setTimeout(() => btn.classList.remove('tracking'), 1200); }
   map.flyTo({ center: [userLocation.lng, userLocation.lat], zoom: Math.max(map.getZoom(), 15.2), duration: 600 });
@@ -3138,7 +3141,103 @@ async function _ensureCandidates() {
 const _searchInput    = document.getElementById('venue-search');
 const _searchDropdown = document.getElementById('search-dropdown');
 
-function _renderSearchDropdown() {
+// ── Geocoding (addresses / areas via Mapbox) ─────────────────────────────────
+
+let _geoResults  = [];      // cached geocoding results for the current query
+let _geoTimer    = null;    // debounce timer
+let _geoQuery    = '';      // last query sent to geocoder
+let _geoMarker   = null;    // mapboxgl.Marker for address pins
+let _geoAreaShown = false;  // whether an area highlight source/layer is active
+
+const _GEO_ICON = {
+  address: '<svg class="sd-icon" viewBox="0 0 16 16"><path d="M8 1C5.24 1 3 3.24 3 6c0 3.75 5 9 5 9s5-5.25 5-9c0-2.76-2.24-5-5-5Zm0 7a2 2 0 1 1 0-4 2 2 0 0 1 0 4Z" fill="currentColor"/></svg>',
+  area:    '<svg class="sd-icon" viewBox="0 0 16 16"><path d="M2 4h4v4H2V4Zm4 4h4v4H6V8Zm4-4h4v4h-4V4Z" fill="currentColor" opacity="0.7"/><rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>',
+  venue:   '<svg class="sd-icon" viewBox="0 0 16 16"><circle cx="8" cy="6" r="2.5" fill="currentColor"/><path d="M4 13c0-2.2 1.8-4 4-4s4 1.8 4 4" stroke="currentColor" stroke-width="1.2" fill="none" stroke-linecap="round"/></svg>',
+};
+
+function _geoTypeIcon(type) {
+  if (type === 'address' || type === 'poi') return _GEO_ICON.address;
+  if (type === 'neighborhood' || type === 'locality' || type === 'place' || type === 'district' || type === 'region') return _GEO_ICON.area;
+  return _GEO_ICON.address;
+}
+
+function _isAreaType(type) {
+  return ['neighborhood', 'locality', 'place', 'district', 'region'].includes(type);
+}
+
+async function _fetchGeocode(query) {
+  if (!MAPBOX_TOKEN || query.length < 2) return [];
+  try {
+    const bbox = '10.5,59.8,10.95,60.05'; // Oslo area
+    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json` +
+      `?access_token=${MAPBOX_TOKEN}&bbox=${bbox}&limit=3&language=no&types=address,neighborhood,locality,place,poi`;
+    const resp = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    if (!resp.ok) return [];
+    const data = await resp.json();
+    return (data.features || []).map(f => ({
+      name:   f.text,
+      full:   f.place_name,
+      center: f.center, // [lng, lat]
+      bbox:   f.bbox,   // [w, s, e, n] — may be null for addresses
+      type:   f.place_type?.[0] || 'address',
+      geometry: f.geometry,
+    }));
+  } catch (_) { return []; }
+}
+
+function _debounceGeocode(query) {
+  clearTimeout(_geoTimer);
+  if (query.length < 2) { _geoResults = []; return; }
+  _geoTimer = setTimeout(async () => {
+    if (_searchInput.value.trim().toLowerCase() !== query) return; // stale
+    _geoResults = await _fetchGeocode(query);
+    _geoQuery = query;
+    // Re-render if the user hasn't changed the input
+    if (_searchInput.value.trim().toLowerCase() === query) _renderSearchDropdown(true);
+  }, 400);
+}
+
+function _removeGeoMarker() {
+  if (_geoMarker) { _geoMarker.remove(); _geoMarker = null; }
+  if (_geoAreaShown && map.getLayer('geo-area-fill')) {
+    map.removeLayer('geo-area-fill');
+    map.removeLayer('geo-area-outline');
+    map.removeSource('geo-area');
+    _geoAreaShown = false;
+  }
+}
+
+function _sdPickGeo(idx) {
+  const g = _geoResults[idx];
+  if (!g) return;
+  _searchInput.value = '';
+  _syncSearchClearBtn();
+  _searchDropdown.classList.remove('open');
+  _removeGeoMarker();
+
+  if (_isAreaType(g.type) && g.bbox) {
+    // Area: fit bounds
+    map.fitBounds([[g.bbox[0], g.bbox[1]], [g.bbox[2], g.bbox[3]]], {
+      padding: { top: 80, bottom: 80, left: 40, right: 40 },
+      duration: 800,
+    });
+  } else {
+    // Address/POI: zoom in and drop a pin
+    map.flyTo({ center: g.center, zoom: 16.5, duration: 800 });
+
+    const el = document.createElement('div');
+    el.className = 'geo-pin';
+    el.innerHTML = '<svg viewBox="0 0 24 36" width="24" height="36"><path d="M12 0C5.37 0 0 5.37 0 12c0 9 12 24 12 24s12-15 12-24C24 5.37 18.63 0 12 0Zm0 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8Z" fill="var(--accent)"/></svg>';
+    _geoMarker = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
+      .setLngLat(g.center)
+      .addTo(map);
+  }
+  renderList();
+}
+
+// ── Search dropdown rendering ────────────────────────────────────────────────
+
+function _renderSearchDropdown(geoOnly) {
   const q = _searchInput.value.trim().toLowerCase();
   if (!q) { _searchDropdown.classList.remove('open'); return; }
 
@@ -3158,22 +3257,45 @@ function _renderSearchDropdown() {
     !curatedNames.has(c.name.toLowerCase())
   ).slice(0, MAX_CANDIDATE);
 
-  let html = curated.map(v => `
+  // Filter geo results to avoid duplicating curated/candidate names
+  const allVenueNames = new Set([
+    ...curated.map(v => v.name.toLowerCase()),
+    ...candidateHits.map(c => c.name.toLowerCase()),
+  ]);
+  const geoHits = (_geoResults || []).filter(g =>
+    !allVenueNames.has(g.name.toLowerCase())
+  );
+
+  let html = '';
+
+  // Curated venues
+  html += curated.map(v => `
     <div class="sd-row" onclick="_sdPick(${JSON.stringify(v.id)})">
+      <span class="sd-row-icon">${_GEO_ICON.venue}</span>
       <span class="sd-row-name">${v.name}</span>
       ${v.area ? `<span class="sd-row-area">${v.area}</span>` : ''}
     </div>`).join('');
 
+  // Candidate venues
   html += candidateHits.map(c => {
     const cData = encodeURIComponent(JSON.stringify(c));
     return `
     <div class="sd-row sd-row-candidate" onclick="_sdPickCandidate(decodeURIComponent('${cData}'))">
+      <span class="sd-row-icon">${_GEO_ICON.venue}</span>
       <span class="sd-row-name">${c.name}</span>
       <span class="sd-candidate-btn">${t('candidate_badge')}</span>
     </div>`;
   }).join('');
 
-  const noMatch = curated.length === 0 && candidateHits.length === 0;
+  // Geocoded address / area results
+  html += geoHits.map((g, i) => `
+    <div class="sd-row sd-row-geo" onclick="_sdPickGeo(${i})">
+      <span class="sd-row-icon">${_geoTypeIcon(g.type)}</span>
+      <span class="sd-row-name">${g.name}</span>
+      <span class="sd-row-area">${_geoSubtext(g)}</span>
+    </div>`).join('');
+
+  const noMatch = curated.length === 0 && candidateHits.length === 0 && geoHits.length === 0;
   const rawQ    = _searchInput.value.trim();
   const label   = noMatch
     ? `${t('no_results_for')} "<strong>${rawQ}</strong>"`
@@ -3190,10 +3312,20 @@ function _renderSearchDropdown() {
   if (_candidates === null) _ensureCandidates().then(() => {
     if (_searchInput.value.trim()) _renderSearchDropdown();
   });
+
+  // Kick off geocoding (debounced)
+  if (!geoOnly) _debounceGeocode(q);
+}
+
+function _geoSubtext(g) {
+  // Extract a short context from the full place name (remove the matched name prefix)
+  const parts = (g.full || '').split(', ');
+  return parts.length > 1 ? parts.slice(1, 3).join(', ') : g.type;
 }
 
 function _sdPick(id) {
   _searchInput.value = '';
+  _syncSearchClearBtn();
   _searchDropdown.classList.remove('open');
   selectVenue(id, true);
   renderList();
@@ -3202,6 +3334,7 @@ function _sdPick(id) {
 async function _sdPickCandidate(encodedOrObj) {
   const c = typeof encodedOrObj === 'string' ? JSON.parse(encodedOrObj) : encodedOrObj;
   _searchInput.value = '';
+  _syncSearchClearBtn();
   _searchDropdown.classList.remove('open');
 
   // ── Create a temporary venue object ──────────────────────────────────────
@@ -3310,13 +3443,21 @@ function _renderCandidateErrorPanel(name) {
 function _sdSuggest() {
   const q = _searchInput.value.trim();
   _searchInput.value = '';
+  _syncSearchClearBtn();
   _searchDropdown.classList.remove('open');
   renderList();
   if (q) suggestVenueFlow(q);
 }
 
+const _searchBar = document.getElementById('floating-search');
+
+function _syncSearchClearBtn() {
+  if (_searchBar) _searchBar.classList.toggle('has-query', _searchInput.value.trim().length > 0);
+}
+
 let _searchListTimer = null;
 _searchInput.addEventListener('input', () => {
+  _syncSearchClearBtn();
   // Render dropdown immediately (lightweight filter) but debounce the
   // expensive renderList() which runs solar math on every venue.
   _renderSearchDropdown();
@@ -3325,6 +3466,16 @@ _searchInput.addEventListener('input', () => {
 });
 _searchInput.addEventListener('blur',  () => setTimeout(() => _searchDropdown.classList.remove('open'), 150));
 _searchInput.addEventListener('focus', () => { if (_searchInput.value.trim()) _renderSearchDropdown(); });
+
+// Clear button
+document.getElementById('search-clear-btn')?.addEventListener('click', () => {
+  _searchInput.value = '';
+  _syncSearchClearBtn();
+  _searchDropdown.classList.remove('open');
+  _removeGeoMarker();
+  renderList();
+  _searchInput.focus();
+});
 
 // Prevent the search input from losing focus when the user taps/clicks inside
 // the dropdown — this keeps the dropdown visible so click handlers fire normally.

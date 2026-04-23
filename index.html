@@ -229,10 +229,17 @@
     box-shadow: 0 4px 20px rgba(0,0,0,0.3);
   }
   #search-icon {
-    color: var(--muted);
-    font-size: 24px;
     flex-shrink: 0;
-    line-height: 1;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #search-icon svg {
+    width: 18px;
+    height: 18px;
+    color: var(--muted);
   }
   #floating-search #venue-search {
     background: transparent;
@@ -243,6 +250,25 @@
     color: #FFF2EB;
   }
   #floating-search #venue-search:focus { border: none; outline: none; }
+
+  #search-clear-btn {
+    display: none;
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    border: none;
+    background: rgba(255,242,235,0.1);
+    border-radius: 50%;
+    color: var(--muted);
+    font-size: 12px;
+    cursor: pointer;
+    padding: 0;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, color 0.15s;
+  }
+  #search-clear-btn:hover { background: rgba(255,242,235,0.18); color: var(--text); }
+  #floating-search.has-query #search-clear-btn { display: flex; }
 
   #search-profile-btn {
     flex-shrink: 0;
@@ -339,6 +365,19 @@
     transform: scale(0.98);
     transition: background 0.05s, transform 0.05s;
   }
+  .sd-row-icon {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+  }
+  .sd-row-icon .sd-icon {
+    width: 16px;
+    height: 16px;
+  }
   .sd-row-name {
     font-size: 14px;
     color: var(--text);
@@ -346,6 +385,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     flex: 1;
+    min-width: 0;
   }
   .sd-row-area {
     font-size: 11px;
@@ -2746,6 +2786,17 @@
     transition: opacity 0.2s;
   }
 
+  /* ── Geo search pin (address marker on map) ──────────────────────────────── */
+  .geo-pin {
+    cursor: pointer;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+    animation: geo-pin-drop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes geo-pin-drop {
+    0%   { transform: translateY(-20px); opacity: 0; }
+    100% { transform: translateY(0);     opacity: 1; }
+  }
+
   /* ── Admin modals ─────────────────────────────────────────────────────────── */
   .admin-modal {
     position: fixed;
@@ -4602,8 +4653,9 @@
 
   <!-- Top-left: search bar -->
   <div id="floating-search" class="floating-card intro-hidden">
-    <span id="search-icon">⌕</span>
+    <span id="search-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8.5" cy="8.5" r="5.5"/><line x1="13" y1="13" x2="18" y2="18"/></svg></span>
     <input type="text" id="venue-search" placeholder="Søk etter steder eller områder…" autocomplete="off">
+    <button id="search-clear-btn" type="button" aria-label="Clear search">✕</button>
     <button id="search-profile-btn" onclick="toggleProfilePanel(event)" title="Profil"></button>
   </div>
 
