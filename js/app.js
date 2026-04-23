@@ -296,7 +296,6 @@ function drawFtsCanvas() {
 
   const segments = [];  // {x1, x2, color}
   for (let h = MIN_H; h < MAX_H; h++) {
-    if (isToday_ && h + 1 <= nowH_) continue;
     const sun = getSunFromTable(currentSunTable, h + 0.5);
     if (sun.alt <= 0) continue;
 
@@ -311,8 +310,7 @@ function drawFtsCanvas() {
       else                 color = '#8EA0B8';
     }
 
-    const drawFrom = (isToday_ && h < nowH_) ? nowH_ : h;
-    const x1 = Math.round(timeToX(drawFrom));
+    const x1 = Math.round(timeToX(h));
     const x2 = Math.round(timeToX(h + 1));
     if (x2 <= x1) continue;
     segments.push({ x1, x2, color });
@@ -338,7 +336,14 @@ function drawFtsCanvas() {
     c.fillRect(seg.x1, BLEED, seg.x2 - seg.x1, TRACK_H);
   }
 
-  // 5. Inset shadow
+  // 5. Dim past hours on today
+  if (isToday_ && nowH_ > MIN_H) {
+    const pastX = Math.min(Math.round(timeToX(nowH_)), BAR_W);
+    c.fillStyle = 'rgba(0,0,0,0.45)';
+    c.fillRect(0, BLEED, pastX, TRACK_H);
+  }
+
+  // 6. Inset shadow
   const insetGrad = c.createLinearGradient(0, BLEED, 0, BLEED + 5);
   insetGrad.addColorStop(0, 'rgba(0,0,0,0.22)');
   insetGrad.addColorStop(1, 'rgba(0,0,0,0)');
@@ -346,7 +351,7 @@ function drawFtsCanvas() {
   c.fillRect(0, BLEED, BAR_W, TRACK_H);
   c.restore(); // exit rounded-rect clip — thumb + NÅ tick draw unclipped
 
-  // 6. NÅ tick
+  // 7. NÅ tick
   const nowH = new Date().getHours() + new Date().getMinutes() / 60;
   const isToday = datePicker.value === todayStr();
   if (isToday && nowH >= MIN_H && nowH <= MAX_H) {
@@ -367,7 +372,7 @@ function drawFtsCanvas() {
     }
   }
 
-  // 7. Thumb — same height as track, clamped to curvature ends
+  // 8. Thumb — same height as track, clamped to curvature ends
   if (fromH >= MIN_H && fromH <= MAX_H) {
     const isActive  = !!(window._qcThumbActive);
     const springOff = (typeof window._ftsSpringOffset === 'number') ? window._ftsSpringOffset : 0;
@@ -2703,37 +2708,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (venuePeek)  _wireSwipeTarget(venuePeek);
       if (panelHeader) _wireSwipeTarget(panelHeader);
 
-      // Wire the entire panel background for peek state: tap anywhere to expand, drag to swipe
-      // Uses a custom handler that only activates in peek state to avoid interfering with list scrolling
-      {
-        const _PANEL_INTERACTIVE = 'button, a, input, select, textarea, canvas, #venue-list';
-        panelEl.addEventListener('touchstart', e => {
-          if (_currentState() !== 'peek') return;
-          if (e.target.closest(_PANEL_INTERACTIVE)) return;
-          _beginDrag(e.touches[0].clientY);
-        }, { passive: true });
-        panelEl.addEventListener('touchmove', e => {
-          if (!_dragActive) return;
-          e.preventDefault();
-          _trackDrag(e.touches[0].clientY);
-        }, { passive: false });
-        panelEl.addEventListener('touchend', e => {
-          if (!_dragActive) return;
-          const totalDy = e.changedTouches[0].clientY - _dragY0;
-          if (Math.abs(totalDy) < 10) {
-            _dragActive = false;
-            panelEl.classList.remove('panel-dragging');
-            panelEl.style.transition = '';
-            panelEl.style.transform  = '';
-            panelEl.style.transformOrigin = '';
-            if (!_ftsEl) _ftsEl = document.getElementById('fts');
-            if (_ftsEl) { _ftsEl.style.transition = ''; _ftsEl.style.bottom = ''; }
-            _applyState('expanded');
-          } else {
-            _commitDrag(e.changedTouches[0].clientY);
-          }
-        }, { passive: true });
-      }
+      // All visible peek-state elements are already wired as drag targets above.
+      // The handle covers the drag pill + surrounding area, list-sun-header covers
+      // "X steder i solen", and venue-peek covers the first card preview.
 
       // ── First-run nudge: bounce sheet up 20px after 800ms, once only ──────
       if (!localStorage.getItem('sol_peek_nudged')) {
@@ -3581,7 +3558,17 @@ function _introRevealUI(search, brand, qcWrap, panel) {
     panel.style.transform  = '';
   }
 
-  if (USE_FLOATING_TIME_SLIDER) requestAnimationFrame(() => syncFts());
+  if (USE_FLOATING_TIME_SLIDER) {
+    const ftsEl = document.getElementById('fts');
+    if (ftsEl) {
+      ftsEl.style.transition = 'opacity 0.5s ease';
+      requestAnimationFrame(() => {
+        ftsEl.classList.remove('intro-hidden');
+        setTimeout(() => { ftsEl.style.transition = ''; }, 600);
+      });
+    }
+    requestAnimationFrame(() => syncFts());
+  }
 }
 
 function _skipIntro(seqId) {
@@ -3620,7 +3607,8 @@ function _skipIntro(seqId) {
 
   // Instantly reveal all UI
   const locateBtnEl = document.getElementById('locate-btn');
-  [canvas, search, brand, qcWrap, panel, locateBtnEl].forEach(el => {
+  const ftsEl = document.getElementById('fts');
+  [canvas, search, brand, qcWrap, panel, locateBtnEl, ftsEl].forEach(el => {
     if (!el) return;
     el.style.transition = 'none';
     el.classList.remove('intro-hidden');
