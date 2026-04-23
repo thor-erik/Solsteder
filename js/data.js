@@ -109,6 +109,7 @@ function normalizeVenue(v) {
     terraceWallIndices:     v.terraceWallIndices ?? [],
     terraceType:            v.terraceType ?? 'street',
     terraceDetachedLocation: v.terraceDetachedLocation ?? null,
+    beerPrice:              v.beerPrice ?? null,
   };
 }
 
