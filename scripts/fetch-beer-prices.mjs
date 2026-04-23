@@ -1,12 +1,13 @@
 /**
  * fetch-beer-prices.mjs
- * Fetches beer prices from Pilsguiden.no for Oslo districts,
+ * Fetches beer prices from Pilsguiden.no and Pilsjakt.no,
  * matches them against venues.json, and adds beerPrice field.
+ *
+ * Pilsguiden is the primary source (fresher data, professionally maintained).
+ * Pilsjakt is a fallback for venues Pilsguiden doesn't cover.
  *
  * Usage:  node scripts/fetch-beer-prices.mjs
  *         node scripts/fetch-beer-prices.mjs --dry-run   # preview matches without writing
- *
- * Data source: https://pilsguiden.no — prices are per half-liter (pint field).
  */
 
 import { readFileSync, writeFileSync } from 'fs';
@@ -17,7 +18,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT      = join(__dirname, '..');
 const DRY_RUN   = process.argv.includes('--dry-run');
 
-// ── Pilsguiden districts for Oslo ────────────────────────────────────────────
+// ── Pilsguiden: fetch & parse ────────────────────────────────────────────────
 
 const DISTRICTS = [
   'sentrum', 'grunerlokka', 'frogner', 'gamle-oslo', 'sagene',
@@ -26,9 +27,7 @@ const DISTRICTS = [
   'sondre-nordstrand', 'vestre-aker'
 ];
 
-// ── Fetch & parse ────────────────────────────────────────────────────────────
-
-async function fetchDistrict(slug) {
+async function fetchPilsguidenDistrict(slug) {
   const url = `https://pilsguiden.no/oslo/${slug}`;
   const res = await fetch(url, { redirect: 'follow' });
   if (!res.ok) { console.warn(`  ⚠ ${slug}: HTTP ${res.status}`); return []; }
@@ -48,7 +47,6 @@ async function fetchDistrict(slug) {
   }
 
   let raw = html.slice(start, end);
-  // Convert JS object notation to JSON
   raw = raw.replace(/(?<=[{,])(\w+):/g, '"$1":');
   raw = raw.replace(/void 0/g, 'null');
   raw = raw.replace(/:\.(\d)/g, ':0.$1');
@@ -61,29 +59,60 @@ async function fetchDistrict(slug) {
   }
 }
 
-async function fetchAllPrices() {
-  const all = new Map();  // id → bar object (dedupe across districts)
+async function fetchPilsguiden() {
+  console.log('  [Pilsguiden.no]');
+  const all = new Map();
 
   for (const slug of DISTRICTS) {
-    process.stdout.write(`  Fetching ${slug}...`);
-    const bars = await fetchDistrict(slug);
+    process.stdout.write(`    ${slug}...`);
+    const bars = await fetchPilsguidenDistrict(slug);
     let added = 0;
     for (const b of bars) {
-      if (!all.has(b.id)) { all.set(b.id, b); added++; }
+      if (!all.has(b.id)) {
+        all.set(b.id, { name: b.bar, pint: b.pint, source: 'pilsguiden' });
+        added++;
+      }
     }
     console.log(` ${bars.length} bars (${added} new)`);
-    // Be polite
     await new Promise(r => setTimeout(r, 300));
   }
 
-  console.log(`\n  Total unique bars from Pilsguiden: ${all.size}`);
+  console.log(`    Total: ${all.size} unique bars\n`);
   return [...all.values()];
 }
 
+// ── Pilsjakt: fetch & parse ──────────────────────────────────────────────────
+
+async function fetchPilsjakt() {
+  console.log('  [Pilsjakt.no]');
+  const url = 'https://www.pilsjakt.no/topplista';
+  const res = await fetch(url, { redirect: 'follow' });
+  if (!res.ok) { console.warn(`    ⚠ HTTP ${res.status}`); return []; }
+
+  const html = await res.text();
+
+  // Parse summary elements: <span>Name</span> ... price<!-- -->,- ... (volume)
+  const pattern = /<span>([^<]+)<\/span>.*?<span class="min-w-\[3rem\]">(\d+)<!-- -->,- (<!-- -->\*)?<\/span>.*?<span>\(<!-- -->([0-9.]+)<!-- -->\)<\/span>/g;
+
+  const bars = [];
+  let m;
+  while ((m = pattern.exec(html)) !== null) {
+    const [, name, priceStr, , volStr] = m;
+    const price = parseInt(priceStr);
+    const volume = parseFloat(volStr);
+    const pint = volume > 0 ? Math.round(price * 0.5 / volume) : price;
+    bars.push({ name, pint, source: 'pilsjakt' });
+  }
+
+  console.log(`    Total: ${bars.length} bars\n`);
+  return bars;
+}
+
 // ── Manual overrides ─────────────────────────────────────────────────────────
-// venue name → Pilsguiden bar name (for fuzzy matches verified by hand)
+// venue name → source bar name (for fuzzy matches verified by hand)
 
 const MANUAL_MATCH = {
+  // Pilsguiden matches
   'Fuglen':                          'Fuglen Oslo Sentrum',
   'Mad Goat':                        'Mad Goat Tap Room',
   'Vesper Gastrobar':                'Vesper Bar',
@@ -98,15 +127,27 @@ const MANUAL_MATCH = {
   'Tiffany\'s':                      'Tiffany\'s Bjølsen',
   'El Camino':                       'El Camino Frogner',
   'Mamma Pizza':                     'Mamma Pizza Osteria di Mare Via Vika',
+  // Pilsjakt matches
+  'The Highbury Pub':                'The Highbury Pub',
+  'Kjøkken og Bar':                  'Kjøkken og Bar',
+  'Postkontoret':                    'Postkontoret',
+  'Pappabuene':                      'Pappabuene',
+  'Evviva':                          'Evviva',
+  'Handwerk':                        'Handwerk Botaniske',
+  'al dente':                        'Bryn Servering  Al Dente',
+  'Karlsrud Mat og Vinhus':          'Karlsrud Mat og Vin',
+  'Norlaks sushi':                   'Norlaks Sushi Sæter',
+  'Egon':                            'Egon Nordstrand',
 };
 
-// venue names that should NOT be matched (false positives)
+// venue names that should NOT auto-match (manual overrides still work)
 const BLOCK_LIST = new Set([
   'Brygga Bar',          // not Brygg Oslo
   'Arts restaurant',     // not Art Bar Oslo
-  'Postkontoret',        // not Cafékontoret
   'Kanpai Izakaya',      // not Izakaya Oslo
-  'Valkyrien Grill',     // not Valkyrien Restaurant (different venue)
+  'Valkyrien Grill',     // not Valkyrien Restaurant
+  'Postkontoret',        // not Cafékontoret (Pilsguiden) — matched via Pilsjakt override
+  'Südøst Restaurant',   // not Øst (different venue)
 ]);
 
 // ── Name matching ────────────────────────────────────────────────────────────
@@ -122,23 +163,17 @@ function normalize(name) {
     .trim();
 }
 
-function matchScore(venueName, pilsName) {
+function matchScore(venueName, barName) {
   const a = normalize(venueName);
-  const b = normalize(pilsName);
+  const b = normalize(barName);
 
-  // Skip if either is too short to be meaningful
   if (a.length < 3 || b.length < 3) return 0;
-
-  // Exact match after normalization
   if (a === b) return 1.0;
 
-  // One contains the other — but only if the shorter string is
-  // at least 60% of the longer (prevents "st" matching everything)
   const shorter = a.length < b.length ? a : b;
   const longer  = a.length < b.length ? b : a;
   if (longer.includes(shorter) && shorter.length / longer.length >= 0.5) return 0.9;
 
-  // Word overlap (Jaccard) — require at least 2 shared words
   const wa = new Set(a.split(' ').filter(w => w.length > 1));
   const wb = new Set(b.split(' ').filter(w => w.length > 1));
   const shared = [...wa].filter(w => wb.has(w));
@@ -148,7 +183,6 @@ function matchScore(venueName, pilsName) {
   const union = new Set([...wa, ...wb]).size;
   const jaccard = intersection / union;
 
-  // Boost if first significant word matches
   const fa = [...wa].find(w => w.length > 2);
   const fb = [...wb].find(w => w.length > 2);
   const firstBoost = (fa && fb && fa === fb) ? 0.15 : 0;
@@ -156,19 +190,19 @@ function matchScore(venueName, pilsName) {
   return Math.min(jaccard + firstBoost, 0.99);
 }
 
-function findBestMatch(venue, pilsBars) {
-  if (BLOCK_LIST.has(venue.name)) return null;
-
-  // Check manual override first
+function findBestMatch(venue, bars) {
+  // Manual override always wins (checked before block list)
   const override = MANUAL_MATCH[venue.name];
   if (override) {
-    const bar = pilsBars.find(b => b.bar === override);
+    const bar = bars.find(b => b.name === override);
     if (bar) return { bar, score: 1.0 };
   }
 
+  if (BLOCK_LIST.has(venue.name)) return null;
+
   let best = null, bestScore = 0;
-  for (const bar of pilsBars) {
-    const score = matchScore(venue.name, bar.bar);
+  for (const bar of bars) {
+    const score = matchScore(venue.name, bar.name);
     if (score > bestScore) { bestScore = score; best = bar; }
   }
   return bestScore >= 0.9 ? { bar: best, score: bestScore } : null;
@@ -177,48 +211,68 @@ function findBestMatch(venue, pilsBars) {
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
-  console.log('Fetching beer prices from Pilsguiden.no...\n');
-  const pilsBars = await fetchAllPrices();
+  console.log('Fetching beer prices...\n');
+
+  // Fetch both sources
+  const pilsguidenBars = await fetchPilsguiden();
+  const pilsjaktBars   = await fetchPilsjakt();
+
+  // Merge: Pilsguiden first (primary), then Pilsjakt (fallback)
+  const allBars = [...pilsguidenBars, ...pilsjaktBars];
 
   const venuesPath = join(ROOT, 'data', 'venues.json');
   const venues = JSON.parse(readFileSync(venuesPath, 'utf8'));
 
-  console.log(`\nMatching against ${venues.length} venues...\n`);
+  console.log(`Matching against ${venues.length} venues...\n`);
 
   let matched = 0, unmatched = 0;
   const results = [];
+  const matchedVenues = new Set();
 
+  // Pass 1: match against Pilsguiden (primary — fresher data)
   for (const venue of venues) {
-    const match = findBestMatch(venue, pilsBars);
+    const match = findBestMatch(venue, pilsguidenBars);
     if (match) {
       const { bar, score } = match;
-      // Use pint price (half-liter equivalent)
-      const price = bar.pint;
-      const tag = score >= 0.9 ? '✓' : '~';
-      results.push({ venue: venue.name, pilsName: bar.bar, price, score, tag });
-      venue.beerPrice = price;
+      results.push({ venue: venue.name, barName: bar.name, price: bar.pint, score, source: 'pilsguiden' });
+      venue.beerPrice = bar.pint;
+      matchedVenues.add(venue.name);
+      matched++;
+    }
+  }
+
+  // Pass 2: match remaining venues against Pilsjakt (fallback)
+  for (const venue of venues) {
+    if (matchedVenues.has(venue.name)) continue;
+    const match = findBestMatch(venue, pilsjaktBars);
+    if (match) {
+      const { bar, score } = match;
+      results.push({ venue: venue.name, barName: bar.name, price: bar.pint, score, source: 'pilsjakt' });
+      venue.beerPrice = bar.pint;
+      matchedVenues.add(venue.name);
       matched++;
     } else {
       unmatched++;
     }
   }
 
-  // Print results sorted by score
-  results.sort((a, b) => b.score - a.score);
-  console.log('  Matches:');
-  for (const r of results) {
-    console.log(`  ${r.tag} ${r.venue} → ${r.pilsName} (${r.price} kr, score ${r.score.toFixed(2)})`);
-  }
-  console.log(`\n  Matched: ${matched} / ${venues.length} venues (${unmatched} unmatched)`);
+  // Print results grouped by source
+  results.sort((a, b) => b.score - a.score || a.source.localeCompare(b.source));
+  const pgResults = results.filter(r => r.source === 'pilsguiden');
+  const pjResults = results.filter(r => r.source === 'pilsjakt');
 
-  // Show fuzzy matches (score < 0.9) for manual review
-  const fuzzy = results.filter(r => r.score < 0.9);
-  if (fuzzy.length) {
-    console.log(`\n  ⚠ Fuzzy matches (review these):`);
-    for (const r of fuzzy) {
-      console.log(`    "${r.venue}" → "${r.pilsName}" (score ${r.score.toFixed(2)})`);
-    }
+  console.log(`  Pilsguiden matches (${pgResults.length}):`);
+  for (const r of pgResults) {
+    console.log(`  ✓ ${r.venue} → ${r.barName} (${r.price} kr)`);
   }
+
+  console.log(`\n  Pilsjakt matches (${pjResults.length}):`);
+  for (const r of pjResults) {
+    console.log(`  + ${r.venue} → ${r.barName} (${r.price} kr)`);
+  }
+
+  console.log(`\n  Total: ${matched} / ${venues.length} venues (${unmatched} unmatched)`);
+  console.log(`    Pilsguiden: ${pgResults.length}  |  Pilsjakt: ${pjResults.length}`);
 
   if (DRY_RUN) {
     console.log('\n  --dry-run: not writing to venues.json');
