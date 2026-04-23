@@ -1414,31 +1414,32 @@
   #sort-panel {
     position: fixed;
     z-index: 1100;
-    border-radius: 10px;
-    padding: 4px;
+    border-radius: 12px;
+    padding: 6px;
     display: none;
     flex-direction: column;
-    min-width: 130px;
+    min-width: 160px;
     box-shadow: var(--glass-inset), 0 8px 32px rgba(0,0,0,0.6);
   }
   #sort-panel.open { display: flex; }
   .sort-btn {
     background: none;
     border: none;
-    border-radius: 7px;
-    color: rgba(156,189,231,0.7);
+    border-radius: 8px;
+    color: rgba(213,196,171,0.45);
     font-family: 'Inter', sans-serif;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 500;
-    padding: 8px 12px;
+    padding: 11px 14px;
     cursor: pointer;
     transition: all 0.12s;
     white-space: nowrap;
     text-align: left;
     width: 100%;
+    -webkit-tap-highlight-color: transparent;
   }
-  .sort-btn:hover:not(.active) { color: rgba(156,189,231,0.95); background: rgba(156,189,231,0.14); }
-  .sort-btn.active { background: rgba(255,175,133,0.14); color: var(--accent); }
+  .sort-btn:hover:not(.active) { color: var(--muted); background: rgba(156,189,231,0.10); }
+  .sort-btn.active { background: rgba(255,175,133,0.14); color: var(--accent); font-weight: 600; }
   #sort-toggle-btn {
     display: flex;
     align-items: center;
@@ -1660,6 +1661,10 @@
     font-size: 12px;
     color: var(--muted);
     line-height: 1;
+  }
+  .card-beer {
+    color: rgba(213,196,171,0.55);
+    white-space: nowrap;
   }
 
   .card-new-hero {
@@ -2320,7 +2325,7 @@
     .card-sun-time { font-size: 22px; }
     .card-dial    { width: 80px; height: 80px; }
     .area-chip    { font-size: 12px; padding: 6px 13px; }
-    .sort-btn     { font-size: 12px; padding: 5px 10px; }
+    .sort-btn     { font-size: 15px; padding: 12px 16px; }
 
     .card-action-btn { font-size: 12px; padding: 8px 16px; }
     .card-actions    { gap: 10px; }
@@ -4795,10 +4800,10 @@
 
   <!-- Sort panel: fixed overlay, positioned by JS from button origin -->
   <div id="sort-panel" class="glass-panel">
-    <button class="sort-btn active" data-sort="score"    onclick="setSortBy('score')">⭐ Score</button>
-    <button class="sort-btn"        data-sort="rating"   onclick="setSortBy('rating')">★ Rating</button>
-    <button class="sort-btn"        data-sort="distance" onclick="setSortBy('distance')">⊙ Near</button>
-    <button class="sort-btn"        data-sort="beer"     onclick="setSortBy('beer')">🍺 Ølpris</button>
+    <button class="sort-btn active" data-sort="score"    onclick="setSortBy('score')">Mest sol</button>
+    <button class="sort-btn"        data-sort="latest"   onclick="setSortBy('latest')">Senest sol</button>
+    <button class="sort-btn"        data-sort="distance" onclick="setSortBy('distance')">Avstand</button>
+    <button class="sort-btn"        data-sort="beer"     onclick="setSortBy('beer')">Ølpris</button>
   </div>
 
   <!-- Floating time slider (round 12) — outside #panel, tracks panel top edge -->

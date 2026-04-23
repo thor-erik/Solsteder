@@ -65,6 +65,9 @@ function buildMiniSunTimeline(v, dateStr, fromHour) {
   </div>`;
 }
 
+// Inline beer mug SVG for venue cards (12px)
+const beerSvgMini = `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><path d="M 7 4 L 7 18 Q 7 20 9 20 L 15 20 Q 17 20 17 18 L 17 4 Z"/><path d="M 17 7 L 19 7 Q 21 7 21 9 L 21 13 Q 21 15 19 15 L 17 15"/><path d="M 7 10 L 17 10"/></svg>`;
+
 /** Render a single venue card — new two-column redesign. */
 function renderCard(v, dateStr, fromHour, toHour, isPoint) {
   const dayHours = getVenueHoursForDay(v, dateStr);
@@ -91,8 +94,8 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
   const state = typeof venueState === 'function' ? venueState(v, fromHour) :
     { state: 'sun', mainText: '☼ —', subText: '', className: 'state-sun' };
 
-  // Build meta row: area · type · beer price (drop distance)
-  const metaParts = [v.area, catLabel(v), v.beerPrice ? `🍺 ${v.beerPrice} kr` : null].filter(Boolean);
+  // Build meta row: area · type
+  const metaParts = [v.area, catLabel(v)].filter(Boolean);
   const metaHtml = metaParts.map((p, i) =>
     (i > 0 ? '<span class="card-meta-dot">·</span>' : '') + `<span>${p}</span>`
   ).join('');
@@ -109,7 +112,7 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
         ${miniTimeline}
       </div>
       <div class="card-new-right">
-        <div class="card-new-dist">${distStr || ''}</div>
+        <div class="card-new-dist">${distStr || ''}${v.beerPrice ? `${distStr ? ' · ' : ''}<span class="card-beer">${beerSvgMini} ${v.beerPrice} kr</span>` : ''}</div>
         <div class="card-new-hero">
           <div class="card-new-hero-main">${state.mainText}</div>
           <div class="card-new-hero-sub">${state.subText}</div>
@@ -240,11 +243,16 @@ function renderList() {
       const db = Math.hypot(b.lat - userLocation.lat, b.lng - userLocation.lng);
       return da - db;
     });
-  } else if (sortBy === 'rating') {
+  } else if (sortBy === 'latest') {
+    // Sort by latest sun end time (venues with sun ending latest first)
+    for (const v of venues) {
+      const { windows } = computeSunWindows(v, dateStr);
+      v._lastSunEnd = windows.length ? Math.max(...windows.map(w => w.end)) : 0;
+    }
     venues.sort((a, b) => {
       const cp = closedPenalty(a) - closedPenalty(b);
       if (cp !== 0) return cp;
-      return b.rating - a.rating;
+      return b._lastSunEnd - a._lastSunEnd;
     });
   } else if (sortBy === 'beer') {
     venues.sort((a, b) => {
@@ -404,6 +412,6 @@ function buildTooltipContent(v) {
 
   return `
     <div class="ht-name">${v.name}</div>
-    <div class="ht-meta"><span style="color:var(--accent)">★ ${v.rating}</span> · ${catLabel(v)}${v.beerPrice ? ` · 🍺 ${v.beerPrice} kr` : ''}</div>
+    <div class="ht-meta"><span style="color:var(--accent)">★ ${v.rating}</span> · ${catLabel(v)}${v.beerPrice ? ` · ${v.beerPrice} kr/0.5l` : ''}</div>
     ${statusHtml}${tlHtml}`;
 }

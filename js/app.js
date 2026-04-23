@@ -1229,7 +1229,7 @@ function setSortBy(sort) {
 function updateSortBtns() {
   document.querySelectorAll('.sort-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.sort === activeSortBy));
-  const labels = { score: 'Sol nå', rating: 'Rating', distance: 'Near', beer: 'Ølpris' };
+  const labels = { score: 'Mest sol', latest: 'Senest sol', distance: 'Avstand', beer: 'Ølpris' };
   const labelEl = document.getElementById('sort-label');
   if (labelEl) labelEl.textContent = labels[activeSortBy] ?? 'Sol nå';
 }
