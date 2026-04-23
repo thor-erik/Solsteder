@@ -564,7 +564,7 @@ function showFtsPopup(hour) {
       // Temperature
       if (tempEl) tempEl.textContent = wx.temp != null ? Math.round(wx.temp) + '°' : '';
       // Wind
-      if (windEl) windEl.textContent = wx.wind != null ? Math.round(wx.wind) + ' m/s' : '';
+      if (windEl) windEl.textContent = wx.wspd != null ? Math.round(wx.wspd) + ' m/s' : '';
     } else {
       if (wxIconEl) wxIconEl.textContent = '';
       if (tempEl)   tempEl.textContent = '';
