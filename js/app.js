@@ -345,7 +345,55 @@ function drawFtsCanvas() {
     c.fillRect(0, BLEED, pastX, TRACK_H);
   }
 
-  // 6. Inset shadow
+  // 6. Venue shadow overlay — dim parts where selected venue is in shade
+  if (selectedId != null) {
+    const sv = VENUES.find(x => x.id === selectedId);
+    if (sv) {
+      const { windows: svWins, open: svOpen, close: svClose } = computeSunWindows(sv, dateStr);
+      // Build list of shadow gaps within the daylight range
+      const gaps = [];
+      // Before first sun window (from venue open to first window start)
+      if (svWins.length > 0) {
+        if (svWins[0].start > svOpen + 0.01) gaps.push({ start: svOpen, end: svWins[0].start });
+        for (let i = 0; i < svWins.length - 1; i++) {
+          if (svWins[i + 1].start > svWins[i].end + 0.01) {
+            gaps.push({ start: svWins[i].end, end: svWins[i + 1].start });
+          }
+        }
+        const lastEnd = svWins[svWins.length - 1].end;
+        if (lastEnd < svClose - 0.01) gaps.push({ start: lastEnd, end: svClose });
+      } else if (svClose > svOpen) {
+        // No sun at all — entire range is shadow
+        gaps.push({ start: svOpen, end: svClose });
+      }
+      // Draw shadow gaps as diagonal hatching + dim overlay
+      for (const gap of gaps) {
+        const x1 = Math.round(timeToX(Math.max(MIN_H, gap.start)));
+        const x2 = Math.round(timeToX(Math.min(MAX_H, gap.end)));
+        if (x2 <= x1) continue;
+        // Semi-transparent darken
+        c.fillStyle = 'rgba(0,0,0,0.35)';
+        c.fillRect(x1, BLEED, x2 - x1, TRACK_H);
+        // Diagonal hatching for visual distinction
+        c.save();
+        c.beginPath();
+        c.rect(x1, BLEED, x2 - x1, TRACK_H);
+        c.clip();
+        c.strokeStyle = 'rgba(0,0,0,0.18)';
+        c.lineWidth = 1;
+        const step = 6;
+        for (let lx = x1 - TRACK_H; lx < x2 + TRACK_H; lx += step) {
+          c.beginPath();
+          c.moveTo(lx, BLEED + TRACK_H);
+          c.lineTo(lx + TRACK_H, BLEED);
+          c.stroke();
+        }
+        c.restore();
+      }
+    }
+  }
+
+  // 7. Inset shadow
   const insetGrad = c.createLinearGradient(0, BLEED, 0, BLEED + 5);
   insetGrad.addColorStop(0, 'rgba(0,0,0,0.22)');
   insetGrad.addColorStop(1, 'rgba(0,0,0,0)');
@@ -353,7 +401,7 @@ function drawFtsCanvas() {
   c.fillRect(0, BLEED, BAR_W, TRACK_H);
   c.restore(); // exit rounded-rect clip — thumb + NÅ tick draw unclipped
 
-  // 7. NÅ tick
+  // 8. NÅ tick
   const nowH = new Date().getHours() + new Date().getMinutes() / 60;
   const isToday = datePicker.value === todayStr();
   if (isToday && nowH >= MIN_H && nowH <= MAX_H) {
@@ -374,7 +422,7 @@ function drawFtsCanvas() {
     }
   }
 
-  // 8. Thumb — same height as track, clamped to curvature ends
+  // 9. Thumb — same height as track, clamped to curvature ends
   if (fromH >= MIN_H && fromH <= MAX_H) {
     const isActive  = !!(window._qcThumbActive);
     const springOff = (typeof window._ftsSpringOffset === 'number') ? window._ftsSpringOffset : 0;
@@ -1997,6 +2045,7 @@ function selectVenue(id, flyTo) {
 
   openDetailPanel(v);
   draw();
+  drawFtsCanvas();
   renderList();
 
   // Fly in the next task — panel/DOM mutations must be complete AND all
@@ -2106,6 +2155,7 @@ if (typeof stopWindOverlay === 'function') stopWindOverlay();
     _frozenBounds  = null;
     clearSpriteCache();
     draw();
+    drawFtsCanvas();
     renderList();
     const interacted    = _mapMovedWhileDetailOpen;
     _mapMovedWhileDetailOpen = false;
