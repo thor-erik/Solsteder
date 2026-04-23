@@ -709,8 +709,10 @@ function _initZoomDebugVisibility() {
   }
 }
 
-map.on('style.load', () => {
+function _onMapStyleReady() {
+  if (mapLoaded) return;           // already handled
   mapLoaded = true;
+  console.log('[intro] map style ready');
 
   if (!editSatelliteActive) {
     map.setFog({
@@ -730,7 +732,14 @@ map.on('style.load', () => {
 
   _introMapReady = true;
   _introCheckReady();
-});
+}
+
+map.on('style.load', _onMapStyleReady);
+map.on('load', _onMapStyleReady);
+
+// If map is already loaded by the time we register listeners (cached style),
+// fire immediately
+if (map.isStyleLoaded()) _onMapStyleReady();
 
 map.on('error', (e) => {
   console.error('Mapbox GL error:', e.error);
