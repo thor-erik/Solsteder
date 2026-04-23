@@ -2599,6 +2599,7 @@ document.addEventListener('DOMContentLoaded', () => {
       let _dragRafId = null;
 
       function _beginDrag(y) {
+        if (_dragActive) return; // already initiated by a child element
         _dragY0         = y;
         _dragT0         = _panelTranslateNow();
         _dragActive     = true;
@@ -2679,7 +2680,9 @@ document.addEventListener('DOMContentLoaded', () => {
       function _wireSwipeTarget(el, opts = {}) {
         const _INTERACTIVE = 'button, a, input, select, textarea, canvas';
         el.addEventListener('touchstart', e => {
+          if (opts.peekOnly && _currentState() !== 'peek') return;
           if (opts.excludeInteractive && e.target.closest(_INTERACTIVE)) return;
+          if (opts.excludeSelector && e.target.closest(opts.excludeSelector)) return;
           _beginDrag(e.touches[0].clientY);
         }, { passive: true });
 
@@ -2722,9 +2725,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (venuePeek)  _wireSwipeTarget(venuePeek);
       if (panelHeader) _wireSwipeTarget(panelHeader);
 
-      // All visible peek-state elements are already wired as drag targets above.
-      // The handle covers the drag pill + surrounding area, list-sun-header covers
-      // "X steder i solen", and venue-peek covers the first card preview.
+      // Catch-all: wire the panel itself for peek state so any gap between child
+      // elements (handle, sun-header, venue-peek) is also draggable. The peekOnly
+      // guard prevents interference with venue-list scrolling in expanded state.
+      // _beginDrag's own guard prevents double-fire when a child already started drag.
+      _wireSwipeTarget(panelEl, { peekOnly: true, excludeInteractive: true, excludeSelector: '#venue-list' });
 
       // ── First-run nudge: bounce sheet up 20px after 800ms, once only ──────
       if (!localStorage.getItem('sol_peek_nudged')) {
