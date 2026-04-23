@@ -110,6 +110,32 @@ let _sharedHour     = null; // hour (float) from share link
 let _ftsAppstartDone   = false; // one-shot appstart popup
 let _ftsDragging       = false; // true during scrub
 let _ftsHideTimeout    = null;  // scrub popup auto-hide timer
+const FTS_GAP          = 8;    // px gap between pill and panel top edge
+
+/** Update --fts-bottom CSS var so the pill tracks the panel's top edge. */
+function _syncFtsPosition() {
+  if (!USE_FLOATING_TIME_SLIDER || !isMobile()) return;
+  const panel = document.getElementById('panel');
+  if (!panel) return;
+  const isHidden   = panel.classList.contains('mobile-hidden');
+  const isExpanded = panel.classList.contains('mobile-expanded');
+  const isFull     = panel.classList.contains('mobile-fullscreen');
+  let bottom;
+  if (isHidden) {
+    bottom = `${FTS_GAP}px`;
+  } else if (isFull) {
+    // Fullscreen: pill sits above panel (100svh)
+    bottom = `calc(100svh + ${FTS_GAP}px)`;
+  } else if (isExpanded) {
+    // Expanded: panel fills 62svh
+    bottom = `calc(62svh + ${FTS_GAP}px)`;
+  } else {
+    // Peek: panel shows --peek-h
+    const peekH = panel.style.getPropertyValue('--peek-h') || '160px';
+    bottom = `calc(${peekH} + ${FTS_GAP}px)`;
+  }
+  document.body.style.setProperty('--fts-bottom', bottom);
+}
 
 // Norwegian day/month abbreviations for FTS date button
 const _ftsDays   = ['søn','man','tir','ons','tor','fre','lør'];
@@ -121,6 +147,7 @@ function initFts() {
   const track  = document.getElementById('fts-track');
   if (!canvas || !track) return;
 
+  _syncFtsPosition();
   updateFtsDateBtn();
   drawFtsCanvas();
 
@@ -1587,16 +1614,14 @@ function _updatePeekHeight() {
   const panel     = document.getElementById('panel');
   const handle    = document.getElementById('panel-handle');
   const timebar   = document.getElementById('panel-time-bar');
-  const fts       = document.getElementById('fts');
   const sunHeader = document.getElementById('list-sun-header');
   const peek      = document.getElementById('venue-peek');
-  if (!panel || !handle) return;
-  const h = handle.offsetHeight
-          + (timebar ? timebar.offsetHeight : 0)
-          + (fts ? fts.offsetHeight : 0)
+  if (!panel || !handle || !timebar) return;
+  const h = handle.offsetHeight + timebar.offsetHeight
           + (sunHeader ? sunHeader.offsetHeight : 0)
           + (peek ? peek.offsetHeight : 0);
   panel.style.setProperty('--peek-h', Math.max(h, 100) + 'px');
+  _syncFtsPosition();
 }
 
 // ── Venue peek: render top of first venue card into #venue-peek ──────────────
@@ -1910,6 +1935,7 @@ function openDetailPanel(v) {
       if (panel) {
         panel.classList.remove('mobile-expanded', 'mobile-fullscreen');
         panel.classList.add('mobile-hidden');
+        _syncFtsPosition();
       }
       document.getElementById('floating-search')?.classList.add('mobile-ui-hidden');
       document.getElementById('qc-wrap')?.classList.add('mobile-ui-hidden');
@@ -1930,6 +1956,7 @@ function openDetailPanel(v) {
     if (panel) {
       panel.classList.remove('mobile-expanded', 'mobile-fullscreen');
       panel.classList.add('mobile-hidden');
+      _syncFtsPosition();
     }
     document.getElementById('floating-search')?.classList.add('mobile-ui-hidden');
     document.getElementById('qc-wrap')?.classList.add('mobile-ui-hidden');
@@ -1966,7 +1993,8 @@ if (typeof stopWindOverlay === 'function') stopWindOverlay();
         panel.classList.remove('mobile-hidden', 'mobile-fullscreen');
         if (expandList) panel.classList.add('mobile-expanded');
         else            panel.classList.remove('mobile-expanded');
-}
+        _syncFtsPosition();
+      }
       document.getElementById('floating-search')?.classList.remove('mobile-ui-hidden');
       document.getElementById('qc-wrap')?.classList.remove('mobile-ui-hidden');
     }, 320);
@@ -2355,6 +2383,7 @@ function togglePanel() {
       // hidden → peek
       panel.classList.remove('mobile-hidden');
     }
+    _syncFtsPosition();
     panelVisible = true;
     if (handle) handle.style.display = 'flex';
     // Redraw when transition completes, with fallback timeout
@@ -2457,6 +2486,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
           panelEl.classList.remove('mobile-expanded', 'mobile-fullscreen', 'mobile-hidden');
         }
+        _syncFtsPosition();
       }
 
       let _dragInitH = 0; // panel height at drag start (px)
@@ -2486,6 +2516,18 @@ document.addEventListener('DOMContentLoaded', () => {
           } else {
             panelEl.style.height = '';
           }
+
+          // Track pill with panel during drag
+          if (USE_FLOATING_TIME_SLIDER) {
+            const fts = document.getElementById('fts');
+            if (fts) {
+              const panelTop = panelEl.getBoundingClientRect().top;
+              const viewH    = window.innerHeight;
+              fts.style.transition = 'none';
+              fts.style.bottom = (viewH - panelTop + FTS_GAP) + 'px';
+            }
+          }
+
           _dragRafId = null;
         });
       }
@@ -2503,6 +2545,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         panelEl.style.transition = '';
         panelEl.style.transform  = '';
+        // Restore pill transition after drag
+        const ftsEl = document.getElementById('fts');
+        if (ftsEl) { ftsEl.style.transition = ''; ftsEl.style.bottom = ''; }
         panelEl.style.height     = '';
 
         const SWIPE_V = 0.2, SAFE_DY = 40;
@@ -2540,6 +2585,8 @@ document.addEventListener('DOMContentLoaded', () => {
             _dragActive = false;
             panelEl.style.transition = '';
             panelEl.style.transform  = '';
+            const _ftsEl = document.getElementById('fts');
+            if (_ftsEl) { _ftsEl.style.transition = ''; _ftsEl.style.bottom = ''; }
             if (opts.tapToggle !== false) {
               const s = _currentState();
               _applyState(s === 'expanded' || s === 'fullscreen' ? 'peek' : 'expanded');
