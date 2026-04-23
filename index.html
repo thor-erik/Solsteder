@@ -2281,36 +2281,11 @@
       display: none;
     }
 
-    #venue-peek-card {
-      background: rgba(20, 46, 82, 0.50);
-      border: 1px solid rgba(156, 189, 231, 0.18);
-      border-radius: 12px;
-      padding: 10px 14px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
+    /* Venue card inside peek inherits list card styles — disable interaction
+       so drag-to-expand works. The onclick won't fire thanks to pointer-events. */
+    #venue-peek .venue-card {
       pointer-events: none;
-    }
-
-    #venue-peek-name {
-      font-family: 'Inter', sans-serif;
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      flex: 1;
-    }
-
-    #venue-peek-meta {
-      font-family: 'Inter', sans-serif;
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--muted);
-      white-space: nowrap;
-      flex-shrink: 0;
+      margin-bottom: 0;
     }
 
     /* Hide venue-count and the now-empty venue-header row on mobile */
@@ -2358,14 +2333,11 @@
     .mapboxgl-ctrl-group,
     .mapboxgl-ctrl-attrib { display: none !important; }
 
-    /* In peek state: handle + time bar are visible/interactive; rest blocks nothing. */
+    /* Peek state: the visible portion (handle, sun-header, venue-peek) must
+       capture touch for drag-to-expand. touch-action: none tells the browser
+       not to handle pan gestures natively — our JS touchmove does it. */
     #panel:not(.mobile-expanded):not(.mobile-hidden):not(.mobile-fullscreen) {
-      pointer-events: none;
-    }
-    #panel:not(.mobile-expanded):not(.mobile-hidden):not(.mobile-fullscreen) #panel-handle,
-    #panel:not(.mobile-expanded):not(.mobile-hidden):not(.mobile-fullscreen) #panel-time-bar,
-    #panel:not(.mobile-expanded):not(.mobile-hidden):not(.mobile-fullscreen) #venue-peek {
-      pointer-events: auto;
+      touch-action: none;
     }
 
     /* Fullscreen state: panel covers everything */
@@ -4864,7 +4836,7 @@
 <script src="js/weather.js?v=20260411b"></script>
 <script src="js/scoring.js?v=20260411b"></script>
 <script src="js/map-style.js?v=20260418b"></script>
-<script src="js/app.js?v=20260423p"></script>
+<script src="js/app.js?v=20260423q"></script>
 <script src="js/render-helpers.js?v=20260411b"></script>
 <script src="js/render-arc.js?v=20260411b"></script>
 <script src="js/render-seating.js?v=20260411b"></script>

@@ -1724,22 +1724,18 @@ function _updatePeekHeight() {
   _syncFtsPosition();
 }
 
-// ── Venue peek: render top of first venue card into #venue-peek ──────────────
+// ── Venue peek: render actual first venue card into #venue-peek ──────────────
 function updateVenuePeek(venues) {
   const el = document.getElementById('venue-peek');
   if (!el) return;
   const v = venues && venues[0];
   if (!v) { el.innerHTML = ''; _updatePeekHeight(); return; }
 
-  const name  = (typeof shortName === 'function' ? shortName(v.name) : v.name) || '';
-  const score = v.sunScore != null ? Math.round(v.sunScore) : null;
-  const scoreTxt = score != null ? `${score}%` : '';
-  const metaParts = [scoreTxt].filter(Boolean);
-
-  el.innerHTML = `<div id="venue-peek-card">
-    <div id="venue-peek-name">${name}</div>
-    <div id="venue-peek-meta">${metaParts.join(' · ')}</div>
-  </div>`;
+  const dateStr  = datePicker.value;
+  const fromHour = parseFloat(timeFromEl.value);
+  const toHour   = 23;
+  const isPoint  = true;
+  el.innerHTML = renderCard(v, dateStr, fromHour, toHour, isPoint);
 
   // Measure after content is set
   requestAnimationFrame(_updatePeekHeight);
