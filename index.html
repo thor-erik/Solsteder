@@ -230,7 +230,7 @@
   }
   #search-icon {
     color: var(--muted);
-    font-size: 18px;
+    font-size: 20px;
     flex-shrink: 0;
     line-height: 1;
   }
@@ -501,11 +501,11 @@
     left: 12px; right: 12px;
     bottom: var(--fts-bottom, 160px);
     z-index: 925;
-    height: 48px;
+    height: 46px;
     align-items: center;
-    gap: 8px;
-    padding: 4px 8px;
-    border-radius: 999px;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 23px;
     background: var(--glass-action-bg);
     backdrop-filter: var(--glass-blur-action);
     -webkit-backdrop-filter: var(--glass-blur-action);
@@ -519,13 +519,13 @@
   #fts-date-btn {
     display: flex; align-items: center; justify-content: center;
     gap: 6px;
-    height: 40px; min-width: 40px;
+    height: 38px; min-width: 38px;
     padding: 0 12px;
     background: var(--glass-action-bg);
     backdrop-filter: var(--glass-blur-action);
     -webkit-backdrop-filter: var(--glass-blur-action);
     border: var(--glass-border);
-    border-radius: 999px;
+    border-radius: 19px;
     box-shadow: var(--glass-inset);
     color: var(--text);
     font: 600 13px/1 'Inter', sans-serif;
@@ -534,7 +534,7 @@
     white-space: nowrap;
     -webkit-tap-highlight-color: transparent;
     outline: none;
-    transition: background 120ms, border-color 120ms;
+    transition: background 120ms, border-color 120ms, min-width 200ms ease, padding 200ms ease;
   }
   #fts-date-btn:hover { background: rgba(20,46,82,0.60); border-color: rgba(156,189,231,0.30); }
   #fts-date-btn.active { border-color: rgba(255,175,133,0.35); }
@@ -545,15 +545,15 @@
   #fts-date-label { transition: color 120ms; }
   .fts-chevron { color: var(--muted); flex-shrink: 0; transition: color 120ms, transform 120ms; }
   /* Today: icon only — no label, no chevron, circle shape */
-  #fts-date-btn.fts-today { padding: 0; width: 40px; }
+  #fts-date-btn.fts-today { padding: 0; width: 38px; }
   #fts-date-btn.fts-today #fts-date-label,
   #fts-date-btn.fts-today .fts-chevron { display: none; }
 
   /* Slider track — canvas fills remaining width */
   #fts-track {
     flex: 1 1 0; min-width: 0;
-    height: 40px;
-    border-radius: 13px;
+    height: 38px;
+    border-radius: 19px;
     overflow: hidden;
     cursor: ew-resize;
     touch-action: none;    /* prevent scroll during drag */
@@ -599,7 +599,7 @@
 
   /* Fullscreen: pill is at the top — push all panel content below it */
   body.fts #panel.mobile-fullscreen #panel-handle {
-    height: calc(env(safe-area-inset-top, 0px) + 16px + 48px + 8px);  /* safe + gap + pill + gap */
+    height: calc(env(safe-area-inset-top, 0px) + 16px + 46px + 8px);  /* safe + gap + pill + gap */
   }
 
   /* ── Bottom-center: date pill + sun arc + intent presets ──────────────────── */
@@ -4715,7 +4715,7 @@
 <script src="js/weather.js?v=20260411b"></script>
 <script src="js/scoring.js?v=20260411b"></script>
 <script src="js/map-style.js?v=20260418b"></script>
-<script src="js/app.js?v=20260423j"></script>
+<script src="js/app.js?v=20260423k"></script>
 <script src="js/render-helpers.js?v=20260411b"></script>
 <script src="js/render-arc.js?v=20260411b"></script>
 <script src="js/render-seating.js?v=20260411b"></script>

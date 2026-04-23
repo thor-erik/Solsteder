@@ -126,7 +126,7 @@ function _syncFtsPosition() {
   } else if (isFull) {
     // Fullscreen: pill at top of screen — content sits below it
     // bottom = viewportH - safeAreaTop - pillH - topGap
-    bottom = `calc(100svh - env(safe-area-inset-top, 0px) - 48px - 16px)`;
+    bottom = `calc(100svh - env(safe-area-inset-top, 0px) - 46px - 16px)`;
   } else if (isExpanded) {
     // Expanded: pill above panel top edge
     bottom = `calc(62svh + ${FTS_GAP}px)`;
@@ -220,7 +220,7 @@ function drawFtsCanvas() {
 
   const dpr  = window.devicePixelRatio || 1;
   const cssW = canvasEl.clientWidth  || 200;
-  const cssH = canvasEl.clientHeight || 40;
+  const cssH = canvasEl.clientHeight || 38;
   const pw   = Math.round(cssW * dpr);
   const ph   = Math.round(cssH * dpr);
   if (canvasEl.width !== pw || canvasEl.height !== ph) {
@@ -236,7 +236,7 @@ function drawFtsCanvas() {
   const MIN_H   = MIN_H_ARC;
   const MAX_H   = MAX_H_ARC;
   const TRACK_H = cssH;
-  const TRACK_R = Math.floor(TRACK_H / 2);
+  const TRACK_R = Math.floor(TRACK_H / 2);  // 19px — matches CSS border-radius
   const BAR_W   = cssW;
   const dateStr = datePicker.value;
   const fromH   = parseFloat(timeFromEl.value);
@@ -244,18 +244,17 @@ function drawFtsCanvas() {
   const timeToX = t => (t - MIN_H) / (MAX_H - MIN_H) * BAR_W;
 
   // 1. Background — night color
-  c.beginPath();
-  c.rect(0, 0, cssW, cssH);
   c.fillStyle = '#2A3B5E';
-  c.fill();
+  c.fillRect(0, 0, cssW, cssH);
 
-  // 2. Hourly weather-ramp segments
+  // 2. Collect hourly weather-ramp segments
   const wxHours = (typeof getWeatherHoursForDate === 'function')
     ? getWeatherHoursForDate(dateStr) : [];
   const hasWx = wxHours.length > 0 && typeof getWeatherAt === 'function';
   const nowH_ = new Date().getHours() + new Date().getMinutes() / 60;
   const isToday_ = datePicker.value === todayStr();
 
+  const segments = [];  // {x1, x2, color}
   for (let h = MIN_H; h < MAX_H; h++) {
     if (isToday_ && h + 1 <= nowH_) continue;
     const sun = getSunFromTable(currentSunTable, h + 0.5);
@@ -276,24 +275,46 @@ function drawFtsCanvas() {
     const x1 = Math.round(timeToX(drawFrom));
     const x2 = Math.round(timeToX(h + 1));
     if (x2 <= x1) continue;
-    c.fillStyle = color;
-    c.fillRect(x1, 0, x2 - x1, TRACK_H);
+    segments.push({ x1, x2, color });
   }
 
-  // 3. Inset shadow
+  // 3. Fill rounded ends with first/last weather color
+  if (segments.length > 0) {
+    const first = segments[0];
+    const last  = segments[segments.length - 1];
+    // Left end: extend first color from x=0 to first segment start
+    if (first.x1 > 0) {
+      c.fillStyle = first.color;
+      c.fillRect(0, 0, first.x1, TRACK_H);
+    }
+    // Right end: extend last color from last segment end to full width
+    if (last.x2 < BAR_W) {
+      c.fillStyle = last.color;
+      c.fillRect(last.x2, 0, BAR_W - last.x2, TRACK_H);
+    }
+  }
+
+  // 4. Draw weather segments
+  for (const seg of segments) {
+    c.fillStyle = seg.color;
+    c.fillRect(seg.x1, 0, seg.x2 - seg.x1, TRACK_H);
+  }
+
+  // 5. Inset shadow
   const insetGrad = c.createLinearGradient(0, 0, 0, 5);
   insetGrad.addColorStop(0, 'rgba(0,0,0,0.22)');
   insetGrad.addColorStop(1, 'rgba(0,0,0,0)');
   c.fillStyle = insetGrad;
   c.fillRect(0, 0, BAR_W, TRACK_H);
 
-  // 4. NÅ tick
+  // 6. NÅ tick
   const nowH = new Date().getHours() + new Date().getMinutes() / 60;
   const isToday = datePicker.value === todayStr();
   if (isToday && nowH >= MIN_H && nowH <= MAX_H) {
     const nx = timeToX(nowH);
-    const thumbPx = Math.abs(timeToX(fromH) - nx);
-    if (thumbPx >= 12) {
+    const thumbX = Math.max(TRACK_R, Math.min(BAR_W - TRACK_R, timeToX(fromH)));
+    const thumbPx = Math.abs(thumbX - nx);
+    if (thumbPx >= TRACK_R) {
       c.save();
       c.setLineDash([2, 3]);
       c.strokeStyle = 'rgba(156,189,231,0.55)';
@@ -307,13 +328,14 @@ function drawFtsCanvas() {
     }
   }
 
-  // 5. Sunglass thumb
+  // 7. Thumb — same height as track, clamped to curvature ends
   if (fromH >= MIN_H && fromH <= MAX_H) {
     const isActive  = !!(window._qcThumbActive);
     const springOff = (typeof window._ftsSpringOffset === 'number') ? window._ftsSpringOffset : 0;
-    const sx   = timeToX(fromH) + springOff;
+    const rawX = timeToX(fromH) + springOff;
+    const sx   = Math.max(TRACK_R, Math.min(BAR_W - TRACK_R, rawX));
     const cy_  = TRACK_H / 2;
-    const R    = 12;   // 24px diameter — slightly smaller for 40px track
+    const R    = TRACK_R;  // thumb diameter = track height
 
     c.save();
     c.translate(sx, cy_);
@@ -350,7 +372,7 @@ function drawFtsCanvas() {
     // Inner highlight
     c.save();
     c.beginPath();
-    c.arc(sx, cy_ - 1.5, R - 3, Math.PI * 1.1, Math.PI * 1.9);
+    c.arc(sx, cy_ - 2, R - 4, Math.PI * 1.1, Math.PI * 1.9);
     c.strokeStyle = 'rgba(255,255,255,0.30)';
     c.lineWidth   = 1;
     c.stroke();
