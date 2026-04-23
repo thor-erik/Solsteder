@@ -656,7 +656,7 @@
 
   /* Fullscreen: pill is at the top — push all panel content below it */
   body.fts #panel.mobile-fullscreen #panel-handle {
-    height: calc(env(safe-area-inset-top, 0px) + 16px + 46px + 16px);  /* safe + gap + pill + drag zone */
+    height: calc(env(safe-area-inset-top, 0px) + 16px + 46px + 14px);  /* safe + gap above pill + pill + 14px gap below (matches dp-handle) */
   }
 
   /* ── Bottom-center: date pill + sun arc + intent presets ──────────────────── */
