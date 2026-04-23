@@ -4426,15 +4426,24 @@
     align-items: center;
     justify-content: center;
     gap: 32px;
-    opacity: 1;
-    visibility: visible;
-    transition: opacity 0.4s ease;
+    transition: background-color 0.5s ease;
     pointer-events: all;
     cursor: default;
+  }
+  #splash.bg-out {
+    background-color: transparent;
+  }
+  #splash.done {
+    pointer-events: none;
+    visibility: hidden;
   }
   #splash-logo {
     width: 160px;
     height: auto;
+    transition: opacity 0.4s ease;
+  }
+  #splash-logo.fade-out {
+    opacity: 0;
   }
   #splash-loader {
     width: 28px;
@@ -4443,14 +4452,17 @@
     border-top-color: #FFAF85;
     border-radius: 50%;
     animation: splash-spin 0.8s linear infinite;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  #splash-loader.visible {
+    opacity: 1;
+  }
+  #splash-loader.fade-out {
+    opacity: 0;
   }
   @keyframes splash-spin {
     to { transform: rotate(360deg); }
-  }
-  #splash.hidden {
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
   }
 
   /* Elements hidden during intro sequence */

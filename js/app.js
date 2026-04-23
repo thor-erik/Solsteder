@@ -102,6 +102,8 @@ let _introGeoReady  = false;
 let _introCenter    = [10.728, 59.9125]; // Oslo fallback
 let _introRunning   = false;
 let _introSeqId     = 0; // incremented on skip to invalidate pending timeouts
+const _splashStart  = performance.now();
+const SPLASH_MIN_MS = 1500; // minimum branded splash time
 let _sharedVenueId  = null; // set when page is loaded via a #v= share link
 let _sharedDate     = null; // date string from share link (YYYY-MM-DD)
 let _sharedHour     = null; // hour (float) from share link
@@ -763,13 +765,20 @@ setTimeout(() => {
   }
 }, 8000);
 
+// Show loader only if map is still loading after the branded splash minimum
+setTimeout(() => {
+  if (!_introRunning) {
+    const loader = document.getElementById('splash-loader');
+    if (loader) loader.classList.add('visible');
+  }
+}, SPLASH_MIN_MS);
+
 // Safety net: if splash is still visible after 12s, force-skip
 setTimeout(() => {
-  const splash = document.getElementById('splash');
-  if (splash && !splash.classList.contains('hidden')) {
+  if (!_introRunning) {
     _introMapReady = true;
     _introGeoReady = true;
-    if (!_introRunning) _skipIntro();
+    _skipIntro();
   }
 }, 12000);
 
@@ -3478,10 +3487,8 @@ function _runIntroSequence() {
   // Pitch will gradually increase to 45° during step 2
   map.jumpTo({ center: _introCenter, zoom: 15, pitch: 0, bearing: 0 });
 
-  // Enable skip after 600ms (let splash fade complete before accepting skips)
+  // Enable skip after the splash has faded
   let skipEnabled = false;
-  setTimeout(() => { if (_introSeqId === seqId) skipEnabled = true; }, 600);
-
   const skipHandler = () => {
     if (!skipEnabled || _introSeqId !== seqId) return;
     _skipIntro(seqId);
@@ -3489,47 +3496,79 @@ function _runIntroSequence() {
   document.addEventListener('click', skipHandler);
   document.addEventListener('touchstart', skipHandler);
 
-  // Step 1: Fade out splash
+  // How long has the splash been visible? Wait at least SPLASH_MIN_MS
+  const elapsed = performance.now() - _splashStart;
+  const waitMs  = Math.max(0, SPLASH_MIN_MS - elapsed);
+
+  const loader    = document.getElementById('splash-loader');
+  const splashLogo = document.getElementById('splash-logo');
+
+  // After minimum branded time, begin the layered splash exit
   setTimeout(() => {
     if (_introSeqId !== seqId) return;
-    splash.classList.add('hidden');
 
-    // Step 2: Scrub time from day preset start to end (1800ms) + zoom in + tilt up to cinematic angle (all concurrent)
-    // Uses dynamic day preset boundaries to maintain consistent color throughout the year
-    animateToTime(introEndTime, 1800);
-    map.easeTo({ zoom: 16, pitch: 60, duration: 1800, easing: t => t * t * (3 - 2 * t) });
+    // Phase 1: If loader is visible, fade it out first (300ms)
+    const loaderVisible = loader && loader.classList.contains('visible');
+    if (loaderVisible) loader.classList.add('fade-out');
+    const loaderFadeMs = loaderVisible ? 300 : 0;
 
-    // Step 3: Zoom out + detilt (starts when step 2 ends)
-    // Also fade in UI elements in parallel
     setTimeout(() => {
       if (_introSeqId !== seqId) return;
-      map.easeTo({ zoom: 15.2, pitch: 15, bearing: 0, duration: 700 });
-      _introRevealUI(search, brand, qcWrap, panel);
 
-      // Step 4: Return to current time (after step 3 completes)
+      // Phase 2: Fade out the background (500ms CSS transition)
+      splash.classList.add('bg-out');
+
+      // Phase 3: At ~50% background opacity (250ms), start the map intro
       setTimeout(() => {
         if (_introSeqId !== seqId) return;
-        animateToTime(now, 1200);
-      }, 500);
+        skipEnabled = true;
 
-      // Step 5: Fade in pins
-      setTimeout(() => {
-        if (_introSeqId !== seqId) return;
-        canvas.style.transition = 'opacity 0.4s ease';
-        canvas.classList.remove('intro-hidden');
+        // Step 2: Scrub time + zoom in + tilt up (all concurrent)
+        animateToTime(introEndTime, 1800);
+        map.easeTo({ zoom: 16, pitch: 60, duration: 1800, easing: t => t * t * (3 - 2 * t) });
 
-        // Step 5: After pins fade in, clean up and activate features
+        // Step 3: Zoom out + detilt (starts when step 2 ends)
         setTimeout(() => {
           if (_introSeqId !== seqId) return;
-          if (_sharedHour === null) _activateNowMode();
-          update();
-          document.removeEventListener('click', skipHandler);
-          document.removeEventListener('touchstart', skipHandler);
-          if (_sharedVenueId) selectVenue(_sharedVenueId, true);
-        }, 350);
-      }, 700);
-    }, 1900);
-  }, 80);
+          map.easeTo({ zoom: 15.2, pitch: 15, bearing: 0, duration: 700 });
+          _introRevealUI(search, brand, qcWrap, panel);
+
+          // Step 4: Return to current time
+          setTimeout(() => {
+            if (_introSeqId !== seqId) return;
+            animateToTime(now, 1200);
+          }, 500);
+
+          // Step 5: Fade in pins
+          setTimeout(() => {
+            if (_introSeqId !== seqId) return;
+            canvas.style.transition = 'opacity 0.4s ease';
+            canvas.classList.remove('intro-hidden');
+
+            setTimeout(() => {
+              if (_introSeqId !== seqId) return;
+              if (_sharedHour === null) _activateNowMode();
+              update();
+              document.removeEventListener('click', skipHandler);
+              document.removeEventListener('touchstart', skipHandler);
+              if (_sharedVenueId) selectVenue(_sharedVenueId, true);
+            }, 350);
+          }, 700);
+        }, 1900);
+      }, 250);
+
+      // Phase 4: Fade out logo (starts 150ms after background begins fading)
+      setTimeout(() => {
+        if (splashLogo) splashLogo.classList.add('fade-out');
+      }, 150);
+
+      // Phase 5: Fully remove splash from layout after all transitions complete
+      setTimeout(() => {
+        splash.classList.add('done');
+      }, 600);
+
+    }, loaderFadeMs);
+  }, waitMs);
 }
 
 function _introRevealUI(search, brand, qcWrap, panel) {
@@ -3606,7 +3645,11 @@ function _skipIntro(seqId) {
 
   // Instantly hide splash
   splash.style.transition = 'none';
-  splash.classList.add('hidden');
+  splash.classList.add('bg-out', 'done');
+  const splashLogo = document.getElementById('splash-logo');
+  const loader = document.getElementById('splash-loader');
+  if (splashLogo) { splashLogo.style.transition = 'none'; splashLogo.classList.add('fade-out'); }
+  if (loader) { loader.style.transition = 'none'; loader.classList.add('fade-out'); }
 
   // Instantly reveal all UI
   const locateBtnEl = document.getElementById('locate-btn');
