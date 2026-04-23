@@ -3277,8 +3277,7 @@ function _restorePreAuthState() {
 }
 
 function _introCheckReady() {
-  // Ensure map is actually loaded before starting intro sequence
-  if (_introMapReady && _introGeoReady && !_introRunning && mapLoaded) {
+  if (_introMapReady && _introGeoReady && !_introRunning) {
     _introRunning = true;
     // Skip intro animation if this is an OAuth redirect return
     const isOAuthReturn = window.location.hash.includes('access_token=') ||
