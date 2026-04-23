@@ -3219,9 +3219,14 @@ function _isAreaType(type) {
 async function _fetchGeocode(query) {
   if (!MAPBOX_TOKEN || query.length < 2) return [];
   try {
-    const bbox = '10.5,59.8,10.95,60.05'; // Oslo area
+    const center = map.getCenter();
+    const bbox = '10.4,59.75,11.0,60.1'; // Greater Oslo area
     const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json` +
-      `?access_token=${MAPBOX_TOKEN}&bbox=${bbox}&limit=3&language=no&types=address,neighborhood,locality,place,poi`;
+      `?access_token=${MAPBOX_TOKEN}` +
+      `&bbox=${bbox}` +
+      `&proximity=${center.lng.toFixed(4)},${center.lat.toFixed(4)}` +
+      `&limit=4&language=no` +
+      `&types=neighborhood,locality,place,address,poi`;
     const resp = await fetch(url, { signal: AbortSignal.timeout(5000) });
     if (!resp.ok) return [];
     const data = await resp.json();
@@ -3232,6 +3237,7 @@ async function _fetchGeocode(query) {
       bbox:   f.bbox,   // [w, s, e, n] — may be null for addresses
       type:   f.place_type?.[0] || 'address',
       geometry: f.geometry,
+      relevance: f.relevance ?? 0, // Mapbox relevance score (0–1)
     }));
   } catch (_) { return []; }
 }
@@ -3286,67 +3292,119 @@ function _sdPickGeo(idx) {
   renderList();
 }
 
+// ── Search relevance scoring ─────────────────────────────────────────────────
+
+/**
+ * Score how well `text` matches query `q` (both lowercase).
+ * Higher = better match.  0 = no match.
+ *   100  exact match
+ *    80  text starts with q
+ *    60  word inside text starts with q
+ *    40  q appears anywhere inside text (contains)
+ */
+function _matchScore(text, q) {
+  if (!text) return 0;
+  if (text === q)               return 100;
+  if (text.startsWith(q))       return 80;
+  // word-boundary: space, hyphen, comma before q
+  if (text.match(new RegExp(`[\\s,\\-]${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`))) return 60;
+  if (text.includes(q))         return 40;
+  return 0;
+}
+
+/** Score a venue against the query, checking name, area, and address. */
+function _venueMatchScore(v, q) {
+  const name = _matchScore(v.name.toLowerCase(), q);
+  const area = _matchScore((v.area ?? '').toLowerCase(), q);
+  const addr = _matchScore(v.address.toLowerCase(), q);
+  return Math.max(name, area, addr);
+}
+
 // ── Search dropdown rendering ────────────────────────────────────────────────
 
 function _renderSearchDropdown(geoOnly) {
   const q = _searchInput.value.trim().toLowerCase();
   if (!q) { _searchDropdown.classList.remove('open'); return; }
 
-  const MAX_CURATED   = 5;
-  const MAX_CANDIDATE = 3;
+  const MAX_RESULTS = 8;
 
-  const curated = (VENUES || []).filter(v =>
-    v.name.toLowerCase().includes(q) ||
-    (v.area ?? '').toLowerCase().includes(q) ||
-    v.address.toLowerCase().includes(q)
-  ).slice(0, MAX_CURATED);
+  // ── Collect all result types with scores ────────────────────────────────
+  // Each entry: { kind, score, data }
 
-  // Candidate venues not already in VENUES
-  const curatedNames = new Set(VENUES.map(v => v.name.toLowerCase()));
-  const candidateHits = (_candidates ?? []).filter(c =>
-    c.name.toLowerCase().includes(q) &&
-    !curatedNames.has(c.name.toLowerCase())
-  ).slice(0, MAX_CANDIDATE);
-
-  // Filter geo results to avoid duplicating curated/candidate names
-  const allVenueNames = new Set([
-    ...curated.map(v => v.name.toLowerCase()),
-    ...candidateHits.map(c => c.name.toLowerCase()),
-  ]);
-  const geoHits = (_geoResults || []).filter(g =>
-    !allVenueNames.has(g.name.toLowerCase())
-  );
-
-  let html = '';
+  const scored = [];
 
   // Curated venues
-  html += curated.map(v => `
-    <div class="sd-row" onclick="_sdPick(${JSON.stringify(v.id)})">
-      <span class="sd-row-icon">${_GEO_ICON.venue}</span>
-      <span class="sd-row-name">${v.name}</span>
-      ${v.area ? `<span class="sd-row-area">${v.area}</span>` : ''}
-    </div>`).join('');
+  for (const v of (VENUES || [])) {
+    const s = _venueMatchScore(v, q);
+    if (s > 0) scored.push({ kind: 'curated', score: s, data: v });
+  }
 
-  // Candidate venues
-  html += candidateHits.map(c => {
-    const cData = encodeURIComponent(JSON.stringify(c));
+  // Candidate venues (exclude names already in VENUES)
+  const curatedNames = new Set(VENUES.map(v => v.name.toLowerCase()));
+  for (const c of (_candidates ?? [])) {
+    if (curatedNames.has(c.name.toLowerCase())) continue;
+    const s = _matchScore(c.name.toLowerCase(), q);
+    if (s > 0) scored.push({ kind: 'candidate', score: s, data: c });
+  }
+
+  // Geocoded results (areas, addresses, POIs from Mapbox)
+  // Give geo-area results a bonus so "Frogner" the neighborhood ranks above
+  // restaurants with "Frogner" in the name when it's an exact or starts-with match.
+  const allNames = new Set(scored.map(r => (r.data.name || '').toLowerCase()));
+  for (let i = 0; i < (_geoResults || []).length; i++) {
+    const g = _geoResults[i];
+    if (allNames.has(g.name.toLowerCase())) continue; // dedup
+    // Use Mapbox relevance (0–1) to compute a score compatible with our scale.
+    // A high-relevance exact area match should outscore venue "contains" matches.
+    const nameScore = _matchScore(g.name.toLowerCase(), q);
+    const base = nameScore > 0 ? nameScore : Math.round((g.relevance || 0) * 60);
+    if (base === 0) continue;
+    // Area bonus: +5 for neighborhoods/places so they float above venue
+    // "contains" matches at the same score tier
+    const bonus = _isAreaType(g.type) ? 5 : 0;
+    scored.push({ kind: 'geo', score: base + bonus, data: g, geoIdx: i });
+  }
+
+  // Sort by score descending, then alphabetically for ties
+  scored.sort((a, b) => b.score - a.score || (a.data.name || '').localeCompare(b.data.name || '', 'no'));
+
+  // Limit total results
+  const results = scored.slice(0, MAX_RESULTS);
+
+  // ── Render rows ─────────────────────────────────────────────────────────
+
+  let html = results.map(r => {
+    if (r.kind === 'curated') {
+      const v = r.data;
+      return `
+      <div class="sd-row" onclick="_sdPick(${JSON.stringify(v.id)})">
+        <span class="sd-row-icon">${_GEO_ICON.venue}</span>
+        <span class="sd-row-name">${v.name}</span>
+        ${v.area ? `<span class="sd-row-area">${v.area}</span>` : ''}
+      </div>`;
+    }
+    if (r.kind === 'candidate') {
+      const c = r.data;
+      const cData = encodeURIComponent(JSON.stringify(c));
+      return `
+      <div class="sd-row sd-row-candidate" onclick="_sdPickCandidate(decodeURIComponent('${cData}'))">
+        <span class="sd-row-icon">${_GEO_ICON.venue}</span>
+        <span class="sd-row-name">${c.name}</span>
+        <span class="sd-candidate-btn">${t('candidate_badge')}</span>
+      </div>`;
+    }
+    // geo
+    const g = r.data;
+    const i = r.geoIdx;
     return `
-    <div class="sd-row sd-row-candidate" onclick="_sdPickCandidate(decodeURIComponent('${cData}'))">
-      <span class="sd-row-icon">${_GEO_ICON.venue}</span>
-      <span class="sd-row-name">${c.name}</span>
-      <span class="sd-candidate-btn">${t('candidate_badge')}</span>
-    </div>`;
-  }).join('');
-
-  // Geocoded address / area results
-  html += geoHits.map((g, i) => `
     <div class="sd-row sd-row-geo" onclick="_sdPickGeo(${i})">
       <span class="sd-row-icon">${_geoTypeIcon(g.type)}</span>
       <span class="sd-row-name">${g.name}</span>
       <span class="sd-row-area">${_geoSubtext(g)}</span>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 
-  const noMatch = curated.length === 0 && candidateHits.length === 0 && geoHits.length === 0;
+  const noMatch = results.length === 0;
   const rawQ    = _searchInput.value.trim();
   const label   = noMatch
     ? `${t('no_results_for')} "<strong>${rawQ}</strong>"`
