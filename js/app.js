@@ -2102,24 +2102,6 @@ function openDetailPanel(v) {
   const content = document.getElementById('dp-content');
   if (!dp || !content) return;
 
-  if (!authCurrentUser()) {
-    content.innerHTML = renderLoginGate(v);
-    dp.classList.remove('dp-fullscreen');
-    dp.classList.add('open');
-    if (isMobile()) {
-      const panel = document.getElementById('panel');
-      if (panel) {
-        panel.classList.remove('mobile-expanded', 'mobile-fullscreen');
-        panel.classList.add('mobile-hidden');
-      }
-      document.getElementById('floating-search')?.classList.add('mobile-ui-hidden');
-      document.getElementById('qc-wrap')?.classList.add('mobile-ui-hidden');
-      document.getElementById('locate-btn')?.classList.add('mobile-ui-hidden');
-    }
-    _syncFtsPosition();
-    return;
-  }
-
   content.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
   // Draw the sol-retning compass (deferred to next animation frame for smooth rendering)
   if (typeof drawDetailCompass === 'function') {
