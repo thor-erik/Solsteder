@@ -99,13 +99,12 @@ function renderLoginGate(v) {
           </svg>
           ${t('signin_google')}
         </button>
-        <!-- TODO: Uncomment Apple Sign In when Apple Developer account is configured
         <button class="auth-btn auth-btn-apple" onclick="authSignInWithApple()">
           <svg width="18" height="18" viewBox="0 0 256 315" xmlns="http://www.w3.org/2000/svg">
             <path fill="currentColor" d="M213.8 167.1c-.4-39.6 32.3-58.6 33.7-59.5-18.3-26.8-46.9-30.5-57.1-30.9-24.3-2.5-47.5 14.3-59.8 14.3-12.4 0-31.5-14-51.8-13.6-26.7.4-51.3 15.5-65 39.4-27.7 48.1-7.1 119.4 19.9 158.5 13.2 19.1 29 40.6 49.7 39.8 19.9-.8 27.5-12.9 51.6-12.9 24.1 0 31 12.9 51.6 12.5 21.5-.4 35.2-19.5 48.3-38.7 15.2-22.2 21.5-43.7 21.8-44.8-.5-.2-41.9-16.1-42.3-63.8zM173.8 49.5C184.6 36.5 192 18.6 190.1 0 174.8.6 155.8 10.1 144.6 23 134.7 34.2 125.6 52.8 127.8 70.3c17 1.3 34.4-8.5 46-20.8"/>
           </svg>
           ${t('signin_apple')}
-        </button> -->
+        </button>
         <div class="auth-divider"><span>or</span></div>
         <form class="auth-magic-link-form" onsubmit="handleMagicLinkSubmit(event, this)">
           <input type="email" class="auth-magic-link-input" placeholder="${t('magic_link_placeholder')}" required>
@@ -275,13 +274,12 @@ function _renderProfilePanel() {
             </svg>
             ${t('signin_google')}
           </button>
-          <!-- TODO: Uncomment Apple Sign In when Apple Developer account is configured
           <button class="auth-btn auth-btn-apple" onclick="authSignInWithApple();closeProfilePanel()">
             <svg width="18" height="18" viewBox="0 0 256 315" xmlns="http://www.w3.org/2000/svg">
               <path fill="currentColor" d="M213.8 167.1c-.4-39.6 32.3-58.6 33.7-59.5-18.3-26.8-46.9-30.5-57.1-30.9-24.3-2.5-47.5 14.3-59.8 14.3-12.4 0-31.5-14-51.8-13.6-26.7.4-51.3 15.5-65 39.4-27.7 48.1-7.1 119.4 19.9 158.5 13.2 19.1 29 40.6 49.7 39.8 19.9-.8 27.5-12.9 51.6-12.9 24.1 0 31 12.9 51.6 12.5 21.5-.4 35.2-19.5 48.3-38.7 15.2-22.2 21.5-43.7 21.8-44.8-.5-.2-41.9-16.1-42.3-63.8zM173.8 49.5C184.6 36.5 192 18.6 190.1 0 174.8.6 155.8 10.1 144.6 23 134.7 34.2 125.6 52.8 127.8 70.3c17 1.3 34.4-8.5 46-20.8"/>
             </svg>
             ${t('signin_apple')}
-          </button> -->
+          </button>
           <div class="auth-divider"><span>or</span></div>
           <form class="auth-magic-link-form" onsubmit="handleMagicLinkSubmit(event, this)">
             <input type="email" class="auth-magic-link-input" placeholder="${t('magic_link_placeholder')}" required>
