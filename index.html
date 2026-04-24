@@ -4637,6 +4637,356 @@
     }
   }
 
+  /* ── Favorites heart button (card) ──────────────────────────────────────── */
+  .btn-fav {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px;
+    line-height: 0;
+    opacity: 0.5;
+    transition: opacity 0.15s;
+  }
+  .btn-fav:hover, .btn-fav.active { opacity: 1; }
+
+  /* Favorites filter pill */
+  .fav-filter-pill {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    color: var(--muted);
+    transition: all 0.15s;
+    padding: 0;
+  }
+  .fav-filter-pill:hover { border-color: var(--accent); color: var(--accent); }
+  .fav-filter-pill.active {
+    background: rgba(255,175,133,0.14);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .fav-filter-pill.active svg { fill: var(--accent); stroke: var(--accent); }
+
+  /* ── Detail panel: fav + bell buttons ───────────────────────────────────── */
+  .btn-fav-detail.active,
+  .btn-bell-detail.active {
+    background: rgba(255,175,133,0.14);
+    border-color: var(--accent);
+  }
+
+  /* ── Toast notification ─────────────────────────────────────────────────── */
+  #app-toast {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(17,30,56,0.95);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 18px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s, transform 0.2s;
+    z-index: 9999;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  #app-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* ── Social section (check-in, plans) ───────────────────────────────────── */
+  .social-section {
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+  }
+  .social-actions-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .btn-social {
+    flex: 1;
+    padding: 10px 12px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+  }
+  .btn-social:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-checked-in {
+    background: rgba(255,175,133,0.14);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* Detail friend avatars row */
+  .detail-friends-row {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .detail-friend-avatar {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1.5px solid var(--border);
+  }
+  .detail-friend-init {
+    background: rgba(20,46,82,0.6);
+    color: var(--muted);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 600;
+  }
+
+  /* Plan items in detail panel */
+  .detail-plan-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-top: 1px solid rgba(156,189,231,0.08);
+  }
+  .plan-info { display: flex; flex-direction: column; gap: 2px; }
+  .plan-when { font-size: 12px; color: var(--accent); font-weight: 600; }
+  .plan-creator { font-size: 11px; color: var(--muted); }
+  .plan-msg { font-size: 11px; color: var(--text); opacity: 0.7; }
+  .plan-actions { display: flex; gap: 6px; }
+  .plan-status { font-size: 11px; color: var(--muted); }
+  .btn-accept {
+    padding: 4px 12px;
+    background: rgba(255,175,133,0.14);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    color: var(--accent);
+    font-size: 11px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+  }
+  .btn-decline {
+    padding: 4px 12px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    font-size: 11px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* Plan form */
+  .plan-form { padding: 8px 0 4px; }
+  .plan-form-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .plan-field-label {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .plan-input {
+    width: 100%;
+    padding: 8px 10px;
+    background: rgba(20,46,82,0.5);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    box-sizing: border-box;
+  }
+  .plan-input:focus { outline: none; border-color: var(--accent); }
+  .plan-friends-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 120px;
+    overflow-y: auto;
+  }
+  .plan-friend-check {
+    font-size: 12px;
+    color: var(--text);
+    display: flex; align-items: center; gap: 6px;
+    cursor: pointer;
+  }
+  .plan-friend-check input { accent-color: var(--accent); }
+  .btn-plan-submit {
+    margin-top: 4px;
+    background: rgba(255,175,133,0.14);
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* ── Card friend badges ─────────────────────────────────────────────────── */
+  .card-friend-badge {
+    display: inline-flex;
+    gap: 2px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .card-friend-dot {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid var(--border);
+    display: inline-block;
+    vertical-align: middle;
+  }
+  .card-friend-dot-init {
+    background: rgba(20,46,82,0.6);
+    color: var(--muted);
+    font-size: 8px; font-weight: 600;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+
+  /* ── Friends modal ──────────────────────────────────────────────────────── */
+  .friends-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    background: rgba(0,0,0,0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .friends-modal-overlay.open { display: flex; }
+  .friends-modal-card {
+    width: 100%;
+    max-width: 400px;
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: 20px;
+    border-radius: 16px;
+    background: var(--glass-panel-bg, rgba(17,30,56,0.95));
+    border: 1px solid var(--border);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+  .friends-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .friends-modal-header h3 {
+    margin: 0;
+    font-size: 16px;
+    color: var(--text);
+  }
+  .friends-modal-close {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px;
+  }
+  .friends-section-label {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 12px 0 6px;
+  }
+  .friends-empty {
+    font-size: 13px;
+    color: var(--muted);
+    padding: 8px 0;
+  }
+  .friend-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(156,189,231,0.08);
+  }
+  .friend-item-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    flex: 1;
+  }
+  .friend-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+  .friend-avatar-initials {
+    background: rgba(20,46,82,0.6);
+    color: var(--muted);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 600;
+  }
+  .friend-item-info {
+    min-width: 0;
+  }
+  .friend-item-name {
+    font-size: 13px;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .friend-checkin-info {
+    font-size: 11px;
+    color: var(--accent);
+  }
+  .btn-icon-sm {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 4px;
+    opacity: 0.5;
+    transition: opacity 0.15s;
+  }
+  .btn-icon-sm:hover { opacity: 1; color: #ff6b6b; }
+
+  /* Add friend input */
+  .friends-add-section { margin-top: 12px; }
+  .friends-add-row {
+    display: flex;
+    gap: 6px;
+  }
+  .friends-search-input {
+    flex: 1;
+    padding: 8px 10px;
+    background: rgba(20,46,82,0.5);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+  }
+  .friends-search-input:focus { outline: none; border-color: var(--accent); }
+  .friend-add-result {
+    font-size: 12px;
+    margin-top: 4px;
+    min-height: 16px;
+  }
+  .friend-add-result.success { color: #64ffb4; }
+  .friend-add-result.error { color: #ff6b6b; }
+
 </style>
 </head>
 <body>
@@ -4848,7 +5198,12 @@
 
     <!-- Sun count header: visible in peek, owns "X steder i solen" exactly once -->
     <div id="list-sun-header">
-      <span id="list-sun-count"></span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span id="list-sun-count"></span>
+        <button id="fav-filter-btn" class="fav-filter-pill" onclick="toggleFavoritesFilter()" title="Favoritter">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </button>
+      </div>
       <button id="sort-toggle-btn" onclick="toggleSortPanel()"><span id="sort-label">Mest sol</span><span class="sort-chevron"> ▾</span></button>
     </div>
 

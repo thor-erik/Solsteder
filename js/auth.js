@@ -246,6 +246,18 @@ function _renderProfilePanel() {
         <div class="profile-section-label">${t('my_suggestions')}</div>
         <div id="my-suggestions-list" style="color:var(--muted);font-size:12px;padding:4px 16px 8px">${t('no_suggestions_yet')}</div>
       </div>
+      <div class="profile-panel-section">
+        <button class="profile-panel-row" onclick="openFriendsModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          <span>${t('friends')}${_friends.length ? ` (${_friends.length})` : ''}</span>
+          ${_pendingRequests.length ? `<span class="pending-badge">${_pendingRequests.length}</span>` : ''}
+        </button>
+      </div>
       <div class="profile-panel-footer">
         <a href="privacy.html" target="_blank" rel="noopener" class="profile-privacy-link">${t('privacy_policy')}</a>
         <button class="profile-panel-signout" onclick="authSignOut();closeProfilePanel()">
@@ -326,6 +338,107 @@ function _profilePanelOutsideClick(e) {
   } else if (panel && panel.classList.contains('open')) {
     // Re-attach if click was inside panel
     document.addEventListener('click', _profilePanelOutsideClick, { once: true });
+  }
+}
+
+// ── Friends modal ────────────────────────────────────────────────────────────
+
+function openFriendsModal() {
+  closeProfilePanel();
+  let modal = document.getElementById('friends-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'friends-modal';
+    modal.className = 'friends-modal-overlay';
+    document.body.appendChild(modal);
+  }
+  _renderFriendsModal(modal);
+  modal.classList.add('open');
+  window._navPush?.('friends');
+}
+
+function closeFriendsModal() {
+  window._navDropLayer?.('friends');
+  const modal = document.getElementById('friends-modal');
+  if (modal) modal.classList.remove('open');
+}
+
+function _renderFriendsModal(modal) {
+  if (!modal) modal = document.getElementById('friends-modal');
+  if (!modal) return;
+
+  const friendsHtml = _friends.length
+    ? _friends.map(f => {
+        const avatar = f.avatar_url
+          ? `<img class="friend-avatar" src="${f.avatar_url}" alt="${f.name || f.email}">`
+          : `<div class="friend-avatar friend-avatar-initials">${(f.name || f.email)[0].toUpperCase()}</div>`;
+        // Check if friend is checked in somewhere
+        let checkinInfo = '';
+        for (const [vid, list] of _friendCheckins) {
+          const match = list.find(c => c.user.id === f.id);
+          if (match) {
+            const vName = typeof VENUES !== 'undefined' ? (VENUES.find(v => String(v.id) === vid)?.name || vid) : vid;
+            const until = new Date(match.checkin.expires_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            checkinInfo = `<div class="friend-checkin-info">📍 ${vName} · ${t('checked_in_until', { time: until })}</div>`;
+            break;
+          }
+        }
+        return `<div class="friend-item">
+          <div class="friend-item-left">${avatar}<div class="friend-item-info"><div class="friend-item-name">${f.name || f.email}</div>${checkinInfo}</div></div>
+          <button class="btn-icon-sm friend-remove" onclick="removeFriend('${f.friendshipId}');_renderFriendsModal()" title="${t('friend_removed')}">✕</button>
+        </div>`;
+      }).join('')
+    : `<div class="friends-empty">${t('no_friends_yet')}</div>`;
+
+  const pendingHtml = _pendingRequests.length
+    ? `<div class="friends-section-label">${t('friend_requests')} (${_pendingRequests.length})</div>` +
+      _pendingRequests.map(r => {
+        const avatar = r.avatar_url
+          ? `<img class="friend-avatar" src="${r.avatar_url}" alt="${r.name || r.email}">`
+          : `<div class="friend-avatar friend-avatar-initials">${(r.name || r.email)[0].toUpperCase()}</div>`;
+        return `<div class="friend-item friend-request">
+          ${avatar}
+          <div class="friend-item-info"><div class="friend-item-name">${r.name || r.email}</div></div>
+          <button class="btn-accept" onclick="acceptFriendRequest('${r.friendshipId}');_renderFriendsModal()">${t('plan_accept')}</button>
+        </div>`;
+      }).join('')
+    : '';
+
+  modal.innerHTML = `
+    <div class="friends-modal-card glass-panel">
+      <div class="friends-modal-header">
+        <h3>${t('friends')}</h3>
+        <button class="friends-modal-close" onclick="closeFriendsModal()">✕</button>
+      </div>
+      ${pendingHtml}
+      <div class="friends-section-label">${t('friends')}${_friends.length ? ` (${_friends.length})` : ''}</div>
+      ${friendsHtml}
+      <div class="friends-add-section">
+        <div class="friends-section-label">${t('add_friend')}</div>
+        <div class="friends-add-row">
+          <input type="email" id="friend-email-input" class="friends-search-input" placeholder="${t('friend_search_placeholder')}" />
+          <button class="btn-accept" onclick="_sendFriendRequestFromModal()">+</button>
+        </div>
+        <div id="friend-add-result" class="friend-add-result"></div>
+      </div>
+    </div>`;
+}
+
+async function _sendFriendRequestFromModal() {
+  const input = document.getElementById('friend-email-input');
+  const result = document.getElementById('friend-add-result');
+  if (!input || !input.value.trim()) return;
+  result.textContent = '…';
+  result.className = 'friend-add-result';
+  const res = await sendFriendRequest(input.value.trim());
+  if (res.error) {
+    result.textContent = res.error;
+    result.classList.add('error');
+  } else {
+    result.textContent = t('friend_request_sent');
+    result.classList.add('success');
+    input.value = '';
+    _renderFriendsModal();
   }
 }
 
@@ -731,6 +844,318 @@ async function roleManagerSubmit() {
   }
 }
 
+// ── Favorites ────────────────────────────────────────────────────────────────
+
+let _favoritesSet = new Set();
+
+function isFavorite(venueId) { return _favoritesSet.has(String(venueId)); }
+
+async function loadFavorites() {
+  if (!_currentUser) { _favoritesSet.clear(); return; }
+  const { data, error } = await _supabase
+    .from('favorites')
+    .select('venue_id')
+    .eq('user_id', _currentUser.id);
+  if (error) { console.warn('[auth] loadFavorites failed:', error.message); return; }
+  _favoritesSet = new Set((data || []).map(r => r.venue_id));
+}
+
+async function toggleFavorite(venueId, evt) {
+  if (evt) evt.stopPropagation();
+  if (!_currentUser) { toggleProfilePanel(); return; }
+  const vid = String(venueId);
+  if (_favoritesSet.has(vid)) {
+    _favoritesSet.delete(vid);
+    await _supabase.from('favorites').delete()
+      .eq('user_id', _currentUser.id).eq('venue_id', vid);
+  } else {
+    _favoritesSet.add(vid);
+    await _supabase.from('favorites').insert({
+      user_id: _currentUser.id, venue_id: vid
+    });
+  }
+  // Re-render UI
+  if (typeof renderList === 'function') renderList();
+  if (typeof selectedId !== 'undefined' && selectedId != null) {
+    const v = typeof VENUES !== 'undefined' && VENUES.find(x => x.id === selectedId);
+    if (v && typeof openDetailPanel === 'function') openDetailPanel(v);
+  }
+}
+
+// ── Sun Alerts ───────────────────────────────────────────────────────────────
+
+let _alertsMap = new Map(); // venueId → alert object
+
+function hasSunAlert(venueId) { return _alertsMap.has(String(venueId)); }
+
+async function loadSunAlerts() {
+  if (!_currentUser) { _alertsMap.clear(); return; }
+  const { data, error } = await _supabase
+    .from('sun_alerts')
+    .select('*')
+    .eq('user_id', _currentUser.id);
+  if (error) { console.warn('[auth] loadSunAlerts failed:', error.message); return; }
+  _alertsMap.clear();
+  for (const r of (data || [])) _alertsMap.set(r.venue_id, r);
+}
+
+async function toggleSunAlert(venueId, evt) {
+  if (evt) evt.stopPropagation();
+  if (!_currentUser) { toggleProfilePanel(); return; }
+  const vid = String(venueId);
+  if (_alertsMap.has(vid)) {
+    const alert = _alertsMap.get(vid);
+    _alertsMap.delete(vid);
+    await _supabase.from('sun_alerts').delete().eq('id', alert.id);
+    _showToast(t('sun_alert_off'));
+  } else {
+    // Request notification permission on web
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+    const { data, error } = await _supabase.from('sun_alerts').insert({
+      user_id: _currentUser.id, venue_id: vid
+    }).select().single();
+    if (!error && data) _alertsMap.set(vid, data);
+    _showToast(t('sun_alert_on'));
+  }
+  // Re-render detail panel
+  if (typeof selectedId !== 'undefined' && selectedId != null) {
+    const v = typeof VENUES !== 'undefined' && VENUES.find(x => x.id === selectedId);
+    if (v && typeof openDetailPanel === 'function') openDetailPanel(v);
+  }
+}
+
+function _showToast(msg) {
+  let toast = document.getElementById('app-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'app-toast';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+// ── User Preferences (Account Sync) ─────────────────────────────────────────
+
+async function loadUserPreferences() {
+  if (!_currentUser) return;
+  const { data, error } = await _supabase
+    .from('user_preferences')
+    .select('*')
+    .eq('user_id', _currentUser.id)
+    .single();
+  if (error || !data) return;
+  // Cloud overrides local
+  if (data.lang && typeof setPrefLang === 'function') {
+    localStorage.setItem('pref_lang', data.lang);
+    // Don't call setPrefLang to avoid recursive save — just apply
+    const inp = document.getElementById('venue-search');
+    if (inp) inp.placeholder = typeof t === 'function' ? t('search_placeholder') : '';
+  }
+  if (data.temp_unit) {
+    localStorage.setItem('pref_temp', data.temp_unit);
+  }
+  if (data.default_area && typeof setAreaFilter === 'function') {
+    setAreaFilter(data.default_area);
+  }
+  if (typeof _renderProfilePanel === 'function') _renderProfilePanel();
+  if (typeof update === 'function') update();
+}
+
+async function saveUserPreference(key, value) {
+  if (!_currentUser) return;
+  const row = { user_id: _currentUser.id, updated_at: new Date().toISOString() };
+  row[key] = value;
+  await _supabase.from('user_preferences').upsert(row, { onConflict: 'user_id' });
+}
+
+// ── Friends ──────────────────────────────────────────────────────────────────
+
+let _friends = [];
+let _pendingRequests = [];
+let _friendCheckins = new Map(); // venueId → [{ user, checkin }]
+let _myCheckin = null; // current user's active checkin
+let _plans = [];
+let _planInvites = [];
+let _checkinSubscription = null;
+
+async function loadFriends() {
+  if (!_currentUser) { _friends = []; _pendingRequests = []; return; }
+  const { data, error } = await _supabase
+    .from('friendships')
+    .select('*, user:profiles!friendships_user_id_fkey(id, name, email, avatar_url), friend:profiles!friendships_friend_id_fkey(id, name, email, avatar_url)')
+    .or(`user_id.eq.${_currentUser.id},friend_id.eq.${_currentUser.id}`);
+  if (error) { console.warn('[auth] loadFriends failed:', error.message); return; }
+  _friends = [];
+  _pendingRequests = [];
+  for (const r of (data || [])) {
+    if (r.status === 'accepted') {
+      const other = r.user_id === _currentUser.id ? r.friend : r.user;
+      _friends.push({ ...other, friendshipId: r.id });
+    } else if (r.status === 'pending' && r.friend_id === _currentUser.id) {
+      _pendingRequests.push({ ...r.user, friendshipId: r.id });
+    }
+  }
+}
+
+async function sendFriendRequest(email) {
+  if (!_currentUser) { toggleProfilePanel(); return; }
+  // Look up user by email
+  const { data: profiles, error: lookupErr } = await _supabase
+    .from('profiles')
+    .select('id')
+    .eq('email', email)
+    .single();
+  if (lookupErr || !profiles) return { error: 'User not found' };
+  if (profiles.id === _currentUser.id) return { error: 'Cannot add yourself' };
+  const { error } = await _supabase.from('friendships').insert({
+    user_id: _currentUser.id,
+    friend_id: profiles.id
+  });
+  if (error) return { error: error.message };
+  await loadFriends();
+  return { success: true };
+}
+
+async function acceptFriendRequest(friendshipId) {
+  await _supabase.from('friendships').update({ status: 'accepted' }).eq('id', friendshipId);
+  await loadFriends();
+}
+
+async function removeFriend(friendshipId) {
+  await _supabase.from('friendships').delete().eq('id', friendshipId);
+  await loadFriends();
+}
+
+// ── Check-ins ────────────────────────────────────────────────────────────────
+
+async function loadFriendCheckins() {
+  if (!_currentUser) { _friendCheckins.clear(); _myCheckin = null; return; }
+  const { data, error } = await _supabase
+    .from('checkins')
+    .select('*, user:profiles!checkins_user_id_fkey(id, name, email, avatar_url)')
+    .gt('expires_at', new Date().toISOString());
+  if (error) { console.warn('[auth] loadFriendCheckins failed:', error.message); return; }
+  _friendCheckins.clear();
+  _myCheckin = null;
+  for (const c of (data || [])) {
+    if (c.user_id === _currentUser.id) { _myCheckin = c; continue; }
+    const list = _friendCheckins.get(c.venue_id) || [];
+    list.push({ user: c.user, checkin: c });
+    _friendCheckins.set(c.venue_id, list);
+  }
+}
+
+function getFriendCheckinsForVenue(venueId) {
+  return _friendCheckins.get(String(venueId)) || [];
+}
+
+function getMyCheckin() { return _myCheckin; }
+
+async function checkIn(venueId, message) {
+  if (!_currentUser) { toggleProfilePanel(); return; }
+  const vid = String(venueId);
+  // Remove existing checkin first
+  if (_myCheckin) {
+    await _supabase.from('checkins').delete().eq('id', _myCheckin.id);
+  }
+  const { data, error } = await _supabase.from('checkins').insert({
+    user_id: _currentUser.id,
+    venue_id: vid,
+    message: message || ''
+  }).select().single();
+  if (!error && data) _myCheckin = data;
+  await loadFriendCheckins();
+  _showToast(t('check_in_success'));
+  // Re-render
+  if (typeof renderList === 'function') renderList();
+  if (typeof draw === 'function') draw();
+  if (typeof selectedId !== 'undefined' && selectedId != null) {
+    const v = typeof VENUES !== 'undefined' && VENUES.find(x => x.id === selectedId);
+    if (v && typeof openDetailPanel === 'function') openDetailPanel(v);
+  }
+}
+
+async function checkOut() {
+  if (!_currentUser || !_myCheckin) return;
+  await _supabase.from('checkins').delete().eq('id', _myCheckin.id);
+  _myCheckin = null;
+  await loadFriendCheckins();
+  _showToast(t('check_out_success'));
+  if (typeof renderList === 'function') renderList();
+  if (typeof draw === 'function') draw();
+}
+
+function _subscribeToCheckins() {
+  if (_checkinSubscription) _checkinSubscription.unsubscribe();
+  if (!_currentUser) return;
+  _checkinSubscription = _supabase
+    .channel('checkins-realtime')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'checkins' }, () => {
+      loadFriendCheckins().then(() => {
+        if (typeof renderList === 'function') renderList();
+        if (typeof draw === 'function') draw();
+      });
+    })
+    .subscribe();
+}
+
+// ── Plans ────────────────────────────────────────────────────────────────────
+
+async function loadPlans() {
+  if (!_currentUser) { _plans = []; _planInvites = []; return; }
+  const { data: plans, error: pe } = await _supabase
+    .from('plans')
+    .select('*, creator:profiles!plans_creator_id_fkey(id, name, email, avatar_url)')
+    .or(`creator_id.eq.${_currentUser.id}`)
+    .gt('planned_at', new Date().toISOString())
+    .order('planned_at', { ascending: true });
+  if (!pe) _plans = plans || [];
+
+  const { data: invites, error: ie } = await _supabase
+    .from('plan_invites')
+    .select('*, plan:plans(*, creator:profiles!plans_creator_id_fkey(id, name, email, avatar_url))')
+    .eq('user_id', _currentUser.id);
+  if (!ie) _planInvites = (invites || []).filter(i => i.plan && new Date(i.plan.planned_at) > new Date());
+}
+
+async function createPlan(venueId, plannedAt, message, friendIds) {
+  if (!_currentUser) { toggleProfilePanel(); return; }
+  const { data: plan, error } = await _supabase.from('plans').insert({
+    creator_id: _currentUser.id,
+    venue_id: String(venueId),
+    planned_at: plannedAt,
+    message: message || ''
+  }).select().single();
+  if (error || !plan) return { error: error?.message || 'Failed to create plan' };
+  // Create invites
+  if (friendIds && friendIds.length) {
+    const invites = friendIds.map(fid => ({ plan_id: plan.id, user_id: fid }));
+    await _supabase.from('plan_invites').insert(invites);
+  }
+  await loadPlans();
+  _showToast(t('plan_created'));
+  return { success: true, plan };
+}
+
+async function respondToPlanInvite(inviteId, status) {
+  await _supabase.from('plan_invites').update({ status }).eq('id', inviteId);
+  await loadPlans();
+}
+
+function getPlansForVenue(venueId) {
+  const vid = String(venueId);
+  const fromPlans = _plans.filter(p => p.venue_id === vid);
+  const fromInvites = _planInvites.filter(i => i.plan?.venue_id === vid).map(i => ({ ...i.plan, _invite: i }));
+  // Deduplicate
+  const seen = new Set(fromPlans.map(p => p.id));
+  for (const p of fromInvites) { if (!seen.has(p.id)) { fromPlans.push(p); seen.add(p.id); } }
+  return fromPlans;
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 // Populate panel immediately (logged-out state) so it's never an empty div
@@ -746,7 +1171,27 @@ _supabase.auth.onAuthStateChange((event, session) => {
   const wasLoggedIn = !!_currentUser;
   _currentUser = session?.user ?? null;
   _updateUserIndicator();
-  if (_currentUser) authLoadRole(); else { _currentRole = null; }
+  if (_currentUser) {
+    authLoadRole();
+    loadFavorites().then(() => { if (typeof renderList === 'function') renderList(); });
+    loadSunAlerts();
+    loadUserPreferences();
+    loadFriends();
+    loadFriendCheckins().then(() => {
+      if (typeof renderList === 'function') renderList();
+      if (typeof draw === 'function') draw();
+    });
+    loadPlans();
+    _subscribeToCheckins();
+  } else {
+    _currentRole = null;
+    _favoritesSet.clear();
+    _alertsMap.clear();
+    _friends = []; _pendingRequests = [];
+    _friendCheckins.clear(); _myCheckin = null;
+    _plans = []; _planInvites = [];
+    if (_checkinSubscription) { _checkinSubscription.unsubscribe(); _checkinSubscription = null; }
+  }
 
   // After login: re-open the detail panel for the selected venue
   if (!wasLoggedIn && _currentUser && typeof selectedId !== 'undefined' && selectedId) {

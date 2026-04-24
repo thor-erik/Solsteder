@@ -146,6 +146,41 @@ const _STRINGS = {
     cat_courtyard:       'Courtyard',
     cat_beer_garden:     'Beer Garden',
     cat_fine_dining:     'Fine Dining',
+    // ── Favorites ──────────────────────────────────────────────────────────────
+    favorites:           'Favorites',
+    no_favorites_yet:    'No favorites yet',
+    // ── Sun Alerts ─────────────────────────────────────────────────────────────
+    sun_alert_on:        'Sun alert activated',
+    sun_alert_off:       'Sun alert deactivated',
+    sun_alert_label:     'Notify me 30 min before sun',
+    sun_alert_minutes:   '{min} min before sun',
+    sun_alert_native_only: 'Push notifications are only available in the app',
+    // ── Friends ────────────────────────────────────────────────────────────────
+    friends:             'Friends',
+    add_friend:          'Add friend',
+    friend_requests:     'Friend requests',
+    pending:             'Pending',
+    check_in:            'Check in',
+    im_here:             "I'm here",
+    checked_in_until:    'Checked in until {time}',
+    plan_invite:         'Plan invite',
+    plan_create:         'Plan',
+    plan_accept:         'Accept',
+    plan_decline:        'Decline',
+    no_friends_yet:      'No friends yet',
+    friend_search_placeholder: 'Search by email…',
+    friend_request_sent: 'Friend request sent!',
+    friend_request_accepted: 'Friend request accepted!',
+    friend_removed:      'Friend removed',
+    check_in_success:    'Checked in!',
+    check_out_success:   'Checked out',
+    plan_created:        'Plan created!',
+    plan_time_label:     'When?',
+    plan_message_label:  'Message (optional)',
+    plan_invite_friends: 'Invite friends',
+    plan_invite_accepted: 'Accepted',
+    plan_invite_declined: 'Declined',
+    plan_invite_pending: 'Pending',
   },
   no: {
     signout:            'Logg ut',
@@ -276,6 +311,41 @@ const _STRINGS = {
     cat_courtyard:       'Bakgård',
     cat_beer_garden:     'Ølhage',
     cat_fine_dining:     'Fine Dining',
+    // ── Favorites ──────────────────────────────────────────────────────────────
+    favorites:           'Favoritter',
+    no_favorites_yet:    'Ingen favoritter ennå',
+    // ── Sun Alerts ─────────────────────────────────────────────────────────────
+    sun_alert_on:        'Sol-varsel aktivert',
+    sun_alert_off:       'Sol-varsel deaktivert',
+    sun_alert_label:     'Varsle meg 30 min før sol',
+    sun_alert_minutes:   '{min} min før sol',
+    sun_alert_native_only: 'Push-varsler er kun tilgjengelig i appen',
+    // ── Friends ────────────────────────────────────────────────────────────────
+    friends:             'Venner',
+    add_friend:          'Legg til venn',
+    friend_requests:     'Venneforespørsler',
+    pending:             'Venter',
+    check_in:            'Sjekk inn',
+    im_here:             'Jeg er her',
+    checked_in_until:    'Innsjekket til {time}',
+    plan_invite:         'Planinvitasjon',
+    plan_create:         'Planlegg',
+    plan_accept:         'Godta',
+    plan_decline:        'Avslå',
+    no_friends_yet:      'Ingen venner ennå',
+    friend_search_placeholder: 'Søk etter e-post…',
+    friend_request_sent: 'Venneforespørsel sendt!',
+    friend_request_accepted: 'Venneforespørsel godtatt!',
+    friend_removed:      'Venn fjernet',
+    check_in_success:    'Sjekket inn!',
+    check_out_success:   'Sjekket ut',
+    plan_created:        'Plan opprettet!',
+    plan_time_label:     'Når?',
+    plan_message_label:  'Melding (valgfritt)',
+    plan_invite_friends: 'Inviter venner',
+    plan_invite_accepted: 'Godtatt',
+    plan_invite_declined: 'Avslått',
+    plan_invite_pending: 'Venter',
   },
   se: {
     signout:            'Logga ut',
@@ -406,6 +476,41 @@ const _STRINGS = {
     cat_courtyard:       'Innergård',
     cat_beer_garden:     'Ölträdgård',
     cat_fine_dining:     'Fine Dining',
+    // ── Favorites ──────────────────────────────────────────────────────────────
+    favorites:           'Favoriter',
+    no_favorites_yet:    'Inga favoriter ännu',
+    // ── Sun Alerts ─────────────────────────────────────────────────────────────
+    sun_alert_on:        'Solvarning aktiverad',
+    sun_alert_off:       'Solvarning avaktiverad',
+    sun_alert_label:     'Meddela mig 30 min före sol',
+    sun_alert_minutes:   '{min} min före sol',
+    sun_alert_native_only: 'Push-notiser är bara tillgängliga i appen',
+    // ── Friends ────────────────────────────────────────────────────────────────
+    friends:             'Vänner',
+    add_friend:          'Lägg till vän',
+    friend_requests:     'Vänförfrågningar',
+    pending:             'Väntar',
+    check_in:            'Checka in',
+    im_here:             'Jag är här',
+    checked_in_until:    'Incheckad till {time}',
+    plan_invite:         'Planinbjudan',
+    plan_create:         'Planera',
+    plan_accept:         'Acceptera',
+    plan_decline:        'Avböja',
+    no_friends_yet:      'Inga vänner ännu',
+    friend_search_placeholder: 'Sök efter e-post…',
+    friend_request_sent: 'Vänförfrågan skickad!',
+    friend_request_accepted: 'Vänförfrågan accepterad!',
+    friend_removed:      'Vän borttagen',
+    check_in_success:    'Incheckad!',
+    check_out_success:   'Utcheckad',
+    plan_created:        'Plan skapad!',
+    plan_time_label:     'När?',
+    plan_message_label:  'Meddelande (valfritt)',
+    plan_invite_friends: 'Bjud in vänner',
+    plan_invite_accepted: 'Accepterad',
+    plan_invite_declined: 'Avböjd',
+    plan_invite_pending: 'Väntar',
   },
   dk: {
     signout:            'Log ud',
@@ -536,6 +641,41 @@ const _STRINGS = {
     cat_courtyard:       'Gårdhave',
     cat_beer_garden:     'Ølhave',
     cat_fine_dining:     'Fine Dining',
+    // ── Favorites ──────────────────────────────────────────────────────────────
+    favorites:           'Favoritter',
+    no_favorites_yet:    'Ingen favoritter endnu',
+    // ── Sun Alerts ─────────────────────────────────────────────────────────────
+    sun_alert_on:        'Sol-varsel aktiveret',
+    sun_alert_off:       'Sol-varsel deaktiveret',
+    sun_alert_label:     'Giv besked 30 min før sol',
+    sun_alert_minutes:   '{min} min før sol',
+    sun_alert_native_only: 'Push-beskeder er kun tilgængelige i appen',
+    // ── Friends ────────────────────────────────────────────────────────────────
+    friends:             'Venner',
+    add_friend:          'Tilføj ven',
+    friend_requests:     'Venneanmodninger',
+    pending:             'Afventer',
+    check_in:            'Tjek ind',
+    im_here:             'Jeg er her',
+    checked_in_until:    'Tjekket ind til {time}',
+    plan_invite:         'Planinvitation',
+    plan_create:         'Planlæg',
+    plan_accept:         'Accepter',
+    plan_decline:        'Afvis',
+    no_friends_yet:      'Ingen venner endnu',
+    friend_search_placeholder: 'Søg efter e-mail…',
+    friend_request_sent: 'Venneanmodning sendt!',
+    friend_request_accepted: 'Venneanmodning accepteret!',
+    friend_removed:      'Ven fjernet',
+    check_in_success:    'Tjekket ind!',
+    check_out_success:   'Tjekket ud',
+    plan_created:        'Plan oprettet!',
+    plan_time_label:     'Hvornår?',
+    plan_message_label:  'Besked (valgfrit)',
+    plan_invite_friends: 'Inviter venner',
+    plan_invite_accepted: 'Accepteret',
+    plan_invite_declined: 'Afvist',
+    plan_invite_pending: 'Afventer',
   },
 };
 
@@ -556,12 +696,14 @@ function setPrefLang(l) {
   if (inp) inp.placeholder = t('search_placeholder');
   if (typeof _renderProfilePanel === 'function') _renderProfilePanel();
   if (typeof update === 'function') update();
+  if (typeof saveUserPreference === 'function') saveUserPreference('lang', l);
 }
 
 function setPrefTempUnit(u) {
   localStorage.setItem('pref_temp', u);
   if (typeof _renderProfilePanel === 'function') _renderProfilePanel();
   if (typeof update === 'function') update();
+  if (typeof saveUserPreference === 'function') saveUserPreference('temp_unit', u);
 }
 
 /**

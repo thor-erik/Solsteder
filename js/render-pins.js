@@ -1142,6 +1142,50 @@ function draw() {
     ctx.fillText(text, cssW / 2, py + ph / 2);
   }
 
+  // Pass 3 — friend check-in avatar dots below pins
+  if (typeof getFriendCheckinsForVenue === 'function') {
+    for (const { v, pt, isDot } of _lastLayout) {
+      const fc = getFriendCheckinsForVenue(v.id);
+      if (!fc.length) continue;
+      const dotR = 6;
+      const baseY = pt.y + (isDot ? 8 : 4);
+      const totalW = Math.min(fc.length, 3) * (dotR * 2 + 2);
+      let startX = pt.x - totalW / 2 + dotR;
+      for (let i = 0; i < Math.min(fc.length, 3); i++) {
+        const u = fc[i].user;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(startX, baseY, dotR, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(17,30,56,0.9)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,175,133,0.7)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        // Draw initial letter
+        ctx.fillStyle = 'rgba(255,242,235,0.9)';
+        ctx.font = 'bold 8px "Inter", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText((u.name || u.email || '?')[0].toUpperCase(), startX, baseY);
+        ctx.restore();
+        startX += dotR * 2 + 2;
+      }
+      if (fc.length > 3) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(startX, baseY, dotR, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(17,30,56,0.9)';
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255,242,235,0.7)';
+        ctx.font = 'bold 7px "Inter", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('+' + (fc.length - 3), startX, baseY);
+        ctx.restore();
+      }
+    }
+  }
+
   if (needsAnimFrame) _scheduleAnimFrame();
   ctx.restore();
 }

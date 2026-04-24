@@ -103,16 +103,32 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
 
   const miniTimeline = buildMiniSunTimeline(v, dateStr, fromHour);
 
+  const favActive = typeof isFavorite === 'function' && isFavorite(v.id);
+  const heartSvg = favActive
+    ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="var(--accent)" stroke="var(--accent)" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>`
+    : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
+
+  const friendCheckins = typeof getFriendCheckinsForVenue === 'function' ? getFriendCheckinsForVenue(v.id) : [];
+  const friendBadge = friendCheckins.length
+    ? `<div class="card-friend-badge" title="${friendCheckins.map(c => c.user.name || c.user.email).join(', ')}">
+        ${friendCheckins.slice(0, 3).map(c => c.user.avatar_url
+          ? `<img class="card-friend-dot" src="${c.user.avatar_url}" alt="">`
+          : `<div class="card-friend-dot card-friend-dot-init">${(c.user.name || c.user.email)[0].toUpperCase()}</div>`
+        ).join('')}${friendCheckins.length > 3 ? `<div class="card-friend-dot card-friend-dot-init">+${friendCheckins.length - 3}</div>` : ''}
+      </div>`
+    : '';
+
   return `
     <div class="venue-card ${state.className} ${v.id === selectedId ? 'selected' : ''}"
          data-vid="${v.id}" onclick="selectVenue(${v.id}, true)"
          onmouseenter="setHoveredVenue(${v.id})" onmouseleave="setHoveredVenue(null)">
       <div class="card-new-left">
-        <div class="card-new-name">${v.name}</div>
+        <div class="card-new-name">${v.name}${friendBadge}</div>
         <div class="card-new-meta">${metaHtml}</div>
         ${miniTimeline}
       </div>
       <div class="card-new-right">
+        <button class="btn-fav${favActive ? ' active' : ''}" onclick="toggleFavorite(${v.id}, event)" title="${t('favorites')}">${heartSvg}</button>
         <div class="card-new-dist">${distStr || ''}</div>
         <div class="card-new-hero">
           <div class="card-new-hero-main">${state.mainText}</div>
@@ -193,6 +209,9 @@ function renderList() {
     );
   }
   if (activeArea) venues = venues.filter(v => v.area === activeArea);
+  if (typeof filterFavoritesOnly !== 'undefined' && filterFavoritesOnly && typeof isFavorite === 'function') {
+    venues = venues.filter(v => isFavorite(v.id));
+  }
 
   // Remove venues with no sun windows, or (today only) all sun already past
   const isTodayFilter = dateStr === todayStr();

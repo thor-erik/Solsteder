@@ -657,6 +657,16 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
         ${haPhone}
         ${hasWebsite}
         <button class="btn-icon-sec" title="Del" onclick="shareVenue(${v.id})">${shareIcon}</button>
+        <button class="btn-icon-sec btn-fav-detail${typeof isFavorite === 'function' && isFavorite(v.id) ? ' active' : ''}" title="${typeof t === 'function' ? t('favorites') : 'Favoritt'}" onclick="toggleFavorite(${v.id}, event)">
+          ${typeof isFavorite === 'function' && isFavorite(v.id)
+            ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="var(--accent)" stroke="var(--accent)" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>`
+            : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>`}
+        </button>
+        <button class="btn-icon-sec btn-bell-detail${typeof hasSunAlert === 'function' && hasSunAlert(v.id) ? ' active' : ''}" title="${typeof t === 'function' ? t('sun_alert_label') : 'Sol-varsel'}" onclick="toggleSunAlert(${v.id}, event)">
+          ${typeof hasSunAlert === 'function' && hasSunAlert(v.id)
+            ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="var(--accent)" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`
+            : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`}
+        </button>
       </div>
 
       <div class="sun-section">
@@ -688,8 +698,110 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
         </div>
       </div>
 
+      ${_renderSocialSection(v)}
+
       ${footerHtml}
     </div>`;
+}
+
+/** Render the social section: check-in, friends at venue, plan. */
+function _renderSocialSection(v) {
+  const myCheckin = typeof getMyCheckin === 'function' ? getMyCheckin() : null;
+  const isCheckedInHere = myCheckin && String(myCheckin.venue_id) === String(v.id);
+  const friendCheckins = typeof getFriendCheckinsForVenue === 'function' ? getFriendCheckinsForVenue(v.id) : [];
+  const plans = typeof getPlansForVenue === 'function' ? getPlansForVenue(v.id) : [];
+
+  // Friends checked in
+  let friendsHtml = '';
+  if (friendCheckins.length) {
+    const dots = friendCheckins.map(c => {
+      const u = c.user;
+      const until = new Date(c.checkin.expires_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return u.avatar_url
+        ? `<img class="detail-friend-avatar" src="${u.avatar_url}" alt="${u.name || u.email}" title="${u.name || u.email} — ${t('checked_in_until', { time: until })}">`
+        : `<div class="detail-friend-avatar detail-friend-init" title="${u.name || u.email} — ${t('checked_in_until', { time: until })}">${(u.name || u.email)[0].toUpperCase()}</div>`;
+    }).join('');
+    friendsHtml = `<div class="detail-friends-row">${dots}</div>`;
+  }
+
+  // Plans for this venue
+  let plansHtml = '';
+  if (plans.length) {
+    plansHtml = plans.map(p => {
+      const when = new Date(p.planned_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      const creator = p.creator?.name || p.creator?.email || '';
+      const invite = p._invite;
+      let actions = '';
+      if (invite && invite.status === 'pending') {
+        actions = `<div class="plan-actions">
+          <button class="btn-accept" onclick="respondToPlanInvite('${invite.id}','accepted')">${t('plan_accept')}</button>
+          <button class="btn-decline" onclick="respondToPlanInvite('${invite.id}','declined')">${t('plan_decline')}</button>
+        </div>`;
+      } else if (invite) {
+        actions = `<span class="plan-status">${t('plan_invite_' + invite.status)}</span>`;
+      }
+      return `<div class="detail-plan-item">
+        <div class="plan-info"><span class="plan-when">${when}</span><span class="plan-creator">${creator}</span>${p.message ? `<span class="plan-msg">${p.message}</span>` : ''}</div>
+        ${actions}
+      </div>`;
+    }).join('');
+  }
+
+  return `
+    <div class="social-section">
+      <div class="social-actions-row">
+        ${isCheckedInHere
+          ? `<button class="btn-social btn-checked-in" onclick="checkOut()">✓ ${t('im_here')}</button>`
+          : `<button class="btn-social" onclick="checkIn(${v.id})">${t('im_here')}</button>`}
+        <button class="btn-social" onclick="_openPlanForm(${v.id})">${t('plan_create')}</button>
+      </div>
+      ${friendsHtml}
+      ${plansHtml}
+      <div id="plan-form-${v.id}" class="plan-form" style="display:none"></div>
+    </div>`;
+}
+
+/** Open inline plan form in detail panel. */
+function _openPlanForm(venueId) {
+  if (typeof authCurrentUser === 'function' && !authCurrentUser()) {
+    if (typeof toggleProfilePanel === 'function') toggleProfilePanel();
+    return;
+  }
+  const form = document.getElementById('plan-form-' + venueId);
+  if (!form) return;
+  if (form.style.display !== 'none') { form.style.display = 'none'; return; }
+
+  const friends = typeof _friends !== 'undefined' ? _friends : [];
+  const friendCheckboxes = friends.map(f =>
+    `<label class="plan-friend-check"><input type="checkbox" value="${f.id}" checked> ${f.name || f.email}</label>`
+  ).join('');
+
+  form.innerHTML = `
+    <div class="plan-form-inner">
+      <label class="plan-field-label">${t('plan_time_label')}</label>
+      <input type="datetime-local" id="plan-time-input" class="plan-input" />
+      <label class="plan-field-label">${t('plan_message_label')}</label>
+      <input type="text" id="plan-msg-input" class="plan-input" placeholder="" />
+      ${friends.length ? `<label class="plan-field-label">${t('plan_invite_friends')}</label><div class="plan-friends-list">${friendCheckboxes}</div>` : ''}
+      <button class="btn-social btn-plan-submit" onclick="_submitPlan(${venueId})">${t('plan_create')}</button>
+    </div>`;
+  form.style.display = 'block';
+
+  // Default to 1 hour from now
+  const dt = new Date(Date.now() + 3600000);
+  const input = document.getElementById('plan-time-input');
+  if (input) input.value = dt.toISOString().slice(0, 16);
+}
+
+async function _submitPlan(venueId) {
+  const timeInput = document.getElementById('plan-time-input');
+  const msgInput  = document.getElementById('plan-msg-input');
+  if (!timeInput || !timeInput.value) return;
+  const friendIds = [];
+  document.querySelectorAll('.plan-friend-check input:checked').forEach(cb => friendIds.push(cb.value));
+  await createPlan(venueId, new Date(timeInput.value).toISOString(), msgInput?.value || '', friendIds);
+  const form = document.getElementById('plan-form-' + venueId);
+  if (form) form.style.display = 'none';
 }
 
 /** Helper: render sun/cloud timeline segments for detail panel (10px track). */

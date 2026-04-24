@@ -81,6 +81,7 @@ function _navIsLayerOpen(layer) {
     case 'qc':            return _qcActiveSection != null;
     case 'sort':          return !!document.getElementById('sort-panel')?.classList.contains('open');
     case 'profile':       return !!document.getElementById('profile-panel')?.classList.contains('open');
+    case 'friends':       return !!document.getElementById('friends-modal')?.classList.contains('open');
     case 'edit':          return editingVenueId != null;
     default:              return false;
   }
@@ -1189,6 +1190,15 @@ function setHoveredVenue(id) {
   draw();
 }
 
+// ── Favorites filter ──────────────────────────────────────────────────────────
+let filterFavoritesOnly = false;
+function toggleFavoritesFilter() {
+  filterFavoritesOnly = !filterFavoritesOnly;
+  const btn = document.getElementById('fav-filter-btn');
+  if (btn) btn.classList.toggle('active', filterFavoritesOnly);
+  renderList();
+}
+
 // ── Area filter ───────────────────────────────────────────────────────────────
 function setAreaFilter(area) {
   _aTrack('filter_change', { filter: 'area', value: area });
@@ -1196,6 +1206,7 @@ function setAreaFilter(area) {
   document.querySelectorAll('.area-chip').forEach(b =>
     b.classList.toggle('active', b.dataset.area === area));
   renderList();
+  if (typeof saveUserPreference === 'function') saveUserPreference('default_area', area);
 }
 
 // ── Sort ──────────────────────────────────────────────────────────────────────
@@ -4101,6 +4112,7 @@ window.addEventListener('popstate', () => {
     case 'qc':            _closeQcPanel(); break;
     case 'sort':          _closeSortPanel(); break;
     case 'profile':       closeProfilePanel(); break;
+    case 'friends':       if (typeof closeFriendsModal === 'function') closeFriendsModal(); break;
     case 'edit':          exitEditMode(); break;
   }
 
