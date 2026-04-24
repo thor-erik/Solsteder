@@ -104,9 +104,9 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
   const miniTimeline = buildMiniSunTimeline(v, dateStr, fromHour);
 
   const favActive = typeof isFavorite === 'function' && isFavorite(v.id);
-  const heartSvg = favActive
-    ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="var(--accent)" stroke="var(--accent)" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>`
-    : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
+  const favHeart = favActive
+    ? `<svg class="card-fav-heart" width="11" height="11" viewBox="0 0 24 24" fill="var(--accent)" stroke="var(--accent)" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>`
+    : '';
 
   const friendCheckins = typeof getFriendCheckinsForVenue === 'function' ? getFriendCheckinsForVenue(v.id) : [];
   const friendBadge = friendCheckins.length
@@ -123,12 +123,11 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
          data-vid="${v.id}" onclick="selectVenue(${v.id}, true)"
          onmouseenter="setHoveredVenue(${v.id})" onmouseleave="setHoveredVenue(null)">
       <div class="card-new-left">
-        <div class="card-new-name">${v.name}${friendBadge}</div>
+        <div class="card-new-name">${v.name}${favHeart}${friendBadge}</div>
         <div class="card-new-meta">${metaHtml}</div>
         ${miniTimeline}
       </div>
       <div class="card-new-right">
-        <button class="btn-fav${favActive ? ' active' : ''}" onclick="toggleFavorite(${v.id}, event)" title="${t('favorites')}">${heartSvg}</button>
         <div class="card-new-dist">${distStr || ''}</div>
         <div class="card-new-hero">
           <div class="card-new-hero-main">${state.mainText}</div>
@@ -239,7 +238,8 @@ function renderList() {
       for (const w of windows) {
         if (w.end > fromHour) rem += w.end - Math.max(w.start, fromHour);
       }
-      v._sunRem = rem;
+      // Favorites get a sort boost: +0.5h of virtual sun remaining
+      v._sunRem = rem + (typeof isFavorite === 'function' && isFavorite(v.id) ? 0.5 : 0);
       if (!windows.length) { v._sunOrd = 2; }
       else if (windows.some(w => fromHour >= w.start && fromHour < w.end)) { v._sunOrd = 0; }
       else if (windows.some(w => w.start > fromHour)) { v._sunOrd = 1; }

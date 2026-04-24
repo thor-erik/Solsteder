@@ -3835,6 +3835,75 @@ function _introCheckReady() {
     // New format: #venue-name-<id>/20260420T16
     // Old format (backward compat): #v=<id>&d=YYYY-MM-DD&t=<hour>
     const hash = window.location.hash.slice(1);
+
+    // Handle friend invite link: #friend/<userId>
+    if (hash.startsWith('friend/')) {
+      const friendUserId = hash.slice(7);
+      if (friendUserId) {
+        window._pendingFriendInvite = friendUserId;
+        // Process after auth is ready
+        const _tryFriendInvite = () => {
+          if (typeof authCurrentUser !== 'function') return;
+          const user = authCurrentUser();
+          if (!user) return; // Will re-check on auth state change
+          if (user.id !== friendUserId && typeof sendFriendRequest === 'function') {
+            // Use direct insert by ID instead of email lookup
+            _supabase.from('friendships').upsert({
+              user_id: friendUserId,
+              friend_id: user.id,
+              status: 'pending'
+            }, { onConflict: 'user_id,friend_id' }).then(() => {
+              if (typeof _showToast === 'function') _showToast(t('friend_request_sent'));
+              if (typeof loadFriends === 'function') loadFriends();
+            });
+          }
+          window._pendingFriendInvite = null;
+          history.replaceState(null, '', location.pathname);
+        };
+        // Try now, and also on auth change
+        setTimeout(_tryFriendInvite, 1500);
+      }
+    }
+
+    // Handle plan/checkin invite link: #invite/<base64data>
+    if (hash.startsWith('invite/')) {
+      try {
+        const data = JSON.parse(atob(hash.slice(7)));
+        window._pendingInvite = data;
+        const _tryInvite = () => {
+          if (typeof authCurrentUser !== 'function') return;
+          const user = authCurrentUser();
+          if (!user) return;
+          const d = window._pendingInvite;
+          if (!d) return;
+          // Auto-friend if not already friends
+          if (d.u && d.u !== user.id) {
+            _supabase.from('friendships').upsert({
+              user_id: d.u,
+              friend_id: user.id,
+              status: 'accepted'
+            }, { onConflict: 'user_id,friend_id' }).then(() => {
+              if (typeof loadFriends === 'function') loadFriends();
+            });
+          }
+          // If it's a "going" invite, accept the plan
+          if (d.v && d.t && d.type !== 'here') {
+            // Open the venue
+            const venue = typeof VENUES !== 'undefined' ? VENUES.find(x => x.id === d.v) : null;
+            if (venue && typeof selectVenue === 'function') selectVenue(d.v, true);
+          }
+          // If it's a "here" checkin link, just open the venue
+          if (d.v && d.type === 'here') {
+            const venue = typeof VENUES !== 'undefined' ? VENUES.find(x => x.id === d.v) : null;
+            if (venue && typeof selectVenue === 'function') selectVenue(d.v, true);
+          }
+          window._pendingInvite = null;
+          history.replaceState(null, '', location.pathname);
+        };
+        setTimeout(_tryInvite, 1500);
+      } catch (e) { console.warn('[app] Invalid invite link:', e); }
+    }
+
     let vid = null, rawDate = null, rawHour = null;
     if (hash.startsWith('v=')) {
       // Legacy format

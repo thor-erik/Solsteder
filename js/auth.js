@@ -415,30 +415,27 @@ function _renderFriendsModal(modal) {
       ${friendsHtml}
       <div class="friends-add-section">
         <div class="friends-section-label">${t('add_friend')}</div>
-        <div class="friends-add-row">
-          <input type="email" id="friend-email-input" class="friends-search-input" placeholder="${t('friend_search_placeholder')}" />
-          <button class="btn-accept" onclick="_sendFriendRequestFromModal()">+</button>
-        </div>
+        <button class="btn-social btn-share-link" onclick="_copyFriendInviteLink()" style="width:100%">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+          ${t('copy_invite_link')}
+        </button>
         <div id="friend-add-result" class="friend-add-result"></div>
       </div>
     </div>`;
 }
 
-async function _sendFriendRequestFromModal() {
-  const input = document.getElementById('friend-email-input');
+function _copyFriendInviteLink() {
+  if (!_currentUser) return;
+  const url = `${location.origin}${location.pathname}#friend/${_currentUser.id}`;
   const result = document.getElementById('friend-add-result');
-  if (!input || !input.value.trim()) return;
-  result.textContent = '…';
-  result.className = 'friend-add-result';
-  const res = await sendFriendRequest(input.value.trim());
-  if (res.error) {
-    result.textContent = res.error;
-    result.classList.add('error');
+  if (navigator.share) {
+    navigator.share({ title: t('add_friend'), url }).catch(() => {});
   } else {
-    result.textContent = t('friend_request_sent');
-    result.classList.add('success');
-    input.value = '';
-    _renderFriendsModal();
+    navigator.clipboard?.writeText(url);
+  }
+  if (result) {
+    result.textContent = t('invite_link_copied');
+    result.className = 'friend-add-result success';
   }
 }
 

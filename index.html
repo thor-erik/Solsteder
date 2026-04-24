@@ -4183,47 +4183,93 @@
     aspect-ratio: 4/3;
   }
 
-  .detail-new-header {
+  /* Merged header: back + title + fav/bell on one row */
+  .detail-header-row {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
-    margin-bottom: 14px;
+    gap: 8px;
+    margin-bottom: 10px;
   }
-
-  .detail-new-title {
-    font-size: 22px;
-    font-weight: 700;
-    line-height: 1.15;
+  .detail-header-info {
     flex: 1;
+    min-width: 0;
   }
-
+  .detail-new-title {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
   .detail-new-sub {
-    font-size: 13px;
+    font-size: 12px;
     color: var(--muted);
-    margin-top: 6px;
-  }
-
-  .detail-back-row {
-    display: flex;
-    justify-content: flex-end;
-    margin-bottom: 8px;
+    margin-top: 3px;
   }
   .detail-new-back {
-    padding: 8px 14px;
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    font-size: 13px;
-    color: var(--text);
+    padding: 6px 8px;
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: var(--muted);
     cursor: pointer;
     font-family: 'Inter', sans-serif;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .detail-new-back:hover { color: var(--text); }
+  .detail-header-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .dp-header-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    color: var(--muted);
+    line-height: 0;
+    opacity: 0.6;
+    transition: opacity 0.15s;
+  }
+  .dp-header-icon:hover { opacity: 1; }
+  .dp-header-icon.active { opacity: 1; }
+
+  /* Secondary action row: compact icon buttons */
+  .secondary-action {
+    display: flex;
+    gap: 8px;
+    padding: 0 16px 12px;
+    justify-content: center;
+  }
+  .btn-sec-action {
+    width: 44px;
+    height: 44px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    gap: 4px;
+    cursor: pointer;
+    flex-shrink: 0;
+    text-decoration: none;
+    font-family: 'Inter', sans-serif;
+    white-space: nowrap;
+    padding: 0 10px;
+    width: auto;
+  }
+  .btn-sec-action:hover { background: rgba(20,46,82,0.65); }
+  .btn-sec-action svg {
+    width: 18px; height: 18px;
+    stroke: currentColor;
+    color: var(--accent);
   }
 
-  .detail-new-back:hover {
-    background: rgba(20,46,82,0.65);
-  }
-
-  /* Primary action row: wide button + icon buttons */
+  /* Legacy: keep .primary-action for backwards compat but hidden */
   .primary-action {
     display: flex;
     gap: 8px;
@@ -4638,16 +4684,12 @@
   }
 
   /* ── Favorites heart button (card) ──────────────────────────────────────── */
-  .btn-fav {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 2px;
-    line-height: 0;
-    opacity: 0.5;
-    transition: opacity 0.15s;
+  /* Passive heart indicator on venue card name */
+  .card-fav-heart {
+    margin-left: 4px;
+    vertical-align: -1px;
+    flex-shrink: 0;
   }
-  .btn-fav:hover, .btn-fav.active { opacity: 1; }
 
   /* Favorites filter pill */
   .fav-filter-pill {
@@ -4669,12 +4711,7 @@
   }
   .fav-filter-pill.active svg { fill: var(--accent); stroke: var(--accent); }
 
-  /* ── Detail panel: fav + bell buttons ───────────────────────────────────── */
-  .btn-fav-detail.active,
-  .btn-bell-detail.active {
-    background: rgba(255,175,133,0.14);
-    border-color: var(--accent);
-  }
+  /* (fav + bell buttons moved to .dp-header-icon) */
 
   /* ── Toast notification ─────────────────────────────────────────────────── */
   #app-toast {
@@ -4829,6 +4866,45 @@
     background: rgba(255,175,133,0.14);
     border-color: var(--accent);
     color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* Going form actions */
+  .going-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .going-friend-picker {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .btn-going-invite, .btn-going-broadcast { flex: 1; }
+  .btn-going-broadcast {
+    background: rgba(255,175,133,0.14);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .btn-share-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .friend-avatar-sm {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    object-fit: cover;
+    vertical-align: -3px;
+  }
+  .friend-avatar-sm-init {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(20,46,82,0.6);
+    color: var(--muted);
+    font-size: 9px;
     font-weight: 600;
   }
 

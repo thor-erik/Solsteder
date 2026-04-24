@@ -637,36 +637,37 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       }</div>`
     : '<div class="detail-new-photos">[Bilde]</div>';
 
+  // Heart + bell icon SVGs for header
+  const _favActive = typeof isFavorite === 'function' && isFavorite(v.id);
+  const _alertActive = typeof hasSunAlert === 'function' && hasSunAlert(v.id);
+  const heartBtn = `<button class="dp-header-icon${_favActive ? ' active' : ''}" onclick="toggleFavorite(${v.id}, event)" title="${typeof t === 'function' ? t('favorites') : 'Favoritt'}">
+    ${_favActive
+      ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="var(--accent)" stroke="var(--accent)" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>`
+      : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>`}
+  </button>`;
+  const bellBtn = `<button class="dp-header-icon${_alertActive ? ' active' : ''}" onclick="toggleSunAlert(${v.id}, event)" title="${typeof t === 'function' ? t('sun_alert_label') : 'Sol-varsel'}">
+    ${_alertActive
+      ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="var(--accent)" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`
+      : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`}
+  </button>`;
+
+  // Compact directions label
+  const dirLabel = walkTime ? `${dirIcon} ${walkTime}` : `${dirIcon}`;
+
   return `
     <div id="dp-scroll">
       ${photosHtml}
 
-      <div class="detail-back-row">
-        <button class="detail-new-back" onclick="closeDetailPanel()">‹ Steder</button>
-      </div>
-
-      <div class="detail-new-header">
-        <div>
+      <div class="detail-header-row">
+        <button class="detail-new-back" onclick="closeDetailPanel()">‹</button>
+        <div class="detail-header-info">
           <div class="detail-new-title">${v.name}</div>
           <div class="detail-new-sub">${catLabel(v)}${v.area ? ' · ' + v.area : ''}${distStr ? ' · ' + distStr : ''}</div>
         </div>
-      </div>
-
-      <div class="primary-action">
-        <button class="btn-primary">${dirIcon} Veibeskrivelse · ${walkTime || '—'}</button>
-        ${haPhone}
-        ${hasWebsite}
-        <button class="btn-icon-sec" title="Del" onclick="shareVenue(${v.id})">${shareIcon}</button>
-        <button class="btn-icon-sec btn-fav-detail${typeof isFavorite === 'function' && isFavorite(v.id) ? ' active' : ''}" title="${typeof t === 'function' ? t('favorites') : 'Favoritt'}" onclick="toggleFavorite(${v.id}, event)">
-          ${typeof isFavorite === 'function' && isFavorite(v.id)
-            ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="var(--accent)" stroke="var(--accent)" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>`
-            : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>`}
-        </button>
-        <button class="btn-icon-sec btn-bell-detail${typeof hasSunAlert === 'function' && hasSunAlert(v.id) ? ' active' : ''}" title="${typeof t === 'function' ? t('sun_alert_label') : 'Sol-varsel'}" onclick="toggleSunAlert(${v.id}, event)">
-          ${typeof hasSunAlert === 'function' && hasSunAlert(v.id)
-            ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="var(--accent)" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`
-            : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`}
-        </button>
+        <div class="detail-header-actions">
+          ${heartBtn}
+          ${bellBtn}
+        </div>
       </div>
 
       <div class="sun-section">
@@ -685,6 +686,15 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
         </div>
       </div>
 
+      ${_renderSocialSection(v)}
+
+      <div class="secondary-action">
+        <a class="btn-sec-action" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(v.lat + ',' + v.lng)}&travelmode=walking" target="_blank" rel="noopener" title="Veibeskrivelse">${dirLabel}</a>
+        ${v.phone ? `<a href="tel:${encodeURIComponent(v.phone)}" class="btn-sec-action" title="Ring">${phoneIcon}</a>` : ''}
+        ${v.website ? `<a href="${v.website}" target="_blank" rel="noopener" class="btn-sec-action" title="Nettside">${globeIcon}</a>` : ''}
+        <button class="btn-sec-action" title="Del" onclick="shareVenue(${v.id})">${shareIcon}</button>
+      </div>
+
       ${infoListHtml}
 
       <div class="spatial-section">
@@ -698,13 +708,11 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
         </div>
       </div>
 
-      ${_renderSocialSection(v)}
-
       ${footerHtml}
     </div>`;
 }
 
-/** Render the social section: check-in, friends at venue, plan. */
+/** Render the social section: "Jeg drar hit", "Jeg er her", friends, plans. */
 function _renderSocialSection(v) {
   const myCheckin = typeof getMyCheckin === 'function' ? getMyCheckin() : null;
   const isCheckedInHere = myCheckin && String(myCheckin.venue_id) === String(v.id);
@@ -750,58 +758,168 @@ function _renderSocialSection(v) {
   return `
     <div class="social-section">
       <div class="social-actions-row">
+        <button class="btn-social" onclick="_openGoingForm(${v.id})">${t('going_there')}</button>
         ${isCheckedInHere
-          ? `<button class="btn-social btn-checked-in" onclick="checkOut()">✓ ${t('im_here')}</button>`
-          : `<button class="btn-social" onclick="checkIn(${v.id})">${t('im_here')}</button>`}
-        <button class="btn-social" onclick="_openPlanForm(${v.id})">${t('plan_create')}</button>
+          ? `<button class="btn-social btn-checked-in" onclick="_openHereMenu(${v.id})">✓ ${t('im_here')}</button>`
+          : `<button class="btn-social" onclick="_openHereMenu(${v.id})">${t('im_here')}</button>`}
       </div>
       ${friendsHtml}
       ${plansHtml}
-      <div id="plan-form-${v.id}" class="plan-form" style="display:none"></div>
+      <div id="going-form-${v.id}" class="plan-form" style="display:none"></div>
+      <div id="here-menu-${v.id}" class="plan-form" style="display:none"></div>
     </div>`;
 }
 
-/** Open inline plan form in detail panel. */
-function _openPlanForm(venueId) {
+/** "Jeg drar hit" form — pre-filled with current time slider value. */
+function _openGoingForm(venueId) {
   if (typeof authCurrentUser === 'function' && !authCurrentUser()) {
     if (typeof toggleProfilePanel === 'function') toggleProfilePanel();
     return;
   }
-  const form = document.getElementById('plan-form-' + venueId);
+  const form = document.getElementById('going-form-' + venueId);
   if (!form) return;
+  // Close "here" menu if open
+  const hereMenu = document.getElementById('here-menu-' + venueId);
+  if (hereMenu) hereMenu.style.display = 'none';
   if (form.style.display !== 'none') { form.style.display = 'none'; return; }
 
   const friends = typeof _friends !== 'undefined' ? _friends : [];
-  const friendCheckboxes = friends.map(f =>
-    `<label class="plan-friend-check"><input type="checkbox" value="${f.id}" checked> ${f.name || f.email}</label>`
-  ).join('');
+  const friendList = friends.map(f => {
+    const avatar = f.avatar_url
+      ? `<img class="friend-avatar-sm" src="${f.avatar_url}" alt="">`
+      : `<div class="friend-avatar-sm friend-avatar-sm-init">${(f.name || f.email)[0].toUpperCase()}</div>`;
+    return `<label class="plan-friend-check"><input type="checkbox" value="${f.id}"> ${avatar} ${f.name || f.email}</label>`;
+  }).join('');
 
   form.innerHTML = `
     <div class="plan-form-inner">
       <label class="plan-field-label">${t('plan_time_label')}</label>
       <input type="datetime-local" id="plan-time-input" class="plan-input" />
-      <label class="plan-field-label">${t('plan_message_label')}</label>
-      <input type="text" id="plan-msg-input" class="plan-input" placeholder="" />
-      ${friends.length ? `<label class="plan-field-label">${t('plan_invite_friends')}</label><div class="plan-friends-list">${friendCheckboxes}</div>` : ''}
-      <button class="btn-social btn-plan-submit" onclick="_submitPlan(${venueId})">${t('plan_create')}</button>
+      <div class="going-actions">
+        <button class="btn-social btn-going-invite" onclick="_showGoingFriendPicker(${venueId})">${t('invite_friends')}</button>
+        <button class="btn-social btn-going-broadcast" onclick="_broadcastGoing(${venueId})">${t('broadcast')}</button>
+      </div>
+      <div id="going-friend-picker-${venueId}" class="going-friend-picker" style="display:none">
+        ${friends.length ? friendList : `<div class="friends-empty">${t('no_friends_yet')}</div>`}
+        <button class="btn-social btn-share-link" onclick="_shareGoingLink(${venueId})">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+          ${t('share_link')}
+        </button>
+        <button class="btn-social btn-plan-submit" onclick="_submitGoing(${venueId})">${t('going_there')}</button>
+      </div>
     </div>`;
   form.style.display = 'block';
 
-  // Default to 1 hour from now
-  const dt = new Date(Date.now() + 3600000);
+  // Pre-fill time from slider/picker
+  const dateStr = typeof datePicker !== 'undefined' ? datePicker.value : new Date().toISOString().slice(0, 10);
+  const hour = typeof timeFromEl !== 'undefined' ? parseFloat(timeFromEl.value) : new Date().getHours();
+  const h = Math.floor(hour);
+  const m = Math.round((hour - h) * 60);
   const input = document.getElementById('plan-time-input');
-  if (input) input.value = dt.toISOString().slice(0, 16);
+  if (input) input.value = `${dateStr}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
-async function _submitPlan(venueId) {
+function _showGoingFriendPicker(venueId) {
+  const picker = document.getElementById('going-friend-picker-' + venueId);
+  if (picker) picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
+}
+
+/** Broadcast to all friends — create plan visible to everyone. */
+async function _broadcastGoing(venueId) {
   const timeInput = document.getElementById('plan-time-input');
-  const msgInput  = document.getElementById('plan-msg-input');
+  if (!timeInput || !timeInput.value) return;
+  const friends = typeof _friends !== 'undefined' ? _friends : [];
+  const allFriendIds = friends.map(f => f.id);
+  await createPlan(venueId, new Date(timeInput.value).toISOString(), '', allFriendIds);
+  const form = document.getElementById('going-form-' + venueId);
+  if (form) form.style.display = 'none';
+}
+
+/** Share invite link for the plan. */
+function _shareGoingLink(venueId) {
+  const timeInput = document.getElementById('plan-time-input');
+  const timeVal = timeInput?.value || '';
+  const user = typeof authCurrentUser === 'function' ? authCurrentUser() : null;
+  if (!user) return;
+  const data = btoa(JSON.stringify({ u: user.id, v: venueId, t: timeVal }));
+  const url = `${location.origin}${location.pathname}#invite/${data}`;
+  if (navigator.share) {
+    const v = typeof VENUES !== 'undefined' ? VENUES.find(x => x.id === venueId) : null;
+    navigator.share({ title: v ? `${v.name} — ${t('going_there')}` : t('going_there'), url }).catch(() => {});
+  } else {
+    navigator.clipboard?.writeText(url);
+    if (typeof _showToast === 'function') _showToast(t('invite_link_copied'));
+  }
+}
+
+/** Submit "jeg drar hit" with selected friends. */
+async function _submitGoing(venueId) {
+  const timeInput = document.getElementById('plan-time-input');
   if (!timeInput || !timeInput.value) return;
   const friendIds = [];
-  document.querySelectorAll('.plan-friend-check input:checked').forEach(cb => friendIds.push(cb.value));
-  await createPlan(venueId, new Date(timeInput.value).toISOString(), msgInput?.value || '', friendIds);
-  const form = document.getElementById('plan-form-' + venueId);
+  document.querySelectorAll(`#going-friend-picker-${venueId} input:checked`).forEach(cb => friendIds.push(cb.value));
+  await createPlan(venueId, new Date(timeInput.value).toISOString(), '', friendIds);
+  const form = document.getElementById('going-form-' + venueId);
   if (form) form.style.display = 'none';
+}
+
+/** "Jeg er her" menu — check in + optionally notify/share. */
+function _openHereMenu(venueId) {
+  if (typeof authCurrentUser === 'function' && !authCurrentUser()) {
+    if (typeof toggleProfilePanel === 'function') toggleProfilePanel();
+    return;
+  }
+  const menu = document.getElementById('here-menu-' + venueId);
+  if (!menu) return;
+  // Close "going" form if open
+  const goingForm = document.getElementById('going-form-' + venueId);
+  if (goingForm) goingForm.style.display = 'none';
+  if (menu.style.display !== 'none') { menu.style.display = 'none'; return; }
+
+  const myCheckin = typeof getMyCheckin === 'function' ? getMyCheckin() : null;
+  const isCheckedInHere = myCheckin && String(myCheckin.venue_id) === String(venueId);
+
+  if (isCheckedInHere) {
+    // Already here — offer to check out
+    menu.innerHTML = `<div class="plan-form-inner">
+      <button class="btn-social" onclick="checkOut()">${t('check_out_success')}</button>
+    </div>`;
+  } else {
+    menu.innerHTML = `<div class="plan-form-inner">
+      <div class="going-actions">
+        <button class="btn-social" onclick="_checkInAndNotify(${venueId})">${t('send_to_friends')}</button>
+        <button class="btn-social btn-share-link" onclick="_shareHereLink(${venueId})">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+          ${t('share_link')}
+        </button>
+      </div>
+    </div>`;
+  }
+  menu.style.display = 'block';
+}
+
+async function _checkInAndNotify(venueId) {
+  await checkIn(venueId, '');
+  const menu = document.getElementById('here-menu-' + venueId);
+  if (menu) menu.style.display = 'none';
+}
+
+function _shareHereLink(venueId) {
+  // Check in first, then share link
+  checkIn(venueId, '');
+  const user = typeof authCurrentUser === 'function' ? authCurrentUser() : null;
+  if (!user) return;
+  const data = btoa(JSON.stringify({ u: user.id, v: venueId, type: 'here' }));
+  const url = `${location.origin}${location.pathname}#invite/${data}`;
+  if (navigator.share) {
+    const v = typeof VENUES !== 'undefined' ? VENUES.find(x => x.id === venueId) : null;
+    navigator.share({ title: v ? `${v.name} — ${t('im_here')}` : t('im_here'), url }).catch(() => {});
+  } else {
+    navigator.clipboard?.writeText(url);
+    if (typeof _showToast === 'function') _showToast(t('invite_link_copied'));
+  }
+  const menu = document.getElementById('here-menu-' + venueId);
+  if (menu) menu.style.display = 'none';
 }
 
 /** Helper: render sun/cloud timeline segments for detail panel (10px track). */
