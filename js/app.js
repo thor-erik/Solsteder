@@ -1017,6 +1017,7 @@ function setActiveIntentBtn(intent) {
 }
 
 function setIntent(intent) {
+  _aTrack('intent_set', { intent });
   setActiveIntentBtn(intent);
   _currentPreset = null;
   if (intent === 'now') {
@@ -1180,6 +1181,7 @@ function setHoveredVenue(id) {
 
 // ── Area filter ───────────────────────────────────────────────────────────────
 function setAreaFilter(area) {
+  _aTrack('filter_change', { filter: 'area', value: area });
   activeArea = area;
   document.querySelectorAll('.area-chip').forEach(b =>
     b.classList.toggle('active', b.dataset.area === area));
@@ -1208,6 +1210,7 @@ function toggleSortPanel() {
 }
 
 function setSortBy(sort) {
+  _aTrack('sort_change', { sort_by: sort });
   if (sort === 'distance' && !userLocation) {
     navigator.geolocation.getCurrentPosition(
       pos => {
@@ -1232,6 +1235,19 @@ function updateSortBtns() {
   const labels = { score: 'Mest sol', latest: 'Senest sol', distance: 'Avstand', beer: 'Ølpris' };
   const labelEl = document.getElementById('sort-label');
   if (labelEl) labelEl.textContent = labels[activeSortBy] ?? 'Mest sol';
+}
+
+// ── Debounced time change analytics ──────────────────────────────────────────
+let _aTimeChangeTimer = null;
+function _aTrackTimeChange() {
+  clearTimeout(_aTimeChangeTimer);
+  _aTimeChangeTimer = setTimeout(() => {
+    _aTrack('time_change', {
+      date: datePicker.value,
+      hour: parseFloat(timeFromEl.value),
+      now_mode: nowMode,
+    });
+  }, 3000);
 }
 
 // ── Debounced list render (avoids jitter when dragging time slider) ────────────
@@ -1829,6 +1845,7 @@ function update() {
   const fromHour = parseFloat(timeFromEl.value);
   const dateStr  = datePicker.value;
   updateRangeFill();
+  _aTrackTimeChange();
 
   // Rebuild sun table once per date change, then reuse for all lookups
   if (!currentSunTable || currentDateStr !== dateStr) {
@@ -1955,6 +1972,7 @@ function _venueSlug(v) {
 }
 
 function shareVenue(venueId) {
+  _aTrack('share', { venue_id: venueId, method: navigator.share ? 'native' : 'clipboard' });
   const v = VENUES.find(x => x.id === venueId);
   if (!v) return;
   const slug = _venueSlug(v);
@@ -2020,6 +2038,7 @@ function _flyToVenue(v) {
 }
 
 function selectVenue(id, flyTo) {
+  _aTrack('venue_view', { venue_id: id, source: flyTo ? 'list' : 'map' });
   const freshOpen = selectedId === null; // opening panel for the first time (not switching venues)
   selectedId = id;
   _navMode   = true;   // show all venues in radius, not just current map view
@@ -2066,6 +2085,8 @@ function updatePopup() {
 // ── Detail panel ──────────────────────────────────────────────────────────────
 
 function openDetailPanel(v) {
+  _aDetailOpenTs = Date.now();
+  _aTrack('detail_open', { venue_id: v.id, time_slot: parseFloat(timeFromEl.value) });
   _mapMovedWhileDetailOpen = false; // reset each time a panel opens
   const dp      = document.getElementById('detail-panel');
   const content = document.getElementById('dp-content');
@@ -2120,6 +2141,11 @@ function _startWindForVenue(v) {
 }
 
 function closeDetailPanel(expandList = true) {
+  if (selectedId != null) {
+    const dwell = _aDetailOpenTs ? Date.now() - _aDetailOpenTs : null;
+    _aTrack('detail_close', { venue_id: selectedId, dwell_ms: dwell });
+    _aDetailOpenTs = null;
+  }
   // Closed via in-app UI — drop 'venue' and everything stacked on top of it
   // (e.g. 'dp-fullscreen'). Skipped when triggered by the popstate handler.
   if (!_navHandlingPop) _navDropLayer('venue');
@@ -3135,7 +3161,18 @@ map.on('movestart', (e) => {
 });
 
 // Re-render list on map move when viewport filter is active
+let _aMapMoveTimer = null;
 map.on('moveend', () => {
+  // Debounced analytics for map moves (5 s)
+  clearTimeout(_aMapMoveTimer);
+  _aMapMoveTimer = setTimeout(() => {
+    const b = map.getBounds();
+    _aTrack('map_move', {
+      zoom: Math.round(map.getZoom() * 10) / 10,
+      center: [+(map.getCenter().lng.toFixed(4)), +(map.getCenter().lat.toFixed(4))],
+    });
+  }, 5000);
+
   if (!filterMapViewActive) return;
   const list = document.getElementById('venue-list');
   if (list) list.dataset.noAnim = '1';

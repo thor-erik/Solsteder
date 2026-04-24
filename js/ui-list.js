@@ -16,6 +16,7 @@
 const LIST_PAGE = 30; // cards rendered per batch
 let _listFiltered = []; // current sorted+filtered result
 let _listObserver = null; // IntersectionObserver for infinite scroll
+let _aImpressionTimer = null; // debounce for impression analytics
 
 /** Mini sun-timeline sparkline: 6px tall, 06:00–22:00 range, shows sun/cloud/now. */
 function buildMiniSunTimeline(v, dateStr, fromHour) {
@@ -334,6 +335,17 @@ function renderList() {
     }
     return;
   }
+
+  // ── Track venue impressions (debounced — only after slider settles) ──────
+  clearTimeout(_aImpressionTimer);
+  _aImpressionTimer = setTimeout(() => {
+    _aTrack('venue_impression', {
+      venue_ids: venues.slice(0, 20).map(v => v.id),
+      count: venues.length,
+      area: activeArea || null,
+      sort: activeSortBy,
+    });
+  }, 2000);
 
   // ── Render first page, observer handles the rest ──────────────────────────
   _listFiltered = venues;
