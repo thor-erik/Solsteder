@@ -1,0 +1,11 @@
+{
+  "appId": "app.findshades",
+  "appName": "Shades",
+  "webDir": "www",
+  "server": {
+    "allowNavigation": ["findshades.app", "*.supabase.co"]
+  },
+  "ios": {
+    "scheme": "Shades"
+  }
+}

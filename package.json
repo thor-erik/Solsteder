@@ -1,0 +1,20 @@
+{
+  "name": "solsteder",
+  "version": "1.0.0",
+  "description": "Solar-optimized venue finder for Oslo",
+  "scripts": {
+    "build": "rm -rf www && mkdir -p www && cp -R index.html privacy.html manifest.json shades-logo.png js data design www/",
+    "cap:sync": "npm run build && npx cap sync",
+    "cap:ios": "npm run cap:sync && npx cap open ios",
+    "cap:android": "npm run cap:sync && npx cap open android"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@capacitor/android": "^8.3.1",
+    "@capacitor/cli": "^8.3.1",
+    "@capacitor/core": "^8.3.1",
+    "@capacitor/ios": "^8.3.1"
+  }
+}

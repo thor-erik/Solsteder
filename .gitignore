@@ -4,3 +4,5 @@
 js/config.js
 data/venues-fetched.json
 data/venues-candidates.json
+node_modules/
+www/
