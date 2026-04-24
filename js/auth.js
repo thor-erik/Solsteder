@@ -55,35 +55,87 @@ async function authSignInWithGoogle() {
   });
 }
 
+async function authSignInWithApple() {
+  try {
+    sessionStorage.setItem('solsteder_auth_restore', JSON.stringify({
+      date:    typeof datePicker !== 'undefined' ? datePicker.value           : null,
+      time:    typeof timeFromEl !== 'undefined' ? parseFloat(timeFromEl.value) : null,
+      nowMode: typeof nowMode    !== 'undefined' ? nowMode                    : false,
+      venueId: typeof selectedId !== 'undefined' ? selectedId                 : null,
+    }));
+  } catch (_) {}
+  await _supabase.auth.signInWithOAuth({
+    provider: 'apple',
+    options: { redirectTo: window.location.origin }
+  });
+}
+
+async function authSignInWithMagicLink(email) {
+  const { error } = await _supabase.auth.signInWithOtp({
+    email,
+    options: { emailRedirectTo: window.location.origin }
+  });
+  return { error };
+}
+
 async function authSignOut() {
   await _supabase.auth.signOut();
 }
 
 function renderLoginGate(v) {
   return `
-    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:56px 24px 48px;text-align:center;gap:14px;">
-      <div style="font-family:'Newsreader',serif;font-size:22px;color:var(--text);font-weight:400;">${v.name}</div>
-      <div style="color:var(--muted);font-size:13px;line-height:1.6;max-width:240px;">
+    <div class="login-gate">
+      <div class="login-gate-title">${v.name}</div>
+      <div class="login-gate-subtitle">
         Logg inn for å se sol-tidslinje, score og vær.
       </div>
-      <button onclick="authSignInWithGoogle()" style="
-        display:flex;align-items:center;gap:10px;
-        background:#fff;color:#1f1f1f;
-        border:none;border-radius:8px;
-        padding:11px 22px;margin-top:8px;
-        font-family:'Inter',sans-serif;font-size:14px;font-weight:500;
-        cursor:pointer;
-      ">
-        <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
-          <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908C16.658 13.952 17.64 11.644 17.64 9.2z"/>
-          <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
-          <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/>
-          <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/>
-        </svg>
-        Fortsett med Google
-      </button>
+      <div class="login-gate-buttons">
+        <button class="auth-btn auth-btn-google" onclick="authSignInWithGoogle()">
+          <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+            <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908C16.658 13.952 17.64 11.644 17.64 9.2z"/>
+            <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
+            <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/>
+            <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/>
+          </svg>
+          ${t('signin_google')}
+        </button>
+        <button class="auth-btn auth-btn-apple" onclick="authSignInWithApple()">
+          <svg width="18" height="18" viewBox="0 0 256 315" xmlns="http://www.w3.org/2000/svg">
+            <path fill="currentColor" d="M213.8 167.1c-.4-39.6 32.3-58.6 33.7-59.5-18.3-26.8-46.9-30.5-57.1-30.9-24.3-2.5-47.5 14.3-59.8 14.3-12.4 0-31.5-14-51.8-13.6-26.7.4-51.3 15.5-65 39.4-27.7 48.1-7.1 119.4 19.9 158.5 13.2 19.1 29 40.6 49.7 39.8 19.9-.8 27.5-12.9 51.6-12.9 24.1 0 31 12.9 51.6 12.5 21.5-.4 35.2-19.5 48.3-38.7 15.2-22.2 21.5-43.7 21.8-44.8-.5-.2-41.9-16.1-42.3-63.8zM173.8 49.5C184.6 36.5 192 18.6 190.1 0 174.8.6 155.8 10.1 144.6 23 134.7 34.2 125.6 52.8 127.8 70.3c17 1.3 34.4-8.5 46-20.8"/>
+          </svg>
+          ${t('signin_apple')}
+        </button>
+        <div class="auth-divider"><span>or</span></div>
+        <form class="auth-magic-link-form" onsubmit="handleMagicLinkSubmit(event, this)">
+          <input type="email" class="auth-magic-link-input" placeholder="${t('magic_link_placeholder')}" required>
+          <button type="submit" class="auth-btn auth-btn-email">${t('magic_link_send')}</button>
+          <div class="auth-magic-link-status"></div>
+        </form>
+      </div>
     </div>
   `;
+}
+
+async function handleMagicLinkSubmit(e, form) {
+  e.preventDefault();
+  const input  = form.querySelector('.auth-magic-link-input');
+  const btn    = form.querySelector('.auth-btn-email');
+  const status = form.querySelector('.auth-magic-link-status');
+  const email  = input.value.trim();
+  if (!email) return;
+  btn.disabled = true;
+  btn.textContent = '…';
+  const { error } = await authSignInWithMagicLink(email);
+  if (error) {
+    status.textContent = t('magic_link_error');
+    status.className = 'auth-magic-link-status error';
+  } else {
+    status.textContent = t('magic_link_sent');
+    status.className = 'auth-magic-link-status success';
+    input.disabled = true;
+  }
+  btn.disabled = false;
+  btn.textContent = t('magic_link_send');
 }
 
 function _updateUserIndicator() {
@@ -212,15 +264,29 @@ function _renderProfilePanel() {
   } else {
     panel.innerHTML = `
       <div class="profile-panel-body">
-        <button class="profile-panel-row" style="background:none;border:none;width:100%;font-family:'Inter',sans-serif;text-align:left;" onclick="authSignInWithGoogle();closeProfilePanel()">
-          <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
-            <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908C16.658 13.952 17.64 11.644 17.64 9.2z"/>
-            <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
-            <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/>
-            <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/>
-          </svg>
-          ${t('signin_google')}
-        </button>
+        <div class="login-gate-buttons" style="padding:16px 20px 8px">
+          <button class="auth-btn auth-btn-google" onclick="authSignInWithGoogle();closeProfilePanel()">
+            <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+              <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908C16.658 13.952 17.64 11.644 17.64 9.2z"/>
+              <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
+              <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/>
+              <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/>
+            </svg>
+            ${t('signin_google')}
+          </button>
+          <button class="auth-btn auth-btn-apple" onclick="authSignInWithApple();closeProfilePanel()">
+            <svg width="18" height="18" viewBox="0 0 256 315" xmlns="http://www.w3.org/2000/svg">
+              <path fill="currentColor" d="M213.8 167.1c-.4-39.6 32.3-58.6 33.7-59.5-18.3-26.8-46.9-30.5-57.1-30.9-24.3-2.5-47.5 14.3-59.8 14.3-12.4 0-31.5-14-51.8-13.6-26.7.4-51.3 15.5-65 39.4-27.7 48.1-7.1 119.4 19.9 158.5 13.2 19.1 29 40.6 49.7 39.8 19.9-.8 27.5-12.9 51.6-12.9 24.1 0 31 12.9 51.6 12.5 21.5-.4 35.2-19.5 48.3-38.7 15.2-22.2 21.5-43.7 21.8-44.8-.5-.2-41.9-16.1-42.3-63.8zM173.8 49.5C184.6 36.5 192 18.6 190.1 0 174.8.6 155.8 10.1 144.6 23 134.7 34.2 125.6 52.8 127.8 70.3c17 1.3 34.4-8.5 46-20.8"/>
+            </svg>
+            ${t('signin_apple')}
+          </button>
+          <div class="auth-divider"><span>or</span></div>
+          <form class="auth-magic-link-form" onsubmit="handleMagicLinkSubmit(event, this)">
+            <input type="email" class="auth-magic-link-input" placeholder="${t('magic_link_placeholder')}" required>
+            <button type="submit" class="auth-btn auth-btn-email">${t('magic_link_send')}</button>
+            <div class="auth-magic-link-status"></div>
+          </form>
+        </div>
         <div style="border-top:1px solid rgba(255,255,255,0.07);padding:10px 0 4px;margin-top:4px;text-align:center;">
           <a href="privacy.html" target="_blank" rel="noopener" class="profile-privacy-link">${t('privacy_policy')}</a>
         </div>
