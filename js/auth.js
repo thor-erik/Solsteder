@@ -265,7 +265,7 @@ function _renderProfilePanel() {
   } else {
     panel.innerHTML = `
       <div class="profile-panel-body">
-        <div class="login-gate-buttons" style="padding:16px 20px 8px">
+        <div class="login-gate-buttons" style="padding:16px 20px 8px;margin:0 auto">
           <button class="auth-btn auth-btn-google" onclick="authSignInWithGoogle();closeProfilePanel()">
             <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
               <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908C16.658 13.952 17.64 11.644 17.64 9.2z"/>
