@@ -535,27 +535,7 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
     }
   }
 
-  // Task 7: Sol-retning section (direction)
-  const sunPos = typeof getSun === 'function' ? getSun(dateStr, fromHour) : { az: 0 };
-  const azimuth = sunPos.az;
-  const azbuckets = ['N', 'NØ', 'Ø', 'SØ', 'S', 'SV', 'V', 'NV'];
-  const bucketIdx = Math.round((azimuth + 360) / 45) % 8;
-  const bucketName = azbuckets[bucketIdx];
-  const directionMap = {
-    'N': { text: 'nord', seat: 'nordsiden' },
-    'NØ': { text: 'nordøst', seat: 'nordøstsiden' },
-    'Ø': { text: 'øst', seat: 'østsiden' },
-    'SØ': { text: 'sørost', seat: 'sørostsiden' },
-    'S': { text: 'sør', seat: 'sørsiden' },
-    'SV': { text: 'sørvest', seat: 'sørvestsiden' },
-    'V': { text: 'vest', seat: 'vestsiden' },
-    'NV': { text: 'nordvest', seat: 'nordvestsiden' }
-  };
-  const dir = directionMap[bucketName];
-  const solRetningMain = `Solen står ${dir.text}`;
-  const solRetningSub = `Sett deg på ${dir.seat} av terrassen`;
-
-  // Task 8: Info list
+  // Info list
   const infoRows = [];
 
   // Beer price row (first)
@@ -696,17 +676,6 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       </div>
 
       ${infoListHtml}
-
-      <div class="spatial-section">
-        <div class="spatial-label">Sol-retning akkurat nå</div>
-        <div class="spatial-body">
-          <canvas id="detail-compass" class="detail-compass-canvas" width="80" height="80" style="flex-shrink:0"></canvas>
-          <div class="spatial-text">
-            <span class="strong">${solRetningMain}</span>
-            <span class="muted">${solRetningSub}</span>
-          </div>
-        </div>
-      </div>
 
       ${footerHtml}
     </div>`;
@@ -938,76 +907,3 @@ function renderSunTimelineSegments(windows, fromHour) {
   return segments;
 }
 
-/** Draw compass arc for detail panel sol-retning section. */
-function drawDetailCompass(dateStr, fromHour) {
-  const canvas = document.getElementById('detail-compass');
-  if (!canvas) return;
-
-  const c = canvas.getContext('2d');
-  const w = canvas.width, h = canvas.height, cx = w / 2, cy = h / 2;
-  const outerR = Math.min(w, h) / 2 - 2;
-
-  // Clear and draw circle
-  c.clearRect(0, 0, w, h);
-  c.beginPath();
-  c.arc(cx, cy, outerR, 0, Math.PI * 2);
-  c.fillStyle = 'rgba(255,255,255,0.04)';
-  c.fill();
-  c.strokeStyle = 'rgba(156,189,231,0.18)';
-  c.lineWidth = 1;
-  c.stroke();
-
-  // Draw cardinal ticks (N, S only)
-  c.strokeStyle = 'rgba(156,189,231,0.3)';
-  c.lineWidth = 1;
-  // N
-  c.beginPath();
-  c.moveTo(cx, cy - outerR + 2);
-  c.lineTo(cx, cy - outerR + 6);
-  c.stroke();
-  // S
-  c.beginPath();
-  c.moveTo(cx, cy + outerR - 2);
-  c.lineTo(cx, cy + outerR - 6);
-  c.stroke();
-
-  // Draw N label
-  c.font = '9px "Inter", sans-serif';
-  c.fillStyle = 'rgba(156,189,231,0.6)';
-  c.textAlign = 'center';
-  c.textBaseline = 'middle';
-  c.fillText('N', cx, cy - outerR + 10);
-
-  // Get sun position and draw arc/dot
-  const sunPos = typeof getSun === 'function' ? getSun(dateStr, fromHour) : { az: 0, alt: -10 };
-  const RAD = Math.PI / 180;
-
-  if (sunPos.alt > 0) {
-    const sunAngle = (sunPos.az - 90) * RAD;
-    const sr = outerR - 4;
-    const sx = cx + sr * Math.cos(sunAngle);
-    const sy = cy + sr * Math.sin(sunAngle);
-
-    // Draw arc from center to sun position
-    c.beginPath();
-    c.moveTo(cx, cy);
-    c.lineTo(sx, sy);
-    c.strokeStyle = 'rgba(255,175,133,0.35)';
-    c.lineWidth = 1.5;
-    c.stroke();
-
-    // Draw sun dot with glow
-    const glow = c.createRadialGradient(sx, sy, 0, sx, sy, 7);
-    glow.addColorStop(0, 'rgba(255,175,133,0.5)');
-    glow.addColorStop(1, 'rgba(255,175,133,0)');
-    c.beginPath();
-    c.arc(sx, sy, 7, 0, Math.PI * 2);
-    c.fillStyle = glow;
-    c.fill();
-
-    c.beginPath();
-    c.arc(sx, sy, 2.5, 0, Math.PI * 2);
-    c.fillStyle = '#FFAF85';
-    c.fill();
-  }
-}
