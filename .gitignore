@@ -4,3 +4,9 @@
 js/config.js
 data/venues-fetched.json
 data/venues-candidates.json
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+!.env.example
