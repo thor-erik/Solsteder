@@ -114,30 +114,43 @@ let _ftsDragging       = false; // true during scrub
 let _ftsHideTimeout    = null;  // scrub popup auto-hide timer
 const FTS_GAP          = 8;    // px gap between pill and panel top edge
 
-/** Update --fts-bottom CSS var so the pill tracks the panel's top edge. */
+/** Update FTS position — mobile: --fts-bottom var; desktop: left edge. */
 function _syncFtsPosition() {
-  if (!USE_FLOATING_TIME_SLIDER || !isMobile()) return;
+  if (!USE_FLOATING_TIME_SLIDER) return;
   const ftsEl = document.getElementById('fts');
   const panel = document.getElementById('panel');
   const dp    = document.getElementById('detail-panel');
   if (!panel) return;
 
-  // Detail panel open? Track the detail panel instead of the venue list
+  // ── Desktop: adjust left edge to clear list + detail panels ──────────
+  if (!isMobile()) {
+    if (!ftsEl) return;
+    const dpOpen = dp?.classList.contains('open');
+    if (panelVisible) {
+      // 16 (margin) + 336 (panel) + 16 (gap) = 368; + 300 (detail) + 16 (gap) = 684
+      ftsEl.style.left = dpOpen ? '684px' : '368px';
+    } else {
+      // Panel hidden: 16 margin; + 300 (detail) + 16 (gap) = 332
+      ftsEl.style.left = dpOpen ? '332px' : '16px';
+    }
+    return;
+  }
+
+  // ── Mobile: track panel top edge via --fts-bottom ────────────────────
+  // Clear any desktop-set inline left so CSS mobile rules apply
+  if (ftsEl) ftsEl.style.left = '';
   const dpOpen = dp?.classList.contains('open');
   const dpFull = dp?.classList.contains('dp-fullscreen');
   if (dpOpen) {
     if (dpFull) {
-      // Fullscreen detail panel: hide the pill
       if (ftsEl) { ftsEl.style.opacity = '0'; ftsEl.style.pointerEvents = 'none'; }
       return;
     }
-    // Normal detail panel (62svh) — pill sits above it
     if (ftsEl) { ftsEl.style.opacity = ''; ftsEl.style.pointerEvents = ''; }
     document.body.style.setProperty('--fts-bottom', `calc(62svh + ${FTS_GAP}px)`);
     return;
   }
 
-  // Restore pill visibility when detail panel is closed
   if (ftsEl) { ftsEl.style.opacity = ''; ftsEl.style.pointerEvents = ''; }
 
   const isHidden   = panel.classList.contains('mobile-hidden');
@@ -147,13 +160,10 @@ function _syncFtsPosition() {
   if (isHidden) {
     bottom = `${FTS_GAP}px`;
   } else if (isFull) {
-    // Fullscreen: pill below grab bar — safe-area + 16px pad + 4px bar + 14px gap
     bottom = `calc(100svh - env(safe-area-inset-top, 0px) - 46px - 16px - 4px - 14px)`;
   } else if (isExpanded) {
-    // Expanded: pill above panel top edge
     bottom = `calc(62svh + ${FTS_GAP}px)`;
   } else {
-    // Peek: pill above panel top edge
     const peekH = panel.style.getPropertyValue('--peek-h') || '160px';
     bottom = `calc(${peekH} + ${FTS_GAP}px)`;
   }
@@ -2101,12 +2111,12 @@ function openDetailPanel(v) {
       if (panel) {
         panel.classList.remove('mobile-expanded', 'mobile-fullscreen');
         panel.classList.add('mobile-hidden');
-        _syncFtsPosition();
       }
       document.getElementById('floating-search')?.classList.add('mobile-ui-hidden');
       document.getElementById('qc-wrap')?.classList.add('mobile-ui-hidden');
       document.getElementById('locate-btn')?.classList.add('mobile-ui-hidden');
     }
+    _syncFtsPosition();
     return;
   }
 
@@ -2123,11 +2133,11 @@ function openDetailPanel(v) {
     if (panel) {
       panel.classList.remove('mobile-expanded', 'mobile-fullscreen');
       panel.classList.add('mobile-hidden');
-      _syncFtsPosition();
     }
     document.getElementById('floating-search')?.classList.add('mobile-ui-hidden');
     document.getElementById('qc-wrap')?.classList.add('mobile-ui-hidden');
   }
+  _syncFtsPosition();
 }
 
 function _getWxNow() {
@@ -2172,6 +2182,7 @@ if (typeof stopWindOverlay === 'function') stopWindOverlay();
       document.getElementById('locate-btn')?.classList.remove('mobile-ui-hidden');
     }, 320);
   }
+  _syncFtsPosition();
   if (selectedId != null) {
     // Remove temporary candidate venue from VENUES if present
     const idx = VENUES.findIndex(v => v.id === selectedId && v._isCandidate);
@@ -2599,10 +2610,11 @@ function togglePanel() {
       detailPanel.style.left = '16px';
       detailPanel.style.top  = qcWrap
         ? (qcWrap.offsetTop + qcWrap.offsetHeight + 8) + 'px'
-        : '118px';
+        : '70px';
     }
     if (qcWrap) qcWrap.style.left = '16px';
   }
+  _syncFtsPosition();
   // Redraw when transition completes, with fallback timeout
   const handleTransitionEnd = (e) => {
     if (e.propertyName === 'transform' || e.propertyName === 'opacity') {
@@ -2988,7 +3000,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Sync qc panel height on resize
-  window.addEventListener('resize', () => { _syncQcPanelHeight(); _updatePeekHeight(); });
+  window.addEventListener('resize', () => { _syncQcPanelHeight(); _updatePeekHeight(); _syncFtsPosition(); });
   setTimeout(() => { _syncQcPanelHeight(); _updatePeekHeight(); }, 600);
 
   // qc-arc drag + hover support

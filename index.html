@@ -543,8 +543,8 @@
   body.fts #fts {
     display: flex;
     position: fixed;
-    left: 12px; right: 12px;
-    bottom: var(--fts-bottom, 160px);
+    left: 368px; right: 16px;       /* desktop: clear list panel (16+336+16) */
+    bottom: 16px;
     z-index: 925;
     height: 46px;
     align-items: center;
@@ -556,8 +556,8 @@
     -webkit-backdrop-filter: var(--glass-blur-action);
     border: var(--glass-border);
     box-shadow: var(--glass-inset), 0 6px 20px rgba(0,0,0,0.25);
-    transition: bottom 0.45s cubic-bezier(0.2, 0.8, 0.3, 1);
-    will-change: bottom;
+    transition: left 0.28s ease, bottom 0.45s cubic-bezier(0.2, 0.8, 0.3, 1);
+    will-change: left, bottom;
   }
 
   /* Calendar button — date pill */
@@ -2252,6 +2252,14 @@
 
     #panel-toggle-icon { display: none; }
 
+    /* FTS: restore mobile full-width + dynamic bottom */
+    body.fts #fts {
+      left: 12px; right: 12px;
+      bottom: var(--fts-bottom, 160px);
+      transition: bottom 0.45s cubic-bezier(0.2, 0.8, 0.3, 1);
+      will-change: bottom;
+    }
+
     /* Locate button: sit above the floating pill (or above peek strip if no FTS) */
     #locate-btn { bottom: calc(var(--peek-h, 252px) + 14px); right: 12px; }
     body.fts #locate-btn { bottom: calc(var(--fts-bottom, 160px) + 46px + 12px); transition: bottom 0.45s cubic-bezier(0.2, 0.8, 0.3, 1); }
@@ -3794,7 +3802,7 @@
 
   #detail-panel {
     position: absolute;
-    top: 118px;
+    top: 70px;     /* align with list panel: 16 search-top + 46 search-h + 8 gap */
     left: 368px;   /* 16 + 336 + 16 */
     bottom: 16px;
     width: 300px;
