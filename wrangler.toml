@@ -1,0 +1,20 @@
+name = "solsteder"
+type = "javascript"
+compatibility_date = "2026-04-25"
+
+[env.production]
+route = "findshades.app/*"
+
+[build]
+command = "npm run build"
+cwd = "."
+
+[env.production.build]
+command = "npm run build"
+
+[[env.production.routes]]
+pattern = "findshades.app/*"
+zone_name = "findshades.app"
+
+[assets]
+directory = "www"
