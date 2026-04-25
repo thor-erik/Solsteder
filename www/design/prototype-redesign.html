@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solsteder — Redesign-skisse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #111E38;
+    --accent: #FFAF85;
+    --accent-dim: rgba(255,175,133,0.15);
+    --text: #FFF2EB;
+    --muted: #9CBDE7;
+    --card-bg: rgba(20,46,82,0.4);
+    --border: rgba(156,189,231,0.18);
+    --glass-card-bg: linear-gradient(135deg, rgba(20,46,82,0.42) 0%, rgba(32,73,131,0.26) 100%), rgba(20,46,82,0.50);
+    --glass-inset: inset 0 1px 0 rgba(255,242,235,0.14), inset 0 -1px 0 rgba(20,46,82,0.35);
+  }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    padding: 32px 16px 80px;
+    min-height: 100vh;
+  }
+
+  .page {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  h1 { font-size: 24px; margin-bottom: 8px; }
+  .subtitle { color: var(--muted); margin-bottom: 32px; font-size: 14px; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+
+  @media (max-width: 900px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  .column h2 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 16px;
+    padding-left: 4px;
+  }
+  .column h2.redesign { color: var(--accent); }
+
+  .phone {
+    background: var(--bg);
+    border-radius: 36px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    padding: 16px 12px;
+    position: relative;
+  }
+
+  .annotation {
+    font-size: 12px;
+    color: var(--muted);
+    font-style: italic;
+    padding: 8px 12px;
+    margin-top: 12px;
+    border-left: 2px solid var(--accent);
+    background: rgba(255,175,133,0.05);
+    border-radius: 0 6px 6px 0;
+  }
+
+  /* ── Glass card base ────────────────────────────────────────────── */
+  .glass-card {
+    background: var(--glass-card-bg);
+    backdrop-filter: blur(12px) saturate(160%);
+    border: 1px solid var(--border);
+    box-shadow: var(--glass-inset), 0 4px 14px rgba(0,0,0,0.3);
+    border-radius: 18px;
+  }
+
+  /* ── Top time bar (same in both) ─────────────────────────────────── */
+  .time-bar {
+    padding: 12px 14px;
+    margin-bottom: 10px;
+  }
+  .time-bar-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .time-bar-time {
+    color: var(--accent);
+    font-size: 28px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .slider-track {
+    height: 12px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 6px;
+    position: relative;
+    margin: 6px 0 4px;
+  }
+  .slider-sun {
+    position: absolute;
+    left: 65%;
+    width: 20%;
+    top: 0;
+    bottom: 0;
+    background: var(--accent);
+    opacity: 0.55;
+    border-radius: 0;
+  }
+  .slider-knob {
+    position: absolute;
+    left: 65%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 18px;
+    height: 18px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  }
+  .slider-scale {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--muted);
+    padding: 0 2px;
+  }
+
+  .list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 6px;
+    margin-bottom: 8px;
+  }
+  .list-header-title { font-size: 15px; font-weight: 600; }
+  .sort-chip {
+    font-size: 12px;
+    color: var(--muted);
+    padding: 6px 12px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     CURRENT DESIGN — list card
+     ═══════════════════════════════════════════════════════════════════ */
+  .card-old {
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .card-old-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .card-old-meta {
+    font-size: 13px;
+    color: var(--muted);
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+  .card-old-meta .dot { opacity: 0.5; }
+  .card-old-meta .score {
+    margin-left: auto;
+    color: var(--accent);
+    background: var(--accent-dim);
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .card-old-body {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .ring {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    border: 4px solid rgba(255,255,255,0.08);
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .ring::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 4px solid transparent;
+    border-bottom-color: var(--accent);
+    border-left-color: var(--accent);
+    opacity: 0.5;
+    transform: rotate(45deg);
+  }
+  .card-old-duration { font-size: 18px; font-weight: 600; }
+  .card-old-light {
+    margin-left: auto;
+    border-left: 1px solid var(--border);
+    padding-left: 14px;
+  }
+  .card-old-light-label {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+  }
+  .card-old-light-time {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     NEW DESIGN — compact list card with inline sun timeline
+     ═══════════════════════════════════════════════════════════════════ */
+  .card-new {
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    gap: 14px;
+    align-items: stretch;
+  }
+  .card-new-left {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .card-new-name {
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .card-new-meta {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .card-new-meta .dot { opacity: 0.4; margin: 0 4px; }
+  .card-new-timeline {
+    position: relative;
+    height: 14px;
+    margin-top: auto;
+  }
+  .timeline-track {
+    position: absolute;
+    top: 4px;
+    left: 0; right: 0;
+    height: 6px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .timeline-sun {
+    position: absolute;
+    top: 0; bottom: 0;
+    background: linear-gradient(90deg, var(--accent), #FFC89B);
+    opacity: 0.85;
+  }
+  .timeline-cloud {
+    position: absolute;
+    top: 0; bottom: 0;
+    background: rgba(156,189,231,0.35);
+  }
+  .timeline-now {
+    position: absolute;
+    top: 0;
+    width: 2px;
+    height: 14px;
+    background: #fff;
+    border-radius: 1px;
+    box-shadow: 0 0 6px rgba(255,255,255,0.6);
+  }
+  /* Right column: distance on top, state info below */
+  .card-new-right {
+    flex-shrink: 0;
+    width: 96px;
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 4px;
+  }
+  .card-new-dist {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1;
+  }
+  .card-new-hero {
+    text-align: right;
+  }
+  .card-new-hero-main {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .card-new-hero-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 3px;
+    font-variant-numeric: tabular-nums;
+  }
+  /* State: currently in shadow, sun returning */
+  .card-new.state-shadow .card-new-hero-main { color: var(--text); font-weight: 600; }
+  /* State: no more sun today */
+  .card-new.state-done { opacity: 0.5; }
+  .card-new.state-done .card-new-hero-main { color: var(--muted); font-weight: 600; }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     CURRENT DETAIL PANEL
+     ═══════════════════════════════════════════════════════════════════ */
+  .detail-old-photos {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 4px;
+    border-radius: 14px;
+    overflow: hidden;
+    height: 150px;
+    margin-bottom: 16px;
+    background: #2a3a5c;
+  }
+  .detail-old-photos .ph {
+    background: linear-gradient(135deg, #3a4b6e, #2a3a5c);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .detail-old-title {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    padding-right: 80px;
+  }
+  .detail-old-sub { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+  .detail-old-back {
+    position: absolute;
+    top: 16px; right: 16px;
+    padding: 8px 14px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 13px;
+  }
+  .detail-old-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: var(--card-bg);
+    border-radius: 20px;
+    font-size: 13px;
+    margin-bottom: 20px;
+  }
+  .big-dial {
+    height: 170px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    margin-bottom: 20px;
+  }
+  .big-dial-circle {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.1);
+    position: relative;
+  }
+  .big-dial-labels {
+    position: absolute;
+    inset: 0;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .big-dial-labels span {
+    position: absolute;
+    transform: translate(-50%, -50%);
+  }
+  .big-dial-labels .n12 { left: 50%; top: 12%; }
+  .big-dial-labels .n3 { right: 12%; top: 50%; left: auto; transform: translate(50%, -50%); }
+  .big-dial-labels .n9 { left: 12%; top: 50%; }
+  .big-dial-labels .n6 { left: 50%; bottom: 12%; top: auto; transform: translate(-50%, 50%); }
+  .dial-arc {
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: 150px; height: 150px;
+    border-radius: 50%;
+    border: 4px solid transparent;
+    border-bottom-color: var(--accent);
+    opacity: 0.7;
+  }
+  .dial-legend {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    color: var(--muted);
+    text-align: right;
+    line-height: 1.7;
+  }
+  .actions-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .action-btn {
+    padding: 14px 8px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    color: var(--accent);
+    font-size: 12px;
+    text-align: center;
+  }
+  .action-btn-icon { font-size: 18px; display: block; margin-bottom: 6px; }
+  .score-section-label {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    padding: 12px 0 4px;
+    border-top: 1px solid var(--border);
+  }
+  .score-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .score-row-title {
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .score-row-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .score-row-value {
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 18px;
+    font-style: italic;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     NEW DETAIL PANEL
+     ═══════════════════════════════════════════════════════════════════ */
+  .detail-new-photos {
+    height: 180px;
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 14px;
+    background: linear-gradient(135deg, #3a4b6e, #2a3a5c);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 12px;
+    position: relative;
+  }
+  .detail-new-photos::after {
+    content: '•  •  •';
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255,255,255,0.5);
+    font-size: 10px;
+    letter-spacing: 4px;
+  }
+
+  .detail-new-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .detail-new-title {
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.15;
+    flex: 1;
+  }
+  .detail-new-sub {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+  .detail-new-back {
+    padding: 8px 14px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+
+  /* Primary action row */
+  .primary-action {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .btn-primary {
+    flex: 1;
+    background: var(--accent);
+    color: #2a1a0a;
+    padding: 14px;
+    border-radius: 14px;
+    font-weight: 700;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: none;
+  }
+  .btn-icon-sec {
+    width: 48px;
+    height: 48px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+
+  /* Sun timeline section */
+  .sun-section {
+    background: rgba(20,46,82,0.28);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .sun-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 12px;
+  }
+  .sun-section-main {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .sun-section-main .hi { color: var(--accent); }
+  .sun-section-sub {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .big-timeline {
+    position: relative;
+    height: 28px;
+    margin-bottom: 6px;
+  }
+  .big-timeline-track {
+    position: absolute;
+    top: 10px;
+    left: 0; right: 0;
+    height: 10px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 5px;
+    overflow: hidden;
+  }
+  .big-timeline-sun {
+    position: absolute;
+    top: 0; bottom: 0;
+    background: linear-gradient(90deg, var(--accent), #FFD4AF);
+  }
+  .big-timeline-cloud {
+    position: absolute;
+    top: 0; bottom: 0;
+    background: rgba(156,189,231,0.3);
+  }
+  .big-timeline-now {
+    position: absolute;
+    top: 4px;
+    width: 2px;
+    height: 22px;
+    background: #fff;
+    border-radius: 1px;
+    box-shadow: 0 0 6px rgba(255,255,255,0.6);
+  }
+  .big-timeline-scale {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  /* Compact dial + shelter */
+  .spatial-section {
+    background: rgba(20,46,82,0.28);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .spatial-label {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .spatial-body {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+  }
+  .mini-dial {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.1);
+    position: relative;
+    flex-shrink: 0;
+  }
+  .mini-dial::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    border-bottom-color: var(--accent);
+    border-right-color: var(--accent);
+    opacity: 0.7;
+    transform: rotate(-20deg);
+  }
+  .mini-dial::after {
+    content: '☀';
+    position: absolute;
+    left: 75%;
+    bottom: 10%;
+    color: var(--accent);
+    font-size: 16px;
+  }
+  .mini-dial-tick {
+    position: absolute;
+    font-size: 9px;
+    color: var(--muted);
+  }
+  .mini-dial-tick.n { top: 2px; left: 50%; transform: translateX(-50%); }
+  .mini-dial-tick.s { bottom: 2px; left: 50%; transform: translateX(-50%); }
+  .spatial-text {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .spatial-text .strong { color: var(--text); font-weight: 600; }
+  .spatial-text .muted { color: var(--muted); display: block; margin-top: 2px; font-size: 12px; }
+
+  /* Info rows (replaces solscore percentages) */
+  .info-list {
+    background: rgba(20,46,82,0.28);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .info-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .info-row:last-child { border-bottom: none; }
+  .info-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+  .info-label {
+    flex: 1;
+    font-size: 14px;
+  }
+  .info-label-strong {
+    font-weight: 600;
+  }
+  .info-label-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .info-value {
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 500;
+    text-align: right;
+  }
+
+  .secondary-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    padding: 8px 0 0;
+  }
+  .secondary-link {
+    font-size: 13px;
+    color: var(--muted);
+    padding: 8px 14px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+
+  .legend {
+    margin-top: 24px;
+    padding: 16px;
+    background: rgba(255,175,133,0.04);
+    border: 1px solid rgba(255,175,133,0.2);
+    border-radius: 12px;
+  }
+  .legend h3 { font-size: 14px; margin-bottom: 10px; color: var(--accent); }
+  .legend ul { list-style: none; padding: 0; font-size: 13px; line-height: 1.7; color: var(--muted); }
+  .legend strong { color: var(--text); font-weight: 600; }
+
+  .section-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 48px 0 32px;
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <h1>Solsteder — redesign-skisse</h1>
+  <p class="subtitle">Venstre: dagens design. Høyre: forslag til redesign. Begge viser samme data for Mamma Pizza kl 17:15.</p>
+
+  <!-- ══════════════════════════════════════════════════════════
+       SECTION 1 — LIST VIEW
+       ══════════════════════════════════════════════════════════ -->
+  <div class="grid">
+
+    <!-- OLD LIST -->
+    <div class="column">
+      <h2>Nå: venue-liste</h2>
+      <div class="phone">
+        <div class="glass-card time-bar">
+          <div class="time-bar-top">
+            <span>📅 I dag ▾</span>
+            <span>☁ 20° · ↘ 3 m/s</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:14px;">
+            <div class="time-bar-time">17:15</div>
+            <div style="flex:1;">
+              <div class="slider-track">
+                <div class="slider-sun"></div>
+                <div class="slider-knob"></div>
+              </div>
+              <div class="slider-scale">
+                <span>6</span><span>8</span><span>10</span><span>12</span><span>14</span><span>16</span><span>18</span><span>20</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="list-header">
+          <div class="list-header-title">10 steder i solen</div>
+          <div class="sort-chip">Sort: Score ▾</div>
+        </div>
+
+        <!-- Old card 1 -->
+        <div class="glass-card card-old">
+          <div class="card-old-title">Mamma Pizza Vika Osteria di Mare</div>
+          <div class="card-old-meta">
+            <span>Sentrum</span><span class="dot">·</span>
+            <span>Restaurant</span><span class="dot">·</span>
+            <span>221 m</span>
+            <span class="score">93</span>
+          </div>
+          <div class="card-old-body">
+            <div class="ring">☁</div>
+            <div class="card-old-duration">3H 10M</div>
+            <div class="card-old-light">
+              <div class="card-old-light-label">LYS TIL</div>
+              <div class="card-old-light-time">20:25</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Old card 2 -->
+        <div class="glass-card card-old">
+          <div class="card-old-title">Olivia Restaurant Tjuvholmen</div>
+          <div class="card-old-meta">
+            <span>Frogner</span><span class="dot">·</span>
+            <span>Restaurant</span><span class="dot">·</span>
+            <span>592 m</span>
+            <span class="score">91</span>
+          </div>
+          <div class="card-old-body">
+            <div class="ring">☁</div>
+            <div class="card-old-duration">3H 10M</div>
+            <div class="card-old-light">
+              <div class="card-old-light-label">LYS TIL</div>
+              <div class="card-old-light-time">20:25</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Old card 3 (peeking) -->
+        <div class="glass-card card-old" style="opacity:0.6;">
+          <div class="card-old-title">AMAZONIA by BAR</div>
+          <div class="card-old-meta">
+            <span>Frogner</span><span class="dot">·</span>
+            <span>Restaurant</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="annotation">
+        Mye vertikal plass per kort. Bare 2–3 venues synlig på mobilskjerm. Ring-ikon + "3H 10M" + "LYS TIL 20:25" er overlappende informasjon — de forteller samme historie fra tre vinkler.
+      </div>
+    </div>
+
+    <!-- NEW LIST -->
+    <div class="column">
+      <h2 class="redesign">Forslag: venue-liste</h2>
+      <div class="phone">
+        <div class="glass-card time-bar">
+          <div class="time-bar-top">
+            <span>📅 I dag ▾</span>
+            <span>☁ 20° · ↘ 3 m/s</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:14px;">
+            <div class="time-bar-time">17:15</div>
+            <div style="flex:1;">
+              <div class="slider-track">
+                <div class="slider-sun"></div>
+                <div class="slider-knob"></div>
+              </div>
+              <div class="slider-scale">
+                <span>6</span><span>8</span><span>10</span><span>12</span><span>14</span><span>16</span><span>18</span><span>20</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="list-header">
+          <div class="list-header-title">10 steder i solen</div>
+          <div class="sort-chip">Sol nå ▾</div>
+        </div>
+
+        <!-- In sun, break coming -->
+        <div class="glass-card card-new">
+          <div class="card-new-left">
+            <div class="card-new-name">Mamma Pizza Vika Osteria di Mare</div>
+            <div class="card-new-meta">Sentrum<span class="dot">·</span>Restaurant</div>
+            <div class="card-new-timeline">
+              <div class="timeline-track">
+                <div class="timeline-sun" style="left:25%; width:15%;"></div>
+                <div class="timeline-sun" style="left:55%; width:26%;"></div>
+                <div class="timeline-cloud" style="left:81%; width:6%;"></div>
+                <div class="timeline-sun" style="left:87%; width:3%;"></div>
+              </div>
+              <div class="timeline-now" style="left:70%;"></div>
+            </div>
+          </div>
+          <div class="card-new-right">
+            <div class="card-new-dist">221 m</div>
+            <div class="card-new-hero">
+              <div class="card-new-hero-main">☼ 1t 45m</div>
+              <div class="card-new-hero-sub">til 20:25</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- In sun, no breaks -->
+        <div class="glass-card card-new">
+          <div class="card-new-left">
+            <div class="card-new-name">Olivia Restaurant Tjuvholmen</div>
+            <div class="card-new-meta">Frogner<span class="dot">·</span>Restaurant</div>
+            <div class="card-new-timeline">
+              <div class="timeline-track">
+                <div class="timeline-sun" style="left:38%; width:52%;"></div>
+              </div>
+              <div class="timeline-now" style="left:70%;"></div>
+            </div>
+          </div>
+          <div class="card-new-right">
+            <div class="card-new-dist">592 m</div>
+            <div class="card-new-hero">
+              <div class="card-new-hero-main">☼ 3t 10m</div>
+              <div class="card-new-hero-sub">til 20:25</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- In sun, little left -->
+        <div class="glass-card card-new">
+          <div class="card-new-left">
+            <div class="card-new-name">Brasserie France</div>
+            <div class="card-new-meta">Sentrum<span class="dot">·</span>Bistro</div>
+            <div class="card-new-timeline">
+              <div class="timeline-track">
+                <div class="timeline-sun" style="left:25%; width:46%;"></div>
+                <div class="timeline-cloud" style="left:71%; width:9%;"></div>
+                <div class="timeline-sun" style="left:80%; width:9%;"></div>
+              </div>
+              <div class="timeline-now" style="left:70%;"></div>
+            </div>
+          </div>
+          <div class="card-new-right">
+            <div class="card-new-dist">310 m</div>
+            <div class="card-new-hero">
+              <div class="card-new-hero-main">☼ 15 min</div>
+              <div class="card-new-hero-sub">til 20:20</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Shadow now, sun returning -->
+        <div class="glass-card card-new state-shadow">
+          <div class="card-new-left">
+            <div class="card-new-name">AMAZONIA by BAR</div>
+            <div class="card-new-meta">Frogner<span class="dot">·</span>Restaurant</div>
+            <div class="card-new-timeline">
+              <div class="timeline-track">
+                <div class="timeline-sun" style="left:19%; width:25%;"></div>
+                <div class="timeline-cloud" style="left:44%; width:32%;"></div>
+                <div class="timeline-sun" style="left:76%; width:13%;"></div>
+              </div>
+              <div class="timeline-now" style="left:70%;"></div>
+            </div>
+          </div>
+          <div class="card-new-right">
+            <div class="card-new-dist">607 m</div>
+            <div class="card-new-hero">
+              <div class="card-new-hero-main">Sol om 1t</div>
+              <div class="card-new-hero-sub">til 20:20</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- In sun briefly, break, then more -->
+        <div class="glass-card card-new">
+          <div class="card-new-left">
+            <div class="card-new-name">Arts restaurant</div>
+            <div class="card-new-meta">Frogner<span class="dot">·</span>Restaurant</div>
+            <div class="card-new-timeline">
+              <div class="timeline-track">
+                <div class="timeline-sun" style="left:66%; width:12%;"></div>
+                <div class="timeline-cloud" style="left:78%; width:5%;"></div>
+                <div class="timeline-sun" style="left:83%; width:6%;"></div>
+              </div>
+              <div class="timeline-now" style="left:70%;"></div>
+            </div>
+          </div>
+          <div class="card-new-right">
+            <div class="card-new-dist">485 m</div>
+            <div class="card-new-hero">
+              <div class="card-new-hero-main">☼ 1t 15m</div>
+              <div class="card-new-hero-sub">til 20:25</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Done for the day -->
+        <div class="glass-card card-new state-done">
+          <div class="card-new-left">
+            <div class="card-new-name">Café Skansen</div>
+            <div class="card-new-meta">Sentrum<span class="dot">·</span>Café</div>
+            <div class="card-new-timeline">
+              <div class="timeline-track">
+                <div class="timeline-sun" style="left:19%; width:25%;"></div>
+              </div>
+              <div class="timeline-now" style="left:70%;"></div>
+            </div>
+          </div>
+          <div class="card-new-right">
+            <div class="card-new-dist">420 m</div>
+            <div class="card-new-hero">
+              <div class="card-new-hero-main">Ferdig</div>
+              <div class="card-new-hero-sub">sist 15:00</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="annotation">
+        <strong>To-kolonne-layout:</strong> navn + meta + timeline til venstre, solinfo til høyre. Reduserer høyden fra 4 rader til 3. Sentence case (ikke CAPS) — matcher design-systemet. Hero viser det som varierer mest mellom venues (<strong>gjenværende tid</strong>) som primær, og sluttid som sub. Når de fleste venues deler samme "til 20:25" blir repetisjonen nedtonet, og blikket finner differensiatoren: er det 3t eller 15 min igjen? Timeline-formen gir visuelt fingeravtrykk uten å bruke tekst. Tre tilstander: ☼ oransje (i sol), muted (skygge, sol på vei tilbake), dimmet hele kortet (ferdig).
+      </div>
+    </div>
+
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       SECTION 2 — DETAIL PANEL
+       ══════════════════════════════════════════════════════════ -->
+  <div class="grid">
+
+    <!-- OLD DETAIL -->
+    <div class="column">
+      <h2>Nå: detail panel</h2>
+      <div class="phone">
+        <div class="detail-old-photos">
+          <div class="ph">[Interiør]</div>
+          <div class="ph">[Mat]</div>
+        </div>
+        <div style="position:relative;">
+          <div class="detail-old-title">Mamma Pizza Vika Osteria di Mare</div>
+          <div class="detail-old-back">‹ Steder</div>
+        </div>
+        <div class="detail-old-sub">Restaurant · Sentrum · 226 m</div>
+        <div class="detail-old-chip">☁ til 20:25 · 3h 10m igjen</div>
+
+        <div class="big-dial">
+          <div class="big-dial-circle">
+            <div class="dial-arc"></div>
+            <div class="big-dial-labels">
+              <span class="n12">12</span>
+              <span class="n3">3</span>
+              <span class="n6">6</span>
+              <span class="n9">9</span>
+            </div>
+          </div>
+          <div class="dial-legend">
+            ☀ 20:00–20:25<br>
+            ⛅ til 20:25<br>
+            ☁ 17:15–19:00
+          </div>
+        </div>
+
+        <div class="actions-grid">
+          <div class="action-btn"><span class="action-btn-icon">↗</span>Veibeskrivelse</div>
+          <div class="action-btn"><span class="action-btn-icon">🌐</span>Nettside</div>
+          <div class="action-btn"><span class="action-btn-icon">↗</span>Del</div>
+          <div class="action-btn"><span class="action-btn-icon">✎</span>Rediger</div>
+        </div>
+
+        <div class="score-section-label">SOLSCORE</div>
+        <div class="score-row">
+          <div>
+            <div class="score-row-title">Soleksponering</div>
+            <div class="score-row-sub">Timer med direkte sol vs. åpningstider</div>
+          </div>
+          <div class="score-row-value">100%</div>
+        </div>
+        <div class="score-row">
+          <div>
+            <div class="score-row-title">Komfortnivå</div>
+            <div class="score-row-sub">Føles-som temperatur og vindhastighet</div>
+          </div>
+          <div class="score-row-value">100%</div>
+        </div>
+        <div class="score-row">
+          <div>
+            <div class="score-row-title">Støy</div>
+            <div class="score-row-sub">Estimert trafikkstøy på dette stedet</div>
+          </div>
+          <div class="score-row-value">50%</div>
+        </div>
+        <div class="score-row">
+          <div>
+            <div class="score-row-title">Nærhet</div>
+          </div>
+          <div class="score-row-value">226 m</div>
+        </div>
+      </div>
+
+      <div class="annotation">
+        Sun dial tar nesten hele synlige skjerm — men forteller mindre enn den kunne. 4 like action-knapper gir "Rediger" samme vekt som "Veibeskrivelse". Prosenter (100%, 100%, 50%) er abstrakte — brukeren må tolke dem. "Komfortnivå 100%" sier ingenting konkret om været.
+      </div>
+    </div>
+
+    <!-- NEW DETAIL -->
+    <div class="column">
+      <h2 class="redesign">Forslag: detail panel</h2>
+      <div class="phone">
+        <div class="detail-new-photos">[Terrasse-bilde · swipe for flere]</div>
+
+        <div class="detail-new-header">
+          <div>
+            <div class="detail-new-title">Mamma Pizza Vika<br>Osteria di Mare</div>
+            <div class="detail-new-sub">Restaurant · Sentrum · 226 m</div>
+          </div>
+          <div class="detail-new-back">‹ Steder</div>
+        </div>
+
+        <div class="primary-action">
+          <button class="btn-primary">↗ Veibeskrivelse · 3 min</button>
+          <div class="btn-icon-sec" title="Ring">📞</div>
+          <div class="btn-icon-sec" title="Nettside">🌐</div>
+          <div class="btn-icon-sec" title="Del">⇪</div>
+        </div>
+
+        <div class="sun-section">
+          <div class="sun-section-header">
+            <div class="sun-section-main"><span class="hi">Sol til 20:25</span> · 3t 10m igjen</div>
+            <div class="sun-section-sub">Neste skygge 19:00</div>
+          </div>
+          <div class="big-timeline">
+            <div class="big-timeline-track">
+              <div class="big-timeline-sun" style="left:12%; width:28%;"></div>
+              <div class="big-timeline-cloud" style="left:68%; width:14%;"></div>
+              <div class="big-timeline-sun" style="left:82%; width:4%;"></div>
+            </div>
+            <div class="big-timeline-now" style="left:69%;"></div>
+          </div>
+          <div class="big-timeline-scale">
+            <span>6</span><span>9</span><span>12</span><span>15</span><span>18</span><span>21</span>
+          </div>
+        </div>
+
+        <div class="spatial-section">
+          <div class="spatial-label">Sol-retning akkurat nå</div>
+          <div class="spatial-body">
+            <div class="mini-dial">
+              <span class="mini-dial-tick n">N</span>
+              <span class="mini-dial-tick s">S</span>
+            </div>
+            <div class="spatial-text">
+              <span class="strong">Solen står vest-sørvest</span>
+              <span class="muted">Sett deg på sørvestsiden av terrassen — bygget kaster skygge mot nordøst</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-list">
+          <div class="info-row">
+            <div class="info-icon">👥</div>
+            <div class="info-label">
+              <div class="info-label-strong">Travelt nå</div>
+              <div class="info-label-sub">Normalt travelt på onsdager kl 17</div>
+            </div>
+            <div class="info-value">~70%</div>
+          </div>
+          <div class="info-row">
+            <div class="info-icon">🔊</div>
+            <div class="info-label">
+              <div class="info-label-strong">Moderat trafikkstøy</div>
+              <div class="info-label-sub">Nært Haakon VIIs gate</div>
+            </div>
+            <div class="info-value">·</div>
+          </div>
+          <div class="info-row">
+            <div class="info-icon">🕐</div>
+            <div class="info-label">
+              <div class="info-label-strong">Åpent til 23:00</div>
+              <div class="info-label-sub">Kjøkken til 22:00</div>
+            </div>
+            <div class="info-value">Åpent</div>
+          </div>
+        </div>
+
+        <div class="secondary-row">
+          <div class="secondary-link">Rediger informasjon</div>
+          <div class="secondary-link">Rapporter feil</div>
+        </div>
+      </div>
+
+      <div class="annotation">
+        <strong>Veibeskrivelse</strong> som primær-handling (med gangtid innebygd). Telefon, nettside og del som sekundære ikoner. Sun dial krympet til en retningsindikator — svarer på "hvor skal jeg sitte?". Timeline øverst svarer på "når?". Prosent-score erstattet med konkrete tall og tekst. Vær fjernet — hører hjemme i toppbaren, ikke per venue. Busyness er ny info.
+      </div>
+    </div>
+
+  </div>
+
+  <div class="legend">
+    <h3>Oppsummering av endringer</h3>
+    <ul>
+      <li><strong>Liste:</strong> tilstandsbevisst kort. Hero svarer først på "har stedet sol nå?" (I SOL / SKYGGE · sol om X / SOL FERDIG). Sub-linje beskriver videre forløp. Vær/vind fjernet fra kort (global info, ikke per venue).</li>
+      <li><strong>Mini-timeline:</strong> viser sol-vinduer gjennom hele dagen som en visuell sparkline. Erstatter ring + 3H 10M + LYS TIL-duplisering.</li>
+      <li><strong>Score:</strong> droppet fra kortet. Sortering overtar jobben.</li>
+      <li><strong>Sun dial:</strong> krympet og flyttet til en "hvor skal jeg sitte?"-seksjon. Horisontal timeline tar over "når?"-jobben.</li>
+      <li><strong>Solscore-prosenter:</strong> erstattet med konkrete tall og tekst (støy, busyness, åpningstider).</li>
+      <li><strong>Actions:</strong> Veibeskrivelse som primær CTA med gangtid. Telefon + nettside + del som sekundære ikoner. Rediger nederst.</li>
+      <li><strong>Busyness:</strong> ny info-rad i detail panel — koden har allerede <code>busyness.js</code>.</li>
+    </ul>
+  </div>
+
+</div>
+
+</body>
+</html>

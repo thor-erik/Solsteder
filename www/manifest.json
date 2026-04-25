@@ -1,0 +1,17 @@
+{
+  "name": "Shades — Steder i Solen",
+  "short_name": "Shades",
+  "description": "Solar-optimized venue finder for Oslo",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#FFF2EB",
+  "theme_color": "#142E52",
+  "icons": [
+    {
+      "src": "design/logo-pack-png-512x512/logo-color-1600h-small-text.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
