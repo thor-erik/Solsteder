@@ -3675,19 +3675,40 @@ async function suggestVenueFlow(query) {
   lookupToast.textContent = `Looking up "${query}"…`;
   document.body.appendChild(lookupToast);
 
+  if (!GOOGLE_PLACES_KEY) {
+    console.warn('[suggestVenueFlow] GOOGLE_PLACES_KEY is not defined');
+    lookupToast.remove();
+    showQcNotice('API key not configured');
+    return;
+  }
+
   // Use the legacy Places Text Search API — same key as photos, works from browser without CORS issues.
   let found = null;
   try {
+    const searchQuery = query + ' Oslo';
     const url = `https://maps.googleapis.com/maps/api/place/textsearch/json` +
-      `?query=${encodeURIComponent(query + ' Oslo')}` +
+      `?query=${encodeURIComponent(searchQuery)}` +
       `&location=59.9139,10.7522&radius=20000` +
       `&key=${GOOGLE_PLACES_KEY}`;
+    console.log('[suggestVenueFlow] Looking up:', searchQuery);
     const resp = await fetch(url, { signal: AbortSignal.timeout(10_000) });
     if (resp.ok) {
       const data = await resp.json();
+      if (data.status !== 'OK') {
+        console.warn('[suggestVenueFlow] API status:', data.status, data);
+      } else {
+        console.log('[suggestVenueFlow] Found', data.results?.length ?? 0, 'results');
+        if (data.results?.[0]) {
+          console.log('[suggestVenueFlow] Top result:', data.results[0].name, '@', data.results[0].formatted_address);
+        }
+      }
       found = data.results?.[0] ?? null;
+    } else {
+      console.warn('[suggestVenueFlow] Fetch failed:', resp.status, resp.statusText);
     }
-  } catch (_) {}
+  } catch (err) {
+    console.warn('[suggestVenueFlow] Error:', err);
+  }
 
   lookupToast.remove();
 
