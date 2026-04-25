@@ -3691,7 +3691,7 @@ async function suggestVenueFlow(query) {
       `&location=59.9139,10.7522&radius=20000` +
       `&key=${GOOGLE_PLACES_KEY}`;
     console.log('[suggestVenueFlow] Looking up:', searchQuery);
-    const resp = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+    const resp = await fetch(url);
     if (resp.ok) {
       const data = await resp.json();
       if (data.status !== 'OK') {
