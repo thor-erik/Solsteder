@@ -297,7 +297,7 @@ function drawFtsCanvas() {
   // 1. Background — night color, clipped to rounded rect
   c.save();
   trackRoundRect(); c.clip();
-  c.fillStyle = '#2A3B5E';
+  c.fillStyle = '#1B2E5A';
   c.fillRect(0, BLEED, cssW, TRACK_H);
 
   // 2. Collect hourly weather-ramp segments
@@ -312,15 +312,17 @@ function drawFtsCanvas() {
     const sun = getSunFromTable(currentSunTable, h + 0.5);
     if (sun.alt <= 0) continue;
 
-    let color = '#FFD488';
+    let color = '#FFAF85';  // default: clear sun (--wx-sun / --accent)
     if (hasWx) {
       const wx   = getWeatherAt(dateStr, h + 0.5);
       const rain = wx ? (wx.precip ?? wx.prec ?? 0) > 0.3 : false;
       const cf   = wx ? (wx.cloud ?? 0) : 0;
-      if      (rain)       color = '#5E7CA8';
-      else if (cf < 0.20)  color = '#FFD488';
-      else if (cf < 0.60)  color = '#E6C08A';
-      else                 color = '#8EA0B8';
+      if      (rain)       color = '#3B6499';  // --wx-rain
+      else if (cf < 0.15)  color = '#FFAF85';  // --wx-sun (clear)
+      else if (cf < 0.40)  color = '#FFCFAA';  // --wx-few
+      else if (cf < 0.65)  color = '#DECCC0';  // --wx-partly
+      else if (cf < 0.85)  color = '#C6C8CA';  // --wx-mostly
+      else                 color = '#94AABB';  // --wx-overcast
     }
 
     const x1 = Math.round(timeToX(h));
@@ -356,14 +358,13 @@ function drawFtsCanvas() {
     c.fillRect(0, BLEED, pastX, TRACK_H);
   }
 
-  // 6. Venue shadow overlay — dim parts where selected venue is in shade
+  // 6. Venue shadow overlay — rounded caps + drop shadow below bar
   if (selectedId != null) {
     const sv = VENUES.find(x => x.id === selectedId);
     if (sv) {
       const { windows: svWins, open: svOpen, close: svClose } = computeSunWindows(sv, dateStr);
       // Build list of shadow gaps within the daylight range
       const gaps = [];
-      // Before first sun window (from venue open to first window start)
       if (svWins.length > 0) {
         if (svWins[0].start > svOpen + 0.01) gaps.push({ start: svOpen, end: svWins[0].start });
         for (let i = 0; i < svWins.length - 1; i++) {
@@ -374,42 +375,119 @@ function drawFtsCanvas() {
         const lastEnd = svWins[svWins.length - 1].end;
         if (lastEnd < svClose - 0.01) gaps.push({ start: lastEnd, end: svClose });
       } else if (svClose > svOpen) {
-        // No sun at all — entire range is shadow
         gaps.push({ start: svOpen, end: svClose });
       }
-      // Draw shadow gaps as diagonal hatching + dim overlay
-      for (const gap of gaps) {
-        const x1 = Math.round(timeToX(Math.max(MIN_H, gap.start)));
-        const x2 = Math.round(timeToX(Math.min(MAX_H, gap.end)));
-        if (x2 <= x1) continue;
-        // Semi-transparent darken
-        c.fillStyle = 'rgba(0,0,0,0.35)';
-        c.fillRect(x1, BLEED, x2 - x1, TRACK_H);
-        // Diagonal hatching for visual distinction
-        c.save();
-        c.beginPath();
-        c.rect(x1, BLEED, x2 - x1, TRACK_H);
-        c.clip();
-        c.strokeStyle = 'rgba(0,0,0,0.18)';
-        c.lineWidth = 1;
-        const step = 6;
-        for (let lx = x1 - TRACK_H; lx < x2 + TRACK_H; lx += step) {
-          c.beginPath();
-          c.moveTo(lx, BLEED + TRACK_H);
-          c.lineTo(lx + TRACK_H, BLEED);
-          c.stroke();
+
+      if (gaps.length > 0) {
+        const CR = TRACK_H / 2;  // cap radius = half height (full hemisphere)
+        const SHADOW_Y = BLEED + TRACK_H * 0.62;
+        const SHADOW_H = TRACK_H * 0.38;
+
+        // Pass 1: drop shadows below bar in gap zones
+        for (const gap of gaps) {
+          const gx1 = Math.round(timeToX(Math.max(MIN_H, gap.start)));
+          const gx2 = Math.round(timeToX(Math.min(MAX_H, gap.end)));
+          if (gx2 <= gx1) continue;
+          const REACH = TRACK_H * 0.55;
+          // Shadow from left cap edge (right-facing)
+          c.save();
+          c.beginPath(); c.rect(gx1, SHADOW_Y, REACH, SHADOW_H); c.clip();
+          const gr = c.createRadialGradient(gx1, SHADOW_Y - 2, 1, gx1, SHADOW_Y - 2, REACH);
+          gr.addColorStop(0, 'rgba(0,0,0,0.55)');
+          gr.addColorStop(0.45, 'rgba(0,0,0,0.28)');
+          gr.addColorStop(1, 'rgba(0,0,0,0)');
+          c.fillStyle = gr; c.fillRect(gx1 - REACH, SHADOW_Y - 4, REACH * 2, SHADOW_H + 8);
+          c.restore();
+          // Shadow from right cap edge (left-facing)
+          c.save();
+          c.beginPath(); c.rect(gx2 - REACH, SHADOW_Y, REACH, SHADOW_H); c.clip();
+          const gl = c.createRadialGradient(gx2, SHADOW_Y - 2, 1, gx2, SHADOW_Y - 2, REACH);
+          gl.addColorStop(0, 'rgba(0,0,0,0.55)');
+          gl.addColorStop(0.45, 'rgba(0,0,0,0.28)');
+          gl.addColorStop(1, 'rgba(0,0,0,0)');
+          c.fillStyle = gl; c.fillRect(gx2 - REACH, SHADOW_Y - 4, REACH * 2, SHADOW_H + 8);
+          c.restore();
         }
-        c.restore();
+
+        // Pass 2: clear gap zones (dark base shows through) + re-draw lit segments with rounded caps
+        for (const gap of gaps) {
+          const gx1 = Math.round(timeToX(Math.max(MIN_H, gap.start)));
+          const gx2 = Math.round(timeToX(Math.min(MAX_H, gap.end)));
+          if (gx2 <= gx1) continue;
+          // Clear the gap area to reveal dark base
+          c.clearRect(gx1, BLEED, gx2 - gx1, TRACK_H);
+          c.fillStyle = '#0D1829';
+          c.fillRect(gx1, BLEED, gx2 - gx1, TRACK_H);
+        }
+
+        // Re-draw segments adjacent to gaps with rounded caps
+        for (const gap of gaps) {
+          const gx1 = Math.round(timeToX(Math.max(MIN_H, gap.start)));
+          const gx2 = Math.round(timeToX(Math.min(MAX_H, gap.end)));
+          if (gx2 <= gx1) continue;
+
+          // Find segments touching the left edge of the gap (cap on right)
+          for (const seg of segments) {
+            if (Math.abs(seg.x2 - gx1) < 2) {
+              const capW = Math.min(CR * 2, seg.x2 - seg.x1);
+              const capX = seg.x2 - capW;
+              c.save();
+              c.beginPath();
+              c.moveTo(capX, BLEED);
+              c.lineTo(capX + capW - CR, BLEED);
+              c.quadraticCurveTo(capX + capW, BLEED, capX + capW, BLEED + CR);
+              c.quadraticCurveTo(capX + capW, BLEED + TRACK_H, capX + capW - CR, BLEED + TRACK_H);
+              c.lineTo(capX, BLEED + TRACK_H);
+              c.closePath();
+              c.fillStyle = seg.color; c.fill();
+              c.restore();
+            }
+          }
+          // Find segments touching the right edge of the gap (cap on left)
+          for (const seg of segments) {
+            if (Math.abs(seg.x1 - gx2) < 2) {
+              const capW = Math.min(CR * 2, seg.x2 - seg.x1);
+              c.save();
+              c.beginPath();
+              c.moveTo(seg.x1 + CR, BLEED);
+              c.lineTo(seg.x1 + capW, BLEED);
+              c.lineTo(seg.x1 + capW, BLEED + TRACK_H);
+              c.lineTo(seg.x1 + CR, BLEED + TRACK_H);
+              c.quadraticCurveTo(seg.x1, BLEED + TRACK_H, seg.x1, BLEED + TRACK_H - CR);
+              c.quadraticCurveTo(seg.x1, BLEED, seg.x1 + CR, BLEED);
+              c.closePath();
+              c.fillStyle = seg.color; c.fill();
+              c.restore();
+            }
+          }
+        }
       }
     }
   }
 
-  // 7. Inset shadow
-  const insetGrad = c.createLinearGradient(0, BLEED, 0, BLEED + 5);
-  insetGrad.addColorStop(0, 'rgba(0,0,0,0.22)');
-  insetGrad.addColorStop(1, 'rgba(0,0,0,0)');
-  c.fillStyle = insetGrad;
-  c.fillRect(0, BLEED, BAR_W, TRACK_H);
+  // 7. Lens sheen — polarised top-light treatment (convex pill)
+  // Top cream sheen: --text 28% → 0 over upper 55%
+  const sheen = c.createLinearGradient(0, BLEED, 0, BLEED + TRACK_H * 0.55);
+  sheen.addColorStop(0,    'rgba(255,242,235,0.28)');
+  sheen.addColorStop(0.55, 'rgba(255,242,235,0.06)');
+  sheen.addColorStop(1,    'rgba(255,242,235,0)');
+  c.fillStyle = sheen;
+  c.fillRect(0, BLEED, BAR_W, TRACK_H * 0.55);
+
+  // Hairline highlight at the very top edge
+  const topHL = c.createLinearGradient(0, BLEED, 0, BLEED + 1.5);
+  topHL.addColorStop(0, 'rgba(255,255,255,0.55)');
+  topHL.addColorStop(1, 'rgba(255,255,255,0)');
+  c.fillStyle = topHL;
+  c.fillRect(0, BLEED, BAR_W, 1.5);
+
+  // Bottom darkening: black 22% → 0 over lower 35%
+  const shade = c.createLinearGradient(0, BLEED + TRACK_H * 0.65, 0, BLEED + TRACK_H);
+  shade.addColorStop(0, 'rgba(0,0,0,0)');
+  shade.addColorStop(1, 'rgba(0,0,0,0.22)');
+  c.fillStyle = shade;
+  c.fillRect(0, BLEED + TRACK_H * 0.65, BAR_W, TRACK_H * 0.35);
+
   c.restore(); // exit rounded-rect clip — thumb + NÅ tick draw unclipped
 
   // 8. NÅ tick
@@ -433,55 +511,54 @@ function drawFtsCanvas() {
     }
   }
 
-  // 9. Thumb — same height as track, clamped to curvature ends
+  // 9. Thumb — Lens dome (B variant): domed cream pearl + accent halo
   if (fromH >= MIN_H && fromH <= MAX_H) {
     const isActive  = !!(window._qcThumbActive);
     const springOff = (typeof window._ftsSpringOffset === 'number') ? window._ftsSpringOffset : 0;
     const rawX = timeToX(fromH) + springOff;
     const sx   = Math.max(TRACK_R, Math.min(BAR_W - TRACK_R, rawX));
     const cy_  = BLEED + TRACK_H / 2;
-    const R    = TRACK_R;  // thumb diameter = track height
+    const R    = TRACK_H * 0.42;  // 0.42 × bar height per spec
 
     c.save();
     c.translate(sx, cy_);
-    c.scale(isActive ? 1.08 : 1.0, isActive ? 1.08 : 1.0);
+    const sc = isActive ? 1.18 : 1.0;
+    c.scale(sc, sc);
     c.translate(-sx, -cy_);
 
-    // Glow halo
+    // Soft accent halo
+    const halo = c.createRadialGradient(sx, cy_, R * 0.4, sx, cy_, R * 1.9);
+    halo.addColorStop(0, isActive ? 'rgba(255,175,133,0.55)' : 'rgba(255,175,133,0.45)');
+    halo.addColorStop(1, 'rgba(255,175,133,0)');
+    c.fillStyle = halo;
+    c.beginPath(); c.arc(sx, cy_, R * 1.9, 0, Math.PI * 2); c.fill();
+
+    // Body with drop shadow — radial gradient cream→warm-cream, off-axis top-left light
     c.save();
-    c.shadowColor   = isActive ? 'rgba(255,175,133,0.55)' : 'rgba(255,175,133,0.35)';
-    c.shadowBlur    = 10;
+    c.shadowColor = 'rgba(0,0,0,0.55)';
+    c.shadowBlur = 10;
+    c.shadowOffsetY = 2;
     c.beginPath(); c.arc(sx, cy_, R, 0, Math.PI * 2);
-    c.fillStyle = 'rgba(255,242,235,0.01)';
-    c.fill();
+    const body = c.createRadialGradient(sx, cy_ - R * 0.35, R * 0.1, sx, cy_ + R * 0.4, R * 1.1);
+    body.addColorStop(0, 'rgba(255,255,253,1)');
+    body.addColorStop(0.55, 'rgba(255,242,235,0.96)');
+    body.addColorStop(1, 'rgba(232,210,196,0.92)');
+    c.fillStyle = body; c.fill();
     c.restore();
 
-    // Drop shadow + frosted fill
+    // Inner top highlight — white gradient clipped to upper half
     c.save();
-    c.shadowColor   = 'rgba(0,0,0,0.35)';
-    c.shadowBlur    = 5;
-    c.shadowOffsetY = 1;
-    c.beginPath(); c.arc(sx, cy_, R, 0, Math.PI * 2);
-    c.fillStyle = 'rgba(255,242,235,0.18)';
-    c.fill();
+    c.beginPath(); c.arc(sx, cy_, R, 0, Math.PI * 2); c.clip();
+    const hl = c.createLinearGradient(sx, cy_ - R, sx, cy_);
+    hl.addColorStop(0, 'rgba(255,255,255,0.55)');
+    hl.addColorStop(1, 'rgba(255,255,255,0)');
+    c.fillStyle = hl; c.fillRect(sx - R, cy_ - R, R * 2, R);
     c.restore();
 
-    // Border ring
-    c.save();
-    c.beginPath(); c.arc(sx, cy_, R - 0.75, 0, Math.PI * 2);
-    c.strokeStyle = 'rgba(255,242,235,0.75)';
-    c.lineWidth   = 1.5;
-    c.stroke();
-    c.restore();
-
-    // Inner highlight
-    c.save();
-    c.beginPath();
-    c.arc(sx, cy_ - 2, R - 4, Math.PI * 1.1, Math.PI * 1.9);
-    c.strokeStyle = 'rgba(255,255,255,0.30)';
-    c.lineWidth   = 1;
-    c.stroke();
-    c.restore();
+    // Crisp rim
+    c.beginPath(); c.arc(sx, cy_, R - 0.5, 0, Math.PI * 2);
+    c.strokeStyle = 'rgba(42,26,12,0.20)';
+    c.lineWidth = 1; c.stroke();
 
     c.restore(); // scale
   }

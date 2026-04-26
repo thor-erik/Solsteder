@@ -571,7 +571,7 @@
     -webkit-backdrop-filter: var(--glass-blur-action);
     border: var(--glass-border);
     border-radius: 19px;
-    box-shadow: var(--glass-inset);
+    box-shadow: var(--glass-inset), 0 2px 8px rgba(0,0,0,0.35);
     color: var(--text);
     font: 600 13px/1 'Inter', sans-serif;
     cursor: pointer;
@@ -594,15 +594,22 @@
   #fts-date-btn.fts-today #fts-date-label,
   #fts-date-btn.fts-today .fts-chevron { display: none; }
 
-  /* Slider track — canvas fills remaining width */
+  /* Slider track — canvas fills remaining width · glass rim treatment */
   #fts-track {
     flex: 1 1 0; min-width: 0;
     height: 38px;
-    border-radius: 19px;
+    border-radius: 999px;
     overflow: visible;       /* let active thumb glow extend beyond track */
     position: relative;
     cursor: ew-resize;
     touch-action: none;    /* prevent scroll during drag */
+    border: 1px solid rgba(156,189,231,0.20);
+    box-shadow:
+      inset 0 1px 0 rgba(255,242,235,0.18),
+      inset 0 -1px 0 rgba(20,46,82,0.40),
+      inset 1px 0 0 rgba(255,242,235,0.05),
+      inset -1px 0 0 rgba(20,46,82,0.20),
+      0 2px 8px rgba(0,0,0,0.35);
   }
   #fts-canvas {
     display: block;
@@ -613,7 +620,7 @@
     pointer-events: none;      /* touch events go to track, not canvas */
   }
 
-  /* Scrub popup — anchored above track, centered on thumb */
+  /* Scrub popup — anchored above track, centered on thumb · glass recipe */
   #fts-popup {
     position: absolute;
     bottom: calc(100% + 8px);
@@ -621,27 +628,42 @@
     transform: translateX(-50%);
     z-index: 10;
     display: flex; flex-direction: column; align-items: center; gap: 2px;
-    padding: 8px 14px;
-    background: var(--glass-panel-bg);
-    backdrop-filter: var(--glass-blur-panel);
-    -webkit-backdrop-filter: var(--glass-blur-panel);
-    border: var(--glass-border);
+    padding: 8px 11px 7px;
+    background: linear-gradient(135deg, rgba(20,46,82,0.55) 0%, rgba(14,30,52,0.62) 100%);
+    backdrop-filter: blur(10px) saturate(170%) brightness(0.92);
+    -webkit-backdrop-filter: blur(10px) saturate(170%) brightness(0.92);
+    border: 1px solid rgba(156,189,231,0.22);
     border-radius: 12px;
-    box-shadow: var(--glass-inset), 0 4px 12px rgba(0,0,0,0.3);
+    box-shadow:
+      inset 0 1px 0 rgba(255,242,235,0.18),
+      inset 0 -1px 0 rgba(20,46,82,0.40),
+      0 8px 24px rgba(0,0,0,0.48);
     white-space: nowrap;
     pointer-events: none;
     opacity: 0;
-    transition: opacity 120ms ease-out;
+    transition: opacity 140ms ease-out, transform 140ms ease-out;
   }
   #fts-popup.visible { opacity: 1; }
+  #fts-popup.hidden-y { transform: translateX(-50%) translateY(6px); }
+  /* Tail — pointing down to thumb */
+  #fts-popup::after {
+    content: '';
+    position: absolute;
+    bottom: -4px; left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+    width: 8px; height: 8px;
+    background: rgba(20,46,82,0.62);
+    border-right: 1px solid rgba(156,189,231,0.22);
+    border-bottom: 1px solid rgba(156,189,231,0.22);
+  }
   .fts-popup-row { display: flex; align-items: center; gap: 6px; }
   .fts-popup-primary { gap: 6px; }
-  #fts-popup-time { font: 700 16px/1 'Inter', sans-serif; color: var(--text); font-variant-numeric: tabular-nums; }
-  #fts-popup-wx-icon { font-size: 16px; line-height: 1; }
-  .fts-popup-secondary { gap: 6px; }
-  #fts-popup-temp { font: 500 12px/1 'Inter', sans-serif; color: var(--muted); font-variant-numeric: tabular-nums; }
-  .fts-dot { font: 400 12px/1 'Inter', sans-serif; color: rgba(156,189,231,0.4); }
-  #fts-popup-wind { font: 500 12px/1 'Inter', sans-serif; color: var(--muted); font-variant-numeric: tabular-nums; }
+  #fts-popup-time { font: 700 20px/1 'Inter', sans-serif; color: var(--accent); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  #fts-popup-wx-icon { font-size: 18px; line-height: 1; }
+  .fts-popup-secondary { gap: 5px; }
+  #fts-popup-temp { font: 600 10px/1 'Inter', sans-serif; color: var(--text); opacity: 0.85; font-variant-numeric: tabular-nums; }
+  .fts-dot { font: 400 9px/1 'Inter', sans-serif; color: rgba(156,189,231,0.35); }
+  #fts-popup-wind { font: 500 10px/1 'Inter', sans-serif; color: var(--muted); opacity: 0.85; font-variant-numeric: tabular-nums; }
 
   /* When calendar picker is open: hide the FTS pill */
   #fts.fts-cal-open { opacity: 0; pointer-events: none; transition: opacity 180ms ease-out; }
