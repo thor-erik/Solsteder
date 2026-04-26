@@ -38,7 +38,7 @@ export async function onRequest(context) {
             radius: 20000.0,
           },
         },
-        includedPrimaryTypes: ['restaurant', 'bar', 'cafe', 'pub', 'food_court', 'meal_delivery', 'meal_takeaway'],
+        includedPrimaryTypes: ['restaurant', 'bar', 'cafe', 'pub', 'food_court'],
         languageCode: 'no',
       }),
     });
