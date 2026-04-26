@@ -38,6 +38,26 @@ function venueState(venue, selectedTime) {
     return '5 min'; // Minimum show 5 min for windows < 5 min
   };
 
+  // Weather check: rain or heavy overcast overrides sun geometry
+  const wx = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, fromHour) : null;
+  const isRainy    = (wx?.precip ?? 0) > 0.3;
+  const isOvercast = !isRainy && (wx?.cloud ?? 0) >= 0.85;
+
+  if (isRainy || isOvercast) {
+    const mainText = isRainy ? 'Regn nå' : 'Overskyet';
+    // Check if any sun window starts after now (geometry-wise)
+    const futureSun = windows.find(w => w.start > fromHour);
+    if (futureSun) {
+      return { state: 'rain', mainText, subText: `sol fra ${formatHour(futureSun.start)}`, className: 'state-rain' };
+    }
+    // Currently in a sun window but rain overrides, or all sun passed
+    const remaining = windows.find(w => w.end > fromHour);
+    if (remaining) {
+      return { state: 'rain', mainText, subText: `sol til ${formatHour(remaining.end)}`, className: 'state-rain' };
+    }
+    return { state: 'rain', mainText, subText: 'ingen sol i dag', className: 'state-rain' };
+  }
+
   if (currentWindow) {
     // In sun now — primary: end time, secondary: remaining duration
     const remaining = Math.max(5/60, currentWindow.end - fromHour);
@@ -47,7 +67,15 @@ function venueState(venue, selectedTime) {
   }
 
   if (nextWindow) {
-    // Shadow: sun coming later — primary: time until, secondary: end time
+    // Check if we're in an architectural shadow gap (between two sun windows)
+    const prevWindow = [...windows].reverse().find(w => w.end <= fromHour);
+    if (prevWindow) {
+      // Between windows — building shadow interrupted sun
+      const mainText = 'I skygge nå';
+      const subText = `sol igjen ${formatHour(nextWindow.start)}`;
+      return { state: 'shadow', mainText, subText, className: 'state-shadow' };
+    }
+    // Sun hasn't arrived yet today
     const timeUntil = Math.max(8/60, nextWindow.start - fromHour);
     const mainText = `Om ${formatDuration(timeUntil)}`;
     const subText = `til ${formatHour(lastWindow.end)}`;

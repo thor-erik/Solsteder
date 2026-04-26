@@ -1578,6 +1578,11 @@
     font-weight: 700;
   }
 
+  .venue-card.state-rain .card-new-hero-main {
+    color: var(--text);
+    font-weight: 700;
+  }
+
   .venue-card.state-done {
     opacity: 0.48;
   }
@@ -4268,39 +4273,50 @@
   .dp-header-icon:hover { opacity: 1; }
   .dp-header-icon.active { opacity: 1; }
 
-  /* Secondary action row: compact icon buttons */
-  .secondary-action {
+  /* ── Detail panel action row (directions + utilities) ────────────────────── */
+  .dp-action-row {
     display: flex;
     gap: 8px;
-    padding: 0 16px 12px;
-    justify-content: center;
+    margin-bottom: 14px;
   }
-  .btn-sec-action {
+  .dp-action-cta {
+    flex: 1;
+    height: 44px;
+    border-radius: 999px;
+    background: var(--accent);
+    border: none;
+    color: var(--accent-on, #2a1a0c);
+    font-size: 14px;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .dp-action-cta:hover { opacity: 0.9; }
+  .dp-action-cta svg { width: 18px; height: 18px; stroke: currentColor; }
+  .dp-action-icon {
     width: 44px;
     height: 44px;
-    background: var(--card-bg);
-    border: 1px solid var(--border);
     border-radius: 12px;
+    background: linear-gradient(135deg, rgba(20,46,82,0.25), rgba(32,73,131,0.14)), rgba(20,46,82,0.30);
+    border: 1px solid rgba(156,189,231,0.20);
+    box-shadow: inset 0 1px 0 rgba(255,242,235,0.14), inset 0 -1px 0 rgba(20,46,82,0.30);
     color: var(--accent);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 13px;
-    gap: 4px;
+    font-size: 18px;
     cursor: pointer;
     flex-shrink: 0;
     text-decoration: none;
-    font-family: 'Inter', sans-serif;
-    white-space: nowrap;
-    padding: 0 10px;
-    width: auto;
   }
-  .btn-sec-action:hover { background: rgba(20,46,82,0.65); }
-  .btn-sec-action svg {
-    width: 18px; height: 18px;
-    stroke: currentColor;
-    color: var(--accent);
-  }
+  .dp-action-icon:hover { background: rgba(20,46,82,0.65); }
+  .dp-action-icon svg { width: 18px; height: 18px; stroke: currentColor; color: var(--accent); }
 
   /* Legacy: keep .primary-action for backwards compat but hidden */
   .primary-action {
@@ -4359,82 +4375,41 @@
     color: var(--accent);
   }
 
-  /* Sun section */
+  /* ── Sun section (glass card) ──────────────────────────────────────────── */
   .sun-section {
-    background: rgba(20,46,82,0.28);
-    border: 1px solid var(--border);
-    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(20,46,82,0.28), rgba(32,73,131,0.16)), rgba(20,46,82,0.34);
+    border: 1px solid rgba(156,189,231,0.20);
+    box-shadow: inset 0 1px 0 rgba(255,242,235,0.16), inset 0 -1px 0 rgba(20,46,82,0.35), 0 2px 8px rgba(0,0,0,0.35);
+    border-radius: 12px;
     padding: 14px;
     margin-bottom: 12px;
   }
 
-  .sun-section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    margin-bottom: 12px;
-  }
-
   .sun-section-main {
-    font-size: 15px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 12px;
   }
 
   .sun-section-main .hi {
     color: var(--accent);
   }
 
-  .sun-section-sub {
-    font-size: 12px;
-    color: var(--muted);
-  }
-
-  .big-timeline {
-    position: relative;
-    height: 28px;
+  /* Detail panel timeline — reuses venue card tl-track/tl-sun-seg/tl-needle */
+  .dp-timeline {
     margin-bottom: 6px;
   }
-
-  .big-timeline-track {
-    position: absolute;
-    top: 10px;
-    left: 0;
-    right: 0;
-    height: 10px;
-    background: rgba(255,255,255,0.06);
-    border-radius: 5px;
-    overflow: hidden;
+  .dp-timeline .tl-track {
+    height: 8px;
+    border-radius: 4px;
   }
 
-  .big-timeline-sun {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    background: linear-gradient(90deg, var(--accent), #FFD4AF);
-  }
-
-  .big-timeline-cloud {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    background: rgba(156,189,231,0.3);
-  }
-
-  .big-timeline-now {
-    position: absolute;
-    top: 4px;
-    width: 2px;
-    height: 22px;
-    background: #fff;
-    border-radius: 1px;
-    box-shadow: 0 0 6px rgba(255,255,255,0.6);
-  }
-
-  .big-timeline-scale {
+  .dp-timeline-labels {
     display: flex;
     justify-content: space-between;
     font-size: 10px;
     color: var(--muted);
+    opacity: 0.6;
   }
 
   /* Sol-retning section */
@@ -4708,49 +4683,85 @@
   }
 
   /* ── Social section (check-in, plans) ───────────────────────────────────── */
-  .social-section {
-    padding: 12px 16px;
-    border-top: 1px solid var(--border);
+  /* ── Social card (glass card) ──────────────────────────────────────────── */
+  .social-card {
+    background: linear-gradient(135deg, rgba(20,46,82,0.28), rgba(32,73,131,0.16)), rgba(20,46,82,0.34);
+    border: 1px solid rgba(156,189,231,0.20);
+    box-shadow: inset 0 1px 0 rgba(255,242,235,0.16), inset 0 -1px 0 rgba(20,46,82,0.35), 0 2px 8px rgba(0,0,0,0.35);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
   }
-  .social-actions-row {
+  .social-btns {
     display: flex;
     gap: 8px;
-    margin-bottom: 8px;
   }
-  .btn-social {
+  .social-btn {
     flex: 1;
-    padding: 10px 12px;
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 12px;
+    height: 42px;
+    border-radius: 999px;
+    border: 1px solid rgba(156,189,231,0.22);
+    background: linear-gradient(135deg, rgba(20,46,82,0.25), rgba(32,73,131,0.14)), rgba(20,46,82,0.30);
+    box-shadow: inset 0 1px 0 rgba(255,242,235,0.14), inset 0 -1px 0 rgba(20,46,82,0.30);
     color: var(--text);
     font-size: 13px;
+    font-weight: 600;
     font-family: 'Inter', sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
     cursor: pointer;
-    text-align: center;
     transition: all 0.15s;
   }
-  .btn-social:hover { border-color: var(--accent); color: var(--accent); }
-  .btn-checked-in {
-    background: rgba(255,175,133,0.14);
+  .social-btn svg { flex-shrink: 0; }
+  .social-btn:hover {
     border-color: var(--accent);
     color: var(--accent);
   }
-
-  /* Detail friend avatars row */
-  .detail-friends-row {
-    display: flex;
-    gap: 4px;
-    margin-bottom: 8px;
-    flex-wrap: wrap;
+  .social-btn-here {
+    background: rgba(255,175,133,0.10);
+    border-color: rgba(255,175,133,0.30);
+    color: var(--accent);
   }
-  .detail-friend-avatar {
-    width: 24px; height: 24px;
+  .social-btn-here:hover {
+    background: rgba(255,175,133,0.18);
+  }
+  .social-btn-active {
+    background: var(--accent) !important;
+    border-color: var(--accent) !important;
+    color: var(--accent-on, #2a1a0c) !important;
+  }
+  .social-btn-active svg { stroke: var(--accent-on, #2a1a0c); }
+
+  /* Friends row inside social card */
+  .social-friends {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .social-friends-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .social-friends-avatars {
+    display: flex;
+    gap: -4px;
+  }
+  .social-avatar {
+    width: 26px; height: 26px;
     border-radius: 50%;
     object-fit: cover;
-    border: 1.5px solid var(--border);
+    border: 2px solid rgba(20,46,82,0.8);
+    margin-left: -6px;
   }
-  .detail-friend-init {
+  .social-avatar:first-child { margin-left: 0; }
+  .social-avatar-init {
     background: rgba(20,46,82,0.6);
     color: var(--muted);
     display: flex; align-items: center; justify-content: center;
@@ -4792,30 +4803,64 @@
     font-family: 'Inter', sans-serif;
   }
 
-  /* Plan form */
-  .plan-form { padding: 8px 0 4px; }
-  .plan-form-inner {
+  /* Social form overlay (shown inside social card) */
+  .social-form-overlay {
+    border-top: 1px solid rgba(156,189,231,0.12);
+    padding-top: 10px;
+  }
+  .social-form-inner {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
   }
-  .plan-field-label {
+  .social-form-label {
     font-size: 11px;
-    color: var(--muted);
     font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 0.5px;
   }
-  .plan-input {
+  .social-form-input {
     width: 100%;
     padding: 8px 10px;
     background: rgba(20,46,82,0.5);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 10px;
     color: var(--text);
     font-size: 13px;
     font-family: 'Inter', sans-serif;
     box-sizing: border-box;
   }
-  .plan-input:focus { outline: none; border-color: var(--accent); }
+  .social-form-input:focus { outline: none; border-color: var(--accent); }
+  .social-form-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .social-form-btn {
+    flex: 1;
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(156,189,231,0.20);
+    background: linear-gradient(135deg, rgba(20,46,82,0.25), rgba(32,73,131,0.14)), rgba(20,46,82,0.30);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.15s;
+  }
+  .social-form-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .social-form-btn svg { flex-shrink: 0; }
+  .social-form-btn-accent {
+    background: rgba(255,175,133,0.12);
+    border-color: rgba(255,175,133,0.30);
+    color: var(--accent);
+  }
+  .social-form-btn-accent:hover { background: rgba(255,175,133,0.20); }
+
   .plan-friends-list {
     display: flex;
     flex-direction: column;
@@ -4830,36 +4875,19 @@
     cursor: pointer;
   }
   .plan-friend-check input { accent-color: var(--accent); }
-  .btn-plan-submit {
-    margin-top: 4px;
-    background: rgba(255,175,133,0.14);
-    border-color: var(--accent);
-    color: var(--accent);
-    font-weight: 600;
-  }
 
-  /* Going form actions */
-  .going-actions {
-    display: flex;
-    gap: 8px;
-  }
+  /* Going friend picker */
   .going-friend-picker {
     margin-top: 8px;
     display: flex;
     flex-direction: column;
-    gap: 4px;
-  }
-  .btn-going-invite, .btn-going-broadcast { flex: 1; }
-  .btn-going-broadcast {
-    background: rgba(255,175,133,0.14);
-    border-color: var(--accent);
-    color: var(--accent);
-  }
-  .btn-share-link {
-    display: flex;
-    align-items: center;
-    justify-content: center;
     gap: 6px;
+  }
+  .friends-empty {
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+    padding: 8px;
   }
   .friend-avatar-sm {
     width: 18px; height: 18px;
