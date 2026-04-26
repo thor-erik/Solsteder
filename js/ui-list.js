@@ -77,8 +77,8 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
   if (!v.isOpen && !v.isOpeningSoon) {
     return `
       <div class="venue-card closed-card ${v.id === selectedId ? 'selected' : ''}"
-           data-vid="${v.id}" onclick="selectVenue(${JSON.stringify(v.id)}, true)"
-           onmouseenter="setHoveredVenue(${JSON.stringify(v.id)})" onmouseleave="setHoveredVenue(null)">
+           data-vid="${v.id}" onclick="selectVenue(${typeof v.id === 'number' ? v.id : `'${v.id}'`}, true)"
+           onmouseenter="setHoveredVenue(${typeof v.id === 'number' ? v.id : `'${v.id}'`})" onmouseleave="setHoveredVenue(null)">
         <div class="closed-row">
           <span class="closed-name">${v.name}</span>
           <span class="card-badge shaded">${t('opens_at', { time: formatHour(dayHours.open) })}</span>
@@ -120,8 +120,8 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
 
   return `
     <div class="venue-card ${state.className} ${v.id === selectedId ? 'selected' : ''}"
-         data-vid="${v.id}" onclick="selectVenue(${JSON.stringify(v.id)}, true)"
-         onmouseenter="setHoveredVenue(${JSON.stringify(v.id)})" onmouseleave="setHoveredVenue(null)">
+         data-vid="${v.id}" onclick="selectVenue(${typeof v.id === 'number' ? v.id : `'${v.id}'`}, true)"
+         onmouseenter="setHoveredVenue(${typeof v.id === 'number' ? v.id : `'${v.id}'`})" onmouseleave="setHoveredVenue(null)">
       <div class="card-new-left">
         <div class="card-new-name">${v.name}${favHeart}${friendBadge}</div>
         <div class="card-new-meta">${metaHtml}</div>
