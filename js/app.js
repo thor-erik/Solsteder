@@ -3364,9 +3364,11 @@ function _venueMatchScore(v, q) {
 
 // ── Search dropdown rendering ────────────────────────────────────────────────
 
+let _googleResults = [];   // cached autocomplete results for current query
+let _googleSearching = false;
+
 function _renderSearchDropdown(geoOnly) {
   const q = _searchInput.value.trim().toLowerCase();
-  console.log('[_renderSearchDropdown] Query:', q, 'geoOnly:', geoOnly);
   if (!q) { _searchDropdown.classList.remove('open'); return; }
 
   const MAX_RESULTS = 8;
@@ -3408,13 +3410,24 @@ function _renderSearchDropdown(geoOnly) {
     scored.push({ kind: 'geo', score: base + bonus, data: g, geoIdx: i });
   }
 
+  // Google autocomplete results (shown after user clicks "Search Google")
+  const allNamesWithGoogle = new Set(scored.map(r => (r.data.name || '').toLowerCase()));
+  for (let i = 0; i < _googleResults.length; i++) {
+    const g = _googleResults[i];
+    if (allNamesWithGoogle.has(g.name.toLowerCase())) continue;
+    // Give Google results a score of 50 (between "contains" and "starts with")
+    scored.push({ kind: 'google', score: 50, data: g, googleIdx: i });
+  }
 
   // Sort by score descending, then alphabetically for ties
   scored.sort((a, b) => b.score - a.score || (a.data.name || '').localeCompare(b.data.name || '', 'no'));
 
   // Limit total results
   const results = scored.slice(0, MAX_RESULTS);
-  console.log('[_renderSearchDropdown] Results:', results.length, 'scored:', scored.length, 'curated:', VENUES.length, 'candidates:', _candidates?.length ?? 'loading', 'geo:', _geoResults.length);
+
+  // Count how many venue-type (non-geo) local matches we have
+  const localVenueCount = scored.filter(r => r.kind === 'curated' || r.kind === 'candidate').length;
+  const hasGoogleResults = _googleResults.length > 0;
 
   // ── Render rows ─────────────────────────────────────────────────────────
 
@@ -3438,6 +3451,16 @@ function _renderSearchDropdown(geoOnly) {
         <span class="sd-candidate-btn">${t('candidate_badge')}</span>
       </div>`;
     }
+    if (r.kind === 'google') {
+      const g = r.data;
+      const i = r.googleIdx;
+      return `
+      <div class="sd-row sd-row-candidate" onclick="_sdPickGoogle(${i})">
+        <span class="sd-row-icon">${_GEO_ICON.venue}</span>
+        <span class="sd-row-name">${g.name}</span>
+        <span class="sd-row-area">${g.secondary}</span>
+      </div>`;
+    }
     // geo
     const g = r.data;
     const i = r.geoIdx;
@@ -3449,15 +3472,31 @@ function _renderSearchDropdown(geoOnly) {
     </div>`;
   }).join('');
 
+  // ── Footer: "Search Google" button when no local venue matches, or "Suggest venue" ──
   const noMatch = results.length === 0;
   const rawQ    = _searchInput.value.trim();
-  const label   = noMatch
-    ? `${t('no_results_for')} "<strong>${rawQ}</strong>"`
-    : t('not_seeing_venue');
-  html += `<div class="sd-suggest-row">
-    <span class="sd-suggest-label">${label}</span>
-    <button class="sd-suggest-btn" onclick="_sdSuggest()">${t('suggest_venue')}</button>
-  </div>`;
+
+  if (localVenueCount === 0 && !hasGoogleResults) {
+    // No local venue matches — offer Google search
+    const label = noMatch
+      ? `${t('no_results_for')} "<strong>${rawQ}</strong>"`
+      : '';
+    const btnLabel = _googleSearching ? t('searching_google') : t('search_google');
+    const btnDisabled = _googleSearching ? 'disabled' : '';
+    html += `<div class="sd-suggest-row">
+      ${label ? `<span class="sd-suggest-label">${label}</span>` : ''}
+      <button class="sd-suggest-btn" onclick="_sdSearchGoogle()" ${btnDisabled}>${btnLabel}</button>
+    </div>`;
+  } else {
+    // Has local results or Google results shown — offer "Suggest venue"
+    const label = noMatch
+      ? `${t('no_results_for')} "<strong>${rawQ}</strong>"`
+      : t('not_seeing_venue');
+    html += `<div class="sd-suggest-row">
+      <span class="sd-suggest-label">${label}</span>
+      <button class="sd-suggest-btn" onclick="_sdSuggest()">${t('suggest_venue')}</button>
+    </div>`;
+  }
 
   _searchDropdown.innerHTML = html;
   _searchDropdown.classList.add('open');
@@ -3469,6 +3508,71 @@ function _renderSearchDropdown(geoOnly) {
 
   // Kick off geocoding (debounced)
   if (!geoOnly) _debounceGeocode(q);
+}
+
+// ── Google Places Autocomplete search (on-demand) ────────────────────────────
+
+async function _sdSearchGoogle() {
+  const q = _searchInput.value.trim();
+  if (!q || _googleSearching) return;
+
+  _googleSearching = true;
+  _renderSearchDropdown();  // re-render to show "Searching…" state
+
+  try {
+    const resp = await fetch(`/api/places-autocomplete?q=${encodeURIComponent(q)}`, {
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    _googleResults = data.suggestions || [];
+  } catch (_) {
+    _googleResults = [];
+  }
+
+  _googleSearching = false;
+
+  // Re-render with Google results injected
+  if (_searchInput.value.trim()) _renderSearchDropdown();
+}
+
+function _sdPickGoogle(idx) {
+  const g = _googleResults[idx];
+  if (!g) return;
+
+  // We need lat/lng to proceed — fetch Place Details for this placeId
+  _searchInput.value = '';
+  _syncSearchClearBtn();
+  _searchDropdown.classList.remove('open');
+  _googleResults = [];
+
+  // Use the existing candidate flow: fetch details via Places search, then load
+  _loadGooglePlace(g);
+}
+
+async function _loadGooglePlace(place) {
+  // Call our text-search proxy with the exact name to get lat/lng
+  try {
+    const resp = await fetch(`/api/places-search?q=${encodeURIComponent(place.name)}`, {
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!resp.ok) return;
+    const data = await resp.json();
+    const result = (data.results || [])[0];
+    if (!result) return;
+
+    const candidate = {
+      name:    place.name,
+      lat:     result.geometry.location.lat,
+      lng:     result.geometry.location.lng,
+      amenity: 'restaurant',
+      address: result.formatted_address || place.secondary || '',
+      source:  'google',
+    };
+
+    // Reuse the candidate pick flow (fly to venue, load geometry, show detail)
+    _sdPickCandidate(candidate);
+  } catch (_) { /* silently fail */ }
 }
 
 function _geoSubtext(g) {
@@ -3612,6 +3716,7 @@ function _syncSearchClearBtn() {
 let _searchListTimer = null;
 _searchInput.addEventListener('input', () => {
   _syncSearchClearBtn();
+  _googleResults = [];  // clear Google results when query changes
   // Render dropdown immediately (lightweight filter) but debounce the
   // expensive renderList() which runs solar math on every venue.
   _renderSearchDropdown();
@@ -3627,6 +3732,7 @@ document.getElementById('search-clear-btn')?.addEventListener('click', () => {
   _syncSearchClearBtn();
   _searchDropdown.classList.remove('open');
   _removeGeoMarker();
+  _googleResults = [];
   renderList();
   _searchInput.focus();
 });
