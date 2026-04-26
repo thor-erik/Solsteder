@@ -732,9 +732,6 @@ async function initFacings() {
     saveFacingCache(v.id, v.facing, 'osm', autoIndices, null, v.noiseScore);
 
     computed++;
-    const src = osmEl?.geometry ? 'osm-area' : osmEl ? 'osm-node' : 'wall-projection';
-    const depthStr = v.autoTerraceDepth != null ? ` depth ${v.autoTerraceDepth.toFixed(1)} m` : '';
-    console.log(`${v.name}: ${v.facing}° |${depthStr} | pts ${v.terraceTestPoints.length} [${src}] | noise ${v.noiseScore?.toFixed(2)}`);
   });
 
   clearSpriteCache();
