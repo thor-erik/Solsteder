@@ -712,191 +712,173 @@ function _renderSocialSection(v) {
     }).join('');
   }
 
-  const goingSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>`;
-  const hereSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>`;
+  const inviteSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>`;
+  const checkSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+  const pinSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>`;
 
   return `
     <div class="social-card">
       ${friendsHtml}
       <div class="social-btns">
-        <button class="social-btn social-btn-going" onclick="_openGoingForm(${v.id})">
-          ${goingSvg}
-          <span>${t('going_there')}</span>
+        <button class="social-btn social-btn-invite" onclick="_openInviteSheet(${v.id})">
+          ${inviteSvg}
+          <span>${t('invite_friends')}</span>
         </button>
         ${isCheckedInHere
-          ? `<button class="social-btn social-btn-here social-btn-active" onclick="_openHereMenu(${v.id})">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          ? `<button class="social-btn social-btn-here social-btn-active" onclick="_toggleCheckin(${v.id})">
+              ${checkSvg}
               <span>${t('im_here')}</span>
             </button>`
-          : `<button class="social-btn social-btn-here" onclick="_openHereMenu(${v.id})">
-              ${hereSvg}
+          : `<button class="social-btn social-btn-here" onclick="_toggleCheckin(${v.id})">
+              ${pinSvg}
               <span>${t('im_here')}</span>
             </button>`}
       </div>
       ${plansHtml}
-      <div id="going-form-${v.id}" class="social-form-overlay" style="display:none"></div>
-      <div id="here-menu-${v.id}" class="social-form-overlay" style="display:none"></div>
     </div>`;
 }
 
-/** "Jeg drar hit" form — pre-filled with current time slider value. */
-function _openGoingForm(venueId) {
+// ── Instant check-in toggle ──────────────────────────────────────────────────
+
+/** Tap "Jeg er her" → instant check-in (or check-out if already here). */
+async function _toggleCheckin(venueId) {
   if (typeof authCurrentUser === 'function' && !authCurrentUser()) {
     if (typeof toggleProfilePanel === 'function') toggleProfilePanel();
     return;
   }
-  const form = document.getElementById('going-form-' + venueId);
-  if (!form) return;
-  // Close "here" menu if open
-  const hereMenu = document.getElementById('here-menu-' + venueId);
-  if (hereMenu) hereMenu.style.display = 'none';
-  if (form.style.display !== 'none') { form.style.display = 'none'; return; }
+  const myCheckin = typeof getMyCheckin === 'function' ? getMyCheckin() : null;
+  const isHere = myCheckin && String(myCheckin.venue_id) === String(venueId);
+  if (isHere) {
+    await checkOut();
+  } else {
+    await checkIn(venueId, '');
+  }
+}
+
+// ── Invite sheet (half-screen overlay) ───────────────────────────────────────
+
+/** Open the invite sheet — a half-screen overlay anchored to the bottom. */
+function _openInviteSheet(venueId) {
+  if (typeof authCurrentUser === 'function' && !authCurrentUser()) {
+    if (typeof toggleProfilePanel === 'function') toggleProfilePanel();
+    return;
+  }
+  // Remove any existing sheet
+  const existing = document.getElementById('invite-sheet');
+  if (existing) { _closeInviteSheet(); return; }
+
+  const v = typeof VENUES !== 'undefined' ? VENUES.find(x => x.id === venueId) : null;
+  const venueName = v ? v.name : '';
 
   const friends = typeof _friends !== 'undefined' ? _friends : [];
-  const friendList = friends.map(f => {
+  const friendRows = friends.map(f => {
     const avatar = f.avatar_url
-      ? `<img class="friend-avatar-sm" src="${f.avatar_url}" alt="">`
-      : `<div class="friend-avatar-sm friend-avatar-sm-init">${(f.name || f.email)[0].toUpperCase()}</div>`;
-    return `<label class="plan-friend-check"><input type="checkbox" value="${f.id}"> ${avatar} ${f.name || f.email}</label>`;
+      ? `<img class="invite-friend-avatar" src="${f.avatar_url}" alt="">`
+      : `<div class="invite-friend-avatar invite-friend-init">${(f.name || f.email)[0].toUpperCase()}</div>`;
+    return `<label class="invite-friend-row">
+      <input type="checkbox" value="${f.id}">
+      ${avatar}
+      <span class="invite-friend-name">${f.name || f.email}</span>
+    </label>`;
   }).join('');
 
-  form.innerHTML = `
-    <div class="social-form-inner">
-      <label class="social-form-label">${t('plan_time_label')}</label>
-      <input type="datetime-local" id="plan-time-input" class="social-form-input" />
-      <div class="social-form-actions">
-        <button class="social-form-btn" onclick="_showGoingFriendPicker(${venueId})">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-          ${t('invite_friends')}
-        </button>
-        <button class="social-form-btn social-form-btn-accent" onclick="_broadcastGoing(${venueId})">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2 11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-          ${t('broadcast')}
-        </button>
-      </div>
-      <div id="going-friend-picker-${venueId}" class="going-friend-picker" style="display:none">
-        ${friends.length ? friendList : `<div class="friends-empty">${t('no_friends_yet')}</div>`}
-        <button class="social-form-btn" onclick="_shareGoingLink(${venueId})">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-          ${t('share_link')}
-        </button>
-        <button class="social-form-btn social-form-btn-accent" onclick="_submitGoing(${venueId})">${t('going_there')}</button>
-      </div>
-    </div>`;
-  form.style.display = 'block';
+  const shareSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>`;
+  const sendSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2 11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`;
 
-  // Pre-fill time from slider/picker
+  // Build overlay
+  const overlay = document.createElement('div');
+  overlay.id = 'invite-sheet-backdrop';
+  overlay.className = 'invite-backdrop';
+  overlay.onclick = e => { if (e.target === overlay) _closeInviteSheet(); };
+
+  const sheet = document.createElement('div');
+  sheet.id = 'invite-sheet';
+  sheet.className = 'invite-sheet';
+  sheet.innerHTML = `
+    <div class="invite-sheet-handle"><div class="invite-sheet-pill"></div></div>
+    <div class="invite-sheet-header">
+      <div class="invite-sheet-title">${t('invite_friends')}</div>
+      <div class="invite-sheet-venue">${venueName}</div>
+    </div>
+    <div class="invite-sheet-body">
+      <label class="invite-field-label">${t('plan_time_label')}</label>
+      <input type="datetime-local" id="invite-time-input" class="invite-input" />
+      <div class="invite-friends-list">
+        ${friends.length
+          ? friendRows
+          : `<div class="invite-empty">${t('no_friends_yet')}</div>`}
+      </div>
+      <button class="invite-share-link" onclick="_shareInviteLink(${venueId})">
+        ${shareSvg}
+        <span>${t('share_link')}</span>
+      </button>
+    </div>
+    <div class="invite-sheet-footer">
+      <button class="invite-send-btn" onclick="_sendInvite(${venueId})">
+        ${sendSvg}
+        <span>${t('send_invite')}</span>
+      </button>
+    </div>`;
+
+  overlay.appendChild(sheet);
+  document.body.appendChild(overlay);
+
+  // Animate in
+  requestAnimationFrame(() => {
+    overlay.classList.add('open');
+    sheet.classList.add('open');
+  });
+
+  // Pre-fill time
   const dateStr = typeof datePicker !== 'undefined' ? datePicker.value : new Date().toISOString().slice(0, 10);
   const hour = typeof timeFromEl !== 'undefined' ? parseFloat(timeFromEl.value) : new Date().getHours();
   const h = Math.floor(hour);
   const m = Math.round((hour - h) * 60);
-  const input = document.getElementById('plan-time-input');
+  const input = document.getElementById('invite-time-input');
   if (input) input.value = `${dateStr}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
-function _showGoingFriendPicker(venueId) {
-  const picker = document.getElementById('going-friend-picker-' + venueId);
-  if (picker) picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
+function _closeInviteSheet() {
+  const overlay = document.getElementById('invite-sheet-backdrop');
+  const sheet = document.getElementById('invite-sheet');
+  if (sheet) sheet.classList.remove('open');
+  if (overlay) {
+    overlay.classList.remove('open');
+    setTimeout(() => overlay.remove(), 300);
+  }
 }
 
-/** Broadcast to all friends — create plan visible to everyone. */
-async function _broadcastGoing(venueId) {
-  const timeInput = document.getElementById('plan-time-input');
+/** Send invite to selected friends (or broadcast to all if none selected). */
+async function _sendInvite(venueId) {
+  const timeInput = document.getElementById('invite-time-input');
   if (!timeInput || !timeInput.value) return;
-  const friends = typeof _friends !== 'undefined' ? _friends : [];
-  const allFriendIds = friends.map(f => f.id);
-  await createPlan(venueId, new Date(timeInput.value).toISOString(), '', allFriendIds);
-  const form = document.getElementById('going-form-' + venueId);
-  if (form) form.style.display = 'none';
+  const checks = document.querySelectorAll('#invite-sheet .invite-friend-row input:checked');
+  const friendIds = [];
+  checks.forEach(cb => friendIds.push(cb.value));
+  // If no friends selected, broadcast to all
+  if (!friendIds.length) {
+    const friends = typeof _friends !== 'undefined' ? _friends : [];
+    friends.forEach(f => friendIds.push(f.id));
+  }
+  await createPlan(venueId, new Date(timeInput.value).toISOString(), '', friendIds);
+  _closeInviteSheet();
 }
 
-/** Share invite link for the plan. */
-function _shareGoingLink(venueId) {
-  const timeInput = document.getElementById('plan-time-input');
+/** Share an invite link via native share or clipboard. */
+function _shareInviteLink(venueId) {
+  const timeInput = document.getElementById('invite-time-input');
   const timeVal = timeInput?.value || '';
   const user = typeof authCurrentUser === 'function' ? authCurrentUser() : null;
   if (!user) return;
   const data = btoa(JSON.stringify({ u: user.id, v: venueId, t: timeVal }));
   const url = `${location.origin}${location.pathname}#invite/${data}`;
+  const v = typeof VENUES !== 'undefined' ? VENUES.find(x => x.id === venueId) : null;
   if (navigator.share) {
-    const v = typeof VENUES !== 'undefined' ? VENUES.find(x => x.id === venueId) : null;
-    navigator.share({ title: v ? `${v.name} — ${t('going_there')}` : t('going_there'), url }).catch(() => {});
+    navigator.share({ title: v ? `${v.name} — ${t('invite_friends')}` : t('invite_friends'), url }).catch(() => {});
   } else {
     navigator.clipboard?.writeText(url);
     if (typeof _showToast === 'function') _showToast(t('invite_link_copied'));
   }
-}
-
-/** Submit "jeg drar hit" with selected friends. */
-async function _submitGoing(venueId) {
-  const timeInput = document.getElementById('plan-time-input');
-  if (!timeInput || !timeInput.value) return;
-  const friendIds = [];
-  document.querySelectorAll(`#going-friend-picker-${venueId} input:checked`).forEach(cb => friendIds.push(cb.value));
-  await createPlan(venueId, new Date(timeInput.value).toISOString(), '', friendIds);
-  const form = document.getElementById('going-form-' + venueId);
-  if (form) form.style.display = 'none';
-}
-
-/** "Jeg er her" menu — check in + optionally notify/share. */
-function _openHereMenu(venueId) {
-  if (typeof authCurrentUser === 'function' && !authCurrentUser()) {
-    if (typeof toggleProfilePanel === 'function') toggleProfilePanel();
-    return;
-  }
-  const menu = document.getElementById('here-menu-' + venueId);
-  if (!menu) return;
-  // Close "going" form if open
-  const goingForm = document.getElementById('going-form-' + venueId);
-  if (goingForm) goingForm.style.display = 'none';
-  if (menu.style.display !== 'none') { menu.style.display = 'none'; return; }
-
-  const myCheckin = typeof getMyCheckin === 'function' ? getMyCheckin() : null;
-  const isCheckedInHere = myCheckin && String(myCheckin.venue_id) === String(venueId);
-
-  if (isCheckedInHere) {
-    menu.innerHTML = `<div class="social-form-inner">
-      <button class="social-form-btn" onclick="checkOut()">${t('check_out_success')}</button>
-    </div>`;
-  } else {
-    menu.innerHTML = `<div class="social-form-inner">
-      <div class="social-form-actions">
-        <button class="social-form-btn" onclick="_checkInAndNotify(${venueId})">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-          ${t('send_to_friends')}
-        </button>
-        <button class="social-form-btn" onclick="_shareHereLink(${venueId})">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-          ${t('share_link')}
-        </button>
-      </div>
-    </div>`;
-  }
-  menu.style.display = 'block';
-}
-
-async function _checkInAndNotify(venueId) {
-  await checkIn(venueId, '');
-  const menu = document.getElementById('here-menu-' + venueId);
-  if (menu) menu.style.display = 'none';
-}
-
-function _shareHereLink(venueId) {
-  // Check in first, then share link
-  checkIn(venueId, '');
-  const user = typeof authCurrentUser === 'function' ? authCurrentUser() : null;
-  if (!user) return;
-  const data = btoa(JSON.stringify({ u: user.id, v: venueId, type: 'here' }));
-  const url = `${location.origin}${location.pathname}#invite/${data}`;
-  if (navigator.share) {
-    const v = typeof VENUES !== 'undefined' ? VENUES.find(x => x.id === venueId) : null;
-    navigator.share({ title: v ? `${v.name} — ${t('im_here')}` : t('im_here'), url }).catch(() => {});
-  } else {
-    navigator.clipboard?.writeText(url);
-    if (typeof _showToast === 'function') _showToast(t('invite_link_copied'));
-  }
-  const menu = document.getElementById('here-menu-' + venueId);
-  if (menu) menu.style.display = 'none';
 }
 
 /** Helper: render sun/cloud timeline segments for detail panel (10px track). */
