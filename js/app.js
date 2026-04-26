@@ -3475,8 +3475,6 @@ function _renderSearchDropdown(geoOnly) {
   // ── Footer: "Search Google" button when no local venue matches, or "Suggest venue" ──
   const noMatch = results.length === 0;
   const rawQ    = _searchInput.value.trim();
-  console.log('[dropdown]', { q, localVenueCount, hasGoogleResults, noMatch, resultsLen: results.length, scoredLen: scored.length, kinds: scored.map(r=>r.kind) });
-
   if (localVenueCount === 0 && !hasGoogleResults) {
     // No local venue matches — offer Google search
     const label = noMatch
@@ -3515,7 +3513,6 @@ function _renderSearchDropdown(geoOnly) {
 
 async function _sdSearchGoogle() {
   const q = _searchInput.value.trim();
-  console.log('[_sdSearchGoogle] called, q:', q, 'searching:', _googleSearching);
   if (!q || _googleSearching) return;
 
   _googleSearching = true;
@@ -3527,10 +3524,8 @@ async function _sdSearchGoogle() {
     });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
-    console.log('[_sdSearchGoogle] response:', data);
     _googleResults = data.suggestions || [];
-  } catch (err) {
-    console.error('[_sdSearchGoogle] error:', err);
+  } catch (_) {
     _googleResults = [];
   }
 

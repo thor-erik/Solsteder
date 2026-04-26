@@ -32,10 +32,10 @@ export async function onRequest(context) {
       },
       body: JSON.stringify({
         input: query,
-        locationBias: {
-          circle: {
-            center: { latitude: 59.9139, longitude: 10.7522 },
-            radius: 20000.0,
+        locationRestriction: {
+          rectangle: {
+            low:  { latitude: 59.80, longitude: 10.50 },
+            high: { latitude: 60.05, longitude: 10.95 },
           },
         },
         includedPrimaryTypes: ['restaurant', 'bar', 'cafe', 'pub', 'food_court'],
@@ -44,14 +44,6 @@ export async function onRequest(context) {
     });
 
     const data = await resp.json();
-
-    // If Google returned an error, pass it through for debugging
-    if (data.error) {
-      return new Response(JSON.stringify({ suggestions: [], googleError: data.error }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
 
     // Simplify response — extract what the frontend needs
     const suggestions = (data.suggestions || [])
@@ -65,7 +57,7 @@ export async function onRequest(context) {
         };
       });
 
-    return new Response(JSON.stringify({ suggestions, _debug: { status: resp.status, hasSuggestions: data.suggestions?.length ?? 0 } }), {
+    return new Response(JSON.stringify({ suggestions }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
