@@ -3685,13 +3685,11 @@ async function suggestVenueFlow(query) {
   // Use the legacy Places Text Search API — same key as photos, works from browser without CORS issues.
   let found = null;
   try {
-    const searchQuery = query + ' Oslo';
-    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json` +
-      `?query=${encodeURIComponent(searchQuery)}` +
-      `&location=59.9139,10.7522&radius=20000` +
-      `&key=${GOOGLE_PLACES_KEY}`;
+    const searchQuery = query;
+    // Use Cloudflare Pages Function to proxy Google Places (avoids CORS)
+    const proxyUrl = `/api/places-search?q=${encodeURIComponent(searchQuery)}`;
     console.log('[suggestVenueFlow] Looking up:', searchQuery);
-    const resp = await fetch(url);
+    const resp = await fetch(proxyUrl);
     if (resp.ok) {
       const data = await resp.json();
       if (data.status !== 'OK') {
