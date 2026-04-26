@@ -2680,6 +2680,22 @@
     border-color: rgba(255,175,133,0.5);
     color: var(--accent);
   }
+  .profile-pref-desc {
+    font-size: 11px;
+    color: var(--muted);
+    padding: 0 16px 4px;
+    opacity: 0.7;
+  }
+  .checkin-vis-row { padding: 3px 16px; }
+  .checkin-vis-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 26px;
+    padding: 0;
+  }
+  .checkin-vis-toggle svg { stroke: currentColor; }
   .my-suggestion-row {
     display: flex;
     align-items: center;
@@ -4977,25 +4993,21 @@
     gap: 12px;
     -webkit-overflow-scrolling: touch;
   }
-  .invite-field-label {
-    font-size: 11px;
+  .invite-time-display {
+    text-align: center;
+    padding: 10px 0 4px;
+  }
+  .invite-time-value {
+    font-size: 18px;
     font-weight: 600;
+    color: var(--accent);
+    letter-spacing: -0.02em;
+  }
+  .invite-time-hint {
+    font-size: 11px;
     color: var(--muted);
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
+    margin-top: 2px;
   }
-  .invite-input {
-    width: 100%;
-    padding: 10px 12px;
-    background: rgba(20,46,82,0.5);
-    border: 1px solid rgba(156,189,231,0.20);
-    border-radius: 12px;
-    color: var(--text);
-    font-size: 14px;
-    font-family: 'Inter', sans-serif;
-    box-sizing: border-box;
-  }
-  .invite-input:focus { outline: none; border-color: var(--accent); }
   .invite-friends-list {
     display: flex;
     flex-direction: column;
