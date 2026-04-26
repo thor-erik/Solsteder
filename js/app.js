@@ -3654,11 +3654,7 @@ async function _sdPickCandidate(encodedOrObj) {
   if (c.photos?.length) enriched.photoUrls = c.photos;
 
   // ── Fly to the venue using geometry-corrected coordinates ────────────────
-  const flyLat = enriched.lat ?? c.lat;
-  const flyLng = enriched.lng ?? c.lng;
-  if (typeof map !== 'undefined') {
-    map.flyTo({ center: [flyLng, flyLat], zoom: Math.max(map.getZoom(), 17), duration: 1000 });
-  }
+  _flyToVenue(enriched);
 
   // ── Step 2: Show "estimating sun" ────────────────────────────────────────
   _setStatus('loading_sun');
