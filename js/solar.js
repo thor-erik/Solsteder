@@ -230,7 +230,7 @@ function findSunCrossingFromTable(table, rising) {
  * Returns { windows: [{start, end}], open, close }
  */
 function computeSunWindowsFromTable(venue, table) {
-  const { open, close } = venue.openingHours;
+  const { open, close } = venue.openingHours ?? { open: 11, close: 23 };
   const windows = [];
   let inSun = false, winStart = null;
 

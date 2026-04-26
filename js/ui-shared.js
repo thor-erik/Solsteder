@@ -72,7 +72,7 @@ function venueState(venue, selectedTime) {
  */
 function getVenueHoursForDay(venue, dateStr) {
   const day = String(new Date(dateStr + 'T12:00:00').getDay()); // 0=Sun … 6=Sat
-  return venue.openingHoursWeekly?.[day] ?? venue.openingHours;
+  return venue.openingHoursWeekly?.[day] ?? venue.openingHours ?? { open: 11, close: 23 };
 }
 
 // ── Data helpers for detail panel ──────────────────────────────────────────────
