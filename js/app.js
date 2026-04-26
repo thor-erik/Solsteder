@@ -169,6 +169,10 @@ function _syncFtsPosition() {
     bottom = `calc(${peekH} + ${FTS_GAP}px)`;
   }
   document.body.style.setProperty('--fts-bottom', bottom);
+
+  // Flip popup below bar when FTS is near the top (fullscreen mode)
+  const popup = document.getElementById('fts-popup');
+  if (popup) popup.classList.toggle('fts-popup-below', isFull);
 }
 
 // Norwegian day/month abbreviations for FTS date button

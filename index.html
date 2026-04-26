@@ -645,7 +645,7 @@
   }
   #fts-popup.visible { opacity: 1; }
   #fts-popup.hidden-y { transform: translateX(-50%) translateY(6px); }
-  /* Tail — pointing down to thumb */
+  /* Tail — pointing down to thumb (default: above bar) */
   #fts-popup::after {
     content: '';
     position: absolute;
@@ -655,6 +655,15 @@
     background: rgba(20,46,82,0.62);
     border-right: 1px solid rgba(156,189,231,0.22);
     border-bottom: 1px solid rgba(156,189,231,0.22);
+  }
+  /* Flipped: popup below the bar (fullscreen mode) */
+  #fts-popup.fts-popup-below {
+    bottom: auto;
+    top: calc(100% + 8px);
+  }
+  #fts-popup.fts-popup-below::after {
+    bottom: auto; top: -4px;
+    transform: translateX(-50%) rotate(-135deg);
   }
   .fts-popup-row { display: flex; align-items: center; gap: 6px; }
   .fts-popup-primary { gap: 6px; }
