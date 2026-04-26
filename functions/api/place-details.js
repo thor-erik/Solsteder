@@ -41,9 +41,9 @@ export async function onRequest(context) {
     }
 
     // Build photo URLs (Google Places photo references)
+    // Return photo references as proxied URLs (key stays server-side)
     const photos = (data.photos || []).slice(0, 3).map(p => {
-      const name = p.name; // e.g. "places/ChIJ.../photos/AUc..."
-      return `https://places.googleapis.com/v1/${name}/media?maxWidthPx=600&key=${apiKey}`;
+      return `/api/place-photo?ref=${encodeURIComponent(p.name)}`;
     });
 
     const result = {
