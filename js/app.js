@@ -3573,6 +3573,7 @@ async function _loadGooglePlace(place) {
       address: data.address || place.secondary || '',
       photos:  data.photos || [],
       source:  'google',
+      googlePlaceId: place.placeId,
     };
 
     _sdPickCandidate(candidate);
@@ -3680,6 +3681,18 @@ async function _sdPickCandidate(encodedOrObj) {
   openDetailPanel(enriched);
   draw();
   renderList();
+
+  // ── Auto-submit as venue suggestion if user is logged in ────────────────
+  if (c.source === 'google' && c.googlePlaceId && typeof submitVenueSuggestion === 'function') {
+    submitVenueSuggestion({
+      name:          c.name,
+      lat:           enriched.lat ?? c.lat,
+      lng:           enriched.lng ?? c.lng,
+      address:       c.address,
+      googlePlaceId: c.googlePlaceId,
+      notes:         'Auto-submitted from Google search',
+    }).catch(() => {}); // fire-and-forget; don't block the UI
+  }
 }
 
 function _renderCandidateLoadingPanel(name) {
