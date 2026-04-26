@@ -2117,6 +2117,7 @@ function openDetailPanel(v) {
   dp.classList.remove('dp-fullscreen');
   dp.classList.add('open');
   _startWindForVenue(v);
+  document.getElementById('locate-btn')?.classList.add('mobile-ui-hidden');
   if (isMobile()) {
     const panel = document.getElementById('panel');
     if (panel) {
@@ -2170,6 +2171,8 @@ if (typeof stopWindOverlay === 'function') stopWindOverlay();
       document.getElementById('qc-wrap')?.classList.remove('mobile-ui-hidden');
       document.getElementById('locate-btn')?.classList.remove('mobile-ui-hidden');
     }, 320);
+  } else {
+    document.getElementById('locate-btn')?.classList.remove('mobile-ui-hidden');
   }
   _syncFtsPosition();
   if (selectedId != null) {
@@ -3553,26 +3556,25 @@ function _sdPickGoogle(idx) {
 }
 
 async function _loadGooglePlace(place) {
-  // Call our text-search proxy with the exact name to get lat/lng
+  // Fetch full details (lat/lng, photos) via Place Details API using the placeId
   try {
-    const resp = await fetch(`/api/places-search?q=${encodeURIComponent(place.name)}`, {
+    const resp = await fetch(`/api/place-details?id=${encodeURIComponent(place.placeId)}`, {
       signal: AbortSignal.timeout(8000),
     });
     if (!resp.ok) return;
     const data = await resp.json();
-    const result = (data.results || [])[0];
-    if (!result) return;
+    if (!data.lat || !data.lng) return;
 
     const candidate = {
-      name:    place.name,
-      lat:     result.geometry.location.lat,
-      lng:     result.geometry.location.lng,
+      name:    data.name || place.name,
+      lat:     data.lat,
+      lng:     data.lng,
       amenity: 'restaurant',
-      address: result.formatted_address || place.secondary || '',
+      address: data.address || place.secondary || '',
+      photos:  data.photos || [],
       source:  'google',
     };
 
-    // Reuse the candidate pick flow (fly to venue, load geometry, show detail)
     _sdPickCandidate(candidate);
   } catch (_) { /* silently fail */ }
 }
@@ -3618,11 +3620,6 @@ async function _sdPickCandidate(encodedOrObj) {
     _candidateData: c,
   };
 
-  // ── Fly to the venue ─────────────────────────────────────────────────────
-  if (typeof map !== 'undefined') {
-    map.flyTo({ center: [c.lng, c.lat], zoom: Math.max(map.getZoom(), 17), duration: 1000 });
-  }
-
   // ── Show loading detail panel ────────────────────────────────────────────
   const dp      = document.getElementById('detail-panel');
   const content = document.getElementById('dp-content');
@@ -3651,6 +3648,16 @@ async function _sdPickCandidate(encodedOrObj) {
   if (!enriched) {
     content.innerHTML = _renderCandidateErrorPanel(c.name);
     return;
+  }
+
+  // Carry over photos from Google Place Details if available
+  if (c.photos?.length) enriched.photoUrls = c.photos;
+
+  // ── Fly to the venue using geometry-corrected coordinates ────────────────
+  const flyLat = enriched.lat ?? c.lat;
+  const flyLng = enriched.lng ?? c.lng;
+  if (typeof map !== 'undefined') {
+    map.flyTo({ center: [flyLng, flyLat], zoom: Math.max(map.getZoom(), 17), duration: 1000 });
   }
 
   // ── Step 2: Show "estimating sun" ────────────────────────────────────────
