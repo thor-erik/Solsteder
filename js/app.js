@@ -3475,6 +3475,7 @@ function _renderSearchDropdown(geoOnly) {
   // ── Footer: "Search Google" button when no local venue matches, or "Suggest venue" ──
   const noMatch = results.length === 0;
   const rawQ    = _searchInput.value.trim();
+  console.log('[dropdown]', { q, localVenueCount, hasGoogleResults, noMatch, resultsLen: results.length, scoredLen: scored.length, kinds: scored.map(r=>r.kind) });
 
   if (localVenueCount === 0 && !hasGoogleResults) {
     // No local venue matches — offer Google search
