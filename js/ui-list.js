@@ -213,8 +213,10 @@ function renderList() {
   }
 
   // Remove venues with no sun windows, or (today only) all sun already past
+  // User's own suggestions bypass this filter (they lack geometry data)
   const isTodayFilter = dateStr === todayStr();
   venues = venues.filter(v => {
+    if (v._ownSuggestion) return true;
     const { windows } = computeSunWindows(v, dateStr);
     if (!windows.length) return false;
     if (isTodayFilter) return windows.some(w => w.end > fromHour);

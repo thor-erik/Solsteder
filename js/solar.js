@@ -183,6 +183,7 @@ function venueSunState(venue, sunAz, sunAlt) {
     }
     return true;
   }
+  if (venue.facing == null) return sunAlt > 2; // no geometry — assume sun if above horizon
   return venueInSun(venue.facing, sunAz, sunAlt);
 }
 

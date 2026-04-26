@@ -560,15 +560,19 @@ async function loadApprovedSuggestions() {
       const synId = `sv_${s.id.replace(/-/g, '').slice(0, 10)}`;
       if (existingIds.has(synId)) continue;
       VENUES.push({
-        id:       synId,
-        name:     s.name,
-        coords:   [s.lat, s.lng],
-        lat:      s.lat,
-        lng:      s.lng,
-        address:  s.address ?? '',
-        area:     '',
-        category: 'restaurant',
-        _source:  'suggested',
+        id:            synId,
+        name:          s.name,
+        coords:        [s.lat, s.lng],
+        lat:           s.lat,
+        lng:           s.lng,
+        address:       s.address ?? '',
+        area:          '',
+        category:      'restaurant',
+        facing:        null,
+        openingHours:  { open: 11, close: 23 },
+        buildingOsmId: null,
+        rating:        null,
+        _source:       'suggested',
       });
       added++;
     }
@@ -598,15 +602,19 @@ async function loadOwnSuggestions() {
       const synId = `sv_${s.id.replace(/-/g, '').slice(0, 10)}`;
       if (existingIds.has(synId)) continue;
       VENUES.push({
-        id:       synId,
-        name:     s.name,
-        coords:   [s.lat, s.lng],
-        lat:      s.lat,
-        lng:      s.lng,
-        address:  s.address ?? '',
-        area:     '',
-        category: 'restaurant',
-        _source:  'suggested',
+        id:            synId,
+        name:          s.name,
+        coords:        [s.lat, s.lng],
+        lat:           s.lat,
+        lng:           s.lng,
+        address:       s.address ?? '',
+        area:          '',
+        category:      'restaurant',
+        facing:        null,
+        openingHours:  { open: 11, close: 23 },
+        buildingOsmId: null,
+        rating:        null,
+        _source:       'suggested',
         _ownSuggestion: true,
       });
       added++;
