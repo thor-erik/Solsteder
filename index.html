@@ -5551,11 +5551,13 @@
 <script>
 if (USE_FLOATING_TIME_SLIDER) document.body.classList.add('fts');
 
-loadVenues().then(() => {
+loadVenues().then(async () => {
   updateRangeFill();
   update();
   if (USE_FLOATING_TIME_SLIDER) initFts();
-  initFacings();
+  await initFacings(); // must complete before intro — computes building shadows
+  _introDataReady = true;
+  _introCheckReady();
   const _wxLats = VENUES.map(v => v.lat), _wxLngs = VENUES.map(v => v.lng);
   const _wxLat  = (Math.min(..._wxLats) + Math.max(..._wxLats)) / 2;
   const _wxLng  = (Math.min(..._wxLngs) + Math.max(..._wxLngs)) / 2;
@@ -5568,10 +5570,13 @@ loadVenues().then(() => {
 }).catch(e => {
   console.error('loadVenues chain error:', e);
   // Ensure intro proceeds even if initialization throws
+  if (!_introDataReady) {
+    _introDataReady = true;
+  }
   if (!_introGeoReady) {
     _introGeoReady = true;
-    _introCheckReady();
   }
+  _introCheckReady();
 });
 </script>
 </body>

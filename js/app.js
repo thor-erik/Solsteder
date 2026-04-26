@@ -100,6 +100,7 @@ let _timeAnimStart = 0;
 // ── Intro sequence state ──────────────────────────────────────────────────────
 let _introMapReady  = false;
 let _introGeoReady  = false;
+let _introDataReady = false; // true after initFacings() + worker finish (all sun data computed)
 let _introCenter    = [10.728, 59.9125]; // Oslo fallback
 let _introRunning   = false;
 let _introSeqId     = 0; // incremented on skip to invalidate pending timeouts
@@ -842,8 +843,9 @@ setTimeout(() => {
 // Safety net: if splash is still visible after 12s, force-skip
 setTimeout(() => {
   if (!_introRunning) {
-    _introMapReady = true;
-    _introGeoReady = true;
+    _introMapReady  = true;
+    _introGeoReady  = true;
+    _introDataReady = true;
     _skipIntro();
   }
 }, 12000);
@@ -4022,7 +4024,7 @@ function _restorePreAuthState() {
 }
 
 function _introCheckReady() {
-  if (_introMapReady && _introGeoReady && !_introRunning) {
+  if (_introMapReady && _introGeoReady && _introDataReady && !_introRunning) {
     _introRunning = true;
     // Skip intro animation if this is an OAuth redirect return
     const isOAuthReturn = window.location.hash.includes('access_token=') ||
