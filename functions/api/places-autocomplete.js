@@ -29,6 +29,7 @@ export async function onRequest(context) {
       headers: {
         'Content-Type':     'application/json',
         'X-Goog-Api-Key':   apiKey,
+        'Referer':          'https://findshades.app/',
       },
       body: JSON.stringify({
         input: query,

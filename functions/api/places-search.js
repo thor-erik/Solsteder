@@ -33,7 +33,9 @@ export async function onRequest(context) {
     placesUrl.searchParams.set('radius', '20000');
     placesUrl.searchParams.set('key', apiKey);
 
-    const response = await fetch(placesUrl.toString());
+    const response = await fetch(placesUrl.toString(), {
+      headers: { 'Referer': 'https://findshades.app/' },
+    });
     const data = await response.json();
 
     return new Response(JSON.stringify(data), {
