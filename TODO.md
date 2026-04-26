@@ -57,6 +57,7 @@ Avhenger av at Fase 3 er på plass.
 - [ ] Dato-picker: legg til knapp for å ekspandere til full kalender; vis tydelig at værdata kun finnes 10 dager frem (etter det: bare sol/skygge-data)
 
 ### Funksjonalitet
+- [ ] Støy-klassifisering via Mapbox veidata: bruk `map.queryRenderedFeatures()` mot Mapbox Streets v8 veiklasser for å estimere støysoner (rød/gul/ingen) basert på veitype + avstand. Erstatter fjernet Geonorge WFS-integrasjon (CORS-blokkert). Skalerbart — fungerer globalt uten ekstra API.
 - [ ] Pins i nærheten av brukerens posisjon skal prioriteres / løftes i kartet
 - [ ] Editor på mobil (og desktop): toolbar er for lang — komprimér; type uteservering flyttes til en dropdown/popover-liste
 - [~] Gjennomgang av sol-estimeringslogikk for ulike typer uteserveringer — dokumentér hvordan det fungerer og vurder om det er presist nok

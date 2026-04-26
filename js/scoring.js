@@ -97,19 +97,16 @@ function distanceScore(v, userLoc) {
 
 // ── computeVenueScore ─────────────────────────────────────────────────────────
 // ── noiseScore (0–100) ────────────────────────────────────────────────────────
-// Converts official Geonorge zone (preferred) or OSM proximity estimate to score.
+// Converts OSM highway proximity estimate to a 0–100 score.
 function noiseScore(v) {
-  if (v.noiseZone === 'red')    return 15;  // Lden > 65 dB — clearly noisy
-  if (v.noiseZone === 'yellow') return 52;  // Lden 55–65 dB — moderate
-  if (v.noiseZone === 'none')   return 88;  // Lden < 55 dB — below threshold
-  if (v.noiseScore != null)     return Math.round(100 * Math.max(0, 1 - v.noiseScore * 1.3));
+  if (v.noiseScore != null) return Math.round(100 * Math.max(0, 1 - v.noiseScore * 1.3));
   return 50; // neutral when no data
 }
 
 /**
  * Compute the composite score for a venue at a given time.
  * Weights: sun×0.45  comfort×0.30  distance×0.15  noise×0.10
- * @param {Object}  v        — venue (needs .facing, .lat, .lng, .noiseZone?)
+ * @param {Object}  v        — venue (needs .facing, .lat, .lng, .noiseScore?)
  * @param {string}  dateStr  — "YYYY-MM-DD"
  * @param {number}  hour     — float hours (e.g. 14.5 = 14:30)
  * @param {Object}  wx       — WeatherSlot from getWeatherAt(), or null
