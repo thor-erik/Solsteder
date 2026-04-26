@@ -635,11 +635,16 @@ async function initFacings() {
   // Fast path: pre-computed geometry.json served from the repo
   if (await tryLoadPrecomputed()) {
     clearSpriteCache();
-    sunWindowCache.clear();
+    // Don't clear sunWindowCache here — old (pre-geometry) entries serve as a
+    // fast fallback while the worker recomputes with building shadow data.
+    // Clearing would force expensive sync recomputation for every venue,
+    // blocking the main thread for 1-2s and freezing the UI during the intro.
+    // Worker onmessage overwrites each entry and calls draw()+renderList().
     dispatchToWorker(datePicker.value);
     draw();
-    renderList();
-    if (typeof updateDetailPanel === 'function') updateDetailPanel();
+    // No worker? Force cache clear + re-render so the sync fallback runs
+    // on next draw/renderList (rare: only file:// protocol).
+    if (!sunWorker) { sunWindowCache.clear(); renderList(); }
     return;
   }
 
@@ -735,11 +740,11 @@ async function initFacings() {
   });
 
   clearSpriteCache();
-  sunWindowCache.clear();
+  // Don't clear sunWindowCache — same rationale as the fast path above.
+  // Worker will overwrite stale entries and trigger draw()+renderList().
 
   // Re-dispatch worker with shadow data now populated
   dispatchToWorker(datePicker.value);
   draw();
-  renderList();
-  if (typeof updateDetailPanel === 'function') updateDetailPanel();
+  if (!sunWorker) { sunWindowCache.clear(); renderList(); }
 }
