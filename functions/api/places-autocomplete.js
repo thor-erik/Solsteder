@@ -1,6 +1,6 @@
 // Cloudflare Pages Function: /api/places-autocomplete
 // Proxies Google Places Autocomplete (New) API
-// Usage: /api/places-autocomplete?q=hummus+and+wine
+// Usage: /api/places-autocomplete?q=hummus+and+wine&sw=59.8,10.5&ne=60.1,10.95
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -24,28 +24,40 @@ export async function onRequest(context) {
       );
     }
 
+    // Build location restriction from client-supplied viewport bounds
+    const sw = url.searchParams.get('sw');
+    const ne = url.searchParams.get('ne');
+    let locationRestriction;
+    if (sw && ne) {
+      const [swLat, swLng] = sw.split(',').map(Number);
+      const [neLat, neLng] = ne.split(',').map(Number);
+      if ([swLat, swLng, neLat, neLng].every(n => Number.isFinite(n))) {
+        locationRestriction = {
+          rectangle: {
+            low:  { latitude: swLat, longitude: swLng },
+            high: { latitude: neLat, longitude: neLng },
+          },
+        };
+      }
+    }
+
+    const body = {
+      input: query,
+      includedPrimaryTypes: ['restaurant', 'bar', 'cafe', 'pub', 'food_court'],
+    };
+    if (locationRestriction) body.locationRestriction = locationRestriction;
+
     const resp = await fetch('https://places.googleapis.com/v1/places:autocomplete', {
       method: 'POST',
       headers: {
-        'Content-Type':     'application/json',
-        'X-Goog-Api-Key':   apiKey,
+        'Content-Type':   'application/json',
+        'X-Goog-Api-Key': apiKey,
       },
-      body: JSON.stringify({
-        input: query,
-        locationRestriction: {
-          rectangle: {
-            low:  { latitude: 59.80, longitude: 10.50 },
-            high: { latitude: 60.05, longitude: 10.95 },
-          },
-        },
-        includedPrimaryTypes: ['restaurant', 'bar', 'cafe', 'pub', 'food_court'],
-        languageCode: 'no',
-      }),
+      body: JSON.stringify(body),
     });
 
     const data = await resp.json();
 
-    // Simplify response — extract what the frontend needs
     const suggestions = (data.suggestions || [])
       .filter(s => s.placePrediction)
       .map(s => {

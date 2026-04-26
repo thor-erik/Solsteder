@@ -3519,7 +3519,10 @@ async function _sdSearchGoogle() {
   _renderSearchDropdown();  // re-render to show "Searching…" state
 
   try {
-    const resp = await fetch(`/api/places-autocomplete?q=${encodeURIComponent(q)}`, {
+    const bounds = map.getBounds();
+    const sw = `${bounds.getSouth().toFixed(3)},${bounds.getWest().toFixed(3)}`;
+    const ne = `${bounds.getNorth().toFixed(3)},${bounds.getEast().toFixed(3)}`;
+    const resp = await fetch(`/api/places-autocomplete?q=${encodeURIComponent(q)}&sw=${sw}&ne=${ne}`, {
       signal: AbortSignal.timeout(8000),
     });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
