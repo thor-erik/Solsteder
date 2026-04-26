@@ -3515,6 +3515,7 @@ function _renderSearchDropdown(geoOnly) {
 
 async function _sdSearchGoogle() {
   const q = _searchInput.value.trim();
+  console.log('[_sdSearchGoogle] called, q:', q, 'searching:', _googleSearching);
   if (!q || _googleSearching) return;
 
   _googleSearching = true;
@@ -3526,8 +3527,10 @@ async function _sdSearchGoogle() {
     });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
+    console.log('[_sdSearchGoogle] response:', data);
     _googleResults = data.suggestions || [];
-  } catch (_) {
+  } catch (err) {
+    console.error('[_sdSearchGoogle] error:', err);
     _googleResults = [];
   }
 
