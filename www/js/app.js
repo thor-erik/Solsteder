@@ -3707,7 +3707,7 @@ async function suggestVenueFlow(query) {
       console.warn('[suggestVenueFlow] Fetch failed:', resp.status, resp.statusText);
     }
   } catch (err) {
-    console.warn('[suggestVenueFlow] Error:', err);
+    console.error('[suggestVenueFlow] Error:', err?.message ?? err, err);
   }
 
   lookupToast.remove();
