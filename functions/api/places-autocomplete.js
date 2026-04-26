@@ -45,6 +45,14 @@ export async function onRequest(context) {
 
     const data = await resp.json();
 
+    // If Google returned an error, pass it through for debugging
+    if (data.error) {
+      return new Response(JSON.stringify({ suggestions: [], googleError: data.error }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     // Simplify response — extract what the frontend needs
     const suggestions = (data.suggestions || [])
       .filter(s => s.placePrediction)
@@ -57,7 +65,7 @@ export async function onRequest(context) {
         };
       });
 
-    return new Response(JSON.stringify({ suggestions }), {
+    return new Response(JSON.stringify({ suggestions, _debug: { status: resp.status, hasSuggestions: data.suggestions?.length ?? 0 } }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
