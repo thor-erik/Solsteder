@@ -3366,6 +3366,7 @@ function _venueMatchScore(v, q) {
 
 function _renderSearchDropdown(geoOnly) {
   const q = _searchInput.value.trim().toLowerCase();
+  console.log('[_renderSearchDropdown] Query:', q, 'geoOnly:', geoOnly);
   if (!q) { _searchDropdown.classList.remove('open'); return; }
 
   const MAX_RESULTS = 8;
@@ -3413,6 +3414,7 @@ function _renderSearchDropdown(geoOnly) {
 
   // Limit total results
   const results = scored.slice(0, MAX_RESULTS);
+  console.log('[_renderSearchDropdown] Results:', results.length, 'scored:', scored.length, 'curated:', VENUES.length, 'candidates:', _candidates?.length ?? 'loading', 'geo:', _geoResults.length);
 
   // ── Render rows ─────────────────────────────────────────────────────────
 
