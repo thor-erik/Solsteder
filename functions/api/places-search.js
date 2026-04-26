@@ -17,7 +17,7 @@ export async function onRequest(context) {
       );
     }
 
-    const apiKey = env.GOOGLE_PLACES_KEY;
+    const apiKey = env.GOOGLE_PLACES_SERVER_KEY;
     if (!apiKey) {
       return new Response(
         JSON.stringify({ error: 'API key not configured' }),
@@ -33,9 +33,7 @@ export async function onRequest(context) {
     placesUrl.searchParams.set('radius', '20000');
     placesUrl.searchParams.set('key', apiKey);
 
-    const response = await fetch(placesUrl.toString(), {
-      headers: { 'Referer': 'https://findshades.app/' },
-    });
+    const response = await fetch(placesUrl.toString());
     const data = await response.json();
 
     return new Response(JSON.stringify(data), {

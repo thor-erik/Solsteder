@@ -16,7 +16,7 @@ export async function onRequest(context) {
       );
     }
 
-    const apiKey = env.GOOGLE_PLACES_KEY;
+    const apiKey = env.GOOGLE_PLACES_SERVER_KEY;
     if (!apiKey) {
       return new Response(
         JSON.stringify({ error: 'API key not configured' }),
@@ -29,7 +29,6 @@ export async function onRequest(context) {
       headers: {
         'Content-Type':     'application/json',
         'X-Goog-Api-Key':   apiKey,
-        'Referer':          'https://findshades.app/',
       },
       body: JSON.stringify({
         input: query,
