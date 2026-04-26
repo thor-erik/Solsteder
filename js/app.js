@@ -362,12 +362,11 @@ function drawFtsCanvas() {
     c.fillRect(0, BLEED, pastX, TRACK_H);
   }
 
-  // 6. Venue shadow overlay — rounded caps + drop shadow below bar
+  // 6. Venue shadow overlay — dim shadow zones with semi-transparent overlay
   if (selectedId != null) {
     const sv = VENUES.find(x => x.id === selectedId);
     if (sv) {
       const { windows: svWins, open: svOpen, close: svClose } = computeSunWindows(sv, dateStr);
-      // Build list of shadow gaps within the daylight range
       const gaps = [];
       if (svWins.length > 0) {
         if (svWins[0].start > svOpen + 0.01) gaps.push({ start: svOpen, end: svWins[0].start });
@@ -382,85 +381,13 @@ function drawFtsCanvas() {
         gaps.push({ start: svOpen, end: svClose });
       }
 
-      if (gaps.length > 0) {
-        const CR = TRACK_H / 2;
-        const SHADOW_Y = BLEED + TRACK_H * 0.62;
-        const SHADOW_H = TRACK_H * 0.38;
-        const REACH = TRACK_H * 0.55;
-
-        // Helper: find the weather segment covering a given x position
-        function segAt(px) {
-          for (const s of segments) { if (px >= s.x1 && px < s.x2) return s; }
-          return null;
-        }
-
-        for (const gap of gaps) {
-          const gx1 = Math.round(timeToX(Math.max(MIN_H, gap.start)));
-          const gx2 = Math.round(timeToX(Math.min(MAX_H, gap.end)));
-          if (gx2 <= gx1) continue;
-
-          // Does a lit segment border this gap on each side?
-          const leftSeg  = segAt(gx1 - 1);
-          const rightSeg = segAt(gx2 + 1);
-
-          // Drop shadow below bar — only from cap edges that border a lit segment
-          if (leftSeg) {
-            c.save();
-            c.beginPath(); c.rect(gx1, SHADOW_Y, REACH, SHADOW_H); c.clip();
-            const gr = c.createRadialGradient(gx1, SHADOW_Y - 2, 1, gx1, SHADOW_Y - 2, REACH);
-            gr.addColorStop(0, 'rgba(0,0,0,0.55)');
-            gr.addColorStop(0.45, 'rgba(0,0,0,0.28)');
-            gr.addColorStop(1, 'rgba(0,0,0,0)');
-            c.fillStyle = gr; c.fillRect(gx1 - REACH, SHADOW_Y - 4, REACH * 2, SHADOW_H + 8);
-            c.restore();
-          }
-          if (rightSeg) {
-            c.save();
-            c.beginPath(); c.rect(gx2 - REACH, SHADOW_Y, REACH, SHADOW_H); c.clip();
-            const gl = c.createRadialGradient(gx2, SHADOW_Y - 2, 1, gx2, SHADOW_Y - 2, REACH);
-            gl.addColorStop(0, 'rgba(0,0,0,0.55)');
-            gl.addColorStop(0.45, 'rgba(0,0,0,0.28)');
-            gl.addColorStop(1, 'rgba(0,0,0,0)');
-            c.fillStyle = gl; c.fillRect(gx2 - REACH, SHADOW_Y - 4, REACH * 2, SHADOW_H + 8);
-            c.restore();
-          }
-
-          // Clear gap zone — fill with the same night bg as the track base
-          c.fillStyle = '#1B2E5A';
-          c.fillRect(gx1, BLEED, gx2 - gx1, TRACK_H);
-
-          // Redraw rounded cap on the left-side segment (cap faces right into gap)
-          if (leftSeg) {
-            const capX = Math.max(leftSeg.x1, gx1 - CR * 2);
-            const capR = gx1;
-            c.save();
-            c.beginPath();
-            c.moveTo(capX, BLEED);
-            c.lineTo(capR - CR, BLEED);
-            c.quadraticCurveTo(capR, BLEED, capR, BLEED + CR);
-            c.quadraticCurveTo(capR, BLEED + TRACK_H, capR - CR, BLEED + TRACK_H);
-            c.lineTo(capX, BLEED + TRACK_H);
-            c.closePath();
-            c.fillStyle = leftSeg.color; c.fill();
-            c.restore();
-          }
-          // Redraw rounded cap on the right-side segment (cap faces left into gap)
-          if (rightSeg) {
-            const capL = gx2;
-            const capEnd = Math.min(rightSeg.x2, gx2 + CR * 2);
-            c.save();
-            c.beginPath();
-            c.moveTo(capL + CR, BLEED);
-            c.lineTo(capEnd, BLEED);
-            c.lineTo(capEnd, BLEED + TRACK_H);
-            c.lineTo(capL + CR, BLEED + TRACK_H);
-            c.quadraticCurveTo(capL, BLEED + TRACK_H, capL, BLEED + TRACK_H - CR);
-            c.quadraticCurveTo(capL, BLEED, capL + CR, BLEED);
-            c.closePath();
-            c.fillStyle = rightSeg.color; c.fill();
-            c.restore();
-          }
-        }
+      for (const gap of gaps) {
+        const gx1 = Math.round(timeToX(Math.max(MIN_H, gap.start)));
+        const gx2 = Math.round(timeToX(Math.min(MAX_H, gap.end)));
+        if (gx2 <= gx1) continue;
+        // Simple dim overlay — preserves weather colors + lens sheen underneath
+        c.fillStyle = 'rgba(0,0,0,0.45)';
+        c.fillRect(gx1, BLEED, gx2 - gx1, TRACK_H);
       }
     }
   }
