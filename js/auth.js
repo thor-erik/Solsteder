@@ -563,6 +563,8 @@ async function loadApprovedSuggestions() {
         id:       synId,
         name:     s.name,
         coords:   [s.lat, s.lng],
+        lat:      s.lat,
+        lng:      s.lng,
         address:  s.address ?? '',
         area:     '',
         category: 'restaurant',
@@ -573,6 +575,48 @@ async function loadApprovedSuggestions() {
     if (added > 0 && typeof renderList === 'function') renderList();
   } catch (e) {
     console.warn('[auth] loadApprovedSuggestions:', e.message);
+  }
+}
+
+// ── Load current user's own suggestions (pending + approved) ────────────────
+// Shows the user's own suggested venues on their map, even before admin approval.
+
+async function loadOwnSuggestions() {
+  if (!_currentUser) return;
+  try {
+    const { data, error } = await _supabase
+      .from('suggested_venues')
+      .select('id, name, lat, lng, address, status')
+      .eq('user_id', _currentUser.id)
+      .in('status', ['pending', 'approved']);
+    if (error || !data?.length) return;
+
+    if (typeof VENUES === 'undefined') return;
+    const existingIds = new Set(VENUES.map(v => String(v.id)));
+    let added = 0;
+    for (const s of data) {
+      const synId = `sv_${s.id.replace(/-/g, '').slice(0, 10)}`;
+      if (existingIds.has(synId)) continue;
+      VENUES.push({
+        id:       synId,
+        name:     s.name,
+        coords:   [s.lat, s.lng],
+        lat:      s.lat,
+        lng:      s.lng,
+        address:  s.address ?? '',
+        area:     '',
+        category: 'restaurant',
+        _source:  'suggested',
+        _ownSuggestion: true,
+      });
+      added++;
+    }
+    if (added > 0) {
+      if (typeof renderList === 'function') renderList();
+      if (typeof draw === 'function') draw();
+    }
+  } catch (e) {
+    console.warn('[auth] loadOwnSuggestions:', e.message);
   }
 }
 
@@ -1186,6 +1230,7 @@ _supabase.auth.onAuthStateChange((event, session) => {
       if (typeof draw === 'function') draw();
     });
     loadPlans();
+    loadOwnSuggestions();
     _subscribeToCheckins();
   } else {
     _currentRole = null;
