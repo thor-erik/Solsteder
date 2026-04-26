@@ -383,86 +383,82 @@ function drawFtsCanvas() {
       }
 
       if (gaps.length > 0) {
-        const CR = TRACK_H / 2;  // cap radius = half height (full hemisphere)
+        const CR = TRACK_H / 2;
         const SHADOW_Y = BLEED + TRACK_H * 0.62;
         const SHADOW_H = TRACK_H * 0.38;
+        const REACH = TRACK_H * 0.55;
 
-        // Pass 1: drop shadows below bar in gap zones
-        for (const gap of gaps) {
-          const gx1 = Math.round(timeToX(Math.max(MIN_H, gap.start)));
-          const gx2 = Math.round(timeToX(Math.min(MAX_H, gap.end)));
-          if (gx2 <= gx1) continue;
-          const REACH = TRACK_H * 0.55;
-          // Shadow from left cap edge (right-facing)
-          c.save();
-          c.beginPath(); c.rect(gx1, SHADOW_Y, REACH, SHADOW_H); c.clip();
-          const gr = c.createRadialGradient(gx1, SHADOW_Y - 2, 1, gx1, SHADOW_Y - 2, REACH);
-          gr.addColorStop(0, 'rgba(0,0,0,0.55)');
-          gr.addColorStop(0.45, 'rgba(0,0,0,0.28)');
-          gr.addColorStop(1, 'rgba(0,0,0,0)');
-          c.fillStyle = gr; c.fillRect(gx1 - REACH, SHADOW_Y - 4, REACH * 2, SHADOW_H + 8);
-          c.restore();
-          // Shadow from right cap edge (left-facing)
-          c.save();
-          c.beginPath(); c.rect(gx2 - REACH, SHADOW_Y, REACH, SHADOW_H); c.clip();
-          const gl = c.createRadialGradient(gx2, SHADOW_Y - 2, 1, gx2, SHADOW_Y - 2, REACH);
-          gl.addColorStop(0, 'rgba(0,0,0,0.55)');
-          gl.addColorStop(0.45, 'rgba(0,0,0,0.28)');
-          gl.addColorStop(1, 'rgba(0,0,0,0)');
-          c.fillStyle = gl; c.fillRect(gx2 - REACH, SHADOW_Y - 4, REACH * 2, SHADOW_H + 8);
-          c.restore();
+        // Helper: find the weather segment covering a given x position
+        function segAt(px) {
+          for (const s of segments) { if (px >= s.x1 && px < s.x2) return s; }
+          return null;
         }
 
-        // Pass 2: clear gap zones (dark base shows through) + re-draw lit segments with rounded caps
-        for (const gap of gaps) {
-          const gx1 = Math.round(timeToX(Math.max(MIN_H, gap.start)));
-          const gx2 = Math.round(timeToX(Math.min(MAX_H, gap.end)));
-          if (gx2 <= gx1) continue;
-          // Clear the gap area to reveal dark base
-          c.clearRect(gx1, BLEED, gx2 - gx1, TRACK_H);
-          c.fillStyle = '#0D1829';
-          c.fillRect(gx1, BLEED, gx2 - gx1, TRACK_H);
-        }
-
-        // Re-draw segments adjacent to gaps with rounded caps
         for (const gap of gaps) {
           const gx1 = Math.round(timeToX(Math.max(MIN_H, gap.start)));
           const gx2 = Math.round(timeToX(Math.min(MAX_H, gap.end)));
           if (gx2 <= gx1) continue;
 
-          // Find segments touching the left edge of the gap (cap on right)
-          for (const seg of segments) {
-            if (Math.abs(seg.x2 - gx1) < 2) {
-              const capW = Math.min(CR * 2, seg.x2 - seg.x1);
-              const capX = seg.x2 - capW;
-              c.save();
-              c.beginPath();
-              c.moveTo(capX, BLEED);
-              c.lineTo(capX + capW - CR, BLEED);
-              c.quadraticCurveTo(capX + capW, BLEED, capX + capW, BLEED + CR);
-              c.quadraticCurveTo(capX + capW, BLEED + TRACK_H, capX + capW - CR, BLEED + TRACK_H);
-              c.lineTo(capX, BLEED + TRACK_H);
-              c.closePath();
-              c.fillStyle = seg.color; c.fill();
-              c.restore();
-            }
+          // Does a lit segment border this gap on each side?
+          const leftSeg  = segAt(gx1 - 1);
+          const rightSeg = segAt(gx2 + 1);
+
+          // Drop shadow below bar — only from cap edges that border a lit segment
+          if (leftSeg) {
+            c.save();
+            c.beginPath(); c.rect(gx1, SHADOW_Y, REACH, SHADOW_H); c.clip();
+            const gr = c.createRadialGradient(gx1, SHADOW_Y - 2, 1, gx1, SHADOW_Y - 2, REACH);
+            gr.addColorStop(0, 'rgba(0,0,0,0.55)');
+            gr.addColorStop(0.45, 'rgba(0,0,0,0.28)');
+            gr.addColorStop(1, 'rgba(0,0,0,0)');
+            c.fillStyle = gr; c.fillRect(gx1 - REACH, SHADOW_Y - 4, REACH * 2, SHADOW_H + 8);
+            c.restore();
           }
-          // Find segments touching the right edge of the gap (cap on left)
-          for (const seg of segments) {
-            if (Math.abs(seg.x1 - gx2) < 2) {
-              const capW = Math.min(CR * 2, seg.x2 - seg.x1);
-              c.save();
-              c.beginPath();
-              c.moveTo(seg.x1 + CR, BLEED);
-              c.lineTo(seg.x1 + capW, BLEED);
-              c.lineTo(seg.x1 + capW, BLEED + TRACK_H);
-              c.lineTo(seg.x1 + CR, BLEED + TRACK_H);
-              c.quadraticCurveTo(seg.x1, BLEED + TRACK_H, seg.x1, BLEED + TRACK_H - CR);
-              c.quadraticCurveTo(seg.x1, BLEED, seg.x1 + CR, BLEED);
-              c.closePath();
-              c.fillStyle = seg.color; c.fill();
-              c.restore();
-            }
+          if (rightSeg) {
+            c.save();
+            c.beginPath(); c.rect(gx2 - REACH, SHADOW_Y, REACH, SHADOW_H); c.clip();
+            const gl = c.createRadialGradient(gx2, SHADOW_Y - 2, 1, gx2, SHADOW_Y - 2, REACH);
+            gl.addColorStop(0, 'rgba(0,0,0,0.55)');
+            gl.addColorStop(0.45, 'rgba(0,0,0,0.28)');
+            gl.addColorStop(1, 'rgba(0,0,0,0)');
+            c.fillStyle = gl; c.fillRect(gx2 - REACH, SHADOW_Y - 4, REACH * 2, SHADOW_H + 8);
+            c.restore();
+          }
+
+          // Clear gap zone — fill with the same night bg as the track base
+          c.fillStyle = '#1B2E5A';
+          c.fillRect(gx1, BLEED, gx2 - gx1, TRACK_H);
+
+          // Redraw rounded cap on the left-side segment (cap faces right into gap)
+          if (leftSeg) {
+            const capX = Math.max(leftSeg.x1, gx1 - CR * 2);
+            const capR = gx1;
+            c.save();
+            c.beginPath();
+            c.moveTo(capX, BLEED);
+            c.lineTo(capR - CR, BLEED);
+            c.quadraticCurveTo(capR, BLEED, capR, BLEED + CR);
+            c.quadraticCurveTo(capR, BLEED + TRACK_H, capR - CR, BLEED + TRACK_H);
+            c.lineTo(capX, BLEED + TRACK_H);
+            c.closePath();
+            c.fillStyle = leftSeg.color; c.fill();
+            c.restore();
+          }
+          // Redraw rounded cap on the right-side segment (cap faces left into gap)
+          if (rightSeg) {
+            const capL = gx2;
+            const capEnd = Math.min(rightSeg.x2, gx2 + CR * 2);
+            c.save();
+            c.beginPath();
+            c.moveTo(capL + CR, BLEED);
+            c.lineTo(capEnd, BLEED);
+            c.lineTo(capEnd, BLEED + TRACK_H);
+            c.lineTo(capL + CR, BLEED + TRACK_H);
+            c.quadraticCurveTo(capL, BLEED + TRACK_H, capL, BLEED + TRACK_H - CR);
+            c.quadraticCurveTo(capL, BLEED, capL + CR, BLEED);
+            c.closePath();
+            c.fillStyle = rightSeg.color; c.fill();
+            c.restore();
           }
         }
       }
