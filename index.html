@@ -1552,44 +1552,39 @@
     padding: 12px 14px;
     margin-bottom: 8px;
     cursor: pointer;
-    box-shadow: var(--glass-inset), 0 2px 8px rgba(0,0,0,0.35);
-    transition: border-color 0.15s ease, background 0.15s ease, opacity 0.2s;
+    box-shadow: var(--glass-inset), 0 2px 8px rgba(0,0,0,0.25);
+    transition: border-color 0.12s ease-out, background 0.12s ease-out, opacity 0.2s;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     animation: cardIn 0.18s ease-out;
-    contain: layout style paint;
+    contain: layout style;
     display: flex;
-    gap: 14px;
-    align-items: stretch;
-    min-height: 85px;
+    flex-direction: column;
+    gap: 6px;
   }
 
   .venue-card:hover {
-    border-color: rgba(255,175,133,0.28);
+    border-color: rgba(156,189,231,0.35);
     background: rgba(20,46,82,0.65);
   }
 
-  .venue-card.sunny {
-    border-color: rgba(156,189,231,0.22);
-  }
-
   .venue-card.selected {
-    border-color: rgba(156,189,231,0.55);
-    background: rgba(20,46,82,0.6);
+    border-color: rgba(255,175,133,0.4);
+    background: rgba(20,46,82,0.62);
   }
 
   .venue-card.state-shadow .card-new-hero-main {
     color: var(--text);
-    font-weight: 600;
+    font-weight: 700;
   }
 
   .venue-card.state-done {
-    opacity: 0.5;
+    opacity: 0.48;
   }
 
   .venue-card.state-done .card-new-hero-main {
     color: var(--muted);
-    font-weight: 600;
+    font-weight: 700;
   }
 
   .venue-card.editing {
@@ -1598,19 +1593,35 @@
     opacity: 1 !important;
   }
 
-  /* New two-column card layout */
-  .card-new-left {
+  /* Card top row: name+meta left, status right */
+  .card-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .card-left {
     flex: 1;
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 2px;
+  }
+
+  .card-right {
+    flex-shrink: 0;
+    min-width: 115px;
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
   }
 
   .card-new-name {
     font-size: 15px;
     font-weight: 700;
-    line-height: 1.25;
+    line-height: 1.2;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1618,12 +1629,16 @@
   }
 
   .card-new-meta {
-    font-size: 12px;
+    font-size: 11px;
+    font-weight: 500;
     color: var(--muted);
     display: flex;
     align-items: center;
     gap: 0;
-    flex-wrap: wrap;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
   }
 
   .card-new-meta span {
@@ -1635,114 +1650,79 @@
     margin: 0 4px;
   }
 
-  .card-new-timeline {
-    position: relative;
-    height: 14px;
-    margin-top: auto;
-  }
-
-  .timeline-track {
-    position: absolute;
-    top: 4px;
-    left: 0;
-    right: 0;
-    height: 6px;
-    background: rgba(255,255,255,0.06);
-    border-radius: 3px;
-    overflow: hidden;
-  }
-
-  .timeline-sun {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    background: #FFD488;
-    opacity: 1;
-  }
-
-  .timeline-cloud {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    background: #E6C08A;
-    opacity: 0.7;
-  }
-
-  .timeline-now {
-    position: absolute;
-    top: 0;
-    width: 2px;
-    height: 14px;
-    background: #fff;
-    border-radius: 1px;
-    box-shadow: 0 0 6px rgba(255,255,255,0.6);
-  }
-
-  .card-new-right {
-    flex-shrink: 0;
-    width: 96px;
-    text-align: right;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    gap: 4px;
-  }
-
-  .card-new-dist {
-    font-size: 12px;
-    color: var(--muted);
-    line-height: 1;
-  }
-  .card-beer {
-    color: rgba(213,196,171,0.55);
-    white-space: nowrap;
-  }
-
-  .card-new-hero {
-    text-align: right;
-  }
-
   .card-new-hero-main {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 700;
     color: var(--accent);
-    line-height: 1.15;
+    line-height: 1.2;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
+    letter-spacing: -0.01em;
   }
 
   .card-new-hero-sub {
     font-size: 11px;
+    font-weight: 500;
     color: var(--muted);
-    margin-top: 3px;
     font-variant-numeric: tabular-nums;
-  }
-
-  .card-top {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 8px;
-    margin-bottom: 5px;
-  }
-
-  .card-name {
-    font-family: 'Inter', sans-serif;
-    font-style: normal;
-    font-size: 16px;
-    font-weight: 600;
-    letter-spacing: -0.01em;
-    text-transform: none;
-    color: #FFF2EB;
-    line-height: 1.2;
     white-space: nowrap;
-    overflow: hidden;
-    -webkit-mask-image: linear-gradient(to right, black 72%, transparent 100%);
-    mask-image: linear-gradient(to right, black 72%, transparent 100%);
+    line-height: 1.3;
   }
-  .card-left {
-    flex: 1;
-    min-width: 0;
+
+  /* ── Card timeline — full card width ── */
+  .card-timeline {
+    position: relative;
+    height: 8px;
+    margin-top: 2px;
+  }
+
+  .timeline-track {
+    position: relative;
+    height: 8px;
+    background: rgba(156,189,231,0.08);
+    overflow: visible;
+  }
+
+  /* Weather segments — flat by default, track clips outer edges */
+  .venue-card .wx {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border-radius: 0;
+  }
+
+  /* Shadow boundary caps — rounded ends at shadow gap edges */
+  .venue-card .cap-l         { border-radius: 4px 0 0 4px; }
+  .venue-card .cap-r         { border-radius: 0 4px 4px 0; }
+  .venue-card .cap-l.cap-r   { border-radius: 4px; }
+
+  /* Architectural-shadow drop — shade pools BELOW the bar in the gap zone */
+  .venue-card .shadow-r::after,
+  .venue-card .shadow-l::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    height: 9px;
+    width: 14px;
+    background: radial-gradient(ellipse 100% 100% at 50% 0%,
+                                rgba(0,0,0,0.55) 0%,
+                                rgba(0,0,0,0.20) 45%,
+                                rgba(0,0,0,0) 100%);
+    pointer-events: none;
+  }
+  .venue-card .shadow-r::after { right: -14px; }
+  .venue-card .shadow-l::after { left:  -14px; }
+
+  /* Now marker — clean white hairline */
+  .venue-card .tl-now {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: rgba(255,255,255,0.9);
+    transform: translateX(-50%);
+    z-index: 5;
+    box-shadow: 0 0 4px rgba(255,255,255,0.5);
   }
 
   .card-emoji {

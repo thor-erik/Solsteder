@@ -18,50 +18,91 @@ let _listFiltered = []; // current sorted+filtered result
 let _listObserver = null; // IntersectionObserver for infinite scroll
 let _aImpressionTimer = null; // debounce for impression analytics
 
-/** Mini sun-timeline sparkline: 6px tall, 06:00–22:00 range, shows sun/cloud/now. */
+/**
+ * Weather ramp color from cloud/precip values.
+ * Matches the design system spec: sun → few clouds → partly → mostly → overcast → rain.
+ */
+function wxTimelineColor(cloud, precip) {
+  if (precip > 0.3) return '#3B6499';       // rain
+  if (cloud >= 0.85) return '#94AABB';       // overcast
+  if (cloud >= 0.65) return '#C6C8CA';       // mostly cloudy
+  if (cloud >= 0.40) return '#DECCC0';       // partly cloudy
+  if (cloud >= 0.15) return '#FFCFAA';       // few clouds
+  return '#FFAF85';                           // clear = accent
+}
+
+/** Mini sun-timeline: 8px tall, 06:00–22:00, weather-ramp colors, shadow gap caps. */
 function buildMiniSunTimeline(v, dateStr, fromHour) {
   const { windows } = computeSunWindows(v, dateStr);
-  const TRACK_H = 6;
-  const VIEWPORT_H = 14;
-  const START_H = 6, END_H = 22;
-  const RANGE = END_H - START_H;
+  const START_H = 6, END_H = 22, RANGE = END_H - START_H;
+  const pct = h => Math.max(0, Math.min(100, ((h - START_H) / RANGE) * 100));
 
-  // "Now" position based on wall-clock time (not slider)
+  // "Now" position based on wall-clock time
   const now = new Date();
   const nowHour = now.getHours() + now.getMinutes() / 60;
-  const nowPos = Math.max(0, Math.min(100, ((nowHour - START_H) / RANGE) * 100));
+  const nowPos = pct(nowHour);
 
-  // Build sun segments from windows
-  let segments = '';
-  for (const w of windows) {
-    const sPos = Math.max(0, Math.min(100, ((Math.max(w.start, START_H) - START_H) / RANGE) * 100));
-    const ePos = Math.max(0, Math.min(100, ((Math.min(w.end, END_H) - START_H) / RANGE) * 100));
-    if (ePos > sPos) {
-      segments += `<div class="timeline-sun" style="left:${sPos}%;width:${ePos-sPos}%"></div>`;
-    }
-  }
-
-  // Add cloud/overcast segments for future hours in windows
-  for (const w of windows) {
-    for (let h = Math.ceil(Math.max(w.start, START_H)); h < Math.floor(Math.min(w.end, END_H)); h++) {
+  // Build weather-colored segments per hour within each sun window
+  // Each hour-block gets its own weather color; consecutive same-color blocks merge
+  const runs = []; // { start, end, color, winIdx }
+  for (let wi = 0; wi < windows.length; wi++) {
+    const w = windows[wi];
+    const wS = Math.max(w.start, START_H);
+    const wE = Math.min(w.end, END_H);
+    if (wE <= wS) continue;
+    const hFloor = Math.floor(wS);
+    const hCeil  = Math.ceil(wE);
+    for (let h = hFloor; h < hCeil; h++) {
+      const segS = Math.max(wS, h);
+      const segE = Math.min(wE, h + 1);
+      if (segE <= segS + 0.001) continue;
       const wx = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, h) : null;
-      const cloud = wx?.cloud ?? 0;
-      const precip = wx?.precip ?? 0;
-      const isCloud = !(precip > 0.3) && cloud > 0.38;
-      if (isCloud) {
-        const sPos = Math.max(0, Math.min(100, ((h - START_H) / RANGE) * 100));
-        const ePos = Math.max(0, Math.min(100, ((h + 1 - START_H) / RANGE) * 100));
-        if (ePos > sPos) {
-          segments += `<div class="timeline-cloud" style="left:${sPos}%;width:${ePos-sPos}%"></div>`;
-        }
+      const color = wxTimelineColor(wx?.cloud ?? 0, wx?.precip ?? 0);
+      if (runs.length && runs[runs.length - 1].color === color && runs[runs.length - 1].winIdx === wi) {
+        runs[runs.length - 1].end = segE;
+      } else {
+        runs.push({ start: segS, end: segE, color, winIdx: wi });
       }
     }
   }
 
-  return `<div class="card-new-timeline">
+  // Determine shadow gaps: gaps between consecutive windows
+  const gaps = [];
+  for (let i = 0; i < windows.length - 1; i++) {
+    const gapStart = windows[i].end;
+    const gapEnd   = windows[i + 1].start;
+    if (gapEnd > gapStart + 0.01) gaps.push({ start: gapStart, end: gapEnd, afterWinIdx: i });
+  }
+
+  // Build segment HTML with cap classes
+  let segments = '';
+  for (let i = 0; i < runs.length; i++) {
+    const r = runs[i];
+    const left = pct(r.start);
+    const width = pct(r.end) - left;
+    if (width < 0.1) continue;
+
+    // Determine caps: first/last of entire bar, or at shadow gap boundary
+    const isFirst = i === 0;
+    const isLast  = i === runs.length - 1;
+    // Check if this run's end touches a shadow gap
+    const touchesGapRight = gaps.some(g => Math.abs(g.start - r.end) < 0.05);
+    // Check if this run's start touches a shadow gap
+    const touchesGapLeft  = gaps.some(g => Math.abs(g.end - r.start) < 0.05);
+
+    let cls = 'wx';
+    if (isFirst)         cls += ' cap-l';
+    if (isLast)          cls += ' cap-r';
+    if (touchesGapRight) cls += ' cap-r shadow-r';
+    if (touchesGapLeft)  cls += ' cap-l shadow-l';
+
+    segments += `<div class="${cls}" style="left:${left}%;width:${width}%;background:${r.color}"></div>`;
+  }
+
+  return `<div class="card-timeline">
     <div class="timeline-track">
       ${segments}
-      <div class="timeline-now" style="left:${nowPos}%"></div>
+      <div class="tl-now" style="left:${nowPos}%"></div>
     </div>
   </div>`;
 }
@@ -93,10 +134,10 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
 
   // Get venue state (sun/shadow/done) from the state model
   const state = typeof venueState === 'function' ? venueState(v, fromHour) :
-    { state: 'sun', mainText: '☼ —', subText: '', className: 'state-sun' };
+    { state: 'sun', mainText: 'Sol til —', subText: '', className: 'state-sun' };
 
-  // Build meta row: area · type · beer price
-  const metaParts = [v.area, catLabel(v), v.beerPrice ? `${beerSvgMini} ${v.beerPrice} kr` : null].filter(Boolean);
+  // Build meta row: area · type · distance
+  const metaParts = [v.area, catLabel(v), distStr].filter(Boolean);
   const metaHtml = metaParts.map((p, i) =>
     (i > 0 ? '<span class="card-meta-dot">·</span>' : '') + `<span>${p}</span>`
   ).join('');
@@ -122,18 +163,17 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
     <div class="venue-card ${state.className} ${v.id === selectedId ? 'selected' : ''}"
          data-vid="${v.id}" onclick="selectVenue(${typeof v.id === 'number' ? v.id : `'${v.id}'`}, true)"
          onmouseenter="setHoveredVenue(${typeof v.id === 'number' ? v.id : `'${v.id}'`})" onmouseleave="setHoveredVenue(null)">
-      <div class="card-new-left">
-        <div class="card-new-name">${v.name}${favHeart}${friendBadge}</div>
-        <div class="card-new-meta">${metaHtml}</div>
-        ${miniTimeline}
-      </div>
-      <div class="card-new-right">
-        <div class="card-new-dist">${distStr || ''}</div>
-        <div class="card-new-hero">
+      <div class="card-top">
+        <div class="card-left">
+          <div class="card-new-name">${v.name}${favHeart}${friendBadge}</div>
+          <div class="card-new-meta">${metaHtml}</div>
+        </div>
+        <div class="card-right">
           <div class="card-new-hero-main">${state.mainText}</div>
           <div class="card-new-hero-sub">${state.subText}</div>
         </div>
       </div>
+      ${miniTimeline}
     </div>`;
 }
 

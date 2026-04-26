@@ -39,17 +39,17 @@ function venueState(venue, selectedTime) {
   };
 
   if (currentWindow) {
-    // In sun now
-    const remaining = Math.max(5/60, currentWindow.end - fromHour); // At least 5 min
-    const mainText = `☼ ${formatDuration(remaining)}`;
-    const subText = `til ${formatHour(lastWindow.end)}`;
+    // In sun now — primary: end time, secondary: remaining duration
+    const remaining = Math.max(5/60, currentWindow.end - fromHour);
+    const mainText = `Sol til ${formatHour(currentWindow.end)}`;
+    const subText = `${formatDuration(remaining)} igjen`;
     return { state: 'sun', mainText, subText, className: 'state-sun' };
   }
 
   if (nextWindow) {
-    // Shadow: sun coming later
-    const timeUntil = Math.max(8/60, nextWindow.start - fromHour); // At least 8 min shown
-    const mainText = `Sol om ${formatDuration(timeUntil)}`;
+    // Shadow: sun coming later — primary: time until, secondary: end time
+    const timeUntil = Math.max(8/60, nextWindow.start - fromHour);
+    const mainText = `Om ${formatDuration(timeUntil)}`;
     const subText = `til ${formatHour(lastWindow.end)}`;
     return { state: 'shadow', mainText, subText, className: 'state-shadow' };
   }
@@ -57,8 +57,8 @@ function venueState(venue, selectedTime) {
   // Done: no more sun today
   return {
     state: 'done',
-    mainText: 'Ferdig',
-    subText: `sist ${formatHour(lastWindow.end)}`,
+    mainText: 'Ingen mer sol',
+    subText: `sist sol ${formatHour(lastWindow.end)}`,
     className: 'state-done'
   };
 }
