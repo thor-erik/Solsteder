@@ -578,7 +578,7 @@ function scoreWall(wall, venue, buildings, venueBuilding, openPolygons, entrance
 
 // ── Geonorge official noise zones (T-1442) ────────────────────────────────────
 
-const NOISE_CACHE_KEY = 'solsteder_noise_v1';
+const NOISE_CACHE_KEY = 'solsteder_noise_v2';
 const NOISE_CACHE_TTL = 30 * 24 * 60 * 60 * 1000; // 30 days — noise maps rarely update
 
 /** Convert GeoJSON [lon, lat] ring to {lat, lon}[] for pointInPolygon(). */
@@ -629,21 +629,41 @@ async function initNoiseLevels() {
 
   const url = 'https://wfs.geonorge.no/skwms1/wfs.stoy_veg' +
     '?service=WFS&version=2.0.0&request=GetFeature' +
-    '&typeNames=stoy_veg:stoy&outputFormat=application/json' +
-    `&srsName=EPSG:4326&bbox=${s},${w},${n},${e},EPSG:4326`;
+    `&typeNames=app:St%C3%B8y&bbox=${s},${w},${n},${e},urn:ogc:def:crs:EPSG::4258`;
 
   try {
     const resp = await fetch(url);
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const data = await resp.json();
-    const features = data.features || [];
+    const text = await resp.text();
+    const xml = new DOMParser().parseFromString(text, 'text/xml');
+    const ns = { app: 'http://skjema.geonorge.no/SOSI/produktspesifikasjon/StoykartleggingVeg/20190101',
+                 gml: 'http://www.opengis.net/gml/3.2' };
+
+    // Parse GML noise zones into simple polygon features
+    const features = [];
+    const stoyElements = xml.getElementsByTagNameNS(ns.app, 'Støy');
+    for (const el of stoyElements) {
+      const catEl = el.getElementsByTagNameNS(ns.app, 'støysonekategori')[0];
+      const cat = (catEl?.textContent ?? '').toUpperCase();  // R=rød, G=gul
+      const polys = el.getElementsByTagNameNS(ns.gml, 'Polygon');
+      for (const poly of polys) {
+        const extRing = poly.getElementsByTagNameNS(ns.gml, 'exterior')[0];
+        if (!extRing) continue;
+        const posList = extRing.getElementsByTagNameNS(ns.gml, 'posList')[0];
+        if (!posList) continue;
+        const coords = posList.textContent.trim().split(/\s+/).map(Number);
+        // posList is lat lon pairs (EPSG:4258 axis order)
+        const ring = [];
+        for (let i = 0; i < coords.length - 1; i += 2) ring.push({ lat: coords[i], lon: coords[i + 1] });
+        features.push({ ring, cat });
+      }
+    }
 
     const zones = {};
     VENUES.forEach(v => {
       for (const feat of features) {
-        if (!pointInGeoJSONFeature(v.lat, v.lng, feat)) continue;
-        const cat = (feat.properties?.støysonekategori ?? '').toLowerCase();
-        zones[v.id] = (cat.includes('rød') || cat.includes('rod') || cat.includes('65')) ? 'red' : 'yellow';
+        if (!pointInPolygon(v.lat, v.lng, feat.ring)) continue;
+        zones[v.id] = (feat.cat === 'R' || feat.cat.includes('65')) ? 'red' : 'yellow';
         break;
       }
       zones[v.id] ??= 'none';
