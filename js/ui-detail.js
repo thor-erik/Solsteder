@@ -613,7 +613,7 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
 
   const photosHtml = v.photoUrls?.length
     ? `<div class="detail-new-photos">${
-        v.photoUrls.map(url => `<img src="${url}" loading="lazy" alt="">`).join('')
+        v.photoUrls.map(url => `<img src="${url}" loading="lazy" alt="" onerror="this.remove()">`).join('')
       }</div>`
     : '<div class="detail-new-photos">[Bilde]</div>';
 
