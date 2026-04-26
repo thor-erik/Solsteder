@@ -832,6 +832,15 @@ setTimeout(() => {
   }
 }, 8000);
 
+// Fallback: if geometry data never loads, proceed after 6 seconds
+setTimeout(() => {
+  if (!_introDataReady) {
+    console.warn('[intro] data readiness timeout — proceeding without geometry');
+    _introDataReady = true;
+    _introCheckReady();
+  }
+}, 6000);
+
 // Show loader only if map is still loading after the branded splash minimum
 setTimeout(() => {
   if (!_introRunning) {

@@ -5548,7 +5548,7 @@
 <script src="js/weather.js?v=20260411b"></script>
 <script src="js/scoring.js?v=20260411b"></script>
 <script src="js/map-style.js?v=20260418b"></script>
-<script src="js/app.js?v=20260426a"></script>
+<script src="js/app.js?v=20260426b"></script>
 <script src="js/render-helpers.js?v=20260411b"></script>
 <script src="js/render-arc.js?v=20260411b"></script>
 <script src="js/render-seating.js?v=20260411b"></script>
@@ -5567,9 +5567,8 @@ loadVenues().then(async () => {
   updateRangeFill();
   update();
   if (USE_FLOATING_TIME_SLIDER) initFts();
-  await initFacings(); // must complete before intro — computes building shadows
-  _introDataReady = true;
-  _introCheckReady();
+  try { await initFacings(); } catch (e) { console.error('initFacings error:', e); }
+  if (!_introDataReady) { _introDataReady = true; _introCheckReady(); }
   const _wxLats = VENUES.map(v => v.lat), _wxLngs = VENUES.map(v => v.lng);
   const _wxLat  = (Math.min(..._wxLats) + Math.max(..._wxLats)) / 2;
   const _wxLng  = (Math.min(..._wxLngs) + Math.max(..._wxLngs)) / 2;
@@ -5582,12 +5581,8 @@ loadVenues().then(async () => {
 }).catch(e => {
   console.error('loadVenues chain error:', e);
   // Ensure intro proceeds even if initialization throws
-  if (!_introDataReady) {
-    _introDataReady = true;
-  }
-  if (!_introGeoReady) {
-    _introGeoReady = true;
-  }
+  _introDataReady = true;
+  _introGeoReady  = true;
   _introCheckReady();
 });
 </script>
