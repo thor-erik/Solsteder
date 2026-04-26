@@ -3257,40 +3257,6 @@ function _isAreaType(type) {
   return ['neighborhood', 'locality', 'place', 'district', 'region'].includes(type);
 }
 
-// ── Google Places search (async dropdown results) ────────────────────────────
-let _googlePlacesResults = [];  // results from last API call
-let _googlePlacesTimer = null;  // debounce timer
-let _googlePlacesQuery = '';    // last query sent to API
-
-async function _fetchGooglePlaces(query) {
-  if (query.length < 2) { _googlePlacesResults = []; return; }
-
-  try {
-    console.log('[_fetchGooglePlaces] Fetching:', query);
-    const resp = await fetch(`/api/places-search?q=${encodeURIComponent(query)}`);
-    if (!resp.ok) {
-      console.warn('[_fetchGooglePlaces] API error:', resp.status);
-      _googlePlacesResults = [];
-      return;
-    }
-
-    const data = await resp.json();
-    if (data.status !== 'OK') {
-      console.warn('[_fetchGooglePlaces] API status:', data.status);
-      _googlePlacesResults = [];
-      return;
-    }
-
-    // Store results and update dropdown if query still matches
-    _googlePlacesResults = data.results || [];
-    if (_searchInput.value.trim().toLowerCase() === query) {
-      _renderSearchDropdown(true);
-    }
-  } catch (err) {
-    console.error('[_fetchGooglePlaces] Error:', err);
-    _googlePlacesResults = [];
-  }
-}
 
 async function _fetchGeocode(query) {
   if (!MAPBOX_TOKEN || query.length < 2) return [];
@@ -3441,17 +3407,6 @@ function _renderSearchDropdown(geoOnly) {
     scored.push({ kind: 'geo', score: base + bonus, data: g, geoIdx: i });
   }
 
-  // Google Places results (from API, scores based on match quality)
-  for (let i = 0; i < (_googlePlacesResults || []).length; i++) {
-    const p = _googlePlacesResults[i];
-    if (allNames.has(p.name.toLowerCase())) continue; // dedup
-    // Score based on name match + position in API results (earlier = higher)
-    const nameScore = _matchScore(p.name.toLowerCase(), q);
-    const positionBonus = Math.max(0, 50 - i * 5); // first result gets +50, decreases
-    const base = Math.max(nameScore, positionBonus);
-    if (base === 0) continue;
-    scored.push({ kind: 'google-places', score: base, data: p, placeIdx: i });
-  }
 
   // Sort by score descending, then alphabetically for ties
   scored.sort((a, b) => b.score - a.score || (a.data.name || '').localeCompare(b.data.name || '', 'no'));
@@ -3479,16 +3434,6 @@ function _renderSearchDropdown(geoOnly) {
         <span class="sd-row-icon">${_GEO_ICON.venue}</span>
         <span class="sd-row-name">${c.name}</span>
         <span class="sd-candidate-btn">${t('candidate_badge')}</span>
-      </div>`;
-    }
-    if (r.kind === 'google-places') {
-      const p = r.data;
-      const pData = encodeURIComponent(JSON.stringify(p));
-      return `
-      <div class="sd-row sd-row-google-places" onclick="_sdPickGooglePlace(decodeURIComponent('${pData}'))">
-        <span class="sd-row-icon">${_GEO_ICON.venue}</span>
-        <span class="sd-row-name">${p.name}</span>
-        <span class="sd-google-places-badge">Google Maps</span>
       </div>`;
     }
     // geo
@@ -3626,117 +3571,6 @@ async function _sdPickCandidate(encodedOrObj) {
   renderList();
 }
 
-async function _sdPickGooglePlace(encodedOrObj) {
-  const p = typeof encodedOrObj === 'string' ? JSON.parse(encodedOrObj) : encodedOrObj;
-  _searchInput.value = '';
-  _syncSearchClearBtn();
-  _searchDropdown.classList.remove('open');
-
-  // ── Create a temporary venue object ──────────────────────────────────────
-  const lat = p.geometry?.location?.lat;
-  const lng = p.geometry?.location?.lng;
-  if (!lat || !lng) {
-    console.error('[_sdPickGooglePlace] Missing coordinates:', p);
-    return;
-  }
-
-  const tmpId = -Date.now(); // negative to avoid collisions with real IDs
-  const tmpVenue = {
-    id:             tmpId,
-    name:           p.name,
-    address:        p.formatted_address || '',
-    coords:         [lat, lng],
-    lat:            lat,
-    lng:            lng,
-    category:       'restaurant',
-    area:           '',
-    rating:         null,
-    facing:         null,
-    openingHours:   { open: 11, close: 23 },
-    buildingOsmId:  null,
-    googlePlaceId:  p.place_id || null,
-    facingSource:   null,
-    _isGooglePlace: true,
-    _googlePlaceData: p,
-  };
-
-  // ── Fly to the venue ─────────────────────────────────────────────────────
-  if (typeof map !== 'undefined') {
-    map.flyTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), 17), duration: 1000 });
-  }
-
-  // ── Show loading detail panel ────────────────────────────────────────────
-  const dp      = document.getElementById('detail-panel');
-  const content = document.getElementById('dp-content');
-  if (!dp || !content) return;
-
-  content.innerHTML = _renderCandidateLoadingPanel(p.name);
-  dp.classList.remove('dp-fullscreen');
-  dp.classList.add('open');
-  if (isMobile()) {
-    const panel = document.getElementById('panel');
-    if (panel) {
-      panel.classList.remove('mobile-expanded', 'mobile-fullscreen');
-      panel.classList.add('mobile-hidden');
-      _syncFtsPosition();
-    }
-    document.getElementById('floating-search')?.classList.add('mobile-ui-hidden');
-    document.getElementById('qc-wrap')?.classList.add('mobile-ui-hidden');
-  }
-
-  const statusEl = document.getElementById('candidate-loading-status');
-  const _setStatus = (key) => { if (statusEl) statusEl.textContent = t(key); };
-
-  // ── Step 1: Fetch building geometry from OSM ─────────────────────────────
-  _setStatus('loading_geometry');
-  const enriched = await fetchAndComputeGeometryForVenue(tmpVenue);
-  if (!enriched) {
-    content.innerHTML = _renderCandidateErrorPanel(p.name);
-    return;
-  }
-
-  // ── Step 2: Show "estimating sun" ────────────────────────────────────────
-  _setStatus('loading_sun');
-
-  // Add to VENUES temporarily so computeSunWindows and the rest works
-  VENUES.push(enriched);
-  sunWindowCache.clear();
-
-  // Small delay so the user sees the status progress
-  await new Promise(r => setTimeout(r, 400));
-
-  // ── Step 3: Show "finding seating" ───────────────────────────────────────
-  _setStatus('loading_seating');
-  await new Promise(r => setTimeout(r, 300));
-
-  _setStatus('loading_almost');
-  await new Promise(r => setTimeout(r, 200));
-
-  // ── Step 4: Auto-submit as suggestion ────────────────────────────────────
-  // Google Places venues should be auto-submitted for admin review
-  try {
-    await submitVenueSuggestion({
-      name: p.name,
-      lat: lat,
-      lng: lng,
-      address: p.formatted_address || '',
-      googlePlaceId: p.place_id,
-      notes: `From Google Places search: "${p.name}"`,
-    });
-    console.log('[_sdPickGooglePlace] Submitted venue suggestion for', p.name);
-  } catch (err) {
-    console.error('[_sdPickGooglePlace] Failed to submit suggestion:', err);
-  }
-
-  // ── Step 5: Render real detail panel ─────────────────────────────────────
-  selectedId = tmpId;
-  _navPush('venue');
-  clearSpriteCache();
-  openDetailPanel(enriched);
-  draw();
-  renderList();
-}
-
 function _renderCandidateLoadingPanel(name) {
   return `
     <div class="candidate-loading-panel">
@@ -3781,15 +3615,6 @@ _searchInput.addEventListener('input', () => {
   _renderSearchDropdown();
   clearTimeout(_searchListTimer);
   _searchListTimer = setTimeout(renderList, 300);
-
-  // Debounce Google Places API call
-  const q = _searchInput.value.trim().toLowerCase();
-  clearTimeout(_googlePlacesTimer);
-  if (q.length >= 2) {
-    _googlePlacesTimer = setTimeout(() => _fetchGooglePlaces(q), 500);
-  } else {
-    _googlePlacesResults = [];
-  }
 });
 _searchInput.addEventListener('blur',  () => setTimeout(() => _searchDropdown.classList.remove('open'), 150));
 _searchInput.addEventListener('focus', () => { if (_searchInput.value.trim()) _renderSearchDropdown(); });
@@ -3859,25 +3684,21 @@ async function suggestVenueFlow(query) {
     return;
   }
 
-  // Use the legacy Places Text Search API — same key as photos, works from browser without CORS issues.
-  let found = null;
+  // Fetch from Google Places via Cloudflare Pages Function (on-demand only)
+  let results = [];
   try {
     const searchQuery = query;
-    // Use Cloudflare Pages Function to proxy Google Places (avoids CORS)
     const proxyUrl = `/api/places-search?q=${encodeURIComponent(searchQuery)}`;
     console.log('[suggestVenueFlow] Looking up:', searchQuery);
     const resp = await fetch(proxyUrl);
     if (resp.ok) {
       const data = await resp.json();
-      if (data.status !== 'OK') {
-        console.warn('[suggestVenueFlow] API status:', data.status, data);
+      if (data.status === 'OK' && data.results?.length) {
+        results = data.results;
+        console.log('[suggestVenueFlow] Found', results.length, 'results');
       } else {
-        console.log('[suggestVenueFlow] Found', data.results?.length ?? 0, 'results');
-        if (data.results?.[0]) {
-          console.log('[suggestVenueFlow] Top result:', data.results[0].name, '@', data.results[0].formatted_address);
-        }
+        console.warn('[suggestVenueFlow] API status:', data.status, data);
       }
-      found = data.results?.[0] ?? null;
     } else {
       console.warn('[suggestVenueFlow] Fetch failed:', resp.status, resp.statusText);
     }
@@ -3887,17 +3708,72 @@ async function suggestVenueFlow(query) {
 
   lookupToast.remove();
 
-  if (!found) {
+  if (!results.length) {
     showQcNotice(`Couldn't find "${query}" in Oslo`);
     return;
   }
 
-  const name    = found.name                        ?? query;
+  // If only one result, proceed directly to confirmation
+  if (results.length === 1) {
+    const found = results[0];
+    const name    = found.name                        ?? query;
+    const address = found.formatted_address           ?? '';
+    const lat     = found.geometry?.location?.lat     ?? 0;
+    const lng     = found.geometry?.location?.lng     ?? 0;
+
+    if (typeof map !== 'undefined') {
+      map.flyTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), 15), duration: 800 });
+    }
+
+    _renderSuggestConfirm({ name, address, lat, lng, osmId: null });
+    return;
+  }
+
+  // Multiple results: show selection modal
+  _renderSuggestVenueSelection(results, query);
+}
+
+// Show a modal to select from multiple Google Places results
+function _renderSuggestVenueSelection(results, query) {
+  // Remove any existing modal
+  document.getElementById('suggest-selection-modal')?.remove();
+
+  const resultsHtml = results.slice(0, 5).map((r, i) => `
+    <div class="suggest-result-row" onclick="_sdSelectSuggestVenue(${i}, ${encodeURIComponent(JSON.stringify(results))})">
+      <div class="suggest-result-name">${r.name}</div>
+      <div class="suggest-result-address">${r.formatted_address}</div>
+    </div>
+  `).join('');
+
+  const modal = document.createElement('div');
+  modal.id = 'suggest-selection-modal';
+  modal.className = 'admin-modal';
+  modal.innerHTML = `
+    <div class="admin-modal-inner" style="max-width:380px;max-height:60vh;overflow-y:auto">
+      <div class="admin-modal-header">
+        <div class="admin-modal-title">Select venue</div>
+        <button class="admin-modal-close" onclick="document.getElementById('suggest-selection-modal').remove()">✕</button>
+      </div>
+      <div class="admin-modal-body" style="padding:0;border-top:1px solid rgba(156,189,231,0.15)">
+        ${resultsHtml}
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+// Handle selection from multiple results
+function _sdSelectSuggestVenue(idx, encodedResults) {
+  const results = JSON.parse(decodeURIComponent(encodedResults));
+  const found = results[idx];
+
+  document.getElementById('suggest-selection-modal')?.remove();
+
+  const name    = found.name                        ?? '';
   const address = found.formatted_address           ?? '';
   const lat     = found.geometry?.location?.lat     ?? 0;
   const lng     = found.geometry?.location?.lng     ?? 0;
 
-  // Fly the map to the found location so the user can see it before confirming
+  // Fly the map to the selected location
   if (typeof map !== 'undefined') {
     map.flyTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), 15), duration: 800 });
   }
