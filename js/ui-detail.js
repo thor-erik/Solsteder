@@ -477,7 +477,7 @@ function renderBusynessChart(v, dateStr, fromHour) {
     </div>`;
 }
 
-// ── Detail panel content (Task 5-8) ────────────────────────────────────────────
+// ── Detail panel content ──────────────────────────────────────────────────────
 
 function renderDetailPanelContent(v, dateStr, fromHour) {
   const s = typeof computeVenueScore === 'function'
@@ -490,7 +490,6 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
     ? (s.distKm < 1 ? `${Math.round(s.distKm * 1000)} m` : `${s.distKm.toFixed(1)} km`)
     : null;
 
-  // Task 5: Header + primary action row
   const walkTime = typeof calcWalkTime === 'function' ? calcWalkTime(distMeters) : null;
 
   const phoneIcon = typeof getMapsIcon === 'function' ? getMapsIcon('phone') : '📞';
@@ -498,10 +497,7 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
   const shareIcon = typeof getMapsIcon === 'function' ? getMapsIcon('share') : '↗';
   const dirIcon = typeof getMapsIcon === 'function' ? getMapsIcon('directions') : '↗';
 
-  const haPhone = v.phone ? `<a href="tel:${encodeURIComponent(v.phone)}" class="btn-icon-sec" title="Ring">${phoneIcon}</a>` : '';
-  const hasWebsite = v.website ? `<a href="${v.website}" target="_blank" rel="noopener" class="btn-icon-sec" title="Nettside">${globeIcon}</a>` : '';
-
-  // Task 6: Sun section headline based on state
+  // Sun section headline
   const state = typeof venueState === 'function' ? venueState(v, fromHour) :
     { state: 'sun', mainText: '—', subText: '', className: 'state-sun' };
 
@@ -509,36 +505,23 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
   if (state.state === 'sun') {
     const lastWin = windows[windows.length - 1];
     const curWin = windows.find(w => fromHour >= w.start && fromHour < w.end);
-    const remaining = curWin ? Math.floor(curWin.end - fromHour) : 0;
+    const remaining = curWin ? curWin.end - fromHour : 0;
     const remH = Math.floor(remaining), remM = Math.round((remaining - remH) * 60);
     const remStr = remH > 0 ? `${remH}t ${remM}m` : `${remM} min`;
     sunHeadline = `Sol til ${formatHour(lastWin.end)} · <span class="hi">${remStr} igjen</span>`;
   } else if (state.state === 'shadow') {
-    const lastWin = windows[windows.length - 1];
     const nextWin = windows.find(w => w.start > fromHour);
-    const waitH = Math.floor(nextWin.start - fromHour), waitM = Math.round((nextWin.start - fromHour - waitH) * 60);
+    const wait = nextWin.start - fromHour;
+    const waitH = Math.floor(wait), waitM = Math.round((wait - waitH) * 60);
     const waitStr = waitH > 0 ? `${waitH}t ${waitM}m` : `${waitM} min`;
     sunHeadline = `Sol fra ${formatHour(nextWin.start)} · <span class="hi">om ${waitStr}</span>`;
   } else {
-    const lastWin = windows[windows.length - 1];
     sunHeadline = `Sol ferdig i dag`;
-  }
-
-  // Find intra-day sun window breaks for "next pause" text
-  let nextPauseText = '';
-  if (windows.length > 1) {
-    for (let i = 0; i < windows.length - 1; i++) {
-      if (windows[i].end > fromHour) {
-        nextPauseText = `Neste pause ${formatHour(windows[i].end)}`;
-        break;
-      }
-    }
   }
 
   // Info list
   const infoRows = [];
 
-  // Beer price row (first)
   if (v.beerPrice) {
     const beerIcon = typeof getMapsIcon === 'function' ? getMapsIcon('beer') : '🍺';
     infoRows.push(`
@@ -551,7 +534,6 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       </div>`);
   }
 
-  // Busyness row
   const busynessNow = typeof getBusynessAt === 'function' ? getBusynessAt(v, dateStr, fromHour) : null;
   if (busynessNow != null) {
     const peopleIcon = typeof getMapsIcon === 'function' ? getMapsIcon('people') : '👥';
@@ -565,7 +547,6 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       </div>`);
   }
 
-  // Noise row (from scoring.js noiseScore calculation)
   const noiseScore = s?.noise != null ? s.noise : (v.noiseScore != null ? v.noiseScore * 100 : null);
   if (noiseScore != null) {
     const noiseBucket = typeof noiseScoreToBucket === 'function' ? noiseScoreToBucket(noiseScore) : null;
@@ -581,7 +562,6 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
     }
   }
 
-  // Hours row
   const hours = getVenueHoursForDay(v, dateStr);
   const closingStr = hours.close != null ? formatHour(hours.close) : 'Åpent';
   let hoursSubtext = '';
@@ -604,7 +584,6 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       ${infoRows.join('')}
     </div>` : '';
 
-  // Footer with edit/report
   const footerHtml = `
     <div class="secondary-row">
       <button class="secondary-link" onclick="enterEditMode(${v.id})">Rediger informasjon</button>
@@ -617,7 +596,7 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       }</div>`
     : '<div class="detail-new-photos">[Bilde]</div>';
 
-  // Heart + bell icon SVGs for header
+  // Heart + bell icon SVGs
   const _favActive = typeof isFavorite === 'function' && isFavorite(v.id);
   const _alertActive = typeof hasSunAlert === 'function' && hasSunAlert(v.id);
   const heartBtn = `<button class="dp-header-icon${_favActive ? ' active' : ''}" onclick="toggleFavorite(${v.id}, event)" title="${typeof t === 'function' ? t('favorites') : 'Favoritt'}">
@@ -631,8 +610,22 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`}
   </button>`;
 
-  // Compact directions label
+  // Directions CTA label
   const dirLabel = walkTime ? `${dirIcon} ${walkTime}` : `${dirIcon}`;
+
+  // Build timeline using same style as venue cards
+  const { open, close } = hours;
+  const tlSpan = close - open;
+  const tlPct = h => ((Math.max(open, Math.min(close, h)) - open) / tlSpan * 100).toFixed(2);
+  let tlSegs = '';
+  if (tlSpan > 0) {
+    for (const w of windows) {
+      const l = tlPct(w.start), r = tlPct(w.end);
+      tlSegs += `<div class="tl-sun-seg" style="left:${l}%;width:${(parseFloat(r)-parseFloat(l)).toFixed(2)}%"></div>`;
+    }
+  }
+  const tlNeedle = (fromHour >= open && fromHour <= close)
+    ? `<div class="tl-needle" style="left:${tlPct(fromHour)}%"></div>` : '';
 
   return `
     <div id="dp-scroll">
@@ -651,28 +644,23 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       </div>
 
       <div class="sun-section">
-        <div class="sun-section-header">
-          <div class="sun-section-main">${sunHeadline}</div>
-          ${nextPauseText ? `<div class="sun-section-sub">${nextPauseText}</div>` : ''}
+        <div class="sun-section-main">${sunHeadline}</div>
+        <div class="dp-timeline">
+          <div class="tl-track">${tlSegs}${tlNeedle}</div>
         </div>
-        <div class="big-timeline">
-          <div class="big-timeline-track">
-            ${renderSunTimelineSegments(windows, fromHour)}
-            <div class="big-timeline-now" style="left:${((fromHour - 6) / 16) * 100}%"></div>
-          </div>
-        </div>
-        <div class="big-timeline-scale">
-          <span>6</span><span>9</span><span>12</span><span>15</span><span>18</span><span>21</span>
+        <div class="dp-timeline-labels">
+          <span>${formatHour(open)}</span>
+          <span>${formatHour(close)}</span>
         </div>
       </div>
 
       ${_renderSocialSection(v)}
 
-      <div class="secondary-action">
-        <a class="btn-sec-action" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(v.lat + ',' + v.lng)}&travelmode=walking" target="_blank" rel="noopener" title="Veibeskrivelse">${dirLabel}</a>
-        ${v.phone ? `<a href="tel:${encodeURIComponent(v.phone)}" class="btn-sec-action" title="Ring">${phoneIcon}</a>` : ''}
-        ${v.website ? `<a href="${v.website}" target="_blank" rel="noopener" class="btn-sec-action" title="Nettside">${globeIcon}</a>` : ''}
-        <button class="btn-sec-action" title="Del" onclick="shareVenue(${v.id})">${shareIcon}</button>
+      <div class="dp-action-row">
+        <a class="dp-action-cta" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(v.lat + ',' + v.lng)}&travelmode=walking" target="_blank" rel="noopener">${dirLabel}</a>
+        ${v.phone ? `<a href="tel:${encodeURIComponent(v.phone)}" class="dp-action-icon" title="Ring">${phoneIcon}</a>` : ''}
+        ${v.website ? `<a href="${v.website}" target="_blank" rel="noopener" class="dp-action-icon" title="Nettside">${globeIcon}</a>` : ''}
+        <button class="dp-action-icon" title="Del" onclick="shareVenue(${v.id})">${shareIcon}</button>
       </div>
 
       ${infoListHtml}
@@ -695,10 +683,10 @@ function _renderSocialSection(v) {
       const u = c.user;
       const until = new Date(c.checkin.expires_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       return u.avatar_url
-        ? `<img class="detail-friend-avatar" src="${u.avatar_url}" alt="${u.name || u.email}" title="${u.name || u.email} — ${t('checked_in_until', { time: until })}">`
-        : `<div class="detail-friend-avatar detail-friend-init" title="${u.name || u.email} — ${t('checked_in_until', { time: until })}">${(u.name || u.email)[0].toUpperCase()}</div>`;
+        ? `<img class="social-avatar" src="${u.avatar_url}" alt="${u.name || u.email}" title="${u.name || u.email} — ${t('checked_in_until', { time: until })}">`
+        : `<div class="social-avatar social-avatar-init" title="${u.name || u.email} — ${t('checked_in_until', { time: until })}">${(u.name || u.email)[0].toUpperCase()}</div>`;
     }).join('');
-    friendsHtml = `<div class="detail-friends-row">${dots}</div>`;
+    friendsHtml = `<div class="social-friends"><span class="social-friends-label">${friendCheckins.length} her nå</span><div class="social-friends-avatars">${dots}</div></div>`;
   }
 
   // Plans for this venue
@@ -724,18 +712,30 @@ function _renderSocialSection(v) {
     }).join('');
   }
 
+  const goingSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>`;
+  const hereSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>`;
+
   return `
-    <div class="social-section">
-      <div class="social-actions-row">
-        <button class="btn-social" onclick="_openGoingForm(${v.id})">${t('going_there')}</button>
-        ${isCheckedInHere
-          ? `<button class="btn-social btn-checked-in" onclick="_openHereMenu(${v.id})">✓ ${t('im_here')}</button>`
-          : `<button class="btn-social" onclick="_openHereMenu(${v.id})">${t('im_here')}</button>`}
-      </div>
+    <div class="social-card">
       ${friendsHtml}
+      <div class="social-btns">
+        <button class="social-btn social-btn-going" onclick="_openGoingForm(${v.id})">
+          ${goingSvg}
+          <span>${t('going_there')}</span>
+        </button>
+        ${isCheckedInHere
+          ? `<button class="social-btn social-btn-here social-btn-active" onclick="_openHereMenu(${v.id})">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>${t('im_here')}</span>
+            </button>`
+          : `<button class="social-btn social-btn-here" onclick="_openHereMenu(${v.id})">
+              ${hereSvg}
+              <span>${t('im_here')}</span>
+            </button>`}
+      </div>
       ${plansHtml}
-      <div id="going-form-${v.id}" class="plan-form" style="display:none"></div>
-      <div id="here-menu-${v.id}" class="plan-form" style="display:none"></div>
+      <div id="going-form-${v.id}" class="social-form-overlay" style="display:none"></div>
+      <div id="here-menu-${v.id}" class="social-form-overlay" style="display:none"></div>
     </div>`;
 }
 
@@ -761,20 +761,26 @@ function _openGoingForm(venueId) {
   }).join('');
 
   form.innerHTML = `
-    <div class="plan-form-inner">
-      <label class="plan-field-label">${t('plan_time_label')}</label>
-      <input type="datetime-local" id="plan-time-input" class="plan-input" />
-      <div class="going-actions">
-        <button class="btn-social btn-going-invite" onclick="_showGoingFriendPicker(${venueId})">${t('invite_friends')}</button>
-        <button class="btn-social btn-going-broadcast" onclick="_broadcastGoing(${venueId})">${t('broadcast')}</button>
+    <div class="social-form-inner">
+      <label class="social-form-label">${t('plan_time_label')}</label>
+      <input type="datetime-local" id="plan-time-input" class="social-form-input" />
+      <div class="social-form-actions">
+        <button class="social-form-btn" onclick="_showGoingFriendPicker(${venueId})">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+          ${t('invite_friends')}
+        </button>
+        <button class="social-form-btn social-form-btn-accent" onclick="_broadcastGoing(${venueId})">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2 11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          ${t('broadcast')}
+        </button>
       </div>
       <div id="going-friend-picker-${venueId}" class="going-friend-picker" style="display:none">
         ${friends.length ? friendList : `<div class="friends-empty">${t('no_friends_yet')}</div>`}
-        <button class="btn-social btn-share-link" onclick="_shareGoingLink(${venueId})">
+        <button class="social-form-btn" onclick="_shareGoingLink(${venueId})">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
           ${t('share_link')}
         </button>
-        <button class="btn-social btn-plan-submit" onclick="_submitGoing(${venueId})">${t('going_there')}</button>
+        <button class="social-form-btn social-form-btn-accent" onclick="_submitGoing(${venueId})">${t('going_there')}</button>
       </div>
     </div>`;
   form.style.display = 'block';
@@ -849,15 +855,17 @@ function _openHereMenu(venueId) {
   const isCheckedInHere = myCheckin && String(myCheckin.venue_id) === String(venueId);
 
   if (isCheckedInHere) {
-    // Already here — offer to check out
-    menu.innerHTML = `<div class="plan-form-inner">
-      <button class="btn-social" onclick="checkOut()">${t('check_out_success')}</button>
+    menu.innerHTML = `<div class="social-form-inner">
+      <button class="social-form-btn" onclick="checkOut()">${t('check_out_success')}</button>
     </div>`;
   } else {
-    menu.innerHTML = `<div class="plan-form-inner">
-      <div class="going-actions">
-        <button class="btn-social" onclick="_checkInAndNotify(${venueId})">${t('send_to_friends')}</button>
-        <button class="btn-social btn-share-link" onclick="_shareHereLink(${venueId})">
+    menu.innerHTML = `<div class="social-form-inner">
+      <div class="social-form-actions">
+        <button class="social-form-btn" onclick="_checkInAndNotify(${venueId})">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+          ${t('send_to_friends')}
+        </button>
+        <button class="social-form-btn" onclick="_shareHereLink(${venueId})">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
           ${t('share_link')}
         </button>
