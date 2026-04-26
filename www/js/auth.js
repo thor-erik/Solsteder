@@ -505,8 +505,15 @@ async function withdrawSuggestion(id) {
   if (!error) _loadMySuggestions();
 }
 
-async function submitVenueSuggestion({ name, lat, lng, address, osmId, notes }) {
+async function submitVenueSuggestion({ name, lat, lng, address, osmId, googlePlaceId, notes }) {
   if (!_currentUser) return { error: 'not_logged_in' };
+
+  // Build notes with source information
+  let finalNotes = notes ?? '';
+  if (googlePlaceId) {
+    finalNotes = (finalNotes ? finalNotes + '\n' : '') + `[Google Place ID: ${googlePlaceId}]`;
+  }
+
   return _supabase.from('suggested_venues').insert({
     user_id:    _currentUser.id,
     user_email: _currentUser.email,
@@ -514,7 +521,7 @@ async function submitVenueSuggestion({ name, lat, lng, address, osmId, notes }) 
     name, lat, lng,
     address: address ?? '',
     osm_id:  osmId   ?? null,
-    notes:   notes   ?? '',
+    notes:   finalNotes,
     status: 'pending',
   });
 }
