@@ -8,7 +8,13 @@
   "theme_color": "#142E52",
   "icons": [
     {
-      "src": "design/logo-pack-png-512x512/logo-color-1600h-small-text.png",
+      "src": "favicon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "design/logo-pack-png-512x512/logo-color-2000w.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
