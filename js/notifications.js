@@ -174,15 +174,17 @@ function _notifShow(notif) {
   // Track for follow-up notifications
   if (notif.category === 'weather') _notifWeatherShownThisSession = true;
 
-  // Auto-dismiss
-  const duration = notif._legacyDismiss || (notif.priority === 0 ? _NOTIF_AUTO_P0 : _NOTIF_AUTO_DEFAULT);
+  // Auto-dismiss (P0 stays until user acts or closes; others auto-dismiss)
   clearTimeout(_notifAutoTimer);
-  _notifAutoTimer = setTimeout(() => {
-    if (typeof _aTrack === 'function' && _notifCurrent) _aTrack('notification_dismiss', {
-      id: _notifCurrent.id, priority: _notifCurrent.priority, category: _notifCurrent.category, method: 'auto'
-    });
-    _notifHide();
-  }, duration);
+  if (notif.priority !== 0 || notif._legacyDismiss) {
+    const duration = notif._legacyDismiss || _NOTIF_AUTO_DEFAULT;
+    _notifAutoTimer = setTimeout(() => {
+      if (typeof _aTrack === 'function' && _notifCurrent) _aTrack('notification_dismiss', {
+        id: _notifCurrent.id, priority: _notifCurrent.priority, category: _notifCurrent.category, method: 'auto'
+      });
+      _notifHide();
+    }, duration);
+  }
 }
 
 function _notifHide() {
@@ -222,10 +224,11 @@ function _evalNoSunToday() {
   // Only show once per calendar day — don't nag on every session
   const state = _notifLoadState();
   if (state.noSunShownDate === todayStr()) return null;
-  // Check if ANY venue has sun windows today
+  // Check if ANY venue has sun from now onwards (not the whole day)
+  const now = currentHour();
   const hasSun = VENUES.some(v => {
     const { windows } = computeSunWindows(v, datePicker.value);
-    return windows && windows.length > 0;
+    return windows && windows.some(w => w.end > now);
   });
   if (hasSun) return null;
   return {
@@ -266,22 +269,6 @@ function _evalCloudIncoming() {
   return null;
 }
 
-function _evalWindAdvisory() {
-  if (typeof getWeatherAt !== 'function') return null;
-  if (typeof datePicker === 'undefined' || !datePicker) return null;
-  const dateStr = datePicker.value;
-  if (dateStr !== todayStr()) return null;
-  const now = currentHour();
-  const wx = getWeatherAt(dateStr, Math.floor(now));
-  if (!wx || wx.wspd <= 10) return null;
-  return {
-    id: 'weather_wind', priority: 0, category: 'weather',
-    icon: '💨', bodyKey: 'notif_wind_body',
-    bodyVars: { speed: Math.round(wx.wspd) },
-    actionKey: null, action: null,
-    ttl: 600000, dedupe: true,
-  };
-}
 
 function _evalRainWindow() {
   if (typeof getWeatherAt !== 'function') return null;
@@ -366,34 +353,6 @@ function _evalBestSunWindow() {
   };
 }
 
-function _evalTomorrowBetter() {
-  if (typeof VENUES === 'undefined' || !VENUES || !VENUES.length) return null;
-  if (typeof datePicker === 'undefined' || !datePicker) return null;
-  if (datePicker.value !== todayStr()) return null;
-  const todayDate = todayStr();
-  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomStr = tomorrow.toISOString().slice(0, 10);
-  // Sum total sun hours across venues
-  let todaySun = 0, tomSun = 0;
-  // Sample a subset to keep it fast (max 30 venues)
-  const sample = VENUES.slice(0, 30);
-  for (const v of sample) {
-    const tw = computeSunWindows(v, todayDate);
-    const tmw = computeSunWindows(v, tomStr);
-    if (tw.windows) tw.windows.forEach(w => todaySun += w.end - w.start);
-    if (tmw.windows) tmw.windows.forEach(w => tomSun += w.end - w.start);
-  }
-  const diff = (tomSun - todaySun) / sample.length;
-  if (diff < 3) return null; // need >3h avg improvement
-  return {
-    id: 'weather_tomorrow_better', priority: 0, category: 'weather',
-    icon: '🌤️', bodyKey: 'notif_tomorrow_better_body',
-    bodyVars: { hours: Math.round(diff) },
-    actionKey: 'notif_switch_date',
-    action: () => { if (typeof advanceDay === 'function') advanceDay(1, 12); },
-    ttl: 600000, dedupe: true,
-  };
-}
 
 // ── Evaluators: P1 Social ─────────────────────���───────────────────────────��──
 
@@ -523,14 +482,7 @@ function _evalAfterWork() {
   return {
     id: 'suggest_afterwork', priority: 2, category: 'suggestion',
     icon: '🍻', bodyKey: 'notif_afterwork_body',
-    bodyVars: { hour: '16:00' },
-    actionKey: 'notif_set_time',
-    action: () => {
-      if (typeof timeFromEl !== 'undefined' && timeFromEl) {
-        timeFromEl.value = 16;
-        timeFromEl.dispatchEvent(new Event('input'));
-      }
-    },
+    actionKey: null, action: null,
     ttl: 120000, dedupe: true,
   };
 }
@@ -638,7 +590,7 @@ function _evalLoginWeather() {
   if (!_notifWeatherShownThisSession) return null;
   if (_notifLoginShown.has('login_weather')) return null;
   return {
-    id: 'login_weather', priority: 4, category: 'login',
+    id: 'login_weather', priority: 2, category: 'login',
     icon: '🔔', bodyKey: 'notif_login_weather_body',
     actionKey: 'notif_login_action',
     action: () => { if (typeof toggleProfilePanel === 'function') toggleProfilePanel(); },
@@ -652,7 +604,7 @@ function _evalLoginFriends() {
   if ((state.sessionCount || 0) < 2) return null;
   if (_notifLoginShown.has('login_friends')) return null;
   return {
-    id: 'login_friends', priority: 4, category: 'login',
+    id: 'login_friends', priority: 2, category: 'login',
     icon: '👥', bodyKey: 'notif_login_friends_body',
     actionKey: 'notif_login_action',
     action: () => { if (typeof toggleProfilePanel === 'function') toggleProfilePanel(); },
@@ -665,7 +617,7 @@ function _evalLoginShare() {
   if (_notifVenueOpens < 2) return null;
   if (_notifLoginShown.has('login_share')) return null;
   return {
-    id: 'login_share', priority: 4, category: 'login',
+    id: 'login_share', priority: 2, category: 'login',
     icon: '🔗', bodyKey: 'notif_login_share_body',
     actionKey: 'notif_login_action',
     action: () => { if (typeof toggleProfilePanel === 'function') toggleProfilePanel(); },
@@ -679,7 +631,7 @@ function _evalLoginNewVenues() {
   if ((state.sessionCount || 0) < 3) return null;
   if (_notifLoginShown.has('login_venues')) return null;
   return {
-    id: 'login_venues', priority: 4, category: 'login',
+    id: 'login_venues', priority: 2, category: 'login',
     icon: '✨', bodyKey: 'notif_login_venues_body',
     actionKey: 'notif_login_action',
     action: () => { if (typeof toggleProfilePanel === 'function') toggleProfilePanel(); },
@@ -690,33 +642,30 @@ function _evalLoginNewVenues() {
 // ── Evaluator Registry ───────────────���──────────────────────────────────────���
 
 const _notifEvaluators = [
-  // P0 Weather
+  // P0 Weather (no auto-dismiss — stays until user acts)
   _evalNoSunToday,
   _evalCloudIncoming,
-  _evalWindAdvisory,
   _evalRainWindow,
   _evalBestSunWindow,
-  _evalTomorrowBetter,
   // P1 Social
   _evalFriendsAtVenue,
   _evalCheckinPrompt,
   _evalFriendPlanning,
-  // P2 Suggestions
+  // P2 Suggestions + Login prompts
   _evalMorningCoffee,
   _evalLunchBreak,
   _evalAfterWork,
   _evalWindSheltered,
   _evalBusynessAlert,
+  _evalLoginWeather,
+  _evalLoginFriends,
+  _evalLoginShare,
+  _evalLoginNewVenues,
   // P3 Onboarding
   _evalWelcome,
   _evalTimeSliderHint,
   _evalFilterHint,
   _evalCalendarHint,
-  // P4 Login
-  _evalLoginWeather,
-  _evalLoginFriends,
-  _evalLoginShare,
-  _evalLoginNewVenues,
 ];
 
 // ── Evaluate & Schedule ──────────────────────────────────────────────────────
