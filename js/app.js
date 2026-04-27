@@ -2102,6 +2102,15 @@ function update() {
       setTimeout(() => {
         advanceDay(1, 12);
         showQcNotice(t('sunset_notice'));
+        // Show a toast so the user understands why the date changed
+        if (typeof _notifShowImmediate === 'function') {
+          _notifShowImmediate({
+            id: 'auto_advance_tomorrow', priority: 0, category: 'weather',
+            icon: '🌅', bodyKey: 'notif_auto_advance_body',
+            actionKey: null, action: null,
+            ttl: 30000, dedupe: true,
+          });
+        }
       }, 0);
       return;
     }

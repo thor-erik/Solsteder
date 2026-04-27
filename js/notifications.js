@@ -239,6 +239,24 @@ function _evalNoSunToday() {
   };
 }
 
+function _evalSunSettingSoon() {
+  if (typeof datePicker === 'undefined' || !datePicker) return null;
+  if (datePicker.value !== todayStr()) return null;
+  if (typeof SUNSET_H_ARC === 'undefined' || SUNSET_H_ARC == null) return null;
+  const now = currentHour();
+  const timeLeft = SUNSET_H_ARC - now;
+  // Fire when 30–60 min of sun remain
+  if (timeLeft <= 0 || timeLeft > 1 || timeLeft < 0.5) return null;
+  const sunsetTime = formatHour(SUNSET_H_ARC);
+  return {
+    id: 'weather_sun_setting', priority: 0, category: 'weather',
+    icon: '🌅', bodyKey: 'notif_sun_setting_body',
+    bodyVars: { time: sunsetTime },
+    actionKey: null, action: null,
+    ttl: 600000, dedupe: true,
+  };
+}
+
 function _evalCloudIncoming() {
   if (typeof getWeatherAt !== 'function') return null;
   if (typeof datePicker === 'undefined' || !datePicker) return null;
@@ -644,6 +662,7 @@ function _evalLoginNewVenues() {
 const _notifEvaluators = [
   // P0 Weather (no auto-dismiss — stays until user acts)
   _evalNoSunToday,
+  _evalSunSettingSoon,
   _evalCloudIncoming,
   _evalRainWindow,
   _evalBestSunWindow,
