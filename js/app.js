@@ -402,7 +402,7 @@ function drawFtsCanvas() {
   // 6. Dim past hours on today
   if (isToday_ && nowH_ > MIN_H) {
     const pastX = Math.min(Math.round(timeToX(nowH_)), BAR_W);
-    c.fillStyle = 'rgba(0,0,0,0.45)';
+    c.fillStyle = 'rgba(0,0,0,0.20)';
     c.fillRect(0, BLEED, pastX, TRACK_H);
   }
 
@@ -553,7 +553,7 @@ function updateFtsDateBtn() {
     const diffDays = Math.round((d - new Date(today + 'T12:00:00')) / 86400000);
 
     if (sel === tomorrowStr) {
-      label.textContent = 'I morgen';
+      label.textContent = t('tomorrow');
     } else if (diffDays > 0 && diffDays <= 6) {
       // Same week: "tor 23"
       label.textContent = _ftsDays[d.getDay()] + ' ' + d.getDate();
@@ -1308,9 +1308,9 @@ function setSortBy(sort) {
 function updateSortBtns() {
   document.querySelectorAll('.sort-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.sort === activeSortBy));
-  const labels = { score: 'Mest sol', latest: 'Senest sol', distance: 'Avstand', beer: 'Ølpris', favorites: 'Favoritter' };
+  const labels = { score: t('sort_score'), latest: t('sort_latest'), distance: t('sort_distance'), beer: t('sort_beer'), favorites: t('sort_favorites') };
   const labelEl = document.getElementById('sort-label');
-  if (labelEl) labelEl.textContent = labels[activeSortBy] ?? 'Mest sol';
+  if (labelEl) labelEl.textContent = labels[activeSortBy] ?? t('sort_score');
 }
 
 // ── Debounced time change analytics ──────────────────────────────────────────
