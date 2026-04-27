@@ -340,6 +340,7 @@ function toggleProfilePanel(e) {
   const panel = document.getElementById('profile-panel');
   if (!panel) return;
   const isOpen = panel.classList.contains('open');
+  if (!isOpen && typeof _aTrack === 'function') _aTrack('profile_open', {});
   if (isOpen) {
     closeProfilePanel();
   } else {
@@ -536,6 +537,7 @@ async function withdrawSuggestion(id) {
 
 async function submitVenueSuggestion({ name, lat, lng, address, osmId, googlePlaceId, notes }) {
   if (!_currentUser) return { error: 'not_logged_in' };
+  if (typeof _aTrack === 'function') _aTrack('venue_suggestion', { name, address: address ?? null });
 
   // Build notes with source information
   let finalNotes = notes ?? '';
@@ -993,6 +995,7 @@ async function toggleSunAlert(venueId, evt) {
   if (evt) evt.stopPropagation();
   if (!_currentUser) { toggleProfilePanel(); return; }
   const vid = String(venueId);
+  if (typeof _aTrack === 'function') _aTrack('sun_alert', { venue_id: venueId, action: _alertsMap.has(vid) ? 'remove' : 'add' });
   if (_alertsMap.has(vid)) {
     const alert = _alertsMap.get(vid);
     _alertsMap.delete(vid);
@@ -1126,6 +1129,7 @@ function _injectDummyFriends() {
 
 async function sendFriendRequest(email) {
   if (!_currentUser) { toggleProfilePanel(); return; }
+  if (typeof _aTrack === 'function') _aTrack('friend_request_sent', {});
   // Look up user by email
   const { data: profiles, error: lookupErr } = await _supabase
     .from('profiles')
@@ -1144,11 +1148,13 @@ async function sendFriendRequest(email) {
 }
 
 async function acceptFriendRequest(friendshipId) {
+  if (typeof _aTrack === 'function') _aTrack('friend_request_accepted', {});
   await _supabase.from('friendships').update({ status: 'accepted' }).eq('id', friendshipId);
   await loadFriends();
 }
 
 async function removeFriend(friendshipId) {
+  if (typeof _aTrack === 'function') _aTrack('friend_removed', {});
   await _supabase.from('friendships').delete().eq('id', friendshipId);
   await loadFriends();
 }
@@ -1275,6 +1281,7 @@ async function loadPlans() {
 
 async function createPlan(venueId, plannedAt, message, friendIds) {
   if (!_currentUser) { toggleProfilePanel(); return; }
+  if (typeof _aTrack === 'function') _aTrack('plan_created', { venue_id: venueId, invites: friendIds?.length ?? 0 });
   const { data: plan, error } = await _supabase.from('plans').insert({
     creator_id: _currentUser.id,
     venue_id: String(venueId),
@@ -1293,6 +1300,7 @@ async function createPlan(venueId, plannedAt, message, friendIds) {
 }
 
 async function respondToPlanInvite(inviteId, status) {
+  if (typeof _aTrack === 'function') _aTrack('plan_invite_response', { status });
   await _supabase.from('plan_invites').update({ status }).eq('id', inviteId);
   await loadPlans();
 }

@@ -3529,8 +3529,9 @@ function _renderSearchDropdown(geoOnly) {
   let html = results.map(r => {
     if (r.kind === 'area') {
       const a = r.data;
+      const aName = a.name.replace(/'/g, "\\'");
       return `
-      <div class="sd-row" onclick="_sdPickArea(${JSON.stringify(a.name)})">
+      <div class="sd-row" onclick="_sdPickArea('${aName}')">
         <span class="sd-row-icon">${_GEO_ICON.area}</span>
         <span class="sd-row-name">${a.name}</span>
         <span class="sd-row-area">${a.count} venues</span>
