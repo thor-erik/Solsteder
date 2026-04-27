@@ -16,7 +16,7 @@ function buildShadeStyle() {
   return {
     version: 8,
     name: 'Shades',
-    glyphs: 'mapbox://fonts/mapbox/{fontstack}/{range}.pbf',
+    glyphs: 'mapbox://fonts/thor-erik/{fontstack}/{range}.pbf',
     sources: {
       composite: {
         type: 'vector',
@@ -202,17 +202,20 @@ function buildShadeStyle() {
           ['city', 'town', 'village', 'suburb', 'neighbourhood'], true, false],
         layout: {
           'text-field': ['get', 'name'],
-          'text-font': ['DIN Pro Bold', 'Arial Unicode MS Regular'],
-          'text-size': ['interpolate', ['linear'], ['zoom'], 8, 10, 14, 15],
+          'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+          'text-size': ['interpolate', ['linear'], ['zoom'], 8, 11, 14, 16],
           'text-max-width': 8,
+          'text-transform': 'uppercase',
+          'text-letter-spacing': 0.12,
           'symbol-sort-key': ['get', 'symbolrank'],
           'icon-image': '',
         },
         paint: {
-          'text-color': '#7A7268',
-          'text-opacity': 0.55,
-          'text-halo-color': '#B8AFA3',
-          'text-halo-width': 1.5,
+          'text-color': '#d5c4ab',
+          'text-opacity': 0.7,
+          'text-halo-color': '#0D131E',
+          'text-halo-blur': 1,
+          'text-halo-width': 2,
         },
       },
 
