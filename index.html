@@ -429,6 +429,18 @@
       right: 6px;
       width: auto;
     }
+    #notif-toast {
+      top: calc(12px + 46px + 8px);
+      left: 6px;
+      right: 6px;
+      width: auto;
+      max-width: none;
+      transform: translateX(0) translateY(-20px);
+      border-radius: 12px;
+    }
+    #notif-toast.show {
+      transform: translateX(0) translateY(0);
+    }
   }
 
   /* ── Profile popover ──────────────────────────────────────────────────────── */
@@ -1089,6 +1101,68 @@
     opacity: 1;
     transform: translateX(-50%) translateY(0);
   }
+
+  /* SMART NOTIFICATION TOAST */
+  #notif-toast {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-20px);
+    max-width: 420px;
+    width: calc(100% - 32px);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--glass-card-bg);
+    backdrop-filter: var(--glass-blur-card);
+    -webkit-backdrop-filter: var(--glass-blur-card);
+    border: var(--glass-border);
+    border-radius: 14px;
+    box-shadow: var(--glass-inset), 0 8px 32px rgba(0,0,0,0.35);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    z-index: 9998;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  #notif-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    pointer-events: auto;
+  }
+  .notif-toast-icon { font-size: 20px; flex-shrink: 0; line-height: 1; }
+  .notif-toast-content { flex: 1; min-width: 0; cursor: pointer; }
+  .notif-toast-body { font-size: 13px; color: var(--text); line-height: 1.35; }
+  .notif-toast-action {
+    flex-shrink: 0;
+    background: rgba(255,175,133,0.15);
+    border: 1px solid rgba(255,175,133,0.35);
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    cursor: pointer;
+    transition: background 0.12s;
+    white-space: nowrap;
+  }
+  .notif-toast-action:hover { background: rgba(255,175,133,0.25); }
+  .notif-toast-close {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 4px;
+    line-height: 1;
+    opacity: 0.6;
+    transition: opacity 0.12s;
+  }
+  .notif-toast-close:hover { opacity: 1; }
 
   /* CONTROLS */
   .control-row {
@@ -5599,6 +5673,7 @@
 <script src="js/render-wind.js?v=20260416b"></script>
 <script src="js/ui-detail.js?v=20260411b"></script>
 <script src="js/osm.js?v=20260427a"></script>
+<script src="js/notifications.js?v=20260427a"></script>
 <script>
 if (USE_FLOATING_TIME_SLIDER) document.body.classList.add('fts');
 
@@ -5613,6 +5688,7 @@ loadVenues().then(async () => {
   const _wxLat  = (Math.min(..._wxLats) + Math.max(..._wxLats)) / 2;
   const _wxLng  = (Math.min(..._wxLngs) + Math.max(..._wxLngs)) / 2;
   initWeather(_wxLat, _wxLng); // fetch MET Norway forecast (async, re-renders when data arrives)
+  if (typeof _notifInit === 'function') _notifInit(); // smart notification system
   initPlaces();      // fetch Google Places photos (async, cached 7 days)
   loadApprovedSuggestions(); // merge admin-approved user submissions into VENUES
   // Apply i18n to search placeholder on load

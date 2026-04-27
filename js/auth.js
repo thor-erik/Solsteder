@@ -274,6 +274,7 @@ function _renderProfilePanel() {
         <div class="profile-section-label">${t('my_suggestions')}</div>
         <div id="my-suggestions-list" style="color:var(--muted);font-size:12px;padding:4px 16px 8px">${t('no_suggestions_yet')}</div>
       </div>
+      ${typeof _notifSettingsHtml === 'function' ? _notifSettingsHtml() : ''}
       <div class="profile-panel-section">
         <button class="profile-panel-row" onclick="openFriendsModal()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1020,6 +1021,21 @@ async function toggleSunAlert(venueId, evt) {
 }
 
 function _showToast(msg) {
+  // Delegate to smart notification system if available
+  if (typeof _notifShowImmediate === 'function') {
+    _notifShowImmediate({
+      id: 'legacy_' + Date.now(),
+      priority: 4,
+      category: 'engagement',
+      _rawText: msg,
+      icon: null,
+      actionKey: null, action: null,
+      ttl: 5000, dedupe: false,
+      _legacyDismiss: 2200,
+    });
+    return;
+  }
+  // Fallback if notifications.js hasn't loaded
   let toast = document.getElementById('app-toast');
   if (!toast) {
     toast = document.createElement('div');
@@ -1027,8 +1043,8 @@ function _showToast(msg) {
     document.body.appendChild(toast);
   }
   toast.textContent = msg;
-  toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), 2200);
+  toast.classList.add('visible');
+  setTimeout(() => toast.classList.remove('visible'), 2200);
 }
 
 // ── User Preferences (Account Sync) ─────────────────────────────────────────
@@ -1370,4 +1386,7 @@ _supabase.auth.onAuthStateChange((event, session) => {
   if (wasLoggedIn && !_currentUser && typeof closeDetailPanel === 'function') {
     closeDetailPanel();
   }
+
+  // Re-evaluate notifications on auth change (login unlocks social, logout unlocks login prompts)
+  if (typeof _notifEvaluate === 'function') setTimeout(_notifEvaluate, 1000);
 });

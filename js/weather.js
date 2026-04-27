@@ -58,6 +58,7 @@ async function initWeather(lat = 59.9125, lng = 10.728) {
 
     // Re-render once data arrives (update() is defined in app.js)
     if (typeof update === 'function') update();
+    if (typeof _notifEvaluate === 'function') _notifEvaluate();
   } catch (err) {
     console.warn('Weather fetch failed:', err.message);
   } finally {
