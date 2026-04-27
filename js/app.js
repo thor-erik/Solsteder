@@ -4652,6 +4652,9 @@ function _skipIntro(seqId) {
   if (USE_FLOATING_TIME_SLIDER) requestAnimationFrame(() => syncFts());
 
   if (_sharedVenueId) selectVenue(_sharedVenueId, true);
+
+  // Start notification system after intro is done and UI is visible
+  if (typeof _notifInit === 'function') _notifInit();
 }
 
 // ── Back-button / popstate handler ───────────────────────────────────────────
