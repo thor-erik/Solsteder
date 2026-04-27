@@ -148,16 +148,19 @@ function _syncFtsPosition() {
   // Clear any desktop-set inline styles so CSS mobile rules apply
   if (ftsEl) { ftsEl.style.left = ''; ftsEl.style.removeProperty('--fts-left'); ftsEl.style.removeProperty('--fts-width'); }
   const locateEl = document.getElementById('locate-btn');
+  const zoomJog  = document.getElementById('zoom-jog');
   const dpOpen = dp?.classList.contains('open');
   const dpFull = dp?.classList.contains('dp-fullscreen');
   if (dpOpen) {
     if (dpFull) {
       if (ftsEl) { ftsEl.style.opacity = '0'; ftsEl.style.pointerEvents = 'none'; }
       if (locateEl) { locateEl.style.opacity = '0'; locateEl.style.pointerEvents = 'none'; }
+      if (zoomJog) { zoomJog.style.opacity = '0'; zoomJog.style.pointerEvents = 'none'; }
       return;
     }
     if (ftsEl) { ftsEl.style.opacity = ''; ftsEl.style.pointerEvents = ''; }
     if (locateEl) { locateEl.style.opacity = '0'; locateEl.style.pointerEvents = 'none'; }
+    if (zoomJog) { zoomJog.style.opacity = '0'; zoomJog.style.pointerEvents = 'none'; }
     document.body.style.setProperty('--fts-bottom', `calc(62svh + ${FTS_GAP}px)`);
     return;
   }
@@ -168,7 +171,7 @@ function _syncFtsPosition() {
   const isExpanded = panel.classList.contains('mobile-expanded');
   const isFull     = panel.classList.contains('mobile-fullscreen');
 
-  // Locate button: fade out when venue list is expanded or fullscreen
+  // Locate button + zoom jog: fade out when venue list is expanded or fullscreen
   if (locateEl) {
     if (isExpanded || isFull) {
       locateEl.style.opacity = '0';
@@ -176,6 +179,15 @@ function _syncFtsPosition() {
     } else {
       locateEl.style.opacity = '';
       locateEl.style.pointerEvents = '';
+    }
+  }
+  if (zoomJog) {
+    if (isExpanded || isFull) {
+      zoomJog.style.opacity = '0';
+      zoomJog.style.pointerEvents = 'none';
+    } else {
+      zoomJog.style.opacity = '';
+      zoomJog.style.pointerEvents = '';
     }
   }
 
@@ -197,9 +209,9 @@ function _syncFtsPosition() {
   if (popup) popup.classList.toggle('fts-popup-below', isFull);
 }
 
-// Norwegian day/month abbreviations for FTS date button
-const _ftsDays   = ['søn','man','tir','ons','tor','fre','lør'];
-const _ftsMonths = ['jan','feb','mar','apr','mai','jun','jul','aug','sep','okt','nov','des'];
+// Localized day/month abbreviations for FTS date button (from i18n)
+function _ftsDays()   { return typeof tA === 'function' ? tA('days_short') : ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']; }
+function _ftsMonths() { return typeof tA === 'function' ? tA('months_short') : ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; }
 
 /** Initialise the floating time slider: bind events, draw canvas, show appstart popup. */
 function initFts() {
@@ -556,10 +568,10 @@ function updateFtsDateBtn() {
       label.textContent = t('tomorrow');
     } else if (diffDays > 0 && diffDays <= 6) {
       // Same week: "tor 23"
-      label.textContent = _ftsDays[d.getDay()] + ' ' + d.getDate();
+      label.textContent = _ftsDays()[d.getDay()] + ' ' + d.getDate();
     } else {
       // Further: "23. apr"
-      label.textContent = d.getDate() + '. ' + _ftsMonths[d.getMonth()];
+      label.textContent = d.getDate() + '. ' + _ftsMonths()[d.getMonth()];
     }
   }
 
@@ -769,6 +781,88 @@ map.on('move',    _updateLocationDot);
 map.on('zoomend', _updateLocationDot);
 map.on('zoom',    _updateZoomDebug);
 map.on('pitch',   _updateZoomDebug);
+
+// ── Zoom jog slider ─────────────────────────────────────────────────────────
+(function initZoomJog() {
+  const el    = document.getElementById('zoom-jog');
+  const track = el?.querySelector('.zj-track');
+  const thumb = el?.querySelector('.zj-thumb');
+  if (!el || !track || !thumb) return;
+
+  const MAX_PX     = 30;   // max thumb displacement from center (px)
+  const ZOOM_RATE  = 3.5;  // zoom levels per second at full deflection
+  const EASE_POW   = 2;    // quadratic acceleration curve
+
+  let active   = false;
+  let rafId    = null;
+  let lastTime = 0;
+  let displacement = 0;    // -1 … +1  (negative = zoom in, positive = zoom out)
+
+  function _setThumbPos(d) {
+    // d is normalised -1…+1, clamped
+    displacement = Math.max(-1, Math.min(1, d));
+    const offsetY = displacement * MAX_PX;
+    thumb.style.transform = `translate(-50%, calc(-50% + ${offsetY}px))`;
+    thumb.style.transition = 'background 0.15s'; // remove snap transition during drag
+  }
+
+  function _snapBack() {
+    displacement = 0;
+    thumb.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.9, 0.4, 1), background 0.15s';
+    thumb.style.transform  = 'translate(-50%, -50%)';
+    thumb.classList.remove('active');
+  }
+
+  function _zoomLoop(ts) {
+    if (!active) return;
+    if (!lastTime) { lastTime = ts; rafId = requestAnimationFrame(_zoomLoop); return; }
+    const dt = (ts - lastTime) / 1000;
+    lastTime = ts;
+
+    if (Math.abs(displacement) > 0.05) {
+      // Quadratic curve: gentle near center, aggressive at edges
+      const sign  = displacement > 0 ? -1 : 1; // drag down → zoom out (negative), drag up → zoom in (positive)
+      const power = Math.pow(Math.abs(displacement), EASE_POW);
+      const dz    = sign * power * ZOOM_RATE * dt;
+      const z     = map.getZoom() + dz;
+      map.setZoom(Math.max(map.getMinZoom(), Math.min(map.getMaxZoom(), z)));
+    }
+    rafId = requestAnimationFrame(_zoomLoop);
+  }
+
+  function _start(clientY, e) {
+    e.preventDefault();
+    e.stopPropagation();
+    active = true;
+    lastTime = 0;
+    thumb.classList.add('active');
+    const trackRect = track.getBoundingClientRect();
+    const center    = trackRect.top + trackRect.height / 2;
+    _setThumbPos((clientY - center) / MAX_PX);
+    rafId = requestAnimationFrame(_zoomLoop);
+  }
+
+  function _move(clientY) {
+    if (!active) return;
+    const trackRect = track.getBoundingClientRect();
+    const center    = trackRect.top + trackRect.height / 2;
+    _setThumbPos((clientY - center) / MAX_PX);
+  }
+
+  function _end() {
+    if (!active) return;
+    active = false;
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    _snapBack();
+  }
+
+  // Pointer events on the whole element (not just thumb) so tapping track also works
+  el.addEventListener('pointerdown', e => { _start(e.clientY, e); el.setPointerCapture(e.pointerId); });
+  el.addEventListener('pointermove', e => { if (active) _move(e.clientY); });
+  el.addEventListener('pointerup',   _end);
+  el.addEventListener('pointercancel', _end);
+  el.addEventListener('lostpointercapture', _end);
+})();
 
 function _updateZoomDebug() {
   const zoomDebug = document.getElementById('zoom-debug');
@@ -2226,6 +2320,7 @@ function openDetailPanel(v) {
   dp.classList.add('open');
   _startWindForVenue(v);
   document.getElementById('locate-btn')?.classList.add('mobile-ui-hidden');
+  document.getElementById('zoom-jog')?.classList.add('mobile-ui-hidden');
   if (isMobile()) {
     const panel = document.getElementById('panel');
     if (panel) {
@@ -2278,9 +2373,11 @@ if (typeof stopWindOverlay === 'function') stopWindOverlay();
       document.getElementById('floating-search')?.classList.remove('mobile-ui-hidden');
       document.getElementById('qc-wrap')?.classList.remove('mobile-ui-hidden');
       document.getElementById('locate-btn')?.classList.remove('mobile-ui-hidden');
+      document.getElementById('zoom-jog')?.classList.remove('mobile-ui-hidden');
     }, 320);
   } else {
     document.getElementById('locate-btn')?.classList.remove('mobile-ui-hidden');
+    document.getElementById('zoom-jog')?.classList.remove('mobile-ui-hidden');
   }
   _syncFtsPosition();
   if (selectedId != null) {
@@ -2801,6 +2898,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       let _ftsEl = null; // cache FTS element ref to avoid DOM lookup per frame
       let _locateEl = null; // cache locate button ref
+      let _zoomJogEl = null; // cache zoom jog ref
       function _trackDrag(y) {
         if (!_dragActive) return;
         if (_dragRafId) cancelAnimationFrame(_dragRafId);
@@ -2828,18 +2926,25 @@ document.addEventListener('DOMContentLoaded', () => {
               _ftsEl.style.bottom = (viewH - panelTop + FTS_GAP) + 'px';
             }
           }
-          // Track locate button with panel during drag — fade as panel expands
+          // Track locate button + zoom jog with panel during drag — fade as panel expands
           if (!_locateEl) _locateEl = document.getElementById('locate-btn');
+          if (!_zoomJogEl) _zoomJogEl = document.getElementById('zoom-jog');
+          const panelTopD = panelEl.getBoundingClientRect().top;
+          const viewHD    = window.innerHeight;
+          const locateBottom = viewHD - panelTopD + FTS_GAP + 46 + 12;
+          // Fade out as panel drags above peek toward expanded
+          const peekTop = viewHD - (parseInt(panelEl.style.getPropertyValue('--peek-h')) || 160);
+          const expandedTop = viewHD * 0.45;
+          const progress = Math.max(0, Math.min(1, (peekTop - panelTopD) / (peekTop - expandedTop)));
           if (_locateEl) {
-            const panelTop = panelEl.getBoundingClientRect().top;
-            const viewH    = window.innerHeight;
             _locateEl.style.transition = 'none';
-            _locateEl.style.bottom = (viewH - panelTop + FTS_GAP + 46 + 12) + 'px';
-            // Fade out as panel drags above peek toward expanded
-            const peekTop = viewH - (parseInt(panelEl.style.getPropertyValue('--peek-h')) || 160);
-            const expandedTop = viewH * 0.45;
-            const progress = Math.max(0, Math.min(1, (peekTop - panelTop) / (peekTop - expandedTop)));
+            _locateEl.style.bottom = locateBottom + 'px';
             _locateEl.style.opacity = String(1 - progress);
+          }
+          if (_zoomJogEl) {
+            _zoomJogEl.style.transition = 'none';
+            _zoomJogEl.style.bottom = (locateBottom + 34 + 10) + 'px'; // above locate btn
+            _zoomJogEl.style.opacity = String(1 - progress);
           }
 
           _dragRafId = null;
@@ -2865,11 +2970,13 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (dy < 0)                         target = _dragStartState === 'peek' ? 'expanded' : 'fullscreen';
         else                                     target = _dragStartState === 'fullscreen' ? 'expanded' : 'peek'; // peek is the floor
 
-        // Restore pill + locate button transitions after drag
+        // Restore pill + locate button + zoom jog transitions after drag
         if (!_ftsEl) _ftsEl = document.getElementById('fts');
         if (_ftsEl) { _ftsEl.style.transition = ''; _ftsEl.style.bottom = ''; }
         if (!_locateEl) _locateEl = document.getElementById('locate-btn');
         if (_locateEl) { _locateEl.style.transition = ''; _locateEl.style.bottom = ''; _locateEl.style.opacity = ''; }
+        if (!_zoomJogEl) _zoomJogEl = document.getElementById('zoom-jog');
+        if (_zoomJogEl) { _zoomJogEl.style.transition = ''; _zoomJogEl.style.bottom = ''; _zoomJogEl.style.opacity = ''; }
 
         // FLIP-style commit: apply target classes while inline transform keeps
         // the panel at its drag position, then release inline styles so the CSS
@@ -4592,9 +4699,10 @@ function _runIntroSequence() {
 
 function _introRevealUI(search, brand, qcWrap, panel) {
   const locateBtn   = document.getElementById('locate-btn');
+  const zoomJog     = document.getElementById('zoom-jog');
   const isMobile    = window.innerWidth < 640;
 
-  const fadeEls = [search, brand, qcWrap, locateBtn];
+  const fadeEls = [search, brand, qcWrap, locateBtn, zoomJog];
   if (!isMobile && panel) fadeEls.push(panel);
 
   fadeEls.forEach(el => {
@@ -4673,8 +4781,9 @@ function _skipIntro(seqId) {
 
   // Instantly reveal all UI
   const locateBtnEl = document.getElementById('locate-btn');
+  const zoomJogEl = document.getElementById('zoom-jog');
   const ftsEl = document.getElementById('fts');
-  [canvas, search, brand, qcWrap, panel, locateBtnEl, ftsEl].forEach(el => {
+  [canvas, search, brand, qcWrap, panel, locateBtnEl, zoomJogEl, ftsEl].forEach(el => {
     if (!el) return;
     el.style.transition = 'none';
     el.classList.remove('intro-hidden');
