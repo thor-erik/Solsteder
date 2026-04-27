@@ -1624,6 +1624,7 @@ function toggleQcPanel(section) {
   const dateBtn = document.getElementById('readout-date-btn');
   if (dateBtn) { dateBtn.classList.add('active'); dateBtn.setAttribute('aria-expanded', 'true'); }
   renderQcCalendar();
+  if (!_qcCalExpanded) _syncQcPanelHeight();
 }
 
 function renderQcCalendar() {
