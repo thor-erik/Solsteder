@@ -681,10 +681,8 @@
   .fts-dot { font: 400 9px/1 'Inter', sans-serif; color: rgba(156,189,231,0.35); }
   #fts-popup-wind { font: 500 10px/1 'Inter', sans-serif; color: var(--muted); opacity: 0.85; font-variant-numeric: tabular-nums; }
 
-  /* When calendar picker is open: hide the FTS track, keep date button visible */
-  #fts.fts-cal-open #fts-track,
+  /* When calendar picker is open: mark date button active, FTS stays fully visible */
   #fts.fts-cal-open #fts-popup { opacity: 0; pointer-events: none; transition: opacity 180ms ease-out; }
-  #fts.fts-cal-open { width: auto !important; }
 
   /* When flag is on: hide docked group in list panel */
   body.fts #panel-time-bar { display: none !important; }
@@ -3632,9 +3630,11 @@
     position: fixed;
     z-index: 830;
     display: none;
-    /* desktop: flush with panel left edge, positioned by JS above the date button */
+    /* desktop: position + width set by JS to match FTS */
     left: 16px;
     width: 336px;
+    min-width: 300px;
+    max-width: 480px;
     transition: left 0.28s ease;
   }
   #ptb-cal-float.open { display: block; }

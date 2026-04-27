@@ -1518,6 +1518,7 @@ function _closeQcPanel() {
     calFloat.classList.remove('open');
     calFloat.style.bottom = '';
     calFloat.style.left = '';
+    calFloat.style.width = '';
   }
   document.getElementById('ptb-cal-backdrop')?.remove();
   // Update floating slider: remove active state, restore visibility, update date label
@@ -1565,15 +1566,15 @@ function toggleQcPanel(section) {
 
   _qcActiveSection = 'date';
   _navPush('qc');
-  // On desktop, position calendar float above the FTS date button
+  // On desktop, position calendar float above the FTS, matching its width
   if (!isMobile() && calFloat) {
-    const ftsBtn = document.getElementById('fts-date-btn');
-    const anchor = ftsBtn || document.getElementById('readout-date-btn');
-    if (anchor) {
-      const r = anchor.getBoundingClientRect();
+    const ftsEl = document.getElementById('fts');
+    if (ftsEl) {
+      const r = ftsEl.getBoundingClientRect();
       calFloat.style.top = '';
       calFloat.style.bottom = (window.innerHeight - r.top + 8) + 'px';
       calFloat.style.left = r.left + 'px';
+      calFloat.style.width = r.width + 'px';
     }
   }
   calFloat?.classList.add('open');
