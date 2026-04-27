@@ -26,7 +26,7 @@ let userLocation      = null;
 let filterFullSunActive = false;
 let filterMapViewActive = window.innerWidth >= 640; // desktop: viewport filter on; mobile: off (list shows all venues)
 let activeArea    = '';
-let activeSortBy  = 'score';
+let activeSortBy  = 'distance';
 let activeIntent  = null;
 let panelVisible      = true;
 // Consolidated hover/raise state.
