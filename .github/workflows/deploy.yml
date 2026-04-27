@@ -32,7 +32,10 @@ jobs:
         run: |
           npm install --no-save terser@5
           for f in js/*.js; do
-            npx terser --compress --mangle -- "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+            echo "Minifying $f..."
+            ./node_modules/.bin/terser --compress --mangle -- "$f" -o "$f.tmp"
+            mv "$f.tmp" "$f"
+            echo "  Done: $(wc -c < "$f") bytes"
           done
 
       - name: Inject cache-busting version
