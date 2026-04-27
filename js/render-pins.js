@@ -168,8 +168,8 @@ function _applyDensityFilter(projVenues, zoom, currentHour, dateStr, isFullRecom
     catch { return 0; }
   }
 
-  // Venues with friend check-ins are never density-demoted
-  const _friendVenueIds = new Set();
+  // Venues with friend check-ins are never density-demoted or collapsed to dots
+  _friendVenueIds = new Set();
   if (typeof getFriendCheckinsForVenue === 'function') {
     for (const e of projVenues) {
       if (getFriendCheckinsForVenue(e.v.id).length) _friendVenueIds.add(e.v.id);
@@ -700,6 +700,7 @@ const MAX_EXTRA_STEM = 42;  // max extra stem before pin becomes a dot (3 × STE
 const STEM_STEP  = 14;      // stem extension increment (px)
 const DOT_R      = 4.5;     // dot radius for overlap-demoted pins (px)
 const PILL_GAP   = 8;       // min gap between pill bounding boxes (px)
+let   _friendVenueIds = new Set(); // rebuilt each density-filter pass
 const DOT_FADE_MS = 240;    // pill↔dot morph duration
 const GRID_CELL  = 64;      // AABB grid cell size (px) for O(1) overlap queries
 
@@ -782,10 +783,30 @@ function computePinLayout(projVenues, currentHour, dateStr) {
   const waitingEntries = sorted.filter(e => e.classResult.tier === 'waiting' && !e.classResult.demoted);
   const otherEntries   = sorted.filter(e => e.classResult.tier === 'context' || e.classResult.demoted);
 
-  // Always dot for context / density-demoted
+  // Always dot for context / density-demoted (unless friends are checked in)
   for (const { v, pt, classResult } of otherEntries) {
-    const spr = getSprite(v, classResult.tier, classResult, v.id === selectedId, currentHour, dateStr);
-    result.push({ v, pt, classResult, extraStem: 0, isDot: true, spr });
+    const hasFriends = _friendVenueIds.has(v.id);
+    const spr = getSprite(v, hasFriends ? 'hero' : classResult.tier, classResult, v.id === selectedId, currentHour, dateStr);
+    if (hasFriends) {
+      // Force pill layout — try stem positions, fall back to extraStem 0
+      const rw = spr.cssW, rh = spr.cssH - STEM_H;
+      let placed = false;
+      for (let ex = 0; ex <= MAX_EXTRA_STEM; ex += STEM_STEP) {
+        const rx = pt.x - spr.anchorX, ry = pt.y - spr.anchorY - ex;
+        if (isClear(rx, ry, rw, rh)) {
+          addPlaced(rx, ry, rw, rh);
+          result.push({ v, pt, classResult: { ...classResult, tier: 'hero' }, extraStem: ex, isDot: false, spr });
+          placed = true; break;
+        }
+      }
+      if (!placed) {
+        const rx = pt.x - spr.anchorX, ry = pt.y - spr.anchorY;
+        addPlaced(rx, ry, rw, rh);
+        result.push({ v, pt, classResult: { ...classResult, tier: 'hero' }, extraStem: 0, isDot: false, spr });
+      }
+    } else {
+      result.push({ v, pt, classResult, extraStem: 0, isDot: true, spr });
+    }
   }
 
   // Pass 1: place all hero pills
@@ -812,8 +833,9 @@ function computePinLayout(projVenues, currentHour, dateStr) {
       }
     }
     if (!resolved) {
-      if (!isRaised) anyHeroDot = true;
-      result.push({ v, pt, classResult, extraStem: 0, isDot: !isRaised, spr });
+      const forcePill = _friendVenueIds.has(v.id);
+      if (!isRaised && !forcePill) anyHeroDot = true;
+      result.push({ v, pt, classResult, extraStem: 0, isDot: !isRaised && !forcePill, spr });
     }
   }
 
@@ -821,8 +843,9 @@ function computePinLayout(projVenues, currentHour, dateStr) {
   for (const { v, pt, classResult } of waitingEntries) {
     const isRaised = v.id === highlight.raisedId;
     const spr = getSprite(v, classResult.tier, classResult, v.id === selectedId, currentHour, dateStr);
+    const forcePill = _friendVenueIds.has(v.id);
 
-    if (anyHeroDot) {
+    if (anyHeroDot && !forcePill) {
       result.push({ v, pt, classResult, extraStem: 0, isDot: true, spr });
       continue;
     }
@@ -844,7 +867,7 @@ function computePinLayout(projVenues, currentHour, dateStr) {
         break;
       }
     }
-    if (!resolved) result.push({ v, pt, classResult, extraStem: 0, isDot: !isRaised, spr });
+    if (!resolved) result.push({ v, pt, classResult, extraStem: 0, isDot: !isRaised && !forcePill, spr });
   }
 
   return result;
@@ -897,7 +920,7 @@ function _drawDot(pt, tier) {
 }
 
 // ── Friend badge on pins ──────────────────────────────────────────────────────
-const FRIEND_BADGE_R = 5.5;
+const FRIEND_BADGE_R = 7.5;
 
 function _drawFriendBadge(x, y, fc) {
   const r = FRIEND_BADGE_R;
@@ -911,7 +934,7 @@ function _drawFriendBadge(x, y, fc) {
   ctx.stroke();
   // Content: initial for 1 friend, count for 2+
   ctx.fillStyle = '#FFAF85';
-  ctx.font = 'bold 8px "Inter", sans-serif';
+  ctx.font = 'bold 10px "Inter", sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   if (fc.length === 1) {
