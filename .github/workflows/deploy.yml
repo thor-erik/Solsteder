@@ -28,14 +28,17 @@ jobs:
           echo "const MAPBOX_TOKEN = '${{ secrets.MAPBOX_TOKEN }}';" > js/config.js
           echo "const GOOGLE_PLACES_KEY = '${{ secrets.GOOGLE_PLACES_KEY }}';" >> js/config.js
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
       - name: Minify JS
         run: |
-          npm install --no-save terser@5
+          npm install -g terser
           for f in js/*.js; do
-            echo "Minifying $f..."
-            ./node_modules/.bin/terser --compress --mangle -- "$f" -o "$f.tmp"
-            mv "$f.tmp" "$f"
-            echo "  Done: $(wc -c < "$f") bytes"
+            terser "$f" --compress --mangle -o "$f.min"
+            mv "$f.min" "$f"
           done
 
       - name: Inject cache-busting version
