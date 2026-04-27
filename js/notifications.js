@@ -404,7 +404,7 @@ function _evalFriendsAtVenue() {
     icon: '👋', bodyKey,
     bodyVars: { name: firstName, venue: venueName, count: bestCount },
     actionKey: 'notif_go_to_venue',
-    action: () => { if (typeof selectVenue === 'function') selectVenue(bestVid, true); },
+    action: () => { if (typeof selectVenue === 'function') selectVenue(Number(bestVid), true); },
     ttl: 600000, dedupe: true,
   };
 }
@@ -455,7 +455,7 @@ function _evalFriendPlanning() {
     icon: '📅', bodyKey: 'notif_friend_plan_body',
     bodyVars: { name: creator, venue: venueName, time },
     actionKey: 'notif_go_to_venue',
-    action: () => { if (typeof selectVenue === 'function') selectVenue(plan.venue_id, true); },
+    action: () => { if (typeof selectVenue === 'function') selectVenue(Number(plan.venue_id), true); },
     ttl: 600000, dedupe: true,
   };
 }
