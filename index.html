@@ -893,7 +893,7 @@
     padding: 4px 2px 2px;
   }
   /* Month grid — 7-column day grid, consistent cell sizing */
-  .dc-month-grid { grid-auto-rows: 44px; }
+  .dc-month-grid { grid-auto-rows: auto; }
   .dc-month-grid .dc-tile { padding: 4px 1px; gap: 2px; height: 44px; box-sizing: border-box; justify-content: center; }
   .dc-month-grid .dc-tile .dc-day  { display: none; }
   .dc-month-grid .dc-tile .dc-num  { font-size: 15px; font-weight: 600; }
@@ -3820,7 +3820,7 @@
   #qc-cal { flex: 1; min-height: 0; display: flex; flex-direction: column; width: 100%; box-sizing: border-box; overflow: clip; }
   #qc-panel.cal-expanded #qc-cal { overflow: clip; flex: 1; }
   #qc-cal .dc-cal-scroll {
-    height: 360px; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    height: 390px; overflow-y: auto; -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     /* Soft bottom fade hints at more content without eating into the last row of tiles. */
     mask-image: linear-gradient(to bottom, black 96%, transparent 100%);

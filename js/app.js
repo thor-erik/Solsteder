@@ -1666,9 +1666,10 @@ function _renderQcCalendarStrip(cal) {
   const selected = datePicker.value;
   const fxDays   = _wxForecastDays();
 
+  const stripDays = isMobile() ? 10 : 14; // 5×2 on mobile, 7×2 on desktop
   let html = '<div class="dc-grid">';
 
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < stripDays; i++) {
     const d    = new Date(); d.setDate(d.getDate() + i);
     const dStr = d.toISOString().slice(0, 10);
     html += _dcTileHtml(dStr, today_, selected);
@@ -1811,7 +1812,7 @@ function _syncQcPanelHeightExpanded() {
   // --qc-panel-h only needs to be large enough for the transition to open fully;
   // the panel shrinks to content height because overflow:hidden clips to natural height.
   qcPanel.classList.add('cal-expanded');
-  qcPanel.style.setProperty('--qc-panel-h', '460px');
+  qcPanel.style.setProperty('--qc-panel-h', '500px');
 }
 
 function selectQcDate(dateStr) {
