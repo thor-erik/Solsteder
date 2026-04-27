@@ -24,7 +24,7 @@ let nowMode           = false;
 let nowInterval       = null;
 let userLocation      = null;
 let filterFullSunActive = false;
-let filterMapViewActive = true;
+let filterMapViewActive = window.innerWidth >= 640; // desktop: viewport filter on; mobile: off (list shows all venues)
 let activeArea    = '';
 let activeSortBy  = 'score';
 let activeIntent  = null;
@@ -155,7 +155,7 @@ function _syncFtsPosition() {
       return;
     }
     if (ftsEl) { ftsEl.style.opacity = ''; ftsEl.style.pointerEvents = ''; }
-    document.body.style.setProperty('--fts-bottom', `calc(62svh + ${FTS_GAP}px)`);
+    document.body.style.setProperty('--fts-bottom', `calc(55svh + ${FTS_GAP}px)`);
     return;
   }
 
@@ -170,7 +170,7 @@ function _syncFtsPosition() {
   } else if (isFull) {
     bottom = `calc(100svh - env(safe-area-inset-top, 0px) - 46px - 16px - 4px - 14px)`;
   } else if (isExpanded) {
-    bottom = `calc(62svh + ${FTS_GAP}px)`;
+    bottom = `calc(55svh + ${FTS_GAP}px)`;
   } else {
     const peekH = panel.style.getPropertyValue('--peek-h') || '160px';
     bottom = `calc(${peekH} + ${FTS_GAP}px)`;
@@ -2862,20 +2862,6 @@ document.addEventListener('DOMContentLoaded', () => {
       // _beginDrag's own guard prevents double-fire when a child already started drag.
       _wireSwipeTarget(panelEl, { peekOnly: true, excludeInteractive: true, excludeSelector: '#venue-list' });
 
-      // ── First-run nudge: bounce sheet up 20px after 800ms, once only ──────
-      if (!localStorage.getItem('sol_peek_nudged')) {
-        setTimeout(() => {
-          if (_currentState() === 'peek') {
-            panelEl.style.transition = 'transform 220ms ease-out';
-            panelEl.style.transform  = 'translateY(-20px)';
-            setTimeout(() => {
-              panelEl.style.transform = '';
-              setTimeout(() => { panelEl.style.transition = ''; }, 240);
-            }, 300);
-          }
-          localStorage.setItem('sol_peek_nudged', '1');
-        }, 800);
-      }
 
       // Expose panel state helpers for use by toggleQcPanel / _closeQcPanel
       window._applyMobilePanelState  = _applyState;
@@ -4500,11 +4486,12 @@ function _introRevealUI(search, brand, qcWrap, panel) {
   });
 
   if (panel && isMobile) {
-    // Mobile: slide up from off-screen — translateY(100%) → natural position (peek state)
+    // Mobile: slide up from off-screen → expanded state (list visible by default)
     panel.style.transition = 'none';
     panel.style.opacity    = '1';
     panel.style.transform  = 'translateY(100%)';
     panel.classList.remove('intro-hidden');
+    panel.classList.add('mobile-expanded');       // land in expanded state (list is primary)
     _updatePeekHeight();                         // measure with correct content
     panel.getBoundingClientRect();                // force reflow — browser commits start state
     panel.style.transition = 'transform 0.65s cubic-bezier(0.2, 0.8, 0.3, 1)';
@@ -4572,6 +4559,9 @@ function _skipIntro(seqId) {
     // Allow styles to reset on next frame
     requestAnimationFrame(() => { el.style.transition = ''; });
   });
+
+  // Mobile: start with list expanded (primary surface)
+  if (window.innerWidth < 640 && panel) panel.classList.add('mobile-expanded');
 
   _updatePeekHeight();
   if (USE_FLOATING_TIME_SLIDER) requestAnimationFrame(() => syncFts());
