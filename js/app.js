@@ -4667,23 +4667,29 @@ function _runIntroSequence() {
         setTimeout(() => {
           if (_introSeqId !== seqId) return;
           map.easeTo({ zoom: 15.2, pitch: 15, bearing: 0, duration: 700 });
+          _introRevealUI(search, brand, qcWrap, panel,
+            _autoAdvancedAfterSunset ? { skipFts: true } : undefined);
 
-          // If auto-advanced to tomorrow, set time to noon silently BEFORE UI
-          // reveals so the slider is already in position when the user first sees it.
-          if (_autoAdvancedAfterSunset) {
-            timeFromEl.value = 12;
-            update();
-          }
-
-          _introRevealUI(search, brand, qcWrap, panel);
-
-          // Step 4: Animate slider to current time (skip if already set for tomorrow)
-          if (!_autoAdvancedAfterSunset) {
-            setTimeout(() => {
-              if (_introSeqId !== seqId) return;
-              animateToTime(now, 1200);
-            }, 500);
-          }
+          // Step 4: Return to current time (or noon if auto-advanced past sunset).
+          // When auto-advanced, keep FTS hidden during the slider animation so the
+          // user doesn't see it jump; fade it in after the animation completes.
+          const animDuration = 1200;
+          setTimeout(() => {
+            if (_introSeqId !== seqId) return;
+            animateToTime(_autoAdvancedAfterSunset ? 12 : now, animDuration);
+            // When FTS was hidden (auto-advanced), fade it in after slider settles
+            if (_autoAdvancedAfterSunset) {
+              const ftsEl = document.getElementById('fts');
+              if (ftsEl) {
+                setTimeout(() => {
+                  ftsEl.style.transition = 'opacity 0.4s ease';
+                  ftsEl.classList.remove('intro-hidden');
+                  requestAnimationFrame(() => syncFts());
+                  setTimeout(() => { ftsEl.style.transition = ''; }, 500);
+                }, animDuration);
+              }
+            }
+          }, 500);
 
           // Step 5: Fade in pins
           setTimeout(() => {
@@ -4719,7 +4725,7 @@ function _runIntroSequence() {
   }, waitMs);
 }
 
-function _introRevealUI(search, brand, qcWrap, panel) {
+function _introRevealUI(search, brand, qcWrap, panel, opts) {
   const locateBtn   = document.getElementById('locate-btn');
   const zoomJog     = document.getElementById('zoom-jog');
   const isMobile    = window.innerWidth < 640;
@@ -4759,7 +4765,7 @@ function _introRevealUI(search, brand, qcWrap, panel) {
     });
   }
 
-  if (USE_FLOATING_TIME_SLIDER) {
+  if (USE_FLOATING_TIME_SLIDER && !(opts && opts.skipFts)) {
     const ftsEl = document.getElementById('fts');
     if (ftsEl) {
       ftsEl.style.transition = 'opacity 0.5s ease';
