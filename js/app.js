@@ -4667,13 +4667,23 @@ function _runIntroSequence() {
         setTimeout(() => {
           if (_introSeqId !== seqId) return;
           map.easeTo({ zoom: 15.2, pitch: 15, bearing: 0, duration: 700 });
+
+          // If auto-advanced to tomorrow, set time to noon silently BEFORE UI
+          // reveals so the slider is already in position when the user first sees it.
+          if (_autoAdvancedAfterSunset) {
+            timeFromEl.value = 12;
+            update();
+          }
+
           _introRevealUI(search, brand, qcWrap, panel);
 
-          // Step 4: Return to current time (or noon if auto-advanced past sunset)
-          setTimeout(() => {
-            if (_introSeqId !== seqId) return;
-            animateToTime(_autoAdvancedAfterSunset ? 12 : now, 1200);
-          }, 500);
+          // Step 4: Animate slider to current time (skip if already set for tomorrow)
+          if (!_autoAdvancedAfterSunset) {
+            setTimeout(() => {
+              if (_introSeqId !== seqId) return;
+              animateToTime(now, 1200);
+            }, 500);
+          }
 
           // Step 5: Fade in pins
           setTimeout(() => {
