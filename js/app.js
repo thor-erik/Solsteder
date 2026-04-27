@@ -1802,9 +1802,17 @@ function _renderQcCalendarMonth(cal) {
 
 
 function _toggleQcCalExpand() {
+  const collapsing = _qcCalExpanded; // true if we're about to collapse
+  const qcPanel = document.getElementById('qc-panel');
+  const _calEl  = document.getElementById('qc-cal');
+
+  // Capture expanded height BEFORE swapping content
+  let expandedH = 0;
+  if (collapsing && qcPanel) expandedH = qcPanel.scrollHeight;
+
   _qcCalExpanded = !_qcCalExpanded;
+
   // Hide before render to prevent flash of un-animated content
-  const _calEl = document.getElementById('qc-cal');
   if (_calEl) {
     _calEl.classList.remove('dc-cal-entering');
     _calEl.style.opacity = '0';
@@ -1817,18 +1825,14 @@ function _toggleQcCalExpand() {
       _calEl.classList.add('dc-cal-entering');
     }
   });
-  if (!_qcCalExpanded) {
-    const qcPanel = document.getElementById('qc-panel');
-    if (qcPanel) {
-      // Freeze current height so the transition has a starting point
-      const curH = qcPanel.scrollHeight;
-      qcPanel.style.setProperty('--qc-panel-h', curH + 'px');
-      qcPanel.classList.remove('cal-expanded');
-      // In next frame, set the target (smaller) height — CSS transition animates
-      requestAnimationFrame(() => {
-        _syncQcPanelHeight();
-      });
-    }
+
+  if (collapsing && qcPanel) {
+    // Freeze at expanded height, then animate to compact strip height
+    qcPanel.style.setProperty('--qc-panel-h', expandedH + 'px');
+    qcPanel.classList.remove('cal-expanded');
+    // Force layout so the browser registers the starting max-height
+    qcPanel.offsetHeight; // eslint-disable-line no-unused-expressions
+    _syncQcPanelHeight();
   }
 }
 
