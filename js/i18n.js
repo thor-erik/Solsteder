@@ -226,7 +226,8 @@ const _STRINGS = {
     notif_rain_body:             'Rain expected {from} to {to}. Skip ahead?',
     notif_skip_rain:             'Skip to {to}',
     notif_best_sun_body:         'Most sun today is between {from} and {to}',
-    notif_sun_setting_body:      'Sun sets at {time}. Make the most of it!',
+    notif_sun_setting_body:      'Sun sets very soon. See tomorrow instead?',
+    notif_see_tomorrow:          'See tomorrow',
     notif_auto_advance_body:     'Sun has set for today. Showing you tomorrow instead',
     // Notifications – P1 Social
     notif_friend_at_body:        '{name} is at {venue} right now',
@@ -468,7 +469,8 @@ const _STRINGS = {
     notif_rain_body:             'Regn ventet {from} til {to}. Hoppe forbi?',
     notif_skip_rain:             'Hopp til {to}',
     notif_best_sun_body:         'Mest sol i dag er mellom {from} og {to}',
-    notif_sun_setting_body:      'Solen går ned kl. {time}. Gjør det beste ut av det!',
+    notif_sun_setting_body:      'Solen går snart ned. Se i morgen i stedet?',
+    notif_see_tomorrow:          'Se i morgen',
     notif_auto_advance_body:     'Solen har gått ned. Viser deg i morgen i stedet',
     // Notifications – P1 Social
     notif_friend_at_body:        '{name} er på {venue} nå',
@@ -710,7 +712,8 @@ const _STRINGS = {
     notif_rain_body:             'Regn väntas {from} till {to}. Hoppa förbi?',
     notif_skip_rain:             'Hoppa till {to}',
     notif_best_sun_body:         'Mest sol idag är mellan {from} och {to}',
-    notif_sun_setting_body:      'Solen går ner kl. {time}. Passa på!',
+    notif_sun_setting_body:      'Solen går snart ner. Se imorgon istället?',
+    notif_see_tomorrow:          'Se imorgon',
     notif_auto_advance_body:     'Solen har gått ner. Visar dig imorgon istället',
     // Notifications – P1 Social
     notif_friend_at_body:        '{name} är på {venue} just nu',
@@ -952,7 +955,8 @@ const _STRINGS = {
     notif_rain_body:             'Regn forventet {from} til {to}. Hop forbi?',
     notif_skip_rain:             'Hop til {to}',
     notif_best_sun_body:         'Mest sol i dag er mellem {from} og {to}',
-    notif_sun_setting_body:      'Solen går ned kl. {time}. Gør det bedste ud af det!',
+    notif_sun_setting_body:      'Solen går snart ned. Se i morgen i stedet?',
+    notif_see_tomorrow:          'Se i morgen',
     notif_auto_advance_body:     'Solen er gået ned. Viser dig i morgen i stedet',
     // Notifications – P1 Social
     notif_friend_at_body:        '{name} er på {venue} lige nu',

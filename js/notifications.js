@@ -174,17 +174,15 @@ function _notifShow(notif) {
   // Track for follow-up notifications
   if (notif.category === 'weather') _notifWeatherShownThisSession = true;
 
-  // Auto-dismiss (P0 stays until user acts or closes; others auto-dismiss)
+  // Auto-dismiss: P0 gets 30s (long but not forever), others 6s, legacy 2.2s
   clearTimeout(_notifAutoTimer);
-  if (notif.priority !== 0 || notif._legacyDismiss) {
-    const duration = notif._legacyDismiss || _NOTIF_AUTO_DEFAULT;
-    _notifAutoTimer = setTimeout(() => {
-      if (typeof _aTrack === 'function' && _notifCurrent) _aTrack('notification_dismiss', {
-        id: _notifCurrent.id, priority: _notifCurrent.priority, category: _notifCurrent.category, method: 'auto'
-      });
-      _notifHide();
-    }, duration);
-  }
+  const duration = notif._legacyDismiss || (notif.priority === 0 ? 30000 : _NOTIF_AUTO_DEFAULT);
+  _notifAutoTimer = setTimeout(() => {
+    if (typeof _aTrack === 'function' && _notifCurrent) _aTrack('notification_dismiss', {
+      id: _notifCurrent.id, priority: _notifCurrent.priority, category: _notifCurrent.category, method: 'auto'
+    });
+    _notifHide();
+  }, duration);
 }
 
 function _notifHide() {
@@ -252,7 +250,8 @@ function _evalSunSettingSoon() {
     id: 'weather_sun_setting', priority: 0, category: 'weather',
     icon: '🌅', bodyKey: 'notif_sun_setting_body',
     bodyVars: { time: sunsetTime },
-    actionKey: null, action: null,
+    actionKey: 'notif_see_tomorrow',
+    action: () => { if (typeof advanceDay === 'function') advanceDay(1, 12); },
     ttl: 600000, dedupe: true,
   };
 }
@@ -601,14 +600,14 @@ function _evalCalendarHint() {
   };
 }
 
-// ── Evaluators: P4 Login Prompts ────────��────────────────────────────────────
+// ── Evaluators: P1 Login Prompts ─────────────────────────────────────────────
 
 function _evalLoginWeather() {
   if (typeof _currentUser !== 'undefined' && _currentUser) return null;
   if (!_notifWeatherShownThisSession) return null;
   if (_notifLoginShown.has('login_weather')) return null;
   return {
-    id: 'login_weather', priority: 2, category: 'login',
+    id: 'login_weather', priority: 1, category: 'login',
     icon: '🔔', bodyKey: 'notif_login_weather_body',
     actionKey: 'notif_login_action',
     action: () => { if (typeof toggleProfilePanel === 'function') toggleProfilePanel(); },
@@ -622,7 +621,7 @@ function _evalLoginFriends() {
   if ((state.sessionCount || 0) < 2) return null;
   if (_notifLoginShown.has('login_friends')) return null;
   return {
-    id: 'login_friends', priority: 2, category: 'login',
+    id: 'login_friends', priority: 1, category: 'login',
     icon: '👥', bodyKey: 'notif_login_friends_body',
     actionKey: 'notif_login_action',
     action: () => { if (typeof toggleProfilePanel === 'function') toggleProfilePanel(); },
@@ -635,7 +634,7 @@ function _evalLoginShare() {
   if (_notifVenueOpens < 2) return null;
   if (_notifLoginShown.has('login_share')) return null;
   return {
-    id: 'login_share', priority: 2, category: 'login',
+    id: 'login_share', priority: 1, category: 'login',
     icon: '🔗', bodyKey: 'notif_login_share_body',
     actionKey: 'notif_login_action',
     action: () => { if (typeof toggleProfilePanel === 'function') toggleProfilePanel(); },
@@ -649,7 +648,7 @@ function _evalLoginNewVenues() {
   if ((state.sessionCount || 0) < 3) return null;
   if (_notifLoginShown.has('login_venues')) return null;
   return {
-    id: 'login_venues', priority: 2, category: 'login',
+    id: 'login_venues', priority: 1, category: 'login',
     icon: '✨', bodyKey: 'notif_login_venues_body',
     actionKey: 'notif_login_action',
     action: () => { if (typeof toggleProfilePanel === 'function') toggleProfilePanel(); },
@@ -670,16 +669,17 @@ const _notifEvaluators = [
   _evalFriendsAtVenue,
   _evalCheckinPrompt,
   _evalFriendPlanning,
-  // P2 Suggestions + Login prompts
+  // P1 Login prompts (high priority so they reach anon users)
+  _evalLoginWeather,
+  _evalLoginFriends,
+  _evalLoginShare,
+  _evalLoginNewVenues,
+  // P2 Suggestions
   _evalMorningCoffee,
   _evalLunchBreak,
   _evalAfterWork,
   _evalWindSheltered,
   _evalBusynessAlert,
-  _evalLoginWeather,
-  _evalLoginFriends,
-  _evalLoginShare,
-  _evalLoginNewVenues,
   // P3 Onboarding
   _evalWelcome,
   _evalTimeSliderHint,
