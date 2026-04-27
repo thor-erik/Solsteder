@@ -100,10 +100,10 @@ function _notifAdvance() {
 function _notifEnsureEl() {
   let el = document.getElementById('notif-toast');
   if (el) return el;
+  const wrap = document.getElementById('notif-toast-wrap');
+  if (!wrap) return null;
   el = document.createElement('div');
   el.id = 'notif-toast';
-  el.setAttribute('role', 'alert');
-  el.setAttribute('aria-live', 'polite');
   el.innerHTML = `
     <div class="notif-toast-icon"></div>
     <div class="notif-toast-content">
@@ -113,7 +113,7 @@ function _notifEnsureEl() {
     <button class="notif-toast-close" aria-label="Dismiss">
       <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
     </button>`;
-  document.body.appendChild(el);
+  wrap.appendChild(el);
   return el;
 }
 
@@ -164,7 +164,8 @@ function _notifShow(notif) {
     }
   };
 
-  el.classList.add('show');
+  const wrap = document.getElementById('notif-toast-wrap');
+  if (wrap) wrap.classList.add('show');
   _notifShownCount++;
   _notifLastShownAt = Date.now();
 
@@ -188,8 +189,8 @@ function _notifShow(notif) {
 
 function _notifHide() {
   clearTimeout(_notifAutoTimer);
-  const el = document.getElementById('notif-toast');
-  if (el) el.classList.remove('show');
+  const wrap = document.getElementById('notif-toast-wrap');
+  if (wrap) wrap.classList.remove('show');
   _notifCurrent = null;
   // After hide animation, try next in queue
   setTimeout(() => _notifAdvance(), 400);
@@ -210,6 +211,8 @@ function _notifDismiss(id) {
 
 /** Immediate show — bypasses queue and rate limiter. For legacy _showToast compat. */
 function _notifShowImmediate(notif) {
+  // Block all notifications until the intro sequence has finished
+  if (!_notifInitDone) return;
   if (_notifCurrent) _notifHide();
   _notifShow(notif);
 }
