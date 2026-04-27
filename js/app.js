@@ -4688,6 +4688,8 @@ function _runIntroSequence() {
               document.removeEventListener('click', skipHandler);
               document.removeEventListener('touchstart', skipHandler);
               if (_sharedVenueId) selectVenue(_sharedVenueId, true);
+              // Start notification system after intro completes
+              if (typeof _notifInit === 'function') _notifInit();
             }, 350);
           }, 700);
         }, 1900);
@@ -4736,6 +4738,15 @@ function _introRevealUI(search, brand, qcWrap, panel) {
     panel.getBoundingClientRect();                // force reflow — browser commits start state
     panel.style.transition = 'transform 0.65s cubic-bezier(0.2, 0.8, 0.3, 1)';
     panel.style.transform  = '';
+
+    // Pan map so geolocation dot is centered in the visible area above the panel.
+    // Panel is 55svh, so pad the bottom by that amount to shift the center upward.
+    const panelH = Math.round(window.innerHeight * 0.55);
+    map.easeTo({
+      center: _introCenter,
+      padding: { bottom: panelH, top: 0, left: 0, right: 0 },
+      duration: 650,  // match panel slide-up duration
+    });
   }
 
   if (USE_FLOATING_TIME_SLIDER) {
@@ -4778,8 +4789,13 @@ function _skipIntro(seqId) {
   update();
 
   // Snap map to default view (centered on user location or Oslo)
+  // On mobile, offset center upward so geo dot sits above the 55svh expanded panel.
+  const isMobileSkip = window.innerWidth < 640;
+  const skipPadding = isMobileSkip
+    ? { bottom: Math.round(window.innerHeight * 0.55), top: 0, left: 0, right: 0 }
+    : undefined;
   map.stop();
-  map.easeTo({ center: _introCenter, zoom: 15.2, pitch: 15, bearing: 0, duration: 400 });
+  map.easeTo({ center: _introCenter, zoom: 15.2, pitch: 15, bearing: 0, duration: 400, padding: skipPadding });
 
   // Instantly hide splash
   splash.style.transition = 'none';
@@ -4802,7 +4818,7 @@ function _skipIntro(seqId) {
   });
 
   // Mobile: start with list expanded (primary surface)
-  if (window.innerWidth < 640 && panel) panel.classList.add('mobile-expanded');
+  if (isMobileSkip && panel) panel.classList.add('mobile-expanded');
 
   _updatePeekHeight();
   if (USE_FLOATING_TIME_SLIDER) requestAnimationFrame(() => syncFts());
