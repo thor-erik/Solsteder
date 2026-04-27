@@ -118,6 +118,7 @@ function _notifEnsureEl() {
 }
 
 function _notifShow(notif) {
+  console.log('[notif] showing:', notif.id, notif.bodyKey || notif._rawText);
   _notifCurrent = notif;
   const el = _notifEnsureEl();
 
@@ -690,21 +691,25 @@ const _notifEvaluators = [
 // ── Evaluate & Schedule ──────────────────────────────────────────────────────
 
 function _notifEvaluate() {
-  if (!_notifInitDone) return;
+  if (!_notifInitDone) { console.log('[notif] evaluate skipped: not init'); return; }
   const settings = _notifGetSettings();
+  let enqueued = 0;
   for (const evaluator of _notifEvaluators) {
     try {
       const notif = evaluator();
       if (!notif) continue;
-      if (!settings[notif.category]) continue;
-      if (_notifDismissed.has(notif.id)) continue;
+      if (!settings[notif.category]) { console.log('[notif] blocked by settings:', notif.id); continue; }
+      if (_notifDismissed.has(notif.id)) { console.log('[notif] dismissed:', notif.id); continue; }
       // Login prompts: max 1 per type per session
       if (notif.category === 'login' && _notifLoginShown.has(notif.id)) continue;
       _notifEnqueue(notif);
+      enqueued++;
+      console.log('[notif] enqueued:', notif.id, 'p' + notif.priority);
     } catch (e) {
-      // Silently skip failed evaluators
+      console.warn('[notif] evaluator error:', evaluator.name, e);
     }
   }
+  console.log('[notif] evaluate done. queue:', _notifQueue.length, 'current:', _notifCurrent?.id || 'none', 'canShow:', _notifCanShow());
   // If P0 in queue and current toast is lower priority, preempt
   if (_notifCurrent && _notifQueue.length && _notifQueue[0].priority < _notifCurrent.priority) {
     _notifHide(); // will auto-advance to higher priority
@@ -765,6 +770,7 @@ function _notifOnVenueOpen() {
 // ── Init ─────────────────────────────────────────���───────────────────────────
 
 function _notifInit() {
+  console.log('[notif] init called');
   // Increment session count
   const state = _notifLoadState();
   state.sessionCount = (state.sessionCount || 0) + 1;
