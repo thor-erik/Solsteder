@@ -1079,9 +1079,10 @@ function formatDatePill(dateStr) {
   if (dateStr === today) return t('today');
   if (dateStr === tomS)  return t('tomorrow');
   const d   = new Date(dateStr + 'T12:00:00');
-  const day = d.toLocaleDateString('nb-NO', { weekday: 'short' });
+  const _locale = { en: 'en-GB', no: 'nb-NO', se: 'sv-SE', dk: 'da-DK' }[prefLang()] || 'nb-NO';
+  const day = d.toLocaleDateString(_locale, { weekday: 'short' });
   const num = d.getDate();
-  const mon = d.toLocaleDateString('nb-NO', { month: 'short' });
+  const mon = d.toLocaleDateString(_locale, { month: 'short' });
   const cap = s => s.charAt(0).toUpperCase() + s.slice(1).replace(/\.$/, '');
   return `${cap(day)} ${num} ${cap(mon)}`;
 }

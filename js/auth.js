@@ -1267,6 +1267,10 @@ async function checkOut() {
   _showToast(t('check_out_success'));
   if (typeof renderList === 'function') renderList();
   if (typeof draw === 'function') draw();
+  if (typeof selectedId !== 'undefined' && selectedId != null) {
+    const v = typeof VENUES !== 'undefined' && VENUES.find(x => x.id === selectedId);
+    if (v && typeof openDetailPanel === 'function') openDetailPanel(v);
+  }
 }
 
 function _subscribeToCheckins() {

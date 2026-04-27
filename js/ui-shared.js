@@ -15,9 +15,10 @@
 function venueState(venue, selectedTime) {
   const dateStr = datePicker?.value || todayStr?.() || '';
   const fromHour = selectedTime ?? 0;
+  const isFuture = typeof todayStr === 'function' && dateStr > todayStr();
 
   const { windows } = computeSunWindows(venue, dateStr);
-  if (!windows.length) return { state: 'done', mainText: 'Ferdig', subText: '', className: 'state-done' };
+  if (!windows.length) return { state: 'done', mainText: t('state_done'), subText: '', className: 'state-done' };
 
   const currentWindow = windows.find(w => fromHour >= w.start && fromHour < w.end);
   const nextWindow = windows.find(w => w.start > fromHour);
@@ -44,7 +45,9 @@ function venueState(venue, selectedTime) {
   const isOvercast = !isRainy && (wx?.cloud ?? 0) >= 0.85;
 
   if (isRainy || isOvercast) {
-    const mainText = isRainy ? t('state_rain_now') : t('state_overcast');
+    const mainText = isFuture
+      ? (isRainy ? t('state_rain_future') : t('state_overcast_future'))
+      : (isRainy ? t('state_rain_now') : t('state_overcast'));
     // Check if any sun window starts after now (geometry-wise)
     const futureSun = windows.find(w => w.start > fromHour);
     if (futureSun) {
@@ -71,21 +74,26 @@ function venueState(venue, selectedTime) {
     const prevWindow = [...windows].reverse().find(w => w.end <= fromHour);
     if (prevWindow) {
       // Between windows — building shadow interrupted sun
-      const mainText = t('state_in_shadow');
+      const mainText = isFuture ? t('state_in_shadow_future') : t('state_in_shadow');
       const subText = t('state_sun_again', { time: formatHour(nextWindow.start) });
       return { state: 'shadow', mainText, subText, className: 'state-shadow' };
     }
-    // Sun hasn't arrived yet today
+    // Sun hasn't arrived yet
+    if (isFuture) {
+      const mainText = t('state_sun_in_future', { time: formatHour(nextWindow.start) });
+      const subText = t('state_sun_until', { time: formatHour(lastWindow.end) });
+      return { state: 'shadow', mainText, subText, className: 'state-shadow' };
+    }
     const timeUntil = Math.max(8/60, nextWindow.start - fromHour);
     const mainText = t('state_sun_in', { duration: formatDuration(timeUntil) });
     const subText = t('state_sun_until', { time: formatHour(lastWindow.end) });
     return { state: 'shadow', mainText, subText, className: 'state-shadow' };
   }
 
-  // Done: no more sun today
+  // Done: no more sun
   return {
     state: 'done',
-    mainText: t('state_no_more_sun'),
+    mainText: isFuture ? t('state_no_sun_future') : t('state_no_more_sun'),
     subText: t('state_last_sun', { time: formatHour(lastWindow.end) }),
     className: 'state-done'
   };

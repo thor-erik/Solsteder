@@ -459,53 +459,20 @@ function buildTooltipContent(v) {
   const { windows, open, close } = computeSunWindows(v, dateStr);
   const span = close - open;
 
-  // Status + timing
-  const wxTip = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, hour) : null;
-  const tipRainy = (wxTip?.precip ?? 0) > 0.3;
-  const tipOvercast = !tipRainy && (wxTip?.cloud ?? 0) > 0.65;
-  const tipTerm = tipRainy ? 'rain' : tipOvercast ? 'light' : 'sun';
-  const tipIcon = tipRainy ? '🌧' : tipOvercast ? '☁' : '☀';
-  let statusHtml = '';
-  const curWin = windows.find(w => hour >= w.start && hour < w.end);
-  if (curWin) {
-    const rem = curWin.end - hour;
-    const h = Math.floor(rem), m = Math.round((rem - h) * 60);
-    const t = h > 0 ? `${h}h${m > 0 ? ' '+m+'m' : ''}` : `${m}m`;
-    const cls = tipRainy ? 'rainy' : tipOvercast ? 'overcast' : 'sunny';
-    statusHtml = `<div class="ht-status ${cls}">${tipIcon} In ${tipTerm} · ${t} left</div>`;
-  } else {
-    const next = windows.find(w => w.start > hour);
-    if (next) {
-      const wait = next.start - hour;
-      const h = Math.floor(wait), m = Math.round((wait - h) * 60);
-      const t = h > 0 ? `${h}h${m > 0 ? ' '+m+'m' : ''}` : `${m}m`;
-      statusHtml = `<div class="ht-status neutral">${tipIcon} ${tipTerm} in ${t} · at ${formatHour(next.start)}</div>`;
-    } else if (windows.length > 0) {
-      statusHtml = `<div class="ht-status shaded">No more ${tipTerm} today</div>`;
-    } else {
-      statusHtml = `<div class="ht-status shaded">No ${tipTerm} today</div>`;
-    }
-  }
+  // Use the same venueState helper as the venue cards
+  const state = typeof venueState === 'function'
+    ? venueState(v, hour) : { state: 'sun', mainText: '—', subText: '', className: '' };
+  const stateClass = state.className || '';
+  const statusHtml = `<div class="ht-status ${stateClass}">
+    <span class="ht-status-main">${state.mainText}</span>
+    <span class="ht-status-sub">${state.subText}</span>
+  </div>`;
 
-  // Mini timeline
-  let tlHtml = '';
-  if (span > 0) {
-    const pct = h => ((Math.max(open, Math.min(close, h)) - open) / span * 100).toFixed(2);
-    const segs = windows.map(w => {
-      const l = pct(w.start), r = pct(w.end);
-      return `<div class="ht-tl-seg" style="left:${l}%;width:${(parseFloat(r)-parseFloat(l)).toFixed(2)}%"></div>`;
-    }).join('');
-    const needle = (hour >= open && hour <= close)
-      ? `<div class="ht-tl-needle" style="left:${pct(hour)}%"></div>` : '';
-    tlHtml = `
-      <div class="ht-timeline">
-        <div class="ht-tl-track">${segs}${needle}</div>
-        <div class="ht-tl-labels"><span>${formatHour(open)}</span><span>${formatHour(close)}</span></div>
-      </div>`;
-  }
+  // Weather-colored timeline (same as venue card timelines)
+  const tlHtml = buildMiniSunTimeline(v, dateStr, hour);
 
   return `
     <div class="ht-name">${v.name}</div>
-    <div class="ht-meta"><span style="color:var(--accent)">★ ${v.rating}</span> · ${catLabel(v)}${v.beerPrice ? ` · ${v.beerPrice} kr/0.5l` : ''}</div>
+    <div class="ht-meta"><span style="color:var(--accent)">★ ${v.rating}</span> · ${catLabel(v)}</div>
     ${statusHtml}${tlHtml}`;
 }
