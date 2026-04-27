@@ -1225,14 +1225,7 @@ function setHoveredVenue(id) {
 }
 
 // ── Favorites filter ──────────────────────────────────────────────────────────
-let filterFavoritesOnly = false;
-function toggleFavoritesFilter() {
-  filterFavoritesOnly = !filterFavoritesOnly;
-  _aTrack('filter_change', { filter: 'favorites', value: filterFavoritesOnly });
-  const btn = document.getElementById('fav-filter-btn');
-  if (btn) btn.classList.toggle('active', filterFavoritesOnly);
-  renderList();
-}
+// Favorites filter removed — now handled as sortBy === 'favorites'
 
 // ── Area filter ───────────────────────────────────────────────────────────────
 function setAreaFilter(area) {
@@ -1267,7 +1260,18 @@ function toggleSortPanel() {
 
 function setSortBy(sort) {
   _aTrack('sort_change', { sort_by: sort });
-  if (sort === 'distance' && !userLocation) {
+  if (sort === 'favorites' && !userLocation) {
+    // Request location for distance-based ordering, but don't block — show favorites even without it
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        _aTrack('geolocation_grant', { trigger: 'favorites_sort' });
+        renderList();
+      },
+      () => { _aTrack('geolocation_deny', { trigger: 'favorites_sort' }); }
+    );
+    // Fall through — set sort immediately, re-render will happen again if location arrives
+  } else if (sort === 'distance' && !userLocation) {
     navigator.geolocation.getCurrentPosition(
       pos => {
         userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
@@ -1289,7 +1293,7 @@ function setSortBy(sort) {
 function updateSortBtns() {
   document.querySelectorAll('.sort-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.sort === activeSortBy));
-  const labels = { score: 'Mest sol', latest: 'Senest sol', distance: 'Avstand', beer: 'Ølpris' };
+  const labels = { score: 'Mest sol', latest: 'Senest sol', distance: 'Avstand', beer: 'Ølpris', favorites: 'Favoritter' };
   const labelEl = document.getElementById('sort-label');
   if (labelEl) labelEl.textContent = labels[activeSortBy] ?? 'Mest sol';
 }
@@ -3268,11 +3272,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-function toggleMapView() {
-  filterMapViewActive = !filterMapViewActive;
-  document.getElementById('map-view-btn').classList.toggle('active', filterMapViewActive);
-  renderList();
-}
+// toggleMapView removed — viewport filter is always active
 
 // User dragging = navigating freely → revert to viewport filter
 map.on('dragstart', () => {

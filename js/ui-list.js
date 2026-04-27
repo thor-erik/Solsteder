@@ -255,9 +255,7 @@ function renderList() {
     });
   }
   if (activeArea) venues = venues.filter(v => v.area === activeArea);
-  if (typeof filterFavoritesOnly !== 'undefined' && filterFavoritesOnly && typeof isFavorite === 'function') {
-    venues = venues.filter(v => isFavorite(v.id));
-  }
+  // Favorites filtering is handled by sortBy === 'favorites' below
 
   // Remove venues with no sun windows, or (today only) all sun already past
   // User's own suggestions bypass this filter (they lack geometry data)
@@ -294,8 +292,7 @@ function renderList() {
       for (const w of windows) {
         if (w.end > fromHour) rem += w.end - Math.max(w.start, fromHour);
       }
-      // Favorites get a sort boost: +0.5h of virtual sun remaining
-      v._sunRem = rem + (typeof isFavorite === 'function' && isFavorite(v.id) ? 0.5 : 0);
+      v._sunRem = rem;
       if (!windows.length) { v._sunOrd = 2; }
       else if (windows.some(w => fromHour >= w.start && fromHour < w.end)) { v._sunOrd = 0; }
       else if (windows.some(w => w.start > fromHour)) { v._sunOrd = 1; }
@@ -340,6 +337,18 @@ function renderList() {
       if (!a.beerPrice && !b.beerPrice) return b.rating - a.rating;
       return a.beerPrice - b.beerPrice;
     });
+  } else if (sortBy === 'favorites') {
+    // Show only favorites, sorted by distance
+    if (typeof isFavorite === 'function') {
+      venues = venues.filter(v => isFavorite(v.id));
+    }
+    if (userLocation) {
+      venues.sort((a, b) => {
+        const da = Math.hypot(a.lat - userLocation.lat, a.lng - userLocation.lng);
+        const db = Math.hypot(b.lat - userLocation.lat, b.lng - userLocation.lng);
+        return da - db;
+      });
+    }
   } else {
     // Default case (if sortBy is something else or undefined)
     venues.sort((a, b) => {
