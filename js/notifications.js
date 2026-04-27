@@ -6,8 +6,9 @@
 
 const _NOTIF_STORAGE_STATE    = 'solsteder_notif_state';
 const _NOTIF_STORAGE_SETTINGS = 'solsteder_notif_settings';
-const _NOTIF_MAX_EARLY        = 1;      // max toasts in first 30s
-const _NOTIF_EARLY_WINDOW     = 30000;  // 30s initial quiet window
+const _NOTIF_MAX_EARLY        = 1;      // max toasts in first window after grace
+const _NOTIF_EARLY_WINDOW     = 30000;  // 30s initial slow window (after grace)
+const _NOTIF_GRACE_PERIOD     = 8000;   // no queued toasts for 8s after init
 const _NOTIF_COOLDOWN         = 120000; // 2 min between toasts
 const _NOTIF_EVAL_INTERVAL    = 60000;  // re-evaluate every 60s
 const _NOTIF_AUTO_P0          = 8000;   // P0 auto-dismiss
@@ -82,9 +83,11 @@ function _notifCanShow() {
   // Don't show if profile panel is open
   const pp = document.getElementById('profile-panel');
   if (pp && pp.classList.contains('open')) return false;
-  // Rate limit
+  // Grace period: no queued toasts for first 8s (lets user orient)
   const elapsed = Date.now() - _notifSessionStart;
-  if (elapsed < _NOTIF_EARLY_WINDOW) return _notifShownCount < _NOTIF_MAX_EARLY;
+  if (elapsed < _NOTIF_GRACE_PERIOD) return false;
+  // Rate limit: max 1 in first 30s after grace, then 2-min cooldown
+  if (elapsed < _NOTIF_GRACE_PERIOD + _NOTIF_EARLY_WINDOW) return _notifShownCount < _NOTIF_MAX_EARLY;
   return !_notifLastShownAt || (Date.now() - _notifLastShownAt) > _NOTIF_COOLDOWN;
 }
 
