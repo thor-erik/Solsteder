@@ -1298,6 +1298,7 @@
     padding: 0 14px;
     flex-shrink: 0;
     overflow: visible;
+    display: none;  /* MAP VIEW moved into #list-sun-header */
   }
 
   /* Brand logo (now in floating-brand) */
@@ -2317,8 +2318,10 @@
     #venue-header { display: none; }
 
     /* List sun header: sun count (left) + sort toggle (right).
-       Sort toggle hidden in collapsed/peek state; sun count always visible. */
+       Sort toggle hidden in collapsed/peek state; sun count always visible.
+       MAP VIEW hidden on mobile (viewport filter isn't useful on small screens). */
     #list-sun-header { padding: 10px 14px 6px; }
+    #list-sun-header #map-view-btn { display: none; }
     #panel:not(.mobile-expanded):not(.mobile-fullscreen) #sort-toggle-btn {
       display: none;
     }
@@ -5367,8 +5370,8 @@
   <!-- Profile popover — anchored below search bar -->
   <div id="profile-panel" class="glass-panel"></div>
 
-  <!-- Zoom debug helper — centered below search bar -->
-  <div id="zoom-debug" class="floating-card"></div>
+  <!-- Zoom debug helper — admin-only, hidden by default -->
+  <div id="zoom-debug" class="floating-card hidden" style="display:none"></div>
 
   <!-- Bottom-right: locate-me button -->
   <button id="locate-btn" class="intro-hidden" onclick="locateUser()" title="Gå til min posisjon" aria-label="Gå til min posisjon">
@@ -5508,16 +5511,19 @@
 
     <!-- Sun count header: visible in peek, owns "X steder i solen" exactly once -->
     <div id="list-sun-header">
-      <div style="display:flex;align-items:center;gap:8px">
+      <div style="display:flex;align-items:center;gap:6px">
         <span id="list-sun-count"></span>
         <button id="fav-filter-btn" class="fav-filter-pill" onclick="toggleFavoritesFilter()" title="Favoritter">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>
         </button>
+        <button id="map-view-btn" class="active" onclick="toggleMapView()">MAP VIEW</button>
       </div>
-      <button id="sort-toggle-btn" onclick="toggleSortPanel()"><span id="sort-label">Mest sol</span><span class="sort-chevron"> ▾</span></button>
-      <button id="panel-toggle-icon" onclick="togglePanel()" title="Hide sidebar">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
-      </button>
+      <div style="display:flex;align-items:center;gap:6px">
+        <button id="sort-toggle-btn" onclick="toggleSortPanel()"><span id="sort-label">Mest sol</span><span class="sort-chevron"> ▾</span></button>
+        <button id="panel-toggle-icon" onclick="togglePanel()" title="Hide sidebar">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+        </button>
+      </div>
     </div>
 
     <!-- Venue peek: first card preview visible in collapsed state -->
@@ -5526,7 +5532,6 @@
     <div id="panel-header">
       <div id="venue-header">
         <span id="venue-count">—</span>
-        <button id="map-view-btn" class="active" onclick="toggleMapView()">MAP VIEW</button>
       </div>
     </div>
     <div id="venue-list"></div>

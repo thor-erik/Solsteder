@@ -121,15 +121,14 @@ function classifyPin(v, dateStr, hour) {
 // Rule of thumb: cap ≥ (realistic max in-view count) → cap is never the constraint,
 // spatial overlap is. Tune downward only if very-low-zoom clutter becomes a problem.
 function _getDensityCaps(zoom) {
-  // Hero cap is always generous/infinite — every venue currently in sun should
-  // get a named pill if there is space (spatial layout handles the rest).
-  // Waiting cap is intentionally lower: at high zoom the user is looking at
-  // specific sun venues, not browsing candidates; too many waiting pills add noise.
-  if (zoom >= 17) return { heroCap: Infinity, waitingCap: 6 };
+  // Hero cap is always Infinity — every venue currently in sun deserves a pill
+  // if the spatial layout can find room. The layout grid is the real authority.
+  // Waiting pills are secondary: they only appear when space remains after all
+  // hero pills have been placed (enforced in computePinLayout, not here).
   if (zoom >= 16) return { heroCap: Infinity, waitingCap: 8 };
-  if (zoom >= 14) return { heroCap: 20,       waitingCap: 10 };
-  if (zoom >= 12) return { heroCap: 12,       waitingCap: 6 };
-  return             { heroCap: 6,        waitingCap: 3 };
+  if (zoom >= 14) return { heroCap: Infinity, waitingCap: 6 };
+  if (zoom >= 12) return { heroCap: Infinity, waitingCap: 4 };
+  return             { heroCap: Infinity, waitingCap: 2 };
 }
 
 // UX-tuning constant: each km of distance from map center adds this many "virtual minutes"
@@ -770,23 +769,25 @@ function computePinLayout(projVenues, currentHour, dateStr) {
 
   const result = [];
 
-  for (const { v, pt, classResult } of sorted) {
-    const { tier } = classResult;
-    const selected = v.id === selectedId;
+  // Two-pass layout: heroes first, then waiting only if every hero got a pill.
+  const heroEntries    = sorted.filter(e => e.classResult.tier === 'hero'    && !e.classResult.demoted);
+  const waitingEntries = sorted.filter(e => e.classResult.tier === 'waiting' && !e.classResult.demoted);
+  const otherEntries   = sorted.filter(e => e.classResult.tier === 'context' || e.classResult.demoted);
+
+  // Always dot for context / density-demoted
+  for (const { v, pt, classResult } of otherEntries) {
+    const spr = getSprite(v, classResult.tier, classResult, v.id === selectedId, currentHour, dateStr);
+    result.push({ v, pt, classResult, extraStem: 0, isDot: true, spr });
+  }
+
+  // Pass 1: place all hero pills
+  let anyHeroDot = false;
+  for (const { v, pt, classResult } of heroEntries) {
     const isRaised = v.id === highlight.raisedId;
-    const spr = getSprite(v, tier, classResult, selected, currentHour, dateStr);
-
-    // Context is always a dot; density-demoted hero/waiting is also always a dot
-    if (tier === 'context' || classResult.demoted) {
-      result.push({ v, pt, classResult, extraStem: 0, isDot: true, spr });
-      continue;
-    }
-
+    const spr = getSprite(v, classResult.tier, classResult, v.id === selectedId, currentHour, dateStr);
     const rw = spr.cssW;
-    const rh = spr.cssH - STEM_H;  // pill area only (excludes baked stem)
+    const rh = spr.cssH - STEM_H;
 
-    // Raised pin: search from tallest extraStem downward (claims highest spot).
-    // All others: search from zero upward (minimal stem preferred).
     const stemDir   = isRaised ? -STEM_STEP : STEM_STEP;
     const stemStart = isRaised ? MAX_EXTRA_STEM : 0;
     const stemEnd   = isRaised ? 0 : MAX_EXTRA_STEM;
@@ -802,7 +803,39 @@ function computePinLayout(projVenues, currentHour, dateStr) {
         break;
       }
     }
-    // Raised pin never degrades to dot; others do if no extraStem works
+    if (!resolved) {
+      if (!isRaised) anyHeroDot = true;
+      result.push({ v, pt, classResult, extraStem: 0, isDot: !isRaised, spr });
+    }
+  }
+
+  // Pass 2: waiting pills only when every hero got a pill
+  for (const { v, pt, classResult } of waitingEntries) {
+    const isRaised = v.id === highlight.raisedId;
+    const spr = getSprite(v, classResult.tier, classResult, v.id === selectedId, currentHour, dateStr);
+
+    if (anyHeroDot) {
+      result.push({ v, pt, classResult, extraStem: 0, isDot: true, spr });
+      continue;
+    }
+
+    const rw = spr.cssW;
+    const rh = spr.cssH - STEM_H;
+    const stemDir   = isRaised ? -STEM_STEP : STEM_STEP;
+    const stemStart = isRaised ? MAX_EXTRA_STEM : 0;
+    const stemEnd   = isRaised ? 0 : MAX_EXTRA_STEM;
+
+    let resolved = false;
+    for (let ex = stemStart; isRaised ? ex >= stemEnd : ex <= stemEnd; ex += stemDir) {
+      const rx = pt.x - spr.anchorX;
+      const ry = pt.y - spr.anchorY - ex;
+      if (isClear(rx, ry, rw, rh)) {
+        addPlaced(rx, ry, rw, rh);
+        result.push({ v, pt, classResult, extraStem: ex, isDot: false, spr });
+        resolved = true;
+        break;
+      }
+    }
     if (!resolved) result.push({ v, pt, classResult, extraStem: 0, isDot: !isRaised, spr });
   }
 

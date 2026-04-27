@@ -769,6 +769,7 @@ function toggleZoomDebugHelper() {
   if (!zoomDebug || !label) return;
 
   const isHidden = zoomDebug.classList.toggle('hidden');
+  zoomDebug.style.display = isHidden ? 'none' : '';
   label.textContent = isHidden ? 'Show Debug' : 'Hide Debug';
   localStorage.setItem('solsteder_zoom_debug_visible', !isHidden);
 
@@ -782,9 +783,14 @@ function _initZoomDebugVisibility() {
   if (!zoomDebug) return;
 
   // Start hidden by default, only show if explicitly enabled by admin
-  const shouldShow = localStorage.getItem('solsteder_zoom_debug_visible') === 'true';
-  if (!shouldShow) {
+  const shouldShow = localStorage.getItem('solsteder_zoom_debug_visible') === 'true'
+    && typeof authIsAdmin === 'function' && authIsAdmin();
+  if (shouldShow) {
+    zoomDebug.classList.remove('hidden');
+    zoomDebug.style.display = '';
+  } else {
     zoomDebug.classList.add('hidden');
+    zoomDebug.style.display = 'none';
   }
 }
 
