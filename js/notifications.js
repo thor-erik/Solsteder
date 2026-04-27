@@ -794,8 +794,8 @@ function _notifInit() {
   // Start periodic evaluation
   _notifEvalTimer = setInterval(_notifEvaluate, _NOTIF_EVAL_INTERVAL);
 
-  // Initial evaluation after a short delay (let weather/data load first)
-  setTimeout(_notifEvaluate, 3000);
+  // Initial evaluation after a longer delay — let the user get acquainted with the UI first
+  setTimeout(_notifEvaluate, 5000);
 }
 
 // Track onboarding seen counts when shown
