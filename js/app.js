@@ -741,6 +741,12 @@ function locateUser() {
   if (si && document.activeElement === si) si.blur();
   const btn = document.getElementById('locate-btn');
   if (btn) { btn.classList.add('tracking'); setTimeout(() => btn.classList.remove('tracking'), 1200); }
+  // Mobile: reset to "all venues" mode
+  if (isMobile()) {
+    filterMapViewActive = false;
+    renderList();
+    updateQcIndicator(null);
+  }
   map.flyTo({ center: [userLocation.lng, userLocation.lat], zoom: Math.max(map.getZoom(), 15.2), duration: 600 });
 }
 
@@ -1446,10 +1452,20 @@ function updateQcIndicator(h) {
     let sunVenues = VENUES.filter(v => venueHasSunInRange(v, dateStr, dispH, dispH));
     if (filterMapViewActive && typeof map !== 'undefined') {
       const bounds = (selectedId != null && _frozenBounds) ? _frozenBounds : map.getBounds();
-      sunVenues = sunVenues.filter(v => bounds.contains([v.lng, v.lat]));
+      const sw = bounds.getSouthWest(), ne = bounds.getNorthEast();
+      const dlat = (ne.lat - sw.lat) * 0.2, dlng = (ne.lng - sw.lng) * 0.2;
+      const padded = new mapboxgl.LngLatBounds(
+        [sw.lng - dlng, sw.lat - dlat], [ne.lng + dlng, ne.lat + dlat]
+      );
+      sunVenues = sunVenues.filter(v => padded.contains([v.lng, v.lat]));
     }
     const cnt = sunVenues.length;
-    sunLabel = cnt > 0 ? t('places_in_sun', { count: cnt }) : t('no_places_in_sun');
+    // Reflect whether we're showing all venues or just this area
+    if (filterMapViewActive) {
+      sunLabel = cnt > 0 ? t('places_in_sun_here', { count: cnt }) : t('no_places_in_sun_here');
+    } else {
+      sunLabel = cnt > 0 ? t('places_in_sun', { count: cnt }) : t('no_places_in_sun');
+    }
   }
 
   _readoutSet(document.getElementById('readout-time'), timeLabel, false);
@@ -3205,6 +3221,10 @@ function toggleMapView() {
 // User dragging = navigating freely → revert to viewport filter
 map.on('dragstart', () => {
   _navMode = false;
+  // Mobile: activate viewport filter when user pans the map
+  if (isMobile() && !filterMapViewActive) {
+    filterMapViewActive = true;
+  }
 });
 
 // Track user-initiated map movement while detail panel is open, so we know
@@ -3512,6 +3532,8 @@ function _matchScore(text, q) {
   // Exact / prefix / contains on raw text
   const raw = _rawMatchScore(text, q);
   if (raw > 0) return raw;
+  // For 1-2 char queries, plain substring match is sufficient — skip expensive paths
+  if (q.length < 3) return 0;
   // Try again with diacritics stripped (ü→u, ø→o, å→a)
   const tNorm = _stripDiacritics(text), qNorm = _stripDiacritics(q);
   if (tNorm !== text || qNorm !== q) {
@@ -3606,12 +3628,14 @@ function _renderSearchDropdown(geoOnly) {
     if (score > 0) scored.push({ kind: 'curated', score, matchedField, data: v });
   }
 
-  // 3. Candidate venues (exclude names already in VENUES)
-  const curatedNames = new Set(VENUES.map(v => v.name.toLowerCase()));
-  for (const c of (_candidates ?? [])) {
-    if (curatedNames.has(c.name.toLowerCase())) continue;
-    const s = _matchScore(c.name.toLowerCase(), q);
-    if (s > 0) scored.push({ kind: 'candidate', score: s, data: c });
+  // 3. Candidate venues (skip for 1-2 char queries — too broad, too many results)
+  if (q.length >= 3) {
+    const curatedNames = new Set(VENUES.map(v => v.name.toLowerCase()));
+    for (const c of (_candidates ?? [])) {
+      if (curatedNames.has(c.name.toLowerCase())) continue;
+      const s = _matchScore(c.name.toLowerCase(), q);
+      if (s > 0) scored.push({ kind: 'candidate', score: s, data: c });
+    }
   }
 
   // 4. Mapbox geocoded areas (fallback for areas not in our index)
