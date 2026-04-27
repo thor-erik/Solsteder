@@ -1112,19 +1112,23 @@ async function loadFriends() {
     .from('friendships')
     .select('*, user:profiles!friendships_user_id_fkey(id, name, email, avatar_url), friend:profiles!friendships_friend_id_fkey(id, name, email, avatar_url)')
     .or(`user_id.eq.${_currentUser.id},friend_id.eq.${_currentUser.id}`);
-  if (error) { console.warn('[auth] loadFriends failed:', error.message); return; }
-  _friends = [];
-  _pendingRequests = [];
-  for (const r of (data || [])) {
-    if (r.status === 'accepted') {
-      const other = r.user_id === _currentUser.id ? r.friend : r.user;
-      _friends.push({ ...other, friendshipId: r.id });
-    } else if (r.status === 'pending' && r.friend_id === _currentUser.id) {
-      _pendingRequests.push({ ...r.user, friendshipId: r.id });
+  if (!error) {
+    _friends = [];
+    _pendingRequests = [];
+    for (const r of (data || [])) {
+      if (r.status === 'accepted') {
+        const other = r.user_id === _currentUser.id ? r.friend : r.user;
+        _friends.push({ ...other, friendshipId: r.id });
+      } else if (r.status === 'pending' && r.friend_id === _currentUser.id) {
+        _pendingRequests.push({ ...r.user, friendshipId: r.id });
+      }
     }
+  } else {
+    console.warn('[auth] loadFriends failed:', error.message);
   }
-  // Inject dummy friends for test accounts
+  // Always inject dummy friends for test accounts (even if table missing)
   _injectDummyFriends();
+  if (typeof _renderProfilePanel === 'function') _renderProfilePanel();
 }
 
 const _DUMMY_FRIENDS = [
@@ -1179,21 +1183,25 @@ async function removeFriend(friendshipId) {
 
 async function loadFriendCheckins() {
   if (!_currentUser) { _friendCheckins.clear(); _myCheckin = null; return; }
-  if (!await _checkSocialTables()) return;
-  const { data, error } = await _supabase
-    .from('checkins')
-    .select('*, user:profiles!checkins_user_id_fkey(id, name, email, avatar_url)')
-    .gt('expires_at', new Date().toISOString());
-  if (error) { console.warn('[auth] loadFriendCheckins failed:', error.message); return; }
   _friendCheckins.clear();
   _myCheckin = null;
-  for (const c of (data || [])) {
-    if (c.user_id === _currentUser.id) { _myCheckin = c; continue; }
-    const list = _friendCheckins.get(c.venue_id) || [];
-    list.push({ user: c.user, checkin: c });
-    _friendCheckins.set(c.venue_id, list);
+  if (await _checkSocialTables()) {
+    const { data, error } = await _supabase
+      .from('checkins')
+      .select('*, user:profiles!checkins_user_id_fkey(id, name, email, avatar_url)')
+      .gt('expires_at', new Date().toISOString());
+    if (!error) {
+      for (const c of (data || [])) {
+        if (c.user_id === _currentUser.id) { _myCheckin = c; continue; }
+        const list = _friendCheckins.get(c.venue_id) || [];
+        list.push({ user: c.user, checkin: c });
+        _friendCheckins.set(c.venue_id, list);
+      }
+    } else {
+      console.warn('[auth] loadFriendCheckins failed:', error.message);
+    }
   }
-  // Inject dummy checkins for test accounts
+  // Always inject dummy checkins for test accounts (even if table missing)
   _injectDummyCheckins();
 }
 
