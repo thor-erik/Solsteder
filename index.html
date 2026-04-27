@@ -23,12 +23,41 @@
 <meta name="twitter:image"       content="https://findshades.app/design/og-picture.png">
 <link rel="preload" href="data/venues.json" as="fetch" crossorigin>
 <link rel="preload" href="data/geometry.json" as="fetch" crossorigin>
-<link rel="preconnect" href="https://cdn.jsdelivr.net">
-<link rel="preconnect" href="https://api.mapbox.com">
-<link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://api.mapbox.com" crossorigin>
+<link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css"></noscript>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&display=swap"></noscript>
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script defer src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
+<script defer src="js/i18n.js"></script>
+<script defer src="js/config.js?v=20260425b"></script>
+<script defer src="js/auth.js"></script>
+<script defer src="js/analytics.js"></script>
+<script defer src="js/places.js?v=20260411b"></script>
+<script defer src="js/busyness.js?v=20260411b"></script>
+<script defer src="js/solar.js?v=20260411b"></script>
+<script defer src="js/data.js?v=20260411b"></script>
+<script defer src="js/weather.js?v=20260411b"></script>
+<script defer src="js/scoring.js?v=20260411b"></script>
+<script defer src="js/map-style.js?v=20260418b"></script>
+<script defer src="js/app.js?v=20260427a"></script>
+<script defer src="js/render-helpers.js?v=20260411b"></script>
+<script defer src="js/render-arc.js?v=20260411b"></script>
+<script defer src="js/render-seating.js?v=20260411b"></script>
+<script defer src="js/render-editor.js?v=20260417a"></script>
+<script defer src="js/render-pins.js?v=20260417a"></script>
+<script defer src="js/ui-shared.js?v=20260411b"></script>
+<script defer src="js/ui-list.js?v=20260411b"></script>
+<script defer src="js/ui-shelter.js?v=20260416a"></script>
+<script defer src="js/render-wind.js?v=20260416b"></script>
+<script defer src="js/ui-detail.js?v=20260411b"></script>
+<script defer src="js/osm.js?v=20260427a"></script>
+<script defer src="js/notifications.js?v=20260427c"></script>
+<script defer src="js/init.js?v=20260427a"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -5510,7 +5539,7 @@
 <div id="app">
   <!-- INTRO SPLASH — covers everything until geo + map are ready -->
   <div id="splash">
-    <img src="design/logo-pack-svg/logo-color-2000w-big-text.svg" alt="Shades" id="splash-logo">
+    <img src="design/logo-pack-svg/logo-color-2000w-big-text.svg" alt="Shades" id="splash-logo" width="160" height="160">
     <div id="splash-loader"></div>
   </div>
 
@@ -5601,7 +5630,7 @@
   <!-- Top-right: brand logo + sun compass -->
   <div id="floating-brand" class="intro-hidden">
     <div class="floating-card">
-      <div id="brand-logo"><img src="design/logo-pack-svg/logo-color-2000w.svg" alt="Shades"></div>
+      <div id="brand-logo"><img src="design/logo-pack-svg/logo-color-2000w.svg" alt="Shades" width="32" height="32" loading="lazy"></div>
       <canvas id="sun-compass" width="36" height="36"></canvas>
     </div>
   </div>
@@ -5780,58 +5809,5 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
-<script src="js/i18n.js"></script>
-<script src="js/config.js?v=20260425b"></script>
-<script src="js/auth.js"></script>
-<script src="js/analytics.js"></script>
-<script src="js/places.js?v=20260411b"></script>
-<script src="js/busyness.js?v=20260411b"></script>
-<script src="js/solar.js?v=20260411b"></script>
-<script src="js/data.js?v=20260411b"></script>
-<script src="js/weather.js?v=20260411b"></script>
-<script src="js/scoring.js?v=20260411b"></script>
-<script src="js/map-style.js?v=20260418b"></script>
-<script src="js/app.js?v=20260427a"></script>
-<script src="js/render-helpers.js?v=20260411b"></script>
-<script src="js/render-arc.js?v=20260411b"></script>
-<script src="js/render-seating.js?v=20260411b"></script>
-<script src="js/render-editor.js?v=20260417a"></script>
-<script src="js/render-pins.js?v=20260417a"></script>
-<script src="js/ui-shared.js?v=20260411b"></script>
-<script src="js/ui-list.js?v=20260411b"></script>
-<script src="js/ui-shelter.js?v=20260416a"></script>
-<script src="js/render-wind.js?v=20260416b"></script>
-<script src="js/ui-detail.js?v=20260411b"></script>
-<script src="js/osm.js?v=20260427a"></script>
-<script src="js/notifications.js?v=20260427c"></script>
-<script>
-if (USE_FLOATING_TIME_SLIDER) document.body.classList.add('fts');
-
-loadVenues().then(async () => {
-  _buildAreaIndex();  // build area search index immediately (before slow initFacings)
-  updateRangeFill();
-  update();
-  if (USE_FLOATING_TIME_SLIDER) initFts();
-  try { await initFacings(); } catch (e) { console.error('initFacings error:', e); }
-  if (!_introDataReady) { _introDataReady = true; _introCheckReady(); }
-  const _wxLats = VENUES.map(v => v.lat), _wxLngs = VENUES.map(v => v.lng);
-  const _wxLat  = (Math.min(..._wxLats) + Math.max(..._wxLats)) / 2;
-  const _wxLng  = (Math.min(..._wxLngs) + Math.max(..._wxLngs)) / 2;
-  initWeather(_wxLat, _wxLng); // fetch MET Norway forecast (async, re-renders when data arrives)
-  initPlaces();      // fetch Google Places photos (async, cached 7 days)
-  loadApprovedSuggestions(); // merge admin-approved user submissions into VENUES
-  // Apply i18n to search placeholder on load
-  const inp = document.getElementById('venue-search');
-  if (inp) inp.placeholder = t('search_placeholder');
-}).catch(e => {
-  console.error('loadVenues chain error:', e);
-  // Ensure intro proceeds even if initialization throws
-  _introDataReady = true;
-  _introGeoReady  = true;
-  _introCheckReady();
-});
-</script>
 </body>
 </html>
