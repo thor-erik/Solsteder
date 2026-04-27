@@ -239,11 +239,20 @@ function renderList() {
   });
 
   if (searchQ) {
-    venues = venues.filter(v =>
-      v.name.toLowerCase().includes(searchQ) ||
-      (v.area ?? '').toLowerCase().includes(searchQ) ||
-      v.address.toLowerCase().includes(searchQ)
-    );
+    const alias = typeof _resolveAlias === 'function' ? _resolveAlias(searchQ) : null;
+    venues = venues.filter(v => {
+      if (v.name.toLowerCase().includes(searchQ)) return true;
+      if ((v.area ?? '').toLowerCase().includes(searchQ)) return true;
+      if (v.address.toLowerCase().includes(searchQ)) return true;
+      if (alias && (v.area ?? '').toLowerCase() === alias) return true;
+      // Diacritics-stripped comparison (e.g. "grunerløkka" matches "Grünerløkka")
+      if (typeof _stripDiacritics === 'function') {
+        const qN = _stripDiacritics(searchQ);
+        if (_stripDiacritics(v.name.toLowerCase()).includes(qN)) return true;
+        if (_stripDiacritics((v.area ?? '').toLowerCase()).includes(qN)) return true;
+      }
+      return false;
+    });
   }
   if (activeArea) venues = venues.filter(v => v.area === activeArea);
   if (typeof filterFavoritesOnly !== 'undefined' && filterFavoritesOnly && typeof isFavorite === 'function') {
