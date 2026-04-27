@@ -3043,8 +3043,32 @@ document.addEventListener('DOMContentLoaded', () => {
         _commitDpDrag(e.changedTouches[0].clientY);
       }, { passive: true });
 
-      // dp-scroll: no drag interception — content scrolls normally.
-      // Only the dp-handle area (above the gallery) triggers panel drag.
+      // dp-content: drag-to-dismiss when touching non-interactive areas.
+      // When dp-scroll is at the top and the finger moves down, start panel drag.
+      const dpContent = document.getElementById('dp-content');
+      if (dpContent) {
+        const _DP_INTERACTIVE = 'button, a, input, select, textarea, canvas, [role="button"]';
+        let _dpContentStartY = 0;
+        dpContent.addEventListener('touchstart', e => {
+          if (e.target.closest(_DP_INTERACTIVE)) return;
+          _dpContentStartY = e.touches[0].clientY;
+        }, { passive: true });
+
+        dpContent.addEventListener('touchmove', e => {
+          if (_dpDragging) { e.preventDefault(); _trackDpDrag(e.touches[0].clientY); return; }
+          const dpScroll = document.getElementById('dp-scroll');
+          const atTop = !dpScroll || dpScroll.scrollTop <= 0;
+          const cy = e.touches[0].clientY;
+          if (atTop && cy > _dpContentStartY + 8 && !e.target.closest(_DP_INTERACTIVE)) {
+            e.preventDefault();
+            _beginDpDrag(cy, true);
+          }
+        }, { passive: false });
+
+        dpContent.addEventListener('touchend', e => {
+          if (_dpDragging) _commitDpDrag(e.changedTouches[0].clientY);
+        }, { passive: true });
+      }
     }
   }
 
