@@ -91,10 +91,8 @@ function buildMiniSunTimeline(v, dateStr, fromHour) {
     const touchesGapLeft  = gaps.some(g => Math.abs(g.end - r.start) < 0.05);
 
     let cls = 'wx';
-    if (isFirst)         cls += ' cap-l';
-    if (isLast)          cls += ' cap-r';
-    if (touchesGapRight) cls += ' cap-r shadow-r';
-    if (touchesGapLeft)  cls += ' cap-l shadow-l';
+    if (isFirst || touchesGapLeft)  cls += ' cap-l';
+    if (isLast  || touchesGapRight) cls += ' cap-r';
 
     segments += `<div class="${cls}" style="left:${left}%;width:${width}%;background:${r.color}"></div>`;
   }

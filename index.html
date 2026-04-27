@@ -1701,22 +1701,8 @@
   .venue-card .cap-r         { border-radius: 0 4px 4px 0; }
   .venue-card .cap-l.cap-r   { border-radius: 4px; }
 
-  /* Architectural-shadow drop — shade pools BELOW the bar in the gap zone */
-  .venue-card .shadow-r::after,
-  .venue-card .shadow-l::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    height: 9px;
-    width: 14px;
-    background: radial-gradient(ellipse 100% 100% at 50% 0%,
-                                rgba(0,0,0,0.55) 0%,
-                                rgba(0,0,0,0.20) 45%,
-                                rgba(0,0,0,0) 100%);
-    pointer-events: none;
-  }
-  .venue-card .shadow-r::after { right: -14px; }
-  .venue-card .shadow-l::after { left:  -14px; }
+  /* Shadow gap treatment — at 8px tall, drop-shadows are too heavy.
+     The gap itself (empty track bg) is sufficient to communicate the break. */
 
   /* Now marker — clean white hairline */
   .venue-card .tl-now {
