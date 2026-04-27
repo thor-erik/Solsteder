@@ -147,14 +147,17 @@ function _syncFtsPosition() {
   // ── Mobile: track panel top edge via --fts-bottom ────────────────────
   // Clear any desktop-set inline styles so CSS mobile rules apply
   if (ftsEl) { ftsEl.style.left = ''; ftsEl.style.removeProperty('--fts-left'); ftsEl.style.removeProperty('--fts-width'); }
+  const locateEl = document.getElementById('locate-btn');
   const dpOpen = dp?.classList.contains('open');
   const dpFull = dp?.classList.contains('dp-fullscreen');
   if (dpOpen) {
     if (dpFull) {
       if (ftsEl) { ftsEl.style.opacity = '0'; ftsEl.style.pointerEvents = 'none'; }
+      if (locateEl) { locateEl.style.opacity = '0'; locateEl.style.pointerEvents = 'none'; }
       return;
     }
     if (ftsEl) { ftsEl.style.opacity = ''; ftsEl.style.pointerEvents = ''; }
+    if (locateEl) { locateEl.style.opacity = '0'; locateEl.style.pointerEvents = 'none'; }
     document.body.style.setProperty('--fts-bottom', `calc(62svh + ${FTS_GAP}px)`);
     return;
   }
@@ -164,6 +167,18 @@ function _syncFtsPosition() {
   const isHidden   = panel.classList.contains('mobile-hidden');
   const isExpanded = panel.classList.contains('mobile-expanded');
   const isFull     = panel.classList.contains('mobile-fullscreen');
+
+  // Locate button: fade out when venue list is expanded or fullscreen
+  if (locateEl) {
+    if (isExpanded || isFull) {
+      locateEl.style.opacity = '0';
+      locateEl.style.pointerEvents = 'none';
+    } else {
+      locateEl.style.opacity = '';
+      locateEl.style.pointerEvents = '';
+    }
+  }
+
   let bottom;
   if (isHidden) {
     bottom = `${FTS_GAP}px`;
@@ -2785,6 +2800,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       let _ftsEl = null; // cache FTS element ref to avoid DOM lookup per frame
+      let _locateEl = null; // cache locate button ref
       function _trackDrag(y) {
         if (!_dragActive) return;
         if (_dragRafId) cancelAnimationFrame(_dragRafId);
@@ -2812,6 +2828,19 @@ document.addEventListener('DOMContentLoaded', () => {
               _ftsEl.style.bottom = (viewH - panelTop + FTS_GAP) + 'px';
             }
           }
+          // Track locate button with panel during drag — fade as panel expands
+          if (!_locateEl) _locateEl = document.getElementById('locate-btn');
+          if (_locateEl) {
+            const panelTop = panelEl.getBoundingClientRect().top;
+            const viewH    = window.innerHeight;
+            _locateEl.style.transition = 'none';
+            _locateEl.style.bottom = (viewH - panelTop + FTS_GAP + 46 + 12) + 'px';
+            // Fade out as panel drags above peek toward expanded
+            const peekTop = viewH - (parseInt(panelEl.style.getPropertyValue('--peek-h')) || 160);
+            const expandedTop = viewH * 0.45;
+            const progress = Math.max(0, Math.min(1, (peekTop - panelTop) / (peekTop - expandedTop)));
+            _locateEl.style.opacity = String(1 - progress);
+          }
 
           _dragRafId = null;
         });
@@ -2836,9 +2865,11 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (dy < 0)                         target = _dragStartState === 'peek' ? 'expanded' : 'fullscreen';
         else                                     target = _dragStartState === 'fullscreen' ? 'expanded' : 'peek'; // peek is the floor
 
-        // Restore pill transition after drag
+        // Restore pill + locate button transitions after drag
         if (!_ftsEl) _ftsEl = document.getElementById('fts');
         if (_ftsEl) { _ftsEl.style.transition = ''; _ftsEl.style.bottom = ''; }
+        if (!_locateEl) _locateEl = document.getElementById('locate-btn');
+        if (_locateEl) { _locateEl.style.transition = ''; _locateEl.style.bottom = ''; _locateEl.style.opacity = ''; }
 
         // FLIP-style commit: apply target classes while inline transform keeps
         // the panel at its drag position, then release inline styles so the CSS
@@ -2996,6 +3027,7 @@ document.addEventListener('DOMContentLoaded', () => {
         dpEl.style.transition = 'none';
       }
       let _dpFtsEl = null; // cache FTS ref for detail panel drag
+      let _dpLocateEl = null; // cache locate button ref for detail panel drag
       function _trackDpDrag(y) {
         _dpLastFrameY = y;
         // Cancel any pending frame and schedule a new one for smooth 60fps updates
@@ -3004,12 +3036,13 @@ document.addEventListener('DOMContentLoaded', () => {
           const dy = _dpLastFrameY - _dpY0;
           // When initiated from scroll, clamp to downward-only (dismiss only, no expand)
           const clampedDy = _dpFromScroll ? Math.max(0, dy) : dy;
-          dpEl.style.transform = `translateY(${clampedDy}px)`;
-
-          // Expand panel height when dragging up to fill the space (prevent showing background)
+          // When dragging up (expand), only grow height — don't translateY, which
+          // would lift the bottom-anchored panel and expose the map underneath.
           if (clampedDy < 0) {
+            dpEl.style.transform = '';
             dpEl.style.height = `${_dpInitH + Math.abs(clampedDy)}px`;
           } else {
+            dpEl.style.transform = `translateY(${clampedDy}px)`;
             dpEl.style.height = '';
           }
 

@@ -2308,7 +2308,7 @@
 
     /* Locate button: sit above the floating pill (or above peek strip if no FTS) */
     #locate-btn { bottom: calc(var(--peek-h, 252px) + 14px); right: 12px; }
-    body.fts #locate-btn { bottom: calc(var(--fts-bottom, 160px) + 46px + 12px); transition: bottom 0.35s cubic-bezier(0.25, 0.9, 0.4, 1); }
+    body.fts #locate-btn { bottom: calc(var(--fts-bottom, 160px) + 46px + 12px); transition: bottom 0.35s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease; }
 
     /* Handle: grabber pill only — chevron retired (venue peek carries swipe-up signal) */
     #panel-handle {
