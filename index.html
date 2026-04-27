@@ -543,8 +543,11 @@
   body.fts #fts {
     display: flex;
     position: fixed;
-    left: 368px; right: 16px;       /* desktop: clear list panel (16+336+16) */
+    /* Desktop: centered in the map area via JS-set --fts-left, capped at 480px */
+    left: var(--fts-left, 368px);
+    right: auto;
     bottom: 16px;
+    width: var(--fts-width, 480px);
     z-index: 925;
     height: 46px;
     align-items: center;
@@ -556,7 +559,7 @@
     -webkit-backdrop-filter: var(--glass-blur-action);
     border: var(--glass-border);
     box-shadow: var(--glass-inset), 0 6px 20px rgba(0,0,0,0.25);
-    transition: left 0.28s ease, bottom 0.45s cubic-bezier(0.2, 0.8, 0.3, 1);
+    transition: left 0.28s ease, width 0.28s ease, bottom 0.45s cubic-bezier(0.2, 0.8, 0.3, 1);
     will-change: left, bottom;
   }
 
@@ -1285,7 +1288,7 @@
   }
 
   #panel-header {
-    padding: 14px 14px 0;
+    padding: 0 14px;
     flex-shrink: 0;
     overflow: visible;
   }
@@ -1396,22 +1399,18 @@
   }
 
   /* Venue list header: title (left) · panel toggle (right) */
+  /* Venue peek: mobile-only collapsed preview — hide on desktop */
+  #venue-peek { display: none; }
+
   #venue-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding-bottom: 6px;
+    justify-content: flex-end;  /* toggle icon right-aligned, count hidden */
+    padding-bottom: 0;
     gap: 8px;
   }
-  #venue-count {
-    font-family: 'Inter', sans-serif;
-    font-size: 20px;
-    font-weight: 600;
-    letter-spacing: normal;
-    color: #FFAF85;
-    white-space: nowrap;
-    line-height: 1;
-  }
+  /* Duplicate of #list-sun-count on desktop — hide to avoid double header */
+  #venue-count { display: none; }
   #venue-count.count-sunny { color: #FFAF85; }
   /* Map-view filter pill */
   #map-view-btn {
@@ -2256,7 +2255,8 @@
 
     /* FTS: restore mobile full-width + dynamic bottom */
     body.fts #fts {
-      left: 6px; right: 6px;
+      left: 12px; right: 12px;
+      width: auto;
       bottom: var(--fts-bottom, 160px);
       transition: bottom 0.45s cubic-bezier(0.2, 0.8, 0.3, 1);
       will-change: bottom;

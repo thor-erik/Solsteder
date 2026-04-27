@@ -124,23 +124,29 @@ function _syncFtsPosition() {
   const dp    = document.getElementById('detail-panel');
   if (!panel) return;
 
-  // ── Desktop: adjust left edge to clear list + detail panels ──────────
+  // ── Desktop: center in map area, capped at 480px ────────────────────
   if (!isMobile()) {
     if (!ftsEl) return;
     const dpOpen = dp?.classList.contains('open');
+    let mapLeft;
     if (panelVisible) {
-      // 16 (margin) + 336 (panel) + 16 (gap) = 368; + 300 (detail) + 16 (gap) = 684
-      ftsEl.style.left = dpOpen ? '684px' : '368px';
+      mapLeft = dpOpen ? 684 : 368; // 16+336+16 [+300+16]
     } else {
-      // Panel hidden: 16 margin; + 300 (detail) + 16 (gap) = 332
-      ftsEl.style.left = dpOpen ? '332px' : '16px';
+      mapLeft = dpOpen ? 332 : 16;  // 16 [+300+16]
     }
+    const mapRight = 16; // right margin
+    const available = window.innerWidth - mapLeft - mapRight;
+    const w = Math.min(480, available);
+    const center = mapLeft + available / 2;
+    const left = Math.round(center - w / 2);
+    ftsEl.style.setProperty('--fts-left', left + 'px');
+    ftsEl.style.setProperty('--fts-width', w + 'px');
     return;
   }
 
   // ── Mobile: track panel top edge via --fts-bottom ────────────────────
-  // Clear any desktop-set inline left so CSS mobile rules apply
-  if (ftsEl) ftsEl.style.left = '';
+  // Clear any desktop-set inline styles so CSS mobile rules apply
+  if (ftsEl) { ftsEl.style.left = ''; ftsEl.style.removeProperty('--fts-left'); ftsEl.style.removeProperty('--fts-width'); }
   const dpOpen = dp?.classList.contains('open');
   const dpFull = dp?.classList.contains('dp-fullscreen');
   if (dpOpen) {
