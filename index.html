@@ -1163,18 +1163,21 @@
     transform: translateX(-50%) translateY(0);
   }
 
-  /* SMART NOTIFICATION TOAST — desktop: embedded in panel, pushes venue list down */
-  #notif-toast-wrap {
-    flex-shrink: 0;
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.35s ease, opacity 0.3s ease;
-    opacity: 0;
-    padding: 0 10px;
-  }
-  #notif-toast-wrap.show {
-    max-height: 80px;
-    opacity: 1;
+  /* SMART NOTIFICATION TOAST — desktop only: embedded in panel, pushes venue list down.
+     On mobile, #notif-toast-wrap is position:fixed (set in @media max-width:639px above). */
+  @media (min-width: 640px) {
+    #notif-toast-wrap {
+      flex-shrink: 0;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.35s ease, opacity 0.3s ease;
+      opacity: 0;
+      padding: 0 10px;
+    }
+    #notif-toast-wrap.show {
+      max-height: 80px;
+      opacity: 1;
+    }
   }
   #notif-toast {
     display: flex;
@@ -2399,7 +2402,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 14px 0 8px;
+      padding: 14px 0 4px;
       flex-shrink: 0;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
