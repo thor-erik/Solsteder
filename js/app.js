@@ -1050,7 +1050,6 @@ function setActiveIntentBtn(intent) {
 }
 
 function setIntent(intent) {
-  _aTrack('intent_set', { intent });
   setActiveIntentBtn(intent);
   _currentPreset = null;
   if (intent === 'now') {
@@ -1813,7 +1812,7 @@ function _syncQcPanelHeightExpanded() {
   // --qc-panel-h only needs to be large enough for the transition to open fully;
   // the panel shrinks to content height because overflow:hidden clips to natural height.
   qcPanel.classList.add('cal-expanded');
-  qcPanel.style.setProperty('--qc-panel-h', '520px');
+  qcPanel.style.setProperty('--qc-panel-h', '460px');
 }
 
 function selectQcDate(dateStr) {
@@ -3413,6 +3412,60 @@ function _sdPickGeo(idx) {
   renderList();
 }
 
+// ── Search normalization & fuzzy matching ────────────────────────────────────
+
+// Common Oslo spelling variants: query form → canonical form used in venue data
+const _ALIASES = {
+  'majorstua':    'majorstuen',
+  'bogstadveien': 'majorstuen',
+  'grunerløkka':  'grünerløkka',
+  'grunerløka':   'grünerløkka',
+  'grunerlokka':  'grünerløkka',
+  'gronland':     'grønland',
+  'toyen':        'tøyen',
+  'skoyen':       'skøyen',
+  'briskeby':     'frogner',
+  'st hanshaugen':'st. hanshaugen',
+  'st.hanshaugen':'st. hanshaugen',
+  'vulkan':       'grünerløkka',
+  'mathallen':    'grünerløkka',
+  'bjørvika':     'sentrum',
+  'bjorvik':      'sentrum',
+  'bjørvika':     'sentrum',
+  'youngstorget': 'sentrum',
+  'karl johan':   'sentrum',
+  'akerbrygge':   'aker brygge',
+  'tjuvholmen':   'frogner',
+};
+
+/** Strip diacritics (ü→u, ø→o, å→a, é→e) for comparison */
+function _stripDiacritics(s) {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+/** Resolve a query to its canonical area name if it's a known alias */
+function _resolveAlias(q) {
+  return _ALIASES[q] || _ALIASES[_stripDiacritics(q)] || null;
+}
+
+/** Damerau-Levenshtein distance (transpositions, insertions, deletions, substitutions) */
+function _editDistance(a, b) {
+  const la = a.length, lb = b.length;
+  if (Math.abs(la - lb) > 2) return 3; // fast bail
+  const d = Array.from({ length: la + 1 }, () => new Array(lb + 1));
+  for (let i = 0; i <= la; i++) d[i][0] = i;
+  for (let j = 0; j <= lb; j++) d[0][j] = j;
+  for (let i = 1; i <= la; i++) {
+    for (let j = 1; j <= lb; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost);
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1])
+        d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + cost);
+    }
+  }
+  return d[la][lb];
+}
+
 // ── Search relevance scoring ─────────────────────────────────────────────────
 
 /**
@@ -3422,12 +3475,39 @@ function _sdPickGeo(idx) {
  *    80  text starts with q
  *    60  word inside text starts with q
  *    40  q appears anywhere inside text (contains)
+ *    30  fuzzy match (edit distance ≤ 1 for short, ≤ 2 for longer queries)
+ *
+ * Also tries diacritics-stripped comparison (grunerløkka ↔ grünerløkka).
  */
 function _matchScore(text, q) {
   if (!text) return 0;
+  // Exact / prefix / contains on raw text
+  const raw = _rawMatchScore(text, q);
+  if (raw > 0) return raw;
+  // Try again with diacritics stripped (ü→u, ø→o, å→a)
+  const tNorm = _stripDiacritics(text), qNorm = _stripDiacritics(q);
+  if (tNorm !== text || qNorm !== q) {
+    const norm = _rawMatchScore(tNorm, qNorm);
+    if (norm > 0) return norm;
+  }
+  // Fuzzy: short queries (≥3 chars) tolerate 1 edit, longer (≥5) tolerate 2
+  if (q.length >= 3) {
+    const maxDist = q.length >= 5 ? 2 : 1;
+    // Check against whole text or individual words
+    const words = text.split(/[\s,\-]+/);
+    for (const w of words) {
+      if (Math.abs(w.length - q.length) > maxDist) continue;
+      if (_editDistance(w, q) <= maxDist) return 30;
+      // Also try diacritics-stripped
+      if (_editDistance(_stripDiacritics(w), qNorm) <= maxDist) return 30;
+    }
+  }
+  return 0;
+}
+
+function _rawMatchScore(text, q) {
   if (text === q)               return 100;
   if (text.startsWith(q))       return 80;
-  // word-boundary: space, hyphen, comma before q
   if (text.match(new RegExp(`[\\s,\\-]${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`))) return 60;
   if (text.includes(q))         return 40;
   return 0;
@@ -3476,9 +3556,18 @@ function _renderSearchDropdown(geoOnly) {
 
   // 1. Our own area index (e.g. "Frogner", "Grünerløkka")
   //    These get a +10 bonus so an exact area match always wins.
+  const aliasTarget = _resolveAlias(q);
+  const matchedAreaNames = new Set();
   for (const area of _areaIndex) {
-    const s = _matchScore(area.name.toLowerCase(), q);
-    if (s > 0) scored.push({ kind: 'area', score: s + 10, data: area });
+    const aLow = area.name.toLowerCase();
+    // Direct alias hit gets near-exact score
+    if (aliasTarget && aLow === aliasTarget) {
+      scored.push({ kind: 'area', score: 100 + 10, data: area });
+      matchedAreaNames.add(aLow);
+      continue;
+    }
+    const s = _matchScore(aLow, q);
+    if (s > 0) { scored.push({ kind: 'area', score: s + 10, data: area }); matchedAreaNames.add(aLow); }
   }
 
   // 2. Curated venues
