@@ -795,7 +795,7 @@ function _notifInit() {
   _notifEvalTimer = setInterval(_notifEvaluate, _NOTIF_EVAL_INTERVAL);
 
   // Initial evaluation after a longer delay — let the user get acquainted with the UI first
-  setTimeout(_notifEvaluate, 5000);
+  setTimeout(_notifEvaluate, 8000);
 }
 
 // Track onboarding seen counts when shown
