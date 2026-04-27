@@ -1688,7 +1688,7 @@
   }
 
   /* Weather segments — flat by default, track clips outer edges */
-  .venue-card .wx {
+  .timeline-track .wx {
     position: absolute;
     top: 0;
     bottom: 0;
@@ -1696,12 +1696,9 @@
   }
 
   /* Shadow boundary caps — rounded ends at shadow gap edges */
-  .venue-card .cap-l         { border-radius: 4px 0 0 4px; }
-  .venue-card .cap-r         { border-radius: 0 4px 4px 0; }
-  .venue-card .cap-l.cap-r   { border-radius: 4px; }
-
-  /* Shadow gap treatment — at 8px tall, drop-shadows are too heavy.
-     The gap itself (empty track bg) is sufficient to communicate the break. */
+  .timeline-track .cap-l         { border-radius: 4px 0 0 4px; }
+  .timeline-track .cap-r         { border-radius: 0 4px 4px 0; }
+  .timeline-track .cap-l.cap-r   { border-radius: 4px; }
 
   /* Now marker — clean white hairline */
   .venue-card .tl-now {
@@ -4397,11 +4394,11 @@
     color: var(--accent);
   }
 
-  /* Detail panel timeline — reuses venue card tl-track/tl-sun-seg/tl-needle */
+  /* Detail panel timeline — reuses venue card timeline-track/wx segments */
   .dp-timeline {
     margin-bottom: 6px;
   }
-  .dp-timeline .tl-track {
+  .dp-timeline .timeline-track {
     height: 8px;
     border-radius: 4px;
   }

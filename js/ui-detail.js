@@ -613,15 +613,47 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
   // Directions CTA label
   const dirLabel = walkTime ? `${dirIcon} ${walkTime}` : `${dirIcon}`;
 
-  // Build timeline using same style as venue cards
+  // Build timeline with weather-ramp colors (matches venue card timelines)
   const { open, close } = hours;
   const tlSpan = close - open;
   const tlPct = h => ((Math.max(open, Math.min(close, h)) - open) / tlSpan * 100).toFixed(2);
   let tlSegs = '';
   if (tlSpan > 0) {
-    for (const w of windows) {
-      const l = tlPct(w.start), r = tlPct(w.end);
-      tlSegs += `<div class="tl-sun-seg" style="left:${l}%;width:${(parseFloat(r)-parseFloat(l)).toFixed(2)}%"></div>`;
+    // Build weather-colored runs per hour within each sun window
+    const tlRuns = [];
+    const tlGaps = [];
+    for (let wi = 0; wi < windows.length; wi++) {
+      const w = windows[wi];
+      const wS = Math.max(w.start, open);
+      const wE = Math.min(w.end, close);
+      if (wE <= wS) continue;
+      for (let h = Math.floor(wS); h < Math.ceil(wE); h++) {
+        const segS = Math.max(wS, h), segE = Math.min(wE, h + 1);
+        if (segE <= segS + 0.001) continue;
+        const wx = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, h) : null;
+        const color = wxTimelineColor(wx?.cloud ?? 0, wx?.precip ?? 0);
+        if (tlRuns.length && tlRuns[tlRuns.length - 1].color === color && tlRuns[tlRuns.length - 1].winIdx === wi) {
+          tlRuns[tlRuns.length - 1].end = segE;
+        } else {
+          tlRuns.push({ start: segS, end: segE, color, winIdx: wi });
+        }
+      }
+    }
+    for (let i = 0; i < windows.length - 1; i++) {
+      if (windows[i + 1].start > windows[i].end + 0.01)
+        tlGaps.push({ start: windows[i].end, end: windows[i + 1].start });
+    }
+    for (let i = 0; i < tlRuns.length; i++) {
+      const r = tlRuns[i];
+      const left = tlPct(r.start), width = (parseFloat(tlPct(r.end)) - parseFloat(left)).toFixed(2);
+      if (parseFloat(width) < 0.1) continue;
+      const isFirst = i === 0, isLast = i === tlRuns.length - 1;
+      const touchesGapR = tlGaps.some(g => Math.abs(g.start - r.end) < 0.05);
+      const touchesGapL = tlGaps.some(g => Math.abs(g.end - r.start) < 0.05);
+      let cls = 'wx';
+      if (isFirst || touchesGapL) cls += ' cap-l';
+      if (isLast  || touchesGapR) cls += ' cap-r';
+      tlSegs += `<div class="${cls}" style="left:${left}%;width:${width}%;background:${r.color}"></div>`;
     }
   }
   const tlNeedle = (fromHour >= open && fromHour <= close)
@@ -646,7 +678,7 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       <div class="sun-section">
         <div class="sun-section-main">${sunHeadline}</div>
         <div class="dp-timeline">
-          <div class="tl-track">${tlSegs}${tlNeedle}</div>
+          <div class="timeline-track">${tlSegs}${tlNeedle}</div>
         </div>
         <div class="dp-timeline-labels">
           <span>${formatHour(open)}</span>
