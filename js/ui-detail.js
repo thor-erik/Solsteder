@@ -601,17 +601,17 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
   const _alertActive = typeof hasSunAlert === 'function' && hasSunAlert(v.id);
   const heartBtn = `<button class="dp-header-icon${_favActive ? ' active' : ''}" onclick="toggleFavorite(${v.id}, event)" title="${typeof t === 'function' ? t('favorites') : 'Favoritt'}">
     ${_favActive
-      ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="var(--accent)" stroke="var(--accent)" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>`
-      : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>`}
+      ? `<svg width="22" height="22" viewBox="0 0 24 24" fill="var(--accent)" stroke="var(--accent)" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>`
+      : `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>`}
   </button>`;
   const bellBtn = `<button class="dp-header-icon${_alertActive ? ' active' : ''}" onclick="toggleSunAlert(${v.id}, event)" title="${typeof t === 'function' ? t('sun_alert_label') : 'Sol-varsel'}">
     ${_alertActive
-      ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="var(--accent)" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`
-      : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`}
+      ? `<svg width="22" height="22" viewBox="0 0 24 24" fill="var(--accent)" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`
+      : `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`}
   </button>`;
 
-  // Directions CTA label
-  const dirLabel = walkTime ? `${dirIcon} ${walkTime}` : `${dirIcon}`;
+  // Directions CTA label — always include text for a wider, tappable button
+  const dirLabel = walkTime ? `${dirIcon} ${t('directions')} · ${walkTime}` : `${dirIcon} ${t('directions')}`;
 
   // Build timeline with weather-ramp colors (matches venue card timelines)
   const { open, close } = hours;
@@ -745,8 +745,8 @@ function _renderSocialSection(v) {
   }
 
   const inviteSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>`;
-  const checkSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
-  const pinSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>`;
+  // Beacon icon: dot with signal arcs
+  const beaconSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M5.64 5.64a9 9 0 0 0 0 12.73"/><path d="M18.36 5.64a9 9 0 0 1 0 12.73"/><path d="M8.46 8.46a5 5 0 0 0 0 7.08"/><path d="M15.54 8.46a5 5 0 0 1 0 7.08"/></svg>`;
 
   return `
     <div class="social-card">
@@ -756,15 +756,10 @@ function _renderSocialSection(v) {
           ${inviteSvg}
           <span>${t('invite_friends')}</span>
         </button>
-        ${isCheckedInHere
-          ? `<button class="social-btn social-btn-here social-btn-active" onclick="_toggleCheckin(${v.id})">
-              ${checkSvg}
-              <span>${t('im_here')}</span>
-            </button>`
-          : `<button class="social-btn social-btn-here" onclick="_toggleCheckin(${v.id})">
-              ${pinSvg}
-              <span>${t('im_here')}</span>
-            </button>`}
+        <button class="social-btn social-btn-here${isCheckedInHere ? ' social-btn-active' : ''}" onclick="_toggleCheckin(${v.id})">
+          ${beaconSvg}
+          <span>${t('im_here')}</span>
+        </button>
       </div>
       ${plansHtml}
     </div>`;
@@ -789,14 +784,22 @@ async function _toggleCheckin(venueId) {
 
 // ── Invite sheet (half-screen overlay) ───────────────────────────────────────
 
-/** Format a date string + hour into a readable label like "søn 27. apr, 17:30". */
-function _fmtInviteTime(dateStr, hour) {
+/** Format a date string + hour into a readable date label like "søn 27. apr". */
+function _fmtInviteDate(dateStr) {
+  const lang = typeof prefLang === 'function' ? prefLang() : 'no';
+  const locale = { en: 'en-GB', no: 'nb-NO', se: 'sv-SE', dk: 'da-DK' }[lang] || 'nb-NO';
   const d = new Date(dateStr + 'T12:00:00');
-  const day = d.toLocaleDateString('nb-NO', { weekday: 'short', day: 'numeric', month: 'short' });
-  return `${day}, ${formatHour(hour)}`;
+  return d.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
-/** Open the invite sheet — compact overlay that reads time from the existing slider. */
+/** Build the confirmation sentence for the invite. */
+function _fmtInviteConfirm(venueName, dateStr, hour) {
+  const dateLabel = _fmtInviteDate(dateStr);
+  const timeLabel = typeof formatHour === 'function' ? formatHour(hour) : `${Math.floor(hour)}:${String(Math.round((hour % 1) * 60)).padStart(2, '0')}`;
+  return t('invite_confirm', { venue: venueName, date: dateLabel, time: timeLabel });
+}
+
+/** Open the invite sheet — compact overlay with inline date/time controls. */
 function _openInviteSheet(venueId) {
   if (typeof authCurrentUser === 'function' && !authCurrentUser()) {
     if (typeof toggleProfilePanel === 'function') toggleProfilePanel();
@@ -824,8 +827,9 @@ function _openInviteSheet(venueId) {
 
   const shareSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>`;
   const sendSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2 11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`;
+  const calSvg = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1.5" y="3" width="13" height="11.5" rx="2" stroke="currentColor" stroke-width="1.5"/><line x1="5" y1="1.5" x2="5" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="11" y1="1.5" x2="11" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`;
 
-  // Read current time from the slider
+  // Read current time from the main slider
   const curDate = typeof datePicker !== 'undefined' ? datePicker.value : new Date().toISOString().slice(0, 10);
   const curHour = typeof timeFromEl !== 'undefined' ? parseFloat(timeFromEl.value) : new Date().getHours();
 
@@ -844,29 +848,37 @@ function _openInviteSheet(venueId) {
         <div class="invite-sheet-title">${t('invite_friends')}</div>
         <div class="invite-sheet-venue">${venueName}</div>
       </div>
-      <button class="invite-sheet-close" onclick="_closeInviteSheet()" aria-label="Lukk">
+      <button class="invite-sheet-close" onclick="_closeInviteSheet()" aria-label="Close">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/></svg>
       </button>
     </div>
     <div class="invite-sheet-body">
-      <div class="invite-time-display">
-        <div class="invite-time-value" id="invite-time-label">${_fmtInviteTime(curDate, curHour)}</div>
-        <div class="invite-time-hint">${t('invite_time_hint')}</div>
+      <div class="invite-confirm-text" id="invite-confirm-label">${_fmtInviteConfirm(venueName, curDate, curHour)}</div>
+      <div class="invite-time-controls">
+        <button class="invite-date-btn" id="invite-date-btn">
+          ${calSvg}
+          <span id="invite-date-label">${_fmtInviteDate(curDate)}</span>
+        </button>
+        <div class="invite-slider-wrap">
+          <input type="range" id="invite-time-slider" min="6" max="23" step="0.25" value="${curHour}" class="invite-time-range">
+          <span class="invite-time-readout" id="invite-time-readout">${typeof formatHour === 'function' ? formatHour(curHour) : ''}</span>
+        </div>
       </div>
+      <div class="invite-time-hint">${t('invite_time_hint')}</div>
       ${hasFriends ? `
         <div class="invite-friends-list">
           ${friendRows}
         </div>` : ''}
-      <button class="invite-share-link" onclick="_shareInviteLink(${venueId})">
-        ${shareSvg}
-        <span>${t('share_link')}</span>
-      </button>
     </div>
     <div class="invite-sheet-footer">
       ${hasFriends ? `
         <button class="invite-send-btn" onclick="_sendInvite(${venueId})">
           ${sendSvg}
           <span>${t('send_invite')}</span>
+        </button>
+        <button class="invite-share-link" onclick="_shareInviteLink(${venueId})">
+          ${shareSvg}
+          <span>${t('share_link')}</span>
         </button>` : `
         <button class="invite-send-btn" onclick="_shareInviteLink(${venueId})">
           ${shareSvg}
@@ -877,34 +889,46 @@ function _openInviteSheet(venueId) {
   overlay.appendChild(sheet);
   document.body.appendChild(overlay);
 
+  // Wire up inline date picker
+  const inviteDateBtn = sheet.querySelector('#invite-date-btn');
+  const _inviteDateInput = document.createElement('input');
+  _inviteDateInput.type = 'date';
+  _inviteDateInput.value = curDate;
+  _inviteDateInput.style.cssText = 'position:absolute;opacity:0;width:0;height:0;pointer-events:none;';
+  inviteDateBtn.appendChild(_inviteDateInput);
+  inviteDateBtn.onclick = () => _inviteDateInput.showPicker?.() || _inviteDateInput.click();
+  _inviteDateInput.addEventListener('change', () => {
+    const dateLbl = sheet.querySelector('#invite-date-label');
+    if (dateLbl) dateLbl.textContent = _fmtInviteDate(_inviteDateInput.value);
+    _updateInviteConfirm();
+  });
+
+  // Wire up inline time slider
+  const inviteSlider = sheet.querySelector('#invite-time-slider');
+  const inviteReadout = sheet.querySelector('#invite-time-readout');
+  inviteSlider.addEventListener('input', () => {
+    const h = parseFloat(inviteSlider.value);
+    if (inviteReadout && typeof formatHour === 'function') inviteReadout.textContent = formatHour(h);
+    _updateInviteConfirm();
+  });
+
+  // Store venue name for confirm updates
+  sheet._venueName = venueName;
+
+  function _updateInviteConfirm() {
+    const lbl = sheet.querySelector('#invite-confirm-label');
+    if (lbl) {
+      const d = _inviteDateInput.value;
+      const h = parseFloat(inviteSlider.value);
+      lbl.textContent = _fmtInviteConfirm(sheet._venueName, d, h);
+    }
+  }
+
   // Animate in
   requestAnimationFrame(() => {
     overlay.classList.add('open');
     sheet.classList.add('open');
   });
-
-  // Listen for slider changes to update the time display live
-  const _onSliderInput = () => {
-    const lbl = document.getElementById('invite-time-label');
-    if (lbl) {
-      const d = typeof datePicker !== 'undefined' ? datePicker.value : curDate;
-      const h = typeof timeFromEl !== 'undefined' ? parseFloat(timeFromEl.value) : curHour;
-      lbl.textContent = _fmtInviteTime(d, h);
-    }
-  };
-  if (typeof timeFromEl !== 'undefined') {
-    timeFromEl.addEventListener('input', _onSliderInput);
-    sheet._sliderCleanup = () => timeFromEl.removeEventListener('input', _onSliderInput);
-  }
-  // Also listen for date changes
-  if (typeof datePicker !== 'undefined') {
-    datePicker.addEventListener('change', _onSliderInput);
-    const origCleanup = sheet._sliderCleanup;
-    sheet._sliderCleanup = () => {
-      if (origCleanup) origCleanup();
-      datePicker.removeEventListener('change', _onSliderInput);
-    };
-  }
 }
 
 function _closeInviteSheet() {
@@ -921,9 +945,17 @@ function _closeInviteSheet() {
 }
 
 /** Send invite to selected friends (or broadcast to all if none selected). */
+/** Read invite sheet's own date/time controls, falling back to main slider. */
+function _getInviteDateTime() {
+  const dateInput = document.querySelector('#invite-sheet .invite-date-btn input[type="date"]');
+  const slider = document.getElementById('invite-time-slider');
+  const d = dateInput ? dateInput.value : (typeof datePicker !== 'undefined' ? datePicker.value : new Date().toISOString().slice(0, 10));
+  const h = slider ? parseFloat(slider.value) : (typeof timeFromEl !== 'undefined' ? parseFloat(timeFromEl.value) : new Date().getHours());
+  return { d, h };
+}
+
 async function _sendInvite(venueId) {
-  const d = typeof datePicker !== 'undefined' ? datePicker.value : new Date().toISOString().slice(0, 10);
-  const h = typeof timeFromEl !== 'undefined' ? parseFloat(timeFromEl.value) : new Date().getHours();
+  const { d, h } = _getInviteDateTime();
   const hInt = Math.floor(h);
   const mInt = Math.round((h - hInt) * 60);
   const isoTime = new Date(`${d}T${String(hInt).padStart(2,'0')}:${String(mInt).padStart(2,'0')}:00`).toISOString();
@@ -941,8 +973,7 @@ async function _sendInvite(venueId) {
 
 /** Share an invite link via native share or clipboard. */
 function _shareInviteLink(venueId) {
-  const d = typeof datePicker !== 'undefined' ? datePicker.value : new Date().toISOString().slice(0, 10);
-  const h = typeof timeFromEl !== 'undefined' ? parseFloat(timeFromEl.value) : new Date().getHours();
+  const { d, h } = _getInviteDateTime();
   const hInt = Math.floor(h);
   const mInt = Math.round((h - hInt) * 60);
   const timeVal = `${d}T${String(hInt).padStart(2,'0')}:${String(mInt).padStart(2,'0')}`;

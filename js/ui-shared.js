@@ -44,25 +44,25 @@ function venueState(venue, selectedTime) {
   const isOvercast = !isRainy && (wx?.cloud ?? 0) >= 0.85;
 
   if (isRainy || isOvercast) {
-    const mainText = isRainy ? 'Regn nå' : 'Overskyet';
+    const mainText = isRainy ? t('state_rain_now') : t('state_overcast');
     // Check if any sun window starts after now (geometry-wise)
     const futureSun = windows.find(w => w.start > fromHour);
     if (futureSun) {
-      return { state: 'rain', mainText, subText: `sol fra ${formatHour(futureSun.start)}`, className: 'state-rain' };
+      return { state: 'rain', mainText, subText: t('state_sun_from', { time: formatHour(futureSun.start) }), className: 'state-rain' };
     }
     // Currently in a sun window but rain overrides, or all sun passed
     const remaining = windows.find(w => w.end > fromHour);
     if (remaining) {
-      return { state: 'rain', mainText, subText: `sol til ${formatHour(remaining.end)}`, className: 'state-rain' };
+      return { state: 'rain', mainText, subText: t('state_sun_to', { time: formatHour(remaining.end) }), className: 'state-rain' };
     }
-    return { state: 'rain', mainText, subText: 'ingen sol i dag', className: 'state-rain' };
+    return { state: 'rain', mainText, subText: t('state_no_sun_today'), className: 'state-rain' };
   }
 
   if (currentWindow) {
     // In sun now — primary: end time, secondary: remaining duration
     const remaining = Math.max(5/60, currentWindow.end - fromHour);
-    const mainText = `Sol til ${formatHour(currentWindow.end)}`;
-    const subText = `${formatDuration(remaining)} igjen`;
+    const mainText = t('state_sun_until_big', { time: formatHour(currentWindow.end) });
+    const subText = t('state_time_left', { duration: formatDuration(remaining) });
     return { state: 'sun', mainText, subText, className: 'state-sun' };
   }
 
@@ -71,22 +71,22 @@ function venueState(venue, selectedTime) {
     const prevWindow = [...windows].reverse().find(w => w.end <= fromHour);
     if (prevWindow) {
       // Between windows — building shadow interrupted sun
-      const mainText = 'I skygge nå';
-      const subText = `sol igjen ${formatHour(nextWindow.start)}`;
+      const mainText = t('state_in_shadow');
+      const subText = t('state_sun_again', { time: formatHour(nextWindow.start) });
       return { state: 'shadow', mainText, subText, className: 'state-shadow' };
     }
     // Sun hasn't arrived yet today
     const timeUntil = Math.max(8/60, nextWindow.start - fromHour);
-    const mainText = `Om ${formatDuration(timeUntil)}`;
-    const subText = `til ${formatHour(lastWindow.end)}`;
+    const mainText = t('state_sun_in', { duration: formatDuration(timeUntil) });
+    const subText = t('state_sun_until', { time: formatHour(lastWindow.end) });
     return { state: 'shadow', mainText, subText, className: 'state-shadow' };
   }
 
   // Done: no more sun today
   return {
     state: 'done',
-    mainText: 'Ingen mer sol',
-    subText: `sist sol ${formatHour(lastWindow.end)}`,
+    mainText: t('state_no_more_sun'),
+    subText: t('state_last_sun', { time: formatHour(lastWindow.end) }),
     className: 'state-done'
   };
 }
@@ -228,7 +228,7 @@ function getMapsIcon(type) {
 
     share: `<svg viewBox="${viewBox}" width="24" height="24" fill="none" stroke="currentColor" stroke-width="${strokeW}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M 15.88 6.12 L 8.12 10.88"/><path d="M 15.88 17.88 L 8.12 13.12"/></svg>`,
 
-    directions: `<svg viewBox="${viewBox}" width="24" height="24" fill="none" stroke="currentColor" stroke-width="${strokeW}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="3"/><path d="M 12 8 L 7 18 L 12 16 L 17 18 Z"/></svg>`,
+    directions: `<svg viewBox="${viewBox}" width="24" height="24" fill="none" stroke="currentColor" stroke-width="${strokeW}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.41 2.59a2 2 0 0 0-2.82 0L2.59 10.59a2 2 0 0 0 0 2.82l8 8a2 2 0 0 0 2.82 0l8-8a2 2 0 0 0 0-2.82Z"/><path d="M 8 12 L 12 8 L 16 12"/><path d="M 12 8 L 12 16"/></svg>`,
 
     beer: `<svg viewBox="${viewBox}" width="24" height="24" fill="none" stroke="currentColor" stroke-width="${strokeW}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M 7 4 L 7 18 Q 7 20 9 20 L 15 20 Q 17 20 17 18 L 17 4 Z"/><path d="M 17 7 L 19 7 Q 21 7 21 9 L 21 13 Q 21 15 19 15 L 17 15"/><path d="M 7 10 L 17 10"/></svg>`,
   };

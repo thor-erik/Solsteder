@@ -37,10 +37,8 @@ function buildMiniSunTimeline(v, dateStr, fromHour) {
   const START_H = 6, END_H = 22, RANGE = END_H - START_H;
   const pct = h => Math.max(0, Math.min(100, ((h - START_H) / RANGE) * 100));
 
-  // "Now" position based on wall-clock time
-  const now = new Date();
-  const nowHour = now.getHours() + now.getMinutes() / 60;
-  const nowPos = pct(nowHour);
+  // Needle position: follows the time slider, not wall-clock
+  const nowPos = pct(fromHour);
 
   // Build weather-colored segments per hour within each sun window
   // Each hour-block gets its own weather color; consecutive same-color blocks merge
