@@ -3520,10 +3520,12 @@ function _rawMatchScore(text, q) {
  */
 function _venueMatchDetail(v, q) {
   const nameS = _matchScore(v.name.toLowerCase(), q);
-  const areaS = _matchScore((v.area ?? '').toLowerCase(), q);
+  let   areaS = _matchScore((v.area ?? '').toLowerCase(), q);
   const addrS = _matchScore((v.address ?? '').toLowerCase(), q);
+  // Alias boost: "majorstua" → matches venues in "Majorstuen"
+  const alias = _resolveAlias(q);
+  if (alias && (v.area ?? '').toLowerCase() === alias) areaS = Math.max(areaS, 90);
   const best  = Math.max(nameS, areaS, addrS);
-  // Determine which field was the primary match
   let matchedField = 'name';
   if (best === addrS && addrS > nameS) matchedField = 'address';
   else if (best === areaS && areaS > nameS) matchedField = 'area';

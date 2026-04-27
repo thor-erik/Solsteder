@@ -892,7 +892,7 @@
     grid-column: 1 / -1;
     font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 700;
     color: rgba(156,189,231,0.55); text-transform: uppercase; letter-spacing: 0.09em;
-    padding: 8px 2px 4px;
+    padding: 4px 2px 2px;
   }
   /* Month grid — 7-column day grid, consistent cell sizing */
   .dc-month-grid { grid-auto-rows: 44px; }
@@ -3638,8 +3638,8 @@
     transition: left 0.28s ease;
   }
   #ptb-cal-float.open { display: block; }
-  /* Close button — hidden on desktop (calendar dismisses via click-outside), shown on mobile */
-  #ptb-cal-close {
+  /* Header + close button — hidden on desktop, shown on mobile */
+  #ptb-cal-header {
     display: none;
   }
 
@@ -3677,19 +3677,27 @@
       opacity: 1;
       pointer-events: auto;
     }
-    /* Close button — visible on mobile */
-    #ptb-cal-close {
+    /* Header row: title + close button — visible on mobile */
+    #ptb-cal-header {
       display: flex;
-      position: sticky;
-      top: 0;
-      z-index: 2;
-      align-self: flex-end;
-      margin: 16px 0 8px auto;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 0 10px;
+      flex-shrink: 0;
+    }
+    #ptb-cal-title {
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    #ptb-cal-close {
       background: rgba(156,189,231,0.12);
       border: none;
       border-radius: 50%;
-      width: 32px;
-      height: 32px;
+      width: 28px;
+      height: 28px;
+      display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
@@ -3812,7 +3820,7 @@
   #qc-cal { flex: 1; min-height: 0; display: flex; flex-direction: column; width: 100%; box-sizing: border-box; overflow: clip; }
   #qc-panel.cal-expanded #qc-cal { overflow: clip; flex: 1; }
   #qc-cal .dc-cal-scroll {
-    height: 260px; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    height: 360px; overflow-y: auto; -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     /* Soft bottom fade hints at more content without eating into the last row of tiles. */
     mask-image: linear-gradient(to bottom, black 96%, transparent 100%);
@@ -5435,9 +5443,12 @@
   <!-- Calendar float — positioned above the panel, opened by the date button in panel-time-bar.
        Lives OUTSIDE #panel so it escapes the panel's transform context. -->
   <div id="ptb-cal-float" role="dialog" aria-modal="true" aria-label="Velg dato">
-    <button id="ptb-cal-close" onclick="_closeQcPanel()" aria-label="Lukk">
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/></svg>
-    </button>
+    <div id="ptb-cal-header">
+      <span id="ptb-cal-title">Velg dato</span>
+      <button id="ptb-cal-close" onclick="_closeQcPanel()" aria-label="Lukk">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/></svg>
+      </button>
+    </div>
     <div id="qc-panel">
       <div id="qc-panel-inner">
         <div id="qc-date-section">
