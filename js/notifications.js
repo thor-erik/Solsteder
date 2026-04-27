@@ -463,6 +463,7 @@ function _evalFriendPlanning() {
 // ── Evaluators: P2 Suggestions ───────────────────────────────────────────────
 
 function _evalMorningCoffee() {
+  if (typeof datePicker === 'undefined' || datePicker.value !== todayStr()) return null;
   const now = currentHour();
   if (now >= 11 || now < 7) return null; // only 7-11
   if (typeof currentSun === 'undefined' || !currentSun || currentSun.alt <= 0) return null;
@@ -475,6 +476,7 @@ function _evalMorningCoffee() {
 }
 
 function _evalLunchBreak() {
+  if (typeof datePicker === 'undefined' || datePicker.value !== todayStr()) return null;
   const now = currentHour();
   if (now < 11 || now > 13) return null;
   const day = new Date().getDay();
@@ -495,6 +497,7 @@ function _evalLunchBreak() {
 }
 
 function _evalAfterWork() {
+  if (typeof datePicker === 'undefined' || datePicker.value !== todayStr()) return null;
   const now = currentHour();
   if (now < 15 || now > 17) return null;
   const day = new Date().getDay();
