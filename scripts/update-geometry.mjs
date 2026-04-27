@@ -447,9 +447,65 @@ async function main() {
     };
   }
 
+  // ── Compact format (v3): deduplicate buildings, use short keys + arrays ─────
+  // Buildings are stored in a shared pool; venues reference them by index.
+  // Coordinates use flat [lat,lon] arrays instead of {lat:..., lon:...} objects.
+  // This reduces geometry.json from ~4.2MB to ~1.2MB raw, ~226KB gzipped.
+  const buildingPool = [];
+  const buildingIndex = new Map(); // "lat,lon,lat,lon,...|height" → pool index
+
+  function internBuilding(b) {
+    const key = b.geometry.map(p => `${r5(p.lat)},${r5(p.lon)}`).join(',') + '|' + r1(b.height);
+    if (buildingIndex.has(key)) return buildingIndex.get(key);
+    const idx = buildingPool.length;
+    const flat = [];
+    for (const p of b.geometry) flat.push(r5(p.lat), r5(p.lon));
+    flat.push(r1(b.height));
+    buildingPool.push(flat);
+    buildingIndex.set(key, idx);
+    return idx;
+  }
+
+  function r5(n) { return Math.round(n * 1e5) / 1e5; }
+  function r1(n) { return Math.round(n * 10) / 10; }
+
+  const compact = { v: 3, b: buildingPool, venues: {} };
+  for (const [id, g] of Object.entries(output.venues)) {
+    const cv = {};
+    if (g.facing != null)       cv.f  = r1(g.facing);
+    if (g.facingSource)         cv.fs = g.facingSource;
+    if (g.autoTerraceDepth != null) cv.td = r1(g.autoTerraceDepth);
+    if (g.autoTerraceWallIndices)   cv.tw = g.autoTerraceWallIndices;
+
+    if (g.wallSegment) {
+      const w = g.wallSegment;
+      cv.ws = [r5(w.startLat ?? w.aLat), r5(w.startLng ?? w.aLng),
+               r5(w.endLat ?? w.bLat), r5(w.endLng ?? w.bLng),
+               r1(w.normalBearing ?? w.bearing)];
+    }
+    if (g.buildingGeometry) {
+      cv.bg = g.buildingGeometry.map(p => [r5(p.lat), r5(p.lon)]);
+    }
+    if (g.nearbyBuildings?.length) {
+      cv.nb = g.nearbyBuildings.map(internBuilding);
+    }
+    if (g.terraceTestPoints?.length) {
+      cv.tp = g.terraceTestPoints.map(p => [r5(p.lat), r5(p.lng)]);
+    }
+    if (g.wallNormals?.length) {
+      cv.wn = g.wallNormals.map(w => [
+        r5(w.startLat ?? w.aLat), r5(w.startLng ?? w.aLng),
+        r5(w.endLat ?? w.bLat), r5(w.endLng ?? w.bLng),
+        r1(w.normalBearing ?? w.bearing),
+      ]);
+    }
+    compact.venues[id] = cv;
+  }
+
   const outPath = join(ROOT, 'data/geometry.json');
-  writeFileSync(outPath, JSON.stringify(output));
-  console.log(`\nWritten ${outPath} (${(JSON.stringify(output).length / 1024).toFixed(1)} KB)`);
+  const compactJson = JSON.stringify(compact);
+  writeFileSync(outPath, compactJson);
+  console.log(`\nWritten ${outPath} (${(compactJson.length / 1024).toFixed(1)} KB, ${buildingPool.length} unique buildings)`);
 }
 
 main().catch(err => {
