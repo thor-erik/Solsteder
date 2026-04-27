@@ -742,4 +742,5 @@ async function initFacings() {
   draw();
   renderList();
   if (typeof updateDetailPanel === 'function') updateDetailPanel();
+  if (typeof _buildAreaIndex === 'function') _buildAreaIndex();
 }
