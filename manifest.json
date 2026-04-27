@@ -1,7 +1,7 @@
 {
-  "name": "Shades — Steder i Solen",
+  "name": "Shades - Din plass i sola",
   "short_name": "Shades",
-  "description": "Solar-optimized venue finder for Oslo",
+  "description": "Hundrevis av uteserveringer. Shades finner den med mest sol. Og vennene dine.",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#FFF2EB",
