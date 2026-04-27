@@ -1257,11 +1257,12 @@ function setSortBy(sort) {
     navigator.geolocation.getCurrentPosition(
       pos => {
         userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        _aTrack('geolocation_grant', { trigger: 'distance_sort' });
         activeSortBy = 'distance';
         updateSortBtns();
         renderList();
       },
-      () => {}
+      () => { _aTrack('geolocation_deny', { trigger: 'distance_sort' }); }
     );
     return;
   }
@@ -3813,6 +3814,7 @@ function _syncSearchClearBtn() {
 }
 
 let _searchListTimer = null;
+let _aSearchTimer = null;
 _searchInput.addEventListener('input', () => {
   _syncSearchClearBtn();
   _googleResults = [];  // clear Google results when query changes
@@ -3821,6 +3823,12 @@ _searchInput.addEventListener('input', () => {
   _renderSearchDropdown();
   clearTimeout(_searchListTimer);
   _searchListTimer = setTimeout(renderList, 300);
+  // Analytics: debounced search tracking (2 s after typing stops)
+  clearTimeout(_aSearchTimer);
+  const q = _searchInput.value.trim();
+  if (q.length >= 2) {
+    _aSearchTimer = setTimeout(() => _aTrack('search', { query: q }), 2000);
+  }
 });
 _searchInput.addEventListener('blur',  () => setTimeout(() => _searchDropdown.classList.remove('open'), 150));
 _searchInput.addEventListener('focus', () => { if (_searchInput.value.trim()) _renderSearchDropdown(); });

@@ -951,7 +951,9 @@ async function toggleFavorite(venueId, evt) {
   if (evt) evt.stopPropagation();
   if (!_currentUser) { toggleProfilePanel(); return; }
   const vid = String(venueId);
-  if (_favoritesSet.has(vid)) {
+  const wasFav = _favoritesSet.has(vid);
+  if (typeof _aTrack === 'function') _aTrack('favorite', { venue_id: venueId, action: wasFav ? 'remove' : 'add' });
+  if (wasFav) {
     _favoritesSet.delete(vid);
     await _supabase.from('favorites').delete()
       .eq('user_id', _currentUser.id).eq('venue_id', vid);
@@ -1320,6 +1322,13 @@ _supabase.auth.onAuthStateChange((event, session) => {
   const wasLoggedIn = !!_currentUser;
   _currentUser = session?.user ?? null;
   _updateUserIndicator();
+  if (!wasLoggedIn && _currentUser && typeof _aTrack === 'function') {
+    const provider = _currentUser.app_metadata?.provider ?? 'unknown';
+    _aTrack(event === 'SIGNED_IN' ? 'login' : 'signup', {
+      provider,
+      method: provider === 'email' ? 'magic_link' : 'oauth',
+    });
+  }
   if (_currentUser) {
     authLoadRole();
     loadFavorites().then(() => { if (typeof renderList === 'function') renderList(); });

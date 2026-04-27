@@ -64,17 +64,13 @@ async function _aFlush() {
 }
 
 // ── Beacon flush on page unload ──────────────────────────────────────────────
+// Uses fetch with keepalive (survives page close, supports auth headers).
+// sendBeacon can't set custom headers so it won't pass Supabase RLS.
 function _aBeacon() {
   if (!_aBuffer.length) return;
   const batch = _aBuffer.splice(0);
-  const url = SUPABASE_URL + '/rest/v1/events';
-  const body = JSON.stringify(batch);
-  navigator.sendBeacon(url + '?', new Blob([body], { type: 'application/json' }));
-  // Note: sendBeacon to Supabase REST requires the anon key as apikey header.
-  // Blob-based sendBeacon doesn't support custom headers, so we use the fetch
-  // keepalive fallback below instead.
   try {
-    fetch(url, {
+    fetch(SUPABASE_URL + '/rest/v1/events', {
       method: 'POST',
       headers: {
         'Content-Type':  'application/json',
@@ -82,7 +78,7 @@ function _aBeacon() {
         'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
         'Prefer':        'return=minimal',
       },
-      body,
+      body: JSON.stringify(batch),
       keepalive: true,
     });
   } catch (_) { /* best-effort */ }
