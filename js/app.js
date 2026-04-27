@@ -2989,6 +2989,7 @@ document.addEventListener('DOMContentLoaded', () => {
         _dpLastFrameY = y;
         dpEl.style.transition = 'none';
       }
+      let _dpFtsEl = null; // cache FTS ref for detail panel drag
       function _trackDpDrag(y) {
         _dpLastFrameY = y;
         // Cancel any pending frame and schedule a new one for smooth 60fps updates
@@ -3005,6 +3006,18 @@ document.addEventListener('DOMContentLoaded', () => {
           } else {
             dpEl.style.height = '';
           }
+
+          // Track FTS pill with detail panel during drag
+          if (USE_FLOATING_TIME_SLIDER) {
+            if (!_dpFtsEl) _dpFtsEl = document.getElementById('fts');
+            if (_dpFtsEl) {
+              const dpTop = dpEl.getBoundingClientRect().top;
+              const viewH = window.innerHeight;
+              _dpFtsEl.style.transition = 'none';
+              _dpFtsEl.style.bottom = (viewH - dpTop + FTS_GAP) + 'px';
+            }
+          }
+
           _dpRafId = null;
         });
       }
@@ -3015,6 +3028,9 @@ document.addEventListener('DOMContentLoaded', () => {
         dpEl.style.transform  = '';
         dpEl.style.height     = '';
         _dpDragging = false;
+        // Restore FTS pill transition after drag
+        if (!_dpFtsEl) _dpFtsEl = document.getElementById('fts');
+        if (_dpFtsEl) { _dpFtsEl.style.transition = ''; _dpFtsEl.style.bottom = ''; }
 
         const dy       = y - _dpY0;
         const dt       = Math.max(1, Date.now() - _dpStartTime);

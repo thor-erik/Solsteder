@@ -563,7 +563,7 @@
     -webkit-backdrop-filter: var(--glass-blur-action);
     border: var(--glass-border);
     box-shadow: var(--glass-inset), 0 6px 20px rgba(0,0,0,0.25);
-    transition: left 0.28s ease, width 0.28s ease, bottom 0.45s cubic-bezier(0.2, 0.8, 0.3, 1);
+    transition: left 0.28s ease, width 0.28s ease, bottom 0.35s cubic-bezier(0.25, 0.9, 0.4, 1);
     will-change: left, bottom;
   }
 
@@ -2263,13 +2263,13 @@
       left: 12px; right: 12px;
       width: auto;
       bottom: var(--fts-bottom, 160px);
-      transition: bottom 0.45s cubic-bezier(0.2, 0.8, 0.3, 1);
+      transition: bottom 0.35s cubic-bezier(0.25, 0.9, 0.4, 1);
       will-change: bottom;
     }
 
     /* Locate button: sit above the floating pill (or above peek strip if no FTS) */
     #locate-btn { bottom: calc(var(--peek-h, 252px) + 14px); right: 12px; }
-    body.fts #locate-btn { bottom: calc(var(--fts-bottom, 160px) + 46px + 12px); transition: bottom 0.45s cubic-bezier(0.2, 0.8, 0.3, 1); }
+    body.fts #locate-btn { bottom: calc(var(--fts-bottom, 160px) + 46px + 12px); transition: bottom 0.35s cubic-bezier(0.25, 0.9, 0.4, 1); }
 
     /* Handle: grabber pill only — chevron retired (venue peek carries swipe-up signal) */
     #panel-handle {
