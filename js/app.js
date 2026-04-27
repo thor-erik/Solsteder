@@ -1820,10 +1820,15 @@ function _toggleQcCalExpand() {
   if (!_qcCalExpanded) {
     const qcPanel = document.getElementById('qc-panel');
     if (qcPanel) {
+      // Freeze current height so the transition has a starting point
+      const curH = qcPanel.scrollHeight;
+      qcPanel.style.setProperty('--qc-panel-h', curH + 'px');
       qcPanel.classList.remove('cal-expanded');
-      qcPanel.style.removeProperty('--qc-panel-h');
+      // In next frame, set the target (smaller) height — CSS transition animates
+      requestAnimationFrame(() => {
+        _syncQcPanelHeight();
+      });
     }
-    _syncQcPanelHeight();
   }
 }
 
