@@ -7,6 +7,16 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let _currentUser = null;
 let _currentRole = null; // 'user' | 'editor' | 'admin' | null
 
+// Social tables may not exist yet — probe once and skip all social queries if missing.
+let _socialTablesReady = null; // null = unchecked, true/false after probe
+async function _checkSocialTables() {
+  if (_socialTablesReady !== null) return _socialTablesReady;
+  const { error } = await _supabase.from('favorites').select('venue_id', { head: true, count: 'exact' }).limit(0);
+  _socialTablesReady = !error;
+  if (!_socialTablesReady) console.debug('[auth] Social tables not set up yet — skipping social features');
+  return _socialTablesReady;
+}
+
 function authCurrentUser()   { return _currentUser; }
 function authIsAdmin()       { return _currentRole === 'admin'; }
 function authIsEditor()      { return _currentRole === 'editor' || _currentRole === 'admin'; }
@@ -462,6 +472,7 @@ function _copyFriendInviteLink() {
 async function _loadPendingCount() {
   const badge = document.getElementById('pending-count-badge');
   if (!badge) return;
+  if (!await _checkSocialTables()) { badge.style.display = 'none'; return; }
   try {
     const { count, error } = await _supabase
       .from('pending_edits')
@@ -605,6 +616,7 @@ async function loadApprovedSuggestions() {
 
 async function loadOwnSuggestions() {
   if (!_currentUser) return;
+  if (!await _checkSocialTables()) return;
   try {
     const { data, error } = await _supabase
       .from('suggested_venues')
@@ -926,6 +938,7 @@ function isFavorite(venueId) { return _favoritesSet.has(String(venueId)); }
 
 async function loadFavorites() {
   if (!_currentUser) { _favoritesSet.clear(); return; }
+  if (!await _checkSocialTables()) return;
   const { data, error } = await _supabase
     .from('favorites')
     .select('venue_id')
@@ -964,6 +977,7 @@ function hasSunAlert(venueId) { return _alertsMap.has(String(venueId)); }
 
 async function loadSunAlerts() {
   if (!_currentUser) { _alertsMap.clear(); return; }
+  if (!await _checkSocialTables()) return;
   const { data, error } = await _supabase
     .from('sun_alerts')
     .select('*')
@@ -1016,6 +1030,7 @@ function _showToast(msg) {
 
 async function loadUserPreferences() {
   if (!_currentUser) return;
+  if (!await _checkSocialTables()) return;
   const { data, error } = await _supabase
     .from('user_preferences')
     .select('*')
@@ -1071,6 +1086,7 @@ let _checkinSubscription = null;
 
 async function loadFriends() {
   if (!_currentUser) { _friends = []; _pendingRequests = []; return; }
+  if (!await _checkSocialTables()) { _injectDummyFriends(); return; }
   const { data, error } = await _supabase
     .from('friendships')
     .select('*, user:profiles!friendships_user_id_fkey(id, name, email, avatar_url), friend:profiles!friendships_friend_id_fkey(id, name, email, avatar_url)')
@@ -1139,6 +1155,7 @@ async function removeFriend(friendshipId) {
 
 async function loadFriendCheckins() {
   if (!_currentUser) { _friendCheckins.clear(); _myCheckin = null; return; }
+  if (!await _checkSocialTables()) return;
   const { data, error } = await _supabase
     .from('checkins')
     .select('*, user:profiles!checkins_user_id_fkey(id, name, email, avatar_url)')
@@ -1238,6 +1255,7 @@ function _subscribeToCheckins() {
 
 async function loadPlans() {
   if (!_currentUser) { _plans = []; _planInvites = []; return; }
+  if (!await _checkSocialTables()) return;
   const { data: plans, error: pe } = await _supabase
     .from('plans')
     .select('*, creator:profiles!plans_creator_id_fkey(id, name, email, avatar_url)')

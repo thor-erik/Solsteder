@@ -7,6 +7,16 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let _currentUser = null;
 let _currentRole = null; // 'user' | 'editor' | 'admin' | null
 
+// Social tables may not exist yet — probe once and skip all social queries if missing.
+let _socialTablesReady = null; // null = unchecked, true/false after probe
+async function _checkSocialTables() {
+  if (_socialTablesReady !== null) return _socialTablesReady;
+  const { error } = await _supabase.from('favorites').select('venue_id', { head: true, count: 'exact' }).limit(0);
+  _socialTablesReady = !error;
+  if (!_socialTablesReady) console.debug('[auth] Social tables not set up yet — skipping social features');
+  return _socialTablesReady;
+}
+
 function authCurrentUser()   { return _currentUser; }
 function authIsAdmin()       { return _currentRole === 'admin'; }
 function authIsEditor()      { return _currentRole === 'editor' || _currentRole === 'admin'; }
@@ -242,6 +252,24 @@ function _renderProfilePanel() {
           </div>
         </div>
       </div>
+      ${_friends.length ? `
+      <div class="profile-panel-section profile-settings-section">
+        <div class="profile-section-label">${t('checkin_visibility')}</div>
+        <div class="profile-pref-desc">${t('checkin_visibility_desc')}</div>
+        ${_friends.map(f => {
+          const hidden = _hiddenCheckinFriends.has(f.id);
+          return `<div class="profile-pref-row checkin-vis-row">
+            <span class="profile-pref-label">${f.name || f.email}</span>
+            <button class="pref-pill checkin-vis-toggle${hidden ? '' : ' active'}" onclick="toggleCheckinVisibility('${f.id}')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                ${hidden
+                  ? '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>'
+                  : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>'}
+              </svg>
+            </button>
+          </div>`;
+        }).join('')}
+      </div>` : ''}
       <div class="profile-panel-section" id="my-suggestions-section" style="display:none">
         <div class="profile-section-label">${t('my_suggestions')}</div>
         <div id="my-suggestions-list" style="color:var(--muted);font-size:12px;padding:4px 16px 8px">${t('no_suggestions_yet')}</div>
@@ -415,7 +443,7 @@ function _renderFriendsModal(modal) {
       ${friendsHtml}
       <div class="friends-add-section">
         <div class="friends-section-label">${t('add_friend')}</div>
-        <button class="btn-social btn-share-link" onclick="_copyFriendInviteLink()" style="width:100%">
+        <button class="social-form-btn" onclick="_copyFriendInviteLink()" style="width:100%">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
           ${t('copy_invite_link')}
         </button>
@@ -444,6 +472,7 @@ function _copyFriendInviteLink() {
 async function _loadPendingCount() {
   const badge = document.getElementById('pending-count-badge');
   if (!badge) return;
+  if (!await _checkSocialTables()) { badge.style.display = 'none'; return; }
   try {
     const { count, error } = await _supabase
       .from('pending_edits')
@@ -560,19 +589,72 @@ async function loadApprovedSuggestions() {
       const synId = `sv_${s.id.replace(/-/g, '').slice(0, 10)}`;
       if (existingIds.has(synId)) continue;
       VENUES.push({
-        id:       synId,
-        name:     s.name,
-        coords:   [s.lat, s.lng],
-        address:  s.address ?? '',
-        area:     '',
-        category: 'restaurant',
-        _source:  'suggested',
+        id:            synId,
+        name:          s.name,
+        coords:        [s.lat, s.lng],
+        lat:           s.lat,
+        lng:           s.lng,
+        address:       s.address ?? '',
+        area:          '',
+        category:      'restaurant',
+        facing:        null,
+        openingHours:  { open: 11, close: 23 },
+        buildingOsmId: null,
+        rating:        null,
+        _source:       'suggested',
       });
       added++;
     }
     if (added > 0 && typeof renderList === 'function') renderList();
   } catch (e) {
     console.warn('[auth] loadApprovedSuggestions:', e.message);
+  }
+}
+
+// ── Load current user's own suggestions (pending + approved) ────────────────
+// Shows the user's own suggested venues on their map, even before admin approval.
+
+async function loadOwnSuggestions() {
+  if (!_currentUser) return;
+  if (!await _checkSocialTables()) return;
+  try {
+    const { data, error } = await _supabase
+      .from('suggested_venues')
+      .select('id, name, lat, lng, address, status')
+      .eq('user_id', _currentUser.id)
+      .in('status', ['pending', 'approved']);
+    if (error || !data?.length) return;
+
+    if (typeof VENUES === 'undefined') return;
+    const existingIds = new Set(VENUES.map(v => String(v.id)));
+    let added = 0;
+    for (const s of data) {
+      const synId = `sv_${s.id.replace(/-/g, '').slice(0, 10)}`;
+      if (existingIds.has(synId)) continue;
+      VENUES.push({
+        id:            synId,
+        name:          s.name,
+        coords:        [s.lat, s.lng],
+        lat:           s.lat,
+        lng:           s.lng,
+        address:       s.address ?? '',
+        area:          '',
+        category:      'restaurant',
+        facing:        null,
+        openingHours:  { open: 11, close: 23 },
+        buildingOsmId: null,
+        rating:        null,
+        _source:       'suggested',
+        _ownSuggestion: true,
+      });
+      added++;
+    }
+    if (added > 0) {
+      if (typeof renderList === 'function') renderList();
+      if (typeof draw === 'function') draw();
+    }
+  } catch (e) {
+    console.warn('[auth] loadOwnSuggestions:', e.message);
   }
 }
 
@@ -856,6 +938,7 @@ function isFavorite(venueId) { return _favoritesSet.has(String(venueId)); }
 
 async function loadFavorites() {
   if (!_currentUser) { _favoritesSet.clear(); return; }
+  if (!await _checkSocialTables()) return;
   const { data, error } = await _supabase
     .from('favorites')
     .select('venue_id')
@@ -894,6 +977,7 @@ function hasSunAlert(venueId) { return _alertsMap.has(String(venueId)); }
 
 async function loadSunAlerts() {
   if (!_currentUser) { _alertsMap.clear(); return; }
+  if (!await _checkSocialTables()) return;
   const { data, error } = await _supabase
     .from('sun_alerts')
     .select('*')
@@ -946,6 +1030,7 @@ function _showToast(msg) {
 
 async function loadUserPreferences() {
   if (!_currentUser) return;
+  if (!await _checkSocialTables()) return;
   const { data, error } = await _supabase
     .from('user_preferences')
     .select('*')
@@ -976,18 +1061,32 @@ async function saveUserPreference(key, value) {
   await _supabase.from('user_preferences').upsert(row, { onConflict: 'user_id' });
 }
 
+function toggleCheckinVisibility(friendId) {
+  if (_hiddenCheckinFriends.has(friendId)) {
+    _hiddenCheckinFriends.delete(friendId);
+  } else {
+    _hiddenCheckinFriends.add(friendId);
+  }
+  localStorage.setItem('hidden_checkin_friends', JSON.stringify([..._hiddenCheckinFriends]));
+  if (typeof _renderProfilePanel === 'function') _renderProfilePanel();
+  if (typeof renderList === 'function') renderList();
+  if (typeof draw === 'function') draw();
+}
+
 // ── Friends ──────────────────────────────────────────────────────────────────
 
 let _friends = [];
 let _pendingRequests = [];
 let _friendCheckins = new Map(); // venueId → [{ user, checkin }]
 let _myCheckin = null; // current user's active checkin
+let _hiddenCheckinFriends = new Set(JSON.parse(localStorage.getItem('hidden_checkin_friends') || '[]'));
 let _plans = [];
 let _planInvites = [];
 let _checkinSubscription = null;
 
 async function loadFriends() {
   if (!_currentUser) { _friends = []; _pendingRequests = []; return; }
+  if (!await _checkSocialTables()) { _injectDummyFriends(); return; }
   const { data, error } = await _supabase
     .from('friendships')
     .select('*, user:profiles!friendships_user_id_fkey(id, name, email, avatar_url), friend:profiles!friendships_friend_id_fkey(id, name, email, avatar_url)')
@@ -1002,6 +1101,24 @@ async function loadFriends() {
     } else if (r.status === 'pending' && r.friend_id === _currentUser.id) {
       _pendingRequests.push({ ...r.user, friendshipId: r.id });
     }
+  }
+  // Inject dummy friends for test accounts
+  _injectDummyFriends();
+}
+
+const _DUMMY_FRIENDS = [
+  { id: 'dummy-1', name: 'Ingrid Solberg',  email: 'ingrid@example.com',  avatar_url: null, friendshipId: 'df-1' },
+  { id: 'dummy-2', name: 'Erik Nordmann',   email: 'erik@example.com',    avatar_url: null, friendshipId: 'df-2' },
+  { id: 'dummy-3', name: 'Maja Lindqvist',  email: 'maja@example.com',    avatar_url: null, friendshipId: 'df-3' },
+  { id: 'dummy-4', name: 'Olav Henriksen',  email: 'olav@example.com',    avatar_url: null, friendshipId: 'df-4' },
+];
+const _TEST_EMAILS = ['thogegik@gmail.com', 'thoreriknorbom@gmail.com'];
+
+function _injectDummyFriends() {
+  if (!_currentUser || !_TEST_EMAILS.includes(_currentUser.email)) return;
+  const existingIds = new Set(_friends.map(f => f.id));
+  for (const df of _DUMMY_FRIENDS) {
+    if (!existingIds.has(df.id)) _friends.push(df);
   }
 }
 
@@ -1038,6 +1155,7 @@ async function removeFriend(friendshipId) {
 
 async function loadFriendCheckins() {
   if (!_currentUser) { _friendCheckins.clear(); _myCheckin = null; return; }
+  if (!await _checkSocialTables()) return;
   const { data, error } = await _supabase
     .from('checkins')
     .select('*, user:profiles!checkins_user_id_fkey(id, name, email, avatar_url)')
@@ -1051,10 +1169,36 @@ async function loadFriendCheckins() {
     list.push({ user: c.user, checkin: c });
     _friendCheckins.set(c.venue_id, list);
   }
+  // Inject dummy checkins for test accounts
+  _injectDummyCheckins();
+}
+
+function _injectDummyCheckins() {
+  if (!_currentUser || !_TEST_EMAILS.includes(_currentUser.email)) return;
+  const dummyCheckins = [
+    { venueId: '1', friendIdx: 0 }, // Ingrid at Nedre Foss Gård
+    { venueId: '2', friendIdx: 1 }, // Erik at Grünerhaven
+    { venueId: '2', friendIdx: 2 }, // Maja at Grünerhaven
+    { venueId: '5', friendIdx: 3 }, // Olav at Olivia
+    { venueId: '8', friendIdx: 0 }, // Ingrid at Prindsen Hage
+  ];
+  const expires = new Date(Date.now() + 3600_000).toISOString();
+  for (const dc of dummyCheckins) {
+    const f = _DUMMY_FRIENDS[dc.friendIdx];
+    const list = _friendCheckins.get(dc.venueId) || [];
+    if (list.some(x => x.user.id === f.id)) continue;
+    list.push({
+      user: { id: f.id, name: f.name, email: f.email, avatar_url: f.avatar_url },
+      checkin: { id: `dc-${dc.venueId}-${f.id}`, venue_id: dc.venueId, user_id: f.id, expires_at: expires }
+    });
+    _friendCheckins.set(dc.venueId, list);
+  }
 }
 
 function getFriendCheckinsForVenue(venueId) {
-  return _friendCheckins.get(String(venueId)) || [];
+  const all = _friendCheckins.get(String(venueId)) || [];
+  if (!_hiddenCheckinFriends.size) return all;
+  return all.filter(x => !_hiddenCheckinFriends.has(x.user.id));
 }
 
 function getMyCheckin() { return _myCheckin; }
@@ -1111,6 +1255,7 @@ function _subscribeToCheckins() {
 
 async function loadPlans() {
   if (!_currentUser) { _plans = []; _planInvites = []; return; }
+  if (!await _checkSocialTables()) return;
   const { data: plans, error: pe } = await _supabase
     .from('plans')
     .select('*, creator:profiles!plans_creator_id_fkey(id, name, email, avatar_url)')
@@ -1186,6 +1331,7 @@ _supabase.auth.onAuthStateChange((event, session) => {
       if (typeof draw === 'function') draw();
     });
     loadPlans();
+    loadOwnSuggestions();
     _subscribeToCheckins();
   } else {
     _currentRole = null;
