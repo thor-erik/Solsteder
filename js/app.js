@@ -3346,11 +3346,14 @@ function _sdPickArea(areaName) {
   _syncSearchClearBtn();
   _searchDropdown.classList.remove('open');
   _removeGeoMarker();
+  // Rebuild area index in case it's stale (e.g. VENUES loaded after initial build)
+  if (!_areaIndex.length) _buildAreaIndex();
   const area = _areaIndex.find(a => a.name === areaName);
   if (area) {
     map.fitBounds(area.bounds, {
       padding: { top: 80, bottom: 80, left: 40, right: 40 },
-      duration: 800,
+      maxZoom: 15.5,
+      duration: 1200,
     });
   }
   renderList();
