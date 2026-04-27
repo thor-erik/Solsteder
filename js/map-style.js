@@ -192,29 +192,29 @@ function buildShadeStyle() {
         },
       },
 
-      // ── Place labels — subdued, no road/POI labels ──────────────────────────
+      // ── Place labels — only major areas, subtle ────────────────────────────
       {
         id: 'place-label',
         type: 'symbol',
         source: 'composite',
         'source-layer': 'place_label',
         filter: ['match', ['get', 'type'],
-          ['city', 'town', 'village', 'suburb', 'neighbourhood'], true, false],
+          ['city', 'town', 'village', 'suburb'], true, false],
         layout: {
           'text-field': ['get', 'name'],
           'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-          'text-size': ['interpolate', ['linear'], ['zoom'], 8, 11, 14, 16],
+          'text-size': ['interpolate', ['linear'], ['zoom'], 10, 11, 15, 14],
           'text-max-width': 8,
-          'text-transform': 'uppercase',
-          'text-letter-spacing': 0.12,
+          'text-letter-spacing': 0.05,
+          'text-padding': 30,
           'symbol-sort-key': ['get', 'symbolrank'],
           'icon-image': '',
         },
         paint: {
           'text-color': '#d5c4ab',
-          'text-opacity': 0.7,
+          'text-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0.5, 14, 0.35],
           'text-halo-color': '#0D131E',
-          'text-halo-width': 2,
+          'text-halo-width': 1.5,
           'text-halo-blur': 1,
         },
       },
