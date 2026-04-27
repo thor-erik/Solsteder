@@ -5550,6 +5550,7 @@
 if (USE_FLOATING_TIME_SLIDER) document.body.classList.add('fts');
 
 loadVenues().then(async () => {
+  _buildAreaIndex();  // build area search index immediately (before slow initFacings)
   updateRangeFill();
   update();
   if (USE_FLOATING_TIME_SLIDER) initFts();

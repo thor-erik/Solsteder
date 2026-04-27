@@ -3282,8 +3282,7 @@ function _buildAreaIndex() {
     };
   });
 }
-// Rebuild after VENUES are populated
-setTimeout(_buildAreaIndex, 0);
+// _buildAreaIndex is called after loadVenues() completes (see index.html boot chain + initFacings)
 
 // ── Geocoding (areas only via Mapbox — fallback for areas not in our data) ───
 
@@ -3510,7 +3509,7 @@ function _renderSearchDropdown(geoOnly) {
     }
     if (r.kind === 'candidate') {
       const c = r.data;
-      const cData = encodeURIComponent(JSON.stringify(c));
+      const cData = encodeURIComponent(JSON.stringify(c)).replace(/'/g, '%27');
       return `
       <div class="sd-row sd-row-candidate" onclick="_sdPickCandidate(decodeURIComponent('${cData}'))">
         <span class="sd-row-icon">${_GEO_ICON.venue}</span>
@@ -3923,7 +3922,7 @@ function _renderSuggestVenueSelection(results, query) {
   document.getElementById('suggest-selection-modal')?.remove();
 
   const resultsHtml = results.slice(0, 5).map((r, i) => `
-    <div class="suggest-result-row" onclick="_sdSelectSuggestVenue(${i}, ${encodeURIComponent(JSON.stringify(results))})">
+    <div class="suggest-result-row" onclick="_sdSelectSuggestVenue(${i}, '${encodeURIComponent(JSON.stringify(results)).replace(/'/g, '%27')}')">
       <div class="suggest-result-name">${r.name}</div>
       <div class="suggest-result-address">${r.formatted_address}</div>
     </div>
@@ -3980,7 +3979,7 @@ function _renderSuggestConfirm({ name, address, lat, lng, osmId }) {
   );
   const issueUrl = `https://github.com/thor-erik/Solsteder/issues/new?title=${issueTitle}&body=${issueBody}`;
 
-  const dataAttr = encodeURIComponent(JSON.stringify({ name, address, lat, lng, osmId }));
+  const dataAttr = encodeURIComponent(JSON.stringify({ name, address, lat, lng, osmId })).replace(/'/g, '%27');
 
   // Remove any existing suggest modal
   document.getElementById('suggest-modal')?.remove();
