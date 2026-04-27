@@ -28,6 +28,13 @@ jobs:
           echo "const MAPBOX_TOKEN = '${{ secrets.MAPBOX_TOKEN }}';" > js/config.js
           echo "const GOOGLE_PLACES_KEY = '${{ secrets.GOOGLE_PLACES_KEY }}';" >> js/config.js
 
+      - name: Minify JS
+        run: |
+          npm install --no-save terser@5
+          for f in js/*.js; do
+            npx terser --compress --mangle -- "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+          done
+
       - name: Inject cache-busting version
         run: |
           SHA=$(git rev-parse --short HEAD)
