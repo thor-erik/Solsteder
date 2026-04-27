@@ -737,6 +737,7 @@ function _updateLocationDot() {
 
 function locateUser() {
   if (!userLocation) return;
+  _aTrack('locate_user', {});
   // Dismiss keyboard / search if active so the map is visible
   const si = document.getElementById('venue-search');
   if (si && document.activeElement === si) si.blur();
@@ -1178,7 +1179,10 @@ function toggleDateCalendar() {
   if (!cal) return;
   const isOpen = cal.classList.toggle('open');
   if (btn) btn.classList.toggle('open', isOpen);
-  if (isOpen) renderDateCalendar();
+  if (isOpen) {
+    _aTrack('calendar_open', { current_date: datePicker.value });
+    renderDateCalendar();
+  }
 }
 
 function selectCalendarDate(dateStr) {
@@ -1215,6 +1219,7 @@ function setHoveredVenue(id) {
 let filterFavoritesOnly = false;
 function toggleFavoritesFilter() {
   filterFavoritesOnly = !filterFavoritesOnly;
+  _aTrack('filter_change', { filter: 'favorites', value: filterFavoritesOnly });
   const btn = document.getElementById('fav-filter-btn');
   if (btn) btn.classList.toggle('active', filterFavoritesOnly);
   renderList();
@@ -1328,6 +1333,7 @@ let _autoAdvancedAfterSunset = false;
 
 // ── Day navigation ────────────────────────────────────────────────────────────
 function advanceDay(delta, setHour) {
+  _aTrack('day_navigate', { direction: delta > 0 ? 'forward' : 'back' });
   const d = new Date(datePicker.value + 'T12:00:00');
   d.setDate(d.getDate() + delta);
   datePicker.value = d.toISOString().slice(0, 10);
@@ -1514,6 +1520,7 @@ function _closeQcPanel() {
   if (calFloat) {
     calFloat.classList.remove('open');
     calFloat.style.bottom = '';
+    calFloat.style.left = '';
   }
   document.getElementById('ptb-cal-backdrop')?.remove();
   // Update floating slider: remove active state, restore visibility, update date label
@@ -1561,13 +1568,15 @@ function toggleQcPanel(section) {
 
   _qcActiveSection = 'date';
   _navPush('qc');
-  // On desktop, position calendar float above the date button
+  // On desktop, position calendar float above the FTS date button
   if (!isMobile() && calFloat) {
-    const dateBtn = document.getElementById('readout-date-btn');
-    if (dateBtn) {
-      const r = dateBtn.getBoundingClientRect();
+    const ftsBtn = document.getElementById('fts-date-btn');
+    const anchor = ftsBtn || document.getElementById('readout-date-btn');
+    if (anchor) {
+      const r = anchor.getBoundingClientRect();
       calFloat.style.top = '';
       calFloat.style.bottom = (window.innerHeight - r.top + 8) + 'px';
+      calFloat.style.left = r.left + 'px';
     }
   }
   calFloat?.classList.add('open');
@@ -2308,6 +2317,7 @@ function applyVenueEditProposal(venueId, afterState) {
 
 /** Submit a proposed edit from a non-admin user to Supabase. */
 async function submitEditProposal(v, before, after) {
+  _aTrack('edit_proposal_submit', { venue_id: v.id });
   const user = authCurrentUser();
   if (!user) return;
   const { error } = await _supabase
@@ -2329,6 +2339,7 @@ async function submitEditProposal(v, before, after) {
 }
 
 function enterEditMode(venueId) {
+  _aTrack('edit_mode_enter', { venue_id: venueId });
   if (typeof stopWindOverlay === 'function') stopWindOverlay();
   editingVenueId = venueId;
   editHoveredWallIdx = null;
@@ -3142,13 +3153,15 @@ document.addEventListener('DOMContentLoaded', () => {
       cal.classList.remove('open');
       displayBtn?.classList.remove('open');
     }
-    // Close calendar when clicking outside the float AND outside the date button
+    // Close calendar when clicking outside the float AND outside any date button
     const qcPanel   = document.getElementById('qc-panel');
     const calFloat  = document.getElementById('ptb-cal-float');
     const dateBtn   = document.getElementById('readout-date-btn');
+    const ftsBtn    = document.getElementById('fts-date-btn');
     if (qcPanel?.classList.contains('open')
         && !calFloat?.contains(e.target)
-        && !dateBtn?.contains(e.target)) {
+        && !dateBtn?.contains(e.target)
+        && !ftsBtn?.contains(e.target)) {
       _closeQcPanel();
     }
   });
@@ -3378,7 +3391,8 @@ function _sdPickArea(areaName) {
       duration: 1200,
     });
   }
-  renderList();
+  // Defer renderList so fitBounds animation starts before expensive sun computation
+  setTimeout(renderList, 50);
 }
 
 function _sdPickGeo(idx) {
