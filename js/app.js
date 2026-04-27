@@ -2913,33 +2913,22 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!document.getElementById('map-container')?.contains(e.target)) e.preventDefault();
       }, { passive: false });
 
-      // ── Venue list: finger scrolling up past the venue-header zone → drag panel ──
-      // When the finger crosses into the venue-header area while scrolling the list,
-      // the panel starts following the finger (both up and down). Release logic:
-      //   safe zone (< SAFE_DY from start) → snap back; outside → advance/retreat state.
+      // ── Venue list: seamless scroll → panel drag ──────────────────────────────
+      // When the list reaches scrollTop 0 and the finger keeps moving, the panel
+      // starts following the finger (up → expand, down → dismiss). On release the
+      // standard velocity / position thresholds decide the target state.
       const venueList = document.getElementById('venue-list');
       if (venueList) {
-        let _listStartY = 0, _venueHeaderBottom = 0;
+        let _listStartY = 0;
         venueList.addEventListener('touchstart', e => {
           _listStartY = e.touches[0].clientY;
-          // Cache header bottom once so touchmove never triggers getBoundingClientRect
-          const headerEl = document.getElementById('venue-header') ?? document.getElementById('sort-row');
-          _venueHeaderBottom = headerEl ? headerEl.getBoundingClientRect().bottom : 0;
         }, { passive: true });
 
         venueList.addEventListener('touchmove', e => {
           const cy = e.touches[0].clientY;
           if (!_dragActive) {
-            if (venueList.scrollTop === 0) {
-              if (cy < _listStartY) {
-                // Moving up at top → trigger drag (and prevent default) only once in header zone
-                if (cy <= _venueHeaderBottom) {
-                  e.preventDefault();
-                  _dragFromList = true;
-                  _beginDrag(cy);
-                }
-              } else if (cy > _listStartY) {
-                // Moving down at top → pull-to-dismiss
+            if (venueList.scrollTop <= 0) {
+              if (cy < _listStartY || cy > _listStartY) {
                 e.preventDefault();
                 _dragFromList = true;
                 _beginDrag(cy);
