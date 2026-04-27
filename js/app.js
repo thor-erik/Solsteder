@@ -224,9 +224,10 @@ function initFts() {
     showFtsPopup(hour);
   };
 
-  // Pointer down — start drag
+  // Pointer down — start drag; close calendar picker if open
   track.addEventListener('pointerdown', e => {
     e.preventDefault();
+    if (_qcActiveSection) _closeQcPanel();
     _ftsDragging = true;
     track.setPointerCapture(e.pointerId);
     window._qcThumbActive = true;
@@ -3312,6 +3313,7 @@ function _buildAreaIndex() {
       count:  vns.length,
     };
   });
+  _buildAreaVariants();
 }
 // _buildAreaIndex is called after loadVenues() completes (see index.html boot chain + initFacings)
 
@@ -3411,38 +3413,71 @@ function _sdPickGeo(idx) {
 
 // ── Search normalization & fuzzy matching ────────────────────────────────────
 
-// Common Oslo spelling variants: query form → canonical form used in venue data
-const _ALIASES = {
-  'majorstua':    'majorstuen',
-  'bogstadveien': 'majorstuen',
-  'grunerløkka':  'grünerløkka',
-  'grunerløka':   'grünerløkka',
-  'grunerlokka':  'grünerløkka',
-  'gronland':     'grønland',
-  'toyen':        'tøyen',
-  'skoyen':       'skøyen',
+/** Normalize to ASCII-ish form for comparison (ü→u, ø→o, å→a, æ→ae, é→e) */
+function _stripDiacritics(s) {
+  return s
+    .replace(/[øØ]/g, 'o')
+    .replace(/[åÅ]/g, 'a')
+    .replace(/[æÆ]/g, 'ae')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+// True synonyms only — sub-neighborhoods or landmarks that map to a parent area.
+// These can't be derived automatically. Add entries per-city as needed.
+const _SYNONYMS = {
   'briskeby':     'frogner',
-  'st hanshaugen':'st. hanshaugen',
-  'st.hanshaugen':'st. hanshaugen',
+  'tjuvholmen':   'frogner',
   'vulkan':       'grünerløkka',
   'mathallen':    'grünerløkka',
   'bjørvika':     'sentrum',
-  'bjorvik':      'sentrum',
-  'bjørvika':     'sentrum',
   'youngstorget': 'sentrum',
   'karl johan':   'sentrum',
-  'akerbrygge':   'aker brygge',
-  'tjuvholmen':   'frogner',
+  'bogstadveien': 'majorstuen',
 };
 
-/** Strip diacritics (ü→u, ø→o, å→a, é→e) for comparison */
-function _stripDiacritics(s) {
-  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+// Auto-generated suffix/whitespace/punctuation variants, built from _areaIndex.
+// Rebuilt whenever _buildAreaIndex runs (i.e. after loadVenues).
+let _areaVariants = {}; // normalized-variant → canonical lowercase area name
+
+function _buildAreaVariants() {
+  _areaVariants = {};
+  for (const area of _areaIndex) {
+    const canon = area.name.toLowerCase();
+    const stripped = _stripDiacritics(canon);
+    // Register diacritics-stripped form
+    if (stripped !== canon) _areaVariants[stripped] = canon;
+    // Remove spaces ("aker brygge" → "akerbrygge")
+    const nospace = canon.replace(/\s+/g, '');
+    if (nospace !== canon) _areaVariants[nospace] = canon;
+    const nospaceDia = _stripDiacritics(nospace);
+    if (nospaceDia !== nospace) _areaVariants[nospaceDia] = canon;
+    // Remove dots ("st. hanshaugen" → "st hanshaugen")
+    const nodots = canon.replace(/\./g, '');
+    if (nodots !== canon) _areaVariants[nodots] = canon;
+    // Norwegian suffix variants: -en/-a/-et are common interchangeable endings
+    // "majorstuen" → "majorstua", "majorstue"; "frogner" stays as-is
+    for (const [from, ...tos] of [['en', 'a', 'et', ''], ['a', 'en', 'et', ''], ['et', 'en', 'a', '']]) {
+      if (canon.endsWith(from)) {
+        const stem = canon.slice(0, -from.length);
+        for (const to of tos) {
+          const v = stem + to;
+          if (v.length >= 3 && v !== canon) _areaVariants[v] = canon;
+          const vDia = _stripDiacritics(v);
+          if (vDia !== v && vDia.length >= 3) _areaVariants[vDia] = canon;
+        }
+      }
+    }
+  }
+  // Layer explicit synonyms on top (these override any auto-generated conflict)
+  for (const [k, v] of Object.entries(_SYNONYMS)) {
+    _areaVariants[k] = v;
+    _areaVariants[_stripDiacritics(k)] = v;
+  }
 }
 
-/** Resolve a query to its canonical area name if it's a known alias */
+/** Resolve a query to its canonical area name via synonyms or auto-variants */
 function _resolveAlias(q) {
-  return _ALIASES[q] || _ALIASES[_stripDiacritics(q)] || null;
+  return _areaVariants[q] || _areaVariants[_stripDiacritics(q)] || null;
 }
 
 /** Damerau-Levenshtein distance (transpositions, insertions, deletions, substitutions) */
