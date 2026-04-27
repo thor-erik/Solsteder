@@ -6,9 +6,9 @@
 
 const _NOTIF_STORAGE_STATE    = 'solsteder_notif_state';
 const _NOTIF_STORAGE_SETTINGS = 'solsteder_notif_settings';
-const _NOTIF_MAX_EARLY        = 3;      // max toasts in first 5 min
-const _NOTIF_EARLY_WINDOW     = 300000; // 5 min in ms
-const _NOTIF_COOLDOWN         = 180000; // 3 min between toasts after early window
+const _NOTIF_MAX_EARLY        = 1;      // max toasts in first 30s
+const _NOTIF_EARLY_WINDOW     = 30000;  // 30s initial quiet window
+const _NOTIF_COOLDOWN         = 120000; // 2 min between toasts
 const _NOTIF_EVAL_INTERVAL    = 60000;  // re-evaluate every 60s
 const _NOTIF_AUTO_P0          = 8000;   // P0 auto-dismiss
 const _NOTIF_AUTO_DEFAULT     = 6000;   // other auto-dismiss
@@ -351,7 +351,7 @@ function _evalBestSunWindow() {
   return {
     id: 'weather_best_sun', priority: 0, category: 'weather',
     icon: '☀️', bodyKey: 'notif_best_sun_body',
-    bodyVars: { from: formatHour(blockStart), to: formatHour(blockEnd) },
+    bodyVars: { from: formatHour(blockStart), to: formatHour(blockEnd), hour: formatHour(blockStart) },
     actionKey: 'notif_set_time',
     action: () => {
       if (typeof timeFromEl !== 'undefined' && timeFromEl) {
@@ -498,7 +498,8 @@ function _evalLunchBreak() {
   if (day === 0 || day === 6) return null; // weekdays only
   return {
     id: 'suggest_lunch', priority: 2, category: 'suggestion',
-    icon: '����️', bodyKey: 'notif_lunch_body',
+    icon: '🍽️', bodyKey: 'notif_lunch_body',
+    bodyVars: { hour: '12:00' },
     actionKey: 'notif_set_time',
     action: () => {
       if (typeof timeFromEl !== 'undefined' && timeFromEl) {
@@ -519,6 +520,7 @@ function _evalAfterWork() {
   return {
     id: 'suggest_afterwork', priority: 2, category: 'suggestion',
     icon: '🍻', bodyKey: 'notif_afterwork_body',
+    bodyVars: { hour: '16:00' },
     actionKey: 'notif_set_time',
     action: () => {
       if (typeof timeFromEl !== 'undefined' && timeFromEl) {
