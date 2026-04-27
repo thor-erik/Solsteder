@@ -1021,21 +1021,8 @@ async function toggleSunAlert(venueId, evt) {
 }
 
 function _showToast(msg) {
-  // Delegate to smart notification system if available
-  if (typeof _notifShowImmediate === 'function') {
-    _notifShowImmediate({
-      id: 'legacy_' + Date.now(),
-      priority: 4,
-      category: 'engagement',
-      _rawText: msg,
-      icon: null,
-      actionKey: null, action: null,
-      ttl: 5000, dedupe: false,
-      _legacyDismiss: 2200,
-    });
-    return;
-  }
-  // Fallback if notifications.js hasn't loaded
+  // Always use the simple fixed-position toast for user-triggered feedback
+  // (check-in, check-out, etc.) — not the smart notification system.
   let toast = document.getElementById('app-toast');
   if (!toast) {
     toast = document.createElement('div');

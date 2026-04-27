@@ -211,9 +211,8 @@ function _notifDismiss(id) {
 
 /** Immediate show — bypasses queue and rate limiter. For legacy _showToast compat. */
 function _notifShowImmediate(notif) {
-  // Block system notifications until intro is done, but always allow legacy toasts
-  // (user-triggered feedback like check-in/out confirmations)
-  if (!_notifInitDone && !notif._rawText) return;
+  // Block all notifications until the intro sequence has finished
+  if (!_notifInitDone) return;
   if (_notifCurrent) _notifHide();
   _notifShow(notif);
 }
