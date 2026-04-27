@@ -839,10 +839,14 @@ function _openInviteSheet(venueId) {
   sheet.id = 'invite-sheet';
   sheet.className = 'invite-sheet';
   sheet.innerHTML = `
-    <div class="invite-sheet-handle"><div class="invite-sheet-pill"></div></div>
     <div class="invite-sheet-header">
-      <div class="invite-sheet-title">${t('invite_friends')}</div>
-      <div class="invite-sheet-venue">${venueName}</div>
+      <div>
+        <div class="invite-sheet-title">${t('invite_friends')}</div>
+        <div class="invite-sheet-venue">${venueName}</div>
+      </div>
+      <button class="invite-sheet-close" onclick="_closeInviteSheet()" aria-label="Lukk">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/></svg>
+      </button>
     </div>
     <div class="invite-sheet-body">
       <div class="invite-time-display">

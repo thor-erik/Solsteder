@@ -16,6 +16,10 @@
 <meta name="twitter:title"       content="Shades — Steder i Solen">
 <meta name="twitter:description" content="Finn solrike uteserveringer i Oslo akkurat nå.">
 <meta name="twitter:image"       content="design/logo-pack-png-512x512/logo-color-2000w-big-text-dark-bg.png">
+<link rel="preload" href="data/venues.json" as="fetch" crossorigin>
+<link rel="preload" href="data/geometry.json" as="fetch" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="preconnect" href="https://api.mapbox.com">
 <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -888,17 +892,18 @@
     color: rgba(156,189,231,0.55); text-transform: uppercase; letter-spacing: 0.09em;
     padding: 8px 2px 4px;
   }
-  /* Month grid — 7-column day grid, no week-number sidebar */
-  .dc-month-grid { grid-auto-rows: auto; }
-  .dc-month-grid .dc-tile { padding: 5px 1px 4px; gap: 2px; }
+  /* Month grid — 7-column day grid, consistent cell sizing */
+  .dc-month-grid { grid-auto-rows: 44px; }
+  .dc-month-grid .dc-tile { padding: 4px 1px; gap: 2px; height: 44px; box-sizing: border-box; justify-content: center; }
   .dc-month-grid .dc-tile .dc-day  { display: none; }
   .dc-month-grid .dc-tile .dc-num  { font-size: 15px; font-weight: 600; }
   .dc-month-grid .dc-tile .dc-icon { font-size: 14px; line-height: 1.2; }
   .dc-month-grid .dc-tile .dc-temp { display: none; }
-  /* Beyond-horizon tiles: 34px, muted number only, no glyph */
-  .dc-month-grid .dc-tile.solar-only { min-height: 34px; }
+  /* Beyond-horizon tiles: same height, muted number only, no glyph */
+  .dc-month-grid .dc-tile.solar-only { height: 44px; min-height: 44px; }
   .dc-month-grid .dc-tile.solar-only .dc-icon { display: none; }
   .dc-month-grid .dc-tile.solar-only .dc-num  { color: var(--muted); font-size: 15px; font-weight: 500; }
+  .dc-month-grid .dc-tile-past { height: 44px; display: flex; align-items: center; justify-content: center; }
   .dc-month-grid .dc-tile-past .dc-num { font-size: 15px; }
   /* Forecast boundary note */
   .dc-forecast-note {
@@ -1019,6 +1024,10 @@
   #panel-handle { display: none; }
 
   #panel-toggle-icon {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 10;
     background: none;
     border: none;
     color: rgba(156,189,231,0.35);
@@ -1029,7 +1038,6 @@
     border-radius: 6px;
     transition: color 0.12s, background 0.12s;
     flex-shrink: 0;
-    margin-left: auto;
   }
   #panel-toggle-icon:hover { color: var(--muted); background: rgba(156,189,231,0.14); }
 
@@ -3625,15 +3633,18 @@
     position: fixed;
     z-index: 830;
     display: none;
-    /* desktop: flush with panel left edge, just above panel */
+    /* desktop: flush with panel left edge, positioned by JS above the date button */
     left: 16px;
     width: 336px;
-    top: 70px;   /* aligned with panel top; overridden on mobile */
     transition: left 0.28s ease;
   }
   #ptb-cal-float.open { display: block; }
+  /* Close button — hidden on desktop (calendar dismisses via click-outside), shown on mobile */
+  #ptb-cal-close {
+    display: none;
+  }
 
-  /* ── Mobile: calendar slides in from below the search bar ──────────────── */
+  /* ── Mobile: calendar as bottom-sheet ──────────────────────────────────── */
   @media (max-width: 639px) {
     /* Override display:none with a transform-based show/hide so we can animate */
     #ptb-cal-float {
@@ -3641,22 +3652,27 @@
       left: 0;
       right: 0;
       width: auto;
-      top: 0; /* extends from top of screen — covers behind search bar */
-      bottom: auto;
-      /* search bar slides away — pad by safe-area + small breathing room */
-      padding: calc(env(safe-area-inset-top, var(--safe-area-top, 0px)) + 16px) 16px 20px;
+      top: auto;
+      bottom: 0;
+      max-height: 80vh;
+      padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 20px);
       box-sizing: border-box;
-      background: var(--glass-panel-bg);
-      backdrop-filter: var(--glass-blur-panel);
-      -webkit-backdrop-filter: var(--glass-blur-panel);
-      border-radius: 0 0 14px 14px;
-      border-bottom: var(--glass-border);
-      box-shadow: var(--glass-inset), 0 6px 24px rgba(0, 0, 0, 0.50);
-      transform: translateY(-110%);
+      background:
+        linear-gradient(135deg, rgba(20,46,82,0.32), rgba(32,73,131,0.18)),
+        rgba(20,46,82,0.92);
+      backdrop-filter: blur(16px) saturate(180%) brightness(0.88);
+      -webkit-backdrop-filter: blur(16px) saturate(180%) brightness(0.88);
+      border-radius: 20px 20px 0 0;
+      border: 1px solid rgba(156,189,231,0.22);
+      border-bottom: none;
+      box-shadow: inset 0 1px 0 rgba(255,242,235,0.22), 0 -8px 40px rgba(0,0,0,0.50);
+      transform: translateY(100%);
       opacity: 0;
       pointer-events: none;
-      transition: transform 220ms ease-out, opacity 180ms ease-out;
-      z-index: 850;
+      transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1), opacity 180ms ease-out;
+      z-index: 1100;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
     #ptb-cal-float.open {
       display: block !important;
@@ -3664,12 +3680,27 @@
       opacity: 1;
       pointer-events: auto;
     }
-    /* Slide search bar up/out when calendar picker opens (JS adds .cal-dimmed) */
-    #floating-search.cal-dimmed {
-      transform: translateY(calc(-100% - 24px));
-      opacity: 0;
-      pointer-events: none;
+    /* Close button — visible on mobile */
+    #ptb-cal-close {
+      display: flex;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      align-self: flex-end;
+      margin: 16px 0 8px auto;
+      background: rgba(156,189,231,0.12);
+      border: none;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--muted);
+      flex-shrink: 0;
+      transition: background 0.12s, color 0.12s;
     }
+    #ptb-cal-close:hover { background: rgba(156,189,231,0.22); color: var(--text); }
     /* Inner panel: no extra animation on mobile — the outer float handles reveal */
     #ptb-cal-float #qc-panel {
       overflow: visible;
@@ -3698,12 +3729,12 @@
     #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
-      grid-template-rows: repeat(2, 88px);
+      grid-template-rows: repeat(2, 1fr);
       gap: 8px;
       overflow: visible;
     }
     #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-tile {
-      height: 88px;
+      aspect-ratio: 1;
       justify-content: center;
       border-radius: 10px;
       gap: 4px;
@@ -3715,8 +3746,8 @@
     #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-temp { font-size: 11px; font-weight: 500; color: rgba(156,189,231,0.72); }
     /* Month-view full calendar on mobile */
     #ptb-cal-float #qc-cal .dc-cal-scroll { height: 55vh; }
-    #ptb-cal-float #qc-cal .dc-month-grid .dc-tile:not(.solar-only) { height: 48px; }
-    #ptb-cal-float #qc-cal .dc-month-grid .dc-tile.solar-only { min-height: 34px; }
+    #ptb-cal-float #qc-cal .dc-month-grid .dc-tile { height: 48px; }
+    #ptb-cal-float #qc-cal .dc-month-grid .dc-tile.solar-only { height: 48px; min-height: 48px; }
   }
 
   #qc-presets {
@@ -3801,8 +3832,8 @@
   #qc-cal .dc-grid:not(.dc-month-grid) .dc-temp  { font-size: 12px; font-weight: 700; color: rgba(156,189,231,0.72); }
   /* Full-calendar month grid: 7 columns, 4px gap, 48px tiles */
   #qc-cal .dc-month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; width: 100%; box-sizing: border-box; }
-  #qc-cal .dc-month-grid .dc-tile:not(.solar-only) { padding: 4px 2px; gap: 2px; height: 48px; justify-content: center; }
-  #qc-cal .dc-month-grid .dc-tile.solar-only { padding: 0 2px; gap: 0; min-height: 34px; justify-content: center; }
+  #qc-cal .dc-month-grid .dc-tile { padding: 4px 2px; gap: 2px; height: 44px; justify-content: center; }
+  #qc-cal .dc-month-grid .dc-tile.solar-only { height: 44px; min-height: 44px; }
   #qc-cal .dc-month-grid .dc-num  { font-size: 15px; font-weight: 600; }
   #qc-cal .dc-month-grid .dc-icon { font-size: 14px; line-height: 1.1; }
   /* Weekday row: 7 columns matching day grid, sticky at scroll-area top */
@@ -4942,19 +4973,11 @@
   .invite-sheet.open {
     transform: translateY(0);
   }
-  .invite-sheet-handle {
-    display: flex;
-    justify-content: center;
-    padding: 12px 0 4px;
-  }
-  .invite-sheet-pill {
-    width: 36px;
-    height: 4px;
-    background: rgba(156,189,231,0.25);
-    border-radius: 2px;
-  }
   .invite-sheet-header {
-    padding: 8px 20px 14px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 20px 20px 14px;
     border-bottom: 1px solid rgba(156,189,231,0.12);
   }
   .invite-sheet-title {
@@ -4962,6 +4985,23 @@
     font-weight: 600;
     color: var(--text);
   }
+  .invite-sheet-close {
+    background: rgba(156,189,231,0.12);
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--muted);
+    flex-shrink: 0;
+    margin-left: 12px;
+    margin-top: -2px;
+    transition: background 0.12s, color 0.12s;
+  }
+  .invite-sheet-close:hover { background: rgba(156,189,231,0.22); color: var(--text); }
   .invite-sheet-venue {
     font-size: 13px;
     color: var(--muted);
@@ -5400,6 +5440,9 @@
   <!-- Calendar float — positioned above the panel, opened by the date button in panel-time-bar.
        Lives OUTSIDE #panel so it escapes the panel's transform context. -->
   <div id="ptb-cal-float" role="dialog" aria-modal="true" aria-label="Velg dato">
+    <button id="ptb-cal-close" onclick="_closeQcPanel()" aria-label="Lukk">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/></svg>
+    </button>
     <div id="qc-panel">
       <div id="qc-panel-inner">
         <div id="qc-date-section">
@@ -5470,14 +5513,14 @@
     <div id="venue-peek"></div>
 
     <div id="panel-header">
-      <!-- Venue count title + toggle button (desktop only) -->
       <div id="venue-header">
         <span id="venue-count">—</span>
-        <button id="panel-toggle-icon" onclick="togglePanel()" title="Hide sidebar">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
-        </button>
       </div>
     </div>
+    <!-- Toggle sidebar button — positioned at top-right of panel (desktop only) -->
+    <button id="panel-toggle-icon" onclick="togglePanel()" title="Hide sidebar">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+    </button>
     <div id="venue-list"></div>
   </div>
 
@@ -5542,7 +5585,7 @@
 <script src="js/ui-shelter.js?v=20260416a"></script>
 <script src="js/render-wind.js?v=20260416b"></script>
 <script src="js/ui-detail.js?v=20260411b"></script>
-<script src="js/osm.js?v=20260411b"></script>
+<script src="js/osm.js?v=20260427a"></script>
 <script>
 if (USE_FLOATING_TIME_SLIDER) document.body.classList.add('fts');
 

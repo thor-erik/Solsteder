@@ -1509,8 +1509,12 @@ function _closeQcPanel() {
 
   const dateBtn = document.getElementById('readout-date-btn');
   if (dateBtn) { dateBtn.classList.remove('active'); dateBtn.setAttribute('aria-expanded', 'false'); }
-  document.getElementById('ptb-cal-float')?.classList.remove('open');
-  document.getElementById('floating-search')?.classList.remove('cal-dimmed');
+  const calFloat = document.getElementById('ptb-cal-float');
+  if (calFloat) {
+    calFloat.classList.remove('open');
+    calFloat.style.bottom = '';
+  }
+  document.getElementById('ptb-cal-backdrop')?.remove();
   // Update floating slider: remove active state, restore visibility, update date label
   if (USE_FLOATING_TIME_SLIDER) {
     document.getElementById('fts-date-btn')?.classList.remove('active');
@@ -1556,8 +1560,25 @@ function toggleQcPanel(section) {
 
   _qcActiveSection = 'date';
   _navPush('qc');
+  // On desktop, position calendar float above the date button
+  if (!isMobile() && calFloat) {
+    const dateBtn = document.getElementById('readout-date-btn');
+    if (dateBtn) {
+      const r = dateBtn.getBoundingClientRect();
+      calFloat.style.top = '';
+      calFloat.style.bottom = (window.innerHeight - r.top + 8) + 'px';
+    }
+  }
   calFloat?.classList.add('open');
-  document.getElementById('floating-search')?.classList.add('cal-dimmed');
+  // On mobile, add a backdrop overlay behind the bottom-sheet calendar
+  if (isMobile() && !document.getElementById('ptb-cal-backdrop')) {
+    const bd = document.createElement('div');
+    bd.id = 'ptb-cal-backdrop';
+    bd.className = 'invite-backdrop';
+    bd.onclick = () => _closeQcPanel();
+    document.body.appendChild(bd);
+    requestAnimationFrame(() => bd.classList.add('open'));
+  }
   // Mark floating slider as cal-open (hides track, keeps button visible for toggle-back)
   if (USE_FLOATING_TIME_SLIDER) {
     document.getElementById('fts-date-btn')?.classList.add('active');
