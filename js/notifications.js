@@ -219,6 +219,9 @@ function _evalNoSunToday() {
   if (typeof VENUES === 'undefined' || !VENUES || !VENUES.length) return null;
   if (typeof datePicker === 'undefined' || !datePicker) return null;
   if (datePicker.value !== todayStr()) return null;
+  // Only show once per calendar day — don't nag on every session
+  const state = _notifLoadState();
+  if (state.noSunShownDate === todayStr()) return null;
   // Check if ANY venue has sun windows today
   const hasSun = VENUES.some(v => {
     const { windows } = computeSunWindows(v, datePicker.value);
@@ -828,5 +831,11 @@ _notifShow = function(notif) {
   }
   if (notif.category === 'login') {
     _notifLoginShown.add(notif.id);
+  }
+  // Mark "no sun" as shown for today so it doesn't repeat across sessions
+  if (notif.id === 'weather_no_sun') {
+    const state = _notifLoadState();
+    state.noSunShownDate = todayStr();
+    _notifSaveState(state);
   }
 };
