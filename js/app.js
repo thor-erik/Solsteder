@@ -2914,21 +2914,28 @@ document.addEventListener('DOMContentLoaded', () => {
       }, { passive: false });
 
       // ── Venue list: seamless scroll → panel drag ──────────────────────────────
-      // When the list reaches scrollTop 0 and the finger keeps moving, the panel
-      // starts following the finger (up → expand, down → dismiss). On release the
-      // standard velocity / position thresholds decide the target state.
+      // When the list reaches scrollTop 0 mid-gesture and the finger keeps moving
+      // up, the panel starts following the finger. Pull-down at top always works.
       const venueList = document.getElementById('venue-list');
       if (venueList) {
-        let _listStartY = 0;
+        let _listStartY = 0, _listWasScrolled = false;
         venueList.addEventListener('touchstart', e => {
           _listStartY = e.touches[0].clientY;
+          _listWasScrolled = venueList.scrollTop > 0;
         }, { passive: true });
 
         venueList.addEventListener('touchmove', e => {
           const cy = e.touches[0].clientY;
+          if (venueList.scrollTop > 0) _listWasScrolled = true;
           if (!_dragActive) {
             if (venueList.scrollTop <= 0) {
-              if (cy < _listStartY || cy > _listStartY) {
+              if (cy > _listStartY) {
+                // At top, pulling down → dismiss
+                e.preventDefault();
+                _dragFromList = true;
+                _beginDrag(cy);
+              } else if (cy < _listStartY && _listWasScrolled) {
+                // Scrolled to top mid-gesture, still moving up → expand
                 e.preventDefault();
                 _dragFromList = true;
                 _beginDrag(cy);
