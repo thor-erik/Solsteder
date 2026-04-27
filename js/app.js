@@ -4677,15 +4677,27 @@ function _runIntroSequence() {
           setTimeout(() => {
             if (_introSeqId !== seqId) return;
             animateToTime(_autoAdvancedAfterSunset ? 12 : now, animDuration);
-            // When FTS was hidden (auto-advanced), fade it in after slider settles
+            // When FTS was hidden (auto-advanced), slide it up from behind the panel
             if (_autoAdvancedAfterSunset) {
               const ftsEl = document.getElementById('fts');
               if (ftsEl) {
                 setTimeout(() => {
-                  ftsEl.style.transition = 'opacity 0.4s ease';
+                  // Start below final position, behind panel (z-index < panel's 910)
+                  // so it's not visible through the glass transparency
+                  ftsEl.style.transition = 'none';
+                  ftsEl.style.zIndex = '800';
+                  ftsEl.style.transform = 'translateY(60px)';
+                  ftsEl.style.opacity = '1';
                   ftsEl.classList.remove('intro-hidden');
-                  requestAnimationFrame(() => syncFts());
-                  setTimeout(() => { ftsEl.style.transition = ''; }, 500);
+                  requestAnimationFrame(() => {
+                    syncFts();
+                    ftsEl.getBoundingClientRect(); // force reflow
+                    ftsEl.style.transition = 'transform 0.5s cubic-bezier(0.25, 0.9, 0.4, 1)';
+                    ftsEl.style.transform = '';
+                    // Bring in front of panel once it's emerged from behind it
+                    setTimeout(() => { ftsEl.style.zIndex = ''; }, 150);
+                    setTimeout(() => { ftsEl.style.transition = ''; }, 550);
+                  });
                 }, animDuration);
               }
             }
