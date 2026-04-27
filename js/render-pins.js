@@ -168,6 +168,14 @@ function _applyDensityFilter(projVenues, zoom, currentHour, dateStr, isFullRecom
     catch { return 0; }
   }
 
+  // Venues with friend check-ins are never density-demoted
+  const _friendVenueIds = new Set();
+  if (typeof getFriendCheckinsForVenue === 'function') {
+    for (const e of projVenues) {
+      if (getFriendCheckinsForVenue(e.v.id).length) _friendVenueIds.add(e.v.id);
+    }
+  }
+
   const heroes  = projVenues.filter(e => e.classResult.tier === 'hero');
   const waiting = projVenues.filter(e => e.classResult.tier === 'waiting');
 
@@ -176,15 +184,15 @@ function _applyDensityFilter(projVenues, zoom, currentHour, dateStr, isFullRecom
     if (isFullRecompute) {
       heroes.sort((a, b) => _heroScore(b) - _heroScore(a));
       for (let i = heroCap; i < heroes.length; i++) {
-        // Keep tier:'hero' — solar identity is non-negotiable. demoted=true → orange dot.
+        if (_friendVenueIds.has(heroes[i].v.id)) continue; // friends never demoted
         heroes[i].classResult = { ...heroes[i].classResult, demoted: true };
       }
     } else {
-      // Pan frame: keep previously-stable heroes (pills); demote newcomers first
       const stable = heroes.filter(h => _stableHeroIds.has(h.v.id));
       const fresh  = heroes.filter(h => !_stableHeroIds.has(h.v.id));
       fresh.sort((a, b) => _heroScore(b) - _heroScore(a));
       for (let i = Math.max(0, heroCap - stable.length); i < fresh.length; i++) {
+        if (_friendVenueIds.has(fresh[i].v.id)) continue; // friends never demoted
         fresh[i].classResult = { ...fresh[i].classResult, demoted: true };
       }
     }
@@ -210,15 +218,15 @@ function _applyDensityFilter(projVenues, zoom, currentHour, dateStr, isFullRecom
     if (isFullRecompute) {
       waiting.sort((a, b) => _waitingScore(a) - _waitingScore(b));
       for (let i = waitingCap; i < waiting.length; i++) {
-        // Keep tier:'waiting' — blue dot, distinct from context grey dot.
+        if (_friendVenueIds.has(waiting[i].v.id)) continue; // friends never demoted
         waiting[i].classResult = { ...waiting[i].classResult, demoted: true };
       }
     } else {
-      // Pan frame: keep previously-stable waiting pins; demote newcomers first
       const stable = waiting.filter(w => _stableWaitingIds.has(w.v.id));
       const fresh  = waiting.filter(w => !_stableWaitingIds.has(w.v.id));
       fresh.sort((a, b) => _waitingScore(a) - _waitingScore(b));
       for (let i = Math.max(0, waitingCap - stable.length); i < fresh.length; i++) {
+        if (_friendVenueIds.has(fresh[i].v.id)) continue; // friends never demoted
         fresh[i].classResult = { ...fresh[i].classResult, demoted: true };
       }
     }
@@ -888,6 +896,32 @@ function _drawDot(pt, tier) {
   ctx.restore();
 }
 
+// ── Friend badge on pins ──────────────────────────────────────────────────────
+const FRIEND_BADGE_R = 5.5;
+
+function _drawFriendBadge(x, y, fc) {
+  const r = FRIEND_BADGE_R;
+  // Dark fill with accent border
+  ctx.save();
+  ctx.beginPath(); ctx.arc(x, y, r + 1, 0, Math.PI * 2);
+  ctx.fillStyle = '#142E52';
+  ctx.fill();
+  ctx.strokeStyle = '#FFAF85';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  // Content: initial for 1 friend, count for 2+
+  ctx.fillStyle = '#FFAF85';
+  ctx.font = 'bold 8px "Inter", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  if (fc.length === 1) {
+    ctx.fillText((fc[0].user.name || fc[0].user.email || '?')[0].toUpperCase(), x, y);
+  } else {
+    ctx.fillText(String(fc.length), x, y);
+  }
+  ctx.restore();
+}
+
 // ── Map pan helper ────────────────────────────────────────────────────────────
 /**
  * Pan so the venue pin appears centred in the visible area (accounting for
@@ -1077,6 +1111,13 @@ function draw() {
       if (v.id === highlight.id) _drawDotHover(pt, tier);
       else _drawDot(pt, tier);
     }
+    // Friend badge on dot pins (offset to top-right)
+    if (typeof getFriendCheckinsForVenue === 'function') {
+      const fc = getFriendCheckinsForVenue(v.id);
+      if (fc.length) {
+        _drawFriendBadge(pt.x + DOT_R + 1, pt.y - DOT_R - 1, fc);
+      }
+    }
   }
 
   // Pass 2b — morph animations + pills (always above dots)
@@ -1158,6 +1199,18 @@ function draw() {
     }
 
     ctx.drawImage(spr.canvas, sprLeft, sprTop, spr.cssW, spr.cssH);
+
+    // Friend badge (top-right of pill)
+    if (spr.pillW > 0 && typeof getFriendCheckinsForVenue === 'function') {
+      const fc = getFriendCheckinsForVenue(v.id);
+      if (fc.length) {
+        const rp2 = (v.id === selectedId ? 4 : 2);
+        const pillRight = sprLeft + SHADOW_PAD + rp2 + spr.pillW;
+        const pillTop   = sprTop  + SHADOW_PAD + rp2;
+        _drawFriendBadge(pillRight - 1, pillTop + 1, fc);
+      }
+    }
+
     ctx.restore();
   }
 
@@ -1173,50 +1226,6 @@ function draw() {
     ctx.fillStyle = 'rgba(240,230,211,0.7)';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(text, cssW / 2, py + ph / 2);
-  }
-
-  // Pass 3 — friend check-in avatar dots below pins
-  if (typeof getFriendCheckinsForVenue === 'function') {
-    for (const { v, pt, isDot } of _lastLayout) {
-      const fc = getFriendCheckinsForVenue(v.id);
-      if (!fc.length) continue;
-      const dotR = 6;
-      const baseY = pt.y + (isDot ? 8 : 4);
-      const totalW = Math.min(fc.length, 3) * (dotR * 2 + 2);
-      let startX = pt.x - totalW / 2 + dotR;
-      for (let i = 0; i < Math.min(fc.length, 3); i++) {
-        const u = fc[i].user;
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(startX, baseY, dotR, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(17,30,56,0.9)';
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(255,175,133,0.7)';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-        // Draw initial letter
-        ctx.fillStyle = 'rgba(255,242,235,0.9)';
-        ctx.font = 'bold 8px "Inter", sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText((u.name || u.email || '?')[0].toUpperCase(), startX, baseY);
-        ctx.restore();
-        startX += dotR * 2 + 2;
-      }
-      if (fc.length > 3) {
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(startX, baseY, dotR, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(17,30,56,0.9)';
-        ctx.fill();
-        ctx.fillStyle = 'rgba(255,242,235,0.7)';
-        ctx.font = 'bold 7px "Inter", sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('+' + (fc.length - 3), startX, baseY);
-        ctx.restore();
-      }
-    }
   }
 
   if (needsAnimFrame) _scheduleAnimFrame();
