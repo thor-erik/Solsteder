@@ -832,14 +832,16 @@
   .dc-tile.solar-only:hover:not(.no-data) { border-color: rgba(156,189,231,0.22); }
   /* Past tiles: 0.45 opacity matches the time bar past-state rule */
   .dc-tile-past        { opacity: 0.45; cursor: default; pointer-events: none; border-color: transparent; background: transparent; box-shadow: none; }
-  /* Today dot — 4px accent dot, inline in flex column, centered below day number */
+  /* Today dot — 4px accent dot, absolutely positioned at bottom-center of tile */
   .dc-today-dot {
+    position: absolute;
+    bottom: 3px;
+    left: 50%;
+    transform: translateX(-50%);
     width: 4px;
     height: 4px;
     border-radius: 50%;
     background: var(--accent);
-    flex-shrink: 0;
-    align-self: center;
   }
   /* Overflow tiles: days from the previous month that share a row with the 1st of a new month */
   .dc-tile-overflow    { opacity: 0.45; }
@@ -3827,7 +3829,7 @@
     -webkit-mask-image: linear-gradient(to bottom, black 96%, transparent 100%);
   }
   #qc-cal .dc-cal-scroll::-webkit-scrollbar { display: none; }
-  #qc-cal .dc-grid:not(.dc-month-grid) { display: grid; grid-template-columns: repeat(7, 1fr); grid-auto-rows: 1fr; gap: 3px; flex: 1; min-height: 0; width: 100%; box-sizing: border-box; }
+  #qc-cal .dc-grid:not(.dc-month-grid) { display: grid; grid-template-columns: repeat(7, 1fr); grid-auto-rows: auto; gap: 3px; width: 100%; box-sizing: border-box; }
   #qc-cal .dc-grid:not(.dc-month-grid) .dc-tile  { padding: 4px 2px; gap: 2px; }
   #qc-cal .dc-grid:not(.dc-month-grid) .dc-day   { font-size: 8px; }
   #qc-cal .dc-grid:not(.dc-month-grid) .dc-num   { font-size: 15px; }

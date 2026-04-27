@@ -1813,6 +1813,8 @@ function _syncQcPanelHeightExpanded() {
   // the panel shrinks to content height because overflow:hidden clips to natural height.
   qcPanel.classList.add('cal-expanded');
   qcPanel.style.setProperty('--qc-panel-h', '500px');
+  const dateSection = document.getElementById('qc-date-section');
+  if (dateSection) dateSection.style.height = '';
 }
 
 function selectQcDate(dateStr) {
