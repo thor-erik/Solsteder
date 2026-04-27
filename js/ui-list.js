@@ -273,7 +273,14 @@ function renderList() {
   if (filterMapViewActive) {
     // While a venue is selected, keep the list frozen at the pre-zoom viewport
     const bounds = (selectedId != null && _frozenBounds) ? _frozenBounds : map.getBounds();
-    venues = venues.filter(v => bounds.contains([v.lng, v.lat]));
+    // Pad bounds by 20% so venues just outside the viewport are included
+    const sw = bounds.getSouthWest(), ne = bounds.getNorthEast();
+    const dlat = (ne.lat - sw.lat) * 0.2, dlng = (ne.lng - sw.lng) * 0.2;
+    const padded = new mapboxgl.LngLatBounds(
+      [sw.lng - dlng, sw.lat - dlat],
+      [ne.lng + dlng, ne.lat + dlat]
+    );
+    venues = venues.filter(v => padded.contains([v.lng, v.lat]));
   }
 
   // Closed venues always sink below open ones regardless of sort mode

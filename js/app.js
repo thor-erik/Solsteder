@@ -1857,15 +1857,17 @@ function selectQcDate(dateStr) {
 let _qcPanelHeight = 0; // cached, set on load/resize/list-render
 
 function _syncQcPanelHeight() {
-  // Calendar is now inside the panel; give it a fixed reasonable height.
+  // Set --qc-panel-h large enough for the max-height transition.
+  // The panel shrinks to content via overflow:hidden — no inline height needed.
   const qcPanel = document.getElementById('qc-panel');
   if (!qcPanel) return;
-  const h = 280;
-  if (h === _qcPanelHeight) return;
-  _qcPanelHeight = h;
   const dateSection = document.getElementById('qc-date-section');
-  if (dateSection) dateSection.style.height = h + 'px';
-  qcPanel.style.setProperty('--qc-panel-h', (h + 10) + 'px');
+  if (dateSection) dateSection.style.height = '';
+  // Use rAF to measure after render, so --qc-panel-h matches actual content
+  requestAnimationFrame(() => {
+    const h = qcPanel.scrollHeight || 290;
+    qcPanel.style.setProperty('--qc-panel-h', h + 'px');
+  });
 }
 
 // ── Peek height: measure handle + time bar + list-sun-header + venue-peek ────
