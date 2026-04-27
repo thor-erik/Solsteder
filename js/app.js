@@ -362,14 +362,35 @@ function drawFtsCanvas() {
     c.fillRect(seg.x1, BLEED, seg.x2 - seg.x1, TRACK_H);
   }
 
-  // 5. Dim past hours on today
+  // 5. Lens sheen — polarised top-light treatment (convex pill)
+  // Drawn before dim/shadow overlays so they aren't washed out
+  const sheen = c.createLinearGradient(0, BLEED, 0, BLEED + TRACK_H * 0.55);
+  sheen.addColorStop(0,    'rgba(255,242,235,0.28)');
+  sheen.addColorStop(0.55, 'rgba(255,242,235,0.06)');
+  sheen.addColorStop(1,    'rgba(255,242,235,0)');
+  c.fillStyle = sheen;
+  c.fillRect(0, BLEED, BAR_W, TRACK_H * 0.55);
+
+  const topHL = c.createLinearGradient(0, BLEED, 0, BLEED + 1.5);
+  topHL.addColorStop(0, 'rgba(255,255,255,0.55)');
+  topHL.addColorStop(1, 'rgba(255,255,255,0)');
+  c.fillStyle = topHL;
+  c.fillRect(0, BLEED, BAR_W, 1.5);
+
+  const shade = c.createLinearGradient(0, BLEED + TRACK_H * 0.65, 0, BLEED + TRACK_H);
+  shade.addColorStop(0, 'rgba(0,0,0,0)');
+  shade.addColorStop(1, 'rgba(0,0,0,0.22)');
+  c.fillStyle = shade;
+  c.fillRect(0, BLEED + TRACK_H * 0.65, BAR_W, TRACK_H * 0.35);
+
+  // 6. Dim past hours on today
   if (isToday_ && nowH_ > MIN_H) {
     const pastX = Math.min(Math.round(timeToX(nowH_)), BAR_W);
     c.fillStyle = 'rgba(0,0,0,0.45)';
     c.fillRect(0, BLEED, pastX, TRACK_H);
   }
 
-  // 6. Venue shadow overlay — dim shadow zones with semi-transparent overlay
+  // 7. Venue shadow overlay — dim shadow zones with semi-transparent overlay
   if (selectedId != null) {
     const sv = VENUES.find(x => x.id === selectedId);
     if (sv) {
@@ -392,35 +413,11 @@ function drawFtsCanvas() {
         const gx1 = Math.round(timeToX(Math.max(MIN_H, gap.start)));
         const gx2 = Math.round(timeToX(Math.min(MAX_H, gap.end)));
         if (gx2 <= gx1) continue;
-        // Simple dim overlay — preserves weather colors + lens sheen underneath
         c.fillStyle = 'rgba(0,0,0,0.45)';
         c.fillRect(gx1, BLEED, gx2 - gx1, TRACK_H);
       }
     }
   }
-
-  // 7. Lens sheen — polarised top-light treatment (convex pill)
-  // Top cream sheen: --text 28% → 0 over upper 55%
-  const sheen = c.createLinearGradient(0, BLEED, 0, BLEED + TRACK_H * 0.55);
-  sheen.addColorStop(0,    'rgba(255,242,235,0.28)');
-  sheen.addColorStop(0.55, 'rgba(255,242,235,0.06)');
-  sheen.addColorStop(1,    'rgba(255,242,235,0)');
-  c.fillStyle = sheen;
-  c.fillRect(0, BLEED, BAR_W, TRACK_H * 0.55);
-
-  // Hairline highlight at the very top edge
-  const topHL = c.createLinearGradient(0, BLEED, 0, BLEED + 1.5);
-  topHL.addColorStop(0, 'rgba(255,255,255,0.55)');
-  topHL.addColorStop(1, 'rgba(255,255,255,0)');
-  c.fillStyle = topHL;
-  c.fillRect(0, BLEED, BAR_W, 1.5);
-
-  // Bottom darkening: black 22% → 0 over lower 35%
-  const shade = c.createLinearGradient(0, BLEED + TRACK_H * 0.65, 0, BLEED + TRACK_H);
-  shade.addColorStop(0, 'rgba(0,0,0,0)');
-  shade.addColorStop(1, 'rgba(0,0,0,0.22)');
-  c.fillStyle = shade;
-  c.fillRect(0, BLEED + TRACK_H * 0.65, BAR_W, TRACK_H * 0.35);
 
   c.restore(); // exit rounded-rect clip — thumb + NÅ tick draw unclipped
 
