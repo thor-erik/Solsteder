@@ -1306,7 +1306,8 @@ function _pinHitAtEvent(e) {
 // Selector for interactive UI overlays that must receive clicks without
 // interference from the canvas. Must be defined before the pointerdown handler.
 const _UI_OVERLAY_SELECTOR = '#qc-wrap, #panel, #floating-search, #search-dropdown, #ptb-cal-float, ' +
-  '#profile-panel, #search-wrap, #floating-date, #detail-panel, .mapboxgl-ctrl, .mapboxgl-popup';
+  '#profile-panel, #search-wrap, #floating-date, #detail-panel, .mapboxgl-ctrl, .mapboxgl-popup, ' +
+  '#locate-btn, #notif-toast, #fts';
 
 canvas.addEventListener('pointerdown', e => {
   canvas.style.pointerEvents = 'none';
@@ -1323,6 +1324,15 @@ canvas.addEventListener('pointerdown', e => {
 });
 
 canvas.addEventListener('mousedown', e => {
+  // Yield to interactive UI overlays above the canvas
+  canvas.style.pointerEvents = 'none';
+  const elUnderMD = document.elementFromPoint(e.clientX, e.clientY);
+  canvas.style.pointerEvents = 'auto';
+  if (elUnderMD && elUnderMD.closest(_UI_OVERLAY_SELECTOR)) {
+    elUnderMD.dispatchEvent(new MouseEvent('mousedown', e));
+    return;
+  }
+
   const rect = canvas.getBoundingClientRect();
   const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
   if (editingVenueId) {
@@ -1373,6 +1383,12 @@ canvas.addEventListener('mousedown', e => {
 });
 
 canvas.addEventListener('click', e => {
+  // Yield to interactive UI overlays above the canvas
+  canvas.style.pointerEvents = 'none';
+  const elUnderClick = document.elementFromPoint(e.clientX, e.clientY);
+  canvas.style.pointerEvents = 'auto';
+  if (elUnderClick && elUnderClick.closest(_UI_OVERLAY_SELECTOR)) return;
+
   const rect = canvas.getBoundingClientRect();
   const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
   if (editingVenueId) {
