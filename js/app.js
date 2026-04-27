@@ -155,7 +155,7 @@ function _syncFtsPosition() {
       return;
     }
     if (ftsEl) { ftsEl.style.opacity = ''; ftsEl.style.pointerEvents = ''; }
-    document.body.style.setProperty('--fts-bottom', `calc(55svh + ${FTS_GAP}px)`);
+    document.body.style.setProperty('--fts-bottom', `calc(62svh + ${FTS_GAP}px)`);
     return;
   }
 
@@ -2781,16 +2781,15 @@ document.addEventListener('DOMContentLoaded', () => {
         _dragRafId = requestAnimationFrame(() => {
           const dy = y - _dragY0;
           const newY = Math.min(_dragInitH - 80, _dragT0 + dy);
-          // Use a single composite transform: translateY for position + scaleY to
-          // stretch the panel downward when dragging up, avoiding style.height
-          // which triggers synchronous layout recalc every frame.
-          if (newY < _dragT0) {
-            const extra = Math.abs(newY - _dragT0);
-            const scale = (_dragInitH + extra) / _dragInitH;
-            panelEl.style.transform = `translateY(${newY}px) scaleY(${scale})`;
-            panelEl.style.transformOrigin = 'top center';
+          // When dragging above the expanded position (translateY < 0), grow the
+          // panel height instead of translating upward — this avoids a gap at the
+          // bottom and keeps content un-distorted (no scaleY).
+          if (newY < 0) {
+            panelEl.style.transform = 'translateY(0)';
+            panelEl.style.height = (_dragInitH + Math.abs(newY)) + 'px';
           } else {
             panelEl.style.transform = `translateY(${newY}px)`;
+            panelEl.style.height = '';
           }
 
           // Track pill with panel during drag
@@ -2819,14 +2818,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const dt       = Math.max(1, Date.now() - _dragStartTime);
         const velocity = dy / dt; // px/ms, positive = downward
 
-        panelEl.classList.remove('panel-dragging');
-        panelEl.style.transition = '';
-        panelEl.style.transform  = '';
-        panelEl.style.transformOrigin = '';
-        // Restore pill transition after drag
-        if (!_ftsEl) _ftsEl = document.getElementById('fts');
-        if (_ftsEl) { _ftsEl.style.transition = ''; _ftsEl.style.bottom = ''; }
-
         const SWIPE_V = 0.2, SAFE_DY = 40;
         let target;
         if      (velocity < -SWIPE_V)            target = _dragStartState === 'peek' ? 'expanded' : 'fullscreen';
@@ -2835,7 +2826,21 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (dy < 0)                         target = _dragStartState === 'peek' ? 'expanded' : 'fullscreen';
         else                                     target = _dragStartState === 'fullscreen' ? 'expanded' : 'peek'; // peek is the floor
 
+        // Restore pill transition after drag
+        if (!_ftsEl) _ftsEl = document.getElementById('fts');
+        if (_ftsEl) { _ftsEl.style.transition = ''; _ftsEl.style.bottom = ''; }
+
+        // FLIP-style commit: apply target classes while inline transform keeps
+        // the panel at its drag position, then release inline styles so the CSS
+        // transition animates smoothly from drag position → target position.
         _applyState(target);
+        panelEl.classList.remove('panel-dragging');
+        panelEl.style.transition = '';
+        // Force layout so browser registers current inline transform as start point
+        void panelEl.offsetHeight;
+        // Release inline overrides — CSS transition kicks in from here
+        panelEl.style.transform  = '';
+        panelEl.style.height     = '';
       }
 
       // Wire a swipe target: touchstart/move/end → panel drag state machine
@@ -2865,7 +2870,7 @@ document.addEventListener('DOMContentLoaded', () => {
             panelEl.classList.remove('panel-dragging');
             panelEl.style.transition = '';
             panelEl.style.transform  = '';
-            panelEl.style.transformOrigin = '';
+            panelEl.style.height     = '';
             if (!_ftsEl) _ftsEl = document.getElementById('fts');
             if (_ftsEl) { _ftsEl.style.transition = ''; _ftsEl.style.bottom = ''; }
             if (opts.tapToggle !== false) {
@@ -2958,6 +2963,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('map-container')?.addEventListener('touchstart', () => {
       if (panelEl && !panelEl.classList.contains('mobile-hidden')) {
         panelEl.classList.remove('mobile-expanded', 'mobile-fullscreen');
+        _syncFtsPosition();
       }
     }, { passive: true, capture: true });
 
