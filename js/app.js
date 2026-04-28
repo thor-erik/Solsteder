@@ -4178,13 +4178,16 @@ function _syncSearchClearBtn() {
 }
 
 let _searchListTimer = null;
+let _searchDropdownTimer = null;
 let _aSearchTimer = null;
 _searchInput.addEventListener('input', () => {
   _syncSearchClearBtn();
   _googleResults = [];  // clear Google results when query changes
-  // Render dropdown immediately (lightweight filter) but debounce the
-  // expensive renderList() which runs solar math on every venue.
-  _renderSearchDropdown();
+  // Both renders are debounced. The dropdown gets a tiny 60 ms delay so a
+  // burst of keystrokes collapses to one venue/area scan + diacritics pass;
+  // renderList() keeps its 300 ms because its solar-math work dominates.
+  clearTimeout(_searchDropdownTimer);
+  _searchDropdownTimer = setTimeout(_renderSearchDropdown, 60);
   clearTimeout(_searchListTimer);
   _searchListTimer = setTimeout(renderList, 300);
   // Analytics: debounced search tracking (2 s after typing stops)
