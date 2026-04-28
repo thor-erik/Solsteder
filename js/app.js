@@ -229,9 +229,8 @@ function initDpTimeline() {
     if (selectedId == null) return;
     const v = VENUES.find(x => x.id === selectedId);
     if (!v) return;
-    const tl = dp.querySelector('.dp-timeline');
-    const track = tl?.querySelector('.timeline-track');
-    if (!tl || !track) return;
+    const track = dp.querySelector('.dp-time-track');
+    if (!track) return;
     const rect = track.getBoundingClientRect();
     if (rect.width <= 0) return;
     const hours = getVenueHoursForDay(v, datePicker.value);
@@ -252,8 +251,8 @@ function initDpTimeline() {
   };
 
   dp.addEventListener('pointerdown', e => {
-    const tl = e.target.closest('.dp-timeline');
-    if (!tl) return;
+    const track = e.target.closest('.dp-time-track');
+    if (!track) return;
     e.preventDefault();
     e.stopPropagation();
     _dpScrubbing = true;
@@ -2453,7 +2452,9 @@ function openDetailPanel(v) {
   dp.classList.remove('dp-fullscreen');
 
   // Container morph from clicked card → panel (mobile only).
-  // Capture rect, mark source card invisible, set initial CSS vars BEFORE adding .open.
+  // FLIP: apply start state with transitions OFF so the panel snaps to the card's
+  // rect, force a reflow to commit, then re-enable transitions and add .open so the
+  // browser animates from rect → fullscreen instead of from translateY(100%).
   const onMobile = isMobile();
   let sourceCard = null;
   if (onMobile) {
@@ -2464,9 +2465,10 @@ function openDetailPanel(v) {
       _morphSourceRect = { top: rect.top, height: rect.height };
       _applyMorphFromRect(dp, rect);
       sourceCard.classList.add('morph-source');
-      dp.classList.add('dp-morphing');
-      // Force reflow so initial morph styles apply before .open transitions.
+      dp.classList.add('dp-morphing', 'dp-morph-instant');
+      // Force layout to commit the snap-to-card-rect frame BEFORE we enable transitions.
       void dp.offsetHeight;
+      dp.classList.remove('dp-morph-instant');
     } else {
       _morphSourceVid = null;
       _morphSourceRect = null;
@@ -2550,9 +2552,12 @@ function closeDetailPanel(expandList = true) {
       document.getElementById('qc-wrap')?.classList.remove('mobile-ui-hidden');
       document.getElementById('locate-btn')?.classList.remove('mobile-ui-hidden');
       document.getElementById('zoom-jog')?.classList.remove('mobile-ui-hidden');
-      // Cleanup morph state once panel is fully closed.
+      // Reverse morph just finished — snap panel away without an extra wobble.
       if (dp) {
+        dp.classList.add('dp-morph-instant');
         dp.classList.remove('dp-morphing');
+        void dp.offsetHeight;
+        dp.classList.remove('dp-morph-instant');
         dp.style.removeProperty('--morph-h');
         dp.style.removeProperty('--morph-dy');
       }
@@ -3396,7 +3401,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // When dp-scroll is at the top and the finger moves down, start panel drag.
       const dpContent = document.getElementById('dp-content');
       if (dpContent) {
-        const _DP_INTERACTIVE = 'button, a, input, select, textarea, canvas, [role="button"], .dp-timeline';
+        const _DP_INTERACTIVE = 'button, a, input, select, textarea, canvas, [role="button"], .dp-time-track, .dp-time-row';
         let _dpContentStartY = 0;
         dpContent.addEventListener('touchstart', e => {
           if (e.target.closest(_DP_INTERACTIVE)) return;

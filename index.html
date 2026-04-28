@@ -4609,7 +4609,7 @@
   .dp-action-icon {
     width: 44px;
     height: 44px;
-    border-radius: 12px;
+    border-radius: 50%;          /* circular to echo the slider pill / thumb language */
     background: linear-gradient(135deg, rgba(20,46,82,0.25), rgba(32,73,131,0.14)), rgba(20,46,82,0.30);
     border: 1px solid rgba(156,189,231,0.20);
     box-shadow: inset 0 1px 0 rgba(255,242,235,0.14), inset 0 -1px 0 rgba(20,46,82,0.30);
@@ -4621,8 +4621,9 @@
     cursor: pointer;
     flex-shrink: 0;
     text-decoration: none;
+    transition: background 0.15s, border-color 0.15s;
   }
-  .dp-action-icon:hover { background: rgba(20,46,82,0.65); }
+  .dp-action-icon:hover { background: rgba(20,46,82,0.65); border-color: rgba(156,189,231,0.32); }
   .dp-action-icon svg { width: 18px; height: 18px; stroke: currentColor; color: var(--accent); }
 
   /* Legacy: keep .primary-action for backwards compat but hidden */
@@ -4682,96 +4683,117 @@
     color: var(--accent);
   }
 
-  /* ── Sun section (glass card) ──────────────────────────────────────────── */
-  .sun-section {
-    background: linear-gradient(135deg, rgba(20,46,82,0.28), rgba(32,73,131,0.16)), rgba(20,46,82,0.34);
-    border: 1px solid rgba(156,189,231,0.20);
-    box-shadow: inset 0 1px 0 rgba(255,242,235,0.16), inset 0 -1px 0 rgba(20,46,82,0.35), 0 2px 8px rgba(0,0,0,0.35);
-    border-radius: 12px;
-    padding: 14px;
-    margin-bottom: 12px;
-  }
-
-  .sun-section-head {
+  /* ── Top row inside detail panel: back chevron + heart/bell ───────────── */
+  .dp-top-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
-    margin-bottom: 12px;
+    margin: 0 0 6px;
   }
+  .dp-top-actions { display: flex; gap: 4px; }
 
-  .sun-section-main {
-    font-size: 14px;
-    font-weight: 700;
-    flex: 1;
-    min-width: 0;
+  /* ── Detail-panel "card": same DOM as a venue-card, scaled up ────────── */
+  .dp-card {
+    /* Inherits .venue-card glass background + border. We just bump sizing. */
+    cursor: default;
+    margin-bottom: 14px;
+    padding: 16px 16px 14px;
+    animation: none;
   }
+  .dp-card:hover { background: var(--glass-card-bg); }   /* kill list-card hover */
+  .dp-card .card-top { gap: 14px; }
+  .dp-card .card-new-name { font-size: 22px; line-height: 1.15; letter-spacing: -0.01em; white-space: normal; }
+  .dp-card .card-new-meta { font-size: 13px; line-height: 1.35; }
+  .dp-card .card-new-hero-main { font-size: 16px; }
+  .dp-card .card-new-hero-sub  { font-size: 12px; }
+  .dp-card .card-right { min-width: 110px; }
 
-  .sun-section-main .hi {
-    color: var(--accent);
+  /* Time row: date chip on the left + slider on the right (mirrors FTS layout) */
+  .dp-time-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
   }
-
-  /* Date chip — opens the same calendar dropdown as the list-mode button */
   .dp-date-chip {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
-    padding: 5px 9px;
-    border-radius: 999px;
-    background: linear-gradient(135deg, rgba(20,46,82,0.40), rgba(32,73,131,0.22)), rgba(20,46,82,0.50);
-    border: 1px solid rgba(156,189,231,0.22);
+    height: 38px;
+    padding: 0 12px;
+    background: var(--glass-action-bg);
+    backdrop-filter: var(--glass-blur-action);
+    -webkit-backdrop-filter: var(--glass-blur-action);
+    border: var(--glass-border);
+    border-radius: 19px;
+    box-shadow: var(--glass-inset), 0 2px 8px rgba(0,0,0,0.35);
     color: var(--text);
-    font: 600 11.5px/1 'Inter', sans-serif;
+    font: 600 13px/1 'Inter', sans-serif;
     cursor: pointer;
     flex-shrink: 0;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
     -webkit-tap-highlight-color: transparent;
+    transition: background 120ms, border-color 120ms;
   }
-  .dp-date-chip:hover { background: rgba(20,46,82,0.65); border-color: rgba(156,189,231,0.30); }
+  .dp-date-chip:hover { background: rgba(20,46,82,0.60); border-color: rgba(156,189,231,0.30); }
   .dp-date-chip:active { transform: scale(0.97); }
   .dp-date-chip svg { color: var(--muted); flex-shrink: 0; }
   .dp-date-chip span { font-variant-numeric: tabular-nums; letter-spacing: -0.005em; }
 
-  /* Detail panel timeline — taller, scrubbable, with thumb */
-  .dp-timeline {
+  /* Slider track — same look as FTS pill (#fts-track) */
+  .dp-time-track {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 38px;
+    border-radius: 999px;
     position: relative;
-    margin-bottom: 8px;
-    padding: 8px 0;            /* extra hit area for scrub */
+    cursor: ew-resize;
     touch-action: none;
-    cursor: pointer;
-  }
-  .dp-timeline .timeline-track {
-    height: 12px;
-    border-radius: 6px;
+    background: var(--glass-action-bg);
+    backdrop-filter: var(--glass-blur-action);
+    -webkit-backdrop-filter: var(--glass-blur-action);
+    border: var(--glass-border);
+    box-shadow: var(--glass-inset), 0 2px 8px rgba(0,0,0,0.35);
     overflow: visible;
   }
-  .dp-timeline .timeline-track .wx { border-radius: 0; }
-  .dp-timeline .timeline-track .cap-l { border-radius: 6px 0 0 6px; }
-  .dp-timeline .timeline-track .cap-r { border-radius: 0 6px 6px 0; }
-  .dp-timeline .timeline-track .cap-l.cap-r { border-radius: 6px; }
+  /* Weather segments fill the pill */
+  .dp-time-track .wx {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    border-radius: 0;
+    opacity: 0.95;
+  }
+  .dp-time-track .cap-l       { border-radius: 999px 0 0 999px; }
+  .dp-time-track .cap-r       { border-radius: 0 999px 999px 0; }
+  .dp-time-track .cap-l.cap-r { border-radius: 999px; }
 
-  .dp-timeline .tl-needle { display: none; }   /* thumb replaces needle when scrubbable */
-  .dp-timeline .tl-thumb {
+  .dp-time-track .tl-thumb {
     position: absolute;
     top: 50%;
-    width: 18px;
-    height: 18px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     background: #FFF2EB;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.45), 0 0 0 1px rgba(20,46,82,0.6) inset;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.45), 0 0 0 1px rgba(20,46,82,0.6) inset;
     transform: translate(-50%, -50%);
     z-index: 6;
     pointer-events: none;
-    transition: transform 0.08s ease-out;
+    transition: transform 0.1s ease-out, box-shadow 0.1s ease-out;
   }
-  #detail-panel.dp-scrub-active .dp-timeline .tl-thumb { transform: translate(-50%, -50%) scale(1.15); box-shadow: 0 3px 10px rgba(0,0,0,0.5), 0 0 0 1px rgba(20,46,82,0.6) inset; }
+  #detail-panel.dp-scrub-active .dp-time-track .tl-thumb {
+    transform: translate(-50%, -50%) scale(1.12);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.55), 0 0 0 6px rgba(255,242,235,0.18), 0 0 0 1px rgba(20,46,82,0.6) inset;
+  }
 
-  .dp-timeline-labels {
+  /* Time labels under the slider */
+  .dp-tl-labels {
     position: relative;
-    height: 12px;
+    height: 14px;
+    margin-top: 6px;
     font-size: 10px;
     color: var(--muted);
-    opacity: 0.6;
+    opacity: 0.7;
   }
   .dp-tl-label {
     position: absolute;
@@ -4781,25 +4803,20 @@
     white-space: nowrap;
   }
   .dp-tl-label-edge { transform: translateX(0); }
-  .dp-tl-label-end { transform: translateX(-100%); }
+  .dp-tl-label-end  { transform: translateX(-100%); }
 
   /* Sol-retning section */
 
-  /* Info rows (busyness, noise, hours) */
+  /* Info rows (busyness, noise, hours) — open layout, no heavy box */
   .info-list {
-    background: linear-gradient(135deg, rgba(20,46,82,0.28), rgba(32,73,131,0.16)), rgba(20,46,82,0.34);
-    border: 1px solid rgba(156,189,231,0.20);
-    box-shadow: inset 0 1px 0 rgba(255,242,235,0.16), inset 0 -1px 0 rgba(20,46,82,0.35), 0 2px 8px rgba(0,0,0,0.35);
-    border-radius: 12px;
-    overflow: hidden;
     margin-bottom: 14px;
   }
 
   .info-row {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
+    gap: 12px;
+    padding: 8px 4px;
     border-bottom: 1px solid rgba(156,189,231,0.10);
   }
 
@@ -4808,14 +4825,14 @@
   }
 
   .info-icon {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
     color: var(--accent);
     flex-shrink: 0;
+    opacity: 0.85;
   }
 
   .info-icon svg {
@@ -4848,29 +4865,31 @@
     text-align: right;
   }
 
-  /* Footer buttons */
+  /* Footer buttons — text links, low visual weight */
   .secondary-row {
     display: flex;
-    gap: 10px;
+    gap: 18px;
     justify-content: center;
-    padding: 8px 0 16px;
+    padding: 14px 0 16px;
     margin-top: 4px;
   }
 
   .secondary-link {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 500;
     color: var(--muted);
-    padding: 8px 14px;
-    background: linear-gradient(135deg, rgba(20,46,82,0.25), rgba(32,73,131,0.14)), rgba(20,46,82,0.30);
-    border: 1px solid rgba(156,189,231,0.18);
-    border-radius: 10px;
+    padding: 4px 0;
+    background: none;
+    border: none;
     cursor: pointer;
     font-family: 'Inter', sans-serif;
+    opacity: 0.75;
+    transition: opacity 0.15s, color 0.15s;
   }
 
   .secondary-link:hover {
-    background: rgba(20,46,82,0.50);
+    opacity: 1;
+    color: var(--text);
   }
 
   @media (max-width: 639px) {
@@ -4904,9 +4923,15 @@
       height: var(--morph-h, 62svh);
       transform: translateY(var(--morph-dy, 100%)) translateZ(0);
       border-radius: 12px;
-      transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1),
-                  height 0.32s cubic-bezier(0.32, 0.72, 0, 1),
+      transition: transform 0.34s cubic-bezier(0.32, 0.72, 0, 1),
+                  height 0.34s cubic-bezier(0.32, 0.72, 0, 1),
                   border-radius 0.28s ease;
+    }
+    /* Used twice: (a) FLIP start frame to snap to card rect with NO transition before
+       .open animates, and (b) after the reverse morph to snap the panel off-screen
+       without an extra wobble animation. */
+    #detail-panel.dp-morph-instant {
+      transition: none !important;
     }
     #detail-panel.dp-morphing.open {
       height: 62svh;
@@ -4916,6 +4941,18 @@
     /* Source card stays anchored under the panel during morph (no list-slide jiggle).
        It's invisible behind the opaque-glass panel. */
     .venue-card.morph-source { visibility: hidden; }
+
+    /* During the morph, only the dp-card is in flow — that way the user sees the
+       card content "in place" inside the panel as it grows. Photos / social / info
+       / footer collapse out of the layout, then re-flow in once .dp-morphing lifts. */
+    #detail-panel.dp-morphing .detail-new-photos,
+    #detail-panel.dp-morphing .social-card,
+    #detail-panel.dp-morphing .dp-action-row,
+    #detail-panel.dp-morphing .info-list,
+    #detail-panel.dp-morphing .secondary-row,
+    #detail-panel.dp-morphing .dp-top-row {
+      display: none;
+    }
     #dp-handle { display: flex; }
     #dp-scroll { padding-top: 4px; }
     .dp-photos { margin-top: 0; }
@@ -5059,13 +5096,8 @@
   }
 
   /* ── Social section (check-in, plans) ───────────────────────────────────── */
-  /* ── Social card (glass card) ──────────────────────────────────────────── */
+  /* No glass wrapper — sits directly on the panel so the dp-card stays the focal box. */
   .social-card {
-    background: linear-gradient(135deg, rgba(20,46,82,0.28), rgba(32,73,131,0.16)), rgba(20,46,82,0.34);
-    border: 1px solid rgba(156,189,231,0.20);
-    box-shadow: inset 0 1px 0 rgba(255,242,235,0.16), inset 0 -1px 0 rgba(20,46,82,0.35), 0 2px 8px rgba(0,0,0,0.35);
-    border-radius: 12px;
-    padding: 14px;
     margin-bottom: 14px;
     display: flex;
     flex-direction: column;
