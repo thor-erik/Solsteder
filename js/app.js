@@ -3425,7 +3425,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const wasNull   = !userLocation;
       userLocation    = { lat: pos.coords.latitude, lng: pos.coords.longitude };
       if (wasNull) {
-        _introCenter   = [pos.coords.longitude, pos.coords.latitude];
+        // Only follow GPS for intro center when the user is near the venue
+        // cluster — otherwise the map opens on (e.g.) Copenhagen and the
+        // viewport filter hides every Oslo venue. Keep the Oslo fallback.
+        if (!_isFarFromCluster()) {
+          _introCenter = [pos.coords.longitude, pos.coords.latitude];
+        } else if (VENUE_CLUSTER.radiusKm) {
+          _introCenter = [VENUE_CLUSTER.center.lng, VENUE_CLUSTER.center.lat];
+        }
         _introGeoReady = true;
         _introCheckReady();
         _applyAutoDefaultSort();
@@ -3435,6 +3442,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     const _onGeoErr = () => {
       if (!userLocation) {
+        if (VENUE_CLUSTER.radiusKm) _introCenter = [VENUE_CLUSTER.center.lng, VENUE_CLUSTER.center.lat];
         _introGeoReady = true;
         _introCheckReady();
         _applyAutoDefaultSort();
@@ -3447,6 +3455,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Fallback: if geolocation never settles, proceed after 5 seconds
     setTimeout(() => {
       if (!_introGeoReady) {
+        if (VENUE_CLUSTER.radiusKm) _introCenter = [VENUE_CLUSTER.center.lng, VENUE_CLUSTER.center.lat];
         _introGeoReady = true;
         _introCheckReady();
         _applyAutoDefaultSort();
@@ -3454,6 +3463,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }, 5000);
   } else {
+    if (VENUE_CLUSTER.radiusKm) _introCenter = [VENUE_CLUSTER.center.lng, VENUE_CLUSTER.center.lat];
     _introGeoReady = true;
     _introCheckReady();
     _applyAutoDefaultSort();
