@@ -220,6 +220,34 @@ function _notifShowImmediate(notif) {
   _notifShow(notif);
 }
 
+// ── Suspend / resume around search ───────────────────────────────────────────
+
+let _notifSuspended = null;
+
+function _notifSuspendForSearch() {
+  if (!_notifCurrent || _notifSuspended) return;
+  _notifSuspended = { notif: _notifCurrent };
+  clearTimeout(_notifAutoTimer);
+  const wrap = document.getElementById('notif-toast-wrap');
+  if (wrap) wrap.classList.remove('show');
+}
+
+function _notifResumeAfterSearch() {
+  if (!_notifSuspended) return;
+  const { notif } = _notifSuspended;
+  _notifSuspended = null;
+  if (!_notifCurrent || _notifCurrent.id !== notif.id) return;
+  const wrap = document.getElementById('notif-toast-wrap');
+  if (wrap) wrap.classList.add('show');
+  const duration = notif._legacyDismiss || (notif.priority === 0 ? 30000 : _NOTIF_AUTO_DEFAULT);
+  _notifAutoTimer = setTimeout(() => {
+    if (typeof _aTrack === 'function' && _notifCurrent) _aTrack('notification_dismiss', {
+      id: _notifCurrent.id, priority: _notifCurrent.priority, category: _notifCurrent.category, method: 'auto'
+    });
+    _notifHide();
+  }, duration);
+}
+
 // ── Evaluators: P0 Weather ───────────────���─────────────────────────────���─────
 
 function _evalNoSunToday() {
