@@ -384,6 +384,8 @@ function _evalBestSunWindow() {
   const dateStr = datePicker.value;
   if (dateStr !== todayStr()) return null;
   const now = currentHour();
+  // Too late in the day for a "peak" to be actionable
+  if (now >= 18) return null;
   // Count venues with sun per hour
   let bestHour = -1, bestCount = 0;
   for (let h = Math.max(6, Math.ceil(now)); h <= 21; h++) {
@@ -394,7 +396,12 @@ function _evalBestSunWindow() {
     }
     if (count > bestCount) { bestCount = count; bestHour = h; }
   }
-  if (bestHour < 0 || bestCount < 5) return null; // not enough venues with sun
+  if (bestHour < 0 || bestCount < 15) return null; // not enough venues with sun
+  // Suppress when peak hour is mostly cloudy or wet (skip gating if no weather data)
+  if (typeof getWeatherAt === 'function') {
+    const wx = getWeatherAt(dateStr, bestHour);
+    if (wx && (wx.cloud > 0.65 || wx.precip >= 0.2)) return null;
+  }
   // Find the peak block (contiguous hours with same-ish count)
   let blockStart = bestHour, blockEnd = bestHour;
   for (let h = bestHour - 1; h >= Math.ceil(now); h--) {
@@ -413,6 +420,14 @@ function _evalBestSunWindow() {
     }
     if (count >= bestCount * 0.7) blockEnd = h; else break;
   }
+  // Require the peak to be meaningfully better than right now
+  const nowH = Math.ceil(now);
+  let nowCount = 0;
+  for (const v of VENUES) {
+    const { windows } = computeSunWindows(v, dateStr);
+    if (windows && windows.some(w => w.start <= nowH && w.end >= nowH)) nowCount++;
+  }
+  if (bestCount < nowCount * 1.3 && bestCount - nowCount < 5) return null;
   // Only show if peak is in the future
   if (blockEnd <= now) return null;
   return {
