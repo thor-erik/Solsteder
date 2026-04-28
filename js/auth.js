@@ -355,8 +355,6 @@ function _renderProfilePanel() {
         </div>
       </div>
     `;
-    if (typeof loginCarouselMount === 'function') loginCarouselMount();
-    if (typeof notifFreezeAutoDismiss === 'function') notifFreezeAutoDismiss();
   }
 }
 
@@ -379,6 +377,10 @@ function toggleProfilePanel(e) {
   } else {
     panel.classList.add('open');
     window._navPush?.('profile');
+    if (!_currentUser) {
+      if (typeof loginCarouselMount === 'function') loginCarouselMount();
+      if (typeof notifFreezeAutoDismiss === 'function') notifFreezeAutoDismiss();
+    }
     // Close on outside click
     setTimeout(() => {
       document.addEventListener('click', _profilePanelOutsideClick, { once: true });

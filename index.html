@@ -2374,7 +2374,9 @@
     }
 
     /* Logged-out: take over the full screen so users focus on the value prop.
-       Flex column: hero+carousel grow to fill, auth section anchors to bottom. */
+       Flex column: hero+carousel grow to fill, auth section anchors to bottom.
+       NOTE: display gated on .open below — base #profile-panel { display: none }
+       must continue to apply until the user explicitly opens the panel. */
     #profile-panel.logged-out {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -2382,12 +2384,12 @@
       height: 100svh;
       max-height: 100svh;
       border-radius: 0;
-      display: flex;
       flex-direction: column;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       z-index: 9999;            /* above notifications (9998) */
     }
+    #profile-panel.logged-out.open { display: flex; }
     #profile-panel.logged-out .login-close-btn { display: flex; }
     #profile-panel.logged-out .login-hero {
       flex: 1 1 auto;
