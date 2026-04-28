@@ -221,50 +221,32 @@ function renderList() {
   const searchQ = (document.getElementById('venue-search')?.value ?? '').trim().toLowerCase();
   const sortBy  = activeSortBy;
 
-  // ── Filter + sort (runs on full VENUES, O(n)) ─────────────────────────────
-  const wxNow = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, fromHour) : null;
-
-  let venues = VENUES.map(v => {
-    const sunInWin = venueHasSunInRange(v, dateStr, fromHour, toHour);
-    const { open, close } = getVenueHoursForDay(v, dateStr);
-    const isOpen        = fromHour >= open && fromHour <= close;
-    const isOpeningSoon = !isOpen && (open - fromHour) > 0 && (open - fromHour) <= 0.75;
-    const isClosingSoon = isOpen  && (close - fromHour) > 0 && (close - fromHour) <= 0.5;
-    const score = typeof computeVenueScore === 'function'
-      ? computeVenueScore(v, dateStr, fromHour, wxNow, userLocation)
-      : null;
-    return { ...v, sunInWin, isOpen, isOpeningSoon, isClosingSoon, score };
-  });
+  // ── Cheap filters first, expensive solar/score work after ─────────────────
+  // Filtering on raw VENUES before mapping avoids running computeVenueScore
+  // and venueHasSunInRange on venues that the search/area/viewport will drop.
+  let venues = VENUES;
 
   if (searchQ) {
     const alias = typeof _resolveAlias === 'function' ? _resolveAlias(searchQ) : null;
+    // Diacritics-stripped comparison only matters for ≥3-char queries; for
+    // 1-2 chars plain .includes() already covers everything (mirrors
+    // _matchScore's early-out in the dropdown).
+    const useDia = searchQ.length >= 3 && typeof _stripDiacritics === 'function';
+    const qNorm  = useDia ? _stripDiacritics(searchQ) : null;
     venues = venues.filter(v => {
       if (v.name.toLowerCase().includes(searchQ)) return true;
       if ((v.area ?? '').toLowerCase().includes(searchQ)) return true;
       if (v.address.toLowerCase().includes(searchQ)) return true;
       if (alias && (v.area ?? '').toLowerCase() === alias) return true;
-      // Diacritics-stripped comparison (e.g. "grunerløkka" matches "Grünerløkka")
-      if (typeof _stripDiacritics === 'function') {
-        const qN = _stripDiacritics(searchQ);
-        if (_stripDiacritics(v.name.toLowerCase()).includes(qN)) return true;
-        if (_stripDiacritics((v.area ?? '').toLowerCase()).includes(qN)) return true;
+      if (useDia) {
+        if (_stripDiacritics(v.name.toLowerCase()).includes(qNorm)) return true;
+        if (_stripDiacritics((v.area ?? '').toLowerCase()).includes(qNorm)) return true;
       }
       return false;
     });
   }
   if (activeArea) venues = venues.filter(v => v.area === activeArea);
   // Favorites filtering is handled by sortBy === 'favorites' below
-
-  // Remove venues with no sun windows, or (today only) all sun already past
-  // User's own suggestions bypass this filter (they lack geometry data)
-  const isTodayFilter = dateStr === todayStr();
-  venues = venues.filter(v => {
-    if (v._ownSuggestion) return true;
-    const { windows } = computeSunWindows(v, dateStr);
-    if (!windows.length) return false;
-    if (isTodayFilter) return windows.some(w => w.end > fromHour);
-    return true;
-  });
 
   if (filterMapViewActive) {
     // While a venue is selected, keep the list frozen at the pre-zoom viewport
@@ -278,6 +260,31 @@ function renderList() {
     );
     venues = venues.filter(v => padded.contains([v.lng, v.lat]));
   }
+
+  // ── Now compute sun windows + score on the narrowed set ───────────────────
+  const wxNow = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, fromHour) : null;
+  venues = venues.map(v => {
+    const sunInWin = venueHasSunInRange(v, dateStr, fromHour, toHour);
+    const { open, close } = getVenueHoursForDay(v, dateStr);
+    const isOpen        = fromHour >= open && fromHour <= close;
+    const isOpeningSoon = !isOpen && (open - fromHour) > 0 && (open - fromHour) <= 0.75;
+    const isClosingSoon = isOpen  && (close - fromHour) > 0 && (close - fromHour) <= 0.5;
+    const score = typeof computeVenueScore === 'function'
+      ? computeVenueScore(v, dateStr, fromHour, wxNow, userLocation)
+      : null;
+    return { ...v, sunInWin, isOpen, isOpeningSoon, isClosingSoon, score };
+  });
+
+  // Remove venues with no sun windows, or (today only) all sun already past
+  // User's own suggestions bypass this filter (they lack geometry data)
+  const isTodayFilter = dateStr === todayStr();
+  venues = venues.filter(v => {
+    if (v._ownSuggestion) return true;
+    const { windows } = computeSunWindows(v, dateStr);
+    if (!windows.length) return false;
+    if (isTodayFilter) return windows.some(w => w.end > fromHour);
+    return true;
+  });
 
   // Closed venues always sink below open ones regardless of sort mode
   function closedPenalty(v) { return (!v.isOpen && !v.isOpeningSoon) ? 1 : 0; }
