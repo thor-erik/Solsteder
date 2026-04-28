@@ -34,6 +34,7 @@
 <script defer src="js/i18n.js"></script>
 <script defer src="js/config.js?v=20260425b"></script>
 <script defer src="js/auth.js"></script>
+<script defer src="js/login-carousel.js?v=20260428a"></script>
 <script defer src="js/analytics.js"></script>
 <script defer src="js/places.js?v=20260411b"></script>
 <script defer src="js/busyness.js?v=20260411b"></script>
@@ -2372,6 +2373,26 @@
       top: calc(12px + 46px + 8px);
     }
 
+    /* Logged-out: take over the full screen so users focus on the value prop */
+    #profile-panel.logged-out {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      width: 100%;
+      max-height: 100svh;
+      border-radius: 0;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      z-index: 1200;
+    }
+    #profile-panel.logged-out .login-close-btn { display: flex; }
+    #profile-panel.logged-out .login-hero { padding: 56px 20px 16px; }
+    #profile-panel.logged-out .login-slide-icon { width: 64px; height: 64px; }
+    #profile-panel.logged-out .login-slide-icon svg { width: 48px; height: 48px; }
+    #profile-panel.logged-out .login-hero-title {
+      font-size: 24px; max-width: 300px; margin: 0 auto 18px;
+    }
+    #profile-panel.logged-out .login-slide-body { max-width: 300px; }
+
     #zoom-debug {
       left: 6px;
       right: 6px;
@@ -2970,6 +2991,58 @@
   }
   .auth-magic-link-status.success { color: #64ffb4; }
   .auth-magic-link-status.error   { color: #ff6b6b; }
+
+  /* Logged-out profile panel: hero + benefits carousel */
+  .login-hero { padding: 24px 20px 8px; text-align: center; }
+  .login-hero-title {
+    font-family: 'Newsreader', serif; font-size: 22px; font-weight: 400;
+    color: var(--text); line-height: 1.25; margin: 0 0 18px;
+  }
+  .login-carousel { position: relative; overflow: hidden; }
+  .login-carousel-track {
+    display: flex;
+    transition: transform 0.35s cubic-bezier(0.25, 0.9, 0.4, 1);
+    will-change: transform; touch-action: pan-y;
+  }
+  .login-slide {
+    flex: 0 0 100%; padding: 8px 16px 12px; box-sizing: border-box;
+    text-align: center;
+  }
+  .login-slide-icon {
+    width: 48px; height: 48px; margin: 0 auto 12px; color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .login-slide-icon svg { width: 36px; height: 36px; }
+  .login-slide-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .login-slide-body  {
+    font-size: 13px; line-height: 1.5; color: var(--muted);
+    max-width: 240px; margin: 0 auto;
+  }
+  .login-carousel-dots {
+    display: flex; gap: 6px; justify-content: center; padding: 14px 0 4px;
+  }
+  .login-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: rgba(255,255,255,0.2); border: none; padding: 0;
+    cursor: pointer; transition: background 0.2s, width 0.2s;
+  }
+  .login-dot.active { background: var(--accent); width: 18px; border-radius: 3px; }
+
+  .login-auth-section { padding: 8px 20px 12px; }
+  .login-auth-section .login-gate-buttons { max-width: none; margin-top: 0; }
+  .login-footer {
+    border-top: 1px solid rgba(255,255,255,0.07);
+    padding: 10px 0 4px; margin-top: 8px; text-align: center;
+  }
+  .login-close-btn {
+    position: absolute; top: 10px; right: 10px;
+    width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(255,255,255,0.06); border: none;
+    color: var(--muted); font-size: 22px; line-height: 1;
+    cursor: pointer; z-index: 2; display: none;
+    align-items: center; justify-content: center;
+  }
+  .login-close-btn:hover { background: rgba(255,255,255,0.12); color: var(--text); }
 
   /* Candidate "Suggest venue" badge in search dropdown */
   .sd-candidate-btn {
