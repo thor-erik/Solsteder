@@ -2373,25 +2373,38 @@
       top: calc(12px + 46px + 8px);
     }
 
-    /* Logged-out: take over the full screen so users focus on the value prop */
+    /* Logged-out: take over the full screen so users focus on the value prop.
+       Flex column: hero+carousel grow to fill, auth section anchors to bottom. */
     #profile-panel.logged-out {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
       width: 100%;
+      height: 100svh;
       max-height: 100svh;
       border-radius: 0;
+      display: flex;
+      flex-direction: column;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      z-index: 1200;
+      z-index: 9999;            /* above notifications (9998) */
     }
     #profile-panel.logged-out .login-close-btn { display: flex; }
-    #profile-panel.logged-out .login-hero { padding: 56px 20px 16px; }
-    #profile-panel.logged-out .login-slide-icon { width: 64px; height: 64px; }
-    #profile-panel.logged-out .login-slide-icon svg { width: 48px; height: 48px; }
-    #profile-panel.logged-out .login-hero-title {
-      font-size: 24px; max-width: 300px; margin: 0 auto 18px;
+    #profile-panel.logged-out .login-hero {
+      flex: 1 1 auto;
+      display: flex; flex-direction: column; justify-content: center;
+      padding: 32px 20px 8px;
     }
-    #profile-panel.logged-out .login-slide-body { max-width: 300px; }
+    #profile-panel.logged-out .login-slide-icon { width: 72px; height: 72px; margin-bottom: 16px; }
+    #profile-panel.logged-out .login-slide-icon svg { width: 56px; height: 56px; }
+    #profile-panel.logged-out .login-hero-title {
+      font-size: 24px; max-width: 320px; margin: 0 auto 24px;
+    }
+    #profile-panel.logged-out .login-slide-title { font-size: 17px; margin-bottom: 8px; }
+    #profile-panel.logged-out .login-slide-body { max-width: 320px; font-size: 14px; }
+    #profile-panel.logged-out .login-auth-section {
+      flex: 0 0 auto;
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
+    }
 
     #zoom-debug {
       left: 6px;

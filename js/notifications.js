@@ -199,6 +199,31 @@ function _notifHide() {
   setTimeout(() => _notifAdvance(), 400);
 }
 
+// Pause auto-dismiss while a blocking overlay (e.g. full-screen login) is up.
+// On resume, restart the timer with a full duration so the user has time to read
+// the notification once the overlay is closed.
+function notifFreezeAutoDismiss() {
+  if (_notifAutoTimer) {
+    clearTimeout(_notifAutoTimer);
+    _notifAutoTimer = null;
+  }
+}
+
+function notifResumeAutoDismiss() {
+  if (!_notifCurrent || _notifAutoTimer) return;
+  const notif = _notifCurrent;
+  const duration = notif._legacyDismiss || (notif.priority === 0 ? 30000 : _NOTIF_AUTO_DEFAULT);
+  _notifAutoTimer = setTimeout(() => {
+    if (typeof _aTrack === 'function' && _notifCurrent) _aTrack('notification_dismiss', {
+      id: _notifCurrent.id, priority: _notifCurrent.priority, category: _notifCurrent.category, method: 'auto'
+    });
+    _notifHide();
+  }, duration);
+}
+
+window.notifFreezeAutoDismiss = notifFreezeAutoDismiss;
+window.notifResumeAutoDismiss = notifResumeAutoDismiss;
+
 function _notifDismiss(id) {
   _notifDismissed.add(id);
   // Persist onboarding dismissals
