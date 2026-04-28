@@ -306,8 +306,6 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       tlSegs += `<div class="${cls}" style="left:${left}%;width:${width}%;background:${r.color}"></div>`;
     }
   }
-  const tlNeedle = (fromHour >= open && fromHour <= close)
-    ? `<div class="tl-needle" style="left:${tlPct(fromHour)}%"></div>` : '';
 
   // Intermediate hour ticks every ~4h between open and close, positioned absolutely
   let tlLabels = `<span class="dp-tl-label dp-tl-label-edge" style="left:0">${formatHour(open)}</span>`;
@@ -320,44 +318,59 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
   }
   tlLabels += `<span class="dp-tl-label dp-tl-label-edge dp-tl-label-end" style="left:100%">${formatHour(close)}</span>`;
 
-  // Date chip — opens the same date dropdown as the list-mode calendar button
+  // Date chip — opens the same date dropdown as the list-mode calendar button.
+  // Sits to the left of the timeline, mirroring the FTS pill layout (calendar + slider).
   const dateLabel = typeof formatDatePill === 'function' ? formatDatePill(dateStr) : dateStr;
   const dateChipHtml = `<button class="dp-date-chip" onclick="toggleQcPanel('date')" aria-label="Velg dato">
-    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
       <rect x="1.5" y="3" width="13" height="11.5" rx="2" stroke="currentColor" stroke-width="1.5"/>
       <line x1="1.5" y1="6.5" x2="14.5" y2="6.5" stroke="currentColor" stroke-width="1.5"/>
       <line x1="5" y1="1.5" x2="5" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
       <line x1="11" y1="1.5" x2="11" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
     </svg>
     <span>${dateLabel}</span>
-    <svg width="8" height="5" viewBox="0 0 10 6" fill="currentColor" aria-hidden="true"><path d="M0 0 L10 0 L5 6 Z"/></svg>
   </button>`;
+
+  // Card-style header content — same DOM as a venue-card, scaled up via .dp-card.
+  const metaParts = [v.area, catLabel(v), distStr].filter(Boolean);
+  const metaHtml = metaParts.map((p, i) =>
+    (i > 0 ? '<span class="card-meta-dot">·</span>' : '') + `<span>${p}</span>`
+  ).join('');
+  const stateClass = state.className || '';
+  const cardRightMain = state.mainText || '—';
+  const cardRightSub  = state.subText  || '';
 
   return `
     <div id="dp-scroll">
       ${photosHtml}
 
-      <div class="detail-header-row">
-        <button class="detail-new-back" onclick="closeDetailPanel()">‹</button>
-        <div class="detail-header-info">
-          <div class="detail-new-title">${v.name}</div>
-          <div class="detail-new-sub">${catLabel(v)}${v.area ? ' · ' + v.area : ''}${distStr ? ' · ' + distStr : ''}</div>
-        </div>
-        <div class="detail-header-actions">
+      <div class="dp-top-row">
+        <button class="detail-new-back" onclick="closeDetailPanel()" aria-label="Tilbake">‹</button>
+        <div class="dp-top-actions">
           ${heartBtn}
           ${bellBtn}
         </div>
       </div>
 
-      <div class="sun-section">
-        <div class="sun-section-head">
-          <div class="sun-section-main">${sunHeadline}</div>
+      <div class="venue-card dp-card ${stateClass}">
+        <div class="card-top">
+          <div class="card-left">
+            <div class="card-new-name">${v.name}</div>
+            <div class="card-new-meta">${metaHtml}</div>
+          </div>
+          <div class="card-right">
+            <div class="card-new-hero-main">${cardRightMain}</div>
+            <div class="card-new-hero-sub">${cardRightSub}</div>
+          </div>
+        </div>
+        <div class="dp-time-row">
           ${dateChipHtml}
+          <div class="dp-time-track" id="dp-timeline-track">
+            ${tlSegs}
+            <div class="tl-thumb" style="left:${tlPct(fromHour)}%"></div>
+          </div>
         </div>
-        <div class="dp-timeline" id="dp-timeline">
-          <div class="timeline-track" id="dp-timeline-track">${tlSegs}${tlNeedle}<div class="tl-thumb" style="left:${tlPct(fromHour)}%"></div></div>
-        </div>
-        <div class="dp-timeline-labels">${tlLabels}</div>
+        <div class="dp-tl-labels">${tlLabels}</div>
       </div>
 
       ${_renderSocialSection(v)}
