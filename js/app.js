@@ -4260,8 +4260,14 @@ _searchDropdown.addEventListener('mousedown', e => e.preventDefault());
 _searchDropdown.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
 _searchDropdown.addEventListener('touchend', e => {
   const row = e.target.closest('[onclick]');
-  if (row) { e.preventDefault(); row.click(); }
+  if (row) { e.preventDefault(); row.click(); _searchInput.blur(); }
 }, { passive: false });
+// After a row is selected (desktop click path), drop focus so the mobile
+// keyboard closes and the search session ends — which resumes any suspended
+// notification toast.
+_searchDropdown.addEventListener('click', e => {
+  if (e.target.closest('[onclick]')) _searchInput.blur();
+});
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
