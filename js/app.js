@@ -214,6 +214,73 @@ function _syncFtsPosition() {
 function _ftsDays()   { return typeof tA === 'function' ? tA('days_short') : ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']; }
 function _ftsMonths() { return typeof tA === 'function' ? tA('months_short') : ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; }
 
+/**
+ * Wire pointer events on the detail-panel timeline so it scrubs the global time.
+ * Listeners live on #detail-panel (stable parent) since the timeline DOM is
+ * rebuilt on every renderDetailPanelContent() call.
+ */
+function initDpTimeline() {
+  const dp = document.getElementById('detail-panel');
+  if (!dp) return;
+  let _dpScrubbing = false;
+  let _dpPid = null;
+
+  const setTimeFromX = (clientX) => {
+    if (selectedId == null) return;
+    const v = VENUES.find(x => x.id === selectedId);
+    if (!v) return;
+    const tl = dp.querySelector('.dp-timeline');
+    const track = tl?.querySelector('.timeline-track');
+    if (!tl || !track) return;
+    const rect = track.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    const hours = getVenueHoursForDay(v, datePicker.value);
+    const span = hours.close - hours.open;
+    if (span <= 0) return;
+    const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const tHour = hours.open + ratio * span;
+    const hour = _clampHour(tHour);
+    if (nowMode) {
+      nowMode = false;
+      nowBtn?.classList.remove('active');
+      timeRangeWrap?.classList.remove('now-active');
+      clearInterval(nowInterval); nowInterval = null;
+    }
+    setActiveIntentBtn(null);
+    timeFromEl.value = hour;
+    update();
+  };
+
+  dp.addEventListener('pointerdown', e => {
+    const tl = e.target.closest('.dp-timeline');
+    if (!tl) return;
+    e.preventDefault();
+    e.stopPropagation();
+    _dpScrubbing = true;
+    _dpPid = e.pointerId;
+    dp.classList.add('dp-scrub-active');
+    try { dp.setPointerCapture(e.pointerId); } catch {}
+    setTimeFromX(e.clientX);
+  });
+
+  dp.addEventListener('pointermove', e => {
+    if (!_dpScrubbing || e.pointerId !== _dpPid) return;
+    setTimeFromX(e.clientX);
+  });
+
+  const endScrub = () => {
+    if (!_dpScrubbing) return;
+    _dpScrubbing = false;
+    dp.classList.remove('dp-scrub-active');
+    if (_dpPid != null) {
+      try { dp.releasePointerCapture(_dpPid); } catch {}
+      _dpPid = null;
+    }
+  };
+  dp.addEventListener('pointerup', endScrub);
+  dp.addEventListener('pointercancel', endScrub);
+}
+
 /** Initialise the floating time slider: bind events, draw canvas, show appstart popup. */
 function initFts() {
   const canvas = document.getElementById('fts-canvas');
@@ -2359,6 +2426,21 @@ function updatePopup() {
 
 // ── Detail panel ──────────────────────────────────────────────────────────────
 
+let _morphSourceVid = null;     // venue id whose card is the morph source
+let _morphSourceRect = null;    // rect captured at open, reused on close
+const MORPH_DURATION = 320;     // matches CSS transition
+
+/** Set CSS vars on dp from a card rect so the panel starts as the card on mobile.
+ *  The panel is fixed:bottom:0, so its natural top = viewportH - cardHeight when
+ *  --morph-h = cardHeight. translateY shifts it so its top aligns with rect.top.
+ *  Cards above the panel anchor → negative dy (move up). Cards below → positive. */
+function _applyMorphFromRect(dp, rect) {
+  const viewportH = window.innerHeight;
+  const dy = rect.top - (viewportH - rect.height);
+  dp.style.setProperty('--morph-h', rect.height + 'px');
+  dp.style.setProperty('--morph-dy', dy + 'px');
+}
+
 function openDetailPanel(v) {
   _aDetailOpenTs = Date.now();
   _aTrack('detail_open', { venue_id: v.id, time_slot: parseFloat(timeFromEl.value) });
@@ -2369,11 +2451,33 @@ function openDetailPanel(v) {
 
   content.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
   dp.classList.remove('dp-fullscreen');
+
+  // Container morph from clicked card → panel (mobile only).
+  // Capture rect, mark source card invisible, set initial CSS vars BEFORE adding .open.
+  const onMobile = isMobile();
+  let sourceCard = null;
+  if (onMobile) {
+    sourceCard = document.querySelector(`.venue-card[data-vid="${v.id}"]`);
+    if (sourceCard) {
+      const rect = sourceCard.getBoundingClientRect();
+      _morphSourceVid  = v.id;
+      _morphSourceRect = { top: rect.top, height: rect.height };
+      _applyMorphFromRect(dp, rect);
+      sourceCard.classList.add('morph-source');
+      dp.classList.add('dp-morphing');
+      // Force reflow so initial morph styles apply before .open transitions.
+      void dp.offsetHeight;
+    } else {
+      _morphSourceVid = null;
+      _morphSourceRect = null;
+    }
+  }
+
   dp.classList.add('open');
   _startWindForVenue(v);
   document.getElementById('locate-btn')?.classList.add('mobile-ui-hidden');
   document.getElementById('zoom-jog')?.classList.add('mobile-ui-hidden');
-  if (isMobile()) {
+  if (onMobile) {
     const panel = document.getElementById('panel');
     if (panel) {
       panel.classList.remove('mobile-expanded', 'mobile-fullscreen');
@@ -2383,6 +2487,16 @@ function openDetailPanel(v) {
     document.getElementById('qc-wrap')?.classList.add('mobile-ui-hidden');
   }
   _syncFtsPosition();
+
+  // Cleanup morph styles after the animation lands so .dp-fullscreen and the
+  // drag handler can manipulate height/transform freely afterwards.
+  if (onMobile && sourceCard) {
+    setTimeout(() => {
+      dp.classList.remove('dp-morphing');
+      dp.style.removeProperty('--morph-h');
+      dp.style.removeProperty('--morph-dy');
+    }, MORPH_DURATION + 30);
+  }
 }
 
 function _getWxNow() {
@@ -2404,12 +2518,22 @@ function closeDetailPanel(expandList = true) {
   // Closed via in-app UI — drop 'venue' and everything stacked on top of it
   // (e.g. 'dp-fullscreen'). Skipped when triggered by the popstate handler.
   if (!_navHandlingPop) _navDropLayer('venue');
-if (typeof stopWindOverlay === 'function') stopWindOverlay();
+  if (typeof stopWindOverlay === 'function') stopWindOverlay();
   const dp = document.getElementById('detail-panel');
+
+  // Reverse morph: shrink panel back to source-card rect, then remove .open.
+  // Use stored rect from open (the card may be off-screen due to mobile-hidden).
+  const onMobile = isMobile();
+  if (dp && onMobile && _morphSourceRect && selectedId != null) {
+    dp.classList.remove('dp-fullscreen');
+    _applyMorphFromRect(dp, _morphSourceRect);
+    dp.classList.add('dp-morphing');
+    void dp.offsetHeight;   // commit start frame so removing .open animates back
+  }
   if (dp) {
     dp.classList.remove('open', 'dp-fullscreen');
   }
-  if (isMobile()) {
+  if (onMobile) {
     // Delay restoring the venue list until the detail panel has finished its
     // 300ms close animation, so the two panels are never visible at the same time.
     // expandList=true (< Venues back button): restore expanded so the list is immediately browsable.
@@ -2426,7 +2550,18 @@ if (typeof stopWindOverlay === 'function') stopWindOverlay();
       document.getElementById('qc-wrap')?.classList.remove('mobile-ui-hidden');
       document.getElementById('locate-btn')?.classList.remove('mobile-ui-hidden');
       document.getElementById('zoom-jog')?.classList.remove('mobile-ui-hidden');
-    }, 320);
+      // Cleanup morph state once panel is fully closed.
+      if (dp) {
+        dp.classList.remove('dp-morphing');
+        dp.style.removeProperty('--morph-h');
+        dp.style.removeProperty('--morph-dy');
+      }
+      if (_morphSourceVid != null) {
+        document.querySelectorAll('.venue-card.morph-source').forEach(c => c.classList.remove('morph-source'));
+        _morphSourceVid = null;
+        _morphSourceRect = null;
+      }
+    }, MORPH_DURATION);
   } else {
     document.getElementById('locate-btn')?.classList.remove('mobile-ui-hidden');
     document.getElementById('zoom-jog')?.classList.remove('mobile-ui-hidden');
@@ -3261,7 +3396,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // When dp-scroll is at the top and the finger moves down, start panel drag.
       const dpContent = document.getElementById('dp-content');
       if (dpContent) {
-        const _DP_INTERACTIVE = 'button, a, input, select, textarea, canvas, [role="button"]';
+        const _DP_INTERACTIVE = 'button, a, input, select, textarea, canvas, [role="button"], .dp-timeline';
         let _dpContentStartY = 0;
         dpContent.addEventListener('touchstart', e => {
           if (e.target.closest(_DP_INTERACTIVE)) return;

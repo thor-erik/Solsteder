@@ -1,314 +1,13 @@
 /**
- * ui-detail.js — Detail panel: sun dial, timeline, busyness chart, and full panel HTML.
+ * ui-detail.js — Detail panel: timeline + full panel HTML.
  * Depends on: computeSunWindows, formatHour, userLocation, datePicker (app.js)
  *             getWeatherAt (weather.js)
- *             getBusynessForDay, getBusynessAt, busynessLabel (busyness.js)
+ *             getBusynessAt (busyness.js)
  *             computeVenueScore (scoring.js)
  *             catLabel (data.js)
  *             nowMode (app.js)
- *             wxColor, wxArcPaths (ui-shared.js)
  *             drawShelterDiagram (ui-shelter.js)
  */
-
-// ── Sun dial (large clock-face style for detail panel) ────────────────────────
-
-function renderSunDial(v, dateStr, fromHour) {
-  const { windows } = computeSunWindows(v, dateStr);
-  // Circle sits left; label area fills the right portion of the viewBox
-  const W = 320, H = 220, CX = 70, CY = 110, R = 62, SW = 5;
-
-  const wxNow = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, fromHour) : null;
-  const cloud = wxNow?.cloud ?? 0;
-  const precip = wxNow?.precip ?? 0;
-  const isRainy    = precip > 0.3;
-  const isOvercast = !isRainy && cloud > 0.65;
-  const dotColor   = '#FFAF85'; // Current time dot always uses sun accent color
-
-  const hAngle = h => ((h % 12) / 12) * 2 * Math.PI - Math.PI / 2;
-  const pt = h => { const a = hAngle(h); return [CX + R * Math.cos(a), CY + R * Math.sin(a)]; };
-  function arcPath(h1, h2) {
-    const dur = h2 - h1;
-    if (dur < 0.01) return '';
-    if (dur >= 12) {
-      const [x1,y1]=pt(h1),[xm,ym]=pt(h1+6);
-      return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${R} ${R} 0 1 1 ${xm.toFixed(2)} ${ym.toFixed(2)} A ${R} ${R} 0 1 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
-    }
-    const [x1,y1]=pt(h1),[x2,y2]=pt(h2);
-    return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${R} ${R} 0 ${dur>6?1:0} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`;
-  }
-
-  // Tick marks
-  let ticks = '';
-  for (let h = 0; h < 12; h++) {
-    const a = (h/12)*2*Math.PI - Math.PI/2, maj = h%3===0;
-    const r1 = maj ? R-8 : R-5;
-    ticks += `<line x1="${(CX+r1*Math.cos(a)).toFixed(1)}" y1="${(CY+r1*Math.sin(a)).toFixed(1)}"
-      x2="${(CX+(R-1)*Math.cos(a)).toFixed(1)}" y2="${(CY+(R-1)*Math.sin(a)).toFixed(1)}"
-      stroke="rgba(156,189,231,${maj?0.2:0.1})" stroke-width="${maj?1.2:0.7}" stroke-linecap="round"/>`;
-  }
-
-  // Hour labels (12, 3, 6, 9)
-  const NR = R - 14;
-  let hourNums = '';
-  for (const [h, lbl] of [[0,'12'],[3,'3'],[6,'6'],[9,'9']]) {
-    const a = (h/12)*2*Math.PI - Math.PI/2;
-    hourNums += `<text x="${(CX+NR*Math.cos(a)).toFixed(1)}" y="${(CY+NR*Math.sin(a)).toFixed(1)}"
-      text-anchor="middle" dominant-baseline="middle" font-family="Inter,sans-serif"
-      font-size="8.5" font-weight="600" fill="rgba(156,189,231,0.4)">${lbl}</text>`;
-  }
-
-  // Arc segments — per-hour weather coloring
-  let arcs = '';
-  for (const w of windows) {
-    arcs += wxArcPaths(dateStr, w.start, w.end, fromHour, arcPath, SW).join('');
-  }
-
-  const [tx, ty] = pt(fromHour);
-  const callouts  = buildDialCallouts(windows, fromHour, dateStr, CX, CY, R, H);
-
-  const svg = `<svg class="dp-dial-svg" width="100%" viewBox="0 0 ${W} ${H}" style="display:block" aria-hidden="true">
-    <defs>
-      <filter id="dg" x="-100%" y="-100%" width="300%" height="300%">
-        <feGaussianBlur stdDeviation="3" result="b"/>
-        <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-      </filter>
-    </defs>
-    <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="rgba(156,189,231,0.12)" stroke-width="${SW}"/>
-    ${ticks}${hourNums}${arcs}
-    <circle cx="${tx.toFixed(2)}" cy="${ty.toFixed(2)}" r="5" fill="${dotColor}" filter="url(#dg)"/>
-    ${callouts}
-  </svg>`;
-
-  // Status pill
-  const curWin  = windows.find(w => fromHour >= w.start && fromHour < w.end);
-  const nextWin = windows.find(w => w.start > fromHour);
-  const wxIcon = isRainy ? '🌧' : isOvercast ? '☁' : '☀️';
-  let pill;
-  if (curWin) {
-    const lastWinDp = windows[windows.length - 1];
-    // Total remaining light and gap time between now and last window end
-    let remLight = 0;
-    for (const w of windows) {
-      if (w.end > fromHour) remLight += w.end - Math.max(w.start, fromHour);
-    }
-    const totalSpan = lastWinDp.end - fromHour;
-    const gapTotal  = Math.max(0, totalSpan - remLight);
-    const fmtHM = h => { const fh = Math.floor(h), fm = Math.round((h - fh) * 60); return (fh > 0 ? fh+'h ' : '') + (fm > 0 ? fm+'m' : (fh > 0 ? '' : '0m')); };
-    const pillCls = isRainy ? 'rainy' : isOvercast ? 'overcast' : 'sunny';
-    const gapPart = gapTotal > 1/12 ? ` · ${fmtHM(gapTotal)} ${t('word_gap')}` : '';
-    pill = `<div class="dp-sun-pill ${pillCls}">${wxIcon} ${t('word_until')} ${formatHour(lastWinDp.end)}${gapPart} · ${fmtHM(remLight)} ${t('word_left')}</div>`;
-  } else if (nextWin) {
-    const wait = nextWin.start - fromHour;
-    const ph = Math.floor(wait), pm = Math.round((wait - ph) * 60);
-    pill = `<div class="dp-sun-pill neutral">${wxIcon} ${t('word_in_time')} ${(ph>0?ph+'h ':'')}${pm>0?pm+'m':''} · ${t('word_at')} ${formatHour(nextWin.start)}</div>`;
-  } else {
-    pill = `<div class="dp-sun-pill muted">${windows.length ? t('no_more_today') : t('no_sun_today')}</div>`;
-  }
-
-  return { svg, pill };
-}
-
-/**
- * Build SVG callout annotations for dial segments.
- *
- * Rules:
- *  - Past segments (end <= fromHour) get no callout.
- *  - Current sun window: "Sun until HH:MM" or "X min left" if < 1h; weather-aware.
- *  - Current shadow gap: "Sun/Light/Rain in X min" if < 1h, else "Xh Ym shadow left".
- *  - Future shadow gaps: always show duration ("X min shadow" / "Xh shadow").
- *  - Future sun windows: "Next sun HH:MM", "Sun HH:MM–HH:MM", "Last sun HH:MM–HH:MM"; weather-aware.
- */
-function buildDialCallouts(windows, fromHour, dateStr, CX, CY, R, H) {
-  if (!windows.length) return '';
-
-  const hAngle = h => ((h % 12) / 12) * 2 * Math.PI - Math.PI / 2;
-  const fh     = h => formatHour(h);
-  const n      = windows.length;
-
-  // Weather helpers
-  const wxAt    = h => typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, h) : null;
-  const cloudAt = h => wxAt(h)?.cloud ?? 0;
-  const precipAt = h => wxAt(h)?.precip ?? 0;
-  const wxterm  = h => {
-    if (precipAt(h) > 0.3) return 'rain';
-    const c = cloudAt(h);
-    return c > 0.65 ? 'light' : c > 0.38 ? 'sun' : 'sun';
-  };
-  const wxtag   = h => {
-    if (precipAt(h) > 0.3) return 'rainy';
-    const c = cloudAt(h);
-    return c > 0.65 ? 'overcast' : c > 0.38 ? 'cloudy' : '';
-  };
-
-  const curWin = windows.find(w => fromHour >= w.start && fromHour < w.end);
-  const segs   = [];
-
-  // Find midpoint of the first clear run in a window starting from refH.
-  // Used to anchor window callouts to the gold arc, not grey/beige sections.
-  const clearAnchor = (w, refH) => {
-    let clearS = null, clearE = null;
-    for (let h = Math.floor(refH); h < Math.ceil(w.end); h++) {
-      const rS = Math.max(refH, h), rE = Math.min(w.end, h + 1);
-      if (rE <= rS + 0.001) continue;
-      if (precipAt(h) <= 0.3 && cloudAt(h) <= 0.65) {
-        if (clearS === null) clearS = rS;
-        clearE = rE;
-      } else if (clearS !== null) break; // first clear run ends
-    }
-    return clearS !== null ? (clearS + clearE) / 2 : (refH + w.end) / 2;
-  };
-
-  windows.forEach((w, i) => {
-    // ── Sun window ──────────────────────────────────────────────────────────
-    if (w.end > fromHour) {
-      const isCur = curWin === w;
-      const refH  = isCur ? fromHour : w.start;
-      const callH = clearAnchor(w, refH);
-
-      // Derive icon from the weather at the actual callout position — so the
-      // symbol always matches the arc color the line is pointing to.
-      const wxC    = wxAt(Math.round(callH));
-      const cPrec  = wxC?.precip ?? 0;
-      const cCloud = wxC?.cloud  ?? 0;
-      const cRainy    = cPrec > 0.3;
-      const cOvercast = !cRainy && cCloud > 0.65;
-      const cCloudy   = !cRainy && !cOvercast && cCloud > 0.38;
-      const icon     = cRainy ? '🌧' : cOvercast ? '☁' : cCloudy ? '🌤' : '☀';
-      const iconType = cRainy ? 'rainy' : cOvercast ? 'overcast' : cCloudy ? 'cloudy' : 'sun';
-
-      let label;
-      if (isCur) {
-        const rem = w.end - fromHour;
-        if (rem < 1) {
-          label = `${icon} ${t('sun_min_left', { min: Math.round(rem * 60) })}`;
-        } else {
-          label = `${icon} ${t('sun_until_dial', { time: fh(w.end) })}`;
-        }
-      } else {
-        const dur = w.end - w.start;
-        label = dur <= 1
-          ? `${icon} ${Math.round(dur * 60)} min`
-          : `${icon} ${fh(w.start)} – ${fh(w.end)}`;
-      }
-      segs.push({ callH, label, type: iconType });
-    }
-
-    // ── Shadow gap after this window ─────────────────────────────────────────
-    if (i < n - 1) {
-      const gS = w.end, gE = windows[i+1].start, gH = gE - gS;
-      if (gE > fromHour) {
-        const inGap = fromHour >= gS && fromHour < gE;
-        const callH = inGap ? (fromHour + gE) / 2 : (gS + gE) / 2;
-        let label;
-        if (inGap) {
-          const rem = gE - fromHour;
-          const nextTermKey = wxterm(gE);
-          if (rem < 1) {
-            const termCap = t('term_' + nextTermKey);
-            label = t('next_term_in', { term: termCap.charAt(0).toUpperCase() + termCap.slice(1), min: Math.round(rem * 60) });
-          } else {
-            const gh = Math.floor(rem), gm = Math.round((rem - gh) * 60);
-            label = gm > 0 ? t('shadow_left_hm', { h: gh, m: gm }) : t('shadow_left_h', { h: gh });
-          }
-        } else {
-          label = gH <= 1
-            ? t('min_shadow', { min: Math.round(gH * 60) })
-            : t('shadow_range', { start: fh(gS), end: fh(gE) });
-        }
-        segs.push({ callH, label, type: 'shadow' });
-      }
-    }
-  });
-
-  // ── Weather-transition callouts within future sun windows ────────────────
-  // For each future window, scan hourly weather and annotate overcast/rain runs.
-  for (const w of windows) {
-    if (w.end <= fromHour) continue;
-    const scanStart = Math.max(w.start, fromHour);
-    // Build weather condition runs inside the future portion of this window
-    const wxRuns = [];
-    for (let h = Math.floor(scanStart); h < Math.ceil(w.end); h++) {
-      const rS = Math.max(scanStart, h);
-      const rE = Math.min(w.end, h + 1);
-      if (rE <= rS + 0.001) continue;
-      const prec = precipAt(h);
-      const cld  = cloudAt(h);
-      const cond = prec > 0.3 ? 'rainy' : cld > 0.65 ? 'overcast' : cld > 0.38 ? 'cloudy' : 'clear';
-      if (wxRuns.length && wxRuns[wxRuns.length - 1].cond === cond) {
-        wxRuns[wxRuns.length - 1].end = rE;
-      } else {
-        wxRuns.push({ start: rS, end: rE, cond });
-      }
-    }
-    // Annotate overcast, rainy, and partly cloudy runs — skip clear
-    for (const run of wxRuns) {
-      if (run.cond === 'clear') continue;
-      // Skip if the whole future portion of the window is this one condition
-      if (run.start <= scanStart + 0.001 && run.end >= w.end - 0.001) continue;
-      const callH = (run.start + run.end) / 2;
-      // Short label: emoji + time range only (fits the narrow label area)
-      const label = run.cond === 'rainy'   ? `🌧 ${fh(run.start)}–${fh(run.end)}`
-                  : run.cond === 'overcast' ? `☁ ${fh(run.start)}–${fh(run.end)}`
-                  :                           `🌤 ${fh(run.start)}–${fh(run.end)}`;
-      segs.push({ callH, label, type: run.cond });
-    }
-  }
-
-  if (!segs.length) return '';
-
-  // ── Geometry ──────────────────────────────────────────────────────────────
-  const OUTSET     = 5;
-  const DIAG       = 10;
-  const TICK_W     = 14;
-  const TICK_END_X = CX + R + OUTSET + DIAG + TICK_W;
-  const LABEL_X    = TICK_END_X + 4;
-  const MIN_Y = 10, MAX_Y = H - 10;
-  const MIN_GAP = 19, FONT = 13;
-
-  segs.forEach(s => {
-    const a  = hAngle(s.callH);
-    const ca = Math.cos(a), sa = Math.sin(a);
-    s.dotX = CX + (R + OUTSET) * ca;
-    s.dotY = CY + (R + OUTSET) * sa;
-    s.elbX = ca >= -0.1 ? s.dotX + ca * DIAG : s.dotX + 0.82 * DIAG;
-    s.elbY = ca >= -0.1 ? s.dotY + sa * DIAG : s.dotY + (sa >= 0 ? 0.57 : -0.57) * DIAG;
-    s.labelY = Math.max(MIN_Y, Math.min(MAX_Y, s.elbY));
-  });
-
-  // Y-collision avoidance
-  segs.sort((a, b) => a.labelY - b.labelY);
-  for (let pass = 0; pass < 8; pass++) {
-    for (let i = 1; i < segs.length; i++) {
-      if (segs[i].labelY - segs[i-1].labelY < MIN_GAP) {
-        const mid = (segs[i].labelY + segs[i-1].labelY) / 2;
-        segs[i-1].labelY = Math.max(MIN_Y, mid - MIN_GAP / 2);
-        segs[i].labelY   = Math.min(MAX_Y, mid + MIN_GAP / 2);
-      }
-    }
-    for (let i = segs.length - 2; i >= 0; i--) {
-      if (segs[i+1].labelY - segs[i].labelY < MIN_GAP) {
-        const mid = (segs[i+1].labelY + segs[i].labelY) / 2;
-        segs[i].labelY   = Math.max(MIN_Y, mid - MIN_GAP / 2);
-        segs[i+1].labelY = Math.min(MAX_Y, mid + MIN_GAP / 2);
-      }
-    }
-  }
-
-  let out = '';
-  for (const s of segs) {
-    const sun      = s.type === 'sun';
-    const rain     = s.type === 'rainy';
-    const overcast = s.type === 'overcast' || s.type === 'cloudy';
-    const lc = rain ? 'rgba(156,189,231,0.48)' : overcast ? 'rgba(165,170,178,0.48)' : sun ? 'rgba(255,175,133,0.48)' : 'rgba(160,170,185,0.38)';
-    const tc = rain ? 'rgba(156,189,231,0.88)' : overcast ? 'rgba(165,170,178,0.88)' : sun ? 'rgba(255,175,133,0.88)' : 'rgba(160,170,185,0.78)';
-    out += `<circle cx="${s.dotX.toFixed(1)}" cy="${s.dotY.toFixed(1)}" r="2.5" fill="${lc}"/>`;
-    out += `<polyline points="${s.dotX.toFixed(1)},${s.dotY.toFixed(1)} ${s.elbX.toFixed(1)},${s.labelY.toFixed(1)} ${TICK_END_X},${s.labelY.toFixed(1)}"
-      fill="none" stroke="${lc}" stroke-width="0.9" stroke-linecap="round" stroke-linejoin="round"/>`;
-    out += `<text x="${LABEL_X}" y="${s.labelY.toFixed(1)}" dominant-baseline="middle"
-      font-family="Inter,sans-serif" font-size="${FONT}" font-weight="500" fill="${tc}">${s.label}</text>`;
-  }
-  return out;
-}
 
 // ── Timeline strip ────────────────────────────────────────────────────────────
 
@@ -424,55 +123,6 @@ function renderTimeline(v, dateStr, fromHour, toHour) {
       <div class="tl-labels">
         <span>${t('opens_at', { time: formatHour(open) })}</span>
         <span>${t('closes_at', { time: formatHour(close) })}</span>
-      </div>
-    </div>`;
-}
-
-// ── Busyness bar chart ────────────────────────────────────────────────────────
-
-function renderBusynessChart(v, dateStr, fromHour) {
-  const profile = getBusynessForDay(v, dateStr);
-  const { open, close } = getVenueHoursForDay(v, dateStr);
-  const span = Math.ceil(close) - Math.floor(open);
-  if (span <= 0) return '';
-
-  const BAR_W = 6, GAP = 2, H = 36;
-  const hours = Array.from({ length: span }, (_, i) => Math.floor(open) + i);
-  const totalW = hours.length * (BAR_W + GAP) - GAP;
-
-  const nowValue = getBusynessAt(v, dateStr, fromHour);
-  const nowLabel = busynessLabel(nowValue);
-
-  const bars = hours.map(h => {
-    const val  = profile[h] ?? 0;
-    const barH = Math.max(2, Math.round(val / 100 * H));
-    const y    = H - barH;
-    const isCurrent = Math.floor(fromHour) === h;
-    const fill = isCurrent
-      ? '#FFAF85'
-      : val > 0
-        ? `rgba(255,175,133,${(0.20 + val / 100 * 0.60).toFixed(2)})`
-        : 'rgba(255,175,133,0.2)';
-    const x = hours.indexOf(h) * (BAR_W + GAP);
-    return `<rect x="${x}" y="${y}" width="${BAR_W}" height="${barH}" rx="1.5" fill="${fill}"/>`;
-  }).join('');
-
-  // Hour labels: just first + last
-  const labelFirst = formatHour(open);
-  const labelLast  = formatHour(close);
-
-  return `
-    <div class="dp-busy-row">
-      <span class="dp-busy-now">${nowLabel}</span>
-      <span class="dp-busy-est">est.</span>
-    </div>
-    <div class="dp-busy-chart">
-      <svg width="100%" height="${H}" viewBox="0 0 ${totalW} ${H}" preserveAspectRatio="none" style="display:block">
-        ${bars}
-      </svg>
-      <div class="dp-busy-labels">
-        <span>${labelFirst}</span>
-        <span>${labelLast}</span>
       </div>
     </div>`;
 }
@@ -659,6 +309,30 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
   const tlNeedle = (fromHour >= open && fromHour <= close)
     ? `<div class="tl-needle" style="left:${tlPct(fromHour)}%"></div>` : '';
 
+  // Intermediate hour ticks every ~4h between open and close, positioned absolutely
+  let tlLabels = `<span class="dp-tl-label dp-tl-label-edge" style="left:0">${formatHour(open)}</span>`;
+  if (tlSpan > 0) {
+    const startTick = Math.ceil((open + 0.7) / 4) * 4;
+    for (let h = startTick; h < close - 0.7; h += 4) {
+      const left = ((h - open) / tlSpan * 100).toFixed(2);
+      tlLabels += `<span class="dp-tl-label" style="left:${left}%">${formatHour(h)}</span>`;
+    }
+  }
+  tlLabels += `<span class="dp-tl-label dp-tl-label-edge dp-tl-label-end" style="left:100%">${formatHour(close)}</span>`;
+
+  // Date chip — opens the same date dropdown as the list-mode calendar button
+  const dateLabel = typeof formatDatePill === 'function' ? formatDatePill(dateStr) : dateStr;
+  const dateChipHtml = `<button class="dp-date-chip" onclick="toggleQcPanel('date')" aria-label="Velg dato">
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <rect x="1.5" y="3" width="13" height="11.5" rx="2" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="1.5" y1="6.5" x2="14.5" y2="6.5" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="5" y1="1.5" x2="5" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      <line x1="11" y1="1.5" x2="11" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+    <span>${dateLabel}</span>
+    <svg width="8" height="5" viewBox="0 0 10 6" fill="currentColor" aria-hidden="true"><path d="M0 0 L10 0 L5 6 Z"/></svg>
+  </button>`;
+
   return `
     <div id="dp-scroll">
       ${photosHtml}
@@ -676,14 +350,14 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       </div>
 
       <div class="sun-section">
-        <div class="sun-section-main">${sunHeadline}</div>
-        <div class="dp-timeline">
-          <div class="timeline-track">${tlSegs}${tlNeedle}</div>
+        <div class="sun-section-head">
+          <div class="sun-section-main">${sunHeadline}</div>
+          ${dateChipHtml}
         </div>
-        <div class="dp-timeline-labels">
-          <span>${formatHour(open)}</span>
-          <span>${formatHour(close)}</span>
+        <div class="dp-timeline" id="dp-timeline">
+          <div class="timeline-track" id="dp-timeline-track">${tlSegs}${tlNeedle}<div class="tl-thumb" style="left:${tlPct(fromHour)}%"></div></div>
         </div>
+        <div class="dp-timeline-labels">${tlLabels}</div>
       </div>
 
       ${_renderSocialSection(v)}

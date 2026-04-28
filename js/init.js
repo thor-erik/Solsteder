@@ -5,6 +5,7 @@ loadVenues().then(async () => {
   updateRangeFill();
   update();
   if (USE_FLOATING_TIME_SLIDER) initFts();
+  initDpTimeline();
   try { await initFacings(); } catch (e) { console.error('initFacings error:', e); }
   if (!_introDataReady) { _introDataReady = true; _introCheckReady(); }
   const _wxLats = VENUES.map(v => v.lat), _wxLngs = VENUES.map(v => v.lng);
