@@ -1375,6 +1375,7 @@ function _closeSortPanel() {
   if (!_navHandlingPop) _navDropLayer('sort');
   document.getElementById('sort-panel')?.classList.remove('open');
   document.getElementById('sort-toggle-btn')?.classList.remove('open');
+  document.getElementById('sort-backdrop')?.remove();
 }
 
 function toggleSortPanel() {
@@ -1389,6 +1390,15 @@ function toggleSortPanel() {
   panel.style.top  = (r.bottom + 4) + 'px';
   panel.style.left = r.right + 'px';
   panel.style.transform = 'translateX(-100%)';
+  // Transparent backdrop blocks taps from leaking through to venue cards
+  // behind the dropdown. Tapping the backdrop closes the panel.
+  if (!document.getElementById('sort-backdrop')) {
+    const bd = document.createElement('div');
+    bd.id = 'sort-backdrop';
+    bd.className = 'sort-backdrop';
+    bd.onclick = () => _closeSortPanel();
+    document.body.appendChild(bd);
+  }
 }
 
 function setSortBy(sort) {
@@ -1432,7 +1442,7 @@ function updateSortBtns() {
   const distLabel = (activeSortBy === 'distance' && _isFarFromCluster())
     ? t('sort_distance_center')
     : t('sort_distance');
-  const labels = { score: t('sort_score'), latest: t('sort_latest'), distance: distLabel, beer: t('sort_beer'), favorites: t('sort_favorites') };
+  const labels = { score: t('sort_score'), distance: distLabel, beer: t('sort_beer'), favorites: t('sort_favorites') };
   const labelEl = document.getElementById('sort-label');
   if (labelEl) labelEl.textContent = labels[activeSortBy] ?? t('sort_score');
 }

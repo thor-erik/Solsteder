@@ -309,20 +309,28 @@ function renderList() {
         ? VENUE_CLUSTER.center
         : userLocation);
 
-  if (sortBy === 'score') {
-    // Pre-compute sun remaining + state once per venue (not inside comparator)
-    for (const v of venues) {
+  // Pre-compute sun-window stats for any venue we might need to rank by
+  // remaining sun. Used by score / distance / favorites — compute once
+  // up-front rather than scattering computeSunWindows calls in comparators.
+  function _ensureSunStats(list) {
+    for (const v of list) {
       const { windows } = computeSunWindows(v, dateStr);
-      let rem = 0;
+      let rem = 0, total = 0;
       for (const w of windows) {
+        total += w.end - w.start;
         if (w.end > fromHour) rem += w.end - Math.max(w.start, fromHour);
       }
       v._sunRem = rem;
+      v._sunTotalToday = total;
       if (!windows.length) { v._sunOrd = 2; }
       else if (windows.some(w => fromHour >= w.start && fromHour < w.end)) { v._sunOrd = 0; }
       else if (windows.some(w => w.start > fromHour)) { v._sunOrd = 1; }
       else { v._sunOrd = 2; }
     }
+  }
+
+  if (sortBy === 'score') {
+    _ensureSunStats(venues);
     venues.sort((a, b) => {
       const cp = closedPenalty(a) - closedPenalty(b);
       if (cp !== 0) return cp;
@@ -331,6 +339,8 @@ function renderList() {
       // top of the list — matches the header count exactly and lets us draw a divider.
       if (a._sunOrd !== b._sunOrd) return a._sunOrd - b._sunOrd;
       if (a._sunRem !== b._sunRem) return b._sunRem - a._sunRem;
+      // Tiebreaker: venues with more total sun today rank higher.
+      if (a._sunTotalToday !== b._sunTotalToday) return b._sunTotalToday - a._sunTotalToday;
       if (distRef) {
         const da = Math.hypot(a.lat - distRef.lat, a.lng - distRef.lng);
         const db = Math.hypot(b.lat - distRef.lat, b.lng - distRef.lng);
@@ -339,23 +349,14 @@ function renderList() {
       return 0;
     });
   } else if (sortBy === 'distance' && distRef) {
+    _ensureSunStats(venues);
     venues.sort((a, b) => {
       const cp = closedPenalty(a) - closedPenalty(b);
       if (cp !== 0) return cp;
       const da = Math.hypot(a.lat - distRef.lat, a.lng - distRef.lng);
       const db = Math.hypot(b.lat - distRef.lat, b.lng - distRef.lng);
-      return da - db;
-    });
-  } else if (sortBy === 'latest') {
-    // Sort by latest sun end time (venues with sun ending latest first)
-    for (const v of venues) {
-      const { windows } = computeSunWindows(v, dateStr);
-      v._lastSunEnd = windows.length ? Math.max(...windows.map(w => w.end)) : 0;
-    }
-    venues.sort((a, b) => {
-      const cp = closedPenalty(a) - closedPenalty(b);
-      if (cp !== 0) return cp;
-      return b._lastSunEnd - a._lastSunEnd;
+      if (da !== db) return da - db;
+      return b._sunRem - a._sunRem;
     });
   } else if (sortBy === 'beer') {
     venues.sort((a, b) => {
@@ -368,17 +369,22 @@ function renderList() {
       return a.beerPrice - b.beerPrice;
     });
   } else if (sortBy === 'favorites') {
-    // Show only favorites, sorted by distance
+    // Show only favorites, sorted by distance with sun-remaining tiebreaker.
+    // Closed-not-opening-soon favorites still sink to the bottom.
     if (typeof isFavorite === 'function') {
       venues = venues.filter(v => isFavorite(v.id));
     }
-    if (distRef) {
-      venues.sort((a, b) => {
+    _ensureSunStats(venues);
+    venues.sort((a, b) => {
+      const cp = closedPenalty(a) - closedPenalty(b);
+      if (cp !== 0) return cp;
+      if (distRef) {
         const da = Math.hypot(a.lat - distRef.lat, a.lng - distRef.lng);
         const db = Math.hypot(b.lat - distRef.lat, b.lng - distRef.lng);
-        return da - db;
-      });
-    }
+        if (da !== db) return da - db;
+      }
+      return b._sunRem - a._sunRem;
+    });
   } else {
     // Default case (if sortBy is something else or undefined)
     venues.sort((a, b) => {
