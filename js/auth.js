@@ -356,6 +356,7 @@ function _renderProfilePanel() {
       </div>
     `;
     if (typeof loginCarouselMount === 'function') loginCarouselMount();
+    if (typeof notifFreezeAutoDismiss === 'function') notifFreezeAutoDismiss();
   }
 }
 
@@ -387,6 +388,7 @@ function toggleProfilePanel(e) {
 
 function closeProfilePanel() {
   if (typeof loginCarouselUnmount === 'function') loginCarouselUnmount();
+  if (typeof notifResumeAutoDismiss === 'function') notifResumeAutoDismiss();
   window._navDropLayer?.('profile');
   const panel = document.getElementById('profile-panel');
   if (panel) panel.classList.remove('open');
