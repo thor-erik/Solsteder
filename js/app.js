@@ -27,6 +27,7 @@ let filterFullSunActive = false;
 let filterMapViewActive = window.innerWidth >= 640; // desktop: viewport filter on; mobile: off (list shows all venues)
 let activeArea    = '';
 let activeSortBy  = 'distance';
+let _userPickedSort = false; // true once the user explicitly picks a sort — locks out auto-default
 let activeIntent  = null;
 let panelVisible      = true;
 // Consolidated hover/raise state.
@@ -1347,6 +1348,28 @@ function setAreaFilter(area) {
   if (typeof saveUserPreference === 'function') saveUserPreference('default_area', area);
 }
 
+// ── Cluster proximity ────────────────────────────────────────────────────────
+// True when the user's GPS is outside the venue cluster (or unknown). Drives the
+// "distance from city center" fallback so users browsing from another country
+// still see a useful list. City-agnostic: VENUE_CLUSTER is derived from data.
+function _isFarFromCluster() {
+  if (!userLocation || !VENUE_CLUSTER.radiusKm) return true;
+  const c = VENUE_CLUSTER.center;
+  const dLat = (userLocation.lat - c.lat) * 111;
+  const dLng = (userLocation.lng - c.lng) * 111 * Math.cos(c.lat * Math.PI / 180);
+  return Math.hypot(dLat, dLng) > VENUE_CLUSTER.radiusKm;
+}
+
+// Apply auto-default sort based on cluster proximity. No-op once the user picks.
+function _applyAutoDefaultSort() {
+  if (_userPickedSort) return;
+  const next = _isFarFromCluster() ? 'score' : 'distance';
+  if (next !== activeSortBy) {
+    activeSortBy = next;
+    if (typeof updateSortBtns === 'function') updateSortBtns();
+  }
+}
+
 // ── Sort ──────────────────────────────────────────────────────────────────────
 function _closeSortPanel() {
   if (!_navHandlingPop) _navDropLayer('sort');
@@ -1370,6 +1393,7 @@ function toggleSortPanel() {
 
 function setSortBy(sort) {
   _aTrack('sort_change', { sort_by: sort });
+  _userPickedSort = true;
   if (sort === 'favorites' && !userLocation) {
     // Request location for distance-based ordering, but don't block — show favorites even without it
     navigator.geolocation.getCurrentPosition(
@@ -1403,7 +1427,12 @@ function setSortBy(sort) {
 function updateSortBtns() {
   document.querySelectorAll('.sort-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.sort === activeSortBy));
-  const labels = { score: t('sort_score'), latest: t('sort_latest'), distance: t('sort_distance'), beer: t('sort_beer'), favorites: t('sort_favorites') };
+  // When user is far from the venue cluster, "distance" means "from city
+  // center" rather than "from you" — surface that with a label swap.
+  const distLabel = (activeSortBy === 'distance' && _isFarFromCluster())
+    ? t('sort_distance_center')
+    : t('sort_distance');
+  const labels = { score: t('sort_score'), latest: t('sort_latest'), distance: distLabel, beer: t('sort_beer'), favorites: t('sort_favorites') };
   const labelEl = document.getElementById('sort-label');
   if (labelEl) labelEl.textContent = labels[activeSortBy] ?? t('sort_score');
 }
@@ -3396,15 +3425,29 @@ document.addEventListener('DOMContentLoaded', () => {
       const wasNull   = !userLocation;
       userLocation    = { lat: pos.coords.latitude, lng: pos.coords.longitude };
       if (wasNull) {
-        _introCenter   = [pos.coords.longitude, pos.coords.latitude];
+        // Only follow GPS for intro center when the user is near the venue
+        // cluster — otherwise the map opens on (e.g.) Copenhagen and the
+        // viewport filter hides every Oslo venue. Keep the Oslo fallback.
+        if (!_isFarFromCluster()) {
+          _introCenter = [pos.coords.longitude, pos.coords.latitude];
+        } else if (VENUE_CLUSTER.radiusKm) {
+          _introCenter = [VENUE_CLUSTER.center.lng, VENUE_CLUSTER.center.lat];
+        }
         _introGeoReady = true;
         _introCheckReady();
+        _applyAutoDefaultSort();
         renderList();
       }
       _updateLocationDot();
     };
     const _onGeoErr = () => {
-      if (!userLocation) { _introGeoReady = true; _introCheckReady(); }
+      if (!userLocation) {
+        if (VENUE_CLUSTER.radiusKm) _introCenter = [VENUE_CLUSTER.center.lng, VENUE_CLUSTER.center.lat];
+        _introGeoReady = true;
+        _introCheckReady();
+        _applyAutoDefaultSort();
+        renderList();
+      }
     };
     // watchPosition keeps the dot fresh as the user moves
     navigator.geolocation.watchPosition(_onGeoPos, _onGeoErr,
@@ -3412,13 +3455,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // Fallback: if geolocation never settles, proceed after 5 seconds
     setTimeout(() => {
       if (!_introGeoReady) {
+        if (VENUE_CLUSTER.radiusKm) _introCenter = [VENUE_CLUSTER.center.lng, VENUE_CLUSTER.center.lat];
         _introGeoReady = true;
         _introCheckReady();
+        _applyAutoDefaultSort();
+        renderList();
       }
     }, 5000);
   } else {
+    if (VENUE_CLUSTER.radiusKm) _introCenter = [VENUE_CLUSTER.center.lng, VENUE_CLUSTER.center.lat];
     _introGeoReady = true;
     _introCheckReady();
+    _applyAutoDefaultSort();
   }
 });
 

@@ -24,6 +24,26 @@ function catLabel(v) { return t(CATEGORIES[v.category] ?? CATEGORIES.restaurant)
 // Mutated by initFacings() — adds: buildingGeometry, wallNormals, wallSegment.
 let VENUES = [];
 
+// ── Venue cluster: data-driven "city center" reference ────────────────────────
+// Populated by loadVenues(). { center: {lat, lng}, radiusKm } — derived from
+// the venue data so the subsystem stays city-agnostic. When data eventually
+// covers multiple cities, swap this for a per-cluster lookup.
+let VENUE_CLUSTER = { center: { lat: 0, lng: 0 }, radiusKm: 0 };
+
+function computeVenueCluster(venues) {
+  if (!venues.length) return { center: { lat: 0, lng: 0 }, radiusKm: 0 };
+  const n = venues.length;
+  const cLat = venues.reduce((s, v) => s + v.lat, 0) / n;
+  const cLng = venues.reduce((s, v) => s + v.lng, 0) / n;
+  const cosLat = Math.cos(cLat * Math.PI / 180);
+  const maxKm = venues.reduce((m, v) => {
+    const dLat = (v.lat - cLat) * 111;
+    const dLng = (v.lng - cLng) * 111 * cosLat;
+    return Math.max(m, Math.hypot(dLat, dLng));
+  }, 0);
+  return { center: { lat: cLat, lng: cLng }, radiusKm: maxKm + 30 };
+}
+
 // ── Facing cache ──────────────────────────────────────────────────────────────
 // Persists computed ('osm') and manual ('manual') facing directions across refreshes.
 // This means initFacings() only runs scoreWall once per venue, not every load.
@@ -146,6 +166,8 @@ async function loadVenues() {
     v.facing = cached.facing;
     v.facingSource = cached.facingSource;
   });
+
+  VENUE_CLUSTER = computeVenueCluster(VENUES);
 }
 
 // ── Fallback (mirrors venues.json — update both when adding venues) ────────────
