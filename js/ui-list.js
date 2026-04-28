@@ -289,6 +289,17 @@ function renderList() {
   // Closed venues always sink below open ones regardless of sort mode
   function closedPenalty(v) { return (!v.isOpen && !v.isOpeningSoon) ? 1 : 0; }
 
+  // Reference point for distance-based sorting. When the user is near the
+  // venue cluster, "distance" means "from you." When the user is far away
+  // (or GPS is unknown), it means "from the cluster center" — derived from
+  // venue data so the subsystem stays city-agnostic.
+  const farFromCluster = typeof _isFarFromCluster === 'function' && _isFarFromCluster();
+  const distRef = (userLocation && !farFromCluster)
+    ? userLocation
+    : (typeof VENUE_CLUSTER !== 'undefined' && VENUE_CLUSTER.radiusKm
+        ? VENUE_CLUSTER.center
+        : userLocation);
+
   if (sortBy === 'score') {
     // Pre-compute sun remaining + state once per venue (not inside comparator)
     for (const v of venues) {
@@ -307,18 +318,19 @@ function renderList() {
       const cp = closedPenalty(a) - closedPenalty(b);
       if (cp !== 0) return cp;
       if (a._sunRem !== b._sunRem) return b._sunRem - a._sunRem;
-      if (a.score?.distKm != null && b.score?.distKm != null) {
-        const dd = a.score.distKm - b.score.distKm;
-        if (dd !== 0) return dd;
+      if (distRef) {
+        const da = Math.hypot(a.lat - distRef.lat, a.lng - distRef.lng);
+        const db = Math.hypot(b.lat - distRef.lat, b.lng - distRef.lng);
+        if (da !== db) return da - db;
       }
       return a._sunOrd - b._sunOrd;
     });
-  } else if (sortBy === 'distance' && userLocation) {
+  } else if (sortBy === 'distance' && distRef) {
     venues.sort((a, b) => {
       const cp = closedPenalty(a) - closedPenalty(b);
       if (cp !== 0) return cp;
-      const da = Math.hypot(a.lat - userLocation.lat, a.lng - userLocation.lng);
-      const db = Math.hypot(b.lat - userLocation.lat, b.lng - userLocation.lng);
+      const da = Math.hypot(a.lat - distRef.lat, a.lng - distRef.lng);
+      const db = Math.hypot(b.lat - distRef.lat, b.lng - distRef.lng);
       return da - db;
     });
   } else if (sortBy === 'latest') {
@@ -347,10 +359,10 @@ function renderList() {
     if (typeof isFavorite === 'function') {
       venues = venues.filter(v => isFavorite(v.id));
     }
-    if (userLocation) {
+    if (distRef) {
       venues.sort((a, b) => {
-        const da = Math.hypot(a.lat - userLocation.lat, a.lng - userLocation.lng);
-        const db = Math.hypot(b.lat - userLocation.lat, b.lng - userLocation.lng);
+        const da = Math.hypot(a.lat - distRef.lat, a.lng - distRef.lng);
+        const db = Math.hypot(b.lat - distRef.lat, b.lng - distRef.lng);
         return da - db;
       });
     }
