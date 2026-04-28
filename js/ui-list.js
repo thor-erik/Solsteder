@@ -15,6 +15,7 @@
 
 const LIST_PAGE = 30; // cards rendered per batch
 let _listFiltered = []; // current sorted+filtered result
+let _listDividerIdx = -1; // index of the first "sun later" venue, or -1 to suppress
 let _listObserver = null; // IntersectionObserver for infinite scroll
 let _aImpressionTimer = null; // debounce for impression analytics
 
@@ -183,10 +184,18 @@ function renderListPage(list, dateStr, fromHour, toHour, isPoint, reset) {
   const from = reset ? 0 : list.querySelectorAll('.venue-card').length;
   const to   = Math.min(from + LIST_PAGE, _listFiltered.length);
 
-  const html = _listFiltered
-    .slice(from, to)
-    .map(v => renderCard(v, dateStr, fromHour, toHour, isPoint))
-    .join('');
+  // Inject the "sun later" divider when the page straddles the boundary —
+  // before the first card with _sunOrd > 0. Only fires when score sort active
+  // and both groups non-empty (see _listDividerIdx in renderList).
+  const dividerIdx = _listDividerIdx;
+  let html = '';
+  for (let i = from; i < to; i++) {
+    if (i === dividerIdx) {
+      const laterCount = _listFiltered.length - dividerIdx;
+      html += `<div class="venue-list-divider">${t('sun_later_count', { count: laterCount })}</div>`;
+    }
+    html += renderCard(_listFiltered[i], dateStr, fromHour, toHour, isPoint);
+  }
 
   if (reset) {
     list.innerHTML = html;
@@ -317,13 +326,17 @@ function renderList() {
     venues.sort((a, b) => {
       const cp = closedPenalty(a) - closedPenalty(b);
       if (cp !== 0) return cp;
+      // _sunOrd: 0 = in sun at the slider time, 1 = sun starts after slider time, 2 = none.
+      // Group by state first so the "in-sun" venues form a contiguous block at the
+      // top of the list — matches the header count exactly and lets us draw a divider.
+      if (a._sunOrd !== b._sunOrd) return a._sunOrd - b._sunOrd;
       if (a._sunRem !== b._sunRem) return b._sunRem - a._sunRem;
       if (distRef) {
         const da = Math.hypot(a.lat - distRef.lat, a.lng - distRef.lng);
         const db = Math.hypot(b.lat - distRef.lat, b.lng - distRef.lng);
         if (da !== db) return da - db;
       }
-      return a._sunOrd - b._sunOrd;
+      return 0;
     });
   } else if (sortBy === 'distance' && distRef) {
     venues.sort((a, b) => {
@@ -450,6 +463,14 @@ function renderList() {
 
   // ── Render first page, observer handles the rest ──────────────────────────
   _listFiltered = venues;
+  // Divider index: only meaningful for score sort with both groups non-empty.
+  // Other sorts have no clean state boundary.
+  if (sortBy === 'score') {
+    const firstLater = venues.findIndex(v => v._sunOrd > 0);
+    _listDividerIdx = (firstLater > 0 && firstLater < venues.length) ? firstLater : -1;
+  } else {
+    _listDividerIdx = -1;
+  }
   renderListPage(list, dateStr, fromHour, toHour, isPoint, true);
 
   // Update venue-peek with first ranked venue (mobile collapsed state)

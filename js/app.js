@@ -1454,7 +1454,20 @@ function _aTrackTimeChange() {
 let _renderListTimer = null;
 function scheduleRenderList() {
   clearTimeout(_renderListTimer);
-  _renderListTimer = setTimeout(() => { renderList(); setTimeout(_syncQcPanelHeight, 80); }, 300);
+  // Mark scrubbing so the section divider fades out — prevents flicker as
+  // venues cross sun-window boundaries during a drag. Kept on across
+  // renderList so the new divider mounts hidden, then fades in on the next
+  // frame after the class is removed.
+  document.body.classList.add('list-scrubbing');
+  _renderListTimer = setTimeout(() => {
+    renderList();
+    setTimeout(_syncQcPanelHeight, 80);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.body.classList.remove('list-scrubbing');
+      });
+    });
+  }, 300);
 }
 
 // ── QC notice (below date/time picker) ───────────────────────────────────────
