@@ -172,6 +172,9 @@ function _renderProfilePanel() {
   if (!panel) return;
 
   if (_currentUser) {
+    panel.classList.remove('logged-out');
+    if (typeof loginCarouselUnmount === 'function') loginCarouselUnmount();
+
     const avatar   = _currentUser.user_metadata?.avatar_url;
     const name     = _currentUser.user_metadata?.name ?? '';
     const email    = _currentUser.email ?? '';
@@ -303,9 +306,28 @@ function _renderProfilePanel() {
     if (authIsAdmin()) { _loadPendingCount(); _loadVenueSuggestionsCount(); }
     _loadMySuggestions();
   } else {
+    panel.classList.add('logged-out');
+    const slides = [1, 2, 3, 4].map(i => `
+      <div class="login-slide">
+        <div class="login-slide-icon">${_loginSlideIcon(i)}</div>
+        <div class="login-slide-title">${t('login_slide' + i + '_title')}</div>
+        <div class="login-slide-body">${t('login_slide' + i + '_body')}</div>
+      </div>
+    `).join('');
+    const dots = [0, 1, 2, 3].map(i => `
+      <button class="login-dot${i === 0 ? ' active' : ''}" data-idx="${i}" aria-label="Slide ${i + 1}"></button>
+    `).join('');
     panel.innerHTML = `
-      <div class="profile-panel-body">
-        <div class="login-gate-buttons" style="padding:16px 20px 8px;margin:0 auto">
+      <button class="login-close-btn" aria-label="${t('login_close')}" onclick="closeProfilePanel()">×</button>
+      <div class="login-hero">
+        <h2 class="login-hero-title">${t('login_hero_title')}</h2>
+        <div class="login-carousel" id="login-carousel">
+          <div class="login-carousel-track">${slides}</div>
+          <div class="login-carousel-dots">${dots}</div>
+        </div>
+      </div>
+      <div class="login-auth-section">
+        <div class="login-gate-buttons">
           <button class="auth-btn auth-btn-google" onclick="authSignInWithGoogle();closeProfilePanel()">
             <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
               <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908C16.658 13.952 17.64 11.644 17.64 9.2z"/>
@@ -321,19 +343,28 @@ function _renderProfilePanel() {
             </svg>
             ${t('signin_apple')}
           </button>
-          <div class="auth-divider"><span>or</span></div>
+          <div class="auth-divider"><span>${t('login_or')}</span></div>
           <form class="auth-magic-link-form" onsubmit="handleMagicLinkSubmit(event, this)">
             <input type="email" class="auth-magic-link-input" placeholder="${t('magic_link_placeholder')}" required>
             <button type="submit" class="auth-btn auth-btn-email">${t('magic_link_send')}</button>
             <div class="auth-magic-link-status"></div>
           </form>
         </div>
-        <div style="border-top:1px solid rgba(255,255,255,0.07);padding:10px 0 4px;margin-top:4px;text-align:center;">
+        <div class="login-footer">
           <a href="privacy.html" target="_blank" rel="noopener" class="profile-privacy-link">${t('privacy_policy')}</a>
         </div>
       </div>
     `;
+    if (typeof loginCarouselMount === 'function') loginCarouselMount();
   }
+}
+
+function _loginSlideIcon(i) {
+  const stroke = 'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
+  if (i === 1) return `<svg viewBox="0 0 24 24" ${stroke}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
+  if (i === 2) return `<svg viewBox="0 0 24 24" ${stroke}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
+  if (i === 3) return `<svg viewBox="0 0 24 24" ${stroke}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`;
+  return `<svg viewBox="0 0 24 24" ${stroke}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>`;
 }
 
 function toggleProfilePanel(e) {
@@ -355,6 +386,7 @@ function toggleProfilePanel(e) {
 }
 
 function closeProfilePanel() {
+  if (typeof loginCarouselUnmount === 'function') loginCarouselUnmount();
   window._navDropLayer?.('profile');
   const panel = document.getElementById('profile-panel');
   if (panel) panel.classList.remove('open');
