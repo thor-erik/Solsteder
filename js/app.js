@@ -3648,13 +3648,30 @@ function _stripDiacritics(s) {
 // These can't be derived automatically. Add entries per-city as needed.
 const _SYNONYMS = {
   'briskeby':     'frogner',
-  'tjuvholmen':   'frogner',
+  'solli plass':  'frogner',
+  'vika':         'sentrum',
   'vulkan':       'grünerløkka',
   'mathallen':    'grünerløkka',
+  'sofienberg':   'grünerløkka',
+  'birkelunden':  'grünerløkka',
   'bjørvika':     'sentrum',
+  'sørenga':      'sentrum',
   'youngstorget': 'sentrum',
   'karl johan':   'sentrum',
+  'bygdøy':       'frogner',
   'bogstadveien': 'majorstuen',
+  'adamstuen':    'st. hanshaugen',
+  'bjølsen':      'sagene',
+  'torshov':      'sagene',
+  'carl berner':  'sinsen',
+  'storo':        'sinsen',
+  'ensjø':        'helsfyr',
+  'hasle':        'helsfyr',
+  'kværnerbyen':  'helsfyr',
+  'ekeberg':      'nordstrand',
+  'bekkelaget':   'nordstrand',
+  'oppsal':       'bryn',
+  'manglerud':    'østensjø',
 };
 
 // Auto-generated suffix/whitespace/punctuation variants, built from _areaIndex.
