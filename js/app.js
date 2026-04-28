@@ -214,72 +214,6 @@ function _syncFtsPosition() {
 function _ftsDays()   { return typeof tA === 'function' ? tA('days_short') : ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']; }
 function _ftsMonths() { return typeof tA === 'function' ? tA('months_short') : ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; }
 
-/**
- * Wire pointer events on the detail-panel timeline so it scrubs the global time.
- * Listeners live on #detail-panel (stable parent) since the timeline DOM is
- * rebuilt on every renderDetailPanelContent() call.
- */
-function initDpTimeline() {
-  const dp = document.getElementById('detail-panel');
-  if (!dp) return;
-  let _dpScrubbing = false;
-  let _dpPid = null;
-
-  const setTimeFromX = (clientX) => {
-    if (selectedId == null) return;
-    const v = VENUES.find(x => x.id === selectedId);
-    if (!v) return;
-    const track = dp.querySelector('.dp-time-track');
-    if (!track) return;
-    const rect = track.getBoundingClientRect();
-    if (rect.width <= 0) return;
-    const hours = getVenueHoursForDay(v, datePicker.value);
-    const span = hours.close - hours.open;
-    if (span <= 0) return;
-    const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-    const tHour = hours.open + ratio * span;
-    const hour = _clampHour(tHour);
-    if (nowMode) {
-      nowMode = false;
-      nowBtn?.classList.remove('active');
-      timeRangeWrap?.classList.remove('now-active');
-      clearInterval(nowInterval); nowInterval = null;
-    }
-    setActiveIntentBtn(null);
-    timeFromEl.value = hour;
-    update();
-  };
-
-  dp.addEventListener('pointerdown', e => {
-    const track = e.target.closest('.dp-time-track');
-    if (!track) return;
-    e.preventDefault();
-    e.stopPropagation();
-    _dpScrubbing = true;
-    _dpPid = e.pointerId;
-    dp.classList.add('dp-scrub-active');
-    try { dp.setPointerCapture(e.pointerId); } catch {}
-    setTimeFromX(e.clientX);
-  });
-
-  dp.addEventListener('pointermove', e => {
-    if (!_dpScrubbing || e.pointerId !== _dpPid) return;
-    setTimeFromX(e.clientX);
-  });
-
-  const endScrub = () => {
-    if (!_dpScrubbing) return;
-    _dpScrubbing = false;
-    dp.classList.remove('dp-scrub-active');
-    if (_dpPid != null) {
-      try { dp.releasePointerCapture(_dpPid); } catch {}
-      _dpPid = null;
-    }
-  };
-  dp.addEventListener('pointerup', endScrub);
-  dp.addEventListener('pointercancel', endScrub);
-}
-
 /** Initialise the floating time slider: bind events, draw canvas, show appstart popup. */
 function initFts() {
   const canvas = document.getElementById('fts-canvas');
@@ -2427,6 +2361,7 @@ function updatePopup() {
 
 let _morphSourceVid = null;     // venue id whose card is the morph source
 let _morphSourceRect = null;    // rect captured at open, reused on close
+let _ftsHomeParent = null;      // remembers where #fts originally lived
 const MORPH_DURATION = 320;     // matches CSS transition
 
 /** Set CSS vars on dp from a card rect so the panel starts as the card on mobile.
@@ -2440,6 +2375,34 @@ function _applyMorphFromRect(dp, rect) {
   dp.style.setProperty('--morph-dy', dy + 'px');
 }
 
+/** Move the floating time slider (#fts) into the detail panel's slot.
+ *  This avoids rebuilding the slider from scratch — same DOM, same handlers,
+ *  same canvas drawing. The .fts-in-panel class neutralises the fixed-position
+ *  styling so it flows inside the dp-card. */
+function _attachFtsToSlot() {
+  const fts  = document.getElementById('fts');
+  const slot = document.getElementById('fts-slot');
+  if (!fts || !slot) return false;
+  if (slot.contains(fts)) return true;
+  if (!_ftsHomeParent) _ftsHomeParent = fts.parentElement;
+  slot.appendChild(fts);
+  fts.classList.add('fts-in-panel');
+  if (typeof drawFtsCanvas === 'function') drawFtsCanvas();
+  return true;
+}
+
+/** Pop #fts back to its original parent (typically <body>) and restore floating styles. */
+function _restoreFtsHome() {
+  const fts = document.getElementById('fts');
+  if (!fts) return;
+  fts.classList.remove('fts-in-panel');
+  if (_ftsHomeParent && !_ftsHomeParent.contains(fts)) {
+    _ftsHomeParent.appendChild(fts);
+  }
+  _ftsHomeParent = null;
+  if (typeof drawFtsCanvas === 'function') drawFtsCanvas();
+}
+
 function openDetailPanel(v) {
   _aDetailOpenTs = Date.now();
   _aTrack('detail_open', { venue_id: v.id, time_slot: parseFloat(timeFromEl.value) });
@@ -2449,6 +2412,7 @@ function openDetailPanel(v) {
   if (!dp || !content) return;
 
   content.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
+  _attachFtsToSlot();
   dp.classList.remove('dp-fullscreen');
 
   // Container morph from clicked card → panel (mobile only).
@@ -2552,6 +2516,9 @@ function closeDetailPanel(expandList = true) {
       document.getElementById('qc-wrap')?.classList.remove('mobile-ui-hidden');
       document.getElementById('locate-btn')?.classList.remove('mobile-ui-hidden');
       document.getElementById('zoom-jog')?.classList.remove('mobile-ui-hidden');
+      // Pop #fts back to its floating home before the panel content gets reset.
+      _restoreFtsHome();
+      _syncFtsPosition();
       // Reverse morph just finished — snap panel away without an extra wobble.
       if (dp) {
         dp.classList.add('dp-morph-instant');
@@ -2609,7 +2576,12 @@ function updateDetailPanel() {
   if (!authCurrentUser()) return;
   const v = VENUES.find(x => x.id === selectedId);
   if (!v) return;
+  // Pull #fts out before innerHTML destroys its slot, then reattach.
+  const fts = document.getElementById('fts');
+  const wasInPanel = fts && content.contains(fts);
+  if (wasInPanel && _ftsHomeParent) _ftsHomeParent.appendChild(fts);
   content.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
+  if (wasInPanel) _attachFtsToSlot();
   _startWindForVenue(v); // restart with updated weather snapshot
 }
 
@@ -3401,7 +3373,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // When dp-scroll is at the top and the finger moves down, start panel drag.
       const dpContent = document.getElementById('dp-content');
       if (dpContent) {
-        const _DP_INTERACTIVE = 'button, a, input, select, textarea, canvas, [role="button"], .dp-time-track, .dp-time-row';
+        const _DP_INTERACTIVE = 'button, a, input, select, textarea, canvas, [role="button"], #fts, #fts-track, #fts-slot';
         let _dpContentStartY = 0;
         dpContent.addEventListener('touchstart', e => {
           if (e.target.closest(_DP_INTERACTIVE)) return;
@@ -3413,7 +3385,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const dpScroll = document.getElementById('dp-scroll');
           const atTop = !dpScroll || dpScroll.scrollTop <= 0;
           const cy = e.touches[0].clientY;
-          if (atTop && cy > _dpContentStartY + 8 && !e.target.closest(_DP_INTERACTIVE)) {
+          if (atTop && cy > _dpContentStartY + 8 && !e.target.closest(_DP_INTERACTIVE) && !_ftsDragging) {
             e.preventDefault();
             _beginDpDrag(cy, true);
           }

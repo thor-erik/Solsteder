@@ -684,15 +684,8 @@
     transition: left 0.28s ease, width 0.28s ease, bottom 0.35s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.22s ease, transform 0.22s ease;
     will-change: left, bottom;
   }
-  /* On mobile the morphed timeline is the time scrubber, so the floating pill
-     becomes redundant and fades out. Desktop keeps it (panel sits beside list). */
-  @media (max-width: 639px) {
-    body.fts:has(#detail-panel.open) #fts {
-      opacity: 0;
-      transform: translateY(8px);
-      pointer-events: none;
-    }
-  }
+  /* (The floating #fts pill is reparented into the detail panel on open, so no
+     hide rule is needed — JS moves the same DOM node.) */
 
   /* Calendar button — date pill */
   #fts-date-btn {
@@ -4683,114 +4676,87 @@
     color: var(--accent);
   }
 
-  /* ── Top row inside detail panel: back chevron + heart/bell ───────────── */
-  .dp-top-row {
+  /* ── Photo gallery wrapper + heart/bell overlay ──────────────────────── */
+  .detail-new-photos-wrap {
+    position: relative;
+  }
+  .dp-photo-actions {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 6px;
+    z-index: 3;
+  }
+  .dp-photo-actions .dp-header-icon {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: 50%;
+    background: rgba(14,26,52,0.55);
+    backdrop-filter: blur(8px) saturate(160%);
+    -webkit-backdrop-filter: blur(8px) saturate(160%);
+    border: 1px solid rgba(156,189,231,0.22);
+    color: var(--text);
+    opacity: 1;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    margin: 0 0 6px;
+    justify-content: center;
   }
-  .dp-top-actions { display: flex; gap: 4px; }
+  .dp-photo-actions .dp-header-icon svg { width: 18px; height: 18px; }
 
   /* ── Detail-panel "card": same DOM as a venue-card, scaled up ────────── */
   .dp-card {
     /* Inherits .venue-card glass background + border. We just bump sizing. */
     cursor: default;
     margin-bottom: 14px;
-    padding: 16px 16px 14px;
+    padding: 14px 14px 12px;
     animation: none;
   }
   .dp-card:hover { background: var(--glass-card-bg); }   /* kill list-card hover */
-  .dp-card .card-top { gap: 14px; }
-  .dp-card .card-new-name { font-size: 22px; line-height: 1.15; letter-spacing: -0.01em; white-space: normal; }
-  .dp-card .card-new-meta { font-size: 13px; line-height: 1.35; }
-  .dp-card .card-new-hero-main { font-size: 16px; }
-  .dp-card .card-new-hero-sub  { font-size: 12px; }
-  .dp-card .card-right { min-width: 110px; }
-
-  /* Time row: date chip on the left + slider on the right (mirrors FTS layout) */
-  .dp-time-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 14px;
-  }
-  .dp-date-chip {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    height: 38px;
-    padding: 0 12px;
-    background: var(--glass-action-bg);
-    backdrop-filter: var(--glass-blur-action);
-    -webkit-backdrop-filter: var(--glass-blur-action);
-    border: var(--glass-border);
-    border-radius: 19px;
-    box-shadow: var(--glass-inset), 0 2px 8px rgba(0,0,0,0.35);
-    color: var(--text);
-    font: 600 13px/1 'Inter', sans-serif;
-    cursor: pointer;
-    flex-shrink: 0;
-    -webkit-tap-highlight-color: transparent;
-    transition: background 120ms, border-color 120ms;
-  }
-  .dp-date-chip:hover { background: rgba(20,46,82,0.60); border-color: rgba(156,189,231,0.30); }
-  .dp-date-chip:active { transform: scale(0.97); }
-  .dp-date-chip svg { color: var(--muted); flex-shrink: 0; }
-  .dp-date-chip span { font-variant-numeric: tabular-nums; letter-spacing: -0.005em; }
-
-  /* Slider track — same look as FTS pill (#fts-track) */
-  .dp-time-track {
-    flex: 1 1 0;
-    min-width: 0;
-    height: 38px;
-    border-radius: 999px;
-    position: relative;
-    cursor: ew-resize;
-    touch-action: none;
-    background: var(--glass-action-bg);
-    backdrop-filter: var(--glass-blur-action);
-    -webkit-backdrop-filter: var(--glass-blur-action);
-    border: var(--glass-border);
-    box-shadow: var(--glass-inset), 0 2px 8px rgba(0,0,0,0.35);
+  .dp-card .card-top { gap: 10px; }
+  .dp-card .card-left { min-width: 0; }
+  .dp-card .card-new-name {
+    font-size: 19px;
+    line-height: 1.18;
+    letter-spacing: -0.01em;
+    white-space: normal;            /* allow wrap if truly long */
     overflow: visible;
+    text-overflow: clip;
   }
-  /* Weather segments fill the pill */
-  .dp-time-track .wx {
-    position: absolute;
-    top: 4px;
-    bottom: 4px;
-    border-radius: 0;
-    opacity: 0.95;
-  }
-  .dp-time-track .cap-l       { border-radius: 999px 0 0 999px; }
-  .dp-time-track .cap-r       { border-radius: 0 999px 999px 0; }
-  .dp-time-track .cap-l.cap-r { border-radius: 999px; }
+  .dp-card .card-new-meta { font-size: 12.5px; line-height: 1.35; margin-top: 3px; }
+  .dp-card .card-new-hero-main { font-size: 15px; line-height: 1.2; }
+  .dp-card .card-new-hero-sub  { font-size: 11.5px; line-height: 1.35; }
+  .dp-card .card-right { min-width: 0; flex-shrink: 0; }
 
-  .dp-time-track .tl-thumb {
-    position: absolute;
-    top: 50%;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: #FFF2EB;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.45), 0 0 0 1px rgba(20,46,82,0.6) inset;
-    transform: translate(-50%, -50%);
-    z-index: 6;
-    pointer-events: none;
-    transition: transform 0.1s ease-out, box-shadow 0.1s ease-out;
+  /* Slot for the reparented #fts pill */
+  #fts-slot {
+    margin-top: 14px;
+    min-height: 38px;
   }
-  #detail-panel.dp-scrub-active .dp-time-track .tl-thumb {
-    transform: translate(-50%, -50%) scale(1.12);
-    box-shadow: 0 4px 14px rgba(0,0,0,0.55), 0 0 0 6px rgba(255,242,235,0.18), 0 0 0 1px rgba(20,46,82,0.6) inset;
+
+  /* When #fts is moved into the dp-card, neutralise the floating-fixed styling
+     so it flows inside the slot. !important is needed because body.fts #fts {…}
+     sets position/left/bottom/width with normal specificity. */
+  #fts.fts-in-panel {
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    width: 100% !important;
+    height: 38px !important;
+    z-index: auto !important;
+    transform: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
   }
 
   /* Time labels under the slider */
   .dp-tl-labels {
     position: relative;
     height: 14px;
-    margin-top: 6px;
+    margin-top: 8px;
     font-size: 10px;
     color: var(--muted);
     opacity: 0.7;
@@ -4945,12 +4911,11 @@
     /* During the morph, only the dp-card is in flow — that way the user sees the
        card content "in place" inside the panel as it grows. Photos / social / info
        / footer collapse out of the layout, then re-flow in once .dp-morphing lifts. */
-    #detail-panel.dp-morphing .detail-new-photos,
+    #detail-panel.dp-morphing .detail-new-photos-wrap,
     #detail-panel.dp-morphing .social-card,
     #detail-panel.dp-morphing .dp-action-row,
     #detail-panel.dp-morphing .info-list,
-    #detail-panel.dp-morphing .secondary-row,
-    #detail-panel.dp-morphing .dp-top-row {
+    #detail-panel.dp-morphing .secondary-row {
       display: none;
     }
     #dp-handle { display: flex; }

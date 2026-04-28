@@ -263,73 +263,22 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
   // Directions CTA label — always include text for a wider, tappable button
   const dirLabel = walkTime ? `${dirIcon} ${t('directions')} · ${walkTime}` : `${dirIcon} ${t('directions')}`;
 
-  // Build timeline with weather-ramp colors (matches venue card timelines)
-  const { open, close } = hours;
-  const tlSpan = close - open;
-  const tlPct = h => ((Math.max(open, Math.min(close, h)) - open) / tlSpan * 100).toFixed(2);
-  let tlSegs = '';
-  if (tlSpan > 0) {
-    // Build weather-colored runs per hour within each sun window
-    const tlRuns = [];
-    const tlGaps = [];
-    for (let wi = 0; wi < windows.length; wi++) {
-      const w = windows[wi];
-      const wS = Math.max(w.start, open);
-      const wE = Math.min(w.end, close);
-      if (wE <= wS) continue;
-      for (let h = Math.floor(wS); h < Math.ceil(wE); h++) {
-        const segS = Math.max(wS, h), segE = Math.min(wE, h + 1);
-        if (segE <= segS + 0.001) continue;
-        const wx = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, h) : null;
-        const color = wxTimelineColor(wx?.cloud ?? 0, wx?.precip ?? 0);
-        if (tlRuns.length && tlRuns[tlRuns.length - 1].color === color && tlRuns[tlRuns.length - 1].winIdx === wi) {
-          tlRuns[tlRuns.length - 1].end = segE;
-        } else {
-          tlRuns.push({ start: segS, end: segE, color, winIdx: wi });
-        }
-      }
-    }
-    for (let i = 0; i < windows.length - 1; i++) {
-      if (windows[i + 1].start > windows[i].end + 0.01)
-        tlGaps.push({ start: windows[i].end, end: windows[i + 1].start });
-    }
-    for (let i = 0; i < tlRuns.length; i++) {
-      const r = tlRuns[i];
-      const left = tlPct(r.start), width = (parseFloat(tlPct(r.end)) - parseFloat(left)).toFixed(2);
-      if (parseFloat(width) < 0.1) continue;
-      const isFirst = i === 0, isLast = i === tlRuns.length - 1;
-      const touchesGapR = tlGaps.some(g => Math.abs(g.start - r.end) < 0.05);
-      const touchesGapL = tlGaps.some(g => Math.abs(g.end - r.start) < 0.05);
-      let cls = 'wx';
-      if (isFirst || touchesGapL) cls += ' cap-l';
-      if (isLast  || touchesGapR) cls += ' cap-r';
-      tlSegs += `<div class="${cls}" style="left:${left}%;width:${width}%;background:${r.color}"></div>`;
-    }
+  // Time labels under the FTS slider — match the slider's MIN/MAX range
+  // (varies day-to-day with sunrise/sunset clamping).
+  const sliderMin = (typeof MIN_H_ARC !== 'undefined') ? MIN_H_ARC : 4;
+  const sliderMax = (typeof MAX_H_ARC !== 'undefined') ? MAX_H_ARC : 23;
+  const sliderSpan = Math.max(0.01, sliderMax - sliderMin);
+  const labelHours = [];
+  // Pick whole-hour ticks every 4h that land inside the range.
+  for (let h = Math.ceil(sliderMin); h <= Math.floor(sliderMax); h += 4) {
+    if (h - sliderMin > 0.5 && sliderMax - h > 0.5) labelHours.push(h);
   }
-
-  // Intermediate hour ticks every ~4h between open and close, positioned absolutely
-  let tlLabels = `<span class="dp-tl-label dp-tl-label-edge" style="left:0">${formatHour(open)}</span>`;
-  if (tlSpan > 0) {
-    const startTick = Math.ceil((open + 0.7) / 4) * 4;
-    for (let h = startTick; h < close - 0.7; h += 4) {
-      const left = ((h - open) / tlSpan * 100).toFixed(2);
-      tlLabels += `<span class="dp-tl-label" style="left:${left}%">${formatHour(h)}</span>`;
-    }
+  let tlLabels = `<span class="dp-tl-label dp-tl-label-edge" style="left:0">${formatHour(sliderMin)}</span>`;
+  for (const h of labelHours) {
+    const left = ((h - sliderMin) / sliderSpan * 100).toFixed(2);
+    tlLabels += `<span class="dp-tl-label" style="left:${left}%">${formatHour(h)}</span>`;
   }
-  tlLabels += `<span class="dp-tl-label dp-tl-label-edge dp-tl-label-end" style="left:100%">${formatHour(close)}</span>`;
-
-  // Date chip — opens the same date dropdown as the list-mode calendar button.
-  // Sits to the left of the timeline, mirroring the FTS pill layout (calendar + slider).
-  const dateLabel = typeof formatDatePill === 'function' ? formatDatePill(dateStr) : dateStr;
-  const dateChipHtml = `<button class="dp-date-chip" onclick="toggleQcPanel('date')" aria-label="Velg dato">
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <rect x="1.5" y="3" width="13" height="11.5" rx="2" stroke="currentColor" stroke-width="1.5"/>
-      <line x1="1.5" y1="6.5" x2="14.5" y2="6.5" stroke="currentColor" stroke-width="1.5"/>
-      <line x1="5" y1="1.5" x2="5" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-      <line x1="11" y1="1.5" x2="11" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-    </svg>
-    <span>${dateLabel}</span>
-  </button>`;
+  tlLabels += `<span class="dp-tl-label dp-tl-label-edge dp-tl-label-end" style="left:100%">${formatHour(sliderMax)}</span>`;
 
   // Card-style header content — same DOM as a venue-card, scaled up via .dp-card.
   const metaParts = [v.area, catLabel(v), distStr].filter(Boolean);
@@ -340,16 +289,15 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
   const cardRightMain = state.mainText || '—';
   const cardRightSub  = state.subText  || '';
 
+  // Heart + bell sit as a small overlay on the photo gallery's top-right
+  // (replaces the orphaned chevron+actions row that used to live between photos and card).
+  const photoActionsHtml = `<div class="dp-photo-actions">${heartBtn}${bellBtn}</div>`;
+
   return `
     <div id="dp-scroll">
-      ${photosHtml}
-
-      <div class="dp-top-row">
-        <button class="detail-new-back" onclick="closeDetailPanel()" aria-label="Tilbake">‹</button>
-        <div class="dp-top-actions">
-          ${heartBtn}
-          ${bellBtn}
-        </div>
+      <div class="detail-new-photos-wrap">
+        ${photosHtml}
+        ${photoActionsHtml}
       </div>
 
       <div class="venue-card dp-card ${stateClass}">
@@ -363,13 +311,7 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
             <div class="card-new-hero-sub">${cardRightSub}</div>
           </div>
         </div>
-        <div class="dp-time-row">
-          ${dateChipHtml}
-          <div class="dp-time-track" id="dp-timeline-track">
-            ${tlSegs}
-            <div class="tl-thumb" style="left:${tlPct(fromHour)}%"></div>
-          </div>
-        </div>
+        <div id="fts-slot"></div>
         <div class="dp-tl-labels">${tlLabels}</div>
       </div>
 
