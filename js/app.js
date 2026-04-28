@@ -4790,10 +4790,25 @@ function _runIntroSequence() {
         animateToTime(introEndTime, 1800);
         map.easeTo({ zoom: 16, pitch: 60, duration: 1800, easing: t => t * t * (3 - 2 * t) });
 
-        // Step 3: Zoom out + detilt (starts when step 2 ends)
+        // Step 3: Zoom out + detilt (starts when step 2 ends).
+        // On mobile we also pan with bottom padding so the geo dot lands above
+        // the 55svh expanded panel. Folded into a SINGLE easeTo — splitting it
+        // (a separate easeTo inside _introRevealUI) interrupts the detilt and
+        // strands the camera at pitch ≈60.
         setTimeout(() => {
           if (_introSeqId !== seqId) return;
-          map.easeTo({ zoom: 15.2, pitch: 15, bearing: 0, duration: 700 });
+          const isMobileEnd = window.innerWidth < 640;
+          const easeOpts = {
+            center: _introCenter,
+            zoom: 15.2,
+            pitch: 15,
+            bearing: 0,
+            duration: 700,
+          };
+          if (isMobileEnd) {
+            easeOpts.padding = { bottom: Math.round(window.innerHeight * 0.55), top: 0, left: 0, right: 0 };
+          }
+          map.easeTo(easeOpts);
           _introRevealUI(search, brand, qcWrap, panel,
             _autoAdvancedAfterSunset ? { skipFts: true } : undefined);
 
@@ -4893,15 +4908,8 @@ function _introRevealUI(search, brand, qcWrap, panel, opts) {
     panel.getBoundingClientRect();                // force reflow — browser commits start state
     panel.style.transition = 'transform 0.65s cubic-bezier(0.2, 0.8, 0.3, 1)';
     panel.style.transform  = '';
-
-    // Pan map so geolocation dot is centered in the visible area above the panel.
-    // Panel is 55svh, so pad the bottom by that amount to shift the center upward.
-    const panelH = Math.round(window.innerHeight * 0.55);
-    map.easeTo({
-      center: _introCenter,
-      padding: { bottom: panelH, top: 0, left: 0, right: 0 },
-      duration: 650,  // match panel slide-up duration
-    });
+    // Map pan + bottom padding for the panel are folded into the step-3 easeTo
+    // in _runIntroSequence so they don't interrupt the detilt.
   }
 
   if (USE_FLOATING_TIME_SLIDER && !(opts && opts.skipFts)) {
