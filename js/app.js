@@ -4177,6 +4177,36 @@ function _syncSearchClearBtn() {
   if (_searchBar) _searchBar.classList.toggle('has-query', _searchInput.value.trim().length > 0);
 }
 
+let _preSearchPanelState = null;
+let _searchSessionActive = false;
+let _searchBlurTimer = null;
+
+function _enterSearchSession() {
+  if (_searchSessionActive) return;
+  _searchSessionActive = true;
+  if (isMobile() && typeof window._applyMobilePanelState === 'function') {
+    const cur = window._currentMobilePanelState?.() ?? null;
+    _preSearchPanelState = cur;
+    if (cur !== 'peek') window._applyMobilePanelState('peek');
+  }
+  if (typeof _notifSuspendForSearch === 'function') _notifSuspendForSearch();
+}
+
+function _exitSearchSession() {
+  if (!_searchSessionActive) return;
+  _searchSessionActive = false;
+  if (_preSearchPanelState !== null) {
+    const saved = _preSearchPanelState;
+    _preSearchPanelState = null;
+    if (isMobile() && typeof window._applyMobilePanelState === 'function'
+        && window._currentMobilePanelState?.() === 'peek'
+        && saved !== 'peek') {
+      window._applyMobilePanelState(saved);
+    }
+  }
+  if (typeof _notifResumeAfterSearch === 'function') _notifResumeAfterSearch();
+}
+
 let _searchListTimer = null;
 let _searchDropdownTimer = null;
 let _aSearchTimer = null;
@@ -4197,8 +4227,18 @@ _searchInput.addEventListener('input', () => {
     _aSearchTimer = setTimeout(() => _aTrack('search', { query: q }), 2000);
   }
 });
-_searchInput.addEventListener('blur',  () => setTimeout(() => _searchDropdown.classList.remove('open'), 150));
-_searchInput.addEventListener('focus', () => { if (_searchInput.value.trim()) _renderSearchDropdown(); });
+_searchInput.addEventListener('focus', () => {
+  clearTimeout(_searchBlurTimer);
+  _enterSearchSession();
+  if (_searchInput.value.trim()) _renderSearchDropdown();
+});
+_searchInput.addEventListener('blur', () => {
+  clearTimeout(_searchBlurTimer);
+  _searchBlurTimer = setTimeout(() => {
+    _searchDropdown.classList.remove('open');
+    _exitSearchSession();
+  }, 150);
+});
 
 // Clear button
 document.getElementById('search-clear-btn')?.addEventListener('click', () => {
