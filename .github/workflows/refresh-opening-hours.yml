@@ -25,7 +25,9 @@ jobs:
           node-version: '22'
 
       - name: Write .env
-        run: echo "GOOGLE_PLACES_KEY=${{ secrets.GOOGLE_PLACES_KEY }}" > .env
+        # Use the unrestricted server-side key — the website key would
+        # 403 every Places API call from CI (no HTTP referrer).
+        run: echo "GOOGLE_PLACES_KEY=${{ secrets.GOOGLE_PLACES_KEY_SERVER }}" > .env
 
       - name: Refresh opening hours
         run: node scripts/refresh-opening-hours.mjs
