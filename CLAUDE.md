@@ -5,11 +5,36 @@ Open `index.html` directly in a browser or serve statically.
 
 ## Workflow
 
-After any response that modifies files, always **commit AND PUSH** before finishing — without waiting to be asked.
+Two tiers based on risk. When unsure, default to the branch flow.
 
-**CRITICAL:** Commits alone do NOT deploy. You must `git push origin master` to trigger the GitHub Actions workflow, which deploys to GitHub Pages automatically within 1–2 minutes. If you commit without pushing, changes stay local and won't go live.
+### Tier 1 — Direct push to master
 
-Use concise commit messages. Skip this only if the user explicitly says not to commit yet.
+Use for low-risk, easily reversible changes:
+- Copy/text edits, comments, config tweaks
+- Single-line fixes that are obviously correct
+- Color/style tweaks already verified locally
+
+After modifying files, commit AND `git push origin master` without waiting to be asked. Cloudflare Pages auto-deploys to findshades.app within 2–5 minutes.
+
+### Tier 2 — Branch + Cloudflare Preview, then fast-forward master
+
+Use for anything substantial:
+- Layout changes (especially mobile/iOS — see "Layout debugging protocol")
+- New features, multi-file refactors
+- Data-flow or state changes
+- Anything not fully verifiable locally
+
+Procedure:
+1. Create a branch, commit, push the branch
+2. Cloudflare auto-deploys a preview URL — share it with the user
+3. Wait for user confirmation before merging
+4. Fast-forward master to the branch and push, then delete the branch
+
+No draft PR by default — pushing the branch alone gets a preview. Open a PR only if the user wants a comment thread.
+
+**CRITICAL:** Commits alone do not deploy. Pushing to `master` deploys to production; pushing to any other branch deploys to a preview URL. If you commit without pushing, nothing goes live.
+
+Use concise commit messages. Skip the commit/push step only if the user explicitly says not to commit yet.
 
 ## File map
 
