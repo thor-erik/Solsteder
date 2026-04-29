@@ -2471,19 +2471,24 @@ function _setFtsFade(direction) {
   }
 }
 
-/** Sync --fts-bottom so the floating FTS pill aligns with #fts-slot inside the
- *  detail panel. Called after the panel reaches its open layout. The slot is just
- *  a 38px placeholder — the FTS pill itself stays position:fixed in body so it's
- *  never hidden by ancestor display:none rules during the morph. */
+/** Sync --fts-bottom so the FTS pill aligns with the time-slider slot inside
+ *  the detail panel. Two cases handled:
+ *    • Pre-morph (during the open animation): the panel still has its
+ *      <#dp-card-slot> placeholder — return false so callers fall back.
+ *    • Post-morph: the source venue-card has been moved into the panel and
+ *      its old `.timeline-track` (now styled to slider proportions via
+ *      .source-target) is what the FTS pill should overlay. */
 function _syncFtsToSlot() {
-  const fts  = document.getElementById('fts');
-  const slot = document.getElementById('fts-slot');
-  if (!fts || !slot) return false;
+  const fts = document.getElementById('fts');
+  if (!fts) return false;
+  // Prefer the docked source card's timeline-track; fall back to legacy slot.
+  const slot = document.querySelector('#detail-panel .source-docked .timeline-track')
+            || document.getElementById('fts-slot');
+  if (!slot) return false;
   const slotRect = slot.getBoundingClientRect();
   if (slotRect.height <= 0) return false;
   const bottomPx = Math.max(0, window.innerHeight - slotRect.bottom);
   document.body.style.setProperty('--fts-bottom', `${bottomPx}px`);
-  // Match width to slot too so the pill visually fits inside the dp-card.
   fts.style.left  = `${slotRect.left}px`;
   fts.style.right = 'auto';
   fts.style.width = `${slotRect.width}px`;
@@ -2687,35 +2692,34 @@ function openDetailPanel(v) {
     });
   });
 
-  // Hand-off: drop .dp-morphing (actual dp-card + photos/social/info fade
-  // in at the same position/size as the now-arrived source card), pin FTS
-  // to slot, fade FTS in. Add .source-fading to the lifted source so it
-  // fades out over the same 0.22s as the dp-card fades in — the crossfade
-  // hides the visual discrepancy (lifted card has its morphed timeline +
-  // calendar-btn overlay, dp-card has fts-slot + dp-tl-labels + real FTS
-  // pill). Without the crossfade the swap reads as a one-frame jump.
+  // Hand-off: instead of crossfading the lifted source out + a separate
+  // dp-card in (which the user saw as TWO visually distinguishable cards),
+  // MOVE the lifted source from <body> into the panel's #dp-card-slot
+  // placeholder. The source IS the dp-card from now on — single element,
+  // no duplicate. Strip its position:fixed lifting and the injected
+  // calendar-btn overlay (the real FTS pill takes over).
   setTimeout(() => {
     dp.classList.remove('dp-morphing');
 
+    const slot = document.getElementById('dp-card-slot');
+    if (slot && sourceCard.parentNode === document.body) {
+      document.body.removeChild(sourceCard);
+      sourceCard.classList.remove('source-morphing', 'source-target');
+      sourceCard.style.cssText = '';
+      if (calBtn && calBtn.parentNode === sourceCard) sourceCard.removeChild(calBtn);
+      // .dp-card picks up dp-card padding/font sizing; .source-docked
+      // overrides position:fixed → relative so the card flows in the panel.
+      sourceCard.classList.add('dp-card', 'source-docked');
+      slot.parentNode.replaceChild(sourceCard, slot);
+    }
+
+    // Pin FTS to the slot inside the now-docked source card and fade in.
     const fts = document.getElementById('fts');
     if (fts) fts.style.transition = 'none';
     _syncFtsToSlot();
     if (fts) void fts.offsetHeight;
     _setFtsFade('in');
-
-    sourceCard.classList.add('source-fading');
   }, 360);
-
-  // Detach the source card after its fade-out completes (0.10s starting at
-  // 360ms = ~480ms with safety margin).
-  setTimeout(() => {
-    if (sourceCard.parentNode === document.body) {
-      document.body.removeChild(sourceCard);
-      sourceCard.classList.remove('source-morphing', 'source-target', 'source-fading');
-      sourceCard.style.cssText = '';
-      if (calBtn.parentNode === sourceCard) sourceCard.removeChild(calBtn);
-    }
-  }, 500);
 
   // Late safety re-pin in case slot rect settled after first pin.
   setTimeout(() => {

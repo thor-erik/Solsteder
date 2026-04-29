@@ -4771,7 +4771,32 @@
     margin-top: 2px;
   }
 
-  /* Placeholder slot for the floating FTS pill — JS pins #fts to overlay this rect. */
+  /* Reserves layout space in the panel for the lifted source venue-card,
+     which is moved here at the end of the open-morph and becomes the
+     dp-card. Once the source card lands here, this placeholder is removed
+     by JS (replaceChild). Height matches the docked card's expected size:
+     card-top (~50) + card-timeline (38) + padding (32) ≈ 120. */
+  .dp-card-slot {
+    height: 122px;
+    margin-bottom: 14px;
+  }
+
+  /* Source card after it's been moved into the panel as the dp-card. Strips
+     the position:fixed lifting and lets the card flow naturally in panel
+     content. Inherits .venue-card + .dp-card sizing. */
+  .venue-card.source-docked {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    width: auto !important;
+    z-index: auto !important;
+    margin-bottom: 14px !important;
+    pointer-events: auto;
+  }
+
+  /* Placeholder slot for the floating FTS pill (legacy — pre-morph code
+     paths still expect #fts-slot). Post-morph the FTS pill overlays the
+     docked source card's .timeline-track. */
   #fts-slot {
     margin-top: 16px;
     height: 38px;

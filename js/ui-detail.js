@@ -301,20 +301,17 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
         ${photoActionsHtml}
       </div>
 
-      <div class="venue-card dp-card ${stateClass}">
-        <div class="card-top">
-          <div class="card-left">
-            <div class="card-new-name">${v.name}</div>
-            <div class="card-new-meta">${metaHtml}</div>
-          </div>
-          <div class="card-right">
-            <div class="card-new-hero-main">${cardRightMain}</div>
-            <div class="card-new-hero-sub">${cardRightSub}</div>
-          </div>
-        </div>
-        <div id="fts-slot"></div>
-        <div class="dp-tl-labels">${tlLabels}</div>
-      </div>
+      <!-- The dp-card slot is filled by the lifted source venue-card after the
+           open-morph completes (in app.js → openDetailPanel). Until then this
+           placeholder reserves layout space so photos / social / info sit at
+           their final positions. The placeholder height matches what the
+           docked source card will be (card-top ~50 + card-timeline 38 +
+           padding 32 ≈ 120). On close the source returns to the list. -->
+      <div id="dp-card-slot" class="dp-card-slot"></div>
+      <!-- Time labels live below the card slot as a sibling, not nested
+           inside the card. The FTS pill overlays the docked source's
+           card-timeline; labels align with the FTS track via margin-left. -->
+      <div class="dp-tl-labels">${tlLabels}</div>
 
       ${_renderSocialSection(v)}
 
