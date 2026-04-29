@@ -698,11 +698,20 @@ async function initFacings() {
 
   // Fast path: pre-computed geometry.json served from the repo
   if (await tryLoadPrecomputed()) {
-    clearSpriteCache();
-    sunWindowCache.clear();
+    // Hand precise venue data (with nearbyBuildings) to the worker. Don't
+    // clear the cache or re-render synchronously here: at ~300 venues the
+    // sync recompute is ~22M shadow checks (~1–2 s) and freezes the UI.
+    // The cache still holds simple-facing entries from the pre-initFacings
+    // worker run — leave them visible as a placeholder until the worker
+    // callback overwrites them with precise windows and triggers a redraw.
     dispatchToWorker(datePicker.value);
-    draw();
-    renderList();
+    if (!sunWorker) {
+      // file:// origin: no worker available, must compute on the main thread.
+      clearSpriteCache();
+      sunWindowCache.clear();
+      draw();
+      renderList();
+    }
     if (typeof updateDetailPanel === 'function') updateDetailPanel();
     return;
   }
@@ -798,13 +807,16 @@ async function initFacings() {
     computed++;
   });
 
-  clearSpriteCache();
-  sunWindowCache.clear();
-
-  // Re-dispatch worker with shadow data now populated
+  // Re-dispatch worker with shadow data now populated. Same rationale as the
+  // fast path above: skip the sync re-render when a worker is available so
+  // the main thread doesn't freeze on cache-miss compute for ~300 venues.
   dispatchToWorker(datePicker.value);
-  draw();
-  renderList();
+  if (!sunWorker) {
+    clearSpriteCache();
+    sunWindowCache.clear();
+    draw();
+    renderList();
+  }
   if (typeof updateDetailPanel === 'function') updateDetailPanel();
   if (typeof _buildAreaIndex === 'function') _buildAreaIndex();
 }
