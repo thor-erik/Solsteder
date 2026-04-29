@@ -2351,12 +2351,24 @@ function selectVenue(id, flyTo) {
   openDetailPanel(v);
   draw();
   drawFtsCanvas();
-  renderList();
 
-  // Fly in the next task — panel/DOM mutations must be complete AND all
-  // synchronous event handlers (touchend → pointerup) must have finished,
-  // otherwise Mapbox calls map.stop() after our easeTo and cancels it.
-  if (flyTo) setTimeout(() => _flyToVenue(v), 0);
+  // renderList() rebuilds #venue-list from scratch — wipes any placeholder
+  // openDetailPanel inserted and creates a fresh duplicate of the source
+  // card. On mobile (during the open-morph) we defer it past the morph so
+  // the user doesn't see a fresh duplicate alongside the lifted source.
+  // Desktop: render immediately so the selected-card highlight updates.
+  if (isMobile() && document.body.dataset.dpMorph === '1') {
+    setTimeout(renderList, 720);
+  } else {
+    renderList();
+  }
+
+  // Defer the camera fly-to until after the open-morph completes (~660ms)
+  // so the pan doesn't compete visually with the morph.
+  if (flyTo) {
+    const flyDelay = isMobile() ? 660 : 0;
+    setTimeout(() => _flyToVenue(v), flyDelay);
+  }
 
   setTimeout(() => {
     const card = document.querySelector(`.venue-card[data-vid="${id}"]`);
@@ -2568,14 +2580,13 @@ function openDetailPanel(v) {
     return;
   }
 
-  // ── Mobile morph (lifted-clone). The clicked venue-card stays fully visible
-  //   throughout. We clone it, fix the clone to its viewport rect, hide the
-  //   original via .morph-source (visibility:hidden — preserves layout space).
-  //   List slides off-screen with the original card. Detail panel rises with
-  //   its own dp-card hidden. The clone animates top/left/width/padding/font/
-  //   timeline-shape to its target rect inside the panel. After the morph the
-  //   clone is removed and the actual dp-card / photos / social / info fade
-  //   in (an invisible swap because the styling matches by then). ───────────
+  // ── Mobile morph (lift-source-card, no clone). The actual clicked venue
+  //   card stays fully visible and on top throughout: it's lifted out of
+  //   the list (via position:fixed at sourceRect, re-appended to <body> so
+  //   it escapes #panel's stacking context), the slot it left behind in the
+  //   list is occupied by an invisible placeholder so cards above don't
+  //   reflow, and the lifted card animates to the dp-card slot.
+  // ─────────────────────────────────────────────────────────────────────────
   _morphSourceVid    = v.id;
   _morphSourceRect   = { top: sourceRect.top, left: sourceRect.left, width: sourceRect.width, height: sourceRect.height };
   _morphSourceTlRect = sourceTlRect ? { top: sourceTlRect.top, left: sourceTlRect.left, width: sourceTlRect.width, height: sourceTlRect.height } : null;
@@ -2584,10 +2595,7 @@ function openDetailPanel(v) {
   document.getElementById('floating-search')?.classList.add('mobile-ui-hidden');
   document.getElementById('qc-wrap')?.classList.add('mobile-ui-hidden');
 
-  // Apply .dp-morphing (panel chrome stripped + dp-card hidden). Briefly snap
-  // the panel to .open with transitions off so we can measure the dp-card's
-  // natural rect — that's the lifted clone's target.
-  sourceCard.classList.add('morph-source');
+  // Snap panel briefly to .open (transitions off) to measure dp-card's rect.
   dp.classList.add('dp-morphing');
   const prevTransition = dp.style.transition;
   dp.style.transition = 'none';
@@ -2599,23 +2607,38 @@ function openDetailPanel(v) {
   void dp.offsetHeight;
   dp.style.transition = prevTransition || '';
 
-  // Build the lifted clone.
-  const lifted = sourceCard.cloneNode(true);
-  // CRITICAL: the clone inherits whatever classes were on sourceCard at the
-  // moment of cloning — including `.morph-source` (which we just added a few
-  // lines above and which CSS makes `visibility: hidden`). Strip it so the
-  // clone is actually visible.
-  lifted.classList.remove('selected', 'morph-source');
-  lifted.classList.add('lifted-card');
-  lifted.removeAttribute('onclick');
-  lifted.removeAttribute('onmouseenter');
-  lifted.removeAttribute('onmouseleave');
-  lifted.style.top   = sourceRect.top   + 'px';
-  lifted.style.left  = sourceRect.left  + 'px';
-  lifted.style.width = sourceRect.width + 'px';
-  // Calendar-button overlay that fades in with the time-bar morph.
+  // Drop a placeholder into the list at the source card's slot so cards
+  // above the source don't shift when we lift it out. Stash a back-pointer
+  // to the source card and its original next-sibling so closeDetailPanel can
+  // restore them.
+  const sourceCs = getComputedStyle(sourceCard);
+  const placeholder = document.createElement('div');
+  placeholder.className = 'venue-card-placeholder';
+  placeholder.style.cssText =
+    'height:' + sourceRect.height + 'px;' +
+    'margin-bottom:' + sourceCs.marginBottom + ';' +
+    'visibility:hidden;';
+  placeholder.dataset.morphPlaceholder = '1';
+  const sourceParent = sourceCard.parentNode;
+  const sourceNext   = sourceCard.nextSibling;
+  sourceParent.insertBefore(placeholder, sourceCard);
+  placeholder._morphSource     = sourceCard;
+  placeholder._morphSourceNext = sourceNext;
+
+  // Lift the actual source card. Re-append to <body> so it's outside #panel's
+  // stacking context — z-index can then put it above #detail-panel (z=920).
+  sourceCard.classList.add('source-morphing');
+  sourceCard.removeAttribute('onclick');
+  sourceCard.removeAttribute('onmouseenter');
+  sourceCard.removeAttribute('onmouseleave');
+  sourceCard.style.top   = sourceRect.top   + 'px';
+  sourceCard.style.left  = sourceRect.left  + 'px';
+  sourceCard.style.width = sourceRect.width + 'px';
+  document.body.appendChild(sourceCard);
+
+  // Calendar-button overlay (fades in alongside the time-bar morph).
   const calBtn = document.createElement('div');
-  calBtn.className = 'lifted-card-calbtn';
+  calBtn.className = 'source-card-calbtn';
   calBtn.innerHTML =
     '<svg width="16" height="16" viewBox="0 0 16 16" fill="none">' +
     '<rect x="1.5" y="3" width="13" height="11.5" rx="2" stroke="currentColor" stroke-width="1.5"/>' +
@@ -2623,32 +2646,39 @@ function openDetailPanel(v) {
     '<line x1="5" y1="1.5" x2="5" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>' +
     '<line x1="11" y1="1.5" x2="11" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>' +
     '</svg>';
-  lifted.appendChild(calBtn);
-  document.body.appendChild(lifted);
-  void lifted.offsetHeight;
+  sourceCard.appendChild(calBtn);
+  void sourceCard.offsetHeight;
 
   _setFtsFade('out');
 
-  // Frame 1 (rAF): start all concurrent transitions in the same paint cycle.
+  // Doubled rAF: the first lets the browser paint with the source card at
+  // its sourceRect (start state). The second triggers the transitions by
+  // changing top/left/width and adding .source-target. Without the double
+  // rAF the two style commits tend to collapse and transitions don't fire.
   requestAnimationFrame(() => {
-    const panel = document.getElementById('panel');
-    if (panel) {
-      panel.classList.remove('mobile-expanded', 'mobile-fullscreen');
-      panel.classList.add('mobile-hidden');           // list slides off
-    }
-    dp.classList.add('open');                         // panel rises
+    void sourceCard.offsetHeight;
+    requestAnimationFrame(() => {
+      const panel = document.getElementById('panel');
+      if (panel) {
+        panel.classList.remove('mobile-expanded', 'mobile-fullscreen');
+        panel.classList.add('mobile-hidden');
+      }
+      dp.classList.add('open');
 
-    if (targetRect) {
-      lifted.style.top   = targetRect.top   + 'px';
-      lifted.style.left  = targetRect.left  + 'px';
-      lifted.style.width = targetRect.width + 'px';
-    }
-    lifted.classList.add('lifted-target');             // sizes/timeline morph
+      if (targetRect) {
+        sourceCard.style.top   = targetRect.top   + 'px';
+        sourceCard.style.left  = targetRect.left  + 'px';
+        sourceCard.style.width = targetRect.width + 'px';
+      }
+      sourceCard.classList.add('source-target');
+    });
   });
 
-  // Hand-off: drop .dp-morphing (actual dp-card + photos/social/info fade in
-  // at the same position/size as the clone), pin FTS to slot, fade FTS in,
-  // remove the clone.
+  // Hand-off: drop .dp-morphing (actual dp-card + photos/social/info fade
+  // in at the same position/size as the now-arrived source card), pin FTS
+  // to slot, fade FTS in. Detach the source card from <body> — it stays in
+  // memory, attached via placeholder._morphSource — and is restored to the
+  // list when closeDetailPanel runs.
   setTimeout(() => {
     dp.classList.remove('dp-morphing');
 
@@ -2658,7 +2688,12 @@ function openDetailPanel(v) {
     if (fts) void fts.offsetHeight;
     _setFtsFade('in');
 
-    if (lifted.parentNode) lifted.parentNode.removeChild(lifted);
+    if (sourceCard.parentNode === document.body) {
+      document.body.removeChild(sourceCard);
+      sourceCard.classList.remove('source-morphing', 'source-target');
+      sourceCard.style.cssText = '';
+      if (calBtn.parentNode === sourceCard) sourceCard.removeChild(calBtn);
+    }
   }, 360);
 
   // Late safety re-pin in case slot rect settled after first pin.

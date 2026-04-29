@@ -4915,61 +4915,60 @@
        the actual dp-card fades in (an invisible swap because both look
        identical by then). */
 
-    /* Original source card: hidden in flow, slides off with the list. */
-    .venue-card.morph-source { visibility: hidden; }
-
-    /* Clone — fixed-positioned overlay above everything. */
-    .lifted-card {
-      position: fixed;
-      z-index: 9990;
+    /* The clicked source venue-card while it's lifted out of the list. JS
+       sets position:fixed + inline top/left/width = sourceRect (and re-appends
+       to <body> so high z-index escapes #panel's stacking context). */
+    .venue-card.source-morphing {
+      position: fixed !important;
+      z-index: 9990 !important;
       margin: 0 !important;
+      pointer-events: none;
       will-change: top, left, width, padding;
       transition:
-        top      0.34s cubic-bezier(0.32, 0.72, 0, 1),
-        left     0.34s cubic-bezier(0.32, 0.72, 0, 1),
-        width    0.34s cubic-bezier(0.32, 0.72, 0, 1),
-        padding  0.34s cubic-bezier(0.32, 0.72, 0, 1),
+        top           0.34s cubic-bezier(0.32, 0.72, 0, 1),
+        left          0.34s cubic-bezier(0.32, 0.72, 0, 1),
+        width         0.34s cubic-bezier(0.32, 0.72, 0, 1),
+        padding       0.34s cubic-bezier(0.32, 0.72, 0, 1),
         border-radius 0.34s cubic-bezier(0.32, 0.72, 0, 1);
-      pointer-events: none;
     }
-    .lifted-card .card-new-name,
-    .lifted-card .card-new-meta,
-    .lifted-card .card-new-hero-main,
-    .lifted-card .card-new-hero-sub {
+    .venue-card.source-morphing .card-new-name,
+    .venue-card.source-morphing .card-new-meta,
+    .venue-card.source-morphing .card-new-hero-main,
+    .venue-card.source-morphing .card-new-hero-sub {
       transition: font-size 0.34s cubic-bezier(0.32, 0.72, 0, 1);
     }
-    .lifted-card .card-timeline,
-    .lifted-card .timeline-track {
+    .venue-card.source-morphing .card-timeline,
+    .venue-card.source-morphing .timeline-track {
       transition:
         height        0.34s cubic-bezier(0.32, 0.72, 0, 1),
         margin-left   0.34s cubic-bezier(0.32, 0.72, 0, 1),
         margin-top    0.34s cubic-bezier(0.32, 0.72, 0, 1),
         border-radius 0.34s cubic-bezier(0.32, 0.72, 0, 1);
     }
-    /* Target state (dp-card sizing + slider timeline). JS sets inline
-       top/left/width in the same frame this class is added. */
-    .lifted-card.lifted-target {
-      padding: 18px 16px 14px;
-      border-radius: 14px;
+
+    /* Target state: dp-card sizing + slider-shaped timeline. */
+    .venue-card.source-morphing.source-target {
+      padding: 18px 16px 14px !important;
+      border-radius: 14px !important;
     }
-    .lifted-card.lifted-target .card-new-name      { font-size: 18px; }
-    .lifted-card.lifted-target .card-new-meta      { font-size: 12px; }
-    .lifted-card.lifted-target .card-new-hero-main { font-size: 17px; }
-    .lifted-card.lifted-target .card-new-hero-sub  { font-size: 12px; }
-    .lifted-card.lifted-target .card-timeline {
+    .venue-card.source-morphing.source-target .card-new-name      { font-size: 18px; }
+    .venue-card.source-morphing.source-target .card-new-meta      { font-size: 12px; }
+    .venue-card.source-morphing.source-target .card-new-hero-main { font-size: 17px; }
+    .venue-card.source-morphing.source-target .card-new-hero-sub  { font-size: 12px; }
+    .venue-card.source-morphing.source-target .card-timeline {
       height: 38px;
       margin-top: 16px;
-      margin-left: 46px;          /* calendar btn (38) + gap (8) */
+      margin-left: 46px;
     }
-    .lifted-card.lifted-target .timeline-track {
+    .venue-card.source-morphing.source-target .timeline-track {
       height: 38px;
       border-radius: 19px;
     }
-    .lifted-card.lifted-target .tl-now { display: none; }
+    .venue-card.source-morphing.source-target .tl-now { display: none; }
 
-    /* Calendar button injected into the clone, fades in alongside the
-       time-bar morph. */
-    .lifted-card-calbtn {
+    /* Calendar button injected into the lifted source card; fades in alongside
+       the time-bar morph. */
+    .source-card-calbtn {
       position: absolute;
       left: 14px;
       bottom: 14px;
@@ -4983,8 +4982,12 @@
       opacity: 0;
       transition: opacity 0.34s cubic-bezier(0.32, 0.72, 0, 1) 0.06s;
     }
-    .lifted-card.lifted-target .lifted-card-calbtn { opacity: 1; }
-    .lifted-card-calbtn svg { width: 16px; height: 16px; }
+    .venue-card.source-morphing.source-target .source-card-calbtn { opacity: 1; }
+    .source-card-calbtn svg { width: 16px; height: 16px; }
+
+    /* Placeholder reserves the source card's slot in the list so cards above
+       don't reflow when we lift the source out. */
+    .venue-card-placeholder { pointer-events: none; }
 
     /* Card-anchored morph (legacy): the panel container slides up normally
        (translateY(100%) → 0). What stays "in place" is the .dp-card inside —
