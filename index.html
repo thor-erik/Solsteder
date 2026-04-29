@@ -64,6 +64,7 @@
 <script defer src="js/render-pins.js?v=20260417a"></script>
 <script defer src="js/ui-shared.js?v=20260411b"></script>
 <script defer src="js/ui-list.js?v=20260411b"></script>
+<script defer src="js/admin-review.js?v=20260429a"></script>
 <script defer src="js/ui-shelter.js?v=20260416a"></script>
 <script defer src="js/render-wind.js?v=20260416b"></script>
 <script defer src="js/ui-detail.js?v=20260411b"></script>
@@ -2967,6 +2968,82 @@
   }
 
   .profile-admin-row:hover { background: rgba(255,255,255,0.05); }
+
+  /* ── Admin review mode ────────────────────────────────────────────── */
+  #review-mode-indicator {
+    position: fixed;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9000;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px 6px 14px;
+    background: #7f1d1d;
+    color: #fff;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+  }
+  #review-mode-indicator button {
+    background: rgba(255,255,255,0.18);
+    color: #fff;
+    border: none;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  #review-mode-indicator button:hover { background: rgba(255,255,255,0.28); }
+  #review-indicator-count { opacity: 0.85; font-weight: 500; }
+
+  .review-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 4px 10px 0;
+  }
+  .review-chip {
+    display: inline-block;
+    background: #fee2e2;
+    color: #7f1d1d;
+    border: 1px solid #fecaca;
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+  .venue-card.review-flagged {
+    border-left: 3px solid #dc2626;
+  }
+  .review-actions {
+    display: flex;
+    gap: 6px;
+    padding: 6px 10px 8px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+  }
+  .review-action-btn {
+    flex: 1;
+    background: rgba(255,255,255,0.08);
+    color: var(--text);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .review-action-btn:hover { background: rgba(255,255,255,0.16); }
+  .review-action-danger {
+    background: rgba(220,38,38,0.18);
+    border-color: rgba(220,38,38,0.4);
+    color: #fca5a5;
+  }
+  .review-action-danger:hover { background: rgba(220,38,38,0.32); }
 
   .profile-role-badge {
     display: inline-flex;
@@ -7350,6 +7427,13 @@
   <p>Hundrevis av uteserveringer i Oslo. Shades finner den med mest sol — time for time, hele dagen. Se sanntids solkart, sjekk vær og vind, og finn vennene dine. Aktiver JavaScript for å bruke appen.</p>
 </noscript>
 <div id="app">
+  <!-- ADMIN: review-mode indicator (shown only when reviewModeActive) -->
+  <div id="review-mode-indicator" style="display:none">
+    <span>Review mode</span>
+    <span id="review-indicator-count"></span>
+    <button onclick="toggleReviewMode()">Exit</button>
+  </div>
+
   <!-- INTRO SPLASH — covers everything until geo + map are ready -->
   <div id="splash">
     <img src="design/logo-pack-svg/logo-color-2000w-big-text.svg" alt="Shades" id="splash-logo" width="160" height="160">

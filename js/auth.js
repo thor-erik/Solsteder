@@ -312,6 +312,7 @@ const _SETTINGS_ICON = {
   shield:  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
   info:    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
   signout: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
+  review:  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
 };
 
 function _activityCount() {
@@ -384,6 +385,11 @@ function _renderSettingsView() {
         <button class="settings-row" onclick="openRoleManagerPanel();closeProfilePanel()">
           <span class="settings-row__icon">${_SETTINGS_ICON.users}</span>
           <span class="settings-row__label">${t('manage_users')}</span>
+          <span class="settings-row__chevron">${_SETTINGS_ICON.chevron}</span>
+        </button>
+        <button class="settings-row" onclick="toggleReviewMode();closeProfilePanel()">
+          <span class="settings-row__icon">${_SETTINGS_ICON.review}</span>
+          <span class="settings-row__label">Review terraces</span>
           <span class="settings-row__chevron">${_SETTINGS_ICON.chevron}</span>
         </button>
       </div>

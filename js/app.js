@@ -660,6 +660,11 @@ try {
     // Sprites may have been built against the sync-fallback windows; rebuild them
     // now that the worker has confirmed (or corrected) the sun window data.
     clearSpriteCache();
+    // Refresh admin-review flags now that we have accurate sun windows.
+    if (typeof reviewModeActive !== 'undefined' && reviewModeActive &&
+        typeof refreshReviewFlags === 'function') {
+      refreshReviewFlags(dateStr);
+    }
     // Re-render with worker-computed data
     draw();
     renderList();

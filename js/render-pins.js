@@ -911,7 +911,7 @@ function _drawDotHover(pt, tier) {
   ctx.restore();
 }
 
-function _drawDot(pt, tier) {
+function _drawDot(pt, tier, reviewFlagged) {
   const isHero = tier === 'hero';
   ctx.save();
   ctx.globalAlpha = isHero ? 0.9 : 0.7;
@@ -921,6 +921,29 @@ function _drawDot(pt, tier) {
   ctx.beginPath(); ctx.arc(pt.x, pt.y, DOT_R, 0, Math.PI * 2);
   ctx.fillStyle = isHero ? '#FFAF85' : 'rgba(100,120,170,0.65)';
   ctx.fill();
+  if (reviewFlagged) {
+    ctx.globalAlpha = 1;
+    ctx.beginPath(); ctx.arc(pt.x, pt.y, DOT_R + 4.5, 0, Math.PI * 2);
+    ctx.strokeStyle = '#dc2626';
+    ctx.lineWidth   = 2;
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function _drawReviewBadge(x, y) {
+  // Small red exclamation badge — same visual weight as the friend badge.
+  const r = 7.5;
+  ctx.save();
+  ctx.beginPath(); ctx.arc(x, y, r + 1, 0, Math.PI * 2);
+  ctx.fillStyle = '#7f1d1d'; ctx.fill();
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = '#dc2626'; ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.font      = 'bold 10px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('!', x, y + 0.5);
   ctx.restore();
 }
 
@@ -1159,8 +1182,10 @@ function draw() {
       }
     } else {
       // Overlap-demoted hero/waiting: simple colored dot
+      const reviewFlagged = (typeof reviewModeActive !== 'undefined' && reviewModeActive &&
+                             typeof venueReviewFlags === 'function' && venueReviewFlags(v));
       if (v.id === highlight.id) _drawDotHover(pt, tier);
-      else _drawDot(pt, tier);
+      else _drawDot(pt, tier, reviewFlagged);
     }
     // Friend badge on dot pins (offset to top-right)
     if (typeof getFriendCheckinsForVenue === 'function') {
@@ -1175,6 +1200,11 @@ function draw() {
       if (going.length) {
         _drawGoingBadge(pt.x + DOT_R + 1, pt.y + DOT_R + 1, going);
       }
+    }
+    // Review badge on dot pins (top-left, opposite the friend badge)
+    if (typeof reviewModeActive !== 'undefined' && reviewModeActive &&
+        typeof venueReviewFlags === 'function' && venueReviewFlags(v)) {
+      _drawReviewBadge(pt.x - DOT_R - 1, pt.y - DOT_R - 1);
     }
   }
 

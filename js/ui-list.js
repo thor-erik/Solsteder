@@ -159,8 +159,26 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
       </div>`
     : '';
 
+  // ── Admin review-mode extras: flag chips + action row at the card's bottom.
+  let reviewChips = '', reviewActions = '';
+  const flags = (typeof reviewModeActive !== 'undefined' && reviewModeActive &&
+                 typeof venueReviewFlags === 'function') ? venueReviewFlags(v) : null;
+  if (flags) {
+    reviewChips = `<div class="review-chips">${
+      flags.map(c => `<span class="review-chip" data-flag="${c}">${
+        typeof reviewFlagLabel === 'function' ? reviewFlagLabel(c) : c
+      }</span>`).join('')
+    }</div>`;
+    const idArg = typeof v.id === 'number' ? v.id : `'${v.id}'`;
+    reviewActions = `<div class="review-actions" onclick="event.stopPropagation()">
+      <button class="review-action-btn" onclick="enterEditMode(${idArg})">Edit</button>
+      <button class="review-action-btn" onclick="dismissReviewFlag(${idArg})">Mark OK</button>
+      <button class="review-action-btn review-action-danger" onclick="hideVenueFromMap(${idArg})">Hide</button>
+    </div>`;
+  }
+
   return `
-    <div class="venue-card ${state.className} ${v.id === selectedId ? 'selected' : ''}"
+    <div class="venue-card ${state.className} ${v.id === selectedId ? 'selected' : ''}${flags ? ' review-flagged' : ''}"
          data-vid="${v.id}" onclick="selectVenue(${typeof v.id === 'number' ? v.id : `'${v.id}'`}, true)"
          onmouseenter="setHoveredVenue(${typeof v.id === 'number' ? v.id : `'${v.id}'`})" onmouseleave="setHoveredVenue(null)">
       <div class="card-top">
@@ -173,7 +191,9 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
           <div class="card-new-hero-sub">${state.subText}</div>
         </div>
       </div>
+      ${reviewChips}
       ${miniTimeline}
+      ${reviewActions}
     </div>`;
 }
 
@@ -299,6 +319,13 @@ function renderList() {
   // Filtering on raw VENUES before mapping avoids running computeVenueScore
   // and venueHasSunInRange on venues that the search/area/viewport will drop.
   let venues = VENUES;
+
+  // Admin "Review" mode — keep only venues with review flags. Dominates
+  // every other filter while active.
+  if (typeof reviewModeActive !== 'undefined' && reviewModeActive &&
+      typeof venueReviewFlags === 'function') {
+    venues = venues.filter(v => venueReviewFlags(v));
+  }
 
   if (searchQ) {
     const alias = typeof _resolveAlias === 'function' ? _resolveAlias(searchQ) : null;
