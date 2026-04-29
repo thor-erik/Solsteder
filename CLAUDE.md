@@ -132,5 +132,8 @@ Mobile-specific caveats:
 ## Key constraints
 
 - No npm/node during runtime — all deps are CDN-loaded in `index.html`
-- `data/venues-fetched.json` and `data/venues-candidates.json` are intermediate pipeline artifacts — never relevant during feature work
+- Discovery staging triad — intermediate pipeline artifacts, not loaded by the app:
+  - `data/venues-fetched.json` — HIGH-confidence new venues (auto-mergeable)
+  - `data/venues-review.json` — LOW-confidence single-signal hits (manual review)
+  - `data/venues-osm-unresolved.json` — OSM-tagged terraces with no Google match
 - Mapbox GL JS is the map renderer; solar arc and shadows are drawn on a canvas overlay

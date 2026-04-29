@@ -1,10 +1,11 @@
 /**
- * import-venues.mjs
- * Searches Google Places for Oslo food/drink venues with outdoor seating.
- * Writes candidates to data/venues-candidates.json for review.
+ * import-venues.mjs — DEPRECATED.
  *
- * Usage: node scripts/import-venues.mjs
- * Requires: GOOGLE_PLACES_KEY in .env
+ * Superseded by scripts/fetch-venues-places.mjs, which uses a denser
+ * anchor grid, paginated text search, multiple Norwegian keywords,
+ * an OSM outdoor_seating signal, and confidence-tiered output.
+ *
+ * Kept only as a historical reference. Do not run.
  */
 
 import { readFileSync, writeFileSync } from 'fs';

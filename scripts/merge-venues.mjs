@@ -1,7 +1,7 @@
 /**
  * merge-venues.mjs
- * Merges reviewed venues-candidates.json into venues.json.
- * Assigns sequential IDs to new entries.
+ * Merges reviewed venues-fetched.json (HIGH-confidence discovery output)
+ * into venues.json. IDs are assigned sequentially.
  *
  * Usage: node scripts/merge-venues.mjs
  */
@@ -13,7 +13,7 @@ import { dirname, join } from 'path';
 const __dirname    = dirname(fileURLToPath(import.meta.url));
 const ROOT         = join(__dirname, '..');
 const venuesPath   = join(ROOT, 'data/venues.json');
-const candidatePath = join(ROOT, 'data/venues-candidates.json');
+const candidatePath = join(ROOT, 'data/venues-fetched.json');
 
 const existing   = JSON.parse(readFileSync(venuesPath,    'utf8'));
 const candidates = JSON.parse(readFileSync(candidatePath, 'utf8'));
