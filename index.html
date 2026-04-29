@@ -4718,20 +4718,20 @@
   }
   .dp-card:hover { background: var(--glass-card-bg); }   /* kill list-card hover */
   .dp-card .card-top { gap: 14px; align-items: flex-start; }
+  /* The two columns share line-heights between the top row (name / hero-main)
+     and the second row (meta / hero-sub) so the secondary info aligns
+     horizontally instead of drifting by a few px. */
   .dp-card .card-left { min-width: 0; gap: 4px; }
   .dp-card .card-new-name {
-    font-size: 22px;
+    font-size: 18px;
     font-weight: 700;
-    line-height: 1.18;
+    line-height: 1.22;
     letter-spacing: -0.01em;
-    /* Inherit white-space: nowrap + overflow: hidden + text-overflow: ellipsis
-       from .card-new-name so long names truncate the same way as in the list. */
   }
   .dp-card .card-new-meta {
-    font-size: 13px;
+    font-size: 12px;
     line-height: 1.35;
-    margin-top: 1px;
-    /* Inherit nowrap + ellipsis from .card-new-meta. */
+    margin-top: 2px;
   }
   .dp-card .card-right {
     min-width: 0;
@@ -4740,12 +4740,13 @@
     align-items: flex-end;
   }
   .dp-card .card-new-hero-main {
-    font-size: 18px;
-    line-height: 1.15;
+    font-size: 17px;
+    line-height: 1.22;
   }
   .dp-card .card-new-hero-sub  {
-    font-size: 12.5px;
+    font-size: 12px;
     line-height: 1.35;
+    margin-top: 2px;
   }
 
   /* Placeholder slot for the floating FTS pill — JS pins #fts to overlay this rect. */
@@ -4755,10 +4756,15 @@
   }
 
   /* Time labels under the slider */
+  /* Time labels align with the FTS *track*, not the full FTS pill. The pill is
+     [calendar-btn 38px][gap 8px][track]. Offset the label container by 46px on
+     the left so the first label starts at the track's left edge (not under the
+     calendar button). */
   .dp-tl-labels {
     position: relative;
     height: 14px;
     margin-top: 10px;
+    margin-left: 46px;
     font-size: 10.5px;
     color: var(--muted);
     opacity: 0.75;

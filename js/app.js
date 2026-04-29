@@ -490,18 +490,18 @@ function drawFtsCanvas() {
     c.scale(sc, sc);
     c.translate(-sx, -cy_);
 
-    // Soft accent halo
-    const halo = c.createRadialGradient(sx, cy_, R * 0.4, sx, cy_, R * 1.9);
-    halo.addColorStop(0, isActive ? 'rgba(255,175,133,0.55)' : 'rgba(255,175,133,0.45)');
+    // Soft accent halo — tightened so it stays inside the pill border
+    const halo = c.createRadialGradient(sx, cy_, R * 0.7, sx, cy_, R * 1.3);
+    halo.addColorStop(0, isActive ? 'rgba(255,175,133,0.42)' : 'rgba(255,175,133,0.28)');
     halo.addColorStop(1, 'rgba(255,175,133,0)');
     c.fillStyle = halo;
-    c.beginPath(); c.arc(sx, cy_, R * 1.9, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.arc(sx, cy_, R * 1.3, 0, Math.PI * 2); c.fill();
 
     // Body with drop shadow — radial gradient cream→warm-cream, off-axis top-left light
     c.save();
-    c.shadowColor = 'rgba(0,0,0,0.55)';
-    c.shadowBlur = 10;
-    c.shadowOffsetY = 2;
+    c.shadowColor = 'rgba(0,0,0,0.45)';
+    c.shadowBlur = 6;
+    c.shadowOffsetY = 1.5;
     c.beginPath(); c.arc(sx, cy_, R, 0, Math.PI * 2);
     const body = c.createRadialGradient(sx, cy_ - R * 0.35, R * 0.1, sx, cy_ + R * 0.4, R * 1.1);
     body.addColorStop(0, 'rgba(255,255,253,1)');
@@ -2369,19 +2369,27 @@ let _morphSourceTlRect = null;  // card timeline-track rect, reused on close FTS
 const MORPH_DURATION = 340;     // matches dp-card transform transition
 
 /** Apply a FLIP transform to .dp-card so it visually starts at the source
- *  venue-card's rect. The card's transition then animates the transform to
- *  identity (its natural slot inside the rising panel) — single phase, runs
- *  concurrently with the panel rise + list slide-down + FTS fade-out per the
- *  user's spec: "card morphs/moves into position at the same time the panel
- *  slides up." */
+ *  venue-card's rect. CRUCIAL: the dp-card lives INSIDE the panel which is
+ *  itself transitioning translateY(100%) → 0. To keep dp-card at sourceRect
+ *  at frame 0 (when panel is offscreen-below at translateY(panel.height)),
+ *  we subtract panel.height from dy — that compensates for the panel's
+ *  initial offset.
+ *
+ *  Math: dpCard.actual_top(t) = panel.translateY(t) + naturalRect.top + dpCard.translateY(t)
+ *    t=0 panel offscreen-below: panel.translateY(0) = panel.height
+ *      → dpCard.translateY(0) = sourceRect.top - panel.height - naturalRect.top
+ *    t=1 panel at fullscreen: panel.translateY(1) = 0
+ *      → dpCard.translateY(1) = 0
+ *
+ *  With matching easing on both transforms, dp-card travels linearly from
+ *  sourceRect → naturalRect.top while the panel rises beneath it. */
 function _applyDpCardFlipFromRect(sourceRect, naturalRect) {
   const dpCard = document.querySelector('#detail-panel .dp-card');
   if (!dpCard || !sourceRect || !naturalRect) return null;
-  // With transform-origin: 0 0 and scale(sx, 1), the dp-card's top-left lands
-  // at (naturalRect.left + dx, naturalRect.top + dy). For the FLIP to overlay
-  // the source venue-card exactly: dx = sourceRect.left - naturalRect.left.
+  const dpEl = document.getElementById('detail-panel');
+  const panelHeight = dpEl ? dpEl.getBoundingClientRect().height : window.innerHeight * 0.62;
   const dx = sourceRect.left - naturalRect.left;
-  const dy = sourceRect.top  - naturalRect.top;
+  const dy = sourceRect.top  - naturalRect.top - panelHeight;
   const sx = sourceRect.width / Math.max(1, naturalRect.width);
   dpCard.style.transition = 'none';
   dpCard.style.transformOrigin = '0 0';
@@ -2389,14 +2397,19 @@ function _applyDpCardFlipFromRect(sourceRect, naturalRect) {
   return dpCard;
 }
 
-/** Animate the dp-card's FLIP transform back to identity. The CSS transition
- *  on padding/font-size + opacity (defined in index.html for #detail-panel
- *  .dp-card and child sizes) takes care of the size-up; we only handle the
- *  position transform here. */
+/** Animate the dp-card's FLIP transform back to identity. We MUST include
+ *  padding + border-radius in the inline transition — otherwise our inline
+ *  `transition: transform` overrides the CSS transition for those properties
+ *  and they snap when .dp-morphing is removed. Easing matches the panel's
+ *  base CSS transition (cubic-bezier 0.4 0 0.2 1, 0.3s) so panel rise and
+ *  dp-card travel are perfectly synchronized. */
 function _releaseDpCardFlip(dpCard) {
   if (!dpCard) return;
   void dpCard.offsetHeight;
-  dpCard.style.transition = 'transform 0.34s cubic-bezier(0.32, 0.72, 0, 1)';
+  dpCard.style.transition =
+    'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), ' +
+    'padding 0.3s cubic-bezier(0.4, 0, 0.2, 1), ' +
+    'border-radius 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
   dpCard.style.transform = '';
 }
 
