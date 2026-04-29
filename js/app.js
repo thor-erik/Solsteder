@@ -2601,7 +2601,11 @@ function openDetailPanel(v) {
 
   // Build the lifted clone.
   const lifted = sourceCard.cloneNode(true);
-  lifted.classList.remove('selected');
+  // CRITICAL: the clone inherits whatever classes were on sourceCard at the
+  // moment of cloning — including `.morph-source` (which we just added a few
+  // lines above and which CSS makes `visibility: hidden`). Strip it so the
+  // clone is actually visible.
+  lifted.classList.remove('selected', 'morph-source');
   lifted.classList.add('lifted-card');
   lifted.removeAttribute('onclick');
   lifted.removeAttribute('onmouseenter');
