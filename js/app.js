@@ -2615,19 +2615,29 @@ function openDetailPanel(v) {
     _releaseDpCardFlip(dpCard);                        // dp-card transform animates to identity
   });
 
-  // After the morph completes: snap FTS to its slot rect (no transition so it
-  // doesn't appear mid-flight while fading in), then fade it back in.
+  // After the morph completes (CSS transitions on dp-card padding/border-radius
+  // and child font-sizes are 0.3s, so 420ms gives a safe margin): snap FTS to
+  // its slot rect with no transition so it doesn't appear mid-flight, then
+  // fade it back in. A second sync at 700ms safeguards against any late layout
+  // settling (e.g. iOS Safari deferring a paint).
   setTimeout(() => {
     const fts = document.getElementById('fts');
-    if (fts) {
-      // Disable transitions while we re-position so the fade-in starts at slot.
-      fts.style.transition = 'none';
-    }
+    if (fts) fts.style.transition = 'none';
     _syncFtsToSlot();
     if (fts) void fts.offsetHeight;
     _setFtsFade('in');
     _clearDpCardFlip();
-  }, 380);
+  }, 420);
+  setTimeout(() => {
+    const fts = document.getElementById('fts');
+    if (!fts) return;
+    // Re-pin without transition; if the slot didn't move this is a no-op.
+    const prev = fts.style.transition;
+    fts.style.transition = 'none';
+    _syncFtsToSlot();
+    void fts.offsetHeight;
+    fts.style.transition = prev || '';
+  }, 700);
 }
 
 function _getWxNow() {

@@ -4763,7 +4763,8 @@
   .dp-tl-labels {
     position: relative;
     height: 14px;
-    margin-top: 10px;
+    /* 18px clears the FTS pill's 0 2px 8px box-shadow + thumb halo overflow. */
+    margin-top: 18px;
     margin-left: 46px;
     font-size: 10.5px;
     color: var(--muted);
@@ -4894,11 +4895,19 @@
        JS applies a transform that pins it to the source venue-card's rect for
        the duration of the rise, then releases to its natural slot. The panel
        chrome (background, photos, social, etc.) is hidden during the morph so
-       the rising panel doesn't visually peek out from under the anchored card. */
+       the rising panel doesn't visually peek out from under the anchored card.
+       overflow:visible on panel + dp-content so the FLIPped dp-card isn't
+       clipped to the panel's visible box (which is mostly offscreen-below
+       during the rise). */
     #detail-panel.dp-morphing {
       background: transparent !important;
       box-shadow: none !important;
       border: none !important;
+      overflow: visible !important;
+    }
+    #detail-panel.dp-morphing #dp-content,
+    #detail-panel.dp-morphing #dp-scroll {
+      overflow: visible !important;
     }
     #detail-panel.dp-morphing::before {
       opacity: 0 !important;   /* glass-panel pseudo bevel */
@@ -4924,12 +4933,16 @@
       display: none;
     }
     /* dp-card during morph: matches the source venue-card exactly so the FLIP
-       transform doesn't introduce a visual size jump. JS animates the dp-card
-       from this small-card state to its full dp-card size after the morph. */
+       transform doesn't introduce a visual size jump. z-index lifts it above
+       the panel container so it stays visible regardless of stacking context.
+       JS animates the dp-card from this small-card state to its full dp-card
+       size after the morph. */
     #detail-panel.dp-morphing .dp-card {
       padding: 12px 14px;
       border-radius: 12px;
       margin-bottom: 0;
+      position: relative;
+      z-index: 5;
       transform-origin: 0 0;
       will-change: transform;
     }
