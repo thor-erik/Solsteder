@@ -236,6 +236,13 @@ function initFts() {
   updateFtsDateBtn();
   drawFtsCanvas();
 
+  // Redraw the slider bitmap whenever the canvas's CSS width changes — keeps the
+  // thumb circular through the calendar button's min-width transition instead
+  // of letting CSS stretch a stale bitmap horizontally.
+  if (typeof ResizeObserver === 'function') {
+    new ResizeObserver(() => drawFtsCanvas()).observe(canvas);
+  }
+
   // Wire calendar button tap directly (onclick can be unreliable on mobile in some edge cases)
   const calBtn = document.getElementById('fts-date-btn');
   if (calBtn) {
@@ -3566,9 +3573,22 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Map canvas touch → collapse panel to peek ──
     // Use capture on the map container so we catch touches before Mapbox
     document.getElementById('map-container')?.addEventListener('touchstart', () => {
-      if (panelEl && !panelEl.classList.contains('mobile-hidden')) {
-        panelEl.classList.remove('mobile-expanded', 'mobile-fullscreen');
-        _syncFtsPosition();
+      if (!panelEl || panelEl.classList.contains('mobile-hidden')) return;
+      const wasOpen = panelEl.classList.contains('mobile-expanded')
+                   || panelEl.classList.contains('mobile-fullscreen');
+      panelEl.classList.remove('mobile-expanded', 'mobile-fullscreen');
+      _syncFtsPosition();
+      if (wasOpen) {
+        // Pin layout was computed against the previous (smaller) visible region;
+        // mark stale and redraw once the panel settles so newly-revealed venues
+        // get proper pill placement instead of defaulting to dots.
+        window.markPinLayoutStale?.();
+        const onEnd = (e) => {
+          if (e.propertyName !== 'transform') return;
+          panelEl.removeEventListener('transitionend', onEnd);
+          if (typeof draw === 'function') draw();
+        };
+        panelEl.addEventListener('transitionend', onEnd);
       }
     }, { passive: true, capture: true });
 

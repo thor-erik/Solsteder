@@ -125,10 +125,10 @@ function _getDensityCaps(zoom) {
   // if the spatial layout can find room. The layout grid is the real authority.
   // Waiting pills are secondary: they only appear when space remains after all
   // hero pills have been placed (enforced in computePinLayout, not here).
-  if (zoom >= 16) return { heroCap: Infinity, waitingCap: 8 };
-  if (zoom >= 14) return { heroCap: Infinity, waitingCap: 6 };
-  if (zoom >= 12) return { heroCap: Infinity, waitingCap: 4 };
-  return             { heroCap: Infinity, waitingCap: 2 };
+  if (zoom >= 16) return { heroCap: Infinity, waitingCap: 16 };
+  if (zoom >= 14) return { heroCap: Infinity, waitingCap: 12 };
+  if (zoom >= 12) return { heroCap: Infinity, waitingCap: 8  };
+  return             { heroCap: Infinity, waitingCap: 4  };
 }
 
 // UX-tuning constant: each km of distance from map center adds this many "virtual minutes"
@@ -716,6 +716,11 @@ let _layoutHour  = null;
 let _layoutDate  = null;
 const _venueIsDot    = new Map();
 const _venueExtStem  = new Map();
+
+// Force the next draw() to do a full layout recompute. Use when something
+// outside the map's own move/zoom changes the visible region (e.g. the bottom
+// panel collapsing from expanded → peek).
+window.markPinLayoutStale = () => { _layoutStale = true; };
 
 /**
  * Assigns each venue an extraStem (or isDot flag). Greedy by priority:
