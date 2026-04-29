@@ -140,16 +140,16 @@ async function nearbySearchV1(lat, lng) {
 }
 
 /**
- * Text Search for "uteservering" restricted to a circle around the point.
- * Paginates up to 3 pages (60 results). Google requires a brief delay
- * between page requests for the next-page token to become valid.
+ * Text Search for a Norwegian outdoor-seating keyword restricted to a
+ * circle around the point. Paginates up to 3 pages (60 results).
+ * Google requires a brief delay between page requests.
  */
-async function textSearchUteservering(lat, lng, area) {
+async function textSearchKeyword(lat, lng, area, keyword) {
   const all = [];
   let pageToken;
   for (let page = 0; page < 3; page++) {
     const body = {
-      textQuery:      `uteservering ${area} Oslo`,
+      textQuery:      `${keyword} ${area} Oslo`,
       locationBias:   { circle: { center: { latitude: lat, longitude: lng }, radius: RADIUS * 1.5 } },
       includedType:   'restaurant',
       maxResultCount: 20,
@@ -342,25 +342,34 @@ for (const point of SEARCH_POINTS) {
   await sleep(200);
 }
 
-console.log('\nPass B: Text Search "uteservering" per area…\n');
-for (const point of SEARCH_POINTS) {
-  process.stdout.write(`  ${point.area} … `);
-  try {
-    const places = await textSearchUteservering(point.lat, point.lng, point.area);
-    let added = 0;
-    for (const p of places) {
-      if (p.businessStatus === 'CLOSED_PERMANENTLY') continue;
-      if (addSignal(p.id, p, point.area, 'uteservering')) added++;
+// Norwegian outdoor-seating vocabulary. Each keyword catches a different
+// cluster of venues — uteservering is canonical, the others surface
+// rooftops, courtyards, and venues described with non-standard wording.
+const KEYWORDS = ['uteservering', 'terrasse', 'bakgård', 'takterrasse'];
+
+console.log(`\nPass B: Text Search × ${KEYWORDS.length} keywords (${KEYWORDS.join(', ')})…\n`);
+for (const keyword of KEYWORDS) {
+  console.log(`  Keyword: "${keyword}"`);
+  for (const point of SEARCH_POINTS) {
+    process.stdout.write(`    ${point.area} … `);
+    try {
+      const places = await textSearchKeyword(point.lat, point.lng, point.area, keyword);
+      let added = 0;
+      for (const p of places) {
+        if (p.businessStatus === 'CLOSED_PERMANENTLY') continue;
+        if (addSignal(p.id, p, point.area, keyword)) added++;
+      }
+      console.log(`${places.length} results, ${added} new`);
+    } catch (err) {
+      console.warn(`error: ${err.message}`);
     }
-    console.log(`${places.length} results, ${added} new`);
-  } catch (err) {
-    console.warn(`error: ${err.message}`);
+    await sleep(200);
   }
-  await sleep(200);
 }
 
 console.log('\nPass C: OSM outdoor_seating=yes (resolved via Google Text Search)…\n');
 const existingForMatch = JSON.parse(readFileSync(join(ROOT, 'data/venues.json'), 'utf8'));
+const osmUnresolvedList = []; // OSM venues we couldn't resolve to a Google place
 const osmVenues = await fetchOSMOutdoor();
 if (!osmVenues) {
   console.log('  Overpass unavailable, skipping Pass C.');
@@ -401,6 +410,7 @@ if (!osmVenues) {
         else        { console.log('resolved → already in seen'); }
       } else {
         unresolved++;
+        osmUnresolvedList.push(osm);
         console.log('no Google match within 150 m');
       }
     } catch (err) {
@@ -470,19 +480,41 @@ for (const [placeId, { place: p, area, sources }] of seen) {
   console.log(`done (signal: ${signal})`);
 }
 
-const outPath = join(ROOT, 'data/venues-fetched.json');
-writeFileSync(outPath, JSON.stringify(venues, null, 2));
+// ── Partition by confidence ───────────────────────────────────────────────────
+// HIGH: Google explicitly flags outdoorSeating, OR ≥2 independent signals
+//       (e.g. uteservering+terrasse, or osm+uteservering).
+// LOW:  single weak signal — needs human review before merging.
+const isHighConfidence = v => {
+  const sigs = v.discoverySignal.split(',');
+  return sigs.includes('outdoorSeating') || sigs.length >= 2;
+};
+const high   = venues.filter(isHighConfidence);
+const review = venues.filter(v => !isHighConfidence(v));
+
+writeFileSync(join(ROOT, 'data/venues-fetched.json'),        JSON.stringify(high,             null, 2));
+writeFileSync(join(ROOT, 'data/venues-review.json'),         JSON.stringify(review,           null, 2));
+writeFileSync(join(ROOT, 'data/venues-osm-unresolved.json'), JSON.stringify(osmUnresolvedList, null, 2));
 
 const bySignal = venues.reduce((acc, v) => {
   acc[v.discoverySignal] = (acc[v.discoverySignal] ?? 0) + 1;
   return acc;
 }, {});
 
-console.log(`\nWrote ${venues.length} new candidates → data/venues-fetched.json`);
+console.log(`\n━━━ Discovery output ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+console.log(`  High confidence  → data/venues-fetched.json:        ${high.length}`);
+console.log(`  Review needed    → data/venues-review.json:         ${review.length}`);
+console.log(`  OSM unresolved   → data/venues-osm-unresolved.json: ${osmUnresolvedList.length}`);
+console.log(`\nBreakdown by discoverySignal:`);
 for (const [s, n] of Object.entries(bySignal).sort((a, b) => b[1] - a[1])) {
   console.log(`  ${s.padEnd(40)} ${n}`);
 }
 console.log(`
-Review the file, then run scripts/merge-venues.mjs to merge into venues.json.
-Remember to run scripts/update-geometry.mjs after merging.
+Next steps:
+  1. Spot-check data/venues-review.json — single-signal hits are
+     more likely false positives. Promote keepers to venues-fetched.json.
+  2. data/venues-osm-unresolved.json lists OSM-tagged terraces with no
+     Google match within 150 m — submit as Google suggestions or add
+     manually.
+  3. node scripts/merge-venues.mjs       # merges venues-fetched.json
+  4. node scripts/update-geometry.mjs    # recomputes building facing
 `);
