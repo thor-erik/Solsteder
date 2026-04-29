@@ -2,6 +2,8 @@
 .DS_Store
 .claude/
 data/venues-fetched.json
+data/venues-review.json
+data/venues-osm-unresolved.json
 data/venues-candidates.json
 node_modules/
 *.p8
