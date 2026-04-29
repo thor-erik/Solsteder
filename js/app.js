@@ -2356,9 +2356,18 @@ function selectVenue(id, flyTo) {
   // openDetailPanel inserted and creates a fresh duplicate of the source
   // card. On mobile (during the open-morph) we defer it past the morph so
   // the user doesn't see a fresh duplicate alongside the lifted source.
+  // Cancel any prior pending deferred render so rapid open/close/open doesn't
+  // pile up timers (the most recent open's renderList wins).
   // Desktop: render immediately so the selected-card highlight updates.
+  if (_deferredRenderListTimer) {
+    clearTimeout(_deferredRenderListTimer);
+    _deferredRenderListTimer = null;
+  }
   if (isMobile() && document.body.dataset.dpMorph === '1') {
-    setTimeout(renderList, 720);
+    _deferredRenderListTimer = setTimeout(() => {
+      _deferredRenderListTimer = null;
+      renderList();
+    }, 720);
   } else {
     renderList();
   }
@@ -2385,6 +2394,7 @@ function updatePopup() {
 let _morphSourceVid = null;     // venue id whose card is the morph source
 let _morphSourceRect = null;    // source card rect, reused on close
 let _morphSourceTlRect = null;  // card timeline-track rect, reused on close FTS FLIP
+let _deferredRenderListTimer = null;  // pending renderList() from selectVenue
 const MORPH_DURATION = 340;     // matches dp-card transform transition
 
 /** Apply a FLIP transform to .dp-card so it visually starts at the source
@@ -2733,6 +2743,14 @@ function closeDetailPanel(expandList = true) {
     const dwell = _aDetailOpenTs ? Date.now() - _aDetailOpenTs : null;
     _aTrack('detail_close', { venue_id: selectedId, dwell_ms: dwell });
     _aDetailOpenTs = null;
+  }
+  // Cancel any pending deferred renderList from a recent selectVenue — close
+  // calls renderList synchronously below, so we don't want a duplicate render
+  // firing 720ms later (which could re-flash the list with the just-cleared
+  // selectedId, causing a visible blink).
+  if (_deferredRenderListTimer) {
+    clearTimeout(_deferredRenderListTimer);
+    _deferredRenderListTimer = null;
   }
   // Closed via in-app UI — drop 'venue' and everything stacked on top of it
   // (e.g. 'dp-fullscreen'). Skipped when triggered by the popstate handler.
