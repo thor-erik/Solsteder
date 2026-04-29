@@ -215,7 +215,7 @@
   #locate-btn {
     position: fixed;
     right: 16px;
-    bottom: 148px;   /* above NavigationControl (~118px) + 14px gap */
+    bottom: 16px;
     z-index: 900;
     width: 34px;
     height: 34px;
@@ -247,7 +247,7 @@
   #zoom-jog {
     position: fixed;
     right: 16px;
-    bottom: 192px;          /* locate-btn bottom (148) + 34 btn + 10 gap */
+    bottom: 60px;           /* locate-btn bottom (16) + 34 btn + 10 gap */
     z-index: 900;
     touch-action: none;
     user-select: none;
@@ -656,8 +656,9 @@
     padding: 9px 14px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
   }
+  #floating-brand #brand-logo { margin-right: 2px; }
 
   /* ── Floating time slider — round 12 ─────────────────────────────────────── */
   /* Pill container: position:fixed, bottom tracks panel top edge via --fts-bottom */
@@ -681,9 +682,11 @@
     background: none;
     border: none;
     box-shadow: none;
-    transition: left 0.28s ease, width 0.28s ease, bottom 0.35s cubic-bezier(0.25, 0.9, 0.4, 1);
+    transition: left 0.28s ease, width 0.28s ease, bottom 0.35s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.22s ease, transform 0.22s ease;
     will-change: left, bottom;
   }
+  /* (The floating #fts pill is reparented into the detail panel on open, so no
+     hide rule is needed — JS moves the same DOM node.) */
 
   /* Calendar button — date pill */
   #fts-date-btn {
@@ -1207,24 +1210,28 @@
     opacity: 1;
     pointer-events: auto;
   }
-  /* Desktop: overlay the top of the panel area */
+  /* Desktop: stacked above the panel, panel pushes down via --notif-h */
   @media (min-width: 640px) {
     #notif-toast-wrap {
-      top: 74px;
-      left: 20px;
-      width: 328px;
-      transform: translateY(-12px);
+      top: 70px;            /* aligned with panel top */
+      left: 16px;           /* aligned with panel left */
+      width: 336px;         /* match panel width */
+      transform: translateY(-8px);
     }
     #notif-toast-wrap.show {
       transform: translateY(0);
+    }
+    /* Push panel down so notif doesn't overlap the venue list */
+    body:has(#notif-toast-wrap.show) #panel {
+      top: calc(70px + var(--notif-h, 0px) + 8px);
     }
   }
   #notif-toast {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 10px 14px;
-    margin-bottom: 6px;
+    padding: 8px 12px;
+    margin-bottom: 0;
     background: var(--glass-card-bg);
     backdrop-filter: var(--glass-blur-card);
     -webkit-backdrop-filter: var(--glass-blur-card);
@@ -1237,7 +1244,7 @@
   }
   .notif-toast-icon { font-size: 20px; flex-shrink: 0; line-height: 1; }
   .notif-toast-content { flex: 1; min-width: 0; cursor: pointer; }
-  .notif-toast-body { font-size: 13px; color: var(--text); line-height: 1.35; }
+  .notif-toast-body { font-size: 13px; color: var(--text); line-height: 1.3; }
   .notif-toast-action {
     flex-shrink: 0;
     background: rgba(255,175,133,0.15);
@@ -1320,9 +1327,10 @@
   }
 
   /* ── Mapbox nav controls — glass applied to the control group, not outer wrapper ── */
+  /* Attribution lives in this container; offset to clear #locate-btn (right: 16, bottom: 16, 34px) */
   .mapboxgl-ctrl-bottom-right {
-    right: 16px;
-    bottom: 16px;
+    right: 56px;
+    bottom: 24px;
   }
   .mapboxgl-ctrl-group {
     background: var(--glass-action-bg) !important;
@@ -1466,7 +1474,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    transition: transform 0.28s ease, opacity 0.28s ease, height 0.3s ease, border-radius 0.3s ease;
+    transition: top 0.3s ease, transform 0.28s ease, opacity 0.28s ease, height 0.3s ease, border-radius 0.3s ease;
     z-index: 800;
   }
 
@@ -1488,6 +1496,15 @@
     width: auto;
     object-fit: contain;
     display: block;
+  }
+  #brand-name {
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    line-height: 1;
+    flex-shrink: 0;
   }
 
   #sun-compass { display: block; cursor: default; border-radius: 50%; flex-shrink: 0; }
@@ -1737,10 +1754,17 @@
     gap: 6px;
   }
 
-  .venue-card:hover {
-    border-color: rgba(156,189,231,0.35);
-    background: rgba(20,46,82,0.65);
+  /* Hover only on devices with a real pointer. On iOS Safari :hover sticks
+     after a tap until the user taps elsewhere — that's the "blue box" the
+     user reported on the source card after the panel closes. */
+  @media (hover: hover) and (pointer: fine) {
+    .venue-card:hover {
+      border-color: rgba(156,189,231,0.35);
+      background: rgba(20,46,82,0.65);
+    }
   }
+  /* Suppress the mobile browser's default tap-highlight overlay. */
+  .venue-card { -webkit-tap-highlight-color: transparent; }
 
   .venue-card.selected {
     border-color: rgba(255,175,133,0.4);
@@ -2134,14 +2158,6 @@
     letter-spacing: 0.1px;
   }
 
-  .sun-dial {
-    flex-shrink: 0;
-    width: 96px;
-    height: 96px;
-    opacity: 0.95;
-    filter: drop-shadow(0 1px 4px rgba(0,0,0,0.4));
-  }
-
   /* ── Skeleton placeholder cards (after-sunset state) ─────────────── */
   .venue-card.skeleton {
     pointer-events: none;
@@ -2455,12 +2471,13 @@
       z-index: 910;  /* above locate-btn (900) so button is covered by list */
     }
 
-    /* Fully hidden (covered by detail panel etc.) — no transition so it disappears instantly */
+    /* Fully hidden (covered by detail panel) — slides down behind the morphed card.
+       Transition matches the panel morph (320ms) so list and detail move together. */
     #panel.mobile-hidden {
       transform: translateY(calc(100% + 20px)) !important;
       opacity: 0 !important;
       pointer-events: none !important;
-      transition: none !important;
+      transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.22s ease !important;
     }
 
     #panel-toggle-icon { display: none; }
@@ -2563,8 +2580,6 @@
 
     .card-action-btn { font-size: 12px; padding: 8px 16px; }
     .card-actions    { gap: 10px; }
-
-    .sun-dial { width: 112px; height: 112px; }
 
     .card-expanded { max-height: 0; }
     .venue-card.selected .card-expanded { max-height: 160px; }
@@ -4609,7 +4624,7 @@
   .dp-action-icon {
     width: 44px;
     height: 44px;
-    border-radius: 12px;
+    border-radius: 50%;          /* circular to echo the slider pill / thumb language */
     background: linear-gradient(135deg, rgba(20,46,82,0.25), rgba(32,73,131,0.14)), rgba(20,46,82,0.30);
     border: 1px solid rgba(156,189,231,0.20);
     box-shadow: inset 0 1px 0 rgba(255,242,235,0.14), inset 0 -1px 0 rgba(20,46,82,0.30);
@@ -4621,8 +4636,9 @@
     cursor: pointer;
     flex-shrink: 0;
     text-decoration: none;
+    transition: background 0.15s, border-color 0.15s;
   }
-  .dp-action-icon:hover { background: rgba(20,46,82,0.65); }
+  .dp-action-icon:hover { background: rgba(20,46,82,0.65); border-color: rgba(156,189,231,0.32); }
   .dp-action-icon svg { width: 18px; height: 18px; stroke: currentColor; color: var(--accent); }
 
   /* Legacy: keep .primary-action for backwards compat but hidden */
@@ -4682,60 +4698,184 @@
     color: var(--accent);
   }
 
-  /* ── Sun section (glass card) ──────────────────────────────────────────── */
-  .sun-section {
-    background: linear-gradient(135deg, rgba(20,46,82,0.28), rgba(32,73,131,0.16)), rgba(20,46,82,0.34);
-    border: 1px solid rgba(156,189,231,0.20);
-    box-shadow: inset 0 1px 0 rgba(255,242,235,0.16), inset 0 -1px 0 rgba(20,46,82,0.35), 0 2px 8px rgba(0,0,0,0.35);
-    border-radius: 12px;
-    padding: 14px;
-    margin-bottom: 12px;
+  /* ── Photo gallery wrapper + heart/bell overlay ──────────────────────── */
+  .detail-new-photos-wrap {
+    position: relative;
   }
-
-  .sun-section-main {
-    font-size: 14px;
-    font-weight: 700;
-    margin-bottom: 12px;
-  }
-
-  .sun-section-main .hi {
-    color: var(--accent);
-  }
-
-  /* Detail panel timeline — reuses venue card timeline-track/wx segments */
-  .dp-timeline {
-    margin-bottom: 6px;
-  }
-  .dp-timeline .timeline-track {
-    height: 8px;
-    border-radius: 4px;
-  }
-
-  .dp-timeline-labels {
+  .dp-photo-actions {
+    position: absolute;
+    top: 8px;
+    right: 8px;
     display: flex;
-    justify-content: space-between;
-    font-size: 10px;
-    color: var(--muted);
-    opacity: 0.6;
+    gap: 6px;
+    z-index: 3;
   }
+  .dp-photo-actions .dp-header-icon {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: 50%;
+    background: rgba(14,26,52,0.55);
+    backdrop-filter: blur(8px) saturate(160%);
+    -webkit-backdrop-filter: blur(8px) saturate(160%);
+    border: 1px solid rgba(156,189,231,0.22);
+    color: var(--text);
+    opacity: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .dp-photo-actions .dp-header-icon svg { width: 18px; height: 18px; }
+
+  /* ── Detail-panel "card": same DOM as a venue-card, scaled up ────────── */
+  /* The layout (card-top → card-left + card-right + timeline) is identical to
+     a venue-card — only sizes scale up. This keeps the user oriented after the
+     morph: they see "the same card, bigger". */
+  .dp-card {
+    cursor: default;
+    margin-bottom: 14px;
+    padding: 18px 16px 14px;
+    animation: none;
+    border-radius: 14px;
+  }
+  .dp-card:hover { background: var(--glass-card-bg); }   /* kill list-card hover */
+  .dp-card .card-top { gap: 14px; align-items: flex-start; }
+  /* The two columns share line-heights between the top row (name / hero-main)
+     and the second row (meta / hero-sub) so the secondary info aligns
+     horizontally instead of drifting by a few px. */
+  .dp-card .card-left { min-width: 0; gap: 4px; }
+  .dp-card .card-new-name {
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.22;
+    letter-spacing: -0.01em;
+  }
+  .dp-card .card-new-meta {
+    font-size: 12px;
+    line-height: 1.35;
+    margin-top: 2px;
+  }
+  .dp-card .card-right {
+    min-width: 0;
+    flex-shrink: 0;
+    gap: 4px;
+    align-items: flex-end;
+  }
+  .dp-card .card-new-hero-main {
+    font-size: 17px;
+    line-height: 1.22;
+  }
+  .dp-card .card-new-hero-sub  {
+    font-size: 12px;
+    line-height: 1.35;
+    margin-top: 2px;
+  }
+
+  /* The docked source card uses its old `.card-timeline` as the slot the FTS
+     pill overlays. The pill spans the FULL card-content width — calendar btn
+     occupies the leftmost 38px, gap 8px, then the slider track fills the
+     remainder. So no margin-left here; the calendar btn (38px wide, opaque
+     glass-bg via its own CSS) covers the leftmost portion of the wx segments
+     drawn by buildMiniSunTimeline, and the canvas covers the rest. */
+  .dp-card .card-timeline {
+    height: 38px;
+    margin-top: 16px;
+  }
+  .dp-card .timeline-track {
+    height: 38px;
+    border-radius: 19px;
+    overflow: hidden;
+    /* Match the FTS pill's calendar-btn / track glass background so the 8px
+       gap between the calendar btn and the slider track reads as a single
+       continuous pill rather than exposing a different colour underneath. */
+    background: var(--glass-action-bg);
+  }
+  /* The venue-card mini-timeline's wx segments would otherwise show through
+     the FTS pill canvas (or peek out behind the calendar btn / gap). Hide
+     them when the source is docked as a dp-card. */
+  .dp-card .timeline-track .wx { display: none; }
+  .dp-card .tl-now { display: none; }
+
+  /* Reserves layout space in the panel for the lifted source venue-card,
+     which is moved here at the end of the open-morph and becomes the
+     dp-card. Once the source card lands here, this placeholder is removed
+     by JS (replaceChild). Height includes card-top (~50) + card-timeline
+     (38 + 16 margin-top) + dp-tl-labels (14 + 18 margin-top) + padding
+     (18 top + 14 bottom). */
+  .dp-card-slot {
+    height: 168px;
+    margin-bottom: 14px;
+    /* Labels are pre-rendered inside the slot to keep the slot height
+       correct without a layout shift when the source card docks. They're
+       invisible while inside the slot — they fade in once moved into the
+       docked source card by JS. */
+    position: relative;
+  }
+  .dp-card-slot .dp-tl-labels { opacity: 0; pointer-events: none; }
+  /* Labels inside the docked source card — animated to opacity 1. */
+  .source-docked .dp-tl-labels {
+    opacity: 1;
+    transition: opacity 0.22s ease 0.10s;
+  }
+
+  /* Source card after it's been moved into the panel as the dp-card. Strips
+     the position:fixed lifting and lets the card flow naturally in panel
+     content. Inherits .venue-card + .dp-card sizing. */
+  .venue-card.source-docked {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    width: auto !important;
+    z-index: auto !important;
+    margin-bottom: 14px !important;
+    pointer-events: auto;
+  }
+
+  /* Placeholder slot for the floating FTS pill (legacy — pre-morph code
+     paths still expect #fts-slot). Post-morph the FTS pill overlays the
+     docked source card's .timeline-track. */
+  #fts-slot {
+    margin-top: 16px;
+    height: 38px;
+  }
+
+  /* Time labels under the slider */
+  /* Time labels align with the FTS *track*, not the full FTS pill. The pill is
+     [calendar-btn 38px][gap 8px][track]. Offset the label container by 46px on
+     the left so the first label starts at the track's left edge (not under the
+     calendar button). */
+  .dp-tl-labels {
+    position: relative;
+    height: 14px;
+    /* 18px clears the FTS pill's 0 2px 8px box-shadow + thumb halo overflow. */
+    margin-top: 18px;
+    margin-left: 46px;
+    font-size: 10.5px;
+    color: var(--muted);
+    opacity: 0.75;
+  }
+  .dp-tl-label {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .dp-tl-label-edge { transform: translateX(0); }
+  .dp-tl-label-end  { transform: translateX(-100%); }
 
   /* Sol-retning section */
 
-  /* Info rows (busyness, noise, hours) */
+  /* Info rows (busyness, noise, hours) — open layout, no heavy box */
   .info-list {
-    background: linear-gradient(135deg, rgba(20,46,82,0.28), rgba(32,73,131,0.16)), rgba(20,46,82,0.34);
-    border: 1px solid rgba(156,189,231,0.20);
-    box-shadow: inset 0 1px 0 rgba(255,242,235,0.16), inset 0 -1px 0 rgba(20,46,82,0.35), 0 2px 8px rgba(0,0,0,0.35);
-    border-radius: 12px;
-    overflow: hidden;
     margin-bottom: 14px;
   }
 
   .info-row {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
+    gap: 12px;
+    padding: 8px 4px;
     border-bottom: 1px solid rgba(156,189,231,0.10);
   }
 
@@ -4744,14 +4884,14 @@
   }
 
   .info-icon {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
     color: var(--accent);
     flex-shrink: 0;
+    opacity: 0.85;
   }
 
   .info-icon svg {
@@ -4784,29 +4924,31 @@
     text-align: right;
   }
 
-  /* Footer buttons */
+  /* Footer buttons — text links, low visual weight */
   .secondary-row {
     display: flex;
-    gap: 10px;
+    gap: 18px;
     justify-content: center;
-    padding: 8px 0 16px;
+    padding: 14px 0 16px;
     margin-top: 4px;
   }
 
   .secondary-link {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 500;
     color: var(--muted);
-    padding: 8px 14px;
-    background: linear-gradient(135deg, rgba(20,46,82,0.25), rgba(32,73,131,0.14)), rgba(20,46,82,0.30);
-    border: 1px solid rgba(156,189,231,0.18);
-    border-radius: 10px;
+    padding: 4px 0;
+    background: none;
+    border: none;
     cursor: pointer;
     font-family: 'Inter', sans-serif;
+    opacity: 0.75;
+    transition: opacity 0.15s, color 0.15s;
   }
 
   .secondary-link:hover {
-    background: rgba(20,46,82,0.50);
+    opacity: 1;
+    color: var(--text);
   }
 
   @media (max-width: 639px) {
@@ -4830,6 +4972,185 @@
     #detail-panel.dp-fullscreen {
       height: 100svh;
       border-radius: 0;
+    }
+
+    /* Lifted-clone morph: the clicked venue card stays fully visible the
+       entire time. JS clones it, fixes the clone to its viewport rect, and
+       animates it (top/left/width/padding/font-size/timeline shape) toward
+       its target rect inside the rising detail panel. The original source
+       card stays in the list flow with visibility:hidden and slides off
+       with the list (mobile-hidden). The detail panel rises with its own
+       dp-card hidden; at the morph's end the lifted clone is removed and
+       the actual dp-card fades in (an invisible swap because both look
+       identical by then). */
+
+    /* The clicked source venue-card while it's lifted out of the list. JS
+       sets position:fixed + inline top/left/width = sourceRect (and re-appends
+       to <body> so high z-index escapes #panel's stacking context). */
+    .venue-card.source-morphing {
+      position: fixed !important;
+      z-index: 9990 !important;
+      margin: 0 !important;
+      opacity: 1 !important;     /* never inherit/animate-to anything else */
+      pointer-events: none;
+      will-change: top, left, width, padding;
+      transition:
+        top           0.34s cubic-bezier(0.32, 0.72, 0, 1),
+        left          0.34s cubic-bezier(0.32, 0.72, 0, 1),
+        width         0.34s cubic-bezier(0.32, 0.72, 0, 1),
+        padding       0.34s cubic-bezier(0.32, 0.72, 0, 1),
+        border-radius 0.34s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    .venue-card.source-morphing .card-new-name,
+    .venue-card.source-morphing .card-new-meta,
+    .venue-card.source-morphing .card-new-hero-main,
+    .venue-card.source-morphing .card-new-hero-sub {
+      transition: font-size 0.34s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    .venue-card.source-morphing .card-timeline,
+    .venue-card.source-morphing .timeline-track {
+      transition:
+        height        0.34s cubic-bezier(0.32, 0.72, 0, 1),
+        margin-left   0.34s cubic-bezier(0.32, 0.72, 0, 1),
+        margin-top    0.34s cubic-bezier(0.32, 0.72, 0, 1),
+        border-radius 0.34s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    /* Target state: dp-card sizing + slider-shaped timeline. */
+    .venue-card.source-morphing.source-target {
+      padding: 18px 16px 14px !important;
+      border-radius: 14px !important;
+    }
+    .venue-card.source-morphing.source-target .card-new-name      { font-size: 18px; }
+    .venue-card.source-morphing.source-target .card-new-meta      { font-size: 12px; }
+    .venue-card.source-morphing.source-target .card-new-hero-main { font-size: 17px; }
+    .venue-card.source-morphing.source-target .card-new-hero-sub  { font-size: 12px; }
+    .venue-card.source-morphing.source-target .card-timeline {
+      height: 38px;
+      margin-top: 16px;
+      margin-left: 46px;
+    }
+    .venue-card.source-morphing.source-target .timeline-track {
+      height: 38px;
+      border-radius: 19px;
+    }
+    .venue-card.source-morphing.source-target .tl-now { display: none; }
+
+    /* Cloned labels live inside the source card from the start of the morph
+       so source.height includes label space throughout (no jump at hand-off).
+       Hidden during morph, fade in as part of the .source-target transition. */
+    .venue-card.source-morphing .dp-tl-labels {
+      opacity: 0;
+      transition: opacity 0.22s ease 0.10s;
+    }
+    .venue-card.source-morphing.source-target .dp-tl-labels { opacity: 1; }
+
+    /* Calendar button injected into the lifted source card; fades in alongside
+       the time-bar morph. */
+    .source-card-calbtn {
+      position: absolute;
+      left: 14px;
+      bottom: 14px;
+      width: 38px; height: 38px;
+      border-radius: 19px;
+      background: var(--glass-action-bg);
+      border: var(--glass-border);
+      box-shadow: var(--glass-inset), 0 2px 8px rgba(0,0,0,0.35);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted);
+      opacity: 0;
+      transition: opacity 0.34s cubic-bezier(0.32, 0.72, 0, 1) 0.06s;
+    }
+    .venue-card.source-morphing.source-target .source-card-calbtn { opacity: 1; }
+    .source-card-calbtn svg { width: 16px; height: 16px; }
+
+    /* Hand-off fade. At 360ms we drop .dp-morphing (panel's dp-card / photos /
+       social / info fade in over 0.22s) AND add .source-fading to the lifted
+       source card. Use a SHORT crossfade (0.10s) instead of matching the
+       0.22s — at 50% opacity each, the visual differences (lifted's morphed
+       card-timeline vs dp-card's fts-slot + dp-tl-labels + real FTS pill) are
+       too perceptible. With a quick fade the overlap window is minimal and
+       reads as a single visual change. */
+    .venue-card.source-morphing.source-fading {
+      transition: opacity 0.10s ease-out;
+      opacity: 0;
+    }
+
+    /* Placeholder reserves the source card's slot in the list so cards above
+       don't reflow when we lift the source out. */
+    .venue-card-placeholder { pointer-events: none; }
+
+    /* Card-anchored morph (legacy): the panel container slides up normally
+       (translateY(100%) → 0). What stays "in place" is the .dp-card inside —
+       JS applies a transform that pins it to the source venue-card's rect for
+       the duration of the rise, then releases to its natural slot. The panel
+       chrome (background, photos, social, etc.) is hidden during the morph so
+       the rising panel doesn't visually peek out from under the anchored card.
+       overflow:visible on panel + dp-content so the FLIPped dp-card isn't
+       clipped to the panel's visible box (which is mostly offscreen-below
+       during the rise). */
+    /* Keep panel chrome (background, border, shadow, ::before bevel) visible
+       during the morph. The lifted source card sits at z-index 9990 — above
+       the panel's z-index — so it stays on top regardless. Having the chrome
+       there from the start avoids the abrupt "dark blue panel appears" jump
+       at the hand-off moment when .dp-morphing is removed. */
+    #detail-panel.dp-morphing {
+      overflow: visible !important;
+    }
+    #detail-panel.dp-morphing #dp-content,
+    #detail-panel.dp-morphing #dp-scroll {
+      overflow: visible !important;
+    }
+    /* During the morph, the lifted clone is what the user sees. The actual
+       dp-card + photos/social/info/footer in the panel are hidden via opacity
+       and fade in once .dp-morphing comes off. */
+    #detail-panel.dp-morphing .dp-card,
+    #detail-panel.dp-morphing .detail-new-photos-wrap,
+    #detail-panel.dp-morphing .social-card,
+    #detail-panel.dp-morphing .dp-action-row,
+    #detail-panel.dp-morphing .info-list,
+    #detail-panel.dp-morphing .secondary-row {
+      opacity: 0;
+      pointer-events: none;
+    }
+    #detail-panel.dp-morphing #fts-slot,
+    #detail-panel.dp-morphing .dp-tl-labels {
+      display: none;
+    }
+    /* dp-card during morph: matches the source venue-card exactly so the FLIP
+       transform doesn't introduce a visual size jump. z-index lifts it above
+       the panel container so it stays visible regardless of stacking context.
+       JS animates the dp-card from this small-card state to its full dp-card
+       size after the morph. */
+    #detail-panel.dp-morphing .dp-card {
+      padding: 12px 14px;
+      border-radius: 12px;
+      margin-bottom: 0;
+      position: relative;
+      z-index: 5;
+      transform-origin: 0 0;
+      will-change: transform;
+    }
+    #detail-panel.dp-morphing .dp-card .card-new-name      { font-size: 15px; }
+    #detail-panel.dp-morphing .dp-card .card-new-meta      { font-size: 11px; }
+    #detail-panel.dp-morphing .dp-card .card-new-hero-main { font-size: 14px; }
+    #detail-panel.dp-morphing .dp-card .card-new-hero-sub  { font-size: 11px; }
+    /* When .dp-morphing comes off, dp-card scales up + content fades in. */
+    #detail-panel .dp-card {
+      transition: padding 0.28s ease, border-radius 0.28s ease;
+    }
+    #detail-panel .dp-card .card-new-name,
+    #detail-panel .dp-card .card-new-meta,
+    #detail-panel .dp-card .card-new-hero-main,
+    #detail-panel .dp-card .card-new-hero-sub {
+      transition: font-size 0.28s ease;
+    }
+    #detail-panel .detail-new-photos-wrap,
+    #detail-panel .social-card,
+    #detail-panel .dp-action-row,
+    #detail-panel .info-list,
+    #detail-panel .secondary-row {
+      transition: opacity 0.22s ease 0.06s;
     }
     #dp-handle { display: flex; }
     #dp-scroll { padding-top: 4px; }
@@ -4974,13 +5295,8 @@
   }
 
   /* ── Social section (check-in, plans) ───────────────────────────────────── */
-  /* ── Social card (glass card) ──────────────────────────────────────────── */
+  /* No glass wrapper — sits directly on the panel so the dp-card stays the focal box. */
   .social-card {
-    background: linear-gradient(135deg, rgba(20,46,82,0.28), rgba(32,73,131,0.16)), rgba(20,46,82,0.34);
-    border: 1px solid rgba(156,189,231,0.20);
-    box-shadow: inset 0 1px 0 rgba(255,242,235,0.16), inset 0 -1px 0 rgba(20,46,82,0.35), 0 2px 8px rgba(0,0,0,0.35);
-    border-radius: 12px;
-    padding: 14px;
     margin-bottom: 14px;
     display: flex;
     flex-direction: column;
@@ -5744,6 +6060,7 @@
   <div id="floating-brand" class="intro-hidden">
     <div class="floating-card">
       <div id="brand-logo"><img src="design/logo-pack-svg/logo-color-2000w.svg" alt="Shades" width="32" height="32" loading="lazy"></div>
+      <span id="brand-name">Shades</span>
       <canvas id="sun-compass" width="36" height="36"></canvas>
     </div>
   </div>

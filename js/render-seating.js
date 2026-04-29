@@ -139,16 +139,6 @@ function drawShadowOverlay(venue) {
       ctx.closePath();
       ctx.fillStyle = 'rgba(10,14,40,0.40)';
       ctx.fill();
-
-      // Building footprint filled on top — distinct from shadow lobe
-      ctx.beginPath();
-      footPx.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
-      ctx.closePath();
-      ctx.fillStyle = 'rgba(50,60,120,0.58)';
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(120,150,255,0.65)';
-      ctx.lineWidth = 1;
-      ctx.stroke();
     } else {
       // Non-casting building — subtle outline only
       ctx.beginPath();

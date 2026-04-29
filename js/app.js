@@ -117,9 +117,17 @@ let _ftsDragging       = false; // true during scrub
 let _ftsHideTimeout    = null;  // scrub popup auto-hide timer
 const FTS_GAP          = 8;    // px gap between pill and panel top edge
 
-/** Update FTS position — mobile: --fts-bottom var; desktop: left edge. */
+/** Update FTS position — mobile: --fts-bottom var; desktop: left edge.
+ *
+ *  Skipped while a detail-panel open-morph is in flight (body.dataset.dpMorph
+ *  set by openDetailPanel). Other callers — renderList → updateVenuePeek →
+ *  _updatePeekHeight runs in a rAF that lands AFTER our open-morph rAF, and
+ *  _syncFtsPosition would (a) reset ftsEl.style.opacity = '' (undoing the
+ *  fade-out), and (b) call _syncFtsToSlot while the panel is mid-rise (pinning
+ *  FTS to a mid-flight slot rect). The flag prevents both. */
 function _syncFtsPosition() {
   if (!USE_FLOATING_TIME_SLIDER) return;
+  if (document.body.dataset.dpMorph === '1') return;
   const ftsEl = document.getElementById('fts');
   const panel = document.getElementById('panel');
   const dp    = document.getElementById('detail-panel');
@@ -162,7 +170,11 @@ function _syncFtsPosition() {
     if (ftsEl) { ftsEl.style.opacity = ''; ftsEl.style.pointerEvents = ''; }
     if (locateEl) { locateEl.style.opacity = '0'; locateEl.style.pointerEvents = 'none'; }
     if (zoomJog) { zoomJog.style.opacity = '0'; zoomJog.style.pointerEvents = 'none'; }
-    document.body.style.setProperty('--fts-bottom', `calc(62svh + ${FTS_GAP}px)`);
+    // Detail panel open: try to align FTS with the in-card slot. Falls back to
+    // above-panel placement if the slot isn't measurable yet (during morph).
+    if (typeof _syncFtsToSlot !== 'function' || !_syncFtsToSlot()) {
+      document.body.style.setProperty('--fts-bottom', `calc(62svh + ${FTS_GAP}px)`);
+    }
     return;
   }
 
@@ -223,6 +235,13 @@ function initFts() {
   _syncFtsPosition();
   updateFtsDateBtn();
   drawFtsCanvas();
+
+  // Redraw the slider bitmap whenever the canvas's CSS width changes — keeps the
+  // thumb circular through the calendar button's min-width transition instead
+  // of letting CSS stretch a stale bitmap horizontally.
+  if (typeof ResizeObserver === 'function') {
+    new ResizeObserver(() => drawFtsCanvas()).observe(canvas);
+  }
 
   // Wire calendar button tap directly (onclick can be unreliable on mobile in some edge cases)
   const calBtn = document.getElementById('fts-date-btn');
@@ -486,18 +505,18 @@ function drawFtsCanvas() {
     c.scale(sc, sc);
     c.translate(-sx, -cy_);
 
-    // Soft accent halo
-    const halo = c.createRadialGradient(sx, cy_, R * 0.4, sx, cy_, R * 1.9);
-    halo.addColorStop(0, isActive ? 'rgba(255,175,133,0.55)' : 'rgba(255,175,133,0.45)');
+    // Soft accent halo — tightened so it stays inside the pill border
+    const halo = c.createRadialGradient(sx, cy_, R * 0.7, sx, cy_, R * 1.3);
+    halo.addColorStop(0, isActive ? 'rgba(255,175,133,0.42)' : 'rgba(255,175,133,0.28)');
     halo.addColorStop(1, 'rgba(255,175,133,0)');
     c.fillStyle = halo;
-    c.beginPath(); c.arc(sx, cy_, R * 1.9, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.arc(sx, cy_, R * 1.3, 0, Math.PI * 2); c.fill();
 
     // Body with drop shadow — radial gradient cream→warm-cream, off-axis top-left light
     c.save();
-    c.shadowColor = 'rgba(0,0,0,0.55)';
-    c.shadowBlur = 10;
-    c.shadowOffsetY = 2;
+    c.shadowColor = 'rgba(0,0,0,0.45)';
+    c.shadowBlur = 6;
+    c.shadowOffsetY = 1.5;
     c.beginPath(); c.arc(sx, cy_, R, 0, Math.PI * 2);
     const body = c.createRadialGradient(sx, cy_ - R * 0.35, R * 0.1, sx, cy_ + R * 0.4, R * 1.1);
     body.addColorStop(0, 'rgba(255,255,253,1)');
@@ -755,7 +774,6 @@ const map = new mapboxgl.Map({
   attributionControl: false,
 });
 
-map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
 map.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-right');
 
 // ── User location dot ─────────────────────────────────────────────────────────
@@ -2348,12 +2366,33 @@ function selectVenue(id, flyTo) {
   openDetailPanel(v);
   draw();
   drawFtsCanvas();
-  renderList();
 
-  // Fly in the next task — panel/DOM mutations must be complete AND all
-  // synchronous event handlers (touchend → pointerup) must have finished,
-  // otherwise Mapbox calls map.stop() after our easeTo and cancels it.
-  if (flyTo) setTimeout(() => _flyToVenue(v), 0);
+  // renderList() rebuilds #venue-list from scratch — wipes any placeholder
+  // openDetailPanel inserted and creates a fresh duplicate of the source
+  // card. On mobile (during the open-morph) we defer it past the morph so
+  // the user doesn't see a fresh duplicate alongside the lifted source.
+  // Cancel any prior pending deferred render so rapid open/close/open doesn't
+  // pile up timers (the most recent open's renderList wins).
+  // Desktop: render immediately so the selected-card highlight updates.
+  if (_deferredRenderListTimer) {
+    clearTimeout(_deferredRenderListTimer);
+    _deferredRenderListTimer = null;
+  }
+  if (isMobile() && document.body.dataset.dpMorph === '1') {
+    _deferredRenderListTimer = setTimeout(() => {
+      _deferredRenderListTimer = null;
+      renderList();
+    }, 720);
+  } else {
+    renderList();
+  }
+
+  // Defer the camera fly-to until after the open-morph completes (~660ms)
+  // so the pan doesn't compete visually with the morph.
+  if (flyTo) {
+    const flyDelay = isMobile() ? 660 : 0;
+    setTimeout(() => _flyToVenue(v), flyDelay);
+  }
 
   setTimeout(() => {
     const card = document.querySelector(`.venue-card[data-vid="${id}"]`);
@@ -2367,6 +2406,161 @@ function updatePopup() {
 
 // ── Detail panel ──────────────────────────────────────────────────────────────
 
+let _morphSourceVid = null;     // venue id whose card is the morph source
+let _morphSourceRect = null;    // source card rect, reused on close
+let _morphSourceTlRect = null;  // card timeline-track rect, reused on close FTS FLIP
+let _deferredRenderListTimer = null;  // pending renderList() from selectVenue
+const MORPH_DURATION = 340;     // matches dp-card transform transition
+
+/** Apply a FLIP transform to .dp-card so it visually starts at the source
+ *  venue-card's rect. CRUCIAL: the dp-card lives INSIDE the panel which is
+ *  itself transitioning translateY(100%) → 0. To keep dp-card at sourceRect
+ *  at frame 0 (when panel is offscreen-below at translateY(panel.height)),
+ *  we subtract panel.height from dy — that compensates for the panel's
+ *  initial offset.
+ *
+ *  Math: dpCard.actual_top(t) = panel.translateY(t) + naturalRect.top + dpCard.translateY(t)
+ *    t=0 panel offscreen-below: panel.translateY(0) = panel.height
+ *      → dpCard.translateY(0) = sourceRect.top - panel.height - naturalRect.top
+ *    t=1 panel at fullscreen: panel.translateY(1) = 0
+ *      → dpCard.translateY(1) = 0
+ *
+ *  With matching easing on both transforms, dp-card travels linearly from
+ *  sourceRect → naturalRect.top while the panel rises beneath it. */
+function _applyDpCardFlipFromRect(sourceRect, naturalRect) {
+  const dpCard = document.querySelector('#detail-panel .dp-card');
+  if (!dpCard || !sourceRect || !naturalRect) return null;
+  const dpEl = document.getElementById('detail-panel');
+  const panelHeight = dpEl ? dpEl.getBoundingClientRect().height : window.innerHeight * 0.62;
+  const dx = sourceRect.left - naturalRect.left;
+  const dy = sourceRect.top  - naturalRect.top - panelHeight;
+  const sx = sourceRect.width / Math.max(1, naturalRect.width);
+  dpCard.style.transition = 'none';
+  dpCard.style.transformOrigin = '0 0';
+  dpCard.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(${sx}, 1)`;
+  return dpCard;
+}
+
+/** Animate the dp-card's FLIP transform back to identity. We MUST include
+ *  padding + border-radius in the inline transition — otherwise our inline
+ *  `transition: transform` overrides the CSS transition for those properties
+ *  and they snap when .dp-morphing is removed. Easing matches the panel's
+ *  base CSS transition (cubic-bezier 0.4 0 0.2 1, 0.3s) so panel rise and
+ *  dp-card travel are perfectly synchronized. */
+function _releaseDpCardFlip(dpCard) {
+  if (!dpCard) return;
+  void dpCard.offsetHeight;
+  dpCard.style.transition =
+    'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), ' +
+    'padding 0.3s cubic-bezier(0.4, 0, 0.2, 1), ' +
+    'border-radius 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+  dpCard.style.transform = '';
+}
+
+/** Cleanup all FLIP styles on dp-card. */
+function _clearDpCardFlip() {
+  const dpCard = document.querySelector('#detail-panel .dp-card');
+  if (!dpCard) return;
+  dpCard.style.removeProperty('transition');
+  dpCard.style.removeProperty('transform');
+  dpCard.style.removeProperty('transform-origin');
+}
+
+/** Fade FTS pill out (during morph open) or in (after morph) using inline
+ *  opacity transition. Avoids changing --fts-bottom mid-morph, which the user
+ *  reported as a visible bounce through peek-bottom state. */
+function _setFtsFade(direction) {
+  const fts = document.getElementById('fts');
+  if (!fts) return;
+  if (direction === 'out') {
+    fts.style.transition = 'opacity 0.18s ease-out';
+    fts.style.opacity = '0';
+    fts.style.pointerEvents = 'none';
+  } else {
+    fts.style.transition = 'opacity 0.22s ease-in';
+    fts.style.opacity = '';
+    fts.style.pointerEvents = '';
+  }
+}
+
+/** Sync --fts-bottom so the FTS pill aligns with the time-slider slot inside
+ *  the detail panel. Two cases handled:
+ *    • Pre-morph (during the open animation): the panel still has its
+ *      <#dp-card-slot> placeholder — return false so callers fall back.
+ *    • Post-morph: the source venue-card has been moved into the panel and
+ *      its old `.timeline-track` (now styled to slider proportions via
+ *      .source-target) is what the FTS pill should overlay. */
+function _syncFtsToSlot() {
+  const fts = document.getElementById('fts');
+  if (!fts) return false;
+  // Prefer the docked source card's timeline-track; fall back to legacy slot.
+  const slot = document.querySelector('#detail-panel .source-docked .timeline-track')
+            || document.getElementById('fts-slot');
+  if (!slot) return false;
+  const slotRect = slot.getBoundingClientRect();
+  if (slotRect.height <= 0) return false;
+  const bottomPx = Math.max(0, window.innerHeight - slotRect.bottom);
+  document.body.style.setProperty('--fts-bottom', `${bottomPx}px`);
+  fts.style.left  = `${slotRect.left}px`;
+  fts.style.right = 'auto';
+  fts.style.width = `${slotRect.width}px`;
+  if (typeof drawFtsCanvas === 'function') drawFtsCanvas();
+  return true;
+}
+
+/** Reset FTS inline left/width so _syncFtsPosition's CSS-driven layout takes over. */
+function _clearFtsInlineSize() {
+  const fts = document.getElementById('fts');
+  if (!fts) return;
+  fts.style.removeProperty('left');
+  fts.style.removeProperty('right');
+  fts.style.removeProperty('width');
+  fts.style.removeProperty('transform');
+  fts.style.removeProperty('transform-origin');
+  fts.style.removeProperty('transition');
+}
+
+/** FLIP-style transition: make the FTS pill visually start at the source card's
+ *  .timeline-track rect, then animate to its natural slot position. The user wants
+ *  to feel the small card timeline morph into the full slider — this delivers that.
+ *
+ *  Caller must have already pinned --fts-bottom + left/width to the slot rect via
+ *  _syncFtsToSlot, so the pill's "natural" rest position IS the slot. We disable
+ *  transitions during measurement so getBoundingClientRect returns the rest rect,
+ *  not a mid-flight rect from the bottom transition. */
+function _flipFtsFromCardTimeline(tlRect) {
+  const fts = document.getElementById('fts');
+  if (!fts || !tlRect) return;
+  // Disable bottom/transform transitions and force layout so getBoundingClientRect
+  // returns the rest position (slot rect), not a mid-transition position.
+  fts.style.transition = 'none';
+  void fts.offsetHeight;
+  const ftsRect = fts.getBoundingClientRect();
+  if (ftsRect.width <= 0 || ftsRect.height <= 0) {
+    fts.style.removeProperty('transition');
+    return;
+  }
+  const dx = tlRect.left + tlRect.width / 2 - (ftsRect.left + ftsRect.width / 2);
+  const dy = tlRect.top + tlRect.height / 2 - (ftsRect.top + ftsRect.height / 2);
+  const sx = Math.max(0.05, tlRect.width  / ftsRect.width);
+  const sy = Math.max(0.05, tlRect.height / ftsRect.height);
+  // Snap to source card-timeline rect with no transition.
+  fts.style.transformOrigin = '50% 50%';
+  fts.style.transform = `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`;
+  // Force reflow so the snap commits before we animate back to identity.
+  void fts.offsetHeight;
+  // Animate to natural slot position. Override the body.fts #fts CSS bottom
+  // transition (which would still be running) so the only motion is the transform.
+  fts.style.transition = 'transform 0.34s cubic-bezier(0.32, 0.72, 0, 1)';
+  fts.style.transform = '';
+  // Clear transitional inline styles after the animation completes.
+  setTimeout(() => {
+    fts.style.removeProperty('transition');
+    fts.style.removeProperty('transform-origin');
+    if (typeof drawFtsCanvas === 'function') drawFtsCanvas();
+  }, MORPH_DURATION + 30);
+}
+
 function openDetailPanel(v) {
   _aDetailOpenTs = Date.now();
   _aTrack('detail_open', { venue_id: v.id, time_slot: parseFloat(timeFromEl.value) });
@@ -2375,22 +2569,208 @@ function openDetailPanel(v) {
   const content = document.getElementById('dp-content');
   if (!dp || !content) return;
 
+  // Capture source card + card-timeline rects BEFORE re-rendering so we have valid
+  // viewport coords for both the panel container morph and the FTS pill FLIP.
+  const onMobile = isMobile();
+  let sourceCard = null;
+  let sourceRect = null;
+  let sourceTlRect = null;
+  if (onMobile) {
+    sourceCard = document.querySelector(`.venue-card[data-vid="${v.id}"]`);
+    if (sourceCard) {
+      sourceRect = sourceCard.getBoundingClientRect();
+      const tl = sourceCard.querySelector('.timeline-track');
+      if (tl) sourceTlRect = tl.getBoundingClientRect();
+    }
+  }
+
   content.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
   dp.classList.remove('dp-fullscreen');
-  dp.classList.add('open');
+
   _startWindForVenue(v);
   document.getElementById('locate-btn')?.classList.add('mobile-ui-hidden');
   document.getElementById('zoom-jog')?.classList.add('mobile-ui-hidden');
-  if (isMobile()) {
-    const panel = document.getElementById('panel');
-    if (panel) {
-      panel.classList.remove('mobile-expanded', 'mobile-fullscreen');
-      panel.classList.add('mobile-hidden');
+
+  // ── Desktop / no-source-card: simple slide-in via .open ──────────────────
+  if (!onMobile || !sourceRect || !sourceCard) {
+    _morphSourceVid    = null;
+    _morphSourceRect   = null;
+    _morphSourceTlRect = null;
+    dp.classList.add('open');
+    if (onMobile) {
+      const panel = document.getElementById('panel');
+      if (panel) {
+        panel.classList.remove('mobile-expanded', 'mobile-fullscreen');
+        panel.classList.add('mobile-hidden');
+      }
+      document.getElementById('floating-search')?.classList.add('mobile-ui-hidden');
+      document.getElementById('qc-wrap')?.classList.add('mobile-ui-hidden');
     }
-    document.getElementById('floating-search')?.classList.add('mobile-ui-hidden');
-    document.getElementById('qc-wrap')?.classList.add('mobile-ui-hidden');
+    _syncFtsPosition();
+    return;
   }
-  _syncFtsPosition();
+
+  // ── Mobile morph (lift-source-card, no clone). The actual clicked venue
+  //   card stays fully visible and on top throughout: it's lifted out of
+  //   the list (via position:fixed at sourceRect, re-appended to <body> so
+  //   it escapes #panel's stacking context), the slot it left behind in the
+  //   list is occupied by an invisible placeholder so cards above don't
+  //   reflow, and the lifted card animates to the dp-card slot.
+  // ─────────────────────────────────────────────────────────────────────────
+  _morphSourceVid    = v.id;
+  _morphSourceRect   = { top: sourceRect.top, left: sourceRect.left, width: sourceRect.width, height: sourceRect.height };
+  _morphSourceTlRect = sourceTlRect ? { top: sourceTlRect.top, left: sourceTlRect.left, width: sourceTlRect.width, height: sourceTlRect.height } : null;
+
+  document.body.dataset.dpMorph = '1';
+  document.getElementById('floating-search')?.classList.add('mobile-ui-hidden');
+  document.getElementById('qc-wrap')?.classList.add('mobile-ui-hidden');
+
+  // Snap panel briefly to .open (transitions off) to measure dp-card's rect.
+  dp.classList.add('dp-morphing');
+  const prevTransition = dp.style.transition;
+  dp.style.transition = 'none';
+  dp.classList.add('open');
+  void dp.offsetHeight;
+  const dpCardEl = document.querySelector('#detail-panel .dp-card');
+  const targetRect = dpCardEl ? dpCardEl.getBoundingClientRect() : null;
+  dp.classList.remove('open');
+  void dp.offsetHeight;
+  dp.style.transition = prevTransition || '';
+
+  // Drop a placeholder into the list at the source card's slot so cards
+  // above the source don't shift when we lift it out. Stash a back-pointer
+  // to the source card and its original next-sibling so closeDetailPanel can
+  // restore them.
+  const sourceCs = getComputedStyle(sourceCard);
+  const placeholder = document.createElement('div');
+  placeholder.className = 'venue-card-placeholder';
+  placeholder.style.cssText =
+    'height:' + sourceRect.height + 'px;' +
+    'margin-bottom:' + sourceCs.marginBottom + ';' +
+    'visibility:hidden;';
+  placeholder.dataset.morphPlaceholder = '1';
+  const sourceParent = sourceCard.parentNode;
+  const sourceNext   = sourceCard.nextSibling;
+  sourceParent.insertBefore(placeholder, sourceCard);
+  placeholder._morphSource     = sourceCard;
+  placeholder._morphSourceNext = sourceNext;
+
+  // Defensive cleanup: if any source card from a previous (interrupted) morph
+  // is still orphaned in <body>, remove it now so it can't accumulate. Same
+  // for any leftover labels — fixes the user-reported "labels stack" bug
+  // when opening + closing the same panel multiple times.
+  document.querySelectorAll('body > .venue-card.source-morphing').forEach(c => c.remove());
+  document.querySelectorAll('#detail-panel .source-docked .dp-tl-labels').forEach(l => l.remove());
+
+  // Lift the actual source card. Re-append to <body> so it's outside #panel's
+  // stacking context — z-index can then put it above #detail-panel (z=920).
+  sourceCard.classList.add('source-morphing');
+  sourceCard.removeAttribute('onclick');
+  sourceCard.removeAttribute('onmouseenter');
+  sourceCard.removeAttribute('onmouseleave');
+  sourceCard.style.top   = sourceRect.top   + 'px';
+  sourceCard.style.left  = sourceRect.left  + 'px';
+  sourceCard.style.width = sourceRect.width + 'px';
+  document.body.appendChild(sourceCard);
+
+  // Clone the labels from the just-rendered slot and append to source so the
+  // source's height is correct (with label space) throughout the morph
+  // animation. Avoids the "hard transition" the user reported when labels
+  // were appended only at hand-off, causing the source to grow ~32px in one
+  // frame. Labels stay at opacity 0 during morph (.source-morphing rule)
+  // and fade to 1 once .source-target is added (during the morph), tracking
+  // the rest of the card-content morph.
+  const slotForLabels = document.getElementById('dp-card-slot');
+  const slotLabels = slotForLabels ? slotForLabels.querySelector('.dp-tl-labels') : null;
+  let inlineLabels = null;
+  if (slotLabels) {
+    inlineLabels = slotLabels.cloneNode(true);
+    sourceCard.appendChild(inlineLabels);
+  }
+
+  // Calendar-button overlay (fades in alongside the time-bar morph).
+  const calBtn = document.createElement('div');
+  calBtn.className = 'source-card-calbtn';
+  calBtn.innerHTML =
+    '<svg width="16" height="16" viewBox="0 0 16 16" fill="none">' +
+    '<rect x="1.5" y="3" width="13" height="11.5" rx="2" stroke="currentColor" stroke-width="1.5"/>' +
+    '<line x1="1.5" y1="6.5" x2="14.5" y2="6.5" stroke="currentColor" stroke-width="1.5"/>' +
+    '<line x1="5" y1="1.5" x2="5" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>' +
+    '<line x1="11" y1="1.5" x2="11" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>' +
+    '</svg>';
+  sourceCard.appendChild(calBtn);
+  void sourceCard.offsetHeight;
+
+  _setFtsFade('out');
+
+  // Doubled rAF: the first lets the browser paint with the source card at
+  // its sourceRect (start state). The second triggers the transitions by
+  // changing top/left/width and adding .source-target. Without the double
+  // rAF the two style commits tend to collapse and transitions don't fire.
+  requestAnimationFrame(() => {
+    void sourceCard.offsetHeight;
+    requestAnimationFrame(() => {
+      const panel = document.getElementById('panel');
+      if (panel) {
+        panel.classList.remove('mobile-expanded', 'mobile-fullscreen');
+        panel.classList.add('mobile-hidden');
+      }
+      dp.classList.add('open');
+
+      if (targetRect) {
+        sourceCard.style.top   = targetRect.top   + 'px';
+        sourceCard.style.left  = targetRect.left  + 'px';
+        sourceCard.style.width = targetRect.width + 'px';
+      }
+      sourceCard.classList.add('source-target');
+    });
+  });
+
+  // Hand-off: instead of crossfading the lifted source out + a separate
+  // dp-card in (which the user saw as TWO visually distinguishable cards),
+  // MOVE the lifted source from <body> into the panel's #dp-card-slot
+  // placeholder. The source IS the dp-card from now on — single element,
+  // no duplicate. Strip its position:fixed lifting and the injected
+  // calendar-btn overlay (the real FTS pill takes over).
+  setTimeout(() => {
+    dp.classList.remove('dp-morphing');
+
+    const slot = document.getElementById('dp-card-slot');
+    if (slot && sourceCard.parentNode === document.body) {
+      // Source already has its own (cloned) labels inside it — added at lift
+      // time so the height was correct throughout the morph. We just remove
+      // the slot's labels along with the slot via replaceChild; no extraction
+      // / re-append dance needed.
+      document.body.removeChild(sourceCard);
+      sourceCard.classList.remove('source-morphing', 'source-target');
+      sourceCard.style.cssText = '';
+      if (calBtn && calBtn.parentNode === sourceCard) sourceCard.removeChild(calBtn);
+      // .dp-card picks up dp-card padding/font sizing; .source-docked
+      // overrides position:fixed → relative so the card flows in the panel.
+      sourceCard.classList.add('dp-card', 'source-docked');
+      slot.parentNode.replaceChild(sourceCard, slot);
+    }
+
+    // Pin FTS to the slot inside the now-docked source card and fade in.
+    const fts = document.getElementById('fts');
+    if (fts) fts.style.transition = 'none';
+    _syncFtsToSlot();
+    if (fts) void fts.offsetHeight;
+    _setFtsFade('in');
+  }, 360);
+
+  // Late safety re-pin in case slot rect settled after first pin.
+  setTimeout(() => {
+    const fts = document.getElementById('fts');
+    if (fts) {
+      const prev = fts.style.transition;
+      fts.style.transition = 'none';
+      _syncFtsToSlot();
+      void fts.offsetHeight;
+      fts.style.transition = prev || '';
+    }
+    delete document.body.dataset.dpMorph;
+  }, 700);
 }
 
 function _getWxNow() {
@@ -2409,32 +2789,62 @@ function closeDetailPanel(expandList = true) {
     _aTrack('detail_close', { venue_id: selectedId, dwell_ms: dwell });
     _aDetailOpenTs = null;
   }
+  // Cancel any pending deferred renderList from a recent selectVenue — close
+  // calls renderList synchronously below, so we don't want a duplicate render
+  // firing 720ms later (which could re-flash the list with the just-cleared
+  // selectedId, causing a visible blink).
+  if (_deferredRenderListTimer) {
+    clearTimeout(_deferredRenderListTimer);
+    _deferredRenderListTimer = null;
+  }
   // Closed via in-app UI — drop 'venue' and everything stacked on top of it
   // (e.g. 'dp-fullscreen'). Skipped when triggered by the popstate handler.
   if (!_navHandlingPop) _navDropLayer('venue');
-if (typeof stopWindOverlay === 'function') stopWindOverlay();
+  if (typeof stopWindOverlay === 'function') stopWindOverlay();
   const dp = document.getElementById('detail-panel');
+
+  // ── Mobile close: panel slides DOWN off-screen while list slides UP back
+  //    into view. The two motions run in parallel under their own transitions.
+  //    Skip the rect-morph on close — going from fullscreen → small-rect →
+  //    snap-off felt jankier than a clean slide-off. The FTS FLIPs back to the
+  //    card-timeline location so it lines up with where the source card lands. ──
+  const onMobile = isMobile();
   if (dp) {
-    dp.classList.remove('open', 'dp-fullscreen');
+    dp.classList.remove('open', 'dp-fullscreen', 'dp-morphing');
   }
-  if (isMobile()) {
-    // Delay restoring the venue list until the detail panel has finished its
-    // 300ms close animation, so the two panels are never visible at the same time.
-    // expandList=true (< Venues back button): restore expanded so the list is immediately browsable.
-    // expandList=false (X button / swipe down): restore to peek state.
+  if (onMobile) {
+    // Fade FTS out concurrent with panel slide-down. After the close, we'll
+    // reset its inline styles and let _syncFtsPosition put it back at peek.
+    _setFtsFade('out');
+
+    // Reveal list IN THE SAME FRAME as the panel slide-off so they cross.
+    const panel = document.getElementById('panel');
+    if (panel) {
+      panel.classList.remove('mobile-hidden', 'mobile-fullscreen');
+      if (expandList) panel.classList.add('mobile-expanded');
+      else            panel.classList.remove('mobile-expanded');
+    }
+    document.getElementById('floating-search')?.classList.remove('mobile-ui-hidden');
+    document.getElementById('qc-wrap')?.classList.remove('mobile-ui-hidden');
+    document.getElementById('locate-btn')?.classList.remove('mobile-ui-hidden');
+    document.getElementById('zoom-jog')?.classList.remove('mobile-ui-hidden');
+
     setTimeout(() => {
-      const panel = document.getElementById('panel');
-      if (panel) {
-        panel.classList.remove('mobile-hidden', 'mobile-fullscreen');
-        if (expandList) panel.classList.add('mobile-expanded');
-        else            panel.classList.remove('mobile-expanded');
-        _syncFtsPosition();
+      // Clear FTS overrides so it returns to its CSS-driven peek/expanded layout.
+      _clearFtsInlineSize();
+      const fts = document.getElementById('fts');
+      if (fts) fts.style.transition = 'none';
+      _syncFtsPosition();
+      if (fts) void fts.offsetHeight;
+      _setFtsFade('in');
+      _clearDpCardFlip();
+      if (_morphSourceVid != null) {
+        document.querySelectorAll('.venue-card.morph-source').forEach(c => c.classList.remove('morph-source'));
+        _morphSourceVid    = null;
+        _morphSourceRect   = null;
+        _morphSourceTlRect = null;
       }
-      document.getElementById('floating-search')?.classList.remove('mobile-ui-hidden');
-      document.getElementById('qc-wrap')?.classList.remove('mobile-ui-hidden');
-      document.getElementById('locate-btn')?.classList.remove('mobile-ui-hidden');
-      document.getElementById('zoom-jog')?.classList.remove('mobile-ui-hidden');
-    }, 320);
+    }, MORPH_DURATION);
   } else {
     document.getElementById('locate-btn')?.classList.remove('mobile-ui-hidden');
     document.getElementById('zoom-jog')?.classList.remove('mobile-ui-hidden');
@@ -2478,6 +2888,9 @@ function updateDetailPanel() {
   const v = VENUES.find(x => x.id === selectedId);
   if (!v) return;
   content.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
+  // FTS is no longer reparented — it stays floating in body. Just re-sync its
+  // size/position to the new slot rect (slot dimensions are stable but be safe).
+  if (isMobile()) _syncFtsToSlot();
   _startWindForVenue(v); // restart with updated weather snapshot
 }
 
@@ -3165,9 +3578,22 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Map canvas touch → collapse panel to peek ──
     // Use capture on the map container so we catch touches before Mapbox
     document.getElementById('map-container')?.addEventListener('touchstart', () => {
-      if (panelEl && !panelEl.classList.contains('mobile-hidden')) {
-        panelEl.classList.remove('mobile-expanded', 'mobile-fullscreen');
-        _syncFtsPosition();
+      if (!panelEl || panelEl.classList.contains('mobile-hidden')) return;
+      const wasOpen = panelEl.classList.contains('mobile-expanded')
+                   || panelEl.classList.contains('mobile-fullscreen');
+      panelEl.classList.remove('mobile-expanded', 'mobile-fullscreen');
+      _syncFtsPosition();
+      if (wasOpen) {
+        // Pin layout was computed against the previous (smaller) visible region;
+        // mark stale and redraw once the panel settles so newly-revealed venues
+        // get proper pill placement instead of defaulting to dots.
+        window.markPinLayoutStale?.();
+        const onEnd = (e) => {
+          if (e.propertyName !== 'transform') return;
+          panelEl.removeEventListener('transitionend', onEnd);
+          if (typeof draw === 'function') draw();
+        };
+        panelEl.addEventListener('transitionend', onEnd);
       }
     }, { passive: true, capture: true });
 
@@ -3269,7 +3695,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // When dp-scroll is at the top and the finger moves down, start panel drag.
       const dpContent = document.getElementById('dp-content');
       if (dpContent) {
-        const _DP_INTERACTIVE = 'button, a, input, select, textarea, canvas, [role="button"]';
+        const _DP_INTERACTIVE = 'button, a, input, select, textarea, canvas, [role="button"], #fts, #fts-track, #fts-slot';
         let _dpContentStartY = 0;
         dpContent.addEventListener('touchstart', e => {
           if (e.target.closest(_DP_INTERACTIVE)) return;
@@ -3281,7 +3707,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const dpScroll = document.getElementById('dp-scroll');
           const atTop = !dpScroll || dpScroll.scrollTop <= 0;
           const cy = e.touches[0].clientY;
-          if (atTop && cy > _dpContentStartY + 8 && !e.target.closest(_DP_INTERACTIVE)) {
+          if (atTop && cy > _dpContentStartY + 8 && !e.target.closest(_DP_INTERACTIVE) && !_ftsDragging) {
             e.preventDefault();
             _beginDpDrag(cy, true);
           }
