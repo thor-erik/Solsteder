@@ -2364,19 +2364,78 @@ function updatePopup() {
 // ── Detail panel ──────────────────────────────────────────────────────────────
 
 let _morphSourceVid = null;     // venue id whose card is the morph source
-let _morphSourceRect = null;    // rect captured at open, reused on close
+let _morphSourceRect = null;    // source card rect, reused on close
 let _morphSourceTlRect = null;  // card timeline-track rect, reused on close FTS FLIP
-const MORPH_DURATION = 320;     // matches CSS transition
+const MORPH_DURATION = 340;     // matches dp-card transform transition
 
-/** Set CSS vars on dp from a card rect so the panel starts as the card on mobile.
- *  The panel is fixed:bottom:0, so its natural top = viewportH - cardHeight when
- *  --morph-h = cardHeight. translateY shifts it so its top aligns with rect.top.
- *  Cards above the panel anchor → negative dy (move up). Cards below → positive. */
-function _applyMorphFromRect(dp, rect) {
-  const viewportH = window.innerHeight;
-  const dy = rect.top - (viewportH - rect.height);
-  dp.style.setProperty('--morph-h', rect.height + 'px');
-  dp.style.setProperty('--morph-dy', dy + 'px');
+/** Compute and stage the dp-card FLIP for the panel-rise phase.
+ *
+ *  The dp-card lives INSIDE the detail panel. The panel transitions from
+ *  translateY(100%) (offscreen below) → translateY(0). For the dp-card to stay
+ *  visually anchored at the source venue-card's rect throughout this rise, its
+ *  own translateY must DECREASE by panel.height as the panel rises — i.e., it
+ *  must animate too, with the same easing and duration as the panel.
+ *
+ *  Math: at any point t in [0, 1] of the rise,
+ *    dpCard.viewport_top = panel.translateY(t) + dpCard.naturalTop + dpCard.translateY(t)
+ *  We want dpCard.viewport_top = sourceRect.top constant.
+ *    → dpCard.translateY(t) = sourceRect.top - panel.translateY(t) - dpCard.naturalTop
+ *  panel.translateY(t) goes (1-t)·panel.height → 0, so dpCard.translateY animates
+ *  from (sourceRect.top - panel.height - naturalTop) to (sourceRect.top - naturalTop).
+ *
+ *  Returns { dpCard, phase1End, naturalRect } so the caller can stage phase 2
+ *  (releasing the card to its natural slot) once the panel has finished rising. */
+function _stageDpCardFlipPhase1(sourceRect, naturalRect) {
+  const dpCard = document.querySelector('#detail-panel .dp-card');
+  if (!dpCard || !sourceRect || !naturalRect) return null;
+  const panelH = window.innerHeight;  // CSS panel height is 62svh but for FLIP math we use
+                                      // panel.translateY at start = panel.height. Since the
+                                      // CSS transition uses translateY(100%) which equals the
+                                      // panel's own height (not viewport), we need the actual
+                                      // detail-panel height.
+  const dpEl = document.getElementById('detail-panel');
+  const actualPanelHeight = dpEl ? dpEl.getBoundingClientRect().height : panelH * 0.62;
+  const dx = sourceRect.left - naturalRect.left + (sourceRect.width - naturalRect.width) / 2;
+  const dyStart = sourceRect.top - actualPanelHeight - naturalRect.top;
+  const dyEnd   = sourceRect.top - naturalRect.top;
+  const sx = sourceRect.width / Math.max(1, naturalRect.width);
+  // Phase 1 start: dp-card snapped so it visually sits at source rect WITH the
+  // panel offscreen-below. No transition yet.
+  dpCard.style.transition = 'none';
+  dpCard.style.transformOrigin = '0 0';
+  // We use translate3d to keep the card on its own compositor layer.
+  dpCard.style.transform = `translate3d(${dx}px, ${dyStart}px, 0) scale(${sx}, 1)`;
+  return { dpCard, dx, dyEnd, sx };
+}
+
+/** Phase 1 animation: panel rises while dp-card translateY counter-animates so
+ *  the card stays anchored at sourceRect throughout. Same easing + duration as
+ *  the panel's CSS transition (0.3s cubic-bezier(0.4, 0, 0.2, 1)). */
+function _runDpCardFlipPhase1(stage) {
+  if (!stage) return;
+  const { dpCard, dx, dyEnd, sx } = stage;
+  void dpCard.offsetHeight;
+  dpCard.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+  dpCard.style.transform = `translate3d(${dx}px, ${dyEnd}px, 0) scale(${sx}, 1)`;
+}
+
+/** Phase 2: dp-card slides from anchored-at-sourceRect to its natural slot
+ *  inside the panel. Photos/social/info fade in (driven by .dp-morphing being
+ *  removed in CSS). */
+function _runDpCardFlipPhase2(stage) {
+  if (!stage) return;
+  const { dpCard } = stage;
+  dpCard.style.transition = 'transform 0.32s cubic-bezier(0.32, 0.72, 0, 1)';
+  dpCard.style.transform = '';
+}
+
+/** Cleanup all FLIP styles on dp-card. */
+function _clearDpCardFlip() {
+  const dpCard = document.querySelector('#detail-panel .dp-card');
+  if (!dpCard) return;
+  dpCard.style.removeProperty('transition');
+  dpCard.style.removeProperty('transform');
+  dpCard.style.removeProperty('transform-origin');
 }
 
 /** Sync --fts-bottom so the floating FTS pill aligns with #fts-slot inside the
@@ -2501,73 +2560,74 @@ function openDetailPanel(v) {
     return;
   }
 
-  // ── Mobile morph: panel grows from card rect → fullscreen, list slides
-  //    down behind, FTS pill FLIPs from card-timeline → slot ───────────────
+  // ── Mobile morph (Option A): two-phase ──────────────────────────────────
+  //   Phase 1 (300ms): panel slides up from below. dp-card is FLIPped onto the
+  //     source venue-card's rect AND counter-animated so it stays visually
+  //     anchored there for the whole rise — synced to the panel's transition.
+  //     List slides down behind everything. Source card fades to opacity 0.
+  //   Phase 2 (320ms): .dp-morphing comes off → dp-card content scales up
+  //     (font-size / padding via CSS), dp-card slides from anchored sourceRect
+  //     to its natural slot inside the panel. Photos / social / info fade in.
+  //     FTS pill animates from card-timeline rect → slot.
+  // ─────────────────────────────────────────────────────────────────────────
   _morphSourceVid    = v.id;
-  _morphSourceRect   = { top: sourceRect.top, height: sourceRect.height };
+  _morphSourceRect   = { top: sourceRect.top, left: sourceRect.left, width: sourceRect.width, height: sourceRect.height };
   _morphSourceTlRect = sourceTlRect ? { top: sourceTlRect.top, left: sourceTlRect.left, width: sourceTlRect.width, height: sourceTlRect.height } : null;
 
-  // Frame 0: snap panel to card rect WITHOUT transitions. Force layout via
-  // offsetHeight so this frame is committed by the browser before frame 1.
-  _applyMorphFromRect(dp, sourceRect);
-  sourceCard.classList.add('morph-source');
-  dp.classList.add('dp-morphing', 'dp-morph-instant');
-  void dp.offsetHeight;
-  void getComputedStyle(dp).transform;
-
-  // Mobile chrome out of the way (these don't affect the morph timing).
   document.getElementById('floating-search')?.classList.add('mobile-ui-hidden');
   document.getElementById('qc-wrap')?.classList.add('mobile-ui-hidden');
 
-  // Pre-compute the slot's eventual rect by temporarily previewing the panel's
-  // end state (.open without .dp-morphing). dp-morph-instant keeps transitions
-  // off so the swap doesn't visually animate. Browser doesn't paint between
-  // synchronous DOM operations, so the user only sees frame 0 (rect) → frame 1
-  // (animating to fullscreen). Setting --fts-bottom to the *eventual* slot
-  // position now lets the FTS pill animate to its final spot in lockstep with
-  // the panel rise (via the body.fts #fts CSS bottom transition).
-  const slot = document.getElementById('fts-slot');
-  if (slot) {
-    const slotWasHidden = getComputedStyle(slot).display === 'none';
-    const slotPrevDisp = slot.style.display;
-    if (slotWasHidden) slot.style.display = 'block';
-    // Swap to end state.
-    dp.classList.remove('dp-morphing');
-    dp.classList.add('open');
-    void dp.offsetHeight;
-    _syncFtsToSlot();
-    // Swap back to start state.
-    dp.classList.remove('open');
-    dp.classList.add('dp-morphing');
-    void dp.offsetHeight;
-    if (slotWasHidden) slot.style.display = slotPrevDisp;
-  }
+  // Apply .dp-morphing — hides photos/social/etc, sets dp-card to small-card sizes.
+  // We need to measure dp-card.naturalRect (the rect it'd have when the panel is
+  // open at its end position). Briefly snap the panel into .open with no transition,
+  // measure, then revert. Browser doesn't paint between sync ops so the user sees
+  // nothing until rAF.
+  sourceCard.classList.add('morph-source');
+  dp.classList.add('dp-morphing');
+  const prevTransition = dp.style.transition;
+  dp.style.transition = 'none';
+  dp.classList.add('open');
+  void dp.offsetHeight;
+  const dpCardEl = document.querySelector('#detail-panel .dp-card');
+  const naturalRect = dpCardEl ? dpCardEl.getBoundingClientRect() : null;
+  dp.classList.remove('open');
+  void dp.offsetHeight;
+  dp.style.transition = prevTransition || '';
 
-  // Frame 1 (next animation frame): re-enable transitions, add .open, start
-  // list slide-down + FTS FLIP. All animations begin in the same frame so they
-  // run synchronously over the same ~340ms window.
+  // Stage phase 1: snap dp-card so it visually sits at source rect WHILE panel
+  // is offscreen-below. No transition; this is the start frame.
+  const stage = naturalRect ? _stageDpCardFlipPhase1(sourceRect, naturalRect) : null;
+  void dp.offsetHeight;
+
+  // Frame 1 (rAF): start panel slide-up + list slide-down + dp-card phase 1.
   requestAnimationFrame(() => {
     const panel = document.getElementById('panel');
     if (panel) {
       panel.classList.remove('mobile-expanded', 'mobile-fullscreen');
       panel.classList.add('mobile-hidden');
     }
-    dp.classList.remove('dp-morph-instant');
-    void dp.offsetHeight;
-    dp.classList.add('open');
-    // FLIP: FTS visually starts at source card-timeline rect, animates to its
-    // (already-pinned) slot position via transform.
-    if (sourceTlRect) _flipFtsFromCardTimeline(sourceTlRect);
+    dp.classList.add('open');           // panel rises (0.3s)
+    _runDpCardFlipPhase1(stage);        // dp-card stays anchored at sourceRect
   });
 
-  // Cleanup morph styles after the animation lands so .dp-fullscreen and the
-  // drag handler can manipulate height/transform freely afterwards.
+  // Phase 2 starts when phase 1 ends — at MORPH_DURATION (= 340ms, slightly
+  // after the panel's 300ms transition so the panel has fully settled).
   setTimeout(() => {
-    dp.classList.remove('dp-morphing');
-    dp.style.removeProperty('--morph-h');
-    dp.style.removeProperty('--morph-dy');
+    dp.classList.remove('dp-morphing');  // triggers font/padding scale-up + fade-ins
+    _runDpCardFlipPhase2(stage);         // dp-card slides from sourceRect → slot
+
+    // Pin FTS to slot now that .dp-morphing is off and slot is visible.
+    requestAnimationFrame(() => {
+      _syncFtsToSlot();
+      if (sourceTlRect) _flipFtsFromCardTimeline(sourceTlRect);
+    });
+  }, 320);
+
+  // Cleanup all FLIP styles after both phases settle.
+  setTimeout(() => {
+    _clearDpCardFlip();
     _syncFtsToSlot();
-  }, MORPH_DURATION + 60);
+  }, 320 + MORPH_DURATION + 30);
 }
 
 function _getWxNow() {
@@ -2600,9 +2660,6 @@ function closeDetailPanel(expandList = true) {
   const onMobile = isMobile();
   if (dp) {
     dp.classList.remove('open', 'dp-fullscreen', 'dp-morphing');
-    dp.classList.remove('dp-morph-instant');
-    dp.style.removeProperty('--morph-h');
-    dp.style.removeProperty('--morph-dy');
   }
   if (onMobile) {
     // FLIP the FTS pill: it currently sits in the slot inside the (still-open)

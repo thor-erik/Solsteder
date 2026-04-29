@@ -4883,53 +4883,70 @@
       border-radius: 0;
     }
 
-    /* Container morph: panel starts at the clicked card's rect (--morph-h height,
-       --morph-dy translateY) with card-style border-radius, then grows up to fill
-       62svh. The cards behind translate down via #panel.mobile-hidden in tandem,
-       so visually the card "stays in place" and expands into the panel. */
+    /* Card-anchored morph (Option A): the panel container slides up normally
+       (translateY(100%) → 0). What stays "in place" is the .dp-card inside —
+       JS applies a transform that pins it to the source venue-card's rect for
+       the duration of the rise, then releases to its natural slot. The panel
+       chrome (background, photos, social, etc.) is hidden during the morph so
+       the rising panel doesn't visually peek out from under the anchored card. */
     #detail-panel.dp-morphing {
-      height: var(--morph-h, 62svh);
-      transform: translateY(var(--morph-dy, 100%)) translateZ(0);
-      border-radius: 12px;
-      transition: transform 0.34s cubic-bezier(0.32, 0.72, 0, 1),
-                  height 0.34s cubic-bezier(0.32, 0.72, 0, 1),
-                  border-radius 0.28s ease;
+      background: transparent !important;
+      box-shadow: none !important;
+      border: none !important;
     }
-    /* Used twice: (a) FLIP start frame to snap to card rect with NO transition before
-       .open animates, and (b) after the reverse morph to snap the panel off-screen
-       without an extra wobble animation. */
-    #detail-panel.dp-morph-instant {
-      transition: none !important;
+    #detail-panel.dp-morphing::before {
+      opacity: 0 !important;   /* glass-panel pseudo bevel */
     }
-    #detail-panel.dp-morphing.open {
-      height: 62svh;
-      transform: translateY(0) translateZ(0);
-      border-radius: 20px 20px 0 0;
-    }
-    /* Source card fades out as the panel covers it. Opacity (not visibility) keeps
-       layout stable so the list-slide-down animation doesn't jump. */
+    /* Source card fades out as the dp-card takes its place via FLIP. Opacity
+       (not visibility) keeps layout stable so the list slide-down doesn't jump. */
     .venue-card.morph-source {
       opacity: 0;
       transition: opacity 0.18s ease-out;
     }
-
-    /* During the morph, only the .card-top portion of dp-card is in flow — its
-       footprint matches the source card. Everything below (FTS slot, time labels,
-       photos, social, action row, info, footer) is collapsed so the dp-card height
-       ≈ source card height. They re-flow in once .dp-morphing lifts. */
+    /* During the morph, hide everything except the dp-card. Photos / social /
+       action / info / footer fade in once .dp-morphing lifts. */
     #detail-panel.dp-morphing .detail-new-photos-wrap,
     #detail-panel.dp-morphing .social-card,
     #detail-panel.dp-morphing .dp-action-row,
     #detail-panel.dp-morphing .info-list,
-    #detail-panel.dp-morphing .secondary-row,
+    #detail-panel.dp-morphing .secondary-row {
+      opacity: 0;
+      pointer-events: none;
+    }
     #detail-panel.dp-morphing #fts-slot,
     #detail-panel.dp-morphing .dp-tl-labels {
       display: none;
     }
-    /* dp-card during morph: drop the bottom padding/margin to mimic source card */
+    /* dp-card during morph: matches the source venue-card exactly so the FLIP
+       transform doesn't introduce a visual size jump. JS animates the dp-card
+       from this small-card state to its full dp-card size after the morph. */
     #detail-panel.dp-morphing .dp-card {
-      padding-bottom: 8px;
+      padding: 12px 14px;
+      border-radius: 12px;
       margin-bottom: 0;
+      transform-origin: 0 0;
+      will-change: transform;
+    }
+    #detail-panel.dp-morphing .dp-card .card-new-name      { font-size: 15px; }
+    #detail-panel.dp-morphing .dp-card .card-new-meta      { font-size: 11px; }
+    #detail-panel.dp-morphing .dp-card .card-new-hero-main { font-size: 14px; }
+    #detail-panel.dp-morphing .dp-card .card-new-hero-sub  { font-size: 11px; }
+    /* When .dp-morphing comes off, dp-card scales up + content fades in. */
+    #detail-panel .dp-card {
+      transition: padding 0.28s ease, border-radius 0.28s ease;
+    }
+    #detail-panel .dp-card .card-new-name,
+    #detail-panel .dp-card .card-new-meta,
+    #detail-panel .dp-card .card-new-hero-main,
+    #detail-panel .dp-card .card-new-hero-sub {
+      transition: font-size 0.28s ease;
+    }
+    #detail-panel .detail-new-photos-wrap,
+    #detail-panel .social-card,
+    #detail-panel .dp-action-row,
+    #detail-panel .info-list,
+    #detail-panel .secondary-row {
+      transition: opacity 0.22s ease 0.06s;
     }
     #dp-handle { display: flex; }
     #dp-scroll { padding-top: 4px; }
