@@ -4772,13 +4772,14 @@
   }
 
   /* The docked source card uses its old `.card-timeline` as the slot the FTS
-     pill overlays. Size it to match the FTS pill (38px tall, pill-shaped,
-     left-margin = calendar-btn 38 + gap 8 = 46). The card-timeline content
-     (sun/shadow segments) is hidden behind the FTS pill canvas. */
+     pill overlays. The pill spans the FULL card-content width — calendar btn
+     occupies the leftmost 38px, gap 8px, then the slider track fills the
+     remainder. So no margin-left here; the calendar btn (38px wide, opaque
+     glass-bg via its own CSS) covers the leftmost portion of the wx segments
+     drawn by buildMiniSunTimeline, and the canvas covers the rest. */
   .dp-card .card-timeline {
     height: 38px;
     margin-top: 16px;
-    margin-left: 46px;
   }
   .dp-card .timeline-track {
     height: 38px;
@@ -4790,10 +4791,11 @@
   /* Reserves layout space in the panel for the lifted source venue-card,
      which is moved here at the end of the open-morph and becomes the
      dp-card. Once the source card lands here, this placeholder is removed
-     by JS (replaceChild). Height matches the docked card's expected size:
-     card-top (~50) + card-timeline (38) + padding (32) ≈ 120. */
+     by JS (replaceChild). Height includes card-top (~50) + card-timeline
+     (38 + 16 margin-top) + dp-tl-labels (14 + 18 margin-top) + padding
+     (18 top + 14 bottom). */
   .dp-card-slot {
-    height: 122px;
+    height: 168px;
     margin-bottom: 14px;
   }
 

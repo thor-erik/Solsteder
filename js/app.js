@@ -2711,6 +2711,12 @@ function openDetailPanel(v) {
       // overrides position:fixed → relative so the card flows in the panel.
       sourceCard.classList.add('dp-card', 'source-docked');
       slot.parentNode.replaceChild(sourceCard, slot);
+
+      // Move the time labels INSIDE the docked card so they sit under the
+      // slider visually attached to it (instead of floating below the card
+      // box where the user complained they look disconnected).
+      const labels = document.querySelector('#detail-panel .dp-tl-labels');
+      if (labels) sourceCard.appendChild(labels);
     }
 
     // Pin FTS to the slot inside the now-docked source card and fade in.
