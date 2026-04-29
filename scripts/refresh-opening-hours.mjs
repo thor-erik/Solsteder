@@ -215,10 +215,14 @@ let osmHits    = 0;
 let googleHits = 0;
 let noData     = 0;
 let googleCalls = 0;
+let skippedClosed = 0;
 
-console.log(`Refreshing opening hours for ${venues.length} venues…\n`);
+const liveVenues = venues.filter(v => v.businessStatus !== 'CLOSED_PERMANENTLY');
+skippedClosed = venues.length - liveVenues.length;
 
-for (const v of venues) {
+console.log(`Refreshing opening hours for ${liveVenues.length} live venues (${skippedClosed} skipped, permanently closed)…\n`);
+
+for (const v of liveVenues) {
   process.stdout.write(`  ${v.name} … `);
 
   // 1. Try OSM
@@ -281,8 +285,9 @@ if (closed.length) {
 
 console.log(`
 Summary:
-  OSM hits:      ${osmHits}
-  Google hits:   ${googleHits}  (${googleCalls} API calls, ~$${(googleCalls * 0.017).toFixed(2)})
-  No data:       ${noData}
-  Closed:        ${closed.length}
+  OSM hits:        ${osmHits}
+  Google hits:     ${googleHits}  (${googleCalls} API calls, ~$${(googleCalls * 0.017).toFixed(2)})
+  No data:         ${noData}
+  Closed (new):    ${closed.length}
+  Skipped (was closed): ${skippedClosed}
 `);

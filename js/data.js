@@ -139,8 +139,13 @@ async function loadVenues() {
     const resp = await fetch('data/venues.json');
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const raw = await resp.json();
-    VENUES = raw.map(normalizeVenue);
-    console.log(`Loaded ${VENUES.length} venues from data/venues.json`);
+    // Drop permanently-closed venues at load time. They stay in venues.json
+    // for history and to avoid re-discovering them every monthly run, but
+    // are hidden from users.
+    const live = raw.filter(v => v.businessStatus !== 'CLOSED_PERMANENTLY');
+    VENUES = live.map(normalizeVenue);
+    const skipped = raw.length - live.length;
+    console.log(`Loaded ${VENUES.length} venues from data/venues.json${skipped ? ` (${skipped} closed permanently, hidden)` : ''}`);
   } catch (e) {
     console.warn('venues.json unavailable, using built-in data:', e.message);
     VENUES = FALLBACK_VENUES.map(normalizeVenue);
