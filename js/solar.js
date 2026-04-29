@@ -140,6 +140,21 @@ function pointInBuildingShadow(lat, lng, building, sunAz, sunAlt) {
 }
 
 /**
+ * Fast (shadow-free) sun-state. Same rooftop / courtyard / facing logic as
+ * venueSunState but skips per-building shadow casting. Used by main-thread
+ * cache-miss paths so a wholesale cache wipe (e.g. on date change) doesn't
+ * trigger ~22M shadow checks and freeze the UI — the worker runs the precise
+ * variant in parallel and overwrites cached entries when it finishes.
+ */
+function venueSunStateSimple(venue, sunAz, sunAlt) {
+  if (sunAlt < 2) return false;
+  if (venue.terraceType === 'rooftop')  return sunAlt > 5;
+  if (venue.terraceType === 'courtyard') return sunAlt > 20;
+  if (venue.facing == null) return sunAlt > 2;
+  return venueInSun(venue.facing, sunAz, sunAlt);
+}
+
+/**
  * Primary sun-state function used by window computation and live rendering.
  * Uses building shadow casting when nearbyBuildings is populated (after initFacings),
  * falls back to the facing-angle heuristic otherwise.
@@ -227,16 +242,22 @@ function findSunCrossingFromTable(table, rising) {
 /**
  * Compute sun windows for a venue from a pre-built sun table.
  * venue: { facing, openingHours: { open, close } }
+ * opts.fast = true  → skip shadow casting (use venueSunStateSimple). Used on
+ *                     the main thread for cache-miss fallback so 300+ venue
+ *                     recomputes don't freeze the UI; the worker overwrites
+ *                     these entries with precise results when ready.
  * Returns { windows: [{start, end}], open, close }
  */
-function computeSunWindowsFromTable(venue, table) {
+function computeSunWindowsFromTable(venue, table, opts) {
+  const fast = opts?.fast === true;
+  const stateFn = fast ? venueSunStateSimple : venueSunState;
   const { open, close } = venue.openingHours ?? { open: 11, close: 23 };
   const windows = [];
   let inSun = false, winStart = null;
 
   for (let h = open; h <= close + 0.001; h += SOLAR_STEP) {
     const { az, alt } = getSunFromTable(table, h);
-    const sunny = venueSunState(venue, az, alt);
+    const sunny = stateFn(venue, az, alt);
     if (sunny && !inSun)      { inSun = true;  winStart = h; }
     else if (!sunny && inSun) { inSun = false;  windows.push({ start: winStart, end: h }); }
   }

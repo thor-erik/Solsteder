@@ -674,13 +674,18 @@ const sunWindowCache = new Map();
 
 /**
  * Get sun windows for a venue, using cache if available.
- * Falls back to sync computation on cache miss (worker will overwrite later).
+ * On cache miss: when a worker is available, compute the fast (simple-facing)
+ * variant — the worker is computing the precise (shadow-casting) variant in
+ * parallel and will overwrite this entry when it finishes. Without `fast`,
+ * a wholesale cache wipe (e.g. on date change) would force ~22M shadow checks
+ * on the main thread and freeze the UI for 1–2 s at 300+ venues.
+ * On file:// (no worker) we fall back to the precise sync computation.
  */
 function computeSunWindows(venue, dateStr) {
   const key = `${venue.id}-${dateStr}`;
   if (sunWindowCache.has(key)) return sunWindowCache.get(key);
   if (!currentSunTable) currentSunTable = buildSunTable(dateStr);
-  const result = computeSunWindowsFromTable(venue, currentSunTable);
+  const result = computeSunWindowsFromTable(venue, currentSunTable, { fast: !!sunWorker });
   sunWindowCache.set(key, result);
   return result;
 }
