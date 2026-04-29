@@ -117,9 +117,17 @@ let _ftsDragging       = false; // true during scrub
 let _ftsHideTimeout    = null;  // scrub popup auto-hide timer
 const FTS_GAP          = 8;    // px gap between pill and panel top edge
 
-/** Update FTS position — mobile: --fts-bottom var; desktop: left edge. */
+/** Update FTS position — mobile: --fts-bottom var; desktop: left edge.
+ *
+ *  Skipped while a detail-panel open-morph is in flight (body.dataset.dpMorph
+ *  set by openDetailPanel). Other callers — renderList → updateVenuePeek →
+ *  _updatePeekHeight runs in a rAF that lands AFTER our open-morph rAF, and
+ *  _syncFtsPosition would (a) reset ftsEl.style.opacity = '' (undoing the
+ *  fade-out), and (b) call _syncFtsToSlot while the panel is mid-rise (pinning
+ *  FTS to a mid-flight slot rect). The flag prevents both. */
 function _syncFtsPosition() {
   if (!USE_FLOATING_TIME_SLIDER) return;
+  if (document.body.dataset.dpMorph === '1') return;
   const ftsEl = document.getElementById('fts');
   const panel = document.getElementById('panel');
   const dp    = document.getElementById('detail-panel');
@@ -2578,6 +2586,11 @@ function openDetailPanel(v) {
   _morphSourceRect   = { top: sourceRect.top, left: sourceRect.left, width: sourceRect.width, height: sourceRect.height };
   _morphSourceTlRect = sourceTlRect ? { top: sourceTlRect.top, left: sourceTlRect.left, width: sourceTlRect.width, height: sourceTlRect.height } : null;
 
+  // Lock _syncFtsPosition out for the duration of the open-morph. Other code
+  // paths (renderList → updateVenuePeek → _updatePeekHeight → _syncFtsPosition)
+  // would otherwise reset opacity and pin FTS to a mid-flight slot rect.
+  document.body.dataset.dpMorph = '1';
+
   document.getElementById('floating-search')?.classList.add('mobile-ui-hidden');
   document.getElementById('qc-wrap')?.classList.add('mobile-ui-hidden');
 
@@ -2630,13 +2643,16 @@ function openDetailPanel(v) {
   }, 420);
   setTimeout(() => {
     const fts = document.getElementById('fts');
-    if (!fts) return;
-    // Re-pin without transition; if the slot didn't move this is a no-op.
-    const prev = fts.style.transition;
-    fts.style.transition = 'none';
-    _syncFtsToSlot();
-    void fts.offsetHeight;
-    fts.style.transition = prev || '';
+    if (fts) {
+      // Re-pin without transition; if the slot didn't move this is a no-op.
+      const prev = fts.style.transition;
+      fts.style.transition = 'none';
+      _syncFtsToSlot();
+      void fts.offsetHeight;
+      fts.style.transition = prev || '';
+    }
+    // Release the morph lock; future _syncFtsPosition calls work normally.
+    delete document.body.dataset.dpMorph;
   }, 700);
 }
 
