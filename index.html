@@ -4985,6 +4985,21 @@
     .venue-card.source-morphing.source-target .source-card-calbtn { opacity: 1; }
     .source-card-calbtn svg { width: 16px; height: 16px; }
 
+    /* Hand-off fade: at 360ms we drop .dp-morphing (panel's actual dp-card +
+       photos/social/info fade in) AND add .source-fading to the lifted source
+       card so it fades out over the same window. Crossfade hides the visual
+       discrepancy between the lifted card's morphed timeline (no labels,
+       static calendar btn overlay) and the dp-card's slot + dp-tl-labels +
+       real FTS pill. */
+    .venue-card.source-morphing.source-fading {
+      transition:
+        opacity 0.22s ease-in 0.04s,
+        top           0.34s cubic-bezier(0.32, 0.72, 0, 1),
+        left          0.34s cubic-bezier(0.32, 0.72, 0, 1),
+        width         0.34s cubic-bezier(0.32, 0.72, 0, 1);
+      opacity: 0;
+    }
+
     /* Placeholder reserves the source card's slot in the list so cards above
        don't reflow when we lift the source out. */
     .venue-card-placeholder { pointer-events: none; }
@@ -4998,18 +5013,17 @@
        overflow:visible on panel + dp-content so the FLIPped dp-card isn't
        clipped to the panel's visible box (which is mostly offscreen-below
        during the rise). */
+    /* Keep panel chrome (background, border, shadow, ::before bevel) visible
+       during the morph. The lifted source card sits at z-index 9990 — above
+       the panel's z-index — so it stays on top regardless. Having the chrome
+       there from the start avoids the abrupt "dark blue panel appears" jump
+       at the hand-off moment when .dp-morphing is removed. */
     #detail-panel.dp-morphing {
-      background: transparent !important;
-      box-shadow: none !important;
-      border: none !important;
       overflow: visible !important;
     }
     #detail-panel.dp-morphing #dp-content,
     #detail-panel.dp-morphing #dp-scroll {
       overflow: visible !important;
-    }
-    #detail-panel.dp-morphing::before {
-      opacity: 0 !important;   /* glass-panel pseudo bevel */
     }
     /* During the morph, the lifted clone is what the user sees. The actual
        dp-card + photos/social/info/footer in the panel are hidden via opacity

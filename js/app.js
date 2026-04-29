@@ -2676,9 +2676,11 @@ function openDetailPanel(v) {
 
   // Hand-off: drop .dp-morphing (actual dp-card + photos/social/info fade
   // in at the same position/size as the now-arrived source card), pin FTS
-  // to slot, fade FTS in. Detach the source card from <body> — it stays in
-  // memory, attached via placeholder._morphSource — and is restored to the
-  // list when closeDetailPanel runs.
+  // to slot, fade FTS in. Add .source-fading to the lifted source so it
+  // fades out over the same 0.22s as the dp-card fades in — the crossfade
+  // hides the visual discrepancy (lifted card has its morphed timeline +
+  // calendar-btn overlay, dp-card has fts-slot + dp-tl-labels + real FTS
+  // pill). Without the crossfade the swap reads as a one-frame jump.
   setTimeout(() => {
     dp.classList.remove('dp-morphing');
 
@@ -2688,13 +2690,18 @@ function openDetailPanel(v) {
     if (fts) void fts.offsetHeight;
     _setFtsFade('in');
 
+    sourceCard.classList.add('source-fading');
+  }, 360);
+
+  // Detach the source card after its fade-out completes.
+  setTimeout(() => {
     if (sourceCard.parentNode === document.body) {
       document.body.removeChild(sourceCard);
-      sourceCard.classList.remove('source-morphing', 'source-target');
+      sourceCard.classList.remove('source-morphing', 'source-target', 'source-fading');
       sourceCard.style.cssText = '';
       if (calBtn.parentNode === sourceCard) sourceCard.removeChild(calBtn);
     }
-  }, 360);
+  }, 660);
 
   // Late safety re-pin in case slot rect settled after first pin.
   setTimeout(() => {
