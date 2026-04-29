@@ -4771,6 +4771,22 @@
     margin-top: 2px;
   }
 
+  /* The docked source card uses its old `.card-timeline` as the slot the FTS
+     pill overlays. Size it to match the FTS pill (38px tall, pill-shaped,
+     left-margin = calendar-btn 38 + gap 8 = 46). The card-timeline content
+     (sun/shadow segments) is hidden behind the FTS pill canvas. */
+  .dp-card .card-timeline {
+    height: 38px;
+    margin-top: 16px;
+    margin-left: 46px;
+  }
+  .dp-card .timeline-track {
+    height: 38px;
+    border-radius: 19px;
+    overflow: hidden;
+  }
+  .dp-card .tl-now { display: none; }
+
   /* Reserves layout space in the panel for the lifted source venue-card,
      which is moved here at the end of the open-morph and becomes the
      dp-card. Once the source card lands here, this placeholder is removed
