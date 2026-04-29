@@ -216,6 +216,24 @@ function categoryFromTypes(types = []) {
   return 'restaurant';
 }
 
+// Whitelist of Google Places API v1 types that indicate a food/drink
+// venue. The keyword text searches ("terrasse Grünerløkka Oslo" etc.)
+// otherwise return parking lots and apartment complexes whose names
+// happen to contain the keyword. Apply this filter before admitting
+// places into discovery output.
+const FOOD_TYPES = new Set([
+  'restaurant', 'bar', 'cafe', 'pub', 'food', 'bakery', 'coffee_shop',
+  'meal_takeaway', 'meal_delivery', 'wine_bar', 'night_club', 'biergarten',
+  'pizzeria', 'tea_house', 'brewery', 'gastropub', 'ice_cream_shop',
+  'sandwich_shop', 'cafeteria', 'bistro', 'bbq_restaurant',
+]);
+
+function hasFoodType(types = []) {
+  // The _restaurant suffix catches all *_restaurant variants
+  // (italian_restaurant, sushi_restaurant, etc.) without listing them.
+  return types.some(t => FOOD_TYPES.has(t) || t.endsWith('_restaurant'));
+}
+
 // ── OSM outdoor_seating=yes (free signal, complements Google) ─────────────────
 
 const OVERPASS_ENDPOINTS = [
@@ -291,11 +309,14 @@ async function resolveOSMToGoogle(osmVenue) {
   if (!resp.ok) return null;
   const data = await resp.json();
   const candidates = data.places ?? [];
-  // Pick the closest result within 150 m of the OSM coordinates.
+  // Pick the closest food/drink result within 150 m of the OSM
+  // coordinates. The food-type filter avoids false matches when the
+  // text search lands on a similarly-named parking lot or building.
   let best = null;
   let bestDist = Infinity;
   for (const p of candidates) {
     if (p.businessStatus === 'CLOSED_PERMANENTLY') continue;
+    if (!hasFoodType(p.types)) continue;
     const lat = p.location?.latitude;
     const lng = p.location?.longitude;
     if (lat == null || lng == null) continue;
@@ -326,6 +347,9 @@ const addSignal = (id, place, area, source) => {
   return true;
 };
 
+// Counter for the post-filter so we can see how much noise is being dropped.
+let droppedNonFood = 0;
+
 console.log('Pass A: Nearby Search with outdoorSeating filter…\n');
 for (const point of SEARCH_POINTS) {
   process.stdout.write(`  ${point.area} … `);
@@ -335,6 +359,7 @@ for (const point of SEARCH_POINTS) {
     for (const p of places) {
       if (p.businessStatus === 'CLOSED_PERMANENTLY') continue;
       if (!p.outdoorSeating) continue; // only keep explicit outdoor seating
+      if (!hasFoodType(p.types)) { droppedNonFood++; continue; }
       if (addSignal(p.id, p, point.area, 'outdoorSeating')) added++;
     }
     console.log(`${places.length} results, ${added} with outdoorSeating`);
@@ -359,6 +384,7 @@ for (const keyword of KEYWORDS) {
       let added = 0;
       for (const p of places) {
         if (p.businessStatus === 'CLOSED_PERMANENTLY') continue;
+        if (!hasFoodType(p.types)) { droppedNonFood++; continue; }
         if (addSignal(p.id, p, point.area, keyword)) added++;
       }
       console.log(`${places.length} results, ${added} new`);
@@ -521,6 +547,7 @@ console.log(`\n━━━ Discovery output ━━━━━━━━━━━━�
 console.log(`  High confidence  → data/venues-fetched.json:        ${high.length}`);
 console.log(`  Review needed    → data/venues-review.json:         ${review.length}`);
 console.log(`  OSM unresolved   → data/venues-osm-unresolved.json: ${osmUnresolvedList.length}`);
+console.log(`  (Filtered out ${droppedNonFood} non-food results — parking lots, parks, etc.)`);
 console.log(`\nBreakdown by discoverySignal:`);
 for (const [s, n] of Object.entries(bySignal).sort((a, b) => b[1] - a[1])) {
   console.log(`  ${s.padEnd(40)} ${n}`);
