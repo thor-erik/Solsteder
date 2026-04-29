@@ -759,7 +759,6 @@ const map = new mapboxgl.Map({
   attributionControl: false,
 });
 
-map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
 map.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-right');
 
 // ── User location dot ─────────────────────────────────────────────────────────
@@ -2569,34 +2568,25 @@ function openDetailPanel(v) {
     return;
   }
 
-  // ── Mobile morph (single-phase, per user spec) ──────────────────────────
-  // All of the following happen concurrently over ~340ms:
-  //   • Time slider (FTS) fades out (opacity 0).
-  //   • Venue list slides down via .mobile-hidden.
-  //   • Detail panel slides up via .open.
-  //   • Source venue-card fades to opacity 0 (CSS .morph-source).
-  //   • dp-card starts FLIPped onto the source-card rect, then animates its
-  //     transform back to identity → its natural slot inside the panel.
-  //   • dp-card padding/font/border-radius and photos/social/info opacity
-  //     transition (CSS) so the card morphs in size and the chrome fades in
-  //     while the card is moving into place.
-  // After the morph: re-pin FTS to slot and fade it back in.
-  // ─────────────────────────────────────────────────────────────────────────
+  // ── Mobile morph (lifted-clone). The clicked venue-card stays fully visible
+  //   throughout. We clone it, fix the clone to its viewport rect, hide the
+  //   original via .morph-source (visibility:hidden — preserves layout space).
+  //   List slides off-screen with the original card. Detail panel rises with
+  //   its own dp-card hidden. The clone animates top/left/width/padding/font/
+  //   timeline-shape to its target rect inside the panel. After the morph the
+  //   clone is removed and the actual dp-card / photos / social / info fade
+  //   in (an invisible swap because the styling matches by then). ───────────
   _morphSourceVid    = v.id;
   _morphSourceRect   = { top: sourceRect.top, left: sourceRect.left, width: sourceRect.width, height: sourceRect.height };
   _morphSourceTlRect = sourceTlRect ? { top: sourceTlRect.top, left: sourceTlRect.left, width: sourceTlRect.width, height: sourceTlRect.height } : null;
 
-  // Lock _syncFtsPosition out for the duration of the open-morph. Other code
-  // paths (renderList → updateVenuePeek → _updatePeekHeight → _syncFtsPosition)
-  // would otherwise reset opacity and pin FTS to a mid-flight slot rect.
   document.body.dataset.dpMorph = '1';
-
   document.getElementById('floating-search')?.classList.add('mobile-ui-hidden');
   document.getElementById('qc-wrap')?.classList.add('mobile-ui-hidden');
 
-  // Apply .dp-morphing — hides photos/social/etc, sets dp-card to small-card sizes
-  // (matching the source venue-card). Measure dp-card's natural position by briefly
-  // snapping the panel to .open with transitions disabled.
+  // Apply .dp-morphing (panel chrome stripped + dp-card hidden). Briefly snap
+  // the panel to .open with transitions off so we can measure the dp-card's
+  // natural rect — that's the lifted clone's target.
   sourceCard.classList.add('morph-source');
   dp.classList.add('dp-morphing');
   const prevTransition = dp.style.transition;
@@ -2604,54 +2594,79 @@ function openDetailPanel(v) {
   dp.classList.add('open');
   void dp.offsetHeight;
   const dpCardEl = document.querySelector('#detail-panel .dp-card');
-  const naturalRect = dpCardEl ? dpCardEl.getBoundingClientRect() : null;
+  const targetRect = dpCardEl ? dpCardEl.getBoundingClientRect() : null;
   dp.classList.remove('open');
   void dp.offsetHeight;
   dp.style.transition = prevTransition || '';
 
-  // FLIP dp-card so it visually starts at the source venue-card's rect.
-  const dpCard = naturalRect ? _applyDpCardFlipFromRect(sourceRect, naturalRect) : null;
-  void (dpCard && dpCard.offsetHeight);
+  // Build the lifted clone.
+  const lifted = sourceCard.cloneNode(true);
+  lifted.classList.remove('selected');
+  lifted.classList.add('lifted-card');
+  lifted.removeAttribute('onclick');
+  lifted.removeAttribute('onmouseenter');
+  lifted.removeAttribute('onmouseleave');
+  lifted.style.top   = sourceRect.top   + 'px';
+  lifted.style.left  = sourceRect.left  + 'px';
+  lifted.style.width = sourceRect.width + 'px';
+  // Calendar-button overlay that fades in with the time-bar morph.
+  const calBtn = document.createElement('div');
+  calBtn.className = 'lifted-card-calbtn';
+  calBtn.innerHTML =
+    '<svg width="16" height="16" viewBox="0 0 16 16" fill="none">' +
+    '<rect x="1.5" y="3" width="13" height="11.5" rx="2" stroke="currentColor" stroke-width="1.5"/>' +
+    '<line x1="1.5" y1="6.5" x2="14.5" y2="6.5" stroke="currentColor" stroke-width="1.5"/>' +
+    '<line x1="5" y1="1.5" x2="5" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>' +
+    '<line x1="11" y1="1.5" x2="11" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>' +
+    '</svg>';
+  lifted.appendChild(calBtn);
+  document.body.appendChild(lifted);
+  void lifted.offsetHeight;
 
-  // Fade FTS out concurrently with the morph.
   _setFtsFade('out');
 
-  // Frame 1 (rAF): kick off all concurrent transitions in the same paint cycle.
+  // Frame 1 (rAF): start all concurrent transitions in the same paint cycle.
   requestAnimationFrame(() => {
     const panel = document.getElementById('panel');
     if (panel) {
       panel.classList.remove('mobile-expanded', 'mobile-fullscreen');
-      panel.classList.add('mobile-hidden');           // list slides down
+      panel.classList.add('mobile-hidden');           // list slides off
     }
     dp.classList.add('open');                         // panel rises
-    dp.classList.remove('dp-morphing');               // dp-card sizes scale up + photos/etc fade in
-    _releaseDpCardFlip(dpCard);                        // dp-card transform animates to identity
+
+    if (targetRect) {
+      lifted.style.top   = targetRect.top   + 'px';
+      lifted.style.left  = targetRect.left  + 'px';
+      lifted.style.width = targetRect.width + 'px';
+    }
+    lifted.classList.add('lifted-target');             // sizes/timeline morph
   });
 
-  // After the morph completes (CSS transitions on dp-card padding/border-radius
-  // and child font-sizes are 0.3s, so 420ms gives a safe margin): snap FTS to
-  // its slot rect with no transition so it doesn't appear mid-flight, then
-  // fade it back in. A second sync at 700ms safeguards against any late layout
-  // settling (e.g. iOS Safari deferring a paint).
+  // Hand-off: drop .dp-morphing (actual dp-card + photos/social/info fade in
+  // at the same position/size as the clone), pin FTS to slot, fade FTS in,
+  // remove the clone.
   setTimeout(() => {
+    dp.classList.remove('dp-morphing');
+
     const fts = document.getElementById('fts');
     if (fts) fts.style.transition = 'none';
     _syncFtsToSlot();
     if (fts) void fts.offsetHeight;
     _setFtsFade('in');
-    _clearDpCardFlip();
-  }, 420);
+
+    if (lifted.parentNode) lifted.parentNode.removeChild(lifted);
+  }, 360);
+
+  // Late safety re-pin in case slot rect settled after first pin.
   setTimeout(() => {
     const fts = document.getElementById('fts');
     if (fts) {
-      // Re-pin without transition; if the slot didn't move this is a no-op.
       const prev = fts.style.transition;
       fts.style.transition = 'none';
       _syncFtsToSlot();
       void fts.offsetHeight;
       fts.style.transition = prev || '';
     }
-    // Release the morph lock; future _syncFtsPosition calls work normally.
     delete document.body.dataset.dpMorph;
   }, 700);
 }
