@@ -26,6 +26,7 @@
 import { readFileSync, writeFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { assignArea } from './lib/areas.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT      = join(__dirname, '..');
@@ -91,15 +92,8 @@ function buildSearchPoints() {
     if (list.length < MIN_CANDIDATES_PER_CELL) continue;
     const lat = list.reduce((s, c) => s + c.lat, 0) / list.length;
     const lng = list.reduce((s, c) => s + c.lng, 0) / list.length;
-    let nearestArea = 'Oslo';
-    let bestDist    = Infinity;
-    for (const a of SEED_ANCHORS) {
-      const dLat = (lat - a.lat) * 111_000;
-      const dLng = (lng - a.lng) * 55_000;
-      const d    = Math.hypot(dLat, dLng);
-      if (d < bestDist) { bestDist = d; nearestArea = a.area; }
-    }
-    points.push({ lat, lng, area: nearestArea, candidateCount: list.length });
+    const { area } = assignArea([lat, lng]);
+    points.push({ lat, lng, area, candidateCount: list.length });
   }
   points.sort((a, b) => b.candidateCount - a.candidateCount);
   console.log(`  Built ${points.length} dense anchors from ${candidates.length} candidates`);
@@ -451,14 +445,18 @@ for (const [placeId, { place: p, area, sources }] of seen) {
   } catch (_) { /* keep default */ }
   await sleep(100);
 
-  const loc = p.location ?? {};
+  const loc    = p.location ?? {};
+  const coords = [loc.latitude ?? 0, loc.longitude ?? 0];
+  // Reverse-geocode area from venue coords (not the anchor's area) so the
+  // tag reflects where the venue actually is.
+  const venueArea = assignArea(coords).area ?? area;
   venues.push({
     id:                 nextId++,
     name:               p.displayName?.text ?? '',
     address:            p.formattedAddress ?? '',
-    coords:             [loc.latitude ?? 0, loc.longitude ?? 0],
+    coords,
     category:           categoryFromTypes(p.types ?? []),
-    area,
+    area:               venueArea,
     rating:             p.rating ?? null,
     facing:             null,       // computed by update-geometry.mjs
     openingHours,
