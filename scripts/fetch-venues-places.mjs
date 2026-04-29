@@ -1,20 +1,26 @@
 /**
  * fetch-venues-places.mjs
  * Discovers restaurant/bar/cafe venues with outdoor terraces across Oslo
- * from the Google Places API.
+ * from the Google Places API + OSM.
  *
- * Strategy (union of two signals to minimise false negatives):
+ * Strategy (union of three signals to minimise false negatives):
  *   A) Places API v1 Nearby Search — field mask includes outdoorSeating.
  *      Keep venues where outdoorSeating === true.
  *   B) Places API v1 Text Search — keyword "uteservering" per area.
- *      Keep all results (keyword implies outdoor seating context).
- *   Deduplicates by place_id across both passes.
+ *      Up to 60 results per anchor (3 paginated pages).
+ *   C) Overpass — venues tagged outdoor_seating=yes, resolved to a
+ *      Google place via Text Search.
+ *   Deduplicates by place_id across all passes.
  *
- * Coverage: 20 anchor points across all Oslo districts (full municipality).
+ * Coverage: anchor grid is built from data/oslo-candidates.json — one
+ * anchor per 1.2 km cell with at least 2 candidates (~62 anchors covering
+ * 97.5% of the OSM+Google universe). Falls back to a 20-point manual
+ * list if the candidates file is missing.
  *
- * Usage:   node scripts/fetch-venues-places.mjs
+ * Usage:   node scripts/fetch-oslo-candidates.mjs   # refresh universe (free, OSM)
+ *          node scripts/fetch-venues-places.mjs
  * Output:  data/venues-fetched.json  (review before merging)
- * Cost:    ~$1.50–3 (one-time, well within free $200/mo credit)
+ * Cost:    ~$15–25 (under the $200/mo free credit; run periodically)
  */
 
 import { readFileSync, writeFileSync } from 'fs';
@@ -31,38 +37,78 @@ if (!keyMatch) { console.error('GOOGLE_PLACES_KEY not found in .env'); process.e
 const API_KEY = keyMatch[1].trim();
 
 // ── Search config ─────────────────────────────────────────────────────────────
-// 20 anchor points covering all Oslo municipality districts
-const SEARCH_POINTS = [
-  // Ring 2 core (existing coverage, kept for density)
+
+// Seed anchors — used (a) to provide area names for the auto-generated grid,
+// (b) as a fallback if data/oslo-candidates.json is missing.
+const SEED_ANCHORS = [
   { lat: 59.9138, lng: 10.7387, area: 'Sentrum' },
   { lat: 59.9235, lng: 10.7340, area: 'Grünerløkka' },
   { lat: 59.9175, lng: 10.7600, area: 'Grønland' },
   { lat: 59.9200, lng: 10.7180, area: 'Bislett' },
   { lat: 59.9080, lng: 10.7220, area: 'Frogner' },
   { lat: 59.9060, lng: 10.7490, area: 'Aker Brygge' },
-
-  // Oslo north / inner east
   { lat: 59.9310, lng: 10.7560, area: 'Sagene' },
   { lat: 59.9390, lng: 10.7460, area: 'Nydalen' },
   { lat: 59.9270, lng: 10.7730, area: 'Tøyen' },
   { lat: 59.9330, lng: 10.7900, area: 'Sinsen' },
-
-  // Oslo west
   { lat: 59.9280, lng: 10.6780, area: 'Majorstuen' },
   { lat: 59.9350, lng: 10.6620, area: 'Vindern' },
   { lat: 59.9040, lng: 10.6940, area: 'Skøyen' },
   { lat: 59.8980, lng: 10.6620, area: 'Ullern' },
-
-  // Oslo east
   { lat: 59.9120, lng: 10.8180, area: 'Helsfyr' },
   { lat: 59.9000, lng: 10.8400, area: 'Bryn' },
   { lat: 59.8820, lng: 10.8100, area: 'Østensjø' },
-
-  // Oslo south
   { lat: 59.8680, lng: 10.7760, area: 'Nordstrand' },
   { lat: 59.8560, lng: 10.7560, area: 'Ljan' },
   { lat: 59.8750, lng: 10.7280, area: 'Nordstrand vest' },
 ];
+
+// Cell size (degrees) ≈ 1.2 km × 1.2 km at Oslo latitude.
+const CELL_LAT = 0.011;
+const CELL_LNG = 0.022;
+const MIN_CANDIDATES_PER_CELL = 2;
+
+function buildSearchPoints() {
+  const candPath = join(ROOT, 'data/oslo-candidates.json');
+  let candidates;
+  try {
+    candidates = JSON.parse(readFileSync(candPath, 'utf8'));
+  } catch (_) {
+    console.warn('  oslo-candidates.json missing — using 20 seed anchors only.');
+    console.warn('  Run `node scripts/fetch-oslo-candidates.mjs` first for full coverage.\n');
+    return SEED_ANCHORS;
+  }
+
+  const cells = new Map();
+  for (const c of candidates) {
+    const key = `${Math.floor(c.lat / CELL_LAT)}|${Math.floor(c.lng / CELL_LNG)}`;
+    if (!cells.has(key)) cells.set(key, []);
+    cells.get(key).push(c);
+  }
+
+  const points = [];
+  for (const list of cells.values()) {
+    if (list.length < MIN_CANDIDATES_PER_CELL) continue;
+    const lat = list.reduce((s, c) => s + c.lat, 0) / list.length;
+    const lng = list.reduce((s, c) => s + c.lng, 0) / list.length;
+    let nearestArea = 'Oslo';
+    let bestDist    = Infinity;
+    for (const a of SEED_ANCHORS) {
+      const dLat = (lat - a.lat) * 111_000;
+      const dLng = (lng - a.lng) * 55_000;
+      const d    = Math.hypot(dLat, dLng);
+      if (d < bestDist) { bestDist = d; nearestArea = a.area; }
+    }
+    points.push({ lat, lng, area: nearestArea, candidateCount: list.length });
+  }
+  points.sort((a, b) => b.candidateCount - a.candidateCount);
+  console.log(`  Built ${points.length} dense anchors from ${candidates.length} candidates`);
+  console.log(`  (${CELL_LAT.toFixed(3)}° × ${CELL_LNG.toFixed(3)}° cells, min ${MIN_CANDIDATES_PER_CELL} candidates per cell)\n`);
+  return points;
+}
+
+console.log('Building anchor grid…');
+const SEARCH_POINTS = buildSearchPoints();
 
 const RADIUS = 900; // metres
 const INCLUDED_TYPES = ['restaurant', 'bar', 'cafe'];
@@ -101,29 +147,38 @@ async function nearbySearchV1(lat, lng) {
 
 /**
  * Text Search for "uteservering" restricted to a circle around the point.
- * Returns up to 20 results. No pagination needed for this use case.
+ * Paginates up to 3 pages (60 results). Google requires a brief delay
+ * between page requests for the next-page token to become valid.
  */
 async function textSearchUteservering(lat, lng, area) {
-  const resp = await fetch('https://places.googleapis.com/v1/places:searchText', {
-    method: 'POST',
-    headers: {
-      'Content-Type':     'application/json',
-      'X-Goog-Api-Key':   API_KEY,
-      'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.types,places.outdoorSeating,places.businessStatus',
-    },
-    body: JSON.stringify({
-      textQuery:          `uteservering ${area} Oslo`,
-      locationBias: {
-        circle: { center: { latitude: lat, longitude: lng }, radius: RADIUS * 1.5 },
-      },
+  const all = [];
+  let pageToken;
+  for (let page = 0; page < 3; page++) {
+    const body = {
+      textQuery:      `uteservering ${area} Oslo`,
+      locationBias:   { circle: { center: { latitude: lat, longitude: lng }, radius: RADIUS * 1.5 } },
       includedType:   'restaurant',
       maxResultCount: 20,
-    }),
-    signal: AbortSignal.timeout(15_000),
-  });
-  if (!resp.ok) throw new Error(`Text Search HTTP ${resp.status}: ${await resp.text()}`);
-  const data = await resp.json();
-  return data.places ?? [];
+    };
+    if (pageToken) body.pageToken = pageToken;
+    const resp = await fetch('https://places.googleapis.com/v1/places:searchText', {
+      method: 'POST',
+      headers: {
+        'Content-Type':     'application/json',
+        'X-Goog-Api-Key':   API_KEY,
+        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.types,places.outdoorSeating,places.businessStatus,nextPageToken',
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!resp.ok) throw new Error(`Text Search HTTP ${resp.status}: ${await resp.text()}`);
+    const data = await resp.json();
+    all.push(...(data.places ?? []));
+    pageToken = data.nextPageToken;
+    if (!pageToken) break;
+    await sleep(1500);
+  }
+  return all;
 }
 
 /**
