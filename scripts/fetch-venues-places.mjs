@@ -148,16 +148,13 @@ async function textSearchKeyword(lat, lng, area, keyword) {
   const all = [];
   let pageToken;
   for (let page = 0; page < 3; page++) {
-    // Deliberately no includedType — keyword + location bias is enough,
-    // and includedType:'restaurant' was filtering out bars and venues
-    // classed as theatre/nightclub that have outdoor terraces.
-    // excludedPrimaryTypes stops Google from spending result slots on
-    // parking lots, parks, etc. whose names happen to match the keyword.
+    // searchText (unlike searchNearby) doesn't support
+    // excludedPrimaryTypes — adding it returns HTTP 400. Post-response
+    // hasFoodType() filtering is the only option for Pass B.
     const body = {
-      textQuery:           `${keyword} ${area} Oslo`,
-      locationBias:        { circle: { center: { latitude: lat, longitude: lng }, radius: RADIUS * 1.5 } },
-      excludedPrimaryTypes: TEXT_SEARCH_EXCLUDED_PRIMARY_TYPES,
-      maxResultCount:      20,
+      textQuery:      `${keyword} ${area} Oslo`,
+      locationBias:   { circle: { center: { latitude: lat, longitude: lng }, radius: RADIUS * 1.5 } },
+      maxResultCount: 20,
     };
     if (pageToken) body.pageToken = pageToken;
     const resp = await fetch('https://places.googleapis.com/v1/places:searchText', {
@@ -222,9 +219,9 @@ function categoryFromTypes(types = []) {
 // Whitelist of Google Places API v1 types that indicate a food/drink
 // venue. Verified against
 // https://developers.google.com/maps/documentation/places/web-service/place-types
-// (Table A — Eating and Drinking). Used as a post-response sanity
-// filter; the server-side excludedPrimaryTypes (see TEXT_SEARCH_EXCLUDED
-// below) does the heavy lifting on noise removal.
+// (Table A — Eating and Drinking). The post-response check is the only
+// type filter for Pass B since searchText doesn't support
+// excludedPrimaryTypes.
 const FOOD_TYPES = new Set([
   // Core
   'restaurant', 'bar', 'cafe', 'pub', 'food',
@@ -250,16 +247,9 @@ function hasFoodType(types = []) {
   return types.some(t => FOOD_TYPES.has(t) || t.endsWith('_restaurant'));
 }
 
-// Server-side filter for searchText: tell Google not to return places
-// of these primary types. Cheaper and more accurate than post-filtering
-// — Google never spends a result slot on a parking lot in the first
-// place. Verified type names against the v1 docs.
-const TEXT_SEARCH_EXCLUDED_PRIMARY_TYPES = [
-  'parking', 'lodging', 'park', 'tourist_attraction',
-  'school', 'university', 'hospital', 'pharmacy',
-  'gas_station', 'bank', 'atm', 'storage',
-  'real_estate_agency', 'shopping_mall',
-];
+// (Originally tried server-side exclusion via excludedPrimaryTypes, but
+// that field is only supported by searchNearby — searchText returns
+// HTTP 400. Post-response hasFoodType() carries the filter for Pass B.)
 
 // ── OSM outdoor_seating=yes (free signal, complements Google) ─────────────────
 
