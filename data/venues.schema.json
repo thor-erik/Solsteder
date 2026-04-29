@@ -80,6 +80,15 @@
         "type": ["string", "null"],
         "enum": [null, "street", "rooftop", "courtyard", "detached"]
       },
+      "terraceDetachedLocation": {
+        "type": ["object", "null"],
+        "description": "Required when terraceType === 'detached'. Sun-sampling point for venues without an attached building (e.g. floating barges).",
+        "required": ["lat", "lng"],
+        "properties": {
+          "lat": { "type": "number" },
+          "lng": { "type": "number" }
+        }
+      },
       "beerPrice": { "type": ["number", "null"] }
     }
   }

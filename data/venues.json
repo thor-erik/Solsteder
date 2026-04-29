@@ -1799,15 +1799,17 @@
     "category": "bar",
     "area": "Aker Brygge",
     "rating": 4.1,
-    "facing": null,
+    "facing": 180,
     "openingHours": {
       "open": 11,
       "close": 23
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJQ5qYhIFuQUYRy2xSW6xK3Co",
-    "facingSource": null,
-    "businessStatus": "OPERATIONAL"
+    "facingSource": "manual",
+    "businessStatus": "OPERATIONAL",
+    "terraceType": "detached",
+    "terraceDetachedLocation": { "lat": 59.9096272, "lng": 10.7278424 }
   },
   {
     "id": 40,
