@@ -30,5 +30,12 @@ const merged = [...existing, ...toAdd];
 
 writeFileSync(venuesPath, JSON.stringify(merged, null, 2));
 
+const meta = {
+  lastMergedAt: new Date().toISOString(),
+  count:        merged.length,
+  lastMerged:   toAdd.length,
+};
+writeFileSync(join(ROOT, 'data/venues.meta.json'), JSON.stringify(meta, null, 2));
+
 console.log(`Added ${toAdd.length} venues. Total: ${merged.length}`);
 console.log(`Next: node scripts/update-geometry.mjs`);

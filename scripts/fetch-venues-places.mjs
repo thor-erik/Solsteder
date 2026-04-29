@@ -495,6 +495,21 @@ writeFileSync(join(ROOT, 'data/venues-fetched.json'),        JSON.stringify(high
 writeFileSync(join(ROOT, 'data/venues-review.json'),         JSON.stringify(review,           null, 2));
 writeFileSync(join(ROOT, 'data/venues-osm-unresolved.json'), JSON.stringify(osmUnresolvedList, null, 2));
 
+// Provenance metadata for the discovery run — useful for the audit
+// script and for spotting stale data.
+const meta = {
+  lastDiscoveryRun: new Date().toISOString(),
+  runStats: {
+    anchors:           SEARCH_POINTS.length,
+    keywords:          KEYWORDS,
+    seenUnique:        seen.size,
+    highConfidence:    high.length,
+    reviewQueue:       review.length,
+    osmUnresolved:     osmUnresolvedList.length,
+  },
+};
+writeFileSync(join(ROOT, 'data/discovery.meta.json'), JSON.stringify(meta, null, 2));
+
 const bySignal = venues.reduce((acc, v) => {
   acc[v.discoverySignal] = (acc[v.discoverySignal] ?? 0) + 1;
   return acc;
