@@ -162,7 +162,11 @@ function _syncFtsPosition() {
     if (ftsEl) { ftsEl.style.opacity = ''; ftsEl.style.pointerEvents = ''; }
     if (locateEl) { locateEl.style.opacity = '0'; locateEl.style.pointerEvents = 'none'; }
     if (zoomJog) { zoomJog.style.opacity = '0'; zoomJog.style.pointerEvents = 'none'; }
-    document.body.style.setProperty('--fts-bottom', `calc(62svh + ${FTS_GAP}px)`);
+    // Detail panel open: try to align FTS with the in-card slot. Falls back to
+    // above-panel placement if the slot isn't measurable yet (during morph).
+    if (typeof _syncFtsToSlot !== 'function' || !_syncFtsToSlot()) {
+      document.body.style.setProperty('--fts-bottom', `calc(62svh + ${FTS_GAP}px)`);
+    }
     return;
   }
 
@@ -2361,7 +2365,7 @@ function updatePopup() {
 
 let _morphSourceVid = null;     // venue id whose card is the morph source
 let _morphSourceRect = null;    // rect captured at open, reused on close
-let _ftsHomeParent = null;      // remembers where #fts originally lived
+let _morphSourceTlRect = null;  // card timeline-track rect, reused on close FTS FLIP
 const MORPH_DURATION = 320;     // matches CSS transition
 
 /** Set CSS vars on dp from a card rect so the panel starts as the card on mobile.
@@ -2375,32 +2379,77 @@ function _applyMorphFromRect(dp, rect) {
   dp.style.setProperty('--morph-dy', dy + 'px');
 }
 
-/** Move the floating time slider (#fts) into the detail panel's slot.
- *  This avoids rebuilding the slider from scratch — same DOM, same handlers,
- *  same canvas drawing. The .fts-in-panel class neutralises the fixed-position
- *  styling so it flows inside the dp-card. */
-function _attachFtsToSlot() {
+/** Sync --fts-bottom so the floating FTS pill aligns with #fts-slot inside the
+ *  detail panel. Called after the panel reaches its open layout. The slot is just
+ *  a 38px placeholder — the FTS pill itself stays position:fixed in body so it's
+ *  never hidden by ancestor display:none rules during the morph. */
+function _syncFtsToSlot() {
   const fts  = document.getElementById('fts');
   const slot = document.getElementById('fts-slot');
   if (!fts || !slot) return false;
-  if (slot.contains(fts)) return true;
-  if (!_ftsHomeParent) _ftsHomeParent = fts.parentElement;
-  slot.appendChild(fts);
-  fts.classList.add('fts-in-panel');
+  const slotRect = slot.getBoundingClientRect();
+  if (slotRect.height <= 0) return false;
+  const bottomPx = Math.max(0, window.innerHeight - slotRect.bottom);
+  document.body.style.setProperty('--fts-bottom', `${bottomPx}px`);
+  // Match width to slot too so the pill visually fits inside the dp-card.
+  fts.style.left  = `${slotRect.left}px`;
+  fts.style.right = 'auto';
+  fts.style.width = `${slotRect.width}px`;
   if (typeof drawFtsCanvas === 'function') drawFtsCanvas();
   return true;
 }
 
-/** Pop #fts back to its original parent (typically <body>) and restore floating styles. */
-function _restoreFtsHome() {
+/** Reset FTS inline left/width so _syncFtsPosition's CSS-driven layout takes over. */
+function _clearFtsInlineSize() {
   const fts = document.getElementById('fts');
   if (!fts) return;
-  fts.classList.remove('fts-in-panel');
-  if (_ftsHomeParent && !_ftsHomeParent.contains(fts)) {
-    _ftsHomeParent.appendChild(fts);
+  fts.style.removeProperty('left');
+  fts.style.removeProperty('right');
+  fts.style.removeProperty('width');
+  fts.style.removeProperty('transform');
+  fts.style.removeProperty('transform-origin');
+  fts.style.removeProperty('transition');
+}
+
+/** FLIP-style transition: make the FTS pill visually start at the source card's
+ *  .timeline-track rect, then animate to its natural slot position. The user wants
+ *  to feel the small card timeline morph into the full slider — this delivers that.
+ *
+ *  Caller must have already pinned --fts-bottom + left/width to the slot rect via
+ *  _syncFtsToSlot, so the pill's "natural" rest position IS the slot. We disable
+ *  transitions during measurement so getBoundingClientRect returns the rest rect,
+ *  not a mid-flight rect from the bottom transition. */
+function _flipFtsFromCardTimeline(tlRect) {
+  const fts = document.getElementById('fts');
+  if (!fts || !tlRect) return;
+  // Disable bottom/transform transitions and force layout so getBoundingClientRect
+  // returns the rest position (slot rect), not a mid-transition position.
+  fts.style.transition = 'none';
+  void fts.offsetHeight;
+  const ftsRect = fts.getBoundingClientRect();
+  if (ftsRect.width <= 0 || ftsRect.height <= 0) {
+    fts.style.removeProperty('transition');
+    return;
   }
-  _ftsHomeParent = null;
-  if (typeof drawFtsCanvas === 'function') drawFtsCanvas();
+  const dx = tlRect.left + tlRect.width / 2 - (ftsRect.left + ftsRect.width / 2);
+  const dy = tlRect.top + tlRect.height / 2 - (ftsRect.top + ftsRect.height / 2);
+  const sx = Math.max(0.05, tlRect.width  / ftsRect.width);
+  const sy = Math.max(0.05, tlRect.height / ftsRect.height);
+  // Snap to source card-timeline rect with no transition.
+  fts.style.transformOrigin = '50% 50%';
+  fts.style.transform = `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`;
+  // Force reflow so the snap commits before we animate back to identity.
+  void fts.offsetHeight;
+  // Animate to natural slot position. Override the body.fts #fts CSS bottom
+  // transition (which would still be running) so the only motion is the transform.
+  fts.style.transition = 'transform 0.34s cubic-bezier(0.32, 0.72, 0, 1)';
+  fts.style.transform = '';
+  // Clear transitional inline styles after the animation completes.
+  setTimeout(() => {
+    fts.style.removeProperty('transition');
+    fts.style.removeProperty('transform-origin');
+    if (typeof drawFtsCanvas === 'function') drawFtsCanvas();
+  }, MORPH_DURATION + 30);
 }
 
 function openDetailPanel(v) {
@@ -2411,31 +2460,43 @@ function openDetailPanel(v) {
   const content = document.getElementById('dp-content');
   if (!dp || !content) return;
 
+  // Capture source card + card-timeline rects BEFORE re-rendering so we have valid
+  // viewport coords for both the panel container morph and the FTS pill FLIP.
+  const onMobile = isMobile();
+  let sourceCard = null;
+  let sourceRect = null;
+  let sourceTlRect = null;
+  if (onMobile) {
+    sourceCard = document.querySelector(`.venue-card[data-vid="${v.id}"]`);
+    if (sourceCard) {
+      sourceRect = sourceCard.getBoundingClientRect();
+      const tl = sourceCard.querySelector('.timeline-track');
+      if (tl) sourceTlRect = tl.getBoundingClientRect();
+    }
+  }
+
   content.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
-  _attachFtsToSlot();
   dp.classList.remove('dp-fullscreen');
 
   // Container morph from clicked card → panel (mobile only).
   // FLIP: apply start state with transitions OFF so the panel snaps to the card's
   // rect, force a reflow to commit, then re-enable transitions and add .open so the
   // browser animates from rect → fullscreen instead of from translateY(100%).
-  const onMobile = isMobile();
-  let sourceCard = null;
   if (onMobile) {
-    sourceCard = document.querySelector(`.venue-card[data-vid="${v.id}"]`);
-    if (sourceCard) {
-      const rect = sourceCard.getBoundingClientRect();
-      _morphSourceVid  = v.id;
-      _morphSourceRect = { top: rect.top, height: rect.height };
-      _applyMorphFromRect(dp, rect);
+    if (sourceRect && sourceCard) {
+      _morphSourceVid    = v.id;
+      _morphSourceRect   = { top: sourceRect.top, height: sourceRect.height };
+      _morphSourceTlRect = sourceTlRect ? { top: sourceTlRect.top, left: sourceTlRect.left, width: sourceTlRect.width, height: sourceTlRect.height } : null;
+      _applyMorphFromRect(dp, sourceRect);
       sourceCard.classList.add('morph-source');
       dp.classList.add('dp-morphing', 'dp-morph-instant');
       // Force layout to commit the snap-to-card-rect frame BEFORE we enable transitions.
       void dp.offsetHeight;
       dp.classList.remove('dp-morph-instant');
     } else {
-      _morphSourceVid = null;
-      _morphSourceRect = null;
+      _morphSourceVid    = null;
+      _morphSourceRect   = null;
+      _morphSourceTlRect = null;
     }
   }
 
@@ -2454,6 +2515,25 @@ function openDetailPanel(v) {
   }
   _syncFtsPosition();
 
+  // Pin the floating FTS pill to overlay the slot inside the dp-card. The FTS
+  // stays position:fixed in body — never reparented — so display:none on slot
+  // during morph won't hide it. We just override --fts-bottom + inline left/width
+  // to align with the slot's viewport rect once the panel reaches its end layout.
+  if (onMobile) {
+    requestAnimationFrame(() => {
+      // Slot is hidden during dp-morphing — temporarily un-hide so we can measure.
+      const slot = document.getElementById('fts-slot');
+      const wasHidden = slot && getComputedStyle(slot).display === 'none';
+      let prevDisplay = '';
+      if (wasHidden) { prevDisplay = slot.style.display; slot.style.display = 'block'; }
+      _syncFtsToSlot();
+      if (wasHidden) slot.style.display = prevDisplay;
+      // FLIP: make FTS visually start at the source card's timeline-track rect,
+      // then animate to its natural (slot-aligned) position.
+      if (sourceTlRect) _flipFtsFromCardTimeline(sourceTlRect);
+    });
+  }
+
   // Cleanup morph styles after the animation lands so .dp-fullscreen and the
   // drag handler can manipulate height/transform freely afterwards.
   if (onMobile && sourceCard) {
@@ -2461,6 +2541,8 @@ function openDetailPanel(v) {
       dp.classList.remove('dp-morphing');
       dp.style.removeProperty('--morph-h');
       dp.style.removeProperty('--morph-dy');
+      // Re-sync once .dp-morphing is gone so #fts-slot has its real height.
+      _syncFtsToSlot();
     }, MORPH_DURATION + 30);
   }
 }
@@ -2495,6 +2577,9 @@ function closeDetailPanel(expandList = true) {
     _applyMorphFromRect(dp, _morphSourceRect);
     dp.classList.add('dp-morphing');
     void dp.offsetHeight;   // commit start frame so removing .open animates back
+    // FLIP the FTS pill back: from its current (slot-aligned) position to the
+    // source card-timeline rect. Symmetric with the open-direction FLIP.
+    if (_morphSourceTlRect) _flipFtsFromCardTimeline(_morphSourceTlRect);
   }
   if (dp) {
     dp.classList.remove('open', 'dp-fullscreen');
@@ -2516,8 +2601,8 @@ function closeDetailPanel(expandList = true) {
       document.getElementById('qc-wrap')?.classList.remove('mobile-ui-hidden');
       document.getElementById('locate-btn')?.classList.remove('mobile-ui-hidden');
       document.getElementById('zoom-jog')?.classList.remove('mobile-ui-hidden');
-      // Pop #fts back to its floating home before the panel content gets reset.
-      _restoreFtsHome();
+      // Clear FTS overrides so it returns to its CSS-driven peek/expanded layout.
+      _clearFtsInlineSize();
       _syncFtsPosition();
       // Reverse morph just finished — snap panel away without an extra wobble.
       if (dp) {
@@ -2530,8 +2615,9 @@ function closeDetailPanel(expandList = true) {
       }
       if (_morphSourceVid != null) {
         document.querySelectorAll('.venue-card.morph-source').forEach(c => c.classList.remove('morph-source'));
-        _morphSourceVid = null;
-        _morphSourceRect = null;
+        _morphSourceVid    = null;
+        _morphSourceRect   = null;
+        _morphSourceTlRect = null;
       }
     }, MORPH_DURATION);
   } else {
@@ -2576,12 +2662,10 @@ function updateDetailPanel() {
   if (!authCurrentUser()) return;
   const v = VENUES.find(x => x.id === selectedId);
   if (!v) return;
-  // Pull #fts out before innerHTML destroys its slot, then reattach.
-  const fts = document.getElementById('fts');
-  const wasInPanel = fts && content.contains(fts);
-  if (wasInPanel && _ftsHomeParent) _ftsHomeParent.appendChild(fts);
   content.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
-  if (wasInPanel) _attachFtsToSlot();
+  // FTS is no longer reparented — it stays floating in body. Just re-sync its
+  // size/position to the new slot rect (slot dimensions are stable but be safe).
+  if (isMobile()) _syncFtsToSlot();
   _startWindForVenue(v); // restart with updated weather snapshot
 }
 

@@ -4706,60 +4706,65 @@
   .dp-photo-actions .dp-header-icon svg { width: 18px; height: 18px; }
 
   /* ── Detail-panel "card": same DOM as a venue-card, scaled up ────────── */
+  /* The layout (card-top → card-left + card-right + timeline) is identical to
+     a venue-card — only sizes scale up. This keeps the user oriented after the
+     morph: they see "the same card, bigger". */
   .dp-card {
-    /* Inherits .venue-card glass background + border. We just bump sizing. */
     cursor: default;
     margin-bottom: 14px;
-    padding: 14px 14px 12px;
+    padding: 18px 16px 14px;
     animation: none;
+    border-radius: 14px;
   }
   .dp-card:hover { background: var(--glass-card-bg); }   /* kill list-card hover */
-  .dp-card .card-top { gap: 10px; }
-  .dp-card .card-left { min-width: 0; }
+  .dp-card .card-top { gap: 14px; align-items: flex-start; }
+  .dp-card .card-left { min-width: 0; gap: 4px; }
   .dp-card .card-new-name {
-    font-size: 19px;
+    font-size: 22px;
+    font-weight: 700;
     line-height: 1.18;
     letter-spacing: -0.01em;
     white-space: normal;            /* allow wrap if truly long */
     overflow: visible;
     text-overflow: clip;
   }
-  .dp-card .card-new-meta { font-size: 12.5px; line-height: 1.35; margin-top: 3px; }
-  .dp-card .card-new-hero-main { font-size: 15px; line-height: 1.2; }
-  .dp-card .card-new-hero-sub  { font-size: 11.5px; line-height: 1.35; }
-  .dp-card .card-right { min-width: 0; flex-shrink: 0; }
-
-  /* Slot for the reparented #fts pill */
-  #fts-slot {
-    margin-top: 14px;
-    min-height: 38px;
+  .dp-card .card-new-meta {
+    font-size: 13px;
+    line-height: 1.35;
+    margin-top: 1px;
+    white-space: normal;            /* meta wraps on small viewports */
+    overflow: visible;
+    text-overflow: clip;
+  }
+  .dp-card .card-right {
+    min-width: 0;
+    flex-shrink: 0;
+    gap: 4px;
+    align-items: flex-end;
+  }
+  .dp-card .card-new-hero-main {
+    font-size: 18px;
+    line-height: 1.15;
+  }
+  .dp-card .card-new-hero-sub  {
+    font-size: 12.5px;
+    line-height: 1.35;
   }
 
-  /* When #fts is moved into the dp-card, neutralise the floating-fixed styling
-     so it flows inside the slot. !important is needed because body.fts #fts {…}
-     sets position/left/bottom/width with normal specificity. */
-  #fts.fts-in-panel {
-    position: relative !important;
-    left: auto !important;
-    right: auto !important;
-    bottom: auto !important;
-    width: 100% !important;
-    height: 38px !important;
-    z-index: auto !important;
-    transform: none !important;
-    transition: none !important;
-    opacity: 1 !important;
-    pointer-events: auto !important;
+  /* Placeholder slot for the floating FTS pill — JS pins #fts to overlay this rect. */
+  #fts-slot {
+    margin-top: 16px;
+    height: 38px;
   }
 
   /* Time labels under the slider */
   .dp-tl-labels {
     position: relative;
     height: 14px;
-    margin-top: 8px;
-    font-size: 10px;
+    margin-top: 10px;
+    font-size: 10.5px;
     color: var(--muted);
-    opacity: 0.7;
+    opacity: 0.75;
   }
   .dp-tl-label {
     position: absolute;
@@ -4904,19 +4909,30 @@
       transform: translateY(0) translateZ(0);
       border-radius: 20px 20px 0 0;
     }
-    /* Source card stays anchored under the panel during morph (no list-slide jiggle).
-       It's invisible behind the opaque-glass panel. */
-    .venue-card.morph-source { visibility: hidden; }
+    /* Source card fades out as the panel covers it. Opacity (not visibility) keeps
+       layout stable so the list-slide-down animation doesn't jump. */
+    .venue-card.morph-source {
+      opacity: 0;
+      transition: opacity 0.18s ease-out;
+    }
 
-    /* During the morph, only the dp-card is in flow — that way the user sees the
-       card content "in place" inside the panel as it grows. Photos / social / info
-       / footer collapse out of the layout, then re-flow in once .dp-morphing lifts. */
+    /* During the morph, only the .card-top portion of dp-card is in flow — its
+       footprint matches the source card. Everything below (FTS slot, time labels,
+       photos, social, action row, info, footer) is collapsed so the dp-card height
+       ≈ source card height. They re-flow in once .dp-morphing lifts. */
     #detail-panel.dp-morphing .detail-new-photos-wrap,
     #detail-panel.dp-morphing .social-card,
     #detail-panel.dp-morphing .dp-action-row,
     #detail-panel.dp-morphing .info-list,
-    #detail-panel.dp-morphing .secondary-row {
+    #detail-panel.dp-morphing .secondary-row,
+    #detail-panel.dp-morphing #fts-slot,
+    #detail-panel.dp-morphing .dp-tl-labels {
       display: none;
+    }
+    /* dp-card during morph: drop the bottom padding/margin to mimic source card */
+    #detail-panel.dp-morphing .dp-card {
+      padding-bottom: 8px;
+      margin-bottom: 0;
     }
     #dp-handle { display: flex; }
     #dp-scroll { padding-top: 4px; }
