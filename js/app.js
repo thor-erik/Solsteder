@@ -2693,7 +2693,8 @@ function openDetailPanel(v) {
     sourceCard.classList.add('source-fading');
   }, 360);
 
-  // Detach the source card after its fade-out completes.
+  // Detach the source card after its fade-out completes (0.10s starting at
+  // 360ms = ~480ms with safety margin).
   setTimeout(() => {
     if (sourceCard.parentNode === document.body) {
       document.body.removeChild(sourceCard);
@@ -2701,7 +2702,7 @@ function openDetailPanel(v) {
       sourceCard.style.cssText = '';
       if (calBtn.parentNode === sourceCard) sourceCard.removeChild(calBtn);
     }
-  }, 660);
+  }, 500);
 
   // Late safety re-pin in case slot rect settled after first pin.
   setTimeout(() => {

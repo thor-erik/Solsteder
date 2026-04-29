@@ -1754,10 +1754,17 @@
     gap: 6px;
   }
 
-  .venue-card:hover {
-    border-color: rgba(156,189,231,0.35);
-    background: rgba(20,46,82,0.65);
+  /* Hover only on devices with a real pointer. On iOS Safari :hover sticks
+     after a tap until the user taps elsewhere — that's the "blue box" the
+     user reported on the source card after the panel closes. */
+  @media (hover: hover) and (pointer: fine) {
+    .venue-card:hover {
+      border-color: rgba(156,189,231,0.35);
+      background: rgba(20,46,82,0.65);
+    }
   }
+  /* Suppress the mobile browser's default tap-highlight overlay. */
+  .venue-card { -webkit-tap-highlight-color: transparent; }
 
   .venue-card.selected {
     border-color: rgba(255,175,133,0.4);
@@ -4985,18 +4992,15 @@
     .venue-card.source-morphing.source-target .source-card-calbtn { opacity: 1; }
     .source-card-calbtn svg { width: 16px; height: 16px; }
 
-    /* Hand-off fade: at 360ms we drop .dp-morphing (panel's actual dp-card +
-       photos/social/info fade in) AND add .source-fading to the lifted source
-       card so it fades out over the same window. Crossfade hides the visual
-       discrepancy between the lifted card's morphed timeline (no labels,
-       static calendar btn overlay) and the dp-card's slot + dp-tl-labels +
-       real FTS pill. */
+    /* Hand-off fade. At 360ms we drop .dp-morphing (panel's dp-card / photos /
+       social / info fade in over 0.22s) AND add .source-fading to the lifted
+       source card. Use a SHORT crossfade (0.10s) instead of matching the
+       0.22s — at 50% opacity each, the visual differences (lifted's morphed
+       card-timeline vs dp-card's fts-slot + dp-tl-labels + real FTS pill) are
+       too perceptible. With a quick fade the overlap window is minimal and
+       reads as a single visual change. */
     .venue-card.source-morphing.source-fading {
-      transition:
-        opacity 0.22s ease-in 0.04s,
-        top           0.34s cubic-bezier(0.32, 0.72, 0, 1),
-        left          0.34s cubic-bezier(0.32, 0.72, 0, 1),
-        width         0.34s cubic-bezier(0.32, 0.72, 0, 1);
+      transition: opacity 0.10s ease-out;
       opacity: 0;
     }
 
