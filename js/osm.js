@@ -617,7 +617,7 @@ async function tryLoadPrecomputed() {
       applied++;
     });
     console.log(`OSM: loaded geometry.json v2 (${applied}/${VENUES.length} venues)`);
-    return applied === VENUES.length;
+    return applied > 0;  // see _applyCompactGeometry comment
   } catch (_) {
     return false;
   }
@@ -669,7 +669,12 @@ function _applyCompactGeometry(data) {
     applied++;
   });
   console.log(`OSM: loaded geometry.json v3 (${applied}/${VENUES.length} venues, ${pool.length} buildings)`);
-  return applied === VENUES.length;
+  // Accept partial coverage — uncovered venues fall back to simple-facing
+  // (no nearbyBuildings → angle-only sun-state in solar.js). The Overpass
+  // slow path is unworkable at this scale (505 venues × ~130k buildings on
+  // the main thread is a multi-second freeze), so as long as the fast path
+  // resolved at least one venue, we use it and skip the slow path entirely.
+  return applied > 0;
 }
 
 /** Expand a compact wall array [aLat,aLng,bLat,bLng,bearing] into a full wall object. */
