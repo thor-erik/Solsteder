@@ -4724,17 +4724,14 @@
     font-weight: 700;
     line-height: 1.18;
     letter-spacing: -0.01em;
-    white-space: normal;            /* allow wrap if truly long */
-    overflow: visible;
-    text-overflow: clip;
+    /* Inherit white-space: nowrap + overflow: hidden + text-overflow: ellipsis
+       from .card-new-name so long names truncate the same way as in the list. */
   }
   .dp-card .card-new-meta {
     font-size: 13px;
     line-height: 1.35;
     margin-top: 1px;
-    white-space: normal;            /* meta wraps on small viewports */
-    overflow: visible;
-    text-overflow: clip;
+    /* Inherit nowrap + ellipsis from .card-new-meta. */
   }
   .dp-card .card-right {
     min-width: 0;

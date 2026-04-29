@@ -263,16 +263,17 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
   // Directions CTA label — always include text for a wider, tappable button
   const dirLabel = walkTime ? `${dirIcon} ${t('directions')} · ${walkTime}` : `${dirIcon} ${t('directions')}`;
 
-  // Time labels under the FTS slider — match the slider's MIN/MAX range
-  // (varies day-to-day with sunrise/sunset clamping).
+  // Time labels under the FTS slider — match the slider's MIN/MAX range.
+  // Anchor labels to fixed round hours (9, 13, 17, 21) so they don't drift with
+  // sunrise/sunset, and skip any that fall too close to an edge label so the
+  // sunrise/sunset readouts at left:0 / right:0 don't visually collide with them.
   const sliderMin = (typeof MIN_H_ARC !== 'undefined') ? MIN_H_ARC : 4;
   const sliderMax = (typeof MAX_H_ARC !== 'undefined') ? MAX_H_ARC : 23;
   const sliderSpan = Math.max(0.01, sliderMax - sliderMin);
-  const labelHours = [];
-  // Pick whole-hour ticks every 4h that land inside the range.
-  for (let h = Math.ceil(sliderMin); h <= Math.floor(sliderMax); h += 4) {
-    if (h - sliderMin > 0.5 && sliderMax - h > 0.5) labelHours.push(h);
-  }
+  const EDGE_GAP = 1.5; // hours of clearance from edge labels
+  const labelHours = [9, 13, 17, 21].filter(h =>
+    h - sliderMin >= EDGE_GAP && sliderMax - h >= EDGE_GAP
+  );
   let tlLabels = `<span class="dp-tl-label dp-tl-label-edge" style="left:0">${formatHour(sliderMin)}</span>`;
   for (const h of labelHours) {
     const left = ((h - sliderMin) / sliderSpan * 100).toFixed(2);

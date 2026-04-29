@@ -2478,73 +2478,96 @@ function openDetailPanel(v) {
   content.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
   dp.classList.remove('dp-fullscreen');
 
-  // Container morph from clicked card → panel (mobile only).
-  // FLIP: apply start state with transitions OFF so the panel snaps to the card's
-  // rect, force a reflow to commit, then re-enable transitions and add .open so the
-  // browser animates from rect → fullscreen instead of from translateY(100%).
-  if (onMobile) {
-    if (sourceRect && sourceCard) {
-      _morphSourceVid    = v.id;
-      _morphSourceRect   = { top: sourceRect.top, height: sourceRect.height };
-      _morphSourceTlRect = sourceTlRect ? { top: sourceTlRect.top, left: sourceTlRect.left, width: sourceTlRect.width, height: sourceTlRect.height } : null;
-      _applyMorphFromRect(dp, sourceRect);
-      sourceCard.classList.add('morph-source');
-      dp.classList.add('dp-morphing', 'dp-morph-instant');
-      // Force layout to commit the snap-to-card-rect frame BEFORE we enable transitions.
-      void dp.offsetHeight;
-      dp.classList.remove('dp-morph-instant');
-    } else {
-      _morphSourceVid    = null;
-      _morphSourceRect   = null;
-      _morphSourceTlRect = null;
-    }
-  }
-
-  dp.classList.add('open');
   _startWindForVenue(v);
   document.getElementById('locate-btn')?.classList.add('mobile-ui-hidden');
   document.getElementById('zoom-jog')?.classList.add('mobile-ui-hidden');
-  if (onMobile) {
+
+  // ── Desktop / no-source-card: simple slide-in via .open ──────────────────
+  if (!onMobile || !sourceRect || !sourceCard) {
+    _morphSourceVid    = null;
+    _morphSourceRect   = null;
+    _morphSourceTlRect = null;
+    dp.classList.add('open');
+    if (onMobile) {
+      const panel = document.getElementById('panel');
+      if (panel) {
+        panel.classList.remove('mobile-expanded', 'mobile-fullscreen');
+        panel.classList.add('mobile-hidden');
+      }
+      document.getElementById('floating-search')?.classList.add('mobile-ui-hidden');
+      document.getElementById('qc-wrap')?.classList.add('mobile-ui-hidden');
+    }
+    _syncFtsPosition();
+    return;
+  }
+
+  // ── Mobile morph: panel grows from card rect → fullscreen, list slides
+  //    down behind, FTS pill FLIPs from card-timeline → slot ───────────────
+  _morphSourceVid    = v.id;
+  _morphSourceRect   = { top: sourceRect.top, height: sourceRect.height };
+  _morphSourceTlRect = sourceTlRect ? { top: sourceTlRect.top, left: sourceTlRect.left, width: sourceTlRect.width, height: sourceTlRect.height } : null;
+
+  // Frame 0: snap panel to card rect WITHOUT transitions. Force layout via
+  // offsetHeight so this frame is committed by the browser before frame 1.
+  _applyMorphFromRect(dp, sourceRect);
+  sourceCard.classList.add('morph-source');
+  dp.classList.add('dp-morphing', 'dp-morph-instant');
+  void dp.offsetHeight;
+  void getComputedStyle(dp).transform;
+
+  // Mobile chrome out of the way (these don't affect the morph timing).
+  document.getElementById('floating-search')?.classList.add('mobile-ui-hidden');
+  document.getElementById('qc-wrap')?.classList.add('mobile-ui-hidden');
+
+  // Pre-compute the slot's eventual rect by temporarily previewing the panel's
+  // end state (.open without .dp-morphing). dp-morph-instant keeps transitions
+  // off so the swap doesn't visually animate. Browser doesn't paint between
+  // synchronous DOM operations, so the user only sees frame 0 (rect) → frame 1
+  // (animating to fullscreen). Setting --fts-bottom to the *eventual* slot
+  // position now lets the FTS pill animate to its final spot in lockstep with
+  // the panel rise (via the body.fts #fts CSS bottom transition).
+  const slot = document.getElementById('fts-slot');
+  if (slot) {
+    const slotWasHidden = getComputedStyle(slot).display === 'none';
+    const slotPrevDisp = slot.style.display;
+    if (slotWasHidden) slot.style.display = 'block';
+    // Swap to end state.
+    dp.classList.remove('dp-morphing');
+    dp.classList.add('open');
+    void dp.offsetHeight;
+    _syncFtsToSlot();
+    // Swap back to start state.
+    dp.classList.remove('open');
+    dp.classList.add('dp-morphing');
+    void dp.offsetHeight;
+    if (slotWasHidden) slot.style.display = slotPrevDisp;
+  }
+
+  // Frame 1 (next animation frame): re-enable transitions, add .open, start
+  // list slide-down + FTS FLIP. All animations begin in the same frame so they
+  // run synchronously over the same ~340ms window.
+  requestAnimationFrame(() => {
     const panel = document.getElementById('panel');
     if (panel) {
       panel.classList.remove('mobile-expanded', 'mobile-fullscreen');
       panel.classList.add('mobile-hidden');
     }
-    document.getElementById('floating-search')?.classList.add('mobile-ui-hidden');
-    document.getElementById('qc-wrap')?.classList.add('mobile-ui-hidden');
-  }
-  _syncFtsPosition();
-
-  // Pin the floating FTS pill to overlay the slot inside the dp-card. The FTS
-  // stays position:fixed in body — never reparented — so display:none on slot
-  // during morph won't hide it. We just override --fts-bottom + inline left/width
-  // to align with the slot's viewport rect once the panel reaches its end layout.
-  if (onMobile) {
-    requestAnimationFrame(() => {
-      // Slot is hidden during dp-morphing — temporarily un-hide so we can measure.
-      const slot = document.getElementById('fts-slot');
-      const wasHidden = slot && getComputedStyle(slot).display === 'none';
-      let prevDisplay = '';
-      if (wasHidden) { prevDisplay = slot.style.display; slot.style.display = 'block'; }
-      _syncFtsToSlot();
-      if (wasHidden) slot.style.display = prevDisplay;
-      // FLIP: make FTS visually start at the source card's timeline-track rect,
-      // then animate to its natural (slot-aligned) position.
-      if (sourceTlRect) _flipFtsFromCardTimeline(sourceTlRect);
-    });
-  }
+    dp.classList.remove('dp-morph-instant');
+    void dp.offsetHeight;
+    dp.classList.add('open');
+    // FLIP: FTS visually starts at source card-timeline rect, animates to its
+    // (already-pinned) slot position via transform.
+    if (sourceTlRect) _flipFtsFromCardTimeline(sourceTlRect);
+  });
 
   // Cleanup morph styles after the animation lands so .dp-fullscreen and the
   // drag handler can manipulate height/transform freely afterwards.
-  if (onMobile && sourceCard) {
-    setTimeout(() => {
-      dp.classList.remove('dp-morphing');
-      dp.style.removeProperty('--morph-h');
-      dp.style.removeProperty('--morph-dy');
-      // Re-sync once .dp-morphing is gone so #fts-slot has its real height.
-      _syncFtsToSlot();
-    }, MORPH_DURATION + 30);
-  }
+  setTimeout(() => {
+    dp.classList.remove('dp-morphing');
+    dp.style.removeProperty('--morph-h');
+    dp.style.removeProperty('--morph-dy');
+    _syncFtsToSlot();
+  }, MORPH_DURATION + 60);
 }
 
 function _getWxNow() {
@@ -2569,50 +2592,40 @@ function closeDetailPanel(expandList = true) {
   if (typeof stopWindOverlay === 'function') stopWindOverlay();
   const dp = document.getElementById('detail-panel');
 
-  // Reverse morph: shrink panel back to source-card rect, then remove .open.
-  // Use stored rect from open (the card may be off-screen due to mobile-hidden).
+  // ── Mobile close: panel slides DOWN off-screen while list slides UP back
+  //    into view. The two motions run in parallel under their own transitions.
+  //    Skip the rect-morph on close — going from fullscreen → small-rect →
+  //    snap-off felt jankier than a clean slide-off. The FTS FLIPs back to the
+  //    card-timeline location so it lines up with where the source card lands. ──
   const onMobile = isMobile();
-  if (dp && onMobile && _morphSourceRect && selectedId != null) {
-    dp.classList.remove('dp-fullscreen');
-    _applyMorphFromRect(dp, _morphSourceRect);
-    dp.classList.add('dp-morphing');
-    void dp.offsetHeight;   // commit start frame so removing .open animates back
-    // FLIP the FTS pill back: from its current (slot-aligned) position to the
-    // source card-timeline rect. Symmetric with the open-direction FLIP.
-    if (_morphSourceTlRect) _flipFtsFromCardTimeline(_morphSourceTlRect);
-  }
   if (dp) {
-    dp.classList.remove('open', 'dp-fullscreen');
+    dp.classList.remove('open', 'dp-fullscreen', 'dp-morphing');
+    dp.classList.remove('dp-morph-instant');
+    dp.style.removeProperty('--morph-h');
+    dp.style.removeProperty('--morph-dy');
   }
   if (onMobile) {
-    // Delay restoring the venue list until the detail panel has finished its
-    // 300ms close animation, so the two panels are never visible at the same time.
-    // expandList=true (< Venues back button): restore expanded so the list is immediately browsable.
-    // expandList=false (X button / swipe down): restore to peek state.
+    // FLIP the FTS pill: it currently sits in the slot inside the (still-open)
+    // panel. Animate it back to the source card-timeline rect so the FTS visibly
+    // returns to the venue list as the panel slides off and list slides up.
+    if (_morphSourceTlRect) _flipFtsFromCardTimeline(_morphSourceTlRect);
+
+    // Reveal list IN THE SAME FRAME as the panel slide-off so they cross.
+    const panel = document.getElementById('panel');
+    if (panel) {
+      panel.classList.remove('mobile-hidden', 'mobile-fullscreen');
+      if (expandList) panel.classList.add('mobile-expanded');
+      else            panel.classList.remove('mobile-expanded');
+    }
+    document.getElementById('floating-search')?.classList.remove('mobile-ui-hidden');
+    document.getElementById('qc-wrap')?.classList.remove('mobile-ui-hidden');
+    document.getElementById('locate-btn')?.classList.remove('mobile-ui-hidden');
+    document.getElementById('zoom-jog')?.classList.remove('mobile-ui-hidden');
+
     setTimeout(() => {
-      const panel = document.getElementById('panel');
-      if (panel) {
-        panel.classList.remove('mobile-hidden', 'mobile-fullscreen');
-        if (expandList) panel.classList.add('mobile-expanded');
-        else            panel.classList.remove('mobile-expanded');
-        _syncFtsPosition();
-      }
-      document.getElementById('floating-search')?.classList.remove('mobile-ui-hidden');
-      document.getElementById('qc-wrap')?.classList.remove('mobile-ui-hidden');
-      document.getElementById('locate-btn')?.classList.remove('mobile-ui-hidden');
-      document.getElementById('zoom-jog')?.classList.remove('mobile-ui-hidden');
       // Clear FTS overrides so it returns to its CSS-driven peek/expanded layout.
       _clearFtsInlineSize();
       _syncFtsPosition();
-      // Reverse morph just finished — snap panel away without an extra wobble.
-      if (dp) {
-        dp.classList.add('dp-morph-instant');
-        dp.classList.remove('dp-morphing');
-        void dp.offsetHeight;
-        dp.classList.remove('dp-morph-instant');
-        dp.style.removeProperty('--morph-h');
-        dp.style.removeProperty('--morph-dy');
-      }
       if (_morphSourceVid != null) {
         document.querySelectorAll('.venue-card.morph-source').forEach(c => c.classList.remove('morph-source'));
         _morphSourceVid    = null;
