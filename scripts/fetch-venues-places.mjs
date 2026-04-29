@@ -151,10 +151,13 @@ async function textSearchKeyword(lat, lng, area, keyword) {
     // Deliberately no includedType — keyword + location bias is enough,
     // and includedType:'restaurant' was filtering out bars and venues
     // classed as theatre/nightclub that have outdoor terraces.
+    // excludedPrimaryTypes stops Google from spending result slots on
+    // parking lots, parks, etc. whose names happen to match the keyword.
     const body = {
-      textQuery:      `${keyword} ${area} Oslo`,
-      locationBias:   { circle: { center: { latitude: lat, longitude: lng }, radius: RADIUS * 1.5 } },
-      maxResultCount: 20,
+      textQuery:           `${keyword} ${area} Oslo`,
+      locationBias:        { circle: { center: { latitude: lat, longitude: lng }, radius: RADIUS * 1.5 } },
+      excludedPrimaryTypes: TEXT_SEARCH_EXCLUDED_PRIMARY_TYPES,
+      maxResultCount:      20,
     };
     if (pageToken) body.pageToken = pageToken;
     const resp = await fetch('https://places.googleapis.com/v1/places:searchText', {
@@ -217,22 +220,46 @@ function categoryFromTypes(types = []) {
 }
 
 // Whitelist of Google Places API v1 types that indicate a food/drink
-// venue. The keyword text searches ("terrasse Grünerløkka Oslo" etc.)
-// otherwise return parking lots and apartment complexes whose names
-// happen to contain the keyword. Apply this filter before admitting
-// places into discovery output.
+// venue. Verified against
+// https://developers.google.com/maps/documentation/places/web-service/place-types
+// (Table A — Eating and Drinking). Used as a post-response sanity
+// filter; the server-side excludedPrimaryTypes (see TEXT_SEARCH_EXCLUDED
+// below) does the heavy lifting on noise removal.
 const FOOD_TYPES = new Set([
-  'restaurant', 'bar', 'cafe', 'pub', 'food', 'bakery', 'coffee_shop',
-  'meal_takeaway', 'meal_delivery', 'wine_bar', 'night_club', 'biergarten',
-  'pizzeria', 'tea_house', 'brewery', 'gastropub', 'ice_cream_shop',
-  'sandwich_shop', 'cafeteria', 'bistro', 'bbq_restaurant',
+  // Core
+  'restaurant', 'bar', 'cafe', 'pub', 'food',
+  // Quick-service / casual
+  'bakery', 'coffee_shop', 'fast_food_restaurant', 'meal_takeaway',
+  'meal_delivery', 'sandwich_shop', 'cafeteria', 'food_court', 'deli',
+  'diner', 'juice_shop', 'donut_shop', 'bagel_shop',
+  // Specialty
+  'wine_bar', 'night_club', 'tea_house', 'ice_cream_shop',
+  'dessert_shop', 'dessert_restaurant', 'bar_and_grill',
+  'breakfast_restaurant', 'brunch_restaurant', 'buffet_restaurant',
+  'fine_dining_restaurant', 'bbq_restaurant', 'steak_house',
+  'cat_cafe', 'dog_cafe',
+  // Harmless legacy / informal types — not currently in v1 Table A but
+  // included as a safety net in case Google adds them or returns them
+  // for international venues.
+  'biergarten', 'pizzeria', 'brewery', 'gastropub', 'bistro',
 ]);
 
 function hasFoodType(types = []) {
-  // The _restaurant suffix catches all *_restaurant variants
+  // The _restaurant suffix catches all cuisine-specific variants
   // (italian_restaurant, sushi_restaurant, etc.) without listing them.
   return types.some(t => FOOD_TYPES.has(t) || t.endsWith('_restaurant'));
 }
+
+// Server-side filter for searchText: tell Google not to return places
+// of these primary types. Cheaper and more accurate than post-filtering
+// — Google never spends a result slot on a parking lot in the first
+// place. Verified type names against the v1 docs.
+const TEXT_SEARCH_EXCLUDED_PRIMARY_TYPES = [
+  'parking', 'lodging', 'park', 'tourist_attraction',
+  'school', 'university', 'hospital', 'pharmacy',
+  'gas_station', 'bank', 'atm', 'storage',
+  'real_estate_agency', 'shopping_mall',
+];
 
 // ── OSM outdoor_seating=yes (free signal, complements Google) ─────────────────
 
