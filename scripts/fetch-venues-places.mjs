@@ -148,10 +148,12 @@ async function textSearchKeyword(lat, lng, area, keyword) {
   const all = [];
   let pageToken;
   for (let page = 0; page < 3; page++) {
+    // Deliberately no includedType — keyword + location bias is enough,
+    // and includedType:'restaurant' was filtering out bars and venues
+    // classed as theatre/nightclub that have outdoor terraces.
     const body = {
       textQuery:      `${keyword} ${area} Oslo`,
       locationBias:   { circle: { center: { latitude: lat, longitude: lng }, radius: RADIUS * 1.5 } },
-      includedType:   'restaurant',
       maxResultCount: 20,
     };
     if (pageToken) body.pageToken = pageToken;
@@ -225,8 +227,8 @@ const OSM_OUTDOOR_QUERY = `
 [out:json][timeout:120];
 area["name"="Oslo"]["admin_level"="4"]->.oslo;
 (
-  node["amenity"~"^(restaurant|bar|cafe|pub|biergarten)$"]["outdoor_seating"="yes"](area.oslo);
-  way["amenity"~"^(restaurant|bar|cafe|pub|biergarten)$"]["outdoor_seating"="yes"](area.oslo);
+  node["outdoor_seating"="yes"](area.oslo);
+  way["outdoor_seating"="yes"](area.oslo);
 );
 out center tags;
 `;

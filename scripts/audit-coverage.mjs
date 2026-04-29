@@ -162,8 +162,8 @@ if (fetchOutdoor) {
 [out:json][timeout:120];
 area["name"="Oslo"]["admin_level"="4"]->.oslo;
 (
-  node["amenity"~"^(restaurant|bar|cafe|pub|biergarten)$"]["outdoor_seating"="yes"](area.oslo);
-  way["amenity"~"^(restaurant|bar|cafe|pub|biergarten)$"]["outdoor_seating"="yes"](area.oslo);
+  node["outdoor_seating"="yes"](area.oslo);
+  way["outdoor_seating"="yes"](area.oslo);
 );
 out center tags;
   `;

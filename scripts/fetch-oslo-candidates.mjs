@@ -33,7 +33,10 @@ const OVERPASS_ENDPOINTS = [
   'https://overpass.kumi.systems/api/interpreter',
   'https://overpass.openstreetmap.ru/api/interpreter',
 ];
-const AMENITY_TYPES = 'restaurant|bar|cafe|pub|biergarten|food_court';
+// Broader than just food/drink amenities — venues like Parkteatret are
+// tagged amenity=theatre but have outdoor bars; ice_cream/fast_food often
+// have terraces; nightclubs frequently overlap with bar use.
+const AMENITY_TYPES = 'restaurant|bar|cafe|pub|biergarten|food_court|fast_food|ice_cream|nightclub|theatre|arts_centre|community_centre|events_venue';
 const OVERPASS_QUERY = `
 [out:json][timeout:120];
 area["name"="Oslo"]["admin_level"="4"]->.oslo;
