@@ -27,13 +27,15 @@ const ROOT      = join(__dirname, '..');
 // ── API key ───────────────────────────────────────────────────────────────────
 
 const env      = readFileSync(join(ROOT, '.env'), 'utf8');
-// Prefer unrestricted server key; fall back to referrer-restricted client key
-const serverMatch = env.match(/GOOGLE_PLACES_SERVER_KEY=(.+)/);
+// Prefer the unrestricted server key (workflows write either name into
+// .env); fall back to the referrer-restricted client key for legacy
+// local setups.
+const serverMatch = env.match(/GOOGLE_PLACES_KEY_SERVER=(.+)/) || env.match(/GOOGLE_PLACES_SERVER_KEY=(.+)/);
 const clientMatch = env.match(/GOOGLE_PLACES_KEY=(.+)/);
 const keyMatch = serverMatch || clientMatch;
-if (!keyMatch) { console.error('GOOGLE_PLACES_SERVER_KEY (or GOOGLE_PLACES_KEY) not found in .env'); process.exit(1); }
+if (!keyMatch) { console.error('GOOGLE_PLACES_KEY_SERVER (or GOOGLE_PLACES_KEY) not found in .env'); process.exit(1); }
 const API_KEY = keyMatch[1].trim();
-if (serverMatch) console.log('Using GOOGLE_PLACES_SERVER_KEY (unrestricted)');
+if (serverMatch) console.log('Using server key (unrestricted)');
 else console.warn('⚠ Using GOOGLE_PLACES_KEY (referrer-restricted — may 403 from CLI)');
 
 // ── Places API (New) helpers ──────────────────────────────────────────────────

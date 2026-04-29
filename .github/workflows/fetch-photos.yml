@@ -1,0 +1,36 @@
+name: Fetch venue photos
+
+# Fetches Google Places photo references for venues missing them.
+# Triggered manually after a discovery merge or when validate-photos
+# detects expired URLs.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Write .env
+        # Server key — referrer-restricted website key would 403 from CI.
+        run: echo "GOOGLE_PLACES_KEY_SERVER=${{ secrets.GOOGLE_PLACES_KEY_SERVER }}" > .env
+
+      - name: Fetch photos
+        run: node scripts/fetch-photos.mjs
+
+      - name: Commit if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/venue-photos.json data/venues.json
+          git diff --cached --quiet && echo "No changes" || git commit -m "chore: refresh venue photos [skip ci]"
+          git push
