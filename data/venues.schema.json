@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Solsteder Venues",
+  "description": "Schema for data/venues.json — the canonical venue catalogue.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["id", "name", "address", "coords", "category", "area", "openingHours"],
+    "additionalProperties": false,
+    "properties": {
+      "id": {
+        "type": "integer",
+        "description": "Sequential, stable. Assigned by merge-venues.mjs."
+      },
+      "name":    { "type": "string", "minLength": 1 },
+      "address": { "type": "string" },
+      "coords": {
+        "type": "array",
+        "items": { "type": "number" },
+        "minItems": 2,
+        "maxItems": 2,
+        "description": "[latitude, longitude]"
+      },
+      "category": {
+        "type": "string",
+        "enum": [
+          "restaurant", "pub", "cocktail_bar", "wine_bar", "bistro_bar",
+          "brasserie", "cafe", "rooftop_bar", "courtyard", "beer_garden",
+          "fine_dining", "bar"
+        ]
+      },
+      "area": { "type": "string" },
+      "rating": {
+        "type": ["number", "null"],
+        "minimum": 0,
+        "maximum": 5
+      },
+      "facing": {
+        "type": ["number", "null"],
+        "description": "Compass heading 0–359; null until update-geometry.mjs computes it."
+      },
+      "facingSource": {
+        "type": ["string", "null"],
+        "enum": [null, "osm", "manual", "auto"]
+      },
+      "buildingOsmId": { "type": ["string", "integer", "null"] },
+      "googlePlaceId": { "type": ["string", "null"] },
+      "openingHours": {
+        "type": "object",
+        "required": ["open", "close"],
+        "properties": {
+          "open":  { "type": "number", "minimum": 0, "maximum": 24 },
+          "close": { "type": "number", "minimum": 0, "maximum": 30 }
+        }
+      },
+      "openingHoursWeekly": {
+        "type": ["object", "null"],
+        "additionalProperties": {
+          "type": "object",
+          "required": ["open", "close"],
+          "properties": {
+            "open":  { "type": "number", "minimum": 0, "maximum": 24 },
+            "close": { "type": "number", "minimum": 0, "maximum": 30 }
+          }
+        }
+      },
+      "hoursSource": {
+        "type": ["string", "null"],
+        "enum": [null, "osm", "google", "manual"]
+      },
+      "businessStatus": {
+        "type": ["string", "null"],
+        "enum": [null, "OPERATIONAL", "CLOSED_TEMPORARILY", "CLOSED_PERMANENTLY"]
+      },
+      "discoverySignal": {
+        "type": ["string", "null"],
+        "description": "Sorted CSV of sources from fetch-venues-places.mjs (e.g. 'osm,uteservering')."
+      },
+      "terraceType": {
+        "type": ["string", "null"],
+        "enum": [null, "street", "rooftop", "courtyard", "detached"]
+      },
+      "beerPrice": { "type": ["number", "null"] }
+    }
+  }
+}

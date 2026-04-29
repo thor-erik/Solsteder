@@ -1,0 +1,32 @@
+name: Validate venue data
+
+# Runs on pushes and PRs that touch venue data, ensuring data/venues.json
+# stays consistent with data/venues.schema.json. Catches missing required
+# fields, type mismatches, bad enum values, duplicate IDs.
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'data/venues.json'
+      - 'data/venues.schema.json'
+      - 'scripts/validate-venues.mjs'
+  pull_request:
+    paths:
+      - 'data/venues.json'
+      - 'data/venues.schema.json'
+      - 'scripts/validate-venues.mjs'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validate data/venues.json
+        run: node scripts/validate-venues.mjs
