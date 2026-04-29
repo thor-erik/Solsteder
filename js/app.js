@@ -708,12 +708,15 @@ let _workerGeneration = 0;
 try {
   sunWorker = new Worker('js/worker.js');
   sunWorker.onmessage = function(e) {
-    const { type, dateStr, result, generation } = e.data;
+    const { type, dateStr, result } = e.data;
     if (type !== 'result') return;
     // Discard stale results if the user changed the date while the worker was running
     if (dateStr !== datePicker.value) return;
-    // Discard results from an older dispatch (e.g. pre-initFacings worker)
-    if (generation !== _workerGeneration) return;
+    // Accept all generations. The worker is FIFO, so an older-gen result is
+    // just an earlier snapshot (e.g. pre-initFacings simple-facing windows)
+    // that a newer-gen result will overwrite naturally. Letting it land keeps
+    // the cache warm and prevents sync-compute freezes during the gap before
+    // the precise post-initFacings result arrives.
     for (const [idStr, windows] of Object.entries(result)) {
       sunWindowCache.set(`${idStr}-${dateStr}`, windows);
     }
