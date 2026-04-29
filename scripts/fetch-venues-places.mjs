@@ -165,11 +165,115 @@ function categoryFromTypes(types = []) {
   return 'restaurant';
 }
 
+// ── OSM outdoor_seating=yes (free signal, complements Google) ─────────────────
+
+const OVERPASS_ENDPOINTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.openstreetmap.ru/api/interpreter',
+];
+const OSM_OUTDOOR_QUERY = `
+[out:json][timeout:120];
+area["name"="Oslo"]["admin_level"="4"]->.oslo;
+(
+  node["amenity"~"^(restaurant|bar|cafe|pub|biergarten)$"]["outdoor_seating"="yes"](area.oslo);
+  way["amenity"~"^(restaurant|bar|cafe|pub|biergarten)$"]["outdoor_seating"="yes"](area.oslo);
+);
+out center tags;
+`;
+
+async function fetchOSMOutdoor() {
+  for (const ep of OVERPASS_ENDPOINTS) {
+    process.stdout.write(`  Overpass ${ep} … `);
+    try {
+      const r = await fetch(ep, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent':   'Solsteder/1.0 (github.com/thor-erik/Solsteder)',
+        },
+        body: 'data=' + encodeURIComponent(OSM_OUTDOOR_QUERY),
+        signal: AbortSignal.timeout(150_000),
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json();
+      console.log(`${data.elements.length} elements`);
+      return data.elements
+        .filter(el => el.tags?.name)
+        .map(el => ({
+          name:    el.tags.name,
+          lat:     el.type === 'node' ? el.lat : el.center?.lat,
+          lng:     el.type === 'node' ? el.lon : el.center?.lon,
+          amenity: el.tags.amenity,
+          osmId:   `${el.type}/${el.id}`,
+        }))
+        .filter(x => x.lat && x.lng);
+    } catch (err) {
+      console.log(`failed (${err.message})`);
+      await sleep(5_000);
+    }
+  }
+  return null;
+}
+
+/**
+ * Resolve an OSM venue (name + coords) to a Google Place via Text Search.
+ * Returns the matched place or null.
+ */
+async function resolveOSMToGoogle(osmVenue) {
+  const resp = await fetch('https://places.googleapis.com/v1/places:searchText', {
+    method: 'POST',
+    headers: {
+      'Content-Type':     'application/json',
+      'X-Goog-Api-Key':   API_KEY,
+      'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.types,places.outdoorSeating,places.businessStatus',
+    },
+    body: JSON.stringify({
+      textQuery: `${osmVenue.name} Oslo`,
+      locationBias: {
+        circle: { center: { latitude: osmVenue.lat, longitude: osmVenue.lng }, radius: 200 },
+      },
+      maxResultCount: 5,
+    }),
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (!resp.ok) return null;
+  const data = await resp.json();
+  const candidates = data.places ?? [];
+  // Pick the closest result within 150 m of the OSM coordinates.
+  let best = null;
+  let bestDist = Infinity;
+  for (const p of candidates) {
+    if (p.businessStatus === 'CLOSED_PERMANENTLY') continue;
+    const lat = p.location?.latitude;
+    const lng = p.location?.longitude;
+    if (lat == null || lng == null) continue;
+    const dLat = (lat - osmVenue.lat) * 111_000;
+    const dLng = (lng - osmVenue.lng) * 55_000;
+    const d    = Math.hypot(dLat, dLng);
+    if (d < 150 && d < bestDist) { best = p; bestDist = d; }
+  }
+  return best;
+}
+
+const normName = s => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+
+function metresBetween(a, b) {
+  const dLat = (a[0] - b[0]) * 111_000;
+  const dLng = (a[1] - b[1]) * 55_000;
+  return Math.hypot(dLat, dLng);
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 
-// seen: place_id → { place, area, signal }
-// signal: 'outdoorSeating' | 'uteservering' | 'both'
+// seen: place_id → { place, area, sources: Set<'outdoorSeating'|'uteservering'|'osm'> }
 const seen = new Map();
+const addSignal = (id, place, area, source) => {
+  const e = seen.get(id);
+  if (e) { e.sources.add(source); return false; }
+  seen.set(id, { place, area, sources: new Set([source]) });
+  return true;
+};
 
 console.log('Pass A: Nearby Search with outdoorSeating filter…\n');
 for (const point of SEARCH_POINTS) {
@@ -180,10 +284,7 @@ for (const point of SEARCH_POINTS) {
     for (const p of places) {
       if (p.businessStatus === 'CLOSED_PERMANENTLY') continue;
       if (!p.outdoorSeating) continue; // only keep explicit outdoor seating
-      if (!seen.has(p.id)) {
-        seen.set(p.id, { place: p, area: point.area, signal: 'outdoorSeating' });
-        added++;
-      }
+      if (addSignal(p.id, p, point.area, 'outdoorSeating')) added++;
     }
     console.log(`${places.length} results, ${added} with outdoorSeating`);
   } catch (err) {
@@ -200,13 +301,7 @@ for (const point of SEARCH_POINTS) {
     let added = 0;
     for (const p of places) {
       if (p.businessStatus === 'CLOSED_PERMANENTLY') continue;
-      if (!seen.has(p.id)) {
-        seen.set(p.id, { place: p, area: point.area, signal: 'uteservering' });
-        added++;
-      } else {
-        // Already found via outdoorSeating — mark as both signals
-        seen.get(p.id).signal = 'both';
-      }
+      if (addSignal(p.id, p, point.area, 'uteservering')) added++;
     }
     console.log(`${places.length} results, ${added} new`);
   } catch (err) {
@@ -215,18 +310,73 @@ for (const point of SEARCH_POINTS) {
   await sleep(200);
 }
 
+console.log('\nPass C: OSM outdoor_seating=yes (resolved via Google Text Search)…\n');
+const existingForMatch = JSON.parse(readFileSync(join(ROOT, 'data/venues.json'), 'utf8'));
+const osmVenues = await fetchOSMOutdoor();
+if (!osmVenues) {
+  console.log('  Overpass unavailable, skipping Pass C.');
+} else {
+  // Skip OSM venues already in our DB by name+coord proximity.
+  const inExisting = osm => existingForMatch.some(v => {
+    const d = metresBetween([osm.lat, osm.lng], v.coords);
+    if (d < 25) return true;
+    if (d < 150 && normName(v.name) === normName(osm.name)) return true;
+    return false;
+  });
+  // Skip OSM venues that match a Google place already in `seen` (by coords + name).
+  const inSeen = osm => {
+    for (const { place: p } of seen.values()) {
+      const lat = p.location?.latitude;
+      const lng = p.location?.longitude;
+      if (lat == null || lng == null) continue;
+      const d = metresBetween([osm.lat, osm.lng], [lat, lng]);
+      if (d < 25) return true;
+      if (d < 150 && normName(p.displayName?.text ?? '') === normName(osm.name)) return true;
+    }
+    return false;
+  };
+
+  let resolved = 0, alreadyKnown = 0, addedNew = 0, unresolved = 0;
+  let j = 0;
+  for (const osm of osmVenues) {
+    j++;
+    if (inExisting(osm)) { alreadyKnown++; continue; }
+    if (inSeen(osm))     { alreadyKnown++; continue; }
+    process.stdout.write(`  [${j}/${osmVenues.length}] ${osm.name} … `);
+    try {
+      const match = await resolveOSMToGoogle(osm);
+      if (match) {
+        resolved++;
+        const wasNew = addSignal(match.id, match, 'OSM', 'osm');
+        if (wasNew) { addedNew++; console.log('resolved → new'); }
+        else        { console.log('resolved → already in seen'); }
+      } else {
+        unresolved++;
+        console.log('no Google match within 150 m');
+      }
+    } catch (err) {
+      console.log(`error: ${err.message}`);
+    }
+    await sleep(150);
+  }
+  console.log(`\n  OSM outdoor_seating venues:    ${osmVenues.length}`);
+  console.log(`  Already in venues.json or seen: ${alreadyKnown}`);
+  console.log(`  Resolved to Google place:       ${resolved}`);
+  console.log(`  Added (new place ID):           ${addedNew}`);
+  console.log(`  Unresolved (no nearby Google):  ${unresolved}`);
+}
+
 console.log(`\nTotal unique candidates: ${seen.size}. Fetching opening hours…\n`);
 
-// Load existing venues to avoid re-assigning IDs to known places
-const existingPath   = join(ROOT, 'data/venues.json');
-const existingVenues = JSON.parse(readFileSync(existingPath, 'utf8'));
-const existingIds    = new Set(existingVenues.map(v => v.googlePlaceId).filter(Boolean));
-let nextId = Math.max(...existingVenues.map(v => v.id)) + 1;
+const existingIds = new Set(existingForMatch.map(v => v.googlePlaceId).filter(Boolean));
+let nextId = Math.max(...existingForMatch.map(v => v.id)) + 1;
 
 const venues = [];
 let i = 0;
-for (const [placeId, { place: p, area, signal }] of seen) {
+for (const [placeId, { place: p, area, sources }] of seen) {
   i++;
+  const signal = [...sources].sort().join(',');
+
   // Skip venues already in venues.json (they're managed by refresh-opening-hours.mjs)
   if (existingIds.has(placeId)) {
     process.stdout.write(`  [${i}/${seen.size}] ${p.displayName?.text} — already in venues.json, skipped\n`);
@@ -261,7 +411,7 @@ for (const [placeId, { place: p, area, signal }] of seen) {
     buildingOsmId:      null,
     googlePlaceId:      placeId,
     facingSource:       null,
-    discoverySignal:    signal,     // 'outdoorSeating' | 'uteservering' | 'both'
+    discoverySignal:    signal,     // sorted CSV of sources: 'outdoorSeating', 'uteservering', 'osm', or any combination
   });
 
   console.log(`done (signal: ${signal})`);
@@ -275,12 +425,11 @@ const bySignal = venues.reduce((acc, v) => {
   return acc;
 }, {});
 
+console.log(`\nWrote ${venues.length} new candidates → data/venues-fetched.json`);
+for (const [s, n] of Object.entries(bySignal).sort((a, b) => b[1] - a[1])) {
+  console.log(`  ${s.padEnd(40)} ${n}`);
+}
 console.log(`
-Wrote ${venues.length} new candidates → data/venues-fetched.json
-  outdoorSeating only: ${bySignal.outdoorSeating ?? 0}
-  uteservering only:   ${bySignal.uteservering ?? 0}
-  both signals:        ${bySignal.both ?? 0}
-
 Review the file, then run scripts/merge-venues.mjs to merge into venues.json.
 Remember to run scripts/update-geometry.mjs after merging.
 `);

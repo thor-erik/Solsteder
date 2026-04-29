@@ -116,12 +116,14 @@ async function fetchOSM() {
       const num     = el.tags['addr:housenumber'] ?? '';
       const address = [street, num].filter(Boolean).join(' ');
       return {
-        name:    el.tags.name,
+        name:           el.tags.name,
         lat,
         lng,
-        amenity: el.tags.amenity,
+        amenity:        el.tags.amenity,
         address,
-        source:  'osm',
+        source:         'osm',
+        osmId:          `${el.type}/${el.id}`,
+        outdoorSeating: el.tags.outdoor_seating ?? null, // 'yes' | 'no' | 'seasonal' | null
       };
     })
     .filter(Boolean);
