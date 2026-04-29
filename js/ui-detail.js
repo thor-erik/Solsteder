@@ -301,17 +301,20 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
         ${photoActionsHtml}
       </div>
 
-      <!-- The dp-card slot is filled by the lifted source venue-card after the
-           open-morph completes (in app.js → openDetailPanel). Until then this
-           placeholder reserves layout space so photos / social / info sit at
-           their final positions. The placeholder height matches what the
-           docked source card will be (card-top ~50 + card-timeline 38 +
-           padding 32 ≈ 120). On close the source returns to the list. -->
-      <div id="dp-card-slot" class="dp-card-slot"></div>
-      <!-- Time labels live below the card slot as a sibling, not nested
-           inside the card. The FTS pill overlays the docked source's
-           card-timeline; labels align with the FTS track via margin-left. -->
-      <div class="dp-tl-labels">${tlLabels}</div>
+      <!-- The dp-card slot is filled by the lifted source venue-card after
+           the open-morph completes (app.js → openDetailPanel hand-off).
+           Until then this placeholder reserves the layout space so photos /
+           social / info sit in their final positions and don't shift when
+           the source card lands. Time labels are rendered INSIDE the slot
+           (hidden via CSS during the morph) — at hand-off JS extracts them
+           and appends to the now-docked source card so they're visually
+           attached to the slider. Pre-rendering them inside the placeholder
+           keeps the placeholder's height correct + lets us animate the
+           labels in (.dp-tl-labels { opacity 0 → 1 } once outside the slot)
+           without a layout shift. -->
+      <div id="dp-card-slot" class="dp-card-slot">
+        <div class="dp-tl-labels">${tlLabels}</div>
+      </div>
 
       ${_renderSocialSection(v)}
 

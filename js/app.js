@@ -2703,6 +2703,12 @@ function openDetailPanel(v) {
 
     const slot = document.getElementById('dp-card-slot');
     if (slot && sourceCard.parentNode === document.body) {
+      // Extract the labels from the slot BEFORE removing the slot, so they
+      // survive the replaceChild. They were rendered inside the slot to
+      // keep the placeholder height correct + so they fade in cleanly via
+      // CSS (.source-docked .dp-tl-labels { opacity 1 transition }) once
+      // they're no longer inside .dp-card-slot.
+      const labels = slot.querySelector('.dp-tl-labels');
       document.body.removeChild(sourceCard);
       sourceCard.classList.remove('source-morphing', 'source-target');
       sourceCard.style.cssText = '';
@@ -2711,11 +2717,6 @@ function openDetailPanel(v) {
       // overrides position:fixed → relative so the card flows in the panel.
       sourceCard.classList.add('dp-card', 'source-docked');
       slot.parentNode.replaceChild(sourceCard, slot);
-
-      // Move the time labels INSIDE the docked card so they sit under the
-      // slider visually attached to it (instead of floating below the card
-      // box where the user complained they look disconnected).
-      const labels = document.querySelector('#detail-panel .dp-tl-labels');
       if (labels) sourceCard.appendChild(labels);
     }
 

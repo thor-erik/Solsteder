@@ -4785,7 +4785,15 @@
     height: 38px;
     border-radius: 19px;
     overflow: hidden;
+    /* Match the FTS pill's calendar-btn / track glass background so the 8px
+       gap between the calendar btn and the slider track reads as a single
+       continuous pill rather than exposing a different colour underneath. */
+    background: var(--glass-action-bg);
   }
+  /* The venue-card mini-timeline's wx segments would otherwise show through
+     the FTS pill canvas (or peek out behind the calendar btn / gap). Hide
+     them when the source is docked as a dp-card. */
+  .dp-card .timeline-track .wx { display: none; }
   .dp-card .tl-now { display: none; }
 
   /* Reserves layout space in the panel for the lifted source venue-card,
@@ -4797,6 +4805,17 @@
   .dp-card-slot {
     height: 168px;
     margin-bottom: 14px;
+    /* Labels are pre-rendered inside the slot to keep the slot height
+       correct without a layout shift when the source card docks. They're
+       invisible while inside the slot — they fade in once moved into the
+       docked source card by JS. */
+    position: relative;
+  }
+  .dp-card-slot .dp-tl-labels { opacity: 0; pointer-events: none; }
+  /* Labels inside the docked source card — animated to opacity 1. */
+  .source-docked .dp-tl-labels {
+    opacity: 1;
+    transition: opacity 0.22s ease 0.10s;
   }
 
   /* Source card after it's been moved into the panel as the dp-card. Strips
@@ -4972,6 +4991,7 @@
       position: fixed !important;
       z-index: 9990 !important;
       margin: 0 !important;
+      opacity: 1 !important;     /* never inherit/animate-to anything else */
       pointer-events: none;
       will-change: top, left, width, padding;
       transition:
