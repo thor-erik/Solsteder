@@ -2643,6 +2643,13 @@ function openDetailPanel(v) {
   placeholder._morphSource     = sourceCard;
   placeholder._morphSourceNext = sourceNext;
 
+  // Defensive cleanup: if any source card from a previous (interrupted) morph
+  // is still orphaned in <body>, remove it now so it can't accumulate. Same
+  // for any leftover labels — fixes the user-reported "labels stack" bug
+  // when opening + closing the same panel multiple times.
+  document.querySelectorAll('body > .venue-card.source-morphing').forEach(c => c.remove());
+  document.querySelectorAll('#detail-panel .source-docked .dp-tl-labels').forEach(l => l.remove());
+
   // Lift the actual source card. Re-append to <body> so it's outside #panel's
   // stacking context — z-index can then put it above #detail-panel (z=920).
   sourceCard.classList.add('source-morphing');
@@ -2653,6 +2660,21 @@ function openDetailPanel(v) {
   sourceCard.style.left  = sourceRect.left  + 'px';
   sourceCard.style.width = sourceRect.width + 'px';
   document.body.appendChild(sourceCard);
+
+  // Clone the labels from the just-rendered slot and append to source so the
+  // source's height is correct (with label space) throughout the morph
+  // animation. Avoids the "hard transition" the user reported when labels
+  // were appended only at hand-off, causing the source to grow ~32px in one
+  // frame. Labels stay at opacity 0 during morph (.source-morphing rule)
+  // and fade to 1 once .source-target is added (during the morph), tracking
+  // the rest of the card-content morph.
+  const slotForLabels = document.getElementById('dp-card-slot');
+  const slotLabels = slotForLabels ? slotForLabels.querySelector('.dp-tl-labels') : null;
+  let inlineLabels = null;
+  if (slotLabels) {
+    inlineLabels = slotLabels.cloneNode(true);
+    sourceCard.appendChild(inlineLabels);
+  }
 
   // Calendar-button overlay (fades in alongside the time-bar morph).
   const calBtn = document.createElement('div');
@@ -2703,12 +2725,10 @@ function openDetailPanel(v) {
 
     const slot = document.getElementById('dp-card-slot');
     if (slot && sourceCard.parentNode === document.body) {
-      // Extract the labels from the slot BEFORE removing the slot, so they
-      // survive the replaceChild. They were rendered inside the slot to
-      // keep the placeholder height correct + so they fade in cleanly via
-      // CSS (.source-docked .dp-tl-labels { opacity 1 transition }) once
-      // they're no longer inside .dp-card-slot.
-      const labels = slot.querySelector('.dp-tl-labels');
+      // Source already has its own (cloned) labels inside it — added at lift
+      // time so the height was correct throughout the morph. We just remove
+      // the slot's labels along with the slot via replaceChild; no extraction
+      // / re-append dance needed.
       document.body.removeChild(sourceCard);
       sourceCard.classList.remove('source-morphing', 'source-target');
       sourceCard.style.cssText = '';
@@ -2717,7 +2737,6 @@ function openDetailPanel(v) {
       // overrides position:fixed → relative so the card flows in the panel.
       sourceCard.classList.add('dp-card', 'source-docked');
       slot.parentNode.replaceChild(sourceCard, slot);
-      if (labels) sourceCard.appendChild(labels);
     }
 
     // Pin FTS to the slot inside the now-docked source card and fade in.

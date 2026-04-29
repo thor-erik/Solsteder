@@ -5036,6 +5036,15 @@
     }
     .venue-card.source-morphing.source-target .tl-now { display: none; }
 
+    /* Cloned labels live inside the source card from the start of the morph
+       so source.height includes label space throughout (no jump at hand-off).
+       Hidden during morph, fade in as part of the .source-target transition. */
+    .venue-card.source-morphing .dp-tl-labels {
+      opacity: 0;
+      transition: opacity 0.22s ease 0.10s;
+    }
+    .venue-card.source-morphing.source-target .dp-tl-labels { opacity: 1; }
+
     /* Calendar button injected into the lifted source card; fades in alongside
        the time-bar morph. */
     .source-card-calbtn {
