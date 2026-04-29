@@ -25,6 +25,11 @@ jobs:
       - name: Write .env
         run: echo "GOOGLE_PLACES_KEY=${{ secrets.GOOGLE_PLACES_KEY }}" > .env
 
+      # Refresh the OSM universe so the discovery anchor grid reflects
+      # current restaurant/bar/cafe density. OSM only — free.
+      - name: Refresh candidates universe (OSM only)
+        run: node scripts/fetch-oslo-candidates.mjs --osm-only
+
       - name: Discover venues
         run: node scripts/fetch-venues-places.mjs
 

@@ -132,6 +132,10 @@ async function fetchOSM() {
 // ── Google Places fetch ──────────────────────────────────────────────────────
 
 async function fetchGooglePlaces() {
+  if (process.argv.includes('--osm-only')) {
+    console.log('\n── Pass 2: Google Places — SKIPPED (--osm-only) ──');
+    return [];
+  }
   if (!API_KEY) {
     console.log('\n── Pass 2: Google Places — SKIPPED (no GOOGLE_PLACES_KEY in .env) ──');
     return [];
