@@ -6292,6 +6292,28 @@
     font-size: 8px; font-weight: 600;
     display: inline-flex; align-items: center; justify-content: center;
   }
+  /* "Friends going" badge — same shape as the live-checkin badge but blue
+     border to distinguish "planned" from "here now" (orange). */
+  .card-going-badge {
+    display: inline-flex;
+    gap: 2px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .card-going-dot {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid rgba(156,189,231,0.55);
+    display: inline-block;
+    vertical-align: middle;
+  }
+  .card-going-dot-init {
+    background: rgba(20,46,82,0.6);
+    color: rgba(156,189,231,0.95);
+    font-size: 8px; font-weight: 600;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
 
   /* ── Friends modal ──────────────────────────────────────────────────────── */
   .friends-modal-overlay {

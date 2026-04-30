@@ -950,6 +950,29 @@ function _drawFriendBadge(x, y, fc) {
   ctx.restore();
 }
 
+// "Friends going" (planned) badge — blue border to distinguish from the
+// orange live-checkin badge. Drawn at a different offset so both can coexist.
+function _drawGoingBadge(x, y, going) {
+  const r = FRIEND_BADGE_R;
+  ctx.save();
+  ctx.beginPath(); ctx.arc(x, y, r + 1, 0, Math.PI * 2);
+  ctx.fillStyle = '#142E52';
+  ctx.fill();
+  ctx.strokeStyle = '#9CBDE7';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.fillStyle = '#9CBDE7';
+  ctx.font = 'bold 10px "Inter", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  if (going.length === 1) {
+    ctx.fillText((going[0].user.name || going[0].user.email || '?')[0].toUpperCase(), x, y);
+  } else {
+    ctx.fillText(String(going.length), x, y);
+  }
+  ctx.restore();
+}
+
 // ── Map pan helper ────────────────────────────────────────────────────────────
 /**
  * Pan so the venue pin appears centred in the visible area (accounting for
@@ -1146,6 +1169,13 @@ function draw() {
         _drawFriendBadge(pt.x + DOT_R + 1, pt.y - DOT_R - 1, fc);
       }
     }
+    // "Going" badge on dot pins (bottom-right so it doesn't overlap the checkin badge)
+    if (typeof getGoingFriendsForVenue === 'function') {
+      const going = getGoingFriendsForVenue(v.id, dateStr);
+      if (going.length) {
+        _drawGoingBadge(pt.x + DOT_R + 1, pt.y + DOT_R + 1, going);
+      }
+    }
   }
 
   // Pass 2b — morph animations + pills (always above dots)
@@ -1236,6 +1266,16 @@ function draw() {
         const pillRight = sprLeft + SHADOW_PAD + rp2 + spr.pillW;
         const pillTop   = sprTop  + SHADOW_PAD + rp2;
         _drawFriendBadge(pillRight - 1, pillTop + 1, fc);
+      }
+    }
+    // "Going" badge (bottom-right of pill)
+    if (spr.pillW > 0 && typeof getGoingFriendsForVenue === 'function') {
+      const going = getGoingFriendsForVenue(v.id, dateStr);
+      if (going.length) {
+        const rp2 = (v.id === selectedId ? 4 : 2);
+        const pillRight  = sprLeft + SHADOW_PAD + rp2 + spr.pillW;
+        const pillBottom = sprTop  + SHADOW_PAD + rp2 + spr.pillH;
+        _drawGoingBadge(pillRight - 1, pillBottom - 1, going);
       }
     }
 

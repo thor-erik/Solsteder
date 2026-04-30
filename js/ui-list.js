@@ -141,13 +141,23 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
       </div>`
     : '';
 
+  const going = typeof getGoingFriendsForVenue === 'function' ? getGoingFriendsForVenue(v.id, dateStr) : [];
+  const goingBadge = going.length
+    ? `<div class="card-going-badge" title="${going.map(g => g.user.name || g.user.email).join(', ')}">
+        ${going.slice(0, 3).map(g => g.user.avatar_url
+          ? `<img class="card-going-dot" src="${g.user.avatar_url}" alt="">`
+          : `<div class="card-going-dot card-going-dot-init">${(g.user.name || g.user.email)[0].toUpperCase()}</div>`
+        ).join('')}${going.length > 3 ? `<div class="card-going-dot card-going-dot-init">+${going.length - 3}</div>` : ''}
+      </div>`
+    : '';
+
   return `
     <div class="venue-card ${state.className} ${v.id === selectedId ? 'selected' : ''}"
          data-vid="${v.id}" onclick="selectVenue(${typeof v.id === 'number' ? v.id : `'${v.id}'`}, true)"
          onmouseenter="setHoveredVenue(${typeof v.id === 'number' ? v.id : `'${v.id}'`})" onmouseleave="setHoveredVenue(null)">
       <div class="card-top">
         <div class="card-left">
-          <div class="card-new-name">${v.name}${favHeart}${friendBadge}</div>
+          <div class="card-new-name">${v.name}${favHeart}${friendBadge}${goingBadge}</div>
           <div class="card-new-meta">${metaHtml}</div>
         </div>
         <div class="card-right">

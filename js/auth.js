@@ -1473,6 +1473,48 @@ function getPlansForVenue(venueId) {
   return fromPlans;
 }
 
+/**
+ * Friends going to this venue on the given date — derived from plans the user
+ * can already see (own plans where friends accepted, or plans the user was
+ * invited to where the creator is a friend). RLS limits visibility to plans
+ * the user is involved in, so this is an under-count, not a complete picture.
+ *
+ * Returns: [{ user: {id, name, email, avatar_url}, status: 'accepted'|'creator' }]
+ */
+function getGoingFriendsForVenue(venueId, dateStr) {
+  if (!_currentUser) return [];
+  const vid = String(venueId);
+  const sameDate = (iso) => typeof iso === 'string' && iso.slice(0, 10) === dateStr;
+  const result = new Map();
+
+  // Plans I created — include accepted invitees (these are by definition friends I invited)
+  if (Array.isArray(_plans)) {
+    for (const p of _plans) {
+      if (String(p.venue_id) !== vid) continue;
+      if (!sameDate(p.planned_at)) continue;
+      if (!Array.isArray(p._invitees)) continue;
+      for (const inv of p._invitees) {
+        if (inv.status !== 'accepted' || !inv.user) continue;
+        if (inv.user.id === _currentUser.id) continue;
+        result.set(inv.user.id, { user: inv.user, status: 'accepted' });
+      }
+    }
+  }
+  // Plans I'm invited to — surface the creator (likely a friend, since they invited me)
+  if (Array.isArray(_planInvites)) {
+    for (const i of _planInvites) {
+      const p = i.plan;
+      if (!p || String(p.venue_id) !== vid) continue;
+      if (!sameDate(p.planned_at)) continue;
+      if (!p.creator || p.creator.id === _currentUser.id) continue;
+      if (!result.has(p.creator.id)) {
+        result.set(p.creator.id, { user: p.creator, status: 'creator' });
+      }
+    }
+  }
+  return Array.from(result.values());
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 // Populate panel immediately (logged-out state) so it's never an empty div
