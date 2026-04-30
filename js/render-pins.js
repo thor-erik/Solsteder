@@ -1533,6 +1533,7 @@ canvas.addEventListener('mousemove', e => {
       draw();
     }
     tooltip.innerHTML = buildTooltipContent(hit);
+    if (typeof drawAllCardTimelines === 'function') drawAllCardTimelines(tooltip);
     const margin = 14;
     let tx = e.clientX + margin, ty = e.clientY - tooltip.offsetHeight - margin;
     if (tx + tooltip.offsetWidth > window.innerWidth - 20) tx = e.clientX - tooltip.offsetWidth - margin;

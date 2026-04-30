@@ -1905,6 +1905,15 @@
     background: rgba(156,189,231,0.08);
     overflow: visible;
   }
+  /* Canvas mini-timeline (and FTS canvas) — fills its container box.
+     The canvas's bitmap is set programmatically; the `width`/`height` props
+     here are CSS dimensions, the bitmap dpr-scales separately. */
+  .card-timeline-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: transparent; /* canvas paints the bg itself */
+  }
 
   /* Weather segments — flat by default, track clips outer edges */
   .timeline-track .wx {

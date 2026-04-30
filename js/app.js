@@ -399,225 +399,52 @@ function drawFtsCanvas() {
   const dpr  = window.devicePixelRatio || 1;
   const cssW = canvasEl.clientWidth  || 200;
   const cssH = canvasEl.clientHeight || 50;
-  const BLEED = 6;            // px bleed top/bottom for thumb overflow
-  const TRACK_H = cssH - BLEED * 2;  // 38px — actual ramp height
   const pw   = Math.round(cssW * dpr);
   const ph   = Math.round(cssH * dpr);
   if (canvasEl.width !== pw || canvasEl.height !== ph) {
     canvasEl.width  = pw;
     canvasEl.height = ph;
   }
-
   const c = canvasEl.getContext('2d');
   c.clearRect(0, 0, pw, ph);
   c.save();
   c.scale(dpr, dpr);
 
-  const MIN_H   = MIN_H_ARC;
-  const MAX_H   = MAX_H_ARC;
-  const TRACK_R = Math.floor(TRACK_H / 2);  // 19px — matches CSS border-radius
-  const BAR_W   = cssW;
   const dateStr = datePicker.value;
   const fromH   = parseFloat(timeFromEl.value);
-
-  const timeToX = t => (t - MIN_H) / (MAX_H - MIN_H) * BAR_W;
-
-  // Helper: rounded-rect path for the track shape (offset by BLEED)
-  function trackRoundRect() {
-    c.beginPath();
-    c.roundRect(0, BLEED, BAR_W, TRACK_H, TRACK_R);
-  }
-
-  // 1. Background — night color, clipped to rounded rect
-  c.save();
-  trackRoundRect(); c.clip();
-  c.fillStyle = '#1B2E5A';
-  c.fillRect(0, BLEED, cssW, TRACK_H);
-
-  // 2. Collect hourly weather-ramp segments
-  const wxHours = (typeof getWeatherHoursForDate === 'function')
-    ? getWeatherHoursForDate(dateStr) : [];
-  const hasWx = wxHours.length > 0 && typeof getWeatherAt === 'function';
-  const nowH_ = new Date().getHours() + new Date().getMinutes() / 60;
   const isToday_ = datePicker.value === todayStr();
+  const nowH_    = new Date().getHours() + new Date().getMinutes() / 60;
 
-  const segments = [];  // {x1, x2, color}
-  for (let h = MIN_H; h < MAX_H; h++) {
-    const sun = getSunFromTable(currentSunTable, h + 0.5);
-    if (sun.alt <= 0) continue;
-
-    let color = '#FFAF85';  // default: clear sun (--wx-sun / --accent)
-    if (hasWx) {
-      const wx   = getWeatherAt(dateStr, h + 0.5);
-      const rain = wx ? (wx.precip ?? wx.prec ?? 0) > 0.3 : false;
-      const cf   = wx ? (wx.cloud ?? 0) : 0;
-      if      (rain)       color = '#3B6499';  // --wx-rain
-      else if (cf < 0.15)  color = '#FFAF85';  // --wx-sun (clear)
-      else if (cf < 0.40)  color = '#FFCFAA';  // --wx-few
-      else if (cf < 0.65)  color = '#DECCC0';  // --wx-partly
-      else if (cf < 0.85)  color = '#C6C8CA';  // --wx-mostly
-      else                 color = '#94AABB';  // --wx-overcast
-    }
-
-    const x1 = Math.round(timeToX(h));
-    const x2 = Math.round(timeToX(h + 1));
-    if (x2 <= x1) continue;
-    segments.push({ x1, x2, color });
-  }
-
-  // 3. Fill rounded ends with first/last weather color
-  if (segments.length > 0) {
-    const first = segments[0];
-    const last  = segments[segments.length - 1];
-    if (first.x1 > 0) {
-      c.fillStyle = first.color;
-      c.fillRect(0, BLEED, first.x1, TRACK_H);
-    }
-    if (last.x2 < BAR_W) {
-      c.fillStyle = last.color;
-      c.fillRect(last.x2, BLEED, BAR_W - last.x2, TRACK_H);
-    }
-  }
-
-  // 4. Draw weather segments
-  for (const seg of segments) {
-    c.fillStyle = seg.color;
-    c.fillRect(seg.x1, BLEED, seg.x2 - seg.x1, TRACK_H);
-  }
-
-  // 5. Lens sheen — polarised top-light treatment (convex pill)
-  // Drawn before dim/shadow overlays so they aren't washed out
-  const sheen = c.createLinearGradient(0, BLEED, 0, BLEED + TRACK_H * 0.55);
-  sheen.addColorStop(0,    'rgba(255,242,235,0.28)');
-  sheen.addColorStop(0.55, 'rgba(255,242,235,0.06)');
-  sheen.addColorStop(1,    'rgba(255,242,235,0)');
-  c.fillStyle = sheen;
-  c.fillRect(0, BLEED, BAR_W, TRACK_H * 0.55);
-
-  const topHL = c.createLinearGradient(0, BLEED, 0, BLEED + 1.5);
-  topHL.addColorStop(0, 'rgba(255,255,255,0.55)');
-  topHL.addColorStop(1, 'rgba(255,255,255,0)');
-  c.fillStyle = topHL;
-  c.fillRect(0, BLEED, BAR_W, 1.5);
-
-  const shade = c.createLinearGradient(0, BLEED + TRACK_H * 0.65, 0, BLEED + TRACK_H);
-  shade.addColorStop(0, 'rgba(0,0,0,0)');
-  shade.addColorStop(1, 'rgba(0,0,0,0.22)');
-  c.fillStyle = shade;
-  c.fillRect(0, BLEED + TRACK_H * 0.65, BAR_W, TRACK_H * 0.35);
-
-  // 6. Dim past hours on today
-  if (isToday_ && nowH_ > MIN_H) {
-    const pastX = Math.min(Math.round(timeToX(nowH_)), BAR_W);
-    c.fillStyle = 'rgba(0,0,0,0.20)';
-    c.fillRect(0, BLEED, pastX, TRACK_H);
-  }
-
-  // 7. Venue shadow overlay — dim shadow zones with semi-transparent overlay
+  // Shadow gaps for the currently-selected venue (when a detail panel is open).
+  let sunWindowsForShadow = null;
+  let openHour = null, closeHour = null;
   if (selectedId != null) {
     const sv = VENUES.find(x => x.id === selectedId);
     if (sv) {
-      const { windows: svWins, open: svOpen, close: svClose } = computeSunWindows(sv, dateStr);
-      const gaps = [];
-      if (svWins.length > 0) {
-        if (svWins[0].start > svOpen + 0.01) gaps.push({ start: svOpen, end: svWins[0].start });
-        for (let i = 0; i < svWins.length - 1; i++) {
-          if (svWins[i + 1].start > svWins[i].end + 0.01) {
-            gaps.push({ start: svWins[i].end, end: svWins[i + 1].start });
-          }
-        }
-        const lastEnd = svWins[svWins.length - 1].end;
-        if (lastEnd < svClose - 0.01) gaps.push({ start: lastEnd, end: svClose });
-      } else if (svClose > svOpen) {
-        gaps.push({ start: svOpen, end: svClose });
-      }
-
-      for (const gap of gaps) {
-        const gx1 = Math.round(timeToX(Math.max(MIN_H, gap.start)));
-        const gx2 = Math.round(timeToX(Math.min(MAX_H, gap.end)));
-        if (gx2 <= gx1) continue;
-        c.fillStyle = 'rgba(0,0,0,0.45)';
-        c.fillRect(gx1, BLEED, gx2 - gx1, TRACK_H);
-      }
+      sunWindowsForShadow = computeSunWindows(sv, dateStr);
+      const dayHours = (typeof getVenueHoursForDay === 'function')
+        ? getVenueHoursForDay(sv, dateStr) : null;
+      if (dayHours) { openHour = dayHours.open; closeHour = dayHours.close; }
     }
   }
 
-  c.restore(); // exit rounded-rect clip — thumb + NÅ tick draw unclipped
+  drawTimeline(c, {
+    cssW, cssH,
+    bleed: 6,                     // 38px ramp + 6px overflow each side
+    minH: MIN_H_ARC, maxH: MAX_H_ARC,
+    dateStr,
+    sunTable: currentSunTable,
+    nowH: nowH_, isToday: isToday_,
+    openHour, closeHour,
+    sunWindows: sunWindowsForShadow,
+    drawSheen: true,
+    drawThumb: true,
+    thumbHour: fromH,
+    thumbActive: !!window._qcThumbActive,
+    springOffset: (typeof window._ftsSpringOffset === 'number') ? window._ftsSpringOffset : 0,
+  });
 
-  // 8. NÅ tick
-  const nowH = new Date().getHours() + new Date().getMinutes() / 60;
-  const isToday = datePicker.value === todayStr();
-  if (isToday && nowH >= MIN_H && nowH <= MAX_H) {
-    const nx = timeToX(nowH);
-    const thumbX = Math.max(TRACK_R, Math.min(BAR_W - TRACK_R, timeToX(fromH)));
-    const thumbPx = Math.abs(thumbX - nx);
-    if (thumbPx >= TRACK_R) {
-      c.save();
-      c.setLineDash([2, 3]);
-      c.strokeStyle = 'rgba(156,189,231,0.55)';
-      c.lineWidth = 1;
-      c.beginPath();
-      c.moveTo(nx, BLEED);
-      c.lineTo(nx, BLEED + TRACK_H);
-      c.stroke();
-      c.setLineDash([]);
-      c.restore();
-    }
-  }
-
-  // 9. Thumb — Lens dome (B variant): domed cream pearl + accent halo
-  if (fromH >= MIN_H && fromH <= MAX_H) {
-    const isActive  = !!(window._qcThumbActive);
-    const springOff = (typeof window._ftsSpringOffset === 'number') ? window._ftsSpringOffset : 0;
-    const rawX = timeToX(fromH) + springOff;
-    const sx   = Math.max(TRACK_R, Math.min(BAR_W - TRACK_R, rawX));
-    const cy_  = BLEED + TRACK_H / 2;
-    const R    = TRACK_H * 0.42;  // 0.42 × bar height per spec
-
-    c.save();
-    c.translate(sx, cy_);
-    const sc = isActive ? 1.18 : 1.0;
-    c.scale(sc, sc);
-    c.translate(-sx, -cy_);
-
-    // Soft accent halo — tightened so it stays inside the pill border
-    const halo = c.createRadialGradient(sx, cy_, R * 0.7, sx, cy_, R * 1.3);
-    halo.addColorStop(0, isActive ? 'rgba(255,175,133,0.42)' : 'rgba(255,175,133,0.28)');
-    halo.addColorStop(1, 'rgba(255,175,133,0)');
-    c.fillStyle = halo;
-    c.beginPath(); c.arc(sx, cy_, R * 1.3, 0, Math.PI * 2); c.fill();
-
-    // Body with drop shadow — radial gradient cream→warm-cream, off-axis top-left light
-    c.save();
-    c.shadowColor = 'rgba(0,0,0,0.45)';
-    c.shadowBlur = 6;
-    c.shadowOffsetY = 1.5;
-    c.beginPath(); c.arc(sx, cy_, R, 0, Math.PI * 2);
-    const body = c.createRadialGradient(sx, cy_ - R * 0.35, R * 0.1, sx, cy_ + R * 0.4, R * 1.1);
-    body.addColorStop(0, 'rgba(255,255,253,1)');
-    body.addColorStop(0.55, 'rgba(255,242,235,0.96)');
-    body.addColorStop(1, 'rgba(232,210,196,0.92)');
-    c.fillStyle = body; c.fill();
-    c.restore();
-
-    // Inner top highlight — white gradient clipped to upper half
-    c.save();
-    c.beginPath(); c.arc(sx, cy_, R, 0, Math.PI * 2); c.clip();
-    const hl = c.createLinearGradient(sx, cy_ - R, sx, cy_);
-    hl.addColorStop(0, 'rgba(255,255,255,0.55)');
-    hl.addColorStop(1, 'rgba(255,255,255,0)');
-    c.fillStyle = hl; c.fillRect(sx - R, cy_ - R, R * 2, R);
-    c.restore();
-
-    // Crisp rim
-    c.beginPath(); c.arc(sx, cy_, R - 0.5, 0, Math.PI * 2);
-    c.strokeStyle = 'rgba(42,26,12,0.20)';
-    c.lineWidth = 1; c.stroke();
-
-    c.restore(); // scale
-  }
-
-  c.restore(); // dpr
+  c.restore();
 }
 
 /** Spring-back animation for the FTS thumb. */
@@ -2299,7 +2126,10 @@ function update() {
 
   if (highlight.id != null && tooltip.classList.contains('visible')) {
     const hv = VENUES.find(x => x.id === highlight.id);
-    if (hv) tooltip.innerHTML = buildTooltipContent(hv);
+    if (hv) {
+      tooltip.innerHTML = buildTooltipContent(hv);
+      if (typeof drawAllCardTimelines === 'function') drawAllCardTimelines(tooltip);
+    }
   }
 
   updateDateDisplayBtn();
@@ -2855,6 +2685,17 @@ function openDetailPanel(v) {
         sourceCard.style.width = targetRect.width + 'px';
       }
       sourceCard.classList.add('source-target');
+      // Redraw the source card's canvas every frame during the morph so its
+      // bitmap tracks the CSS height transition (8px → 38px). Without this,
+      // the canvas painted at 8px just stretches blurrily to 38px. Stops at
+      // hand-off when the canvas fades out anyway.
+      const _morphRedrawStart = performance.now();
+      const _morphRedraw = () => {
+        if (performance.now() - _morphRedrawStart > MORPH_DURATION + 20) return;
+        if (typeof drawAllCardTimelines === 'function') drawAllCardTimelines(sourceCard);
+        requestAnimationFrame(_morphRedraw);
+      };
+      requestAnimationFrame(_morphRedraw);
     });
   });
 
@@ -2906,6 +2747,10 @@ function openDetailPanel(v) {
     const dockedCard = dp.querySelector('.venue-card.source-docked');
     const cardTimeline = dockedCard?.querySelector('.card-timeline');
     if (fts && cardTimeline) {
+      // Repaint the docked card's canvas at its final 38px dimensions before
+      // it fades out (otherwise the cross-fade is showing the morph-stretched
+      // 8px-bitmap blown up).
+      if (typeof drawAllCardTimelines === 'function') drawAllCardTimelines(dockedCard);
       dockedCard.classList.add('fts-hosted');
       // Strip overlay inline styles before moving into flow, but preserve
       // opacity:0 so _setFtsFade('in') has something to transition from.
@@ -3921,7 +3766,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Sync qc panel height on resize
-  window.addEventListener('resize', () => { _syncQcPanelHeight(); _updatePeekHeight(); _syncFtsPosition(); });
+  window.addEventListener('resize', () => {
+    _syncQcPanelHeight();
+    _updatePeekHeight();
+    _syncFtsPosition();
+    if (typeof drawAllCardTimelines === 'function') drawAllCardTimelines();
+  });
   setTimeout(() => { _syncQcPanelHeight(); _updatePeekHeight(); }, 600);
 
   // qc-arc drag + hover support
