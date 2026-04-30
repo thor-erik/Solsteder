@@ -5053,7 +5053,11 @@
     .venue-card.source-morphing .card-new-meta,
     .venue-card.source-morphing .card-new-hero-main,
     .venue-card.source-morphing .card-new-hero-sub {
-      transition: font-size 0.34s cubic-bezier(0.32, 0.72, 0, 1);
+      transition:
+        font-size      0.34s cubic-bezier(0.32, 0.72, 0, 1),
+        line-height    0.34s cubic-bezier(0.32, 0.72, 0, 1),
+        letter-spacing 0.34s cubic-bezier(0.32, 0.72, 0, 1),
+        margin-top     0.34s cubic-bezier(0.32, 0.72, 0, 1);
     }
     .venue-card.source-morphing .card-timeline,
     .venue-card.source-morphing .timeline-track {
@@ -5061,7 +5065,10 @@
         height        0.34s cubic-bezier(0.32, 0.72, 0, 1),
         margin-left   0.34s cubic-bezier(0.32, 0.72, 0, 1),
         margin-top    0.34s cubic-bezier(0.32, 0.72, 0, 1),
-        border-radius 0.34s cubic-bezier(0.32, 0.72, 0, 1);
+        border-radius 0.34s cubic-bezier(0.32, 0.72, 0, 1),
+        background    0.34s cubic-bezier(0.32, 0.72, 0, 1),
+        border-color  0.34s cubic-bezier(0.32, 0.72, 0, 1),
+        box-shadow    0.34s cubic-bezier(0.32, 0.72, 0, 1);
     }
 
     /* Target state: dp-card sizing + slider-shaped timeline. */
@@ -5069,9 +5076,22 @@
       padding: 18px 16px 14px !important;
       border-radius: 14px !important;
     }
-    .venue-card.source-morphing.source-target .card-new-name      { font-size: 18px; }
-    .venue-card.source-morphing.source-target .card-new-meta      { font-size: 12px; }
-    .venue-card.source-morphing.source-target .card-new-hero-main { font-size: 17px; }
+    /* Match the dp-card's full typography (line-height, letter-spacing,
+       meta margin-top) so the text layout doesn't snap at hand-off. */
+    .venue-card.source-morphing.source-target .card-new-name {
+      font-size: 18px;
+      line-height: 1.22;
+      letter-spacing: -0.01em;
+    }
+    .venue-card.source-morphing.source-target .card-new-meta {
+      font-size: 12px;
+      line-height: 1.35;
+      margin-top: 2px;
+    }
+    .venue-card.source-morphing.source-target .card-new-hero-main {
+      font-size: 17px;
+      line-height: 1.22;
+    }
     .venue-card.source-morphing.source-target .card-new-hero-sub  { font-size: 12px; }
     /* Morph target lays out the timeline as a flex row so the injected
        calbtn + the morphed timeline-track end up in the SAME positions
@@ -5084,10 +5104,15 @@
       align-items: center;
       gap: 8px;
     }
+    /* Match the FTS slider track's visual exactly so the track-to-pill
+       swap at hand-off doesn't pop in a border / shadow / different bg. */
     .venue-card.source-morphing.source-target .timeline-track {
       flex: 1;
       height: 38px;
       border-radius: 19px;
+      background: var(--glass-action-bg);
+      border: var(--glass-border);
+      box-shadow: var(--glass-inset), 0 2px 8px rgba(0,0,0,0.35);
     }
     .venue-card.source-morphing.source-target .tl-now { display: none; }
 
