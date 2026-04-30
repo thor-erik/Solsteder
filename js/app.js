@@ -2876,9 +2876,24 @@ function openDetailPanel(v) {
       document.body.removeChild(sourceCard);
       sourceCard.classList.remove('source-morphing', 'source-target');
       sourceCard.style.cssText = '';
-      // calBtn now lives inside .card-timeline (a flex item). Remove from
-      // wherever it ended up so the FTS pill takes the timeline row cleanly.
-      if (calBtn && calBtn.parentNode) calBtn.parentNode.removeChild(calBtn);
+      // calBtn now lives inside .card-timeline (a flex item). Crossfade it
+      // out during the FTS fade-in instead of removing it instantly — the
+      // hard remove was leaving the calbtn slot empty for ~200ms while FTS
+      // faded from 0 → 1, reading as a snap. Switch calbtn to absolute
+      // positioning (so FTS gets the full flex width immediately) and fade
+      // its opacity to 0 over the same window FTS fades in. Remove from DOM
+      // after the fade completes.
+      if (calBtn && calBtn.parentNode) {
+        const _cbParent = calBtn.parentNode;
+        calBtn.style.position = 'absolute';
+        calBtn.style.left = '0';
+        calBtn.style.top = '0';
+        calBtn.style.pointerEvents = 'none';
+        calBtn.style.transition = 'opacity 0.18s ease-out';
+        void calBtn.offsetHeight; // commit start state before opacity change
+        calBtn.style.opacity = '0';
+        setTimeout(() => { if (calBtn.parentNode === _cbParent) _cbParent.removeChild(calBtn); }, 240);
+      }
       // .dp-card picks up dp-card padding/font sizing; .source-docked
       // overrides position:fixed → relative so the card flows in the panel.
       sourceCard.classList.add('dp-card', 'source-docked');
