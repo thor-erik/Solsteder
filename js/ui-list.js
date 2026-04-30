@@ -20,88 +20,65 @@ let _listObserver = null; // IntersectionObserver for infinite scroll
 let _aImpressionTimer = null; // debounce for impression analytics
 
 /**
- * Weather ramp color from cloud/precip values.
- * Matches the design system spec: sun → few clouds → partly → mostly → overcast → rain.
+ * Mini sun-timeline: a canvas drawn by the shared drawTimeline() renderer
+ * (ui-shared.js). The actual paint is deferred to drawAllCardTimelines(),
+ * which runs after the cards are inserted into the DOM. We just emit the
+ * canvas placeholder + a data-vid attribute for the painter to look up the
+ * venue. Domain (minH/maxH), now-tick, shadow gaps and opening-hours dim are
+ * all set per-card in drawAllCardTimelines.
  */
-function wxTimelineColor(cloud, precip) {
-  if (precip > 0.3) return '#3B6499';       // rain
-  if (cloud >= 0.85) return '#94AABB';       // overcast
-  if (cloud >= 0.65) return '#C6C8CA';       // mostly cloudy
-  if (cloud >= 0.40) return '#DECCC0';       // partly cloudy
-  if (cloud >= 0.15) return '#FFCFAA';       // few clouds
-  return '#FFAF85';                           // clear = accent
+function buildMiniSunTimeline(v, dateStr, fromHour) {
+  // Canvas carries .timeline-track too so existing CSS rules — list height,
+  // dp-card height/border-radius, the source-morphing transition, the
+  // .fts-hosted fade-out — all still apply without duplication.
+  return `<div class="card-timeline">
+    <canvas class="card-timeline-canvas timeline-track" data-vid="${v.id}"></canvas>
+  </div>`;
 }
 
-/** Mini sun-timeline: 8px tall, 06:00–22:00, weather-ramp colors, shadow gap caps. */
-function buildMiniSunTimeline(v, dateStr, fromHour) {
-  const { windows } = computeSunWindows(v, dateStr);
-  const START_H = 6, END_H = 22, RANGE = END_H - START_H;
-  const pct = h => Math.max(0, Math.min(100, ((h - START_H) / RANGE) * 100));
-
-  // Needle position: follows the time slider, not wall-clock
-  const nowPos = pct(fromHour);
-
-  // Build weather-colored segments per hour within each sun window
-  // Each hour-block gets its own weather color; consecutive same-color blocks merge
-  const runs = []; // { start, end, color, winIdx }
-  for (let wi = 0; wi < windows.length; wi++) {
-    const w = windows[wi];
-    const wS = Math.max(w.start, START_H);
-    const wE = Math.min(w.end, END_H);
-    if (wE <= wS) continue;
-    const hFloor = Math.floor(wS);
-    const hCeil  = Math.ceil(wE);
-    for (let h = hFloor; h < hCeil; h++) {
-      const segS = Math.max(wS, h);
-      const segE = Math.min(wE, h + 1);
-      if (segE <= segS + 0.001) continue;
-      const wx = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, h) : null;
-      const color = wxTimelineColor(wx?.cloud ?? 0, wx?.precip ?? 0);
-      if (runs.length && runs[runs.length - 1].color === color && runs[runs.length - 1].winIdx === wi) {
-        runs[runs.length - 1].end = segE;
-      } else {
-        runs.push({ start: segS, end: segE, color, winIdx: wi });
-      }
-    }
+/**
+ * Walk every .card-timeline-canvas in the list (or any container) and draw it
+ * via the shared drawTimeline. Called after every renderListPage reset, on
+ * window resize, and on morph (when the source card's canvas resizes).
+ */
+function drawAllCardTimelines(root) {
+  const scope = root || document;
+  const nodes = scope.querySelectorAll('.card-timeline-canvas');
+  if (!nodes.length || typeof currentSunTable === 'undefined' || !currentSunTable) return;
+  const dateStr = datePicker.value;
+  const isToday_ = dateStr === todayStr();
+  const nowH_    = new Date().getHours() + new Date().getMinutes() / 60;
+  const dpr      = window.devicePixelRatio || 1;
+  for (const cv of nodes) {
+    if (!cv.clientWidth || !cv.clientHeight) continue; // not laid out yet
+    const vid = parseInt(cv.dataset.vid, 10);
+    const v = VENUES.find(x => x.id === vid);
+    if (!v) continue;
+    const cssW = cv.clientWidth, cssH = cv.clientHeight;
+    const pw   = Math.round(cssW * dpr);
+    const ph   = Math.round(cssH * dpr);
+    if (cv.width !== pw || cv.height !== ph) { cv.width = pw; cv.height = ph; }
+    const ctx = cv.getContext('2d');
+    ctx.clearRect(0, 0, pw, ph);
+    ctx.save();
+    ctx.scale(dpr, dpr);
+    const sunWindowsForShadow = (typeof computeSunWindows === 'function') ? computeSunWindows(v, dateStr) : null;
+    const dayHours = (typeof getVenueHoursForDay === 'function') ? getVenueHoursForDay(v, dateStr) : null;
+    drawTimeline(ctx, {
+      cssW, cssH,
+      bleed: 0,                         // no thumb-glow overflow on cards
+      minH: MIN_H_ARC, maxH: MAX_H_ARC,
+      dateStr,
+      sunTable: currentSunTable,
+      nowH: nowH_, isToday: isToday_,
+      openHour:  dayHours?.open  ?? null,
+      closeHour: dayHours?.close ?? null,
+      sunWindows: sunWindowsForShadow,
+      drawSheen: false,                 // 8px is too small for sheen
+      drawThumb: false,                 // cards aren't scrubbable
+    });
+    ctx.restore();
   }
-
-  // Determine shadow gaps: gaps between consecutive windows
-  const gaps = [];
-  for (let i = 0; i < windows.length - 1; i++) {
-    const gapStart = windows[i].end;
-    const gapEnd   = windows[i + 1].start;
-    if (gapEnd > gapStart + 0.01) gaps.push({ start: gapStart, end: gapEnd, afterWinIdx: i });
-  }
-
-  // Build segment HTML with cap classes
-  let segments = '';
-  for (let i = 0; i < runs.length; i++) {
-    const r = runs[i];
-    const left = pct(r.start);
-    const width = pct(r.end) - left;
-    if (width < 0.1) continue;
-
-    // Determine caps: first/last of entire bar, or at shadow gap boundary
-    const isFirst = i === 0;
-    const isLast  = i === runs.length - 1;
-    // Check if this run's end touches a shadow gap
-    const touchesGapRight = gaps.some(g => Math.abs(g.start - r.end) < 0.05);
-    // Check if this run's start touches a shadow gap
-    const touchesGapLeft  = gaps.some(g => Math.abs(g.end - r.start) < 0.05);
-
-    let cls = 'wx';
-    if (isFirst || touchesGapLeft)  cls += ' cap-l';
-    if (isLast  || touchesGapRight) cls += ' cap-r';
-
-    segments += `<div class="${cls}" style="left:${left}%;width:${width}%;background:${r.color}"></div>`;
-  }
-
-  return `<div class="card-timeline">
-    <div class="timeline-track">
-      ${segments}
-      <div class="tl-now" style="left:${nowPos}%"></div>
-    </div>
-  </div>`;
 }
 
 // Inline beer mug SVG for venue cards (12px)
@@ -217,6 +194,9 @@ function renderListPage(list, dateStr, fromHour, toHour, isPoint, reset) {
     // Re-enable animation after current frame so future resets still animate
     requestAnimationFrame(() => list.removeAttribute('data-no-anim'));
   }
+  // Paint the canvas-based mini-timelines now that the cards are in the DOM.
+  // Use rAF so layout has settled and clientWidth/Height are non-zero.
+  requestAnimationFrame(() => drawAllCardTimelines(list));
 
   // Attach sentinel + observer if more cards remain
   if (to < _listFiltered.length) {

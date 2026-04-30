@@ -243,3 +243,221 @@ function getMapsIcon(type) {
 
   return icons[type] || '';
 }
+
+// ── Shared timeline renderer ───────────────────────────────────────────────────
+//
+// Single canvas-based renderer used by BOTH the floating time slider (FTS) and
+// the venue-card mini-timelines, so the two read identically. Layers are opt-in
+// via flags so callers can skip pieces that don't apply (e.g. cards skip the
+// thumb; cards pass `compact: true` to skip the lens sheen).
+//
+// Caller responsibilities:
+//  - Size the canvas to its container in CSS px and scale by devicePixelRatio
+//    for crisp rendering. drawTimeline assumes ctx has been ctx.scale(dpr,dpr)'d
+//    and the canvas's bitmap is `cssW*dpr x cssH*dpr`. drawTimeline only knows
+//    about CSS px.
+//  - Make sure `currentSunTable` and `getSunFromTable` are reachable from
+//    global scope (true in this app).
+
+function drawTimeline(ctx, opts) {
+  const {
+    cssW, cssH,
+    bleed = 0,                      // px above/below for thumb glow overflow
+    minH, maxH,
+    dateStr,
+    sunTable,                       // pass currentSunTable
+    nowH = null, isToday = false,
+    openHour = null, closeHour = null,   // venue's open hours (dim outside)
+    sunWindows = null,                   // [{start,end}] — dim shadow gaps
+    drawSheen = true,                    // top-light + bottom-shade gradients
+    drawThumb = false,
+    thumbHour = null, thumbActive = false,
+    springOffset = 0,
+  } = opts;
+
+  if (!sunTable) return;
+  const TRACK_H = cssH - bleed * 2;
+  const TRACK_R = Math.floor(TRACK_H / 2);
+  const BAR_W   = cssW;
+  const timeToX = t => (t - minH) / (maxH - minH) * BAR_W;
+
+  function trackPath() {
+    ctx.beginPath();
+    ctx.roundRect(0, bleed, BAR_W, TRACK_H, TRACK_R);
+  }
+
+  // Inside the rounded clip — segments + sheen + dims + shadow overlay.
+  ctx.save();
+  trackPath(); ctx.clip();
+
+  // 1. Night background (visible only at the rounded ends if no segments cover them)
+  ctx.fillStyle = '#1B2E5A';
+  ctx.fillRect(0, bleed, BAR_W, TRACK_H);
+
+  // 2. Hourly weather segments (only where sun is up)
+  const hasWx = (typeof getWeatherAt === 'function') &&
+                (typeof getWeatherHoursForDate !== 'function' ||
+                 getWeatherHoursForDate(dateStr).length > 0);
+  const segments = [];
+  for (let h = Math.floor(minH); h < Math.ceil(maxH); h++) {
+    const sun = getSunFromTable(sunTable, h + 0.5);
+    if (sun.alt <= 0) continue;
+    let color = '#FFAF85';
+    if (hasWx) {
+      const wx   = getWeatherAt(dateStr, h + 0.5);
+      const rain = wx ? (wx.precip ?? wx.prec ?? 0) > 0.3 : false;
+      const cf   = wx ? (wx.cloud ?? 0) : 0;
+      if      (rain)       color = '#3B6499';
+      else if (cf < 0.15)  color = '#FFAF85';
+      else if (cf < 0.40)  color = '#FFCFAA';
+      else if (cf < 0.65)  color = '#DECCC0';
+      else if (cf < 0.85)  color = '#C6C8CA';
+      else                 color = '#94AABB';
+    }
+    const x1 = Math.round(timeToX(Math.max(h, minH)));
+    const x2 = Math.round(timeToX(Math.min(h + 1, maxH)));
+    if (x2 <= x1) continue;
+    segments.push({ x1, x2, color });
+  }
+  if (segments.length > 0) {
+    const first = segments[0];
+    const last  = segments[segments.length - 1];
+    if (first.x1 > 0) { ctx.fillStyle = first.color; ctx.fillRect(0, bleed, first.x1, TRACK_H); }
+    if (last.x2 < BAR_W) { ctx.fillStyle = last.color; ctx.fillRect(last.x2, bleed, BAR_W - last.x2, TRACK_H); }
+  }
+  for (const seg of segments) {
+    ctx.fillStyle = seg.color;
+    ctx.fillRect(seg.x1, bleed, seg.x2 - seg.x1, TRACK_H);
+  }
+
+  // 3. Lens sheen (skip on small heights — sheen dominates < ~16px)
+  if (drawSheen && TRACK_H >= 16) {
+    const sheen = ctx.createLinearGradient(0, bleed, 0, bleed + TRACK_H * 0.55);
+    sheen.addColorStop(0,    'rgba(255,242,235,0.28)');
+    sheen.addColorStop(0.55, 'rgba(255,242,235,0.06)');
+    sheen.addColorStop(1,    'rgba(255,242,235,0)');
+    ctx.fillStyle = sheen;
+    ctx.fillRect(0, bleed, BAR_W, TRACK_H * 0.55);
+    const topHL = ctx.createLinearGradient(0, bleed, 0, bleed + 1.5);
+    topHL.addColorStop(0, 'rgba(255,255,255,0.55)');
+    topHL.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = topHL;
+    ctx.fillRect(0, bleed, BAR_W, 1.5);
+    const shade = ctx.createLinearGradient(0, bleed + TRACK_H * 0.65, 0, bleed + TRACK_H);
+    shade.addColorStop(0, 'rgba(0,0,0,0)');
+    shade.addColorStop(1, 'rgba(0,0,0,0.22)');
+    ctx.fillStyle = shade;
+    ctx.fillRect(0, bleed + TRACK_H * 0.65, BAR_W, TRACK_H * 0.35);
+  }
+
+  // 4. Past-hour dim (today only)
+  if (isToday && nowH != null && nowH > minH) {
+    const pastX = Math.min(Math.round(timeToX(nowH)), BAR_W);
+    ctx.fillStyle = 'rgba(0,0,0,0.20)';
+    ctx.fillRect(0, bleed, pastX, TRACK_H);
+  }
+
+  // 5. Shadow gaps overlay — dim portions where the venue is in shadow
+  if (sunWindows) {
+    const wins = sunWindows.windows || [];
+    const sOpen  = sunWindows.open  ?? minH;
+    const sClose = sunWindows.close ?? maxH;
+    const gaps = [];
+    if (wins.length > 0) {
+      if (wins[0].start > sOpen + 0.01) gaps.push({ start: sOpen, end: wins[0].start });
+      for (let i = 0; i < wins.length - 1; i++) {
+        if (wins[i + 1].start > wins[i].end + 0.01) {
+          gaps.push({ start: wins[i].end, end: wins[i + 1].start });
+        }
+      }
+      const lastEnd = wins[wins.length - 1].end;
+      if (lastEnd < sClose - 0.01) gaps.push({ start: lastEnd, end: sClose });
+    } else if (sClose > sOpen) {
+      gaps.push({ start: sOpen, end: sClose });
+    }
+    for (const gap of gaps) {
+      const gx1 = Math.round(timeToX(Math.max(minH, gap.start)));
+      const gx2 = Math.round(timeToX(Math.min(maxH, gap.end)));
+      if (gx2 <= gx1) continue;
+      ctx.fillStyle = 'rgba(0,0,0,0.45)';
+      ctx.fillRect(gx1, bleed, gx2 - gx1, TRACK_H);
+    }
+  }
+
+  // 6. Opening-hours dim — outside the venue's open window. Stacks on top of
+  //    weather + shadow so closed portions read as "unavailable" regardless
+  //    of sun state. Skipped if open/close span exceeds the timeline domain.
+  if (openHour != null && closeHour != null && closeHour > openHour) {
+    if (openHour > minH) {
+      const ox = Math.min(Math.round(timeToX(Math.min(openHour, maxH))), BAR_W);
+      ctx.fillStyle = 'rgba(0,0,0,0.45)';
+      ctx.fillRect(0, bleed, ox, TRACK_H);
+    }
+    if (closeHour < maxH) {
+      const cx = Math.max(Math.round(timeToX(Math.max(closeHour, minH))), 0);
+      ctx.fillStyle = 'rgba(0,0,0,0.45)';
+      ctx.fillRect(cx, bleed, BAR_W - cx, TRACK_H);
+    }
+  }
+
+  ctx.restore(); // exit rounded-rect clip — tick + thumb draw unclipped
+
+  // 7. NÅ tick — dashed vertical at wall-clock time (today only, not at thumb)
+  if (isToday && nowH != null && nowH >= minH && nowH <= maxH) {
+    const nx = timeToX(nowH);
+    const showTick = !drawThumb || (() => {
+      const thumbX = Math.max(TRACK_R, Math.min(BAR_W - TRACK_R, timeToX(thumbHour)));
+      return Math.abs(thumbX - nx) >= TRACK_R;
+    })();
+    if (showTick) {
+      ctx.save();
+      ctx.setLineDash([2, 3]);
+      ctx.strokeStyle = 'rgba(156,189,231,0.55)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(nx, bleed);
+      ctx.lineTo(nx, bleed + TRACK_H);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
+  }
+
+  // 8. Thumb — FTS only
+  if (drawThumb && thumbHour != null && thumbHour >= minH && thumbHour <= maxH) {
+    const rawX = timeToX(thumbHour) + springOffset;
+    const sx   = Math.max(TRACK_R, Math.min(BAR_W - TRACK_R, rawX));
+    const cy_  = bleed + TRACK_H / 2;
+    const R    = TRACK_H * 0.42;
+    ctx.save();
+    ctx.translate(sx, cy_);
+    const sc = thumbActive ? 1.18 : 1.0;
+    ctx.scale(sc, sc);
+    ctx.translate(-sx, -cy_);
+    const halo = ctx.createRadialGradient(sx, cy_, R * 0.7, sx, cy_, R * 1.3);
+    halo.addColorStop(0, thumbActive ? 'rgba(255,175,133,0.42)' : 'rgba(255,175,133,0.28)');
+    halo.addColorStop(1, 'rgba(255,175,133,0)');
+    ctx.fillStyle = halo;
+    ctx.beginPath(); ctx.arc(sx, cy_, R * 1.3, 0, Math.PI * 2); ctx.fill();
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.45)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 1.5;
+    ctx.beginPath(); ctx.arc(sx, cy_, R, 0, Math.PI * 2);
+    const body = ctx.createRadialGradient(sx, cy_ - R * 0.35, R * 0.1, sx, cy_ + R * 0.4, R * 1.1);
+    body.addColorStop(0, 'rgba(255,255,253,1)');
+    body.addColorStop(0.55, 'rgba(255,242,235,0.96)');
+    body.addColorStop(1, 'rgba(232,210,196,0.92)');
+    ctx.fillStyle = body; ctx.fill();
+    ctx.restore();
+    ctx.save();
+    ctx.beginPath(); ctx.arc(sx, cy_, R, 0, Math.PI * 2); ctx.clip();
+    const hl = ctx.createLinearGradient(sx, cy_ - R, sx, cy_);
+    hl.addColorStop(0, 'rgba(255,255,255,0.55)');
+    hl.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = hl; ctx.fillRect(sx - R, cy_ - R, R * 2, R);
+    ctx.restore();
+    ctx.beginPath(); ctx.arc(sx, cy_, R - 0.5, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(42,26,12,0.20)';
+    ctx.lineWidth = 1; ctx.stroke();
+    ctx.restore();
+  }
+}
