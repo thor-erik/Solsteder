@@ -2747,32 +2747,18 @@ function openDetailPanel(v) {
     const dockedCard = dp.querySelector('.venue-card.source-docked');
     const cardTimeline = dockedCard?.querySelector('.card-timeline');
     if (fts && cardTimeline) {
-      // Pin --fts-track-left to the live date-btn width so the absolute
-      // canvas overlay (fading out) matches where #fts-track sits (fading
-      // in). Without this the canvas stretches to full card-timeline width
-      // and reads as a sudden ~46px widening at hand-off.
-      const _dateBtn = document.getElementById('fts-date-btn');
-      const _btnW = _dateBtn ? _dateBtn.offsetWidth : 38;
-      dockedCard.style.setProperty('--fts-track-left', `${_btnW + 8}px`);
       // Repaint the docked card's canvas at its final 38px dimensions before
-      // it fades out (otherwise the cross-fade is showing the morph-stretched
-      // 8px-bitmap blown up).
+      // hand-off (otherwise the user briefly sees the morph-stretched
+      // 8px-bitmap blown up). The card canvas hides via display:none once
+      // .fts-hosted lands; the FTS canvas takes over rendering.
       if (typeof drawAllCardTimelines === 'function') drawAllCardTimelines(dockedCard);
       dockedCard.classList.add('fts-hosted');
-      // Strip overlay inline styles before moving into flow, but preserve
-      // opacity:0 so _setFtsFade('in') has something to transition from.
-      fts.style.cssText = 'opacity: 0;';
+      // Strip overlay inline styles before moving into flow.
+      fts.style.cssText = '';
       fts.classList.add('fts-in-card');
       cardTimeline.appendChild(fts);
       if (typeof drawFtsCanvas === 'function') drawFtsCanvas();
-      // Force layout commit before triggering the opacity transition.
-      void fts.offsetHeight;
-      // Repaint the canvas at its NEW (narrower) absolute width so the bitmap
-      // matches the FTS-track region during the crossfade — otherwise the
-      // bitmap drawn for the wider flex:1 region gets squeezed by 46px.
-      if (typeof drawAllCardTimelines === 'function') drawAllCardTimelines(dockedCard);
     }
-    _setFtsFade('in');
   }, 360);
 
   setTimeout(() => {
