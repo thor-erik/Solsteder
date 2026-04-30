@@ -265,19 +265,41 @@ function _maybePanMapForPanelState(prev, next) {
   if (Math.abs(userPt.y - prevVisCenterY) > 100) return;
 
   // Compute the map center that puts userLocation at (VW/2, newVisCenterY).
+  // Shifting the geographic center on screen by (userPt - target) makes the
+  // fixed lat/lng point move to the target — the camera moves with the dot.
   const centerPt = map.project(map.getCenter());
   const newCenterPt = [
-    centerPt.x + (VW / 2 - userPt.x),
-    centerPt.y + (newVisCenterY - userPt.y),
+    centerPt.x + (userPt.x - VW / 2),
+    centerPt.y + (userPt.y - newVisCenterY),
   ];
   const newCenter = map.unproject(newCenterPt);
 
-  // Match the panel's transition: 0.22s, ease-out cubic-bezier(0.25, 0.9, 0.4, 1).
+  // Match the panel's transition: 0.22s, cubic-bezier(0.25, 0.9, 0.4, 1).
   map.easeTo({
     center: newCenter,
     duration: 220,
-    easing: t => 1 - Math.pow(1 - t, 3),
+    easing: _cssBezierEasing(0.25, 0.9, 0.4, 1),
   });
+}
+
+/** Build an easing function matching CSS cubic-bezier(p1x, p1y, p2x, p2y).
+ *  Mapbox passes time-fraction t ∈ [0,1] and expects progress ∈ [0,1]. */
+function _cssBezierEasing(p1x, p1y, p2x, p2y) {
+  // Cubic Bezier 1D with P0=0, P3=1: B(s) = 3(1-s)²s·p1 + 3(1-s)s²·p2 + s³
+  const _b  = (s, p1, p2) => { const u = 1 - s; return 3 * u * u * s * p1 + 3 * u * s * s * p2 + s * s * s; };
+  const _bd = (s, p1, p2) => { const u = 1 - s; return 3 * u * u * p1 + 6 * u * s * (p2 - p1) + 3 * s * s * (1 - p2); };
+  return (t) => {
+    if (t <= 0) return 0;
+    if (t >= 1) return 1;
+    // Newton-Raphson: find s such that x(s) = t, then return y(s).
+    let s = t;
+    for (let i = 0; i < 6; i++) {
+      const dx = _bd(s, p1x, p2x);
+      if (Math.abs(dx) < 1e-6) break;
+      s = Math.max(0, Math.min(1, s - (_b(s, p1x, p2x) - t) / dx));
+    }
+    return _b(s, p1y, p2y);
+  };
 }
 
 // Localized day/month abbreviations for FTS date button (from i18n)
