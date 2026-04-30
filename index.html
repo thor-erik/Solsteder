@@ -4916,7 +4916,11 @@
     height: 14px;
     /* 18px clears the FTS pill's 0 2px 8px box-shadow + thumb halo overflow. */
     margin-top: 18px;
-    margin-left: 46px;
+    /* Default 46px = 38px today-state calendar btn + 8px gap. JS sets
+       --fts-labels-offset on the docked card based on the live date-btn
+       width, so labels stay aligned with the track left edge when the user
+       picks a non-today date (where the btn expands to fit the date label). */
+    margin-left: var(--fts-labels-offset, 46px);
     font-size: 10.5px;
     color: var(--muted);
     opacity: 0.75;
