@@ -2472,12 +2472,10 @@ function selectVenue(id, flyTo) {
     renderList();
   }
 
-  // Defer the camera fly-to until after the open-morph completes (~660ms)
-  // so the pan doesn't compete visually with the morph.
-  if (flyTo) {
-    const flyDelay = isMobile() ? 660 : 0;
-    setTimeout(() => _flyToVenue(v), flyDelay);
-  }
+  // Camera pans immediately on click — the morph runs in the lower half of
+  // the screen (panel rising), the fly-to runs in the upper half (visible map
+  // area), so the two motions don't conflict.
+  if (flyTo) _flyToVenue(v);
 
   setTimeout(() => {
     const card = document.querySelector(`.venue-card[data-vid="${id}"]`);
@@ -2495,6 +2493,7 @@ let _morphSourceVid = null;     // venue id whose card is the morph source
 let _morphSourceRect = null;    // source card rect, reused on close
 let _morphSourceTlRect = null;  // card timeline-track rect, reused on close FTS FLIP
 let _deferredRenderListTimer = null;  // pending renderList() from selectVenue
+let _panelStateBeforeOpen = null; // 'fullscreen' | 'expanded' | 'peek' — restored on close
 const MORPH_DURATION = 340;     // matches dp-card transform transition
 
 /** Apply a FLIP transform to .dp-card so it visually starts at the source
@@ -2656,6 +2655,16 @@ function openDetailPanel(v) {
   const content = document.getElementById('dp-content');
   if (!dp || !content) return;
 
+  // Capture the venue list's state so closeDetailPanel can restore it.
+  // Only set on transitions from 'no panel open' → 'panel open' so re-selecting
+  // venues while the panel is already open doesn't overwrite the original.
+  if (selectedId == null) {
+    const _panel = document.getElementById('panel');
+    if (_panel?.classList.contains('mobile-fullscreen')) _panelStateBeforeOpen = 'fullscreen';
+    else if (_panel?.classList.contains('mobile-expanded')) _panelStateBeforeOpen = 'expanded';
+    else _panelStateBeforeOpen = 'peek';
+  }
+
   // Sweep any stale docked source card from a previous open. closeDetailPanel
   // doesn't remove it; the next content.innerHTML below would, but the
   // querySelector below this still latches onto it (DOM order: #detail-panel
@@ -2731,7 +2740,8 @@ function openDetailPanel(v) {
   dp.style.transition = 'none';
   dp.classList.add('open');
   void dp.offsetHeight;
-  const dpCardEl = document.querySelector('#detail-panel .dp-card');
+  const dpCardEl = document.querySelector('#detail-panel #dp-card-slot')
+                || document.querySelector('#detail-panel .dp-card');
   const targetRect = dpCardEl ? dpCardEl.getBoundingClientRect() : null;
   dp.classList.remove('open');
   void dp.offsetHeight;
@@ -2922,12 +2932,19 @@ function closeDetailPanel(expandList = true) {
     _setFtsFade('out');
 
     // Reveal list IN THE SAME FRAME as the panel slide-off so they cross.
+    // Restore the list's pre-open state (peek / expanded / fullscreen) so the
+    // user lands back where they started. expandList is honored only when no
+    // pre-open state was captured (e.g. deep-link opens that bypass the
+    // panel-state snapshot in openDetailPanel).
     const panel = document.getElementById('panel');
     if (panel) {
-      panel.classList.remove('mobile-hidden', 'mobile-fullscreen');
-      if (expandList) panel.classList.add('mobile-expanded');
-      else            panel.classList.remove('mobile-expanded');
+      panel.classList.remove('mobile-hidden', 'mobile-expanded', 'mobile-fullscreen');
+      const prev = _panelStateBeforeOpen;
+      if (prev === 'fullscreen')    panel.classList.add('mobile-fullscreen');
+      else if (prev === 'expanded') panel.classList.add('mobile-expanded');
+      else if (prev == null && expandList) panel.classList.add('mobile-expanded');
     }
+    _panelStateBeforeOpen = null;
     document.getElementById('floating-search')?.classList.remove('mobile-ui-hidden');
     document.getElementById('qc-wrap')?.classList.remove('mobile-ui-hidden');
     document.getElementById('locate-btn')?.classList.remove('mobile-ui-hidden');
