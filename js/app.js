@@ -2753,10 +2753,23 @@ function openDetailPanel(v) {
       // .fts-hosted lands; the FTS canvas takes over rendering.
       if (typeof drawAllCardTimelines === 'function') drawAllCardTimelines(dockedCard);
       dockedCard.classList.add('fts-hosted');
-      // Strip overlay inline styles before moving into flow.
-      fts.style.cssText = '';
+      // Pre-stage FTS sizing via inline styles BEFORE the reparent. The
+      // .fts-in-card CSS rule (position:static, width:100%) should override
+      // the peek-state body.fts #fts rule (position:fixed, left:12, right:12)
+      // the moment the class is added, but the user reports a frame or two
+      // where the FTS still paints at peek-state full-viewport width inside
+      // the card — the timeline track shoots off the right edge of the
+      // panel. Setting these inline forces the layout regardless of when the
+      // browser commits the class change.
+      const targetW = cardTimeline.clientWidth;
+      fts.style.cssText =
+        'position: static; left: auto; right: auto; top: auto; bottom: auto; ' +
+        `width: ${targetW}px; transition: none; transform: none; opacity: 1;`;
       fts.classList.add('fts-in-card');
       cardTimeline.appendChild(fts);
+      // Drop the explicit width — the CSS rule (width:100%) takes over and
+      // matches targetW, so layout is unchanged but tracks parent resizes.
+      fts.style.cssText = '';
       if (typeof drawFtsCanvas === 'function') drawFtsCanvas();
     }
   }, 360);
