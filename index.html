@@ -2543,10 +2543,18 @@
     }
     /* Don't `display: none` the old track — overlay it absolutely over the
        FTS row so it can crossfade out while FTS fades in. Avoids the hard
-       swap (200ms empty gap) the user reported. */
+       swap (200ms empty gap) the user reported. Position matches where
+       #fts-track sits (after the date-btn + 8px gap), not the full
+       card-timeline — otherwise the canvas's wx segments extend past the
+       fading-in FTS and the crossfade reads as a sudden ~46px widening.
+       JS sets --fts-track-left at hand-off based on the live date-btn width
+       (38px when today, wider when a date label is shown). */
     .dp-card.fts-hosted .card-timeline > .timeline-track {
       position: absolute;
-      inset: 0;
+      top: 0;
+      bottom: 0;
+      left: var(--fts-track-left, 46px);
+      right: 0;
       pointer-events: none;
       opacity: 0;
       transition: opacity 0.18s ease-out;
