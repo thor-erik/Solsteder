@@ -423,6 +423,19 @@ function updateFtsDateBtn() {
   } else {
     btn.classList.remove('active');
   }
+
+  // Re-sync the labels-offset on the docked card. Date-btn width changes
+  // between today (38px circle) and other days (wider with date label), so
+  // the labels container needs to track that to stay aligned with the
+  // FTS-track left edge. Read in next frame so the .fts-today class change
+  // above has been applied to layout.
+  const _docked = document.querySelector('#detail-panel .venue-card.source-docked');
+  if (_docked) {
+    requestAnimationFrame(() => {
+      const w = btn.offsetWidth;
+      if (w > 0) _docked.style.setProperty('--fts-labels-offset', (w + 8) + 'px');
+    });
+  }
 }
 
 /** Show the scrub popup with time + weather info. */
@@ -2673,14 +2686,23 @@ function openDetailPanel(v) {
       // .fts-hosted lands; the FTS canvas takes over rendering.
       if (typeof drawAllCardTimelines === 'function') drawAllCardTimelines(dockedCard);
       dockedCard.classList.add('fts-hosted');
+      // Align label-row left edge with the track left edge. Date-btn width
+      // varies: 38px circle on "today", wider (with date label + chevron)
+      // on other days. Without this, picking a non-today date leaves the
+      // labels container starting 46px in while the FTS-track starts at
+      // (date-btn + 8px gap) — mid-track labels misalign with their hour
+      // positions on the canvas.
+      const _dateBtn = document.getElementById('fts-date-btn');
+      const _btnW = _dateBtn ? _dateBtn.offsetWidth : 38;
+      dockedCard.style.setProperty('--fts-labels-offset', (_btnW + 8) + 'px');
       // Pre-stage FTS sizing via inline styles BEFORE the reparent. The
       // .fts-in-card CSS rule (position:static, width:100%) should override
       // the peek-state body.fts #fts rule (position:fixed, left:12, right:12)
-      // the moment the class is added, but the user reports a frame or two
-      // where the FTS still paints at peek-state full-viewport width inside
-      // the card — the timeline track shoots off the right edge of the
-      // panel. Setting these inline forces the layout regardless of when the
-      // browser commits the class change.
+      // the moment the class is added, but on some devices the browser
+      // paints a frame or two where the FTS still paints at peek-state
+      // full-viewport width inside the card — the timeline track shoots
+      // off the right edge of the panel. Setting these inline forces the
+      // layout regardless of when the browser commits the class change.
       const targetW = cardTimeline.clientWidth;
       fts.style.cssText =
         'position: static; left: auto; right: auto; top: auto; bottom: auto; ' +
