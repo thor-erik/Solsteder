@@ -1631,6 +1631,12 @@
     box-shadow: var(--glass-inset), 0 8px 32px rgba(0,0,0,0.6);
   }
   #sort-panel.open { display: flex; }
+  .sort-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1099;
+    background: transparent;
+  }
   .sort-btn {
     background: none;
     border: none;
@@ -6205,7 +6211,6 @@
   <div id="sort-panel" class="glass-panel">
     <button class="sort-btn active" data-sort="distance"  onclick="setSortBy('distance')">Avstand</button>
     <button class="sort-btn"        data-sort="score"     onclick="setSortBy('score')">Mest sol</button>
-    <button class="sort-btn"        data-sort="latest"    onclick="setSortBy('latest')">Senest sol</button>
     <button class="sort-btn"        data-sort="beer"      onclick="setSortBy('beer')">Ølpris</button>
     <button class="sort-btn"        data-sort="favorites" onclick="setSortBy('favorites')">Favoritter</button>
   </div>
