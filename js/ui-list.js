@@ -198,7 +198,17 @@ function renderListPage(list, dateStr, fromHour, toHour, isPoint, reset) {
   }
 
   if (reset) {
+    // Stash + restore scrollTop so periodic re-renders (slider tick, nowMode
+    // 30s tick) don't snap the list back to top under the user.
+    const savedScroll = list.scrollTop;
     list.innerHTML = html;
+    if (savedScroll) list.scrollTop = savedScroll;
+    // Set data-mounted in the next frame so the FIRST reset's layout pass
+    // sees the attribute absent (cardIn fires once across the new cards),
+    // and SUBSEQUENT resets see it present (cardIn gated off → no flash).
+    if (!list.dataset.mounted) {
+      requestAnimationFrame(() => { list.dataset.mounted = '1'; });
+    }
   } else {
     // Suppress entry animation for scroll-paginated cards
     list.setAttribute('data-no-anim', '');

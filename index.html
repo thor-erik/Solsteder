@@ -549,6 +549,15 @@
     body:has(#detail-panel.open) #notif-toast-wrap {
       top: 12px;
     }
+    /* Hide notif while either panel reaches fullscreen so it doesn't overlap
+       the content. Use opacity (not display:none) so a notification arriving
+       during fullscreen will fade in cleanly when the user collapses. */
+    body:has(#panel.mobile-fullscreen) #notif-toast-wrap,
+    body:has(#detail-panel.dp-fullscreen) #notif-toast-wrap {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
   }
 
   /* ── Profile popover ──────────────────────────────────────────────────────── */
@@ -1753,8 +1762,13 @@
     transition: border-color 0.12s ease-out, background 0.12s ease-out, opacity 0.2s;
     position: relative;
     overflow: visible;
-    animation: cardIn 0.18s ease-out;
     contain: layout style;
+  }
+  /* First-render fade: cardIn runs once before #venue-list gets data-mounted
+     (set via rAF after the first reset). Subsequent resets keep the attribute
+     so CSS doesn't re-fire the cascade on every slider tick. */
+  #venue-list:not([data-mounted]) .venue-card {
+    animation: cardIn 0.18s ease-out;
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -2493,7 +2507,7 @@
       left: 12px; right: 12px;
       width: auto;
       bottom: var(--fts-bottom, 160px);
-      transition: bottom 0.35s cubic-bezier(0.25, 0.9, 0.4, 1);
+      transition: bottom 0.22s cubic-bezier(0.25, 0.9, 0.4, 1);
       will-change: bottom;
       padding: 0;
       gap: 8px;
@@ -2513,6 +2527,7 @@
     .dp-card.fts-hosted .card-timeline {
       display: flex;
       align-items: center;
+      gap: 8px;
       height: 38px;
       margin-top: 16px;
     }
@@ -2528,12 +2543,12 @@
 
     /* Locate button: sit above the floating pill (or above peek strip if no FTS) */
     #locate-btn { bottom: calc(var(--peek-h, 252px) + 14px); right: 12px; }
-    body.fts #locate-btn { bottom: calc(var(--fts-bottom, 160px) + 46px + 12px); transition: bottom 0.35s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease; }
+    body.fts #locate-btn { bottom: calc(var(--fts-bottom, 160px) + 46px + 12px); transition: bottom 0.22s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease; }
 
     /* Zoom jog: sits above locate button on mobile */
     #zoom-jog { right: 12px; }
     #zoom-jog { bottom: calc(var(--peek-h, 252px) + 14px + 34px + 10px); }
-    body.fts #zoom-jog { bottom: calc(var(--fts-bottom, 160px) + 46px + 12px + 34px + 10px); transition: bottom 0.35s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease; }
+    body.fts #zoom-jog { bottom: calc(var(--fts-bottom, 160px) + 46px + 12px + 34px + 10px); transition: bottom 0.22s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease; }
 
     /* Handle: grabber pill only — chevron retired (venue peek carries swipe-up signal) */
     #panel-handle {
@@ -5058,12 +5073,19 @@
     .venue-card.source-morphing.source-target .card-new-meta      { font-size: 12px; }
     .venue-card.source-morphing.source-target .card-new-hero-main { font-size: 17px; }
     .venue-card.source-morphing.source-target .card-new-hero-sub  { font-size: 12px; }
+    /* Morph target lays out the timeline as a flex row so the injected
+       calbtn + the morphed timeline-track end up in the SAME positions
+       they'll occupy after FTS reparenting (calbtn = #fts-date-btn, track =
+       #fts-track). The hand-off becomes a content swap with no layout jump. */
     .venue-card.source-morphing.source-target .card-timeline {
       height: 38px;
       margin-top: 16px;
-      margin-left: 46px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
     .venue-card.source-morphing.source-target .timeline-track {
+      flex: 1;
       height: 38px;
       border-radius: 19px;
     }
@@ -5078,12 +5100,12 @@
     }
     .venue-card.source-morphing.source-target .dp-tl-labels { opacity: 1; }
 
-    /* Calendar button injected into the lifted source card; fades in alongside
-       the time-bar morph. */
+    /* Calendar button injected into the lifted source card's .card-timeline
+       as a flex item (left of the morphed track). Position matches where
+       #fts-date-btn ends up after FTS reparenting, so the hand-off doesn't
+       visibly shift the calbtn. */
     .source-card-calbtn {
-      position: absolute;
-      left: 14px;
-      bottom: 14px;
+      flex: 0 0 auto;
       width: 38px; height: 38px;
       border-radius: 19px;
       background: var(--glass-action-bg);
