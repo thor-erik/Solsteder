@@ -2541,28 +2541,15 @@
       margin-top: 16px;
       position: relative; /* anchor for the fading-out timeline-track overlay */
     }
-    /* Don't `display: none` the old track — overlay it absolutely over the
-       FTS row so it can crossfade out while FTS fades in. Avoids the hard
-       swap (200ms empty gap) the user reported. Position + border match
-       #fts-track exactly so the canvas inside (which fills the padding box
-       at width:100%) lands at the same screen rect as #fts-canvas:
-         • left = date-btn width + 8px gap (set via --fts-track-left from JS)
-         • right = 0 (flush with card-timeline right edge, like FTS-track)
-         • 1px border = same padding-box inset as #fts-track, so the canvas
-           is W−48 wide, not W−46. Without this, segments on the card canvas
-           map across a 2px-wider domain than #fts-canvas and the crossfade
-           reads as a stretch on the right edge. */
+    /* The card canvas's job ends at hand-off — the FTS pill takes over. Hard
+       hide instead of crossfading: the two canvases draw the same content but
+       any subpixel/border/DPR rounding mismatch makes the overlap visible as
+       a "stretch on the right" during the 0.18s fade. With both canvases
+       sharing the same layout (calbtn 38 + gap 8 + track flex:1) and the
+       same time domain, hiding the card canvas while the FTS appears reads
+       as a single visual element — no gap, no stretch. */
     .dp-card.fts-hosted .card-timeline > .timeline-track {
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      left: var(--fts-track-left, 46px);
-      right: 0;
-      border: var(--glass-border);
-      border-radius: 999px;
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.18s ease-out;
+      display: none;
     }
     .dp-card.fts-hosted #fts.fts-in-card { flex: 1; }
     /* Slot placeholder also hosts the FTS during updateDetailPanel re-renders. */
