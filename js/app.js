@@ -129,6 +129,8 @@ function _syncFtsPosition() {
   if (!USE_FLOATING_TIME_SLIDER) return;
   if (document.body.dataset.dpMorph === '1') return;
   const ftsEl = document.getElementById('fts');
+  // FTS reparented into the docked card flows with it — no overlay sync needed.
+  if (ftsEl?.classList.contains('fts-in-card')) return;
   const panel = document.getElementById('panel');
   const dp    = document.getElementById('detail-panel');
   if (!panel) return;
@@ -159,14 +161,7 @@ function _syncFtsPosition() {
   const locateEl = document.getElementById('locate-btn');
   const zoomJog  = document.getElementById('zoom-jog');
   const dpOpen = dp?.classList.contains('open');
-  const dpFull = dp?.classList.contains('dp-fullscreen');
   if (dpOpen) {
-    if (dpFull) {
-      if (ftsEl) { ftsEl.style.opacity = '0'; ftsEl.style.pointerEvents = 'none'; }
-      if (locateEl) { locateEl.style.opacity = '0'; locateEl.style.pointerEvents = 'none'; }
-      if (zoomJog) { zoomJog.style.opacity = '0'; zoomJog.style.pointerEvents = 'none'; }
-      return;
-    }
     if (ftsEl) { ftsEl.style.opacity = ''; ftsEl.style.pointerEvents = ''; }
     if (locateEl) { locateEl.style.opacity = '0'; locateEl.style.pointerEvents = 'none'; }
     if (zoomJog) { zoomJog.style.opacity = '0'; zoomJog.style.pointerEvents = 'none'; }
@@ -2583,6 +2578,8 @@ function _setFtsFade(direction) {
 function _syncFtsToSlot() {
   const fts = document.getElementById('fts');
   if (!fts) return false;
+  // FTS is in document flow inside the docked card — no overlay alignment needed.
+  if (fts.classList.contains('fts-in-card')) return true;
   // Prefer the docked source card's timeline-track; fall back to legacy slot.
   const slot = document.querySelector('#detail-panel .source-docked .timeline-track')
             || document.getElementById('fts-slot');
@@ -2658,6 +2655,19 @@ function openDetailPanel(v) {
   const dp      = document.getElementById('detail-panel');
   const content = document.getElementById('dp-content');
   if (!dp || !content) return;
+
+  // Sweep any stale docked source card from a previous open. closeDetailPanel
+  // doesn't remove it; the next content.innerHTML below would, but the
+  // querySelector below this still latches onto it (DOM order: #detail-panel
+  // precedes #panel/#venue-list) and we'd lift an orphan with stale labels.
+  // Also detach any FTS still parented inside the panel — the upcoming
+  // innerHTML reset would otherwise destroy the FTS DOM.
+  const _staleFts = dp.querySelector('#fts');
+  if (_staleFts) {
+    _staleFts.classList.remove('fts-in-card');
+    document.body.appendChild(_staleFts);
+  }
+  dp.querySelectorAll('.venue-card.source-docked').forEach(c => c.remove());
 
   // Capture source card + card-timeline rects BEFORE re-rendering so we have valid
   // viewport coords for both the panel container morph and the FTS pill FLIP.
@@ -2770,6 +2780,8 @@ function openDetailPanel(v) {
   // frame. Labels stay at opacity 0 during morph (.source-morphing rule)
   // and fade to 1 once .source-target is added (during the morph), tracking
   // the rest of the card-content morph.
+  // Strip any pre-existing labels first so re-opens don't stack rows.
+  sourceCard.querySelectorAll('.dp-tl-labels').forEach(l => l.remove());
   const slotForLabels = document.getElementById('dp-card-slot');
   const slotLabels = slotForLabels ? slotForLabels.querySelector('.dp-tl-labels') : null;
   let inlineLabels = null;
@@ -2841,24 +2853,26 @@ function openDetailPanel(v) {
       slot.parentNode.replaceChild(sourceCard, slot);
     }
 
-    // Pin FTS to the slot inside the now-docked source card and fade in.
+    // Reparent FTS into the docked card so it scrolls/drags with the panel
+    // instead of being a viewport-fixed overlay aligned by JS.
     const fts = document.getElementById('fts');
-    if (fts) fts.style.transition = 'none';
-    _syncFtsToSlot();
-    if (fts) void fts.offsetHeight;
+    const dockedCard = dp.querySelector('.venue-card.source-docked');
+    const cardTimeline = dockedCard?.querySelector('.card-timeline');
+    if (fts && cardTimeline) {
+      dockedCard.classList.add('fts-hosted');
+      // Strip overlay inline styles before moving into flow, but preserve
+      // opacity:0 so _setFtsFade('in') has something to transition from.
+      fts.style.cssText = 'opacity: 0;';
+      fts.classList.add('fts-in-card');
+      cardTimeline.appendChild(fts);
+      if (typeof drawFtsCanvas === 'function') drawFtsCanvas();
+      // Force layout commit before triggering the opacity transition.
+      void fts.offsetHeight;
+    }
     _setFtsFade('in');
   }, 360);
 
-  // Late safety re-pin in case slot rect settled after first pin.
   setTimeout(() => {
-    const fts = document.getElementById('fts');
-    if (fts) {
-      const prev = fts.style.transition;
-      fts.style.transition = 'none';
-      _syncFtsToSlot();
-      void fts.offsetHeight;
-      fts.style.transition = prev || '';
-    }
     delete document.body.dataset.dpMorph;
   }, 700);
 }
@@ -2920,12 +2934,25 @@ function closeDetailPanel(expandList = true) {
     document.getElementById('zoom-jog')?.classList.remove('mobile-ui-hidden');
 
     setTimeout(() => {
+      // FTS may still be parented inside the (now-closed) docked card. Move it
+      // back to <body> before the body-fixed peek/expanded layout takes over.
+      const fts = document.getElementById('fts');
+      if (fts && fts.classList.contains('fts-in-card')) {
+        fts.classList.remove('fts-in-card');
+        fts.style.cssText = '';
+        document.body.appendChild(fts);
+      }
+      const dp2 = document.getElementById('detail-panel');
+      dp2?.querySelectorAll('.fts-hosted').forEach(c => c.classList.remove('fts-hosted'));
       // Clear FTS overrides so it returns to its CSS-driven peek/expanded layout.
       _clearFtsInlineSize();
-      const fts = document.getElementById('fts');
       if (fts) fts.style.transition = 'none';
       _syncFtsPosition();
-      if (fts) void fts.offsetHeight;
+      if (fts) {
+        // Snap to opacity 0 (after _syncFtsPosition cleared it) then fade in.
+        fts.style.opacity = '0';
+        void fts.offsetHeight;
+      }
       _setFtsFade('in');
       _clearDpCardFlip();
       if (_morphSourceVid != null) {
@@ -2977,10 +3004,35 @@ function updateDetailPanel() {
   if (!authCurrentUser()) return;
   const v = VENUES.find(x => x.id === selectedId);
   if (!v) return;
+
+  // Detach the in-card FTS to <body> before the innerHTML reset so its DOM
+  // (and live event listeners on #fts-track) survive. Re-host into the fresh
+  // dp-card-slot placeholder afterwards. The slot's height matches the docked
+  // card so the panel layout doesn't shift visually.
+  const fts = document.getElementById('fts');
+  const wasInCard = fts?.classList.contains('fts-in-card');
+  if (wasInCard) {
+    fts.classList.remove('fts-in-card');
+    fts.style.cssText = '';
+    document.body.appendChild(fts);
+  }
+
   content.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
-  // FTS is no longer reparented — it stays floating in body. Just re-sync its
-  // size/position to the new slot rect (slot dimensions are stable but be safe).
-  if (isMobile()) _syncFtsToSlot();
+
+  if (wasInCard) {
+    // Re-host into the freshly-rendered slot. The slot is a placeholder div,
+    // not a venue-card, so we keep it as the host and append FTS inside it.
+    const slot = document.getElementById('dp-card-slot');
+    if (slot) {
+      slot.classList.add('fts-hosted');
+      fts.classList.add('fts-in-card');
+      slot.appendChild(fts);
+      if (typeof drawFtsCanvas === 'function') drawFtsCanvas();
+    }
+  } else if (isMobile()) {
+    _syncFtsToSlot();
+  }
+
   _startWindForVenue(v); // restart with updated weather snapshot
 }
 
@@ -3709,8 +3761,6 @@ document.addEventListener('DOMContentLoaded', () => {
         _dpLastFrameY = y;
         dpEl.style.transition = 'none';
       }
-      let _dpFtsEl = null; // cache FTS ref for detail panel drag
-      let _dpLocateEl = null; // cache locate button ref for detail panel drag
       function _trackDpDrag(y) {
         _dpLastFrameY = y;
         // Cancel any pending frame and schedule a new one for smooth 60fps updates
@@ -3728,18 +3778,7 @@ document.addEventListener('DOMContentLoaded', () => {
             dpEl.style.transform = `translateY(${clampedDy}px)`;
             dpEl.style.height = '';
           }
-
-          // Track FTS pill with detail panel during drag
-          if (USE_FLOATING_TIME_SLIDER) {
-            if (!_dpFtsEl) _dpFtsEl = document.getElementById('fts');
-            if (_dpFtsEl) {
-              const dpTop = dpEl.getBoundingClientRect().top;
-              const viewH = window.innerHeight;
-              _dpFtsEl.style.transition = 'none';
-              _dpFtsEl.style.bottom = (viewH - dpTop + FTS_GAP) + 'px';
-            }
-          }
-
+          // FTS lives inside the docked card — panel transform moves it for free.
           _dpRafId = null;
         });
       }
@@ -3750,9 +3789,6 @@ document.addEventListener('DOMContentLoaded', () => {
         dpEl.style.transform  = '';
         dpEl.style.height     = '';
         _dpDragging = false;
-        // Restore FTS pill transition after drag
-        if (!_dpFtsEl) _dpFtsEl = document.getElementById('fts');
-        if (_dpFtsEl) { _dpFtsEl.style.transition = ''; _dpFtsEl.style.bottom = ''; }
 
         const dy       = y - _dpY0;
         const dt       = Math.max(1, Date.now() - _dpStartTime);
