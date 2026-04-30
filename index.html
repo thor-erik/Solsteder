@@ -6143,6 +6143,62 @@
     gap: 5px;
   }
   .plan-preview-btn:hover { border-color: var(--accent); color: var(--accent); }
+  /* Invitations inbox in the profile panel */
+  .invitations-section { padding-bottom: 4px; }
+  .invitations-section .profile-section-label-sub {
+    margin-top: 10px;
+    opacity: 0.85;
+  }
+  .inbox-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    border-top: 1px solid rgba(156,189,231,0.08);
+  }
+  .inbox-row-info { flex: 1; min-width: 0; }
+  .inbox-row-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .inbox-row-meta {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 1px;
+  }
+  .inbox-row-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .inbox-btn {
+    border: none;
+    border-radius: 999px;
+    padding: 5px 9px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+  }
+  .inbox-btn-preview {
+    background: rgba(156,189,231,0.14);
+    color: var(--text);
+  }
+  .inbox-btn-preview:hover { background: rgba(156,189,231,0.24); }
+  .inbox-btn-accept {
+    background: var(--accent);
+    color: var(--accent-on, #2a1a0c);
+  }
+  .inbox-btn-accept:hover { opacity: 0.92; }
+  .inbox-btn-decline {
+    background: transparent;
+    color: var(--muted);
+  }
+  .inbox-btn-decline:hover { color: var(--text); }
   /* Friend-add prompt banner inside the detail panel */
   .friend-prompt-banner {
     display: flex;

@@ -61,6 +61,21 @@ function openPlanPreview(opts) {
 
   document.body.classList.add('plan-preview-active');
 
+  // Save current camera so we can restore it on close (so the user isn't left
+  // zoomed-in on the preview venue if they came from a city-zoom view).
+  let savedCamera = null;
+  if (typeof map !== 'undefined' && map && typeof map.getCenter === 'function') {
+    try {
+      const c = map.getCenter();
+      savedCamera = {
+        center: [c.lng, c.lat],
+        zoom:    map.getZoom(),
+        pitch:   map.getPitch(),
+        bearing: map.getBearing(),
+      };
+    } catch (e) { /* ignore */ }
+  }
+
   if (typeof map !== 'undefined' && map && typeof map.flyTo === 'function') {
     map.flyTo({
       center: [venue.lng, venue.lat],
@@ -78,7 +93,7 @@ function openPlanPreview(opts) {
   _planPreviewState = {
     overlay,
     venueId:  venue.id,
-    savedTime, savedDate,
+    savedTime, savedDate, savedCamera,
     planHour, animateTo, dateStr,
     rafId: null,
     autoplayDone: false,
@@ -107,6 +122,18 @@ function closePlanPreview() {
   if (st.savedTime != null && timeFromEl) {
     timeFromEl.value = st.savedTime;
     timeFromEl.dispatchEvent(new Event('input'));
+  }
+  if (st.savedCamera && typeof map !== 'undefined' && map && typeof map.flyTo === 'function') {
+    try {
+      map.flyTo({
+        center:  st.savedCamera.center,
+        zoom:    st.savedCamera.zoom,
+        pitch:   st.savedCamera.pitch,
+        bearing: st.savedCamera.bearing,
+        duration: 800,
+        essential: true,
+      });
+    } catch (e) { /* ignore */ }
   }
   st.overlay.classList.remove('open');
   document.body.classList.remove('plan-preview-active');

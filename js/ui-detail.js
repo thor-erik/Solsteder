@@ -662,15 +662,48 @@ async function _sendInvite(venueId) {
   const mInt = Math.round((h - hInt) * 60);
   const isoTime = new Date(`${d}T${String(hInt).padStart(2,'0')}:${String(mInt).padStart(2,'0')}:00`).toISOString();
 
+  const allFriends = (typeof _friends !== 'undefined') ? _friends : [];
   const checks = document.querySelectorAll('#invite-sheet .invite-friend-row input:checked');
-  const friendIds = [];
-  checks.forEach(cb => friendIds.push(cb.value));
-  if (!friendIds.length) {
-    const friends = typeof _friends !== 'undefined' ? _friends : [];
-    friends.forEach(f => friendIds.push(f.id));
-  }
+  const selectedIds = [];
+  checks.forEach(cb => selectedIds.push(cb.value));
+  const explicitlySelected = selectedIds.length > 0;
+  // Nothing selected → treat as broadcast to everyone (existing behavior)
+  const friendIds = explicitlySelected ? selectedIds : allFriends.map(f => f.id);
+
   await createPlan(venueId, isoTime, '', friendIds);
   _closeInviteSheet();
+
+  // Follow-up nudge: if the user explicitly picked a subset, suggest sharing
+  // a link with the rest. Only fires when there's at least one unselected
+  // friend, otherwise it's noise.
+  if (explicitlySelected && allFriends.length > selectedIds.length) {
+    const selectedSet = new Set(selectedIds);
+    const remaining = allFriends.filter(f => !selectedSet.has(f.id));
+    setTimeout(() => _queueTellMoreFriendsNudge(venueId, remaining.length), 4500);
+  }
+}
+
+/** Queue a P2 social toast suggesting a broadcast share-link to remaining friends. */
+function _queueTellMoreFriendsNudge(venueId, remainingCount) {
+  if (typeof _notifEnqueue !== 'function') return;
+  if (typeof _notifAdvance !== 'function') return;
+  _notifEnqueue({
+    id: 'social_tell_more_' + venueId + '_' + Date.now(),
+    priority: 2,
+    category: 'social',
+    icon: '👋',
+    bodyKey: 'notif_tell_more_body',
+    bodyVars: { count: remainingCount },
+    actionKey: 'notif_tell_more_action',
+    action: () => {
+      if (typeof _aTrack === 'function') _aTrack('tell_more_nudge', { action: 'shared', remaining: remainingCount });
+      if (typeof _shareInviteLink === 'function') _shareInviteLink(venueId);
+    },
+    ttl: 60000,
+    dedupe: true,
+  });
+  if (typeof _aTrack === 'function') _aTrack('tell_more_nudge', { action: 'queued', remaining: remainingCount });
+  _notifAdvance();
 }
 
 /** Compose the share-text body for an invite at venue+date+hour. */

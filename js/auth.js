@@ -167,6 +167,90 @@ function _updateUserIndicator() {
   _renderProfilePanel();
 }
 
+/** Render the invitations inbox section: pending invites + own upcoming plans. */
+function _renderInvitationsSection() {
+  const pending = (typeof _planInvites !== 'undefined')
+    ? _planInvites.filter(i => i.status === 'pending' && i.plan)
+    : [];
+  const ownUpcoming = (typeof _plans !== 'undefined')
+    ? _plans.filter(p => p && p.creator_id === (_currentUser && _currentUser.id))
+    : [];
+  if (!pending.length && !ownUpcoming.length) return '';
+
+  const fmt = (iso) => {
+    try {
+      const d = new Date(iso);
+      return d.toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    } catch { return ''; }
+  };
+  const venueName = (vid) => {
+    if (typeof VENUES === 'undefined' || !VENUES) return '';
+    const v = VENUES.find(x => String(x.id) === String(vid));
+    return v ? v.name : '';
+  };
+
+  let pendingHtml = '';
+  if (pending.length) {
+    pendingHtml = `
+      <div class="profile-section-label">${t('invitations_label')} (${pending.length})</div>
+      ${pending.map(inv => {
+        const p = inv.plan;
+        const creator = p.creator?.name || p.creator?.email || '';
+        const vName = venueName(p.venue_id);
+        return `<div class="inbox-row">
+          <div class="inbox-row-info">
+            <div class="inbox-row-title">${vName}</div>
+            <div class="inbox-row-meta">${creator} · ${fmt(p.planned_at)}</div>
+          </div>
+          <div class="inbox-row-actions">
+            <button class="inbox-btn inbox-btn-preview"
+                    onclick="closeProfilePanel();openPlanPreview({venueId:${JSON.stringify(p.venue_id)}, plannedAt:'${p.planned_at}', inviteId:'${inv.id}', inviterName:'${(creator||'').replace(/'/g, "\\'")}', mode:'invite'})">
+              ${t('preview_plan')}
+            </button>
+            <button class="inbox-btn inbox-btn-accept"
+                    onclick="respondToPlanInvite('${inv.id}','accepted');_renderProfilePanel()">
+              ${t('plan_accept')}
+            </button>
+            <button class="inbox-btn inbox-btn-decline"
+                    onclick="respondToPlanInvite('${inv.id}','declined');_renderProfilePanel()">
+              ${t('plan_decline')}
+            </button>
+          </div>
+        </div>`;
+      }).join('')}`;
+  }
+
+  let yoursHtml = '';
+  if (ownUpcoming.length) {
+    yoursHtml = `
+      <div class="profile-section-label profile-section-label-sub">${t('your_plans_label')}</div>
+      ${ownUpcoming.map(p => {
+        const vName = venueName(p.venue_id);
+        const accepted = (p._invitees || []).filter(i => i.status === 'accepted').length;
+        const total    = (p._invitees || []).length;
+        const ratio = total ? `${accepted}/${total}` : '';
+        return `<div class="inbox-row">
+          <div class="inbox-row-info">
+            <div class="inbox-row-title">${vName}</div>
+            <div class="inbox-row-meta">${fmt(p.planned_at)}${ratio ? ` · ${ratio} ✓` : ''}</div>
+          </div>
+          <div class="inbox-row-actions">
+            <button class="inbox-btn inbox-btn-preview"
+                    onclick="closeProfilePanel();openPlanPreview({venueId:${JSON.stringify(p.venue_id)}, plannedAt:'${p.planned_at}', mode:'preview'})">
+              ${t('preview_plan')}
+            </button>
+          </div>
+        </div>`;
+      }).join('')}`;
+  }
+
+  return `
+    <div class="profile-panel-section invitations-section">
+      ${pendingHtml}
+      ${yoursHtml}
+    </div>`;
+}
+
 function _renderProfilePanel() {
   const panel = document.getElementById('profile-panel');
   if (!panel) return;
@@ -236,6 +320,7 @@ function _renderProfilePanel() {
         </div>
       </div>
       ${adminSection}
+      ${_renderInvitationsSection()}
       <div class="profile-panel-section profile-settings-section">
         <div class="profile-section-label">${t('settings')}</div>
         <div class="profile-pref-row">
