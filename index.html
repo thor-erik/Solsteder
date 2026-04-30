@@ -216,7 +216,7 @@
     position: fixed;
     right: 16px;
     bottom: 16px;
-    z-index: 900;
+    z-index: 920;
     width: 34px;
     height: 34px;
     padding: 0;
@@ -2474,7 +2474,7 @@
     /* Expanded state — tap handle to open */
     #panel.mobile-expanded {
       transform: translateY(0);
-      z-index: 910;  /* above locate-btn (900) so button is covered by list */
+      z-index: 910;  /* zoom-jog (900) sits behind list; locate-btn (920) stays on top */
     }
 
     /* Fully hidden (covered by detail panel) — slides down behind the morphed card.

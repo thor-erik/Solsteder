@@ -184,9 +184,11 @@ function _syncFtsPosition() {
   const isExpanded = panel.classList.contains('mobile-expanded');
   const isFull     = panel.classList.contains('mobile-fullscreen');
 
-  // Locate button + zoom jog: fade out when venue list is expanded or fullscreen
+  // Locate button: stays visible in peek + expanded (sits above panel via z-index);
+  //                 only fade in fullscreen where the panel covers everything.
+  // Zoom jog: still fades when list is expanded or fullscreen.
   if (locateEl) {
-    if (isExpanded || isFull) {
+    if (isFull) {
       locateEl.style.opacity = '0';
       locateEl.style.pointerEvents = 'none';
     } else {
@@ -220,6 +222,62 @@ function _syncFtsPosition() {
   // Flip popup below bar when FTS is near the top (fullscreen mode)
   const popup = document.getElementById('fts-popup');
   if (popup) popup.classList.toggle('fts-popup-below', isFull);
+
+  // Track panel state across calls so we can pan the map in sync with the list
+  // when the user just located themselves and is centered on the user dot.
+  const newState = isFull ? 'fullscreen' : isExpanded ? 'expanded' : isHidden ? 'hidden' : 'peek';
+  if (_prevPanelMobileState && _prevPanelMobileState !== newState) {
+    _maybePanMapForPanelState(_prevPanelMobileState, newState);
+  }
+  _prevPanelMobileState = newState;
+}
+
+let _prevPanelMobileState = null;
+
+/** When the venue list expands/collapses and the map is currently centered on
+ *  the user's location, animate the map so the user dot stays visually centered
+ *  in the visible area above the panel — moving in lock-step with the list. */
+function _maybePanMapForPanelState(prev, next) {
+  if (!isMobile() || !mapLoaded || !userLocation) return;
+  // Only pan on peek ↔ expanded — fullscreen has no visible map area, and
+  // hidden transitions are detail-panel morphs (handled elsewhere).
+  const ok = (s) => s === 'peek' || s === 'expanded';
+  if (!ok(prev) || !ok(next)) return;
+
+  const VH = window.innerHeight;
+  const VW = window.innerWidth;
+  const panelEl = document.getElementById('panel');
+  if (!panelEl) return;
+  const peekH = parseInt(panelEl.style.getPropertyValue('--peek-h')) || 252;
+
+  function _panelTopFor(state) {
+    if (state === 'expanded') return Math.round(VH * 0.45); // panel is 55svh tall
+    return VH - peekH;                                       // peek
+  }
+
+  const prevVisCenterY = _panelTopFor(prev) / 2;
+  const newVisCenterY  = _panelTopFor(next) / 2;
+  if (Math.abs(newVisCenterY - prevVisCenterY) < 1) return;
+
+  // Only pan when the user dot is currently near the visible center on screen.
+  const userPt = map.project([userLocation.lng, userLocation.lat]);
+  if (Math.abs(userPt.x - VW / 2) > VW * 0.35) return;
+  if (Math.abs(userPt.y - prevVisCenterY) > 100) return;
+
+  // Compute the map center that puts userLocation at (VW/2, newVisCenterY).
+  const centerPt = map.project(map.getCenter());
+  const newCenterPt = [
+    centerPt.x + (VW / 2 - userPt.x),
+    centerPt.y + (newVisCenterY - userPt.y),
+  ];
+  const newCenter = map.unproject(newCenterPt);
+
+  // Match the panel's transition: 0.22s, ease-out cubic-bezier(0.25, 0.9, 0.4, 1).
+  map.easeTo({
+    center: newCenter,
+    duration: 220,
+    easing: t => 1 - Math.pow(1 - t, 3),
+  });
 }
 
 // Localized day/month abbreviations for FTS date button (from i18n)
@@ -3409,20 +3467,20 @@ document.addEventListener('DOMContentLoaded', () => {
               _ftsEl.style.bottom = (viewH - panelTop + FTS_GAP) + 'px';
             }
           }
-          // Track locate button + zoom jog with panel during drag — fade as panel expands
+          // Track locate button + zoom jog with panel during drag.
+          // Locate button stays visible the whole way; zoom jog still fades into the list.
           if (!_locateEl) _locateEl = document.getElementById('locate-btn');
           if (!_zoomJogEl) _zoomJogEl = document.getElementById('zoom-jog');
           const panelTopD = panelEl.getBoundingClientRect().top;
           const viewHD    = window.innerHeight;
           const locateBottom = viewHD - panelTopD + FTS_GAP + 46 + 12;
-          // Fade out as panel drags above peek toward expanded
           const peekTop = viewHD - (parseInt(panelEl.style.getPropertyValue('--peek-h')) || 160);
           const expandedTop = viewHD * 0.45;
           const progress = Math.max(0, Math.min(1, (peekTop - panelTopD) / (peekTop - expandedTop)));
           if (_locateEl) {
             _locateEl.style.transition = 'none';
             _locateEl.style.bottom = locateBottom + 'px';
-            _locateEl.style.opacity = String(1 - progress);
+            _locateEl.style.opacity = '';
           }
           if (_zoomJogEl) {
             _zoomJogEl.style.transition = 'none';
