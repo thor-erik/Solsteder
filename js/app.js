@@ -2578,7 +2578,9 @@ function openDetailPanel(v) {
   // Capture the venue list's state so closeDetailPanel can restore it.
   // Only set on transitions from 'no panel open' → 'panel open' so re-selecting
   // venues while the panel is already open doesn't overwrite the original.
-  if (selectedId == null) {
+  // selectVenue() sets `selectedId` BEFORE calling openDetailPanel(), so we
+  // can't gate on selectedId — read the panel's own open class instead.
+  if (!dp.classList.contains('open')) {
     const _panel = document.getElementById('panel');
     if (_panel?.classList.contains('mobile-fullscreen')) _panelStateBeforeOpen = 'fullscreen';
     else if (_panel?.classList.contains('mobile-expanded')) _panelStateBeforeOpen = 'expanded';
@@ -2720,7 +2722,12 @@ function openDetailPanel(v) {
     sourceCard.appendChild(inlineLabels);
   }
 
-  // Calendar-button overlay (fades in alongside the time-bar morph).
+  // Calendar-button placeholder (fades in alongside the time-bar morph).
+  // Injected into .card-timeline as a flex item, BEFORE .timeline-track, so
+  // the morph layout matches where #fts-date-btn / #fts-track will land
+  // after the FTS reparenting hand-off — keeping the calbtn vertically
+  // stable (no "snap up" as card padding morphs) and keeping the track left
+  // edge invariant across the swap.
   const calBtn = document.createElement('div');
   calBtn.className = 'source-card-calbtn';
   calBtn.innerHTML =
@@ -2730,7 +2737,20 @@ function openDetailPanel(v) {
     '<line x1="5" y1="1.5" x2="5" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>' +
     '<line x1="11" y1="1.5" x2="11" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>' +
     '</svg>';
-  sourceCard.appendChild(calBtn);
+  const cardTimelineEl = sourceCard.querySelector('.card-timeline');
+  if (cardTimelineEl) {
+    cardTimelineEl.insertBefore(calBtn, cardTimelineEl.firstChild);
+  } else {
+    sourceCard.appendChild(calBtn); // graceful fallback
+  }
+  // Match the live FTS date button's width so the placeholder occupies the
+  // same horizontal slot the real button will land in (#fts-date-btn is 38px
+  // when today is selected, wider when a date label is shown).
+  const _ftsDateBtn = document.getElementById('fts-date-btn');
+  if (_ftsDateBtn) {
+    const w = _ftsDateBtn.offsetWidth;
+    if (w > 0) calBtn.style.width = w + 'px';
+  }
   void sourceCard.offsetHeight;
 
   _setFtsFade('out');
@@ -2776,7 +2796,9 @@ function openDetailPanel(v) {
       document.body.removeChild(sourceCard);
       sourceCard.classList.remove('source-morphing', 'source-target');
       sourceCard.style.cssText = '';
-      if (calBtn && calBtn.parentNode === sourceCard) sourceCard.removeChild(calBtn);
+      // calBtn now lives inside .card-timeline (a flex item). Remove from
+      // wherever it ended up so the FTS pill takes the timeline row cleanly.
+      if (calBtn && calBtn.parentNode) calBtn.parentNode.removeChild(calBtn);
       // .dp-card picks up dp-card padding/font sizing; .source-docked
       // overrides position:fixed → relative so the card flows in the panel.
       sourceCard.classList.add('dp-card', 'source-docked');
