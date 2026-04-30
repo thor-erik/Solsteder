@@ -2205,12 +2205,27 @@ function shareVenue(venueId) {
   if (!v) return;
   const slug = _venueSlug(v);
   const d    = datePicker.value.replace(/-/g, '');          // 20260420
-  const h    = String(Math.round(parseFloat(timeFromEl.value))).padStart(2, '0');
+  const hNum = parseFloat(timeFromEl.value);
+  const h    = String(Math.round(hNum)).padStart(2, '0');
   const url  = `${location.origin}${location.pathname}#${slug}-${venueId}/${d}T${h}`;
+  // Compose text with sun-end time when available
+  let sunUntil = null;
+  if (typeof computeSunWindows === 'function') {
+    const { windows } = computeSunWindows(v, datePicker.value) || {};
+    if (windows && windows.length) {
+      const cur  = windows.find(w => hNum >= w.start && hNum < w.end);
+      const next = !cur ? windows.find(w => w.start > hNum) : null;
+      const win  = cur || next;
+      if (win) sunUntil = formatHour(win.end);
+    }
+  }
+  const text = sunUntil
+    ? t('share_venue_text',        { venue: v.name, sunUntil })
+    : t('share_venue_text_no_sun', { venue: v.name, area: v.area || '' });
   if (navigator.share) {
-    navigator.share({ title: `${v.name} — ${v.area}`, url }).catch(() => {});
+    navigator.share({ title: `${v.name} — ${v.area}`, text, url }).catch(() => {});
   } else {
-    navigator.clipboard?.writeText(url).then(() => {
+    navigator.clipboard?.writeText(`${text}\n${url}`).then(() => {
       const btn = document.querySelector(`.venue-card[data-vid="${venueId}"] .card-action-btn:last-child`);
       if (btn) { btn.textContent = t('copied'); setTimeout(() => btn.textContent = '⎘ ' + t('share'), 1500); }
     });
@@ -5208,38 +5223,117 @@ function _introCheckReady() {
       }
     }
 
-    // Handle plan/checkin invite link: #invite/<base64data>
+    // Handle plan/checkin invite link.
+    //   Hash form: #invite/<base64data>
+    //   Path form: /i/<base64data>           (server-rendered OG preview redirects here)
+    let _inviteToken = null;
     if (hash.startsWith('invite/')) {
+      _inviteToken = hash.slice(7);
+    } else {
+      const _pathMatch = window.location.pathname.match(/\/i\/([A-Za-z0-9+/=_-]+)\/?$/);
+      if (_pathMatch) _inviteToken = _pathMatch[1];
+    }
+    if (_inviteToken) {
       try {
-        const data = JSON.parse(atob(hash.slice(7)));
+        const data = JSON.parse(atob(_inviteToken));
         window._pendingInvite = data;
-        const _tryInvite = () => {
+        const _tryInvite = async () => {
           if (typeof authCurrentUser !== 'function') return;
           const user = authCurrentUser();
           if (!user) return;
           const d = window._pendingInvite;
           if (!d) return;
-          // Auto-friend if not already friends
+
+          // Move user to the inviter's date/time before opening the venue,
+          // so the preview animation starts from the invited hour.
+          if (d.t) {
+            const dtMatch = String(d.t).match(/^(\d{4}-\d{2}-\d{2})T(\d{1,2}):(\d{1,2})/);
+            if (dtMatch && datePicker) {
+              datePicker.value = dtMatch[1];
+              datePicker.dispatchEvent(new Event('change'));
+              if (timeFromEl) {
+                const hr = parseInt(dtMatch[2], 10) + parseInt(dtMatch[3], 10) / 60;
+                timeFromEl.value = hr;
+                timeFromEl.dispatchEvent(new Event('input'));
+              }
+            }
+          }
+
+          // "Here" check-in links: skip the invitation preview, just open the venue
+          if (d.type === 'here') {
+            if (d.v && typeof selectVenue === 'function') selectVenue(d.v, true);
+            window._pendingInvite = null;
+            history.replaceState(null, '', location.pathname);
+            return;
+          }
+
+          // Look up inviter profile (for "<name> inviterer deg" line) — done early
+          // so the friend-prompt banner can include the name on first render.
+          let inviterName = null;
           if (d.u && d.u !== user.id) {
-            _supabase.from('friendships').upsert({
-              user_id: d.u,
-              friend_id: user.id,
-              status: 'accepted'
-            }, { onConflict: 'user_id,friend_id' }).then(() => {
-              if (typeof loadFriends === 'function') loadFriends();
-            });
+            try {
+              const { data: prof } = await _supabase
+                .from('profiles').select('name, email').eq('id', d.u).single();
+              if (prof) inviterName = (prof.name || prof.email || '').split('@')[0];
+            } catch (e) { /* ignore — preview still works without name */ }
           }
-          // If it's a "going" invite, accept the plan
-          if (d.v && d.t && d.type !== 'here') {
-            // Open the venue
-            const venue = typeof VENUES !== 'undefined' ? VENUES.find(x => x.id === d.v) : null;
-            if (venue && typeof selectVenue === 'function') selectVenue(d.v, true);
+
+          // Stash friend-add prompt BEFORE selectVenue so the first render of the
+          // detail panel includes the banner.
+          if (d.u && d.u !== user.id) {
+            const isAlreadyFriend = (typeof _friends !== 'undefined') &&
+              _friends.some(f => String(f.id) === String(d.u));
+            const dismissedKey = 'solsteder_dismissed_friend_prompts';
+            let dismissed = [];
+            try { dismissed = JSON.parse(localStorage.getItem(dismissedKey) || '[]'); } catch {}
+            if (!isAlreadyFriend && !dismissed.includes(d.u)) {
+              window._pendingFriendPrompt = { inviterId: d.u, inviterName };
+            }
           }
-          // If it's a "here" checkin link, just open the venue
-          if (d.v && d.type === 'here') {
-            const venue = typeof VENUES !== 'undefined' ? VENUES.find(x => x.id === d.v) : null;
-            if (venue && typeof selectVenue === 'function') selectVenue(d.v, true);
+
+          // Open the venue (surfaces detail panel as a fallback if preview fails)
+          if (d.v && typeof selectVenue === 'function') selectVenue(d.v, true);
+
+          // If the share token references a plan, upsert a plan_invites row so the
+          // receiver can formally accept. plan_id encoded as `p` in the token.
+          let inviteId = null;
+          if (d.p && d.u && d.u !== user.id) {
+            try {
+              const { data: existing } = await _supabase
+                .from('plan_invites').select('id, status')
+                .eq('plan_id', d.p).eq('user_id', user.id).maybeSingle();
+              if (existing && existing.id) {
+                inviteId = existing.id;
+              } else {
+                const { data: ins } = await _supabase
+                  .from('plan_invites')
+                  .insert({ plan_id: d.p, user_id: user.id, status: 'pending' })
+                  .select('id').single();
+                if (ins && ins.id) inviteId = ins.id;
+              }
+            } catch (e) { /* ignore */ }
           }
+
+          // Build plannedAt from `t` for the preview's autoplay range
+          let plannedAt = null;
+          if (d.t) {
+            const m = String(d.t).match(/^(\d{4}-\d{2}-\d{2})T(\d{1,2}):(\d{1,2})/);
+            if (m) plannedAt = new Date(`${m[1]}T${m[2].padStart(2,'0')}:${m[3].padStart(2,'0')}:00`).toISOString();
+          }
+
+          // Open the full-screen preview takeover (slight delay so map flyTo can settle)
+          if (typeof openPlanPreview === 'function' && d.v) {
+            setTimeout(() => {
+              openPlanPreview({
+                venueId:    d.v,
+                plannedAt,
+                inviterName,
+                inviteId,
+                mode: inviteId ? 'invite' : 'preview',
+              });
+            }, 600);
+          }
+
           window._pendingInvite = null;
           history.replaceState(null, '', location.pathname);
         };

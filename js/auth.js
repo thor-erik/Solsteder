@@ -1323,6 +1323,28 @@ async function loadPlans() {
     .order('planned_at', { ascending: true });
   if (!pe) _plans = plans || [];
 
+  // For plans the user created, also pull invitee statuses (for status pips +
+  // the "your invite was accepted" notification evaluator).
+  if (_plans.length) {
+    const ownPlanIds = _plans.filter(p => p.creator_id === _currentUser.id).map(p => p.id);
+    if (ownPlanIds.length) {
+      const { data: ownInvites } = await _supabase
+        .from('plan_invites')
+        .select('*, user:profiles!plan_invites_user_id_fkey(id, name, email, avatar_url)')
+        .in('plan_id', ownPlanIds);
+      if (ownInvites) {
+        const byPlan = new Map();
+        for (const inv of ownInvites) {
+          if (!byPlan.has(inv.plan_id)) byPlan.set(inv.plan_id, []);
+          byPlan.get(inv.plan_id).push(inv);
+        }
+        for (const p of _plans) {
+          p._invitees = byPlan.get(p.id) || [];
+        }
+      }
+    }
+  }
+
   const { data: invites, error: ie } = await _supabase
     .from('plan_invites')
     .select('*, plan:plans(*, creator:profiles!plans_creator_id_fkey(id, name, email, avatar_url))')

@@ -354,6 +354,7 @@ function _renderSocialSection(v) {
   // Plans for this venue
   let plansHtml = '';
   if (plans.length) {
+    const myUid = (typeof authCurrentUser === 'function' && authCurrentUser()) ? authCurrentUser().id : null;
     plansHtml = plans.map(p => {
       const when = new Date(p.planned_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
       const creator = p.creator?.name || p.creator?.email || '';
@@ -367,9 +368,33 @@ function _renderSocialSection(v) {
       } else if (invite) {
         actions = `<span class="plan-status">${t('plan_invite_' + invite.status)}</span>`;
       }
+
+      // Status pips: only meaningful when current user is the plan creator
+      let pipsHtml = '';
+      if (myUid && String(p.creator_id) === String(myUid) && Array.isArray(p._invitees) && p._invitees.length) {
+        pipsHtml = `<div class="plan-invitees">${p._invitees.map(inv => {
+          const u = inv.user || {};
+          const initial = ((u.name || u.email || '?')[0] || '?').toUpperCase();
+          const av = u.avatar_url
+            ? `<img src="${u.avatar_url}" alt="">`
+            : `<div class="pi-init">${initial}</div>`;
+          const pipCls = inv.status === 'accepted' ? 'pi-pip-accepted'
+                       : inv.status === 'declined' ? 'pi-pip-declined'
+                       : 'pi-pip-pending';
+          return `<div class="plan-invitee" title="${(u.name || u.email || '')} — ${t('plan_invite_' + inv.status)}">${av}<span class="pi-pip ${pipCls}"></span></div>`;
+        }).join('')}</div>`;
+      }
+
+      const previewBtn = `<button class="plan-preview-btn" onclick="openPlanPreview({venueId:${v.id}, plannedAt:'${p.planned_at}', mode:'preview'})">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M2 12s4-8 10-8 10 8 10 8-4 8-10 8-10-8-10-8z"/></svg>
+        ${t('preview_plan')}
+      </button>`;
+
       return `<div class="detail-plan-item">
         <div class="plan-info"><span class="plan-when">${when}</span><span class="plan-creator">${creator}</span>${p.message ? `<span class="plan-msg">${p.message}</span>` : ''}</div>
+        ${pipsHtml}
         ${actions}
+        ${previewBtn}
       </div>`;
     }).join('');
   }
@@ -378,8 +403,23 @@ function _renderSocialSection(v) {
   // Beacon icon: dot with signal arcs
   const beaconSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M5.64 5.64a9 9 0 0 0 0 12.73"/><path d="M18.36 5.64a9 9 0 0 1 0 12.73"/><path d="M8.46 8.46a5 5 0 0 0 0 7.08"/><path d="M15.54 8.46a5 5 0 0 1 0 7.08"/></svg>`;
 
+  // Friend-add prompt banner: shown after a non-friend accepts an invite via /i/<token>.
+  // Clears itself when the user picks Add or Not now (state in window + localStorage).
+  let friendPromptHtml = '';
+  const fp = (typeof window !== 'undefined') ? window._pendingFriendPrompt : null;
+  if (fp && fp.inviterId) {
+    const nameDisp = (fp.inviterName || '').replace(/[<>"]/g, '');
+    friendPromptHtml = `
+      <div class="friend-prompt-banner" id="friend-prompt-banner">
+        <span class="friend-prompt-banner-text">${t('friend_prompt_after_accept', { name: nameDisp || '…' })}</span>
+        <button class="friend-prompt-banner-add"  onclick="_handleFriendPromptAdd('${fp.inviterId}')">${t('friend_prompt_add')}</button>
+        <button class="friend-prompt-banner-skip" onclick="_handleFriendPromptDismiss('${fp.inviterId}')">${t('friend_prompt_dismiss')}</button>
+      </div>`;
+  }
+
   return `
     <div class="social-card">
+      ${friendPromptHtml}
       ${friendsHtml}
       <div class="social-btns">
         <button class="social-btn social-btn-invite" onclick="_openInviteSheet(${v.id})">
@@ -393,6 +433,38 @@ function _renderSocialSection(v) {
       </div>
       ${plansHtml}
     </div>`;
+}
+
+/** Friend-add banner: insert pending friendship row + clear banner. */
+async function _handleFriendPromptAdd(inviterId) {
+  if (typeof _aTrack === 'function') _aTrack('invite_friend_prompt', { action: 'added' });
+  if (typeof _supabase !== 'undefined' && typeof authCurrentUser === 'function' && authCurrentUser()) {
+    try {
+      await _supabase.from('friendships').upsert({
+        user_id:   inviterId,
+        friend_id: authCurrentUser().id,
+        status:    'pending',
+      }, { onConflict: 'user_id,friend_id' });
+      if (typeof loadFriends === 'function') loadFriends();
+      if (typeof _showToast === 'function') _showToast(t('friend_request_sent'));
+    } catch (e) { /* ignore */ }
+  }
+  if (typeof window !== 'undefined') window._pendingFriendPrompt = null;
+  const banner = document.getElementById('friend-prompt-banner');
+  if (banner) banner.remove();
+}
+
+function _handleFriendPromptDismiss(inviterId) {
+  if (typeof _aTrack === 'function') _aTrack('invite_friend_prompt', { action: 'dismissed' });
+  try {
+    const KEY = 'solsteder_dismissed_friend_prompts';
+    const dismissed = JSON.parse(localStorage.getItem(KEY) || '[]');
+    if (!dismissed.includes(inviterId)) dismissed.push(inviterId);
+    localStorage.setItem(KEY, JSON.stringify(dismissed));
+  } catch {}
+  if (typeof window !== 'undefined') window._pendingFriendPrompt = null;
+  const banner = document.getElementById('friend-prompt-banner');
+  if (banner) banner.remove();
 }
 
 // ── Instant check-in toggle ──────────────────────────────────────────────────
@@ -601,21 +673,74 @@ async function _sendInvite(venueId) {
   _closeInviteSheet();
 }
 
-/** Share an invite link via native share or clipboard. */
-function _shareInviteLink(venueId) {
+/** Compose the share-text body for an invite at venue+date+hour. */
+function _composeInviteShareText(v, d, h) {
+  const venueName = v?.name || '';
+  const timeLabel = typeof formatHour === 'function' ? formatHour(h) : '';
+  let sunUntil = null;
+  if (v && typeof computeSunWindows === 'function') {
+    const { windows } = computeSunWindows(v, d) || {};
+    if (windows && windows.length) {
+      // Active window covering h, else the next window after h
+      const cur  = windows.find(w => h >= w.start && h < w.end);
+      const next = !cur ? windows.find(w => w.start > h) : null;
+      const win  = cur || next;
+      if (win && typeof formatHour === 'function') sunUntil = formatHour(win.end);
+    }
+  }
+  return sunUntil
+    ? t('share_invite_text',        { venue: venueName, time: timeLabel, sunUntil })
+    : t('share_invite_text_no_sun', { venue: venueName, time: timeLabel });
+}
+
+/** Share an invite link via native share or clipboard.
+ *  Eagerly creates an "open" plan so the receiver becomes a tracked invitee
+ *  when they tap "I'm in" in the preview takeover. plan_id is embedded as `p`
+ *  in the token so the receiver doesn't need a follow-up lookup.
+ */
+async function _shareInviteLink(venueId) {
   const { d, h } = _getInviteDateTime();
   const hInt = Math.floor(h);
   const mInt = Math.round((h - hInt) * 60);
   const timeVal = `${d}T${String(hInt).padStart(2,'0')}:${String(mInt).padStart(2,'0')}`;
+  const isoTime = new Date(`${d}T${String(hInt).padStart(2,'0')}:${String(mInt).padStart(2,'0')}:00`).toISOString();
   const user = typeof authCurrentUser === 'function' ? authCurrentUser() : null;
   if (!user) return;
-  const data = btoa(JSON.stringify({ u: user.id, v: venueId, t: timeVal }));
-  const url = `${location.origin}${location.pathname}#invite/${data}`;
+
+  // Create an "open" plan so anyone clicking the link becomes a tracked invitee.
+  let planId = null;
+  try {
+    if (typeof _supabase !== 'undefined') {
+      const { data: plan } = await _supabase
+        .from('plans')
+        .insert({
+          creator_id: user.id,
+          venue_id:   String(venueId),
+          planned_at: isoTime,
+          message:    '',
+        })
+        .select('id')
+        .single();
+      if (plan && plan.id) planId = plan.id;
+      if (typeof loadPlans === 'function') loadPlans(); // refresh local cache
+    }
+  } catch (e) { /* ignore — share still works without a plan id */ }
+
+  const tokenData = { u: user.id, v: venueId, t: timeVal };
+  if (planId) tokenData.p = planId;
+  const data = btoa(JSON.stringify(tokenData));
+  // Prefer path-form `/i/<token>` (server-rendered OG preview); SPA route `#invite/...` still works
+  const url = `${location.origin}${location.pathname.replace(/\/$/, '')}/i/${data}`;
   const v = typeof VENUES !== 'undefined' ? VENUES.find(x => x.id === venueId) : null;
+  const text = _composeInviteShareText(v, d, h);
   if (navigator.share) {
-    navigator.share({ title: v ? `${v.name} — ${t('invite_friends')}` : t('invite_friends'), url }).catch(() => {});
+    navigator.share({
+      title: v ? `${v.name} — ${t('invite_friends')}` : t('invite_friends'),
+      text,
+      url,
+    }).catch(() => {});
   } else {
-    navigator.clipboard?.writeText(url);
+    navigator.clipboard?.writeText(`${text}\n${url}`);
     if (typeof _showToast === 'function') _showToast(t('invite_link_copied'));
   }
 }

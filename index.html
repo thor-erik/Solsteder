@@ -54,6 +54,7 @@
 <script defer src="js/ui-shelter.js?v=20260416a"></script>
 <script defer src="js/render-wind.js?v=20260416b"></script>
 <script defer src="js/ui-detail.js?v=20260411b"></script>
+<script defer src="js/ui-plan-preview.js?v=20260430a"></script>
 <script defer src="js/osm.js?v=20260427a"></script>
 <script defer src="js/notifications.js?v=20260427c"></script>
 <script defer src="js/init.js?v=20260427a"></script>
@@ -5879,6 +5880,340 @@
       transform: translateX(-50%) translateY(0);
     }
   }
+
+  /* ── Plan preview takeover ──────────────────────────────────────────────── */
+  /* Hide the venue list and detail panel while the takeover is active so the
+     live map (with shadows) is fully visible behind the floating cards. */
+  body.plan-preview-active #panel,
+  body.plan-preview-active #detail-panel,
+  body.plan-preview-active #floating-search,
+  body.plan-preview-active #floating-brand,
+  body.plan-preview-active #qc-wrap {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 0.25s ease;
+  }
+  .plan-preview {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .plan-preview.open .pp-top,
+  .plan-preview.open .pp-bottom {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .pp-top {
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    margin: env(safe-area-inset-top, 12px) 12px 0;
+    border-radius: 14px;
+    background:
+      linear-gradient(135deg, rgba(20,46,82,0.32), rgba(32,73,131,0.18)),
+      rgba(20,46,82,0.92);
+    backdrop-filter: blur(16px) saturate(180%) brightness(0.88);
+    -webkit-backdrop-filter: blur(16px) saturate(180%) brightness(0.88);
+    border: 1px solid rgba(156,189,231,0.22);
+    box-shadow: inset 0 1px 0 rgba(255,242,235,0.22), 0 6px 24px rgba(0,0,0,0.4);
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 0.32s ease, transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .pp-back {
+    background: rgba(156,189,231,0.12);
+    border: none;
+    border-radius: 50%;
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.12s;
+  }
+  .pp-back:hover { background: rgba(156,189,231,0.22); }
+  .pp-wx {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Inter', sans-serif;
+    color: var(--text);
+  }
+  .pp-wx-icon { font-size: 22px; line-height: 1; }
+  .pp-wx-temp {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .pp-wx-detail {
+    font-size: 12px;
+    color: var(--muted);
+    margin-left: 4px;
+  }
+  .pp-bottom {
+    pointer-events: auto;
+    margin: 0 12px env(safe-area-inset-bottom, 12px);
+    padding: 18px 20px 16px;
+    border-radius: 18px;
+    background:
+      linear-gradient(135deg, rgba(20,46,82,0.32), rgba(32,73,131,0.18)),
+      rgba(20,46,82,0.94);
+    backdrop-filter: blur(18px) saturate(180%) brightness(0.88);
+    -webkit-backdrop-filter: blur(18px) saturate(180%) brightness(0.88);
+    border: 1px solid rgba(156,189,231,0.22);
+    box-shadow: inset 0 1px 0 rgba(255,242,235,0.22), 0 -8px 40px rgba(0,0,0,0.5);
+    color: var(--text);
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.36s ease, transform 0.36s cubic-bezier(0.4, 0, 0.2, 1);
+    transition-delay: 0.08s;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .pp-inviter {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: -0.01em;
+  }
+  .pp-title {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+  .pp-area {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: -4px;
+  }
+  .pp-sunline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: -0.01em;
+  }
+  .pp-sun-icon { font-size: 18px; }
+  .pp-sun-range { font-variant-numeric: tabular-nums; }
+  .pp-scrub-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 4px 0 6px;
+  }
+  #pp-scrubber {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(156,189,231,0.22);
+    outline: none;
+    min-width: 0;
+  }
+  #pp-scrubber::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid rgba(20,46,82,0.95);
+    cursor: pointer;
+  }
+  #pp-scrubber::-moz-range-thumb {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid rgba(20,46,82,0.95);
+    cursor: pointer;
+  }
+  .pp-scrub-readout {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent);
+    min-width: 44px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .pp-attendees {
+    margin-top: 4px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(156,189,231,0.08);
+    border: 1px solid rgba(156,189,231,0.14);
+  }
+  .pp-att-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .pp-att-row {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+  }
+  .pp-av {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(20,46,82,0.95);
+    background: rgba(20,46,82,0.6);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .pp-av-init { color: var(--muted); }
+  .pp-att-names {
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 500;
+  }
+  .pp-cta-row {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .pp-cta {
+    width: 100%;
+    height: 50px;
+    border-radius: 999px;
+    border: none;
+    font-size: 16px;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pp-cta-accept {
+    background: var(--accent);
+    color: var(--accent-on, #2a1a0c);
+  }
+  .pp-cta-accept:hover { opacity: 0.92; }
+  .pp-cta-decline {
+    height: 40px;
+    border-radius: 999px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 500;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+  }
+  .pp-cta-decline:hover { color: var(--text); }
+  @media (min-width: 640px) {
+    .pp-top { max-width: 520px; margin-left: auto; margin-right: auto; }
+    .pp-bottom {
+      max-width: 460px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+  }
+  /* Plan card "Preview" button reuses the existing social-btn appearance */
+  .plan-preview-btn {
+    margin-top: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(156,189,231,0.22);
+    background: rgba(156,189,231,0.10);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 500;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .plan-preview-btn:hover { border-color: var(--accent); color: var(--accent); }
+  /* Friend-add prompt banner inside the detail panel */
+  .friend-prompt-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    margin: 10px 0 4px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(255,175,133,0.18), rgba(255,175,133,0.08));
+    border: 1px solid rgba(255,175,133,0.35);
+    font-size: 13px;
+    color: var(--text);
+  }
+  .friend-prompt-banner-text { flex: 1; line-height: 1.35; }
+  .friend-prompt-banner-add,
+  .friend-prompt-banner-skip {
+    border: none;
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .friend-prompt-banner-add {
+    background: var(--accent);
+    color: var(--accent-on, #2a1a0c);
+  }
+  .friend-prompt-banner-skip {
+    background: transparent;
+    color: var(--muted);
+  }
+  .friend-prompt-banner-skip:hover { color: var(--text); }
+  /* Invitee status pips on the plan card */
+  .plan-invitees {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+  }
+  .plan-invitee {
+    position: relative;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    overflow: visible;
+  }
+  .plan-invitee img,
+  .plan-invitee .pi-init {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    display: block;
+  }
+  .plan-invitee .pi-init {
+    background: rgba(20,46,82,0.6);
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .plan-invitee .pi-pip {
+    position: absolute;
+    right: -2px; bottom: -2px;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    border: 2px solid rgba(20,46,82,0.95);
+  }
+  .pi-pip-accepted { background: #6BCB77; }
+  .pi-pip-declined { background: #FF7B72; }
+  .pi-pip-pending  { background: #B6C8E0; }
 
   /* ── Card friend badges ─────────────────────────────────────────────────── */
   .card-friend-badge {

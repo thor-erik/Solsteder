@@ -506,6 +506,67 @@ function _evalCheckinPrompt() {
   };
 }
 
+/**
+ * Notify the inviter when an invitee accepts. Walks own plans, finds invitees
+ * whose status flipped to 'accepted' since last seen, and queues a P1 toast.
+ * Persisted dedupe in localStorage keyed `${plan_id}:${user_id}`.
+ */
+function _evalInviteAccepted() {
+  if (typeof _currentUser === 'undefined' || !_currentUser) return null;
+  if (typeof _plans === 'undefined' || !_plans.length) return null;
+  const KEY = 'solsteder_seen_invite_responses';
+  let seen = {};
+  try { seen = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch {}
+  const newAccepts = []; // [{plan, invitee}]
+  for (const p of _plans) {
+    if (p.creator_id !== _currentUser.id) continue;
+    if (!Array.isArray(p._invitees)) continue;
+    for (const inv of p._invitees) {
+      if (inv.status !== 'accepted') continue;
+      const k = `${p.id}:${inv.user_id}`;
+      if (seen[k] === 'accepted') continue;
+      newAccepts.push({ plan: p, invitee: inv });
+    }
+  }
+  if (!newAccepts.length) return null;
+  const head = newAccepts[0];
+  const venue = (typeof VENUES !== 'undefined') ? VENUES.find(x => String(x.id) === String(head.plan.venue_id)) : null;
+  if (!venue) return null;
+  const u = head.invitee.user || {};
+  const name = (u.name || u.email || '').split(' ')[0].split('@')[0] || '…';
+  const extra = newAccepts.length - 1;
+  return {
+    id: 'social_invite_accepted_' + head.plan.id + '_' + head.invitee.user_id,
+    priority: 1, category: 'social',
+    icon: '☀',
+    bodyKey: extra > 0 ? 'notif_invite_accepted_multi' : 'notif_invite_accepted_body',
+    bodyVars: { name, venue: venue.name, extra },
+    actionKey: 'notif_open_plan',
+    action: () => {
+      // Mark all queued accepts as seen (don't keep nagging once user has responded)
+      try {
+        const cur = JSON.parse(localStorage.getItem(KEY) || '{}');
+        for (const a of newAccepts) cur[`${a.plan.id}:${a.invitee.user_id}`] = 'accepted';
+        localStorage.setItem(KEY, JSON.stringify(cur));
+      } catch {}
+      if (typeof openPlanPreview === 'function') {
+        openPlanPreview({ venueId: head.plan.venue_id, plannedAt: head.plan.planned_at, mode: 'preview' });
+      } else if (typeof selectVenue === 'function') {
+        selectVenue(Number(head.plan.venue_id), true);
+      }
+    },
+    ttl: 600000, dedupe: true,
+    _onShow: () => {
+      // Persist dedupe at show-time so a missed action still doesn't re-fire.
+      try {
+        const cur = JSON.parse(localStorage.getItem(KEY) || '{}');
+        for (const a of newAccepts) cur[`${a.plan.id}:${a.invitee.user_id}`] = 'accepted';
+        localStorage.setItem(KEY, JSON.stringify(cur));
+      } catch {}
+    },
+  };
+}
+
 function _evalFriendPlanning() {
   if (typeof _currentUser === 'undefined' || !_currentUser) return null;
   if (typeof _planInvites === 'undefined' || !_planInvites.length) return null;
@@ -747,6 +808,7 @@ const _notifEvaluators = [
   _evalFriendsAtVenue,
   _evalCheckinPrompt,
   _evalFriendPlanning,
+  _evalInviteAccepted,
   // P1 Login prompts (high priority so they reach anon users)
   _evalLoginWeather,
   _evalLoginFriends,
@@ -888,5 +950,9 @@ _notifShow = function(notif) {
     const state = _notifLoadState();
     state.noSunShownDate = todayStr();
     _notifSaveState(state);
+  }
+  // Per-notification _onShow hook (used by social_invite_accepted to persist dedupe)
+  if (typeof notif._onShow === 'function') {
+    try { notif._onShow(); } catch (e) { /* ignore */ }
   }
 };
