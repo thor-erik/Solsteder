@@ -2530,8 +2530,18 @@
       gap: 8px;
       height: 38px;
       margin-top: 16px;
+      position: relative; /* anchor for the fading-out timeline-track overlay */
     }
-    .dp-card.fts-hosted .card-timeline > .timeline-track { display: none; }
+    /* Don't `display: none` the old track — overlay it absolutely over the
+       FTS row so it can crossfade out while FTS fades in. Avoids the hard
+       swap (200ms empty gap) the user reported. */
+    .dp-card.fts-hosted .card-timeline > .timeline-track {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.18s ease-out;
+    }
     .dp-card.fts-hosted #fts.fts-in-card { flex: 1; }
     /* Slot placeholder also hosts the FTS during updateDetailPanel re-renders. */
     .dp-card-slot.fts-hosted {
