@@ -2333,6 +2333,7 @@ function updatePopup() {
 // ── Detail panel ──────────────────────────────────────────────────────────────
 
 let _morphSourceVid = null;     // venue id whose card is the morph source
+let _closeFtsCleanupTimer = null; // pending close-cleanup setTimeout id, cancellable
 let _morphSourceRect = null;    // source card rect, reused on close
 let _morphSourceTlRect = null;  // card timeline-track rect, reused on close FTS FLIP
 let _deferredRenderListTimer = null;  // pending renderList() from selectVenue
@@ -2508,6 +2509,16 @@ function openDetailPanel(v) {
     if (_panel?.classList.contains('mobile-fullscreen')) _panelStateBeforeOpen = 'fullscreen';
     else if (_panel?.classList.contains('mobile-expanded')) _panelStateBeforeOpen = 'expanded';
     else _panelStateBeforeOpen = 'peek';
+  }
+
+  // Cancel any pending close-cleanup setTimeout from a previous close. It
+  // would otherwise fire mid-new-open and stomp on FTS state we just set up
+  // (clearing inline width, removing fts-in-card, re-running _syncFtsPosition
+  // that doesn't know we're in the middle of opening). Especially relevant
+  // when the user clicks venue B while venue A's close is still in flight.
+  if (_closeFtsCleanupTimer) {
+    clearTimeout(_closeFtsCleanupTimer);
+    _closeFtsCleanupTimer = null;
   }
 
   // Sweep any stale docked source card from a previous open. closeDetailPanel
@@ -2872,7 +2883,8 @@ function closeDetailPanel(expandList = true) {
     document.getElementById('locate-btn')?.classList.remove('mobile-ui-hidden');
     document.getElementById('zoom-jog')?.classList.remove('mobile-ui-hidden');
 
-    setTimeout(() => {
+    _closeFtsCleanupTimer = setTimeout(() => {
+      _closeFtsCleanupTimer = null;
       // FTS may still be parented inside the (now-closed) docked card. Move it
       // back to <body> before the body-fixed peek/expanded layout takes over.
       const fts = document.getElementById('fts');
