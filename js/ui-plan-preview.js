@@ -245,12 +245,30 @@ function _ppFtsDetach() {
 }
 
 function _ppAnimate(fromH, toH, durationMs) {
+  // Two-leg time-lapse:
+  //   1. forward: invited hour → sun-end (≈80% of duration) — shows the
+  //      day's shadow progression
+  //   2. settle:  sun-end → invited hour (≈20%, ease-out) — lands on the
+  //      bright/inviting visual that matches the narrative copy
+  // Without the settle, the page rests at near-sunset (mostly shadowed)
+  // and contradicts "perfekt tid for {venue}".
+  const FORWARD_FRAC = 0.78;
+  const forwardMs = durationMs * FORWARD_FRAC;
+  const settleMs  = durationMs - forwardMs;
   const startTs = performance.now();
   function step(now) {
     if (!_planPreviewState) return;
     const t = Math.min(1, (now - startTs) / durationMs);
-    const eased = 1 - Math.pow(1 - t, 3);
-    const h = fromH + (toH - fromH) * eased;
+    let h;
+    if (t < FORWARD_FRAC) {
+      const f = t / FORWARD_FRAC;                       // 0→1 over forward leg
+      const eased = 1 - Math.pow(1 - f, 3);             // easeOutCubic
+      h = fromH + (toH - fromH) * eased;
+    } else {
+      const f = (t - FORWARD_FRAC) / (1 - FORWARD_FRAC); // 0→1 over settle leg
+      const eased = 1 - Math.pow(1 - f, 2);             // easeOutQuad
+      h = toH + (fromH - toH) * eased;                  // toH → fromH
+    }
     if (timeFromEl) {
       timeFromEl.value = h;
       timeFromEl.dispatchEvent(new Event('input'));
@@ -260,6 +278,12 @@ function _ppAnimate(fromH, toH, durationMs) {
     if (t < 1) {
       _planPreviewState.rafId = requestAnimationFrame(step);
     } else {
+      // Snap to exact invited hour to avoid floating-point off-by-one (e.g. 14:59 vs 15:00)
+      if (timeFromEl) {
+        timeFromEl.value = fromH;
+        timeFromEl.dispatchEvent(new Event('input'));
+      }
+      if (readout && typeof formatHour === 'function') readout.textContent = formatHour(fromH);
       _planPreviewState.autoplayDone = true;
       _planPreviewState.rafId = null;
     }
