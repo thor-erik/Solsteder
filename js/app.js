@@ -2515,13 +2515,21 @@ function openDetailPanel(v) {
   // querySelector below this still latches onto it (DOM order: #detail-panel
   // precedes #panel/#venue-list) and we'd lift an orphan with stale labels.
   // Also detach any FTS still parented inside the panel — the upcoming
-  // innerHTML reset would otherwise destroy the FTS DOM.
-  const _staleFts = dp.querySelector('#fts');
+  // innerHTML reset would otherwise destroy the FTS DOM. AND fully reset the
+  // FTS state regardless of where it lives: a previous close's cleanup runs
+  // on a setTimeout, so a second click before that timer fires can leave the
+  // FTS with stale inline styles, lingering fts-in-card class, or a pending
+  // opacity transition. Without this reset, the new open's pre-stage write
+  // can interleave with the old cleanup write and the FTS lands at the wrong
+  // width — exactly the "bleeds out to the right" symptom on opens 2+.
+  const _staleFts = document.getElementById('fts');
   if (_staleFts) {
     _staleFts.classList.remove('fts-in-card');
-    document.body.appendChild(_staleFts);
+    if (_staleFts.parentNode !== document.body) document.body.appendChild(_staleFts);
+    _staleFts.style.cssText = '';
   }
   dp.querySelectorAll('.venue-card.source-docked').forEach(c => c.remove());
+  dp.querySelectorAll('.dp-card.fts-hosted').forEach(c => c.classList.remove('fts-hosted'));
 
   // Capture source card + card-timeline rects BEFORE re-rendering so we have valid
   // viewport coords for both the panel container morph and the FTS pill FLIP.
