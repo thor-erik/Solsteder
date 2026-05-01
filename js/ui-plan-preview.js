@@ -76,15 +76,39 @@ function openPlanPreview(opts) {
     } catch (e) { /* ignore */ }
   }
 
+  // Camera choreography: pan from above for context, then dive in for shadow detail.
+  // Phase 1 (1400ms): flyTo overview — top-down at zoom ~14.5, slight pitch.
+  // Phase 2 (1500ms): easeTo dive — zoom ~17.6, pitch 58° to reveal building shadows.
+  // Phase 3 (after settle): begin shadow time-lapse over 5s so the user can absorb it.
+  const PHASE1_MS = 1400;
+  const PHASE2_MS = 1500;
+  const TIMELAPSE_MS = 5000;
+  const phase2TimeoutId = { id: null };
+  const phase3TimeoutId = { id: null };
   if (typeof map !== 'undefined' && map && typeof map.flyTo === 'function') {
     map.flyTo({
       center: [venue.lng, venue.lat],
-      zoom: 18,
-      pitch: 55,
+      zoom:   14.5,
+      pitch:  15,
       bearing: 0,
-      duration: 1200,
+      duration: PHASE1_MS,
+      curve: 1.5,                         // gentle arc so distant origins don't catapult
+      easing: t => 1 - Math.pow(1 - t, 3), // easeOutCubic — slows on arrival
       essential: true,
     });
+    phase2TimeoutId.id = setTimeout(() => {
+      if (!_planPreviewState) return;
+      try {
+        map.easeTo({
+          zoom:   17.6,
+          pitch:  58,
+          bearing: 0,
+          duration: PHASE2_MS,
+          easing: t => t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2)/2, // easeInOutQuad
+          essential: true,
+        });
+      } catch (e) { /* ignore */ }
+    }, PHASE1_MS - 80);  // 80ms overlap for seamless camera handoff
   }
 
   const overlay = _ppBuildDom(venue, opts, { planHour, animateTo, dateStr });
@@ -96,15 +120,22 @@ function openPlanPreview(opts) {
     savedTime, savedDate, savedCamera,
     planHour, animateTo, dateStr,
     rafId: null,
+    timeouts: [phase2TimeoutId, phase3TimeoutId],
     autoplayDone: false,
   };
 
   requestAnimationFrame(() => {
     overlay.classList.add('open');
-    if (animateTo > planHour + 0.05) {
-      _ppAnimate(planHour, animateTo, 3000);
-    }
   });
+
+  // Begin the shadow time-lapse only after the dive settles, so the user
+  // can take in each phase without the visual layers fighting each other.
+  if (animateTo > planHour + 0.05) {
+    phase3TimeoutId.id = setTimeout(() => {
+      if (!_planPreviewState) return;
+      _ppAnimate(planHour, animateTo, TIMELAPSE_MS);
+    }, PHASE1_MS + PHASE2_MS - 80);
+  }
 
   if (typeof _aTrack === 'function') {
     _aTrack('plan_preview_opened', { venue_id: venue.id, mode: opts.mode || 'preview' });
@@ -115,6 +146,9 @@ function closePlanPreview() {
   const st = _planPreviewState;
   if (!st) return;
   if (st.rafId) cancelAnimationFrame(st.rafId);
+  if (Array.isArray(st.timeouts)) {
+    for (const tref of st.timeouts) { if (tref && tref.id != null) clearTimeout(tref.id); }
+  }
   if (st.savedDate != null && datePicker && datePicker.value !== st.savedDate) {
     datePicker.value = st.savedDate;
     datePicker.dispatchEvent(new Event('change'));
@@ -282,10 +316,18 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   const readout  = el.querySelector('#pp-time');
   if (scrubber) {
     const onScrub = () => {
-      // User interaction cancels autoplay
-      if (_planPreviewState && _planPreviewState.rafId) {
-        cancelAnimationFrame(_planPreviewState.rafId);
-        _planPreviewState.rafId = null;
+      // User interaction cancels both the autoplay RAF and any pending
+      // camera/time-lapse timeouts queued from the open sequence.
+      if (_planPreviewState) {
+        if (_planPreviewState.rafId) {
+          cancelAnimationFrame(_planPreviewState.rafId);
+          _planPreviewState.rafId = null;
+        }
+        if (Array.isArray(_planPreviewState.timeouts)) {
+          for (const tref of _planPreviewState.timeouts) {
+            if (tref && tref.id != null) { clearTimeout(tref.id); tref.id = null; }
+          }
+        }
         _planPreviewState.autoplayDone = true;
       }
       const h = parseFloat(scrubber.value);
