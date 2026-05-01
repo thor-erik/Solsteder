@@ -110,6 +110,12 @@ Avhenger av at Fase 3 er på plass.
   - Brukerforklaring: vis tydelig *hvorfor* vi trenger bakgrunnsposisjon og hva som trigger en varsel — brukeren må forstå avtalen
   - Geolokasjon-strategi: vurder å kun tracke posisjon mens solen er oppe (f.eks. mellom soloppgang og solnedgang lokalt) for å spare batteri og respektere personvern
   - Avhenger av: PWA-manifest (installerbar), Supabase-backend for push-tokens
+- [ ] Push-varsler for invitasjons-akseptanse (Phase 4 av invite-flyten)
+  - I dag varsler vi inviteren via en in-app toast (`_evalInviteAccepted` i `js/notifications.js`) — kun synlig når appen er åpen. Web Push lar inviteren få beskjed når en venn sier ja, selv om appen er lukket.
+  - Krever: Service Worker (registrering + push-event handler), Web Push API m/ VAPID-nøkler, lagring av push-tokens i Supabase (`push_subscriptions`-tabell), og en Supabase Edge Function som trigger på `plan_invites.status = 'accepted'` og sender varselet
+  - Permission-flow: be om push-tillatelse umiddelbart etter at en bruker har sendt sin første invitasjon (kontekst gir høyere accept-rate enn å spørre tidligere)
+  - Deduplicering: gjenbruk `solsteder_seen_invite_responses` localStorage-nøkkelen som in-app toasten allerede bruker, slik at brukeren ikke får både push og toast for samme aksept
+  - Synergi med eksisterende push-varsler-behovet over: én Service Worker-registrering, én VAPID-konfig, to ulike triggers
 - [~] Favoritter synket på tvers av enheter (krever backend/Supabase)
 - [?] 7-dagers sol-prognose (pro-funksjon)
 - [?] Intro-sekvens: hopp over for tilbakevendende brukere via localStorage (én gang per sesjon e.l.) — avgjøres når vi har nok brukere til å si at animasjonen er kjent
