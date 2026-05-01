@@ -312,6 +312,12 @@ function _renderProfilePanel() {
       </div>` : '';
 
     panel.innerHTML = `
+      <div class="profile-panel-mobile-bar">
+        <button class="profile-panel-mobile-back" onclick="closeProfilePanel()" aria-label="${t('back')}">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span class="profile-panel-mobile-title">${name || email || ''}</span>
+      </div>
       <div class="profile-panel-header">
         ${avatarHtml}
         <div class="profile-panel-info">
@@ -461,12 +467,14 @@ function toggleProfilePanel(e) {
     closeProfilePanel();
   } else {
     panel.classList.add('open');
+    document.body.classList.add('profile-panel-open');
     window._navPush?.('profile');
     if (!_currentUser) {
       if (typeof loginCarouselMount === 'function') loginCarouselMount();
       if (typeof notifFreezeAutoDismiss === 'function') notifFreezeAutoDismiss();
     }
-    // Close on outside click
+    // Close on outside click (desktop: tap outside the floating panel; mobile:
+    // the full-screen panel covers the whole viewport so this rarely fires)
     setTimeout(() => {
       document.addEventListener('click', _profilePanelOutsideClick, { once: true });
     }, 0);
@@ -479,6 +487,7 @@ function closeProfilePanel() {
   window._navDropLayer?.('profile');
   const panel = document.getElementById('profile-panel');
   if (panel) panel.classList.remove('open');
+  document.body.classList.remove('profile-panel-open');
 }
 
 function _profilePanelOutsideClick(e) {

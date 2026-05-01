@@ -574,6 +574,9 @@
     display: none;
   }
   #profile-panel.open { display: block; }
+  /* Mobile-only sticky header — hidden by default; the @media (max-width:639px)
+     rule below restores it when the panel goes full-screen. */
+  .profile-panel-mobile-bar { display: none; }
   .profile-panel-header {
     padding: 20px 20px 16px;
     display: flex;
@@ -2425,11 +2428,62 @@
       top: 12px;
     }
 
+    /* Logged-in profile panel goes full-screen on mobile so the Invitations
+       inbox + settings remain reachable via scroll. Logged-out variant
+       already takes over the full screen via the .logged-out rule below. */
     #profile-panel {
-      left: 6px;
-      right: 6px;
-      width: auto;
-      top: calc(12px + 46px + 8px);
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      width: 100%;
+      height: 100svh;
+      max-height: 100svh;
+      border-radius: 0;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      z-index: 9990;
+    }
+    .profile-panel-mobile-bar {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: calc(env(safe-area-inset-top, 0px) + 10px) 12px 10px;
+      background:
+        linear-gradient(135deg, rgba(20,46,82,0.40), rgba(32,73,131,0.22)),
+        rgba(20,46,82,0.96);
+      backdrop-filter: blur(14px) saturate(170%);
+      -webkit-backdrop-filter: blur(14px) saturate(170%);
+      border-bottom: 1px solid rgba(156,189,231,0.12);
+    }
+    .profile-panel-mobile-back {
+      background: rgba(156,189,231,0.14);
+      border: none;
+      border-radius: 50%;
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .profile-panel-mobile-back:hover { background: rgba(156,189,231,0.22); }
+    .profile-panel-mobile-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+    /* Hide the bottom qc-wrap and other floating chrome while the panel is up */
+    body.profile-panel-open #qc-wrap,
+    body.profile-panel-open #floating-search,
+    body.profile-panel-open #floating-brand,
+    body.profile-panel-open #panel,
+    body.profile-panel-open #detail-panel {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
     }
 
     /* Logged-out: take over the full screen so users focus on the value prop.
@@ -5629,14 +5683,44 @@
     transition: background 0.3s ease;
   }
   .invite-backdrop.open {
-    background: rgba(0,0,0,0.5);
+    /* Lighter dim so the bottom qc-wrap (date/time picker) shows through —
+       it's the source of truth for the invite's date/time. */
+    background: rgba(0,0,0,0.32);
+  }
+  /* While the invite sheet is open, lift qc-wrap above the backdrop so the
+     user can still adjust date/time. The main slider drives the sheet's
+     confirmation + share-text preview live. */
+  body.invite-sheet-open #qc-wrap {
+    z-index: 1101;
+    pointer-events: auto;
+  }
+  /* Invite-message preview chip — shows the exact text that will be sent. */
+  .invite-message-preview {
+    margin: 4px 0 8px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: rgba(156,189,231,0.08);
+    border: 1px dashed rgba(156,189,231,0.20);
+  }
+  .invite-message-preview-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin-bottom: 3px;
+  }
+  .invite-message-preview-text {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.35;
+    word-break: break-word;
   }
   .invite-sheet {
     position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
-    max-height: 70vh;
+    max-height: 56vh;
     border-radius: 20px 20px 0 0;
     background:
       linear-gradient(135deg, rgba(20,46,82,0.32), rgba(32,73,131,0.18)),

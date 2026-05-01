@@ -529,9 +529,9 @@ function _openInviteSheet(venueId) {
 
   const shareSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>`;
   const sendSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2 11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`;
-  const calSvg = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1.5" y="3" width="13" height="11.5" rx="2" stroke="currentColor" stroke-width="1.5"/><line x1="5" y1="1.5" x2="5" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="11" y1="1.5" x2="11" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`;
 
-  // Read current time from the main slider
+  // Read current time from the main pickers — these stay the source of truth
+  // while the sheet is open, so we don't duplicate controls inside the sheet.
   const curDate = typeof datePicker !== 'undefined' ? datePicker.value : new Date().toISOString().slice(0, 10);
   const curHour = typeof timeFromEl !== 'undefined' ? parseFloat(timeFromEl.value) : new Date().getHours();
 
@@ -544,6 +544,7 @@ function _openInviteSheet(venueId) {
   const sheet = document.createElement('div');
   sheet.id = 'invite-sheet';
   sheet.className = 'invite-sheet';
+  const previewText = v ? _composeInviteShareText(v, curDate, curHour) : '';
   sheet.innerHTML = `
     <div class="invite-sheet-header">
       <div>
@@ -556,17 +557,10 @@ function _openInviteSheet(venueId) {
     </div>
     <div class="invite-sheet-body">
       <div class="invite-confirm-text" id="invite-confirm-label">${_fmtInviteConfirm(venueName, curDate, curHour)}</div>
-      <div class="invite-time-controls">
-        <button class="invite-date-btn" id="invite-date-btn">
-          ${calSvg}
-          <span id="invite-date-label">${_fmtInviteDate(curDate)}</span>
-        </button>
-        <div class="invite-slider-wrap">
-          <input type="range" id="invite-time-slider" min="6" max="23" step="0.25" value="${curHour}" class="invite-time-range">
-          <span class="invite-time-readout" id="invite-time-readout">${typeof formatHour === 'function' ? formatHour(curHour) : ''}</span>
-        </div>
+      <div class="invite-message-preview">
+        <div class="invite-message-preview-label">${t('share_message_preview_label')}</div>
+        <div class="invite-message-preview-text" id="invite-message-preview-text">${previewText}</div>
       </div>
-      <div class="invite-time-hint">${t('invite_time_hint')}</div>
       ${hasFriends ? `
         <div class="invite-friends-list">
           ${friendRows}
@@ -591,40 +585,50 @@ function _openInviteSheet(venueId) {
   overlay.appendChild(sheet);
   document.body.appendChild(overlay);
 
-  // Wire up inline date picker
-  const inviteDateBtn = sheet.querySelector('#invite-date-btn');
-  const _inviteDateInput = document.createElement('input');
-  _inviteDateInput.type = 'date';
-  _inviteDateInput.value = curDate;
-  _inviteDateInput.style.cssText = 'position:absolute;opacity:0;width:0;height:0;pointer-events:none;';
-  inviteDateBtn.appendChild(_inviteDateInput);
-  inviteDateBtn.onclick = () => _inviteDateInput.showPicker?.() || _inviteDateInput.click();
-  _inviteDateInput.addEventListener('change', () => {
-    const dateLbl = sheet.querySelector('#invite-date-label');
-    if (dateLbl) dateLbl.textContent = _fmtInviteDate(_inviteDateInput.value);
-    _updateInviteConfirm();
-  });
-
-  // Wire up inline time slider
-  const inviteSlider = sheet.querySelector('#invite-time-slider');
-  const inviteReadout = sheet.querySelector('#invite-time-readout');
-  inviteSlider.addEventListener('input', () => {
-    const h = parseFloat(inviteSlider.value);
-    if (inviteReadout && typeof formatHour === 'function') inviteReadout.textContent = formatHour(h);
-    _updateInviteConfirm();
-  });
-
-  // Store venue name for confirm updates
+  // Update confirm + preview lines from the MAIN datePicker/timeFromEl. We
+  // don't duplicate controls in the sheet — the existing bottom qc-wrap stays
+  // visible above the (lighter) backdrop and acts as the single source of truth.
   sheet._venueName = venueName;
-
+  sheet._venueId = venueId;
   function _updateInviteConfirm() {
+    const d = (typeof datePicker !== 'undefined') ? datePicker.value : curDate;
+    const h = (typeof timeFromEl !== 'undefined') ? parseFloat(timeFromEl.value) : curHour;
     const lbl = sheet.querySelector('#invite-confirm-label');
-    if (lbl) {
-      const d = _inviteDateInput.value;
-      const h = parseFloat(inviteSlider.value);
-      lbl.textContent = _fmtInviteConfirm(sheet._venueName, d, h);
-    }
+    if (lbl) lbl.textContent = _fmtInviteConfirm(sheet._venueName, d, h);
+    const prev = sheet.querySelector('#invite-message-preview-text');
+    if (prev && v) prev.textContent = _composeInviteShareText(v, d, h);
   }
+  const onTimeInput = () => _updateInviteConfirm();
+  const onDateChange = () => _updateInviteConfirm();
+  if (typeof timeFromEl !== 'undefined' && timeFromEl) timeFromEl.addEventListener('input', onTimeInput);
+  if (typeof datePicker !== 'undefined' && datePicker) datePicker.addEventListener('change', onDateChange);
+  sheet._sliderCleanup = () => {
+    if (typeof timeFromEl !== 'undefined' && timeFromEl) timeFromEl.removeEventListener('input', onTimeInput);
+    if (typeof datePicker !== 'undefined' && datePicker) datePicker.removeEventListener('change', onDateChange);
+  };
+
+  // Eager plan-create — fires now (while we still have user activation context)
+  // so the synchronous _shareInviteLink below can read sheet._planId without
+  // awaiting anything between the user's click and navigator.share().
+  sheet._planId = null;
+  (async () => {
+    if (typeof _supabase === 'undefined') return;
+    const user = (typeof authCurrentUser === 'function') ? authCurrentUser() : null;
+    if (!user) return;
+    const isoTime = new Date(`${curDate}T${String(Math.floor(curHour)).padStart(2,'0')}:${String(Math.round((curHour-Math.floor(curHour))*60)).padStart(2,'0')}:00`).toISOString();
+    try {
+      const { data: plan } = await _supabase
+        .from('plans')
+        .insert({ creator_id: user.id, venue_id: String(venueId), planned_at: isoTime, message: '' })
+        .select('id')
+        .single();
+      if (plan && plan.id && document.getElementById('invite-sheet') === sheet) {
+        sheet._planId = plan.id;
+      }
+    } catch (e) { /* graceful — share-link still works without plan_id */ }
+  })();
+
+  document.body.classList.add('invite-sheet-open');
 
   // Animate in
   requestAnimationFrame(() => {
@@ -644,15 +648,14 @@ function _closeInviteSheet() {
     overlay.classList.remove('open');
     setTimeout(() => overlay.remove(), 300);
   }
+  document.body.classList.remove('invite-sheet-open');
 }
 
 /** Send invite to selected friends (or broadcast to all if none selected). */
-/** Read invite sheet's own date/time controls, falling back to main slider. */
+/** Read date/time from the main pickers — invite sheet no longer duplicates controls. */
 function _getInviteDateTime() {
-  const dateInput = document.querySelector('#invite-sheet .invite-date-btn input[type="date"]');
-  const slider = document.getElementById('invite-time-slider');
-  const d = dateInput ? dateInput.value : (typeof datePicker !== 'undefined' ? datePicker.value : new Date().toISOString().slice(0, 10));
-  const h = slider ? parseFloat(slider.value) : (typeof timeFromEl !== 'undefined' ? parseFloat(timeFromEl.value) : new Date().getHours());
+  const d = (typeof datePicker !== 'undefined' && datePicker) ? datePicker.value : new Date().toISOString().slice(0, 10);
+  const h = (typeof timeFromEl !== 'undefined' && timeFromEl) ? parseFloat(timeFromEl.value) : new Date().getHours();
   return { d, h };
 }
 
@@ -727,37 +730,22 @@ function _composeInviteShareText(v, d, h) {
 }
 
 /** Share an invite link via native share or clipboard.
- *  Eagerly creates an "open" plan so the receiver becomes a tracked invitee
- *  when they tap "I'm in" in the preview takeover. plan_id is embedded as `p`
- *  in the token so the receiver doesn't need a follow-up lookup.
+ *  Synchronous: must run within the same tick as the user's click so Web Share
+ *  retains transient user activation (Android Chrome drops the rich text body
+ *  if anything is awaited between click and navigator.share). The plan that
+ *  backs the share-token's `p` field is pre-created when the sheet opens
+ *  (see _openInviteSheet); this function just reads sheet._planId.
  */
-async function _shareInviteLink(venueId) {
+function _shareInviteLink(venueId) {
   const { d, h } = _getInviteDateTime();
   const hInt = Math.floor(h);
   const mInt = Math.round((h - hInt) * 60);
   const timeVal = `${d}T${String(hInt).padStart(2,'0')}:${String(mInt).padStart(2,'0')}`;
-  const isoTime = new Date(`${d}T${String(hInt).padStart(2,'0')}:${String(mInt).padStart(2,'0')}:00`).toISOString();
   const user = typeof authCurrentUser === 'function' ? authCurrentUser() : null;
   if (!user) return;
 
-  // Create an "open" plan so anyone clicking the link becomes a tracked invitee.
-  let planId = null;
-  try {
-    if (typeof _supabase !== 'undefined') {
-      const { data: plan } = await _supabase
-        .from('plans')
-        .insert({
-          creator_id: user.id,
-          venue_id:   String(venueId),
-          planned_at: isoTime,
-          message:    '',
-        })
-        .select('id')
-        .single();
-      if (plan && plan.id) planId = plan.id;
-      if (typeof loadPlans === 'function') loadPlans(); // refresh local cache
-    }
-  } catch (e) { /* ignore — share still works without a plan id */ }
+  const sheet = document.getElementById('invite-sheet');
+  const planId = sheet && sheet._planId ? sheet._planId : null;
 
   const tokenData = { u: user.id, v: venueId, t: timeVal };
   if (planId) tokenData.p = planId;
@@ -771,7 +759,9 @@ async function _shareInviteLink(venueId) {
       title: v ? `${v.name} — ${t('invite_friends')}` : t('invite_friends'),
       text,
       url,
-    }).catch(() => {});
+    }).catch(err => {
+      if (err && err.name !== 'AbortError') console.warn('[share] navigator.share failed:', err);
+    });
   } else {
     navigator.clipboard?.writeText(`${text}\n${url}`);
     if (typeof _showToast === 'function') _showToast(t('invite_link_copied'));
