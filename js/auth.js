@@ -208,11 +208,11 @@ function _renderInvitationsSection() {
               ${t('preview_plan')}
             </button>
             <button class="inbox-btn inbox-btn-accept"
-                    onclick="respondToPlanInvite('${inv.id}','accepted');_renderProfilePanel()">
+                    onclick="_handleInboxResponse('${inv.id}','accepted', this)">
               ${t('plan_accept')}
             </button>
             <button class="inbox-btn inbox-btn-decline"
-                    onclick="respondToPlanInvite('${inv.id}','declined');_renderProfilePanel()">
+                    onclick="_handleInboxResponse('${inv.id}','declined', this)">
               ${t('plan_decline')}
             </button>
           </div>
@@ -1464,6 +1464,21 @@ async function createPlan(venueId, plannedAt, message, friendIds) {
   await loadPlans();
   _showToast(t('plan_created'));
   return { success: true, plan };
+}
+
+/** Handle accept/decline taps inside the profile-panel inbox.
+ *  The previous fire-and-forget `respondToPlanInvite + _renderProfilePanel`
+ *  rendered before the DB round-trip + loadPlans completed, so the row stayed
+ *  pending in the UI until the user opened the panel again. We now disable the
+ *  buttons immediately, await the response, then re-render with fresh state.
+ */
+async function _handleInboxResponse(inviteId, status, btn) {
+  if (btn) {
+    const row = btn.closest('.inbox-row');
+    if (row) row.querySelectorAll('button').forEach(b => { b.disabled = true; b.style.opacity = '0.5'; });
+  }
+  try { await respondToPlanInvite(inviteId, status); } catch (e) { /* surfaced via toast in respondToPlanInvite */ }
+  if (typeof _renderProfilePanel === 'function') _renderProfilePanel();
 }
 
 async function respondToPlanInvite(inviteId, status) {

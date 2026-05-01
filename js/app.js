@@ -5291,7 +5291,12 @@ function _introCheckReady() {
             }
           }
 
-          // Open the venue (surfaces detail panel as a fallback if preview fails)
+          // Mark the body as plan-preview-active BEFORE selectVenue so the detail
+          // panel never visibly flashes — its CSS hide rules kick in immediately.
+          // selectVenue still runs (sets selectedId, fires analytics, primes the
+          // panel content) so when the user closes the preview later, the venue
+          // detail page is the natural landing surface.
+          document.body.classList.add('plan-preview-active');
           if (d.v && typeof selectVenue === 'function') selectVenue(d.v, true);
 
           // If the share token references a plan, upsert a plan_invites row so the
@@ -5321,9 +5326,11 @@ function _introCheckReady() {
             if (m) plannedAt = new Date(`${m[1]}T${m[2].padStart(2,'0')}:${m[3].padStart(2,'0')}:00`).toISOString();
           }
 
-          // Open the full-screen preview takeover (slight delay so map flyTo can settle)
+          // Open the full-screen preview takeover. Short rAF delay (one frame)
+          // is enough — selectVenue's map flyTo runs to the same target, so by
+          // the time openPlanPreview's flyTo overrides it the user only sees one.
           if (typeof openPlanPreview === 'function' && d.v) {
-            setTimeout(() => {
+            requestAnimationFrame(() => {
               openPlanPreview({
                 venueId:    d.v,
                 plannedAt,
@@ -5331,7 +5338,10 @@ function _introCheckReady() {
                 inviteId,
                 mode: inviteId ? 'invite' : 'preview',
               });
-            }, 600);
+            });
+          } else {
+            // openPlanPreview not loaded — drop the body class so the detail panel becomes visible
+            document.body.classList.remove('plan-preview-active');
           }
 
           window._pendingInvite = null;

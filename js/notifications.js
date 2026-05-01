@@ -83,6 +83,11 @@ function _notifCanShow() {
   // Don't show if profile panel is open
   const pp = document.getElementById('profile-panel');
   if (pp && pp.classList.contains('open')) return false;
+  // Suppress while a takeover sheet is up (plan preview, invite sheet) —
+  // these own the user's attention and toasts visually conflict with them.
+  if (document.body.classList.contains('plan-preview-active')) return false;
+  if (document.body.classList.contains('invite-sheet-open'))   return false;
+  if (document.body.classList.contains('profile-panel-open'))  return false;
   // Grace period: no queued toasts for first 8s (lets user orient)
   const elapsed = Date.now() - _notifSessionStart;
   if (elapsed < _NOTIF_GRACE_PERIOD) return false;
