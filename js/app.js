@@ -2958,14 +2958,50 @@ function updateDetailPanel() {
 
   content.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
 
-  if (wasInCard) {
-    // Re-host into the freshly-rendered slot. The slot is a placeholder div,
-    // not a venue-card, so we keep it as the host and append FTS inside it.
+  // Re-create the docked dp-card. content.innerHTML wiped the source-docked
+  // venue-card that the open-morph placed there, leaving only the empty
+  // placeholder slot. Without re-creating it, the user sees the photos and
+  // social/action rows but the venue title/meta/hero/timeline section is gone
+  // — the FTS appears to float in empty space. Re-render via renderCard,
+  // promote it to .dp-card.source-docked, and move the freshly-rendered
+  // labels inside it (so they sit under the timeline like the morph leaves).
+  if (wasInCard && typeof renderCard === 'function') {
     const slot = document.getElementById('dp-card-slot');
     if (slot) {
-      slot.classList.add('fts-hosted');
+      const dateStr = datePicker.value;
+      const fromHour = parseFloat(timeFromEl.value);
+      const tmp = document.createElement('div');
+      tmp.innerHTML = renderCard(v, dateStr, fromHour, fromHour, true);
+      const newCard = tmp.firstElementChild;
+      if (newCard) {
+        newCard.classList.add('dp-card', 'source-docked');
+        // Strip the click handler — the docked card isn't interactive.
+        newCard.removeAttribute('onclick');
+        newCard.removeAttribute('onmouseenter');
+        newCard.removeAttribute('onmouseleave');
+        // Pull the slot's labels into the new card so they live under the
+        // timeline-track / FTS pill, matching the morph end-state layout.
+        const slotLabels = slot.querySelector('.dp-tl-labels');
+        if (slotLabels) newCard.appendChild(slotLabels);
+        slot.parentNode.replaceChild(newCard, slot);
+        if (typeof drawAllCardTimelines === 'function') drawAllCardTimelines(newCard);
+      }
+    }
+  }
+
+  if (wasInCard) {
+    // Re-host into the new docked card's .card-timeline. Previously this
+    // appended the FTS to the slot placeholder, which left the venue info
+    // missing from the panel after every updateDetailPanel call.
+    const dockedCard = dp.querySelector('.venue-card.source-docked');
+    const cardTimeline = dockedCard?.querySelector('.card-timeline');
+    if (fts && cardTimeline) {
+      dockedCard.classList.add('fts-hosted');
+      const _dateBtn = document.getElementById('fts-date-btn');
+      const _btnW = _dateBtn ? _dateBtn.offsetWidth : 38;
+      dockedCard.style.setProperty('--fts-labels-offset', (_btnW + 8) + 'px');
       fts.classList.add('fts-in-card');
-      slot.appendChild(fts);
+      cardTimeline.appendChild(fts);
       if (typeof drawFtsCanvas === 'function') drawFtsCanvas();
     }
   } else if (isMobile()) {
