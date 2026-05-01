@@ -2802,7 +2802,24 @@ function openDetailPanel(v) {
       // full-viewport width inside the card — the timeline track shoots
       // off the right edge of the panel. Setting these inline forces the
       // layout regardless of when the browser commits the class change.
-      const targetW = cardTimeline.clientWidth;
+      //
+      // Force layout flush before measuring: the morph-end class flips
+      // (dp-morphing removed, source-target removed, source-docked + dp-card
+      // added on the freshly-replaced source card) all happened in this
+      // setTimeout call, but their layout consequences are batched. Without
+      // void dockedCard.offsetHeight, cardTimeline.clientWidth can return a
+      // stale value that reflects the source venue-card (panel-28 wide
+      // from #venue-list 14/14 padding) rather than the docked dp-card
+      // (panel-32 wide from #dp-scroll 16/16 padding) — and items 2+
+      // hit this inconsistency while item 1 doesn't (the user reported
+      // the venue name truncation changing at the same time, which tells
+      // us the card-content area is at the wrong width during the read).
+      // Fallback to the predictable panel-64 (panel - 32 #dp-scroll padding
+      // - 32 dp-card padding) if cardTimeline still reports a suspect value.
+      void dockedCard.offsetHeight;
+      let targetW = cardTimeline.clientWidth;
+      const fallbackW = window.innerWidth - 64;
+      if (Math.abs(targetW - fallbackW) > 4) targetW = fallbackW;
       fts.style.cssText =
         'position: static; left: auto; right: auto; top: auto; bottom: auto; ' +
         `width: ${targetW}px; transition: none; transform: none; opacity: 1;`;
