@@ -5387,6 +5387,21 @@ function _introCheckReady() {
       }
     }
 
+    // Skip intro when landing via an invite link — the plan-preview takeover
+    // (queued by _tryInvite at +1500ms) owns the camera, time, and chrome,
+    // and the intro's parallel animations were stomping on it.
+    const _hasInviteLink = hash.startsWith('friend/')
+                        || hash.startsWith('invite/')
+                        || /\/i\/[A-Za-z0-9+/=_-]+\/?$/.test(window.location.pathname);
+    if (_hasInviteLink) {
+      // Add the takeover body class immediately so chrome (search bar, qc-wrap,
+      // FTS, list panel) stays hidden during the brief wait for auth to settle.
+      // The plan-preview's open() will leave it set; close() removes it.
+      document.body.classList.add('plan-preview-active');
+      _skipIntro();
+      return;
+    }
+
     _runIntroSequence();
   }
 }
