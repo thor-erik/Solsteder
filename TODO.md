@@ -116,6 +116,7 @@ Avhenger av at Fase 3 er på plass.
   - Permission-flow: be om push-tillatelse umiddelbart etter at en bruker har sendt sin første invitasjon (kontekst gir høyere accept-rate enn å spørre tidligere)
   - Deduplicering: gjenbruk `solsteder_seen_invite_responses` localStorage-nøkkelen som in-app toasten allerede bruker, slik at brukeren ikke får både push og toast for samme aksept
   - Synergi med eksisterende push-varsler-behovet over: én Service Worker-registrering, én VAPID-konfig, to ulike triggers
+- [ ] Plan-preview internasjonal håndtering: når brukeren er langt fra `VENUE_CLUSTER.center` (f.eks. utenfor Norge), vis en mild prompt "Solsteder dekker bare Oslo i dag — meld interesse for ditt område" med e-post-fangst. Krever ny `interest_signups`-tabell. Avhenger av eksisterende `_isFarFromCluster()` (app.js:1296). Out of scope for v1 av invite-flyten.
 - [~] Favoritter synket på tvers av enheter (krever backend/Supabase)
 - [?] 7-dagers sol-prognose (pro-funksjon)
 - [?] Intro-sekvens: hopp over for tilbakevendende brukere via localStorage (én gang per sesjon e.l.) — avgjøres når vi har nok brukere til å si at animasjonen er kjent

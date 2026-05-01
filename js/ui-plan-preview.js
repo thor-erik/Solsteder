@@ -2,15 +2,25 @@
  * ui-plan-preview.js — Full-screen invitation preview takeover.
  *
  * Triggered when:
- *   1. A user lands via a `#invite/<token>` or `/i/<token>` link (mode='invite')
- *   2. A user taps "Preview" on a plan card in the detail panel (mode='preview')
+ *   1. A user lands via a `#invite/<token>` or `/i/<token>` link
+ *   2. A user taps "Preview" on a plan card in the detail panel
  *
- * The takeover hides app chrome and lets the live map (with shadows) show through.
- * On open it autoplays a 3s time-lapse from the invited hour to the day's last
- * sun, then leaves a draggable scrubber so the user can replay any moment.
+ * The takeover hides app chrome and lets the live map (with shadows) show
+ * through. The live `#fts` element is reparented into the bottom card and
+ * acts as the time scrubber while the preview is open. On close, the FTS
+ * is handed off to the detail panel's docked-card timeline slot via the
+ * existing FLIP morph in app.js (_flipFtsFromCardTimeline).
+ *
+ * Modes:
+ *   'invite'      — logged-in receiver of a real plan_invites row. Accept/Decline.
+ *   'invite-anon' — token has plan_id but receiver isn't logged in yet.
+ *                   Single "Logg inn for å svare" CTA → toggleProfilePanel.
+ *                   After login, app.js's onAuthStateChange resumes the flow.
+ *   'preview'     — own plan or exploratory. Single Lukk button.
  *
  * Depends on: VENUES, computeSunWindows, formatHour, getWeatherAt, timeFromEl,
- *             datePicker, map, getPlansForVenue, respondToPlanInvite, _showToast.
+ *             datePicker, map, getPlansForVenue, respondToPlanInvite, selectVenue,
+ *             _flipFtsFromCardTimeline, drawFtsCanvas, _showToast.
  */
 
 let _planPreviewState = null;
@@ -22,7 +32,9 @@ let _planPreviewState = null;
  * @param {string}        [opts.plannedAt]   - ISO datetime; defaults to current slider time
  * @param {string}        [opts.inviterName] - "{name} inviterer deg" header line
  * @param {string}        [opts.inviteId]    - plan_invites.id, present for accept/decline
- * @param {'invite'|'preview'} [opts.mode='preview']
+ * @param {string}        [opts.inviterId]   - profile id of the inviter (for friend-add prompt)
+ * @param {string}        [opts.planTokenP]  - plan_id from the token (used for invite-anon mode)
+ * @param {'invite'|'invite-anon'|'preview'} [opts.mode='preview']
  */
 function openPlanPreview(opts) {
   if (typeof VENUES === 'undefined') return;
@@ -49,7 +61,6 @@ function openPlanPreview(opts) {
   const lastEnd = windows.length ? windows[windows.length - 1].end : null;
   const animateTo = (lastEnd && lastEnd > planHour + 0.05) ? lastEnd : planHour;
 
-  // Switch app to the plan's date if needed (changes shadow/sun rendering)
   if (datePicker && dateStr && datePicker.value !== dateStr) {
     datePicker.value = dateStr;
     datePicker.dispatchEvent(new Event('change'));
@@ -61,8 +72,7 @@ function openPlanPreview(opts) {
 
   document.body.classList.add('plan-preview-active');
 
-  // Save current camera so we can restore it on close (so the user isn't left
-  // zoomed-in on the preview venue if they came from a city-zoom view).
+  // Save current camera so we can restore it on close.
   let savedCamera = null;
   if (typeof map !== 'undefined' && map && typeof map.getCenter === 'function') {
     try {
@@ -77,9 +87,6 @@ function openPlanPreview(opts) {
   }
 
   // Camera choreography: pan from above for context, then dive in for shadow detail.
-  // Phase 1 (1400ms): flyTo overview — top-down at zoom ~14.5, slight pitch.
-  // Phase 2 (1500ms): easeTo dive — zoom ~17.6, pitch 58° to reveal building shadows.
-  // Phase 3 (after settle): begin shadow time-lapse over 5s so the user can absorb it.
   const PHASE1_MS = 1400;
   const PHASE2_MS = 1500;
   const TIMELAPSE_MS = 5000;
@@ -92,8 +99,8 @@ function openPlanPreview(opts) {
       pitch:  15,
       bearing: 0,
       duration: PHASE1_MS,
-      curve: 1.5,                         // gentle arc so distant origins don't catapult
-      easing: t => 1 - Math.pow(1 - t, 3), // easeOutCubic — slows on arrival
+      curve: 1.5,
+      easing: t => 1 - Math.pow(1 - t, 3),
       essential: true,
     });
     phase2TimeoutId.id = setTimeout(() => {
@@ -104,19 +111,25 @@ function openPlanPreview(opts) {
           pitch:  58,
           bearing: 0,
           duration: PHASE2_MS,
-          easing: t => t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2)/2, // easeInOutQuad
+          easing: t => t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2)/2,
           essential: true,
         });
       } catch (e) { /* ignore */ }
-    }, PHASE1_MS - 80);  // 80ms overlap for seamless camera handoff
+    }, PHASE1_MS - 80);
   }
 
   const overlay = _ppBuildDom(venue, opts, { planHour, animateTo, dateStr });
   document.body.appendChild(overlay);
 
+  // Reparent the live #fts element into the bottom card's slot. The same canvas,
+  // listeners, and time-sync as the rest of the app — so dragging it during the
+  // preview drives shadow rendering exactly like elsewhere.
+  _ppFtsAttach();
+
   _planPreviewState = {
     overlay,
     venueId:  venue.id,
+    inviterId: opts.inviterId || null,
     savedTime, savedDate, savedCamera,
     planHour, animateTo, dateStr,
     rafId: null,
@@ -128,8 +141,7 @@ function openPlanPreview(opts) {
     overlay.classList.add('open');
   });
 
-  // Begin the shadow time-lapse only after the dive settles, so the user
-  // can take in each phase without the visual layers fighting each other.
+  // Time-lapse only after the dive settles.
   if (animateTo > planHour + 0.05) {
     phase3TimeoutId.id = setTimeout(() => {
       if (!_planPreviewState) return;
@@ -157,7 +169,40 @@ function closePlanPreview() {
     timeFromEl.value = st.savedTime;
     timeFromEl.dispatchEvent(new Event('input'));
   }
-  if (st.savedCamera && typeof map !== 'undefined' && map && typeof map.flyTo === 'function') {
+
+  // Capture FTS rect IN preview slot before we detach — used as the FLIP source.
+  const fts = document.getElementById('fts');
+  const ftsSrcRect = (fts && fts.classList.contains('fts-in-preview'))
+    ? fts.getBoundingClientRect() : null;
+  // Detach FTS from preview slot, reset it to body so openDetailPanel can run
+  // its own pre-stage. We pass ftsSrcRect to the FLIP routine after the panel
+  // morph completes, animating FTS from the preview position into the docked card.
+  _ppFtsDetach();
+
+  // Choose post-close destination:
+  //  - venueId set → open the detail panel (proper docked card with FTS)
+  //  - no venueId → just remove the takeover and restore camera
+  const venueId = st.venueId;
+  const venue = (typeof VENUES !== 'undefined') ? VENUES.find(v => String(v.id) === String(venueId)) : null;
+
+  st.overlay.classList.remove('open');
+  document.body.classList.remove('plan-preview-active');
+  setTimeout(() => { try { st.overlay.remove(); } catch {} }, 320);
+  _planPreviewState = null;
+
+  if (venue && typeof selectVenue === 'function') {
+    // Open the detail panel from a clean state (no plan-preview-active class
+    // hiding the source venue-card). openDetailPanel runs its FLIP morph on the
+    // venue-card → docked-card; FTS will be appended into the docked-card
+    // .card-timeline after the morph (~340ms).
+    selectVenue(venueId, true);
+    // After the morph completes, FLIP the FTS from the captured preview-slot rect
+    // to its current docked-card position. The user sees a single smooth motion
+    // from the bottom card to the timeline slot.
+    if (ftsSrcRect && typeof _flipFtsFromCardTimeline === 'function') {
+      setTimeout(() => _flipFtsFromCardTimeline(ftsSrcRect), 380);
+    }
+  } else if (st.savedCamera && typeof map !== 'undefined' && map && typeof map.flyTo === 'function') {
     try {
       map.flyTo({
         center:  st.savedCamera.center,
@@ -169,10 +214,34 @@ function closePlanPreview() {
       });
     } catch (e) { /* ignore */ }
   }
-  st.overlay.classList.remove('open');
-  document.body.classList.remove('plan-preview-active');
-  setTimeout(() => { try { st.overlay.remove(); } catch {} }, 320);
-  _planPreviewState = null;
+}
+
+/** Reparent #fts into the plan-preview's slot. CSS rule with .fts-in-preview
+ *  flattens position and width to fill the slot. drawFtsCanvas re-renders at
+ *  the new size. _syncFtsPosition skips while fts-in-preview is set. */
+function _ppFtsAttach() {
+  const fts = document.getElementById('fts');
+  const slot = document.querySelector('.pp-fts-slot');
+  if (!fts || !slot) return;
+  // If FTS is currently docked into a detail-panel card, lift it cleanly first.
+  fts.classList.remove('fts-in-card');
+  fts.style.cssText = '';
+  fts.classList.add('fts-in-preview');
+  slot.appendChild(fts);
+  // Force a repaint at the new container size on the next frame.
+  requestAnimationFrame(() => {
+    if (typeof drawFtsCanvas === 'function') drawFtsCanvas();
+  });
+}
+
+/** Reverse: detach FTS from the preview slot and put it back on the body. The
+ *  caller (closePlanPreview) is responsible for whatever follows. */
+function _ppFtsDetach() {
+  const fts = document.getElementById('fts');
+  if (!fts) return;
+  fts.classList.remove('fts-in-preview');
+  fts.style.cssText = '';
+  if (fts.parentNode !== document.body) document.body.appendChild(fts);
 }
 
 function _ppAnimate(fromH, toH, durationMs) {
@@ -180,14 +249,12 @@ function _ppAnimate(fromH, toH, durationMs) {
   function step(now) {
     if (!_planPreviewState) return;
     const t = Math.min(1, (now - startTs) / durationMs);
-    const eased = 1 - Math.pow(1 - t, 3);  // easeOutCubic
+    const eased = 1 - Math.pow(1 - t, 3);
     const h = fromH + (toH - fromH) * eased;
     if (timeFromEl) {
       timeFromEl.value = h;
       timeFromEl.dispatchEvent(new Event('input'));
     }
-    const scrubber = document.getElementById('pp-scrubber');
-    if (scrubber) scrubber.value = h;
     const readout = document.getElementById('pp-time');
     if (readout && typeof formatHour === 'function') readout.textContent = formatHour(h);
     if (t < 1) {
@@ -216,6 +283,19 @@ function _ppWxDetail(wx) {
   return parts.join(' · ');
 }
 
+/** Compose the narrative line at the top of the bottom card. Mode-dependent. */
+function _ppNarrative(mode, opts, venue, planHour, animateTo) {
+  const time = (typeof formatHour === 'function') ? formatHour(planHour) : '';
+  const sunUntil = (animateTo > planHour + 0.05 && typeof formatHour === 'function')
+    ? formatHour(animateTo) : null;
+  if (mode === 'invite' || mode === 'invite-anon') {
+    if (opts.inviterName) return t('pp_narrative_invite_named', { name: opts.inviterName, venue: venue.name, time });
+    return t('pp_narrative_invite', { venue: venue.name, time });
+  }
+  if (sunUntil) return t('pp_narrative_preview', { venue: venue.name, sunUntil });
+  return venue.name;
+}
+
 function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   const el = document.createElement('div');
   el.id = 'plan-preview';
@@ -230,7 +310,7 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     ? `${formatHour(planHour)} → ${formatHour(animateTo)}`
     : formatHour(planHour);
 
-  // Try to find a matching plan to surface attendees
+  // Attendees (logged-in only — getPlansForVenue is empty for anonymous users)
   let attendeesHtml = '';
   if (typeof getPlansForVenue === 'function') {
     const plans = getPlansForVenue(venue.id);
@@ -264,20 +344,21 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     }
   }
 
+  // CTA varies by mode
   let ctaHtml = '';
   if (opts.mode === 'invite' && opts.inviteId) {
     ctaHtml = `
       <button class="pp-cta pp-cta-accept" id="pp-accept">${t('plan_preview_im_in')}</button>
       <button class="pp-cta-decline" id="pp-decline">${t('plan_decline')}</button>`;
+  } else if (opts.mode === 'invite-anon') {
+    ctaHtml = `
+      <button class="pp-cta pp-cta-accept" id="pp-login">${t('pp_login_to_respond')}</button>`;
   } else {
     ctaHtml = `<button class="pp-cta pp-cta-accept" id="pp-close-cta">${t('close')}</button>`;
   }
 
-  const inviterLine = opts.inviterName ? t('inviter_invites_you', { name: opts.inviterName }) : '';
-
-  // Range extends beyond animateTo to give the scrubber a bit of dead space
-  const rangeMin = planHour;
-  const rangeMax = (animateTo > planHour + 0.05) ? animateTo : Math.min(23, planHour + 2);
+  const narrative = _ppNarrative(opts.mode || 'preview', opts, venue, planHour, animateTo);
+  const venueArea = venue.area ? `<span class="pp-venue-area"> · ${venue.area}</span>` : '';
 
   el.innerHTML = `
     <div class="pp-top">
@@ -291,54 +372,42 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
       </div>
     </div>
     <div class="pp-bottom">
-      ${inviterLine ? `<div class="pp-inviter">${inviterLine}</div>` : ''}
-      <div class="pp-title">${venue.name}</div>
-      ${venue.area ? `<div class="pp-area">${venue.area}</div>` : ''}
+      <div class="pp-narrative">${narrative}</div>
+      <div class="pp-venue-meta">
+        <span class="pp-venue-name">${venue.name}</span>${venueArea}
+      </div>
       <div class="pp-sunline">
         <span class="pp-sun-icon">☀</span>
         <span class="pp-sun-range">${sunRange}</span>
+        <span class="pp-time-readout" id="pp-time">${formatHour(planHour)}</span>
       </div>
-      <div class="pp-scrub-wrap">
-        <input type="range" id="pp-scrubber"
-               min="${rangeMin.toFixed(2)}"
-               max="${rangeMax.toFixed(2)}"
-               step="0.05"
-               value="${planHour.toFixed(2)}" />
-        <span id="pp-time" class="pp-scrub-readout">${formatHour(planHour)}</span>
-      </div>
+      <div class="pp-fts-slot"></div>
       ${attendeesHtml}
       <div class="pp-cta-row">${ctaHtml}</div>
     </div>`;
 
   el.querySelector('#pp-back').onclick = () => closePlanPreview();
 
-  const scrubber = el.querySelector('#pp-scrubber');
-  const readout  = el.querySelector('#pp-time');
-  if (scrubber) {
-    const onScrub = () => {
-      // User interaction cancels both the autoplay RAF and any pending
-      // camera/time-lapse timeouts queued from the open sequence.
-      if (_planPreviewState) {
-        if (_planPreviewState.rafId) {
-          cancelAnimationFrame(_planPreviewState.rafId);
-          _planPreviewState.rafId = null;
-        }
-        if (Array.isArray(_planPreviewState.timeouts)) {
-          for (const tref of _planPreviewState.timeouts) {
-            if (tref && tref.id != null) { clearTimeout(tref.id); tref.id = null; }
-          }
-        }
+  // Listen for time changes (driven by FTS or the slider in the wider app) to
+  // keep the readout in sync. FTS dispatches 'input' on timeFromEl.
+  const onTimeInput = () => {
+    if (_planPreviewState) {
+      // First user FTS interaction also cancels the autoplay + camera timeouts.
+      if (_planPreviewState.rafId) {
+        cancelAnimationFrame(_planPreviewState.rafId);
+        _planPreviewState.rafId = null;
         _planPreviewState.autoplayDone = true;
       }
-      const h = parseFloat(scrubber.value);
-      if (timeFromEl) {
-        timeFromEl.value = h;
-        timeFromEl.dispatchEvent(new Event('input'));
-      }
-      if (readout && typeof formatHour === 'function') readout.textContent = formatHour(h);
-    };
-    scrubber.addEventListener('input', onScrub);
-  }
+    }
+    const readout = el.querySelector('#pp-time');
+    if (readout && typeof formatHour === 'function' && timeFromEl) {
+      readout.textContent = formatHour(parseFloat(timeFromEl.value));
+    }
+  };
+  if (typeof timeFromEl !== 'undefined' && timeFromEl) timeFromEl.addEventListener('input', onTimeInput);
+  el._cleanup = () => {
+    if (typeof timeFromEl !== 'undefined' && timeFromEl) timeFromEl.removeEventListener('input', onTimeInput);
+  };
 
   const acceptBtn = el.querySelector('#pp-accept');
   if (acceptBtn) acceptBtn.onclick = async () => {
@@ -359,6 +428,11 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   };
   const closeCta = el.querySelector('#pp-close-cta');
   if (closeCta) closeCta.onclick = () => closePlanPreview();
+  const loginCta = el.querySelector('#pp-login');
+  if (loginCta) loginCta.onclick = () => {
+    if (typeof _aTrack === 'function') _aTrack('plan_preview_login_prompt', { venue_id: venue.id });
+    if (typeof toggleProfilePanel === 'function') toggleProfilePanel();
+  };
 
   return el;
 }

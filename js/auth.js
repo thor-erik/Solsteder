@@ -1590,6 +1590,13 @@ _supabase.auth.onAuthStateChange((event, session) => {
     if (v && typeof openDetailPanel === 'function') openDetailPanel(v);
   }
 
+  // After login: resume any pending invite-link that landed before auth completed.
+  // _tryPendingInvite is exposed from app.js's _introCheckReady; it's a no-op
+  // when window._pendingInvite is null (already consumed).
+  if (!wasLoggedIn && _currentUser && typeof window._tryPendingInvite === 'function' && window._pendingInvite) {
+    setTimeout(() => window._tryPendingInvite(), 200);
+  }
+
   // After sign-out: close the detail panel
   if (wasLoggedIn && !_currentUser && typeof closeDetailPanel === 'function') {
     closeDetailPanel();

@@ -236,6 +236,10 @@ const _STRINGS = {
     friend_prompt_dismiss: 'Not now',
     // Plan preview takeover
     inviter_invites_you: '{name} is inviting you',
+    pp_narrative_invite_named: "{name} wants to meet at {venue} at {time}",
+    pp_narrative_invite: "You're invited to {venue} at {time}",
+    pp_narrative_preview: 'Sun until {sunUntil} — perfect time for {venue}',
+    pp_login_to_respond: 'Sign in to respond',
     plan_preview_im_in:  "I'm in",
     plan_preview_joined: "You're in!",
     attendees_label:     'Going ({count})',
@@ -523,6 +527,10 @@ const _STRINGS = {
     friend_prompt_dismiss: 'Ikke nå',
     // Plan preview takeover
     inviter_invites_you: '{name} inviterer deg',
+    pp_narrative_invite_named: '{name} vil møtes på {venue} kl. {time}',
+    pp_narrative_invite: 'Du er invitert til {venue} kl. {time}',
+    pp_narrative_preview: 'Sola står på til {sunUntil} — perfekt tid for {venue}',
+    pp_login_to_respond: 'Logg inn for å svare',
     plan_preview_im_in:  'Jeg blir med',
     plan_preview_joined: 'Du er med!',
     attendees_label:     'Med ({count})',
@@ -810,6 +818,10 @@ const _STRINGS = {
     friend_prompt_dismiss: 'Inte nu',
     // Plan preview takeover
     inviter_invites_you: '{name} bjuder in dig',
+    pp_narrative_invite_named: '{name} vill ses på {venue} kl. {time}',
+    pp_narrative_invite: 'Du är inbjuden till {venue} kl. {time}',
+    pp_narrative_preview: 'Solen står på till {sunUntil} — perfekt tid för {venue}',
+    pp_login_to_respond: 'Logga in för att svara',
     plan_preview_im_in:  'Jag är med',
     plan_preview_joined: 'Du är med!',
     attendees_label:     'Med ({count})',
@@ -1097,6 +1109,10 @@ const _STRINGS = {
     friend_prompt_dismiss: 'Ikke nu',
     // Plan preview takeover
     inviter_invites_you: '{name} inviterer dig',
+    pp_narrative_invite_named: '{name} vil mødes på {venue} kl. {time}',
+    pp_narrative_invite: 'Du er inviteret til {venue} kl. {time}',
+    pp_narrative_preview: 'Solen står på til {sunUntil} — perfekt tid til {venue}',
+    pp_login_to_respond: 'Log ind for at svare',
     plan_preview_im_in:  'Jeg er med',
     plan_preview_joined: 'Du er med!',
     attendees_label:     'Med ({count})',

@@ -131,6 +131,8 @@ function _syncFtsPosition() {
   const ftsEl = document.getElementById('fts');
   // FTS reparented into the docked card flows with it — no overlay sync needed.
   if (ftsEl?.classList.contains('fts-in-card')) return;
+  // FTS reparented into the plan-preview's bottom card — same deal.
+  if (ftsEl?.classList.contains('fts-in-preview')) return;
   const panel = document.getElementById('panel');
   const dp    = document.getElementById('detail-panel');
   if (!panel) return;
@@ -5237,15 +5239,18 @@ function _introCheckReady() {
       try {
         const data = JSON.parse(atob(_inviteToken));
         window._pendingInvite = data;
+        // _tryInvite no longer bails when logged-out — it opens the preview in
+        // mode='invite-anon' so the receiver sees what they're invited to before
+        // the login prompt. The DB-write side (plan_invites upsert) only runs
+        // when authenticated; if the user logs in later, we resume via the
+        // auth-state-change listener (see auth.js _resumePendingInvite).
         const _tryInvite = async () => {
-          if (typeof authCurrentUser !== 'function') return;
-          const user = authCurrentUser();
-          if (!user) return;
           const d = window._pendingInvite;
           if (!d) return;
+          const user = (typeof authCurrentUser === 'function') ? authCurrentUser() : null;
 
-          // Move user to the inviter's date/time before opening the venue,
-          // so the preview animation starts from the invited hour.
+          // Move app's date/time to the invited moment before opening the preview
+          // so the camera intro starts from the right shadow state.
           if (d.t) {
             const dtMatch = String(d.t).match(/^(\d{4}-\d{2}-\d{2})T(\d{1,2}):(\d{1,2})/);
             if (dtMatch && datePicker) {
@@ -5259,7 +5264,7 @@ function _introCheckReady() {
             }
           }
 
-          // "Here" check-in links: skip the invitation preview, just open the venue
+          // "Here" check-in links: skip the invitation preview, just open the venue.
           if (d.type === 'here') {
             if (d.v && typeof selectVenue === 'function') selectVenue(d.v, true);
             window._pendingInvite = null;
@@ -5267,10 +5272,10 @@ function _introCheckReady() {
             return;
           }
 
-          // Look up inviter profile (for "<name> inviterer deg" line) — done early
-          // so the friend-prompt banner can include the name on first render.
+          // Inviter profile lookup is best-effort — works without auth (profiles
+          // table is publicly readable for the name field).
           let inviterName = null;
-          if (d.u && d.u !== user.id) {
+          if (d.u && (!user || d.u !== user.id)) {
             try {
               const { data: prof } = await _supabase
                 .from('profiles').select('name, email').eq('id', d.u).single();
@@ -5278,9 +5283,9 @@ function _introCheckReady() {
             } catch (e) { /* ignore — preview still works without name */ }
           }
 
-          // Stash friend-add prompt BEFORE selectVenue so the first render of the
-          // detail panel includes the banner.
-          if (d.u && d.u !== user.id) {
+          // Stash friend-add prompt for the post-Lukk detail panel render
+          // (only meaningful when logged in — friendships are user-scoped).
+          if (user && d.u && d.u !== user.id) {
             const isAlreadyFriend = (typeof _friends !== 'undefined') &&
               _friends.some(f => String(f.id) === String(d.u));
             const dismissedKey = 'solsteder_dismissed_friend_prompts';
@@ -5291,18 +5296,11 @@ function _introCheckReady() {
             }
           }
 
-          // Mark the body as plan-preview-active BEFORE selectVenue so the detail
-          // panel never visibly flashes — its CSS hide rules kick in immediately.
-          // selectVenue still runs (sets selectedId, fires analytics, primes the
-          // panel content) so when the user closes the preview later, the venue
-          // detail page is the natural landing surface.
-          document.body.classList.add('plan-preview-active');
-          if (d.v && typeof selectVenue === 'function') selectVenue(d.v, true);
-
-          // If the share token references a plan, upsert a plan_invites row so the
-          // receiver can formally accept. plan_id encoded as `p` in the token.
+          // plan_invites upsert only runs when authenticated. Anonymous users
+          // see the preview but get the "Logg inn for å svare" CTA; after login,
+          // the auth listener resumes this flow and gets the inviteId.
           let inviteId = null;
-          if (d.p && d.u && d.u !== user.id) {
+          if (user && d.p && d.u && d.u !== user.id) {
             try {
               const { data: existing } = await _supabase
                 .from('plan_invites').select('id, status')
@@ -5319,35 +5317,43 @@ function _introCheckReady() {
             } catch (e) { /* ignore */ }
           }
 
-          // Build plannedAt from `t` for the preview's autoplay range
           let plannedAt = null;
           if (d.t) {
             const m = String(d.t).match(/^(\d{4}-\d{2}-\d{2})T(\d{1,2}):(\d{1,2})/);
             if (m) plannedAt = new Date(`${m[1]}T${m[2].padStart(2,'0')}:${m[3].padStart(2,'0')}:00`).toISOString();
           }
 
-          // Open the full-screen preview takeover. Short rAF delay (one frame)
-          // is enough — selectVenue's map flyTo runs to the same target, so by
-          // the time openPlanPreview's flyTo overrides it the user only sees one.
+          // Mode: 'invite' if we got an inviteId (logged-in + plan exists);
+          // 'invite-anon' if the token has p but we're not logged in yet (CTA
+          // becomes "Logg inn for å svare"); 'preview' otherwise (Lukk only).
+          let mode;
+          if (inviteId)         mode = 'invite';
+          else if (!user && d.p) mode = 'invite-anon';
+          else                  mode = 'preview';
+
+          // Stash venueId+plannedAt for post-Lukk selectVenue
+          window._pendingPlanPreviewVenueId = d.v;
+
           if (typeof openPlanPreview === 'function' && d.v) {
-            requestAnimationFrame(() => {
-              openPlanPreview({
-                venueId:    d.v,
-                plannedAt,
-                inviterName,
-                inviteId,
-                mode: inviteId ? 'invite' : 'preview',
-              });
+            openPlanPreview({
+              venueId:    d.v,
+              plannedAt,
+              inviterName,
+              inviteId,
+              inviterId:  d.u,
+              planTokenP: d.p,
+              mode,
             });
-          } else {
-            // openPlanPreview not loaded — drop the body class so the detail panel becomes visible
-            document.body.classList.remove('plan-preview-active');
           }
 
-          window._pendingInvite = null;
+          // Don't clear _pendingInvite when anonymous — the auth listener needs it
+          // to resume after login. Clear once authenticated.
+          if (user) window._pendingInvite = null;
           history.replaceState(null, '', location.pathname);
         };
         setTimeout(_tryInvite, 1500);
+        // Expose for the auth listener to call after login
+        window._tryPendingInvite = _tryInvite;
       } catch (e) { console.warn('[app] Invalid invite link:', e); }
     }
 
