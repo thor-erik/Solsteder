@@ -49,6 +49,7 @@ function drawAllCardTimelines(root) {
   const isToday_ = dateStr === todayStr();
   const nowH_    = new Date().getHours() + new Date().getMinutes() / 60;
   const dpr      = window.devicePixelRatio || 1;
+  const fromH    = (typeof timeFromEl !== 'undefined' && timeFromEl) ? parseFloat(timeFromEl.value) : null;
   for (const cv of nodes) {
     if (!cv.clientWidth || !cv.clientHeight) continue; // not laid out yet
     const vid = parseInt(cv.dataset.vid, 10);
@@ -64,6 +65,12 @@ function drawAllCardTimelines(root) {
     ctx.scale(dpr, dpr);
     const sunWindowsForShadow = (typeof computeSunWindows === 'function') ? computeSunWindows(v, dateStr) : null;
     const dayHours = (typeof getVenueHoursForDay === 'function') ? getVenueHoursForDay(v, dateStr) : null;
+    // When the card is morphing into the dp-card slot, it's effectively the
+    // FTS pill — match the FTS renderer's sheen + thumb so the hand-off is
+    // invisible. Detect via the source-morphing class on the venue-card
+    // ancestor (set by openDetailPanel during the open morph). Regular list
+    // cards (8px tall, no scrub) keep sheen/thumb off.
+    const isMorphTarget = !!cv.closest('.venue-card.source-morphing');
     drawTimeline(ctx, {
       cssW, cssH,
       bleed: 0,                         // no thumb-glow overflow on cards
@@ -74,8 +81,9 @@ function drawAllCardTimelines(root) {
       openHour:  dayHours?.open  ?? null,
       closeHour: dayHours?.close ?? null,
       sunWindows: sunWindowsForShadow,
-      drawSheen: false,                 // 8px is too small for sheen
-      drawThumb: false,                 // cards aren't scrubbable
+      drawSheen: isMorphTarget,         // 8px is too small for sheen; morph target is 38px
+      drawThumb: isMorphTarget,         // morph target IS the FTS visually — show thumb
+      thumbHour: isMorphTarget ? fromH : null,
     });
     ctx.restore();
   }
