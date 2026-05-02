@@ -5385,13 +5385,12 @@ function _introCheckReady() {
             if (m) plannedAt = new Date(`${m[1]}T${m[2].padStart(2,'0')}:${m[3].padStart(2,'0')}:00`).toISOString();
           }
 
-          // Mode: 'invite' if we got an inviteId (logged-in + plan exists);
-          // 'invite-anon' if the token has p but we're not logged in yet (CTA
-          // becomes "Logg inn for å svare"); 'preview' otherwise (Lukk only).
-          let mode;
-          if (inviteId)         mode = 'invite';
-          else if (!user && d.p) mode = 'invite-anon';
-          else                  mode = 'preview';
+          // Mode: 'invite' when authenticated (Accept/Decline visible — they
+          // gracefully no-op when no real inviteId, e.g. test tokens or the
+          // creator clicking their own link). 'invite-anon' when logged-out
+          // (Logg inn for å svare CTA). _tryInvite only fires for invite-style
+          // URLs so the receiver always sees the invite CTAs, never plain Lukk.
+          const mode = user ? 'invite' : 'invite-anon';
 
           // Stash venueId+plannedAt for post-Lukk selectVenue
           window._pendingPlanPreviewVenueId = d.v;

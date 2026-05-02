@@ -86,13 +86,28 @@ function openPlanPreview(opts) {
     } catch (e) { /* ignore */ }
   }
 
-  // Camera choreography: pan from above for context, then dive in for shadow detail.
+  // Camera choreography: start from a CONSISTENT high-altitude top-down view
+  // (so the user always gets the same orienting "from above" sense regardless
+  // of where they were on the map), then pan/dive to the venue.
+  //   Phase 0 (instant):   jumpTo zoom 12, pitch 0 — far above, top-down
+  //   Phase 1 (1400ms):    flyTo overview at zoom 14.5, pitch 15 — slight tilt as we close in
+  //   Phase 2 (1500ms):    easeTo dive — zoom 17.6, pitch 58° to reveal building shadows
+  //   Phase 3 (after settle): begin shadow time-lapse (5s, 78% forward / 22% settle-back)
   const PHASE1_MS = 1400;
   const PHASE2_MS = 1500;
   const TIMELAPSE_MS = 5000;
   const phase2TimeoutId = { id: null };
   const phase3TimeoutId = { id: null };
   if (typeof map !== 'undefined' && map && typeof map.flyTo === 'function') {
+    // Phase 0: instant snap to a known starting state — same every time.
+    try {
+      map.jumpTo({
+        center: [venue.lng, venue.lat],
+        zoom:    12,
+        pitch:   0,
+        bearing: 0,
+      });
+    } catch (e) { /* ignore */ }
     map.flyTo({
       center: [venue.lng, venue.lat],
       zoom:   14.5,
@@ -307,17 +322,26 @@ function _ppWxDetail(wx) {
   return parts.join(' · ');
 }
 
-/** Compose the narrative line at the top of the bottom card. Mode-dependent. */
-function _ppNarrative(mode, opts, venue, planHour, animateTo) {
+/** Compose the inviter eyebrow line that sits above the venue title. Mode-dependent. */
+function _ppInviterLine(mode, opts) {
+  if (mode === 'preview') return '';                                    // preview mode: no eyebrow
+  if (opts.inviterName) return t('pp_eyebrow_invited_by', { name: opts.inviterName });
+  return t('pp_eyebrow_invited');                                       // anonymous inviter
+}
+
+/** Compose a short tagline under the venue meta. Mode-dependent. */
+function _ppTagline(mode, opts, venue, planHour, animateTo) {
   const time = (typeof formatHour === 'function') ? formatHour(planHour) : '';
   const sunUntil = (animateTo > planHour + 0.05 && typeof formatHour === 'function')
     ? formatHour(animateTo) : null;
   if (mode === 'invite' || mode === 'invite-anon') {
-    if (opts.inviterName) return t('pp_narrative_invite_named', { name: opts.inviterName, venue: venue.name, time });
-    return t('pp_narrative_invite', { venue: venue.name, time });
+    return sunUntil
+      ? t('pp_tagline_invite_with_sun', { time, sunUntil })
+      : t('pp_tagline_invite', { time });
   }
-  if (sunUntil) return t('pp_narrative_preview', { venue: venue.name, sunUntil });
-  return venue.name;
+  return sunUntil
+    ? t('pp_tagline_preview_sun', { sunUntil })
+    : '';
 }
 
 function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
@@ -368,21 +392,24 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     }
   }
 
-  // CTA varies by mode
+  // CTAs vary by mode. For ANY invite-style URL (mode invite / invite-anon),
+  // we surface Accept / Decline so the design + intent reads correctly. Buttons
+  // gracefully no-op when no real plan_invites row exists (testing tokens, or
+  // the user is the plan creator clicking their own link). 'preview' shows Lukk.
+  const isInviteUI = (opts.mode === 'invite' || opts.mode === 'invite-anon');
   let ctaHtml = '';
-  if (opts.mode === 'invite' && opts.inviteId) {
+  if (isInviteUI && opts.mode === 'invite-anon') {
+    ctaHtml = `<button class="pp-cta pp-cta-accept" id="pp-login">${t('pp_login_to_respond')}</button>`;
+  } else if (isInviteUI) {
     ctaHtml = `
       <button class="pp-cta pp-cta-accept" id="pp-accept">${t('plan_preview_im_in')}</button>
       <button class="pp-cta-decline" id="pp-decline">${t('plan_decline')}</button>`;
-  } else if (opts.mode === 'invite-anon') {
-    ctaHtml = `
-      <button class="pp-cta pp-cta-accept" id="pp-login">${t('pp_login_to_respond')}</button>`;
   } else {
     ctaHtml = `<button class="pp-cta pp-cta-accept" id="pp-close-cta">${t('close')}</button>`;
   }
 
-  const narrative = _ppNarrative(opts.mode || 'preview', opts, venue, planHour, animateTo);
-  const venueArea = venue.area ? `<span class="pp-venue-area"> · ${venue.area}</span>` : '';
+  const eyebrow = _ppInviterLine(opts.mode || 'preview', opts);
+  const tagline = _ppTagline(opts.mode || 'preview', opts, venue, planHour, animateTo);
 
   el.innerHTML = `
     <div class="pp-top">
@@ -396,16 +423,22 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
       </div>
     </div>
     <div class="pp-bottom">
-      <div class="pp-narrative">${narrative}</div>
-      <div class="pp-venue-meta">
-        <span class="pp-venue-name">${venue.name}</span>${venueArea}
-      </div>
-      <div class="pp-sunline">
-        <span class="pp-sun-icon">☀</span>
-        <span class="pp-sun-range">${sunRange}</span>
-        <span class="pp-time-readout" id="pp-time">${formatHour(planHour)}</span>
+      ${eyebrow ? `<div class="pp-eyebrow">${eyebrow}</div>` : ''}
+      <div class="pp-card-row">
+        <div class="pp-card-left">
+          <div class="pp-card-name">${venue.name}</div>
+          ${venue.area ? `<div class="pp-card-meta">${venue.area}</div>` : ''}
+        </div>
+        <div class="pp-card-right">
+          <div class="pp-card-hero">${sunRange}</div>
+          ${tagline ? `<div class="pp-card-sub">${tagline}</div>` : ''}
+        </div>
       </div>
       <div class="pp-fts-slot"></div>
+      <div class="pp-readout-row">
+        <span class="pp-readout-label">${t('time_label')}</span>
+        <span class="pp-readout-value" id="pp-time">${formatHour(planHour)}</span>
+      </div>
       ${attendeesHtml}
       <div class="pp-cta-row">${ctaHtml}</div>
     </div>`;
@@ -439,7 +472,7 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
       try { await respondToPlanInvite(opts.inviteId, 'accepted'); } catch (e) { /* ignore */ }
     }
     if (typeof _showToast === 'function') _showToast(t('plan_preview_joined'));
-    if (typeof _aTrack === 'function') _aTrack('plan_preview_accept', { venue_id: venue.id });
+    if (typeof _aTrack === 'function') _aTrack('plan_preview_accept', { venue_id: venue.id, has_invite_id: !!opts.inviteId });
     closePlanPreview();
   };
   const declineBtn = el.querySelector('#pp-decline');
@@ -447,7 +480,7 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     if (typeof respondToPlanInvite === 'function' && opts.inviteId) {
       try { await respondToPlanInvite(opts.inviteId, 'declined'); } catch (e) { /* ignore */ }
     }
-    if (typeof _aTrack === 'function') _aTrack('plan_preview_decline', { venue_id: venue.id });
+    if (typeof _aTrack === 'function') _aTrack('plan_preview_decline', { venue_id: venue.id, has_invite_id: !!opts.inviteId });
     closePlanPreview();
   };
   const closeCta = el.querySelector('#pp-close-cta');
