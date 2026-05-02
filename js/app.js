@@ -2619,6 +2619,22 @@ function openDetailPanel(v) {
           if (slotLabels) newCard.appendChild(slotLabels);
           slot.parentNode.replaceChild(newCard, slot);
           if (typeof drawAllCardTimelines === 'function') drawAllCardTimelines(newCard);
+          // Host FTS into the new dp-card's timeline slot — same invariant
+          // as the morph path's setTimeout block. Without this, FTS stays
+          // body-fixed (the bug user reported as "FTS locks to a screen
+          // position" after closing the plan-preview).
+          const fts = document.getElementById('fts');
+          const cardTimeline = newCard.querySelector('.card-timeline');
+          if (fts && cardTimeline) {
+            fts.style.cssText = '';
+            fts.classList.add('fts-in-card');
+            newCard.classList.add('fts-hosted');
+            const _dateBtn = document.getElementById('fts-date-btn');
+            const _btnW = _dateBtn ? _dateBtn.offsetWidth : 38;
+            newCard.style.setProperty('--fts-labels-offset', (_btnW + 8) + 'px');
+            cardTimeline.appendChild(fts);
+            if (typeof drawFtsCanvas === 'function') drawFtsCanvas();
+          }
         }
       }
     }
@@ -3060,21 +3076,23 @@ function updateDetailPanel() {
     }
   }
 
-  if (wasInCard) {
-    // Re-host into the new docked card's .card-timeline. Previously this
-    // appended the FTS to the slot placeholder, which left the venue info
-    // missing from the panel after every updateDetailPanel call.
-    const dockedCard = dp.querySelector('.venue-card.source-docked');
-    const cardTimeline = dockedCard?.querySelector('.card-timeline');
-    if (fts && cardTimeline) {
-      dockedCard.classList.add('fts-hosted');
-      const _dateBtn = document.getElementById('fts-date-btn');
-      const _btnW = _dateBtn ? _dateBtn.offsetWidth : 38;
-      dockedCard.style.setProperty('--fts-labels-offset', (_btnW + 8) + 'px');
-      fts.classList.add('fts-in-card');
-      cardTimeline.appendChild(fts);
-      if (typeof drawFtsCanvas === 'function') drawFtsCanvas();
-    }
+  // Always host FTS into the freshly-rendered docked card if one exists. The
+  // previous wasInCard gate left FTS body-fixed when it wasn't already in a
+  // card (e.g. right after closePlanPreview's _ppFtsDetach drops it on body),
+  // and the user reported "FTS locks to a screen position above the panel"
+  // after closing the plan-preview. Anchoring FTS into the dp-card on every
+  // update — regardless of where it was — fixes that.
+  const dockedCard = dp.querySelector('.venue-card.source-docked');
+  const cardTimeline = dockedCard?.querySelector('.card-timeline');
+  if (fts && cardTimeline) {
+    fts.style.cssText = '';
+    fts.classList.add('fts-in-card');
+    dockedCard.classList.add('fts-hosted');
+    const _dateBtn = document.getElementById('fts-date-btn');
+    const _btnW = _dateBtn ? _dateBtn.offsetWidth : 38;
+    dockedCard.style.setProperty('--fts-labels-offset', (_btnW + 8) + 'px');
+    cardTimeline.appendChild(fts);
+    if (typeof drawFtsCanvas === 'function') drawFtsCanvas();
   } else if (isMobile()) {
     _syncFtsToSlot();
   }
