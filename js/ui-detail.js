@@ -649,6 +649,14 @@ function _closeInviteSheet() {
     setTimeout(() => overlay.remove(), 300);
   }
   document.body.classList.remove('invite-sheet-open');
+  // Defensive refresh of the detail panel underneath. The eager plan-create
+  // ran during the sheet's lifetime; if any downstream listener mutated panel
+  // state (e.g. the detail panel's docked card got detached), updateDetailPanel
+  // re-renders cleanly. Wrapped in setTimeout so the panel's opacity has
+  // returned (per the body.invite-sheet-open CSS rule) before we measure.
+  setTimeout(() => {
+    if (typeof updateDetailPanel === 'function') updateDetailPanel();
+  }, 280);
 }
 
 /** Send invite to selected friends (or broadcast to all if none selected). */

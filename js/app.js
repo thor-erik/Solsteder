@@ -2596,6 +2596,32 @@ function openDetailPanel(v) {
       document.getElementById('floating-search')?.classList.add('mobile-ui-hidden');
       document.getElementById('qc-wrap')?.classList.add('mobile-ui-hidden');
     }
+    // No morph means no source venue-card to lift into the dp-card-slot. Build
+    // a dp-card from scratch via renderCard so the panel still has its
+    // venue-meta + timeline section (otherwise we leave a gap between the
+    // photos and the social card — the half-rendered look users hit when the
+    // source card was unavailable, e.g. when the venue list hadn't rendered
+    // yet at link-land).
+    if (typeof renderCard === 'function') {
+      const slot = document.getElementById('dp-card-slot');
+      if (slot) {
+        const dateStr = datePicker.value;
+        const fromHour = parseFloat(timeFromEl.value);
+        const tmp = document.createElement('div');
+        tmp.innerHTML = renderCard(v, dateStr, fromHour, fromHour, true);
+        const newCard = tmp.firstElementChild;
+        if (newCard) {
+          newCard.classList.add('dp-card', 'source-docked');
+          newCard.removeAttribute('onclick');
+          newCard.removeAttribute('onmouseenter');
+          newCard.removeAttribute('onmouseleave');
+          const slotLabels = slot.querySelector('.dp-tl-labels');
+          if (slotLabels) newCard.appendChild(slotLabels);
+          slot.parentNode.replaceChild(newCard, slot);
+          if (typeof drawAllCardTimelines === 'function') drawAllCardTimelines(newCard);
+        }
+      }
+    }
     _syncFtsPosition();
     return;
   }
@@ -3004,14 +3030,16 @@ function updateDetailPanel() {
 
   content.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
 
-  // Re-create the docked dp-card. content.innerHTML wiped the source-docked
-  // venue-card that the open-morph placed there, leaving only the empty
-  // placeholder slot. Without re-creating it, the user sees the photos and
-  // social/action rows but the venue title/meta/hero/timeline section is gone
-  // — the FTS appears to float in empty space. Re-render via renderCard,
-  // promote it to .dp-card.source-docked, and move the freshly-rendered
-  // labels inside it (so they sit under the timeline like the morph leaves).
-  if (wasInCard && typeof renderCard === 'function') {
+  // Always re-create the docked dp-card (decoupled from FTS hosting).
+  // content.innerHTML wiped the source-docked venue-card that the open-morph
+  // placed there, leaving only the empty placeholder slot. Without re-creating
+  // it, the user sees the photos and social/action rows but the venue
+  // title/meta/hero/timeline section is gone. Previously this was gated on
+  // wasInCard, which left the panel half-rendered whenever FTS happened to be
+  // detached at the moment of update (e.g. between Lukk and the FTS handoff
+  // settling, or while another sheet is open). Always recreate so the panel
+  // is structurally complete on every update.
+  if (typeof renderCard === 'function') {
     const slot = document.getElementById('dp-card-slot');
     if (slot) {
       const dateStr = datePicker.value;
@@ -3021,12 +3049,9 @@ function updateDetailPanel() {
       const newCard = tmp.firstElementChild;
       if (newCard) {
         newCard.classList.add('dp-card', 'source-docked');
-        // Strip the click handler — the docked card isn't interactive.
         newCard.removeAttribute('onclick');
         newCard.removeAttribute('onmouseenter');
         newCard.removeAttribute('onmouseleave');
-        // Pull the slot's labels into the new card so they live under the
-        // timeline-track / FTS pill, matching the morph end-state layout.
         const slotLabels = slot.querySelector('.dp-tl-labels');
         if (slotLabels) newCard.appendChild(slotLabels);
         slot.parentNode.replaceChild(newCard, slot);
