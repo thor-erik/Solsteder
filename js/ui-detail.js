@@ -416,8 +416,13 @@ function _renderSocialSection(v) {
   // Beacon icon: dot with signal arcs
   const beaconSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M5.64 5.64a9 9 0 0 0 0 12.73"/><path d="M18.36 5.64a9 9 0 0 1 0 12.73"/><path d="M8.46 8.46a5 5 0 0 0 0 7.08"/><path d="M15.54 8.46a5 5 0 0 1 0 7.08"/></svg>`;
 
-  // Friend-add prompt banner: shown after a non-friend accepts an invite via /i/<token>.
-  // Clears itself when the user picks Add or Not now (state in window + localStorage).
+  // Post-accept prompts. Priority:
+  //   1. Friend-add (when receiver isn't friends with inviter — set in app.js
+  //      token resolution). Adding the friend matters more than sharing.
+  //   2. Share nudge (when receiver IS friends with inviter — set by
+  //      ui-plan-preview accept handler). Once they're in, surface the easy
+  //      ask: invite more friends to the same plan.
+  // Only one shows at a time. Both clear independently.
   let friendPromptHtml = '';
   const fp = (typeof window !== 'undefined') ? window._pendingFriendPrompt : null;
   if (fp && fp.inviterId) {
@@ -430,9 +435,21 @@ function _renderSocialSection(v) {
       </div>`;
   }
 
+  let shareNudgeHtml = '';
+  const sn = (typeof window !== 'undefined') ? window._pendingShareNudge : null;
+  if (!fp && sn && String(sn.venueId) === String(v.id)) {
+    shareNudgeHtml = `
+      <div class="friend-prompt-banner" id="share-nudge-banner">
+        <span class="friend-prompt-banner-text">${t('share_nudge_after_accept')}</span>
+        <button class="friend-prompt-banner-add"  onclick="_handleShareNudgeShare(${v.id})">${t('share_link')}</button>
+        <button class="friend-prompt-banner-skip" onclick="_handleShareNudgeDismiss()">${t('friend_prompt_dismiss')}</button>
+      </div>`;
+  }
+
   return `
     <div class="social-card">
       ${friendPromptHtml}
+      ${shareNudgeHtml}
       ${friendsHtml}
       <div class="social-btns">
         <button class="social-btn social-btn-invite" onclick="_openInviteSheet(${v.id})">
@@ -477,6 +494,34 @@ function _handleFriendPromptDismiss(inviterId) {
   } catch {}
   if (typeof window !== 'undefined') window._pendingFriendPrompt = null;
   const banner = document.getElementById('friend-prompt-banner');
+  if (banner) banner.remove();
+  // After friend-prompt clears, the share nudge (if pending) takes its slot.
+  if (typeof window !== 'undefined' && window._pendingShareNudge && typeof updateDetailPanel === 'function') {
+    updateDetailPanel();
+  }
+}
+
+/** Post-accept share nudge — Del lenke action. Reuses _shareInviteLink with
+ *  the original plan's id + plannedAt so the link points to THE same meetup
+ *  rather than minting a new one. */
+function _handleShareNudgeShare(venueId) {
+  const sn = (typeof window !== 'undefined') ? window._pendingShareNudge : null;
+  if (typeof _aTrack === 'function') _aTrack('share_nudge', { action: 'shared' });
+  if (typeof window !== 'undefined') window._pendingShareNudge = null;
+  const banner = document.getElementById('share-nudge-banner');
+  if (banner) banner.remove();
+  if (typeof _shareInviteLink === 'function') {
+    _shareInviteLink(venueId, {
+      planId:    sn && sn.planId,
+      plannedAt: sn && sn.plannedAt,
+    });
+  }
+}
+
+function _handleShareNudgeDismiss() {
+  if (typeof _aTrack === 'function') _aTrack('share_nudge', { action: 'dismissed' });
+  if (typeof window !== 'undefined') window._pendingShareNudge = null;
+  const banner = document.getElementById('share-nudge-banner');
   if (banner) banner.remove();
 }
 
@@ -916,9 +961,22 @@ function _composeInviteShareText(v, d, h) {
  *  if anything is awaited between click and navigator.share). The plan that
  *  backs the share-token's `p` field is pre-created when the sheet opens
  *  (see _openInviteSheet); this function just reads sheet._planId.
+ *
+ *  Optional `overrides` lets callers (e.g. the post-accept share-nudge)
+ *  thread a specific planId + plannedAt instead of reading the live pickers
+ *  and the invite-sheet plan id.
  */
-function _shareInviteLink(venueId) {
-  const { d, h } = _getInviteDateTime();
+function _shareInviteLink(venueId, overrides = {}) {
+  let d, h;
+  if (overrides.plannedAt) {
+    const dt = new Date(overrides.plannedAt);
+    if (!isNaN(dt.getTime())) {
+      const pad = n => String(n).padStart(2, '0');
+      d = `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
+      h = dt.getHours() + dt.getMinutes() / 60;
+    }
+  }
+  if (d == null) ({ d, h } = _getInviteDateTime());
   const hInt = Math.floor(h);
   const mInt = Math.round((h - hInt) * 60);
   const timeVal = `${d}T${String(hInt).padStart(2,'0')}:${String(mInt).padStart(2,'0')}`;
@@ -926,7 +984,7 @@ function _shareInviteLink(venueId) {
   if (!user) return;
 
   const sheet = document.getElementById('invite-sheet');
-  const planId = sheet && sheet._planId ? sheet._planId : null;
+  const planId = overrides.planId || (sheet && sheet._planId ? sheet._planId : null);
 
   const tokenData = { u: user.id, v: venueId, t: timeVal };
   if (planId) tokenData.p = planId;

@@ -535,6 +535,21 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     if (typeof respondToPlanInvite === 'function' && opts.inviteId) {
       try { await respondToPlanInvite(opts.inviteId, 'accepted', arrivalIso); } catch (e) { /* ignore */ }
     }
+    // Post-accept share nudge — only when the receiver is friends with the
+    // inviter (or has no inviter context). For non-friends, the friend-add
+    // banner (set in app.js token resolution as window._pendingFriendPrompt)
+    // takes priority — adding a friend matters more than sharing right after
+    // an invite from a stranger.
+    const friendsList = (typeof _friends !== 'undefined') ? _friends : [];
+    const isFriendOfInviter = !opts.inviterId
+      || friendsList.some(f => String(f.id) === String(opts.inviterId));
+    if (isFriendOfInviter) {
+      window._pendingShareNudge = {
+        venueId:   venue.id,
+        planId:    opts.planTokenP || null,
+        plannedAt: opts.plannedAt || null,
+      };
+    }
     if (typeof _showToast === 'function') _showToast(t('plan_preview_joined'));
     if (typeof _aTrack === 'function') _aTrack('plan_preview_accept', { venue_id: venue.id, has_invite_id: !!opts.inviteId, off_plan_time: !!arrivalIso });
     closePlanPreview();

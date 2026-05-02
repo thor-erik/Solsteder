@@ -248,6 +248,7 @@ const _STRINGS = {
     share_venue_text:    'Sun at {venue} until {sunUntil} ☀️',
     share_venue_text_no_sun:  '{venue} — {area}',
     friend_prompt_after_accept: "You accepted {name}'s invite. Add as friend?",
+    share_nudge_after_accept: "You're in! Share so more can join?",
     friend_prompt_add:   'Add',
     friend_prompt_dismiss: 'Not now',
     // Plan preview takeover
@@ -569,6 +570,7 @@ const _STRINGS = {
     share_venue_text:    'Sol på {venue} til {sunUntil} ☀️',
     share_venue_text_no_sun:  '{venue} — {area}',
     friend_prompt_after_accept: 'Du sa ja til {name}s invitasjon. Legge til som venn?',
+    share_nudge_after_accept: 'Du er med! Del så flere kan bli med?',
     friend_prompt_add:   'Legg til',
     friend_prompt_dismiss: 'Ikke nå',
     // Plan preview takeover
@@ -890,6 +892,7 @@ const _STRINGS = {
     share_venue_text:    'Sol på {venue} till {sunUntil} ☀️',
     share_venue_text_no_sun:  '{venue} — {area}',
     friend_prompt_after_accept: 'Du tackade ja till {name}s inbjudan. Lägga till som vän?',
+    share_nudge_after_accept: 'Du är med! Dela så fler kan komma med?',
     friend_prompt_add:   'Lägg till',
     friend_prompt_dismiss: 'Inte nu',
     // Plan preview takeover
@@ -1211,6 +1214,7 @@ const _STRINGS = {
     share_venue_text:    'Sol på {venue} til {sunUntil} ☀️',
     share_venue_text_no_sun:  '{venue} — {area}',
     friend_prompt_after_accept: 'Du sagde ja til {name}s invitation. Tilføje som ven?',
+    share_nudge_after_accept: 'Du er med! Del så flere kan komme med?',
     friend_prompt_add:   'Tilføj',
     friend_prompt_dismiss: 'Ikke nu',
     // Plan preview takeover
