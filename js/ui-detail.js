@@ -501,7 +501,21 @@ function _fmtInviteConfirm(venueName, dateStr, hour) {
   return t('invite_confirm', { venue: venueName, date: dateLabel, time: timeLabel });
 }
 
-/** Open the invite sheet — compact overlay with inline date/time controls. */
+/** Compute "sun until {time}" badge text for the venue card. Returns '' if none. */
+function _fmtInviteSunUntil(v, dateStr, hour) {
+  if (!v || typeof computeSunWindows !== 'function') return '';
+  const { windows } = computeSunWindows(v, dateStr) || {};
+  if (!windows || !windows.length) return '';
+  const cur  = windows.find(w => hour >= w.start && hour < w.end);
+  const next = !cur ? windows.find(w => w.start > hour) : null;
+  const win  = cur || next;
+  if (!win) return '';
+  const timeLabel = typeof formatHour === 'function' ? formatHour(win.end) : '';
+  return t('invite_sun_until', { time: timeLabel });
+}
+
+/** Open the invite sheet — full-height takeover with venue card, chat-bubble
+ *  preview and avatar-tap friend selection. */
 function _openInviteSheet(venueId) {
   if (typeof authCurrentUser === 'function' && !authCurrentUser()) {
     if (typeof toggleProfilePanel === 'function') toggleProfilePanel();
@@ -516,24 +530,36 @@ function _openInviteSheet(venueId) {
 
   const friends = typeof _friends !== 'undefined' ? _friends : [];
   const hasFriends = friends.length > 0;
+  const SHOW_SEARCH_AT = 6;
+
+  const checkSvg = `<svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 7 6 11 12 3"/></svg>`;
   const friendRows = friends.map(f => {
+    const initial = (f.name || f.email || '?')[0].toUpperCase();
     const avatar = f.avatar_url
       ? `<img class="invite-friend-avatar" src="${f.avatar_url}" alt="">`
-      : `<div class="invite-friend-avatar invite-friend-init">${(f.name || f.email)[0].toUpperCase()}</div>`;
-    return `<label class="invite-friend-row">
-      <input type="checkbox" value="${f.id}">
-      ${avatar}
+      : `<div class="invite-friend-avatar invite-friend-init">${initial}</div>`;
+    const safeName = (f.name || f.email || '').replace(/"/g, '&quot;');
+    return `<div class="invite-friend-row" role="checkbox" tabindex="0" aria-checked="false" data-friend-id="${f.id}" data-friend-name="${safeName}" onclick="_toggleInviteFriend(this)" onkeydown="if(event.key===' '||event.key==='Enter'){event.preventDefault();_toggleInviteFriend(this);}">
+      <div class="invite-friend-avatar-wrap">
+        ${avatar}
+        <span class="invite-friend-check" aria-hidden="true">${checkSvg}</span>
+      </div>
       <span class="invite-friend-name">${f.name || f.email}</span>
-    </label>`;
+    </div>`;
   }).join('');
 
   const shareSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>`;
   const sendSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2 11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`;
+  const noFriendsSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>`;
 
   // Read current time from the main pickers — these stay the source of truth
   // while the sheet is open, so we don't duplicate controls inside the sheet.
   const curDate = typeof datePicker !== 'undefined' ? datePicker.value : new Date().toISOString().slice(0, 10);
   const curHour = typeof timeFromEl !== 'undefined' ? parseFloat(timeFromEl.value) : new Date().getHours();
+
+  const venueWhen = _fmtInviteConfirm(venueName, curDate, curHour);
+  const sunUntil = v ? _fmtInviteSunUntil(v, curDate, curHour) : '';
+  const previewText = v ? _composeInviteShareText(v, curDate, curHour) : '';
 
   // Build overlay
   const overlay = document.createElement('div');
@@ -544,57 +570,81 @@ function _openInviteSheet(venueId) {
   const sheet = document.createElement('div');
   sheet.id = 'invite-sheet';
   sheet.className = 'invite-sheet';
-  const previewText = v ? _composeInviteShareText(v, curDate, curHour) : '';
-  sheet.innerHTML = `
-    <div class="invite-sheet-header">
-      <div>
-        <div class="invite-sheet-title">${t('invite_friends')}</div>
-        <div class="invite-sheet-venue">${venueName}</div>
-      </div>
-      <button class="invite-sheet-close" onclick="_closeInviteSheet()" aria-label="Close">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/></svg>
-      </button>
-    </div>
-    <div class="invite-sheet-body">
-      <div class="invite-confirm-text" id="invite-confirm-label">${_fmtInviteConfirm(venueName, curDate, curHour)}</div>
-      <div class="invite-message-preview">
-        <div class="invite-message-preview-label">${t('share_message_preview_label')}</div>
-        <div class="invite-message-preview-text" id="invite-message-preview-text">${previewText}</div>
-      </div>
-      ${hasFriends ? `
+
+  const friendsBlock = hasFriends ? `
+        <div class="invite-friends-header">
+          <div class="invite-friends-title">${t('invite_friends_section')}</div>
+          <button class="invite-friends-toggle" id="invite-toggle-all" type="button" onclick="_toggleAllInviteFriends()">${t('invite_select_all')}</button>
+        </div>
+        ${friends.length > SHOW_SEARCH_AT ? `<input type="text" class="invite-friend-search" id="invite-friend-search" placeholder="${t('invite_friend_search_placeholder')}" oninput="_filterInviteFriends(this.value)">` : ''}
         <div class="invite-friends-list">
           ${friendRows}
-        </div>` : ''}
-    </div>
-    <div class="invite-sheet-footer">
-      ${hasFriends ? `
-        <button class="invite-send-btn" onclick="_sendInvite(${venueId})">
+        </div>` : `
+        <div class="invite-empty-card">
+          <div class="invite-empty-icon">${noFriendsSvg}</div>
+          <div class="invite-empty-title">${t('invite_no_friends_title')}</div>
+          <div class="invite-empty-sub">${t('invite_no_friends_sub')}</div>
+        </div>`;
+
+  const footerBlock = hasFriends ? `
+        <div class="invite-actions-helper">${t('invite_actions_helper')}</div>
+        <button class="invite-send-btn" id="invite-primary-btn" disabled onclick="_sendInvite(${venueId})">
           ${sendSvg}
-          <span>${t('send_invite')}</span>
+          <span id="invite-primary-label">${t('send_invite')}</span>
         </button>
-        <button class="invite-share-link" onclick="_shareInviteLink(${venueId})">
+        <button class="invite-share-link" type="button" onclick="_shareInviteLink(${venueId})">
           ${shareSvg}
           <span>${t('share_link')}</span>
         </button>` : `
         <button class="invite-send-btn" onclick="_shareInviteLink(${venueId})">
           ${shareSvg}
           <span>${t('share_link')}</span>
-        </button>`}
+        </button>`;
+
+  sheet.innerHTML = `
+    <div class="invite-sheet-grabber" aria-hidden="true"></div>
+    <div class="invite-sheet-header">
+      <div class="invite-sheet-title">${t('invite_friends')}</div>
+      <button class="invite-sheet-close" onclick="_closeInviteSheet()" aria-label="${t('close') || 'Close'}">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/></svg>
+      </button>
+    </div>
+    <div class="invite-sheet-body">
+      <div class="invite-venue-card">
+        <div class="invite-venue-badge" aria-hidden="true">☀️</div>
+        <div class="invite-venue-info">
+          <div class="invite-venue-name">${venueName}</div>
+          <div class="invite-venue-when" id="invite-venue-when">${venueWhen}</div>
+          <div class="invite-venue-sun" id="invite-venue-sun">${sunUntil}</div>
+        </div>
+      </div>
+      <div class="invite-bubble-wrap">
+        <div class="invite-bubble-caption">${t('share_message_preview_label')}</div>
+        <div class="invite-bubble" id="invite-message-preview-text">${previewText}</div>
+      </div>
+      ${friendsBlock}
+    </div>
+    <div class="invite-sheet-footer">
+      ${footerBlock}
     </div>`;
 
   overlay.appendChild(sheet);
   document.body.appendChild(overlay);
 
-  // Update confirm + preview lines from the MAIN datePicker/timeFromEl. We
-  // don't duplicate controls in the sheet — the existing bottom qc-wrap stays
-  // visible above the (lighter) backdrop and acts as the single source of truth.
+  // Update venue card + preview from the MAIN datePicker/timeFromEl. We don't
+  // duplicate controls in the sheet — the existing bottom qc-wrap stays visible
+  // above the (lighter) backdrop and acts as the single source of truth.
   sheet._venueName = venueName;
   sheet._venueId = venueId;
+  sheet._venue = v;
+  sheet._friendCount = friends.length;
   function _updateInviteConfirm() {
     const d = (typeof datePicker !== 'undefined') ? datePicker.value : curDate;
     const h = (typeof timeFromEl !== 'undefined') ? parseFloat(timeFromEl.value) : curHour;
-    const lbl = sheet.querySelector('#invite-confirm-label');
-    if (lbl) lbl.textContent = _fmtInviteConfirm(sheet._venueName, d, h);
+    const when = sheet.querySelector('#invite-venue-when');
+    if (when) when.textContent = _fmtInviteConfirm(sheet._venueName, d, h);
+    const sun = sheet.querySelector('#invite-venue-sun');
+    if (sun) sun.textContent = _fmtInviteSunUntil(sheet._venue, d, h);
     const prev = sheet.querySelector('#invite-message-preview-text');
     if (prev && v) prev.textContent = _composeInviteShareText(v, d, h);
   }
@@ -637,6 +687,81 @@ function _openInviteSheet(venueId) {
   });
 }
 
+/** Toggle a single friend row's selection (avatar-tap pattern, no checkbox). */
+function _toggleInviteFriend(row) {
+  if (!row) return;
+  const next = row.getAttribute('aria-checked') !== 'true';
+  row.setAttribute('aria-checked', next ? 'true' : 'false');
+  _refreshInvitePrimaryCTA();
+}
+
+/** Select-all / clear toggle in the friends-section header. */
+function _toggleAllInviteFriends() {
+  const sheet = document.getElementById('invite-sheet');
+  if (!sheet) return;
+  const visibleRows = Array.from(sheet.querySelectorAll('.invite-friend-row')).filter(r => !r.hidden);
+  if (!visibleRows.length) return;
+  const anyUnchecked = visibleRows.some(r => r.getAttribute('aria-checked') !== 'true');
+  visibleRows.forEach(r => r.setAttribute('aria-checked', anyUnchecked ? 'true' : 'false'));
+  _refreshInvitePrimaryCTA();
+}
+
+/** Filter the friends list by a substring of name/email. */
+function _filterInviteFriends(query) {
+  const sheet = document.getElementById('invite-sheet');
+  if (!sheet) return;
+  const q = (query || '').trim().toLowerCase();
+  const rows = sheet.querySelectorAll('.invite-friend-row');
+  rows.forEach(r => {
+    const name = (r.getAttribute('data-friend-name') || '').toLowerCase();
+    r.hidden = q && !name.includes(q);
+  });
+  _refreshInvitePrimaryCTA();
+}
+
+/** Update the primary CTA label/disabled state and the select-all toggle text
+ *  based on current selection. Called on every selection change. */
+function _refreshInvitePrimaryCTA() {
+  const sheet = document.getElementById('invite-sheet');
+  if (!sheet) return;
+  const total = sheet._friendCount || 0;
+  if (total === 0) return; // empty state has no primary-cta to update
+
+  const allRows = Array.from(sheet.querySelectorAll('.invite-friend-row'));
+  const selectedRows = allRows.filter(r => r.getAttribute('aria-checked') === 'true');
+  const n = selectedRows.length;
+
+  const btn = sheet.querySelector('#invite-primary-btn');
+  const label = sheet.querySelector('#invite-primary-label');
+  if (btn && label) {
+    btn.disabled = n === 0;
+    if (n === 0) {
+      label.textContent = t('send_invite');
+    } else if (n === 1) {
+      const name = selectedRows[0].getAttribute('data-friend-name') || '';
+      const firstName = name.split(/\s+/)[0] || name;
+      label.textContent = t('invite_send_to_one', { name: firstName });
+    } else if (n === total) {
+      label.textContent = t('invite_send_to_all', { n });
+    } else {
+      label.textContent = t('invite_send_to_many', { n });
+    }
+  }
+
+  const toggle = sheet.querySelector('#invite-toggle-all');
+  if (toggle) {
+    const visibleRows = allRows.filter(r => !r.hidden);
+    const visibleSelected = visibleRows.filter(r => r.getAttribute('aria-checked') === 'true').length;
+    if (visibleSelected === 0) {
+      toggle.textContent = t('invite_select_all');
+    } else if (visibleSelected === visibleRows.length) {
+      toggle.textContent = t('invite_clear_all');
+    } else {
+      toggle.textContent = t('invite_n_of_m_selected', { n: visibleSelected, m: visibleRows.length });
+    }
+  }
+}
+
 function _closeInviteSheet() {
   const overlay = document.getElementById('invite-sheet-backdrop');
   const sheet = document.getElementById('invite-sheet');
@@ -674,20 +799,20 @@ async function _sendInvite(venueId) {
   const isoTime = new Date(`${d}T${String(hInt).padStart(2,'0')}:${String(mInt).padStart(2,'0')}:00`).toISOString();
 
   const allFriends = (typeof _friends !== 'undefined') ? _friends : [];
-  const checks = document.querySelectorAll('#invite-sheet .invite-friend-row input:checked');
-  const selectedIds = [];
-  checks.forEach(cb => selectedIds.push(cb.value));
-  const explicitlySelected = selectedIds.length > 0;
-  // Nothing selected → treat as broadcast to everyone (existing behavior)
-  const friendIds = explicitlySelected ? selectedIds : allFriends.map(f => f.id);
+  const selectedIds = Array.from(
+    document.querySelectorAll('#invite-sheet .invite-friend-row[aria-checked="true"]')
+  ).map(r => r.getAttribute('data-friend-id'));
 
-  await createPlan(venueId, isoTime, '', friendIds);
+  // No silent broadcast — the primary CTA is disabled in this state, but
+  // guard defensively in case the handler is invoked some other way.
+  if (selectedIds.length === 0) return;
+
+  await createPlan(venueId, isoTime, '', selectedIds);
   _closeInviteSheet();
 
-  // Follow-up nudge: if the user explicitly picked a subset, suggest sharing
-  // a link with the rest. Only fires when there's at least one unselected
-  // friend, otherwise it's noise.
-  if (explicitlySelected && allFriends.length > selectedIds.length) {
+  // Follow-up nudge: if the user picked a subset, suggest sharing a link with
+  // the rest. Only fires when there's at least one unselected friend.
+  if (allFriends.length > selectedIds.length) {
     const selectedSet = new Set(selectedIds);
     const remaining = allFriends.filter(f => !selectedSet.has(f.id));
     setTimeout(() => _queueTellMoreFriendsNudge(venueId, remaining.length), 4500);

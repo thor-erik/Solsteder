@@ -5674,7 +5674,7 @@
     font-weight: 600;
   }
 
-  /* ── Invite sheet (half-screen overlay) ──────────────────────────────────── */
+  /* ── Invite sheet (full-height takeover) ─────────────────────────────────── */
   .invite-backdrop {
     position: fixed;
     inset: 0;
@@ -5682,12 +5682,8 @@
     background: rgba(0,0,0,0);
     transition: background 0.3s ease;
   }
-  .invite-backdrop.open {
-    /* Solid dim — invite-sheet now occupies the same dock as the detail panel
-       (full-height on mobile), so the receiver sees a single panel content
-       swap rather than a stacked sheet over the detail page. */
-    background: rgba(0,0,0,0.42);
-  }
+  .invite-backdrop.open { background: rgba(0,0,0,0.42); }
+
   /* While the invite sheet is open, hide the detail panel chrome and the FTS
      so the user sees a single surface (the invite sheet), not a stacked one.
      The detail panel state is preserved underneath; opacity restores on close. */
@@ -5701,45 +5697,21 @@
     pointer-events: none;
     transition: opacity 0.22s ease;
   }
-  /* Invite-message preview chip — shows the exact text that will be sent. */
-  .invite-message-preview {
-    margin: 4px 0 8px;
-    padding: 8px 10px;
-    border-radius: 10px;
-    background: rgba(156,189,231,0.08);
-    border: 1px dashed rgba(156,189,231,0.20);
-  }
-  .invite-message-preview-label {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--muted);
-    margin-bottom: 3px;
-  }
-  .invite-message-preview-text {
-    font-size: 13px;
-    color: var(--text);
-    line-height: 1.35;
-    word-break: break-word;
-  }
+
   .invite-sheet {
     position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
-    /* Mobile: full-screen takeover so the invite UI replaces the detail page
-       rather than stacking on top of it. Desktop: capped via the @media block
-       further down. */
     max-height: 100svh;
     height: 100svh;
     border-radius: 0;
-    background:
-      linear-gradient(135deg, rgba(20,46,82,0.28), rgba(32,73,131,0.16)),
-      rgba(20,46,82,0.96);
-    backdrop-filter: blur(20px) saturate(180%) brightness(0.88);
-    -webkit-backdrop-filter: blur(20px) saturate(180%) brightness(0.88);
+    /* Canonical Shades Glass — panel level. */
+    background: var(--glass-panel-bg);
+    backdrop-filter: var(--glass-blur-panel);
+    -webkit-backdrop-filter: var(--glass-blur-panel);
     border: none;
-    box-shadow: 0 -12px 48px rgba(0,0,0,0.55);
+    box-shadow: var(--glass-inset), 0 -12px 48px rgba(0,0,0,0.55);
     display: flex;
     flex-direction: column;
     transform: translateY(100%);
@@ -5747,27 +5719,36 @@
     padding-top: env(safe-area-inset-top, 0px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
-  .invite-sheet.open {
-    transform: translateY(0);
+  .invite-sheet.open { transform: translateY(0); }
+
+  .invite-sheet-grabber {
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(156,189,231,0.25);
+    margin: 8px auto 0;
+    flex-shrink: 0;
   }
+
   .invite-sheet-header {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
-    padding: 20px 20px 14px;
+    padding: 12px 20px 14px;
     border-bottom: 1px solid rgba(156,189,231,0.12);
   }
   .invite-sheet-title {
     font-size: 17px;
     font-weight: 600;
     color: var(--text);
+    letter-spacing: -0.01em;
   }
   .invite-sheet-close {
     background: rgba(156,189,231,0.12);
     border: none;
     border-radius: 50%;
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -5775,174 +5756,278 @@
     color: var(--muted);
     flex-shrink: 0;
     margin-left: 12px;
-    margin-top: -2px;
     transition: background 0.12s, color 0.12s;
   }
   .invite-sheet-close:hover { background: rgba(156,189,231,0.22); color: var(--text); }
-  .invite-sheet-venue {
-    font-size: 13px;
-    color: var(--muted);
-    margin-top: 2px;
-  }
+
   .invite-sheet-body {
     flex: 1;
     overflow-y: auto;
-    padding: 14px 20px;
+    padding: 14px 20px 16px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 14px;
     -webkit-overflow-scrolling: touch;
   }
-  .invite-confirm-text {
-    text-align: center;
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--accent);
-    letter-spacing: -0.02em;
-    padding: 6px 0 2px;
-    line-height: 1.35;
-  }
-  .invite-time-controls {
+
+  /* ── Venue card ────────────────────────────────────────────────────────── */
+  .invite-venue-card {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 4px 0;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 14px;
+    background: var(--glass-card-bg);
+    backdrop-filter: var(--glass-blur-card);
+    -webkit-backdrop-filter: var(--glass-blur-card);
+    border: var(--glass-border);
+    box-shadow: var(--glass-inset);
   }
-  .invite-date-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 12px;
-    border-radius: 10px;
-    border: 1px solid rgba(156,189,231,0.20);
-    background: rgba(20,46,82,0.35);
-    color: var(--text);
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    white-space: nowrap;
+  .invite-venue-badge {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
     flex-shrink: 0;
-    position: relative;
-    transition: border-color 0.12s;
-  }
-  .invite-date-btn:hover { border-color: var(--accent); }
-  .invite-date-btn svg { color: var(--muted); flex-shrink: 0; }
-  .invite-slider-wrap {
-    flex: 1;
     display: flex;
     align-items: center;
-    gap: 8px;
-    min-width: 0;
+    justify-content: center;
+    background: radial-gradient(circle at 30% 30%, rgba(255,175,133,0.35), rgba(255,175,133,0.08) 70%);
+    border: 1px solid rgba(255,175,133,0.30);
+    font-size: 22px;
+    line-height: 1;
   }
-  .invite-time-range {
+  .invite-venue-info {
     flex: 1;
-    -webkit-appearance: none;
-    appearance: none;
-    height: 4px;
-    border-radius: 2px;
-    background: rgba(156,189,231,0.20);
-    outline: none;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
   }
-  .invite-time-range::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: var(--accent);
-    border: 2px solid var(--surface, #1a2e4a);
-    cursor: pointer;
-  }
-  .invite-time-range::-moz-range-thumb {
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: var(--accent);
-    border: 2px solid var(--surface, #1a2e4a);
-    cursor: pointer;
-  }
-  .invite-time-readout {
+  .invite-venue-name {
     font-size: 15px;
-    font-weight: 600;
-    color: var(--accent);
-    min-width: 42px;
-    text-align: right;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .invite-venue-when {
+    font-size: 13px;
+    color: var(--muted);
     font-variant-numeric: tabular-nums;
   }
-  .invite-time-hint {
+  .invite-venue-sun {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .invite-venue-sun:empty { display: none; }
+
+  /* ── Chat-bubble preview ───────────────────────────────────────────────── */
+  .invite-bubble-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+  }
+  .invite-bubble-caption {
     font-size: 11px;
     color: var(--muted);
-    text-align: center;
-    margin-bottom: 4px;
+    padding: 0 8px;
   }
+  .invite-bubble {
+    max-width: 88%;
+    padding: 10px 14px;
+    background: rgba(255,175,133,0.16);
+    border: 1px solid rgba(255,175,133,0.22);
+    border-radius: 18px 18px 4px 18px;
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.4;
+    word-break: break-word;
+  }
+
+  /* ── Friends section ───────────────────────────────────────────────────── */
+  .invite-friends-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 4px 4px 0;
+    margin-top: 2px;
+  }
+  .invite-friends-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .invite-friends-toggle {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 4px 4px;
+    transition: opacity 0.12s;
+  }
+  .invite-friends-toggle:hover { opacity: 0.8; }
+
+  .invite-friend-search {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: var(--glass-border-light);
+    background: rgba(20,46,82,0.35);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    outline: none;
+  }
+  .invite-friend-search:focus { border-color: rgba(255,175,133,0.40); }
+  .invite-friend-search::placeholder { color: var(--muted); }
+
   .invite-friends-list {
     display: flex;
     flex-direction: column;
     gap: 2px;
-    max-height: 200px;
     overflow-y: auto;
+    margin: 0 -4px;
   }
+
   .invite-friend-row {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 8px 10px;
-    border-radius: 10px;
+    gap: 12px;
+    padding: 8px 12px;
+    border-radius: 12px;
     cursor: pointer;
+    user-select: none;
     transition: background 0.12s;
+    -webkit-tap-highlight-color: transparent;
   }
-  .invite-friend-row:hover { background: rgba(156,189,231,0.08); }
-  .invite-friend-row input {
-    accent-color: var(--accent);
-    width: 16px;
-    height: 16px;
+  .invite-friend-row:hover,
+  .invite-friend-row:focus-visible { background: var(--accent-dim); outline: none; }
+  .invite-friend-row[hidden] { display: none; }
+
+  .invite-friend-avatar-wrap {
+    position: relative;
+    width: 40px;
+    height: 40px;
     flex-shrink: 0;
   }
   .invite-friend-avatar {
-    width: 32px; height: 32px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     object-fit: cover;
-    flex-shrink: 0;
-    border: 2px solid rgba(156,189,231,0.15);
+    border: 2px solid rgba(156,189,231,0.20);
+    transition: border-color 0.15s, transform 0.15s;
   }
   .invite-friend-init {
-    background: rgba(20,46,82,0.6);
+    background: rgba(20,46,82,0.60);
     color: var(--muted);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 13px; font-weight: 600;
-  }
-  .invite-friend-name {
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--text);
-  }
-  .invite-empty {
-    text-align: center;
-    color: var(--muted);
-    font-size: 13px;
-    padding: 20px 0;
-  }
-  .invite-share-link {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    padding: 10px;
-    border: 1px dashed rgba(156,189,231,0.25);
-    border-radius: 10px;
-    background: none;
-    color: var(--muted);
-    font-size: 13px;
-    font-weight: 500;
-    font-family: 'Inter', sans-serif;
-    cursor: pointer;
-    transition: all 0.15s;
+    font-size: 15px;
+    font-weight: 700;
   }
-  .invite-share-link:hover { border-color: var(--accent); color: var(--accent); }
-  .invite-share-link svg { flex-shrink: 0; }
+  .invite-friend-row[aria-checked="true"] .invite-friend-avatar {
+    border-color: var(--accent);
+    transform: scale(0.94);
+  }
+  .invite-friend-check {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--accent-on, #2a1a0c);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--bg);
+    opacity: 0;
+    transform: scale(0.6);
+    transition: opacity 0.15s, transform 0.15s;
+    pointer-events: none;
+  }
+  .invite-friend-row[aria-checked="true"] .invite-friend-check {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .invite-friend-name {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ── Empty state ──────────────────────────────────────────────────────── */
+  .invite-empty-card {
+    text-align: center;
+    padding: 28px 20px;
+    border-radius: 14px;
+    background: var(--glass-card-bg);
+    backdrop-filter: var(--glass-blur-card);
+    -webkit-backdrop-filter: var(--glass-blur-card);
+    border: var(--glass-border);
+    box-shadow: var(--glass-inset);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .invite-empty-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(156,189,231,0.10);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .invite-empty-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .invite-empty-sub {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  /* ── Footer (dual actions) ─────────────────────────────────────────────── */
   .invite-sheet-footer {
-    padding: 12px 20px 20px;
+    padding: 10px 20px calc(20px + env(safe-area-inset-bottom, 0px));
     border-top: 1px solid rgba(156,189,231,0.12);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .invite-actions-helper {
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+    margin-bottom: 2px;
   }
   .invite-send-btn {
     width: 100%;
@@ -5959,15 +6044,47 @@
     justify-content: center;
     gap: 8px;
     cursor: pointer;
+    transition: opacity 0.15s, transform 0.05s;
   }
-  .invite-send-btn:hover { opacity: 0.9; }
+  .invite-send-btn:hover:not(:disabled) { opacity: 0.92; }
+  .invite-send-btn:active:not(:disabled) { transform: scale(0.99); }
+  .invite-send-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
   .invite-send-btn svg { stroke: currentColor; }
-  /* Desktop: limit invite sheet width and keep the bottom-sheet feel.
-     Override the mobile full-screen height with a comfortable 70vh max. */
+
+  .invite-share-link {
+    width: 100%;
+    height: 48px;
+    border-radius: 999px;
+    background: var(--glass-action-bg);
+    backdrop-filter: var(--glass-blur-action);
+    -webkit-backdrop-filter: var(--glass-blur-action);
+    border: var(--glass-border-light);
+    box-shadow: var(--glass-inset);
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .invite-share-link:hover {
+    border-color: rgba(255,175,133,0.40);
+    color: var(--accent);
+  }
+  .invite-share-link svg { flex-shrink: 0; stroke: currentColor; }
+
+  /* Desktop: cap width, slimmer max-height, keep the bottom-sheet feel. */
   @media (min-width: 640px) {
     .invite-sheet {
-      max-width: 420px;
-      max-height: 70vh;
+      max-width: 440px;
+      max-height: 80vh;
       height: auto;
       left: 50%;
       transform: translateX(-50%) translateY(100%);
