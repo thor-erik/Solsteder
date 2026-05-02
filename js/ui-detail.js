@@ -758,7 +758,6 @@ function _openInviteSheet(venueId) {
   const hasFriends = friends.length > 0;
   const SHOW_SEARCH_AT = 6;
 
-  const checkSvg = `<svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 7 6 11 12 3"/></svg>`;
   const pickSvg = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 7 6 11 12 3"/></svg>`;
   const friendRows = friends.map(f => {
     const initial = (f.name || f.email || '?')[0].toUpperCase();
@@ -767,10 +766,7 @@ function _openInviteSheet(venueId) {
       : `<div class="invite-friend-avatar invite-friend-init">${initial}</div>`;
     const safeName = (f.name || f.email || '').replace(/"/g, '&quot;');
     return `<div class="invite-friend-row" role="checkbox" tabindex="0" aria-checked="false" data-friend-id="${f.id}" data-friend-name="${safeName}" onclick="_toggleInviteFriend(this)" onkeydown="if(event.key===' '||event.key==='Enter'){event.preventDefault();_toggleInviteFriend(this);}">
-      <div class="invite-friend-avatar-wrap">
-        ${avatar}
-        <span class="invite-friend-check" aria-hidden="true">${checkSvg}</span>
-      </div>
+      ${avatar}
       <span class="invite-friend-name">${f.name || f.email}</span>
       <span class="invite-friend-pick" aria-hidden="true">${pickSvg}</span>
     </div>`;
@@ -801,7 +797,10 @@ function _openInviteSheet(venueId) {
 
   const friendsBlock = hasFriends ? `
         <div class="invite-friends-header">
-          <div class="invite-friends-title">${t('invite_friends_section')}</div>
+          <div class="invite-friends-title">
+            <span>${t('invite_friends_section')}</span>
+            <span class="invite-friends-count" id="invite-friends-count"></span>
+          </div>
           <button class="invite-friends-toggle" id="invite-toggle-all" type="button" onclick="_toggleAllInviteFriends()">${t('invite_select_all')}</button>
         </div>
         ${friends.length > SHOW_SEARCH_AT ? `<input type="text" class="invite-friend-search" id="invite-friend-search" placeholder="${t('invite_friend_search_placeholder')}" oninput="_filterInviteFriends(this.value)">` : ''}
@@ -820,6 +819,7 @@ function _openInviteSheet(venueId) {
   // confusion where the disabled coral primary visually outranked the enabled
   // glass secondary.
   const footerBlock = hasFriends ? `
+        <div class="invite-actions-hint" id="invite-actions-hint">${t('invite_actions_hint_share')}</div>
         <button class="invite-send-btn" id="invite-primary-btn" data-mode="share" onclick="_invitePrimaryClick(${venueId})">
           <span id="invite-primary-icon">${shareSvg}</span>
           <span id="invite-primary-label">${t('share_link')}</span>
@@ -828,10 +828,21 @@ function _openInviteSheet(venueId) {
           ${shareSvg}
           <span>${t('share_link')}</span>
         </button>` : `
+        <div class="invite-actions-hint">${t('invite_actions_hint_share')}</div>
         <button class="invite-send-btn" onclick="_shareInviteLink(${venueId})">
           ${shareSvg}
           <span>${t('share_link')}</span>
         </button>`;
+
+  // Bubble preview moved to just above the footer so the receiver-perspective
+  // text ("here's what they'll see") is the last thing the sender reads before
+  // tapping send. The FTS slot sits between the venue card and the friends
+  // list so scrubbing time updates both the venue card sun-til and the bubble.
+  const bubbleBlock = `
+      <div class="invite-bubble-wrap">
+        <div class="invite-bubble-caption">${t('share_message_preview_label')}</div>
+        <div class="invite-bubble" id="invite-message-preview-text">${previewText}</div>
+      </div>`;
 
   sheet.innerHTML = `
     <div class="invite-sheet-grabber" aria-hidden="true"></div>
@@ -850,11 +861,9 @@ function _openInviteSheet(venueId) {
           <div class="invite-venue-sun" id="invite-venue-sun">${sunUntil}</div>
         </div>
       </div>
-      <div class="invite-bubble-wrap">
-        <div class="invite-bubble-caption">${t('share_message_preview_label')}</div>
-        <div class="invite-bubble" id="invite-message-preview-text">${previewText}</div>
-      </div>
+      <div class="invite-fts-slot"></div>
       ${friendsBlock}
+      ${bubbleBlock}
     </div>
     <div class="invite-sheet-footer">
       ${footerBlock}
@@ -975,11 +984,45 @@ function _openInviteSheet(venueId) {
 
   document.body.classList.add('invite-sheet-open');
 
+  // Reparent the live #fts (floating time slider with sun-arc + weather)
+  // into the sheet's slot so the sender can scrub time/date without closing
+  // the sheet. Mirrors the plan-preview pattern (_ppFtsAttach). The shared
+  // timeFromEl + datePicker means the existing onTimeInput/onDateChange
+  // handlers above already pick up scrub changes — no additional wiring.
+  _invFtsAttach();
+
   // Animate in
   requestAnimationFrame(() => {
     overlay.classList.add('open');
     sheet.classList.add('open');
   });
+}
+
+/** Reparent #fts into the invite sheet's slot. CSS rule with .fts-in-invite
+ *  flattens position and width to fill the slot. drawFtsCanvas re-renders at
+ *  the new size. _syncFtsPosition skips while fts-in-invite is set. */
+function _invFtsAttach() {
+  const fts = document.getElementById('fts');
+  const slot = document.querySelector('#invite-sheet .invite-fts-slot');
+  if (!fts || !slot) return;
+  // Lift cleanly from any other dock (detail-panel card, plan-preview slot)
+  fts.classList.remove('fts-in-card', 'fts-in-preview');
+  fts.style.cssText = '';
+  fts.classList.add('fts-in-invite');
+  slot.appendChild(fts);
+  requestAnimationFrame(() => {
+    if (typeof drawFtsCanvas === 'function') drawFtsCanvas();
+  });
+}
+
+/** Reverse: detach FTS from the invite slot back to body. The caller
+ *  (_closeInviteSheet) is responsible for whatever follows. */
+function _invFtsDetach() {
+  const fts = document.getElementById('fts');
+  if (!fts) return;
+  fts.classList.remove('fts-in-invite');
+  fts.style.cssText = '';
+  if (fts.parentNode !== document.body) document.body.appendChild(fts);
 }
 
 /** Toggle a single friend row's selection (avatar-tap pattern, no checkbox). */
@@ -1064,17 +1107,26 @@ function _refreshInvitePrimaryCTA() {
     }
   }
 
+  // Section header — title shows the count fragment ("· 3 av 4" / "· alle valgt"),
+  // toggle button always shows the action ("Velg alle" / "Fjern alle"). Splitting
+  // state from action makes both clearer than the previous combined label.
+  const visibleRows = allRows.filter(r => !r.hidden);
+  const visibleSelected = visibleRows.filter(r => r.getAttribute('aria-checked') === 'true').length;
+  const countEl = sheet.querySelector('#invite-friends-count');
+  if (countEl) {
+    if (visibleSelected === 0) {
+      countEl.textContent = '';
+    } else if (visibleSelected === visibleRows.length) {
+      countEl.textContent = ' ' + t('invite_friends_all');
+    } else {
+      countEl.textContent = ' ' + t('invite_friends_count', { n: visibleSelected, m: visibleRows.length });
+    }
+  }
   const toggle = sheet.querySelector('#invite-toggle-all');
   if (toggle) {
-    const visibleRows = allRows.filter(r => !r.hidden);
-    const visibleSelected = visibleRows.filter(r => r.getAttribute('aria-checked') === 'true').length;
-    if (visibleSelected === 0) {
-      toggle.textContent = t('invite_select_all');
-    } else if (visibleSelected === visibleRows.length) {
-      toggle.textContent = t('invite_clear_all');
-    } else {
-      toggle.textContent = t('invite_n_of_m_selected', { n: visibleSelected, m: visibleRows.length });
-    }
+    toggle.textContent = (visibleSelected === visibleRows.length && visibleRows.length > 0)
+      ? t('invite_clear_all')
+      : t('invite_select_all');
   }
 }
 
@@ -1085,6 +1137,10 @@ function _closeInviteSheet() {
     if (sheet._sliderCleanup) sheet._sliderCleanup();
     sheet.classList.remove('open');
   }
+  // Detach FTS BEFORE the overlay starts removing so the parent path is valid
+  // when we move it back to body. updateDetailPanel below will re-dock it
+  // into the panel's card timeline slot if a venue is currently selected.
+  _invFtsDetach();
   if (overlay) {
     overlay.classList.remove('open');
     setTimeout(() => overlay.remove(), 300);
