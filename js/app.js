@@ -5153,14 +5153,27 @@ function _showCandidateConfirm(c) {
 // ── Intro sequence ────────────────────────────────────────────────────────────
 
 /**
- * Restore date/time/venue saved by authSignInWithGoogle() before the OAuth redirect.
- * Called only on OAuth return, after _skipIntro() has already snapped the UI to now.
+ * Restore the view saved by the auth handlers (auth.js _captureAuthRestoreState)
+ * before the OAuth/magic-link redirect. Called only on auth return, after
+ * _skipIntro() has already snapped the UI to now.
+ *
+ * OAuth (Google/Apple) returns to the same tab, so its snapshot is in
+ * sessionStorage. Magic-link clicks usually open in a fresh tab, so that
+ * snapshot lives in localStorage with a 30-minute TTL guard.
  */
+const _AUTH_RESTORE_TTL_MS = 30 * 60 * 1000;
 function _restorePreAuthState() {
-  let saved;
-  try { saved = JSON.parse(sessionStorage.getItem('solsteder_auth_restore') ?? 'null'); } catch (_) {}
+  let saved = null;
+  try {
+    const raw = sessionStorage.getItem('solsteder_auth_restore')
+             || localStorage.getItem('solsteder_auth_restore');
+    if (raw) saved = JSON.parse(raw);
+  } catch (_) {}
+  // Always clear, even if stale — don't let it leak into a future session
+  try { sessionStorage.removeItem('solsteder_auth_restore'); } catch (_) {}
+  try { localStorage.removeItem('solsteder_auth_restore'); } catch (_) {}
   if (!saved) return;
-  sessionStorage.removeItem('solsteder_auth_restore');
+  if (saved.savedAt && Date.now() - saved.savedAt > _AUTH_RESTORE_TTL_MS) return;
 
   if (saved.date) datePicker.value = saved.date;
 
@@ -5175,6 +5188,30 @@ function _restorePreAuthState() {
     timeFromEl.value = saved.time;
     updateRangeFill();
   }
+
+  if (saved.area && typeof setAreaFilter === 'function') {
+    setAreaFilter(saved.area);
+  }
+
+  if (saved.sortBy && saved.sortBy !== activeSortBy) {
+    activeSortBy = saved.sortBy;
+    if (typeof updateSortBtns === 'function') updateSortBtns();
+  }
+
+  // Restore mobile panel state if it was non-default. Only re-apply known state
+  // classes to avoid clobbering intro-hidden or other transient classes.
+  if (saved.panel) {
+    const panelEl = document.getElementById('panel');
+    if (panelEl) {
+      const STATE_CLASSES = ['mobile-hidden', 'mobile-expanded', 'mobile-fullscreen'];
+      const want = STATE_CLASSES.find(c => saved.panel.split(/\s+/).includes(c));
+      if (want) {
+        panelEl.classList.remove(...STATE_CLASSES);
+        panelEl.classList.add(want);
+      }
+    }
+  }
+
   update();
 
   if (saved.venueId != null) {
@@ -5408,6 +5445,16 @@ function _introCheckReady() {
       return;
     }
 
+    // Returning visitors skip the intro animation. ?intro=1 forces a replay
+    // and clears the flag so the next plain reload re-shows it once.
+    const _forceIntro = new URLSearchParams(window.location.search).has('intro');
+    if (_forceIntro) {
+      try { localStorage.removeItem('solsteder_intro_seen'); } catch (_) {}
+    } else if (localStorage.getItem('solsteder_intro_seen') === '1') {
+      _skipIntro();
+      return;
+    }
+
     _runIntroSequence();
   }
 }
@@ -5554,6 +5601,8 @@ function _runIntroSequence() {
               if (_sharedVenueId) selectVenue(_sharedVenueId, true);
               // Start notification system after intro completes
               if (typeof _notifInit === 'function') _notifInit();
+              // Mark the intro as seen so future visits skip straight to the map.
+              try { localStorage.setItem('solsteder_intro_seen', '1'); } catch (_) {}
             }, 350);
           }, 700);
         }, 1900);

@@ -49,15 +49,24 @@ async function authSetUserRole(email, role) {
   return { data, error };
 }
 
+// Snapshot enough of the current view to land the user back where they were
+// after auth completes. Read by _restorePreAuthState() in app.js.
+function _captureAuthRestoreState() {
+  return {
+    date:    typeof datePicker   !== 'undefined' ? datePicker.value             : null,
+    time:    typeof timeFromEl   !== 'undefined' ? parseFloat(timeFromEl.value) : null,
+    nowMode: typeof nowMode      !== 'undefined' ? nowMode                      : false,
+    venueId: typeof selectedId   !== 'undefined' ? selectedId                   : null,
+    area:    typeof activeArea   !== 'undefined' ? activeArea                   : '',
+    sortBy:  typeof activeSortBy !== 'undefined' ? activeSortBy                 : 'distance',
+    panel:   document.getElementById('panel')?.className || '',
+    savedAt: Date.now(),
+  };
+}
+
 async function authSignInWithGoogle() {
-  // Persist current app state so it can be restored after the OAuth redirect returns
   try {
-    sessionStorage.setItem('solsteder_auth_restore', JSON.stringify({
-      date:    typeof datePicker !== 'undefined' ? datePicker.value           : null,
-      time:    typeof timeFromEl !== 'undefined' ? parseFloat(timeFromEl.value) : null,
-      nowMode: typeof nowMode    !== 'undefined' ? nowMode                    : false,
-      venueId: typeof selectedId !== 'undefined' ? selectedId                 : null,
-    }));
+    sessionStorage.setItem('solsteder_auth_restore', JSON.stringify(_captureAuthRestoreState()));
   } catch (_) {}
   await _supabase.auth.signInWithOAuth({
     provider: 'google',
@@ -67,12 +76,7 @@ async function authSignInWithGoogle() {
 
 async function authSignInWithApple() {
   try {
-    sessionStorage.setItem('solsteder_auth_restore', JSON.stringify({
-      date:    typeof datePicker !== 'undefined' ? datePicker.value           : null,
-      time:    typeof timeFromEl !== 'undefined' ? parseFloat(timeFromEl.value) : null,
-      nowMode: typeof nowMode    !== 'undefined' ? nowMode                    : false,
-      venueId: typeof selectedId !== 'undefined' ? selectedId                 : null,
-    }));
+    sessionStorage.setItem('solsteder_auth_restore', JSON.stringify(_captureAuthRestoreState()));
   } catch (_) {}
   await _supabase.auth.signInWithOAuth({
     provider: 'apple',
@@ -81,6 +85,11 @@ async function authSignInWithApple() {
 }
 
 async function authSignInWithMagicLink(email) {
+  // Magic-link clicks usually land in a fresh tab where sessionStorage is
+  // empty, so persist to localStorage. _restorePreAuthState() enforces a TTL.
+  try {
+    localStorage.setItem('solsteder_auth_restore', JSON.stringify(_captureAuthRestoreState()));
+  } catch (_) {}
   const { error } = await _supabase.auth.signInWithOtp({
     email,
     options: { emailRedirectTo: window.location.origin }
