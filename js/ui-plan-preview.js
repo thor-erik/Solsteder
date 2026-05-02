@@ -557,6 +557,22 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     if (typeof _showToast === 'function') _showToast(t('plan_preview_joined'));
     if (typeof _aTrack === 'function') _aTrack('plan_preview_accept', { venue_id: venue.id, has_invite_id: !!opts.inviteId, off_plan_time: !!arrivalIso });
     closePlanPreview();
+    // Post-accept question panel — slides up from the bottom over the peeked
+    // detail panel after the takeover finishes closing. Replaces the prior
+    // in-social-card banners (friend-prompt + share-nudge) which felt like
+    // misplaced notifications. Delay matches the close-animation tail (320ms).
+    setTimeout(() => {
+      if (typeof _openPostAcceptPanel !== 'function') return;
+      const whenLabel = (typeof _inviteWhenLabel === 'function' && opts.plannedAt)
+        ? _inviteWhenLabel(opts.plannedAt.slice(0, 10), planHour) : '';
+      _openPostAcceptPanel({
+        venueId:   venue.id,
+        venueName: venue.name,
+        planId:    opts.planTokenP || null,
+        plannedAt: opts.plannedAt || null,
+        whenLabel,
+      });
+    }, 360);
   };
   const declineBtn = el.querySelector('#pp-decline');
   if (declineBtn) declineBtn.onclick = async () => {

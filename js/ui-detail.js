@@ -416,49 +416,13 @@ function _renderSocialSection(v) {
   // Beacon icon: dot with signal arcs
   const beaconSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M5.64 5.64a9 9 0 0 0 0 12.73"/><path d="M18.36 5.64a9 9 0 0 1 0 12.73"/><path d="M8.46 8.46a5 5 0 0 0 0 7.08"/><path d="M15.54 8.46a5 5 0 0 1 0 7.08"/></svg>`;
 
-  // Post-accept prompts. Priority:
-  //   1. Friend-add (when receiver isn't friends with inviter — set in app.js
-  //      token resolution). Adding the friend matters more than sharing.
-  //   2. Share nudge (when receiver IS friends with inviter — set by
-  //      ui-plan-preview accept handler). Once they're in, surface the easy
-  //      ask: invite more friends to the same plan.
-  // Only one shows at a time. Both clear independently.
-  let friendPromptHtml = '';
-  const fp = (typeof window !== 'undefined') ? window._pendingFriendPrompt : null;
-  if (fp && fp.inviterId) {
-    const nameDisp = (fp.inviterName || '').replace(/[<>"]/g, '');
-    friendPromptHtml = `
-      <div class="friend-prompt-banner" id="friend-prompt-banner">
-        <span class="friend-prompt-banner-text">${t('friend_prompt_after_accept', { name: nameDisp || '…' })}</span>
-        <button class="friend-prompt-banner-add"  onclick="_handleFriendPromptAdd('${fp.inviterId}')">${t('friend_prompt_add')}</button>
-        <button class="friend-prompt-banner-skip" onclick="_handleFriendPromptDismiss('${fp.inviterId}')">${t('friend_prompt_dismiss')}</button>
-      </div>`;
-  }
-
-  let shareNudgeHtml = '';
-  const sn = (typeof window !== 'undefined') ? window._pendingShareNudge : null;
-  if (!fp && sn && String(sn.venueId) === String(v.id)) {
-    const shareIconSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>`;
-    const calIconSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;
-    shareNudgeHtml = `
-      <div class="post-accept-actions" id="share-nudge-banner">
-        <div class="post-accept-headline">${t('post_accept_headline')}</div>
-        <div class="post-accept-row">
-          <button class="pa-btn pa-btn-share" onclick="_handleShareNudgeShare(${v.id})">
-            ${shareIconSvg}<span>${t('post_accept_share')}</span>
-          </button>
-          <button class="pa-btn pa-btn-cal" onclick="_handleCalendarAdd(${v.id})">
-            ${calIconSvg}<span>${t('post_accept_calendar')}</span>
-          </button>
-        </div>
-        <button class="pa-dismiss" onclick="_handleShareNudgeDismiss()">${t('friend_prompt_dismiss')}</button>
-      </div>`;
-  }
+  // Post-accept prompts (friend-add + share-nudge) used to render as banners
+  // here in the social-card. They now slide up as a dedicated question panel
+  // (_openPostAcceptPanel) right after closePlanPreview, so the social-card
+  // stays focused on the venue's persistent social context.
 
   return `
     <div class="social-card">
-      ${friendPromptHtml}
-      ${shareNudgeHtml}
       ${friendsHtml}
       <div class="social-btns">
         <button class="social-btn social-btn-invite" onclick="_openInviteSheet(${v.id})">
@@ -645,6 +609,178 @@ function _handleCalendarAdd(venueId) {
   if (typeof window !== 'undefined') window._pendingShareNudge = null;
   const banner = document.getElementById('share-nudge-banner');
   if (banner) banner.remove();
+}
+
+// ── Post-accept question panel ────────────────────────────────────────────────
+
+/** Build the queue of post-accept questions from context. Filters out anything
+ *  that doesn't apply (no friend-prompt = skip friend question; share-nudge
+ *  only fires when receiver is friends with inviter; calendar always offered).
+ *  Order: friend-add first (highest social value), then calendar, then share. */
+function _buildPostAcceptQueue(opts) {
+  const queue = [];
+  const fp = (typeof window !== 'undefined') ? window._pendingFriendPrompt : null;
+  const sn = (typeof window !== 'undefined') ? window._pendingShareNudge : null;
+
+  if (fp && fp.inviterId && fp.inviterName) {
+    queue.push({
+      type: 'friend',
+      icon: '👥',
+      titleKey: 'pap_q_friend_title',
+      subKey:   'pap_q_friend_sub',
+      primaryKey: 'pap_q_friend_primary',
+      titleVars: { name: (fp.inviterName || '').replace(/[<>"]/g, '') },
+      onPrimary: () => _handleFriendPromptAdd(fp.inviterId),
+      onSkip:    () => _handleFriendPromptDismiss(fp.inviterId),
+    });
+  }
+  // Calendar is always offered when we have a venue + plannedAt.
+  if (opts.venueId && opts.plannedAt) {
+    queue.push({
+      type: 'calendar',
+      icon: '📅',
+      titleKey: 'pap_q_calendar_title',
+      subKey:   'pap_q_calendar_sub',
+      primaryKey: 'pap_q_calendar_primary',
+      onPrimary: () => _handleCalendarAdd(opts.venueId),
+      onSkip:    () => {},
+    });
+  }
+  if (sn && String(sn.venueId) === String(opts.venueId)) {
+    queue.push({
+      type: 'share',
+      icon: '🔗',
+      titleKey: 'pap_q_share_title',
+      subKey:   'pap_q_share_sub',
+      primaryKey: 'pap_q_share_primary',
+      onPrimary: () => _handleShareNudgeShare(opts.venueId),
+      onSkip:    () => _handleShareNudgeDismiss(),
+    });
+  }
+  return queue;
+}
+
+/** Open the post-accept question panel. Slides up from the bottom over the
+ *  detail panel (which is in peek state) + map. Sequential question carousel:
+ *  user answers/skips → auto-advance → close after the last question. */
+function _openPostAcceptPanel(opts) {
+  const existing = document.getElementById('post-accept-overlay');
+  if (existing) existing.remove();
+
+  const queue = _buildPostAcceptQueue(opts);
+  if (!queue.length) return;
+
+  const venueName = opts.venueName || '';
+  const subtitle = (venueName && opts.whenLabel)
+    ? t('pap_subtitle', { venue: venueName, when: opts.whenLabel })
+    : (venueName || '');
+
+  const overlay = document.createElement('div');
+  overlay.id = 'post-accept-overlay';
+  overlay.className = 'post-accept-overlay';
+  overlay.onclick = e => { if (e.target === overlay) _closePostAcceptPanel(); };
+
+  const panel = document.createElement('div');
+  panel.id = 'post-accept-panel';
+  panel.className = 'post-accept-panel';
+  panel._queue = queue;
+  panel._idx = 0;
+
+  panel.innerHTML = `
+    <div class="pap-grabber" aria-hidden="true"></div>
+    <div class="pap-header">
+      <div>
+        <div class="pap-title">${t('pap_title')}</div>
+        ${subtitle ? `<div class="pap-subtitle">${subtitle}</div>` : ''}
+      </div>
+      <button class="pap-close" onclick="_closePostAcceptPanel()" aria-label="${t('close') || 'Close'}">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/></svg>
+      </button>
+    </div>
+    <div class="pap-progress" id="pap-progress"></div>
+    <div class="pap-body" id="pap-body"></div>`;
+
+  overlay.appendChild(panel);
+  document.body.appendChild(overlay);
+  _renderPostAcceptCard();
+
+  requestAnimationFrame(() => {
+    overlay.classList.add('open');
+    panel.classList.add('open');
+  });
+}
+
+/** Render the current question card + progress dots. Called on open and on
+ *  each advance. Skips the dots when there's only one question. */
+function _renderPostAcceptCard() {
+  const panel = document.getElementById('post-accept-panel');
+  if (!panel) return;
+  const queue = panel._queue || [];
+  const idx = panel._idx || 0;
+  const q = queue[idx];
+  if (!q) { _closePostAcceptPanel(); return; }
+
+  const progressEl = panel.querySelector('#pap-progress');
+  if (progressEl) {
+    if (queue.length <= 1) {
+      progressEl.innerHTML = '';
+    } else {
+      progressEl.innerHTML = queue.map((_, i) =>
+        `<span class="pap-dot${i === idx ? ' pap-dot-active' : ''}${i < idx ? ' pap-dot-done' : ''}"></span>`
+      ).join('');
+    }
+  }
+
+  const titleVars = q.titleVars || {};
+  const bodyEl = panel.querySelector('#pap-body');
+  if (bodyEl) {
+    bodyEl.innerHTML = `
+      <div class="pap-card">
+        <div class="pap-icon" aria-hidden="true">${q.icon}</div>
+        <div class="pap-q-title">${t(q.titleKey, titleVars)}</div>
+        <div class="pap-q-sub">${t(q.subKey)}</div>
+        <button class="pap-q-primary" onclick="_postAcceptAnswer(true)">${t(q.primaryKey)}</button>
+        <button class="pap-q-skip" onclick="_postAcceptAnswer(false)">${t('pap_q_skip')}</button>
+      </div>`;
+  }
+}
+
+/** Apply the current question's primary or skip action, then advance. */
+function _postAcceptAnswer(isPrimary) {
+  const panel = document.getElementById('post-accept-panel');
+  if (!panel) return;
+  const queue = panel._queue || [];
+  const idx = panel._idx || 0;
+  const q = queue[idx];
+  if (q) {
+    try {
+      if (isPrimary) q.onPrimary && q.onPrimary();
+      else           q.onSkip    && q.onSkip();
+      if (typeof _aTrack === 'function') _aTrack('post_accept_answer', { type: q.type, action: isPrimary ? 'primary' : 'skip' });
+    } catch (e) { /* never block the carousel on a handler failure */ }
+  }
+  panel._idx = idx + 1;
+  if (panel._idx >= queue.length) {
+    _closePostAcceptPanel();
+  } else {
+    _renderPostAcceptCard();
+  }
+}
+
+function _closePostAcceptPanel() {
+  const overlay = document.getElementById('post-accept-overlay');
+  const panel = document.getElementById('post-accept-panel');
+  if (panel) panel.classList.remove('open');
+  if (overlay) {
+    overlay.classList.remove('open');
+    setTimeout(() => overlay.remove(), 300);
+  }
+  // Belt-and-suspenders: clear any post-accept stash (so reopening the
+  // detail panel later doesn't surface the legacy banners).
+  if (typeof window !== 'undefined') {
+    window._pendingFriendPrompt = null;
+    window._pendingShareNudge = null;
+  }
 }
 
 // ── Instant check-in toggle ──────────────────────────────────────────────────
