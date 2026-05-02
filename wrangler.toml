@@ -18,3 +18,23 @@ zone_name = "findshades.app"
 
 [assets]
 directory = "www"
+
+# ── Short-link KV binding (used by /api/shorten + /s/<id>) ────────────────────
+# Cloudflare Pages reads function bindings from the dashboard, NOT from this
+# file in production. To enable the short-link feature:
+#
+#   1. Cloudflare dashboard → Workers & Pages → KV → Create namespace
+#      (e.g. "solsteder-shortlinks")
+#   2. Pages project Settings → Functions → KV namespace bindings
+#      Variable name: SHORTLINKS
+#      KV namespace:  <the namespace from step 1>
+#
+# Without this binding the /api/shorten endpoint returns 503 and the client
+# gracefully falls back to the long /i/<token> URL — the feature degrades
+# cleanly, nothing breaks.
+#
+# For `wrangler dev` local testing, uncomment and fill in the IDs below:
+# [[kv_namespaces]]
+# binding = "SHORTLINKS"
+# id = "<TODO production namespace id>"
+# preview_id = "<TODO preview namespace id>"

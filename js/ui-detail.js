@@ -733,6 +733,52 @@ function _openInviteSheet(venueId) {
   // so the synchronous _shareInviteLink below can read sheet._planId without
   // awaiting anything between the user's click and navigator.share().
   sheet._planId = null;
+  sheet._shortUrl = null;
+  sheet._shortUrlKey = null;
+  let shortenTimer = null;
+  let inFlightShortenKey = null;
+
+  // Eager shortener — generates a /s/<id> URL for the current token via KV.
+  // Triggered when plan-create lands AND on each time/date change (debounced)
+  // so the cached short URL stays in sync with what the message preview shows.
+  // Falls back gracefully — if shortening fails the share path uses the long
+  // URL synchronously, never blocks the user.
+  function _eagerShortenUrl() {
+    clearTimeout(shortenTimer);
+    shortenTimer = setTimeout(async () => {
+      if (document.getElementById('invite-sheet') !== sheet) return;
+      const user = (typeof authCurrentUser === 'function') ? authCurrentUser() : null;
+      if (!user) return;
+      const d = (typeof datePicker !== 'undefined') ? datePicker.value : curDate;
+      const h = (typeof timeFromEl !== 'undefined') ? parseFloat(timeFromEl.value) : curHour;
+      const hInt = Math.floor(h);
+      const mInt = Math.round((h - hInt) * 60);
+      const timeVal = `${d}T${String(hInt).padStart(2,'0')}:${String(mInt).padStart(2,'0')}`;
+      const tokenData = { u: user.id, v: venueId, t: timeVal };
+      if (sheet._planId) tokenData.p = sheet._planId;
+      const token = btoa(JSON.stringify(tokenData));
+      const key = `${token}`;
+      if (key === sheet._shortUrlKey || key === inFlightShortenKey) return;
+      inFlightShortenKey = key;
+      try {
+        const res = await fetch('/api/shorten', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ token }),
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data && data.id && document.getElementById('invite-sheet') === sheet) {
+          sheet._shortUrl = `${location.origin}/s/${data.id}`;
+          sheet._shortUrlKey = key;
+        }
+      } catch (e) { /* graceful — fallback to long URL on share */ }
+      finally {
+        if (inFlightShortenKey === key) inFlightShortenKey = null;
+      }
+    }, 400);
+  }
+
   (async () => {
     if (typeof _supabase === 'undefined') return;
     const user = (typeof authCurrentUser === 'function') ? authCurrentUser() : null;
@@ -748,7 +794,24 @@ function _openInviteSheet(venueId) {
         sheet._planId = plan.id;
       }
     } catch (e) { /* graceful — share-link still works without plan_id */ }
+    // Plan id is now available (or absent); kick off the shortener regardless.
+    _eagerShortenUrl();
   })();
+
+  // Re-shorten on time/date change so the cached short URL matches the
+  // current pickers (otherwise the receiver would land on a stale time).
+  const _origOnTimeInput = onTimeInput;
+  const _origOnDateChange = onDateChange;
+  const _shortenOnChange = () => _eagerShortenUrl();
+  if (typeof timeFromEl !== 'undefined' && timeFromEl) timeFromEl.addEventListener('input', _shortenOnChange);
+  if (typeof datePicker !== 'undefined' && datePicker) datePicker.addEventListener('change', _shortenOnChange);
+  const _origCleanup = sheet._sliderCleanup;
+  sheet._sliderCleanup = () => {
+    if (_origCleanup) _origCleanup();
+    clearTimeout(shortenTimer);
+    if (typeof timeFromEl !== 'undefined' && timeFromEl) timeFromEl.removeEventListener('input', _shortenOnChange);
+    if (typeof datePicker !== 'undefined' && datePicker) datePicker.removeEventListener('change', _shortenOnChange);
+  };
 
   document.body.classList.add('invite-sheet-open');
 
@@ -1030,8 +1093,11 @@ function _shareInviteLink(venueId, overrides = {}) {
   const tokenData = { u: user.id, v: venueId, t: timeVal };
   if (planId) tokenData.p = planId;
   const data = btoa(JSON.stringify(tokenData));
-  // Prefer path-form `/i/<token>` (server-rendered OG preview); SPA route `#invite/...` still works
-  const url = `${location.origin}${location.pathname.replace(/\/$/, '')}/i/${data}`;
+  // Prefer the eager-shortened /s/<id> URL when the invite sheet has one
+  // cached. Fall back to the canonical long /i/<token> URL — both routes
+  // resolve to the same OG-preview render and SPA bounce.
+  const longUrl = `${location.origin}${location.pathname.replace(/\/$/, '')}/i/${data}`;
+  const url = (sheet && sheet._shortUrl) || overrides.url || longUrl;
   const v = typeof VENUES !== 'undefined' ? VENUES.find(x => x.id === venueId) : null;
   // Inline the URL into the body — Web Share platforms vary in how they merge
   // text + url, so the only reliable way to ensure "Bli med: <link>" reads
