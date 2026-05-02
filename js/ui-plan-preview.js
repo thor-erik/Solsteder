@@ -322,28 +322,6 @@ function _ppWxDetail(wx) {
   return parts.join(' · ');
 }
 
-/** Compose the inviter eyebrow line that sits above the venue title. Mode-dependent. */
-function _ppInviterLine(mode, opts) {
-  if (mode === 'preview') return '';                                    // preview mode: no eyebrow
-  if (opts.inviterName) return t('pp_eyebrow_invited_by', { name: opts.inviterName });
-  return t('pp_eyebrow_invited');                                       // anonymous inviter
-}
-
-/** Compose a short tagline under the venue meta. Mode-dependent. */
-function _ppTagline(mode, opts, venue, planHour, animateTo) {
-  const time = (typeof formatHour === 'function') ? formatHour(planHour) : '';
-  const sunUntil = (animateTo > planHour + 0.05 && typeof formatHour === 'function')
-    ? formatHour(animateTo) : null;
-  if (mode === 'invite' || mode === 'invite-anon') {
-    return sunUntil
-      ? t('pp_tagline_invite_with_sun', { time, sunUntil })
-      : t('pp_tagline_invite', { time });
-  }
-  return sunUntil
-    ? t('pp_tagline_preview_sun', { sunUntil })
-    : '';
-}
-
 function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   const el = document.createElement('div');
   el.id = 'plan-preview';
@@ -353,10 +331,6 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   const wxIcon   = _ppWxIcon(wx);
   const wxTemp   = (wx && wx.temp != null) ? `${Math.round(wx.temp)}°` : '';
   const wxDetail = _ppWxDetail(wx);
-
-  const sunRange = (animateTo > planHour + 0.05)
-    ? `${formatHour(planHour)} → ${formatHour(animateTo)}`
-    : formatHour(planHour);
 
   // Attendees (logged-in only — getPlansForVenue is empty for anonymous users)
   let attendeesHtml = '';
@@ -408,32 +382,54 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     ctaHtml = `<button class="pp-cta pp-cta-accept" id="pp-close-cta">${t('close')}</button>`;
   }
 
-  const eyebrow = _ppInviterLine(opts.mode || 'preview', opts);
-  const tagline = _ppTagline(opts.mode || 'preview', opts, venue, planHour, animateTo);
+  const isInvite = (opts.mode === 'invite' || opts.mode === 'invite-anon');
+  const inviterAvatarHtml = isInvite
+    ? (opts.inviterAvatarUrl
+        ? `<img class="pp-inviter-av" src="${opts.inviterAvatarUrl}" alt="">`
+        : `<div class="pp-inviter-av pp-inviter-av-init">${(opts.inviterName || '?')[0].toUpperCase()}</div>`)
+    : '';
+  const inviterText = isInvite
+    ? (opts.inviterName ? t('pp_eyebrow_invited_by', { name: opts.inviterName }) : t('pp_eyebrow_invited'))
+    : '';
+
+  // Sun-til chip on the right of the venue row (replaces the cryptic
+  // "{time} → {sunUntil}" arrow and the "kl. {time} · sol til {sunUntil}" sub).
+  const sunUntilLabel = (animateTo > planHour + 0.05 && typeof formatHour === 'function')
+    ? t('invite_sun_until', { time: formatHour(animateTo) })
+    : '';
+
+  const meetingTimeHtml = `
+    <div class="pp-meet-row">
+      <span class="pp-meet-label">${t('pp_meet_label')}</span>
+      <span class="pp-meet-time" id="pp-meet-time">${formatHour(planHour)}</span>
+    </div>`;
 
   el.innerHTML = `
-    <div class="pp-top">
+    <div class="pp-top ${isInvite ? 'pp-top-invite' : ''}">
       <button class="pp-back" id="pp-back" aria-label="${t('back')}">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
+      ${isInvite ? `
+        <div class="pp-inviter">
+          ${inviterAvatarHtml}
+          <div class="pp-inviter-text">${inviterText}</div>
+        </div>
+      ` : ''}
       <div class="pp-wx">
         <span class="pp-wx-icon">${wxIcon}</span>
         ${wxTemp ? `<span class="pp-wx-temp">${wxTemp}</span>` : ''}
-        ${wxDetail ? `<span class="pp-wx-detail">${wxDetail}</span>` : ''}
+        ${wxDetail && !isInvite ? `<span class="pp-wx-detail">${wxDetail}</span>` : ''}
       </div>
     </div>
     <div class="pp-bottom">
-      ${eyebrow ? `<div class="pp-eyebrow">${eyebrow}</div>` : ''}
       <div class="pp-card-row">
         <div class="pp-card-left">
           <div class="pp-card-name">${venue.name}</div>
           ${venue.area ? `<div class="pp-card-meta">${venue.area}</div>` : ''}
         </div>
-        <div class="pp-card-right">
-          <div class="pp-card-hero">${sunRange}</div>
-          ${tagline ? `<div class="pp-card-sub">${tagline}</div>` : ''}
-        </div>
+        ${sunUntilLabel ? `<div class="pp-sun-chip">☀️ ${sunUntilLabel}</div>` : ''}
       </div>
+      ${meetingTimeHtml}
       <div class="pp-fts-slot"></div>
       <div class="pp-readout-row">
         <span class="pp-readout-label">${t('time_label')}</span>

@@ -501,6 +501,14 @@ function _fmtInviteConfirm(venueName, dateStr, hour) {
   return t('invite_confirm', { venue: venueName, date: dateLabel, time: timeLabel });
 }
 
+/** Short date+time line for the venue card. The venue name is already the
+ *  card title, so we don't repeat it here. */
+function _fmtInviteWhen(dateStr, hour) {
+  const dateLabel = _fmtInviteDate(dateStr);
+  const timeLabel = typeof formatHour === 'function' ? formatHour(hour) : `${Math.floor(hour)}:${String(Math.round((hour % 1) * 60)).padStart(2, '0')}`;
+  return t('invite_when', { date: dateLabel, time: timeLabel });
+}
+
 /** Compute "sun until {time}" badge text for the venue card. Returns '' if none. */
 function _fmtInviteSunUntil(v, dateStr, hour) {
   if (!v || typeof computeSunWindows !== 'function') return '';
@@ -533,6 +541,7 @@ function _openInviteSheet(venueId) {
   const SHOW_SEARCH_AT = 6;
 
   const checkSvg = `<svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 7 6 11 12 3"/></svg>`;
+  const pickSvg = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 7 6 11 12 3"/></svg>`;
   const friendRows = friends.map(f => {
     const initial = (f.name || f.email || '?')[0].toUpperCase();
     const avatar = f.avatar_url
@@ -545,6 +554,7 @@ function _openInviteSheet(venueId) {
         <span class="invite-friend-check" aria-hidden="true">${checkSvg}</span>
       </div>
       <span class="invite-friend-name">${f.name || f.email}</span>
+      <span class="invite-friend-pick" aria-hidden="true">${pickSvg}</span>
     </div>`;
   }).join('');
 
@@ -557,7 +567,7 @@ function _openInviteSheet(venueId) {
   const curDate = typeof datePicker !== 'undefined' ? datePicker.value : new Date().toISOString().slice(0, 10);
   const curHour = typeof timeFromEl !== 'undefined' ? parseFloat(timeFromEl.value) : new Date().getHours();
 
-  const venueWhen = _fmtInviteConfirm(venueName, curDate, curHour);
+  const venueWhen = _fmtInviteWhen(curDate, curHour);
   const sunUntil = v ? _fmtInviteSunUntil(v, curDate, curHour) : '';
   const previewText = v ? _composeInviteShareText(v, curDate, curHour) : '';
 
@@ -586,13 +596,17 @@ function _openInviteSheet(venueId) {
           <div class="invite-empty-sub">${t('invite_no_friends_sub')}</div>
         </div>`;
 
+  // Footer: morphing primary. With 0 selected, primary IS "Del lenke" (filled
+  // coral). With 1+ selected, primary becomes "Send til X" and "Del lenke" is
+  // shown alongside as a glass-action secondary. Avoids the disabled-button
+  // confusion where the disabled coral primary visually outranked the enabled
+  // glass secondary.
   const footerBlock = hasFriends ? `
-        <div class="invite-actions-helper">${t('invite_actions_helper')}</div>
-        <button class="invite-send-btn" id="invite-primary-btn" disabled onclick="_sendInvite(${venueId})">
-          ${sendSvg}
-          <span id="invite-primary-label">${t('send_invite')}</span>
+        <button class="invite-send-btn" id="invite-primary-btn" data-mode="share" onclick="_invitePrimaryClick(${venueId})">
+          <span id="invite-primary-icon">${shareSvg}</span>
+          <span id="invite-primary-label">${t('share_link')}</span>
         </button>
-        <button class="invite-share-link" type="button" onclick="_shareInviteLink(${venueId})">
+        <button class="invite-share-link" id="invite-secondary-btn" type="button" onclick="_shareInviteLink(${venueId})" hidden>
           ${shareSvg}
           <span>${t('share_link')}</span>
         </button>` : `
@@ -642,7 +656,7 @@ function _openInviteSheet(venueId) {
     const d = (typeof datePicker !== 'undefined') ? datePicker.value : curDate;
     const h = (typeof timeFromEl !== 'undefined') ? parseFloat(timeFromEl.value) : curHour;
     const when = sheet.querySelector('#invite-venue-when');
-    if (when) when.textContent = _fmtInviteConfirm(sheet._venueName, d, h);
+    if (when) when.textContent = _fmtInviteWhen(d, h);
     const sun = sheet.querySelector('#invite-venue-sun');
     if (sun) sun.textContent = _fmtInviteSunUntil(sheet._venue, d, h);
     const prev = sheet.querySelector('#invite-message-preview-text');
@@ -719,7 +733,16 @@ function _filterInviteFriends(query) {
   _refreshInvitePrimaryCTA();
 }
 
-/** Update the primary CTA label/disabled state and the select-all toggle text
+/** Dispatch the morphing primary button to the right action based on its
+ *  current data-mode (set by _refreshInvitePrimaryCTA from selection state). */
+function _invitePrimaryClick(venueId) {
+  const btn = document.getElementById('invite-primary-btn');
+  const mode = btn && btn.getAttribute('data-mode');
+  if (mode === 'send') return _sendInvite(venueId);
+  return _shareInviteLink(venueId);
+}
+
+/** Update the primary CTA (morphing label/icon/mode + select-all toggle text)
  *  based on current selection. Called on every selection change. */
 function _refreshInvitePrimaryCTA() {
   const sheet = document.getElementById('invite-sheet');
@@ -733,18 +756,30 @@ function _refreshInvitePrimaryCTA() {
 
   const btn = sheet.querySelector('#invite-primary-btn');
   const label = sheet.querySelector('#invite-primary-label');
+  const icon  = sheet.querySelector('#invite-primary-icon');
+  const secondary = sheet.querySelector('#invite-secondary-btn');
   if (btn && label) {
-    btn.disabled = n === 0;
     if (n === 0) {
-      label.textContent = t('send_invite');
-    } else if (n === 1) {
-      const name = selectedRows[0].getAttribute('data-friend-name') || '';
-      const firstName = name.split(/\s+/)[0] || name;
-      label.textContent = t('invite_send_to_one', { name: firstName });
-    } else if (n === total) {
-      label.textContent = t('invite_send_to_all', { n });
+      // 0 selected → primary IS "Del lenke" (no disabled state, no helper noise).
+      btn.setAttribute('data-mode', 'share');
+      label.textContent = t('share_link');
+      if (icon) icon.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>`;
+      if (secondary) secondary.hidden = true;
     } else {
-      label.textContent = t('invite_send_to_many', { n });
+      // 1+ selected → primary becomes "Send til X" and the secondary "Del lenke"
+      // surfaces alongside.
+      btn.setAttribute('data-mode', 'send');
+      if (icon) icon.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2 11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`;
+      if (n === 1) {
+        const name = selectedRows[0].getAttribute('data-friend-name') || '';
+        const firstName = name.split(/\s+/)[0] || name;
+        label.textContent = t('invite_send_to_one', { name: firstName });
+      } else if (n === total) {
+        label.textContent = t('invite_send_to_all', { n });
+      } else {
+        label.textContent = t('invite_send_to_many', { n });
+      }
+      if (secondary) secondary.hidden = false;
     }
   }
 
