@@ -120,3 +120,4 @@ Avhenger av at Fase 3 er på plass.
 - [~] Favoritter synket på tvers av enheter (krever backend/Supabase)
 - [?] 7-dagers sol-prognose (pro-funksjon)
 - [?] Intro-sekvens: hopp over for tilbakevendende brukere via localStorage (én gang per sesjon e.l.) — avgjøres når vi har nok brukere til å si at animasjonen er kjent
+- [ ] Smart auto-shift av møtetid på accept-page: når en mottaker velger en ankomsttid som avviker betydelig (f.eks. >1t) fra `planned_at`, OG ingen andre har akseptert ennå, oppdater planens `planned_at` automatisk til den nye tiden og varsle inviteren ("{name} flyttet møtet til {time}"). Bredere "foreslå annen dag/tid"-flyt kan bygges på toppen som en tredje knapp ved siden av Aksepter/Avslå med backend-skriving til en `proposed_at`-kolonne. Tenk gjennom: terskel for "betydelig avvik", hva skjer hvis mottaker 2 også vil shifte, om inviter kan opt-ute, og om mottakeren får en tydelig "dette flytter møtet"-bekreftelse før tap.

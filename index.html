@@ -6122,11 +6122,16 @@
   body.plan-preview-active #qc-wrap,
   body.plan-preview-active #fts,
   body.plan-preview-active #fts-popup,
+  body.plan-preview-active #locate-btn,
   body.plan-preview-active #notif-toast-wrap {
     opacity: 0 !important;
     pointer-events: none !important;
     transition: opacity 0.25s ease;
   }
+  /* The bottom card hosts its own time slider (the reparented #fts). The FTS
+     calendar button is meaningless to a receiver — the date is fixed by the
+     inviter — so hide it inside the plan-preview slot. */
+  #fts.fts-in-preview #fts-date-btn { display: none !important; }
   .plan-preview {
     position: fixed;
     inset: 0;
@@ -6147,7 +6152,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 14px 16px;
-    margin: env(safe-area-inset-top, 12px) 12px 0;
+    margin: calc(env(safe-area-inset-top, 0px) + 16px) 12px 0;
     border-radius: 14px;
     background:
       linear-gradient(135deg, rgba(20,46,82,0.32), rgba(32,73,131,0.18)),
@@ -6328,6 +6333,34 @@
     letter-spacing: -0.02em;
     line-height: 1;
     font-variant-numeric: tabular-nums;
+  }
+  .pp-meet-date {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: -0.005em;
+  }
+  /* Weather context row — icon · temp · wind · condition. Replaces the
+     small disconnected weather chip in the top bar with a proper context
+     line in the bottom card. */
+  .pp-wx-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 4px 2px 0;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    line-height: 1.3;
+  }
+  .pp-wx-row-temp {
+    color: var(--text);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .pp-wx-row-sep {
+    color: rgba(156,189,231,0.40);
   }
   /* FTS slot — sized to host the live #fts (38px tall to match dp-card). */
   .pp-fts-slot {

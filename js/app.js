@@ -5355,11 +5355,15 @@ function _introCheckReady() {
           // Inviter profile lookup is best-effort — works without auth (profiles
           // table is publicly readable for the name field).
           let inviterName = null;
+          let inviterAvatarUrl = null;
           if (d.u && (!user || d.u !== user.id)) {
             try {
               const { data: prof } = await _supabase
-                .from('profiles').select('name, email').eq('id', d.u).single();
-              if (prof) inviterName = (prof.name || prof.email || '').split('@')[0];
+                .from('profiles').select('name, email, avatar_url').eq('id', d.u).single();
+              if (prof) {
+                inviterName = (prof.name || prof.email || '').split('@')[0];
+                inviterAvatarUrl = prof.avatar_url || null;
+              }
             } catch (e) { /* ignore — preview still works without name */ }
           }
 
@@ -5418,6 +5422,7 @@ function _introCheckReady() {
               venueId:    d.v,
               plannedAt,
               inviterName,
+              inviterAvatarUrl,
               inviteId,
               inviterId:  d.u,
               planTokenP: d.p,

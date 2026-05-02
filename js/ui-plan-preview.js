@@ -86,51 +86,29 @@ function openPlanPreview(opts) {
     } catch (e) { /* ignore */ }
   }
 
-  // Camera choreography: start from a CONSISTENT high-altitude top-down view
-  // (so the user always gets the same orienting "from above" sense regardless
-  // of where they were on the map), then pan/dive to the venue.
-  //   Phase 0 (instant):   jumpTo zoom 12, pitch 0 — far above, top-down
-  //   Phase 1 (1400ms):    flyTo overview at zoom 14.5, pitch 15 — slight tilt as we close in
-  //   Phase 2 (1500ms):    easeTo dive — zoom 17.6, pitch 58° to reveal building shadows
-  //   Phase 3 (after settle): begin shadow time-lapse (5s, 78% forward / 22% settle-back)
-  const PHASE1_MS = 1400;
-  const PHASE2_MS = 1500;
+  // Camera: instant snap to the dive state directly above the venue. No pan
+  // animation — the receiver shouldn't see a wandering camera before the
+  // content lands. The bottom panel slides up over this fixed view.
+  //
+  // The Mapbox `padding.bottom` offset shifts the camera's logical center up
+  // so the venue sits centered in the visible map area (the map extends below
+  // the bottom panel, but the panel covers it). Estimated panel height — used
+  // before the panel is in the DOM, so we approximate from the viewport.
   const TIMELAPSE_MS = 5000;
-  const phase2TimeoutId = { id: null };
   const phase3TimeoutId = { id: null };
-  if (typeof map !== 'undefined' && map && typeof map.flyTo === 'function') {
-    // Phase 0: instant snap to a known starting state — same every time.
+  if (typeof map !== 'undefined' && map && typeof map.jumpTo === 'function') {
+    const vh = (window.visualViewport?.height ?? window.innerHeight);
+    // Bottom panel typically takes ~38% of the viewport (cap matches CSS max-height).
+    const panelH = Math.min(Math.round(vh * 0.38), 380);
     try {
       map.jumpTo({
-        center: [venue.lng, venue.lat],
-        zoom:    12,
-        pitch:   0,
+        center:  [venue.lng, venue.lat],
+        zoom:    17.6,
+        pitch:   58,
         bearing: 0,
+        padding: { top: 0, bottom: panelH, left: 0, right: 0 },
       });
     } catch (e) { /* ignore */ }
-    map.flyTo({
-      center: [venue.lng, venue.lat],
-      zoom:   14.5,
-      pitch:  15,
-      bearing: 0,
-      duration: PHASE1_MS,
-      curve: 1.5,
-      easing: t => 1 - Math.pow(1 - t, 3),
-      essential: true,
-    });
-    phase2TimeoutId.id = setTimeout(() => {
-      if (!_planPreviewState) return;
-      try {
-        map.easeTo({
-          zoom:   17.6,
-          pitch:  58,
-          bearing: 0,
-          duration: PHASE2_MS,
-          easing: t => t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2)/2,
-          essential: true,
-        });
-      } catch (e) { /* ignore */ }
-    }, PHASE1_MS - 80);
   }
 
   const overlay = _ppBuildDom(venue, opts, { planHour, animateTo, dateStr });
@@ -148,7 +126,7 @@ function openPlanPreview(opts) {
     savedTime, savedDate, savedCamera,
     planHour, animateTo, dateStr,
     rafId: null,
-    timeouts: [phase2TimeoutId, phase3TimeoutId],
+    timeouts: [phase3TimeoutId],
     autoplayDone: false,
   };
 
@@ -156,12 +134,12 @@ function openPlanPreview(opts) {
     overlay.classList.add('open');
   });
 
-  // Time-lapse only after the dive settles.
+  // Time-lapse starts after the panel slide-in settles (320ms transition).
   if (animateTo > planHour + 0.05) {
     phase3TimeoutId.id = setTimeout(() => {
       if (!_planPreviewState) return;
       _ppAnimate(planHour, animateTo, TIMELAPSE_MS);
-    }, PHASE1_MS + PHASE2_MS - 80);
+    }, 360);
   }
 
   if (typeof _aTrack === 'function') {
@@ -319,6 +297,15 @@ function _ppWxDetail(wx) {
   return parts.join(' · ');
 }
 
+/** Short condition label for the bottom-card weather row (e.g. "Lett skyet"). */
+function _ppWxLabel(wx) {
+  if (!wx) return '';
+  if ((wx.precip || 0) > 0.4) return t('wx_rain') || 'Regn';
+  if ((wx.cloud  || 0) > 0.7) return t('wx_overcast') || 'Overskyet';
+  if ((wx.cloud  || 0) > 0.35) return t('wx_partly_cloudy') || 'Lett skyet';
+  return t('wx_clear') || 'Sol';
+}
+
 function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   const el = document.createElement('div');
   el.id = 'plan-preview';
@@ -423,11 +410,29 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     ? t('invite_sun_until', { time: formatHour(animateTo) })
     : '';
 
+  // Meeting time hero — date next to time so the receiver doesn't have to
+  // infer the day. Norwegian short-date formatter is reused from ui-detail.
+  const meetingDateLabel = (typeof _fmtInviteDate === 'function' && dateStr)
+    ? _fmtInviteDate(dateStr) : '';
   const meetingTimeHtml = `
     <div class="pp-meet-row">
       <span class="pp-meet-label">${t('pp_meet_label')}</span>
       <span class="pp-meet-time" id="pp-meet-time">${formatHour(planHour)}</span>
+      ${meetingDateLabel ? `<span class="pp-meet-date">· ${meetingDateLabel}</span>` : ''}
     </div>`;
+
+  // Weather row — icon + temp + wind + condition. Replaces the small
+  // disconnected weather chip in the top bar with a proper context line in
+  // the bottom card. All fields are optional; the row hides if nothing useful.
+  const wxConditionLabel = wx ? _ppWxLabel(wx) : '';
+  const wxWindLabel = (wx && wx.wspd != null) ? `${Math.round(wx.wspd)} m/s` : '';
+  const weatherParts = [];
+  if (wxTemp) weatherParts.push(`<span class="pp-wx-row-temp">${wxIcon} ${wxTemp}</span>`);
+  if (wxWindLabel) weatherParts.push(`<span>${wxWindLabel}</span>`);
+  if (wxConditionLabel) weatherParts.push(`<span>${wxConditionLabel}</span>`);
+  const weatherRowHtml = weatherParts.length
+    ? `<div class="pp-wx-row">${weatherParts.join(' <span class="pp-wx-row-sep">·</span> ')}</div>`
+    : '';
 
   el.innerHTML = `
     <div class="pp-top ${isInvite ? 'pp-top-invite' : ''}">
@@ -440,11 +445,12 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
           <div class="pp-inviter-text">${inviterText}</div>
         </div>
       ` : ''}
-      <div class="pp-wx">
-        <span class="pp-wx-icon">${wxIcon}</span>
-        ${wxTemp ? `<span class="pp-wx-temp">${wxTemp}</span>` : ''}
-        ${wxDetail && !isInvite ? `<span class="pp-wx-detail">${wxDetail}</span>` : ''}
-      </div>
+      ${!isInvite ? `
+        <div class="pp-wx">
+          <span class="pp-wx-icon">${wxIcon}</span>
+          ${wxTemp ? `<span class="pp-wx-temp">${wxTemp}</span>` : ''}
+          ${wxDetail ? `<span class="pp-wx-detail">${wxDetail}</span>` : ''}
+        </div>` : ''}
     </div>
     <div class="pp-bottom">
       <div class="pp-card-row">
@@ -456,6 +462,7 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
       </div>
       ${meetingTimeHtml}
       <div class="pp-fts-slot"></div>
+      ${weatherRowHtml}
       ${attendeesHtml}
       <div class="pp-cta-row">${ctaHtml}</div>
     </div>`;
