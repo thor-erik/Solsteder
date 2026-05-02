@@ -5778,6 +5778,16 @@ function _skipIntro(seqId) {
 
   if (_sharedVenueId) selectVenue(_sharedVenueId, true);
 
+  // Safety net for the invite-loading map gate (set in head): openPlanPreview
+  // normally removes it after its venue jumpTo lands. If the takeover never
+  // fires (token decode fails, venue not found), reveal the map after a brief
+  // grace period so the user isn't stuck staring at a blank.
+  if (document.documentElement.classList.contains('invite-loading')) {
+    setTimeout(() => {
+      document.documentElement.classList.remove('invite-loading');
+    }, 1800);
+  }
+
   // Start notification system after intro is done and UI is visible
   if (typeof _notifInit === 'function') _notifInit();
 }

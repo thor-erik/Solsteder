@@ -438,11 +438,20 @@ function _renderSocialSection(v) {
   let shareNudgeHtml = '';
   const sn = (typeof window !== 'undefined') ? window._pendingShareNudge : null;
   if (!fp && sn && String(sn.venueId) === String(v.id)) {
+    const shareIconSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>`;
+    const calIconSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;
     shareNudgeHtml = `
-      <div class="friend-prompt-banner" id="share-nudge-banner">
-        <span class="friend-prompt-banner-text">${t('share_nudge_after_accept')}</span>
-        <button class="friend-prompt-banner-add"  onclick="_handleShareNudgeShare(${v.id})">${t('share_link')}</button>
-        <button class="friend-prompt-banner-skip" onclick="_handleShareNudgeDismiss()">${t('friend_prompt_dismiss')}</button>
+      <div class="post-accept-actions" id="share-nudge-banner">
+        <div class="post-accept-headline">${t('post_accept_headline')}</div>
+        <div class="post-accept-row">
+          <button class="pa-btn pa-btn-share" onclick="_handleShareNudgeShare(${v.id})">
+            ${shareIconSvg}<span>${t('post_accept_share')}</span>
+          </button>
+          <button class="pa-btn pa-btn-cal" onclick="_handleCalendarAdd(${v.id})">
+            ${calIconSvg}<span>${t('post_accept_calendar')}</span>
+          </button>
+        </div>
+        <button class="pa-dismiss" onclick="_handleShareNudgeDismiss()">${t('friend_prompt_dismiss')}</button>
       </div>`;
   }
 
@@ -525,6 +534,119 @@ function _handleShareNudgeDismiss() {
   if (banner) banner.remove();
 }
 
+/** Format a Date as a UTC ICS timestamp (YYYYMMDDTHHMMSSZ). */
+function _icsFmtUtc(d) {
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`;
+}
+
+/** Escape per RFC 5545 — backslash, comma, semicolon, newline. */
+function _icsEscape(s) {
+  return String(s || '')
+    .replace(/\\/g, '\\\\')
+    .replace(/,/g, '\\,')
+    .replace(/;/g, '\\;')
+    .replace(/\r?\n/g, '\\n');
+}
+
+/** Build an .ics calendar event for an invite. UID is stable when planId is
+ *  present (so re-shares update the existing event rather than duplicate, per
+ *  RFC 5545). Default duration is 2 hours. */
+function _buildIcs({ venue, plannedAt, planId, durationMin = 120, link }) {
+  if (!venue || !plannedAt) return null;
+  const start = new Date(plannedAt);
+  if (isNaN(start.getTime())) return null;
+  const end = new Date(start.getTime() + durationMin * 60 * 1000);
+  const now = new Date();
+
+  const uid = planId
+    ? `plan-${planId}@findshades.app`
+    : `invite-${venue.id}-${start.getTime()}@findshades.app`;
+
+  const summary = _icsEscape(`Solsteder · ${venue.name}`);
+  const location = _icsEscape(venue.area ? `${venue.name}, ${venue.area}` : venue.name);
+  const description = _icsEscape(link
+    ? `Solsteder · ${venue.name}\n${link}`
+    : `Solsteder · ${venue.name}`);
+  const url = link || '';
+  const geo = (venue.lat != null && venue.lng != null) ? `${venue.lat};${venue.lng}` : '';
+
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Solsteder//Plan//EN',
+    'BEGIN:VEVENT',
+    `UID:${uid}`,
+    `DTSTAMP:${_icsFmtUtc(now)}`,
+    `DTSTART:${_icsFmtUtc(start)}`,
+    `DTEND:${_icsFmtUtc(end)}`,
+    `SUMMARY:${summary}`,
+    `LOCATION:${location}`,
+  ];
+  if (geo) lines.push(`GEO:${geo}`);
+  if (url) lines.push(`URL:${url}`);
+  lines.push(`DESCRIPTION:${description}`);
+  lines.push('END:VEVENT', 'END:VCALENDAR');
+  // RFC 5545 requires CRLF line endings.
+  return lines.join('\r\n') + '\r\n';
+}
+
+/** Slug a string for filename use — strip diacritics, keep [a-z0-9-]. */
+function _slugForFile(s) {
+  return String(s || 'plan')
+    .normalize('NFKD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40) || 'plan';
+}
+
+/** Post-accept calendar action — generates an .ics file from the stashed
+ *  share-nudge context and triggers a download. iOS Safari opens the system
+ *  "Add to Calendar" sheet; Android Chrome offers a calendar app picker;
+ *  desktop browsers download the .ics so the user can double-click into
+ *  Calendar.app / Outlook. */
+function _handleCalendarAdd(venueId) {
+  const sn = (typeof window !== 'undefined') ? window._pendingShareNudge : null;
+  if (typeof _aTrack === 'function') _aTrack('share_nudge', { action: 'calendar' });
+
+  const v = (typeof VENUES !== 'undefined') ? VENUES.find(x => x.id === venueId) : null;
+  let plannedAt = sn && sn.plannedAt;
+  if (!plannedAt) {
+    // Fallback to the live pickers — same shape as _shareInviteLink overrides
+    const { d, h } = (typeof _getInviteDateTime === 'function') ? _getInviteDateTime() : {};
+    if (d && h != null) {
+      const hh = Math.floor(h);
+      const mm = Math.round((h - hh) * 60);
+      plannedAt = new Date(`${d}T${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:00`).toISOString();
+    }
+  }
+  if (!v || !plannedAt) return;
+
+  const ics = _buildIcs({
+    venue: v,
+    plannedAt,
+    planId: sn && sn.planId,
+    durationMin: 120,
+    link: sn && sn.link,
+  });
+  if (!ics) return;
+
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `solsteder-${_slugForFile(v.name)}.ics`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+  if (typeof window !== 'undefined') window._pendingShareNudge = null;
+  const banner = document.getElementById('share-nudge-banner');
+  if (banner) banner.remove();
+}
+
 // ── Instant check-in toggle ──────────────────────────────────────────────────
 
 /** Tap "Jeg er her" → instant check-in (or check-out if already here). */
@@ -550,6 +672,44 @@ function _fmtInviteDate(dateStr) {
   const locale = { en: 'en-GB', no: 'nb-NO', se: 'sv-SE', dk: 'da-DK' }[lang] || 'nb-NO';
   const d = new Date(dateStr + 'T12:00:00');
   return d.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+/** Smart-relative "when" label for the share message body. Examples:
+ *    today           → "i dag kl. 18:00"
+ *    tomorrow        → "i morgen kl. 18:00"
+ *    within 7 days   → "på lørdag kl. 18:00"
+ *    further out     → "lørdag 4. mai kl. 18:00"
+ *  Receivers shouldn't have to infer what day a meeting is for — without this
+ *  the message read "Skal til X kl. 18:00" which is ambiguous if read the day
+ *  after it was sent. */
+function _inviteWhenLabel(dateStr, hour) {
+  if (!dateStr) return '';
+  const lang = typeof prefLang === 'function' ? prefLang() : 'no';
+  const locale = { en: 'en-GB', no: 'nb-NO', se: 'sv-SE', dk: 'da-DK' }[lang] || 'nb-NO';
+  const timeLabel = (typeof formatHour === 'function') ? formatHour(hour) : '';
+
+  const today = (typeof todayStr === 'function') ? todayStr() : new Date().toISOString().slice(0, 10);
+  const tom = new Date(); tom.setDate(tom.getDate() + 1);
+  const pad = n => String(n).padStart(2, '0');
+  const tomStr = `${tom.getFullYear()}-${pad(tom.getMonth() + 1)}-${pad(tom.getDate())}`;
+
+  if (dateStr === today)  return t('share_when_today',    { time: timeLabel });
+  if (dateStr === tomStr) return t('share_when_tomorrow', { time: timeLabel });
+
+  const d = new Date(dateStr + 'T12:00:00');
+  const todayMs = new Date(today + 'T12:00:00').getTime();
+  const daysOut = Math.round((d.getTime() - todayMs) / (24 * 60 * 60 * 1000));
+
+  // Within the next 7 days — use just the weekday (e.g. "på lørdag")
+  if (daysOut > 0 && daysOut <= 7) {
+    const weekday = d.toLocaleDateString(locale, { weekday: 'long' });
+    return t('share_when_weekday', { day: weekday, time: timeLabel });
+  }
+  // Further out — full weekday + day + month
+  const weekday = d.toLocaleDateString(locale, { weekday: 'long' });
+  const dayNum = d.getDate();
+  const month = d.toLocaleDateString(locale, { month: 'short' }).replace(/\.$/, '');
+  return t('share_when_explicit', { day: weekday, date: `${dayNum}. ${month}`, time: timeLabel });
 }
 
 /** Build the confirmation sentence for the invite. */
@@ -1053,10 +1213,10 @@ function _composeShareContext(v, d, h) {
  *  body alone — used for the chat-bubble preview in the invite sheet. */
 function _composeInviteShareText(v, d, h, link) {
   const venueName = v?.name || '';
-  const timeLabel = (typeof formatHour === 'function') ? formatHour(h) : '';
+  const when = _inviteWhenLabel(d, h);
   const { context, icon } = _composeShareContext(v, d, h);
   const key = link ? 'share_invite_text_w_link' : 'share_invite_text';
-  return t(key, { venue: venueName, time: timeLabel, context, icon, link: link || '' });
+  return t(key, { venue: venueName, when, context, icon, link: link || '' });
 }
 
 /** Share an invite link via native share or clipboard.

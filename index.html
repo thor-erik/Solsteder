@@ -31,6 +31,19 @@
 <link rel="preload" href="https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7W0Q5nw.woff2" as="font" type="font/woff2" crossorigin>
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script defer src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
+<script>
+  // Invite-loading gate: when the URL is an invite link (/i/<token>, /s/<id>,
+  // or #invite/<token>), hide the map's first paint so the receiver doesn't
+  // see the Oslo fallback flash before openPlanPreview runs its jumpTo onto
+  // the venue. Removed by ui-plan-preview after the camera lands.
+  (function () {
+    var p = location.pathname;
+    var h = location.hash || '';
+    if (p.indexOf('/i/') === 0 || p.indexOf('/s/') === 0 || h.indexOf('#invite/') === 0) {
+      document.documentElement.classList.add('invite-loading');
+    }
+  })();
+</script>
 <script defer src="js/i18n.js"></script>
 <script defer src="js/config.js?v=20260425b"></script>
 <script defer src="js/auth.js"></script>
@@ -170,6 +183,14 @@
   #map {
     width: 100%;
     height: 100%;
+  }
+
+  /* Invite-loading gate (set in head): hides the map's Oslo-fallback first
+     paint so the receiver doesn't see a wrong-location flash before the
+     plan-preview takeover lands its jumpTo. Removed in JS after camera
+     positioning is complete. */
+  html.invite-loading #map {
+    visibility: hidden;
   }
 
   #canvas-overlay {
@@ -6444,7 +6465,7 @@
   .pp-bottom {
     pointer-events: auto;
     margin: 0 12px env(safe-area-inset-bottom, 12px);
-    padding: 16px 16px 14px;
+    padding: 6px 16px 14px;
     border-radius: 14px;
     background: var(--glass-panel-bg);
     backdrop-filter: blur(20px) saturate(180%) brightness(0.92);
@@ -6457,7 +6478,20 @@
     transition-delay: 0.08s;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
+    max-height: min(60svh, 460px);
+    overflow: hidden;
+  }
+  /* Drag-handle pill at the top of the bottom panel — matches the invite-sheet
+     grabber for visual consistency. Cosmetic for now; drag-to-dismiss wiring
+     is captured as a follow-up in TODO.md. */
+  .pp-grabber {
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255,242,235,0.30);
+    margin: 4px auto 0;
+    flex-shrink: 0;
   }
   /* Eyebrow — small, muted, uppercase. The "X has invited you" callout. */
   .pp-eyebrow {
@@ -6514,19 +6548,22 @@
     white-space: nowrap;
     line-height: 1.2;
   }
-  /* Meeting-time hero — the unambiguous answer to "when am I expected?". */
+  /* Meeting-time hero — reads as a sentence. The label ("Møtes kl.") and date
+     are subordinate to the time, which is the unambiguous answer to "when am
+     I expected?". Replaces the previous all-caps MØTETID label which felt
+     shouty next to the venue name above. */
   .pp-meet-row {
     display: flex;
     align-items: baseline;
-    gap: 10px;
-    padding: 4px 0 0;
+    flex-wrap: wrap;
+    gap: 6px 8px;
+    padding: 2px 0 0;
   }
   .pp-meet-label {
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+    font-size: 16px;
+    font-weight: 500;
     color: var(--muted);
+    letter-spacing: -0.005em;
   }
   .pp-meet-time {
     font-size: 28px;
@@ -6791,6 +6828,77 @@
     color: var(--muted);
   }
   .friend-prompt-banner-skip:hover { color: var(--text); }
+
+  /* Post-accept dual-action banner — replaces the prior single-button share
+     nudge with two equal-weight choices (Share with friends + Add to calendar),
+     plus a small dismiss link. Only shown when receiver is friends with the
+     inviter (otherwise the friend-add banner above wins). */
+  .post-accept-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px;
+    margin: 10px 0 4px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(255,175,133,0.16), rgba(255,175,133,0.06));
+    border: 1px solid rgba(255,175,133,0.32);
+  }
+  .post-accept-headline {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+  .post-accept-row {
+    display: flex;
+    gap: 8px;
+  }
+  .pa-btn {
+    flex: 1;
+    height: 42px;
+    border-radius: 999px;
+    border: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: opacity 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .pa-btn-share {
+    background: var(--accent);
+    color: var(--accent-on, #2a1a0c);
+  }
+  .pa-btn-share:hover { opacity: 0.92; }
+  .pa-btn-cal {
+    background: var(--glass-action-bg);
+    backdrop-filter: var(--glass-blur-action);
+    -webkit-backdrop-filter: var(--glass-blur-action);
+    border: var(--glass-border-light);
+    box-shadow: var(--glass-inset);
+    color: var(--text);
+  }
+  .pa-btn-cal:hover {
+    border-color: rgba(255,175,133,0.40);
+    color: var(--accent);
+  }
+  .pa-btn svg { flex-shrink: 0; }
+  .pa-dismiss {
+    align-self: center;
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 4px 10px;
+    transition: color 0.12s;
+  }
+  .pa-dismiss:hover { color: var(--text); }
   /* Accept button with in-line arrival chip. The chip lives INSIDE the pill
      so the action ("I'm in") and the time the user is committing to read as
      one cohesive unit. The chip has its own hit area: clicking it opens the

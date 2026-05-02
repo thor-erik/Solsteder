@@ -98,8 +98,8 @@ function openPlanPreview(opts) {
   const phase3TimeoutId = { id: null };
   if (typeof map !== 'undefined' && map && typeof map.jumpTo === 'function') {
     const vh = (window.visualViewport?.height ?? window.innerHeight);
-    // Bottom panel typically takes ~38% of the viewport (cap matches CSS max-height).
-    const panelH = Math.min(Math.round(vh * 0.38), 380);
+    // Bottom panel typically takes ~42% of the viewport (cap matches CSS max-height).
+    const panelH = Math.min(Math.round(vh * 0.42), 460);
     try {
       map.jumpTo({
         center:  [venue.lng, venue.lat],
@@ -110,6 +110,9 @@ function openPlanPreview(opts) {
       });
     } catch (e) { /* ignore */ }
   }
+  // Camera has settled on the venue — reveal the map (the head-script gate
+  // had #map hidden so the receiver wouldn't see the Oslo fallback flash).
+  document.documentElement.classList.remove('invite-loading');
 
   const overlay = _ppBuildDom(venue, opts, { planHour, animateTo, dateStr });
   document.body.appendChild(overlay);
@@ -453,6 +456,7 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
         </div>` : ''}
     </div>
     <div class="pp-bottom">
+      <div class="pp-grabber" aria-hidden="true"></div>
       <div class="pp-card-row">
         <div class="pp-card-left">
           <div class="pp-card-name">${venue.name}</div>
