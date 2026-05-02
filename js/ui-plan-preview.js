@@ -288,8 +288,6 @@ function _ppAnimate(fromH, toH, durationMs) {
       timeFromEl.value = h;
       timeFromEl.dispatchEvent(new Event('input'));
     }
-    const readout = document.getElementById('pp-time');
-    if (readout && typeof formatHour === 'function') readout.textContent = formatHour(h);
     if (t < 1) {
       _planPreviewState.rafId = requestAnimationFrame(step);
     } else {
@@ -298,7 +296,6 @@ function _ppAnimate(fromH, toH, durationMs) {
         timeFromEl.value = fromH;
         timeFromEl.dispatchEvent(new Event('input'));
       }
-      if (readout && typeof formatHour === 'function') readout.textContent = formatHour(fromH);
       _planPreviewState.autoplayDone = true;
       _planPreviewState.rafId = null;
     }
@@ -384,36 +381,37 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   // gracefully no-op when no real plan_invites row exists (testing tokens, or
   // the user is the plan creator clicking their own link). 'preview' shows Lukk.
   const isInviteUI = (opts.mode === 'invite' || opts.mode === 'invite-anon');
-  // Initial arrival time for the chip = plan time. The user can pick a different
-  // time before tapping I'm in; we then write that as plan_invites.arrival_time.
-  // Only built for logged-in invite mode (anon users can't write yet, no need to
-  // pick an arrival time before login).
+  // Arrival-time chip is integrated INTO the accept button so the action and
+  // the time the user is committing to read as one cohesive concept (vs. a
+  // separate "Kommer kl." row that competed with the meeting-time hero). Only
+  // built for logged-in invite mode (anon users can't write yet).
   const arrivalChipHtml = (opts.mode === 'invite')
-    ? `<div class="pp-arrival-row">
-         <span class="pp-arrival-prefix">${t('arrival_at_label')}</span>
-         <button class="pp-arrival-chip" id="pp-arrival-chip" type="button">
-           <span id="pp-arrival-time">${formatHour(planHour)}</span>
-           <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 5 6 8 9 5"/></svg>
-         </button>
-       </div>`
+    ? `<span class="pp-arrival-chip" id="pp-arrival-chip" role="button" tabindex="0" aria-label="${t('arrival_change_label') || 'Change arrival time'}">
+         <span id="pp-arrival-time">${formatHour(planHour)}</span>
+         <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 5 6 8 9 5"/></svg>
+       </span>`
     : '';
   let ctaHtml = '';
   if (isInviteUI && opts.mode === 'invite-anon') {
     ctaHtml = `<button class="pp-cta pp-cta-accept" id="pp-login">${t('pp_login_to_respond')}</button>`;
   } else if (isInviteUI) {
     ctaHtml = `
-      <button class="pp-cta pp-cta-accept" id="pp-accept">${t('plan_preview_im_in')}</button>
-      ${arrivalChipHtml}
+      <button class="pp-cta pp-cta-accept pp-cta-with-chip" id="pp-accept" type="button">
+        <span class="pp-cta-label">${t('plan_preview_im_in_at') || t('plan_preview_im_in')}</span>
+        ${arrivalChipHtml}
+      </button>
       <button class="pp-cta-decline" id="pp-decline">${t('plan_decline')}</button>`;
   } else {
     ctaHtml = `<button class="pp-cta pp-cta-accept" id="pp-close-cta">${t('close')}</button>`;
   }
 
   const isInvite = (opts.mode === 'invite' || opts.mode === 'invite-anon');
-  const inviterAvatarHtml = isInvite
+  // Inviter chip: avatar + name when known. When no name (anon token, missing
+  // metadata), show only the text — a "?" placeholder reads as a broken state.
+  const inviterAvatarHtml = isInvite && opts.inviterName
     ? (opts.inviterAvatarUrl
         ? `<img class="pp-inviter-av" src="${opts.inviterAvatarUrl}" alt="">`
-        : `<div class="pp-inviter-av pp-inviter-av-init">${(opts.inviterName || '?')[0].toUpperCase()}</div>`)
+        : `<div class="pp-inviter-av pp-inviter-av-init">${opts.inviterName[0].toUpperCase()}</div>`)
     : '';
   const inviterText = isInvite
     ? (opts.inviterName ? t('pp_eyebrow_invited_by', { name: opts.inviterName }) : t('pp_eyebrow_invited'))
@@ -458,30 +456,20 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
       </div>
       ${meetingTimeHtml}
       <div class="pp-fts-slot"></div>
-      <div class="pp-readout-row">
-        <span class="pp-readout-label">${t('time_label')}</span>
-        <span class="pp-readout-value" id="pp-time">${formatHour(planHour)}</span>
-      </div>
       ${attendeesHtml}
       <div class="pp-cta-row">${ctaHtml}</div>
     </div>`;
 
   el.querySelector('#pp-back').onclick = () => closePlanPreview();
 
-  // Listen for time changes (driven by FTS or the slider in the wider app) to
-  // keep the readout in sync. FTS dispatches 'input' on timeFromEl.
+  // First user FTS interaction cancels the autoplay + camera timeouts. The
+  // map shadows + slider knob now provide all the scrub feedback (the textual
+  // readout that used to live below the slider was redundant with both).
   const onTimeInput = () => {
-    if (_planPreviewState) {
-      // First user FTS interaction also cancels the autoplay + camera timeouts.
-      if (_planPreviewState.rafId) {
-        cancelAnimationFrame(_planPreviewState.rafId);
-        _planPreviewState.rafId = null;
-        _planPreviewState.autoplayDone = true;
-      }
-    }
-    const readout = el.querySelector('#pp-time');
-    if (readout && typeof formatHour === 'function' && timeFromEl) {
-      readout.textContent = formatHour(parseFloat(timeFromEl.value));
+    if (_planPreviewState && _planPreviewState.rafId) {
+      cancelAnimationFrame(_planPreviewState.rafId);
+      _planPreviewState.rafId = null;
+      _planPreviewState.autoplayDone = true;
     }
   };
   if (typeof timeFromEl !== 'undefined' && timeFromEl) timeFromEl.addEventListener('input', onTimeInput);
@@ -494,6 +482,9 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   // (chip not interacted with) = plan time, written as the same ISO so the
   // host's view reads consistently. Floating-point hour is converted to ISO
   // using opts.plannedAt as the date anchor.
+  // Arrival chip lives INSIDE the accept button. Click on the chip opens the
+  // hidden time picker but must not bubble up to the button (which would also
+  // accept the invite). Keyboard: Space/Enter on the chip opens the picker.
   const arrivalChip = el.querySelector('#pp-arrival-chip');
   let arrivalHour = planHour;
   let arrivalInput = null;
@@ -503,7 +494,14 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     arrivalInput.style.cssText = 'position:absolute;opacity:0;width:0;height:0;pointer-events:none;';
     arrivalInput.value = `${String(Math.floor(planHour)).padStart(2,'0')}:${String(Math.round((planHour - Math.floor(planHour)) * 60)).padStart(2,'0')}`;
     arrivalChip.appendChild(arrivalInput);
-    arrivalChip.onclick = () => arrivalInput.showPicker?.() || arrivalInput.click();
+    const openPicker = (e) => {
+      if (e) { e.stopPropagation(); e.preventDefault(); }
+      arrivalInput.showPicker?.() || arrivalInput.click();
+    };
+    arrivalChip.addEventListener('click', openPicker);
+    arrivalChip.addEventListener('keydown', e => {
+      if (e.key === ' ' || e.key === 'Enter') openPicker(e);
+    });
     arrivalInput.addEventListener('change', () => {
       const m = arrivalInput.value.match(/^(\d{1,2}):(\d{2})$/);
       if (!m) return;

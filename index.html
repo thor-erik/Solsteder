@@ -6329,29 +6329,6 @@
     line-height: 1;
     font-variant-numeric: tabular-nums;
   }
-  /* Live time readout under the FTS — communicates what time the user is
-     currently scrubbing to, mirrors detail-panel typography. */
-  .pp-readout-row {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 8px;
-    margin-top: -2px;
-  }
-  .pp-readout-label {
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-  }
-  .pp-readout-value {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--accent);
-    font-variant-numeric: tabular-nums;
-    letter-spacing: -0.01em;
-  }
   /* FTS slot — sized to host the live #fts (38px tall to match dp-card). */
   .pp-fts-slot {
     margin: 4px 0 0;
@@ -6579,45 +6556,51 @@
     color: var(--muted);
   }
   .friend-prompt-banner-skip:hover { color: var(--text); }
-  /* Arrival-time row inside the plan-preview CTAs.
-     Sits between the I'm in pill and the Decline link, opens a native
-     <input type="time"> on chip tap. Subtle by default; turns accent
-     when the user picks a time off the plan. */
-  .pp-arrival-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    font-size: 12px;
-    color: var(--muted);
-    margin-top: -2px;
-    margin-bottom: -4px;
+  /* Accept button with in-line arrival chip. The chip lives INSIDE the pill
+     so the action ("I'm in") and the time the user is committing to read as
+     one cohesive unit. The chip has its own hit area: clicking it opens the
+     time picker (and stopPropagation prevents the surrounding accept). */
+  .pp-cta-with-chip {
+    gap: 10px;
+    padding: 0 16px 0 22px;
   }
-  .pp-arrival-prefix { letter-spacing: 0.01em; }
+  .pp-cta-label {
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.01em;
+  }
   .pp-arrival-chip {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    border: 1px solid rgba(156,189,231,0.20);
+    gap: 6px;
+    border: 1px solid rgba(42,26,12,0.30);
     border-radius: 999px;
-    padding: 3px 9px;
-    background: rgba(156,189,231,0.08);
-    color: var(--text);
-    font-size: 12px;
-    font-weight: 600;
+    padding: 6px 12px;
+    background: rgba(255,255,255,0.55);
+    color: var(--accent-on, #2a1a0c);
+    font-size: 15px;
+    font-weight: 700;
     font-family: 'Inter', sans-serif;
     font-variant-numeric: tabular-nums;
     cursor: pointer;
     position: relative;
-    transition: border-color 0.15s, background 0.15s, color 0.15s;
+    line-height: 1;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
   }
-  .pp-arrival-chip:hover { border-color: var(--accent); }
+  .pp-arrival-chip:hover {
+    background: rgba(255,255,255,0.75);
+  }
+  .pp-arrival-chip:focus-visible {
+    outline: 2px solid var(--accent-on, #2a1a0c);
+    outline-offset: 2px;
+  }
   .pp-arrival-chip.pp-arrival-off {
-    border-color: var(--accent);
-    background: rgba(255,175,133,0.16);
+    background: rgba(42,26,12,0.92);
+    border-color: rgba(42,26,12,0.92);
     color: var(--accent);
   }
-  .pp-arrival-chip svg { opacity: 0.55; flex-shrink: 0; }
+  .pp-arrival-chip svg { opacity: 0.7; flex-shrink: 0; }
   /* Per-invitee time chip on plan-preview attendees row */
   .pp-av-wrap {
     position: relative;
