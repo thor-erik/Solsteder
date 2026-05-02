@@ -6,6 +6,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let _currentUser = null;
 let _currentRole = null; // 'user' | 'editor' | 'admin' | null
+let _profilePanelView = 'settings'; // 'settings' | 'activity' | 'visibility'
 
 // Social tables may not exist yet — probe once and skip all social queries if missing.
 let _socialTablesReady = null; // null = unchecked, true/false after probe
@@ -286,6 +287,271 @@ function _renderInvitationsSection() {
     </div>`;
 }
 
+function _setProfilePanelView(view) {
+  _profilePanelView = view;
+  _renderProfilePanel();
+  // Restore scroll to top when navigating between sub-views
+  const panel = document.getElementById('profile-panel');
+  if (panel) panel.scrollTop = 0;
+}
+
+// ── Settings view (root) ─────────────────────────────────────────────────────
+
+const _SETTINGS_ICON = {
+  back:    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>',
+  chevron: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>',
+  external:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>',
+  inbox:   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>',
+  edit:    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+  plus:    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>',
+  users:   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  eye:     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
+  bell:    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>',
+  search:  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>',
+  help:    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+  shield:  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+  info:    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
+  signout: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
+};
+
+function _activityCount() {
+  const reqs   = (typeof _pendingRequests !== 'undefined') ? _pendingRequests.length : 0;
+  const invs   = (typeof _planInvites !== 'undefined')
+    ? _planInvites.filter(i => i.status === 'pending' && i.plan).length
+    : 0;
+  const plans  = (typeof _plans !== 'undefined')
+    ? _plans.filter(p => p && p.creator_id === (_currentUser && _currentUser.id)).length
+    : 0;
+  // Plans don't carry a "needs attention" semantic; only count requests + invites.
+  return reqs + invs + plans;
+}
+
+function _renderSettingsMobileBar(title, backHandler) {
+  return `<div class="profile-panel-mobile-bar">
+    <button class="profile-panel-mobile-back" onclick="${backHandler}" aria-label="${t('back')}">
+      ${_SETTINGS_ICON.back}
+    </button>
+    <span class="profile-panel-mobile-title">${title}</span>
+  </div>`;
+}
+
+function _renderSettingsView() {
+  const avatar   = _currentUser.user_metadata?.avatar_url;
+  const name     = _currentUser.user_metadata?.name ?? '';
+  const email    = _currentUser.email ?? '';
+  const lang     = typeof prefLang     === 'function' ? prefLang()     : 'no';
+  const tempUnit = typeof prefTempUnit === 'function' ? prefTempUnit() : 'C';
+
+  const avatarHtml = avatar
+    ? `<img class="settings-identity__avatar" src="${avatar}" alt="${name}">`
+    : `<div class="settings-identity__avatar-initials">${(name || email)[0].toUpperCase()}</div>`;
+
+  const roleBadge = _currentRole === 'admin'
+    ? `<span class="profile-role-badge admin">Admin</span>`
+    : _currentRole === 'editor'
+    ? `<span class="profile-role-badge editor">Editor</span>`
+    : '';
+
+  const activityCount = _activityCount();
+  const activityEntry = activityCount > 0
+    ? `<button class="settings-row" onclick="_setProfilePanelView('activity')">
+         <span class="settings-row__icon">${_SETTINGS_ICON.inbox}</span>
+         <span class="settings-row__label">${t('activity')}</span>
+         <span class="pending-badge">${activityCount}</span>
+         <span class="settings-row__chevron">${_SETTINGS_ICON.chevron}</span>
+       </button>`
+    : '';
+
+  const friendsCount = _friends.length;
+  const friendsLabel = friendsCount > 0 ? `${t('friends')} (${friendsCount})` : t('friends');
+
+  const adminGroup = authIsAdmin() ? `
+    <div>
+      <div class="settings-group-label">${t('settings_section_admin')}</div>
+      <div class="settings-group">
+        <button class="settings-row" onclick="openAdminReviewPanel();closeProfilePanel()">
+          <span class="settings-row__icon">${_SETTINGS_ICON.edit}</span>
+          <span class="settings-row__label">${t('pending_edits')}</span>
+          <span id="pending-count-badge" class="pending-badge" style="display:none">…</span>
+          <span class="settings-row__chevron">${_SETTINGS_ICON.chevron}</span>
+        </button>
+        <button class="settings-row" onclick="openAdminVenueSuggestionsPanel();closeProfilePanel()">
+          <span class="settings-row__icon">${_SETTINGS_ICON.plus}</span>
+          <span class="settings-row__label">${t('admin_venue_suggestions')}</span>
+          <span id="venue-suggestions-count-badge" class="pending-badge" style="display:none">…</span>
+          <span class="settings-row__chevron">${_SETTINGS_ICON.chevron}</span>
+        </button>
+        <button class="settings-row" onclick="openRoleManagerPanel();closeProfilePanel()">
+          <span class="settings-row__icon">${_SETTINGS_ICON.users}</span>
+          <span class="settings-row__label">${t('manage_users')}</span>
+          <span class="settings-row__chevron">${_SETTINGS_ICON.chevron}</span>
+        </button>
+      </div>
+    </div>` : '';
+
+  return `
+    ${_renderSettingsMobileBar(t('settings'), 'closeProfilePanel()')}
+    <div class="settings-root">
+
+      <div class="settings-group">
+        <div class="settings-identity" style="cursor:default">
+          ${avatarHtml}
+          <div class="settings-identity__info">
+            <div class="settings-identity__name">${name || email} ${roleBadge}</div>
+            ${name ? `<div class="settings-identity__email">${email}</div>` : ''}
+          </div>
+        </div>
+      </div>
+
+      ${activityEntry ? `
+      <div>
+        <div class="settings-group">${activityEntry}</div>
+      </div>` : ''}
+
+      <div>
+        <div class="settings-group-label">${t('settings_section_display')}</div>
+        <div class="settings-group">
+          <div class="settings-row pref-row">
+            <span class="settings-row__label">${t('language')}</span>
+            <div class="profile-pref-pills">
+              <button class="pref-pill${lang === 'en' ? ' active' : ''}" onclick="setPrefLang('en')">EN</button>
+              <button class="pref-pill${lang === 'no' ? ' active' : ''}" onclick="setPrefLang('no')">NO</button>
+              <button class="pref-pill${lang === 'se' ? ' active' : ''}" onclick="setPrefLang('se')">SE</button>
+              <button class="pref-pill${lang === 'dk' ? ' active' : ''}" onclick="setPrefLang('dk')">DK</button>
+            </div>
+          </div>
+          <div class="settings-row pref-row">
+            <span class="settings-row__label">${t('temperature')}</span>
+            <div class="profile-pref-pills">
+              <button class="pref-pill${tempUnit === 'C' ? ' active' : ''}" onclick="setPrefTempUnit('C')">°C</button>
+              <button class="pref-pill${tempUnit === 'F' ? ' active' : ''}" onclick="setPrefTempUnit('F')">°F</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      ${typeof _notifSettingsHtml === 'function' ? _notifSettingsHtml() : ''}
+
+      <div>
+        <div class="settings-group-label">${t('settings_section_friends')}</div>
+        <div class="settings-group">
+          <button class="settings-row" onclick="openFriendsModal()">
+            <span class="settings-row__icon">${_SETTINGS_ICON.users}</span>
+            <span class="settings-row__label">${friendsLabel}</span>
+            ${_pendingRequests.length ? `<span class="pending-badge">${_pendingRequests.length}</span>` : ''}
+            <span class="settings-row__chevron">${_SETTINGS_ICON.chevron}</span>
+          </button>
+          ${_friends.length ? `
+          <button class="settings-row" onclick="_setProfilePanelView('visibility')">
+            <span class="settings-row__icon">${_SETTINGS_ICON.eye}</span>
+            <span class="settings-row__label">${t('visibility_drill')}</span>
+            <span class="settings-row__chevron">${_SETTINGS_ICON.chevron}</span>
+          </button>` : ''}
+        </div>
+      </div>
+
+      ${adminGroup}
+
+      <div id="my-suggestions-section" style="display:none">
+        <div class="settings-group-label">${t('my_suggestions')}</div>
+        <div class="settings-group">
+          <div id="my-suggestions-list" style="color:var(--muted);font-size:12px;padding:12px 14px">${t('no_suggestions_yet')}</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="settings-group-label">${t('settings_section_about')}</div>
+        <div class="settings-group">
+          <a class="settings-row" href="mailto:hello@findshades.app?subject=Solsteder%20feedback" style="text-decoration:none">
+            <span class="settings-row__icon">${_SETTINGS_ICON.help}</span>
+            <span class="settings-row__label">${t('help_feedback')}</span>
+            <span class="settings-row__chevron">${_SETTINGS_ICON.external}</span>
+          </a>
+          <a class="settings-row" href="privacy.html" target="_blank" rel="noopener" style="text-decoration:none">
+            <span class="settings-row__icon">${_SETTINGS_ICON.shield}</span>
+            <span class="settings-row__label">${t('privacy_policy')}</span>
+            <span class="settings-row__chevron">${_SETTINGS_ICON.external}</span>
+          </a>
+          <button class="settings-row" id="about-row" onclick="_handleAboutTap()">
+            <span class="settings-row__icon">${_SETTINGS_ICON.info}</span>
+            <span class="settings-row__label">${t('about_app')}</span>
+            <span class="settings-row__value" id="about-version">v1.0.0</span>
+          </button>
+          <button class="settings-row" id="debug-row" onclick="toggleZoomDebugHelper()" style="display:none">
+            <span class="settings-row__icon">${_SETTINGS_ICON.search}</span>
+            <span id="zoom-debug-toggle-label" class="settings-row__label">Show Debug</span>
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <div class="settings-group-label">${t('settings_section_account')}</div>
+        <div class="settings-group">
+          <button class="settings-row destructive" onclick="authSignOut();closeProfilePanel()">
+            <span class="settings-row__icon">${_SETTINGS_ICON.signout}</span>
+            <span class="settings-row__label">${t('signout')}</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  `;
+}
+
+// ── Activity sub-view ────────────────────────────────────────────────────────
+
+function _renderActivityView() {
+  const body = _renderInvitationsSection()
+    || `<div class="settings-subview__empty">${t('activity_empty')}</div>`;
+
+  return `
+    ${_renderSettingsMobileBar(t('activity'), "_setProfilePanelView('settings')")}
+    <div class="settings-subview">${body}</div>
+  `;
+}
+
+// ── Per-friend visibility sub-view ───────────────────────────────────────────
+
+function _renderVisibilityView() {
+  const rows = _friends.map(f => {
+    const visible = !_hiddenCheckinFriends.has(f.id);
+    return `<div class="settings-row pref-row">
+      <span class="settings-row__label">${f.name || f.email}</span>
+      <button class="toggle-switch${visible ? ' is-on' : ''}"
+              role="switch" aria-checked="${visible}"
+              aria-label="${f.name || f.email}"
+              onclick="toggleCheckinVisibility('${f.id}')"></button>
+    </div>`;
+  }).join('');
+
+  const body = _friends.length
+    ? `<div>
+         <div class="settings-group-label">${t('checkin_visibility_desc')}</div>
+         <div class="settings-group">${rows}</div>
+       </div>`
+    : `<div class="settings-subview__empty">${t('no_suggestions_yet')}</div>`;
+
+  return `
+    ${_renderSettingsMobileBar(t('visibility_drill'), "_setProfilePanelView('settings')")}
+    <div class="settings-subview">${body}</div>
+  `;
+}
+
+// ── About row tap handler — 5 taps reveals Show Debug ────────────────────────
+
+let _aboutTapCount = 0;
+let _aboutTapTimer = null;
+function _handleAboutTap() {
+  _aboutTapCount++;
+  if (_aboutTapTimer) clearTimeout(_aboutTapTimer);
+  _aboutTapTimer = setTimeout(() => { _aboutTapCount = 0; }, 1500);
+  if (_aboutTapCount >= 5) {
+    _aboutTapCount = 0;
+    const row = document.getElementById('debug-row');
+    if (row) row.style.display = '';
+  }
+}
+
 function _renderProfilePanel() {
   const panel = document.getElementById('profile-panel');
   if (!panel) return;
@@ -294,143 +560,15 @@ function _renderProfilePanel() {
     panel.classList.remove('logged-out');
     if (typeof loginCarouselUnmount === 'function') loginCarouselUnmount();
 
-    const avatar   = _currentUser.user_metadata?.avatar_url;
-    const name     = _currentUser.user_metadata?.name ?? '';
-    const email    = _currentUser.email ?? '';
-    const lang     = typeof prefLang     === 'function' ? prefLang()     : 'no';
-    const tempUnit = typeof prefTempUnit === 'function' ? prefTempUnit() : 'C';
-
-    const avatarHtml = avatar
-      ? `<img class="profile-panel-avatar" src="${avatar}" alt="${name}">`
-      : `<div class="profile-panel-avatar-initials">${(name || email)[0].toUpperCase()}</div>`;
-
-    const roleBadge = _currentRole === 'admin'
-      ? `<span class="profile-role-badge admin">Admin</span>`
-      : _currentRole === 'editor'
-      ? `<span class="profile-role-badge editor">Editor</span>`
-      : '';
-
-    const adminSection = authIsAdmin() ? `
-      <div class="profile-panel-section">
-        <button class="profile-panel-row profile-admin-row" onclick="openAdminReviewPanel();closeProfilePanel()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-          </svg>
-          <span>${t('pending_edits')}</span>
-          <span id="pending-count-badge" class="pending-badge" style="display:none">…</span>
-        </button>
-        <button class="profile-panel-row profile-admin-row" onclick="openAdminVenueSuggestionsPanel();closeProfilePanel()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="12" y1="8" x2="12" y2="16"/>
-            <line x1="8" y1="12" x2="16" y2="12"/>
-          </svg>
-          <span>${t('admin_venue_suggestions')}</span>
-          <span id="venue-suggestions-count-badge" class="pending-badge" style="display:none">…</span>
-        </button>
-        <button class="profile-panel-row profile-admin-row" onclick="openRoleManagerPanel();closeProfilePanel()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-          </svg>
-          <span>${t('manage_users')}</span>
-        </button>
-        <button class="profile-panel-row profile-admin-row" onclick="toggleZoomDebugHelper()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-          </svg>
-          <span id="zoom-debug-toggle-label">Show Debug</span>
-        </button>
-      </div>` : '';
-
-    panel.innerHTML = `
-      <div class="profile-panel-mobile-bar">
-        <button class="profile-panel-mobile-back" onclick="closeProfilePanel()" aria-label="${t('back')}">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-        </button>
-        <span class="profile-panel-mobile-title">${name || email || ''}</span>
-      </div>
-      <div class="profile-panel-header">
-        ${avatarHtml}
-        <div class="profile-panel-info">
-          ${name ? `<div class="profile-panel-name">${name} ${roleBadge}</div>` : roleBadge}
-          <div class="profile-panel-email">${email}</div>
-        </div>
-      </div>
-      ${adminSection}
-      ${_renderInvitationsSection()}
-      <div class="profile-panel-section profile-settings-section">
-        <div class="profile-section-label">${t('settings')}</div>
-        <div class="profile-pref-row">
-          <span class="profile-pref-label">${t('language')}</span>
-          <div class="profile-pref-pills">
-            <button class="pref-pill${lang === 'en' ? ' active' : ''}" onclick="setPrefLang('en')">EN</button>
-            <button class="pref-pill${lang === 'no' ? ' active' : ''}" onclick="setPrefLang('no')">NO</button>
-            <button class="pref-pill${lang === 'se' ? ' active' : ''}" onclick="setPrefLang('se')">SE</button>
-            <button class="pref-pill${lang === 'dk' ? ' active' : ''}" onclick="setPrefLang('dk')">DK</button>
-          </div>
-        </div>
-        <div class="profile-pref-row">
-          <span class="profile-pref-label">${t('temperature')}</span>
-          <div class="profile-pref-pills">
-            <button class="pref-pill${tempUnit === 'C' ? ' active' : ''}" onclick="setPrefTempUnit('C')">°C</button>
-            <button class="pref-pill${tempUnit === 'F' ? ' active' : ''}" onclick="setPrefTempUnit('F')">°F</button>
-          </div>
-        </div>
-      </div>
-      ${_friends.length ? `
-      <div class="profile-panel-section profile-settings-section">
-        <div class="profile-section-label">${t('checkin_visibility')}</div>
-        <div class="profile-pref-desc">${t('checkin_visibility_desc')}</div>
-        ${_friends.map(f => {
-          const hidden = _hiddenCheckinFriends.has(f.id);
-          return `<div class="profile-pref-row checkin-vis-row">
-            <span class="profile-pref-label">${f.name || f.email}</span>
-            <button class="pref-pill checkin-vis-toggle${hidden ? '' : ' active'}" onclick="toggleCheckinVisibility('${f.id}')">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                ${hidden
-                  ? '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>'
-                  : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>'}
-              </svg>
-            </button>
-          </div>`;
-        }).join('')}
-      </div>` : ''}
-      <div class="profile-panel-section" id="my-suggestions-section" style="display:none">
-        <div class="profile-section-label">${t('my_suggestions')}</div>
-        <div id="my-suggestions-list" style="color:var(--muted);font-size:12px;padding:4px 16px 8px">${t('no_suggestions_yet')}</div>
-      </div>
-      ${typeof _notifSettingsHtml === 'function' ? _notifSettingsHtml() : ''}
-      <div class="profile-panel-section">
-        <button class="profile-panel-row" onclick="openFriendsModal()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-          </svg>
-          <span>${t('friends')}${_friends.length ? ` (${_friends.length})` : ''}</span>
-          ${_pendingRequests.length ? `<span class="pending-badge">${_pendingRequests.length}</span>` : ''}
-        </button>
-      </div>
-      <div class="profile-panel-footer">
-        <a href="privacy.html" target="_blank" rel="noopener" class="profile-privacy-link">${t('privacy_policy')}</a>
-        <button class="profile-panel-signout" onclick="authSignOut();closeProfilePanel()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-            <polyline points="16 17 21 12 16 7"/>
-            <line x1="21" y1="12" x2="9" y2="12"/>
-          </svg>
-          ${t('signout')}
-        </button>
-      </div>
-    `;
-
-    if (authIsAdmin()) { _loadPendingCount(); _loadVenueSuggestionsCount(); }
-    _loadMySuggestions();
+    if (_profilePanelView === 'activity') {
+      panel.innerHTML = _renderActivityView();
+    } else if (_profilePanelView === 'visibility') {
+      panel.innerHTML = _renderVisibilityView();
+    } else {
+      panel.innerHTML = _renderSettingsView();
+      if (authIsAdmin()) { _loadPendingCount(); _loadVenueSuggestionsCount(); }
+      _loadMySuggestions();
+    }
   } else {
     panel.classList.add('logged-out');
     const slides = [1, 2, 3, 4].map(i => `
@@ -523,6 +661,7 @@ function closeProfilePanel() {
   const panel = document.getElementById('profile-panel');
   if (panel) panel.classList.remove('open');
   document.body.classList.remove('profile-panel-open');
+  _profilePanelView = 'settings';
 }
 
 function _profilePanelOutsideClick(e) {

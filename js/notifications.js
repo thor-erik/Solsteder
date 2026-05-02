@@ -899,28 +899,25 @@ function _notifSettingsHtml() {
     { key: 'suggestion', labelKey: 'notif_cat_suggestion' },
     { key: 'onboarding', labelKey: 'notif_cat_onboarding' },
   ];
-  const eyeOn = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
-  const eyeOff = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>';
-  let html = `<div class="profile-panel-section profile-settings-section">
-    <div class="profile-section-label">${t('notif_settings')}</div>`;
+  let rows = `<div class="settings-row pref-row is-disabled">
+    <span class="settings-row__label">${t('notif_push_coming_soon')}</span>
+    <span class="settings-row__value">${t('push_status_off')}</span>
+    <span class="settings-status-pill">${t('notif_coming_soon')}</span>
+  </div>`;
   for (const cat of categories) {
     const on = settings[cat.key] !== false;
-    html += `<div class="profile-pref-row">
-      <span class="profile-pref-label">${t(cat.labelKey)}</span>
-      <button class="pref-pill checkin-vis-toggle${on ? ' active' : ''}" onclick="_notifToggle('${cat.key}')">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          ${on ? eyeOn : eyeOff}
-        </svg>
-      </button>
+    rows += `<div class="settings-row pref-row">
+      <span class="settings-row__label">${t(cat.labelKey)}</span>
+      <button class="toggle-switch${on ? ' is-on' : ''}"
+              role="switch" aria-checked="${on}"
+              aria-label="${t(cat.labelKey)}"
+              onclick="_notifToggle('${cat.key}')"></button>
     </div>`;
   }
-  // Push notification teaser (greyed out)
-  html += `<div class="profile-pref-row" style="opacity:0.4;pointer-events:none">
-    <span class="profile-pref-label">${t('notif_push_coming_soon')}</span>
-    <span style="font-size:11px;color:var(--muted)">${t('notif_coming_soon')}</span>
+  return `<div>
+    <div class="settings-group-label">${t('notif_settings')}</div>
+    <div class="settings-group">${rows}</div>
   </div>`;
-  html += `</div>`;
-  return html;
 }
 
 // ── Track venue opens (for login_share evaluator) ────────────────────────────
