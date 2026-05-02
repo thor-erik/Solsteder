@@ -371,16 +371,29 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
       const accepted = plan._invitees.filter(i => i.status === 'accepted');
       if (accepted.length) {
         const max  = 5;
+        const planMs = plan.planned_at ? new Date(plan.planned_at).getTime() : null;
+        const fmtArrival = (i) => {
+          if (!i.arrival_time || !planMs) return '';
+          const arrMs = new Date(i.arrival_time).getTime();
+          if (Math.abs(arrMs - planMs) < 5 * 60 * 1000) return ''; // <5min off → not worth flagging
+          const d = new Date(arrMs);
+          return formatHour(d.getHours() + d.getMinutes() / 60);
+        };
+        // Avatars come with a tiny time chip when arrival_time differs from the plan
         const dots = accepted.slice(0, max).map(i => {
           const u = i.user;
-          if (u && u.avatar_url) return `<img class="pp-av" src="${u.avatar_url}" alt="">`;
-          const initial = ((u && (u.name || u.email)) || '?')[0].toUpperCase();
-          return `<div class="pp-av pp-av-init">${initial}</div>`;
+          const av = (u && u.avatar_url)
+            ? `<img class="pp-av" src="${u.avatar_url}" alt="">`
+            : `<div class="pp-av pp-av-init">${(((u && (u.name || u.email)) || '?')[0]).toUpperCase()}</div>`;
+          const arr = fmtArrival(i);
+          return `<div class="pp-av-wrap">${av}${arr ? `<span class="pp-av-time">${arr}</span>` : ''}</div>`;
         }).join('');
-        const more  = accepted.length > max ? `<div class="pp-av pp-av-init">+${accepted.length - max}</div>` : '';
+        const more  = accepted.length > max ? `<div class="pp-av-wrap"><div class="pp-av pp-av-init">+${accepted.length - max}</div></div>` : '';
         const names = accepted.map(i => {
           const n = (i.user && (i.user.name || i.user.email)) || '';
-          return n.split(' ')[0].split('@')[0];
+          const first = n.split(' ')[0].split('@')[0];
+          const arr = fmtArrival(i);
+          return arr ? `${first} (${arr})` : first;
         }).filter(Boolean).slice(0, 4).join(', ');
         attendeesHtml = `
           <div class="pp-attendees">
@@ -397,12 +410,26 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   // gracefully no-op when no real plan_invites row exists (testing tokens, or
   // the user is the plan creator clicking their own link). 'preview' shows Lukk.
   const isInviteUI = (opts.mode === 'invite' || opts.mode === 'invite-anon');
+  // Initial arrival time for the chip = plan time. The user can pick a different
+  // time before tapping I'm in; we then write that as plan_invites.arrival_time.
+  // Only built for logged-in invite mode (anon users can't write yet, no need to
+  // pick an arrival time before login).
+  const arrivalChipHtml = (opts.mode === 'invite')
+    ? `<div class="pp-arrival-row">
+         <span class="pp-arrival-prefix">${t('arrival_at_label')}</span>
+         <button class="pp-arrival-chip" id="pp-arrival-chip" type="button">
+           <span id="pp-arrival-time">${formatHour(planHour)}</span>
+           <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 5 6 8 9 5"/></svg>
+         </button>
+       </div>`
+    : '';
   let ctaHtml = '';
   if (isInviteUI && opts.mode === 'invite-anon') {
     ctaHtml = `<button class="pp-cta pp-cta-accept" id="pp-login">${t('pp_login_to_respond')}</button>`;
   } else if (isInviteUI) {
     ctaHtml = `
       <button class="pp-cta pp-cta-accept" id="pp-accept">${t('plan_preview_im_in')}</button>
+      ${arrivalChipHtml}
       <button class="pp-cta-decline" id="pp-decline">${t('plan_decline')}</button>`;
   } else {
     ctaHtml = `<button class="pp-cta pp-cta-accept" id="pp-close-cta">${t('close')}</button>`;
@@ -466,13 +493,49 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     if (typeof timeFromEl !== 'undefined' && timeFromEl) timeFromEl.removeEventListener('input', onTimeInput);
   };
 
+  // Arrival-time chip — opens a hidden <input type="time"> on tap. The chosen
+  // hour rides along on the I'm in click as plan_invites.arrival_time. Default
+  // (chip not interacted with) = plan time, written as the same ISO so the
+  // host's view reads consistently. Floating-point hour is converted to ISO
+  // using opts.plannedAt as the date anchor.
+  const arrivalChip = el.querySelector('#pp-arrival-chip');
+  let arrivalHour = planHour;
+  let arrivalInput = null;
+  if (arrivalChip) {
+    arrivalInput = document.createElement('input');
+    arrivalInput.type = 'time';
+    arrivalInput.style.cssText = 'position:absolute;opacity:0;width:0;height:0;pointer-events:none;';
+    arrivalInput.value = `${String(Math.floor(planHour)).padStart(2,'0')}:${String(Math.round((planHour - Math.floor(planHour)) * 60)).padStart(2,'0')}`;
+    arrivalChip.appendChild(arrivalInput);
+    arrivalChip.onclick = () => arrivalInput.showPicker?.() || arrivalInput.click();
+    arrivalInput.addEventListener('change', () => {
+      const m = arrivalInput.value.match(/^(\d{1,2}):(\d{2})$/);
+      if (!m) return;
+      arrivalHour = parseInt(m[1], 10) + parseInt(m[2], 10) / 60;
+      const lbl = el.querySelector('#pp-arrival-time');
+      if (lbl) lbl.textContent = formatHour(arrivalHour);
+      // Visual cue when arrival differs from plan
+      arrivalChip.classList.toggle('pp-arrival-off', Math.abs(arrivalHour - planHour) > 0.05);
+    });
+  }
+
   const acceptBtn = el.querySelector('#pp-accept');
   if (acceptBtn) acceptBtn.onclick = async () => {
+    // Compute arrival_time ISO from the chip (or null if the user kept plan time)
+    let arrivalIso = null;
+    if (arrivalChip && Math.abs(arrivalHour - planHour) > 0.05) {
+      const dateStr2 = opts.plannedAt ? opts.plannedAt.slice(0, 10) : datePicker?.value;
+      if (dateStr2) {
+        const hh = Math.floor(arrivalHour);
+        const mm = Math.round((arrivalHour - hh) * 60);
+        arrivalIso = new Date(`${dateStr2}T${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:00`).toISOString();
+      }
+    }
     if (typeof respondToPlanInvite === 'function' && opts.inviteId) {
-      try { await respondToPlanInvite(opts.inviteId, 'accepted'); } catch (e) { /* ignore */ }
+      try { await respondToPlanInvite(opts.inviteId, 'accepted', arrivalIso); } catch (e) { /* ignore */ }
     }
     if (typeof _showToast === 'function') _showToast(t('plan_preview_joined'));
-    if (typeof _aTrack === 'function') _aTrack('plan_preview_accept', { venue_id: venue.id, has_invite_id: !!opts.inviteId });
+    if (typeof _aTrack === 'function') _aTrack('plan_preview_accept', { venue_id: venue.id, has_invite_id: !!opts.inviteId, off_plan_time: !!arrivalIso });
     closePlanPreview();
   };
   const declineBtn = el.querySelector('#pp-decline');

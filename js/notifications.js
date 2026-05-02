@@ -540,12 +540,30 @@ function _evalInviteAccepted() {
   const u = head.invitee.user || {};
   const name = (u.name || u.email || '').split(' ')[0].split('@')[0] || '…';
   const extra = newAccepts.length - 1;
+  // Off-plan-time arrival → include the time in the toast: "Maja sa ja til
+  // Egon — kommer 14:00". Skips when arrival_time is null or within 5 min of
+  // plan time. Only applies to the single-accept (extra === 0) variant.
+  let arrivalTime = null;
+  if (extra === 0 && head.invitee.arrival_time && head.plan.planned_at) {
+    const planMs = new Date(head.plan.planned_at).getTime();
+    const arrMs = new Date(head.invitee.arrival_time).getTime();
+    if (Math.abs(arrMs - planMs) >= 5 * 60 * 1000) {
+      const d = new Date(arrMs);
+      arrivalTime = (typeof formatHour === 'function')
+        ? formatHour(d.getHours() + d.getMinutes() / 60)
+        : `${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+    }
+  }
+  let bodyKey;
+  if (extra > 0) bodyKey = 'notif_invite_accepted_multi';
+  else if (arrivalTime) bodyKey = 'notif_invite_accepted_at';
+  else bodyKey = 'notif_invite_accepted_body';
   return {
     id: 'social_invite_accepted_' + head.plan.id + '_' + head.invitee.user_id,
     priority: 1, category: 'social',
     icon: '☀',
-    bodyKey: extra > 0 ? 'notif_invite_accepted_multi' : 'notif_invite_accepted_body',
-    bodyVars: { name, venue: venue.name, extra },
+    bodyKey,
+    bodyVars: { name, venue: venue.name, extra, time: arrivalTime || '' },
     actionKey: 'notif_open_plan',
     action: () => {
       // Mark all queued accepts as seen (don't keep nagging once user has responded)

@@ -372,6 +372,16 @@ function _renderSocialSection(v) {
       // Status pips: only meaningful when current user is the plan creator
       let pipsHtml = '';
       if (myUid && String(p.creator_id) === String(myUid) && Array.isArray(p._invitees) && p._invitees.length) {
+        const planMs = p.planned_at ? new Date(p.planned_at).getTime() : null;
+        const fmtArrival = (inv) => {
+          if (!inv.arrival_time || !planMs) return '';
+          const arrMs = new Date(inv.arrival_time).getTime();
+          if (Math.abs(arrMs - planMs) < 5 * 60 * 1000) return '';
+          const d = new Date(arrMs);
+          return (typeof formatHour === 'function')
+            ? formatHour(d.getHours() + d.getMinutes() / 60)
+            : `${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+        };
         pipsHtml = `<div class="plan-invitees">${p._invitees.map(inv => {
           const u = inv.user || {};
           const initial = ((u.name || u.email || '?')[0] || '?').toUpperCase();
@@ -381,7 +391,10 @@ function _renderSocialSection(v) {
           const pipCls = inv.status === 'accepted' ? 'pi-pip-accepted'
                        : inv.status === 'declined' ? 'pi-pip-declined'
                        : 'pi-pip-pending';
-          return `<div class="plan-invitee" title="${(u.name || u.email || '')} — ${t('plan_invite_' + inv.status)}">${av}<span class="pi-pip ${pipCls}"></span></div>`;
+          const arr = fmtArrival(inv);
+          const arrLabel = arr ? ` — ${arr}` : '';
+          const arrChip = arr ? `<span class="pi-time">${arr}</span>` : '';
+          return `<div class="plan-invitee" title="${(u.name || u.email || '')} — ${t('plan_invite_' + inv.status)}${arrLabel}">${av}<span class="pi-pip ${pipCls}"></span>${arrChip}</div>`;
         }).join('')}</div>`;
       }
 

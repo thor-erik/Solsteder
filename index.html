@@ -6499,6 +6499,93 @@
     color: var(--muted);
   }
   .friend-prompt-banner-skip:hover { color: var(--text); }
+  /* Arrival-time row inside the plan-preview CTAs.
+     Sits between the I'm in pill and the Decline link, opens a native
+     <input type="time"> on chip tap. Subtle by default; turns accent
+     when the user picks a time off the plan. */
+  .pp-arrival-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: -2px;
+    margin-bottom: -4px;
+  }
+  .pp-arrival-prefix { letter-spacing: 0.01em; }
+  .pp-arrival-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid rgba(156,189,231,0.20);
+    border-radius: 999px;
+    padding: 3px 9px;
+    background: rgba(156,189,231,0.08);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    position: relative;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+  }
+  .pp-arrival-chip:hover { border-color: var(--accent); }
+  .pp-arrival-chip.pp-arrival-off {
+    border-color: var(--accent);
+    background: rgba(255,175,133,0.16);
+    color: var(--accent);
+  }
+  .pp-arrival-chip svg { opacity: 0.55; flex-shrink: 0; }
+  /* Per-invitee time chip on plan-preview attendees row */
+  .pp-av-wrap {
+    position: relative;
+    display: inline-block;
+  }
+  .pp-av-time {
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent);
+    color: var(--accent-on, #2a1a0c);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 999px;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    pointer-events: none;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+  }
+  /* Off-plan-arrival summary row in the inbox "Your plans" section */
+  .inbox-row-arrivals {
+    margin-top: 3px;
+    font-size: 11px;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.3;
+  }
+  /* Per-invitee tiny time chip on the detail-panel plan card */
+  .plan-invitee .pi-time {
+    position: absolute;
+    bottom: -7px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent);
+    color: var(--accent-on, #2a1a0c);
+    font-size: 8.5px;
+    font-weight: 700;
+    padding: 1px 4px;
+    border-radius: 999px;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    pointer-events: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.35);
+  }
   /* Invitee status pips on the plan card */
   .plan-invitees {
     display: flex;

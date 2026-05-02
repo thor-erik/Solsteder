@@ -231,6 +231,18 @@ function _renderInvitationsSection() {
 
   let yoursHtml = '';
   if (ownUpcoming.length) {
+    // Compact "off-plan-time" summary for the host: who's coming at a different
+    // hour, or how many are. Read off plan_invites.arrival_time which we now
+    // load via SELECT * in loadPlans.
+    const fmtH = (iso) => {
+      try {
+        const d = new Date(iso);
+        const h = d.getHours() + d.getMinutes() / 60;
+        return (typeof formatHour === 'function')
+          ? formatHour(h)
+          : `${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+      } catch { return ''; }
+    };
     yoursHtml = `
       <div class="profile-section-label profile-section-label-sub">${t('your_plans_label')}</div>
       ${ownUpcoming.map(p => {
@@ -238,10 +250,24 @@ function _renderInvitationsSection() {
         const accepted = (p._invitees || []).filter(i => i.status === 'accepted').length;
         const total    = (p._invitees || []).length;
         const ratio = total ? `${accepted}/${total}` : '';
+        // Spread of off-plan arrivals: "Maja 14:00 · Olav 14:30"
+        const planMs = p.planned_at ? new Date(p.planned_at).getTime() : null;
+        const offPlan = (p._invitees || [])
+          .filter(i => i.status === 'accepted' && i.arrival_time && planMs &&
+                       Math.abs(new Date(i.arrival_time).getTime() - planMs) >= 5 * 60 * 1000)
+          .map(i => {
+            const n = (i.user && (i.user.name || i.user.email)) || '';
+            const first = n.split(' ')[0].split('@')[0];
+            return first ? `${first} ${fmtH(i.arrival_time)}` : fmtH(i.arrival_time);
+          });
+        const offPlanLine = offPlan.length
+          ? `<div class="inbox-row-arrivals">${offPlan.slice(0, 3).join(' · ')}${offPlan.length > 3 ? ` +${offPlan.length - 3}` : ''}</div>`
+          : '';
         return `<div class="inbox-row">
           <div class="inbox-row-info">
             <div class="inbox-row-title">${vName}</div>
             <div class="inbox-row-meta">${fmt(p.planned_at)}${ratio ? ` · ${ratio} ✓` : ''}</div>
+            ${offPlanLine}
           </div>
           <div class="inbox-row-actions">
             <button class="inbox-btn inbox-btn-preview"
@@ -1490,9 +1516,25 @@ async function _handleInboxResponse(inviteId, status, btn) {
   if (typeof _renderProfilePanel === 'function') _renderProfilePanel();
 }
 
-async function respondToPlanInvite(inviteId, status) {
-  if (typeof _aTrack === 'function') _aTrack('plan_invite_response', { status });
-  await _supabase.from('plan_invites').update({ status }).eq('id', inviteId);
+/**
+ * Update a plan_invite's status, optionally setting a per-invitee arrival_time.
+ * @param {string} inviteId
+ * @param {'accepted'|'declined'|'pending'} status
+ * @param {string|null} [arrivalTime] - ISO datetime; null/undefined keeps existing value
+ *                                       (for accepts, default = same as plan time)
+ */
+async function respondToPlanInvite(inviteId, status, arrivalTime) {
+  if (typeof _aTrack === 'function') {
+    _aTrack('plan_invite_response', { status, has_arrival_time: !!arrivalTime });
+  }
+  const patch = { status };
+  if (arrivalTime !== undefined) patch.arrival_time = arrivalTime;
+  // Try the update with arrival_time. If the column doesn't exist yet (migration
+  // not applied), retry without it so accept/decline still works.
+  const { error } = await _supabase.from('plan_invites').update(patch).eq('id', inviteId);
+  if (error && /arrival_time/.test(error.message || '')) {
+    await _supabase.from('plan_invites').update({ status }).eq('id', inviteId);
+  }
   await loadPlans();
 }
 
