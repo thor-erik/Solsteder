@@ -935,24 +935,65 @@ function _queueTellMoreFriendsNudge(venueId, remainingCount) {
   _notifAdvance();
 }
 
-/** Compose the share-text body for an invite at venue+date+hour. */
-function _composeInviteShareText(v, d, h) {
-  const venueName = v?.name || '';
-  const timeLabel = typeof formatHour === 'function' ? formatHour(h) : '';
-  let sunUntil = null;
+/** Pick the contextual weather + sun phrase for the share message. Maps the
+ *  state space to seven distinct user-facing strings so the message never
+ *  promises sun where the venue is shaded, never says "sun until 20:50" when
+ *  it's already raining, etc.
+ *
+ *  Decision order (first match wins):
+ *    1. Rain expected at meeting hour       → "regn forventes 🌧️"
+ *    2. Heavy overcast (cloud > 0.7)        → "overskyet ☁️"
+ *    3. Meeting time past venue's sun close → "etter solnedgang 🌇"
+ *    4. Meeting time before venue's open    → "før soloppgang 🌅"
+ *    5. Meeting time inside a sun window    → "det er sol til {end} ☀️/⛅"
+ *    6. Sun returns later that day          → "skygge nå, sol fra kl. {start} ☀️/⛅"
+ *    7. Shaded for the rest of the day      → "skygge resten av dagen ☁️"
+ *
+ *  Sun icon flips to ⛅ for partly cloudy (cloud > 0.35) so the receiver gets
+ *  an honest cue that it's not full sun.
+ */
+function _composeShareContext(v, d, h) {
+  const wx = (typeof getWeatherAt === 'function') ? getWeatherAt(d, Math.floor(h)) : null;
+  const isRain     = (wx?.precip ?? 0) > 0.4;
+  const isOvercast = !isRain && (wx?.cloud ?? 0) > 0.7;
+  const isPartly   = !isRain && !isOvercast && (wx?.cloud ?? 0) > 0.35;
+
+  if (isRain)     return { context: t('share_ctx_rain'),     icon: '🌧️' };
+  if (isOvercast) return { context: t('share_ctx_overcast'), icon: '☁️' };
+
+  let open = null, close = null, windows = null;
   if (v && typeof computeSunWindows === 'function') {
-    const { windows } = computeSunWindows(v, d) || {};
-    if (windows && windows.length) {
-      // Active window covering h, else the next window after h
-      const cur  = windows.find(w => h >= w.start && h < w.end);
-      const next = !cur ? windows.find(w => w.start > h) : null;
-      const win  = cur || next;
-      if (win && typeof formatHour === 'function') sunUntil = formatHour(win.end);
-    }
+    const res = computeSunWindows(v, d) || {};
+    windows = res.windows || null;
+    open    = res.open;
+    close   = res.close;
   }
-  return sunUntil
-    ? t('share_invite_text',        { venue: venueName, time: timeLabel, sunUntil })
-    : t('share_invite_text_no_sun', { venue: venueName, time: timeLabel });
+
+  if (close != null && h >= close) return { context: t('share_ctx_after_sunset'),   icon: '🌇' };
+  if (open  != null && h <  open)  return { context: t('share_ctx_before_sunrise'), icon: '🌅' };
+
+  const sunIcon = isPartly ? '⛅' : '☀️';
+  if (windows && windows.length && typeof formatHour === 'function') {
+    const cur  = windows.find(w => h >= w.start && h < w.end);
+    if (cur) return { context: t('share_ctx_sun_until', { time: formatHour(cur.end) }), icon: sunIcon };
+    const next = windows.find(w => w.start > h);
+    if (next) return { context: t('share_ctx_sun_from', { time: formatHour(next.start) }), icon: sunIcon };
+  }
+
+  return { context: t('share_ctx_no_sun_rest'), icon: '☁️' };
+}
+
+/** Compose the share-text body for an invite at venue+date+hour. When `link`
+ *  is provided, the message includes a "Bli med: {link}" suffix so the URL is
+ *  inlined into the body (visible regardless of how the receiving platform
+ *  treats Web Share's separate `url` field). Without a link, returns the
+ *  body alone — used for the chat-bubble preview in the invite sheet. */
+function _composeInviteShareText(v, d, h, link) {
+  const venueName = v?.name || '';
+  const timeLabel = (typeof formatHour === 'function') ? formatHour(h) : '';
+  const { context, icon } = _composeShareContext(v, d, h);
+  const key = link ? 'share_invite_text_w_link' : 'share_invite_text';
+  return t(key, { venue: venueName, time: timeLabel, context, icon, link: link || '' });
 }
 
 /** Share an invite link via native share or clipboard.
@@ -992,17 +1033,21 @@ function _shareInviteLink(venueId, overrides = {}) {
   // Prefer path-form `/i/<token>` (server-rendered OG preview); SPA route `#invite/...` still works
   const url = `${location.origin}${location.pathname.replace(/\/$/, '')}/i/${data}`;
   const v = typeof VENUES !== 'undefined' ? VENUES.find(x => x.id === venueId) : null;
-  const text = _composeInviteShareText(v, d, h);
+  // Inline the URL into the body — Web Share platforms vary in how they merge
+  // text + url, so the only reliable way to ensure "Bli med: <link>" reads
+  // exactly as written is to bake it into the text itself. We omit the
+  // separate `url` field on share() to avoid duplicate URLs on platforms that
+  // append it.
+  const text = _composeInviteShareText(v, d, h, url);
   if (navigator.share) {
     navigator.share({
       title: v ? `${v.name} — ${t('invite_friends')}` : t('invite_friends'),
       text,
-      url,
     }).catch(err => {
       if (err && err.name !== 'AbortError') console.warn('[share] navigator.share failed:', err);
     });
   } else {
-    navigator.clipboard?.writeText(`${text}\n${url}`);
+    navigator.clipboard?.writeText(text);
     if (typeof _showToast === 'function') _showToast(t('invite_link_copied'));
   }
 }
