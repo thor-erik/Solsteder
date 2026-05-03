@@ -515,8 +515,11 @@ function _icsEscape(s) {
 
 /** Build an .ics calendar event for an invite. UID is stable when planId is
  *  present (so re-shares update the existing event rather than duplicate, per
- *  RFC 5545). Default duration is 2 hours. */
-function _buildIcs({ venue, plannedAt, planId, durationMin = 120, link }) {
+ *  RFC 5545). Default duration is 2 hours.
+ *  Title format: "{venue} with {inviter}" or "{venue}" (no app-name prefix
+ *  — calendar apps already group by source app, so prefixing with "Solsteder"
+ *  is noise that competes with the meeting context). */
+function _buildIcs({ venue, plannedAt, planId, durationMin = 120, link, inviterName }) {
   if (!venue || !plannedAt) return null;
   const start = new Date(plannedAt);
   if (isNaN(start.getTime())) return null;
@@ -527,11 +530,15 @@ function _buildIcs({ venue, plannedAt, planId, durationMin = 120, link }) {
     ? `plan-${planId}@findshades.app`
     : `invite-${venue.id}-${start.getTime()}@findshades.app`;
 
-  const summary = _icsEscape(`Solsteder · ${venue.name}`);
+  const inviterPart = inviterName
+    ? ` ${t('with_inviter_label', { name: inviterName }) || `with ${inviterName}`}`
+    : '';
+  const titleText = `${venue.name}${inviterPart}`;
+  const summary = _icsEscape(titleText);
   const location = _icsEscape(venue.area ? `${venue.name}, ${venue.area}` : venue.name);
   const description = _icsEscape(link
-    ? `Solsteder · ${venue.name}\n${link}`
-    : `Solsteder · ${venue.name}`);
+    ? `${titleText}\n${link}`
+    : titleText);
   const url = link || '';
   const geo = (venue.lat != null && venue.lng != null) ? `${venue.lat};${venue.lng}` : '';
 
@@ -570,7 +577,7 @@ function _slugForFile(s) {
  *  "Add to Calendar" sheet; Android Chrome offers a calendar app picker;
  *  desktop browsers download the .ics so the user can double-click into
  *  Calendar.app / Outlook. */
-function _handleCalendarAdd(venueId) {
+function _handleCalendarAdd(venueId, inviterName) {
   const sn = (typeof window !== 'undefined') ? window._pendingShareNudge : null;
   if (typeof _aTrack === 'function') _aTrack('share_nudge', { action: 'calendar' });
 
@@ -593,6 +600,7 @@ function _handleCalendarAdd(venueId) {
     planId: sn && sn.planId,
     durationMin: 120,
     link: sn && sn.link,
+    inviterName,
   });
   if (!ics) return;
 
@@ -634,7 +642,9 @@ function _buildPostAcceptQueue(opts) {
       onSkip:    () => _handleFriendPromptDismiss(fp.inviterId),
     });
   }
-  // Calendar is always offered when we have a venue + plannedAt.
+  // Calendar is always offered when we have a venue + plannedAt. Inviter name
+  // (passed from openPlanPreview's accept handler) flows through to the .ics
+  // SUMMARY as "{venue} with {inviter}".
   if (opts.venueId && opts.plannedAt) {
     queue.push({
       type: 'calendar',
@@ -642,7 +652,7 @@ function _buildPostAcceptQueue(opts) {
       titleKey: 'pap_q_calendar_title',
       subKey:   'pap_q_calendar_sub',
       primaryKey: 'pap_q_calendar_primary',
-      onPrimary: () => _handleCalendarAdd(opts.venueId),
+      onPrimary: () => _handleCalendarAdd(opts.venueId, opts.inviterName),
       onSkip:    () => {},
     });
   }

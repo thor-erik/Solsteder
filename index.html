@@ -6491,18 +6491,58 @@
     flex-shrink: 0;
   }
   /* Eyebrow row — inviter avatar + "X har invitert deg" text inline. */
-  .pp-eyebrow-row {
+  /* Title block — the prominent invite headline above the venue card.
+     Format: "{Inviter} has invited you to {Short venue}" + date·time sub.
+     Inviter avatar (when known) sits left of the title text in a 2-column
+     flex; falls back to text-only when the inviter is unknown (anon token). */
+  .pp-title-block {
     display: flex;
-    align-items: center;
-    gap: 8px;
+    align-items: flex-start;
+    gap: 12px;
+    margin-top: 4px;
+  }
+  .pp-title-avatar {
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .pp-title-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .pp-title {
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.015em;
+    color: var(--text);
+    margin: 0;
+    /* Allow up to 3 lines for "Maja has invited you to Mamma Pizza" before
+       wrapping pushes too tall. shortName() caps the venue at 18 chars. */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    word-wrap: break-word;
+  }
+  .pp-title-sub {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--muted);
+    line-height: 1.35;
+    font-variant-numeric: tabular-nums;
   }
   .pp-inviter-av {
-    width: 22px;
-    height: 22px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     object-fit: cover;
-    border: 1.5px solid rgba(255,175,133,0.45);
+    border: 2px solid rgba(255,175,133,0.45);
     flex-shrink: 0;
+    display: block;
   }
   .pp-inviter-av-init {
     background: rgba(255,175,133,0.18);
@@ -6510,24 +6550,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 11px;
+    font-size: 16px;
     font-weight: 700;
   }
-  /* Eyebrow — accent uppercase callout, "X har invitert deg". */
-  .pp-eyebrow {
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--accent);
-    line-height: 1.3;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    min-width: 0;
-  }
-  /* Meet-line — small muted line under the eyebrow with date · time, so the
-     invitee always sees when they're invited even if they ignore the slider. */
+  /* Meet-line — fallback for non-invite (preview) mode without a title block. */
   .pp-meet-line {
     font-size: 13px;
     font-weight: 500;
