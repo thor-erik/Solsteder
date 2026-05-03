@@ -873,18 +873,33 @@ function _openInviteSheet(venueId) {
   const hasFriends = friends.length > 0;
   const SHOW_SEARCH_AT = 6;
 
-  const pickSvg = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 7 6 11 12 3"/></svg>`;
-  const friendRows = friends.map(f => {
-    const initial = (f.name || f.email || '?')[0].toUpperCase();
+  const checkSvg = `<svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 7 6 11 12 3"/></svg>`;
+  // Stable color index (0–7) hashed from friend id so the initials-circle
+  // fallback feels intentional — two "E"s won't collide and the same friend
+  // keeps the same color across reloads.
+  const _hashColor = (s) => {
+    s = String(s || '');
+    let h = 0;
+    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+    return h % 8;
+  };
+  const friendTiles = friends.map(f => {
+    const fullName = f.name || f.email || '';
+    const firstName = fullName.split(/\s+/)[0] || fullName || '?';
+    const initial = (fullName || '?')[0].toUpperCase();
+    const colorIdx = _hashColor(f.id);
     const avatar = f.avatar_url
       ? `<img class="invite-friend-avatar" src="${f.avatar_url}" alt="">`
-      : `<div class="invite-friend-avatar invite-friend-init">${initial}</div>`;
-    const safeName = (f.name || f.email || '').replace(/"/g, '&quot;');
-    return `<div class="invite-friend-row" role="checkbox" tabindex="0" aria-checked="false" data-friend-id="${f.id}" data-friend-name="${safeName}" onclick="_toggleInviteFriend(this)" onkeydown="if(event.key===' '||event.key==='Enter'){event.preventDefault();_toggleInviteFriend(this);}">
-      ${avatar}
-      <span class="invite-friend-name">${f.name || f.email}</span>
-      <span class="invite-friend-pick" aria-hidden="true">${pickSvg}</span>
-    </div>`;
+      : `<div class="invite-friend-avatar invite-friend-init init-color-${colorIdx}">${initial}</div>`;
+    const safeFull = fullName.replace(/"/g, '&quot;');
+    const safeFirst = firstName.replace(/</g, '&lt;');
+    return `<button type="button" class="invite-friend-tile" role="checkbox" aria-checked="false" aria-label="${safeFull}" data-friend-id="${f.id}" data-friend-name="${safeFull}" onclick="_toggleInviteFriend(this)">
+      <span class="invite-friend-avatar-wrap">
+        ${avatar}
+        <span class="invite-friend-check" aria-hidden="true">${checkSvg}</span>
+      </span>
+      <span class="invite-friend-name">${safeFirst}</span>
+    </button>`;
   }).join('');
 
   const shareSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>`;
@@ -918,7 +933,7 @@ function _openInviteSheet(venueId) {
         </div>
         ${friends.length > SHOW_SEARCH_AT ? `<input type="text" class="invite-friend-search" id="invite-friend-search" placeholder="${t('invite_friend_search_placeholder')}" oninput="_filterInviteFriends(this.value)">` : ''}
         <div class="invite-friends-list">
-          ${friendRows}
+          ${friendTiles}
         </div>` : `
         <div class="invite-empty-card">
           <div class="invite-empty-icon">${noFriendsSvg}</div>
@@ -1160,7 +1175,7 @@ function _toggleInviteFriend(row) {
 function _toggleAllInviteFriends() {
   const sheet = document.getElementById('invite-sheet');
   if (!sheet) return;
-  const visibleRows = Array.from(sheet.querySelectorAll('.invite-friend-row')).filter(r => !r.hidden);
+  const visibleRows = Array.from(sheet.querySelectorAll('.invite-friend-tile')).filter(r => !r.hidden);
   if (!visibleRows.length) return;
   const anyUnchecked = visibleRows.some(r => r.getAttribute('aria-checked') !== 'true');
   visibleRows.forEach(r => r.setAttribute('aria-checked', anyUnchecked ? 'true' : 'false'));
@@ -1172,7 +1187,7 @@ function _filterInviteFriends(query) {
   const sheet = document.getElementById('invite-sheet');
   if (!sheet) return;
   const q = (query || '').trim().toLowerCase();
-  const rows = sheet.querySelectorAll('.invite-friend-row');
+  const rows = sheet.querySelectorAll('.invite-friend-tile');
   rows.forEach(r => {
     const name = (r.getAttribute('data-friend-name') || '').toLowerCase();
     r.hidden = q && !name.includes(q);
@@ -1197,7 +1212,7 @@ function _refreshInvitePrimaryCTA() {
   const total = sheet._friendCount || 0;
   if (total === 0) return; // empty state has no primary-cta to update
 
-  const allRows = Array.from(sheet.querySelectorAll('.invite-friend-row'));
+  const allRows = Array.from(sheet.querySelectorAll('.invite-friend-tile'));
   const selectedRows = allRows.filter(r => r.getAttribute('aria-checked') === 'true');
   const n = selectedRows.length;
 
@@ -1295,7 +1310,7 @@ async function _sendInvite(venueId) {
 
   const allFriends = (typeof _friends !== 'undefined') ? _friends : [];
   const selectedIds = Array.from(
-    document.querySelectorAll('#invite-sheet .invite-friend-row[aria-checked="true"]')
+    document.querySelectorAll('#invite-sheet .invite-friend-tile[aria-checked="true"]')
   ).map(r => r.getAttribute('data-friend-id'));
 
   // No silent broadcast — the primary CTA is disabled in this state, but

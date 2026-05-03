@@ -6079,85 +6079,121 @@
   .invite-friend-search:focus { border-color: rgba(255,175,133,0.40); }
   .invite-friend-search::placeholder { color: var(--muted); }
 
+  /* Avatar grid — denser than a vertical list, fits 4–5 friends per row on a
+     phone, names sit under each avatar so identification stays one glance.
+     Selection state lives on the avatar itself (coral ring + corner check)
+     to mirror iMessage / Pinterest share-sheet patterns. */
   .invite-friends-list {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+    gap: 14px 6px;
     overflow-y: auto;
+    padding: 4px 4px 8px;
     margin: 0 -4px;
-    /* Cap height so a long friends list scrolls inside its own area instead
-       of pushing the buttons + bubble below the fold. ~3 rows visible
-       (each row ~56px including padding). */
-    max-height: 180px;
+    /* Cap so a long friends list scrolls inside its own area instead of
+       pushing the buttons + bubble below the fold. */
+    max-height: 220px;
     -webkit-overflow-scrolling: touch;
   }
 
-  .invite-friend-row {
+  .invite-friend-tile {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 12px;
-    padding: 8px 12px;
-    border-radius: 12px;
+    gap: 6px;
+    background: transparent;
+    border: 0;
+    padding: 4px 2px;
+    font: inherit;
+    color: inherit;
     cursor: pointer;
     user-select: none;
-    transition: background 0.12s;
     -webkit-tap-highlight-color: transparent;
   }
-  .invite-friend-row:hover,
-  .invite-friend-row:focus-visible { background: var(--accent-dim); outline: none; }
-  .invite-friend-row[hidden] { display: none; }
+  .invite-friend-tile[hidden] { display: none; }
+  .invite-friend-tile:focus-visible { outline: none; }
+  .invite-friend-tile:focus-visible .invite-friend-avatar {
+    box-shadow: 0 0 0 3px rgba(255,175,133,0.55);
+  }
 
-  /* Avatar = identity only. Selection state lives entirely in the
-     .invite-friend-pick circle on the right side of the row — single,
-     obvious cue (matches iOS contact-picker conventions). */
+  .invite-friend-avatar-wrap {
+    position: relative;
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
+  }
   .invite-friend-avatar {
-    width: 40px;
-    height: 40px;
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
     object-fit: cover;
     border: 2px solid rgba(156,189,231,0.20);
-    flex-shrink: 0;
+    display: block;
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
   .invite-friend-init {
-    background: rgba(20,46,82,0.60);
-    color: var(--muted);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 15px;
+    font-size: 22px;
     font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.01em;
+  }
+  /* Stable palette — friend id hashes into 0–7 so two "E"s don't collide and
+     the same friend keeps their color across reloads. */
+  .invite-friend-init.init-color-0 { background: #FF8A65; }
+  .invite-friend-init.init-color-1 { background: #5C7CFA; }
+  .invite-friend-init.init-color-2 { background: #51B789; }
+  .invite-friend-init.init-color-3 { background: #E0A030; }
+  .invite-friend-init.init-color-4 { background: #A26FD0; }
+  .invite-friend-init.init-color-5 { background: #3FAFB6; }
+  .invite-friend-init.init-color-6 { background: #D6648C; }
+  .invite-friend-init.init-color-7 { background: #5E748A; }
+
+  .invite-friend-tile[aria-checked="true"] .invite-friend-avatar {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent);
+  }
+
+  .invite-friend-check {
+    position: absolute;
+    right: -2px;
+    bottom: -2px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--accent-on, #2a1a0c);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--glass-panel-bg, #0d2240);
+    opacity: 0;
+    transform: scale(0.6);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    pointer-events: none;
+  }
+  .invite-friend-tile[aria-checked="true"] .invite-friend-check {
+    opacity: 1;
+    transform: scale(1);
   }
 
   .invite-friend-name {
-    font-size: 15px;
+    font-size: 11.5px;
     font-weight: 500;
-    color: var(--text);
-    flex: 1;
-    min-width: 0;
+    color: var(--muted);
+    line-height: 1.2;
+    max-width: 72px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    text-align: center;
+    transition: color 0.15s;
   }
-
-  /* Right-side selection circle — primary tap affordance. Empty hollow circle
-     by default, fills coral with a checkmark when the row is selected. */
-  .invite-friend-pick {
-    flex-shrink: 0;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    border: 2px solid rgba(156,189,231,0.30);
-    background: transparent;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: transparent;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
-  }
-  .invite-friend-row[aria-checked="true"] .invite-friend-pick {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: var(--accent-on, #2a1a0c);
+  .invite-friend-tile[aria-checked="true"] .invite-friend-name {
+    color: var(--text);
+    font-weight: 600;
   }
 
   /* ── Empty state ──────────────────────────────────────────────────────── */
