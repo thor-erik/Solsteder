@@ -96,8 +96,16 @@ const beerSvgMini = `<svg viewBox="0 0 24 24" width="12" height="12" fill="none"
 function renderCard(v, dateStr, fromHour, toHour, isPoint) {
   const dayHours = getVenueHoursForDay(v, dateStr);
 
+  // renderList pre-computes these on its mapped venues; the detail-panel
+  // rebuild path (updateDetailPanel + openDetailPanel desktop fallback) calls
+  // renderCard with the raw venue from VENUES, where both fields are undefined
+  // and the closed-card branch would always fire — taking out .card-timeline
+  // and forcing the FTS to detach to the panel's top fallback.
+  const isOpen        = v.isOpen        ?? (fromHour >= dayHours.open && fromHour <= dayHours.close);
+  const isOpeningSoon = v.isOpeningSoon ?? (!isOpen && (dayHours.open - fromHour) > 0 && (dayHours.open - fromHour) <= 0.75);
+
   // Collapsed single-line card for closed venues
-  if (!v.isOpen && !v.isOpeningSoon) {
+  if (!isOpen && !isOpeningSoon) {
     return `
       <div class="venue-card closed-card ${v.id === selectedId ? 'selected' : ''}"
            data-vid="${v.id}" onclick="selectVenue(${typeof v.id === 'number' ? v.id : `'${v.id}'`}, true)"
