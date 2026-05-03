@@ -141,6 +141,23 @@ function openPlanPreview(opts) {
   // preview drives shadow rendering exactly like elsewhere.
   _ppFtsAttach();
 
+  // Track .pp-bottom height as --pp-bottom-h so the locate-me button + zoom-jog
+  // can anchor above the panel (CSS: body.plan-preview-active #locate-btn /
+  // #zoom-jog rules in index.html). ResizeObserver keeps it in sync as content
+  // changes (FTS reparent, attendees update, virtual keyboard).
+  const bottom = overlay.querySelector('.pp-bottom');
+  let resizeObs = null;
+  if (bottom) {
+    const writeH = () => {
+      document.documentElement.style.setProperty('--pp-bottom-h', bottom.offsetHeight + 'px');
+    };
+    requestAnimationFrame(writeH);
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObs = new ResizeObserver(writeH);
+      resizeObs.observe(bottom);
+    }
+  }
+
   _planPreviewState = {
     overlay,
     venueId:  venue.id,
@@ -150,6 +167,7 @@ function openPlanPreview(opts) {
     rafId: null,
     timeouts: [phase2TimeoutId, phase3TimeoutId],
     autoplayDone: false,
+    resizeObs,
   };
 
   requestAnimationFrame(() => {
@@ -176,6 +194,8 @@ function closePlanPreview() {
   if (Array.isArray(st.timeouts)) {
     for (const tref of st.timeouts) { if (tref && tref.id != null) clearTimeout(tref.id); }
   }
+  if (st.resizeObs) { try { st.resizeObs.disconnect(); } catch {} }
+  document.documentElement.style.removeProperty('--pp-bottom-h');
   if (st.savedDate != null && datePicker && datePicker.value !== st.savedDate) {
     datePicker.value = st.savedDate;
     datePicker.dispatchEvent(new Event('change'));
@@ -185,9 +205,12 @@ function closePlanPreview() {
     timeFromEl.dispatchEvent(new Event('input'));
   }
 
-  // Capture FTS rect IN preview slot before we detach — used as the FLIP source.
+  // Capture FTS rect IN the preview's dp-card before we detach — used as the
+  // FLIP source. FTS is hosted via .fts-in-card (same pattern as the detail
+  // panel) so we look for that class to recognise the in-preview state.
   const fts = document.getElementById('fts');
-  const ftsSrcRect = (fts && fts.classList.contains('fts-in-preview'))
+  const ftsSrcRect = (fts && fts.classList.contains('fts-in-card') &&
+                      fts.closest('#pp-dp-card'))
     ? fts.getBoundingClientRect() : null;
   // Detach FTS from preview slot, reset it to body so openDetailPanel can run
   // its own pre-stage. We pass ftsSrcRect to the FLIP routine after the panel
@@ -231,30 +254,37 @@ function closePlanPreview() {
   }
 }
 
-/** Reparent #fts into the plan-preview's slot. CSS rule with .fts-in-preview
- *  flattens position and width to fill the slot. drawFtsCanvas re-renders at
- *  the new size. _syncFtsPosition skips while fts-in-preview is set. */
+/** Reparent #fts into the plan-preview's dp-card .card-timeline — same FTS-
+ *  hosting pattern the detail panel uses post-morph. The .fts-in-card class
+ *  triggers the existing flatten-position-and-fill CSS, _syncFtsPosition skips
+ *  while it's set, and the dp-card.fts-hosted state hides the mini-timeline's
+ *  static segments behind the live FTS canvas. */
 function _ppFtsAttach() {
   const fts = document.getElementById('fts');
-  const slot = document.querySelector('.pp-fts-slot');
-  if (!fts || !slot) return;
-  // If FTS is currently docked into a detail-panel card, lift it cleanly first.
-  fts.classList.remove('fts-in-card');
+  const ppCard = document.getElementById('pp-dp-card');
+  const cardTimeline = ppCard?.querySelector('.card-timeline');
+  if (!fts || !cardTimeline || !ppCard) return;
   fts.style.cssText = '';
-  fts.classList.add('fts-in-preview');
-  slot.appendChild(fts);
+  fts.classList.add('fts-in-card');
+  ppCard.classList.add('fts-hosted');
+  // Same labels-offset trick as the detail panel: FTS calendar btn is leftmost
+  // 38px + 8px gap; in-card labels start where the slider track does.
+  const dateBtn = document.getElementById('fts-date-btn');
+  const btnW = dateBtn ? dateBtn.offsetWidth : 38;
+  ppCard.style.setProperty('--fts-labels-offset', (btnW + 8) + 'px');
+  cardTimeline.appendChild(fts);
   // Force a repaint at the new container size on the next frame.
   requestAnimationFrame(() => {
     if (typeof drawFtsCanvas === 'function') drawFtsCanvas();
   });
 }
 
-/** Reverse: detach FTS from the preview slot and put it back on the body. The
+/** Reverse: detach FTS from the dp-card and put it back on the body. The
  *  caller (closePlanPreview) is responsible for whatever follows. */
 function _ppFtsDetach() {
   const fts = document.getElementById('fts');
   if (!fts) return;
-  fts.classList.remove('fts-in-preview');
+  fts.classList.remove('fts-in-card');
   fts.style.cssText = '';
   if (fts.parentNode !== document.body) document.body.appendChild(fts);
 }
@@ -288,8 +318,6 @@ function _ppAnimate(fromH, toH, durationMs) {
       timeFromEl.value = h;
       timeFromEl.dispatchEvent(new Event('input'));
     }
-    const readout = document.getElementById('pp-time');
-    if (readout && typeof formatHour === 'function') readout.textContent = formatHour(h);
     if (t < 1) {
       _planPreviewState.rafId = requestAnimationFrame(step);
     } else {
@@ -298,7 +326,6 @@ function _ppAnimate(fromH, toH, durationMs) {
         timeFromEl.value = fromH;
         timeFromEl.dispatchEvent(new Event('input'));
       }
-      if (readout && typeof formatHour === 'function') readout.textContent = formatHour(fromH);
       _planPreviewState.autoplayDone = true;
       _planPreviewState.rafId = null;
     }
@@ -348,15 +375,6 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   const el = document.createElement('div');
   el.id = 'plan-preview';
   el.className = 'plan-preview';
-
-  const wx       = (typeof getWeatherAt === 'function') ? getWeatherAt(dateStr, Math.floor(planHour)) : null;
-  const wxIcon   = _ppWxIcon(wx);
-  const wxTemp   = (wx && wx.temp != null) ? `${Math.round(wx.temp)}°` : '';
-  const wxDetail = _ppWxDetail(wx);
-
-  const sunRange = (animateTo > planHour + 0.05)
-    ? `${formatHour(planHour)} → ${formatHour(animateTo)}`
-    : formatHour(planHour);
 
   // Attendees (logged-in only — getPlansForVenue is empty for anonymous users)
   let attendeesHtml = '';
@@ -436,56 +454,62 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   }
 
   const eyebrow = _ppInviterLine(opts.mode || 'preview', opts);
-  const tagline = _ppTagline(opts.mode || 'preview', opts, venue, planHour, animateTo);
+
+  // Reuse the same renderCard() output the detail panel docks into .dp-card —
+  // single source of truth for venue card visuals (name, meta, sun headline,
+  // mini timeline). Strip the list-card click handlers since this card isn't
+  // selectable. The .source-docked class enables the same dp-card styling
+  // the detail panel uses post-morph.
+  let dpCardHtml = '';
+  if (typeof renderCard === 'function') {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = renderCard(venue, dateStr, planHour, planHour, true);
+    const card = tmp.firstElementChild;
+    if (card) {
+      card.classList.add('dp-card', 'source-docked');
+      card.removeAttribute('onclick');
+      card.removeAttribute('onmouseenter');
+      card.removeAttribute('onmouseleave');
+      card.id = 'pp-dp-card';
+      dpCardHtml = card.outerHTML;
+    }
+  }
+
+  // Meeting time/date line — small muted line under the eyebrow. The dp-card
+  // shows sun behaviour, but the user still needs to see *when* they're
+  // invited. Reuse pp_tagline_invite ("kl. {time}" / "at {time}") for the
+  // localized time prefix; pair with _fmtInviteDate for the date label.
+  const dateLabel = (typeof _fmtInviteDate === 'function') ? _fmtInviteDate(dateStr) : dateStr;
+  const timeLabel = t('pp_tagline_invite', { time: formatHour(planHour) });
+  const meetLine = `${dateLabel} · ${timeLabel}`;
 
   el.innerHTML = `
-    <div class="pp-top">
-      <button class="pp-back" id="pp-back" aria-label="${t('back')}">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-      </button>
-      <div class="pp-wx">
-        <span class="pp-wx-icon">${wxIcon}</span>
-        ${wxTemp ? `<span class="pp-wx-temp">${wxTemp}</span>` : ''}
-        ${wxDetail ? `<span class="pp-wx-detail">${wxDetail}</span>` : ''}
-      </div>
-    </div>
     <div class="pp-bottom">
+      <div class="pp-handle" id="pp-handle" aria-label="${t('close')}"><div class="pp-handle-pill"></div></div>
       ${eyebrow ? `<div class="pp-eyebrow">${eyebrow}</div>` : ''}
-      <div class="pp-card-row">
-        <div class="pp-card-left">
-          <div class="pp-card-name">${venue.name}</div>
-          ${venue.area ? `<div class="pp-card-meta">${venue.area}</div>` : ''}
-        </div>
-        <div class="pp-card-right">
-          <div class="pp-card-hero">${sunRange}</div>
-          ${tagline ? `<div class="pp-card-sub">${tagline}</div>` : ''}
-        </div>
-      </div>
-      <div class="pp-fts-slot"></div>
-      <div class="pp-readout-row">
-        <span class="pp-readout-label">${t('time_label')}</span>
-        <span class="pp-readout-value" id="pp-time">${formatHour(planHour)}</span>
-      </div>
+      <div class="pp-meet-line">${meetLine}</div>
+      ${dpCardHtml}
       ${attendeesHtml}
       <div class="pp-cta-row">${ctaHtml}</div>
     </div>`;
 
-  el.querySelector('#pp-back').onclick = () => closePlanPreview();
+  // Draw the mini-timeline canvas inside the dp-card now that it's in the DOM.
+  // (Same call the detail-panel no-source-card path makes after replaceChild.)
+  if (typeof drawAllCardTimelines === 'function') {
+    const ppCard = el.querySelector('#pp-dp-card');
+    if (ppCard) drawAllCardTimelines(ppCard);
+  }
 
-  // Listen for time changes (driven by FTS or the slider in the wider app) to
-  // keep the readout in sync. FTS dispatches 'input' on timeFromEl.
+  el.querySelector('#pp-handle').onclick = () => closePlanPreview();
+
+  // First user FTS interaction cancels the autoplay timeline so the slider
+  // stops being yanked around. The dp-card mini-timeline + FTS pill already
+  // visually reflect the live time — no separate readout to update.
   const onTimeInput = () => {
-    if (_planPreviewState) {
-      // First user FTS interaction also cancels the autoplay + camera timeouts.
-      if (_planPreviewState.rafId) {
-        cancelAnimationFrame(_planPreviewState.rafId);
-        _planPreviewState.rafId = null;
-        _planPreviewState.autoplayDone = true;
-      }
-    }
-    const readout = el.querySelector('#pp-time');
-    if (readout && typeof formatHour === 'function' && timeFromEl) {
-      readout.textContent = formatHour(parseFloat(timeFromEl.value));
+    if (_planPreviewState && _planPreviewState.rafId) {
+      cancelAnimationFrame(_planPreviewState.rafId);
+      _planPreviewState.rafId = null;
+      _planPreviewState.autoplayDone = true;
     }
   };
   if (typeof timeFromEl !== 'undefined' && timeFromEl) timeFromEl.addEventListener('input', onTimeInput);

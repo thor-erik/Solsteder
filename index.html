@@ -6121,68 +6121,17 @@
     flex-direction: column;
     justify-content: space-between;
   }
-  .plan-preview.open .pp-top,
   .plan-preview.open .pp-bottom {
     opacity: 1;
     transform: translateY(0);
   }
-  .pp-top {
-    pointer-events: auto;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 16px;
-    margin: env(safe-area-inset-top, 12px) 12px 0;
-    border-radius: 14px;
-    background:
-      linear-gradient(135deg, rgba(20,46,82,0.32), rgba(32,73,131,0.18)),
-      rgba(20,46,82,0.92);
-    backdrop-filter: blur(16px) saturate(180%) brightness(0.88);
-    -webkit-backdrop-filter: blur(16px) saturate(180%) brightness(0.88);
-    border: 1px solid rgba(156,189,231,0.22);
-    box-shadow: inset 0 1px 0 rgba(255,242,235,0.22), 0 6px 24px rgba(0,0,0,0.4);
-    opacity: 0;
-    transform: translateY(-10px);
-    transition: opacity 0.32s ease, transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  .pp-back {
-    background: rgba(156,189,231,0.12);
-    border: none;
-    border-radius: 50%;
-    width: 36px; height: 36px;
-    display: flex; align-items: center; justify-content: center;
-    color: var(--text);
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: background 0.12s;
-  }
-  .pp-back:hover { background: rgba(156,189,231,0.22); }
-  .pp-wx {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-family: 'Inter', sans-serif;
-    color: var(--text);
-  }
-  .pp-wx-icon { font-size: 26px; line-height: 1; }
-  .pp-wx-temp {
-    font-size: 28px;
-    font-weight: 700;
-    letter-spacing: -0.025em;
-    font-variant-numeric: tabular-nums;
-    line-height: 1;
-  }
-  .pp-wx-detail {
-    font-size: 12px;
-    color: var(--muted);
-    letter-spacing: 0.01em;
-  }
   /* Bottom panel — matches dp-card chrome (glass-panel-bg + glass-inset)
-     so the plan-preview reads as part of the same surface family. */
+     so the plan-preview reads as part of the same surface family. The drag
+     handle (.pp-handle) sits at top, providing 16px of top padding. */
   .pp-bottom {
     pointer-events: auto;
     margin: 0 12px env(safe-area-inset-bottom, 12px);
-    padding: 16px 16px 14px;
+    padding: 0 16px 14px;
     border-radius: 14px;
     background: var(--glass-panel-bg);
     backdrop-filter: blur(20px) saturate(180%) brightness(0.92);
@@ -6197,7 +6146,23 @@
     flex-direction: column;
     gap: 10px;
   }
-  /* Eyebrow — small, muted, uppercase. The "X has invited you" callout. */
+  /* Drag handle — matches #panel-handle (venue list) and #dp-handle (detail
+     panel) in dimensions and color. Tap-to-close; not gesture-draggable. */
+  .pp-handle {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 16px 0 4px;
+    cursor: pointer;
+    touch-action: none;
+  }
+  .pp-handle-pill {
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(156,189,231,0.25);
+  }
+  /* Eyebrow — the "X has invited you" callout, accent + uppercase. */
   .pp-eyebrow {
     font-size: 11px;
     font-weight: 600;
@@ -6206,110 +6171,43 @@
     color: var(--accent);
     line-height: 1.3;
   }
-  /* Card row — two-column layout matching .dp-card .card-top.
-     Left = venue name + area meta. Right = sun-time hero + tagline. */
-  .pp-card-row {
-    display: flex;
-    gap: 14px;
-    align-items: flex-start;
-  }
-  .pp-card-left {
-    min-width: 0;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .pp-card-name {
-    font-size: 18px;
-    font-weight: 700;
-    line-height: 1.22;
-    letter-spacing: -0.01em;
-    color: var(--text);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .pp-card-meta {
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--muted);
-    line-height: 1.35;
-  }
-  .pp-card-right {
-    min-width: 0;
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    align-items: flex-end;
-    text-align: right;
-  }
-  .pp-card-hero {
-    font-size: 17px;
-    font-weight: 700;
-    color: var(--accent);
-    line-height: 1.22;
-    letter-spacing: -0.01em;
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-  }
-  .pp-card-sub {
+  /* Meet-line — small muted line under the eyebrow with date · time, so the
+     invitee always sees when they're invited even if they ignore the slider. */
+  .pp-meet-line {
     font-size: 12px;
     font-weight: 500;
     color: var(--muted);
     line-height: 1.35;
     font-variant-numeric: tabular-nums;
+    margin-top: -4px;
   }
-  /* Live time readout under the FTS — communicates what time the user is
-     currently scrubbing to, mirrors detail-panel typography. */
-  .pp-readout-row {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 8px;
-    margin-top: -2px;
+  /* The dp-card inside the plan-preview is the same DOM as in the detail
+     panel post-morph — same .dp-card sizing already styled above. We only
+     remove its outer margin since the .pp-bottom flex gap handles spacing. */
+  .pp-bottom .dp-card {
+    margin-bottom: 0;
   }
-  .pp-readout-label {
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-  }
-  .pp-readout-value {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--accent);
-    font-variant-numeric: tabular-nums;
-    letter-spacing: -0.01em;
-  }
-  /* FTS slot — sized to host the live #fts (38px tall to match dp-card). */
-  .pp-fts-slot {
-    margin: 4px 0 0;
-    min-height: 38px;
-    display: flex;
-    align-items: center;
-  }
-  /* The reparented FTS picks up these layout overrides while in the slot.
-     Strip the fixed-position chrome it normally has, fill the slot fluidly. */
-  #fts.fts-in-preview {
-    position: static !important;
-    left: auto !important;
-    right: auto !important;
-    top: auto !important;
-    bottom: auto !important;
-    width: 100% !important;
-    transform: none !important;
+  /* Override the body.plan-preview-active #fts opacity-0 hide rule while FTS
+     is hosted inside the preview's dp-card. Same pattern the detail panel
+     uses on its docked card. */
+  body.plan-preview-active #fts.fts-in-card {
     opacity: 1 !important;
     pointer-events: auto !important;
-    margin: 0;
   }
-  /* The plan-preview-active hide rule earlier sets opacity 0 on #fts; override
-     while it's reparented inside the preview's own card. */
-  body.plan-preview-active #fts.fts-in-preview {
-    opacity: 1 !important;
-    pointer-events: auto !important;
+  /* Anchor map controls (locate-me + zoom-jog) above the .pp-bottom panel,
+     same way they anchor above the venue list via --peek-h. --pp-bottom-h is
+     written by openPlanPreview() and kept in sync via ResizeObserver. */
+  body.plan-preview-active #locate-btn {
+    bottom: calc(var(--pp-bottom-h, 220px) + 14px);
+    opacity: 1;
+    pointer-events: auto;
+    transition: bottom 0.22s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease;
+  }
+  body.plan-preview-active #zoom-jog {
+    bottom: calc(var(--pp-bottom-h, 220px) + 14px + 34px + 10px);
+    opacity: 1;
+    pointer-events: auto;
+    transition: bottom 0.22s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease;
   }
   .pp-attendees {
     margin-top: 2px;
@@ -6385,7 +6283,6 @@
   }
   .pp-cta-decline:hover { color: var(--text); }
   @media (min-width: 640px) {
-    .pp-top { max-width: 520px; margin-left: auto; margin-right: auto; }
     .pp-bottom {
       max-width: 460px;
       margin-left: auto;
