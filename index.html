@@ -7099,6 +7099,15 @@
     gap: 10px;
     padding: 0 16px 0 22px;
   }
+  /* Anon accept button — same shape as the chip variant but the time is
+     plain text (no picker, no chevron) since arrival can't be written
+     until the user logs in. After login, the takeover re-opens with the
+     full chip variant. */
+  #pp-anon-accept .pp-cta-time {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    margin-left: 6px;
+  }
   .pp-cta-label {
     font-size: 16px;
     font-weight: 700;

@@ -544,7 +544,19 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     : '';
   let ctaHtml = '';
   if (isInviteUI && opts.mode === 'invite-anon') {
-    ctaHtml = `<button class="pp-cta pp-cta-accept" id="pp-login">${t('pp_login_to_respond')}</button>`;
+    // Anon receivers see the same accept/decline pair as logged-in receivers.
+    // The accept tap stashes intent and opens the login modal; after login,
+    // _tryPendingInvite re-opens the takeover in invite mode (with a real
+    // inviteId) and the user confirms with a second tap. Lower friction +
+    // mirrors Eventbrite/Partiful conventions vs the prior 'Logg inn for å
+    // svare' gate. Decline in anon mode = just close the takeover (no DB
+    // write needed for an anonymous "no").
+    ctaHtml = `
+      <button class="pp-cta pp-cta-accept" id="pp-anon-accept" type="button">
+        <span class="pp-cta-label">${t('plan_preview_im_in_at') || t('plan_preview_im_in')}</span>
+        <span class="pp-cta-time">${formatHour(planHour)}</span>
+      </button>
+      <button class="pp-cta-decline" id="pp-anon-decline">${t('plan_decline')}</button>`;
   } else if (isInviteUI) {
     ctaHtml = `
       <button class="pp-cta pp-cta-accept pp-cta-with-chip" id="pp-accept" type="button">
@@ -749,6 +761,22 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   if (loginCta) loginCta.onclick = () => {
     if (typeof _aTrack === 'function') _aTrack('plan_preview_login_prompt', { venue_id: venue.id });
     if (typeof toggleProfilePanel === 'function') toggleProfilePanel();
+  };
+  // Anon accept: stash intent (window._pendingInvite was set during token
+  // resolution) and open the login modal. After login,
+  // auth.js _tryPendingInvite re-opens the takeover in invite mode with a
+  // real inviteId; the user confirms with a second tap. Anon decline just
+  // closes the takeover — no DB write needed for an anonymous "no".
+  const anonAccept = el.querySelector('#pp-anon-accept');
+  if (anonAccept) anonAccept.onclick = () => {
+    if (typeof _aTrack === 'function') _aTrack('plan_preview_anon_accept', { venue_id: venue.id });
+    if (typeof toggleProfilePanel === 'function') toggleProfilePanel();
+  };
+  const anonDecline = el.querySelector('#pp-anon-decline');
+  if (anonDecline) anonDecline.onclick = () => {
+    if (typeof _aTrack === 'function') _aTrack('plan_preview_anon_decline', { venue_id: venue.id });
+    if (typeof window !== 'undefined') window._pendingInvite = null;
+    closePlanPreview();
   };
 
   return el;
