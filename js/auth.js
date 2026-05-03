@@ -1743,6 +1743,17 @@ _supabase.auth.getSession().then(({ data: { session } }) => {
 _supabase.auth.onAuthStateChange((event, session) => {
   const wasLoggedIn = !!_currentUser;
   _currentUser = session?.user ?? null;
+  // Strip the OAuth callback hash from the URL after Supabase has processed
+  // the access_token / refresh_token. Supabase reads them on page load
+  // (detectSessionInUrl: true by default) and leaves them dangling in the
+  // address bar — long bearer tokens visible to anyone glancing at the URL,
+  // and they get copied to clipboard when the user shares the link. Replace
+  // history with the clean path the moment the SIGNED_IN event lands.
+  if (event === 'SIGNED_IN' && /^#(access_token|provider_token|refresh_token)=/.test(location.hash)) {
+    try {
+      history.replaceState(null, '', location.pathname + location.search);
+    } catch (e) { /* ignore — non-fatal */ }
+  }
   _updateUserIndicator();
   if (!wasLoggedIn && _currentUser && typeof _aTrack === 'function') {
     const provider = _currentUser.app_metadata?.provider ?? 'unknown';
