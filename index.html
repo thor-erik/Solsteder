@@ -6390,15 +6390,27 @@
   }
   /* Locate-me + zoom slider stay visible during plan-preview — the receiver
      can frame both venue and themselves on the map (custom 2-state click
-     handler in ui-plan-preview.js) and zoom in for detail. */
+     handler in ui-plan-preview.js) and zoom in for detail. Anchored above
+     the .pp-bottom panel via --pp-bottom-h (written by openPlanPreview from
+     offsetHeight, kept in sync via ResizeObserver) — same mechanism the
+     venue list uses via --peek-h. */
   body.plan-preview-active #locate-btn,
   body.plan-preview-active #zoom-jog {
     z-index: 1210; /* above the plan-preview overlay (1200) */
+    opacity: 1;
+    pointer-events: auto;
+    transition: bottom 0.22s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease;
+  }
+  body.plan-preview-active #locate-btn {
+    bottom: calc(var(--pp-bottom-h, 220px) + 14px);
+  }
+  body.plan-preview-active #zoom-jog {
+    bottom: calc(var(--pp-bottom-h, 220px) + 14px + 34px + 10px);
   }
   /* The bottom card hosts its own time slider (the reparented #fts). The FTS
      calendar button is meaningless to a receiver — the date is fixed by the
-     inviter — so hide it inside the plan-preview slot. */
-  #fts.fts-in-preview #fts-date-btn { display: none !important; }
+     inviter — so hide it while the FTS is in-card during the preview. */
+  body.plan-preview-active #fts.fts-in-card #fts-date-btn { display: none !important; }
   .plan-preview {
     position: fixed;
     inset: 0;
@@ -6408,111 +6420,20 @@
     flex-direction: column;
     justify-content: space-between;
   }
-  .plan-preview.open .pp-top,
   .plan-preview.open .pp-bottom {
     opacity: 1;
     transform: translateY(0);
   }
-  .pp-top {
-    pointer-events: auto;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 16px;
-    margin: calc(env(safe-area-inset-top, 0px) + 16px) 12px 0;
-    border-radius: 14px;
-    background:
-      linear-gradient(135deg, rgba(20,46,82,0.32), rgba(32,73,131,0.18)),
-      rgba(20,46,82,0.92);
-    backdrop-filter: blur(16px) saturate(180%) brightness(0.88);
-    -webkit-backdrop-filter: blur(16px) saturate(180%) brightness(0.88);
-    border: 1px solid rgba(156,189,231,0.22);
-    box-shadow: inset 0 1px 0 rgba(255,242,235,0.22), 0 6px 24px rgba(0,0,0,0.4);
-    opacity: 0;
-    transform: translateY(-10px);
-    transition: opacity 0.32s ease, transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  .pp-back {
-    background: rgba(156,189,231,0.12);
-    border: none;
-    border-radius: 50%;
-    width: 36px; height: 36px;
-    display: flex; align-items: center; justify-content: center;
-    color: var(--text);
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: background 0.12s;
-  }
-  .pp-back:hover { background: rgba(156,189,231,0.22); }
-  /* Inviter chip — left-anchored social context. Replaces the redundant
-     "DU ER INVITERT" eyebrow that used to appear in the bottom card. */
-  .pp-inviter {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 0 12px;
-  }
-  .pp-inviter-av {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid rgba(255,175,133,0.45);
-    flex-shrink: 0;
-  }
-  .pp-inviter-av-init {
-    background: rgba(255,175,133,0.18);
-    color: var(--accent);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    font-weight: 700;
-  }
-  .pp-inviter-text {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text);
-    letter-spacing: -0.005em;
-    line-height: 1.25;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .pp-wx {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-family: 'Inter', sans-serif;
-    color: var(--text);
-  }
-  .pp-wx-icon { font-size: 26px; line-height: 1; }
-  .pp-wx-temp {
-    font-size: 28px;
-    font-weight: 700;
-    letter-spacing: -0.025em;
-    font-variant-numeric: tabular-nums;
-    line-height: 1;
-  }
-  /* In invite mode, downsize the weather block so the inviter chip leads. */
-  .pp-top-invite .pp-wx-icon { font-size: 18px; }
-  .pp-top-invite .pp-wx-temp { font-size: 16px; }
-  .pp-wx-detail {
-    font-size: 12px;
-    color: var(--muted);
-    letter-spacing: 0.01em;
-  }
   /* Bottom panel — matches dp-card chrome (glass-panel-bg + glass-inset)
-     so the plan-preview reads as part of the same surface family. */
+     so the plan-preview reads as part of the same surface family. The drag
+     handle (.pp-handle) sits at top, providing tap area + breathing room. */
   .pp-bottom {
     pointer-events: auto;
     /* Edge-to-edge on mobile to match the detail panel's bottom-anchored
        sheet treatment. Top corners rounded, bottom flush with safe area.
        Desktop @media block below caps the width at 460px. */
     margin: 0;
-    padding: 6px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+    padding: 0 16px calc(14px + env(safe-area-inset-bottom, 0px));
     border-radius: 16px 16px 0 0;
     background: var(--glass-panel-bg);
     backdrop-filter: blur(20px) saturate(180%) brightness(0.92);
@@ -6526,21 +6447,53 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    max-height: min(60svh, 460px);
-    overflow: hidden;
   }
-  /* Drag-handle pill at the top of the bottom panel — matches the invite-sheet
-     grabber for visual consistency. Cosmetic for now; drag-to-dismiss wiring
-     is captured as a follow-up in TODO.md. */
+  /* Drag handle wrapper — provides 16×N tap-area around the visible
+     .pp-grabber pill. Tap-to-close + drag-to-dismiss both wire to this
+     wrapper. Padding matches the venue list (#panel-handle) and detail
+     panel (#dp-handle) for cross-surface consistency. */
+  .pp-handle {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 16px 0 4px;
+    cursor: pointer;
+    touch-action: none;
+    flex-shrink: 0;
+  }
+  /* Drag-handle pill — matches the colour + dimensions of #panel-handle-pill
+     and #dp-handle-pill so all three surfaces read as the same family. */
   .pp-grabber {
     width: 36px;
     height: 4px;
     border-radius: 2px;
-    background: rgba(255,242,235,0.30);
-    margin: 4px auto 0;
+    background: rgba(156,189,231,0.25);
     flex-shrink: 0;
   }
-  /* Eyebrow — small, muted, uppercase. The "X has invited you" callout. */
+  /* Eyebrow row — inviter avatar + "X har invitert deg" text inline. */
+  .pp-eyebrow-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .pp-inviter-av {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1.5px solid rgba(255,175,133,0.45);
+    flex-shrink: 0;
+  }
+  .pp-inviter-av-init {
+    background: rgba(255,175,133,0.18);
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  /* Eyebrow — accent uppercase callout, "X har invitert deg". */
   .pp-eyebrow {
     font-size: 11px;
     font-weight: 600;
@@ -6548,130 +6501,31 @@
     letter-spacing: 0.08em;
     color: var(--accent);
     line-height: 1.3;
-  }
-  /* Card row — two-column layout matching .dp-card .card-top.
-     Left = venue name + area meta. Right = sun-time hero + tagline. */
-  .pp-card-row {
-    display: flex;
-    gap: 14px;
-    align-items: flex-start;
-  }
-  .pp-card-left {
-    min-width: 0;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .pp-card-name {
-    font-size: 18px;
-    font-weight: 700;
-    line-height: 1.22;
-    letter-spacing: -0.01em;
-    color: var(--text);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    min-width: 0;
   }
-  .pp-card-meta {
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--muted);
-    line-height: 1.35;
-  }
-  /* Sun-til chip — replaces the cryptic "{time} → {sunUntil}" arrow.
-     Anchors the brand benefit (sun) without competing with the meeting time. */
-  .pp-sun-chip {
-    flex-shrink: 0;
-    align-self: center;
-    padding: 6px 12px;
-    border-radius: 999px;
-    background: rgba(255,175,133,0.14);
-    border: 1px solid rgba(255,175,133,0.28);
-    color: var(--accent);
-    font-size: 12px;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-    line-height: 1.2;
-  }
-  /* Meeting-time hero — reads as a sentence. The label ("Møtes kl.") and date
-     are subordinate to the time, which is the unambiguous answer to "when am
-     I expected?". Replaces the previous all-caps MØTETID label which felt
-     shouty next to the venue name above. */
-  .pp-meet-row {
-    display: flex;
-    align-items: baseline;
-    flex-wrap: wrap;
-    gap: 6px 8px;
-    padding: 2px 0 0;
-  }
-  .pp-meet-label {
-    font-size: 16px;
-    font-weight: 500;
-    color: var(--muted);
-    letter-spacing: -0.005em;
-  }
-  .pp-meet-time {
-    font-size: 28px;
-    font-weight: 700;
-    color: var(--text);
-    letter-spacing: -0.02em;
-    line-height: 1;
-    font-variant-numeric: tabular-nums;
-  }
-  .pp-meet-date {
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--muted);
-    letter-spacing: -0.005em;
-  }
-  /* Weather context row — icon · temp · wind · condition. Replaces the
-     small disconnected weather chip in the top bar with a proper context
-     line in the bottom card. */
-  .pp-wx-row {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 6px;
-    padding: 4px 2px 0;
+  /* Meet-line — small muted line under the eyebrow with date · time, so the
+     invitee always sees when they're invited even if they ignore the slider. */
+  .pp-meet-line {
     font-size: 13px;
     font-weight: 500;
     color: var(--muted);
-    line-height: 1.3;
-  }
-  .pp-wx-row-temp {
-    color: var(--text);
-    font-weight: 600;
+    line-height: 1.35;
     font-variant-numeric: tabular-nums;
+    margin-top: -2px;
   }
-  .pp-wx-row-sep {
-    color: rgba(156,189,231,0.40);
+  /* The dp-card inside the plan-preview is the same DOM as in the detail
+     panel post-morph — already styled by .dp-card rules. Remove its outer
+     margin since the .pp-bottom flex gap handles spacing. */
+  .pp-bottom .dp-card {
+    margin-bottom: 0;
   }
-  /* FTS slot — sized to host the live #fts (38px tall to match dp-card). */
-  .pp-fts-slot {
-    margin: 4px 0 0;
-    min-height: 38px;
-    display: flex;
-    align-items: center;
-  }
-  /* The reparented FTS picks up these layout overrides while in the slot.
-     Strip the fixed-position chrome it normally has, fill the slot fluidly. */
-  #fts.fts-in-preview {
-    position: static !important;
-    left: auto !important;
-    right: auto !important;
-    top: auto !important;
-    bottom: auto !important;
-    width: 100% !important;
-    transform: none !important;
-    opacity: 1 !important;
-    pointer-events: auto !important;
-    margin: 0;
-  }
-  /* The plan-preview-active hide rule earlier sets opacity 0 on #fts; override
-     while it's reparented inside the preview's own card. */
-  body.plan-preview-active #fts.fts-in-preview {
+  /* Override the body.plan-preview-active #fts opacity-0 hide rule while FTS
+     is hosted inside the preview's dp-card (matches the detail panel's
+     in-card hosting pattern). */
+  body.plan-preview-active #fts.fts-in-card {
     opacity: 1 !important;
     pointer-events: auto !important;
   }
@@ -6761,11 +6615,12 @@
     color: var(--accent);
   }
   @media (min-width: 640px) {
-    .pp-top { max-width: 520px; margin-left: auto; margin-right: auto; }
     .pp-bottom {
       max-width: 460px;
       margin-left: auto;
       margin-right: auto;
+      border-radius: 16px;
+      margin-bottom: 12px;
     }
   }
   /* Plan card "Preview" button reuses the existing social-btn appearance */

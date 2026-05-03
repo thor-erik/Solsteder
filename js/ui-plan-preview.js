@@ -128,6 +128,23 @@ function openPlanPreview(opts) {
   // preview drives shadow rendering exactly like elsewhere.
   _ppFtsAttach();
 
+  // Track .pp-bottom height as --pp-bottom-h so the locate-me + zoom-jog can
+  // anchor above the panel — same pattern the venue list uses via --peek-h.
+  // ResizeObserver keeps the var in sync as content changes (FTS reparent,
+  // attendees update, virtual keyboard, post-accept transitions).
+  const bottomEl = overlay.querySelector('.pp-bottom');
+  let resizeObs = null;
+  if (bottomEl) {
+    const writeH = () => {
+      document.documentElement.style.setProperty('--pp-bottom-h', bottomEl.offsetHeight + 'px');
+    };
+    requestAnimationFrame(writeH);
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObs = new ResizeObserver(writeH);
+      resizeObs.observe(bottomEl);
+    }
+  }
+
   _planPreviewState = {
     overlay,
     venueId:  venue.id,
@@ -137,6 +154,7 @@ function openPlanPreview(opts) {
     rafId: null,
     timeouts: [phase3TimeoutId],
     autoplayDone: false,
+    resizeObs,
   };
 
   requestAnimationFrame(() => {
@@ -234,30 +252,40 @@ function _planPreviewLocate() {
   _planPreviewState.locateState = 'fit'; // reset since we couldn't toggle
 }
 
-/** Wire up the drag handle (.pp-grabber) for drag-to-dismiss. Tracks touch
- *  Y-delta, applies translateY to the panel during drag, and either closes
- *  or snaps back on release based on a 100px threshold (or fast flick). */
+/** Wire up the drag handle (.pp-handle wrapper) for drag-to-dismiss. The
+ *  wrapper provides a 16×N hit area around the visible .pp-grabber pill.
+ *  Tracks touch Y-delta, applies translateY to the panel during drag, and
+ *  either closes or snaps back on release based on a 100px threshold
+ *  (or fast flick). Sets handle.dataset.dragging during the drag so the
+ *  separate click-to-close listener doesn't fire on the synthetic click. */
 function _ppWireDragHandle(overlay) {
-  const grabber = overlay.querySelector('.pp-grabber');
+  const handle = overlay.querySelector('.pp-handle');
   const panel = overlay.querySelector('.pp-bottom');
-  if (!grabber || !panel) return;
+  if (!handle || !panel) return;
   let startY = null;
   let startT = null;
   let dragging = false;
+  let moved = false;
   const THRESHOLD_PX = 100;
   const FLICK_VELOCITY = 0.6; // px/ms
+  const MOVE_TRIGGER_PX = 4;  // jitter tolerance before counting as a real drag
 
   const onStart = (e) => {
     const t = e.touches ? e.touches[0] : e;
     startY = t.clientY;
     startT = performance.now();
     dragging = true;
+    moved = false;
     panel.style.transition = 'none';
   };
   const onMove = (e) => {
     if (!dragging || startY == null) return;
     const t = e.touches ? e.touches[0] : e;
     const dy = Math.max(0, t.clientY - startY);
+    if (dy > MOVE_TRIGGER_PX) {
+      moved = true;
+      handle.dataset.dragging = '1';
+    }
     panel.style.transform = `translateY(${dy}px)`;
     if (e.cancelable) e.preventDefault();
   };
@@ -273,15 +301,23 @@ function _ppWireDragHandle(overlay) {
     startY = null;
     if (dy > THRESHOLD_PX || velocity > FLICK_VELOCITY) {
       closePlanPreview();
+      return;
+    }
+    // Clear dragging flag on the next frame so the click handler that may
+    // fire after touchend can see it (and skip closing if a drag occurred).
+    if (moved) {
+      requestAnimationFrame(() => {
+        delete handle.dataset.dragging;
+      });
     }
   };
 
-  grabber.addEventListener('touchstart', onStart, { passive: true });
-  grabber.addEventListener('touchmove', onMove, { passive: false });
-  grabber.addEventListener('touchend', onEnd, { passive: true });
-  grabber.addEventListener('touchcancel', onEnd, { passive: true });
+  handle.addEventListener('touchstart', onStart, { passive: true });
+  handle.addEventListener('touchmove', onMove, { passive: false });
+  handle.addEventListener('touchend', onEnd, { passive: true });
+  handle.addEventListener('touchcancel', onEnd, { passive: true });
   // Mouse fallback for desktop testing
-  grabber.addEventListener('mousedown', (e) => {
+  handle.addEventListener('mousedown', (e) => {
     onStart(e);
     const moveHandler = (ev) => onMove(ev);
     const upHandler = (ev) => {
@@ -292,8 +328,7 @@ function _ppWireDragHandle(overlay) {
     window.addEventListener('mousemove', moveHandler);
     window.addEventListener('mouseup', upHandler);
   });
-  // Visual affordance for the grabber as a pointer area
-  grabber.style.cursor = 'grab';
+  handle.style.cursor = 'grab';
   grabber.style.touchAction = 'none';
   // Expand the touch target around the visible pill (44pt min target)
   grabber.style.padding = '12px';
@@ -307,6 +342,8 @@ function closePlanPreview() {
   if (Array.isArray(st.timeouts)) {
     for (const tref of st.timeouts) { if (tref && tref.id != null) clearTimeout(tref.id); }
   }
+  if (st.resizeObs) { try { st.resizeObs.disconnect(); } catch {} }
+  document.documentElement.style.removeProperty('--pp-bottom-h');
   if (st.savedDate != null && datePicker && datePicker.value !== st.savedDate) {
     datePicker.value = st.savedDate;
     datePicker.dispatchEvent(new Event('change'));
@@ -318,7 +355,11 @@ function closePlanPreview() {
 
   // Capture FTS rect IN preview slot before we detach — used as the FLIP source.
   const fts = document.getElementById('fts');
-  const ftsSrcRect = (fts && fts.classList.contains('fts-in-preview'))
+  // FTS is hosted via .fts-in-card inside #pp-dp-card while the preview is
+  // open — capture the rect there so the FLIP source is unambiguous (won't
+  // latch onto a stray dp-card elsewhere in the document).
+  const ftsSrcRect = (fts && fts.classList.contains('fts-in-card') &&
+                      fts.closest('#pp-dp-card'))
     ? fts.getBoundingClientRect() : null;
   // Detach FTS from preview slot, reset it to body so openDetailPanel can run
   // its own pre-stage. We pass ftsSrcRect to the FLIP routine after the panel
@@ -362,27 +403,34 @@ function closePlanPreview() {
   }
 }
 
-/** Reparent #fts into the plan-preview's slot. CSS rule with .fts-in-preview
- *  flattens position and width to fill the slot. drawFtsCanvas re-renders at
- *  the new size. _syncFtsPosition skips while fts-in-preview is set. */
+/** Reparent #fts into the plan-preview's dp-card .card-timeline — same FTS-
+ *  hosting pattern the detail panel uses post-morph. The .fts-in-card class
+ *  triggers the existing flatten-position-and-fill CSS, _syncFtsPosition skips
+ *  while it's set, and the .dp-card.fts-hosted state hides the static mini-
+ *  timeline segments behind the live FTS canvas. */
 function _ppFtsAttach() {
   const fts = document.getElementById('fts');
-  const slot = document.querySelector('.pp-fts-slot');
-  if (!fts || !slot) return;
-  // If FTS is currently docked into a detail-panel card, lift it cleanly first.
-  fts.classList.remove('fts-in-card');
+  const ppCard = document.getElementById('pp-dp-card');
+  const cardTimeline = ppCard?.querySelector('.card-timeline');
+  if (!fts || !ppCard || !cardTimeline) return;
+  fts.classList.remove('fts-in-preview');
   fts.style.cssText = '';
-  fts.classList.add('fts-in-preview');
-  slot.appendChild(fts);
-  // Ensure the slider is fully visible (defensive — the body.plan-preview-active
-  // hide rule sets opacity 0; the .fts-in-preview override should re-show it,
-  // but explicitly setting the property here protects against any cascade
-  // race when the panel opens for an anon receiver landing fresh on the link).
+  fts.classList.add('fts-in-card');
+  ppCard.classList.add('fts-hosted');
+  // Same labels-offset trick the detail panel uses: the FTS calendar btn is
+  // ~38px wide on the leftmost edge with an 8px gap before the slider track.
+  const dateBtn = document.getElementById('fts-date-btn');
+  const btnW = dateBtn ? dateBtn.offsetWidth : 38;
+  ppCard.style.setProperty('--fts-labels-offset', (btnW + 8) + 'px');
+  cardTimeline.appendChild(fts);
+  // Defensive opacity reset — the body.plan-preview-active rule sets the FTS
+  // to opacity 0 by default; the .fts-in-card override should re-show it,
+  // but inline-style protects against any cascade race when an anon receiver
+  // lands fresh on a link.
   fts.style.opacity = '1';
   fts.style.pointerEvents = 'auto';
   // Force a repaint at the new container size on the next frame, then again
-  // after data loads (solar tables / weather may arrive late on a fresh
-  // invite-link landing).
+  // after data loads (solar tables / weather may arrive late on a fresh land).
   requestAnimationFrame(() => {
     if (typeof drawFtsCanvas === 'function') drawFtsCanvas();
   });
@@ -391,12 +439,12 @@ function _ppFtsAttach() {
   }, 600);
 }
 
-/** Reverse: detach FTS from the preview slot and put it back on the body. The
+/** Reverse: detach FTS from the dp-card and put it back on the body. The
  *  caller (closePlanPreview) is responsible for whatever follows. */
 function _ppFtsDetach() {
   const fts = document.getElementById('fts');
   if (!fts) return;
-  fts.classList.remove('fts-in-preview');
+  fts.classList.remove('fts-in-card');
   fts.style.cssText = '';
   if (fts.parentNode !== document.body) document.body.appendChild(fts);
 }
@@ -445,40 +493,11 @@ function _ppAnimate(fromH, toH, durationMs) {
   _planPreviewState.rafId = requestAnimationFrame(step);
 }
 
-function _ppWxIcon(wx) {
-  if (!wx) return '☀';
-  if ((wx.precip || 0) > 0.4) return '🌧';
-  if ((wx.cloud  || 0) > 0.7) return '☁';
-  if ((wx.cloud  || 0) > 0.35) return '⛅';
-  return '☀';
-}
-
-function _ppWxDetail(wx) {
-  if (!wx) return '';
-  const parts = [];
-  if (wx.wspd != null)               parts.push(`${Math.round(wx.wspd)} m/s`);
-  if (wx.precip != null && wx.precip > 0.1) parts.push(`${wx.precip.toFixed(1)} mm`);
-  return parts.join(' · ');
-}
-
-/** Short condition label for the bottom-card weather row (e.g. "Lett skyet"). */
-function _ppWxLabel(wx) {
-  if (!wx) return '';
-  if ((wx.precip || 0) > 0.4) return t('wx_rain') || 'Regn';
-  if ((wx.cloud  || 0) > 0.7) return t('wx_overcast') || 'Overskyet';
-  if ((wx.cloud  || 0) > 0.35) return t('wx_partly_cloudy') || 'Lett skyet';
-  return t('wx_clear') || 'Sol';
-}
 
 function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   const el = document.createElement('div');
   el.id = 'plan-preview';
   el.className = 'plan-preview';
-
-  const wx       = (typeof getWeatherAt === 'function') ? getWeatherAt(dateStr, Math.floor(planHour)) : null;
-  const wxIcon   = _ppWxIcon(wx);
-  const wxTemp   = (wx && wx.temp != null) ? `${Math.round(wx.temp)}°` : '';
-  const wxDetail = _ppWxDetail(wx);
 
   // Attendees (logged-in only — getPlansForVenue is empty for anonymous users)
   let attendeesHtml = '';
@@ -580,71 +599,69 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     ? (opts.inviterName ? t('pp_eyebrow_invited_by', { name: opts.inviterName }) : t('pp_eyebrow_invited'))
     : '';
 
-  // Sun-til chip on the right of the venue row (replaces the cryptic
-  // "{time} → {sunUntil}" arrow and the "kl. {time} · sol til {sunUntil}" sub).
-  const sunUntilLabel = (animateTo > planHour + 0.05 && typeof formatHour === 'function')
-    ? t('invite_sun_until', { time: formatHour(animateTo) })
-    : '';
+  // Reuse the same renderCard() output the detail panel docks into .dp-card —
+  // single source of truth for venue card visuals (name, meta, sun headline,
+  // mini timeline). Strip list-card click handlers and add .dp-card.source-docked
+  // so the existing detail-panel CSS sizes it up correctly. Same trick app.js
+  // uses on its no-source-card path (~line 2599+).
+  let dpCardHtml = '';
+  if (typeof renderCard === 'function') {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = renderCard(venue, dateStr, planHour, planHour, true);
+    const card = tmp.firstElementChild;
+    if (card) {
+      card.classList.add('dp-card', 'source-docked');
+      card.removeAttribute('onclick');
+      card.removeAttribute('onmouseenter');
+      card.removeAttribute('onmouseleave');
+      card.id = 'pp-dp-card';
+      dpCardHtml = card.outerHTML;
+    }
+  }
 
-  // Meeting time hero — date next to time so the receiver doesn't have to
-  // infer the day. Norwegian short-date formatter is reused from ui-detail.
-  const meetingDateLabel = (typeof _fmtInviteDate === 'function' && dateStr)
-    ? _fmtInviteDate(dateStr) : '';
-  const meetingTimeHtml = `
-    <div class="pp-meet-row">
-      <span class="pp-meet-label">${t('pp_meet_label')}</span>
-      <span class="pp-meet-time" id="pp-meet-time">${formatHour(planHour)}</span>
-      ${meetingDateLabel ? `<span class="pp-meet-date">· ${meetingDateLabel}</span>` : ''}
-    </div>`;
-
-  // Weather row — icon + temp + wind + condition. Replaces the small
-  // disconnected weather chip in the top bar with a proper context line in
-  // the bottom card. All fields are optional; the row hides if nothing useful.
-  const wxConditionLabel = wx ? _ppWxLabel(wx) : '';
-  const wxWindLabel = (wx && wx.wspd != null) ? `${Math.round(wx.wspd)} m/s` : '';
-  const weatherParts = [];
-  if (wxTemp) weatherParts.push(`<span class="pp-wx-row-temp">${wxIcon} ${wxTemp}</span>`);
-  if (wxWindLabel) weatherParts.push(`<span>${wxWindLabel}</span>`);
-  if (wxConditionLabel) weatherParts.push(`<span>${wxConditionLabel}</span>`);
-  const weatherRowHtml = weatherParts.length
-    ? `<div class="pp-wx-row">${weatherParts.join(' <span class="pp-wx-row-sep">·</span> ')}</div>`
-    : '';
+  // Meeting time/date line — small accent under the eyebrow. The dp-card
+  // shows sun behaviour, but the user still needs to see *when* they're
+  // invited at a glance. Reuse pp_tagline_invite ("kl. {time}" / "at {time}")
+  // for the localized time prefix.
+  const dateLabel = (typeof _fmtInviteDate === 'function' && dateStr) ? _fmtInviteDate(dateStr) : '';
+  const timeLabel = t('pp_tagline_invite', { time: formatHour(planHour) });
+  const meetLine = dateLabel ? `${dateLabel} · ${timeLabel}` : timeLabel;
 
   el.innerHTML = `
-    <div class="pp-top ${isInvite ? 'pp-top-invite' : ''}">
-      <button class="pp-back" id="pp-back" aria-label="${t('back')}">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-      </button>
-      ${isInvite ? `
-        <div class="pp-inviter">
-          ${inviterAvatarHtml}
-          <div class="pp-inviter-text">${inviterText}</div>
-        </div>
-      ` : ''}
-      ${!isInvite ? `
-        <div class="pp-wx">
-          <span class="pp-wx-icon">${wxIcon}</span>
-          ${wxTemp ? `<span class="pp-wx-temp">${wxTemp}</span>` : ''}
-          ${wxDetail ? `<span class="pp-wx-detail">${wxDetail}</span>` : ''}
-        </div>` : ''}
-    </div>
     <div class="pp-bottom">
-      <div class="pp-grabber" aria-hidden="true"></div>
-      <div class="pp-card-row">
-        <div class="pp-card-left">
-          <div class="pp-card-name">${venue.name}</div>
-          ${venue.area ? `<div class="pp-card-meta">${venue.area}</div>` : ''}
-        </div>
-        ${sunUntilLabel ? `<div class="pp-sun-chip">☀️ ${sunUntilLabel}</div>` : ''}
+      <div class="pp-handle" id="pp-handle" aria-label="${t('close')}">
+        <div class="pp-grabber" aria-hidden="true"></div>
       </div>
-      ${meetingTimeHtml}
-      <div class="pp-fts-slot"></div>
-      ${weatherRowHtml}
+      ${isInvite ? `
+        <div class="pp-eyebrow-row">
+          ${inviterAvatarHtml}
+          <div class="pp-eyebrow">${inviterText}</div>
+        </div>` : ''}
+      <div class="pp-meet-line">${meetLine}</div>
+      ${dpCardHtml}
       ${attendeesHtml}
       <div class="pp-cta-row">${ctaHtml}</div>
     </div>`;
 
-  el.querySelector('#pp-back').onclick = () => closePlanPreview();
+  // Draw the dp-card mini-timeline canvas now that it's in the DOM.
+  if (typeof drawAllCardTimelines === 'function') {
+    const ppCard = el.querySelector('#pp-dp-card');
+    if (ppCard) drawAllCardTimelines(ppCard);
+  }
+
+  // Tap-to-close on the handle area. Drag-to-dismiss is wired separately in
+  // _ppWireDragHandle (which queries .pp-grabber). The wrapper hit area
+  // catches taps that don't initiate a drag.
+  const handleEl = el.querySelector('#pp-handle');
+  if (handleEl) {
+    handleEl.addEventListener('click', (e) => {
+      // Don't fire on the drag-end synthetic click — _ppWireDragHandle
+      // sets data-dragging during a real drag. If a drag just ended,
+      // skip the click-to-close.
+      if (handleEl.dataset.dragging === '1') return;
+      closePlanPreview();
+    });
+  }
 
   // First user FTS interaction cancels the autoplay + camera timeouts. The
   // map shadows + slider knob now provide all the scrub feedback (the textual
