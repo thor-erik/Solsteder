@@ -951,13 +951,12 @@ function _openInviteSheet(venueId) {
           <div class="invite-empty-sub">${t('invite_no_friends_sub')}</div>
         </div>`;
 
-  // Footer: morphing primary. With 0 selected, primary IS "Del lenke" (filled
-  // coral). With 1+ selected, primary becomes "Send til X" and "Del lenke" is
-  // shown alongside as a glass-action secondary. Avoids the disabled-button
-  // confusion where the disabled coral primary visually outranked the enabled
-  // glass secondary.
-  const footerBlock = hasFriends ? `
-        <div class="invite-actions-hint" id="invite-actions-hint">${t('invite_actions_hint_share')}</div>
+  // Action row: primary always present, secondary appears when 1+ selected.
+  // With 0 selected, primary IS "Del lenke" (filled coral). With 1+ selected,
+  // primary becomes "Send til X" and "Del lenke" reappears as a glass-action
+  // secondary alongside it.
+  const actionRow = hasFriends ? `
+      <div class="invite-action-row">
         <button class="invite-send-btn" id="invite-primary-btn" data-mode="share" onclick="_invitePrimaryClick(${venueId})">
           <span id="invite-primary-icon">${shareSvg}</span>
           <span id="invite-primary-label">${t('share_link')}</span>
@@ -965,69 +964,86 @@ function _openInviteSheet(venueId) {
         <button class="invite-share-link" id="invite-secondary-btn" type="button" onclick="_shareInviteLink(${venueId})" hidden>
           ${shareSvg}
           <span>${t('share_link')}</span>
-        </button>` : `
-        <div class="invite-actions-hint">${t('invite_actions_hint_share')}</div>
+        </button>
+      </div>` : `
+      <div class="invite-action-row">
         <button class="invite-send-btn" onclick="_shareInviteLink(${venueId})">
           ${shareSvg}
           <span>${t('share_link')}</span>
-        </button>`;
-
-  // Bubble preview moved to just above the footer so the receiver-perspective
-  // text ("here's what they'll see") is the last thing the sender reads before
-  // tapping send. The FTS slot sits between the venue card and the friends
-  // list so scrubbing time updates both the venue card sun-til and the bubble.
-  const bubbleBlock = `
-      <div class="invite-bubble-wrap">
-        <div class="invite-bubble-caption">${t('share_message_preview_label')}</div>
-        <div class="invite-bubble" id="invite-message-preview-text">${previewText}</div>
+        </button>
       </div>`;
 
+  // Time chips — replace the fragile reparented FTS pill (which kept
+  // disappearing on scrub due to multiple code paths setting inline opacity)
+  // with a discrete chip picker. For invites, "now-ish" coverage is enough;
+  // power users who want a precise time can scrub the main FTS before opening.
+  const chipsHtml = _buildInviteTimeChips(curHour);
+
+  // Sheet markup — grabber + body. Body in order:
+  //   1. Bubble preview (the receiver-perspective text)
+  //   2. Time chips (Nå + 4 future hours)
+  //   3. Friends block (title + count, optional search, avatar grid)
+  //   4. Action row (primary send/share, optional secondary)
+  // No header (title + close button) — backdrop tap, drag grabber, and
+  // Escape are the dismissal paths. The venue card is pinned at the top of
+  // the screen as a separate floating element.
   sheet.innerHTML = `
     <div class="invite-sheet-grabber" aria-hidden="true"></div>
-    <div class="invite-sheet-header">
-      <div class="invite-sheet-title">${t('invite_friends')}</div>
-      <button class="invite-sheet-close" onclick="_closeInviteSheet()" aria-label="${t('close') || 'Close'}">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/></svg>
-      </button>
-    </div>
     <div class="invite-sheet-body">
-      <div class="invite-venue-card-slot" id="invite-venue-card-slot">${typeof renderVenueCardCompact === 'function' ? renderVenueCardCompact(v, curDate, curHour) : ''}</div>
-      <div class="invite-fts-label">${t('invite_fts_label')}</div>
-      <div class="invite-fts-slot"></div>
+      <div class="invite-bubble" id="invite-message-preview-text">${previewText}</div>
+      <div class="invite-time-chips" id="invite-time-chips">${chipsHtml}</div>
       ${friendsBlock}
     </div>
     <div class="invite-sheet-footer">
-      ${bubbleBlock}
-      ${footerBlock}
+      ${actionRow}
     </div>`;
+
+  // Floating top card: bespoke compact venue card (NOT .venue-card), pinned
+  // to the top of the viewport. Bright, opaque, high-contrast — designed to
+  // pop against the dark map without inheriting the muddy --glass-card-bg
+  // intended for in-panel use. Lifecycle tied to the sheet.
+  const topCard = document.createElement('div');
+  topCard.id = 'invite-top-card';
+  topCard.className = 'invite-top-card';
+  topCard.innerHTML = _renderInviteTopCard(v, curDate, curHour);
 
   overlay.appendChild(sheet);
   document.body.appendChild(overlay);
+  document.body.appendChild(topCard);
 
-  // Update venue card + preview from the MAIN datePicker/timeFromEl. We don't
-  // duplicate controls in the sheet — the existing bottom qc-wrap stays visible
-  // above the (lighter) backdrop and acts as the single source of truth.
   sheet._venueName = venueName;
   sheet._venueId = venueId;
   sheet._venue = v;
   sheet._friendCount = friends.length;
+
   function _updateInviteConfirm() {
     const d = (typeof datePicker !== 'undefined') ? datePicker.value : curDate;
     const h = (typeof timeFromEl !== 'undefined') ? parseFloat(timeFromEl.value) : curHour;
-    const slot = sheet.querySelector('#invite-venue-card-slot');
-    if (slot && v && typeof renderVenueCardCompact === 'function') {
-      slot.innerHTML = renderVenueCardCompact(v, d, h);
+    if (v && document.body.contains(topCard)) {
+      topCard.innerHTML = _renderInviteTopCard(v, d, h);
     }
     const prev = sheet.querySelector('#invite-message-preview-text');
     if (prev && v) prev.textContent = _composeInviteShareText(v, d, h);
+    // Reflect the active hour on the chip row.
+    const chips = sheet.querySelector('#invite-time-chips');
+    if (chips) {
+      chips.querySelectorAll('.invite-time-chip').forEach(btn => {
+        const chipH = parseFloat(btn.dataset.hour);
+        btn.classList.toggle('active', Math.abs(chipH - h) < 0.01);
+      });
+    }
   }
   const onTimeInput = () => _updateInviteConfirm();
   const onDateChange = () => _updateInviteConfirm();
   if (typeof timeFromEl !== 'undefined' && timeFromEl) timeFromEl.addEventListener('input', onTimeInput);
   if (typeof datePicker !== 'undefined' && datePicker) datePicker.addEventListener('change', onDateChange);
+  // Esc to close — backdrop tap and drag grabber are the other dismissal paths.
+  const onEsc = (e) => { if (e.key === 'Escape') _closeInviteSheet(); };
+  document.addEventListener('keydown', onEsc);
   sheet._sliderCleanup = () => {
     if (typeof timeFromEl !== 'undefined' && timeFromEl) timeFromEl.removeEventListener('input', onTimeInput);
     if (typeof datePicker !== 'undefined' && datePicker) datePicker.removeEventListener('change', onDateChange);
+    document.removeEventListener('keydown', onEsc);
   };
 
   // Eager plan-create — fires now (while we still have user activation context)
@@ -1116,45 +1132,101 @@ function _openInviteSheet(venueId) {
 
   document.body.classList.add('invite-sheet-open');
 
-  // Reparent the live #fts (floating time slider with sun-arc + weather)
-  // into the sheet's slot so the sender can scrub time/date without closing
-  // the sheet. Mirrors the plan-preview pattern (_ppFtsAttach). The shared
-  // timeFromEl + datePicker means the existing onTimeInput/onDateChange
-  // handlers above already pick up scrub changes — no additional wiring.
-  _invFtsAttach();
+  // Pan the map so the venue lands centred between the floating top card and
+  // the sheet. Use the proper zoom + pitch (matches panToVenueCenter) so the
+  // building is actually visible — the previous attempt only set padding,
+  // which left the user looking at zoom-13 city level. The padding shifts the
+  // logical centre downward by half (top-card height) and upward by half
+  // (sheet height) so the venue sits in the visible mid-strip.
+  if (typeof map !== 'undefined' && map && typeof map.easeTo === 'function' && v) {
+    requestAnimationFrame(() => {
+      const padTop    = (topCard.offsetHeight || 96) + 8;
+      const padBottom = Math.round(window.innerHeight * 0.55) + 8;
+      sheet._mapPadOpen = { top: padTop, bottom: padBottom, left: 0, right: 0 };
+      map.easeTo({
+        center:   [v.lng, v.lat],
+        zoom:     17.5,
+        pitch:    45,
+        padding:  sheet._mapPadOpen,
+        duration: 480,
+      });
+    });
+  }
 
-  // Animate in
+  // Animate in — backdrop fades, sheet slides up, top card slides down.
   requestAnimationFrame(() => {
     overlay.classList.add('open');
     sheet.classList.add('open');
+    topCard.classList.add('open');
   });
 }
 
-/** Reparent #fts into the invite sheet's slot. CSS rule with .fts-in-invite
- *  flattens position and width to fill the slot. drawFtsCanvas re-renders at
- *  the new size. _syncFtsPosition skips while fts-in-invite is set. */
-function _invFtsAttach() {
-  const fts = document.getElementById('fts');
-  const slot = document.querySelector('#invite-sheet .invite-fts-slot');
-  if (!fts || !slot) return;
-  // Lift cleanly from any other dock (detail-panel card, plan-preview slot)
-  fts.classList.remove('fts-in-card', 'fts-in-preview');
-  fts.style.cssText = '';
-  fts.classList.add('fts-in-invite');
-  slot.appendChild(fts);
-  // Reparent the scrub popup alongside the FTS so its offsetLeft-based
-  // positioning math (showFtsPopup in app.js) lands at the right viewport
-  // coordinates. Without this, the popup tries to position relative to body
-  // while the FTS thumb lives inside the sheet — popup ends up off-screen.
-  const popup = document.getElementById('fts-popup');
-  if (popup) {
-    popup.style.cssText = '';
-    popup.classList.add('fts-popup-in-invite');
-    slot.appendChild(popup);
+/** Build the time-chip row content. Five chips: "Nå" + the next four full
+ *  hours (or +30m / +1h / etc when "now" is mid-hour). Each chip dispatches
+ *  an 'input' event on timeFromEl when tapped, which is what _updateInviteConfirm
+ *  + the rest of the app already listen for. No FTS reparenting needed. */
+function _buildInviteTimeChips(currentHour) {
+  const nowH = Math.floor(currentHour);
+  const chips = [];
+  // First chip is always "Nå" at the current hour (snapped down to whole hours
+  // for predictability — the sender just wants "right now-ish").
+  chips.push({ label: t('now') || 'Nå', hour: nowH });
+  // Subsequent chips are the next four whole hours, capped at 23.
+  for (let i = 1; i <= 4 && nowH + i <= 23; i++) {
+    const h = nowH + i;
+    chips.push({ label: (typeof formatHour === 'function') ? formatHour(h) : `${h}:00`, hour: h });
   }
-  requestAnimationFrame(() => {
-    if (typeof drawFtsCanvas === 'function') drawFtsCanvas();
-  });
+  return chips.map(c => {
+    const isActive = Math.abs(c.hour - currentHour) < 0.01;
+    return `<button type="button" class="invite-time-chip${isActive ? ' active' : ''}" data-hour="${c.hour}" onclick="_setInviteTimeFromChip(${c.hour})">${c.label}</button>`;
+  }).join('');
+}
+
+/** Apply a chip's hour to the global timeFromEl + dispatch input. The 'input'
+ *  event is the channel the rest of the app (including our _updateInviteConfirm
+ *  closure inside _openInviteSheet) listens on, so this single call updates
+ *  the bubble preview, the floating top card, and the chip-active state. */
+function _setInviteTimeFromChip(hour) {
+  if (typeof timeFromEl === 'undefined' || !timeFromEl) return;
+  timeFromEl.value = hour;
+  timeFromEl.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+/** Render the floating top venue card (NOT .venue-card — bespoke for the
+ *  invite context so it doesn't inherit the muddy --glass-card-bg meant for
+ *  in-panel cards). Bright, high-contrast, pinned at the top of the screen
+ *  while the sheet is open. */
+function _renderInviteTopCard(v, dateStr, fromHour) {
+  if (!v) return '';
+  const dayHours = (typeof getVenueHoursForDay === 'function')
+    ? getVenueHoursForDay(v, dateStr) : { open: 0, close: 24 };
+  const isOpen = (fromHour >= dayHours.open && fromHour <= dayHours.close);
+  const isOpeningSoon = (!isOpen && (dayHours.open - fromHour) > 0 && (dayHours.open - fromHour) <= 0.75);
+  const metaParts = [v.area, (typeof catLabel === 'function' ? catLabel(v) : null)].filter(Boolean);
+  const metaHtml = metaParts.map((p, i) =>
+    (i > 0 ? '<span class="itc-dot">·</span>' : '') + `<span>${p}</span>`
+  ).join('');
+  if (!isOpen && !isOpeningSoon) {
+    return `<div class="itc-row">
+      <div class="itc-left">
+        <div class="itc-name">${v.name}</div>
+        <div class="itc-meta">${metaHtml}</div>
+      </div>
+      <div class="itc-right itc-closed">${t('opens_at', { time: formatHour(dayHours.open) })}</div>
+    </div>`;
+  }
+  const state = (typeof venueState === 'function')
+    ? venueState(v, fromHour) : { mainText: '', subText: '', className: '' };
+  return `<div class="itc-row ${state.className || ''}">
+    <div class="itc-left">
+      <div class="itc-name">${v.name}</div>
+      <div class="itc-meta">${metaHtml}</div>
+    </div>
+    <div class="itc-right">
+      <div class="itc-main">${state.mainText || ''}</div>
+      <div class="itc-sub">${state.subText || ''}</div>
+    </div>
+  </div>`;
 }
 
 /** Reverse: detach FTS + popup from the invite slot back to body. */
@@ -1281,17 +1353,27 @@ function _refreshInvitePrimaryCTA() {
 function _closeInviteSheet() {
   const overlay = document.getElementById('invite-sheet-backdrop');
   const sheet = document.getElementById('invite-sheet');
+  const topCard = document.getElementById('invite-top-card');
   if (sheet) {
     if (sheet._sliderCleanup) sheet._sliderCleanup();
     sheet.classList.remove('open');
   }
-  // Detach FTS BEFORE the overlay starts removing so the parent path is valid
-  // when we move it back to body. updateDetailPanel below will re-dock it
-  // into the panel's card timeline slot if a venue is currently selected.
+  // Defensive: if any code path ever reparents the FTS into the sheet, detach
+  // it cleanly. v2 of the sheet uses a chip picker instead, so this is a no-op
+  // in normal use.
   _invFtsDetach();
+  // Restore the map's padding to zero so the venue is no longer biased
+  // upward once the sheet/top-card are gone.
+  if (typeof map !== 'undefined' && map && typeof map.easeTo === 'function') {
+    map.easeTo({ padding: { top: 0, bottom: 0, left: 0, right: 0 }, duration: 280 });
+  }
   if (overlay) {
     overlay.classList.remove('open');
     setTimeout(() => overlay.remove(), 300);
+  }
+  if (topCard) {
+    topCard.classList.remove('open');
+    setTimeout(() => topCard.remove(), 320);
   }
   document.body.classList.remove('invite-sheet-open');
   // Defensive refresh of the detail panel underneath. The eager plan-create
