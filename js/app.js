@@ -133,6 +133,9 @@ function _syncFtsPosition() {
   if (ftsEl?.classList.contains('fts-in-card')) return;
   // FTS reparented into the plan-preview's bottom card — same deal.
   if (ftsEl?.classList.contains('fts-in-preview')) return;
+  // FTS reparented into the invite sheet — sync would tear it back to the
+  // default top-of-screen fixed position on every scrub-driven re-render.
+  if (ftsEl?.classList.contains('fts-in-invite')) return;
   const panel = document.getElementById('panel');
   const dp    = document.getElementById('detail-panel');
   if (!panel) return;
