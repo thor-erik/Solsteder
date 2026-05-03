@@ -925,10 +925,7 @@ function _openInviteSheet(venueId) {
 
   const friendsBlock = hasFriends ? `
         <div class="invite-friends-header">
-          <div class="invite-friends-title">
-            <span>${t('invite_friends_section')}</span>
-            <span class="invite-friends-count" id="invite-friends-count"></span>
-          </div>
+          <span class="invite-friends-count" id="invite-friends-count"></span>
           <button class="invite-friends-toggle" id="invite-toggle-all" type="button" onclick="_toggleAllInviteFriends()">${t('invite_select_all')}</button>
         </div>
         ${friends.length > SHOW_SEARCH_AT ? `<input type="text" class="invite-friend-search" id="invite-friend-search" placeholder="${t('invite_friend_search_placeholder')}" oninput="_filterInviteFriends(this.value)">` : ''}
@@ -941,13 +938,13 @@ function _openInviteSheet(venueId) {
           <div class="invite-empty-sub">${t('invite_no_friends_sub')}</div>
         </div>`;
 
-  // Footer: morphing primary. With 0 selected, primary IS "Del lenke" (filled
-  // coral). With 1+ selected, primary becomes "Send til X" and "Del lenke" is
-  // shown alongside as a glass-action secondary. Avoids the disabled-button
-  // confusion where the disabled coral primary visually outranked the enabled
-  // glass secondary.
-  const footerBlock = hasFriends ? `
-        <div class="invite-actions-hint" id="invite-actions-hint">${t('invite_actions_hint_share')}</div>
+  // Action row: primary always present, secondary appears when 1+ selected.
+  // With 0 selected, primary IS "Del lenke" (filled coral). With 1+ selected,
+  // primary becomes "Send til X" and "Del lenke" reappears as a glass-action
+  // secondary alongside it. Avoids the disabled-button confusion where the
+  // disabled coral primary visually outranked the enabled glass secondary.
+  const actionRow = hasFriends ? `
+      <div class="invite-action-row">
         <button class="invite-send-btn" id="invite-primary-btn" data-mode="share" onclick="_invitePrimaryClick(${venueId})">
           <span id="invite-primary-icon">${shareSvg}</span>
           <span id="invite-primary-label">${t('share_link')}</span>
@@ -955,44 +952,49 @@ function _openInviteSheet(venueId) {
         <button class="invite-share-link" id="invite-secondary-btn" type="button" onclick="_shareInviteLink(${venueId})" hidden>
           ${shareSvg}
           <span>${t('share_link')}</span>
-        </button>` : `
-        <div class="invite-actions-hint">${t('invite_actions_hint_share')}</div>
+        </button>
+      </div>` : `
+      <div class="invite-action-row">
         <button class="invite-send-btn" onclick="_shareInviteLink(${venueId})">
           ${shareSvg}
           <span>${t('share_link')}</span>
-        </button>`;
-
-  // Bubble preview moved to just above the footer so the receiver-perspective
-  // text ("here's what they'll see") is the last thing the sender reads before
-  // tapping send. The FTS slot sits between the venue card and the friends
-  // list so scrubbing time updates both the venue card sun-til and the bubble.
-  const bubbleBlock = `
-      <div class="invite-bubble-wrap">
-        <div class="invite-bubble-caption">${t('share_message_preview_label')}</div>
-        <div class="invite-bubble" id="invite-message-preview-text">${previewText}</div>
+        </button>
       </div>`;
 
+  // Sheet markup — grabber + body, body in the new content order:
+  //   1. Bubble preview (the receiver-perspective text — visual focus)
+  //   2. FTS slot (host for reparented #fts pill — refines time)
+  //   3. Friends block (count + toggle, optional search, avatar grid)
+  //   4. Action row (primary send/share, optional secondary)
+  // Header (title + close) is gone — backdrop tap, drag-to-dismiss grabber, and
+  // Escape handle dismissal. Bubble caption + FTS label + actions hint are also
+  // dropped to fit the sheet under 50svh; the venue card pinned at the top of
+  // the screen carries the contextual "what venue, when" hierarchy.
   sheet.innerHTML = `
     <div class="invite-sheet-grabber" aria-hidden="true"></div>
-    <div class="invite-sheet-header">
-      <div class="invite-sheet-title">${t('invite_friends')}</div>
-      <button class="invite-sheet-close" onclick="_closeInviteSheet()" aria-label="${t('close') || 'Close'}">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/></svg>
-      </button>
-    </div>
     <div class="invite-sheet-body">
-      <div class="invite-venue-card-slot" id="invite-venue-card-slot">${typeof renderVenueCardCompact === 'function' ? renderVenueCardCompact(v, curDate, curHour) : ''}</div>
-      <div class="invite-fts-label">${t('invite_fts_label')}</div>
+      <div class="invite-bubble" id="invite-message-preview-text">${previewText}</div>
       <div class="invite-fts-slot"></div>
       ${friendsBlock}
-    </div>
-    <div class="invite-sheet-footer">
-      ${bubbleBlock}
-      ${footerBlock}
+      ${actionRow}
     </div>`;
+
+  // Floating top card: same compact venue card, pinned to top of viewport.
+  // Sibling of the sheet (NOT inside it) so it stays put while the sheet
+  // animates / scrolls. Lifecycle tied to the sheet — created here, removed
+  // on _closeInviteSheet. aria-hidden because it duplicates context already
+  // present in the bubble preview text.
+  const topCard = document.createElement('div');
+  topCard.id = 'invite-top-card';
+  topCard.className = 'invite-top-card';
+  topCard.setAttribute('aria-hidden', 'true');
+  if (typeof renderVenueCardCompact === 'function') {
+    topCard.innerHTML = renderVenueCardCompact(v, curDate, curHour);
+  }
 
   overlay.appendChild(sheet);
   document.body.appendChild(overlay);
+  document.body.appendChild(topCard);
 
   // Update venue card + preview from the MAIN datePicker/timeFromEl. We don't
   // duplicate controls in the sheet — the existing bottom qc-wrap stays visible
@@ -1004,9 +1006,8 @@ function _openInviteSheet(venueId) {
   function _updateInviteConfirm() {
     const d = (typeof datePicker !== 'undefined') ? datePicker.value : curDate;
     const h = (typeof timeFromEl !== 'undefined') ? parseFloat(timeFromEl.value) : curHour;
-    const slot = sheet.querySelector('#invite-venue-card-slot');
-    if (slot && v && typeof renderVenueCardCompact === 'function') {
-      slot.innerHTML = renderVenueCardCompact(v, d, h);
+    if (v && typeof renderVenueCardCompact === 'function' && document.body.contains(topCard)) {
+      topCard.innerHTML = renderVenueCardCompact(v, d, h);
     }
     const prev = sheet.querySelector('#invite-message-preview-text');
     if (prev && v) prev.textContent = _composeInviteShareText(v, d, h);
@@ -1015,9 +1016,14 @@ function _openInviteSheet(venueId) {
   const onDateChange = () => _updateInviteConfirm();
   if (typeof timeFromEl !== 'undefined' && timeFromEl) timeFromEl.addEventListener('input', onTimeInput);
   if (typeof datePicker !== 'undefined' && datePicker) datePicker.addEventListener('change', onDateChange);
+  // Escape closes the sheet — backdrop tap and drag-down on the grabber are the
+  // other dismissal paths (no X close button in the new compact design).
+  const onEsc = (e) => { if (e.key === 'Escape') _closeInviteSheet(); };
+  document.addEventListener('keydown', onEsc);
   sheet._sliderCleanup = () => {
     if (typeof timeFromEl !== 'undefined' && timeFromEl) timeFromEl.removeEventListener('input', onTimeInput);
     if (typeof datePicker !== 'undefined' && datePicker) datePicker.removeEventListener('change', onDateChange);
+    document.removeEventListener('keydown', onEsc);
   };
 
   // Eager plan-create — fires now (while we still have user activation context)
@@ -1113,10 +1119,13 @@ function _openInviteSheet(venueId) {
   // handlers above already pick up scrub changes — no additional wiring.
   _invFtsAttach();
 
-  // Animate in
+  // Animate in — backdrop fades, sheet slides up from bottom, top card slides
+  // down from above the viewport. All three happen in the same frame so the
+  // motion reads as a single coordinated entrance.
   requestAnimationFrame(() => {
     overlay.classList.add('open');
     sheet.classList.add('open');
+    topCard.classList.add('open');
   });
 }
 
@@ -1255,9 +1264,9 @@ function _refreshInvitePrimaryCTA() {
     if (visibleSelected === 0) {
       countEl.textContent = '';
     } else if (visibleSelected === visibleRows.length) {
-      countEl.textContent = ' ' + t('invite_friends_all');
+      countEl.textContent = t('invite_friends_all');
     } else {
-      countEl.textContent = ' ' + t('invite_friends_count', { n: visibleSelected, m: visibleRows.length });
+      countEl.textContent = t('invite_friends_count', { n: visibleSelected, m: visibleRows.length });
     }
   }
   const toggle = sheet.querySelector('#invite-toggle-all');
@@ -1271,6 +1280,7 @@ function _refreshInvitePrimaryCTA() {
 function _closeInviteSheet() {
   const overlay = document.getElementById('invite-sheet-backdrop');
   const sheet = document.getElementById('invite-sheet');
+  const topCard = document.getElementById('invite-top-card');
   if (sheet) {
     if (sheet._sliderCleanup) sheet._sliderCleanup();
     sheet.classList.remove('open');
@@ -1282,6 +1292,10 @@ function _closeInviteSheet() {
   if (overlay) {
     overlay.classList.remove('open');
     setTimeout(() => overlay.remove(), 300);
+  }
+  if (topCard) {
+    topCard.classList.remove('open');
+    setTimeout(() => topCard.remove(), 320);
   }
   document.body.classList.remove('invite-sheet-open');
   // Defensive refresh of the detail panel underneath. The eager plan-create

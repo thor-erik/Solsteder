@@ -5926,9 +5926,9 @@
     bottom: 0;
     left: 0;
     right: 0;
-    max-height: 100svh;
-    height: 100svh;
-    border-radius: 0;
+    max-height: 50svh;
+    height: auto;
+    border-radius: 18px 18px 0 0;
     /* Canonical Shades Glass — panel level. */
     background: var(--glass-panel-bg);
     backdrop-filter: var(--glass-blur-panel);
@@ -5939,7 +5939,6 @@
     flex-direction: column;
     transform: translateY(100%);
     transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
-    padding-top: env(safe-area-inset-top, 0px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
   .invite-sheet.open { transform: translateY(0); }
@@ -5953,69 +5952,44 @@
     flex-shrink: 0;
   }
 
-  .invite-sheet-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 20px 14px;
-    border-bottom: 1px solid rgba(156,189,231,0.12);
+  /* Floating venue card pinned to the top of the screen while the invite
+     sheet is open. Carries the "what venue, when" context that used to live
+     inside the sheet header — by lifting it out of the sheet, the sheet stays
+     short (≤50svh) and the venue stays visible no matter how the user scrolls
+     the friends grid. Sibling of the backdrop, NOT inside the sheet. */
+  .invite-top-card {
+    position: fixed;
+    top: env(safe-area-inset-top, 0px);
+    left: 12px;
+    right: 12px;
+    z-index: 1001;
+    padding-top: 10px;
+    transform: translateY(-110%);
+    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
   }
-  .invite-sheet-title {
-    font-size: 17px;
-    font-weight: 600;
-    color: var(--text);
-    letter-spacing: -0.01em;
-  }
-  .invite-sheet-close {
-    background: rgba(156,189,231,0.12);
-    border: none;
-    border-radius: 50%;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    color: var(--muted);
-    flex-shrink: 0;
-    margin-left: 12px;
-    transition: background 0.12s, color 0.12s;
-  }
-  .invite-sheet-close:hover { background: rgba(156,189,231,0.22); color: var(--text); }
+  .invite-top-card.open { transform: translateY(0); }
+  /* Card inside is the same .venue-card.compact-card rendered by
+     renderVenueCardCompact() — share-and-reuse the list-card styling. */
+  .invite-top-card .venue-card { margin-bottom: 0; cursor: default; }
 
   .invite-sheet-body {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
-    padding: 14px 20px 16px;
+    padding: 12px 20px 16px;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
     -webkit-overflow-scrolling: touch;
   }
 
-  /* ── Venue card ────────────────────────────────────────────────────────── */
-  /* Reuses the list .venue-card via renderVenueCardCompact(). Inside the sheet
-     the card sits in a flex-column with its own gap, so neutralize the list
-     card's bottom margin and disable the click affordance (it isn't tappable
-     here — the venue is fixed for this invite). */
-  .invite-sheet-body .venue-card.compact-card {
-    margin-bottom: 0;
-    cursor: default;
-  }
-
   /* ── Chat-bubble preview ───────────────────────────────────────────────── */
-  .invite-bubble-wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 4px;
-  }
-  .invite-bubble-caption {
-    font-size: 11px;
-    color: var(--muted);
-    padding: 0 8px;
-  }
+  /* The bubble is now the visual focus of the sheet — it's the receiver-
+     perspective text the sender is composing. Self-aligned to the right of
+     its own row so it reads as an outgoing iMessage. */
   .invite-bubble {
+    align-self: flex-end;
     max-width: 88%;
     padding: 10px 14px;
     background: rgba(255,175,133,0.16);
@@ -6028,29 +6002,20 @@
   }
 
   /* ── Friends section ───────────────────────────────────────────────────── */
+  /* Compact one-line header: count chip on the left, select-all toggle on
+     the right. No section title — the avatar grid below is self-explanatory
+     and we need the vertical budget for the sheet to stay under 50svh. */
   .invite-friends-header {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
-    padding: 4px 4px 0;
-    margin-top: 2px;
-  }
-  .invite-friends-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    display: flex;
-    align-items: baseline;
-    min-width: 0;
+    padding: 0 4px;
   }
   .invite-friends-count {
-    color: var(--accent);
-    text-transform: none;
-    letter-spacing: 0;
+    font-size: 12px;
     font-weight: 600;
-    margin-left: 4px;
+    color: var(--muted);
+    min-height: 14px;
   }
   .invite-friends-toggle {
     background: none;
@@ -6090,9 +6055,9 @@
     overflow-y: auto;
     padding: 4px 4px 8px;
     margin: 0 -4px;
-    /* Cap so a long friends list scrolls inside its own area instead of
-       pushing the buttons + bubble below the fold. */
-    max-height: 220px;
+    /* Tight cap on mobile so the bubble + FTS + buttons all fit under the
+       50svh sheet ceiling. ~1.7 rows visible; rest scrolls internally. */
+    max-height: 130px;
     -webkit-overflow-scrolling: touch;
   }
 
@@ -6233,40 +6198,20 @@
     line-height: 1.4;
   }
 
-  /* ── Footer (preview bubble + dual actions) ────────────────────────────── */
-  .invite-sheet-footer {
-    padding: 14px 20px calc(20px + env(safe-area-inset-bottom, 0px));
-    border-top: 1px solid rgba(156,189,231,0.12);
+  /* ── Action row (primary + optional secondary buttons) ─────────────────── */
+  /* Primary "Send til X" claims ~60% of the row when both buttons are visible;
+     secondary "Del lenke" sits to the right at ~40% as a clearly subordinate
+     alternative. With 0 friends selected the secondary is [hidden] and primary
+     fills the full row alone. */
+  .invite-action-row {
     display: flex;
-    flex-direction: column;
-    gap: 10px;
+    gap: 8px;
+    align-items: stretch;
+    margin-top: 4px;
   }
-  /* Bubble lives inside the footer now so it visually groups with the
-     send/share buttons that follow it (the bubble IS the message; the
-     buttons send it). The border-top above separates the action area
-     from the friends list. */
-  .invite-sheet-footer .invite-bubble-wrap {
-    margin-bottom: -2px;
-  }
-  /* Hint above the share/send buttons — clarifies what each button does for
-     first-time users ("Send i appen, eller del en åpen lenke"). */
-  .invite-actions-hint {
-    font-size: 12px;
-    color: var(--muted);
-    text-align: center;
-    padding: 0 4px 2px;
-    line-height: 1.35;
-  }
-  /* Slider title — describes what the FTS scrubber does in the invite context
-     (the sender doesn't have the rest-of-app context to know it shows live
-     sun/weather). Tiny muted line above the slot. */
-  .invite-fts-label {
-    font-size: 12px;
-    color: var(--muted);
-    line-height: 1.3;
-    padding: 0 4px;
-    margin: 4px 0 -4px;
-  }
+  .invite-action-row .invite-send-btn  { flex: 1.6; min-width: 0; }
+  .invite-action-row .invite-share-link { flex: 1;   min-width: 0; padding: 0 12px; font-size: 13px; }
+  .invite-action-row .invite-share-link svg { width: 14px; height: 14px; }
   /* FTS slot in the invite sheet — sized to host the live #fts (38px tall to
      match the dp-card timeline slot). The reparented #fts picks up overrides
      via .fts-in-invite below. The slot is `position: relative` so the popup
@@ -6356,11 +6301,14 @@
      refresh logic set hidden=true. */
   .invite-share-link[hidden] { display: none !important; }
 
-  /* Desktop: cap width, slimmer max-height, keep the bottom-sheet feel. */
+  /* Desktop: cap width and centre. Same 50vh ceiling as mobile so the top
+     venue card always reads as a separate top-of-screen element rather than
+     "the top of the sheet". Friends grid gets a more generous max-height
+     since the desktop window has more vertical room. */
   @media (min-width: 640px) {
     .invite-sheet {
       max-width: 440px;
-      max-height: 80vh;
+      max-height: 50vh;
       height: auto;
       left: 50%;
       transform: translateX(-50%) translateY(100%);
@@ -6370,6 +6318,18 @@
     }
     .invite-sheet.open {
       transform: translateX(-50%) translateY(0);
+    }
+    .invite-top-card {
+      max-width: 440px;
+      left: 50%;
+      right: auto;
+      transform: translateX(-50%) translateY(-110%);
+    }
+    .invite-top-card.open {
+      transform: translateX(-50%) translateY(0);
+    }
+    .invite-friends-list {
+      max-height: 200px;
     }
   }
 
