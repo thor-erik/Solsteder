@@ -6367,11 +6367,17 @@
   body.plan-preview-active #qc-wrap,
   body.plan-preview-active #fts,
   body.plan-preview-active #fts-popup,
-  body.plan-preview-active #locate-btn,
   body.plan-preview-active #notif-toast-wrap {
     opacity: 0 !important;
     pointer-events: none !important;
     transition: opacity 0.25s ease;
+  }
+  /* Locate-me + zoom slider stay visible during plan-preview — the receiver
+     can frame both venue and themselves on the map (custom 2-state click
+     handler in ui-plan-preview.js) and zoom in for detail. */
+  body.plan-preview-active #locate-btn,
+  body.plan-preview-active #zoom-jog {
+    z-index: 1210; /* above the plan-preview overlay (1200) */
   }
   /* The bottom card hosts its own time slider (the reparented #fts). The FTS
      calendar button is meaningless to a receiver — the date is fixed by the
@@ -6486,9 +6492,12 @@
      so the plan-preview reads as part of the same surface family. */
   .pp-bottom {
     pointer-events: auto;
-    margin: 0 12px env(safe-area-inset-bottom, 12px);
-    padding: 6px 16px 14px;
-    border-radius: 14px;
+    /* Edge-to-edge on mobile to match the detail panel's bottom-anchored
+       sheet treatment. Top corners rounded, bottom flush with safe area.
+       Desktop @media block below caps the width at 460px. */
+    margin: 0;
+    padding: 6px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+    border-radius: 16px 16px 0 0;
     background: var(--glass-panel-bg);
     backdrop-filter: blur(20px) saturate(180%) brightness(0.92);
     -webkit-backdrop-filter: blur(20px) saturate(180%) brightness(0.92);

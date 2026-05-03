@@ -705,6 +705,12 @@ function _updateLocationDot() {
 }
 
 function locateUser() {
+  // Plan-preview takeover owns the locate button while it's active — the
+  // 2-state behavior (fit-both ↔ zoom-user) is handled by _planPreviewLocate
+  // in ui-plan-preview.js, which has access to the invited venue's coords.
+  if (typeof _planPreviewLocate === 'function' && typeof _planPreviewState !== 'undefined' && _planPreviewState) {
+    return _planPreviewLocate();
+  }
   if (!userLocation) return;
   _aTrack('locate_user', {});
   // Dismiss keyboard / search if active so the map is visible

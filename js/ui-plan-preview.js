@@ -100,13 +100,19 @@ function openPlanPreview(opts) {
     const vh = (window.visualViewport?.height ?? window.innerHeight);
     // Bottom panel typically takes ~42% of the viewport (cap matches CSS max-height).
     const panelH = Math.min(Math.round(vh * 0.42), 460);
+    // Top bar (back button + inviter chip + weather) takes ~80px including
+    // safe-area + 16px margin. Including it in the camera padding centers the
+    // venue VISUALLY between the top bar and the bottom panel — without it
+    // Mapbox centers between viewport top and panel top, leaving the venue
+    // ~40px above visual center on a typical phone.
+    const topBarH = 96;
     try {
       map.jumpTo({
         center:  [venue.lng, venue.lat],
         zoom:    17.6,
         pitch:   58,
         bearing: 0,
-        padding: { top: 0, bottom: panelH, left: 0, right: 0 },
+        padding: { top: topBarH, bottom: panelH, left: 0, right: 0 },
       });
     } catch (e) { /* ignore */ }
   }
@@ -137,6 +143,10 @@ function openPlanPreview(opts) {
     overlay.classList.add('open');
   });
 
+  // Drag-to-dismiss on the grabber. Touch start anywhere on the grabber zone,
+  // drag down past 100px → close. Less than that → snap back. iOS-native feel.
+  _ppWireDragHandle(overlay);
+
   // Time-lapse starts after the panel slide-in settles (320ms transition).
   if (animateTo > planHour + 0.05) {
     phase3TimeoutId.id = setTimeout(() => {
@@ -148,6 +158,146 @@ function openPlanPreview(opts) {
   if (typeof _aTrack === 'function') {
     _aTrack('plan_preview_opened', { venue_id: venue.id, mode: opts.mode || 'preview' });
   }
+}
+
+/** Custom 2-state locate-me behavior for the plan-preview takeover.
+ *  - First tap: frame both the venue and the user's location — easeTo a
+ *    bounds that fits both, with padding for the top bar and bottom panel.
+ *  - Second tap: zoom in on the user's location.
+ *  - Subsequent taps toggle.
+ *  When userLocation is unavailable, falls back to centering on the venue. */
+function _planPreviewLocate() {
+  if (!_planPreviewState) return;
+  const venueId = _planPreviewState.venueId;
+  const venue = (typeof VENUES !== 'undefined') ? VENUES.find(v => String(v.id) === String(venueId)) : null;
+  if (!venue || typeof map === 'undefined' || !map) return;
+
+  const btn = document.getElementById('locate-btn');
+  if (btn) { btn.classList.add('tracking'); setTimeout(() => btn.classList.remove('tracking'), 1200); }
+
+  const vh = (window.visualViewport?.height ?? window.innerHeight);
+  const panelH = Math.min(Math.round(vh * 0.42), 460);
+  const topBarH = 96;
+  const padding = { top: topBarH, bottom: panelH, left: 24, right: 24 };
+
+  const hasUser = (typeof userLocation !== 'undefined') && userLocation
+    && Number.isFinite(userLocation.lat) && Number.isFinite(userLocation.lng);
+
+  if (typeof _aTrack === 'function') _aTrack('plan_preview_locate', { state: _planPreviewState.locateState || 'fit' });
+
+  // Toggle between the two states. State 'fit' = both visible; 'user' = zoomed on user.
+  const next = _planPreviewState.locateState === 'fit' ? 'user' : 'fit';
+  _planPreviewState.locateState = next;
+
+  if (next === 'fit' && hasUser) {
+    // Fit bounds containing both venue and user.
+    try {
+      const sw = [Math.min(venue.lng, userLocation.lng), Math.min(venue.lat, userLocation.lat)];
+      const ne = [Math.max(venue.lng, userLocation.lng), Math.max(venue.lat, userLocation.lat)];
+      map.fitBounds([sw, ne], {
+        padding,
+        maxZoom: 15.5,
+        pitch: 30,
+        bearing: 0,
+        duration: 700,
+      });
+    } catch (e) { /* ignore */ }
+    return;
+  }
+
+  if (next === 'user' && hasUser) {
+    // Zoom in on the user's location.
+    try {
+      map.easeTo({
+        center: [userLocation.lng, userLocation.lat],
+        zoom: 16,
+        pitch: 45,
+        bearing: 0,
+        duration: 700,
+        padding,
+      });
+    } catch (e) { /* ignore */ }
+    return;
+  }
+
+  // No userLocation — center back on venue at the dive state.
+  try {
+    map.easeTo({
+      center: [venue.lng, venue.lat],
+      zoom: 17.6,
+      pitch: 58,
+      bearing: 0,
+      duration: 600,
+      padding,
+    });
+  } catch (e) { /* ignore */ }
+  _planPreviewState.locateState = 'fit'; // reset since we couldn't toggle
+}
+
+/** Wire up the drag handle (.pp-grabber) for drag-to-dismiss. Tracks touch
+ *  Y-delta, applies translateY to the panel during drag, and either closes
+ *  or snaps back on release based on a 100px threshold (or fast flick). */
+function _ppWireDragHandle(overlay) {
+  const grabber = overlay.querySelector('.pp-grabber');
+  const panel = overlay.querySelector('.pp-bottom');
+  if (!grabber || !panel) return;
+  let startY = null;
+  let startT = null;
+  let dragging = false;
+  const THRESHOLD_PX = 100;
+  const FLICK_VELOCITY = 0.6; // px/ms
+
+  const onStart = (e) => {
+    const t = e.touches ? e.touches[0] : e;
+    startY = t.clientY;
+    startT = performance.now();
+    dragging = true;
+    panel.style.transition = 'none';
+  };
+  const onMove = (e) => {
+    if (!dragging || startY == null) return;
+    const t = e.touches ? e.touches[0] : e;
+    const dy = Math.max(0, t.clientY - startY);
+    panel.style.transform = `translateY(${dy}px)`;
+    if (e.cancelable) e.preventDefault();
+  };
+  const onEnd = (e) => {
+    if (!dragging || startY == null) return;
+    const t = e.changedTouches ? e.changedTouches[0] : e;
+    const dy = Math.max(0, t.clientY - startY);
+    const dt = Math.max(1, performance.now() - startT);
+    const velocity = dy / dt; // px per ms
+    panel.style.transition = '';
+    panel.style.transform = '';
+    dragging = false;
+    startY = null;
+    if (dy > THRESHOLD_PX || velocity > FLICK_VELOCITY) {
+      closePlanPreview();
+    }
+  };
+
+  grabber.addEventListener('touchstart', onStart, { passive: true });
+  grabber.addEventListener('touchmove', onMove, { passive: false });
+  grabber.addEventListener('touchend', onEnd, { passive: true });
+  grabber.addEventListener('touchcancel', onEnd, { passive: true });
+  // Mouse fallback for desktop testing
+  grabber.addEventListener('mousedown', (e) => {
+    onStart(e);
+    const moveHandler = (ev) => onMove(ev);
+    const upHandler = (ev) => {
+      onEnd(ev);
+      window.removeEventListener('mousemove', moveHandler);
+      window.removeEventListener('mouseup', upHandler);
+    };
+    window.addEventListener('mousemove', moveHandler);
+    window.addEventListener('mouseup', upHandler);
+  });
+  // Visual affordance for the grabber as a pointer area
+  grabber.style.cursor = 'grab';
+  grabber.style.touchAction = 'none';
+  // Expand the touch target around the visible pill (44pt min target)
+  grabber.style.padding = '12px';
+  grabber.style.margin = '-8px auto -10px';
 }
 
 function closePlanPreview() {
@@ -224,10 +374,21 @@ function _ppFtsAttach() {
   fts.style.cssText = '';
   fts.classList.add('fts-in-preview');
   slot.appendChild(fts);
-  // Force a repaint at the new container size on the next frame.
+  // Ensure the slider is fully visible (defensive — the body.plan-preview-active
+  // hide rule sets opacity 0; the .fts-in-preview override should re-show it,
+  // but explicitly setting the property here protects against any cascade
+  // race when the panel opens for an anon receiver landing fresh on the link).
+  fts.style.opacity = '1';
+  fts.style.pointerEvents = 'auto';
+  // Force a repaint at the new container size on the next frame, then again
+  // after data loads (solar tables / weather may arrive late on a fresh
+  // invite-link landing).
   requestAnimationFrame(() => {
     if (typeof drawFtsCanvas === 'function') drawFtsCanvas();
   });
+  setTimeout(() => {
+    if (typeof drawFtsCanvas === 'function') drawFtsCanvas();
+  }, 600);
 }
 
 /** Reverse: detach FTS from the preview slot and put it back on the body. The
