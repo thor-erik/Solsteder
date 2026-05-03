@@ -86,39 +86,70 @@ function openPlanPreview(opts) {
     } catch (e) { /* ignore */ }
   }
 
-  // Camera: instant snap to the dive state directly above the venue. No pan
-  // animation — the receiver shouldn't see a wandering camera before the
-  // content lands. The bottom panel slides up over this fixed view.
+  // Camera choreography: open from above, then dive in. Mirrors the app's
+  // intro sequence (jumpTo → easeTo zoom-in + tilt-up) so receivers landing
+  // on a share link get the same orienting motion as a fresh app open.
+  //
+  //  Phase 0 (instant): jumpTo zoom 14, pitch 0, top-down — known starting
+  //    state regardless of where the camera was before.
+  //  Phase 1 (1500ms):  flyTo dive — zoom 17.6, pitch 58, bearing aimed at
+  //    the venue's outdoor seating (wallSegment.bearing + 180) so the front
+  //    of the venue faces the camera. Same bearing logic as _flyToVenue in
+  //    app.js (lines ~2286-2291), kept inline here to avoid coupling.
   //
   // The Mapbox `padding.bottom` offset shifts the camera's logical center up
-  // so the venue sits centered in the visible map area (the map extends below
-  // the bottom panel, but the panel covers it). Estimated panel height — used
-  // before the panel is in the DOM, so we approximate from the viewport.
+  // so the venue sits centered in the visible map area (panel covers the
+  // bottom). Approximated before the panel mounts.
   const TIMELAPSE_MS = 5000;
   const phase3TimeoutId = { id: null };
   if (typeof map !== 'undefined' && map && typeof map.jumpTo === 'function') {
     const vh = (window.visualViewport?.height ?? window.innerHeight);
-    // Bottom panel typically takes ~42% of the viewport (cap matches CSS max-height).
     const panelH = Math.min(Math.round(vh * 0.42), 460);
-    // Top bar (back button + inviter chip + weather) takes ~80px including
-    // safe-area + 16px margin. Including it in the camera padding centers the
-    // venue VISUALLY between the top bar and the bottom panel — without it
-    // Mapbox centers between viewport top and panel top, leaving the venue
-    // ~40px above visual center on a typical phone.
-    const topBarH = 96;
+    const topBarH = 16;
+    const padding = { top: topBarH, bottom: panelH, left: 0, right: 0 };
+    // Bearing: face the venue from outdoor-seating side. Same heuristic
+    // as _flyToVenue — wallSegment.bearing + 180 puts the camera on the
+    // sunny side looking toward the building.
+    const wallBearing   = venue.wallSegment?.bearing ?? venue.facing ?? 0;
+    const targetBearing = (wallBearing + 180) % 360;
     try {
       map.jumpTo({
         center:  [venue.lng, venue.lat],
+        zoom:    14,
+        pitch:   0,
+        bearing: targetBearing,
+        padding,
+      });
+      map.flyTo({
+        center:  [venue.lng, venue.lat],
         zoom:    17.6,
         pitch:   58,
-        bearing: 0,
-        padding: { top: topBarH, bottom: panelH, left: 0, right: 0 },
+        bearing: targetBearing,
+        padding,
+        duration: 1500,
+        curve: 1.4,
+        easing: t => 1 - Math.pow(1 - t, 3),
+        essential: true,
       });
     } catch (e) { /* ignore */ }
   }
-  // Camera has settled on the venue — reveal the map (the head-script gate
-  // had #map hidden so the receiver wouldn't see the Oslo fallback flash).
+  // Camera animation in flight — reveal the map (the head-script gate had
+  // #map hidden so the receiver wouldn't see the Oslo fallback flash).
   document.documentElement.classList.remove('invite-loading');
+
+  // _skipIntro (run earlier on the invite path) calls _syncFtsPosition,
+  // which sets inline `style.opacity = '0'` + pointerEvents = 'none' on
+  // #zoom-jog (and conditionally #locate-btn) when the venue list is in
+  // mobile-expanded state. Inline style trumps the body.plan-preview-active
+  // CSS rule that would otherwise show them above the panel. Clear inline
+  // styles here so the CSS rule wins for the duration of the takeover.
+  ['locate-btn', 'zoom-jog'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.style.opacity = '';
+      el.style.pointerEvents = '';
+    }
+  });
 
   const overlay = _ppBuildDom(venue, opts, { planHour, animateTo, dateStr });
   document.body.appendChild(overlay);
@@ -619,13 +650,21 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     }
   }
 
-  // Meeting time/date line — small accent under the eyebrow. The dp-card
-  // shows sun behaviour, but the user still needs to see *when* they're
-  // invited at a glance. Reuse pp_tagline_invite ("kl. {time}" / "at {time}")
-  // for the localized time prefix.
+  // Headline + sub — bigger than the previous eyebrow. Format:
+  //   "Maja har invitert deg til Egon"
+  //   "søn 3. mai kl. 15:45"
+  // Uses shortName() for a punchy venue name in the title (long names like
+  // "Mamma Pizza Vika Osteria di Mare" don't wrap pleasantly at 22-24px).
+  // Falls back gracefully when inviterName is missing (anon-receiver state).
   const dateLabel = (typeof _fmtInviteDate === 'function' && dateStr) ? _fmtInviteDate(dateStr) : '';
   const timeLabel = t('pp_tagline_invite', { time: formatHour(planHour) });
   const meetLine = dateLabel ? `${dateLabel} · ${timeLabel}` : timeLabel;
+  const venueShort = (typeof shortName === 'function') ? shortName(venue.name, 18) : venue.name;
+  const titleText = isInvite && opts.inviterName
+    ? t('pp_title_invited_to', { name: opts.inviterName, venue: venueShort })
+    : isInvite
+      ? t('pp_title_invited_anon', { venue: venueShort })
+      : '';
 
   el.innerHTML = `
     <div class="pp-bottom">
@@ -633,11 +672,13 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
         <div class="pp-grabber" aria-hidden="true"></div>
       </div>
       ${isInvite ? `
-        <div class="pp-eyebrow-row">
-          ${inviterAvatarHtml}
-          <div class="pp-eyebrow">${inviterText}</div>
-        </div>` : ''}
-      <div class="pp-meet-line">${meetLine}</div>
+        <div class="pp-title-block">
+          ${inviterAvatarHtml ? `<div class="pp-title-avatar">${inviterAvatarHtml}</div>` : ''}
+          <div class="pp-title-text">
+            <h2 class="pp-title">${titleText}</h2>
+            <div class="pp-title-sub">${meetLine}</div>
+          </div>
+        </div>` : `<div class="pp-meet-line">${meetLine}</div>`}
       ${dpCardHtml}
       ${attendeesHtml}
       <div class="pp-cta-row">${ctaHtml}</div>
@@ -761,6 +802,7 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
         planId:    opts.planTokenP || null,
         plannedAt: opts.plannedAt || null,
         whenLabel,
+        inviterName: opts.inviterName || null,
       });
     }, 360);
   };
