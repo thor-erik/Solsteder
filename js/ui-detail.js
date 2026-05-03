@@ -619,100 +619,119 @@ function _handleCalendarAdd(venueId, inviterName) {
   if (banner) banner.remove();
 }
 
-// ── Post-accept question panel ────────────────────────────────────────────────
+// ── Accepted panel — parallel-action carousel ──────────────────────────────
 
-/** Build the queue of post-accept questions from context. Filters out anything
- *  that doesn't apply (no friend-prompt = skip friend question; share-nudge
- *  only fires when receiver is friends with inviter; calendar always offered).
- *  Order: friend-add first (highest social value), then calendar, then share. */
-function _buildPostAcceptQueue(opts) {
-  const queue = [];
-  const fp = (typeof window !== 'undefined') ? window._pendingFriendPrompt : null;
-  const sn = (typeof window !== 'undefined') ? window._pendingShareNudge : null;
-
-  if (fp && fp.inviterId && fp.inviterName) {
-    queue.push({
-      type: 'friend',
-      icon: '👥',
-      titleKey: 'pap_q_friend_title',
-      subKey:   'pap_q_friend_sub',
-      primaryKey: 'pap_q_friend_primary',
-      titleVars: { name: (fp.inviterName || '').replace(/[<>"]/g, '') },
-      onPrimary: () => _handleFriendPromptAdd(fp.inviterId),
-      onSkip:    () => _handleFriendPromptDismiss(fp.inviterId),
-    });
-  }
-  // Calendar is always offered when we have a venue + plannedAt. Inviter name
-  // (passed from openPlanPreview's accept handler) flows through to the .ics
-  // SUMMARY as "{venue} with {inviter}".
-  if (opts.venueId && opts.plannedAt) {
-    queue.push({
-      type: 'calendar',
-      icon: '📅',
-      titleKey: 'pap_q_calendar_title',
-      subKey:   'pap_q_calendar_sub',
-      primaryKey: 'pap_q_calendar_primary',
-      onPrimary: () => _handleCalendarAdd(opts.venueId, opts.inviterName),
-      onSkip:    () => {},
-    });
-  }
-  if (sn && String(sn.venueId) === String(opts.venueId)) {
-    queue.push({
-      type: 'share',
-      icon: '🔗',
-      titleKey: 'pap_q_share_title',
-      subKey:   'pap_q_share_sub',
-      primaryKey: 'pap_q_share_primary',
-      onPrimary: () => _handleShareNudgeShare(opts.venueId),
-      onSkip:    () => _handleShareNudgeDismiss(),
-    });
-  }
-  return queue;
-}
-
-/** Open the post-accept question panel. Slides up from the bottom over the
- *  detail panel (which is in peek state) + map. Sequential question carousel:
- *  user answers/skips → auto-advance → close after the last question. */
+/** Open the accepted confirmation panel after RSVP "I'm in". Replaces the
+ *  prior sequential question carousel with a 5-card horizontal action row
+ *  (Calendar, Directions, Open venue, Add friend if applicable, Share onward).
+ *  Slides up from the bottom; backdrop tap or "Endre svar" link closes.
+ *
+ *  opts: { venueId, venueName, plannedAt, whenLabel, inviterName, inviterId,
+ *          arrivalDate, sunUntil, attendees }
+ *  Reads window._pendingFriendPrompt / window._pendingShareNudge to decide
+ *  which optional cards to surface; clears them on close. */
 function _openPostAcceptPanel(opts) {
   const existing = document.getElementById('post-accept-overlay');
   if (existing) existing.remove();
 
-  const queue = _buildPostAcceptQueue(opts);
-  if (!queue.length) return;
+  const venueName  = opts.venueName || '';
+  const whenLabel  = opts.whenLabel || '';
+  const arrivalDate = opts.arrivalDate || '';
+  const sunUntil   = opts.sunUntil || '';
+  const fp = (typeof window !== 'undefined') ? window._pendingFriendPrompt : null;
+  const sn = (typeof window !== 'undefined') ? window._pendingShareNudge : null;
+  const inviterName = (fp && fp.inviterName) || opts.inviterName || '';
+  const inviterId   = (fp && fp.inviterId)   || opts.inviterId   || null;
+  const showAddFriend = !!(fp && fp.inviterId && fp.inviterName);
+  const showShare     = !!(sn && String(sn.venueId) === String(opts.venueId));
 
-  const venueName = opts.venueName || '';
-  const subtitle = (venueName && opts.whenLabel)
-    ? t('pap_subtitle', { venue: venueName, when: opts.whenLabel })
-    : (venueName || '');
+  const subtitle = [arrivalDate, whenLabel, sunUntil ? `${t('invite_hero_sun_until').toLowerCase()} ${sunUntil}` : '']
+    .filter(Boolean).join(' · ') || venueName;
+
+  const checkSvg   = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+  const safeName    = venueName.replace(/</g, '&lt;');
+  const safeWhen    = (whenLabel || '').replace(/</g, '&lt;');
+  const safeSubtitle = subtitle.replace(/</g, '&lt;');
+
+  // Build action card list — first card gets accent highlight.
+  const actions = [];
+  if (opts.venueId && opts.plannedAt) actions.push('calendar');
+  if (typeof userLocation !== 'undefined' && userLocation && opts.venueId) actions.push('directions');
+  if (opts.venueId) actions.push('open');
+  if (showAddFriend) actions.push('add_friend');
+  if (showShare) actions.push('share');
+  // Always at least 1 action — calendar is the safe default.
+  if (!actions.length && opts.venueId) actions.push('open');
+
+  const cardsHtml = actions.map((type, i) =>
+    _renderAcceptedActionCard(type, {
+      venueId: opts.venueId,
+      venueName,
+      plannedAt: opts.plannedAt,
+      inviterName,
+      inviterId,
+      accent: i === 0,
+    })
+  ).join('');
+
+  // Attendees row — fed by opts.attendees (array of {name, avatar_url?}).
+  const attendees = Array.isArray(opts.attendees) ? opts.attendees : [];
+  let attendeesHtml = '';
+  if (attendees.length) {
+    const stack = attendees.slice(0, 4).map(a => {
+      const init = (a.name || '?')[0].toUpperCase();
+      const colorIdx = (init.charCodeAt(0) || 0) % 8;
+      if (a.avatar_url) {
+        return `<img class="dpacc-att-av init-color-${colorIdx}" src="${a.avatar_url}" alt="" style="object-fit:cover">`;
+      }
+      return `<div class="dpacc-att-av dpinvite-avatar-init init-color-${colorIdx}">${init}</div>`;
+    }).join('');
+    const otherNames = attendees.filter(a => a.name && a.name !== 'You').map(a => a.name).slice(0, 3);
+    attendeesHtml = `
+      <div class="dpacc-attendees">
+        <div class="dpacc-att-stack">${stack}</div>
+        <div class="dpacc-att-info">
+          <div class="dpacc-att-count">${t('accepted_attending_count', { n: attendees.length })}</div>
+          ${otherNames.length ? `<div class="dpacc-att-names">${t('accepted_attending_names', { names: otherNames.join(', ') })}</div>` : ''}
+        </div>
+      </div>`;
+  }
 
   const overlay = document.createElement('div');
   overlay.id = 'post-accept-overlay';
-  overlay.className = 'post-accept-overlay';
+  overlay.className = 'dpacc-overlay';
   overlay.onclick = e => { if (e.target === overlay) _closePostAcceptPanel(); };
 
   const panel = document.createElement('div');
   panel.id = 'post-accept-panel';
-  panel.className = 'post-accept-panel';
-  panel._queue = queue;
-  panel._idx = 0;
-
+  panel.className = 'dpacc-panel';
   panel.innerHTML = `
-    <div class="pap-grabber" aria-hidden="true"></div>
-    <div class="pap-header">
-      <div>
-        <div class="pap-title">${t('pap_title')}</div>
-        ${subtitle ? `<div class="pap-subtitle">${subtitle}</div>` : ''}
-      </div>
-      <button class="pap-close" onclick="_closePostAcceptPanel()" aria-label="${t('close') || 'Close'}">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/></svg>
-      </button>
+    <div class="dpacc-handle" aria-hidden="true">
+      <div class="dpacc-grabber"></div>
     </div>
-    <div class="pap-progress" id="pap-progress"></div>
-    <div class="pap-body" id="pap-body"></div>`;
+    <div class="dpacc-header-row">
+      <div class="dpacc-header-text">
+        <div class="dpacc-eyebrow">${t('accepted_eyebrow')}</div>
+        <div class="dpacc-venue">${safeName}</div>
+        <div class="dpacc-subtitle">${safeSubtitle}</div>
+      </div>
+      <button class="dpacc-change-rsvp" type="button" onclick="_closePostAcceptPanel()">${t('accepted_change_rsvp')}</button>
+    </div>
+    <div class="dpacc-action-row">${cardsHtml}</div>
+    ${attendeesHtml}`;
 
+  // Floating "you're in" toast pill at the top.
+  const toastPill = document.createElement('div');
+  toastPill.className = 'dpacc-toast-pill';
+  toastPill.innerHTML = `
+    <div class="dpacc-toast-card">
+      <span class="dpacc-toast-check">${checkSvg}</span>
+      <span>${t('accepted_sees_pill', { time: safeWhen })}</span>
+    </div>`;
+
+  overlay.appendChild(toastPill);
   overlay.appendChild(panel);
   document.body.appendChild(overlay);
-  _renderPostAcceptCard();
 
   requestAnimationFrame(() => {
     overlay.classList.add('open');
@@ -720,61 +739,86 @@ function _openPostAcceptPanel(opts) {
   });
 }
 
-/** Render the current question card + progress dots. Called on open and on
- *  each advance. Skips the dots when there's only one question. */
-function _renderPostAcceptCard() {
-  const panel = document.getElementById('post-accept-panel');
-  if (!panel) return;
-  const queue = panel._queue || [];
-  const idx = panel._idx || 0;
-  const q = queue[idx];
-  if (!q) { _closePostAcceptPanel(); return; }
+/** Render one of the action cards in the accepted-panel carousel.
+ *  type ∈ 'calendar' | 'directions' | 'open' | 'add_friend' | 'share'. */
+function _renderAcceptedActionCard(type, opts) {
+  const accentCls = opts.accent ? ' dpacc-action-card-accent' : '';
+  const venueId = opts.venueId;
+  const titleStr = (key, vars) => (t(key, vars || {}) || '').replace(/</g, '&lt;');
 
-  const progressEl = panel.querySelector('#pap-progress');
-  if (progressEl) {
-    if (queue.length <= 1) {
-      progressEl.innerHTML = '';
-    } else {
-      progressEl.innerHTML = queue.map((_, i) =>
-        `<span class="pap-dot${i === idx ? ' pap-dot-active' : ''}${i < idx ? ' pap-dot-done' : ''}"></span>`
-      ).join('');
-    }
+  let title = '', sub = '', iconSvg = '';
+  if (type === 'calendar') {
+    title = titleStr('accepted_action_calendar');
+    sub   = titleStr('accepted_action_calendar_sub');
+    iconSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;
+  } else if (type === 'directions') {
+    title = titleStr('accepted_action_directions');
+    const walkMin = _dpaccWalkMinutes(venueId);
+    sub = walkMin != null
+      ? titleStr('accepted_action_directions_sub', { n: walkMin })
+      : titleStr('accepted_action_open_sub');
+    iconSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>`;
+  } else if (type === 'open') {
+    title = titleStr('accepted_action_open');
+    sub   = titleStr('accepted_action_open_sub');
+    iconSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
+  } else if (type === 'add_friend') {
+    title = titleStr('accepted_action_add_friend', { name: opts.inviterName || '' });
+    sub   = titleStr('accepted_action_add_friend_sub');
+    iconSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>`;
+  } else if (type === 'share') {
+    title = titleStr('accepted_action_share');
+    sub   = titleStr('accepted_action_share_sub');
+    iconSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>`;
   }
 
-  const titleVars = q.titleVars || {};
-  const bodyEl = panel.querySelector('#pap-body');
-  if (bodyEl) {
-    bodyEl.innerHTML = `
-      <div class="pap-card">
-        <div class="pap-icon" aria-hidden="true">${q.icon}</div>
-        <div class="pap-q-title">${t(q.titleKey, titleVars)}</div>
-        <div class="pap-q-sub">${t(q.subKey)}</div>
-        <button class="pap-q-primary" onclick="_postAcceptAnswer(true)">${t(q.primaryKey)}</button>
-        <button class="pap-q-skip" onclick="_postAcceptAnswer(false)">${t('pap_q_skip')}</button>
-      </div>`;
-  }
+  return `<button type="button" class="dpacc-action-card${accentCls}" data-action="${type}" onclick="_acceptedActionClick('${type}', ${venueId}, ${opts.inviterId ? `'${opts.inviterId}'` : 'null'}, ${JSON.stringify(opts.inviterName || '').replace(/"/g,'&quot;')})">
+    <div class="dpacc-action-icon">${iconSvg}</div>
+    <div class="dpacc-action-text">
+      <div class="dpacc-action-title">${title}</div>
+      <div class="dpacc-action-sub">${sub}</div>
+    </div>
+  </button>`;
 }
 
-/** Apply the current question's primary or skip action, then advance. */
-function _postAcceptAnswer(isPrimary) {
-  const panel = document.getElementById('post-accept-panel');
-  if (!panel) return;
-  const queue = panel._queue || [];
-  const idx = panel._idx || 0;
-  const q = queue[idx];
-  if (q) {
-    try {
-      if (isPrimary) q.onPrimary && q.onPrimary();
-      else           q.onSkip    && q.onSkip();
-      if (typeof _aTrack === 'function') _aTrack('post_accept_answer', { type: q.type, action: isPrimary ? 'primary' : 'skip' });
-    } catch (e) { /* never block the carousel on a handler failure */ }
-  }
-  panel._idx = idx + 1;
-  if (panel._idx >= queue.length) {
-    _closePostAcceptPanel();
-  } else {
-    _renderPostAcceptCard();
-  }
+/** Walking-time estimate for the directions card. Haversine + 80m/min pace.
+ *  Returns minutes (rounded), or null if location unknown. */
+function _dpaccWalkMinutes(venueId) {
+  if (typeof userLocation === 'undefined' || !userLocation) return null;
+  const v = (typeof VENUES !== 'undefined') ? VENUES.find(x => x.id === venueId) : null;
+  if (!v) return null;
+  const toRad = (d) => d * Math.PI / 180;
+  const R = 6371000;
+  const dLat = toRad(v.lat - userLocation.lat);
+  const dLng = toRad(v.lng - userLocation.lng);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(userLocation.lat)) * Math.cos(toRad(v.lat)) * Math.sin(dLng/2)**2;
+  const m = 2 * R * Math.asin(Math.sqrt(a));
+  return Math.max(1, Math.round(m / 80));
+}
+
+/** Dispatch an accepted-panel action card tap to the right handler. */
+function _acceptedActionClick(type, venueId, inviterId, inviterName) {
+  if (typeof _aTrack === 'function') _aTrack('accepted_action_tap', { type, venueId });
+  try {
+    if (type === 'calendar') {
+      _handleCalendarAdd(venueId, inviterName);
+    } else if (type === 'directions') {
+      const v = (typeof VENUES !== 'undefined') ? VENUES.find(x => x.id === venueId) : null;
+      if (!v) return;
+      const isApple = /iPhone|iPad|Macintosh/i.test(navigator.userAgent || '');
+      const url = isApple
+        ? `https://maps.apple.com/?daddr=${v.lat},${v.lng}&dirflg=w`
+        : `https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lng}&travelmode=walking`;
+      window.open(url, '_blank', 'noopener');
+    } else if (type === 'open') {
+      _closePostAcceptPanel();
+      if (typeof selectVenue === 'function') selectVenue(venueId, true);
+    } else if (type === 'add_friend') {
+      if (inviterId) _handleFriendPromptAdd(inviterId);
+    } else if (type === 'share') {
+      _handleShareNudgeShare(venueId);
+    }
+  } catch (e) { /* never block the carousel on a handler failure */ }
 }
 
 function _closePostAcceptPanel() {
@@ -881,131 +925,151 @@ function _openInviteSheet(venueId) {
 
   const friends = typeof _friends !== 'undefined' ? _friends : [];
   const hasFriends = friends.length > 0;
-  const SHOW_SEARCH_AT = 6;
 
-  const checkSvg = `<svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 7 6 11 12 3"/></svg>`;
   // Stable color index (0–7) hashed from friend id so the initials-circle
-  // fallback feels intentional — two "E"s won't collide and the same friend
-  // keeps the same color across reloads.
+  // palette feels intentional — two "E"s won't collide and the same friend
+  // keeps their color across reloads.
   const _hashColor = (s) => {
     s = String(s || '');
     let h = 0;
     for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
     return h % 8;
   };
-  const friendTiles = friends.map(f => {
-    const fullName = f.name || f.email || '';
-    const firstName = fullName.split(/\s+/)[0] || fullName || '?';
-    const initial = (fullName || '?')[0].toUpperCase();
-    const colorIdx = _hashColor(f.id);
-    const avatar = f.avatar_url
-      ? `<img class="invite-friend-avatar" src="${f.avatar_url}" alt="">`
-      : `<div class="invite-friend-avatar invite-friend-init init-color-${colorIdx}">${initial}</div>`;
-    const safeFull = fullName.replace(/"/g, '&quot;');
-    const safeFirst = firstName.replace(/</g, '&lt;');
-    return `<button type="button" class="invite-friend-tile" role="checkbox" aria-checked="false" aria-label="${safeFull}" data-friend-id="${f.id}" data-friend-name="${safeFull}" onclick="_toggleInviteFriend(this)">
-      <span class="invite-friend-avatar-wrap">
-        ${avatar}
-        <span class="invite-friend-check" aria-hidden="true">${checkSvg}</span>
-      </span>
-      <span class="invite-friend-name">${safeFirst}</span>
-    </button>`;
-  }).join('');
-
-  const shareSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>`;
-  const sendSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2 11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`;
-  const noFriendsSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>`;
 
   // Read current time from the main pickers — these stay the source of truth
   // while the sheet is open, so we don't duplicate controls inside the sheet.
   const curDate = typeof datePicker !== 'undefined' ? datePicker.value : new Date().toISOString().slice(0, 10);
   const curHour = typeof timeFromEl !== 'undefined' ? parseFloat(timeFromEl.value) : new Date().getHours();
 
-  const previewText = v ? _composeInviteShareText(v, curDate, curHour) : '';
+  // Inline SVG icon set used across the sheet (copied here to keep the build
+  // step-free; matches the design's Lucide-style stroke icons).
+  const pinSvg     = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
+  const xSvg       = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>`;
+  const chevDownSvg= `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
+  const sparkleSvg = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.6 4.5L18 9l-4.4 1.5L12 15l-1.6-4.5L6 9l4.4-1.5L12 3z"/><path d="M19 14l.7 1.8L21 16l-1.3.5L19 18l-.7-1.5L17 16l1.3-.7L19 14z"/></svg>`;
+  const sendSvg    = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>`;
+  const linkSvg    = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>`;
+  const checkSvgSm = `<svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 7 6 11 12 3"/></svg>`;
+  const noFriendsSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>`;
 
-  // Build overlay
+  // Friend ids ordered by recent invite history (clamped to last 4) — used
+  // by the "Nylige" group chip. If there's no history, fall back to the first
+  // 4 friends in the canonical list.
+  const recentIds = (typeof _recentInvitedFriendIds === 'function')
+    ? _recentInvitedFriendIds(friends).slice(0, 4)
+    : friends.slice(0, 4).map(f => String(f.id));
+  const recentSet = new Set(recentIds.map(String));
+
+  const venueArea  = v ? (v.area || '') : '';
+  const venueCat   = (v && typeof catLabel === 'function') ? catLabel(v) : '';
+  const venueMeta  = [venueArea, venueCat].filter(Boolean).join(' · ');
+  const safeName   = venueName.replace(/"/g, '&quot;');
+  const arrivalLbl = _dpinviteArrivalLabel(curHour);
+  const autoMessage = v ? _composeInviteShareText(v, curDate, curHour) : '';
+  const sunBarHtml  = (typeof renderInviteSunBar === 'function')
+    ? renderInviteSunBar(v, curDate, curHour) : '';
+  const sunUntilHtml = _dpinviteSunUntilLine(v, curDate, curHour);
+  const arrivalChipsHtml = _buildInviteTimeChips(curHour);
+
+  const avatarsHtml   = _renderInviteAvatarCarousel(friends, _hashColor, checkSvgSm);
+  const groupChipsHtml = _renderInviteGroupChips('recent', recentSet.size, friends.length);
+
+  // Build overlay + sheet (IDs preserved for legacy close path).
   const overlay = document.createElement('div');
   overlay.id = 'invite-sheet-backdrop';
-  overlay.className = 'invite-backdrop';
+  overlay.className = 'dpinvite-backdrop';
   overlay.onclick = e => { if (e.target === overlay) _closeInviteSheet(); };
 
   const sheet = document.createElement('div');
   sheet.id = 'invite-sheet';
-  sheet.className = 'invite-sheet';
+  sheet.className = 'dpinvite-sheet';
 
   const friendsBlock = hasFriends ? `
-        <div class="invite-friends-header">
-          <div class="invite-friends-title">
-            <span>${t('invite_friends_section')}</span>
-            <span class="invite-friends-count" id="invite-friends-count"></span>
-          </div>
-          <button class="invite-friends-toggle" id="invite-toggle-all" type="button" onclick="_toggleAllInviteFriends()">${t('invite_select_all')}</button>
+        <div class="dpinvite-group-chips" id="dpinvite-group-chips">
+          ${groupChipsHtml}
         </div>
-        ${friends.length > SHOW_SEARCH_AT ? `<input type="text" class="invite-friend-search" id="invite-friend-search" placeholder="${t('invite_friend_search_placeholder')}" oninput="_filterInviteFriends(this.value)">` : ''}
-        <div class="invite-friends-list">
-          ${friendTiles}
+        <div class="dpinvite-avatar-row" id="dpinvite-avatar-row">
+          ${avatarsHtml}
         </div>` : `
-        <div class="invite-empty-card">
-          <div class="invite-empty-icon">${noFriendsSvg}</div>
-          <div class="invite-empty-title">${t('invite_no_friends_title')}</div>
-          <div class="invite-empty-sub">${t('invite_no_friends_sub')}</div>
+        <div class="dpinvite-empty-card">
+          <div class="dpinvite-empty-icon">${noFriendsSvg}</div>
+          <div class="dpinvite-empty-title">${t('invite_no_friends_title')}</div>
+          <div class="dpinvite-empty-sub">${t('invite_no_friends_sub')}</div>
         </div>`;
 
-  // Action row: primary always present, secondary appears when 1+ selected.
-  // With 0 selected, primary IS "Del lenke" (filled coral). With 1+ selected,
-  // primary becomes "Send til X" and "Del lenke" reappears as a glass-action
-  // secondary alongside it.
-  const actionRow = hasFriends ? `
-      <div class="invite-action-row">
-        <button class="invite-send-btn" id="invite-primary-btn" data-mode="share" onclick="_invitePrimaryClick(${venueId})">
-          <span id="invite-primary-icon">${shareSvg}</span>
-          <span id="invite-primary-label">${t('share_link')}</span>
-        </button>
-        <button class="invite-share-link" id="invite-secondary-btn" type="button" onclick="_shareInviteLink(${venueId})" hidden>
-          ${shareSvg}
-          <span>${t('share_link')}</span>
-        </button>
-      </div>` : `
-      <div class="invite-action-row">
-        <button class="invite-send-btn" onclick="_shareInviteLink(${venueId})">
-          ${shareSvg}
-          <span>${t('share_link')}</span>
-        </button>
-      </div>`;
+  // CTA row: primary morphs ("Velg venner" → "Send til {name}" / "Send til {n} venner")
+  // based on selection. Circular link button is always present.
+  const ctaRow = hasFriends ? `
+        <div class="dpinvite-cta-row">
+          <button class="dpinvite-send-pill" id="invite-primary-btn" data-mode="share" onclick="_invitePrimaryClick(${venueId})" disabled>
+            <span id="invite-primary-icon">${sendSvg}</span>
+            <span id="invite-primary-label">${t('invite_select_friends_cta')}</span>
+          </button>
+          <button class="dpinvite-link-btn" id="invite-secondary-btn" type="button" onclick="_shareInviteLink(${venueId})" aria-label="${t('share_link')}">
+            ${linkSvg}
+          </button>
+        </div>` : `
+        <div class="dpinvite-cta-row">
+          <button class="dpinvite-send-pill" onclick="_shareInviteLink(${venueId})">
+            ${linkSvg}
+            <span>${t('share_link')}</span>
+          </button>
+        </div>`;
 
-  // Time chips — replace the fragile reparented FTS pill (which kept
-  // disappearing on scrub due to multiple code paths setting inline opacity)
-  // with a discrete chip picker. For invites, "now-ish" coverage is enough;
-  // power users who want a precise time can scrub the main FTS before opening.
-  const chipsHtml = _buildInviteTimeChips(curHour);
-
-  // Sheet markup — grabber + body. Body in order:
-  //   1. Bubble preview (the receiver-perspective text)
-  //   2. Time chips (Nå + 4 future hours)
-  //   3. Friends block (title + count, optional search, avatar grid)
-  //   4. Action row (primary send/share, optional secondary)
-  // No header (title + close button) — backdrop tap, drag grabber, and
-  // Escape are the dismissal paths. The venue card is pinned at the top of
-  // the screen as a separate floating element.
+  // Sheet markup — single body element. Body order:
+  //   1. Title row: eyebrow + venue name (left) + arrival pill (right)
+  //   2. Arrival picker (hidden by default; opens when arrival pill tapped)
+  //   3. Sun bar (HTML/CSS gradient, driven by render-sunbar.js)
+  //   4. Sun-until line (axis labels + bold sun-til text)
+  //   5. Editable message preview card (sparkle + auto-text)
+  //   6. Friends block (group chips + avatar carousel) OR empty state
+  //   7. Sticky CTA row (Send pill + circular link icon button)
   sheet.innerHTML = `
-    <div class="invite-sheet-grabber" aria-hidden="true"></div>
-    <div class="invite-sheet-body">
-      <div class="invite-bubble" id="invite-message-preview-text">${previewText}</div>
-      <div class="invite-time-chips" id="invite-time-chips">${chipsHtml}</div>
+    <div class="dpinvite-grabber" aria-hidden="true"></div>
+    <div class="dpinvite-body">
+      <div class="dpinvite-title-row">
+        <div>
+          <div class="dpinvite-eyebrow">${t('invite_eyebrow')}</div>
+          <div class="dpinvite-venue-name">${venueName}</div>
+        </div>
+        <button type="button" class="dpinvite-arrival-pill" id="dpinvite-arrival-pill" aria-label="${t('invite_arrival_pill_aria')}" onclick="_dpinviteToggleArrivalPicker()">
+          <span id="dpinvite-arrival-label">${arrivalLbl}</span>
+          ${chevDownSvg}
+        </button>
+      </div>
+      <div class="dpinvite-arrival-row" id="dpinvite-arrival-row" hidden>
+        ${arrivalChipsHtml}
+      </div>
+      <div id="dpinvite-sunbar-host">${sunBarHtml}</div>
+      <div class="dpinvite-suntil-line" id="dpinvite-suntil-line">${sunUntilHtml}</div>
+      <div class="dpinvite-message-card" id="dpinvite-message-card" onclick="_dpinviteEditMessage(event)">
+        <div class="dpinvite-message-eyebrow">
+          ${sparkleSvg}
+          ${t('invite_message_preview_label')}
+        </div>
+        <div class="dpinvite-message-text" id="dpinvite-message-text">${autoMessage}</div>
+      </div>
       ${friendsBlock}
-    </div>
-    <div class="invite-sheet-footer">
-      ${actionRow}
+      ${ctaRow}
     </div>`;
 
-  // Floating top card: bespoke compact venue card (NOT .venue-card), pinned
-  // to the top of the viewport. Bright, opaque, high-contrast — designed to
-  // pop against the dark map without inheriting the muddy --glass-card-bg
-  // intended for in-panel use. Lifecycle tied to the sheet.
+  // Floating top chip — small glass pill (not the bright cream-on-coral card
+  // of the previous iteration). Lives as a sibling of the backdrop so it
+  // survives sheet animations cleanly.
   const topCard = document.createElement('div');
   topCard.id = 'invite-top-card';
-  topCard.className = 'invite-top-card';
-  topCard.innerHTML = _renderInviteTopCard(v, curDate, curHour);
+  topCard.className = 'dpinvite-top-chip';
+  topCard.innerHTML = `
+    <div class="dpinvite-top-chip-card">
+      <div class="dpinvite-top-chip-icon">${pinSvg}</div>
+      <div class="dpinvite-top-chip-text">
+        <div class="dpinvite-top-chip-name">${safeName}</div>
+        <div class="dpinvite-top-chip-meta">${venueMeta}</div>
+      </div>
+    </div>
+    <button class="dpinvite-top-chip-close" type="button" onclick="_closeInviteSheet()" aria-label="${t('close') || 'Close'}">
+      ${xSvg}
+    </button>`;
 
   overlay.appendChild(sheet);
   document.body.appendChild(overlay);
@@ -1015,19 +1079,37 @@ function _openInviteSheet(venueId) {
   sheet._venueId = venueId;
   sheet._venue = v;
   sheet._friendCount = friends.length;
+  sheet._messageDraft = null;   // null = use auto-generated; string = user-edited
+  sheet._activeGroup = 'recent';
+  sheet._recentSet   = recentSet;
+
+  // Apply initial group filter so the carousel matches the active chip.
+  _dpinviteApplyGroupFilter('recent');
+  _refreshInvitePrimaryCTA();
 
   function _updateInviteConfirm() {
     const d = (typeof datePicker !== 'undefined') ? datePicker.value : curDate;
     const h = (typeof timeFromEl !== 'undefined') ? parseFloat(timeFromEl.value) : curHour;
-    if (v && document.body.contains(topCard)) {
-      topCard.innerHTML = _renderInviteTopCard(v, d, h);
+    // Arrival pill label
+    const arrLabel = sheet.querySelector('#dpinvite-arrival-label');
+    if (arrLabel) arrLabel.textContent = _dpinviteArrivalLabel(h);
+    // Sun bar pin (cheap CSS-var update)
+    const sunHost = sheet.querySelector('#dpinvite-sunbar-host .dpinvite-sunbar');
+    if (sunHost && typeof updateInviteSunBarPin === 'function') {
+      updateInviteSunBarPin(sunHost, h);
     }
-    const prev = sheet.querySelector('#invite-message-preview-text');
-    if (prev && v) prev.textContent = _composeInviteShareText(v, d, h);
-    // Reflect the active hour on the chip row.
-    const chips = sheet.querySelector('#invite-time-chips');
+    // Sun-until line
+    const sunUntil = sheet.querySelector('#dpinvite-suntil-line');
+    if (sunUntil && v) sunUntil.innerHTML = _dpinviteSunUntilLine(v, d, h);
+    // Message preview — only refresh from auto-generator when user hasn't edited
+    if (sheet._messageDraft == null) {
+      const prev = sheet.querySelector('#dpinvite-message-text');
+      if (prev && v) prev.textContent = _composeInviteShareText(v, d, h);
+    }
+    // Reflect active arrival chip
+    const chips = sheet.querySelector('#dpinvite-arrival-row');
     if (chips) {
-      chips.querySelectorAll('.invite-time-chip').forEach(btn => {
+      chips.querySelectorAll('.dpinvite-arrival-chip').forEach(btn => {
         const chipH = parseFloat(btn.dataset.hour);
         btn.classList.toggle('active', Math.abs(chipH - h) < 0.01);
       });
@@ -1161,25 +1243,165 @@ function _openInviteSheet(venueId) {
   });
 }
 
-/** Build the time-chip row content. Five chips: "Nå" + the next four full
- *  hours (or +30m / +1h / etc when "now" is mid-hour). Each chip dispatches
- *  an 'input' event on timeFromEl when tapped, which is what _updateInviteConfirm
- *  + the rest of the app already listen for. No FTS reparenting needed. */
+/** Build the time-chip row content. Six chips: "Nå" + the next five full
+ *  hours. Each chip dispatches an 'input' event on timeFromEl when tapped,
+ *  which is what _updateInviteConfirm + the rest of the app already listen
+ *  for. Emits .dpinvite-arrival-chip (matches the in-flow arrival picker). */
 function _buildInviteTimeChips(currentHour) {
   const nowH = Math.floor(currentHour);
   const chips = [];
-  // First chip is always "Nå" at the current hour (snapped down to whole hours
-  // for predictability — the sender just wants "right now-ish").
   chips.push({ label: t('now') || 'Nå', hour: nowH });
-  // Subsequent chips are the next four whole hours, capped at 23.
-  for (let i = 1; i <= 4 && nowH + i <= 23; i++) {
+  for (let i = 1; i <= 5 && nowH + i <= 23; i++) {
     const h = nowH + i;
     chips.push({ label: (typeof formatHour === 'function') ? formatHour(h) : `${h}:00`, hour: h });
   }
   return chips.map(c => {
     const isActive = Math.abs(c.hour - currentHour) < 0.01;
-    return `<button type="button" class="invite-time-chip${isActive ? ' active' : ''}" data-hour="${c.hour}" onclick="_setInviteTimeFromChip(${c.hour})">${c.label}</button>`;
+    return `<button type="button" class="dpinvite-arrival-chip${isActive ? ' active' : ''}" data-hour="${c.hour}" onclick="_setInviteTimeFromChip(${c.hour})">${c.label}</button>`;
   }).join('');
+}
+
+/** Format the arrival pill's compact label — "Nå" when within 5min of the
+ *  current real time, otherwise "HH:MM". */
+function _dpinviteArrivalLabel(hour) {
+  const realNow = (new Date().getHours()) + (new Date().getMinutes() / 60);
+  if (Math.abs(hour - realNow) < 5/60) return t('now') || 'Nå';
+  return (typeof formatHour === 'function') ? formatHour(hour) : `${Math.floor(hour)}:00`;
+}
+
+/** Build the "11 — Sol til HH:MM — 22" axis-bracketed sun line under the bar. */
+function _dpinviteSunUntilLine(venue, dateStr, fromHour) {
+  const minH = (typeof MIN_H_ARC === 'number') ? MIN_H_ARC : 4;
+  const maxH = (typeof MAX_H_ARC === 'number') ? MAX_H_ARC : 23;
+  let sunStart = null, sunEnd = null;
+  try {
+    if (typeof computeSunWindows === 'function' && venue) {
+      const sw = computeSunWindows(venue, dateStr);
+      const ws = sw && sw.windows ? sw.windows : [];
+      if (ws.length) { sunStart = ws[0].start; sunEnd = ws[ws.length - 1].end; }
+    }
+  } catch (e) { /* ignore */ }
+  let main = '';
+  if (sunStart != null && sunEnd != null) {
+    const sunUntilTime = (typeof formatHour === 'function') ? formatHour(sunEnd) : `${Math.floor(sunEnd)}:${String(Math.round((sunEnd%1)*60)).padStart(2,'0')}`;
+    main = `${t('invite_hero_sun_until')} ${sunUntilTime}`;
+  }
+  return `<span>${minH}</span><span class="dpinvite-suntil-main">${main}</span><span>${maxH}</span>`;
+}
+
+/** Build the avatar carousel — horizontally scrolling .dpinvite-avatar tiles
+ *  with multi-select state via aria-checked. */
+function _renderInviteAvatarCarousel(friends, hashColor, checkSvg) {
+  return friends.map(f => {
+    const fullName  = f.name || f.email || '';
+    const firstName = fullName.split(/\s+/)[0] || fullName || '?';
+    const initial   = (fullName || '?')[0].toUpperCase();
+    const colorIdx  = hashColor(f.id);
+    const safeFull  = fullName.replace(/"/g, '&quot;');
+    const safeFirst = firstName.replace(/</g, '&lt;');
+    const onlineDot = f.online ? '<span class="dpinvite-online-dot" aria-hidden="true"></span>' : '';
+    const avatarInner = f.avatar_url
+      ? `<img src="${f.avatar_url}" alt="">`
+      : `<div class="dpinvite-avatar-init init-color-${colorIdx}">${initial}</div>`;
+    return `<button type="button" class="dpinvite-avatar" role="checkbox" aria-checked="false" aria-label="${safeFull}" data-friend-id="${f.id}" data-friend-name="${safeFull}" onclick="_toggleInviteFriend(this)">
+      <span class="dpinvite-avatar-img">
+        ${avatarInner}
+        <span class="dpinvite-avatar-check" aria-hidden="true">${checkSvg}</span>
+        ${onlineDot}
+      </span>
+      <span class="dpinvite-avatar-name">${safeFirst}</span>
+    </button>`;
+  }).join('');
+}
+
+/** Build the group-chip strip — "Nylige (n) | Alle (m)". Nylige is hidden
+ *  when no recent ids exist (then "Alle" is the default active chip). */
+function _renderInviteGroupChips(activeGroup, recentCount, totalCount) {
+  const chips = [];
+  if (recentCount > 0) {
+    chips.push({ id: 'recent', label: t('invite_group_recent'), count: recentCount });
+  }
+  chips.push({ id: 'all', label: t('invite_group_all'), count: totalCount });
+  // If recent is empty, default-active becomes "all".
+  const effectiveActive = (activeGroup === 'recent' && recentCount === 0) ? 'all' : activeGroup;
+  return chips.map(c => `
+    <button type="button" class="dpinvite-group-chip${c.id === effectiveActive ? ' active' : ''}" data-group="${c.id}" onclick="_dpinviteApplyGroupFilter('${c.id}')">
+      ${c.label}
+      <span class="dpinvite-group-chip-count">${c.count}</span>
+    </button>`).join('');
+}
+
+/** Apply a group filter — toggle hidden on .dpinvite-avatar tiles and update
+ *  the active class on the chip strip. Selection state (aria-checked) is
+ *  preserved so a friend selected in "Alle" stays selected when filtered out. */
+function _dpinviteApplyGroupFilter(groupId) {
+  const sheet = document.getElementById('invite-sheet');
+  if (!sheet) return;
+  sheet._activeGroup = groupId;
+  const recentSet = sheet._recentSet || new Set();
+  const tiles = sheet.querySelectorAll('.dpinvite-avatar');
+  tiles.forEach(tile => {
+    const fid = String(tile.getAttribute('data-friend-id'));
+    const inGroup = (groupId === 'all') ? true : recentSet.has(fid);
+    tile.hidden = !inGroup;
+  });
+  const chips = sheet.querySelectorAll('.dpinvite-group-chip');
+  chips.forEach(chip => {
+    chip.classList.toggle('active', chip.getAttribute('data-group') === groupId);
+  });
+  _refreshInvitePrimaryCTA();
+}
+
+/** Open/close the inline arrival picker (the row of chips below the pill). */
+function _dpinviteToggleArrivalPicker() {
+  const row = document.getElementById('dpinvite-arrival-row');
+  if (!row) return;
+  row.hidden = !row.hidden;
+}
+
+/** Switch the message preview card into edit mode — replaces the static text
+ *  with a textarea bound to sheet._messageDraft. On blur, save the draft
+ *  (or revert to auto-generated if empty). */
+function _dpinviteEditMessage(e) {
+  if (e && e.target && e.target.tagName === 'TEXTAREA') return;
+  const card = document.getElementById('dpinvite-message-card');
+  const sheet = document.getElementById('invite-sheet');
+  if (!card || !sheet) return;
+  if (card.classList.contains('editing')) return;
+  card.classList.add('editing');
+  const textEl = card.querySelector('#dpinvite-message-text');
+  const initial = textEl ? textEl.textContent : '';
+  if (textEl) {
+    textEl.outerHTML = `<textarea class="dpinvite-message-input" id="dpinvite-message-text" rows="3" autofocus>${initial.replace(/</g, '&lt;')}</textarea>`;
+  }
+  const ta = card.querySelector('#dpinvite-message-text');
+  if (ta) {
+    ta.focus();
+    ta.setSelectionRange(ta.value.length, ta.value.length);
+    ta.addEventListener('blur', () => {
+      const val = ta.value.trim();
+      sheet._messageDraft = val.length ? val : null;
+      const replacement = val.length ? val : (sheet._venue ? _composeInviteShareText(sheet._venue, datePicker.value, parseFloat(timeFromEl.value)) : '');
+      ta.outerHTML = `<div class="dpinvite-message-text" id="dpinvite-message-text">${replacement.replace(/</g, '&lt;')}</div>`;
+      card.classList.remove('editing');
+    }, { once: true });
+  }
+}
+
+/** Best-effort recent-friends list — orders by most-recently-invited (from
+ *  localStorage), falling back to the canonical friend order. Returns an
+ *  array of friend ids as strings, capped at 8. */
+function _recentInvitedFriendIds(friends) {
+  const safe = (Array.isArray(friends) ? friends : []).map(f => String(f.id));
+  let recent = [];
+  try {
+    const raw = localStorage.getItem('solsteder_recent_invited');
+    if (raw) recent = JSON.parse(raw);
+  } catch (e) { /* ignore */ }
+  const ordered = [];
+  for (const id of recent) if (safe.includes(String(id)) && !ordered.includes(String(id))) ordered.push(String(id));
+  for (const id of safe) if (!ordered.includes(id)) ordered.push(id);
+  return ordered.slice(0, 8);
 }
 
 /** Apply a chip's hour to the global timeFromEl + dispatch input. The 'input'
@@ -1245,7 +1467,7 @@ function _invFtsDetach() {
   }
 }
 
-/** Toggle a single friend row's selection (avatar-tap pattern, no checkbox). */
+/** Toggle a single friend tile's selection (avatar-tap pattern, no checkbox). */
 function _toggleInviteFriend(row) {
   if (!row) return;
   const next = row.getAttribute('aria-checked') !== 'true';
@@ -1253,23 +1475,25 @@ function _toggleInviteFriend(row) {
   _refreshInvitePrimaryCTA();
 }
 
-/** Select-all / clear toggle in the friends-section header. */
+/** Select-all / clear toggle. Operates on visible (non-filtered) tiles only. */
 function _toggleAllInviteFriends() {
   const sheet = document.getElementById('invite-sheet');
   if (!sheet) return;
-  const visibleRows = Array.from(sheet.querySelectorAll('.invite-friend-tile')).filter(r => !r.hidden);
+  const visibleRows = Array.from(sheet.querySelectorAll('.dpinvite-avatar')).filter(r => !r.hidden);
   if (!visibleRows.length) return;
   const anyUnchecked = visibleRows.some(r => r.getAttribute('aria-checked') !== 'true');
   visibleRows.forEach(r => r.setAttribute('aria-checked', anyUnchecked ? 'true' : 'false'));
   _refreshInvitePrimaryCTA();
 }
 
-/** Filter the friends list by a substring of name/email. */
+/** Filter the friends list by a substring of name/email. Legacy — the new
+ *  design uses group chips instead of a search input, so this is unused but
+ *  kept for safety in case any callers were missed. */
 function _filterInviteFriends(query) {
   const sheet = document.getElementById('invite-sheet');
   if (!sheet) return;
   const q = (query || '').trim().toLowerCase();
-  const rows = sheet.querySelectorAll('.invite-friend-tile');
+  const rows = sheet.querySelectorAll('.dpinvite-avatar');
   rows.forEach(r => {
     const name = (r.getAttribute('data-friend-name') || '').toLowerCase();
     r.hidden = q && !name.includes(q);
@@ -1286,34 +1510,30 @@ function _invitePrimaryClick(venueId) {
   return _shareInviteLink(venueId);
 }
 
-/** Update the primary CTA (morphing label/icon/mode + select-all toggle text)
- *  based on current selection. Called on every selection change. */
+/** Update the primary CTA (morphing label/icon/mode) based on current
+ *  selection. Called on every selection change. With 0 selected, primary
+ *  is disabled "Velg venner". With 1+, becomes "Send til {name}" / "Send
+ *  til {n} venner". The circular link button is always present. */
 function _refreshInvitePrimaryCTA() {
   const sheet = document.getElementById('invite-sheet');
   if (!sheet) return;
   const total = sheet._friendCount || 0;
   if (total === 0) return; // empty state has no primary-cta to update
 
-  const allRows = Array.from(sheet.querySelectorAll('.invite-friend-tile'));
+  const allRows = Array.from(sheet.querySelectorAll('.dpinvite-avatar'));
   const selectedRows = allRows.filter(r => r.getAttribute('aria-checked') === 'true');
   const n = selectedRows.length;
 
   const btn = sheet.querySelector('#invite-primary-btn');
   const label = sheet.querySelector('#invite-primary-label');
-  const icon  = sheet.querySelector('#invite-primary-icon');
-  const secondary = sheet.querySelector('#invite-secondary-btn');
   if (btn && label) {
     if (n === 0) {
-      // 0 selected → primary IS "Del lenke" (no disabled state, no helper noise).
       btn.setAttribute('data-mode', 'share');
-      label.textContent = t('share_link');
-      if (icon) icon.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>`;
-      if (secondary) secondary.hidden = true;
+      btn.disabled = true;
+      label.textContent = t('invite_select_friends_cta');
     } else {
-      // 1+ selected → primary becomes "Send til X" and the secondary "Del lenke"
-      // surfaces alongside.
       btn.setAttribute('data-mode', 'send');
-      if (icon) icon.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2 11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`;
+      btn.disabled = false;
       if (n === 1) {
         const name = selectedRows[0].getAttribute('data-friend-name') || '';
         const firstName = name.split(/\s+/)[0] || name;
@@ -1323,30 +1543,7 @@ function _refreshInvitePrimaryCTA() {
       } else {
         label.textContent = t('invite_send_to_many', { n });
       }
-      if (secondary) secondary.hidden = false;
     }
-  }
-
-  // Section header — title shows the count fragment ("· 3 av 4" / "· alle valgt"),
-  // toggle button always shows the action ("Velg alle" / "Fjern alle"). Splitting
-  // state from action makes both clearer than the previous combined label.
-  const visibleRows = allRows.filter(r => !r.hidden);
-  const visibleSelected = visibleRows.filter(r => r.getAttribute('aria-checked') === 'true').length;
-  const countEl = sheet.querySelector('#invite-friends-count');
-  if (countEl) {
-    if (visibleSelected === 0) {
-      countEl.textContent = '';
-    } else if (visibleSelected === visibleRows.length) {
-      countEl.textContent = ' ' + t('invite_friends_all');
-    } else {
-      countEl.textContent = ' ' + t('invite_friends_count', { n: visibleSelected, m: visibleRows.length });
-    }
-  }
-  const toggle = sheet.querySelector('#invite-toggle-all');
-  if (toggle) {
-    toggle.textContent = (visibleSelected === visibleRows.length && visibleRows.length > 0)
-      ? t('invite_clear_all')
-      : t('invite_select_all');
   }
 }
 
@@ -1402,7 +1599,7 @@ async function _sendInvite(venueId) {
 
   const allFriends = (typeof _friends !== 'undefined') ? _friends : [];
   const selectedIds = Array.from(
-    document.querySelectorAll('#invite-sheet .invite-friend-tile[aria-checked="true"]')
+    document.querySelectorAll('#invite-sheet .dpinvite-avatar[aria-checked="true"]')
   ).map(r => r.getAttribute('data-friend-id'));
 
   // No silent broadcast — the primary CTA is disabled in this state, but

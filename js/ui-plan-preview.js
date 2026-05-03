@@ -170,11 +170,10 @@ function openPlanPreview(opts) {
   const overlay = _ppBuildDom(venue, opts, { planHour, animateTo, dateStr });
   document.body.appendChild(overlay);
 
-  // Track .pp-bottom height as --pp-bottom-h so the locate-me + zoom-jog can
-  // anchor above the panel — same pattern the venue list uses via --peek-h.
-  // ResizeObserver keeps the var in sync as content changes (FTS reparent,
-  // attendees update, virtual keyboard, post-accept transitions).
-  const bottomEl = overlay.querySelector('.pp-bottom');
+  // Track the bottom panel's height as --pp-bottom-h so the locate-me +
+  // zoom-jog can anchor above it — same pattern the venue list uses via
+  // --peek-h. ResizeObserver keeps the var in sync as content changes.
+  const bottomEl = overlay.querySelector('.dprcv-bottom') || overlay.querySelector('.pp-bottom');
   let resizeObs = null;
   if (bottomEl) {
     const writeH = () => {
@@ -301,8 +300,8 @@ function _planPreviewLocate() {
  *  (or fast flick). Sets handle.dataset.dragging during the drag so the
  *  separate click-to-close listener doesn't fire on the synthetic click. */
 function _ppWireDragHandle(overlay) {
-  const handle = overlay.querySelector('.pp-handle');
-  const panel = overlay.querySelector('.pp-bottom');
+  const handle = overlay.querySelector('.dprcv-handle') || overlay.querySelector('.pp-handle');
+  const panel  = overlay.querySelector('.dprcv-bottom') || overlay.querySelector('.pp-bottom');
   if (!handle || !panel) return;
   let startY = null;
   let startT = null;
@@ -473,11 +472,66 @@ function _ppAnimate(fromH, toH, durationMs) {
 function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   const el = document.createElement('div');
   el.id = 'plan-preview';
-  el.className = 'plan-preview';
+  el.className = 'plan-preview dprcv-overlay';
 
-  // Attendees (logged-in only — getPlansForVenue is empty for anonymous users)
+  const isInvite     = (opts.mode === 'invite' || opts.mode === 'invite-anon');
+  const isAnon       = (opts.mode === 'invite-anon');
+  const isPreview    = (opts.mode === 'preview');
+
+  // ── Venue meta line: area · category · "{dist} m" · "{walkMin} min å gå"
+  const venueArea = venue.area || '';
+  const venueCat  = (typeof catLabel === 'function') ? catLabel(venue) : '';
+  const distMin   = _dprcvWalkInfo(venue);
+  const metaParts = [
+    [venueArea, venueCat].filter(Boolean).join(' · '),
+    distMin && distMin.distLabel ? distMin.distLabel : '',
+    distMin && distMin.walkMin != null ? `${distMin.walkMin} ${t('accepted_action_directions_sub', { n: distMin.walkMin }).split(/\s/).slice(1).join(' ') || 'min'}` : '',
+  ].filter(Boolean);
+  const metaHtml = metaParts.map((p, i) =>
+    (i > 0 ? '<span class="dprcv-meta-dot">·</span>' : '') + `<span>${p.replace(/</g, '&lt;')}</span>`
+  ).join('');
+
+  // ── Hero header data (Møtes left, Sol til right)
+  const planTimeStr = formatHour(planHour);
+  const dateLabel   = (typeof _fmtInviteDate === 'function' && dateStr) ? _fmtInviteDate(dateStr) : '';
+  const nowH        = (typeof timeFromEl !== 'undefined' && timeFromEl) ? parseFloat(timeFromEl.value) : planHour;
+  const minutesUntil = Math.max(0, Math.round((planHour - nowH) * 60));
+  const arrivalSub  = dateLabel
+    ? (minutesUntil > 0 ? `${dateLabel} · ${t('invite_hero_in_minutes', { n: minutesUntil })}` : dateLabel)
+    : '';
+  let sunEnd = null;
+  try {
+    if (typeof computeSunWindows === 'function') {
+      const sw = computeSunWindows(venue, dateStr);
+      const ws = sw && sw.windows ? sw.windows : [];
+      if (ws.length) sunEnd = ws[ws.length - 1].end;
+    }
+  } catch (e) { /* ignore */ }
+  const sunUntilStr = (sunEnd != null) ? formatHour(sunEnd) : '—';
+  let remainingStr = '';
+  if (sunEnd != null) {
+    const rem = sunEnd - planHour;
+    if (rem > 0) {
+      const h = Math.floor(rem);
+      const m = Math.max(0, Math.round((rem - h) * 60));
+      remainingStr = t('invite_hero_remaining', { h, m });
+    } else {
+      remainingStr = t('invite_hero_remaining_no_sun');
+    }
+  }
+
+  // ── Inline icon set (Lucide-style)
+  const checkSvg    = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+  const clockSvg    = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
+  const editSvg     = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>`;
+  const xSvg        = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>`;
+  const sendSvg     = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>`;
+  const chevDownSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
+
+  // ── Attendees + quoted message (logged-in invite mode only — anon doesn't
+  // have plan_invites visibility yet).
   let attendeesHtml = '';
-  if (typeof getPlansForVenue === 'function') {
+  if (typeof getPlansForVenue === 'function' && !isAnon) {
     const plans = getPlansForVenue(venue.id);
     const target = opts.plannedAt ? new Date(opts.plannedAt).getTime() : null;
     const plan = target == null
@@ -487,175 +541,156 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     if (plan && Array.isArray(plan._invitees) && plan._invitees.length) {
       const accepted = plan._invitees.filter(i => i.status === 'accepted');
       if (accepted.length) {
-        const max  = 5;
-        const planMs = plan.planned_at ? new Date(plan.planned_at).getTime() : null;
-        const fmtArrival = (i) => {
-          if (!i.arrival_time || !planMs) return '';
-          const arrMs = new Date(i.arrival_time).getTime();
-          if (Math.abs(arrMs - planMs) < 5 * 60 * 1000) return ''; // <5min off → not worth flagging
-          const d = new Date(arrMs);
-          return formatHour(d.getHours() + d.getMinutes() / 60);
-        };
-        // Avatars come with a tiny time chip when arrival_time differs from the plan
-        const dots = accepted.slice(0, max).map(i => {
+        const stack = accepted.slice(0, 3).map(i => {
           const u = i.user;
-          const av = (u && u.avatar_url)
-            ? `<img class="pp-av" src="${u.avatar_url}" alt="">`
-            : `<div class="pp-av pp-av-init">${(((u && (u.name || u.email)) || '?')[0]).toUpperCase()}</div>`;
-          const arr = fmtArrival(i);
-          return `<div class="pp-av-wrap">${av}${arr ? `<span class="pp-av-time">${arr}</span>` : ''}</div>`;
+          const init = (((u && (u.name || u.email)) || '?')[0] || '?').toUpperCase();
+          const colorIdx = (init.charCodeAt(0) || 0) % 8;
+          if (u && u.avatar_url) {
+            return `<img class="dprcv-att-av" src="${u.avatar_url}" alt="">`;
+          }
+          return `<div class="dprcv-att-av dpinvite-avatar-init init-color-${colorIdx}">${init}</div>`;
         }).join('');
-        const more  = accepted.length > max ? `<div class="pp-av-wrap"><div class="pp-av pp-av-init">+${accepted.length - max}</div></div>` : '';
-        const names = accepted.map(i => {
-          const n = (i.user && (i.user.name || i.user.email)) || '';
-          const first = n.split(' ')[0].split('@')[0];
-          const arr = fmtArrival(i);
-          return arr ? `${first} (${arr})` : first;
-        }).filter(Boolean).slice(0, 4).join(', ');
+        const inviterFirst = (opts.inviterName || '').split(/\s+/)[0] || '';
+        const others = Math.max(0, accepted.length - 1);
+        const lineText = inviterFirst
+          ? (others > 0 ? `${inviterFirst} + ${others} til` : `${inviterFirst} er klar`)
+          : t('attendees_label', { count: accepted.length });
+        const planMessage = (plan.message || '').replace(/</g, '&lt;');
         attendeesHtml = `
-          <div class="pp-attendees">
-            <div class="pp-att-label">${t('attendees_label', { count: accepted.length })}</div>
-            <div class="pp-att-row">${dots}${more}</div>
-            ${names ? `<div class="pp-att-names">${names}</div>` : ''}
+          <div class="dprcv-attendees">
+            <div class="dprcv-att-stack">${stack}</div>
+            <div class="dprcv-att-info">
+              <div class="dprcv-att-line">${lineText.replace(/</g, '&lt;')}</div>
+              ${planMessage ? `<div class="dprcv-quote">"${planMessage}"</div>` : ''}
+            </div>
           </div>`;
       }
     }
   }
 
-  // CTAs vary by mode. For ANY invite-style URL (mode invite / invite-anon),
-  // we surface Accept / Decline so the design + intent reads correctly. Buttons
-  // gracefully no-op when no real plan_invites row exists (testing tokens, or
-  // the user is the plan creator clicking their own link). 'preview' shows Lukk.
-  const isInviteUI = (opts.mode === 'invite' || opts.mode === 'invite-anon');
-  // Arrival-time chip is integrated INTO the accept button so the action and
-  // the time the user is committing to read as one cohesive concept (vs. a
-  // separate "Kommer kl." row that competed with the meeting-time hero). Only
-  // built for logged-in invite mode (anon users can't write yet).
-  const arrivalChipHtml = (opts.mode === 'invite')
-    ? `<span class="pp-arrival-chip" id="pp-arrival-chip" role="button" tabindex="0" aria-label="${t('arrival_change_label') || 'Change arrival time'}">
-         <span id="pp-arrival-time">${formatHour(planHour)}</span>
-         <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 5 6 8 9 5"/></svg>
-       </span>`
-    : '';
+  // ── CTAs vary by mode
   let ctaHtml = '';
-  if (isInviteUI && opts.mode === 'invite-anon') {
-    // Anon receivers see the same accept/decline pair as logged-in receivers.
-    // The accept tap stashes intent and opens the login modal; after login,
-    // _tryPendingInvite re-opens the takeover in invite mode (with a real
-    // inviteId) and the user confirms with a second tap. Lower friction +
-    // mirrors Eventbrite/Partiful conventions vs the prior 'Logg inn for å
-    // svare' gate. Decline in anon mode = just close the takeover (no DB
-    // write needed for an anonymous "no").
+  if (isInvite) {
+    const acceptId = isAnon ? 'pp-anon-accept' : 'pp-accept';
+    const declineId = isAnon ? 'pp-anon-decline' : 'pp-decline';
     ctaHtml = `
-      <button class="pp-cta pp-cta-accept" id="pp-anon-accept" type="button">
-        <span class="pp-cta-label">${t('plan_preview_im_in_at') || t('plan_preview_im_in')}</span>
-        <span class="pp-cta-time">${formatHour(planHour)}</span>
+      <button class="dprcv-cta-primary" id="${acceptId}" type="button">
+        ${checkSvg}
+        ${t('plan_preview_im_in')}
       </button>
-      <button class="pp-cta-decline" id="pp-anon-decline">${t('plan_decline')}</button>`;
-  } else if (isInviteUI) {
+      <div class="dprcv-cta-row">
+        <button class="dprcv-cta-btn" id="pp-suggest" type="button">
+          ${editSvg}
+          ${t('invite_secondary_suggest')}
+        </button>
+        <button class="dprcv-cta-btn dprcv-cta-decline" id="${declineId}" type="button">
+          ${xSvg}
+          ${t('plan_decline')}
+        </button>
+      </div>`;
+  } else if (isPreview) {
     ctaHtml = `
-      <button class="pp-cta pp-cta-accept pp-cta-with-chip" id="pp-accept" type="button">
-        <span class="pp-cta-label">${t('plan_preview_im_in_at') || t('plan_preview_im_in')}</span>
-        ${arrivalChipHtml}
+      <button class="dprcv-cta-primary" id="pp-share-onward" type="button">
+        ${sendSvg}
+        ${t('preview_share_onwards')}
       </button>
-      <button class="pp-cta-decline" id="pp-decline">${t('plan_decline')}</button>`;
-  } else {
-    ctaHtml = `<button class="pp-cta pp-cta-accept" id="pp-close-cta">${t('close')}</button>`;
+      <div class="dprcv-cta-row">
+        <button class="dprcv-cta-btn" id="pp-close-cta" type="button">${t('close')}</button>
+      </div>`;
   }
 
-  const isInvite = (opts.mode === 'invite' || opts.mode === 'invite-anon');
-  // Inviter chip: avatar + name when known. When no name (anon token, missing
-  // metadata), show only the text — a "?" placeholder reads as a broken state.
-  const inviterAvatarHtml = isInvite && opts.inviterName
-    ? (opts.inviterAvatarUrl
-        ? `<img class="pp-inviter-av" src="${opts.inviterAvatarUrl}" alt="">`
-        : `<div class="pp-inviter-av pp-inviter-av-init">${opts.inviterName[0].toUpperCase()}</div>`)
-    : '';
-  const inviterText = isInvite
-    ? (opts.inviterName ? t('pp_eyebrow_invited_by', { name: opts.inviterName }) : t('pp_eyebrow_invited'))
-    : '';
-
-  // Reuse the same renderCard() output the detail panel docks into .dp-card —
-  // single source of truth for venue card visuals (name, meta, sun headline,
-  // mini timeline). Strip list-card click handlers and add .dp-card.source-docked
-  // so the existing detail-panel CSS sizes it up correctly. Same trick app.js
-  // uses on its no-source-card path (~line 2599+).
-  // Render the venue card via renderCard() — same DOM and visual treatment
-  // as the venue list. Strip click/hover handlers so it doesn't behave like
-  // a list card (no selection on tap). Keep the .venue-card class as-is —
-  // intentionally NOT upsizing to .dp-card; the title block above carries
-  // the prominent typography.
-  let venueCardHtml = '';
-  if (typeof renderCard === 'function') {
-    const tmp = document.createElement('div');
-    tmp.innerHTML = renderCard(venue, dateStr, planHour, planHour, true);
-    const card = tmp.firstElementChild;
-    if (card) {
-      card.removeAttribute('onclick');
-      card.removeAttribute('onmouseenter');
-      card.removeAttribute('onmouseleave');
-      card.classList.remove('selected');
-      card.id = 'pp-venue-card';
-      venueCardHtml = card.outerHTML;
-    }
-  }
-
-  // Title block — receiver's headline. Two-row layout:
-  //   "Maja has invited you to"            ← .pp-invited-line, smaller, muted
-  //   "{Short venue}"      "{date} at {time}"  ← .pp-title-row, prominent
-  // The bottom row is a flex row: venue name on the left, date·time on the
-  // right. shortName(venue.name, 18) keeps long names ("Mamma Pizza Vika
-  // Osteria di Mare") punchy.
-  const dateLabel = (typeof _fmtInviteDate === 'function' && dateStr) ? _fmtInviteDate(dateStr) : '';
-  const timeStr = formatHour(planHour);
-  const dateAtTime = dateLabel ? t('pp_when_short', { date: dateLabel, time: timeStr }) : timeStr;
-  const venueShort = (typeof shortName === 'function') ? shortName(venue.name, 18) : venue.name;
-  const invitedLine = isInvite && opts.inviterName
-    ? t('pp_invited_line_named', { name: opts.inviterName })
-    : isInvite ? t('pp_invited_line_anon') : '';
-
-  el.innerHTML = `
-    <div class="pp-bottom">
-      <div class="pp-handle" id="pp-handle" aria-label="${t('close')}">
-        <div class="pp-grabber" aria-hidden="true"></div>
+  // ── From-friend pill (top floating)
+  const inviterName = (opts.inviterName || '').replace(/</g, '&lt;');
+  const inviterFirstLetter = (opts.inviterName || '?')[0].toUpperCase();
+  const inviterColor = (inviterFirstLetter.charCodeAt(0) || 0) % 8;
+  const inviterAvHtml = opts.inviterAvatarUrl
+    ? `<img src="${opts.inviterAvatarUrl}" alt="">`
+    : `<div class="dpinvite-avatar-init init-color-${inviterColor}" style="width:100%;height:100%;font-size:13px;border-radius:50%">${inviterFirstLetter}</div>`;
+  const sentSub = isInvite ? (t('invite_hero_sent_ago', { ago: '' }).replace(/{ago}/g, '').trim() || '') : '';
+  const topPillHtml = isInvite ? `
+    <div class="dprcv-top-pill">
+      <div class="dprcv-top-pill-card">
+        <div class="dprcv-top-pill-av">${inviterAvHtml}</div>
+        <span class="dprcv-top-pill-name">${inviterName || t('pp_eyebrow_invited')}</span>
+        ${sentSub ? `<span class="dprcv-top-pill-sub">${sentSub}</span>` : ''}
       </div>
-      ${isInvite ? `
-        <div class="pp-title-block">
-          ${invitedLine ? `<div class="pp-invited-line">${invitedLine}</div>` : ''}
-          <div class="pp-title-row">
-            <h2 class="pp-venue-title">${venueShort}</h2>
-            <div class="pp-when">${dateAtTime}</div>
+    </div>` : '';
+
+  // Eyebrow above venue name
+  const eyebrow = isInvite
+    ? (opts.inviterName ? t('pp_invited_line_named', { name: inviterName }) : t('pp_invited_line_anon'))
+    : (sunEnd != null ? `${t('invite_hero_sun_until')} ${sunUntilStr}` : '');
+
+  // Build full DOM
+  el.innerHTML = `
+    ${topPillHtml}
+    <div class="dprcv-bottom">
+      <div class="dprcv-handle pp-handle" id="pp-handle" aria-label="${t('close')}">
+        <div class="dprcv-grabber pp-grabber" aria-hidden="true"></div>
+      </div>
+      <div class="dprcv-title-block">
+        ${eyebrow ? `<div class="dprcv-eyebrow">${eyebrow}</div>` : ''}
+        <div class="dprcv-venue">${venue.name.replace(/</g, '&lt;')}</div>
+        ${metaHtml ? `<div class="dprcv-meta">${metaHtml}</div>` : ''}
+      </div>
+      <div class="dprcv-hero">
+        <div class="dprcv-hero-row">
+          <div class="dprcv-hero-left">
+            <div class="dprcv-hero-label">${t('invite_hero_meets')}</div>
+            ${opts.mode === 'invite' ? `
+              <button class="dprcv-arrival-chip" id="pp-arrival-chip" type="button" aria-label="${t('arrival_change_label') || 'Change arrival time'}">
+                <span id="pp-arrival-time">${planTimeStr}</span>
+                ${chevDownSvg}
+              </button>` : `<div class="dprcv-arrival-time" id="pp-arrival-time">${planTimeStr}</div>`}
+            ${arrivalSub ? `<div class="dprcv-arrival-sub">${arrivalSub}</div>` : ''}
           </div>
-        </div>` : `<div class="pp-meet-line">${dateAtTime}</div>`}
-      ${venueCardHtml}
+          <div class="dprcv-hero-right">
+            <div class="dprcv-hero-label">${t('invite_hero_sun_until')}</div>
+            <div class="dprcv-suntil-time">${sunUntilStr}</div>
+            ${remainingStr ? `<div class="dprcv-remaining">${remainingStr}</div>` : ''}
+          </div>
+        </div>
+        <div class="dprcv-timeline">
+          <canvas class="card-timeline-canvas dprcv-timeline-canvas" data-vid="${venue.id}" width="600" height="32"></canvas>
+          <div class="dprcv-arrival-overlay" id="pp-arrival-overlay">
+            <div class="dprcv-arrival-pin" id="pp-arrival-pin"></div>
+          </div>
+        </div>
+      </div>
       ${attendeesHtml}
-      <div class="pp-cta-row">${ctaHtml}</div>
+      ${ctaHtml}
     </div>`;
 
-  // Draw the static mini-timeline canvas inside the venue card. No FTS
-  // reparenting — the card stays inert and matches the list's appearance.
+  // Paint the canvas via the same walker the venue list uses.
   if (typeof drawAllCardTimelines === 'function') {
-    const ppCard = el.querySelector('#pp-venue-card');
-    if (ppCard) drawAllCardTimelines(ppCard);
+    drawAllCardTimelines(el);
   }
+
+  // Position the arrival pin overlay (mirrors the canvas's MIN_H_ARC..MAX_H_ARC domain).
+  const positionPin = () => {
+    const minH = (typeof MIN_H_ARC === 'number') ? MIN_H_ARC : 4;
+    const maxH = (typeof MAX_H_ARC === 'number') ? MAX_H_ARC : 23;
+    const span = Math.max(0.0001, maxH - minH);
+    const pin = el.querySelector('#pp-arrival-pin');
+    if (pin) {
+      const pct = Math.max(0, Math.min(100, ((planHour - minH) / span) * 100));
+      pin.style.left = `${pct}%`;
+    }
+  };
+  positionPin();
 
   // Tap-to-close on the handle area. Drag-to-dismiss is wired separately in
   // _ppWireDragHandle (which queries .pp-grabber). The wrapper hit area
   // catches taps that don't initiate a drag.
   const handleEl = el.querySelector('#pp-handle');
   if (handleEl) {
-    handleEl.addEventListener('click', (e) => {
-      // Don't fire on the drag-end synthetic click — _ppWireDragHandle
-      // sets data-dragging during a real drag. If a drag just ended,
-      // skip the click-to-close.
+    handleEl.addEventListener('click', () => {
       if (handleEl.dataset.dragging === '1') return;
       closePlanPreview();
     });
   }
 
-  // First user FTS interaction cancels the autoplay + camera timeouts. The
-  // map shadows + slider knob now provide all the scrub feedback (the textual
-  // readout that used to live below the slider was redundant with both).
+  // First user FTS interaction cancels the autoplay + camera timeouts.
   const onTimeInput = () => {
     if (_planPreviewState && _planPreviewState.rafId) {
       cancelAnimationFrame(_planPreviewState.rafId);
@@ -668,18 +703,11 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     if (typeof timeFromEl !== 'undefined' && timeFromEl) timeFromEl.removeEventListener('input', onTimeInput);
   };
 
-  // Arrival-time chip — opens a hidden <input type="time"> on tap. The chosen
-  // hour rides along on the I'm in click as plan_invites.arrival_time. Default
-  // (chip not interacted with) = plan time, written as the same ISO so the
-  // host's view reads consistently. Floating-point hour is converted to ISO
-  // using opts.plannedAt as the date anchor.
-  // Arrival chip lives INSIDE the accept button. Click on the chip opens the
-  // hidden time picker but must not bubble up to the button (which would also
-  // accept the invite). Keyboard: Space/Enter on the chip opens the picker.
+  // Arrival chip — opens hidden <input type="time"> on tap. Keyboard: Space/Enter.
   const arrivalChip = el.querySelector('#pp-arrival-chip');
   let arrivalHour = planHour;
   let arrivalInput = null;
-  if (arrivalChip) {
+  if (arrivalChip && opts.mode === 'invite') {
     arrivalInput = document.createElement('input');
     arrivalInput.type = 'time';
     arrivalInput.style.cssText = 'position:absolute;opacity:0;width:0;height:0;pointer-events:none;';
@@ -699,16 +727,27 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
       arrivalHour = parseInt(m[1], 10) + parseInt(m[2], 10) / 60;
       const lbl = el.querySelector('#pp-arrival-time');
       if (lbl) lbl.textContent = formatHour(arrivalHour);
-      // Visual cue when arrival differs from plan
-      arrivalChip.classList.toggle('pp-arrival-off', Math.abs(arrivalHour - planHour) > 0.05);
     });
   }
 
+  // "Annet tidspunkt" secondary — same opener as the chip.
+  const suggestBtn = el.querySelector('#pp-suggest');
+  if (suggestBtn && arrivalInput) {
+    suggestBtn.onclick = (e) => {
+      e.preventDefault();
+      arrivalInput.showPicker?.() || arrivalInput.click();
+    };
+  } else if (suggestBtn) {
+    suggestBtn.onclick = () => {
+      if (typeof toggleProfilePanel === 'function') toggleProfilePanel();
+    };
+  }
+
+  // Accept handler — same backend contract; new UI shell.
   const acceptBtn = el.querySelector('#pp-accept');
   if (acceptBtn) acceptBtn.onclick = async () => {
-    // Compute arrival_time ISO from the chip (or null if the user kept plan time)
     let arrivalIso = null;
-    if (arrivalChip && Math.abs(arrivalHour - planHour) > 0.05) {
+    if (arrivalInput && Math.abs(arrivalHour - planHour) > 0.05) {
       const dateStr2 = opts.plannedAt ? opts.plannedAt.slice(0, 10) : datePicker?.value;
       if (dateStr2) {
         const hh = Math.floor(arrivalHour);
@@ -719,11 +758,6 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     if (typeof respondToPlanInvite === 'function' && opts.inviteId) {
       try { await respondToPlanInvite(opts.inviteId, 'accepted', arrivalIso); } catch (e) { /* ignore */ }
     }
-    // Post-accept share nudge — only when the receiver is friends with the
-    // inviter (or has no inviter context). For non-friends, the friend-add
-    // banner (set in app.js token resolution as window._pendingFriendPrompt)
-    // takes priority — adding a friend matters more than sharing right after
-    // an invite from a stranger.
     const friendsList = (typeof _friends !== 'undefined') ? _friends : [];
     const isFriendOfInviter = !opts.inviterId
       || friendsList.some(f => String(f.id) === String(opts.inviterId));
@@ -737,24 +771,37 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     if (typeof _showToast === 'function') _showToast(t('plan_preview_joined'));
     if (typeof _aTrack === 'function') _aTrack('plan_preview_accept', { venue_id: venue.id, has_invite_id: !!opts.inviteId, off_plan_time: !!arrivalIso });
     closePlanPreview();
-    // Post-accept question panel — slides up from the bottom over the peeked
-    // detail panel after the takeover finishes closing. Replaces the prior
-    // in-social-card banners (friend-prompt + share-nudge) which felt like
-    // misplaced notifications. Delay matches the close-animation tail (320ms).
     setTimeout(() => {
       if (typeof _openPostAcceptPanel !== 'function') return;
       const whenLabel = (typeof _inviteWhenLabel === 'function' && opts.plannedAt)
-        ? _inviteWhenLabel(opts.plannedAt.slice(0, 10), planHour) : '';
+        ? _inviteWhenLabel(opts.plannedAt.slice(0, 10), arrivalHour) : '';
+      const arrivalDateLabel = (typeof _fmtInviteDate === 'function' && opts.plannedAt)
+        ? _fmtInviteDate(opts.plannedAt.slice(0, 10)) : '';
+      const sunUntilForAccepted = (sunEnd != null) ? formatHour(sunEnd) : '';
+      const accepted = (typeof getPlansForVenue === 'function')
+        ? (() => {
+            const ps = getPlansForVenue(venue.id);
+            const tgt = opts.plannedAt ? new Date(opts.plannedAt).getTime() : null;
+            const p = tgt == null ? ps[0] : ps.find(x => x.planned_at && Math.abs(new Date(x.planned_at).getTime() - tgt) < 30 * 60 * 1000) || ps[0];
+            const list = (p && Array.isArray(p._invitees)) ? p._invitees.filter(i => i.status === 'accepted') : [];
+            return list.map(i => ({ name: (i.user && (i.user.name || i.user.email)) || '?', avatar_url: i.user && i.user.avatar_url }));
+          })()
+        : [];
       _openPostAcceptPanel({
-        venueId:   venue.id,
-        venueName: venue.name,
-        planId:    opts.planTokenP || null,
-        plannedAt: opts.plannedAt || null,
+        venueId:    venue.id,
+        venueName:  venue.name,
+        planId:     opts.planTokenP || null,
+        plannedAt:  opts.plannedAt || null,
         whenLabel,
+        arrivalDate: arrivalDateLabel,
+        sunUntil:   sunUntilForAccepted,
         inviterName: opts.inviterName || null,
+        inviterId:   opts.inviterId || null,
+        attendees:   accepted,
       });
     }, 360);
   };
+
   const declineBtn = el.querySelector('#pp-decline');
   if (declineBtn) declineBtn.onclick = async () => {
     if (typeof respondToPlanInvite === 'function' && opts.inviteId) {
@@ -763,18 +810,17 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     if (typeof _aTrack === 'function') _aTrack('plan_preview_decline', { venue_id: venue.id, has_invite_id: !!opts.inviteId });
     closePlanPreview();
   };
+
   const closeCta = el.querySelector('#pp-close-cta');
   if (closeCta) closeCta.onclick = () => closePlanPreview();
-  const loginCta = el.querySelector('#pp-login');
-  if (loginCta) loginCta.onclick = () => {
-    if (typeof _aTrack === 'function') _aTrack('plan_preview_login_prompt', { venue_id: venue.id });
-    if (typeof toggleProfilePanel === 'function') toggleProfilePanel();
+
+  const shareCta = el.querySelector('#pp-share-onward');
+  if (shareCta) shareCta.onclick = () => {
+    if (typeof _shareInviteLink === 'function') _shareInviteLink(venue.id);
   };
-  // Anon accept: stash intent (window._pendingInvite was set during token
-  // resolution) and open the login modal. After login,
-  // auth.js _tryPendingInvite re-opens the takeover in invite mode with a
-  // real inviteId; the user confirms with a second tap. Anon decline just
-  // closes the takeover — no DB write needed for an anonymous "no".
+
+  // Anon flow: any social CTA → login modal (per user preference: no
+  // separate "log in to reply" copy, just open login on tap).
   const anonAccept = el.querySelector('#pp-anon-accept');
   if (anonAccept) anonAccept.onclick = () => {
     if (typeof _aTrack === 'function') _aTrack('plan_preview_anon_accept', { venue_id: venue.id });
@@ -788,6 +834,21 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   };
 
   return el;
+}
+
+/** Walk-info helper — distance string + walk minutes. Returns { distLabel,
+ *  walkMin } or null when no userLocation. ~80m/min pace. */
+function _dprcvWalkInfo(venue) {
+  if (typeof userLocation === 'undefined' || !userLocation || !venue) return null;
+  const toRad = (d) => d * Math.PI / 180;
+  const R = 6371000;
+  const dLat = toRad(venue.lat - userLocation.lat);
+  const dLng = toRad(venue.lng - userLocation.lng);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(userLocation.lat)) * Math.cos(toRad(venue.lat)) * Math.sin(dLng/2)**2;
+  const m = 2 * R * Math.asin(Math.sqrt(a));
+  const distLabel = m < 1000 ? `${Math.round(m / 10) * 10} m` : `${(m / 1000).toFixed(1)} km`;
+  const walkMin = Math.max(1, Math.round(m / 80));
+  return { distLabel, walkMin };
 }
 
 window.openPlanPreview  = openPlanPreview;

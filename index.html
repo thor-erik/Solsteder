@@ -62,6 +62,7 @@
 <script defer src="js/render-seating.js?v=20260411b"></script>
 <script defer src="js/render-editor.js?v=20260417a"></script>
 <script defer src="js/render-pins.js?v=20260417a"></script>
+<script defer src="js/render-sunbar.js?v=20260503a"></script>
 <script defer src="js/ui-shared.js?v=20260411b"></script>
 <script defer src="js/ui-list.js?v=20260411b"></script>
 <script defer src="js/admin-review.js?v=20260429a"></script>
@@ -5977,19 +5978,25 @@
     font-weight: 600;
   }
 
-  /* ── Invite sheet (full-height takeover) ─────────────────────────────────── */
-  .invite-backdrop {
+  /* ── Invite sheet — sharing-system redesign (.dpinvite-*) ─────────────────
+     Bottom sheet for outgoing invites. Built around a hero sun-window bar,
+     auto-generated message preview, group chips + horizontal-scroll avatar
+     carousel, single primary CTA + circular share-link icon button.
+     IDs preserved (#invite-sheet, #invite-sheet-backdrop) for legacy
+     callers; class names flipped to .dpinvite-*. */
+  .invite-backdrop,
+  .dpinvite-backdrop {
     position: fixed;
     inset: 0;
     z-index: 1100;
     background: rgba(0,0,0,0);
     transition: background 0.3s ease;
   }
-  .invite-backdrop.open { background: rgba(0,0,0,0.42); }
+  .invite-backdrop.open,
+  .dpinvite-backdrop.open { background: rgba(0,0,0,0.42); }
 
-  /* While the invite sheet is open, hide the detail panel chrome and the FTS
-     so the user sees a single surface (the invite sheet), not a stacked one.
-     The detail panel state is preserved underneath; opacity restores on close. */
+  /* While the invite sheet is open, fade the underlying chrome so the user
+     focuses on the single sheet surface. State preserved underneath. */
   body.invite-sheet-open #detail-panel,
   body.invite-sheet-open #fts,
   body.invite-sheet-open #qc-wrap,
@@ -6001,341 +6008,445 @@
     transition: opacity 0.22s ease;
   }
 
-  .invite-sheet {
+  .dpinvite-sheet {
     position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
-    max-height: 55svh;
+    max-height: 78svh;
     height: auto;
-    border-radius: 18px 18px 0 0;
-    /* Canonical Shades Glass — panel level. */
+    border-radius: 20px 20px 0 0;
     background: var(--glass-panel-bg);
     backdrop-filter: var(--glass-blur-panel);
     -webkit-backdrop-filter: var(--glass-blur-panel);
     border: none;
-    box-shadow: var(--glass-inset), 0 -12px 48px rgba(0,0,0,0.55);
+    box-shadow: var(--glass-inset), 0 -16px 40px rgba(0,0,0,0.55);
     display: flex;
     flex-direction: column;
     transform: translateY(100%);
     transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
-  .invite-sheet.open { transform: translateY(0); }
+  .dpinvite-sheet.open { transform: translateY(0); }
 
-  .invite-sheet-grabber {
+  .dpinvite-grabber {
     width: 36px;
     height: 4px;
     border-radius: 2px;
-    background: rgba(156,189,231,0.25);
-    margin: 8px auto 4px;
+    background: rgba(156,189,231,0.40);
+    margin: 10px auto 4px;
     flex-shrink: 0;
   }
 
-  /* ── Floating top venue card ─────────────────────────────────────────────
-     Pinned to the top of the screen while the sheet is open. Bespoke design
-     — does NOT reuse .venue-card (whose --glass-card-bg looks muddy without
-     a panel backdrop). Bright cream-on-coral palette so it pops against the
-     dark map and signals "this is what you're sharing". Sibling of the
-     backdrop, NOT a child of the sheet. */
-  .invite-top-card {
+  /* Floating top venue chip — small, glass-action, sits above the sheet.
+     Pin icon + venue name + meta. Close button on the right. */
+  .dpinvite-top-chip {
     position: fixed;
-    top: calc(env(safe-area-inset-top, 0px) + 8px);
+    top: calc(env(safe-area-inset-top, 0px) + 12px);
     left: 12px;
     right: 12px;
-    z-index: 1001;
+    z-index: 1101;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
     transform: translateY(-130%);
     transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
     pointer-events: none;
   }
-  .invite-top-card.open { transform: translateY(0); }
-  .invite-top-card .itc-row {
+  .dpinvite-top-chip.open { transform: translateY(0); }
+  .dpinvite-top-chip-card {
     pointer-events: auto;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 12px;
-    padding: 10px 14px;
+    gap: 10px;
+    padding: 8px 12px 8px 10px;
+    background: linear-gradient(135deg, rgba(20,46,82,0.65), rgba(32,73,131,0.40));
+    backdrop-filter: blur(14px) saturate(160%);
+    -webkit-backdrop-filter: blur(14px) saturate(160%);
+    border: 1px solid rgba(156,189,231,0.22);
     border-radius: 14px;
-    background: rgba(255,242,235,0.96);
-    color: rgba(36,18,8,1);
-    box-shadow: 0 12px 28px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.6);
-    border: 1px solid rgba(255,175,133,0.45);
+    box-shadow: var(--glass-inset), 0 4px 12px rgba(0,0,0,0.35);
+    max-width: 78%;
+    min-width: 0;
   }
-  .invite-top-card .itc-left { flex: 1; min-width: 0; }
-  .invite-top-card .itc-name {
-    font-size: 15px;
-    font-weight: 700;
-    letter-spacing: -0.01em;
+  .dpinvite-top-chip-icon {
+    width: 32px; height: 32px; border-radius: 10px;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, rgba(255,175,133,0.22), rgba(255,175,133,0.06));
+    border: 1px solid rgba(255,175,133,0.35);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--accent);
+  }
+  .dpinvite-top-chip-text { min-width: 0; }
+  .dpinvite-top-chip-name {
+    font-size: 13px; font-weight: 700; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    line-height: 1.2;
+  }
+  .dpinvite-top-chip-meta {
+    font-size: 11px; font-weight: 500; color: var(--muted);
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: rgba(36,18,8,1);
   }
-  .invite-top-card .itc-meta {
-    margin-top: 2px;
-    font-size: 12px;
-    color: rgba(80,46,28,0.78);
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    flex-wrap: wrap;
+  .dpinvite-top-chip-close {
+    pointer-events: auto;
+    width: 36px; height: 36px;
+    border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, rgba(20,46,82,0.65), rgba(32,73,131,0.40));
+    backdrop-filter: blur(14px) saturate(160%);
+    -webkit-backdrop-filter: blur(14px) saturate(160%);
+    border: 1px solid rgba(156,189,231,0.22);
+    color: var(--text);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    box-shadow: var(--glass-inset);
   }
-  .invite-top-card .itc-dot { color: rgba(80,46,28,0.5); }
-  .invite-top-card .itc-right { text-align: right; flex-shrink: 0; }
-  .invite-top-card .itc-main {
-    font-size: 14px;
-    font-weight: 700;
-    color: rgba(196,76,32,1);
-    line-height: 1.15;
-  }
-  .invite-top-card .itc-sub {
-    font-size: 11px;
-    color: rgba(80,46,28,0.7);
-    margin-top: 2px;
-  }
-  .invite-top-card .itc-closed {
-    font-size: 12px;
-    font-weight: 600;
-    color: rgba(80,46,28,0.75);
+  .dpinvite-top-chip-close:hover {
+    border-color: rgba(255,175,133,0.40);
+    color: var(--accent);
   }
 
-  .invite-sheet-body {
+  .dpinvite-body {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    padding: 10px 20px 16px;
+    padding: 4px 18px 14px;
     display: flex;
     flex-direction: column;
     gap: 14px;
     -webkit-overflow-scrolling: touch;
   }
 
-  /* ── Chat-bubble preview ───────────────────────────────────────────────── */
-  /* Self-aligned to the right of its own row so it reads as an outgoing
-     iMessage. Visual focus of the sheet — this is the message receivers see. */
-  .invite-bubble {
-    align-self: flex-end;
-    max-width: 88%;
-    padding: 10px 14px;
-    background: rgba(255,175,133,0.16);
-    border: 1px solid rgba(255,175,133,0.22);
-    border-radius: 18px 18px 4px 18px;
-    color: var(--text);
-    font-size: 14px;
-    line-height: 1.4;
-    word-break: break-word;
-  }
-
-  /* ── Time chips ────────────────────────────────────────────────────────── */
-  /* Five preset hours (Nå + next four). Replaces the fragile reparented FTS
-     pill. Tap a chip → set timeFromEl + dispatch input → bubble + top card +
-     active-chip state all update through the existing event channel. */
-  .invite-time-chips {
-    display: flex;
-    gap: 6px;
-    overflow-x: auto;
-    padding: 2px 0 4px;
-    margin: 0 -4px;
-    scroll-padding: 0 4px;
-    -webkit-overflow-scrolling: touch;
-  }
-  .invite-time-chips::-webkit-scrollbar { display: none; }
-  .invite-time-chip {
-    flex: 1 0 auto;
-    min-width: 60px;
-    padding: 8px 12px;
-    border-radius: 999px;
-    background: rgba(156,189,231,0.10);
-    border: 1px solid rgba(156,189,231,0.18);
-    color: var(--text);
-    font-size: 13px;
-    font-weight: 600;
-    font-family: 'Inter', sans-serif;
-    cursor: pointer;
-    transition: background 0.12s, border-color 0.12s, color 0.12s;
-    white-space: nowrap;
-  }
-  .invite-time-chip:hover {
-    background: rgba(255,175,133,0.10);
-    border-color: rgba(255,175,133,0.30);
-  }
-  .invite-time-chip.active {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: var(--accent-on, #2a1a0c);
-  }
-
-  /* ── Friends section ───────────────────────────────────────────────────── */
-  .invite-friends-header {
+  /* Title block: eyebrow + venue name + arrival pill (right-aligned). */
+  .dpinvite-title-row {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
-    padding: 4px 4px 0;
-    margin-top: 2px;
+    gap: 12px;
   }
-  .invite-friends-title {
-    font-size: 13px;
+  .dpinvite-eyebrow {
+    font-size: 11px;
     font-weight: 600;
+    letter-spacing: 0.6px;
     color: var(--muted);
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    display: flex;
-    align-items: baseline;
-    min-width: 0;
+    line-height: 1.2;
   }
-  .invite-friends-count {
-    color: var(--accent);
-    text-transform: none;
-    letter-spacing: 0;
-    font-weight: 600;
-    margin-left: 4px;
-  }
-  .invite-friends-toggle {
-    background: none;
-    border: none;
-    color: var(--accent);
-    font-family: 'Inter', sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    padding: 4px 4px;
-    transition: opacity 0.12s;
-  }
-  .invite-friends-toggle:hover { opacity: 0.8; }
-
-  .invite-friend-search {
-    width: 100%;
-    padding: 10px 12px;
-    border-radius: 10px;
-    border: var(--glass-border-light);
-    background: rgba(20,46,82,0.35);
+  .dpinvite-venue-name {
+    font-size: 22px;
+    font-weight: 700;
     color: var(--text);
-    font-family: 'Inter', sans-serif;
-    font-size: 14px;
-    outline: none;
+    line-height: 1.1;
+    margin-top: 2px;
+    text-wrap: balance;
   }
-  .invite-friend-search:focus { border-color: rgba(255,175,133,0.40); }
-  .invite-friend-search::placeholder { color: var(--muted); }
+  .dpinvite-arrival-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px 6px 12px;
+    border-radius: 999px;
+    background: rgba(255,175,133,0.12);
+    border: 1px solid rgba(255,175,133,0.35);
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .dpinvite-arrival-pill:hover { background: rgba(255,175,133,0.18); }
+  .dpinvite-arrival-pill svg { stroke: currentColor; }
 
-  /* Avatar grid — denser than a vertical list, fits 4–5 friends per row on a
-     phone, names sit under each avatar so identification stays one glance.
-     Selection state lives on the avatar itself (coral ring + corner check)
-     to mirror iMessage / Pinterest share-sheet patterns. */
-  .invite-friends-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
-    gap: 14px 6px;
-    overflow-y: auto;
-    padding: 4px 4px 8px;
-    margin: 0 -4px;
-    /* Cap so a long friends list scrolls inside its own area instead of
-       pushing the buttons + bubble below the fold. */
-    max-height: 220px;
+  /* Arrival picker — horizontal scroll, only visible when the pill is tapped */
+  .dpinvite-arrival-row {
+    display: flex; gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    margin-top: -4px;
+    scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
   }
+  .dpinvite-arrival-row::-webkit-scrollbar { display: none; }
+  .dpinvite-arrival-chip {
+    flex-shrink: 0;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: rgba(20,46,82,0.45);
+    border: 1px solid rgba(156,189,231,0.22);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s, color 0.12s;
+  }
+  .dpinvite-arrival-chip.active {
+    background: rgba(255,175,133,0.18);
+    border-color: rgba(255,175,133,0.55);
+    color: var(--accent);
+  }
 
-  .invite-friend-tile {
+  /* SunBar — HTML/CSS gradient bar driven by --sun-start-pct / --sun-end-pct
+     / --now-pct / --arrival-pct custom properties (set inline by
+     renderInviteSunBar in render-sunbar.js). */
+  .dpinvite-sunbar {
+    --sun-start-pct: 30%;
+    --sun-end-pct: 75%;
+    --now-pct: 50%;
+    --arrival-pct: 50%;
+    position: relative;
+    height: 48px;
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(20,46,82,0.55), rgba(17,30,56,0.75));
+    border: 1px solid rgba(156,189,231,0.18);
+    box-shadow: inset 0 1px 0 rgba(255,242,235,0.10);
+    overflow: hidden;
+  }
+  .dpinvite-sunbar-shadow {
+    position: absolute; top: 0; bottom: 0;
+    background: linear-gradient(180deg, rgba(43,59,94,0.55), rgba(27,46,90,0.50));
+  }
+  .dpinvite-sunbar-shadow-pre  { left: 0; width: var(--sun-start-pct); }
+  .dpinvite-sunbar-shadow-post { left: var(--sun-end-pct); right: 0; }
+  .dpinvite-sunbar-band {
+    position: absolute; top: 0; bottom: 0;
+    left: var(--sun-start-pct);
+    width: calc(var(--sun-end-pct) - var(--sun-start-pct));
+    background: linear-gradient(180deg, #FFD9B6 0%, #FFAF85 60%, #FF9A65 100%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -1px 0 rgba(180,90,40,0.30);
+  }
+  .dpinvite-sunbar-cap {
+    position: absolute; top: 0; bottom: 0; width: 8px; pointer-events: none;
+  }
+  .dpinvite-sunbar-cap-l {
+    left: var(--sun-start-pct);
+    background: linear-gradient(90deg, rgba(43,59,94,0.6), transparent);
+  }
+  .dpinvite-sunbar-cap-r {
+    left: calc(var(--sun-end-pct) - 8px);
+    background: linear-gradient(270deg, rgba(43,59,94,0.6), transparent);
+  }
+  .dpinvite-sunbar-tick {
+    position: absolute; bottom: 0; width: 1px; height: 4px;
+    background: rgba(156,189,231,0.40);
+    pointer-events: none;
+  }
+  .dpinvite-sunbar-now {
+    position: absolute; top: -4px; bottom: -4px;
+    left: var(--now-pct);
+    width: 2px;
+    background: rgba(255,242,235,0.85);
+    box-shadow: 0 0 8px rgba(255,242,235,0.6);
+    transform: translateX(-1px);
+    pointer-events: none;
+  }
+  .dpinvite-sunbar-pin {
+    position: absolute; top: -8px;
+    left: var(--arrival-pct);
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--text);
+    border: 2px solid #111E38;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+
+  .dpinvite-suntil-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: -4px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .dpinvite-suntil-line .dpinvite-suntil-main {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  /* Auto-generated message preview card — sparkle eyebrow + editable body. */
+  .dpinvite-message-card {
+    position: relative;
+    background: linear-gradient(180deg, rgba(20,46,82,0.5), rgba(17,30,56,0.65));
+    border: 1px solid rgba(156,189,231,0.22);
+    border-radius: 14px;
+    padding: 12px 14px;
+    cursor: pointer;
+  }
+  .dpinvite-message-card.editing { cursor: text; }
+  .dpinvite-message-eyebrow {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .dpinvite-message-eyebrow svg { color: var(--accent); }
+  .dpinvite-message-text,
+  .dpinvite-message-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.4;
+    font-family: 'Inter', sans-serif;
+    resize: none;
+  }
+
+  /* Group chips row — Nylige + Alle. Active chip drives the avatar carousel. */
+  .dpinvite-group-chips {
+    display: flex; gap: 6px;
+    overflow-x: auto; scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .dpinvite-group-chips::-webkit-scrollbar { display: none; }
+  .dpinvite-group-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: rgba(20,46,82,0.45);
+    border: 1px solid rgba(156,189,231,0.20);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.12s, border-color 0.12s, color 0.12s;
+  }
+  .dpinvite-group-chip-count {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .dpinvite-group-chip.active {
+    background: rgba(255,175,133,0.14);
+    border-color: rgba(255,175,133,0.45);
+    color: var(--accent);
+  }
+  .dpinvite-group-chip.active .dpinvite-group-chip-count {
+    color: rgba(255,175,133,0.7);
+  }
+
+  /* Avatar carousel — horizontal scroll, multi-select, 56px circles. */
+  .dpinvite-avatar-row {
+    display: flex; gap: 14px;
+    overflow-x: auto;
+    padding: 4px 4px 8px;
+    margin: 0 -4px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .dpinvite-avatar-row::-webkit-scrollbar { display: none; }
+  .dpinvite-avatar {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 6px;
+    flex-shrink: 0;
+    width: 64px;
     background: transparent;
     border: 0;
-    padding: 4px 2px;
-    font: inherit;
-    color: inherit;
+    padding: 0;
     cursor: pointer;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
   }
-  .invite-friend-tile[hidden] { display: none; }
-  .invite-friend-tile:focus-visible { outline: none; }
-  .invite-friend-tile:focus-visible .invite-friend-avatar {
-    box-shadow: 0 0 0 3px rgba(255,175,133,0.55);
-  }
-
-  .invite-friend-avatar-wrap {
+  .dpinvite-avatar[hidden] { display: none; }
+  .dpinvite-avatar-img {
     position: relative;
-    width: 56px;
-    height: 56px;
-    flex-shrink: 0;
+    width: 56px; height: 56px;
   }
-  .invite-friend-avatar {
-    width: 56px;
-    height: 56px;
+  .dpinvite-avatar-img > img,
+  .dpinvite-avatar-init {
+    width: 56px; height: 56px;
     border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid rgba(156,189,231,0.20);
     display: block;
-    transition: border-color 0.15s, box-shadow 0.15s;
+    object-fit: cover;
+    transition: box-shadow 0.16s ease-out;
   }
-  .invite-friend-init {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  .dpinvite-avatar-init {
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
     font-size: 22px;
     font-weight: 700;
-    color: #fff;
-    letter-spacing: -0.01em;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), inset 0 -1px 0 rgba(0,0,0,0.20);
   }
-  /* Stable palette — friend id hashes into 0–7 so two "E"s don't collide and
-     the same friend keeps their color across reloads. */
-  .invite-friend-init.init-color-0 { background: #FF8A65; }
-  .invite-friend-init.init-color-1 { background: #5C7CFA; }
-  .invite-friend-init.init-color-2 { background: #51B789; }
-  .invite-friend-init.init-color-3 { background: #E0A030; }
-  .invite-friend-init.init-color-4 { background: #A26FD0; }
-  .invite-friend-init.init-color-5 { background: #3FAFB6; }
-  .invite-friend-init.init-color-6 { background: #D6648C; }
-  .invite-friend-init.init-color-7 { background: #5E748A; }
-
-  .invite-friend-tile[aria-checked="true"] .invite-friend-avatar {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 2px var(--accent);
+  .dpinvite-avatar-init.init-color-0 { background: linear-gradient(135deg, #FFB186 0%, #E5754A 100%); }
+  .dpinvite-avatar-init.init-color-1 { background: linear-gradient(135deg, #79B0E0 0%, #3F75AC 100%); }
+  .dpinvite-avatar-init.init-color-2 { background: linear-gradient(135deg, #98D7A4 0%, #4FA663 100%); }
+  .dpinvite-avatar-init.init-color-3 { background: linear-gradient(135deg, #E9B96E 0%, #BA823F 100%); }
+  .dpinvite-avatar-init.init-color-4 { background: linear-gradient(135deg, #B89DD9 0%, #8E6DBE 100%); }
+  .dpinvite-avatar-init.init-color-5 { background: linear-gradient(135deg, #5DCABA 0%, #2A9C92 100%); }
+  .dpinvite-avatar-init.init-color-6 { background: linear-gradient(135deg, #F08AA0 0%, #C4546F 100%); }
+  .dpinvite-avatar-init.init-color-7 { background: linear-gradient(135deg, #B0C0CE 0%, #7D8FA0 100%); }
+  .dpinvite-avatar[aria-checked="true"] .dpinvite-avatar-img > img,
+  .dpinvite-avatar[aria-checked="true"] .dpinvite-avatar-init {
+    box-shadow: 0 0 0 3px #111E38, 0 0 0 5px var(--accent);
   }
-
-  .invite-friend-check {
-    position: absolute;
-    right: -2px;
-    bottom: -2px;
-    width: 22px;
-    height: 22px;
+  .dpinvite-avatar-check {
+    position: absolute; bottom: -2px; right: -2px;
+    width: 20px; height: 20px;
     border-radius: 50%;
     background: var(--accent);
     color: var(--accent-on, #2a1a0c);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid var(--glass-panel-bg, #0d2240);
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid #111E38;
     opacity: 0;
     transform: scale(0.6);
     transition: opacity 0.15s ease, transform 0.15s ease;
     pointer-events: none;
   }
-  .invite-friend-tile[aria-checked="true"] .invite-friend-check {
+  .dpinvite-avatar[aria-checked="true"] .dpinvite-avatar-check {
     opacity: 1;
     transform: scale(1);
   }
-
-  .invite-friend-name {
-    font-size: 11.5px;
+  .dpinvite-online-dot {
+    position: absolute; bottom: 2px; right: 2px;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: #5DCABA;
+    border: 2px solid #111E38;
+    pointer-events: none;
+  }
+  .dpinvite-avatar[aria-checked="true"] .dpinvite-online-dot { display: none; }
+  .dpinvite-avatar-name {
+    font-size: 12px;
     font-weight: 500;
-    color: var(--muted);
+    color: var(--text);
     line-height: 1.2;
-    max-width: 72px;
+    max-width: 64px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     text-align: center;
-    transition: color 0.15s;
+    transition: color 0.15s, font-weight 0.15s;
   }
-  .invite-friend-tile[aria-checked="true"] .invite-friend-name {
-    color: var(--text);
-    font-weight: 600;
+  .dpinvite-avatar[aria-checked="true"] .dpinvite-avatar-name {
+    color: var(--accent);
+    font-weight: 700;
   }
 
-  /* ── Empty state ──────────────────────────────────────────────────────── */
-  .invite-empty-card {
+  /* Empty state (no friends) */
+  .dpinvite-empty-card {
     text-align: center;
     padding: 28px 20px;
     border-radius: 14px;
@@ -6349,129 +6460,93 @@
     align-items: center;
     gap: 8px;
   }
-  .invite-empty-icon {
-    width: 44px;
-    height: 44px;
+  .dpinvite-empty-icon {
+    width: 44px; height: 44px;
     border-radius: 50%;
     background: rgba(156,189,231,0.10);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex; align-items: center; justify-content: center;
     color: var(--muted);
     margin-bottom: 4px;
   }
-  .invite-empty-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text);
-  }
-  .invite-empty-sub {
-    font-size: 13px;
-    color: var(--muted);
-    line-height: 1.4;
-  }
+  .dpinvite-empty-title { font-size: 14px; font-weight: 600; color: var(--text); }
+  .dpinvite-empty-sub   { font-size: 13px; color: var(--muted); line-height: 1.4; }
 
-  /* ── Sheet footer (non-scrolling action row) ───────────────────────────── */
-  /* Lives outside .invite-sheet-body so the buttons stay pinned at the bottom
-     even when the friends list scrolls. */
-  .invite-sheet-footer {
-    flex-shrink: 0;
-    padding: 10px 20px calc(14px + env(safe-area-inset-bottom, 0px));
-    border-top: 1px solid rgba(156,189,231,0.10);
-  }
-
-  /* ── Action row (primary + optional secondary buttons) ─────────────────── */
-  /* Primary "Send til X" stretches; secondary "Del lenke" sits to the right
-     when 1+ friends are selected. With 0 selected the secondary is [hidden]
-     and the primary fills the row alone. */
-  .invite-action-row {
+  /* Sticky CTA row — pinned at the bottom of the sheet body */
+  .dpinvite-cta-row {
     display: flex;
-    gap: 8px;
-    align-items: stretch;
+    gap: 10px;
+    margin-top: 4px;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
-  .invite-action-row .invite-send-btn   { flex: 1.6; min-width: 0; }
-  .invite-action-row .invite-share-link { flex: 1;   min-width: 0; padding: 0 12px; font-size: 13px; }
-  .invite-action-row .invite-share-link svg { width: 14px; height: 14px; }
-
-  .invite-send-btn {
-    width: 100%;
-    height: 48px;
+  .dpinvite-send-pill {
+    flex: 1;
+    min-width: 0;
+    height: 52px;
     border-radius: 999px;
-    background: var(--accent);
-    border: none;
+    background: linear-gradient(180deg, #FFC8A6 0%, #FFAF85 60%, #FF9A65 100%);
+    border: 1px solid rgba(255,255,255,0.35);
     color: var(--accent-on, #2a1a0c);
     font-size: 15px;
     font-weight: 700;
     font-family: 'Inter', sans-serif;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
     cursor: pointer;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.5) inset,
+      0 -1px 0 rgba(155,80,40,0.4) inset,
+      0 4px 12px rgba(255,140,80,0.25);
     transition: opacity 0.15s, transform 0.05s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .invite-send-btn:hover:not(:disabled) { opacity: 0.92; }
-  .invite-send-btn:active:not(:disabled) { transform: scale(0.99); }
-  .invite-send-btn:disabled {
+  .dpinvite-send-pill:hover:not(:disabled) { opacity: 0.92; }
+  .dpinvite-send-pill:active:not(:disabled) { transform: scale(0.99); }
+  .dpinvite-send-pill:disabled {
     opacity: 0.45;
     cursor: not-allowed;
   }
-  .invite-send-btn svg { stroke: currentColor; }
-
-  .invite-share-link {
-    width: 100%;
-    height: 48px;
+  .dpinvite-send-pill svg { stroke: currentColor; flex-shrink: 0; }
+  .dpinvite-link-btn {
+    width: 52px; height: 52px;
+    flex-shrink: 0;
     border-radius: 999px;
-    background: var(--glass-action-bg);
-    backdrop-filter: var(--glass-blur-action);
-    -webkit-backdrop-filter: var(--glass-blur-action);
-    border: var(--glass-border-light);
-    box-shadow: var(--glass-inset);
+    background: linear-gradient(135deg, rgba(20,46,82,0.65), rgba(32,73,131,0.40));
+    border: 1px solid rgba(156,189,231,0.22);
     color: var(--text);
-    font-size: 15px;
-    font-weight: 600;
-    font-family: 'Inter', sans-serif;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
+    display: flex; align-items: center; justify-content: center;
     cursor: pointer;
+    box-shadow: var(--glass-inset);
     transition: border-color 0.15s, color 0.15s;
   }
-  .invite-share-link:hover {
+  .dpinvite-link-btn:hover {
     border-color: rgba(255,175,133,0.40);
     color: var(--accent);
   }
-  .invite-share-link svg { flex-shrink: 0; stroke: currentColor; }
-  /* Override the user-agent's [hidden] rule (display: none) which was being
-     beaten by the .invite-share-link display: flex above. Without this the
-     secondary "Del lenke" was visible alongside the primary even when the
-     refresh logic set hidden=true. */
-  .invite-share-link[hidden] { display: none !important; }
 
-  /* Desktop: cap width and centre the sheet + top card. Same 55vh ceiling
-     as mobile — the venue lives in the visible mid-strip. */
+  /* Desktop: cap width and centre the sheet + top chip. */
   @media (min-width: 640px) {
-    .invite-sheet {
-      max-width: 440px;
-      max-height: 55vh;
+    .dpinvite-sheet {
+      max-width: 460px;
+      max-height: 78vh;
       height: auto;
       left: 50%;
       transform: translateX(-50%) translateY(100%);
-      border-radius: 20px 20px 0 0;
-      padding-top: 0;
-      padding-bottom: 0;
+      border-radius: 22px 22px 0 0;
     }
-    .invite-sheet.open {
+    .dpinvite-sheet.open {
       transform: translateX(-50%) translateY(0);
     }
-    .invite-top-card {
-      max-width: 440px;
+    .dpinvite-top-chip {
+      max-width: 460px;
       left: 50%;
       right: auto;
       transform: translateX(-50%) translateY(-130%);
     }
-    .invite-top-card.open {
+    .dpinvite-top-chip.open {
       transform: translateX(-50%) translateY(0);
     }
   }
@@ -6510,36 +6585,31 @@
   body.plan-preview-active #zoom-jog {
     bottom: calc(var(--pp-bottom-h, 220px) + 14px + 34px + 10px);
   }
-  .plan-preview {
+  /* Plan-preview overlay — full-viewport flex column ending in the bottom
+     sheet. Class names .plan-preview / .dprcv-overlay both supported so
+     legacy callers don't break during rollout. */
+  .plan-preview,
+  .dprcv-overlay {
     position: fixed;
     inset: 0;
     z-index: 1200;
     pointer-events: none;
     display: flex;
     flex-direction: column;
-    /* Single child (.pp-bottom) — push it to the bottom of the viewport.
-       Used to be space-between when .pp-top existed as a second child. */
     justify-content: flex-end;
   }
-  .plan-preview.open .pp-bottom {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  /* Bottom panel — matches dp-card chrome (glass-panel-bg + glass-inset)
-     so the plan-preview reads as part of the same surface family. The drag
-     handle (.pp-handle) sits at top, providing tap area + breathing room. */
-  .pp-bottom {
+  .dprcv-overlay.open .dprcv-bottom { opacity: 1; transform: translateY(0); }
+
+  /* Bottom sheet — glass-panel surface. */
+  .dprcv-bottom {
     pointer-events: auto;
-    /* Edge-to-edge on mobile to match the detail panel's bottom-anchored
-       sheet treatment. Top corners rounded, bottom flush with safe area.
-       Desktop @media block below caps the width at 460px. */
     margin: 0;
-    padding: 0 16px calc(14px + env(safe-area-inset-bottom, 0px));
-    border-radius: 16px 16px 0 0;
+    padding: 0 18px calc(14px + env(safe-area-inset-bottom, 0px));
+    border-radius: 20px 20px 0 0;
     background: var(--glass-panel-bg);
-    backdrop-filter: blur(20px) saturate(180%) brightness(0.92);
-    -webkit-backdrop-filter: blur(20px) saturate(180%) brightness(0.92);
-    box-shadow: var(--glass-inset), 0 -8px 32px rgba(0,0,0,0.45);
+    backdrop-filter: blur(22px) saturate(180%) brightness(0.92);
+    -webkit-backdrop-filter: blur(22px) saturate(180%) brightness(0.92);
+    box-shadow: var(--glass-inset), 0 -16px 40px rgba(0,0,0,0.55);
     color: var(--text);
     opacity: 0;
     transform: translateY(20px);
@@ -6547,191 +6617,323 @@
     transition-delay: 0.08s;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
   }
-  /* Drag handle wrapper — provides 16×N tap-area around the visible
-     .pp-grabber pill. Tap-to-close + drag-to-dismiss both wire to this
-     wrapper. Padding matches the venue list (#panel-handle) and detail
-     panel (#dp-handle) for cross-surface consistency. */
-  .pp-handle {
+  /* Drag handle wrapper — matches .pp-handle / #panel-handle / #dp-handle. */
+  .dprcv-handle {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 16px 0 4px;
+    padding: 10px 0 4px;
     cursor: pointer;
     touch-action: none;
     flex-shrink: 0;
   }
-  /* Drag-handle pill — matches the colour + dimensions of #panel-handle-pill
-     and #dp-handle-pill so all three surfaces read as the same family. */
-  .pp-grabber {
-    width: 36px;
-    height: 4px;
-    border-radius: 2px;
-    background: rgba(156,189,231,0.25);
+  .dprcv-grabber {
+    width: 36px; height: 4px; border-radius: 2px;
+    background: rgba(156,189,231,0.40);
     flex-shrink: 0;
   }
-  /* Title block — the receiver's headline above the venue card. Two rows:
-       row 1: smaller "X has invited you to" lead-in (.pp-invited-line)
-       row 2: prominent "{Short venue}" left + "{date} at {time}" right
-     The bottom row's two children share visual weight; the top row is
-     subordinate so the eye lands on the venue name + when. */
-  .pp-title-block {
+
+  /* Floating "from friend" top pill — small avatar + name + sent-time. */
+  .dprcv-top-pill {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 12px);
+    left: 0; right: 0;
+    z-index: 1201;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+    transform: translateY(-130%);
+    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .dprcv-overlay.open .dprcv-top-pill { transform: translateY(0); }
+  .dprcv-top-pill-card {
+    pointer-events: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px 8px 8px;
+    background: linear-gradient(135deg, rgba(20,46,82,0.65), rgba(32,73,131,0.40));
+    backdrop-filter: blur(14px) saturate(160%);
+    -webkit-backdrop-filter: blur(14px) saturate(160%);
+    border: 1px solid rgba(156,189,231,0.22);
+    border-radius: 999px;
+    box-shadow: var(--glass-inset), 0 4px 12px rgba(0,0,0,0.35);
+  }
+  .dprcv-top-pill-av {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .dprcv-top-pill-av img { width: 100%; height: 100%; object-fit: cover; }
+  .dprcv-top-pill-name {
+    font-size: 13px; font-weight: 700; color: var(--text);
+    line-height: 1.2;
+  }
+  .dprcv-top-pill-sub {
+    font-size: 11px; font-weight: 500; color: var(--muted);
+    margin-left: 4px;
+  }
+
+  /* Title block — "{name} inviterer deg" eyebrow + venue name + meta */
+  .dprcv-title-block {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    margin-top: 4px;
+    margin-top: 2px;
   }
-  .pp-invited-line {
+  .dprcv-eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+    color: var(--muted);
+    text-transform: uppercase;
+    line-height: 1.2;
+  }
+  .dprcv-venue {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.1;
+    margin-top: 2px;
+    text-wrap: balance;
+  }
+  .dprcv-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
     font-size: 13px;
     font-weight: 500;
     color: var(--muted);
-    line-height: 1.3;
-    letter-spacing: -0.005em;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    flex-wrap: wrap;
   }
-  .pp-title-row {
+  .dprcv-meta-dot { opacity: 0.5; }
+
+  /* Hero card — Møtes (left) | Sol til (right) + canvas timeline. */
+  .dprcv-hero {
+    background: linear-gradient(180deg, rgba(20,46,82,0.50), rgba(17,30,56,0.65));
+    border: 1px solid rgba(156,189,231,0.22);
+    border-radius: 14px;
+    padding: 14px 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .dprcv-hero-row {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     gap: 12px;
   }
-  .pp-venue-title {
+  .dprcv-hero-left,
+  .dprcv-hero-right { min-width: 0; }
+  .dprcv-hero-right { text-align: right; }
+  .dprcv-hero-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+    color: var(--muted);
+    text-transform: uppercase;
+    line-height: 1.2;
+  }
+  .dprcv-arrival-time {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+    margin-top: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .dprcv-suntil-time {
     font-size: 22px;
     font-weight: 700;
-    line-height: 1.2;
-    letter-spacing: -0.015em;
     color: var(--text);
-    margin: 0;
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .pp-when {
-    flex-shrink: 0;
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text);
-    line-height: 1.2;
-    letter-spacing: -0.01em;
+    line-height: 1;
+    margin-top: 4px;
     font-variant-numeric: tabular-nums;
-    text-align: right;
   }
-  /* Meet-line — fallback for non-invite (preview) mode without a title block. */
-  .pp-meet-line {
-    font-size: 13px;
+  .dprcv-arrival-sub,
+  .dprcv-remaining {
+    font-size: 12px;
     font-weight: 500;
     color: var(--muted);
-    line-height: 1.35;
-    font-variant-numeric: tabular-nums;
-    margin-top: -2px;
-  }
-  /* Venue card inside the plan-preview is rendered via renderCard() so it
-     looks identical to a list card. Remove its bottom margin since the
-     .pp-bottom flex gap handles spacing, and disable hover/cursor since
-     it's not interactive here. */
-  .pp-bottom .venue-card {
-    margin-bottom: 0;
-    cursor: default;
-  }
-  .pp-bottom .venue-card:hover { background: var(--glass-card-bg); }
-  .pp-attendees {
     margin-top: 2px;
-    padding: 10px 12px;
-    border-radius: 10px;
-    background: rgba(156,189,231,0.06);
-    border: 1px solid rgba(156,189,231,0.12);
+    font-variant-numeric: tabular-nums;
   }
-  .pp-att-label {
+
+  /* Timeline wrapper — canvas + overlay pin + highlight span. */
+  .dprcv-timeline {
+    position: relative;
+    height: 32px;
+  }
+  .dprcv-timeline-canvas.card-timeline-canvas {
+    width: 100%;
+    height: 32px;
+    display: block;
+  }
+  body.plan-preview-active .dprcv-timeline-canvas {
+    display: block !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+  .dprcv-arrival-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .dprcv-arrival-pin {
+    position: absolute;
+    top: -4px;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--text);
+    border: 2px solid #111E38;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    transform: translateX(-50%);
+  }
+  .dprcv-arrival-span {
+    position: absolute;
+    top: 4px; bottom: 4px;
+    border-radius: 6px;
+    border: 2px solid rgba(255,242,235,0.85);
+    box-shadow: 0 0 0 4px rgba(17,30,56,0.45), 0 4px 14px rgba(0,0,0,0.35);
+  }
+  .dprcv-timeline-axis {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
     font-size: 11px;
     font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--muted);
-    margin-bottom: 6px;
+    color: rgba(156,189,231,0.7);
+    font-variant-numeric: tabular-nums;
   }
-  .pp-att-row {
+
+  /* Attendees card + quoted message. */
+  .dprcv-attendees {
     display: flex;
-    gap: 4px;
-    flex-wrap: wrap;
-    margin-bottom: 4px;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: rgba(20,46,82,0.42);
+    border: 1px solid rgba(156,189,231,0.18);
+    border-radius: 12px;
   }
-  .pp-av {
-    width: 28px; height: 28px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid rgba(20,46,82,0.95);
-    background: rgba(20,46,82,0.6);
-    display: flex; align-items: center; justify-content: center;
-    color: var(--muted);
-    font-size: 12px;
-    font-weight: 600;
+  .dprcv-att-stack {
+    display: flex;
     flex-shrink: 0;
   }
-  .pp-av-init { color: var(--muted); }
-  .pp-att-names {
+  .dprcv-att-stack > * + * { margin-left: -10px; }
+  .dprcv-att-av {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 2px #1a2f4d;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .dprcv-att-info { flex: 1; min-width: 0; }
+  .dprcv-att-line {
     font-size: 13px;
+    font-weight: 600;
     color: var(--text);
+    line-height: 1.3;
+  }
+  .dprcv-quote {
+    font-size: 12px;
     font-weight: 500;
+    color: var(--muted);
+    margin-top: 2px;
+    line-height: 1.35;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
   }
-  .pp-cta-row {
-    margin-top: 8px;
-    display: flex;
-    flex-direction: column;
+
+  /* Primary CTA — tall "Jeg er med" pill. */
+  .dprcv-cta-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     gap: 8px;
-  }
-  .pp-cta {
     width: 100%;
-    height: 50px;
+    height: 56px;
     border-radius: 999px;
-    border: none;
+    background: linear-gradient(180deg, #FFC8A6 0%, #FFAF85 60%, #FF9A65 100%);
+    border: 1px solid rgba(255,255,255,0.35);
+    color: var(--accent-on, #2a1a0c);
     font-size: 16px;
     font-weight: 700;
     font-family: 'Inter', sans-serif;
     cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.5) inset,
+      0 -1px 0 rgba(155,80,40,0.4) inset,
+      0 4px 12px rgba(255,140,80,0.25);
+    transition: opacity 0.15s, transform 0.05s;
   }
-  .pp-cta-accept {
-    background: var(--accent);
-    color: var(--accent-on, #2a1a0c);
+  .dprcv-cta-primary:hover { opacity: 0.92; }
+  .dprcv-cta-primary:active { transform: scale(0.99); }
+  .dprcv-cta-primary svg { stroke: currentColor; }
+
+  /* Secondary row — Annet tidspunkt + Avslå (2 buttons, equal width). */
+  .dprcv-cta-row {
+    display: flex;
+    gap: 8px;
   }
-  .pp-cta-accept:hover { opacity: 0.92; }
-  /* Decline — equal-weight glass-action pill (was a tiny text link). */
-  .pp-cta-decline {
-    width: 100%;
-    height: 50px;
-    border-radius: 999px;
-    background: var(--glass-action-bg);
-    backdrop-filter: var(--glass-blur-action);
-    -webkit-backdrop-filter: var(--glass-blur-action);
-    border: var(--glass-border-light);
-    box-shadow: var(--glass-inset);
+  .dprcv-cta-btn {
+    flex: 1;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(20,46,82,0.55), rgba(32,73,131,0.30));
+    border: 1px solid rgba(156,189,231,0.22);
     color: var(--text);
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 600;
     font-family: 'Inter', sans-serif;
     cursor: pointer;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    transition: border-color 0.15s, color 0.15s;
+    gap: 6px;
+    box-shadow: var(--glass-inset);
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
   }
-  .pp-cta-decline:hover {
-    border-color: rgba(255,175,133,0.35);
+  .dprcv-cta-btn:hover {
+    border-color: rgba(255,175,133,0.40);
     color: var(--accent);
   }
+  .dprcv-cta-btn svg { stroke: currentColor; flex-shrink: 0; }
+  .dprcv-cta-decline {
+    color: #FFB8B0;
+    border-color: rgba(255,150,140,0.25);
+    background: linear-gradient(135deg, rgba(60,30,40,0.35), rgba(40,20,30,0.25));
+  }
+  .dprcv-cta-decline:hover {
+    color: #FFB8B0;
+    border-color: rgba(255,150,140,0.55);
+  }
+
   @media (min-width: 640px) {
-    .pp-bottom {
+    .dprcv-bottom {
       max-width: 460px;
       margin-left: auto;
       margin-right: auto;
-      border-radius: 16px;
+      border-radius: 20px;
       margin-bottom: 12px;
     }
+    .dprcv-top-pill { left: 50%; right: auto; transform: translateX(-50%) translateY(-130%); }
+    .dprcv-overlay.open .dprcv-top-pill { transform: translateX(-50%) translateY(0); }
   }
   /* Plan card "Preview" button reuses the existing social-btn appearance */
   .plan-preview-btn {
@@ -6841,15 +7043,12 @@
   }
   .friend-prompt-banner-skip:hover { color: var(--text); }
 
-  /* Post-accept dual-action banner — replaces the prior single-button share
-     nudge with two equal-weight choices (Share with friends + Add to calendar),
-     plus a small dismiss link. Only shown when receiver is friends with the
-     inviter (otherwise the friend-add banner above wins). */
-  /* Post-accept question panel — slides up from the bottom over the (peeked)
-     detail panel after the receiver accepts. Sequential question carousel
-     with auto-advance. Replaces the prior in-social-card banners which felt
-     like notifications floating in the wrong place. */
-  .post-accept-overlay {
+  /* ── Accepted panel — sharing-system redesign (.dpacc-*) ─────────────────
+     Replaces the sequential question carousel with parallel action cards
+     (Calendar / Directions / Open / Add friend / Share). IDs preserved
+     (#post-accept-overlay, #post-accept-panel) for legacy callers. */
+  .post-accept-overlay,
+  .dpacc-overlay {
     position: fixed;
     inset: 0;
     z-index: 1150;
@@ -6860,272 +7059,255 @@
     justify-content: flex-end;
     pointer-events: none;
   }
-  .post-accept-overlay.open {
+  .post-accept-overlay.open,
+  .dpacc-overlay.open {
     background: rgba(0,0,0,0.32);
     pointer-events: auto;
   }
-  .post-accept-panel {
+  .dpacc-panel {
     width: 100%;
     max-width: 460px;
     margin: 0 auto;
-    padding: 8px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+    padding: 0 18px calc(20px + env(safe-area-inset-bottom, 0px));
     border-radius: 20px 20px 0 0;
     background: var(--glass-panel-bg);
     backdrop-filter: var(--glass-blur-panel);
     -webkit-backdrop-filter: var(--glass-blur-panel);
     border-top: var(--glass-border);
-    box-shadow: var(--glass-inset), 0 -12px 48px rgba(0,0,0,0.45);
+    box-shadow: var(--glass-inset), 0 -16px 40px rgba(0,0,0,0.55);
     transform: translateY(100%);
     transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
     gap: 12px;
   }
-  .post-accept-panel.open { transform: translateY(0); }
-  .pap-grabber {
-    width: 36px;
-    height: 4px;
-    border-radius: 2px;
-    background: rgba(255,242,235,0.30);
-    margin: 4px auto 0;
+  .dpacc-panel.open { transform: translateY(0); }
+  .dpacc-handle {
+    display: flex;
+    justify-content: center;
+    padding: 10px 0 4px;
     flex-shrink: 0;
   }
-  .pap-header {
+  .dpacc-grabber {
+    width: 36px; height: 4px; border-radius: 2px;
+    background: rgba(156,189,231,0.40);
+  }
+
+  /* Floating "you're in" toast pill at the top of the viewport. */
+  .dpacc-toast-pill {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 12px);
+    left: 0; right: 0;
+    z-index: 1151;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+    transform: translateY(-130%);
+    transition: transform 0.36s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .dpacc-overlay.open .dpacc-toast-pill { transform: translateY(0); }
+  .dpacc-toast-card {
+    pointer-events: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 16px 8px 10px;
+    background: linear-gradient(180deg, rgba(255,200,166,0.96), rgba(255,175,133,0.96));
+    border: 1px solid rgba(255,255,255,0.5);
+    border-radius: 999px;
+    color: #2a1a0c;
+    box-shadow: 0 6px 20px rgba(255,140,80,0.35), inset 0 1px 0 rgba(255,255,255,0.55);
+    font-size: 13px;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+  }
+  .dpacc-toast-check {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: #2a1a0c;
+    color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* Confirmation header — eyebrow / venue / subtitle / "Endre svar" link */
+  .dpacc-header-row {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     gap: 12px;
-    padding: 4px 4px 0;
+    padding: 0 4px;
   }
-  .pap-title {
-    font-size: 17px;
+  .dpacc-header-text { flex: 1; min-width: 0; }
+  .dpacc-eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+    color: var(--muted);
+    text-transform: uppercase;
+    line-height: 1.2;
+  }
+  .dpacc-venue {
+    font-size: 22px;
     font-weight: 700;
     color: var(--text);
-    letter-spacing: -0.01em;
+    line-height: 1.15;
+    margin-top: 4px;
+    text-wrap: balance;
   }
-  .pap-subtitle {
+  .dpacc-subtitle {
     font-size: 13px;
+    font-weight: 500;
     color: var(--muted);
-    margin-top: 2px;
-    line-height: 1.3;
-  }
-  .pap-close {
-    background: rgba(156,189,231,0.12);
-    border: none;
-    border-radius: 50%;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--muted);
-    flex-shrink: 0;
-    cursor: pointer;
-    transition: background 0.12s, color 0.12s;
-  }
-  .pap-close:hover { background: rgba(156,189,231,0.22); color: var(--text); }
-  .pap-progress {
-    display: flex;
-    gap: 6px;
-    justify-content: center;
-    align-items: center;
-    min-height: 6px;
-  }
-  .pap-progress:empty { display: none; }
-  .pap-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: rgba(156,189,231,0.25);
-    transition: background 0.2s, width 0.2s;
-  }
-  .pap-dot-active { background: var(--accent); width: 18px; border-radius: 3px; }
-  .pap-dot-done   { background: rgba(255,175,133,0.55); }
-  .pap-body {
-    display: flex;
-    flex-direction: column;
-  }
-  .pap-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 8px;
-    padding: 6px 8px 4px;
-    animation: pap-card-in 0.28s cubic-bezier(0.2, 0, 0.2, 1) both;
-  }
-  @keyframes pap-card-in {
-    from { opacity: 0; transform: translateX(12px); }
-    to   { opacity: 1; transform: translateX(0); }
-  }
-  .pap-icon {
-    font-size: 36px;
-    line-height: 1;
-    margin-bottom: 4px;
-  }
-  .pap-q-title {
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--text);
-    letter-spacing: -0.01em;
-    line-height: 1.25;
-  }
-  .pap-q-sub {
-    font-size: 14px;
-    color: var(--muted);
+    margin-top: 4px;
+    font-variant-numeric: tabular-nums;
     line-height: 1.4;
-    margin-bottom: 8px;
-    max-width: 320px;
   }
-  .pap-q-primary {
-    width: 100%;
-    height: 50px;
-    border-radius: 999px;
-    border: none;
-    background: var(--accent);
-    color: var(--accent-on, #2a1a0c);
-    font-family: 'Inter', sans-serif;
-    font-size: 16px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: opacity 0.15s, transform 0.05s;
-  }
-  .pap-q-primary:hover { opacity: 0.92; }
-  .pap-q-primary:active { transform: scale(0.99); }
-  .pap-q-skip {
-    width: 100%;
-    height: 40px;
+  .dpacc-change-rsvp {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
     background: transparent;
     border: none;
-    color: var(--muted);
-    font-family: 'Inter', sans-serif;
-    font-size: 14px;
-    font-weight: 500;
     cursor: pointer;
+    padding: 4px 0;
+    white-space: nowrap;
+    font-family: 'Inter', sans-serif;
     transition: color 0.12s;
   }
-  .pap-q-skip:hover { color: var(--text); }
+  .dpacc-change-rsvp:hover { color: var(--text); }
 
-  .post-accept-actions {
+  /* Action carousel — horizontally scrolling cards. */
+  .dpacc-action-row {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding: 4px 2px 6px;
+    margin: 0 -2px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .dpacc-action-row::-webkit-scrollbar { display: none; }
+  .dpacc-action-card {
+    flex-shrink: 0;
+    width: 110px;
+    height: 96px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(20,46,82,0.55), rgba(32,73,131,0.30));
+    border: 1px solid rgba(156,189,231,0.22);
+    color: var(--text);
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding: 14px;
-    margin: 10px 0 4px;
-    border-radius: 14px;
-    background: linear-gradient(135deg, rgba(255,175,133,0.16), rgba(255,175,133,0.06));
-    border: 1px solid rgba(255,175,133,0.32);
-  }
-  .post-accept-headline {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--text);
-    letter-spacing: -0.01em;
-  }
-  .post-accept-row {
-    display: flex;
-    gap: 8px;
-  }
-  .pa-btn {
-    flex: 1;
-    height: 42px;
-    border-radius: 999px;
-    border: none;
-    font-family: 'Inter', sans-serif;
-    font-size: 13px;
-    font-weight: 600;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 12px;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    transition: opacity 0.15s, border-color 0.15s, color 0.15s;
-  }
-  .pa-btn-share {
-    background: var(--accent);
-    color: var(--accent-on, #2a1a0c);
-  }
-  .pa-btn-share:hover { opacity: 0.92; }
-  .pa-btn-cal {
-    background: var(--glass-action-bg);
-    backdrop-filter: var(--glass-blur-action);
-    -webkit-backdrop-filter: var(--glass-blur-action);
-    border: var(--glass-border-light);
+    font-family: 'Inter', sans-serif;
     box-shadow: var(--glass-inset);
+    transition: border-color 0.15s, transform 0.05s;
+  }
+  .dpacc-action-card:hover { border-color: rgba(255,175,133,0.40); }
+  .dpacc-action-card:active { transform: scale(0.99); }
+  .dpacc-action-card-accent {
+    background: linear-gradient(180deg, rgba(255,175,133,0.18), rgba(255,175,133,0.06));
+    border-color: rgba(255,175,133,0.40);
+  }
+  .dpacc-action-icon {
+    width: 30px; height: 30px;
+    border-radius: 9px;
+    background: rgba(156,189,231,0.10);
+    border: 1px solid rgba(156,189,231,0.16);
+    display: flex; align-items: center; justify-content: center;
     color: var(--text);
   }
-  .pa-btn-cal:hover {
-    border-color: rgba(255,175,133,0.40);
+  .dpacc-action-card-accent .dpacc-action-icon {
+    background: rgba(255,175,133,0.20);
     color: var(--accent);
   }
-  .pa-btn svg { flex-shrink: 0; }
-  .pa-dismiss {
-    align-self: center;
-    background: transparent;
-    border: none;
+  .dpacc-action-text { text-align: left; }
+  .dpacc-action-title {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.15;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 86px;
+  }
+  .dpacc-action-sub {
+    font-size: 11px;
+    font-weight: 500;
     color: var(--muted);
-    font-family: 'Inter', sans-serif;
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 86px;
+  }
+
+  /* Attendees row — avatar stack + summary. */
+  .dpacc-attendees {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: rgba(20,46,82,0.42);
+    border: 1px solid rgba(156,189,231,0.18);
+    border-radius: 12px;
+  }
+  .dpacc-att-stack { display: flex; flex-shrink: 0; }
+  .dpacc-att-stack > * + * { margin-left: -10px; }
+  .dpacc-att-av {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 2px #1a2f4d;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .dpacc-att-info { flex: 1; min-width: 0; }
+  .dpacc-att-count {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.3;
+  }
+  .dpacc-att-names {
     font-size: 12px;
     font-weight: 500;
-    cursor: pointer;
-    padding: 4px 10px;
-    transition: color 0.12s;
+    color: var(--muted);
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
-  .pa-dismiss:hover { color: var(--text); }
-  /* Accept button with in-line arrival chip. The chip lives INSIDE the pill
-     so the action ("I'm in") and the time the user is committing to read as
-     one cohesive unit. The chip has its own hit area: clicking it opens the
-     time picker (and stopPropagation prevents the surrounding accept). */
-  .pp-cta-with-chip {
-    gap: 10px;
-    padding: 0 16px 0 22px;
-  }
-  /* Anon accept button — same shape as the chip variant but the time is
-     plain text (no picker, no chevron) since arrival can't be written
-     until the user logs in. After login, the takeover re-opens with the
-     full chip variant. */
-  #pp-anon-accept .pp-cta-time {
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    margin-left: 6px;
-  }
-  .pp-cta-label {
-    font-size: 16px;
-    font-weight: 700;
-    line-height: 1;
-    letter-spacing: -0.01em;
-  }
-  .pp-arrival-chip {
+
+  /* Plan-preview arrival chip (used in dprcv hero header — clickable
+     "17:00" pill that opens the per-invitee picker). */
+  .dprcv-arrival-chip {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    border: 1px solid rgba(42,26,12,0.30);
+    border: 1px solid rgba(255,175,133,0.45);
     border-radius: 999px;
-    padding: 6px 12px;
-    background: rgba(255,255,255,0.55);
-    color: var(--accent-on, #2a1a0c);
-    font-size: 15px;
+    padding: 4px 10px;
+    background: rgba(255,175,133,0.12);
+    color: var(--accent);
+    font-size: 28px;
     font-weight: 700;
     font-family: 'Inter', sans-serif;
     font-variant-numeric: tabular-nums;
     cursor: pointer;
-    position: relative;
     line-height: 1;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    transition: background 0.15s, border-color 0.15s;
   }
-  .pp-arrival-chip:hover {
-    background: rgba(255,255,255,0.75);
-  }
-  .pp-arrival-chip:focus-visible {
-    outline: 2px solid var(--accent-on, #2a1a0c);
-    outline-offset: 2px;
-  }
-  .pp-arrival-chip.pp-arrival-off {
-    background: rgba(42,26,12,0.92);
-    border-color: rgba(42,26,12,0.92);
-    color: var(--accent);
-  }
-  .pp-arrival-chip svg { opacity: 0.7; flex-shrink: 0; }
+  .dprcv-arrival-chip:hover { background: rgba(255,175,133,0.18); }
+  .dprcv-arrival-chip svg { opacity: 0.7; flex-shrink: 0; width: 14px; height: 14px; }
+
   /* Per-invitee time chip on plan-preview attendees row */
   .pp-av-wrap {
     position: relative;
