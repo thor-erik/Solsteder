@@ -5994,62 +5994,14 @@
   }
 
   /* ── Venue card ────────────────────────────────────────────────────────── */
-  .invite-venue-card {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px;
-    border-radius: 14px;
-    background: var(--glass-card-bg);
-    backdrop-filter: var(--glass-blur-card);
-    -webkit-backdrop-filter: var(--glass-blur-card);
-    border: var(--glass-border);
-    box-shadow: var(--glass-inset);
+  /* Reuses the list .venue-card via renderVenueCardCompact(). Inside the sheet
+     the card sits in a flex-column with its own gap, so neutralize the list
+     card's bottom margin and disable the click affordance (it isn't tappable
+     here — the venue is fixed for this invite). */
+  .invite-sheet-body .venue-card.compact-card {
+    margin-bottom: 0;
+    cursor: default;
   }
-  .invite-venue-badge {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: radial-gradient(circle at 30% 30%, rgba(255,175,133,0.35), rgba(255,175,133,0.08) 70%);
-    border: 1px solid rgba(255,175,133,0.30);
-    font-size: 22px;
-    line-height: 1;
-  }
-  .invite-venue-info {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-  .invite-venue-name {
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--text);
-    letter-spacing: -0.01em;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .invite-venue-when {
-    font-size: 13px;
-    color: var(--muted);
-    font-variant-numeric: tabular-nums;
-  }
-  .invite-venue-sun {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--accent);
-    margin-top: 2px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-  .invite-venue-sun:empty { display: none; }
 
   /* ── Chat-bubble preview ───────────────────────────────────────────────── */
   .invite-bubble-wrap {

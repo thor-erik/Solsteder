@@ -178,6 +178,55 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
 }
 
 /**
+ * Compact venue card for surfaces that need the same name/area/sun-state visual
+ * language as the list card without the timeline strip, fav heart, friend dots,
+ * or click/hover behavior. Used by the invite sheet so its venue header stays
+ * pinned to the same design system as the list — any future styling change to
+ * .venue-card / .card-new-* automatically flows through.
+ *
+ * Reuses .venue-card + .card-top + .card-left/.card-right + .card-new-name /
+ * -meta / -hero-main / -hero-sub, plus venueState() for hero text.
+ */
+function renderVenueCardCompact(v, dateStr, fromHour) {
+  if (!v) return '';
+  const dayHours = (typeof getVenueHoursForDay === 'function')
+    ? getVenueHoursForDay(v, dateStr)
+    : { open: 0, close: 24 };
+  const isOpen        = (fromHour >= dayHours.open && fromHour <= dayHours.close);
+  const isOpeningSoon = (!isOpen && (dayHours.open - fromHour) > 0 && (dayHours.open - fromHour) <= 0.75);
+
+  if (!isOpen && !isOpeningSoon) {
+    return `<div class="venue-card compact-card closed-card" data-vid="${v.id}">
+      <div class="closed-row">
+        <span class="closed-name">${v.name}</span>
+        <span class="card-badge shaded">${t('opens_at', { time: formatHour(dayHours.open) })}</span>
+      </div>
+    </div>`;
+  }
+
+  const state = (typeof venueState === 'function')
+    ? venueState(v, fromHour)
+    : { state: 'sun', mainText: '', subText: '', className: 'state-sun' };
+  const metaParts = [v.area, (typeof catLabel === 'function' ? catLabel(v) : null)].filter(Boolean);
+  const metaHtml = metaParts.map((p, i) =>
+    (i > 0 ? '<span class="card-meta-dot">·</span>' : '') + `<span>${p}</span>`
+  ).join('');
+
+  return `<div class="venue-card compact-card ${state.className}" data-vid="${v.id}">
+      <div class="card-top">
+        <div class="card-left">
+          <div class="card-new-name">${v.name}</div>
+          <div class="card-new-meta">${metaHtml}</div>
+        </div>
+        <div class="card-right">
+          <div class="card-new-hero-main">${state.mainText}</div>
+          <div class="card-new-hero-sub">${state.subText}</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+/**
  * Append the next page of cards to #venue-list.
  * Called on init (reset=true) and by the IntersectionObserver on scroll.
  */

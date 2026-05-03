@@ -855,27 +855,6 @@ function _fmtInviteConfirm(venueName, dateStr, hour) {
   return t('invite_confirm', { venue: venueName, date: dateLabel, time: timeLabel });
 }
 
-/** Short date+time line for the venue card. The venue name is already the
- *  card title, so we don't repeat it here. */
-function _fmtInviteWhen(dateStr, hour) {
-  const dateLabel = _fmtInviteDate(dateStr);
-  const timeLabel = typeof formatHour === 'function' ? formatHour(hour) : `${Math.floor(hour)}:${String(Math.round((hour % 1) * 60)).padStart(2, '0')}`;
-  return t('invite_when', { date: dateLabel, time: timeLabel });
-}
-
-/** Compute "sun until {time}" badge text for the venue card. Returns '' if none. */
-function _fmtInviteSunUntil(v, dateStr, hour) {
-  if (!v || typeof computeSunWindows !== 'function') return '';
-  const { windows } = computeSunWindows(v, dateStr) || {};
-  if (!windows || !windows.length) return '';
-  const cur  = windows.find(w => hour >= w.start && hour < w.end);
-  const next = !cur ? windows.find(w => w.start > hour) : null;
-  const win  = cur || next;
-  if (!win) return '';
-  const timeLabel = typeof formatHour === 'function' ? formatHour(win.end) : '';
-  return t('invite_sun_until', { time: timeLabel });
-}
-
 /** Open the invite sheet — full-height takeover with venue card, chat-bubble
  *  preview and avatar-tap friend selection. */
 function _openInviteSheet(venueId) {
@@ -917,8 +896,6 @@ function _openInviteSheet(venueId) {
   const curDate = typeof datePicker !== 'undefined' ? datePicker.value : new Date().toISOString().slice(0, 10);
   const curHour = typeof timeFromEl !== 'undefined' ? parseFloat(timeFromEl.value) : new Date().getHours();
 
-  const venueWhen = _fmtInviteWhen(curDate, curHour);
-  const sunUntil = v ? _fmtInviteSunUntil(v, curDate, curHour) : '';
   const previewText = v ? _composeInviteShareText(v, curDate, curHour) : '';
 
   // Build overlay
@@ -989,14 +966,7 @@ function _openInviteSheet(venueId) {
       </button>
     </div>
     <div class="invite-sheet-body">
-      <div class="invite-venue-card">
-        <div class="invite-venue-badge" aria-hidden="true">☀️</div>
-        <div class="invite-venue-info">
-          <div class="invite-venue-name">${venueName}</div>
-          <div class="invite-venue-when" id="invite-venue-when">${venueWhen}</div>
-          <div class="invite-venue-sun" id="invite-venue-sun">${sunUntil}</div>
-        </div>
-      </div>
+      <div class="invite-venue-card-slot" id="invite-venue-card-slot">${typeof renderVenueCardCompact === 'function' ? renderVenueCardCompact(v, curDate, curHour) : ''}</div>
       <div class="invite-fts-label">${t('invite_fts_label')}</div>
       <div class="invite-fts-slot"></div>
       ${friendsBlock}
@@ -1019,10 +989,10 @@ function _openInviteSheet(venueId) {
   function _updateInviteConfirm() {
     const d = (typeof datePicker !== 'undefined') ? datePicker.value : curDate;
     const h = (typeof timeFromEl !== 'undefined') ? parseFloat(timeFromEl.value) : curHour;
-    const when = sheet.querySelector('#invite-venue-when');
-    if (when) when.textContent = _fmtInviteWhen(d, h);
-    const sun = sheet.querySelector('#invite-venue-sun');
-    if (sun) sun.textContent = _fmtInviteSunUntil(sheet._venue, d, h);
+    const slot = sheet.querySelector('#invite-venue-card-slot');
+    if (slot && v && typeof renderVenueCardCompact === 'function') {
+      slot.innerHTML = renderVenueCardCompact(v, d, h);
+    }
     const prev = sheet.querySelector('#invite-message-preview-text');
     if (prev && v) prev.textContent = _composeInviteShareText(v, d, h);
   }
