@@ -5926,7 +5926,7 @@
     bottom: 0;
     left: 0;
     right: 0;
-    max-height: 62svh;
+    max-height: 50svh;
     height: auto;
     border-radius: 18px 18px 0 0;
     /* Canonical Shades Glass — panel level. */
@@ -5963,30 +5963,15 @@
     left: 12px;
     right: 12px;
     z-index: 1001;
-    padding: 10px 0 0;
-    transform: translateY(-130%);
+    padding-top: 10px;
+    transform: translateY(-110%);
     transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
     pointer-events: none;
   }
   .invite-top-card.open { transform: translateY(0); }
   /* Card inside is the same .venue-card.compact-card rendered by
-     renderVenueCardCompact(). The list version sits inside #panel which
-     already blurs and provides a backdrop; on top of the dark map the
-     same low-alpha bg looks murky (issue 2 from review). Override with
-     the panel-level glass treatment so the card pops. */
-  .invite-top-card .venue-card {
-    margin-bottom: 0;
-    cursor: default;
-    /* Solid panel-level navy + backdrop blur so the card has its own
-       frame of reference instead of inheriting muddy contrast from the
-       map below. Reuses the same recipe as .invite-sheet. */
-    background: rgba(20,46,82,0.92);
-    backdrop-filter: blur(18px) saturate(160%);
-    -webkit-backdrop-filter: blur(18px) saturate(160%);
-    border: 1px solid rgba(156,189,231,0.22);
-    box-shadow: var(--glass-inset), 0 10px 28px rgba(0,0,0,0.45);
-    pointer-events: auto;
-  }
+     renderVenueCardCompact() — share-and-reuse the list-card styling. */
+  .invite-top-card .venue-card { margin-bottom: 0; cursor: default; }
 
   .invite-sheet-body {
     flex: 1;
@@ -5999,29 +5984,10 @@
     -webkit-overflow-scrolling: touch;
   }
 
-  /* Section labels — small uppercase title that sits above each section so
-     the user understands what the action is for at a glance. Used as a
-     section header above bubble preview, FTS slot, friends grid, and
-     action buttons. Tight typographic hierarchy: small, muted, slight
-     letter-spacing. */
-  .invite-section-label {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    padding: 0 4px;
-  }
-
   /* ── Chat-bubble preview ───────────────────────────────────────────────── */
-  /* Wrap holds the section label + bubble together so they advance as one
-     unit in the sheet's flex column. Bubble itself self-aligns right so it
-     reads as an outgoing iMessage. */
-  .invite-bubble-wrap {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
+  /* The bubble is now the visual focus of the sheet — it's the receiver-
+     perspective text the sender is composing. Self-aligned to the right of
+     its own row so it reads as an outgoing iMessage. */
   .invite-bubble {
     align-self: flex-end;
     max-width: 88%;
@@ -6035,35 +6001,10 @@
     word-break: break-word;
   }
 
-  /* FTS block — section label above the reparented FTS pill. */
-  .invite-fts-block {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  /* Action block — section hint above the primary/secondary buttons. */
-  .invite-action-block {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    margin-top: 2px;
-  }
-  /* The hint above the buttons isn't really a section title — it's a
-     helper line that fits the same typographic slot. Override the
-     uppercase treatment so it reads as a sentence. */
-  .invite-actions-hint {
-    text-transform: none;
-    letter-spacing: 0;
-    font-weight: 400;
-    text-align: center;
-    line-height: 1.3;
-  }
-
   /* ── Friends section ───────────────────────────────────────────────────── */
-  /* Section label sits above the count + toggle row. Layout reads as:
-     LABEL                                            (Velg alle)
-     count chip                                          */
+  /* Compact one-line header: count chip on the left, select-all toggle on
+     the right. No section title — the avatar grid below is self-explanatory
+     and we need the vertical budget for the sheet to stay under 50svh. */
   .invite-friends-header {
     display: flex;
     align-items: baseline;
@@ -6266,6 +6207,7 @@
     display: flex;
     gap: 8px;
     align-items: stretch;
+    margin-top: 4px;
   }
   .invite-action-row .invite-send-btn  { flex: 1.6; min-width: 0; }
   .invite-action-row .invite-share-link { flex: 1;   min-width: 0; padding: 0 12px; font-size: 13px; }

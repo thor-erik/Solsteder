@@ -933,12 +933,7 @@ function _openInviteSheet(venueId) {
   sheet.id = 'invite-sheet';
   sheet.className = 'invite-sheet';
 
-  // Friends block — section title + count chip on one row, select-all toggle
-  // on the right, optional search, then the avatar grid. The title makes it
-  // clear what the action is ("pick people to send the invite to") rather
-  // than relying on the user to infer from a row of unlabeled avatars.
   const friendsBlock = hasFriends ? `
-        <div class="invite-section-label">${t('invite_friends_section')}</div>
         <div class="invite-friends-header">
           <span class="invite-friends-count" id="invite-friends-count"></span>
           <button class="invite-friends-toggle" id="invite-toggle-all" type="button" onclick="_toggleAllInviteFriends()">${t('invite_select_all')}</button>
@@ -976,30 +971,22 @@ function _openInviteSheet(venueId) {
         </button>
       </div>`;
 
-  // Sheet markup — grabber + body. Each section gets a one-line label above
-  // the controls so the user can read top-to-bottom and understand:
-  //   1. Bubble preview ("Forhåndsvisning" — what the receiver will see)
-  //   2. FTS slot ("Velg tidspunkt — sol og vær oppdateres live")
-  //   3. Friends block ("Venner" + count + toggle + grid)
-  //   4. Action row ("Send i appen, eller del en åpen lenke" + buttons)
-  // Drag-to-dismiss grabber, backdrop tap, and Escape are the dismissal paths;
-  // the venue card pinned at the top of the screen carries "what venue, when".
+  // Sheet markup — grabber + body, body in the new content order:
+  //   1. Bubble preview (the receiver-perspective text — visual focus)
+  //   2. FTS slot (host for reparented #fts pill — refines time)
+  //   3. Friends block (count + toggle, optional search, avatar grid)
+  //   4. Action row (primary send/share, optional secondary)
+  // Header (title + close) is gone — backdrop tap, drag-to-dismiss grabber, and
+  // Escape handle dismissal. Bubble caption + FTS label + actions hint are also
+  // dropped to fit the sheet under 50svh; the venue card pinned at the top of
+  // the screen carries the contextual "what venue, when" hierarchy.
   sheet.innerHTML = `
     <div class="invite-sheet-grabber" aria-hidden="true"></div>
     <div class="invite-sheet-body">
-      <div class="invite-bubble-wrap">
-        <div class="invite-section-label">${t('share_message_preview_label')}</div>
-        <div class="invite-bubble" id="invite-message-preview-text">${previewText}</div>
-      </div>
-      <div class="invite-fts-block">
-        <div class="invite-section-label">${t('invite_fts_label')}</div>
-        <div class="invite-fts-slot"></div>
-      </div>
+      <div class="invite-bubble" id="invite-message-preview-text">${previewText}</div>
+      <div class="invite-fts-slot"></div>
       ${friendsBlock}
-      <div class="invite-action-block">
-        <div class="invite-section-label invite-actions-hint">${t('invite_actions_helper')}</div>
-        ${actionRow}
-      </div>
+      ${actionRow}
     </div>`;
 
   // Floating top card: same compact venue card, pinned to top of viewport.
@@ -1134,23 +1121,6 @@ function _openInviteSheet(venueId) {
   };
 
   document.body.classList.add('invite-sheet-open');
-
-  // Recentre the venue between the top card and the sheet by giving Mapbox
-  // padding equal to the obscured strips. Without this the venue stays at
-  // viewport centre — half-hidden under the sheet. We measure the actual
-  // top-card height and the sheet's max-height (62svh) so the math stays
-  // accurate across breakpoints.
-  if (typeof map !== 'undefined' && map && typeof map.easeTo === 'function' && v) {
-    const vh = window.innerHeight;
-    const padTop    = topCard.offsetHeight || 96;
-    const padBottom = Math.round(vh * 0.62);
-    sheet._mapPadOpen = { top: padTop, bottom: padBottom, left: 0, right: 0 };
-    map.easeTo({
-      center: [v.lng, v.lat],
-      padding: sheet._mapPadOpen,
-      duration: 420,
-    });
-  }
 
   // Reparent the live #fts (floating time slider with sun-arc + weather)
   // into the sheet's slot so the sender can scrub time/date without closing
@@ -1324,11 +1294,6 @@ function _closeInviteSheet() {
   if (sheet) {
     if (sheet._sliderCleanup) sheet._sliderCleanup();
     sheet.classList.remove('open');
-  }
-  // Restore the map's padding to zero — the sheet/top-card no longer occlude
-  // the viewport so re-centring would incorrectly bias the venue upward.
-  if (typeof map !== 'undefined' && map && typeof map.easeTo === 'function') {
-    map.easeTo({ padding: { top: 0, bottom: 0, left: 0, right: 0 }, duration: 280 });
   }
   // Detach FTS BEFORE the overlay starts removing so the parent path is valid
   // when we move it back to body. updateDetailPanel below will re-dock it
