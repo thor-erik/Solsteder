@@ -6,10 +6,11 @@
  *   2. A user taps "Preview" on a plan card in the detail panel
  *
  * The takeover hides app chrome and lets the live map (with shadows) show
- * through. The live `#fts` element is reparented into the bottom card and
- * acts as the time scrubber while the preview is open. On close, the FTS
- * is handed off to the detail panel's docked-card timeline slot via the
- * existing FLIP morph in app.js (_flipFtsFromCardTimeline).
+ * through. The bottom panel renders a static venue-card (same DOM as the
+ * list) plus a title/CTA block. No FTS reparenting — the receiver doesn't
+ * scrub time on the accept page; the time-lapse runs the global #fts
+ * slider in place to drive map shadows but the FTS chrome stays hidden by
+ * the body.plan-preview-active rule.
  *
  * Modes:
  *   'invite'      — logged-in receiver of a real plan_invites row. Accept/Decline.
@@ -20,7 +21,7 @@
  *
  * Depends on: VENUES, computeSunWindows, formatHour, getWeatherAt, timeFromEl,
  *             datePicker, map, getPlansForVenue, respondToPlanInvite, selectVenue,
- *             _flipFtsFromCardTimeline, drawFtsCanvas, _showToast.
+ *             renderCard, drawAllCardTimelines, shortName, _showToast.
  */
 
 let _planPreviewState = null;
@@ -133,9 +134,24 @@ function openPlanPreview(opts) {
       });
     } catch (e) { /* ignore */ }
   }
-  // Camera animation in flight — reveal the map (the head-script gate had
-  // #map hidden so the receiver wouldn't see the Oslo fallback flash).
-  document.documentElement.classList.remove('invite-loading');
+  // Reveal the map only after Mapbox is idle for the current view — i.e.
+  // the dive's tiles have rendered. Removing the gate sooner exposes the
+  // canvas-overlay pins drawn against a dark empty background (the bug
+  // shown in the screenshot). 1800ms fallback in case 'idle' never fires
+  // (offline / very slow connection). The class also hides #canvas-overlay
+  // (CSS rule in index.html) so pins don't leak through during the wait.
+  if (typeof map !== 'undefined' && map && typeof map.once === 'function') {
+    let revealed = false;
+    const reveal = () => {
+      if (revealed) return;
+      revealed = true;
+      document.documentElement.classList.remove('invite-loading');
+    };
+    map.once('idle', reveal);
+    setTimeout(reveal, 1800);
+  } else {
+    document.documentElement.classList.remove('invite-loading');
+  }
 
   // _skipIntro (run earlier on the invite path) calls _syncFtsPosition,
   // which sets inline `style.opacity = '0'` + pointerEvents = 'none' on
@@ -153,11 +169,6 @@ function openPlanPreview(opts) {
 
   const overlay = _ppBuildDom(venue, opts, { planHour, animateTo, dateStr });
   document.body.appendChild(overlay);
-
-  // Reparent the live #fts element into the bottom card's slot. The same canvas,
-  // listeners, and time-sync as the rest of the app — so dragging it during the
-  // preview drives shadow rendering exactly like elsewhere.
-  _ppFtsAttach();
 
   // Track .pp-bottom height as --pp-bottom-h so the locate-me + zoom-jog can
   // anchor above the panel — same pattern the venue list uses via --peek-h.
@@ -384,21 +395,8 @@ function closePlanPreview() {
     timeFromEl.dispatchEvent(new Event('input'));
   }
 
-  // Capture FTS rect IN preview slot before we detach — used as the FLIP source.
-  const fts = document.getElementById('fts');
-  // FTS is hosted via .fts-in-card inside #pp-dp-card while the preview is
-  // open — capture the rect there so the FLIP source is unambiguous (won't
-  // latch onto a stray dp-card elsewhere in the document).
-  const ftsSrcRect = (fts && fts.classList.contains('fts-in-card') &&
-                      fts.closest('#pp-dp-card'))
-    ? fts.getBoundingClientRect() : null;
-  // Detach FTS from preview slot, reset it to body so openDetailPanel can run
-  // its own pre-stage. We pass ftsSrcRect to the FLIP routine after the panel
-  // morph completes, animating FTS from the preview position into the docked card.
-  _ppFtsDetach();
-
   // Choose post-close destination:
-  //  - venueId set → open the detail panel (proper docked card with FTS)
+  //  - venueId set → open the detail panel (its own docked-card morph)
   //  - no venueId → just remove the takeover and restore camera
   const venueId = st.venueId;
   const venue = (typeof VENUES !== 'undefined') ? VENUES.find(v => String(v.id) === String(venueId)) : null;
@@ -409,17 +407,10 @@ function closePlanPreview() {
   _planPreviewState = null;
 
   if (venue && typeof selectVenue === 'function') {
-    // Open the detail panel from a clean state (no plan-preview-active class
-    // hiding the source venue-card). openDetailPanel runs its FLIP morph on the
-    // venue-card → docked-card; FTS will be appended into the docked-card
-    // .card-timeline after the morph (~340ms).
+    // Open the detail panel — it runs its own FLIP morph + FTS hosting from
+    // the venue-card source; no FTS hand-off needed from here since the
+    // plan-preview no longer reparents FTS.
     selectVenue(venueId, true);
-    // After the morph completes, FLIP the FTS from the captured preview-slot rect
-    // to its current docked-card position. The user sees a single smooth motion
-    // from the bottom card to the timeline slot.
-    if (ftsSrcRect && typeof _flipFtsFromCardTimeline === 'function') {
-      setTimeout(() => _flipFtsFromCardTimeline(ftsSrcRect), 380);
-    }
   } else if (st.savedCamera && typeof map !== 'undefined' && map && typeof map.flyTo === 'function') {
     try {
       map.flyTo({
@@ -432,52 +423,6 @@ function closePlanPreview() {
       });
     } catch (e) { /* ignore */ }
   }
-}
-
-/** Reparent #fts into the plan-preview's dp-card .card-timeline — same FTS-
- *  hosting pattern the detail panel uses post-morph. The .fts-in-card class
- *  triggers the existing flatten-position-and-fill CSS, _syncFtsPosition skips
- *  while it's set, and the .dp-card.fts-hosted state hides the static mini-
- *  timeline segments behind the live FTS canvas. */
-function _ppFtsAttach() {
-  const fts = document.getElementById('fts');
-  const ppCard = document.getElementById('pp-dp-card');
-  const cardTimeline = ppCard?.querySelector('.card-timeline');
-  if (!fts || !ppCard || !cardTimeline) return;
-  fts.classList.remove('fts-in-preview');
-  fts.style.cssText = '';
-  fts.classList.add('fts-in-card');
-  ppCard.classList.add('fts-hosted');
-  // Same labels-offset trick the detail panel uses: the FTS calendar btn is
-  // ~38px wide on the leftmost edge with an 8px gap before the slider track.
-  const dateBtn = document.getElementById('fts-date-btn');
-  const btnW = dateBtn ? dateBtn.offsetWidth : 38;
-  ppCard.style.setProperty('--fts-labels-offset', (btnW + 8) + 'px');
-  cardTimeline.appendChild(fts);
-  // Defensive opacity reset — the body.plan-preview-active rule sets the FTS
-  // to opacity 0 by default; the .fts-in-card override should re-show it,
-  // but inline-style protects against any cascade race when an anon receiver
-  // lands fresh on a link.
-  fts.style.opacity = '1';
-  fts.style.pointerEvents = 'auto';
-  // Force a repaint at the new container size on the next frame, then again
-  // after data loads (solar tables / weather may arrive late on a fresh land).
-  requestAnimationFrame(() => {
-    if (typeof drawFtsCanvas === 'function') drawFtsCanvas();
-  });
-  setTimeout(() => {
-    if (typeof drawFtsCanvas === 'function') drawFtsCanvas();
-  }, 600);
-}
-
-/** Reverse: detach FTS from the dp-card and put it back on the body. The
- *  caller (closePlanPreview) is responsible for whatever follows. */
-function _ppFtsDetach() {
-  const fts = document.getElementById('fts');
-  if (!fts) return;
-  fts.classList.remove('fts-in-card');
-  fts.style.cssText = '';
-  if (fts.parentNode !== document.body) document.body.appendChild(fts);
 }
 
 function _ppAnimate(fromH, toH, durationMs) {
@@ -635,36 +580,39 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   // mini timeline). Strip list-card click handlers and add .dp-card.source-docked
   // so the existing detail-panel CSS sizes it up correctly. Same trick app.js
   // uses on its no-source-card path (~line 2599+).
-  let dpCardHtml = '';
+  // Render the venue card via renderCard() — same DOM and visual treatment
+  // as the venue list. Strip click/hover handlers so it doesn't behave like
+  // a list card (no selection on tap). Keep the .venue-card class as-is —
+  // intentionally NOT upsizing to .dp-card; the title block above carries
+  // the prominent typography.
+  let venueCardHtml = '';
   if (typeof renderCard === 'function') {
     const tmp = document.createElement('div');
     tmp.innerHTML = renderCard(venue, dateStr, planHour, planHour, true);
     const card = tmp.firstElementChild;
     if (card) {
-      card.classList.add('dp-card', 'source-docked');
       card.removeAttribute('onclick');
       card.removeAttribute('onmouseenter');
       card.removeAttribute('onmouseleave');
-      card.id = 'pp-dp-card';
-      dpCardHtml = card.outerHTML;
+      card.classList.remove('selected');
+      card.id = 'pp-venue-card';
+      venueCardHtml = card.outerHTML;
     }
   }
 
-  // Headline + sub — bigger than the previous eyebrow. Format:
-  //   "Maja har invitert deg til Egon"
-  //   "søn 3. mai kl. 15:45"
-  // Uses shortName() for a punchy venue name in the title (long names like
-  // "Mamma Pizza Vika Osteria di Mare" don't wrap pleasantly at 22-24px).
-  // Falls back gracefully when inviterName is missing (anon-receiver state).
+  // Title block — receiver's headline. Two-row layout:
+  //   "Maja has invited you to"            ← .pp-invited-line, smaller, muted
+  //   "{Short venue}"      "{date} at {time}"  ← .pp-title-row, prominent
+  // The bottom row is a flex row: venue name on the left, date·time on the
+  // right. shortName(venue.name, 18) keeps long names ("Mamma Pizza Vika
+  // Osteria di Mare") punchy.
   const dateLabel = (typeof _fmtInviteDate === 'function' && dateStr) ? _fmtInviteDate(dateStr) : '';
-  const timeLabel = t('pp_tagline_invite', { time: formatHour(planHour) });
-  const meetLine = dateLabel ? `${dateLabel} · ${timeLabel}` : timeLabel;
+  const timeStr = formatHour(planHour);
+  const dateAtTime = dateLabel ? t('pp_when_short', { date: dateLabel, time: timeStr }) : timeStr;
   const venueShort = (typeof shortName === 'function') ? shortName(venue.name, 18) : venue.name;
-  const titleText = isInvite && opts.inviterName
-    ? t('pp_title_invited_to', { name: opts.inviterName, venue: venueShort })
-    : isInvite
-      ? t('pp_title_invited_anon', { venue: venueShort })
-      : '';
+  const invitedLine = isInvite && opts.inviterName
+    ? t('pp_invited_line_named', { name: opts.inviterName })
+    : isInvite ? t('pp_invited_line_anon') : '';
 
   el.innerHTML = `
     <div class="pp-bottom">
@@ -673,20 +621,21 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
       </div>
       ${isInvite ? `
         <div class="pp-title-block">
-          ${inviterAvatarHtml ? `<div class="pp-title-avatar">${inviterAvatarHtml}</div>` : ''}
-          <div class="pp-title-text">
-            <h2 class="pp-title">${titleText}</h2>
-            <div class="pp-title-sub">${meetLine}</div>
+          ${invitedLine ? `<div class="pp-invited-line">${invitedLine}</div>` : ''}
+          <div class="pp-title-row">
+            <h2 class="pp-venue-title">${venueShort}</h2>
+            <div class="pp-when">${dateAtTime}</div>
           </div>
-        </div>` : `<div class="pp-meet-line">${meetLine}</div>`}
-      ${dpCardHtml}
+        </div>` : `<div class="pp-meet-line">${dateAtTime}</div>`}
+      ${venueCardHtml}
       ${attendeesHtml}
       <div class="pp-cta-row">${ctaHtml}</div>
     </div>`;
 
-  // Draw the dp-card mini-timeline canvas now that it's in the DOM.
+  // Draw the static mini-timeline canvas inside the venue card. No FTS
+  // reparenting — the card stays inert and matches the list's appearance.
   if (typeof drawAllCardTimelines === 'function') {
-    const ppCard = el.querySelector('#pp-dp-card');
+    const ppCard = el.querySelector('#pp-venue-card');
     if (ppCard) drawAllCardTimelines(ppCard);
   }
 
