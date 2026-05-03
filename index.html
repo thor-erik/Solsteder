@@ -185,11 +185,14 @@
     height: 100%;
   }
 
-  /* Invite-loading gate (set in head): hides the map's Oslo-fallback first
-     paint so the receiver doesn't see a wrong-location flash before the
-     plan-preview takeover lands its jumpTo. Removed in JS after camera
-     positioning is complete. */
-  html.invite-loading #map {
+  /* Invite-loading gate (set in head): hides the map AND the canvas overlay
+     (pins) so the receiver doesn't see either the Oslo-fallback flash before
+     the takeover's jumpTo OR the orange pins drawn against an empty dark
+     background while Mapbox tiles for the dive view are still loading.
+     Removed in JS once the map fires 'idle' (tiles rendered for the current
+     view) — see ui-plan-preview.js openPlanPreview. */
+  html.invite-loading #map,
+  html.invite-loading #canvas-overlay {
     visibility: hidden;
   }
 
@@ -6407,10 +6410,6 @@
   body.plan-preview-active #zoom-jog {
     bottom: calc(var(--pp-bottom-h, 220px) + 14px + 34px + 10px);
   }
-  /* The bottom card hosts its own time slider (the reparented #fts). The FTS
-     calendar button is meaningless to a receiver — the date is fixed by the
-     inviter — so hide it while the FTS is in-card during the preview. */
-  body.plan-preview-active #fts.fts-in-card #fts-date-btn { display: none !important; }
   .plan-preview {
     position: fixed;
     inset: 0;
@@ -6472,68 +6471,55 @@
     background: rgba(156,189,231,0.25);
     flex-shrink: 0;
   }
-  /* Eyebrow row — inviter avatar + "X har invitert deg" text inline. */
-  /* Title block — the prominent invite headline above the venue card.
-     Format: "{Inviter} has invited you to {Short venue}" + date·time sub.
-     Inviter avatar (when known) sits left of the title text in a 2-column
-     flex; falls back to text-only when the inviter is unknown (anon token). */
+  /* Title block — the receiver's headline above the venue card. Two rows:
+       row 1: smaller "X has invited you to" lead-in (.pp-invited-line)
+       row 2: prominent "{Short venue}" left + "{date} at {time}" right
+     The bottom row's two children share visual weight; the top row is
+     subordinate so the eye lands on the venue name + when. */
   .pp-title-block {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    margin-top: 4px;
-  }
-  .pp-title-avatar {
-    flex-shrink: 0;
-    margin-top: 2px;
-  }
-  .pp-title-text {
-    flex: 1;
-    min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 4px;
+    margin-top: 4px;
   }
-  .pp-title {
+  .pp-invited-line {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    line-height: 1.3;
+    letter-spacing: -0.005em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .pp-title-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .pp-venue-title {
     font-size: 22px;
     font-weight: 700;
     line-height: 1.2;
     letter-spacing: -0.015em;
     color: var(--text);
     margin: 0;
-    /* Allow up to 3 lines for "Maja has invited you to Mamma Pizza" before
-       wrapping pushes too tall. shortName() caps the venue at 18 chars. */
+    flex: 1;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    word-wrap: break-word;
+    white-space: nowrap;
   }
-  .pp-title-sub {
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--muted);
-    line-height: 1.35;
-    font-variant-numeric: tabular-nums;
-  }
-  .pp-inviter-av {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid rgba(255,175,133,0.45);
+  .pp-when {
     flex-shrink: 0;
-    display: block;
-  }
-  .pp-inviter-av-init {
-    background: rgba(255,175,133,0.18);
-    color: var(--accent);
-    display: flex;
-    align-items: center;
-    justify-content: center;
     font-size: 16px;
-    font-weight: 700;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
   }
   /* Meet-line — fallback for non-invite (preview) mode without a title block. */
   .pp-meet-line {
@@ -6544,19 +6530,15 @@
     font-variant-numeric: tabular-nums;
     margin-top: -2px;
   }
-  /* The dp-card inside the plan-preview is the same DOM as in the detail
-     panel post-morph — already styled by .dp-card rules. Remove its outer
-     margin since the .pp-bottom flex gap handles spacing. */
-  .pp-bottom .dp-card {
+  /* Venue card inside the plan-preview is rendered via renderCard() so it
+     looks identical to a list card. Remove its bottom margin since the
+     .pp-bottom flex gap handles spacing, and disable hover/cursor since
+     it's not interactive here. */
+  .pp-bottom .venue-card {
     margin-bottom: 0;
+    cursor: default;
   }
-  /* Override the body.plan-preview-active #fts opacity-0 hide rule while FTS
-     is hosted inside the preview's dp-card (matches the detail panel's
-     in-card hosting pattern). */
-  body.plan-preview-active #fts.fts-in-card {
-    opacity: 1 !important;
-    pointer-events: auto !important;
-  }
+  .pp-bottom .venue-card:hover { background: var(--glass-card-bg); }
   .pp-attendees {
     margin-top: 2px;
     padding: 10px 12px;
