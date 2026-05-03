@@ -14,6 +14,12 @@ const _NOTIF_EVAL_INTERVAL    = 60000;  // re-evaluate every 60s
 const _NOTIF_AUTO_P0          = 8000;   // P0 auto-dismiss
 const _NOTIF_AUTO_DEFAULT     = 6000;   // other auto-dismiss
 const _NOTIF_LEGACY_DISMISS   = 2200;   // legacy _showToast timing
+// Per-day cap for weather notifications (smartness budget — avoid nagging).
+// Persisted in localStorage state.weatherShownDates[YYYY-MM-DD].
+const _NOTIF_WEATHER_DAILY_CAP = 3;
+// Extra cooldown applied per category on top of the global 2-min cooldown.
+// Currently only weather is throttled — social/login/onboarding stay snappy.
+const _NOTIF_CATEGORY_COOLDOWN = { weather: 60 * 60 * 1000 };
 
 // ── Mutable State ─────────────────────────────────────────────��──────────────
 
@@ -29,6 +35,8 @@ let _notifVenueOpens    = 0;          // venue detail opens this session
 let _notifInitDone      = false;
 let _notifEvalTimer     = null;
 let _notifWeatherShownThisSession = false; // track if any P0 weather was shown
+let _notifLastByCategory = {};        // category → last-shown timestamp
+let _notifConditionsCache = new Map(); // memo for _evalCurrentConditions per tick
 
 // ── localStorage Helpers ─────────��───────────────────────────────────────────
 
@@ -83,6 +91,10 @@ function _notifCanShow() {
   // Don't show if profile panel is open
   const pp = document.getElementById('profile-panel');
   if (pp && pp.classList.contains('open')) return false;
+  // QC calendar panel — opened by `weather_no_sun` action; toast must hide
+  // beneath it to keep the user focused on picking a date.
+  const qc = document.getElementById('qc-panel');
+  if (qc && qc.classList.contains('open')) return false;
   // Suppress while a takeover sheet is up (plan preview, invite sheet) —
   // these own the user's attention and toasts visually conflict with them.
   if (document.body.classList.contains('plan-preview-active')) return false;
@@ -96,9 +108,35 @@ function _notifCanShow() {
   return !_notifLastShownAt || (Date.now() - _notifLastShownAt) > _NOTIF_COOLDOWN;
 }
 
+// Per-category quotas: per-day weather cap (persisted) + per-category cooldown
+// (in-memory). Returns true if `notif` is allowed to show right now.
+function _notifPassesCategoryGate(notif) {
+  if (!notif) return false;
+  const cooldown = _NOTIF_CATEGORY_COOLDOWN[notif.category];
+  if (cooldown) {
+    const last = _notifLastByCategory[notif.category] || 0;
+    if (last && Date.now() - last < cooldown) return false;
+  }
+  if (notif.category === 'weather') {
+    const state = _notifLoadState();
+    const today = todayStr();
+    const counts = state.weatherShownDates || {};
+    if ((counts[today] || 0) >= _NOTIF_WEATHER_DAILY_CAP) return false;
+  }
+  return true;
+}
+
 function _notifAdvance() {
   if (_notifCurrent) return; // one at a time
   if (!_notifCanShow()) return;
+  // Skip queued items that fail per-category gates without blocking the
+  // queue: re-queue items further back in the same priority lane would be
+  // overkill. Just drop them — they will re-enqueue on the next eval tick
+  // if the underlying condition still holds.
+  while (_notifQueue.length) {
+    if (_notifPassesCategoryGate(_notifQueue[0])) break;
+    _notifQueue.shift();
+  }
   const notif = _notifDequeue();
   if (notif) _notifShow(notif);
 }
@@ -174,6 +212,11 @@ function _notifShow(notif) {
 
   const wrap = document.getElementById('notif-toast-wrap');
   if (wrap) wrap.classList.add('show');
+  // Measure the rendered toast and expose its height as `--notif-h` so the
+  // venue-list panel can shift down on desktop and avoid overlap. Without
+  // this the CSS rule (`body:has(...) #panel { top: calc(70px + var(--notif-h, 0px) + 8px); }`)
+  // had no effect because the variable was never set.
+  _notifAttachHeightObserver(el);
   _notifShownCount++;
   _notifLastShownAt = Date.now();
 
@@ -199,9 +242,38 @@ function _notifHide() {
   clearTimeout(_notifAutoTimer);
   const wrap = document.getElementById('notif-toast-wrap');
   if (wrap) wrap.classList.remove('show');
+  // Reset the panel offset so it animates back up alongside the toast fade.
+  document.documentElement.style.setProperty('--notif-h', '0px');
+  _notifDetachHeightObserver();
   _notifCurrent = null;
   // After hide animation, try next in queue
   setTimeout(() => _notifAdvance(), 400);
+}
+
+let _notifHeightObserver = null;
+function _notifAttachHeightObserver(el) {
+  _notifDetachHeightObserver();
+  if (typeof ResizeObserver === 'undefined' || !el) {
+    // Fallback: read height once after layout settles.
+    requestAnimationFrame(() => {
+      const h = el ? el.getBoundingClientRect().height : 0;
+      document.documentElement.style.setProperty('--notif-h', h + 'px');
+    });
+    return;
+  }
+  _notifHeightObserver = new ResizeObserver(entries => {
+    for (const entry of entries) {
+      const h = entry.contentRect ? entry.contentRect.height : entry.target.getBoundingClientRect().height;
+      document.documentElement.style.setProperty('--notif-h', h + 'px');
+    }
+  });
+  _notifHeightObserver.observe(el);
+}
+function _notifDetachHeightObserver() {
+  if (_notifHeightObserver) {
+    try { _notifHeightObserver.disconnect(); } catch {}
+    _notifHeightObserver = null;
+  }
 }
 
 // Pause auto-dismiss while a blocking overlay (e.g. full-screen login) is up.
@@ -278,25 +350,89 @@ function _notifResumeAfterSearch() {
   }, duration);
 }
 
-// ── Evaluators: P0 Weather ───────────────���─────────────────────────────���─────
+// ── Current conditions helper ────────────────────────────────────────────────
+// Shared precondition for weather evaluators. Computes whether right now is
+// actually sunny/dry/clear, and how many venues are in sun this hour. Memoized
+// per `_notifEvaluate` tick because the venues-in-sun scan is O(VENUES) and is
+// called by multiple evaluators in the same cycle.
 
+function _venuesInSunAtHour(dateStr, hour) {
+  if (typeof VENUES === 'undefined' || !VENUES) return 0;
+  let count = 0;
+  for (const v of VENUES) {
+    const { windows } = computeSunWindows(v, dateStr);
+    if (windows && windows.some(w => w.start <= hour && w.end > hour)) count++;
+  }
+  return count;
+}
+
+function _evalCurrentConditions(dateStr, hour) {
+  const key = `${dateStr}|${Math.floor(hour)}`;
+  const cached = _notifConditionsCache.get(key);
+  if (cached) return cached;
+  const wxNow = (typeof getWeatherAt === 'function') ? getWeatherAt(dateStr, Math.floor(hour)) : null;
+  const cloud  = wxNow ? wxNow.cloud  : 0;
+  const precip = wxNow ? wxNow.precip : 0;
+  const sunGeometric = (typeof currentSun !== 'undefined' && currentSun) ? currentSun.alt > 0 : true;
+  const venuesInSun = sunGeometric ? _venuesInSunAtHour(dateStr, Math.floor(hour)) : 0;
+  const qualityScore = (1 - Math.min(cloud, 1)) * (1 - Math.min(precip, 1)) * (sunGeometric ? 1 : 0);
+  const cond = {
+    wxNow,
+    cloudHeavy: cloud > 0.6,
+    raining: precip > 0.2,
+    sunGeometric,
+    venuesInSun,
+    qualityScore,
+  };
+  _notifConditionsCache.set(key, cond);
+  return cond;
+}
+
+// ── Evaluators: P0 Weather ───────────────────────────────────────────────────
+
+// Fires when (a) no geometric sun remains, OR (b) sun exists on paper but
+// every remaining hour today is heavily overcast (cloud > 0.85). Both cases
+// share the same once-per-calendar-day persistence (`state.noSunShownDate`).
 function _evalNoSunToday() {
   if (typeof VENUES === 'undefined' || !VENUES || !VENUES.length) return null;
   if (typeof datePicker === 'undefined' || !datePicker) return null;
   if (datePicker.value !== todayStr()) return null;
-  // Only show once per calendar day — don't nag on every session
   const state = _notifLoadState();
   if (state.noSunShownDate === todayStr()) return null;
-  // Check if ANY venue has sun from now onwards (not the whole day)
+  const dateStr = datePicker.value;
   const now = currentHour();
-  const hasSun = VENUES.some(v => {
-    const { windows } = computeSunWindows(v, datePicker.value);
+  // (a) Geometric: any venue has a sun window after `now`?
+  const hasGeometricSun = VENUES.some(v => {
+    const { windows } = computeSunWindows(v, dateStr);
     return windows && windows.some(w => w.end > now);
   });
-  if (hasSun) return null;
+  if (!hasGeometricSun) {
+    return {
+      id: 'weather_no_sun', priority: 0, category: 'weather',
+      icon: '☁️', bodyKey: 'notif_no_sun_body', actionKey: 'notif_open_calendar',
+      action: () => { if (typeof _openQcPanel === 'function') _openQcPanel(); },
+      ttl: 600000, dedupe: true,
+    };
+  }
+  // (b) Weather: heavy overcast for every remaining hour up to sunset.
+  if (typeof getWeatherAt !== 'function') return null;
+  const sunsetH = (typeof SUNSET_H_ARC !== 'undefined' && SUNSET_H_ARC != null)
+    ? Math.min(22, Math.floor(SUNSET_H_ARC))
+    : 22;
+  const startH = Math.ceil(now);
+  if (sunsetH - startH < 2) return null; // not enough remaining hours to claim "all day"
+  let allOvercast = true;
+  let havePoints = false;
+  for (let h = startH; h <= sunsetH; h++) {
+    const wx = getWeatherAt(dateStr, h);
+    if (!wx) continue;
+    havePoints = true;
+    if (wx.cloud <= 0.85) { allOvercast = false; break; }
+  }
+  if (!havePoints || !allOvercast) return null;
   return {
-    id: 'weather_no_sun', priority: 0, category: 'weather',
-    icon: '☁️', bodyKey: 'notif_no_sun_body', actionKey: 'notif_open_calendar',
+    id: 'weather_overcast_all_day', priority: 0, category: 'weather',
+    icon: '☁️', bodyKey: 'notif_overcast_all_day_body', actionKey: 'notif_open_calendar',
     action: () => { if (typeof _openQcPanel === 'function') _openQcPanel(); },
     ttl: 600000, dedupe: true,
   };
@@ -310,6 +446,10 @@ function _evalSunSettingSoon() {
   const timeLeft = SUNSET_H_ARC - now;
   // Fire when 30–60 min of sun remain
   if (timeLeft <= 0 || timeLeft > 1 || timeLeft < 0.5) return null;
+  // No "you're missing it" framing when it's already overcast — there's
+  // nothing to miss when the sky is grey.
+  const cond = _evalCurrentConditions(datePicker.value, now);
+  if (cond.cloudHeavy) return null;
   const sunsetTime = formatHour(SUNSET_H_ARC);
   return {
     id: 'weather_sun_setting', priority: 0, category: 'weather',
@@ -329,6 +469,10 @@ function _evalCloudIncoming() {
   const now = currentHour();
   const wxNow = getWeatherAt(dateStr, Math.floor(now));
   if (!wxNow || wxNow.cloud > 0.5) return null; // already cloudy
+  // Don't warn about clouds rolling in if nothing is in sun anyway (e.g.
+  // sun is up but every venue is shaded by buildings right now).
+  const cond = _evalCurrentConditions(dateStr, now);
+  if (cond.venuesInSun < 5) return null;
   for (let h = 1; h <= 3; h++) {
     const wxFuture = getWeatherAt(dateStr, Math.floor(now) + h);
     if (wxFuture && wxFuture.cloud > 0.7) {
@@ -352,13 +496,20 @@ function _evalCloudIncoming() {
 }
 
 
+// Rain notification — informational only. The previous version offered a
+// "Skip to {rainEnd}" CTA that bypassed every sunny hour preceding the rain;
+// removing the action removes that failure mode entirely. We surface two
+// distinct cases:
+//   • imminent (rain ≤ 2h away) and conditions are decent right now
+//   • currently raining with sun returning later today
+// Otherwise the rain is too far off to be relevant — return null.
 function _evalRainWindow() {
   if (typeof getWeatherAt !== 'function') return null;
   if (typeof datePicker === 'undefined' || !datePicker) return null;
   const dateStr = datePicker.value;
   if (dateStr !== todayStr()) return null;
   const now = Math.floor(currentHour());
-  // Find rain start
+  // Find first rain block from now onwards
   let rainStart = null, rainEnd = null;
   for (let h = now; h <= 23; h++) {
     const wx = getWeatherAt(dateStr, h);
@@ -366,19 +517,28 @@ function _evalRainWindow() {
     if (wx.precip > 0.3 && rainStart === null) rainStart = h;
     if (wx.precip <= 0.3 && rainStart !== null && rainEnd === null) { rainEnd = h; break; }
   }
-  if (rainStart === null || rainStart <= now) return null; // already raining or no rain
-  if (rainEnd === null) return null; // rain doesn't stop today
+  if (rainStart === null) return null;
+  // Currently raining → look for sun returning later
+  if (rainStart <= now) {
+    if (rainEnd === null) return null; // rain doesn't stop today, nothing helpful to say
+    const sunsetH = (typeof SUNSET_H_ARC !== 'undefined' && SUNSET_H_ARC != null) ? SUNSET_H_ARC : 22;
+    if (rainEnd >= sunsetH - 1) return null; // sun is gone before rain ends
+    return {
+      id: 'weather_sun_returns', priority: 0, category: 'weather',
+      icon: '🌦️', bodyKey: 'notif_sun_returns_body',
+      bodyVars: { time: formatHour(rainEnd) },
+      ttl: 300000, dedupe: true,
+    };
+  }
+  // Rain in the future — only fire if it's imminent AND right now is decent
+  // enough that "make the most of it before rain" is useful.
+  if (rainStart - now > 2) return null;
+  const cond = _evalCurrentConditions(dateStr, now);
+  if (cond.qualityScore < 0.4) return null;
   return {
-    id: 'weather_rain', priority: 0, category: 'weather',
-    icon: '🌧️', bodyKey: 'notif_rain_body',
-    bodyVars: { from: formatHour(rainStart), to: formatHour(rainEnd) },
-    actionKey: 'notif_skip_rain',
-    action: () => {
-      if (typeof timeFromEl !== 'undefined' && timeFromEl) {
-        timeFromEl.value = rainEnd;
-        timeFromEl.dispatchEvent(new Event('input'));
-      }
-    },
+    id: 'weather_last_sun_before_rain', priority: 0, category: 'weather',
+    icon: '🌧️', bodyKey: 'notif_last_sun_before_rain_body',
+    bodyVars: { time: formatHour(rainStart) },
     ttl: 300000, dedupe: true,
   };
 }
@@ -391,47 +551,41 @@ function _evalBestSunWindow() {
   const now = currentHour();
   // Too late in the day for a "peak" to be actionable
   if (now >= 18) return null;
+  // Don't suggest jumping forward if right now is already great.
+  const cond = _evalCurrentConditions(dateStr, now);
+  if (cond.qualityScore > 0.7) return null;
   // Count venues with sun per hour
   let bestHour = -1, bestCount = 0;
   for (let h = Math.max(6, Math.ceil(now)); h <= 21; h++) {
-    let count = 0;
-    for (const v of VENUES) {
-      const { windows } = computeSunWindows(v, dateStr);
-      if (windows && windows.some(w => w.start <= h && w.end >= h)) count++;
-    }
+    const count = _venuesInSunAtHour(dateStr, h);
     if (count > bestCount) { bestCount = count; bestHour = h; }
   }
   if (bestHour < 0 || bestCount < 15) return null; // not enough venues with sun
-  // Suppress when peak hour is mostly cloudy or wet (skip gating if no weather data)
+  // Suppress when peak hour is mostly cloudy or wet
+  let wxAtPeak = null;
   if (typeof getWeatherAt === 'function') {
-    const wx = getWeatherAt(dateStr, bestHour);
-    if (wx && (wx.cloud > 0.65 || wx.precip >= 0.2)) return null;
+    wxAtPeak = getWeatherAt(dateStr, bestHour);
+    if (wxAtPeak && (wxAtPeak.cloud > 0.65 || wxAtPeak.precip >= 0.2)) return null;
+  }
+  // Require a meaningful weather improvement at the peak vs. now —
+  // either the cloud cover drops by ≥ 0.2, or it's currently raining and
+  // the peak is dry.
+  if (wxAtPeak && cond.wxNow) {
+    const cloudImproves = (wxAtPeak.cloud + 0.2) < cond.wxNow.cloud;
+    const rainStops    = cond.raining && wxAtPeak.precip < 0.1;
+    if (!cloudImproves && !rainStops) return null;
   }
   // Find the peak block (contiguous hours with same-ish count)
   let blockStart = bestHour, blockEnd = bestHour;
   for (let h = bestHour - 1; h >= Math.ceil(now); h--) {
-    let count = 0;
-    for (const v of VENUES) {
-      const { windows } = computeSunWindows(v, dateStr);
-      if (windows && windows.some(w => w.start <= h && w.end >= h)) count++;
-    }
-    if (count >= bestCount * 0.7) blockStart = h; else break;
+    if (_venuesInSunAtHour(dateStr, h) >= bestCount * 0.7) blockStart = h; else break;
   }
   for (let h = bestHour + 1; h <= 21; h++) {
-    let count = 0;
-    for (const v of VENUES) {
-      const { windows } = computeSunWindows(v, dateStr);
-      if (windows && windows.some(w => w.start <= h && w.end >= h)) count++;
-    }
-    if (count >= bestCount * 0.7) blockEnd = h; else break;
+    if (_venuesInSunAtHour(dateStr, h) >= bestCount * 0.7) blockEnd = h; else break;
   }
-  // Require the peak to be meaningfully better than right now
+  // Require the peak to be meaningfully better than right now (venue count)
   const nowH = Math.ceil(now);
-  let nowCount = 0;
-  for (const v of VENUES) {
-    const { windows } = computeSunWindows(v, dateStr);
-    if (windows && windows.some(w => w.start <= nowH && w.end >= nowH)) nowCount++;
-  }
+  const nowCount = _venuesInSunAtHour(dateStr, nowH);
   if (bestCount < nowCount * 1.3 && bestCount - nowCount < 5) return null;
   // Only show if peak is in the future
   if (blockEnd <= now) return null;
@@ -616,69 +770,10 @@ function _evalFriendPlanning() {
 }
 
 // ── Evaluators: P2 Suggestions ───────────────────────────────────────────────
-
-function _evalMorningCoffee() {
-  if (typeof datePicker === 'undefined' || datePicker.value !== todayStr()) return null;
-  const now = currentHour();
-  if (now >= 11 || now < 7) return null; // only 7-11
-  if (typeof currentSun === 'undefined' || !currentSun || currentSun.alt <= 0) return null;
-  return {
-    id: 'suggest_morning', priority: 2, category: 'suggestion',
-    icon: '☕', bodyKey: 'notif_morning_body',
-    actionKey: null, action: null,
-    ttl: 120000, dedupe: true,
-  };
-}
-
-function _evalLunchBreak() {
-  if (typeof datePicker === 'undefined' || datePicker.value !== todayStr()) return null;
-  const now = currentHour();
-  if (now < 11 || now > 13) return null;
-  const day = new Date().getDay();
-  if (day === 0 || day === 6) return null; // weekdays only
-  return {
-    id: 'suggest_lunch', priority: 2, category: 'suggestion',
-    icon: '🍽️', bodyKey: 'notif_lunch_body',
-    bodyVars: { hour: '12:00' },
-    actionKey: 'notif_set_time',
-    action: () => {
-      if (typeof timeFromEl !== 'undefined' && timeFromEl) {
-        timeFromEl.value = 12;
-        timeFromEl.dispatchEvent(new Event('input'));
-      }
-    },
-    ttl: 120000, dedupe: true,
-  };
-}
-
-function _evalAfterWork() {
-  if (typeof datePicker === 'undefined' || datePicker.value !== todayStr()) return null;
-  const now = currentHour();
-  if (now < 15 || now > 17) return null;
-  const day = new Date().getDay();
-  if (day === 0 || day === 6) return null; // weekdays only
-  if (typeof currentSun === 'undefined' || !currentSun || currentSun.alt <= 0) return null;
-  return {
-    id: 'suggest_afterwork', priority: 2, category: 'suggestion',
-    icon: '🍻', bodyKey: 'notif_afterwork_body',
-    actionKey: null, action: null,
-    ttl: 120000, dedupe: true,
-  };
-}
-
-function _evalWindSheltered() {
-  if (typeof getWeatherAt !== 'function') return null;
-  if (typeof datePicker === 'undefined') return null;
-  if (datePicker.value !== todayStr()) return null;
-  const wx = getWeatherAt(datePicker.value, Math.floor(currentHour()));
-  if (!wx || wx.wspd <= 8) return null;
-  return {
-    id: 'suggest_sheltered', priority: 2, category: 'suggestion',
-    icon: '🛡️', bodyKey: 'notif_sheltered_body',
-    actionKey: null, action: null,
-    ttl: 300000, dedupe: true,
-  };
-}
+// The old time-of-day "now is a good moment" suggestions (morgensol / lunsj /
+// afterwork / wind-shelter) were removed — they duplicated information already
+// visible on the live map and ignored current weather, leading to "morning sun
+// recommended while overcast" misfires. Only data-driven suggestions remain.
 
 function _evalBusynessAlert() {
   if (typeof _currentUser === 'undefined' || !_currentUser) return null;
@@ -838,10 +933,6 @@ const _notifEvaluators = [
   _evalLoginShare,
   _evalLoginNewVenues,
   // P2 Suggestions
-  _evalMorningCoffee,
-  _evalLunchBreak,
-  _evalAfterWork,
-  _evalWindSheltered,
   _evalBusynessAlert,
   // P3 Onboarding
   _evalWelcome,
@@ -854,6 +945,9 @@ const _notifEvaluators = [
 
 function _notifEvaluate() {
   if (!_notifInitDone) { console.log('[notif] evaluate skipped: not init'); return; }
+  // Invalidate the per-tick conditions memo so re-evaluations see fresh
+  // weather/sun data after the user moves the time slider or weather refreshes.
+  _notifConditionsCache.clear();
   const settings = _notifGetSettings();
   let enqueued = 0;
   for (const evaluator of _notifEvaluators) {
@@ -966,9 +1060,22 @@ _notifShow = function(notif) {
     _notifLoginShown.add(notif.id);
   }
   // Mark "no sun" as shown for today so it doesn't repeat across sessions
-  if (notif.id === 'weather_no_sun') {
+  if (notif.id === 'weather_no_sun' || notif.id === 'weather_overcast_all_day') {
     const state = _notifLoadState();
     state.noSunShownDate = todayStr();
+    _notifSaveState(state);
+  }
+  // Per-category cooldown bookkeeping
+  _notifLastByCategory[notif.category] = Date.now();
+  // Per-day weather cap bookkeeping
+  if (notif.category === 'weather') {
+    const state = _notifLoadState();
+    if (!state.weatherShownDates) state.weatherShownDates = {};
+    const today = todayStr();
+    state.weatherShownDates[today] = (state.weatherShownDates[today] || 0) + 1;
+    // Garbage-collect old entries (keep last 14 days only)
+    const keep = Object.keys(state.weatherShownDates).sort().slice(-14);
+    state.weatherShownDates = Object.fromEntries(keep.map(k => [k, state.weatherShownDates[k]]));
     _notifSaveState(state);
   }
   // Per-notification _onShow hook (used by social_invite_accepted to persist dedupe)
