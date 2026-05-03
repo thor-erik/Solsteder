@@ -6378,7 +6378,9 @@
     pointer-events: none;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    /* Single child (.pp-bottom) — push it to the bottom of the viewport.
+       Used to be space-between when .pp-top existed as a second child. */
+    justify-content: flex-end;
   }
   .plan-preview.open .pp-bottom {
     opacity: 1;
