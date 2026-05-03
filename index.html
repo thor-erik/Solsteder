@@ -6133,6 +6133,11 @@
     gap: 2px;
     overflow-y: auto;
     margin: 0 -4px;
+    /* Cap height so a long friends list scrolls inside its own area instead
+       of pushing the buttons + bubble below the fold. ~3 rows visible
+       (each row ~56px including padding). */
+    max-height: 180px;
+    -webkit-overflow-scrolling: touch;
   }
 
   .invite-friend-row {
@@ -6240,13 +6245,20 @@
     line-height: 1.4;
   }
 
-  /* ── Footer (dual actions) ─────────────────────────────────────────────── */
+  /* ── Footer (preview bubble + dual actions) ────────────────────────────── */
   .invite-sheet-footer {
-    padding: 10px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+    padding: 14px 20px calc(20px + env(safe-area-inset-bottom, 0px));
     border-top: 1px solid rgba(156,189,231,0.12);
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
+  }
+  /* Bubble lives inside the footer now so it visually groups with the
+     send/share buttons that follow it (the bubble IS the message; the
+     buttons send it). The border-top above separates the action area
+     from the friends list. */
+  .invite-sheet-footer .invite-bubble-wrap {
+    margin-bottom: -2px;
   }
   /* Hint above the share/send buttons — clarifies what each button does for
      first-time users ("Send i appen, eller del en åpen lenke"). */
@@ -6257,14 +6269,30 @@
     padding: 0 4px 2px;
     line-height: 1.35;
   }
+  /* Slider title — describes what the FTS scrubber does in the invite context
+     (the sender doesn't have the rest-of-app context to know it shows live
+     sun/weather). Tiny muted line above the slot. */
+  .invite-fts-label {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.3;
+    padding: 0 4px;
+    margin: 4px 0 -4px;
+  }
   /* FTS slot in the invite sheet — sized to host the live #fts (38px tall to
      match the dp-card timeline slot). The reparented #fts picks up overrides
-     via .fts-in-invite below. */
+     via .fts-in-invite below. The slot is `position: relative` so the popup
+     (which is reparented inside it) anchors correctly. */
   .invite-fts-slot {
-    margin: 4px 0 2px;
+    position: relative;
+    margin: 4px 0 6px;
     min-height: 38px;
     display: flex;
     align-items: center;
+  }
+  /* Reparented popup needs to render above the FTS controls inside the sheet. */
+  #fts-popup.fts-popup-in-invite {
+    z-index: 50;
   }
   #fts.fts-in-invite {
     position: static !important;

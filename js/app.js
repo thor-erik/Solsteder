@@ -345,6 +345,11 @@ function initFts() {
     setActiveIntentBtn(null);
     timeFromEl.value = hour;
     update();
+    // Dispatch input so anything that listens to timeFromEl (e.g. the invite
+    // sheet's _updateInviteConfirm hook that re-renders the venue card +
+    // bubble) picks up FTS canvas scrubs. update() handles the main app's
+    // own rendering paths — this just notifies the standard event channel.
+    timeFromEl.dispatchEvent(new Event('input'));
     showFtsPopup(hour);
   };
 

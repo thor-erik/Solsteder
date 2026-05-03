@@ -997,11 +997,12 @@ function _openInviteSheet(venueId) {
           <div class="invite-venue-sun" id="invite-venue-sun">${sunUntil}</div>
         </div>
       </div>
+      <div class="invite-fts-label">${t('invite_fts_label')}</div>
       <div class="invite-fts-slot"></div>
       ${friendsBlock}
-      ${bubbleBlock}
     </div>
     <div class="invite-sheet-footer">
+      ${bubbleBlock}
       ${footerBlock}
     </div>`;
 
@@ -1146,19 +1147,35 @@ function _invFtsAttach() {
   fts.style.cssText = '';
   fts.classList.add('fts-in-invite');
   slot.appendChild(fts);
+  // Reparent the scrub popup alongside the FTS so its offsetLeft-based
+  // positioning math (showFtsPopup in app.js) lands at the right viewport
+  // coordinates. Without this, the popup tries to position relative to body
+  // while the FTS thumb lives inside the sheet — popup ends up off-screen.
+  const popup = document.getElementById('fts-popup');
+  if (popup) {
+    popup.style.cssText = '';
+    popup.classList.add('fts-popup-in-invite');
+    slot.appendChild(popup);
+  }
   requestAnimationFrame(() => {
     if (typeof drawFtsCanvas === 'function') drawFtsCanvas();
   });
 }
 
-/** Reverse: detach FTS from the invite slot back to body. The caller
- *  (_closeInviteSheet) is responsible for whatever follows. */
+/** Reverse: detach FTS + popup from the invite slot back to body. */
 function _invFtsDetach() {
   const fts = document.getElementById('fts');
-  if (!fts) return;
-  fts.classList.remove('fts-in-invite');
-  fts.style.cssText = '';
-  if (fts.parentNode !== document.body) document.body.appendChild(fts);
+  if (fts) {
+    fts.classList.remove('fts-in-invite');
+    fts.style.cssText = '';
+    if (fts.parentNode !== document.body) document.body.appendChild(fts);
+  }
+  const popup = document.getElementById('fts-popup');
+  if (popup) {
+    popup.classList.remove('fts-popup-in-invite');
+    popup.style.cssText = '';
+    if (popup.parentNode !== document.body) document.body.appendChild(popup);
+  }
 }
 
 /** Toggle a single friend row's selection (avatar-tap pattern, no checkbox). */

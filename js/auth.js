@@ -1774,10 +1774,26 @@ _supabase.auth.onAuthStateChange((event, session) => {
     if (_checkinSubscription) { _checkinSubscription.unsubscribe(); _checkinSubscription = null; }
   }
 
-  // After login: re-open the detail panel for the selected venue
-  if (!wasLoggedIn && _currentUser && typeof selectedId !== 'undefined' && selectedId) {
-    const v = typeof VENUES !== 'undefined' && VENUES.find(x => x.id === selectedId);
-    if (v && typeof openDetailPanel === 'function') openDetailPanel(v);
+  // Stash the currently-selected venue BEFORE the closeDetailPanel call below
+  // resets selectedId. The post-login reopen path picks this up so the user
+  // lands back on the same venue's detail panel after auth.
+  let _stashedVenueId = null;
+  if (wasLoggedIn && !_currentUser && typeof selectedId !== 'undefined' && selectedId) {
+    _stashedVenueId = selectedId;
+    if (typeof window !== 'undefined') window._postLoginVenueId = _stashedVenueId;
+  }
+
+  // After login: re-open the detail panel for the selected venue. Tries
+  // selectedId first (set when login is triggered from the detail panel
+  // directly), then falls back to the stashed id from a prior logout cycle.
+  if (!wasLoggedIn && _currentUser) {
+    const id = (typeof selectedId !== 'undefined' && selectedId) ? selectedId
+            : (typeof window !== 'undefined' ? window._postLoginVenueId : null);
+    if (id) {
+      const v = typeof VENUES !== 'undefined' && VENUES.find(x => x.id === id);
+      if (v && typeof openDetailPanel === 'function') openDetailPanel(v);
+      if (typeof window !== 'undefined') window._postLoginVenueId = null;
+    }
   }
 
   // After login: resume any pending invite-link that landed before auth completed.
