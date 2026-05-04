@@ -118,23 +118,15 @@ const FTS_GAP          = 8;    // px gap between pill and panel top edge
 
 /** Update FTS position — mobile: --fts-bottom var; desktop: left edge.
  *
- *  Skipped while a detail-panel open-morph is in flight (body.dataset.dpMorph
- *  set by openDetailPanel). Other callers — renderList → updateVenuePeek →
- *  _updatePeekHeight runs in a rAF that lands AFTER our open-morph rAF, and
- *  _syncFtsPosition would (a) reset ftsEl.style.opacity = '' (undoing the
- *  fade-out), and (b) call _syncFtsToSlot while the panel is mid-rise (pinning
- *  FTS to a mid-flight slot rect). The flag prevents both. */
+ *  Anchors the FTS pill above whichever .fts-host panel is currently open.
+ *  Each open-state class on a host yields a target bottom-offset (in viewport
+ *  units), and changing --fts-bottom triggers the CSS transition that slides
+ *  the pill between positions. To register a new panel, add `.fts-host` to its
+ *  root and extend `_ftsHostBottom()` with the rule that maps its open
+ *  state(s) to a bottom expression. */
 function _syncFtsPosition() {
   if (!USE_FLOATING_TIME_SLIDER) return;
-  if (document.body.dataset.dpMorph === '1') return;
   const ftsEl = document.getElementById('fts');
-  // FTS reparented into the docked card flows with it — no overlay sync needed.
-  if (ftsEl?.classList.contains('fts-in-card')) return;
-  // FTS reparented into the plan-preview's bottom card — same deal.
-  if (ftsEl?.classList.contains('fts-in-preview')) return;
-  // FTS reparented into the invite sheet — same: sync would tear it back to
-  // the default top-of-screen fixed position on every scrub-driven re-render.
-  if (ftsEl?.classList.contains('fts-in-invite')) return;
   const panel = document.getElementById('panel');
   const dp    = document.getElementById('detail-panel');
   if (!panel) return;
@@ -159,35 +151,24 @@ function _syncFtsPosition() {
     return;
   }
 
-  // ── Mobile: track panel top edge via --fts-bottom ────────────────────
-  // Clear any desktop-set inline styles so CSS mobile rules apply
-  if (ftsEl) { ftsEl.style.left = ''; ftsEl.style.removeProperty('--fts-left'); ftsEl.style.removeProperty('--fts-width'); }
-  const locateEl = document.getElementById('locate-btn');
-  const zoomJog  = document.getElementById('zoom-jog');
-  const dpOpen = dp?.classList.contains('open');
-  if (dpOpen) {
-    if (ftsEl) { ftsEl.style.opacity = ''; ftsEl.style.pointerEvents = ''; }
-    if (locateEl) { locateEl.style.opacity = '0'; locateEl.style.pointerEvents = 'none'; }
-    if (zoomJog) { zoomJog.style.opacity = '0'; zoomJog.style.pointerEvents = 'none'; }
-    // Detail panel open: try to align FTS with the in-card slot. Falls back to
-    // above-panel placement if the slot isn't measurable yet (during morph).
-    if (typeof _syncFtsToSlot !== 'function' || !_syncFtsToSlot()) {
-      document.body.style.setProperty('--fts-bottom', `calc(62svh + ${FTS_GAP}px)`);
-    }
-    return;
+  // ── Mobile: --fts-bottom tracks the top edge of the active fts-host ──
+  if (ftsEl) {
+    ftsEl.style.left = '';
+    ftsEl.style.removeProperty('--fts-left');
+    ftsEl.style.removeProperty('--fts-width');
+    ftsEl.style.opacity = '';
+    ftsEl.style.pointerEvents = '';
   }
 
-  if (ftsEl) { ftsEl.style.opacity = ''; ftsEl.style.pointerEvents = ''; }
-
+  const locateEl = document.getElementById('locate-btn');
+  const zoomJog  = document.getElementById('zoom-jog');
+  const dpOpen     = dp?.classList.contains('open');
   const isHidden   = panel.classList.contains('mobile-hidden');
   const isExpanded = panel.classList.contains('mobile-expanded');
   const isFull     = panel.classList.contains('mobile-fullscreen');
 
-  // Locate button: stays visible in peek + expanded (sits above panel via z-index);
-  //                 only fade in fullscreen where the panel covers everything.
-  // Zoom jog: still fades when list is expanded or fullscreen.
   if (locateEl) {
-    if (isFull) {
+    if (dpOpen || isFull) {
       locateEl.style.opacity = '0';
       locateEl.style.pointerEvents = 'none';
     } else {
@@ -196,7 +177,7 @@ function _syncFtsPosition() {
     }
   }
   if (zoomJog) {
-    if (isExpanded || isFull) {
+    if (dpOpen || isExpanded || isFull) {
       zoomJog.style.opacity = '0';
       zoomJog.style.pointerEvents = 'none';
     } else {
@@ -205,18 +186,7 @@ function _syncFtsPosition() {
     }
   }
 
-  let bottom;
-  if (isHidden) {
-    bottom = `${FTS_GAP}px`;
-  } else if (isFull) {
-    bottom = `calc(100svh - env(safe-area-inset-top, 0px) - 46px - 16px - 4px - 14px)`;
-  } else if (isExpanded) {
-    bottom = `calc(55svh + ${FTS_GAP}px)`;
-  } else {
-    const peekH = panel.style.getPropertyValue('--peek-h') || '160px';
-    bottom = `calc(${peekH} + ${FTS_GAP}px)`;
-  }
-  document.body.style.setProperty('--fts-bottom', bottom);
+  document.body.style.setProperty('--fts-bottom', _ftsHostBottom(panel, dp));
 
   // Flip popup below bar when FTS is near the top (fullscreen mode)
   const popup = document.getElementById('fts-popup');
@@ -229,6 +199,24 @@ function _syncFtsPosition() {
     _maybePanMapForPanelState(_prevPanelMobileState, newState);
   }
   _prevPanelMobileState = newState;
+}
+
+/** Compute the FTS pill's mobile bottom-offset for the active fts-host panel.
+ *  Detail panel wins when open. To support a new panel, add `fts-host` to its
+ *  root and a branch here that maps its open-state class(es) to a CSS bottom
+ *  expression. */
+function _ftsHostBottom(panel, dp) {
+  if (dp?.classList.contains('open')) {
+    if (dp.classList.contains('dp-fullscreen')) {
+      return `calc(100svh - env(safe-area-inset-top, 0px) - 46px - 16px - 4px - 14px)`;
+    }
+    return `calc(62svh + ${FTS_GAP}px)`;
+  }
+  if (panel.classList.contains('mobile-hidden'))     return `${FTS_GAP}px`;
+  if (panel.classList.contains('mobile-fullscreen')) return `calc(100svh - env(safe-area-inset-top, 0px) - 46px - 16px - 4px - 14px)`;
+  if (panel.classList.contains('mobile-expanded'))   return `calc(55svh + ${FTS_GAP}px)`;
+  const peekH = panel.style.getPropertyValue('--peek-h') || '160px';
+  return `calc(${peekH} + ${FTS_GAP}px)`;
 }
 
 let _prevPanelMobileState = null;
