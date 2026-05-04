@@ -1034,11 +1034,8 @@ function _openInviteSheet(venueId) {
 
   // Inline SVG icon set used across the sheet.
   const pinSvg     = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
-  const xSvg       = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
-  const sendSvg    = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>`;
   const linkSvg    = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>`;
   const checkSvgSm = `<svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 7 6 11 12 3"/></svg>`;
-  const noFriendsSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>`;
 
   // Friend ids ordered by recent invite history. If there's no history, fall
   // back to the first 4 friends in the canonical list.
@@ -1047,10 +1044,6 @@ function _openInviteSheet(venueId) {
     : friends.slice(0, 4).map(f => String(f.id));
   const recentSet = new Set(recentIds.map(String));
 
-  const venueArea  = v ? (v.area || '') : '';
-  const venueCat   = (v && typeof catLabel === 'function') ? catLabel(v) : '';
-  const venueMeta  = [venueArea, venueCat].filter(Boolean).join(' · ');
-  const safeName   = venueName.replace(/"/g, '&quot;');
 
   const avatarsHtml   = _renderInviteAvatarCarousel(friends, _hashColor, checkSvgSm);
   const groupChipsHtml = _renderInviteGroupChips('recent', recentSet.size, friends.length);
@@ -1072,22 +1065,22 @@ function _openInviteSheet(venueId) {
         <div class="dpinvite-avatar-row no-scrollbar" id="dpinvite-avatar-row">
           ${avatarsHtml}
         </div>` : `
-        <div class="dpinvite-empty-card card">
-          <div class="dpinvite-empty-icon">${noFriendsSvg}</div>
+        <div class="dpinvite-empty-card">
           <div class="dpinvite-empty-title">${t('invite_no_friends_title')}</div>
           <div class="dpinvite-empty-sub">${t('invite_no_friends_sub')}</div>
         </div>`;
 
-  // CTA row uses .p-pill (primary) + .s-circ (companion link button) — one
-  // primary per screen. Disabled state when no friends selected. .p-pill is
-  // the design-system primary; .s-circ is its 44px icon-only companion.
+  // CTA row — single .p-pill that morphs based on selection state, with an
+  // .s-circ link companion that only appears when 1+ friends are picked.
+  // _refreshInvitePrimaryCTA handles the swap. Initial render reflects the
+  // 0-selected state ("Send delingslenke", full-width, link icon).
   const ctaRow = hasFriends ? `
         <div class="dpinvite-cta-row">
-          <button class="p-pill" id="invite-primary-btn" data-mode="share" onclick="_invitePrimaryClick(${venueId})" disabled>
-            <span id="invite-primary-icon">${sendSvg}</span>
-            <span id="invite-primary-label">${t('invite_select_friends_cta')}</span>
+          <button class="p-pill" id="invite-primary-btn" data-mode="share" onclick="_invitePrimaryClick(${venueId})">
+            <span id="invite-primary-icon">${linkSvg}</span>
+            <span id="invite-primary-label">${t('share_link')}</span>
           </button>
-          <button class="s-circ" id="invite-secondary-btn" type="button" onclick="_shareInviteLink(${venueId})" title="${t('share_link')}" aria-label="${t('share_link')}">
+          <button class="s-circ" id="invite-secondary-btn" type="button" onclick="_shareInviteLink(${venueId})" title="${t('share_link')}" aria-label="${t('share_link')}" hidden>
             ${linkSvg}
           </button>
         </div>` : `
@@ -1098,41 +1091,31 @@ function _openInviteSheet(venueId) {
           </button>
         </div>`;
 
-  // Sheet markup. The FTS lives outside the sheet (anchored above it via
-  // body.invite-sheet-open #fts) — receivers scrub the global slider to
-  // preview weather/sun while picking recipients. The follow-the-thumb
-  // callout (#dpinvite-fts-callout, built below) replaces the in-sheet
-  // arrival/sun labels. Body order:
-  //   1. Title block: eyebrow + "Når kommer du?" prompt
-  //   2. Friends block (group chips + avatar carousel) OR empty state
-  //   3. CTA row (primary pill + circular share-link companion)
+  // Sheet markup. The eyebrow + "Når kommer du?" prompt has been lifted
+  // OUT of the sheet into its own floating box at the top (built below as
+  // topCard) — it stays visible above the FTS so the user always sees what
+  // they're scheduling. The sheet itself only does WHO + SEND.
+  // Body order:
+  //   1. Friends block (group chips + avatar carousel) OR empty state
+  //   2. CTA row (primary pill + optional .s-circ link companion)
   sheet.innerHTML = `
     <div class="dpinvite-grabber" aria-hidden="true"></div>
     <div class="dpinvite-body">
-      <div class="dpinvite-title-block">
-        <div class="dpinvite-eyebrow">${pinSvg}<span>${venueName}</span></div>
-        <div class="dpinvite-venue-name">${t('invite_when_prompt')}</div>
-      </div>
       ${friendsBlock}
       ${ctaRow}
     </div>`;
 
-  // Floating top chip — small .glass-action card + .s-circ close. Lives as a
-  // sibling of the backdrop so it survives sheet animations cleanly.
+  // Floating top header — full-width .glass-action card with venue eyebrow
+  // (pin + name) + "Når kommer du?" prompt. NO close button: the user
+  // dismisses via swipe-down on the sheet handle / backdrop tap / Esc.
   const topCard = document.createElement('div');
   topCard.id = 'invite-top-card';
   topCard.className = 'dpinvite-top-chip';
   topCard.innerHTML = `
-    <div class="dpinvite-top-chip-card glass-action">
-      <div class="dpinvite-top-chip-icon">${pinSvg}</div>
-      <div class="dpinvite-top-chip-text">
-        <div class="dpinvite-top-chip-name">${safeName}</div>
-        <div class="dpinvite-top-chip-meta">${venueMeta}</div>
-      </div>
-    </div>
-    <button class="s-circ dpinvite-top-chip-close" type="button" onclick="_closeInviteSheet()" aria-label="${t('close') || 'Close'}">
-      ${xSvg}
-    </button>`;
+    <div class="dpinvite-header glass-action">
+      <div class="dpinvite-eyebrow">${pinSvg}<span>${venueName}</span></div>
+      <div class="dpinvite-venue-name">${t('invite_when_prompt')}</div>
+    </div>`;
 
   overlay.appendChild(sheet);
   document.body.appendChild(overlay);
@@ -1622,15 +1605,18 @@ function _invitePrimaryClick(venueId) {
   return _shareInviteLink(venueId);
 }
 
-/** Update the primary CTA (morphing label/icon/mode) based on current
- *  selection. Called on every selection change. With 0 selected, primary
- *  is disabled "Velg venner". With 1+, becomes "Send til {name}" / "Send
- *  til {n} venner". The circular link button is always present. */
+/** Update the primary CTA based on current selection.
+ *  - 0 selected → primary becomes the link CTA: "Send delingslenke",
+ *    full-width, link icon. The companion .s-circ hides (sharing the link
+ *    IS the action when no friends are picked, so a duplicate icon button
+ *    next to it would be redundant).
+ *  - 1+ selected → split button: primary morphs to "Send til {name}" with
+ *    the send icon; companion .s-circ link button reappears alongside. */
 function _refreshInvitePrimaryCTA() {
   const sheet = document.getElementById('invite-sheet');
   if (!sheet) return;
   const total = sheet._friendCount || 0;
-  if (total === 0) return; // empty state has no primary-cta to update
+  if (total === 0) return; // empty state — single full-width link CTA, no morph
 
   const allRows = Array.from(sheet.querySelectorAll('.dpinvite-avatar'));
   const selectedRows = allRows.filter(r => r.getAttribute('aria-checked') === 'true');
@@ -1638,24 +1624,35 @@ function _refreshInvitePrimaryCTA() {
 
   const btn = sheet.querySelector('#invite-primary-btn');
   const label = sheet.querySelector('#invite-primary-label');
-  if (btn && label) {
-    if (n === 0) {
-      btn.setAttribute('data-mode', 'share');
-      btn.disabled = true;
-      label.textContent = t('invite_select_friends_cta');
+  const icon = sheet.querySelector('#invite-primary-icon');
+  const companion = sheet.querySelector('#invite-secondary-btn');
+
+  if (!btn || !label) return;
+
+  // SVG icons inlined here (same set used at sheet construction).
+  const linkSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>`;
+  const sendSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>`;
+
+  if (n === 0) {
+    btn.setAttribute('data-mode', 'share');
+    btn.disabled = false;
+    if (icon) icon.innerHTML = linkSvg;
+    label.textContent = t('share_link');
+    if (companion) companion.hidden = true;
+  } else {
+    btn.setAttribute('data-mode', 'send');
+    btn.disabled = false;
+    if (icon) icon.innerHTML = sendSvg;
+    if (n === 1) {
+      const name = selectedRows[0].getAttribute('data-friend-name') || '';
+      const firstName = name.split(/\s+/)[0] || name;
+      label.textContent = t('invite_send_to_one', { name: firstName });
+    } else if (n === total) {
+      label.textContent = t('invite_send_to_all', { n });
     } else {
-      btn.setAttribute('data-mode', 'send');
-      btn.disabled = false;
-      if (n === 1) {
-        const name = selectedRows[0].getAttribute('data-friend-name') || '';
-        const firstName = name.split(/\s+/)[0] || name;
-        label.textContent = t('invite_send_to_one', { name: firstName });
-      } else if (n === total) {
-        label.textContent = t('invite_send_to_all', { n });
-      } else {
-        label.textContent = t('invite_send_to_many', { n });
-      }
+      label.textContent = t('invite_send_to_many', { n });
     }
+    if (companion) companion.hidden = false;
   }
 }
 
@@ -1880,21 +1877,5 @@ function _shareInviteLink(venueId, overrides = {}) {
     navigator.clipboard?.writeText(text);
     if (typeof _showToast === 'function') _showToast(t('invite_link_copied'));
   }
-}
-
-/** Helper: render sun/cloud timeline segments for detail panel (10px track). */
-function renderSunTimelineSegments(windows, fromHour) {
-  const START_H = 6, END_H = 22, RANGE = END_H - START_H;
-  let segments = '';
-
-  for (const w of windows) {
-    const sPos = Math.max(0, Math.min(100, ((Math.max(w.start, START_H) - START_H) / RANGE) * 100));
-    const ePos = Math.max(0, Math.min(100, ((Math.min(w.end, END_H) - START_H) / RANGE) * 100));
-    if (ePos > sPos) {
-      segments += `<div class="big-timeline-sun" style="left:${sPos}%;width:${ePos-sPos}%"></div>`;
-    }
-  }
-
-  return segments;
 }
 
