@@ -806,7 +806,7 @@ function _openPostAcceptPanel(opts) {
     <div class="dpacc-action-row no-scrollbar">${cardsHtml}</div>
     ${attendeesHtml}
     <div class="dpacc-close-row">
-      <button class="g-rnd" type="button" onclick="_closePostAcceptPanel()">${t('accepted_close')}</button>
+      <button class="s-rnd" type="button" onclick="_closePostAcceptPanel()">${t('accepted_close')}</button>
     </div>`;
 
   // Floating "you're in" toast pill at the top.
@@ -1035,7 +1035,7 @@ function _openInviteSheet(venueId) {
   // Inline SVG icon set used across the sheet (copied here to keep the build
   // step-free; matches the design's Lucide-style stroke icons).
   const pinSvg     = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
-  const xSvg       = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>`;
+  const xSvg       = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
   const chevDownSvg= `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
   const sparkleSvg = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.6 4.5L18 9l-4.4 1.5L12 15l-1.6-4.5L6 9l4.4-1.5L12 3z"/><path d="M19 14l.7 1.8L21 16l-1.3.5L19 18l-.7-1.5L17 16l1.3-.7L19 14z"/></svg>`;
   const sendSvg    = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>`;

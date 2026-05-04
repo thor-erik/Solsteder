@@ -94,6 +94,7 @@
     --panel: #111E38;
     --accent: #FFAF85;
     --accent-dim: rgba(255,175,133,0.15);
+    --accent-on: #2A1A0C;                /* text/icon drawn ON --accent */
     --text: #FFF2EB;
     --muted: #9CBDE7;                    /* on-surface-variant — Jordy Blue */
     --card-bg: rgba(20,46,82,0.4);       /* surface-container-low, Polynesian Blue tint */
@@ -168,83 +169,84 @@
     position: relative;
   }
 
-  /* ── Button system — verbatim from /preview/components-buttons.html ─────────
-     Documented primitives. ONE Primary per screen. Use these classes (or
-     compose with .glass-* utilities) instead of rolling new gradients. */
-  :root {
-    --ga-df: linear-gradient(135deg, rgba(20,46,82,0.25) 0%, rgba(32,73,131,0.14) 100%), rgba(20,46,82,0.30);
-    --ga-bdr: 1px solid rgba(156,189,231,0.20);
-    --ga-shd: inset 0 1px 0 rgba(255,242,235,0.14), inset 0 -1px 0 rgba(20,46,82,0.30), 0 2px 8px rgba(0,0,0,0.35);
-    --ga-hv: linear-gradient(135deg, rgba(20,46,82,0.35) 0%, rgba(32,73,131,0.22) 100%), rgba(20,46,82,0.42);
-  }
+  /* ── Button system — Solsteder primitives. ONE Primary per screen. ─────────
+     Compose with .glass-action / .glass-card surfaces (defined above). */
 
   /* PRIMARY · Pill — solid accent, ONE per screen */
   .p-pill {
     display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-    height: 44px; padding: 0 20px; border-radius: var(--radius-pill);
-    font-size: 14px; font-weight: 700; font-family: var(--font-sans);
+    height: 44px; padding: 0 20px; border-radius: 999px;
+    font-size: 14px; font-weight: 700; font-family: 'Inter', sans-serif;
     border: none; cursor: pointer; white-space: nowrap;
-    background: var(--accent); color: var(--accent-on, #2A1A0C);
+    background: var(--accent); color: var(--accent-on);
     box-shadow: 0 2px 8px rgba(0,0,0,0.35);
-    transition: all 120ms ease-out;
+    transition: background 120ms ease-out, box-shadow 120ms ease-out, transform 60ms ease-out;
   }
   .p-pill:hover:not([disabled]) { background: #FFC49A; box-shadow: 0 6px 24px rgba(0,0,0,0.50); }
   .p-pill:active:not([disabled]) { background: #F09060; transform: translateY(1px); box-shadow: none; }
   .p-pill[disabled] { background: rgba(255,175,133,0.28); color: rgba(42,26,12,0.40); cursor: not-allowed; }
 
-  /* SECONDARY · Pill */
+  /* SECONDARY · Pill — uses existing --glass-action-bg / --glass-border. */
   .s-pill {
     display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-    height: 44px; padding: 0 18px; border-radius: var(--radius-pill);
-    font-size: 14px; font-weight: 600; font-family: var(--font-sans);
-    border: var(--ga-bdr); cursor: pointer; white-space: nowrap;
-    background: var(--ga-df); color: var(--text);
-    box-shadow: var(--ga-shd);
-    transition: all 120ms ease-out;
+    height: 44px; padding: 0 18px; border-radius: 999px;
+    font-size: 14px; font-weight: 600; font-family: 'Inter', sans-serif;
+    cursor: pointer; white-space: nowrap;
+    background: var(--glass-action-bg);
+    border: var(--glass-border);
+    box-shadow: var(--glass-inset), 0 2px 8px rgba(0,0,0,0.35);
+    color: var(--text);
+    transition: border-color 120ms ease-out, color 120ms ease-out;
   }
   .s-pill .ico { color: var(--muted); }
-  .s-pill:hover { background: var(--ga-hv); border-color: rgba(156,189,231,0.32); }
+  .s-pill:hover { border-color: rgba(156,189,231,0.32); }
   .s-pill.is-selected { background: var(--accent-dim); border-color: rgba(255,175,133,0.35); color: var(--accent); }
   .s-pill.is-selected .ico { color: var(--accent); }
 
   /* SECONDARY · Rounded */
   .s-rnd {
     display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-    height: 36px; padding: 0 14px; border-radius: var(--radius-button);
-    font-size: 13px; font-weight: 600; font-family: var(--font-sans);
-    border: var(--ga-bdr); cursor: pointer; white-space: nowrap;
-    background: var(--ga-df); color: var(--text);
-    box-shadow: var(--ga-shd);
-    transition: all 120ms ease-out;
+    height: 36px; padding: 0 14px; border-radius: 16px;
+    font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif;
+    cursor: pointer; white-space: nowrap;
+    background: var(--glass-action-bg);
+    border: var(--glass-border);
+    box-shadow: var(--glass-inset), 0 2px 8px rgba(0,0,0,0.35);
+    color: var(--text);
+    transition: border-color 120ms ease-out, color 120ms ease-out;
   }
   .s-rnd .ico { color: var(--muted); }
-  .s-rnd:hover { background: var(--ga-hv); border-color: rgba(156,189,231,0.32); }
+  .s-rnd:hover { border-color: rgba(156,189,231,0.32); }
   .s-rnd.is-selected { background: var(--accent-dim); border-color: rgba(255,175,133,0.35); color: var(--accent); }
   .s-rnd.is-selected .ico { color: var(--accent); }
 
   /* GHOST · Rounded */
   .g-rnd {
     display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-    height: 36px; padding: 0 14px; border-radius: var(--radius-button);
-    font-size: 13px; font-weight: 600; font-family: var(--font-sans);
+    height: 36px; padding: 0 14px; border-radius: 16px;
+    font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif;
     background: transparent; cursor: pointer; white-space: nowrap;
     border: 1px solid rgba(156,189,231,0.28); color: var(--muted);
-    transition: all 120ms ease-out;
+    transition: border-color 120ms ease-out, color 120ms ease-out, background 120ms ease-out;
   }
   .g-rnd:hover { border-color: rgba(156,189,231,0.45); color: var(--text); background: rgba(20,46,82,0.18); }
 
   /* SQUARE · 48×48 r12 — companion icon button */
   .sq {
     display: inline-flex; align-items: center; justify-content: center;
-    width: 48px; height: 48px; border-radius: var(--radius-card);
-    border: none; cursor: pointer; transition: all 120ms ease-out;
+    width: 48px; height: 48px; border-radius: 12px;
+    border: none; cursor: pointer;
+    transition: background 120ms ease-out, color 120ms ease-out, border-color 120ms ease-out;
   }
   .s-sq {
-    background: var(--ga-df); border: var(--ga-bdr); box-shadow: var(--ga-shd); color: var(--muted);
+    background: var(--glass-action-bg);
+    border: var(--glass-border);
+    box-shadow: var(--glass-inset), 0 2px 8px rgba(0,0,0,0.35);
+    color: var(--muted);
   }
-  .s-sq:hover { background: var(--ga-hv); color: var(--text); }
+  .s-sq:hover { color: var(--text); border-color: rgba(156,189,231,0.32); }
   .p-sq {
-    background: var(--accent); color: var(--accent-on, #2A1A0C); box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+    background: var(--accent); color: var(--accent-on); box-shadow: 0 2px 8px rgba(0,0,0,0.35);
   }
   .p-sq:hover { background: #FFC49A; }
 
@@ -252,32 +254,40 @@
   .s-circ {
     display: inline-flex; align-items: center; justify-content: center;
     width: 44px; height: 44px; border-radius: 50%;
-    background: var(--ga-df); border: var(--ga-bdr); box-shadow: var(--ga-shd);
-    color: var(--muted); cursor: pointer; transition: all 120ms ease-out;
+    background: var(--glass-action-bg);
+    border: var(--glass-border);
+    box-shadow: var(--glass-inset), 0 2px 8px rgba(0,0,0,0.35);
+    color: var(--muted); cursor: pointer;
+    transition: color 120ms ease-out, border-color 120ms ease-out;
   }
-  .s-circ:hover { background: var(--ga-hv); color: var(--text); }
+  .s-circ:hover { color: var(--text); border-color: rgba(156,189,231,0.32); }
 
   /* Chip pill — group / time selectors */
   .chip-pill {
     display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-    height: 32px; padding: 0 12px; border-radius: var(--radius-pill);
-    font-size: 13px; font-weight: 600; font-family: var(--font-sans);
-    background: var(--ga-df); border: var(--ga-bdr); color: var(--text);
-    box-shadow: var(--ga-shd);
+    height: 32px; padding: 0 12px; border-radius: 999px;
+    font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif;
+    background: var(--glass-action-bg);
+    border: var(--glass-border);
+    box-shadow: var(--glass-inset), 0 2px 8px rgba(0,0,0,0.35);
+    color: var(--text);
     cursor: pointer; white-space: nowrap; flex-shrink: 0;
-    transition: all 120ms ease-out;
+    transition: border-color 120ms ease-out, color 120ms ease-out;
   }
   .chip-pill .count { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 11px; }
-  .chip-pill:hover { background: var(--ga-hv); }
+  .chip-pill:hover { border-color: rgba(156,189,231,0.32); }
   .chip-pill.is-selected { background: var(--accent-dim); border-color: rgba(255,175,133,0.35); color: var(--accent); }
   .chip-pill.is-selected .count { color: rgba(255,175,133,0.7); }
 
-  /* Card surface for content blocks inside panels */
+  /* Card surface — thin alias of .glass-card + 12px radius for content
+     blocks inside panels. */
   .card {
     background: var(--glass-card-bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-card);
-    box-shadow: var(--glass-inset), var(--shadow-low);
+    backdrop-filter: var(--glass-blur-card);
+    -webkit-backdrop-filter: var(--glass-blur-card);
+    border: var(--glass-border);
+    border-radius: 12px;
+    box-shadow: var(--glass-inset), 0 2px 8px rgba(0,0,0,0.35);
   }
 
   /* Hide horizontal scrollbars in carousels */
@@ -6243,7 +6253,7 @@
     backdrop-filter: var(--glass-blur-panel);
     -webkit-backdrop-filter: var(--glass-blur-panel);
     border: none;
-    box-shadow: var(--glass-inset), var(--shadow-mid);
+    box-shadow: var(--glass-inset), 0 6px 24px rgba(0,0,0,0.50);
     display: flex;
     flex-direction: column;
     transform: translateY(100%);
@@ -6388,7 +6398,7 @@
     font-size: 14px;
     font-weight: 500;
     line-height: 1.4;
-    font-family: var(--font-sans);
+    font-family: 'Inter', sans-serif;
     resize: none;
   }
 
@@ -7027,11 +7037,11 @@
     padding: 8px 16px 8px 8px;
     background: var(--accent);
     color: var(--accent-on, #2a1a0c);
-    border-radius: var(--radius-pill);
+    border-radius: 999px;
     box-shadow: 0 6px 20px rgba(255,140,80,0.30);
     font-size: 13px;
     font-weight: 700;
-    font-family: var(--font-sans);
+    font-family: 'Inter', sans-serif;
   }
   .dpacc-toast-check {
     width: 22px; height: 22px;
@@ -7103,7 +7113,7 @@
     flex-shrink: 0;
     width: 110px;
     height: 96px;
-    border-radius: var(--radius-card);
+    border-radius: 12px;
     color: var(--text);
     display: flex;
     flex-direction: column;
@@ -7111,7 +7121,7 @@
     justify-content: space-between;
     padding: 12px;
     cursor: pointer;
-    font-family: var(--font-sans);
+    font-family: 'Inter', sans-serif;
     border: none;
     background: transparent;
     transition: transform 0.05s;
@@ -7133,8 +7143,8 @@
     color: var(--muted);
   }
   .dpacc-action-primary .dpacc-action-icon {
-    background: rgba(42,26,12,0.12);
-    border-color: rgba(42,26,12,0.20);
+    background: rgba(42,26,12,0.22);
+    border-color: rgba(42,26,12,0.32);
     color: var(--accent-on, #2a1a0c);
   }
   .dpacc-action-text { text-align: left; }

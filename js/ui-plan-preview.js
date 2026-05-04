@@ -524,7 +524,7 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   const checkSvg    = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
   const clockSvg    = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
   const editSvg     = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>`;
-  const xSvg        = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>`;
+  const xSvg        = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
   const sendSvg     = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>`;
   const chevDownSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
 
@@ -600,22 +600,32 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
       </div>`;
   }
 
-  // ── From-friend pill (top floating)
+  // ── From-friend pill (top floating). Only render when we actually have an
+  // inviter name AND a sent-time. Anon tokens (no name) get the eyebrow line
+  // inside the sheet instead — no harsh "?" placeholder, no bare "sent " text
+  // with no value. The pill is signal, not chrome.
   const inviterName = (opts.inviterName || '').replace(/</g, '&lt;');
-  const inviterFirstLetter = (opts.inviterName || '?')[0].toUpperCase();
-  const inviterColor = (inviterFirstLetter.charCodeAt(0) || 0) % 8;
-  const inviterAvHtml = opts.inviterAvatarUrl
-    ? `<img src="${opts.inviterAvatarUrl}" alt="">`
-    : `<div class="dpinvite-avatar-init init-color-${inviterColor}" style="width:100%;height:100%;font-size:13px;border-radius:50%">${inviterFirstLetter}</div>`;
-  const sentSub = isInvite ? (t('invite_hero_sent_ago', { ago: '' }).replace(/{ago}/g, '').trim() || '') : '';
-  const topPillHtml = isInvite ? `
-    <div class="dprcv-top-pill">
-      <div class="dprcv-top-pill-card glass-action">
-        <div class="dprcv-top-pill-av">${inviterAvHtml}</div>
-        <span class="dprcv-top-pill-name">${inviterName || t('pp_eyebrow_invited')}</span>
-        ${sentSub ? `<span class="dprcv-top-pill-sub">${sentSub}</span>` : ''}
-      </div>
-    </div>` : '';
+  const sentAgoTemplate = t('invite_hero_sent_ago', { ago: '' });
+  const sentAgoFilled = (opts.sentAgo || '').toString().trim();
+  const sentSub = (isInvite && sentAgoFilled)
+    ? sentAgoTemplate.replace('{ago}', sentAgoFilled)
+    : '';
+  let topPillHtml = '';
+  if (isInvite && opts.inviterName) {
+    const firstLetter = opts.inviterName[0].toUpperCase();
+    const colorIdx = (firstLetter.charCodeAt(0) || 0) % 8;
+    const inviterAvHtml = opts.inviterAvatarUrl
+      ? `<img src="${opts.inviterAvatarUrl}" alt="">`
+      : `<div class="dpinvite-avatar-init init-color-${colorIdx}" style="width:100%;height:100%;font-size:13px;border-radius:50%">${firstLetter}</div>`;
+    topPillHtml = `
+      <div class="dprcv-top-pill">
+        <div class="dprcv-top-pill-card glass-action">
+          <div class="dprcv-top-pill-av">${inviterAvHtml}</div>
+          <span class="dprcv-top-pill-name">${inviterName}</span>
+          ${sentSub ? `<span class="dprcv-top-pill-sub">${sentSub}</span>` : ''}
+        </div>
+      </div>`;
+  }
 
   // Eyebrow above venue name
   const eyebrow = isInvite
@@ -655,9 +665,13 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
       ${ctaHtml}
     </div>`;
 
-  // Paint the canvas via the same walker the venue list uses.
+  // Paint the canvas via the shared walker. Defer to the next frame so the
+  // canvas has a non-zero clientWidth (drawAllCardTimelines bails on
+  // detached/0-sized nodes — see ui-list.js line ~54). openPlanPreview
+  // appends the overlay AFTER _ppBuildDom returns; if we paint here we hit
+  // the layout-skip branch and the timeline never appears.
   if (typeof drawAllCardTimelines === 'function') {
-    drawAllCardTimelines(el);
+    requestAnimationFrame(() => drawAllCardTimelines(el));
   }
 
   // Wire the canvas to drag-scrub timeFromEl (so receivers can verify
