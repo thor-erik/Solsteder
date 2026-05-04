@@ -261,6 +261,7 @@
     transition: color 120ms ease-out, border-color 120ms ease-out;
   }
   .s-circ:hover { color: var(--text); border-color: rgba(156,189,231,0.32); }
+  .s-circ[hidden] { display: none; }
 
   /* Chip pill — group / time selectors */
   .chip-pill {
@@ -6277,13 +6278,24 @@
   }
   .dpinvite-sheet.open { transform: translateY(0); }
 
+  /* Drag handle wrapper — matches #panel-handle / #dp-handle padding so
+     the tap target is identical across surfaces. JS wires drag-to-dismiss
+     onto this wrapper. */
+  .dpinvite-handle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 0 14px;
+    flex-shrink: 0;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+  }
   .dpinvite-grabber {
     width: 36px;
     height: 4px;
     border-radius: 2px;
-    background: rgba(156,189,231,0.40);
-    margin: 10px auto 4px;
-    flex-shrink: 0;
+    background: rgba(156,189,231,0.25);
   }
 
   /* Top header — full-width glass-action card with venue eyebrow +
@@ -6527,10 +6539,18 @@
     display: flex;
     gap: 10px;
     margin-top: 4px;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
     align-items: center;
   }
   .dpinvite-cta-row .p-pill { flex: 1; min-width: 0; height: 48px; }
+
+  /* Cancel row — small ghost button below the CTAs. Centered "back out"
+     affordance for users who don't discover swipe-down on the handle. */
+  .dpinvite-cancel-row {
+    display: flex;
+    justify-content: center;
+    margin-top: 4px;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
 
   /* Desktop: cap width and centre the sheet + top chip. */
   @media (min-width: 640px) {

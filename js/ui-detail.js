@@ -1099,15 +1099,20 @@ function _openInviteSheet(venueId) {
   //   1. Friends block (group chips + avatar carousel) OR empty state
   //   2. CTA row (primary pill + optional .s-circ link companion)
   sheet.innerHTML = `
-    <div class="dpinvite-grabber" aria-hidden="true"></div>
+    <div class="dpinvite-handle" id="dpinvite-handle" aria-label="${t('close') || 'Close'}">
+      <div class="dpinvite-grabber" aria-hidden="true"></div>
+    </div>
     <div class="dpinvite-body">
       ${friendsBlock}
       ${ctaRow}
+      <div class="dpinvite-cancel-row">
+        <button class="g-rnd" type="button" onclick="_closeInviteSheet()">${t('invite_cancel')}</button>
+      </div>
     </div>`;
 
   // Floating top header — full-width .glass-action card with venue eyebrow
-  // (pin + name) + "Når kommer du?" prompt. NO close button: the user
-  // dismisses via swipe-down on the sheet handle / backdrop tap / Esc.
+  // (pin + name) + "Når drar du?" prompt. NO close button: the user
+  // dismisses via swipe-down on the sheet handle / cancel button / backdrop tap / Esc.
   const topCard = document.createElement('div');
   topCard.id = 'invite-top-card';
   topCard.className = 'dpinvite-top-chip';
@@ -1150,6 +1155,73 @@ function _openInviteSheet(venueId) {
   // Apply initial group filter so the carousel matches the active chip.
   _dpinviteApplyGroupFilter('recent');
   _refreshInvitePrimaryCTA();
+
+  // Drag-to-dismiss on the handle (primary close gesture). Mirrors the
+  // plan-preview's _ppWireDragHandle: track Y-delta, translate the sheet
+  // during the drag, close on >100px or fast flick.
+  const _handleEl = sheet.querySelector('#dpinvite-handle');
+  if (_handleEl) {
+    let _dStartY = null, _dStartT = null, _dragging = false, _moved = false;
+    const THRESHOLD_PX = 100;
+    const FLICK_VELOCITY = 0.6;
+    const MOVE_TRIGGER_PX = 4;
+    const onStart = (e) => {
+      const t = e.touches ? e.touches[0] : e;
+      _dStartY = t.clientY;
+      _dStartT = performance.now();
+      _dragging = true;
+      _moved = false;
+      sheet.style.transition = 'none';
+    };
+    const onMove = (e) => {
+      if (!_dragging || _dStartY == null) return;
+      const t = e.touches ? e.touches[0] : e;
+      const dy = Math.max(0, t.clientY - _dStartY);
+      if (dy > MOVE_TRIGGER_PX) {
+        _moved = true;
+        _handleEl.dataset.dragging = '1';
+      }
+      sheet.style.transform = `translateY(${dy}px)`;
+      if (e.cancelable) e.preventDefault();
+    };
+    const onEnd = (e) => {
+      if (!_dragging || _dStartY == null) return;
+      const t = e.changedTouches ? e.changedTouches[0] : e;
+      const dy = Math.max(0, t.clientY - _dStartY);
+      const dt = Math.max(1, performance.now() - _dStartT);
+      const velocity = dy / dt;
+      sheet.style.transition = '';
+      sheet.style.transform = '';
+      _dragging = false;
+      _dStartY = null;
+      if (dy > THRESHOLD_PX || velocity > FLICK_VELOCITY) {
+        _closeInviteSheet();
+        return;
+      }
+      if (_moved) requestAnimationFrame(() => { delete _handleEl.dataset.dragging; });
+    };
+    _handleEl.addEventListener('touchstart', onStart, { passive: true });
+    _handleEl.addEventListener('touchmove', onMove, { passive: false });
+    _handleEl.addEventListener('touchend', onEnd, { passive: true });
+    _handleEl.addEventListener('touchcancel', onEnd, { passive: true });
+    _handleEl.addEventListener('mousedown', (e) => {
+      onStart(e);
+      const moveHandler = (ev) => onMove(ev);
+      const upHandler = (ev) => {
+        onEnd(ev);
+        window.removeEventListener('mousemove', moveHandler);
+        window.removeEventListener('mouseup', upHandler);
+      };
+      window.addEventListener('mousemove', moveHandler);
+      window.addEventListener('mouseup', upHandler);
+    });
+    // Tap (not drag) on the handle also closes the sheet — explicit
+    // discoverability for users who don't intuit the swipe gesture.
+    _handleEl.addEventListener('click', () => {
+      if (_handleEl.dataset.dragging === '1') return;
+      _closeInviteSheet();
+    });
+  }
 
   // Track sheet height in --dpinvite-sheet-h so the FTS rule can sit just
   // above the sheet edge (CSS rule body.invite-sheet-open #fts).
@@ -1298,10 +1370,19 @@ function _openInviteSheet(venueId) {
   // which left the user looking at zoom-13 city level. The padding shifts the
   // logical centre downward by half (top-card height) and upward by half
   // (sheet height) so the venue sits in the visible mid-strip.
+  // Centre the venue between the bottom of the top header and the top of
+  // the FTS callout above the sheet. Mapbox padding shifts the camera's
+  // logical centre, so passing the heights of the chrome that occlude the
+  // map (top header above, sheet + FTS + callout below) gives us a visible
+  // mid-strip with the venue exactly in the middle.
+  //   FTS chrome below sheet: 8px gap + 38px FTS + 12px gap + ~50px callout = 108px
+  //   Top header chrome:      env-inset + 12px + topCard height + 8px gap
   if (typeof map !== 'undefined' && map && typeof map.easeTo === 'function' && v) {
     requestAnimationFrame(() => {
-      const padTop    = (topCard.offsetHeight || 96) + 8;
-      const padBottom = Math.round(window.innerHeight * 0.55) + 8;
+      const calloutEl = document.getElementById('dpinvite-fts-callout');
+      const padTop    = 12 + (topCard.offsetHeight || 80) + 8;
+      const ftsChrome = 8 + 38 + 12 + (calloutEl?.offsetHeight || 50);
+      const padBottom = (sheet.offsetHeight || 320) + ftsChrome;
       sheet._mapPadOpen = { top: padTop, bottom: padBottom, left: 0, right: 0 };
       map.easeTo({
         center:   [v.lng, v.lat],
