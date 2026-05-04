@@ -105,7 +105,7 @@ function buildShadeStyle() {
         filter: ['match', ['get', 'class'], ['motorway', 'trunk'], true, false],
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
-          'line-color': '#DCD4C0',
+          'line-color': '#CCC2A8',
           'line-width': ['interpolate', ['linear'], ['zoom'], 10, 1.5, 16, 7],
         },
       },
@@ -117,7 +117,7 @@ function buildShadeStyle() {
         filter: ['==', ['get', 'class'], 'primary'],
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
-          'line-color': '#E4DCC8',
+          'line-color': '#D5CBB2',
           'line-width': ['interpolate', ['linear'], ['zoom'], 10, 1, 16, 5],
         },
       },
@@ -129,7 +129,7 @@ function buildShadeStyle() {
         filter: ['match', ['get', 'class'], ['secondary', 'tertiary'], true, false],
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
-          'line-color': '#ECE4D2',
+          'line-color': '#DDD3BC',
           'line-width': ['interpolate', ['linear'], ['zoom'], 10, 0.5, 16, 4],
         },
       },
@@ -145,7 +145,7 @@ function buildShadeStyle() {
            'secondary_link', 'tertiary_link'], true, false],
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
-          'line-color': '#F2EBDC',
+          'line-color': '#E5DCC5',
           'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.5, 16, 2.5],
         },
       },
@@ -159,7 +159,7 @@ function buildShadeStyle() {
         minzoom: 15,
         filter: ['!=', ['get', 'extrude'], 'true'],
         paint: {
-          'fill-color': '#7B7062',
+          'fill-color': '#A89D8A',
           'fill-opacity': [
             'interpolate', ['linear'], ['zoom'],
             15, 0,
@@ -173,8 +173,9 @@ function buildShadeStyle() {
       // fill-extrusion-height interpolates 0→actual-height over a zoom
       // range (15→15.2) so buildings rise smoothly as new data loads.
       // Opacity also fades in over the same range to avoid abrupt appearance.
-      // Dark warm gray tone reads as the figure on the near-white ground;
-      // ambient lighting in app.js is tuned low so shaded faces go near-black.
+      // Mid warm gray reads as the figure on the near-white ground while
+      // staying lighter than its own cast shadow — ambient (~0.30) keeps
+      // shaded faces darker than the body but not pitch-black.
       {
         id: 'building',
         type: 'fill-extrusion',
@@ -183,7 +184,7 @@ function buildShadeStyle() {
         minzoom: 15,
         filter: ['has', 'height'],
         paint: {
-          'fill-extrusion-color': '#7B7062',
+          'fill-extrusion-color': '#A89D8A',
           'fill-extrusion-height': [
             'interpolate', ['linear'], ['zoom'],
             15, 0,

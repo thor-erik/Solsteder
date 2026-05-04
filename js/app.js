@@ -942,7 +942,7 @@ function updateSunLighting() {
       {
         id: 'ambient',
         type: 'ambient',
-        properties: { intensity: 0.20, color: '#ffffff' }
+        properties: { intensity: 0.30, color: '#ffffff' }
       }
     ]);
   } else {
