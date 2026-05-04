@@ -5072,35 +5072,15 @@
     margin-top: 2px;
   }
 
-  /* The docked source card uses its old `.card-timeline` as the slot the FTS
-     pill overlays. The pill spans the FULL card-content width — calendar btn
-     occupies the leftmost 38px, gap 8px, then the slider track fills the
-     remainder. So no margin-left here; the calendar btn (38px wide, opaque
-     glass-bg via its own CSS) covers the leftmost portion of the wx segments
-     drawn by buildMiniSunTimeline, and the canvas covers the rest. */
-  .dp-card .card-timeline {
-    height: 38px;
-    margin-top: 16px;
-  }
-  .dp-card .timeline-track {
-    height: 38px;
-    border-radius: 19px;
-    overflow: hidden;
-    /* Match the FTS pill's calendar-btn / track glass background so the 8px
-       gap between the calendar btn and the slider track reads as a single
-       continuous pill rather than exposing a different colour underneath. */
-    background: var(--glass-action-bg);
-  }
-  /* The venue-card mini-timeline's wx segments would otherwise show through
-     the FTS pill canvas (or peek out behind the calendar btn / gap). Hide
-     them when the source is docked as a dp-card. */
-  .dp-card .timeline-track .wx { display: none; }
+  /* dp-card timeline matches the list card's thin variant (8px). The tall
+     38px treatment is gone now that the FTS pill is no longer reparented
+     into the card. */
 
   /* Reserves layout space in the panel before openDetailPanel replaces
      it with a freshly-rendered .dp-card. Height matches a typical .dp-card
-     (card-top ~50 + card-timeline 38 + 16 margin-top + padding 18+14). */
+     (card-top ~50 + card-timeline 8 + small margin + padding 18+14). */
   .dp-card-slot {
-    height: 130px;
+    height: 100px;
     margin-bottom: 14px;
     position: relative;
   }
