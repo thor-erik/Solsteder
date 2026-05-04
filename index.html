@@ -2081,18 +2081,6 @@
   .timeline-track .cap-r         { border-radius: 0 4px 4px 0; }
   .timeline-track .cap-l.cap-r   { border-radius: 4px; }
 
-  /* Now marker — clean white hairline */
-  .venue-card .tl-now {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background: rgba(255,255,255,0.9);
-    transform: translateX(-50%);
-    z-index: 5;
-    box-shadow: 0 0 4px rgba(255,255,255,0.5);
-  }
-
   .card-emoji {
     font-size: 18px;
     flex-shrink: 0;
@@ -3862,74 +3850,6 @@
     margin-top: 7px;
   }
 
-  .tl-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 4px;
-  }
-
-  .tl-track {
-    flex: 1;
-    height: 6px;
-    background: rgba(156,189,231,0.18);
-    border-radius: 3px;
-    position: relative;
-    overflow: visible;
-  }
-
-  .tl-sun-seg {
-    position: absolute;
-    top: 0;
-    height: 100%;
-    background: linear-gradient(90deg, #FF9966, #FFAF85);
-    border-radius: 3px;
-    opacity: 0.85;
-  }
-
-  .tl-needle {
-    position: absolute;
-    top: -4px;
-    width: 2px;
-    height: 14px;
-    background: #fff;
-    border-radius: 1px;
-    transform: translateX(-50%);
-    box-shadow: 0 0 4px rgba(255,255,255,0.5);
-  }
-
-  .tl-labels {
-    display: flex;
-    justify-content: space-between;
-    font-size: 10px;
-    color: var(--muted);
-    opacity: 0.6;
-  }
-
-  .tl-badge {
-    font-size: 10px;
-    font-weight: 600;
-    white-space: nowrap;
-    padding: 1px 6px;
-    border-radius: 8px;
-    flex-shrink: 0;
-  }
-
-  .tl-badge.sunny {
-    background: rgba(255,175,133,0.18);
-    color: var(--accent);
-  }
-
-  .tl-badge.neutral {
-    background: rgba(138,154,176,0.15);
-    color: #9CBDE7;
-  }
-
-  .tl-badge.muted {
-    background: rgba(138,154,176,0.1);
-    color: var(--muted);
-  }
-
   /* Now button */
   #now-btn {
     background: rgba(156,189,231,0.12);
@@ -4040,55 +3960,6 @@
     transition: left 0.05s;
   }
 
-  .tl-end-sun {
-    position: absolute;
-    top: -4px;
-    width: 2px;
-    height: 14px;
-    background: rgba(255,140,0,0.75);
-    border-radius: 1px;
-    transform: translateX(-50%);
-  }
-  .tl-end-sun-label {
-    position: absolute;
-    top: calc(100% + 5px);
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 9px;
-    color: rgba(255,140,0,0.85);
-    white-space: nowrap;
-  }
-  .tl-label-icon {
-    opacity: 0.55;
-    font-size: 8px;
-  }
-
-  /* Timeline extras */
-  .tl-shade-seg {
-    position: absolute;
-    top: 0; height: 100%;
-    background: rgba(255,255,255,0.035);
-    border-radius: 3px;
-  }
-  .tl-range-seg {
-    position: absolute;
-    top: -3px; height: calc(100% + 6px);
-    background: rgba(255,175,133,0.12);
-    border-left: 1px solid rgba(255,175,133,0.35);
-    border-right: 1px solid rgba(255,175,133,0.35);
-    border-radius: 2px;
-    pointer-events: none;
-  }
-  .tl-closed-badge {
-    font-size: 10px;
-    font-weight: 600;
-    padding: 1px 6px;
-    border-radius: 8px;
-    background: rgba(255,80,80,0.1);
-    color: #ff8a8a;
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
   /* "Try tomorrow" banner in venue list */
   #no-sun-banner {
     display: flex;
@@ -5224,7 +5095,6 @@
      the FTS pill canvas (or peek out behind the calendar btn / gap). Hide
      them when the source is docked as a dp-card. */
   .dp-card .timeline-track .wx { display: none; }
-  .dp-card .tl-now { display: none; }
 
   /* Reserves layout space in the panel before openDetailPanel replaces
      it with a freshly-rendered .dp-card. Height matches a typical .dp-card
