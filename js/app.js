@@ -942,7 +942,7 @@ function updateSunLighting() {
       {
         id: 'ambient',
         type: 'ambient',
-        properties: { intensity: 0.35, color: '#ffffff' }
+        properties: { intensity: 0.20, color: '#ffffff' }
       }
     ]);
   } else {
@@ -950,7 +950,7 @@ function updateSunLighting() {
       {
         id: 'ambient',
         type: 'ambient',
-        properties: { intensity: 0.6, color: '#ffffff' }
+        properties: { intensity: 0.45, color: '#ffffff' }
       }
     ]);
   }
