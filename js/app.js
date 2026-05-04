@@ -861,7 +861,6 @@ function _onMapStyleReady() {
     });
   }
 
-  updateLightPreset();
   updateSunLighting();
   _updateZoomDebug();
   _initZoomDebugVisibility();
@@ -922,29 +921,9 @@ setTimeout(() => {
   }
 }, 12000);
 
-// ── Light preset (atmosphere + sky) ──────────────────────────────────────────
-let _currentPreset = null;
-function updateLightPreset() {
-  if (!mapLoaded || !currentSun || !currentSunTable) return;
-  const hour    = parseFloat(timeFromEl.value);
-  const sunrise = findSunCrossingFromTable(currentSunTable, true);
-  const sunset  = findSunCrossingFromTable(currentSunTable, false);
-  let preset;
-  if (currentSun.alt < 0) {
-    preset = 'night';
-  } else if (sunrise && hour < sunrise + 1.5) {
-    preset = 'dawn';
-  } else if (sunset && hour > sunset - 1.5) {
-    preset = 'dusk';
-  } else {
-    preset = 'day';
-  }
-  if (preset === _currentPreset) return; // only fire on actual change so Mapbox transition plays fully
-  _currentPreset = preset;
-  try { map.setConfigProperty('basemap', 'lightPreset', preset); } catch (_) {}
-}
-
 // ── Sun lighting (Mapbox GL v3) ───────────────────────────────────────────────
+// Fixed neutral white light: the basemap palette stays brand-stable across
+// the time slider, and the moving 3D shadows carry the time-of-day story.
 function updateSunLighting() {
   if (!mapLoaded || !currentSun) return;
   const { az, alt } = currentSun;
@@ -957,13 +936,13 @@ function updateSunLighting() {
           direction: [az, 90 - alt],
           'cast-shadows': true,
           intensity: 0.9,
-          color: alt < 10 ? '#ff9944' : alt < 25 ? '#ffdd88' : '#ffffff',
+          color: '#ffffff',
         }
       },
       {
         id: 'ambient',
         type: 'ambient',
-        properties: { intensity: 0.08, color: '#ffffff' }
+        properties: { intensity: 0.35, color: '#ffffff' }
       }
     ]);
   } else {
@@ -971,7 +950,7 @@ function updateSunLighting() {
       {
         id: 'ambient',
         type: 'ambient',
-        properties: { intensity: 0.4, color: '#8899cc' }
+        properties: { intensity: 0.6, color: '#ffffff' }
       }
     ]);
   }
@@ -1108,7 +1087,6 @@ function setActiveIntentBtn(intent) {
 
 function setIntent(intent) {
   setActiveIntentBtn(intent);
-  _currentPreset = null;
   if (intent === 'now') {
     const isToday = datePicker.value === todayStr();
     if (isToday) {
@@ -2050,7 +2028,6 @@ function update() {
   updateWeatherDisplay();
   scheduleRenderList();
   updatePopup();
-  updateLightPreset();
   updateSunLighting();
 
   if (highlight.id != null && tooltip.classList.contains('visible')) {
