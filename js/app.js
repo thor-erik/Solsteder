@@ -1468,9 +1468,9 @@ function advanceDay(delta, setHour) {
 let _arcDragging = false;
 
 function _clampHour(t) {
-  const snapped = Math.round(t * 4) / 4;
-  const minH = (datePicker.value === todayStr()) ? Math.round(currentHour() * 4) / 4 : MIN_H_ARC;
-  return Math.max(Math.max(MIN_H_ARC, minH), Math.min(MAX_H_ARC, snapped));
+  // Snap to 5-minute grid; floor at MIN_H_ARC (which is "now" on today).
+  const snapped = Math.round(t * 12) / 12;
+  return Math.max(MIN_H_ARC, Math.min(MAX_H_ARC, snapped));
 }
 
 function _arcSetTimeFromX(clientX) {
@@ -1532,7 +1532,7 @@ function _readoutSet(el, newText, animate) {
 function updateQcIndicator(h) {
   const isHover = typeof h === 'number';
   const hour    = isHover ? h : parseFloat(timeFromEl.value);
-  const dispH   = Math.round(hour * 4) / 4;
+  const dispH   = Math.round(hour * 12) / 12;
   const dateStr = datePicker.value;
 
   let sunLabel = '';
@@ -1978,14 +1978,30 @@ function update() {
   // Dynamic arc range — place sunrise/sunset labels inside the pill's curved ends.
   // PAD_FRAC 0.06 means sunrise/sunset land ~6% from each pill edge, which equals
   // roughly TRACK_R pixels (≈13px) on a ~220px bar, consistently across all seasons.
+  // On TODAY: anchor the slider's left edge to "now" so the draggable region
+  // doesn't shrink as the day progresses. Past hours become unreachable. On
+  // other dates the full sunrise→sunset day is reachable.
   if (sunrise != null && sunset != null) {
     SUNRISE_H_ARC = sunrise;
     SUNSET_H_ARC  = sunset;
     const _dayLen = sunset - sunrise;
     const _range  = _dayLen / (1 - 2 * 0.06);
     const _buf    = _range * 0.06;
-    MIN_H_ARC = Math.max(2, sunrise - _buf);
-    MAX_H_ARC = Math.min(24, sunset  + _buf);
+    const _isToday = dateStr === todayStr();
+    if (_isToday) {
+      const nowH_ = new Date().getHours() + new Date().getMinutes() / 60;
+      // Snap "now" to a 5-min grid so the leftmost reachable thumb position
+      // matches the slider's step. Stay at sunrise pre-dawn so early-morning
+      // users still see the full upcoming day.
+      const nowSnapped = Math.round(nowH_ * 12) / 12;
+      MIN_H_ARC = Math.max(2, Math.min(sunset + _buf - 0.0833, Math.max(sunrise - _buf, nowSnapped)));
+    } else {
+      MIN_H_ARC = Math.max(2, sunrise - _buf);
+    }
+    MAX_H_ARC = Math.min(24, sunset + _buf);
+    // If the user's selected time is now in the past (e.g. clock ticked past
+    // their selection), nudge it to MIN_H_ARC so the thumb stays on-canvas.
+    if (parseFloat(timeFromEl.value) < MIN_H_ARC) timeFromEl.value = MIN_H_ARC;
   }
 
   // Auto-advance to tomorrow after sunset (once per session startup)
@@ -2286,27 +2302,48 @@ function openDetailPanel(v) {
     document.getElementById('qc-wrap')?.classList.add('mobile-ui-hidden');
   }
 
-  // Build the dp-card from a fresh renderCard — replaces the slot placeholder.
-  if (typeof renderCard === 'function') {
-    const slot = document.getElementById('dp-card-slot');
-    if (slot) {
-      const dateStr = datePicker.value;
-      const fromHour = parseFloat(timeFromEl.value);
-      const tmp = document.createElement('div');
-      tmp.innerHTML = renderCard(v, dateStr, fromHour, fromHour, true);
-      const newCard = tmp.firstElementChild;
-      if (newCard) {
-        newCard.classList.add('dp-card');
-        newCard.removeAttribute('onclick');
-        newCard.removeAttribute('onmouseenter');
-        newCard.removeAttribute('onmouseleave');
-        slot.parentNode.replaceChild(newCard, slot);
-        if (typeof drawAllCardTimelines === 'function') drawAllCardTimelines(newCard);
-      }
-    }
-  }
+  _populateDpCardSlot(v);
 
   _syncFtsPosition();
+}
+
+/** Replace #dp-card-slot with the same venue-card the list renders. Calls
+ *  renderCard() with the venue enriched the way renderList() enriches it
+ *  (score, isOpen, isOpeningSoon, sunInWin) so the panel's card and the
+ *  list's card are byte-identical for the same time/date. */
+function _populateDpCardSlot(v) {
+  const slot = document.getElementById('dp-card-slot');
+  if (!slot || typeof renderCard !== 'function') return;
+  const dateStr  = datePicker.value;
+  const fromHour = parseFloat(timeFromEl.value);
+  const enriched = _enrichVenueForCard(v, dateStr, fromHour);
+  const tmp = document.createElement('div');
+  tmp.innerHTML = renderCard(enriched, dateStr, fromHour, fromHour, true);
+  const newCard = tmp.firstElementChild;
+  if (!newCard) return;
+  newCard.classList.add('dp-card');
+  newCard.classList.remove('selected');
+  newCard.removeAttribute('onclick');
+  newCard.removeAttribute('onmouseenter');
+  newCard.removeAttribute('onmouseleave');
+  slot.parentNode.replaceChild(newCard, slot);
+  if (typeof drawAllCardTimelines === 'function') drawAllCardTimelines(newCard);
+}
+
+/** Mirror renderList's per-venue enrichment so renderCard receives the same
+ *  shape it does inside the list (with .score, .isOpen, etc.). */
+function _enrichVenueForCard(v, dateStr, fromHour) {
+  const dayHours = (typeof getVenueHoursForDay === 'function')
+    ? getVenueHoursForDay(v, dateStr) : { open: 0, close: 24 };
+  const isOpen        = fromHour >= dayHours.open && fromHour <= dayHours.close;
+  const isOpeningSoon = !isOpen && (dayHours.open - fromHour) > 0 && (dayHours.open - fromHour) <= 0.75;
+  const isClosingSoon = isOpen  && (dayHours.close - fromHour) > 0 && (dayHours.close - fromHour) <= 0.5;
+  const sunInWin = (typeof venueHasSunInRange === 'function')
+    ? venueHasSunInRange(v, dateStr, fromHour, fromHour) : false;
+  const wxNow = (typeof getWeatherAt === 'function') ? getWeatherAt(dateStr, fromHour) : null;
+  const score = (typeof computeVenueScore === 'function')
+    ? computeVenueScore(v, dateStr, fromHour, wxNow, userLocation) : null;
+  return { ...v, sunInWin, isOpen, isOpeningSoon, isClosingSoon, score };
 }
 
 function _getWxNow() {
@@ -2389,26 +2426,7 @@ function updateDetailPanel() {
   if (!v) return;
 
   content.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
-
-  if (typeof renderCard === 'function') {
-    const slot = document.getElementById('dp-card-slot');
-    if (slot) {
-      const dateStr = datePicker.value;
-      const fromHour = parseFloat(timeFromEl.value);
-      const tmp = document.createElement('div');
-      tmp.innerHTML = renderCard(v, dateStr, fromHour, fromHour, true);
-      const newCard = tmp.firstElementChild;
-      if (newCard) {
-        newCard.classList.add('dp-card');
-        newCard.removeAttribute('onclick');
-        newCard.removeAttribute('onmouseenter');
-        newCard.removeAttribute('onmouseleave');
-        slot.parentNode.replaceChild(newCard, slot);
-        if (typeof drawAllCardTimelines === 'function') drawAllCardTimelines(newCard);
-      }
-    }
-  }
-
+  _populateDpCardSlot(v);
   _startWindForVenue(v);
 }
 
