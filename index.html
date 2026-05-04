@@ -5153,6 +5153,115 @@
   }
   .dp-photo-actions .dp-header-icon svg { width: 18px; height: 18px; }
 
+  /* ── First-photo "friends here" chip overlay ─────────────────────────── */
+  /* Wrapper inherits the photo's flex-item geometry so the surrounding
+     scroller layout is unchanged; the chip absolute-positions inside. */
+  .dp-photo-wrap {
+    position: relative;
+    flex-shrink: 0;
+    height: 100%;
+    min-width: 240px;
+    max-width: 280px;
+    aspect-ratio: 4/3;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .dp-photo-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    /* Cancel the scroller-flex sizing — wrapper carries it. */
+    min-width: 0 !important;
+    max-width: none !important;
+    aspect-ratio: auto !important;
+    border-radius: inherit;
+  }
+  .photo-overlay-chip {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px 5px 5px;
+    border-radius: 999px;
+    background: rgba(14, 26, 52, 0.78);
+    backdrop-filter: blur(8px) saturate(160%);
+    -webkit-backdrop-filter: blur(8px) saturate(160%);
+    border: 1px solid rgba(156, 189, 231, 0.25);
+    color: var(--text);
+    font-size: 11px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    pointer-events: none;
+  }
+  .photo-overlay-chip span { white-space: nowrap; }
+
+  /* ── Friends-in-sun card (replaces .social-friends row) ──────────────── */
+  .friends-photo-chip-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background:
+      linear-gradient(135deg, rgba(255,175,133,0.18) 0%, rgba(255,175,133,0.08) 100%),
+      rgba(20, 46, 82, 0.42);
+    border: 1px solid rgba(255,175,133,0.42);
+    box-shadow:
+      inset 0 1px 0 rgba(255,242,235,0.15),
+      0 4px 14px rgba(0,0,0,0.25);
+  }
+  .friends-photo-chip-row .chip-summary {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+  }
+  .friends-photo-chip-row .chip-text { min-width: 0; flex: 1; }
+  .friends-photo-chip-row .chip-title {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .friends-photo-chip-row .chip-sub {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--accent);
+    margin-top: 2px;
+  }
+
+  /* Avatar row used by both the photo chip and the friends card */
+  .avatar-row { display: inline-flex; }
+  .avatar-row .avatar {
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px rgba(20, 46, 82, 0.95);
+    margin-left: -6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    object-fit: cover;
+    flex-shrink: 0;
+    color: #2a1a0c;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+  }
+  .avatar-row .avatar:first-child { margin-left: 0; }
+  .avatar-row.sm .avatar { margin-left: -4px; }
+  .avatar-row .avatar.avatar-overflow {
+    background: #142E52;
+    color: var(--text);
+  }
+
   /* ── Detail-panel "card": same DOM as a venue-card, scaled up ────────── */
   /* The layout (card-top → card-left + card-right + timeline) is identical to
      a venue-card — only sizes scale up. This keeps the user oriented after the

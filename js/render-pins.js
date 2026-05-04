@@ -239,6 +239,99 @@ function _applyDensityFilter(projVenues, zoom, currentHour, dateStr, isFullRecom
   }
 }
 
+// ── Friend inlay helpers ──────────────────────────────────────────────────────
+// Deterministic color from a user id, drawn from the warm-cream/jordy palette
+// used in the Friend Features prototype. The same id always maps to the same
+// hue so an avatar reads as "the same person" across pin and detail panel.
+const _FRIEND_COLORS = ['#FFAF85', '#9CBDE7', '#FFD488', '#E6C08A', '#FFCFAA', '#DECCC0'];
+function _friendColor(userId) {
+  const s = String(userId || '');
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return _FRIEND_COLORS[h % _FRIEND_COLORS.length];
+}
+function _friendInitial(u) {
+  const src = (u && (u.name || u.email)) || '';
+  return (src[0] || '?').toUpperCase();
+}
+
+// Layout for the inlaid blue capsule on a hero pill.
+// Up to 2 avatars are shown plus a "+N" overflow chip when there are more.
+// Capsule is 22px tall (flush in 26px pill) with 4px horizontal padding,
+// avatars are 16px circles with -5px overlap.
+const _INLAY_AV_SIZE     = 16;
+const _INLAY_AV_OVERLAP  = 5;
+const _INLAY_HEIGHT      = 22;
+const _INLAY_PAD_X       = 4;
+function _inlayWidth(friendCount) {
+  const slots = Math.min(friendCount, friendCount > 2 ? 3 : friendCount); // 1, 2, or 3 (2 + "+N")
+  return _INLAY_PAD_X * 2 + slots * _INLAY_AV_SIZE - Math.max(0, slots - 1) * _INLAY_AV_OVERLAP;
+}
+
+// Draw the inlaid blue capsule at (x, y) into context c. y is the pill's top edge;
+// the capsule centers vertically inside a 26px pill.
+function _drawFriendInlay(c, x, pillY, friends) {
+  const slots = Math.min(friends.length, friends.length > 2 ? 3 : friends.length);
+  const w = _inlayWidth(friends.length);
+  const y = pillY + (PILL_H - _INLAY_HEIGHT) / 2;
+  const r = _INLAY_HEIGHT / 2;
+
+  // Capsule fill (Delft blue)
+  c.beginPath();
+  c.roundRect(x, y, w, _INLAY_HEIGHT, r);
+  c.fillStyle = '#142E52';
+  c.fill();
+
+  // Outer 1px tangerine hairline (matches prototype inlay-blue spec)
+  c.beginPath();
+  c.roundRect(x + 0.5, y + 0.5, w - 1, _INLAY_HEIGHT - 1, r - 0.5);
+  c.strokeStyle = 'rgba(255, 230, 180, 0.35)';
+  c.lineWidth   = 1;
+  c.stroke();
+
+  // Inner top sheen
+  c.save();
+  c.beginPath(); c.roundRect(x, y, w, _INLAY_HEIGHT, r);
+  c.clip();
+  c.strokeStyle = 'rgba(156,189,231,0.18)';
+  c.lineWidth   = 1;
+  c.beginPath();
+  c.moveTo(x + r, y + 0.5);
+  c.lineTo(x + w - r, y + 0.5);
+  c.stroke();
+  c.restore();
+
+  // Avatars — render right-to-left so first avatar sits on top of stack.
+  const avR = _INLAY_AV_SIZE / 2;
+  const avY = y + (_INLAY_HEIGHT - _INLAY_AV_SIZE) / 2 + avR;
+  for (let i = slots - 1; i >= 0; i--) {
+    const isOverflow = i === 2 && friends.length > 2;
+    const avX = x + _INLAY_PAD_X + i * (_INLAY_AV_SIZE - _INLAY_AV_OVERLAP) + avR;
+
+    // Cream ring (1.5px) so avatars read against the blue capsule
+    c.beginPath(); c.arc(avX, avY, avR, 0, Math.PI * 2);
+    c.fillStyle = isOverflow ? '#142E52' : _friendColor(friends[i]?.user?.id);
+    c.fill();
+    c.beginPath(); c.arc(avX, avY, avR - 0.75, 0, Math.PI * 2);
+    c.strokeStyle = '#FFF2EB';
+    c.lineWidth   = 1.5;
+    c.stroke();
+
+    // Initial / overflow label
+    c.textBaseline = 'middle';
+    c.textAlign    = 'center';
+    if (isOverflow) {
+      c.font      = 'bold 8px "Inter", sans-serif';
+      c.fillStyle = '#FFF2EB';
+      c.fillText('+' + (friends.length - 2), avX, avY);
+    } else {
+      c.font      = 'bold 8.5px "Inter", sans-serif';
+      c.fillStyle = '#2a1a0c';
+      c.fillText(_friendInitial(friends[i]?.user), avX, avY);
+    }
+  }
+}
+
 // ── Icon draw helper ──────────────────────────────────────────────────────────
 function _drawIcon(c, cx, cy, r, imgArr, idx) {
   const img = imgArr[Math.max(0, Math.min(imgArr.length - 1, idx))];
@@ -325,6 +418,15 @@ function buildSprite(v, tier, tierData, selected) {
   if (tier === 'hero') {
     const actionable = tierData?.actionable ?? false;
     const endHour    = tierData?.endHour ?? 0;
+    // Friend check-ins drive the inlaid blue capsule on the left of the pill.
+    const friendCheckins = (typeof getFriendCheckinsForVenue === 'function')
+      ? getFriendCheckinsForVenue(v.id) : [];
+    const hasFriends = friendCheckins.length > 0;
+    // Inlay capsule width + 6px gap before the name when friends are present.
+    const inlayW = hasFriends ? _inlayWidth(friendCheckins.length) : 0;
+    // When the inlay is present, left padding tightens (3px) to balance the visual.
+    const leftPad = hasFriends ? 3 : 12;
+    const inlayGap = hasFriends ? 6 : 0;
     // Name budget: tighter when actionable (til HH:mm adds ~50px)
     const name = shortName(v.name, actionable ? 9 : 14);
 
@@ -334,7 +436,7 @@ function buildSprite(v, tier, tierData, selected) {
 
     let pillW;
     if (actionable) {
-      // Layout: 12px | name | ·(3+3) | "til"(600) | 4px | "HH:mm"(700) | 12px
+      // Layout: leftPad | [inlay+gap] | name | ·(3+3) | "til"(600) | 4px | "HH:mm"(700) | 12px
       const tilText  = 'til';   // i18n TODO: locale equivalent for other languages
       const timeText = formatHourAsClock(endHour);
       tmpCtx.font = '600 11px "Inter", sans-serif';
@@ -342,10 +444,10 @@ function buildSprite(v, tier, tierData, selected) {
       tmpCtx.font = 'bold 11px "Inter", sans-serif';
       const dotW  = tmpCtx.measureText('·').width;
       const timeW = tmpCtx.measureText(timeText).width;
-      pillW = Math.max(60, 12 + Math.ceil(nameW) + 3 + Math.ceil(dotW) + 3 + Math.ceil(tilW) + 4 + Math.ceil(timeW) + 12);
+      pillW = Math.max(60, leftPad + inlayW + inlayGap + Math.ceil(nameW) + 3 + Math.ceil(dotW) + 3 + Math.ceil(tilW) + 4 + Math.ceil(timeW) + 12);
     } else {
-      // Layout: 12px | name | 12px
-      pillW = Math.max(44, 12 + Math.ceil(nameW) + 12);
+      // Layout: leftPad | [inlay+gap] | name | 12px
+      pillW = Math.max(44, leftPad + inlayW + inlayGap + Math.ceil(nameW) + 12);
     }
 
     const pillH = PILL_H;
@@ -432,15 +534,23 @@ function buildSprite(v, tier, tierData, selected) {
     c.stroke();
     c.restore();
 
+    // Inlaid blue capsule (left side) when this venue has friend check-ins.
+    // Drawn before text so the avatars sit ABOVE the pill fill but BELOW any
+    // selection ring (which is drawn earlier and outside the pill bounds).
+    if (hasFriends) {
+      _drawFriendInlay(c, ox + leftPad, oy, friendCheckins);
+    }
+
     // Text (no icon — the tangerine fill is the full "sunny now" signal)
     c.textBaseline = 'middle';
     c.textAlign    = 'left';
+    const nameX = ox + leftPad + inlayW + inlayGap;
 
     if (!actionable) {
       // Default: name only, bold 700, dark on tangerine
       c.font      = 'bold 11px "Inter", sans-serif';
       c.fillStyle = '#2a1a0c';
-      c.fillText(name, ox + 12, textY);
+      c.fillText(name, nameX, textY);
     } else {
       // Actionable: name · til HH:mm (no icon, no glyph)
       const tilText  = 'til';   // i18n TODO
@@ -449,8 +559,8 @@ function buildSprite(v, tier, tierData, selected) {
       // name (bold 700, full contrast)
       c.font      = 'bold 11px "Inter", sans-serif';
       c.fillStyle = '#2a1a0c';
-      c.fillText(name, ox + 12, textY);
-      let x = ox + 12 + c.measureText(name).width;
+      c.fillText(name, nameX, textY);
+      let x = nameX + c.measureText(name).width;
 
       // separator · (dimmed)
       c.fillStyle = 'rgba(42,26,12,0.5)';
@@ -637,7 +747,15 @@ function getSprite(v, tier, tierData, selected, hour, dateStr) {
     const actionable = tierData?.actionable ? 1 : 0;
     // End-hour bucket: round to nearest 5 min (endHour * 12 → integer)
     const endBucket = actionable ? Math.round((tierData?.endHour ?? 0) * 12) : 0;
-    key = `${v.id}-hero-${actionable}-${endBucket}-${selected ? 1 : 0}`;
+    // Friend signature: ordered ids, so a check-in arriving/leaving rebuilds
+    // the sprite without requiring a manual cache flush. Truncated to first
+    // three ids (the most that can render in the inlay).
+    const friendCheckins = (typeof getFriendCheckinsForVenue === 'function')
+      ? getFriendCheckinsForVenue(v.id) : [];
+    const fSig = friendCheckins.length === 0
+      ? '0'
+      : friendCheckins.slice(0, 3).map(c => c.user?.id || '').join(',') + '|' + friendCheckins.length;
+    key = `${v.id}-hero-${actionable}-${endBucket}-${selected ? 1 : 0}-f:${fSig}`;
   } else if (tier === 'waiting') {
     const idx    = _shadowIconIdx(tierData?.minutesUntil ?? 120);
     const badge  = tierData?.closedOpeningIntoSun ? 1 : 0;

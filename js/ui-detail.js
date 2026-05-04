@@ -240,9 +240,26 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       <button class="secondary-link" onclick="alert('Rapportfunksjon kommer snart')">Rapporter feil</button>
     </div>`;
 
+  // Friends-here chip is overlaid on the first photo when this venue has live
+  // friend check-ins. Built here (not in _renderSocialSection) so it sits in
+  // photo space, not in the social card below.
+  const _photoFriendCheckins = typeof getFriendCheckinsForVenue === 'function'
+    ? getFriendCheckinsForVenue(v.id) : [];
+  const photoChipHtml = _photoFriendCheckins.length
+    ? `<div class="photo-overlay-chip">
+        <div class="avatar-row sm">${_renderFriendAvatarsHtml(_photoFriendCheckins, 3, 20)}</div>
+        <span>${_friendsHereChipLabel(_photoFriendCheckins)}</span>
+      </div>`
+    : '';
+
   const photosHtml = v.photoUrls?.length
     ? `<div class="detail-new-photos">${
-        v.photoUrls.map(url => `<img src="${url}" loading="lazy" alt="" onerror="this.remove()">`).join('')
+        v.photoUrls.map((url, i) => {
+          const img = `<img src="${url}" loading="lazy" alt="" onerror="this.remove()">`;
+          return (i === 0 && photoChipHtml)
+            ? `<div class="dp-photo-wrap">${img}${photoChipHtml}</div>`
+            : img;
+        }).join('')
       }</div>`
     : '<div class="detail-new-photos">[Bilde]</div>';
 
@@ -331,6 +348,68 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
     </div>`;
 }
 
+// Deterministic friend color, mirrors the canvas pin palette so the avatar
+// reads as the same person between map pin and detail panel.
+const _DP_FRIEND_COLORS = ['#FFAF85', '#9CBDE7', '#FFD488', '#E6C08A', '#FFCFAA', '#DECCC0'];
+function _dpFriendColor(userId) {
+  const s = String(userId || '');
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return _DP_FRIEND_COLORS[h % _DP_FRIEND_COLORS.length];
+}
+
+/** Build avatar markup for a list of friend check-ins.
+ *  Renders up to `max` avatars with a `+N` overflow chip when there are more.
+ *  Initial-fallback avatars use a deterministic color hash. */
+function _renderFriendAvatarsHtml(checkins, max, sizePx) {
+  const slots = checkins.slice(0, max);
+  const overflow = checkins.length > max ? checkins.length - max : 0;
+  const initialFontSize = Math.round(sizePx * 0.42);
+  const overflowFontSize = Math.round(sizePx * 0.36);
+  const html = slots.map(c => {
+    const u = c.user || {};
+    const label = (u.name || u.email || '').replace(/"/g, '&quot;');
+    if (u.avatar_url) {
+      return `<img class="avatar" src="${u.avatar_url}" alt="${label}" title="${label}" style="width:${sizePx}px;height:${sizePx}px;">`;
+    }
+    const initial = ((u.name || u.email || '?')[0] || '?').toUpperCase();
+    const bg = _dpFriendColor(u.id);
+    return `<span class="avatar avatar-init" title="${label}" style="width:${sizePx}px;height:${sizePx}px;background:${bg};font-size:${initialFontSize}px;">${initial}</span>`;
+  }).join('');
+  const overflowHtml = overflow
+    ? `<span class="avatar avatar-overflow" style="width:${sizePx}px;height:${sizePx}px;font-size:${overflowFontSize}px;">+${overflow}</span>`
+    : '';
+  return html + overflowHtml;
+}
+
+/** "Anna +2 her nå" — short label for the photo overlay chip. */
+function _friendsHereChipLabel(checkins) {
+  const first = checkins[0]?.user;
+  const firstName = (first?.name || first?.email || '').split(' ')[0] || '';
+  const extra = checkins.length - 1;
+  if (typeof t === 'function') {
+    return extra > 0
+      ? t('friends_here_now_chip_plural', { name: firstName, n: extra })
+      : t('friends_here_now_chip', { name: firstName });
+  }
+  return extra > 0 ? `${firstName} +${extra} her nå` : `${firstName} her nå`;
+}
+
+/** "Anna er i solen her" / "Anna +2 venner i solen her" — friends card headline. */
+function _friendsInSunHeadline(checkins) {
+  const first = checkins[0]?.user;
+  const firstName = (first?.name || first?.email || '').split(' ')[0] || '';
+  const extra = checkins.length - 1;
+  if (typeof t === 'function') {
+    return extra > 0
+      ? t('friends_in_sun_here_plural', { name: firstName, n: extra })
+      : t('friends_in_sun_here', { name: firstName });
+  }
+  return extra > 0
+    ? `${firstName} +${extra} venner i solen her`
+    : `${firstName} er i solen her`;
+}
+
 /** Render the social section: "Jeg drar hit", "Jeg er her", friends, plans. */
 function _renderSocialSection(v) {
   const myCheckin = typeof getMyCheckin === 'function' ? getMyCheckin() : null;
@@ -338,17 +417,20 @@ function _renderSocialSection(v) {
   const friendCheckins = typeof getFriendCheckinsForVenue === 'function' ? getFriendCheckinsForVenue(v.id) : [];
   const plans = typeof getPlansForVenue === 'function' ? getPlansForVenue(v.id) : [];
 
-  // Friends checked in
+  // Friends-in-sun card — replaces the old "N her nå" row. Sits ABOVE the
+  // action buttons so the avatar/name pair is the first social signal.
+  // Join-state semantics (idle / coming / here) are deferred — the existing
+  // social-btn-here below still drives check-in behavior.
   let friendsHtml = '';
   if (friendCheckins.length) {
-    const dots = friendCheckins.map(c => {
-      const u = c.user;
-      const until = new Date(c.checkin.expires_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      return u.avatar_url
-        ? `<img class="social-avatar" src="${u.avatar_url}" alt="${u.name || u.email}" title="${u.name || u.email} — ${t('checked_in_until', { time: until })}">`
-        : `<div class="social-avatar social-avatar-init" title="${u.name || u.email} — ${t('checked_in_until', { time: until })}">${(u.name || u.email)[0].toUpperCase()}</div>`;
-    }).join('');
-    friendsHtml = `<div class="social-friends"><span class="social-friends-label">${friendCheckins.length} her nå</span><div class="social-friends-avatars">${dots}</div></div>`;
+    friendsHtml = `<div class="friends-photo-chip-row">
+      <div class="chip-summary">
+        <div class="avatar-row">${_renderFriendAvatarsHtml(friendCheckins, 3, 32)}</div>
+        <div class="chip-text">
+          <div class="chip-title">${_friendsInSunHeadline(friendCheckins)}</div>
+        </div>
+      </div>
+    </div>`;
   }
 
   // Plans for this venue
