@@ -914,13 +914,20 @@ function _openInviteSheet(venueId) {
   sheet.id = 'invite-sheet';
   sheet.className = 'dpinvite-sheet';
 
+  // In-sheet title — symmetric with the top header's "Når drar du?".
+  // The top asks WHEN, the sheet asks WHO. A single question framing
+  // clarifies the user's mental model without needing decorative chrome.
+  const sheetTitle = `<div class="dpinvite-section-title">${t('invite_recipients_title')}</div>`;
+
   const friendsBlock = hasFriends ? `
+        ${sheetTitle}
         <div class="dpinvite-group-chips no-scrollbar" id="dpinvite-group-chips">
           ${groupChipsHtml}
         </div>
         <div class="dpinvite-avatar-row no-scrollbar" id="dpinvite-avatar-row">
           ${avatarsHtml}
         </div>` : `
+        ${sheetTitle}
         <div class="dpinvite-empty-card">
           <div class="dpinvite-empty-title">${t('invite_no_friends_title')}</div>
           <div class="dpinvite-empty-sub">${t('invite_no_friends_sub')}</div>

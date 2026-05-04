@@ -306,6 +306,7 @@ const _STRINGS = {
     invite_when_prompt:              'When are you going?',
     invite_callout_arrival:          'Going at',
     invite_cancel:                   'Cancel',
+    invite_recipients_title:         'Who are you inviting?',
     friend_prompt_add:   'Add',
     friend_prompt_dismiss: 'Not now',
     // Plan preview takeover
@@ -704,6 +705,7 @@ const _STRINGS = {
     invite_when_prompt:              'Når drar du?',
     invite_callout_arrival:          'Jeg drar',
     invite_cancel:                   'Avbryt',
+    invite_recipients_title:         'Hvem inviterer du?',
     friend_prompt_add:   'Legg til',
     friend_prompt_dismiss: 'Ikke nå',
     // Plan preview takeover
@@ -1102,6 +1104,7 @@ const _STRINGS = {
     invite_when_prompt:              'När drar du?',
     invite_callout_arrival:          'Jag drar',
     invite_cancel:                   'Avbryt',
+    invite_recipients_title:         'Vem bjuder du in?',
     friend_prompt_add:   'Lägg till',
     friend_prompt_dismiss: 'Inte nu',
     // Plan preview takeover
@@ -1496,6 +1499,7 @@ const _STRINGS = {
     invite_when_prompt:              'Hvornår tager du afsted?',
     invite_callout_arrival:          'Jeg tager afsted',
     invite_cancel:                   'Annullér',
+    invite_recipients_title:         'Hvem inviterer du?',
     friend_prompt_add:   'Tilføj',
     friend_prompt_dismiss: 'Ikke nu',
     // Plan preview takeover

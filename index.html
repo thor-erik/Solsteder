@@ -5700,6 +5700,17 @@
     -webkit-overflow-scrolling: touch;
   }
 
+  /* In-sheet title — symmetric with the top header's "Når drar du?". The
+     top asks WHEN, the sheet asks WHO. Same typography (17px / weight 600)
+     as .dpinvite-venue-name so the two surfaces read as a paired flow. */
+  .dpinvite-section-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.25;
+    margin-bottom: -4px; /* tighter to the chips below; keeps gap visually 10px */
+  }
+
   /* FTS callout — follows the slider thumb above the FTS while the share
      sheet is open. Two-line readout: "Jeg kommer 17:00" / "3t 25m sol · sol
      til 20:25". JS tracks the thumb's viewport x and clamps the callout's
@@ -5762,11 +5773,14 @@
     -webkit-overflow-scrolling: touch;
   }
 
-  /* Avatar carousel — horizontal scroll, multi-select, 56px circles. */
+  /* Avatar carousel — horizontal scroll, multi-select, 56px circles.
+     Padding-top is 8px (not 4) so the 5px-wide selection ring around a
+     selected avatar doesn't get clipped by overflow-x: auto (which makes
+     the implicit overflow-y also clip). 8px ≥ 5px ring + small fudge. */
   .dpinvite-avatar-row {
     display: flex; gap: 14px;
     overflow-x: auto;
-    padding: 4px 4px 8px;
+    padding: 8px 4px;
     margin: 0 -4px;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
@@ -5885,13 +5899,20 @@
   }
   .dpinvite-cta-row .p-pill { flex: 1; min-width: 0; height: 48px; }
 
-  /* Cancel row — small ghost button below the CTAs. Centered "back out"
-     affordance for users who don't discover swipe-down on the handle. */
+  /* Cancel row — full-width pill matching the share button's form factor
+     (h48, r999) so the two stack as a coherent action group. .g-rnd's
+     ghost styling stays; only the size + radius are overridden here. */
   .dpinvite-cancel-row {
     display: flex;
-    justify-content: center;
     margin-top: 4px;
     padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .dpinvite-cancel-row .g-rnd {
+    flex: 1;
+    height: 48px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 600;
   }
 
   /* Desktop: cap width and centre the sheet + top chip. */
