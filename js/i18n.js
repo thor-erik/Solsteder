@@ -295,7 +295,8 @@ const _STRINGS = {
     invite_hero_remaining_no_sun:    'Sun is gone',
     invite_hero_in_minutes:          'in {n} min',
     invite_hero_sent_ago:            'sent {ago}',
-    invite_secondary_suggest:        'Different time',
+    invite_secondary_later:          'Coming later',
+    accepted_close:                  'Close',
     preview_share_onwards:           'Share onward',
     // Share composer (redesign)
     invite_eyebrow:                  'Invite to',
@@ -691,7 +692,8 @@ const _STRINGS = {
     invite_hero_remaining_no_sun:    'Sola er borte',
     invite_hero_in_minutes:          'om {n} min',
     invite_hero_sent_ago:            'sendt {ago}',
-    invite_secondary_suggest:        'Annet tidspunkt',
+    invite_secondary_later:          'Kommer senere',
+    accepted_close:                  'Lukk',
     preview_share_onwards:           'Del videre',
     // Share composer (redesign)
     invite_eyebrow:                  'Inviter til',
@@ -1087,7 +1089,8 @@ const _STRINGS = {
     invite_hero_remaining_no_sun:    'Solen är borta',
     invite_hero_in_minutes:          'om {n} min',
     invite_hero_sent_ago:            'skickat {ago}',
-    invite_secondary_suggest:        'Annan tid',
+    invite_secondary_later:          'Kommer senare',
+    accepted_close:                  'Stäng',
     preview_share_onwards:           'Dela vidare',
     // Share composer (redesign)
     invite_eyebrow:                  'Bjud in till',
@@ -1479,7 +1482,8 @@ const _STRINGS = {
     invite_hero_remaining_no_sun:    'Solen er væk',
     invite_hero_in_minutes:          'om {n} min',
     invite_hero_sent_ago:            'sendt {ago}',
-    invite_secondary_suggest:        'Andet tidspunkt',
+    invite_secondary_later:          'Kommer senere',
+    accepted_close:                  'Luk',
     preview_share_onwards:           'Del videre',
     // Share composer (redesign)
     invite_eyebrow:                  'Inviter til',

@@ -62,7 +62,6 @@
 <script defer src="js/render-seating.js?v=20260411b"></script>
 <script defer src="js/render-editor.js?v=20260417a"></script>
 <script defer src="js/render-pins.js?v=20260417a"></script>
-<script defer src="js/render-sunbar.js?v=20260503a"></script>
 <script defer src="js/ui-shared.js?v=20260411b"></script>
 <script defer src="js/ui-list.js?v=20260411b"></script>
 <script defer src="js/admin-review.js?v=20260429a"></script>
@@ -168,6 +167,122 @@
       0 2px 8px rgba(0,0,0,0.35);
     position: relative;
   }
+
+  /* ── Button system — verbatim from /preview/components-buttons.html ─────────
+     Documented primitives. ONE Primary per screen. Use these classes (or
+     compose with .glass-* utilities) instead of rolling new gradients. */
+  :root {
+    --ga-df: linear-gradient(135deg, rgba(20,46,82,0.25) 0%, rgba(32,73,131,0.14) 100%), rgba(20,46,82,0.30);
+    --ga-bdr: 1px solid rgba(156,189,231,0.20);
+    --ga-shd: inset 0 1px 0 rgba(255,242,235,0.14), inset 0 -1px 0 rgba(20,46,82,0.30), 0 2px 8px rgba(0,0,0,0.35);
+    --ga-hv: linear-gradient(135deg, rgba(20,46,82,0.35) 0%, rgba(32,73,131,0.22) 100%), rgba(20,46,82,0.42);
+  }
+
+  /* PRIMARY · Pill — solid accent, ONE per screen */
+  .p-pill {
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    height: 44px; padding: 0 20px; border-radius: var(--radius-pill);
+    font-size: 14px; font-weight: 700; font-family: var(--font-sans);
+    border: none; cursor: pointer; white-space: nowrap;
+    background: var(--accent); color: var(--accent-on, #2A1A0C);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+    transition: all 120ms ease-out;
+  }
+  .p-pill:hover:not([disabled]) { background: #FFC49A; box-shadow: 0 6px 24px rgba(0,0,0,0.50); }
+  .p-pill:active:not([disabled]) { background: #F09060; transform: translateY(1px); box-shadow: none; }
+  .p-pill[disabled] { background: rgba(255,175,133,0.28); color: rgba(42,26,12,0.40); cursor: not-allowed; }
+
+  /* SECONDARY · Pill */
+  .s-pill {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    height: 44px; padding: 0 18px; border-radius: var(--radius-pill);
+    font-size: 14px; font-weight: 600; font-family: var(--font-sans);
+    border: var(--ga-bdr); cursor: pointer; white-space: nowrap;
+    background: var(--ga-df); color: var(--text);
+    box-shadow: var(--ga-shd);
+    transition: all 120ms ease-out;
+  }
+  .s-pill .ico { color: var(--muted); }
+  .s-pill:hover { background: var(--ga-hv); border-color: rgba(156,189,231,0.32); }
+  .s-pill.is-selected { background: var(--accent-dim); border-color: rgba(255,175,133,0.35); color: var(--accent); }
+  .s-pill.is-selected .ico { color: var(--accent); }
+
+  /* SECONDARY · Rounded */
+  .s-rnd {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    height: 36px; padding: 0 14px; border-radius: var(--radius-button);
+    font-size: 13px; font-weight: 600; font-family: var(--font-sans);
+    border: var(--ga-bdr); cursor: pointer; white-space: nowrap;
+    background: var(--ga-df); color: var(--text);
+    box-shadow: var(--ga-shd);
+    transition: all 120ms ease-out;
+  }
+  .s-rnd .ico { color: var(--muted); }
+  .s-rnd:hover { background: var(--ga-hv); border-color: rgba(156,189,231,0.32); }
+  .s-rnd.is-selected { background: var(--accent-dim); border-color: rgba(255,175,133,0.35); color: var(--accent); }
+  .s-rnd.is-selected .ico { color: var(--accent); }
+
+  /* GHOST · Rounded */
+  .g-rnd {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    height: 36px; padding: 0 14px; border-radius: var(--radius-button);
+    font-size: 13px; font-weight: 600; font-family: var(--font-sans);
+    background: transparent; cursor: pointer; white-space: nowrap;
+    border: 1px solid rgba(156,189,231,0.28); color: var(--muted);
+    transition: all 120ms ease-out;
+  }
+  .g-rnd:hover { border-color: rgba(156,189,231,0.45); color: var(--text); background: rgba(20,46,82,0.18); }
+
+  /* SQUARE · 48×48 r12 — companion icon button */
+  .sq {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 48px; height: 48px; border-radius: var(--radius-card);
+    border: none; cursor: pointer; transition: all 120ms ease-out;
+  }
+  .s-sq {
+    background: var(--ga-df); border: var(--ga-bdr); box-shadow: var(--ga-shd); color: var(--muted);
+  }
+  .s-sq:hover { background: var(--ga-hv); color: var(--text); }
+  .p-sq {
+    background: var(--accent); color: var(--accent-on, #2A1A0C); box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+  }
+  .p-sq:hover { background: #FFC49A; }
+
+  /* CIRCLE · 44 — icon-only */
+  .s-circ {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 44px; height: 44px; border-radius: 50%;
+    background: var(--ga-df); border: var(--ga-bdr); box-shadow: var(--ga-shd);
+    color: var(--muted); cursor: pointer; transition: all 120ms ease-out;
+  }
+  .s-circ:hover { background: var(--ga-hv); color: var(--text); }
+
+  /* Chip pill — group / time selectors */
+  .chip-pill {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    height: 32px; padding: 0 12px; border-radius: var(--radius-pill);
+    font-size: 13px; font-weight: 600; font-family: var(--font-sans);
+    background: var(--ga-df); border: var(--ga-bdr); color: var(--text);
+    box-shadow: var(--ga-shd);
+    cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    transition: all 120ms ease-out;
+  }
+  .chip-pill .count { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 11px; }
+  .chip-pill:hover { background: var(--ga-hv); }
+  .chip-pill.is-selected { background: var(--accent-dim); border-color: rgba(255,175,133,0.35); color: var(--accent); }
+  .chip-pill.is-selected .count { color: rgba(255,175,133,0.7); }
+
+  /* Card surface for content blocks inside panels */
+  .card {
+    background: var(--glass-card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--glass-inset), var(--shadow-low);
+  }
+
+  /* Hide horizontal scrollbars in carousels */
+  .no-scrollbar { scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
 
   #app {
     position: relative;
@@ -6087,12 +6202,11 @@
     font-weight: 600;
   }
 
-  /* ── Invite sheet — sharing-system redesign (.dpinvite-*) ─────────────────
-     Bottom sheet for outgoing invites. Built around a hero sun-window bar,
-     auto-generated message preview, group chips + horizontal-scroll avatar
-     carousel, single primary CTA + circular share-link icon button.
-     IDs preserved (#invite-sheet, #invite-sheet-backdrop) for legacy
-     callers; class names flipped to .dpinvite-*. */
+  /* ── Invite sheet — sharing-system (.dpinvite-*) ──────────────────────────
+     Bottom sheet for outgoing invites. Layout-only here — buttons / chips /
+     surfaces all use the design-system primitives (.p-pill, .s-circ,
+     .chip-pill, .card, .glass-action). IDs preserved (#invite-sheet,
+     #invite-sheet-backdrop) for legacy callers. */
   .invite-backdrop,
   .dpinvite-backdrop {
     position: fixed;
@@ -6104,8 +6218,8 @@
   .invite-backdrop.open,
   .dpinvite-backdrop.open { background: rgba(0,0,0,0.42); }
 
-  /* While the invite sheet is open, fade the underlying chrome so the user
-     focuses on the single sheet surface. State preserved underneath. */
+  /* Fade the underlying chrome so the user focuses on the sheet. State
+     preserved underneath. */
   body.invite-sheet-open #detail-panel,
   body.invite-sheet-open #fts,
   body.invite-sheet-open #qc-wrap,
@@ -6129,7 +6243,7 @@
     backdrop-filter: var(--glass-blur-panel);
     -webkit-backdrop-filter: var(--glass-blur-panel);
     border: none;
-    box-shadow: var(--glass-inset), 0 -16px 40px rgba(0,0,0,0.55);
+    box-shadow: var(--glass-inset), var(--shadow-mid);
     display: flex;
     flex-direction: column;
     transform: translateY(100%);
@@ -6147,8 +6261,8 @@
     flex-shrink: 0;
   }
 
-  /* Floating top venue chip — small, glass-action, sits above the sheet.
-     Pin icon + venue name + meta. Close button on the right. */
+  /* Top venue chip wrapper — positions a .glass-action card + s-circ close
+     above the sheet. Inner styling comes from the system utilities. */
   .dpinvite-top-chip {
     position: fixed;
     top: calc(env(safe-area-inset-top, 0px) + 12px);
@@ -6169,20 +6283,15 @@
     display: inline-flex;
     align-items: center;
     gap: 10px;
-    padding: 8px 12px 8px 10px;
-    background: linear-gradient(135deg, rgba(20,46,82,0.65), rgba(32,73,131,0.40));
-    backdrop-filter: blur(14px) saturate(160%);
-    -webkit-backdrop-filter: blur(14px) saturate(160%);
-    border: 1px solid rgba(156,189,231,0.22);
+    padding: 6px 12px 6px 8px;
     border-radius: 14px;
-    box-shadow: var(--glass-inset), 0 4px 12px rgba(0,0,0,0.35);
     max-width: 78%;
     min-width: 0;
   }
   .dpinvite-top-chip-icon {
-    width: 32px; height: 32px; border-radius: 10px;
+    width: 28px; height: 28px; border-radius: 8px;
     flex-shrink: 0;
-    background: linear-gradient(135deg, rgba(255,175,133,0.22), rgba(255,175,133,0.06));
+    background: var(--accent-dim);
     border: 1px solid rgba(255,175,133,0.35);
     display: flex; align-items: center; justify-content: center;
     color: var(--accent);
@@ -6197,23 +6306,7 @@
     font-size: 11px; font-weight: 500; color: var(--muted);
     white-space: nowrap;
   }
-  .dpinvite-top-chip-close {
-    pointer-events: auto;
-    width: 36px; height: 36px;
-    border-radius: 50%; flex-shrink: 0;
-    background: linear-gradient(135deg, rgba(20,46,82,0.65), rgba(32,73,131,0.40));
-    backdrop-filter: blur(14px) saturate(160%);
-    -webkit-backdrop-filter: blur(14px) saturate(160%);
-    border: 1px solid rgba(156,189,231,0.22);
-    color: var(--text);
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer;
-    box-shadow: var(--glass-inset);
-  }
-  .dpinvite-top-chip-close:hover {
-    border-color: rgba(255,175,133,0.40);
-    color: var(--accent);
-  }
+  .dpinvite-top-chip-close { pointer-events: auto; flex-shrink: 0; }
 
   .dpinvite-body {
     flex: 1;
@@ -6226,13 +6319,8 @@
     -webkit-overflow-scrolling: touch;
   }
 
-  /* Title block: eyebrow + venue name + arrival pill (right-aligned). */
-  .dpinvite-title-row {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 12px;
-  }
+  /* Title block: eyebrow + venue name. */
+  .dpinvite-title-block { display: flex; flex-direction: column; gap: 2px; }
   .dpinvite-eyebrow {
     font-size: 11px;
     font-weight: 600;
@@ -6242,157 +6330,44 @@
     line-height: 1.2;
   }
   .dpinvite-venue-name {
-    font-size: 22px;
+    font-size: 24px;
     font-weight: 700;
     color: var(--text);
     line-height: 1.1;
     margin-top: 2px;
     text-wrap: balance;
   }
-  .dpinvite-arrival-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 10px 6px 12px;
-    border-radius: 999px;
-    background: rgba(255,175,133,0.12);
-    border: 1px solid rgba(255,175,133,0.35);
-    color: var(--accent);
-    font-size: 13px;
-    font-weight: 700;
-    font-family: 'Inter', sans-serif;
-    font-variant-numeric: tabular-nums;
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: background 0.12s, border-color 0.12s;
-  }
-  .dpinvite-arrival-pill:hover { background: rgba(255,175,133,0.18); }
-  .dpinvite-arrival-pill svg { stroke: currentColor; }
 
-  /* Arrival picker — horizontal scroll, only visible when the pill is tapped */
-  .dpinvite-arrival-row {
-    display: flex; gap: 6px;
-    overflow-x: auto;
-    padding-bottom: 2px;
-    margin-top: -4px;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-  }
-  .dpinvite-arrival-row::-webkit-scrollbar { display: none; }
-  .dpinvite-arrival-chip {
-    flex-shrink: 0;
-    padding: 8px 14px;
-    border-radius: 999px;
-    background: rgba(20,46,82,0.45);
-    border: 1px solid rgba(156,189,231,0.22);
-    color: var(--text);
-    font-size: 13px;
-    font-weight: 600;
-    font-family: 'Inter', sans-serif;
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-    cursor: pointer;
-    transition: background 0.12s, border-color 0.12s, color 0.12s;
-  }
-  .dpinvite-arrival-chip.active {
-    background: rgba(255,175,133,0.18);
-    border-color: rgba(255,175,133,0.55);
-    color: var(--accent);
-  }
-
-  /* SunBar — HTML/CSS gradient bar driven by --sun-start-pct / --sun-end-pct
-     / --now-pct / --arrival-pct custom properties (set inline by
-     renderInviteSunBar in render-sunbar.js). */
-  .dpinvite-sunbar {
-    --sun-start-pct: 30%;
-    --sun-end-pct: 75%;
-    --now-pct: 50%;
-    --arrival-pct: 50%;
+  /* Inline FTS card — interactive canvas + Ankomst/Sol til labels. */
+  .dpinvite-fts-card { padding: 8px; }
+  .dpinvite-fts-track {
     position: relative;
-    height: 48px;
-    border-radius: 14px;
-    background: linear-gradient(180deg, rgba(20,46,82,0.55), rgba(17,30,56,0.75));
-    border: 1px solid rgba(156,189,231,0.18);
-    box-shadow: inset 0 1px 0 rgba(255,242,235,0.10);
+    height: 40px;
+    border-radius: 13px;
     overflow: hidden;
   }
-  .dpinvite-sunbar-shadow {
-    position: absolute; top: 0; bottom: 0;
-    background: linear-gradient(180deg, rgba(43,59,94,0.55), rgba(27,46,90,0.50));
+  .dpinvite-fts-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    cursor: grab;
+    touch-action: none;
   }
-  .dpinvite-sunbar-shadow-pre  { left: 0; width: var(--sun-start-pct); }
-  .dpinvite-sunbar-shadow-post { left: var(--sun-end-pct); right: 0; }
-  .dpinvite-sunbar-band {
-    position: absolute; top: 0; bottom: 0;
-    left: var(--sun-start-pct);
-    width: calc(var(--sun-end-pct) - var(--sun-start-pct));
-    background: linear-gradient(180deg, #FFD9B6 0%, #FFAF85 60%, #FF9A65 100%);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -1px 0 rgba(180,90,40,0.30);
-  }
-  .dpinvite-sunbar-cap {
-    position: absolute; top: 0; bottom: 0; width: 8px; pointer-events: none;
-  }
-  .dpinvite-sunbar-cap-l {
-    left: var(--sun-start-pct);
-    background: linear-gradient(90deg, rgba(43,59,94,0.6), transparent);
-  }
-  .dpinvite-sunbar-cap-r {
-    left: calc(var(--sun-end-pct) - 8px);
-    background: linear-gradient(270deg, rgba(43,59,94,0.6), transparent);
-  }
-  .dpinvite-sunbar-tick {
-    position: absolute; bottom: 0; width: 1px; height: 4px;
-    background: rgba(156,189,231,0.40);
-    pointer-events: none;
-  }
-  .dpinvite-sunbar-now {
-    position: absolute; top: -4px; bottom: -4px;
-    left: var(--now-pct);
-    width: 2px;
-    background: rgba(255,242,235,0.85);
-    box-shadow: 0 0 8px rgba(255,242,235,0.6);
-    transform: translateX(-1px);
-    pointer-events: none;
-  }
-  .dpinvite-sunbar-pin {
-    position: absolute; top: -8px;
-    left: var(--arrival-pct);
-    width: 14px; height: 14px;
-    border-radius: 50%;
-    background: var(--text);
-    border: 2px solid #111E38;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-    transform: translateX(-50%);
-    pointer-events: none;
-  }
-
-  .dpinvite-suntil-line {
+  .dpinvite-fts-canvas:active { cursor: grabbing; }
+  .dpinvite-fts-labels {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    margin-top: -4px;
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--muted);
+    align-items: baseline;
+    padding: 6px 8px 2px;
     font-variant-numeric: tabular-nums;
   }
-  .dpinvite-suntil-line .dpinvite-suntil-main {
-    color: var(--text);
-    font-weight: 600;
-  }
+  .dpinvite-fts-labels strong { font-weight: 700; }
 
-  /* Auto-generated message preview card — sparkle eyebrow + editable body. */
-  .dpinvite-message-card {
-    position: relative;
-    background: linear-gradient(180deg, rgba(20,46,82,0.5), rgba(17,30,56,0.65));
-    border: 1px solid rgba(156,189,231,0.22);
-    border-radius: 14px;
-    padding: 12px 14px;
-    cursor: pointer;
-  }
+  /* Editable message preview card — uses .card surface. */
+  .dpinvite-message-card { padding: 12px 14px; cursor: pointer; }
   .dpinvite-message-card.editing { cursor: text; }
   .dpinvite-message-eyebrow {
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--muted);
     letter-spacing: 0.5px;
@@ -6413,46 +6388,15 @@
     font-size: 14px;
     font-weight: 500;
     line-height: 1.4;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-sans);
     resize: none;
   }
 
-  /* Group chips row — Nylige + Alle. Active chip drives the avatar carousel. */
+  /* Group chips strip — uses .chip-pill primitives. */
   .dpinvite-group-chips {
     display: flex; gap: 6px;
-    overflow-x: auto; scrollbar-width: none;
+    overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-  }
-  .dpinvite-group-chips::-webkit-scrollbar { display: none; }
-  .dpinvite-group-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 12px;
-    border-radius: 999px;
-    background: rgba(20,46,82,0.45);
-    border: 1px solid rgba(156,189,231,0.20);
-    color: var(--text);
-    font-size: 13px;
-    font-weight: 600;
-    font-family: 'Inter', sans-serif;
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: background 0.12s, border-color 0.12s, color 0.12s;
-  }
-  .dpinvite-group-chip-count {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--muted);
-    font-variant-numeric: tabular-nums;
-  }
-  .dpinvite-group-chip.active {
-    background: rgba(255,175,133,0.14);
-    border-color: rgba(255,175,133,0.45);
-    color: var(--accent);
-  }
-  .dpinvite-group-chip.active .dpinvite-group-chip-count {
-    color: rgba(255,175,133,0.7);
   }
 
   /* Avatar carousel — horizontal scroll, multi-select, 56px circles. */
@@ -6554,16 +6498,10 @@
     font-weight: 700;
   }
 
-  /* Empty state (no friends) */
+  /* Empty state (no friends) — uses .card surface, layout-only here. */
   .dpinvite-empty-card {
     text-align: center;
     padding: 28px 20px;
-    border-radius: 14px;
-    background: var(--glass-card-bg);
-    backdrop-filter: var(--glass-blur-card);
-    -webkit-backdrop-filter: var(--glass-blur-card);
-    border: var(--glass-border);
-    box-shadow: var(--glass-inset);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -6580,61 +6518,15 @@
   .dpinvite-empty-title { font-size: 14px; font-weight: 600; color: var(--text); }
   .dpinvite-empty-sub   { font-size: 13px; color: var(--muted); line-height: 1.4; }
 
-  /* Sticky CTA row — pinned at the bottom of the sheet body */
+  /* Sticky CTA row — primary pill + circular companion (.s-circ / .s-sq). */
   .dpinvite-cta-row {
     display: flex;
     gap: 10px;
     margin-top: 4px;
     padding-bottom: env(safe-area-inset-bottom, 0px);
-  }
-  .dpinvite-send-pill {
-    flex: 1;
-    min-width: 0;
-    height: 52px;
-    border-radius: 999px;
-    background: linear-gradient(180deg, #FFC8A6 0%, #FFAF85 60%, #FF9A65 100%);
-    border: 1px solid rgba(255,255,255,0.35);
-    color: var(--accent-on, #2a1a0c);
-    font-size: 15px;
-    font-weight: 700;
-    font-family: 'Inter', sans-serif;
-    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    gap: 8px;
-    cursor: pointer;
-    box-shadow:
-      0 1px 0 rgba(255,255,255,0.5) inset,
-      0 -1px 0 rgba(155,80,40,0.4) inset,
-      0 4px 12px rgba(255,140,80,0.25);
-    transition: opacity 0.15s, transform 0.05s;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
-  .dpinvite-send-pill:hover:not(:disabled) { opacity: 0.92; }
-  .dpinvite-send-pill:active:not(:disabled) { transform: scale(0.99); }
-  .dpinvite-send-pill:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-  }
-  .dpinvite-send-pill svg { stroke: currentColor; flex-shrink: 0; }
-  .dpinvite-link-btn {
-    width: 52px; height: 52px;
-    flex-shrink: 0;
-    border-radius: 999px;
-    background: linear-gradient(135deg, rgba(20,46,82,0.65), rgba(32,73,131,0.40));
-    border: 1px solid rgba(156,189,231,0.22);
-    color: var(--text);
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer;
-    box-shadow: var(--glass-inset);
-    transition: border-color 0.15s, color 0.15s;
-  }
-  .dpinvite-link-btn:hover {
-    border-color: rgba(255,175,133,0.40);
-    color: var(--accent);
-  }
+  .dpinvite-cta-row .p-pill { flex: 1; min-width: 0; height: 48px; }
 
   /* Desktop: cap width and centre the sheet + top chip. */
   @media (min-width: 640px) {
@@ -6744,7 +6636,7 @@
     flex-shrink: 0;
   }
 
-  /* Floating "from friend" top pill — small avatar + name + sent-time. */
+  /* Floating "from friend" top pill — wraps a .glass-action card. */
   .dprcv-top-pill {
     position: fixed;
     top: calc(env(safe-area-inset-top, 0px) + 12px);
@@ -6762,13 +6654,8 @@
     display: inline-flex;
     align-items: center;
     gap: 10px;
-    padding: 8px 14px 8px 8px;
-    background: linear-gradient(135deg, rgba(20,46,82,0.65), rgba(32,73,131,0.40));
-    backdrop-filter: blur(14px) saturate(160%);
-    -webkit-backdrop-filter: blur(14px) saturate(160%);
-    border: 1px solid rgba(156,189,231,0.22);
+    padding: 6px 14px 6px 6px;
     border-radius: 999px;
-    box-shadow: var(--glass-inset), 0 4px 12px rgba(0,0,0,0.35);
   }
   .dprcv-top-pill-av {
     width: 28px; height: 28px;
@@ -6826,21 +6713,19 @@
   }
   .dprcv-meta-dot { opacity: 0.5; }
 
-  /* Hero card — Møtes (left) | Sol til (right) + canvas timeline. */
+  /* Hero card — uses .card surface; layout-only here. */
   .dprcv-hero {
-    background: linear-gradient(180deg, rgba(20,46,82,0.50), rgba(17,30,56,0.65));
-    border: 1px solid rgba(156,189,231,0.22);
-    border-radius: 14px;
-    padding: 14px 14px 16px;
+    padding: 14px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
   }
   .dprcv-hero-row {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     gap: 12px;
+    margin-bottom: 2px;
   }
   .dprcv-hero-left,
   .dprcv-hero-right { min-width: 0; }
@@ -6878,62 +6763,34 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* Timeline wrapper — canvas + overlay pin + highlight span. */
+  /* Timeline wrapper — interactive canvas (paint via drawAllCardTimelines).
+     Drag handlers in JS update timeFromEl, which re-fires the painter. */
   .dprcv-timeline {
     position: relative;
-    height: 32px;
+    height: 40px;
+    border-radius: 13px;
+    overflow: hidden;
   }
   .dprcv-timeline-canvas.card-timeline-canvas {
     width: 100%;
-    height: 32px;
+    height: 100%;
     display: block;
+    cursor: grab;
+    touch-action: none;
   }
+  .dprcv-timeline-canvas.card-timeline-canvas:active { cursor: grabbing; }
   body.plan-preview-active .dprcv-timeline-canvas {
     display: block !important;
     opacity: 1 !important;
     pointer-events: auto !important;
   }
-  .dprcv-arrival-overlay {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-  }
-  .dprcv-arrival-pin {
-    position: absolute;
-    top: -4px;
-    width: 14px; height: 14px;
-    border-radius: 50%;
-    background: var(--text);
-    border: 2px solid #111E38;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-    transform: translateX(-50%);
-  }
-  .dprcv-arrival-span {
-    position: absolute;
-    top: 4px; bottom: 4px;
-    border-radius: 6px;
-    border: 2px solid rgba(255,242,235,0.85);
-    box-shadow: 0 0 0 4px rgba(17,30,56,0.45), 0 4px 14px rgba(0,0,0,0.35);
-  }
-  .dprcv-timeline-axis {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 6px;
-    font-size: 11px;
-    font-weight: 500;
-    color: rgba(156,189,231,0.7);
-    font-variant-numeric: tabular-nums;
-  }
 
-  /* Attendees card + quoted message. */
+  /* Attendees row — uses .card surface; layout-only here. */
   .dprcv-attendees {
     display: flex;
     align-items: center;
     gap: 10px;
     padding: 10px 12px;
-    background: rgba(20,46,82,0.42);
-    border: 1px solid rgba(156,189,231,0.18);
-    border-radius: 12px;
   }
   .dprcv-att-stack {
     display: flex;
@@ -6943,7 +6800,7 @@
   .dprcv-att-av {
     width: 28px; height: 28px;
     border-radius: 50%;
-    box-shadow: inset 0 0 0 2px #1a2f4d;
+    box-shadow: inset 0 0 0 2px var(--bg);
     display: flex; align-items: center; justify-content: center;
     color: #fff;
     font-size: 12px;
@@ -6969,69 +6826,16 @@
     -webkit-box-orient: vertical;
   }
 
-  /* Primary CTA — tall "Jeg er med" pill. */
-  .dprcv-cta-primary {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    width: 100%;
-    height: 56px;
-    border-radius: 999px;
-    background: linear-gradient(180deg, #FFC8A6 0%, #FFAF85 60%, #FF9A65 100%);
-    border: 1px solid rgba(255,255,255,0.35);
-    color: var(--accent-on, #2a1a0c);
-    font-size: 16px;
-    font-weight: 700;
-    font-family: 'Inter', sans-serif;
-    cursor: pointer;
-    box-shadow:
-      0 1px 0 rgba(255,255,255,0.5) inset,
-      0 -1px 0 rgba(155,80,40,0.4) inset,
-      0 4px 12px rgba(255,140,80,0.25);
-    transition: opacity 0.15s, transform 0.05s;
-  }
-  .dprcv-cta-primary:hover { opacity: 0.92; }
-  .dprcv-cta-primary:active { transform: scale(0.99); }
-  .dprcv-cta-primary svg { stroke: currentColor; }
+  /* Primary CTA wrapper — uses .p-pill; tall variant for the hero. */
+  .dprcv-cta-primary { width: 100%; height: 52px; font-size: 15px; }
 
-  /* Secondary row — Annet tidspunkt + Avslå (2 buttons, equal width). */
+  /* Secondary row — Kommer senere + Avslå (2 buttons, equal width). */
   .dprcv-cta-row {
     display: flex;
     gap: 8px;
   }
-  .dprcv-cta-btn {
-    flex: 1;
-    height: 44px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, rgba(20,46,82,0.55), rgba(32,73,131,0.30));
-    border: 1px solid rgba(156,189,231,0.22);
-    color: var(--text);
-    font-size: 13px;
-    font-weight: 600;
-    font-family: 'Inter', sans-serif;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    box-shadow: var(--glass-inset);
-    transition: border-color 0.15s, color 0.15s, background 0.15s;
-  }
-  .dprcv-cta-btn:hover {
-    border-color: rgba(255,175,133,0.40);
-    color: var(--accent);
-  }
-  .dprcv-cta-btn svg { stroke: currentColor; flex-shrink: 0; }
-  .dprcv-cta-decline {
-    color: #FFB8B0;
-    border-color: rgba(255,150,140,0.25);
-    background: linear-gradient(135deg, rgba(60,30,40,0.35), rgba(40,20,30,0.25));
-  }
-  .dprcv-cta-decline:hover {
-    color: #FFB8B0;
-    border-color: rgba(255,150,140,0.55);
-  }
+  .dprcv-cta-row > .s-rnd,
+  .dprcv-cta-row > .g-rnd { flex: 1; }
 
   @media (min-width: 640px) {
     .dprcv-bottom {
@@ -7202,7 +7006,7 @@
     background: rgba(156,189,231,0.40);
   }
 
-  /* Floating "you're in" toast pill at the top of the viewport. */
+  /* Floating "you're in" toast pill — solid accent confirmation. */
   .dpacc-toast-pill {
     position: fixed;
     top: calc(env(safe-area-inset-top, 0px) + 12px);
@@ -7220,20 +7024,19 @@
     display: inline-flex;
     align-items: center;
     gap: 10px;
-    padding: 8px 16px 8px 10px;
-    background: linear-gradient(180deg, rgba(255,200,166,0.96), rgba(255,175,133,0.96));
-    border: 1px solid rgba(255,255,255,0.5);
-    border-radius: 999px;
-    color: #2a1a0c;
-    box-shadow: 0 6px 20px rgba(255,140,80,0.35), inset 0 1px 0 rgba(255,255,255,0.55);
+    padding: 8px 16px 8px 8px;
+    background: var(--accent);
+    color: var(--accent-on, #2a1a0c);
+    border-radius: var(--radius-pill);
+    box-shadow: 0 6px 20px rgba(255,140,80,0.30);
     font-size: 13px;
     font-weight: 700;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-sans);
   }
   .dpacc-toast-check {
     width: 22px; height: 22px;
     border-radius: 50%;
-    background: #2a1a0c;
+    background: var(--accent-on, #2a1a0c);
     color: var(--accent);
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
@@ -7286,24 +7089,21 @@
   }
   .dpacc-change-rsvp:hover { color: var(--text); }
 
-  /* Action carousel — horizontally scrolling cards. */
+  /* Action carousel — horizontally scrolling tiles. Most use .card; the
+     primary tile uses solid --accent (one Primary per screen rule). */
   .dpacc-action-row {
     display: flex;
     gap: 10px;
     overflow-x: auto;
     padding: 4px 2px 6px;
     margin: 0 -2px;
-    scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
   }
-  .dpacc-action-row::-webkit-scrollbar { display: none; }
   .dpacc-action-card {
     flex-shrink: 0;
     width: 110px;
     height: 96px;
-    border-radius: 14px;
-    background: linear-gradient(135deg, rgba(20,46,82,0.55), rgba(32,73,131,0.30));
-    border: 1px solid rgba(156,189,231,0.22);
+    border-radius: var(--radius-card);
     color: var(--text);
     display: flex;
     flex-direction: column;
@@ -7311,33 +7111,36 @@
     justify-content: space-between;
     padding: 12px;
     cursor: pointer;
-    font-family: 'Inter', sans-serif;
-    box-shadow: var(--glass-inset);
-    transition: border-color 0.15s, transform 0.05s;
+    font-family: var(--font-sans);
+    border: none;
+    background: transparent;
+    transition: transform 0.05s;
   }
-  .dpacc-action-card:hover { border-color: rgba(255,175,133,0.40); }
   .dpacc-action-card:active { transform: scale(0.99); }
-  .dpacc-action-card-accent {
-    background: linear-gradient(180deg, rgba(255,175,133,0.18), rgba(255,175,133,0.06));
-    border-color: rgba(255,175,133,0.40);
+  /* Primary tile — solid accent, accent-on text */
+  .dpacc-action-primary {
+    background: var(--accent);
+    color: var(--accent-on, #2a1a0c);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.35);
   }
+  .dpacc-action-primary:hover { background: #FFC49A; }
   .dpacc-action-icon {
     width: 30px; height: 30px;
     border-radius: 9px;
     background: rgba(156,189,231,0.10);
     border: 1px solid rgba(156,189,231,0.16);
     display: flex; align-items: center; justify-content: center;
-    color: var(--text);
+    color: var(--muted);
   }
-  .dpacc-action-card-accent .dpacc-action-icon {
-    background: rgba(255,175,133,0.20);
-    color: var(--accent);
+  .dpacc-action-primary .dpacc-action-icon {
+    background: rgba(42,26,12,0.12);
+    border-color: rgba(42,26,12,0.20);
+    color: var(--accent-on, #2a1a0c);
   }
   .dpacc-action-text { text-align: left; }
   .dpacc-action-title {
     font-size: 12.5px;
     font-weight: 700;
-    color: var(--text);
     line-height: 1.15;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -7355,23 +7158,21 @@
     white-space: nowrap;
     max-width: 86px;
   }
+  .dpacc-action-primary .dpacc-action-sub { color: rgba(42,26,12,0.65); }
 
-  /* Attendees row — avatar stack + summary. */
+  /* Attendees row — uses .card surface; layout-only here. */
   .dpacc-attendees {
     display: flex;
     align-items: center;
     gap: 12px;
     padding: 12px 14px;
-    background: rgba(20,46,82,0.42);
-    border: 1px solid rgba(156,189,231,0.18);
-    border-radius: 12px;
   }
   .dpacc-att-stack { display: flex; flex-shrink: 0; }
   .dpacc-att-stack > * + * { margin-left: -10px; }
   .dpacc-att-av {
     width: 32px; height: 32px;
     border-radius: 50%;
-    box-shadow: inset 0 0 0 2px #1a2f4d;
+    box-shadow: inset 0 0 0 2px var(--bg);
     display: flex; align-items: center; justify-content: center;
     color: #fff;
     font-size: 14px;
@@ -7395,27 +7196,12 @@
     white-space: nowrap;
   }
 
-  /* Plan-preview arrival chip (used in dprcv hero header — clickable
-     "17:00" pill that opens the per-invitee picker). */
-  .dprcv-arrival-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    border: 1px solid rgba(255,175,133,0.45);
-    border-radius: 999px;
-    padding: 4px 10px;
-    background: rgba(255,175,133,0.12);
-    color: var(--accent);
-    font-size: 28px;
-    font-weight: 700;
-    font-family: 'Inter', sans-serif;
-    font-variant-numeric: tabular-nums;
-    cursor: pointer;
-    line-height: 1;
-    transition: background 0.15s, border-color 0.15s;
+  /* Close button row at the bottom of the accepted panel */
+  .dpacc-close-row {
+    display: flex;
+    justify-content: center;
+    margin-top: 4px;
   }
-  .dprcv-arrival-chip:hover { background: rgba(255,175,133,0.18); }
-  .dprcv-arrival-chip svg { opacity: 0.7; flex-shrink: 0; width: 14px; height: 14px; }
 
   /* Per-invitee time chip on plan-preview attendees row */
   .pp-av-wrap {

@@ -568,34 +568,35 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     }
   }
 
-  // ── CTAs vary by mode
+  // ── CTAs vary by mode. One Primary per screen (.p-pill); secondaries use
+  // .s-rnd / .g-rnd from the design-system button kit.
   let ctaHtml = '';
   if (isInvite) {
     const acceptId = isAnon ? 'pp-anon-accept' : 'pp-accept';
     const declineId = isAnon ? 'pp-anon-decline' : 'pp-decline';
     ctaHtml = `
-      <button class="dprcv-cta-primary" id="${acceptId}" type="button">
+      <button class="p-pill dprcv-cta-primary" id="${acceptId}" type="button">
         ${checkSvg}
         ${t('plan_preview_im_in')}
       </button>
       <div class="dprcv-cta-row">
-        <button class="dprcv-cta-btn" id="pp-suggest" type="button">
+        <button class="s-rnd" id="pp-suggest" type="button">
           ${editSvg}
-          ${t('invite_secondary_suggest')}
+          ${t('invite_secondary_later')}
         </button>
-        <button class="dprcv-cta-btn dprcv-cta-decline" id="${declineId}" type="button">
+        <button class="g-rnd" id="${declineId}" type="button">
           ${xSvg}
           ${t('plan_decline')}
         </button>
       </div>`;
   } else if (isPreview) {
     ctaHtml = `
-      <button class="dprcv-cta-primary" id="pp-share-onward" type="button">
+      <button class="p-pill dprcv-cta-primary" id="pp-share-onward" type="button">
         ${sendSvg}
         ${t('preview_share_onwards')}
       </button>
       <div class="dprcv-cta-row">
-        <button class="dprcv-cta-btn" id="pp-close-cta" type="button">${t('close')}</button>
+        <button class="g-rnd" id="pp-close-cta" type="button">${t('close')}</button>
       </div>`;
   }
 
@@ -609,7 +610,7 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   const sentSub = isInvite ? (t('invite_hero_sent_ago', { ago: '' }).replace(/{ago}/g, '').trim() || '') : '';
   const topPillHtml = isInvite ? `
     <div class="dprcv-top-pill">
-      <div class="dprcv-top-pill-card">
+      <div class="dprcv-top-pill-card glass-action">
         <div class="dprcv-top-pill-av">${inviterAvHtml}</div>
         <span class="dprcv-top-pill-name">${inviterName || t('pp_eyebrow_invited')}</span>
         ${sentSub ? `<span class="dprcv-top-pill-sub">${sentSub}</span>` : ''}
@@ -633,15 +634,11 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
         <div class="dprcv-venue">${venue.name.replace(/</g, '&lt;')}</div>
         ${metaHtml ? `<div class="dprcv-meta">${metaHtml}</div>` : ''}
       </div>
-      <div class="dprcv-hero">
+      <div class="card dprcv-hero">
         <div class="dprcv-hero-row">
           <div class="dprcv-hero-left">
             <div class="dprcv-hero-label">${t('invite_hero_meets')}</div>
-            ${opts.mode === 'invite' ? `
-              <button class="dprcv-arrival-chip" id="pp-arrival-chip" type="button" aria-label="${t('arrival_change_label') || 'Change arrival time'}">
-                <span id="pp-arrival-time">${planTimeStr}</span>
-                ${chevDownSvg}
-              </button>` : `<div class="dprcv-arrival-time" id="pp-arrival-time">${planTimeStr}</div>`}
+            <div class="dprcv-arrival-time" id="pp-arrival-time">${planTimeStr}</div>
             ${arrivalSub ? `<div class="dprcv-arrival-sub">${arrivalSub}</div>` : ''}
           </div>
           <div class="dprcv-hero-right">
@@ -651,10 +648,7 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
           </div>
         </div>
         <div class="dprcv-timeline">
-          <canvas class="card-timeline-canvas dprcv-timeline-canvas" data-vid="${venue.id}" width="600" height="32"></canvas>
-          <div class="dprcv-arrival-overlay" id="pp-arrival-overlay">
-            <div class="dprcv-arrival-pin" id="pp-arrival-pin"></div>
-          </div>
+          <canvas class="card-timeline-canvas dprcv-timeline-canvas" data-vid="${venue.id}" width="600" height="40"></canvas>
         </div>
       </div>
       ${attendeesHtml}
@@ -666,18 +660,13 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     drawAllCardTimelines(el);
   }
 
-  // Position the arrival pin overlay (mirrors the canvas's MIN_H_ARC..MAX_H_ARC domain).
-  const positionPin = () => {
-    const minH = (typeof MIN_H_ARC === 'number') ? MIN_H_ARC : 4;
-    const maxH = (typeof MAX_H_ARC === 'number') ? MAX_H_ARC : 23;
-    const span = Math.max(0.0001, maxH - minH);
-    const pin = el.querySelector('#pp-arrival-pin');
-    if (pin) {
-      const pct = Math.max(0, Math.min(100, ((planHour - minH) / span) * 100));
-      pin.style.left = `${pct}%`;
-    }
-  };
-  positionPin();
+  // Wire the canvas to drag-scrub timeFromEl (so receivers can verify
+  // weather/sun across the day). Drag updates propagate via 'input' and the
+  // existing onTimeInput cancels the autoplay automatically.
+  const ftsCanvas = el.querySelector('.dprcv-timeline-canvas');
+  if (ftsCanvas && typeof window._wireInlineFtsCanvas === 'function') {
+    window._wireInlineFtsCanvas(ftsCanvas);
+  }
 
   // Tap-to-close on the handle area. Drag-to-dismiss is wired separately in
   // _ppWireDragHandle (which queries .pp-grabber). The wrapper hit area
@@ -703,44 +692,36 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     if (typeof timeFromEl !== 'undefined' && timeFromEl) timeFromEl.removeEventListener('input', onTimeInput);
   };
 
-  // Arrival chip — opens hidden <input type="time"> on tap. Keyboard: Space/Enter.
-  const arrivalChip = el.querySelector('#pp-arrival-chip');
+  // "Kommer senere" secondary opens a hidden <input type="time"> picker.
+  // Selecting a later time updates arrivalHour; tapping "Jeg er med" then
+  // writes accept w/ that custom arrival_time. Anon mode opens the login
+  // modal (no per-invitee write possible without auth).
   let arrivalHour = planHour;
   let arrivalInput = null;
-  if (arrivalChip && opts.mode === 'invite') {
-    arrivalInput = document.createElement('input');
-    arrivalInput.type = 'time';
-    arrivalInput.style.cssText = 'position:absolute;opacity:0;width:0;height:0;pointer-events:none;';
-    arrivalInput.value = `${String(Math.floor(planHour)).padStart(2,'0')}:${String(Math.round((planHour - Math.floor(planHour)) * 60)).padStart(2,'0')}`;
-    arrivalChip.appendChild(arrivalInput);
-    const openPicker = (e) => {
-      if (e) { e.stopPropagation(); e.preventDefault(); }
-      arrivalInput.showPicker?.() || arrivalInput.click();
-    };
-    arrivalChip.addEventListener('click', openPicker);
-    arrivalChip.addEventListener('keydown', e => {
-      if (e.key === ' ' || e.key === 'Enter') openPicker(e);
-    });
-    arrivalInput.addEventListener('change', () => {
-      const m = arrivalInput.value.match(/^(\d{1,2}):(\d{2})$/);
-      if (!m) return;
-      arrivalHour = parseInt(m[1], 10) + parseInt(m[2], 10) / 60;
-      const lbl = el.querySelector('#pp-arrival-time');
-      if (lbl) lbl.textContent = formatHour(arrivalHour);
-    });
-  }
-
-  // "Annet tidspunkt" secondary — same opener as the chip.
   const suggestBtn = el.querySelector('#pp-suggest');
-  if (suggestBtn && arrivalInput) {
-    suggestBtn.onclick = (e) => {
-      e.preventDefault();
-      arrivalInput.showPicker?.() || arrivalInput.click();
-    };
-  } else if (suggestBtn) {
-    suggestBtn.onclick = () => {
-      if (typeof toggleProfilePanel === 'function') toggleProfilePanel();
-    };
+  if (suggestBtn) {
+    if (isAnon) {
+      suggestBtn.onclick = () => {
+        if (typeof toggleProfilePanel === 'function') toggleProfilePanel();
+      };
+    } else {
+      arrivalInput = document.createElement('input');
+      arrivalInput.type = 'time';
+      arrivalInput.style.cssText = 'position:absolute;opacity:0;width:0;height:0;pointer-events:none;';
+      arrivalInput.value = `${String(Math.floor(planHour)).padStart(2,'0')}:${String(Math.round((planHour - Math.floor(planHour)) * 60)).padStart(2,'0')}`;
+      suggestBtn.appendChild(arrivalInput);
+      suggestBtn.onclick = (e) => {
+        e.preventDefault();
+        arrivalInput.showPicker?.() || arrivalInput.click();
+      };
+      arrivalInput.addEventListener('change', () => {
+        const m = arrivalInput.value.match(/^(\d{1,2}):(\d{2})$/);
+        if (!m) return;
+        arrivalHour = parseInt(m[1], 10) + parseInt(m[2], 10) / 60;
+        const lbl = el.querySelector('#pp-arrival-time');
+        if (lbl) lbl.textContent = formatHour(arrivalHour);
+      });
+    }
   }
 
   // Accept handler — same backend contract; new UI shell.

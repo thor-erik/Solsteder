@@ -735,15 +735,19 @@ function _openPostAcceptPanel(opts) {
   const safeWhen    = (whenLabel || '').replace(/</g, '&lt;');
   const safeSubtitle = subtitle.replace(/</g, '&lt;');
 
-  // Build action card list — first card gets accent highlight.
+  // Build action card list — contextual ordering. The first card is always
+  // primary (solid accent) per the design system's "one Primary per screen"
+  // rule. When the receiver isn't yet friends with the inviter, AddFriend
+  // takes priority (highest social value). Otherwise Share onward leads.
   const actions = [];
+  if (showAddFriend) actions.push('add_friend');
+  // Always offer Share onward (the share-nudge global flags whether to
+  // surface it as a *card*; if absent, fall back to the share button so
+  // the carousel still has a clear primary post-AddFriend).
+  actions.push('share');
   if (opts.venueId && opts.plannedAt) actions.push('calendar');
   if (typeof userLocation !== 'undefined' && userLocation && opts.venueId) actions.push('directions');
   if (opts.venueId) actions.push('open');
-  if (showAddFriend) actions.push('add_friend');
-  if (showShare) actions.push('share');
-  // Always at least 1 action — calendar is the safe default.
-  if (!actions.length && opts.venueId) actions.push('open');
 
   const cardsHtml = actions.map((type, i) =>
     _renderAcceptedActionCard(type, {
@@ -752,7 +756,7 @@ function _openPostAcceptPanel(opts) {
       plannedAt: opts.plannedAt,
       inviterName,
       inviterId,
-      accent: i === 0,
+      primary: i === 0,
     })
   ).join('');
 
@@ -797,10 +801,13 @@ function _openPostAcceptPanel(opts) {
         <div class="dpacc-venue">${safeName}</div>
         <div class="dpacc-subtitle">${safeSubtitle}</div>
       </div>
-      <button class="dpacc-change-rsvp" type="button" onclick="_closePostAcceptPanel()">${t('accepted_change_rsvp')}</button>
+      <button class="g-rnd dpacc-change-rsvp" type="button" onclick="_closePostAcceptPanel()">${t('accepted_change_rsvp')}</button>
     </div>
-    <div class="dpacc-action-row">${cardsHtml}</div>
-    ${attendeesHtml}`;
+    <div class="dpacc-action-row no-scrollbar">${cardsHtml}</div>
+    ${attendeesHtml}
+    <div class="dpacc-close-row">
+      <button class="g-rnd" type="button" onclick="_closePostAcceptPanel()">${t('accepted_close')}</button>
+    </div>`;
 
   // Floating "you're in" toast pill at the top.
   const toastPill = document.createElement('div');
@@ -822,9 +829,11 @@ function _openPostAcceptPanel(opts) {
 }
 
 /** Render one of the action cards in the accepted-panel carousel.
- *  type ∈ 'calendar' | 'directions' | 'open' | 'add_friend' | 'share'. */
+ *  type ∈ 'calendar' | 'directions' | 'open' | 'add_friend' | 'share'.
+ *  When opts.primary is true the tile is solid-accent (one Primary per
+ *  screen); otherwise it uses the .card surface. */
 function _renderAcceptedActionCard(type, opts) {
-  const accentCls = opts.accent ? ' dpacc-action-card-accent' : '';
+  const surfaceCls = opts.primary ? ' dpacc-action-primary' : ' card';
   const venueId = opts.venueId;
   const titleStr = (key, vars) => (t(key, vars || {}) || '').replace(/</g, '&lt;');
 
@@ -854,7 +863,7 @@ function _renderAcceptedActionCard(type, opts) {
     iconSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>`;
   }
 
-  return `<button type="button" class="dpacc-action-card${accentCls}" data-action="${type}" onclick="_acceptedActionClick('${type}', ${venueId}, ${opts.inviterId ? `'${opts.inviterId}'` : 'null'}, ${JSON.stringify(opts.inviterName || '').replace(/"/g,'&quot;')})">
+  return `<button type="button" class="dpacc-action-card${surfaceCls}" data-action="${type}" onclick="_acceptedActionClick('${type}', ${venueId}, ${opts.inviterId ? `'${opts.inviterId}'` : 'null'}, ${JSON.stringify(opts.inviterName || '').replace(/"/g,'&quot;')})">
     <div class="dpacc-action-icon">${iconSvg}</div>
     <div class="dpacc-action-text">
       <div class="dpacc-action-title">${title}</div>
@@ -1034,9 +1043,8 @@ function _openInviteSheet(venueId) {
   const checkSvgSm = `<svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 7 6 11 12 3"/></svg>`;
   const noFriendsSvg = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>`;
 
-  // Friend ids ordered by recent invite history (clamped to last 4) — used
-  // by the "Nylige" group chip. If there's no history, fall back to the first
-  // 4 friends in the canonical list.
+  // Friend ids ordered by recent invite history. If there's no history, fall
+  // back to the first 4 friends in the canonical list.
   const recentIds = (typeof _recentInvitedFriendIds === 'function')
     ? _recentInvitedFriendIds(friends).slice(0, 4)
     : friends.slice(0, 4).map(f => String(f.id));
@@ -1046,12 +1054,9 @@ function _openInviteSheet(venueId) {
   const venueCat   = (v && typeof catLabel === 'function') ? catLabel(v) : '';
   const venueMeta  = [venueArea, venueCat].filter(Boolean).join(' · ');
   const safeName   = venueName.replace(/"/g, '&quot;');
-  const arrivalLbl = _dpinviteArrivalLabel(curHour);
+  const ankomstLbl = _dpinviteArrivalLabel(curHour);
+  const sunUntilStr = _dpinviteSunEndStr(v, curDate);
   const autoMessage = v ? _composeInviteShareText(v, curDate, curHour) : '';
-  const sunBarHtml  = (typeof renderInviteSunBar === 'function')
-    ? renderInviteSunBar(v, curDate, curHour) : '';
-  const sunUntilHtml = _dpinviteSunUntilLine(v, curDate, curHour);
-  const arrivalChipsHtml = _buildInviteTimeChips(curHour);
 
   const avatarsHtml   = _renderInviteAvatarCarousel(friends, _hashColor, checkSvgSm);
   const groupChipsHtml = _renderInviteGroupChips('recent', recentSet.size, friends.length);
@@ -1067,64 +1072,61 @@ function _openInviteSheet(venueId) {
   sheet.className = 'dpinvite-sheet';
 
   const friendsBlock = hasFriends ? `
-        <div class="dpinvite-group-chips" id="dpinvite-group-chips">
+        <div class="dpinvite-group-chips no-scrollbar" id="dpinvite-group-chips">
           ${groupChipsHtml}
         </div>
-        <div class="dpinvite-avatar-row" id="dpinvite-avatar-row">
+        <div class="dpinvite-avatar-row no-scrollbar" id="dpinvite-avatar-row">
           ${avatarsHtml}
         </div>` : `
-        <div class="dpinvite-empty-card">
+        <div class="dpinvite-empty-card card">
           <div class="dpinvite-empty-icon">${noFriendsSvg}</div>
           <div class="dpinvite-empty-title">${t('invite_no_friends_title')}</div>
           <div class="dpinvite-empty-sub">${t('invite_no_friends_sub')}</div>
         </div>`;
 
-  // CTA row: primary morphs ("Velg venner" → "Send til {name}" / "Send til {n} venner")
-  // based on selection. Circular link button is always present.
+  // CTA row uses .p-pill (primary) + .s-circ (companion link button) — one
+  // primary per screen. Disabled state when no friends selected. .p-pill is
+  // the design-system primary; .s-circ is its 44px icon-only companion.
   const ctaRow = hasFriends ? `
         <div class="dpinvite-cta-row">
-          <button class="dpinvite-send-pill" id="invite-primary-btn" data-mode="share" onclick="_invitePrimaryClick(${venueId})" disabled>
+          <button class="p-pill" id="invite-primary-btn" data-mode="share" onclick="_invitePrimaryClick(${venueId})" disabled>
             <span id="invite-primary-icon">${sendSvg}</span>
             <span id="invite-primary-label">${t('invite_select_friends_cta')}</span>
           </button>
-          <button class="dpinvite-link-btn" id="invite-secondary-btn" type="button" onclick="_shareInviteLink(${venueId})" aria-label="${t('share_link')}">
+          <button class="s-circ" id="invite-secondary-btn" type="button" onclick="_shareInviteLink(${venueId})" title="${t('share_link')}" aria-label="${t('share_link')}">
             ${linkSvg}
           </button>
         </div>` : `
         <div class="dpinvite-cta-row">
-          <button class="dpinvite-send-pill" onclick="_shareInviteLink(${venueId})">
+          <button class="p-pill" onclick="_shareInviteLink(${venueId})" style="flex:1">
             ${linkSvg}
             <span>${t('share_link')}</span>
           </button>
         </div>`;
 
-  // Sheet markup — single body element. Body order:
-  //   1. Title row: eyebrow + venue name (left) + arrival pill (right)
-  //   2. Arrival picker (hidden by default; opens when arrival pill tapped)
-  //   3. Sun bar (HTML/CSS gradient, driven by render-sunbar.js)
-  //   4. Sun-until line (axis labels + bold sun-til text)
-  //   5. Editable message preview card (sparkle + auto-text)
-  //   6. Friends block (group chips + avatar carousel) OR empty state
-  //   7. Sticky CTA row (Send pill + circular link icon button)
+  // Sheet markup. Body order:
+  //   1. Title block: eyebrow + venue name
+  //   2. Inline FTS card (interactive scrub → sets timeFromEl)
+  //   3. Editable message preview card
+  //   4. Friends block (group chips + avatar carousel) OR empty state
+  //   5. CTA row (primary pill + circular share-link companion)
   sheet.innerHTML = `
     <div class="dpinvite-grabber" aria-hidden="true"></div>
     <div class="dpinvite-body">
-      <div class="dpinvite-title-row">
-        <div>
-          <div class="dpinvite-eyebrow">${t('invite_eyebrow')}</div>
-          <div class="dpinvite-venue-name">${venueName}</div>
+      <div class="dpinvite-title-block">
+        <div class="dpinvite-eyebrow">${t('invite_eyebrow')}</div>
+        <div class="dpinvite-venue-name">${venueName}</div>
+      </div>
+      <div class="card dpinvite-fts-card">
+        <div class="dpinvite-fts-track">
+          <canvas class="card-timeline-canvas dpinvite-fts-canvas" id="dpinvite-fts-canvas" data-vid="${venueId}"></canvas>
         </div>
-        <button type="button" class="dpinvite-arrival-pill" id="dpinvite-arrival-pill" aria-label="${t('invite_arrival_pill_aria')}" onclick="_dpinviteToggleArrivalPicker()">
-          <span id="dpinvite-arrival-label">${arrivalLbl}</span>
-          ${chevDownSvg}
-        </button>
+        <div class="dpinvite-fts-labels">
+          <span class="t-meta">Ankomst <strong class="t-numeric" id="dpinvite-arrival-label" style="color: var(--accent)">${ankomstLbl}</strong></span>
+          <span class="t-meta">Sol til <strong class="t-numeric" id="dpinvite-sunend-label">${sunUntilStr}</strong></span>
+        </div>
       </div>
-      <div class="dpinvite-arrival-row" id="dpinvite-arrival-row" hidden>
-        ${arrivalChipsHtml}
-      </div>
-      <div id="dpinvite-sunbar-host">${sunBarHtml}</div>
-      <div class="dpinvite-suntil-line" id="dpinvite-suntil-line">${sunUntilHtml}</div>
-      <div class="dpinvite-message-card" id="dpinvite-message-card" onclick="_dpinviteEditMessage(event)">
+      <div class="card dpinvite-message-card" id="dpinvite-message-card" onclick="_dpinviteEditMessage(event)">
         <div class="dpinvite-message-eyebrow">
           ${sparkleSvg}
           ${t('invite_message_preview_label')}
@@ -1135,21 +1137,20 @@ function _openInviteSheet(venueId) {
       ${ctaRow}
     </div>`;
 
-  // Floating top chip — small glass pill (not the bright cream-on-coral card
-  // of the previous iteration). Lives as a sibling of the backdrop so it
-  // survives sheet animations cleanly.
+  // Floating top chip — small .glass-action card + .s-circ close. Lives as a
+  // sibling of the backdrop so it survives sheet animations cleanly.
   const topCard = document.createElement('div');
   topCard.id = 'invite-top-card';
   topCard.className = 'dpinvite-top-chip';
   topCard.innerHTML = `
-    <div class="dpinvite-top-chip-card">
+    <div class="dpinvite-top-chip-card glass-action">
       <div class="dpinvite-top-chip-icon">${pinSvg}</div>
       <div class="dpinvite-top-chip-text">
         <div class="dpinvite-top-chip-name">${safeName}</div>
         <div class="dpinvite-top-chip-meta">${venueMeta}</div>
       </div>
     </div>
-    <button class="dpinvite-top-chip-close" type="button" onclick="_closeInviteSheet()" aria-label="${t('close') || 'Close'}">
+    <button class="s-circ dpinvite-top-chip-close" type="button" onclick="_closeInviteSheet()" aria-label="${t('close') || 'Close'}">
       ${xSvg}
     </button>`;
 
@@ -1169,32 +1170,25 @@ function _openInviteSheet(venueId) {
   _dpinviteApplyGroupFilter('recent');
   _refreshInvitePrimaryCTA();
 
+  // Wire the inline FTS canvas to drag-scrub timeFromEl.
+  const ftsCanvas = sheet.querySelector('#dpinvite-fts-canvas');
+  if (ftsCanvas) _wireInlineFtsCanvas(ftsCanvas);
+  // Paint it once via the shared walker.
+  if (typeof drawAllCardTimelines === 'function') drawAllCardTimelines(sheet);
+
   function _updateInviteConfirm() {
     const d = (typeof datePicker !== 'undefined') ? datePicker.value : curDate;
     const h = (typeof timeFromEl !== 'undefined') ? parseFloat(timeFromEl.value) : curHour;
-    // Arrival pill label
+    // Ankomst label tracks the FTS scrub
     const arrLabel = sheet.querySelector('#dpinvite-arrival-label');
     if (arrLabel) arrLabel.textContent = _dpinviteArrivalLabel(h);
-    // Sun bar pin (cheap CSS-var update)
-    const sunHost = sheet.querySelector('#dpinvite-sunbar-host .dpinvite-sunbar');
-    if (sunHost && typeof updateInviteSunBarPin === 'function') {
-      updateInviteSunBarPin(sunHost, h);
-    }
-    // Sun-until line
-    const sunUntil = sheet.querySelector('#dpinvite-suntil-line');
-    if (sunUntil && v) sunUntil.innerHTML = _dpinviteSunUntilLine(v, d, h);
+    // Sun til label refreshes when date changes (sun window depends on date)
+    const sunLabel = sheet.querySelector('#dpinvite-sunend-label');
+    if (sunLabel && v) sunLabel.textContent = _dpinviteSunEndStr(v, d);
     // Message preview — only refresh from auto-generator when user hasn't edited
     if (sheet._messageDraft == null) {
       const prev = sheet.querySelector('#dpinvite-message-text');
       if (prev && v) prev.textContent = _composeInviteShareText(v, d, h);
-    }
-    // Reflect active arrival chip
-    const chips = sheet.querySelector('#dpinvite-arrival-row');
-    if (chips) {
-      chips.querySelectorAll('.dpinvite-arrival-chip').forEach(btn => {
-        const chipH = parseFloat(btn.dataset.hour);
-        btn.classList.toggle('active', Math.abs(chipH - h) < 0.01);
-      });
     }
   }
   const onTimeInput = () => _updateInviteConfirm();
@@ -1325,51 +1319,66 @@ function _openInviteSheet(venueId) {
   });
 }
 
-/** Build the time-chip row content. Six chips: "Nå" + the next five full
- *  hours. Each chip dispatches an 'input' event on timeFromEl when tapped,
- *  which is what _updateInviteConfirm + the rest of the app already listen
- *  for. Emits .dpinvite-arrival-chip (matches the in-flow arrival picker). */
-function _buildInviteTimeChips(currentHour) {
-  const nowH = Math.floor(currentHour);
-  const chips = [];
-  chips.push({ label: t('now') || 'Nå', hour: nowH });
-  for (let i = 1; i <= 5 && nowH + i <= 23; i++) {
-    const h = nowH + i;
-    chips.push({ label: (typeof formatHour === 'function') ? formatHour(h) : `${h}:00`, hour: h });
-  }
-  return chips.map(c => {
-    const isActive = Math.abs(c.hour - currentHour) < 0.01;
-    return `<button type="button" class="dpinvite-arrival-chip${isActive ? ' active' : ''}" data-hour="${c.hour}" onclick="_setInviteTimeFromChip(${c.hour})">${c.label}</button>`;
-  }).join('');
-}
-
-/** Format the arrival pill's compact label — "Nå" when within 5min of the
- *  current real time, otherwise "HH:MM". */
+/** Format the arrival label — "Nå" when within 5min of the current real
+ *  time, otherwise "HH:MM". Used by the inline FTS card's Ankomst label. */
 function _dpinviteArrivalLabel(hour) {
   const realNow = (new Date().getHours()) + (new Date().getMinutes() / 60);
   if (Math.abs(hour - realNow) < 5/60) return t('now') || 'Nå';
   return (typeof formatHour === 'function') ? formatHour(hour) : `${Math.floor(hour)}:00`;
 }
 
-/** Build the "11 — Sol til HH:MM — 22" axis-bracketed sun line under the bar. */
-function _dpinviteSunUntilLine(venue, dateStr, fromHour) {
-  const minH = (typeof MIN_H_ARC === 'number') ? MIN_H_ARC : 4;
-  const maxH = (typeof MAX_H_ARC === 'number') ? MAX_H_ARC : 23;
-  let sunStart = null, sunEnd = null;
+/** Format the sun-end time as HH:MM, or "—" if no sun window today. */
+function _dpinviteSunEndStr(venue, dateStr) {
+  let sunEnd = null;
   try {
     if (typeof computeSunWindows === 'function' && venue) {
       const sw = computeSunWindows(venue, dateStr);
       const ws = sw && sw.windows ? sw.windows : [];
-      if (ws.length) { sunStart = ws[0].start; sunEnd = ws[ws.length - 1].end; }
+      if (ws.length) sunEnd = ws[ws.length - 1].end;
     }
   } catch (e) { /* ignore */ }
-  let main = '';
-  if (sunStart != null && sunEnd != null) {
-    const sunUntilTime = (typeof formatHour === 'function') ? formatHour(sunEnd) : `${Math.floor(sunEnd)}:${String(Math.round((sunEnd%1)*60)).padStart(2,'0')}`;
-    main = `${t('invite_hero_sun_until')} ${sunUntilTime}`;
-  }
-  return `<span>${minH}</span><span class="dpinvite-suntil-main">${main}</span><span>${maxH}</span>`;
+  if (sunEnd == null) return '—';
+  return (typeof formatHour === 'function')
+    ? formatHour(sunEnd)
+    : `${Math.floor(sunEnd)}:${String(Math.round((sunEnd%1)*60)).padStart(2,'0')}`;
 }
+
+/** Wire a card-timeline-canvas to drag-scrub timeFromEl. Drag math mirrors
+ *  the body-level FTS — clientX → MIN_H_ARC..MAX_H_ARC range. The 'input'
+ *  event dispatched on timeFromEl propagates to all listeners (weather,
+ *  notifications, our own _updateInviteConfirm), which re-fires
+ *  drawAllCardTimelines to repaint. */
+function _wireInlineFtsCanvas(canvas) {
+  if (!canvas || canvas._dpInlineFtsWired) return;
+  canvas._dpInlineFtsWired = true;
+  const minH = (typeof MIN_H_ARC === 'number') ? MIN_H_ARC : 4;
+  const maxH = (typeof MAX_H_ARC === 'number') ? MAX_H_ARC : 23;
+  const range = Math.max(0.0001, maxH - minH);
+  const setHourFromX = (clientX) => {
+    if (typeof timeFromEl === 'undefined' || !timeFromEl) return;
+    const rect = canvas.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    timeFromEl.value = minH + pct * range;
+    timeFromEl.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+  let dragging = false;
+  const onDown = (e) => {
+    dragging = true;
+    canvas.setPointerCapture?.(e.pointerId);
+    setHourFromX(e.clientX);
+    e.preventDefault();
+  };
+  const onMove = (e) => { if (dragging) setHourFromX(e.clientX); };
+  const onUp = (e) => {
+    dragging = false;
+    try { canvas.releasePointerCapture?.(e.pointerId); } catch (_) { /* ignore */ }
+  };
+  canvas.addEventListener('pointerdown', onDown);
+  canvas.addEventListener('pointermove', onMove);
+  canvas.addEventListener('pointerup', onUp);
+  canvas.addEventListener('pointercancel', onUp);
+}
+if (typeof window !== 'undefined') window._wireInlineFtsCanvas = _wireInlineFtsCanvas;
 
 /** Build the avatar carousel — horizontally scrolling .dpinvite-avatar tiles
  *  with multi-select state via aria-checked. */
@@ -1396,26 +1405,27 @@ function _renderInviteAvatarCarousel(friends, hashColor, checkSvg) {
   }).join('');
 }
 
-/** Build the group-chip strip — "Nylige (n) | Alle (m)". Nylige is hidden
- *  when no recent ids exist (then "Alle" is the default active chip). */
+/** Build the group-chip strip — "Nylige (n) | Alle (m)". Uses .chip-pill
+ *  primitives. Nylige is hidden when no recent ids exist; "Alle" becomes
+ *  the default-active chip. */
 function _renderInviteGroupChips(activeGroup, recentCount, totalCount) {
   const chips = [];
   if (recentCount > 0) {
     chips.push({ id: 'recent', label: t('invite_group_recent'), count: recentCount });
   }
   chips.push({ id: 'all', label: t('invite_group_all'), count: totalCount });
-  // If recent is empty, default-active becomes "all".
   const effectiveActive = (activeGroup === 'recent' && recentCount === 0) ? 'all' : activeGroup;
   return chips.map(c => `
-    <button type="button" class="dpinvite-group-chip${c.id === effectiveActive ? ' active' : ''}" data-group="${c.id}" onclick="_dpinviteApplyGroupFilter('${c.id}')">
+    <button type="button" class="chip-pill${c.id === effectiveActive ? ' is-selected' : ''}" data-group="${c.id}" onclick="_dpinviteApplyGroupFilter('${c.id}')">
       ${c.label}
-      <span class="dpinvite-group-chip-count">${c.count}</span>
+      <span class="count">${c.count}</span>
     </button>`).join('');
 }
 
 /** Apply a group filter — toggle hidden on .dpinvite-avatar tiles and update
- *  the active class on the chip strip. Selection state (aria-checked) is
- *  preserved so a friend selected in "Alle" stays selected when filtered out. */
+ *  the .is-selected state on the chip strip. Selection state (aria-checked)
+ *  is preserved so a friend selected in "Alle" stays selected when filtered
+ *  out. */
 function _dpinviteApplyGroupFilter(groupId) {
   const sheet = document.getElementById('invite-sheet');
   if (!sheet) return;
@@ -1427,18 +1437,11 @@ function _dpinviteApplyGroupFilter(groupId) {
     const inGroup = (groupId === 'all') ? true : recentSet.has(fid);
     tile.hidden = !inGroup;
   });
-  const chips = sheet.querySelectorAll('.dpinvite-group-chip');
+  const chips = sheet.querySelectorAll('#dpinvite-group-chips .chip-pill');
   chips.forEach(chip => {
-    chip.classList.toggle('active', chip.getAttribute('data-group') === groupId);
+    chip.classList.toggle('is-selected', chip.getAttribute('data-group') === groupId);
   });
   _refreshInvitePrimaryCTA();
-}
-
-/** Open/close the inline arrival picker (the row of chips below the pill). */
-function _dpinviteToggleArrivalPicker() {
-  const row = document.getElementById('dpinvite-arrival-row');
-  if (!row) return;
-  row.hidden = !row.hidden;
 }
 
 /** Switch the message preview card into edit mode — replaces the static text
@@ -1484,16 +1487,6 @@ function _recentInvitedFriendIds(friends) {
   for (const id of recent) if (safe.includes(String(id)) && !ordered.includes(String(id))) ordered.push(String(id));
   for (const id of safe) if (!ordered.includes(id)) ordered.push(id);
   return ordered.slice(0, 8);
-}
-
-/** Apply a chip's hour to the global timeFromEl + dispatch input. The 'input'
- *  event is the channel the rest of the app (including our _updateInviteConfirm
- *  closure inside _openInviteSheet) listens on, so this single call updates
- *  the bubble preview, the floating top card, and the chip-active state. */
-function _setInviteTimeFromChip(hour) {
-  if (typeof timeFromEl === 'undefined' || !timeFromEl) return;
-  timeFromEl.value = hour;
-  timeFromEl.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
 /** Render the floating top venue card (NOT .venue-card — bespoke for the
