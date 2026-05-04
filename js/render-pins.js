@@ -1196,11 +1196,15 @@ function draw() {
   const currentHour = parseFloat(timeFromEl.value);
   const dateStr     = datePicker.value;
 
-  // Project + classify all visible venues
+  // Project + classify all visible venues. Venues with friend check-ins
+  // bypass the rating-based zoom filter so they're always visible regardless
+  // of how zoomed-out the user is.
   const projVenues = [];
   VENUES.forEach(v => {
     if (!bounds.contains([v.lng, v.lat])) return;
-    if (!shouldShowAtZoom(v, zoom)) { hiddenCount++; return; }
+    const hasFriends = (typeof getFriendCheckinsForVenue === 'function')
+      && getFriendCheckinsForVenue(v.id).length > 0;
+    if (!hasFriends && !shouldShowAtZoom(v, zoom)) { hiddenCount++; return; }
     const classResult = classifyPin(v, dateStr, currentHour);
     projVenues.push({ v, classResult, pt: map.project([v.lng, v.lat]) });
   });
@@ -1233,12 +1237,19 @@ function draw() {
   // Build _lastLayout from stable decisions + current screen positions.
   // Friend pins sort to the END so they draw on top of every other pill —
   // canvas draws in iteration order, so "last" wins z-order.
+  // Friend venues are forced to pill (isDot=false) so they remain visible
+  // during pan frames where the cached _venueIsDot map would otherwise
+  // default newly-visible venues to dot until the next moveend recompute.
+  // Their sprite is always built at hero tier so a context-tier friend gets
+  // a proper pill with the inlaid blue capsule rather than a 10×10 glass dot.
   _lastLayout = projVenues.map(({ v, pt, classResult }) => {
     const sel = v.id === selectedId;
-    const spr = getSprite(v, classResult.tier, classResult, sel, currentHour, dateStr);
+    const isFriendPin = _friendVenueIds.has(v.id);
+    const sprTier = isFriendPin ? 'hero' : classResult.tier;
+    const spr = getSprite(v, sprTier, classResult, sel, currentHour, dateStr);
     return {
       v, pt, classResult, spr,
-      isDot:     _venueIsDot.get(v.id)   ?? true,
+      isDot:     isFriendPin ? false : (_venueIsDot.get(v.id) ?? true),
       extraStem: _venueExtStem.get(v.id) ?? 0,
     };
   });
@@ -1319,13 +1330,9 @@ function draw() {
       if (v.id === highlight.id) _drawDotHover(pt, tier);
       else _drawDot(pt, tier, reviewFlagged);
     }
-    // Friend badge on dot pins (offset to top-right)
-    if (typeof getFriendCheckinsForVenue === 'function') {
-      const fc = getFriendCheckinsForVenue(v.id);
-      if (fc.length) {
-        _drawFriendBadge(pt.x + DOT_R + 1, pt.y - DOT_R - 1, fc);
-      }
-    }
+    // Friend check-in venues are force-pilled in _lastLayout and never reach
+    // the dot draw path, so the legacy top-right badge has no place here.
+
     // "Going" badge on dot pins (bottom-right so it doesn't overlap the checkin badge)
     if (typeof getGoingFriendsForVenue === 'function') {
       const going = getGoingFriendsForVenue(v.id, dateStr);
