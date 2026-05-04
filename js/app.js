@@ -41,7 +41,6 @@ let _preCalPanelState = null; // saved panel state before calendar open (mobile)
 let _qcCalExpanded    = false; // true = full month calendar
 let _qcCalViewYear    = null;  // year shown in expanded view
 let _qcCalViewMonth   = null;  // month shown in expanded view (0–11)
-let _qcArcDragging    = false;
 let _navMode          = false; // true after clicking a pin/card — use radius filter instead of map bounds
 let _preSelectZoom    = null;  // zoom level saved before zooming into a selected venue
 let _preSelectCenter  = null;  // map center saved before zooming into a selected venue
@@ -1558,23 +1557,9 @@ function _readoutSet(el, newText, animate) {
 function updateQcIndicator(h) {
   const isHover = typeof h === 'number';
   const hour    = isHover ? h : parseFloat(timeFromEl.value);
-  // Snap to 15-min increments for display
   const dispH   = Math.round(hour * 4) / 4;
   const dateStr = datePicker.value;
-  const wx      = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, dispH) : null;
-  const ARROWS  = ['↑','↗','→','↘','↓','↙','←','↖'];
-  const arrow   = wx ? ARROWS[Math.round(((wx.wdir + 180) % 360) / 45) % 8] : '';
-  // Arrow wrapped in fixed-width span so glyph width never shifts container
-  const windHtml = wx
-    ? `<span class="wind-arrow">${arrow}</span>${Math.round(wx.wspd)} m/s`
-    : '';
-  const temp    = wx ? `${Math.round(wx.temp)}°` : '';
-  const icon    = wx && typeof skyIcon === 'function' ? skyIcon(wx.cloud) : '';
 
-  // Row 2: selected time label (24pt/700/--accent)
-  const timeLabel = formatHour(dispH);
-
-  // List header sun count — lives in #list-sun-count, not in readout
   let sunLabel = '';
   if (typeof VENUES !== 'undefined' && typeof venueHasSunInRange === 'function') {
     let sunVenues = VENUES.filter(v => venueHasSunInRange(v, dateStr, dispH, dispH));
@@ -1588,7 +1573,6 @@ function updateQcIndicator(h) {
       sunVenues = sunVenues.filter(v => padded.contains([v.lng, v.lat]));
     }
     const cnt = sunVenues.length;
-    // Reflect whether we're showing all venues or just this area
     if (filterMapViewActive) {
       sunLabel = cnt > 0 ? t('places_in_sun_here', { count: cnt }) : t('no_places_in_sun_here');
     } else {
@@ -1596,59 +1580,20 @@ function updateQcIndicator(h) {
     }
   }
 
-  _readoutSet(document.getElementById('readout-time'), timeLabel, false);
-
-  // Inline weather row: icon + temp + separator (wx-sep, static) + wind
-  const wxIconEl = document.querySelector('#readout-meta-wx .wx-icon');
-  const wxTempEl = document.getElementById('readout-meta-temp');
-  const wxWindEl = document.getElementById('readout-meta-wind');
-  const wxSepEl  = document.querySelector('#readout-meta-wx .wx-sep');
-  if (wxIconEl) wxIconEl.textContent = icon;
-  // Show separator + wind only when weather data exists
-  if (wxSepEl)  wxSepEl.style.display  = wx ? '' : 'none';
-  // Always update instantly — temp/wind are small status numbers where a crossfade
-  // causes visible flicker during scrubbing without adding meaningful polish.
-  if (wxTempEl) wxTempEl.textContent = temp;
-  if (wxWindEl) wxWindEl.innerHTML    = windHtml;
-
-  // Sun count: belongs to list header, not readout
   _readoutSet(document.getElementById('list-sun-count'), sunLabel, false);
-
-  // Hue-shift: tint the unified control group toward weather ramp during hover/drag
-  const ctrlGroup = document.getElementById('qc-control-group');
-  if (ctrlGroup) {
-    if (isHover && wx) {
-      const rain = (wx.precip ?? wx.prec ?? 0) > 0.3;
-      const cf   = wx.cloud ?? 0;
-      let [tr, tg, tb] = rain ? [28,50,88] : cf < 0.20 ? [36,54,78] : cf < 0.60 ? [32,50,76] : [26,46,80];
-      ctrlGroup.style.background = `rgba(${tr},${tg},${tb},0.60)`;
-    } else {
-      ctrlGroup.style.background = '';
-    }
-  }
 }
 
 function updateQcLabels() {
   const val = datePicker.value;
   const tod = todayStr();
 
-  // Refresh readout (sun count changes with date)
   updateQcIndicator(null);
 
-  // Readout date label (inline phrase)
-  const dateLabelEl = document.getElementById('readout-date-label');
-  if (dateLabelEl) dateLabelEl.textContent = formatDatePill(val);
-
-  // Date button active state reflects calendar open state
-  document.getElementById('readout-date-btn')?.classList.toggle('active', _qcActiveSection === 'date');
-
-  // "Now" only makes sense today — show "Sunrise" on future dates
   const isToday = val === tod;
   document.querySelectorAll('.qc-preset-btn[data-intent="now"]').forEach(b => {
     b.textContent = isToday ? t('now') : t('sunrise');
   });
 
-  // Sync preset buttons with active intent
   document.querySelectorAll('.qc-preset-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.intent === activeIntent));
 }
@@ -1661,8 +1606,6 @@ function _closeQcPanel() {
   _qcActiveSection = null;
   // _qcCalExpanded is intentionally NOT reset here — session mode (strip/month) persists
 
-  const dateBtn = document.getElementById('readout-date-btn');
-  if (dateBtn) { dateBtn.classList.remove('active'); dateBtn.setAttribute('aria-expanded', 'false'); }
   const calFloat = document.getElementById('ptb-cal-float');
   if (calFloat) {
     calFloat.classList.remove('open');
@@ -1702,7 +1645,6 @@ function _closeQcPanel() {
 }
 
 function toggleQcPanel(section) {
-  // Only 'date' section is used now; arc is always visible in panel-time-bar
   if (section !== 'date') return;
 
   const panel   = document.getElementById('qc-panel');
@@ -1749,8 +1691,6 @@ function toggleQcPanel(section) {
   }
   panel.classList.add('open');
   document.getElementById('qc-date-section')?.classList.add('active');
-  const dateBtn = document.getElementById('readout-date-btn');
-  if (dateBtn) { dateBtn.classList.add('active'); dateBtn.setAttribute('aria-expanded', 'true'); }
   renderQcCalendar();
   if (!_qcCalExpanded) _syncQcPanelHeight();
 }
@@ -1987,8 +1927,8 @@ function selectQcDate(dateStr) {
     timeFromEl.value = 12;
   }
   _closeQcPanel();
-  // Return focus to the date button so keyboard users can continue scrubbing
-  document.getElementById('readout-date-btn')?.focus();
+  // Return focus to the FTS date button so keyboard users can continue scrubbing
+  document.getElementById('fts-date-btn')?.focus();
   update();
 }
 
@@ -2013,11 +1953,10 @@ function _updatePeekHeight() {
   if (!isMobile()) return;
   const panel     = document.getElementById('panel');
   const handle    = document.getElementById('panel-handle');
-  const timebar   = document.getElementById('panel-time-bar');
   const sunHeader = document.getElementById('list-sun-header');
   const peek      = document.getElementById('venue-peek');
-  if (!panel || !handle || !timebar) return;
-  const h = handle.offsetHeight + timebar.offsetHeight
+  if (!panel || !handle) return;
+  const h = handle.offsetHeight
           + (sunHeader ? sunHeader.offsetHeight : 0)
           + (peek ? peek.offsetHeight : 0);
   panel.style.setProperty('--peek-h', Math.max(h, 100) + 'px');
@@ -2039,41 +1978,6 @@ function updateVenuePeek(venues) {
 
   // Measure after content is set
   requestAnimationFrame(_updatePeekHeight);
-}
-
-// Spring-back animation: briefly offsets thumb toward future then eases to 0
-function _qcSpringBackThumb(canvasEl) {
-  if (!canvasEl) return;
-  window._qcSpringOffset = 8;
-  const start    = performance.now();
-  const duration = 220;
-  function step(now) {
-    const p = Math.min((now - start) / duration, 1);
-    const eased = 1 - Math.pow(1 - p, 2);  // ease-out quad
-    window._qcSpringOffset = 8 * (1 - eased);
-    drawTimeBar(canvasEl);
-    if (p < 1) requestAnimationFrame(step);
-    else { window._qcSpringOffset = 0; drawTimeBar(canvasEl); }
-  }
-  requestAnimationFrame(step);
-}
-
-function _qcArcSetTimeFromX(clientX) {
-  if (_timeAnimId) { cancelAnimationFrame(_timeAnimId); _timeAnimId = null; }
-  const canvasEl = document.getElementById('qc-arc');
-  if (!canvasEl) return;
-  const rect = canvasEl.getBoundingClientRect();
-  const t    = MIN_H_ARC + (clientX - rect.left) / rect.width * (MAX_H_ARC - MIN_H_ARC); // bar fills edge-to-edge
-  const hour = _clampHour(t);
-  if (nowMode) {
-    nowMode = false;
-    nowBtn?.classList.remove('active');
-    timeRangeWrap?.classList.remove('now-active');
-    clearInterval(nowInterval); nowInterval = null;
-  }
-  setActiveIntentBtn(null);
-  timeFromEl.value = hour;
-  update();
 }
 
 // ── Main update cycle ─────────────────────────────────────────────────────────
@@ -2170,7 +2074,6 @@ function update() {
   updateDateWeatherStrip();
   updateQcLabels();
   updateQcIndicator(null);
-  drawTimeBar(document.getElementById('qc-arc'));
   syncFts();
   if (typeof _notifEvaluate === 'function') _notifEvaluate();
 }
@@ -3763,13 +3666,11 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       _panelClassObs.observe(panelEl, { attributes: true, attributeFilter: ['class'] });
 
-      // Wire drag targets: handle + time bar + venue-peek + panel-header + sun-count header
+      // Wire drag targets: handle + venue-peek + panel-header + sun-count header
       _wireSwipeTarget(h);
-      const timeBar      = document.getElementById('panel-time-bar');
       const listSunHdr   = document.getElementById('list-sun-header');
       const venuePeek    = document.getElementById('venue-peek');
       const panelHeader  = document.getElementById('panel-header');
-      if (timeBar)    _wireSwipeTarget(timeBar,    { excludeInteractive: true, tapToggle: false });
       if (listSunHdr) _wireSwipeTarget(listSunHdr, { excludeInteractive: true });
       if (venuePeek)  _wireSwipeTarget(venuePeek);
       if (panelHeader) _wireSwipeTarget(panelHeader);
@@ -3992,56 +3893,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   setTimeout(() => { _syncQcPanelHeight(); _updatePeekHeight(); }, 600);
 
-  // qc-arc drag + hover support
-  const qcArcEl = document.getElementById('qc-arc');
-  if (qcArcEl) {
-    qcArcEl.addEventListener('mousedown', e => {
-      _qcArcDragging = true;
-      window._qcThumbActive = true;
-      // Animate to clicked position; drag mousemove will cancel if user starts dragging
-      const rect = qcArcEl.getBoundingClientRect();
-      const t    = MIN_H_ARC + (e.clientX - rect.left) / rect.width * (MAX_H_ARC - MIN_H_ARC); // bar fills edge-to-edge
-      const hour = _clampHour(t);
-      if (nowMode) {
-        nowMode = false;
-        nowBtn?.classList.remove('active');
-        timeRangeWrap?.classList.remove('now-active');
-        clearInterval(nowInterval); nowInterval = null;
-      }
-      setActiveIntentBtn(null);
-      animateToTime(hour, 280);
-      drawTimeBar(qcArcEl);
-    });
-    qcArcEl.addEventListener('touchstart', e => {
-      e.preventDefault();
-      window._qcThumbActive = true;
-      _qcArcSetTimeFromX(e.touches[0].clientX);
-      drawTimeBar(qcArcEl);
-    }, { passive: false });
-    qcArcEl.addEventListener('touchmove',  e => { e.preventDefault(); _qcArcSetTimeFromX(e.touches[0].clientX); }, { passive: false });
-    qcArcEl.addEventListener('touchend', e => {
-      const lastX = e.changedTouches[0]?.clientX;
-      window._qcThumbActive = false;
-      drawTimeBar(qcArcEl);
-      // Spring back if touch released in past region
-      if (lastX != null && datePicker.value === todayStr()) {
-        const rect = qcArcEl.getBoundingClientRect();
-        const raw  = MIN_H_ARC + (lastX - rect.left) / rect.width * (MAX_H_ARC - MIN_H_ARC);
-        const nh   = new Date().getHours() + new Date().getMinutes() / 60;
-        if (raw < nh) _qcSpringBackThumb(qcArcEl);
-      }
-    }, { passive: true });
-    qcArcEl.addEventListener('mousemove',  e => {
-      if (_qcArcDragging) return;
-      const rect = qcArcEl.getBoundingClientRect();
-      const t = MIN_H_ARC + (e.clientX - rect.left) / rect.width * (MAX_H_ARC - MIN_H_ARC);
-      arcHoverH = _clampHour(t);
-      drawTimeBar(qcArcEl);
-      updateQcIndicator(arcHoverH);
-    });
-    qcArcEl.addEventListener('mouseleave', () => { arcHoverH = null; drawTimeBar(qcArcEl); updateQcIndicator(null); });
-  }
-
   // Arc canvas drag + hover support
   const arcEl = document.getElementById('sun-curve');
   if (arcEl) {
@@ -4061,24 +3912,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   document.addEventListener('mousemove', e => {
-    if (_arcDragging)    _arcSetTimeFromX(e.clientX);
-    if (_qcArcDragging) _qcArcSetTimeFromX(e.clientX);
+    if (_arcDragging) _arcSetTimeFromX(e.clientX);
   });
-  document.addEventListener('mouseup', e => {
-    const wasQcDragging = _qcArcDragging;
-    _arcDragging = false; _qcArcDragging = false;
-    if (window._qcThumbActive) {
-      window._qcThumbActive = false;
-      const canvasEl = document.getElementById('qc-arc');
-      if (canvasEl) drawTimeBar(canvasEl);
-      // Spring back if released in past region
-      if (wasQcDragging && canvasEl && datePicker.value === todayStr()) {
-        const rect = canvasEl.getBoundingClientRect();
-        const raw  = MIN_H_ARC + (e.clientX - rect.left) / rect.width * (MAX_H_ARC - MIN_H_ARC);
-        const nh   = new Date().getHours() + new Date().getMinutes() / 60;
-        if (raw < nh) _qcSpringBackThumb(canvasEl);
-      }
-    }
+  document.addEventListener('mouseup', () => {
+    _arcDragging = false;
   });
 
   // Close sort panel when clicking outside it
@@ -4096,14 +3933,12 @@ document.addEventListener('DOMContentLoaded', () => {
       cal.classList.remove('open');
       displayBtn?.classList.remove('open');
     }
-    // Close calendar when clicking outside the float AND outside any date button
+    // Close calendar when clicking outside the float AND outside the FTS date button
     const qcPanel   = document.getElementById('qc-panel');
     const calFloat  = document.getElementById('ptb-cal-float');
-    const dateBtn   = document.getElementById('readout-date-btn');
     const ftsBtn    = document.getElementById('fts-date-btn');
     if (qcPanel?.classList.contains('open')
         && !calFloat?.contains(e.target)
-        && !dateBtn?.contains(e.target)
         && !ftsBtn?.contains(e.target)) {
       _closeQcPanel();
     }
