@@ -243,7 +243,10 @@ function _applyDensityFilter(projVenues, zoom, currentHour, dateStr, isFullRecom
 // Deterministic color from a user id, drawn from the warm-cream/jordy palette
 // used in the Friend Features prototype. The same id always maps to the same
 // hue so an avatar reads as "the same person" across pin and detail panel.
-const _FRIEND_COLORS = ['#FFAF85', '#9CBDE7', '#FFD488', '#E6C08A', '#FFCFAA', '#DECCC0'];
+// #9CBDE7 and #FFCFAA were rotated out: they collide with the FTS map palette
+// (buildings #B5D0EC and roads #F4D0B2 family) — a friend dot in the same hue
+// would lose its centre on the map.
+const _FRIEND_COLORS = ['#FFAF85', '#85ACDD', '#FFD488', '#E6C08A', '#F5B289', '#DECCC0'];
 function _friendColor(userId) {
   const s = String(userId || '');
   let h = 0;

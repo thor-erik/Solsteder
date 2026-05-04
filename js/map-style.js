@@ -33,12 +33,15 @@ function buildShadeStyle() {
       },
 
       // ── Water ──────────────────────────────────────────────────────────────
+      // Mid-navy: deeper than buildings (#B5D0EC) but lighter than the panel
+      // glass base (#142E52) and pin pill, so panels + pins remain visible
+      // when they sit over water.
       {
         id: 'water',
         type: 'fill',
         source: 'composite',
         'source-layer': 'water',
-        paint: { 'fill-color': '#9CBDE7', 'fill-opacity': 0.55 },
+        paint: { 'fill-color': '#2D4D8C', 'fill-opacity': 0.85 },
       },
       {
         id: 'waterway',
@@ -46,8 +49,8 @@ function buildShadeStyle() {
         source: 'composite',
         'source-layer': 'waterway',
         paint: {
-          'line-color': '#9CBDE7',
-          'line-opacity': 0.45,
+          'line-color': '#2D4D8C',
+          'line-opacity': 0.75,
           'line-width': ['interpolate', ['linear'], ['zoom'], 10, 0.5, 16, 2],
         },
       },
@@ -89,6 +92,9 @@ function buildShadeStyle() {
       },
 
       // ── Roads ──────────────────────────────────────────────────────────────
+      // Light tangerine ramp from FTS sun palette. Saturation steps down by
+      // road class so motorways anchor the city while side streets stay quiet.
+      // Stays clear of the peach hero pill (#FFAF85), so "in-sun" pins still pop.
       {
         id: 'road-motorway',
         type: 'line',
@@ -97,7 +103,7 @@ function buildShadeStyle() {
         filter: ['match', ['get', 'class'], ['motorway', 'trunk'], true, false],
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
-          'line-color': '#7A726A',
+          'line-color': '#E8B894',
           'line-width': ['interpolate', ['linear'], ['zoom'], 10, 1.5, 16, 7],
         },
       },
@@ -109,7 +115,7 @@ function buildShadeStyle() {
         filter: ['==', ['get', 'class'], 'primary'],
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
-          'line-color': '#82796E',
+          'line-color': '#ECC09E',
           'line-width': ['interpolate', ['linear'], ['zoom'], 10, 1, 16, 5],
         },
       },
@@ -121,7 +127,7 @@ function buildShadeStyle() {
         filter: ['match', ['get', 'class'], ['secondary', 'tertiary'], true, false],
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
-          'line-color': '#8A8278',
+          'line-color': '#F0C8A8',
           'line-width': ['interpolate', ['linear'], ['zoom'], 10, 0.5, 16, 4],
         },
       },
@@ -137,7 +143,7 @@ function buildShadeStyle() {
            'secondary_link', 'tertiary_link'], true, false],
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
-          'line-color': '#9A9288',
+          'line-color': '#F4D0B2',
           'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.5, 16, 2.5],
         },
       },
@@ -151,7 +157,7 @@ function buildShadeStyle() {
         minzoom: 15,
         filter: ['!=', ['get', 'extrude'], 'true'],
         paint: {
-          'fill-color': '#F0E8DA',
+          'fill-color': '#B5D0EC',
           'fill-opacity': [
             'interpolate', ['linear'], ['zoom'],
             15, 0,
@@ -173,7 +179,7 @@ function buildShadeStyle() {
         minzoom: 15,
         filter: ['has', 'height'],
         paint: {
-          'fill-extrusion-color': '#F0E8DA',
+          'fill-extrusion-color': '#B5D0EC',
           'fill-extrusion-height': [
             'interpolate', ['linear'], ['zoom'],
             15, 0,
