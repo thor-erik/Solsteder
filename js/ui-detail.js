@@ -280,24 +280,6 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
   // Directions CTA label — always include text for a wider, tappable button
   const dirLabel = walkTime ? `${dirIcon} ${t('directions')} · ${walkTime}` : `${dirIcon} ${t('directions')}`;
 
-  // Time labels under the FTS slider — match the slider's MIN/MAX range.
-  // Anchor labels to fixed round hours (9, 13, 17, 21) so they don't drift with
-  // sunrise/sunset, and skip any that fall too close to an edge label so the
-  // sunrise/sunset readouts at left:0 / right:0 don't visually collide with them.
-  const sliderMin = (typeof MIN_H_ARC !== 'undefined') ? MIN_H_ARC : 4;
-  const sliderMax = (typeof MAX_H_ARC !== 'undefined') ? MAX_H_ARC : 23;
-  const sliderSpan = Math.max(0.01, sliderMax - sliderMin);
-  const EDGE_GAP = 1.5; // hours of clearance from edge labels
-  const labelHours = [9, 13, 17, 21].filter(h =>
-    h - sliderMin >= EDGE_GAP && sliderMax - h >= EDGE_GAP
-  );
-  let tlLabels = `<span class="dp-tl-label dp-tl-label-edge" style="left:0">${formatHour(sliderMin)}</span>`;
-  for (const h of labelHours) {
-    const left = ((h - sliderMin) / sliderSpan * 100).toFixed(2);
-    tlLabels += `<span class="dp-tl-label" style="left:${left}%">${formatHour(h)}</span>`;
-  }
-  tlLabels += `<span class="dp-tl-label dp-tl-label-edge dp-tl-label-end" style="left:100%">${formatHour(sliderMax)}</span>`;
-
   // Card-style header content — same DOM as a venue-card, scaled up via .dp-card.
   const metaParts = [v.area, catLabel(v), distStr].filter(Boolean);
   const metaHtml = metaParts.map((p, i) =>
@@ -318,20 +300,11 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
         ${photoActionsHtml}
       </div>
 
-      <!-- The dp-card slot is filled by the lifted source venue-card after
-           the open-morph completes (app.js → openDetailPanel hand-off).
-           Until then this placeholder reserves the layout space so photos /
-           social / info sit in their final positions and don't shift when
-           the source card lands. Time labels are rendered INSIDE the slot
-           (hidden via CSS during the morph) — at hand-off JS extracts them
-           and appends to the now-docked source card so they're visually
-           attached to the slider. Pre-rendering them inside the placeholder
-           keeps the placeholder's height correct + lets us animate the
-           labels in (.dp-tl-labels { opacity 0 → 1 } once outside the slot)
-           without a layout shift. -->
-      <div id="dp-card-slot" class="dp-card-slot">
-        <div class="dp-tl-labels">${tlLabels}</div>
-      </div>
+      <!-- Placeholder slot replaced by openDetailPanel/updateDetailPanel
+           with a freshly-rendered .dp-card. Reserves layout space so photos
+           / social / info sit in their final positions before the card
+           lands. -->
+      <div id="dp-card-slot" class="dp-card-slot"></div>
 
       ${_renderSocialSection(v)}
 
