@@ -3454,6 +3454,7 @@ function togglePanel() {
   const handle = document.getElementById('panel-handle');
 
   function redrawAfterTransition() {
+    if (typeof window.markPinLayoutStale === 'function') window.markPinLayoutStale();
     resizeCanvas();
     draw();
   }
@@ -3728,6 +3729,20 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         }, { passive: true });
       }
+
+      // After any panel transform/height transition (drag, tap, programmatic
+      // _applyState), repaint the pin canvas. The CSS transition moves the
+      // bottom sheet but doesn't trigger any Mapbox event — without this
+      // listener the pin canvas keeps its previous frame, which on hard refresh
+      // can leave gaps in the area the sheet just uncovered, especially for
+      // friend pins that were force-pilled in the post-load redraw.
+      panelEl.addEventListener('transitionend', (e) => {
+        if (e.target !== panelEl) return;
+        if (e.propertyName !== 'transform' && e.propertyName !== 'height') return;
+        if (typeof window.markPinLayoutStale === 'function') window.markPinLayoutStale();
+        if (typeof resizeCanvas === 'function') resizeCanvas();
+        if (typeof draw === 'function') draw();
+      });
 
       // Wire drag targets: handle + time bar + venue-peek + panel-header + sun-count header
       _wireSwipeTarget(h);
