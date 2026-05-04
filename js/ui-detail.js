@@ -1032,12 +1032,9 @@ function _openInviteSheet(venueId) {
   const curDate = typeof datePicker !== 'undefined' ? datePicker.value : new Date().toISOString().slice(0, 10);
   const curHour = typeof timeFromEl !== 'undefined' ? parseFloat(timeFromEl.value) : new Date().getHours();
 
-  // Inline SVG icon set used across the sheet (copied here to keep the build
-  // step-free; matches the design's Lucide-style stroke icons).
+  // Inline SVG icon set used across the sheet.
   const pinSvg     = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
   const xSvg       = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
-  const chevDownSvg= `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
-  const sparkleSvg = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.6 4.5L18 9l-4.4 1.5L12 15l-1.6-4.5L6 9l4.4-1.5L12 3z"/><path d="M19 14l.7 1.8L21 16l-1.3.5L19 18l-.7-1.5L17 16l1.3-.7L19 14z"/></svg>`;
   const sendSvg    = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>`;
   const linkSvg    = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>`;
   const checkSvgSm = `<svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 7 6 11 12 3"/></svg>`;
@@ -1054,9 +1051,6 @@ function _openInviteSheet(venueId) {
   const venueCat   = (v && typeof catLabel === 'function') ? catLabel(v) : '';
   const venueMeta  = [venueArea, venueCat].filter(Boolean).join(' · ');
   const safeName   = venueName.replace(/"/g, '&quot;');
-  const ankomstLbl = _dpinviteArrivalLabel(curHour);
-  const sunUntilStr = _dpinviteSunEndStr(v, curDate);
-  const autoMessage = v ? _composeInviteShareText(v, curDate, curHour) : '';
 
   const avatarsHtml   = _renderInviteAvatarCarousel(friends, _hashColor, checkSvgSm);
   const groupChipsHtml = _renderInviteGroupChips('recent', recentSet.size, friends.length);
@@ -1104,34 +1098,20 @@ function _openInviteSheet(venueId) {
           </button>
         </div>`;
 
-  // Sheet markup. Body order:
-  //   1. Title block: eyebrow + venue name
-  //   2. Inline FTS card (interactive scrub → sets timeFromEl)
-  //   3. Editable message preview card
-  //   4. Friends block (group chips + avatar carousel) OR empty state
-  //   5. CTA row (primary pill + circular share-link companion)
+  // Sheet markup. The FTS lives outside the sheet (anchored above it via
+  // body.invite-sheet-open #fts) — receivers scrub the global slider to
+  // preview weather/sun while picking recipients. The follow-the-thumb
+  // callout (#dpinvite-fts-callout, built below) replaces the in-sheet
+  // arrival/sun labels. Body order:
+  //   1. Title block: eyebrow + "Når kommer du?" prompt
+  //   2. Friends block (group chips + avatar carousel) OR empty state
+  //   3. CTA row (primary pill + circular share-link companion)
   sheet.innerHTML = `
     <div class="dpinvite-grabber" aria-hidden="true"></div>
     <div class="dpinvite-body">
       <div class="dpinvite-title-block">
-        <div class="dpinvite-eyebrow">${t('invite_eyebrow')}</div>
-        <div class="dpinvite-venue-name">${venueName}</div>
-      </div>
-      <div class="card dpinvite-fts-card">
-        <div class="dpinvite-fts-track">
-          <canvas class="card-timeline-canvas dpinvite-fts-canvas" id="dpinvite-fts-canvas" data-vid="${venueId}"></canvas>
-        </div>
-        <div class="dpinvite-fts-labels">
-          <span class="t-meta">Ankomst <strong class="t-numeric" id="dpinvite-arrival-label" style="color: var(--accent)">${ankomstLbl}</strong></span>
-          <span class="t-meta">Sol til <strong class="t-numeric" id="dpinvite-sunend-label">${sunUntilStr}</strong></span>
-        </div>
-      </div>
-      <div class="card dpinvite-message-card" id="dpinvite-message-card" onclick="_dpinviteEditMessage(event)">
-        <div class="dpinvite-message-eyebrow">
-          ${sparkleSvg}
-          ${t('invite_message_preview_label')}
-        </div>
-        <div class="dpinvite-message-text" id="dpinvite-message-text">${autoMessage}</div>
+        <div class="dpinvite-eyebrow">${pinSvg}<span>${venueName}</span></div>
+        <div class="dpinvite-venue-name">${t('invite_when_prompt')}</div>
       </div>
       ${friendsBlock}
       ${ctaRow}
@@ -1158,51 +1138,78 @@ function _openInviteSheet(venueId) {
   document.body.appendChild(overlay);
   document.body.appendChild(topCard);
 
+  // Build the FTS callout — a follow-the-thumb readout that lives above the
+  // global #fts pill while the share sheet is open. Replaces the old
+  // in-sheet Ankomst/Sol-til labels. Position is recomputed on every
+  // timeFromEl 'input' event with edge-of-screen clamping.
+  const callout = document.createElement('div');
+  callout.id = 'dpinvite-fts-callout';
+  callout.className = 'dpinvite-fts-callout';
+  callout.innerHTML = `
+    <div class="dpinvite-fts-callout-line1">
+      <span class="label">${t('invite_callout_arrival')}</span>
+      <span class="time" id="dpinvite-callout-time"></span>
+    </div>
+    <div class="dpinvite-fts-callout-line2" id="dpinvite-callout-sun">
+      <span class="dpinvite-fts-callout-dot" aria-hidden="true"></span>
+      <span class="dpinvite-fts-callout-text"></span>
+    </div>`;
+  document.body.appendChild(callout);
+
   sheet._venueName = venueName;
   sheet._venueId = venueId;
   sheet._venue = v;
   sheet._friendCount = friends.length;
-  sheet._messageDraft = null;   // null = use auto-generated; string = user-edited
   sheet._activeGroup = 'recent';
   sheet._recentSet   = recentSet;
+  sheet._callout     = callout;
 
   // Apply initial group filter so the carousel matches the active chip.
   _dpinviteApplyGroupFilter('recent');
   _refreshInvitePrimaryCTA();
 
-  // Wire the inline FTS canvas to drag-scrub timeFromEl.
-  const ftsCanvas = sheet.querySelector('#dpinvite-fts-canvas');
-  if (ftsCanvas) _wireInlineFtsCanvas(ftsCanvas);
-  // Paint it once via the shared walker.
-  if (typeof drawAllCardTimelines === 'function') drawAllCardTimelines(sheet);
+  // Track sheet height in --dpinvite-sheet-h so the FTS rule can sit just
+  // above the sheet edge (CSS rule body.invite-sheet-open #fts).
+  const _writeSheetH = () => {
+    document.documentElement.style.setProperty('--dpinvite-sheet-h', sheet.offsetHeight + 'px');
+  };
+  let _sheetRO = null;
+  if (typeof ResizeObserver !== 'undefined') {
+    _sheetRO = new ResizeObserver(_writeSheetH);
+    _sheetRO.observe(sheet);
+  }
+  requestAnimationFrame(_writeSheetH);
 
   function _updateInviteConfirm() {
     const d = (typeof datePicker !== 'undefined') ? datePicker.value : curDate;
     const h = (typeof timeFromEl !== 'undefined') ? parseFloat(timeFromEl.value) : curHour;
-    // Ankomst label tracks the FTS scrub
-    const arrLabel = sheet.querySelector('#dpinvite-arrival-label');
-    if (arrLabel) arrLabel.textContent = _dpinviteArrivalLabel(h);
-    // Sun til label refreshes when date changes (sun window depends on date)
-    const sunLabel = sheet.querySelector('#dpinvite-sunend-label');
-    if (sunLabel && v) sunLabel.textContent = _dpinviteSunEndStr(v, d);
-    // Message preview — only refresh from auto-generator when user hasn't edited
-    if (sheet._messageDraft == null) {
-      const prev = sheet.querySelector('#dpinvite-message-text');
-      if (prev && v) prev.textContent = _composeInviteShareText(v, d, h);
-    }
+    if (typeof _updateFtsCallout === 'function') _updateFtsCallout(callout, v, d, h);
   }
   const onTimeInput = () => _updateInviteConfirm();
   const onDateChange = () => _updateInviteConfirm();
   if (typeof timeFromEl !== 'undefined' && timeFromEl) timeFromEl.addEventListener('input', onTimeInput);
   if (typeof datePicker !== 'undefined' && datePicker) datePicker.addEventListener('change', onDateChange);
+  // Recompute callout position when the FTS chrome itself resizes (orientation
+  // changes, address-bar collapse). The thumb's viewport x depends on the
+  // canvas's bounding rect, which moves with the FTS bottom (which moves
+  // with --dpinvite-sheet-h, which the ResizeObserver already tracks).
+  const onResize = () => _updateInviteConfirm();
+  window.addEventListener('resize', onResize, { passive: true });
   // Esc to close — backdrop tap and drag grabber are the other dismissal paths.
   const onEsc = (e) => { if (e.key === 'Escape') _closeInviteSheet(); };
   document.addEventListener('keydown', onEsc);
   sheet._sliderCleanup = () => {
     if (typeof timeFromEl !== 'undefined' && timeFromEl) timeFromEl.removeEventListener('input', onTimeInput);
     if (typeof datePicker !== 'undefined' && datePicker) datePicker.removeEventListener('change', onDateChange);
+    window.removeEventListener('resize', onResize);
     document.removeEventListener('keydown', onEsc);
+    if (_sheetRO) _sheetRO.disconnect();
+    document.documentElement.style.removeProperty('--dpinvite-sheet-h');
   };
+
+  // Initial paint — wait one frame so layout is computed before we read
+  // the FTS canvas's bounding rect.
+  requestAnimationFrame(_updateInviteConfirm);
 
   // Eager plan-create — fires now (while we still have user activation context)
   // so the synchronous _shareInviteLink below can read sheet._planId without
@@ -1288,6 +1295,18 @@ function _openInviteSheet(venueId) {
     if (typeof datePicker !== 'undefined' && datePicker) datePicker.removeEventListener('change', _shortenOnChange);
   };
 
+  // Detach the FTS from any docked-card / preview parent so the
+  // body.invite-sheet-open #fts CSS rule can position it above the sheet.
+  // If the FTS was inside #detail-panel (which gets opacity:0 during the
+  // share sheet), it would otherwise cascade-fade to invisible.
+  const _ftsForReparent = document.getElementById('fts');
+  if (_ftsForReparent) {
+    if (_ftsForReparent.classList.contains('fts-in-card')) _ftsForReparent.classList.remove('fts-in-card');
+    if (_ftsForReparent.classList.contains('fts-in-preview')) _ftsForReparent.classList.remove('fts-in-preview');
+    _ftsForReparent.style.cssText = '';
+    if (_ftsForReparent.parentNode !== document.body) document.body.appendChild(_ftsForReparent);
+  }
+
   document.body.classList.add('invite-sheet-open');
 
   // Pan the map so the venue lands centred between the floating top card and
@@ -1312,35 +1331,14 @@ function _openInviteSheet(venueId) {
   }
 
   // Animate in — backdrop fades, sheet slides up, top card slides down.
+  // Callout fades in slightly later so the user's attention flows naturally:
+  // sheet first (where do I send), then the time readout above the FTS.
   requestAnimationFrame(() => {
     overlay.classList.add('open');
     sheet.classList.add('open');
     topCard.classList.add('open');
   });
-}
-
-/** Format the arrival label — "Nå" when within 5min of the current real
- *  time, otherwise "HH:MM". Used by the inline FTS card's Ankomst label. */
-function _dpinviteArrivalLabel(hour) {
-  const realNow = (new Date().getHours()) + (new Date().getMinutes() / 60);
-  if (Math.abs(hour - realNow) < 5/60) return t('now') || 'Nå';
-  return (typeof formatHour === 'function') ? formatHour(hour) : `${Math.floor(hour)}:00`;
-}
-
-/** Format the sun-end time as HH:MM, or "—" if no sun window today. */
-function _dpinviteSunEndStr(venue, dateStr) {
-  let sunEnd = null;
-  try {
-    if (typeof computeSunWindows === 'function' && venue) {
-      const sw = computeSunWindows(venue, dateStr);
-      const ws = sw && sw.windows ? sw.windows : [];
-      if (ws.length) sunEnd = ws[ws.length - 1].end;
-    }
-  } catch (e) { /* ignore */ }
-  if (sunEnd == null) return '—';
-  return (typeof formatHour === 'function')
-    ? formatHour(sunEnd)
-    : `${Math.floor(sunEnd)}:${String(Math.round((sunEnd%1)*60)).padStart(2,'0')}`;
+  setTimeout(() => { if (callout.isConnected) callout.classList.add('open'); }, 240);
 }
 
 /** Wire a card-timeline-canvas to drag-scrub timeFromEl. Drag math mirrors
@@ -1379,6 +1377,74 @@ function _wireInlineFtsCanvas(canvas) {
   canvas.addEventListener('pointercancel', onUp);
 }
 if (typeof window !== 'undefined') window._wireInlineFtsCanvas = _wireInlineFtsCanvas;
+
+/** Update the FTS callout: compute thumb x from timeFromEl.value, clamp to
+ *  a safe gutter so the pill never overflows the viewport, and refresh the
+ *  "Jeg kommer HH:MM / sun-remaining" text. Called on every timeFromEl
+ *  'input' event while the share sheet is open. */
+function _updateFtsCallout(callout, venue, dateStr, hour) {
+  if (!callout) return;
+  const canvas = document.getElementById('fts-canvas');
+  if (!canvas) return;
+
+  const minH  = (typeof MIN_H_ARC === 'number') ? MIN_H_ARC : 4;
+  const maxH  = (typeof MAX_H_ARC === 'number') ? MAX_H_ARC : 23;
+  const span  = Math.max(0.0001, maxH - minH);
+  const rect  = canvas.getBoundingClientRect();
+  const pct   = Math.max(0, Math.min(1, (hour - minH) / span));
+  const thumbX = rect.left + pct * rect.width;
+
+  // Edge-of-screen logic: callout follows thumb but clamps so its body stays
+  // fully within the viewport (8px gutters left/right). When the thumb is
+  // near a viewport edge, the callout stops moving while the thumb keeps
+  // going — so the pill is always readable, and the user sees the thumb
+  // continue toward the edge as a positional cue.
+  const GUTTER = 8;
+  const cw = callout.offsetWidth || 200;
+  const vw = window.innerWidth;
+  const desiredLeft = thumbX - cw / 2;
+  const left = Math.max(GUTTER, Math.min(vw - cw - GUTTER, desiredLeft));
+  callout.style.left = `${Math.round(left)}px`;
+
+  // Time label
+  const timeEl = callout.querySelector('#dpinvite-callout-time');
+  if (timeEl) timeEl.textContent = (typeof formatHour === 'function') ? formatHour(hour) : `${Math.floor(hour)}:00`;
+
+  // Sun-remaining label. If venue has a sun window today and the user's
+  // arrival is before it ends, show "{h}t {m}m sol · sol til HH:MM". After
+  // sunset, drop the dot accent and show "etter solnedgang HH:MM".
+  let sunEnd = null;
+  try {
+    if (typeof computeSunWindows === 'function' && venue) {
+      const sw = computeSunWindows(venue, dateStr);
+      const ws = sw && sw.windows ? sw.windows : [];
+      if (ws.length) sunEnd = ws[ws.length - 1].end;
+    }
+  } catch (e) { /* ignore */ }
+
+  const sunLine = callout.querySelector('#dpinvite-callout-sun');
+  const sunText = sunLine && sunLine.querySelector('.dpinvite-fts-callout-text');
+  if (sunText) {
+    if (sunEnd != null && sunEnd > hour) {
+      const remH = sunEnd - hour;
+      const h = Math.floor(remH);
+      const m = Math.max(0, Math.round((remH - h) * 60));
+      const sunUntilTime = (typeof formatHour === 'function') ? formatHour(sunEnd) : `${Math.floor(sunEnd)}:${String(Math.round((sunEnd%1)*60)).padStart(2,'0')}`;
+      sunText.textContent = h > 0
+        ? `${h}t ${m}m sol · sol til ${sunUntilTime}`
+        : `${m}m sol · sol til ${sunUntilTime}`;
+      sunLine.classList.remove('no-sun');
+    } else if (sunEnd != null) {
+      const sunUntilTime = (typeof formatHour === 'function') ? formatHour(sunEnd) : `${Math.floor(sunEnd)}:00`;
+      sunText.textContent = `etter solnedgang ${sunUntilTime}`;
+      sunLine.classList.add('no-sun');
+    } else {
+      sunText.textContent = '';
+      sunLine.classList.add('no-sun');
+    }
+  }
+}
+if (typeof window !== 'undefined') window._updateFtsCallout = _updateFtsCallout;
 
 /** Build the avatar carousel — horizontally scrolling .dpinvite-avatar tiles
  *  with multi-select state via aria-checked. */
@@ -1442,35 +1508,6 @@ function _dpinviteApplyGroupFilter(groupId) {
     chip.classList.toggle('is-selected', chip.getAttribute('data-group') === groupId);
   });
   _refreshInvitePrimaryCTA();
-}
-
-/** Switch the message preview card into edit mode — replaces the static text
- *  with a textarea bound to sheet._messageDraft. On blur, save the draft
- *  (or revert to auto-generated if empty). */
-function _dpinviteEditMessage(e) {
-  if (e && e.target && e.target.tagName === 'TEXTAREA') return;
-  const card = document.getElementById('dpinvite-message-card');
-  const sheet = document.getElementById('invite-sheet');
-  if (!card || !sheet) return;
-  if (card.classList.contains('editing')) return;
-  card.classList.add('editing');
-  const textEl = card.querySelector('#dpinvite-message-text');
-  const initial = textEl ? textEl.textContent : '';
-  if (textEl) {
-    textEl.outerHTML = `<textarea class="dpinvite-message-input" id="dpinvite-message-text" rows="3" autofocus>${initial.replace(/</g, '&lt;')}</textarea>`;
-  }
-  const ta = card.querySelector('#dpinvite-message-text');
-  if (ta) {
-    ta.focus();
-    ta.setSelectionRange(ta.value.length, ta.value.length);
-    ta.addEventListener('blur', () => {
-      const val = ta.value.trim();
-      sheet._messageDraft = val.length ? val : null;
-      const replacement = val.length ? val : (sheet._venue ? _composeInviteShareText(sheet._venue, datePicker.value, parseFloat(timeFromEl.value)) : '');
-      ta.outerHTML = `<div class="dpinvite-message-text" id="dpinvite-message-text">${replacement.replace(/</g, '&lt;')}</div>`;
-      card.classList.remove('editing');
-    }, { once: true });
-  }
 }
 
 /** Best-effort recent-friends list — orders by most-recently-invited (from
@@ -1626,9 +1663,14 @@ function _closeInviteSheet() {
   const overlay = document.getElementById('invite-sheet-backdrop');
   const sheet = document.getElementById('invite-sheet');
   const topCard = document.getElementById('invite-top-card');
+  const callout = document.getElementById('dpinvite-fts-callout');
   if (sheet) {
     if (sheet._sliderCleanup) sheet._sliderCleanup();
     sheet.classList.remove('open');
+  }
+  if (callout) {
+    callout.classList.remove('open');
+    setTimeout(() => callout.remove(), 240);
   }
   // Defensive: if any code path ever reparents the FTS into the sheet, detach
   // it cleanly. v2 of the sheet uses a chip picker instead, so this is a no-op
@@ -1648,6 +1690,10 @@ function _closeInviteSheet() {
     setTimeout(() => topCard.remove(), 320);
   }
   document.body.classList.remove('invite-sheet-open');
+  // Restore the FTS to its proper position now that body.invite-sheet-open
+  // is gone. _syncFtsPosition will re-attach it to the docked card slot
+  // (if detail panel is open) or sit it back at the bottom of the screen.
+  if (typeof _syncFtsPosition === 'function') _syncFtsPosition();
   // Defensive refresh of the detail panel underneath. The eager plan-create
   // ran during the sheet's lifetime; if any downstream listener mutated panel
   // state (e.g. the detail panel's docked card got detached), updateDetailPanel

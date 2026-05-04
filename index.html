@@ -6228,10 +6228,11 @@
   .invite-backdrop.open,
   .dpinvite-backdrop.open { background: rgba(0,0,0,0.42); }
 
-  /* Fade the underlying chrome so the user focuses on the sheet. State
-     preserved underneath. */
+  /* Fade the underlying chrome so the user focuses on the sheet. The FTS
+     stays visible — it's the canonical time control and gets repositioned
+     above the sheet (see rule below) so the user can scrub to preview
+     weather/sun across the day while picking recipients. */
   body.invite-sheet-open #detail-panel,
-  body.invite-sheet-open #fts,
   body.invite-sheet-open #qc-wrap,
   body.invite-sheet-open #floating-search,
   body.invite-sheet-open #floating-brand,
@@ -6239,6 +6240,20 @@
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.22s ease;
+  }
+  /* Lift the FTS to sit just above the share sheet. --dpinvite-sheet-h is
+     written on document root by _openInviteSheet via a ResizeObserver.
+     Stack: sheet (h) → 8px gap → FTS (38px) → 10px gap → callout (this
+     bottom + ~58px). */
+  body.invite-sheet-open #fts {
+    bottom: calc(var(--dpinvite-sheet-h, 320px) + 8px) !important;
+    z-index: 1102; /* above the sheet (1100) + top chip (1101) */
+  }
+  /* The FTS popup (existing tooltip) is replaced by .dpinvite-fts-callout
+     during invite-sheet-open. Hide the old popup to avoid duplicate UI. */
+  body.invite-sheet-open #fts-popup {
+    opacity: 0 !important;
+    pointer-events: none !important;
   }
 
   .dpinvite-sheet {
@@ -6329,8 +6344,8 @@
     -webkit-overflow-scrolling: touch;
   }
 
-  /* Title block: eyebrow + venue name. */
-  .dpinvite-title-block { display: flex; flex-direction: column; gap: 2px; }
+  /* Title block: pin + venue eyebrow + "Når kommer du?" prompt. */
+  .dpinvite-title-block { display: flex; flex-direction: column; gap: 4px; }
   .dpinvite-eyebrow {
     font-size: 11px;
     font-weight: 600;
@@ -6338,68 +6353,72 @@
     color: var(--muted);
     text-transform: uppercase;
     line-height: 1.2;
-  }
-  .dpinvite-venue-name {
-    font-size: 24px;
-    font-weight: 700;
-    color: var(--text);
-    line-height: 1.1;
-    margin-top: 2px;
-    text-wrap: balance;
-  }
-
-  /* Inline FTS card — interactive canvas + Ankomst/Sol til labels. */
-  .dpinvite-fts-card { padding: 8px; }
-  .dpinvite-fts-track {
-    position: relative;
-    height: 40px;
-    border-radius: 13px;
-    overflow: hidden;
-  }
-  .dpinvite-fts-canvas {
-    width: 100%;
-    height: 100%;
-    display: block;
-    cursor: grab;
-    touch-action: none;
-  }
-  .dpinvite-fts-canvas:active { cursor: grabbing; }
-  .dpinvite-fts-labels {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    padding: 6px 8px 2px;
-    font-variant-numeric: tabular-nums;
-  }
-  .dpinvite-fts-labels strong { font-weight: 700; }
-
-  /* Editable message preview card — uses .card surface. */
-  .dpinvite-message-card { padding: 12px 14px; cursor: pointer; }
-  .dpinvite-message-card.editing { cursor: text; }
-  .dpinvite-message-eyebrow {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--muted);
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    margin-bottom: 6px;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 6px;
   }
-  .dpinvite-message-eyebrow svg { color: var(--accent); }
-  .dpinvite-message-text,
-  .dpinvite-message-input {
-    width: 100%;
-    background: transparent;
-    border: none;
-    outline: none;
+  .dpinvite-eyebrow svg { color: var(--muted); flex-shrink: 0; }
+  .dpinvite-venue-name {
+    font-size: 22px;
+    font-weight: 700;
     color: var(--text);
-    font-size: 14px;
-    font-weight: 500;
-    line-height: 1.4;
+    line-height: 1.15;
+    text-wrap: balance;
+  }
+
+  /* FTS callout — follows the slider thumb above the FTS while the share
+     sheet is open. Two-line readout: "Jeg kommer 17:00" / "3t 25m sol · sol
+     til 20:25". JS tracks the thumb's viewport x and clamps the callout's
+     left edge to a safe gutter so it never overflows the screen. */
+  .dpinvite-fts-callout {
+    position: fixed;
+    /* sheet (h) + 8px FTS-gap + 38px FTS-height + 12px callout-gap. */
+    bottom: calc(var(--dpinvite-sheet-h, 320px) + 58px);
+    left: 0;
+    z-index: 1103;
+    pointer-events: none;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 8px 14px;
+    border-radius: 14px;
+    background: var(--glass-action-bg);
+    backdrop-filter: var(--glass-blur-action);
+    -webkit-backdrop-filter: var(--glass-blur-action);
+    border: var(--glass-border);
+    box-shadow: var(--glass-inset), 0 4px 12px rgba(0,0,0,0.35);
+    transition: left 80ms ease-out, opacity 0.22s ease, transform 0.22s ease;
+    transform: translateY(8px);
+    opacity: 0;
+    white-space: nowrap;
     font-family: 'Inter', sans-serif;
-    resize: none;
+  }
+  .dpinvite-fts-callout.open { opacity: 1; transform: translateY(0); }
+  .dpinvite-fts-callout-line1 {
+    display: inline-flex; align-items: baseline; gap: 8px;
+    font-variant-numeric: tabular-nums;
+  }
+  .dpinvite-fts-callout-line1 .label {
+    font-size: 13px; font-weight: 500; color: var(--muted);
+  }
+  .dpinvite-fts-callout-line1 .time {
+    font-size: 18px; font-weight: 700; color: var(--text);
+  }
+  .dpinvite-fts-callout-line2 {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 600;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .dpinvite-fts-callout-line2.no-sun { color: var(--muted); }
+  .dpinvite-fts-callout-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #FFE9D0, #FF7A3A 80%);
+    flex-shrink: 0;
+  }
+  .dpinvite-fts-callout-line2.no-sun .dpinvite-fts-callout-dot {
+    background: rgba(156,189,231,0.4);
   }
 
   /* Group chips strip — uses .chip-pill primitives. */

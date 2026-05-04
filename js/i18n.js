@@ -303,8 +303,8 @@ const _STRINGS = {
     invite_group_recent:             'Recent',
     invite_group_all:                'All',
     invite_select_friends_cta:       'Pick friends',
-    invite_message_preview_label:    'Message preview',
-    invite_arrival_pill_aria:        'Pick arrival time',
+    invite_when_prompt:              'When are you coming?',
+    invite_callout_arrival:          'I arrive',
     friend_prompt_add:   'Add',
     friend_prompt_dismiss: 'Not now',
     // Plan preview takeover
@@ -700,8 +700,8 @@ const _STRINGS = {
     invite_group_recent:             'Nylige',
     invite_group_all:                'Alle',
     invite_select_friends_cta:       'Velg venner',
-    invite_message_preview_label:    'Forhåndsvisning av melding',
-    invite_arrival_pill_aria:        'Velg ankomsttid',
+    invite_when_prompt:              'Når kommer du?',
+    invite_callout_arrival:          'Jeg kommer',
     friend_prompt_add:   'Legg til',
     friend_prompt_dismiss: 'Ikke nå',
     // Plan preview takeover
@@ -1097,8 +1097,8 @@ const _STRINGS = {
     invite_group_recent:             'Senaste',
     invite_group_all:                'Alla',
     invite_select_friends_cta:       'Välj vänner',
-    invite_message_preview_label:    'Förhandsvisning av meddelande',
-    invite_arrival_pill_aria:        'Välj ankomsttid',
+    invite_when_prompt:              'När kommer du?',
+    invite_callout_arrival:          'Jag kommer',
     friend_prompt_add:   'Lägg till',
     friend_prompt_dismiss: 'Inte nu',
     // Plan preview takeover
@@ -1490,8 +1490,8 @@ const _STRINGS = {
     invite_group_recent:             'Seneste',
     invite_group_all:                'Alle',
     invite_select_friends_cta:       'Vælg venner',
-    invite_message_preview_label:    'Forhåndsvisning af besked',
-    invite_arrival_pill_aria:        'Vælg ankomsttid',
+    invite_when_prompt:              'Hvornår kommer du?',
+    invite_callout_arrival:          'Jeg kommer',
     friend_prompt_add:   'Tilføj',
     friend_prompt_dismiss: 'Ikke nu',
     // Plan preview takeover
