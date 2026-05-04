@@ -3454,6 +3454,7 @@ function togglePanel() {
   const handle = document.getElementById('panel-handle');
 
   function redrawAfterTransition() {
+    try { if (map?.resize) map.resize(); } catch (_) {}
     if (typeof window.markPinLayoutStale === 'function') window.markPinLayoutStale();
     resizeCanvas();
     draw();
@@ -3736,13 +3737,31 @@ document.addEventListener('DOMContentLoaded', () => {
       // listener the pin canvas keeps its previous frame, which on hard refresh
       // can leave gaps in the area the sheet just uncovered, especially for
       // friend pins that were force-pilled in the post-load redraw.
-      panelEl.addEventListener('transitionend', (e) => {
-        if (e.target !== panelEl) return;
-        if (e.propertyName !== 'transform' && e.propertyName !== 'height') return;
+      function _repaintPinsAfterPanel() {
+        // Mapbox occasionally caches the map element size and doesn't notice
+        // when its container resizes (panel transition, address bar collapse,
+        // DevTools emulation). Force a resize so getBounds() / project() use
+        // the current viewport, then refresh the pin canvas.
+        try { if (typeof map !== 'undefined' && map?.resize) map.resize(); } catch (_) {}
         if (typeof window.markPinLayoutStale === 'function') window.markPinLayoutStale();
         if (typeof resizeCanvas === 'function') resizeCanvas();
         if (typeof draw === 'function') draw();
+      }
+      panelEl.addEventListener('transitionend', (e) => {
+        if (e.target !== panelEl) return;
+        if (e.propertyName !== 'transform' && e.propertyName !== 'height') return;
+        _repaintPinsAfterPanel();
       });
+      // MutationObserver fallback — class flips on panelEl reflect every state
+      // change (mobile-expanded / mobile-fullscreen / mobile-hidden / peek).
+      // Schedule a repaint at the transition's tail (~260ms) so we don't depend
+      // on transitionend firing reliably under DevTools mobile emulation.
+      let _panelRepaintTid = null;
+      const _panelClassObs = new MutationObserver(() => {
+        clearTimeout(_panelRepaintTid);
+        _panelRepaintTid = setTimeout(_repaintPinsAfterPanel, 260);
+      });
+      _panelClassObs.observe(panelEl, { attributes: true, attributeFilter: ['class'] });
 
       // Wire drag targets: handle + time bar + venue-peek + panel-header + sun-count header
       _wireSwipeTarget(h);
