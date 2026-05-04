@@ -5888,14 +5888,42 @@
   .dpinvite-empty-title { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.3; }
   .dpinvite-empty-sub   { font-size: 12px; color: var(--muted); line-height: 1.4; max-width: 280px; }
 
-  /* Sticky CTA row — primary pill + circular companion (.s-circ / .s-sq). */
+  /* Sticky CTA row — primary pill + circular companion (.s-circ / .s-sq).
+     Uses margin-left on the companion (not `gap`) so the companion can
+     collapse cleanly to width:0 + margin:0 when no friends are selected. */
   .dpinvite-cta-row {
     display: flex;
-    gap: 10px;
     margin-top: 4px;
     align-items: center;
   }
   .dpinvite-cta-row .p-pill { flex: 1; min-width: 0; height: 48px; }
+
+  /* Companion .s-circ — animated entrance/exit by transitioning width,
+     margin-left, opacity, and scale. The primary pill's flex:1 reflows
+     in real time as the companion width animates, so the primary appears
+     to shrink/grow in lockstep — no JS needed for the primary's resize.
+     The companion grows in place at the right of the row, never sliding
+     across the primary's body. */
+  .dpinvite-cta-row .s-circ {
+    flex-shrink: 0;
+    width: 44px;
+    margin-left: 10px;
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto;
+    overflow: hidden;
+    transition: width 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+                margin-left 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.22s ease,
+                transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .dpinvite-cta-row .s-circ:not(.is-visible) {
+    width: 0;
+    margin-left: 0;
+    opacity: 0;
+    transform: scale(0.4);
+    pointer-events: none;
+  }
 
   /* Cancel row — full-width pill matching the share button's form factor
      (h48, r999) so the two stack as a coherent action group. Negative

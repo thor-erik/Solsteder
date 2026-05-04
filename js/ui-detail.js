@@ -943,7 +943,7 @@ function _openInviteSheet(venueId) {
             <span id="invite-primary-icon">${linkSvg}</span>
             <span id="invite-primary-label">${t('share_link')}</span>
           </button>
-          <button class="s-circ" id="invite-secondary-btn" type="button" onclick="_shareInviteLink(${venueId})" title="${t('share_link')}" aria-label="${t('share_link')}" hidden>
+          <button class="s-circ" id="invite-secondary-btn" type="button" onclick="_shareInviteLink(${venueId})" title="${t('share_link')}" aria-label="${t('share_link')}" aria-hidden="true" tabindex="-1">
             ${linkSvg}
           </button>
         </div>` : `
@@ -1577,24 +1577,14 @@ function _refreshInvitePrimaryCTA() {
   const linkSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>`;
   const sendSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>`;
 
-  // Track mode transition. The companion only animates when its visibility
-  // actually changes (0 ↔ 1+); a 1→2 selection just updates the label.
-  const wasMode = btn.getAttribute('data-mode') || 'share';
-  const willMode = n === 0 ? 'share' : 'send';
-  const transitioning = wasMode !== willMode;
-
-  // Capture the link icon's rect BEFORE mutation so we can fly the companion
-  // in from where the link "was" inside the primary pill (FLIP-lite).
-  let flyFromRect = null;
-  if (transitioning && willMode === 'send' && icon) {
-    flyFromRect = icon.getBoundingClientRect();
-  }
-
-  // Mutate primary instantly. The companion's flight tells the "link moved
-  // right" story; the primary's send icon appearing in place reads as the
-  // mode swap.
+  // Mutate primary instantly. The companion's CSS transition (width,
+  // margin-left, opacity, transform) handles the entrance/exit animation
+  // — and because the row is flex with primary at flex:1, the primary's
+  // width reflows in lockstep with the companion's width, so the primary
+  // appears to shrink/grow alongside the companion without any explicit
+  // animation needed here.
   btn.disabled = false;
-  if (willMode === 'share') {
+  if (n === 0) {
     btn.setAttribute('data-mode', 'share');
     if (icon) icon.innerHTML = linkSvg;
     label.textContent = t('share_link');
@@ -1612,59 +1602,11 @@ function _refreshInvitePrimaryCTA() {
     }
   }
 
-  if (!companion || !transitioning) return;
-
-  // Cancel any in-flight cleanup from a previous transition so rapid toggles
-  // don't leave the companion stuck hidden/visible mid-animation.
-  if (companion._ctaAnimTimeout) {
-    clearTimeout(companion._ctaAnimTimeout);
-    companion._ctaAnimTimeout = null;
-  }
-
-  if (willMode === 'send') {
-    // ENTRANCE: unhide companion, place it (visually) at the link icon's old
-    // spot scaled down to icon size, then animate to rest. The viewer reads
-    // the link as "detaching from primary and growing into the circle."
-    companion.hidden = false;
-    companion.style.transition = 'none';
-    companion.style.opacity = '0';
-    companion.style.transform = 'scale(0.5)';
-    companion.style.pointerEvents = 'none';
-    requestAnimationFrame(() => {
-      const restRect = companion.getBoundingClientRect();
-      if (flyFromRect && restRect.width) {
-        const dx = (flyFromRect.left + flyFromRect.width / 2) - (restRect.left + restRect.width / 2);
-        const dy = (flyFromRect.top + flyFromRect.height / 2) - (restRect.top + restRect.height / 2);
-        companion.style.transform = `translate(${dx}px, ${dy}px) scale(0.5)`;
-      }
-      companion.style.opacity = '1';
-      requestAnimationFrame(() => {
-        companion.style.transition = 'transform 0.32s cubic-bezier(0.4,0,0.2,1), opacity 0.22s ease';
-        companion.style.transform = '';
-      });
-      companion._ctaAnimTimeout = setTimeout(() => {
-        companion.style.transition = '';
-        companion.style.transform = '';
-        companion.style.opacity = '';
-        companion.style.pointerEvents = '';
-        companion._ctaAnimTimeout = null;
-      }, 360);
-    });
-  } else {
-    // EXIT: fade + scale-down in place. Skipping a reverse flight avoids a
-    // brief double-link icon (companion + primary's new link icon).
-    companion.style.transition = 'opacity 0.18s ease, transform 0.18s ease';
-    companion.style.opacity = '0';
-    companion.style.transform = 'scale(0.6)';
-    companion.style.pointerEvents = 'none';
-    companion._ctaAnimTimeout = setTimeout(() => {
-      companion.hidden = true;
-      companion.style.transition = '';
-      companion.style.transform = '';
-      companion.style.opacity = '';
-      companion.style.pointerEvents = '';
-      companion._ctaAnimTimeout = null;
-    }, 200);
+  if (companion) {
+    const visible = n > 0;
+    companion.classList.toggle('is-visible', visible);
+    companion.setAttribute('aria-hidden', visible ? 'false' : 'true');
+    companion.tabIndex = visible ? 0 : -1;
   }
 }
 
