@@ -5696,7 +5696,7 @@
     padding: 4px 18px 14px;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 10px;
     -webkit-overflow-scrolling: touch;
   }
 
@@ -5708,7 +5708,6 @@
     font-weight: 600;
     color: var(--text);
     line-height: 1.25;
-    margin-bottom: -4px; /* tighter to the chips below; keeps gap visually 10px */
   }
 
   /* FTS callout — follows the slider thumb above the FTS while the share
@@ -5774,13 +5773,12 @@
   }
 
   /* Avatar carousel — horizontal scroll, multi-select, 56px circles.
-     Padding-top is 8px (not 4) so the 5px-wide selection ring around a
-     selected avatar doesn't get clipped by overflow-x: auto (which makes
-     the implicit overflow-y also clip). 8px ≥ 5px ring + small fudge. */
+     Padding-top is 6px so the 5px selection ring isn't clipped by the
+     implicit overflow-y from overflow-x: auto. 6px ≥ 5px ring. */
   .dpinvite-avatar-row {
     display: flex; gap: 14px;
     overflow-x: auto;
-    padding: 8px 4px;
+    padding: 6px 4px;
     margin: 0 -4px;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
@@ -5900,11 +5898,12 @@
   .dpinvite-cta-row .p-pill { flex: 1; min-width: 0; height: 48px; }
 
   /* Cancel row — full-width pill matching the share button's form factor
-     (h48, r999) so the two stack as a coherent action group. .g-rnd's
-     ghost styling stays; only the size + radius are overridden here. */
+     (h48, r999) so the two stack as a coherent action group. Negative
+     margin-top tightens the visual gap to ~8px (body gap is 10px) so the
+     two action pills read as one paired stack instead of two siblings. */
   .dpinvite-cancel-row {
     display: flex;
-    margin-top: 4px;
+    margin-top: -2px;
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
   .dpinvite-cancel-row .g-rnd {
