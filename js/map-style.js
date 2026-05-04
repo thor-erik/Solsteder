@@ -26,13 +26,16 @@ function buildShadeStyle() {
     layers: [
 
       // ── Background ─────────────────────────────────────────────────────────
+      // Near-white warm cream — the "page" of the architectural drawing.
       {
         id: 'background',
         type: 'background',
-        paint: { 'background-color': '#B8AFA3' },
+        paint: { 'background-color': '#F4EFE3' },
       },
 
       // ── Water ──────────────────────────────────────────────────────────────
+      // Brand --muted Jordy at low opacity → calm muted cool counterpoint
+      // to the warm-leaning near-white ground.
       {
         id: 'water',
         type: 'fill',
@@ -53,6 +56,8 @@ function buildShadeStyle() {
       },
 
       // ── Landuse ────────────────────────────────────────────────────────────
+      // All near-white with subtle lightness gradations so park/forest/etc.
+      // remain distinguishable without breaking the pale-canvas read.
       {
         id: 'landuse-green',
         type: 'fill',
@@ -60,7 +65,7 @@ function buildShadeStyle() {
         'source-layer': 'landuse',
         filter: ['match', ['get', 'class'],
           ['park', 'national_park', 'nature_reserve', 'grass', 'pitch', 'golf_course'], true, false],
-        paint: { 'fill-color': '#9EA890' },
+        paint: { 'fill-color': '#E6E2D0' },
       },
       {
         id: 'landuse-wood',
@@ -68,7 +73,7 @@ function buildShadeStyle() {
         source: 'composite',
         'source-layer': 'landuse',
         filter: ['match', ['get', 'class'], ['wood', 'forest', 'scrub'], true, false],
-        paint: { 'fill-color': '#96A088' },
+        paint: { 'fill-color': '#D8D2C0' },
       },
       {
         id: 'landuse-other',
@@ -77,7 +82,7 @@ function buildShadeStyle() {
         'source-layer': 'landuse',
         filter: ['match', ['get', 'class'],
           ['cemetery', 'sand', 'rock', 'snow', 'farmland'], true, false],
-        paint: { 'fill-color': '#AEA79C' },
+        paint: { 'fill-color': '#EAE5DA' },
       },
       {
         id: 'landuse-pedestrian',
@@ -85,10 +90,13 @@ function buildShadeStyle() {
         source: 'composite',
         'source-layer': 'landuse',
         filter: ['match', ['get', 'class'], ['pedestrian', 'plaza'], true, false],
-        paint: { 'fill-color': '#C8BFB3' },
+        paint: { 'fill-color': '#EFEAE0' },
       },
 
       // ── Roads ──────────────────────────────────────────────────────────────
+      // Pale warm-gray ramp: motorway anchors, side streets fade nearly into
+      // the background. Hierarchy comes mostly from line width — color stays
+      // quiet so buildings + shadows are the figure.
       {
         id: 'road-motorway',
         type: 'line',
@@ -97,7 +105,7 @@ function buildShadeStyle() {
         filter: ['match', ['get', 'class'], ['motorway', 'trunk'], true, false],
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
-          'line-color': '#7A726A',
+          'line-color': '#CCC2A8',
           'line-width': ['interpolate', ['linear'], ['zoom'], 10, 1.5, 16, 7],
         },
       },
@@ -109,7 +117,7 @@ function buildShadeStyle() {
         filter: ['==', ['get', 'class'], 'primary'],
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
-          'line-color': '#82796E',
+          'line-color': '#D5CBB2',
           'line-width': ['interpolate', ['linear'], ['zoom'], 10, 1, 16, 5],
         },
       },
@@ -121,7 +129,7 @@ function buildShadeStyle() {
         filter: ['match', ['get', 'class'], ['secondary', 'tertiary'], true, false],
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
-          'line-color': '#8A8278',
+          'line-color': '#DDD3BC',
           'line-width': ['interpolate', ['linear'], ['zoom'], 10, 0.5, 16, 4],
         },
       },
@@ -137,7 +145,7 @@ function buildShadeStyle() {
            'secondary_link', 'tertiary_link'], true, false],
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
-          'line-color': '#9A9288',
+          'line-color': '#E5DCC5',
           'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.5, 16, 2.5],
         },
       },
@@ -151,7 +159,7 @@ function buildShadeStyle() {
         minzoom: 15,
         filter: ['!=', ['get', 'extrude'], 'true'],
         paint: {
-          'fill-color': '#F0E8DA',
+          'fill-color': '#A89D8A',
           'fill-opacity': [
             'interpolate', ['linear'], ['zoom'],
             15, 0,
@@ -165,6 +173,9 @@ function buildShadeStyle() {
       // fill-extrusion-height interpolates 0→actual-height over a zoom
       // range (15→15.2) so buildings rise smoothly as new data loads.
       // Opacity also fades in over the same range to avoid abrupt appearance.
+      // Mid warm gray reads as the figure on the near-white ground while
+      // staying lighter than its own cast shadow — ambient (~0.30) keeps
+      // shaded faces darker than the body but not pitch-black.
       {
         id: 'building',
         type: 'fill-extrusion',
@@ -173,7 +184,7 @@ function buildShadeStyle() {
         minzoom: 15,
         filter: ['has', 'height'],
         paint: {
-          'fill-extrusion-color': '#F0E8DA',
+          'fill-extrusion-color': '#A89D8A',
           'fill-extrusion-height': [
             'interpolate', ['linear'], ['zoom'],
             15, 0,
@@ -211,9 +222,9 @@ function buildShadeStyle() {
           'icon-image': '',
         },
         paint: {
-          'text-color': '#d5c4ab',
+          'text-color': '#5A5048',
           'text-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0.5, 14, 0.35],
-          'text-halo-color': '#0D131E',
+          'text-halo-color': '#FFFFFF',
           'text-halo-width': 1.5,
           'text-halo-blur': 1,
         },
