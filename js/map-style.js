@@ -60,7 +60,7 @@ function buildShadeStyle() {
         'source-layer': 'landuse',
         filter: ['match', ['get', 'class'],
           ['park', 'national_park', 'nature_reserve', 'grass', 'pitch', 'golf_course'], true, false],
-        paint: { 'fill-color': '#B0AD8E' },
+        paint: { 'fill-color': '#BCAB8E' },
       },
       {
         id: 'landuse-wood',
@@ -68,7 +68,7 @@ function buildShadeStyle() {
         source: 'composite',
         'source-layer': 'landuse',
         filter: ['match', ['get', 'class'], ['wood', 'forest', 'scrub'], true, false],
-        paint: { 'fill-color': '#A6A284' },
+        paint: { 'fill-color': '#AE9D80' },
       },
       {
         id: 'landuse-other',
