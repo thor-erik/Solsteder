@@ -902,8 +902,15 @@ function computePinLayout(projVenues, currentHour, dateStr) {
   const result = [];
 
   // Two-pass layout: heroes first, then waiting only if every hero got a pill.
-  const heroEntries    = sorted.filter(e => e.classResult.tier === 'hero'    && !e.classResult.demoted);
-  const waitingEntries = sorted.filter(e => e.classResult.tier === 'waiting' && !e.classResult.demoted);
+  // Friend pins are placed first within each tier so other pills must dodge
+  // them rather than the other way around — friends always claim their spot.
+  const _friendFirst = (a, b) => {
+    const fa = _friendVenueIds.has(a.v.id) ? 0 : 1;
+    const fb = _friendVenueIds.has(b.v.id) ? 0 : 1;
+    return fa - fb;
+  };
+  const heroEntries    = sorted.filter(e => e.classResult.tier === 'hero'    && !e.classResult.demoted).sort(_friendFirst);
+  const waitingEntries = sorted.filter(e => e.classResult.tier === 'waiting' && !e.classResult.demoted).sort(_friendFirst);
   const otherEntries   = sorted.filter(e => e.classResult.tier === 'context' || e.classResult.demoted);
 
   // Always dot for context / density-demoted (unless friends are checked in)
@@ -1224,6 +1231,8 @@ function draw() {
   }
 
   // Build _lastLayout from stable decisions + current screen positions.
+  // Friend pins sort to the END so they draw on top of every other pill —
+  // canvas draws in iteration order, so "last" wins z-order.
   _lastLayout = projVenues.map(({ v, pt, classResult }) => {
     const sel = v.id === selectedId;
     const spr = getSprite(v, classResult.tier, classResult, sel, currentHour, dateStr);
@@ -1232,6 +1241,11 @@ function draw() {
       isDot:     _venueIsDot.get(v.id)   ?? true,
       extraStem: _venueExtStem.get(v.id) ?? 0,
     };
+  });
+  _lastLayout.sort((a, b) => {
+    const fa = _friendVenueIds.has(a.v.id) ? 1 : 0;
+    const fb = _friendVenueIds.has(b.v.id) ? 1 : 0;
+    return fa - fb;  // non-friends first, friends last → friends paint on top
   });
 
   // Smooth stem transitions — lerp each pin toward its target extraStem
@@ -1406,16 +1420,10 @@ function draw() {
 
     ctx.drawImage(spr.canvas, sprLeft, sprTop, spr.cssW, spr.cssH);
 
-    // Friend badge (top-right of pill)
-    if (spr.pillW > 0 && typeof getFriendCheckinsForVenue === 'function') {
-      const fc = getFriendCheckinsForVenue(v.id);
-      if (fc.length) {
-        const rp2 = (v.id === selectedId ? 4 : 2);
-        const pillRight = sprLeft + SHADOW_PAD + rp2 + spr.pillW;
-        const pillTop   = sprTop  + SHADOW_PAD + rp2;
-        _drawFriendBadge(pillRight - 1, pillTop + 1, fc);
-      }
-    }
+    // Friend check-ins are now signalled by the inlaid blue capsule baked
+    // into the sprite itself; the legacy top-right friend badge is no longer
+    // drawn for pills.
+
     // "Going" badge (bottom-right of pill)
     if (spr.pillW > 0 && typeof getGoingFriendsForVenue === 'function') {
       const going = getGoingFriendsForVenue(v.id, dateStr);
