@@ -43,6 +43,12 @@ const DPR             = 2;       // @2x — sharper imagery for chair/parasol de
 const IMAGE_W         = SNAPSHOT_W * DPR;
 const IMAGE_H         = SNAPSHOT_H * DPR;
 const MAPBOX_STYLE    = 'mapbox/satellite-v9';
+// At zoom 19 the image covers ~95 m on each side at Oslo's latitude
+// (cos 60° × 40075 km / (256 × 2^19) ≈ 0.149 m / world-pixel × 640 world-pixels).
+// 1 image-pixel at @2x ≈ 0.075 m, so ~13.4 px/m.
+const M_PER_IMAGE_PX  = 95.4 / IMAGE_W;
+const PROXIMITY_M     = 40;
+const PROXIMITY_PX    = Math.round(PROXIMITY_M / M_PER_IMAGE_PX);
 const CLAUDE_MODEL    = 'claude-sonnet-4-6';
 const CONFIDENCE_GATE = 0.5;     // venues below this fall back to the heuristic
 const REQUEST_PAUSE_MS = 400;    // gentle on both APIs
@@ -206,14 +212,21 @@ Visual cues that are NOT seating:
 
 Hard constraints (a polygon that violates any of these is wrong — return notVisible:true instead):
 1. The polygon MUST NOT contain any pixel inside the building footprint listed above.
-2. The polygon MUST be within ~${150 * DPR} pixels (~30 metres) of the venue marker at the image center.
+2. The polygon MUST be within ~${PROXIMITY_PX} pixels (~${PROXIMITY_M} metres) of the venue marker at the image center.
 3. The polygon should be ADJACENT to and OUTSIDE the building footprint.
 
+Coverage rule:
+- If the seating spans multiple visible zones (a long sidewalk strip, a wide
+  courtyard with several sections, a plaza wrapping around the building),
+  trace the FULL extent in a single polygon — not just the most obvious
+  fragment. Concave / elongated shapes are fine. A small polygon inside a
+  visibly larger seating area is incomplete.
+
 Decision flow:
-1. Scan within ~${150 * DPR} pixels of the marker for seating cues from the lists above.
+1. Scan within ~${PROXIMITY_PX} pixels of the marker for seating cues from the lists above.
 2. If you find a candidate that is OUTSIDE the building footprint AND within
-   range, trace it. Lower-confidence traces (down to ~0.5) are fine — we filter
-   at runtime.
+   range, trace its full extent. Lower-confidence traces (down to ~0.5) are
+   fine — we filter at runtime.
 3. If your only candidates overlap the building, are too far away, or you only
    see lawn/road/parking with no seating cues, return notVisible:true and an
    empty polygon. A wrong polygon is worse than no polygon.
