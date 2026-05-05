@@ -265,3 +265,56 @@ function meterOffsetDeg(lat, bearingDeg, meters) {
     dLng: Math.sin(br) * meters / (111320 * Math.cos(lat * RAD)),
   };
 }
+
+// ── Outdoor-seating polygon helpers ───────────────────────────────────────────
+
+/** Project a [[lat,lng], ...] polygon to pixel-space {x,y} vertices. */
+function projectSeatingPolygon(latLngPoly) {
+  return latLngPoly.map(([lat, lng]) => {
+    const p = map.project([lng, lat]);
+    return { x: p.x, y: p.y };
+  });
+}
+
+/** Centroid of a [[lat,lng], ...] polygon. */
+function seatingPolygonCentroid(latLngPoly) {
+  const n = latLngPoly.length;
+  if (!n) return null;
+  let sLat = 0, sLng = 0;
+  for (const [lat, lng] of latLngPoly) { sLat += lat; sLng += lng; }
+  return { lat: sLat / n, lng: sLng / n };
+}
+
+/**
+ * Generate ~9 sun-shadow test points distributed across the polygon: the
+ * centroid plus a 3×3 grid clipped to vertices that fall inside the polygon.
+ * Used by venueSunState (solar.js) when an AI/manual polygon is available
+ * instead of the wall-projection grid in osm.js.
+ */
+function seatingPolygonTestPoints(latLngPoly) {
+  if (!Array.isArray(latLngPoly) || latLngPoly.length < 3) return [];
+  let minLat =  Infinity, maxLat = -Infinity, minLng =  Infinity, maxLng = -Infinity;
+  for (const [lat, lng] of latLngPoly) {
+    if (lat < minLat) minLat = lat;
+    if (lat > maxLat) maxLat = lat;
+    if (lng < minLng) minLng = lng;
+    if (lng > maxLng) maxLng = lng;
+  }
+  // pointInPolygon expects [{lat,lon}, ...] — adapt our [lat,lng] tuples.
+  const polyNodes = latLngPoly.map(([lat, lng]) => ({ lat, lon: lng }));
+  const pts = [];
+  for (let i = 1; i <= 3; i++) {
+    for (let j = 1; j <= 3; j++) {
+      const lat = minLat + (maxLat - minLat) * (i / 4);
+      const lng = minLng + (maxLng - minLng) * (j / 4);
+      if (typeof pointInPolygon === 'function' && pointInPolygon(lat, lng, polyNodes)) {
+        pts.push({ lat, lng });
+      }
+    }
+  }
+  if (!pts.length) {
+    const c = seatingPolygonCentroid(latLngPoly);
+    if (c) pts.push({ lat: c.lat, lng: c.lng });
+  }
+  return pts;
+}

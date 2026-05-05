@@ -18,6 +18,14 @@ let editDraggingWidth    = false;
 // The primary wall used for width trimming (first selected wall)
 let editWidthWall        = null;
 
+// ── Seating-polygon vertex drag state ─────────────────────────────────────────
+// When the venue has a resolved AI/manual polygon, vertices are draggable
+// directly on the canvas. editPolyVertexIdx is the index being dragged
+// (or null when idle). New positions are written into venue.seatingPolygonOverride
+// and persisted to the facing cache + corrections log on mouseup.
+let editDraggingPolyVertex = false;
+let editPolyVertexIdx      = null;
+
 // ── Building editor overlay ───────────────────────────────────────────────────
 function drawBuildingEditor() {
   const v = VENUES.find(x => x.id === editingVenueId);
@@ -199,6 +207,74 @@ function drawBuildingEditor() {
 
     // Width trim handles on first selected wall (diamond handles at endpoints)
     _drawWidthHandles(v, currentWalls[0], pxPerM);
+  }
+
+  // Resolved AI / manual seating polygon: draw on top with draggable vertices.
+  // This lets the admin nudge a single corner without re-doing the whole wall
+  // selection. Edits are stored as v.seatingPolygonOverride.
+  _drawSeatingPolygonHandles(v);
+}
+
+// ── Seating-polygon handles (overlay on AI / manual polygon) ──────────────────
+
+function _drawSeatingPolygonHandles(v) {
+  if (typeof getSeatingPolygon !== 'function') return;
+  const poly = getSeatingPolygon(v);
+  if (!poly || poly.length < 3) return;
+
+  const px = poly.map(([lat, lng]) => map.project([lng, lat]));
+
+  // Polygon outline — distinct from the wall-based preview above
+  ctx.beginPath();
+  px.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.closePath();
+  ctx.fillStyle   = 'rgba(120,200,160,0.10)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(120,200,160,0.85)';
+  ctx.lineWidth   = 2; ctx.setLineDash([6, 3]); ctx.stroke(); ctx.setLineDash([]);
+
+  // Vertex handles
+  px.forEach((p, idx) => {
+    const dragging = editDraggingPolyVertex && editPolyVertexIdx === idx;
+    const R = dragging ? 8 : 6;
+    ctx.beginPath(); ctx.arc(p.x, p.y, R, 0, Math.PI * 2);
+    ctx.fillStyle   = dragging ? '#A8E6C5' : 'rgba(168,230,197,0.85)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(10,14,28,0.9)'; ctx.lineWidth = 1.5; ctx.stroke();
+  });
+}
+
+/** Hit-test a seating-polygon vertex. Returns the vertex index, or null. */
+function hitTestSeatingPolygonVertex(cx, cy) {
+  if (!editingVenueId || typeof getSeatingPolygon !== 'function') return null;
+  const v = VENUES.find(x => x.id === editingVenueId);
+  if (!v) return null;
+  const poly = getSeatingPolygon(v);
+  if (!poly || poly.length < 3) return null;
+  for (let i = 0; i < poly.length; i++) {
+    const [lat, lng] = poly[i];
+    const p = map.project([lng, lat]);
+    if (Math.hypot(cx - p.x, cy - p.y) < 12) return i;
+  }
+  return null;
+}
+
+/**
+ * Move a single polygon vertex to the lat/lng under the cursor and persist
+ * the new polygon to the in-memory venue + localStorage facing cache.
+ * Test points (used for shadow checks) are recomputed so the change is
+ * reflected immediately in the timeline without a worker round-trip.
+ */
+function updateSeatingPolygonVertex(venueId, vertexIdx, lat, lng) {
+  const v = VENUES.find(x => x.id === venueId);
+  if (!v) return;
+  const current = (typeof getSeatingPolygon === 'function') ? getSeatingPolygon(v) : null;
+  if (!current || vertexIdx < 0 || vertexIdx >= current.length) return;
+  const next = current.map((pt, i) => i === vertexIdx ? [lat, lng] : pt);
+  v.seatingPolygonOverride = next;
+  if (typeof seatingPolygonTestPoints === 'function') {
+    const pts = seatingPolygonTestPoints(next);
+    if (pts.length) v.terraceTestPoints = pts;
   }
 }
 

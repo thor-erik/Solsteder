@@ -2447,6 +2447,10 @@ function _venueEditSnapshot(v) {
     facing:                  v.facing,
     facingSource:            v.facingSource ?? null,
     terraceDetachedLocation: v.terraceDetachedLocation ? { ...v.terraceDetachedLocation } : null,
+    // Manual seating polygon edit (vertex-drag in render-editor). Captured
+    // here so the corrections-log → merge-seating-corrections.mjs round trip
+    // sees the edit and writes it into data/seating-detected.json.
+    seatingPolygonOverride:  Array.isArray(v.seatingPolygonOverride) ? v.seatingPolygonOverride.map(p => p.slice()) : null,
   };
 }
 
@@ -2460,9 +2464,10 @@ function _applyVenueSnapshot(v, snap) {
   v.facing                  = snap.facing;
   v.facingSource            = snap.facingSource;
   v.terraceDetachedLocation = snap.terraceDetachedLocation ? { ...snap.terraceDetachedLocation } : null;
+  v.seatingPolygonOverride  = Array.isArray(snap.seatingPolygonOverride) ? snap.seatingPolygonOverride.map(p => p.slice()) : null;
   saveFacingCache(v.id, v.facing, v.facingSource,
     v.terraceWallIndices, v.terraceDepth, null, v.terraceType, v.terraceDetachedLocation,
-    v.terraceWallTrimStart, v.terraceWallTrimEnd);
+    v.terraceWallTrimStart, v.terraceWallTrimEnd, v.seatingPolygonOverride);
 }
 
 /** Called from auth.js adminApproveEdit — applies an approved proposal to local state. */

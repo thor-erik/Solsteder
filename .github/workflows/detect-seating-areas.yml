@@ -1,0 +1,54 @@
+#
+name: Detect outdoor-seating polygons
+
+# Runs Claude vision on every venue that does NOT yet have a cached polygon
+# in data/seating-detected.json. Idempotent: zero API calls when nothing is
+# missing. Manual records (source: "manual") are never touched.
+#
+# Trigger this BEFORE update-geometry.yml so the geometry rebuild can use the
+# fresh polygons when computing terraceTestPoints.
+
+on:
+  schedule:
+    - cron: '0 22 * * 0'   # 22:00 UTC every Sunday — completes well before update-geometry's Mon 03:00
+  workflow_dispatch:        # manual trigger from Actions tab
+    inputs:
+      force_all:
+        description: 'Re-detect every AI record (--force-all)'
+        type: boolean
+        default: false
+      force_id:
+        description: 'Re-detect a single venue id (--force <id>)'
+        type: string
+        default: ''
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Detect seating polygons
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          MAPBOX_TOKEN:      ${{ secrets.MAPBOX_TOKEN }}
+        run: |
+          ARGS=""
+          if [ "${{ github.event.inputs.force_all }}" = "true" ]; then ARGS="$ARGS --force-all"; fi
+          if [ -n "${{ github.event.inputs.force_id }}" ]; then ARGS="$ARGS --force ${{ github.event.inputs.force_id }}"; fi
+          node scripts/detect-seating-areas.mjs $ARGS
+
+      - name: Commit if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/seating-detected.json
+          git diff --cached --quiet && echo "No changes" || git commit -m "chore: update detected seating polygons [skip ci]"
+          git push

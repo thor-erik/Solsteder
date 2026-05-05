@@ -290,6 +290,17 @@ function computeDepthFromOutdoorSeatingArea(wallSegment, polygon) {
  * Side-effect: sets venue.autoTerraceDepth when derived from an OSM polygon.
  */
 function computeTerraceTestPoints(venue, osmElement) {
+  // Tier 0 — AI-detected or manually edited polygon (most accurate when
+  // available). Sampled across the polygon interior so shadow-on-seating is
+  // computed against the actual seating area instead of a wall projection.
+  if (typeof getSeatingPolygon === 'function') {
+    const ai = getSeatingPolygon(venue);
+    if (ai && typeof seatingPolygonTestPoints === 'function') {
+      const pts = seatingPolygonTestPoints(ai);
+      if (pts.length) return pts;
+    }
+  }
+
   // Rooftop: building centroid — entire roof exposed to sky
   if (venue.terraceType === 'rooftop' && venue.buildingGeometry?.length) {
     const c = computeCentroid(venue.buildingGeometry);
@@ -661,10 +672,19 @@ function _applyCompactGeometry(data) {
     v.facingSource = g.fs;
     saveFacingCache(v.id, g.f, g.fs);
 
-    // terraceTestPoints: [[lat,lng], ...] → [{lat,lng}, ...]
-    v.terraceTestPoints = g.tp
-      ? g.tp.map(p => ({ lat: p[0], lng: p[1] }))
-      : computeTerraceTestPoints(v, null);
+    // terraceTestPoints: AI polygon (when present) wins over precomputed `g.tp`,
+    // so shadow checks use the realistic seating outline rather than the
+    // wall-projection grid baked into geometry.json.
+    let aiPts = null;
+    if (typeof getSeatingPolygon === 'function') {
+      const ai = getSeatingPolygon(v);
+      if (ai && typeof seatingPolygonTestPoints === 'function') {
+        aiPts = seatingPolygonTestPoints(ai);
+        if (!aiPts.length) aiPts = null;
+      }
+    }
+    v.terraceTestPoints = aiPts
+      ?? (g.tp ? g.tp.map(p => ({ lat: p[0], lng: p[1] })) : computeTerraceTestPoints(v, null));
 
     applied++;
   });

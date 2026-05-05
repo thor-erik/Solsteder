@@ -77,6 +77,19 @@ function computeReviewFlags(v, dateStr) {
     flags.push('no-geometry');
   }
 
+  // AI seating-detection follow-ups: low-confidence detections need a manual
+  // glance, and notVisible records mean the venue is on the heuristic
+  // fallback (likely needs a manual polygon edit).
+  if (v.terraceType === 'street' && !v.seatingPolygonOverride) {
+    if (v.seatingNotVisible) {
+      flags.push('seating-not-visible');
+    } else if (v.seatingPolygonAi
+        && typeof v.seatingPolygonAiConfidence === 'number'
+        && v.seatingPolygonAiConfidence < 0.5) {
+      flags.push('low-confidence-seating');
+    }
+  }
+
   return flags;
 }
 
@@ -169,10 +182,12 @@ function toggleReviewMode() {
 // ── Friendly labels for chips (consumed by ui-list.js) ────────────────────────
 
 const REVIEW_FLAG_LABELS = {
-  'no-sun':             '0h sun',
-  'low-sun':            '<1.5h sun',
-  'north-facing':       'facing N (auto)',
-  'points-in-building': 'test pts in wall',
-  'no-geometry':        'missing geometry',
+  'no-sun':                 '0h sun',
+  'low-sun':                '<1.5h sun',
+  'north-facing':           'facing N (auto)',
+  'points-in-building':     'test pts in wall',
+  'no-geometry':            'missing geometry',
+  'low-confidence-seating': 'low-conf seating',
+  'seating-not-visible':    'seating not visible',
 };
 function reviewFlagLabel(code) { return REVIEW_FLAG_LABELS[code] ?? code; }

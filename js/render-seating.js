@@ -44,6 +44,20 @@ function drawSeatingAreas() {
     const fillShade   = 'rgba(40,80,180,0.13)';
     const strokeShade = 'rgba(80,130,220,0.35)';
 
+    // Priority 1: resolved AI/manual polygon (data.js#getSeatingPolygon)
+    const aiPoly = (typeof getSeatingPolygon === 'function') ? getSeatingPolygon(v) : null;
+    if (aiPoly) {
+      const px = projectSeatingPolygon(aiPoly);
+      ctx.beginPath();
+      px.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+      ctx.closePath();
+      ctx.fillStyle   = sunny ? fillSunny   : fillShade;
+      ctx.fill();
+      ctx.strokeStyle = sunny ? strokeSunny : strokeShade;
+      ctx.lineWidth   = 1.5; ctx.setLineDash([]); ctx.stroke();
+      return;
+    }
+
     const depth = getEffectiveDepth(v);
     const walls = getTerraceWalls(v);
 

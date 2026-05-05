@@ -5,5 +5,8 @@ data/venues-fetched.json
 data/venues-review.json
 data/venues-osm-unresolved.json
 data/venues-candidates.json
+data/seating-review.html
+data/seating-review-assets/
+.cache/
 node_modules/
 *.p8

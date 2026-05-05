@@ -1599,6 +1599,17 @@ canvas.addEventListener('mousedown', e => {
   const rect = canvas.getBoundingClientRect();
   const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
   if (editingVenueId) {
+    // Seating-polygon vertex drag takes top priority — when the AI/manual
+    // polygon is in play it should never be obscured by underlying wall
+    // arrows or depth handles.
+    const polyIdx = (typeof hitTestSeatingPolygonVertex === 'function')
+      ? hitTestSeatingPolygonVertex(cx, cy) : null;
+    if (polyIdx !== null) {
+      editDraggingPolyVertex = true;
+      editPolyVertexIdx      = polyIdx;
+      canvas.style.cursor    = 'grabbing';
+      return;
+    }
     // Detached pin drag
     if (hitTestDetachedPin(cx, cy)) {
       _detachedDragging = true;
@@ -1690,6 +1701,14 @@ canvas.addEventListener('mousemove', e => {
       return;
     }
 
+    if (editDraggingPolyVertex && editPolyVertexIdx !== null) {
+      const ll = map.unproject([cx, cy]);
+      updateSeatingPolygonVertex(editingVenueId, editPolyVertexIdx, ll.lat, ll.lng);
+      canvas.style.cursor = 'grabbing';
+      draw();
+      return;
+    }
+
     if (editDraggingWidth && editWidthWall) {
       const v = VENUES.find(x => x.id === editingVenueId);
       if (v) {
@@ -1731,6 +1750,12 @@ canvas.addEventListener('mousemove', e => {
     }
     if (vEdit?.terraceType && vEdit.terraceType !== 'street') {
       canvas.style.cursor = 'default';
+      return;
+    }
+
+    if (typeof hitTestSeatingPolygonVertex === 'function'
+        && hitTestSeatingPolygonVertex(cx, cy) !== null) {
+      canvas.style.cursor = 'grab';
       return;
     }
 
@@ -1800,6 +1825,19 @@ window.addEventListener('mouseup', () => {
     canvas.style.cursor = 'default';
     draw();
   }
+  if (editDraggingPolyVertex) {
+    editDraggingPolyVertex = false;
+    editPolyVertexIdx      = null;
+    canvas.style.cursor    = 'default';
+    const v = VENUES.find(x => x.id === editingVenueId);
+    if (v) saveFacingCache(v.id, v.facing, v.facingSource, v.terraceWallIndices ?? [], v.terraceDepth,
+      null, v.terraceType, v.terraceDetachedLocation, v.terraceWallTrimStart, v.terraceWallTrimEnd,
+      v.seatingPolygonOverride);
+    sunWindowCache.clear();
+    dispatchToWorker(datePicker.value);
+    _setEditChanged();
+    draw();
+  }
   if (editDraggingDepth) {
     editDraggingDepth = false;
     const v = VENUES.find(x => x.id === editingVenueId);
@@ -1843,6 +1881,16 @@ if (_isTouchDevice) {
     const rect = canvas.getBoundingClientRect();
     const cx = t.clientX - rect.left, cy = t.clientY - rect.top;
 
+    if (typeof hitTestSeatingPolygonVertex === 'function') {
+      const polyIdx = hitTestSeatingPolygonVertex(cx, cy);
+      if (polyIdx !== null) {
+        editDraggingPolyVertex = true;
+        editPolyVertexIdx      = polyIdx;
+        _editTouchId = t.identifier;
+        e.preventDefault();
+        return;
+      }
+    }
     if (hitTestDetachedPin(cx, cy)) {
       _detachedDragging = true;
       _editTouchId = t.identifier;
@@ -1879,6 +1927,12 @@ if (_isTouchDevice) {
       setDetachedLocation(ll.lat, ll.lng);
       e.preventDefault(); return;
     }
+    if (editDraggingPolyVertex && editPolyVertexIdx !== null) {
+      const ll = map.unproject([cx, cy]);
+      updateSeatingPolygonVertex(editingVenueId, editPolyVertexIdx, ll.lat, ll.lng);
+      draw();
+      e.preventDefault(); return;
+    }
     if (editDraggingWidth && editWidthWall) {
       const v = VENUES.find(x => x.id === editingVenueId);
       if (v) {
@@ -1912,16 +1966,23 @@ if (_isTouchDevice) {
   }, { passive: false });
 
   document.addEventListener('touchend', e => {
-    if (editingVenueId && (_detachedDragging || editDraggingDepth || editDraggingWidth)) {
+    if (editingVenueId && (_detachedDragging || editDraggingDepth || editDraggingWidth || editDraggingPolyVertex)) {
       const v = VENUES.find(x => x.id === editingVenueId);
       if (v) saveFacingCache(v.id, v.facing, v.facingSource, v.terraceWallIndices ?? [], v.terraceDepth,
-        null, v.terraceType, v.terraceDetachedLocation, v.terraceWallTrimStart, v.terraceWallTrimEnd);
+        null, v.terraceType, v.terraceDetachedLocation, v.terraceWallTrimStart, v.terraceWallTrimEnd,
+        v.seatingPolygonOverride);
+      const wasPoly = editDraggingPolyVertex;
       _detachedDragging = false;
       editDraggingDepth = false; editDragWallObj = null;
       editDraggingWidth = false; editWidthWall   = null;
+      editDraggingPolyVertex = false; editPolyVertexIdx = null;
       _editTouchId = null;
       _updateEditDepthDisplay();
       _setEditChanged();
+      if (wasPoly) {
+        sunWindowCache.clear();
+        dispatchToWorker(datePicker.value);
+      }
       draw();
       return;
     }

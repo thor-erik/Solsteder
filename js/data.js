@@ -54,7 +54,7 @@ function loadFacingCache() {
   catch (_) { return {}; }
 }
 
-function saveFacingCache(venueId, facing, facingSource, terraceWallIndices, terraceDepth, noiseScore, terraceType, terraceDetachedLocation, terraceWallTrimStart, terraceWallTrimEnd) {
+function saveFacingCache(venueId, facing, facingSource, terraceWallIndices, terraceDepth, noiseScore, terraceType, terraceDetachedLocation, terraceWallTrimStart, terraceWallTrimEnd, seatingPolygonOverride) {
   const cache = loadFacingCache();
   const prev  = cache[venueId] || {};
   cache[venueId] = {
@@ -68,6 +68,9 @@ function saveFacingCache(venueId, facing, facingSource, terraceWallIndices, terr
     terraceDetachedLocation: terraceDetachedLocation ?? prev.terraceDetachedLocation ?? null,
     terraceWallTrimStart:    terraceWallTrimStart    ?? prev.terraceWallTrimStart    ?? null,
     terraceWallTrimEnd:      terraceWallTrimEnd      ?? prev.terraceWallTrimEnd      ?? null,
+    // Manual seating polygon edit (vertex-drag in render-editor.js).
+    // null means "use AI / heuristic"; an explicit array overrides both.
+    seatingPolygonOverride:  seatingPolygonOverride  !== undefined ? seatingPolygonOverride : (prev.seatingPolygonOverride ?? null),
   };
   try { localStorage.setItem(FACING_CACHE_KEY, JSON.stringify(cache)); }
   catch (_) {}
@@ -130,7 +133,62 @@ function normalizeVenue(v) {
     terraceType:            v.terraceType ?? 'street',
     terraceDetachedLocation: v.terraceDetachedLocation ?? null,
     beerPrice:              v.beerPrice ?? null,
+    // Set later by loadSeatingCache(): AI-detected outdoor-seating polygon
+    // (lat/lng vertex array) and its confidence. Drives render-seating.js
+    // and the shadow test-point grid in osm.js.
+    seatingPolygonAi:           null,
+    seatingPolygonAiConfidence: null,
+    seatingNotVisible:          false,
+    seatingPolygonOverride:     null,  // manual edit (vertex drag), beats AI
   };
+}
+
+// ── AI seating polygon cache (data/seating-detected.json) ─────────────────────
+// Loaded once at boot, then kept in memory. The override layer lives in the
+// existing solsteder_facings_v4 localStorage cache so manual edits made in the
+// editor persist across reloads without round-tripping a server.
+const SEATING_CONFIDENCE_GATE = 0.5;
+
+async function loadSeatingCache() {
+  try {
+    const resp = await fetch('data/seating-detected.json');
+    if (!resp.ok) return;
+    const data = await resp.json();
+    const records = data.venues ?? {};
+    let applied = 0;
+    VENUES.forEach(v => {
+      const r = records[String(v.id)] ?? records[v.id];
+      if (!r) return;
+      v.seatingPolygonAi           = Array.isArray(r.polygon) && r.polygon.length >= 3 ? r.polygon : null;
+      v.seatingPolygonAiConfidence = typeof r.confidence === 'number' ? r.confidence : null;
+      v.seatingNotVisible          = !!r.notVisible;
+      applied++;
+    });
+    console.log(`Seating: loaded ${applied}/${VENUES.length} polygon record(s) from data/seating-detected.json`);
+  } catch (e) {
+    console.warn('seating-detected.json unavailable:', e.message);
+  }
+}
+
+/**
+ * Resolution order for a venue's outdoor-seating polygon:
+ *   1. Manual vertex-drag override (localStorage)
+ *   2. AI detection (when confidence ≥ gate and not flagged notVisible)
+ *   3. null → callers fall back to wall-projection heuristic
+ *
+ * Returns an array of [lat, lng] vertices, or null.
+ */
+function getSeatingPolygon(v) {
+  if (Array.isArray(v.seatingPolygonOverride) && v.seatingPolygonOverride.length >= 3) {
+    return v.seatingPolygonOverride;
+  }
+  if (v.seatingNotVisible) return null;
+  if (Array.isArray(v.seatingPolygonAi)
+      && v.seatingPolygonAi.length >= 3
+      && (v.seatingPolygonAiConfidence ?? 0) >= SEATING_CONFIDENCE_GATE) {
+    return v.seatingPolygonAi;
+  }
+  return null;
 }
 
 // ── Loader ────────────────────────────────────────────────────────────────────
@@ -166,11 +224,19 @@ async function loadVenues() {
     if (cached.terraceDetachedLocation != null) v.terraceDetachedLocation = cached.terraceDetachedLocation;
     if (cached.terraceWallTrimStart    != null) v.terraceWallTrimStart    = cached.terraceWallTrimStart;
     if (cached.terraceWallTrimEnd      != null) v.terraceWallTrimEnd      = cached.terraceWallTrimEnd;
+    if (Array.isArray(cached.seatingPolygonOverride) && cached.seatingPolygonOverride.length >= 3) {
+      v.seatingPolygonOverride = cached.seatingPolygonOverride;
+    }
     // JSON-level 'manual' beats any localStorage entry (it was intentionally authored)
     if (v.facingSource === 'manual') return;
     v.facing = cached.facing;
     v.facingSource = cached.facingSource;
   });
+
+  // AI-detected seating polygons — fetched in parallel with venues.json
+  // would only save a few ms because we already render the map first; loading
+  // here is simple and keeps initialisation linear.
+  await loadSeatingCache();
 
   VENUE_CLUSTER = computeVenueCluster(VENUES);
 }
