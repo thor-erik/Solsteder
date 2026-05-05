@@ -120,6 +120,17 @@ if (DRY_RUN) {
 
 // ── Mapbox Static Image fetch ─────────────────────────────────────────────────
 
+// Mapbox returns JPEG for raster-only styles like satellite-v9, PNG for vector.
+// Detect from magic bytes so we send the right media_type to Anthropic and so
+// cached files keep working regardless of which extension we used.
+function detectImageMime(buf) {
+  if (buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'image/jpeg';
+  if (buf.length >= 8 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) return 'image/png';
+  if (buf.length >= 12 && buf.slice(0, 4).toString('ascii') === 'RIFF'
+      && buf.slice(8, 12).toString('ascii') === 'WEBP') return 'image/webp';
+  return null;
+}
+
 async function fetchSnapshot(v) {
   const cachedFile = join(SNAPSHOT_DIR, `${v.id}.png`);
   if (existsSync(cachedFile)) {
@@ -191,6 +202,8 @@ Rules:
 // ── Anthropic API call ────────────────────────────────────────────────────────
 
 async function callClaude(imageBytes, prompt) {
+  const mediaType = detectImageMime(imageBytes);
+  if (!mediaType) throw new Error('Unrecognised image format (not PNG/JPEG/WebP)');
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method:  'POST',
     headers: {
@@ -204,7 +217,7 @@ async function callClaude(imageBytes, prompt) {
       messages: [{
         role: 'user',
         content: [
-          { type: 'image', source: { type: 'base64', media_type: 'image/png', data: imageBytes.toString('base64') } },
+          { type: 'image', source: { type: 'base64', media_type: mediaType, data: imageBytes.toString('base64') } },
           { type: 'text',  text: prompt },
         ],
       }],
