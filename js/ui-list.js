@@ -249,11 +249,9 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
         <div class="card-name">${v.name}${favHeart}${friendBadge}${goingBadge}</div>
         ${durationStr ? `<div class="card-duration">${SUN_GLYPH}${durationStr}</div>` : ''}
       </div>
-      <div class="card-row2">
-        <div class="card-meta">${metaHtml}</div>
-        ${miniTimeline}
-      </div>
+      <div class="card-meta">${metaHtml}</div>
       ${pillsHtml ? `<div class="card-pills">${pillsHtml}</div>` : ''}
+      ${miniTimeline}
       ${reviewChips}
       ${reviewActions}
     </div>`;
@@ -332,14 +330,11 @@ function renderListPage(list, dateStr, fromHour, toHour, isPoint, reset) {
                   || (typeof todayStr === 'function' && dateStr > todayStr());
 
   // Build section markup. Reset paths emit the headers + empties; paginated
-  // appends just emit cards (no headers — they're already in the DOM).
+  // appends just emit cards (no headers — they're already in the DOM). The
+  // future-time signal lives in the section header copy ("Sol kl HH:MM" /
+  // "Sol etter HH:MM"); no separate chip is injected.
   let html = '';
   if (reset) {
-    if (isFuture) {
-      html += `<span class="chip-pill future-time-pill" id="future-time-pill">${
-        t('time_now_chip', { time: formatHour(fromHour) })
-      }</span>`;
-    }
     // Sol nå header
     const nowLabel = isFuture
       ? t('section_sun_at', { time: formatHour(fromHour) })
