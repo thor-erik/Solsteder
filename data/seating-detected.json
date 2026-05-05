@@ -2,10 +2,51 @@
   "version": 1,
   "venues": {
     "1": {
-      "polygon": [],
-      "confidence": 0,
-      "notVisible": true,
-      "detectedAt": "2026-05-05T17:52:48.570Z",
+      "polygon": [
+        [
+          59.92205,
+          10.753821
+        ],
+        [
+          59.92217,
+          10.75435
+        ],
+        [
+          59.922143,
+          10.754374
+        ],
+        [
+          59.922096,
+          10.754401
+        ],
+        [
+          59.922042,
+          10.754374
+        ],
+        [
+          59.922002,
+          10.754293
+        ],
+        [
+          59.921975,
+          10.754159
+        ],
+        [
+          59.921988,
+          10.754025
+        ],
+        [
+          59.922015,
+          10.753918
+        ],
+        [
+          59.92205,
+          10.753821
+        ]
+      ],
+      "confidence": 0.55,
+      "notVisible": false,
+      "detectedAt": "2026-05-05T18:24:04.195Z",
       "model": "claude-sonnet-4-6",
       "source": "ai",
       "snapshot": {
@@ -14,7 +55,7 @@
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "The image shows what appears to be rooftop HVAC units and building infrastructure but no clearly identifiable outdoor seating area with tables, chairs, or parasols is visible at this resolution and angle."
+      "reasoning": "The area along the bottom/south side of the building shows regularly spaced white rectangular shapes that appear to be parasols or outdoor furniture arrangements, consistent with an outdoor terrace seating area adjacent to the building exte"
     },
     "2": {
       "polygon": [
@@ -61,10 +102,95 @@
       "reasoning": "Green parasols and a white tent structure visible in front of the building suggest an outdoor seating/market area, though exact table arrangement is difficult to confirm from this aerial view."
     },
     "3": {
-      "polygon": [],
-      "confidence": 0.25,
-      "notVisible": true,
-      "detectedAt": "2026-05-05T17:52:57.962Z",
+      "polygon": [
+        [
+          59.906279,
+          10.756021
+        ],
+        [
+          59.90633,
+          10.756091
+        ],
+        [
+          59.90633,
+          10.756131
+        ],
+        [
+          59.906421,
+          10.75619
+        ],
+        [
+          59.90641,
+          10.756241
+        ],
+        [
+          59.9065,
+          10.756289
+        ],
+        [
+          59.906491,
+          10.75634
+        ],
+        [
+          59.90657,
+          10.756389
+        ],
+        [
+          59.90657,
+          10.756429
+        ],
+        [
+          59.90663,
+          10.75648
+        ],
+        [
+          59.90673,
+          10.756319
+        ],
+        [
+          59.906659,
+          10.756319
+        ],
+        [
+          59.906618,
+          10.756405
+        ],
+        [
+          59.906551,
+          10.756365
+        ],
+        [
+          59.90656,
+          10.756311
+        ],
+        [
+          59.906477,
+          10.756265
+        ],
+        [
+          59.906488,
+          10.756212
+        ],
+        [
+          59.906403,
+          10.756163
+        ],
+        [
+          59.906403,
+          10.756115
+        ],
+        [
+          59.906343,
+          10.756056
+        ],
+        [
+          59.906296,
+          10.755989
+        ]
+      ],
+      "confidence": 0.35,
+      "notVisible": false,
+      "detectedAt": "2026-05-05T18:24:15.489Z",
       "model": "claude-sonnet-4-6",
       "source": "ai",
       "snapshot": {
@@ -73,7 +199,7 @@
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "The area around the building shows paved surfaces but no clearly distinguishable outdoor seating with tables, chairs, or parasols is visible in this satellite image."
+      "reasoning": "Along the right (east) side of the building footprint, the narrow strip between the building edge and the dark boundary appears to be a paved terrace area adjacent to the venue where outdoor seating could be placed, though furniture detail "
     },
     "4": {
       "polygon": [],
@@ -146,10 +272,35 @@
       "reasoning": "The image shows rooftops and a circular green roof structure; no clear outdoor seating area with tables, chairs, or parasols is distinguishable at this resolution and angle."
     },
     "7": {
-      "polygon": [],
-      "confidence": 0,
-      "notVisible": true,
-      "detectedAt": "2026-05-05T17:53:14.015Z",
+      "polygon": [
+        [
+          59.90965,
+          10.738646
+        ],
+        [
+          59.909636,
+          10.738807
+        ],
+        [
+          59.90934,
+          10.738914
+        ],
+        [
+          59.909327,
+          10.738699
+        ],
+        [
+          59.909434,
+          10.738565
+        ],
+        [
+          59.909556,
+          10.738592
+        ]
+      ],
+      "confidence": 0.62,
+      "notVisible": false,
+      "detectedAt": "2026-05-05T18:24:38.272Z",
       "model": "claude-sonnet-4-6",
       "source": "ai",
       "snapshot": {
@@ -158,50 +309,42 @@
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "The image is 640x640 pixels but the apparent outdoor seating area with tables and chairs visible at the bottom-left near the trees is at the edge of the frame and difficult to precisely delineate with confidence as a distinct outdoor seatin"
+      "reasoning": "Cluster of small tables and chairs visible on the paved outdoor area adjacent to and south of the building entrance, forming the restaurant's outdoor terrace seating."
     },
     "8": {
       "polygon": [
         [
-          59.91433,
-          10.755304
+          59.914465,
+          10.755331
         ],
         [
-          59.91429,
-          10.755505
-        ],
-        [
-          59.914263,
-          10.755693
-        ],
-        [
-          59.914223,
-          10.755867
-        ],
-        [
-          59.91433,
-          10.755974
-        ],
-        [
-          59.914424,
-          10.755813
-        ],
-        [
-          59.914478,
-          10.755653
-        ],
-        [
-          59.914451,
+          59.914505,
           10.755492
         ],
         [
-          59.914397,
+          59.914478,
+          10.755706
+        ],
+        [
+          59.914384,
+          10.755813
+        ],
+        [
+          59.914303,
+          10.755706
+        ],
+        [
+          59.91429,
+          10.755492
+        ],
+        [
+          59.914357,
           10.755331
         ]
       ],
-      "confidence": 0.72,
+      "confidence": 0.62,
       "notVisible": false,
-      "detectedAt": "2026-05-05T17:53:18.385Z",
+      "detectedAt": "2026-05-05T18:24:42.394Z",
       "model": "claude-sonnet-4-6",
       "source": "ai",
       "snapshot": {
@@ -210,13 +353,34 @@
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "The outdoor seating area appears to be the paved plaza space with visible bench/table rows casting shadows, located primarily to the south and southwest of the central building structure."
+      "reasoning": "Adjacent to and outside the building footprint, a wooden decking/platform area with bench seating rows and string lights is visible to the south and southwest of the structure, forming the main outdoor seating zone for Prindsen Hage."
     },
     "9": {
-      "polygon": [],
+      "polygon": [
+        [
+          59.90895,
+          10.741776
+        ],
+        [
+          59.90895,
+          10.74183
+        ],
+        [
+          59.909051,
+          10.741929
+        ],
+        [
+          59.909064,
+          10.741856
+        ],
+        [
+          59.908963,
+          10.741749
+        ]
+      ],
       "confidence": 0.25,
-      "notVisible": true,
-      "detectedAt": "2026-05-05T17:53:22.283Z",
+      "notVisible": false,
+      "detectedAt": "2026-05-05T18:24:46.722Z",
       "model": "claude-sonnet-4-6",
       "source": "ai",
       "snapshot": {
@@ -225,13 +389,62 @@
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "The image is too blurry to confidently distinguish an outdoor seating area from the surrounding pavement and shadows around the building footprint."
+      "reasoning": "The image is very blurry but a small paved area appears adjacent to the front/side of the building footprint near the marker center, likely where outdoor seating is placed on the sidewalk area outside Engebret Cafe."
     },
     "10": {
-      "polygon": [],
+      "polygon": [
+        [
+          59.91241,
+          10.748071
+        ],
+        [
+          59.912389,
+          10.748258
+        ],
+        [
+          59.912295,
+          10.748366
+        ],
+        [
+          59.912215,
+          10.748312
+        ],
+        [
+          59.912161,
+          10.748205
+        ],
+        [
+          59.912094,
+          10.748124
+        ],
+        [
+          59.912026,
+          10.748044
+        ],
+        [
+          59.912,
+          10.747963
+        ],
+        [
+          59.912053,
+          10.747883
+        ],
+        [
+          59.912134,
+          10.747937
+        ],
+        [
+          59.912215,
+          10.748017
+        ],
+        [
+          59.912295,
+          10.748044
+        ]
+      ],
       "confidence": 0.25,
-      "notVisible": true,
-      "detectedAt": "2026-05-05T17:53:26.109Z",
+      "notVisible": false,
+      "detectedAt": "2026-05-05T18:24:51.365Z",
       "model": "claude-sonnet-4-6",
       "source": "ai",
       "snapshot": {
@@ -240,7 +453,7 @@
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "The building footprint occupies most of the visible structure and no clearly distinct outdoor seating area with tables, chairs, or parasols is identifiable in this satellite image."
+      "reasoning": "Along the right/east side of the building facing Dronningens gate there appears to be a narrow sidewalk strip where outdoor seating may be placed, though furniture is not clearly distinguishable at this resolution."
     }
   }
 }
