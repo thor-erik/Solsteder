@@ -146,41 +146,28 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       }</div>`
     : '<div class="detail-new-photos">[Bilde]</div>';
 
-  // Heart + bell icon SVGs
+  // Heart + bell live in the action row alongside Directions/Share. Active
+  // state fills with the accent so the row reads as a peer set of toggles.
   const _favActive = typeof isFavorite === 'function' && isFavorite(v.id);
   const _alertActive = typeof hasSunAlert === 'function' && hasSunAlert(v.id);
-  const heartBtn = `<button class="dp-header-icon${_favActive ? ' active' : ''}" onclick="toggleFavorite(${v.id}, event)" title="${typeof t === 'function' ? t('favorites') : 'Favoritt'}">
-    ${_favActive
-      ? `<svg width="22" height="22" viewBox="0 0 24 24" fill="var(--accent)" stroke="var(--accent)" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>`
-      : `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>`}
+  const heartBtn = `<button class="dp-action-icon${_favActive ? ' is-active' : ''}" onclick="toggleFavorite(${v.id}, event)" title="${typeof t === 'function' ? t('favorites') : 'Favoritt'}" aria-label="${typeof t === 'function' ? t('favorites') : 'Favoritt'}">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="${_favActive ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>
   </button>`;
-  const bellBtn = `<button class="dp-header-icon${_alertActive ? ' active' : ''}" onclick="toggleSunAlert(${v.id}, event)" title="${typeof t === 'function' ? t('sun_alert_label') : 'Sol-varsel'}">
-    ${_alertActive
-      ? `<svg width="22" height="22" viewBox="0 0 24 24" fill="var(--accent)" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`
-      : `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`}
+  const bellBtn = `<button class="dp-action-icon${_alertActive ? ' is-active' : ''}" onclick="toggleSunAlert(${v.id}, event)" title="${typeof t === 'function' ? t('sun_alert_label') : 'Sol-varsel'}" aria-label="${typeof t === 'function' ? t('sun_alert_label') : 'Sol-varsel'}">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="${_alertActive ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
   </button>`;
 
-  // Directions CTA label — always include text for a wider, tappable button
-  const dirLabel = walkTime ? `${dirIcon} ${t('directions')} · ${walkTime}` : `${dirIcon} ${t('directions')}`;
-
-  // Card-style header content — same DOM as a venue-card, scaled up via .dp-card.
-  const metaParts = [v.area, catLabel(v), distStr].filter(Boolean);
-  const metaHtml = metaParts.map((p, i) =>
-    (i > 0 ? '<span class="card-meta-dot">·</span>' : '') + `<span>${p}</span>`
-  ).join('');
+  // The card-style header is rebuilt by _populateDpCardSlot → renderCard
+  // (ui-list.js). The metaParts/metaHtml block that used to live here was
+  // dead code — kept removed so future readers don't try to edit it.
   const stateClass = state.className || '';
   const cardRightMain = state.mainText || '—';
   const cardRightSub  = state.subText  || '';
-
-  // Heart + bell sit as a small overlay on the photo gallery's top-right
-  // (replaces the orphaned chevron+actions row that used to live between photos and card).
-  const photoActionsHtml = `<div class="dp-photo-actions">${heartBtn}${bellBtn}</div>`;
 
   return `
     <div id="dp-scroll">
       <div class="detail-new-photos-wrap">
         ${photosHtml}
-        ${photoActionsHtml}
       </div>
 
       <!-- Placeholder slot replaced by openDetailPanel/updateDetailPanel
@@ -192,10 +179,12 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       ${_renderSocialSection(v)}
 
       <div class="dp-action-row">
-        <a class="dp-action-cta" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(v.lat + ',' + v.lng)}&travelmode=walking" target="_blank" rel="noopener">${dirLabel}</a>
-        ${v.phone ? `<a href="tel:${encodeURIComponent(v.phone)}" class="dp-action-icon" title="Ring">${phoneIcon}</a>` : ''}
-        ${v.website ? `<a href="${v.website}" target="_blank" rel="noopener" class="dp-action-icon" title="Nettside">${globeIcon}</a>` : ''}
-        <button class="dp-action-icon" title="Del" onclick="shareVenue(${v.id})">${shareIcon}</button>
+        <a class="dp-action-icon" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(v.lat + ',' + v.lng)}&travelmode=walking" target="_blank" rel="noopener" title="${t('directions')}${walkTime ? ' · ' + walkTime : ''}" aria-label="${t('directions')}">${dirIcon}</a>
+        <button class="dp-action-icon" title="${t('share')}" aria-label="${t('share')}" onclick="shareVenue(${v.id})">${shareIcon}</button>
+        ${heartBtn}
+        ${bellBtn}
+        ${v.phone ? `<a href="tel:${encodeURIComponent(v.phone)}" class="dp-action-icon" title="${t('call')}" aria-label="${t('call')}">${phoneIcon}</a>` : ''}
+        ${v.website ? `<a href="${v.website}" target="_blank" rel="noopener" class="dp-action-icon" title="${t('website')}" aria-label="${t('website')}">${globeIcon}</a>` : ''}
       </div>
 
       ${infoListHtml}
@@ -275,8 +264,9 @@ function _renderSocialSection(v) {
 
   // Friends-in-sun card — replaces the old "N her nå" row. Sits ABOVE the
   // action buttons so the avatar/name pair is the first social signal.
-  // Join-state semantics (idle / coming / here) are deferred — the existing
-  // social-btn-here below still drives check-in behavior.
+  // Join-state semantics (idle / coming / here) are deferred — the
+  // .dp-im-here-link below routes to the invite sheet in now-mode, which
+  // flips pin presence on send (see _isNowSend in this file).
   let friendsHtml = '';
   if (friendCheckins.length) {
     friendsHtml = `<div class="friends-photo-chip-row">
@@ -350,28 +340,27 @@ function _renderSocialSection(v) {
     }).join('');
   }
 
-  const inviteSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>`;
-  // Beacon icon: dot with signal arcs
-  const beaconSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M5.64 5.64a9 9 0 0 0 0 12.73"/><path d="M18.36 5.64a9 9 0 0 1 0 12.73"/><path d="M8.46 8.46a5 5 0 0 0 0 7.08"/><path d="M15.54 8.46a5 5 0 0 1 0 7.08"/></svg>`;
+  const inviteSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>`;
 
   // Post-accept prompts (friend-add + share-nudge) used to render as banners
   // here in the social-card. They now slide up as a dedicated question panel
   // (_openPostAcceptPanel) right after closePlanPreview, so the social-card
   // stays focused on the venue's persistent social context.
 
+  // Primary CTA = Invite friends (orange filled). Secondary text link "I'm here"
+  // routes to the same sheet but pre-sets time to now and pre-selects Recent
+  // friends, so users heading to the venue right now have a one-tap path that
+  // ends in a "I'm at X — come join" share message instead of a future invite.
   return `
     <div class="social-card">
       ${friendsHtml}
-      <div class="social-btns">
-        <button class="social-btn social-btn-invite" onclick="_openInviteSheet(${v.id})">
-          ${inviteSvg}
-          <span>${t('invite_friends')}</span>
-        </button>
-        <button class="social-btn social-btn-here${isCheckedInHere ? ' social-btn-active' : ''}" onclick="_toggleCheckin(${v.id})">
-          ${beaconSvg}
-          <span>${t('im_here')}</span>
-        </button>
-      </div>
+      <button class="dp-invite-cta" onclick="_openInviteSheet(${v.id})">
+        ${inviteSvg}
+        <span>${t('invite_friends')}</span>
+      </button>
+      <button class="dp-im-here-link${isCheckedInHere ? ' is-active' : ''}" onclick="_openInviteSheet(${v.id}, 'now')">
+        ${t('im_here')}
+      </button>
       ${plansHtml}
     </div>`;
 }
@@ -857,8 +846,14 @@ function _fmtInviteConfirm(venueName, dateStr, hour) {
 }
 
 /** Open the invite sheet — full-height takeover with venue card, chat-bubble
- *  preview and avatar-tap friend selection. */
-function _openInviteSheet(venueId) {
+ *  preview and avatar-tap friend selection.
+ *
+ *  `mode`: 'default' (Invite friends entry) | 'now' (I'm here entry).
+ *  In 'now' mode the time picker is forced to the current time, the
+ *  Recent group is pre-selected, and the share message body switches
+ *  to the "I'm at {venue} now — come join" variant. Sending also flips
+ *  the user's check-in (pin presence) on. */
+function _openInviteSheet(venueId, mode = 'default') {
   if (typeof authCurrentUser === 'function' && !authCurrentUser()) {
     if (typeof toggleProfilePanel === 'function') toggleProfilePanel();
     return;
@@ -1254,6 +1249,34 @@ function _openInviteSheet(venueId) {
         padding:  sheet._mapPadOpen,
         duration: 480,
       });
+    });
+  }
+
+  // Now-mode setup — applied after the sheet is in the DOM but before the
+  // open animation. Forces the global pickers to today/now and ticks every
+  // Recent-set avatar so the user lands with a one-tap path to "I'm here".
+  // Stored on sheet._mode so _sendInvite can flip pin presence on send and
+  // _composeInviteShareText can swap the message body.
+  sheet._mode = mode;
+  if (mode === 'now') {
+    const realNow = new Date();
+    const todayIso = `${realNow.getFullYear()}-${String(realNow.getMonth() + 1).padStart(2, '0')}-${String(realNow.getDate()).padStart(2, '0')}`;
+    const nowH = realNow.getHours() + realNow.getMinutes() / 60;
+    if (typeof datePicker !== 'undefined' && datePicker && datePicker.value !== todayIso) {
+      datePicker.value = todayIso;
+      datePicker.dispatchEvent(new Event('change'));
+    }
+    if (typeof timeFromEl !== 'undefined' && timeFromEl) {
+      timeFromEl.value = String(nowH);
+      timeFromEl.dispatchEvent(new Event('input'));
+    }
+    requestAnimationFrame(() => {
+      const tiles = sheet.querySelectorAll('.dpinvite-avatar');
+      tiles.forEach(tile => {
+        const fid = String(tile.getAttribute('data-friend-id'));
+        if (recentSet.has(fid)) tile.setAttribute('aria-checked', 'true');
+      });
+      if (typeof _refreshInvitePrimaryCTA === 'function') _refreshInvitePrimaryCTA();
     });
   }
 
@@ -1677,8 +1700,95 @@ async function _sendInvite(venueId) {
   // guard defensively in case the handler is invoked some other way.
   if (selectedIds.length === 0) return;
 
+  // Plan-conflict prompt — if the user already created a plan for this venue
+  // within ±3h of the new time, ask whether to merge invitees into it,
+  // create a separate plan, or cancel. Avoids the "Anna invited me twice
+  // for the same outing" recipient confusion.
+  const conflict = _findPlanConflict(venueId, isoTime);
+  if (conflict) {
+    const choice = await _confirmPlanConflict(conflict, isoTime);
+    if (choice === 'cancel') return;
+    if (choice === 'update') {
+      await addInviteesToExistingPlan(conflict.id, selectedIds);
+      if (_isNowSend(d, h) && typeof checkIn === 'function') await checkIn(venueId, '');
+      _closeInviteSheet();
+      return;
+    }
+    // 'separate' falls through to createPlan below.
+  }
+
   await createPlan(venueId, isoTime, '', selectedIds);
+
+  // Now-send → flip pin presence so friends see the user's dot on the venue.
+  if (_isNowSend(d, h) && typeof checkIn === 'function') await checkIn(venueId, '');
+
   _closeInviteSheet();
+}
+
+/** Find an existing user-created plan for this venue within ±3h of the new
+ *  time. Returns the plan record or null. _plans is populated by loadPlans()
+ *  and only contains future plans + own plans, so this is the right pool. */
+function _findPlanConflict(venueId, isoTime) {
+  if (typeof _plans === 'undefined' || !Array.isArray(_plans)) return null;
+  const me = (typeof authCurrentUser === 'function') ? authCurrentUser() : null;
+  if (!me) return null;
+  const newMs = new Date(isoTime).getTime();
+  if (isNaN(newMs)) return null;
+  const THREE_H = 3 * 3600 * 1000;
+  return _plans.find(p =>
+    p.creator_id === me.id &&
+    String(p.venue_id) === String(venueId) &&
+    Math.abs(new Date(p.planned_at).getTime() - newMs) < THREE_H
+  ) || null;
+}
+
+/** Render a 3-way confirm dialog over the invite sheet. Resolves to one of
+ *  'update' | 'separate' | 'cancel'. Backdrop tap and Esc both resolve to
+ *  'cancel'. Inline modal (not a sheet) so it sits above the existing
+ *  invite sheet without competing for the same slide-up space. */
+function _confirmPlanConflict(plan, newIsoTime) {
+  return new Promise((resolve) => {
+    const existingTime = _formatPlanTimeShort(plan.planned_at);
+    const overlay = document.createElement('div');
+    overlay.className = 'plan-conflict-backdrop';
+    overlay.innerHTML = `
+      <div class="plan-conflict-dialog glass-action" role="dialog" aria-modal="true">
+        <div class="plan-conflict-title">${t('plan_conflict_title')}</div>
+        <div class="plan-conflict-body">${t('plan_conflict_body', { time: existingTime })}</div>
+        <div class="plan-conflict-actions">
+          <button class="plan-conflict-btn plan-conflict-primary" data-choice="update">${t('plan_conflict_update')}</button>
+          <button class="plan-conflict-btn" data-choice="separate">${t('plan_conflict_separate')}</button>
+          <button class="plan-conflict-btn plan-conflict-cancel" data-choice="cancel">${t('plan_conflict_cancel')}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    let resolved = false;
+    const cleanup = (choice) => {
+      if (resolved) return;
+      resolved = true;
+      document.removeEventListener('keydown', onEsc);
+      overlay.remove();
+      resolve(choice);
+    };
+    const onEsc = (e) => { if (e.key === 'Escape') cleanup('cancel'); };
+    document.addEventListener('keydown', onEsc);
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) { cleanup('cancel'); return; }
+      const btn = e.target.closest('[data-choice]');
+      if (btn) cleanup(btn.getAttribute('data-choice'));
+    });
+    requestAnimationFrame(() => overlay.classList.add('open'));
+  });
+}
+
+function _formatPlanTimeShort(iso) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  if (typeof formatHour === 'function') {
+    return formatHour(d.getHours() + d.getMinutes() / 60);
+  }
+  const pad = n => String(n).padStart(2, '0');
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 /** Pick the contextual weather + sun phrase for the share message. Maps the
@@ -1729,16 +1839,37 @@ function _composeShareContext(v, d, h) {
   return { context: t('share_ctx_no_sun_rest'), icon: '☁️' };
 }
 
+/** True when the picked date/time is within 30 minutes of real-now. Used to
+ *  switch the share-message body from "Heading to X {when}" → "I'm at X now"
+ *  and to flip pin presence (check-in) on send. The 30-min window covers
+ *  both "I'm here" entry (which forces time=now) and "Invite friends" entry
+ *  where the global time picker happens to already be at the current hour. */
+function _isNowSend(d, h) {
+  try {
+    const today = new Date();
+    const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    if (d !== todayIso) return false;
+    const realNow = today.getHours() + today.getMinutes() / 60;
+    return Math.abs(h - realNow) < 0.5;
+  } catch { return false; }
+}
+
 /** Compose the share-text body for an invite at venue+date+hour. When `link`
  *  is provided, the message includes a "Bli med: {link}" suffix so the URL is
  *  inlined into the body (visible regardless of how the receiving platform
  *  treats Web Share's separate `url` field). Without a link, returns the
- *  body alone — used for the chat-bubble preview in the invite sheet. */
+ *  body alone — used for the chat-bubble preview in the invite sheet.
+ *
+ *  When _isNowSend(d, h) the message swaps to the "I'm at X now — come join"
+ *  variant so the receiver reads a present-tense ping, not a future invite. */
 function _composeInviteShareText(v, d, h, link) {
   const venueName = v?.name || '';
-  const when = _inviteWhenLabel(d, h);
+  const isNow = _isNowSend(d, h);
+  const when = isNow ? '' : _inviteWhenLabel(d, h);
   const { context, icon } = _composeShareContext(v, d, h);
-  const key = link ? 'share_invite_text_w_link' : 'share_invite_text';
+  let key;
+  if (isNow) key = link ? 'share_invite_text_now_w_link' : 'share_invite_text_now';
+  else       key = link ? 'share_invite_text_w_link'      : 'share_invite_text';
   return t(key, { venue: venueName, when, context, icon, link: link || '' });
 }
 
@@ -1798,6 +1929,13 @@ function _shareInviteLink(venueId, overrides = {}) {
   } else {
     navigator.clipboard?.writeText(text);
     if (typeof _showToast === 'function') _showToast(t('invite_link_copied'));
+  }
+
+  // Now-share → also flip pin presence so the share link's "I'm at X now"
+  // body matches reality on the map. Deferred via setTimeout so navigator.share
+  // keeps its synchronous user-activation path.
+  if (_isNowSend(d, h) && typeof checkIn === 'function') {
+    setTimeout(() => { checkIn(venueId, ''); }, 0);
   }
 }
 

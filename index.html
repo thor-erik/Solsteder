@@ -4885,7 +4885,7 @@
 
   /* ──── New Detail Panel CSS (Tasks 5-8) ────────────────────────────────────── */
   .detail-new-photos {
-    height: 180px;
+    height: 160px;
     border-radius: 14px;
     overflow-y: hidden;
     overflow-x: auto;
@@ -5012,6 +5012,15 @@
   }
   .dp-action-icon:hover { background: rgba(20,46,82,0.65); border-color: rgba(156,189,231,0.32); }
   .dp-action-icon svg { width: 18px; height: 18px; stroke: currentColor; color: var(--accent); }
+  /* Active state for toggle icons (heart/bell). Filled accent makes the
+     "on" state read clearly even at small sizes in the icon row. */
+  .dp-action-icon.is-active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-on, #2a1a0c);
+  }
+  .dp-action-icon.is-active svg { color: var(--accent-on, #2a1a0c); fill: currentColor; }
+  .dp-action-icon.is-active:hover { background: var(--accent); opacity: 0.92; }
 
   /* Legacy: keep .primary-action for backwards compat but hidden */
   .primary-action {
@@ -5523,49 +5532,140 @@
     margin-bottom: 14px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 6px;
   }
-  .social-btns {
-    display: flex;
-    gap: 8px;
-  }
-  .social-btn {
-    flex: 1;
-    height: 42px;
+
+  /* Primary CTA — Invite friends. Replaces the dual social-btns row; the
+     check-in path moved to the .dp-im-here-link below so Invite is unambiguously
+     the single big action. */
+  .dp-invite-cta {
+    width: 100%;
+    height: 48px;
     border-radius: 999px;
-    border: 1px solid rgba(156,189,231,0.22);
-    background: linear-gradient(135deg, rgba(20,46,82,0.25), rgba(32,73,131,0.14)), rgba(20,46,82,0.30);
-    box-shadow: inset 0 1px 0 rgba(255,242,235,0.14), inset 0 -1px 0 rgba(20,46,82,0.30);
-    color: var(--text);
-    font-size: 13px;
-    font-weight: 600;
+    background: var(--accent);
+    border: none;
+    color: var(--accent-on, #2a1a0c);
+    font-size: 15px;
+    font-weight: 700;
     font-family: 'Inter', sans-serif;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: 8px;
     cursor: pointer;
-    transition: all 0.15s;
+    transition: opacity 0.15s;
   }
-  .social-btn svg { flex-shrink: 0; }
-  .social-btn:hover {
+  .dp-invite-cta:hover { opacity: 0.92; }
+  .dp-invite-cta svg { flex-shrink: 0; stroke: currentColor; }
+
+  /* "I'm here" — quiet text link below the primary CTA. Routes to the same
+     invite sheet but flags it as now-mode (forces time=now, pre-selects Recent). */
+  .dp-im-here-link {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    text-align: center;
+    padding: 6px 8px;
+    margin: 2px auto 0;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: rgba(255,175,133,0.45);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+    transition: text-decoration-color 0.15s, color 0.15s;
+  }
+  .dp-im-here-link:hover {
+    text-decoration-color: var(--accent);
+  }
+  .dp-im-here-link.is-active {
+    color: var(--accent);
+    text-decoration-color: var(--accent);
+  }
+
+  /* Legacy social-btns kept for any other callers — but the detail-panel
+     no longer renders them. Safe to remove if nothing else references. */
+  .social-btns { display: none; }
+
+  /* ── Plan conflict confirm dialog ───────────────────────────────────────── */
+  /* Sits above the invite sheet (z-index higher than .dpinvite-backdrop) when
+     the user is about to create a plan within ±3h of an existing one. Three
+     choices: merge, send separate, cancel. */
+  .plan-conflict-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(7, 16, 32, 0.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10001;
+    opacity: 0;
+    transition: opacity 0.18s ease;
+    padding: 20px;
+  }
+  .plan-conflict-backdrop.open { opacity: 1; }
+  .plan-conflict-dialog {
+    width: 100%;
+    max-width: 340px;
+    border-radius: 18px;
+    padding: 20px 18px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    transform: translateY(8px) scale(0.98);
+    transition: transform 0.22s ease;
+  }
+  .plan-conflict-backdrop.open .plan-conflict-dialog {
+    transform: translateY(0) scale(1);
+  }
+  .plan-conflict-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.25;
+  }
+  .plan-conflict-body {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.45;
+  }
+  .plan-conflict-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .plan-conflict-btn {
+    width: 100%;
+    height: 42px;
+    border-radius: 999px;
+    border: 1px solid rgba(156,189,231,0.22);
+    background: linear-gradient(135deg, rgba(20,46,82,0.25), rgba(32,73,131,0.14)), rgba(20,46,82,0.30);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: opacity 0.15s, border-color 0.15s;
+  }
+  .plan-conflict-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .plan-conflict-btn.plan-conflict-primary {
+    background: var(--accent);
     border-color: var(--accent);
-    color: var(--accent);
+    color: var(--accent-on, #2a1a0c);
   }
-  .social-btn-here {
-    background: rgba(255,175,133,0.10);
-    border-color: rgba(255,175,133,0.30);
-    color: var(--accent);
+  .plan-conflict-btn.plan-conflict-primary:hover { opacity: 0.92; color: var(--accent-on, #2a1a0c); }
+  .plan-conflict-btn.plan-conflict-cancel {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-weight: 500;
   }
-  .social-btn-here:hover {
-    background: rgba(255,175,133,0.18);
-  }
-  .social-btn-active {
-    background: var(--accent) !important;
-    border-color: var(--accent) !important;
-    color: var(--accent-on, #2a1a0c) !important;
-  }
-  .social-btn-active svg { stroke: var(--accent-on, #2a1a0c); }
+  .plan-conflict-btn.plan-conflict-cancel:hover { color: var(--text); }
 
   /* Friends row inside social card */
   .social-friends {

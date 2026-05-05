@@ -252,7 +252,12 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
     ? `<span class="card-meta-opens">${t('meta_opens_at_prefix', { time: formatHour(dayHours.open) })}</span><span class="card-meta-dot">·</span>`
     : '';
 
-  const metaParts = [v.area, catLabel(v), distStr].filter(Boolean);
+  // Detail-panel cards (rich=true) also surface walk time so the secondary
+  // hero CTA can be a quiet utility icon. List cards stay lean — distance
+  // alone is enough at scan-speed.
+  const walkTimeStr = (rich && typeof calcWalkTime === 'function' && s?.distKm != null)
+    ? calcWalkTime(s.distKm * 1000) : null;
+  const metaParts = [v.area, catLabel(v), distStr, walkTimeStr].filter(Boolean);
   const metaHtml = opensLaterPrefix + metaParts.map((p, i) =>
     (i > 0 ? '<span class="card-meta-dot">·</span>' : '') + `<span>${p}</span>`
   ).join('');

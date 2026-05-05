@@ -1646,6 +1646,24 @@ async function createPlan(venueId, plannedAt, message, friendIds) {
   return { success: true, plan };
 }
 
+/** Merge new invitees into an existing plan instead of creating a parallel
+ *  one. Driven by the conflict prompt in _sendInvite — used when the user
+ *  already invited people to this venue within ±3h and chooses "Update".
+ *  Existing invitees keep their status; duplicates are ignored via the
+ *  UNIQUE(plan_id, user_id) constraint on plan_invites. */
+async function addInviteesToExistingPlan(planId, friendIds) {
+  if (!_currentUser || !planId || !friendIds?.length) return { error: 'invalid' };
+  if (typeof _aTrack === 'function') _aTrack('plan_updated', { plan_id: planId, invites: friendIds.length });
+  const invites = friendIds.map(fid => ({ plan_id: planId, user_id: fid, status: 'pending' }));
+  const { error } = await _supabase
+    .from('plan_invites')
+    .upsert(invites, { onConflict: 'plan_id,user_id', ignoreDuplicates: true });
+  if (error) return { error: error.message };
+  await loadPlans();
+  _showToast(t('plan_updated'));
+  return { success: true };
+}
+
 /** Handle accept/decline taps inside the profile-panel inbox.
  *  The previous fire-and-forget `respondToPlanInvite + _renderProfilePanel`
  *  rendered before the DB round-trip + loadPlans completed, so the row stayed
