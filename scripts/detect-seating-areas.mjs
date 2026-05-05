@@ -198,30 +198,35 @@ Visual cues that are NOT seating:
 - Public parks or plazas more than ~30m from the marker (those belong to the city, not this venue)
 - Plain sidewalks with no demarcation, planters, or chairs
 
-Hard constraints:
+Hard constraints (a polygon that violates any of these is wrong — return notVisible:true instead):
 1. The polygon MUST NOT contain any pixel inside the building footprint listed above.
-   If you can only find a candidate that overlaps the building, return notVisible:true.
 2. The polygon MUST be within ~150 pixels (~30 metres) of the venue marker at the image center.
-   A distant park or plaza is not this venue's seating, even if it looks usable.
-3. Prefer a candidate that is ADJACENT to and OUTSIDE the building footprint.
-4. If two candidates exist, choose the one closer to the marker.
+3. The polygon should be ADJACENT to and OUTSIDE the building footprint.
+
+Decision flow:
+1. Scan within ~150 pixels of the marker for seating cues from the lists above.
+2. If you find a candidate that is OUTSIDE the building footprint AND within
+   range, trace it. Lower-confidence traces (down to ~0.5) are fine — we filter
+   at runtime.
+3. If your only candidates overlap the building, are too far away, or you only
+   see lawn/road/parking with no seating cues, return notVisible:true and an
+   empty polygon. A wrong polygon is worse than no polygon.
+4. If two valid candidates exist, choose the one closer to the marker.
 
 Return ONLY a JSON object with this exact shape:
 {
   "polygon":   [[x, y], [x, y], ...],   // 4–12 vertices in image pixel coords
   "confidence": 0.0–1.0,
-  "notVisible": false,                  // true ONLY when no candidate exists
+  "notVisible": false,                  // true when no valid candidate exists
   "reasoning":  "one short sentence"
 }
 
-Consistency rule: if your reasoning describes a candidate seating area, the
-polygon must trace that area. Do not describe a candidate and then return
-notVisible:true with an empty polygon — that is contradictory. Either trace the
-candidate or set reasoning to "no candidate found".
+If notVisible is true, polygon must be []. If notVisible is false, polygon must
+have at least 4 vertices.
 
 Polygon vertices must be ordered (CW or CCW) and form a simple (non-self-intersecting) polygon.
 Coordinates are in pixels of the original ${SNAPSHOT_W}×${SNAPSHOT_H} image.
-Output JSON only — no markdown, no commentary.`;
+Output JSON only — no markdown, no commentary, no preamble.`;
 }
 
 // ── Anthropic API call ────────────────────────────────────────────────────────
@@ -252,9 +257,32 @@ async function callClaude(imageBytes, prompt) {
   if (!resp.ok) throw new Error(`Anthropic HTTP ${resp.status}: ${await resp.text()}`);
   const data = await resp.json();
   const text = data.content?.[0]?.text ?? '';
-  // Strip optional markdown fences in case the model adds them despite instructions.
-  const cleaned = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
-  return JSON.parse(cleaned);
+  return parseJsonResponse(text);
+}
+
+// Claude occasionally wraps the JSON in markdown fences or prefixes it with
+// prose ("Looking at the image..."). Find the first `{` and extract the
+// balanced object instead of relying on the model to obey "JSON only".
+function parseJsonResponse(text) {
+  const start = text.indexOf('{');
+  if (start < 0) throw new Error(`No JSON object in response: ${text.slice(0, 200)}`);
+  let depth = 0, inStr = false, esc = false;
+  for (let i = start; i < text.length; i++) {
+    const c = text[i];
+    if (inStr) {
+      if (esc)            esc = false;
+      else if (c === '\\') esc = true;
+      else if (c === '"')  inStr = false;
+      continue;
+    }
+    if (c === '"')      inStr = true;
+    else if (c === '{') depth++;
+    else if (c === '}') {
+      depth--;
+      if (depth === 0) return JSON.parse(text.slice(start, i + 1));
+    }
+  }
+  throw new Error(`Unbalanced JSON in response: ${text.slice(start, start + 200)}`);
 }
 
 // ── Polygon conversion ────────────────────────────────────────────────────────
