@@ -246,15 +246,6 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
     `<span class="card-pill pill-${p.kind}">${p.label}</span>`
   ).join('');
 
-  // Quiet treatment: dim Sol-senere cards where wait > payoff, so the eye
-  // gravitates toward better-value cards without filtering anything out.
-  let quietCls = '';
-  if (qual && qual.earliest && qual.earliest.start > fromHour + 0.001) {
-    const wait   = qual.earliest.start - fromHour;
-    const payoff = qual.earliest.end   - qual.earliest.start;
-    if (wait > payoff) quietCls = ' card-quiet';
-  }
-
   // Closed-but-opens-later venues: prefix the meta line with the opening time
   // so users see when this card becomes live without having to hunt.
   const opensLaterPrefix = (!isOpen && qual && qual.surfaced)
@@ -326,10 +317,9 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
   }
 
   const variantCls = rich ? ' card-rich' : ' card-compact';
-  const pillsCls   = rich ? 'card-pills' : 'card-pills card-pills-inset';
 
   return `
-    <div class="venue-card ${stateClass}${quietCls}${variantCls} ${v.id === selectedId ? 'selected' : ''}${flags ? ' review-flagged' : ''}"
+    <div class="venue-card ${stateClass}${variantCls} ${v.id === selectedId ? 'selected' : ''}${flags ? ' review-flagged' : ''}"
          data-vid="${v.id}" onclick="selectVenue(${typeof v.id === 'number' ? v.id : `'${v.id}'`}, true)"
          onmouseenter="setHoveredVenue(${typeof v.id === 'number' ? v.id : `'${v.id}'`})" onmouseleave="setHoveredVenue(null)">
       <div class="card-row1">
@@ -337,7 +327,7 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
         ${durationStr ? `<div class="card-duration">${SUN_GLYPH}${durationStr}</div>` : ''}
       </div>
       <div class="card-meta">${metaHtml}</div>
-      ${pillsHtml ? `<div class="${pillsCls}">${pillsHtml}</div>` : ''}
+      ${pillsHtml ? `<div class="card-pills">${pillsHtml}</div>` : ''}
       ${timelineBlock}
       ${reviewChips}
       ${reviewActions}

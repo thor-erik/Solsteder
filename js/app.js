@@ -1278,13 +1278,12 @@ function _isFarFromCluster() {
 // default for all users — qualifying-window duration sorts identify the
 // best sun-availability venues regardless of where the user is. Kept as a
 // function so callers (geolocation grant, locale change) can still ping it
-// without churn; it's now a soft no-op until the user picks.
+// without churn. Always triggers updateSortBtns so the label/active chip
+// gets localized on first paint, even when the value is already 'score'.
 function _applyAutoDefaultSort() {
   if (_userPickedSort) return;
-  if (activeSortBy !== 'score') {
-    activeSortBy = 'score';
-    if (typeof updateSortBtns === 'function') updateSortBtns();
-  }
+  if (activeSortBy !== 'score') activeSortBy = 'score';
+  if (typeof updateSortBtns === 'function') updateSortBtns();
 }
 
 // ── Sort ──────────────────────────────────────────────────────────────────────

@@ -2135,12 +2135,7 @@
     flex-wrap: nowrap;
     min-width: 0;
     margin-top: 4px;
-  }
-  /* Compact card has no timeline below — inset the pills horizontally so
-     they share the same indented rhythm the timeline-block uses on the
-     rich variant. Keeps the visual identity consistent across both. */
-  .card-pills.card-pills-inset {
-    padding: 0 18px;
+    margin-bottom: 2px;
   }
   .card-pill {
     height: 24px;
@@ -2178,10 +2173,6 @@
     border: 1px solid rgba(96,140,200,0.40);
     color: var(--rain);
   }
-
-  /* Quiet treatment for Sol-senere cards where wait > payoff. Visually demotes
-     low-value cards (e.g. "20-min window in 4 hours") without filtering them. */
-  .venue-card.card-quiet { opacity: 0.65; }
 
   /* ── Card timeline — full-width strip + labels row at the bottom. ──
      The block is inset by 18px on each side so the bar's start cap sits
@@ -4498,7 +4489,7 @@
     top: 70px;     /* align with list panel: 16 search-top + 46 search-h + 8 gap */
     left: 368px;   /* 16 + 336 + 16 */
     bottom: 16px;
-    width: 300px;
+    width: 336px;  /* match the venue-list panel width */
     border-radius: 16px;
     display: flex;
     flex-direction: column;
@@ -4548,7 +4539,7 @@
   }
   .dp-photos::-webkit-scrollbar { display: none; }
   .dp-photo {
-    width: 268px;
+    width: 304px;  /* detail-panel width 336 - 32px horizontal padding */
     height: 190px;
     object-fit: cover;
     flex-shrink: 0;
@@ -7249,7 +7240,7 @@
     <!-- Sun count header: visible in peek, owns "X steder i solen" exactly once -->
     <div id="list-sun-header">
       <span id="list-sun-count"></span>
-      <button id="sort-toggle-btn" onclick="toggleSortPanel()"><span id="sort-label">Avstand</span><span class="sort-chevron"> ▾</span></button>
+      <button id="sort-toggle-btn" onclick="toggleSortPanel()"><span id="sort-label">Mest sol</span><span class="sort-chevron"> ▾</span></button>
     </div>
 
     <!-- Venue peek: first card preview visible in collapsed state -->
