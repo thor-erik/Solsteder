@@ -10,8 +10,16 @@
  * Cost-aware design:
  *   - Idempotent: a venue with an existing record is skipped unless --force.
  *   - Manual records (source: "manual") are NEVER overwritten by --force-all.
- *   - Per-venue cost ≈ 1 Claude vision call (~$0.005). Mapbox Static API is
- *     free up to 50k requests/month, far above our needs.
+ *   - Per-venue cost ≈ 1 Claude vision call (~$0.005 plain, ~$0.015 with
+ *     few-shot examples; cache hits within a category run drop it back down).
+ *   - Mapbox Static API is free up to 50k requests/month.
+ *
+ * Self-improving loop:
+ *   - When the cache contains records with source: "manual", they are pulled
+ *     in as few-shot examples (3 per category, prompt-cached) so each detection
+ *     learns from past human corrections.
+ *   - Detection records carry a promptHash so evaluate-detection.mjs can
+ *     compare AI vs. correction by prompt version.
  *
  * Usage:
  *   node scripts/detect-seating-areas.mjs                   # only new venues
@@ -29,7 +37,8 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { imagePixelToLatLng, latLngToImagePixel } from './lib/mercator.js';
+import { createHash } from 'crypto';
+import { imagePixelToLatLng, latLngToImagePixel } from './lib/mercator.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT      = join(__dirname, '..');
@@ -118,6 +127,9 @@ function shouldProcess(v) {
 
 let queue = venues.filter(shouldProcess);
 if (LIMIT) queue = queue.slice(0, LIMIT);
+// Sort by category so few-shot example sets are reused on consecutive calls,
+// maximising the Anthropic prompt-cache hit rate.
+queue.sort((a, b) => (a.category ?? '').localeCompare(b.category ?? '') || a.id - b.id);
 
 console.log(`Processing ${queue.length} venue(s) of ${venues.length} total ` +
   `(${Object.keys(cache.venues).length} already cached)`);
@@ -250,9 +262,18 @@ Output JSON only — no markdown, no commentary, no preamble.`;
 
 // ── Anthropic API call ────────────────────────────────────────────────────────
 
-async function callClaude(imageBytes, prompt) {
+async function callClaude(imageBytes, prompt, exampleContent) {
   const mediaType = detectImageMime(imageBytes);
   if (!mediaType) throw new Error('Unrecognised image format (not PNG/JPEG/WebP)');
+
+  const content = [];
+  if (exampleContent && exampleContent.length) content.push(...exampleContent);
+  content.push({
+    type: 'image',
+    source: { type: 'base64', media_type: mediaType, data: imageBytes.toString('base64') },
+  });
+  content.push({ type: 'text', text: prompt });
+
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method:  'POST',
     headers: {
@@ -263,13 +284,7 @@ async function callClaude(imageBytes, prompt) {
     body: JSON.stringify({
       model:      CLAUDE_MODEL,
       max_tokens: 600,
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'image', source: { type: 'base64', media_type: mediaType, data: imageBytes.toString('base64') } },
-          { type: 'text',  text: prompt },
-        ],
-      }],
+      messages: [{ role: 'user', content }],
     }),
     signal: AbortSignal.timeout(60_000),
   });
@@ -316,15 +331,127 @@ function pixelsToLatLng(polygon, v) {
   });
 }
 
+// ── Prompt fingerprint ────────────────────────────────────────────────────────
+// Stamp every detection record with a hash of the current prompt so that
+// later evaluation can group records by prompt version without us having to
+// remember to bump a version constant whenever we tweak the wording.
+const PROMPT_HASH = createHash('sha256')
+  .update(buildPrompt({ id: 0, name: '', category: '', address: '', coords: [0, 0] }))
+  .digest('hex').slice(0, 8);
+
+// ── Few-shot examples from human corrections ──────────────────────────────────
+// Each manual record (source: 'manual') becomes a teaching example. Examples
+// are grouped by category so similar venues get similar guidance, and stay
+// stable across calls within a category run so prompt-caching kicks in.
+
+const FEW_SHOT_K = 3;
+
+function buildExampleSets() {
+  const byCat = {};
+  const all   = [];
+  for (const [id, rec] of Object.entries(cache.venues ?? {})) {
+    if (rec.source !== 'manual') continue;
+    if (!Array.isArray(rec.polygon) || rec.polygon.length < 3) continue;
+    const v = venues.find(x => String(x.id) === id);
+    if (!v) continue;
+    const ex = { id, venue: v, polygon: rec.polygon, detectedAt: rec.detectedAt ?? '' };
+    (byCat[v.category] ??= []).push(ex);
+    all.push(ex);
+  }
+  // Most recent first, then trim — recency biases the few-shot toward our
+  // latest understanding of "correct" if conventions shift.
+  const sortByRecency = (a, b) => (b.detectedAt ?? '').localeCompare(a.detectedAt ?? '');
+  for (const c of Object.keys(byCat)) byCat[c].sort(sortByRecency);
+  all.sort(sortByRecency);
+  return { byCat, all };
+}
+
+const EXAMPLE_SETS = buildExampleSets();
+const TOTAL_EXAMPLES = EXAMPLE_SETS.all.length;
+console.log(`Few-shot pool: ${TOTAL_EXAMPLES} manual record(s) ` +
+  `(${Object.keys(EXAMPLE_SETS.byCat).length} categories represented)`);
+
+function pickExamples(v) {
+  const same = (EXAMPLE_SETS.byCat[v.category] ?? []).slice(0, FEW_SHOT_K);
+  if (same.length >= FEW_SHOT_K) return same;
+  // Pad with global pool, skipping ids already chosen and the venue itself.
+  const have = new Set(same.map(e => e.id));
+  have.add(String(v.id));
+  const pad = EXAMPLE_SETS.all.filter(e => !have.has(e.id)).slice(0, FEW_SHOT_K - same.length);
+  // Deterministic order for cache stability: sort the final set by id.
+  return [...same, ...pad].sort((a, b) => Number(a.id) - Number(b.id));
+}
+
+// Project a [lat, lng] polygon from one of the example venues into the
+// image-pixel space of *its own* snapshot.
+function exampleImagePolygon(ex) {
+  const [lat, lng] = ex.venue.coords;
+  return ex.polygon.map(([plat, plng]) => {
+    const p = latLngToImagePixel(plng, plat, SNAPSHOT_W, SNAPSHOT_H, lng, lat, SNAPSHOT_ZOOM);
+    return [Math.round(p.x * DPR), Math.round(p.y * DPR)];
+  });
+}
+
+async function buildExampleContent(currentVenue) {
+  const picks = pickExamples(currentVenue);
+  if (!picks.length) return null;
+  const content = [];
+  content.push({
+    type: 'text',
+    text:
+      `Before the venue you must analyse, here are ${picks.length} examples of ` +
+      `correctly identified outdoor-seating polygons in Oslo. Each example shows a ` +
+      `satellite snapshot followed by the correct polygon for that snapshot, in ` +
+      `image-pixel coordinates of the original ${IMAGE_W}×${IMAGE_H} image. ` +
+      `Use these examples to calibrate what the correct polygon looks like.`,
+  });
+  for (const ex of picks) {
+    const buf  = await fetchSnapshot(ex.venue);
+    const mime = detectImageMime(buf);
+    if (!mime) continue;
+    const polyPx = exampleImagePolygon(ex);
+    content.push({
+      type:   'image',
+      source: { type: 'base64', media_type: mime, data: buf.toString('base64') },
+    });
+    content.push({
+      type: 'text',
+      text: `Correct polygon for "${ex.venue.name}" (${ex.venue.category}): ${JSON.stringify(polyPx)}`,
+    });
+  }
+  // Mark the end of the static prefix so Anthropic caches everything up to
+  // here. Subsequent calls within the cache window only pay for the
+  // per-venue suffix.
+  if (content.length) {
+    const last = content[content.length - 1];
+    content[content.length - 1] = { ...last, cache_control: { type: 'ephemeral' } };
+  }
+  return content;
+}
+
 // ── Main loop ─────────────────────────────────────────────────────────────────
 
 let ok = 0, skipped = 0, failed = 0, notVisible = 0;
 
+// Build example content lazily per category — within a category run the
+// content is identical across calls (cache hits), and we don't waste work
+// for categories with no manual records.
+let _lastExampleCategory = null;
+let _lastExampleContent  = null;
+async function exampleContentFor(v) {
+  if (TOTAL_EXAMPLES === 0) return null;
+  if (v.category === _lastExampleCategory) return _lastExampleContent;
+  _lastExampleCategory = v.category;
+  _lastExampleContent  = await buildExampleContent(v);
+  return _lastExampleContent;
+}
+
 for (const v of queue) {
   const tag = `[${v.id}] ${v.name}`;
   try {
-    const snap = await fetchSnapshot(v);
-    const out  = await callClaude(snap, buildPrompt(v));
+    const snap     = await fetchSnapshot(v);
+    const examples = await exampleContentFor(v);
+    const out      = await callClaude(snap, buildPrompt(v), examples);
 
     const polygon = Array.isArray(out.polygon) ? out.polygon : [];
     const record = {
@@ -333,6 +460,7 @@ for (const v of queue) {
       notVisible: !!out.notVisible || polygon.length < 3,
       detectedAt: new Date().toISOString(),
       model:      CLAUDE_MODEL,
+      promptHash: PROMPT_HASH,
       source:     'ai',
       snapshot:   { zoom: SNAPSHOT_ZOOM, w: SNAPSHOT_W, h: SNAPSHOT_H, style: MAPBOX_STYLE },
       reasoning:  String(out.reasoning ?? '').slice(0, 240),

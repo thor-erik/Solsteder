@@ -61,20 +61,43 @@ for (const c of ordered) {
   const key = id;
 
   if (Array.isArray(polygon) && polygon.length >= 3) {
+    const prev = cache.venues[key];
+    // Preserve the AI proposal so evaluate-detection.mjs can compute IoU
+    // (correction vs. AI) and the few-shot selector knows the model failed
+    // here. Don't double-wrap if this venue was already manual.
+    let originalAi = prev?.originalAi ?? null;
+    if (prev && prev.source === 'ai' && Array.isArray(prev.polygon) && prev.polygon.length >= 3) {
+      originalAi = {
+        polygon:    prev.polygon,
+        confidence: prev.confidence,
+        notVisible: prev.notVisible,
+        reasoning:  prev.reasoning,
+        model:      prev.model,
+        promptHash: prev.promptHash ?? null,
+        detectedAt: prev.detectedAt,
+      };
+    }
     cache.venues[key] = {
-      ...(cache.venues[key] ?? {}),
+      ...(prev ?? {}),
       polygon,
       confidence: 1.0,
       notVisible: false,
       detectedAt: c.timestamp ?? new Date().toISOString(),
       source:    'manual',
       reasoning: c.autoState ?? 'manual-polygon-edit',
+      ...(originalAi ? { originalAi } : {}),
     };
     merged++;
   } else if (polygon === null) {
     // User cleared the override → revert to the AI record (if any).
     if (cache.venues[key]?.source === 'manual') {
-      delete cache.venues[key];
+      const prev = cache.venues[key];
+      if (prev.originalAi) {
+        // Restore the AI record we stashed when first overwritten.
+        cache.venues[key] = { ...prev.originalAi, source: 'ai' };
+      } else {
+        delete cache.venues[key];
+      }
       cleared++;
     }
   }
