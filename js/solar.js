@@ -264,3 +264,79 @@ function computeSunWindowsFromTable(venue, table, opts) {
   if (inSun) windows.push({ start: winStart, end: close });
   return { windows, open, close };
 }
+
+// ── Qualifying windows (weather-gated, floored, gap-aware) ───────────────────
+//
+// Layered on top of raw geometric windows: clamps to [selectedHour, sundown] ∩
+// venue hours, drops slices that are raining or overcast, absorbs short gaps
+// between dry slices, and applies a 45-minute filter floor with a 5-minute
+// hysteresis band so a venue doesn't flicker across the boundary on every
+// weather refresh. Pure: same inputs always produce the same output.
+function qualifyingWindows(rawWindows, wxLookup, opts) {
+  const {
+    selectedHour, sundownHour, openHour, closeHour,
+    floorMin = 45, gapAbsorbMin = 15, hysteresisMin = 5, prevSurfaced = false,
+  } = opts || {};
+
+  const lo = Math.max(selectedHour ?? 0, openHour ?? 0);
+  const hi = Math.min(sundownHour ?? 24, closeHour ?? 24);
+  if (hi <= lo || !rawWindows || !rawWindows.length) {
+    return { windows: [], earliest: null, surfaced: false };
+  }
+
+  // 1. Clamp + sub-slice raw windows by hour boundaries; drop wet slices.
+  const drySlices = [];
+  for (const w of rawWindows) {
+    const wStart = Math.max(w.start, lo);
+    const wEnd   = Math.min(w.end,   hi);
+    if (wEnd <= wStart + 0.001) continue;
+    let segStart = wStart;
+    while (segStart < wEnd - 0.001) {
+      const hourBound = Math.floor(segStart + 0.001) + 1;
+      const segEnd = Math.min(hourBound, wEnd);
+      const probe = wxLookup ? wxLookup(segStart + 0.001) : null;
+      const wet = probe && (probe.rainy || probe.overcast);
+      if (!wet) {
+        // Merge contiguous dry slices that touch within the same window.
+        const last = drySlices[drySlices.length - 1];
+        if (last && Math.abs(last.end - segStart) < 0.001) last.end = segEnd;
+        else drySlices.push({ start: segStart, end: segEnd });
+      }
+      segStart = segEnd;
+    }
+  }
+  if (!drySlices.length) return { windows: [], earliest: null, surfaced: false };
+
+  // 2. Walk slices: gaps < gapAbsorbMin merge; gaps ≥ gapAbsorbMin split.
+  const gapAbsorbH = gapAbsorbMin / 60;
+  const merged = [];
+  let cur = { start: drySlices[0].start, end: drySlices[0].end };
+  for (let i = 1; i < drySlices.length; i++) {
+    const next = drySlices[i];
+    if (next.start - cur.end < gapAbsorbH) {
+      cur.end = next.end;
+    } else {
+      merged.push(cur);
+      cur = { start: next.start, end: next.end };
+    }
+  }
+  merged.push(cur);
+
+  // 3. Apply floor + hysteresis. Once surfaced, keep until 5 min below floor.
+  const floorH = floorMin / 60;
+  const stickyH = (floorMin - hysteresisMin) / 60;
+  const minDuration = prevSurfaced ? stickyH : floorH;
+  const surviving = [];
+  for (const w of merged) {
+    const dur = w.end - w.start;
+    if (dur >= minDuration - 0.001) {
+      surviving.push({ start: w.start, end: w.end, durationMin: dur * 60 });
+    }
+  }
+
+  return {
+    windows: surviving,
+    earliest: surviving[0] ?? null,
+    surfaced: surviving.length > 0,
+  };
+}

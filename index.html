@@ -111,6 +111,10 @@
     --glass-border-light: 1px solid rgba(156,189,231,0.15);
     /* Shades Glass inset shadows — top sheen + bottom shade shared across all levels */
     --glass-inset: inset 0 1px 0 rgba(255,242,235,0.14), inset 0 -1px 0 rgba(20,46,82,0.35);
+    /* Card-pill subject colors — kept distinct from --muted/--accent so the
+       "Skyer" (cool gray) and "Regn" (blue) pill text reads cleanly on glass. */
+    --cool: #B8CFEE;
+    --rain: #7FA5D9;
   }
 
   html, body {
@@ -1880,9 +1884,11 @@
   #venue-list::-webkit-scrollbar-track { background: transparent; }
   #venue-list::-webkit-scrollbar-thumb { background: rgba(255,175,133,0.2); border-radius: 2px; }
 
-  /* Section divider between "in sun at slider time" and "sun later" groups.
-     Hidden during slider scrubs so it doesn't flicker as venues cross the boundary. */
-  .venue-list-divider {
+  /* Section headers — "Sol nå · 8" / "Sol senere · 6". Always rendered, even
+     for empty buckets: the empty-section text inlines under the header. Hidden
+     during slider scrubs so the count doesn't flicker as venues cross the
+     bucket boundary. */
+  .venue-section-header {
     padding: 14px 4px 6px;
     font-size: 11px;
     color: var(--muted);
@@ -1891,7 +1897,30 @@
     opacity: 0.7;
     transition: opacity 200ms ease;
   }
-  body.list-scrubbing .venue-list-divider { opacity: 0; }
+  .venue-section-header .section-count { opacity: 0.65; margin-left: 4px; }
+  .empty-section {
+    padding: 4px 4px 8px;
+    color: var(--muted);
+    font-size: 12px;
+    font-style: italic;
+    opacity: 0.7;
+  }
+  .empty-all {
+    padding: 24px 12px;
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+  }
+  .empty-all .btn-show-all { margin-top: 12px; }
+  body.list-scrubbing .venue-section-header { opacity: 0; }
+  body.list-scrubbing .empty-section { opacity: 0; }
+
+  /* Future-time chip — appears at top of list when slider is moved off "now".
+     Reuses .chip-pill visual but anchored to the top of #venue-list. */
+  .future-time-pill {
+    margin: 4px 0 8px;
+    align-self: flex-start;
+  }
 
   @keyframes cardIn {
     from { opacity: 0; }
@@ -1916,15 +1945,19 @@
     position: relative;
     overflow: visible;
     contain: layout style;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
   }
+  /* The closed-card variant is a single row, not the 3-row column. Override
+     the column flex so name + "opens at" badge sit side-by-side. */
+  .venue-card.closed-card { gap: 0; }
+  .venue-card.closed-card .closed-row { flex: 1; }
   /* First-render fade: cardIn runs once before #venue-list gets data-mounted
      (set via rAF after the first reset). Subsequent resets keep the attribute
      so CSS doesn't re-fire the cascade on every slider tick. */
   #venue-list:not([data-mounted]) .venue-card {
     animation: cardIn 0.18s ease-out;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
   }
 
   /* Hover only on devices with a real pointer. On iOS Safari :hover sticks
@@ -2045,8 +2078,123 @@
     line-height: 1.3;
   }
 
-  /* ── Card timeline — full card width ── */
+  /* ── New venue-card grid — 3 rows (name+duration / meta+bar / pills) ────────
+     The compact card and tooltip still use the older .card-top + .card-new-*
+     classes; the main list card uses these. Both must coexist. */
+  .card-row1, .card-row2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-row1 { justify-content: space-between; }
+  .card-row2 { justify-content: space-between; min-height: 16px; }
+  .card-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .card-duration {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+  }
+  .card-duration .sun-glyph {
+    font-size: 13px;
+    line-height: 1;
+  }
+  .card-meta {
+    flex: 1;
+    min-width: 0;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+  }
+  .card-meta span { display: inline; }
+  .card-meta .card-meta-dot { opacity: 0.4; margin: 0 4px; }
+  .card-meta .card-meta-opens { color: var(--muted); opacity: 0.85; }
+
+  .card-pills {
+    display: flex;
+    gap: 6px;
+    margin-top: 2px;
+    flex-wrap: nowrap;
+    min-width: 0;
+  }
+  .card-pill {
+    height: 24px;
+    padding: 0 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 22px;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 1;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .card-pill.pill-sol {
+    background: var(--accent-dim);
+    border: 1px solid rgba(255,175,133,0.35);
+    color: var(--accent);
+  }
+  .card-pill.pill-skygge {
+    background: rgba(156,189,231,0.10);
+    border: 1px solid rgba(156,189,231,0.22);
+    color: var(--muted);
+  }
+  .card-pill.pill-skyer {
+    background: rgba(156,189,231,0.14);
+    border: 1px solid rgba(156,189,231,0.30);
+    color: var(--cool);
+  }
+  .card-pill.pill-regn {
+    background: rgba(96,140,200,0.18);
+    border: 1px solid rgba(96,140,200,0.40);
+    color: var(--rain);
+  }
+
+  /* Quiet treatment for Sol-senere cards where wait > payoff. Visually demotes
+     low-value cards (e.g. "20-min window in 4 hours") without filtering them. */
+  .venue-card.card-quiet { opacity: 0.65; }
+
+  /* ── Card timeline ──
+     Two contexts: the new card layout pins it to a fixed 96px wide × 12px tall
+     slot in row 2 (right side); legacy callers (compact card, tooltip) still
+     get a full-width 8px strip via .card-timeline-legacy. */
   .card-timeline {
+    position: relative;
+    flex: 0 0 96px;
+    width: 96px;
+    height: 12px;
+  }
+  .card-timeline-legacy {
     position: relative;
     height: 8px;
     margin-top: 2px;
@@ -2054,7 +2202,7 @@
 
   .timeline-track {
     position: relative;
-    height: 8px;
+    height: 12px;
     background: rgba(156,189,231,0.08);
     overflow: visible;
   }

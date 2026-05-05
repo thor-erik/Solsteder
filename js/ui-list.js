@@ -15,9 +15,21 @@
 
 const LIST_PAGE = 30; // cards rendered per batch
 let _listFiltered = []; // current sorted+filtered result
-let _listDividerIdx = -1; // index of the first "sun later" venue, or -1 to suppress
+let _listBuckets = { now: [], later: [] }; // venues split by qualifying-window timing
 let _listObserver = null; // IntersectionObserver for infinite scroll
 let _aImpressionTimer = null; // debounce for impression analytics
+
+// Hysteresis: venues surfaced in the last renderList pass. Once a venue's
+// qualifying window crosses 45 min it sticks around until the window drops
+// 5 min below the floor — so a single forecast tick doesn't drop it. Reset on
+// date change. The reset is auto-detected inside renderList() via
+// _surfacedDateStr, so callers that clear sunWindowCache don't need to do
+// anything extra.
+const _surfacedSet = new Set();
+let _surfacedDateStr = null;
+// One-shot escape hatch: when the user clicks "Vis alle steder" on the
+// empty-all state, the next renderList pass bypasses the qualifying filter.
+let _showAllOnce = false;
 
 /**
  * Mini sun-timeline: a canvas drawn by the shared drawTimeline() renderer
@@ -81,20 +93,53 @@ function drawAllCardTimelines(root) {
 // Inline beer mug SVG for venue cards (12px)
 const beerSvgMini = `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><path d="M 7 4 L 7 18 Q 7 20 9 20 L 15 20 Q 17 20 17 18 L 17 4 Z"/><path d="M 17 7 L 19 7 Q 21 7 21 9 L 21 13 Q 21 15 19 15 L 17 15"/><path d="M 7 10 L 17 10"/></svg>`;
 
-/** Render a single venue card — new two-column redesign. */
+// Sun glyph used in the row-1 duration label.
+const SUN_GLYPH = '<svg class="sun-glyph" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>';
+
+function _formatDurationFromMin(minutes) {
+  if (!minutes || minutes <= 0) return '';
+  const h = Math.floor(minutes / 60);
+  const m = Math.round(minutes - h * 60);
+  if (h > 0 && m > 0) return `${h}t ${m}m`;
+  if (h > 0) return `${h}t`;
+  if (m > 0) return `${m} min`;
+  return '5 min';
+}
+
+/** Render a single venue card — Soft Zebra 3-row layout. */
 function renderCard(v, dateStr, fromHour, toHour, isPoint) {
   const dayHours = getVenueHoursForDay(v, dateStr);
 
   // renderList pre-computes these on its mapped venues; the detail-panel
   // rebuild path (updateDetailPanel + openDetailPanel desktop fallback) calls
-  // renderCard with the raw venue from VENUES, where both fields are undefined
-  // and the closed-card branch would always fire — taking out .card-timeline
-  // and forcing the FTS to detach to the panel's top fallback.
+  // renderCard with the raw venue from VENUES — fall back to deriving them.
   const isOpen        = v.isOpen        ?? (fromHour >= dayHours.open && fromHour <= dayHours.close);
   const isOpeningSoon = v.isOpeningSoon ?? (!isOpen && (dayHours.open - fromHour) > 0 && (dayHours.open - fromHour) <= 0.75);
 
-  // Collapsed single-line card for closed venues
-  if (!isOpen && !isOpeningSoon) {
+  // Qualifying window: precomputed on the listed venue, else derived. The
+  // detail-panel-rebuild path passes a raw VENUES entry without _qual, so we
+  // reconstruct it here so the right column still has a duration to show.
+  let qual = v._qual;
+  if (!qual && typeof computeSunWindows === 'function' && typeof currentSunTable !== 'undefined' && currentSunTable) {
+    const sundownH = (typeof findSunCrossingFromTable === 'function')
+      ? findSunCrossingFromTable(currentSunTable, false) : null;
+    const wxLookup = (h) => {
+      const b = (typeof wxBucket === 'function') ? wxBucket(dateStr, h) : null;
+      return { rainy: b === 'regn', overcast: b === 'skyer' };
+    };
+    const { windows } = computeSunWindows(v, dateStr);
+    qual = (typeof qualifyingWindows === 'function')
+      ? qualifyingWindows(windows, wxLookup, {
+          selectedHour: fromHour, sundownHour: sundownH ?? 23,
+          openHour: dayHours.open, closeHour: dayHours.close,
+        })
+      : { windows: [], earliest: null, surfaced: false };
+  }
+
+  // Closed-all-day with no upcoming qualifying window: keep the legacy
+  // collapsed one-row card. Closed-but-opens-later venues with a qualifying
+  // window get the full layout below (see openLater handling).
+  if (!isOpen && !isOpeningSoon && !(qual && qual.surfaced)) {
     return `
       <div class="venue-card closed-card ${v.id === selectedId ? 'selected' : ''}"
            data-vid="${v.id}" onclick="selectVenue(${typeof v.id === 'number' ? v.id : `'${v.id}'`}, true)"
@@ -111,13 +156,38 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
     ? (s.distKm < 1 ? `${Math.round(s.distKm * 1000)} m` : `${s.distKm.toFixed(1)} km`)
     : null;
 
-  // Get venue state (sun/shadow/done) from the state model
-  const state = typeof venueState === 'function' ? venueState(v, fromHour) :
-    { state: 'sun', mainText: 'Sol til —', subText: '', className: 'state-sun' };
+  // Right-column duration: always the qualifying window's length.
+  const durationStr = qual && qual.earliest
+    ? _formatDurationFromMin(qual.earliest.durationMin)
+    : '';
 
-  // Build meta row: area · type · distance
+  // Pills row: built by the shared helper. State color matches subject.
+  const sundownH = (typeof currentSunTable !== 'undefined' && currentSunTable && typeof findSunCrossingFromTable === 'function')
+    ? findSunCrossingFromTable(currentSunTable, false) : null;
+  const pills = (qual && qual.surfaced && typeof buildCardPills === 'function')
+    ? buildCardPills(v, qual, fromHour, sundownH, dateStr)
+    : [];
+  const pillsHtml = pills.map(p =>
+    `<span class="card-pill pill-${p.kind}">${p.label}</span>`
+  ).join('');
+
+  // Quiet treatment: dim Sol-senere cards where wait > payoff, so the eye
+  // gravitates toward better-value cards without filtering anything out.
+  let quietCls = '';
+  if (qual && qual.earliest && qual.earliest.start > fromHour + 0.001) {
+    const wait   = qual.earliest.start - fromHour;
+    const payoff = qual.earliest.end   - qual.earliest.start;
+    if (wait > payoff) quietCls = ' card-quiet';
+  }
+
+  // Closed-but-opens-later venues: prefix the meta line with the opening time
+  // so users see when this card becomes live without having to hunt.
+  const opensLaterPrefix = (!isOpen && qual && qual.surfaced)
+    ? `<span class="card-meta-opens">${t('meta_opens_at_prefix', { time: formatHour(dayHours.open) })}</span><span class="card-meta-dot">·</span>`
+    : '';
+
   const metaParts = [v.area, catLabel(v), distStr].filter(Boolean);
-  const metaHtml = metaParts.map((p, i) =>
+  const metaHtml = opensLaterPrefix + metaParts.map((p, i) =>
     (i > 0 ? '<span class="card-meta-dot">·</span>' : '') + `<span>${p}</span>`
   ).join('');
 
@@ -148,6 +218,11 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
       </div>`
     : '';
 
+  // Determine state class so other CSS rules (selection ring, etc.) keep
+  // working. Source of truth shifts from venueState.mainText to qual.
+  const stateClass = (qual && qual.earliest && qual.earliest.start <= fromHour + 0.001)
+    ? 'state-sun' : 'state-shadow';
+
   // ── Admin review-mode extras: flag chips + action row at the card's bottom.
   let reviewChips = '', reviewActions = '';
   const flags = (typeof reviewModeActive !== 'undefined' && reviewModeActive &&
@@ -167,21 +242,19 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
   }
 
   return `
-    <div class="venue-card ${state.className} ${v.id === selectedId ? 'selected' : ''}${flags ? ' review-flagged' : ''}"
+    <div class="venue-card ${stateClass}${quietCls} ${v.id === selectedId ? 'selected' : ''}${flags ? ' review-flagged' : ''}"
          data-vid="${v.id}" onclick="selectVenue(${typeof v.id === 'number' ? v.id : `'${v.id}'`}, true)"
          onmouseenter="setHoveredVenue(${typeof v.id === 'number' ? v.id : `'${v.id}'`})" onmouseleave="setHoveredVenue(null)">
-      <div class="card-top">
-        <div class="card-left">
-          <div class="card-new-name">${v.name}${favHeart}${friendBadge}${goingBadge}</div>
-          <div class="card-new-meta">${metaHtml}</div>
-        </div>
-        <div class="card-right">
-          <div class="card-new-hero-main">${state.mainText}</div>
-          <div class="card-new-hero-sub">${state.subText}</div>
-        </div>
+      <div class="card-row1">
+        <div class="card-name">${v.name}${favHeart}${friendBadge}${goingBadge}</div>
+        ${durationStr ? `<div class="card-duration">${SUN_GLYPH}${durationStr}</div>` : ''}
       </div>
+      <div class="card-row2">
+        <div class="card-meta">${metaHtml}</div>
+        ${miniTimeline}
+      </div>
+      ${pillsHtml ? `<div class="card-pills">${pillsHtml}</div>` : ''}
       ${reviewChips}
-      ${miniTimeline}
       ${reviewActions}
     </div>`;
 }
@@ -237,7 +310,13 @@ function renderVenueCardCompact(v, dateStr, fromHour) {
 
 /**
  * Append the next page of cards to #venue-list.
- * Called on init (reset=true) and by the IntersectionObserver on scroll.
+ *
+ * Soft Zebra layout: emits a future-time chip (when off-now), then both
+ * section headers ("Sol nå · n" / "Sol senere · m"), each followed by their
+ * cards or an inline empty-state. Empty section headers never collapse.
+ *
+ * Pagination spans both buckets: `_listFiltered` is `now` followed by `later`,
+ * and `_listBuckets.now.length` marks the boundary.
  */
 function renderListPage(list, dateStr, fromHour, toHour, isPoint, reset) {
   if (_listObserver) { _listObserver.disconnect(); _listObserver = null; }
@@ -245,16 +324,56 @@ function renderListPage(list, dateStr, fromHour, toHour, isPoint, reset) {
   const from = reset ? 0 : list.querySelectorAll('.venue-card').length;
   const to   = Math.min(from + LIST_PAGE, _listFiltered.length);
 
-  // Inject the "sun later" divider when the page straddles the boundary —
-  // before the first card with _sunOrd > 0. Only fires when score sort active
-  // and both groups non-empty (see _listDividerIdx in renderList).
-  const dividerIdx = _listDividerIdx;
+  const nowCount   = _listBuckets.now.length;
+  const laterCount = _listBuckets.later.length;
+  const isFuture   = (typeof nowMode !== 'undefined' && !nowMode &&
+                      typeof todayStr === 'function' && dateStr === todayStr() &&
+                      Math.abs(fromHour - (new Date().getHours() + new Date().getMinutes() / 60)) > 5/60)
+                  || (typeof todayStr === 'function' && dateStr > todayStr());
+
+  // Build section markup. Reset paths emit the headers + empties; paginated
+  // appends just emit cards (no headers — they're already in the DOM).
   let html = '';
-  for (let i = from; i < to; i++) {
-    if (i === dividerIdx) {
-      const laterCount = _listFiltered.length - dividerIdx;
-      html += `<div class="venue-list-divider">${t('sun_later_count', { count: laterCount })}</div>`;
+  if (reset) {
+    if (isFuture) {
+      html += `<span class="chip-pill future-time-pill" id="future-time-pill">${
+        t('time_now_chip', { time: formatHour(fromHour) })
+      }</span>`;
     }
+    // Sol nå header
+    const nowLabel = isFuture
+      ? t('section_sun_at', { time: formatHour(fromHour) })
+      : t('section_sun_now');
+    html += `<div class="venue-section-header">${nowLabel}<span class="section-count">· ${nowCount}</span></div>`;
+    if (nowCount === 0) {
+      html += `<div class="empty-section">${t('empty_no_sun_now')}</div>`;
+    }
+  }
+
+  // Now-bucket cards
+  for (let i = from; i < Math.min(to, nowCount); i++) {
+    html += renderCard(_listFiltered[i], dateStr, fromHour, toHour, isPoint);
+  }
+
+  // Later header inserted at the boundary, even mid-page.
+  if (reset) {
+    const laterLabel = isFuture
+      ? t('section_sun_after', { time: formatHour(fromHour) })
+      : t('section_sun_later');
+    html += `<div class="venue-section-header">${laterLabel}<span class="section-count">· ${laterCount}</span></div>`;
+    if (laterCount === 0) {
+      html += `<div class="empty-section">${t('empty_no_sun_later')}</div>`;
+    }
+  } else if (from < nowCount && to > nowCount) {
+    // Mid-page boundary on a paginated append: still mark the section break.
+    const laterLabel = isFuture
+      ? t('section_sun_after', { time: formatHour(fromHour) })
+      : t('section_sun_later');
+    html += `<div class="venue-section-header">${laterLabel}<span class="section-count">· ${laterCount}</span></div>`;
+  }
+
+  // Later-bucket cards
+  for (let i = Math.max(from, nowCount); i < to; i++) {
     html += renderCard(_listFiltered[i], dateStr, fromHour, toHour, isPoint);
   }
 
@@ -290,6 +409,17 @@ function renderListPage(list, dateStr, fromHour, toHour, isPoint, reset) {
     }, { root: list.closest('#panel'), rootMargin: '200px' });
     _listObserver.observe(document.getElementById('list-sentinel'));
   }
+}
+
+/**
+ * One-shot escape hatch from the empty-all state. Bypasses the qualifying
+ * filter for the next render so the user can see every open venue, then
+ * re-enables filtering on the following pass.
+ */
+function showAllVenuesOnce() {
+  _showAllOnce = true;
+  if (typeof scheduleRenderList === 'function') scheduleRenderList();
+  else if (typeof renderList === 'function') renderList();
 }
 
 function renderList() {
@@ -353,6 +483,28 @@ function renderList() {
 
   // ── Now compute sun windows + score on the narrowed set ───────────────────
   const wxNow = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, fromHour) : null;
+  // Hysteresis: clear the surfaced set on date change so yesterday's sticky
+  // entries don't bleed into today.
+  if (_surfacedDateStr !== dateStr) {
+    _surfacedSet.clear();
+    _surfacedDateStr = dateStr;
+  }
+  // Sundown anchor for window clamping. Falls back to a sane default when
+  // the table isn't built yet (first paint).
+  const sundownH = (typeof currentSunTable !== 'undefined' && currentSunTable && typeof findSunCrossingFromTable === 'function')
+    ? (findSunCrossingFromTable(currentSunTable, false) ?? 22) : 22;
+  // Weather lookup memoized per renderList pass — qualifyingWindows() probes
+  // it at hour granularity, so reusing per integer hour avoids redundant
+  // getWeatherAt calls across 300 venues.
+  const _wxCache = new Map();
+  const wxLookup = (h) => {
+    const hb = Math.floor(h);
+    if (!_wxCache.has(hb)) {
+      const b = (typeof wxBucket === 'function') ? wxBucket(dateStr, hb + 0.5) : null;
+      _wxCache.set(hb, { rainy: b === 'regn', overcast: b === 'skyer' });
+    }
+    return _wxCache.get(hb);
+  };
   venues = venues.map(v => {
     const sunInWin = venueHasSunInRange(v, dateStr, fromHour, toHour);
     const { open, close } = getVenueHoursForDay(v, dateStr);
@@ -362,19 +514,40 @@ function renderList() {
     const score = typeof computeVenueScore === 'function'
       ? computeVenueScore(v, dateStr, fromHour, wxNow, userLocation)
       : null;
-    return { ...v, sunInWin, isOpen, isOpeningSoon, isClosingSoon, score };
+    // Qualifying windows: weather-gated, 45-min floor, gaps absorbed/split,
+    // hysteresis applied. This is what drives surfacing and bucketing.
+    const { windows: rawWins } = (typeof computeSunWindows === 'function')
+      ? computeSunWindows(v, dateStr) : { windows: [] };
+    const qual = (typeof qualifyingWindows === 'function')
+      ? qualifyingWindows(rawWins, wxLookup, {
+          selectedHour: fromHour, sundownHour: sundownH,
+          openHour: open, closeHour: close,
+          prevSurfaced: _surfacedSet.has(v.id),
+        })
+      : { windows: [], earliest: null, surfaced: false };
+    return { ...v, sunInWin, isOpen, isOpeningSoon, isClosingSoon, score, _qual: qual };
   });
 
-  // Remove venues with no sun windows, or (today only) all sun already past
-  // User's own suggestions bypass this filter (they lack geometry data)
-  const isTodayFilter = dateStr === todayStr();
-  venues = venues.filter(v => {
-    if (v._ownSuggestion) return true;
-    const { windows } = computeSunWindows(v, dateStr);
-    if (!windows.length) return false;
-    if (isTodayFilter) return windows.some(w => w.end > fromHour);
-    return true;
-  });
+  // Surfacing filter — qualifying windows + own-suggestion bypass + the
+  // search bypass (any venue matched by the active query stays visible) +
+  // the user's "vis alle" escape hatch + admin review mode.
+  const reviewActive = typeof reviewModeActive !== 'undefined' && reviewModeActive;
+  const showAllPass = _showAllOnce; _showAllOnce = false;
+  if (!showAllPass && !reviewActive) {
+    venues = venues.filter(v => {
+      if (v._ownSuggestion) return true;
+      if (searchQ) return true; // search results bypass the filter
+      return v._qual && v._qual.surfaced;
+    });
+  }
+
+  // Update the surfacing memory for next pass (hysteresis).
+  for (const v of venues) {
+    if (!v._qual) continue;
+    const dur = v._qual.earliest?.durationMin ?? 0;
+    if (v._qual.surfaced && dur >= 45) _surfacedSet.add(v.id);
+    else if (!v._qual.surfaced || dur < 40) _surfacedSet.delete(v.id);
+  }
 
   // Closed venues always sink below open ones regardless of sort mode
   function closedPenalty(v) { return (!v.isOpen && !v.isOpeningSoon) ? 1 : 0; }
@@ -390,92 +563,67 @@ function renderList() {
         ? VENUE_CLUSTER.center
         : userLocation);
 
-  // Pre-compute sun-window stats for any venue we might need to rank by
-  // remaining sun. Used by score / distance / favorites — compute once
-  // up-front rather than scattering computeSunWindows calls in comparators.
-  function _ensureSunStats(list) {
-    for (const v of list) {
-      const { windows } = computeSunWindows(v, dateStr);
-      let rem = 0, total = 0;
-      for (const w of windows) {
-        total += w.end - w.start;
-        if (w.end > fromHour) rem += w.end - Math.max(w.start, fromHour);
-      }
-      v._sunRem = rem;
-      v._sunTotalToday = total;
-      if (!windows.length) { v._sunOrd = 2; }
-      else if (windows.some(w => fromHour >= w.start && fromHour < w.end)) { v._sunOrd = 0; }
-      else if (windows.some(w => w.start > fromHour)) { v._sunOrd = 1; }
-      else { v._sunOrd = 2; }
-    }
+  // Favorites is filter-first, then sorted within buckets like any other view.
+  if (sortBy === 'favorites' && typeof isFavorite === 'function') {
+    venues = venues.filter(v => isFavorite(v.id));
   }
 
-  if (sortBy === 'score') {
-    _ensureSunStats(venues);
-    venues.sort((a, b) => {
-      const cp = closedPenalty(a) - closedPenalty(b);
-      if (cp !== 0) return cp;
-      // _sunOrd: 0 = in sun at the slider time, 1 = sun starts after slider time, 2 = none.
-      // Group by state first so the "in-sun" venues form a contiguous block at the
-      // top of the list — matches the header count exactly and lets us draw a divider.
-      if (a._sunOrd !== b._sunOrd) return a._sunOrd - b._sunOrd;
-      if (a._sunRem !== b._sunRem) return b._sunRem - a._sunRem;
-      // Tiebreaker: venues with more total sun today rank higher.
-      if (a._sunTotalToday !== b._sunTotalToday) return b._sunTotalToday - a._sunTotalToday;
-      if (distRef) {
-        const da = Math.hypot(a.lat - distRef.lat, a.lng - distRef.lng);
-        const db = Math.hypot(b.lat - distRef.lat, b.lng - distRef.lng);
-        if (da !== db) return da - db;
-      }
-      return 0;
-    });
-  } else if (sortBy === 'distance' && distRef) {
-    _ensureSunStats(venues);
-    venues.sort((a, b) => {
-      const cp = closedPenalty(a) - closedPenalty(b);
-      if (cp !== 0) return cp;
-      const da = Math.hypot(a.lat - distRef.lat, a.lng - distRef.lng);
-      const db = Math.hypot(b.lat - distRef.lat, b.lng - distRef.lng);
+  // Bucket: Sol nå = qualifying window already started; Sol senere = starts
+  // after selectedHour. Sort each bucket independently so the in-bucket sort
+  // semantics can differ for the default ("score") path.
+  const bucketNow = [];
+  const bucketLater = [];
+  for (const v of venues) {
+    if (!v._qual || !v._qual.earliest) {
+      // Search bypass / show-all / review mode can yield venues without a
+      // qualifying window. Stash them in "later" so they still appear.
+      bucketLater.push(v);
+      continue;
+    }
+    if (v._qual.earliest.start <= fromHour + 0.001) bucketNow.push(v);
+    else bucketLater.push(v);
+  }
+
+  const distOf  = (v) => distRef ? Math.hypot(v.lat - distRef.lat, v.lng - distRef.lng) : 0;
+  const qualDur = (v) => v._qual?.earliest?.durationMin ?? 0;
+  const sunStart = (v) => v._qual?.earliest?.start ?? Infinity;
+  const makeComparator = (bucketName) => (a, b) => {
+    const cp = closedPenalty(a) - closedPenalty(b);
+    if (cp !== 0) return cp;
+    if (sortBy === 'distance' && distRef) {
+      const da = distOf(a), db = distOf(b);
       if (da !== db) return da - db;
-      return b._sunRem - a._sunRem;
-    });
-  } else if (sortBy === 'beer') {
-    venues.sort((a, b) => {
-      const cp = closedPenalty(a) - closedPenalty(b);
-      if (cp !== 0) return cp;
-      // Venues without beer price go last
+      return qualDur(b) - qualDur(a);
+    }
+    if (sortBy === 'beer') {
       if (a.beerPrice && !b.beerPrice) return -1;
       if (!a.beerPrice && b.beerPrice) return 1;
       if (!a.beerPrice && !b.beerPrice) return b.rating - a.rating;
       return a.beerPrice - b.beerPrice;
-    });
-  } else if (sortBy === 'favorites') {
-    // Show only favorites, sorted by distance with sun-remaining tiebreaker.
-    // Closed-not-opening-soon favorites still sink to the bottom.
-    if (typeof isFavorite === 'function') {
-      venues = venues.filter(v => isFavorite(v.id));
     }
-    _ensureSunStats(venues);
-    venues.sort((a, b) => {
-      const cp = closedPenalty(a) - closedPenalty(b);
-      if (cp !== 0) return cp;
+    if (sortBy === 'favorites') {
       if (distRef) {
-        const da = Math.hypot(a.lat - distRef.lat, a.lng - distRef.lng);
-        const db = Math.hypot(b.lat - distRef.lat, b.lng - distRef.lng);
+        const da = distOf(a), db = distOf(b);
         if (da !== db) return da - db;
       }
-      return b._sunRem - a._sunRem;
-    });
-  } else {
-    // Default case (if sortBy is something else or undefined)
-    venues.sort((a, b) => {
-      const cp = closedPenalty(a) - closedPenalty(b);
-      if (cp !== 0) return cp;
-      if (a.sunInWin !== b.sunInWin) return a.sunInWin ? -1 : 1;
-      if (a.isOpen !== b.isOpen) return a.isOpen ? -1 : 1;
-      return b.rating - a.rating;
-    });
-  }
+      return qualDur(b) - qualDur(a);
+    }
+    // Default ("Mest sol" / "Most sun") — bucket-aware:
+    //   Sol nå:    distance asc, tiebreak duration desc
+    //   Sol senere: sun-start asc, tiebreak duration desc
+    if (bucketName === 'now') {
+      if (distRef) {
+        const da = distOf(a), db = distOf(b);
+        if (da !== db) return da - db;
+      }
+      return qualDur(b) - qualDur(a);
+    }
+    if (sunStart(a) !== sunStart(b)) return sunStart(a) - sunStart(b);
+    return qualDur(b) - qualDur(a);
+  };
+  bucketNow.sort(makeComparator('now'));
+  bucketLater.sort(makeComparator('later'));
+  venues = [...bucketNow, ...bucketLater];
 
   // ── After-sunset state: real clock vs actual sunset, today only ───────────
   const isToday     = dateStr === todayStr();
@@ -532,8 +680,23 @@ function renderList() {
           </button>
         </div>`;
     } else {
-      list.innerHTML = `<div style="color:var(--muted);font-size:13px;text-align:center;padding:30px 10px;">${t('no_venues_filters')}</div>`;
+      // Empty-all soft-zebra state: both buckets are zero. Keep the section
+      // headers visible so the bucket model stays legible, and surface a
+      // "Vis alle steder" escape that bypasses the qualifying filter on the
+      // next pass (the normal sun-later content reappears as soon as the
+      // user scrubs to a sunny hour).
+      list.innerHTML = `
+        <div class="venue-section-header">${t('section_sun_now')}<span class="section-count">· 0</span></div>
+        <div class="empty-section">${t('empty_no_sun_now')}</div>
+        <div class="venue-section-header">${t('section_sun_later')}<span class="section-count">· 0</span></div>
+        <div class="empty-section">${t('empty_no_sun_later')}</div>
+        <div class="empty-all">
+          <div>${t('empty_no_sun_today')}</div>
+          <button class="s-pill btn-show-all" onclick="showAllVenuesOnce()">${t('btn_show_all_venues')}</button>
+        </div>`;
     }
+    _listFiltered = [];
+    _listBuckets = { now: [], later: [] };
     return;
   }
 
@@ -550,14 +713,7 @@ function renderList() {
 
   // ── Render first page, observer handles the rest ──────────────────────────
   _listFiltered = venues;
-  // Divider index: only meaningful for score sort with both groups non-empty.
-  // Other sorts have no clean state boundary.
-  if (sortBy === 'score') {
-    const firstLater = venues.findIndex(v => v._sunOrd > 0);
-    _listDividerIdx = (firstLater > 0 && firstLater < venues.length) ? firstLater : -1;
-  } else {
-    _listDividerIdx = -1;
-  }
+  _listBuckets = { now: bucketNow, later: bucketLater };
   renderListPage(list, dateStr, fromHour, toHour, isPoint, true);
 
   // Update venue-peek with first ranked venue (mobile collapsed state)

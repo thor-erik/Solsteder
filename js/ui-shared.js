@@ -99,6 +99,77 @@ function venueState(venue, selectedTime) {
   };
 }
 
+// ── Card pill builder ─────────────────────────────────────────────────────────
+//
+// Produces the 1- or 2-pill chronological narrative shown in the new card row 3.
+// Pills read left→right as a small day timeline: state at selectedHour → state
+// at sundown. Pill color always agrees with its verbal subject (sun pill is
+// orange, shadow pill is gray, etc.), per the design spec.
+//
+// `qual` is the result of qualifyingWindows() — caller must already have
+// filtered the venue down to a surfaced state. `sundownH` is the actual sun
+// crossing for the date; `dateStr` is needed for weather lookups when the
+// caller wants the state pill colored by current cloud/rain conditions.
+function buildCardPills(venue, qual, selectedHour, sundownH, dateStr) {
+  if (!qual || !qual.earliest) return [];
+  const earliest = qual.earliest;
+  const formatDuration = (hours) => {
+    const h = Math.floor(hours);
+    const m = Math.round((hours - h) * 60);
+    if (h > 0 && m > 0) return `${h}t ${m}m`;
+    if (h > 0) return `${h}t`;
+    if (m > 0) return `${m} min`;
+    return '5 min';
+  };
+  const fmt = (h) => (typeof formatHour === 'function') ? formatHour(h) : `${Math.floor(h)}:00`;
+  const sunUntilLabel = (endH) => (sundownH != null && endH >= sundownH - 5/60)
+    ? t('pill_sun_until_sundown')
+    : t('pill_sun_until', { time: fmt(endH) });
+
+  // Determine the non-sun state at a given hour: weather first (regn/skyer),
+  // else 'skygge' (geometric shadow / no direct sun).
+  const stateAt = (h) => {
+    if (h >= sundownH) return null;
+    const wx = (typeof wxBucket === 'function') ? wxBucket(dateStr, h) : null;
+    if (wx === 'regn')  return 'regn';
+    if (wx === 'skyer') return 'skyer';
+    return 'skygge';
+  };
+  const stateLabel = (kind) => kind === 'regn'  ? t('pill_state_regn')
+                            : kind === 'skyer' ? t('pill_state_skyer')
+                            : t('pill_state_skygge');
+
+  const inSunNow = earliest.start <= selectedHour + 0.001;
+
+  if (inSunNow) {
+    // Single-pill exception: continuous sun all the way to (or near) sundown.
+    if (sundownH != null && earliest.end >= sundownH - 5/60) {
+      return [{ kind: 'sol', label: t('pill_sun_until_sundown') }];
+    }
+    // Pill 1: orange — when the current sun ends.
+    const pill1 = { kind: 'sol', label: t('pill_sun_until', { time: fmt(earliest.end) }) };
+    // Pill 2: state-color — what comes after, until next change before sundown.
+    const afterStartH = earliest.end;
+    const afterKind = stateAt(afterStartH + 0.001) ?? 'skygge';
+    // Look for the next qualifying window after this one to decide "til [time]"
+    // vs "til solnedgang"; if there isn't one, "til solnedgang" is correct.
+    const nextWin = qual.windows.find(w => w.start > earliest.start + 0.001);
+    const endLabel = nextWin
+      ? t('pill_state_until', { state: stateLabel(afterKind), time: fmt(nextWin.start) })
+      : t('pill_state_until_sundown', { state: stateLabel(afterKind) });
+    return [pill1, { kind: afterKind, label: endLabel }];
+  }
+
+  // Sol senere: state at selectedHour → sun arrival → end.
+  const stateNowKind = stateAt(selectedHour) ?? 'skygge';
+  const pill1 = {
+    kind: stateNowKind,
+    label: t('pill_state_until', { state: stateLabel(stateNowKind), time: fmt(earliest.start) }),
+  };
+  const pill2 = { kind: 'sol', label: sunUntilLabel(earliest.end) };
+  return [pill1, pill2];
+}
+
 // ── Opening hours helpers ─────────────────────────────────────────────────────
 
 /**
@@ -147,6 +218,28 @@ function venueHasSunInRange(v, dateStr, fromHour, toHour) {
 }
 
 // ── Weather-aware arc color helper ────────────────────────────────────────────
+/**
+ * Classify weather at a given hour into one of four buckets.
+ * 'sol' = clear, 'skyer' = cloudy/overcast, 'regn' = raining.
+ * 'skygge' is intentionally NOT decided here — it's a geometric state (no
+ * direct sun on the venue) that the caller layers on top of this classification.
+ * Returns null when weather data is unavailable.
+ *
+ * Used by:
+ *  - wxColor() below (to pick stroke color)
+ *  - qualifyingWindows() (rainy/overcast = wet, dropped from windows)
+ *  - buildCardPills() in ui-list.js (to pick pill color)
+ */
+function wxBucket(dateStr, h) {
+  const wx = (typeof getWeatherAt === 'function') ? getWeatherAt(dateStr, h) : null;
+  if (!wx) return null;
+  const precip = wx.precip ?? 0;
+  const cloud  = wx.cloud  ?? 0;
+  if (precip > 0.3) return 'regn';
+  if (cloud  > 0.65) return 'skyer';
+  return 'sol';
+}
+
 /**
  * Returns the arc stroke color for a given hour, based on weather data.
  * bright=true → full opacity (future segments); false → dim (past segments).

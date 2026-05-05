@@ -84,9 +84,29 @@ function classifyPin(v, dateStr, hour) {
   const { open: vOpen, close: vClose } = v.openingHours ?? {};
   const isOpen = vOpen != null && hour >= vOpen && hour <= vClose;
 
-  // Tier 1: venue has sun right now
+  // Soft Zebra qualifying gate: a venue only earns a hero/waiting pill when
+  // its sun run survives the same 45-min weather-gated filter the list uses.
+  // Sub-floor windows render as low-prominence "context" dots — exactly the
+  // signal the user expects when a venue isn't list-worthy. Wrapped in a
+  // typeof guard so the worker (which has no DOM/weather context) is fine.
+  let qual = null;
+  if (typeof qualifyingWindows === 'function' && typeof currentSunTable !== 'undefined' && currentSunTable) {
+    const sundownH = (typeof findSunCrossingFromTable === 'function')
+      ? (findSunCrossingFromTable(currentSunTable, false) ?? 22) : 22;
+    const wxLookup = (h) => {
+      const b = (typeof wxBucket === 'function') ? wxBucket(dateStr, h) : null;
+      return { rainy: b === 'regn', overcast: b === 'skyer' };
+    };
+    qual = qualifyingWindows(windows, wxLookup, {
+      selectedHour: hour, sundownHour: sundownH,
+      openHour: vOpen ?? 0, closeHour: vClose ?? 24,
+    });
+  }
+  const surfaced = !qual || qual.surfaced;
+
+  // Tier 1: venue has sun right now AND meets the qualifying floor.
   const nowInSun = windows.find(w => hour >= w.start && hour < w.end);
-  if (nowInSun) {
+  if (nowInSun && surfaced) {
     const minsLeft = Math.round(Math.max(0, nowInSun.end - hour) * 60);
     return {
       tier:       'hero',
@@ -97,16 +117,16 @@ function classifyPin(v, dateStr, hour) {
     };
   }
 
-  // Tier 2a: sun arrives within WAITING_HORIZON_MIN
+  // Tier 2a: sun arrives within WAITING_HORIZON_MIN AND qualifies.
   const next = windows.find(w => w.start > hour);
-  if (next && (next.start - hour) * 60 <= WAITING_HORIZON_MIN) {
+  if (next && (next.start - hour) * 60 <= WAITING_HORIZON_MIN && surfaced) {
     const mins = Math.round((next.start - hour) * 60);
     // Badge: venue is currently closed but will be open when sun arrives
     const closedOpeningIntoSun = !isOpen && vOpen != null && next.start >= vOpen;
     return { tier: 'waiting', minutesUntil: mins, nextStart: next.start, closedOpeningIntoSun };
   }
 
-  // Tier 2b: context dot
+  // Tier 2b: context dot — sub-floor or weather-suppressed venues land here.
   return { tier: 'context', hasSunLaterToday: !!next, closedOpeningIntoSun: false };
 }
 
