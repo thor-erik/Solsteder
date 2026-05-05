@@ -113,13 +113,15 @@ function drawAllCardTimelines(root) {
   const isToday_ = dateStr === todayStr();
   const nowH_    = new Date().getHours() + new Date().getMinutes() / 60;
   const dpr      = window.devicePixelRatio || 1;
-  // Card timelines anchor on selectedTime → bar end (sundown buffer). The
-  // labels under each bar (current time, pill1 time, pill2 time) use the
-  // same domain — this is what makes the current-time label always sit
-  // at the start of the bar.
+  // Card timelines anchor on selectedTime → sundown. We deliberately drop
+  // the 6% MAX_H_ARC buffer that the FTS uses for label breathing room: on
+  // a card, sundown should sit at the bar's right cap apex so the
+  // "Sol til solnedgang" label aligns with the cap (not 6% short of it).
   const fromHour = parseFloat(timeFromEl.value);
   const tlMin = fromHour;
-  const tlMax = (typeof MAX_H_ARC !== 'undefined') ? MAX_H_ARC : 22;
+  const sundownHCard = (typeof findSunCrossingFromTable === 'function')
+    ? findSunCrossingFromTable(currentSunTable, false) : null;
+  const tlMax = sundownHCard ?? ((typeof MAX_H_ARC !== 'undefined') ? MAX_H_ARC : 22);
   for (const cv of nodes) {
     if (!cv.clientWidth || !cv.clientHeight) continue; // not laid out yet
     const vid = parseInt(cv.dataset.vid, 10);
@@ -170,8 +172,17 @@ function _formatDurationFromMin(minutes) {
   return '5 min';
 }
 
-/** Render a single venue card — Soft Zebra 3-row layout. */
-function renderCard(v, dateStr, fromHour, toHour, isPoint) {
+/**
+ * Render a single venue card.
+ *
+ * Two variants: compact (default — used by the list, venue-peek, plan
+ * preview) and rich (`opts.rich = true` — used by the detail panel header).
+ * Compact omits the timeline-bar block but inserts horizontal padding into
+ * the pills row so the inset rhythm matches what the timeline used to set.
+ * Rich adds the timeline canvas + the time-labels row underneath.
+ */
+function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
+  const rich = !!(opts && opts.rich);
   const dayHours = getVenueHoursForDay(v, dateStr);
 
   // renderList pre-computes these on its mapped venues; the detail-panel
@@ -255,12 +266,16 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
     (i > 0 ? '<span class="card-meta-dot">·</span>' : '') + `<span>${p}</span>`
   ).join('');
 
-  const miniTimeline = buildMiniSunTimeline(v, dateStr, fromHour);
-  // Bar + labels share a domain anchored on selectedTime → bar's right edge.
-  const tlMin = fromHour;
-  const tlMax = (typeof MAX_H_ARC !== 'undefined') ? MAX_H_ARC : null;
-  const tlLabels = buildTimelineLabels(pills, fromHour, tlMin, tlMax);
-  const timelineBlock = `<div class="card-timeline-block">${miniTimeline}${tlLabels}</div>`;
+  // Rich variant builds the timeline canvas + labels row; compact skips
+  // them entirely and just inset-pads the pills row instead.
+  let timelineBlock = '';
+  if (rich) {
+    const miniTimeline = buildMiniSunTimeline(v, dateStr, fromHour);
+    const tlMin = fromHour;
+    const tlMax = sundownH ?? ((typeof MAX_H_ARC !== 'undefined') ? MAX_H_ARC : null);
+    const tlLabels = buildTimelineLabels(pills, fromHour, tlMin, tlMax);
+    timelineBlock = `<div class="card-timeline-block">${miniTimeline}${tlLabels}</div>`;
+  }
 
   const favActive = typeof isFavorite === 'function' && isFavorite(v.id);
   const favHeart = favActive
@@ -310,8 +325,11 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
     </div>`;
   }
 
+  const variantCls = rich ? ' card-rich' : ' card-compact';
+  const pillsCls   = rich ? 'card-pills' : 'card-pills card-pills-inset';
+
   return `
-    <div class="venue-card ${stateClass}${quietCls} ${v.id === selectedId ? 'selected' : ''}${flags ? ' review-flagged' : ''}"
+    <div class="venue-card ${stateClass}${quietCls}${variantCls} ${v.id === selectedId ? 'selected' : ''}${flags ? ' review-flagged' : ''}"
          data-vid="${v.id}" onclick="selectVenue(${typeof v.id === 'number' ? v.id : `'${v.id}'`}, true)"
          onmouseenter="setHoveredVenue(${typeof v.id === 'number' ? v.id : `'${v.id}'`})" onmouseleave="setHoveredVenue(null)">
       <div class="card-row1">
@@ -319,7 +337,7 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
         ${durationStr ? `<div class="card-duration">${SUN_GLYPH}${durationStr}</div>` : ''}
       </div>
       <div class="card-meta">${metaHtml}</div>
-      ${pillsHtml ? `<div class="card-pills">${pillsHtml}</div>` : ''}
+      ${pillsHtml ? `<div class="${pillsCls}">${pillsHtml}</div>` : ''}
       ${timelineBlock}
       ${reviewChips}
       ${reviewActions}
@@ -650,8 +668,7 @@ function renderList() {
 
   const distOf  = (v) => distRef ? Math.hypot(v.lat - distRef.lat, v.lng - distRef.lng) : 0;
   const qualDur = (v) => v._qual?.earliest?.durationMin ?? 0;
-  const sunStart = (v) => v._qual?.earliest?.start ?? Infinity;
-  const makeComparator = (bucketName) => (a, b) => {
+  const comparator = (a, b) => {
     const cp = closedPenalty(a) - closedPenalty(b);
     if (cp !== 0) return cp;
     if (sortBy === 'distance' && distRef) {
@@ -672,21 +689,18 @@ function renderList() {
       }
       return qualDur(b) - qualDur(a);
     }
-    // Default ("Mest sol" / "Most sun") — bucket-aware:
-    //   Sol nå:    distance asc, tiebreak duration desc
-    //   Sol senere: sun-start asc, tiebreak duration desc
-    if (bucketName === 'now') {
-      if (distRef) {
-        const da = distOf(a), db = distOf(b);
-        if (da !== db) return da - db;
-      }
-      return qualDur(b) - qualDur(a);
+    // Default ("Mest sol" / "Most sun") — most qualifying-window sun first,
+    // distance as tiebreaker. Same comparator across buckets — the bucket
+    // headers carry the temporal split so the ranker doesn't need to.
+    if (qualDur(a) !== qualDur(b)) return qualDur(b) - qualDur(a);
+    if (distRef) {
+      const da = distOf(a), db = distOf(b);
+      if (da !== db) return da - db;
     }
-    if (sunStart(a) !== sunStart(b)) return sunStart(a) - sunStart(b);
-    return qualDur(b) - qualDur(a);
+    return 0;
   };
-  bucketNow.sort(makeComparator('now'));
-  bucketLater.sort(makeComparator('later'));
+  bucketNow.sort(comparator);
+  bucketLater.sort(comparator);
   venues = [...bucketNow, ...bucketLater];
 
   // ── After-sunset state: real clock vs actual sunset, today only ───────────

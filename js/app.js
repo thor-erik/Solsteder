@@ -26,7 +26,7 @@ let userLocation      = null;
 let filterFullSunActive = false;
 let filterMapViewActive = window.innerWidth >= 640; // desktop: viewport filter on; mobile: off (list shows all venues)
 let activeArea    = '';
-let activeSortBy  = 'distance';
+let activeSortBy  = 'score';
 let _userPickedSort = false; // true once the user explicitly picks a sort — locks out auto-default
 let activeIntent  = null;
 let panelVisible      = true;
@@ -1274,12 +1274,15 @@ function _isFarFromCluster() {
   return Math.hypot(dLat, dLng) > VENUE_CLUSTER.radiusKm;
 }
 
-// Apply auto-default sort based on cluster proximity. No-op once the user picks.
+// Apply auto-default sort. After Soft Zebra: 'score' (Mest sol) is the
+// default for all users — qualifying-window duration sorts identify the
+// best sun-availability venues regardless of where the user is. Kept as a
+// function so callers (geolocation grant, locale change) can still ping it
+// without churn; it's now a soft no-op until the user picks.
 function _applyAutoDefaultSort() {
   if (_userPickedSort) return;
-  const next = _isFarFromCluster() ? 'score' : 'distance';
-  if (next !== activeSortBy) {
-    activeSortBy = next;
+  if (activeSortBy !== 'score') {
+    activeSortBy = 'score';
     if (typeof updateSortBtns === 'function') updateSortBtns();
   }
 }
@@ -2295,7 +2298,7 @@ function _populateDpCardSlot(v) {
   const fromHour = parseFloat(timeFromEl.value);
   const enriched = _enrichVenueForCard(v, dateStr, fromHour);
   const tmp = document.createElement('div');
-  tmp.innerHTML = renderCard(enriched, dateStr, fromHour, fromHour, true);
+  tmp.innerHTML = renderCard(enriched, dateStr, fromHour, fromHour, true, { rich: true });
   const newCard = tmp.firstElementChild;
   if (!newCard) return;
   newCard.classList.add('dp-card');

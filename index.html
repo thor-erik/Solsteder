@@ -2136,6 +2136,12 @@
     min-width: 0;
     margin-top: 4px;
   }
+  /* Compact card has no timeline below — inset the pills horizontally so
+     they share the same indented rhythm the timeline-block uses on the
+     rich variant. Keeps the visual identity consistent across both. */
+  .card-pills.card-pills-inset {
+    padding: 0 18px;
+  }
   .card-pill {
     height: 24px;
     padding: 0 10px;
@@ -7258,8 +7264,8 @@
 
   <!-- Sort panel: fixed overlay, positioned by JS from button origin -->
   <div id="sort-panel" class="glass-panel">
-    <button class="sort-btn active" data-sort="distance"  onclick="setSortBy('distance')">Avstand</button>
-    <button class="sort-btn"        data-sort="score"     onclick="setSortBy('score')">Mest sol</button>
+    <button class="sort-btn active" data-sort="score"     onclick="setSortBy('score')">Mest sol</button>
+    <button class="sort-btn"        data-sort="distance"  onclick="setSortBy('distance')">Avstand</button>
     <button class="sort-btn"        data-sort="beer"      onclick="setSortBy('beer')">Ølpris</button>
     <button class="sort-btn"        data-sort="favorites" onclick="setSortBy('favorites')">Favoritter</button>
   </div>

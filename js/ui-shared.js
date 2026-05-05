@@ -511,8 +511,12 @@ function drawTimeline(ctx, opts) {
     }
   }
 
-  // 8. Thumb — FTS only
-  if (drawThumb && thumbHour != null && thumbHour >= minH && thumbHour <= maxH) {
+  // 8. Thumb — FTS only. We don't gate on thumbHour ∈ [minH, maxH]: the
+  // sx clamp below already keeps the thumb visually pinned to the nearest
+  // track edge, so an out-of-range value (page load before the first
+  // update() clamps timeFromEl, drag overshoot past either end) still
+  // renders rather than disappearing.
+  if (drawThumb && thumbHour != null) {
     const rawX = timeToX(thumbHour) + springOffset;
     const sx   = Math.max(TRACK_R, Math.min(BAR_W - TRACK_R, rawX));
     const cy_  = bleed + TRACK_H / 2;
