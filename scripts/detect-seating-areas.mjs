@@ -164,8 +164,11 @@ function buildingPixelPolygon(v) {
 
 function buildPrompt(v) {
   const bldgPx = buildingPixelPolygon(v);
-  const bldgLine = bldgPx
-    ? `\nBuilding footprint vertices (image pixel coords, top-left origin): ${JSON.stringify(bldgPx)}`
+  const bldgBlock = bldgPx
+    ? `
+
+EXCLUDE this region — it is the venue's BUILDING. No seating goes inside it.
+Building footprint vertices (image pixel coords): ${JSON.stringify(bldgPx)}`
     : '';
   const center = `(${SNAPSHOT_W / 2}, ${SNAPSHOT_H / 2})`;
 
@@ -175,28 +178,50 @@ Venue: ${v.name}
 Category: ${v.category}
 Address: ${v.address ?? '?'}
 Image dimensions: ${SNAPSHOT_W}×${SNAPSHOT_H} pixels (top-left origin)
-Venue marker location in image: ${center} (center)${bldgLine}
+Venue marker location in image: ${center} (center)${bldgBlock}
 
-Task: Identify the OUTDOOR SEATING AREA for this venue — the patio, terrace, or
-pavement area where chairs and tables are placed outside. It is usually attached
-to the building, on a pavement or plaza, and visible as a distinct paved/decked
-area, often with parasols, tables, or rectangular shapes.
+Task: Identify the OUTDOOR SEATING AREA for this venue — the area OUTSIDE the
+building where the venue places tables, chairs, and parasols for guests.
+
+Visual cues that ARE seating:
+- Tables and chairs (small regularly-spaced shapes)
+- Parasols / umbrellas (round or square spots, often in rows)
+- Raised wooden decking or platforms adjacent to the building
+- Awnings or canopies attached to the building
+- Clusters of planters, bollards, or rope barriers fencing off a sidewalk area
+- For category 'courtyard' or 'beer_garden': the floor of an enclosed courtyard
+
+Visual cues that are NOT seating:
+- The building interior (roof, walls, courtyards inside the building footprint)
+- Plain lawn, grass, or trees with no visible furniture
+- Parked cars, parking lots, roads
+- Public parks or plazas more than ~30m from the marker (those belong to the city, not this venue)
+- Plain sidewalks with no demarcation, planters, or chairs
+
+Hard constraints:
+1. The polygon MUST NOT contain any pixel inside the building footprint listed above.
+   If you can only find a candidate that overlaps the building, return notVisible:true.
+2. The polygon MUST be within ~150 pixels (~30 metres) of the venue marker at the image center.
+   A distant park or plaza is not this venue's seating, even if it looks usable.
+3. Prefer a candidate that is ADJACENT to and OUTSIDE the building footprint.
+4. If two candidates exist, choose the one closer to the marker.
 
 Return ONLY a JSON object with this exact shape:
 {
   "polygon":   [[x, y], [x, y], ...],   // 4–12 vertices in image pixel coords
   "confidence": 0.0–1.0,
-  "notVisible": false,                  // true if you cannot see seating clearly
+  "notVisible": false,                  // true ONLY when no candidate exists
   "reasoning":  "one short sentence"
 }
 
-Rules:
-- If you cannot identify the seating area with reasonable confidence, set
-  notVisible: true and polygon: []. Do not guess.
-- Polygon vertices must be ordered (either CW or CCW) and form a simple polygon.
-- Coordinates are in pixels of the original ${SNAPSHOT_W}×${SNAPSHOT_H} image.
-- Do NOT include the building interior. Only the outdoor area used for seating.
-- Output JSON only — no markdown, no commentary.`;
+Consistency rule: if your reasoning describes a candidate seating area, the
+polygon must trace that area. Do not describe a candidate and then return
+notVisible:true with an empty polygon — that is contradictory. Either trace the
+candidate or set reasoning to "no candidate found".
+
+Polygon vertices must be ordered (CW or CCW) and form a simple (non-self-intersecting) polygon.
+Coordinates are in pixels of the original ${SNAPSHOT_W}×${SNAPSHOT_H} image.
+Output JSON only — no markdown, no commentary.`;
 }
 
 // ── Anthropic API call ────────────────────────────────────────────────────────

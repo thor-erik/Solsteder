@@ -52,6 +52,15 @@ jobs:
           if [ -n "${{ github.event.inputs.force_id }}" ]; then ARGS="$ARGS --force ${{ github.event.inputs.force_id }}"; fi
           node scripts/detect-seating-areas.mjs $ARGS
 
+      - name: Upload satellite snapshots as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: seating-snapshots
+          path: .cache/seating-snapshots/
+          retention-days: 30
+          if-no-files-found: ignore
+
       - name: Commit if changed
         run: |
           git config user.name  "github-actions[bot]"
