@@ -392,6 +392,10 @@ function _renderSettingsView() {
           <span class="settings-row__label">Review terraces</span>
           <span class="settings-row__chevron">${_SETTINGS_ICON.chevron}</span>
         </button>
+        <button class="settings-row" id="debug-row" onclick="toggleZoomDebugHelper()">
+          <span class="settings-row__icon">${_SETTINGS_ICON.search}</span>
+          <span id="zoom-debug-toggle-label" class="settings-row__label">Show Debug</span>
+        </button>
       </div>
     </div>` : '';
 
@@ -482,10 +486,6 @@ function _renderSettingsView() {
             <span class="settings-row__icon">${_SETTINGS_ICON.info}</span>
             <span class="settings-row__label">${t('about_app')}</span>
             <span class="settings-row__value" id="about-version">v1.0.0</span>
-          </button>
-          <button class="settings-row" id="debug-row" onclick="toggleZoomDebugHelper()" style="display:${authIsAdmin() ? '' : 'none'}">
-            <span class="settings-row__icon">${_SETTINGS_ICON.search}</span>
-            <span id="zoom-debug-toggle-label" class="settings-row__label">Show Debug</span>
           </button>
         </div>
       </div>
