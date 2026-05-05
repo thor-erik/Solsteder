@@ -264,9 +264,10 @@ function _renderSocialSection(v) {
 
   // Friends-in-sun card — replaces the old "N her nå" row. Sits ABOVE the
   // action buttons so the avatar/name pair is the first social signal.
-  // Join-state semantics (idle / coming / here) are deferred — the
-  // .dp-im-here-link below routes to the invite sheet in now-mode, which
-  // flips pin presence on send (see _isNowSend in this file).
+  // Join-state semantics (idle / coming / here) are absorbed into the
+  // invite sheet's time picker — when the user picks a time within ±30 min
+  // of real-now, the share message swaps to "I'm at X now" and presence
+  // flips on send (see _isNowSend below).
   let friendsHtml = '';
   if (friendCheckins.length) {
     friendsHtml = `<div class="friends-photo-chip-row">
@@ -347,19 +348,16 @@ function _renderSocialSection(v) {
   // (_openPostAcceptPanel) right after closePlanPreview, so the social-card
   // stays focused on the venue's persistent social context.
 
-  // Primary CTA = Invite friends (orange filled). Secondary text link "I'm here"
-  // routes to the same sheet but pre-sets time to now and pre-selects Recent
-  // friends, so users heading to the venue right now have a one-tap path that
-  // ends in a "I'm at X — come join" share message instead of a future invite.
+  // Single primary CTA — Invite friends. The "I'm here" entry is absorbed
+  // into the invite sheet's time picker: picking a time within ±30 min of
+  // real-now flips the share message to "I'm at X now — come join" and
+  // checks the user in on send (see _isNowSend below).
   return `
     <div class="social-card">
       ${friendsHtml}
       <button class="dp-invite-cta" onclick="_openInviteSheet(${v.id})">
         ${inviteSvg}
         <span>${t('invite_friends')}</span>
-      </button>
-      <button class="dp-im-here-link${isCheckedInHere ? ' is-active' : ''}" onclick="_openInviteSheet(${v.id}, 'now')">
-        ${t('im_here')}
       </button>
       ${plansHtml}
     </div>`;
@@ -846,14 +844,11 @@ function _fmtInviteConfirm(venueName, dateStr, hour) {
 }
 
 /** Open the invite sheet — full-height takeover with venue card, chat-bubble
- *  preview and avatar-tap friend selection.
- *
- *  `mode`: 'default' (Invite friends entry) | 'now' (I'm here entry).
- *  In 'now' mode the time picker is forced to the current time, the
- *  Recent group is pre-selected, and the share message body switches
- *  to the "I'm at {venue} now — come join" variant. Sending also flips
- *  the user's check-in (pin presence) on. */
-function _openInviteSheet(venueId, mode = 'default') {
+ *  preview and avatar-tap friend selection. The "now" semantics ("I'm at X
+ *  now — come join", pin-presence flip on send) are driven by the time
+ *  picker itself: when the chosen time is within ±30 min of real-now,
+ *  _isNowSend returns true and the send path swaps message + checks in. */
+function _openInviteSheet(venueId) {
   if (typeof authCurrentUser === 'function' && !authCurrentUser()) {
     if (typeof toggleProfilePanel === 'function') toggleProfilePanel();
     return;
@@ -1249,34 +1244,6 @@ function _openInviteSheet(venueId, mode = 'default') {
         padding:  sheet._mapPadOpen,
         duration: 480,
       });
-    });
-  }
-
-  // Now-mode setup — applied after the sheet is in the DOM but before the
-  // open animation. Forces the global pickers to today/now and ticks every
-  // Recent-set avatar so the user lands with a one-tap path to "I'm here".
-  // Stored on sheet._mode so _sendInvite can flip pin presence on send and
-  // _composeInviteShareText can swap the message body.
-  sheet._mode = mode;
-  if (mode === 'now') {
-    const realNow = new Date();
-    const todayIso = `${realNow.getFullYear()}-${String(realNow.getMonth() + 1).padStart(2, '0')}-${String(realNow.getDate()).padStart(2, '0')}`;
-    const nowH = realNow.getHours() + realNow.getMinutes() / 60;
-    if (typeof datePicker !== 'undefined' && datePicker && datePicker.value !== todayIso) {
-      datePicker.value = todayIso;
-      datePicker.dispatchEvent(new Event('change'));
-    }
-    if (typeof timeFromEl !== 'undefined' && timeFromEl) {
-      timeFromEl.value = String(nowH);
-      timeFromEl.dispatchEvent(new Event('input'));
-    }
-    requestAnimationFrame(() => {
-      const tiles = sheet.querySelectorAll('.dpinvite-avatar');
-      tiles.forEach(tile => {
-        const fid = String(tile.getAttribute('data-friend-id'));
-        if (recentSet.has(fid)) tile.setAttribute('aria-checked', 'true');
-      });
-      if (typeof _refreshInvitePrimaryCTA === 'function') _refreshInvitePrimaryCTA();
     });
   }
 
