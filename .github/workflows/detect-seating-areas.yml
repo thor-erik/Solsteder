@@ -13,6 +13,10 @@ on:
     - cron: '0 22 * * 0'   # 22:00 UTC every Sunday — completes well before update-geometry's Mon 03:00
   workflow_dispatch:        # manual trigger from Actions tab
     inputs:
+      limit:
+        description: 'Cap detection to N venues (sample run; leave empty for all uncached)'
+        type: string
+        default: ''
       force_all:
         description: 'Re-detect every AI record (--force-all)'
         type: boolean
@@ -37,10 +41,13 @@ jobs:
 
       - name: Detect seating polygons
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Project secret is named CLAUDE_CONSOLE_KEY; the script reads
+          # ANTHROPIC_API_KEY (provider-neutral name).
+          ANTHROPIC_API_KEY: ${{ secrets.CLAUDE_CONSOLE_KEY }}
           MAPBOX_TOKEN:      ${{ secrets.MAPBOX_TOKEN }}
         run: |
           ARGS=""
+          if [ -n "${{ github.event.inputs.limit }}" ]; then ARGS="$ARGS --limit ${{ github.event.inputs.limit }}"; fi
           if [ "${{ github.event.inputs.force_all }}" = "true" ]; then ARGS="$ARGS --force-all"; fi
           if [ -n "${{ github.event.inputs.force_id }}" ]; then ARGS="$ARGS --force ${{ github.event.inputs.force_id }}"; fi
           node scripts/detect-seating-areas.mjs $ARGS
