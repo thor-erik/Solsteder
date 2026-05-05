@@ -46,6 +46,61 @@ function buildMiniSunTimeline(v, dateStr, fromHour) {
 }
 
 /**
+ * Build the labels row that sits under the timeline canvas. Three slots:
+ * the current time at the bar's start, the time referenced by pill 1, and
+ * the time referenced by pill 2. Positions are emitted as percentages of
+ * the [MIN_H_ARC, MAX_H_ARC] domain so they line up exactly with the
+ * canvas painting. Collision priority is pill1 > pill2 > current — handled
+ * in _resolveTimelineLabelCollisions after layout.
+ */
+function buildTimelineLabels(pills, fromHour, minH, maxH) {
+  if (minH == null || maxH == null || maxH <= minH) return '';
+  const fmt = (h) => (typeof formatHour === 'function') ? formatHour(h) : `${Math.floor(h)}:00`;
+  const pct = (h) => Math.max(0, Math.min(100, (h - minH) / (maxH - minH) * 100));
+  const slots = [];
+  // Higher data-prio = wins when labels collide.
+  slots.push({ time: fromHour, label: fmt(fromHour), prio: 1, kind: 'current' });
+  if (pills[0]?.time != null) slots.push({ time: pills[0].time, label: fmt(pills[0].time), prio: 3, kind: pills[0].kind });
+  if (pills[1]?.time != null) slots.push({ time: pills[1].time, label: fmt(pills[1].time), prio: 2, kind: pills[1].kind });
+  // De-dup labels at the same time (e.g., pill1 = current). Keep highest prio.
+  const byTime = new Map();
+  for (const s of slots) {
+    const key = Math.round(s.time * 12); // 5-min bucket
+    const prev = byTime.get(key);
+    if (!prev || s.prio > prev.prio) byTime.set(key, s);
+  }
+  const html = [...byTime.values()].map(s =>
+    `<span class="tl-label tl-label-${s.kind}" data-prio="${s.prio}" style="left:${pct(s.time).toFixed(2)}%">${s.label}</span>`
+  ).join('');
+  return `<div class="card-timeline-labels">${html}</div>`;
+}
+
+/**
+ * After labels are in the DOM, hide any that collide with a higher-priority
+ * sibling. Runs after drawAllCardTimelines so layout is settled.
+ */
+function _resolveTimelineLabelCollisions(root) {
+  const containers = (root || document).querySelectorAll('.card-timeline-labels');
+  for (const c of containers) {
+    const labels = Array.from(c.querySelectorAll('.tl-label'));
+    if (labels.length < 2) continue;
+    for (const l of labels) l.style.visibility = '';
+    const byPrio = labels.slice().sort((a, b) =>
+      Number(b.dataset.prio) - Number(a.dataset.prio)
+    );
+    const kept = [];
+    for (const l of byPrio) {
+      const r = l.getBoundingClientRect();
+      const collides = kept.some(rr =>
+        !(r.right < rr.left - 2 || r.left > rr.right + 2)
+      );
+      if (collides) l.style.visibility = 'hidden';
+      else kept.push(r);
+    }
+  }
+}
+
+/**
  * Walk every .card-timeline-canvas in the list (or any container) and draw it
  * via the shared drawTimeline. Called after every renderListPage reset, on
  * window resize, and on morph (when the source card's canvas resizes).
@@ -58,6 +113,13 @@ function drawAllCardTimelines(root) {
   const isToday_ = dateStr === todayStr();
   const nowH_    = new Date().getHours() + new Date().getMinutes() / 60;
   const dpr      = window.devicePixelRatio || 1;
+  // Card timelines anchor on selectedTime → bar end (sundown buffer). The
+  // labels under each bar (current time, pill1 time, pill2 time) use the
+  // same domain — this is what makes the current-time label always sit
+  // at the start of the bar.
+  const fromHour = parseFloat(timeFromEl.value);
+  const tlMin = fromHour;
+  const tlMax = (typeof MAX_H_ARC !== 'undefined') ? MAX_H_ARC : 22;
   for (const cv of nodes) {
     if (!cv.clientWidth || !cv.clientHeight) continue; // not laid out yet
     const vid = parseInt(cv.dataset.vid, 10);
@@ -76,7 +138,7 @@ function drawAllCardTimelines(root) {
     drawTimeline(ctx, {
       cssW, cssH,
       bleed: 0,
-      minH: MIN_H_ARC, maxH: MAX_H_ARC,
+      minH: tlMin, maxH: tlMax,
       dateStr,
       sunTable: currentSunTable,
       nowH: nowH_, isToday: isToday_,
@@ -88,6 +150,8 @@ function drawAllCardTimelines(root) {
     });
     ctx.restore();
   }
+  // Labels are positioned by left-percentages already; just resolve overlaps.
+  _resolveTimelineLabelCollisions(scope);
 }
 
 // Inline beer mug SVG for venue cards (12px)
@@ -192,6 +256,11 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
   ).join('');
 
   const miniTimeline = buildMiniSunTimeline(v, dateStr, fromHour);
+  // Bar + labels share a domain anchored on selectedTime → bar's right edge.
+  const tlMin = fromHour;
+  const tlMax = (typeof MAX_H_ARC !== 'undefined') ? MAX_H_ARC : null;
+  const tlLabels = buildTimelineLabels(pills, fromHour, tlMin, tlMax);
+  const timelineBlock = `<div class="card-timeline-block">${miniTimeline}${tlLabels}</div>`;
 
   const favActive = typeof isFavorite === 'function' && isFavorite(v.id);
   const favHeart = favActive
@@ -251,7 +320,7 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint) {
       </div>
       <div class="card-meta">${metaHtml}</div>
       ${pillsHtml ? `<div class="card-pills">${pillsHtml}</div>` : ''}
-      ${miniTimeline}
+      ${timelineBlock}
       ${reviewChips}
       ${reviewActions}
     </div>`;

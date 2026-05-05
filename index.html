@@ -1940,7 +1940,10 @@
     contain: layout style;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    /* Tight row gap — matches the prior card visual where rows sit ~3-4px
+       apart. Pills and the timeline get individual margin-top in their own
+       rules where they need a touch more breathing room. */
+    gap: 3px;
   }
   /* The closed-card variant is a single row, not the 3-row column. Override
      the column flex so name + "opens at" badge sit side-by-side. */
@@ -2131,6 +2134,7 @@
     gap: 6px;
     flex-wrap: nowrap;
     min-width: 0;
+    margin-top: 4px;
   }
   .card-pill {
     height: 24px;
@@ -2173,12 +2177,41 @@
      low-value cards (e.g. "20-min window in 4 hours") without filtering them. */
   .venue-card.card-quiet { opacity: 0.65; }
 
-  /* ── Card timeline — full-width strip at the bottom of the card. ── */
+  /* ── Card timeline — full-width strip + labels row at the bottom. ──
+     The block is inset by 18px on each side so the bar's start cap sits
+     under the center of the leftmost label and there's room for the
+     right-edge label to fit without clipping. */
+  .card-timeline-block {
+    margin-top: 6px;
+    padding: 0 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
   .card-timeline {
     position: relative;
     width: 100%;
     height: 12px;
   }
+  .card-timeline-labels {
+    position: relative;
+    height: 11px;
+    font-size: 9.5px;
+    font-weight: 500;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    line-height: 11px;
+    opacity: 0.8;
+  }
+  .tl-label {
+    position: absolute;
+    transform: translateX(-50%);
+    white-space: nowrap;
+  }
+  /* Highlight the current-time label so the user can read the bar's domain
+     start at a glance. Pill labels stay in --muted; sun pill keeps accent. */
+  .tl-label-current { color: var(--text); opacity: 0.9; }
+  .tl-label-sol     { color: var(--accent); opacity: 0.95; }
 
   .timeline-track {
     position: relative;
@@ -2308,28 +2341,6 @@
     align-items: flex-start;
     justify-content: space-between;
     gap: 6px;
-  }
-
-  .card-meta {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    font-size: 12px;
-    font-weight: 400;
-    color: #9CBDE7;
-    margin: 4px 0 8px;
-  }
-  .card-meta-item { white-space: nowrap; }
-  .card-meta-dot  { opacity: 0.4; }
-  .card-meta-score {
-    display: inline-block;
-    background: rgba(255,175,133,0.15);
-    color: #FFAF85;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 2px 7px;
-    border-radius: 4px;
-    white-space: nowrap;
   }
 
   /* ── Card sun row: dial + duration left, label+time pushed right ─────── */
@@ -2920,11 +2931,7 @@
       border-radius: 14px;
     }
 
-    .card-name    { font-size: 16px; }
     .card-badge   { font-size: 11px; padding: 4px 11px; }
-    .card-meta    { font-size: 12px; }
-    .card-sun-time { font-size: 22px; }
-    .card-dial    { width: 80px; height: 80px; }
     .area-chip    { font-size: 12px; padding: 6px 13px; }
     .sort-btn     { font-size: 15px; padding: 12px 16px; }
 

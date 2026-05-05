@@ -113,18 +113,10 @@ function venueState(venue, selectedTime) {
 function buildCardPills(venue, qual, selectedHour, sundownH, dateStr) {
   if (!qual || !qual.earliest) return [];
   const earliest = qual.earliest;
-  const formatDuration = (hours) => {
-    const h = Math.floor(hours);
-    const m = Math.round((hours - h) * 60);
-    if (h > 0 && m > 0) return `${h}t ${m}m`;
-    if (h > 0) return `${h}t`;
-    if (m > 0) return `${m} min`;
-    return '5 min';
-  };
   const fmt = (h) => (typeof formatHour === 'function') ? formatHour(h) : `${Math.floor(h)}:00`;
-  const sunUntilLabel = (endH) => (sundownH != null && endH >= sundownH - 5/60)
-    ? t('pill_sun_until_sundown')
-    : t('pill_sun_until', { time: fmt(endH) });
+  const sunUntilPill = (endH) => (sundownH != null && endH >= sundownH - 5/60)
+    ? { kind: 'sol', label: t('pill_sun_until_sundown'), time: sundownH }
+    : { kind: 'sol', label: t('pill_sun_until', { time: fmt(endH) }), time: endH };
 
   // Determine the non-sun state at a given hour: weather first (regn/skyer),
   // else 'skygge' (geometric shadow / no direct sun).
@@ -144,20 +136,17 @@ function buildCardPills(venue, qual, selectedHour, sundownH, dateStr) {
   if (inSunNow) {
     // Single-pill exception: continuous sun all the way to (or near) sundown.
     if (sundownH != null && earliest.end >= sundownH - 5/60) {
-      return [{ kind: 'sol', label: t('pill_sun_until_sundown') }];
+      return [{ kind: 'sol', label: t('pill_sun_until_sundown'), time: sundownH }];
     }
     // Pill 1: orange — when the current sun ends.
-    const pill1 = { kind: 'sol', label: t('pill_sun_until', { time: fmt(earliest.end) }) };
+    const pill1 = { kind: 'sol', label: t('pill_sun_until', { time: fmt(earliest.end) }), time: earliest.end };
     // Pill 2: state-color — what comes after, until next change before sundown.
-    const afterStartH = earliest.end;
-    const afterKind = stateAt(afterStartH + 0.001) ?? 'skygge';
-    // Look for the next qualifying window after this one to decide "til [time]"
-    // vs "til solnedgang"; if there isn't one, "til solnedgang" is correct.
+    const afterKind = stateAt(earliest.end + 0.001) ?? 'skygge';
     const nextWin = qual.windows.find(w => w.start > earliest.start + 0.001);
-    const endLabel = nextWin
-      ? t('pill_state_until', { state: stateLabel(afterKind), time: fmt(nextWin.start) })
-      : t('pill_state_until_sundown', { state: stateLabel(afterKind) });
-    return [pill1, { kind: afterKind, label: endLabel }];
+    const pill2 = nextWin
+      ? { kind: afterKind, label: t('pill_state_until', { state: stateLabel(afterKind), time: fmt(nextWin.start) }), time: nextWin.start }
+      : { kind: afterKind, label: t('pill_state_until_sundown', { state: stateLabel(afterKind) }), time: sundownH };
+    return [pill1, pill2];
   }
 
   // Sol senere: state at selectedHour → sun arrival → end.
@@ -165,9 +154,9 @@ function buildCardPills(venue, qual, selectedHour, sundownH, dateStr) {
   const pill1 = {
     kind: stateNowKind,
     label: t('pill_state_until', { state: stateLabel(stateNowKind), time: fmt(earliest.start) }),
+    time: earliest.start,
   };
-  const pill2 = { kind: 'sol', label: sunUntilLabel(earliest.end) };
-  return [pill1, pill2];
+  return [pill1, sunUntilPill(earliest.end)];
 }
 
 // ── Opening hours helpers ─────────────────────────────────────────────────────
@@ -235,8 +224,14 @@ function wxBucket(dateStr, h) {
   if (!wx) return null;
   const precip = wx.precip ?? 0;
   const cloud  = wx.cloud  ?? 0;
-  if (precip > 0.3) return 'regn';
-  if (cloud  > 0.65) return 'skyer';
+  // 'skyer' = truly overcast (cloud ≥ 0.85), matching the threshold venueState
+  // already uses for its overcast display state. Partly cloudy / sub-overcast
+  // hours still count as 'sol' so a venue with sun behind a few clouds isn't
+  // wrongly filtered out of the list. The wxColor() helper above keeps a
+  // finer 4-step gradient for the timeline-bar paint — that's a visual ramp,
+  // not a filter input.
+  if (precip > 0.3)  return 'regn';
+  if (cloud  >= 0.85) return 'skyer';
   return 'sol';
 }
 
