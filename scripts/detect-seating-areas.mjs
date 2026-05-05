@@ -60,7 +60,11 @@ const PROXIMITY_M     = 40;
 const PROXIMITY_PX    = Math.round(PROXIMITY_M / M_PER_IMAGE_PX);
 const CLAUDE_MODEL    = 'claude-sonnet-4-6';
 const CONFIDENCE_GATE = 0.5;     // venues below this fall back to the heuristic
-const REQUEST_PAUSE_MS = 400;    // gentle on both APIs
+// 50 RPM is Anthropic's per-minute request limit on this org/model. Keep us
+// at ~40 RPM (1500 ms cadence) so a brief burst doesn't trip 429s, and let
+// the in-call backoff handle the input-tokens-per-minute ceiling.
+const REQUEST_PAUSE_MS = 1500;
+const MAX_429_RETRIES  = 4;
 
 // Cache snapshot bytes between runs so a re-detect doesn't refetch Mapbox.
 const SNAPSHOT_DIR = join(ROOT, '.cache/seating-snapshots');
@@ -274,24 +278,46 @@ async function callClaude(imageBytes, prompt, exampleContent) {
   });
   content.push({ type: 'text', text: prompt });
 
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
-    method:  'POST',
-    headers: {
-      'x-api-key':         ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
-      'content-type':      'application/json',
-    },
-    body: JSON.stringify({
-      model:      CLAUDE_MODEL,
-      max_tokens: 600,
-      messages: [{ role: 'user', content }],
-    }),
-    signal: AbortSignal.timeout(60_000),
+  const body = JSON.stringify({
+    model:      CLAUDE_MODEL,
+    max_tokens: 600,
+    messages:   [{ role: 'user', content }],
   });
-  if (!resp.ok) throw new Error(`Anthropic HTTP ${resp.status}: ${await resp.text()}`);
-  const data = await resp.json();
-  const text = data.content?.[0]?.text ?? '';
-  return parseJsonResponse(text);
+
+  for (let attempt = 0; attempt <= MAX_429_RETRIES; attempt++) {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method:  'POST',
+      headers: {
+        'x-api-key':         ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'content-type':      'application/json',
+      },
+      body,
+      signal: AbortSignal.timeout(60_000),
+    });
+
+    if (resp.status === 429) {
+      // Anthropic returns Retry-After in seconds when we hit input-tokens-per-min
+      // or requests-per-min limits. Fall back to exponential backoff if absent.
+      const retryAfter = Number(resp.headers.get('retry-after'));
+      const waitMs = Number.isFinite(retryAfter) && retryAfter > 0
+        ? retryAfter * 1000
+        : Math.min(60_000, 2_000 * Math.pow(2, attempt));
+      if (attempt === MAX_429_RETRIES) {
+        const txt = await resp.text();
+        throw new Error(`Anthropic HTTP 429 after ${MAX_429_RETRIES} retries: ${txt.slice(0, 200)}`);
+      }
+      console.log(`    rate limited (429) — sleeping ${Math.round(waitMs / 1000)}s before retry ${attempt + 1}/${MAX_429_RETRIES}`);
+      await new Promise(r => setTimeout(r, waitMs));
+      continue;
+    }
+
+    if (!resp.ok) throw new Error(`Anthropic HTTP ${resp.status}: ${await resp.text()}`);
+    const data = await resp.json();
+    const text = data.content?.[0]?.text ?? '';
+    return parseJsonResponse(text);
+  }
+  throw new Error('Unreachable: callClaude exited the retry loop without resolving');
 }
 
 // Claude occasionally wraps the JSON in markdown fences or prefixes it with

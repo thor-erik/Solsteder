@@ -9,6 +9,7 @@
  *
  * Usage:
  *   node scripts/merge-seating-corrections.mjs <path-to-corrections.json>
+ *   node scripts/merge-seating-corrections.mjs <path> --commit-and-push
  *
  * Recognised correction shapes (from js/data.js#saveCorrection):
  *   { type:'correction', id, name,
@@ -20,13 +21,16 @@
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { execSync } from 'child_process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT      = join(__dirname, '..');
 
-const inputPath = process.argv[2];
+const args         = process.argv.slice(2);
+const COMMIT_PUSH  = args.includes('--commit-and-push');
+const inputPath    = args.find(a => !a.startsWith('--'));
 if (!inputPath) {
-  console.error('Usage: node scripts/merge-seating-corrections.mjs <corrections.json>');
+  console.error('Usage: node scripts/merge-seating-corrections.mjs <corrections.json> [--commit-and-push]');
   process.exit(1);
 }
 
@@ -106,3 +110,32 @@ for (const c of ordered) {
 writeFileSync(cachePath, JSON.stringify(cache, null, 2));
 console.log(`Merged ${merged} manual polygon(s), cleared ${cleared}, skipped ${skipped} unrelated.`);
 console.log(`Updated: ${cachePath}`);
+
+if (COMMIT_PUSH) {
+  if (merged === 0 && cleared === 0) {
+    console.log('Nothing to commit — exiting without git changes.');
+    process.exit(0);
+  }
+  const summary = `${merged} added, ${cleared} cleared`;
+  try {
+    // Stage just the file we touched — never -A — so we don't sweep up
+    // unrelated unstaged changes a contributor might have lying around.
+    execSync(`git add ${JSON.stringify(cachePath)}`, { cwd: ROOT, stdio: 'inherit' });
+    // Skip the commit if the staged diff is empty (e.g. corrections were
+    // already merged in a previous run).
+    try {
+      execSync('git diff --cached --quiet -- data/seating-detected.json', { cwd: ROOT, stdio: 'ignore' });
+      console.log('No changes to commit (corrections already merged previously).');
+      process.exit(0);
+    } catch (_) { /* diff returned non-zero → there ARE staged changes */ }
+
+    const msg = `chore: import manual seating corrections (${summary})`;
+    execSync(`git commit -m ${JSON.stringify(msg)}`,  { cwd: ROOT, stdio: 'inherit' });
+    execSync('git push origin HEAD',                  { cwd: ROOT, stdio: 'inherit' });
+    console.log(`Pushed ${summary}.`);
+  } catch (err) {
+    console.error('git step failed:', err.message);
+    console.error('The merge succeeded — re-run `git add/commit/push` manually if needed.');
+    process.exit(2);
+  }
+}
