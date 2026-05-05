@@ -720,16 +720,80 @@
   /* ── Profile popover ──────────────────────────────────────────────────────── */
   #profile-panel {
     position: absolute;
-    top: calc(16px + 46px + 8px); /* search top + search height + gap */
+    top: 70px;            /* match #panel: 16 search-top + 46 search-h + 8 gap */
     left: 16px;
-    width: 300px;
+    bottom: 16px;
+    width: 336px;          /* match the venue-list panel width */
     z-index: 1100;
     border-radius: 16px;
     box-shadow: var(--glass-inset), 0 8px 32px rgba(0,0,0,0.55);
-    overflow: hidden;
-    display: none;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    transform: translateX(calc(-100% - 24px));
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.28s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.22s ease;
   }
-  #profile-panel.open { display: block; }
+  #profile-panel.open {
+    transform: translateX(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+  /* Logged-out (login) takes over the full viewport on every breakpoint so the
+     value-prop carousel + auth buttons get the user's full attention. */
+  #profile-panel.logged-out {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    width: 100%;
+    height: 100svh;
+    max-height: 100svh;
+    border-radius: 0;
+    z-index: 9999;            /* above notifications (9998) */
+    transform: translateX(0);
+    opacity: 0;
+    pointer-events: none;
+  }
+  #profile-panel.logged-out.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  #profile-panel.logged-out .login-close-btn { display: flex; }
+  /* Hero stretches to fill the fullscreen panel; auth section pins to the
+     bottom. Same flex split on desktop and mobile — typography overrides for
+     mobile live in the @media block below. */
+  #profile-panel.logged-out .login-hero {
+    flex: 1 1 auto;
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 32px 20px 8px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  #profile-panel.logged-out .login-auth-section {
+    flex: 0 0 auto;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    width: 100%;
+    box-sizing: border-box;
+  }
+  @media (min-width: 640px) {
+    /* Constrain hero/auth width on desktop so the carousel + buttons don't
+       stretch across a 1920px monitor. */
+    #profile-panel.logged-out .login-hero,
+    #profile-panel.logged-out .login-auth-section {
+      max-width: 480px;
+      margin: 0 auto;
+    }
+  }
+  /* When venue list slides off so the settings card can take its place — only
+     on desktop; mobile already covers the screen. */
+  @media (min-width: 640px) {
+    body.profile-panel-open #panel {
+      transform: translateX(calc(-100% - 24px));
+      opacity: 0;
+      pointer-events: none;
+    }
+  }
   /* Mobile-only sticky header — hidden by default; the @media (max-width:639px)
      rule below restores it when the panel goes full-screen. */
   .profile-panel-mobile-bar { display: none; }
@@ -942,16 +1006,17 @@
   }
   #fts-popup.visible { opacity: 1; }
   #fts-popup.hidden-y { transform: translateX(-50%) translateY(6px); }
-  /* Tail — pointing down to thumb (default: above bar) */
+  /* Tail — clean clip-path triangle pointing down to thumb (default: above bar).
+     Using clip-path instead of a rotated square avoids a visible mirrored
+     half-diamond peeking inside the translucent popup body. */
   #fts-popup::after {
     content: '';
     position: absolute;
-    bottom: -4px; left: 50%;
-    transform: translateX(-50%) rotate(45deg);
-    width: 8px; height: 8px;
+    bottom: -6px; left: 50%;
+    transform: translateX(-50%);
+    width: 12px; height: 6px;
     background: rgba(20,46,82,0.62);
-    border-right: 1px solid rgba(156,189,231,0.22);
-    border-bottom: 1px solid rgba(156,189,231,0.22);
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
   }
   /* Flipped: popup below the bar (fullscreen mode) */
   #fts-popup.fts-popup-below {
@@ -959,8 +1024,13 @@
     top: calc(100% + 8px);
   }
   #fts-popup.fts-popup-below::after {
-    bottom: auto; top: -4px;
-    transform: translateX(-50%) rotate(-135deg);
+    bottom: auto; top: -6px;
+    clip-path: polygon(50% 0, 0 100%, 100% 100%);
+  }
+  /* Desktop: keep the scrub popup permanently visible — it's a useful weather
+     readout, not just a scrub indicator. */
+  @media (min-width: 640px) {
+    body.fts #fts-popup { opacity: 1; }
   }
   .fts-popup-row { display: flex; align-items: center; gap: 6px; }
   .fts-popup-primary { gap: 6px; }
@@ -2702,7 +2772,8 @@
 
     /* Logged-in profile panel goes full-screen on mobile so the Invitations
        inbox + settings remain reachable via scroll. Logged-out variant
-       already takes over the full screen via the .logged-out rule below. */
+       already takes over the full screen via the .logged-out rule below.
+       Mobile uses a simple fade — overrides the desktop slide-in animation. */
     #profile-panel {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -2714,6 +2785,8 @@
       -webkit-overflow-scrolling: touch;
       padding-bottom: env(safe-area-inset-bottom, 0px);
       z-index: 9990;
+      transform: none;
+      transition: opacity 0.25s ease;
     }
     .profile-panel-mobile-bar {
       position: sticky;
@@ -2758,29 +2831,8 @@
       transition: opacity 0.25s ease;
     }
 
-    /* Logged-out: take over the full screen so users focus on the value prop.
-       Flex column: hero+carousel grow to fill, auth section anchors to bottom.
-       NOTE: display gated on .open below — base #profile-panel { display: none }
-       must continue to apply until the user explicitly opens the panel. */
-    #profile-panel.logged-out {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      width: 100%;
-      height: 100svh;
-      max-height: 100svh;
-      border-radius: 0;
-      flex-direction: column;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      z-index: 9999;            /* above notifications (9998) */
-    }
-    #profile-panel.logged-out.open { display: flex; }
-    #profile-panel.logged-out .login-close-btn { display: flex; }
-    #profile-panel.logged-out .login-hero {
-      flex: 1 1 auto;
-      display: flex; flex-direction: column; justify-content: center;
-      padding: 32px 20px 8px;
-    }
+    /* Logged-out: mobile typography overrides. Layout (flex, padding) lives in
+       the global #profile-panel.logged-out rules above. */
     #profile-panel.logged-out .login-slide-icon { width: 72px; height: 72px; margin-bottom: 16px; }
     #profile-panel.logged-out .login-slide-icon svg { width: 56px; height: 56px; }
     #profile-panel.logged-out .login-hero-title {
@@ -2788,10 +2840,6 @@
     }
     #profile-panel.logged-out .login-slide-title { font-size: 17px; margin-bottom: 8px; }
     #profile-panel.logged-out .login-slide-body { max-width: 320px; font-size: 14px; }
-    #profile-panel.logged-out .login-auth-section {
-      flex: 0 0 auto;
-      padding-bottom: max(12px, env(safe-area-inset-bottom));
-    }
 
     #zoom-debug {
       left: 6px;
@@ -4226,7 +4274,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 16px 8px;
+    padding: 6px 16px 8px;
     flex-shrink: 0;
   }
   #list-sun-count {
@@ -5702,15 +5750,22 @@
   .invite-backdrop.open,
   .dpinvite-backdrop.open { background: rgba(0,0,0,0.42); }
 
-  /* Fade the underlying chrome so the user focuses on the sheet. The FTS
-     stays visible — it's the canonical time control and gets repositioned
-     above the sheet (see rule below) so the user can scrub to preview
-     weather/sun across the day while picking recipients. */
+  /* Slide the underlying surfaces down out of view so the user focuses on the
+     sheet sliding up. Convention: closing panels always slide DOWN, even when
+     another panel is sliding UP behind them. The FTS stays visible — it's the
+     canonical time control and gets repositioned above the sheet (see rule
+     below) so the user can scrub to preview weather/sun across the day while
+     picking recipients. */
   body.invite-sheet-open #detail-panel,
+  body.invite-sheet-open #panel {
+    transform: translateY(calc(100% + 24px));
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.22s ease;
+  }
   body.invite-sheet-open #qc-wrap,
   body.invite-sheet-open #floating-search,
-  body.invite-sheet-open #floating-brand,
-  body.invite-sheet-open #panel {
+  body.invite-sheet-open #floating-brand {
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.22s ease;

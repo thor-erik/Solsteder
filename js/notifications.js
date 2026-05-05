@@ -173,7 +173,16 @@ function _notifShow(notif) {
   };
 
   const wrap = document.getElementById('notif-toast-wrap');
-  if (wrap) wrap.classList.add('show');
+  if (wrap) {
+    wrap.classList.add('show');
+    // Publish the toast height as --notif-h so the desktop layout can shift the
+    // venue list down by the actual height (CSS rule in index.html that reads
+    // body:has(#notif-toast-wrap.show) #panel { top: calc(70px + --notif-h + 8px) }).
+    requestAnimationFrame(() => {
+      const h = wrap.offsetHeight || 0;
+      document.documentElement.style.setProperty('--notif-h', h + 'px');
+    });
+  }
   _notifShownCount++;
   _notifLastShownAt = Date.now();
 
@@ -199,6 +208,7 @@ function _notifHide() {
   clearTimeout(_notifAutoTimer);
   const wrap = document.getElementById('notif-toast-wrap');
   if (wrap) wrap.classList.remove('show');
+  document.documentElement.style.setProperty('--notif-h', '0px');
   _notifCurrent = null;
   // After hide animation, try next in queue
   setTimeout(() => _notifAdvance(), 400);

@@ -576,7 +576,17 @@ function syncFts() {
   if (!USE_FLOATING_TIME_SLIDER) return;
   drawFtsCanvas();
   updateFtsDateBtn();
-  // Trigger appstart popup on first sync after FTS becomes visible
+  // Desktop: keep the popup permanently populated + positioned. It's CSS-
+  // forced to opacity:1 on desktop, so without a refresh on each update() it
+  // would freeze with stale time/weather while the user changed date/time.
+  if (!isMobile() && document.body.classList.contains('fts')) {
+    if (_ftsHideTimeout) { clearTimeout(_ftsHideTimeout); _ftsHideTimeout = null; }
+    _ftsAppstartDone = true;
+    const h = parseFloat(timeFromEl.value);
+    showFtsPopup(h);
+    return;
+  }
+  // Mobile: trigger appstart popup on first sync after FTS becomes visible
   if (!_ftsAppstartDone && document.body.classList.contains('fts')) {
     _ftsAppstartDone = true;
     const h = parseFloat(timeFromEl.value);
@@ -705,6 +715,24 @@ function locateUser() {
   if (si && document.activeElement === si) si.blur();
   const btn = document.getElementById('locate-btn');
   if (btn) { btn.classList.add('tracking'); setTimeout(() => btn.classList.remove('tracking'), 1200); }
+  // Desktop with detail panel open: fit the selected venue + user dot together
+  // so the user can see both. The venue list (336px) + detail panel (336px)
+  // occupy the left ~720px of the viewport, so bias padding to the right.
+  if (!isMobile() && selectedId != null) {
+    const v = (typeof VENUES !== 'undefined') ? VENUES.find(x => x.id === selectedId) : null;
+    if (v && Number.isFinite(v.lat) && Number.isFinite(v.lng)) {
+      const sw = [Math.min(v.lng, userLocation.lng), Math.min(v.lat, userLocation.lat)];
+      const ne = [Math.max(v.lng, userLocation.lng), Math.max(v.lat, userLocation.lat)];
+      map.fitBounds([sw, ne], {
+        padding: { top: 96, bottom: 96, left: 720, right: 80 },
+        maxZoom: 16,
+        pitch: 0,
+        bearing: 0,
+        duration: 700,
+      });
+      return;
+    }
+  }
   // Mobile: reset to "all venues" mode
   if (isMobile()) {
     filterMapViewActive = false;
@@ -2268,10 +2296,10 @@ function openDetailPanel(v) {
   dp.classList.add('open');
 
   _startWindForVenue(v);
-  document.getElementById('locate-btn')?.classList.add('mobile-ui-hidden');
-  document.getElementById('zoom-jog')?.classList.add('mobile-ui-hidden');
 
   if (isMobile()) {
+    document.getElementById('locate-btn')?.classList.add('mobile-ui-hidden');
+    document.getElementById('zoom-jog')?.classList.add('mobile-ui-hidden');
     const panel = document.getElementById('panel');
     if (panel) {
       panel.classList.remove('mobile-expanded', 'mobile-fullscreen');
@@ -2363,9 +2391,9 @@ function closeDetailPanel(expandList = true) {
     _panelStateBeforeOpen = null;
     document.getElementById('floating-search')?.classList.remove('mobile-ui-hidden');
     document.getElementById('qc-wrap')?.classList.remove('mobile-ui-hidden');
+    document.getElementById('locate-btn')?.classList.remove('mobile-ui-hidden');
+    document.getElementById('zoom-jog')?.classList.remove('mobile-ui-hidden');
   }
-  document.getElementById('locate-btn')?.classList.remove('mobile-ui-hidden');
-  document.getElementById('zoom-jog')?.classList.remove('mobile-ui-hidden');
 
   _syncFtsPosition();
 
