@@ -37,8 +37,11 @@ const ROOT      = join(__dirname, '..');
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const SNAPSHOT_ZOOM   = 19;
-const SNAPSHOT_W      = 640;
+const SNAPSHOT_W      = 640;     // logical (world-pixel) width
 const SNAPSHOT_H      = 640;
+const DPR             = 2;       // @2x — sharper imagery for chair/parasol detection
+const IMAGE_W         = SNAPSHOT_W * DPR;
+const IMAGE_H         = SNAPSHOT_H * DPR;
 const MAPBOX_STYLE    = 'mapbox/satellite-v9';
 const CLAUDE_MODEL    = 'claude-sonnet-4-6';
 const CONFIDENCE_GATE = 0.5;     // venues below this fall back to the heuristic
@@ -155,9 +158,12 @@ function buildingPixelPolygon(v) {
   const g = geom.venues?.[String(v.id)] ?? geom.venues?.[v.id];
   if (!g?.bg) return null;
   const [lat, lng] = v.coords;
+  // latLngToImagePixel returns world-pixel coords (SNAPSHOT_W-space). Mapbox
+  // returns the image at @2x, so Claude sees coords in IMAGE_W-space — scale
+  // by DPR before handing the hint to Claude.
   return g.bg.map(([blat, blng]) =>
     latLngToImagePixel(blng, blat, SNAPSHOT_W, SNAPSHOT_H, lng, lat, SNAPSHOT_ZOOM)
-  ).map(p => [Math.round(p.x), Math.round(p.y)]);
+  ).map(p => [Math.round(p.x * DPR), Math.round(p.y * DPR)]);
 }
 
 // ── Claude prompt ─────────────────────────────────────────────────────────────
@@ -170,14 +176,14 @@ function buildPrompt(v) {
 EXCLUDE this region — it is the venue's BUILDING. No seating goes inside it.
 Building footprint vertices (image pixel coords): ${JSON.stringify(bldgPx)}`
     : '';
-  const center = `(${SNAPSHOT_W / 2}, ${SNAPSHOT_H / 2})`;
+  const center = `(${IMAGE_W / 2}, ${IMAGE_H / 2})`;
 
   return `You are looking at a top-down satellite image of an outdoor venue in Oslo.
 
 Venue: ${v.name}
 Category: ${v.category}
 Address: ${v.address ?? '?'}
-Image dimensions: ${SNAPSHOT_W}×${SNAPSHOT_H} pixels (top-left origin)
+Image dimensions: ${IMAGE_W}×${IMAGE_H} pixels (top-left origin)
 Venue marker location in image: ${center} (center)${bldgBlock}
 
 Task: Identify the OUTDOOR SEATING AREA for this venue — the area OUTSIDE the
@@ -200,11 +206,11 @@ Visual cues that are NOT seating:
 
 Hard constraints (a polygon that violates any of these is wrong — return notVisible:true instead):
 1. The polygon MUST NOT contain any pixel inside the building footprint listed above.
-2. The polygon MUST be within ~150 pixels (~30 metres) of the venue marker at the image center.
+2. The polygon MUST be within ~${150 * DPR} pixels (~30 metres) of the venue marker at the image center.
 3. The polygon should be ADJACENT to and OUTSIDE the building footprint.
 
 Decision flow:
-1. Scan within ~150 pixels of the marker for seating cues from the lists above.
+1. Scan within ~${150 * DPR} pixels of the marker for seating cues from the lists above.
 2. If you find a candidate that is OUTSIDE the building footprint AND within
    range, trace it. Lower-confidence traces (down to ~0.5) are fine — we filter
    at runtime.
@@ -225,7 +231,7 @@ If notVisible is true, polygon must be []. If notVisible is false, polygon must
 have at least 4 vertices.
 
 Polygon vertices must be ordered (CW or CCW) and form a simple (non-self-intersecting) polygon.
-Coordinates are in pixels of the original ${SNAPSHOT_W}×${SNAPSHOT_H} image.
+Coordinates are in pixels of the original ${IMAGE_W}×${IMAGE_H} image.
 Output JSON only — no markdown, no commentary, no preamble.`;
 }
 
@@ -289,8 +295,10 @@ function parseJsonResponse(text) {
 
 function pixelsToLatLng(polygon, v) {
   const [lat, lng] = v.coords;
+  // Claude returns coords in IMAGE_W (1280-px) space; descale by DPR to
+  // match the SNAPSHOT_W (640-px world-pixel) space the projection expects.
   return polygon.map(([px, py]) => {
-    const ll = imagePixelToLatLng(px, py, SNAPSHOT_W, SNAPSHOT_H, lng, lat, SNAPSHOT_ZOOM);
+    const ll = imagePixelToLatLng(px / DPR, py / DPR, SNAPSHOT_W, SNAPSHOT_H, lng, lat, SNAPSHOT_ZOOM);
     return [Number(ll.lat.toFixed(6)), Number(ll.lng.toFixed(6))];
   });
 }

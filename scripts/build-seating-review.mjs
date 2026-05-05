@@ -45,6 +45,8 @@ const records = Object.entries(cache.venues ?? {})
   });
 
 const SNAP_W = 640, SNAP_H = 640, SNAP_ZOOM = 19;
+const DPR    = 2;                          // Mapbox @2x — actual image is 1280×1280
+const IMG_W  = SNAP_W * DPR, IMG_H = SNAP_H * DPR;
 
 // Same Mercator helpers as the pipeline — re-implemented here so the review
 // page works without importing the script's lib (keeps the HTML self-contained).
@@ -76,10 +78,12 @@ const tiles = records.map(([id, rec]) => {
     snapHref = `seating-review-assets/${id}.png`;
   }
 
-  // Project the polygon (lat/lng) back to image-pixel coords for the SVG overlay.
-  const polyPx = (rec.polygon ?? []).map(([plat, plng]) =>
-    latLngToImagePixel(plng, plat, SNAP_W, SNAP_H, lng, lat, SNAP_ZOOM)
-  );
+  // Project polygon (lat/lng) → world-pixel coords → image-pixel coords (×DPR)
+  // so the SVG aligns with the @2x satellite snapshot.
+  const polyPx = (rec.polygon ?? []).map(([plat, plng]) => {
+    const p = latLngToImagePixel(plng, plat, SNAP_W, SNAP_H, lng, lat, SNAP_ZOOM);
+    return { x: p.x * DPR, y: p.y * DPR };
+  });
   const polyPoints = polyPx.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
 
   const conf       = (rec.confidence ?? 0).toFixed(2);
@@ -97,7 +101,7 @@ const tiles = records.map(([id, rec]) => {
       </header>
       <div class="canvas">
         ${snapHref ? `<img src="${snapHref}" width="${SNAP_W / 2}" height="${SNAP_H / 2}" alt="">` : '<div class="missing">no snapshot</div>'}
-        ${polyPx.length >= 3 ? `<svg viewBox="0 0 ${SNAP_W} ${SNAP_H}" preserveAspectRatio="none"><polygon points="${polyPoints}" /></svg>` : ''}
+        ${polyPx.length >= 3 ? `<svg viewBox="0 0 ${IMG_W} ${IMG_H}" preserveAspectRatio="none"><polygon points="${polyPoints}" /></svg>` : ''}
       </div>
       <footer>
         <span class="conf" style="color:${confColor}">conf ${conf}${rec.notVisible ? ' · not visible' : ''}</span>
