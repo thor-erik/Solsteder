@@ -25,7 +25,6 @@ let _notifLastShownAt   = 0;
 let _notifSessionStart  = Date.now();
 let _notifAutoTimer     = null;
 let _notifLoginShown    = new Set();  // login prompt ids shown this session
-let _notifVenueOpens    = 0;          // venue detail opens this session
 let _notifInitDone      = false;
 let _notifEvalTimer     = null;
 let _notifWeatherShownThisSession = false; // track if any P0 weather was shown
@@ -45,7 +44,7 @@ function _notifGetSettings() {
     const s = JSON.parse(localStorage.getItem(_NOTIF_STORAGE_SETTINGS) || 'null');
     if (s) return s;
   } catch { /* ignore */ }
-  return { weather: true, social: true, suggestion: true, onboarding: true, login: true, engagement: true };
+  return { weather: true, social: true, suggestion: true, login: true };
 }
 
 function _notifSaveSettings(settings) {
@@ -241,13 +240,6 @@ window.notifResumeAutoDismiss = notifResumeAutoDismiss;
 
 function _notifDismiss(id) {
   _notifDismissed.add(id);
-  // Persist onboarding dismissals
-  if (id.startsWith('onboard_')) {
-    const state = _notifLoadState();
-    if (!state.dismissed) state.dismissed = [];
-    if (!state.dismissed.includes(id)) state.dismissed.push(id);
-    _notifSaveState(state);
-  }
   if (_notifCurrent && _notifCurrent.id === id) _notifHide();
   else _notifQueue = _notifQueue.filter(n => n.id !== id);
 }
@@ -342,18 +334,12 @@ function _evalCloudIncoming() {
   for (let h = 1; h <= 3; h++) {
     const wxFuture = getWeatherAt(dateStr, Math.floor(now) + h);
     if (wxFuture && wxFuture.cloud > 0.7) {
-      const lastClearHour = Math.floor(now) + h - 1;
+      const cloudArrivesHour = Math.floor(now) + h;
       return {
         id: 'weather_cloud_incoming', priority: 0, category: 'weather',
         icon: '🌥️', bodyKey: 'notif_cloud_incoming_body',
-        bodyVars: { hour: formatHour(lastClearHour) },
-        actionKey: 'notif_set_time',
-        action: () => {
-          if (typeof timeFromEl !== 'undefined' && timeFromEl) {
-            timeFromEl.value = lastClearHour;
-            timeFromEl.dispatchEvent(new Event('input'));
-          }
-        },
+        bodyVars: { hour: formatHour(cloudArrivesHour) },
+        actionKey: null, action: null,
         ttl: 300000, dedupe: true,
       };
     }
@@ -627,19 +613,6 @@ function _evalFriendPlanning() {
 
 // ── Evaluators: P2 Suggestions ───────────────────────────────────────────────
 
-function _evalMorningCoffee() {
-  if (typeof datePicker === 'undefined' || datePicker.value !== todayStr()) return null;
-  const now = currentHour();
-  if (now >= 11 || now < 7) return null; // only 7-11
-  if (typeof currentSun === 'undefined' || !currentSun || currentSun.alt <= 0) return null;
-  return {
-    id: 'suggest_morning', priority: 2, category: 'suggestion',
-    icon: '☕', bodyKey: 'notif_morning_body',
-    actionKey: null, action: null,
-    ttl: 120000, dedupe: true,
-  };
-}
-
 function _evalLunchBreak() {
   if (typeof datePicker === 'undefined' || datePicker.value !== todayStr()) return null;
   const now = currentHour();
@@ -661,21 +634,6 @@ function _evalLunchBreak() {
   };
 }
 
-function _evalAfterWork() {
-  if (typeof datePicker === 'undefined' || datePicker.value !== todayStr()) return null;
-  const now = currentHour();
-  if (now < 15 || now > 17) return null;
-  const day = new Date().getDay();
-  if (day === 0 || day === 6) return null; // weekdays only
-  if (typeof currentSun === 'undefined' || !currentSun || currentSun.alt <= 0) return null;
-  return {
-    id: 'suggest_afterwork', priority: 2, category: 'suggestion',
-    icon: '🍻', bodyKey: 'notif_afterwork_body',
-    actionKey: null, action: null,
-    ttl: 120000, dedupe: true,
-  };
-}
-
 function _evalWindSheltered() {
   if (typeof getWeatherAt !== 'function') return null;
   if (typeof datePicker === 'undefined') return null;
@@ -687,88 +645,6 @@ function _evalWindSheltered() {
     icon: '🛡️', bodyKey: 'notif_sheltered_body',
     actionKey: null, action: null,
     ttl: 300000, dedupe: true,
-  };
-}
-
-function _evalBusynessAlert() {
-  if (typeof _currentUser === 'undefined' || !_currentUser) return null;
-  if (typeof _favoritesSet === 'undefined' || !_favoritesSet.size) return null;
-  if (typeof VENUES === 'undefined' || !VENUES) return null;
-  if (typeof getBusynessForDay !== 'function') return null;
-  const dateStr = datePicker.value;
-  if (dateStr !== todayStr()) return null;
-  const now = currentHour();
-  for (const v of VENUES) {
-    if (!_favoritesSet.has(String(v.id))) continue;
-    const busy = getBusynessForDay(v, dateStr);
-    if (!busy) continue;
-    // Find peak hour
-    let peakH = 0, peakVal = 0;
-    for (let h = 0; h < 24; h++) {
-      if (busy[h] > peakVal) { peakVal = busy[h]; peakH = h; }
-    }
-    // Alert if we're within 1h before peak and peak is high
-    if (peakVal >= 60 && now >= peakH - 1 && now < peakH) {
-      return {
-        id: 'suggest_busyness_' + v.id, priority: 2, category: 'suggestion',
-        icon: '⏰', bodyKey: 'notif_busyness_body',
-        bodyVars: { venue: v.name, time: formatHour(peakH) },
-        actionKey: 'notif_go_to_venue',
-        action: () => { if (typeof selectVenue === 'function') selectVenue(v.id, true); },
-        ttl: 300000, dedupe: true,
-      };
-    }
-  }
-  return null;
-}
-
-// ── Evaluators: P3 Onboarding ────────────────────────────────────────────────
-
-function _evalWelcome() {
-  const state = _notifLoadState();
-  if ((state.sessionCount || 0) > 1) return null;
-  if ((state.onboardingSeen?.welcome || 0) >= 1) return null;
-  return {
-    id: 'onboard_welcome', priority: 3, category: 'onboarding',
-    icon: '👋', bodyKey: 'notif_welcome_body',
-    actionKey: null, action: null,
-    ttl: 120000, dedupe: true,
-  };
-}
-
-function _evalTimeSliderHint() {
-  const state = _notifLoadState();
-  if ((state.sessionCount || 0) > 3) return null;
-  if ((state.onboardingSeen?.slider || 0) >= 2) return null;
-  return {
-    id: 'onboard_slider', priority: 3, category: 'onboarding',
-    icon: '⏱️', bodyKey: 'notif_slider_hint_body',
-    actionKey: null, action: null,
-    ttl: 120000, dedupe: true,
-  };
-}
-
-function _evalFilterHint() {
-  const state = _notifLoadState();
-  if ((state.sessionCount || 0) > 3) return null;
-  if ((state.onboardingSeen?.filter || 0) >= 2) return null;
-  return {
-    id: 'onboard_filter', priority: 3, category: 'onboarding',
-    icon: '📍', bodyKey: 'notif_filter_hint_body',
-    actionKey: null, action: null,
-    ttl: 120000, dedupe: true,
-  };
-}
-
-function _evalCalendarHint() {
-  const state = _notifLoadState();
-  if ((state.sessionCount || 0) > 3) return null;
-  if ((state.onboardingSeen?.calendar || 0) >= 2) return null;
-  return {
-    id: 'onboard_calendar', priority: 3, category: 'onboarding',
-    icon: '📅', bodyKey: 'notif_calendar_hint_body',
-    actionKey: null, action: null,
-    ttl: 120000, dedupe: true,
   };
 }
 
@@ -801,37 +677,10 @@ function _evalLoginFriends() {
   };
 }
 
-function _evalLoginShare() {
-  if (typeof _currentUser !== 'undefined' && _currentUser) return null;
-  if (_notifVenueOpens < 2) return null;
-  if (_notifLoginShown.has('login_share')) return null;
-  return {
-    id: 'login_share', priority: 1, category: 'login',
-    icon: '🔗', bodyKey: 'notif_login_share_body',
-    actionKey: 'notif_login_action',
-    action: () => { if (typeof toggleProfilePanel === 'function') toggleProfilePanel(); },
-    ttl: 120000, dedupe: true,
-  };
-}
-
-function _evalLoginNewVenues() {
-  if (typeof _currentUser !== 'undefined' && _currentUser) return null;
-  const state = _notifLoadState();
-  if ((state.sessionCount || 0) < 3) return null;
-  if (_notifLoginShown.has('login_venues')) return null;
-  return {
-    id: 'login_venues', priority: 1, category: 'login',
-    icon: '✨', bodyKey: 'notif_login_venues_body',
-    actionKey: 'notif_login_action',
-    action: () => { if (typeof toggleProfilePanel === 'function') toggleProfilePanel(); },
-    ttl: 120000, dedupe: true,
-  };
-}
-
 // ── Evaluator Registry ───────────────���──────────────────────────────────────���
 
 const _notifEvaluators = [
-  // P0 Weather (no auto-dismiss — stays until user acts)
+  // P0 Weather
   _evalNoSunToday,
   _evalSunSettingSoon,
   _evalCloudIncoming,
@@ -845,19 +694,9 @@ const _notifEvaluators = [
   // P1 Login prompts (high priority so they reach anon users)
   _evalLoginWeather,
   _evalLoginFriends,
-  _evalLoginShare,
-  _evalLoginNewVenues,
   // P2 Suggestions
-  _evalMorningCoffee,
   _evalLunchBreak,
-  _evalAfterWork,
   _evalWindSheltered,
-  _evalBusynessAlert,
-  // P3 Onboarding
-  _evalWelcome,
-  _evalTimeSliderHint,
-  _evalFilterHint,
-  _evalCalendarHint,
 ];
 
 // ── Evaluate & Schedule ──────────────────────────────────────────────────────
@@ -907,7 +746,6 @@ function _notifSettingsHtml() {
     { key: 'weather',    labelKey: 'notif_cat_weather' },
     { key: 'social',     labelKey: 'notif_cat_social' },
     { key: 'suggestion', labelKey: 'notif_cat_suggestion' },
-    { key: 'onboarding', labelKey: 'notif_cat_onboarding' },
   ];
   let rows = `<div class="settings-row pref-row is-disabled">
     <span class="settings-row__label">${t('notif_push_coming_soon')}</span>
@@ -930,48 +768,25 @@ function _notifSettingsHtml() {
   </div>`;
 }
 
-// ── Track venue opens (for login_share evaluator) ────────────────────────────
-
-function _notifOnVenueOpen() {
-  _notifVenueOpens++;
-}
-
 // ── Init ─────────────────────────────────────────���───────────────────────────
 
 function _notifInit() {
   console.log('[notif] init called');
-  // Increment session count
   const state = _notifLoadState();
   state.sessionCount = (state.sessionCount || 0) + 1;
   state.lastSessionTs = Date.now();
-  if (!state.onboardingSeen) state.onboardingSeen = {};
   _notifSaveState(state);
-
-  // Restore persistent dismissals (onboarding only)
-  if (state.dismissed) {
-    for (const id of state.dismissed) _notifDismissed.add(id);
-  }
 
   _notifInitDone = true;
 
-  // Start periodic evaluation
   _notifEvalTimer = setInterval(_notifEvaluate, _NOTIF_EVAL_INTERVAL);
 
-  // Initial evaluation after a longer delay — let the user get acquainted with the UI first
   setTimeout(_notifEvaluate, 8000);
 }
 
-// Track onboarding seen counts when shown
 const _origNotifShow = _notifShow;
 _notifShow = function(notif) {
   _origNotifShow(notif);
-  if (notif.id.startsWith('onboard_')) {
-    const state = _notifLoadState();
-    if (!state.onboardingSeen) state.onboardingSeen = {};
-    const key = notif.id.replace('onboard_', '');
-    state.onboardingSeen[key] = (state.onboardingSeen[key] || 0) + 1;
-    _notifSaveState(state);
-  }
   if (notif.category === 'login') {
     _notifLoginShown.add(notif.id);
   }

@@ -2204,7 +2204,6 @@ function _flyToVenue(v) {
 
 function selectVenue(id, flyTo) {
   _aTrack('venue_view', { venue_id: id, source: flyTo ? 'list' : 'map' });
-  if (typeof _notifOnVenueOpen === 'function') _notifOnVenueOpen();
   const freshOpen = selectedId === null; // opening panel for the first time (not switching venues)
   selectedId = id;
   _navMode   = true;   // show all venues in radius, not just current map view

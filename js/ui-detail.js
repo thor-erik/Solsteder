@@ -1669,7 +1669,6 @@ async function _sendInvite(venueId) {
   const mInt = Math.round((h - hInt) * 60);
   const isoTime = new Date(`${d}T${String(hInt).padStart(2,'0')}:${String(mInt).padStart(2,'0')}:00`).toISOString();
 
-  const allFriends = (typeof _friends !== 'undefined') ? _friends : [];
   const selectedIds = Array.from(
     document.querySelectorAll('#invite-sheet .dpinvite-avatar[aria-checked="true"]')
   ).map(r => r.getAttribute('data-friend-id'));
@@ -1680,37 +1679,6 @@ async function _sendInvite(venueId) {
 
   await createPlan(venueId, isoTime, '', selectedIds);
   _closeInviteSheet();
-
-  // Follow-up nudge: if the user picked a subset, suggest sharing a link with
-  // the rest. Only fires when there's at least one unselected friend.
-  if (allFriends.length > selectedIds.length) {
-    const selectedSet = new Set(selectedIds);
-    const remaining = allFriends.filter(f => !selectedSet.has(f.id));
-    setTimeout(() => _queueTellMoreFriendsNudge(venueId, remaining.length), 4500);
-  }
-}
-
-/** Queue a P2 social toast suggesting a broadcast share-link to remaining friends. */
-function _queueTellMoreFriendsNudge(venueId, remainingCount) {
-  if (typeof _notifEnqueue !== 'function') return;
-  if (typeof _notifAdvance !== 'function') return;
-  _notifEnqueue({
-    id: 'social_tell_more_' + venueId + '_' + Date.now(),
-    priority: 2,
-    category: 'social',
-    icon: '👋',
-    bodyKey: 'notif_tell_more_body',
-    bodyVars: { count: remainingCount },
-    actionKey: 'notif_tell_more_action',
-    action: () => {
-      if (typeof _aTrack === 'function') _aTrack('tell_more_nudge', { action: 'shared', remaining: remainingCount });
-      if (typeof _shareInviteLink === 'function') _shareInviteLink(venueId);
-    },
-    ttl: 60000,
-    dedupe: true,
-  });
-  if (typeof _aTrack === 'function') _aTrack('tell_more_nudge', { action: 'queued', remaining: remainingCount });
-  _notifAdvance();
 }
 
 /** Pick the contextual weather + sun phrase for the share message. Maps the
