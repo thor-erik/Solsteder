@@ -468,33 +468,92 @@ function _drawPolygonOutlinePx(px, key) {
 function _drawPolygonHandlesPx(px, key) {
   if (!Array.isArray(px) || px.length < 3) return;
 
-  // Edge midpoints (squares) — drawn first so corners sit on top
+  // Edge midpoints — rotated capsule aligned with the edge. Soft drop shadow,
+  // hairline rim. Drawn first so corners sit on top.
   for (let i = 0; i < px.length; i++) {
     const a = px[i], b = px[(i + 1) % px.length];
     const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    const angle = Math.atan2(b.y - a.y, b.x - a.x);
     const dragging = editDraggingPolyEdge && editPolyEdgeIdx === i;
-    const R = dragging ? 7 : 5;
-    ctx.beginPath();
-    ctx.rect(mx - R, my - R, R * 2, R * 2);
-    ctx.fillStyle = dragging ? '#FFF2EB' : 'rgba(255,242,235,0.85)';
+    const w = dragging ? 22 : 18;       // along the edge
+    const h = dragging ? 9  : 7;        // perpendicular to the edge
+    const r = h / 2;
+
+    ctx.save();
+    ctx.translate(mx, my);
+    ctx.rotate(angle);
+    // Soft drop shadow
+    ctx.shadowColor   = 'rgba(0,0,0,0.45)';
+    ctx.shadowBlur    = 6;
+    ctx.shadowOffsetY = 1.5;
+    // Cream fill with a vertical highlight gradient — a subtle "lens bead"
+    const grad = ctx.createLinearGradient(0, -h / 2, 0, h / 2);
+    grad.addColorStop(0,   'rgba(255,255,255,0.95)');
+    grad.addColorStop(0.55, dragging ? '#FFF2EB' : 'rgba(255,242,235,0.92)');
+    grad.addColorStop(1,   'rgba(220,210,200,0.92)');
+    ctx.fillStyle = grad;
+    _roundRectPath(ctx, -w / 2, -h / 2, w, h, r);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(10,14,28,0.90)';
-    ctx.lineWidth = 1.5;
+    // Drop-shadow done; clear it before stroking so the rim stays crisp
+    ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+    ctx.strokeStyle = 'rgba(10,14,28,0.35)';
+    ctx.lineWidth   = 0.75;
+    _roundRectPath(ctx, -w / 2, -h / 2, w, h, r);
     ctx.stroke();
+    ctx.restore();
   }
 
-  // Corner handles (circles)
+  // Corner handles — tangerine bead with soft halo + inner highlight
   px.forEach((p, idx) => {
     const dragging = editDraggingPolyVertex && editPolyVertexIdx === idx;
     const R = dragging ? 9 : 7;
+
+    ctx.save();
+    // Outer halo (no offset) — felt rather than seen
+    ctx.shadowColor   = 'rgba(255,175,133,0.65)';
+    ctx.shadowBlur    = dragging ? 14 : 10;
+    ctx.shadowOffsetY = 0;
     ctx.beginPath();
     ctx.arc(p.x, p.y, R, 0, Math.PI * 2);
-    ctx.fillStyle = dragging ? '#FFAF85' : 'rgba(255,175,133,0.85)';
+    ctx.fillStyle = dragging ? '#FFAF85' : '#FFB893';
     ctx.fill();
-    ctx.strokeStyle = 'rgba(10,14,28,0.90)';
-    ctx.lineWidth = 1.5;
+    // Drop-shadow off for the rest
+    ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
+
+    // Inner highlight (top-left, to suggest a glassy bead)
+    const ghx = p.x - R * 0.30, ghy = p.y - R * 0.40;
+    const ghGrad = ctx.createRadialGradient(ghx, ghy, 0, ghx, ghy, R * 0.85);
+    ghGrad.addColorStop(0, 'rgba(255,242,235,0.85)');
+    ghGrad.addColorStop(1, 'rgba(255,242,235,0)');
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, R, 0, Math.PI * 2);
+    ctx.fillStyle = ghGrad;
+    ctx.fill();
+
+    // Hairline rim
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, R, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(10,14,28,0.40)';
+    ctx.lineWidth   = 0.75;
     ctx.stroke();
+    ctx.restore();
   });
+}
+
+/** Path helper — manual roundRect because Safari < 16 lacks ctx.roundRect. */
+function _roundRectPath(c, x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.lineTo(x + w - r, y);
+  c.arcTo(x + w, y,     x + w, y + r,     r);
+  c.lineTo(x + w, y + h - r);
+  c.arcTo(x + w, y + h, x + w - r, y + h, r);
+  c.lineTo(x + r, y + h);
+  c.arcTo(x,     y + h, x,     y + h - r, r);
+  c.lineTo(x, y + r);
+  c.arcTo(x,     y,     x + r, y,         r);
+  c.closePath();
 }
 
 // ── Legacy hit tests + helpers (kept for street wall-mode & touch handlers) ──

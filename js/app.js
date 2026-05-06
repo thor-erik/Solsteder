@@ -134,16 +134,22 @@ function _syncFtsPosition() {
   // ── Desktop: center in map area, capped at 480px ────────────────────
   if (!isMobile()) {
     if (!ftsEl) return;
+    // Edit mode: editor banner is centered at the bottom; centre the FTS
+    // horizontally over it. Vertical position comes from the ResizeObserver
+    // via --fts-bottom + the body.edit-mode #fts rule in CSS.
+    if (editingVenueId) {
+      const w = Math.min(480, window.innerWidth - 32);
+      const left = Math.round((window.innerWidth - w) / 2);
+      ftsEl.style.setProperty('--fts-left', left + 'px');
+      ftsEl.style.setProperty('--fts-width', w + 'px');
+      return;
+    }
     const dpOpen = dp?.classList.contains('open');
-    // Edit-overlay sits in the same column slot as the detail panel, so anchor
-    // the FTS as if the detail panel were open (clears the editor banner).
-    const editOpen = !!editingVenueId;
-    const dpLike = dpOpen || editOpen;
     let mapLeft;
-    if (panelVisible || editOpen) {
-      mapLeft = dpLike ? 684 : 368; // 16+336+16 [+300+16]
+    if (panelVisible) {
+      mapLeft = dpOpen ? 684 : 368; // 16+336+16 [+300+16]
     } else {
-      mapLeft = dpLike ? 332 : 16;  // 16 [+300+16]
+      mapLeft = dpOpen ? 332 : 16;  // 16 [+300+16]
     }
     const mapRight = 16; // right margin
     const available = window.innerWidth - mapLeft - mapRight;
@@ -181,7 +187,11 @@ function _syncFtsPosition() {
     }
   }
   if (zoomJog) {
-    if (dpOpen || isExpanded || isFull) {
+    // Edit mode owns the zoom-jog visibility via body.edit-mode CSS rules.
+    if (editingVenueId) {
+      zoomJog.style.opacity = '';
+      zoomJog.style.pointerEvents = '';
+    } else if (dpOpen || isExpanded || isFull) {
       zoomJog.style.opacity = '0';
       zoomJog.style.pointerEvents = 'none';
     } else {
@@ -190,7 +200,11 @@ function _syncFtsPosition() {
     }
   }
 
-  document.body.style.setProperty('--fts-bottom', _ftsHostBottom(panel, dp));
+  const ftsBottom = _ftsHostBottom(panel, dp);
+  if (ftsBottom !== null) {
+    document.body.style.setProperty('--fts-bottom', ftsBottom);
+  }
+  // (When editingVenueId, --fts-bottom is set by the ResizeObserver instead.)
 
   // Flip popup below bar when FTS is near the top (fullscreen mode)
   const popup = document.getElementById('fts-popup');
@@ -206,14 +220,12 @@ function _syncFtsPosition() {
 }
 
 /** Compute the FTS pill's mobile bottom-offset for the active fts-host panel.
- *  Detail panel wins when open. Edit overlay shares the detail-panel slot, so
- *  it gets the same bottom offset. To support a new panel, add `fts-host` to
- *  its root and a branch here that maps its open-state class(es) to a CSS
- *  bottom expression. */
+ *  Detail panel wins when open. In edit mode the ResizeObserver writes
+ *  --fts-bottom directly so we return null here to skip the panel-class rules.
+ *  To support a new panel, add `fts-host` to its root and a branch here that
+ *  maps its open-state class(es) to a CSS bottom expression. */
 function _ftsHostBottom(panel, dp) {
-  if (editingVenueId) {
-    return `calc(62svh + ${FTS_GAP}px)`;
-  }
+  if (editingVenueId) return null;
   if (dp?.classList.contains('open')) {
     if (dp.classList.contains('dp-fullscreen')) {
       return `calc(100svh - env(safe-area-inset-top, 0px) - 46px - 16px - 4px - 14px)`;
@@ -2544,18 +2556,15 @@ function enterEditMode(venueId) {
   document.getElementById('qc-wrap').style.display = 'none';
   document.getElementById('qc-panel').style.display = 'none';
   document.getElementById('panel-reveal-btn').style.display = 'none';
-  // Hide locate-me; the zoom slider stays visible (and is repositioned via
-  // body.edit-mode #zoom-jog rules in CSS).
   const _locateBtn = document.getElementById('locate-btn');
   if (_locateBtn) _locateBtn.style.display = 'none';
-  // Force zoom-jog visible regardless of panel-state derived rules.
-  const _zoomJog = document.getElementById('zoom-jog');
-  if (_zoomJog) { _zoomJog.style.opacity = '1'; _zoomJog.style.pointerEvents = 'auto'; }
   document.getElementById('edit-venue-label').textContent = v.name;
+  _wireTypeDropdown();
   const type = v.terraceType ?? 'street';
   _syncTerraceTypeUI(type);
   _updateEditActionBtn();
   _updateEditToolButtons();
+  _startEditBannerObserver();
   _syncFtsPosition();
 
   if (popup) { popup.remove(); popup = null; }
@@ -2581,6 +2590,7 @@ function enterEditMode(venueId) {
     if (editSatelliteActive) return;               // already on (re-entry)
     editSatelliteActive = true;
     document.getElementById('edit-satellite-btn')?.classList.add('active');
+    document.body.classList.add('edit-satellite');
     map.setStyle('mapbox://styles/mapbox/satellite-streets-v12');
   });
 
@@ -2601,10 +2611,33 @@ let editSatelliteActive = false;
 function toggleEditSatellite() {
   editSatelliteActive = !editSatelliteActive;
   document.getElementById('edit-satellite-btn').classList.toggle('active', editSatelliteActive);
+  document.body.classList.toggle('edit-satellite', editSatelliteActive);
   map.setStyle(editSatelliteActive
     ? 'mapbox://styles/mapbox/satellite-streets-v12'
     : buildShadeStyle()
   );
+}
+
+// ── Edit-banner ResizeObserver (drives FTS + zoom-jog vertical positioning) ──
+let _editBannerObserver = null;
+function _startEditBannerObserver() {
+  const banner = document.getElementById('edit-banner');
+  if (!banner || typeof ResizeObserver === 'undefined') return;
+  if (_editBannerObserver) return;
+  _editBannerObserver = new ResizeObserver(() => {
+    const h = banner.getBoundingClientRect().height;
+    // FTS sits 8px above the banner; zoom-jog sits 12px above the banner.
+    document.body.style.setProperty('--fts-bottom',         `${Math.round(h + 16 + 8)}px`);
+    document.body.style.setProperty('--edit-zoom-bottom',   `${Math.round(h + 16 + 12)}px`);
+  });
+  _editBannerObserver.observe(banner);
+}
+function _stopEditBannerObserver() {
+  if (_editBannerObserver) {
+    _editBannerObserver.disconnect();
+    _editBannerObserver = null;
+  }
+  document.body.style.removeProperty('--edit-zoom-bottom');
 }
 
 /** Tilbakestill button: clear the manual polygon override / courtyard / detached
@@ -2711,6 +2744,8 @@ function exitEditMode() {
   editingVenueId = null;
   editHoveredWallIdx = null;
   document.body.classList.remove('edit-mode');
+  document.body.classList.remove('edit-satellite');
+  _stopEditBannerObserver();
   document.getElementById('edit-overlay').style.display = 'none';
   document.getElementById('floating-search').style.display = '';
   document.getElementById('panel').style.display = '';
@@ -2720,8 +2755,6 @@ function exitEditMode() {
   document.getElementById('panel-reveal-btn').style.display = '';
   const _locateBtn = document.getElementById('locate-btn');
   if (_locateBtn) _locateBtn.style.display = '';
-  const _zoomJog = document.getElementById('zoom-jog');
-  if (_zoomJog) { _zoomJog.style.opacity = ''; _zoomJog.style.pointerEvents = ''; }
   // Reset vertex-tool state so the next edit session starts fresh.
   if (typeof setEditVertexMode === 'function') setEditVertexMode(null);
   document.querySelectorAll('.venue-card.editing').forEach(c => c.classList.remove('editing'));
@@ -2848,9 +2881,50 @@ function selectWallByIdx(idx) {
   renderList();
 }
 
+const _TYPE_LABELS_NO = { street: 'Gate', rooftop: 'Tak', courtyard: 'Innergård', detached: 'Frittstående' };
+
 function _syncTerraceTypeUI(type) {
-  const sel = document.getElementById('edit-type-select');
-  if (sel) sel.value = type;
+  const labelEl = document.getElementById('edit-type-label');
+  if (labelEl) labelEl.textContent = _TYPE_LABELS_NO[type] ?? 'Gate';
+  // Mark active option in the custom listbox
+  document.querySelectorAll('#edit-type-list li').forEach(li => {
+    li.classList.toggle('active', li.dataset.value === type);
+  });
+}
+
+/** Toggle the custom terrace-type listbox open/closed. */
+function _toggleTypeDropdown(force) {
+  const trigger = document.getElementById('edit-type-trigger');
+  const list    = document.getElementById('edit-type-list');
+  if (!trigger || !list) return;
+  const willOpen = typeof force === 'boolean' ? force : list.hidden;
+  list.hidden = !willOpen;
+  trigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+}
+
+/** Wire the custom dropdown click handlers (idempotent — safe to call once). */
+function _wireTypeDropdown() {
+  const trigger = document.getElementById('edit-type-trigger');
+  const list    = document.getElementById('edit-type-list');
+  if (!trigger || !list || trigger.dataset.wired === '1') return;
+  trigger.dataset.wired = '1';
+  trigger.addEventListener('click', e => {
+    e.stopPropagation();
+    _toggleTypeDropdown();
+  });
+  list.querySelectorAll('li[data-value]').forEach(li => {
+    li.addEventListener('click', e => {
+      e.stopPropagation();
+      const v = li.dataset.value;
+      if (v) setTerraceType(v);
+      _toggleTypeDropdown(false);
+    });
+  });
+  // Click-outside to close
+  document.addEventListener('click', () => _toggleTypeDropdown(false));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') _toggleTypeDropdown(false);
+  });
 }
 
 function setTerraceType(type) {

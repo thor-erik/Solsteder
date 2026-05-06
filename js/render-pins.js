@@ -1566,6 +1566,22 @@ function _pinHitAtEvent(e) {
   return !editingVenueId && (hitTestVenue(cx, cy) || hitTestDot(cx, cy));
 }
 
+/** Hit-test any active editor handle (corner, edge midpoint, depth handle).
+ *  Used by pointerdown/mousedown to short-circuit Mapbox's drag-pan when the
+ *  user grabs a handle — otherwise the map pans along with the handle. */
+function _editHandleHitAtEvent(e) {
+  if (!editingVenueId) return false;
+  const rect = canvas.getBoundingClientRect();
+  const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
+  if (typeof hitTestActivePolygonVertex === 'function'
+      && hitTestActivePolygonVertex(cx, cy) !== null) return true;
+  if (typeof hitTestActivePolygonEdge === 'function'
+      && hitTestActivePolygonEdge(cx, cy) !== null) return true;
+  if (typeof hitTestDepthHandle === 'function'
+      && hitTestDepthHandle(cx, cy)) return true;
+  return false;
+}
+
 // Selector for interactive UI overlays that must receive clicks without
 // interference from the canvas. Must be defined before the pointerdown handler.
 const _UI_OVERLAY_SELECTOR = '#qc-wrap, #panel, #floating-search, #search-dropdown, #ptb-cal-float, ' +
@@ -1584,6 +1600,9 @@ canvas.addEventListener('pointerdown', e => {
   }
   canvas.style.pointerEvents = 'auto';
   if (_pinHitAtEvent(e)) e.stopPropagation();
+  // Edit-mode: stop Mapbox from receiving the pointer when a handle is grabbed,
+  // otherwise the map drag-pan moves along with the handle.
+  if (_editHandleHitAtEvent(e)) e.stopPropagation();
 });
 
 canvas.addEventListener('mousedown', e => {
@@ -1611,6 +1630,8 @@ canvas.addEventListener('mousedown', e => {
       editDraggingPolyVertex = true;
       editPolyVertexIdx      = cornerIdx;
       canvas.style.cursor    = 'grabbing';
+      e.stopPropagation();
+      e.preventDefault();
       return;
     }
     // Edge midpoint: perpendicular drag.
@@ -1620,6 +1641,8 @@ canvas.addEventListener('mousedown', e => {
       editDraggingPolyEdge = true;
       editPolyEdgeIdx      = edgeIdx;
       canvas.style.cursor  = 'grabbing';
+      e.stopPropagation();
+      e.preventDefault();
       return;
     }
     // Legacy: depth handle drag (street wall-mode, before polygon override exists)
@@ -1628,6 +1651,8 @@ canvas.addEventListener('mousedown', e => {
       editDraggingDepth = true;
       editDragWallObj   = handle;
       canvas.style.cursor = 'row-resize';
+      e.stopPropagation();
+      e.preventDefault();
       return;
     }
     canvas.style.pointerEvents = 'none';
