@@ -179,9 +179,9 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       ${_renderSocialSection(v)}
 
       <div class="dp-action-row">
-        <a class="dp-action-pill" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(v.lat + ',' + v.lng)}&travelmode=walking" target="_blank" rel="noopener" aria-label="${t('directions')}">
+        <a class="dp-action-pill" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(v.lat + ',' + v.lng)}&travelmode=walking" target="_blank" rel="noopener" aria-label="${t('directions')}${walkTime ? ' · ' + walkTime : ''}">
           ${dirIcon}
-          <span class="dp-action-pill-label">${t('directions')}${walkTime ? ` · ${walkTime}` : ''}</span>
+          <span class="dp-action-pill-label">${walkTime || t('directions')}</span>
         </a>
         <button class="dp-action-icon" title="${t('share')}" aria-label="${t('share')}" onclick="shareVenue(${v.id})">${shareIcon}</button>
         ${heartBtn}
