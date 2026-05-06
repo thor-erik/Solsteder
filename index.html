@@ -3149,20 +3149,22 @@
 
   .edit-chip[hidden] { display: none; }
 
-  /* Type dropdown + satellite toggle row */
+  /* Type dropdown + map-mode toggle: both content-sized, type pinned left,
+     toggle pinned right (matches the chip rhythm — no stretched-pill empty
+     space). */
   #edit-controls {
     display: flex;
     align-items: center;
     gap: 8px;
+    justify-content: space-between;
   }
 
   #edit-type-dropdown {
     position: relative;
-    flex: 1;
+    flex: 0 0 auto;
   }
 
   .edit-type-trigger {
-    width: 100%;
     background: var(--glass-action-bg);
     border: 1px solid rgba(156,189,231,0.18);
     border-radius: 999px;
@@ -3170,13 +3172,12 @@
     font-family: 'Inter', sans-serif;
     font-size: 13px;
     font-weight: 500;
-    padding: 0 14px 0 16px;
+    padding: 0 12px 0 16px;
     height: 36px;
     cursor: pointer;
     outline: none;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    justify-content: space-between;
     gap: 8px;
     transition: border-color 0.12s, background 0.12s;
   }
@@ -3193,7 +3194,8 @@
     position: absolute;
     bottom: calc(100% + 6px);
     left: 0;
-    right: 0;
+    width: max-content;
+    min-width: 100%;
     background: rgba(20, 46, 82, 0.92);
     backdrop-filter: blur(16px) saturate(180%) brightness(0.92);
     -webkit-backdrop-filter: blur(16px) saturate(180%) brightness(0.92);
@@ -3359,7 +3361,6 @@
       gap: 10px;
     }
     .edit-type-list { padding: 4px; }
-    .map-toggle { flex: 1 1 auto; }
   }
 
   /* Edit-mode: locate-btn is hidden. The zoom-jog sits at the same vertical
