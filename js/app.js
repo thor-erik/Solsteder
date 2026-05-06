@@ -2649,10 +2649,12 @@ function _startEditBannerObserver() {
   if (!banner || typeof ResizeObserver === 'undefined') return;
   if (_editBannerObserver) return;
   _editBannerObserver = new ResizeObserver(() => {
-    const h = banner.getBoundingClientRect().height;
-    // 16px from the bottom inset + 16px gap above the banner — matches the
-    // 16px padding rhythm used elsewhere on the map (top brand, right zoom).
-    const above = Math.round(h + 16 + 16);
+    const rect = banner.getBoundingClientRect();
+    const viewportH = window.visualViewport?.height ?? window.innerHeight;
+    // Distance from viewport bottom to the banner's TOP edge — handles desktop
+    // 16px inset and mobile safe-area-inset-bottom uniformly. + FTS_GAP gives
+    // the same pill→panel gap used by the venue list elsewhere.
+    const above = Math.round(viewportH - rect.top + FTS_GAP);
     document.body.style.setProperty('--fts-bottom',       `${above}px`);
     document.body.style.setProperty('--edit-zoom-bottom', `${above}px`);
   });

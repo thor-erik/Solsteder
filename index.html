@@ -3092,15 +3092,16 @@
     line-height: 1.3;
   }
 
-  /* Tools row: AI helper chips — floats ABOVE the banner / FTS */
+  /* Tools row: AI helper chips — floats ABOVE the banner / FTS.
+     Default (FTS visible): chips sit 8px above the FTS pill (FTS pill height
+     ≈ 46px → 46 + 8 gap = 54px above the panel-top anchor in --fts-bottom).
+     Satellite on (FTS hidden): chips collapse onto --fts-bottom directly so
+     the gap to the panel matches the regular FTS→panel gap. */
   #edit-tools-row {
     position: fixed;
     left: 50%;
     transform: translateX(-50%);
-    /* Default: above the FTS (which itself sits above the banner). When
-       satellite is on the FTS is hidden, so we collapse onto the banner-top
-       (handled below via body.edit-mode.edit-satellite override). */
-    bottom: calc(var(--fts-bottom, 240px) + 56px);
+    bottom: calc(var(--fts-bottom, 240px) + 54px);
     transition: bottom 0.22s ease, opacity 0.18s ease;
     display: none;
     flex-wrap: wrap;
