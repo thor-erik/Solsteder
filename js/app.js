@@ -5255,6 +5255,11 @@ function _introRevealUI(search, brand, qcWrap, panel, opts) {
     panel.style.transform  = 'translateY(100%)';
     panel.classList.remove('intro-hidden');
     panel.classList.add('mobile-expanded');       // land in expanded state (list is primary)
+    // Prime the panel-state tracker so the upcoming _syncFtsPosition (via
+    // _updatePeekHeight) doesn't see a peek→expanded transition and fire
+    // _maybePanMapForPanelState mid-intro — its 220ms easeTo would override
+    // the in-flight detilt and strand the camera at pitch ≈60.
+    _prevPanelMobileState = 'expanded';
     _updatePeekHeight();                         // measure with correct content
     panel.getBoundingClientRect();                // force reflow — browser commits start state
     panel.style.transition = 'transform 0.65s cubic-bezier(0.2, 0.8, 0.3, 1)';
@@ -5333,6 +5338,11 @@ function _skipIntro(seqId) {
 
   // Mobile: start with list expanded (primary surface)
   if (isMobileSkip && panel) panel.classList.add('mobile-expanded');
+
+  // Match _introRevealUI: prime the tracker so _maybePanMapForPanelState
+  // doesn't fire on the first post-skip _syncFtsPosition and override the
+  // skip easeTo above.
+  _prevPanelMobileState = isMobileSkip ? 'expanded' : 'peek';
 
   _updatePeekHeight();
   if (USE_FLOATING_TIME_SLIDER) requestAnimationFrame(() => syncFts());
