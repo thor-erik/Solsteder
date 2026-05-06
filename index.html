@@ -911,7 +911,7 @@
     bottom: 16px;
     width: var(--fts-width, 480px);
     z-index: 925;
-    height: 38px;
+    height: 34px;          /* match locate-btn so they sit on the same baseline */
     align-items: center;
     gap: 8px;
     padding: 0;
@@ -922,13 +922,55 @@
     transition: left 0.28s ease, width 0.28s ease, bottom 0.35s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.22s ease, transform 0.22s ease;
     will-change: left, bottom;
   }
-  /* (The floating #fts pill is reparented into the detail panel on open, so no
-     hide rule is needed — JS moves the same DOM node.) */
+  /* The FTS pill stays in document.body — its position is shifted via --fts-bottom
+     when the detail panel opens. */
+
+  /* Floating date pill: hidden by default, animates in when detail panel is open.
+     Positioned absolute so the slider keeps full width when the pill is offscreen. */
+  body.fts #fts-date-btn {
+    position: absolute;
+    left: 0; top: 50%;
+    width: 34px; height: 34px;
+    padding: 0;
+    border-radius: 50%;
+    background: var(--glass-action-bg);
+    backdrop-filter: var(--glass-blur-action);
+    -webkit-backdrop-filter: var(--glass-blur-action);
+    border: var(--glass-border);
+    box-shadow: var(--glass-inset);
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+    opacity: 0;
+    transform: translateY(-50%) translateX(-12px);
+    pointer-events: none;
+    transition: opacity 0.22s ease, transform 0.22s ease, background 0.15s, border-color 0.15s;
+  }
+  body.fts #fts-date-btn:hover { background: rgba(20,46,82,0.60); border-color: rgba(156,189,231,0.30); }
+  body.fts #fts-date-btn.active { border-color: rgba(255,175,133,0.35); color: var(--accent); }
+  body.fts #fts-date-btn.active .fts-cal-icon { color: var(--accent); }
+  body.fts #fts-date-btn .fts-cal-icon { color: var(--muted); }
+  body.fts #fts-track {
+    transition: margin-left 0.22s ease, background 0.15s;
+  }
+  body:has(#detail-panel.open) #fts-date-btn {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+    pointer-events: auto;
+  }
+  body:has(#detail-panel.open) #fts-track {
+    margin-left: calc(34px + 8px);  /* button + gap */
+  }
 
   /* Slider track — canvas fills remaining width · glass rim treatment */
   #fts-track {
     flex: 1 1 0; min-width: 0;
-    height: 38px;
+    height: 34px;
     border-radius: 999px;
     overflow: visible;       /* let active thumb glow extend beyond track */
     position: relative;
@@ -2955,7 +2997,7 @@
       right: 0;
       bottom: 0;
       width: 100%;
-      height: 60svh;    /* svh = small viewport height: stable, unaffected by toolbar */
+      height: 40svh;    /* svh = small viewport height: stable, unaffected by toolbar */
       border-radius: 20px 20px 0 0;
       border-left: none;
       border-right: none;
@@ -3023,15 +3065,16 @@
       border-radius: 2px;
     }
 
-    /* Venue peek: top of first card visible in collapsed state */
+    /* Venue peek: top of first card visible in collapsed state.
+       max-height tuned so the card name + meta + first row are readable. */
     #venue-peek {
       flex-shrink: 0;
       padding: 0 14px;
       overflow: hidden;
-      max-height: 52px;
+      max-height: 92px;
       /* mask-image fades the bottom of the peek row */
-      -webkit-mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
-      mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+      mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
     }
 
     /* Hide peek when list is visible */
@@ -4542,20 +4585,21 @@
   #list-sun-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 16px 8px;
+    gap: 6px;
+    padding: 4px 14px 6px;
     flex-shrink: 0;
   }
-  #list-sun-header #sort-toggle-btn { margin-left: auto; }
 
-  /* Date chip — tappable, opens picker. Same shape as sort button minus chevron. */
+  /* Both chips are equal-width (flex: 1) so spacing reads as symmetric.
+     Content centered, can shrink + ellipsis on narrow viewports. */
   #header-date-chip,
   #header-wx-chip {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
-    height: 36px;
-    padding: 0 12px;
+    height: 32px;
+    padding: 0 10px;
     background: var(--glass-action-bg);
     border: var(--glass-border);
     border-radius: 10px;
@@ -4564,11 +4608,18 @@
     font-family: 'Inter', sans-serif;
     font-size: 13px;
     font-weight: 600;
-    flex-shrink: 0;
+    flex: 1 1 0;
+    min-width: 0;
     -webkit-tap-highlight-color: transparent;
     outline: none;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
+  /* Sort button keeps its natural width on the right */
+  #list-sun-header #sort-toggle-btn { flex: 0 0 auto; height: 32px; }
+
+  /* Date chip — tappable, opens picker. Same shape as sort button minus chevron. */
   #header-date-chip {
     cursor: pointer;
     transition: color 0.12s, border-color 0.12s, background 0.12s;
@@ -4589,10 +4640,18 @@
     color: var(--muted);
     font-weight: 500;
   }
-  #header-wx-chip #header-wx-icon { font-size: 14px; line-height: 1; }
+  #header-wx-chip #header-wx-icon { font-size: 14px; line-height: 1; flex-shrink: 0; }
   #header-wx-chip #header-wx-temp { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
   #header-wx-chip #header-wx-wind { font-variant-numeric: tabular-nums; }
   #header-wx-chip .chip-dot { opacity: 0.6; }
+
+  /* Very narrow viewports: drop the time/wind to keep chips on a single row */
+  @media (max-width: 360px) {
+    #header-date-chip .chip-dot,
+    #header-time-label,
+    #header-wx-chip .chip-dot,
+    #header-wx-chip #header-wx-wind { display: none; }
+  }
 
   /* ── Calendar float — outside #panel, position: fixed so it escapes transforms ── */
   #ptb-cal-float {
@@ -7801,6 +7860,14 @@
 
   <!-- Floating time slider (round 12) — outside #panel, tracks panel top edge -->
   <div id="fts" class="intro-hidden">
+    <button id="fts-date-btn" onclick="toggleQcPanel('date')" aria-label="Velg dato" tabindex="-1">
+      <svg class="fts-cal-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <rect x="1.5" y="3" width="13" height="11.5" rx="2" stroke="currentColor" stroke-width="1.5"/>
+        <line x1="1.5" y1="6.5" x2="14.5" y2="6.5" stroke="currentColor" stroke-width="1.5"/>
+        <line x1="5" y1="1.5" x2="5" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="11" y1="1.5" x2="11" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </button>
     <div id="fts-track">
       <canvas id="fts-canvas"></canvas>
     </div>

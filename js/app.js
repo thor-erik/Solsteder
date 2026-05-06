@@ -234,7 +234,7 @@ function _ftsHostBottom(panel, dp) {
   }
   if (panel.classList.contains('mobile-hidden'))     return `${FTS_GAP}px`;
   if (panel.classList.contains('mobile-fullscreen')) return `calc(100svh - env(safe-area-inset-top, 0px) - 46px - 16px - 4px - 14px)`;
-  if (panel.classList.contains('mobile-expanded'))   return `calc(60svh + ${FTS_GAP}px)`;
+  if (panel.classList.contains('mobile-expanded'))   return `calc(40svh + ${FTS_GAP}px)`;
   const peekH = panel.style.getPropertyValue('--peek-h') || '160px';
   return `calc(${peekH} + ${FTS_GAP}px)`;
 }
@@ -258,7 +258,7 @@ function _maybePanMapForPanelState(prev, next) {
   const peekH = parseInt(panelEl.style.getPropertyValue('--peek-h')) || 252;
 
   function _panelTopFor(state) {
-    if (state === 'expanded') return Math.round(VH * 0.40); // panel is 60svh tall
+    if (state === 'expanded') return Math.round(VH * 0.60); // panel is 40svh tall
     return VH - peekH;                                       // peek
   }
 
@@ -502,6 +502,7 @@ function updateHeaderDateChip() {
   }
 
   chip.classList.toggle('active', _qcActiveSection === 'date');
+  document.getElementById('fts-date-btn')?.classList.toggle('active', _qcActiveSection === 'date');
 }
 
 /** Update the header weather chip (icon + temp + wind) for given hour. */
