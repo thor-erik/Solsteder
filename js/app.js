@@ -151,7 +151,7 @@ function _syncFtsPosition() {
     } else {
       mapLeft = dpOpen ? 332 : 16;  // 16 [+300+16]
     }
-    const mapRight = 16; // right margin
+    const mapRight = 16 + 34 + 8; // right margin + locate-btn (34) + gap (8)
     const available = window.innerWidth - mapLeft - mapRight;
     const w = Math.min(480, available);
     const center = mapLeft + available / 2;
@@ -320,24 +320,21 @@ function initFts() {
   if (!canvas || !track) return;
 
   _syncFtsPosition();
-  updateFtsDateBtn();
+  updateHeaderDateChip();
   drawFtsCanvas();
 
-  // Redraw the slider bitmap whenever the canvas's CSS width changes — keeps the
-  // thumb circular through the calendar button's min-width transition instead
-  // of letting CSS stretch a stale bitmap horizontally.
+  // Redraw the slider bitmap whenever the canvas's CSS width changes.
   if (typeof ResizeObserver === 'function') {
     new ResizeObserver(() => drawFtsCanvas()).observe(canvas);
   }
 
-  // Wire calendar button tap directly (onclick can be unreliable on mobile in some edge cases)
-  const calBtn = document.getElementById('fts-date-btn');
+  // Wire date chip tap directly (onclick can be unreliable on mobile in some edge cases)
+  const calBtn = document.getElementById('header-date-chip');
   if (calBtn) {
     calBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       toggleQcPanel('date');
     });
-    // Remove the inline onclick to avoid double-fire
     calBtn.removeAttribute('onclick');
   }
 
@@ -480,46 +477,59 @@ function _qcSpringBackFts() {
   requestAnimationFrame(step);
 }
 
-/** Update the calendar button label based on selected date. */
-function updateFtsDateBtn() {
-  const btn   = document.getElementById('fts-date-btn');
-  const label = document.getElementById('fts-date-label');
-  if (!btn || !label) return;
+/** Update the header date chip (date label + active state for picker). */
+function updateHeaderDateChip() {
+  const chip      = document.getElementById('header-date-chip');
+  const dateLabel = document.getElementById('header-date-label');
+  if (!chip || !dateLabel) return;
 
   const sel   = datePicker.value;
   const today = todayStr();
+  const d     = new Date(sel + 'T12:00:00');
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+  const diffDays = Math.round((d - new Date(today + 'T12:00:00')) / 86400000);
 
   if (sel === today) {
-    // Today: icon-only circle
-    btn.classList.add('fts-today');
-    label.textContent = '';
+    dateLabel.textContent = t('today');
+  } else if (sel === tomorrowStr) {
+    dateLabel.textContent = t('tomorrow');
+  } else if (diffDays > 0 && diffDays <= 6) {
+    dateLabel.textContent = _ftsDays()[d.getDay()] + ' ' + d.getDate();
   } else {
-    btn.classList.remove('fts-today');
-    const d = new Date(sel + 'T12:00:00');
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowStr = tomorrow.toISOString().slice(0, 10);
-
-    // Check if same week (within 6 days)
-    const diffDays = Math.round((d - new Date(today + 'T12:00:00')) / 86400000);
-
-    if (sel === tomorrowStr) {
-      label.textContent = t('tomorrow');
-    } else if (diffDays > 0 && diffDays <= 6) {
-      // Same week: "tor 23"
-      label.textContent = _ftsDays()[d.getDay()] + ' ' + d.getDate();
-    } else {
-      // Further: "23. apr"
-      label.textContent = d.getDate() + '. ' + _ftsMonths()[d.getMonth()];
-    }
+    dateLabel.textContent = d.getDate() + '. ' + _ftsMonths()[d.getMonth()];
   }
 
-  // Highlight when calendar is open
-  if (_qcActiveSection === 'date') {
-    btn.classList.add('active');
-  } else {
-    btn.classList.remove('active');
+  chip.classList.toggle('active', _qcActiveSection === 'date');
+}
+
+/** Update the header weather chip (icon + temp + wind) for given hour. */
+function updateHeaderWxChip(hour) {
+  const iconEl = document.getElementById('header-wx-icon');
+  const tempEl = document.getElementById('header-wx-temp');
+  const windEl = document.getElementById('header-wx-wind');
+  if (!iconEl && !tempEl && !windEl) return;
+  if (typeof getWeatherAt !== 'function') return;
+
+  const wx = getWeatherAt(datePicker.value, hour);
+  if (!wx) {
+    if (iconEl) iconEl.textContent = '';
+    if (tempEl) tempEl.textContent = '';
+    if (windEl) windEl.textContent = '';
+    return;
   }
+  const rain = (wx.precip ?? wx.prec ?? 0) > 0.3;
+  if (iconEl) iconEl.textContent = rain ? '🌧' : (typeof skyIcon === 'function' ? skyIcon(wx.cloud ?? 0) : '☀️');
+  if (tempEl) tempEl.textContent = wx.temp != null ? Math.round(wx.temp) + '°' : '';
+  if (windEl) windEl.textContent = wx.wspd != null ? Math.round(wx.wspd) + ' m/s' : '';
+}
+
+/** Update the header time label from the current slider value. */
+function updateHeaderTimeLabel() {
+  const el = document.getElementById('header-time-label');
+  if (!el || !timeFromEl) return;
+  el.textContent = formatHour(parseFloat(timeFromEl.value));
 }
 
 /** Show the scrub popup with time + weather info. */
@@ -595,7 +605,9 @@ function scheduleFtsPopupHide(ms) {
 function syncFts() {
   if (!USE_FLOATING_TIME_SLIDER) return;
   drawFtsCanvas();
-  updateFtsDateBtn();
+  updateHeaderDateChip();
+  updateHeaderTimeLabel();
+  updateHeaderWxChip(parseFloat(timeFromEl.value));
   // Desktop: keep the popup permanently populated + positioned. It's CSS-
   // forced to opacity:1 on desktop, so without a refresh on each update() it
   // would freeze with stale time/weather while the user changed date/time.
@@ -1559,32 +1571,10 @@ function _readoutSet(el, newText, animate) {
 }
 
 function updateQcIndicator(h) {
-  const isHover = typeof h === 'number';
-  const hour    = isHover ? h : parseFloat(timeFromEl.value);
-  const dispH   = Math.round(hour * 12) / 12;
-  const dateStr = datePicker.value;
-
-  let sunLabel = '';
-  if (typeof VENUES !== 'undefined' && typeof venueHasSunInRange === 'function') {
-    let sunVenues = VENUES.filter(v => venueHasSunInRange(v, dateStr, dispH, dispH));
-    if (filterMapViewActive && typeof map !== 'undefined') {
-      const bounds = (selectedId != null && _frozenBounds) ? _frozenBounds : map.getBounds();
-      const sw = bounds.getSouthWest(), ne = bounds.getNorthEast();
-      const dlat = (ne.lat - sw.lat) * 0.2, dlng = (ne.lng - sw.lng) * 0.2;
-      const padded = new mapboxgl.LngLatBounds(
-        [sw.lng - dlng, sw.lat - dlat], [ne.lng + dlng, ne.lat + dlat]
-      );
-      sunVenues = sunVenues.filter(v => padded.contains([v.lng, v.lat]));
-    }
-    const cnt = sunVenues.length;
-    if (filterMapViewActive) {
-      sunLabel = cnt > 0 ? t('places_in_sun_here', { count: cnt }) : t('no_places_in_sun_here');
-    } else {
-      sunLabel = cnt > 0 ? t('places_in_sun', { count: cnt }) : t('no_places_in_sun');
-    }
-  }
-
-  _readoutSet(document.getElementById('list-sun-count'), sunLabel, false);
+  const hour = (typeof h === 'number') ? h : parseFloat(timeFromEl.value);
+  const el = document.getElementById('header-time-label');
+  if (el) el.textContent = formatHour(hour);
+  updateHeaderWxChip(hour);
 }
 
 function updateQcLabels() {
@@ -1618,11 +1608,11 @@ function _closeQcPanel() {
     calFloat.style.width = '';
   }
   document.getElementById('ptb-cal-backdrop')?.remove();
-  // Update floating slider: remove active state, restore visibility, update date label
+  // Update header date chip: remove active state, restore visibility, update label
   if (USE_FLOATING_TIME_SLIDER) {
-    document.getElementById('fts-date-btn')?.classList.remove('active');
+    document.getElementById('header-date-chip')?.classList.remove('active');
     document.getElementById('fts')?.classList.remove('fts-cal-open');
-    updateFtsDateBtn();
+    updateHeaderDateChip();
   }
   // Restore panel state saved before calendar opened
   if (_preCalPanelState && isMobile() && typeof window._applyMobilePanelState === 'function') {
@@ -1683,9 +1673,9 @@ function toggleQcPanel(section) {
     document.body.appendChild(bd);
     requestAnimationFrame(() => bd.classList.add('open'));
   }
-  // Mark floating slider as cal-open (hides track, keeps button visible for toggle-back)
+  // Mark header date chip as active while picker is open
   if (USE_FLOATING_TIME_SLIDER) {
-    document.getElementById('fts-date-btn')?.classList.add('active');
+    document.getElementById('header-date-chip')?.classList.add('active');
     document.getElementById('fts')?.classList.add('fts-cal-open');
   }
   // On mobile, collapse list to peek so picker has room; restore on close
@@ -1931,8 +1921,8 @@ function selectQcDate(dateStr) {
     timeFromEl.value = 12;
   }
   _closeQcPanel();
-  // Return focus to the FTS date button so keyboard users can continue scrubbing
-  document.getElementById('fts-date-btn')?.focus();
+  // Return focus to the header date chip so keyboard users can continue scrubbing
+  document.getElementById('header-date-chip')?.focus();
   update();
 }
 
@@ -3630,13 +3620,13 @@ document.addEventListener('DOMContentLoaded', () => {
       cal.classList.remove('open');
       displayBtn?.classList.remove('open');
     }
-    // Close calendar when clicking outside the float AND outside the FTS date button
+    // Close calendar when clicking outside the float AND outside the header date chip
     const qcPanel   = document.getElementById('qc-panel');
     const calFloat  = document.getElementById('ptb-cal-float');
-    const ftsBtn    = document.getElementById('fts-date-btn');
+    const dateChip  = document.getElementById('header-date-chip');
     if (qcPanel?.classList.contains('open')
         && !calFloat?.contains(e.target)
-        && !ftsBtn?.contains(e.target)) {
+        && !dateChip?.contains(e.target)) {
       _closeQcPanel();
     }
   });

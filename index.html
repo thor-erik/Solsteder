@@ -371,10 +371,11 @@
   }
 
   /* ── Locate-me button ──────────────────────────────────────────────────────── */
+  /* Sits at the right end of the FTS row (vertically aligned to its bottom). */
   #locate-btn {
     position: fixed;
     right: 16px;
-    bottom: 16px;
+    bottom: var(--fts-bottom, 16px);
     z-index: 920;
     width: 34px;
     height: 34px;
@@ -406,7 +407,7 @@
   #zoom-jog {
     position: fixed;
     right: 16px;
-    bottom: 60px;           /* locate-btn bottom (16) + 34 btn + 10 gap */
+    bottom: calc(var(--fts-bottom, 16px) + 34px + 10px);  /* sits above locate-btn */
     z-index: 900;
     touch-action: none;
     user-select: none;
@@ -923,40 +924,6 @@
   }
   /* (The floating #fts pill is reparented into the detail panel on open, so no
      hide rule is needed — JS moves the same DOM node.) */
-
-  /* Calendar button — date pill */
-  #fts-date-btn {
-    display: flex; align-items: center; justify-content: center;
-    gap: 6px;
-    height: 38px; min-width: 38px;
-    padding: 0 12px;
-    background: var(--glass-action-bg);
-    backdrop-filter: var(--glass-blur-action);
-    -webkit-backdrop-filter: var(--glass-blur-action);
-    border: var(--glass-border);
-    border-radius: 19px;
-    box-shadow: var(--glass-inset), 0 2px 8px rgba(0,0,0,0.35);
-    color: var(--text);
-    font: 600 13px/1 'Inter', sans-serif;
-    cursor: pointer;
-    flex-shrink: 0;
-    white-space: nowrap;
-    -webkit-tap-highlight-color: transparent;
-    outline: none;
-    transition: background 120ms, border-color 120ms, min-width 200ms ease, padding 200ms ease;
-  }
-  #fts-date-btn:hover { background: rgba(20,46,82,0.60); border-color: rgba(156,189,231,0.30); }
-  #fts-date-btn.active { border-color: rgba(255,175,133,0.35); }
-  #fts-date-btn.active .fts-cal-icon,
-  #fts-date-btn.active #fts-date-label { color: var(--accent); }
-  #fts-date-btn.active .fts-chevron { color: var(--accent); transform: rotate(180deg); }
-  .fts-cal-icon { color: var(--muted); flex-shrink: 0; }
-  #fts-date-label { transition: color 120ms; }
-  .fts-chevron { color: var(--muted); flex-shrink: 0; transition: color 120ms, transform 120ms; }
-  /* Today: icon only — no label, no chevron, circle shape */
-  #fts-date-btn.fts-today { padding: 0; width: 38px; }
-  #fts-date-btn.fts-today #fts-date-label,
-  #fts-date-btn.fts-today .fts-chevron { display: none; }
 
   /* Slider track — canvas fills remaining width · glass rim treatment */
   #fts-track {
@@ -1849,7 +1816,7 @@
     padding-bottom: 0;
     gap: 8px;
   }
-  /* Duplicate of #list-sun-count on desktop — hide to avoid double header */
+  /* Legacy sun-count duplicate — hide to avoid double header */
   #venue-count { display: none; }
   #venue-count.count-sunny { color: #FFAF85; }
   /* map-view-btn removed — viewport filter is always active */
@@ -3016,9 +2983,9 @@
 
     #panel-toggle-icon { display: none; }
 
-    /* FTS: restore mobile full-width + dynamic bottom */
+    /* FTS: mobile full-width minus space for locate-btn at right end */
     body.fts #fts {
-      left: 12px; right: 12px;
+      left: 12px; right: calc(12px + 34px + 8px);  /* locate-btn (34) + gap (8) */
       width: auto;
       bottom: var(--fts-bottom, 160px);
       transition: bottom 0.22s cubic-bezier(0.25, 0.9, 0.4, 1);
@@ -3028,14 +2995,15 @@
     }
 
 
-    /* Locate button: sit above the floating pill (or above peek strip if no FTS) */
+    /* Locate button: sits at right end of FTS row (vertically aligned).
+       Without FTS (no body.fts class), pin above peek strip. */
     #locate-btn { bottom: calc(var(--peek-h, 252px) + 14px); right: 12px; }
-    body.fts #locate-btn { bottom: calc(var(--fts-bottom, 160px) + 46px + 12px); transition: bottom 0.22s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease; }
+    body.fts #locate-btn { bottom: var(--fts-bottom, 160px); right: 12px; transition: bottom 0.22s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease; }
 
-    /* Zoom jog: sits above locate button on mobile */
+    /* Zoom jog: sits above locate-btn on mobile (10px gap) */
     #zoom-jog { right: 12px; }
     #zoom-jog { bottom: calc(var(--peek-h, 252px) + 14px + 34px + 10px); }
-    body.fts #zoom-jog { bottom: calc(var(--fts-bottom, 160px) + 46px + 12px + 34px + 10px); transition: bottom 0.22s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease; }
+    body.fts #zoom-jog { bottom: calc(var(--fts-bottom, 160px) + 34px + 10px); transition: bottom 0.22s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease; }
 
     /* Handle: grabber pill only — chevron retired (venue peek carries swipe-up signal) */
     #panel-handle {
@@ -4570,21 +4538,61 @@
   #qc-notice.visible { opacity: 1; }
 
 
-  /* ── List sun header: "X steder i solen" + sort toggle ───────────────── */
+  /* ── Header chip row: date+time chip, weather chip, sort toggle ─────── */
   #list-sun-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 8px;
     padding: 6px 16px 8px;
     flex-shrink: 0;
   }
-  #list-sun-count {
-    font-family: 'Inter', sans-serif;
-    font-size: 15px;
-    font-weight: 600;
+  #list-sun-header #sort-toggle-btn { margin-left: auto; }
+
+  /* Date chip — tappable, opens picker. Same shape as sort button minus chevron. */
+  #header-date-chip,
+  #header-wx-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 36px;
+    padding: 0 12px;
+    background: var(--glass-action-bg);
+    border: var(--glass-border);
+    border-radius: 10px;
+    box-shadow: var(--glass-inset);
     color: var(--text);
-    line-height: 1;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+    white-space: nowrap;
   }
+  #header-date-chip {
+    cursor: pointer;
+    transition: color 0.12s, border-color 0.12s, background 0.12s;
+  }
+  #header-date-chip:hover { border-color: rgba(156,189,231,0.4); background: rgba(24,52,95,0.8); }
+  #header-date-chip.active {
+    border-color: rgba(255,175,133,0.35);
+    color: var(--accent);
+  }
+  #header-date-chip.active .chip-cal-icon { color: var(--accent); }
+  #header-date-chip .chip-cal-icon { color: var(--muted); flex-shrink: 0; }
+  #header-date-chip .chip-dot { color: var(--muted); opacity: 0.7; }
+  #header-time-label { font-variant-numeric: tabular-nums; }
+
+  /* Weather chip — display-only. Visually harmonized but reads as info. */
+  #header-wx-chip {
+    cursor: default;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  #header-wx-chip #header-wx-icon { font-size: 14px; line-height: 1; }
+  #header-wx-chip #header-wx-temp { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+  #header-wx-chip #header-wx-wind { font-variant-numeric: tabular-nums; }
+  #header-wx-chip .chip-dot { opacity: 0.6; }
 
   /* ── Calendar float — outside #panel, position: fixed so it escapes transforms ── */
   #ptb-cal-float {
@@ -7751,9 +7759,25 @@
     </div>
 
 
-    <!-- Sun count header: visible in peek, owns "X steder i solen" exactly once -->
+    <!-- Header chip row: date+time (tappable), weather (display-only), sort -->
     <div id="list-sun-header">
-      <span id="list-sun-count"></span>
+      <button id="header-date-chip" onclick="toggleQcPanel('date')" aria-label="Velg dato">
+        <svg class="chip-cal-icon" width="14" height="14" viewBox="0 0 16 16" fill="none">
+          <rect x="1.5" y="3" width="13" height="11.5" rx="2" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="1.5" y1="6.5" x2="14.5" y2="6.5" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="5" y1="1.5" x2="5" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="11" y1="1.5" x2="11" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <span id="header-date-label"></span>
+        <span class="chip-dot" aria-hidden="true">·</span>
+        <span id="header-time-label"></span>
+      </button>
+      <div id="header-wx-chip" role="status" aria-live="polite">
+        <span id="header-wx-icon" aria-hidden="true"></span>
+        <span id="header-wx-temp"></span>
+        <span class="chip-dot" aria-hidden="true">·</span>
+        <span id="header-wx-wind"></span>
+      </div>
       <button id="sort-toggle-btn" onclick="toggleSortPanel()"><span id="sort-label">Mest sol</span><span class="sort-chevron"> ▾</span></button>
     </div>
 
@@ -7777,16 +7801,6 @@
 
   <!-- Floating time slider (round 12) — outside #panel, tracks panel top edge -->
   <div id="fts" class="intro-hidden">
-    <button id="fts-date-btn" onclick="toggleQcPanel('date')" aria-label="Velg dato">
-      <svg class="fts-cal-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <rect x="1.5" y="3" width="13" height="11.5" rx="2" stroke="currentColor" stroke-width="1.5"/>
-        <line x1="1.5" y1="6.5" x2="14.5" y2="6.5" stroke="currentColor" stroke-width="1.5"/>
-        <line x1="5" y1="1.5" x2="5" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        <line x1="11" y1="1.5" x2="11" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-      </svg>
-      <span id="fts-date-label"></span>
-      <svg class="fts-chevron" width="10" height="6" viewBox="0 0 10 6" fill="currentColor"><path d="M0 0 L10 0 L5 6 Z"/></svg>
-    </button>
     <div id="fts-track">
       <canvas id="fts-canvas"></canvas>
     </div>
