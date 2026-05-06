@@ -179,8 +179,11 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       ${_renderSocialSection(v)}
 
       <div class="dp-action-row">
-        <a class="dp-action-icon dp-action-icon-wide" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(v.lat + ',' + v.lng)}&travelmode=walking" target="_blank" rel="noopener" title="${t('directions')}${walkTime ? ' · ' + walkTime : ''}" aria-label="${t('directions')}">${dirIcon}</a>
-        <button class="dp-action-icon dp-action-icon-wide" title="${t('share')}" aria-label="${t('share')}" onclick="shareVenue(${v.id})">${shareIcon}</button>
+        <a class="dp-action-pill" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(v.lat + ',' + v.lng)}&travelmode=walking" target="_blank" rel="noopener" aria-label="${t('directions')}">
+          ${dirIcon}
+          <span class="dp-action-pill-label">${t('directions')}${walkTime ? ` · ${walkTime}` : ''}</span>
+        </a>
+        <button class="dp-action-icon" title="${t('share')}" aria-label="${t('share')}" onclick="shareVenue(${v.id})">${shareIcon}</button>
         ${heartBtn}
         ${bellBtn}
         ${v.phone ? `<a href="tel:${encodeURIComponent(v.phone)}" class="dp-action-icon" title="${t('call')}" aria-label="${t('call')}">${phoneIcon}</a>` : ''}

@@ -5032,14 +5032,47 @@
     color: var(--text);
   }
   .dp-action-icon svg { width: 20px; height: 20px; stroke: currentColor; color: currentColor; }
-  /* Wide variant — directions + share take the spare row width so the
-     row lines up with the full-width Invite friends CTA. Falls back
-     gracefully when phone/website append (icons just narrow). */
-  .dp-action-icon-wide {
+
+  /* Labeled directions pill — same glass-action treatment as the squares
+     but pill-shaped with an inline label so the most-used utility action
+     fills the row width and surfaces the walk time inline. The remaining
+     buttons (share, heart, bell, optional phone/website) stay as 48×48
+     squares — pill vs square is the row's "labeled vs icon-only" cue. */
+  .dp-action-pill {
     flex: 1;
-    width: auto;
-    min-width: 64px;
-    padding: 0 14px;
+    min-width: 0;
+    height: 48px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, rgba(20,46,82,0.25) 0%, rgba(32,73,131,0.14) 100%), rgba(20,46,82,0.30);
+    border: 1px solid rgba(156,189,231,0.20);
+    box-shadow:
+      inset 0 1px 0 rgba(255,242,235,0.14),
+      inset 0 -1px 0 rgba(20,46,82,0.30),
+      0 2px 8px rgba(0,0,0,0.35);
+    color: var(--text);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 18px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    transition: all 120ms ease-out;
+  }
+  .dp-action-pill svg { width: 20px; height: 20px; stroke: currentColor; flex-shrink: 0; }
+  .dp-action-pill-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .dp-action-pill:hover {
+    background: linear-gradient(135deg, rgba(20,46,82,0.35) 0%, rgba(32,73,131,0.22) 100%), rgba(20,46,82,0.42);
+    border-color: rgba(156,189,231,0.32);
+    color: var(--accent);
   }
   .dp-action-icon.is-active {
     background: var(--accent-dim);
