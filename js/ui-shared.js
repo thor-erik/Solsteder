@@ -267,15 +267,19 @@ function buildCardPillsV2(venue, qual, opts) {
 }
 
 /**
- * Minimal duration formatter for pill text — "45 min", "1t", "2t 30m".
- * Local helper; keeps ui-shared independent of ui-list._formatDurationFromMin.
+ * Minimal duration formatter for pill text — "45m", "1h", "2h 30m" (en);
+ * "45m", "1t", "2t 30m" (no/sv/da). Hour suffix is locale-aware via
+ * unit_h_short; minute suffix is the language-neutral 'm' so the
+ * notation stays consistently short. Local helper; keeps ui-shared
+ * independent of ui-list._formatDurationFromMin.
  */
 function _formatPillDur(minutes) {
   const m = Math.round(minutes);
-  if (m < 60) return `${m} min`;
+  const hu = (typeof t === 'function') ? t('unit_h_short') : 't';
+  if (m < 60) return `${m}m`;
   const h = Math.floor(m / 60);
   const rem = m - h * 60;
-  return rem === 0 ? `${h}t` : `${h}t ${rem}m`;
+  return rem === 0 ? `${h}${hu}` : `${h}${hu} ${rem}m`;
 }
 
 /**

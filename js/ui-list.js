@@ -171,10 +171,14 @@ function _formatDurationFromMin(minutes) {
   if (!minutes || minutes <= 0) return '';
   const h = Math.floor(minutes / 60);
   const m = Math.round(minutes - h * 60);
-  if (h > 0 && m > 0) return `${h}t ${m}m`;
-  if (h > 0) return `${h}t`;
-  if (m > 0) return `${m} min`;
-  return '5 min';
+  // Hour suffix is locale-aware ('t' for no/sv/da, 'h' for en); minute
+  // suffix is the language-neutral 'm' so both units stay consistently
+  // short — never "1t 30 min" mixing styles.
+  const hu = (typeof t === 'function') ? t('unit_h_short') : 't';
+  if (h > 0 && m > 0) return `${h}${hu} ${m}m`;
+  if (h > 0)          return `${h}${hu}`;
+  if (m > 0)          return `${m}m`;
+  return `5m`;
 }
 
 /**

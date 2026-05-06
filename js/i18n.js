@@ -158,6 +158,9 @@ const _STRINGS = {
     pill_overflow_one:         '+ {dur} sun from {time}',
     pill_overflow_many:        '+ {n} sun later',
     pill_more_count:           '+ {n} more',
+    // Short unit suffix for compact durations ("4h 30m"). Locale-aware so
+    // Norwegian/Swedish/Danish render "4t 30m"; English renders "4h 30m".
+    unit_h_short:              'h',
     empty_no_sun_left:         'No sun left today',
     empty_rain_today:          'It\'s raining today',
     cta_see_tomorrow:          'See tomorrow',
@@ -588,6 +591,7 @@ const _STRINGS = {
     pill_overflow_one:         '+ {dur} sol fra {time}',
     pill_overflow_many:        '+ {n} sol senere',
     pill_more_count:           '+ {n} mer',
+    unit_h_short:              't',
     empty_no_sun_left:         'Ingen sol igjen i dag',
     empty_rain_today:          'Det regner i dag',
     cta_see_tomorrow:          'Se i morgen',
@@ -875,6 +879,7 @@ const _STRINGS = {
     app_version:                 'Versjon',
   },
   se: {
+    unit_h_short:       't',
     signout:            'Logga ut',
     delete_account:     'Radera konto',
     delete_account_confirm: 'Är du säker på att du vill radera ditt konto? All data — förslag, ändringar och profil — tas bort permanent. Detta kan inte ångras.',
@@ -1270,6 +1275,7 @@ const _STRINGS = {
     app_version:                 'Version',
   },
   dk: {
+    unit_h_short:       't',
     signout:            'Log ud',
     delete_account:     'Slet konto',
     delete_account_confirm: 'Er du sikker på, at du vil slette din konto? Alle data — forslag, ændringer og profil — fjernes permanent. Dette kan ikke fortrydes.',
