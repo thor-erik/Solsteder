@@ -150,8 +150,8 @@ const _STRINGS = {
     // ── v2 list-card: anchor line, disruption/hours/overflow pills, empty states
     anchor_til:                'until {time}',
     anchor_til_sundown:        'until sundown',
-    anchor_fra_til:            'from {start}–{end}',
-    anchor_fra_til_sundown:    'from {start}–sundown',
+    anchor_fra_til:            '{start} – {end}',
+    anchor_fra_til_sundown:    '{start} – sundown',
     pill_disrupt_range:        '{state} {start}–{end}',
     pill_stenger:              'Closes {time}',
     pill_aapner:               'Opens {time}',
@@ -580,8 +580,8 @@ const _STRINGS = {
     // ── v2 list-card: anchor line, disruption/hours/overflow pills, empty states
     anchor_til:                'til {time}',
     anchor_til_sundown:        'til solnedgang',
-    anchor_fra_til:            'fra {start}–{end}',
-    anchor_fra_til_sundown:    'fra {start}–solnedgang',
+    anchor_fra_til:            '{start} – {end}',
+    anchor_fra_til_sundown:    '{start} – solnedgang',
     pill_disrupt_range:        '{state} {start}–{end}',
     pill_stenger:              'Stenger {time}',
     pill_aapner:               'Åpner {time}',

@@ -535,33 +535,6 @@
   #search-clear-btn:hover { background: rgba(255,242,235,0.18); color: var(--text); }
   #floating-search.has-query #search-clear-btn { display: flex; }
 
-  /* Compact weather pill — sits between the search input and the avatar.
-     Per the redesign spec, this is the ONLY surface where wind/temp/sky
-     condition appears. Per-card weather is venue-specific only. */
-  #search-weather-pill {
-    flex-shrink: 0;
-    height: 28px;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
-    border-radius: 999px;
-    background: rgba(255,242,235,0.10);
-    backdrop-filter: var(--glass-blur-pill);
-    -webkit-backdrop-filter: var(--glass-blur-pill);
-    font-size: 12px;
-    font-weight: 600;
-    line-height: 1;
-    color: rgba(255,242,235,0.85);
-    white-space: nowrap;
-    cursor: default;
-    user-select: none;
-    margin-right: 6px;
-  }
-  #search-weather-pill:empty { display: none; }
-  #search-weather-pill .swp-sep  { opacity: 0.4; margin: 0 2px; }
-  #search-weather-pill .swp-wind { color: rgba(255,242,235,0.65); font-weight: 500; }
-  #search-weather-pill .swp-note { color: var(--rain); font-weight: 600; }
 
   #search-profile-btn {
     flex-shrink: 0;
@@ -2255,6 +2228,14 @@
   .card-meta span { display: inline; }
   .card-meta .card-meta-dot { opacity: 0.4; margin: 0 4px; }
   .card-meta .card-meta-opens { color: var(--muted); opacity: 0.85; }
+  /* Walking-person glyph on the walk-time meta. Inline-flex aligns the
+     icon's optical center with the digits without bumping line-height. */
+  .card-meta .card-meta-walk {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .card-meta .walk-glyph { opacity: 0.85; flex-shrink: 0; }
 
   .card-pills {
     display: flex;
@@ -2323,9 +2304,12 @@
        • card-pills is always rendered (preserves card height)
        • bottom 3px fill bar shows sun-fraction of remaining day */
   .venue-card.card-compact {
-    /* Bar is flush bottom (3px tall, curved corners); padding-bottom holds
-       the meta row clear of it. Pill-less cards inherit this same floor. */
+    /* Bar is flush bottom (3px tall); padding-bottom holds the meta row
+       clear of it. The card itself clips to its own rounded shape so the
+       fill bar's corners follow the 12px card-corner curve. (Detail-panel
+       rich cards keep overflow:visible from the base rule.) */
     padding-bottom: 10px;
+    overflow: hidden;
   }
   .venue-card.card-compact .card-meta {
     display: grid;
@@ -2363,11 +2347,10 @@
     -webkit-backdrop-filter: var(--glass-blur-pill);
   }
   /* ── Fill bar — flush against the card's bottom border ──
-     Spans the full card width; the bar's bottom-left and bottom-right
-     corners curve up matching the card's 12px radius (overflow:hidden +
-     border-radius on the parent does the clip). The fill inside is one
-     contiguous level meter that grows from the left, picking up the
-     same bottom-left curve when partial. */
+     The card clips to its 12px corner radius, so the bar's bottom-left
+     and bottom-right corners follow the card's curve naturally. Track
+     spans the full width; fill is one contiguous level meter from the
+     left. */
   .venue-card.card-compact .card-fillbar {
     position: absolute;
     left: 0;
@@ -2375,18 +2358,12 @@
     bottom: 0;
     height: 3px;
     background: rgba(255,242,235,0.06);
-    border-radius: 0 0 12px 12px;
-    overflow: hidden;
     pointer-events: none;
   }
   .venue-card.card-compact .card-fillbar-fill {
     display: block;
     height: 100%;
     background: var(--accent);
-    /* Bottom-left rounded so the fill's leading edge follows the card
-       curve when the bar is partial; right edge stays flat (or, when
-       the fill is 100%, picks up the parent's overflow-clipped curve). */
-    border-radius: 0 0 0 12px;
   }
 
   /* ── Card timeline — full-width strip + labels row at the bottom. ──
@@ -4601,29 +4578,6 @@
     color: var(--text);
     line-height: 1;
   }
-  /* Future-time chip — sits between the count and the sort toggle when the
-     user has scrubbed forward in time. Subtle reminder that the list isn't
-     live; tap to snap back to now. */
-  #future-time-chip {
-    margin-left: auto;
-    margin-right: 8px;
-    height: 24px;
-    padding: 0 10px;
-    border-radius: 999px;
-    border: 1px solid rgba(156,189,231,0.22);
-    background: rgba(156,189,231,0.08);
-    color: var(--muted);
-    font-family: 'Inter', sans-serif;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.01em;
-    line-height: 1;
-    cursor: pointer;
-    opacity: 0.85;
-    transition: opacity 0.15s, background 0.15s;
-  }
-  #future-time-chip:hover { opacity: 1; background: rgba(156,189,231,0.14); }
-  #future-time-chip[hidden] { display: none; }
 
   /* ── Calendar float — outside #panel, position: fixed so it escapes transforms ── */
   #ptb-cal-float {
@@ -7673,7 +7627,6 @@
     <span id="search-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8.5" cy="8.5" r="5.5"/><line x1="13" y1="13" x2="18" y2="18"/></svg></span>
     <input type="text" id="venue-search" placeholder="Søk etter steder eller områder…" autocomplete="off">
     <button id="search-clear-btn" type="button" aria-label="Clear search">✕</button>
-    <div id="search-weather-pill" aria-live="polite" title="Vær"></div>
     <button id="search-profile-btn" onclick="toggleProfilePanel(event)" title="Profil"></button>
   </div>
 
@@ -7794,7 +7747,6 @@
     <!-- Sun count header: visible in peek, owns "X steder i solen" exactly once -->
     <div id="list-sun-header">
       <span id="list-sun-count"></span>
-      <button id="future-time-chip" type="button" hidden onclick="resetToNow()" title="Tilbake til nå"></button>
       <button id="sort-toggle-btn" onclick="toggleSortPanel()"><span id="sort-label">Mest sol</span><span class="sort-chevron"> ▾</span></button>
     </div>
 

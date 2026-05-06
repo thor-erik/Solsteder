@@ -162,6 +162,11 @@ const beerSvgMini = `<svg viewBox="0 0 24 24" width="12" height="12" fill="none"
 // Sun glyph used in the row-1 duration label.
 const SUN_GLYPH = '<svg class="sun-glyph" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>';
 
+// Walking-person glyph for the walk-time meta. Filled current-color so
+// it inherits the meta's --muted text color and stays visually neutral
+// next to the distance.
+const WALK_GLYPH = '<svg class="walk-glyph" viewBox="0 0 24 24" width="11" height="11" fill="currentColor" aria-hidden="true"><circle cx="13" cy="4" r="2"/><path d="M9.5 22l1.5-7-2-2v-5.5c0-.55.45-1 1-1h3.83c.43 0 .81.27.95.67L16 11l3 1.5-.45.9-3-1.4-1.5-3v3l2 2.5L15 22h-1.5l-1-6.5L11 13.5V22H9.5z"/></svg>';
+
 function _formatDurationFromMin(minutes) {
   if (!minutes || minutes <= 0) return '';
   const h = Math.floor(minutes / 60);
@@ -268,9 +273,13 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
   // Both the list and the detail panel surface walk time. The Åpner pill
   // (when the venue is closed but opens later) handles the open-time
   // signal, so the meta line stays lean: area · type · distance · walk.
+  // Walk time gets a leading walking-person glyph (Google-Maps-style)
+  // so it visually separates from the bare-number distance next to it.
   const walkTimeStr = (typeof calcWalkTime === 'function' && s?.distKm != null)
     ? calcWalkTime(s.distKm * 1000) : null;
-  const metaParts = [v.area, catLabel(v), distStr, walkTimeStr].filter(Boolean);
+  const walkHtml = walkTimeStr
+    ? `<span class="card-meta-walk">${WALK_GLYPH}${walkTimeStr}</span>` : null;
+  const metaParts = [v.area, catLabel(v), distStr, walkHtml].filter(Boolean);
   const metaInner = metaParts.map((p, i) =>
     (i > 0 ? '<span class="card-meta-dot">·</span>' : '') + `<span>${p}</span>`
   ).join('');

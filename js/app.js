@@ -1081,33 +1081,6 @@ function applyNowTime() {
   updateRangeFill();
 }
 
-/**
- * Re-engage now-mode unconditionally — used by the "Tid: HH:MM" chip in
- * the list header to bring the user back to live data after they've
- * scrubbed forward in time. toggleNowMode() flips the state, so it would
- * disengage now-mode if it were already on; this always engages.
- */
-function resetToNow() {
-  if (nowMode) return;
-  toggleNowMode();
-}
-
-/**
- * Subtle ambient cue that data isn't live: shows "Tid: HH:MM" near the
- * sort selector when nowMode is off. Tapping snaps back to now.
- */
-function updateFutureTimeChip() {
-  const chip = document.getElementById('future-time-chip');
-  if (!chip) return;
-  if (typeof nowMode === 'undefined' || nowMode) {
-    chip.hidden = true;
-    chip.textContent = '';
-    return;
-  }
-  chip.hidden = false;
-  chip.textContent = t('time_now_chip', { time: formatHour(parseFloat(timeFromEl.value)) });
-}
-
 function _activateNowMode() {
   if (nowMode) return;
   nowMode = true;
@@ -1249,54 +1222,6 @@ function updateDateWeatherStrip() {
     + rain;
 }
 
-/**
- * Search-bar weather pill — compact "9° · 5 m/s [· note]" pill between the
- * input field and the profile avatar. Per the redesign spec, this is the
- * ONLY surface where wind/temp/sky condition appears in the UI; per-card
- * weather information is venue-specific (in-window disruptions only).
- *
- * Renders up to three segments, capped at 3:
- *   1) temperature (always)
- *   2) wind speed (always when wind data present)
- *   3) optional regional note — "regn HH:MM" when rain forecast in the
- *      next 3 hours, or "overskyet" when the current slot is dominantly
- *      cloudy (cloud >= 0.85).
- */
-function renderSearchWeatherPill() {
-  const el = document.getElementById('search-weather-pill');
-  if (!el) return;
-  const dateStr = datePicker.value;
-  const fromH   = parseFloat(timeFromEl.value);
-  const wx = typeof getWeatherAt === 'function'
-    ? getWeatherAt(dateStr, fromH)
-    : null;
-  if (!wx) { el.style.display = 'none'; return; }
-  el.style.display = '';
-
-  const tempStr = `<span class="swp-temp">${formatTemp(wx.temp)}</span>`;
-  const windStr = (wx.wspd != null)
-    ? `<span class="swp-sep">·</span><span class="swp-wind">${Math.round(wx.wspd)} m/s</span>`
-    : '';
-
-  // Regional note — first cap-fit signal wins. Look ahead 3 hours for rain.
-  let noteStr = '';
-  let noteText = '';
-  if (typeof getWeatherAt === 'function') {
-    for (let dh = 1; dh <= 3; dh++) {
-      const probe = getWeatherAt(dateStr, fromH + dh);
-      if (probe && probe.precip >= 0.3) {
-        const h = Math.floor(fromH + dh);
-        const m = Math.round(((fromH + dh) - h) * 60);
-        noteText = `regn ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-        break;
-      }
-    }
-  }
-  if (!noteText && wx.cloud != null && wx.cloud >= 0.85) noteText = 'overskyet';
-  if (noteText) noteStr = `<span class="swp-sep">·</span><span class="swp-note">${noteText}</span>`;
-
-  el.innerHTML = tempStr + windStr + noteStr;
-}
 
 // ── Date calendar picker ──────────────────────────────────────────────────────
 function renderDateCalendar() {
@@ -2166,8 +2091,6 @@ function update() {
 
   updateDateDisplayBtn();
   updateDateWeatherStrip();
-  renderSearchWeatherPill();
-  updateFutureTimeChip();
   updateQcLabels();
   updateQcIndicator(null);
   syncFts();
