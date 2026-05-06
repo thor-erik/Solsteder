@@ -3362,20 +3362,15 @@
     .map-toggle { flex: 1 1 auto; }
   }
 
-  /* Edit-mode: locate-btn is hidden. On desktop the zoom-jog stays in its
-     bottom-right corner (the editor banner is centred and doesn't reach the
-     right side). On mobile the banner spans the full width, so the zoom-jog
-     is lifted above it via --edit-zoom-bottom. */
+  /* Edit-mode: locate-btn is hidden. The zoom-jog sits at the same vertical
+     anchor as the FTS pill / chips — i.e. FTS_GAP above the editor banner top —
+     on every viewport. (--edit-zoom-bottom is set by the ResizeObserver to
+     the banner top + FTS_GAP.) */
   body.edit-mode #zoom-jog {
-    bottom: 16px;
+    bottom: var(--edit-zoom-bottom, 240px);
     transition: bottom 0.22s ease;
     opacity: 1 !important;
     pointer-events: auto !important;
-  }
-  @media (max-width: 639px) {
-    body.edit-mode #zoom-jog {
-      bottom: var(--edit-zoom-bottom, calc(220px));
-    }
   }
 
   /* FTS pill: sit just above the editor banner; hide entirely when satellite
