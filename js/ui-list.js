@@ -265,19 +265,13 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
     `<span class="card-pill pill-${p.kind}">${p.label}</span>`
   ).join('');
 
-  // Closed-but-opens-later venues: prefix the meta line with the opening time
-  // so users see when this card becomes live without having to hunt.
-  const opensLaterPrefix = (!isOpen && qual && qual.surfaced)
-    ? `<span class="card-meta-opens">${t('meta_opens_at_prefix', { time: formatHour(dayHours.open) })}</span><span class="card-meta-dot">·</span>`
-    : '';
-
-  // Detail-panel cards (rich=true) also surface walk time so the secondary
-  // hero CTA can be a quiet utility icon. List cards stay lean — distance
-  // alone is enough at scan-speed.
-  const walkTimeStr = (rich && typeof calcWalkTime === 'function' && s?.distKm != null)
+  // Both the list and the detail panel surface walk time. The Åpner pill
+  // (when the venue is closed but opens later) handles the open-time
+  // signal, so the meta line stays lean: area · type · distance · walk.
+  const walkTimeStr = (typeof calcWalkTime === 'function' && s?.distKm != null)
     ? calcWalkTime(s.distKm * 1000) : null;
   const metaParts = [v.area, catLabel(v), distStr, walkTimeStr].filter(Boolean);
-  const metaInner = opensLaterPrefix + metaParts.map((p, i) =>
+  const metaInner = metaParts.map((p, i) =>
     (i > 0 ? '<span class="card-meta-dot">·</span>' : '') + `<span>${p}</span>`
   ).join('');
 

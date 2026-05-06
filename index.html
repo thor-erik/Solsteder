@@ -2323,10 +2323,9 @@
        • card-pills is always rendered (preserves card height)
        • bottom 3px fill bar shows sun-fraction of remaining day */
   .venue-card.card-compact {
-    /* Reserve space for the inset fill bar (6px from bottom + 3px tall =
-       9px floor); the extra 5px keeps the bar from crowding the meta row
-       on pill-less cards. */
-    padding-bottom: 14px;
+    /* Bar is flush bottom (3px tall, curved corners); padding-bottom holds
+       the meta row clear of it. Pill-less cards inherit this same floor. */
+    padding-bottom: 10px;
   }
   .venue-card.card-compact .card-meta {
     display: grid;
@@ -2344,7 +2343,9 @@
     justify-self: end;
     flex-shrink: 0;
     color: var(--muted);
-    opacity: 0.65;
+    /* Match the venue meta strength — sub-text but not so faint it falls
+       below the area · type · distance line on the same row. */
+    opacity: 0.92;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }
@@ -2361,19 +2362,20 @@
     backdrop-filter: var(--glass-blur-pill);
     -webkit-backdrop-filter: var(--glass-blur-pill);
   }
-  /* ── Fill bar — single contiguous level meter ──
-     Inset from the card edges and fully rounded on both ends so it reads
-     as a discrete pill-shaped indicator rather than fighting the card's
-     bottom corner radius. Track is a near-invisible white-on-glass strip;
-     fill is one span painted in the sun token. */
+  /* ── Fill bar — flush against the card's bottom border ──
+     Spans the full card width; the bar's bottom-left and bottom-right
+     corners curve up matching the card's 12px radius (overflow:hidden +
+     border-radius on the parent does the clip). The fill inside is one
+     contiguous level meter that grows from the left, picking up the
+     same bottom-left curve when partial. */
   .venue-card.card-compact .card-fillbar {
     position: absolute;
-    left: 12px;
-    right: 12px;
-    bottom: 6px;
+    left: 0;
+    right: 0;
+    bottom: 0;
     height: 3px;
     background: rgba(255,242,235,0.06);
-    border-radius: 999px;
+    border-radius: 0 0 12px 12px;
     overflow: hidden;
     pointer-events: none;
   }
@@ -2381,7 +2383,10 @@
     display: block;
     height: 100%;
     background: var(--accent);
-    border-radius: 999px;
+    /* Bottom-left rounded so the fill's leading edge follows the card
+       curve when the bar is partial; right edge stays flat (or, when
+       the fill is 100%, picks up the parent's overflow-clipped curve). */
+    border-radius: 0 0 0 12px;
   }
 
   /* ── Card timeline — full-width strip + labels row at the bottom. ──
