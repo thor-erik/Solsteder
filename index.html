@@ -2338,9 +2338,13 @@
   }
   /* v2 list cards let their height vary with pill count — no min-height
      reservation. Cards with no pills collapse to row1 + meta + fill bar
-     and gain back the spacing they don't need. */
+     and gain back the spacing they don't need. Pills sit on the right
+     so they read as a small status cluster anchored to the duration
+     column above, rather than competing with the venue name on the
+     left for visual start-of-row attention. */
   .venue-card.card-compact .card-pills {
     margin: 6px 0 2px;
+    justify-content: flex-end;
   }
   /* Pills get the 8px backdrop blur from --glass-blur-pill. Cards
      don't blur (parent panel does), but pills sit on top of everything
