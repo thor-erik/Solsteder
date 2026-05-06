@@ -1582,6 +1582,30 @@ function _editHandleHitAtEvent(e) {
   return false;
 }
 
+/** Disable Mapbox interaction handlers so a handle drag doesn't pan the map.
+ *  Called when any handle drag starts; reversed by _enableMapInteractions on
+ *  drag end. Idempotent. */
+function _disableMapInteractions() {
+  if (typeof map === 'undefined' || !map?.dragPan) return;
+  try {
+    map.dragPan.disable();
+    map.touchZoomRotate?.disable();
+    map.touchPitch?.disable();
+    map.scrollZoom?.disable();
+    map.doubleClickZoom?.disable();
+  } catch (_) {}
+}
+function _enableMapInteractions() {
+  if (typeof map === 'undefined' || !map?.dragPan) return;
+  try {
+    map.dragPan.enable();
+    map.touchZoomRotate?.enable();
+    map.touchPitch?.enable();
+    map.scrollZoom?.enable();
+    map.doubleClickZoom?.enable();
+  } catch (_) {}
+}
+
 // Selector for interactive UI overlays that must receive clicks without
 // interference from the canvas. Must be defined before the pointerdown handler.
 const _UI_OVERLAY_SELECTOR = '#qc-wrap, #panel, #floating-search, #search-dropdown, #ptb-cal-float, ' +
@@ -1630,6 +1654,7 @@ canvas.addEventListener('mousedown', e => {
       editDraggingPolyVertex = true;
       editPolyVertexIdx      = cornerIdx;
       canvas.style.cursor    = 'grabbing';
+      _disableMapInteractions();
       e.stopPropagation();
       e.preventDefault();
       return;
@@ -1641,6 +1666,7 @@ canvas.addEventListener('mousedown', e => {
       editDraggingPolyEdge = true;
       editPolyEdgeIdx      = edgeIdx;
       canvas.style.cursor  = 'grabbing';
+      _disableMapInteractions();
       e.stopPropagation();
       e.preventDefault();
       return;
@@ -1651,6 +1677,7 @@ canvas.addEventListener('mousedown', e => {
       editDraggingDepth = true;
       editDragWallObj   = handle;
       canvas.style.cursor = 'row-resize';
+      _disableMapInteractions();
       e.stopPropagation();
       e.preventDefault();
       return;
@@ -1876,6 +1903,7 @@ window.addEventListener('mouseup', () => {
     dispatchToWorker(datePicker.value);
     if (typeof _updateEditToolButtons === 'function') _updateEditToolButtons();
     _setEditChanged();
+    _enableMapInteractions();
     draw();
   }
   if (editDraggingDepth) {
@@ -1886,6 +1914,7 @@ window.addEventListener('mouseup', () => {
     editDragWallObj = null;
     canvas.style.cursor = 'default';
     _setEditChanged();
+    _enableMapInteractions();
   }
 });
 
@@ -1915,6 +1944,7 @@ if (_isTouchDevice) {
     if (typeof editVertexMode !== 'undefined' && editVertexMode) {
       _editTouchId = t.identifier;
       e.preventDefault();
+      e.stopPropagation();
       return;
     }
     if (typeof hitTestActivePolygonVertex === 'function') {
@@ -1923,7 +1953,9 @@ if (_isTouchDevice) {
         editDraggingPolyVertex = true;
         editPolyVertexIdx      = cornerIdx;
         _editTouchId = t.identifier;
+        _disableMapInteractions();
         e.preventDefault();
+        e.stopPropagation();
         return;
       }
     }
@@ -1933,7 +1965,9 @@ if (_isTouchDevice) {
         editDraggingPolyEdge = true;
         editPolyEdgeIdx      = edgeIdx;
         _editTouchId = t.identifier;
+        _disableMapInteractions();
         e.preventDefault();
+        e.stopPropagation();
         return;
       }
     }
@@ -1942,7 +1976,9 @@ if (_isTouchDevice) {
       editDraggingDepth = true;
       editDragWallObj   = dh;
       _editTouchId = t.identifier;
+      _disableMapInteractions();
       e.preventDefault();
+      e.stopPropagation();
       return;
     }
   }, { passive: false });
@@ -1988,6 +2024,7 @@ if (_isTouchDevice) {
       editDraggingPolyVertex = false; editPolyVertexIdx = null;
       editDraggingPolyEdge = false; editPolyEdgeIdx = null;
       _editTouchId = null;
+      _enableMapInteractions();
       _setEditChanged();
       if (wasPoly) {
         sunWindowCache.clear();

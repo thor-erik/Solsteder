@@ -2548,7 +2548,11 @@ function enterEditMode(venueId) {
   _editHasChanges = false;
   _navPush('edit');
 
+  // body.edit-mode hides notifications + repositions zoom-jog/FTS via CSS.
+  // body.edit-satellite is set immediately so the FTS doesn't flash visible
+  // before the satellite tiles arrive.
   document.body.classList.add('edit-mode');
+  document.body.classList.add('edit-satellite');
   document.getElementById('edit-overlay').style.display = 'flex';
   document.getElementById('floating-search').style.display = 'none';
   document.getElementById('panel').style.display = 'none';
@@ -2565,6 +2569,12 @@ function enterEditMode(venueId) {
   _updateEditActionBtn();
   _updateEditToolButtons();
   _startEditBannerObserver();
+  // Switch to satellite immediately — Mapbox handles the cross-fade for us.
+  // (Replaces the previous map.once('moveend') deferral so the camera animates
+  // ON the satellite tiles rather than after them.)
+  editSatelliteActive = true;
+  _syncMapToggleSwitch();
+  map.setStyle('mapbox://styles/mapbox/satellite-streets-v12');
   _syncFtsPosition();
 
   if (popup) { popup.remove(); popup = null; }
@@ -2580,19 +2590,6 @@ function enterEditMode(venueId) {
   } else {
     map.flyTo({ center: [v.lng, v.lat], zoom: 19, pitch: 0, duration: 900 });
   }
-
-  // Default satellite ON, faded in once the fitBounds animation finishes so
-  // the camera move stays visually clean. moveend may fire multiple times
-  // (during easeTo + child animations) so we register `once` and bail if the
-  // user has already toggled satellite off manually.
-  map.once('moveend', () => {
-    if (editingVenueId !== venueId) return;        // exited before settle
-    if (editSatelliteActive) return;               // already on (re-entry)
-    editSatelliteActive = true;
-    document.getElementById('edit-satellite-btn')?.classList.add('active');
-    document.body.classList.add('edit-satellite');
-    map.setStyle('mapbox://styles/mapbox/satellite-streets-v12');
-  });
 
   // Scroll to + highlight the venue card in the sidebar
   setTimeout(() => {
@@ -2610,12 +2607,32 @@ let editSatelliteActive = false;
 
 function toggleEditSatellite() {
   editSatelliteActive = !editSatelliteActive;
-  document.getElementById('edit-satellite-btn').classList.toggle('active', editSatelliteActive);
   document.body.classList.toggle('edit-satellite', editSatelliteActive);
+  _syncMapToggleSwitch();
   map.setStyle(editSatelliteActive
     ? 'mapbox://styles/mapbox/satellite-streets-v12'
     : buildShadeStyle()
   );
+}
+
+/** Sync the segmented map-mode switch (Satellitt ↔ 3D-kart) with the active state.
+ *  The thumb width tracks the currently-selected option so the highlight hugs
+ *  the label rather than always being half the pill. */
+function _syncMapToggleSwitch() {
+  const tog = document.getElementById('edit-map-toggle');
+  if (!tog) return;
+  tog.setAttribute('aria-checked', editSatelliteActive ? 'true' : 'false');
+  const sat = tog.querySelector('.map-toggle-option[data-option="satellite"]');
+  const mp  = tog.querySelector('.map-toggle-option[data-option="map"]');
+  const active = editSatelliteActive ? sat : mp;
+  if (!active) return;
+  // Wait one frame so the option layout settles before measuring.
+  requestAnimationFrame(() => {
+    const tx = active.offsetLeft;
+    const tw = active.offsetWidth;
+    tog.style.setProperty('--map-toggle-thumb-x', `${tx}px`);
+    tog.style.setProperty('--map-toggle-thumb-w', `${tw}px`);
+  });
 }
 
 // ── Edit-banner ResizeObserver (drives FTS + zoom-jog vertical positioning) ──
@@ -2626,9 +2643,11 @@ function _startEditBannerObserver() {
   if (_editBannerObserver) return;
   _editBannerObserver = new ResizeObserver(() => {
     const h = banner.getBoundingClientRect().height;
-    // FTS sits 8px above the banner; zoom-jog sits 12px above the banner.
-    document.body.style.setProperty('--fts-bottom',         `${Math.round(h + 16 + 8)}px`);
-    document.body.style.setProperty('--edit-zoom-bottom',   `${Math.round(h + 16 + 12)}px`);
+    // 16px from the bottom inset + 16px gap above the banner — matches the
+    // 16px padding rhythm used elsewhere on the map (top brand, right zoom).
+    const above = Math.round(h + 16 + 16);
+    document.body.style.setProperty('--fts-bottom',       `${above}px`);
+    document.body.style.setProperty('--edit-zoom-bottom', `${above}px`);
   });
   _editBannerObserver.observe(banner);
 }
@@ -2760,7 +2779,6 @@ function exitEditMode() {
   document.querySelectorAll('.venue-card.editing').forEach(c => c.classList.remove('editing'));
   if (editSatelliteActive) {
     editSatelliteActive = false;
-    document.getElementById('edit-satellite-btn').classList.remove('active');
     map.setStyle(buildShadeStyle());
   }
   map.easeTo({ pitch: 15, bearing: 0, duration: 500 });

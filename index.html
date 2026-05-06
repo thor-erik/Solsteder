@@ -3028,6 +3028,8 @@
     z-index: 920;
     display: none;
     flex-direction: column;
+    align-items: center;
+    gap: 8px;
     width: min(480px, calc(100vw - 32px));
     pointer-events: auto;
   }
@@ -3039,22 +3041,23 @@
     -webkit-backdrop-filter: var(--glass-blur-panel);
     border: var(--glass-border);
     border-radius: 18px;
-    padding: 14px 14px 14px;
+    padding: 6px 14px 12px;
     display: flex;
     flex-direction: column;
     gap: 10px;
     box-shadow: var(--glass-inset), 0 12px 36px rgba(0,0,0,0.55);
+    width: 100%;
   }
 
-  /* Drag handle: hidden on desktop (no need), visible on mobile bottom sheet */
+  /* Drag handle: always visible at the top of the panel */
   .edit-grabber {
     width: 36px;
     height: 4px;
     border-radius: 999px;
-    background: rgba(156,189,231,0.30);
-    margin: -2px auto 4px;
+    background: rgba(156,189,231,0.40);
+    margin: 4px auto 2px;
     flex-shrink: 0;
-    display: none;
+    display: block;
   }
 
   #edit-header-row {
@@ -3089,16 +3092,35 @@
     line-height: 1.3;
   }
 
-  /* Tools row: AI helper chips */
+  /* Tools row: AI helper chips — floats ABOVE the banner / FTS */
   #edit-tools-row {
-    display: flex;
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    /* Default: above the FTS (which itself sits above the banner). When
+       satellite is on the FTS is hidden, so we collapse onto the banner-top
+       (handled below via body.edit-mode.edit-satellite override). */
+    bottom: calc(var(--fts-bottom, 240px) + 56px);
+    transition: bottom 0.22s ease, opacity 0.18s ease;
+    display: none;
     flex-wrap: wrap;
     gap: 6px;
+    justify-content: center;
+    width: min(480px, calc(100vw - 32px));
+    z-index: 920;
+    pointer-events: auto;
+  }
+
+  body.edit-mode #edit-tools-row { display: flex; }
+  body.edit-mode.edit-satellite #edit-tools-row {
+    bottom: var(--fts-bottom, 240px);
   }
 
   .edit-chip {
-    background: var(--glass-action-bg);
-    border: 1px solid rgba(156,189,231,0.18);
+    background: rgba(20,46,82,0.55);
+    backdrop-filter: blur(10px) saturate(160%) brightness(0.92);
+    -webkit-backdrop-filter: blur(10px) saturate(160%) brightness(0.92);
+    border: 1px solid rgba(156,189,231,0.22);
     border-radius: 999px;
     color: #9CBDE7;
     font-family: 'Inter', sans-serif;
@@ -3112,15 +3134,16 @@
     gap: 4px;
     white-space: nowrap;
     line-height: 1;
-    height: 28px;
+    height: 30px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.28);
   }
 
-  .edit-chip:hover { color: #FFF2EB; border-color: rgba(156,189,231,0.35); }
+  .edit-chip:hover { color: #FFF2EB; border-color: rgba(156,189,231,0.40); }
 
   .edit-chip.active {
     color: #FFAF85;
     border-color: rgba(255,175,133,0.45);
-    background: rgba(255,175,133,0.10);
+    background: rgba(255,175,133,0.12);
   }
 
   .edit-chip[hidden] { display: none; }
@@ -3197,67 +3220,84 @@
   .edit-type-list li:hover { background: rgba(156,189,231,0.10); }
   .edit-type-list li.active { color: #FFAF85; background: rgba(255,175,133,0.08); }
 
-  #edit-satellite-btn {
+  /* ── Map-mode segmented switch (3D-kart ↔ Satellitt) ─────────────────────── */
+  .map-toggle {
+    position: relative;
+    flex: 0 0 auto;
     background: var(--glass-action-bg);
     border: 1px solid rgba(156,189,231,0.18);
     border-radius: 999px;
-    color: #9CBDE7;
+    height: 36px;
+    padding: 3px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: stretch;
+    overflow: hidden;
+    transition: border-color 0.12s;
+  }
+
+  .map-toggle:hover { border-color: rgba(156,189,231,0.35); }
+
+  .map-toggle .map-toggle-thumb {
+    position: absolute;
+    top: 3px;
+    bottom: 3px;
+    /* width set in JS based on the wider option so the thumb hugs the label */
+    width: var(--map-toggle-thumb-w, 50%);
+    left: var(--map-toggle-thumb-x, 3px);
+    border-radius: 999px;
+    background: rgba(255,175,133,0.14);
+    border: 1px solid rgba(255,175,133,0.45);
+    box-shadow: inset 0 1px 0 rgba(255,242,235,0.18);
+    transition: left 0.22s cubic-bezier(0.4, 0, 0.2, 1), width 0.22s ease;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .map-toggle .map-toggle-option {
+    position: relative;
+    z-index: 1;
+    padding: 0 14px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-family: 'Inter', sans-serif;
     font-size: 13px;
     font-weight: 500;
-    padding: 0 16px;
-    height: 36px;
-    cursor: pointer;
-    transition: color 0.12s, border-color 0.12s, background 0.12s;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
+    color: #9CBDE7;
     white-space: nowrap;
-    line-height: 1;
+    transition: color 0.18s ease;
+    user-select: none;
   }
 
-  #edit-satellite-btn:hover { color: #FFF2EB; border-color: rgba(156,189,231,0.35); }
-
-  #edit-satellite-btn.active {
+  .map-toggle[aria-checked="true"]  .map-toggle-option[data-option="satellite"],
+  .map-toggle[aria-checked="false"] .map-toggle-option[data-option="map"] {
     color: #FFAF85;
-    border-color: rgba(255,175,133,0.45);
-    background: rgba(255,175,133,0.10);
   }
 
-  /* Action row: Avbryt (ghost pill) + Send forslag (primary pill) */
+  /* ── Action row: vertical stack — primary pill on top, ghost link below ──── */
   #edit-action-row {
     display: flex;
-    gap: 8px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    margin-top: 4px;
   }
 
-  .ghost-pill,
   .primary-pill {
-    flex: 1;
-    height: 44px;
+    width: 100%;
+    height: 46px;
     border-radius: 999px;
+    background: #FFAF85;
+    color: #2A1A0C;
     font-family: 'Inter', sans-serif;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.12s, color 0.12s, border-color 0.12s, opacity 0.12s;
+    transition: background 0.12s, opacity 0.12s;
     border: none;
     line-height: 1;
-  }
-
-  .ghost-pill {
-    background: transparent;
-    border: 1px solid rgba(156,189,231,0.22);
-    color: #9CBDE7;
-  }
-
-  .ghost-pill:hover {
-    border-color: rgba(156,189,231,0.35);
-    color: #FFF2EB;
-  }
-
-  .primary-pill {
-    background: #FFAF85;
-    color: #2A1A0C;
   }
 
   .primary-pill:hover { background: #FFC49A; }
@@ -3268,7 +3308,7 @@
     cursor: not-allowed;
   }
 
-  /* "Ser bra ut" no-changes state — render Send forslag button as ghost */
+  /* No-changes state — render Send forslag button as a quiet ghost */
   .primary-pill.is-no-changes {
     background: transparent;
     border: 1px solid rgba(156,189,231,0.22);
@@ -3280,7 +3320,24 @@
     color: #FFF2EB;
   }
 
-  /* Mobile: bottom sheet flush to viewport edge with grabber visible */
+  /* Avbryt: text-link weight, never competes with the primary CTA */
+  .ghost-link {
+    background: transparent;
+    border: none;
+    color: rgba(156,189,231,0.75);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    height: 32px;
+    cursor: pointer;
+    padding: 0 16px;
+    align-self: center;
+    transition: color 0.12s;
+  }
+
+  .ghost-link:hover { color: #FFF2EB; }
+
+  /* Mobile: bottom sheet flush to viewport edges */
   @media (max-width: 639px) {
     #edit-overlay {
       bottom: 0;
@@ -3288,31 +3345,40 @@
       right: 0;
       transform: none;
       width: 100%;
-      padding-bottom: env(safe-area-inset-bottom, 0);
+      padding: 0 0 env(safe-area-inset-bottom, 0);
+      gap: 8px;
     }
+    #edit-tools-row { padding: 0 16px; }
     #edit-banner {
       border-radius: 22px 22px 0 0;
-      padding: 8px 16px 14px;
+      padding: 6px 16px 12px;
       border-left: none;
       border-right: none;
       border-bottom: none;
       gap: 10px;
     }
-    .edit-grabber { display: block; }
     .edit-type-list { padding: 4px; }
+    .map-toggle { flex: 1 1 auto; }
   }
 
-  /* Edit-mode: locate-btn is hidden so zoom-jog drops to the bottom-right.
-     We need it to clear the editor banner — body.edit-mode-z drives the offset. */
+  /* Edit-mode: locate-btn is hidden. On desktop the zoom-jog stays in its
+     bottom-right corner (the editor banner is centred and doesn't reach the
+     right side). On mobile the banner spans the full width, so the zoom-jog
+     is lifted above it via --edit-zoom-bottom. */
   body.edit-mode #zoom-jog {
-    bottom: var(--edit-zoom-bottom, 16px);
+    bottom: 16px;
     transition: bottom 0.22s ease;
     opacity: 1 !important;
     pointer-events: auto !important;
   }
+  @media (max-width: 639px) {
+    body.edit-mode #zoom-jog {
+      bottom: var(--edit-zoom-bottom, calc(220px));
+    }
+  }
 
   /* FTS pill: sit just above the editor banner; hide entirely when satellite
-     is on (no shadows to scrub through anyway). */
+     is on (no shadows to scrub anyway). Match the banner's horizontal extent. */
   body.edit-mode #fts {
     bottom: var(--fts-bottom, 240px);
     transition: bottom 0.22s ease, opacity 0.22s ease;
@@ -3320,6 +3386,20 @@
   body.edit-mode.edit-satellite #fts {
     opacity: 0;
     pointer-events: none;
+  }
+  @media (max-width: 639px) {
+    body.edit-mode #fts {
+      left: 16px;
+      right: 16px;
+      width: auto;
+    }
+  }
+
+  /* Hide notifications and toasts during edit (single-task focus) */
+  body.edit-mode #notif-toast-wrap,
+  body.edit-mode #notif-toast,
+  body.edit-mode #app-toast {
+    display: none !important;
   }
 
 
@@ -7376,18 +7456,20 @@
     <div id="hover-tooltip"></div>
 
     <!-- EDIT FACING OVERLAY -->
+    <!-- Tools row floats above the banner (and above the FTS when visible) -->
+    <div id="edit-tools-row">
+      <button id="edit-reset-ai-btn" class="edit-chip" onclick="resetEditPolygonToAI()" title="Tilbakestill til AI-detektert polygon" hidden>Tilbakestill</button>
+      <button id="edit-merge-btn" class="edit-chip" onclick="mergeEditPolygons()" title="Slå sammen polygoner" hidden>Slå sammen</button>
+      <button id="edit-add-vertex-btn" class="edit-chip" onclick="toggleEditVertexMode('add')" title="Legg til vinkel">＋ Vinkel</button>
+      <button id="edit-del-vertex-btn" class="edit-chip" onclick="toggleEditVertexMode('del')" title="Fjern vinkel">－ Vinkel</button>
+    </div>
+
     <div id="edit-overlay">
       <div id="edit-banner">
         <div class="edit-grabber" aria-hidden="true"></div>
         <div id="edit-header-row">
-          <div id="edit-title">Rediger terrasse</div>
+          <div id="edit-title">Rediger uteservering</div>
           <div id="edit-venue-label">—</div>
-        </div>
-        <div id="edit-tools-row">
-          <button id="edit-reset-ai-btn" class="edit-chip" onclick="resetEditPolygonToAI()" title="Tilbakestill til AI-detektert polygon" hidden>Tilbakestill</button>
-          <button id="edit-merge-btn" class="edit-chip" onclick="mergeEditPolygons()" title="Slå sammen polygoner" hidden>Slå sammen</button>
-          <button id="edit-add-vertex-btn" class="edit-chip" onclick="toggleEditVertexMode('add')" title="Legg til hjørne">＋ Hjørne</button>
-          <button id="edit-del-vertex-btn" class="edit-chip" onclick="toggleEditVertexMode('del')" title="Fjern hjørne">－ Hjørne</button>
         </div>
         <div id="edit-controls">
           <div id="edit-type-dropdown">
@@ -7402,11 +7484,16 @@
               <li role="option" data-value="detached">Frittstående</li>
             </ul>
           </div>
-          <button id="edit-satellite-btn" onclick="toggleEditSatellite()" title="Vis satellitt">Satellitt</button>
+          <!-- Map-mode toggle: Satellitt ↔ 3D-kart (segmented Shades-style switch) -->
+          <button type="button" id="edit-map-toggle" class="map-toggle" role="switch" aria-checked="true" onclick="toggleEditSatellite()">
+            <span class="map-toggle-thumb" aria-hidden="true"></span>
+            <span class="map-toggle-option" data-option="map">3D-kart</span>
+            <span class="map-toggle-option" data-option="satellite">Satellitt</span>
+          </button>
         </div>
         <div id="edit-action-row">
-          <button id="edit-cancel-btn" class="ghost-pill" onclick="cancelEditMode()">Avbryt</button>
           <button id="edit-action-btn" class="primary-pill" onclick="onEditActionBtn()">Ser bra ut</button>
+          <button id="edit-cancel-btn" class="ghost-link" onclick="cancelEditMode()">Avbryt</button>
         </div>
       </div>
     </div>
