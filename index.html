@@ -4971,11 +4971,12 @@
   /* Aligned with the Shades design system's "Secondary Square" spec:
      48×48 rounded squares (radius 12), glass-action fill, --muted at rest,
      --accent-dim background + --accent color when toggled on. The row
-     centers a cluster of 4–6 utility icons beneath the primary CTA;
-     gap matches the panel's content rhythm. */
+     spans the full panel width — the two most-used utilities (directions,
+     share) flex to absorb extra space, while toggle-state squares
+     (heart, bell, optional phone/website) stay 48×48. The result lines
+     up flush with the Invite friends CTA above. */
   .dp-action-row {
     display: flex;
-    justify-content: center;
     align-items: center;
     gap: 10px;
     margin-bottom: 14px;
@@ -5031,6 +5032,15 @@
     color: var(--text);
   }
   .dp-action-icon svg { width: 20px; height: 20px; stroke: currentColor; color: currentColor; }
+  /* Wide variant — directions + share take the spare row width so the
+     row lines up with the full-width Invite friends CTA. Falls back
+     gracefully when phone/website append (icons just narrow). */
+  .dp-action-icon-wide {
+    flex: 1;
+    width: auto;
+    min-width: 64px;
+    padding: 0 14px;
+  }
   .dp-action-icon.is-active {
     background: var(--accent-dim);
     border-color: rgba(255,175,133,0.35);
