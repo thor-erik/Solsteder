@@ -1599,32 +1599,30 @@ canvas.addEventListener('mousedown', e => {
   const rect = canvas.getBoundingClientRect();
   const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
   if (editingVenueId) {
-    // Seating-polygon vertex drag takes top priority — when the AI/manual
-    // polygon is in play it should never be obscured by underlying wall
-    // arrows or depth handles.
-    const polyIdx = (typeof hitTestSeatingPolygonVertex === 'function')
-      ? hitTestSeatingPolygonVertex(cx, cy) : null;
-    if (polyIdx !== null) {
+    // Vertex-tool modes: handled on click, but skip drag-start.
+    if (typeof editVertexMode !== 'undefined' && editVertexMode) {
+      // Don't start a drag while a tool mode is active. The click handler will fire.
+      return;
+    }
+    // Corner handle: free drag.
+    const cornerIdx = (typeof hitTestActivePolygonVertex === 'function')
+      ? hitTestActivePolygonVertex(cx, cy) : null;
+    if (cornerIdx !== null) {
       editDraggingPolyVertex = true;
-      editPolyVertexIdx      = polyIdx;
+      editPolyVertexIdx      = cornerIdx;
       canvas.style.cursor    = 'grabbing';
       return;
     }
-    // Detached pin drag
-    if (hitTestDetachedPin(cx, cy)) {
-      _detachedDragging = true;
-      canvas.style.cursor = 'grabbing';
+    // Edge midpoint: perpendicular drag.
+    const edgeIdx = (typeof hitTestActivePolygonEdge === 'function')
+      ? hitTestActivePolygonEdge(cx, cy) : null;
+    if (edgeIdx !== null) {
+      editDraggingPolyEdge = true;
+      editPolyEdgeIdx      = edgeIdx;
+      canvas.style.cursor  = 'grabbing';
       return;
     }
-    // Width trim handle drag
-    const wh = hitTestWidthHandle(cx, cy);
-    if (wh) {
-      editDraggingWidth = wh.side;
-      editWidthWall     = wh.wall;
-      canvas.style.cursor = 'ew-resize';
-      return;
-    }
-    // Depth handle drag takes priority — don't forward to map
+    // Legacy: depth handle drag (street wall-mode, before polygon override exists)
     const handle = hitTestDepthHandle(cx, cy);
     if (handle) {
       editDraggingDepth = true;
@@ -1667,13 +1665,47 @@ canvas.addEventListener('click', e => {
   const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
   if (editingVenueId) {
     const v = VENUES.find(x => x.id === editingVenueId);
-    if (v?.terraceType === 'detached' && !_detachedDragging) {
-      const ll = map.unproject([cx, cy]);
-      setDetachedLocation(ll.lat, ll.lng);
+
+    // Vertex tool modes — consume the click before anything else.
+    if (typeof editVertexMode !== 'undefined' && editVertexMode === 'del') {
+      const idx = (typeof hitTestActivePolygonVertex === 'function')
+        ? hitTestActivePolygonVertex(cx, cy) : null;
+      if (idx !== null) {
+        if (typeof deletePolygonVertex === 'function') deletePolygonVertex(editingVenueId, idx);
+        if (typeof _setEditChanged === 'function') _setEditChanged();
+        sunWindowCache.clear();
+        dispatchToWorker(datePicker.value);
+        if (typeof _updateEditToolButtons === 'function') _updateEditToolButtons();
+        if (typeof setEditVertexMode === 'function') setEditVertexMode(null);
+        draw();
+        return;
+      }
+      // Click missed any vertex — exit del mode silently.
+      if (typeof setEditVertexMode === 'function') setEditVertexMode(null);
       return;
     }
+    if (typeof editVertexMode !== 'undefined' && editVertexMode === 'add') {
+      const hit = (typeof hitTestActivePolygonEdgeAt === 'function')
+        ? hitTestActivePolygonEdgeAt(cx, cy, 16) : null;
+      if (hit) {
+        if (typeof insertPolygonVertexAt === 'function')
+          insertPolygonVertexAt(editingVenueId, hit.edgeIdx, hit.lat, hit.lng);
+        if (typeof _setEditChanged === 'function') _setEditChanged();
+        sunWindowCache.clear();
+        dispatchToWorker(datePicker.value);
+        if (typeof _updateEditToolButtons === 'function') _updateEditToolButtons();
+        if (typeof setEditVertexMode === 'function') setEditVertexMode(null);
+        draw();
+        return;
+      }
+      if (typeof setEditVertexMode === 'function') setEditVertexMode(null);
+      return;
+    }
+
+    // Default street-wall click: toggle wall selection.
     const wallIdx = hitTestWall(cx, cy);
-    if (wallIdx !== null && (!v?.terraceType || v.terraceType === 'street')) selectWallByIdx(wallIdx);
+    if (wallIdx !== null && (!v?.terraceType || v.terraceType === 'street')
+        && !v?.seatingPolygonOverride) selectWallByIdx(wallIdx);
     return;
   }
   const hit = hitTestVenue(cx, cy) || hitTestDot(cx, cy);
@@ -1694,40 +1726,18 @@ canvas.addEventListener('mousemove', e => {
   if (editingVenueId) {
     tooltip.classList.remove('visible');
 
-    if (_detachedDragging) {
-      const ll = map.unproject([cx, cy]);
-      setDetachedLocation(ll.lat, ll.lng);
-      canvas.style.cursor = 'grabbing';
-      return;
-    }
-
     if (editDraggingPolyVertex && editPolyVertexIdx !== null) {
       const ll = map.unproject([cx, cy]);
-      updateSeatingPolygonVertex(editingVenueId, editPolyVertexIdx, ll.lat, ll.lng);
+      updatePolygonVertex(editingVenueId, editPolyVertexIdx, ll.lat, ll.lng);
       canvas.style.cursor = 'grabbing';
       draw();
       return;
     }
 
-    if (editDraggingWidth && editWidthWall) {
-      const v = VENUES.find(x => x.id === editingVenueId);
-      if (v) {
-        const wall = editWidthWall;
-        const pa   = map.project([wall.aLng, wall.aLat]);
-        const pb   = map.project([wall.bLng, wall.bLat]);
-        const wdx = pb.x - pa.x, wdy = pb.y - pa.y;
-        const lenSq = wdx * wdx + wdy * wdy || 1;
-        const t = ((cx - pa.x) * wdx + (cy - pa.y) * wdy) / lenSq;
-        const pxPerM = pxPerMetre(v);
-        const lenM   = Math.sqrt(lenSq) / pxPerM;
-        if (editDraggingWidth === 'start') {
-          v.terraceWallTrimStart = Math.max(0, Math.min(lenM * 0.48, t * lenM));
-        } else {
-          v.terraceWallTrimEnd = Math.max(0, Math.min(lenM * 0.48, (1 - t) * lenM));
-        }
-        draw();
-        canvas.style.cursor = 'ew-resize';
-      }
+    if (editDraggingPolyEdge && editPolyEdgeIdx !== null) {
+      shiftPolygonEdge(editingVenueId, editPolyEdgeIdx, cx, cy);
+      canvas.style.cursor = 'grabbing';
+      draw();
       return;
     }
 
@@ -1738,30 +1748,37 @@ canvas.addEventListener('mousemove', e => {
         const pixelDist = (cx - mx) * normX + (cy - my) * normY;
         v.terraceDepth = Math.max(1, Math.min(30, pixelDist / pxPerMetre(v)));
         draw();
-        _updateEditDepthDisplay();
       }
       return;
     }
 
     const vEdit = VENUES.find(x => x.id === editingVenueId);
-    if (vEdit?.terraceType === 'detached') {
-      canvas.style.cursor = hitTestDetachedPin(cx, cy) ? 'grab' : 'crosshair';
+
+    // While a vertex tool mode is active, show crosshair everywhere.
+    if (typeof editVertexMode !== 'undefined' && editVertexMode) {
+      canvas.style.cursor = 'crosshair';
       return;
     }
+
+    // Polygon handle hover (works for all polygon types, including override on street)
+    if (typeof hitTestActivePolygonVertex === 'function'
+        && hitTestActivePolygonVertex(cx, cy) !== null) {
+      canvas.style.cursor = 'grab';
+      return;
+    }
+    if (typeof hitTestActivePolygonEdge === 'function'
+        && hitTestActivePolygonEdge(cx, cy) !== null) {
+      canvas.style.cursor = 'move';
+      return;
+    }
+
+    // Non-street types past this point have no further hover affordances.
     if (vEdit?.terraceType && vEdit.terraceType !== 'street') {
       canvas.style.cursor = 'default';
       return;
     }
 
-    if (typeof hitTestSeatingPolygonVertex === 'function'
-        && hitTestSeatingPolygonVertex(cx, cy) !== null) {
-      canvas.style.cursor = 'grab';
-      return;
-    }
-
-    const wHandle = hitTestWidthHandle(cx, cy);
-    if (wHandle) { canvas.style.cursor = 'ew-resize'; return; }
-
+    // Street wall-mode (no override yet)
     const handle = hitTestDepthHandle(cx, cy);
     if (handle) { canvas.style.cursor = 'row-resize'; return; }
 
@@ -1820,14 +1837,11 @@ canvas.addEventListener('mouseleave', () => {
 });
 
 window.addEventListener('mouseup', () => {
-  if (_detachedDragging) {
-    _detachedDragging = false;
-    canvas.style.cursor = 'default';
-    draw();
-  }
-  if (editDraggingPolyVertex) {
+  if (editDraggingPolyVertex || editDraggingPolyEdge) {
     editDraggingPolyVertex = false;
     editPolyVertexIdx      = null;
+    editDraggingPolyEdge   = false;
+    editPolyEdgeIdx        = null;
     canvas.style.cursor    = 'default';
     const v = VENUES.find(x => x.id === editingVenueId);
     if (v) saveFacingCache(v.id, v.facing, v.facingSource, v.terraceWallIndices ?? [], v.terraceDepth,
@@ -1835,6 +1849,7 @@ window.addEventListener('mouseup', () => {
       v.seatingPolygonOverride);
     sunWindowCache.clear();
     dispatchToWorker(datePicker.value);
+    if (typeof _updateEditToolButtons === 'function') _updateEditToolButtons();
     _setEditChanged();
     draw();
   }
@@ -1844,16 +1859,6 @@ window.addEventListener('mouseup', () => {
     if (v) saveFacingCache(v.id, v.facing, v.facingSource, v.terraceWallIndices ?? [], v.terraceDepth,
       null, v.terraceType, v.terraceDetachedLocation, v.terraceWallTrimStart, v.terraceWallTrimEnd);
     editDragWallObj = null;
-    canvas.style.cursor = 'default';
-    _updateEditDepthDisplay();
-    _setEditChanged();
-  }
-  if (editDraggingWidth) {
-    editDraggingWidth = false;
-    const v = VENUES.find(x => x.id === editingVenueId);
-    if (v) saveFacingCache(v.id, v.facing, v.facingSource, v.terraceWallIndices ?? [], v.terraceDepth,
-      null, v.terraceType, v.terraceDetachedLocation, v.terraceWallTrimStart, v.terraceWallTrimEnd);
-    editWidthWall = null;
     canvas.style.cursor = 'default';
     _setEditChanged();
   }
@@ -1881,29 +1886,31 @@ if (_isTouchDevice) {
     const rect = canvas.getBoundingClientRect();
     const cx = t.clientX - rect.left, cy = t.clientY - rect.top;
 
-    if (typeof hitTestSeatingPolygonVertex === 'function') {
-      const polyIdx = hitTestSeatingPolygonVertex(cx, cy);
-      if (polyIdx !== null) {
+    // Vertex tool modes — handled on touchend instead of touchstart.
+    if (typeof editVertexMode !== 'undefined' && editVertexMode) {
+      _editTouchId = t.identifier;
+      e.preventDefault();
+      return;
+    }
+    if (typeof hitTestActivePolygonVertex === 'function') {
+      const cornerIdx = hitTestActivePolygonVertex(cx, cy);
+      if (cornerIdx !== null) {
         editDraggingPolyVertex = true;
-        editPolyVertexIdx      = polyIdx;
+        editPolyVertexIdx      = cornerIdx;
         _editTouchId = t.identifier;
         e.preventDefault();
         return;
       }
     }
-    if (hitTestDetachedPin(cx, cy)) {
-      _detachedDragging = true;
-      _editTouchId = t.identifier;
-      e.preventDefault();
-      return;
-    }
-    const wh = hitTestWidthHandle(cx, cy);
-    if (wh) {
-      editDraggingWidth = wh.side;
-      editWidthWall     = wh.wall;
-      _editTouchId = t.identifier;
-      e.preventDefault();
-      return;
+    if (typeof hitTestActivePolygonEdge === 'function') {
+      const edgeIdx = hitTestActivePolygonEdge(cx, cy);
+      if (edgeIdx !== null) {
+        editDraggingPolyEdge = true;
+        editPolyEdgeIdx      = edgeIdx;
+        _editTouchId = t.identifier;
+        e.preventDefault();
+        return;
+      }
     }
     const dh = hitTestDepthHandle(cx, cy);
     if (dh) {
@@ -1922,34 +1929,15 @@ if (_isTouchDevice) {
     const rect = canvas.getBoundingClientRect();
     const cx = t.clientX - rect.left, cy = t.clientY - rect.top;
 
-    if (_detachedDragging) {
-      const ll = map.unproject([cx, cy]);
-      setDetachedLocation(ll.lat, ll.lng);
-      e.preventDefault(); return;
-    }
     if (editDraggingPolyVertex && editPolyVertexIdx !== null) {
       const ll = map.unproject([cx, cy]);
-      updateSeatingPolygonVertex(editingVenueId, editPolyVertexIdx, ll.lat, ll.lng);
+      updatePolygonVertex(editingVenueId, editPolyVertexIdx, ll.lat, ll.lng);
       draw();
       e.preventDefault(); return;
     }
-    if (editDraggingWidth && editWidthWall) {
-      const v = VENUES.find(x => x.id === editingVenueId);
-      if (v) {
-        const wall = editWidthWall;
-        const pa   = map.project([wall.aLng, wall.aLat]);
-        const pb   = map.project([wall.bLng, wall.bLat]);
-        const wdx = pb.x - pa.x, wdy = pb.y - pa.y;
-        const lenSq = wdx * wdx + wdy * wdy || 1;
-        const t2 = ((cx - pa.x) * wdx + (cy - pa.y) * wdy) / lenSq;
-        const lenM = Math.sqrt(lenSq) / pxPerMetre(v);
-        if (editDraggingWidth === 'start') {
-          v.terraceWallTrimStart = Math.max(0, Math.min(lenM * 0.48, t2 * lenM));
-        } else {
-          v.terraceWallTrimEnd = Math.max(0, Math.min(lenM * 0.48, (1 - t2) * lenM));
-        }
-        draw();
-      }
+    if (editDraggingPolyEdge && editPolyEdgeIdx !== null) {
+      shiftPolygonEdge(editingVenueId, editPolyEdgeIdx, cx, cy);
+      draw();
       e.preventDefault(); return;
     }
     if (editDraggingDepth && editDragWallObj) {
@@ -1959,29 +1947,27 @@ if (_isTouchDevice) {
         const pixelDist = (cx - mx) * normX + (cy - my) * normY;
         v.terraceDepth = Math.max(1, Math.min(30, pixelDist / pxPerMetre(v)));
         draw();
-        _updateEditDepthDisplay();
       }
       e.preventDefault(); return;
     }
   }, { passive: false });
 
   document.addEventListener('touchend', e => {
-    if (editingVenueId && (_detachedDragging || editDraggingDepth || editDraggingWidth || editDraggingPolyVertex)) {
+    if (editingVenueId && (editDraggingDepth || editDraggingPolyVertex || editDraggingPolyEdge)) {
       const v = VENUES.find(x => x.id === editingVenueId);
       if (v) saveFacingCache(v.id, v.facing, v.facingSource, v.terraceWallIndices ?? [], v.terraceDepth,
         null, v.terraceType, v.terraceDetachedLocation, v.terraceWallTrimStart, v.terraceWallTrimEnd,
         v.seatingPolygonOverride);
-      const wasPoly = editDraggingPolyVertex;
-      _detachedDragging = false;
+      const wasPoly = editDraggingPolyVertex || editDraggingPolyEdge;
       editDraggingDepth = false; editDragWallObj = null;
-      editDraggingWidth = false; editWidthWall   = null;
       editDraggingPolyVertex = false; editPolyVertexIdx = null;
+      editDraggingPolyEdge = false; editPolyEdgeIdx = null;
       _editTouchId = null;
-      _updateEditDepthDisplay();
       _setEditChanged();
       if (wasPoly) {
         sunWindowCache.clear();
         dispatchToWorker(datePicker.value);
+        if (typeof _updateEditToolButtons === 'function') _updateEditToolButtons();
       }
       draw();
       return;
@@ -1995,13 +1981,40 @@ if (_isTouchDevice) {
       const rect = canvas.getBoundingClientRect();
       const cx = t.clientX - rect.left, cy = t.clientY - rect.top;
       const v = VENUES.find(x => x.id === editingVenueId);
-      if (v?.terraceType === 'detached') {
-        const ll = map.unproject([cx, cy]);
-        setDetachedLocation(ll.lat, ll.lng);
-      } else {
-        const wallIdx = hitTestWall(cx, cy);
-        if (wallIdx !== null && (!v?.terraceType || v.terraceType === 'street')) selectWallByIdx(wallIdx);
+
+      // Vertex tool modes
+      if (typeof editVertexMode !== 'undefined' && editVertexMode === 'del') {
+        const idx = (typeof hitTestActivePolygonVertex === 'function')
+          ? hitTestActivePolygonVertex(cx, cy) : null;
+        if (idx !== null) {
+          deletePolygonVertex(editingVenueId, idx);
+          _setEditChanged();
+          sunWindowCache.clear();
+          dispatchToWorker(datePicker.value);
+          if (typeof _updateEditToolButtons === 'function') _updateEditToolButtons();
+        }
+        if (typeof setEditVertexMode === 'function') setEditVertexMode(null);
+        draw();
+        return;
       }
+      if (typeof editVertexMode !== 'undefined' && editVertexMode === 'add') {
+        const hit = (typeof hitTestActivePolygonEdgeAt === 'function')
+          ? hitTestActivePolygonEdgeAt(cx, cy, 18) : null;
+        if (hit) {
+          insertPolygonVertexAt(editingVenueId, hit.edgeIdx, hit.lat, hit.lng);
+          _setEditChanged();
+          sunWindowCache.clear();
+          dispatchToWorker(datePicker.value);
+          if (typeof _updateEditToolButtons === 'function') _updateEditToolButtons();
+        }
+        if (typeof setEditVertexMode === 'function') setEditVertexMode(null);
+        draw();
+        return;
+      }
+
+      const wallIdx = hitTestWall(cx, cy);
+      if (wallIdx !== null && (!v?.terraceType || v.terraceType === 'street')
+          && !v?.seatingPolygonOverride) selectWallByIdx(wallIdx);
       return;
     }
 

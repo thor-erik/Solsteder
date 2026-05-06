@@ -136,6 +136,30 @@ function convexHull(pts) {
   return lower.concat(upper);
 }
 
+/**
+ * Merge multiple lat/lng polygons into one. Returns a single [lat,lng] vertex
+ * array tracing the convex hull of the input vertices. Convex hull is a
+ * coarse but reliable union — good enough for the common case of two terrace
+ * polygons on adjacent sides of the same building. For complex L-shapes,
+ * users can refine the result with corner / edge handles.
+ *
+ * Input:  array of lat/lng polygons, e.g. [ [[lat,lng],...], [[lat,lng],...] ]
+ * Output: single [lat,lng] polygon, or null if input is empty.
+ */
+function unionPolygons(polysLatLng) {
+  if (!Array.isArray(polysLatLng) || polysLatLng.length === 0) return null;
+  if (polysLatLng.length === 1) return polysLatLng[0];
+  const all = [];
+  polysLatLng.forEach(poly => {
+    if (Array.isArray(poly)) poly.forEach(pt => all.push(pt));
+  });
+  if (all.length < 3) return null;
+  // convexHull works on {x,y} — map lng→x, lat→y so the result reads naturally.
+  const pts = all.map(([lat, lng]) => ({ x: lng, y: lat }));
+  const hull = convexHull(pts);
+  return hull.map(({ x, y }) => [y, x]);
+}
+
 // ── Seating area shapes ────────────────────────────────────────────────────────
 const TERRACE_DEPTH_M = 5;  // metres outward from the terrace wall
 

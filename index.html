@@ -3019,28 +3019,30 @@
     }
   }
 
-  /* Edit mode overlay */
+  /* ── Edit mode overlay (anchored to detail-panel slot) ─────────────────────── */
   #edit-overlay {
+    /* Desktop: occupy the detail-panel column. Detail panel is hidden during edit
+       (see enterEditMode in app.js), so this slot is free. */
     position: absolute;
-    bottom: 24px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 1200;
+    top: 70px;
+    left: 368px;
+    bottom: 16px;
+    width: 336px;
+    z-index: 820;
     display: none;
     flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    width: max-content;
-    max-width: calc(100vw - 48px);
+    pointer-events: auto;
   }
 
-  #edit-instruction {
-    font-family: 'Inter', sans-serif;
-    font-size: 12px;
-    color: rgba(255, 242, 235, 0.6);
-    text-align: center;
-    pointer-events: none;
-    white-space: nowrap;
+  .edit-grabber {
+    width: 40px;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(156,189,231,0.30);
+    margin: 8px auto 6px;
+    flex-shrink: 0;
+    /* desktop: hidden — no drag affordance needed when anchored */
+    display: none;
   }
 
   #edit-banner {
@@ -3049,12 +3051,13 @@
     -webkit-backdrop-filter: var(--glass-blur-panel);
     border: var(--glass-border);
     border-radius: 14px;
-    padding: 16px 20px;
+    padding: 16px;
     display: flex;
     flex-direction: column;
-    gap: 14px;
-    box-shadow: var(--glass-inset), 0 4px 28px rgba(0,0,0,0.6);
-    width: 360px;
+    gap: 12px;
+    box-shadow: var(--glass-inset), 0 6px 24px rgba(0,0,0,0.50);
+    flex: 1;
+    overflow: hidden;
   }
 
   #edit-header-row {
@@ -3066,13 +3069,15 @@
 
   #edit-title {
     font-family: 'Inter', sans-serif;
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 600;
     color: #FFAF85;
     flex-shrink: 0;
+    letter-spacing: 0;
   }
 
   #edit-venue-label {
+    font-family: 'Inter', sans-serif;
     font-size: 14px;
     font-weight: 600;
     color: #FFF2EB;
@@ -3085,50 +3090,57 @@
     max-width: 180px;
   }
 
-  #edit-stats-row {
+  /* Tools row: AI helper chips */
+  #edit-tools-row {
     display: flex;
-    align-items: center;
-    gap: 0;
-  }
-
-  .edit-stat {
-    display: flex;
-    align-items: center;
+    flex-wrap: wrap;
     gap: 6px;
   }
 
-  .edit-stat + .edit-stat {
-    margin-left: 16px;
-  }
-
-  .edit-stat-label {
-    font-family: 'Inter', sans-serif;
-    font-size: 13px;
+  .edit-chip {
+    background: var(--glass-action-bg);
+    border: var(--glass-border);
+    border-radius: 10px;
     color: #9CBDE7;
-  }
-
-  .edit-stat-value {
     font-family: 'Inter', sans-serif;
     font-size: 13px;
-    font-weight: 600;
-    color: #FFF2EB;
+    font-weight: 500;
+    padding: 7px 12px;
+    cursor: pointer;
+    transition: color 0.12s, border-color 0.12s, background 0.12s;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+    line-height: 1;
   }
 
+  .edit-chip:hover { color: #FFF2EB; border-color: rgba(156,189,231,0.35); }
+
+  .edit-chip.active {
+    color: #FFAF85;
+    border-color: rgba(255,175,133,0.40);
+    background: rgba(255,175,133,0.08);
+  }
+
+  .edit-chip[hidden] { display: none; }
+
+  /* Type select + satellite toggle row */
   #edit-controls {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-left: auto;
   }
 
   #edit-type-select {
+    flex: 1;
     background: var(--glass-action-bg);
     border: var(--glass-border);
-    border-radius: 12px;
+    border-radius: 10px;
     color: #FFF2EB;
     font-family: 'Inter', sans-serif;
     font-size: 13px;
-    padding: 7px 28px 7px 12px;
+    padding: 8px 28px 8px 12px;
     cursor: pointer;
     outline: none;
     appearance: none;
@@ -3136,7 +3148,7 @@
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239CBDE7' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 10px center;
-    transition: border-color 0.15s;
+    transition: border-color 0.12s;
   }
 
   #edit-type-select:focus { border-color: rgba(255,175,133,0.4); }
@@ -3149,55 +3161,93 @@
   #edit-satellite-btn {
     background: var(--glass-action-bg);
     border: var(--glass-border);
-    border-radius: 12px;
+    border-radius: 10px;
     color: #9CBDE7;
     font-family: 'Inter', sans-serif;
     font-size: 13px;
-    padding: 7px 14px;
+    font-weight: 500;
+    padding: 8px 14px;
     cursor: pointer;
-    transition: color 0.15s, border-color 0.15s;
-    display: flex;
+    transition: color 0.12s, border-color 0.12s, background 0.12s;
+    display: inline-flex;
     align-items: center;
     gap: 6px;
     white-space: nowrap;
+    line-height: 1;
   }
 
-  #edit-satellite-btn:hover { color: #FFF2EB; }
+  #edit-satellite-btn:hover { color: #FFF2EB; border-color: rgba(156,189,231,0.35); }
 
   #edit-satellite-btn.active {
     color: #FFAF85;
-    border-color: rgba(255,175,133,0.4);
+    border-color: rgba(255,175,133,0.40);
+    background: rgba(255,175,133,0.08);
   }
 
-  #edit-action-btn {
-    width: 100%;
+  /* Action row: Avbryt (ghost pill) + Send forslag (primary pill) */
+  #edit-action-row {
+    display: flex;
+    gap: 8px;
+    margin-top: auto;
+  }
+
+  .ghost-pill,
+  .primary-pill {
+    flex: 1;
     height: 48px;
-    border-radius: 12px;
+    border-radius: 999px;
     font-family: 'Inter', sans-serif;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    transition: opacity 0.15s, background 0.2s, color 0.2s, border-color 0.2s;
+    transition: background 0.12s, color 0.12s, border-color 0.12s, opacity 0.12s, transform 0.12s;
     border: none;
+    line-height: 1;
   }
 
-  #edit-action-btn.ghost {
+  .ghost-pill {
     background: transparent;
-    border: 1px solid rgba(156,189,231,0.3);
+    border: 1px solid rgba(156,189,231,0.22);
     color: #9CBDE7;
   }
 
-  #edit-action-btn.ghost:hover {
-    border-color: rgba(156,189,231,0.55);
+  .ghost-pill:hover {
+    border-color: rgba(156,189,231,0.35);
     color: #FFF2EB;
   }
 
-  #edit-action-btn.primary {
+  .primary-pill {
     background: #FFAF85;
-    color: #142E52;
+    color: #2A1A0C;
   }
 
-  #edit-action-btn.primary:hover { opacity: 0.85; }
+  .primary-pill:hover { background: #FFC49A; }
+
+  .primary-pill:active { background: #F09060; }
+
+  .primary-pill[disabled] {
+    opacity: 0.40;
+    cursor: not-allowed;
+  }
+
+  /* "Ser bra ut" no-changes state — render Send forslag button as ghost variant */
+  .primary-pill.is-no-changes {
+    background: transparent;
+    border: 1px solid rgba(156,189,231,0.22);
+    color: #9CBDE7;
+  }
+
+  .primary-pill.is-no-changes:hover {
+    border-color: rgba(156,189,231,0.35);
+    color: #FFF2EB;
+  }
+
+  /* Edit-mode: locate-btn is hidden, so zoom-jog drops to the actual bottom.
+     On mobile the editor sheet is up to 62svh tall; lift zoom-jog above it. */
+  body.edit-mode #zoom-jog { bottom: 16px; transition: bottom 0.22s ease; }
+  @media (max-width: 639px) {
+    body.edit-mode #zoom-jog { bottom: calc(62svh + 12px); }
+  }
 
 
   /* ── Profile panel additions ─────────────────────────────────────────────── */
@@ -3995,34 +4045,36 @@
   .admin-reject-btn:hover { background: rgba(255,107,107,0.22); }
 
   /* ── Edit banner mobile layout ────────────────────────────────────────────── */
-  @media (max-width: 600px) {
+  @media (max-width: 639px) {
     #edit-overlay {
-      bottom: 0;
+      position: fixed;
+      top: auto;
       left: 0;
       right: 0;
-      transform: none;
-      padding: 0 0 env(safe-area-inset-bottom, 0);
-      align-items: stretch;
-      width: auto;
-      max-width: none;
+      bottom: 0;
+      width: 100%;
+      max-height: 62svh;
+      padding-bottom: env(safe-area-inset-bottom, 0);
+      z-index: 920;
     }
 
-    #edit-instruction {
-      padding: 0 16px;
+    .edit-grabber {
+      display: block;
     }
 
     #edit-banner {
-      border-radius: 16px 16px 0 0;
-      padding: 14px 16px 16px;
+      border-radius: 20px 20px 0 0;
+      padding: 6px 16px 16px;
       border-left: none;
       border-right: none;
       border-bottom: none;
-      width: auto;
+      gap: 10px;
     }
 
+    #edit-tools-row { gap: 6px; }
     #edit-controls { flex-wrap: wrap; }
-    #edit-type-select { flex: 1; }
-    #edit-satellite-btn { flex: 1; justify-content: center; }
+    #edit-satellite-btn { flex: 0 0 auto; justify-content: center; }
+    .ghost-pill, .primary-pill { height: 44px; font-size: 14px; }
   }
 
   /* Timeline */
@@ -7283,34 +7335,31 @@
 
     <!-- EDIT FACING OVERLAY -->
     <div id="edit-overlay">
-      <div id="edit-instruction">Click walls to add/remove · drag ● to set depth</div>
+      <div class="edit-grabber" aria-hidden="true"></div>
       <div id="edit-banner">
         <div id="edit-header-row">
-          <div id="edit-title">Edit terrace</div>
+          <div id="edit-title">Rediger terrasse</div>
           <div id="edit-venue-label">—</div>
         </div>
-        <div id="edit-stats-row">
-          <div class="edit-stat">
-            <span class="edit-stat-label">Depth</span>
-            <span class="edit-stat-value" id="edit-depth-display">—</span>
-          </div>
-          <div class="edit-stat">
-            <span class="edit-stat-label">Direction</span>
-            <span class="edit-stat-value" id="edit-direction-display">—</span>
-          </div>
-          <div id="edit-controls">
-            <select id="edit-type-select" onchange="setTerraceType(this.value)" title="Terrace type">
-              <option value="street">Street</option>
-              <option value="rooftop">Rooftop</option>
-              <option value="courtyard">Courtyard</option>
-              <option value="detached">Detached</option>
-            </select>
-            <button id="edit-satellite-btn" onclick="toggleEditSatellite()" title="Toggle satellite view">
-              🛰 Satellite
-            </button>
-          </div>
+        <div id="edit-tools-row">
+          <button id="edit-reset-ai-btn" class="edit-chip" onclick="resetEditPolygonToAI()" title="Tilbakestill til AI-detektert polygon" hidden>Tilbakestill</button>
+          <button id="edit-merge-btn" class="edit-chip" onclick="mergeEditPolygons()" title="Slå sammen polygoner" hidden>Slå sammen</button>
+          <button id="edit-add-vertex-btn" class="edit-chip" onclick="toggleEditVertexMode('add')" title="Legg til hjørne">＋ Hjørne</button>
+          <button id="edit-del-vertex-btn" class="edit-chip" onclick="toggleEditVertexMode('del')" title="Fjern hjørne">－ Hjørne</button>
         </div>
-        <button id="edit-action-btn" class="ghost" onclick="onEditActionBtn()">Looks good ✓</button>
+        <div id="edit-controls">
+          <select id="edit-type-select" onchange="setTerraceType(this.value)" title="Terrassetype">
+            <option value="street">Gate</option>
+            <option value="rooftop">Tak</option>
+            <option value="courtyard">Innergård</option>
+            <option value="detached">Frittstående</option>
+          </select>
+          <button id="edit-satellite-btn" onclick="toggleEditSatellite()" title="Vis satellitt">Satellitt</button>
+        </div>
+        <div id="edit-action-row">
+          <button id="edit-cancel-btn" class="ghost-pill" onclick="cancelEditMode()">Avbryt</button>
+          <button id="edit-action-btn" class="primary-pill" onclick="onEditActionBtn()">Ser bra ut</button>
+        </div>
       </div>
     </div>
 

@@ -135,11 +135,15 @@ function _syncFtsPosition() {
   if (!isMobile()) {
     if (!ftsEl) return;
     const dpOpen = dp?.classList.contains('open');
+    // Edit-overlay sits in the same column slot as the detail panel, so anchor
+    // the FTS as if the detail panel were open (clears the editor banner).
+    const editOpen = !!editingVenueId;
+    const dpLike = dpOpen || editOpen;
     let mapLeft;
-    if (panelVisible) {
-      mapLeft = dpOpen ? 684 : 368; // 16+336+16 [+300+16]
+    if (panelVisible || editOpen) {
+      mapLeft = dpLike ? 684 : 368; // 16+336+16 [+300+16]
     } else {
-      mapLeft = dpOpen ? 332 : 16;  // 16 [+300+16]
+      mapLeft = dpLike ? 332 : 16;  // 16 [+300+16]
     }
     const mapRight = 16; // right margin
     const available = window.innerWidth - mapLeft - mapRight;
@@ -202,10 +206,14 @@ function _syncFtsPosition() {
 }
 
 /** Compute the FTS pill's mobile bottom-offset for the active fts-host panel.
- *  Detail panel wins when open. To support a new panel, add `fts-host` to its
- *  root and a branch here that maps its open-state class(es) to a CSS bottom
- *  expression. */
+ *  Detail panel wins when open. Edit overlay shares the detail-panel slot, so
+ *  it gets the same bottom offset. To support a new panel, add `fts-host` to
+ *  its root and a branch here that maps its open-state class(es) to a CSS
+ *  bottom expression. */
 function _ftsHostBottom(panel, dp) {
+  if (editingVenueId) {
+    return `calc(62svh + ${FTS_GAP}px)`;
+  }
   if (dp?.classList.contains('open')) {
     if (dp.classList.contains('dp-fullscreen')) {
       return `calc(100svh - env(safe-area-inset-top, 0px) - 46px - 16px - 4px - 14px)`;
@@ -2451,6 +2459,9 @@ function _venueEditSnapshot(v) {
     // here so the corrections-log → merge-seating-corrections.mjs round trip
     // sees the edit and writes it into data/seating-detected.json.
     seatingPolygonOverride:  Array.isArray(v.seatingPolygonOverride) ? v.seatingPolygonOverride.map(p => p.slice()) : null,
+    // Courtyard / detached polygons for the new resizable shapes.
+    courtyardPolygon:        Array.isArray(v.courtyardPolygon) ? v.courtyardPolygon.map(p => p.slice()) : null,
+    detachedPolygon:         Array.isArray(v.detachedPolygon)  ? v.detachedPolygon.map(p => p.slice())  : null,
   };
 }
 
@@ -2465,6 +2476,8 @@ function _applyVenueSnapshot(v, snap) {
   v.facingSource            = snap.facingSource;
   v.terraceDetachedLocation = snap.terraceDetachedLocation ? { ...snap.terraceDetachedLocation } : null;
   v.seatingPolygonOverride  = Array.isArray(snap.seatingPolygonOverride) ? snap.seatingPolygonOverride.map(p => p.slice()) : null;
+  v.courtyardPolygon        = Array.isArray(snap.courtyardPolygon) ? snap.courtyardPolygon.map(p => p.slice()) : null;
+  v.detachedPolygon         = Array.isArray(snap.detachedPolygon)  ? snap.detachedPolygon.map(p => p.slice())  : null;
   saveFacingCache(v.id, v.facing, v.facingSource,
     v.terraceWallIndices, v.terraceDepth, null, v.terraceType, v.terraceDetachedLocation,
     v.terraceWallTrimStart, v.terraceWallTrimEnd, v.seatingPolygonOverride);
@@ -2523,6 +2536,7 @@ function enterEditMode(venueId) {
   _editHasChanges = false;
   _navPush('edit');
 
+  document.body.classList.add('edit-mode');
   document.getElementById('edit-overlay').style.display = 'flex';
   document.getElementById('floating-search').style.display = 'none';
   document.getElementById('panel').style.display = 'none';
@@ -2530,12 +2544,19 @@ function enterEditMode(venueId) {
   document.getElementById('qc-wrap').style.display = 'none';
   document.getElementById('qc-panel').style.display = 'none';
   document.getElementById('panel-reveal-btn').style.display = 'none';
+  // Hide locate-me; the zoom slider stays visible (and is repositioned via
+  // body.edit-mode #zoom-jog rules in CSS).
+  const _locateBtn = document.getElementById('locate-btn');
+  if (_locateBtn) _locateBtn.style.display = 'none';
+  // Force zoom-jog visible regardless of panel-state derived rules.
+  const _zoomJog = document.getElementById('zoom-jog');
+  if (_zoomJog) { _zoomJog.style.opacity = '1'; _zoomJog.style.pointerEvents = 'auto'; }
   document.getElementById('edit-venue-label').textContent = v.name;
   const type = v.terraceType ?? 'street';
   _syncTerraceTypeUI(type);
-  _updateEditDepthDisplay();
-  _updateEditDirectionDisplay(v);
   _updateEditActionBtn();
+  _updateEditToolButtons();
+  _syncFtsPosition();
 
   if (popup) { popup.remove(); popup = null; }
   tooltip.classList.remove('visible');
@@ -2550,6 +2571,18 @@ function enterEditMode(venueId) {
   } else {
     map.flyTo({ center: [v.lng, v.lat], zoom: 19, pitch: 0, duration: 900 });
   }
+
+  // Default satellite ON, faded in once the fitBounds animation finishes so
+  // the camera move stays visually clean. moveend may fire multiple times
+  // (during easeTo + child animations) so we register `once` and bail if the
+  // user has already toggled satellite off manually.
+  map.once('moveend', () => {
+    if (editingVenueId !== venueId) return;        // exited before settle
+    if (editSatelliteActive) return;               // already on (re-entry)
+    editSatelliteActive = true;
+    document.getElementById('edit-satellite-btn')?.classList.add('active');
+    map.setStyle('mapbox://styles/mapbox/satellite-streets-v12');
+  });
 
   // Scroll to + highlight the venue card in the sidebar
   setTimeout(() => {
@@ -2572,6 +2605,81 @@ function toggleEditSatellite() {
     ? 'mapbox://styles/mapbox/satellite-streets-v12'
     : buildShadeStyle()
   );
+}
+
+/** Tilbakestill button: clear the manual polygon override / courtyard / detached
+ *  override and fall back to the AI / wall-derived default. */
+function resetEditPolygonToAI() {
+  if (!editingVenueId) return;
+  const v = VENUES.find(x => x.id === editingVenueId);
+  if (!v) return;
+  const type = v.terraceType ?? 'street';
+  if (type === 'courtyard')      v.courtyardPolygon       = null;
+  else if (type === 'detached')  v.detachedPolygon        = null;
+  else                           v.seatingPolygonOverride = null;
+  // Re-derive test points so the timeline/shadows reflect the cleared state.
+  if (typeof computeTerraceTestPoints === 'function') {
+    v.terraceTestPoints = computeTerraceTestPoints(v, null);
+  }
+  saveFacingCache(v.id, v.facing, v.facingSource, v.terraceWallIndices ?? [], v.terraceDepth,
+    null, v.terraceType, v.terraceDetachedLocation, v.terraceWallTrimStart, v.terraceWallTrimEnd,
+    v.seatingPolygonOverride);
+  sunWindowCache.clear();
+  dispatchToWorker(datePicker.value);
+  _setEditChanged();
+  _updateEditToolButtons();
+  draw();
+}
+
+/** Slå sammen button: merge multi-chain wall-derived polygons into a single
+ *  polygon (baked into seatingPolygonOverride) so the user can edit it as one. */
+function mergeEditPolygons() {
+  if (!editingVenueId) return;
+  const v = VENUES.find(x => x.id === editingVenueId);
+  if (!v) return;
+  if ((v.terraceType ?? 'street') !== 'street') return;
+  if (v.seatingPolygonOverride) return;
+  const walls = (typeof getTerraceWalls === 'function') ? getTerraceWalls(v) : [];
+  if (walls.length < 2) return;
+  const pxPerM  = pxPerMetre(v);
+  const depthPx = getEffectiveDepth(v) * pxPerM;
+  const polys = terracePolygons(v, walls, depthPx);
+  if (polys.length < 2) return;
+  // terracePolygons returns pixel-space polygons. Convert each to lat/lng,
+  // then union via convex hull.
+  const polysLL = polys.map(poly => poly.map(p => {
+    const ll = map.unproject([p.x, p.y]);
+    return [ll.lat, ll.lng];
+  }));
+  const merged = (typeof unionPolygons === 'function') ? unionPolygons(polysLL) : null;
+  if (!merged || merged.length < 3) return;
+  v.seatingPolygonOverride = merged;
+  if (typeof seatingPolygonTestPoints === 'function') {
+    const pts = seatingPolygonTestPoints(merged);
+    if (pts.length) v.terraceTestPoints = pts;
+  }
+  saveFacingCache(v.id, v.facing, v.facingSource, v.terraceWallIndices ?? [], v.terraceDepth,
+    null, v.terraceType, v.terraceDetachedLocation, v.terraceWallTrimStart, v.terraceWallTrimEnd,
+    v.seatingPolygonOverride);
+  sunWindowCache.clear();
+  dispatchToWorker(datePicker.value);
+  _setEditChanged();
+  _updateEditToolButtons();
+  draw();
+}
+
+/** Cancel button: discard changes, exit edit mode without submitting. */
+function cancelEditMode() {
+  if (editingVenueId && _editBeforeSnapshot) {
+    const v = VENUES.find(x => x.id === editingVenueId);
+    if (v) _applyVenueSnapshot(v, _editBeforeSnapshot);
+    sunWindowCache.clear();
+    dispatchToWorker(datePicker.value);
+  }
+  // Bypass the "submit on exit" diff check — we've already reverted state.
+  _editBeforeSnapshot = null;
+  _editHasChanges = false;
+  exitEditMode();
 }
 
 function exitEditMode() {
@@ -2602,6 +2710,7 @@ function exitEditMode() {
   _editHasChanges = false;
   editingVenueId = null;
   editHoveredWallIdx = null;
+  document.body.classList.remove('edit-mode');
   document.getElementById('edit-overlay').style.display = 'none';
   document.getElementById('floating-search').style.display = '';
   document.getElementById('panel').style.display = '';
@@ -2609,6 +2718,12 @@ function exitEditMode() {
   document.getElementById('qc-wrap').style.display = '';
   document.getElementById('qc-panel').style.display = '';
   document.getElementById('panel-reveal-btn').style.display = '';
+  const _locateBtn = document.getElementById('locate-btn');
+  if (_locateBtn) _locateBtn.style.display = '';
+  const _zoomJog = document.getElementById('zoom-jog');
+  if (_zoomJog) { _zoomJog.style.opacity = ''; _zoomJog.style.pointerEvents = ''; }
+  // Reset vertex-tool state so the next edit session starts fresh.
+  if (typeof setEditVertexMode === 'function') setEditVertexMode(null);
   document.querySelectorAll('.venue-card.editing').forEach(c => c.classList.remove('editing'));
   if (editSatelliteActive) {
     editSatelliteActive = false;
@@ -2616,6 +2731,7 @@ function exitEditMode() {
     map.setStyle(buildShadeStyle());
   }
   map.easeTo({ pitch: 15, bearing: 0, duration: 500 });
+  _syncFtsPosition();
   draw();
   renderList();
 }
@@ -2652,33 +2768,56 @@ function _setEditChanged() {
 function _updateEditActionBtn() {
   const btn = document.getElementById('edit-action-btn');
   if (!btn) return;
+  // Single primary-pill style; switches text and a no-changes ghost variant
+  // when nothing has been edited yet so it still looks distinct from Avbryt.
+  btn.classList.add('primary-pill');
+  btn.classList.toggle('is-no-changes', !_editHasChanges);
   if (!_editHasChanges) {
-    btn.textContent = 'Looks good ✓';
-    btn.className = 'ghost';
+    btn.textContent = 'Ser bra ut';
   } else {
-    btn.textContent = authCanDirectEdit() ? 'Save' : 'Send suggestion';
-    btn.className = 'primary';
+    btn.textContent = authCanDirectEdit() ? 'Lagre' : 'Send forslag';
   }
 }
 
-function _updateEditDepthDisplay() {
-  const el = document.getElementById('edit-depth-display');
-  if (!el) return;
+/** Show / hide AI-helper chips based on the active venue's polygon state. */
+function _updateEditToolButtons() {
+  if (!editingVenueId) return;
   const v = VENUES.find(x => x.id === editingVenueId);
-  if (!v || (v.terraceType && v.terraceType !== 'street')) { el.textContent = '—'; return; }
-  const depth = getEffectiveDepth(v);
-  el.textContent = `${Math.round(depth * 10) / 10} m`;
-}
+  if (!v) return;
 
-function _updateEditDirectionDisplay(v) {
-  const el = document.getElementById('edit-direction-display');
-  if (!el || !v) return;
+  // Tilbakestill: visible when there's an override that differs from the AI / wall-derived default.
+  const resetBtn = document.getElementById('edit-reset-ai-btn');
+  if (resetBtn) {
+    const hasOverride = !!v.seatingPolygonOverride
+      || !!v.courtyardPolygon
+      || !!v.detachedPolygon;
+    resetBtn.hidden = !hasOverride;
+  }
+
+  // Slå sammen: visible when the wall-derived preview yields ≥ 2 chains
+  // (i.e. user selected non-adjacent walls). Once a polygon override exists
+  // there's only one polygon, so the button hides automatically.
+  const mergeBtn = document.getElementById('edit-merge-btn');
+  if (mergeBtn) {
+    let chains = 0;
+    if ((v.terraceType ?? 'street') === 'street' && !v.seatingPolygonOverride
+        && typeof getTerraceWalls === 'function'
+        && typeof terracePolygons === 'function') {
+      const walls = getTerraceWalls(v);
+      if (walls.length) {
+        const depthPx = getEffectiveDepth(v) * pxPerMetre(v);
+        chains = terracePolygons(v, walls, depthPx).length;
+      }
+    }
+    mergeBtn.hidden = chains < 2;
+  }
+
+  // Hjørne add/del chips: only meaningful for editable polygon types
   const type = v.terraceType ?? 'street';
-  if (type === 'rooftop')   { el.textContent = 'Rooftop';   return; }
-  if (type === 'courtyard') { el.textContent = 'Courtyard'; return; }
-  if (type === 'detached')  { el.textContent = 'Detached';  return; }
-  const walls = getTerraceWalls(v);
-  el.textContent = walls.length ? bearingToCardinal(v.facing) : '—';
+  const polyEditable = type === 'street' || type === 'courtyard' || type === 'detached';
+  ['edit-add-vertex-btn', 'edit-del-vertex-btn'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.hidden = !polyEditable;
+  });
 }
 
 function selectWallByIdx(idx) {
@@ -2702,25 +2841,16 @@ function selectWallByIdx(idx) {
   saveFacingCache(v.id, v.facing, 'manual', v.terraceWallIndices, v.terraceDepth ?? 7);
   clearSpriteCache();
   sunWindowCache.clear();
-  _updateEditDirectionDisplay(v);
   _setEditChanged();
+  _updateEditToolButtons();
   dispatchToWorker(datePicker.value);
   draw();
   renderList();
 }
 
-const _TYPE_SUBTITLES = {
-  street:    'Click walls to add/remove · drag ● to set depth',
-  rooftop:   'Sun based on altitude only — no wall or shadow logic',
-  courtyard: 'Sun reaches floor only at high altitude (~midday in summer)',
-  detached:  'Click the map to place the terrace location',
-};
-
 function _syncTerraceTypeUI(type) {
   const sel = document.getElementById('edit-type-select');
   if (sel) sel.value = type;
-  const instr = document.getElementById('edit-instruction');
-  if (instr) instr.textContent = _TYPE_SUBTITLES[type] ?? _TYPE_SUBTITLES.street;
 }
 
 function setTerraceType(type) {
@@ -2729,21 +2859,39 @@ function setTerraceType(type) {
   v.terraceType = type;
   _syncTerraceTypeUI(type);
 
-  if (type === 'rooftop' || type === 'courtyard') {
+  if (type === 'rooftop') {
     v.terraceTestPoints = v.buildingGeometry?.length
       ? (() => { const c = computeCentroid(v.buildingGeometry); return [{ lat: c.lat, lng: c.lon }]; })()
       : [{ lat: v.lat, lng: v.lng }];
+  } else if (type === 'courtyard') {
+    // Seed an inner polygon (~6m square) at the building centroid the first time
+    // courtyard is selected. Subsequent sessions reuse the saved polygon.
+    if (!v.courtyardPolygon && typeof seedCourtyardPolygon === 'function') {
+      v.courtyardPolygon = seedCourtyardPolygon(v);
+    }
+    if (v.courtyardPolygon && typeof seatingPolygonTestPoints === 'function') {
+      v.terraceTestPoints = seatingPolygonTestPoints(v.courtyardPolygon);
+    } else {
+      const c = v.buildingGeometry?.length ? computeCentroid(v.buildingGeometry) : null;
+      v.terraceTestPoints = [{ lat: c?.lat ?? v.lat, lng: c?.lon ?? v.lng }];
+    }
   } else if (type === 'detached') {
     if (!v.terraceDetachedLocation) v.terraceDetachedLocation = { lat: v.lat, lng: v.lng };
-    v.terraceTestPoints = [{ ...v.terraceDetachedLocation }];
+    if (!v.detachedPolygon && typeof seedDetachedPolygon === 'function') {
+      v.detachedPolygon = seedDetachedPolygon(v);
+    }
+    if (v.detachedPolygon && typeof seatingPolygonTestPoints === 'function') {
+      v.terraceTestPoints = seatingPolygonTestPoints(v.detachedPolygon);
+    } else {
+      v.terraceTestPoints = [{ ...v.terraceDetachedLocation }];
+    }
   } else {
     // street
     v.terraceTestPoints = computeTerraceTestPoints(v, null);
   }
 
-  _updateEditDirectionDisplay(v);
-  _updateEditDepthDisplay();
   _setEditChanged();
+  _updateEditToolButtons();
 
   saveFacingCache(v.id, v.facing, v.facingSource,
     v.terraceWallIndices, v.terraceDepth, v.noiseScore, type, v.terraceDetachedLocation);

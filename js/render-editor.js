@@ -1,32 +1,302 @@
 /**
  * render-editor.js — Building editor canvas overlay.
+ *
+ * The editor is polygon-first: every editable terrace (street / courtyard /
+ * detached / AI seating override) is represented as a single closed polygon
+ * with two handle types:
+ *   • corner handles  → free drag, can change joining angles
+ *   • edge-midpoint   → constrained perpendicular drag, moves the whole edge
+ *                       (so width and depth share one handle per edge)
+ *
+ * Street terraces start as "wall + depth" — selecting a wall and adjusting
+ * depth synthesises a polygon on the fly via terracePolygons(). The first
+ * time the user grabs any polygon handle, the synthesised polygon is "baked"
+ * into v.seatingPolygonOverride so subsequent edits are persisted.
+ *
  * Depends on: map, canvas, ctx, VENUES, editingVenueId, editHoveredWallIdx (app.js)
  *             getTerraceWalls, wallOutwardNormal, getEffectiveDepth, pxPerMetre,
  *             terracePolygons, fillRoundRect, bearingToCardinal,
- *             convexHull (render-helpers.js)
+ *             convexHull, seatingPolygonTestPoints (render-helpers.js)
+ *             getSeatingPolygon (data.js)
  *             computeCentroid (osm.js)
  */
 
-// ── Depth-drag + detached-pin state ──────────────────────────────────────────
-let editDraggingDepth    = false;
-let editDragWallObj      = null;
-let _detachedDragging    = false;
+// ── Drag state ────────────────────────────────────────────────────────────────
+let editDraggingDepth      = false;     // legacy: wall depth handle (pre-bake)
+let editDragWallObj        = null;
+let _detachedDragging      = false;     // legacy: detached single-point pin
+let editDraggingWidth      = false;     // legacy: wall trim diamond (pre-bake)
+let editWidthWall          = null;
 
-// ── Width-trim drag state ─────────────────────────────────────────────────────
-// editDraggingWidth: 'start' | 'end' | false
-let editDraggingWidth    = false;
-// The primary wall used for width trimming (first selected wall)
-let editWidthWall        = null;
-
-// ── Seating-polygon vertex drag state ─────────────────────────────────────────
-// When the venue has a resolved AI/manual polygon, vertices are draggable
-// directly on the canvas. editPolyVertexIdx is the index being dragged
-// (or null when idle). New positions are written into venue.seatingPolygonOverride
-// and persisted to the facing cache + corrections log on mouseup.
-let editDraggingPolyVertex = false;
+// Polygon handle drag state — used for ALL terrace types once a polygon exists
+let editDraggingPolyVertex = false;     // corner handle (free drag)
 let editPolyVertexIdx      = null;
+let editDraggingPolyEdge   = false;     // edge-midpoint handle (perpendicular)
+let editPolyEdgeIdx        = null;
 
-// ── Building editor overlay ───────────────────────────────────────────────────
+// Vertex tool mode: 'add' | 'del' | null
+let editVertexMode         = null;
+
+// ── Vertex tool mode (consumed by app.js wiring) ─────────────────────────────
+function setEditVertexMode(mode) {
+  editVertexMode = (mode === 'add' || mode === 'del') ? mode : null;
+  // Reflect in chip buttons + cursor
+  const addBtn = document.getElementById('edit-add-vertex-btn');
+  const delBtn = document.getElementById('edit-del-vertex-btn');
+  if (addBtn) addBtn.classList.toggle('active', editVertexMode === 'add');
+  if (delBtn) delBtn.classList.toggle('active', editVertexMode === 'del');
+  if (typeof canvas !== 'undefined') {
+    canvas.style.cursor = editVertexMode ? 'crosshair' : 'default';
+  }
+}
+
+function toggleEditVertexMode(mode) {
+  setEditVertexMode(editVertexMode === mode ? null : mode);
+}
+
+// ── Active-polygon resolver ──────────────────────────────────────────────────
+/**
+ * Returns { latlng, key } for the venue's currently-editable polygon, or null.
+ *   key = 'override' (street override), 'ai' (street AI poly visible),
+ *         'courtyard', or 'detached'.
+ */
+function getActivePolygon(v) {
+  if (!v) return null;
+  const type = v.terraceType ?? 'street';
+  if (type === 'rooftop') return null;
+  if (type === 'courtyard') {
+    return Array.isArray(v.courtyardPolygon) && v.courtyardPolygon.length >= 3
+      ? { latlng: v.courtyardPolygon, key: 'courtyard' } : null;
+  }
+  if (type === 'detached') {
+    return Array.isArray(v.detachedPolygon) && v.detachedPolygon.length >= 3
+      ? { latlng: v.detachedPolygon, key: 'detached' } : null;
+  }
+  // Street: prefer manual override; fall back to AI polygon; finally derive
+  // from selected walls + depth so polygon handles work in wall-mode too.
+  if (Array.isArray(v.seatingPolygonOverride) && v.seatingPolygonOverride.length >= 3) {
+    return { latlng: v.seatingPolygonOverride, key: 'override' };
+  }
+  const sp = (typeof getSeatingPolygon === 'function') ? getSeatingPolygon(v) : null;
+  if (Array.isArray(sp) && sp.length >= 3) return { latlng: sp, key: 'ai' };
+  // Wall-derived preview polygon (lat/lng). Used for hit-testing handles before
+  // the user has dragged anything (i.e. before bakeStreetPolygon runs).
+  if (typeof getTerraceWalls === 'function' && typeof terracePolygons === 'function') {
+    const walls = getTerraceWalls(v);
+    if (walls.length) {
+      const pxPerM  = pxPerMetre(v);
+      const depthPx = getEffectiveDepth(v) * pxPerM;
+      const trimmed = _applyTrimToWalls(v, walls, pxPerM);
+      const polys = terracePolygons(v, trimmed, depthPx);
+      if (polys.length) {
+        const polyPx = polys[0];
+        const latlng = polyPx.map(p => {
+          const ll = map.unproject([p.x, p.y]);
+          return [ll.lat, ll.lng];
+        });
+        return { latlng, key: 'derived' };
+      }
+    }
+  }
+  return null;
+}
+
+function setActivePolygon(v, latlng) {
+  if (!v) return;
+  const type = v.terraceType ?? 'street';
+  if (type === 'courtyard')      v.courtyardPolygon       = latlng;
+  else if (type === 'detached')  v.detachedPolygon        = latlng;
+  else                           v.seatingPolygonOverride = latlng;
+
+  if (Array.isArray(latlng) && latlng.length >= 3
+      && typeof seatingPolygonTestPoints === 'function') {
+    const pts = seatingPolygonTestPoints(latlng);
+    if (pts.length) v.terraceTestPoints = pts;
+  }
+}
+
+// ── Polygon seeders (default shapes when a type is first selected) ───────────
+
+/** Build a sizeM × sizeM square centred on (lat, lng). */
+function _seedSquarePolygon(centerLat, centerLng, sizeM) {
+  const dLat = (sizeM / 2) / 111000;
+  const dLng = (sizeM / 2) / (111000 * Math.cos(centerLat * Math.PI / 180));
+  return [
+    [centerLat + dLat, centerLng - dLng],
+    [centerLat + dLat, centerLng + dLng],
+    [centerLat - dLat, centerLng + dLng],
+    [centerLat - dLat, centerLng - dLng],
+  ];
+}
+
+function seedCourtyardPolygon(v) {
+  const c = v.buildingGeometry?.length
+    ? computeCentroid(v.buildingGeometry)
+    : { lat: v.lat, lon: v.lng };
+  return _seedSquarePolygon(c.lat, c.lon, 6);
+}
+
+function seedDetachedPolygon(v) {
+  const loc = v.terraceDetachedLocation ?? { lat: v.lat, lng: v.lng };
+  return _seedSquarePolygon(loc.lat, loc.lng, 6);
+}
+
+/** Bake the wall+depth-derived polygon into seatingPolygonOverride.
+ *  Called the moment the user starts dragging any polygon handle on a street
+ *  terrace that's still in lazy wall mode. Returns true if a bake happened. */
+function bakeStreetPolygon(v) {
+  if (!v || v.seatingPolygonOverride) return false;
+  if ((v.terraceType ?? 'street') !== 'street') return false;
+  const walls = (typeof getTerraceWalls === 'function') ? getTerraceWalls(v) : [];
+  if (!walls.length) return false;
+  const pxPerM = pxPerMetre(v);
+  const depthPx = getEffectiveDepth(v) * pxPerM;
+  const trimmed = _applyTrimToWalls(v, walls, pxPerM);
+  const polys = terracePolygons(v, trimmed, depthPx);
+  if (!polys.length) return false;
+  // Use the first chain — Merge button can be used beforehand if needed.
+  const polyPx = polys[0];
+  const latlng = polyPx.map(p => {
+    const ll = map.unproject([p.x, p.y]);
+    return [ll.lat, ll.lng];
+  });
+  v.seatingPolygonOverride = latlng;
+  if (typeof seatingPolygonTestPoints === 'function') {
+    const pts = seatingPolygonTestPoints(latlng);
+    if (pts.length) v.terraceTestPoints = pts;
+  }
+  return true;
+}
+
+// ── Hit tests ────────────────────────────────────────────────────────────────
+
+function hitTestActivePolygonVertex(cx, cy) {
+  if (!editingVenueId) return null;
+  const v = VENUES.find(x => x.id === editingVenueId);
+  if (!v) return null;
+  const ap = getActivePolygon(v);
+  if (!ap) return null;
+  for (let i = 0; i < ap.latlng.length; i++) {
+    const [lat, lng] = ap.latlng[i];
+    const p = map.project([lng, lat]);
+    if (Math.hypot(cx - p.x, cy - p.y) < 14) return i;
+  }
+  return null;
+}
+
+function hitTestActivePolygonEdge(cx, cy) {
+  if (!editingVenueId) return null;
+  const v = VENUES.find(x => x.id === editingVenueId);
+  if (!v) return null;
+  const ap = getActivePolygon(v);
+  if (!ap) return null;
+  const px = ap.latlng.map(([lat, lng]) => map.project([lng, lat]));
+  for (let i = 0; i < px.length; i++) {
+    const a = px[i], b = px[(i + 1) % px.length];
+    const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    if (Math.hypot(cx - mx, cy - my) < 14) return i;
+  }
+  return null;
+}
+
+/** Test if (cx,cy) is on or near a polygon edge (anywhere, not just midpoint).
+ *  Returns { edgeIdx, lat, lng } at the closest point on the edge, or null. */
+function hitTestActivePolygonEdgeAt(cx, cy, threshold = 12) {
+  if (!editingVenueId) return null;
+  const v = VENUES.find(x => x.id === editingVenueId);
+  if (!v) return null;
+  const ap = getActivePolygon(v);
+  if (!ap) return null;
+  const px = ap.latlng.map(([lat, lng]) => map.project([lng, lat]));
+  let best = null, bestD = threshold * threshold;
+  for (let i = 0; i < px.length; i++) {
+    const a = px[i], b = px[(i + 1) % px.length];
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const lenSq = dx * dx + dy * dy || 1;
+    let t = ((cx - a.x) * dx + (cy - a.y) * dy) / lenSq;
+    t = Math.max(0, Math.min(1, t));
+    const px2 = a.x + t * dx, py2 = a.y + t * dy;
+    const d = (cx - px2) * (cx - px2) + (cy - py2) * (cy - py2);
+    if (d < bestD) {
+      const ll = map.unproject([px2, py2]);
+      best = { edgeIdx: i, lat: ll.lat, lng: ll.lng };
+      bestD = d;
+    }
+  }
+  return best;
+}
+
+// ── Polygon mutations ────────────────────────────────────────────────────────
+
+function updatePolygonVertex(venueId, idx, lat, lng) {
+  const v = VENUES.find(x => x.id === venueId);
+  if (!v) return;
+  bakeStreetPolygon(v);
+  const ap = getActivePolygon(v);
+  if (!ap || idx < 0 || idx >= ap.latlng.length) return;
+  const next = ap.latlng.map((pt, i) => i === idx ? [lat, lng] : pt);
+  setActivePolygon(v, next);
+}
+
+/** Drag an edge perpendicular to itself (cursor px). */
+function shiftPolygonEdge(venueId, edgeIdx, cursorX, cursorY) {
+  const v = VENUES.find(x => x.id === venueId);
+  if (!v) return;
+  bakeStreetPolygon(v);
+  const ap = getActivePolygon(v);
+  if (!ap) return;
+  const px = ap.latlng.map(([lat, lng]) => map.project([lng, lat]));
+  const a  = px[edgeIdx], b = px[(edgeIdx + 1) % px.length];
+  const ex = b.x - a.x,   ey = b.y - a.y;
+  const len = Math.hypot(ex, ey) || 1;
+
+  // Outward normal: pick the side that points away from polygon centroid.
+  let cxC = 0, cyC = 0;
+  px.forEach(p => { cxC += p.x; cyC += p.y; });
+  cxC /= px.length; cyC /= px.length;
+  let nx = -ey / len, ny = ex / len;
+  const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+  if (nx * (mx - cxC) + ny * (my - cyC) < 0) { nx = -nx; ny = -ny; }
+
+  // Project cursor onto outward normal relative to edge midpoint
+  const dist = (cursorX - mx) * nx + (cursorY - my) * ny;
+  const nA = { x: a.x + nx * dist, y: a.y + ny * dist };
+  const nB = { x: b.x + nx * dist, y: b.y + ny * dist };
+
+  const llA = map.unproject([nA.x, nA.y]);
+  const llB = map.unproject([nB.x, nB.y]);
+  const next = ap.latlng.slice();
+  next[edgeIdx] = [llA.lat, llA.lng];
+  next[(edgeIdx + 1) % next.length] = [llB.lat, llB.lng];
+  setActivePolygon(v, next);
+}
+
+function insertPolygonVertexAt(venueId, edgeIdx, lat, lng) {
+  const v = VENUES.find(x => x.id === venueId);
+  if (!v) return;
+  bakeStreetPolygon(v);
+  const ap = getActivePolygon(v);
+  if (!ap) return;
+  const next = ap.latlng.slice();
+  next.splice(edgeIdx + 1, 0, [lat, lng]);
+  setActivePolygon(v, next);
+}
+
+function deletePolygonVertex(venueId, idx) {
+  const v = VENUES.find(x => x.id === venueId);
+  if (!v) return;
+  const ap = getActivePolygon(v);
+  if (!ap || ap.latlng.length <= 3) return;
+  const next = ap.latlng.filter((_, i) => i !== idx);
+  setActivePolygon(v, next);
+}
+
+// Backwards compatibility — older callers used updateSeatingPolygonVertex
+function updateSeatingPolygonVertex(venueId, vertexIdx, lat, lng) {
+  return updatePolygonVertex(venueId, vertexIdx, lat, lng);
+}
+
+// ── Building editor canvas drawing ───────────────────────────────────────────
 function drawBuildingEditor() {
   const v = VENUES.find(x => x.id === editingVenueId);
   if (!v) return;
@@ -47,243 +317,194 @@ function drawBuildingEditor() {
   const nodes    = v.buildingGeometry, walls = v.wallNormals;
   const terrType = v.terraceType ?? 'street';
 
-  // Building polygon — always shown for context
+  // Building polygon — always shown for context. Type drives the tint.
   ctx.beginPath();
   nodes.forEach((n, i) => {
     const pt = map.project([n.lon, n.lat]);
     i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y);
   });
   ctx.closePath();
-  // Tint varies by type: rooftop = amber, courtyard = purple, detached = dim, street = blue
-  const bldFill = { rooftop: 'rgba(255,175,133,0.18)', courtyard: 'rgba(160,100,255,0.20)',
+  const bldFill = { rooftop: 'rgba(255,175,133,0.18)', courtyard: 'rgba(160,100,255,0.18)',
                     detached: 'rgba(24,88,180,0.22)', street: 'rgba(24,88,180,0.45)' };
   ctx.fillStyle = bldFill[terrType] ?? bldFill.street;
   ctx.fill();
 
-  // Detached: draw movable pin + skip wall interaction
-  if (terrType === 'detached') {
-    const loc = v.terraceDetachedLocation ?? { lat: v.lat, lng: v.lng };
-    const pt  = map.project([loc.lng, loc.lat]);
-    const R   = _detachedDragging ? 13 : 11;
-    ctx.beginPath(); ctx.arc(pt.x, pt.y, R, 0, Math.PI * 2);
-    ctx.fillStyle   = 'rgba(255,175,133,0.18)'; ctx.fill();
-    ctx.strokeStyle = '#FFAF85'; ctx.lineWidth = 2.5; ctx.stroke();
-    const L = R + 7;
-    ctx.beginPath();
-    ctx.moveTo(pt.x - L, pt.y); ctx.lineTo(pt.x + L, pt.y);
-    ctx.moveTo(pt.x, pt.y - L); ctx.lineTo(pt.x, pt.y + L);
-    ctx.strokeStyle = 'rgba(255,175,133,0.70)'; ctx.lineWidth = 1.5; ctx.stroke();
-    ctx.font = '11px Inter, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = 'rgba(10,14,28,0.80)';
-    fillRoundRect(ctx, pt.x + R + 6, pt.y - 11, 88, 22, 5);
-    ctx.fillStyle = '#FFAF85';
-    ctx.fillText('Drag to move', pt.x + R + 12, pt.y);
-    return;
-  }
-
-  // Rooftop / courtyard: show building tint + label, skip wall arrows
-  if (terrType === 'rooftop' || terrType === 'courtyard') {
+  // Rooftop: tint + label only — not editable
+  if (terrType === 'rooftop') {
     const cen   = computeCentroid(nodes);
     const cenPx = map.project([cen.lon, cen.lat]);
     ctx.font = 'bold 13px Inter, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    const label = terrType === 'rooftop' ? '▲ Rooftop' : '◉ Courtyard';
+    const label = '▲ Tak';
     const tw = ctx.measureText(label).width;
     ctx.fillStyle = 'rgba(10,14,28,0.80)';
     fillRoundRect(ctx, cenPx.x - tw / 2 - 10, cenPx.y - 13, tw + 20, 26, 7);
-    ctx.fillStyle = terrType === 'rooftop' ? '#FFAF85' : '#C07AFF';
+    ctx.fillStyle = '#FFAF85';
     ctx.fillText(label, cenPx.x, cenPx.y);
     return;
   }
 
-  // Street: interactive wall arrows + depth handles
-  const currentWalls = getTerraceWalls(v);
+  // Street: wall arrows are the entry point for selecting which side(s) the
+  // terrace is on. Once an override polygon exists we hide the arrows so the
+  // canvas isn't cluttered.
+  if (terrType === 'street' && !v.seatingPolygonOverride) {
+    walls.forEach((wall, idx) => {
+      const pa = map.project([wall.aLng, wall.aLat]);
+      const pb = map.project([wall.bLng, wall.bLat]);
+      const isHovered = idx === editHoveredWallIdx;
+      const currentWalls = getTerraceWalls(v);
+      const isCurrent = currentWalls.includes(wall);
+      const mx = (pa.x + pb.x) / 2, my = (pa.y + pb.y) / 2;
 
-  walls.forEach((wall, idx) => {
-    const pa = map.project([wall.aLng, wall.aLat]);
-    const pb = map.project([wall.bLng, wall.bLat]);
-    const isHovered = idx === editHoveredWallIdx;
-    const isCurrent = currentWalls.includes(wall);
-    const mx = (pa.x + pb.x) / 2, my = (pa.y + pb.y) / 2;
+      // Outward perpendicular for the arrow direction
+      const wdx = pb.x - pa.x, wdy = pb.y - pa.y;
+      const wl  = Math.hypot(wdx, wdy) || 1;
+      let normX = -wdy / wl, normY = wdx / wl;
+      if (v.buildingGeometry) {
+        const cen   = computeCentroid(v.buildingGeometry);
+        const cenPx = map.project([cen.lon, cen.lat]);
+        if (normX * (cenPx.x - mx) + normY * (cenPx.y - my) > 0) { normX = -normX; normY = -normY; }
+      }
 
-    // Pixel-space outward perpendicular
-    const wdx = pb.x - pa.x, wdy = pb.y - pa.y;
-    const wl  = Math.hypot(wdx, wdy) || 1;
-    let normX = -wdy / wl, normY = wdx / wl;
-    if (v.buildingGeometry) {
-      const cen   = computeCentroid(v.buildingGeometry);
-      const cenPx = map.project([cen.lon, cen.lat]);
-      if (normX * (cenPx.x - mx) + normY * (cenPx.y - my) > 0) { normX = -normX; normY = -normY; }
-    }
-
-    // Wall line
-    ctx.setLineDash([]);
-    ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y);
-    ctx.strokeStyle = isHovered ? '#FFAF85' : isCurrent ? '#FFCBAA' : 'rgba(120,180,255,0.75)';
-    ctx.lineWidth   = isHovered ? 6 : isCurrent ? 4 : 2.5;
-    ctx.stroke();
-
-    if (isHovered || isCurrent) {
-      [pa, pb].forEach(p => {
-        ctx.beginPath(); ctx.arc(p.x, p.y, isHovered ? 5 : 4, 0, Math.PI * 2);
-        ctx.fillStyle = isHovered ? '#FFAF85' : '#FFCBAA'; ctx.fill();
-        ctx.strokeStyle = 'rgba(10,14,28,0.7)'; ctx.lineWidth = 1.5; ctx.stroke();
-      });
-    }
-
-    if (isHovered) {
-      const arrowLen = 55, ex = mx + normX * arrowLen, ey = my + normY * arrowLen;
-      ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(ex, ey);
-      ctx.strokeStyle = '#FFAF85'; ctx.lineWidth = 2.5; ctx.setLineDash([]); ctx.stroke();
-      const hl = 11, pA = Math.atan2(normY, normX);
-      ctx.beginPath();
-      ctx.moveTo(ex, ey);
-      ctx.lineTo(ex - hl * Math.cos(pA - 0.4), ey - hl * Math.sin(pA - 0.4));
-      ctx.lineTo(ex - hl * Math.cos(pA + 0.4), ey - hl * Math.sin(pA + 0.4));
-      ctx.closePath(); ctx.fillStyle = '#FFAF85'; ctx.fill();
-
-      const labelText = `${Math.round(wall.bearing)}°  ${bearingToCardinal(wall.bearing)}`;
-      ctx.font = 'bold 12px "Inter", sans-serif';
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      const tw = ctx.measureText(labelText).width;
-      const lx = ex + normX * 18, ly = ey + normY * 18;
-      ctx.fillStyle = 'rgba(10,14,28,0.88)';
-      fillRoundRect(ctx, lx - tw / 2 - 8, ly - 12, tw + 16, 24, 6);
-      ctx.fillStyle = '#FFAF85'; ctx.fillText(labelText, lx, ly);
-    }
-
-    if (isCurrent && !isHovered) {
-      const arrowLen = 32, ex = mx + normX * arrowLen, ey = my + normY * arrowLen;
-      ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(ex, ey);
-      ctx.strokeStyle = '#FFCBAA'; ctx.lineWidth = 2; ctx.setLineDash([5, 4]); ctx.stroke();
       ctx.setLineDash([]);
+      ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y);
+      ctx.strokeStyle = isHovered ? '#FFAF85' : isCurrent ? '#FFCBAA' : 'rgba(120,180,255,0.75)';
+      ctx.lineWidth   = isHovered ? 6 : isCurrent ? 4 : 2.5;
+      ctx.stroke();
+
+      if (isHovered || isCurrent) {
+        [pa, pb].forEach(p => {
+          ctx.beginPath(); ctx.arc(p.x, p.y, isHovered ? 5 : 4, 0, Math.PI * 2);
+          ctx.fillStyle = isHovered ? '#FFAF85' : '#FFCBAA'; ctx.fill();
+          ctx.strokeStyle = 'rgba(10,14,28,0.7)'; ctx.lineWidth = 1.5; ctx.stroke();
+        });
+      }
+
+      if (isHovered) {
+        const arrowLen = 55, ex = mx + normX * arrowLen, ey = my + normY * arrowLen;
+        ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(ex, ey);
+        ctx.strokeStyle = '#FFAF85'; ctx.lineWidth = 2.5; ctx.stroke();
+        const hl = 11, pA = Math.atan2(normY, normX);
+        ctx.beginPath();
+        ctx.moveTo(ex, ey);
+        ctx.lineTo(ex - hl * Math.cos(pA - 0.4), ey - hl * Math.sin(pA - 0.4));
+        ctx.lineTo(ex - hl * Math.cos(pA + 0.4), ey - hl * Math.sin(pA + 0.4));
+        ctx.closePath(); ctx.fillStyle = '#FFAF85'; ctx.fill();
+
+        const labelText = `${Math.round(wall.bearing)}°  ${bearingToCardinal(wall.bearing)}`;
+        ctx.font = 'bold 12px "Inter", sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        const tw = ctx.measureText(labelText).width;
+        const lx = ex + normX * 18, ly = ey + normY * 18;
+        ctx.fillStyle = 'rgba(10,14,28,0.88)';
+        fillRoundRect(ctx, lx - tw / 2 - 8, ly - 12, tw + 16, 24, 6);
+        ctx.fillStyle = '#FFAF85'; ctx.fillText(labelText, lx, ly);
+      }
+    });
+
+    // Wall-derived polygon preview (with corner + edge handles). When the user
+    // grabs any handle, bakeStreetPolygon() converts this into a real override.
+    const currentWalls = getTerraceWalls(v);
+    if (currentWalls.length > 0) {
+      const pxPerM  = pxPerMetre(v);
+      const depthPx = getEffectiveDepth(v) * pxPerM;
+      const trimmed = _applyTrimToWalls(v, currentWalls, pxPerM);
+      const polys = terracePolygons(v, trimmed, depthPx);
+      polys.forEach((poly, polyIdx) => {
+        // Outline + fill
+        ctx.beginPath();
+        poly.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(255,175,133,0.10)'; ctx.fill();
+        ctx.strokeStyle = 'rgba(255,175,133,0.55)'; ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Only draw handles on the FIRST chain — bakeStreetPolygon picks chain 0.
+        // Other chains can be merged via the Slå sammen button.
+        if (polyIdx === 0) {
+          _drawPolygonHandlesPx(poly, /*activeKey*/ 'street-preview');
+        }
+      });
+      return;       // skip override drawing — preview owns this state
     }
-  });
-
-  // ── Terrace preview + depth handles ────────────────────────────────────────
-  if (currentWalls.length > 0) {
-    const depth   = getEffectiveDepth(v);
-    const pxPerM  = pxPerMetre(v);
-    const depthPx = depth * pxPerM;
-
-    // Apply width trim to first wall for terrace preview
-    const trimmedWalls = _applyTrimToWalls(v, currentWalls, pxPerM);
-
-    // Mitered terrace preview (one clean polygon per connected chain)
-    const polys = terracePolygons(v, trimmedWalls, depthPx);
-    polys.forEach(poly => {
-      ctx.beginPath();
-      poly.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
-      ctx.closePath();
-      ctx.fillStyle = 'rgba(255,175,133,0.10)'; ctx.fill();
-      ctx.strokeStyle = 'rgba(255,175,133,0.45)'; ctx.lineWidth = 1.5;
-      ctx.setLineDash([5, 3]); ctx.stroke(); ctx.setLineDash([]);
-    });
-
-    // Depth handle per wall (each shows depth, drag adjusts shared depth)
-    currentWalls.forEach(wall => {
-      const { normX, normY, mx, my } = wallOutwardNormal(v, wall);
-      const hx = mx + normX * depthPx;
-      const hy = my + normY * depthPx;
-
-      ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(hx, hy);
-      ctx.strokeStyle = 'rgba(255,175,133,0.55)'; ctx.lineWidth = 1.5;
-      ctx.setLineDash([4, 3]); ctx.stroke(); ctx.setLineDash([]);
-
-      const draggingThis = editDraggingDepth && editDragWallObj === wall;
-      ctx.beginPath(); ctx.arc(hx, hy, draggingThis ? 10 : 8, 0, Math.PI * 2);
-      ctx.fillStyle   = draggingThis ? 'rgba(156,189,231,0.9)' : 'rgba(156,189,231,0.7)';
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(10,14,28,0.9)'; ctx.lineWidth = 2; ctx.stroke();
-
-      // Depth label
-      ctx.font = 'bold 10px "Inter", sans-serif';
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      const lx = hx + normX * 20, ly = hy + normY * 20;
-      ctx.fillStyle = 'rgba(10,14,28,0.88)';
-      fillRoundRect(ctx, lx - 15, ly - 10, 30, 20, 5);
-      ctx.fillStyle = '#FFAF85';
-      ctx.fillText(`${Math.round(depth)}m`, lx, ly);
-    });
-
-    // Width trim handles on first selected wall (diamond handles at endpoints)
-    _drawWidthHandles(v, currentWalls[0], pxPerM);
   }
 
-  // Resolved AI / manual seating polygon: draw on top with draggable vertices.
-  // This lets the admin nudge a single corner without re-doing the whole wall
-  // selection. Edits are stored as v.seatingPolygonOverride.
-  _drawSeatingPolygonHandles(v);
+  // Active-polygon mode: courtyard, detached, or street with override.
+  // Drop the legacy crosshair pin for detached.
+  const ap = getActivePolygon(v);
+  if (ap) {
+    const px = ap.latlng.map(([lat, lng]) => map.project([lng, lat]));
+    _drawPolygonOutlinePx(px, ap.key);
+    _drawPolygonHandlesPx(px, ap.key);
+  } else if (terrType === 'detached') {
+    // No polygon yet (shouldn't happen normally — setTerraceType seeds one)
+    const loc = v.terraceDetachedLocation ?? { lat: v.lat, lng: v.lng };
+    const pt  = map.project([loc.lng, loc.lat]);
+    ctx.beginPath(); ctx.arc(pt.x, pt.y, 11, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,175,133,0.18)'; ctx.fill();
+    ctx.strokeStyle = '#FFAF85'; ctx.lineWidth = 2.5; ctx.stroke();
+  }
 }
 
-// ── Seating-polygon handles (overlay on AI / manual polygon) ──────────────────
+// ── Polygon outline + handle drawing ─────────────────────────────────────────
 
-function _drawSeatingPolygonHandles(v) {
-  if (typeof getSeatingPolygon !== 'function') return;
-  const poly = getSeatingPolygon(v);
-  if (!poly || poly.length < 3) return;
-
-  const px = poly.map(([lat, lng]) => map.project([lng, lat]));
-
-  // Polygon outline — distinct from the wall-based preview above
+function _drawPolygonOutlinePx(px, key) {
+  if (!Array.isArray(px) || px.length < 3) return;
+  const fillStyle = key === 'courtyard' ? 'rgba(192,122,255,0.10)'
+                  : key === 'detached'  ? 'rgba(255,175,133,0.10)'
+                  : key === 'ai'        ? 'rgba(168,230,197,0.10)'
+                  :                       'rgba(255,175,133,0.10)';
+  const strokeStyle = key === 'courtyard' ? 'rgba(192,122,255,0.85)'
+                    : key === 'detached'  ? 'rgba(255,175,133,0.85)'
+                    : key === 'ai'        ? 'rgba(168,230,197,0.85)'
+                    :                       'rgba(255,175,133,0.70)';
   ctx.beginPath();
   px.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
   ctx.closePath();
-  ctx.fillStyle   = 'rgba(120,200,160,0.10)';
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(120,200,160,0.85)';
-  ctx.lineWidth   = 2; ctx.setLineDash([6, 3]); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = fillStyle; ctx.fill();
+  ctx.strokeStyle = strokeStyle; ctx.lineWidth = 2;
+  ctx.stroke();
+}
 
-  // Vertex handles
+function _drawPolygonHandlesPx(px, key) {
+  if (!Array.isArray(px) || px.length < 3) return;
+
+  // Edge midpoints (squares) — drawn first so corners sit on top
+  for (let i = 0; i < px.length; i++) {
+    const a = px[i], b = px[(i + 1) % px.length];
+    const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    const dragging = editDraggingPolyEdge && editPolyEdgeIdx === i;
+    const R = dragging ? 7 : 5;
+    ctx.beginPath();
+    ctx.rect(mx - R, my - R, R * 2, R * 2);
+    ctx.fillStyle = dragging ? '#FFF2EB' : 'rgba(255,242,235,0.85)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(10,14,28,0.90)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  // Corner handles (circles)
   px.forEach((p, idx) => {
     const dragging = editDraggingPolyVertex && editPolyVertexIdx === idx;
-    const R = dragging ? 8 : 6;
-    ctx.beginPath(); ctx.arc(p.x, p.y, R, 0, Math.PI * 2);
-    ctx.fillStyle   = dragging ? '#A8E6C5' : 'rgba(168,230,197,0.85)';
+    const R = dragging ? 9 : 7;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, R, 0, Math.PI * 2);
+    ctx.fillStyle = dragging ? '#FFAF85' : 'rgba(255,175,133,0.85)';
     ctx.fill();
-    ctx.strokeStyle = 'rgba(10,14,28,0.9)'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.strokeStyle = 'rgba(10,14,28,0.90)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
   });
 }
 
-/** Hit-test a seating-polygon vertex. Returns the vertex index, or null. */
+// ── Legacy hit tests + helpers (kept for street wall-mode & touch handlers) ──
+
+/** Hit-test the seating-polygon vertex (legacy alias). */
 function hitTestSeatingPolygonVertex(cx, cy) {
-  if (!editingVenueId || typeof getSeatingPolygon !== 'function') return null;
-  const v = VENUES.find(x => x.id === editingVenueId);
-  if (!v) return null;
-  const poly = getSeatingPolygon(v);
-  if (!poly || poly.length < 3) return null;
-  for (let i = 0; i < poly.length; i++) {
-    const [lat, lng] = poly[i];
-    const p = map.project([lng, lat]);
-    if (Math.hypot(cx - p.x, cy - p.y) < 12) return i;
-  }
-  return null;
+  return hitTestActivePolygonVertex(cx, cy);
 }
 
-/**
- * Move a single polygon vertex to the lat/lng under the cursor and persist
- * the new polygon to the in-memory venue + localStorage facing cache.
- * Test points (used for shadow checks) are recomputed so the change is
- * reflected immediately in the timeline without a worker round-trip.
- */
-function updateSeatingPolygonVertex(venueId, vertexIdx, lat, lng) {
-  const v = VENUES.find(x => x.id === venueId);
-  if (!v) return;
-  const current = (typeof getSeatingPolygon === 'function') ? getSeatingPolygon(v) : null;
-  if (!current || vertexIdx < 0 || vertexIdx >= current.length) return;
-  const next = current.map((pt, i) => i === vertexIdx ? [lat, lng] : pt);
-  v.seatingPolygonOverride = next;
-  if (typeof seatingPolygonTestPoints === 'function') {
-    const pts = seatingPolygonTestPoints(next);
-    if (pts.length) v.terraceTestPoints = pts;
-  }
-}
-
-// ── Width trim helpers ────────────────────────────────────────────────────────
-
-/**
- * Apply terraceWallTrimStart/End to the first wall of a wall array,
- * returning new wall copies with interpolated lat/lng endpoints.
- */
+/** Apply terraceWallTrimStart/End to the first wall of a wall array. */
 function _applyTrimToWalls(v, walls, pxPerM) {
   if (!walls.length) return walls;
   const sM = v.terraceWallTrimStart ?? 0;
@@ -292,7 +513,6 @@ function _applyTrimToWalls(v, walls, pxPerM) {
 
   const result = walls.slice();
   const w = walls[0];
-  // Compute wall length in metres
   const pa = map.project([w.aLng, w.aLat]);
   const pb = map.project([w.bLng, w.bLat]);
   const lenPx = Math.hypot(pb.x - pa.x, pb.y - pa.y) || 1;
@@ -311,68 +531,5 @@ function _applyTrimToWalls(v, walls, pxPerM) {
   return result;
 }
 
-/** Compute pixel position of width handle at start or end of wall with trim applied. */
-function _getWidthHandlePos(v, wall, side, pxPerM) {
-  const pa  = map.project([wall.aLng, wall.aLat]);
-  const pb  = map.project([wall.bLng, wall.bLat]);
-  const len = Math.hypot(pb.x - pa.x, pb.y - pa.y) || 1;
-  const sM  = v.terraceWallTrimStart ?? 0;
-  const eM  = v.terraceWallTrimEnd   ?? 0;
-  const sFrac = Math.min(0.48, sM / (len / pxPerM));
-  const eFrac = Math.min(0.48, eM / (len / pxPerM));
-
-  if (side === 'start') {
-    return { x: pa.x + (pb.x - pa.x) * sFrac, y: pa.y + (pb.y - pa.y) * sFrac };
-  } else {
-    return { x: pb.x - (pb.x - pa.x) * eFrac, y: pb.y - (pb.y - pa.y) * eFrac };
-  }
-}
-
-function _drawWidthHandles(v, wall, pxPerM) {
-  if (!wall) return;
-  for (const side of ['start', 'end']) {
-    const { x, y } = _getWidthHandlePos(v, wall, side, pxPerM);
-    const dragging  = editDraggingWidth === side && editWidthWall === wall;
-    const R = dragging ? 10 : 8;
-
-    // Diamond shape
-    ctx.save();
-    ctx.translate(x, y); ctx.rotate(Math.PI / 4);
-    ctx.beginPath();
-    ctx.rect(-R * 0.65, -R * 0.65, R * 1.3, R * 1.3);
-    ctx.fillStyle   = dragging ? '#FFAF85' : 'rgba(255,175,133,0.85)';
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(10,14,28,0.9)'; ctx.lineWidth = 2; ctx.stroke();
-    ctx.restore();
-
-    // Label: trim amount
-    const trimM = side === 'start' ? (v.terraceWallTrimStart ?? 0) : (v.terraceWallTrimEnd ?? 0);
-    if (trimM > 0.5) {
-      ctx.font = 'bold 10px "Inter", sans-serif';
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      const pa = map.project([wall.aLng, wall.aLat]);
-      const pb = map.project([wall.bLng, wall.bLat]);
-      const len = Math.hypot(pb.x - pa.x, pb.y - pa.y) || 1;
-      const nx = -(pb.y - pa.y) / len, ny = (pb.x - pa.x) / len;
-      ctx.fillStyle = 'rgba(10,14,28,0.85)';
-      fillRoundRect(ctx, x + nx * 20 - 14, y + ny * 20 - 10, 28, 20, 5);
-      ctx.fillStyle = '#FFAF85';
-      ctx.fillText(`${Math.round(trimM)}m`, x + nx * 20, y + ny * 20);
-    }
-  }
-}
-
-/** Hit test for width handles. Returns 'start', 'end', or null. */
-function hitTestWidthHandle(cx, cy) {
-  if (!editingVenueId) return null;
-  const v = VENUES.find(x => x.id === editingVenueId);
-  if (!v) return null;
-  const walls = getTerraceWalls(v);
-  if (!walls.length) return null;
-  const pxPerM = pxPerMetre(v);
-  for (const side of ['start', 'end']) {
-    const { x, y } = _getWidthHandlePos(v, walls[0], side, pxPerM);
-    if (Math.hypot(cx - x, cy - y) < 14) return { side, wall: walls[0] };
-  }
-  return null;
-}
+/** Legacy width-handle hit test (always null now — width handles are gone). */
+function hitTestWidthHandle() { return null; }
