@@ -302,16 +302,16 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
     timelineBlock = `<div class="card-timeline-block">${miniTimeline}${tlLabels}</div>`;
   }
 
-  // v2 fill bar (compact only): horizontal sun-fraction strip across the
-  // bottom border. Segments span the actual [windowStart, windowEnd] mapped
-  // into the [selectedHour, sundownH] frame; gaps stay un-filled.
+  // v2 fill bar (compact only): a single contiguous level-meter strip
+  // anchored to the card's bottom inset. Width = netSunMinutes / minutes
+  // (selectedTime → sundown). Gap visualization lives in disruption
+  // pills — the bar stays a clean horizontal indicator so it can't be
+  // misread as a buggy broken line.
   let fillBarHtml = '';
-  if (!rich && qual && qual.surfaced && typeof buildFillBarSegments === 'function') {
-    const segs = buildFillBarSegments(qual, fromHour, sundownH);
-    if (segs.length) {
-      fillBarHtml = `<div class="card-fillbar">${segs.map(s =>
-        `<span class="card-fillbar-seg${s.isLast ? ' is-last' : ''}" style="left:${s.leftPct.toFixed(2)}%;width:${s.widthPct.toFixed(2)}%"></span>`
-      ).join('')}</div>`;
+  if (!rich && qual && qual.surfaced && typeof fillBarFraction === 'function') {
+    const frac = fillBarFraction(qual, fromHour, sundownH);
+    if (frac > 0) {
+      fillBarHtml = `<div class="card-fillbar"><span class="card-fillbar-fill" style="width:${(frac * 100).toFixed(2)}%"></span></div>`;
     } else {
       fillBarHtml = `<div class="card-fillbar"></div>`;
     }
@@ -367,13 +367,9 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
 
   const variantCls = rich ? ' card-rich' : ' card-compact';
 
-  // Compact (list) cards always render the pills row — even when empty — so
-  // every card has a uniform height regardless of how many pills it carries.
-  // Rich (detail-panel) cards keep the conditional render so their layout
-  // doesn't pick up a phantom row.
-  const pillsRowHtml = rich
-    ? (pillsHtml ? `<div class="card-pills">${pillsHtml}</div>` : '')
-    : `<div class="card-pills">${pillsHtml}</div>`;
+  // Conditional pill row — variable card heights. Cards without pills
+  // collapse to row1 + meta + fill bar; cards with pills grow.
+  const pillsRowHtml = pillsHtml ? `<div class="card-pills">${pillsHtml}</div>` : '';
 
   return `
     <div class="venue-card ${stateClass}${variantCls} ${v.id === selectedId ? 'selected' : ''}${flags ? ' review-flagged' : ''}"
@@ -464,14 +460,16 @@ function renderListPage(list, dateStr, fromHour, toHour, isPoint, reset) {
                       Math.abs(fromHour - (new Date().getHours() + new Date().getMinutes() / 60)) > 5/60)
                   || (typeof todayStr === 'function' && dateStr > todayStr());
 
-  // Build section markup. Reset paths emit the headers + cards; paginated
-  // appends just emit cards (no headers — they're already in the DOM). When
-  // ONE bucket is empty and the other is populated, suppress the empty
-  // bucket's header entirely (Case C in the empty-state spec) — the
-  // populated section is self-explanatory. Both buckets empty is handled
-  // upstream in renderList() (Case A/B consolidated message).
+  // Build section markup. Headers only appear when BOTH buckets have
+  // venues — they exist to mark a temporal split, so a single-section
+  // list doesn't need them. With one bucket empty, the populated bucket's
+  // header would just push the first card out of peek; with both empty,
+  // renderList() emits the consolidated empty state instead. Paginated
+  // appends emit only cards (the boundary header, if any, was placed on
+  // the reset pass).
+  const showHeaders = nowCount > 0 && laterCount > 0;
   let html = '';
-  if (reset && nowCount > 0) {
+  if (reset && showHeaders) {
     const nowLabel = isFuture
       ? t('section_sun_at', { time: formatHour(fromHour) })
       : t('section_sun_now');
@@ -483,19 +481,18 @@ function renderListPage(list, dateStr, fromHour, toHour, isPoint, reset) {
     html += renderCard(_listFiltered[i], dateStr, fromHour, toHour, isPoint);
   }
 
-  // Later header inserted at the boundary, even mid-page. Skip when later
-  // bucket is empty.
-  if (reset && laterCount > 0) {
+  // Later header marks the boundary between buckets — emitted only when
+  // both have content. Mid-page paginated appends that cross the boundary
+  // still need it so the visual transition is consistent.
+  if (showHeaders) {
     const laterLabel = isFuture
       ? t('section_sun_after', { time: formatHour(fromHour) })
       : t('section_sun_later');
-    html += `<div class="venue-section-header">${laterLabel}<span class="section-count">· ${laterCount}</span></div>`;
-  } else if (!reset && from < nowCount && to > nowCount && laterCount > 0) {
-    // Mid-page boundary on a paginated append: still mark the section break.
-    const laterLabel = isFuture
-      ? t('section_sun_after', { time: formatHour(fromHour) })
-      : t('section_sun_later');
-    html += `<div class="venue-section-header">${laterLabel}<span class="section-count">· ${laterCount}</span></div>`;
+    if (reset) {
+      html += `<div class="venue-section-header">${laterLabel}<span class="section-count">· ${laterCount}</span></div>`;
+    } else if (from < nowCount && to > nowCount) {
+      html += `<div class="venue-section-header">${laterLabel}<span class="section-count">· ${laterCount}</span></div>`;
+    }
   }
 
   // Later-bucket cards
@@ -757,27 +754,30 @@ function renderList() {
     }
     return 0;
   };
-  // Per-bucket sort for the default "Mest sol" path follows the redesign
-  // spec: Sol nå is sorted by distance ascending (closest first — most
-  // actionable now); Sol senere is sorted by window-start ascending (so
-  // the next venue to enter sun is at the top). Explicit sort modes
-  // (distance/favorites/beer) keep their global comparator.
+  // Per-bucket sort for the default "Mest sol" path. The label means what
+  // it says — duration descending — so the longest current sun-window lands
+  // at the top of Sol nå. Distance breaks ties (closer wins). Sol senere
+  // sorts by window-start ascending so the next-to-arrive sun is at the
+  // top. Explicit sort modes (distance/favorites/beer) keep their global
+  // comparator.
   if (sortBy === 'score') {
     const startOf = (v) => v._qual?.earliest?.start ?? 24;
     const compareNow = (a, b) => {
       const cp = closedPenalty(a) - closedPenalty(b);
       if (cp !== 0) return cp;
+      if (qualDur(a) !== qualDur(b)) return qualDur(b) - qualDur(a);
       if (distRef) {
         const da = distOf(a), db = distOf(b);
         if (da !== db) return da - db;
       }
-      return qualDur(b) - qualDur(a);
+      return 0;
     };
     const compareLater = (a, b) => {
       const cp = closedPenalty(a) - closedPenalty(b);
       if (cp !== 0) return cp;
       const sa = startOf(a), sb = startOf(b);
       if (sa !== sb) return sa - sb;
+      if (qualDur(a) !== qualDur(b)) return qualDur(b) - qualDur(a);
       if (distRef) {
         const da = distOf(a), db = distOf(b);
         if (da !== db) return da - db;

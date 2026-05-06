@@ -279,32 +279,17 @@ function _formatPillDur(minutes) {
 }
 
 /**
- * Fill-bar segment positions for the bottom 3px bar.
- * Returns an array of { leftPct, widthPct } segments (absolute % within the
- * [selectedHour, sundownH] span). Each segment is one stretch of orange;
- * gaps between segments show the dark track.
- *
- * Source of truth: the surfaced earliest window's `gaps` (any merged extra
- * windows are NOT part of this bar — they're flagged via the overflow pill).
+ * Net sun fraction for the bottom fill bar — `netSunMinutes / minutes
+ * (selectedTime → sundown)`, clamped to [0, 1]. The bar is drawn as a
+ * single contiguous fill from the left (a level meter, per spec); gap
+ * detail lives in the disruption pills, not in the bar.
  */
-function buildFillBarSegments(qual, selectedHour, sundownH) {
-  if (!qual || !qual.earliest || sundownH == null) return [];
-  const total = sundownH - selectedHour;
-  if (total <= 0) return [];
-  const w = qual.earliest;
-  const ranges = [];
-  let cursor = w.start;
-  for (const g of (w.gaps || [])) {
-    if (g.start > cursor) ranges.push({ start: cursor, end: g.start });
-    cursor = g.end;
-  }
-  if (w.end > cursor) ranges.push({ start: cursor, end: w.end });
-
-  return ranges.map((r, i) => ({
-    leftPct: ((r.start - selectedHour) / total) * 100,
-    widthPct: ((r.end - r.start) / total) * 100,
-    isLast: i === ranges.length - 1,
-  })).filter(s => s.widthPct > 0.01);
+function fillBarFraction(qual, selectedHour, sundownH) {
+  if (!qual || !qual.earliest || sundownH == null) return 0;
+  const total = (sundownH - selectedHour) * 60;
+  if (total <= 0) return 0;
+  const net = qual.earliest.durationMin ?? 0;
+  return Math.max(0, Math.min(1, net / total));
 }
 
 // ── Opening hours helpers ─────────────────────────────────────────────────────
