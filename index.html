@@ -108,6 +108,7 @@
     --glass-blur-panel: blur(16px) saturate(160%);
     --glass-blur-card:  blur(12px) saturate(160%);
     --glass-blur-action: blur(10px) saturate(160%);
+    --glass-blur-pill:  blur(8px)  saturate(160%);
     --glass-border: 1px solid rgba(156,189,231,0.18);
     --glass-border-light: 1px solid rgba(156,189,231,0.15);
     /* Shades Glass inset shadows — top sheen + bottom shade shared across all levels */
@@ -533,6 +534,34 @@
   }
   #search-clear-btn:hover { background: rgba(255,242,235,0.18); color: var(--text); }
   #floating-search.has-query #search-clear-btn { display: flex; }
+
+  /* Compact weather pill — sits between the search input and the avatar.
+     Per the redesign spec, this is the ONLY surface where wind/temp/sky
+     condition appears. Per-card weather is venue-specific only. */
+  #search-weather-pill {
+    flex-shrink: 0;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(255,242,235,0.10);
+    backdrop-filter: var(--glass-blur-pill);
+    -webkit-backdrop-filter: var(--glass-blur-pill);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    color: rgba(255,242,235,0.85);
+    white-space: nowrap;
+    cursor: default;
+    user-select: none;
+    margin-right: 6px;
+  }
+  #search-weather-pill:empty { display: none; }
+  #search-weather-pill .swp-sep  { opacity: 0.4; margin: 0 2px; }
+  #search-weather-pill .swp-wind { color: rgba(255,242,235,0.65); font-weight: 500; }
+  #search-weather-pill .swp-note { color: var(--rain); font-weight: 600; }
 
   #search-profile-btn {
     flex-shrink: 0;
@@ -1977,12 +2006,39 @@
     opacity: 0.7;
   }
   .empty-all {
-    padding: 24px 12px;
+    padding: 32px 16px;
     color: var(--muted);
     font-size: 13px;
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .empty-all-headline {
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.3;
   }
   .empty-all .btn-show-all { margin-top: 12px; }
+  .empty-all .btn-see-tomorrow { margin-top: 4px; }
+  /* Tertiary text-link "Vis alle steder" — visually subordinate to the
+     primary "Se i morgen" CTA above it. */
+  .empty-all-link {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    opacity: 0.75;
+    cursor: pointer;
+    padding: 6px 12px;
+    margin-top: 4px;
+  }
+  .empty-all-link:hover { opacity: 1; }
   body.list-scrubbing .venue-section-header { opacity: 0; }
   body.list-scrubbing .empty-section { opacity: 0; }
 
@@ -2242,6 +2298,92 @@
     background: rgba(96,140,200,0.18);
     border: 1px solid rgba(96,140,200,0.40);
     color: var(--rain);
+  }
+  /* Operational hours pills: neutral white-on-glass, distinct from the
+     subject-colored disruption pills above. Renders only when hours are
+     the binding constraint — see buildCardPillsV2 in ui-shared.js. */
+  .card-pill.pill-stenger,
+  .card-pill.pill-aapner {
+    background: rgba(255,242,235,0.10);
+    border: 1px solid rgba(255,242,235,0.18);
+    color: rgba(255,242,235,0.75);
+  }
+  /* Overflow / opportunity pill: sun-token, names additional later windows
+     ("+ X sol fra HH:MM" / "+ N sol senere") or pill-overflow ("+ N mer"). */
+  .card-pill.pill-overflow {
+    background: rgba(255,175,133,0.18);
+    border: 1px solid rgba(255,175,133,0.35);
+    color: var(--accent);
+  }
+
+  /* ── v2 list-card layout ──────────────────────────────────────────────
+     Applied via `.card-compact`. The detail panel uses `.card-rich` and
+     keeps its prior layout (timeline + labels). For the list variant:
+       • card-meta is a 1fr/auto grid: meta-text left, anchor right
+       • card-pills is always rendered (preserves card height)
+       • bottom 3px fill bar shows sun-fraction of remaining day */
+  .venue-card.card-compact {
+    /* Bar sits flush against the card border. Padding-bottom 0 so the
+       last visual row (.card-pills) keeps its 4px margin to the bar. */
+    padding-bottom: 8px;
+  }
+  .venue-card.card-compact .card-meta {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 8px;
+  }
+  .venue-card.card-compact .card-meta-left {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .venue-card.card-compact .card-anchor {
+    justify-self: end;
+    flex-shrink: 0;
+    color: var(--muted);
+    opacity: 0.65;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  /* Always-on pills row: even when empty, the row holds card height. */
+  .venue-card.card-compact .card-pills {
+    min-height: 24px;
+    margin: 4px 0 0;
+  }
+  /* Pills get the 8px backdrop blur from --glass-blur-pill. Cards
+     don't blur (parent panel does), but pills sit on top of everything
+     and benefit from the subtle haze. */
+  .venue-card.card-compact .card-pill {
+    backdrop-filter: var(--glass-blur-pill);
+    -webkit-backdrop-filter: var(--glass-blur-pill);
+  }
+  /* ── Fill bar — 3px on the card's bottom border ──
+     Track is a near-invisible white-on-glass strip; segments are
+     absolutely positioned spans painted in the sun token. */
+  .venue-card.card-compact .card-fillbar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    background: rgba(255,242,235,0.04);
+    border-radius: 0 0 12px 12px;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .venue-card.card-compact .card-fillbar-seg {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    background: var(--accent);
+  }
+  /* Last segment gets a small radius on its right edge so the bar reads
+     as one level meter rather than a floating object. */
+  .venue-card.card-compact .card-fillbar-seg.is-last {
+    border-top-right-radius: 1.5px;
+    border-bottom-right-radius: 1.5px;
   }
 
   /* ── Card timeline — full-width strip + labels row at the bottom. ──
@@ -2859,7 +3001,7 @@
       right: 0;
       bottom: 0;
       width: 100%;
-      height: 55svh;    /* svh = small viewport height: stable, unaffected by toolbar */
+      height: 60svh;    /* svh = small viewport height: stable, unaffected by toolbar */
       border-radius: 20px 20px 0 0;
       border-left: none;
       border-right: none;
@@ -4456,6 +4598,29 @@
     color: var(--text);
     line-height: 1;
   }
+  /* Future-time chip — sits between the count and the sort toggle when the
+     user has scrubbed forward in time. Subtle reminder that the list isn't
+     live; tap to snap back to now. */
+  #future-time-chip {
+    margin-left: auto;
+    margin-right: 8px;
+    height: 24px;
+    padding: 0 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(156,189,231,0.22);
+    background: rgba(156,189,231,0.08);
+    color: var(--muted);
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0.85;
+    transition: opacity 0.15s, background 0.15s;
+  }
+  #future-time-chip:hover { opacity: 1; background: rgba(156,189,231,0.14); }
+  #future-time-chip[hidden] { display: none; }
 
   /* ── Calendar float — outside #panel, position: fixed so it escapes transforms ── */
   #ptb-cal-float {
@@ -7505,6 +7670,7 @@
     <span id="search-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8.5" cy="8.5" r="5.5"/><line x1="13" y1="13" x2="18" y2="18"/></svg></span>
     <input type="text" id="venue-search" placeholder="Søk etter steder eller områder…" autocomplete="off">
     <button id="search-clear-btn" type="button" aria-label="Clear search">✕</button>
+    <div id="search-weather-pill" aria-live="polite" title="Vær"></div>
     <button id="search-profile-btn" onclick="toggleProfilePanel(event)" title="Profil"></button>
   </div>
 
@@ -7625,6 +7791,7 @@
     <!-- Sun count header: visible in peek, owns "X steder i solen" exactly once -->
     <div id="list-sun-header">
       <span id="list-sun-count"></span>
+      <button id="future-time-chip" type="button" hidden onclick="resetToNow()" title="Tilbake til nå"></button>
       <button id="sort-toggle-btn" onclick="toggleSortPanel()"><span id="sort-label">Mest sol</span><span class="sort-chevron"> ▾</span></button>
     </div>
 

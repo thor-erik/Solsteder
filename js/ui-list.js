@@ -236,12 +236,31 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
     ? _formatDurationFromMin(qual.earliest.durationMin)
     : '';
 
-  // Pills row: built by the shared helper. State color matches subject.
+  // Pills row. The detail-panel (rich) keeps the legacy chronological-pill
+  // narrative so its mini-timeline still reads correctly. The list (compact)
+  // uses the v2 model: in-window disruption pills + binding hours pills +
+  // overflow / opportunity pill, capped at 3.
   const sundownH = (typeof currentSunTable !== 'undefined' && currentSunTable && typeof findSunCrossingFromTable === 'function')
     ? findSunCrossingFromTable(currentSunTable, false) : null;
-  const pills = (qual && qual.surfaced && typeof buildCardPills === 'function')
-    ? buildCardPills(v, qual, fromHour, sundownH, dateStr)
-    : [];
+  let pills = [];
+  if (qual && qual.surfaced) {
+    if (rich && typeof buildCardPills === 'function') {
+      pills = buildCardPills(v, qual, fromHour, sundownH, dateStr);
+    } else if (typeof buildCardPillsV2 === 'function') {
+      // Detect whether the geometric sun would have continued past the venue's
+      // closing time (binding-Stenger condition) by re-asking computeSunWindows
+      // with no upper hour clamp. We already have the raw windows from the
+      // qualifying recompute above when v._qual is missing; the listed-venue
+      // path memoizes them on v._rawWindows for reuse.
+      const rawWindows = v._rawWindows ?? (typeof computeSunWindows === 'function' ? computeSunWindows(v, dateStr).windows : []);
+      const geometricEndAfterClose = rawWindows.some(w => w.end > dayHours.close + 0.001);
+      const earliestRaw = rawWindows.find(w => w.end > qual.earliest.start - 0.001);
+      const rawWindowStart = earliestRaw ? earliestRaw.start : qual.earliest.start;
+      pills = buildCardPillsV2(v, qual, {
+        sundownH, dayHours, rawWindowStart, geometricEndAfterClose,
+      });
+    }
+  }
   const pillsHtml = pills.map(p =>
     `<span class="card-pill pill-${p.kind}">${p.label}</span>`
   ).join('');
@@ -258,9 +277,19 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
   const walkTimeStr = (rich && typeof calcWalkTime === 'function' && s?.distKm != null)
     ? calcWalkTime(s.distKm * 1000) : null;
   const metaParts = [v.area, catLabel(v), distStr, walkTimeStr].filter(Boolean);
-  const metaHtml = opensLaterPrefix + metaParts.map((p, i) =>
+  const metaInner = opensLaterPrefix + metaParts.map((p, i) =>
     (i > 0 ? '<span class="card-meta-dot">·</span>' : '') + `<span>${p}</span>`
   ).join('');
+
+  // v2 list cards split the meta row into a left (text) column and a right
+  // anchor column ("til 21:00" / "fra 14:00 · til 21:00"). Rich/detail cards
+  // keep the meta as a single inline run so their layout doesn't shift.
+  const bucket = (qual && qual.earliest && qual.earliest.start <= fromHour + 0.001) ? 'now' : 'later';
+  const anchorText = (!rich && qual && qual.surfaced && typeof formatAnchor === 'function')
+    ? formatAnchor(qual, bucket, sundownH) : '';
+  const metaHtml = rich
+    ? metaInner
+    : `<span class="card-meta-left">${metaInner}</span>${anchorText ? `<span class="card-anchor">${anchorText}</span>` : ''}`;
 
   // Rich variant builds the timeline canvas + labels row; compact skips
   // them entirely and just inset-pads the pills row instead.
@@ -271,6 +300,21 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
     const tlMax = sundownH ?? ((typeof MAX_H_ARC !== 'undefined') ? MAX_H_ARC : null);
     const tlLabels = buildTimelineLabels(pills, fromHour, tlMin, tlMax);
     timelineBlock = `<div class="card-timeline-block">${miniTimeline}${tlLabels}</div>`;
+  }
+
+  // v2 fill bar (compact only): horizontal sun-fraction strip across the
+  // bottom border. Segments span the actual [windowStart, windowEnd] mapped
+  // into the [selectedHour, sundownH] frame; gaps stay un-filled.
+  let fillBarHtml = '';
+  if (!rich && qual && qual.surfaced && typeof buildFillBarSegments === 'function') {
+    const segs = buildFillBarSegments(qual, fromHour, sundownH);
+    if (segs.length) {
+      fillBarHtml = `<div class="card-fillbar">${segs.map(s =>
+        `<span class="card-fillbar-seg${s.isLast ? ' is-last' : ''}" style="left:${s.leftPct.toFixed(2)}%;width:${s.widthPct.toFixed(2)}%"></span>`
+      ).join('')}</div>`;
+    } else {
+      fillBarHtml = `<div class="card-fillbar"></div>`;
+    }
   }
 
   const favActive = typeof isFavorite === 'function' && isFavorite(v.id);
@@ -323,6 +367,14 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
 
   const variantCls = rich ? ' card-rich' : ' card-compact';
 
+  // Compact (list) cards always render the pills row — even when empty — so
+  // every card has a uniform height regardless of how many pills it carries.
+  // Rich (detail-panel) cards keep the conditional render so their layout
+  // doesn't pick up a phantom row.
+  const pillsRowHtml = rich
+    ? (pillsHtml ? `<div class="card-pills">${pillsHtml}</div>` : '')
+    : `<div class="card-pills">${pillsHtml}</div>`;
+
   return `
     <div class="venue-card ${stateClass}${variantCls} ${v.id === selectedId ? 'selected' : ''}${flags ? ' review-flagged' : ''}"
          data-vid="${v.id}" onclick="selectVenue(${typeof v.id === 'number' ? v.id : `'${v.id}'`}, true)"
@@ -332,10 +384,11 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
         ${durationStr ? `<div class="card-duration">${SUN_GLYPH}${durationStr}</div>` : ''}
       </div>
       <div class="card-meta">${metaHtml}</div>
-      ${pillsHtml ? `<div class="card-pills">${pillsHtml}</div>` : ''}
+      ${pillsRowHtml}
       ${timelineBlock}
       ${reviewChips}
       ${reviewActions}
+      ${fillBarHtml}
     </div>`;
 }
 
@@ -411,20 +464,18 @@ function renderListPage(list, dateStr, fromHour, toHour, isPoint, reset) {
                       Math.abs(fromHour - (new Date().getHours() + new Date().getMinutes() / 60)) > 5/60)
                   || (typeof todayStr === 'function' && dateStr > todayStr());
 
-  // Build section markup. Reset paths emit the headers + empties; paginated
-  // appends just emit cards (no headers — they're already in the DOM). The
-  // future-time signal lives in the section header copy ("Sol kl HH:MM" /
-  // "Sol etter HH:MM"); no separate chip is injected.
+  // Build section markup. Reset paths emit the headers + cards; paginated
+  // appends just emit cards (no headers — they're already in the DOM). When
+  // ONE bucket is empty and the other is populated, suppress the empty
+  // bucket's header entirely (Case C in the empty-state spec) — the
+  // populated section is self-explanatory. Both buckets empty is handled
+  // upstream in renderList() (Case A/B consolidated message).
   let html = '';
-  if (reset) {
-    // Sol nå header
+  if (reset && nowCount > 0) {
     const nowLabel = isFuture
       ? t('section_sun_at', { time: formatHour(fromHour) })
       : t('section_sun_now');
     html += `<div class="venue-section-header">${nowLabel}<span class="section-count">· ${nowCount}</span></div>`;
-    if (nowCount === 0) {
-      html += `<div class="empty-section">${t('empty_no_sun_now')}</div>`;
-    }
   }
 
   // Now-bucket cards
@@ -432,16 +483,14 @@ function renderListPage(list, dateStr, fromHour, toHour, isPoint, reset) {
     html += renderCard(_listFiltered[i], dateStr, fromHour, toHour, isPoint);
   }
 
-  // Later header inserted at the boundary, even mid-page.
-  if (reset) {
+  // Later header inserted at the boundary, even mid-page. Skip when later
+  // bucket is empty.
+  if (reset && laterCount > 0) {
     const laterLabel = isFuture
       ? t('section_sun_after', { time: formatHour(fromHour) })
       : t('section_sun_later');
     html += `<div class="venue-section-header">${laterLabel}<span class="section-count">· ${laterCount}</span></div>`;
-    if (laterCount === 0) {
-      html += `<div class="empty-section">${t('empty_no_sun_later')}</div>`;
-    }
-  } else if (from < nowCount && to > nowCount) {
+  } else if (!reset && from < nowCount && to > nowCount && laterCount > 0) {
     // Mid-page boundary on a paginated append: still mark the section break.
     const laterLabel = isFuture
       ? t('section_sun_after', { time: formatHour(fromHour) })
@@ -497,6 +546,18 @@ function showAllVenuesOnce() {
   _showAllOnce = true;
   if (typeof scheduleRenderList === 'function') scheduleRenderList();
   else if (typeof renderList === 'function') renderList();
+}
+
+/**
+ * Primary CTA on the consolidated empty state ("Se i morgen"): jump to
+ * tomorrow at 09:00 and let the recompute decide whether the next day is
+ * populated. 09:00 is early enough that any morning sun lands inside the
+ * remaining-day window; the spec also accepts "first sun, whichever is
+ * later", but resolving "first sun" requires a full sun-table build that
+ * advanceDay() will trigger anyway via the date-change event.
+ */
+function seeTomorrow() {
+  if (typeof advanceDay === 'function') advanceDay(1, 9);
 }
 
 function renderList() {
@@ -602,7 +663,9 @@ function renderList() {
           prevSurfaced: _surfacedSet.has(v.id),
         })
       : { windows: [], earliest: null, surfaced: false };
-    return { ...v, sunInWin, isOpen, isOpeningSoon, isClosingSoon, score, _qual: qual };
+    // Pass raw windows through to renderCard so the v2 pill builder can
+    // detect Åpner/Stenger binding-hours pills without recomputing.
+    return { ...v, sunInWin, isOpen, isOpeningSoon, isClosingSoon, score, _qual: qual, _rawWindows: rawWins };
   });
 
   // Surfacing filter — qualifying windows + own-suggestion bypass + the
@@ -694,8 +757,39 @@ function renderList() {
     }
     return 0;
   };
-  bucketNow.sort(comparator);
-  bucketLater.sort(comparator);
+  // Per-bucket sort for the default "Mest sol" path follows the redesign
+  // spec: Sol nå is sorted by distance ascending (closest first — most
+  // actionable now); Sol senere is sorted by window-start ascending (so
+  // the next venue to enter sun is at the top). Explicit sort modes
+  // (distance/favorites/beer) keep their global comparator.
+  if (sortBy === 'score') {
+    const startOf = (v) => v._qual?.earliest?.start ?? 24;
+    const compareNow = (a, b) => {
+      const cp = closedPenalty(a) - closedPenalty(b);
+      if (cp !== 0) return cp;
+      if (distRef) {
+        const da = distOf(a), db = distOf(b);
+        if (da !== db) return da - db;
+      }
+      return qualDur(b) - qualDur(a);
+    };
+    const compareLater = (a, b) => {
+      const cp = closedPenalty(a) - closedPenalty(b);
+      if (cp !== 0) return cp;
+      const sa = startOf(a), sb = startOf(b);
+      if (sa !== sb) return sa - sb;
+      if (distRef) {
+        const da = distOf(a), db = distOf(b);
+        if (da !== db) return da - db;
+      }
+      return 0;
+    };
+    bucketNow.sort(compareNow);
+    bucketLater.sort(compareLater);
+  } else {
+    bucketNow.sort(comparator);
+    bucketLater.sort(comparator);
+  }
   venues = [...bucketNow, ...bucketLater];
 
   // ── After-sunset state: real clock vs actual sunset, today only ───────────
@@ -753,23 +847,36 @@ function renderList() {
           </button>
         </div>`;
     } else {
-      // Empty-all soft-zebra state: both buckets are zero. Keep the section
-      // headers visible so the bucket model stays legible, and surface a
-      // "Vis alle steder" escape that bypasses the qualifying filter on the
-      // next pass (the normal sun-later content reappears as soon as the
-      // user scrubs to a sunny hour).
+      // Empty-all consolidated state (Cases A & B from the redesign spec):
+      // one centered message + one primary "Se i morgen" CTA + a tertiary
+      // "Vis alle steder" text link as an escape hatch. No section headers;
+      // they would imply structure that doesn't exist on an empty list.
+      // Case A — sundown has passed for this date.
+      // Case B — rain dominant: no Case A trigger, but the current hour is
+      //          already raining (so dry slices haven't materialized).
+      // Default fallback: Case A's "Ingen sol igjen i dag" copy.
+      const sundownH2 = (typeof currentSunTable !== 'undefined' && currentSunTable && typeof findSunCrossingFromTable === 'function')
+        ? findSunCrossingFromTable(currentSunTable, false) : null;
+      const isCaseA = sundownH2 != null && fromHour >= sundownH2 - 0.001;
+      const wxHere  = (typeof wxBucket === 'function') ? wxBucket(dateStr, fromHour) : null;
+      const isCaseB = !isCaseA && wxHere === 'regn';
+      const headline = isCaseB ? t('empty_rain_today') : t('empty_no_sun_left');
       list.innerHTML = `
-        <div class="venue-section-header">${t('section_sun_now')}<span class="section-count">· 0</span></div>
-        <div class="empty-section">${t('empty_no_sun_now')}</div>
-        <div class="venue-section-header">${t('section_sun_later')}<span class="section-count">· 0</span></div>
-        <div class="empty-section">${t('empty_no_sun_later')}</div>
         <div class="empty-all">
-          <div>${t('empty_no_sun_today')}</div>
-          <button class="s-pill btn-show-all" onclick="showAllVenuesOnce()">${t('btn_show_all_venues')}</button>
+          <div class="empty-all-headline">${headline}</div>
+          <button class="p-pill btn-see-tomorrow" onclick="seeTomorrow()">${t('cta_see_tomorrow')}</button>
+          <button class="empty-all-link" onclick="showAllVenuesOnce()">${t('btn_show_all_venues')}</button>
         </div>`;
     }
     _listFiltered = [];
     _listBuckets = { now: [], later: [] };
+    // Header count — must reflect what's rendered: zero. Spec demands the
+    // count never lie about the visible list.
+    const countEl0 = document.getElementById('venue-count');
+    if (countEl0) {
+      countEl0.textContent = t('no_places_in_sun');
+      countEl0.className = '';
+    }
     return;
   }
 
@@ -792,9 +899,12 @@ function renderList() {
   // Update venue-peek with first ranked venue (mobile collapsed state)
   if (typeof updateVenuePeek === 'function') updateVenuePeek(venues);
 
-  // Update count label (desktop only — mobile uses readout Tier 2)
+  // Update count label (desktop only — mobile uses readout Tier 2). Per the
+  // redesign spec, the header count must match the rendered list exactly:
+  // venues across both surfaced buckets, not "anywhere today" sun. This is
+  // the same number the user sees scrolling.
   const openCount = venues.filter(v => v.isOpen || v.isOpeningSoon).length;
-  const sunCount  = venues.filter(v => v.sunInWin && v.isOpen).length;
+  const sunCount  = bucketNow.length + bucketLater.length;
   const countEl   = document.getElementById('venue-count');
   if (countEl) {
     if (sunCount > 0) {

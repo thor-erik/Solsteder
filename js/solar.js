@@ -268,14 +268,25 @@ function computeSunWindowsFromTable(venue, table, opts) {
 // ── Qualifying windows (weather-gated, floored, gap-aware) ───────────────────
 //
 // Layered on top of raw geometric windows: clamps to [selectedHour, sundown] ∩
-// venue hours, drops slices that are raining or overcast, absorbs short gaps
-// between dry slices, and applies a 45-minute filter floor with a 5-minute
-// hysteresis band so a venue doesn't flicker across the boundary on every
-// weather refresh. Pure: same inputs always produce the same output.
+// venue hours, drops slices that are raining or overcast, then walks the dry
+// slices with two thresholds:
+//
+//   gapAbsorbMin (15)  — gaps shorter than this are absorbed silently. The
+//                        stretch stays one window; the gap minutes do NOT
+//                        count toward net duration.
+//   splitGapMin  (60)  — gaps at or above this split into a separate window.
+//                        Below this and ≥ gapAbsorbMin: kept inside the same
+//                        window as a named disruption (skygge/skyer/regn).
+//
+// Then a 45-minute filter floor on net duration with a 5-minute hysteresis so
+// a venue doesn't flicker across the boundary on every weather refresh. Each
+// surviving window ships its in-window disruptions as `gaps: [{start,end,
+// kind}]` so the card pill builder doesn't have to re-derive them.
 function qualifyingWindows(rawWindows, wxLookup, opts) {
   const {
     selectedHour, sundownHour, openHour, closeHour,
-    floorMin = 45, gapAbsorbMin = 15, hysteresisMin = 5, prevSurfaced = false,
+    floorMin = 45, gapAbsorbMin = 15, splitGapMin = 90,
+    hysteresisMin = 5, prevSurfaced = false,
   } = opts || {};
 
   const lo = Math.max(selectedHour ?? 0, openHour ?? 0);
@@ -307,31 +318,67 @@ function qualifyingWindows(rawWindows, wxLookup, opts) {
   }
   if (!drySlices.length) return { windows: [], earliest: null, surfaced: false };
 
-  // 2. Walk slices: gaps < gapAbsorbMin merge; gaps ≥ gapAbsorbMin split.
+  // 2. Walk slices. Three regimes per gap:
+  //      < gapAbsorbMin   — silent absorb (no disruption, no net deduction
+  //                          beyond the gap itself which is already excluded
+  //                          from netH because it isn't a dry slice)
+  //      [gapAbsorb, splitGap)  — keep as same window, record as disruption
+  //      ≥ splitGapMin    — split into a new window
   const gapAbsorbH = gapAbsorbMin / 60;
+  const splitGapH  = splitGapMin / 60;
   const merged = [];
-  let cur = { start: drySlices[0].start, end: drySlices[0].end };
+  let cur = {
+    start: drySlices[0].start,
+    end:   drySlices[0].end,
+    gaps:  [],
+    netH:  drySlices[0].end - drySlices[0].start,
+  };
   for (let i = 1; i < drySlices.length; i++) {
     const next = drySlices[i];
-    if (next.start - cur.end < gapAbsorbH) {
-      cur.end = next.end;
-    } else {
+    const gapH = next.start - cur.end;
+    if (gapH >= splitGapH) {
       merged.push(cur);
-      cur = { start: next.start, end: next.end };
+      cur = {
+        start: next.start, end: next.end, gaps: [],
+        netH: next.end - next.start,
+      };
+    } else {
+      if (gapH >= gapAbsorbH) {
+        cur.gaps.push({ start: cur.end, end: next.start });
+      }
+      cur.end = next.end;
+      cur.netH += next.end - next.start;
     }
   }
   merged.push(cur);
 
-  // 3. Apply floor + hysteresis. Once surfaced, keep until 5 min below floor.
+  // 3. Apply floor + hysteresis on NET duration. Once surfaced, keep until
+  //    5 min below floor.
   const floorH = floorMin / 60;
   const stickyH = (floorMin - hysteresisMin) / 60;
   const minDuration = prevSurfaced ? stickyH : floorH;
   const surviving = [];
   for (const w of merged) {
-    const dur = w.end - w.start;
-    if (dur >= minDuration - 0.001) {
-      surviving.push({ start: w.start, end: w.end, durationMin: dur * 60 });
-    }
+    if (w.netH < minDuration - 0.001) continue;
+    // Classify each disruption: probe wxLookup at the gap midpoint.
+    // Wet hours are excluded from drySlices in step 1, so a probe that says
+    // rain/overcast means the gap IS that weather. Otherwise it's a
+    // geometric shadow gap (raw-window boundary).
+    const gaps = w.gaps.map(g => {
+      let kind = 'skygge';
+      if (wxLookup) {
+        const probe = wxLookup((g.start + g.end) / 2);
+        if (probe?.rainy)   kind = 'regn';
+        else if (probe?.overcast) kind = 'skyer';
+      }
+      return { start: g.start, end: g.end, kind };
+    });
+    surviving.push({
+      start: w.start,
+      end:   w.end,
+      durationMin: w.netH * 60,
+      gaps,
+    });
   }
 
   return {

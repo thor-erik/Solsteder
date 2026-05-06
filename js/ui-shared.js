@@ -159,6 +159,154 @@ function buildCardPills(venue, qual, selectedHour, sundownH, dateStr) {
   return [pill1, sunUntilPill(earliest.end)];
 }
 
+// ── v2 anchor + pill builders + fill-bar geometry ────────────────────────────
+//
+// The redesigned list card stops telling a chronological pill story and
+// instead says: this venue has X sun, until Y. Pills surface only the things
+// the duration + anchor line cannot say alone — in-window disruptions,
+// binding opening hours, and overflow indicators.
+
+/**
+ * Anchor text for row 2's right column.
+ *   • `now` bucket  → "til 21:00" or "til solnedgang"
+ *   • `later` bucket → "fra 14:00 · til 21:00" or "fra 14:00 · til solnedgang"
+ * Returns '' if the qual has no surfaced earliest window.
+ */
+function formatAnchor(qual, bucket, sundownH) {
+  if (!qual || !qual.earliest) return '';
+  const fmt = (typeof formatHour === 'function') ? formatHour : (h) => `${Math.floor(h)}:00`;
+  const w = qual.earliest;
+  const endsAtSundown = sundownH != null && w.end >= sundownH - 5/60;
+  if (bucket === 'later') {
+    return endsAtSundown
+      ? t('anchor_fra_til_sundown', { start: fmt(w.start) })
+      : t('anchor_fra_til', { start: fmt(w.start), end: fmt(w.end) });
+  }
+  return endsAtSundown
+    ? t('anchor_til_sundown')
+    : t('anchor_til', { time: fmt(w.end) });
+}
+
+/**
+ * v2 pill builder. Produces an ordered, capped list of typed pill descriptors
+ * for the list card. Three categories, in priority order:
+ *
+ *  1. Disruption pills — ≥15-min gaps inside the surfaced window. The
+ *     gap kind comes from qualifyingWindows() (skygge / skyer / regn).
+ *  2. Hours pills — only when the venue's opening hours are the binding
+ *     constraint on the window's edges (`Stenger HH:MM` / `Åpner HH:MM`).
+ *  3. Overflow / opportunity pill — sun-token color:
+ *       • If qual.windows.length > 1: "+ X sol fra HH:MM" (single extra)
+ *         or "+ N sol senere" (multi-extra).
+ *       • If priority pills overflow the 3-pill cap, replace the third+
+ *         with "+ N mer".
+ *
+ * Hard cap: 3 visible pills. Returns array of { kind, label }.
+ */
+function buildCardPillsV2(venue, qual, opts) {
+  if (!qual || !qual.earliest) return [];
+  const {
+    sundownH, dayHours, rawWindowStart, geometricEndAfterClose,
+  } = opts || {};
+  const fmt = (typeof formatHour === 'function') ? formatHour : (h) => `${Math.floor(h)}:00`;
+  const stateLabel = (kind) => kind === 'regn'  ? t('pill_state_regn')
+                            : kind === 'skyer' ? t('pill_state_skyer')
+                            : t('pill_state_skygge');
+
+  const w = qual.earliest;
+  const candidates = [];
+
+  // 1. Disruption pills — already pre-classified by qualifyingWindows().
+  for (const g of (w.gaps || [])) {
+    candidates.push({
+      kind: g.kind,  // 'skygge' | 'skyer' | 'regn' — maps to existing pill-* CSS
+      label: t('pill_disrupt_range', {
+        state: stateLabel(g.kind),
+        start: fmt(g.start),
+        end: fmt(g.end),
+      }),
+    });
+  }
+
+  // 2. Hours pills — only when binding.
+  //   Stenger: closing clips a sun arc that would have continued.
+  if (dayHours && geometricEndAfterClose && w.end <= dayHours.close + 0.001) {
+    candidates.push({ kind: 'stenger', label: t('pill_stenger', { time: fmt(dayHours.close) }) });
+  }
+  //   Åpner: opening clipped a sun arc that started earlier (raw window
+  //   started before opening hour).
+  if (dayHours && rawWindowStart != null && rawWindowStart < dayHours.open - 0.001
+      && w.start >= dayHours.open - 0.001) {
+    candidates.push({ kind: 'aapner', label: t('pill_aapner', { time: fmt(dayHours.open) }) });
+  }
+
+  // 3. Overflow / opportunity pill from additional qualifying windows.
+  const extraWindows = (qual.windows || []).slice(1);
+  if (extraWindows.length === 1) {
+    const ex = extraWindows[0];
+    const dur = _formatPillDur(ex.durationMin);
+    candidates.push({
+      kind: 'overflow',
+      label: t('pill_overflow_one', { dur, time: fmt(ex.start) }),
+    });
+  } else if (extraWindows.length > 1) {
+    candidates.push({
+      kind: 'overflow',
+      label: t('pill_overflow_many', { n: extraWindows.length }),
+    });
+  }
+
+  // Hard cap: 3 visible. If we have > 3, render first 2 + "+N mer".
+  if (candidates.length <= 3) return candidates;
+  const overflowCount = candidates.length - 2;
+  return [
+    candidates[0],
+    candidates[1],
+    { kind: 'overflow', label: t('pill_more_count', { n: overflowCount }) },
+  ];
+}
+
+/**
+ * Minimal duration formatter for pill text — "45 min", "1t", "2t 30m".
+ * Local helper; keeps ui-shared independent of ui-list._formatDurationFromMin.
+ */
+function _formatPillDur(minutes) {
+  const m = Math.round(minutes);
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60);
+  const rem = m - h * 60;
+  return rem === 0 ? `${h}t` : `${h}t ${rem}m`;
+}
+
+/**
+ * Fill-bar segment positions for the bottom 3px bar.
+ * Returns an array of { leftPct, widthPct } segments (absolute % within the
+ * [selectedHour, sundownH] span). Each segment is one stretch of orange;
+ * gaps between segments show the dark track.
+ *
+ * Source of truth: the surfaced earliest window's `gaps` (any merged extra
+ * windows are NOT part of this bar — they're flagged via the overflow pill).
+ */
+function buildFillBarSegments(qual, selectedHour, sundownH) {
+  if (!qual || !qual.earliest || sundownH == null) return [];
+  const total = sundownH - selectedHour;
+  if (total <= 0) return [];
+  const w = qual.earliest;
+  const ranges = [];
+  let cursor = w.start;
+  for (const g of (w.gaps || [])) {
+    if (g.start > cursor) ranges.push({ start: cursor, end: g.start });
+    cursor = g.end;
+  }
+  if (w.end > cursor) ranges.push({ start: cursor, end: w.end });
+
+  return ranges.map((r, i) => ({
+    leftPct: ((r.start - selectedHour) / total) * 100,
+    widthPct: ((r.end - r.start) / total) * 100,
+    isLast: i === ranges.length - 1,
+  })).filter(s => s.widthPct > 0.01);
+}
+
 // ── Opening hours helpers ─────────────────────────────────────────────────────
 
 /**
