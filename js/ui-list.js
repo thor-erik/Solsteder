@@ -273,12 +273,12 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
   // Both the list and the detail panel surface walk time. The Åpner pill
   // (when the venue is closed but opens later) handles the open-time
   // signal, so the meta line stays lean: area · type · distance · walk.
-  // Walk time gets a leading walking-person glyph (Google-Maps-style)
-  // so it visually separates from the bare-number distance next to it.
+  // Walk-time meta gets a leading walking-person glyph (Google-Maps-
+  // style) inlined directly with the digits — no flex wrapper, so the
+  // baseline stays aligned with the rest of the meta row.
   const walkTimeStr = (typeof calcWalkTime === 'function' && s?.distKm != null)
     ? calcWalkTime(s.distKm * 1000) : null;
-  const walkHtml = walkTimeStr
-    ? `<span class="card-meta-walk">${WALK_GLYPH}${walkTimeStr}</span>` : null;
+  const walkHtml = walkTimeStr ? `${WALK_GLYPH}${walkTimeStr}` : null;
   const metaParts = [v.area, catLabel(v), distStr, walkHtml].filter(Boolean);
   const metaInner = metaParts.map((p, i) =>
     (i > 0 ? '<span class="card-meta-dot">·</span>' : '') + `<span>${p}</span>`

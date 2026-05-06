@@ -2228,14 +2228,17 @@
   .card-meta span { display: inline; }
   .card-meta .card-meta-dot { opacity: 0.4; margin: 0 4px; }
   .card-meta .card-meta-opens { color: var(--muted); opacity: 0.85; }
-  /* Walking-person glyph on the walk-time meta. Inline-flex aligns the
-     icon's optical center with the digits without bumping line-height. */
-  .card-meta .card-meta-walk {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
+  /* Walking-person glyph on the walk-time meta. Plain inline element
+     (no flex wrapper) so the baseline stays aligned with the rest of
+     the meta row and the icon doesn't get clipped by the row's
+     overflow:hidden. vertical-align nudges the icon onto the text
+     middle; margin-right gives the digits a small gap. */
+  .card-meta .walk-glyph {
+    display: inline-block;
+    vertical-align: -2px;
+    margin-right: 3px;
+    opacity: 0.85;
   }
-  .card-meta .walk-glyph { opacity: 0.85; flex-shrink: 0; }
 
   .card-pills {
     display: flex;
