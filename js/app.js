@@ -2562,6 +2562,12 @@ function enterEditMode(venueId) {
   document.getElementById('panel-reveal-btn').style.display = 'none';
   const _locateBtn = document.getElementById('locate-btn');
   if (_locateBtn) _locateBtn.style.display = 'none';
+  // Detail panel may have added mobile-ui-hidden (display:none) to the zoom-jog
+  // when it opened. Strip that here so our edit-mode CSS rules can show it.
+  // We'll restore on exit if it was set.
+  const _zj = document.getElementById('zoom-jog');
+  _editPriorZoomHidden = !!_zj?.classList.contains('mobile-ui-hidden');
+  _zj?.classList.remove('mobile-ui-hidden');
   document.getElementById('edit-venue-label').textContent = v.name;
   _wireTypeDropdown();
   const type = v.terraceType ?? 'street';
@@ -2637,6 +2643,7 @@ function _syncMapToggleSwitch() {
 
 // ── Edit-banner ResizeObserver (drives FTS + zoom-jog vertical positioning) ──
 let _editBannerObserver = null;
+let _editPriorZoomHidden = false;   // remembers if detail-panel had hidden zoom-jog
 function _startEditBannerObserver() {
   const banner = document.getElementById('edit-banner');
   if (!banner || typeof ResizeObserver === 'undefined') return;
@@ -2774,6 +2781,11 @@ function exitEditMode() {
   document.getElementById('panel-reveal-btn').style.display = '';
   const _locateBtn = document.getElementById('locate-btn');
   if (_locateBtn) _locateBtn.style.display = '';
+  // Restore the zoom-jog's mobile-ui-hidden state if the detail panel had set it.
+  if (_editPriorZoomHidden) {
+    document.getElementById('zoom-jog')?.classList.add('mobile-ui-hidden');
+  }
+  _editPriorZoomHidden = false;
   // Reset vertex-tool state so the next edit session starts fresh.
   if (typeof setEditVertexMode === 'function') setEditVertexMode(null);
   document.querySelectorAll('.venue-card.editing').forEach(c => c.classList.remove('editing'));
