@@ -1065,6 +1065,7 @@
     color: var(--accent);
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.01em;
+    transition: font-size 0.18s cubic-bezier(0.32, 0.72, 0, 1);
   }
   #fts-popup-wx-icon {
     font-size: 14px;
@@ -1072,37 +1073,55 @@
     max-width: 0;
     opacity: 0;
     overflow: hidden;
-    transition: max-width 0.18s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.14s ease;
+    transition:
+      max-width 0.18s cubic-bezier(0.32, 0.72, 0, 1),
+      font-size 0.18s cubic-bezier(0.32, 0.72, 0, 1),
+      opacity 0.14s ease;
   }
   #fts-popup-temp {
     font: 600 10px/1 'Inter', sans-serif;
     color: var(--text);
     opacity: 0.9;
     font-variant-numeric: tabular-nums;
+    transition: font-size 0.18s cubic-bezier(0.32, 0.72, 0, 1);
   }
-  .fts-dot { font: 400 9px/1 'Inter', sans-serif; color: rgba(156,189,231,0.45); }
+  .fts-dot {
+    font: 400 9px/1 'Inter', sans-serif;
+    color: rgba(156,189,231,0.45);
+    transition: font-size 0.18s cubic-bezier(0.32, 0.72, 0, 1);
+  }
   #fts-popup-wind {
     font: 500 10px/1 'Inter', sans-serif;
     color: var(--muted);
     opacity: 0.9;
     font-variant-numeric: tabular-nums;
+    transition: font-size 0.18s cubic-bezier(0.32, 0.72, 0, 1);
   }
 
   /* Expanded state — applied while dragging the thumb. Pill grows to show
-     the weather row, secondary fades in, primary's icon slides into place. */
+     the weather row, secondary fades in, primary's icon slides into place.
+     Type and icon scale up alongside padding so the card reads as a
+     deliberately larger overlay during scrub, not just a wider compact pill. */
   #fts-popup.fts-popup-expanded {
-    padding: 7px 11px 6px;
-    gap: 2px;
-    border-radius: 12px;
+    padding: 10px 14px 9px;
+    gap: 4px;
+    border-radius: 14px;
   }
-  #fts-popup.fts-popup-expanded #fts-popup-wx-icon {
-    max-width: 22px;
+  #fts-popup.fts-popup-expanded #fts-popup-time     { font-size: 20px; }
+  #fts-popup.fts-popup-expanded #fts-popup-wx-icon  {
+    max-width: 26px;
+    font-size: 20px;
     opacity: 1;
   }
+  #fts-popup.fts-popup-expanded #fts-popup-temp     { font-size: 13px; }
+  #fts-popup.fts-popup-expanded #fts-popup-wind     { font-size: 13px; }
+  #fts-popup.fts-popup-expanded .fts-dot            { font-size: 12px; }
+  #fts-popup.fts-popup-expanded .fts-popup-primary  { gap: 8px; }
   #fts-popup.fts-popup-expanded .fts-popup-secondary {
-    max-height: 14px;
+    max-height: 18px;
     opacity: 1;
     margin-top: 2px;
+    gap: 6px;
   }
 
   /* When calendar picker is open: mark date button active, FTS stays fully visible */
