@@ -1048,7 +1048,13 @@
     clip-path: polygon(50% 0, 0 100%, 100% 100%);
   }
   .fts-popup-row { display: flex; align-items: center; gap: 6px; line-height: 1; }
-  .fts-popup-primary { gap: 6px; }
+  /* Compact: row gap 0 so the time sits flush against the padding when the
+     icon is collapsed. Expanded overrides this back up. Transitioned so the
+     gap opens in lockstep with the icon's max-width. */
+  .fts-popup-primary {
+    gap: 0;
+    transition: gap 0.18s cubic-bezier(0.32, 0.72, 0, 1);
+  }
   .fts-popup-secondary {
     gap: 5px;
     max-height: 0;
@@ -1067,9 +1073,13 @@
     letter-spacing: -0.01em;
     transition: font-size 0.18s cubic-bezier(0.32, 0.72, 0, 1);
   }
+  /* min-width: 0 is the critical bit — flex children default to
+     min-width: auto (= min-content), which would let the emoji's
+     intrinsic ~14px override max-width: 0 and pad the compact pill. */
   #fts-popup-wx-icon {
     font-size: 14px;
     line-height: 1;
+    min-width: 0;
     max-width: 0;
     opacity: 0;
     overflow: hidden;
