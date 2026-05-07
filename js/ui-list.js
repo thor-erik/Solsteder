@@ -815,41 +815,54 @@ function renderList() {
 
   // Two-mode pipeline.
   //
-  // Long-list mode (in-viewport ≥ MIN_VIEWPORT_LIST): include outside venues
-  // in the list, sorted by distance from viewport center, so the standard
-  // scroll pagination auto-loads the next nearest ring once the in-viewport
-  // set runs out. No pull-tab, no map auto-fit — batching is imperceptible.
+  // Beste treff (sortBy === 'match') uses a *promote* model: viewport filter
+  // is OFF, so the list always carries every surfaced venue ranked globally
+  // by relevance. Panning the map (or hitting locate-me) tags in-viewport
+  // venues so they bubble to the top of each bucket; below them the list
+  // continues with the global Beste treff order. No pull-tab, no auto-zoom
+  // — Beste treff is "find me the best place anywhere," and the user can
+  // scroll past the local picks into the broader city without an interrupt.
   //
-  // Short-list mode (in-viewport < MIN_VIEWPORT_LIST): the user is zoomed in
-  // tight; there's not enough scroll surface for natural pagination. Show
-  // only the in-viewport set + a pull-to-refresh gesture indicator. Pulling
-  // adds the next nearest batch and zooms the map just enough to include it.
+  // Other sorts (Avstand, Mest sol, Ølpris, Favoritter) use a *filter* model:
+  //   Long-list mode (in-viewport ≥ MIN_VIEWPORT_LIST): include outside venues
+  //   sorted by distance from viewport center, so scroll pagination auto-loads
+  //   the next nearest ring once the in-viewport set runs out.
+  //   Short-list mode (in-viewport < MIN_VIEWPORT_LIST): pull-tab gates the
+  //   next batch, and the map nudges outward by just enough to include it.
   const MIN_VIEWPORT_LIST = 5;
   _hasOutsideMore = false;
   if (_viewportBounds) {
-    const _inV  = venues.filter(v =>  _viewportBounds.contains([v.lng, v.lat]));
-    const _outV = venues.filter(v => !_viewportBounds.contains([v.lng, v.lat]));
-    // Sort outside venues by distance from viewport center so the next batch
-    // is always the next nearest ring — keeps map auto-fit zooming gradually
-    // outward instead of leaping to scattered far venues with high sun.
-    if (_outV.length) {
-      const c = _viewportBounds.getCenter();
-      const cRef = { lat: c.lat, lng: c.lng };
-      _outV.sort((a, b) => _haversineKm(cRef, a) - _haversineKm(cRef, b));
-    }
-    if (_inV.length >= MIN_VIEWPORT_LIST) {
-      // Long-list: scroll pagination crosses the viewport boundary silently.
-      venues = [..._inV, ..._outV];
-    } else if (_expansionPages === 0) {
-      // Short-list, not yet expanded — pull-tab gates the next batch.
-      venues = _inV;
-      _hasOutsideMore = _outV.length > 0;
+    if (sortBy === 'match') {
+      // Promote model: tag and let the comparator do the work.
+      venues = venues.map(v => ({
+        ...v,
+        _inViewport: _viewportBounds.contains([v.lng, v.lat]),
+      }));
     } else {
-      // Short-list, mid-expansion — show the slices already pulled in plus
-      // the gate for the next one (if any remain).
-      const take = _expansionPages * LIST_PAGE;
-      venues = [..._inV, ..._outV.slice(0, take)];
-      _hasOutsideMore = _outV.length > take;
+      const _inV  = venues.filter(v =>  _viewportBounds.contains([v.lng, v.lat]));
+      const _outV = venues.filter(v => !_viewportBounds.contains([v.lng, v.lat]));
+      // Sort outside venues by distance from viewport center so the next batch
+      // is always the next nearest ring — keeps map auto-fit zooming gradually
+      // outward instead of leaping to scattered far venues with high sun.
+      if (_outV.length) {
+        const c = _viewportBounds.getCenter();
+        const cRef = { lat: c.lat, lng: c.lng };
+        _outV.sort((a, b) => _haversineKm(cRef, a) - _haversineKm(cRef, b));
+      }
+      if (_inV.length >= MIN_VIEWPORT_LIST) {
+        // Long-list: scroll pagination crosses the viewport boundary silently.
+        venues = [..._inV, ..._outV];
+      } else if (_expansionPages === 0) {
+        // Short-list, not yet expanded — pull-tab gates the next batch.
+        venues = _inV;
+        _hasOutsideMore = _outV.length > 0;
+      } else {
+        // Short-list, mid-expansion — show the slices already pulled in plus
+        // the gate for the next one (if any remain).
+        const take = _expansionPages * LIST_PAGE;
+        venues = [..._inV, ..._outV.slice(0, take)];
+        _hasOutsideMore = _outV.length > take;
+      }
     }
   }
 
@@ -933,10 +946,16 @@ function renderList() {
   if (sortBy === 'score' || sortBy === 'match') {
     const startOf = (v) => v._qual?.earliest?.start ?? 24;
     const rel     = (v) => v._relevanceMin ?? 0;
+    // Beste treff: in-viewport venues bubble to the top of each bucket.
+    // The flag is set in the pipeline above; out-of-viewport venues fall
+    // through to the global Beste treff order.
+    const inViewportRank = (v) => v._inViewport === false ? 1 : 0;
     const compareNow = (a, b) => {
       const cp = closedPenalty(a) - closedPenalty(b);
       if (cp !== 0) return cp;
       if (sortBy === 'match') {
+        const va = inViewportRank(a), vb = inViewportRank(b);
+        if (va !== vb) return va - vb;
         if (rel(a) !== rel(b)) return rel(b) - rel(a);
         return qualDur(b) - qualDur(a);
       }
@@ -950,6 +969,10 @@ function renderList() {
     const compareLater = (a, b) => {
       const cp = closedPenalty(a) - closedPenalty(b);
       if (cp !== 0) return cp;
+      if (sortBy === 'match') {
+        const va = inViewportRank(a), vb = inViewportRank(b);
+        if (va !== vb) return va - vb;
+      }
       const sa = startOf(a), sb = startOf(b);
       if (sa !== sb) return sa - sb;
       if (sortBy === 'match') {
