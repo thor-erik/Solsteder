@@ -153,21 +153,14 @@ function _wireNotifSwipe(el, notif) {
     const horizontal = axis === 'x' && Math.abs(dx) > SWIPE_THRESHOLD;
     const upward     = axis === 'y' && dy < -SWIPE_THRESHOLD;
     if (horizontal || upward) {
-      // Commit dismiss with a fly-out in the swipe direction. We pin the wrap's
-      // transform AND keep it pinned through the dismiss → next-show cycle so
-      // removing .show in _notifDismiss can't trigger the wrap's default
-      // slide-up animation on top of our horizontal fly-out.
+      // Commit dismiss with a fly-out in the swipe direction. The CSS class
+      // .swipe-dismissing on the wrap disables its transform transition AND
+      // pins transform to translateY(0) via !important — so when _notifDismiss
+      // removes .show, the wrap can't slide up on top of our fly-out.
       const wrap = document.getElementById('notif-toast-wrap');
-      if (wrap) {
-        wrap.style.transition = 'opacity 0.22s ease';
-        // Lock to translateY(0) — overrides both .show (translateY(0)) and
-        // the default rule's translateY(-20px). Cleared by _notifShow on next
-        // notification or after dismiss settles.
-        wrap.style.transform = 'translateY(0)';
-      }
+      if (wrap) wrap.classList.add('swipe-dismissing');
       el.classList.add('notif-dismissing');
-      // Translate ONLY along the locked axis — never both. Prevents diagonal
-      // motion even if dx/dy from the touch event have residual values.
+      // Translate ONLY along the locked axis — never both.
       let elTransform;
       if (horizontal) elTransform = `translateX(${dx > 0 ? '120%' : '-120%'})`;
       else            elTransform = `translateY(-120%)`;
@@ -177,26 +170,17 @@ function _wireNotifSwipe(el, notif) {
         id: notif.id, priority: notif.priority, category: notif.category, method: 'swipe',
       });
       setTimeout(() => {
-        // After the inner fly-out, fade the wrap to 0 (still no transform change).
-        if (wrap) wrap.style.opacity = '0';
-        setTimeout(() => {
-          // Wrap is invisible. Drop .show via _notifDismiss; the inline
-          // transform: translateY(0) blocks the CSS slide-up.
-          _notifDismiss(notif.id);
-          // Reset inline state on next frame so a fresh notification can
-          // animate in from the default .show transition.
-          requestAnimationFrame(() => {
-            el.classList.remove('notif-dismissing');
-            el.style.transform = '';
-            el.style.opacity = '';
-            if (wrap) {
-              wrap.style.transition = '';
-              wrap.style.transform = '';
-              wrap.style.opacity = '';
-            }
-          });
-        }, 220);
-      }, 220);
+        // Inner fly-out done. Dismiss; the swipe-dismissing class blocks the
+        // wrap's CSS slide-up. Remove the class on the next frame so the
+        // wrap is ready for a fresh notification.
+        _notifDismiss(notif.id);
+        requestAnimationFrame(() => {
+          el.classList.remove('notif-dismissing');
+          el.style.transform = '';
+          el.style.opacity = '';
+          if (wrap) wrap.classList.remove('swipe-dismissing');
+        });
+      }, 240);
     } else {
       // Snap back
       el.style.transition = 'transform 0.18s ease-out, opacity 0.18s ease-out';

@@ -1436,6 +1436,13 @@
     opacity: 1;
     pointer-events: auto;
   }
+  /* Swipe-dismiss: only transition opacity. Locks transform so removing .show
+     can't trigger the default upward-slide animation on top of the inner
+     toast's horizontal/upward fly-out. */
+  #notif-toast-wrap.swipe-dismissing {
+    transition: opacity 0.22s ease !important;
+    transform: translateY(0) !important;
+  }
   /* Desktop: stacked above the panel, panel pushes down via --notif-h */
   @media (min-width: 640px) {
     #notif-toast-wrap {
@@ -4608,21 +4615,18 @@
   #qc-notice.visible { opacity: 1; }
 
 
-  /* ── Header chip row: date (tappable), weather (info), sort (tappable) ─ */
+  /* ── Header chip row: date (left), weather (center), sort (right) ──────
+     Three-column grid so date and sort sit at the row edges and weather
+     stays centered between them, regardless of which chips are visible. */
   #list-sun-header {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
-    gap: 8px;
+    column-gap: 8px;
     padding: 6px 14px 8px;
     flex-shrink: 0;
   }
 
-  /* Chip row layout: date chip is fixed-width so it never resizes between
-     peek/expanded. Weather chip is fixed-width and stays anchored just
-     after the date chip so its position relative to the right side stays
-     consistent across states. Sort sits on the right via margin-left:auto;
-     when it's hidden in peek, the date+weather pair simply leaves the right
-     side empty. */
   #header-date-chip,
   #header-wx-chip,
   #list-sun-header #sort-toggle-btn {
@@ -4631,8 +4635,7 @@
     justify-content: center;
     gap: 6px;
     height: 36px;
-    padding: 0 12px;
-    flex: 0 0 auto;
+    padding: 0 14px;
     color: var(--text);
     font-family: 'Inter', sans-serif;
     font-size: 13px;
@@ -4640,13 +4643,12 @@
     -webkit-tap-highlight-color: transparent;
     outline: none;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
     box-sizing: border-box;
     transition: background 0.12s, border-color 0.12s, color 0.12s;
   }
-  #header-date-chip { width: 130px; }
-  #header-wx-chip   { width: 130px; }
+  #header-date-chip { justify-self: start; }
+  #header-wx-chip   { justify-self: center; }
+  #list-sun-header #sort-toggle-btn { justify-self: end; }
 
   /* Date chip — tappable, opens picker. Glass action button. */
   #header-date-chip {
@@ -4665,16 +4667,19 @@
   #header-date-chip.active .chip-cal-icon { color: var(--accent); }
   #header-date-chip .chip-cal-icon { color: var(--muted); flex-shrink: 0; }
 
-  /* Weather chip — info-only. Borderless, transparent, clearly not a button. */
+  /* Weather chip — info-only. Borderless, transparent, clearly not a button.
+     Larger icon so it visually fills the chip's vertical breathing room. */
   #header-wx-chip {
     background: transparent;
-    border: 1px solid transparent;
+    border: none;
     cursor: default;
     color: var(--muted);
     font-weight: 500;
     padding: 0 8px;
+    font-size: 14px;
+    gap: 8px;
   }
-  #header-wx-chip #header-wx-icon { font-size: 16px; line-height: 1; flex-shrink: 0; }
+  #header-wx-chip #header-wx-icon { font-size: 22px; line-height: 1; flex-shrink: 0; }
   #header-wx-chip #header-wx-temp { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
   #header-wx-chip #header-wx-wind { font-variant-numeric: tabular-nums; }
   #header-wx-chip .chip-dot { opacity: 0.55; }
@@ -4743,7 +4748,7 @@
   /* ── Calendar float — outside #panel, position: fixed so it escapes transforms ── */
   #ptb-cal-float {
     position: fixed;
-    z-index: 830;
+    z-index: 1200;  /* Above detail panel (810 desktop / 920 mobile) and FTS (925) */
     display: none;
     /* desktop: position + width set by JS to match FTS */
     left: 16px;
@@ -4782,7 +4787,7 @@
       opacity: 0;
       pointer-events: none;
       transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1), opacity 180ms ease-out;
-      z-index: 1101;
+      z-index: 1200;  /* Above the mobile detail panel (920) */
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
     }

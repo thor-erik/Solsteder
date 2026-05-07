@@ -1359,7 +1359,9 @@ function selectCalendarDate(dateStr) {
     clearInterval(nowInterval); nowInterval = null;
     nowBtn?.classList.remove('active');
     timeRangeWrap?.classList.remove('now-active');
-    timeFromEl.value = 12;
+    // Default time to earliest sun on the picked day (sunrise).
+    const earliestSun = (typeof _earliestSunHourFor === 'function') ? _earliestSunHourFor(dateStr) : null;
+    timeFromEl.value = earliestSun != null ? earliestSun : 12;
   }
   const cal = document.getElementById('date-calendar');
   const btn = document.getElementById('date-display-btn');
@@ -1990,12 +1992,25 @@ function selectQcDate(dateStr) {
     clearInterval(nowInterval); nowInterval = null;
     nowBtn?.classList.remove('active');
     timeRangeWrap?.classList.remove('now-active');
-    timeFromEl.value = 12;
+    // Default time to the earliest sun on the picked day (sunrise) — the user
+    // can scrub from there. Falls back to noon for polar-night-style days.
+    const earliestSun = _earliestSunHourFor(dateStr);
+    timeFromEl.value = earliestSun != null ? earliestSun : 12;
   }
   _closeQcPanel();
-  // Return focus to the header date chip so keyboard users can continue scrubbing
   document.getElementById('header-date-chip')?.focus();
   update();
+}
+
+/** Returns the sunrise hour for `dateStr`, or null if the sun never rises
+ *  enough that day. Builds a temporary sun table — cheap, doesn't disturb
+ *  the cached currentSunTable. */
+function _earliestSunHourFor(dateStr) {
+  if (typeof buildSunTable !== 'function' || typeof findSunCrossingFromTable !== 'function') return null;
+  const table = buildSunTable(dateStr);
+  const sunrise = findSunCrossingFromTable(table, true);
+  if (sunrise == null) return null;
+  return Math.max(MIN_H_ARC, sunrise);
 }
 
 let _qcPanelHeight = 0; // cached, set on load/resize/list-render
@@ -2391,6 +2406,14 @@ function openDetailPanel(v) {
   _populateDpCardSlot(v);
 
   _syncFtsPosition();
+  // Re-position the floating time label after the date pill slides in and
+  // fts-track's margin-left transition completes (240ms ≥ 220ms transition).
+  // Fallback in case transitionend doesn't fire (e.g., element invisible).
+  if (USE_FLOATING_TIME_SLIDER) {
+    setTimeout(() => {
+      if (timeFromEl) showFtsPopup(parseFloat(timeFromEl.value));
+    }, 240);
+  }
 }
 
 /** Replace #dp-card-slot with the same venue-card the list renders. Calls
@@ -2478,6 +2501,13 @@ function closeDetailPanel(expandList = true) {
   }
 
   _syncFtsPosition();
+  // Re-position the floating time label once the date pill slides out and
+  // fts-track's margin-left returns to 0.
+  if (USE_FLOATING_TIME_SLIDER) {
+    setTimeout(() => {
+      if (timeFromEl) showFtsPopup(parseFloat(timeFromEl.value));
+    }, 240);
+  }
 
   if (selectedId != null) {
     const idx = VENUES.findIndex(v => v.id === selectedId && v._isCandidate);

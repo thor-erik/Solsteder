@@ -58,11 +58,18 @@ function buildTimelineLabels(pills, fromHour, minH, maxH) {
   const fmt = (h) => (typeof formatHour === 'function') ? formatHour(h) : `${Math.floor(h)}:00`;
   const pct = (h) => Math.max(0, Math.min(100, (h - minH) / (maxH - minH) * 100));
   const slots = [];
-  // Higher data-prio = wins when labels collide.
+  // The current time always gets a base slot at low priority.
   slots.push({ time: fromHour, label: fmt(fromHour), prio: 1, kind: 'current' });
-  if (pills[0]?.time != null) slots.push({ time: pills[0].time, label: fmt(pills[0].time), prio: 3, kind: pills[0].kind });
-  if (pills[1]?.time != null) slots.push({ time: pills[1].time, label: fmt(pills[1].time), prio: 2, kind: pills[1].kind });
-  // De-dup labels at the same time (e.g., pill1 = current). Keep highest prio.
+  // Every disruption pill with a time gets a label. Priority decays by index
+  // and is boosted by closeness to fromHour (relevance to the user's now).
+  pills.forEach((p, i) => {
+    if (!p || p.time == null) return;
+    const dist  = Math.abs(p.time - fromHour);
+    const close = Math.max(0, 6 - dist);            // 0..6 closer = higher
+    const order = Math.max(0, 10 - i);              // 10,9,8,... earlier pill = higher
+    slots.push({ time: p.time, label: fmt(p.time), prio: order * 10 + close, kind: p.kind });
+  });
+  // De-dup labels at the same time bucket; keep highest prio.
   const byTime = new Map();
   for (const s of slots) {
     const key = Math.round(s.time * 12); // 5-min bucket
@@ -303,14 +310,15 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
     ? `<span class="card-meta-left">${metaInner}</span>${anchorText ? `<span class="card-anchor">${anchorText}</span>` : ''}`
     : metaInner;
 
-  // Rich + dpVariant emit the detailed timeline. dpVariant skips the v2
-  // pill labels above the timeline (those duplicate the compact pills row).
+  // Rich + dpVariant emit the detailed timeline. Both also emit time labels
+  // above each disruption event; _resolveTimelineLabelCollisions hides the
+  // lower-priority ones when they overlap.
   let timelineBlock = '';
   if (rich || dpVariant) {
     const miniTimeline = buildMiniSunTimeline(v, dateStr, fromHour);
     const tlMin = fromHour;
     const tlMax = sundownH ?? ((typeof MAX_H_ARC !== 'undefined') ? MAX_H_ARC : null);
-    const tlLabels = (!dpVariant) ? buildTimelineLabels(pills, fromHour, tlMin, tlMax) : '';
+    const tlLabels = buildTimelineLabels(pills, fromHour, tlMin, tlMax);
     timelineBlock = `<div class="card-timeline-block">${miniTimeline}${tlLabels}</div>`;
   }
 
