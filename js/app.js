@@ -3938,12 +3938,15 @@ function _autoFitToBatch(newVenues) {
 
 // Avstand zoom tracker. The list is sorted by distance from the user, so the
 // bottom-most visible card represents the maximum distance currently in
-// view. We continuously animate the map to fit user + that venue, keeping
-// the spatial axis of the sort coupled to the list's scroll position. The
-// rAF throttle dedupes per frame; each easeTo runs for a short duration so
-// the camera "tracks" rather than jumps. Scrolling back up zooms back in
-// symmetrically because we pick the bottom-most visible card every frame —
-// it's a function of scroll position, not a high-water mark.
+// view. As the user scrolls down, we widen the map to keep that venue in
+// frame, anchored on the user's location so they stay centered. Two
+// constraints make the camera feel calm:
+//   1. Center is locked to userLocation. Bounds are built symmetrically
+//      around the user so cameraForBounds yields a user-centered camera —
+//      the user dot doesn't wander across the screen as new venues appear.
+//   2. We only zoom *out*, never in. Scrolling back up doesn't zoom back
+//      in; the wider view persists until the user pans, sorts, or hits
+//      locate-me (each of which gives a fresh starting zoom).
 let _avstandRaf = null;
 function _avstandTrackScroll() {
   if (_avstandRaf) return;
@@ -3960,8 +3963,6 @@ function _avstandTrackScroll() {
     let bottomVenue = null;
     for (let i = cards.length - 1; i >= 0; i--) {
       const r = cards[i].getBoundingClientRect();
-      // First card from the bottom that's at least partially within the
-      // list's viewport — that's the farthest distance the user can see.
       if (r.top < listRect.bottom && r.bottom > listRect.top) {
         const vid = cards[i].getAttribute('data-vid');
         if (typeof VENUES !== 'undefined') {
@@ -3972,20 +3973,28 @@ function _avstandTrackScroll() {
     }
     if (!bottomVenue || !Number.isFinite(bottomVenue.lat) || !Number.isFinite(bottomVenue.lng)) return;
 
+    // Symmetric bounds around the user so the camera stays anchored on
+    // userLocation. The farthest visible venue defines the radius.
+    const halfLat = Math.abs(bottomVenue.lat - userLocation.lat);
+    const halfLng = Math.abs(bottomVenue.lng - userLocation.lng);
+    if (halfLat === 0 && halfLng === 0) return;
     const bounds = new mapboxgl.LngLatBounds(
-      [userLocation.lng, userLocation.lat],
-      [userLocation.lng, userLocation.lat]
+      [userLocation.lng - halfLng, userLocation.lat - halfLat],
+      [userLocation.lng + halfLng, userLocation.lat + halfLat]
     );
-    bounds.extend([bottomVenue.lng, bottomVenue.lat]);
     const cam = map.cameraForBounds(bounds, { padding: 80, maxZoom: 15 });
     if (!cam) return;
 
+    // Zoom-out only: skip if the target would zoom in (or stay near same).
+    // The 0.05 tolerance absorbs sub-pixel oscillations during scroll.
+    if (cam.zoom >= map.getZoom() - 0.05) return;
+
     _programmaticPan = true;
     map.easeTo({
-      center: cam.center,
+      center: [userLocation.lng, userLocation.lat],
       zoom: cam.zoom,
       duration: 200,
-      easing: t => t,   // linear — tracking feel rather than ease in/out
+      easing: t => t,
     });
   });
 }
