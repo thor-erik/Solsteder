@@ -461,49 +461,15 @@ function renderListPage(list, dateStr, fromHour, toHour, isPoint, reset) {
   const to   = Math.min(from + LIST_PAGE, _listFiltered.length);
 
   const nowCount   = _listBuckets.now.length;
-  const laterCount = _listBuckets.later.length;
-  const isFuture   = (typeof nowMode !== 'undefined' && !nowMode &&
-                      typeof todayStr === 'function' && dateStr === todayStr() &&
-                      Math.abs(fromHour - (new Date().getHours() + new Date().getMinutes() / 60)) > 5/60)
-                  || (typeof todayStr === 'function' && dateStr > todayStr());
 
-  // Build section markup. Headers only appear when BOTH buckets have
-  // venues — they exist to mark a temporal split, so a single-section
-  // list doesn't need them. With one bucket empty, the populated bucket's
-  // header would just push the first card out of peek; with both empty,
-  // renderList() emits the consolidated empty state instead. Paginated
-  // appends emit only cards (the boundary header, if any, was placed on
-  // the reset pass).
-  const showHeaders = nowCount > 0 && laterCount > 0;
+  // Section split is now surfaced by the sticky #sun-section-bar above the
+  // list (driven by scroll position). Cards carry data-bucket so the bar
+  // can find the bucket boundary by querying the DOM.
   let html = '';
-  if (reset && showHeaders) {
-    const nowLabel = isFuture
-      ? t('section_sun_at', { time: formatHour(fromHour) })
-      : t('section_sun_now');
-    html += `<div class="venue-section-header">${nowLabel}<span class="section-count">· ${nowCount}</span></div>`;
-  }
 
-  // Now-bucket cards
-  for (let i = from; i < Math.min(to, nowCount); i++) {
-    html += renderCard(_listFiltered[i], dateStr, fromHour, toHour, isPoint);
-  }
-
-  // Later header marks the boundary between buckets — emitted only when
-  // both have content. Mid-page paginated appends that cross the boundary
-  // still need it so the visual transition is consistent.
-  if (showHeaders) {
-    const laterLabel = isFuture
-      ? t('section_sun_after', { time: formatHour(fromHour) })
-      : t('section_sun_later');
-    if (reset) {
-      html += `<div class="venue-section-header">${laterLabel}<span class="section-count">· ${laterCount}</span></div>`;
-    } else if (from < nowCount && to > nowCount) {
-      html += `<div class="venue-section-header">${laterLabel}<span class="section-count">· ${laterCount}</span></div>`;
-    }
-  }
-
-  // Later-bucket cards
-  for (let i = Math.max(from, nowCount); i < to; i++) {
+  // Cards in render order: indices 0..nowCount-1 are "now", rest are "later".
+  // The sticky #sun-section-bar reads this boundary via _listBuckets.now.length.
+  for (let i = from; i < to; i++) {
     html += renderCard(_listFiltered[i], dateStr, fromHour, toHour, isPoint);
   }
 
@@ -902,6 +868,12 @@ function renderList() {
   _listFiltered = venues;
   _listBuckets = { now: bucketNow, later: bucketLater };
   renderListPage(list, dateStr, fromHour, toHour, isPoint, true);
+
+  // Sticky bucket header: refresh labels and rewire scroll watcher
+  if (typeof updateSunSectionBar === 'function') {
+    requestAnimationFrame(updateSunSectionBar);
+  }
+  if (typeof wireSunSectionBarScroll === 'function') wireSunSectionBarScroll();
 
   // Update venue-peek with first ranked venue (mobile collapsed state)
   if (typeof updateVenuePeek === 'function') updateVenuePeek(venues);

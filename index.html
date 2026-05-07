@@ -993,65 +993,36 @@
     pointer-events: none;      /* touch events go to track, not canvas */
   }
 
-  /* Scrub popup — anchored above track, centered on thumb · glass recipe */
+  /* Time label — floats above the thumb. No pill, just text. Always visible. */
   #fts-popup {
     position: absolute;
-    bottom: calc(100% + 8px);
+    bottom: calc(100% + 4px);
     left: 50%;                /* repositioned by JS to follow thumb */
     transform: translateX(-50%);
     z-index: 10;
-    display: flex; flex-direction: column; align-items: center; gap: 2px;
-    padding: 8px 11px 7px;
-    background: linear-gradient(135deg, rgba(20,46,82,0.55) 0%, rgba(14,30,52,0.62) 100%);
-    backdrop-filter: blur(10px) saturate(170%) brightness(0.92);
-    -webkit-backdrop-filter: blur(10px) saturate(170%) brightness(0.92);
-    border: 1px solid rgba(156,189,231,0.22);
-    border-radius: 12px;
-    box-shadow:
-      inset 0 1px 0 rgba(255,242,235,0.18),
-      inset 0 -1px 0 rgba(20,46,82,0.40),
-      0 8px 24px rgba(0,0,0,0.48);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background: none;
+    border: none;
+    box-shadow: none;
     white-space: nowrap;
     pointer-events: none;
-    opacity: 0;
-    transition: opacity 140ms ease-out, transform 140ms ease-out;
+    opacity: 1;
+    transition: transform 0.14s ease-out;
   }
-  #fts-popup.visible { opacity: 1; }
-  #fts-popup.hidden-y { transform: translateX(-50%) translateY(6px); }
-  /* Tail — clean clip-path triangle pointing down to thumb (default: above bar).
-     Using clip-path instead of a rotated square avoids a visible mirrored
-     half-diamond peeking inside the translucent popup body. */
-  #fts-popup::after {
-    content: '';
-    position: absolute;
-    bottom: -6px; left: 50%;
-    transform: translateX(-50%);
-    width: 12px; height: 6px;
-    background: rgba(20,46,82,0.62);
-    clip-path: polygon(0 0, 100% 0, 50% 100%);
-  }
-  /* Flipped: popup below the bar (fullscreen mode) */
   #fts-popup.fts-popup-below {
     bottom: auto;
-    top: calc(100% + 8px);
+    top: calc(100% + 4px);
   }
-  #fts-popup.fts-popup-below::after {
-    bottom: auto; top: -6px;
-    clip-path: polygon(50% 0, 0 100%, 100% 100%);
+  #fts-popup-time {
+    font: 700 13px/1 'Inter', sans-serif;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.6);  /* legibility against varied map */
   }
-  /* Desktop: keep the scrub popup permanently visible — it's a useful weather
-     readout, not just a scrub indicator. */
-  @media (min-width: 640px) {
-    body.fts #fts-popup { opacity: 1; }
-  }
-  .fts-popup-row { display: flex; align-items: center; gap: 6px; }
-  .fts-popup-primary { gap: 6px; }
-  #fts-popup-time { font: 700 20px/1 'Inter', sans-serif; color: var(--accent); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
-  #fts-popup-wx-icon { font-size: 18px; line-height: 1; }
-  .fts-popup-secondary { gap: 5px; }
-  #fts-popup-temp { font: 600 10px/1 'Inter', sans-serif; color: var(--text); opacity: 0.85; font-variant-numeric: tabular-nums; }
-  .fts-dot { font: 400 9px/1 'Inter', sans-serif; color: rgba(156,189,231,0.35); }
-  #fts-popup-wind { font: 500 10px/1 'Inter', sans-serif; color: var(--muted); opacity: 0.85; font-variant-numeric: tabular-nums; }
 
   /* When calendar picker is open: mark date button active, FTS stays fully visible */
   #fts.fts-cal-open #fts-popup { opacity: 0; pointer-events: none; transition: opacity 180ms ease-out; }
@@ -1776,7 +1747,7 @@
     padding: 0;
     outline: none;
   }
-  #venue-search::placeholder { color: rgba(255,242,235,0.4); }
+  #venue-search::placeholder { color: var(--muted); opacity: 0.7; }
 
   /* Intent shortcuts — segmented control row below the arc */
   #time-presets-row {
@@ -2997,13 +2968,13 @@
       right: 0;
       bottom: 0;
       width: 100%;
-      height: 40svh;    /* svh = small viewport height: stable, unaffected by toolbar */
+      height: 50svh;    /* svh = small viewport height: stable, unaffected by toolbar */
       border-radius: 20px 20px 0 0;
       border-left: none;
       border-right: none;
       border-bottom: none;
       transform: translateY(calc(100% - var(--peek-h, 252px))) translateZ(0);
-      transition: transform 0.22s cubic-bezier(0.25, 0.9, 0.4, 1), height 0.22s ease;
+      transition: transform 0.34s cubic-bezier(0.25, 0.9, 0.4, 1), height 0.34s cubic-bezier(0.25, 0.9, 0.4, 1);
       will-change: transform, height;
       backface-visibility: hidden;
     }
@@ -4581,46 +4552,47 @@
   #qc-notice.visible { opacity: 1; }
 
 
-  /* ── Header chip row: date+time chip, weather chip, sort toggle ─────── */
+  /* ── Header chip row: date (tappable), weather (info), sort (tappable) ─ */
   #list-sun-header {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 4px 14px 6px;
+    gap: 8px;
+    padding: 6px 14px 8px;
     flex-shrink: 0;
   }
 
-  /* Both chips are equal-width (flex: 1) so spacing reads as symmetric.
-     Content centered, can shrink + ellipsis on narrow viewports. */
+  /* Three chip slots, equal flex width so the row reads as symmetric.
+     Tappable chips (date, sort) render as glass buttons; weather is a
+     borderless info readout for clear visual differentiation. */
   #header-date-chip,
-  #header-wx-chip {
+  #header-wx-chip,
+  #list-sun-header #sort-toggle-btn {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
-    height: 32px;
-    padding: 0 10px;
-    background: var(--glass-action-bg);
-    border: var(--glass-border);
-    border-radius: 10px;
-    box-shadow: var(--glass-inset);
+    height: 36px;
+    padding: 0 12px;
+    flex: 1 1 0;
+    min-width: 0;
     color: var(--text);
     font-family: 'Inter', sans-serif;
     font-size: 13px;
     font-weight: 600;
-    flex: 1 1 0;
-    min-width: 0;
     -webkit-tap-highlight-color: transparent;
     outline: none;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    box-sizing: border-box;
   }
-  /* Sort button keeps its natural width on the right */
-  #list-sun-header #sort-toggle-btn { flex: 0 0 auto; height: 32px; }
 
-  /* Date chip — tappable, opens picker. Same shape as sort button minus chevron. */
+  /* Date chip — tappable, opens picker. Glass action button. */
   #header-date-chip {
+    background: var(--glass-action-bg);
+    border: var(--glass-border);
+    border-radius: 10px;
+    box-shadow: var(--glass-inset);
     cursor: pointer;
     transition: color 0.12s, border-color 0.12s, background 0.12s;
   }
@@ -4631,27 +4603,79 @@
   }
   #header-date-chip.active .chip-cal-icon { color: var(--accent); }
   #header-date-chip .chip-cal-icon { color: var(--muted); flex-shrink: 0; }
-  #header-date-chip .chip-dot { color: var(--muted); opacity: 0.7; }
-  #header-time-label { font-variant-numeric: tabular-nums; }
 
-  /* Weather chip — display-only. Visually harmonized but reads as info. */
+  /* Weather chip — info-only. Borderless, transparent, clearly not a button. */
   #header-wx-chip {
+    background: transparent;
+    border: 1px solid transparent;
     cursor: default;
     color: var(--muted);
     font-weight: 500;
+    padding: 0 8px;
   }
-  #header-wx-chip #header-wx-icon { font-size: 14px; line-height: 1; flex-shrink: 0; }
+  #header-wx-chip #header-wx-icon { font-size: 16px; line-height: 1; flex-shrink: 0; }
   #header-wx-chip #header-wx-temp { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
   #header-wx-chip #header-wx-wind { font-variant-numeric: tabular-nums; }
-  #header-wx-chip .chip-dot { opacity: 0.6; }
+  #header-wx-chip .chip-dot { opacity: 0.55; }
 
-  /* Very narrow viewports: drop the time/wind to keep chips on a single row */
+  /* Sort button — tappable, glass with chevron. */
+  #list-sun-header #sort-toggle-btn {
+    background: var(--glass-action-bg);
+    border: var(--glass-border);
+    border-radius: 10px;
+    box-shadow: var(--glass-inset);
+    transition: color 0.12s, border-color 0.12s, background 0.12s;
+  }
+  #list-sun-header #sort-toggle-btn .sort-chevron {
+    color: var(--muted);
+    transition: transform 0.18s ease;
+    flex-shrink: 0;
+  }
+
+  /* Very narrow viewports: drop the wind label so the chips don't crowd */
   @media (max-width: 360px) {
-    #header-date-chip .chip-dot,
-    #header-time-label,
     #header-wx-chip .chip-dot,
     #header-wx-chip #header-wx-wind { display: none; }
   }
+
+  /* ── Sun-section bar: "Sun now — N places in the sun" ─────────────────
+     Two stacked text lines on a vertical translate track. JS toggles
+     .later on the bar to slide the second line into view (calendar-style). */
+  #sun-section-bar {
+    flex-shrink: 0;
+    padding: 4px 16px 6px;
+    overflow: hidden;
+    height: 22px;
+  }
+  #sun-section-bar .ssb-track {
+    position: relative;
+    height: 22px;
+    transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  #sun-section-bar.later .ssb-track { transform: translateY(-22px); }
+  .ssb-line {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    height: 22px;
+    line-height: 22px;
+    font-family: 'Inter', sans-serif;
+    white-space: nowrap;
+  }
+  .ssb-line .ssb-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.005em;
+  }
+  .ssb-line .ssb-context {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+    opacity: 0.85;
+  }
+  /* Hide the bar entirely when there's nothing to label (single bucket only) */
+  #sun-section-bar.ssb-empty { display: none; }
 
   /* ── Calendar float — outside #panel, position: fixed so it escapes transforms ── */
   #ptb-cal-float {
@@ -4681,7 +4705,7 @@
       width: auto;
       top: auto;
       bottom: 0;
-      max-height: 80vh;
+      max-height: 56svh;  /* one month + peek of the next */
       padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 20px);
       box-sizing: border-box;
       background: var(--glass-panel-bg);
@@ -7818,7 +7842,7 @@
     </div>
 
 
-    <!-- Header chip row: date+time (tappable), weather (display-only), sort -->
+    <!-- Header chip row: date (tappable), weather (info), sort -->
     <div id="list-sun-header">
       <button id="header-date-chip" onclick="toggleQcPanel('date')" aria-label="Velg dato">
         <svg class="chip-cal-icon" width="14" height="14" viewBox="0 0 16 16" fill="none">
@@ -7828,8 +7852,6 @@
           <line x1="11" y1="1.5" x2="11" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
         <span id="header-date-label"></span>
-        <span class="chip-dot" aria-hidden="true">·</span>
-        <span id="header-time-label"></span>
       </button>
       <div id="header-wx-chip" role="status" aria-live="polite">
         <span id="header-wx-icon" aria-hidden="true"></span>
@@ -7838,6 +7860,15 @@
         <span id="header-wx-wind"></span>
       </div>
       <button id="sort-toggle-btn" onclick="toggleSortPanel()"><span id="sort-label">Mest sol</span><span class="sort-chevron"> ▾</span></button>
+    </div>
+
+    <!-- Sun-section bar: morphs between "Sun now" / "Sun later" as the
+         user scrolls past each bucket. JS-driven (see updateSunSectionBar). -->
+    <div id="sun-section-bar" aria-live="polite">
+      <div class="ssb-track">
+        <span class="ssb-line ssb-now"><span class="ssb-label"></span><span class="ssb-context"></span></span>
+        <span class="ssb-line ssb-later"><span class="ssb-label"></span><span class="ssb-context"></span></span>
+      </div>
     </div>
 
     <!-- Venue peek: first card preview visible in collapsed state -->
@@ -7872,15 +7903,7 @@
       <canvas id="fts-canvas"></canvas>
     </div>
     <div id="fts-popup">
-      <div class="fts-popup-row fts-popup-primary">
-        <span id="fts-popup-time"></span>
-        <span id="fts-popup-wx-icon"></span>
-      </div>
-      <div class="fts-popup-row fts-popup-secondary">
-        <span id="fts-popup-temp"></span>
-        <span class="fts-dot">·</span>
-        <span id="fts-popup-wind"></span>
-      </div>
+      <span id="fts-popup-time"></span>
     </div>
   </div>
 </div>

@@ -234,7 +234,7 @@ function _ftsHostBottom(panel, dp) {
   }
   if (panel.classList.contains('mobile-hidden'))     return `${FTS_GAP}px`;
   if (panel.classList.contains('mobile-fullscreen')) return `calc(100svh - env(safe-area-inset-top, 0px) - 46px - 16px - 4px - 14px)`;
-  if (panel.classList.contains('mobile-expanded'))   return `calc(40svh + ${FTS_GAP}px)`;
+  if (panel.classList.contains('mobile-expanded'))   return `calc(50svh + ${FTS_GAP}px)`;
   const peekH = panel.style.getPropertyValue('--peek-h') || '160px';
   return `calc(${peekH} + ${FTS_GAP}px)`;
 }
@@ -258,7 +258,7 @@ function _maybePanMapForPanelState(prev, next) {
   const peekH = parseInt(panelEl.style.getPropertyValue('--peek-h')) || 252;
 
   function _panelTopFor(state) {
-    if (state === 'expanded') return Math.round(VH * 0.60); // panel is 40svh tall
+    if (state === 'expanded') return Math.round(VH * 0.50); // panel is 50svh tall
     return VH - peekH;                                       // peek
   }
 
@@ -505,6 +505,72 @@ function updateHeaderDateChip() {
   document.getElementById('fts-date-btn')?.classList.toggle('active', _qcActiveSection === 'date');
 }
 
+/** Update the sun-section bar labels and apply current scroll state.
+ *  Called after every list render. Toggles ssb-empty when only one bucket
+ *  has content (no morphing needed). */
+function updateSunSectionBar() {
+  const bar = document.getElementById('sun-section-bar');
+  if (!bar) return;
+
+  const nowCount   = (typeof _listBuckets !== 'undefined' && _listBuckets?.now?.length) || 0;
+  const laterCount = (typeof _listBuckets !== 'undefined' && _listBuckets?.later?.length) || 0;
+
+  if (nowCount === 0 || laterCount === 0) {
+    bar.classList.add('ssb-empty');
+    return;
+  }
+  bar.classList.remove('ssb-empty');
+
+  const dateStr  = datePicker.value;
+  const fromHour = parseFloat(timeFromEl.value);
+  const isFuture = (typeof nowMode !== 'undefined' && !nowMode &&
+                    dateStr === todayStr() &&
+                    Math.abs(fromHour - currentHour()) > 5/60)
+                || dateStr > todayStr();
+
+  const nowLabel   = isFuture ? t('section_sun_at',    { time: formatHour(fromHour) }) : t('section_sun_now');
+  const laterLabel = isFuture ? t('section_sun_after', { time: formatHour(fromHour) }) : t('section_sun_later');
+
+  const nowLine   = bar.querySelector('.ssb-now');
+  const laterLine = bar.querySelector('.ssb-later');
+  if (nowLine) {
+    nowLine.querySelector('.ssb-label').textContent   = nowLabel;
+    nowLine.querySelector('.ssb-context').textContent = '— ' + t('places_in_sun', { count: nowCount });
+  }
+  if (laterLine) {
+    laterLine.querySelector('.ssb-label').textContent   = laterLabel;
+    laterLine.querySelector('.ssb-context').textContent = '— ' + t('places_in_sun', { count: laterCount });
+  }
+
+  applySunSectionBarScrollState();
+}
+
+/** Toggles `.later` based on whether the user has scrolled past the now-bucket. */
+function applySunSectionBarScrollState() {
+  const bar  = document.getElementById('sun-section-bar');
+  const list = document.getElementById('venue-list');
+  if (!bar || !list || bar.classList.contains('ssb-empty')) return;
+
+  const nowCount = (typeof _listBuckets !== 'undefined' && _listBuckets?.now?.length) || 0;
+  const cards = list.querySelectorAll('.venue-card');
+  const boundaryCard = cards[nowCount];  // first "later" card
+  if (!boundaryCard) { bar.classList.remove('later'); return; }
+
+  // 24px threshold so the morph fires just before the boundary card's top
+  // crosses the list scroll-top.
+  const past = list.scrollTop >= (boundaryCard.offsetTop - 24);
+  bar.classList.toggle('later', past);
+}
+
+let _ssbScrollWired = false;
+function wireSunSectionBarScroll() {
+  if (_ssbScrollWired) return;
+  const list = document.getElementById('venue-list');
+  if (!list) return;
+  list.addEventListener('scroll', applySunSectionBarScrollState, { passive: true });
+  _ssbScrollWired = true;
+}
+
 /** Update the header weather chip (icon + temp + wind) for given hour. */
 function updateHeaderWxChip(hour) {
   const iconEl = document.getElementById('header-wx-icon');
@@ -526,73 +592,37 @@ function updateHeaderWxChip(hour) {
   if (windEl) windEl.textContent = wx.wspd != null ? Math.round(wx.wspd) + ' m/s' : '';
 }
 
-/** Update the header time label from the current slider value. */
-function updateHeaderTimeLabel() {
-  const el = document.getElementById('header-time-label');
-  if (!el || !timeFromEl) return;
-  el.textContent = formatHour(parseFloat(timeFromEl.value));
-}
-
-/** Show the scrub popup with time + weather info. */
+/** Show the floating time label above the FTS thumb. Always visible while
+ *  FTS is up — strictly a position+text update, no hide animation. */
 function showFtsPopup(hour) {
-  const popup    = document.getElementById('fts-popup');
-  const timeEl   = document.getElementById('fts-popup-time');
-  const wxIconEl = document.getElementById('fts-popup-wx-icon');
-  const tempEl   = document.getElementById('fts-popup-temp');
-  const windEl   = document.getElementById('fts-popup-wind');
-  const canvas   = document.getElementById('fts-canvas');
+  const popup  = document.getElementById('fts-popup');
+  const timeEl = document.getElementById('fts-popup-time');
   if (!popup || !timeEl) return;
 
-  // Clear any pending hide
   if (_ftsHideTimeout) { clearTimeout(_ftsHideTimeout); _ftsHideTimeout = null; }
 
-  // Time
   timeEl.textContent = formatHour(hour);
 
-  // Weather: icon on row 1, temp + wind on row 2
-  const dateStr = datePicker.value;
-  if (typeof getWeatherAt === 'function') {
-    const wx = getWeatherAt(dateStr, hour);
-    if (wx) {
-      const rain = (wx.precip ?? wx.prec ?? 0) > 0.3;
-      const cf   = wx.cloud ?? 0;
-      // Weather icon (emoji)
-      if (wxIconEl) wxIconEl.textContent = rain ? '🌧' : (typeof skyIcon === 'function' ? skyIcon(cf) : '☀️');
-      // Temperature
-      if (tempEl) tempEl.textContent = wx.temp != null ? Math.round(wx.temp) + '°' : '';
-      // Wind
-      if (windEl) windEl.textContent = wx.wspd != null ? Math.round(wx.wspd) + ' m/s' : '';
-    } else {
-      if (wxIconEl) wxIconEl.textContent = '';
-      if (tempEl)   tempEl.textContent = '';
-      if (windEl)   windEl.textContent = '';
-    }
-  }
-
-  // Position popup horizontally centered on thumb
-  if (canvas) {
-    const ftsEl    = document.getElementById('fts');
-    const trackEl  = document.getElementById('fts-track');
-    if (ftsEl && trackEl) {
-      const trackLeft = trackEl.offsetLeft;
-      const trackW    = trackEl.offsetWidth;
-      const MIN_H     = MIN_H_ARC, MAX_H = MAX_H_ARC;
-      const thumbX    = trackLeft + (hour - MIN_H) / (MAX_H - MIN_H) * trackW;
-      const ftsW      = ftsEl.offsetWidth;
-      // Clamp so popup doesn't overflow edges
-      const popupW    = popup.offsetWidth || 160;
-      const left      = Math.max(popupW / 2 + 8, Math.min(ftsW - popupW / 2 - 8, thumbX));
-      popup.style.left = left + 'px';
-    }
+  // Position label horizontally centered on thumb
+  const ftsEl    = document.getElementById('fts');
+  const trackEl  = document.getElementById('fts-track');
+  if (ftsEl && trackEl) {
+    const trackLeft = trackEl.offsetLeft;
+    const trackW    = trackEl.offsetWidth;
+    const MIN_H     = MIN_H_ARC, MAX_H = MAX_H_ARC;
+    const thumbX    = trackLeft + (hour - MIN_H) / (MAX_H - MIN_H) * trackW;
+    const ftsW      = ftsEl.offsetWidth;
+    const popupW    = popup.offsetWidth || 36;
+    const left      = Math.max(popupW / 2 + 4, Math.min(ftsW - popupW / 2 - 4, thumbX));
+    popup.style.left = left + 'px';
   }
 
   popup.classList.add('visible');
 }
 
-/** Hide the scrub popup. */
+/** Hide the floating time label. (Retained for API compatibility — the label
+ *  is now always visible, so this is a no-op.) */
 function hideFtsPopup() {
-  const popup = document.getElementById('fts-popup');
-  if (popup) popup.classList.remove('visible');
   if (_ftsHideTimeout) { clearTimeout(_ftsHideTimeout); _ftsHideTimeout = null; }
 }
 
@@ -607,8 +637,11 @@ function syncFts() {
   if (!USE_FLOATING_TIME_SLIDER) return;
   drawFtsCanvas();
   updateHeaderDateChip();
-  updateHeaderTimeLabel();
   updateHeaderWxChip(parseFloat(timeFromEl.value));
+  // Keep the floating time label in sync with the current slider value
+  if (document.body.classList.contains('fts')) {
+    showFtsPopup(parseFloat(timeFromEl.value));
+  }
   // Desktop: keep the popup permanently populated + positioned. It's CSS-
   // forced to opacity:1 on desktop, so without a refresh on each update() it
   // would freeze with stale time/weather while the user changed date/time.
@@ -1573,8 +1606,8 @@ function _readoutSet(el, newText, animate) {
 
 function updateQcIndicator(h) {
   const hour = (typeof h === 'number') ? h : parseFloat(timeFromEl.value);
-  const el = document.getElementById('header-time-label');
-  if (el) el.textContent = formatHour(hour);
+  // Floating time label tracks the live (hover or selected) hour
+  if (document.body.classList.contains('fts')) showFtsPopup(hour);
   updateHeaderWxChip(hour);
 }
 
@@ -1949,10 +1982,13 @@ function _updatePeekHeight() {
   const panel     = document.getElementById('panel');
   const handle    = document.getElementById('panel-handle');
   const sunHeader = document.getElementById('list-sun-header');
+  const ssbBar    = document.getElementById('sun-section-bar');
   const peek      = document.getElementById('venue-peek');
   if (!panel || !handle) return;
+  const ssbH = (ssbBar && !ssbBar.classList.contains('ssb-empty')) ? ssbBar.offsetHeight : 0;
   const h = handle.offsetHeight
           + (sunHeader ? sunHeader.offsetHeight : 0)
+          + ssbH
           + (peek ? peek.offsetHeight : 0);
   panel.style.setProperty('--peek-h', Math.max(h, 100) + 'px');
   _syncFtsPosition();
@@ -3218,12 +3254,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
           }
           // Track locate button + zoom jog with panel during drag.
-          // Locate button stays visible the whole way; zoom jog still fades into the list.
+          // Locate-me now sits at the FTS row (same baseline as the slider),
+          // not above it — so its bottom matches the FTS bottom exactly.
           if (!_locateEl) _locateEl = document.getElementById('locate-btn');
           if (!_zoomJogEl) _zoomJogEl = document.getElementById('zoom-jog');
           const panelTopD = panelEl.getBoundingClientRect().top;
           const viewHD    = window.innerHeight;
-          const locateBottom = viewHD - panelTopD + FTS_GAP + 46 + 12;
+          const locateBottom = viewHD - panelTopD + FTS_GAP;
           const peekTop = viewHD - (parseInt(panelEl.style.getPropertyValue('--peek-h')) || 160);
           const expandedTop = viewHD * 0.45;
           const progress = Math.max(0, Math.min(1, (peekTop - panelTopD) / (peekTop - expandedTop)));
