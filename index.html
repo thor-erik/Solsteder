@@ -993,35 +993,141 @@
     pointer-events: none;      /* touch events go to track, not canvas */
   }
 
-  /* Time label — floats above the thumb. No pill, just text. Always visible. */
+  /* Time label — floats above the thumb. Two states:
+     • compact (idle): just the time, glass pill so it's legible on every
+       map background (street, building, water);
+     • expanded (drag): time + weather icon on row 1, temp + wind on row 2.
+     Morph between the two via the same transitions on padding/border-radius/
+     gap; child rows fade their secondary line in/out. */
   #fts-popup {
     position: absolute;
-    bottom: calc(100% + 4px);
+    bottom: calc(100% + 6px);
     left: 50%;                /* repositioned by JS to follow thumb */
     transform: translateX(-50%);
+    transform-origin: bottom center;
     z-index: 10;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: 0;
-    background: none;
-    border: none;
-    box-shadow: none;
+    gap: 0;
+    padding: 4px 5px;
+    background: linear-gradient(135deg, rgba(20,46,82,0.55) 0%, rgba(14,30,52,0.62) 100%);
+    backdrop-filter: blur(10px) saturate(170%) brightness(0.92);
+    -webkit-backdrop-filter: blur(10px) saturate(170%) brightness(0.92);
+    border: 1px solid rgba(156,189,231,0.22);
+    border-radius: 10px;
+    box-shadow:
+      inset 0 1px 0 rgba(255,242,235,0.18),
+      inset 0 -1px 0 rgba(20,46,82,0.40),
+      0 6px 18px rgba(0,0,0,0.42);
     white-space: nowrap;
     pointer-events: none;
     opacity: 1;
-    transition: transform 0.14s ease-out;
+    transition:
+      padding 0.18s cubic-bezier(0.32, 0.72, 0, 1),
+      gap 0.18s cubic-bezier(0.32, 0.72, 0, 1),
+      border-radius 0.18s cubic-bezier(0.32, 0.72, 0, 1),
+      bottom 0.18s ease,
+      top 0.18s ease;
+  }
+  #fts-popup::after {
+    content: '';
+    position: absolute;
+    bottom: -6px; left: 50%;
+    transform: translateX(-50%);
+    width: 12px; height: 6px;
+    background: rgba(20,46,82,0.62);
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
   }
   #fts-popup.fts-popup-below {
     bottom: auto;
-    top: calc(100% + 4px);
+    top: calc(100% + 6px);
+  }
+  #fts-popup.fts-popup-below::after {
+    bottom: auto; top: -6px;
+    clip-path: polygon(50% 0, 0 100%, 100% 100%);
+  }
+  .fts-popup-row { display: flex; align-items: center; gap: 6px; line-height: 1; }
+  /* Compact: row gap 0 so the time sits flush against the padding when the
+     icon is collapsed. Expanded overrides this back up. Transitioned so the
+     gap opens in lockstep with the icon's max-width. */
+  .fts-popup-primary {
+    gap: 0;
+    transition: gap 0.18s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  /* Secondary is fully removed from layout in compact (display: none).
+     The popup is a shrink-to-fit absolute box, so its width = widest
+     descendant's max-content. Leaving secondary as a 0-height row would
+     still let "15° · 4 m/s" claim its natural width and pad the compact
+     pill out to ~60px wide. */
+  .fts-popup-secondary {
+    display: none;
+    gap: 5px;
+    margin-top: 0;
+  }
+  #fts-popup.fts-popup-expanded .fts-popup-secondary {
+    display: flex;
   }
   #fts-popup-time {
     font: 700 13px/1 'Inter', sans-serif;
     color: var(--accent);
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.01em;
-    text-shadow: 0 1px 4px rgba(0,0,0,0.6);  /* legibility against varied map */
+    transition: font-size 0.18s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  /* Compact: icon is fully removed from layout (display:none).
+     Expanded: icon switches to inline and grows in via font-size.
+     Bulletproof against flex min-width: auto sneaking width back in. */
+  #fts-popup-wx-icon {
+    display: none;
+    font-size: 14px;
+    line-height: 1;
+    transition:
+      font-size 0.18s cubic-bezier(0.32, 0.72, 0, 1),
+      opacity 0.14s ease;
+  }
+  #fts-popup.fts-popup-expanded #fts-popup-wx-icon {
+    display: inline-block;
+  }
+  #fts-popup-temp {
+    font: 600 10px/1 'Inter', sans-serif;
+    color: var(--text);
+    opacity: 0.9;
+    font-variant-numeric: tabular-nums;
+    transition: font-size 0.18s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .fts-dot {
+    font: 400 9px/1 'Inter', sans-serif;
+    color: var(--text);
+    opacity: 0.9;
+    transition: font-size 0.18s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  #fts-popup-wind {
+    font: 600 10px/1 'Inter', sans-serif;
+    color: var(--text);
+    opacity: 0.9;
+    font-variant-numeric: tabular-nums;
+    transition: font-size 0.18s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  /* Expanded state — applied while dragging the thumb. Pill grows to show
+     the weather row, secondary fades in, primary's icon slides into place.
+     Type and icon scale up alongside padding so the card reads as a
+     deliberately larger overlay during scrub, not just a wider compact pill. */
+  #fts-popup.fts-popup-expanded {
+    padding: 10px 14px 9px;
+    gap: 4px;
+    border-radius: 14px;
+  }
+  #fts-popup.fts-popup-expanded #fts-popup-time     { font-size: 20px; }
+  #fts-popup.fts-popup-expanded #fts-popup-wx-icon  { font-size: 20px; }
+  #fts-popup.fts-popup-expanded #fts-popup-temp     { font-size: 13px; }
+  #fts-popup.fts-popup-expanded #fts-popup-wind     { font-size: 13px; }
+  #fts-popup.fts-popup-expanded .fts-dot            { font-size: 12px; }
+  #fts-popup.fts-popup-expanded .fts-popup-primary  { gap: 8px; }
+  #fts-popup.fts-popup-expanded .fts-popup-secondary {
+    margin-top: 2px;
+    gap: 6px;
   }
 
   /* When calendar picker is open: mark date button active, FTS stays fully visible */
@@ -1041,7 +1147,10 @@
     padding-bottom: 0;
   }
   body.fts #panel.mobile-fullscreen #list-sun-header {
-    margin-bottom: 50px;  /* gap (8) + FTS height (34) + gap (8) */
+    /* gap (8) + FTS height (34) + popup gap (6) + popup height (~24)
+       + breathing (8). The popup sits below the FTS in fullscreen
+       (toggleFtsPopupBelow flips it) so the header has to clear it too. */
+    margin-bottom: 80px;
   }
   /* Fullscreen: FTS spans full width (locate-me is hidden in this state). */
   body.fts:has(#panel.mobile-fullscreen) #fts {
@@ -3118,13 +3227,14 @@
     }
 
     /* Venue peek: top of first card visible in collapsed state.
-       max-height tuned so the card name + meta + first row are readable. */
+       12px padding-top so the card body sits below the panel chrome
+       (handle + chip row above) instead of butting up against it.
+       Bottom fade signals there's more content below. */
     #venue-peek {
       flex-shrink: 0;
-      padding: 0 14px;
+      padding: 12px 14px 0;
       overflow: hidden;
-      max-height: 92px;
-      /* mask-image fades the bottom of the peek row */
+      max-height: 104px;
       -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
       mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
     }
@@ -3146,36 +3256,25 @@
     #venue-count { display: none; }
     #venue-header { display: none; }
 
-    /* List sun header: chips left, sort toggle right.
-       In peek state the sort chip animates out (width + opacity) instead of
-       hard-cutting via display:none, so the date+weather chips slide into
-       place smoothly when collapsing/expanding. */
+    /* List sun header: chips left, sort toggle right. Visible in every
+       panel state. */
     #list-sun-header { padding: 4px 14px 6px !important; }
     #list-sun-header #sort-toggle-btn {
-      transition:
-        flex-grow 0.32s cubic-bezier(0.32, 0.72, 0, 1),
-        flex-basis 0.32s cubic-bezier(0.32, 0.72, 0, 1),
-        max-width 0.32s cubic-bezier(0.32, 0.72, 0, 1),
-        padding 0.32s cubic-bezier(0.32, 0.72, 0, 1),
-        opacity 0.22s ease,
-        margin 0.32s cubic-bezier(0.32, 0.72, 0, 1),
-        border-color 0.12s, background 0.12s;
+      transition: border-color 0.12s, background 0.12s;
     }
-    #panel:not(.mobile-expanded):not(.mobile-fullscreen) #sort-toggle-btn {
-      flex: 0 0 0;
-      max-width: 0;
-      padding: 0;
-      margin: 0;
-      opacity: 0;
-      pointer-events: none;
-      overflow: hidden;
-      border-width: 0;
+    /* Sun-section bar hidden in peek mode — chip row already carries the
+       date/weather context, and "Sol nå · N steder i solen" was crowding
+       the bottom of the screen. Re-appears when the panel expands. */
+    #panel:not(.mobile-expanded):not(.mobile-fullscreen):not(.mobile-hidden) #sun-section-bar {
+      display: none;
     }
 
     #panel-header { padding-top: 0; }
 
     #venue-list {
-      padding: 6px 16px 32px;
+      /* 20px top padding so the first card body sits fully below the
+         16px top-fade mask. */
+      padding: 20px 16px 32px;
       overscroll-behavior-y: none;
       -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 16px, black 100%);
       mask-image: linear-gradient(to bottom, transparent 0%, black 16px, black 100%);
@@ -8015,9 +8114,21 @@
     </button>
     <div id="fts-track">
       <canvas id="fts-canvas"></canvas>
-    </div>
-    <div id="fts-popup">
-      <span id="fts-popup-time"></span>
+      <!-- Popup lives inside the track so it follows the thumb natively
+           when the track animates (date-pill slide-in shifts margin-left,
+           panel state changes shift the FTS bottom). Position is set as
+           a percentage of the track width — no BCR / offsetLeft math. -->
+      <div id="fts-popup">
+        <div class="fts-popup-row fts-popup-primary">
+          <span id="fts-popup-time"></span>
+          <span id="fts-popup-wx-icon" aria-hidden="true"></span>
+        </div>
+        <div class="fts-popup-row fts-popup-secondary">
+          <span id="fts-popup-temp"></span>
+          <span class="fts-dot">·</span>
+          <span id="fts-popup-wind"></span>
+        </div>
+      </div>
     </div>
   </div>
 </div>

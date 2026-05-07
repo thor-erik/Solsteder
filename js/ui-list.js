@@ -69,20 +69,33 @@ function buildMiniSunTimeline(v, dateStr, fromHour) {
 }
 
 /**
- * Build the labels row that sits under the timeline canvas. Three slots:
- * the current time at the bar's start, the time referenced by pill 1, and
- * the time referenced by pill 2. Positions are emitted as percentages of
+ * Build the labels row that sits under the timeline canvas. Slots:
+ * the current time at the bar's start, the boundaries of the earliest
+ * qualifying window (which the anchor row references), and the time
+ * referenced by every pill. Positions are emitted as percentages of
  * the [MIN_H_ARC, MAX_H_ARC] domain so they line up exactly with the
- * canvas painting. Collision priority is pill1 > pill2 > current — handled
- * in _resolveTimelineLabelCollisions after layout.
+ * canvas painting. Collision priority is window-end > pill1 > pill2 >
+ * window-start > current — handled in _resolveTimelineLabelCollisions.
  */
-function buildTimelineLabels(pills, fromHour, minH, maxH) {
+function buildTimelineLabels(pills, fromHour, minH, maxH, qual) {
   if (minH == null || maxH == null || maxH <= minH) return '';
   const fmt = (h) => (typeof formatHour === 'function') ? formatHour(h) : `${Math.floor(h)}:00`;
   const pct = (h) => Math.max(0, Math.min(100, (h - minH) / (maxH - minH) * 100));
   const slots = [];
   // The current time always gets a base slot at low priority.
   slots.push({ time: fromHour, label: fmt(fromHour), prio: 1, kind: 'current' });
+  // The earliest qualifying window's boundaries match the anchor row's
+  // "fra HH:MM · til HH:MM". Surface them so the timeline always tells the
+  // same story as the anchor — high priority so they survive collisions.
+  const earliest = qual?.earliest;
+  if (earliest) {
+    if (earliest.start > fromHour + 0.001 && earliest.start < maxH - 0.001) {
+      slots.push({ time: earliest.start, label: fmt(earliest.start), prio: 95, kind: 'sol' });
+    }
+    if (earliest.end > fromHour + 0.001 && earliest.end < maxH - 0.001) {
+      slots.push({ time: earliest.end, label: fmt(earliest.end), prio: 100, kind: 'sol' });
+    }
+  }
   // Every disruption pill with a time gets a label. Priority decays by index
   // and is boosted by closeness to fromHour (relevance to the user's now).
   pills.forEach((p, i) => {
@@ -341,7 +354,7 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
     const miniTimeline = buildMiniSunTimeline(v, dateStr, fromHour);
     const tlMin = fromHour;
     const tlMax = sundownH ?? ((typeof MAX_H_ARC !== 'undefined') ? MAX_H_ARC : null);
-    const tlLabels = buildTimelineLabels(pills, fromHour, tlMin, tlMax);
+    const tlLabels = buildTimelineLabels(pills, fromHour, tlMin, tlMax, qual);
     // Labels first, then timeline — labels-row sits above the bar visually.
     timelineBlock = `<div class="card-timeline-block">${tlLabels}${miniTimeline}</div>`;
   }
