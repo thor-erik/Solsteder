@@ -24,7 +24,7 @@ let nowMode           = false;
 let nowInterval       = null;
 let userLocation      = null;
 let filterFullSunActive = false;
-let filterMapViewActive = window.innerWidth >= 640; // desktop: viewport filter on; mobile: off (list shows all venues)
+let filterMapViewActive = true; // viewport filter always on — list reflects what's on the map
 let activeArea    = '';
 let activeSortBy  = 'match';
 let _userPickedSort = false; // true once the user explicitly picks a sort — locks out auto-default
@@ -838,12 +838,6 @@ function locateUser() {
       });
       return;
     }
-  }
-  // Mobile: reset to "all venues" mode
-  if (isMobile()) {
-    filterMapViewActive = false;
-    renderList();
-    updateQcIndicator(null);
   }
   // Account for the bottom panel covering part of the map: pass padding so
   // the user dot lands in the *visible* (non-occluded) portion, not the
@@ -3945,10 +3939,6 @@ function _autoFitToBatch(newVenues) {
 // User dragging = navigating freely → revert to viewport filter
 map.on('dragstart', () => {
   _navMode = false;
-  // Mobile: activate viewport filter when user pans the map
-  if (isMobile() && !filterMapViewActive) {
-    filterMapViewActive = true;
-  }
 });
 
 // Track user-initiated map movement while detail panel is open, so we know

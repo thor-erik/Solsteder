@@ -699,9 +699,10 @@ function renderList() {
   // Favorites filtering is handled by sortBy === 'favorites' below
 
   // Compute the viewport bounds (with 20% pad) once. Used both to filter
-  // in viewport mode and to partition the surfaced set in expanded mode
-  // (so the next page of best-ranked venues outside the viewport can be
-  // appended). Skipped when filterMapViewActive is off (mobile pre-pan).
+  // in viewport mode and to partition the surfaced set in long-list mode
+  // (so outside venues can be appended sorted by distance from viewport
+  // center). filterMapViewActive is normally true; the gate is kept as an
+  // escape valve in case it's ever toggled off programmatically.
   let _viewportBounds = null;
   if (filterMapViewActive) {
     // While a venue is selected, keep the list frozen at the pre-zoom viewport
