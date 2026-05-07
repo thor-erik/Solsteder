@@ -1032,13 +1032,20 @@
     padding-bottom: 72px !important;  /* 48 pill + 12 gap + 12 breathing */
   }
 
-  /* Fullscreen: pill is at the top — push all panel content below it */
+  /* Fullscreen: handle is slim (just safe-area + grabber). The FTS sits
+     below the chip row (a margin-bottom on #list-sun-header reserves the
+     space the floating slider visually occupies). */
   body.fts #panel.mobile-fullscreen #panel-handle {
-    /* Grab bar sits at top (safe-area + 16px padding). FTS pill floats below it.
-       Total height = safe-area + handle padding + gap to clear pill + pill + gap below pill */
-    height: calc(env(safe-area-inset-top, 0px) + 16px + 4px + 14px + 46px + 14px);
+    height: calc(env(safe-area-inset-top, 0px) + 16px + 4px + 14px);
     padding-top: calc(env(safe-area-inset-top, 0px) + 16px);
     padding-bottom: 0;
+  }
+  body.fts #panel.mobile-fullscreen #list-sun-header {
+    margin-bottom: 50px;  /* gap (8) + FTS height (34) + gap (8) */
+  }
+  /* Fullscreen: FTS spans full width (locate-me is hidden in this state). */
+  body.fts:has(#panel.mobile-fullscreen) #fts {
+    right: 12px;
   }
 
   /* ── Bottom-center: date pill + sun arc + intent presets ──────────────────── */
@@ -1445,18 +1452,26 @@
       top: calc(70px + var(--notif-h, 0px) + 8px);
     }
   }
+  /* Notification toast — warm-tinted glass with a left accent stripe so it
+     reads as a notification rather than another input/search surface. */
   #notif-toast {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 8px 12px;
+    padding: 10px 14px 10px 16px;
     margin-bottom: 0;
-    background: var(--glass-card-bg);
+    background:
+      linear-gradient(90deg, rgba(255,175,133,0.10) 0%, rgba(255,175,133,0) 28%),
+      var(--glass-card-bg);
     backdrop-filter: var(--glass-blur-card);
     -webkit-backdrop-filter: var(--glass-blur-card);
-    border: var(--glass-border);
-    border-radius: 12px;
-    box-shadow: var(--glass-inset), 0 4px 16px rgba(0,0,0,0.25);
+    border: 1px solid rgba(255,175,133,0.28);
+    border-left: 3px solid var(--accent);
+    border-radius: 14px;
+    box-shadow:
+      var(--glass-inset),
+      0 6px 22px rgba(0,0,0,0.32),
+      0 0 0 1px rgba(255,175,133,0.08);
     color: var(--text);
     font-family: 'Inter', sans-serif;
     font-size: 13px;
@@ -2287,11 +2302,11 @@
        • card-pills is always rendered (preserves card height)
        • bottom 3px fill bar shows sun-fraction of remaining day */
   .venue-card.card-compact {
-    /* Bar is flush bottom (3px tall); padding-bottom holds the meta row
-       clear of it. The card itself clips to its own rounded shape so the
-       fill bar's corners follow the 12px card-corner curve. (Detail-panel
-       rich cards keep overflow:visible from the base rule.) */
-    padding-bottom: 10px;
+    /* Bar is flush bottom (3px tall); padding-bottom matches padding-top so
+       the visual breathing space above the name row equals the space below
+       the meta row. The card clips to its own rounded shape so the fill
+       bar's corners follow the 12px card-corner curve. */
+    padding-bottom: 12px;
     overflow: hidden;
   }
   .venue-card.card-compact .card-meta {
@@ -2996,15 +3011,19 @@
 
     #panel-toggle-icon { display: none; }
 
-    /* FTS: mobile full-width minus space for locate-btn at right end */
+    /* FTS: mobile full-width minus space for locate-btn at right end.
+       When the detail panel is open, locate-me is hidden, so FTS expands. */
     body.fts #fts {
       left: 12px; right: calc(12px + 34px + 8px);  /* locate-btn (34) + gap (8) */
       width: auto;
       bottom: var(--fts-bottom, 160px);
-      transition: bottom 0.22s cubic-bezier(0.25, 0.9, 0.4, 1);
+      transition: bottom 0.22s cubic-bezier(0.25, 0.9, 0.4, 1), right 0.22s ease;
       will-change: bottom;
       padding: 0;
       gap: 8px;
+    }
+    body.fts:has(#detail-panel.open) #fts {
+      right: 12px;  /* fill the locate-me space when it's hidden */
     }
 
 
@@ -5675,18 +5694,20 @@
   /* The layout (card-top → card-left + card-right + timeline) is identical to
      a venue-card — only sizes scale up. This keeps the user oriented after the
      morph: they see "the same card, bigger". */
+  /* Detail-panel card: built from the same compact list-card markup
+     (renderCard with rich:false), then scaled up so it reads as the
+     "expanded version" the panel deserves. Carries the same v2 pills,
+     anchor meta, fill bar, etc. */
   .dp-card {
     cursor: default;
     margin-bottom: 14px;
-    padding: 18px 16px 14px;
+    padding: 16px 16px 18px;
     animation: none;
     border-radius: 14px;
+    overflow: hidden;
   }
   .dp-card:hover { background: var(--glass-card-bg); }   /* kill list-card hover */
   .dp-card .card-top { gap: 14px; align-items: flex-start; }
-  /* The two columns share line-heights between the top row (name / hero-main)
-     and the second row (meta / hero-sub) so the secondary info aligns
-     horizontally instead of drifting by a few px. */
   .dp-card .card-left { min-width: 0; gap: 4px; }
   .dp-card .card-new-name {
     font-size: 18px;
@@ -5695,9 +5716,9 @@
     letter-spacing: -0.01em;
   }
   .dp-card .card-new-meta {
-    font-size: 12px;
-    line-height: 1.35;
-    margin-top: 2px;
+    font-size: 13px;
+    line-height: 1.4;
+    margin-top: 4px;
   }
   .dp-card .card-right {
     min-width: 0;
@@ -5714,6 +5735,13 @@
     line-height: 1.35;
     margin-top: 2px;
   }
+  /* Anchor row sits below the meta with a touch more breathing room. */
+  .dp-card .card-meta { margin-top: 4px; }
+  .dp-card .card-anchor { font-size: 13px; }
+  /* Pills row spaced for the larger card */
+  .dp-card .card-pills { margin-top: 10px !important; }
+  /* Fill bar matches the list card — the panel's card-bottom signal */
+  .dp-card .card-fillbar { bottom: 0; }
 
   /* dp-card timeline matches the list card's thin variant (8px). The tall
      38px treatment is gone now that the FTS pill is no longer reparented

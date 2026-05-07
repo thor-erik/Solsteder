@@ -233,7 +233,11 @@ function _ftsHostBottom(panel, dp) {
     return `calc(62svh + ${FTS_GAP}px)`;
   }
   if (panel.classList.contains('mobile-hidden'))     return `${FTS_GAP}px`;
-  if (panel.classList.contains('mobile-fullscreen')) return `calc(100svh - env(safe-area-inset-top, 0px) - 46px - 16px - 4px - 14px)`;
+  // Fullscreen: FTS sits below the chip row (not at the very top), so users
+  // see a stable chip row → FTS → section bar stack instead of a slider
+  // suspended above the chips. Calculation:
+  //   safe-area + handle (34) + chip-row (50) + 8px gap = top edge of FTS
+  if (panel.classList.contains('mobile-fullscreen')) return `calc(100svh - env(safe-area-inset-top, 0px) - 34px - 50px - 8px - 34px)`;
   if (panel.classList.contains('mobile-expanded'))   return `calc(50svh + ${FTS_GAP}px)`;
   const peekH = panel.style.getPropertyValue('--peek-h') || '160px';
   return `calc(${peekH} + ${FTS_GAP}px)`;
@@ -805,7 +809,31 @@ function locateUser() {
     renderList();
     updateQcIndicator(null);
   }
-  map.flyTo({ center: [userLocation.lng, userLocation.lat], zoom: Math.max(map.getZoom(), 15.2), duration: 600 });
+  // Account for the bottom panel covering part of the map: pass padding so
+  // the user dot lands in the *visible* (non-occluded) portion, not the
+  // viewport center. Padding shifts the camera's logical center.
+  let padding;
+  if (isMobile()) {
+    const panelEl = document.getElementById('panel');
+    let panelTop = window.innerHeight;  // panel hidden = no occlusion
+    if (panelEl && !panelEl.classList.contains('mobile-hidden')) {
+      const r = panelEl.getBoundingClientRect();
+      // r.top is where the visible top of the panel sits in the viewport.
+      // Below that line is occluded by the panel.
+      if (r.top > 0 && r.top < window.innerHeight) panelTop = r.top;
+    }
+    const occluded = Math.max(0, window.innerHeight - panelTop);
+    // Reserve 56px for the search bar at the top + safe-area
+    padding = { top: 80, bottom: occluded + 16, left: 16, right: 16 };
+  } else {
+    padding = { top: 96, bottom: 96, left: 16, right: 16 };
+  }
+  map.flyTo({
+    center: [userLocation.lng, userLocation.lat],
+    zoom: Math.max(map.getZoom(), 15.2),
+    duration: 600,
+    padding,
+  });
 }
 
 map.on('move',    _updateLocationDot);
@@ -2372,7 +2400,10 @@ function _populateDpCardSlot(v) {
   const fromHour = parseFloat(timeFromEl.value);
   const enriched = _enrichVenueForCard(v, dateStr, fromHour);
   const tmp = document.createElement('div');
-  tmp.innerHTML = renderCard(enriched, dateStr, fromHour, fromHour, true, { rich: true });
+  // Use the compact list-card variant (with its v2 pills + fill bar) so the
+  // detail-panel card matches the venue list visually. The .dp-card class
+  // scales the typography up for the larger panel context.
+  tmp.innerHTML = renderCard(enriched, dateStr, fromHour, fromHour, true);
   const newCard = tmp.firstElementChild;
   if (!newCard) return;
   newCard.classList.add('dp-card');
@@ -3211,6 +3242,10 @@ document.addEventListener('DOMContentLoaded', () => {
       let _dragInitH = 0; // panel height at drag start (px)
       let _dragRafId = null;
 
+      let _ftsAnchorBottom = 0;  // FTS bottom (px) at drag start — used as
+                                  // a clamp so the slider lingers at its
+                                  // anchor instead of jumping when the panel
+                                  // is far above the slider's natural rest.
       function _beginDrag(y) {
         if (_dragActive) return; // already initiated by a child element
         _dragY0         = y;
@@ -3219,6 +3254,16 @@ document.addEventListener('DOMContentLoaded', () => {
         _dragStartState = _currentState();
         _dragStartTime  = Date.now();
         _dragInitH      = panelEl.offsetHeight;
+        // Snapshot the FTS's current `bottom` so _trackDrag can keep it
+        // pinned there whenever the panel-driven position would push it
+        // higher than its anchor.
+        const _ftsForSnap = document.getElementById('fts');
+        if (_ftsForSnap) {
+          const cs = getComputedStyle(_ftsForSnap);
+          _ftsAnchorBottom = parseFloat(cs.bottom) || 0;
+        } else {
+          _ftsAnchorBottom = 0;
+        }
         panelEl.style.transition = 'none';
         panelEl.classList.add('panel-dragging');
       }
@@ -3243,14 +3288,19 @@ document.addEventListener('DOMContentLoaded', () => {
             panelEl.style.height = '';
           }
 
-          // Track pill with panel during drag
+          // Track pill with panel during drag, clamped to the start-state
+          // anchor so it lingers in place when the panel is dragged from
+          // fullscreen toward peek (and only follows once the panel descends
+          // past the anchor's natural rest).
           if (USE_FLOATING_TIME_SLIDER) {
             if (!_ftsEl) _ftsEl = document.getElementById('fts');
             if (_ftsEl) {
               const panelTop = panelEl.getBoundingClientRect().top;
               const viewH    = window.innerHeight;
+              const desired  = viewH - panelTop + FTS_GAP;
+              const ftsBottom = Math.min(desired, _ftsAnchorBottom);
               _ftsEl.style.transition = 'none';
-              _ftsEl.style.bottom = (viewH - panelTop + FTS_GAP) + 'px';
+              _ftsEl.style.bottom = ftsBottom + 'px';
             }
           }
           // Track locate button + zoom jog with panel during drag.
@@ -3322,22 +3372,42 @@ document.addEventListener('DOMContentLoaded', () => {
       // Wire a swipe target: touchstart/move/end → panel drag state machine
       // opts.excludeInteractive: skip drag when touch starts on a button/a/input/canvas
       // opts.tapToggle: if false, taps on this element don't toggle panel state (default true)
+      // opts.deferred: don't begin drag immediately — wait until movement
+      //   exceeds DEFERRED_THRESHOLD. Lets interactive children receive their
+      //   own click events on tap while still allowing drag from anywhere.
       function _wireSwipeTarget(el, opts = {}) {
         const _INTERACTIVE = 'button, a, input, select, textarea, canvas';
+        const DEFERRED_THRESHOLD = 8;
+        let _localStartY = 0;
+        let _localPending = false;  // armed but not yet drag-active
+
         el.addEventListener('touchstart', e => {
           if (opts.peekOnly && _currentState() !== 'peek') return;
           if (opts.excludeInteractive && e.target.closest(_INTERACTIVE)) return;
           if (opts.excludeSelector && e.target.closest(opts.excludeSelector)) return;
-          _beginDrag(e.touches[0].clientY);
+          if (opts.deferred) {
+            _localStartY  = e.touches[0].clientY;
+            _localPending = true;
+          } else {
+            _beginDrag(e.touches[0].clientY);
+          }
         }, { passive: true });
 
         el.addEventListener('touchmove', e => {
+          // Deferred: only begin drag once movement passes threshold.
+          if (_localPending) {
+            const dy = e.touches[0].clientY - _localStartY;
+            if (Math.abs(dy) < DEFERRED_THRESHOLD) return;
+            _localPending = false;
+            _beginDrag(_localStartY);
+          }
           if (!_dragActive) return;
           e.preventDefault();
           _trackDrag(e.touches[0].clientY);
         }, { passive: false });
 
         el.addEventListener('touchend', e => {
+          _localPending = false;
           if (!_dragActive) return;
           const totalDy = e.changedTouches[0].clientY - _dragY0;
           if (Math.abs(totalDy) < 10) {
@@ -3357,6 +3427,8 @@ document.addEventListener('DOMContentLoaded', () => {
             _commitDrag(e.changedTouches[0].clientY);
           }
         }, { passive: true });
+
+        el.addEventListener('touchcancel', () => { _localPending = false; }, { passive: true });
       }
 
       // After any panel transform/height transition (drag, tap, programmatic
@@ -3391,12 +3463,16 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       _panelClassObs.observe(panelEl, { attributes: true, attributeFilter: ['class'] });
 
-      // Wire drag targets: handle + venue-peek + panel-header + sun-count header
+      // Wire drag targets: handle + venue-peek + panel-header + chip row + sun-section bar
+      // The chip row uses `deferred` mode so a tap fires the chip's onclick
+      // while a drag from the same surface still drives the panel.
       _wireSwipeTarget(h);
       const listSunHdr   = document.getElementById('list-sun-header');
+      const sunSectionBar = document.getElementById('sun-section-bar');
       const venuePeek    = document.getElementById('venue-peek');
       const panelHeader  = document.getElementById('panel-header');
-      if (listSunHdr) _wireSwipeTarget(listSunHdr, { excludeInteractive: true });
+      if (listSunHdr) _wireSwipeTarget(listSunHdr, { deferred: true, tapToggle: false });
+      if (sunSectionBar) _wireSwipeTarget(sunSectionBar);
       if (venuePeek)  _wireSwipeTarget(venuePeek);
       if (panelHeader) _wireSwipeTarget(panelHeader);
 
@@ -3420,32 +3496,43 @@ document.addEventListener('DOMContentLoaded', () => {
       }, { passive: false });
 
       // ── Venue list: seamless scroll → panel drag ──────────────────────────────
-      // When the list reaches scrollTop 0 mid-gesture and the finger keeps moving
-      // up, the panel starts following the finger. Pull-down at top always works.
+      // Pull-down at scrollTop=0 collapses the panel; pull-up at scrollTop=0
+      // grows it. Both fire after an 8px threshold so small touch jitters
+      // don't accidentally hijack scroll. The finger's clientY crossing into
+      // the chip-row band above the list also triggers panel drag (so a long
+      // upward swipe out of the list doesn't strand the panel).
       const venueList = document.getElementById('venue-list');
       if (venueList) {
-        let _listStartY = 0, _listWasScrolled = false;
+        const SPILL_THRESHOLD = 8;
+        let _listStartY = 0;
         venueList.addEventListener('touchstart', e => {
           _listStartY = e.touches[0].clientY;
-          _listWasScrolled = venueList.scrollTop > 0;
         }, { passive: true });
 
         venueList.addEventListener('touchmove', e => {
           const cy = e.touches[0].clientY;
-          if (venueList.scrollTop > 0) _listWasScrolled = true;
           if (!_dragActive) {
+            const listRect = venueList.getBoundingClientRect();
+            const fingerAboveList = cy < listRect.top - 4;
             if (venueList.scrollTop <= 0) {
-              if (cy > _listStartY) {
-                // At top, pulling down → dismiss
+              const dy = cy - _listStartY;
+              if (dy > SPILL_THRESHOLD) {
+                // At top, pulling down → collapse one state
                 e.preventDefault();
                 _dragFromList = true;
                 _beginDrag(cy);
-              } else if (cy < _listStartY && _listWasScrolled) {
-                // Scrolled to top mid-gesture, still moving up → expand
+              } else if (dy < -SPILL_THRESHOLD) {
+                // At top, pulling up → expand one state
                 e.preventDefault();
                 _dragFromList = true;
                 _beginDrag(cy);
               }
+            } else if (fingerAboveList) {
+              // Finger has moved out of the list band into the chips above —
+              // hand control to the panel drag regardless of scrollTop.
+              e.preventDefault();
+              _dragFromList = true;
+              _beginDrag(cy);
             }
           }
           if (_dragActive && _dragFromList) {
