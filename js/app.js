@@ -3936,14 +3936,32 @@ function _autoFitToBatch(newVenues) {
   map.fitBounds(bounds, { padding: 60, duration: 600, maxZoom: 15 });
 }
 
+// Camera padding that respects the bottom panel covering part of the map.
+// Lifted from locateUser so other camera moves (the Avstand tracker, etc.)
+// can place the user dot in the *visible* area of the screen, not the
+// arithmetic center which is hidden behind the panel on mobile.
+function _panelAwarePadding() {
+  if (!isMobile()) return { top: 96, bottom: 96, left: 16, right: 16 };
+  const panelEl = document.getElementById('panel');
+  let panelTop = window.innerHeight;
+  if (panelEl && !panelEl.classList.contains('mobile-hidden')) {
+    const r = panelEl.getBoundingClientRect();
+    if (r.top > 0 && r.top < window.innerHeight) panelTop = r.top;
+  }
+  const occluded = Math.max(0, window.innerHeight - panelTop);
+  return { top: 80, bottom: occluded + 16, left: 16, right: 16 };
+}
+
 // Avstand zoom tracker. The list is sorted by distance from the user, so the
 // bottom-most visible card represents the maximum distance currently in
 // view. As the user scrolls down, we widen the map to keep that venue in
-// frame, anchored on the user's location so they stay centered. Two
-// constraints make the camera feel calm:
-//   1. Center is locked to userLocation. Bounds are built symmetrically
-//      around the user so cameraForBounds yields a user-centered camera —
-//      the user dot doesn't wander across the screen as new venues appear.
+// frame, anchored on the user's location so they stay in the visible
+// viewport (the screen minus the bottom panel). Two constraints make the
+// camera feel calm:
+//   1. Center is locked to userLocation, with panel-aware padding so the
+//      user dot lands in the middle of the *visible* (non-occluded) area
+//      rather than the arithmetic screen center, which on mobile sits
+//      behind the panel.
 //   2. We only zoom *out*, never in. Scrolling back up doesn't zoom back
 //      in; the wider view persists until the user pans, sorts, or hits
 //      locate-me (each of which gives a fresh starting zoom).
@@ -3973,8 +3991,8 @@ function _avstandTrackScroll() {
     }
     if (!bottomVenue || !Number.isFinite(bottomVenue.lat) || !Number.isFinite(bottomVenue.lng)) return;
 
-    // Symmetric bounds around the user so the camera stays anchored on
-    // userLocation. The farthest visible venue defines the radius.
+    // Symmetric bounds around the user so cameraForBounds yields the right
+    // zoom for "user is at the center, farthest visible venue at the edge."
     const halfLat = Math.abs(bottomVenue.lat - userLocation.lat);
     const halfLng = Math.abs(bottomVenue.lng - userLocation.lng);
     if (halfLat === 0 && halfLng === 0) return;
@@ -3982,7 +4000,8 @@ function _avstandTrackScroll() {
       [userLocation.lng - halfLng, userLocation.lat - halfLat],
       [userLocation.lng + halfLng, userLocation.lat + halfLat]
     );
-    const cam = map.cameraForBounds(bounds, { padding: 80, maxZoom: 15 });
+    const padding = _panelAwarePadding();
+    const cam = map.cameraForBounds(bounds, { padding, maxZoom: 15 });
     if (!cam) return;
 
     // Zoom-out only: skip if the target would zoom in (or stay near same).
@@ -3993,6 +4012,7 @@ function _avstandTrackScroll() {
     map.easeTo({
       center: [userLocation.lng, userLocation.lat],
       zoom: cam.zoom,
+      padding,
       duration: 200,
       easing: t => t,
     });
