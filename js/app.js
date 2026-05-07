@@ -3465,6 +3465,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (_dragRafId) cancelAnimationFrame(_dragRafId);
         _dragRafId = null;
         _dragActive   = false;
+        // Restore venue-list scrolling — drag handler may have frozen it
+        // (overflow-y: hidden) while the panel was being dragged from a
+        // list-spillover gesture. Always restore here so any exit path
+        // ends with a scrollable list.
+        if (_dragFromList) {
+          const venueListEl = document.getElementById('venue-list');
+          if (venueListEl) venueListEl.style.overflowY = '';
+        }
         _dragFromList = false;
 
         const dy       = y - _dragY0;
@@ -3667,8 +3675,14 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (fingerAboveList) {
               // Finger has moved out of the list band into the chips above —
               // hand control to the panel drag regardless of scrollTop.
+              // Freeze the list (overflow-y: hidden) so any in-flight native
+              // scroll / iOS momentum stops immediately. Otherwise the list
+              // keeps scrolling under the dragging panel and the user sees
+              // visible jitter as the two motions fight. Unfrozen in
+              // _commitDrag.
               e.preventDefault();
               _dragFromList = true;
+              venueList.style.overflowY = 'hidden';
               _beginDrag(cy);
             }
           }
