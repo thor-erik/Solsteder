@@ -1055,16 +1055,18 @@
     gap: 0;
     transition: gap 0.18s cubic-bezier(0.32, 0.72, 0, 1);
   }
+  /* Secondary is fully removed from layout in compact (display: none).
+     The popup is a shrink-to-fit absolute box, so its width = widest
+     descendant's max-content. Leaving secondary as a 0-height row would
+     still let "15° · 4 m/s" claim its natural width and pad the compact
+     pill out to ~60px wide. */
   .fts-popup-secondary {
+    display: none;
     gap: 5px;
-    max-height: 0;
-    opacity: 0;
-    overflow: hidden;
     margin-top: 0;
-    transition:
-      max-height 0.18s cubic-bezier(0.32, 0.72, 0, 1),
-      opacity 0.14s ease,
-      margin-top 0.18s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  #fts-popup.fts-popup-expanded .fts-popup-secondary {
+    display: flex;
   }
   #fts-popup-time {
     font: 700 13px/1 'Inter', sans-serif;
@@ -1124,8 +1126,6 @@
   #fts-popup.fts-popup-expanded .fts-dot            { font-size: 12px; }
   #fts-popup.fts-popup-expanded .fts-popup-primary  { gap: 8px; }
   #fts-popup.fts-popup-expanded .fts-popup-secondary {
-    max-height: 18px;
-    opacity: 1;
     margin-top: 2px;
     gap: 6px;
   }
@@ -3227,17 +3227,16 @@
     }
 
     /* Venue peek: top of first card visible in collapsed state.
-       Top fade (16px) softens the entry from the panel chrome above; the
-       16px padding-top pushes the card body fully below that fade so it
-       doesn't sit permanently in a faded region. Bottom fade signals
-       there's more content below the peek. */
+       12px padding-top so the card body sits below the panel chrome
+       (handle + chip row above) instead of butting up against it.
+       Bottom fade signals there's more content below. */
     #venue-peek {
       flex-shrink: 0;
-      padding: 16px 14px 0;
+      padding: 12px 14px 0;
       overflow: hidden;
-      max-height: 108px;
-      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 16px, black 65%, transparent 100%);
-      mask-image: linear-gradient(to bottom, transparent 0%, black 16px, black 65%, transparent 100%);
+      max-height: 104px;
+      -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+      mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
     }
 
     /* Hide peek when list is visible */
@@ -3257,15 +3256,16 @@
     #venue-count { display: none; }
     #venue-header { display: none; }
 
-    /* List sun header: chips left, sort toggle right.
-       Hidden entirely in peek mode (drag handle + first-card preview is
-       enough signal — date/weather/sort would crowd the bottom of the
-       screen). Re-appears when the panel expands. */
+    /* List sun header: chips left, sort toggle right. Visible in every
+       panel state. */
     #list-sun-header { padding: 4px 14px 6px !important; }
     #list-sun-header #sort-toggle-btn {
       transition: border-color 0.12s, background 0.12s;
     }
-    #panel:not(.mobile-expanded):not(.mobile-fullscreen):not(.mobile-hidden) #list-sun-header {
+    /* Sun-section bar hidden in peek mode — chip row already carries the
+       date/weather context, and "Sol nå · N steder i solen" was crowding
+       the bottom of the screen. Re-appears when the panel expands. */
+    #panel:not(.mobile-expanded):not(.mobile-fullscreen):not(.mobile-hidden) #sun-section-bar {
       display: none;
     }
 
@@ -3273,8 +3273,7 @@
 
     #venue-list {
       /* 20px top padding so the first card body sits fully below the
-         16px top-fade mask (otherwise the card's background fades in
-         under the fade region). */
+         16px top-fade mask. */
       padding: 20px 16px 32px;
       overscroll-behavior-y: none;
       -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 16px, black 100%);
