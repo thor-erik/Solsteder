@@ -34,9 +34,11 @@ let _showAllOnce = false;
 // Last rendered venue set — kept so the map auto-fit helper can compute
 // bounds from exactly what the user is looking at after an expansion step.
 let _lastRenderedVenues = [];
-// True when the surfaced set contains venues that aren't yet rendered
-// (because they're outside the current viewport / current expansion slice).
-// Drives whether the pull-tab footer is rendered after the last page.
+// True when the in-viewport list is too short to scroll-paginate naturally
+// (fewer than MIN_VIEWPORT_LIST venues) AND there are outside-viewport
+// venues queued behind the pull-tab gesture. In long-list mode this stays
+// false — outside venues are already in _listFiltered and load silently as
+// the IntersectionObserver fires.
 let _hasOutsideMore = false;
 
 // Haversine distance in km between two {lat, lng} points. Used by Beste
@@ -538,11 +540,12 @@ function renderListPage(list, dateStr, fromHour, toHour, isPoint, reset) {
     }, { root: list.closest('#panel'), rootMargin: '200px' });
     _listObserver.observe(document.getElementById('list-sentinel'));
   } else if (_hasOutsideMore) {
-    // Reached the end of the in-viewport (or current expansion) slice but
-    // there are still venues outside it. Render a pull-tab footer that the
-    // user can drag up (mobile) or click (desktop) to widen the search.
-    // The map auto-zooms to the new bounds after expansion so the user can
-    // see where the freshly-added venues are.
+    // Short-list mode only: the in-viewport set is too small to scroll-
+    // paginate naturally, so we render a pull-to-refresh-style indicator
+    // at the bottom. Drag up (mobile) or click (desktop) loads the next
+    // nearest batch and nudges the map outward by just enough to show it.
+    // In long-list mode outside venues are already in the list and load
+    // silently as the user scrolls — _hasOutsideMore stays false.
     list.insertAdjacentHTML('beforeend', `
       <button id="list-expand-tab" type="button" onclick="_expandList()">
         <svg class="list-expand-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -572,15 +575,19 @@ function showAllVenuesOnce() {
 
 /**
  * Pull-tab handler: widen the search by one page (~LIST_PAGE venues) outside
- * the current viewport, then auto-fit the map so the new venues are visible.
- * Called from the click handler on the pull-tab and from the drag-up touch
- * gesture wired in _wirePullTab. The map auto-fit is what tells the user
- * "the search just got wider" — no inline text needed.
+ * the current viewport, then nudge the map outward just enough to include the
+ * newly-added batch. Diff-based: we capture the set before re-rendering and
+ * fit bounds to (current viewport + freshly-added venues), so successive
+ * pulls grow the map incrementally instead of leaping to all-of-city.
  */
 function _expandList() {
+  const prevIds = new Set(_lastRenderedVenues.map(v => v.id));
   _expansionPages++;
   if (typeof renderList === 'function') renderList();
-  if (typeof _autoFitMap === 'function') _autoFitMap(_lastRenderedVenues);
+  const newlyAdded = _lastRenderedVenues.filter(v => !prevIds.has(v.id));
+  if (newlyAdded.length && typeof _autoFitToBatch === 'function') {
+    _autoFitToBatch(newlyAdded);
+  }
 }
 
 /**
@@ -791,26 +798,40 @@ function renderList() {
     else if (!v._qual.surfaced || dur < 40) _surfacedSet.delete(v.id);
   }
 
-  // Two-mode pipeline. Viewport mode: list is just venues inside the map
-  // viewport. Expanded mode: list keeps in-viewport venues + the next N
-  // pages of best-ranked venues from outside the viewport (pull-tab driven).
-  // _hasOutsideMore flags whether there are still more outside venues to
-  // surface, controlling whether the pull-tab footer renders.
+  // Two-mode pipeline.
+  //
+  // Long-list mode (in-viewport ≥ MIN_VIEWPORT_LIST): include outside venues
+  // in the list, sorted by distance from viewport center, so the standard
+  // scroll pagination auto-loads the next nearest ring once the in-viewport
+  // set runs out. No pull-tab, no map auto-fit — batching is imperceptible.
+  //
+  // Short-list mode (in-viewport < MIN_VIEWPORT_LIST): the user is zoomed in
+  // tight; there's not enough scroll surface for natural pagination. Show
+  // only the in-viewport set + a pull-to-refresh gesture indicator. Pulling
+  // adds the next nearest batch and zooms the map just enough to include it.
+  const MIN_VIEWPORT_LIST = 5;
   _hasOutsideMore = false;
   if (_viewportBounds) {
-    const _inV  = venues.filter(v => _viewportBounds.contains([v.lng, v.lat]));
+    const _inV  = venues.filter(v =>  _viewportBounds.contains([v.lng, v.lat]));
     const _outV = venues.filter(v => !_viewportBounds.contains([v.lng, v.lat]));
-    if (_expansionPages === 0) {
+    // Sort outside venues by distance from viewport center so the next batch
+    // is always the next nearest ring — keeps map auto-fit zooming gradually
+    // outward instead of leaping to scattered far venues with high sun.
+    if (_outV.length) {
+      const c = _viewportBounds.getCenter();
+      const cRef = { lat: c.lat, lng: c.lng };
+      _outV.sort((a, b) => _haversineKm(cRef, a) - _haversineKm(cRef, b));
+    }
+    if (_inV.length >= MIN_VIEWPORT_LIST) {
+      // Long-list: scroll pagination crosses the viewport boundary silently.
+      venues = [..._inV, ..._outV];
+    } else if (_expansionPages === 0) {
+      // Short-list, not yet expanded — pull-tab gates the next batch.
       venues = _inV;
       _hasOutsideMore = _outV.length > 0;
     } else {
-      // Pre-rank outside venues by relevance so the "best next" come first.
-      // Per-bucket sort below will reorder them into Sol nå / Sol senere as
-      // appropriate, but this pre-sort decides which slice gets included.
-      _outV.sort((a, b) => {
-        const ra = a._relevanceMin ?? 0, rb = b._relevanceMin ?? 0;
-        return rb - ra;
-      });
+      // Short-list, mid-expansion — show the slices already pulled in plus
+      // the gate for the next one (if any remain).
       const take = _expansionPages * LIST_PAGE;
       venues = [..._inV, ..._outV.slice(0, take)];
       _hasOutsideMore = _outV.length > take;

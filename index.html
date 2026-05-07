@@ -2035,43 +2035,49 @@
   body.list-scrubbing .venue-section-header { opacity: 0; }
   body.list-scrubbing .empty-section { opacity: 0; }
 
-  /* Pull-tab footer: appears at the end of the in-viewport list when there
-     are still venues outside the current expansion slice. Tap (desktop) or
-     drag-up past 60px (mobile) widens the search by one page. The
-     --pull-offset CSS var is set during the drag so the tab tracks the
-     finger; .ready toggles past threshold for a visual confirmation. */
+  /* Pull-tab indicator: appears only when the in-viewport list is so short
+     it can't trigger natural scroll-pagination (fewer than ~5 venues). Drag
+     up past 60px on mobile (inverted pull-to-refresh) or click on desktop
+     to load the next nearest batch. Visual is intentionally subtle — a thin
+     chevron + faint label, no button affordance — so it reads as a hint,
+     not a CTA. The --pull-offset CSS var tracks the finger during a drag;
+     .ready toggles past threshold for a brief confirmation. */
   #list-expand-tab {
     --pull-offset: 0px;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: 4px;
     width: 100%;
-    margin: 12px 0 24px;
-    padding: 14px 12px;
-    background: rgba(255,175,133,0.08);
-    border: 1px dashed rgba(255,175,133,0.35);
-    border-radius: 14px;
+    margin: 8px 0 20px;
+    padding: 10px 12px;
+    background: transparent;
+    border: 0;
     color: var(--muted);
     font: inherit;
-    font-size: 13px;
-    font-weight: 500;
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0.02em;
     cursor: pointer;
+    opacity: 0.6;
     transform: translateY(calc(var(--pull-offset) * -0.4));
-    transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+    transition: opacity 160ms ease, color 160ms ease;
     -webkit-tap-highlight-color: transparent;
   }
   #list-expand-tab:hover,
   #list-expand-tab.ready {
-    background: rgba(255,175,133,0.16);
-    border-color: rgba(255,175,133,0.6);
+    opacity: 1;
     color: var(--accent);
   }
   #list-expand-tab .list-expand-chevron {
-    transition: transform 160ms ease;
+    transition: transform 200ms ease;
   }
   #list-expand-tab.ready .list-expand-chevron {
-    transform: translateY(-2px);
+    transform: translateY(-3px);
+  }
+  #list-expand-tab .list-expand-label {
+    opacity: 0.85;
   }
 
   @keyframes cardIn {

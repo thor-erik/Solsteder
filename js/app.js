@@ -3925,6 +3925,23 @@ function _autoFitMap(rendered) {
   // _programmaticPan is cleared by the moveend handler when our easeTo finishes.
 }
 
+// Incremental zoom-out: extend the *current* map viewport just enough to
+// include the freshly-added venues. Used after a pull-tab expansion so the
+// map nudges outward by one ring rather than fitting to all rendered venues
+// (which would jump to the whole city when a high-relevance venue lives far
+// away). The user keeps spatial context — what they were looking at stays
+// in the frame, and the new batch is now visible at the edge.
+function _autoFitToBatch(newVenues) {
+  if (selectedId != null) return;
+  if (!newVenues || newVenues.length === 0) return;
+  const cur = map.getBounds();
+  const sw = cur.getSouthWest(), ne = cur.getNorthEast();
+  const bounds = new mapboxgl.LngLatBounds([sw.lng, sw.lat], [ne.lng, ne.lat]);
+  for (const v of newVenues) bounds.extend([v.lng, v.lat]);
+  _programmaticPan = true;
+  map.fitBounds(bounds, { padding: 60, duration: 600, maxZoom: 15 });
+}
+
 // User dragging = navigating freely → revert to viewport filter
 map.on('dragstart', () => {
   _navMode = false;
