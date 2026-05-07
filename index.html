@@ -1010,7 +1010,7 @@
     flex-direction: column;
     align-items: center;
     gap: 0;
-    padding: 4px 7px;
+    padding: 4px 5px;
     background: linear-gradient(135deg, rgba(20,46,82,0.55) 0%, rgba(14,30,52,0.62) 100%);
     backdrop-filter: blur(10px) saturate(170%) brightness(0.92);
     -webkit-backdrop-filter: blur(10px) saturate(170%) brightness(0.92);
@@ -1087,12 +1087,13 @@
   }
   .fts-dot {
     font: 400 9px/1 'Inter', sans-serif;
-    color: rgba(156,189,231,0.45);
+    color: var(--text);
+    opacity: 0.9;
     transition: font-size 0.18s cubic-bezier(0.32, 0.72, 0, 1);
   }
   #fts-popup-wind {
-    font: 500 10px/1 'Inter', sans-serif;
-    color: var(--muted);
+    font: 600 10px/1 'Inter', sans-serif;
+    color: var(--text);
     opacity: 0.9;
     font-variant-numeric: tabular-nums;
     transition: font-size 0.18s cubic-bezier(0.32, 0.72, 0, 1);
