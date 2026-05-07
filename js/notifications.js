@@ -153,14 +153,16 @@ function _wireNotifSwipe(el, notif) {
     const horizontal = axis === 'x' && Math.abs(dx) > SWIPE_THRESHOLD;
     const upward     = axis === 'y' && dy < -SWIPE_THRESHOLD;
     if (horizontal || upward) {
-      // Commit dismiss with a fly-out in the swipe direction. The CSS class
-      // .swipe-dismissing on the wrap disables its transform transition AND
-      // pins transform to translateY(0) via !important — so when _notifDismiss
-      // removes .show, the wrap can't slide up on top of our fly-out.
+      // Commit dismiss with a fly-out. Pin the wrap (transform locked to
+      // translateY(0) + opacity-only transition via .swipe-dismissing) so
+      // removing .show in _notifDismiss can't trigger an upward slide.
+      // Leave the inner toast's translated transform AND the wrap's
+      // .swipe-dismissing class IN PLACE after dismiss — they get cleared
+      // in _notifShow before the next notification renders. This avoids
+      // a "snap back to center" frame between the fly-out and disappearance.
       const wrap = document.getElementById('notif-toast-wrap');
       if (wrap) wrap.classList.add('swipe-dismissing');
       el.classList.add('notif-dismissing');
-      // Translate ONLY along the locked axis — never both.
       let elTransform;
       if (horizontal) elTransform = `translateX(${dx > 0 ? '120%' : '-120%'})`;
       else            elTransform = `translateY(-120%)`;
@@ -169,18 +171,7 @@ function _wireNotifSwipe(el, notif) {
       if (typeof _aTrack === 'function') _aTrack('notification_dismiss', {
         id: notif.id, priority: notif.priority, category: notif.category, method: 'swipe',
       });
-      setTimeout(() => {
-        // Inner fly-out done. Dismiss; the swipe-dismissing class blocks the
-        // wrap's CSS slide-up. Remove the class on the next frame so the
-        // wrap is ready for a fresh notification.
-        _notifDismiss(notif.id);
-        requestAnimationFrame(() => {
-          el.classList.remove('notif-dismissing');
-          el.style.transform = '';
-          el.style.opacity = '';
-          if (wrap) wrap.classList.remove('swipe-dismissing');
-        });
-      }, 240);
+      setTimeout(() => { _notifDismiss(notif.id); }, 240);
     } else {
       // Snap back
       el.style.transition = 'transform 0.18s ease-out, opacity 0.18s ease-out';
@@ -218,6 +209,16 @@ function _notifShow(notif) {
   console.log('[notif] showing:', notif.id, notif.bodyKey || notif._rawText);
   _notifCurrent = notif;
   const el = _notifEnsureEl();
+
+  // Clear residual swipe-dismiss state from a previous toast so the new one
+  // renders at the proper position with the default slide-down animation.
+  if (el) {
+    el.classList.remove('notif-dismissing');
+    el.style.transform = '';
+    el.style.opacity = '';
+  }
+  const wrapForReset = document.getElementById('notif-toast-wrap');
+  if (wrapForReset) wrapForReset.classList.remove('swipe-dismissing');
 
   // Icon
   const iconEl = el.querySelector('.notif-toast-icon');

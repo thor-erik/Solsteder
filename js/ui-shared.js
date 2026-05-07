@@ -217,6 +217,8 @@ function buildCardPillsV2(venue, qual, opts) {
   const candidates = [];
 
   // 1. Disruption pills — already pre-classified by qualifyingWindows().
+  // Carry `time` (gap start) so the timeline-labels row can place a label
+  // above each disruption event.
   for (const g of (w.gaps || [])) {
     candidates.push({
       kind: g.kind,  // 'skygge' | 'skyer' | 'regn' — maps to existing pill-* CSS
@@ -225,19 +227,17 @@ function buildCardPillsV2(venue, qual, opts) {
         start: fmt(g.start),
         end: fmt(g.end),
       }),
+      time: g.start,
     });
   }
 
   // 2. Hours pills — only when binding.
-  //   Stenger: closing clips a sun arc that would have continued.
   if (dayHours && geometricEndAfterClose && w.end <= dayHours.close + 0.001) {
-    candidates.push({ kind: 'stenger', label: t('pill_stenger', { time: fmt(dayHours.close) }) });
+    candidates.push({ kind: 'stenger', label: t('pill_stenger', { time: fmt(dayHours.close) }), time: dayHours.close });
   }
-  //   Åpner: opening clipped a sun arc that started earlier (raw window
-  //   started before opening hour).
   if (dayHours && rawWindowStart != null && rawWindowStart < dayHours.open - 0.001
       && w.start >= dayHours.open - 0.001) {
-    candidates.push({ kind: 'aapner', label: t('pill_aapner', { time: fmt(dayHours.open) }) });
+    candidates.push({ kind: 'aapner', label: t('pill_aapner', { time: fmt(dayHours.open) }), time: dayHours.open });
   }
 
   // 3. Overflow / opportunity pill from additional qualifying windows.
@@ -248,6 +248,7 @@ function buildCardPillsV2(venue, qual, opts) {
     candidates.push({
       kind: 'overflow',
       label: t('pill_overflow_one', { dur, time: fmt(ex.start) }),
+      time: ex.start,
     });
   } else if (extraWindows.length > 1) {
     candidates.push({

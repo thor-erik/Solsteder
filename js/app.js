@@ -529,7 +529,8 @@ function updateSunSectionBar() {
   const nowCount   = (typeof _listBuckets !== 'undefined' && _listBuckets?.now?.length) || 0;
   const laterCount = (typeof _listBuckets !== 'undefined' && _listBuckets?.later?.length) || 0;
 
-  if (nowCount === 0 || laterCount === 0) {
+  // Hide ONLY when both buckets are empty — there's nothing to label.
+  if (nowCount === 0 && laterCount === 0) {
     bar.classList.add('ssb-empty');
     return;
   }
@@ -549,14 +550,25 @@ function updateSunSectionBar() {
   const laterLine = bar.querySelector('.ssb-later');
   if (nowLine) {
     nowLine.querySelector('.ssb-label').textContent   = nowLabel;
-    nowLine.querySelector('.ssb-context').textContent = '— ' + t('places_in_sun', { count: nowCount });
+    nowLine.querySelector('.ssb-context').textContent = nowCount > 0 ? '— ' + t('places_in_sun', { count: nowCount }) : '';
   }
   if (laterLine) {
     laterLine.querySelector('.ssb-label').textContent   = laterLabel;
-    laterLine.querySelector('.ssb-context').textContent = '— ' + t('places_in_sun', { count: laterCount });
+    laterLine.querySelector('.ssb-context').textContent = laterCount > 0 ? '— ' + t('places_in_sun', { count: laterCount }) : '';
   }
 
-  applySunSectionBarScrollState();
+  // If only one bucket has content, lock the bar to that line — no scroll
+  // morph (since there's no boundary to cross).
+  if (nowCount === 0) {
+    bar.classList.add('later');
+    bar.dataset.locked = '1';
+  } else if (laterCount === 0) {
+    bar.classList.remove('later');
+    bar.dataset.locked = '1';
+  } else {
+    delete bar.dataset.locked;
+    applySunSectionBarScrollState();
+  }
 }
 
 /** Toggles `.later` based on whether the user has scrolled past the now-bucket. */
@@ -564,6 +576,8 @@ function applySunSectionBarScrollState() {
   const bar  = document.getElementById('sun-section-bar');
   const list = document.getElementById('venue-list');
   if (!bar || !list || bar.classList.contains('ssb-empty')) return;
+  // When only one bucket is populated, the bar is locked to that line.
+  if (bar.dataset.locked) return;
 
   const nowCount = (typeof _listBuckets !== 'undefined' && _listBuckets?.now?.length) || 0;
   const cards = list.querySelectorAll('.venue-card');
@@ -5442,9 +5456,18 @@ function _introRevealUI(search, brand, qcWrap, panel, opts) {
   }
 }
 
+/** Short cinematic for returning visitors. ~1.5s total. Phases:
+ *    0 (instant): map at user location, default tilt (15°), zoom 14.5,
+ *                 splash hidden, all UI still hidden.
+ *    1 (450ms):   zoom 14.5 → 15.2, pins fade in.
+ *    2 (300ms):   UI fades in — panel slides up to PEEK.
+ *    3 (350ms):   panel peek → expanded.
+ *
+ *  Same end state as _runIntroSequence (panel in expanded, map at default
+ *  zoom/tilt) but without the dramatic 65° tilt-and-back establishing shot. */
 function _skipIntro(seqId) {
   if (seqId !== undefined && _introSeqId !== seqId) return;
-  ++_introSeqId; // invalidate all pending timeouts
+  const localSeq = ++_introSeqId; // invalidate any pending intro callbacks
 
   const splash = document.getElementById('splash');
   const canvas = document.getElementById('canvas-overlay');
@@ -5452,76 +5475,80 @@ function _skipIntro(seqId) {
   const brand  = document.getElementById('floating-brand');
   const qcWrap = document.getElementById('qc-wrap');
   const panel  = document.getElementById('panel');
+  const splashLogo = document.getElementById('splash-logo');
+  const loader = document.getElementById('splash-loader');
+  const isMobileSkip = window.innerWidth < 640;
 
-  // Cancel time animation
+  // Cancel any in-flight time animation
   if (_timeAnimId) { cancelAnimationFrame(_timeAnimId); _timeAnimId = null; }
 
-  // Set time to shared time (if share link) or now, and activate now mode if appropriate.
-  // If the date was auto-advanced to tomorrow (after-sunset), keep the 12:00 default
-  // that advanceDay() already set — don't overwrite it with the current real hour.
+  // Set time + activate now-mode (same logic as before)
   if (_sharedHour !== null) {
     timeFromEl.value = _sharedHour;
   } else if (datePicker.value === todayStr()) {
     timeFromEl.value = Math.min(23, Math.max(4, currentHour()));
     _activateNowMode();
   }
-  // else: date already advanced to tomorrow by auto-advance — leave timeFromEl as-is (12:00)
   update();
 
-  // Snap map to default view (centered on user location or Oslo)
-  // On mobile, offset center upward so geo dot sits above the 55svh expanded panel.
-  const isMobileSkip = window.innerWidth < 640;
-  const skipPadding = isMobileSkip
-    ? { bottom: Math.round(window.innerHeight * 0.50), top: 0, left: 0, right: 0 }
-    : undefined;
+  // Phase 0 — instant: map at user location, default tilt, zoom 14.5, no UI
   map.stop();
-  map.easeTo({ center: _introCenter, zoom: 15.2, pitch: 15, bearing: 0, duration: 400, padding: skipPadding });
+  map.jumpTo({ center: _introCenter, zoom: 14.5, pitch: 15, bearing: 0 });
 
-  // Instantly hide splash
+  // Hide splash instantly
   splash.style.transition = 'none';
   splash.classList.add('bg-out', 'done');
-  const splashLogo = document.getElementById('splash-logo');
-  const loader = document.getElementById('splash-loader');
   if (splashLogo) { splashLogo.style.transition = 'none'; splashLogo.classList.add('fade-out'); }
-  if (loader) { loader.style.transition = 'none'; loader.classList.add('fade-out'); }
+  if (loader)     { loader.style.transition = 'none'; loader.classList.add('fade-out'); }
 
-  // Instantly reveal all UI
-  const locateBtnEl = document.getElementById('locate-btn');
-  const zoomJogEl = document.getElementById('zoom-jog');
-  const ftsEl = document.getElementById('fts');
-  [canvas, search, brand, qcWrap, panel, locateBtnEl, zoomJogEl, ftsEl].forEach(el => {
-    if (!el) return;
-    el.style.transition = 'none';
-    el.classList.remove('intro-hidden');
-    // Allow styles to reset on next frame
-    requestAnimationFrame(() => { el.style.transition = ''; });
+  // Phase 1 — zoom in to default + reveal pins (450ms)
+  const easing = t => t * t * (3 - 2 * t);
+  map.easeTo({
+    center: _introCenter,
+    zoom: 15.2,
+    pitch: 15,
+    bearing: 0,
+    duration: 450,
+    easing,
+    padding: isMobileSkip
+      ? { bottom: Math.round(window.innerHeight * 0.50), top: 0, left: 0, right: 0 }
+      : undefined,
   });
+  // Pins canvas fades in synchronously with the zoom
+  if (canvas) {
+    canvas.style.transition = 'opacity 0.4s ease';
+    canvas.classList.remove('intro-hidden');
+  }
 
-  // Mobile: start with list expanded (primary surface)
-  if (isMobileSkip && panel) panel.classList.add('mobile-expanded');
+  // Phase 2 — UI fade-in + panel slides up to PEEK (300ms after zoom starts)
+  setTimeout(() => {
+    if (_introSeqId !== localSeq) return;
+    _introRevealUI(search, brand, qcWrap, panel);
+  }, 300);
 
-  // Match _introRevealUI: prime the tracker so _maybePanMapForPanelState
-  // doesn't fire on the first post-skip _syncFtsPosition and override the
-  // skip easeTo above.
-  _prevPanelMobileState = isMobileSkip ? 'expanded' : 'peek';
+  // Phase 3 — panel peek → expanded (after UI settles)
+  setTimeout(() => {
+    if (_introSeqId !== localSeq) return;
+    if (panel && isMobileSkip) {
+      panel.classList.add('mobile-expanded');
+      _prevPanelMobileState = 'expanded';
+      _syncFtsPosition();
+    }
+  }, 900);
 
-  _updatePeekHeight();
-  if (USE_FLOATING_TIME_SLIDER) requestAnimationFrame(() => syncFts());
+  // Wrap-up after Phase 3 settles
+  setTimeout(() => {
+    if (_introSeqId !== localSeq) return;
+    if (_sharedVenueId) selectVenue(_sharedVenueId, true);
+    if (typeof _notifInit === 'function') _notifInit();
+  }, 1300);
 
-  if (_sharedVenueId) selectVenue(_sharedVenueId, true);
-
-  // Safety net for the invite-loading map gate (set in head): openPlanPreview
-  // normally removes it after its venue jumpTo lands. If the takeover never
-  // fires (token decode fails, venue not found), reveal the map after a brief
-  // grace period so the user isn't stuck staring at a blank.
+  // Safety net for the invite-loading map gate
   if (document.documentElement.classList.contains('invite-loading')) {
     setTimeout(() => {
       document.documentElement.classList.remove('invite-loading');
     }, 1800);
   }
-
-  // Start notification system after intro is done and UI is visible
-  if (typeof _notifInit === 'function') _notifInit();
 }
 
 // ── Back-button / popstate handler ───────────────────────────────────────────

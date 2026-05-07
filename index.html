@@ -4646,9 +4646,13 @@
     box-sizing: border-box;
     transition: background 0.12s, border-color 0.12s, color 0.12s;
   }
-  #header-date-chip { justify-self: start; }
-  #header-wx-chip   { justify-self: center; }
-  #list-sun-header #sort-toggle-btn { justify-self: end; }
+  /* Both interactive chips have the same fixed width — sized to fit the
+     longest date label ("I morgen" / "23. mai" / "tor 23") so the date
+     chip never resizes between today/tomorrow/dated states. Sort matches
+     for visual symmetry on the row. Weather centers in the middle. */
+  #header-date-chip               { justify-self: start;  width: 116px; }
+  #header-wx-chip                 { justify-self: center; }
+  #list-sun-header #sort-toggle-btn { justify-self: end;   width: 116px; }
 
   /* Date chip — tappable, opens picker. Glass action button. */
   #header-date-chip {

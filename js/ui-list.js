@@ -310,16 +310,17 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
     ? `<span class="card-meta-left">${metaInner}</span>${anchorText ? `<span class="card-anchor">${anchorText}</span>` : ''}`
     : metaInner;
 
-  // Rich + dpVariant emit the detailed timeline. Both also emit time labels
-  // above each disruption event; _resolveTimelineLabelCollisions hides the
-  // lower-priority ones when they overlap.
+  // Rich + dpVariant emit the detailed timeline. Labels render ABOVE the
+  // timeline (one per disruption event); _resolveTimelineLabelCollisions
+  // hides the lower-priority ones when they overlap.
   let timelineBlock = '';
   if (rich || dpVariant) {
     const miniTimeline = buildMiniSunTimeline(v, dateStr, fromHour);
     const tlMin = fromHour;
     const tlMax = sundownH ?? ((typeof MAX_H_ARC !== 'undefined') ? MAX_H_ARC : null);
     const tlLabels = buildTimelineLabels(pills, fromHour, tlMin, tlMax);
-    timelineBlock = `<div class="card-timeline-block">${miniTimeline}${tlLabels}</div>`;
+    // Labels first, then timeline — labels-row sits above the bar visually.
+    timelineBlock = `<div class="card-timeline-block">${tlLabels}${miniTimeline}</div>`;
   }
 
   // Fill bar: only in compact (list) cards. Suppressed in rich and dpVariant.
