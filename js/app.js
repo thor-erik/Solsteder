@@ -2117,10 +2117,11 @@ function _updatePeekHeight() {
   if (!isMobile()) return;
   const panel = document.getElementById('panel');
   if (!panel) return;
-  // Fixed peek height — the panel reveals exactly this much in peek state
-  // (handle + chip row + first card preview). Tuned to 130px so the first
-  // card sits at the perfect "show its name + meta" snippet height.
-  panel.style.setProperty('--peek-h', '130px');
+  // Fixed peek height — handle (~24) + chip row (~46) + venue-peek
+  // padding-top (12) + a thin sliver (~10) of the first card's top edge.
+  // The card text stays hidden; the sliver is just enough to signal
+  // "there's a card here, swipe up to see it".
+  panel.style.setProperty('--peek-h', '92px');
   _syncFtsPosition();
 }
 
