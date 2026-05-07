@@ -3611,12 +3611,18 @@ document.addEventListener('DOMContentLoaded', () => {
           // resistance (rubber-band) since the panel no longer has a
           // fullscreen state to grow into.
           const clampedDy = dy < 0 ? Math.max(dy / 4, -40) : dy;
-          if (clampedDy < 0) {
-            dpEl.style.transform = `translateY(${clampedDy}px)`;
-            dpEl.style.height = '';
-          } else {
-            dpEl.style.transform = `translateY(${clampedDy}px)`;
-            dpEl.style.height = '';
+          dpEl.style.transform = `translateY(${clampedDy}px)`;
+          dpEl.style.height = '';
+
+          // Anchor the FTS to the DP's top edge so it follows the drag.
+          if (USE_FLOATING_TIME_SLIDER) {
+            const ftsEl = document.getElementById('fts');
+            if (ftsEl) {
+              const dpTop = dpEl.getBoundingClientRect().top;
+              const viewH = window.innerHeight;
+              ftsEl.style.transition = 'none';
+              ftsEl.style.bottom = (viewH - dpTop + FTS_GAP) + 'px';
+            }
           }
           _dpRafId = null;
         });
@@ -3628,6 +3634,13 @@ document.addEventListener('DOMContentLoaded', () => {
         dpEl.style.transform  = '';
         dpEl.style.height     = '';
         _dpDragging = false;
+
+        // Release FTS back to its CSS-driven anchor — _syncFtsPosition will
+        // re-publish --fts-bottom for whatever state the DP commits to.
+        if (USE_FLOATING_TIME_SLIDER) {
+          const ftsEl = document.getElementById('fts');
+          if (ftsEl) { ftsEl.style.transition = ''; ftsEl.style.bottom = ''; }
+        }
 
         const dy       = y - _dpY0;
         const dt       = Math.max(1, Date.now() - _dpStartTime);
@@ -5225,30 +5238,24 @@ function _runIntroSequence() {
   const qcWrap = document.getElementById('qc-wrap');
   const panel  = document.getElementById('panel');
 
-  // Ensure sun table exists (it's built by update(), which may not have run yet)
+  // Ensure sun table exists for shadow rendering during the intro
   if (!currentSunTable) {
     currentSunTable = buildSunTable(datePicker.value);
     currentDateStr  = datePicker.value;
   }
-
-  // Compute intro time range: use "day" light preset boundaries (sunrise+1.5h to sunset-1.5h)
-  // This ensures consistent color lighting throughout the year as sun position changes
-  const sunrise = findSunCrossingFromTable(currentSunTable, true);
-  const sunset = findSunCrossingFromTable(currentSunTable, false);
-  const introStartTime = sunrise && sunrise + 1.5 > 4 ? sunrise + 1.5 : 7.25;  // fallback to 07:15
-  const introEndTime = sunset && sunset - 1.5 < 22 ? sunset - 1.5 : 17.25;      // fallback to 17:15
   const now = currentHour();
 
-  // Set time to intro start and render shadows at that time
+  // Time animation: glide from a daytime start to "now" so shadows feel alive
+  // through the intro (lightweight — pure scrubbing of an already-built table).
+  const introStartTime = (datePicker.value === todayStr() && now > 8) ? Math.max(7, now - 4) : 9;
   if (_timeAnimId) { cancelAnimationFrame(_timeAnimId); _timeAnimId = null; }
   timeFromEl.value = introStartTime;
   update();
 
-  // Position map at user location — instant, before splash fades
-  // Pitch will gradually increase to 45° during step 2
-  map.jumpTo({ center: _introCenter, zoom: 15, pitch: 0, bearing: 0 });
+  // Phase 0 — instant: map at user location, zoom 14, pitch 0
+  map.jumpTo({ center: _introCenter, zoom: 14, pitch: 0, bearing: 0 });
 
-  // Enable skip after the splash has faded
+  // Skip handler — any tap during intro snaps to final state
   let skipEnabled = false;
   const skipHandler = () => {
     if (!skipEnabled || _introSeqId !== seqId) return;
@@ -5257,42 +5264,49 @@ function _runIntroSequence() {
   document.addEventListener('click', skipHandler);
   document.addEventListener('touchstart', skipHandler);
 
-  // How long has the splash been visible? Wait at least SPLASH_MIN_MS
   const elapsed = performance.now() - _splashStart;
   const waitMs  = Math.max(0, SPLASH_MIN_MS - elapsed);
-
-  const loader    = document.getElementById('splash-loader');
+  const loader     = document.getElementById('splash-loader');
   const splashLogo = document.getElementById('splash-logo');
 
-  // After minimum branded time, begin the layered splash exit
+  // Cinematic phase timings (after splash hides):
+  const PHASE1_MS = 900;   // zoom 14→16, pitch 0→65°
+  const PHASE2_MS = 600;   // zoom 16→15.2, pitch 65→15° (default)
+  const PHASE3_PAUSE = 200;
+  const PHASE3_MS = 380;   // panel peek → expanded
+
+  // After splash min, fade splash and start map cinematic
   setTimeout(() => {
     if (_introSeqId !== seqId) return;
-
-    // Phase 1: If loader is visible, fade it out first (300ms)
-    const loaderVisible = loader && loader.classList.contains('visible');
+    const loaderVisible = loader?.classList.contains('visible');
     if (loaderVisible) loader.classList.add('fade-out');
-    const loaderFadeMs = loaderVisible ? 300 : 0;
+    const loaderFadeMs = loaderVisible ? 280 : 0;
 
     setTimeout(() => {
       if (_introSeqId !== seqId) return;
-
-      // Phase 2: Fade out the background (500ms CSS transition)
       splash.classList.add('bg-out');
 
-      // Phase 3: At ~50% background opacity (250ms), start the map intro
+      // Logo + splash settle
+      setTimeout(() => { if (splashLogo) splashLogo.classList.add('fade-out'); }, 250);
+      setTimeout(() => { splash.classList.add('done'); }, 700);
+
+      // Begin cinematic camera once the splash is fading
       setTimeout(() => {
         if (_introSeqId !== seqId) return;
         skipEnabled = true;
 
-        // Step 2: Scrub time + zoom in + tilt up (all concurrent)
-        animateToTime(introEndTime, 1800);
-        map.easeTo({ zoom: 16, pitch: 60, duration: 1800, easing: t => t * t * (3 - 2 * t) });
+        // Reveal the pin canvas a touch before phase 1 ends so the world
+        // populates as the camera arrives.
+        canvas.style.transition = 'opacity 0.4s ease';
+        canvas.classList.remove('intro-hidden');
 
-        // Step 3: Zoom out + detilt (starts when step 2 ends).
-        // On mobile we also pan with bottom padding so the geo dot lands above
-        // the 55svh expanded panel. Folded into a SINGLE easeTo — splitting it
-        // (a separate easeTo inside _introRevealUI) interrupts the detilt and
-        // strands the camera at pitch ≈60.
+        // Phase 1: zoom in + tilt up (cinematic establishing shot)
+        const easing = t => t * t * (3 - 2 * t); // smoothstep
+        animateToTime(now, PHASE1_MS + PHASE2_MS);
+        map.easeTo({ zoom: 16, pitch: 65, duration: PHASE1_MS, easing });
+
+        // Phase 2 (after Phase 1): settle to default zoom/tilt, fade in UI,
+        // panel arrives in PEEK
         setTimeout(() => {
           if (_introSeqId !== seqId) return;
           const isMobileEnd = window.innerWidth < 640;
@@ -5301,54 +5315,27 @@ function _runIntroSequence() {
             zoom: 15.2,
             pitch: 15,
             bearing: 0,
-            duration: 700,
+            duration: PHASE2_MS,
+            easing,
           };
           if (isMobileEnd) {
+            // Bias center upward by half the eventual expanded-panel height so
+            // the user's dot stays in the visible map area through Phase 3.
             easeOpts.padding = { bottom: Math.round(window.innerHeight * 0.50), top: 0, left: 0, right: 0 };
           }
           map.easeTo(easeOpts);
-          _introRevealUI(search, brand, qcWrap, panel,
-            _autoAdvancedAfterSunset ? { skipFts: true } : undefined);
+          _introRevealUI(search, brand, qcWrap, panel);
 
-          // Step 4: Return to current time (or noon if auto-advanced past sunset).
-          // When auto-advanced, keep FTS hidden during the slider animation so the
-          // user doesn't see it jump; fade it in after the animation completes.
-          const animDuration = 1200;
+          // Phase 3: brief pause in peek, then slide list to expanded
           setTimeout(() => {
             if (_introSeqId !== seqId) return;
-            animateToTime(_autoAdvancedAfterSunset ? 12 : now, animDuration);
-            // When FTS was hidden (auto-advanced), slide it up from behind the panel
-            if (_autoAdvancedAfterSunset) {
-              const ftsEl = document.getElementById('fts');
-              if (ftsEl) {
-                setTimeout(() => {
-                  // Start below final position, behind panel (z-index < panel's 910)
-                  // so it's not visible through the glass transparency
-                  ftsEl.style.transition = 'none';
-                  ftsEl.style.zIndex = '800';
-                  ftsEl.style.transform = 'translateY(60px)';
-                  ftsEl.style.opacity = '1';
-                  ftsEl.classList.remove('intro-hidden');
-                  requestAnimationFrame(() => {
-                    syncFts();
-                    ftsEl.getBoundingClientRect(); // force reflow
-                    ftsEl.style.transition = 'transform 0.5s cubic-bezier(0.25, 0.9, 0.4, 1)';
-                    ftsEl.style.transform = '';
-                    // Bring in front of panel once it's emerged from behind it
-                    setTimeout(() => { ftsEl.style.zIndex = ''; }, 150);
-                    setTimeout(() => { ftsEl.style.transition = ''; }, 550);
-                  });
-                }, animDuration);
-              }
+            if (panel && isMobileEnd) {
+              panel.classList.add('mobile-expanded');
+              _prevPanelMobileState = 'expanded';
+              _syncFtsPosition();
             }
-          }, 500);
 
-          // Step 5: Fade in pins
-          setTimeout(() => {
-            if (_introSeqId !== seqId) return;
-            canvas.style.transition = 'opacity 0.4s ease';
-            canvas.classList.remove('intro-hidden');
-
+            // Wrap-up: notifications back online, mark intro seen
             setTimeout(() => {
               if (_introSeqId !== seqId) return;
               if (_sharedHour === null && !_autoAdvancedAfterSunset) _activateNowMode();
@@ -5356,25 +5343,12 @@ function _runIntroSequence() {
               document.removeEventListener('click', skipHandler);
               document.removeEventListener('touchstart', skipHandler);
               if (_sharedVenueId) selectVenue(_sharedVenueId, true);
-              // Start notification system after intro completes
               if (typeof _notifInit === 'function') _notifInit();
-              // Mark the intro as seen so future visits skip straight to the map.
               try { localStorage.setItem('solsteder_intro_seen', '1'); } catch (_) {}
-            }, 350);
-          }, 700);
-        }, 1900);
-      }, 250);
-
-      // Phase 4: Fade out logo during zoom-in (~860ms after bg fade starts)
-      setTimeout(() => {
-        if (splashLogo) splashLogo.classList.add('fade-out');
-      }, 860);
-
-      // Phase 5: Fully remove splash after logo has faded (860 + 400ms transition)
-      setTimeout(() => {
-        splash.classList.add('done');
-      }, 1300);
-
+            }, PHASE3_MS + 80);
+          }, PHASE2_MS + PHASE3_PAUSE);
+        }, PHASE1_MS);
+      }, 220);
     }, loaderFadeMs);
   }, waitMs);
 }
@@ -5392,29 +5366,22 @@ function _introRevealUI(search, brand, qcWrap, panel, opts) {
     el.style.transition = 'opacity 0.5s ease';
     requestAnimationFrame(() => {
       el.classList.remove('intro-hidden');
-      // Restore CSS transitions after fade so subsequent animations (height, transform) still work
       setTimeout(() => { el.style.transition = ''; }, 600);
     });
   });
 
   if (panel && isMobile) {
-    // Mobile: slide up from off-screen → expanded state (list visible by default)
+    // Mobile: slide up from off-screen → PEEK state. Phase 3 of the intro
+    // adds .mobile-expanded shortly after, animating peek → expanded.
     panel.style.transition = 'none';
     panel.style.opacity    = '1';
     panel.style.transform  = 'translateY(100%)';
     panel.classList.remove('intro-hidden');
-    panel.classList.add('mobile-expanded');       // land in expanded state (list is primary)
-    // Prime the panel-state tracker so the upcoming _syncFtsPosition (via
-    // _updatePeekHeight) doesn't see a peek→expanded transition and fire
-    // _maybePanMapForPanelState mid-intro — its 220ms easeTo would override
-    // the in-flight detilt and strand the camera at pitch ≈60.
-    _prevPanelMobileState = 'expanded';
-    _updatePeekHeight();                         // measure with correct content
-    panel.getBoundingClientRect();                // force reflow — browser commits start state
-    panel.style.transition = 'transform 0.65s cubic-bezier(0.2, 0.8, 0.3, 1)';
-    panel.style.transform  = '';
-    // Map pan + bottom padding for the panel are folded into the step-3 easeTo
-    // in _runIntroSequence so they don't interrupt the detilt.
+    _prevPanelMobileState = 'peek';
+    _updatePeekHeight();
+    panel.getBoundingClientRect();  // force reflow — commit start frame
+    panel.style.transition = 'transform 0.45s cubic-bezier(0.2, 0.8, 0.3, 1)';
+    panel.style.transform  = '';    // CSS rule lands the panel at peek
   }
 
   if (USE_FLOATING_TIME_SLIDER && !(opts && opts.skipFts)) {

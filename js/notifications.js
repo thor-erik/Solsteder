@@ -104,40 +104,54 @@ function _notifAdvance() {
 
 // ── Toast UI ──────────────────────────────────────────��──────────────────────
 
-/** Wire swipe-to-dismiss on the toast. Swipes up, left, or right past
- *  SWIPE_THRESHOLD trigger dismissal; below that the toast snaps back. Idempotent
- *  per element — re-binding clears prior listeners. */
+/** Wire swipe-to-dismiss on the toast. Locks to the dominant axis on first
+ *  movement (no diagonal drags). Swiping past SWIPE_THRESHOLD on the locked
+ *  axis triggers the dismiss; otherwise the toast snaps back. */
 function _wireNotifSwipe(el, notif) {
   if (el._swipeWired) return;
   el._swipeWired = true;
   const SWIPE_THRESHOLD = 60;
+  const AXIS_LOCK_PX   = 6;   // movement before we commit to an axis
   let startX = 0, startY = 0, dragging = false;
+  let axis = null;            // null | 'x' | 'y'
   el.addEventListener('touchstart', (e) => {
     const t = e.touches[0];
     startX = t.clientX;
     startY = t.clientY;
     dragging = true;
+    axis = null;
     el.classList.add('notif-dragging');
   }, { passive: true });
   el.addEventListener('touchmove', (e) => {
     if (!dragging) return;
     const t = e.touches[0];
     const dx = t.clientX - startX;
-    const dy = Math.min(0, t.clientY - startY); // ignore downward
-    el.style.transform = `translate(${dx}px, ${dy}px)`;
-    const dist = Math.max(Math.abs(dx), Math.abs(dy));
-    el.style.opacity = String(Math.max(0.3, 1 - dist / 180));
+    const dy = t.clientY - startY;
+    // Lock to the dominant axis once the user has moved past AXIS_LOCK_PX.
+    if (!axis) {
+      if (Math.abs(dx) < AXIS_LOCK_PX && Math.abs(dy) < AXIS_LOCK_PX) return;
+      axis = Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y';
+    }
+    if (axis === 'x') {
+      el.style.transform = `translateX(${dx}px)`;
+      el.style.opacity = String(Math.max(0.3, 1 - Math.abs(dx) / 180));
+    } else {
+      // Vertical axis: only honor upward drags; downward is a no-op.
+      const dyClamped = Math.min(0, dy);
+      el.style.transform = `translateY(${dyClamped}px)`;
+      el.style.opacity = String(Math.max(0.3, 1 - Math.abs(dyClamped) / 180));
+    }
   }, { passive: true });
   const finish = (e) => {
     if (!dragging) return;
     dragging = false;
     el.classList.remove('notif-dragging');
     const t = e.changedTouches?.[0];
-    if (!t) { el.style.transform = ''; el.style.opacity = ''; return; }
+    if (!t) { el.style.transform = ''; el.style.opacity = ''; axis = null; return; }
     const dx = t.clientX - startX;
     const dy = t.clientY - startY;
-    const horizontal = Math.abs(dx) > SWIPE_THRESHOLD;
-    const upward = dy < -SWIPE_THRESHOLD;
+    const horizontal = axis === 'x' && Math.abs(dx) > SWIPE_THRESHOLD;
+    const upward     = axis === 'y' && dy < -SWIPE_THRESHOLD;
     if (horizontal || upward) {
       // Commit dismiss with a fly-out in the swipe direction. We pin the wrap's
       // own transform so removing .show in _notifDismiss doesn't trigger its
@@ -166,6 +180,7 @@ function _wireNotifSwipe(el, notif) {
       el.style.opacity = '';
       setTimeout(() => { el.style.transition = ''; }, 200);
     }
+    axis = null;
   };
   el.addEventListener('touchend', finish, { passive: true });
   el.addEventListener('touchcancel', finish, { passive: true });
