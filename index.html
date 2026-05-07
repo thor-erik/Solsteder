@@ -2036,14 +2036,11 @@
   body.list-scrubbing .empty-section { opacity: 0; }
 
   /* Pull-tab indicator: appears only when the in-viewport list is so short
-     it can't trigger natural scroll-pagination (fewer than ~5 venues). Drag
-     up past 60px on mobile (inverted pull-to-refresh) or click on desktop
+     it can't trigger natural scroll-pagination (fewer than ~5 venues). Tap
      to load the next nearest batch. Visual is intentionally subtle — a thin
      chevron + faint label, no button affordance — so it reads as a hint,
-     not a CTA. The --pull-offset CSS var tracks the finger during a drag;
-     .ready toggles past threshold for a brief confirmation. */
+     not a CTA. */
   #list-expand-tab {
-    --pull-offset: 0px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -2061,20 +2058,12 @@
     letter-spacing: 0.02em;
     cursor: pointer;
     opacity: 0.6;
-    transform: translateY(calc(var(--pull-offset) * -0.4));
     transition: opacity 160ms ease, color 160ms ease;
     -webkit-tap-highlight-color: transparent;
   }
-  #list-expand-tab:hover,
-  #list-expand-tab.ready {
+  #list-expand-tab:hover {
     opacity: 1;
     color: var(--accent);
-  }
-  #list-expand-tab .list-expand-chevron {
-    transition: transform 200ms ease;
-  }
-  #list-expand-tab.ready .list-expand-chevron {
-    transform: translateY(-3px);
   }
   #list-expand-tab .list-expand-label {
     opacity: 0.85;

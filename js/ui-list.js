@@ -527,17 +527,8 @@ function renderListPage(list, dateStr, fromHour, toHour, isPoint, reset) {
     list.insertAdjacentHTML('beforeend', html);
     // Re-enable animation after current frame so future resets still animate
     requestAnimationFrame(() => list.removeAttribute('data-no-anim'));
-    // Avstand sort only: as the user scrolls into farther venues, extend the
-    // map bounds to include them. The list is sorted purely by distance, so
-    // each new batch is the next ring outward — letting the map follow keeps
-    // spatial context. Other sorts don't follow because they're not purely
-    // spatial; following would feel arbitrary. _autoFitToBatch is a no-op
-    // when all new venues are already inside current bounds.
-    if (typeof activeSortBy !== 'undefined' && activeSortBy === 'distance' &&
-        typeof _autoFitToBatch === 'function') {
-      const newVenues = _listFiltered.slice(from, to);
-      if (newVenues.length) _autoFitToBatch(newVenues);
-    }
+    // Avstand zoom-out is driven by the scroll handler (_avstandTrackScroll)
+    // for smooth continuous tracking, not per-batch jumps.
   }
   // Paint the canvas-based mini-timelines now that the cards are in the DOM.
   // Use rAF so layout has settled and clientWidth/Height are non-zero.
@@ -552,11 +543,12 @@ function renderListPage(list, dateStr, fromHour, toHour, isPoint, reset) {
     _listObserver.observe(document.getElementById('list-sentinel'));
   } else if (_hasOutsideMore) {
     // Short-list mode only: the in-viewport set is too small to scroll-
-    // paginate naturally, so we render a pull-to-refresh-style indicator
-    // at the bottom. Drag up (mobile) or click (desktop) loads the next
-    // nearest batch and nudges the map outward by just enough to show it.
-    // In long-list mode outside venues are already in the list and load
-    // silently as the user scrolls — _hasOutsideMore stays false.
+    // paginate naturally, so we render a small chevron-style indicator at
+    // the bottom. Tap loads the next nearest batch and nudges the map
+    // outward by just enough to show it. (Drag-up gesture removed — it
+    // conflicted with the bottom-sheet panel drag on mobile.) In long-list
+    // mode outside venues are already in the list and load silently as
+    // the user scrolls — _hasOutsideMore stays false.
     list.insertAdjacentHTML('beforeend', `
       <button id="list-expand-tab" type="button" onclick="_expandList()">
         <svg class="list-expand-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -565,7 +557,6 @@ function renderListPage(list, dateStr, fromHour, toHour, isPoint, reset) {
         <span class="list-expand-label">${t('list_expand_more')}</span>
       </button>
     `);
-    _wirePullTab(list);
   }
 }
 
@@ -589,7 +580,11 @@ function showAllVenuesOnce() {
  * the current viewport, then nudge the map outward just enough to include the
  * newly-added batch. Diff-based: we capture the set before re-rendering and
  * fit bounds to (current viewport + freshly-added venues), so successive
- * pulls grow the map incrementally instead of leaping to all-of-city.
+ * clicks grow the map incrementally instead of leaping to all-of-city.
+ *
+ * The drag-up gesture was removed because it conflicted with the panel's
+ * own bottom-sheet drag — a touch sequence at the end of the list could
+ * fire both. Click is the only entry point now.
  */
 function _expandList() {
   const prevIds = new Set(_lastRenderedVenues.map(v => v.id));
@@ -599,56 +594,6 @@ function _expandList() {
   if (newlyAdded.length && typeof _autoFitToBatch === 'function') {
     _autoFitToBatch(newlyAdded);
   }
-}
-
-/**
- * Wire the pull-tab footer for mobile drag-up gestures. The user can either
- * tap the tab (handled by the inline onclick) or drag the list upward past
- * a threshold once it's scrolled to the bottom — same idiom as native
- * pull-to-refresh, just inverted (drag up at the bottom instead of down at
- * the top). Below threshold cancels cleanly.
- *
- * Listeners are attached to the list element once and persist across
- * re-renders; they no-op when no #list-expand-tab is present (i.e. when
- * the list isn't at "end of in-viewport set" or expansion is exhausted).
- */
-const _PULL_TAB_THRESHOLD = 60;
-let _pullTabWired = false;
-let _pullStartY   = null;
-let _pullDelta    = 0;
-function _wirePullTab(list /*, dateStr, fromHour, toHour, isPoint */) {
-  if (_pullTabWired) return;
-  _pullTabWired = true;
-  const onTouchStart = (e) => {
-    if (!document.getElementById('list-expand-tab')) return;
-    if (list.scrollTop + list.clientHeight < list.scrollHeight - 4) return;
-    _pullStartY = e.touches[0].clientY;
-    _pullDelta  = 0;
-  };
-  const onTouchMove = (e) => {
-    if (_pullStartY == null) return;
-    const tab = document.getElementById('list-expand-tab');
-    if (!tab) return;
-    _pullDelta = _pullStartY - e.touches[0].clientY;
-    if (_pullDelta > 0) {
-      tab.classList.toggle('ready', _pullDelta > _PULL_TAB_THRESHOLD);
-      tab.style.setProperty('--pull-offset', `${Math.min(_pullDelta, 100)}px`);
-    }
-  };
-  const onTouchEnd = () => {
-    const tab = document.getElementById('list-expand-tab');
-    if (tab) {
-      tab.classList.remove('ready');
-      tab.style.removeProperty('--pull-offset');
-    }
-    if (_pullDelta > _PULL_TAB_THRESHOLD) _expandList();
-    _pullStartY = null;
-    _pullDelta  = 0;
-  };
-  list.addEventListener('touchstart',  onTouchStart, { passive: true });
-  list.addEventListener('touchmove',   onTouchMove,  { passive: true });
-  list.addEventListener('touchend',    onTouchEnd,   { passive: true });
-  list.addEventListener('touchcancel', onTouchEnd,   { passive: true });
 }
 
 /**
@@ -1104,6 +1049,7 @@ function renderList() {
     requestAnimationFrame(updateSunSectionBar);
   }
   if (typeof wireSunSectionBarScroll === 'function') wireSunSectionBarScroll();
+  if (typeof wireAvstandTracker === 'function') wireAvstandTracker();
 
   // Update venue-peek with first ranked venue (mobile collapsed state)
   if (typeof updateVenuePeek === 'function') updateVenuePeek(venues);

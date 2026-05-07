@@ -3936,6 +3936,69 @@ function _autoFitToBatch(newVenues) {
   map.fitBounds(bounds, { padding: 60, duration: 600, maxZoom: 15 });
 }
 
+// Avstand zoom tracker. The list is sorted by distance from the user, so the
+// bottom-most visible card represents the maximum distance currently in
+// view. We continuously animate the map to fit user + that venue, keeping
+// the spatial axis of the sort coupled to the list's scroll position. The
+// rAF throttle dedupes per frame; each easeTo runs for a short duration so
+// the camera "tracks" rather than jumps. Scrolling back up zooms back in
+// symmetrically because we pick the bottom-most visible card every frame —
+// it's a function of scroll position, not a high-water mark.
+let _avstandRaf = null;
+function _avstandTrackScroll() {
+  if (_avstandRaf) return;
+  _avstandRaf = requestAnimationFrame(() => {
+    _avstandRaf = null;
+    if (activeSortBy !== 'distance') return;
+    if (selectedId != null || _frozenBounds) return;
+    if (!userLocation) return;
+
+    const list = document.getElementById('venue-list');
+    if (!list) return;
+    const listRect = list.getBoundingClientRect();
+    const cards = list.querySelectorAll('.venue-card[data-vid]');
+    let bottomVenue = null;
+    for (let i = cards.length - 1; i >= 0; i--) {
+      const r = cards[i].getBoundingClientRect();
+      // First card from the bottom that's at least partially within the
+      // list's viewport — that's the farthest distance the user can see.
+      if (r.top < listRect.bottom && r.bottom > listRect.top) {
+        const vid = cards[i].getAttribute('data-vid');
+        if (typeof VENUES !== 'undefined') {
+          bottomVenue = VENUES.find(x => String(x.id) === String(vid));
+        }
+        break;
+      }
+    }
+    if (!bottomVenue || !Number.isFinite(bottomVenue.lat) || !Number.isFinite(bottomVenue.lng)) return;
+
+    const bounds = new mapboxgl.LngLatBounds(
+      [userLocation.lng, userLocation.lat],
+      [userLocation.lng, userLocation.lat]
+    );
+    bounds.extend([bottomVenue.lng, bottomVenue.lat]);
+    const cam = map.cameraForBounds(bounds, { padding: 80, maxZoom: 15 });
+    if (!cam) return;
+
+    _programmaticPan = true;
+    map.easeTo({
+      center: cam.center,
+      zoom: cam.zoom,
+      duration: 200,
+      easing: t => t,   // linear — tracking feel rather than ease in/out
+    });
+  });
+}
+
+let _avstandTrackerWired = false;
+function wireAvstandTracker() {
+  if (_avstandTrackerWired) return;
+  const list = document.getElementById('venue-list');
+  if (!list) return;
+  list.addEventListener('scroll', _avstandTrackScroll, { passive: true });
+  _avstandTrackerWired = true;
+}
+
 // User dragging = navigating freely → revert to viewport filter
 map.on('dragstart', () => {
   _navMode = false;
