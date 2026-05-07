@@ -332,6 +332,16 @@ function initFts() {
     new ResizeObserver(() => drawFtsCanvas()).observe(canvas);
   }
 
+  // The floating time label sits at fts-track's offsetLeft + thumb fraction.
+  // When the track's left margin animates (DP opens/closes — date pill slides
+  // in/out, locate-me appears/disappears), recompute the label position so
+  // it doesn't strand at the previous track origin.
+  track.addEventListener('transitionend', (e) => {
+    if (e.propertyName === 'margin-left' && timeFromEl) {
+      showFtsPopup(parseFloat(timeFromEl.value));
+    }
+  });
+
   // Wire date chip tap directly (onclick can be unreliable on mobile in some edge cases)
   const calBtn = document.getElementById('header-date-chip');
   if (calBtn) {
@@ -2394,10 +2404,10 @@ function _populateDpCardSlot(v) {
   const fromHour = parseFloat(timeFromEl.value);
   const enriched = _enrichVenueForCard(v, dateStr, fromHour);
   const tmp = document.createElement('div');
-  // Rich variant: includes the existing detailed sun timeline (the bar that's
-  // already shipped on master), plus chronological pills. The .dp-card CSS
-  // scales typography up for the panel context.
-  tmp.innerHTML = renderCard(enriched, dateStr, fromHour, fromHour, true, { rich: true });
+  // dpVariant: rows 1–3 from the compact list card (name+duration / meta /
+  // v2 disruption pills) + the detailed timeline bar from the rich variant.
+  // No bottom fill bar.
+  tmp.innerHTML = renderCard(enriched, dateStr, fromHour, fromHour, true, { dpVariant: true });
   const newCard = tmp.firstElementChild;
   if (!newCard) return;
   newCard.classList.add('dp-card');
@@ -5216,7 +5226,12 @@ function _introCheckReady() {
     }
 
     // Returning visitors skip the intro animation. ?intro=1 forces a replay
-    // and clears the flag so the next plain reload re-shows it once.
+    // (clears the flag so the next plain reload re-shows it once). For dev
+    // testing, `replayIntro()` from the console clears the flag and reloads.
+    window.replayIntro = () => {
+      try { localStorage.removeItem('solsteder_intro_seen'); } catch (_) {}
+      location.search = location.search ? location.search + '&intro=1' : '?intro=1';
+    };
     const _forceIntro = new URLSearchParams(window.location.search).has('intro');
     if (_forceIntro) {
       try { localStorage.removeItem('solsteder_intro_seen'); } catch (_) {}

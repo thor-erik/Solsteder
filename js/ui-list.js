@@ -192,6 +192,9 @@ function _formatDurationFromMin(minutes) {
  */
 function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
   const rich = !!(opts && opts.rich);
+  // dpVariant = compact card structure (v2 pills, anchor meta) PLUS the rich
+  // timeline bar, MINUS the bottom fill bar. Used by the detail-panel card.
+  const dpVariant = !!(opts && opts.dpVariant);
   const dayHours = getVenueHoursForDay(v, dateStr);
 
   // renderList pre-computes these on its mapped venues; the detail-panel
@@ -253,7 +256,7 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
     ? findSunCrossingFromTable(currentSunTable, false) : null;
   let pills = [];
   if (qual && qual.surfaced) {
-    if (rich && typeof buildCardPills === 'function') {
+    if (rich && !dpVariant && typeof buildCardPills === 'function') {
       pills = buildCardPills(v, qual, fromHour, sundownH, dateStr);
     } else if (typeof buildCardPillsV2 === 'function') {
       // Detect whether the geometric sun would have continued past the venue's
@@ -292,30 +295,28 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
   // anchor column ("til 21:00" / "fra 14:00 · til 21:00"). Rich/detail cards
   // keep the meta as a single inline run so their layout doesn't shift.
   const bucket = (qual && qual.earliest && qual.earliest.start <= fromHour + 0.001) ? 'now' : 'later';
-  const anchorText = (!rich && qual && qual.surfaced && typeof formatAnchor === 'function')
+  // dpVariant uses compact's left+anchor meta layout (same as the list card).
+  const useCompactMeta = !rich || dpVariant;
+  const anchorText = (useCompactMeta && qual && qual.surfaced && typeof formatAnchor === 'function')
     ? formatAnchor(qual, bucket, sundownH) : '';
-  const metaHtml = rich
-    ? metaInner
-    : `<span class="card-meta-left">${metaInner}</span>${anchorText ? `<span class="card-anchor">${anchorText}</span>` : ''}`;
+  const metaHtml = useCompactMeta
+    ? `<span class="card-meta-left">${metaInner}</span>${anchorText ? `<span class="card-anchor">${anchorText}</span>` : ''}`
+    : metaInner;
 
-  // Rich variant builds the timeline canvas + labels row; compact skips
-  // them entirely and just inset-pads the pills row instead.
+  // Rich + dpVariant emit the detailed timeline. dpVariant skips the v2
+  // pill labels above the timeline (those duplicate the compact pills row).
   let timelineBlock = '';
-  if (rich) {
+  if (rich || dpVariant) {
     const miniTimeline = buildMiniSunTimeline(v, dateStr, fromHour);
     const tlMin = fromHour;
     const tlMax = sundownH ?? ((typeof MAX_H_ARC !== 'undefined') ? MAX_H_ARC : null);
-    const tlLabels = buildTimelineLabels(pills, fromHour, tlMin, tlMax);
+    const tlLabels = (!dpVariant) ? buildTimelineLabels(pills, fromHour, tlMin, tlMax) : '';
     timelineBlock = `<div class="card-timeline-block">${miniTimeline}${tlLabels}</div>`;
   }
 
-  // v2 fill bar (compact only): a single contiguous level-meter strip
-  // anchored to the card's bottom inset. Width = netSunMinutes / minutes
-  // (selectedTime → sundown). Gap visualization lives in disruption
-  // pills — the bar stays a clean horizontal indicator so it can't be
-  // misread as a buggy broken line.
+  // Fill bar: only in compact (list) cards. Suppressed in rich and dpVariant.
   let fillBarHtml = '';
-  if (!rich && qual && qual.surfaced && typeof fillBarFraction === 'function') {
+  if (!rich && !dpVariant && qual && qual.surfaced && typeof fillBarFraction === 'function') {
     const frac = fillBarFraction(qual, fromHour, sundownH);
     if (frac > 0) {
       fillBarHtml = `<div class="card-fillbar"><span class="card-fillbar-fill" style="width:${(frac * 100).toFixed(2)}%"></span></div>`;
@@ -372,7 +373,9 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
     </div>`;
   }
 
-  const variantCls = rich ? ' card-rich' : ' card-compact';
+  // dpVariant uses card-compact layout (3-row stack with anchor meta) but
+  // also gets the dp-card class added by _populateDpCardSlot for sizing.
+  const variantCls = (rich && !dpVariant) ? ' card-rich' : ' card-compact';
 
   // Conditional pill row — variable card heights. Cards without pills
   // collapse to row1 + meta + fill bar; cards with pills grow.
