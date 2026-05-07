@@ -26,8 +26,20 @@ let userLocation      = null;
 let filterFullSunActive = false;
 let filterMapViewActive = window.innerWidth >= 640; // desktop: viewport filter on; mobile: off (list shows all venues)
 let activeArea    = '';
-let activeSortBy  = 'score';
+let activeSortBy  = 'match';
 let _userPickedSort = false; // true once the user explicitly picks a sort — locks out auto-default
+
+// Venue list expansion. While in viewport mode (_expansionPages === 0) the
+// list is filtered to venues inside the map viewport. When the user pulls up
+// at the end of the list, _expansionPages is incremented and the next page
+// of venues from outside the viewport is appended; the map auto-fits to show
+// where they are. Reset to 0 whenever the user pans/zooms the map manually
+// or when sort/area/search/date/time changes.
+let _expansionPages   = 0;
+// Set to true around our own programmatic camera moves (auto-fit on
+// expansion, panToVenueCenter) so the moveend handler can distinguish
+// "user moved the map" (reset expansion) from "we moved the map" (don't).
+let _programmaticPan  = false;
 let activeIntent  = null;
 let panelVisible      = true;
 // Consolidated hover/raise state.
@@ -1405,6 +1417,7 @@ function setHoveredVenue(id) {
 function setAreaFilter(area) {
   _aTrack('filter_change', { filter: 'area', value: area });
   activeArea = area;
+  _expansionPages = 0;
   document.querySelectorAll('.area-chip').forEach(b =>
     b.classList.toggle('active', b.dataset.area === area));
   renderList();
@@ -1431,7 +1444,7 @@ function _isFarFromCluster() {
 // gets localized on first paint, even when the value is already 'score'.
 function _applyAutoDefaultSort() {
   if (_userPickedSort) return;
-  if (activeSortBy !== 'score') activeSortBy = 'score';
+  if (activeSortBy !== 'match') activeSortBy = 'match';
   if (typeof updateSortBtns === 'function') updateSortBtns();
 }
 
@@ -1469,6 +1482,7 @@ function toggleSortPanel() {
 function setSortBy(sort) {
   _aTrack('sort_change', { sort_by: sort });
   _userPickedSort = true;
+  _expansionPages = 0;
   if (sort === 'favorites' && !userLocation) {
     // Request location for distance-based ordering, but don't block — show favorites even without it
     navigator.geolocation.getCurrentPosition(
@@ -1507,9 +1521,9 @@ function updateSortBtns() {
   const distLabel = (activeSortBy === 'distance' && _isFarFromCluster())
     ? t('sort_distance_center')
     : t('sort_distance');
-  const labels = { score: t('sort_score'), distance: distLabel, beer: t('sort_beer'), favorites: t('sort_favorites') };
+  const labels = { match: t('sort_match'), score: t('sort_score'), distance: distLabel, beer: t('sort_beer'), favorites: t('sort_favorites') };
   const labelEl = document.getElementById('sort-label');
-  if (labelEl) labelEl.textContent = labels[activeSortBy] ?? t('sort_score');
+  if (labelEl) labelEl.textContent = labels[activeSortBy] ?? t('sort_match');
 }
 
 // ── Debounced time change analytics ──────────────────────────────────────────
@@ -3891,6 +3905,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // toggleMapView removed — viewport filter is always active
 
+// Auto-fit the map to a set of venues. Called after the user expands the
+// list (pulls up at the end / clicks "Vis flere"), so the visible bounding
+// box widens to include the freshly-added venues. The expanding rectangle
+// is the user-visible feedback that the search has gone wider — no inline
+// "searching wider" text needed.
+//
+// Suppressed when a venue is selected so we don't fight the detail-panel
+// zoom-in. The _programmaticPan guard tells the moveend handler this was
+// our move, not the user's, so the expansion isn't reset on the rebound.
+function _autoFitMap(rendered) {
+  if (selectedId != null) return;
+  if (!rendered || rendered.length === 0) return;
+  const first = rendered[0];
+  const bounds = new mapboxgl.LngLatBounds([first.lng, first.lat], [first.lng, first.lat]);
+  for (const v of rendered) bounds.extend([v.lng, v.lat]);
+  _programmaticPan = true;
+  map.fitBounds(bounds, { padding: 60, duration: 600, maxZoom: 15 });
+  // _programmaticPan is cleared by the moveend handler when our easeTo finishes.
+}
+
 // User dragging = navigating freely → revert to viewport filter
 map.on('dragstart', () => {
   _navMode = false;
@@ -3909,6 +3943,13 @@ map.on('movestart', (e) => {
 // Re-render list on map move when viewport filter is active
 let _aMapMoveTimer = null;
 map.on('moveend', () => {
+  // Programmatic moves (auto-fit on expansion, panToVenueCenter) just clear
+  // the guard and bail — they shouldn't reset the user's expansion state or
+  // re-render the list (which would itself rebound the camera).
+  if (_programmaticPan) {
+    _programmaticPan = false;
+    return;
+  }
   // Debounced analytics for map moves (5 s)
   clearTimeout(_aMapMoveTimer);
   _aMapMoveTimer = setTimeout(() => {
@@ -3918,6 +3959,10 @@ map.on('moveend', () => {
       center: [+(map.getCenter().lng.toFixed(4)), +(map.getCenter().lat.toFixed(4))],
     });
   }, 5000);
+
+  // User panned/zoomed — pull the list back to viewport mode so the new
+  // bounds drive what's listed.
+  _expansionPages = 0;
 
   if (!filterMapViewActive) return;
   const list = document.getElementById('venue-list');
@@ -3932,6 +3977,7 @@ datePicker.value = todayStr();
 timeFromEl.value = Math.min(23, Math.max(4, currentHour()));
 
 datePicker.addEventListener('change', () => {
+  _expansionPages = 0;
   if (datePicker.value !== todayStr() && nowMode) {
     nowMode = false;
     clearInterval(nowInterval); nowInterval = null;
@@ -3944,6 +3990,7 @@ datePicker.addEventListener('change', () => {
 
 let _lastSliderStep = null;
 timeFromEl.addEventListener('input', () => {
+  _expansionPages = 0;
   if (_timeAnimId) { cancelAnimationFrame(_timeAnimId); _timeAnimId = null; }
   if (nowMode) {
     nowMode = false;
@@ -4696,6 +4743,7 @@ let _searchDropdownTimer = null;
 let _aSearchTimer = null;
 _searchInput.addEventListener('input', () => {
   _syncSearchClearBtn();
+  _expansionPages = 0;
   _googleResults = [];  // clear Google results when query changes
   // Both renders are debounced. The dropdown gets a tiny 60 ms delay so a
   // burst of keystrokes collapses to one venue/area scan + diacritics pass;

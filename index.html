@@ -2035,6 +2035,45 @@
   body.list-scrubbing .venue-section-header { opacity: 0; }
   body.list-scrubbing .empty-section { opacity: 0; }
 
+  /* Pull-tab footer: appears at the end of the in-viewport list when there
+     are still venues outside the current expansion slice. Tap (desktop) or
+     drag-up past 60px (mobile) widens the search by one page. The
+     --pull-offset CSS var is set during the drag so the tab tracks the
+     finger; .ready toggles past threshold for a visual confirmation. */
+  #list-expand-tab {
+    --pull-offset: 0px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    margin: 12px 0 24px;
+    padding: 14px 12px;
+    background: rgba(255,175,133,0.08);
+    border: 1px dashed rgba(255,175,133,0.35);
+    border-radius: 14px;
+    color: var(--muted);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transform: translateY(calc(var(--pull-offset) * -0.4));
+    transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #list-expand-tab:hover,
+  #list-expand-tab.ready {
+    background: rgba(255,175,133,0.16);
+    border-color: rgba(255,175,133,0.6);
+    color: var(--accent);
+  }
+  #list-expand-tab .list-expand-chevron {
+    transition: transform 160ms ease;
+  }
+  #list-expand-tab.ready .list-expand-chevron {
+    transform: translateY(-2px);
+  }
+
   @keyframes cardIn {
     from { opacity: 0; }
     to   { opacity: 1; }
@@ -7962,7 +8001,8 @@
 
   <!-- Sort panel: fixed overlay, positioned by JS from button origin -->
   <div id="sort-panel" class="glass-panel">
-    <button class="sort-btn active" data-sort="score"     onclick="setSortBy('score')">Mest sol</button>
+    <button class="sort-btn active" data-sort="match"     onclick="setSortBy('match')">Beste treff</button>
+    <button class="sort-btn"        data-sort="score"     onclick="setSortBy('score')">Mest sol</button>
     <button class="sort-btn"        data-sort="distance"  onclick="setSortBy('distance')">Avstand</button>
     <button class="sort-btn"        data-sort="beer"      onclick="setSortBy('beer')">Ølpris</button>
     <button class="sort-btn"        data-sort="favorites" onclick="setSortBy('favorites')">Favoritter</button>

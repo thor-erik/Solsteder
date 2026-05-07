@@ -31,6 +31,27 @@ let _surfacedDateStr = null;
 // empty-all state, the next renderList pass bypasses the qualifying filter.
 let _showAllOnce = false;
 
+// Last rendered venue set — kept so the map auto-fit helper can compute
+// bounds from exactly what the user is looking at after an expansion step.
+let _lastRenderedVenues = [];
+// True when the surfaced set contains venues that aren't yet rendered
+// (because they're outside the current viewport / current expansion slice).
+// Drives whether the pull-tab footer is rendered after the last page.
+let _hasOutsideMore = false;
+
+// Haversine distance in km between two {lat, lng} points. Used by Beste
+// treff to apply a real-km penalty to the sun duration (1 km ≈ 20 min).
+function _haversineKm(a, b) {
+  const R = 6371;
+  const dLat = (b.lat - a.lat) * Math.PI / 180;
+  const dLng = (b.lng - a.lng) * Math.PI / 180;
+  const x = Math.sin(dLat / 2) ** 2
+          + Math.cos(a.lat * Math.PI / 180)
+          * Math.cos(b.lat * Math.PI / 180)
+          * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+}
+
 /**
  * Mini sun-timeline: a canvas drawn by the shared drawTimeline() renderer
  * (ui-shared.js). The actual paint is deferred to drawAllCardTimelines(),
@@ -516,18 +537,100 @@ function renderListPage(list, dateStr, fromHour, toHour, isPoint, reset) {
       if (entries[0].isIntersecting) renderListPage(list, dateStr, fromHour, toHour, isPoint, false);
     }, { root: list.closest('#panel'), rootMargin: '200px' });
     _listObserver.observe(document.getElementById('list-sentinel'));
+  } else if (_hasOutsideMore) {
+    // Reached the end of the in-viewport (or current expansion) slice but
+    // there are still venues outside it. Render a pull-tab footer that the
+    // user can drag up (mobile) or click (desktop) to widen the search.
+    // The map auto-zooms to the new bounds after expansion so the user can
+    // see where the freshly-added venues are.
+    list.insertAdjacentHTML('beforeend', `
+      <button id="list-expand-tab" type="button" onclick="_expandList()">
+        <svg class="list-expand-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M3.5 10L8 5.5L12.5 10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="list-expand-label">${t('list_expand_more')}</span>
+      </button>
+    `);
+    _wirePullTab(list);
   }
 }
 
 /**
- * One-shot escape hatch from the empty-all state. Bypasses the qualifying
- * filter for the next render so the user can see every open venue, then
- * re-enables filtering on the following pass.
+ * Empty-state CTA: the user clicks "Vis alle steder" when no venues are
+ * currently surfaced (rain everywhere, after sunset bypass). Force the
+ * list into fully-expanded mode so every venue appears regardless of
+ * viewport, and bypass the qualifying-window filter once so we genuinely
+ * show all venues. The map auto-fits to the assembled list afterward.
  */
 function showAllVenuesOnce() {
   _showAllOnce = true;
+  _expansionPages = 999; // effectively unlimited; sliced against actual outside set length
   if (typeof scheduleRenderList === 'function') scheduleRenderList();
   else if (typeof renderList === 'function') renderList();
+  if (typeof _autoFitMap === 'function') _autoFitMap(_lastRenderedVenues);
+}
+
+/**
+ * Pull-tab handler: widen the search by one page (~LIST_PAGE venues) outside
+ * the current viewport, then auto-fit the map so the new venues are visible.
+ * Called from the click handler on the pull-tab and from the drag-up touch
+ * gesture wired in _wirePullTab. The map auto-fit is what tells the user
+ * "the search just got wider" — no inline text needed.
+ */
+function _expandList() {
+  _expansionPages++;
+  if (typeof renderList === 'function') renderList();
+  if (typeof _autoFitMap === 'function') _autoFitMap(_lastRenderedVenues);
+}
+
+/**
+ * Wire the pull-tab footer for mobile drag-up gestures. The user can either
+ * tap the tab (handled by the inline onclick) or drag the list upward past
+ * a threshold once it's scrolled to the bottom — same idiom as native
+ * pull-to-refresh, just inverted (drag up at the bottom instead of down at
+ * the top). Below threshold cancels cleanly.
+ *
+ * Listeners are attached to the list element once and persist across
+ * re-renders; they no-op when no #list-expand-tab is present (i.e. when
+ * the list isn't at "end of in-viewport set" or expansion is exhausted).
+ */
+const _PULL_TAB_THRESHOLD = 60;
+let _pullTabWired = false;
+let _pullStartY   = null;
+let _pullDelta    = 0;
+function _wirePullTab(list /*, dateStr, fromHour, toHour, isPoint */) {
+  if (_pullTabWired) return;
+  _pullTabWired = true;
+  const onTouchStart = (e) => {
+    if (!document.getElementById('list-expand-tab')) return;
+    if (list.scrollTop + list.clientHeight < list.scrollHeight - 4) return;
+    _pullStartY = e.touches[0].clientY;
+    _pullDelta  = 0;
+  };
+  const onTouchMove = (e) => {
+    if (_pullStartY == null) return;
+    const tab = document.getElementById('list-expand-tab');
+    if (!tab) return;
+    _pullDelta = _pullStartY - e.touches[0].clientY;
+    if (_pullDelta > 0) {
+      tab.classList.toggle('ready', _pullDelta > _PULL_TAB_THRESHOLD);
+      tab.style.setProperty('--pull-offset', `${Math.min(_pullDelta, 100)}px`);
+    }
+  };
+  const onTouchEnd = () => {
+    const tab = document.getElementById('list-expand-tab');
+    if (tab) {
+      tab.classList.remove('ready');
+      tab.style.removeProperty('--pull-offset');
+    }
+    if (_pullDelta > _PULL_TAB_THRESHOLD) _expandList();
+    _pullStartY = null;
+    _pullDelta  = 0;
+  };
+  list.addEventListener('touchstart',  onTouchStart, { passive: true });
+  list.addEventListener('touchmove',   onTouchMove,  { passive: true });
+  list.addEventListener('touchend',    onTouchEnd,   { passive: true });
+  list.addEventListener('touchcancel', onTouchEnd,   { passive: true });
 }
 
 /**
@@ -588,17 +691,20 @@ function renderList() {
   if (activeArea) venues = venues.filter(v => v.area === activeArea);
   // Favorites filtering is handled by sortBy === 'favorites' below
 
+  // Compute the viewport bounds (with 20% pad) once. Used both to filter
+  // in viewport mode and to partition the surfaced set in expanded mode
+  // (so the next page of best-ranked venues outside the viewport can be
+  // appended). Skipped when filterMapViewActive is off (mobile pre-pan).
+  let _viewportBounds = null;
   if (filterMapViewActive) {
     // While a venue is selected, keep the list frozen at the pre-zoom viewport
     const bounds = (selectedId != null && _frozenBounds) ? _frozenBounds : map.getBounds();
-    // Pad bounds by 20% so venues just outside the viewport are included
     const sw = bounds.getSouthWest(), ne = bounds.getNorthEast();
     const dlat = (ne.lat - sw.lat) * 0.2, dlng = (ne.lng - sw.lng) * 0.2;
-    const padded = new mapboxgl.LngLatBounds(
+    _viewportBounds = new mapboxgl.LngLatBounds(
       [sw.lng - dlng, sw.lat - dlat],
       [ne.lng + dlng, ne.lat + dlat]
     );
-    venues = venues.filter(v => padded.contains([v.lng, v.lat]));
   }
 
   // ── Now compute sun windows + score on the narrowed set ───────────────────
@@ -625,6 +731,11 @@ function renderList() {
     }
     return _wxCache.get(hb);
   };
+  // Distance reference for the "Beste treff" relevance score: real GPS when
+  // available, else fall back to the venue cluster center so ordering still
+  // means something city-wide.
+  const _matchRef = userLocation
+    || ((typeof VENUE_CLUSTER !== 'undefined' && VENUE_CLUSTER.center) || null);
   venues = venues.map(v => {
     const sunInWin = venueHasSunInRange(v, dateStr, fromHour, toHour);
     const { open, close } = getVenueHoursForDay(v, dateStr);
@@ -645,9 +756,18 @@ function renderList() {
           prevSurfaced: _surfacedSet.has(v.id),
         })
       : { windows: [], earliest: null, surfaced: false };
+    // Beste treff blends sun and walk distance: each km costs 20 minutes of
+    // sun. A 90-min sun venue 3 km away (effective 30) loses to a 70-min
+    // venue across the street; a 30-min venue at 200m loses to a 70-min
+    // venue at 1km (effective 50).
+    const _qualDurMin = qual.earliest?.durationMin ?? 0;
+    const _distKm = (score && score.distKm != null)
+      ? score.distKm
+      : (_matchRef ? _haversineKm(_matchRef, v) : 0);
+    const _relevanceMin = _qualDurMin - _distKm * 20;
     // Pass raw windows through to renderCard so the v2 pill builder can
     // detect Åpner/Stenger binding-hours pills without recomputing.
-    return { ...v, sunInWin, isOpen, isOpeningSoon, isClosingSoon, score, _qual: qual, _rawWindows: rawWins };
+    return { ...v, sunInWin, isOpen, isOpeningSoon, isClosingSoon, score, _qual: qual, _rawWindows: rawWins, _relevanceMin };
   });
 
   // Surfacing filter — qualifying windows + own-suggestion bypass + the
@@ -669,6 +789,32 @@ function renderList() {
     const dur = v._qual.earliest?.durationMin ?? 0;
     if (v._qual.surfaced && dur >= 45) _surfacedSet.add(v.id);
     else if (!v._qual.surfaced || dur < 40) _surfacedSet.delete(v.id);
+  }
+
+  // Two-mode pipeline. Viewport mode: list is just venues inside the map
+  // viewport. Expanded mode: list keeps in-viewport venues + the next N
+  // pages of best-ranked venues from outside the viewport (pull-tab driven).
+  // _hasOutsideMore flags whether there are still more outside venues to
+  // surface, controlling whether the pull-tab footer renders.
+  _hasOutsideMore = false;
+  if (_viewportBounds) {
+    const _inV  = venues.filter(v => _viewportBounds.contains([v.lng, v.lat]));
+    const _outV = venues.filter(v => !_viewportBounds.contains([v.lng, v.lat]));
+    if (_expansionPages === 0) {
+      venues = _inV;
+      _hasOutsideMore = _outV.length > 0;
+    } else {
+      // Pre-rank outside venues by relevance so the "best next" come first.
+      // Per-bucket sort below will reorder them into Sol nå / Sol senere as
+      // appropriate, but this pre-sort decides which slice gets included.
+      _outV.sort((a, b) => {
+        const ra = a._relevanceMin ?? 0, rb = b._relevanceMin ?? 0;
+        return rb - ra;
+      });
+      const take = _expansionPages * LIST_PAGE;
+      venues = [..._inV, ..._outV.slice(0, take)];
+      _hasOutsideMore = _outV.length > take;
+    }
   }
 
   // Closed venues always sink below open ones regardless of sort mode
@@ -739,17 +885,25 @@ function renderList() {
     }
     return 0;
   };
-  // Per-bucket sort for the default "Mest sol" path. The label means what
-  // it says — duration descending — so the longest current sun-window lands
-  // at the top of Sol nå. Distance breaks ties (closer wins). Sol senere
-  // sorts by window-start ascending so the next-to-arrive sun is at the
-  // top. Explicit sort modes (distance/favorites/beer) keep their global
-  // comparator.
-  if (sortBy === 'score') {
+  // Per-bucket sort for both default paths.
+  //   "Mest sol" (score): pure sun duration — longest qualifying window
+  //     wins, distance is a tiebreaker only. Sol senere sorts by window
+  //     start so the next-to-arrive sun is at the top.
+  //   "Beste treff" (match): blends sun duration with a 20-min/km distance
+  //     penalty. In Sol senere, start-time is still primary (the next sun
+  //     to arrive is the dominant question for that bucket); relevance
+  //     breaks the tie within equal start times.
+  // Other sort modes (distance/favorites/beer) keep the global comparator.
+  if (sortBy === 'score' || sortBy === 'match') {
     const startOf = (v) => v._qual?.earliest?.start ?? 24;
+    const rel     = (v) => v._relevanceMin ?? 0;
     const compareNow = (a, b) => {
       const cp = closedPenalty(a) - closedPenalty(b);
       if (cp !== 0) return cp;
+      if (sortBy === 'match') {
+        if (rel(a) !== rel(b)) return rel(b) - rel(a);
+        return qualDur(b) - qualDur(a);
+      }
       if (qualDur(a) !== qualDur(b)) return qualDur(b) - qualDur(a);
       if (distRef) {
         const da = distOf(a), db = distOf(b);
@@ -762,6 +916,10 @@ function renderList() {
       if (cp !== 0) return cp;
       const sa = startOf(a), sb = startOf(b);
       if (sa !== sb) return sa - sb;
+      if (sortBy === 'match') {
+        if (rel(a) !== rel(b)) return rel(b) - rel(a);
+        return qualDur(b) - qualDur(a);
+      }
       if (qualDur(a) !== qualDur(b)) return qualDur(b) - qualDur(a);
       if (distRef) {
         const da = distOf(a), db = distOf(b);
@@ -878,6 +1036,7 @@ function renderList() {
 
   // ── Render first page, observer handles the rest ──────────────────────────
   _listFiltered = venues;
+  _lastRenderedVenues = venues;   // used by _autoFitMap on the next expansion
   _listBuckets = { now: bucketNow, later: bucketLater };
   renderListPage(list, dateStr, fromHour, toHour, isPoint, true);
 
