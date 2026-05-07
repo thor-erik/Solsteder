@@ -344,15 +344,9 @@ function initFts() {
     new ResizeObserver(() => drawFtsCanvas()).observe(canvas);
   }
 
-  // The floating time label sits at fts-track's offsetLeft + thumb fraction.
-  // When the track's left margin animates (DP opens/closes — date pill slides
-  // in/out, locate-me appears/disappears), recompute the label position so
-  // it doesn't strand at the previous track origin.
-  track.addEventListener('transitionend', (e) => {
-    if (e.propertyName === 'margin-left' && timeFromEl) {
-      showFtsPopup(parseFloat(timeFromEl.value));
-    }
-  });
+  // The popup is a child of #fts-track and positioned with `left: X%`,
+  // so it follows the track natively when the track's margin-left or
+  // bottom transitions — no transitionend reposition is needed.
 
   // Wire date chip tap directly (onclick can be unreliable on mobile in some edge cases)
   const calBtn = document.getElementById('header-date-chip');
@@ -386,7 +380,9 @@ function initFts() {
     showFtsPopup(hour);
   };
 
-  // Pointer down — start drag; close calendar picker if open
+  // Pointer down — start drag; close calendar picker if open. The popup
+  // morphs from compact (just the time) into the expanded weather card
+  // for the duration of the drag, then collapses back on release.
   track.addEventListener('pointerdown', e => {
     e.preventDefault();
     if (_qcActiveSection) _closeQcPanel();
@@ -394,6 +390,7 @@ function initFts() {
     track.setPointerCapture(e.pointerId);
     window._qcThumbActive = true;
     setTimeFromPointer(e.clientX);
+    setFtsPopupExpanded(true);
   });
 
   // Pointer move — drag scrub
@@ -409,6 +406,7 @@ function initFts() {
     window._qcThumbActive = false;
     drawFtsCanvas();
     _qcSpringBackFts();
+    setFtsPopupExpanded(false);
     scheduleFtsPopupHide();
   });
 
@@ -417,6 +415,7 @@ function initFts() {
     _ftsDragging = false;
     window._qcThumbActive = false;
     drawFtsCanvas();
+    setFtsPopupExpanded(false);
     hideFtsPopup();
   });
 
@@ -633,31 +632,67 @@ function updateHeaderWxChip(hour) {
 }
 
 /** Show the floating time label above the FTS thumb. Always visible while
- *  FTS is up — strictly a position+text update, no hide animation. */
+ *  FTS is up — strictly a position+text update, no hide animation. The
+ *  popup has two visual states (compact ↔ expanded with weather), toggled
+ *  by `setFtsPopupExpanded`. Both states share the same horizontal anchor,
+ *  so this just keeps the centerline locked to the thumb. */
 function showFtsPopup(hour) {
-  const popup  = document.getElementById('fts-popup');
-  const timeEl = document.getElementById('fts-popup-time');
+  const popup    = document.getElementById('fts-popup');
+  const timeEl   = document.getElementById('fts-popup-time');
+  const wxIconEl = document.getElementById('fts-popup-wx-icon');
+  const tempEl   = document.getElementById('fts-popup-temp');
+  const windEl   = document.getElementById('fts-popup-wind');
   if (!popup || !timeEl) return;
 
   if (_ftsHideTimeout) { clearTimeout(_ftsHideTimeout); _ftsHideTimeout = null; }
 
   timeEl.textContent = formatHour(hour);
 
-  // Position label horizontally centered on thumb
-  const ftsEl    = document.getElementById('fts');
-  const trackEl  = document.getElementById('fts-track');
-  if (ftsEl && trackEl) {
-    const trackLeft = trackEl.offsetLeft;
-    const trackW    = trackEl.offsetWidth;
-    const MIN_H     = MIN_H_ARC, MAX_H = MAX_H_ARC;
-    const thumbX    = trackLeft + (hour - MIN_H) / (MAX_H - MIN_H) * trackW;
-    const ftsW      = ftsEl.offsetWidth;
-    const popupW    = popup.offsetWidth || 36;
-    const left      = Math.max(popupW / 2 + 4, Math.min(ftsW - popupW / 2 - 4, thumbX));
-    popup.style.left = left + 'px';
+  // Weather: keep the secondary row populated even while it's collapsed, so
+  // when the user starts dragging and the popup expands, the values are
+  // already in place (no flash of empty content).
+  const dateStr = (typeof datePicker !== 'undefined' && datePicker) ? datePicker.value : null;
+  if (dateStr && typeof getWeatherAt === 'function') {
+    const wx = getWeatherAt(dateStr, hour);
+    if (wx) {
+      const rain = (wx.precip ?? wx.prec ?? 0) > 0.3;
+      const cf   = wx.cloud ?? 0;
+      if (wxIconEl) wxIconEl.textContent = rain ? '🌧' : (typeof skyIcon === 'function' ? skyIcon(cf) : '☀️');
+      if (tempEl)   tempEl.textContent = wx.temp != null ? Math.round(wx.temp) + '°' : '';
+      if (windEl)   windEl.textContent = wx.wspd != null ? Math.round(wx.wspd) + ' m/s' : '';
+    } else {
+      if (wxIconEl) wxIconEl.textContent = '';
+      if (tempEl)   tempEl.textContent = '';
+      if (windEl)   windEl.textContent = '';
+    }
   }
 
+  // Position the popup centered on the thumb. The popup lives inside
+  // #fts-track so all we need is the thumb's percent along the track —
+  // when the track animates (margin-left, panel-state bottom transition,
+  // FTS width change), the popup follows natively because it's a child.
+  // Clamp to keep the popup edges inside the track so it doesn't extend
+  // off-screen near the day's start/end.
+  const MIN_H = MIN_H_ARC, MAX_H = MAX_H_ARC;
+  const trackEl = document.getElementById('fts-track');
+  const trackW  = trackEl?.offsetWidth || 300;
+  const popupW  = popup.offsetWidth || 60;
+  const halfPct = Math.min(45, (popupW / 2 + 4) / trackW * 100);
+  const rawPct  = (hour - MIN_H) / (MAX_H - MIN_H) * 100;
+  const pct     = Math.max(halfPct, Math.min(100 - halfPct, rawPct));
+  popup.style.left = pct + '%';
+
   popup.classList.add('visible');
+}
+
+/** Toggle the popup's expanded (weather) state. The morph happens via CSS
+ *  transitions on padding/border-radius/secondary-row max-height. The
+ *  popup's `left` is a percent of the track, so the centerline stays
+ *  locked on the thumb regardless of the new width. */
+function setFtsPopupExpanded(expanded) {
+  const popup = document.getElementById('fts-popup');
+  if (!popup) return;
+  popup.classList.toggle('fts-popup-expanded', !!expanded);
 }
 
 /** Hide the floating time label. (Retained for API compatibility — the label
@@ -1455,6 +1490,32 @@ function toggleSortPanel() {
   const btn   = document.getElementById('sort-toggle-btn');
   if (!panel || !btn) return;
   if (panel.classList.contains('open')) { _closeSortPanel(); return; }
+
+  // Sort button is now always visible — including peek mode. Tapping it from
+  // peek expands the list panel first so the dropdown anchors on a stable
+  // button position (the panel-state transition would otherwise drag the
+  // anchor mid-animation). Defer the open by one transition tick.
+  const listPanel = document.getElementById('panel');
+  const inPeek = listPanel
+    && !listPanel.classList.contains('mobile-expanded')
+    && !listPanel.classList.contains('mobile-fullscreen')
+    && !listPanel.classList.contains('mobile-hidden');
+  if (inPeek) {
+    listPanel.classList.add('mobile-expanded');
+    if (typeof _syncFtsPosition === 'function') _syncFtsPosition();
+    // Wait for the panel transition (0.34s) to settle so the dropdown
+    // anchors at the new button position.
+    setTimeout(() => _openSortPanelNow(), 360);
+    return;
+  }
+  _openSortPanelNow();
+}
+
+function _openSortPanelNow() {
+  const panel = document.getElementById('sort-panel');
+  const btn   = document.getElementById('sort-toggle-btn');
+  if (!panel || !btn) return;
+  if (panel.classList.contains('open')) return;
   _navPush('sort');
   panel.classList.add('open');
   btn.classList.add('open');
