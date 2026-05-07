@@ -5364,37 +5364,32 @@ function _runIntroSequence() {
         animateToTime(now, PHASE1_MS + PHASE2_MS);
         map.easeTo({ zoom: 16, pitch: 65, duration: PHASE1_MS, easing });
 
-        // Phase 2 (after Phase 1): settle to default zoom/tilt, fade in UI,
-        // panel arrives in PEEK
+        // Phase 2 (after Phase 1): settle to default zoom/tilt, panel
+        // arrives in PEEK, UI slides/fades in. Map stays geo-centered
+        // (no bottom padding yet) — geo dot is in viewport center.
         setTimeout(() => {
           if (_introSeqId !== seqId) return;
           const isMobileEnd = window.innerWidth < 640;
-          const easeOpts = {
+          map.easeTo({
             center: _introCenter,
             zoom: 15.2,
             pitch: 15,
             bearing: 0,
             duration: PHASE2_MS,
             easing,
-          };
-          if (isMobileEnd) {
-            // Bias center upward by half the eventual expanded-panel height so
-            // the user's dot stays in the visible map area through Phase 3.
-            easeOpts.padding = { bottom: Math.round(window.innerHeight * 0.50), top: 0, left: 0, right: 0 };
-          }
-          map.easeTo(easeOpts);
+          });
           _introRevealUI(search, brand, qcWrap, panel);
 
-          // Phase 3: brief pause in peek, then slide list to expanded
+          // Phase 3: pause in peek, then panel slides peek → expanded.
+          // _syncFtsPosition's built-in _maybePanMapForPanelState handles
+          // the map pan so the geo dot rises into the visible area.
           setTimeout(() => {
             if (_introSeqId !== seqId) return;
             if (panel && isMobileEnd) {
               panel.classList.add('mobile-expanded');
-              _prevPanelMobileState = 'expanded';
               _syncFtsPosition();
             }
 
-            // Wrap-up: notifications back online, mark intro seen
             setTimeout(() => {
               if (_introSeqId !== seqId) return;
               if (_sharedHour === null && !_autoAdvancedAfterSunset) _activateNowMode();
@@ -5417,10 +5412,22 @@ function _introRevealUI(search, brand, qcWrap, panel, opts) {
   const zoomJog     = document.getElementById('zoom-jog');
   const isMobile    = window.innerWidth < 640;
 
-  const fadeEls = [search, brand, qcWrap, locateBtn, zoomJog];
-  if (!isMobile && panel) fadeEls.push(panel);
+  // Search bar slides DOWN from above the viewport — matches the bottom
+  // panel sliding UP from below. Same easing curve so they feel like a
+  // pair.
+  if (search) {
+    search.style.transition = 'none';
+    search.style.opacity = '1';
+    search.style.transform = 'translateY(-72px)';
+    search.classList.remove('intro-hidden');
+    search.getBoundingClientRect();  // commit start frame
+    search.style.transition = 'transform 0.45s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.4s ease';
+    search.style.transform = '';
+    setTimeout(() => { if (search) search.style.transition = ''; }, 500);
+  }
 
-  fadeEls.forEach(el => {
+  // Brand + qc-wrap fade in (kept simple — they're decorative chrome).
+  [brand, qcWrap].forEach(el => {
     if (!el) return;
     el.style.transition = 'opacity 0.5s ease';
     requestAnimationFrame(() => {
@@ -5429,18 +5436,37 @@ function _introRevealUI(search, brand, qcWrap, panel, opts) {
     });
   });
 
+  // Locate-me + zoom-jog: fade in (their bottom is already CSS-anchored to
+  // the panel/FTS, no transform needed).
+  [locateBtn, zoomJog].forEach(el => {
+    if (!el) return;
+    el.style.transition = 'opacity 0.5s ease';
+    requestAnimationFrame(() => {
+      el.classList.remove('intro-hidden');
+      setTimeout(() => { el.style.transition = ''; }, 600);
+    });
+  });
+
+  if (!isMobile && panel) {
+    panel.style.transition = 'opacity 0.5s ease';
+    requestAnimationFrame(() => {
+      panel.classList.remove('intro-hidden');
+      setTimeout(() => { panel.style.transition = ''; }, 600);
+    });
+  }
+
   if (panel && isMobile) {
-    // Mobile: slide up from off-screen → PEEK state. Phase 3 of the intro
-    // adds .mobile-expanded shortly after, animating peek → expanded.
+    // Slide up from off-screen → PEEK. Phase 3 adds .mobile-expanded
+    // shortly after, animating peek → expanded.
     panel.style.transition = 'none';
     panel.style.opacity    = '1';
     panel.style.transform  = 'translateY(100%)';
     panel.classList.remove('intro-hidden');
     _prevPanelMobileState = 'peek';
     _updatePeekHeight();
-    panel.getBoundingClientRect();  // force reflow — commit start frame
+    panel.getBoundingClientRect();
     panel.style.transition = 'transform 0.45s cubic-bezier(0.2, 0.8, 0.3, 1)';
-    panel.style.transform  = '';    // CSS rule lands the panel at peek
+    panel.style.transform  = '';  // CSS rule lands the panel at peek
   }
 
   if (USE_FLOATING_TIME_SLIDER && !(opts && opts.skipFts)) {
@@ -5456,18 +5482,20 @@ function _introRevealUI(search, brand, qcWrap, panel, opts) {
   }
 }
 
-/** Short cinematic for returning visitors. ~1.5s total. Phases:
- *    0 (instant): map at user location, default tilt (15°), zoom 14.5,
- *                 splash hidden, all UI still hidden.
- *    1 (450ms):   zoom 14.5 → 15.2, pins fade in.
- *    2 (300ms):   UI fades in — panel slides up to PEEK.
- *    3 (350ms):   panel peek → expanded.
+/** Short cinematic for returning visitors. Phases:
+ *    0 (instant):  map at user location CENTERED (no padding), default
+ *                  tilt (15°), zoom 14.5, all UI hidden, splash gone.
+ *    1 (800ms):    zoom 14.5 → 15.2 (cubic ease-out, geo stays centered).
+ *                  Pins fade in concurrently.
+ *    2 (~300ms):   UI slides in — search from top, panel up to PEEK.
+ *    3 (~900ms):   panel peek → expanded. Map ALSO eases with bottom
+ *                  padding so the geo dot floats up into the visible
+ *                  map area above the panel.
  *
- *  Same end state as _runIntroSequence (panel in expanded, map at default
- *  zoom/tilt) but without the dramatic 65° tilt-and-back establishing shot. */
+ *  All sub-animations use the same cubic ease-out for cinematic flow. */
 function _skipIntro(seqId) {
   if (seqId !== undefined && _introSeqId !== seqId) return;
-  const localSeq = ++_introSeqId; // invalidate any pending intro callbacks
+  const localSeq = ++_introSeqId;
 
   const splash = document.getElementById('splash');
   const canvas = document.getElementById('canvas-overlay');
@@ -5479,10 +5507,8 @@ function _skipIntro(seqId) {
   const loader = document.getElementById('splash-loader');
   const isMobileSkip = window.innerWidth < 640;
 
-  // Cancel any in-flight time animation
   if (_timeAnimId) { cancelAnimationFrame(_timeAnimId); _timeAnimId = null; }
 
-  // Set time + activate now-mode (same logic as before)
   if (_sharedHour !== null) {
     timeFromEl.value = _sharedHour;
   } else if (datePicker.value === todayStr()) {
@@ -5491,59 +5517,62 @@ function _skipIntro(seqId) {
   }
   update();
 
-  // Phase 0 — instant: map at user location, default tilt, zoom 14.5, no UI
+  // Phase 0 — instant: map at user location, default tilt, zoom 14.5
   map.stop();
   map.jumpTo({ center: _introCenter, zoom: 14.5, pitch: 15, bearing: 0 });
 
-  // Hide splash instantly
+  // Hide splash instantly (same as before)
   splash.style.transition = 'none';
   splash.classList.add('bg-out', 'done');
   if (splashLogo) { splashLogo.style.transition = 'none'; splashLogo.classList.add('fade-out'); }
   if (loader)     { loader.style.transition = 'none'; loader.classList.add('fade-out'); }
 
-  // Phase 1 — zoom in to default + reveal pins (450ms)
-  const easing = t => t * t * (3 - 2 * t);
+  // Cubic ease-out — slows toward the end, the cinematic feel users expect
+  // from settling shots in films / map apps.
+  const easeOut = t => 1 - Math.pow(1 - t, 3);
+
+  // Phase 1 (800ms): zoom in to default. NO padding — geo dot stays at
+  // viewport center until the panel slides up in Phase 3.
   map.easeTo({
     center: _introCenter,
     zoom: 15.2,
     pitch: 15,
     bearing: 0,
-    duration: 450,
-    easing,
-    padding: isMobileSkip
-      ? { bottom: Math.round(window.innerHeight * 0.50), top: 0, left: 0, right: 0 }
-      : undefined,
+    duration: 800,
+    easing: easeOut,
   });
-  // Pins canvas fades in synchronously with the zoom
   if (canvas) {
-    canvas.style.transition = 'opacity 0.4s ease';
+    canvas.style.transition = 'opacity 0.55s ease';
     canvas.classList.remove('intro-hidden');
   }
 
-  // Phase 2 — UI fade-in + panel slides up to PEEK (300ms after zoom starts)
+  // Phase 2 (start at 350ms, overlap with zoom): UI slide-in + panel to peek
   setTimeout(() => {
     if (_introSeqId !== localSeq) return;
     _introRevealUI(search, brand, qcWrap, panel);
-  }, 300);
+  }, 350);
 
-  // Phase 3 — panel peek → expanded (after UI settles)
+  // Phase 3 (start at 950ms): panel peek → expanded. _syncFtsPosition's
+  // built-in _maybePanMapForPanelState handles the map pan so the geo dot
+  // rises out from under the panel — same logic the panel drag uses.
   setTimeout(() => {
     if (_introSeqId !== localSeq) return;
     if (panel && isMobileSkip) {
       panel.classList.add('mobile-expanded');
-      _prevPanelMobileState = 'expanded';
+      // Important: leave _prevPanelMobileState as 'peek' (set in
+      // _introRevealUI) so _syncFtsPosition sees a peek → expanded
+      // transition and triggers the map pan.
       _syncFtsPosition();
     }
-  }, 900);
+  }, 950);
 
-  // Wrap-up after Phase 3 settles
+  // Wrap-up
   setTimeout(() => {
     if (_introSeqId !== localSeq) return;
     if (_sharedVenueId) selectVenue(_sharedVenueId, true);
     if (typeof _notifInit === 'function') _notifInit();
-  }, 1300);
+  }, 1400);
 
-  // Safety net for the invite-loading map gate
   if (document.documentElement.classList.contains('invite-loading')) {
     setTimeout(() => {
       document.documentElement.classList.remove('invite-loading');

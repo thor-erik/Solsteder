@@ -3037,12 +3037,14 @@
     #panel-toggle-icon { display: none; }
 
     /* FTS: mobile full-width minus space for locate-btn at right end.
-       When the detail panel is open, locate-me is hidden, so FTS expands. */
+       When the detail panel is open, locate-me is hidden, so FTS expands.
+       Bottom transition matches the panel's transform transition (0.34s)
+       so the slider follows the sheet smoothly through state changes. */
     body.fts #fts {
       left: 12px; right: calc(12px + 34px + 8px);  /* locate-btn (34) + gap (8) */
       width: auto;
       bottom: var(--fts-bottom, 160px);
-      transition: bottom 0.22s cubic-bezier(0.25, 0.9, 0.4, 1), right 0.22s ease;
+      transition: bottom 0.34s cubic-bezier(0.25, 0.9, 0.4, 1), right 0.22s ease;
       will-change: bottom;
       padding: 0;
       gap: 8px;
@@ -3053,14 +3055,15 @@
 
 
     /* Locate button: sits at right end of FTS row (vertically aligned).
-       Without FTS (no body.fts class), pin above peek strip. */
+       Bottom transition matches panel + FTS so it follows the sheet
+       through state changes instead of snapping to the new position. */
     #locate-btn { bottom: calc(var(--peek-h, 252px) + 14px); right: 12px; }
-    body.fts #locate-btn { bottom: var(--fts-bottom, 160px); right: 12px; transition: bottom 0.22s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease; }
+    body.fts #locate-btn { bottom: var(--fts-bottom, 160px); right: 12px; transition: bottom 0.34s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease; }
 
     /* Zoom jog: sits above locate-btn on mobile (10px gap) */
     #zoom-jog { right: 12px; }
     #zoom-jog { bottom: calc(var(--peek-h, 252px) + 14px + 34px + 10px); }
-    body.fts #zoom-jog { bottom: calc(var(--fts-bottom, 160px) + 34px + 10px); transition: bottom 0.22s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease; }
+    body.fts #zoom-jog { bottom: calc(var(--fts-bottom, 160px) + 34px + 10px); transition: bottom 0.34s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease; }
 
     /* Handle: grabber pill only — chevron retired (venue peek carries swipe-up signal) */
     #panel-handle {
