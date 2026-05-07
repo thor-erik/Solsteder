@@ -104,6 +104,68 @@ function _notifAdvance() {
 
 // ── Toast UI ──────────────────────────────────────────��──────────────────────
 
+/** Wire swipe-to-dismiss on the toast. Swipes up, left, or right past
+ *  SWIPE_THRESHOLD trigger dismissal; below that the toast snaps back. Idempotent
+ *  per element — re-binding clears prior listeners. */
+function _wireNotifSwipe(el, notif) {
+  if (el._swipeWired) return;
+  el._swipeWired = true;
+  const SWIPE_THRESHOLD = 60;
+  let startX = 0, startY = 0, dragging = false;
+  el.addEventListener('touchstart', (e) => {
+    const t = e.touches[0];
+    startX = t.clientX;
+    startY = t.clientY;
+    dragging = true;
+    el.classList.add('notif-dragging');
+  }, { passive: true });
+  el.addEventListener('touchmove', (e) => {
+    if (!dragging) return;
+    const t = e.touches[0];
+    const dx = t.clientX - startX;
+    const dy = Math.min(0, t.clientY - startY); // ignore downward
+    el.style.transform = `translate(${dx}px, ${dy}px)`;
+    const dist = Math.max(Math.abs(dx), Math.abs(dy));
+    el.style.opacity = String(Math.max(0.3, 1 - dist / 180));
+  }, { passive: true });
+  const finish = (e) => {
+    if (!dragging) return;
+    dragging = false;
+    el.classList.remove('notif-dragging');
+    const t = e.changedTouches?.[0];
+    if (!t) { el.style.transform = ''; el.style.opacity = ''; return; }
+    const dx = t.clientX - startX;
+    const dy = t.clientY - startY;
+    const horizontal = Math.abs(dx) > SWIPE_THRESHOLD;
+    const upward = dy < -SWIPE_THRESHOLD;
+    if (horizontal || upward) {
+      // Commit dismiss with a fly-out
+      el.classList.add('notif-dismissing');
+      const tx = horizontal ? (dx > 0 ? '120%' : '-120%') : '0';
+      const ty = upward ? '-120%' : '0';
+      el.style.transform = `translate(${tx}, ${ty})`;
+      el.style.opacity = '0';
+      if (typeof _aTrack === 'function') _aTrack('notification_dismiss', {
+        id: notif.id, priority: notif.priority, category: notif.category, method: 'swipe',
+      });
+      setTimeout(() => {
+        el.classList.remove('notif-dismissing');
+        el.style.transform = '';
+        el.style.opacity = '';
+        _notifDismiss(notif.id);
+      }, 220);
+    } else {
+      // Snap back
+      el.style.transition = 'transform 0.18s ease-out, opacity 0.18s ease-out';
+      el.style.transform = '';
+      el.style.opacity = '';
+      setTimeout(() => { el.style.transition = ''; }, 200);
+    }
+  };
+  el.addEventListener('touchend', finish, { passive: true });
+  el.addEventListener('touchcancel', finish, { passive: true });
+}
+
 function _notifEnsureEl() {
   let el = document.getElementById('notif-toast');
   if (el) return el;
@@ -170,6 +232,11 @@ function _notifShow(notif) {
       _notifHide();
     }
   };
+
+  // Swipe-to-dismiss: up / left / right past 60px commits a dismiss with
+  // a fly-out animation. Below threshold the toast snaps back. Vertical
+  // down does nothing (don't conflict with native pull-to-refresh).
+  _wireNotifSwipe(el, notif);
 
   const wrap = document.getElementById('notif-toast-wrap');
   if (wrap) {

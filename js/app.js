@@ -2014,11 +2014,15 @@ function _updatePeekHeight() {
   const peek      = document.getElementById('venue-peek');
   if (!panel || !handle) return;
   const ssbH = (ssbBar && !ssbBar.classList.contains('ssb-empty')) ? ssbBar.offsetHeight : 0;
+  // Floor venue-peek at its CSS max-height (92px) so the panel always
+  // reserves space for the first card preview, even on the initial pass
+  // before venue-peek has been populated.
+  const peekH = peek ? Math.max(peek.offsetHeight, 92) : 0;
   const h = handle.offsetHeight
           + (sunHeader ? sunHeader.offsetHeight : 0)
           + ssbH
-          + (peek ? peek.offsetHeight : 0);
-  panel.style.setProperty('--peek-h', Math.max(h, 100) + 'px');
+          + peekH;
+  panel.style.setProperty('--peek-h', Math.max(h, 180) + 'px');
   _syncFtsPosition();
 }
 
@@ -3242,10 +3246,20 @@ document.addEventListener('DOMContentLoaded', () => {
       let _dragInitH = 0; // panel height at drag start (px)
       let _dragRafId = null;
 
-      let _ftsAnchorBottom = 0;  // FTS bottom (px) at drag start — used as
-                                  // a clamp so the slider lingers at its
-                                  // anchor instead of jumping when the panel
-                                  // is far above the slider's natural rest.
+      // Upper bound for the FTS during a drag — the slider should never go
+      // higher than its fullscreen rest (just below the chip row). Below
+      // that ceiling, FTS follows the panel top + FTS_GAP normally.
+      function _ftsCeilingBottom() {
+        // Mirror _ftsHostBottom's fullscreen calc:
+        //   100svh - safe-area - 34 (handle) - 50 (chip row) - 8 (gap) - 34 (FTS)
+        // Approximate safe-area as the env value applied to the body. We
+        // read it via a CSS var or fall back to 0.
+        const safeTop = parseInt(
+          getComputedStyle(document.body).getPropertyValue('--safe-area-top')
+        ) || 0;
+        return window.innerHeight - safeTop - 34 - 50 - 8 - 34;
+      }
+
       function _beginDrag(y) {
         if (_dragActive) return; // already initiated by a child element
         _dragY0         = y;
@@ -3254,16 +3268,6 @@ document.addEventListener('DOMContentLoaded', () => {
         _dragStartState = _currentState();
         _dragStartTime  = Date.now();
         _dragInitH      = panelEl.offsetHeight;
-        // Snapshot the FTS's current `bottom` so _trackDrag can keep it
-        // pinned there whenever the panel-driven position would push it
-        // higher than its anchor.
-        const _ftsForSnap = document.getElementById('fts');
-        if (_ftsForSnap) {
-          const cs = getComputedStyle(_ftsForSnap);
-          _ftsAnchorBottom = parseFloat(cs.bottom) || 0;
-        } else {
-          _ftsAnchorBottom = 0;
-        }
         panelEl.style.transition = 'none';
         panelEl.classList.add('panel-dragging');
       }
@@ -3288,19 +3292,30 @@ document.addEventListener('DOMContentLoaded', () => {
             panelEl.style.height = '';
           }
 
-          // Track pill with panel during drag, clamped to the start-state
-          // anchor so it lingers in place when the panel is dragged from
-          // fullscreen toward peek (and only follows once the panel descends
-          // past the anchor's natural rest).
+          // Track pill with panel during drag. FTS sits at panel-top + GAP,
+          // capped at its fullscreen ceiling (just below the chip row). This
+          // makes it linger when dragging from fullscreen toward peek (the
+          // panel needs to descend before the FTS starts following), and lets
+          // it rise normally when growing the panel from peek/expanded.
           if (USE_FLOATING_TIME_SLIDER) {
             if (!_ftsEl) _ftsEl = document.getElementById('fts');
             if (_ftsEl) {
               const panelTop = panelEl.getBoundingClientRect().top;
               const viewH    = window.innerHeight;
               const desired  = viewH - panelTop + FTS_GAP;
-              const ftsBottom = Math.min(desired, _ftsAnchorBottom);
+              const ceiling  = _ftsCeilingBottom();
+              const ftsBottom = Math.min(desired, ceiling);
               _ftsEl.style.transition = 'none';
               _ftsEl.style.bottom = ftsBottom + 'px';
+
+              // Item 2: when the panel "catches" the FTS (desired < ceiling),
+              // we're no longer in fullscreen-anchor mode, so the floating
+              // time label flips back ABOVE the thumb.
+              const popup = document.getElementById('fts-popup');
+              if (popup) {
+                const stillFull = desired >= ceiling;
+                popup.classList.toggle('fts-popup-below', stillFull);
+              }
             }
           }
           // Track locate button + zoom jog with panel during drag.
@@ -5294,7 +5309,7 @@ function _runIntroSequence() {
             duration: 700,
           };
           if (isMobileEnd) {
-            easeOpts.padding = { bottom: Math.round(window.innerHeight * 0.55), top: 0, left: 0, right: 0 };
+            easeOpts.padding = { bottom: Math.round(window.innerHeight * 0.50), top: 0, left: 0, right: 0 };
           }
           map.easeTo(easeOpts);
           _introRevealUI(search, brand, qcWrap, panel,
@@ -5450,7 +5465,7 @@ function _skipIntro(seqId) {
   // On mobile, offset center upward so geo dot sits above the 55svh expanded panel.
   const isMobileSkip = window.innerWidth < 640;
   const skipPadding = isMobileSkip
-    ? { bottom: Math.round(window.innerHeight * 0.55), top: 0, left: 0, right: 0 }
+    ? { bottom: Math.round(window.innerHeight * 0.50), top: 0, left: 0, right: 0 }
     : undefined;
   map.stop();
   map.easeTo({ center: _introCenter, zoom: 15.2, pitch: 15, bearing: 0, duration: 400, padding: skipPadding });

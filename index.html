@@ -102,7 +102,7 @@
     --border: rgba(156,189,231,0.18);    /* outline-variant — Jordy Blue at 18% */
     --pill-bg: rgba(20,46,82,0.45);      /* surface-container-lowest (migrated from legacy rgba(10,20,42)) */
     /* Glass levels — Shades Glass recipe */
-    --glass-panel-bg: linear-gradient(135deg, rgba(20,46,82,0.48) 0%, rgba(32,73,131,0.30) 100%), rgba(20,46,82,0.55);
+    --glass-panel-bg: linear-gradient(135deg, rgba(20,46,82,0.36) 0%, rgba(32,73,131,0.22) 100%), rgba(20,46,82,0.42);
     --glass-card-bg:  linear-gradient(135deg, rgba(20,46,82,0.42) 0%, rgba(32,73,131,0.26) 100%), rgba(20,46,82,0.50);
     --glass-action-bg: linear-gradient(135deg, rgba(20,46,82,0.36) 0%, rgba(32,73,131,0.22) 100%), rgba(20,46,82,0.45);
     --glass-blur-panel: blur(16px) saturate(160%);
@@ -1452,29 +1452,50 @@
       top: calc(70px + var(--notif-h, 0px) + 8px);
     }
   }
-  /* Notification toast — warm-tinted glass with a left accent stripe so it
-     reads as a notification rather than another input/search surface. */
+  /* Notification toast — pin-inspired pill shape on a lighter glass surface.
+     Distinct from the search bar via a lighter background tint, an accent
+     indicator dot on the left, and softer shadow. Swipe up/left/right to
+     dismiss (handled in notifications.js). */
   #notif-toast {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 14px 10px 16px;
+    gap: 12px;
+    padding: 8px 10px 8px 16px;
     margin-bottom: 0;
     background:
-      linear-gradient(90deg, rgba(255,175,133,0.10) 0%, rgba(255,175,133,0) 28%),
-      var(--glass-card-bg);
-    backdrop-filter: var(--glass-blur-card);
-    -webkit-backdrop-filter: var(--glass-blur-card);
-    border: 1px solid rgba(255,175,133,0.28);
-    border-left: 3px solid var(--accent);
-    border-radius: 14px;
+      linear-gradient(180deg, rgba(255,242,235,0.06) 0%, rgba(255,242,235,0) 100%),
+      var(--glass-action-bg);
+    backdrop-filter: var(--glass-blur-action);
+    -webkit-backdrop-filter: var(--glass-blur-action);
+    border: 1px solid rgba(255,175,133,0.22);
+    border-radius: 999px;  /* full pill, like the search bar */
     box-shadow:
       var(--glass-inset),
-      0 6px 22px rgba(0,0,0,0.32),
-      0 0 0 1px rgba(255,175,133,0.08);
+      0 6px 18px rgba(0,0,0,0.28);
     color: var(--text);
     font-family: 'Inter', sans-serif;
     font-size: 13px;
+    /* Indicator dot — sits inside the padding-left, replacing the icon for
+       neutral notifications. Positioned via ::before so it's compositor-cheap
+       and always anchors to the left edge regardless of body text length. */
+    position: relative;
+    will-change: transform, opacity;
+    touch-action: pan-y;  /* swipe handler decides on horizontal */
+  }
+  #notif-toast::before {
+    content: '';
+    position: absolute;
+    left: 8px; top: 50%;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 4px rgba(255,175,133,0.18);
+    transform: translateY(-50%);
+  }
+  #notif-toast.notif-dragging { transition: none !important; }
+  #notif-toast.notif-dismissing {
+    transition: transform 0.22s ease-out, opacity 0.22s ease-out;
+    opacity: 0;
   }
   .notif-toast-icon { font-size: 20px; flex-shrink: 0; line-height: 1; }
   .notif-toast-content { flex: 1; min-width: 0; cursor: pointer; }
@@ -3084,11 +3105,30 @@
     #venue-count { display: none; }
     #venue-header { display: none; }
 
-    /* List sun header: sun count (left) + sort toggle (right).
-       Sort toggle hidden in collapsed/peek state; sun count always visible. */
+    /* List sun header: chips left, sort toggle right.
+       In peek state the sort chip animates out (width + opacity) instead of
+       hard-cutting via display:none, so the date+weather chips slide into
+       place smoothly when collapsing/expanding. */
     #list-sun-header { padding: 4px 14px 6px !important; }
+    #list-sun-header #sort-toggle-btn {
+      transition:
+        flex-grow 0.32s cubic-bezier(0.32, 0.72, 0, 1),
+        flex-basis 0.32s cubic-bezier(0.32, 0.72, 0, 1),
+        max-width 0.32s cubic-bezier(0.32, 0.72, 0, 1),
+        padding 0.32s cubic-bezier(0.32, 0.72, 0, 1),
+        opacity 0.22s ease,
+        margin 0.32s cubic-bezier(0.32, 0.72, 0, 1),
+        border-color 0.12s, background 0.12s;
+    }
     #panel:not(.mobile-expanded):not(.mobile-fullscreen) #sort-toggle-btn {
-      display: none;
+      flex: 0 0 0;
+      max-width: 0;
+      padding: 0;
+      margin: 0;
+      opacity: 0;
+      pointer-events: none;
+      overflow: hidden;
+      border-width: 0;
     }
 
     #panel-header { padding-top: 0; }
@@ -4604,6 +4644,10 @@
     overflow: hidden;
     text-overflow: ellipsis;
     box-sizing: border-box;
+    /* Smooth peek <-> expanded resize */
+    transition: flex-grow 0.32s cubic-bezier(0.32, 0.72, 0, 1),
+                flex-basis 0.32s cubic-bezier(0.32, 0.72, 0, 1),
+                background 0.12s, border-color 0.12s, color 0.12s;
   }
 
   /* Date chip — tappable, opens picker. Glass action button. */
@@ -5694,14 +5738,14 @@
   /* The layout (card-top → card-left + card-right + timeline) is identical to
      a venue-card — only sizes scale up. This keeps the user oriented after the
      morph: they see "the same card, bigger". */
-  /* Detail-panel card: built from the same compact list-card markup
-     (renderCard with rich:false), then scaled up so it reads as the
-     "expanded version" the panel deserves. Carries the same v2 pills,
-     anchor meta, fill bar, etc. */
+  /* Detail-panel card: same compact list-card markup, scaled up. Carries the
+     v2 disruption pills + anchor meta. The bottom fill bar is suppressed in
+     the detail panel — its role is taken by the (future) detailed sun bar
+     elsewhere in the panel. */
   .dp-card {
     cursor: default;
     margin-bottom: 14px;
-    padding: 16px 16px 18px;
+    padding: 16px 16px 16px;
     animation: none;
     border-radius: 14px;
     overflow: hidden;
@@ -5715,33 +5759,34 @@
     line-height: 1.22;
     letter-spacing: -0.01em;
   }
+  /* Use the list-card font sizes for meta + hero-sub so the right column
+     matches the left visually (same weight + size). */
   .dp-card .card-new-meta {
-    font-size: 13px;
-    line-height: 1.4;
-    margin-top: 4px;
+    font-size: 12px;
+    line-height: 1.35;
+    margin-top: 3px;
   }
   .dp-card .card-right {
     min-width: 0;
     flex-shrink: 0;
-    gap: 4px;
+    gap: 3px;
     align-items: flex-end;
   }
   .dp-card .card-new-hero-main {
-    font-size: 17px;
+    font-size: 16px;
     line-height: 1.22;
   }
   .dp-card .card-new-hero-sub  {
     font-size: 12px;
     line-height: 1.35;
-    margin-top: 2px;
+    margin-top: 1px;
   }
-  /* Anchor row sits below the meta with a touch more breathing room. */
   .dp-card .card-meta { margin-top: 4px; }
-  .dp-card .card-anchor { font-size: 13px; }
-  /* Pills row spaced for the larger card */
+  .dp-card .card-anchor { font-size: 12px; }
   .dp-card .card-pills { margin-top: 10px !important; }
-  /* Fill bar matches the list card — the panel's card-bottom signal */
-  .dp-card .card-fillbar { bottom: 0; }
+  /* Hide the fill bar in the detail panel — the dedicated sun bar elsewhere
+     replaces this signal. */
+  .dp-card .card-fillbar { display: none; }
 
   /* dp-card timeline matches the list card's thin variant (8px). The tall
      38px treatment is gone now that the FTS pill is no longer reparented
