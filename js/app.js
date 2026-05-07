@@ -2007,22 +2007,12 @@ function _syncQcPanelHeight() {
 // ── Peek height: measure handle + time bar + list-sun-header + venue-peek ────
 function _updatePeekHeight() {
   if (!isMobile()) return;
-  const panel     = document.getElementById('panel');
-  const handle    = document.getElementById('panel-handle');
-  const sunHeader = document.getElementById('list-sun-header');
-  const ssbBar    = document.getElementById('sun-section-bar');
-  const peek      = document.getElementById('venue-peek');
-  if (!panel || !handle) return;
-  const ssbH = (ssbBar && !ssbBar.classList.contains('ssb-empty')) ? ssbBar.offsetHeight : 0;
-  // Floor venue-peek at its CSS max-height (92px) so the panel always
-  // reserves space for the first card preview, even on the initial pass
-  // before venue-peek has been populated.
-  const peekH = peek ? Math.max(peek.offsetHeight, 92) : 0;
-  const h = handle.offsetHeight
-          + (sunHeader ? sunHeader.offsetHeight : 0)
-          + ssbH
-          + peekH;
-  panel.style.setProperty('--peek-h', Math.max(h, 180) + 'px');
+  const panel = document.getElementById('panel');
+  if (!panel) return;
+  // Fixed peek height — the panel reveals exactly this much in peek state
+  // (handle + chip row + first card preview). Tuned to 130px so the first
+  // card sits at the perfect "show its name + meta" snippet height.
+  panel.style.setProperty('--peek-h', '130px');
   _syncFtsPosition();
 }
 
@@ -2404,10 +2394,10 @@ function _populateDpCardSlot(v) {
   const fromHour = parseFloat(timeFromEl.value);
   const enriched = _enrichVenueForCard(v, dateStr, fromHour);
   const tmp = document.createElement('div');
-  // Use the compact list-card variant (with its v2 pills + fill bar) so the
-  // detail-panel card matches the venue list visually. The .dp-card class
-  // scales the typography up for the larger panel context.
-  tmp.innerHTML = renderCard(enriched, dateStr, fromHour, fromHour, true);
+  // Rich variant: includes the existing detailed sun timeline (the bar that's
+  // already shipped on master), plus chronological pills. The .dp-card CSS
+  // scales typography up for the panel context.
+  tmp.innerHTML = renderCard(enriched, dateStr, fromHour, fromHour, true, { rich: true });
   const newCard = tmp.firstElementChild;
   if (!newCard) return;
   newCard.classList.add('dp-card');
@@ -3511,21 +3501,27 @@ document.addEventListener('DOMContentLoaded', () => {
       }, { passive: false });
 
       // ── Venue list: seamless scroll → panel drag ──────────────────────────────
-      // Pull-down at scrollTop=0 collapses the panel; pull-up at scrollTop=0
-      // grows it. Both fire after an 8px threshold so small touch jitters
-      // don't accidentally hijack scroll. The finger's clientY crossing into
-      // the chip-row band above the list also triggers panel drag (so a long
-      // upward swipe out of the list doesn't strand the panel).
+      // Lets the user scroll the list normally. Two spillover gestures hand
+      // control over to the panel-drag state machine without breaking scroll:
+      //   • At scrollTop=0 + pull-DOWN past 8px: collapses the panel.
+      //   • Finger crosses above the list rect (into the chip row) at any
+      //     scrollTop: panel-drag takes over so a long upward swipe out of
+      //     the list grows the panel instead of stranding mid-scroll.
+      // Pure upward scroll inside the list is left alone so the browser's
+      // native scrolling works.
       const venueList = document.getElementById('venue-list');
       if (venueList) {
         const SPILL_THRESHOLD = 8;
         let _listStartY = 0;
+        let _listWasScrolled = false;
         venueList.addEventListener('touchstart', e => {
           _listStartY = e.touches[0].clientY;
+          _listWasScrolled = venueList.scrollTop > 0;
         }, { passive: true });
 
         venueList.addEventListener('touchmove', e => {
           const cy = e.touches[0].clientY;
+          if (venueList.scrollTop > 0) _listWasScrolled = true;
           if (!_dragActive) {
             const listRect = venueList.getBoundingClientRect();
             const fingerAboveList = cy < listRect.top - 4;
@@ -3536,8 +3532,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 e.preventDefault();
                 _dragFromList = true;
                 _beginDrag(cy);
-              } else if (dy < -SPILL_THRESHOLD) {
-                // At top, pulling up → expand one state
+              } else if (dy < -SPILL_THRESHOLD && _listWasScrolled) {
+                // Scrolled to top mid-gesture, still moving up → grow panel
                 e.preventDefault();
                 _dragFromList = true;
                 _beginDrag(cy);
@@ -3608,22 +3604,20 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       function _trackDpDrag(y) {
         _dpLastFrameY = y;
-        // Cancel any pending frame and schedule a new one for smooth 60fps updates
         if (_dpRafId) cancelAnimationFrame(_dpRafId);
         _dpRafId = requestAnimationFrame(() => {
           const dy = _dpLastFrameY - _dpY0;
-          // When initiated from scroll, clamp to downward-only (dismiss only, no expand)
-          const clampedDy = _dpFromScroll ? Math.max(0, dy) : dy;
-          // When dragging up (expand), only grow height — don't translateY, which
-          // would lift the bottom-anchored panel and expose the map underneath.
+          // Detail panel: downward drags dismiss; upward drags get a soft
+          // resistance (rubber-band) since the panel no longer has a
+          // fullscreen state to grow into.
+          const clampedDy = dy < 0 ? Math.max(dy / 4, -40) : dy;
           if (clampedDy < 0) {
-            dpEl.style.transform = '';
-            dpEl.style.height = `${_dpInitH + Math.abs(clampedDy)}px`;
+            dpEl.style.transform = `translateY(${clampedDy}px)`;
+            dpEl.style.height = '';
           } else {
             dpEl.style.transform = `translateY(${clampedDy}px)`;
             dpEl.style.height = '';
           }
-          // FTS lives inside the docked card — panel transform moves it for free.
           _dpRafId = null;
         });
       }
@@ -3643,10 +3637,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (Math.abs(dy) <= SAFE_DY && Math.abs(velocity) < SWIPE_V) return; // safe zone
 
         if (velocity < -SWIPE_V || dy < -SAFE_DY) {
-          if (_dpStartState === 'normal') { dpEl.classList.add('dp-fullscreen'); _navPush('dp-fullscreen'); _syncFtsPosition(); }
+          // Detail panel no longer has a fullscreen state — upward swipe is a no-op,
+          // letting the panel snap back to its normal height. (User decision: the
+          // DP doesn't need a fullscreen mode; dragging up was overlapping the FTS.)
         } else if (velocity > SWIPE_V || dy > SAFE_DY) {
-          if (_dpStartState === 'fullscreen') { dpEl.classList.remove('dp-fullscreen'); _navDropLayer('dp-fullscreen'); _syncFtsPosition(); }
-          else closeDetailPanel(false);
+          closeDetailPanel(false);
         }
       }
 

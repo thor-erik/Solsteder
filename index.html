@@ -479,7 +479,7 @@
     width: 336px;
     height: 46px;
     box-sizing: border-box;
-    padding: 0 14px;       /* override .floating-card vertical padding */
+    padding: 0 6px 0 14px; /* tighter on the right so the avatar tucks in */
     border-radius: 23px;   /* true pill — half of 46px height */
     display: flex;
     align-items: center;
@@ -1452,15 +1452,14 @@
       top: calc(70px + var(--notif-h, 0px) + 8px);
     }
   }
-  /* Notification toast — pin-inspired pill shape on a lighter glass surface.
-     Distinct from the search bar via a lighter background tint, an accent
-     indicator dot on the left, and softer shadow. Swipe up/left/right to
-     dismiss (handled in notifications.js). */
+  /* Notification toast — pill-shaped on a lighter glass surface so it feels
+     distinct from the search bar without competing for visual weight. Swipe
+     up / left / right to dismiss (handled in notifications.js). */
   #notif-toast {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 8px 10px 8px 16px;
+    padding: 8px 14px;
     margin-bottom: 0;
     background:
       linear-gradient(180deg, rgba(255,242,235,0.06) 0%, rgba(255,242,235,0) 100%),
@@ -1475,23 +1474,12 @@
     color: var(--text);
     font-family: 'Inter', sans-serif;
     font-size: 13px;
-    /* Indicator dot — sits inside the padding-left, replacing the icon for
-       neutral notifications. Positioned via ::before so it's compositor-cheap
-       and always anchors to the left edge regardless of body text length. */
     position: relative;
     will-change: transform, opacity;
     touch-action: pan-y;  /* swipe handler decides on horizontal */
   }
-  #notif-toast::before {
-    content: '';
-    position: absolute;
-    left: 8px; top: 50%;
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 0 4px rgba(255,175,133,0.18);
-    transform: translateY(-50%);
-  }
+  /* Close X is removed — swipe up/left/right dismisses, or auto-hide kicks in */
+  .notif-toast-close { display: none !important; }
   #notif-toast.notif-dragging { transition: none !important; }
   #notif-toast.notif-dismissing {
     transition: transform 0.22s ease-out, opacity 0.22s ease-out;
@@ -5738,17 +5726,14 @@
   /* The layout (card-top → card-left + card-right + timeline) is identical to
      a venue-card — only sizes scale up. This keeps the user oriented after the
      morph: they see "the same card, bigger". */
-  /* Detail-panel card: same compact list-card markup, scaled up. Carries the
-     v2 disruption pills + anchor meta. The bottom fill bar is suppressed in
-     the detail panel — its role is taken by the (future) detailed sun bar
-     elsewhere in the panel. */
+  /* Detail-panel card: rich variant of the list card (includes the detailed
+     sun timeline). Typography scaled up for the panel context. */
   .dp-card {
     cursor: default;
     margin-bottom: 14px;
-    padding: 16px 16px 16px;
+    padding: 16px 16px 14px;
     animation: none;
     border-radius: 14px;
-    overflow: hidden;
   }
   .dp-card:hover { background: var(--glass-card-bg); }   /* kill list-card hover */
   .dp-card .card-top { gap: 14px; align-items: flex-start; }
@@ -5759,8 +5744,6 @@
     line-height: 1.22;
     letter-spacing: -0.01em;
   }
-  /* Use the list-card font sizes for meta + hero-sub so the right column
-     matches the left visually (same weight + size). */
   .dp-card .card-new-meta {
     font-size: 12px;
     line-height: 1.35;
@@ -5781,12 +5764,8 @@
     line-height: 1.35;
     margin-top: 1px;
   }
-  .dp-card .card-meta { margin-top: 4px; }
-  .dp-card .card-anchor { font-size: 12px; }
-  .dp-card .card-pills { margin-top: 10px !important; }
-  /* Hide the fill bar in the detail panel — the dedicated sun bar elsewhere
-     replaces this signal. */
-  .dp-card .card-fillbar { display: none; }
+  /* The sun timeline already shipped on master — use it as the dp-card bar */
+  .dp-card .card-timeline-block { margin-top: 12px; }
 
   /* dp-card timeline matches the list card's thin variant (8px). The tall
      38px treatment is gone now that the FTS pill is no longer reparented

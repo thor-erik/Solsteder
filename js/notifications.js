@@ -139,7 +139,11 @@ function _wireNotifSwipe(el, notif) {
     const horizontal = Math.abs(dx) > SWIPE_THRESHOLD;
     const upward = dy < -SWIPE_THRESHOLD;
     if (horizontal || upward) {
-      // Commit dismiss with a fly-out
+      // Commit dismiss with a fly-out in the swipe direction. We pin the wrap's
+      // own transform so removing .show in _notifDismiss doesn't trigger its
+      // default upward slide on top of our horizontal animation.
+      const wrap = document.getElementById('notif-toast-wrap');
+      if (wrap) { wrap.style.transition = 'opacity 0.22s ease'; wrap.style.transform = 'none'; }
       el.classList.add('notif-dismissing');
       const tx = horizontal ? (dx > 0 ? '120%' : '-120%') : '0';
       const ty = upward ? '-120%' : '0';
@@ -152,6 +156,7 @@ function _wireNotifSwipe(el, notif) {
         el.classList.remove('notif-dismissing');
         el.style.transform = '';
         el.style.opacity = '';
+        if (wrap) { wrap.style.transition = ''; wrap.style.transform = ''; }
         _notifDismiss(notif.id);
       }, 220);
     } else {
