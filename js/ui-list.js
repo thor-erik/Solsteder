@@ -764,14 +764,17 @@ function renderList() {
         })
       : { windows: [], earliest: null, surfaced: false };
     // Beste treff blends sun and walk distance: each km costs 20 minutes of
-    // sun. A 90-min sun venue 3 km away (effective 30) loses to a 70-min
-    // venue across the street; a 30-min venue at 200m loses to a 70-min
-    // venue at 1km (effective 50).
+    // sun. Effective sun is capped at 240 min (4h) — beyond a typical long
+    // afternoon nobody actually uses more sun, so without the cap a 10h-sun
+    // venue 7km away outranks a 4h-sun venue across the street. With the
+    // cap, distance becomes decisive once "enough sun" is reached.
+    const _MAX_REL_SUN_MIN = 240;
     const _qualDurMin = qual.earliest?.durationMin ?? 0;
+    const _effSunMin  = Math.min(_qualDurMin, _MAX_REL_SUN_MIN);
     const _distKm = (score && score.distKm != null)
       ? score.distKm
       : (_matchRef ? _haversineKm(_matchRef, v) : 0);
-    const _relevanceMin = _qualDurMin - _distKm * 20;
+    const _relevanceMin = _effSunMin - _distKm * 20;
     // Pass raw windows through to renderCard so the v2 pill builder can
     // detect Åpner/Stenger binding-hours pills without recomputing.
     return { ...v, sunInWin, isOpen, isOpeningSoon, isClosingSoon, score, _qual: qual, _rawWindows: rawWins, _relevanceMin };
