@@ -1408,6 +1408,16 @@ function toggleDateCalendar() {
 }
 
 function selectCalendarDate(dateStr) {
+  // Detect "leaving a post-sundown position" BEFORE we mutate datePicker.
+  // currentSunTable was built for the OLD date, so its sundown crossing
+  // is the relevant comparison for the slider's current hour. Without
+  // this, picking a new day from the calendar at e.g. 23:00 strands the
+  // thumb at 23:00 on the new date — every subsequent day looks sunless.
+  const oldHour = parseFloat(timeFromEl.value);
+  const oldSundown = (typeof currentSunTable !== 'undefined' && currentSunTable && typeof findSunCrossingFromTable === 'function')
+    ? findSunCrossingFromTable(currentSunTable, false) : null;
+  const wasPostSundown = oldSundown != null && oldHour >= oldSundown - 0.001;
+
   datePicker.value = dateStr;
   if (dateStr !== todayStr() && nowMode) {
     nowMode = false;
@@ -1415,6 +1425,14 @@ function selectCalendarDate(dateStr) {
     nowBtn?.classList.remove('active');
     timeRangeWrap?.classList.remove('now-active');
     // Default time to earliest sun on the picked day (sunrise).
+    const earliestSun = (typeof _earliestSunHourFor === 'function') ? _earliestSunHourFor(dateStr) : null;
+    timeFromEl.value = earliestSun != null ? earliestSun : 12;
+  } else if (wasPostSundown && dateStr !== todayStr()) {
+    // Manual-time user (not in nowMode) switching off today after sundown
+    // — reset the slider so the new day isn't viewed from a post-sundown
+    // position by default. Today stays untouched (still legitimately
+    // post-sundown).
+    setActiveIntentBtn(null);
     const earliestSun = (typeof _earliestSunHourFor === 'function') ? _earliestSunHourFor(dateStr) : null;
     timeFromEl.value = earliestSun != null ? earliestSun : 12;
   }
@@ -1645,9 +1663,26 @@ function advanceDay(delta, setHour) {
   _aTrack('day_navigate', { direction: delta > 0 ? 'forward' : 'back' });
   const d = new Date(datePicker.value + 'T12:00:00');
   d.setDate(d.getDate() + delta);
-  datePicker.value = d.toISOString().slice(0, 10);
-  // When jumping forward and sun is currently below horizon, default to noon
+  const newDateStr = d.toISOString().slice(0, 10);
+  // Detect post-sundown on the OLD date before mutating datePicker so we
+  // can rescue the slider from a stranded "after sundown" hour. Without
+  // this, paging forward at 23:00 keeps 23:00 across every new day —
+  // every new day reads as sunless even when there's plenty of sun.
+  const oldHour = parseFloat(timeFromEl.value);
+  const oldSundown = (typeof currentSunTable !== 'undefined' && currentSunTable && typeof findSunCrossingFromTable === 'function')
+    ? findSunCrossingFromTable(currentSunTable, false) : null;
+  const wasPostSundown = oldSundown != null && oldHour >= oldSundown - 0.001;
+  datePicker.value = newDateStr;
+  // When jumping forward and sun is currently below horizon, default to noon.
   if (setHour === undefined && delta > 0 && currentSun && currentSun.alt < 0) setHour = 12;
+  // Either direction: if the old day was post-sundown and the new day
+  // isn't today, snap to that day's earliest sun so the user lands at
+  // a meaningful hour.
+  if (setHour === undefined && wasPostSundown && newDateStr !== todayStr()) {
+    setHour = (typeof _earliestSunHourFor === 'function')
+      ? (_earliestSunHourFor(newDateStr) ?? 12)
+      : 12;
+  }
   if (setHour !== undefined) {
     if (nowMode) {
       nowMode = false;

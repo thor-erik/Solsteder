@@ -1008,24 +1008,30 @@ function renderList() {
         </div>`;
     } else {
       // Empty-all consolidated state (Cases A & B from the redesign spec):
-      // one centered message + one primary "Se i morgen" CTA + a tertiary
-      // "Vis alle steder" text link as an escape hatch. No section headers;
-      // they would imply structure that doesn't exist on an empty list.
+      // one centered message + one primary CTA opening the calendar
+      // (tomorrow may be raining — the user picks a date that suits them)
+      // + a tertiary "Vis alle steder" text link as an escape hatch. No
+      // section headers; they would imply structure that doesn't exist
+      // on an empty list.
       // Case A — sundown has passed for this date.
       // Case B — rain dominant: no Case A trigger, but the current hour is
       //          already raining (so dry slices haven't materialized).
-      // Default fallback: Case A's "Ingen sol igjen i dag" copy.
       const sundownH2 = (typeof currentSunTable !== 'undefined' && currentSunTable && typeof findSunCrossingFromTable === 'function')
         ? findSunCrossingFromTable(currentSunTable, false) : null;
       const isCaseA = sundownH2 != null && fromHour >= sundownH2 - 0.001;
       const wxHere  = (typeof wxBucket === 'function') ? wxBucket(dateStr, fromHour) : null;
       const isCaseB = !isCaseA && wxHere === 'regn';
-      const headline = isCaseB ? t('empty_rain_today') : t('empty_no_sun_left');
+      // Date-aware headline: "i dag" only when the picked date is today,
+      // otherwise switch to a neutral phrasing so we don't claim "today"
+      // on a future-dated empty state.
+      const isToday = dateStr === todayStr();
+      const headline = isCaseB
+        ? (isToday ? t('empty_rain_today') : t('empty_rain_day'))
+        : (isToday ? t('empty_no_sun_left') : t('empty_no_sun_day'));
       list.innerHTML = `
         <div class="empty-all">
           <div class="empty-all-headline">${headline}</div>
-          <button class="p-pill btn-see-tomorrow" onclick="seeTomorrow()">${t('cta_see_tomorrow')}</button>
-          <button class="empty-all-link" onclick="showAllVenuesOnce()">${t('btn_show_all_venues')}</button>
+          <button class="p-pill btn-see-tomorrow" onclick="toggleDateCalendar()">${t('cta_pick_another_day')}</button>
         </div>`;
     }
     _listFiltered = [];
@@ -1037,6 +1043,11 @@ function renderList() {
       countEl0.textContent = t('no_places_in_sun');
       countEl0.className = '';
     }
+    // Hide the sun-section-bar — both its label and its padding — so an
+    // empty state reads as a single quiet headline + CTA, not a section
+    // header followed by an emptiness. updateSunSectionBar applies the
+    // ssb-empty class which has display:none.
+    if (typeof updateSunSectionBar === 'function') updateSunSectionBar();
     return;
   }
 

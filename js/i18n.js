@@ -164,8 +164,11 @@ const _STRINGS = {
     // Norwegian/Swedish/Danish render "4t 30m"; English renders "4h 30m".
     unit_h_short:              'h',
     empty_no_sun_left:         'No sun left today',
+    empty_no_sun_day:          'No sun this day',
     empty_rain_today:          'It\'s raining today',
+    empty_rain_day:            'It\'s raining',
     cta_see_tomorrow:          'See tomorrow',
+    cta_pick_another_day:      'Pick a day',
     // ── Detail panel ───────────────────────────────────────────────────────────
     no_more_today:       'No more today',
     no_sun_today:        'No sun today',
@@ -597,8 +600,11 @@ const _STRINGS = {
     pill_more_count:           '+ {n} mer',
     unit_h_short:              't',
     empty_no_sun_left:         'Ingen sol igjen i dag',
+    empty_no_sun_day:          'Ingen sol denne dagen',
     empty_rain_today:          'Det regner i dag',
+    empty_rain_day:            'Det regner',
     cta_see_tomorrow:          'Se i morgen',
+    cta_pick_another_day:      'Velg en annen dag',
     no_more_today:       'Ikke mer i dag',
     no_sun_today:        'Ingen sol i dag',
     sun_min_left:        '{min} min igjen',
