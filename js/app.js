@@ -2117,11 +2117,13 @@ function _updatePeekHeight() {
   if (!isMobile()) return;
   const panel = document.getElementById('panel');
   if (!panel) return;
-  // Fixed peek height — handle (~24) + chip row (~46) + venue-peek
-  // padding-top (12) + a thin sliver (~10) of the first card's top edge.
-  // The card text stays hidden; the sliver is just enough to signal
-  // "there's a card here, swipe up to see it".
-  panel.style.setProperty('--peek-h', '92px');
+  // Fixed peek height. Stack: 1 (border) + ~24 (handle) + ~50 (chip row)
+  // + 12 (venue-peek padding-top) + ~12 (rounded card top) = 99. Card
+  // body has its own 14px padding-top before any text, so the visible
+  // sliver lands fully inside that padding — no card text shows. We
+  // tune slightly above the math to absorb sub-pixel browser quirks
+  // (Safari especially) without leaking text into view.
+  panel.style.setProperty('--peek-h', '102px');
   _syncFtsPosition();
 }
 
