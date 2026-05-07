@@ -527,6 +527,17 @@ function renderListPage(list, dateStr, fromHour, toHour, isPoint, reset) {
     list.insertAdjacentHTML('beforeend', html);
     // Re-enable animation after current frame so future resets still animate
     requestAnimationFrame(() => list.removeAttribute('data-no-anim'));
+    // Avstand sort only: as the user scrolls into farther venues, extend the
+    // map bounds to include them. The list is sorted purely by distance, so
+    // each new batch is the next ring outward — letting the map follow keeps
+    // spatial context. Other sorts don't follow because they're not purely
+    // spatial; following would feel arbitrary. _autoFitToBatch is a no-op
+    // when all new venues are already inside current bounds.
+    if (typeof activeSortBy !== 'undefined' && activeSortBy === 'distance' &&
+        typeof _autoFitToBatch === 'function') {
+      const newVenues = _listFiltered.slice(from, to);
+      if (newVenues.length) _autoFitToBatch(newVenues);
+    }
   }
   // Paint the canvas-based mini-timelines now that the cards are in the DOM.
   // Use rAF so layout has settled and clientWidth/Height are non-zero.
@@ -765,11 +776,11 @@ function renderList() {
         })
       : { windows: [], earliest: null, surfaced: false };
     // Beste treff blends sun and walk distance: each km costs 20 minutes of
-    // sun. Effective sun is capped at 240 min (4h) — beyond a typical long
-    // afternoon nobody actually uses more sun, so without the cap a 10h-sun
-    // venue 7km away outranks a 4h-sun venue across the street. With the
-    // cap, distance becomes decisive once "enough sun" is reached.
-    const _MAX_REL_SUN_MIN = 240;
+    // sun. Effective sun is capped at 180 min (~3h) — that's a long café
+    // session; beyond it, more sun has no practical value, and without the
+    // cap distant high-sun venues outrank closer venues with "enough" sun.
+    // With the cap, once you've got 3h of sun, distance becomes decisive.
+    const _MAX_REL_SUN_MIN = 180;
     const _qualDurMin = qual.earliest?.durationMin ?? 0;
     const _effSunMin  = Math.min(_qualDurMin, _MAX_REL_SUN_MIN);
     const _distKm = (score && score.distKm != null)
