@@ -25272,5 +25272,111 @@
       }
     },
     "hoursSource": "google"
+  },
+  {
+    "id": 637,
+    "name": "Egon",
+    "address": "Jernbanetorget 6, 0154 Oslo, Norway",
+    "coords": [
+      59.9119121,
+      10.7510236
+    ],
+    "category": "restaurant",
+    "area": "Sentrum",
+    "rating": 3.8,
+    "facing": null,
+    "openingHours": {
+      "open": 6.5,
+      "close": 23.5
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJz01tB4puQUYRQ0Wz2Wpe1uQ",
+    "facingSource": null,
+    "discoverySignal": "chain-expansion",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 7,
+        "close": 23
+      },
+      "1": {
+        "open": 6.5,
+        "close": 23
+      },
+      "2": {
+        "open": 6.5,
+        "close": 23
+      },
+      "3": {
+        "open": 6.5,
+        "close": 23
+      },
+      "4": {
+        "open": 6.5,
+        "close": 23
+      },
+      "5": {
+        "open": 6.5,
+        "close": 23.5
+      },
+      "6": {
+        "open": 7,
+        "close": 23.5
+      }
+    },
+    "hoursSource": "google"
+  },
+  {
+    "id": 638,
+    "name": "Egon",
+    "address": "Vitaminveien 9-11, 0485 Oslo, Norway",
+    "coords": [
+      59.946926399999995,
+      10.775283499999999
+    ],
+    "category": "restaurant",
+    "area": "Nydalen",
+    "rating": 3.9,
+    "facing": null,
+    "openingHours": {
+      "open": 10,
+      "close": 24
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJseudaBhuQUYR4Z48aI4HJ-Q",
+    "facingSource": null,
+    "discoverySignal": "chain-expansion",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 11,
+        "close": 23
+      },
+      "1": {
+        "open": 10,
+        "close": 23
+      },
+      "2": {
+        "open": 10,
+        "close": 23
+      },
+      "3": {
+        "open": 10,
+        "close": 23
+      },
+      "4": {
+        "open": 10,
+        "close": 23
+      },
+      "5": {
+        "open": 10,
+        "close": 24
+      },
+      "6": {
+        "open": 10,
+        "close": 24
+      }
+    },
+    "hoursSource": "google"
   }
 ]
