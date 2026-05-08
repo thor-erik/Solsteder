@@ -25378,5 +25378,1412 @@
       }
     },
     "hoursSource": "google"
+  },
+  {
+    "id": 639,
+    "name": "Kaffebrenneriet Dept Skovveien",
+    "address": "Skovveien 8, 0257 Oslo, Norway",
+    "coords": [
+      59.91634359999999,
+      10.716059699999999
+    ],
+    "category": "cafe",
+    "area": "Frogner",
+    "rating": 4.3,
+    "facing": null,
+    "openingHours": {
+      "open": 6.5,
+      "close": 19
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJi0LamdRtQUYRmbhFwS35dHs",
+    "facingSource": null,
+    "discoverySignal": "chain-expansion",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 8,
+        "close": 18
+      },
+      "1": {
+        "open": 6.5,
+        "close": 19
+      },
+      "2": {
+        "open": 6.5,
+        "close": 19
+      },
+      "3": {
+        "open": 6.5,
+        "close": 19
+      },
+      "4": {
+        "open": 6.5,
+        "close": 19
+      },
+      "5": {
+        "open": 6.5,
+        "close": 19
+      },
+      "6": {
+        "open": 8,
+        "close": 18
+      }
+    },
+    "hoursSource": "google"
+  },
+  {
+    "id": 640,
+    "name": "Kaffebrenneriet avd Akersgata 45",
+    "address": "Akersgata 45, 0158 Oslo, Norway",
+    "coords": [
+      59.9141097,
+      10.742135
+    ],
+    "category": "cafe",
+    "area": "Sentrum",
+    "rating": 4.1,
+    "facing": null,
+    "openingHours": {
+      "open": 6.5,
+      "close": 18
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJTTrKSn1uQUYREvE-gUNQHTI",
+    "facingSource": null,
+    "discoverySignal": "chain-expansion",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "1": {
+        "open": 6.5,
+        "close": 18
+      },
+      "2": {
+        "open": 6.5,
+        "close": 18
+      },
+      "3": {
+        "open": 6.5,
+        "close": 18
+      },
+      "4": {
+        "open": 6.5,
+        "close": 18
+      },
+      "5": {
+        "open": 6.5,
+        "close": 18
+      },
+      "6": {
+        "open": 9,
+        "close": 18
+      }
+    },
+    "hoursSource": "google"
+  },
+  {
+    "id": 641,
+    "name": "Kaffebrenneriet avd Parkveien",
+    "address": "Parkveien 25, 0350 Oslo, Norway",
+    "coords": [
+      59.920596700000004,
+      10.7281354
+    ],
+    "category": "cafe",
+    "area": "Bislett",
+    "rating": 4.2,
+    "facing": null,
+    "openingHours": {
+      "open": 7,
+      "close": 18
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJNWOAuXhuQUYR2arb1Dslpyw",
+    "facingSource": null,
+    "discoverySignal": "chain-expansion",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 10,
+        "close": 17
+      },
+      "1": {
+        "open": 7,
+        "close": 18
+      },
+      "2": {
+        "open": 7,
+        "close": 18
+      },
+      "3": {
+        "open": 7,
+        "close": 18
+      },
+      "4": {
+        "open": 7,
+        "close": 18
+      },
+      "5": {
+        "open": 7,
+        "close": 18
+      },
+      "6": {
+        "open": 9,
+        "close": 18
+      }
+    },
+    "hoursSource": "google"
+  },
+  {
+    "id": 642,
+    "name": "Kaffebrenneriet avd Vikaterrassen",
+    "address": "Vikaterassen, Ruseløkkveien 14, 0251 Oslo, Norway",
+    "coords": [
+      59.913563499999995,
+      10.728256799999999
+    ],
+    "category": "cafe",
+    "area": "Sentrum",
+    "rating": 4.3,
+    "facing": null,
+    "openingHours": {
+      "open": 7,
+      "close": 18
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJby0egYBuQUYRFk8aft3Q6lw",
+    "facingSource": null,
+    "discoverySignal": "chain-expansion",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "1": {
+        "open": 7,
+        "close": 18
+      },
+      "2": {
+        "open": 7,
+        "close": 18
+      },
+      "3": {
+        "open": 7,
+        "close": 18
+      },
+      "4": {
+        "open": 7,
+        "close": 18
+      },
+      "5": {
+        "open": 7,
+        "close": 18
+      },
+      "6": {
+        "open": 10,
+        "close": 18
+      }
+    },
+    "hoursSource": "google"
+  },
+  {
+    "id": 643,
+    "name": "Kaffebrenneriet avd Bislett",
+    "address": "Thereses gate 35B, 0354 Oslo, Norway",
+    "coords": [
+      59.9274259,
+      10.7316176
+    ],
+    "category": "cafe",
+    "area": "Bislett",
+    "rating": 4.2,
+    "facing": null,
+    "openingHours": {
+      "open": 7,
+      "close": 19
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJN_-lyHduQUYRYmKSYdsPgho",
+    "facingSource": null,
+    "discoverySignal": "chain-expansion",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 8,
+        "close": 18
+      },
+      "1": {
+        "open": 7,
+        "close": 19
+      },
+      "2": {
+        "open": 7,
+        "close": 19
+      },
+      "3": {
+        "open": 7,
+        "close": 19
+      },
+      "4": {
+        "open": 7,
+        "close": 19
+      },
+      "5": {
+        "open": 7,
+        "close": 19
+      },
+      "6": {
+        "open": 8,
+        "close": 18
+      }
+    },
+    "hoursSource": "google"
+  },
+  {
+    "id": 644,
+    "name": "Kaffebrenneriet avd Aker Brygge",
+    "address": "Bryggetorget 2, 0250 Oslo, Norway",
+    "coords": [
+      59.9100469,
+      10.725530599999999
+    ],
+    "category": "cafe",
+    "area": "Aker Brygge",
+    "rating": 4.2,
+    "facing": null,
+    "openingHours": {
+      "open": 7,
+      "close": 19
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJWd_DmIFuQUYRaBmnTsaick4",
+    "facingSource": null,
+    "discoverySignal": "chain-expansion",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 9,
+        "close": 18
+      },
+      "1": {
+        "open": 7,
+        "close": 19
+      },
+      "2": {
+        "open": 7,
+        "close": 19
+      },
+      "3": {
+        "open": 7,
+        "close": 19
+      },
+      "4": {
+        "open": 7,
+        "close": 19
+      },
+      "5": {
+        "open": 7,
+        "close": 19
+      },
+      "6": {
+        "open": 9,
+        "close": 18
+      }
+    },
+    "hoursSource": "google"
+  },
+  {
+    "id": 645,
+    "name": "Kaffebrenneriet avd Arkaden",
+    "address": "Karl Johans gt. 7, 0154 Oslo, Norway",
+    "coords": [
+      59.91170239999999,
+      10.7476772
+    ],
+    "category": "cafe",
+    "area": "Sentrum",
+    "rating": 4.1,
+    "facing": null,
+    "openingHours": {
+      "open": 7,
+      "close": 20
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJJ_Ju3IluQUYRh35mreDXJW0",
+    "facingSource": null,
+    "discoverySignal": "chain-expansion",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "1": {
+        "open": 7,
+        "close": 20
+      },
+      "2": {
+        "open": 7,
+        "close": 20
+      },
+      "3": {
+        "open": 7,
+        "close": 20
+      },
+      "4": {
+        "open": 7,
+        "close": 20
+      },
+      "5": {
+        "open": 7,
+        "close": 20
+      },
+      "6": {
+        "open": 9,
+        "close": 18
+      }
+    },
+    "hoursSource": "google"
+  },
+  {
+    "id": 646,
+    "name": "Kaffebrenneriet avd Birkelunden",
+    "address": "Thorvald Meyers gate 25A, 0555 Oslo, Norway",
+    "coords": [
+      59.92712799999999,
+      10.758987
+    ],
+    "category": "cafe",
+    "area": "Grünerløkka",
+    "rating": 4.1,
+    "facing": null,
+    "openingHours": {
+      "open": 6.5,
+      "close": 19
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJrdxFmmhuQUYRFQmkCMjT8SY",
+    "facingSource": null,
+    "discoverySignal": "chain-expansion",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 8,
+        "close": 18
+      },
+      "1": {
+        "open": 6.5,
+        "close": 19
+      },
+      "2": {
+        "open": 6.5,
+        "close": 19
+      },
+      "3": {
+        "open": 6.5,
+        "close": 19
+      },
+      "4": {
+        "open": 6.5,
+        "close": 19
+      },
+      "5": {
+        "open": 6.5,
+        "close": 19
+      },
+      "6": {
+        "open": 8,
+        "close": 18
+      }
+    },
+    "hoursSource": "google"
+  },
+  {
+    "id": 647,
+    "name": "Kaffebrenneriet avd Markveien",
+    "address": "Markveien 60, 0550 Oslo, Norway",
+    "coords": [
+      59.91876599999999,
+      10.757499
+    ],
+    "category": "cafe",
+    "area": "Grünerløkka",
+    "rating": 4.2,
+    "facing": null,
+    "openingHours": {
+      "open": 7,
+      "close": 19
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJJQI35mZuQUYRizdJqmgbYb8",
+    "facingSource": null,
+    "discoverySignal": "chain-expansion",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 8,
+        "close": 18
+      },
+      "1": {
+        "open": 7,
+        "close": 19
+      },
+      "2": {
+        "open": 7,
+        "close": 19
+      },
+      "3": {
+        "open": 7,
+        "close": 19
+      },
+      "4": {
+        "open": 7,
+        "close": 19
+      },
+      "5": {
+        "open": 7,
+        "close": 19
+      },
+      "6": {
+        "open": 8,
+        "close": 18
+      }
+    },
+    "hoursSource": "google"
+  },
+  {
+    "id": 648,
+    "name": "Kaffebrenneriet avd Spikersuppa",
+    "address": "Karl Johans gt. 24, 0162 Oslo, Norway",
+    "coords": [
+      59.914311,
+      10.736234099999999
+    ],
+    "category": "cafe",
+    "area": "Sentrum",
+    "rating": 4.3,
+    "facing": null,
+    "openingHours": {
+      "open": 7,
+      "close": 18
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJrzMJen1uQUYR7N8gcYj1HjI",
+    "facingSource": null,
+    "discoverySignal": "chain-expansion",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 10,
+        "close": 17
+      },
+      "1": {
+        "open": 7,
+        "close": 18
+      },
+      "2": {
+        "open": 7,
+        "close": 18
+      },
+      "3": {
+        "open": 7,
+        "close": 18
+      },
+      "4": {
+        "open": 7,
+        "close": 18
+      },
+      "5": {
+        "open": 7,
+        "close": 18
+      },
+      "6": {
+        "open": 9,
+        "close": 18
+      }
+    },
+    "hoursSource": "google"
+  },
+  {
+    "id": 649,
+    "name": "Kaffebrenneriet avd Rådhusplassen",
+    "address": "Hieronymus Heyerdahls gate 1, 0160 Oslo, Norway",
+    "coords": [
+      59.9115522,
+      10.734343599999999
+    ],
+    "category": "cafe",
+    "area": "Sentrum",
+    "rating": 4.3,
+    "facing": null,
+    "openingHours": {
+      "open": 7,
+      "close": 18
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJP1ymFYduQUYRnce3D4wbtCg",
+    "facingSource": null,
+    "discoverySignal": "chain-expansion",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 9,
+        "close": 18
+      },
+      "1": {
+        "open": 7,
+        "close": 18
+      },
+      "2": {
+        "open": 7,
+        "close": 18
+      },
+      "3": {
+        "open": 7,
+        "close": 18
+      },
+      "4": {
+        "open": 7,
+        "close": 18
+      },
+      "5": {
+        "open": 7,
+        "close": 18
+      },
+      "6": {
+        "open": 9,
+        "close": 18
+      }
+    },
+    "hoursSource": "google"
+  },
+  {
+    "id": 650,
+    "name": "Kaffebrenneriet avd Bjørvika",
+    "address": "Dronning Eufemias gate 11, 0150 Oslo, Norway",
+    "coords": [
+      59.9081944,
+      10.7551527
+    ],
+    "category": "cafe",
+    "area": "Sentrum",
+    "rating": 4.4,
+    "facing": null,
+    "openingHours": {
+      "open": 6.5,
+      "close": 19
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ-a784rpvQUYRZnfwwGNQd00",
+    "facingSource": null,
+    "discoverySignal": "chain-expansion",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 8,
+        "close": 18
+      },
+      "1": {
+        "open": 6.5,
+        "close": 19
+      },
+      "2": {
+        "open": 6.5,
+        "close": 19
+      },
+      "3": {
+        "open": 6.5,
+        "close": 19
+      },
+      "4": {
+        "open": 6.5,
+        "close": 19
+      },
+      "5": {
+        "open": 6.5,
+        "close": 19
+      },
+      "6": {
+        "open": 8,
+        "close": 18
+      }
+    },
+    "hoursSource": "google"
+  },
+  {
+    "id": 651,
+    "name": "Kaffebrenneriet avd Annette Thommessens plass",
+    "address": "Schweigaards gate 17, 0191 Oslo, Norway",
+    "coords": [
+      59.910442399999994,
+      10.7612541
+    ],
+    "category": "cafe",
+    "area": "Grønland",
+    "rating": 4.5,
+    "facing": null,
+    "openingHours": {
+      "open": 7,
+      "close": 17
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJE1tsW_VuQUYRHTO3pN28fec",
+    "facingSource": null,
+    "discoverySignal": "chain-expansion",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "1": {
+        "open": 7,
+        "close": 17
+      },
+      "2": {
+        "open": 7,
+        "close": 17
+      },
+      "3": {
+        "open": 7,
+        "close": 17
+      },
+      "4": {
+        "open": 7,
+        "close": 17
+      },
+      "5": {
+        "open": 7,
+        "close": 17
+      }
+    },
+    "hoursSource": "google"
+  },
+  {
+    "id": 652,
+    "name": "Espresso House",
+    "address": "Nordre gate 18, 0551 Oslo, Norway",
+    "coords": [
+      59.9211443,
+      10.7575196
+    ],
+    "category": "cafe",
+    "area": "Grünerløkka",
+    "rating": 3.8,
+    "facing": null,
+    "openingHours": {
+      "open": 8,
+      "close": 18
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJBZI1QmZuQUYRUBWtaMWARBI",
+    "facingSource": null,
+    "discoverySignal": "chain-expansion",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 9,
+        "close": 18
+      },
+      "1": {
+        "open": 8,
+        "close": 18
+      },
+      "2": {
+        "open": 8,
+        "close": 18
+      },
+      "3": {
+        "open": 8,
+        "close": 18
+      },
+      "4": {
+        "open": 8,
+        "close": 18
+      },
+      "5": {
+        "open": 8,
+        "close": 18
+      },
+      "6": {
+        "open": 9,
+        "close": 18
+      }
+    },
+    "hoursSource": "google"
+  },
+  {
+    "id": 653,
+    "name": "Espresso House",
+    "address": "Stranden 1, 0250 Oslo, Norway",
+    "coords": [
+      59.910589,
+      10.728648999999999
+    ],
+    "category": "cafe",
+    "area": "Aker Brygge",
+    "rating": 4,
+    "facing": null,
+    "openingHours": {
+      "open": 7,
+      "close": 20
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJfaEdH4FuQUYRbpzIjdiaI6g",
+    "facingSource": null,
+    "discoverySignal": "chain-expansion",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 9,
+        "close": 20
+      },
+      "1": {
+        "open": 7,
+        "close": 20
+      },
+      "2": {
+        "open": 7,
+        "close": 20
+      },
+      "3": {
+        "open": 7,
+        "close": 20
+      },
+      "4": {
+        "open": 7,
+        "close": 20
+      },
+      "5": {
+        "open": 7,
+        "close": 20
+      },
+      "6": {
+        "open": 8,
+        "close": 20
+      }
+    },
+    "hoursSource": "google"
+  },
+  {
+    "id": 654,
+    "name": "Espresso House",
+    "address": "Olav Vs gate 2, 0166 Oslo, Norway",
+    "coords": [
+      59.9137657,
+      10.7329331
+    ],
+    "category": "cafe",
+    "area": "Sentrum",
+    "rating": 4.1,
+    "facing": null,
+    "openingHours": {
+      "open": 6.5,
+      "close": 22
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJZYAtlCQ9k0MREzpJouVQEMg",
+    "facingSource": null,
+    "discoverySignal": "chain-expansion",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 8,
+        "close": 21
+      },
+      "1": {
+        "open": 6.5,
+        "close": 21
+      },
+      "2": {
+        "open": 6.5,
+        "close": 21
+      },
+      "3": {
+        "open": 6.5,
+        "close": 21
+      },
+      "4": {
+        "open": 6.5,
+        "close": 21
+      },
+      "5": {
+        "open": 6.5,
+        "close": 22
+      },
+      "6": {
+        "open": 8,
+        "close": 22
+      }
+    },
+    "hoursSource": "google"
+  },
+  {
+    "id": 655,
+    "name": "Espresso House",
+    "address": "Parkveien 27, 0350 Oslo, Norway",
+    "coords": [
+      59.920511,
+      10.727862
+    ],
+    "category": "cafe",
+    "area": "Bislett",
+    "rating": 3.9,
+    "facing": null,
+    "openingHours": {
+      "open": 7,
+      "close": 20
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJiT3PunhuQUYRjtDaPSWzzik",
+    "facingSource": null,
+    "discoverySignal": "chain-expansion",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 7,
+        "close": 20
+      },
+      "1": {
+        "open": 7,
+        "close": 20
+      },
+      "2": {
+        "open": 7,
+        "close": 20
+      },
+      "3": {
+        "open": 7,
+        "close": 20
+      },
+      "4": {
+        "open": 7,
+        "close": 20
+      },
+      "5": {
+        "open": 7,
+        "close": 20
+      },
+      "6": {
+        "open": 7,
+        "close": 20
+      }
+    },
+    "hoursSource": "google"
+  },
+  {
+    "id": 656,
+    "name": "Espresso House",
+    "address": "Henrik Ibsens gate 90D, 0255 Oslo, Norway",
+    "coords": [
+      59.91467900000001,
+      10.719512
+    ],
+    "category": "cafe",
+    "area": "Frogner",
+    "rating": 4.1,
+    "facing": null,
+    "openingHours": {
+      "open": 6.5,
+      "close": 19
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJCd4vndhtQUYRNRw9aduJEKU",
+    "facingSource": null,
+    "discoverySignal": "chain-expansion",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 9,
+        "close": 18
+      },
+      "1": {
+        "open": 6.5,
+        "close": 19
+      },
+      "2": {
+        "open": 6.5,
+        "close": 19
+      },
+      "3": {
+        "open": 6.5,
+        "close": 19
+      },
+      "4": {
+        "open": 6.5,
+        "close": 19
+      },
+      "5": {
+        "open": 6.5,
+        "close": 19
+      },
+      "6": {
+        "open": 9,
+        "close": 18
+      }
+    },
+    "hoursSource": "google"
+  },
+  {
+    "id": 657,
+    "name": "Åpent Bakeri Barcode",
+    "address": "Dronning Eufemias gate 16, 0191 Oslo, Norway",
+    "coords": [
+      59.9079494,
+      10.7584517
+    ],
+    "category": "restaurant",
+    "area": "Sentrum",
+    "rating": 4.4,
+    "facing": null,
+    "openingHours": {
+      "open": 7,
+      "close": 17
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJl8oN1fRuQUYRR6jIHigIjXE",
+    "facingSource": null,
+    "discoverySignal": "chain-expansion",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 9,
+        "close": 17
+      },
+      "1": {
+        "open": 7,
+        "close": 17
+      },
+      "2": {
+        "open": 7,
+        "close": 17
+      },
+      "3": {
+        "open": 7,
+        "close": 17
+      },
+      "4": {
+        "open": 7,
+        "close": 17
+      },
+      "5": {
+        "open": 7,
+        "close": 17
+      },
+      "6": {
+        "open": 9,
+        "close": 17
+      }
+    },
+    "hoursSource": "google"
+  },
+  {
+    "id": 658,
+    "name": "Peppes Pizza - Karl Johan",
+    "address": "Karl Johans gt. 1, 0154 Oslo, Norway",
+    "coords": [
+      59.911345600000004,
+      10.749538
+    ],
+    "category": "restaurant",
+    "area": "Sentrum",
+    "rating": 3.8,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 23
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ60y0-oluQUYRQ8_N6EW_rGo",
+    "facingSource": null,
+    "discoverySignal": "chain-expansion",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 13,
+        "close": 22
+      },
+      "1": {
+        "open": 11,
+        "close": 22
+      },
+      "2": {
+        "open": 11,
+        "close": 23
+      },
+      "3": {
+        "open": 11,
+        "close": 23
+      },
+      "4": {
+        "open": 11,
+        "close": 23
+      },
+      "5": {
+        "open": 11,
+        "close": 23
+      },
+      "6": {
+        "open": 11,
+        "close": 23
+      }
+    },
+    "hoursSource": "google"
+  },
+  {
+    "id": 659,
+    "name": "Starbucks",
+    "address": "Stranden 7, 0250 Oslo, Norway",
+    "coords": [
+      59.909742900000005,
+      10.726820600000002
+    ],
+    "category": "cafe",
+    "area": "Aker Brygge",
+    "rating": 4.1,
+    "facing": null,
+    "openingHours": {
+      "open": 7.5,
+      "close": 20
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJN8KRC4FuQUYRDhgNKmK0H_E",
+    "facingSource": null,
+    "discoverySignal": "chain-expansion",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 9,
+        "close": 20
+      },
+      "1": {
+        "open": 7.5,
+        "close": 19
+      },
+      "2": {
+        "open": 7.5,
+        "close": 19
+      },
+      "3": {
+        "open": 7.5,
+        "close": 19
+      },
+      "4": {
+        "open": 7.5,
+        "close": 19
+      },
+      "5": {
+        "open": 7.5,
+        "close": 19
+      },
+      "6": {
+        "open": 9,
+        "close": 20
+      }
+    },
+    "hoursSource": "google"
+  },
+  {
+    "id": 660,
+    "name": "Der Peppern Gror Rådhusplassen",
+    "address": "Fridtjof Nansens plass 7, 0160 Oslo, Norway",
+    "coords": [
+      59.91242750000001,
+      10.735149500000002
+    ],
+    "category": "restaurant",
+    "area": "Sentrum",
+    "rating": 4.4,
+    "facing": null,
+    "openingHours": {
+      "open": 15,
+      "close": 22
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ8_fFZYduQUYRjMV8wpicDsY",
+    "facingSource": null,
+    "discoverySignal": "chain-expansion",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 15,
+        "close": 21
+      },
+      "1": {
+        "open": 16,
+        "close": 21
+      },
+      "2": {
+        "open": 16,
+        "close": 21
+      },
+      "3": {
+        "open": 16,
+        "close": 21
+      },
+      "4": {
+        "open": 16,
+        "close": 21
+      },
+      "5": {
+        "open": 15.5,
+        "close": 22
+      },
+      "6": {
+        "open": 15,
+        "close": 22
+      }
+    },
+    "hoursSource": "google"
+  },
+  {
+    "id": 661,
+    "name": "Sumo Restaurant Karl Johans Gate",
+    "address": "Karl Johans gt. 45, 0162 Oslo, Norway",
+    "coords": [
+      59.914621600000004,
+      10.7364406
+    ],
+    "category": "restaurant",
+    "area": "Sentrum",
+    "rating": 3.9,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 24
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ519zHQBvQUYRTrUfG5KlBac",
+    "facingSource": null,
+    "discoverySignal": "chain-expansion",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 23
+      },
+      "1": {
+        "open": 11,
+        "close": 23
+      },
+      "2": {
+        "open": 11,
+        "close": 23
+      },
+      "3": {
+        "open": 11,
+        "close": 23
+      },
+      "4": {
+        "open": 11,
+        "close": 23
+      },
+      "5": {
+        "open": 11,
+        "close": 24
+      },
+      "6": {
+        "open": 11,
+        "close": 24
+      }
+    },
+    "hoursSource": "google"
+  },
+  {
+    "id": 662,
+    "name": "Sumo Restaurant Bjørvika",
+    "address": "Operagata 73C, 0194 Oslo, Norway",
+    "coords": [
+      59.9062504,
+      10.758460699999999
+    ],
+    "category": "restaurant",
+    "area": "Sentrum",
+    "rating": 3.8,
+    "facing": null,
+    "openingHours": {
+      "open": 12,
+      "close": 23
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ2awlW1lvQUYRTgLSLMtdHd0",
+    "facingSource": null,
+    "discoverySignal": "chain-expansion",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 22
+      },
+      "1": {
+        "open": 12,
+        "close": 22
+      },
+      "2": {
+        "open": 12,
+        "close": 22
+      },
+      "3": {
+        "open": 12,
+        "close": 22
+      },
+      "4": {
+        "open": 12,
+        "close": 22
+      },
+      "5": {
+        "open": 12,
+        "close": 23
+      },
+      "6": {
+        "open": 12,
+        "close": 23
+      }
+    },
+    "hoursSource": "google"
+  },
+  {
+    "id": 663,
+    "name": "Babbo Collective Parkveien",
+    "address": "Parkveien 80, 0254 Oslo, Norway",
+    "coords": [
+      59.91199830000001,
+      10.7188596
+    ],
+    "category": "restaurant",
+    "area": "Frogner",
+    "rating": 4.4,
+    "facing": null,
+    "openingHours": {
+      "open": 9,
+      "close": 22
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJlwU4cpRtQUYRdXjjM6WA7yM",
+    "facingSource": null,
+    "discoverySignal": "chain-expansion",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 9,
+        "close": 16
+      },
+      "1": {
+        "open": 9,
+        "close": 16
+      },
+      "2": {
+        "open": 9,
+        "close": 16
+      },
+      "3": {
+        "open": 9,
+        "close": 16
+      },
+      "4": {
+        "open": 9,
+        "close": 16
+      },
+      "5": {
+        "open": 9,
+        "close": 22
+      },
+      "6": {
+        "open": 9,
+        "close": 22
+      }
+    },
+    "hoursSource": "google"
+  },
+  {
+    "id": 664,
+    "name": "Pascal Konditori Tollbugata 11",
+    "address": "Tollbugata 11, 0152 Oslo, Norway",
+    "coords": [
+      59.9100518,
+      10.7462302
+    ],
+    "category": "restaurant",
+    "area": "Sentrum",
+    "rating": 4.3,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 17
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ1-npr4luQUYRCCmgIWmtENU",
+    "facingSource": null,
+    "discoverySignal": "chain-expansion",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "1": {
+        "open": 11,
+        "close": 17
+      },
+      "2": {
+        "open": 11,
+        "close": 17
+      },
+      "3": {
+        "open": 11,
+        "close": 17
+      },
+      "4": {
+        "open": 11,
+        "close": 17
+      },
+      "5": {
+        "open": 11,
+        "close": 17
+      },
+      "6": {
+        "open": 11,
+        "close": 17
+      }
+    },
+    "hoursSource": "google"
+  },
+  {
+    "id": 665,
+    "name": "Olivia Eger",
+    "address": "Karl Johans gt. 23, 0159 Oslo, Norway",
+    "coords": [
+      59.91314860000001,
+      10.7415212
+    ],
+    "category": "restaurant",
+    "area": "Sentrum",
+    "rating": 4.3,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 24
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJt2YRz_BvQUYRm-WsgRX7u3A",
+    "facingSource": null,
+    "discoverySignal": "chain-expansion",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 23
+      },
+      "1": {
+        "open": 11,
+        "close": 24
+      },
+      "2": {
+        "open": 11,
+        "close": 24
+      },
+      "3": {
+        "open": 11,
+        "close": 24
+      },
+      "4": {
+        "open": 11,
+        "close": 24
+      },
+      "5": {
+        "open": 11,
+        "close": 1
+      },
+      "6": {
+        "open": 11,
+        "close": 1
+      }
+    },
+    "hoursSource": "google"
   }
 ]
