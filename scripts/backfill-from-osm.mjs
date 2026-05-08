@@ -110,8 +110,16 @@ const added = [], skipped = [];
 for (const stub of stubs) {
   process.stdout.write(`  ${stub.name} (${stub.lat.toFixed(4)}, ${stub.lng.toFixed(4)}) … `);
 
-  // 1. Already in venues.json by coord proximity?
-  const dupeByCoord = venues.find(v => metresBetween([stub.lat, stub.lng], v.coords) < 50);
+  // 1. Already in venues.json by name + coord proximity?
+  // Coord-alone matching is too aggressive — multiple unrelated venues
+  // share an address (ground-floor restaurant + cellar bar). Require the
+  // names to share a substring before treating as a duplicate.
+  const stubNorm = stub.name.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+  const dupeByCoord = venues.find(v => {
+    if (metresBetween([stub.lat, stub.lng], v.coords) >= 50) return false;
+    const vNorm = v.name.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+    return vNorm.includes(stubNorm) || stubNorm.includes(vNorm);
+  });
   if (dupeByCoord) {
     console.log(`already exists as "${dupeByCoord.name}" — skipped`);
     skipped.push({ ...stub, reason: 'duplicate-coords', existing: dupeByCoord.name });

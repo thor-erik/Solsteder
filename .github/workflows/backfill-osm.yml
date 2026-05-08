@@ -28,7 +28,10 @@ jobs:
           node-version: '22'
 
       - name: Write .env
-        run: echo "GOOGLE_PLACES_KEY_SERVER=${{ secrets.GOOGLE_PLACES_KEY_SERVER }}" > .env
+        # Server-key value but written under the canonical GOOGLE_PLACES_KEY
+        # name so downstream scripts (refresh-opening-hours, etc.) read it
+        # without needing to know about the _SERVER suffix.
+        run: echo "GOOGLE_PLACES_KEY=${{ secrets.GOOGLE_PLACES_KEY_SERVER }}" > .env
 
       - name: Backfill from data/backfill-input.json
         run: node scripts/backfill-from-osm.mjs
