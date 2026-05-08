@@ -305,6 +305,14 @@ async function fetchOSMOutdoor() {
 /**
  * Resolve an OSM venue (name + coords) to a Google Place via Text Search.
  * Returns the matched place or null.
+ *
+ * Uses locationRestriction (a hard 250 m circle) instead of locationBias
+ * (a soft hint). For chain venues like "Los Tacos" with 10 branches in
+ * Oslo, locationBias caused the response to collapse to the most-popular
+ * branch — the specific OSM coords didn't make the top-5. With
+ * locationRestriction Google can only return places inside the circle,
+ * so each branch resolves independently. maxResultCount bumped to 20 to
+ * give a fair chance of finding a food-typed match in dense blocks.
  */
 async function resolveOSMToGoogle(osmVenue) {
   const resp = await fetch('https://places.googleapis.com/v1/places:searchText', {
@@ -316,10 +324,10 @@ async function resolveOSMToGoogle(osmVenue) {
     },
     body: JSON.stringify({
       textQuery: `${osmVenue.name} Oslo`,
-      locationBias: {
-        circle: { center: { latitude: osmVenue.lat, longitude: osmVenue.lng }, radius: 200 },
+      locationRestriction: {
+        circle: { center: { latitude: osmVenue.lat, longitude: osmVenue.lng }, radius: 250 },
       },
-      maxResultCount: 5,
+      maxResultCount: 20,
     }),
     signal: AbortSignal.timeout(15_000),
   });
