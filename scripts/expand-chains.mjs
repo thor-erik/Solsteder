@@ -74,12 +74,16 @@ async function osmLookupChainBranches(chainName) {
   // Match name-starts-with so we catch "Kaffebrenneriet avd Storo" as a branch
   // of "Kaffebrenneriet". Case-insensitive.
   const safe = chainName.replace(/"/g, '');
+  // Include shop=bakery — bakery chains (Baker Hansen, Åpent Bakeri,
+  // Godt Brød) are tagged shop=bakery in OSM, not amenity=*.
   const query = `
     [out:json][timeout:60];
     area["name"="Oslo"]["admin_level"="4"]->.oslo;
     (
-      node["amenity"~"^(restaurant|bar|cafe|pub|fast_food|biergarten|food_court|ice_cream)$"]["name"~"^${safe}",i](area.oslo);
-      way["amenity"~"^(restaurant|bar|cafe|pub|fast_food|biergarten|food_court|ice_cream)$"]["name"~"^${safe}",i](area.oslo);
+      node["amenity"~"^(restaurant|bar|cafe|pub|fast_food|biergarten|food_court|ice_cream|bakery)$"]["name"~"^${safe}",i](area.oslo);
+      way["amenity"~"^(restaurant|bar|cafe|pub|fast_food|biergarten|food_court|ice_cream|bakery)$"]["name"~"^${safe}",i](area.oslo);
+      node["shop"="bakery"]["name"~"^${safe}",i](area.oslo);
+      way["shop"="bakery"]["name"~"^${safe}",i](area.oslo);
     );
     out tags center;
   `;
@@ -119,7 +123,12 @@ async function resolveOSMToGoogle(stub) {
     },
     body: JSON.stringify({
       textQuery: `${stub.name} Oslo`,
-      locationRestriction: { circle: { center: { latitude: stub.lat, longitude: stub.lng }, radius: 200 } },
+      // Soft bias rather than hard restriction — Google's coord for a
+      // chain branch can differ from OSM's by >150 m (entrance node vs
+      // building centroid). locationRestriction with 200 m dropped every
+      // match in the first run. Bias + maxResultCount: 20 + post-distance
+      // filter is more forgiving but still anchored to the right branch.
+      locationBias: { circle: { center: { latitude: stub.lat, longitude: stub.lng }, radius: 150 } },
       maxResultCount: 20,
     }),
     signal: AbortSignal.timeout(15_000),

@@ -44,5 +44,15 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/venues.json data/venues.meta.json data/venue-photos.json
-          git diff --cached --quiet && echo "No changes" || git commit -m "chore: expand chain coverage [skip ci]"
-          git push
+          if git diff --cached --quiet; then
+            echo "No changes"
+          else
+            git commit -m "chore: expand chain coverage [skip ci]"
+            # Long-running jobs can lose the push race; rebase + retry.
+            for i in 1 2 3; do
+              git pull --rebase origin master && git push origin master && exit 0
+              echo "Push attempt $i failed, retrying…"
+              sleep 5
+            done
+            exit 1
+          fi
