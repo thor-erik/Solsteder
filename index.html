@@ -119,6 +119,20 @@
     --rain: #7FA5D9;
   }
 
+  /* ── Accessibility globals ────────────────────────────────────────────────── */
+  :focus-visible {
+    outline: 2px solid var(--accent) !important;
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
   html, body {
     height: 100%;
     background: var(--bg);
@@ -7935,7 +7949,7 @@
   <!-- Top-left: search bar -->
   <div id="floating-search" class="floating-card intro-hidden">
     <span id="search-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8.5" cy="8.5" r="5.5"/><line x1="13" y1="13" x2="18" y2="18"/></svg></span>
-    <input type="text" id="venue-search" placeholder="Søk etter steder eller områder…" autocomplete="off">
+    <input type="text" id="venue-search" placeholder="Søk etter steder eller områder…" autocomplete="off" aria-label="Søk etter steder eller områder">
     <button id="search-clear-btn" type="button" aria-label="Clear search">✕</button>
     <button id="search-profile-btn" onclick="toggleProfilePanel(event)" title="Profil"></button>
   </div>
