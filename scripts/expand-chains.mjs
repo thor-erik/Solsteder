@@ -63,53 +63,28 @@ const normName = s => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
 const metresBetween = (a, b) => Math.hypot((a[0] - b[0]) * 111_000, (a[1] - b[1]) * 55_000);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-// ── OSM lookup for chain branches ─────────────────────────────────────────────
-const OVERPASS_ENDPOINTS = [
-  'https://overpass-api.de/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter',
-  'https://overpass.openstreetmap.ru/api/interpreter',
-];
+// ── Local OSM lookup via oslo-candidates.json ────────────────────────────────
+// Live Overpass queries with case-insensitive regex were timing out at 60s
+// for big chains (Kaffebrenneriet, Espresso House, Baker Hansen). The
+// candidates file already has 1.6k OSM venues cached locally, so a simple
+// in-memory filter is both faster and more reliable.
 
-async function osmLookupChainBranches(chainName) {
-  // Match name-starts-with so we catch "Kaffebrenneriet avd Storo" as a branch
-  // of "Kaffebrenneriet". Case-insensitive.
-  const safe = chainName.replace(/"/g, '');
-  // Include shop=bakery — bakery chains (Baker Hansen, Åpent Bakeri,
-  // Godt Brød) are tagged shop=bakery in OSM, not amenity=*.
-  const query = `
-    [out:json][timeout:60];
-    area["name"="Oslo"]["admin_level"="4"]->.oslo;
-    (
-      node["amenity"~"^(restaurant|bar|cafe|pub|fast_food|biergarten|food_court|ice_cream|bakery)$"]["name"~"^${safe}",i](area.oslo);
-      way["amenity"~"^(restaurant|bar|cafe|pub|fast_food|biergarten|food_court|ice_cream|bakery)$"]["name"~"^${safe}",i](area.oslo);
-      node["shop"="bakery"]["name"~"^${safe}",i](area.oslo);
-      way["shop"="bakery"]["name"~"^${safe}",i](area.oslo);
-    );
-    out tags center;
-  `;
-  for (const ep of OVERPASS_ENDPOINTS) {
-    try {
-      const r = await fetch(ep, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'Solsteder/1.0' },
-        body:    'data=' + encodeURIComponent(query),
-        signal:  AbortSignal.timeout(75_000),
-      });
-      if (!r.ok) continue;
-      const data = await r.json();
-      return (data.elements ?? [])
-        .filter(el => el.tags?.name)
-        .map(el => ({
-          name:    el.tags.name,
-          lat:     el.type === 'node' ? el.lat : el.center?.lat,
-          lng:     el.type === 'node' ? el.lon : el.center?.lon,
-          amenity: el.tags.amenity,
-          outdoor: el.tags.outdoor_seating ?? null,
-        }))
-        .filter(x => x.lat && x.lng);
-    } catch (_) { await sleep(2000); continue; }
-  }
-  return null;
+const candidatesPath = join(ROOT, 'data/oslo-candidates.json');
+let _osmCandidates = null;
+function getOSMCandidates() {
+  if (_osmCandidates) return _osmCandidates;
+  try {
+    const all = JSON.parse(readFileSync(candidatesPath, 'utf8'));
+    _osmCandidates = all.filter(c => c.source === 'osm');
+  } catch (_) { _osmCandidates = []; }
+  return _osmCandidates;
+}
+
+function lookupChainBranches(chainName) {
+  const prefix = chainName.toLowerCase();
+  return getOSMCandidates()
+    .filter(c => c.name.toLowerCase().startsWith(prefix))
+    .map(c => ({ name: c.name, lat: c.lat, lng: c.lng, amenity: c.amenity }));
 }
 
 // ── Google Places resolve + outdoor-seating verification ─────────────────────
@@ -151,37 +126,47 @@ async function resolveOSMToGoogle(stub) {
 const venuesPath = join(ROOT, 'data/venues.json');
 const venues = JSON.parse(readFileSync(venuesPath, 'utf8'));
 
-// Identify chains: groups of ≥2 venues where venue.name starts with
-// the same significant prefix (≥4 chars).
-const byPrefix = new Map(); // prefix -> [venues]
-for (const v of venues) {
-  // Strip common location-suffix patterns ("avd Storo", "Tjuvholmen", "Frogner") to get the chain name
-  const base = v.name
-    .replace(/\s+(avd|på|i)\b.*/i, '')      // "Kaffebrenneriet avd Storo" → "Kaffebrenneriet"
-    .replace(/\s*[-(].*/, '')                // "Olivia - Tjuvholmen" → "Olivia"
-    .trim();
-  // Use first 2 words as the chain key (handles "Big Horn", "Joe & The Juice")
+// Identify chains *from OSM data* (oslo-candidates.json) so we catch
+// chains we have 0 or 1 of in venues.json — Joe & The Juice (0/8),
+// Starbucks (0/6), Sumo (1/4), Sabi Sushi (0/3), etc. Any name that
+// appears ≥3 times in OSM is treated as a chain worth verifying.
+const stripChainSuffix = name => name
+  .replace(/\s+(avd|på|i)\b.*/i, '')
+  .replace(/\s*[-(].*/, '')
+  .trim();
+
+const byPrefix = new Map(); // prefix -> [osm stubs]
+for (const c of getOSMCandidates()) {
+  const base = stripChainSuffix(c.name);
   const tokens = base.split(/\s+/);
-  let key = tokens.slice(0, Math.min(2, tokens.length)).join(' ');
+  const key = tokens.slice(0, Math.min(2, tokens.length)).join(' ');
   if (key.length < 4) continue;
   if (!byPrefix.has(key)) byPrefix.set(key, []);
-  byPrefix.get(key).push(v);
+  byPrefix.get(key).push(c);
 }
 
-const chains = [...byPrefix.entries()]
-  .filter(([_, list]) => list.length >= 2)
-  .sort((a, b) => b[1].length - a[1].length);
+// Count how many of each chain we already have in the app, for logging.
+const inAppCount = name => venues.filter(v => normName(v.name).startsWith(normName(name))).length;
 
-console.log(`Detected ${chains.length} chains in venues.json (≥2 branches each).\n`);
+// Chains = name prefixes with ≥3 OSM entries. Sorted by missing branches
+// (OSM count − in-app count) so we hit the biggest gaps first.
+const chains = [...byPrefix.entries()]
+  .filter(([_, list]) => list.length >= 3)
+  .map(([name, list]) => ({ name, osmCount: list.length, inApp: inAppCount(name), missing: list.length - inAppCount(name) }))
+  .filter(c => c.missing > 0)
+  .sort((a, b) => b.missing - a.missing);
+
+console.log(`Detected ${chains.length} chains with missing branches (sorted by gap):`);
+for (const c of chains) console.log(`  ${c.name.padEnd(28)} ${c.osmCount} OSM, ${c.inApp} in app, ${c.missing} missing`);
+console.log();
 
 const existingPlaceIds = new Set(venues.map(v => v.googlePlaceId).filter(Boolean));
 let nextId = Math.max(...venues.map(v => v.id)) + 1;
 const added = [], skipped = { 'no-flag': 0, 'unresolved': 0, 'duplicate': 0, 'closed-or-non-food': 0 };
 
-for (const [chainName, existing] of chains) {
-  console.log(`\n── ${chainName} ── (${existing.length} in app)`);
-  const osm = await osmLookupChainBranches(chainName);
-  if (!osm) { console.log('  OSM lookup failed, skipping'); continue; }
+for (const { name: chainName, inApp } of chains) {
+  console.log(`\n── ${chainName} ── (${inApp} in app)`);
+  const osm = lookupChainBranches(chainName);
   console.log(`  OSM: ${osm.length} branches found`);
 
   for (const stub of osm) {
