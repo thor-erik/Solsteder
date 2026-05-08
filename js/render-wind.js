@@ -35,7 +35,7 @@ let _dpr       = 1;
 
 let _venue     = null;
 let _cosLat    = 1;
-let _buildings = [];     // { cx, cy, R, poly[] }  in local metres (x=east, y=north)
+let _buildings = [];     // { cx, cy, bbR, poly[], flowCyls[{cx,cy,R}] }  in local metres
 let _windDx    = 0;      // unit vector: direction wind blows TO  (x=east)
 let _windDy    = 0;      //                                        (y=north)
 let _windSpd   = 0;      // visual speed, m/frame — pre-scaled from wx.wspd
@@ -86,9 +86,73 @@ function _geoToLocal(lat, lon) {
   };
 }
 
-// ── Building cylinders ────────────────────────────────────────────────────────
+// ── Building geometry → flow cylinders ────────────────────────────────────────
+//
+// Each building polygon is reduced to one or more cylinders that drive the
+// potential-flow field.  Two improvements over a naive bounding-circle:
+//
+//   1. Centre: area-weighted polygon centroid (not vertex average) — unbiased
+//      by uneven OSM vertex sampling.
+//   2. Size & shape: principal-axis decomposition gives the oriented bounding
+//      box (long L, short W).  Compact buildings (L/W < 1.6) get one cylinder
+//      with the equivalent-area radius √(A/π) — preserves blockage area
+//      instead of inflating to the circumscribed circle.  Elongated buildings
+//      get a chain of touching cylinders along the long axis with radius W/2,
+//      so the obstacle traces the building's actual footprint.
 
-function _makeCylinder(geoNodes) {
+// Signed area + area-weighted centroid (shoelace).
+function _polyCentroid(pts) {
+  let A = 0, cx = 0, cy = 0;
+  const n = pts.length;
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    const cr = pts[i].x * pts[j].y - pts[j].x * pts[i].y;
+    A  += cr;
+    cx += (pts[i].x + pts[j].x) * cr;
+    cy += (pts[i].y + pts[j].y) * cr;
+  }
+  A *= 0.5;
+  if (Math.abs(A) < 0.01) {
+    // Degenerate polygon — fall back to vertex mean
+    let mx = 0, my = 0;
+    for (const p of pts) { mx += p.x; my += p.y; }
+    return { cx: mx / n, cy: my / n, area: 0 };
+  }
+  return { cx: cx / (6 * A), cy: cy / (6 * A), area: Math.abs(A) };
+}
+
+// Principal axes via 2×2 covariance eigendecomposition + extents (oriented bbox).
+function _polyAxes(pts, cx, cy) {
+  let Sxx = 0, Sxy = 0, Syy = 0;
+  for (const p of pts) {
+    const dx = p.x - cx, dy = p.y - cy;
+    Sxx += dx * dx; Sxy += dx * dy; Syy += dy * dy;
+  }
+  const half = (Sxx - Syy) / 2;
+  const disc = Math.sqrt(half * half + Sxy * Sxy);
+  const lam1 = (Sxx + Syy) / 2 + disc;            // larger eigenvalue
+  let ux, uy;
+  if (Math.abs(Sxy) > 1e-6) { ux = lam1 - Syy; uy = Sxy; }
+  else                       { ux = Sxx >= Syy ? 1 : 0; uy = Sxx >= Syy ? 0 : 1; }
+  const m = Math.hypot(ux, uy) || 1;
+  ux /= m; uy /= m;
+  const vx = -uy, vy = ux;                        // minor axis ⟂ major
+
+  let uMin = Infinity, uMax = -Infinity, vMin = Infinity, vMax = -Infinity;
+  for (const p of pts) {
+    const du = (p.x - cx) * ux + (p.y - cy) * uy;
+    const dv = (p.x - cx) * vx + (p.y - cy) * vy;
+    if (du < uMin) uMin = du; if (du > uMax) uMax = du;
+    if (dv < vMin) vMin = dv; if (dv > vMax) vMax = dv;
+  }
+  return {
+    ux, uy, vx, vy,
+    uLen: uMax - uMin, vLen: vMax - vMin,
+    uMid: (uMax + uMin) / 2, vMid: (vMax + vMin) / 2,
+  };
+}
+
+function _makeBuilding(geoNodes) {
   // Convert to local metres, drop closing-duplicate vertex if present
   let pts = geoNodes.map(n => _geoToLocal(n.lat, n.lon));
   if (pts.length > 1) {
@@ -96,16 +160,48 @@ function _makeCylinder(geoNodes) {
     if (Math.hypot(pts[0].x - last.x, pts[0].y - last.y) < 0.5) pts = pts.slice(0, -1);
   }
   if (pts.length < 3) return null;
-  const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length;
-  const cy = pts.reduce((s, p) => s + p.y, 0) / pts.length;
-  const R  = Math.max(3, Math.max(...pts.map(p => Math.hypot(p.x - cx, p.y - cy))));
-  return { cx, cy, R, poly: pts };
+
+  const { cx: gcx, cy: gcy, area } = _polyCentroid(pts);
+  const ax = _polyAxes(pts, gcx, gcy);
+
+  // OBB centre (slightly different from area centroid for asymmetric polys)
+  const obbCx = gcx + ax.uMid * ax.ux + ax.vMid * ax.vx;
+  const obbCy = gcy + ax.uMid * ax.uy + ax.vMid * ax.vy;
+  const L = Math.max(ax.uLen, 1);
+  const W = Math.max(ax.vLen, 1);
+  const aspect = L / W;
+
+  let flowCyls;
+  if (aspect < 1.6) {
+    // Compact → single cylinder, equivalent-area radius (preserves blockage)
+    const R = Math.max(2.5, area > 0 ? Math.sqrt(area / Math.PI) : (L + W) / 4);
+    flowCyls = [{ cx: obbCx, cy: obbCy, R }];
+  } else {
+    // Elongated → chain of cylinders along long axis (touching at integer
+    // aspect ratios, overlapping otherwise to keep the field continuous).
+    const r = Math.max(2, W / 2);
+    const N = Math.max(2, Math.round(L / W));
+    const span = Math.max(0, L - W);              // keep end caps inside footprint
+    flowCyls = [];
+    for (let i = 0; i < N; i++) {
+      const t = (i / (N - 1)) - 0.5;              // −0.5 … +0.5
+      flowCyls.push({
+        cx: obbCx + t * span * ax.ux,
+        cy: obbCy + t * span * ax.uy,
+        R: r,
+      });
+    }
+  }
+
+  // Bounding-circle radius for cheap fast-reject in collision test
+  const bbR = Math.hypot(L / 2, W / 2);
+  return { cx: obbCx, cy: obbCy, bbR, poly: pts, flowCyls };
 }
 
-// Point-in-convex/arbitrary polygon (Jordan curve theorem).
-// AABB pre-rejection makes this cheap in the common case (particle far away).
-function _ptInPoly(px, py, poly, cx, cy, R) {
-  if (Math.hypot(px - cx, py - cy) > R * 1.15) return false; // fast reject
+// Point-in-arbitrary-polygon (Jordan curve theorem).
+// Bounding-circle pre-rejection makes this cheap in the common case.
+function _ptInPoly(px, py, poly, cx, cy, bbR) {
+  if (Math.hypot(px - cx, py - cy) > bbR * 1.15) return false; // fast reject
   let inside = false;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
     const xi = poly[i].x, yi = poly[i].y;
@@ -118,7 +214,7 @@ function _ptInPoly(px, py, poly, cx, cy, R) {
 
 function _insideAnyBuilding(px, py) {
   for (const b of _buildings) {
-    if (_ptInPoly(px, py, b.poly, b.cx, b.cy, b.R)) return true;
+    if (_ptInPoly(px, py, b.poly, b.cx, b.cy, b.bbR)) return true;
   }
   return false;
 }
@@ -143,21 +239,23 @@ function _flowAt(px, py) {
   let uy = _windDy * _windSpd;
 
   for (const b of _buildings) {
-    const dx = px - b.cx;
-    const dy = py - b.cy;
-    const r2 = dx * dx + dy * dy;
-    if (r2 < b.R * b.R * 0.3) { return { ux: 0, uy: 0 }; } // deep inside — no valid field
+    for (const c of b.flowCyls) {
+      const dx = px - c.cx;
+      const dy = py - c.cy;
+      const r2 = dx * dx + dy * dy;
+      if (r2 < c.R * c.R * 0.3) { return { ux: 0, uy: 0 }; } // singular core
 
-    const xi  =  dx * _windDx + dy * _windDy;
-    const eta = -dx * _windDy + dy * _windDx;
-    const d2  = xi * xi + eta * eta;
-    const c   = _windSpd * b.R * b.R / (d2 * d2);
+      const xi  =  dx * _windDx + dy * _windDy;
+      const eta = -dx * _windDy + dy * _windDx;
+      const d2  = xi * xi + eta * eta;
+      const k   = _windSpd * c.R * c.R / (d2 * d2);
 
-    const dxi  = c * (eta * eta - xi * xi);
-    const deta = c * (-2 * xi * eta);
+      const dxi  = k * (eta * eta - xi * xi);
+      const deta = k * (-2 * xi * eta);
 
-    ux += dxi * _windDx - deta * _windDy;
-    uy += dxi * _windDy + deta * _windDx;
+      ux += dxi * _windDx - deta * _windDy;
+      uy += dxi * _windDy + deta * _windDx;
+    }
   }
   return { ux, uy };
 }
@@ -200,14 +298,18 @@ function _tick(p) {
   // Sample potential-flow field
   const { ux, uy } = _flowAt(p.x, p.y);
 
-  // Add stochastic turbulence in the wake of each building
+  // Add stochastic turbulence in the wake of each building.
+  // Wake is built from the building's OBB centre + max cylinder radius so
+  // multi-cylinder buildings don't overlap-amplify their wake regions.
   let tx = ux, ty = uy;
   for (const b of _buildings) {
     // ξ < 0 means particle is on the lee (downwind) side of this building
     const xi  = (p.x - b.cx) * _windDx + (p.y - b.cy) * _windDy;
     if (xi >= 0) continue;                                  // upwind — no wake
     const eta = -(p.x - b.cx) * _windDy + (p.y - b.cy) * _windDx;
-    const wakeWidth = b.R * (1 + (-xi) * 0.10);
+    let maxR = 0;
+    for (const c of b.flowCyls) if (c.R > maxR) maxR = c.R;
+    const wakeWidth = maxR * (1 + (-xi) * 0.10);
     if (Math.abs(eta) > wakeWidth) continue;                // outside wake cone
 
     // Exponential decay: strong near building face, fades downwind
@@ -316,17 +418,17 @@ function startWindOverlay(venue, wx) {
   // Visual speed: exaggerated for legibility; scales with real wind strength
   _windSpd = Math.max(0.12, Math.min(wx.wspd * 0.09, 1.0));
 
-  // Build cylinder list from main building + nearby buildings (within 58 m)
+  // Build flow obstacles from main building + nearby buildings (within 58 m)
   _buildings = [];
   if ((venue.buildingGeometry?.length ?? 0) >= 3) {
-    const c = _makeCylinder(venue.buildingGeometry);
-    if (c) _buildings.push(c);
+    const b = _makeBuilding(venue.buildingGeometry);
+    if (b) _buildings.push(b);
   }
   for (const nb of (venue.nearbyBuildings ?? [])) {
     if ((nb.geometry?.length ?? 0) >= 3) {
-      const c = _makeCylinder(nb.geometry);
+      const b = _makeBuilding(nb.geometry);
       // Only include buildings whose centroid is within 58 m of venue centre
-      if (c && Math.hypot(c.cx, c.cy) < 58) _buildings.push(c);
+      if (b && Math.hypot(b.cx, b.cy) < 58) _buildings.push(b);
     }
   }
 
