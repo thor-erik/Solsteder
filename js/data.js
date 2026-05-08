@@ -172,16 +172,23 @@ async function loadSeatingCache() {
 
 /**
  * Resolution order for a venue's outdoor-seating polygon:
- *   1. Manual vertex-drag override (localStorage)
- *   2. AI detection (when confidence ≥ gate and not flagged notVisible)
- *   3. null → callers fall back to wall-projection heuristic
+ *   1. Manual vertex-drag override (localStorage / committed manual record)
+ *   2. AI detection — ONLY when the caller opts in via { includeAi: true },
+ *      and only when confidence ≥ gate and not flagged notVisible.
+ *   3. null → callers fall back to wall-projection heuristic.
+ *
+ * AI is opt-in because we are still calibrating: regular users on the public
+ * map should see manual polygons and the wall heuristic, but never the
+ * AI polygon. The editor passes { includeAi: true } so admins can review
+ * the AI proposal as a ghost overlay.
  *
  * Returns an array of [lat, lng] vertices, or null.
  */
-function getSeatingPolygon(v) {
+function getSeatingPolygon(v, opts = {}) {
   if (Array.isArray(v.seatingPolygonOverride) && v.seatingPolygonOverride.length >= 3) {
     return v.seatingPolygonOverride;
   }
+  if (!opts.includeAi) return null;
   if (v.seatingNotVisible) return null;
   if (Array.isArray(v.seatingPolygonAi)
       && v.seatingPolygonAi.length >= 3

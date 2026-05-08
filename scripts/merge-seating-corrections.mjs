@@ -81,6 +81,19 @@ for (const c of ordered) {
         detectedAt: prev.detectedAt,
       };
     }
+    // Origin: 'from-scratch' (user drew a new polygon) vs 'drag-edit' (user
+    // dragged vertices on an existing polygon). The editor sets c.origin
+    // explicitly when it knows; otherwise we infer from the diff.
+    //   - before had no override, after has one → from-scratch
+    //   - before had an override that differs from after → drag-edit
+    // While the AI is still being calibrated, from-scratch corrections are
+    // strictly more valuable as few-shot examples; once AI quality is good
+    // we can weight or filter by this field.
+    const before = c.before ?? {};
+    const beforeHadPoly = Array.isArray(before.seatingPolygonOverride)
+      && before.seatingPolygonOverride.length >= 3;
+    const inferredOrigin = beforeHadPoly ? 'drag-edit' : 'from-scratch';
+    const origin = c.origin ?? c.after?.origin ?? inferredOrigin;
     cache.venues[key] = {
       ...(prev ?? {}),
       polygon,
@@ -88,6 +101,7 @@ for (const c of ordered) {
       notVisible: false,
       detectedAt: c.timestamp ?? new Date().toISOString(),
       source:    'manual',
+      origin,
       reasoning: c.autoState ?? 'manual-polygon-edit',
       ...(originalAi ? { originalAi } : {}),
     };

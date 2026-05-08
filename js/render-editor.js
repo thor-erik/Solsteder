@@ -77,7 +77,10 @@ function getActivePolygon(v) {
   if (Array.isArray(v.seatingPolygonOverride) && v.seatingPolygonOverride.length >= 3) {
     return { latlng: v.seatingPolygonOverride, key: 'override' };
   }
-  const sp = (typeof getSeatingPolygon === 'function') ? getSeatingPolygon(v) : null;
+  // Editor opts in to seeing the AI polygon (as a ghost / for drag-handle
+  // editing). Public renderers do not — getSeatingPolygon defaults to
+  // override-only. See data.js for the gate rationale.
+  const sp = (typeof getSeatingPolygon === 'function') ? getSeatingPolygon(v, { includeAi: true }) : null;
   if (Array.isArray(sp) && sp.length >= 3) return { latlng: sp, key: 'ai' };
   // Wall-derived preview polygon (lat/lng). Used for hit-testing handles before
   // the user has dragged anything (i.e. before bakeStreetPolygon runs).
