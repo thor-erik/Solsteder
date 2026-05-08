@@ -26,22 +26,24 @@ function buildShadeStyle() {
     layers: [
 
       // ── Background ─────────────────────────────────────────────────────────
-      // Near-white warm cream — the "page" of the architectural drawing.
+      // Sunlit limestone — warm cream with enough chroma that the navy glass
+      // panels (the app's "shades") cool it to a balanced neutral when overlaid.
       {
         id: 'background',
         type: 'background',
-        paint: { 'background-color': '#F4EFE3' },
+        paint: { 'background-color': '#ECDEC5' },
       },
 
       // ── Water ──────────────────────────────────────────────────────────────
-      // Brand --muted Jordy at low opacity → calm muted cool counterpoint
-      // to the warm-leaning near-white ground.
+      // Brand --muted Jordy at high opacity — water reads as recognizable
+      // brand blue both unfiltered (Oslo fjord on a sunny day) and through
+      // the sunglass-tinted panels (deepens to a richer cool blue).
       {
         id: 'water',
         type: 'fill',
         source: 'composite',
         'source-layer': 'water',
-        paint: { 'fill-color': '#9CBDE7', 'fill-opacity': 0.55 },
+        paint: { 'fill-color': '#9CBDE7', 'fill-opacity': 0.85 },
       },
       {
         id: 'waterway',
@@ -50,14 +52,15 @@ function buildShadeStyle() {
         'source-layer': 'waterway',
         paint: {
           'line-color': '#9CBDE7',
-          'line-opacity': 0.45,
+          'line-opacity': 0.75,
           'line-width': ['interpolate', ['linear'], ['zoom'], 10, 0.5, 16, 2],
         },
       },
 
       // ── Landuse ────────────────────────────────────────────────────────────
-      // All near-white with subtle lightness gradations so park/forest/etc.
-      // remain distinguishable without breaking the pale-canvas read.
+      // Subtle sunlit greens for parks/forest, warm pales for cemeteries +
+      // pedestrian zones. Stays in the same warm family as the background so
+      // the city reads as one coherent sunlit field, not a patchwork.
       {
         id: 'landuse-green',
         type: 'fill',
@@ -65,7 +68,7 @@ function buildShadeStyle() {
         'source-layer': 'landuse',
         filter: ['match', ['get', 'class'],
           ['park', 'national_park', 'nature_reserve', 'grass', 'pitch', 'golf_course'], true, false],
-        paint: { 'fill-color': '#E6E2D0' },
+        paint: { 'fill-color': '#D4D8B2' },
       },
       {
         id: 'landuse-wood',
@@ -73,7 +76,7 @@ function buildShadeStyle() {
         source: 'composite',
         'source-layer': 'landuse',
         filter: ['match', ['get', 'class'], ['wood', 'forest', 'scrub'], true, false],
-        paint: { 'fill-color': '#D8D2C0' },
+        paint: { 'fill-color': '#C2CCA0' },
       },
       {
         id: 'landuse-other',
@@ -82,7 +85,7 @@ function buildShadeStyle() {
         'source-layer': 'landuse',
         filter: ['match', ['get', 'class'],
           ['cemetery', 'sand', 'rock', 'snow', 'farmland'], true, false],
-        paint: { 'fill-color': '#EAE5DA' },
+        paint: { 'fill-color': '#DDD5BC' },
       },
       {
         id: 'landuse-pedestrian',
@@ -90,13 +93,13 @@ function buildShadeStyle() {
         source: 'composite',
         'source-layer': 'landuse',
         filter: ['match', ['get', 'class'], ['pedestrian', 'plaza'], true, false],
-        paint: { 'fill-color': '#EFEAE0' },
+        paint: { 'fill-color': '#E2D8C0' },
       },
 
       // ── Roads ──────────────────────────────────────────────────────────────
-      // Pale warm-gray ramp: motorway anchors, side streets fade nearly into
-      // the background. Hierarchy comes mostly from line width — color stays
-      // quiet so buildings + shadows are the figure.
+      // Warm-gray ramp one step darker than near-white so streets are clearly
+      // visible against the sunlit ground. Stays well clear of peach #FFAF85
+      // so hero pins remain the loudest warm element on the map.
       {
         id: 'road-motorway',
         type: 'line',
@@ -105,7 +108,7 @@ function buildShadeStyle() {
         filter: ['match', ['get', 'class'], ['motorway', 'trunk'], true, false],
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
-          'line-color': '#CCC2A8',
+          'line-color': '#B8AC8E',
           'line-width': ['interpolate', ['linear'], ['zoom'], 10, 1.5, 16, 7],
         },
       },
@@ -117,7 +120,7 @@ function buildShadeStyle() {
         filter: ['==', ['get', 'class'], 'primary'],
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
-          'line-color': '#D5CBB2',
+          'line-color': '#C2B698',
           'line-width': ['interpolate', ['linear'], ['zoom'], 10, 1, 16, 5],
         },
       },
@@ -129,7 +132,7 @@ function buildShadeStyle() {
         filter: ['match', ['get', 'class'], ['secondary', 'tertiary'], true, false],
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
-          'line-color': '#DDD3BC',
+          'line-color': '#CCBFA2',
           'line-width': ['interpolate', ['linear'], ['zoom'], 10, 0.5, 16, 4],
         },
       },
@@ -145,7 +148,7 @@ function buildShadeStyle() {
            'secondary_link', 'tertiary_link'], true, false],
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
-          'line-color': '#E5DCC5',
+          'line-color': '#D5C8AC',
           'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.5, 16, 2.5],
         },
       },
@@ -173,9 +176,11 @@ function buildShadeStyle() {
       // fill-extrusion-height interpolates 0→actual-height over a zoom
       // range (15→15.2) so buildings rise smoothly as new data loads.
       // Opacity also fades in over the same range to avoid abrupt appearance.
-      // Mid warm gray reads as the figure on the near-white ground while
-      // staying lighter than its own cast shadow — ambient (~0.30) keeps
-      // shaded faces darker than the body but not pitch-black.
+      // Mid warm gray reads as the figure on the sunlit ground while staying
+      // lighter than its own cast shadow. Through the sunglass-tinted panels
+      // it cools to a muted slate — the lens does its job.
+      // Ambient (~0.30) keeps shaded faces darker than the body but not
+      // pitch-black.
       {
         id: 'building',
         type: 'fill-extrusion',
@@ -224,7 +229,7 @@ function buildShadeStyle() {
         paint: {
           'text-color': '#5A5048',
           'text-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0.5, 14, 0.35],
-          'text-halo-color': '#FFFFFF',
+          'text-halo-color': '#F4EBD8',
           'text-halo-width': 1.5,
           'text-halo-blur': 1,
         },
