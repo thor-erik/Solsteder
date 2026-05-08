@@ -364,14 +364,45 @@
     "rating": 4.3,
     "facing": null,
     "openingHours": {
-      "open": 11,
+      "open": 12,
       "close": 23
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJl0MwCGFuQUYR-tMel_ej3nU",
     "facingSource": null,
     "businessStatus": "OPERATIONAL",
-    "beerPrice": 126
+    "beerPrice": 126,
+    "openingHoursWeekly": {
+      "0": {
+        "open": 12,
+        "close": 21
+      },
+      "1": {
+        "open": 15,
+        "close": 21
+      },
+      "2": {
+        "open": 15,
+        "close": 21
+      },
+      "3": {
+        "open": 15,
+        "close": 21
+      },
+      "4": {
+        "open": 15,
+        "close": 21
+      },
+      "5": {
+        "open": 15,
+        "close": 23
+      },
+      "6": {
+        "open": 12,
+        "close": 23
+      }
+    },
+    "hoursSource": "google"
   },
   {
     "id": 9,
@@ -492,31 +523,31 @@
     "openingHoursWeekly": {
       "0": {
         "open": 12,
-        "close": 22
+        "close": 23
       },
       "1": {
         "open": 11,
-        "close": 23
+        "close": 24
       },
       "2": {
         "open": 11,
-        "close": 23
+        "close": 24
       },
       "3": {
         "open": 11,
-        "close": 23
+        "close": 24
       },
       "4": {
         "open": 11,
-        "close": 23
+        "close": 24
       },
       "5": {
         "open": 11,
-        "close": 24
+        "close": 1
       },
       "6": {
         "open": 11,
-        "close": 24
+        "close": 1
       }
     },
     "hoursSource": "google",
@@ -3266,10 +3297,6 @@
       "5": {
         "open": 9,
         "close": 17
-      },
-      "6": {
-        "open": 10,
-        "close": 14
       }
     },
     "hoursSource": "google"
@@ -3950,6 +3977,10 @@
     "businessStatus": "OPERATIONAL",
     "openingHoursWeekly": {
       "0": {
+        "open": 10,
+        "close": 17
+      },
+      "1": {
         "open": 10,
         "close": 17
       },
@@ -4980,8 +5011,12 @@
         "open": 12,
         "close": 23
       },
+      "1": {
+        "open": 12,
+        "close": 23
+      },
       "2": {
-        "open": 17,
+        "open": 12,
         "close": 23
       },
       "3": {
@@ -6256,32 +6291,36 @@
     "rating": 4.6,
     "facing": null,
     "openingHours": {
-      "open": 16,
+      "open": 15,
       "close": 24
     },
     "openingHoursWeekly": {
       "0": {
-        "open": 16,
-        "close": 20
+        "open": 15,
+        "close": 21
+      },
+      "1": {
+        "open": 15,
+        "close": 21
       },
       "2": {
-        "open": 16,
+        "open": 15,
         "close": 23
       },
       "3": {
-        "open": 16,
+        "open": 15,
         "close": 23
       },
       "4": {
-        "open": 16,
+        "open": 15,
         "close": 23
       },
       "5": {
-        "open": 16,
+        "open": 15,
         "close": 24
       },
       "6": {
-        "open": 16,
+        "open": 15,
         "close": 24
       }
     },
@@ -6746,36 +6785,36 @@
     "facing": null,
     "openingHours": {
       "open": 12,
-      "close": 21.5
+      "close": 22.5
     },
     "openingHoursWeekly": {
       "0": {
         "open": 15,
-        "close": 21.5
+        "close": 22.5
       },
       "1": {
         "open": 15,
-        "close": 21.5
+        "close": 22.5
       },
       "2": {
         "open": 15,
-        "close": 21.5
+        "close": 22.5
       },
       "3": {
         "open": 15,
-        "close": 21.5
+        "close": 22.5
       },
       "4": {
         "open": 15,
-        "close": 21.5
+        "close": 22.5
       },
       "5": {
         "open": 15,
-        "close": 21.5
+        "close": 22.5
       },
       "6": {
         "open": 12,
-        "close": 21.5
+        "close": 22.5
       }
     },
     "buildingOsmId": null,
@@ -7272,7 +7311,7 @@
         "close": 23
       },
       "5": {
-        "open": 12,
+        "open": 16,
         "close": 23
       },
       "6": {
@@ -8870,7 +8909,7 @@
     "googlePlaceId": "ChIJ72UcU2NvQUYRTSGdW2RgtvE",
     "facingSource": null,
     "discoverySignal": "both",
-    "businessStatus": "OPERATIONAL",
+    "businessStatus": "CLOSED_TEMPORARILY",
     "hoursSource": "google",
     "beerPrice": 112
   },
@@ -8932,12 +8971,12 @@
     "rating": 4.4,
     "facing": null,
     "openingHours": {
-      "open": 11,
+      "open": 11.5,
       "close": 23.5
     },
     "openingHoursWeekly": {
       "0": {
-        "open": 11,
+        "open": 14,
         "close": 21.5
       },
       "1": {
@@ -9662,16 +9701,16 @@
         "close": 21
       },
       "2": {
-        "open": 15,
-        "close": 21
+        "open": 14,
+        "close": 22
       },
       "3": {
-        "open": 15,
-        "close": 21
+        "open": 14,
+        "close": 22
       },
       "4": {
-        "open": 15,
-        "close": 21
+        "open": 14,
+        "close": 22
       },
       "5": {
         "open": 13,
@@ -10651,28 +10690,32 @@
     "rating": 4.6,
     "facing": null,
     "openingHours": {
-      "open": 16,
+      "open": 12,
       "close": 21
     },
     "openingHoursWeekly": {
+      "1": {
+        "open": 12,
+        "close": 21
+      },
       "2": {
-        "open": 16,
+        "open": 12,
         "close": 21
       },
       "3": {
-        "open": 16,
+        "open": 12,
         "close": 21
       },
       "4": {
-        "open": 16,
+        "open": 12,
         "close": 21
       },
       "5": {
-        "open": 16,
+        "open": 12,
         "close": 21
       },
       "6": {
-        "open": 16,
+        "open": 12,
         "close": 21
       }
     },
@@ -11087,23 +11130,23 @@
     "openingHoursWeekly": {
       "0": {
         "open": 12,
-        "close": 21
+        "close": 22
       },
       "1": {
         "open": 12,
-        "close": 21
+        "close": 22
       },
       "2": {
         "open": 12,
-        "close": 21
+        "close": 22
       },
       "3": {
         "open": 12,
-        "close": 21
+        "close": 22
       },
       "4": {
         "open": 12,
-        "close": 21
+        "close": 22
       },
       "5": {
         "open": 11,
@@ -11716,6 +11759,10 @@
       "close": 23
     },
     "openingHoursWeekly": {
+      "1": {
+        "open": 11.5,
+        "close": 22
+      },
       "2": {
         "open": 11.5,
         "close": 23
@@ -13066,7 +13113,7 @@
     "openingHoursWeekly": {
       "0": {
         "open": 12,
-        "close": 20
+        "close": 21
       },
       "1": {
         "open": 10.5,
@@ -16174,12 +16221,16 @@
     "rating": 3.9,
     "facing": null,
     "openingHours": {
-      "open": 15,
+      "open": 13,
       "close": 3.5
     },
     "openingHoursWeekly": {
       "0": {
-        "open": 16,
+        "open": 13,
+        "close": 1
+      },
+      "1": {
+        "open": 15,
         "close": 1
       },
       "2": {
@@ -16192,14 +16243,14 @@
       },
       "4": {
         "open": 15,
-        "close": 3.5
+        "close": 1
       },
       "5": {
         "open": 15,
         "close": 3.5
       },
       "6": {
-        "open": 16,
+        "open": 13,
         "close": 3.5
       }
     },
@@ -16272,8 +16323,8 @@
     "rating": 4.7,
     "facing": null,
     "openingHours": {
-      "open": 7.5,
-      "close": 24
+      "open": 8.5,
+      "close": 23
     },
     "openingHoursWeekly": {
       "0": {
@@ -16281,28 +16332,28 @@
         "close": 17
       },
       "1": {
-        "open": 7.5,
-        "close": 17
+        "open": 8.5,
+        "close": 18
       },
       "2": {
-        "open": 7.5,
-        "close": 17
+        "open": 8.5,
+        "close": 18
       },
       "3": {
-        "open": 7.5,
-        "close": 17
+        "open": 8.5,
+        "close": 18
       },
       "4": {
-        "open": 7.5,
-        "close": 20
+        "open": 8.5,
+        "close": 21
       },
       "5": {
-        "open": 7.5,
-        "close": 24
+        "open": 8.5,
+        "close": 23
       },
       "6": {
         "open": 10,
-        "close": 24
+        "close": 23
       }
     },
     "buildingOsmId": null,
@@ -16578,36 +16629,36 @@
     "rating": 4.7,
     "facing": null,
     "openingHours": {
-      "open": 16.5,
+      "open": 9.5,
       "close": 23
     },
     "openingHoursWeekly": {
       "0": {
-        "open": 16.5,
+        "open": 17,
         "close": 22
       },
       "1": {
-        "open": 16.5,
+        "open": 17,
         "close": 23
       },
       "2": {
-        "open": 16.5,
+        "open": 17,
         "close": 23
       },
       "3": {
-        "open": 16.5,
+        "open": 17,
         "close": 23
       },
       "4": {
-        "open": 16.5,
+        "open": 17,
         "close": 23
       },
       "5": {
-        "open": 16.5,
+        "open": 17,
         "close": 23
       },
       "6": {
-        "open": 16.5,
+        "open": 9.5,
         "close": 23
       }
     },
@@ -20407,7 +20458,7 @@
         "close": 17
       },
       "5": {
-        "open": 10,
+        "open": 7,
         "close": 17
       },
       "6": {
@@ -20848,7 +20899,7 @@
       },
       "2": {
         "open": 11,
-        "close": 19
+        "close": 16
       },
       "3": {
         "open": 11,
@@ -21567,23 +21618,23 @@
         "close": 0.5
       },
       "1": {
-        "open": 12,
+        "open": 13,
         "close": 0.5
       },
       "2": {
-        "open": 12,
+        "open": 13,
         "close": 0.5
       },
       "3": {
-        "open": 12,
+        "open": 13,
         "close": 0.5
       },
       "4": {
-        "open": 12,
+        "open": 13,
         "close": 0.5
       },
       "5": {
-        "open": 12,
+        "open": 13,
         "close": 0.5
       },
       "6": {
@@ -22024,20 +22075,32 @@
     "facing": null,
     "openingHours": {
       "open": 12,
-      "close": 22
+      "close": 23
     },
     "openingHoursWeekly": {
       "0": {
         "open": 12,
-        "close": 20
+        "close": 21
+      },
+      "2": {
+        "open": 16,
+        "close": 23
+      },
+      "3": {
+        "open": 16,
+        "close": 23
+      },
+      "4": {
+        "open": 16,
+        "close": 23
       },
       "5": {
         "open": 16,
-        "close": 22
+        "close": 23
       },
       "6": {
         "open": 12,
-        "close": 22
+        "close": 23
       }
     },
     "buildingOsmId": null,
@@ -24148,8 +24211,8 @@
         "close": 22
       },
       "5": {
-        "open": 16,
-        "close": 22
+        "open": 12,
+        "close": 22.5
       },
       "6": {
         "open": 12,
@@ -24252,24 +24315,24 @@
     "facing": null,
     "openingHours": {
       "open": 12,
-      "close": 17
+      "close": 3.5
     },
     "openingHoursWeekly": {
       "0": {
         "open": 12,
-        "close": 17
+        "close": 2
       },
       "1": {
         "open": 12,
-        "close": 17
+        "close": 2
       },
       "2": {
         "open": 12,
-        "close": 17
+        "close": 2
       },
       "3": {
         "open": 12,
-        "close": 17
+        "close": 2
       },
       "4": {
         "open": 12,
@@ -24762,13 +24825,13 @@
     "rating": 3.8,
     "facing": null,
     "openingHours": {
-      "open": 15,
+      "open": 12,
       "close": 2.5
     },
     "openingHoursWeekly": {
       "3": {
         "open": 16,
-        "close": 1
+        "close": 0.5
       },
       "4": {
         "open": 16,
@@ -24779,7 +24842,7 @@
         "close": 2.5
       },
       "6": {
-        "open": 16,
+        "open": 12,
         "close": 2.5
       }
     },
@@ -24788,6 +24851,426 @@
     "facingSource": null,
     "discoverySignal": "takterrasse,terrasse",
     "businessStatus": "OPERATIONAL",
+    "hoursSource": "google"
+  },
+  {
+    "id": 629,
+    "name": "Los Tacos Alexander Kiellands plass",
+    "address": "Darres gate 1A, 0175 Oslo, Norway",
+    "coords": [
+      59.9276403,
+      10.7512459
+    ],
+    "category": "restaurant",
+    "area": "Sagene",
+    "rating": 4.2,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 24
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ5W4yCABvQUYRFXGR2Md2LRY",
+    "facingSource": null,
+    "discoverySignal": "manual-backfill",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 11,
+        "close": 24
+      },
+      "1": {
+        "open": 11,
+        "close": 24
+      },
+      "2": {
+        "open": 11,
+        "close": 24
+      },
+      "3": {
+        "open": 11,
+        "close": 24
+      },
+      "4": {
+        "open": 11,
+        "close": 24
+      },
+      "5": {
+        "open": 11,
+        "close": 24
+      },
+      "6": {
+        "open": 11,
+        "close": 24
+      }
+    },
+    "hoursSource": "google"
+  },
+  {
+    "id": 630,
+    "name": "Los Tacos Torshov",
+    "address": "Vogts gate 60, 0477 Oslo, Norway",
+    "coords": [
+      59.935911999999995,
+      10.7654128
+    ],
+    "category": "restaurant",
+    "area": "Sagene",
+    "rating": 4.6,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 24
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ0WNcjC9vQUYRgMCUXFCRY0k",
+    "facingSource": null,
+    "discoverySignal": "manual-backfill",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 11,
+        "close": 22
+      },
+      "1": {
+        "open": 15,
+        "close": 22
+      },
+      "2": {
+        "open": 15,
+        "close": 22
+      },
+      "3": {
+        "open": 15,
+        "close": 22
+      },
+      "4": {
+        "open": 15,
+        "close": 22
+      },
+      "5": {
+        "open": 15,
+        "close": 24
+      },
+      "6": {
+        "open": 11,
+        "close": 24
+      }
+    },
+    "hoursSource": "google"
+  },
+  {
+    "id": 631,
+    "name": "Los Tacos Torggata",
+    "address": "Torggata 18, 0181 Oslo, Norway",
+    "coords": [
+      59.916187,
+      10.751621799999999
+    ],
+    "category": "restaurant",
+    "area": "Sentrum",
+    "rating": 4.2,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 24
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJC5elLDFvQUYRyRwgrfYGthU",
+    "facingSource": null,
+    "discoverySignal": "manual-backfill",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 11,
+        "close": 24
+      },
+      "1": {
+        "open": 11,
+        "close": 24
+      },
+      "2": {
+        "open": 11,
+        "close": 24
+      },
+      "3": {
+        "open": 11,
+        "close": 24
+      },
+      "4": {
+        "open": 11,
+        "close": 24
+      },
+      "5": {
+        "open": 11,
+        "close": 3.5
+      },
+      "6": {
+        "open": 11,
+        "close": 3.5
+      }
+    },
+    "hoursSource": "google"
+  },
+  {
+    "id": 632,
+    "name": "Los Tacos Majorstuen",
+    "address": "Bogstadveien 64, 0366 Oslo, Norway",
+    "coords": [
+      59.9285727,
+      10.716072299999999
+    ],
+    "category": "restaurant",
+    "area": "Majorstuen",
+    "rating": 4.1,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 24
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJKUIc_CZtQUYRpFu6cgCgsZk",
+    "facingSource": null,
+    "discoverySignal": "manual-backfill",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 11,
+        "close": 24
+      },
+      "1": {
+        "open": 11,
+        "close": 24
+      },
+      "2": {
+        "open": 11,
+        "close": 24
+      },
+      "3": {
+        "open": 11,
+        "close": 24
+      },
+      "4": {
+        "open": 11,
+        "close": 24
+      },
+      "5": {
+        "open": 11,
+        "close": 3.5
+      },
+      "6": {
+        "open": 11,
+        "close": 3.5
+      }
+    },
+    "hoursSource": "google"
+  },
+  {
+    "id": 633,
+    "name": "Los Tacos Jernbanetorget",
+    "address": "Europarådets Plass 1, 0154 Oslo, Norway",
+    "coords": [
+      59.91193560000001,
+      10.7494515
+    ],
+    "category": "restaurant",
+    "area": "Sentrum",
+    "rating": 4.2,
+    "facing": null,
+    "openingHours": {
+      "open": 10,
+      "close": 24
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJeWEW4oluQUYRgqPrVp8ONvQ",
+    "facingSource": null,
+    "discoverySignal": "manual-backfill",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 10,
+        "close": 24
+      },
+      "1": {
+        "open": 10,
+        "close": 24
+      },
+      "2": {
+        "open": 10,
+        "close": 24
+      },
+      "3": {
+        "open": 10,
+        "close": 24
+      },
+      "4": {
+        "open": 10,
+        "close": 24
+      },
+      "5": {
+        "open": 10,
+        "close": 3.5
+      },
+      "6": {
+        "open": 10,
+        "close": 3.5
+      }
+    },
+    "hoursSource": "google"
+  },
+  {
+    "id": 634,
+    "name": "Los Tacos Steen & Strøm",
+    "address": "Nedre Slottsgate 8, 0157 Oslo, Norway",
+    "coords": [
+      59.9120465,
+      10.743028299999999
+    ],
+    "category": "restaurant",
+    "area": "Sentrum",
+    "rating": 4.2,
+    "facing": null,
+    "openingHours": {
+      "open": 10,
+      "close": 19
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJtTRoDaNvQUYRnKhSJSZWrvA",
+    "facingSource": null,
+    "discoverySignal": "manual-backfill",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "1": {
+        "open": 10,
+        "close": 19
+      },
+      "2": {
+        "open": 10,
+        "close": 19
+      },
+      "3": {
+        "open": 10,
+        "close": 19
+      },
+      "4": {
+        "open": 10,
+        "close": 19
+      },
+      "5": {
+        "open": 10,
+        "close": 19
+      },
+      "6": {
+        "open": 10,
+        "close": 18
+      }
+    },
+    "hoursSource": "google"
+  },
+  {
+    "id": 635,
+    "name": "Los Tacos Grünerløkka",
+    "address": "Seilduksgata 17, 0553 Oslo, Norway",
+    "coords": [
+      59.925391100000006,
+      10.7594742
+    ],
+    "category": "restaurant",
+    "area": "Grünerløkka",
+    "rating": 4,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 23
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ-R6sRSdvQUYRKy6lWMqNFJg",
+    "facingSource": null,
+    "discoverySignal": "manual-backfill",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 11,
+        "close": 23
+      },
+      "1": {
+        "open": 11,
+        "close": 23
+      },
+      "2": {
+        "open": 11,
+        "close": 23
+      },
+      "3": {
+        "open": 11,
+        "close": 23
+      },
+      "4": {
+        "open": 11,
+        "close": 23
+      },
+      "5": {
+        "open": 11,
+        "close": 3.5
+      },
+      "6": {
+        "open": 11,
+        "close": 3.5
+      }
+    },
+    "hoursSource": "google"
+  },
+  {
+    "id": 636,
+    "name": "Los Tacos Bjørvika",
+    "address": "Operagata 35, 0176 Oslo, Norway",
+    "coords": [
+      59.9067548,
+      10.756613399999999
+    ],
+    "category": "restaurant",
+    "area": "Sentrum",
+    "rating": 4.2,
+    "facing": null,
+    "openingHours": {
+      "open": 11,
+      "close": 23
+    },
+    "buildingOsmId": null,
+    "googlePlaceId": "ChIJ6bOcgZlvQUYRUrg0Jx5pMmk",
+    "facingSource": null,
+    "discoverySignal": "manual-backfill",
+    "businessStatus": "OPERATIONAL",
+    "openingHoursWeekly": {
+      "0": {
+        "open": 11,
+        "close": 22
+      },
+      "1": {
+        "open": 11,
+        "close": 22
+      },
+      "2": {
+        "open": 11,
+        "close": 22
+      },
+      "3": {
+        "open": 11,
+        "close": 22
+      },
+      "4": {
+        "open": 11,
+        "close": 22
+      },
+      "5": {
+        "open": 11,
+        "close": 23
+      },
+      "6": {
+        "open": 11,
+        "close": 23
+      }
+    },
     "hoursSource": "google"
   }
 ]
