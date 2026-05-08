@@ -1,0 +1,48 @@
+name: Expand chain coverage
+
+# Finds chain-store branches the discovery pipeline misses (e.g. only
+# 13 of 35 Kaffebrenneriet locations were in venues.json). Only adds
+# branches Google explicitly flags as outdoor (precision over recall).
+#
+# Chains are auto-detected from existing venues.json — any name prefix
+# with ≥2 branches in the app is treated as a chain. The OSM query then
+# finds all branches with that name; each is verified against Google's
+# outdoorSeating flag.
+#
+# Run after each monthly discovery + merge.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  expand:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Write .env
+        run: echo "GOOGLE_PLACES_KEY=${{ secrets.GOOGLE_PLACES_KEY_SERVER }}" > .env
+
+      - name: Expand chains
+        run: node scripts/expand-chains.mjs
+
+      - name: Fetch photos for new venues
+        run: node scripts/fetch-photos.mjs
+
+      - name: Refresh opening hours
+        run: node scripts/refresh-opening-hours.mjs
+
+      - name: Commit if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/venues.json data/venues.meta.json data/venue-photos.json
+          git diff --cached --quiet && echo "No changes" || git commit -m "chore: expand chain coverage [skip ci]"
+          git push

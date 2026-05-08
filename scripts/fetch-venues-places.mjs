@@ -394,10 +394,21 @@ for (const point of SEARCH_POINTS) {
   await sleep(200);
 }
 
-// Norwegian outdoor-seating vocabulary. Each keyword catches a different
-// cluster of venues — uteservering is canonical, the others surface
-// rooftops, courtyards, and venues described with non-standard wording.
-const KEYWORDS = ['uteservering', 'terrasse', 'bakgård', 'takterrasse'];
+// Norwegian outdoor-seating vocabulary. Each keyword catches a
+// different cluster of venues. Each adds ~$3–5 to per-run cost
+// (62 anchors × paginated text search), so the list is curated rather
+// than exhaustive.
+//   - uteservering : canonical Norwegian for outdoor service
+//   - terrasse     : terrace
+//   - bakgård      : backyard / inner courtyard
+//   - takterrasse  : rooftop terrace
+//   - uteplass     : "outdoor spot" — common alt phrasing
+//   - solterrasse  : sunny-terrace specific (high precision)
+//   - gårdsrom     : courtyard (more formal than bakgård)
+const KEYWORDS = [
+  'uteservering', 'terrasse', 'bakgård', 'takterrasse',
+  'uteplass', 'solterrasse', 'gårdsrom',
+];
 
 console.log(`\nPass B: Text Search × ${KEYWORDS.length} keywords (${KEYWORDS.join(', ')})…\n`);
 for (const keyword of KEYWORDS) {
