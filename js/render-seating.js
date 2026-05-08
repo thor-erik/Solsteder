@@ -180,7 +180,7 @@ function drawShadowOverlay(venue) {
     ctx.fillStyle = glow; ctx.fill();
 
     ctx.beginPath(); ctx.arc(pt.x, pt.y, 5, 0, Math.PI * 2);
-    ctx.fillStyle = sunny ? '#FFAF85' : '#6080C8'; ctx.fill();
+    ctx.fillStyle = sunny ? TOKENS.accent : '#6080C8'; ctx.fill();
     ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 1.5; ctx.stroke();
   }
 

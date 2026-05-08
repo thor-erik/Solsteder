@@ -338,7 +338,7 @@ function drawBuildingEditor() {
     const tw = ctx.measureText(label).width;
     ctx.fillStyle = 'rgba(10,14,28,0.80)';
     fillRoundRect(ctx, cenPx.x - tw / 2 - 10, cenPx.y - 13, tw + 20, 26, 7);
-    ctx.fillStyle = '#FFAF85';
+    ctx.fillStyle = TOKENS.accent;
     ctx.fillText(label, cenPx.x, cenPx.y);
     return;
   }
@@ -367,14 +367,14 @@ function drawBuildingEditor() {
 
       ctx.setLineDash([]);
       ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y);
-      ctx.strokeStyle = isHovered ? '#FFAF85' : isCurrent ? '#FFCBAA' : 'rgba(120,180,255,0.75)';
+      ctx.strokeStyle = isHovered ? TOKENS.accent : isCurrent ? TOKENS.coral200 : 'rgba(120,180,255,0.75)';
       ctx.lineWidth   = isHovered ? 6 : isCurrent ? 4 : 2.5;
       ctx.stroke();
 
       if (isHovered || isCurrent) {
         [pa, pb].forEach(p => {
           ctx.beginPath(); ctx.arc(p.x, p.y, isHovered ? 5 : 4, 0, Math.PI * 2);
-          ctx.fillStyle = isHovered ? '#FFAF85' : '#FFCBAA'; ctx.fill();
+          ctx.fillStyle = isHovered ? TOKENS.accent : TOKENS.coral200; ctx.fill();
           ctx.strokeStyle = 'rgba(10,14,28,0.7)'; ctx.lineWidth = 1.5; ctx.stroke();
         });
       }
@@ -382,13 +382,13 @@ function drawBuildingEditor() {
       if (isHovered) {
         const arrowLen = 55, ex = mx + normX * arrowLen, ey = my + normY * arrowLen;
         ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(ex, ey);
-        ctx.strokeStyle = '#FFAF85'; ctx.lineWidth = 2.5; ctx.stroke();
+        ctx.strokeStyle = TOKENS.accent; ctx.lineWidth = 2.5; ctx.stroke();
         const hl = 11, pA = Math.atan2(normY, normX);
         ctx.beginPath();
         ctx.moveTo(ex, ey);
         ctx.lineTo(ex - hl * Math.cos(pA - 0.4), ey - hl * Math.sin(pA - 0.4));
         ctx.lineTo(ex - hl * Math.cos(pA + 0.4), ey - hl * Math.sin(pA + 0.4));
-        ctx.closePath(); ctx.fillStyle = '#FFAF85'; ctx.fill();
+        ctx.closePath(); ctx.fillStyle = TOKENS.accent; ctx.fill();
 
         const labelText = `${Math.round(wall.bearing)}°  ${bearingToCardinal(wall.bearing)}`;
         ctx.font = 'bold 12px "Inter", sans-serif';
@@ -397,7 +397,7 @@ function drawBuildingEditor() {
         const lx = ex + normX * 18, ly = ey + normY * 18;
         ctx.fillStyle = 'rgba(10,14,28,0.88)';
         fillRoundRect(ctx, lx - tw / 2 - 8, ly - 12, tw + 16, 24, 6);
-        ctx.fillStyle = '#FFAF85'; ctx.fillText(labelText, lx, ly);
+        ctx.fillStyle = TOKENS.accent; ctx.fillText(labelText, lx, ly);
       }
     });
 
@@ -441,7 +441,7 @@ function drawBuildingEditor() {
     const pt  = map.project([loc.lng, loc.lat]);
     ctx.beginPath(); ctx.arc(pt.x, pt.y, 11, 0, Math.PI * 2);
     ctx.fillStyle = 'rgba(255,175,133,0.18)'; ctx.fill();
-    ctx.strokeStyle = '#FFAF85'; ctx.lineWidth = 2.5; ctx.stroke();
+    ctx.strokeStyle = TOKENS.accent; ctx.lineWidth = 2.5; ctx.stroke();
   }
 }
 
@@ -489,7 +489,7 @@ function _drawPolygonHandlesPx(px, key) {
     // Cream fill with a vertical highlight gradient — a subtle "lens bead"
     const grad = ctx.createLinearGradient(0, -h / 2, 0, h / 2);
     grad.addColorStop(0,   'rgba(255,255,255,0.95)');
-    grad.addColorStop(0.55, dragging ? '#FFF2EB' : 'rgba(255,242,235,0.92)');
+    grad.addColorStop(0.55, dragging ? TOKENS.text : 'rgba(255,242,235,0.92)');
     grad.addColorStop(1,   'rgba(220,210,200,0.92)');
     ctx.fillStyle = grad;
     _roundRectPath(ctx, -w / 2, -h / 2, w, h, r);
@@ -515,7 +515,7 @@ function _drawPolygonHandlesPx(px, key) {
     ctx.shadowOffsetY = 0;
     ctx.beginPath();
     ctx.arc(p.x, p.y, R, 0, Math.PI * 2);
-    ctx.fillStyle = dragging ? '#FFAF85' : '#FFB893';
+    ctx.fillStyle = dragging ? TOKENS.accent : '#FFB893';
     ctx.fill();
     // Drop-shadow off for the rest
     ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;

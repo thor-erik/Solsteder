@@ -302,7 +302,7 @@ function _drawFriendInlay(c, x, pillY, friends) {
   // Capsule fill (Delft blue)
   c.beginPath();
   c.roundRect(x, y, w, _INLAY_HEIGHT, r);
-  c.fillStyle = '#142E52';
+  c.fillStyle = TOKENS.surface;
   c.fill();
 
   // Outer 1px tangerine hairline (matches prototype inlay-blue spec)
@@ -333,10 +333,10 @@ function _drawFriendInlay(c, x, pillY, friends) {
 
     // Cream ring (1.5px) so avatars read against the blue capsule
     c.beginPath(); c.arc(avX, avY, avR, 0, Math.PI * 2);
-    c.fillStyle = isOverflow ? '#142E52' : _friendColor(friends[i]?.user?.id);
+    c.fillStyle = isOverflow ? TOKENS.surface : _friendColor(friends[i]?.user?.id);
     c.fill();
     c.beginPath(); c.arc(avX, avY, avR - 0.75, 0, Math.PI * 2);
-    c.strokeStyle = '#FFF2EB';
+    c.strokeStyle = TOKENS.text;
     c.lineWidth   = 1.5;
     c.stroke();
 
@@ -345,11 +345,11 @@ function _drawFriendInlay(c, x, pillY, friends) {
     c.textAlign    = 'center';
     if (isOverflow) {
       c.font      = 'bold 8px "Inter", sans-serif';
-      c.fillStyle = '#FFF2EB';
+      c.fillStyle = TOKENS.text;
       c.fillText('+' + (friends.length - 2), avX, avY);
     } else {
       c.font      = 'bold 8.5px "Inter", sans-serif';
-      c.fillStyle = '#2a1a0c';
+      c.fillStyle = TOKENS.accentOn;
       c.fillText(_friendInitial(friends[i]?.user), avX, avY);
     }
   }
@@ -534,7 +534,7 @@ function buildSprite(v, tier, tierData, selected) {
     c.shadowOffsetY = 3;
     c.beginPath();
     c.roundRect(ox, oy, pillW, pillH, pillR);
-    c.fillStyle = '#FFAF85';  // --accent: the pill color IS the "in sun" signal
+    c.fillStyle = TOKENS.accent;  // the pill color IS the "in sun" signal
     c.fill();
     c.restore();
 
@@ -572,7 +572,7 @@ function buildSprite(v, tier, tierData, selected) {
     if (!actionable) {
       // Default: name only, bold 700, dark on tangerine
       c.font      = 'bold 11px "Inter", sans-serif';
-      c.fillStyle = '#2a1a0c';
+      c.fillStyle = TOKENS.accentOn;
       c.fillText(name, nameX, textY);
     } else {
       // Actionable: name · til HH:mm (no icon, no glyph)
@@ -581,7 +581,7 @@ function buildSprite(v, tier, tierData, selected) {
 
       // name (bold 700, full contrast)
       c.font      = 'bold 11px "Inter", sans-serif';
-      c.fillStyle = '#2a1a0c';
+      c.fillStyle = TOKENS.accentOn;
       c.fillText(name, nameX, textY);
       let x = nameX + c.measureText(name).width;
 
@@ -702,7 +702,7 @@ function buildSprite(v, tier, tierData, selected) {
 
     // Time label: tangerine text (icon is the state signal; time is urgency)
     c.font         = 'bold 11px "Inter", sans-serif';
-    c.fillStyle    = '#FFAF85';
+    c.fillStyle    = TOKENS.accent;
     c.textBaseline = 'middle';
     c.textAlign    = 'left';
     c.fillText(timeText, ox + 6 + iconDiam + 4, iconCy);
@@ -719,14 +719,14 @@ function buildSprite(v, tier, tierData, selected) {
       c.save();
       // Badge fill (Delft Blue — dark so it reads on glass pill)
       c.beginPath(); c.arc(badgeCx, badgeCy, badgeR + 0.75, 0, Math.PI * 2);
-      c.fillStyle = '#142E52';
+      c.fillStyle = TOKENS.surface;
       c.fill();
       // Badge border (--muted)
-      c.strokeStyle = '#9CBDE7';
+      c.strokeStyle = TOKENS.muted;
       c.lineWidth   = 1.5;
       c.stroke();
       // Clock hands (two 1px strokes in --muted; shape carries more signal than detail at 6px)
-      c.strokeStyle = '#9CBDE7';
+      c.strokeStyle = TOKENS.muted;
       c.lineWidth   = 1;
       const handLen = badgeR - 0.5;
       // Minute hand: 12 o'clock (top)
@@ -1051,7 +1051,7 @@ function _drawDotHover(pt, tier) {
   ctx.fillStyle = isHero ? 'rgba(255,175,133,0.22)' : 'rgba(120,150,220,0.18)';
   ctx.fill();
   ctx.beginPath(); ctx.arc(pt.x, pt.y, DOT_R + 1.5, 0, Math.PI * 2);
-  ctx.fillStyle = isHero ? '#FFAF85' : 'rgba(120,150,200,0.85)';
+  ctx.fillStyle = isHero ? TOKENS.accent : 'rgba(120,150,200,0.85)';
   ctx.fill();
   ctx.strokeStyle = 'rgba(255,255,255,0.55)';
   ctx.lineWidth   = 1.5;
@@ -1067,7 +1067,7 @@ function _drawDot(pt, tier, reviewFlagged) {
   ctx.fillStyle = isHero ? 'rgba(255,175,133,0.18)' : 'rgba(100,120,180,0.12)';
   ctx.fill();
   ctx.beginPath(); ctx.arc(pt.x, pt.y, DOT_R, 0, Math.PI * 2);
-  ctx.fillStyle = isHero ? '#FFAF85' : 'rgba(100,120,170,0.65)';
+  ctx.fillStyle = isHero ? TOKENS.accent : 'rgba(100,120,170,0.65)';
   ctx.fill();
   if (reviewFlagged) {
     ctx.globalAlpha = 1;
@@ -1103,13 +1103,13 @@ function _drawFriendBadge(x, y, fc) {
   // Dark fill with accent border
   ctx.save();
   ctx.beginPath(); ctx.arc(x, y, r + 1, 0, Math.PI * 2);
-  ctx.fillStyle = '#142E52';
+  ctx.fillStyle = TOKENS.surface;
   ctx.fill();
-  ctx.strokeStyle = '#FFAF85';
+  ctx.strokeStyle = TOKENS.accent;
   ctx.lineWidth = 1.5;
   ctx.stroke();
   // Content: initial for 1 friend, count for 2+
-  ctx.fillStyle = '#FFAF85';
+  ctx.fillStyle = TOKENS.accent;
   ctx.font = 'bold 10px "Inter", sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -1127,12 +1127,12 @@ function _drawGoingBadge(x, y, going) {
   const r = FRIEND_BADGE_R;
   ctx.save();
   ctx.beginPath(); ctx.arc(x, y, r + 1, 0, Math.PI * 2);
-  ctx.fillStyle = '#142E52';
+  ctx.fillStyle = TOKENS.surface;
   ctx.fill();
-  ctx.strokeStyle = '#9CBDE7';
+  ctx.strokeStyle = TOKENS.muted;
   ctx.lineWidth = 1.5;
   ctx.stroke();
-  ctx.fillStyle = '#9CBDE7';
+  ctx.fillStyle = TOKENS.muted;
   ctx.font = 'bold 10px "Inter", sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';

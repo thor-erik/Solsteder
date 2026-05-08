@@ -45,7 +45,7 @@ function drawSunCompass() {
     const glow = c.createRadialGradient(sx, sy, 0, sx, sy, 9);
     glow.addColorStop(0, 'rgba(255,175,133,0.55)'); glow.addColorStop(1, 'rgba(255,175,133,0)');
     c.beginPath(); c.arc(sx, sy, 9, 0, Math.PI * 2); c.fillStyle = glow; c.fill();
-    c.beginPath(); c.arc(sx, sy, 3.5, 0, Math.PI * 2); c.fillStyle = '#FFAF85'; c.fill();
+    c.beginPath(); c.arc(sx, sy, 3.5, 0, Math.PI * 2); c.fillStyle = TOKENS.accent; c.fill();
   } else {
     c.font = '13px serif';
     c.fillStyle = 'rgba(255,255,255,0.18)';

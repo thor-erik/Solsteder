@@ -47,6 +47,7 @@
 </script>
 <script defer src="js/i18n.js"></script>
 <script defer src="js/config.js?v=20260425b"></script>
+<script defer src="js/tokens.js?v=20260508a"></script>
 <script defer src="js/auth.js"></script>
 <script defer src="js/login-carousel.js?v=20260428a"></script>
 <script defer src="js/analytics.js"></script>
@@ -59,10 +60,10 @@
 <script defer src="js/map-style.js?v=20260418b"></script>
 <script defer src="js/app.js?v=20260505a"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
-<script defer src="js/render-arc.js?v=20260411b"></script>
-<script defer src="js/render-seating.js?v=20260505a"></script>
-<script defer src="js/render-editor.js?v=20260505a"></script>
-<script defer src="js/render-pins.js?v=20260505a"></script>
+<script defer src="js/render-arc.js?v=20260508a"></script>
+<script defer src="js/render-seating.js?v=20260508a"></script>
+<script defer src="js/render-editor.js?v=20260508a"></script>
+<script defer src="js/render-pins.js?v=20260508a"></script>
 <script defer src="js/ui-shared.js?v=20260411b"></script>
 <script defer src="js/ui-list.js?v=20260411b"></script>
 <script defer src="js/admin-review.js?v=20260505a"></script>
@@ -91,16 +92,91 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg: #111E38;
-    --panel: #111E38;
-    --accent: #FFAF85;
+    /* ── PRIMITIVE TOKENS ─────────────────────────────────────────────────────
+       Raw scales. Components MUST NOT reference these directly — go through the
+       semantic layer below. Published here so palette work happens in one place. */
+
+    /* Coral (brand) */
+    --coral-50:  #FFE9D0;
+    --coral-100: #FFDDCA;
+    --coral-200: #FFCBAA;
+    --coral-300: #FFC49A;
+    --coral-400: #FFB186;
+    --coral-500: #FFAF85;  /* brand accent */
+    --coral-600: #FF9966;
+    --coral-700: #F09060;
+    --coral-800: #E5754A;
+    --coral-900: #2A1A0C;  /* on-coral text */
+
+    /* Cream (warm neutral, paired with coral) */
+    --cream-50:  #FFF2EB;  /* on-dark text */
+    --cream-100: #DECCC0;
+
+    /* Blue (surfaces & cool accents) */
+    --blue-200:  #B8CFEE;  /* cool */
+    --blue-300:  #9CBDE7;  /* jordy / muted */
+    --blue-400:  #7FA5D9;  /* rain */
+    --blue-500:  #4A90E2;
+    --blue-700:  #204983;  /* glass gradient mid */
+    --blue-800:  #142E52;  /* surface */
+    --blue-900:  #111E38;  /* canvas */
+    --blue-950:  #0A1830;
+
+    /* Status (used ad-hoc today; tokenized for the next migration pass) */
+    --green-500: #64FFB4;
+    --red-500:   #FF6B6B;
+    --red-600:   #DC2626;
+    --red-900:   #7F1D1D;
+
+    /* Spacing — 4-base ladder. Published; not yet migrated. */
+    --space-1:  4px;
+    --space-2:  8px;
+    --space-3:  12px;
+    --space-4:  16px;
+    --space-5:  20px;
+    --space-6:  24px;
+    --space-8:  32px;
+    --space-12: 48px;
+
+    /* Radius. Published; not yet migrated. */
+    --radius-xs:    4px;
+    --radius-sm:    8px;
+    --radius-md:    12px;
+    --radius-lg:    16px;
+    --radius-pill:  999px;
+    --radius-circle: 50%;
+
+    /* Type scale. Published; not yet migrated. */
+    --text-xs:  11px;
+    --text-sm:  12px;
+    --text-md:  13px;
+    --text-lg:  14px;
+    --text-xl:  16px;
+    --text-2xl: 20px;
+    --text-3xl: 24px;
+
+    /* Motion. Published; not yet migrated. */
+    --ease-standard:   cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-emphasized: cubic-bezier(0.32, 0.72, 0, 1);
+    --dur-fast: 120ms;
+    --dur-base: 180ms;
+    --dur-slow: 320ms;
+
+    /* ── SEMANTIC TOKENS ─────────────────────────────────────────────────────
+       What components consume. Components SHOULD reference these (or the
+       component-level tokens below), never the primitives directly. */
+
+    --bg:         var(--blue-900);
+    --panel:      var(--blue-900);
+    --accent:     var(--coral-500);
     --accent-dim: rgba(255,175,133,0.15);
-    --accent-on: #2A1A0C;                /* text/icon drawn ON --accent */
-    --text: #FFF2EB;
-    --muted: #9CBDE7;                    /* on-surface-variant — Jordy Blue */
-    --card-bg: rgba(20,46,82,0.4);       /* surface-container-low, Polynesian Blue tint */
-    --border: rgba(156,189,231,0.18);    /* outline-variant — Jordy Blue at 18% */
-    --pill-bg: rgba(20,46,82,0.45);      /* surface-container-lowest (migrated from legacy rgba(10,20,42)) */
+    --accent-on:  var(--coral-900);            /* text/icon drawn ON --accent */
+    --text:       var(--cream-50);
+    --muted:      var(--blue-300);             /* on-surface-variant */
+    --card-bg:    rgba(20,46,82,0.4);          /* surface-container-low, Polynesian Blue tint */
+    --border:     rgba(156,189,231,0.18);      /* outline-variant — Jordy Blue at 18% */
+    --pill-bg:    rgba(20,46,82,0.45);         /* surface-container-lowest */
+
     /* Glass levels — Shades Glass recipe */
     --glass-panel-bg: linear-gradient(135deg, rgba(20,46,82,0.36) 0%, rgba(32,73,131,0.22) 100%), rgba(20,46,82,0.42);
     --glass-card-bg:  linear-gradient(135deg, rgba(20,46,82,0.42) 0%, rgba(32,73,131,0.26) 100%), rgba(20,46,82,0.50);
@@ -113,10 +189,11 @@
     --glass-border-light: 1px solid rgba(156,189,231,0.15);
     /* Shades Glass inset shadows — top sheen + bottom shade shared across all levels */
     --glass-inset: inset 0 1px 0 rgba(255,242,235,0.14), inset 0 -1px 0 rgba(20,46,82,0.35);
+
     /* Card-pill subject colors — kept distinct from --muted/--accent so the
        "Skyer" (cool gray) and "Regn" (blue) pill text reads cleanly on glass. */
-    --cool: #B8CFEE;
-    --rain: #7FA5D9;
+    --cool: var(--blue-200);
+    --rain: var(--blue-400);
   }
 
   /* ── Accessibility globals ────────────────────────────────────────────────── */
