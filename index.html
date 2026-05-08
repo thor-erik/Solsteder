@@ -132,6 +132,20 @@
       scroll-behavior: auto !important;
     }
   }
+  /* Hit-area extensions: visuals stay 32–34 px, tap region reaches ~44 pt */
+  #search-clear-btn, #search-profile-btn { position: relative; }
+  #locate-btn::before {
+    content: ''; position: absolute; inset: -5px;
+  }
+  /* Search-bar buttons: fill the full 46 px card vertically; horizontal kept
+     small so adjacent pseudo-elements don't collide across the 8 px gap */
+  #search-clear-btn::before,
+  #search-profile-btn::before {
+    content: ''; position: absolute; inset: -7px -3px;
+  }
+  body.fts #fts-date-btn::before {
+    content: ''; position: absolute; inset: -5px;
+  }
 
   html, body {
     height: 100%;
@@ -2023,7 +2037,7 @@
     background: none;
     border: none;
     border-radius: 8px;
-    color: rgba(213,196,171,0.45);
+    color: rgba(213,196,171,0.72);
     font-family: 'Inter', sans-serif;
     font-size: 14px;
     font-weight: 500;
@@ -7951,7 +7965,7 @@
     <span id="search-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8.5" cy="8.5" r="5.5"/><line x1="13" y1="13" x2="18" y2="18"/></svg></span>
     <input type="text" id="venue-search" placeholder="Søk etter steder eller områder…" autocomplete="off" aria-label="Søk etter steder eller områder">
     <button id="search-clear-btn" type="button" aria-label="Clear search">✕</button>
-    <button id="search-profile-btn" onclick="toggleProfilePanel(event)" title="Profil"></button>
+    <button id="search-profile-btn" onclick="toggleProfilePanel(event)" title="Profil" aria-label="Profil"></button>
   </div>
 
   <!-- Search dropdown — live results, anchored below search bar -->
