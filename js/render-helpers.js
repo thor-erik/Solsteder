@@ -160,6 +160,67 @@ function unionPolygons(polysLatLng) {
   return hull.map(({ x, y }) => [y, x]);
 }
 
+// ── Polygon ↔ building overlap detection ─────────────────────────────────────
+// Used by the editor to reject moves that would push a street / detached
+// terrace into a building footprint. Operates in lat/lng directly — at the
+// scale of a single building (a few dozen metres) the planar approximation is
+// fine.
+
+/** Ray-cast point-in-polygon test. point = [lat, lng], poly = [[lat, lng], ...] */
+function _llPointInPolygon([lat, lng], poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [yi, xi] = poly[i];
+    const [yj, xj] = poly[j];
+    if (((yi > lat) !== (yj > lat)) &&
+        (lng < (xj - xi) * (lat - yi) / ((yj - yi) || 1e-12) + xi)) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+/** Strict segment intersection (no shared endpoints). Returns true if AB ∩ CD
+ *  meet strictly inside both segments. */
+function _llSegmentsIntersect([y1, x1], [y2, x2], [y3, x3], [y4, x4]) {
+  const denom = (x4 - x3) * (y2 - y1) - (y4 - y3) * (x2 - x1);
+  if (Math.abs(denom) < 1e-12) return false;
+  const ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / denom;
+  const ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / denom;
+  return ua > 1e-9 && ua < 1 - 1e-9 && ub > 1e-9 && ub < 1 - 1e-9;
+}
+
+/**
+ * Returns true if the candidate polygon overlaps the building footprint.
+ * Detects:
+ *   - any polygon vertex inside the building,
+ *   - any building vertex inside the polygon,
+ *   - any polygon edge crossing any building edge.
+ *
+ * polyLatLng:   [[lat, lng], ...]
+ * buildingNodes: [{lat, lon}, ...] (the OSM-style node list on v.buildingGeometry)
+ */
+function polygonOverlapsBuilding(polyLatLng, buildingNodes) {
+  if (!Array.isArray(polyLatLng)   || polyLatLng.length   < 3) return false;
+  if (!Array.isArray(buildingNodes) || buildingNodes.length < 3) return false;
+
+  const bldg = buildingNodes.map(n => [n.lat, n.lon ?? n.lng]);
+
+  for (const p of polyLatLng) if (_llPointInPolygon(p, bldg))    return true;
+  for (const p of bldg)        if (_llPointInPolygon(p, polyLatLng)) return true;
+
+  for (let i = 0; i < polyLatLng.length; i++) {
+    const a = polyLatLng[i];
+    const b = polyLatLng[(i + 1) % polyLatLng.length];
+    for (let j = 0; j < bldg.length; j++) {
+      const c = bldg[j];
+      const d = bldg[(j + 1) % bldg.length];
+      if (_llSegmentsIntersect(a, b, c, d)) return true;
+    }
+  }
+  return false;
+}
+
 // ── Seating area shapes ────────────────────────────────────────────────────────
 const TERRACE_DEPTH_M = 5;  // metres outward from the terrace wall
 

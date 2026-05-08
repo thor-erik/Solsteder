@@ -29,10 +29,13 @@ let editDraggingWidth      = false;     // legacy: wall trim diamond (pre-bake)
 let editWidthWall          = null;
 
 // Polygon handle drag state — used for ALL terrace types once a polygon exists
-let editDraggingPolyVertex = false;     // corner handle (free drag)
-let editPolyVertexIdx      = null;
-let editDraggingPolyEdge   = false;     // edge-midpoint handle (perpendicular)
-let editPolyEdgeIdx        = null;
+let editDraggingPolyVertex    = false;  // corner handle (free drag)
+let editPolyVertexIdx         = null;
+let editDraggingPolyEdge      = false;  // edge-midpoint handle (perpendicular)
+let editPolyEdgeIdx           = null;
+let editDraggingPolyTranslate = false;  // grab interior → translate whole polygon
+let _editTranslateStartLL     = null;   // {lat, lng} where the drag began
+let _editTranslateStartPoly   = null;   // snapshot of polygon at drag start
 
 // Vertex tool mode: 'add' | 'del' | null
 let editVertexMode         = null;
@@ -231,6 +234,22 @@ function hitTestActivePolygonEdgeAt(cx, cy, threshold = 12) {
 
 // ── Polygon mutations ────────────────────────────────────────────────────────
 
+/**
+ * Returns true if the candidate polygon would overlap the venue's building
+ * footprint AND the terrace type doesn't allow it. Rooftops sit on top of the
+ * building, courtyards live inside a building (often surrounded by it), so
+ * both are exempt. Street and detached terraces must stay outside the
+ * building footprint — the editor silently rejects edits that would push them
+ * inside, so the polygon "sticks" at the wall.
+ */
+function _editWouldViolateBuilding(v, candidate) {
+  if (!v || !Array.isArray(candidate) || candidate.length < 3) return false;
+  const type = v.terraceType ?? 'street';
+  if (type === 'rooftop' || type === 'courtyard') return false;
+  if (typeof polygonOverlapsBuilding !== 'function') return false;
+  return polygonOverlapsBuilding(candidate, v.buildingGeometry);
+}
+
 function updatePolygonVertex(venueId, idx, lat, lng) {
   const v = VENUES.find(x => x.id === venueId);
   if (!v) return;
@@ -238,6 +257,7 @@ function updatePolygonVertex(venueId, idx, lat, lng) {
   const ap = getActivePolygon(v);
   if (!ap || idx < 0 || idx >= ap.latlng.length) return;
   const next = ap.latlng.map((pt, i) => i === idx ? [lat, lng] : pt);
+  if (_editWouldViolateBuilding(v, next)) return;
   setActivePolygon(v, next);
 }
 
@@ -271,6 +291,7 @@ function shiftPolygonEdge(venueId, edgeIdx, cursorX, cursorY) {
   const next = ap.latlng.slice();
   next[edgeIdx] = [llA.lat, llA.lng];
   next[(edgeIdx + 1) % next.length] = [llB.lat, llB.lng];
+  if (_editWouldViolateBuilding(v, next)) return;
   setActivePolygon(v, next);
 }
 
@@ -282,6 +303,7 @@ function insertPolygonVertexAt(venueId, edgeIdx, lat, lng) {
   if (!ap) return;
   const next = ap.latlng.slice();
   next.splice(edgeIdx + 1, 0, [lat, lng]);
+  if (_editWouldViolateBuilding(v, next)) return;
   setActivePolygon(v, next);
 }
 
@@ -291,7 +313,73 @@ function deletePolygonVertex(venueId, idx) {
   const ap = getActivePolygon(v);
   if (!ap || ap.latlng.length <= 3) return;
   const next = ap.latlng.filter((_, i) => i !== idx);
+  if (_editWouldViolateBuilding(v, next)) return;
   setActivePolygon(v, next);
+}
+
+// ── Whole-polygon translate (grab the interior to move the polygon) ──────────
+
+/** Hit-test: is (cx, cy) strictly inside the active polygon, away from any
+ *  handle? Returns true → caller should start a polygon-translate drag. */
+function hitTestActivePolygonInterior(cx, cy) {
+  if (!editingVenueId) return false;
+  const v = VENUES.find(x => x.id === editingVenueId);
+  if (!v) return false;
+  const ap = getActivePolygon(v);
+  if (!ap) return false;
+  // Skip if the cursor is on a handle; corner / edge tests take priority.
+  if (hitTestActivePolygonVertex(cx, cy) !== null) return false;
+  if (hitTestActivePolygonEdge(cx, cy)   !== null) return false;
+  const px = ap.latlng.map(([lat, lng]) => map.project([lng, lat]));
+  return _pixPointInPolygon(cx, cy, px);
+}
+
+function _pixPointInPolygon(cx, cy, pts) {
+  let inside = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const xi = pts[i].x, yi = pts[i].y;
+    const xj = pts[j].x, yj = pts[j].y;
+    if (((yi > cy) !== (yj > cy)) &&
+        (cx < (xj - xi) * (cy - yi) / ((yj - yi) || 1e-12) + xi)) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+/** Begin a whole-polygon translate. Stores a SNAPSHOT of the polygon and the
+ *  cursor lat/lng so subsequent moves apply the cumulative delta against the
+ *  snapshot (avoids drift from per-frame rounding). */
+function startPolygonTranslate(cursorX, cursorY) {
+  const v = VENUES.find(x => x.id === editingVenueId);
+  if (!v) return false;
+  bakeStreetPolygon(v);
+  const ap = getActivePolygon(v);
+  if (!ap) return false;
+  const ll = map.unproject([cursorX, cursorY]);
+  editDraggingPolyTranslate = true;
+  _editTranslateStartLL     = { lat: ll.lat, lng: ll.lng };
+  _editTranslateStartPoly   = ap.latlng.map(p => p.slice());
+  return true;
+}
+
+function moveActivePolygonTo(cursorX, cursorY) {
+  if (!editDraggingPolyTranslate) return;
+  if (!_editTranslateStartLL || !_editTranslateStartPoly) return;
+  const v = VENUES.find(x => x.id === editingVenueId);
+  if (!v) return;
+  const ll = map.unproject([cursorX, cursorY]);
+  const dLat = ll.lat - _editTranslateStartLL.lat;
+  const dLng = ll.lng - _editTranslateStartLL.lng;
+  const next = _editTranslateStartPoly.map(([lat, lng]) => [lat + dLat, lng + dLng]);
+  if (_editWouldViolateBuilding(v, next)) return;
+  setActivePolygon(v, next);
+}
+
+function endPolygonTranslate() {
+  editDraggingPolyTranslate = false;
+  _editTranslateStartLL     = null;
+  _editTranslateStartPoly   = null;
 }
 
 // Backwards compatibility — older callers used updateSeatingPolygonVertex

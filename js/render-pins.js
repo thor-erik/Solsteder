@@ -1566,9 +1566,10 @@ function _pinHitAtEvent(e) {
   return !editingVenueId && (hitTestVenue(cx, cy) || hitTestDot(cx, cy));
 }
 
-/** Hit-test any active editor handle (corner, edge midpoint, depth handle).
- *  Used by pointerdown/mousedown to short-circuit Mapbox's drag-pan when the
- *  user grabs a handle — otherwise the map pans along with the handle. */
+/** Hit-test any active editor handle (corner, edge midpoint, depth handle,
+ *  polygon interior). Used by pointerdown/mousedown to short-circuit Mapbox's
+ *  drag-pan when the user grabs a handle or the polygon body — otherwise the
+ *  map pans along with the polygon. */
 function _editHandleHitAtEvent(e) {
   if (!editingVenueId) return false;
   const rect = canvas.getBoundingClientRect();
@@ -1577,6 +1578,8 @@ function _editHandleHitAtEvent(e) {
       && hitTestActivePolygonVertex(cx, cy) !== null) return true;
   if (typeof hitTestActivePolygonEdge === 'function'
       && hitTestActivePolygonEdge(cx, cy) !== null) return true;
+  if (typeof hitTestActivePolygonInterior === 'function'
+      && hitTestActivePolygonInterior(cx, cy)) return true;
   if (typeof hitTestDepthHandle === 'function'
       && hitTestDepthHandle(cx, cy)) return true;
   return false;
@@ -1670,6 +1673,18 @@ canvas.addEventListener('mousedown', e => {
       e.stopPropagation();
       e.preventDefault();
       return;
+    }
+    // Polygon interior: whole-polygon translate drag.
+    if (typeof hitTestActivePolygonInterior === 'function'
+        && hitTestActivePolygonInterior(cx, cy)
+        && typeof startPolygonTranslate === 'function') {
+      if (startPolygonTranslate(cx, cy)) {
+        canvas.style.cursor = 'grabbing';
+        _disableMapInteractions();
+        e.stopPropagation();
+        e.preventDefault();
+        return;
+      }
     }
     // Legacy: depth handle drag (street wall-mode, before polygon override exists)
     const handle = hitTestDepthHandle(cx, cy);
@@ -1793,6 +1808,13 @@ canvas.addEventListener('mousemove', e => {
       return;
     }
 
+    if (editDraggingPolyTranslate) {
+      moveActivePolygonTo(cx, cy);
+      canvas.style.cursor = 'grabbing';
+      draw();
+      return;
+    }
+
     if (editDraggingDepth && editDragWallObj) {
       const v = VENUES.find(x => x.id === editingVenueId);
       if (v) {
@@ -1820,6 +1842,11 @@ canvas.addEventListener('mousemove', e => {
     }
     if (typeof hitTestActivePolygonEdge === 'function'
         && hitTestActivePolygonEdge(cx, cy) !== null) {
+      canvas.style.cursor = 'move';
+      return;
+    }
+    if (typeof hitTestActivePolygonInterior === 'function'
+        && hitTestActivePolygonInterior(cx, cy)) {
       canvas.style.cursor = 'move';
       return;
     }
@@ -1889,11 +1916,14 @@ canvas.addEventListener('mouseleave', () => {
 });
 
 window.addEventListener('mouseup', () => {
-  if (editDraggingPolyVertex || editDraggingPolyEdge) {
+  if (editDraggingPolyVertex || editDraggingPolyEdge || editDraggingPolyTranslate) {
     editDraggingPolyVertex = false;
     editPolyVertexIdx      = null;
     editDraggingPolyEdge   = false;
     editPolyEdgeIdx        = null;
+    if (editDraggingPolyTranslate && typeof endPolygonTranslate === 'function') {
+      endPolygonTranslate();
+    }
     canvas.style.cursor    = 'default';
     const v = VENUES.find(x => x.id === editingVenueId);
     if (v) saveFacingCache(v.id, v.facing, v.facingSource, v.terraceWallIndices ?? [], v.terraceDepth,
@@ -1971,6 +2001,17 @@ if (_isTouchDevice) {
         return;
       }
     }
+    if (typeof hitTestActivePolygonInterior === 'function'
+        && hitTestActivePolygonInterior(cx, cy)
+        && typeof startPolygonTranslate === 'function') {
+      if (startPolygonTranslate(cx, cy)) {
+        _editTouchId = t.identifier;
+        _disableMapInteractions();
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+    }
     const dh = hitTestDepthHandle(cx, cy);
     if (dh) {
       editDraggingDepth = true;
@@ -2001,6 +2042,11 @@ if (_isTouchDevice) {
       draw();
       e.preventDefault(); return;
     }
+    if (editDraggingPolyTranslate) {
+      moveActivePolygonTo(cx, cy);
+      draw();
+      e.preventDefault(); return;
+    }
     if (editDraggingDepth && editDragWallObj) {
       const v = VENUES.find(x => x.id === editingVenueId);
       if (v) {
@@ -2014,15 +2060,19 @@ if (_isTouchDevice) {
   }, { passive: false });
 
   document.addEventListener('touchend', e => {
-    if (editingVenueId && (editDraggingDepth || editDraggingPolyVertex || editDraggingPolyEdge)) {
+    if (editingVenueId && (editDraggingDepth || editDraggingPolyVertex
+                        || editDraggingPolyEdge || editDraggingPolyTranslate)) {
       const v = VENUES.find(x => x.id === editingVenueId);
       if (v) saveFacingCache(v.id, v.facing, v.facingSource, v.terraceWallIndices ?? [], v.terraceDepth,
         null, v.terraceType, v.terraceDetachedLocation, v.terraceWallTrimStart, v.terraceWallTrimEnd,
         v.seatingPolygonOverride);
-      const wasPoly = editDraggingPolyVertex || editDraggingPolyEdge;
+      const wasPoly = editDraggingPolyVertex || editDraggingPolyEdge || editDraggingPolyTranslate;
       editDraggingDepth = false; editDragWallObj = null;
       editDraggingPolyVertex = false; editPolyVertexIdx = null;
       editDraggingPolyEdge = false; editPolyEdgeIdx = null;
+      if (editDraggingPolyTranslate && typeof endPolygonTranslate === 'function') {
+        endPolygonTranslate();
+      }
       _editTouchId = null;
       _enableMapInteractions();
       _setEditChanged();
