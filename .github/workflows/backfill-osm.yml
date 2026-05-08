@@ -1,0 +1,48 @@
+name: Backfill venues from OSM
+
+# Targeted backfill for venues that the discovery pipeline misses
+# (e.g. chain branches like Los Tacos where Text Search collapses
+# multiple locations to the most-popular result).
+#
+# Reads data/backfill-input.json (an array of {name, lat, lng, [area]})
+# and adds each resolved match to data/venues.json. Then chains
+# fetch-photos and refresh-opening-hours to populate the new entries.
+#
+# Geometry is intentionally NOT run here — trigger update-geometry
+# separately so building polygon recompute doesn't block the merge.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Write .env
+        run: echo "GOOGLE_PLACES_KEY_SERVER=${{ secrets.GOOGLE_PLACES_KEY_SERVER }}" > .env
+
+      - name: Backfill from data/backfill-input.json
+        run: node scripts/backfill-from-osm.mjs
+
+      - name: Fetch photos for new venues
+        run: node scripts/fetch-photos.mjs
+
+      - name: Refresh opening hours
+        run: node scripts/refresh-opening-hours.mjs
+
+      - name: Commit if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/venues.json data/venues.meta.json data/venue-photos.json
+          git diff --cached --quiet && echo "No changes" || git commit -m "chore: backfill venues from data/backfill-input.json [skip ci]"
+          git push
