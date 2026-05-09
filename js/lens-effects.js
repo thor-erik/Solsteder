@@ -42,7 +42,7 @@
     'mirror-sky':    { fx: 'linear-gradient(135deg, rgba(230,245,255,0.22) 0%, rgba(230,245,255,0.08) 18%, transparent 38%, rgba(20,40,66,0.05) 62%, rgba(15,30,55,0.18) 100%)', blend: 'normal', label: 'Mirror · sky' },
     'mirror-pearl':  { fx: 'linear-gradient(135deg, rgba(255,242,225,0.20) 0%, rgba(255,242,225,0.06) 18%, transparent 38%, rgba(40,60,90,0.05) 62%, rgba(20,40,66,0.16) 100%)', blend: 'normal', label: 'Mirror · pearl' },
     'mirror-soft':   { fx: 'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 42% 58%, rgba(0,0,0,0.12) 100%)', blend: 'normal', label: 'Mirror · soft' },
-    'polarized':     { fx: 'conic-gradient(from 0deg at 50% 50%, rgba(255,100,180,0.10) 0%, rgba(100,200,255,0.13) 25%, rgba(180,255,200,0.11) 50%, rgba(255,200,100,0.10) 75%, rgba(255,100,180,0.10) 100%)', blend: 'normal', label: 'Polarized (conic shimmer)' },
+    'polarized':     { fx: 'conic-gradient(from 0deg at 50% 50%, rgba(255,100,180,0.04) 0%, rgba(100,200,255,0.05) 25%, rgba(180,255,200,0.04) 50%, rgba(255,200,100,0.04) 75%, rgba(255,100,180,0.04) 100%)', blend: 'normal', label: 'Polarized (conic shimmer)' },
     'chromatic':     { fx: 'linear-gradient(135deg, rgba(255,150,100,0.16) 0%, rgba(0,0,0,0) 25%, rgba(0,0,0,0) 75%, rgba(100,150,255,0.16) 100%)', blend: 'normal', label: 'Chromatic (warm/cool corners)' },
   };
 
@@ -65,12 +65,12 @@
   if (fx === '1') {
     panelKey = 'polarized'; cardKey = 'solid';
   } else if (fx === '2') {
-    panelKey = 'vignette';  cardKey = 'polarized';
+    panelKey = 'vignette';  cardKey = 'mirror-soft';
   } else { // lab
     panelKey = params.get('panel') || 'vignette';
-    cardKey  = params.get('card')  || 'polarized';
+    cardKey  = params.get('card')  || 'mirror-soft';
     if (!PANEL_FX[panelKey]) panelKey = 'vignette';
-    if (!CARD_FX[cardKey])   cardKey  = 'polarized';
+    if (!CARD_FX[cardKey])   cardKey  = 'mirror-soft';
   }
   applyPanelFx(panelKey);
   applyCardFx(cardKey);

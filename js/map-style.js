@@ -26,24 +26,27 @@ function buildShadeStyle() {
     layers: [
 
       // ── Background ─────────────────────────────────────────────────────────
-      // Sunlit limestone — warm cream with enough chroma that the navy glass
-      // panels (the app's "shades") cool it to a balanced neutral when overlaid.
+      // Sunlit limestone — warm cream. The slate-tinted glass panels (the
+      // app's "shades") cool it into a balanced neutral when overlaid.
+      // Slightly desaturated (was #ECDEC5) so the warm/cool contrast with
+      // the slate panels reads cleanly.
       {
         id: 'background',
         type: 'background',
-        paint: { 'background-color': '#ECDEC5' },
+        paint: { 'background-color': '#EFE4CD' },
       },
 
       // ── Water ──────────────────────────────────────────────────────────────
-      // Brand --muted Jordy at high opacity — water reads as recognizable
-      // brand blue both unfiltered (Oslo fjord on a sunny day) and through
-      // the sunglass-tinted panels (deepens to a richer cool blue).
+      // Slate-blue (was Jordy #9CBDE7 from the prior Polynesian palette).
+      // Reads as recognizable water both unfiltered AND through the slate
+      // panels (where it deepens to a richer cool blue). Harmonizes with
+      // --rain (#6F8AA8) but slightly brighter so water still feels alive.
       {
         id: 'water',
         type: 'fill',
         source: 'composite',
         'source-layer': 'water',
-        paint: { 'fill-color': '#9CBDE7', 'fill-opacity': 0.85 },
+        paint: { 'fill-color': '#7BA0B8', 'fill-opacity': 0.85 },
       },
       {
         id: 'waterway',
@@ -51,7 +54,7 @@ function buildShadeStyle() {
         source: 'composite',
         'source-layer': 'waterway',
         paint: {
-          'line-color': '#9CBDE7',
+          'line-color': '#7BA0B8',
           'line-opacity': 0.75,
           'line-width': ['interpolate', ['linear'], ['zoom'], 10, 0.5, 16, 2],
         },
