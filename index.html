@@ -47,7 +47,7 @@
 </script>
 <script defer src="js/i18n.js"></script>
 <script defer src="js/config.js?v=20260425b"></script>
-<script defer src="js/tokens.js?v=20260509a"></script>
+<script defer src="js/tokens.js?v=20260509b"></script>
 <script defer src="js/auth.js"></script>
 <script defer src="js/login-carousel.js?v=20260428a"></script>
 <script defer src="js/analytics.js"></script>
@@ -64,7 +64,7 @@
 <script defer src="js/render-seating.js?v=20260508a"></script>
 <script defer src="js/render-editor.js?v=20260508a"></script>
 <script defer src="js/render-pins.js?v=20260508a"></script>
-<script defer src="js/ui-shared.js?v=20260411b"></script>
+<script defer src="js/ui-shared.js?v=20260509a"></script>
 <script defer src="js/ui-list.js?v=20260411b"></script>
 <script defer src="js/admin-review.js?v=20260505a"></script>
 <script defer src="js/ui-shelter.js?v=20260416a"></script>
@@ -128,6 +128,19 @@
     --red-500:   #FF6B6B;
     --red-600:   #DC2626;
     --red-900:   #7F1D1D;
+
+    /* Weather palette — coordinated 5-step warm-to-cool perceptual gradient
+       used for cf-band fills in the timeline canvas, FTS slider, and any
+       future weather visualization. Plus rain (distinct cool blue) and
+       night (deep slate). Aligned with Slate + Honey: clear sun = honey,
+       overcast = cool slate, rain = slate-blue. */
+    --weather-clear:      #F5C25E;   /* matches --accent — clear sun */
+    --weather-clear-soft: #E8B870;   /* mostly clear */
+    --weather-partly:     #B8B098;   /* partly cloudy — warm/cool transition */
+    --weather-cloudy:     #9BA8B5;   /* mostly cloudy */
+    --weather-overcast:   #7A8696;   /* overcast */
+    --weather-rain:       #4A6582;   /* rain (distinct, cool slate-blue) */
+    --weather-night:      #0F1B2A;   /* deeper than --bg for visibility */
 
     /* Spacing — 4-base ladder. Published; not yet migrated. */
     --space-1:  4px;

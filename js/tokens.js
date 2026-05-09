@@ -31,6 +31,14 @@
     // Status
     success:   '#64FFB4',
     error:     '#FF6B6B',
+    // Weather palette (5-step cf-band + rain + night)
+    weatherClear:     '#F5C25E',
+    weatherClearSoft: '#E8B870',
+    weatherPartly:    '#B8B098',
+    weatherCloudy:    '#9BA8B5',
+    weatherOvercast:  '#7A8696',
+    weatherRain:      '#4A6582',
+    weatherNight:     '#0F1B2A',
   };
 
   // Brand entries point at SEMANTIC tokens so the canvas tracks the active
@@ -51,6 +59,13 @@
     rain:        '--rain',
     success:     '--green-500',
     error:       '--red-500',
+    weatherClear:     '--weather-clear',
+    weatherClearSoft: '--weather-clear-soft',
+    weatherPartly:    '--weather-partly',
+    weatherCloudy:    '--weather-cloudy',
+    weatherOvercast:  '--weather-overcast',
+    weatherRain:      '--weather-rain',
+    weatherNight:     '--weather-night',
   };
 
   function readTokens() {

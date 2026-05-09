@@ -517,7 +517,7 @@ function drawTimeline(ctx, opts) {
   trackPath(); ctx.clip();
 
   // 1. Night background (visible only at the rounded ends if no segments cover them)
-  ctx.fillStyle = '#1B2E5A';
+  ctx.fillStyle = TOKENS.weatherNight;
   ctx.fillRect(0, bleed, BAR_W, TRACK_H);
 
   // 2. Hourly weather segments (only where sun is up)
@@ -528,17 +528,17 @@ function drawTimeline(ctx, opts) {
   for (let h = Math.floor(minH); h < Math.ceil(maxH); h++) {
     const sun = getSunFromTable(sunTable, h + 0.5);
     if (sun.alt <= 0) continue;
-    let color = '#FFAF85';
+    let color = TOKENS.weatherClear;
     if (hasWx) {
       const wx   = getWeatherAt(dateStr, h + 0.5);
       const rain = wx ? (wx.precip ?? wx.prec ?? 0) > 0.3 : false;
       const cf   = wx ? (wx.cloud ?? 0) : 0;
-      if      (rain)       color = '#3B6499';
-      else if (cf < 0.15)  color = '#FFAF85';
-      else if (cf < 0.40)  color = '#FFCFAA';
-      else if (cf < 0.65)  color = '#DECCC0';
-      else if (cf < 0.85)  color = '#C6C8CA';
-      else                 color = '#94AABB';
+      if      (rain)       color = TOKENS.weatherRain;
+      else if (cf < 0.15)  color = TOKENS.weatherClear;
+      else if (cf < 0.40)  color = TOKENS.weatherClearSoft;
+      else if (cf < 0.65)  color = TOKENS.weatherPartly;
+      else if (cf < 0.85)  color = TOKENS.weatherCloudy;
+      else                 color = TOKENS.weatherOvercast;
     }
     const x1 = Math.round(timeToX(Math.max(h, minH)));
     const x2 = Math.round(timeToX(Math.min(h + 1, maxH)));
