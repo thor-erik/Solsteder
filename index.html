@@ -73,7 +73,7 @@
 <script defer src="js/ui-plan-preview.js?v=20260430a"></script>
 <script defer src="js/osm.js?v=20260505a"></script>
 <script defer src="js/notifications.js?v=20260427c"></script>
-<script defer src="js/lens-effects.js?v=20260509f"></script>
+<script defer src="js/lens-effects.js?v=20260509g"></script>
 <script defer src="js/init.js?v=20260427a"></script>
 <style>
   /* Inter — inlined latin + latin-ext @font-face (eliminates Google Fonts CSS round-trip) */
@@ -303,12 +303,14 @@
     background: var(--panel-fx-bg, transparent);
     mix-blend-mode: var(--panel-fx-blend, normal);
   }
-  /* Card gets its static effect layered on top of the existing glass-card-bg.
-     --card-fx-bg defaults to transparent (no effect). */
+  /* Card gets its static effect layered on top of a slightly more translucent
+     base than --glass-card-bg so the lens shimmer breathes. The override
+     applies only in fx mode; default cards keep their solid feel. */
   body[data-fx] .venue-card {
     background:
       var(--card-fx-bg, transparent),
-      var(--glass-card-bg);
+      linear-gradient(135deg, rgba(20,46,82,0.34) 0%, rgba(32,73,131,0.20) 100%),
+      rgba(20,46,82,0.42);
   }
   /* Make sure panel content sits above the panel overlay */
   body[data-fx] #panel > * { position: relative; z-index: 1; }

@@ -27,7 +27,7 @@
     'vgrad':         { fx: 'linear-gradient(180deg, rgba(0,0,0,0.30) 0%, rgba(0,0,0,0) 70%)', blend: 'normal', label: 'V-gradient (top darker)' },
     'hgrad':         { fx: 'linear-gradient(90deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0) 60%)', blend: 'normal', label: 'H-gradient' },
     'vignette':      { fx: 'radial-gradient(ellipse at center, rgba(0,0,0,0) 30%, rgba(0,0,0,0.40) 100%)', blend: 'normal', label: 'Vignette (denser edges)' },
-    'mirror-sky':    { fx: 'linear-gradient(135deg, rgba(230,245,255,0.26) 0%, rgba(230,245,255,0.10) 18%, transparent 38%, rgba(20,40,66,0.06) 62%, rgba(15,30,55,0.22) 100%)', blend: 'normal', label: 'Mirror · sky' },
+    'mirror-sky':    { fx: 'linear-gradient(135deg, rgba(230,245,255,0.32) 0%, rgba(230,245,255,0.14) 18%, transparent 38%, rgba(20,40,66,0.08) 62%, rgba(15,30,55,0.26) 100%)', blend: 'normal', label: 'Mirror · sky' },
     'mirror-pearl':  { fx: 'linear-gradient(135deg, rgba(255,242,225,0.22) 0%, rgba(255,242,225,0.08) 18%, transparent 38%, rgba(40,60,90,0.06) 62%, rgba(20,40,66,0.20) 100%)', blend: 'normal', label: 'Mirror · pearl' },
     'mirror-soft':   { fx: 'linear-gradient(135deg, rgba(255,255,255,0.13) 0%, rgba(255,255,255,0.03) 22%, transparent 42% 58%, rgba(0,0,0,0.06) 78%, rgba(0,0,0,0.16) 100%)', blend: 'normal', label: 'Mirror · soft' },
     'mirror-refract':{ fx: 'radial-gradient(circle 240px at 25% 15%, rgba(230,245,255,0.30) 0%, rgba(230,245,255,0.10) 28%, transparent 60%), radial-gradient(circle 220px at 75% 85%, rgba(15,30,55,0.22) 0%, transparent 55%)', blend: 'normal', label: 'Mirror · refract (curved)' },
@@ -42,7 +42,7 @@
     'mirror-sky':    { fx: 'linear-gradient(135deg, rgba(230,245,255,0.22) 0%, rgba(230,245,255,0.08) 18%, transparent 38%, rgba(20,40,66,0.05) 62%, rgba(15,30,55,0.18) 100%)', blend: 'normal', label: 'Mirror · sky' },
     'mirror-pearl':  { fx: 'linear-gradient(135deg, rgba(255,242,225,0.20) 0%, rgba(255,242,225,0.06) 18%, transparent 38%, rgba(40,60,90,0.05) 62%, rgba(20,40,66,0.16) 100%)', blend: 'normal', label: 'Mirror · pearl' },
     'mirror-soft':   { fx: 'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 42% 58%, rgba(0,0,0,0.12) 100%)', blend: 'normal', label: 'Mirror · soft' },
-    'polarized':     { fx: 'conic-gradient(from 0deg at 50% 50%, rgba(255,100,180,0.06) 0%, rgba(100,200,255,0.08) 25%, rgba(180,255,200,0.07) 50%, rgba(255,200,100,0.06) 75%, rgba(255,100,180,0.06) 100%)', blend: 'normal', label: 'Polarized (conic shimmer)' },
+    'polarized':     { fx: 'conic-gradient(from 0deg at 50% 50%, rgba(255,100,180,0.10) 0%, rgba(100,200,255,0.13) 25%, rgba(180,255,200,0.11) 50%, rgba(255,200,100,0.10) 75%, rgba(255,100,180,0.10) 100%)', blend: 'normal', label: 'Polarized (conic shimmer)' },
     'chromatic':     { fx: 'linear-gradient(135deg, rgba(255,150,100,0.16) 0%, rgba(0,0,0,0) 25%, rgba(0,0,0,0) 75%, rgba(100,150,255,0.16) 100%)', blend: 'normal', label: 'Chromatic (warm/cool corners)' },
   };
 
