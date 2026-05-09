@@ -262,20 +262,154 @@ These are NOT IA changes per se but inform priority — surfaces visible during 
 
 ---
 
-## Decisions needed from user
+## Decisions (resolved 2026-05-09)
 
-Three blocking questions before Phase B/C:
+1. **Social/plans:** **SHIP.** Plus build out missing features (my plans, group management) + add notification history.
+2. **Wind shelter:** **KEEP** the diagram. Also add "le for vind ✓" / "vindutsatt" text info row in the detail panel.
+3. **Contributor/admin flows:** **status quo** — already role-gated to admins; no lazy-load restructure needed.
+4. **Saved venues:** **ADD NOW.**
+5. **App-store launch:** acknowledged; informs polish-priority weighting.
 
-1. **Social/plans:** ship or experiment?
-2. **Wind shelter:** keep diagram, demote, or cut?
-3. **Contributor/admin flows:** lazy-load + single entry point, or status quo?
+---
 
-Two non-blocking but useful:
+## Feature designs (resolved decisions → concrete IA proposals)
 
-4. **Saved venues:** add now or defer?
-5. **App-store launch timing** — affects polish-priority weighting.
+### F1 · Saved venues ("Lagrede steder")
 
-Once these are answered, the redesign-plan.md priorities lock in and Phase B/C can proceed without rework.
+**Entry:**
+- Heart icon (filled when saved, outline when not) on the detail panel header (Tier 5 honey badge style)
+- Quick-save: heart icon also appears on each `.venue-card` (small, top-right corner)
+
+**Surface:**
+- New section in profile panel: "Lagrede steder · N" — tap to open
+- List view inside profile panel showing saved venues as Tier 2 cards
+- Empty state ("Ingen lagrede steder ennå — tap hjertet på et sted for å lagre det")
+- Optional: filter chip on main list ("Vis bare lagrede") for Phase C
+
+**Backend:** Supabase table `saved_venues(user_id, venue_id, saved_at)`. Existing auth covers user_id; venue_id from `data/venues.json`.
+
+**Effort:** 3-4 hours — UI + persistence + integration
+
+### F2 · Inbox ("Varsler")
+
+Single surface for all friend-request + plan-invitation + notification activity. Bell icon in top toolbar opens it.
+
+**Entry:**
+- New bell icon button in `#floating-search` row, replacing or supplementing the profile button
+- Unread dot indicator (honey) when new items
+- Pull-down or slide-up surface (consistent with detail-panel pattern)
+
+**Surface structure (3 tabs):**
+
+| Tab | Content |
+|---|---|
+| **Planer** | Active plans (upcoming or now) + past plans collapsed below. Each plan card shows: venue · time · who's coming (avatar stack) · your response state |
+| **Forespørsler** | Pending plan invitations awaiting your response · friend requests pending |
+| **Varsler** | Notification log: past plan responses, friend joins, sun-state changes (when push ships), system messages |
+
+**Backend:** Supabase tables:
+- `notifications(id, user_id, type, payload, read, created_at)`
+- Existing plan/invite tables expanded with response tracking
+
+**Toast behavior unchanged:** new events still fire a toast in real time. Toasts now also write to `notifications` so the inbox has the history.
+
+**Effort:** 8-10 hours — substantial. Three tabs of content, backend changes, integration with existing notification system.
+
+### F3 · My plans group management
+
+Within the **Planer** tab of the Inbox, each plan is a card. Tapping it opens detail:
+- Venue + time
+- Attendees: confirmed (✓), pending (?), declined (✗) — avatar stack with status dots
+- Edit time / cancel plan (only for organizer)
+- "Add more friends" button
+
+This is the F2 Planer tab's drill-down. No new surface required.
+
+### F4 · Wind shelter info row
+
+In detail panel info-row section (alongside "Travelt nå", "Moderat trafikkstøy", "Åpent til 23:30"):
+
+**Add a row:** icon + label + value
+- Icon: small wind glyph (existing or new)
+- Label: nothing or "Vindforhold"
+- Value: "Le for vind" (when sheltered) / "Lett vindutsatt" (mid) / "Vindutsatt" (exposed)
+- Color: `var(--color-success)` / `var(--muted)` / `var(--color-warning)`
+
+The existing isometric diagram stays as a tap-to-expand detail below the info row. Quick scan from the info row; deep dive in the diagram.
+
+**Effort:** 1 hour — copy + icon + integration with existing wind data
+
+### F5 · Notification history persistence
+
+Beyond F2's UI: ensure every toast event writes to the `notifications` table so the Varsler tab has data. Update `notifications.js` to save events as side-effects of toast firing.
+
+**Effort:** 2 hours
+
+---
+
+## Updated phase plan
+
+These features add new surfaces to the redesign-plan. Updated phasing:
+
+### Phase 0 (now done)
+- IA review ✓
+- Decisions captured ✓
+
+### Phase 0.5 · New features (design + build) — ~14 hours
+**Should land BEFORE Phase B/C polish, since polish work depends on the surfaces existing.**
+
+- F1 · Saved venues (3-4h)
+- F2 · Inbox surface (8-10h)
+- F3 · Plan group management (covered in F2)
+- F4 · Wind shelter info row (1h)
+- F5 · Notification persistence (2h)
+
+### Phase A · P0 visual polish (concurrent with 0.5) — ~12h
+Unchanged from redesign-plan.md. Surfaces don't conflict with new features.
+
+### Phase B · P1 polish — ~6h + new feature polish ~2h
+Polish the new surfaces from Phase 0.5 once they're built:
+- Saved venues card layout
+- Inbox tab styling
+- Plan card design
+
+### Phase C · P2 polish — ~10h (unchanged)
+
+### Phase D · P3 polish (unchanged)
+
+### Phase E · Copy pass (~3h)
+
+**Total revised effort:** ~50 hours (was ~33; +14 for new features +2 for polish)
+
+---
+
+## Where new things live in the existing IA
+
+```
+Top toolbar (search row):
+  [search] [bell-icon-NEW] [profile]
+
+Detail panel (info section):
+  · Travelt nå
+  · Moderat trafikkstøy
+  · Vindforhold: Le for vind ✓   [NEW]
+  · Åpent til 23:30
+  + ❤ heart-toggle in detail header   [NEW]
+
+Profile panel:
+  · Avatar / name / email
+  · Lagrede steder · N        [NEW]
+  · Innstillinger
+  · Logg ut
+
+Inbox (NEW surface, from bell icon):
+  Tab: Planer · Forespørsler · Varsler
+
+Venue card:
+  ❤ Quick-save toggle (top-right corner)   [NEW, optional Phase C]
+```
+
+This is additive — doesn't restructure existing flows.
 
 ---
 
