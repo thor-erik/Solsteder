@@ -73,7 +73,7 @@
 <script defer src="js/ui-plan-preview.js?v=20260430a"></script>
 <script defer src="js/osm.js?v=20260505a"></script>
 <script defer src="js/notifications.js?v=20260427c"></script>
-<script defer src="js/lens-effects.js?v=20260509i"></script>
+<script defer src="js/lens-effects.js?v=20260509j"></script>
 <script defer src="js/init.js?v=20260427a"></script>
 <style>
   /* Inter — inlined latin + latin-ext @font-face (eliminates Google Fonts CSS round-trip) */
@@ -313,12 +313,24 @@
      panel base (0.42) so text contrast is consistent regardless of what
      map content is underneath. Original Polynesian used 0.50 (8% above
      panel); slate cards bumped to 0.55 because the cool slate provides
-     less inherent contrast against text than navy did. */
+     less inherent contrast against text than navy did.
+
+     Also: stronger border + layered shadow for clearer card silhouette
+     ("modern card" elevation), better internal gap for content breathing,
+     and more vertical separation between cards. */
   body[data-fx] .venue-card {
     background:
       var(--card-fx-bg, transparent),
       linear-gradient(135deg, rgba(26,44,66,0.42) 0%, rgba(58,92,130,0.26) 100%),
       rgba(26,44,66,0.55);
+    border-color: rgba(155,169,188,0.34);
+    margin-bottom: 10px;
+    gap: 4px;
+    box-shadow:
+      inset 0 1px 0 rgba(255,250,235,0.16),
+      inset 0 -1px 0 rgba(15,30,55,0.40),
+      0 1px 2px rgba(0,0,0,0.18),
+      0 4px 14px rgba(0,0,0,0.30);
   }
   /* Make sure panel content sits above the panel overlay */
   body[data-fx] #panel > * { position: relative; z-index: 1; }

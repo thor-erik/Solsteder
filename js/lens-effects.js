@@ -31,7 +31,8 @@
     'mirror-pearl':  { fx: 'linear-gradient(135deg, rgba(255,242,225,0.22) 0%, rgba(255,242,225,0.08) 18%, transparent 38%, rgba(40,60,90,0.06) 62%, rgba(20,40,66,0.20) 100%)', blend: 'normal', label: 'Mirror · pearl' },
     'mirror-soft':   { fx: 'linear-gradient(135deg, rgba(255,255,255,0.13) 0%, rgba(255,255,255,0.03) 22%, transparent 42% 58%, rgba(0,0,0,0.06) 78%, rgba(0,0,0,0.16) 100%)', blend: 'normal', label: 'Mirror · soft' },
     'mirror-refract':{ fx: 'radial-gradient(circle 240px at 25% 15%, rgba(230,245,255,0.30) 0%, rgba(230,245,255,0.10) 28%, transparent 60%), radial-gradient(circle 220px at 75% 85%, rgba(15,30,55,0.22) 0%, transparent 55%)', blend: 'normal', label: 'Mirror · refract (curved)' },
-    'polarized':     { fx: 'conic-gradient(from 0deg at 50% 50%, rgba(255,100,180,0.05) 0%, rgba(100,200,255,0.06) 25%, rgba(180,255,200,0.05) 50%, rgba(255,200,100,0.05) 75%, rgba(255,100,180,0.05) 100%)', blend: 'normal', label: 'Polarized (conic shimmer)' },
+    /* Polarized off-center for asymmetric "lens at angle" feel; see CARD_FX. */
+    'polarized':     { fx: 'conic-gradient(from 200deg at 100% 0%, rgba(255,100,180,0.05) 0%, rgba(100,200,255,0.06) 25%, rgba(180,255,200,0.05) 50%, rgba(255,200,100,0.05) 75%, rgba(255,100,180,0.05) 100%)', blend: 'normal', label: 'Polarized (corner sweep)' },
     'chromatic':     { fx: 'linear-gradient(135deg, rgba(255,150,100,0.12) 0%, rgba(0,0,0,0) 25%, rgba(0,0,0,0) 75%, rgba(100,150,255,0.12) 100%)', blend: 'screen', label: 'Chromatic (warm/cool corners)' },
   };
   // Cards use slightly stronger alphas (smaller surfaces, blur eats less).
@@ -42,7 +43,11 @@
     'mirror-sky':    { fx: 'linear-gradient(135deg, rgba(230,245,255,0.22) 0%, rgba(230,245,255,0.08) 18%, transparent 38%, rgba(20,40,66,0.05) 62%, rgba(15,30,55,0.18) 100%)', blend: 'normal', label: 'Mirror · sky' },
     'mirror-pearl':  { fx: 'linear-gradient(135deg, rgba(255,242,225,0.20) 0%, rgba(255,242,225,0.06) 18%, transparent 38%, rgba(40,60,90,0.05) 62%, rgba(20,40,66,0.16) 100%)', blend: 'normal', label: 'Mirror · pearl' },
     'mirror-soft':   { fx: 'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 42% 58%, rgba(0,0,0,0.12) 100%)', blend: 'normal', label: 'Mirror · soft' },
-    'polarized':     { fx: 'conic-gradient(from 0deg at 50% 50%, rgba(255,100,180,0.04) 0%, rgba(100,200,255,0.05) 25%, rgba(180,255,200,0.04) 50%, rgba(255,200,100,0.04) 75%, rgba(255,100,180,0.04) 100%)', blend: 'normal', label: 'Polarized (conic shimmer)' },
+    /* Polarized off-center (was 50% 50% pinwheel — too symmetric / "decorative").
+       Origin at top-right corner so colors sweep diagonally across the card,
+       reading as "light catching the lens at a specific angle" rather than
+       a centered pinwheel. */
+    'polarized':     { fx: 'conic-gradient(from 200deg at 100% 0%, rgba(255,100,180,0.05) 0%, rgba(100,200,255,0.07) 25%, rgba(180,255,200,0.05) 50%, rgba(255,200,100,0.05) 75%, rgba(255,100,180,0.05) 100%)', blend: 'normal', label: 'Polarized (corner sweep)' },
     'chromatic':     { fx: 'linear-gradient(135deg, rgba(255,150,100,0.16) 0%, rgba(0,0,0,0) 25%, rgba(0,0,0,0) 75%, rgba(100,150,255,0.16) 100%)', blend: 'normal', label: 'Chromatic (warm/cool corners)' },
   };
 
