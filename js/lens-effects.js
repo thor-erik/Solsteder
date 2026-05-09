@@ -77,6 +77,13 @@
 
   // ── Lab UI: floating control panel ──────────────────────────────────────
   function buildLabUi() {
+    const panelButtons = Object.keys(PANEL_FX)
+      .map(k => `<button data-fx-key="${k}" type="button">${PANEL_FX[k].label}</button>`)
+      .join('');
+    const cardButtons = Object.keys(CARD_FX)
+      .map(k => `<button data-fx-key="${k}" type="button">${CARD_FX[k].label}</button>`)
+      .join('');
+
     const root = document.createElement('div');
     root.className = 'lens-fx-lab collapsed';
     root.innerHTML = `
@@ -84,31 +91,21 @@
       <div class="lens-fx-lab-body">
         <div class="lens-fx-lab-row">
           <div class="lens-fx-lab-label">Panel effect</div>
-          <select class="lens-fx-panel-select">
-            ${Object.keys(PANEL_FX).map(k => `<option value="${k}">${PANEL_FX[k].label}</option>`).join('')}
-          </select>
+          <div class="lens-fx-lab-options" data-fx-target="panel">${panelButtons}</div>
         </div>
         <div class="lens-fx-lab-row">
           <div class="lens-fx-lab-label">Card effect</div>
-          <select class="lens-fx-card-select">
-            ${Object.keys(CARD_FX).map(k => `<option value="${k}">${CARD_FX[k].label}</option>`).join('')}
-          </select>
+          <div class="lens-fx-lab-options" data-fx-target="card">${cardButtons}</div>
         </div>
         <div class="lens-fx-lab-hint">
-          Motion stack (tilt + parallax + spotlight + rim) is always on.
+          Motion (tilt + parallax + spotlight + rim) is always on.<br>
           URL state shareable: <code>?fx=lab&panel=…&card=…</code>
         </div>
       </div>
     `;
     document.body.appendChild(root);
 
-    const panelSel = root.querySelector('.lens-fx-panel-select');
-    const cardSel  = root.querySelector('.lens-fx-card-select');
-    const toggle   = root.querySelector('.lens-fx-lab-toggle');
-
-    panelSel.value = panelKey;
-    cardSel.value  = cardKey;
-
+    const toggle = root.querySelector('.lens-fx-lab-toggle');
     toggle.addEventListener('click', () => {
       root.classList.toggle('collapsed');
       root.classList.toggle('expanded');
@@ -116,6 +113,14 @@
     // Open by default
     root.classList.remove('collapsed');
     root.classList.add('expanded');
+
+    function markActive(target, key) {
+      root.querySelectorAll(`[data-fx-target="${target}"] button`).forEach(b => {
+        b.classList.toggle('active', b.dataset.fxKey === key);
+      });
+    }
+    markActive('panel', panelKey);
+    markActive('card',  cardKey);
 
     function syncUrl() {
       const u = new URL(location.href);
@@ -125,14 +130,19 @@
       history.replaceState(null, '', u);
     }
 
-    panelSel.addEventListener('change', () => {
-      panelKey = panelSel.value;
-      applyPanelFx(panelKey);
-      syncUrl();
-    });
-    cardSel.addEventListener('change', () => {
-      cardKey = cardSel.value;
-      applyCardFx(cardKey);
+    root.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-fx-key]');
+      if (!btn) return;
+      const target = btn.parentElement.dataset.fxTarget;
+      const key = btn.dataset.fxKey;
+      if (target === 'panel') {
+        panelKey = key;
+        applyPanelFx(panelKey);
+      } else if (target === 'card') {
+        cardKey = key;
+        applyCardFx(cardKey);
+      }
+      markActive(target, key);
       syncUrl();
     });
   }

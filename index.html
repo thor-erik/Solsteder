@@ -73,7 +73,7 @@
 <script defer src="js/ui-plan-preview.js?v=20260430a"></script>
 <script defer src="js/osm.js?v=20260505a"></script>
 <script defer src="js/notifications.js?v=20260427c"></script>
-<script defer src="js/lens-effects.js?v=20260509c"></script>
+<script defer src="js/lens-effects.js?v=20260509d"></script>
 <script defer src="js/init.js?v=20260427a"></script>
 <style>
   /* Inter — inlined latin + latin-ext @font-face (eliminates Google Fonts CSS round-trip) */
@@ -424,26 +424,29 @@
     text-transform: uppercase; letter-spacing: 0.08em;
     margin-bottom: 6px;
   }
-  .lens-fx-lab select {
-    width: 100%;
-    padding: 8px 10px;
-    background: rgba(20,46,82,0.55);
-    border: 1px solid rgba(156,189,231,0.30);
-    border-radius: var(--radius-xs);
-    color: var(--text);
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    appearance: none;
-    -webkit-appearance: none;
-    background-image: linear-gradient(45deg, transparent 50%, var(--accent) 50%),
-                      linear-gradient(135deg, var(--accent) 50%, transparent 50%);
-    background-position: calc(100% - 14px) center, calc(100% - 8px) center;
-    background-size: 6px 6px, 6px 6px;
-    background-repeat: no-repeat;
+  .lens-fx-lab-options {
+    display: flex; flex-wrap: wrap; gap: 4px;
   }
-  .lens-fx-lab select:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .lens-fx-lab-options button {
+    font-family: inherit;
+    font-size: 11px; font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: rgba(20,46,82,0.45);
+    border: 1px solid rgba(156,189,231,0.22);
+    color: var(--cloud, #B5BCC8);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .lens-fx-lab-options button:hover {
+    color: var(--text);
+    border-color: rgba(156,189,231,0.40);
+  }
+  .lens-fx-lab-options button.active {
+    background: rgba(245,194,94,0.16);
+    border-color: rgba(245,194,94,0.46);
+    color: var(--accent);
+  }
   .lens-fx-lab-hint {
     font-size: 10.5px; color: var(--muted); margin-top: 12px;
     line-height: 1.4; font-style: italic;
