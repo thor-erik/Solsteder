@@ -11,6 +11,30 @@ The work order at the bottom is by priority. Surfaces marked ✓ are confirmed-g
 
 ---
 
+## 0 · Information architecture (P0 · concurrent with Phase A)
+
+### Screen / feature inventory
+**Status:** ✗ · **Priority:** **P0** · **Effort:** 2 hours
+
+Strategic review — separate from visual polish. Output: `ia-review.md` with current-state map, observations, and proposed restructures (if any). Polishes done downstream of an IA decision are wasted if that surface gets cut/restructured.
+
+**Scope:**
+- Catalog every screen/flow currently in the app (map, list, detail, search, sort, filter, time picker, profile, login, invite, plans, edit, admin, onboarding, etc.)
+- For each: who uses it, how often, what it costs to maintain, what removing it would cost
+- Identify candidates for: removal · merging · splitting · promotion to top-level · demotion to overflow
+- Identify gaps: features that should exist but don't (e.g. saved venues list, group plan management surface)
+- Phase B/C polish work is **gated on IA decisions** for surfaces that might be restructured
+
+**Out of scope for IA review:**
+- New feature design — IA review surfaces gaps, doesn't fill them
+- Complete redesigns of confirmed-keep flows (those happen in Phase B/C)
+
+### Feature shipping prioritization
+**Status:** ⚠ · **Priority:** P1 · **Effort:** included in IA review
+Decisions about which planned/in-progress features ship vs. defer (e.g. push notifications per `project_app_store.md`, app store release timing, etc.) feed into the IA map.
+
+---
+
 ## 1 · Map & primary navigation (always visible)
 
 ### Map base
@@ -274,9 +298,30 @@ Establish a single empty-state pattern (centered icon + title + description + CT
 **Status:** ✗ · **Priority:** P2
 Establish the canonical input style (Tier 3 surface + honey focus border) and apply across search, email-magic-link, profile fields, edit forms.
 
+### Copy / microcopy review (cross-cutting)
+**Status:** ⚠ · **Priority:** P1
+Wording across every surface — titles, CTAs, empty states, error messages, tooltips, status pills, time/sun phrasing. Norwegian-first; English fallback via `js/i18n.js`.
+
+**Approach:**
+- **Interleaved**: when polishing a surface in Phase A/B/C, also review its copy (5-10 min per surface). Surfaces it as we go.
+- **Final consistency pass** at end of Phase D: read every string in the app top-to-bottom, fix tone drift, terminology inconsistencies, length issues. ~3 hours.
+
+**What to look for:**
+- Norwegian voice consistency (du-form, casual but precise)
+- Sun terminology ("sol" / "skygge" / "skyer" / "regn") — already canonical, just verify
+- CTA verb consistency ("Vis…" vs "Se…" vs "Åpne…")
+- Empty-state wording (currently mostly "Ingen…" — could be richer)
+- Truncation: meta lines, card titles — check on narrow viewports
+- Number formatting: distance, time, walking minutes — already partly tabular-numeric
+- Time phrasing: "Sol til 18:30" works; "Stenger 23:00" — verify across all hour states
+- Error / failure copy (very rarely seen but high-stakes when it appears)
+
 ---
 
 ## Suggested work order
+
+### Phase 0 · P0 — Information architecture review — ~2 hours
+0. **IA review** (2h) — output `ia-review.md` with screen/feature inventory + restructure proposals. Runs **concurrent with Phase A**: Phase A surfaces are mostly safe-from-restructuring (cards, search, pins, palettes), so they can proceed in parallel. **Phase B/C polish work for any surface flagged in the IA review is gated on the IA decision.**
 
 ### Phase A · P0 (do first, sets the bar) — ~12 hours
 1. **Weather palette redesign** (2h) — prerequisite for several others
@@ -311,11 +356,21 @@ Establish the canonical input style (Tier 3 surface + honey focus border) and ap
 ### Phase D · P3 (edge / admin) — as time allows
 25-onward: Onboarding, plan conflict, friend-add result, edit/admin flows
 
+### Phase E · Final consistency pass — ~3 hours
+26. **Copy / microcopy consistency pass** (3h) — read every string in the app top-to-bottom; fix tone drift, terminology inconsistencies, length/truncation issues. Lighter copy reviews already happen interleaved with each surface's polish work; this is the final cross-cutting check.
+
 ---
 
 ## Estimated total effort
-**~28 hours of focused design work**, split roughly 12 + 6 + 10 across phases A, B, C.
-P3 is open-ended.
+**~33 hours of focused design + IA + copy work**, split:
+- Phase 0 (IA): ~2h
+- Phase A (visual P0): ~12h
+- Phase B (P1): ~6h
+- Phase C (P2): ~10h
+- Phase E (copy): ~3h
+- Phase D (P3): open-ended
+
+Plus ~5–10 minutes of inline copy review per surface during Phase A/B/C polish, included in those estimates.
 
 ## How to consume this plan
 
@@ -326,8 +381,6 @@ P3 is open-ended.
 ---
 
 ## Out-of-scope for this audit
-- Information architecture (which screens exist, which features ship)
-- Copy / microcopy review
 - Performance work (bundle size, lazy loading, etc.)
 - Accessibility audit (separate concern; partial coverage already in `feedback_check_visibility_chain.md` and `aria-label` work)
-- Internationalization
+- Internationalization mechanics (Norwegian/English split is already in place via `js/i18n.js`; copy review covers wording, not the i18n plumbing)
