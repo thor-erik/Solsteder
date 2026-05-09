@@ -13,9 +13,12 @@
 
 (function () {
   const params = new URLSearchParams(location.search);
-  if (params.get('fx') !== '1') return;
+  const fx = params.get('fx');
+  // Accepted variants: 1 = polarized panel + solid card,
+  //                    2 = vignette panel + polarized card.
+  if (fx !== '1' && fx !== '2') return;
 
-  document.body.setAttribute('data-fx', '1');
+  document.body.setAttribute('data-fx', fx);
 
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
