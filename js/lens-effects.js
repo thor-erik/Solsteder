@@ -130,20 +130,21 @@
       history.replaceState(null, '', u);
     }
 
-    root.addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-fx-key]');
-      if (!btn) return;
-      const target = btn.parentElement.dataset.fxTarget;
-      const key = btn.dataset.fxKey;
-      if (target === 'panel') {
-        panelKey = key;
-        applyPanelFx(panelKey);
-      } else if (target === 'card') {
-        cardKey = key;
-        applyCardFx(cardKey);
-      }
-      markActive(target, key);
-      syncUrl();
+    root.querySelectorAll('button[data-fx-key]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const target = btn.parentElement.dataset.fxTarget;
+        const key = btn.dataset.fxKey;
+        if (target === 'panel') {
+          panelKey = key;
+          applyPanelFx(panelKey);
+        } else if (target === 'card') {
+          cardKey = key;
+          applyCardFx(cardKey);
+        }
+        markActive(target, key);
+        syncUrl();
+      });
     });
   }
 

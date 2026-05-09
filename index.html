@@ -73,7 +73,7 @@
 <script defer src="js/ui-plan-preview.js?v=20260430a"></script>
 <script defer src="js/osm.js?v=20260505a"></script>
 <script defer src="js/notifications.js?v=20260427c"></script>
-<script defer src="js/lens-effects.js?v=20260509d"></script>
+<script defer src="js/lens-effects.js?v=20260509e"></script>
 <script defer src="js/init.js?v=20260427a"></script>
 <style>
   /* Inter — inlined latin + latin-ext @font-face (eliminates Google Fonts CSS round-trip) */
@@ -414,10 +414,14 @@
   .lens-fx-lab-body {
     padding: 4px 16px 16px;
     opacity: 0;
-    pointer-events: none;
+    visibility: hidden;
+    transition: opacity 0.2s ease-out, visibility 0s linear 0.2s;
+  }
+  .lens-fx-lab.expanded .lens-fx-lab-body {
+    opacity: 1;
+    visibility: visible;
     transition: opacity 0.2s ease-out;
   }
-  .lens-fx-lab.expanded .lens-fx-lab-body { opacity: 1; pointer-events: auto; transition-delay: 0.15s; }
   .lens-fx-lab-row { margin-top: 12px; }
   .lens-fx-lab-label {
     font-size: 10px; font-weight: 800; color: var(--muted);
@@ -436,6 +440,8 @@
     border: 1px solid rgba(156,189,231,0.22);
     color: var(--cloud, #B5BCC8);
     cursor: pointer;
+    pointer-events: auto;
+    user-select: none;
     transition: background 0.15s, border-color 0.15s, color 0.15s;
   }
   .lens-fx-lab-options button:hover {
