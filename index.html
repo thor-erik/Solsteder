@@ -2382,14 +2382,28 @@
     display: inline-block;
     transition: transform 0.18s ease;
   }
-  #sort-toggle-btn:hover { border-color: rgba(155,169,188,0.42); background: rgba(26,44,66,0.65); }
-  #sort-toggle-btn.open  {
+  /* Specificity note: the in-header rule above (#list-sun-header #sort-toggle-btn)
+     has 2 IDs, so hover/open need to match or beat it. */
+  #list-sun-header #sort-toggle-btn:hover {
+    border-color: rgba(155,169,188,0.42);
+    background: rgba(26,44,66,0.65);
+  }
+  #list-sun-header #sort-toggle-btn.open {
     border-color: rgba(245,194,94,0.45);
     background: rgba(26,44,66,0.55);
     color: var(--accent);
     box-shadow: var(--glass-inset), inset 0 0 0 1px rgba(245,194,94,0.18);
   }
-  #sort-toggle-btn.open .sort-chevron { transform: rotate(180deg); color: var(--accent); }
+  #list-sun-header #sort-toggle-btn.open .sort-chevron { transform: rotate(180deg); color: var(--accent); }
+  /* Keep the legacy non-header sort-toggle-btn hover (lower specificity is fine
+     where the element isn't inside #list-sun-header). */
+  #sort-toggle-btn:hover { border-color: rgba(155,169,188,0.42); background: rgba(26,44,66,0.65); }
+  #sort-toggle-btn.open  {
+    border-color: rgba(245,194,94,0.45);
+    background: rgba(26,44,66,0.55);
+    color: var(--accent);
+  }
+  #sort-toggle-btn.open .sort-chevron { transform: rotate(180deg); }
 
   /* Legacy class — keep for any remaining references */
   .filter-toggle-btn {
