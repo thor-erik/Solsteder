@@ -537,8 +537,11 @@ function drawTimeline(ctx, opts) {
       else if (cf < 0.15)  color = TOKENS.weatherClear;
       else if (cf < 0.40)  color = TOKENS.weatherClearSoft;
       else if (cf < 0.65)  color = TOKENS.weatherPartly;
-      else if (cf < 0.85)  color = TOKENS.weatherCloudy;
       else                 color = TOKENS.weatherOvercast;
+      // 3 sun bands (yellow gradient) + 1 cool grey (overcast).
+      // The legacy `weatherCloudy` token (cf < 0.85) was a second cool
+      // grey — collapsed into overcast since the user reads any
+      // beyond-65%-cloud as "no sun" cleanly.
     }
     const x1 = Math.round(timeToX(Math.max(h, minH)));
     const x2 = Math.round(timeToX(Math.min(h + 1, maxH)));

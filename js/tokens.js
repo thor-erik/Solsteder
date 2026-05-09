@@ -31,12 +31,11 @@
     // Status
     success:   '#64FFB4',
     error:     '#FF6B6B',
-    // Weather palette (5-step cf-band + rain + night)
+    // Weather palette: 3 sun bands (yellow gradient) + 1 overcast (cool grey) + rain + night
     weatherClear:     '#F5C25E',
     weatherClearSoft: '#E8B870',
     weatherPartly:    '#C5B078',
-    weatherCloudy:    '#9BA8B5',
-    weatherOvercast:  '#7A8696',
+    weatherOvercast:  '#8898A8',
     weatherRain:      '#4A6582',
     weatherNight:     '#0F1B2A',
   };
@@ -62,7 +61,6 @@
     weatherClear:     '--weather-clear',
     weatherClearSoft: '--weather-clear-soft',
     weatherPartly:    '--weather-partly',
-    weatherCloudy:    '--weather-cloudy',
     weatherOvercast:  '--weather-overcast',
     weatherRain:      '--weather-rain',
     weatherNight:     '--weather-night',
