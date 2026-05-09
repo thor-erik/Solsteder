@@ -298,6 +298,12 @@ Establish a single empty-state pattern (centered icon + title + description + CT
 **Status:** ✗ · **Priority:** P2
 Establish the canonical input style (Tier 3 surface + honey focus border) and apply across search, email-magic-link, profile fields, edit forms.
 
+### Validator restoration (`scripts/validate-tokens.mjs`)
+**Status:** ✗ · **Priority:** P1 · **Effort:** ~30 min
+The token validator (flags raw hex outside the design-token system) was built earlier but lived on an abandoned branch — not currently in master. Restore it from history (commit `b580bf2`), refresh the per-line allowlists for the current Slate + Honey palette, and re-run.
+**Why P1 not P0:** the system is in a consistent state today; without the validator new drift can creep in via subsequent commits. Each Phase A/B item should ideally `node scripts/validate-tokens.mjs` before merging.
+**Belongs to:** Phase 0.5 alongside the new feature build (so subsequent feature work has the guardrail).
+
 ### Copy / microcopy review (cross-cutting)
 **Status:** ⚠ · **Priority:** P1
 Wording across every surface — titles, CTAs, empty states, error messages, tooltips, status pills, time/sun phrasing. Norwegian-first; English fallback via `js/i18n.js`.
