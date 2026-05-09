@@ -73,6 +73,7 @@
 <script defer src="js/ui-plan-preview.js?v=20260430a"></script>
 <script defer src="js/osm.js?v=20260505a"></script>
 <script defer src="js/notifications.js?v=20260427c"></script>
+<script defer src="js/lens-effects.js?v=20260509a"></script>
 <script defer src="js/init.js?v=20260427a"></script>
 <style>
   /* Inter — inlined latin + latin-ext @font-face (eliminates Google Fonts CSS round-trip) */
@@ -278,6 +279,113 @@
       var(--glass-inset),
       0 2px 8px rgba(0,0,0,0.35);
     position: relative;
+  }
+
+  /* ── Lens FX (experimental, gated by ?fx=1) ────────────────────────────────
+     Activates when js/lens-effects.js sets body[data-fx="1"]. Adds:
+       • polarized conic overlay on the venue list panel (#panel)
+       • spotlight + rim light + tilt + ripple on .venue-card
+     All effects no-op when the flag is absent. */
+
+  /* Polarized conic overlay on the venue list panel.
+     Uses ::after because .glass-panel::before is taken by the top sheen. */
+  body[data-fx="1"] #panel::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 0;
+    background: conic-gradient(from 0deg at 50% 50%,
+        rgba(255,100,180,0.05) 0%,
+        rgba(100,200,255,0.06) 25%,
+        rgba(180,255,200,0.05) 50%,
+        rgba(255,200,100,0.05) 75%,
+        rgba(255,100,180,0.05) 100%);
+  }
+  /* Make sure panel content sits above the conic overlay */
+  body[data-fx="1"] #panel > * { position: relative; z-index: 1; }
+
+  /* Tilt: card-level transform with spring easing. JS sets the transform
+     during pointermove; the .lens-fx-tilting class swaps in a fast linear
+     transition while engaged so the card responds 1:1 to the cursor. */
+  body[data-fx="1"] .venue-card {
+    transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+                border-color 0.12s ease-out, background 0.12s ease-out, opacity 0.2s;
+    will-change: transform;
+  }
+  /* Card content above the spotlight + rim pseudos so text isn't washed out
+     by mix-blend-mode: screen. */
+  body[data-fx="1"] .venue-card > * {
+    position: relative;
+    z-index: 3;
+  }
+  body[data-fx="1"] .venue-card.lens-fx-tilting {
+    transition: transform 0.05s linear,
+                border-color 0.12s ease-out, background 0.12s ease-out, opacity 0.2s;
+  }
+
+  /* Spotlight: cursor-tracked radial highlight on hover */
+  body[data-fx="1"] .venue-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: radial-gradient(circle 200px at var(--mx, 50%) var(--my, 50%),
+                rgba(255,255,255,0.20), transparent 60%);
+    opacity: 0;
+    transition: opacity 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    mix-blend-mode: screen;
+    z-index: 2;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    body[data-fx="1"] .venue-card:hover::after { opacity: 1; }
+  }
+
+  /* Rim light: frame edges brighten on the side facing the tilt direction.
+     Driven by --rim-{top,bottom,left,right} 0..1 values set by JS from tilt. */
+  body[data-fx="1"] .venue-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 2;
+    box-shadow:
+      inset 0  1.5px 0 rgba(255,250,235, calc(0.50 * var(--rim-top, 0))),
+      inset 0 -1.5px 0 rgba(255,250,235, calc(0.50 * var(--rim-bottom, 0))),
+      inset  1.5px 0 0 rgba(255,250,235, calc(0.40 * var(--rim-left, 0))),
+      inset -1.5px 0 0 rgba(255,250,235, calc(0.40 * var(--rim-right, 0)));
+    transition: box-shadow 0.15s linear;
+  }
+
+  /* Click ripple: a soft white ripple expands from the click coordinate.
+     Uses an inline ::after... wait, ::after is already used. Use a separate
+     wrapper-less approach via a CSS animation on a 4th layer. We ride on
+     a CSS keyframe attached to the card via the .lens-fx-rippling class
+     and a CSS variable for the click position. We use inset radial-gradient
+     trick: animate background-image opacity + scale on the ::after, but
+     ::after is already spotlight. Solution: add a third layer via pseudo
+     on a child element... but cards are user-content. Compromise: skip the
+     ripple, the click feedback is the panel-level navigation.
+     (Click ripple was a polish in the lab; not load-bearing for the
+     experiment.) */
+  body[data-fx="1"] .venue-card.lens-fx-rippling {
+    /* visual click hint via brief border flash */
+    animation: lens-fx-click-hint 0.45s ease-out;
+  }
+  @keyframes lens-fx-click-hint {
+    0%   { border-color: rgba(255,250,235,0.85); }
+    100% { border-color: var(--border, rgba(156,189,231,0.18)); }
+  }
+
+  /* Reduced motion: keep the polarized panel overlay (it's static) but
+     drop tilt + spotlight + rim to avoid any motion. */
+  @media (prefers-reduced-motion: reduce) {
+    body[data-fx="1"] .venue-card { transform: none !important; transition: none; }
+    body[data-fx="1"] .venue-card::after,
+    body[data-fx="1"] .venue-card::before { display: none; }
   }
 
   /* ── Button system — Solsteder primitives. ONE Primary per screen. ─────────
