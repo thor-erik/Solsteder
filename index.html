@@ -309,28 +309,14 @@
     background: var(--panel-fx-bg, transparent);
     mix-blend-mode: var(--panel-fx-blend, normal);
   }
-  /* Card sits on top of the panel. Needs an opacity advantage over the
-     panel base (0.42) so text contrast is consistent regardless of what
-     map content is underneath. Original Polynesian used 0.50 (8% above
-     panel); slate cards bumped to 0.55 because the cool slate provides
-     less inherent contrast against text than navy did.
-
-     Also: stronger border + layered shadow for clearer card silhouette
-     ("modern card" elevation), better internal gap for content breathing,
-     and more vertical separation between cards. */
+  /* Card lens overlay applied only in fx mode. Background base + extra
+     opacity buffer is here so the lens shimmer breathes without losing
+     text contrast. */
   body[data-fx] .venue-card {
     background:
       var(--card-fx-bg, transparent),
       linear-gradient(135deg, rgba(26,44,66,0.42) 0%, rgba(58,92,130,0.26) 100%),
       rgba(26,44,66,0.55);
-    border-color: rgba(155,169,188,0.34);
-    margin-bottom: 10px;
-    gap: 4px;
-    box-shadow:
-      inset 0 1px 0 rgba(255,250,235,0.16),
-      inset 0 -1px 0 rgba(15,30,55,0.40),
-      0 1px 2px rgba(0,0,0,0.18),
-      0 4px 14px rgba(0,0,0,0.30);
   }
   /* Make sure panel content sits above the panel overlay */
   body[data-fx] #panel > * { position: relative; z-index: 1; }
@@ -2507,22 +2493,27 @@
     background: var(--glass-card-bg);
     /* No backdrop-filter — cards sit inside #panel which already blurs.
        Removing per-card blur eliminates ~30 GPU compositing layers during scroll. */
-    border: var(--glass-border);
+    border: 1px solid rgba(155,169,188,0.34);   /* clearer perimeter than var(--glass-border) at 0.22 */
     border-radius: 12px;
     padding: 12px 14px;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     cursor: pointer;
-    box-shadow: var(--glass-inset), 0 2px 8px rgba(0,0,0,0.25);
+    /* Layered shadow — 1px tight contact + 14px soft lift — for proper
+       elevation. Modern card convention (Linear / Apple / Stripe). */
+    box-shadow:
+      inset 0 1px 0 rgba(255,250,235,0.16),
+      inset 0 -1px 0 rgba(15,30,55,0.40),
+      0 1px 2px rgba(0,0,0,0.18),
+      0 4px 14px rgba(0,0,0,0.30);
     transition: border-color 0.12s ease-out, background 0.12s ease-out, opacity 0.2s;
     position: relative;
     overflow: visible;
     contain: layout style;
     display: flex;
     flex-direction: column;
-    /* Tight row gap — matches the prior card visual where rows sit ~3-4px
-       apart. Pills and the timeline get individual margin-top in their own
-       rules where they need a touch more breathing room. */
-    gap: 3px;
+    /* Internal row gap — bumped from 3 to 4 for slightly more breathing.
+       Pills and timeline still get individual margin-top where needed. */
+    gap: 4px;
   }
   /* The closed-card variant is a single row, not the 3-row column. Override
      the column flex so name + "opens at" badge sit side-by-side. */
@@ -2615,14 +2606,18 @@
   .card-new-meta {
     font-size: 11px;
     font-weight: 500;
-    color: var(--cool);                 /* brighter than --muted for legibility on busy card backgrounds */
+    /* Use opacity-dimmed --text (warm cream) instead of cool slate-grey
+       so meta shares the same hue family as the title — more cohesive
+       and gives better effective contrast than a chromatic muted color. */
+    color: rgba(255, 244, 224, 0.68);
     display: flex;
     align-items: center;
     gap: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    line-height: 1.3;
+    line-height: 1.35;
+    letter-spacing: 0.005em;
   }
 
   .card-new-meta span {
@@ -2641,13 +2636,17 @@
     line-height: 1.2;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
-    letter-spacing: -0.01em;
+    /* Letter-spacing 0 instead of -0.01em — tight tracking with heavy weight
+       in saturated honey was reading as a dense block. Slightly looser =
+       calmer without losing emphasis. */
+    letter-spacing: 0;
   }
 
   .card-new-hero-sub {
     font-size: 11px;
     font-weight: 500;
-    color: var(--muted);
+    /* Match .card-new-meta — opacity-dimmed cream for cohesive secondary text. */
+    color: rgba(255, 244, 224, 0.68);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
     line-height: 1.3;
