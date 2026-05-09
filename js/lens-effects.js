@@ -13,7 +13,11 @@
 
 (function () {
   const params = new URLSearchParams(location.search);
-  const fx = params.get('fx');
+  // Default to '2' (locked combo: mirror-sky panel + chromatic card +
+  // motion stack) when no flag present. Explicit overrides:
+  //   ?fx=1   — alternate preset (polarized panel + clean card)
+  //   ?fx=lab — interactive lab to swap effects live
+  const fx = params.get('fx') || '2';
   if (fx !== '1' && fx !== '2' && fx !== 'lab') return;
 
   document.body.setAttribute('data-fx', fx);
@@ -70,12 +74,12 @@
   if (fx === '1') {
     panelKey = 'polarized'; cardKey = 'solid';
   } else if (fx === '2') {
-    panelKey = 'vignette';  cardKey = 'mirror-soft';
+    panelKey = 'mirror-sky';  cardKey = 'chromatic';
   } else { // lab
-    panelKey = params.get('panel') || 'vignette';
-    cardKey  = params.get('card')  || 'mirror-soft';
-    if (!PANEL_FX[panelKey]) panelKey = 'vignette';
-    if (!CARD_FX[cardKey])   cardKey  = 'mirror-soft';
+    panelKey = params.get('panel') || 'mirror-sky';
+    cardKey  = params.get('card')  || 'chromatic';
+    if (!PANEL_FX[panelKey]) panelKey = 'mirror-sky';
+    if (!CARD_FX[cardKey])   cardKey  = 'chromatic';
   }
   applyPanelFx(panelKey);
   applyCardFx(cardKey);
