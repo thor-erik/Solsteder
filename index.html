@@ -814,12 +814,16 @@
     transition: border-color 0.15s, box-shadow 0.15s, opacity 200ms ease-out, transform 220ms ease-out;
   }
   #floating-search:hover {
-    border-color: rgba(255,175,133,0.3);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    border-color: rgba(245,194,94,0.32);
+    box-shadow: var(--glass-inset), 0 4px 20px rgba(0,0,0,0.30);
   }
   #floating-search:focus-within {
-    border-color: rgba(255,175,133,0.45);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    /* Honey border + subtle inner highlight — DESIGN.md tier-1/3 focus spec */
+    border-color: rgba(245,194,94,0.55);
+    box-shadow:
+      inset 0 0 0 1px rgba(245,194,94,0.18),
+      var(--glass-inset),
+      0 4px 20px rgba(0,0,0,0.30);
   }
   #search-icon {
     flex-shrink: 0;
@@ -840,9 +844,15 @@
     padding: 0;
     width: 100%;
     font-size: 15px;
-    color: #FFF2EB;
+    color: var(--text);
   }
   #floating-search #venue-search:focus { border: none; outline: none; }
+  /* Brighter placeholder — opacity-dimmed cream reads more cleanly on
+     translucent slate than chromatic --muted. Per DESIGN.md principle 03. */
+  #floating-search #venue-search::placeholder {
+    color: rgba(255, 244, 224, 0.55);
+    opacity: 1;
+  }
 
   #search-clear-btn {
     display: none;
