@@ -58,7 +58,7 @@
 <script defer src="js/weather.js?v=20260411b"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260505a"></script>
+<script defer src="js/app.js?v=20260509a"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
@@ -1701,9 +1701,6 @@
     min-width: 0;
     cursor: crosshair;
   }
-
-  /* Weather display — now surfaced via hover tooltip on arc; hide widget */
-  #wx-now { display: none !important; }
 
   /* Wind shelter tags in venue cards */
   .wind-tag {
@@ -6567,10 +6564,6 @@
   }
   .dp-invite-cta svg { flex-shrink: 0; stroke: currentColor; }
 
-  /* Legacy social-btns kept for any other callers — but the detail-panel
-     no longer renders them. Safe to remove if nothing else references. */
-  .social-btns { display: none; }
-
   /* ── Plan conflict confirm dialog ───────────────────────────────────────── */
   /* Sits above the invite sheet (z-index higher than .dpinvite-backdrop) when
      the user is about to create a plan within ±3h of an existing one. Three
@@ -8329,7 +8322,6 @@
       <!-- Sun arc canvas -->
       <div id="bottom-arc-row">
         <canvas id="sun-curve" onclick="handleSunCurveClick(event)"></canvas>
-        <div id="wx-now"></div>
       </div>
       <!-- Row 3: time preset buttons aligned to arc -->
       <div id="time-presets-row">

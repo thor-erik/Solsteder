@@ -1301,29 +1301,6 @@ function setIntent(intent) {
   animateToTime(_PRESET_HOURS[intent]);
 }
 
-// ── Weather display ───────────────────────────────────────────────────────────
-function updateWeatherDisplay() {
-  const el = document.getElementById('wx-now');
-  if (!el) return;
-  const wx = getWeatherAt(datePicker.value, parseFloat(timeFromEl.value));
-  if (!wx) { el.classList.remove('loaded'); return; }
-
-  const windLine = wx.wspd >= 1
-    ? `<span>${Math.round(wx.wspd)} m/s ${windCardinal(wx.wdir)}</span>`
-    : '';
-  const rainLine = wx.precip >= 0.1
-    ? `<span style="color:#7ab4ff">🌧 ${wx.precip.toFixed(1)} mm</span>`
-    : '';
-
-  el.innerHTML = `
-    <span class="wx-temp">${formatTemp(wx.temp)}</span>
-    <span>${skyIcon(wx.cloud)} ${Math.round(wx.cloud * 100)}%</span>
-    ${windLine}
-    ${rainLine}
-  `;
-  el.classList.add('loaded');
-}
-
 // ── Date display button + weather strip ──────────────────────────────────────
 function updateDateDisplayBtn() {
   const btn = document.getElementById('date-display-btn');
@@ -2271,7 +2248,6 @@ function update() {
   drawSunCompass();
   drawSunCurve(document.getElementById('sun-curve'));
   positionPresetButtons();
-  updateWeatherDisplay();
   scheduleRenderList();
   updatePopup();
   updateSunLighting();
