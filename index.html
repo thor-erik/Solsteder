@@ -185,7 +185,7 @@
 
     /* Glass levels — Slate recipe (was Polynesian rgba(20,46,82,...)). */
     --glass-panel-bg:  linear-gradient(135deg, rgba(26,44,66,0.36) 0%, rgba(58,92,130,0.22) 100%), rgba(26,44,66,0.42);
-    --glass-card-bg:   linear-gradient(135deg, rgba(26,44,66,0.42) 0%, rgba(58,92,130,0.26) 100%), rgba(26,44,66,0.50);
+    --glass-card-bg:   linear-gradient(135deg, rgba(26,44,66,0.36) 0%, rgba(58,92,130,0.22) 100%), rgba(26,44,66,0.78);
     --glass-action-bg: linear-gradient(135deg, rgba(26,44,66,0.36) 0%, rgba(58,92,130,0.22) 100%), rgba(26,44,66,0.45);
     --glass-blur-panel: blur(16px) saturate(160%);
     --glass-blur-card:  blur(12px) saturate(160%);
@@ -309,14 +309,14 @@
     background: var(--panel-fx-bg, transparent);
     mix-blend-mode: var(--panel-fx-blend, normal);
   }
-  /* Card lens overlay applied only in fx mode. Background base + extra
-     opacity buffer is here so the lens shimmer breathes without losing
-     text contrast. */
+  /* Card lens overlay applied only in fx mode. The lens shimmer (chromatic /
+     polarized / mirror-soft) is layered ABOVE the slate base so it remains
+     visible even with cards at near-opaque baseline. */
   body[data-fx] .venue-card {
     background:
       var(--card-fx-bg, transparent),
-      linear-gradient(135deg, rgba(26,44,66,0.42) 0%, rgba(58,92,130,0.26) 100%),
-      rgba(26,44,66,0.55);
+      linear-gradient(135deg, rgba(26,44,66,0.36) 0%, rgba(58,92,130,0.22) 100%),
+      rgba(26,44,66,0.78);
   }
   /* Make sure panel content sits above the panel overlay */
   body[data-fx] #panel > * { position: relative; z-index: 1; }
@@ -2609,7 +2609,7 @@
     /* Use opacity-dimmed --text (warm cream) instead of cool slate-grey
        so meta shares the same hue family as the title — more cohesive
        and gives better effective contrast than a chromatic muted color. */
-    color: rgba(255, 244, 224, 0.68);
+    color: rgba(255, 244, 224, 0.78);
     display: flex;
     align-items: center;
     gap: 0;
@@ -2646,7 +2646,7 @@
     font-size: 11px;
     font-weight: 500;
     /* Match .card-new-meta — opacity-dimmed cream for cohesive secondary text. */
-    color: rgba(255, 244, 224, 0.68);
+    color: rgba(255, 244, 224, 0.78);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
     line-height: 1.3;
