@@ -1,0 +1,664 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shades — Design System</title>
+<style>
+  /* ── Page chrome ───────────────────────────────────────────────────────── */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: #0F1B2A; color: #FFF4E0; line-height: 1.55;
+  }
+  body { padding: 32px clamp(16px, 3vw, 48px); }
+
+  :root {
+    /* Slate + Honey palette tokens (from production) */
+    --accent: #F5C25E;
+    --accent-on: #2C1F02;
+    --accent-deeper: #C28510;
+    --accent-light: #FFD982;
+    --accent-dim: rgba(245,194,94,0.16);
+    --accent-border: rgba(245,194,94,0.42);
+    --text: #FFF4E0;
+    --muted: #9BA9BC;
+    --cool: #B5BCC8;
+    --rain: #6F8AA8;
+    --bg: #1A2C42;
+    --slate-mid: #284463;
+    --slate-light: #3A5C82;
+  }
+
+  .h1 { font-size: 32px; font-weight: 800; margin-bottom: 8px; }
+  .preamble { font-size: 14px; color: var(--cool); margin-bottom: 8px; max-width: 880px; line-height: 1.65; }
+  .preamble strong { color: var(--text); }
+  .preamble em { color: var(--accent); font-style: normal; }
+
+  .section-h { font-size: 22px; font-weight: 800; margin: 56px 0 6px; }
+  .section-sub { font-size: 13px; color: var(--muted); margin-bottom: 24px; max-width: 880px; line-height: 1.6; }
+
+  /* ── Principles strip ──────────────────────────────────────────────────── */
+  .principles {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  @media (min-width: 760px)  { .principles { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 1200px) { .principles { grid-template-columns: repeat(4, 1fr); } }
+  .principle {
+    padding: 16px;
+    border-radius: 14px;
+    background: rgba(26,44,66,0.50);
+    border: 1px solid rgba(155,169,188,0.20);
+  }
+  .principle-num {
+    font-family: 'Menlo', monospace; font-size: 10px;
+    color: var(--accent); font-weight: 800; letter-spacing: 0.06em;
+    margin-bottom: 6px;
+  }
+  .principle-name { font-size: 13.5px; font-weight: 700; margin-bottom: 4px; color: var(--text); }
+  .principle-body { font-size: 12px; color: var(--cool); line-height: 1.5; }
+
+  /* ── Tier cards ────────────────────────────────────────────────────────── */
+  .tier {
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid rgba(155,169,188,0.24);
+    margin-bottom: 24px;
+  }
+  .tier-head {
+    padding: 18px 24px;
+    border-bottom: 1px solid rgba(155,169,188,0.18);
+    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+  }
+  .tier-num {
+    font-family: 'Menlo', monospace; font-weight: 800;
+    font-size: 18px; color: var(--accent);
+  }
+  .tier-name { font-size: 18px; font-weight: 800; color: var(--text); }
+  .tier-tagline { font-size: 12.5px; color: var(--cool); flex: 1; min-width: 200px; }
+
+  .tier-body {
+    padding: 24px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  @media (min-width: 980px) { .tier-body { grid-template-columns: 1.3fr 1fr; } }
+
+  .tier-stage {
+    /* Map-like backdrop so transparency is visible behind examples */
+    background:
+      radial-gradient(circle at 22% 28%, rgba(245,194,94,0.30), transparent 22%),
+      radial-gradient(circle at 78% 70%, rgba(245,194,94,0.20), transparent 24%),
+      radial-gradient(ellipse 200px 140px at 14% 78%, rgba(140,170,140,0.30), transparent 70%),
+      linear-gradient(110deg, rgba(110,138,168,0.25) 0%, rgba(110,138,168,0) 18%),
+      repeating-linear-gradient(35deg, rgba(255,242,235,0.025) 0 2px, transparent 2px 28px),
+      repeating-linear-gradient(90deg, rgba(20,40,66,0.20) 0 80px, rgba(40,68,99,0.18) 80px 160px),
+      linear-gradient(180deg, #0F1B2A 0%, #1A2C42 100%);
+    padding: 32px 24px;
+    border-radius: 14px;
+    min-height: 200px;
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    flex-wrap: wrap;
+    border: 1px solid rgba(155,169,188,0.10);
+  }
+
+  .tier-spec {
+    display: flex; flex-direction: column; gap: 14px;
+    font-size: 12.5px; color: var(--cool);
+  }
+  .spec-row {
+    display: flex; align-items: baseline; gap: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(155,169,188,0.10);
+  }
+  .spec-row:last-child { border-bottom: 0; }
+  .spec-key {
+    font-family: 'Menlo', monospace; font-size: 10.5px;
+    color: var(--accent); font-weight: 700; letter-spacing: 0.05em;
+    text-transform: uppercase;
+    width: 84px; flex-shrink: 0;
+  }
+  .spec-val { color: var(--text); }
+  .spec-val code {
+    font-family: 'Menlo', monospace; font-size: 11px;
+    color: var(--accent-light); background: rgba(0,0,0,0.30);
+    padding: 1px 5px; border-radius: 3px;
+  }
+  .spec-examples {
+    display: flex; flex-wrap: wrap; gap: 4px;
+    margin-top: 4px;
+  }
+  .spec-examples code {
+    font-family: 'Menlo', monospace; font-size: 10.5px;
+    background: rgba(0,0,0,0.25); padding: 2px 7px; border-radius: 4px;
+    color: var(--cool);
+  }
+
+  /* ── Example components per tier ───────────────────────────────────────── */
+
+  /* Tier 1: lens panel */
+  .ex-panel-1 {
+    width: 100%; max-width: 280px; padding: 16px;
+    border-radius: 14px;
+    background:
+      linear-gradient(135deg, rgba(230,245,255,0.32) 0%, rgba(230,245,255,0.14) 18%, transparent 38%, rgba(20,40,66,0.08) 62%, rgba(15,30,55,0.26) 100%),
+      linear-gradient(135deg, rgba(26,44,66,0.36), rgba(58,92,130,0.22)),
+      rgba(26,44,66,0.42);
+    backdrop-filter: blur(16px) saturate(160%);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    border: 1px solid rgba(155,169,188,0.22);
+    box-shadow:
+      inset 0 1px 0 rgba(255,244,224,0.14),
+      inset 0 -1px 0 rgba(26,44,66,0.35),
+      0 6px 24px rgba(0,0,0,0.50);
+    position: relative;
+  }
+  .ex-panel-1::before {
+    content: ''; position: absolute;
+    top: 0; left: 8%; right: 8%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,244,224,0.35), transparent);
+    pointer-events: none;
+  }
+  .ex-panel-title { font-size: 11px; color: var(--muted); text-transform: uppercase;
+                    letter-spacing: 0.06em; margin-bottom: 10px; font-weight: 700; }
+  .ex-panel-body { font-size: 13px; color: var(--text); }
+
+  /* Tier 2: lens object (card) */
+  .ex-card-2 {
+    width: 100%; max-width: 280px; padding: 12px 14px;
+    border-radius: 12px;
+    background:
+      linear-gradient(135deg, rgba(255,150,100,0.16) 0%, rgba(0,0,0,0) 25%, rgba(0,0,0,0) 75%, rgba(100,150,255,0.16) 100%),
+      linear-gradient(135deg, rgba(26,44,66,0.36), rgba(58,92,130,0.22)),
+      rgba(26,44,66,0.78);
+    border: 1px solid rgba(155,169,188,0.34);
+    box-shadow:
+      inset 0 1px 0 rgba(255,250,235,0.16),
+      inset 0 -1px 0 rgba(15,30,55,0.40),
+      0 1px 2px rgba(0,0,0,0.18),
+      0 4px 14px rgba(0,0,0,0.30);
+  }
+  .ex-card-row { display: flex; align-items: center; gap: 12px; }
+  .ex-card-img {
+    width: 48px; height: 48px; border-radius: 10px; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--accent), var(--accent-deeper));
+  }
+  .ex-card-name { font-size: 14px; font-weight: 700; color: var(--text); }
+  .ex-card-meta { font-size: 11px; color: rgba(255,244,224,0.78); margin-top: 2px; }
+  .ex-card-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    margin-top: 8px; padding: 4px 10px; border-radius: 999px;
+    background: var(--accent-dim); border: 1px solid var(--accent-border);
+    color: var(--accent); font-size: 11px; font-weight: 600;
+  }
+
+  /* Tier 3: surface control */
+  .ex-btn-3 {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 9px 16px; border-radius: 999px;
+    background: linear-gradient(135deg, rgba(26,44,66,0.36), rgba(58,92,130,0.22)), rgba(26,44,66,0.45);
+    border: 1px solid rgba(155,169,188,0.30);
+    color: var(--text);
+    font-size: 13px; font-weight: 600;
+    cursor: pointer;
+    box-shadow:
+      inset 0 1px 0 rgba(255,244,224,0.14),
+      inset 0 -1px 0 rgba(26,44,66,0.35),
+      0 2px 8px rgba(0,0,0,0.30);
+  }
+  .ex-chip-3 {
+    display: inline-flex; align-items: center;
+    padding: 5px 12px; border-radius: 13px;
+    background: rgba(155,169,188,0.10);
+    border: 1px solid rgba(155,169,188,0.24);
+    color: var(--cool);
+    font-size: 11.5px; font-weight: 600;
+  }
+
+  /* Tier 4: honey CTA */
+  .ex-cta-4 {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 11px 22px; border-radius: 999px;
+    background: var(--accent);
+    color: var(--accent-on);
+    font-size: 14px; font-weight: 700; border: 0; cursor: pointer;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.30),
+      inset 0 -1px 0 rgba(0,0,0,0.20),
+      0 4px 14px rgba(0,0,0,0.35);
+  }
+
+  /* Tier 5: honey badge / pill */
+  .ex-badge-5 {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px; border-radius: 999px;
+    background: var(--accent-dim);
+    border: 1px solid var(--accent-border);
+    color: var(--accent);
+    font-size: 11.5px; font-weight: 600;
+  }
+  .ex-badge-5::before { content: '☀'; font-size: 13px; }
+
+  /* Tier 6: map canvas (mock) */
+  .ex-pin-6 {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 11px; border-radius: 999px;
+    background: var(--accent);
+    color: var(--accent-on);
+    font-size: 12px; font-weight: 700;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.45);
+  }
+
+  /* ── Audit table ───────────────────────────────────────────────────────── */
+  .audit-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: rgba(26,44,66,0.40);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .audit-table th, .audit-table td {
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid rgba(155,169,188,0.10);
+    font-size: 12.5px;
+  }
+  .audit-table th {
+    font-size: 10.5px; font-weight: 800;
+    color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em;
+    background: rgba(0,0,0,0.20);
+    border-bottom: 1px solid rgba(155,169,188,0.20);
+  }
+  .audit-table td:first-child {
+    font-family: 'Menlo', monospace; font-size: 11.5px;
+    color: var(--text);
+  }
+  .audit-table .tier-tag {
+    display: inline-block;
+    font-family: 'Menlo', monospace; font-size: 10px; font-weight: 800;
+    padding: 2px 7px; border-radius: 4px;
+    margin-right: 6px;
+    background: rgba(245,194,94,0.18);
+    color: var(--accent);
+  }
+  .audit-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  pre.note {
+    font-family: 'Menlo', monospace; font-size: 11.5px; color: var(--cool);
+    background: rgba(0,0,0,0.25); border-radius: 10px; padding: 14px 16px;
+    margin-top: 32px; line-height: 1.7; white-space: pre-wrap;
+  }
+  pre.note strong { color: var(--text); }
+  pre.note em { color: var(--accent); font-style: normal; }
+</style>
+</head>
+<body>
+
+<div class="h1">Shades · Design System</div>
+<div class="preamble">
+  <strong>Source of truth</strong> for visual decisions in Solsteder.
+  Built around the <em>lens metaphor</em>: translucent panels = sunglass lenses,
+  solid cards = objects in the lens, honey accent = sun coming through.
+  Each surface in the app belongs to exactly one tier; the tier determines
+  opacity, effects, motion, and accent usage.
+</div>
+
+<!-- ════════════════════ PRINCIPLES ════════════════════════════════════════ -->
+<div class="section-h">Seven principles</div>
+<div class="section-sub">
+  These hold across every surface. Disagreements with a tier spec should be
+  resolved against these.
+</div>
+
+<div class="principles">
+  <div class="principle">
+    <div class="principle-num">01</div>
+    <div class="principle-name">Lens metaphor is structural</div>
+    <div class="principle-body">Translucent surfaces = lens. Solid surfaces = objects in the lens. Honey accent = sun.</div>
+  </div>
+  <div class="principle">
+    <div class="principle-num">02</div>
+    <div class="principle-name">One accent per surface</div>
+    <div class="principle-body">Honey is the "this matters" signal. Burns out when overused — use it once per screen.</div>
+  </div>
+  <div class="principle">
+    <div class="principle-num">03</div>
+    <div class="principle-name">Cohesive secondary text</div>
+    <div class="principle-body">Secondary text = primary at lower opacity, not a different hue. Cream-at-0.78 over slate-grey.</div>
+  </div>
+  <div class="principle">
+    <div class="principle-num">04</div>
+    <div class="principle-name">Subtle static effects</div>
+    <div class="principle-body">Mirror-sky for soft polish. Chromatic for angle-of-view physics. Not decoration.</div>
+  </div>
+  <div class="principle">
+    <div class="principle-num">05</div>
+    <div class="principle-name">Reactive motion</div>
+    <div class="principle-body">Silent at rest, alive on hover/click. Tilt + spotlight + rim only when the user shows up.</div>
+  </div>
+  <div class="principle">
+    <div class="principle-num">06</div>
+    <div class="principle-name">Layered elevation</div>
+    <div class="principle-body">1px contact shadow + 14px lift shadow. Inset top sheen + bottom shade. Modern glass card.</div>
+  </div>
+  <div class="principle">
+    <div class="principle-num">07</div>
+    <div class="principle-name">Warm-on-cool does the work</div>
+    <div class="principle-body">Honey CTAs against slate base. No need to multiply colors — the contrast is the system.</div>
+  </div>
+</div>
+
+<!-- ════════════════════ TIERS ═════════════════════════════════════════════ -->
+<div class="section-h">Six tiers</div>
+<div class="section-sub">
+  Every UI surface belongs to exactly one. The tier determines opacity, accent
+  use, and motion treatment. Tiers stack: Tier 2 sits inside Tier 1, Tier 3
+  controls live in Tier 1 / Tier 2, Tier 4 fires once per screen.
+</div>
+
+<!-- TIER 0 -->
+<div class="tier">
+  <div class="tier-head">
+    <span class="tier-num">0 ·</span>
+    <span class="tier-name">Map &amp; ambient</span>
+    <span class="tier-tagline">The world. Static. The user looks <em>through</em> it, not <em>at</em> it.</span>
+  </div>
+  <div class="tier-body">
+    <div class="tier-stage">
+      <span style="color: var(--cool); font-size: 12px; font-style: italic;">
+        Mapbox basemap · sun arc · weather strip
+      </span>
+    </div>
+    <div class="tier-spec">
+      <div class="spec-row"><span class="spec-key">Opacity</span><span class="spec-val">Solid (handled by Mapbox)</span></div>
+      <div class="spec-row"><span class="spec-key">Effects</span><span class="spec-val">None — Mapbox transitions are sufficient</span></div>
+      <div class="spec-row"><span class="spec-key">Motion</span><span class="spec-val">None (zoom/pan handled by Mapbox)</span></div>
+      <div class="spec-row"><span class="spec-key">Examples</span>
+        <div><div class="spec-examples"><code>#map</code><code>#sun-compass</code><code>.weather-strip</code></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TIER 1 -->
+<div class="tier">
+  <div class="tier-head">
+    <span class="tier-num">1 ·</span>
+    <span class="tier-name">Lens panel</span>
+    <span class="tier-tagline">Translucent container. The lens you look through. Mirror-sky overlay for the polished-glass feel.</span>
+  </div>
+  <div class="tier-body">
+    <div class="tier-stage">
+      <div class="ex-panel-1">
+        <div class="ex-panel-title">Sunny venues</div>
+        <div class="ex-panel-body">
+          Translucent slate at 42% with a mirror-sky overlay (single soft cool
+          highlight + deep shadow), top-edge sheen, layered shadow.
+          The map shows through.
+        </div>
+      </div>
+    </div>
+    <div class="tier-spec">
+      <div class="spec-row"><span class="spec-key">Opacity</span><span class="spec-val"><code>rgba(26,44,66, 0.42)</code> base</span></div>
+      <div class="spec-row"><span class="spec-key">Overlay</span><span class="spec-val">Mirror-sky linear-gradient (135deg), screen blend</span></div>
+      <div class="spec-row"><span class="spec-key">Border</span><span class="spec-val"><code>1px solid rgba(155,169,188, 0.18)</code></span></div>
+      <div class="spec-row"><span class="spec-key">Shadow</span><span class="spec-val">Inset top sheen + bottom shade + <code>0 6px 24px rgba(0,0,0, 0.50)</code></span></div>
+      <div class="spec-row"><span class="spec-key">Filter</span><span class="spec-val"><code>backdrop-filter: blur(16px) saturate(160%)</code></span></div>
+      <div class="spec-row"><span class="spec-key">Motion</span><span class="spec-val">None on container; reactive elements inside</span></div>
+      <div class="spec-row"><span class="spec-key">Examples</span>
+        <div><div class="spec-examples">
+          <code>#panel</code><code>#detail-panel</code><code>#search-dropdown</code><code>#sort-panel</code>
+          <code>#profile-panel</code><code>.notif-toast</code><code>.modal-panel</code><code>#login-splash</code>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TIER 2 -->
+<div class="tier">
+  <div class="tier-head">
+    <span class="tier-num">2 ·</span>
+    <span class="tier-name">Lens object</span>
+    <span class="tier-tagline">Solid content tile. An object resting in the lens. Chromatic dispersion = lens optics.</span>
+  </div>
+  <div class="tier-body">
+    <div class="tier-stage">
+      <div class="ex-card-2">
+        <div class="ex-card-row">
+          <div class="ex-card-img"></div>
+          <div>
+            <div class="ex-card-name">Café Sol</div>
+            <div class="ex-card-meta">Sentrum · 220m · ★ 4.6</div>
+          </div>
+        </div>
+        <div class="ex-card-pill">☀ Sol til 18:30</div>
+      </div>
+    </div>
+    <div class="tier-spec">
+      <div class="spec-row"><span class="spec-key">Opacity</span><span class="spec-val"><code>rgba(26,44,66, 0.78)</code> base — opacity advantage over panel</span></div>
+      <div class="spec-row"><span class="spec-key">Overlay</span><span class="spec-val">Chromatic linear-gradient (135deg) — warm/cool corners. Simulates lens dispersion.</span></div>
+      <div class="spec-row"><span class="spec-key">Border</span><span class="spec-val"><code>1px solid rgba(155,169,188, 0.34)</code></span></div>
+      <div class="spec-row"><span class="spec-key">Shadow</span><span class="spec-val">Inset highlights + <code>0 1px 2px rgba(0,0,0,0.18), 0 4px 14px rgba(0,0,0,0.30)</code></span></div>
+      <div class="spec-row"><span class="spec-key">Padding</span><span class="spec-val"><code>12px 14px</code> · gap <code>4px</code></span></div>
+      <div class="spec-row"><span class="spec-key">Motion</span><span class="spec-val">Tilt + parallax + spotlight + rim + click hint (when fx active)</span></div>
+      <div class="spec-row"><span class="spec-key">Examples</span>
+        <div><div class="spec-examples">
+          <code>.venue-card</code><code>.dp-card</code><code>.dp-action-card</code>
+          <code>.invite-card</code><code>.plan-card</code><code>.dpacc-action-card</code>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TIER 3 -->
+<div class="tier">
+  <div class="tier-head">
+    <span class="tier-num">3 ·</span>
+    <span class="tier-name">Surface control</span>
+    <span class="tier-tagline">Smaller interactive surface. Glass-action style. Hover spotlight + click ripple.</span>
+  </div>
+  <div class="tier-body">
+    <div class="tier-stage">
+      <button class="ex-btn-3">Vis veibeskrivelse</button>
+      <button class="ex-btn-3" style="padding: 9px 11px;">⚙</button>
+      <span class="ex-chip-3">Skygge</span>
+      <span class="ex-chip-3">Skyer</span>
+    </div>
+    <div class="tier-spec">
+      <div class="spec-row"><span class="spec-key">Opacity</span><span class="spec-val"><code>rgba(26,44,66, 0.45)</code> base</span></div>
+      <div class="spec-row"><span class="spec-key">Border</span><span class="spec-val"><code>1px solid rgba(155,169,188, 0.30)</code></span></div>
+      <div class="spec-row"><span class="spec-key">Shadow</span><span class="spec-val">Inset highlights + <code>0 2px 8px rgba(0,0,0, 0.30)</code></span></div>
+      <div class="spec-row"><span class="spec-key">Hover</span><span class="spec-val">Brighter border (<code>0.40</code>); subtle spotlight follows cursor</span></div>
+      <div class="spec-row"><span class="spec-key">Press</span><span class="spec-val">Click ripple from impact point + brief border flash</span></div>
+      <div class="spec-row"><span class="spec-key">Examples</span>
+        <div><div class="spec-examples">
+          <code>.s-pill</code><code>.s-rnd</code><code>.s-sq</code>
+          <code>.intent-btn</code><code>.sort-btn</code><code>.area-chip</code>
+          <code>.edit-chip</code><code>.dp-action-chip</code><code>.notif-toast-action</code>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TIER 4 -->
+<div class="tier">
+  <div class="tier-head">
+    <span class="tier-num">4 ·</span>
+    <span class="tier-name">Honey CTA</span>
+    <span class="tier-tagline">The decision. Solid honey. Used <em>once per screen</em> — burns out if multiplied.</span>
+  </div>
+  <div class="tier-body">
+    <div class="tier-stage">
+      <button class="ex-cta-4">+ Invite friends</button>
+    </div>
+    <div class="tier-spec">
+      <div class="spec-row"><span class="spec-key">Background</span><span class="spec-val"><code>var(--accent)</code> — solid honey gold</span></div>
+      <div class="spec-row"><span class="spec-key">Text</span><span class="spec-val"><code>var(--accent-on)</code> — warm dark</span></div>
+      <div class="spec-row"><span class="spec-key">Border</span><span class="spec-val">None</span></div>
+      <div class="spec-row"><span class="spec-key">Shadow</span><span class="spec-val">Inset top white + inset bottom dark + <code>0 4px 14px rgba(0,0,0, 0.35)</code></span></div>
+      <div class="spec-row"><span class="spec-key">Hover</span><span class="spec-val">Slight brightness shift; on click, diagonal shine sweep</span></div>
+      <div class="spec-row"><span class="spec-key">Examples</span>
+        <div><div class="spec-examples">
+          <code>.p-pill</code><code>.p-sq</code><code>.dp-action-cta</code><code>.invite-confirm-btn</code>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TIER 5 -->
+<div class="tier">
+  <div class="tier-head">
+    <span class="tier-num">5 ·</span>
+    <span class="tier-name">Honey badge / pill</span>
+    <span class="tier-tagline">The signal. Honey text on dim honey background. Smaller surfaces; the "in sun" status moment.</span>
+  </div>
+  <div class="tier-body">
+    <div class="tier-stage">
+      <span class="ex-badge-5">Sol til 18:30</span>
+      <span class="ex-badge-5">★ 4.6</span>
+      <span class="ex-pin-6">Café Sol</span>
+    </div>
+    <div class="tier-spec">
+      <div class="spec-row"><span class="spec-key">Background</span><span class="spec-val"><code>var(--accent-dim)</code> = <code>rgba(245,194,94, 0.16)</code></span></div>
+      <div class="spec-row"><span class="spec-key">Border</span><span class="spec-val"><code>1px solid var(--accent-border)</code></span></div>
+      <div class="spec-row"><span class="spec-key">Text</span><span class="spec-val"><code>var(--accent)</code> — honey on dim honey</span></div>
+      <div class="spec-row"><span class="spec-key">Sizing</span><span class="spec-val">Small — 11.5px font, 4–10px padding, pill shape</span></div>
+      <div class="spec-row"><span class="spec-key">Examples</span>
+        <div><div class="spec-examples">
+          <code>.card-pill.pill-sol</code><code>.in-sun-badge</code><code>.score-badge</code><code>.tier-high</code>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TIER 6 -->
+<div class="tier">
+  <div class="tier-head">
+    <span class="tier-num">6 ·</span>
+    <span class="tier-name">Map canvas</span>
+    <span class="tier-tagline">Pin pills, sun arc, weather. Canvas-drawn. Tracks tokens via <code>js/tokens.js</code> bridge.</span>
+  </div>
+  <div class="tier-body">
+    <div class="tier-stage">
+      <span style="color: var(--cool); font-size: 12px; font-style: italic; text-align: center;">
+        Pin pills · sun-arc dot · seating shadows · weather glyphs
+        <br><br>
+        Drawn in <code>js/render-pins.js</code> · <code>render-arc.js</code> · <code>render-seating.js</code>
+        <br>
+        Colors come from <code>window.TOKENS</code> populated at boot from <code>:root</code> CSS vars.
+      </span>
+    </div>
+    <div class="tier-spec">
+      <div class="spec-row"><span class="spec-key">Colors</span><span class="spec-val">From <code>TOKENS.accent / accentOn / muted / surface</code> etc.</span></div>
+      <div class="spec-row"><span class="spec-key">Bridge</span><span class="spec-val"><code>js/tokens.js</code> — reads computed CSS vars at boot</span></div>
+      <div class="spec-row"><span class="spec-key">Updates</span><span class="spec-val">Brand changes → primitive tokens shift → canvas tracks automatically</span></div>
+      <div class="spec-row"><span class="spec-key">Motion</span><span class="spec-val">Tap pulse · select ring fade · idle drift on the single live in-sun pin</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════ COMPONENT-TO-TIER AUDIT ═══════════════════════════ -->
+<div class="section-h">Component → tier audit</div>
+<div class="section-sub">
+  Every UI class in the production codebase, tagged with its tier assignment.
+  When adding a new component, locate its closest equivalent here for guidance.
+</div>
+
+<table class="audit-table">
+  <thead>
+    <tr><th>Component / class</th><th>Tier</th><th>Notes</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>#map (Mapbox)</td><td><span class="tier-tag">0</span></td><td>Background; Mapbox handles its own transitions</td></tr>
+    <tr><td>#sun-compass</td><td><span class="tier-tag">0</span></td><td>Ambient info; canvas-drawn, static</td></tr>
+    <tr><td>.weather-strip</td><td><span class="tier-tag">0</span></td><td>Top-of-screen weather glyph</td></tr>
+    <tr><td>#panel.glass-panel</td><td><span class="tier-tag">1</span></td><td>List sheet (slide-up). Mirror-sky overlay applied.</td></tr>
+    <tr><td>#detail-panel.glass-panel</td><td><span class="tier-tag">1</span></td><td>Detail modal. Same mirror-sky treatment.</td></tr>
+    <tr><td>#search-dropdown</td><td><span class="tier-tag">1</span></td><td>Search results panel</td></tr>
+    <tr><td>#profile-panel</td><td><span class="tier-tag">1</span></td><td>Profile sheet</td></tr>
+    <tr><td>#sort-panel</td><td><span class="tier-tag">1</span></td><td>Sort options popover</td></tr>
+    <tr><td>.notif-toast-content</td><td><span class="tier-tag">1</span></td><td>Toast container</td></tr>
+    <tr><td>.modal-backdrop / .plan-conflict-backdrop</td><td><span class="tier-tag">1</span></td><td>Slate-tinted dim backdrop</td></tr>
+    <tr><td>#login-splash</td><td><span class="tier-tag">1</span></td><td>Hero panel; gets scroll-shimmer</td></tr>
+    <tr><td>.venue-card</td><td><span class="tier-tag">2</span></td><td>List item. Chromatic + tilt + spotlight + rim</td></tr>
+    <tr><td>.dp-card</td><td><span class="tier-tag">2</span></td><td>Detail-panel content card</td></tr>
+    <tr><td>.dpacc-action-card</td><td><span class="tier-tag">2</span></td><td>Action accept card</td></tr>
+    <tr><td>.dp-action-card</td><td><span class="tier-tag">2</span></td><td>Detail panel action surface</td></tr>
+    <tr><td>.dpinvite-empty-card</td><td><span class="tier-tag">2</span></td><td>Invite empty state card</td></tr>
+    <tr><td>.s-pill / .s-rnd / .s-sq</td><td><span class="tier-tag">3</span></td><td>Secondary buttons (glass-action style)</td></tr>
+    <tr><td>.intent-btn</td><td><span class="tier-tag">3</span></td><td>Quick-filter chip</td></tr>
+    <tr><td>.sort-btn</td><td><span class="tier-tag">3</span></td><td>Sort trigger</td></tr>
+    <tr><td>.area-chip</td><td><span class="tier-tag">3</span></td><td>Area filter chip</td></tr>
+    <tr><td>.edit-chip</td><td><span class="tier-tag">3</span></td><td>Edit-mode chip</td></tr>
+    <tr><td>.notif-toast-action</td><td><span class="tier-tag">3</span></td><td>Toast action button</td></tr>
+    <tr><td>.dp-action-chip / .dp-gm-chip</td><td><span class="tier-tag">3</span></td><td>Detail-panel secondary chips</td></tr>
+    <tr><td>#fts-time-thumb (slider thumb)</td><td><span class="tier-tag">3</span></td><td>Sliders use Tier 3 surface</td></tr>
+    <tr><td>.p-pill / .p-sq</td><td><span class="tier-tag">4</span></td><td>Primary CTA — solid honey, ONE per screen</td></tr>
+    <tr><td>.dp-action-cta</td><td><span class="tier-tag">4</span></td><td>Detail-panel hero CTA</td></tr>
+    <tr><td>.dpacc-action-primary</td><td><span class="tier-tag">4</span></td><td>Accept-action hero CTA</td></tr>
+    <tr><td>.invite-confirm-btn</td><td><span class="tier-tag">4</span></td><td>Invite confirm CTA</td></tr>
+    <tr><td>.card-pill.pill-sol</td><td><span class="tier-tag">5</span></td><td>"Sol" status pill — honey-on-dim</td></tr>
+    <tr><td>.card-pill.pill-skygge / .pill-skyer / .pill-regn</td><td><span class="tier-tag">5</span></td><td>Status pills — palette-specific dim/text colors</td></tr>
+    <tr><td>.dp-sun-pill</td><td><span class="tier-tag">5</span></td><td>Detail-panel "in sun" badge</td></tr>
+    <tr><td>.score-badge / .tier-high</td><td><span class="tier-tag">5</span></td><td>Score indicator pills</td></tr>
+    <tr><td>Pin pills (canvas)</td><td><span class="tier-tag">6</span></td><td><code>render-pins.js</code> — uses TOKENS.accent</td></tr>
+    <tr><td>Sun arc + weather (canvas)</td><td><span class="tier-tag">6</span></td><td><code>render-arc.js</code> — uses TOKENS</td></tr>
+    <tr><td>Seating shadows (canvas)</td><td><span class="tier-tag">6</span></td><td><code>render-seating.js</code> — uses TOKENS</td></tr>
+    <tr><td>Friend identity colors</td><td>—</td><td>Independent multi-color palette (intentional)</td></tr>
+    <tr><td>Weather cf-band palette</td><td>—</td><td>Coordinated 6-step scale (separate concern)</td></tr>
+  </tbody>
+</table>
+
+<pre class="note"><strong>How to use this document:</strong>
+
+  • <strong>Adding a new component?</strong> Find the closest existing element in
+    the audit table. Inherit its tier. Apply the tier's spec (opacity,
+    border, shadow, motion).
+
+  • <strong>Disagree with a tier assignment?</strong> Resolve against the seven
+    principles above, not against personal taste. The principles are the
+    constitution.
+
+  • <strong>Adding a new visual style?</strong> Ask: which tier? If none fits,
+    consider whether you actually need a new style or whether the existing
+    tier was insufficient. Tier proliferation is the enemy.
+
+  • <strong>Brand change?</strong> Update the primitive layer in <code>:root</code>;
+    semantic tokens propagate; canvas tracks via <code>js/tokens.js</code> bridge.
+    Tier specs stay constant; only the colors shift.
+
+<strong>Motion vocabulary (across tiers):</strong>
+
+  Tier 1 (panels)        →  No ambient motion. Reveal animation on open
+                            (slide / fade). Scroll-shimmer on hero panels only.
+  Tier 2 (cards)         →  Tilt + parallax + spotlight + rim + click ripple
+                            (when fx active). Scroll-aware (suspends during scroll).
+  Tier 3 (controls)      →  Hover spotlight + click ripple.
+  Tier 4 (honey CTA)     →  Hover brightness shift + click shine sweep.
+  Tier 5 / 6 (badges)    →  Idle drift on the single "live in sun" indicator
+                            ONLY. All other badges static.
+
+<strong>Anti-patterns to watch:</strong>
+
+  ✗ Multiple Tier-4 honey CTAs in one screen — burns out the signal.
+  ✗ Tier-3 control with Tier-2 effects (chromatic / mirror) — too busy for
+    small surfaces.
+  ✗ Tier-2 card with no border or shadow — loses silhouette, blends with panel.
+  ✗ Static text in slate-grey when the title is cream — breaks principle 03.
+  ✗ Continuous animation on more than ONE element per screen — Tier 5 ambient
+    is privileged.
+</pre>
+
+</body>
+</html>

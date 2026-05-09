@@ -73,7 +73,7 @@
 <script defer src="js/ui-plan-preview.js?v=20260430a"></script>
 <script defer src="js/osm.js?v=20260505a"></script>
 <script defer src="js/notifications.js?v=20260427c"></script>
-<script defer src="js/lens-effects.js?v=20260509k"></script>
+<script defer src="js/lens-effects.js?v=20260509l"></script>
 <script defer src="js/init.js?v=20260427a"></script>
 <style>
   /* Inter — inlined latin + latin-ext @font-face (eliminates Google Fonts CSS round-trip) */
@@ -298,8 +298,15 @@
 
   /* The panel and card static effects are driven by CSS variables set by JS.
      Each effect (polarized, vignette, mirror-sky, etc.) is just a gradient
-     value; JS swaps the value to swap the effect. */
-  body[data-fx] #panel::after {
+     value; JS swaps the value to swap the effect.
+
+     Applied to all Tier-1 lens panels — list panel, detail panel, search
+     dropdown, sort/profile/filter panels, login splash, modals. */
+  body[data-fx] #panel::after,
+  body[data-fx] #detail-panel::after,
+  body[data-fx] #search-dropdown::after,
+  body[data-fx] #sort-panel::after,
+  body[data-fx] #profile-panel::after {
     content: '';
     position: absolute;
     inset: 0;
@@ -311,15 +318,23 @@
   }
   /* Card lens overlay applied only in fx mode. The lens shimmer (chromatic /
      polarized / mirror-soft) is layered ABOVE the slate base so it remains
-     visible even with cards at near-opaque baseline. */
-  body[data-fx] .venue-card {
+     visible even with cards at near-opaque baseline. Applied to Tier-2
+     lens objects: list cards, detail-panel content cards, action cards. */
+  body[data-fx] .venue-card,
+  body[data-fx] .dp-card,
+  body[data-fx] .dp-action-card,
+  body[data-fx] .dpacc-action-card {
     background:
       var(--card-fx-bg, transparent),
       linear-gradient(135deg, rgba(26,44,66,0.36) 0%, rgba(58,92,130,0.22) 100%),
       rgba(26,44,66,0.78);
   }
   /* Make sure panel content sits above the panel overlay */
-  body[data-fx] #panel > * { position: relative; z-index: 1; }
+  body[data-fx] #panel > *,
+  body[data-fx] #detail-panel > *,
+  body[data-fx] #search-dropdown > *,
+  body[data-fx] #sort-panel > *,
+  body[data-fx] #profile-panel > * { position: relative; z-index: 1; }
 
   /* Tilt: card-level transform with spring easing. JS sets the transform
      during pointermove; the .lens-fx-tilting class swaps in a fast linear
@@ -6563,7 +6578,8 @@
   .plan-conflict-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(7, 16, 32, 0.55);
+    /* Slate-tinted modal backdrop — design system tier-1 backdrop spec. */
+    background: rgba(15, 30, 55, 0.55);
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
     display: flex;
@@ -6816,7 +6832,12 @@
     transition: background 0.3s ease;
   }
   .invite-backdrop.open,
-  .dpinvite-backdrop.open { background: rgba(0,0,0,0.42); }
+  .dpinvite-backdrop.open {
+    /* Slate-tinted modal backdrop — design system tier-1 backdrop spec. */
+    background: rgba(15, 30, 55, 0.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
 
   /* Slide the underlying surfaces down out of view so the user focuses on the
      sheet sliding up. Convention: closing panels always slide DOWN, even when

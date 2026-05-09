@@ -257,8 +257,13 @@
     });
   }
 
+  // All Tier-2 lens objects get the motion stack. Selector matches the CSS
+  // rule for body[data-fx] in index.html.
+  const TIER2_SELECTOR =
+    '.venue-card, .dp-card, .dp-action-card, .dpacc-action-card';
+
   function wireAll() {
-    document.querySelectorAll('.venue-card').forEach(wireCard);
+    document.querySelectorAll(TIER2_SELECTOR).forEach(wireCard);
   }
 
   function attachListObserver() {
@@ -267,10 +272,14 @@
     attachScrollGate(list);
     const panel = document.getElementById('panel');
     if (panel) attachScrollGate(panel);
+    const detailPanel = document.getElementById('detail-panel');
+    if (detailPanel) attachScrollGate(detailPanel);
 
-    new MutationObserver(() => wireAll()).observe(list, {
-      childList: true, subtree: false,
-    });
+    // Watch both list (where venue cards re-render on slider tick / sort)
+    // AND detail panel (where dp-card etc. mount when detail opens).
+    const obs = new MutationObserver(() => wireAll());
+    obs.observe(list, { childList: true, subtree: false });
+    if (detailPanel) obs.observe(detailPanel, { childList: true, subtree: true });
     wireAll();
 
     if (fx === 'lab') buildLabUi();
