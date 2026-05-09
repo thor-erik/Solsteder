@@ -131,10 +131,19 @@
     }
 
     root.querySelectorAll('button[data-fx-key]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', handleClick, { capture: true });
+      btn.addEventListener('pointerdown', handleClick, { capture: true });
+      function handleClick(e) {
         e.stopPropagation();
+        e.preventDefault();
+        if (e.type === 'click' && btn.dataset.fxLastTrigger === 'pointer') {
+          btn.dataset.fxLastTrigger = '';
+          return;
+        }
+        if (e.type === 'pointerdown') btn.dataset.fxLastTrigger = 'pointer';
         const target = btn.parentElement.dataset.fxTarget;
         const key = btn.dataset.fxKey;
+        console.log('[lens-fx]', e.type, 'target=' + target, 'key=' + key);
         if (target === 'panel') {
           panelKey = key;
           applyPanelFx(panelKey);
@@ -144,7 +153,7 @@
         }
         markActive(target, key);
         syncUrl();
-      });
+      }
     });
   }
 
