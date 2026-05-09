@@ -3,6 +3,20 @@
 Solar-optimized venue finder for Oslo. Pure frontend — no build step, no tests, no bundler.
 Open `index.html` directly in a browser or serve statically.
 
+## Design system
+
+**Read `DESIGN.md` before any UI change.** It is the source of truth for visual decisions.
+
+Quick orientation:
+- Brand: **Shades** (sun-glasses + shadows double-entendre), **Slate + Honey** palette
+- Every UI surface belongs to **one of six tiers** — Tier 0 (map), Tier 1 (lens panel), Tier 2 (lens object), Tier 3 (surface control), Tier 4 (honey CTA), Tier 5 (honey badge), Tier 6 (map canvas)
+- Tier determines opacity, effects, motion, and accent usage
+- Never reference raw hex in components — use `:root` semantic tokens (`--accent`, `--bg`, `--text`, `--muted`, etc.)
+- Run `node scripts/validate-tokens.mjs` before committing UI work
+- Open `system.html` for rendered visual examples of each tier
+
+If a UI change wants to break a rule in `DESIGN.md`, update the doc first and justify the change in the commit message.
+
 ## Workflow
 
 Two tiers based on risk. When unsure, default to the branch flow.
