@@ -34,7 +34,7 @@
     // Weather palette (5-step cf-band + rain + night)
     weatherClear:     '#F5C25E',
     weatherClearSoft: '#E8B870',
-    weatherPartly:    '#B8B098',
+    weatherPartly:    '#C5B078',
     weatherCloudy:    '#9BA8B5',
     weatherOvercast:  '#7A8696',
     weatherRain:      '#4A6582',
