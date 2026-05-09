@@ -34,8 +34,8 @@
     // Weather palette: 3 sun bands (yellow gradient) + 1 overcast (cool grey) + rain + night
     weatherClear:     '#F5C25E',
     weatherClearSoft: '#E8B870',
-    weatherPartly:    '#C5B078',
-    weatherOvercast:  '#8898A8',
+    weatherPartly:    '#D5B068',
+    weatherOvercast:  '#6F8092',
     weatherRain:      '#4A6582',
     weatherNight:     '#0F1B2A',
   };
