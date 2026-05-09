@@ -13,39 +13,42 @@
 
 (function () {
   const FALLBACKS = {
-    // Brand
-    accent:    '#FFAF85',  // --coral-500
-    accentOn:  '#2A1A0C',  // --coral-900
-    coral200:  '#FFCBAA',
+    // Brand (Slate + Honey)
+    accent:    '#F5C25E',  // honey gold (--accent)
+    accentOn:  '#2C1F02',  // --accent-on
+    coral200:  '#FFCBAA',  // legacy primitive (canvas pin special-cases)
     coral300:  '#FFC49A',
     // Cream / text
-    text:      '#FFF2EB',  // --cream-50
+    text:      '#FFF4E0',  // warm cream (--text)
     cream100:  '#DECCC0',
-    // Blue / surfaces
-    bg:        '#111E38',  // --blue-900
-    surface:   '#142E52',  // --blue-800
-    surfaceDeep: '#0A1830', // --blue-950
-    muted:     '#9CBDE7',  // --blue-300
-    cool:      '#B8CFEE',
-    rain:      '#7FA5D9',
+    // Slate / surfaces
+    bg:        '#1A2C42',  // slate (--bg)
+    surface:   '#284463',  // slate mid (canvas card-surface)
+    surfaceDeep: '#0F1B2A',
+    muted:     '#9BA9BC',  // cool grey (--muted)
+    cool:      '#B5BCC8',  // (--cool)
+    rain:      '#6F8AA8',  // (--rain)
     // Status
     success:   '#64FFB4',
     error:     '#FF6B6B',
   };
 
+  // Brand entries point at SEMANTIC tokens so the canvas tracks the active
+  // brand. Primitive layer keeps legacy coral/blue values for direct
+  // consumers; semantic tokens are the source of truth for brand colors.
   const VAR_MAP = {
-    accent:      '--coral-500',
-    accentOn:    '--coral-900',
-    coral200:    '--coral-200',
+    accent:      '--accent',
+    accentOn:    '--accent-on',
+    coral200:    '--coral-200',     // legacy primitive (still used directly)
     coral300:    '--coral-300',
-    text:        '--cream-50',
+    text:        '--text',
     cream100:    '--cream-100',
-    bg:          '--blue-900',
-    surface:     '--blue-800',
+    bg:          '--bg',
+    surface:     '--blue-800',      // no slate-mid semantic yet
     surfaceDeep: '--blue-950',
-    muted:       '--blue-300',
-    cool:        '--blue-200',
-    rain:        '--blue-400',
+    muted:       '--muted',
+    cool:        '--cool',
+    rain:        '--rain',
     success:     '--green-500',
     error:       '--red-500',
   };

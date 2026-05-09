@@ -47,7 +47,7 @@
 </script>
 <script defer src="js/i18n.js"></script>
 <script defer src="js/config.js?v=20260425b"></script>
-<script defer src="js/tokens.js?v=20260508a"></script>
+<script defer src="js/tokens.js?v=20260509a"></script>
 <script defer src="js/auth.js"></script>
 <script defer src="js/login-carousel.js?v=20260428a"></script>
 <script defer src="js/analytics.js"></script>
@@ -165,36 +165,42 @@
 
     /* ── SEMANTIC TOKENS ─────────────────────────────────────────────────────
        What components consume. Components SHOULD reference these (or the
-       component-level tokens below), never the primitives directly. */
+       component-level tokens below), never the primitives directly.
 
-    --bg:         var(--blue-900);
-    --panel:      var(--blue-900);
-    --accent:     var(--coral-500);
-    --accent-dim: rgba(255,175,133,0.15);
-    --accent-on:  var(--coral-900);            /* text/icon drawn ON --accent */
-    --text:       var(--cream-50);
-    --muted:      var(--blue-300);             /* on-surface-variant */
-    --card-bg:    rgba(20,46,82,0.4);          /* surface-container-low, Polynesian Blue tint */
-    --border:     rgba(156,189,231,0.18);      /* outline-variant — Jordy Blue at 18% */
-    --pill-bg:    rgba(20,46,82,0.45);         /* surface-container-lowest */
+       Brand: Slate + Honey (experimental swap from Polynesian + Coral).
+       Primitive layer (--coral-*, --blue-*) intentionally unchanged so the
+       direct primitive consumers (e.g. tokens.js JS bridge) keep their
+       legacy values. Promote honey/slate to proper primitives once locked. */
 
-    /* Glass levels — Shades Glass recipe */
-    --glass-panel-bg: linear-gradient(135deg, rgba(20,46,82,0.36) 0%, rgba(32,73,131,0.22) 100%), rgba(20,46,82,0.42);
-    --glass-card-bg:  linear-gradient(135deg, rgba(20,46,82,0.42) 0%, rgba(32,73,131,0.26) 100%), rgba(20,46,82,0.50);
-    --glass-action-bg: linear-gradient(135deg, rgba(20,46,82,0.36) 0%, rgba(32,73,131,0.22) 100%), rgba(20,46,82,0.45);
+    --bg:         #1A2C42;                     /* slate (was --blue-900 / Polynesian) */
+    --panel:      #1A2C42;
+    --accent:     #F5C25E;                     /* honey gold (was --coral-500) */
+    --accent-dim: rgba(245,194,94,0.16);
+    --accent-on:  #2C1F02;                     /* warm dark, drawn ON --accent */
+    --text:       #FFF4E0;                     /* warm cream */
+    --muted:      #9BA9BC;                     /* cool grey (was Jordy blue) */
+    --card-bg:    rgba(26,44,66,0.40);
+    --border:     rgba(155,169,188,0.20);      /* slate-grey outline */
+    --pill-bg:    rgba(26,44,66,0.45);
+
+    /* Glass levels — Slate recipe (was Polynesian rgba(20,46,82,...)). */
+    --glass-panel-bg:  linear-gradient(135deg, rgba(26,44,66,0.36) 0%, rgba(58,92,130,0.22) 100%), rgba(26,44,66,0.42);
+    --glass-card-bg:   linear-gradient(135deg, rgba(26,44,66,0.42) 0%, rgba(58,92,130,0.26) 100%), rgba(26,44,66,0.50);
+    --glass-action-bg: linear-gradient(135deg, rgba(26,44,66,0.36) 0%, rgba(58,92,130,0.22) 100%), rgba(26,44,66,0.45);
     --glass-blur-panel: blur(16px) saturate(160%);
     --glass-blur-card:  blur(12px) saturate(160%);
     --glass-blur-action: blur(10px) saturate(160%);
     --glass-blur-pill:  blur(8px)  saturate(160%);
-    --glass-border: 1px solid rgba(156,189,231,0.18);
-    --glass-border-light: 1px solid rgba(156,189,231,0.15);
-    /* Shades Glass inset shadows — top sheen + bottom shade shared across all levels */
-    --glass-inset: inset 0 1px 0 rgba(255,242,235,0.14), inset 0 -1px 0 rgba(20,46,82,0.35);
+    --glass-border: 1px solid rgba(155,169,188,0.22);
+    --glass-border-light: 1px solid rgba(155,169,188,0.16);
+    /* Top sheen + bottom shade shared across all glass levels */
+    --glass-inset: inset 0 1px 0 rgba(255,244,224,0.14), inset 0 -1px 0 rgba(26,44,66,0.35);
 
     /* Card-pill subject colors — kept distinct from --muted/--accent so the
-       "Skyer" (cool gray) and "Regn" (blue) pill text reads cleanly on glass. */
-    --cool: var(--blue-200);
-    --rain: var(--blue-400);
+       "Skyer" (cool gray) and "Regn" (blue) pill text reads cleanly on glass.
+       Slate-tuned: cool = lighter slate-grey, rain = mid slate-blue. */
+    --cool: #B5BCC8;
+    --rain: #6F8AA8;
   }
 
   /* ── Accessibility globals ────────────────────────────────────────────────── */
@@ -309,8 +315,8 @@
   body[data-fx] .venue-card {
     background:
       var(--card-fx-bg, transparent),
-      linear-gradient(135deg, rgba(20,46,82,0.34) 0%, rgba(32,73,131,0.20) 100%),
-      rgba(20,46,82,0.42);
+      linear-gradient(135deg, rgba(26,44,66,0.34) 0%, rgba(58,92,130,0.20) 100%),
+      rgba(26,44,66,0.42);
   }
   /* Make sure panel content sits above the panel overlay */
   body[data-fx] #panel > * { position: relative; z-index: 1; }
