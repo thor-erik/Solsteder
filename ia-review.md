@@ -286,18 +286,19 @@ These are NOT IA changes per se but inform priority — surfaces visible during 
 - Empty state ("Ingen lagrede steder ennå — tap hjertet på et sted for å lagre det")
 - Optional: filter chip on main list ("Vis bare lagrede") for Phase C
 
-**Backend:** Supabase table `saved_venues(user_id, venue_id, saved_at)`. Existing auth covers user_id; venue_id from `data/venues.json`.
+**Backend:** Supabase table `saved_venues(user_id, venue_id, saved_at)`. Existing auth covers user_id; venue_id from `data/venues.json`. (User confirmed Supabase persistence; no localStorage fallback needed.)
 
 **Effort:** 3-4 hours — UI + persistence + integration
 
 ### F2 · Inbox ("Varsler")
 
-Single surface for all friend-request + plan-invitation + notification activity. Bell icon in top toolbar opens it.
+Single surface for all friend-request + plan-invitation + notification activity. **Lives inside profile panel** — no top-toolbar chrome added.
 
 **Entry:**
-- New bell icon button in `#floating-search` row, replacing or supplementing the profile button
-- Unread dot indicator (honey) when new items
-- Pull-down or slide-up surface (consistent with detail-panel pattern)
+- "Varsler · N" link in profile panel (alongside "Lagrede steder")
+- Tap opens the inbox surface (3-tab modal)
+- **Unread indicator:** small honey dot on the profile button itself in the search row, signals "open profile to see what's new"
+- Profile panel itself shows "Varsler · 3" with the same dot until tapped
 
 **Surface structure (3 tabs):**
 
@@ -387,7 +388,7 @@ Polish the new surfaces from Phase 0.5 once they're built:
 
 ```
 Top toolbar (search row):
-  [search] [bell-icon-NEW] [profile]
+  [search] [profile + unread dot]
 
 Detail panel (info section):
   · Travelt nå
@@ -396,13 +397,14 @@ Detail panel (info section):
   · Åpent til 23:30
   + ❤ heart-toggle in detail header   [NEW]
 
-Profile panel:
+Profile panel (now an inbox-and-account hub):
   · Avatar / name / email
   · Lagrede steder · N        [NEW]
+  · Varsler · N · ●           [NEW — opens Inbox; dot if unread]
   · Innstillinger
   · Logg ut
 
-Inbox (NEW surface, from bell icon):
+Inbox (NEW surface, opens from "Varsler" inside profile):
   Tab: Planer · Forespørsler · Varsler
 
 Venue card:
