@@ -143,16 +143,12 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       <button class="secondary-link" onclick="alert('Rapportfunksjon kommer snart')">Rapporter feil</button>
     </div>`;
 
-  // Wind shelter section — isometric diagram drawn into a canvas.
-  // drawShelterDiagram populates it post-insertion via _populateDpShelter
-  // (called from app.js after the panel's HTML lands in the DOM).
-  const _shelterCanvasId = `dp-shelter-${v.id}`;
-  const shelterHtml = (typeof drawShelterDiagram === 'function')
-    ? `<div class="dp-section dp-shelter-section">
-        <div class="dp-section-title">Le for vind</div>
-        <canvas id="${_shelterCanvasId}" class="dp-shelter-canvas" width="576" height="320"></canvas>
-      </div>`
-    : '';
+  // Wind shelter — pinned for now. Wind direction + speed already render as
+  // animated particles on the map (render-wind.js); the per-venue shelter
+  // STATUS ("Le / Delvis le / Eksponert") would be a separate compact text
+  // chip here, but the shelter % isn't computed at the venue level yet.
+  // Revisit when venueWindShelter() is wired into the detail render.
+  const shelterHtml = '';
 
   // Friend chip on the photo top-right. Tap-to-expand: the compact pill
   // ("Anna +N her") expands inline to a small panel listing every friend

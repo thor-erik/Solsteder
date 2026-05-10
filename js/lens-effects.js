@@ -249,8 +249,16 @@
 
     card.addEventListener('pointerdown', (e) => {
       const r = card.getBoundingClientRect();
-      card.style.setProperty('--ripple-x', ((e.clientX - r.left) / r.width  * 100) + '%');
-      card.style.setProperty('--ripple-y', ((e.clientY - r.top)  / r.height * 100) + '%');
+      const xPct = ((e.clientX - r.left) / r.width  * 100) + '%';
+      const yPct = ((e.clientY - r.top)  / r.height * 100) + '%';
+      card.style.setProperty('--ripple-x', xPct);
+      card.style.setProperty('--ripple-y', yPct);
+      // Also propagate to documentElement so when the list re-renders post-
+      // selectVenue, the freshly-mounted .selected card inherits the click
+      // position and the .selected::before emanate animation runs from the
+      // place the user actually touched.
+      document.documentElement.style.setProperty('--ripple-x', xPct);
+      document.documentElement.style.setProperty('--ripple-y', yPct);
       card.classList.remove('lens-fx-rippling');
       void card.offsetWidth;
       card.classList.add('lens-fx-rippling');

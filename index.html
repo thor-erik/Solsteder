@@ -64,16 +64,16 @@
 <script defer src="js/render-seating.js?v=20260508a"></script>
 <script defer src="js/render-editor.js?v=20260508a"></script>
 <script defer src="js/render-pins.js?v=20260510c"></script>
-<script defer src="js/ui-shared.js?v=20260509b"></script>
+<script defer src="js/ui-shared.js?v=20260510a"></script>
 <script defer src="js/ui-list.js?v=20260510a"></script>
 <script defer src="js/admin-review.js?v=20260505a"></script>
 <script defer src="js/ui-shelter.js?v=20260416a"></script>
 <script defer src="js/render-wind.js?v=20260416b"></script>
-<script defer src="js/ui-detail.js?v=20260510b"></script>
+<script defer src="js/ui-detail.js?v=20260510c"></script>
 <script defer src="js/ui-plan-preview.js?v=20260430a"></script>
 <script defer src="js/osm.js?v=20260505a"></script>
 <script defer src="js/notifications.js?v=20260427c"></script>
-<script defer src="js/lens-effects.js?v=20260509l"></script>
+<script defer src="js/lens-effects.js?v=20260510a"></script>
 <script defer src="js/init.js?v=20260427a"></script>
 <style>
   /* Inter — inlined latin + latin-ext @font-face (eliminates Google Fonts CSS round-trip) */
@@ -2590,8 +2590,32 @@
   .venue-card { -webkit-tap-highlight-color: transparent; }
 
   .venue-card.selected {
-    border-color: rgba(255,175,133,0.4);
-    background: rgba(20,46,82,0.62);
+    background: rgba(26,44,66,0.72);
+  }
+  /* Selection outline that *emanates from the click position*. The lens-fx
+     pointerdown handler in lens-effects.js sets --ripple-x / --ripple-y on
+     the card before selection runs. The pseudo-element below is a full
+     honey-accent border whose visibility is clipped by a circle that
+     starts at the click point with 0% radius and grows to 150% — so the
+     outline appears to "wipe" outward from where the user actually
+     touched, then settles into a static ring. */
+  .venue-card.selected::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border: 2px solid var(--accent);
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 3;
+    clip-path: circle(150% at var(--ripple-x, 50%) var(--ripple-y, 50%));
+    animation: card-select-emanate 520ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  @keyframes card-select-emanate {
+    0%   { clip-path: circle(0% at var(--ripple-x, 50%) var(--ripple-y, 50%)); opacity: 0.85; }
+    100% { clip-path: circle(150% at var(--ripple-x, 50%) var(--ripple-y, 50%)); opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .venue-card.selected::before { animation: none; clip-path: none; }
   }
 
   .venue-card.state-shadow .card-new-hero-main {
@@ -6889,10 +6913,9 @@
     transition: all 120ms ease-out;
   }
   /* Sheen sweep — a soft diagonal light ray traverses the button left → right
-     in ~1.4s, then a long ~5s rest before the next sweep. Subtler than the
-     previous radar-ring heartbeat: still marks the CTA as alive without
-     borrowing eye attention. The button needs overflow:hidden to clip the
-     sheen to its shape (set above when needed). */
+     in ~1.4s, then a long ~13s rest before the next sweep. Marks the CTA as
+     alive without competing with content. The button needs overflow:hidden
+     to clip the sheen to its shape. */
   .dp-invite-cta { overflow: hidden; }
   .dp-invite-cta::after {
     content: '';
@@ -6902,33 +6925,39 @@
       100deg,
       transparent 0%,
       transparent 35%,
-      rgba(255,255,255,0.55) 50%,
+      rgba(255,255,255,0.50) 50%,
       transparent 65%,
       transparent 100%
     );
     transform: translateX(-110%);
     pointer-events: none;
-    animation: dp-invite-sheen 6500ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    animation: dp-invite-sheen 14500ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
     z-index: 1;
   }
   /* The icon + label stay above the sheen layer */
   .dp-invite-cta > * { position: relative; z-index: 2; }
   @keyframes dp-invite-sheen {
     0%   { transform: translateX(-110%); }
-    22%  { transform: translateX(110%); }
+    10%  { transform: translateX(110%); }
     100% { transform: translateX(110%); }
   }
   @media (prefers-reduced-motion: reduce) {
     .dp-invite-cta::after { animation: none; }
   }
+  /* Brand-aligned hover/active: keep the honey base, lift the button
+     slightly with a deeper shadow + a soft accent glow. No off-brand
+     coral fallbacks. */
   .dp-invite-cta:hover {
-    background: #FFC49A;
-    box-shadow: 0 6px 24px rgba(0,0,0,0.50);
+    transform: translateY(-1px);
+    filter: brightness(1.06);
+    box-shadow:
+      0 8px 22px rgba(0,0,0,0.40),
+      0 2px 8px rgba(245,194,94,0.35);
   }
   .dp-invite-cta:active {
-    background: #F09060;
-    box-shadow: none;
     transform: translateY(1px);
+    filter: brightness(0.95);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.30);
   }
   .dp-invite-cta svg { flex-shrink: 0; stroke: currentColor; }
 

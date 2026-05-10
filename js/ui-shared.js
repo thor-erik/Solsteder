@@ -465,6 +465,8 @@ function getMapsIcon(type) {
     directions: `<svg viewBox="${viewBox}" width="24" height="24" fill="none" stroke="currentColor" stroke-width="${strokeW}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.41 2.59a2 2 0 0 0-2.82 0L2.59 10.59a2 2 0 0 0 0 2.82l8 8a2 2 0 0 0 2.82 0l8-8a2 2 0 0 0 0-2.82Z"/><path d="M 8 12 L 12 8 L 16 12"/><path d="M 12 8 L 12 16"/></svg>`,
 
     beer: `<svg viewBox="${viewBox}" width="24" height="24" fill="none" stroke="currentColor" stroke-width="${strokeW}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M 7 4 L 7 18 Q 7 20 9 20 L 15 20 Q 17 20 17 18 L 17 4 Z"/><path d="M 17 7 L 19 7 Q 21 7 21 9 L 21 13 Q 21 15 19 15 L 17 15"/><path d="M 7 10 L 17 10"/></svg>`,
+
+    pin: `<svg viewBox="${viewBox}" width="24" height="24" fill="none" stroke="currentColor" stroke-width="${strokeW}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M 12 2 C 7.6 2 4 5.6 4 10 C 4 16 12 22 12 22 C 12 22 20 16 20 10 C 20 5.6 16.4 2 12 2 Z"/><circle cx="12" cy="10" r="2.6"/></svg>`,
   };
 
   return icons[type] || '';
