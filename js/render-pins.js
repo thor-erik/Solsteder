@@ -559,7 +559,7 @@ function _drawName(ctx, pt, pillRect, name, secondary, placedPills, placedNames,
   const fillC  = opts.selected ? '#1A2C42' : '#3A332B';
 
   ctx.font        = '600 12px "Inter", system-ui, sans-serif';
-  ctx.lineWidth   = 3;
+  ctx.lineWidth   = 2.2;
   ctx.strokeStyle = '#F4EBD8';
   ctx.strokeText(name, tx, nameY);
   ctx.fillStyle   = fillC;
@@ -567,7 +567,7 @@ function _drawName(ctx, pt, pillRect, name, secondary, placedPills, placedNames,
 
   if (secondary) {
     ctx.font        = '500 11px "Inter", system-ui, sans-serif';
-    ctx.lineWidth   = 2.5;
+    ctx.lineWidth   = 1.8;
     ctx.strokeStyle = '#F4EBD8';
     ctx.strokeText(secondary, tx, secY);
     ctx.fillStyle   = '#5A5048';
