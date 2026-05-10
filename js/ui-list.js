@@ -426,6 +426,26 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
   // collapse to row1 + meta + fill bar; cards with pills grow.
   const pillsRowHtml = pillsHtml ? `<div class="card-pills">${pillsHtml}</div>` : '';
 
+  // dpVariant: detail-panel "sun summary" card. Title + meta have moved up
+  // into the photo overlay, so this card focuses only on the sun-status
+  // story: headline (e.g. "Sol til 14:30") + sub ("2t 15m igjen") + pills
+  // + timeline. State class still applied so existing CSS keeps working.
+  if (dpVariant) {
+    const dpState = (typeof venueState === 'function') ? venueState(v, fromHour) : null;
+    const headlineMain = dpState?.mainText || '—';
+    const headlineSub  = dpState?.subText  || '';
+    return `
+      <div class="venue-card card-compact ${stateClass}${flags ? ' review-flagged' : ''}"
+           data-vid="${v.id}">
+        <div class="dp-sun-headline">${headlineMain}</div>
+        ${headlineSub ? `<div class="dp-sun-sub">${headlineSub}</div>` : ''}
+        ${pillsRowHtml}
+        ${timelineBlock}
+        ${reviewChips}
+        ${reviewActions}
+      </div>`;
+  }
+
   return `
     <div class="venue-card ${stateClass}${variantCls} ${v.id === selectedId ? 'selected' : ''}${flags ? ' review-flagged' : ''}"
          data-vid="${v.id}" onclick="selectVenue(${typeof v.id === 'number' ? v.id : `'${v.id}'`}, true)"

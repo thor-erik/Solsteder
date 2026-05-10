@@ -65,11 +65,11 @@
 <script defer src="js/render-editor.js?v=20260508a"></script>
 <script defer src="js/render-pins.js?v=20260510c"></script>
 <script defer src="js/ui-shared.js?v=20260509b"></script>
-<script defer src="js/ui-list.js?v=20260411b"></script>
+<script defer src="js/ui-list.js?v=20260510a"></script>
 <script defer src="js/admin-review.js?v=20260505a"></script>
 <script defer src="js/ui-shelter.js?v=20260416a"></script>
 <script defer src="js/render-wind.js?v=20260416b"></script>
-<script defer src="js/ui-detail.js?v=20260411b"></script>
+<script defer src="js/ui-detail.js?v=20260510a"></script>
 <script defer src="js/ui-plan-preview.js?v=20260430a"></script>
 <script defer src="js/osm.js?v=20260505a"></script>
 <script defer src="js/notifications.js?v=20260427c"></script>
@@ -5854,60 +5854,157 @@
   /* Hide UI elements when detail panel is open on mobile */
   .mobile-ui-hidden { display: none !important; }
 
-  /* ──── New Detail Panel CSS (Tasks 5-8) ────────────────────────────────────── */
+  /* ──── Detail panel — photo header with overlay ───────────────────────── */
+  /* The photo block is the venue takeover: a single rectangular frame with
+     the photo carousel filling it, a dark gradient over the bottom 55%, and
+     the venue name + meta laid on top in cream. Friend chip lives top-right.
+     Title moved here from the dp-card so identity reads with the photo. */
   .detail-new-photos {
-    height: 160px;
+    position: relative;
+    height: 200px;
     border-radius: 14px;
-    overflow-y: hidden;
-    overflow-x: auto;
     margin-bottom: 14px;
+    overflow: hidden;
     background: linear-gradient(135deg, #3a4b6e, #2a3a5c);
+    flex-shrink: 0;
+    contain: layout style;
+  }
+  .detail-new-photos-scroll {
+    position: absolute;
+    inset: 0;
     display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    color: var(--muted);
-    font-size: 12px;
-    gap: 8px;
-    padding: 0 2px;
+    overflow-x: auto;
+    overflow-y: hidden;
     scrollbar-width: none;
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
-    contain: layout style;
-    flex-shrink: 0;
+    scroll-snap-type: x mandatory;
   }
-  .detail-new-photos::-webkit-scrollbar { display: none; }
-  .detail-new-photos img {
+  .detail-new-photos-scroll::-webkit-scrollbar { display: none; }
+  .detail-new-photos-scroll img {
     height: 100%;
-    min-width: 240px;
-    max-width: 280px;
+    min-width: 100%;
+    max-width: 100%;
     object-fit: cover;
-    border-radius: 10px;
     flex-shrink: 0;
-    aspect-ratio: 4/3;
+    scroll-snap-align: start;
   }
 
-  /* Empty state — soft slate base + subtle warm honey wash + centered camera
-     icon. Replaces the previous flat slate-blue void with literal "[Bilde]"
-     text. Brand-cohesive: honey accent at low alpha lifts off the slate so
-     the placeholder reads as designed rather than missing. */
-  .detail-new-photos-empty {
+  /* Dark gradient over the bottom 55% so cream text stays readable on any
+     photo. Top half stays clear so the photo's atmosphere reads. */
+  .photo-overlay-grad {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      to bottom,
+      rgba(15,27,42,0) 0%,
+      rgba(15,27,42,0) 45%,
+      rgba(15,27,42,0.55) 78%,
+      rgba(15,27,42,0.88) 100%
+    );
+  }
+
+  /* Title + meta lockup, anchored to the bottom-left of the photo. */
+  .photo-overlay-header {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: 14px;
+    pointer-events: none;
+  }
+  .photo-overlay-title {
+    color: var(--text);
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.18;
+    letter-spacing: -0.012em;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.45);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .photo-overlay-meta {
+    color: rgba(255,244,224,0.78);
+    font-size: 12.5px;
+    font-weight: 500;
+    margin-top: 4px;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.45);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Friend-here chip — top-right of the photo. Honey-tinted glass capsule
+     with cream text. Compact (18px avatars + name + count). */
+  .detail-new-photos .photo-overlay-chip {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    gap: 8px;
-    padding: 0;
+    gap: 6px;
+    padding: 4px 9px 4px 4px;
+    border-radius: 999px;
+    background: rgba(245,194,94,0.22);
+    backdrop-filter: blur(6px) saturate(140%);
+    -webkit-backdrop-filter: blur(6px) saturate(140%);
+    border: 1px solid rgba(245,194,94,0.35);
+    color: var(--text);
+    font-size: 11.5px;
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.30);
+    pointer-events: auto;
+  }
+  .detail-new-photos .photo-overlay-chip .avatar-row { gap: -4px; }
+
+  /* No-photo empty state — same frame + overlay structure, with a soft
+     slate base + warm honey radial wash + centered camera icon. The title
+     overlay still renders so the venue still reads as primary. */
+  .detail-new-photos-empty {
     background:
       radial-gradient(ellipse at 30% 20%, rgba(245,194,94,0.14) 0%, rgba(245,194,94,0) 55%),
       linear-gradient(180deg, rgba(58,75,110,0.55) 0%, rgba(26,44,66,0.85) 100%);
-    color: rgba(255,244,224,0.55);
-    font-weight: 500;
-    font-size: 12px;
-    letter-spacing: 0.01em;
   }
-  .detail-new-photos-empty svg {
+  .detail-new-photos-empty-art {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: var(--accent);
     opacity: 0.55;
-    flex-shrink: 0;
+    pointer-events: none;
+  }
+
+  /* ── Sun summary headline (the new dp-card content) ─────────────────────── */
+  .dp-card .dp-sun-headline {
+    color: var(--accent);
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.18;
+    letter-spacing: -0.012em;
+  }
+  .dp-card .dp-sun-sub {
+    color: rgba(255,244,224,0.72);
+    font-size: 13px;
+    font-weight: 500;
+    margin-top: 2px;
+    letter-spacing: 0.005em;
+  }
+  /* Shadow + done states tone the headline back so it reads as muted info,
+     not as a primary "sunny" cue. */
+  .dp-card.state-shadow .dp-sun-headline,
+  .dp-card.state-rain   .dp-sun-headline {
+    color: rgba(255,244,224,0.85);
+  }
+  .dp-card.state-done .dp-sun-headline {
+    color: rgba(255,244,224,0.65);
+  }
+  /* Spacing between the headline block and the pills row inside the card. */
+  .dp-card .dp-sun-headline + .dp-sun-sub + .card-pills,
+  .dp-card .dp-sun-headline + .card-pills {
+    margin-top: 12px;
   }
 
   /* Merged header: back + title + fav/bell on one row */

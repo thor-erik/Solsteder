@@ -123,33 +123,55 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       <button class="secondary-link" onclick="alert('Rapportfunksjon kommer snart')">Rapporter feil</button>
     </div>`;
 
-  // Friends-here chip is overlaid on the first photo when this venue has live
-  // friend check-ins. Built here (not in _renderSocialSection) so it sits in
-  // photo space, not in the social card below.
+  // Friend chip moves to the TOP-RIGHT of the photo (was overlaid on the
+  // first image). With title now in the photo overlay (bottom-left), the
+  // friend chip sits opposite — visual balance and the social signal stays
+  // primary on the photo.
   const _photoFriendCheckins = typeof getFriendCheckinsForVenue === 'function'
     ? getFriendCheckinsForVenue(v.id) : [];
   const photoChipHtml = _photoFriendCheckins.length
     ? `<div class="photo-overlay-chip">
-        <div class="avatar-row sm">${_renderFriendAvatarsHtml(_photoFriendCheckins, 3, 20)}</div>
+        <div class="avatar-row sm">${_renderFriendAvatarsHtml(_photoFriendCheckins, 3, 18)}</div>
         <span>${_friendsHereChipLabel(_photoFriendCheckins)}</span>
       </div>`
     : '';
 
+  // Distance + walk time on the photo overlay's meta line. Same data the
+  // list card surfaces, formatted compactly: area · category · distance · walk.
+  const _distMeters = s?.distKm != null ? s.distKm * 1000 : null;
+  const _distStr = s?.distKm != null
+    ? (s.distKm < 1 ? `${Math.round(s.distKm * 1000)} m` : `${s.distKm.toFixed(1)} km`)
+    : '';
+  const _catLabel = (typeof catLabel === 'function') ? catLabel(v) : '';
+  const _metaParts = [v.area, _catLabel, _distStr].filter(Boolean);
+  const _metaLine = _metaParts.join(' · ');
+
+  // Photo block — shared header overlay (title + meta + friend chip + dark
+  // gradient) sits on top of every state. Photo carousel for venues with
+  // images; cream-honey gradient placeholder + camera icon for those without.
+  const photoOverlayHtml = `
+    <div class="photo-overlay-grad"></div>
+    <div class="photo-overlay-header">
+      <div class="photo-overlay-title">${v.name}</div>
+      ${_metaLine ? `<div class="photo-overlay-meta">${_metaLine}</div>` : ''}
+    </div>
+    ${photoChipHtml}`;
+
   const photosHtml = v.photoUrls?.length
-    ? `<div class="detail-new-photos">${
-        v.photoUrls.map((url, i) => {
-          const img = `<img src="${url}" loading="lazy" alt="" onerror="this.remove()">`;
-          return (i === 0 && photoChipHtml)
-            ? `<div class="dp-photo-wrap">${img}${photoChipHtml}</div>`
-            : img;
-        }).join('')
-      }</div>`
+    ? `<div class="detail-new-photos">
+        <div class="detail-new-photos-scroll">${
+          v.photoUrls.map(url => `<img src="${url}" loading="lazy" alt="" onerror="this.remove()">`).join('')
+        }</div>
+        ${photoOverlayHtml}
+      </div>`
     : `<div class="detail-new-photos detail-new-photos-empty" role="img" aria-label="Ingen bilder">
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-          <circle cx="12" cy="13" r="4"/>
-        </svg>
-        <span>Ingen bilder ennå</span>
+        <div class="detail-new-photos-empty-art">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+        </div>
+        ${photoOverlayHtml}
       </div>`;
 
   // Heart + bell live in the action row alongside Directions/Share. Active
