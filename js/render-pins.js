@@ -1,77 +1,56 @@
 /**
- * render-pins.js — Map pins (sprites, layout, animation), main draw loop,
+ * render-pins.js — Map pins (Google-Maps-mobile style), main draw loop,
  *                  hit testing, and canvas event handling.
+ *
+ * Pin anatomy (cream-white pill, status capsule on the left):
+ *   ┌───────────────────────┐
+ *   │ ╔══╗  til 14:30        │   solo dot: category icon in coloured circle
+ *   │ ╚══╝                    │   capsule: friend avatars with status border
+ *   └────────▽────────────────┘
+ *
+ * Time-text grammar (one preposition per direction):
+ *   "til HH:mm"   — sun ends (hero, in sun now)
+ *   "fra HH:mm"   — sun starts (waiting / context-friend)
+ *   "Åpner HH:mm" — venue opens (closed-but-opens)
+ *   "Ikke mer sol" — friend pill, no actionable sun left today
+ *
+ * Sun status is encoded in the dot/capsule colour:
+ *   --accent (honey)  — in sun now
+ *   --bg (deep slate) — in shadow (waiting / context / closed-but-opens)
+ *
  * Depends on: map, canvas, ctx, currentSun, selectedId, highlight,
  *             editingVenueId, editHoveredWallIdx, VENUES (app.js / data.js)
- *             venueSunState (solar.js)
  *             computeSunWindows, sunScore (app.js / scoring.js)
- *             shortName, fillRoundRect, formatHourAsClock (render-helpers.js)
+ *             formatHourAsClock (render-helpers.js)
  *             drawBuildingEditor, editDraggingDepth, editDragWallObj,
- *             _detachedDragging, hitTestDetachedPin, hitTestDepthHandle,
- *             hitTestWall (render-editor.js)
- *             drawSeatingAreas, drawShadowOverlay, shouldShowAtZoom (render-seating.js)
+ *             editDraggingWidth, editDraggingPolyVertex, editPolyVertexIdx,
+ *             editDraggingPolyEdge, editPolyEdgeIdx, editDraggingPolyTranslate,
+ *             editVertexMode (render-editor.js / app.js)
+ *             drawSeatingAreas, drawShadowOverlay, shouldShowAtZoom
+ *               (render-seating.js)
  *             drawSunCurve, drawSunCompass (render-arc.js)
- *             selectVenue, closeDetailPanel, panToVenueCenter,
- *             setDetachedLocation, selectWallByIdx, saveFacingCache (app.js / ui.js)
+ *             selectVenue, closeDetailPanel, setDetachedLocation,
+ *             selectWallByIdx, saveFacingCache (app.js / ui.js)
  *             tooltip, buildTooltipContent (ui.js)
+ *             getFriendCheckinsForVenue, getGoingFriendsForVenue (auth.js)
+ *             reviewModeActive, venueReviewFlags (admin-review.js)
  */
 
-// ── Sprite cache ──────────────────────────────────────────────────────────────
-// Pill-shaped pins keyed by tier + icon index + selected + modifier flags.
-// buildSprite returns { canvas, anchorX, anchorY, cssW, cssH, pillW, pillH, pillR }
-// anchorX/Y = the point in the sprite placed at the venue's map coordinate.
-const PILL_H         = 26;   // Hero pill height px
-const WAITING_PILL_H = 24;   // Waiting pill height px
-const PILL_R         = 13;   // Hero pill radius (height / 2 → fully rounded)
-const WAITING_PILL_R = 12;   // Waiting pill radius
-const STEM_H         = 14;   // stem height px
-const SHADOW_PAD     = 6;    // extra canvas padding on all sides for drop shadows
-const spriteCache = new Map();
-
-// ── Icon loading ──────────────────────────────────────────────────────────────
-// Shadow series: shadow-25 … shadow-100  (4 icons, index 0–3)
-// Sun series PNGs (sun-0 … sun-100) are used by detail panel / day-arc only —
-// they are no longer drawn on pins. Load them in whichever module consumes them.
-// Wait until ALL 4 shadow images have settled before rebuilding sprites.
-let _iconsReadyCount = 0;
-const _ICON_TOTAL    = 4;
-
-function _onIconLoad() {
-  _iconsReadyCount++;
-  if (_iconsReadyCount === _ICON_TOTAL) { clearSpriteCache(); draw(); }
-}
-
-const _shadowIcons = ['25', '50', '75', '100'].map(p => {
-  const img = new Image();
-  img.onload = img.onerror = _onIconLoad;
-  img.src = `design/shades-status-icons/shadow-${p}-percent.png`;
-  return img;
-});
-
-// ── Icon index helpers ─────────────────────────────────────────────────────────
-// Shadow series retreats from the top as sun approaches.
-
-// Tier 2a: pick shadow icon by minutes until sun arrives.
-function _shadowIconIdx(minutesUntilSun) {
-  if (minutesUntilSun <= 15) return 0;   // shadow-25
-  if (minutesUntilSun <= 45) return 1;   // shadow-50
-  if (minutesUntilSun <= 90) return 2;   // shadow-75
-  return 3;                               // shadow-100
-}
+'use strict';
 
 // ── Pin tier classification ────────────────────────────────────────────────────
 // WAITING_HORIZON_MIN: venues count as Waiting if sun arrives within this window.
-// 240 min (4h): covers the common Oslo afternoon case where sun arrives ~3h from now.
-// HERO_ACTIONABLE_MIN: Hero pill shows `Name · til HH:mm` when this little sun is left.
-// 60 min: the point where the user needs to decide whether to head there or stay.
-const WAITING_HORIZON_MIN  = 240;
-const HERO_ACTIONABLE_MIN  = 60;
+// HERO_ACTIONABLE_MIN: legacy actionable cutoff — kept for compatibility with
+// classifyPin's return shape; the new pill always shows the time, so the flag
+// is consulted but doesn't change rendering.
+const WAITING_HORIZON_MIN = 240;
+const HERO_ACTIONABLE_MIN = 60;
 
 /**
  * Classify a venue into Hero / Waiting / Context for the given hour and date.
- * Returns an object: { tier, actionable?, endHour?, minsLeft?,
- *                      minutesUntil?, nextStart?,
- *                      hasSunLaterToday?, closedOpeningIntoSun? }
+ * Returns: { tier, actionable?, endHour?, minsLeft?,
+ *            minutesUntil?, nextStart?,
+ *            hasSunLaterToday?, closedOpeningIntoSun? }
  */
 function classifyPin(v, dateStr, hour) {
   let windows;
@@ -84,11 +63,8 @@ function classifyPin(v, dateStr, hour) {
   const { open: vOpen, close: vClose } = v.openingHours ?? {};
   const isOpen = vOpen != null && hour >= vOpen && hour <= vClose;
 
-  // Soft Zebra qualifying gate: a venue only earns a hero/waiting pill when
-  // its sun run survives the same 45-min weather-gated filter the list uses.
-  // Sub-floor windows render as low-prominence "context" dots — exactly the
-  // signal the user expects when a venue isn't list-worthy. Wrapped in a
-  // typeof guard so the worker (which has no DOM/weather context) is fine.
+  // Soft Zebra qualifying gate — same 45-min weather-gated filter the list
+  // uses. Wrapped in a typeof guard so the worker (no DOM/weather) is fine.
   let qual = null;
   if (typeof qualifyingWindows === 'function' && typeof currentSunTable !== 'undefined' && currentSunTable) {
     const sundownH = (typeof findSunCrossingFromTable === 'function')
@@ -104,7 +80,6 @@ function classifyPin(v, dateStr, hour) {
   }
   const surfaced = !qual || qual.surfaced;
 
-  // Tier 1: venue has sun right now AND meets the qualifying floor.
   const nowInSun = windows.find(w => hour >= w.start && hour < w.end);
   if (nowInSun && surfaced) {
     const minsLeft = Math.round(Math.max(0, nowInSun.end - hour) * 60);
@@ -117,156 +92,37 @@ function classifyPin(v, dateStr, hour) {
     };
   }
 
-  // Tier 2a: sun arrives within WAITING_HORIZON_MIN AND qualifies.
   const next = windows.find(w => w.start > hour);
   if (next && (next.start - hour) * 60 <= WAITING_HORIZON_MIN && surfaced) {
     const mins = Math.round((next.start - hour) * 60);
-    // Badge: venue is currently closed but will be open when sun arrives
     const closedOpeningIntoSun = !isOpen && vOpen != null && next.start >= vOpen;
     return { tier: 'waiting', minutesUntil: mins, nextStart: next.start, closedOpeningIntoSun };
   }
 
-  // Tier 2b: context dot — sub-floor or weather-suppressed venues land here.
   return { tier: 'context', hasSunLaterToday: !!next, closedOpeningIntoSun: false };
 }
 
-// ── Density caps ──────────────────────────────────────────────────────────────
-// Baseline values are for a ~1000×900 px viewport (≈ 900 000 px²).
-// Caps scale linearly with viewport area so iPhone SE and iPad Pro get sensible limits.
-// Density caps are soft backstops only — the spatial layout (computePinLayout)
-// is the primary authority on whether a pin shows as pill or dot.
-// Caps kick in only at low zoom where many venues flood the viewport;
-// at zoom ≥ 16 they are disabled so every hero/waiting gets a pill if space allows.
-//
-// Rule of thumb: cap ≥ (realistic max in-view count) → cap is never the constraint,
-// spatial overlap is. Tune downward only if very-low-zoom clutter becomes a problem.
-function _getDensityCaps(zoom) {
-  // Hero cap is always Infinity — every venue currently in sun deserves a pill
-  // if the spatial layout can find room. The layout grid is the real authority.
-  // Waiting pills are secondary: they only appear when space remains after all
-  // hero pills have been placed (enforced in computePinLayout, not here).
-  if (zoom >= 16) return { heroCap: Infinity, waitingCap: 16 };
-  if (zoom >= 14) return { heroCap: Infinity, waitingCap: 12 };
-  if (zoom >= 12) return { heroCap: Infinity, waitingCap: 8  };
-  return             { heroCap: Infinity, waitingCap: 4  };
+// ── Token-derived rgba helper ──────────────────────────────────────────────────
+function _rgba(color, a) {
+  if (!color) return `rgba(0,0,0,${a})`;
+  if (color[0] === '#') {
+    const h    = color.slice(1);
+    const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
+    const r = parseInt(full.slice(0, 2), 16);
+    const g = parseInt(full.slice(2, 4), 16);
+    const b = parseInt(full.slice(4, 6), 16);
+    return `rgba(${r},${g},${b},${a})`;
+  }
+  const m = color.match(/^rgba?\s*\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)/);
+  if (m) return `rgba(${m[1]},${m[2]},${m[3]},${a})`;
+  return color;
 }
 
-// UX-tuning constant: each km of distance from map center adds this many "virtual minutes"
-// to a waiting pin's sort score. Closer venues beat farther ones even if slightly later sun.
-// Pure hypothesis — tune after real-world testing.
-const WAITING_DISTANCE_PENALTY_MIN_PER_KM = 30;
-
-// Flat-earth distance in km, accurate enough for Oslo-scale distances (<50 km).
-function _geoDistKm(lat1, lng1, lat2, lng2) {
-  const dlat = (lat2 - lat1) * 111.0;
-  const dlng = (lng2 - lng1) * 111.0 * Math.cos(lat1 * Math.PI / 180);
-  return Math.sqrt(dlat * dlat + dlng * dlng);
-}
-
-// Stable tier IDs from the last full-recompute (moveend/zoomend or time change).
-// Used for hysteresis: during active pan, prefer pins that were already visible
-// over newly-entered candidates at the same cap budget.
-const _stableHeroIds    = new Set();
-const _stableWaitingIds = new Set();
-
-/**
- * Apply density filter in-place: demote excess Hero / Waiting entries.
- * Overflow pins get { demoted: true } added to their classResult — tier stays
- * 'hero' / 'waiting' so solar identity is always preserved. They render as
- * coloured dots (orange = hero, blue = waiting), never as context glass dots.
- *
- * isFullRecompute = true  → full re-sort + demote; rebuild stable sets afterwards.
- *                           Triggered by moveend / zoomend / time/date change.
- * isFullRecompute = false → pan frame; keep stable IDs, demote newcomers first.
- *                           Prevents existing pills from flashing away during pan.
- */
-function _applyDensityFilter(projVenues, zoom, currentHour, dateStr, isFullRecompute) {
-  const { heroCap, waitingCap } = _getDensityCaps(zoom);
-
-  function _heroScore(e) {
-    try { return typeof sunScore === 'function' ? (sunScore(e.v, dateStr, currentHour) ?? 0) : (e.v.rating ?? 0); }
-    catch { return 0; }
-  }
-
-  // Venues with friend check-ins are never density-demoted or collapsed to dots
-  _friendVenueIds = new Set();
-  if (typeof getFriendCheckinsForVenue === 'function') {
-    for (const e of projVenues) {
-      if (getFriendCheckinsForVenue(e.v.id).length) _friendVenueIds.add(e.v.id);
-    }
-  }
-
-  const heroes  = projVenues.filter(e => e.classResult.tier === 'hero');
-  const waiting = projVenues.filter(e => e.classResult.tier === 'waiting');
-
-  // ── Hero cap ──────────────────────────────────────────────────────────────
-  if (heroes.length > heroCap) {
-    if (isFullRecompute) {
-      heroes.sort((a, b) => _heroScore(b) - _heroScore(a));
-      for (let i = heroCap; i < heroes.length; i++) {
-        if (_friendVenueIds.has(heroes[i].v.id)) continue; // friends never demoted
-        heroes[i].classResult = { ...heroes[i].classResult, demoted: true };
-      }
-    } else {
-      const stable = heroes.filter(h => _stableHeroIds.has(h.v.id));
-      const fresh  = heroes.filter(h => !_stableHeroIds.has(h.v.id));
-      fresh.sort((a, b) => _heroScore(b) - _heroScore(a));
-      for (let i = Math.max(0, heroCap - stable.length); i < fresh.length; i++) {
-        if (_friendVenueIds.has(fresh[i].v.id)) continue; // friends never demoted
-        fresh[i].classResult = { ...fresh[i].classResult, demoted: true };
-      }
-    }
-  }
-  if (isFullRecompute) {
-    // Stable set = only pill-heroes (non-demoted). Demoted heroes join the fresh
-    // pool on the next pan frame so they're bumped before any newly-visible heroes.
-    _stableHeroIds.clear();
-    projVenues.forEach(e => {
-      if (e.classResult.tier === 'hero' && !e.classResult.demoted) _stableHeroIds.add(e.v.id);
-    });
-  }
-
-  // ── Waiting cap ───────────────────────────────────────────────────────────
-  if (waiting.length > waitingCap) {
-    // Sort score: minutesUntil + distance-from-centre penalty.
-    const centre = map.getCenter();
-    function _waitingScore(e) {
-      const d = _geoDistKm(e.v.lat, e.v.lng, centre.lat, centre.lng);
-      return (e.classResult.minutesUntil ?? 240) + d * WAITING_DISTANCE_PENALTY_MIN_PER_KM;
-    }
-
-    if (isFullRecompute) {
-      waiting.sort((a, b) => _waitingScore(a) - _waitingScore(b));
-      for (let i = waitingCap; i < waiting.length; i++) {
-        if (_friendVenueIds.has(waiting[i].v.id)) continue; // friends never demoted
-        waiting[i].classResult = { ...waiting[i].classResult, demoted: true };
-      }
-    } else {
-      const stable = waiting.filter(w => _stableWaitingIds.has(w.v.id));
-      const fresh  = waiting.filter(w => !_stableWaitingIds.has(w.v.id));
-      fresh.sort((a, b) => _waitingScore(a) - _waitingScore(b));
-      for (let i = Math.max(0, waitingCap - stable.length); i < fresh.length; i++) {
-        if (_friendVenueIds.has(fresh[i].v.id)) continue; // friends never demoted
-        fresh[i].classResult = { ...fresh[i].classResult, demoted: true };
-      }
-    }
-  }
-  if (isFullRecompute) {
-    _stableWaitingIds.clear();
-    projVenues.forEach(e => {
-      if (e.classResult.tier === 'waiting' && !e.classResult.demoted) _stableWaitingIds.add(e.v.id);
-    });
-  }
-}
-
-// ── Friend inlay helpers ──────────────────────────────────────────────────────
-// Deterministic color from a user id, drawn from the warm-cream/jordy palette
-// used in the Friend Features prototype. The same id always maps to the same
-// hue so an avatar reads as "the same person" across pin and detail panel.
-// #9CBDE7 and #FFCFAA were rotated out: they collide with the FTS map palette
-// (buildings #B5D0EC and roads #F4D0B2 family) — a friend dot in the same hue
-// would lose its centre on the map.
-const _FRIEND_COLORS = ['#FFAF85', '#85ACDD', '#FFD488', '#E6C08A', '#F5B289', '#DECCC0'];
+// ── Friend palette ─────────────────────────────────────────────────────────────
+// Pale pastels — designed to pop against a saturated capsule. A 1px cream
+// halo around every avatar (drawn in _drawFriendModule) guarantees separation
+// from the status ring, regardless of capsule colour.
+const _FRIEND_COLORS = ['#E8C0BA', '#C0D0B5', '#E8DAB8', '#C8C0DA', '#B8D5D8', '#ECCEB5'];
 function _friendColor(userId) {
   const s = String(userId || '');
   let h = 0;
@@ -278,809 +134,517 @@ function _friendInitial(u) {
   return (src[0] || '?').toUpperCase();
 }
 
-// Layout for the inlaid blue capsule on a hero pill.
-// Up to 2 avatars are shown plus a "+N" overflow chip when there are more.
-// Capsule is 22px tall (flush in 26px pill) with 4px horizontal padding,
-// avatars are 16px circles with -5px overlap.
-const _INLAY_AV_SIZE     = 16;
-const _INLAY_AV_OVERLAP  = 5;
-const _INLAY_HEIGHT      = 22;
-const _INLAY_PAD_X       = 4;
-function _inlayWidth(friendCount) {
-  const slots = Math.min(friendCount, friendCount > 2 ? 3 : friendCount); // 1, 2, or 3 (2 + "+N")
-  return _INLAY_PAD_X * 2 + slots * _INLAY_AV_SIZE - Math.max(0, slots - 1) * _INLAY_AV_OVERLAP;
+// ── Pin geometry constants ─────────────────────────────────────────────────────
+const PILL_H            = 26;     // pill body height
+const PILL_R            = 13;     // pill corner radius (= h/2 → fully rounded)
+const TAIL_H            = 4;      // chevron tail tip height below pill body
+const TAIL_HALF_W       = 4;      // chevron half-width
+const CIRCLE_R          = 10;     // status-dot radius (20px diameter; same as 1-friend module)
+const PAD_L             = 3;      // gap between pill left edge and dot/friend module
+const PAD_R             = 9;      // gap between time text and pill right edge
+const CIRCLE_TIME_GAP   = 5;      // gap between dot right edge and time text
+const COMPAT_STEM_H     = 14;     // padding baked into spr.cssH so hitTestVenue maths works
+
+// Friend module geometry (capsule of stacked avatars)
+const AVATAR_R          = 8;      // each avatar is 16px diameter
+const AVATAR_OVERLAP    = 6;      // adjacent avatars overlap by this many px
+const BORDER_W          = 2;      // status ring around the friend module
+const MAX_AVATARS       = 2;      // stack up to 2 avatars; 3+ adds inline "+N" text
+const PLUS_FONT         = 'bold 10px "Inter", system-ui, sans-serif';
+const PLUS_GAP_INNER    = 2;      // gap between last avatar and "+N" text inside the capsule
+const PLUS_PAD_RIGHT    = 5;      // inner padding on the right edge of the capsule
+
+// ── Status colour for the dot / friend capsule ────────────────────────────────
+// Two states only — sun or shadow:
+//   hero (in sun now)            → --accent (honey)
+//   waiting OR context (shadow)  → --bg (deepest brand slate)
+// The capsule colour answers "is it sunny?". The time text answers "when does
+// that change?". Closed-but-opens dims the hero fill so the pill reads as
+// "waiting on opening" without leaving the honey family.
+function _dotColors(tier, closed) {
+  if (tier === 'hero') {
+    return closed
+      ? { fill: _rgba(TOKENS.accent, 0.55), ring: _rgba(TOKENS.accentOn, 0.30) }
+      : { fill: TOKENS.accent,              ring: _rgba(TOKENS.accentOn, 0.40) };
+  }
+  return { fill: TOKENS.bg, ring: _rgba(TOKENS.text, 0.30) };
 }
 
-// Draw the inlaid blue capsule at (x, y) into context c. y is the pill's top edge;
-// the capsule centers vertically inside a 26px pill.
-function _drawFriendInlay(c, x, pillY, friends) {
-  const slots = Math.min(friends.length, friends.length > 2 ? 3 : friends.length);
-  const w = _inlayWidth(friends.length);
-  const y = pillY + (PILL_H - _INLAY_HEIGHT) / 2;
-  const r = _INLAY_HEIGHT / 2;
-
-  // Capsule fill (Delft blue)
+// ── Vector category icons (white, drawn into the coloured solo dot) ───────────
+function _drawCafeIcon(c, cx, cy) {
+  c.lineWidth = 1.5;
+  c.lineCap   = 'round';
+  c.lineJoin  = 'round';
+  c.strokeStyle = '#fff';
+  c.fillStyle   = '#fff';
+  // Mug body (closed-top with handle integrated)
   c.beginPath();
-  c.roundRect(x, y, w, _INLAY_HEIGHT, r);
-  c.fillStyle = TOKENS.surface;
+  c.moveTo(cx - 2.4, cy - 1.8);
+  c.lineTo(cx + 1.6, cy - 1.8);
+  c.lineTo(cx + 1.6, cy + 1.4);
+  c.quadraticCurveTo(cx + 1.6, cy + 2.4, cx + 0.6, cy + 2.4);
+  c.lineTo(cx - 1.4, cy + 2.4);
+  c.quadraticCurveTo(cx - 2.4, cy + 2.4, cx - 2.4, cy + 1.4);
+  c.closePath();
+  c.stroke();
+  // Handle
+  c.beginPath();
+  c.arc(cx + 1.6, cy - 0.2, 1.3, -Math.PI / 2, Math.PI / 2);
+  c.stroke();
+  // Steam dot
+  c.beginPath();
+  c.arc(cx - 0.4, cy - 3.2, 0.55, 0, Math.PI * 2);
   c.fill();
+}
 
-  // Outer 1px tangerine hairline (matches prototype inlay-blue spec)
+function _drawBarIcon(c, cx, cy) {
+  c.lineWidth = 1.5;
+  c.lineCap   = 'round';
+  c.lineJoin  = 'round';
+  c.strokeStyle = '#fff';
+  // Bowl V
   c.beginPath();
-  c.roundRect(x + 0.5, y + 0.5, w - 1, _INLAY_HEIGHT - 1, r - 0.5);
-  c.strokeStyle = 'rgba(255, 230, 180, 0.35)';
-  c.lineWidth   = 1;
+  c.moveTo(cx - 3.0, cy - 2.6);
+  c.lineTo(cx + 3.0, cy - 2.6);
+  c.lineTo(cx,        cy + 0.8);
+  c.closePath();
   c.stroke();
-
-  // Inner top sheen
-  c.save();
-  c.beginPath(); c.roundRect(x, y, w, _INLAY_HEIGHT, r);
-  c.clip();
-  c.strokeStyle = 'rgba(156,189,231,0.18)';
-  c.lineWidth   = 1;
+  // Stem
   c.beginPath();
-  c.moveTo(x + r, y + 0.5);
-  c.lineTo(x + w - r, y + 0.5);
+  c.moveTo(cx, cy + 0.8);
+  c.lineTo(cx, cy + 2.6);
   c.stroke();
-  c.restore();
-
-  // Avatars — render right-to-left so first avatar sits on top of stack.
-  const avR = _INLAY_AV_SIZE / 2;
-  const avY = y + (_INLAY_HEIGHT - _INLAY_AV_SIZE) / 2 + avR;
-  for (let i = slots - 1; i >= 0; i--) {
-    const isOverflow = i === 2 && friends.length > 2;
-    const avX = x + _INLAY_PAD_X + i * (_INLAY_AV_SIZE - _INLAY_AV_OVERLAP) + avR;
-
-    // Cream ring (1.5px) so avatars read against the blue capsule
-    c.beginPath(); c.arc(avX, avY, avR, 0, Math.PI * 2);
-    c.fillStyle = isOverflow ? TOKENS.surface : _friendColor(friends[i]?.user?.id);
-    c.fill();
-    c.beginPath(); c.arc(avX, avY, avR - 0.75, 0, Math.PI * 2);
-    c.strokeStyle = TOKENS.text;
-    c.lineWidth   = 1.5;
-    c.stroke();
-
-    // Initial / overflow label
-    c.textBaseline = 'middle';
-    c.textAlign    = 'center';
-    if (isOverflow) {
-      c.font      = 'bold 8px "Inter", sans-serif';
-      c.fillStyle = TOKENS.text;
-      c.fillText('+' + (friends.length - 2), avX, avY);
-    } else {
-      c.font      = 'bold 8.5px "Inter", sans-serif';
-      c.fillStyle = TOKENS.accentOn;
-      c.fillText(_friendInitial(friends[i]?.user), avX, avY);
-    }
-  }
+  // Base
+  c.beginPath();
+  c.moveTo(cx - 1.8, cy + 2.6);
+  c.lineTo(cx + 1.8, cy + 2.6);
+  c.stroke();
 }
 
-// ── Icon draw helper ──────────────────────────────────────────────────────────
-function _drawIcon(c, cx, cy, r, imgArr, idx) {
-  const img = imgArr[Math.max(0, Math.min(imgArr.length - 1, idx))];
-  c.save();
-  c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2);
-  c.clip();
-  if (img && img.complete && img.naturalWidth > 0) {
-    c.drawImage(img, cx - r, cy - r, r * 2, r * 2);
-  } else {
-    // Fallback while image is loading
-    c.fillStyle = 'rgba(20,46,82,0.88)';
-    c.fill();
-  }
-  c.restore();
+function _drawRestaurantIcon(c, cx, cy) {
+  c.lineWidth = 1.5;
+  c.lineCap   = 'round';
+  c.lineJoin  = 'round';
+  c.strokeStyle = '#fff';
+  c.fillStyle   = '#fff';
+  // Fork shaft
+  c.beginPath();
+  c.moveTo(cx - 1.6, cy - 3.4);
+  c.lineTo(cx - 1.6, cy + 3.4);
+  c.stroke();
+  // Fork outer prongs
+  c.beginPath();
+  c.moveTo(cx - 2.8, cy - 3.4);
+  c.lineTo(cx - 2.8, cy - 1.0);
+  c.moveTo(cx - 0.4, cy - 3.4);
+  c.lineTo(cx - 0.4, cy - 1.0);
+  c.stroke();
+  // Knife blade + handle
+  c.beginPath();
+  c.moveTo(cx + 2.0, cy - 3.4);
+  c.lineTo(cx + 3.0, cy - 3.4);
+  c.lineTo(cx + 2.7, cy - 0.4);
+  c.lineTo(cx + 2.3, cy - 0.4);
+  c.closePath();
+  c.fill();
+  c.beginPath();
+  c.moveTo(cx + 2.5, cy - 0.4);
+  c.lineTo(cx + 2.5, cy + 3.4);
+  c.stroke();
 }
 
-// ── buildSprite ────────────────────────────────────────────────────────────────
-/**
- * Build a sprite canvas for the given tier + tierData.
- * Returns { canvas, anchorX, anchorY, cssW, cssH, pillW, pillH, pillR }
- * anchors are in CSS pixels; sprite is built at DPR resolution.
- *
- * Tier 1 — Hero:    tangerine pill, sun icon left, venue name right, stem solid.
- * Tier 2a — Waiting: glass pill, shadow icon left, time right, stem dashed.
- * Tier 2b — Context: 10×10 glass dot, no stem, no text.
- */
-function buildSprite(v, tier, tierData, selected) {
-  const dpr = window.devicePixelRatio || 1;
-  const rp  = selected ? 4 : 2;  // selection ring padding
-
-  // ── Context dot ──────────────────────────────────────────────────────────────
-  if (tier === 'context') {
-    const DOT_D  = 10;
-    const dotR   = DOT_D / 2;
-    const cW     = DOT_D + SHADOW_PAD * 2;
-    const cH     = DOT_D + SHADOW_PAD * 2;
-    const cx     = SHADOW_PAD + dotR;
-    const cy     = SHADOW_PAD + dotR;
-
-    const oc = document.createElement('canvas');
-    oc.width  = Math.ceil(cW * dpr);
-    oc.height = Math.ceil(cH * dpr);
-    const c   = oc.getContext('2d');
-    c.scale(dpr, dpr);
-
-    // Dim if no sun at all today
-    c.globalAlpha = (tierData && !tierData.hasSunLaterToday) ? 0.42 : 1.0;
-
-    // Drop shadow (micro)
-    c.save();
-    c.shadowColor   = 'rgba(0,0,0,0.30)';
-    c.shadowBlur    = 3;
-    c.shadowOffsetY = 1;
-    c.beginPath(); c.arc(cx, cy, dotR, 0, Math.PI * 2);
-    const dotGrad = c.createLinearGradient(cx - dotR, cy - dotR, cx + dotR, cy + dotR);
-    dotGrad.addColorStop(0, 'rgba(20,46,82,0.55)');
-    dotGrad.addColorStop(1, 'rgba(32,73,131,0.38)');
-    c.fillStyle = dotGrad;
-    c.fill();
-    c.restore();
-
-    // 1px Jordy border
-    c.beginPath(); c.arc(cx, cy, dotR - 0.5, 0, Math.PI * 2);
-    c.strokeStyle = 'rgba(156,189,231,0.18)';
-    c.lineWidth   = 1;
-    c.stroke();
-
-    // Selection ring (2px, offset 2px outside dot)
-    if (selected) {
-      c.beginPath(); c.arc(cx, cy, dotR + 2, 0, Math.PI * 2);
-      c.strokeStyle = 'rgba(255,175,133,0.9)';
-      c.lineWidth   = 2;
-      c.stroke();
-    }
-
-    // Anchor = center of dot
-    return { canvas: oc, anchorX: cx, anchorY: cy, cssW: cW, cssH: cH, pillW: 0, pillH: 0, pillR: 0 };
-  }
-
-  // ── Hero pill (Tier 1) ────────────────────────────────────────────────────────
-  // Default (>60 min sun left): tangerine pill, name only. No icon.
-  // Actionable (≤60 min left): same pill, contents "Name · til HH:mm". No icon.
-  // The tangerine fill IS the "in sun" signal; `til` disambiguates end-time from arrival.
-  if (tier === 'hero') {
-    const actionable = tierData?.actionable ?? false;
-    const endHour    = tierData?.endHour ?? 0;
-    // Friend check-ins drive the inlaid blue capsule on the left of the pill.
-    const friendCheckins = (typeof getFriendCheckinsForVenue === 'function')
-      ? getFriendCheckinsForVenue(v.id) : [];
-    const hasFriends = friendCheckins.length > 0;
-    // Inlay capsule width + 6px gap before the name when friends are present.
-    const inlayW = hasFriends ? _inlayWidth(friendCheckins.length) : 0;
-    // When the inlay is present, left padding tightens (3px) to balance the visual.
-    const leftPad = hasFriends ? 3 : 12;
-    const inlayGap = hasFriends ? 6 : 0;
-    // Name budget: tighter when actionable (til HH:mm adds ~50px)
-    const name = shortName(v.name, actionable ? 9 : 14);
-
-    const tmpCtx = document.createElement('canvas').getContext('2d');
-    tmpCtx.font  = 'bold 11px "Inter", sans-serif';
-    const nameW  = tmpCtx.measureText(name).width;
-
-    let pillW;
-    if (actionable) {
-      // Layout: leftPad | [inlay+gap] | name | ·(3+3) | "til"(600) | 4px | "HH:mm"(700) | 12px
-      const tilText  = 'til';   // i18n TODO: locale equivalent for other languages
-      const timeText = formatHourAsClock(endHour);
-      tmpCtx.font = '600 11px "Inter", sans-serif';
-      const tilW  = tmpCtx.measureText(tilText).width;
-      tmpCtx.font = 'bold 11px "Inter", sans-serif';
-      const dotW  = tmpCtx.measureText('·').width;
-      const timeW = tmpCtx.measureText(timeText).width;
-      pillW = Math.max(60, leftPad + inlayW + inlayGap + Math.ceil(nameW) + 3 + Math.ceil(dotW) + 3 + Math.ceil(tilW) + 4 + Math.ceil(timeW) + 12);
-    } else {
-      // Layout: leftPad | [inlay+gap] | name | 12px
-      pillW = Math.max(44, leftPad + inlayW + inlayGap + Math.ceil(nameW) + 12);
-    }
-
-    const pillH = PILL_H;
-    const pillR = PILL_R;
-
-    const cW  = Math.ceil(pillW + rp * 2 + 2 + SHADOW_PAD * 2);
-    const cH  = Math.ceil(pillH + STEM_H + rp + SHADOW_PAD * 2);
-    const ox  = SHADOW_PAD + rp + 1;   // pill left edge
-    const oy  = SHADOW_PAD + rp;       // pill top edge
-    const stemX = ox + pillW / 2;
-    const cyA   = oy + pillH + STEM_H; // anchor y (bottom of stem)
-    const cxA   = stemX;
-    const textY = oy + pillH / 2;      // vertical center for all text
-
-    const oc = document.createElement('canvas');
-    oc.width  = Math.ceil(cW * dpr);
-    oc.height = Math.ceil(cH * dpr);
-    const c   = oc.getContext('2d');
-    c.scale(dpr, dpr);
-
-    // Soft tangerine accent glow behind pill
-    {
-      const gCx = ox + pillW / 2, gCy = oy + pillH / 2;
-      const scaleX = (pillW * 0.72) / pillH;
-      c.save();
-      c.translate(gCx, gCy);
-      c.scale(scaleX, 1);
-      const glow = c.createRadialGradient(0, 0, 0, 0, 0, pillH);
-      glow.addColorStop(0, 'rgba(255,175,133,0.18)');
-      glow.addColorStop(1, 'rgba(255,175,133,0)');
-      c.beginPath(); c.arc(0, 0, pillH, 0, Math.PI * 2);
-      c.fillStyle = glow; c.fill();
-      c.restore();
-    }
-
-    // Selection ring (2px, offset 2px outside pill bounds)
-    if (selected) {
-      c.beginPath();
-      c.roundRect(ox - rp, oy - rp, pillW + rp * 2, pillH + rp * 2, pillR + rp);
-      c.strokeStyle = 'rgba(255,175,133,0.9)';
-      c.lineWidth   = 2;
-      c.stroke();
-    }
-
-    // Solid tangerine stem
-    c.beginPath();
-    c.moveTo(stemX, oy + pillH);
-    c.lineTo(stemX, cyA);
-    c.strokeStyle = 'rgba(255,175,133,0.70)';
-    c.lineWidth   = 2;
-    c.stroke();
-    // Anchor dot
-    c.beginPath(); c.arc(stemX, cyA, 2, 0, Math.PI * 2);
-    c.fillStyle = 'rgba(255,175,133,0.70)'; c.fill();
-
-    // Pill fill with drop shadow
-    c.save();
-    c.shadowColor   = 'rgba(0,0,0,0.40)';
-    c.shadowBlur    = 8;
-    c.shadowOffsetX = 0;
-    c.shadowOffsetY = 3;
-    c.beginPath();
-    c.roundRect(ox, oy, pillW, pillH, pillR);
-    c.fillStyle = TOKENS.accent;  // the pill color IS the "in sun" signal
-    c.fill();
-    c.restore();
-
-    // Outer stroke (warm glow cue)
-    c.beginPath();
-    c.roundRect(ox, oy, pillW, pillH, pillR);
-    c.strokeStyle = 'rgba(255,230,120,0.4)';
-    c.lineWidth   = 1;
-    c.stroke();
-
-    // Inner top-edge sheen
-    c.save();
-    c.beginPath(); c.roundRect(ox, oy, pillW, pillH, pillR);
-    c.clip();
-    c.strokeStyle = 'rgba(255,242,235,0.45)';
-    c.lineWidth   = 1;
-    c.beginPath();
-    c.moveTo(ox + pillR, oy + 0.5);
-    c.lineTo(ox + pillW - pillR, oy + 0.5);
-    c.stroke();
-    c.restore();
-
-    // Inlaid blue capsule (left side) when this venue has friend check-ins.
-    // Drawn before text so the avatars sit ABOVE the pill fill but BELOW any
-    // selection ring (which is drawn earlier and outside the pill bounds).
-    if (hasFriends) {
-      _drawFriendInlay(c, ox + leftPad, oy, friendCheckins);
-    }
-
-    // Text (no icon — the tangerine fill is the full "sunny now" signal)
-    c.textBaseline = 'middle';
-    c.textAlign    = 'left';
-    const nameX = ox + leftPad + inlayW + inlayGap;
-
-    if (!actionable) {
-      // Default: name only, bold 700, dark on tangerine
-      c.font      = 'bold 11px "Inter", sans-serif';
-      c.fillStyle = TOKENS.accentOn;
-      c.fillText(name, nameX, textY);
-    } else {
-      // Actionable: name · til HH:mm (no icon, no glyph)
-      const tilText  = 'til';   // i18n TODO
-      const timeText = formatHourAsClock(endHour);
-
-      // name (bold 700, full contrast)
-      c.font      = 'bold 11px "Inter", sans-serif';
-      c.fillStyle = TOKENS.accentOn;
-      c.fillText(name, nameX, textY);
-      let x = nameX + c.measureText(name).width;
-
-      // separator · (dimmed)
-      c.fillStyle = 'rgba(42,26,12,0.5)';
-      x += 3;
-      c.fillText('·', x, textY);
-      x += c.measureText('·').width + 3;
-
-      // "til" (600 weight, lower contrast — name is the foreground)
-      c.font      = '600 11px "Inter", sans-serif';
-      c.fillStyle = 'rgba(42,26,12,0.72)';
-      c.fillText(tilText, x, textY);
-      x += c.measureText(tilText).width + 4;
-
-      // end time (bold 700, same lower-contrast color as til)
-      c.font      = 'bold 11px "Inter", sans-serif';
-      c.fillStyle = 'rgba(42,26,12,0.72)';
-      c.fillText(timeText, x, textY);
-    }
-
-    return { canvas: oc, anchorX: cxA, anchorY: cyA, cssW: cW, cssH: cH, pillW, pillH, pillR };
-  }
-
-  // ── Waiting pill (Tier 2a) ────────────────────────────────────────────────────
-  if (tier === 'waiting') {
-    const iconDiam = 14;
-    const iconR    = iconDiam / 2;
-    const { minutesUntil = 120, nextStart = 0, closedOpeningIntoSun = false } = tierData ?? {};
-    const shadowIdx = _shadowIconIdx(minutesUntil);
-
-    // Time label: absolute clock always — one format, always.
-    const timeText = formatHourAsClock(nextStart);
-
-    const tmpCtx = document.createElement('canvas').getContext('2d');
-    tmpCtx.font  = 'bold 11px "Inter", sans-serif';
-    const tw     = tmpCtx.measureText(timeText).width;
-
-    // Layout: 6px inset + 14px icon + 4px gap + text + 10px right
-    const pillW = Math.max(36, 6 + iconDiam + 4 + Math.ceil(tw) + 10);
-    const pillH = WAITING_PILL_H;
-    const pillR = WAITING_PILL_R;
-
-    const cW  = Math.ceil(pillW + rp * 2 + 2 + SHADOW_PAD * 2);
-    const cH  = Math.ceil(pillH + STEM_H + rp + SHADOW_PAD * 2);
-    const ox  = SHADOW_PAD + rp + 1;
-    const oy  = SHADOW_PAD + rp;
-    const stemX = ox + pillW / 2;
-    const cyA   = oy + pillH + STEM_H;
-    const cxA   = stemX;
-
-    const iconCx = ox + 6 + iconR;
-    const iconCy = oy + pillH / 2;
-    // Badge: bottom-right corner of icon bounding box
-    const iconRight  = ox + 6 + iconDiam;
-    const iconBottom = oy + (pillH - iconDiam) / 2 + iconDiam;
-
-    const oc = document.createElement('canvas');
-    oc.width  = Math.ceil(cW * dpr);
-    oc.height = Math.ceil(cH * dpr);
-    const c   = oc.getContext('2d');
-    c.scale(dpr, dpr);
-
-    // Selection ring
-    if (selected) {
-      c.beginPath();
-      c.roundRect(ox - rp, oy - rp, pillW + rp * 2, pillH + rp * 2, pillR + rp);
-      c.strokeStyle = 'rgba(255,175,133,0.9)';
-      c.lineWidth   = 2;
-      c.stroke();
-    }
-
-    // Dashed Jordy Blue stem
-    c.beginPath();
-    c.moveTo(stemX, oy + pillH);
-    c.lineTo(stemX, cyA);
-    c.setLineDash([3, 3]);
-    c.strokeStyle = 'rgba(156,189,231,0.55)';
-    c.lineWidth   = 2;
-    c.stroke();
-    c.setLineDash([]);
-    c.beginPath(); c.arc(stemX, cyA, 2, 0, Math.PI * 2);
-    c.fillStyle = 'rgba(156,189,231,0.55)'; c.fill();
-
-    // Pill fill with drop shadow (Shades Glass action level)
-    c.save();
-    c.shadowColor   = 'rgba(0,0,0,0.35)';
-    c.shadowBlur    = 6;
-    c.shadowOffsetX = 0;
-    c.shadowOffsetY = 2;
-    c.beginPath();
-    c.roundRect(ox, oy, pillW, pillH, pillR);
-    const grad = c.createLinearGradient(ox, oy, ox + pillW, oy + pillH);
-    grad.addColorStop(0, 'rgba(20,46,82,0.42)');
-    grad.addColorStop(1, 'rgba(32,73,131,0.26)');
-    c.fillStyle = grad;
-    c.fill();
-    c.restore();
-
-    // 1px Jordy border
-    c.beginPath();
-    c.roundRect(ox, oy, pillW, pillH, pillR);
-    c.strokeStyle = 'rgba(156,189,231,0.18)';
-    c.lineWidth   = 1;
-    c.stroke();
-
-    // Inner top-edge sheen (Shades Glass recipe)
-    c.save();
-    c.beginPath(); c.roundRect(ox, oy, pillW, pillH, pillR);
-    c.clip();
-    c.strokeStyle = 'rgba(255,242,235,0.18)';
-    c.lineWidth   = 1;
-    c.beginPath();
-    c.moveTo(ox + pillR, oy + 0.5);
-    c.lineTo(ox + pillW - pillR, oy + 0.5);
-    c.stroke();
-    c.restore();
-
-    // Time label: tangerine text (icon is the state signal; time is urgency)
-    c.font         = 'bold 11px "Inter", sans-serif';
-    c.fillStyle    = TOKENS.accent;
-    c.textBaseline = 'middle';
-    c.textAlign    = 'left';
-    c.fillText(timeText, ox + 6 + iconDiam + 4, iconCy);
-
-    // Shadow icon: always on the left
-    _drawIcon(c, iconCx, iconCy, iconR, _shadowIcons, shadowIdx);
-
-    // Clock badge: venue closed now, but opens into the sun window
-    if (closedOpeningIntoSun) {
-      const badgeR  = 3;   // 6px diameter
-      const badgeCx = iconRight - 1;
-      const badgeCy = iconBottom - 1;
-
-      c.save();
-      // Badge fill (Delft Blue — dark so it reads on glass pill)
-      c.beginPath(); c.arc(badgeCx, badgeCy, badgeR + 0.75, 0, Math.PI * 2);
-      c.fillStyle = TOKENS.surface;
-      c.fill();
-      // Badge border (--muted)
-      c.strokeStyle = TOKENS.muted;
-      c.lineWidth   = 1.5;
-      c.stroke();
-      // Clock hands (two 1px strokes in --muted; shape carries more signal than detail at 6px)
-      c.strokeStyle = TOKENS.muted;
-      c.lineWidth   = 1;
-      const handLen = badgeR - 0.5;
-      // Minute hand: 12 o'clock (top)
-      c.beginPath();
-      c.moveTo(badgeCx, badgeCy);
-      c.lineTo(badgeCx, badgeCy - handLen);
-      c.stroke();
-      // Hour hand: ~2 o'clock (60° from top)
-      const hAngle = -Math.PI / 2 + Math.PI / 3;
-      c.beginPath();
-      c.moveTo(badgeCx, badgeCy);
-      c.lineTo(badgeCx + Math.cos(hAngle) * handLen, badgeCy + Math.sin(hAngle) * handLen);
-      c.stroke();
-      c.restore();
-    }
-
-    return { canvas: oc, anchorX: cxA, anchorY: cyA, cssW: cW, cssH: cH, pillW, pillH, pillR };
-  }
-
-  // Fallback (should not be reached)
-  const oc = document.createElement('canvas');
-  oc.width = oc.height = 1;
-  return { canvas: oc, anchorX: 0.5, anchorY: 0.5, cssW: 1, cssH: 1, pillW: 0, pillH: 0, pillR: 0 };
+function _drawDefaultIcon(c, cx, cy) {
+  c.fillStyle = '#fff';
+  c.beginPath();
+  c.arc(cx, cy, 2.2, 0, Math.PI * 2);
+  c.fill();
 }
 
-/**
- * Get or build a cached sprite.
- * Cache key includes tier, actionable/icon flags, selected, and time buckets.
- *
- * Hero default:    key on (id, tier, actionable=0, selected)
- * Hero actionable: key on (id, tier, actionable=1, endHour bucketed to 5 min, selected)
- *                  — 5-min buckets bound re-renders as the slider ticks forward
- * Waiting:         key on (id, tier, shadowIdx threshold, selected, closedBadge, nextStart bucket)
- *                  — shadowIdx already buckets at 15/45/90 min, keeping hit rate high
- * Context:         key on (id, tier, selected, hasSunLaterToday)
- */
-function getSprite(v, tier, tierData, selected, hour, dateStr) {
-  if (spriteCache.size > 600) spriteCache.clear();
-  let key;
-  if (tier === 'hero') {
-    const actionable = tierData?.actionable ? 1 : 0;
-    // End-hour bucket: round to nearest 5 min (endHour * 12 → integer)
-    const endBucket = actionable ? Math.round((tierData?.endHour ?? 0) * 12) : 0;
-    // Friend signature: ordered ids, so a check-in arriving/leaving rebuilds
-    // the sprite without requiring a manual cache flush. Truncated to first
-    // three ids (the most that can render in the inlay).
-    const friendCheckins = (typeof getFriendCheckinsForVenue === 'function')
-      ? getFriendCheckinsForVenue(v.id) : [];
-    const fSig = friendCheckins.length === 0
-      ? '0'
-      : friendCheckins.slice(0, 3).map(c => c.user?.id || '').join(',') + '|' + friendCheckins.length;
-    key = `${v.id}-hero-${actionable}-${endBucket}-${selected ? 1 : 0}-f:${fSig}`;
-  } else if (tier === 'waiting') {
-    const idx    = _shadowIconIdx(tierData?.minutesUntil ?? 120);
-    const badge  = tierData?.closedOpeningIntoSun ? 1 : 0;
-    // Arrival time bucketed to 15 min for stable cache hits during scrub
-    const timeBucket = Math.round((tierData?.nextStart ?? 0) * 4);
-    key = `${v.id}-waiting-${idx}-${selected ? 1 : 0}-${badge}-${timeBucket}`;
-  } else {
-    const hasSun = tierData?.hasSunLaterToday ? 1 : 0;
-    key = `${v.id}-context-${selected ? 1 : 0}-${hasSun}`;
-  }
-  if (!spriteCache.has(key)) spriteCache.set(key, buildSprite(v, tier, tierData, selected));
-  return spriteCache.get(key);
+function _drawCategoryIcon(ctx, cx, cy, category) {
+  if (category === 'cafe')       return _drawCafeIcon(ctx, cx, cy);
+  if (category === 'bar')        return _drawBarIcon(ctx, cx, cy);
+  if (category === 'restaurant') return _drawRestaurantIcon(ctx, cx, cy);
+  return _drawDefaultIcon(ctx, cx, cy);
 }
 
-function clearSpriteCache() { spriteCache.clear(); }
-
-// ── Pin tier transition animations ────────────────────────────────────────────
-const _pinPrevTier  = new Map();   // id → last rendered tier string
-const _pinFadeStart = new Map();   // id → performance.now() when fade began
-const PIN_FADE_MS   = 280;
-let   _animRafId    = null;
-
-function _scheduleAnimFrame() {
-  if (_animRafId) return;
-  _animRafId = requestAnimationFrame(() => { _animRafId = null; draw(); });
+// ── Time formatting ────────────────────────────────────────────────────────────
+function _fmtTime(h) {
+  if (typeof formatHourAsClock === 'function') return formatHourAsClock(h);
+  const hh = Math.floor(h), mm = Math.round((h - hh) * 60);
+  return String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
 }
 
-// ── Canvas resize + map sync ──────────────────────────────────────────────────
-function resizeCanvas() {
-  const dpr = window.devicePixelRatio || 1;
-  const c = document.getElementById('map-container');
-  canvas.width  = Math.round(c.offsetWidth  * dpr);
-  canvas.height = Math.round(c.offsetHeight * dpr);
-  canvas.style.width  = c.offsetWidth  + 'px';
-  canvas.style.height = c.offsetHeight + 'px';
+// ── Friend module helpers ──────────────────────────────────────────────────────
+// The friend module is a "pill within the pill": a coloured capsule that
+// contains stacked avatars AND (when N > MAX_AVATARS) inline "+N" text in
+// white. Width grows to accommodate the overflow.
+function _friendModuleW(ctx, friendCount) {
+  if (friendCount <= 0) return CIRCLE_R * 2;
+  const slots = Math.min(friendCount, MAX_AVATARS);
+  const span  = 2 * AVATAR_R + (slots - 1) * (2 * AVATAR_R - AVATAR_OVERLAP);
+  let w = span + 2 * BORDER_W;
+  if (friendCount > MAX_AVATARS) {
+    const prev = ctx.font;
+    ctx.font = PLUS_FONT;
+    const plusW = Math.ceil(ctx.measureText('+' + (friendCount - MAX_AVATARS)).width);
+    ctx.font = prev;
+    w += PLUS_GAP_INNER + plusW + PLUS_PAD_RIGHT - BORDER_W;
+  }
+  return w;
 }
 
-resizeCanvas();
-window.addEventListener('resize', () => {
-  resizeCanvas();
-  draw();
-  drawSunCurve(document.getElementById('sun-curve'));
-  drawSunCompass();
-});
+function _drawFriendModule(ctx, cx, cy, friends, statusFill) {
+  const N        = friends.length;
+  const slots    = Math.min(N, MAX_AVATARS);
+  const overflow = N > MAX_AVATARS ? N - MAX_AVATARS : 0;
+  const w        = _friendModuleW(ctx, N);
+  const h        = CIRCLE_R * 2;
+  const x        = cx - w / 2;
+  const y        = cy - h / 2;
 
-map.on('move', draw);
-map.on('moveend',  () => { _layoutStale = true; draw(); });
-map.on('zoomend',  () => { _layoutStale = true; draw(); });
-
-// ── Pin layout: anti-overlap via variable stem, dot fallback ──────────────────
-// Each pin tries increasing extra-stem values until it clears all higher-priority
-// pills. If no value works it degrades to a small dot. Context pins are always dots.
-// Sorting by tier (hero > waiting > context) means important venues always
-// keep their preferred position.
-//
-// extraStem is 0-based: 0 = stem flush with sprite bottom, 14 = one step raised, etc.
-// The sprite always bakes a fixed STEM_H stem; extraStem extends it further.
-const MAX_EXTRA_STEM = 42;  // max extra stem before pin becomes a dot (3 × STEM_STEP)
-// Gives the layout 4 tries (0, 14, 28, 42) before demoting to a dot.
-const STEM_STEP  = 14;      // stem extension increment (px)
-const DOT_R      = 4.5;     // dot radius for overlap-demoted pins (px)
-const PILL_GAP   = 8;       // min gap between pill bounding boxes (px)
-let   _friendVenueIds = new Set(); // rebuilt each density-filter pass
-const DOT_FADE_MS = 240;    // pill↔dot morph duration
-const GRID_CELL  = 64;      // AABB grid cell size (px) for O(1) overlap queries
-
-let _lastLayout = [];             // [{v, pt, classResult, extraStem, isDot, spr, drawExtraStem}] per frame
-let _hoverClearTimer = null;      // debounce timer for clearing map hover
-const _pinWasDot    = new Map();  // id → bool — was this pin a dot last frame
-const _pinDotFade   = new Map();  // id → {fromDot, start} — active morph animations
-const _pinAnimStemH = new Map();  // id → animated extraStem (px, float) for smooth transitions
-
-// ── Layout stability cache ────────────────────────────────────────────────────
-let _layoutStale = true;
-let _layoutHour  = null;
-let _layoutDate  = null;
-const _venueIsDot    = new Map();
-const _venueExtStem  = new Map();
-
-// Force the next draw() to do a full layout recompute. Use when something
-// outside the map's own move/zoom changes the visible region (e.g. the bottom
-// panel collapsing from expanded → peek).
-window.markPinLayoutStale = () => { _layoutStale = true; };
-
-/**
- * Assigns each venue an extraStem (or isDot flag). Greedy by priority:
- * high-relevance venues get the preferred height, lower ones are bumped up
- * or collapsed to a dot when no stem value avoids overlap.
- * Context tier is always a dot and never enters the grid.
- */
-function computePinLayout(projVenues, currentHour, dateStr) {
-  const PRI = { hero: 0, waiting: 1, context: 2 };
-  const sorted = [...projVenues].sort((a, b) => {
-    if (a.v.id === highlight.raisedId) return 1;
-    if (b.v.id === highlight.raisedId) return -1;
-    const tierA = a.classResult.tier, tierB = b.classResult.tier;
-    const pd = (PRI[tierA] ?? 2) - (PRI[tierB] ?? 2);
-    if (pd !== 0) return pd;
-    // Tie-break within same tier
-    if (tierA === 'hero') {
-      try {
-        const sa = typeof sunScore === 'function' ? (sunScore(a.v, dateStr, currentHour) ?? 0) : (a.v.rating ?? 0);
-        const sb = typeof sunScore === 'function' ? (sunScore(b.v, dateStr, currentHour) ?? 0) : (b.v.rating ?? 0);
-        return sb - sa;
-      } catch { return 0; }
-    }
-    if (tierA === 'waiting') {
-      return (a.classResult.minutesUntil ?? 120) - (b.classResult.minutesUntil ?? 120);
-    }
-    return 0;
-  });
-
-  // Spatial grid: cell key → array of placed rects {rx,ry,rw,rh}
-  const placedGrid = new Map();
-
-  function gridCells(rx, ry, rw, rh) {
-    const x0 = Math.floor(rx / GRID_CELL), x1 = Math.floor((rx + rw) / GRID_CELL);
-    const y0 = Math.floor(ry / GRID_CELL), y1 = Math.floor((ry + rh) / GRID_CELL);
-    const cells = [];
-    for (let gx = x0; gx <= x1; gx++)
-      for (let gy = y0; gy <= y1; gy++)
-        cells.push(`${gx},${gy}`);
-    return cells;
-  }
-
-  function isClear(rx, ry, rw, rh) {
-    for (const key of gridCells(rx, ry, rw, rh)) {
-      for (const p of (placedGrid.get(key) ?? [])) {
-        if (!(rx + rw + PILL_GAP <= p.rx || p.rx + p.rw + PILL_GAP <= rx ||
-              ry + rh + PILL_GAP <= p.ry || p.ry + p.rh + PILL_GAP <= ry)) return false;
-      }
-    }
-    return true;
-  }
-
-  function addPlaced(rx, ry, rw, rh) {
-    const rect = { rx, ry, rw, rh };
-    for (const key of gridCells(rx, ry, rw, rh)) {
-      if (!placedGrid.has(key)) placedGrid.set(key, []);
-      placedGrid.get(key).push(rect);
-    }
-  }
-
-  const result = [];
-
-  // Two-pass layout: heroes first, then waiting only if every hero got a pill.
-  // Friend pins are placed first within each tier so other pills must dodge
-  // them rather than the other way around — friends always claim their spot.
-  const _friendFirst = (a, b) => {
-    const fa = _friendVenueIds.has(a.v.id) ? 0 : 1;
-    const fb = _friendVenueIds.has(b.v.id) ? 0 : 1;
-    return fa - fb;
-  };
-  const heroEntries    = sorted.filter(e => e.classResult.tier === 'hero'    && !e.classResult.demoted).sort(_friendFirst);
-  const waitingEntries = sorted.filter(e => e.classResult.tier === 'waiting' && !e.classResult.demoted).sort(_friendFirst);
-  const otherEntries   = sorted.filter(e => e.classResult.tier === 'context' || e.classResult.demoted);
-
-  // Always dot for context / density-demoted (unless friends are checked in)
-  for (const { v, pt, classResult } of otherEntries) {
-    const hasFriends = _friendVenueIds.has(v.id);
-    const spr = getSprite(v, hasFriends ? 'hero' : classResult.tier, classResult, v.id === selectedId, currentHour, dateStr);
-    if (hasFriends) {
-      // Force pill layout — try stem positions, fall back to extraStem 0
-      const rw = spr.cssW, rh = spr.cssH - STEM_H;
-      let placed = false;
-      for (let ex = 0; ex <= MAX_EXTRA_STEM; ex += STEM_STEP) {
-        const rx = pt.x - spr.anchorX, ry = pt.y - spr.anchorY - ex;
-        if (isClear(rx, ry, rw, rh)) {
-          addPlaced(rx, ry, rw, rh);
-          result.push({ v, pt, classResult: { ...classResult, tier: 'hero' }, extraStem: ex, isDot: false, spr });
-          placed = true; break;
-        }
-      }
-      if (!placed) {
-        const rx = pt.x - spr.anchorX, ry = pt.y - spr.anchorY;
-        addPlaced(rx, ry, rw, rh);
-        result.push({ v, pt, classResult: { ...classResult, tier: 'hero' }, extraStem: 0, isDot: false, spr });
-      }
-    } else {
-      result.push({ v, pt, classResult, extraStem: 0, isDot: true, spr });
-    }
-  }
-
-  // Pass 1: place all hero pills
-  let anyHeroDot = false;
-  for (const { v, pt, classResult } of heroEntries) {
-    const isRaised = v.id === highlight.raisedId;
-    const spr = getSprite(v, classResult.tier, classResult, v.id === selectedId, currentHour, dateStr);
-    const rw = spr.cssW;
-    const rh = spr.cssH - STEM_H;
-
-    const stemDir   = isRaised ? -STEM_STEP : STEM_STEP;
-    const stemStart = isRaised ? MAX_EXTRA_STEM : 0;
-    const stemEnd   = isRaised ? 0 : MAX_EXTRA_STEM;
-
-    let resolved = false;
-    for (let ex = stemStart; isRaised ? ex >= stemEnd : ex <= stemEnd; ex += stemDir) {
-      const rx = pt.x - spr.anchorX;
-      const ry = pt.y - spr.anchorY - ex;
-      if (isClear(rx, ry, rw, rh)) {
-        addPlaced(rx, ry, rw, rh);
-        result.push({ v, pt, classResult, extraStem: ex, isDot: false, spr });
-        resolved = true;
-        break;
-      }
-    }
-    if (!resolved) {
-      const forcePill = _friendVenueIds.has(v.id);
-      if (!isRaised && !forcePill) anyHeroDot = true;
-      result.push({ v, pt, classResult, extraStem: 0, isDot: !isRaised && !forcePill, spr });
-    }
-  }
-
-  // Pass 2: waiting pills only when every hero got a pill
-  for (const { v, pt, classResult } of waitingEntries) {
-    const isRaised = v.id === highlight.raisedId;
-    const spr = getSprite(v, classResult.tier, classResult, v.id === selectedId, currentHour, dateStr);
-    const forcePill = _friendVenueIds.has(v.id);
-
-    if (anyHeroDot && !forcePill) {
-      result.push({ v, pt, classResult, extraStem: 0, isDot: true, spr });
-      continue;
-    }
-
-    const rw = spr.cssW;
-    const rh = spr.cssH - STEM_H;
-    const stemDir   = isRaised ? -STEM_STEP : STEM_STEP;
-    const stemStart = isRaised ? MAX_EXTRA_STEM : 0;
-    const stemEnd   = isRaised ? 0 : MAX_EXTRA_STEM;
-
-    let resolved = false;
-    for (let ex = stemStart; isRaised ? ex >= stemEnd : ex <= stemEnd; ex += stemDir) {
-      const rx = pt.x - spr.anchorX;
-      const ry = pt.y - spr.anchorY - ex;
-      if (isClear(rx, ry, rw, rh)) {
-        addPlaced(rx, ry, rw, rh);
-        result.push({ v, pt, classResult, extraStem: ex, isDot: false, spr });
-        resolved = true;
-        break;
-      }
-    }
-    if (!resolved) result.push({ v, pt, classResult, extraStem: 0, isDot: !isRaised && !forcePill, spr });
-  }
-
-  return result;
-}
-
-// ── Extended stem drawing ─────────────────────────────────────────────────────
-function _drawExtStem(pt, extraStem, tier) {
-  const isDashed = tier === 'waiting';
-  const col = tier === 'hero' ? 'rgba(255,175,133,0.70)' : 'rgba(156,189,231,0.55)';
+  // Capsule status background
   ctx.beginPath();
-  ctx.moveTo(pt.x, pt.y - extraStem);
-  ctx.lineTo(pt.x, pt.y);
-  if (isDashed) ctx.setLineDash([3, 3]);
-  ctx.strokeStyle = col;
-  ctx.lineWidth   = 2;
-  ctx.stroke();
-  ctx.setLineDash([]);
-  // Anchor dot at map point
-  ctx.beginPath(); ctx.arc(pt.x, pt.y, 2, 0, Math.PI * 2);
-  ctx.fillStyle = col; ctx.fill();
+  ctx.roundRect(x, y, w, h, h / 2);
+  ctx.fillStyle = statusFill;
+  ctx.fill();
+
+  // Avatars right-to-left so the first friend sits on top of the stack
+  const startX = x + BORDER_W + AVATAR_R;
+  for (let i = slots - 1; i >= 0; i--) {
+    const acx = startX + i * (2 * AVATAR_R - AVATAR_OVERLAP);
+
+    // 1px cream halo
+    ctx.beginPath();
+    ctx.arc(acx, cy, AVATAR_R, 0, Math.PI * 2);
+    ctx.fillStyle = '#FAF1DD';
+    ctx.fill();
+
+    // Avatar interior
+    ctx.beginPath();
+    ctx.arc(acx, cy, AVATAR_R - 1, 0, Math.PI * 2);
+    ctx.fillStyle = _friendColor(friends[i] && friends[i].user && friends[i].user.id);
+    ctx.fill();
+
+    // Dark slate initial (on pale avatar)
+    ctx.fillStyle    = _rgba(TOKENS.bg, 0.92);
+    ctx.font         = 'bold 10px "Inter", system-ui, sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.textAlign    = 'center';
+    ctx.fillText(_friendInitial(friends[i] && friends[i].user), acx, cy + 0.5);
+  }
+
+  // "+N" inside the capsule, after the avatars
+  if (overflow > 0) {
+    const lastAvatarRight = startX + (slots - 1) * (2 * AVATAR_R - AVATAR_OVERLAP) + AVATAR_R;
+    const plusX = lastAvatarRight + PLUS_GAP_INNER;
+    ctx.font         = PLUS_FONT;
+    ctx.fillStyle    = '#fff';
+    ctx.textBaseline = 'middle';
+    ctx.textAlign    = 'left';
+    ctx.fillText('+' + overflow, plusX, cy + 0.5);
+  }
+  return { x, y, w, h };
 }
 
-// ── Dot drawing (overlap-demoted hero/waiting pins) ───────────────────────────
-function _drawDotHover(pt, tier) {
-  const isHero = tier === 'hero';
+// ── Pulse rings (privileged ambient on friend pills) ──────────────────────────
+// Two stroke-only capsule rings emanating from the friend module. Each ring
+// expands for ACTIVE_MS, then rests for the remainder of PERIOD_MS. The 1s
+// rest gives the pulse a "heartbeat" rhythm rather than a continuous ripple.
+const _pulseStart       = new Map();   // venue id → start timestamp ms
+const PULSE_PERIOD_MS   = 2500;
+const PULSE_ACTIVE_MS   = 1500;
+const PULSE_STAGGER_MS  = 900;
+const PULSE_RING_COUNT  = 2;
+const PULSE_MAX_SCALE   = 2.4;
+
+function _drawPulseRings(ctx, modBounds, now, id) {
+  let start = _pulseStart.get(id);
+  if (start === undefined) { start = now; _pulseStart.set(id, start); }
+  const cx = modBounds.x + modBounds.w / 2;
+  const cy = modBounds.y + modBounds.h / 2;
+  const ringCol = TOKENS.accent || '#F5C25E';
+  for (let r = 0; r < PULSE_RING_COUNT; r++) {
+    const elapsed = (now - start - r * PULSE_STAGGER_MS);
+    if (elapsed < 0) continue;
+    const phase = elapsed % PULSE_PERIOD_MS;
+    if (phase >= PULSE_ACTIVE_MS) continue;
+    const t = phase / PULSE_ACTIVE_MS;
+    const scale = 1 + t * (PULSE_MAX_SCALE - 1);
+    const alpha = (1 - t) * 0.55;
+    if (alpha < 0.03) continue;
+    const w = modBounds.w * scale;
+    const h = modBounds.h * scale;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = ringCol;
+    ctx.lineWidth   = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(cx - w / 2, cy - h / 2, w, h, h / 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+  _animDirty = true;
+}
+
+// ── Pill width ─────────────────────────────────────────────────────────────────
+// Layout left → right: PAD_L | dot/module | [GAP time] | PAD_R
+function _pillWidth(ctx, time, friendCount) {
+  const dotW = friendCount > 0 ? _friendModuleW(ctx, friendCount) : CIRCLE_R * 2;
+  ctx.font = '600 11px "Inter", system-ui, sans-serif';
+  const tw = time ? Math.ceil(ctx.measureText(time).width) : 0;
+  let w = PAD_L + dotW;
+  if (tw) w += CIRCLE_TIME_GAP + tw;
+  w += PAD_R;
+  return w;
+}
+
+// ── Pill drawing ───────────────────────────────────────────────────────────────
+// Pill is positioned with its tail tip at pt. Body sits ABOVE the venue point.
+function _drawPill(ctx, pt, w, time, tier, opts) {
+  const x  = pt.x - w / 2;
+  const y  = pt.y - PILL_H - TAIL_H;
+  const cx = pt.x;
+
+  function pillPath() {
+    ctx.beginPath();
+    ctx.moveTo(x + PILL_R, y);
+    ctx.lineTo(x + w - PILL_R, y);
+    ctx.arcTo(x + w, y, x + w, y + PILL_R, PILL_R);
+    ctx.lineTo(x + w, y + PILL_H - PILL_R);
+    ctx.arcTo(x + w, y + PILL_H, x + w - PILL_R, y + PILL_H, PILL_R);
+    ctx.lineTo(cx + TAIL_HALF_W, y + PILL_H);
+    ctx.lineTo(cx, y + PILL_H + TAIL_H);
+    ctx.lineTo(cx - TAIL_HALF_W, y + PILL_H);
+    ctx.lineTo(x + PILL_R, y + PILL_H);
+    ctx.arcTo(x, y + PILL_H, x, y + PILL_H - PILL_R, PILL_R);
+    ctx.lineTo(x, y + PILL_R);
+    ctx.arcTo(x, y, x + PILL_R, y, PILL_R);
+    ctx.closePath();
+  }
+
+  // Drop shadow + body fill. Selected pills lift off the map (deeper shadow,
+  // larger offset) and switch the body fill to slate. Hover gets a smaller
+  // lift via opts.scale (set by the per-pin scale animation).
+  const scale = opts.scale || 1.0;
+  const shAlpha   = 0.28 + Math.max(0, scale - 1) * 0.7;
+  const shBlur    = 6 + Math.max(0, scale - 1) * 18;
+  const shOffsetY = 2 + Math.max(0, scale - 1) * 6;
+
   ctx.save();
-  ctx.beginPath(); ctx.arc(pt.x, pt.y, DOT_R + 6, 0, Math.PI * 2);
-  ctx.fillStyle = isHero ? 'rgba(255,175,133,0.22)' : 'rgba(120,150,220,0.18)';
+  ctx.shadowColor   = `rgba(20,30,50,${shAlpha.toFixed(2)})`;
+  ctx.shadowBlur    = shBlur;
+  ctx.shadowOffsetY = shOffsetY;
+  pillPath();
+  ctx.fillStyle = opts.selected ? (TOKENS.surface || '#284463') : '#FAF1DD';
   ctx.fill();
-  ctx.beginPath(); ctx.arc(pt.x, pt.y, DOT_R + 1.5, 0, Math.PI * 2);
-  ctx.fillStyle = isHero ? TOKENS.accent : 'rgba(120,150,200,0.85)';
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.55)';
-  ctx.lineWidth   = 1.5;
-  ctx.stroke();
   ctx.restore();
-}
 
-function _drawDot(pt, tier, reviewFlagged) {
-  const isHero = tier === 'hero';
-  ctx.save();
-  ctx.globalAlpha = isHero ? 0.9 : 0.7;
-  ctx.beginPath(); ctx.arc(pt.x, pt.y, DOT_R + 2.5, 0, Math.PI * 2);
-  ctx.fillStyle = isHero ? 'rgba(255,175,133,0.18)' : 'rgba(100,120,180,0.12)';
-  ctx.fill();
-  ctx.beginPath(); ctx.arc(pt.x, pt.y, DOT_R, 0, Math.PI * 2);
-  ctx.fillStyle = isHero ? TOKENS.accent : 'rgba(100,120,170,0.65)';
-  ctx.fill();
-  if (reviewFlagged) {
-    ctx.globalAlpha = 1;
-    ctx.beginPath(); ctx.arc(pt.x, pt.y, DOT_R + 4.5, 0, Math.PI * 2);
-    ctx.strokeStyle = '#dc2626';
-    ctx.lineWidth   = 2;
+  // Hairline border for definition
+  pillPath();
+  ctx.strokeStyle = opts.selected ? _rgba(TOKENS.text, 0.18) : _rgba(TOKENS.bg, 0.18);
+  ctx.lineWidth   = 1;
+  ctx.stroke();
+
+  // Hover outline — full --rain blue ring just outside the pill body. Skipped
+  // when selected (selected has its own treatment via slate body + lift).
+  if (opts.hovered && !opts.selected) {
+    ctx.beginPath();
+    ctx.roundRect(x - 2.5, y - 2.5, w + 5, PILL_H + 5, PILL_R + 2);
+    ctx.strokeStyle = TOKENS.rain || '#6F8AA8';
+    ctx.lineWidth   = 2.5;
     ctx.stroke();
   }
+
+  // Status module — solo dot OR friend capsule
+  const friends    = opts.friends || [];
+  const hasFriends = friends.length > 0;
+  const dot        = _dotColors(tier, opts.closedNow);
+  const moduleW    = hasFriends ? _friendModuleW(ctx, friends.length) : CIRCLE_R * 2;
+  const moduleCx   = x + PAD_L + moduleW / 2;
+  const moduleCy   = y + PILL_H / 2;
+
+  ctx.save();
+  ctx.shadowColor = 'transparent';
+  if (hasFriends) {
+    _drawFriendModule(ctx, moduleCx, moduleCy, friends, dot.fill);
+  } else {
+    ctx.beginPath();
+    ctx.arc(moduleCx, moduleCy, CIRCLE_R, 0, Math.PI * 2);
+    ctx.fillStyle = dot.fill;
+    ctx.fill();
+    _drawCategoryIcon(ctx, moduleCx, moduleCy, opts.category);
+  }
   ctx.restore();
+
+  // Time text — cream on slate selected pill, slate on cream default pill.
+  if (time) {
+    ctx.font         = '600 11px "Inter", system-ui, sans-serif';
+    ctx.fillStyle    = opts.selected ? (TOKENS.text || '#FFF4E0') : _rgba(TOKENS.bg, 0.92);
+    ctx.textBaseline = 'middle';
+    ctx.textAlign    = 'left';
+    ctx.fillText(time, moduleCx + moduleW / 2 + CIRCLE_TIME_GAP, moduleCy + 0.5);
+  }
 }
 
+// ── AABB overlap & density score (for floating name placement) ────────────────
+function _overlaps(a, b, m) {
+  return !(a.x + a.w + m < b.x || b.x + b.w + m < a.x ||
+           a.y + a.h + m < b.y || b.y + b.h + m < a.y);
+}
+function _scoreAnchor(rect, pills, names, viewport) {
+  let s = 100;
+  const acx = rect.x + rect.w / 2;
+  const acy = rect.y + rect.h / 2;
+  for (const p of pills) {
+    if (_overlaps(rect, p, 0)) return -Infinity;
+    const px = p.x + p.w / 2, py = p.y + p.h / 2;
+    const d  = Math.hypot(acx - px, acy - py);
+    if (d < 70) s -= (70 - d) * 0.6;
+  }
+  for (const n of names) {
+    if (_overlaps(rect, n, 1)) return -Infinity;
+    const nx = n.x + n.w / 2, ny = n.y + n.h / 2;
+    const d  = Math.hypot(acx - nx, acy - ny);
+    if (d < 70) s -= (70 - d) * 0.9;
+  }
+  if (viewport) {
+    if (rect.x < 0)                       s -= 100;
+    if (rect.y < 0)                       s -= 100;
+    if (rect.x + rect.w > viewport.w)     s -= 100;
+    if (rect.y + rect.h > viewport.h)     s -= 100;
+  }
+  return s;
+}
+
+// ── Floating name with cream halo + density-aware anchor ──────────────────────
+// Strict: if best candidate's score ≤ 0 (collisions), hidden unless forced.
+function _drawName(ctx, pt, pillRect, name, secondary, placedPills, placedNames, viewport, opts) {
+  const lineH = 13;
+  ctx.font = '600 12px "Inter", system-ui, sans-serif';
+  const nw = Math.ceil(ctx.measureText(name).width);
+  let sw = 0;
+  if (secondary) {
+    ctx.font = '500 11px "Inter", system-ui, sans-serif';
+    sw = Math.ceil(ctx.measureText(secondary).width);
+  }
+  const labelW = Math.max(nw, sw) + 2;
+  const labelH = (secondary ? 2 : 1) * lineH;
+  const gap    = 2;
+
+  const cx              = pt.x;
+  const pillBodyCenterY = pt.y - PILL_H / 2 - TAIL_H;
+  const pillBodyTop     = pillRect.y;
+  const pillTipY        = pillRect.y + pillRect.h;
+
+  const candidates = [
+    { side: 'right',  x: pillRect.x + pillRect.w + gap, cy: pillBodyCenterY },
+    { side: 'left',   x: pillRect.x - labelW - gap,     cy: pillBodyCenterY },
+    { side: 'top',    x: cx - labelW / 2,               cy: pillBodyTop - gap - labelH / 2 },
+    { side: 'bottom', x: cx - labelW / 2,               cy: pillTipY    + gap + labelH / 2 },
+  ];
+
+  let best = null, bestScore = opts.force ? -Infinity : 0;
+  for (const c of candidates) {
+    const rect = { x: c.x, y: c.cy - labelH / 2, w: labelW, h: labelH };
+    const s = _scoreAnchor(rect, placedPills, placedNames, viewport);
+    if (s > bestScore) { bestScore = s; best = { ...c, ...rect }; }
+  }
+  if (!best) return null;
+  placedNames.push(best);
+
+  ctx.textBaseline = 'middle';
+  ctx.textAlign    = 'left';
+  ctx.lineJoin     = 'round';
+  ctx.miterLimit   = 2;
+
+  const tx     = best.x + 1;
+  const nameY  = secondary ? best.cy - lineH / 2 : best.cy;
+  const secY   = best.cy + lineH / 2;
+  const fillC  = opts.selected ? '#1A2C42' : '#3A332B';
+
+  ctx.font        = '600 12px "Inter", system-ui, sans-serif';
+  ctx.lineWidth   = 3;
+  ctx.strokeStyle = '#F4EBD8';
+  ctx.strokeText(name, tx, nameY);
+  ctx.fillStyle   = fillC;
+  ctx.fillText(name, tx, nameY);
+
+  if (secondary) {
+    ctx.font        = '500 11px "Inter", system-ui, sans-serif';
+    ctx.lineWidth   = 2.5;
+    ctx.strokeStyle = '#F4EBD8';
+    ctx.strokeText(secondary, tx, secY);
+    ctx.fillStyle   = '#5A5048';
+    ctx.fillText(secondary, tx, secY);
+  }
+  return best;
+}
+
+// ── Sun-hours summary line (used as secondary line at zoom ≥ 16) ──────────────
+function _sunHoursLine(v, dateStr) {
+  if (typeof computeSunWindows !== 'function') return '';
+  try {
+    const { windows } = computeSunWindows(v, dateStr);
+    if (!windows.length) return '';
+    const total = windows.reduce((s, w) => s + (w.end - w.start), 0);
+    if (total <= 0.05) return '';
+    return total >= 1
+      ? total.toFixed(1).replace('.', ',') + ' t sol'
+      : Math.round(total * 60) + ' min sol';
+  } catch { return ''; }
+}
+
+// ── Pin animation framework (alpha + scale, smooth lerp) ──────────────────────
+const _pinState  = new Map();   // id → { alpha, scale, target_alpha, target_scale, snapshot }
+let   _animDirty = false;
+let   _animScheduled = false;
+
+function _stepLerp(s, key, target, rate) {
+  const cur = s[key];
+  const d   = target - cur;
+  if (Math.abs(d) < 0.005) { s[key] = target; return false; }
+  s[key] = cur + d * rate;
+  return true;
+}
+
+function _scheduleAnim() {
+  if (!_animDirty || _animScheduled) return;
+  _animScheduled = true;
+  _animDirty     = false;
+  requestAnimationFrame(() => {
+    _animScheduled = false;
+    if (typeof draw === 'function') draw();
+  });
+}
+
+function _ensureState(id) {
+  let s = _pinState.get(id);
+  if (!s) {
+    s = { alpha: 0, scale: 1.0, target_alpha: 0, target_scale: 1.0, snapshot: null };
+    _pinState.set(id, s);
+  }
+  return s;
+}
+
+// ── Zoom-stability cache ──────────────────────────────────────────────────────
+// Snapshot the visible venue set on `zoomstart`; reuse it for every zoom
+// frame; recompute on `zoomend`. Mirrors Google Maps' behaviour where pins
+// don't pop in/out during a pinch.
+const _zoomCache = { active: false, frozenIds: null, _wired: false };
+function _wireZoomGate() {
+  if (_zoomCache._wired) return;
+  _zoomCache._wired = true;
+  if (typeof map === 'undefined' || !map) return;
+  map.on('zoomstart', () => { _zoomCache.active = true; });
+  map.on('zoomend',   () => {
+    _zoomCache.active    = false;
+    _zoomCache.frozenIds = null;
+  });
+}
+
+// ── Review badge (admin) ──────────────────────────────────────────────────────
+// Small red exclamation badge — same visual weight as the friend badge.
 function _drawReviewBadge(x, y) {
-  // Small red exclamation badge — same visual weight as the friend badge.
   const r = 7.5;
   ctx.save();
   ctx.beginPath(); ctx.arc(x, y, r + 1, 0, Math.PI * 2);
@@ -1095,54 +659,38 @@ function _drawReviewBadge(x, y) {
   ctx.restore();
 }
 
-// ── Friend badge on pins ──────────────────────────────────────────────────────
-const FRIEND_BADGE_R = 7.5;
+// ── Layout state (consumed by hit testing + external code) ────────────────────
+let _lastLayout      = [];     // [{v, pt, classResult, isDot, spr, _pillRect}] per frame
+let _hoverClearTimer = null;   // debounce timer for clearing map hover
+let _friendVenueIds  = new Set();  // venues with checked-in friends, refreshed each draw
 
-function _drawFriendBadge(x, y, fc) {
-  const r = FRIEND_BADGE_R;
-  // Dark fill with accent border
-  ctx.save();
-  ctx.beginPath(); ctx.arc(x, y, r + 1, 0, Math.PI * 2);
-  ctx.fillStyle = TOKENS.surface;
-  ctx.fill();
-  ctx.strokeStyle = TOKENS.accent;
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-  // Content: initial for 1 friend, count for 2+
-  ctx.fillStyle = TOKENS.accent;
-  ctx.font = 'bold 10px "Inter", sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  if (fc.length === 1) {
-    ctx.fillText((fc[0].user.name || fc[0].user.email || '?')[0].toUpperCase(), x, y);
-  } else {
-    ctx.fillText(String(fc.length), x, y);
-  }
-  ctx.restore();
-}
+// Backwards-compatible no-ops for the old API. The new renderer doesn't
+// cache sprites or maintain a separate layout-stale flag — every frame
+// re-derives the pipeline. These exports are kept so app.js / osm.js calls
+// don't blow up.
+function clearSpriteCache() { /* no-op (sprite cache removed) */ }
+window.markPinLayoutStale = () => { /* no-op */ };
 
-// "Friends going" (planned) badge — blue border to distinguish from the
-// orange live-checkin badge. Drawn at a different offset so both can coexist.
-function _drawGoingBadge(x, y, going) {
-  const r = FRIEND_BADGE_R;
-  ctx.save();
-  ctx.beginPath(); ctx.arc(x, y, r + 1, 0, Math.PI * 2);
-  ctx.fillStyle = TOKENS.surface;
-  ctx.fill();
-  ctx.strokeStyle = TOKENS.muted;
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-  ctx.fillStyle = TOKENS.muted;
-  ctx.font = 'bold 10px "Inter", sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  if (going.length === 1) {
-    ctx.fillText((going[0].user.name || going[0].user.email || '?')[0].toUpperCase(), x, y);
-  } else {
-    ctx.fillText(String(going.length), x, y);
-  }
-  ctx.restore();
+// ── Canvas resize + map sync ──────────────────────────────────────────────────
+function resizeCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  const c = document.getElementById('map-container');
+  canvas.width  = Math.round(c.offsetWidth  * dpr);
+  canvas.height = Math.round(c.offsetHeight * dpr);
+  canvas.style.width  = c.offsetWidth  + 'px';
+  canvas.style.height = c.offsetHeight + 'px';
 }
+resizeCanvas();
+window.addEventListener('resize', () => {
+  resizeCanvas();
+  draw();
+  drawSunCurve(document.getElementById('sun-curve'));
+  drawSunCompass();
+});
+
+map.on('move',     draw);
+map.on('moveend',  draw);
+map.on('zoomend',  draw);
 
 // ── Map pan helper ────────────────────────────────────────────────────────────
 /**
@@ -1179,26 +727,56 @@ function panToVenueCenter(v) {
   map.easeTo(opts);
 }
 
-// ── Main draw ─────────────────────────────────────────────────────────────────
+// ── Friend / going accessors ──────────────────────────────────────────────────
+function _getCheckins(v) {
+  return (typeof getFriendCheckinsForVenue === 'function')
+    ? getFriendCheckinsForVenue(v.id) || []
+    : [];
+}
+function _getGoing(v, dateStr) {
+  return (typeof getGoingFriendsForVenue === 'function')
+    ? getGoingFriendsForVenue(v.id, dateStr) || []
+    : [];
+}
 
+// ── Main draw ─────────────────────────────────────────────────────────────────
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   const dpr = window.devicePixelRatio || 1;
   ctx.save();
   ctx.scale(dpr, dpr);
   if (!currentSun) { ctx.restore(); return; }
-  const now            = performance.now();
-  let   needsAnimFrame = false;
+  _wireZoomGate();
 
+  // Building-editor mode: keep all pins dimmed while the user is shaping a
+  // terrace. Pre-existing behaviour preserved.
   if (editingVenueId) {
     const editHour    = parseFloat(timeFromEl.value);
     const editDateStr = datePicker.value;
     ctx.globalAlpha = 0.18;
     VENUES.forEach(v => {
-      const classResult = classifyPin(v, editDateStr, editHour);
+      const cls = classifyPin(v, editDateStr, editHour);
       const pt  = map.project([v.lng, v.lat]);
-      const spr = getSprite(v, classResult.tier, classResult, false, editHour, editDateStr);
-      ctx.drawImage(spr.canvas, pt.x - spr.anchorX, pt.y - spr.anchorY, spr.cssW, spr.cssH);
+      const friends = _getCheckins(v);
+      if (cls.tier === 'context' && friends.length === 0) {
+        // tiny dot so editor mode still shows location
+        ctx.beginPath(); ctx.arc(pt.x, pt.y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = _rgba(TOKENS.bg, 0.6);
+        ctx.fill();
+        return;
+      }
+      // Build pill text exactly as the main pipeline would
+      const closedOpens = !!cls.closedOpeningIntoSun;
+      const openHour    = closedOpens ? (v.openingHours && v.openingHours.open) : null;
+      let time = '';
+      if (closedOpens && openHour != null) time = 'Åpner ' + _fmtTime(openHour);
+      else if (cls.tier === 'hero' && cls.endHour) time = 'til ' + _fmtTime(cls.endHour);
+      else if (cls.tier === 'waiting' && cls.nextStart != null) time = 'fra ' + _fmtTime(cls.nextStart);
+      const w = _pillWidth(ctx, time, friends.length);
+      _drawPill(ctx, pt, w, time, cls.tier, {
+        selected: false, hovered: false, closedNow: closedOpens,
+        category: v.category, friends, scale: 1,
+      });
     });
     ctx.globalAlpha = 1;
     drawBuildingEditor();
@@ -1206,9 +784,14 @@ function draw() {
     return;
   }
 
-  const bounds = map.getBounds();
-  const zoom   = map.getZoom();
-  let hiddenCount = 0;
+  const bounds      = map.getBounds();
+  const zoom        = map.getZoom();
+  const currentHour = parseFloat(timeFromEl.value);
+  const dateStr     = datePicker.value;
+  const viewport    = {
+    w: canvas.width  / dpr,
+    h: canvas.height / dpr,
+  };
 
   drawSeatingAreas();
   if (selectedId) {
@@ -1216,292 +799,303 @@ function draw() {
     if (sel) drawShadowOverlay(sel);
   }
 
-  const currentHour = parseFloat(timeFromEl.value);
-  const dateStr     = datePicker.value;
+  const isReviewMode = (typeof reviewModeActive !== 'undefined' && reviewModeActive);
 
-  // Project + classify all visible venues. Venues with friend check-ins
-  // bypass the rating-based zoom filter so they're always visible regardless
-  // of how zoomed-out the user is.
-  const projVenues = [];
+  // ── 1. Project + classify visible venues. Friend venues bypass the
+  //      shouldShowAtZoom density filter — they're always relevant. ────────────
+  let projVenues = [];
+  _friendVenueIds = new Set();
   VENUES.forEach(v => {
     if (!bounds.contains([v.lng, v.lat])) return;
-    const hasFriends = (typeof getFriendCheckinsForVenue === 'function')
-      && getFriendCheckinsForVenue(v.id).length > 0;
-    if (!hasFriends && !shouldShowAtZoom(v, zoom)) { hiddenCount++; return; }
-    const classResult = classifyPin(v, dateStr, currentHour);
-    projVenues.push({ v, classResult, pt: map.project([v.lng, v.lat]) });
+    const friends = _getCheckins(v);
+    if (friends.length === 0
+        && typeof shouldShowAtZoom === 'function'
+        && !shouldShowAtZoom(v, zoom)) return;
+    let cls;
+    try { cls = classifyPin(v, dateStr, currentHour); } catch { cls = { tier: 'context' }; }
+    if (friends.length > 0) _friendVenueIds.add(v.id);
+    projVenues.push({ v, cls, pt: map.project([v.lng, v.lat]), friends });
   });
 
-  // Compute once: drives both density hysteresis and layout recompute decision.
-  // true  = map just settled (moveend/zoomend) or time/date changed → full re-rank.
-  // false = pan frame → keep stable pins, demote newcomers.
-  const isFullRecompute = _layoutStale || currentHour !== _layoutHour || dateStr !== _layoutDate;
-
-  // Apply density filter (in-place, mutates classResult for excess venues)
-  _applyDensityFilter(projVenues, zoom, currentHour, dateStr, isFullRecompute);
-
-  // Recompute anti-overlap layout only when map has settled or time/date changed
-  if (isFullRecompute) {
-    _layoutStale = false;
-    _layoutHour  = currentHour;
-    _layoutDate  = dateStr;
-    const fresh = computePinLayout(projVenues, currentHour, dateStr);
-    const seen  = new Set();
-    for (const e of fresh) {
-      _venueIsDot.set(e.v.id, e.isDot);
-      _venueExtStem.set(e.v.id, e.extraStem);
-      seen.add(e.v.id);
-    }
-    for (const id of [..._venueIsDot.keys()]) {
-      if (!seen.has(id)) { _venueIsDot.delete(id); _venueExtStem.delete(id); }
-    }
-  }
-
-  // Build _lastLayout from stable decisions + current screen positions.
-  // Friend pins sort to the END so they draw on top of every other pill —
-  // canvas draws in iteration order, so "last" wins z-order.
-  // Friend venues are forced to pill (isDot=false) so they remain visible
-  // during pan frames where the cached _venueIsDot map would otherwise
-  // default newly-visible venues to dot until the next moveend recompute.
-  // Their sprite is always built at hero tier so a context-tier friend gets
-  // a proper pill with the inlaid blue capsule rather than a 10×10 glass dot.
-  _lastLayout = projVenues.map(({ v, pt, classResult }) => {
-    const sel = v.id === selectedId;
-    const isFriendPin = _friendVenueIds.has(v.id);
-    const sprTier = isFriendPin ? 'hero' : classResult.tier;
-    const spr = getSprite(v, sprTier, classResult, sel, currentHour, dateStr);
-    return {
-      v, pt, classResult, spr,
-      isDot:     isFriendPin ? false : (_venueIsDot.get(v.id) ?? true),
-      extraStem: _venueExtStem.get(v.id) ?? 0,
-    };
-  });
-  _lastLayout.sort((a, b) => {
-    const fa = _friendVenueIds.has(a.v.id) ? 1 : 0;
-    const fb = _friendVenueIds.has(b.v.id) ? 1 : 0;
-    return fa - fb;  // non-friends first, friends last → friends paint on top
-  });
-
-  // Smooth stem transitions — lerp each pin toward its target extraStem
-  let stemAnimDirty = false;
-  for (const entry of _lastLayout) {
-    if (entry.isDot) { _pinAnimStemH.delete(entry.v.id); entry.drawExtraStem = 0; continue; }
-    const target  = entry.extraStem;
-    const current = _pinAnimStemH.get(entry.v.id) ?? target;
-    if (Math.abs(current - target) < 0.5) {
-      _pinAnimStemH.set(entry.v.id, target);
-      entry.drawExtraStem = target;
+  // ── 2. Priority sort ───────────────────────────────────────────────────────
+  // selected → friends → hero (urgency) → waiting (proximity) →
+  // closed-but-opens (proximity) → context. Friend venues sort within their
+  // group by tier so a sunny friend > a context friend.
+  function priScore(e) {
+    let s;
+    if (e.cls.tier === 'hero') {
+      s = 0    + (e.cls.minsLeft     ?? 9999) / 100;
+    } else if (e.cls.tier === 'waiting' && e.cls.closedOpeningIntoSun) {
+      s = 2000 + (e.cls.minutesUntil ?? 9999) / 100;
+    } else if (e.cls.tier === 'waiting') {
+      s = 1000 + (e.cls.minutesUntil ?? 9999) / 100;
     } else {
-      const next = current + (target - current) * 0.14;
-      _pinAnimStemH.set(entry.v.id, next);
-      entry.drawExtraStem = next;
-      stemAnimDirty = true;
+      s = 3000;
     }
+    if (e.v.id === selectedId) return -100000;
+    if (_friendVenueIds.has(e.v.id)) return s - 50000;
+    return s;
   }
-  if (stemAnimDirty) needsAnimFrame = true;
+  projVenues.sort((a, b) => priScore(a) - priScore(b));
 
-  // Pre-scan: register dot↔pill transitions for non-context pins (context never has pills)
-  for (const { v, isDot, classResult } of _lastLayout) {
-    if (classResult.tier === 'context') continue;
-    const wasDot = _pinWasDot.get(v.id);
-    if (wasDot !== undefined && wasDot !== isDot) _pinDotFade.set(v.id, { fromDot: wasDot, start: now });
-    _pinWasDot.set(v.id, isDot);
-  }
-
-  // Pre-pass — subtle tangerine halo behind every hero anchor point (pill + dot)
-  // Drawn before stems and pills so it never occludes any pin chrome.
-  for (const { pt, classResult } of _lastLayout) {
-    if (classResult.tier !== 'hero') continue;
-    const grd = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, 20);
-    grd.addColorStop(0, 'rgba(255,175,133,0.10)');
-    grd.addColorStop(1, 'rgba(255,175,133,0)');
-    ctx.beginPath();
-    ctx.arc(pt.x, pt.y, 20, 0, Math.PI * 2);
-    ctx.fillStyle = grd;
-    ctx.fill();
-  }
-
-  // Pass 1 — extended stems only (all stems drawn before any pill)
-  for (const entry of _lastLayout) {
-    const { v, pt, classResult, isDot } = entry;
-    if (isDot || _pinDotFade.has(v.id)) continue;
-    const extraStem = entry.drawExtraStem ?? entry.extraStem;
-    if (extraStem > 0) _drawExtStem(pt, extraStem, classResult.tier);
-  }
-
-  // Pass 2a — dots, drawn before pills so pills always sit on top
-  for (const entry of _lastLayout) {
-    const { v, pt, classResult, isDot, spr } = entry;
-    if (_pinDotFade.has(v.id) || !isDot) continue;
-    const tier = classResult.tier;
-    if (tier === 'context') {
-      // Context dots: drawn as sprites (include glass finish + drop shadow)
-      ctx.drawImage(spr.canvas, pt.x - spr.anchorX, pt.y - spr.anchorY, spr.cssW, spr.cssH);
-      // Hover ring on context dot
-      if (v.id === highlight.id) {
-        ctx.save();
-        ctx.beginPath(); ctx.arc(pt.x, pt.y, 7, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(255,175,133,0.9)';
-        ctx.lineWidth   = 2;
-        ctx.stroke();
-        ctx.restore();
-      }
+  // ── 3. Zoom-stability: freeze visible set during a pinch gesture ──────────
+  if (_zoomCache.active) {
+    if (!_zoomCache.frozenIds) {
+      _zoomCache.frozenIds = new Set(projVenues.map(e => e.v.id));
     } else {
-      // Overlap-demoted hero/waiting: simple colored dot
-      const reviewFlagged = (typeof reviewModeActive !== 'undefined' && reviewModeActive &&
-                             typeof venueReviewFlags === 'function' && venueReviewFlags(v));
-      if (v.id === highlight.id) _drawDotHover(pt, tier);
-      else _drawDot(pt, tier, reviewFlagged);
-    }
-    // Friend check-in venues are force-pilled in _lastLayout and never reach
-    // the dot draw path, so the legacy top-right badge has no place here.
-
-    // "Going" badge on dot pins (bottom-right so it doesn't overlap the checkin badge)
-    if (typeof getGoingFriendsForVenue === 'function') {
-      const going = getGoingFriendsForVenue(v.id, dateStr);
-      if (going.length) {
-        _drawGoingBadge(pt.x + DOT_R + 1, pt.y + DOT_R + 1, going);
-      }
-    }
-    // Review badge on dot pins (top-left, opposite the friend badge)
-    if (typeof reviewModeActive !== 'undefined' && reviewModeActive &&
-        typeof venueReviewFlags === 'function' && venueReviewFlags(v)) {
-      _drawReviewBadge(pt.x - DOT_R - 1, pt.y - DOT_R - 1);
+      projVenues = projVenues.filter(e => _zoomCache.frozenIds.has(e.v.id));
     }
   }
 
-  // Pass 2b — morph animations + pills (always above dots)
-  for (const entry of _lastLayout) {
-    const { v, pt, classResult, extraStem: targetExtraStem, isDot, spr } = entry;
-    const extraStem = entry.drawExtraStem ?? targetExtraStem;
-    const tier = classResult.tier;
+  // ── 4. Draw pills (overlap allowed; only fully-shadowed pills demote) ────
+  // Reset every state's target_alpha to 0 — entries that aren't refreshed by
+  // this frame's loop will fade out automatically.
+  for (const s of _pinState.values()) s.target_alpha = 0;
 
-    // Morph animation (pill ↔ dot)
-    const morphFade = _pinDotFade.get(v.id);
-    if (morphFade) {
-      // Keep _pinPrevTier current throughout the morph so the tier-change fade
-      // detector doesn't see a stale old tier the frame after the morph ends
-      // and fire a second animation (the double-blink).
-      _pinPrevTier.set(v.id, tier);
-      const t = Math.min(1, (now - morphFade.start) / DOT_FADE_MS);
-      if (t >= 1) { _pinDotFade.delete(v.id); }
-      else {
-        needsAnimFrame = true;
-        ctx.save();
-        if (morphFade.fromDot) {
-          ctx.globalAlpha = 1 - t; _drawDot(pt, tier);
-          ctx.globalAlpha = t;
-          if (extraStem > 0) _drawExtStem(pt, extraStem, tier);
-          ctx.drawImage(spr.canvas, pt.x - spr.anchorX, pt.y - spr.anchorY - extraStem, spr.cssW, spr.cssH);
-        } else {
-          ctx.globalAlpha = 1 - t;
-          if (extraStem > 0) _drawExtStem(pt, extraStem, tier);
-          ctx.drawImage(spr.canvas, pt.x - spr.anchorX, pt.y - spr.anchorY - extraStem, spr.cssW, spr.cssH);
-          ctx.globalAlpha = t; _drawDot(pt, tier);
-        }
-        ctx.restore();
-        continue;
-      }
-    }
+  const placedPills = [];
+  const layout      = [];
+  const hoverId     = (typeof highlight !== 'undefined' && highlight) ? highlight.id : null;
 
-    if (isDot) continue; // already drawn in Pass 2a
+  for (const { v, cls, pt, friends } of projVenues) {
+    const tier       = cls.tier;
+    const hasFriends = friends.length > 0;
 
-    // Tier-change fade
-    const prevTier = _pinPrevTier.get(v.id);
-    // Only start a new tier fade when no fade is already running — prevents
-    // rapid slider scrubbing from keeping the pin pinned near alpha 0.
-    if (prevTier !== undefined && prevTier !== tier && !_pinFadeStart.has(v.id)) {
-      _pinFadeStart.set(v.id, now);
-    }
-    _pinPrevTier.set(v.id, tier);
-    let pinAlpha = 1;
-    const fs = _pinFadeStart.get(v.id);
-    if (fs !== undefined) {
-      const t = Math.min(1, (now - fs) / PIN_FADE_MS);
-      pinAlpha = t;
-      if (t >= 1) _pinFadeStart.delete(v.id);
-      else needsAnimFrame = true;
-    }
-
-    const isHovered = v.id === highlight.id || v.id === highlight.raisedId;
-    const rp = (v.id === selectedId ? 4 : 2) + 1;
-    const sprLeft = pt.x - spr.anchorX;
-    const sprTop  = pt.y - spr.anchorY - extraStem;
-
-    ctx.save();
-    if (pinAlpha < 1) ctx.globalAlpha = pinAlpha;
-
-    // Hover/raised: glowing outline ring around the pill
-    if (isHovered && spr.pillW > 0) {
-      const glowCol = tier === 'hero' ? 'rgba(255,175,133,0.9)' : 'rgba(210,200,185,0.75)';
-      const pillScreenLeft = sprLeft + SHADOW_PAD + rp;
-      const pillScreenTop  = sprTop  + SHADOW_PAD + rp;
+    // Context tier without friends → tiny dot. Context tier WITH friends gets
+    // the full friend pill (social signal earns chrome regardless of sun).
+    if (tier === 'context' && !hasFriends) {
+      const r = (zoom >= 16 ? 4 : 3);
+      const alpha = cls.hasSunLaterToday ? 0.85 : 0.45;
       ctx.save();
-      ctx.shadowBlur  = 9;
-      ctx.shadowColor = glowCol;
-      ctx.beginPath();
-      ctx.roundRect(pillScreenLeft - 3.5, pillScreenTop - 3.5,
-                    spr.pillW + 7, spr.pillH + 7, spr.pillR + 3.5);
-      ctx.strokeStyle = glowCol;
-      ctx.lineWidth   = 2.5;
+      ctx.beginPath(); ctx.arc(pt.x, pt.y, r, 0, Math.PI * 2);
+      ctx.fillStyle   = _rgba(TOKENS.bg, alpha);
+      ctx.strokeStyle = _rgba(TOKENS.text, 0.20);
+      ctx.lineWidth   = 0.75;
+      ctx.fill(); ctx.stroke();
+      ctx.restore();
+      // Review badge on context dots (admin)
+      if (isReviewMode && typeof venueReviewFlags === 'function' && venueReviewFlags(v)) {
+        _drawReviewBadge(pt.x - r - 1, pt.y - r - 1);
+      }
+      layout.push({
+        v, pt, classResult: cls, isDot: true, extraStem: 0,
+        spr: { anchorX: 0, anchorY: 0, cssW: r * 2, cssH: r * 2 + COMPAT_STEM_H, pillW: 0, pillH: 0, pillR: 0 },
+      });
+      continue;
+    }
+
+    // Closed-but-opens: pill body fades to ~70%; right text shows OPENING
+    // hour ("Åpner HH:mm"); secondary line below name shows sun start.
+    const closedOpens = !!cls.closedOpeningIntoSun;
+    const openHour    = closedOpens ? (v.openingHours && v.openingHours.open) : null;
+
+    let time = '';
+    if (closedOpens && openHour != null) {
+      time = 'Åpner ' + _fmtTime(openHour);
+    } else if (tier === 'hero' && cls.endHour) {
+      time = 'til ' + _fmtTime(cls.endHour);
+    } else if (tier === 'waiting' && cls.nextStart != null) {
+      time = 'fra ' + _fmtTime(cls.nextStart);
+    } else if (hasFriends && typeof computeSunWindows === 'function') {
+      try {
+        const { windows } = computeSunWindows(v, dateStr);
+        const next = windows.find(w => w.start > currentHour);
+        time = next ? 'fra ' + _fmtTime(next.start) : 'Ikke mer sol';
+      } catch { time = 'Ikke mer sol'; }
+    }
+
+    const w = _pillWidth(ctx, time, friends.length);
+    const pillRect = {
+      x: pt.x - w / 2,
+      y: pt.y - PILL_H - TAIL_H,
+      w,
+      h: PILL_H + TAIL_H,
+    };
+
+    // Demote to dot when fully shadowed by a higher-priority pill.
+    let demote = false;
+    if (v.id !== selectedId && !_friendVenueIds.has(v.id)) {
+      for (const p of placedPills) {
+        const dx = (pillRect.x + pillRect.w / 2) - (p.x + p.w / 2);
+        const dy = (pillRect.y + pillRect.h / 2) - (p.y + p.h / 2);
+        if (Math.hypot(dx, dy) < 14) { demote = true; break; }
+      }
+    }
+    if (demote) {
+      const dot = _dotColors(tier, closedOpens);
+      ctx.save();
+      ctx.beginPath(); ctx.arc(pt.x, pt.y, 4.5, 0, Math.PI * 2);
+      ctx.fillStyle = dot.fill;
+      ctx.fill();
+      ctx.beginPath(); ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+      ctx.strokeStyle = dot.ring;
+      ctx.lineWidth   = 1;
       ctx.stroke();
+      ctx.restore();
+      if (isReviewMode && typeof venueReviewFlags === 'function' && venueReviewFlags(v)) {
+        _drawReviewBadge(pt.x - 5, pt.y - 5);
+      }
+      layout.push({
+        v, pt, classResult: cls, isDot: true, extraStem: 0,
+        spr: { anchorX: 0, anchorY: 0, cssW: 8, cssH: 8 + COMPAT_STEM_H, pillW: 0, pillH: 0, pillR: 0 },
+      });
+      continue;
+    }
+
+    placedPills.push(pillRect);
+
+    const sel       = v.id === selectedId;
+    const hovered   = !sel && v.id === hoverId;
+    const baseAlphaTarget = closedOpens ? 0.70 : 1.0;
+
+    // Animation state
+    const st = _ensureState(v.id);
+    st.target_alpha = baseAlphaTarget;
+    st.target_scale = sel ? 1.14 : (hovered ? 1.07 : 1.0);
+    st.snapshot     = { tier, w, time, category: v.category, closedNow: closedOpens, friends };
+    const aMoving = _stepLerp(st, 'alpha', st.target_alpha, 0.20);
+    const sMoving = _stepLerp(st, 'scale', st.target_scale, 0.22);
+    if (aMoving || sMoving) _animDirty = true;
+
+    // Pulse rings BEFORE the pill so they sit behind it. Only friend pills
+    // pulse — the privileged ambient marks the social signal.
+    if (hasFriends && st.alpha > 0.1) {
+      const moduleW = _friendModuleW(ctx, friends.length);
+      const moduleH = CIRCLE_R * 2;
+      const moduleX = pt.x - w / 2 + PAD_L;
+      const moduleY = pt.y - PILL_H - TAIL_H + (PILL_H - moduleH) / 2;
+      ctx.save();
+      ctx.globalAlpha = st.alpha;
+      if (st.scale !== 1.0) {
+        ctx.translate(pt.x, pt.y);
+        ctx.scale(st.scale, st.scale);
+        ctx.translate(-pt.x, -pt.y);
+      }
+      _drawPulseRings(ctx, { x: moduleX, y: moduleY, w: moduleW, h: moduleH },
+                      performance.now(), v.id);
       ctx.restore();
     }
 
-    ctx.drawImage(spr.canvas, sprLeft, sprTop, spr.cssW, spr.cssH);
+    // The pill itself
+    ctx.save();
+    ctx.globalAlpha = st.alpha;
+    if (st.scale !== 1.0) {
+      ctx.translate(pt.x, pt.y);
+      ctx.scale(st.scale, st.scale);
+      ctx.translate(-pt.x, -pt.y);
+    }
+    _drawPill(ctx, pt, w, time, tier, {
+      selected:  sel,
+      hovered,
+      closedNow: closedOpens,
+      category:  v.category,
+      friends,
+      scale:     st.scale,
+    });
+    ctx.restore();
 
-    // Friend check-ins are now signalled by the inlaid blue capsule baked
-    // into the sprite itself; the legacy top-right friend badge is no longer
-    // drawn for pills.
-
-    // "Going" badge (bottom-right of pill)
-    if (spr.pillW > 0 && typeof getGoingFriendsForVenue === 'function') {
-      const going = getGoingFriendsForVenue(v.id, dateStr);
-      if (going.length) {
-        const rp2 = (v.id === selectedId ? 4 : 2);
-        const pillRight  = sprLeft + SHADOW_PAD + rp2 + spr.pillW;
-        const pillBottom = sprTop  + SHADOW_PAD + rp2 + spr.pillH;
-        _drawGoingBadge(pillRight - 1, pillBottom - 1, going);
-      }
+    // Review badge on top-left of pill (admin)
+    if (isReviewMode && typeof venueReviewFlags === 'function' && venueReviewFlags(v)) {
+      _drawReviewBadge(pillRect.x + 1, pillRect.y + 1);
     }
 
+    layout.push({
+      v, pt, classResult: cls, isDot: false, extraStem: 0,
+      spr: {
+        anchorX: w / 2,
+        anchorY: PILL_H + TAIL_H + COMPAT_STEM_H,
+        cssW:    w,
+        cssH:    PILL_H + TAIL_H + COMPAT_STEM_H,
+        pillW:   w,
+        pillH:   PILL_H + TAIL_H,
+        pillR:   PILL_R,
+      },
+      _pillRect: pillRect,
+      _closedOpens: closedOpens,
+      _nextStart:   cls.nextStart,
+      _friends:     friends,
+    });
+  }
+
+  // ── 5. Fade-out pass: persistent state entries whose target_alpha is still
+  //      0 (not refreshed this frame) lerp down and render one last time. ─
+  for (const [id, st] of [..._pinState]) {
+    if (st.target_alpha === 1 || st.target_alpha === 0.7) continue;  // still live
+    const moving = _stepLerp(st, 'alpha', 0, 0.20);
+    if (moving) _animDirty = true;
+    if (st.alpha < 0.04 || !st.snapshot) {
+      _pinState.delete(id);
+      continue;
+    }
+    const v = VENUES.find(vx => vx.id === id);
+    if (!v) { _pinState.delete(id); continue; }
+    const pt = map.project([v.lng, v.lat]);
+    ctx.save();
+    ctx.globalAlpha = st.alpha;
+    _drawPill(ctx, pt, st.snapshot.w, st.snapshot.time, st.snapshot.tier, {
+      selected:  false,
+      hovered:   false,
+      closedNow: st.snapshot.closedNow,
+      category:  st.snapshot.category,
+      friends:   st.snapshot.friends || [],
+      scale:     1.0,
+    });
     ctx.restore();
   }
 
-  // Hint when venues are hidden due to zoom density
-  if (hiddenCount > 0) {
-    const text = `Zoom in to see ${hiddenCount} more venue${hiddenCount > 1 ? 's' : ''}`;
-    ctx.font = '11px "Inter", sans-serif';
-    const tw = ctx.measureText(text).width;
-    const cssW = canvas.width / dpr, cssH = canvas.height / dpr;
-    const pw = tw + 16, ph = 22, px = (cssW - pw) / 2, py = cssH - 36;
-    ctx.fillStyle = 'rgba(16,22,38,0.82)';
-    fillRoundRect(ctx, px, py, pw, ph, 11);
-    ctx.fillStyle = 'rgba(240,230,211,0.7)';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(text, cssW / 2, py + ph / 2);
+  // ── 6. Floating names (with collision detection) ─────────────────────────
+  // Secondary line priority (one line max, by importance):
+  //   1. closed-but-opens  → "Sol fra HH:mm"  (the *reason* the pill is here)
+  //   2. friends going     → "Anna +N planlegger"
+  //   3. zoom ≥ 16         → "X t sol"        (informational)
+  const placedNames = [];
+  for (const entry of layout) {
+    if (entry.isDot) continue;
+    if (entry.classResult.tier === 'context' && zoom < 16 && !(entry._friends && entry._friends.length)) continue;
+    const v        = entry.v;
+    const sel      = v.id === selectedId;
+    const isFriend = entry._friends && entry._friends.length > 0;
+    const going    = _getGoing(v, dateStr);
+
+    let sec = '';
+    if (entry._closedOpens && entry._nextStart != null) {
+      sec = 'Sol fra ' + _fmtTime(entry._nextStart);
+    } else if (going.length > 0) {
+      const firstName = (going[0].user && going[0].user.name || '?').split(' ')[0];
+      sec = going.length === 1
+        ? `${firstName} planlegger`
+        : `${firstName} +${going.length - 1} planlegger`;
+    } else if (zoom >= 16) {
+      sec = _sunHoursLine(v, dateStr);
+    }
+
+    _drawName(
+      ctx, entry.pt, entry._pillRect,
+      v.name, sec,
+      placedPills, placedNames, viewport,
+      { selected: sel, force: sel || isFriend },
+    );
   }
 
-  if (needsAnimFrame) _scheduleAnimFrame();
+  _lastLayout = layout;
+  _scheduleAnim();
   ctx.restore();
 }
-
 
 // ── Hit testing ───────────────────────────────────────────────────────────────
 function hitTestVenue(cx, cy) {
   for (const entry of _lastLayout) {
     const { v, pt, isDot, spr } = entry;
     if (isDot) continue;
-    const extraStem = entry.drawExtraStem ?? entry.extraStem;
     const rx = pt.x - spr.anchorX - 4;
-    const ry = pt.y - spr.anchorY - extraStem - 4;
+    const ry = pt.y - spr.anchorY - 4;
     const rw = spr.cssW + 8;
-    const rh = spr.cssH - STEM_H + 8;
+    const rh = spr.cssH - COMPAT_STEM_H + 8;
     if (cx >= rx && cx <= rx + rw && cy >= ry && cy <= ry + rh) return v;
   }
   return null;
 }
 
+const DOT_R = 4.5;  // approximate radius for hit-testing demoted/context dots
 function hitTestDot(cx, cy) {
   for (const { v, pt, isDot } of _lastLayout) {
     if (!isDot) continue;
@@ -1523,9 +1117,9 @@ function hitTestDepthHandle(cx, cy) {
   if (!editingVenueId) return null;
   const v = VENUES.find(x => x.id === editingVenueId);
   if (!v || (v.terraceType && v.terraceType !== 'street')) return null;
-  const walls  = getTerraceWalls(v);
-  const depth  = getEffectiveDepth(v);
-  const pxPerM = pxPerMetre(v);
+  const walls  = (typeof getTerraceWalls === 'function') ? getTerraceWalls(v) : [];
+  const depth  = (typeof getEffectiveDepth === 'function') ? getEffectiveDepth(v) : 0;
+  const pxPerM = (typeof pxPerMetre === 'function') ? pxPerMetre(v) : 0;
   for (const wall of walls) {
     const { normX, normY, mx, my } = wallOutwardNormal(v, wall);
     const hx = mx + normX * depth * pxPerM;
@@ -1556,10 +1150,6 @@ function hitTestWall(cx, cy) {
 const _isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
 canvas.style.pointerEvents = _isTouchDevice ? 'none' : 'auto';
 
-// Mapbox GL v3 uses Pointer Events (pointerdown/pointerup), not mousedown/mouseup.
-// When a pin is hit we must stop BOTH mousedown and pointerdown from reaching
-// Mapbox's container — otherwise Mapbox starts drag-tracking and calls map.stop()
-// during drag-end, which cancels our subsequent easeTo camera animation.
 function _pinHitAtEvent(e) {
   const rect = canvas.getBoundingClientRect();
   const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
@@ -1585,9 +1175,6 @@ function _editHandleHitAtEvent(e) {
   return false;
 }
 
-/** Disable Mapbox interaction handlers so a handle drag doesn't pan the map.
- *  Called when any handle drag starts; reversed by _enableMapInteractions on
- *  drag end. Idempotent. */
 function _disableMapInteractions() {
   if (typeof map === 'undefined' || !map?.dragPan) return;
   try {
@@ -1609,8 +1196,6 @@ function _enableMapInteractions() {
   } catch (_) {}
 }
 
-// Selector for interactive UI overlays that must receive clicks without
-// interference from the canvas. Must be defined before the pointerdown handler.
 const _UI_OVERLAY_SELECTOR = '#qc-wrap, #panel, #floating-search, #search-dropdown, #ptb-cal-float, ' +
   '#profile-panel, #search-wrap, #floating-date, #detail-panel, .mapboxgl-ctrl, .mapboxgl-popup, ' +
   '#locate-btn, #notif-toast, #fts';
@@ -1627,13 +1212,10 @@ canvas.addEventListener('pointerdown', e => {
   }
   canvas.style.pointerEvents = 'auto';
   if (_pinHitAtEvent(e)) e.stopPropagation();
-  // Edit-mode: stop Mapbox from receiving the pointer when a handle is grabbed,
-  // otherwise the map drag-pan moves along with the handle.
   if (_editHandleHitAtEvent(e)) e.stopPropagation();
 });
 
 canvas.addEventListener('mousedown', e => {
-  // Yield to interactive UI overlays above the canvas
   canvas.style.pointerEvents = 'none';
   const elUnderMD = document.elementFromPoint(e.clientX, e.clientY);
   canvas.style.pointerEvents = 'auto';
@@ -1645,12 +1227,7 @@ canvas.addEventListener('mousedown', e => {
   const rect = canvas.getBoundingClientRect();
   const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
   if (editingVenueId) {
-    // Vertex-tool modes: handled on click, but skip drag-start.
-    if (typeof editVertexMode !== 'undefined' && editVertexMode) {
-      // Don't start a drag while a tool mode is active. The click handler will fire.
-      return;
-    }
-    // Corner handle: free drag.
+    if (typeof editVertexMode !== 'undefined' && editVertexMode) return;
     const cornerIdx = (typeof hitTestActivePolygonVertex === 'function')
       ? hitTestActivePolygonVertex(cx, cy) : null;
     if (cornerIdx !== null) {
@@ -1662,7 +1239,6 @@ canvas.addEventListener('mousedown', e => {
       e.preventDefault();
       return;
     }
-    // Edge midpoint: perpendicular drag.
     const edgeIdx = (typeof hitTestActivePolygonEdge === 'function')
       ? hitTestActivePolygonEdge(cx, cy) : null;
     if (edgeIdx !== null) {
@@ -1674,7 +1250,6 @@ canvas.addEventListener('mousedown', e => {
       e.preventDefault();
       return;
     }
-    // Polygon interior: whole-polygon translate drag.
     if (typeof hitTestActivePolygonInterior === 'function'
         && hitTestActivePolygonInterior(cx, cy)
         && typeof startPolygonTranslate === 'function') {
@@ -1686,7 +1261,6 @@ canvas.addEventListener('mousedown', e => {
         return;
       }
     }
-    // Legacy: depth handle drag (street wall-mode, before polygon override exists)
     const handle = hitTestDepthHandle(cx, cy);
     if (handle) {
       editDraggingDepth = true;
@@ -1722,7 +1296,6 @@ canvas.addEventListener('mousedown', e => {
 });
 
 canvas.addEventListener('click', e => {
-  // Yield to interactive UI overlays above the canvas
   canvas.style.pointerEvents = 'none';
   const elUnderClick = document.elementFromPoint(e.clientX, e.clientY);
   canvas.style.pointerEvents = 'auto';
@@ -1733,7 +1306,6 @@ canvas.addEventListener('click', e => {
   if (editingVenueId) {
     const v = VENUES.find(x => x.id === editingVenueId);
 
-    // Vertex tool modes — consume the click before anything else.
     if (typeof editVertexMode !== 'undefined' && editVertexMode === 'del') {
       const idx = (typeof hitTestActivePolygonVertex === 'function')
         ? hitTestActivePolygonVertex(cx, cy) : null;
@@ -1747,7 +1319,6 @@ canvas.addEventListener('click', e => {
         draw();
         return;
       }
-      // Click missed any vertex — exit del mode silently.
       if (typeof setEditVertexMode === 'function') setEditVertexMode(null);
       return;
     }
@@ -1769,7 +1340,6 @@ canvas.addEventListener('click', e => {
       return;
     }
 
-    // Default street-wall click: toggle wall selection.
     const wallIdx = hitTestWall(cx, cy);
     if (wallIdx !== null && (!v?.terraceType || v.terraceType === 'street')
         && !v?.seatingPolygonOverride) selectWallByIdx(wallIdx);
@@ -1828,13 +1398,11 @@ canvas.addEventListener('mousemove', e => {
 
     const vEdit = VENUES.find(x => x.id === editingVenueId);
 
-    // While a vertex tool mode is active, show crosshair everywhere.
     if (typeof editVertexMode !== 'undefined' && editVertexMode) {
       canvas.style.cursor = 'crosshair';
       return;
     }
 
-    // Polygon handle hover (works for all polygon types, including override on street)
     if (typeof hitTestActivePolygonVertex === 'function'
         && hitTestActivePolygonVertex(cx, cy) !== null) {
       canvas.style.cursor = 'grab';
@@ -1851,13 +1419,11 @@ canvas.addEventListener('mousemove', e => {
       return;
     }
 
-    // Non-street types past this point have no further hover affordances.
     if (vEdit?.terraceType && vEdit.terraceType !== 'street') {
       canvas.style.cursor = 'default';
       return;
     }
 
-    // Street wall-mode (no override yet)
     const handle = hitTestDepthHandle(cx, cy);
     if (handle) { canvas.style.cursor = 'row-resize'; return; }
 
@@ -1948,7 +1514,6 @@ window.addEventListener('mouseup', () => {
   }
 });
 
-// wheel: pass through to map (desktop only — touch devices use native events)
 canvas.addEventListener('wheel', e => {
   canvas.style.pointerEvents = 'none';
   const el = document.elementFromPoint(e.clientX, e.clientY);
@@ -1956,7 +1521,6 @@ canvas.addEventListener('wheel', e => {
   if (el) el.dispatchEvent(new WheelEvent('wheel', e));
 }, { passive: true });
 
-// Touch pin-tap detection (touch devices only).
 if (_isTouchDevice) {
   let _touchStartX = 0, _touchStartY = 0;
   let _editTouchId = null;
@@ -1970,7 +1534,6 @@ if (_isTouchDevice) {
     const rect = canvas.getBoundingClientRect();
     const cx = t.clientX - rect.left, cy = t.clientY - rect.top;
 
-    // Vertex tool modes — handled on touchend instead of touchstart.
     if (typeof editVertexMode !== 'undefined' && editVertexMode) {
       _editTouchId = t.identifier;
       e.preventDefault();
@@ -2094,7 +1657,6 @@ if (_isTouchDevice) {
       const cx = t.clientX - rect.left, cy = t.clientY - rect.top;
       const v = VENUES.find(x => x.id === editingVenueId);
 
-      // Vertex tool modes
       if (typeof editVertexMode !== 'undefined' && editVertexMode === 'del') {
         const idx = (typeof hitTestActivePolygonVertex === 'function')
           ? hitTestActivePolygonVertex(cx, cy) : null;
