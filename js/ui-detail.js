@@ -144,7 +144,13 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
             : img;
         }).join('')
       }</div>`
-    : '<div class="detail-new-photos">[Bilde]</div>';
+    : `<div class="detail-new-photos detail-new-photos-empty" role="img" aria-label="Ingen bilder">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+        <span>Ingen bilder ennå</span>
+      </div>`;
 
   // Heart + bell live in the action row alongside Directions/Share. Active
   // state fills with the accent so the row reads as a peer set of toggles.

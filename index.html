@@ -5886,6 +5886,30 @@
     aspect-ratio: 4/3;
   }
 
+  /* Empty state — soft slate base + subtle warm honey wash + centered camera
+     icon. Replaces the previous flat slate-blue void with literal "[Bilde]"
+     text. Brand-cohesive: honey accent at low alpha lifts off the slate so
+     the placeholder reads as designed rather than missing. */
+  .detail-new-photos-empty {
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0;
+    background:
+      radial-gradient(ellipse at 30% 20%, rgba(245,194,94,0.14) 0%, rgba(245,194,94,0) 55%),
+      linear-gradient(180deg, rgba(58,75,110,0.55) 0%, rgba(26,44,66,0.85) 100%);
+    color: rgba(255,244,224,0.55);
+    font-weight: 500;
+    font-size: 12px;
+    letter-spacing: 0.01em;
+  }
+  .detail-new-photos-empty svg {
+    color: var(--accent);
+    opacity: 0.55;
+    flex-shrink: 0;
+  }
+
   /* Merged header: back + title + fav/bell on one row */
   .detail-header-row {
     display: flex;
@@ -6270,16 +6294,19 @@
   .dp-card:hover { background: var(--glass-card-bg); }   /* kill list-card hover */
   .dp-card .card-top { gap: 14px; align-items: flex-start; }
   .dp-card .card-left { min-width: 0; gap: 4px; }
+  /* Title is the venue takeover — bumped from 18 → 22 so it reads as
+     hierarchically primary in the detail context (vs the same renderer
+     producing a list card at 16px elsewhere). */
   .dp-card .card-new-name {
-    font-size: 18px;
+    font-size: 22px;
     font-weight: 700;
-    line-height: 1.22;
-    letter-spacing: -0.01em;
+    line-height: 1.18;
+    letter-spacing: -0.012em;
   }
   .dp-card .card-new-meta {
-    font-size: 12px;
-    line-height: 1.35;
-    margin-top: 3px;
+    font-size: 12.5px;
+    line-height: 1.4;
+    margin-top: 4px;
   }
   .dp-card .card-right {
     min-width: 0;
