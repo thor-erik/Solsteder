@@ -63,7 +63,7 @@
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
 <script defer src="js/render-editor.js?v=20260508a"></script>
-<script defer src="js/render-pins.js?v=20260510a"></script>
+<script defer src="js/render-pins.js?v=20260510b"></script>
 <script defer src="js/ui-shared.js?v=20260509b"></script>
 <script defer src="js/ui-list.js?v=20260411b"></script>
 <script defer src="js/admin-review.js?v=20260505a"></script>
@@ -5175,7 +5175,9 @@
   #header-date-chip .chip-cal-icon { color: var(--muted); flex-shrink: 0; }
 
   /* Weather chip — info-only. Borderless, transparent, clearly not a button.
-     Larger icon so it visually fills the chip's vertical breathing room. */
+     Font-size + line-height match the other two chips so the row's text
+     baselines align. Icon sized to sit between the date/sort chip text rather
+     than dominating the row. */
   #header-wx-chip {
     background: transparent;
     border: none;
@@ -5183,10 +5185,10 @@
     color: var(--muted);
     font-weight: 500;
     padding: 0 8px;
-    font-size: 14px;
-    gap: 8px;
+    font-size: 13px;
+    gap: 6px;
   }
-  #header-wx-chip #header-wx-icon { font-size: 22px; line-height: 1; flex-shrink: 0; }
+  #header-wx-chip #header-wx-icon { font-size: 16px; line-height: 1; flex-shrink: 0; }
   #header-wx-chip #header-wx-temp { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
   #header-wx-chip #header-wx-wind { font-variant-numeric: tabular-nums; }
   #header-wx-chip .chip-dot { opacity: 0.55; }

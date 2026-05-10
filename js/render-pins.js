@@ -157,114 +157,105 @@ const PLUS_PAD_RIGHT    = 5;      // inner padding on the right edge of the caps
 // ── Status colour for the dot / friend capsule ────────────────────────────────
 // Two states only — sun or shadow:
 //   hero (in sun now)            → --accent (honey)
-//   waiting OR context (shadow)  → --bg (deepest brand slate)
-// The capsule colour answers "is it sunny?". The time text answers "when does
-// that change?". Closed-but-opens dims the hero fill so the pill reads as
-// "waiting on opening" without leaving the honey family.
+//   waiting OR context (shadow)  → --surface (slate-mid; the same mid-slate
+//                                  used as the card-surface base. Lighter
+//                                  than --bg so the dot reads as a distinct
+//                                  layer above the slate panel rather than
+//                                  blending into it.)
 function _dotColors(tier, closed) {
   if (tier === 'hero') {
     return closed
       ? { fill: _rgba(TOKENS.accent, 0.55), ring: _rgba(TOKENS.accentOn, 0.30) }
       : { fill: TOKENS.accent,              ring: _rgba(TOKENS.accentOn, 0.40) };
   }
-  return { fill: TOKENS.bg, ring: _rgba(TOKENS.text, 0.30) };
+  return { fill: TOKENS.surface || '#284463', ring: _rgba(TOKENS.text, 0.30) };
 }
 
-// ── Vector category icons (white, drawn into the coloured solo dot) ───────────
-function _drawCafeIcon(c, cx, cy) {
-  c.lineWidth = 1.5;
-  c.lineCap   = 'round';
-  c.lineJoin  = 'round';
-  c.strokeStyle = '#fff';
-  c.fillStyle   = '#fff';
-  // Mug body (closed-top with handle integrated)
+// ── Vector category icons ─────────────────────────────────────────────────────
+// Filled silhouettes sized to fill the 20px dot (extents up to ±4.5). Colour
+// is tier-aware: dark warm brown on honey for hero (high contrast on light
+// background), white on the slate shadow capsules.
+function _drawCafeIcon(c, cx, cy, col) {
+  c.fillStyle   = col;
+  c.strokeStyle = col;
+  c.lineWidth   = 1.6;
+  c.lineCap     = 'round';
+  c.lineJoin    = 'round';
+  // Filled mug body — closed-top, slightly tapered
   c.beginPath();
-  c.moveTo(cx - 2.4, cy - 1.8);
-  c.lineTo(cx + 1.6, cy - 1.8);
-  c.lineTo(cx + 1.6, cy + 1.4);
-  c.quadraticCurveTo(cx + 1.6, cy + 2.4, cx + 0.6, cy + 2.4);
-  c.lineTo(cx - 1.4, cy + 2.4);
-  c.quadraticCurveTo(cx - 2.4, cy + 2.4, cx - 2.4, cy + 1.4);
+  c.moveTo(cx - 3.6, cy - 3.0);
+  c.lineTo(cx + 1.8, cy - 3.0);
+  c.lineTo(cx + 1.8, cy + 2.8);
+  c.quadraticCurveTo(cx + 1.8, cy + 3.8, cx + 0.6, cy + 3.8);
+  c.lineTo(cx - 2.4, cy + 3.8);
+  c.quadraticCurveTo(cx - 3.6, cy + 3.8, cx - 3.6, cy + 2.8);
   c.closePath();
-  c.stroke();
-  // Handle
+  c.fill();
+  // Handle (stroke arc)
   c.beginPath();
-  c.arc(cx + 1.6, cy - 0.2, 1.3, -Math.PI / 2, Math.PI / 2);
+  c.arc(cx + 2.0, cy - 0.2, 1.9, -Math.PI / 2, Math.PI / 2);
+  c.lineWidth = 1.5;
   c.stroke();
   // Steam dot
   c.beginPath();
-  c.arc(cx - 0.4, cy - 3.2, 0.55, 0, Math.PI * 2);
+  c.arc(cx - 0.6, cy - 4.6, 0.7, 0, Math.PI * 2);
   c.fill();
 }
 
-function _drawBarIcon(c, cx, cy) {
-  c.lineWidth = 1.5;
-  c.lineCap   = 'round';
-  c.lineJoin  = 'round';
-  c.strokeStyle = '#fff';
-  // Bowl V
+function _drawBarIcon(c, cx, cy, col) {
+  c.fillStyle = col;
+  // Bowl V (filled triangle, wide)
   c.beginPath();
-  c.moveTo(cx - 3.0, cy - 2.6);
-  c.lineTo(cx + 3.0, cy - 2.6);
+  c.moveTo(cx - 4.2, cy - 3.6);
+  c.lineTo(cx + 4.2, cy - 3.6);
   c.lineTo(cx,        cy + 0.8);
   c.closePath();
-  c.stroke();
+  c.fill();
   // Stem
-  c.beginPath();
-  c.moveTo(cx, cy + 0.8);
-  c.lineTo(cx, cy + 2.6);
-  c.stroke();
+  c.fillRect(cx - 0.6, cy + 0.7, 1.2, 2.6);
   // Base
+  c.fillRect(cx - 2.6, cy + 3.0, 5.2, 1.2);
+  // Olive (small dot inside the bowl)
   c.beginPath();
-  c.moveTo(cx - 1.8, cy + 2.6);
-  c.lineTo(cx + 1.8, cy + 2.6);
-  c.stroke();
+  c.arc(cx + 1.4, cy - 2.2, 0.7, 0, Math.PI * 2);
+  c.fillStyle = col;
+  c.fill();
 }
 
-function _drawRestaurantIcon(c, cx, cy) {
-  c.lineWidth = 1.5;
-  c.lineCap   = 'round';
-  c.lineJoin  = 'round';
-  c.strokeStyle = '#fff';
-  c.fillStyle   = '#fff';
-  // Fork shaft
+function _drawRestaurantIcon(c, cx, cy, col) {
+  c.fillStyle   = col;
+  c.strokeStyle = col;
+  c.lineCap     = 'round';
+  c.lineJoin    = 'round';
+  // Fork — shaft + 3 prongs, all filled
+  c.fillRect(cx - 3.4, cy - 1.0, 1.4, 5.6);          // shaft
+  c.fillRect(cx - 4.4, cy - 4.4, 0.9, 3.6);          // outer-left prong
+  c.fillRect(cx - 3.15, cy - 4.4, 0.9, 3.6);         // middle prong
+  c.fillRect(cx - 1.9,  cy - 4.4, 0.9, 3.6);         // outer-right prong
+  // Knife — tapered blade + filled handle
   c.beginPath();
-  c.moveTo(cx - 1.6, cy - 3.4);
-  c.lineTo(cx - 1.6, cy + 3.4);
-  c.stroke();
-  // Fork outer prongs
-  c.beginPath();
-  c.moveTo(cx - 2.8, cy - 3.4);
-  c.lineTo(cx - 2.8, cy - 1.0);
-  c.moveTo(cx - 0.4, cy - 3.4);
-  c.lineTo(cx - 0.4, cy - 1.0);
-  c.stroke();
-  // Knife blade + handle
-  c.beginPath();
-  c.moveTo(cx + 2.0, cy - 3.4);
-  c.lineTo(cx + 3.0, cy - 3.4);
-  c.lineTo(cx + 2.7, cy - 0.4);
-  c.lineTo(cx + 2.3, cy - 0.4);
+  c.moveTo(cx + 1.8, cy - 4.4);
+  c.lineTo(cx + 3.8, cy - 4.4);
+  c.lineTo(cx + 3.4, cy - 0.6);
+  c.lineTo(cx + 2.4, cy - 0.6);
   c.closePath();
   c.fill();
-  c.beginPath();
-  c.moveTo(cx + 2.5, cy - 0.4);
-  c.lineTo(cx + 2.5, cy + 3.4);
-  c.stroke();
+  c.fillRect(cx + 2.5, cy - 0.6, 1.2, 5.0);
 }
 
-function _drawDefaultIcon(c, cx, cy) {
-  c.fillStyle = '#fff';
+function _drawDefaultIcon(c, cx, cy, col) {
+  c.fillStyle = col;
   c.beginPath();
-  c.arc(cx, cy, 2.2, 0, Math.PI * 2);
+  c.arc(cx, cy, 3.2, 0, Math.PI * 2);
   c.fill();
 }
 
-function _drawCategoryIcon(ctx, cx, cy, category) {
-  if (category === 'cafe')       return _drawCafeIcon(ctx, cx, cy);
-  if (category === 'bar')        return _drawBarIcon(ctx, cx, cy);
-  if (category === 'restaurant') return _drawRestaurantIcon(ctx, cx, cy);
-  return _drawDefaultIcon(ctx, cx, cy);
+function _drawCategoryIcon(ctx, cx, cy, category, color) {
+  const col = color || '#fff';
+  if (category === 'cafe')       return _drawCafeIcon(ctx, cx, cy, col);
+  if (category === 'bar')        return _drawBarIcon(ctx, cx, cy, col);
+  if (category === 'restaurant') return _drawRestaurantIcon(ctx, cx, cy, col);
+  return _drawDefaultIcon(ctx, cx, cy, col);
 }
 
 // ── Time formatting ────────────────────────────────────────────────────────────
@@ -472,7 +463,12 @@ function _drawPill(ctx, pt, w, time, tier, opts) {
     ctx.arc(moduleCx, moduleCy, CIRCLE_R, 0, Math.PI * 2);
     ctx.fillStyle = dot.fill;
     ctx.fill();
-    _drawCategoryIcon(ctx, moduleCx, moduleCy, opts.category);
+    // Icon colour is tier-aware: dark warm brown on the honey hero dot
+    // (high contrast on the light yellow), white on the slate shadow dot.
+    const iconCol = (tier === 'hero')
+      ? (TOKENS.accentOn || '#2C1F02')
+      : '#fff';
+    _drawCategoryIcon(ctx, moduleCx, moduleCy, opts.category, iconCol);
   }
   ctx.restore();
 
@@ -865,13 +861,23 @@ function draw() {
     if (tier === 'context' && !hasFriends) {
       const r = (zoom >= 16 ? 4 : 3);
       const alpha = cls.hasSunLaterToday ? 0.85 : 0.45;
-      ctx.save();
-      ctx.beginPath(); ctx.arc(pt.x, pt.y, r, 0, Math.PI * 2);
-      ctx.fillStyle   = _rgba(TOKENS.bg, alpha);
-      ctx.strokeStyle = _rgba(TOKENS.text, 0.20);
-      ctx.lineWidth   = 0.75;
-      ctx.fill(); ctx.stroke();
-      ctx.restore();
+      // Hide the small context dot when it would land inside or on top of
+      // a higher-priority pill that's already placed (avoids the
+      // overlapping-dot-on-pill artefact).
+      let dotOverlaps = false;
+      for (const p of placedPills) {
+        if (pt.x >= p.x - 5 && pt.x <= p.x + p.w + 5 &&
+            pt.y >= p.y - 5 && pt.y <= p.y + p.h + 5) { dotOverlaps = true; break; }
+      }
+      if (!dotOverlaps) {
+        ctx.save();
+        ctx.beginPath(); ctx.arc(pt.x, pt.y, r, 0, Math.PI * 2);
+        ctx.fillStyle   = _rgba(TOKENS.surface || '#284463', alpha);
+        ctx.strokeStyle = _rgba(TOKENS.text, 0.20);
+        ctx.lineWidth   = 0.75;
+        ctx.fill(); ctx.stroke();
+        ctx.restore();
+      }
       // Review badge on context dots (admin)
       if (isReviewMode && typeof venueReviewFlags === 'function' && venueReviewFlags(v)) {
         _drawReviewBadge(pt.x - r - 1, pt.y - r - 1);
@@ -921,18 +927,29 @@ function draw() {
       }
     }
     if (demote) {
-      const dot = _dotColors(tier, closedOpens);
-      ctx.save();
-      ctx.beginPath(); ctx.arc(pt.x, pt.y, 4.5, 0, Math.PI * 2);
-      ctx.fillStyle = dot.fill;
-      ctx.fill();
-      ctx.beginPath(); ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
-      ctx.strokeStyle = dot.ring;
-      ctx.lineWidth   = 1;
-      ctx.stroke();
-      ctx.restore();
-      if (isReviewMode && typeof venueReviewFlags === 'function' && venueReviewFlags(v)) {
-        _drawReviewBadge(pt.x - 5, pt.y - 5);
+      // Skip the dot if it would land on top of a placed pill (the venue
+      // pt of the demoted pin can sit inside another pill's body when the
+      // two venues are very close — would read as a stray dot stuck to
+      // the chevron). Pin still goes into _lastLayout so hit testing works.
+      let dotOverlaps = false;
+      for (const p of placedPills) {
+        if (pt.x >= p.x - 5 && pt.x <= p.x + p.w + 5 &&
+            pt.y >= p.y - 5 && pt.y <= p.y + p.h + 5) { dotOverlaps = true; break; }
+      }
+      if (!dotOverlaps) {
+        const dot = _dotColors(tier, closedOpens);
+        ctx.save();
+        ctx.beginPath(); ctx.arc(pt.x, pt.y, 4.5, 0, Math.PI * 2);
+        ctx.fillStyle = dot.fill;
+        ctx.fill();
+        ctx.beginPath(); ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+        ctx.strokeStyle = dot.ring;
+        ctx.lineWidth   = 1;
+        ctx.stroke();
+        ctx.restore();
+        if (isReviewMode && typeof venueReviewFlags === 'function' && venueReviewFlags(v)) {
+          _drawReviewBadge(pt.x - 5, pt.y - 5);
+        }
       }
       layout.push({
         v, pt, classResult: cls, isDot: true, extraStem: 0,
