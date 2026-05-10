@@ -69,7 +69,7 @@
 <script defer src="js/admin-review.js?v=20260505a"></script>
 <script defer src="js/ui-shelter.js?v=20260416a"></script>
 <script defer src="js/render-wind.js?v=20260416b"></script>
-<script defer src="js/ui-detail.js?v=20260510a"></script>
+<script defer src="js/ui-detail.js?v=20260510b"></script>
 <script defer src="js/ui-plan-preview.js?v=20260430a"></script>
 <script defer src="js/osm.js?v=20260505a"></script>
 <script defer src="js/notifications.js?v=20260427c"></script>
@@ -5977,6 +5977,76 @@
     pointer-events: none;
   }
 
+  /* Photo count indicator — top-left of the photo, only when multi-photo.
+     Compact "1 / 8" pill on glass. Static (not scroll-tracked) for now. */
+  .photo-overlay-count {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: rgba(15,27,42,0.55);
+    backdrop-filter: blur(6px) saturate(140%);
+    -webkit-backdrop-filter: blur(6px) saturate(140%);
+    color: rgba(255,244,224,0.92);
+    font-size: 11px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    pointer-events: none;
+  }
+
+  /* Friend chip — expand-on-tap. Default state shows the summary pill;
+     when .expanded, a panel below the summary lists every friend with
+     their check-in time. Scoped only to is-expandable (2+ friends). */
+  .detail-new-photos .photo-overlay-chip.is-expandable { cursor: pointer; }
+  .detail-new-photos .photo-overlay-chip-summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .detail-new-photos .photo-overlay-chip-list {
+    display: none;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255,244,224,0.18);
+    flex-direction: column;
+    gap: 6px;
+  }
+  .detail-new-photos .photo-overlay-chip.expanded {
+    align-items: flex-start;
+    padding: 8px 10px 9px;
+    border-radius: 12px;
+  }
+  .detail-new-photos .photo-overlay-chip.expanded .photo-overlay-chip-summary {
+    width: 100%;
+  }
+  .detail-new-photos .photo-overlay-chip.expanded .photo-overlay-chip-list {
+    display: flex;
+  }
+  .chip-list-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11.5px;
+    color: var(--text);
+  }
+  .chip-list-avatar {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+  }
+  .chip-list-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chip-list-time { color: rgba(255,244,224,0.65); font-size: 10.5px; font-weight: 500; flex-shrink: 0; }
+
   /* ── Sun summary headline (the new dp-card content) ─────────────────────── */
   .dp-card .dp-sun-headline {
     color: var(--accent);
@@ -6006,6 +6076,101 @@
   .dp-card .dp-sun-headline + .card-pills {
     margin-top: 12px;
   }
+
+  /* ── Section title (used by Avtaler + Le for vind) ─────────────────────── */
+  .dp-section { margin-top: 14px; }
+  .dp-section-title {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+  }
+
+  /* ── Plans block — lives below the social card ────────────────────────── */
+  .dp-plans-block {
+    padding: 12px 14px;
+    background: var(--glass-card-bg);
+    border: var(--glass-border);
+    border-radius: 14px;
+    box-shadow: var(--glass-inset);
+  }
+  .dp-plans-block .detail-plan-item:not(:first-of-type) {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(155,169,188,0.16);
+  }
+
+  /* ── Wind shelter section ─────────────────────────────────────────────── */
+  .dp-shelter-section {
+    padding: 12px 14px;
+    background: var(--glass-card-bg);
+    border: var(--glass-border);
+    border-radius: 14px;
+    box-shadow: var(--glass-inset);
+  }
+  .dp-shelter-canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 9 / 5;
+    border-radius: 10px;
+  }
+
+  /* ── Info row — adaptive: chips when ≤3 items, list when ≥4 ─────────── */
+  .info-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 14px;
+  }
+  .info-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: var(--glass-action-bg);
+    border: var(--glass-border);
+    box-shadow: var(--glass-inset);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
+  }
+  .info-chip-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .info-chip-text { font-variant-numeric: tabular-nums; }
+
+  /* ── Footer toned down ─────────────────────────────────────────────────── */
+  .dp-footer-quiet {
+    margin-top: 18px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(155,169,188,0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    opacity: 0.55;
+  }
+  .dp-footer-quiet .secondary-link {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .dp-footer-quiet .secondary-link:hover { color: var(--text); }
+  .dp-footer-sep { color: var(--muted); font-size: 11px; opacity: 0.6; }
 
   /* Merged header: back + title + fav/bell on one row */
   .detail-header-row {
@@ -6723,24 +6888,35 @@
     box-shadow: 0 2px 8px rgba(0,0,0,0.35);
     transition: all 120ms ease-out;
   }
-  /* Heartbeat ambient — same cadence as the friend-pin pulse (2.5s period,
-     1.5s active + 1s rest). Marks the Invite-friends CTA as the social
-     gateway. Single pulse ring expanding outward from the button. */
+  /* Sheen sweep — a soft diagonal light ray traverses the button left → right
+     in ~1.4s, then a long ~5s rest before the next sweep. Subtler than the
+     previous radar-ring heartbeat: still marks the CTA as alive without
+     borrowing eye attention. The button needs overflow:hidden to clip the
+     sheen to its shape (set above when needed). */
+  .dp-invite-cta { overflow: hidden; }
   .dp-invite-cta::after {
     content: '';
     position: absolute;
     inset: 0;
-    border-radius: inherit;
-    border: 2px solid var(--accent);
+    background: linear-gradient(
+      100deg,
+      transparent 0%,
+      transparent 35%,
+      rgba(255,255,255,0.55) 50%,
+      transparent 65%,
+      transparent 100%
+    );
+    transform: translateX(-110%);
     pointer-events: none;
-    opacity: 0;
-    animation: dp-invite-heartbeat 2500ms ease-out infinite;
-    z-index: -1;
+    animation: dp-invite-sheen 6500ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    z-index: 1;
   }
-  @keyframes dp-invite-heartbeat {
-    0%   { opacity: 0.55; transform: scale(1.00); }
-    60%  { opacity: 0;    transform: scale(1.18); }
-    100% { opacity: 0;    transform: scale(1.18); }
+  /* The icon + label stay above the sheen layer */
+  .dp-invite-cta > * { position: relative; z-index: 2; }
+  @keyframes dp-invite-sheen {
+    0%   { transform: translateX(-110%); }
+    22%  { transform: translateX(110%); }
+    100% { transform: translateX(110%); }
   }
   @media (prefers-reduced-motion: reduce) {
     .dp-invite-cta::after { animation: none; }

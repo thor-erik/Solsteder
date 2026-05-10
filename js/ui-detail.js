@@ -52,46 +52,49 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
     sunHeadline = `Sol ferdig i dag`;
   }
 
-  // Info list
-  const infoRows = [];
+  // Info — collected as { icon, strong, sub?, chipText } so we can render
+  // either as compact chips (when ≤3 items) or as a full vertical list
+  // (when ≥4). Address always appears as the first item so the user knows
+  // exactly where they're looking at.
+  const infoItems = [];
+  const pinIcon   = typeof getMapsIcon === 'function' ? getMapsIcon('pin') : '📍';
+  const beerIcon  = typeof getMapsIcon === 'function' ? getMapsIcon('beer') : '🍺';
+  const peopleIcon = typeof getMapsIcon === 'function' ? getMapsIcon('people') : '👥';
+  const volumeIcon = typeof getMapsIcon === 'function' ? getMapsIcon('volume') : '🔊';
+  const clockIcon = typeof getMapsIcon === 'function' ? getMapsIcon('clock') : '🕐';
+
+  if (v.address) {
+    infoItems.push({ icon: pinIcon, strong: v.address, chipText: v.address });
+  }
 
   if (v.beerPrice) {
-    const beerIcon = typeof getMapsIcon === 'function' ? getMapsIcon('beer') : '🍺';
-    infoRows.push(`
-      <div class="info-row">
-        <div class="info-icon">${beerIcon}</div>
-        <div class="info-label">
-          <div class="info-label-strong">${v.beerPrice} kr / 0,5 l</div>
-          <div class="info-label-sub">Kilde: <a href="https://pilsguiden.no" target="_blank" rel="noopener" style="color:var(--accent)">Pilsguiden</a></div>
-        </div>
-      </div>`);
+    infoItems.push({
+      icon: beerIcon,
+      strong: `${v.beerPrice} kr / 0,5 l`,
+      sub: `Kilde: <a href="https://pilsguiden.no" target="_blank" rel="noopener" style="color:var(--accent)">Pilsguiden</a>`,
+      chipText: `${v.beerPrice} kr · 0,5l`,
+    });
   }
 
   const busynessNow = typeof getBusynessAt === 'function' ? getBusynessAt(v, dateStr, fromHour) : null;
   if (busynessNow != null) {
-    const peopleIcon = typeof getMapsIcon === 'function' ? getMapsIcon('people') : '👥';
-    infoRows.push(`
-      <div class="info-row">
-        <div class="info-icon">${peopleIcon}</div>
-        <div class="info-label">
-          <div class="info-label-strong">Travelt nå</div>
-          <div class="info-label-sub">~${Math.round(busynessNow)}%</div>
-        </div>
-      </div>`);
+    infoItems.push({
+      icon: peopleIcon,
+      strong: 'Travelt nå',
+      sub: `~${Math.round(busynessNow)}%`,
+      chipText: `~${Math.round(busynessNow)}% travelt`,
+    });
   }
 
   const noiseScore = s?.noise != null ? s.noise : (v.noiseScore != null ? v.noiseScore * 100 : null);
   if (noiseScore != null) {
     const noiseBucket = typeof noiseScoreToBucket === 'function' ? noiseScoreToBucket(noiseScore) : null;
     if (noiseBucket) {
-      const volumeIcon = typeof getMapsIcon === 'function' ? getMapsIcon('volume') : '🔊';
-      infoRows.push(`
-        <div class="info-row">
-          <div class="info-icon">${volumeIcon}</div>
-          <div class="info-label">
-            <div class="info-label-strong">${noiseBucket.label}</div>
-          </div>
-        </div>`);
+      infoItems.push({
+        icon: volumeIcon,
+        strong: noiseBucket.label,
+        chipText: noiseBucket.label,
+      });
     }
   }
 
@@ -101,61 +104,125 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
   if (v.kitchenCloseHour != null) {
     hoursSubtext = `Kjøkken til ${formatHour(v.kitchenCloseHour)}`;
   }
-  const clockIcon = typeof getMapsIcon === 'function' ? getMapsIcon('clock') : '🕐';
-  infoRows.push(`
-    <div class="info-row">
-      <div class="info-icon">${clockIcon}</div>
-      <div class="info-label">
-        <div class="info-label-strong">Åpent til ${closingStr}</div>
-        ${hoursSubtext ? `<div class="info-label-sub">${hoursSubtext}</div>` : ''}
-      </div>
-      <div class="info-value">Åpent</div>
-    </div>`);
+  infoItems.push({
+    icon: clockIcon,
+    strong: `Åpent til ${closingStr}`,
+    sub: hoursSubtext || '',
+    chipText: `Åpent til ${closingStr}`,
+  });
 
-  const infoListHtml = infoRows.length > 0 ? `
-    <div class="info-list">
-      ${infoRows.join('')}
-    </div>` : '';
+  // Adaptive shape: ≤3 → compact chip row (each chip is icon + chipText);
+  // ≥4 → full vertical list (icon + strong + optional sub).
+  let infoListHtml = '';
+  if (infoItems.length > 0 && infoItems.length <= 3) {
+    infoListHtml = `<div class="info-chips">${
+      infoItems.map(it => `<div class="info-chip">
+        <span class="info-chip-icon">${it.icon}</span>
+        <span class="info-chip-text">${it.chipText}</span>
+      </div>`).join('')
+    }</div>`;
+  } else if (infoItems.length > 0) {
+    infoListHtml = `<div class="info-list">${
+      infoItems.map(it => `<div class="info-row">
+        <div class="info-icon">${it.icon}</div>
+        <div class="info-label">
+          <div class="info-label-strong">${it.strong}</div>
+          ${it.sub ? `<div class="info-label-sub">${it.sub}</div>` : ''}
+        </div>
+      </div>`).join('')
+    }</div>`;
+  }
 
+  // Footer toned down — secondary actions for rare admin paths. Smaller,
+  // dimmer, sits at the very bottom of the panel so it doesn't compete
+  // with venue content.
   const footerHtml = `
-    <div class="secondary-row">
+    <div class="secondary-row dp-footer-quiet">
       <button class="secondary-link" onclick="enterEditMode(${v.id})">Rediger informasjon</button>
+      <span class="dp-footer-sep">·</span>
       <button class="secondary-link" onclick="alert('Rapportfunksjon kommer snart')">Rapporter feil</button>
     </div>`;
 
-  // Friend chip moves to the TOP-RIGHT of the photo (was overlaid on the
-  // first image). With title now in the photo overlay (bottom-left), the
-  // friend chip sits opposite — visual balance and the social signal stays
-  // primary on the photo.
-  const _photoFriendCheckins = typeof getFriendCheckinsForVenue === 'function'
-    ? getFriendCheckinsForVenue(v.id) : [];
-  const photoChipHtml = _photoFriendCheckins.length
-    ? `<div class="photo-overlay-chip">
-        <div class="avatar-row sm">${_renderFriendAvatarsHtml(_photoFriendCheckins, 3, 18)}</div>
-        <span>${_friendsHereChipLabel(_photoFriendCheckins)}</span>
+  // Wind shelter section — isometric diagram drawn into a canvas.
+  // drawShelterDiagram populates it post-insertion via _populateDpShelter
+  // (called from app.js after the panel's HTML lands in the DOM).
+  const _shelterCanvasId = `dp-shelter-${v.id}`;
+  const shelterHtml = (typeof drawShelterDiagram === 'function')
+    ? `<div class="dp-section dp-shelter-section">
+        <div class="dp-section-title">Le for vind</div>
+        <canvas id="${_shelterCanvasId}" class="dp-shelter-canvas" width="576" height="320"></canvas>
       </div>`
     : '';
 
-  // Distance + walk time on the photo overlay's meta line. Same data the
-  // list card surfaces, formatted compactly: area · category · distance · walk.
-  const _distMeters = s?.distKm != null ? s.distKm * 1000 : null;
+  // Friend chip on the photo top-right. Tap-to-expand: the compact pill
+  // ("Anna +N her") expands inline to a small panel listing every friend
+  // with their check-in time ("siden 13:24"). For 1 friend the panel is
+  // suppressed (the pill already shows the name).
+  const _photoFriendCheckins = typeof getFriendCheckinsForVenue === 'function'
+    ? getFriendCheckinsForVenue(v.id) : [];
+  const _fmtCheckin = (c) => {
+    if (!c.created_at) return '';
+    const d = new Date(c.created_at);
+    if (isNaN(d.getTime())) return '';
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    return `siden ${hh}:${mm}`;
+  };
+  const photoChipHtml = _photoFriendCheckins.length
+    ? `<div class="photo-overlay-chip${_photoFriendCheckins.length >= 2 ? ' is-expandable' : ''}"
+            onclick="this.classList.toggle('expanded'); event.stopPropagation();">
+        <div class="photo-overlay-chip-summary">
+          <div class="avatar-row sm">${_renderFriendAvatarsHtml(_photoFriendCheckins, 3, 18)}</div>
+          <span>${_friendsHereChipLabel(_photoFriendCheckins)}</span>
+        </div>
+        ${_photoFriendCheckins.length >= 2 ? `<div class="photo-overlay-chip-list">
+          ${_photoFriendCheckins.map(c => {
+            const u = c.user || {};
+            const name = (u.name || u.email || '').replace(/"/g, '&quot;');
+            const initial = ((u.name || u.email || '?')[0] || '?').toUpperCase();
+            const av = u.avatar_url
+              ? `<img class="chip-list-avatar" src="${u.avatar_url}" alt="">`
+              : `<span class="chip-list-avatar chip-list-avatar-init" style="background:${_dpFriendColor(u.id)}">${initial}</span>`;
+            return `<div class="chip-list-row">
+              ${av}
+              <div class="chip-list-name">${name}</div>
+              <div class="chip-list-time">${_fmtCheckin(c)}</div>
+            </div>`;
+          }).join('')}
+        </div>` : ''}
+      </div>`
+    : '';
+
+  // Meta line on the photo overlay. Star + rating prepended when present so
+  // the trust signal reads alongside identity. Falls back gracefully when any
+  // single field is missing.
   const _distStr = s?.distKm != null
     ? (s.distKm < 1 ? `${Math.round(s.distKm * 1000)} m` : `${s.distKm.toFixed(1)} km`)
     : '';
   const _catLabel = (typeof catLabel === 'function') ? catLabel(v) : '';
-  const _metaParts = [v.area, _catLabel, _distStr].filter(Boolean);
+  const _ratingStr = (typeof v.rating === 'number')
+    ? `★ ${v.rating.toFixed(1).replace('.', ',')}`
+    : '';
+  const _metaParts = [_ratingStr, v.area, _catLabel, _distStr].filter(Boolean);
   const _metaLine = _metaParts.join(' · ');
 
-  // Photo block — shared header overlay (title + meta + friend chip + dark
-  // gradient) sits on top of every state. Photo carousel for venues with
-  // images; cream-honey gradient placeholder + camera icon for those without.
+  // Photo count indicator (top-left). Only when multi-photo. Cream-on-glass
+  // pill: "1 / 8". Currently not scroll-tracked — shows total count only.
+  const _photoCount = v.photoUrls?.length || 0;
+  const photoCountHtml = _photoCount > 1
+    ? `<div class="photo-overlay-count">1 / ${_photoCount}</div>`
+    : '';
+
+  // Photo block — shared header overlay (title + meta + friend chip + count
+  // + dark gradient) sits on top of every state.
   const photoOverlayHtml = `
     <div class="photo-overlay-grad"></div>
+    ${photoCountHtml}
+    ${photoChipHtml}
     <div class="photo-overlay-header">
       <div class="photo-overlay-title">${v.name}</div>
       ${_metaLine ? `<div class="photo-overlay-meta">${_metaLine}</div>` : ''}
-    </div>
-    ${photoChipHtml}`;
+    </div>`;
 
   const photosHtml = v.photoUrls?.length
     ? `<div class="detail-new-photos">
@@ -206,6 +273,8 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
 
       ${_renderSocialSection(v)}
 
+      ${_renderPlansBlock(v)}
+
       <div class="dp-action-row">
         <a class="dp-action-pill" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(v.lat + ',' + v.lng)}&travelmode=walking" target="_blank" rel="noopener" aria-label="${t('directions')}${walkTime ? ' · ' + walkTime : ''}">
           ${dirIcon}
@@ -214,11 +283,11 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
         <button class="dp-action-icon" title="${t('share')}" aria-label="${t('share')}" onclick="shareVenue(${v.id})">${shareIcon}</button>
         ${heartBtn}
         ${bellBtn}
-        ${v.phone ? `<a href="tel:${encodeURIComponent(v.phone)}" class="dp-action-icon" title="${t('call')}" aria-label="${t('call')}">${phoneIcon}</a>` : ''}
-        ${v.website ? `<a href="${v.website}" target="_blank" rel="noopener" class="dp-action-icon" title="${t('website')}" aria-label="${t('website')}">${globeIcon}</a>` : ''}
       </div>
 
       ${infoListHtml}
+
+      ${shelterHtml}
 
       ${footerHtml}
     </div>`;
@@ -286,36 +355,28 @@ function _friendsInSunHeadline(checkins) {
     : `${firstName} er i solen her`;
 }
 
-/** Render the social section: "Jeg drar hit", "Jeg er her", friends, plans. */
+/** Social section: just the Invite-friends CTA. The "friends here now" chip
+ *  is rendered on the photo overlay (top-right). Plans got promoted to their
+ *  own block, _renderPlansBlock, rendered separately by the caller. */
 function _renderSocialSection(v) {
-  const myCheckin = typeof getMyCheckin === 'function' ? getMyCheckin() : null;
-  const isCheckedInHere = myCheckin && String(myCheckin.venue_id) === String(v.id);
-  const friendCheckins = typeof getFriendCheckinsForVenue === 'function' ? getFriendCheckinsForVenue(v.id) : [];
-  const plans = typeof getPlansForVenue === 'function' ? getPlansForVenue(v.id) : [];
-
-  // Friends-in-sun card — replaces the old "N her nå" row. Sits ABOVE the
-  // action buttons so the avatar/name pair is the first social signal.
-  // Join-state semantics (idle / coming / here) are absorbed into the
-  // invite sheet's time picker — when the user picks a time within ±30 min
-  // of real-now, the share message swaps to "I'm at X now" and presence
-  // flips on send (see _isNowSend below).
-  let friendsHtml = '';
-  if (friendCheckins.length) {
-    friendsHtml = `<div class="friends-photo-chip-row">
-      <div class="chip-summary">
-        <div class="avatar-row">${_renderFriendAvatarsHtml(friendCheckins, 3, 32)}</div>
-        <div class="chip-text">
-          <div class="chip-title">${_friendsInSunHeadline(friendCheckins)}</div>
-        </div>
-      </div>
+  const inviteSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>`;
+  return `
+    <div class="social-card">
+      <button class="dp-invite-cta" onclick="_openInviteSheet(${v.id})">
+        ${inviteSvg}
+        <span>${t('invite_friends')}</span>
+      </button>
     </div>`;
-  }
+}
 
-  // Plans for this venue
-  let plansHtml = '';
-  if (plans.length) {
-    const myUid = (typeof authCurrentUser === 'function' && authCurrentUser()) ? authCurrentUser().id : null;
-    plansHtml = plans.map(p => {
+/** Plans block — own section below the social card. Empty string when no
+ *  plans for this venue, so the section disappears cleanly. */
+function _renderPlansBlock(v) {
+  const plans = typeof getPlansForVenue === 'function' ? getPlansForVenue(v.id) : [];
+  if (!plans.length) return '';
+
+  const myUid = (typeof authCurrentUser === 'function' && authCurrentUser()) ? authCurrentUser().id : null;
+  const plansHtml = plans.map(p => {
       const when = new Date(p.planned_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
       const creator = p.creator?.name || p.creator?.email || '';
       const invite = p._invite;
@@ -369,27 +430,11 @@ function _renderSocialSection(v) {
         ${actions}
         ${previewBtn}
       </div>`;
-    }).join('');
-  }
+  }).join('');
 
-  const inviteSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>`;
-
-  // Post-accept prompts (friend-add + share-nudge) used to render as banners
-  // here in the social-card. They now slide up as a dedicated question panel
-  // (_openPostAcceptPanel) right after closePlanPreview, so the social-card
-  // stays focused on the venue's persistent social context.
-
-  // Single primary CTA — Invite friends. The "I'm here" entry is absorbed
-  // into the invite sheet's time picker: picking a time within ±30 min of
-  // real-now flips the share message to "I'm at X now — come join" and
-  // checks the user in on send (see _isNowSend below).
   return `
-    <div class="social-card">
-      ${friendsHtml}
-      <button class="dp-invite-cta" onclick="_openInviteSheet(${v.id})">
-        ${inviteSvg}
-        <span>${t('invite_friends')}</span>
-      </button>
+    <div class="dp-section dp-plans-block">
+      <div class="dp-section-title">Avtaler</div>
       ${plansHtml}
     </div>`;
 }
@@ -1935,5 +1980,20 @@ function _shareInviteLink(venueId, overrides = {}) {
   if (_isNowSend(d, h) && typeof checkIn === 'function') {
     setTimeout(() => { checkIn(venueId, ''); }, 0);
   }
+}
+
+/** Post-render hook for the wind-shelter canvas. Called from openDetailPanel
+ *  / updateDetailPanel after the panel HTML is in the DOM. Resolves the
+ *  current weather (for wind direction + speed) and hands the canvas to
+ *  drawShelterDiagram. No-ops cleanly when the canvas isn't there (no
+ *  shelter section was rendered) or when the dependency isn't loaded. */
+function _populateDpShelter(v) {
+  if (!v || typeof drawShelterDiagram !== 'function') return;
+  const canvas = document.getElementById(`dp-shelter-${v.id}`);
+  if (!canvas) return;
+  const dateStr  = (typeof datePicker !== 'undefined' && datePicker) ? datePicker.value : '';
+  const fromHour = (typeof timeFromEl !== 'undefined' && timeFromEl) ? parseFloat(timeFromEl.value) : 0;
+  const wx = (typeof getWeatherAt === 'function') ? getWeatherAt(dateStr, fromHour) : null;
+  try { drawShelterDiagram(v, wx, canvas); } catch (_) { /* swallow render errors so the panel stays usable */ }
 }
 

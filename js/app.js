@@ -2501,6 +2501,7 @@ function openDetailPanel(v) {
   }
 
   _populateDpCardSlot(v);
+  if (typeof _populateDpShelter === 'function') _populateDpShelter(v);
 
   _syncFtsPosition();
   // Re-position the floating time label after the date pill slides in and
@@ -2643,6 +2644,7 @@ function updateDetailPanel() {
 
   content.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
   _populateDpCardSlot(v);
+  if (typeof _populateDpShelter === 'function') _populateDpShelter(v);
   _startWindForVenue(v);
 }
 
