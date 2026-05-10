@@ -69,7 +69,7 @@
 <script defer src="js/admin-review.js?v=20260505a"></script>
 <script defer src="js/ui-shelter.js?v=20260416a"></script>
 <script defer src="js/render-wind.js?v=20260416b"></script>
-<script defer src="js/ui-detail.js?v=20260510c"></script>
+<script defer src="js/ui-detail.js?v=20260510d"></script>
 <script defer src="js/ui-plan-preview.js?v=20260430a"></script>
 <script defer src="js/osm.js?v=20260505a"></script>
 <script defer src="js/notifications.js?v=20260427c"></script>
@@ -6256,114 +6256,119 @@
      share) flex to absorb extra space, while toggle-state squares
      (heart, bell, optional phone/website) stay 48×48. The result lines
      up flush with the Invite friends CTA above. */
-  .dp-action-row {
+  /* ── Detail action area — two-row layout ──────────────────────────────────
+     Row 1: Directions = primary venue action, Tier 4 honey CTA full-width.
+     Row 2: Share / Save / Alert = peer secondary toggles, Tier 3 glass with
+            icon + small label so the user doesn't have to recognise glyphs
+            cold. */
+  .dp-actions {
     display: flex;
-    align-items: center;
-    gap: 10px;
+    flex-direction: column;
+    gap: 8px;
     margin-bottom: 14px;
-    flex-wrap: wrap;
   }
-  .dp-action-cta {
-    flex: 1;
-    height: 44px;
+
+  /* Tier 4 honey CTA — primary venue action ("Veibeskrivelse · 4 min"). */
+  .dp-primary-cta {
+    width: 100%;
+    height: 46px;
     border-radius: 999px;
     background: var(--accent);
     border: none;
     color: var(--accent-on, #2a1a0c);
+    font-family: 'Inter', sans-serif;
     font-size: 14px;
     font-weight: 700;
-    font-family: 'Inter', sans-serif;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: 8px;
     cursor: pointer;
     text-decoration: none;
     white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.32);
+    transition: transform 120ms ease-out, filter 120ms ease-out, box-shadow 120ms ease-out;
   }
-  .dp-action-cta:hover { opacity: 0.9; }
-  .dp-action-cta svg { width: 18px; height: 18px; stroke: currentColor; }
+  .dp-primary-cta svg { width: 18px; height: 18px; stroke: currentColor; flex-shrink: 0; }
+  .dp-primary-cta-label { overflow: hidden; text-overflow: ellipsis; }
+  .dp-primary-cta:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.06);
+    box-shadow:
+      0 8px 22px rgba(0,0,0,0.40),
+      0 2px 8px rgba(245,194,94,0.32);
+  }
+  .dp-primary-cta:active {
+    transform: translateY(1px);
+    filter: brightness(0.95);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.30);
+  }
 
-  /* Secondary Square — design-system canonical icon-only utility button.
-     Default reads quiet (muted color), hover lifts to text, active state
-     swaps to accent-dim background + accent so heart/bell read on without
-     dominating the row. */
-  .dp-action-icon {
-    width: 48px;
-    height: 48px;
+  /* Tier 3 secondary toggles — equal-weight peers in a single row. Each is
+     a glass surface with stacked icon + label. Active state (heart, bell)
+     fills with honey for a decisive ON cue. */
+  .dp-secondary-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .dp-secondary-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    height: 52px;
+    padding: 0 6px;
     border-radius: 12px;
     background: linear-gradient(135deg, rgba(20,46,82,0.25) 0%, rgba(32,73,131,0.14) 100%), rgba(20,46,82,0.30);
     border: 1px solid rgba(156,189,231,0.20);
     box-shadow:
       inset 0 1px 0 rgba(255,242,235,0.14),
       inset 0 -1px 0 rgba(20,46,82,0.30),
-      0 2px 8px rgba(0,0,0,0.35);
+      0 2px 8px rgba(0,0,0,0.30);
     color: var(--muted);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
     cursor: pointer;
-    flex-shrink: 0;
     text-decoration: none;
+    font-family: 'Inter', sans-serif;
     transition: all 120ms ease-out;
   }
-  .dp-action-icon:hover {
-    background: linear-gradient(135deg, rgba(20,46,82,0.35) 0%, rgba(32,73,131,0.22) 100%), rgba(20,46,82,0.42);
-    border-color: rgba(156,189,231,0.32);
-    color: var(--text);
+  .dp-secondary-btn svg {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+    color: currentColor;
+    flex-shrink: 0;
   }
-  .dp-action-icon svg { width: 20px; height: 20px; stroke: currentColor; color: currentColor; }
-
-  /* Labeled directions pill — same glass-action treatment as the squares
-     but pill-shaped with an inline label so the most-used utility action
-     fills the row width and surfaces the walk time inline. The remaining
-     buttons (share, heart, bell, optional phone/website) stay as 48×48
-     squares — pill vs square is the row's "labeled vs icon-only" cue. */
-  .dp-action-pill {
-    flex: 1;
-    min-width: 0;
-    height: 48px;
-    border-radius: 999px;
-    background: linear-gradient(135deg, rgba(20,46,82,0.25) 0%, rgba(32,73,131,0.14) 100%), rgba(20,46,82,0.30);
-    border: 1px solid rgba(156,189,231,0.20);
-    box-shadow:
-      inset 0 1px 0 rgba(255,242,235,0.14),
-      inset 0 -1px 0 rgba(20,46,82,0.30),
-      0 2px 8px rgba(0,0,0,0.35);
-    color: var(--text);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 0 18px;
-    font-family: 'Inter', sans-serif;
-    font-size: 14px;
+  .dp-secondary-label {
+    font-size: 10.5px;
     font-weight: 600;
-    cursor: pointer;
-    text-decoration: none;
+    color: inherit;
+    line-height: 1;
+    letter-spacing: 0.01em;
     white-space: nowrap;
     overflow: hidden;
-    transition: all 120ms ease-out;
-  }
-  .dp-action-pill svg { width: 20px; height: 20px; stroke: currentColor; flex-shrink: 0; }
-  .dp-action-pill-label {
-    overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 100%;
   }
-  .dp-action-pill:hover {
+  .dp-secondary-btn:hover {
     background: linear-gradient(135deg, rgba(20,46,82,0.35) 0%, rgba(32,73,131,0.22) 100%), rgba(20,46,82,0.42);
     border-color: rgba(156,189,231,0.32);
-    color: var(--accent);
+    color: var(--text);
   }
-  .dp-action-icon.is-active {
-    background: var(--accent-dim);
-    border-color: rgba(255,175,133,0.35);
-    color: var(--accent);
+  /* Active toggle state — decisive honey fill so "is it on?" is unambiguous. */
+  .dp-secondary-btn.is-active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-on, #2a1a0c);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.32),
+      0 2px 8px rgba(245,194,94,0.30);
   }
-  .dp-action-icon.is-active svg { color: var(--accent); fill: currentColor; }
-  .dp-action-icon.is-active:hover {
-    background: var(--accent-dim);
-    border-color: rgba(255,175,133,0.5);
+  .dp-secondary-btn.is-active svg { color: var(--accent-on, #2a1a0c); fill: currentColor; }
+  .dp-secondary-btn.is-active:hover {
+    background: var(--accent);
+    filter: brightness(1.06);
   }
 
   /* Legacy: keep .primary-action for backwards compat but hidden */

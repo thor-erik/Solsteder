@@ -241,11 +241,15 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
   // state fills with the accent so the row reads as a peer set of toggles.
   const _favActive = typeof isFavorite === 'function' && isFavorite(v.id);
   const _alertActive = typeof hasSunAlert === 'function' && hasSunAlert(v.id);
-  const heartBtn = `<button class="dp-action-icon${_favActive ? ' is-active' : ''}" onclick="toggleFavorite(${v.id}, event)" title="${typeof t === 'function' ? t('favorites') : 'Favoritt'}" aria-label="${typeof t === 'function' ? t('favorites') : 'Favoritt'}">
+  const _favLabel   = typeof t === 'function' ? t('favorites') : 'Favoritt';
+  const _alertLabel = typeof t === 'function' ? t('sun_alert_label') : 'Sol-varsel';
+  const heartBtn = `<button class="dp-secondary-btn${_favActive ? ' is-active' : ''}" onclick="toggleFavorite(${v.id}, event)" title="${_favLabel}" aria-label="${_favLabel}">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="${_favActive ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>
+    <span class="dp-secondary-label">${_favLabel}</span>
   </button>`;
-  const bellBtn = `<button class="dp-action-icon${_alertActive ? ' is-active' : ''}" onclick="toggleSunAlert(${v.id}, event)" title="${typeof t === 'function' ? t('sun_alert_label') : 'Sol-varsel'}" aria-label="${typeof t === 'function' ? t('sun_alert_label') : 'Sol-varsel'}">
+  const bellBtn = `<button class="dp-secondary-btn${_alertActive ? ' is-active' : ''}" onclick="toggleSunAlert(${v.id}, event)" title="${_alertLabel}" aria-label="${_alertLabel}">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="${_alertActive ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    <span class="dp-secondary-label">${_alertLabel}</span>
   </button>`;
 
   // The card-style header is rebuilt by _populateDpCardSlot → renderCard
@@ -271,14 +275,19 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
 
       ${_renderPlansBlock(v)}
 
-      <div class="dp-action-row">
-        <a class="dp-action-pill" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(v.lat + ',' + v.lng)}&travelmode=walking" target="_blank" rel="noopener" aria-label="${t('directions')}${walkTime ? ' · ' + walkTime : ''}">
+      <div class="dp-actions">
+        <a class="dp-primary-cta" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(v.lat + ',' + v.lng)}&travelmode=walking" target="_blank" rel="noopener" aria-label="${t('directions')}${walkTime ? ' · ' + walkTime : ''}">
           ${dirIcon}
-          <span class="dp-action-pill-label">${walkTime || t('directions')}</span>
+          <span class="dp-primary-cta-label">${t('directions')}${walkTime ? ' · ' + walkTime : ''}</span>
         </a>
-        <button class="dp-action-icon" title="${t('share')}" aria-label="${t('share')}" onclick="shareVenue(${v.id})">${shareIcon}</button>
-        ${heartBtn}
-        ${bellBtn}
+        <div class="dp-secondary-row">
+          <button class="dp-secondary-btn" title="${t('share')}" aria-label="${t('share')}" onclick="shareVenue(${v.id})">
+            ${shareIcon}
+            <span class="dp-secondary-label">${t('share')}</span>
+          </button>
+          ${heartBtn}
+          ${bellBtn}
+        </div>
       </div>
 
       ${infoListHtml}
