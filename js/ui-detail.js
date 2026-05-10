@@ -241,15 +241,20 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
   // state fills with the accent so the row reads as a peer set of toggles.
   const _favActive = typeof isFavorite === 'function' && isFavorite(v.id);
   const _alertActive = typeof hasSunAlert === 'function' && hasSunAlert(v.id);
-  const _favLabel   = typeof t === 'function' ? t('favorites') : 'Favoritt';
-  const _alertLabel = typeof t === 'function' ? t('sun_alert_label') : 'Sol-varsel';
+  // Buttons keep the LONG, descriptive label as title + aria for
+  // accessibility, but render a SHORT word as the visible button label so
+  // the row stays compact (the bell's "Notify me 30 min before sun" was
+  // far too long for a 3-column grid).
+  const _favLabel       = typeof t === 'function' ? t('favorites') : 'Favoritt';
+  const _alertLabelLong = typeof t === 'function' ? t('sun_alert_label') : 'Sol-varsel';
+  const _alertLabelShort = typeof t === 'function' ? t('sun_alert_short') : 'Varsle';
   const heartBtn = `<button class="dp-secondary-btn${_favActive ? ' is-active' : ''}" onclick="toggleFavorite(${v.id}, event)" title="${_favLabel}" aria-label="${_favLabel}">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="${_favActive ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>
     <span class="dp-secondary-label">${_favLabel}</span>
   </button>`;
-  const bellBtn = `<button class="dp-secondary-btn${_alertActive ? ' is-active' : ''}" onclick="toggleSunAlert(${v.id}, event)" title="${_alertLabel}" aria-label="${_alertLabel}">
+  const bellBtn = `<button class="dp-secondary-btn${_alertActive ? ' is-active' : ''}" onclick="toggleSunAlert(${v.id}, event)" title="${_alertLabelLong}" aria-label="${_alertLabelLong}">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="${_alertActive ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-    <span class="dp-secondary-label">${_alertLabel}</span>
+    <span class="dp-secondary-label">${_alertLabelShort}</span>
   </button>`;
 
   // The card-style header is rebuilt by _populateDpCardSlot → renderCard

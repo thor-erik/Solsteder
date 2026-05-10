@@ -45,7 +45,7 @@
     }
   })();
 </script>
-<script defer src="js/i18n.js"></script>
+<script defer src="js/i18n.js?v=20260510a"></script>
 <script defer src="js/config.js?v=20260425b"></script>
 <script defer src="js/tokens.js?v=20260509e"></script>
 <script defer src="js/auth.js"></script>
@@ -69,7 +69,7 @@
 <script defer src="js/admin-review.js?v=20260505a"></script>
 <script defer src="js/ui-shelter.js?v=20260416a"></script>
 <script defer src="js/render-wind.js?v=20260416b"></script>
-<script defer src="js/ui-detail.js?v=20260510d"></script>
+<script defer src="js/ui-detail.js?v=20260510e"></script>
 <script defer src="js/ui-plan-preview.js?v=20260430a"></script>
 <script defer src="js/osm.js?v=20260505a"></script>
 <script defer src="js/notifications.js?v=20260427c"></script>
@@ -6268,17 +6268,21 @@
     margin-bottom: 14px;
   }
 
-  /* Tier 4 honey CTA — primary venue action ("Veibeskrivelse · 4 min"). */
+  /* Directions — Tier 3 glass pill. Invite-friends is the only honey CTA
+     in the panel; Directions stays prominent as a full-width row but in
+     the slate glass family so it doesn't compete for the honey channel.
+     Walk time inlined into the label so a single text run carries action
+     + cost. */
   .dp-primary-cta {
     width: 100%;
     height: 46px;
     border-radius: 999px;
-    background: var(--accent);
-    border: none;
-    color: var(--accent-on, #2a1a0c);
+    background: linear-gradient(135deg, rgba(20,46,82,0.30) 0%, rgba(32,73,131,0.18) 100%), rgba(20,46,82,0.36);
+    border: 1px solid rgba(156,189,231,0.24);
+    color: var(--text);
     font-family: 'Inter', sans-serif;
     font-size: 14px;
-    font-weight: 700;
+    font-weight: 600;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -6286,21 +6290,25 @@
     cursor: pointer;
     text-decoration: none;
     white-space: nowrap;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.32);
-    transition: transform 120ms ease-out, filter 120ms ease-out, box-shadow 120ms ease-out;
+    box-shadow:
+      inset 0 1px 0 rgba(255,242,235,0.14),
+      inset 0 -1px 0 rgba(20,46,82,0.30),
+      0 2px 10px rgba(0,0,0,0.32);
+    transition: transform 120ms ease-out, background 120ms ease-out, border-color 120ms ease-out, box-shadow 120ms ease-out;
   }
-  .dp-primary-cta svg { width: 18px; height: 18px; stroke: currentColor; flex-shrink: 0; }
+  .dp-primary-cta svg { width: 18px; height: 18px; stroke: currentColor; flex-shrink: 0; color: var(--accent); }
   .dp-primary-cta-label { overflow: hidden; text-overflow: ellipsis; }
   .dp-primary-cta:hover {
     transform: translateY(-1px);
-    filter: brightness(1.06);
+    background: linear-gradient(135deg, rgba(20,46,82,0.40) 0%, rgba(32,73,131,0.26) 100%), rgba(20,46,82,0.48);
+    border-color: rgba(156,189,231,0.36);
     box-shadow:
-      0 8px 22px rgba(0,0,0,0.40),
-      0 2px 8px rgba(245,194,94,0.32);
+      inset 0 1px 0 rgba(255,242,235,0.18),
+      inset 0 -1px 0 rgba(20,46,82,0.30),
+      0 8px 22px rgba(0,0,0,0.40);
   }
   .dp-primary-cta:active {
     transform: translateY(1px);
-    filter: brightness(0.95);
     box-shadow: 0 1px 4px rgba(0,0,0,0.30);
   }
 

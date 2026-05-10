@@ -228,6 +228,7 @@ const _STRINGS = {
     sun_alert_on:        'Sun alert activated',
     sun_alert_off:       'Sun alert deactivated',
     sun_alert_label:     'Notify me 30 min before sun',
+    sun_alert_short:     'Alert',
     sun_alert_minutes:   '{min} min before sun',
     sun_alert_native_only: 'Push notifications are only available in the app',
     // ── Friends ────────────────────────────────────────────────────────────────
@@ -661,6 +662,7 @@ const _STRINGS = {
     sun_alert_on:        'Sol-varsel aktivert',
     sun_alert_off:       'Sol-varsel deaktivert',
     sun_alert_label:     'Varsle meg 30 min før sol',
+    sun_alert_short:     'Varsle',
     sun_alert_minutes:   '{min} min før sol',
     sun_alert_native_only: 'Push-varsler er kun tilgjengelig i appen',
     // ── Friends ────────────────────────────────────────────────────────────────
