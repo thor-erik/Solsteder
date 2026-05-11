@@ -1532,20 +1532,18 @@ function selectCalendarDate(dateStr) {
   const wasPostSundown = oldSundown != null && oldHour >= oldSundown - 0.001;
 
   datePicker.value = dateStr;
-  if (dateStr !== todayStr() && nowMode) {
-    nowMode = false;
-    clearInterval(nowInterval); nowInterval = null;
-    nowBtn?.classList.remove('active');
-    timeRangeWrap?.classList.remove('now-active');
-    // Default time to earliest sun on the picked day (sunrise).
-    const earliestSun = (typeof _earliestSunHourFor === 'function') ? _earliestSunHourFor(dateStr) : null;
-    timeFromEl.value = earliestSun != null ? earliestSun : 12;
-  } else if (wasPostSundown && dateStr !== todayStr()) {
-    // Manual-time user (not in nowMode) switching off today after sundown
-    // — reset the slider so the new day isn't viewed from a post-sundown
-    // position by default. Today stays untouched (still legitimately
-    // post-sundown).
-    setActiveIntentBtn(null);
+  if (dateStr !== todayStr()) {
+    // Picking ANY non-today date snaps the slider to the first sun
+    // window of that day. Without this the slider sticks at the old
+    // hour (e.g. 22:00) on the new date, and the user thinks "no sun
+    // today either" when actually they're just looking past sundown.
+    if (nowMode) {
+      nowMode = false;
+      clearInterval(nowInterval); nowInterval = null;
+      nowBtn?.classList.remove('active');
+      timeRangeWrap?.classList.remove('now-active');
+    }
+    if (wasPostSundown) setActiveIntentBtn(null);
     const earliestSun = (typeof _earliestSunHourFor === 'function') ? _earliestSunHourFor(dateStr) : null;
     timeFromEl.value = earliestSun != null ? earliestSun : 12;
   }

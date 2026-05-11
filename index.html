@@ -702,11 +702,12 @@
   #locate-btn {
     position: fixed;
     right: 16px;
-    /* +3px to vertically center with the 40px FTS slider (34px button). */
-    bottom: calc(var(--fts-bottom, 16px) + 3px);
+    /* 40px — matches the FTS slider height so both vertically align
+       cleanly without the previous +3px nudge. */
+    bottom: var(--fts-bottom, 16px);
     z-index: 920;
-    width: 34px;
-    height: 34px;
+    width: 40px;
+    height: 40px;
     padding: 0;
     border-radius: 50%;
     background: var(--glass-action-bg);
@@ -735,8 +736,8 @@
   #zoom-jog {
     position: fixed;
     right: 16px;
-    /* +3px to maintain the gap above the (now-lifted) locate-btn. */
-    bottom: calc(var(--fts-bottom, 16px) + 3px + 34px + 10px);
+    /* Sits 10px above the 40px locate-btn. */
+    bottom: calc(var(--fts-bottom, 16px) + 40px + 10px);
     z-index: 900;
     touch-action: none;
     user-select: none;
@@ -744,9 +745,9 @@
     transition: opacity 0.25s ease;
   }
   .zj-track {
-    width: 34px;
-    height: 96px;
-    border-radius: 17px;
+    width: 40px;
+    height: 108px;
+    border-radius: 20px;
     background: var(--glass-action-bg);
     backdrop-filter: var(--glass-blur-action);
     -webkit-backdrop-filter: var(--glass-blur-action);
@@ -769,8 +770,8 @@
     z-index: 1;
   }
   .zj-thumb {
-    width: 26px;
-    height: 26px;
+    width: 30px;
+    height: 30px;
     border-radius: 50%;
     background: rgba(156,189,231,0.25);
     border: 1.5px solid rgba(156,189,231,0.45);
@@ -3809,23 +3810,24 @@
     }
 
 
-    /* Locate button — vertically centered with the FTS slider.
-       FTS is 40px tall, locate-btn is 34px tall → +3px to align centers. */
-    #locate-btn { bottom: calc(var(--peek-h, 252px) + 14px + 3px); right: 12px; }
-    body.fts #locate-btn { bottom: calc(var(--fts-bottom, 160px) + 3px); right: 12px; transition: bottom 0.34s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease; }
+    /* Locate button — same 40px height as the FTS slider so they align
+       on the same baseline AND match in visual weight. */
+    #locate-btn { bottom: calc(var(--peek-h, 252px) + 14px); right: 12px; }
+    body.fts #locate-btn { bottom: var(--fts-bottom, 160px); right: 12px; transition: bottom 0.34s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease; }
 
-    /* Zoom jog — same +3px lift to maintain the gap above locate-btn. */
+    /* Zoom jog — sits 10px above the 40px locate-btn. */
     #zoom-jog { right: 12px; }
-    #zoom-jog { bottom: calc(var(--peek-h, 252px) + 14px + 3px + 34px + 10px); }
-    body.fts #zoom-jog { bottom: calc(var(--fts-bottom, 160px) + 3px + 34px + 10px); transition: bottom 0.34s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease; }
+    #zoom-jog { bottom: calc(var(--peek-h, 252px) + 14px + 40px + 10px); }
+    body.fts #zoom-jog { bottom: calc(var(--fts-bottom, 160px) + 40px + 10px); transition: bottom 0.34s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease; }
 
-    /* FTS thumb sized up on mobile for a comfortable touch target — 32px
-       was below the iOS HIG 44px guideline and felt small to grab. Lens
-       magnification clip radius scales to match. */
-    #fts-thumb { width: 40px; height: 40px; }
-    #fts-track:has(#fts-thumb.is-hover)  #fts-labels-mag { --lens-r: 21px; }
-    #fts-track:has(#fts-thumb.is-active) #fts-labels-mag { --lens-r: 24px; }
-    #fts-labels-mag { --lens-r: 20px; }
+    /* FTS thumb sized up on mobile (was 32, tried 40 — settled on 36px).
+       Balance: 36 is a comfortable touch target without feeling oversized
+       relative to the 40px FTS track. Lens magnification clip radius
+       scales to match. */
+    #fts-thumb { width: 36px; height: 36px; }
+    #fts-track:has(#fts-thumb.is-hover)  #fts-labels-mag { --lens-r: 19px; }
+    #fts-track:has(#fts-thumb.is-active) #fts-labels-mag { --lens-r: 22px; }
+    #fts-labels-mag { --lens-r: 18px; }
 
     /* Handle: grabber pill only — Google-Maps-tight spacing so the
        header content sits high in the panel.
@@ -7073,10 +7075,14 @@
     }
     #detail-panel.open { transform: translateY(0); }
     /* When the calendar is open, slide the detail panel back off-screen
-       (same transform as its closed state). The calendar bottom-sheet
-       takes its place. Closing the calendar reverses this. Matched
-       timing (0.3s cubic-bezier) to the calendar's transition. */
-    body.cal-open #detail-panel.open { transform: translateY(100%) translateZ(0); }
+       (same transform as its closed state) AND drop its z-index below
+       the backdrop so even if a stacking context masks the transform,
+       the detail panel sits clearly behind the calendar. Matched timing
+       (0.3s cubic-bezier) to the calendar's transition. */
+    body.cal-open #detail-panel.open {
+      transform: translateY(100%) translateZ(0);
+      z-index: 800;       /* below ptb-cal-backdrop (1100) and ptb-cal-float (1200) */
+    }
     #detail-panel.dp-fullscreen {
       height: 100svh;
       border-radius: 0;

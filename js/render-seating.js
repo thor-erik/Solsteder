@@ -123,6 +123,23 @@ function drawShadowOverlay(venue) {
 
   ctx.save();
 
+  // Scoped clip: even-odd outer-rect-minus-seating polygon, so the dark
+  // shadow fill below doesn't paint inside the venue's outdoor-serving
+  // area (where the seating polygon's own cool tint already conveys the
+  // shadowed state — doubling it with a darker rectangle was muddy).
+  // Wrapped in its own save/restore so the probe dot drawn below the
+  // loop isn't affected.
+  const seatingPoly = (typeof getSeatingPolygon === 'function') ? getSeatingPolygon(venue) : null;
+  ctx.save();
+  if (seatingPoly && seatingPoly.length >= 3 && canvas) {
+    const seatingPx = projectSeatingPolygon(seatingPoly);
+    ctx.beginPath();
+    ctx.rect(0, 0, canvas.width, canvas.height);
+    seatingPx.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+    ctx.closePath();
+    ctx.clip('evenodd');
+  }
+
   for (const b of venue.nearbyBuildings) {
     const { geometry: nodes, height } = b;
     if (!nodes || nodes.length < 3 || height <= 0) continue;
@@ -163,6 +180,10 @@ function drawShadowOverlay(venue) {
       ctx.stroke();
     }
   }
+
+  // Release the seating-polygon clip — the probe dot below must remain
+  // visible even when it sits inside the seating area.
+  ctx.restore();
 
   // Probe dot — 2 m in front of the terrace wall
   if (venue.wallSegment) {

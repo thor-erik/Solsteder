@@ -1086,7 +1086,7 @@ function renderList() {
       list.innerHTML = `
         <div class="empty-all">
           <div class="empty-all-headline">${headline}</div>
-          <button class="p-pill btn-see-tomorrow" onclick="toggleDateCalendar()">${t('cta_pick_another_day')}</button>
+          <button class="p-pill btn-see-tomorrow" onclick="toggleQcPanel('date')">${t('cta_pick_another_day')}</button>
         </div>`;
     }
     _listFiltered = [];
