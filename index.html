@@ -9206,10 +9206,15 @@
            the thumb's `left` from the current time and applies the
            --tilt-x / --tilt-y CSS vars on pointermove. -->
       <div id="fts-thumb" aria-hidden="true">
-        <div class="fts-thumb-frame">
-          <div class="fts-thumb-inner"></div>
-          <div class="fts-thumb-sheen"></div>
-        </div>
+        <!-- Three sibling layers (not nested). Nesting was clipping the
+             displaced layers at the back layer's circular boundary,
+             killing the parallax. As siblings, each layer can translate
+             freely — when the mid/front shift past the back's edge,
+             the rim "sticks out" exactly like a real surface at a
+             different depth would. -->
+        <div class="fts-thumb-frame"></div>
+        <div class="fts-thumb-inner"></div>
+        <div class="fts-thumb-sheen"></div>
       </div>
       <!-- Popup lives inside the track so it follows the thumb natively
            when the track animates (date-pill slide-in shifts margin-left,
