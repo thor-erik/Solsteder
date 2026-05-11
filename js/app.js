@@ -1913,6 +1913,9 @@ function _closeQcPanel() {
     calFloat.style.width = '';
   }
   document.getElementById('ptb-cal-backdrop')?.remove();
+  // Release the cal-open class so the detail panel (if open) slides back
+  // up into view at the same time the calendar slides down.
+  document.body.classList.remove('cal-open');
   // Update header date chip: remove active state, restore visibility, update label
   if (USE_FLOATING_TIME_SLIDER) {
     document.getElementById('header-date-chip')?.classList.remove('active');
@@ -1969,6 +1972,10 @@ function toggleQcPanel(section) {
     }
   }
   calFloat?.classList.add('open');
+  // When the detail panel is open AND the user taps the calendar from
+  // its FTS, slide the detail panel out of the way while the calendar
+  // comes up — coordinated swap. body.cal-open is the CSS hook.
+  document.body.classList.add('cal-open');
   // On mobile, add a backdrop overlay behind the bottom-sheet calendar
   if (isMobile() && !document.getElementById('ptb-cal-backdrop')) {
     const bd = document.createElement('div');

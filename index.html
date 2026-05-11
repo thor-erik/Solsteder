@@ -7072,6 +7072,11 @@
       backface-visibility: hidden;
     }
     #detail-panel.open { transform: translateY(0); }
+    /* When the calendar is open, slide the detail panel back off-screen
+       (same transform as its closed state). The calendar bottom-sheet
+       takes its place. Closing the calendar reverses this. Matched
+       timing (0.3s cubic-bezier) to the calendar's transition. */
+    body.cal-open #detail-panel.open { transform: translateY(100%) translateZ(0); }
     #detail-panel.dp-fullscreen {
       height: 100svh;
       border-radius: 0;
