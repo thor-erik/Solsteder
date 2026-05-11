@@ -3661,16 +3661,13 @@
     #venue-count { display: none; }
     #venue-header { display: none; }
 
-    /* List sun header: chips left, sort toggle right. Visible in every
-       panel state. */
+    /* Mobile chip row tightening — same content as desktop. */
     #list-sun-header { padding: 4px 14px 6px !important; }
-    #list-sun-header #sort-toggle-btn {
-      transition: border-color 0.12s, background 0.12s;
-    }
-    /* Sun-section bar hidden in peek mode — chip row already carries the
-       date/weather context, and "Sol nå · N steder i solen" was crowding
-       the bottom of the screen. Re-appears when the panel expands. */
-    #panel:not(.mobile-expanded):not(.mobile-fullscreen):not(.mobile-hidden) #sun-section-bar {
+    /* In peek mode (mobile, panel collapsed), HIDE the chip row and SHOW
+       only the sun headline. Date is already reachable via the FTS slider,
+       and the sun headline is the answer the user opened the app for. The
+       chip row reappears once the panel expands. */
+    #panel:not(.mobile-expanded):not(.mobile-fullscreen):not(.mobile-hidden) #list-sun-header {
       display: none;
     }
 
@@ -5182,24 +5179,23 @@
   #qc-notice.visible { opacity: 1; }
 
 
-  /* ── Header chip row: date (left), weather (center), sort (right) ──────
-     Three-column grid so date and sort sit at the row edges and weather
-     stays centered between them, regardless of which chips are visible. */
+  /* ── Header chip row: date (left), weather (right). Sort has moved to
+     the sun-section-bar row above. 2-column grid: date pinned left,
+     weather flowing right of it. Date keeps its 116px chip so it doesn't
+     resize between today/tomorrow/dated states. */
   #list-sun-header {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-columns: auto 1fr;
     align-items: center;
-    column-gap: 8px;
-    padding: 6px 14px 8px;
+    column-gap: 10px;
+    padding: 4px 14px 8px;
     flex-shrink: 0;
   }
 
   #header-date-chip,
-  #header-wx-chip,
-  #list-sun-header #sort-toggle-btn {
+  #header-wx-chip {
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: 6px;
     height: 36px;
     padding: 0 14px;
@@ -5213,30 +5209,34 @@
     box-sizing: border-box;
     transition: background 0.12s, border-color 0.12s, color 0.12s;
   }
-  /* Both interactive chips have the same fixed width — sized to fit the
-     longest date label ("I morgen" / "23. mai" / "tor 23") so the date
-     chip never resizes between today/tomorrow/dated states. Sort matches
-     for visual symmetry on the row. Weather centers in the middle. */
-  #header-date-chip               { justify-self: start;  width: 116px; }
-  #header-wx-chip                 { justify-self: center; }
-  /* Sort is a compact 36×36 icon button on the right — reclaims ~80px
-     so date + weather can breathe. The label stays in the DOM (other
-     code reads it to know the current sort) but is screen-reader only. */
-  #list-sun-header #sort-toggle-btn {
-    justify-self: end;
-    width: 36px;
-    padding: 0;
-    gap: 0;
-  }
+  #header-date-chip               { justify-self: start; justify-content: center; width: 116px; }
+  #header-wx-chip                 { justify-self: start; justify-content: flex-start; padding-left: 4px; }
+
+  /* Sort icon styles still apply when the button lives in #sun-section-bar.
+     The label stays in DOM as a screen-reader-only span. */
   .sort-icon-label-sr {
     position: absolute;
     width: 1px; height: 1px;
     padding: 0; margin: -1px; overflow: hidden;
     clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
   }
-  .sort-icon { color: var(--text); opacity: 0.85; transition: color 0.12s, opacity 0.12s; }
-  #list-sun-header #sort-toggle-btn:hover .sort-icon { color: var(--accent); opacity: 1; }
-  #list-sun-header #sort-toggle-btn.open .sort-icon  { color: var(--accent); opacity: 1; }
+  .sort-icon-btn {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    width: 32px; height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 8px;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.12s ease;
+  }
+  .sort-icon-btn:hover { background: rgba(255,242,235,0.06); }
+  .sort-icon { color: var(--text); opacity: 0.80; transition: color 0.12s, opacity 0.12s; }
+  .sort-icon-btn:hover  .sort-icon { color: var(--accent); opacity: 1; }
+  .sort-icon-btn.open   .sort-icon { color: var(--accent); opacity: 1; }
 
   /* Date chip — tappable, opens picker. Glass action button. */
   #header-date-chip {
@@ -5300,44 +5300,78 @@
   /* ── Sun-section bar: "Sun now — N places in the sun" ─────────────────
      Two stacked text lines on a vertical translate track. JS toggles
      .later on the bar to slide the second line into view (calendar-style). */
+  /* Sun headline row — the answer to "is there sun?". Sun glyph (left),
+     count-led label (middle, morphs between now/later buckets on scroll),
+     sort icon (right). Promoted from the old 22px slate sub-line: now
+     reads as the visual headline above the chip row. */
   #sun-section-bar {
     flex-shrink: 0;
-    padding: 4px 16px 6px;
-    overflow: hidden;
-    height: 22px;
+    padding: 8px 14px 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 36px;
+  }
+  .ssb-sun-glyph {
+    color: var(--accent);
+    flex-shrink: 0;
   }
   #sun-section-bar .ssb-track {
     position: relative;
     height: 22px;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
     transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
   }
   #sun-section-bar.later .ssb-track { transform: translateY(-22px); }
   .ssb-line {
     display: flex;
     align-items: baseline;
-    gap: 8px;
+    gap: 6px;
     height: 22px;
     line-height: 22px;
     font-family: 'Inter', sans-serif;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .ssb-line .ssb-count {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.005em;
   }
   .ssb-line .ssb-label {
     font-size: 14px;
-    font-weight: 700;
-    color: var(--text);
-    letter-spacing: -0.005em;
-  }
-  .ssb-line .ssb-context {
-    /* Opacity-dimmed cream (was var(--muted) at 0.85 — slate-grey was
-       reading as "buried"). Matches the card-meta pattern for cohesion
-       per DESIGN.md principle 03. */
-    font-size: 12px;
     font-weight: 500;
-    color: rgba(255, 244, 224, 0.72);
-    letter-spacing: 0.005em;
+    color: rgba(255, 244, 224, 0.85);
+    letter-spacing: 0;
   }
-  /* Hide the bar entirely when there's nothing to label (single bucket only) */
+  /* When the bar is empty (no count to show), still keep the row but
+     suppress glyph + sort? No — better to hide entire row so the chip
+     row + first card move up. Honors the existing ssb-empty contract. */
   #sun-section-bar.ssb-empty { display: none; }
+
+  /* Sort icon sits in this row now — small, right-aligned. Overrides the
+     legacy #sort-toggle-btn glass-button styling that's still loaded from
+     the old chip-row context. */
+  #sun-section-bar #sort-toggle-btn {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    margin-left: auto;
+    flex-shrink: 0;
+    gap: 0;
+  }
+  #sun-section-bar #sort-toggle-btn:hover  { background: rgba(255,242,235,0.06); border-color: transparent; }
+  #sun-section-bar #sort-toggle-btn.open   { background: rgba(245,194,94,0.10); border-color: transparent; box-shadow: none; }
+  #sun-section-bar #sort-toggle-btn.open .sort-icon { color: var(--accent); opacity: 1; }
 
   /* ── Calendar float — outside #panel, position: fixed so it escapes transforms ── */
   #ptb-cal-float {
@@ -8867,8 +8901,22 @@
         <span class="chip-dot" aria-hidden="true">·</span>
         <span id="header-wx-wind"></span>
       </div>
-      <!-- Sort: compact 36×36 icon button. Current sort label stays in DOM
-           as a screen-reader-only span so other code paths can still read it. -->
+    </div>
+
+    <!-- Sun headline + sort icon. The headline morphs between "Sun now" /
+         "Sun later" as the user scrolls past each bucket (JS-driven, see
+         updateSunSectionBar). The sort icon lives in this row now — it's
+         a list-level action, fits the headline row better than the chip
+         row. Count is bold so it leads the eye. -->
+    <div id="sun-section-bar" aria-live="polite">
+      <svg class="ssb-sun-glyph" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="4"/>
+        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+      </svg>
+      <div class="ssb-track">
+        <span class="ssb-line ssb-now"><span class="ssb-count"></span><span class="ssb-label"></span></span>
+        <span class="ssb-line ssb-later"><span class="ssb-count"></span><span class="ssb-label"></span></span>
+      </div>
       <button id="sort-toggle-btn" class="sort-icon-btn" onclick="toggleSortPanel()" aria-label="Sortér" title="Sortér">
         <svg class="sort-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <line x1="6"  y1="5"  x2="6"  y2="19"/>
@@ -8879,15 +8927,6 @@
         </svg>
         <span id="sort-label" class="sort-icon-label-sr">Mest sol</span>
       </button>
-    </div>
-
-    <!-- Sun-section bar: morphs between "Sun now" / "Sun later" as the
-         user scrolls past each bucket. JS-driven (see updateSunSectionBar). -->
-    <div id="sun-section-bar" aria-live="polite">
-      <div class="ssb-track">
-        <span class="ssb-line ssb-now"><span class="ssb-label"></span><span class="ssb-context"></span></span>
-        <span class="ssb-line ssb-later"><span class="ssb-label"></span><span class="ssb-context"></span></span>
-      </div>
     </div>
 
     <!-- Venue peek: first card preview visible in collapsed state -->
