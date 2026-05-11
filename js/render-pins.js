@@ -590,29 +590,48 @@ function _drawName(ctx, pt, pillRect, name, secondary, placedPills, placedNames,
   const tx     = best.x + 1;
   const nameY  = secondary ? best.cy - lineH / 2 : best.cy;
   const secY   = best.cy + lineH / 2;
-  // Google-Maps-style label treatment: light fill, dark outline. Reads
-  // cleanly against both warm map tiles and the darker building shadows.
-  // Selected pins keep the same treatment for consistency (the pill
-  // itself already signals selection).
-  const LIGHT_FILL    = '#F4EBD8';
-  const DARK_STROKE   = '#1A2C42';
-  const SECONDARY_FILL = 'rgba(244, 235, 216, 0.85)';
 
-  ctx.font        = '600 12px "Inter", system-ui, sans-serif';
-  ctx.lineWidth   = 3;
-  ctx.strokeStyle = DARK_STROKE;
-  ctx.strokeText(name, tx, nameY);
-  ctx.fillStyle   = LIGHT_FILL;
+  // Google-Maps-style label treatment: white text with a SOFT BLURRED
+  // halo (not a hard stroke). The halo is drawn via canvas shadowBlur
+  // — two passes intensify the blur into a readable glow against any
+  // map background. A final crisp pass renders the text without shadow
+  // on top. Anchor alpha (opts.alpha) lets the label fade in/out with
+  // the pill morph.
+  const LIGHT_FILL  = '#FFFFFF';
+  const HALO_COLOR  = 'rgba(15, 30, 55, 0.85)';
+  const labelAlpha  = opts.alpha != null ? opts.alpha : 1;
+
+  ctx.save();
+  ctx.globalAlpha = labelAlpha;
+
+  // Pass 1+2: text-shaped halo via shadowBlur, drawn twice for intensity.
+  ctx.shadowColor   = HALO_COLOR;
+  ctx.shadowBlur    = 4;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 0;
+  ctx.fillStyle     = LIGHT_FILL;
+  ctx.font          = '600 12px "Inter", system-ui, sans-serif';
   ctx.fillText(name, tx, nameY);
-
+  ctx.fillText(name, tx, nameY);
   if (secondary) {
-    ctx.font        = '500 11px "Inter", system-ui, sans-serif';
-    ctx.lineWidth   = 2.6;
-    ctx.strokeStyle = DARK_STROKE;
-    ctx.strokeText(secondary, tx, secY);
-    ctx.fillStyle   = SECONDARY_FILL;
+    ctx.font = '500 11px "Inter", system-ui, sans-serif';
+    ctx.fillText(secondary, tx, secY);
     ctx.fillText(secondary, tx, secY);
   }
+
+  // Pass 3: crisp text on top, shadow disabled.
+  ctx.shadowBlur    = 0;
+  ctx.shadowColor   = 'transparent';
+  ctx.font          = '600 12px "Inter", system-ui, sans-serif';
+  ctx.fillStyle     = LIGHT_FILL;
+  ctx.fillText(name, tx, nameY);
+  if (secondary) {
+    ctx.font      = '500 11px "Inter", system-ui, sans-serif';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
+    ctx.fillText(secondary, tx, secY);
+  }
+  ctx.restore();
+
   return best;
 }
 
@@ -1114,12 +1133,18 @@ function draw() {
       ctx.restore();
     }
 
-    // The pill itself
+    // The pill itself. During morph (st.morph 0→1) the pill scales up
+    // from the dot's footprint (0.4×) to full size (1.0×), AND its
+    // alpha grows in step. Combined with the residual dot fading out
+    // below, this reads as the dot "growing into" the pill.
     ctx.save();
-    ctx.globalAlpha = st.alpha;
-    if (st.scale !== 1.0) {
+    const morphScale = 0.4 + 0.6 * st.morph;       // 0.4 → 1.0 during morph
+    const morphAlpha = st.alpha * Math.min(1, st.morph * 1.4);
+    ctx.globalAlpha = morphAlpha;
+    const effScale = st.scale * morphScale;
+    if (effScale !== 1.0) {
       ctx.translate(pt.x, pt.y);
-      ctx.scale(st.scale, st.scale);
+      ctx.scale(effScale, effScale);
       ctx.translate(-pt.x, -pt.y);
     }
     _drawPill(ctx, pt, w, time, tier, {
@@ -1207,11 +1232,19 @@ function draw() {
       sec = _sunHoursLine(v, dateStr);
     }
 
+    // Label alpha follows the pill's morph — fades in only when the
+    // pill is mostly visible (morph > 0.5), then full from ~0.8 onward.
+    // Avoids labels appearing alongside half-grown pills.
+    const stEntry = _pinState.get(v.id);
+    const labelAlpha = stEntry
+      ? Math.max(0, Math.min(1, (stEntry.morph - 0.5) / 0.3))
+      : 1;
+    if (labelAlpha <= 0.02) continue;
     _drawName(
       ctx, entry.pt, entry._pillRect,
       v.name, sec,
       placedPills, placedNames, viewport,
-      { selected: sel, force: sel || isFriend },
+      { selected: sel, force: sel || isFriend, alpha: labelAlpha },
     );
   }
 
