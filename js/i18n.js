@@ -137,6 +137,21 @@ const _STRINGS = {
     section_sun_at:            'in sun at {time}',
     section_sun_later:         'in sun later',
     section_sun_after:         'in sun after {time}',
+
+    // City-wide sun outlook (sun-outlook line below the chip row).
+    // Now-state first, later-state at the end of the sentence.
+    // Pairs: _cloud / _rain — chosen by whichever disruption dominates today.
+    outlook_sun_until_cloud:    'Sun now, cloudy from {end}',
+    outlook_sun_until_rain:     'Sun now, rain from {end}',
+    outlook_sun_from_cloud:     'Cloudy now, sun from {start}',
+    outlook_sun_from_rain:      'Rainy now, sun from {start}',
+    outlook_sun_window_cloud:   'Cloudy now, sun {start}–{end}',
+    outlook_sun_window_rain:    'Rainy now, sun {start}–{end}',
+    outlook_sun_then_again:     'Sun until {end}, then again {cStart}–{cEnd}',
+    outlook_two_windows_cloud:  'Cloudy now, sun {aStart}–{aEnd} and {cStart}–{cEnd}',
+    outlook_two_windows_rain:   'Rainy now, sun {aStart}–{aEnd} and {cStart}–{cEnd}',
+    outlook_no_sun_cloud:       'Overcast today, no sun',
+    outlook_no_sun_rain:        'Rainy today, no sun',
     empty_no_sun_now:          'No venues in sun right now',
     empty_no_sun_later:        'No more sun coming today',
     empty_no_sun_today:        'No sunny venues today',
@@ -577,6 +592,19 @@ const _STRINGS = {
     section_sun_at:            'i sol kl {time}',
     section_sun_later:         'i sol senere',
     section_sun_after:         'i sol etter {time}',
+
+    // City-wide sun outlook — now-state first, later-state at end.
+    outlook_sun_until_cloud:    'Sol nå, skyer fra {end}',
+    outlook_sun_until_rain:     'Sol nå, regn fra {end}',
+    outlook_sun_from_cloud:     'Skyer nå, sol fra {start}',
+    outlook_sun_from_rain:      'Regn nå, sol fra {start}',
+    outlook_sun_window_cloud:   'Skyer nå, sol {start}–{end}',
+    outlook_sun_window_rain:    'Regn nå, sol {start}–{end}',
+    outlook_sun_then_again:     'Sol til {end}, så igjen {cStart}–{cEnd}',
+    outlook_two_windows_cloud:  'Skyer nå, sol {aStart}–{aEnd} og {cStart}–{cEnd}',
+    outlook_two_windows_rain:   'Regn nå, sol {aStart}–{aEnd} og {cStart}–{cEnd}',
+    outlook_no_sun_cloud:       'Overskyet i dag, ingen sol',
+    outlook_no_sun_rain:        'Regn i dag, ingen sol',
     empty_no_sun_now:          'Ingen i sol akkurat nå',
     empty_no_sun_later:        'Ingen steder med sol senere i dag',
     empty_no_sun_today:        'Ingen steder i solen i dag',

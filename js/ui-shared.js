@@ -172,11 +172,22 @@ function buildCardPills(venue, qual, selectedHour, sundownH, dateStr) {
  *   • `later` bucket → "fra 14:00 · til 21:00" or "fra 14:00 · til solnedgang"
  * Returns '' if the qual has no surfaced earliest window.
  */
-function formatAnchor(qual, bucket, sundownH) {
+function formatAnchor(qual, bucket, sundownH, dateStr) {
   if (!qual || !qual.earliest) return '';
   const fmt = (typeof formatHour === 'function') ? formatHour : (h) => `${Math.floor(h)}:00`;
   const w = qual.earliest;
   const endsAtSundown = sundownH != null && w.end >= sundownH - 5/60;
+
+  // Hide the anchor when the bucket end is weather-driven (city-wide cloud
+  // or rain edge). That fact now lives in the sun-outlook line above the
+  // list — repeating it on every card was the noise we just removed.
+  // Keep the anchor when the end is shadow-driven (a building blocks sun
+  // here) or sundown-driven (handled separately below).
+  if (dateStr && !endsAtSundown && typeof wxBucket === 'function') {
+    const b = wxBucket(dateStr, w.end + 0.01);
+    if (b === 'skyer' || b === 'regn') return '';
+  }
+
   if (bucket === 'later') {
     return endsAtSundown
       ? t('anchor_fra_til_sundown', { start: fmt(w.start) })
@@ -217,11 +228,14 @@ function buildCardPillsV2(venue, qual, opts) {
   const candidates = [];
 
   // 1. Disruption pills — already pre-classified by qualifyingWindows().
-  // Carry `time` (gap start) so the timeline-labels row can place a label
-  // above each disruption event.
+  // We DROP city-wide weather disruptions (skyer / regn) from cards —
+  // they're now in the shared sun-outlook line above the list, so repeating
+  // them across 171 cards is noise. Keep building-shadow pills (skygge) —
+  // those are venue-specific and the card is the only place they live.
   for (const g of (w.gaps || [])) {
+    if (g.kind === 'skyer' || g.kind === 'regn') continue;
     candidates.push({
-      kind: g.kind,  // 'skygge' | 'skyer' | 'regn' — maps to existing pill-* CSS
+      kind: g.kind,  // 'skygge' — maps to existing pill-* CSS
       label: t('pill_disrupt_range', {
         state: stateLabel(g.kind),
         start: fmt(g.start),
@@ -342,6 +356,100 @@ function venueHasSunInRange(v, dateStr, fromHour, toHour) {
   // the selected hour is counted as "in sun" (fixes dimming of venues at window open)
   const isPoint = Math.abs(fromHour - toHour) < 0.01;
   return windows.some(w => w.end > fromHour && (isPoint ? w.start <= fromHour : w.start < toHour));
+}
+
+// ── City-wide sun outlook ────────────────────────────────────────────────────
+/**
+ * Compute a human-readable sun-outlook string for the city as a whole,
+ * looking forward from `fromHour` to `sundownH`. The result is the *same
+ * for every venue* — it's about the day's cloud/rain forecast vs the
+ * sun's path, not any individual building.
+ *
+ * Display lives above the list. Lets the cards stop repeating city-wide
+ * weather facts (each was saying "Skyer 13–14" on all 171 cards).
+ *
+ * Returns: { code, params } where code is one of:
+ *   'clear'         — no disruption ahead (no message)
+ *   'sun_until'     — sun now, clouds later  → "Cloudy later — sun until {end}"
+ *   'sun_from'      — clouds now, sun later  → "Cloudy now — sun from {start}"
+ *   'sun_window'    — clouds → sun → clouds  → "Cloudy day, sun {start}–{end}"
+ *   'two_windows'   — sun, gap, sun           → "Sun {a}–{b}, then {c}–{d}"
+ *   'no_sun'        — overcast/rain all day  → "Overcast all day — no sun"
+ *
+ *   When precipitation dominates the disruption, the caller-facing copy
+ *   swaps "Cloudy"/"Overcast" for "Rainy"/"Rain" via {weather:'rain'} in
+ *   params. The i18n keys are paired (sun_until_cloudy/sun_until_rain etc).
+ */
+function computeCityWideSunOutlook(dateStr, fromHour, sundownH) {
+  if (typeof wxBucket !== 'function' || sundownH == null || fromHour == null) {
+    return { code: 'clear' };
+  }
+
+  // Walk forward hourly from fromHour to sundown. Bucket each hour into
+  // sun / cloud / rain. Build contiguous sun bands.
+  const startH = fromHour;
+  const endH   = sundownH;
+  if (endH <= startH + 0.001) return { code: 'clear' };
+
+  const bands = [];           // contiguous 'sol' intervals
+  let cur = null;
+  let cloudHours = 0;
+  let rainHours = 0;
+  for (let h = Math.floor(startH); h < Math.ceil(endH); h++) {
+    const b = wxBucket(dateStr, h + 0.5);   // sample mid-hour
+    if (b === 'regn') rainHours++;
+    else if (b === 'skyer') cloudHours++;
+    const isSun = b === 'sol' || b == null; // null forecast = assume sun
+    if (isSun) {
+      if (!cur) cur = { start: Math.max(h, startH), end: h + 1 };
+      else cur.end = h + 1;
+    } else {
+      if (cur) { bands.push(cur); cur = null; }
+    }
+  }
+  if (cur) {
+    cur.end = Math.min(cur.end, endH);
+    bands.push(cur);
+  }
+
+  // Clean up: filter empty/negative bands, clamp the last band's end to sundown.
+  const sunBands = bands.filter(b => b.end > b.start + 0.001);
+  const weather = rainHours > cloudHours ? 'rain' : 'cloud';
+  const disrupted = cloudHours + rainHours > 0;
+
+  // Pattern detection.
+  if (sunBands.length === 0) {
+    return { code: 'no_sun', params: { weather } };
+  }
+  if (!disrupted) {
+    return { code: 'clear' };
+  }
+
+  // Single sun band.
+  if (sunBands.length === 1) {
+    const b = sunBands[0];
+    const startsNow = b.start <= startH + 0.001;
+    const endsAtSundown = b.end >= endH - 0.001;
+    if (startsNow && endsAtSundown) return { code: 'clear' };   // band covers everything ahead
+    if (startsNow && !endsAtSundown)   return { code: 'sun_until',  params: { weather, end: b.end } };
+    if (!startsNow && endsAtSundown)   return { code: 'sun_from',   params: { weather, start: b.start } };
+    return { code: 'sun_window', params: { weather, start: b.start, end: b.end } };
+  }
+
+  // Two or more sun bands — surface the first two (rare to have 3+).
+  const [a, c] = sunBands;
+  // If the user is currently inside the first sun band, the natural read is
+  // "Sun until {a.end}, then again {c}" — anchored to where they are.
+  if (a.start <= startH + 0.001) {
+    return {
+      code: 'sun_then_again',
+      params: { weather, end: a.end, cStart: c.start, cEnd: c.end },
+    };
+  }
+  return {
+    code: 'two_windows',
+    params: { weather, aStart: a.start, aEnd: a.end, cStart: c.start, cEnd: c.end },
+  };
 }
 
 // ── Weather-aware arc color helper ────────────────────────────────────────────

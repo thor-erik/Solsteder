@@ -336,7 +336,7 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
   // dpVariant uses compact's left+anchor meta layout (same as the list card).
   const useCompactMeta = !rich || dpVariant;
   const anchorText = (useCompactMeta && qual && qual.surfaced && typeof formatAnchor === 'function')
-    ? formatAnchor(qual, bucket, sundownH) : '';
+    ? formatAnchor(qual, bucket, sundownH, dateStr) : '';
   const metaHtml = useCompactMeta
     ? `<span class="card-meta-left">${metaInner}</span>${anchorText ? `<span class="card-anchor">${anchorText}</span>` : ''}`
     : metaInner;

@@ -5352,6 +5352,20 @@
      row + first card move up. Honors the existing ssb-empty contract. */
   #sun-section-bar.ssb-empty { display: none; }
 
+  /* Sun outlook — the shared city-wide sun-window line. Sits below the
+     chip row, hidden when clear or when there's nothing to say. Quiet
+     muted text, small font, single line. */
+  #sun-outlook {
+    flex-shrink: 0;
+    padding: 0 14px 6px;
+    font: 500 12px/1.4 'Inter', sans-serif;
+    color: rgba(255, 244, 224, 0.72);
+    letter-spacing: 0.005em;
+    font-variant-numeric: tabular-nums;
+  }
+  #sun-outlook[hidden] { display: none; }
+  body.list-scrubbing #sun-outlook { opacity: 0; }
+
   /* Sort icon sits in this row now — small, right-aligned via the grid's
      third column. Overrides the legacy #sort-toggle-btn glass-button
      styling that's still loaded from the old chip-row context. */
@@ -8916,6 +8930,11 @@
         <span id="sort-label" class="sort-icon-label-sr">Mest sol</span>
       </button>
     </div>
+
+    <!-- City-wide sun outlook — one shared line about today's weather +
+         sun-window pattern. Hidden when clear. Lets cards stop repeating
+         the city-wide weather facts (Skyer 13–14 etc) on every venue. -->
+    <div id="sun-outlook" aria-live="polite" hidden></div>
 
     <!-- Chip row — date (tappable) + weather (passive readout). Sits below
          the sun headline as context for "what slice of time/conditions am

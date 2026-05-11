@@ -540,15 +540,19 @@ function updateSunSectionBar() {
   const nowCount   = (typeof _listBuckets !== 'undefined' && _listBuckets?.now?.length) || 0;
   const laterCount = (typeof _listBuckets !== 'undefined' && _listBuckets?.later?.length) || 0;
 
+  const dateStr  = datePicker.value;
+  const fromHour = parseFloat(timeFromEl.value);
+
+  // Outlook line always updates, even when the bar itself is hidden —
+  // empty-list state is exactly when "Overcast today, no sun" should show.
+  updateSunOutlook(dateStr, fromHour);
+
   // Hide ONLY when both buckets are empty — there's nothing to label.
   if (nowCount === 0 && laterCount === 0) {
     bar.classList.add('ssb-empty');
     return;
   }
   bar.classList.remove('ssb-empty');
-
-  const dateStr  = datePicker.value;
-  const fromHour = parseFloat(timeFromEl.value);
   const isFuture = (typeof nowMode !== 'undefined' && !nowMode &&
                     dateStr === todayStr() &&
                     Math.abs(fromHour - currentHour()) > 5/60)
@@ -584,6 +588,39 @@ function updateSunSectionBar() {
     delete bar.dataset.locked;
     applySunSectionBarScrollState();
   }
+}
+
+/** City-wide sun outlook line below the chip row. One shared sentence
+ *  about today's weather + sun-window pattern — lets cards stop repeating
+ *  the same city-wide weather facts on every venue. */
+function updateSunOutlook(dateStr, fromHour) {
+  const el = document.getElementById('sun-outlook');
+  if (!el || typeof computeCityWideSunOutlook !== 'function') return;
+
+  const sundownH = (typeof currentSunTable !== 'undefined' && currentSunTable
+                    && typeof findSunCrossingFromTable === 'function')
+    ? findSunCrossingFromTable(currentSunTable, false) : null;
+  if (sundownH == null) { el.hidden = true; el.textContent = ''; return; }
+
+  const out = computeCityWideSunOutlook(dateStr, fromHour, sundownH);
+  if (!out || out.code === 'clear') { el.hidden = true; el.textContent = ''; return; }
+
+  // Map { code, weather } → i18n key. The two_windows + sun_then_again
+  // cases pick a single key; the others swap _cloud / _rain by weather.
+  const w = out.params?.weather === 'rain' ? 'rain' : 'cloud';
+  const fmt = (h) => formatHour(h);
+  const p = { ...out.params };
+  for (const k of ['start', 'end', 'aStart', 'aEnd', 'cStart', 'cEnd']) {
+    if (p[k] != null) p[k] = fmt(p[k]);
+  }
+
+  let key;
+  if (out.code === 'sun_then_again')   key = 'outlook_sun_then_again';
+  else if (out.code === 'two_windows') key = `outlook_two_windows_${w}`;
+  else                                 key = `outlook_${out.code}_${w}`;
+
+  el.textContent = t(key, p);
+  el.hidden = false;
 }
 
 /** Toggles `.later` based on whether the user has scrolled past the now-bucket. */
