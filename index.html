@@ -5300,14 +5300,15 @@
   /* ── Sun-section bar: "Sun now — N places in the sun" ─────────────────
      Two stacked text lines on a vertical translate track. JS toggles
      .later on the bar to slide the second line into view (calendar-style). */
-  /* Sun headline row — the answer to "is there sun?". Track + sort
-     button in a 2-column grid. The sun glyph lives INSIDE each .ssb-line
-     so it aligns to the text via flex `align-items: center` — putting
-     the glyph as a sibling outside the line caused a baseline-vs-grid-
-     center misalignment that read as "off by 2-3px." */
+  /* Sun headline — track + sort button in a 2-column grid. Each .ssb-line
+     is a 2-row column: row1 = count + bucket label, row2 = tail (city
+     outlook continuation). When the tail is empty the line collapses to
+     row1 height; when present the row2 sits beneath as a muted sub-line.
+     Morph between now / later buckets uses translateY(-50%) of the track,
+     which works regardless of line height as long as both lines match. */
   #sun-section-bar {
     flex-shrink: 0;
-    padding: 6px 14px 2px;
+    padding: 6px 14px 8px;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
@@ -5315,18 +5316,23 @@
   }
   #sun-section-bar .ssb-track {
     position: relative;
-    height: 22px;
     overflow: hidden;
     min-width: 0;
     transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
   }
-  #sun-section-bar.later .ssb-track { transform: translateY(-22px); }
+  #sun-section-bar.later .ssb-track { transform: translateY(-50%); }
   .ssb-line {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    font-family: 'Inter', sans-serif;
+    overflow: hidden;
+  }
+  .ssb-line .ssb-row1 {
     display: flex;
     align-items: center;
     gap: 6px;
     height: 22px;
-    font-family: 'Inter', sans-serif;
     white-space: nowrap;
     overflow: hidden;
   }
@@ -5334,6 +5340,21 @@
     color: var(--accent);
     flex-shrink: 0;
   }
+  .ssb-line .ssb-tail {
+    display: block;
+    height: 18px;
+    line-height: 18px;
+    font: 500 12px/18px 'Inter', sans-serif;
+    color: rgba(255, 244, 224, 0.72);
+    letter-spacing: 0.005em;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* When tail is empty (clear day or no continuation), collapse to a
+     single-row height. :empty selector hides the row entirely. */
+  .ssb-line .ssb-tail:empty { display: none; }
   .ssb-line .ssb-count {
     font-size: 15px;
     font-weight: 700;
@@ -5351,20 +5372,6 @@
      suppress glyph + sort? No — better to hide entire row so the chip
      row + first card move up. Honors the existing ssb-empty contract. */
   #sun-section-bar.ssb-empty { display: none; }
-
-  /* Sun outlook — the shared city-wide sun-window line. Sits below the
-     chip row, hidden when clear or when there's nothing to say. Quiet
-     muted text, small font, single line. */
-  #sun-outlook {
-    flex-shrink: 0;
-    padding: 0 14px 6px;
-    font: 500 12px/1.4 'Inter', sans-serif;
-    color: rgba(255, 244, 224, 0.72);
-    letter-spacing: 0.005em;
-    font-variant-numeric: tabular-nums;
-  }
-  #sun-outlook[hidden] { display: none; }
-  body.list-scrubbing #sun-outlook { opacity: 0; }
 
   /* Sort icon sits in this row now — small, right-aligned via the grid's
      third column. Overrides the legacy #sort-toggle-btn glass-button
@@ -8895,29 +8902,36 @@
     </div>
 
 
-    <!-- Sun headline + sort icon — PRIMARY (top). Morphs between "Sun now" /
-         "Sun later" as the user scrolls past each bucket (JS-driven, see
-         updateSunSectionBar). Count is bold so it leads the eye. The sun
-         glyph is duplicated INSIDE each .ssb-line so the icon aligns
-         to the text's vertical center via flex (a glyph outside the line
-         box ends up baseline-misaligned). Sort lives here because sort
-         is a list-level action; fits the headline row. -->
+    <!-- Sun headline — PRIMARY (top). Two visual rows per bucket:
+           row 1: ☀ {count} {bucket label},
+           row 2: {city outlook continuation}
+         The comma in the sentence is the line break. Bucket label morphs
+         between now / later as the user scrolls past the bucket boundary
+         (translate -50% of the track height). Sort lives here as a list-
+         level action. When both buckets are empty AND the day is fully
+         overcast/rainy, a no-sun message replaces the whole content. -->
     <div id="sun-section-bar" aria-live="polite">
       <div class="ssb-track">
-        <span class="ssb-line ssb-now">
-          <svg class="ssb-sun-glyph" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="4"/>
-            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
-          </svg>
-          <span class="ssb-count"></span><span class="ssb-label"></span>
-        </span>
-        <span class="ssb-line ssb-later">
-          <svg class="ssb-sun-glyph" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="4"/>
-            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
-          </svg>
-          <span class="ssb-count"></span><span class="ssb-label"></span>
-        </span>
+        <div class="ssb-line ssb-now">
+          <span class="ssb-row1">
+            <svg class="ssb-sun-glyph" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="4"/>
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+            </svg>
+            <span class="ssb-count"></span><span class="ssb-label"></span>
+          </span>
+          <span class="ssb-tail"></span>
+        </div>
+        <div class="ssb-line ssb-later">
+          <span class="ssb-row1">
+            <svg class="ssb-sun-glyph" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="4"/>
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+            </svg>
+            <span class="ssb-count"></span><span class="ssb-label"></span>
+          </span>
+          <span class="ssb-tail"></span>
+        </div>
       </div>
       <button id="sort-toggle-btn" class="sort-icon-btn" onclick="toggleSortPanel()" aria-label="Sortér" title="Sortér">
         <svg class="sort-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -8930,11 +8944,6 @@
         <span id="sort-label" class="sort-icon-label-sr">Mest sol</span>
       </button>
     </div>
-
-    <!-- City-wide sun outlook — one shared line about today's weather +
-         sun-window pattern. Hidden when clear. Lets cards stop repeating
-         the city-wide weather facts (Skyer 13–14 etc) on every venue. -->
-    <div id="sun-outlook" aria-live="polite" hidden></div>
 
     <!-- Chip row — date (tappable) + weather (passive readout). Sits below
          the sun headline as context for "what slice of time/conditions am

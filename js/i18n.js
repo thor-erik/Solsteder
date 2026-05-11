@@ -138,20 +138,20 @@ const _STRINGS = {
     section_sun_later:         'in sun later',
     section_sun_after:         'in sun after {time}',
 
-    // City-wide sun outlook (sun-outlook line below the chip row).
-    // Now-state first, later-state at the end of the sentence.
-    // Pairs: _cloud / _rain — chosen by whichever disruption dominates today.
-    outlook_sun_until_cloud:    'Sun now, cloudy from {end}',
-    outlook_sun_until_rain:     'Sun now, rain from {end}',
-    outlook_sun_from_cloud:     'Cloudy now, sun from {start}',
-    outlook_sun_from_rain:      'Rainy now, sun from {start}',
-    outlook_sun_window_cloud:   'Cloudy now, sun {start}–{end}',
-    outlook_sun_window_rain:    'Rainy now, sun {start}–{end}',
-    outlook_sun_then_again:     'Sun until {end}, then again {cStart}–{cEnd}',
-    outlook_two_windows_cloud:  'Cloudy now, sun {aStart}–{aEnd} and {cStart}–{cEnd}',
-    outlook_two_windows_rain:   'Rainy now, sun {aStart}–{aEnd} and {cStart}–{cEnd}',
+    // No-sun standalone messages (shown when both buckets are empty
+    // because the day is fully overcast/rainy).
     outlook_no_sun_cloud:       'Overcast today, no sun',
     outlook_no_sun_rain:        'Rainy today, no sun',
+
+    // Tail (row 2) continuation per bucket. Reads as the next clause after
+    // the bucket label: "29 in sun now, {tail}" / "142 in sun later, {tail}".
+    // Empty when the bucket has nothing further to say.
+    tail_cloudy_from:           'cloudy from {end}',
+    tail_rain_from:             'rain from {end}',
+    tail_again_window:          'again {cStart}–{cEnd}',
+    tail_from:                  'from {start}',
+    tail_window:                '{start}–{end}',
+    tail_two_windows:           '{aStart}–{aEnd} and {cStart}–{cEnd}',
     empty_no_sun_now:          'No venues in sun right now',
     empty_no_sun_later:        'No more sun coming today',
     empty_no_sun_today:        'No sunny venues today',
@@ -593,18 +593,17 @@ const _STRINGS = {
     section_sun_later:         'i sol senere',
     section_sun_after:         'i sol etter {time}',
 
-    // City-wide sun outlook — now-state first, later-state at end.
-    outlook_sun_until_cloud:    'Sol nå, skyer fra {end}',
-    outlook_sun_until_rain:     'Sol nå, regn fra {end}',
-    outlook_sun_from_cloud:     'Skyer nå, sol fra {start}',
-    outlook_sun_from_rain:      'Regn nå, sol fra {start}',
-    outlook_sun_window_cloud:   'Skyer nå, sol {start}–{end}',
-    outlook_sun_window_rain:    'Regn nå, sol {start}–{end}',
-    outlook_sun_then_again:     'Sol til {end}, så igjen {cStart}–{cEnd}',
-    outlook_two_windows_cloud:  'Skyer nå, sol {aStart}–{aEnd} og {cStart}–{cEnd}',
-    outlook_two_windows_rain:   'Regn nå, sol {aStart}–{aEnd} og {cStart}–{cEnd}',
+    // No-sun standalone (both buckets empty)
     outlook_no_sun_cloud:       'Overskyet i dag, ingen sol',
     outlook_no_sun_rain:        'Regn i dag, ingen sol',
+
+    // Tail (row 2) per bucket
+    tail_cloudy_from:           'skyer fra {end}',
+    tail_rain_from:             'regn fra {end}',
+    tail_again_window:          'igjen {cStart}–{cEnd}',
+    tail_from:                  'fra {start}',
+    tail_window:                '{start}–{end}',
+    tail_two_windows:           '{aStart}–{aEnd} og {cStart}–{cEnd}',
     empty_no_sun_now:          'Ingen i sol akkurat nå',
     empty_no_sun_later:        'Ingen steder med sol senere i dag',
     empty_no_sun_today:        'Ingen steder i solen i dag',
