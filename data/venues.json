@@ -364,7 +364,7 @@
     "rating": 4.3,
     "facing": null,
     "openingHours": {
-      "open": 12,
+      "open": 14,
       "close": 23
     },
     "buildingOsmId": null,
@@ -374,7 +374,7 @@
     "beerPrice": 126,
     "openingHoursWeekly": {
       "0": {
-        "open": 12,
+        "open": 14,
         "close": 21
       },
       "1": {
@@ -398,8 +398,8 @@
         "close": 23
       },
       "6": {
-        "open": 12,
-        "close": 23
+        "open": 14,
+        "close": 22
       }
     },
     "hoursSource": "google"
@@ -807,7 +807,7 @@
     "facing": null,
     "openingHours": {
       "open": 9.5,
-      "close": 23
+      "close": 23.5
     },
     "buildingOsmId": null,
     "googlePlaceId": "ChIJHUEmdmJuQUYRYLZuZ708vJY",
@@ -816,31 +816,31 @@
     "openingHoursWeekly": {
       "0": {
         "open": 9.5,
-        "close": 22
+        "close": 23
       },
       "1": {
         "open": 9.5,
-        "close": 22
+        "close": 23
       },
       "2": {
         "open": 9.5,
-        "close": 22
+        "close": 23
       },
       "3": {
         "open": 9.5,
-        "close": 22
+        "close": 23
       },
       "4": {
         "open": 9.5,
-        "close": 22
+        "close": 23
       },
       "5": {
         "open": 9.5,
-        "close": 23
+        "close": 23.5
       },
       "6": {
         "open": 9.5,
-        "close": 23
+        "close": 23.5
       }
     },
     "hoursSource": "google",
@@ -7315,7 +7315,7 @@
         "close": 23
       },
       "6": {
-        "open": 12,
+        "open": 16,
         "close": 23
       }
     },
@@ -8267,19 +8267,19 @@
       },
       "3": {
         "open": 11,
-        "close": 2
+        "close": 1
       },
       "4": {
         "open": 11,
-        "close": 2
+        "close": 1
       },
       "5": {
         "open": 11,
-        "close": 3
+        "close": 1
       },
       "6": {
         "open": 11,
-        "close": 3
+        "close": 1
       }
     },
     "buildingOsmId": null,
@@ -8909,7 +8909,7 @@
     "googlePlaceId": "ChIJ72UcU2NvQUYRTSGdW2RgtvE",
     "facingSource": null,
     "discoverySignal": "both",
-    "businessStatus": "CLOSED_TEMPORARILY",
+    "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
     "beerPrice": 112
   },
@@ -11669,8 +11669,8 @@
         "close": 19
       },
       "4": {
-        "open": 8.5,
-        "close": 19
+        "open": 10,
+        "close": 18
       },
       "5": {
         "open": 8.5,
@@ -19906,10 +19906,14 @@
     "rating": 4.9,
     "facing": null,
     "openingHours": {
-      "open": 17.5,
+      "open": 11,
       "close": 22.5
     },
     "openingHoursWeekly": {
+      "0": {
+        "open": 11,
+        "close": 16
+      },
       "4": {
         "open": 17.5,
         "close": 22.5
@@ -19919,7 +19923,7 @@
         "close": 22.5
       },
       "6": {
-        "open": 17.5,
+        "open": 12,
         "close": 22.5
       }
     },
