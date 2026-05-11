@@ -590,21 +590,27 @@ function _drawName(ctx, pt, pillRect, name, secondary, placedPills, placedNames,
   const tx     = best.x + 1;
   const nameY  = secondary ? best.cy - lineH / 2 : best.cy;
   const secY   = best.cy + lineH / 2;
-  const fillC  = opts.selected ? '#1A2C42' : '#3A332B';
+  // Google-Maps-style label treatment: light fill, dark outline. Reads
+  // cleanly against both warm map tiles and the darker building shadows.
+  // Selected pins keep the same treatment for consistency (the pill
+  // itself already signals selection).
+  const LIGHT_FILL    = '#F4EBD8';
+  const DARK_STROKE   = '#1A2C42';
+  const SECONDARY_FILL = 'rgba(244, 235, 216, 0.85)';
 
   ctx.font        = '600 12px "Inter", system-ui, sans-serif';
-  ctx.lineWidth   = 2.2;
-  ctx.strokeStyle = '#F4EBD8';
+  ctx.lineWidth   = 3;
+  ctx.strokeStyle = DARK_STROKE;
   ctx.strokeText(name, tx, nameY);
-  ctx.fillStyle   = fillC;
+  ctx.fillStyle   = LIGHT_FILL;
   ctx.fillText(name, tx, nameY);
 
   if (secondary) {
     ctx.font        = '500 11px "Inter", system-ui, sans-serif';
-    ctx.lineWidth   = 1.8;
-    ctx.strokeStyle = '#F4EBD8';
+    ctx.lineWidth   = 2.6;
+    ctx.strokeStyle = DARK_STROKE;
     ctx.strokeText(secondary, tx, secY);
-    ctx.fillStyle   = '#5A5048';
+    ctx.fillStyle   = SECONDARY_FILL;
     ctx.fillText(secondary, tx, secY);
   }
   return best;
@@ -624,8 +630,16 @@ function _sunHoursLine(v, dateStr) {
   } catch { return ''; }
 }
 
-// ── Pin animation framework (alpha + scale, smooth lerp) ──────────────────────
-const _pinState  = new Map();   // id → { alpha, scale, target_alpha, target_scale, snapshot }
+// ── Pin animation framework (alpha + scale + morph, smooth lerp) ─────────────
+// Per-pin state:
+//   alpha / scale       — pill body (existing fade/scale)
+//   morph / morphTarget — pill↔dot morph: 1.0 = full pill, 0.0 = full dot.
+//                          Drawn pill width / radius interpolates between
+//                          dot radius (4.5px) and full pill width.
+// _lastPilledIds: ids of pins that finished the previous frame as pills,
+// used as hysteresis input (priScore bonus to reduce flicker on zoom).
+const _pinState  = new Map();   // id → { alpha, scale, morph, target_alpha, target_scale, morphTarget, snapshot }
+const _lastPilledIds = new Set();
 let   _animDirty = false;
 let   _animScheduled = false;
 
@@ -650,7 +664,11 @@ function _scheduleAnim() {
 function _ensureState(id) {
   let s = _pinState.get(id);
   if (!s) {
-    s = { alpha: 0, scale: 1.0, target_alpha: 0, target_scale: 1.0, snapshot: null };
+    s = {
+      alpha: 0, scale: 1.0, morph: 0,
+      target_alpha: 0, target_scale: 1.0, morphTarget: 0,
+      snapshot: null,
+    };
     _pinState.set(id, s);
   }
   return s;
@@ -848,33 +866,38 @@ function draw() {
   });
 
   // ── 2. Priority sort ───────────────────────────────────────────────────────
-  // selected → friends → list rank (active sort) → fallback tier scoring.
-  // The list rank carries the user's active sort (Best Match / Most Sun /
-  // Distance / etc.) so the map mirrors the list: when two pills compete
-  // for the same spatial slot, the one the user's sort prefers wins.
-  // Venues not in the list at all fall back to tier/urgency scoring.
+  // Strict tiers (lower score = higher priority):
+  //   selected → friends → free zone (within NEAR_USER_KM) → outside zone.
+  // Within each tier the active list rank (Best Match / Most Sun / Distance)
+  // decides who wins a spacing conflict. The free-zone tier bonus ensures
+  // outside pills demote against any free-zone pill near them — without it,
+  // a high-rank outside pill could place before a low-rank free-zone pill
+  // and the free-zone one would then "always show" right on top of it.
+  // Hysteresis: pins that rendered as pills last frame get a small bonus
+  // so they keep their pill status across zoom changes (reduces flicker).
   const _listRank = new Map();
   if (typeof _listFiltered !== 'undefined' && Array.isArray(_listFiltered)) {
     for (let i = 0; i < _listFiltered.length; i++) {
       _listRank.set(_listFiltered[i].id, i);
     }
   }
+  const _FREE_ZONE_BONUS = -25000;
+  const _HYSTERESIS_BONUS = -40;
   function priScore(e) {
     if (e.v.id === selectedId) return -100000;
-    if (_friendVenueIds.has(e.v.id)) {
-      // Friends keep tier ordering among themselves so a sunny friend
-      // beats a context friend in a spacing conflict.
-      const rank = _listRank.get(e.v.id);
-      return -50000 + (rank != null ? rank : 9999);
-    }
     const rank = _listRank.get(e.v.id);
-    if (rank != null) return rank;          // pure list rank
-    // Not in the list (filtered out, off-viewport, etc.) — fall back to
-    // tier-based scoring so the placement order is still deterministic.
-    if (e.cls.tier === 'hero')    return 20000 + (e.cls.minsLeft     ?? 9999) / 100;
-    if (e.cls.tier === 'waiting' && e.cls.closedOpeningIntoSun) return 22000 + (e.cls.minutesUntil ?? 9999) / 100;
-    if (e.cls.tier === 'waiting') return 21000 + (e.cls.minutesUntil ?? 9999) / 100;
-    return 30000;                            // context fallback
+    // Off-list venues get a tier fallback so placement stays deterministic.
+    const baseRank = rank != null
+      ? rank
+      : (e.cls.tier === 'hero')    ? 20000 + (e.cls.minsLeft     ?? 9999) / 100
+      : (e.cls.tier === 'waiting' && e.cls.closedOpeningIntoSun) ? 22000 + (e.cls.minutesUntil ?? 9999) / 100
+      : (e.cls.tier === 'waiting') ? 21000 + (e.cls.minutesUntil ?? 9999) / 100
+      : 30000;
+    let s = baseRank;
+    if (_friendVenueIds.has(e.v.id)) s -= 50000;
+    if (_kmFromUser(e.v.lng, e.v.lat) < NEAR_USER_KM) s += _FREE_ZONE_BONUS;
+    if (_lastPilledIds.has(e.v.id)) s += _HYSTERESIS_BONUS;
+    return s;
   }
   projVenues.sort((a, b) => priScore(a) - priScore(b));
 
@@ -895,6 +918,10 @@ function draw() {
   const placedPills = [];
   const layout      = [];
   const hoverId     = (typeof highlight !== 'undefined' && highlight) ? highlight.id : null;
+  // Track which venues end up rendering as pills THIS frame. After the
+  // loop, this set replaces _lastPilledIds so hysteresis bonuses apply
+  // on the next frame (keeps pins from flickering during zoom).
+  const _thisFramePilledIds = new Set();
 
   for (const { v, cls, pt, friends } of projVenues) {
     const tier       = cls.tier;
@@ -989,9 +1016,35 @@ function draw() {
         if (pt.x >= p.x - 5 && pt.x <= p.x + p.w + 5 &&
             pt.y >= p.y - 5 && pt.y <= p.y + p.h + 5) { dotOverlaps = true; break; }
       }
-      if (!dotOverlaps) {
+      // Drive the morph target toward 0 (dot). The pill alpha drains
+      // toward 0 each frame; the dot draws at (1 - pillAlpha) so the
+      // two cross-fade across the transition.
+      const stDot = _ensureState(v.id);
+      stDot.target_alpha = 0;
+      stDot.morphTarget  = 0;
+      const aMovingD = _stepLerp(stDot, 'alpha', stDot.target_alpha, 0.18);
+      const mMovingD = _stepLerp(stDot, 'morph', stDot.morphTarget, 0.18);
+      if (aMovingD || mMovingD) _animDirty = true;
+      const dotAlpha = 1 - stDot.morph;       // fades in as pill fades out
+
+      // Lingering pill during the transition: draw it at the alpha
+      // that's still bleeding off so the swap is a true cross-fade,
+      // not a snap.
+      if (stDot.alpha > 0.04 && stDot.snapshot) {
+        ctx.save();
+        ctx.globalAlpha = stDot.alpha;
+        const snap = stDot.snapshot;
+        _drawPill(ctx, pt, snap.w, snap.time, snap.tier, {
+          selected: false, hovered: false, closedNow: !!snap.closedNow,
+          category: snap.category, friends: snap.friends || [], scale: 1,
+        });
+        ctx.restore();
+      }
+
+      if (!dotOverlaps && dotAlpha > 0.04) {
         const dot = _dotColors(tier, closedOpens, !!cls.hasSunLaterToday);
         ctx.save();
+        ctx.globalAlpha = dotAlpha;
         ctx.beginPath(); ctx.arc(pt.x, pt.y, 4.5, 0, Math.PI * 2);
         ctx.fillStyle = dot.fill;
         ctx.fill();
@@ -1012,19 +1065,35 @@ function draw() {
     }
 
     placedPills.push(pillRect);
+    _thisFramePilledIds.add(v.id);     // hysteresis input for next frame
 
     const sel       = v.id === selectedId;
     const hovered   = !sel && v.id === hoverId;
     const baseAlphaTarget = closedOpens ? 0.70 : 1.0;
 
-    // Animation state
+    // Animation state — drive both alpha and morph toward the pill state.
     const st = _ensureState(v.id);
     st.target_alpha = baseAlphaTarget;
     st.target_scale = sel ? 1.14 : (hovered ? 1.07 : 1.0);
+    st.morphTarget  = 1;
     st.snapshot     = { tier, w, time, category: v.category, closedNow: closedOpens, friends };
     const aMoving = _stepLerp(st, 'alpha', st.target_alpha, 0.20);
     const sMoving = _stepLerp(st, 'scale', st.target_scale, 0.22);
-    if (aMoving || sMoving) _animDirty = true;
+    const mMoving = _stepLerp(st, 'morph', st.morphTarget, 0.18);
+    if (aMoving || sMoving || mMoving) _animDirty = true;
+
+    // When promoting from dot → pill, also bleed off a residual dot so
+    // the swap is a true cross-fade.
+    const promoDotAlpha = 1 - st.morph;
+    if (promoDotAlpha > 0.04) {
+      const dot = _dotColors(tier, closedOpens, !!cls.hasSunLaterToday);
+      ctx.save();
+      ctx.globalAlpha = promoDotAlpha;
+      ctx.beginPath(); ctx.arc(pt.x, pt.y, 4.5, 0, Math.PI * 2);
+      ctx.fillStyle = dot.fill;
+      ctx.fill();
+      ctx.restore();
+    }
 
     // Pulse rings BEFORE the pill so they sit behind it. Only friend pills
     // pulse — the privileged ambient marks the social signal.
@@ -1147,6 +1216,11 @@ function draw() {
   }
 
   _lastLayout = layout;
+  // Swap this frame's pilled-set into _lastPilledIds so the next
+  // frame's priScore can apply the hysteresis bonus (keeps pins as
+  // pills across zoom changes; reduces flicker).
+  _lastPilledIds.clear();
+  for (const id of _thisFramePilledIds) _lastPilledIds.add(id);
   _scheduleAnim();
   ctx.restore();
 }
