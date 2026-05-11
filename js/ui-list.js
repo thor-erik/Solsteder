@@ -1102,11 +1102,10 @@ function renderList() {
   _listBuckets = { now: bucketNow, later: bucketLater };
   renderListPage(list, dateStr, fromHour, toHour, isPoint, true);
 
-  // Sticky bucket header: refresh labels and rewire scroll watcher
+  // Sun headline: refresh the outlook sentence on every render.
   if (typeof updateSunSectionBar === 'function') {
     requestAnimationFrame(updateSunSectionBar);
   }
-  if (typeof wireSunSectionBarScroll === 'function') wireSunSectionBarScroll();
   if (typeof wireAvstandTracker === 'function') wireAvstandTracker();
 
   // Update venue-peek with first ranked venue (mobile collapsed state)

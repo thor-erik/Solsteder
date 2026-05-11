@@ -5300,13 +5300,8 @@
   /* ── Sun-section bar: "Sun now — N places in the sun" ─────────────────
      Two stacked text lines on a vertical translate track. JS toggles
      .later on the bar to slide the second line into view (calendar-style). */
-  /* Sun headline — track + sort button in a 2-column grid. Each .ssb-line
-     is a 2-row column: row1 = count + bucket label, row2 = tail (city
-     outlook continuation). One line visible at a time — the populated
-     bucket, or (when both are populated) whichever bucket the user has
-     scrolled into. Inactive lines get [hidden] from JS so the track
-     auto-sizes to the visible line. Title-weight typography so the
-     header reads as the section's title, not a status footnote. */
+  /* Sun headline — sentence + sort button in a 2-column grid. Single
+     text flow, wraps naturally when too long for the panel width. */
   #sun-section-bar {
     flex-shrink: 0;
     padding: 8px 14px 10px;
@@ -5315,46 +5310,18 @@
     align-items: center;
     column-gap: 8px;
   }
-  #sun-section-bar .ssb-track {
-    position: relative;
-    min-width: 0;
-  }
-  /* Each line is one continuous text flow. Count is bold + slightly larger;
-     the rest flows after as normal sentence text and wraps naturally if
-     the headline is too long for one row. */
-  .ssb-line {
-    display: block;
+  #sun-section-bar.ssb-empty { display: none; }
+  .ssb-text {
     font-family: 'Inter', sans-serif;
     font-size: 17px;
     font-weight: 500;
     line-height: 1.3;
-    color: rgba(255, 244, 224, 0.92);
-    letter-spacing: -0.005em;
-    overflow-wrap: break-word;
-  }
-  .ssb-line[hidden] { display: none; }
-  /* When both buckets are populated (neither force-[hidden]), the .later
-     class on the parent picks which one shows. */
-  #sun-section-bar:not(.later) .ssb-later:not([hidden]) { display: none; }
-  #sun-section-bar.later        .ssb-now:not([hidden])  { display: none; }
-  .ssb-line .ssb-count {
-    font-size: 19px;
-    font-weight: 700;
     color: var(--text);
+    letter-spacing: -0.005em;
     font-variant-numeric: tabular-nums;
-    letter-spacing: -0.01em;
+    overflow-wrap: break-word;
+    min-width: 0;
   }
-  /* Tabular numerals in the text run too so HH:MM times stay aligned. */
-  .ssb-line .ssb-text {
-    font-variant-numeric: tabular-nums;
-  }
-  /* Small horizontal gap between count and the rest of the sentence —
-     only present when the count is set (no-sun case skips it). */
-  .ssb-line .ssb-count:not(:empty) { margin-right: 5px; }
-  /* When the bar is empty (no count to show), still keep the row but
-     suppress glyph + sort? No — better to hide entire row so the chip
-     row + first card move up. Honors the existing ssb-empty contract. */
-  #sun-section-bar.ssb-empty { display: none; }
 
   /* Sort icon sits in this row now — small, right-aligned via the grid's
      third column. Overrides the legacy #sort-toggle-btn glass-button
@@ -8885,24 +8852,13 @@
     </div>
 
 
-    <!-- Sun headline — PRIMARY (top). One conversational sentence per bucket:
-         "124 places in the sun at 14:45, then cloudy from 17:00"
-         Reads as one line; wraps to multiple visual lines if too long
-         (no truncation, no forced break-at-comma). One bucket is
-         visible at a time (the populated one, or — when both are
-         populated — whichever the user has scrolled into). Sort lives
-         here as a list-level action. When both buckets are empty AND
-         the day is fully overcast/rainy, a no-sun message replaces
-         the bucket content. -->
+    <!-- Sun headline — one conversational sentence about the city's sun
+         pattern from the slider time forward. No count (the count was
+         slider-tied and confusing — 92 at 14:45 might be 142 at 15:15);
+         no bucket morph. Sort icon still lives here as the list-level
+         action. Hidden when the day is fully clear (no disruption ahead). -->
     <div id="sun-section-bar" aria-live="polite">
-      <div class="ssb-track">
-        <div class="ssb-line ssb-now">
-          <span class="ssb-count"></span><span class="ssb-text"></span>
-        </div>
-        <div class="ssb-line ssb-later">
-          <span class="ssb-count"></span><span class="ssb-text"></span>
-        </div>
-      </div>
+      <span class="ssb-text"></span>
       <button id="sort-toggle-btn" class="sort-icon-btn" onclick="toggleSortPanel()" aria-label="Sortér" title="Sortér">
         <svg class="sort-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <line x1="6"  y1="5"  x2="6"  y2="19"/>

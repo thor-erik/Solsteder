@@ -536,146 +536,50 @@ function updateHeaderDateChip() {
 function updateSunSectionBar() {
   const bar = document.getElementById('sun-section-bar');
   if (!bar) return;
-
-  const nowCount   = (typeof _listBuckets !== 'undefined' && _listBuckets?.now?.length) || 0;
-  const laterCount = (typeof _listBuckets !== 'undefined' && _listBuckets?.later?.length) || 0;
+  const textEl = bar.querySelector('.ssb-text');
+  if (!textEl) return;
 
   const dateStr  = datePicker.value;
   const fromHour = parseFloat(timeFromEl.value);
 
-  // City-wide sun outlook for this slider time. Drives the tail (row 2)
-  // continuation per bucket. Null/clear means no tail.
   const sundownH = (typeof currentSunTable !== 'undefined' && currentSunTable
                     && typeof findSunCrossingFromTable === 'function')
     ? findSunCrossingFromTable(currentSunTable, false) : null;
   const outlook = (typeof computeCityWideSunOutlook === 'function' && sundownH != null)
     ? computeCityWideSunOutlook(dateStr, fromHour, sundownH) : null;
 
-  const nowLine   = bar.querySelector('.ssb-now');
-  const laterLine = bar.querySelector('.ssb-later');
-
-  // Empty-list state: both buckets have zero venues. When the day is
-  // overcast/rainy all day, show the standalone no-sun message in the
-  // now-line. Otherwise hide the bar entirely.
-  if (nowCount === 0 && laterCount === 0) {
-    if (outlook?.code === 'no_sun' && nowLine) {
-      bar.classList.remove('ssb-empty');
-      const w = outlook.params?.weather === 'rain' ? 'rain' : 'cloud';
-      nowLine.querySelector('.ssb-count').textContent = '';
-      nowLine.querySelector('.ssb-text').textContent  = t(`outlook_no_sun_${w}`);
-      nowLine.hidden = false;
-      if (laterLine) laterLine.hidden = true;
-      bar.classList.remove('later');
-      bar.dataset.locked = '1';
-      return;
-    }
+  // Clear days: nothing useful to say — the FTS slider's weather bands
+  // already convey "all sun ahead" graphically. Hide the row.
+  if (!outlook || outlook.code === 'clear') {
     bar.classList.add('ssb-empty');
+    textEl.textContent = '';
     return;
   }
+
   bar.classList.remove('ssb-empty');
 
-  // Hide bucket lines whose count is 0 — keeps an empty bucket from
-  // ghost-rendering its label without a number.
-  if (nowLine)   nowLine.hidden   = nowCount   === 0;
-  if (laterLine) laterLine.hidden = laterCount === 0;
-
+  // When the slider is set to a future hour (not "now"), the outlook
+  // sentences read more clearly with "at HH:MM" instead of "now":
+  //   "Sun at 14:45, then cloudy from 17:00"
+  // Computed once here and passed into the templates as {nowState}.
   const isFuture = (typeof nowMode !== 'undefined' && !nowMode &&
                     dateStr === todayStr() &&
                     Math.abs(fromHour - currentHour()) > 5/60)
                 || dateStr > todayStr();
+  const nowState = isFuture ? t('outlook_at_time', { time: formatHour(fromHour) }) : t('outlook_now');
 
-  const nowLabelBase   = isFuture ? t('section_sun_at',    { time: formatHour(fromHour) }) : t('section_sun_now');
-  const laterLabelBase = isFuture ? t('section_sun_after', { time: formatHour(fromHour) }) : t('section_sun_later');
-
-  // Outlook continuation per bucket — re-orients the city outlook for
-  // whichever perspective the bucket cares about. Empty when nothing
-  // to continue with.
-  const nowTail   = _computeSsbTail('now',   outlook);
-  const laterTail = _computeSsbTail('later', outlook);
-
-  // Build the full conversational sentence per bucket:
-  //   "places in the sun at 14:45, then cloudy from 17:00"
-  // Renders as one continuous text run after the bold count. Wraps to
-  // multiple visual lines naturally if the sentence is too long for
-  // the panel width — no truncation, no forced break-at-comma.
-  const nowText   = nowLabelBase   + (nowTail   ? ', ' + nowTail   : '');
-  const laterText = laterLabelBase + (laterTail ? ', ' + laterTail : '');
-
-  if (nowLine) {
-    nowLine.querySelector('.ssb-count').textContent = nowCount > 0 ? String(nowCount) : '';
-    nowLine.querySelector('.ssb-text').textContent  = nowText;
-  }
-  if (laterLine) {
-    laterLine.querySelector('.ssb-count').textContent = laterCount > 0 ? String(laterCount) : '';
-    laterLine.querySelector('.ssb-text').textContent  = laterText;
-  }
-
-  // If only one bucket has content, lock the bar to that line — no scroll
-  // morph (since there's no boundary to cross).
-  if (nowCount === 0) {
-    bar.classList.add('later');
-    bar.dataset.locked = '1';
-  } else if (laterCount === 0) {
-    bar.classList.remove('later');
-    bar.dataset.locked = '1';
-  } else {
-    delete bar.dataset.locked;
-    applySunSectionBarScrollState();
-  }
-}
-
-/** Re-orient the city-wide outlook fact for whichever bucket needs it.
- *  Each bucket gets the relevant fragment:
- *    NOW bucket: "cloudy from {end}" / "again {cStart}–{cEnd}"
- *    LATER bucket: "from {start}" / "{start}–{end}" / "{aStart}–{aEnd} and {cStart}–{cEnd}"
- *  Returns '' when the outlook has no relevant fragment for this bucket. */
-function _computeSsbTail(bucket, outlook) {
-  if (!outlook || outlook.code === 'clear' || outlook.code === 'no_sun') return '';
-  const p = { ...outlook.params };
+  const p = { ...outlook.params, nowState };
   for (const k of ['start', 'end', 'aStart', 'aEnd', 'cStart', 'cEnd']) {
     if (p[k] != null) p[k] = formatHour(p[k]);
   }
-  if (bucket === 'now') {
-    if (outlook.code === 'sun_until')      return t(p.weather === 'rain' ? 'tail_rain_from' : 'tail_cloudy_from', p);
-    if (outlook.code === 'sun_then_again') return t('tail_again_window', p);
-    // sun_from / sun_window / two_windows → no NOW sun, no tail for this bucket
-    return '';
-  } else { // later
-    if (outlook.code === 'sun_from')       return t('tail_from', p);
-    if (outlook.code === 'sun_window')     return t('tail_window', p);
-    if (outlook.code === 'two_windows')    return t('tail_two_windows', p);
-    if (outlook.code === 'sun_then_again') return t('tail_from', { start: p.cStart });
-    // sun_until → no LATER sun, no tail
-    return '';
-  }
-}
 
-/** Toggles `.later` based on whether the user has scrolled past the now-bucket. */
-function applySunSectionBarScrollState() {
-  const bar  = document.getElementById('sun-section-bar');
-  const list = document.getElementById('venue-list');
-  if (!bar || !list || bar.classList.contains('ssb-empty')) return;
-  // When only one bucket is populated, the bar is locked to that line.
-  if (bar.dataset.locked) return;
+  const w = p.weather === 'rain' ? 'rain' : 'cloud';
+  let key;
+  if (outlook.code === 'sun_then_again')   key = 'outlook_sun_then_again';
+  else if (outlook.code === 'two_windows') key = `outlook_two_windows_${w}`;
+  else                                     key = `outlook_${outlook.code}_${w}`;
 
-  const nowCount = (typeof _listBuckets !== 'undefined' && _listBuckets?.now?.length) || 0;
-  const cards = list.querySelectorAll('.venue-card');
-  const boundaryCard = cards[nowCount];  // first "later" card
-  if (!boundaryCard) { bar.classList.remove('later'); return; }
-
-  // 24px threshold so the morph fires just before the boundary card's top
-  // crosses the list scroll-top.
-  const past = list.scrollTop >= (boundaryCard.offsetTop - 24);
-  bar.classList.toggle('later', past);
-}
-
-let _ssbScrollWired = false;
-function wireSunSectionBarScroll() {
-  if (_ssbScrollWired) return;
-  const list = document.getElementById('venue-list');
-  if (!list) return;
-  list.addEventListener('scroll', applySunSectionBarScrollState, { passive: true });
-  _ssbScrollWired = true;
+  textEl.textContent = t(key, p);
 }
 
 /** Update the header weather chip (icon + temp + wind) for given hour. */

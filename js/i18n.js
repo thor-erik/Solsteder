@@ -133,26 +133,23 @@ const _STRINGS = {
     state_no_sun_future:     'No sun',
     state_done:              'Done',
     // ── Soft Zebra: section headers, pills, empty states ──────────────────────
-    section_sun_now:           'places in the sun now',
-    section_sun_at:            'places in the sun at {time}',
-    section_sun_later:         'places in the sun later',
-    section_sun_after:         'places in the sun after {time}',
-
-    // No-sun standalone messages (shown when both buckets are empty
-    // because the day is fully overcast/rainy).
+    // City-wide sun outlook — full conversational sentences about the
+    // day's sun pattern from the slider time forward. Now-state at the
+    // start, later-state at the end.
+    // {nowState} resolves to "now" (present mode) or "at HH:MM" (future).
+    outlook_now:                'now',
+    outlook_at_time:            'at {time}',
+    outlook_sun_until_cloud:    'Sun {nowState}, then cloudy from {end}',
+    outlook_sun_until_rain:     'Sun {nowState}, then rain from {end}',
+    outlook_sun_from_cloud:     'Cloudy {nowState}, sun from {start}',
+    outlook_sun_from_rain:      'Rainy {nowState}, sun from {start}',
+    outlook_sun_window_cloud:   'Cloudy {nowState}, sun {start}–{end}',
+    outlook_sun_window_rain:    'Rainy {nowState}, sun {start}–{end}',
+    outlook_sun_then_again:     'Sun until {end}, then again {cStart}–{cEnd}',
+    outlook_two_windows_cloud:  'Cloudy {nowState}, sun {aStart}–{aEnd} and {cStart}–{cEnd}',
+    outlook_two_windows_rain:   'Rainy {nowState}, sun {aStart}–{aEnd} and {cStart}–{cEnd}',
     outlook_no_sun_cloud:       'Overcast today, no sun',
     outlook_no_sun_rain:        'Rainy today, no sun',
-
-    // Tail continuation per bucket. Reads as the next clause after the
-    // bucket label: "124 places in the sun at 14:45, {tail}".
-    // "then" prefix on now-bucket tails reinforces the sequential reading
-    // (sun now, THEN something later).
-    tail_cloudy_from:           'then cloudy from {end}',
-    tail_rain_from:             'then rain from {end}',
-    tail_again_window:          'then sun again {cStart}–{cEnd}',
-    tail_from:                  'from {start}',
-    tail_window:                '{start}–{end}',
-    tail_two_windows:           '{aStart}–{aEnd} and {cStart}–{cEnd}',
     empty_no_sun_now:          'No venues in sun right now',
     empty_no_sun_later:        'No more sun coming today',
     empty_no_sun_today:        'No sunny venues today',
@@ -589,22 +586,20 @@ const _STRINGS = {
     state_no_sun_future:     'Ingen sol',
     state_done:              'Ferdig',
     // ── Soft Zebra: section headers, pills, empty states ──────────────────────
-    section_sun_now:           'steder i solen nå',
-    section_sun_at:            'steder i solen kl {time}',
-    section_sun_later:         'steder i solen senere',
-    section_sun_after:         'steder i solen etter {time}',
-
-    // No-sun standalone (both buckets empty)
+    // City-wide sun outlook — full sentences
+    outlook_now:                'nå',
+    outlook_at_time:            'kl {time}',
+    outlook_sun_until_cloud:    'Sol {nowState}, så skyer fra {end}',
+    outlook_sun_until_rain:     'Sol {nowState}, så regn fra {end}',
+    outlook_sun_from_cloud:     'Skyer {nowState}, sol fra {start}',
+    outlook_sun_from_rain:      'Regn {nowState}, sol fra {start}',
+    outlook_sun_window_cloud:   'Skyer {nowState}, sol {start}–{end}',
+    outlook_sun_window_rain:    'Regn {nowState}, sol {start}–{end}',
+    outlook_sun_then_again:     'Sol til {end}, så igjen {cStart}–{cEnd}',
+    outlook_two_windows_cloud:  'Skyer {nowState}, sol {aStart}–{aEnd} og {cStart}–{cEnd}',
+    outlook_two_windows_rain:   'Regn {nowState}, sol {aStart}–{aEnd} og {cStart}–{cEnd}',
     outlook_no_sun_cloud:       'Overskyet i dag, ingen sol',
     outlook_no_sun_rain:        'Regn i dag, ingen sol',
-
-    // Tail per bucket — "så" / "så sol" prefix for sequential reading.
-    tail_cloudy_from:           'så skyer fra {end}',
-    tail_rain_from:             'så regn fra {end}',
-    tail_again_window:          'så sol igjen {cStart}–{cEnd}',
-    tail_from:                  'fra {start}',
-    tail_window:                '{start}–{end}',
-    tail_two_windows:           '{aStart}–{aEnd} og {cStart}–{cEnd}',
     empty_no_sun_now:          'Ingen i sol akkurat nå',
     empty_no_sun_later:        'Ingen steder med sol senere i dag',
     empty_no_sun_today:        'Ingen steder i solen i dag',
