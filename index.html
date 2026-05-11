@@ -5303,14 +5303,16 @@
   /* Sun headline row — the answer to "is there sun?". Sun glyph (left),
      count-led label (middle, morphs between now/later buckets on scroll),
      sort icon (right). Promoted from the old 22px slate sub-line: now
-     reads as the visual headline above the chip row. */
+     reads as the visual headline above the chip row.
+     Uses GRID (not flex) so the three children always sit on one row
+     regardless of the morphing track's internal stacking. */
   #sun-section-bar {
     flex-shrink: 0;
-    padding: 8px 14px 4px;
-    display: flex;
+    padding: 6px 14px 2px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
-    gap: 8px;
-    height: 36px;
+    column-gap: 8px;
   }
   .ssb-sun-glyph {
     color: var(--accent);
@@ -5319,9 +5321,8 @@
   #sun-section-bar .ssb-track {
     position: relative;
     height: 22px;
-    flex: 1;
-    min-width: 0;
     overflow: hidden;
+    min-width: 0;
     transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
   }
   #sun-section-bar.later .ssb-track { transform: translateY(-22px); }
@@ -5354,9 +5355,9 @@
      row + first card move up. Honors the existing ssb-empty contract. */
   #sun-section-bar.ssb-empty { display: none; }
 
-  /* Sort icon sits in this row now — small, right-aligned. Overrides the
-     legacy #sort-toggle-btn glass-button styling that's still loaded from
-     the old chip-row context. */
+  /* Sort icon sits in this row now — small, right-aligned via the grid's
+     third column. Overrides the legacy #sort-toggle-btn glass-button
+     styling that's still loaded from the old chip-row context. */
   #sun-section-bar #sort-toggle-btn {
     background: transparent;
     border: 0;
@@ -5365,9 +5366,8 @@
     width: 32px;
     height: 32px;
     border-radius: 8px;
-    margin-left: auto;
-    flex-shrink: 0;
     gap: 0;
+    justify-self: end;
   }
   #sun-section-bar #sort-toggle-btn:hover  { background: rgba(255,242,235,0.06); border-color: transparent; }
   #sun-section-bar #sort-toggle-btn.open   { background: rgba(245,194,94,0.10); border-color: transparent; box-shadow: none; }
@@ -8884,30 +8884,10 @@
     </div>
 
 
-    <!-- Header chip row: date (tappable), weather (info), sort -->
-    <div id="list-sun-header">
-      <button id="header-date-chip" onclick="toggleQcPanel('date')" aria-label="Velg dato">
-        <svg class="chip-cal-icon" width="14" height="14" viewBox="0 0 16 16" fill="none">
-          <rect x="1.5" y="3" width="13" height="11.5" rx="2" stroke="currentColor" stroke-width="1.5"/>
-          <line x1="1.5" y1="6.5" x2="14.5" y2="6.5" stroke="currentColor" stroke-width="1.5"/>
-          <line x1="5" y1="1.5" x2="5" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          <line x1="11" y1="1.5" x2="11" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        </svg>
-        <span id="header-date-label"></span>
-      </button>
-      <div id="header-wx-chip" role="status" aria-live="polite">
-        <span id="header-wx-icon" aria-hidden="true"></span>
-        <span id="header-wx-temp"></span>
-        <span class="chip-dot" aria-hidden="true">·</span>
-        <span id="header-wx-wind"></span>
-      </div>
-    </div>
-
-    <!-- Sun headline + sort icon. The headline morphs between "Sun now" /
+    <!-- Sun headline + sort icon — PRIMARY (top). Morphs between "Sun now" /
          "Sun later" as the user scrolls past each bucket (JS-driven, see
-         updateSunSectionBar). The sort icon lives in this row now — it's
-         a list-level action, fits the headline row better than the chip
-         row. Count is bold so it leads the eye. -->
+         updateSunSectionBar). Count is bold so it leads the eye. Sort lives
+         here because sort is a list-level action; fits the headline row. -->
     <div id="sun-section-bar" aria-live="polite">
       <svg class="ssb-sun-glyph" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <circle cx="12" cy="12" r="4"/>
@@ -8927,6 +8907,27 @@
         </svg>
         <span id="sort-label" class="sort-icon-label-sr">Mest sol</span>
       </button>
+    </div>
+
+    <!-- Chip row — date (tappable) + weather (passive readout). Sits below
+         the sun headline as context for "what slice of time/conditions am
+         I looking at." -->
+    <div id="list-sun-header">
+      <button id="header-date-chip" onclick="toggleQcPanel('date')" aria-label="Velg dato">
+        <svg class="chip-cal-icon" width="14" height="14" viewBox="0 0 16 16" fill="none">
+          <rect x="1.5" y="3" width="13" height="11.5" rx="2" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="1.5" y1="6.5" x2="14.5" y2="6.5" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="5" y1="1.5" x2="5" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="11" y1="1.5" x2="11" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <span id="header-date-label"></span>
+      </button>
+      <div id="header-wx-chip" role="status" aria-live="polite">
+        <span id="header-wx-icon" aria-hidden="true"></span>
+        <span id="header-wx-temp"></span>
+        <span class="chip-dot" aria-hidden="true">·</span>
+        <span id="header-wx-wind"></span>
+      </div>
     </div>
 
     <!-- Venue peek: first card preview visible in collapsed state -->

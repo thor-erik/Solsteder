@@ -558,18 +558,18 @@ function updateSunSectionBar() {
   const laterLabel = isFuture ? t('section_sun_after', { time: formatHour(fromHour) }) : t('section_sun_later');
 
   // New format: count-led headline. The count is the lead element (bold,
-  // 15px) followed by the bucket label ("sol senere · kl 17:00" etc). The
-  // bucket label keeps the existing time-aware phrasing so future-mode and
-  // present-mode both stay self-explanatory.
+  // 15px) followed by the bucket label ("Sol senere", "Sol kl 17:00", etc).
+  // The bucket label keeps its existing time-aware phrasing so future-mode
+  // and present-mode both stay self-explanatory.
   const nowLine   = bar.querySelector('.ssb-now');
   const laterLine = bar.querySelector('.ssb-later');
   if (nowLine) {
     nowLine.querySelector('.ssb-count').textContent = nowCount > 0 ? String(nowCount) : '';
-    nowLine.querySelector('.ssb-label').textContent = nowLabel.toLowerCase();
+    nowLine.querySelector('.ssb-label').textContent = nowLabel;
   }
   if (laterLine) {
     laterLine.querySelector('.ssb-count').textContent = laterCount > 0 ? String(laterCount) : '';
-    laterLine.querySelector('.ssb-label').textContent = laterLabel.toLowerCase();
+    laterLine.querySelector('.ssb-label').textContent = laterLabel;
   }
 
   // If only one bucket has content, lock the bar to that line — no scroll
