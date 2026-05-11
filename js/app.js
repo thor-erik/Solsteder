@@ -393,7 +393,10 @@ function initFts() {
     track.setPointerCapture(e.pointerId);
     window._qcThumbActive = true;
     const _thumbEl = document.getElementById('fts-thumb');
-    if (_thumbEl) _thumbEl.classList.add('is-active');
+    if (_thumbEl) {
+      _thumbEl.classList.remove('is-hover');
+      _thumbEl.classList.add('is-active');
+    }
     setTimeFromPointer(e.clientX);
     setFtsPopupExpanded(true);
   });
@@ -463,6 +466,13 @@ function initFts() {
     const dx = (e.clientX - p.cx) / p.R;
     const dy = (e.clientY - p.cy) / p.R;
     const dist = Math.hypot(dx, dy);
+    // Hover state — visible lift + edge bump + brighter glint when the
+    // cursor is near the thumb. Falls off a bit wider than the tilt
+    // reach so the "approach" reads before tilt kicks in.
+    if (thumbEl) {
+      if (dist < 2.5) thumbEl.classList.add('is-hover');
+      else            thumbEl.classList.remove('is-hover');
+    }
     // Only tilt when cursor is near the thumb (within ~3× its radius);
     // beyond that, gently return to centre.
     if (dist > 3.0) { _ftsTiltSetTarget({ x: 0, y: 0 }); return; }
@@ -474,6 +484,7 @@ function initFts() {
   });
   track.addEventListener('pointerleave', () => {
     _ftsTiltSetTarget({ x: 0, y: 0 });
+    if (thumbEl) thumbEl.classList.remove('is-hover');
   });
 
   // Pointer cancel
@@ -570,7 +581,10 @@ function _updateFtsThumbDom(fromH) {
   const capPct = (capPx / trackW) * 100;
   const pct = Math.max(capPct, Math.min(100 - capPct, xPct * 100));
   thumb.style.left = pct + '%';
-  _updateFtsLabelMagnify();
+  // Drive the magnified-labels clip-path centre — same percentage as the
+  // thumb's CSS `left`, so the lens circle follows the thumb exactly.
+  const magC = document.getElementById('fts-labels-mag');
+  if (magC) magC.style.setProperty('--lens-x', pct + '%');
 }
 
 /** Build / refresh the DOM hour labels inside #fts-labels. Called on init
@@ -579,8 +593,9 @@ function _updateFtsThumbDom(fromH) {
  *  plus the actual min/max bookends. Position clamped inward so the digits
  *  sit safely inside the rounded cap curvature. */
 function _updateFtsLabels() {
-  const container = document.getElementById('fts-labels');
-  const track     = document.getElementById('fts-track');
+  const container    = document.getElementById('fts-labels');
+  const containerMag = document.getElementById('fts-labels-mag');
+  const track        = document.getElementById('fts-track');
   if (!container || !track) return;
   const trackW = track.offsetWidth || 0;
   if (!trackW) return;
@@ -596,47 +611,31 @@ function _updateFtsLabels() {
 
   // Rebuild — cheap (few elements). Avoids tracking removed/added hours.
   container.innerHTML = '';
+  if (containerMag) containerMag.innerHTML = '';
   for (const h of hours) {
     if (h < MIN_H_ARC || h > MAX_H_ARC) continue;
+    const text = String(h).padStart(2, '0');
+    const xPct = (h - MIN_H_ARC) / (MAX_H_ARC - MIN_H_ARC) * 100;
+    const pct  = Math.max(capSafePct, Math.min(100 - capSafePct, xPct));
+
     const lbl = document.createElement('div');
     lbl.className = 'fts-label';
     lbl.dataset.hour = h;
-    lbl.textContent = String(h).padStart(2, '0');
-    const xPct = (h - MIN_H_ARC) / (MAX_H_ARC - MIN_H_ARC) * 100;
-    const pct  = Math.max(capSafePct, Math.min(100 - capSafePct, xPct));
+    lbl.textContent = text;
     lbl.style.left = pct + '%';
     container.appendChild(lbl);
-  }
-}
 
-/** Magnify-through-the-lens effect — each label's CSS scale grows as the
- *  thumb centre approaches its X. Combined with the thumb's existing
- *  backdrop-filter:blur, this reads as "a lens passing over printed text".
- *  Called on every thumb position change. */
-function _updateFtsLabelMagnify() {
-  const thumb = document.getElementById('fts-thumb');
-  if (!thumb) return;
-  const tRect = thumb.getBoundingClientRect();
-  if (!tRect.width) return;
-  const thumbCx = tRect.left + tRect.width / 2;
-  const R       = tRect.width / 2;
-  const labels  = document.querySelectorAll('#fts-labels .fts-label');
-  for (const lbl of labels) {
-    const lRect = lbl.getBoundingClientRect();
-    if (!lRect.width) continue;
-    const lCx  = lRect.left + lRect.width / 2;
-    const dist = Math.abs(thumbCx - lCx);
-    // Falloff: full magnification inside the thumb, easing back to 1.0
-    // by 2× the thumb radius.
-    const reach = R * 2;
-    let scale = 1;
-    if (dist < reach) {
-      const t = 1 - (dist / reach);
-      // Smoothstep for a softer entry/exit
-      const eased = t * t * (3 - 2 * t);
-      scale = 1 + eased * 0.7;   // up to 1.7× at thumb centre
+    // Magnified twin — same X, but scaled up. The mag layer's clip-path
+    // hides everything outside the lens circle, so this only shows where
+    // the lens is currently overlapping the label.
+    if (containerMag) {
+      const mlbl = document.createElement('div');
+      mlbl.className = 'fts-label-mag';
+      mlbl.dataset.hour = h;
+      mlbl.textContent = text;
+      mlbl.style.left = pct + '%';
+      containerMag.appendChild(mlbl);
     }
-    lbl.style.setProperty('--scale', scale.toFixed(3));
   }
 }
 

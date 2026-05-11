@@ -1330,11 +1330,23 @@
     pointer-events: none;      /* touch events go to track, not canvas */
   }
 
-  /* ── Hour labels (DOM, behind the thumb) ────────────────────────────────
-     Z-stack inside #fts-track: canvas (1) < labels (2) < thumb (5). The
-     thumb's backdrop-blur naturally blurs labels passing under it, AND
-     each label scales up based on proximity to the thumb centre — together
-     these simulate magnification through the lens. */
+  /* ── Hour labels — two stacked layers for real magnifying-glass behaviour ─
+     Z-stack inside #fts-track:
+       canvas (1) < base labels (2) < thumb (5) < magnified labels (6).
+     The base layer is the "ink under the lens" — always at 1×, sits behind
+     the thumb so it gets backdrop-blurred where the lens overlaps it.
+     The magnified layer is the same labels at a fixed scale (1.55×),
+     positioned ABOVE the thumb but clipped via clip-path to the exact
+     lens silhouette. JS keeps --lens-x in sync with the thumb's centre
+     so the clip "follows" the lens as you drag. Outside the lens the
+     magnified layer is invisible; inside it dominates the base layer.
+     That's a real magnifying glass: enlarged content visible ONLY where
+     the lens covers it. */
+  @property --lens-r {
+    syntax: '<length>';
+    inherits: true;
+    initial-value: 16px;
+  }
   #fts-labels {
     position: absolute;
     inset: 0;
@@ -1344,8 +1356,7 @@
   .fts-label {
     position: absolute;
     top: 4px;
-    --scale: 1;
-    transform: translateX(-50%) scale(var(--scale));
+    transform: translateX(-50%);
     transform-origin: center top;
     font: 700 11px "Inter", system-ui, sans-serif;
     color: rgba(255,244,224,0.95);
@@ -1356,11 +1367,37 @@
       0 1px 2px rgba(15,27,42,0.75);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
-    /* Smooth magnification spring as the thumb passes by. */
-    transition: transform 220ms cubic-bezier(0.32, 0.72, 0, 1);
   }
+  #fts-labels-mag {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 6;                 /* above the thumb (5) */
+    --lens-x: 0%;
+    --lens-r: 16px;
+    clip-path: circle(var(--lens-r) at var(--lens-x) 50%);
+    -webkit-clip-path: circle(var(--lens-r) at var(--lens-x) 50%);
+    transition: --lens-r 220ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .fts-label-mag {
+    position: absolute;
+    top: 4px;
+    transform: translateX(-50%) scale(1.55);
+    transform-origin: center top;
+    font: 700 11px "Inter", system-ui, sans-serif;
+    color: rgba(255,244,224,0.98);
+    text-shadow:
+      0 0 2px rgba(15,27,42,0.88),
+      0 0 2px rgba(15,27,42,0.88),
+      0 1px 2px rgba(15,27,42,0.78);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  /* Lens radius scales with thumb state so the clip follows the lens edge. */
+  #fts-track:has(#fts-thumb.is-hover)  #fts-labels-mag { --lens-r: 17px;   }
+  #fts-track:has(#fts-thumb.is-active) #fts-labels-mag { --lens-r: 19.2px; }
   @media (prefers-reduced-motion: reduce) {
-    .fts-label { transition: none; --scale: 1 !important; }
+    #fts-labels-mag { transition: none; }
   }
 
   /* ── FTS Thumb — translucent glass lens (single-element) ────────────────
@@ -1437,6 +1474,37 @@
     will-change: transform;
   }
 
+  /* Hover — visible "pickup" feedback before drag. Lifts off the track,
+     scales slightly, brightens the glint, deepens the rim. Distinct
+     enough that the cursor proximity reads, gentle enough that it
+     doesn't compete with the drag (.is-active) state. */
+  #fts-thumb.is-hover {
+    transform: translate(-50%, -50%) translateY(-1.5px) scale(1.06);
+    background:
+      radial-gradient(
+        circle at calc(32% - var(--tilt-x) * 14%) calc(28% - var(--tilt-y) * 14%),
+        rgba(255,255,255,0.68) 0%,
+        rgba(255,255,255,0.26) 16%,
+        rgba(255,255,255,0)    36%
+      ),
+      radial-gradient(
+        circle at calc(72% + var(--tilt-x) * 14%) calc(78% + var(--tilt-y) * 14%),
+        rgba(15,27,42,0.22) 0%,
+        rgba(15,27,42,0.10) 22%,
+        rgba(15,27,42,0)    48%
+      ),
+      rgba(255,244,224,0.14);
+    box-shadow:
+      inset 0 0 0 1.1px rgba(15,27,42,0.62),
+      inset 0 0 0 2px rgba(255,244,224,0.30),
+      inset
+        calc(var(--tilt-x) * 5px)
+        calc(var(--tilt-y) * 5px)
+        8px -1px
+        rgba(15,27,42,0.48),
+      0 5px 14px rgba(0,0,0,0.42);
+  }
+
   /* Active (drag) — scale up, deepen the shadow, add a soft warm aura,
      bump the edge contrast. No layer juggling, no nested DOM. */
   #fts-thumb.is-active {
@@ -1455,6 +1523,7 @@
 
   @media (prefers-reduced-motion: reduce) {
     #fts-thumb { transition: none; }
+    #fts-thumb.is-hover  { transform: translate(-50%, -50%); }
     #fts-thumb.is-active { transform: translate(-50%, -50%); }
   }
 
@@ -9118,6 +9187,12 @@
            the thumb's `left` from the current time and applies the
            --tilt-x / --tilt-y CSS vars on pointermove. -->
       <div id="fts-thumb" aria-hidden="true"></div>
+      <!-- Magnified labels — same hour copies at a fixed scale, clipped
+           via clip-path to the lens silhouette so only the portion under
+           the lens shows enlarged. JS keeps --lens-x synced with the
+           thumb so the clip follows it. Sits above the thumb in z-order
+           so the magnified text reads crisp inside the lens. -->
+      <div id="fts-labels-mag" aria-hidden="true"></div>
       <!-- Popup lives inside the track so it follows the thumb natively
            when the track animates (date-pill slide-in shifts margin-left,
            panel state changes shift the FTS bottom). Position is set as
