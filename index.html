@@ -2444,7 +2444,9 @@
      during slider scrubs so the count doesn't flicker as venues cross the
      bucket boundary. */
   .venue-section-header {
-    padding: 14px 4px 6px;
+    /* No horizontal padding — the section header flush-aligns with the
+       venue cards' outer edges (cards span venue-list's inner width). */
+    padding: 14px 0 6px;
     font-family: 'Inter', sans-serif;
     font-size: 11px;
     font-weight: 600;
@@ -3678,9 +3680,10 @@
     }
 
     /* The unified day-header is visible in every panel state — peek
-       mode included — so the user sees both the chip row and the sun
-       outlook at all times. */
-    #day-header { padding: 6px 14px 8px !important; }
+       mode included. Horizontal padding matches the mobile #venue-list
+       (16px) so the row 1 / row 2 content edges align with the venue
+       cards' outer edges below. */
+    #day-header { padding: 6px 16px 8px !important; }
 
     #panel-header { padding-top: 0; }
 
