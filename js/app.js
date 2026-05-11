@@ -1911,11 +1911,9 @@ function _closeQcPanel() {
     calFloat.style.width = '';
   }
   document.getElementById('ptb-cal-backdrop')?.remove();
-  // Release the cal-open class + restore the detail panel from its
-  // forced display:none hide.
+  // Release the cal-open class — CSS animates the detail panel back up
+  // and fades the FTS back in.
   document.body.classList.remove('cal-open');
-  const _dpC = document.getElementById('detail-panel');
-  if (_dpC) _dpC.style.display = '';
   // Update header date chip: remove active state, restore visibility, update label
   if (USE_FLOATING_TIME_SLIDER) {
     document.getElementById('header-date-chip')?.classList.remove('active');
@@ -1972,20 +1970,11 @@ function toggleQcPanel(section) {
     }
   }
   calFloat?.classList.add('open');
+  // body.cal-open is the CSS hook that slides the detail panel back
+  // down (translateY 100% + opacity 0) AND fades the FTS slider out.
+  // The outside-click handler now excludes fts-date-btn so the
+  // calendar doesn't auto-close mid-tap.
   document.body.classList.add('cal-open');
-  // NUCLEAR: when calendar opens, immediately remove the detail panel
-  // from layout via display:none. No animation, no z-index dance — just
-  // out. The calendar can't possibly be "behind" something that isn't
-  // in the layout. Restored on close. console.warn logs so we can
-  // confirm in devtools that the path actually fires for this build.
-  const _dp = document.getElementById('detail-panel');
-  console.warn('[cal-open] detail-panel hide path —',
-    'dp:', !!_dp,
-    'dp.open:', _dp?.classList.contains('open'),
-    'isMobile:', isMobile());
-  if (_dp && _dp.classList.contains('open')) {
-    _dp.style.display = 'none';
-  }
   // On mobile, add a backdrop overlay behind the bottom-sheet calendar
   if (isMobile() && !document.getElementById('ptb-cal-backdrop')) {
     const bd = document.createElement('div');
