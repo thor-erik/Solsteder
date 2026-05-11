@@ -58,13 +58,13 @@
 <script defer src="js/weather.js?v=20260411b"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260511a"></script>
+<script defer src="js/app.js?v=20260511b"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
 <script defer src="js/render-editor.js?v=20260508a"></script>
 <script defer src="js/render-pins.js?v=20260510c"></script>
-<script defer src="js/ui-shared.js?v=20260511b"></script>
+<script defer src="js/ui-shared.js?v=20260511c"></script>
 <script defer src="js/ui-list.js?v=20260510a"></script>
 <script defer src="js/admin-review.js?v=20260505a"></script>
 <script defer src="js/ui-shelter.js?v=20260416a"></script>
@@ -1328,6 +1328,99 @@
     width: 100%;
     height: calc(100% + 12px); /* 38 + 12 = 50px total canvas */
     pointer-events: none;      /* touch events go to track, not canvas */
+  }
+
+  /* ── DOM Thumb — true lens with backdrop-blur + CSS 3D tilt ──────────────
+     Position is set by JS via `left: X%`. Tilt is set by JS via CSS vars
+     --tilt-x / --tilt-y (range -1 to 1). The thumb is purely visual:
+     pointer events go to the track. */
+  #fts-thumb {
+    position: absolute;
+    top: 50%;
+    left: 50%;                 /* JS overrides on every draw */
+    width: 30px;
+    height: 30px;
+    margin-left: -15px;
+    margin-top:  -15px;
+    pointer-events: none;
+    --tilt-x: 0;
+    --tilt-y: 0;
+    transform-style: preserve-3d;
+    perspective: 220px;
+    z-index: 5;
+    transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .fts-thumb-frame {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    /* Lens body — slight cream wash inside backdrop-blurred glass. The
+       blur frosts whatever weather band is behind the thumb. */
+    background: rgba(255,244,224,0.06);
+    backdrop-filter: blur(3px) saturate(110%);
+    -webkit-backdrop-filter: blur(3px) saturate(110%);
+    /* Cream rim outside + dark inner ring (cheap refraction stand-in)
+       + drop shadow. */
+    border: 1.4px solid rgba(255,244,224,0.88);
+    box-shadow:
+      inset 0 0 0 1px rgba(20,30,50,0.20),
+      0 3px 8px rgba(0,0,0,0.36);
+    /* Inner content sits on the same 3D plane as the frame so the tilt
+       applies coherently. */
+    transform: translateZ(0);
+    transition:
+      border-width 180ms ease,
+      border-color 180ms ease,
+      box-shadow   180ms ease,
+      background   180ms ease;
+  }
+  .fts-thumb-sheen {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    /* Top-left crescent simulating reflected sky. Position shifts on tilt
+       via `transform: translate` so the sheen feels like it's catching
+       light from a fixed source as the lens tilts. */
+    background: radial-gradient(
+      circle at 28% 22%,
+      rgba(255,255,255,0.55) 0%,
+      rgba(255,255,255,0.18) 28%,
+      rgba(255,255,255,0)    48%
+    );
+    pointer-events: none;
+    /* Sheen moves a touch FARTHER than the lens itself — parallax. */
+    transform: translate3d(calc(var(--tilt-x) * 2px), calc(var(--tilt-y) * 2px), 4px);
+    transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1), opacity 180ms ease;
+    opacity: 0.85;
+  }
+  /* Hover: tilt the whole thumb via perspective + rotate. The sheen
+     parallax-translates farther (already handled above). */
+  #fts-thumb.is-tilting {
+    transform:
+      rotateY(calc(var(--tilt-x) * 14deg))
+      rotateX(calc(var(--tilt-y) * -14deg));
+  }
+  /* Active (drag) — tilt cancelled, scale up, frame thickens + brightens,
+     deeper shadow + honey halo. Reads as "picked up". */
+  #fts-thumb.is-active {
+    --tilt-x: 0;
+    --tilt-y: 0;
+    transform: scale(1.22);
+  }
+  #fts-thumb.is-active .fts-thumb-frame {
+    border-width: 1.6px;
+    border-color: rgba(255,244,224,1.0);
+    background: rgba(255,244,224,0.10);
+    box-shadow:
+      inset 0 0 0 1px rgba(20,30,50,0.22),
+      0 8px 20px rgba(0,0,0,0.50),
+      0 0 0 6px rgba(245,194,94,0.22),
+      0 0 14px 4px rgba(245,194,94,0.20);
+  }
+  #fts-thumb.is-active .fts-thumb-sheen { opacity: 1; }
+
+  @media (prefers-reduced-motion: reduce) {
+    #fts-thumb, .fts-thumb-frame, .fts-thumb-sheen { transition: none; }
   }
 
   /* Time label — floats above the thumb. Two states:
@@ -8976,6 +9069,16 @@
     </button>
     <div id="fts-track">
       <canvas id="fts-canvas"></canvas>
+      <!-- Thumb: DOM element so it can use backdrop-filter:blur (GPU-cheap,
+           same recipe the panels use), CSS perspective + rotate for true
+           3D tilt, and CSS transitions for the pick-up animation. JS sets
+           the thumb's `left` from the current time and applies the
+           --tilt-x / --tilt-y CSS vars on pointermove. -->
+      <div id="fts-thumb" aria-hidden="true">
+        <div class="fts-thumb-frame">
+          <div class="fts-thumb-sheen"></div>
+        </div>
+      </div>
       <!-- Popup lives inside the track so it follows the thumb natively
            when the track animates (date-pill slide-in shifts margin-left,
            panel state changes shift the FTS bottom). Position is set as

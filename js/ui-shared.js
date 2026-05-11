@@ -762,21 +762,28 @@ function drawTimeline(ctx, opts) {
     }
   }
 
-  // 6.5 Hour labels — small muted-cream numerals at 3-hour intervals,
-  //    positioned inside the track near the top. Skipped near the
-  //    rounded caps so the digits don't kiss the pill edge.
+  // 6.5 Hour labels — small muted-cream numerals at the interior 3-hour
+  //    ticks (09 / 12 / 15 / 18) PLUS the actual min/max hours of the
+  //    slider as bookends. Bookend x is clamped inward by ~16px so the
+  //    digits sit safely inside the rounded cap curvature (the cap is a
+  //    half-circle of radius TRACK_R = ~20px; "04" / "23" at 9px text is
+  //    ~12px wide, so its centre needs to be ≥ ~16px from the bar edge
+  //    to avoid the cap clipping the glyph).
   if (TRACK_H >= 32) {
-    const HOUR_TICKS = [9, 12, 15, 18];
-    const labelEdgePad = TRACK_R + 4;  // distance from cap inside
+    const labelHours = [9, 12, 15, 18];
+    const minBookend = Math.ceil(minH);
+    const maxBookend = Math.floor(maxH);
+    if (!labelHours.includes(minBookend) && minBookend >= minH) labelHours.unshift(minBookend);
+    if (!labelHours.includes(maxBookend) && maxBookend <= maxH) labelHours.push(maxBookend);
+    const capSafePad = 16;
     ctx.save();
     ctx.font         = '600 9px "Inter", system-ui, sans-serif';
     ctx.fillStyle    = 'rgba(255,244,224,0.45)';
     ctx.textBaseline = 'top';
     ctx.textAlign    = 'center';
-    for (const h of HOUR_TICKS) {
+    for (const h of labelHours) {
       if (h < minH || h > maxH) continue;
-      const x = timeToX(h);
-      if (x < labelEdgePad || x > BAR_W - labelEdgePad) continue;
+      const x = Math.max(capSafePad, Math.min(BAR_W - capSafePad, timeToX(h)));
       ctx.fillText(String(h).padStart(2, '0'), x, bleed + 3);
     }
     ctx.restore();

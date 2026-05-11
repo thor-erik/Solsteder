@@ -382,13 +382,20 @@ function initFts() {
 
   // Pointer down — start drag; close calendar picker if open. The popup
   // morphs from compact (just the time) into the expanded weather card
-  // for the duration of the drag, then collapses back on release.
+  // for the duration of the drag, then collapses back on release. The
+  // DOM thumb gets .is-active for the "picked up" CSS state (scale +
+  // halo + deeper shadow), and .is-tilting is cleared so it straightens.
   track.addEventListener('pointerdown', e => {
     e.preventDefault();
     if (_qcActiveSection) _closeQcPanel();
     _ftsDragging = true;
     track.setPointerCapture(e.pointerId);
     window._qcThumbActive = true;
+    const _thumbEl = document.getElementById('fts-thumb');
+    if (_thumbEl) {
+      _thumbEl.classList.add('is-active');
+      _thumbEl.classList.remove('is-tilting');
+    }
     setTimeFromPointer(e.clientX);
     setFtsPopupExpanded(true);
   });
@@ -404,6 +411,8 @@ function initFts() {
     if (!_ftsDragging) return;
     _ftsDragging = false;
     window._qcThumbActive = false;
+    const _thumbEl = document.getElementById('fts-thumb');
+    if (_thumbEl) _thumbEl.classList.remove('is-active');
     drawFtsCanvas();
     _qcSpringBackFts();
     setFtsPopupExpanded(false);
@@ -411,25 +420,35 @@ function initFts() {
   });
 
   // ── Thumb tilt-on-hover ──────────────────────────────────────────────
-  // Mouse position relative to the thumb tilts the lens sheen + rim
-  // (same vocabulary as the card tilt). Smooth lerp so it never jitters.
-  // Suppressed during drag (the thumb straightens on pick-up).
+  // Mouse position over the track sets --tilt-x / --tilt-y CSS vars on
+  // #fts-thumb. CSS uses those to drive perspective + rotateX/Y for a
+  // real 3D tilt + a parallax-translated sheen. Smooth lerp so the
+  // motion never jitters; suppressed during drag.
+  const thumbEl = document.getElementById('fts-thumb');
   window._ftsThumbTiltCur = { x: 0, y: 0 };
   window._ftsThumbTiltTar = { x: 0, y: 0 };
   let _ftsTiltRaf = null;
+  function _applyThumbTiltCss() {
+    if (!thumbEl) return;
+    const c = window._ftsThumbTiltCur;
+    thumbEl.style.setProperty('--tilt-x', c.x.toFixed(3));
+    thumbEl.style.setProperty('--tilt-y', c.y.toFixed(3));
+    const isTilting = Math.abs(c.x) > 0.01 || Math.abs(c.y) > 0.01;
+    thumbEl.classList.toggle('is-tilting', isTilting && !window._qcThumbActive);
+  }
   function _ftsTiltStep() {
     const cur = window._ftsThumbTiltCur;
     const tar = window._ftsThumbTiltTar;
     const dx  = tar.x - cur.x;
     const dy  = tar.y - cur.y;
-    if (Math.abs(dx) < 0.005 && Math.abs(dy) < 0.005) {
+    if (Math.abs(dx) < 0.003 && Math.abs(dy) < 0.003) {
       window._ftsThumbTiltCur = { x: tar.x, y: tar.y };
       _ftsTiltRaf = null;
-      drawFtsCanvas();
+      _applyThumbTiltCss();
       return;
     }
     window._ftsThumbTiltCur = { x: cur.x + dx * 0.22, y: cur.y + dy * 0.22 };
-    drawFtsCanvas();
+    _applyThumbTiltCss();
     _ftsTiltRaf = requestAnimationFrame(_ftsTiltStep);
   }
   function _ftsTiltSetTarget(target) {
@@ -437,24 +456,21 @@ function initFts() {
     if (!_ftsTiltRaf) _ftsTiltRaf = requestAnimationFrame(_ftsTiltStep);
   }
   function _ftsThumbPosition() {
-    const rect   = track.getBoundingClientRect();
-    const trackW = rect.width;
-    const fromH  = parseFloat(timeFromEl.value);
-    const xPct   = (fromH - MIN_H_ARC) / (MAX_H_ARC - MIN_H_ARC);
-    const capR   = rect.height / 2;
-    const cx     = rect.left + Math.max(capR, Math.min(trackW - capR, xPct * trackW));
-    const cy     = rect.top + rect.height / 2;
-    const R      = rect.height * 0.42;
-    return { cx, cy, R };
+    if (!thumbEl) return null;
+    const r = thumbEl.getBoundingClientRect();
+    return { cx: r.left + r.width / 2, cy: r.top + r.height / 2, R: r.width / 2 };
   }
   track.addEventListener('pointermove', (e) => {
-    if (window._qcThumbActive) return;              // dragging: ignore tilt
-    const { cx, cy, R } = _ftsThumbPosition();
-    const dx = (e.clientX - cx) / R;
-    const dy = (e.clientY - cy) / R;
+    if (window._qcThumbActive) return;
+    const p = _ftsThumbPosition();
+    if (!p) return;
+    const dx = (e.clientX - p.cx) / p.R;
+    const dy = (e.clientY - p.cy) / p.R;
     const dist = Math.hypot(dx, dy);
-    if (dist > 3.5) { _ftsTiltSetTarget({ x: 0, y: 0 }); return; }
-    const cap = Math.min(1, 1 / Math.max(0.001, dist));
+    // Only tilt when cursor is near the thumb (within ~3× its radius);
+    // beyond that, gently return to centre.
+    if (dist > 3.0) { _ftsTiltSetTarget({ x: 0, y: 0 }); return; }
+    const cap = dist > 1 ? 1 / dist : 1;  // clamp so |tilt| ≤ 1
     _ftsTiltSetTarget({
       x: Math.max(-1, Math.min(1, dx * cap)),
       y: Math.max(-1, Math.min(1, dy * cap)),
@@ -468,6 +484,8 @@ function initFts() {
   track.addEventListener('pointercancel', () => {
     _ftsDragging = false;
     window._qcThumbActive = false;
+    const _thumbEl = document.getElementById('fts-thumb');
+    if (_thumbEl) _thumbEl.classList.remove('is-active');
     drawFtsCanvas();
     setFtsPopupExpanded(false);
     hideFtsPopup();
@@ -521,9 +539,12 @@ function drawFtsCanvas() {
     }
   }
 
+  // Thumb is a DOM element (#fts-thumb) now — drawn outside the canvas so
+  // it can use backdrop-filter:blur + CSS 3D tilt. Canvas only renders the
+  // weather bands, sheen, dim overlays, hour labels, and the NÅ tick.
   drawTimeline(c, {
     cssW, cssH,
-    bleed: 6,                     // 38px ramp + 6px overflow each side
+    bleed: 6,
     minH: MIN_H_ARC, maxH: MAX_H_ARC,
     dateStr,
     sunTable: currentSunTable,
@@ -531,14 +552,28 @@ function drawFtsCanvas() {
     openHour, closeHour,
     sunWindows: sunWindowsForShadow,
     drawSheen: true,
-    drawThumb: true,
-    thumbHour: fromH,
-    thumbActive: !!window._qcThumbActive,
-    thumbTilt:   window._ftsThumbTiltCur || null,
-    springOffset: (typeof window._ftsSpringOffset === 'number') ? window._ftsSpringOffset : 0,
+    drawThumb: false,
   });
 
   c.restore();
+
+  _updateFtsThumbDom(fromH);
+}
+
+/** Sync the DOM thumb's position + state with the slider value. */
+function _updateFtsThumbDom(fromH) {
+  const thumb = document.getElementById('fts-thumb');
+  const track = document.getElementById('fts-track');
+  if (!thumb || !track) return;
+  const trackW = track.offsetWidth || 300;
+  if (!trackW) return;
+  const xPct = (fromH - MIN_H_ARC) / (MAX_H_ARC - MIN_H_ARC);
+  // Clamp the percentage to keep the thumb visually pinned to the nearest
+  // cap, matching the canvas thumb's old sx-clamp.
+  const capPx = thumb.offsetHeight / 2 || 15;
+  const capPct = (capPx / trackW) * 100;
+  const pct = Math.max(capPct, Math.min(100 - capPct, xPct * 100));
+  thumb.style.left = pct + '%';
 }
 
 /** Spring-back animation for the FTS thumb. */
