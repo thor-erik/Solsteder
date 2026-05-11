@@ -1911,16 +1911,24 @@ function _closeQcPanel() {
     calFloat.style.width = '';
   }
   document.getElementById('ptb-cal-backdrop')?.remove();
-  // Release the cal-open class + the inline style hide so the detail
-  // panel (if open) slides back up into view at the same time the
-  // calendar slides down.
+  // Release the cal-open class + restore the detail panel.
   document.body.classList.remove('cal-open');
   const _dpC = document.getElementById('detail-panel');
   if (_dpC) {
+    // Cancel any pending display:none hide.
+    if (_dpC._calHideTimer) { clearTimeout(_dpC._calHideTimer); _dpC._calHideTimer = null; }
+    // If we'd already hidden it, restore display first so the
+    // browser can animate the transform back to translateY(0).
+    if (_dpC.style.display === 'none') {
+      _dpC.style.display = '';
+      // Force a reflow so the subsequent style clear triggers a transition.
+      void _dpC.offsetHeight;
+    }
     _dpC.style.transform = '';
     _dpC.style.opacity = '';
     _dpC.style.pointerEvents = '';
     _dpC.style.zIndex = '';
+    _dpC.style.transition = '';
   }
   // Update header date chip: remove active state, restore visibility, update label
   if (USE_FLOATING_TIME_SLIDER) {
@@ -1978,11 +1986,11 @@ function toggleQcPanel(section) {
     }
   }
   calFloat?.classList.add('open');
-  // When the detail panel is open AND the user taps the calendar from
-  // its FTS, slide the detail panel out of the way while the calendar
-  // comes up — coordinated swap. body.cal-open is the CSS hook, but
-  // also apply styles directly so the swap fires regardless of any
-  // CSS specificity / stacking issues we might not be seeing.
+  // Coordinated swap when the detail panel is open: slide it down, fade
+  // it out, then yank it out of the DOM stack via display:none so it
+  // can't possibly compete with the calendar in any stacking context
+  // (iOS Safari + position:fixed + backdrop-filter + transform combos
+  // sometimes pin elements above siblings regardless of z-index).
   document.body.classList.add('cal-open');
   const _dp = document.getElementById('detail-panel');
   if (_dp && _dp.classList.contains('open')) {
@@ -1990,6 +1998,15 @@ function toggleQcPanel(section) {
       _dp.style.transform = 'translateY(100%) translateZ(0)';
       _dp.style.opacity = '0';
       _dp.style.pointerEvents = 'none';
+      _dp.style.transition = 'transform 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.3s ease';
+      // After the slide-down completes, remove the panel from layout
+      // entirely so no stacking surprises remain. Stash the timer so
+      // we can cancel if the user closes the cal mid-animation.
+      _dp._calHideTimer = setTimeout(() => {
+        if (document.body.classList.contains('cal-open')) {
+          _dp.style.display = 'none';
+        }
+      }, 320);
     }
     _dp.style.zIndex = '700';
   }

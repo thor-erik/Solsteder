@@ -189,11 +189,14 @@ function drawShadowOverlay(venue) {
     const hull = convexHull([...footPx, ...shadowPx]);
 
     if (casting) {
-      // Full unified shadow
+      // Full unified shadow. Opacity dropped from 0.40 → 0.18 so the
+      // shadow whisper-reads as context without painting a dark blue
+      // rectangle over the seating area when the building self-shadows.
+      // Belt-and-braces with the seating-polygon clip above.
       ctx.beginPath();
       hull.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
       ctx.closePath();
-      ctx.fillStyle = 'rgba(10,14,40,0.40)';
+      ctx.fillStyle = 'rgba(10,14,40,0.18)';
       ctx.fill();
     } else {
       // Non-casting building — subtle outline only

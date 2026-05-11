@@ -1086,8 +1086,18 @@ function renderList() {
       list.innerHTML = `
         <div class="empty-all">
           <div class="empty-all-headline">${headline}</div>
-          <button class="p-pill btn-see-tomorrow" onclick="toggleQcPanel('date')">${t('cta_pick_another_day')}</button>
+          <button class="p-pill btn-see-tomorrow" id="empty-state-pick-day" type="button">${t('cta_pick_another_day')}</button>
         </div>`;
+      // Attach click handler programmatically — inline onclick="toggleQcPanel('date')"
+      // was reported as not firing in some cases; this is more robust.
+      const _pickBtn = document.getElementById('empty-state-pick-day');
+      if (_pickBtn) {
+        _pickBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (typeof toggleQcPanel === 'function') toggleQcPanel('date');
+        });
+      }
     }
     _listFiltered = [];
     _listBuckets = { now: [], later: [] };
