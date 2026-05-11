@@ -1392,6 +1392,10 @@
       0 1px 2px rgba(15,27,42,0.78);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
+    /* Soft glass blur — reads as "through the lens" without destroying
+       legibility. Matches the lens material character without inheriting
+       the panel's 3px backdrop-blur (which would obliterate 17px text). */
+    filter: blur(0.5px) saturate(108%);
   }
   /* Lens radius scales with thumb state so the clip follows the lens edge. */
   #fts-track:has(#fts-thumb.is-hover)  #fts-labels-mag { --lens-r: 17px;   }
@@ -1430,13 +1434,13 @@
           that adds dimensionality even at idle. */
     background:
       radial-gradient(
-        circle at calc(32% - var(--tilt-x) * 14%) calc(28% - var(--tilt-y) * 14%),
+        circle at calc(32% - var(--tilt-x) * 22%) calc(28% - var(--tilt-y) * 22%),
         rgba(255,255,255,0.55) 0%,
         rgba(255,255,255,0.20) 16%,
         rgba(255,255,255,0)    36%
       ),
       radial-gradient(
-        circle at calc(72% + var(--tilt-x) * 14%) calc(78% + var(--tilt-y) * 14%),
+        circle at calc(72% + var(--tilt-x) * 22%) calc(78% + var(--tilt-y) * 22%),
         rgba(15,27,42,0.18) 0%,
         rgba(15,27,42,0.08) 22%,
         rgba(15,27,42,0)    48%
@@ -1482,13 +1486,13 @@
     transform: translate(-50%, -50%) translateY(-1.5px) scale(1.06);
     background:
       radial-gradient(
-        circle at calc(32% - var(--tilt-x) * 14%) calc(28% - var(--tilt-y) * 14%),
+        circle at calc(32% - var(--tilt-x) * 22%) calc(28% - var(--tilt-y) * 22%),
         rgba(255,255,255,0.68) 0%,
         rgba(255,255,255,0.26) 16%,
         rgba(255,255,255,0)    36%
       ),
       radial-gradient(
-        circle at calc(72% + var(--tilt-x) * 14%) calc(78% + var(--tilt-y) * 14%),
+        circle at calc(72% + var(--tilt-x) * 22%) calc(78% + var(--tilt-y) * 22%),
         rgba(15,27,42,0.22) 0%,
         rgba(15,27,42,0.10) 22%,
         rgba(15,27,42,0)    48%

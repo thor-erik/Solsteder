@@ -463,24 +463,29 @@ function initFts() {
     if (window._qcThumbActive) return;
     const p = _ftsThumbPosition();
     if (!p) return;
-    const dx = (e.clientX - p.cx) / p.R;
-    const dy = (e.clientY - p.cy) / p.R;
-    const dist = Math.hypot(dx, dy);
-    // Hover state — visible lift + edge bump + brighter glint when the
-    // cursor is near the thumb. Falls off a bit wider than the tilt
-    // reach so the "approach" reads before tilt kicks in.
+    // Hover state — visible lift + edge bump when the cursor is near
+    // the thumb. Uses thumb-radius distance (proximity to the lens),
+    // independent from the tilt computation below.
+    const proxDx = (e.clientX - p.cx) / p.R;
+    const proxDy = (e.clientY - p.cy) / p.R;
+    const proxDist = Math.hypot(proxDx, proxDy);
     if (thumbEl) {
-      if (dist < 2.5) thumbEl.classList.add('is-hover');
-      else            thumbEl.classList.remove('is-hover');
+      if (proxDist < 2.5) thumbEl.classList.add('is-hover');
+      else                thumbEl.classList.remove('is-hover');
     }
-    // Only tilt when cursor is near the thumb (within ~3× its radius);
-    // beyond that, gently return to centre.
-    if (dist > 3.0) { _ftsTiltSetTarget({ x: 0, y: 0 }); return; }
-    const cap = dist > 1 ? 1 / dist : 1;  // clamp so |tilt| ≤ 1
-    _ftsTiltSetTarget({
-      x: Math.max(-1, Math.min(1, dx * cap)),
-      y: Math.max(-1, Math.min(1, dy * cap)),
-    });
+    // Glint drive — the highlight on the lens reads as a fixed light
+    // source far above the slider. So as the cursor moves anywhere
+    // along the WHOLE bar, the glint should shift accordingly: cursor
+    // far right → glint shifts left (lens "tilts toward" the cursor);
+    // cursor right next to the thumb → glint stays put. Normalize by
+    // half the track width so the full span of the bar maps to ±1.
+    const trackR = track.getBoundingClientRect();
+    if (!trackR.width) return;
+    const halfW = trackR.width  / 2;
+    const halfH = trackR.height / 2 || 20;
+    const tx = Math.max(-1, Math.min(1, (e.clientX - p.cx) / halfW));
+    const ty = Math.max(-1, Math.min(1, (e.clientY - p.cy) / halfH));
+    _ftsTiltSetTarget({ x: tx, y: ty });
   });
   track.addEventListener('pointerleave', () => {
     _ftsTiltSetTarget({ x: 0, y: 0 });
