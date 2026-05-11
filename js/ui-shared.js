@@ -775,16 +775,27 @@ function drawTimeline(ctx, opts) {
     const maxBookend = Math.floor(maxH);
     if (!labelHours.includes(minBookend) && minBookend >= minH) labelHours.unshift(minBookend);
     if (!labelHours.includes(maxBookend) && maxBookend <= maxH) labelHours.push(maxBookend);
-    const capSafePad = 16;
+    // Cap safety pad bumped to 18 to account for the larger font.
+    const capSafePad = 18;
     ctx.save();
-    ctx.font         = '600 9px "Inter", system-ui, sans-serif';
-    ctx.fillStyle    = 'rgba(255,244,224,0.45)';
+    // Bright cream over a dark halo — same recipe as the Mapbox place labels
+    // and the floating venue names. Reads on honey (sunny), slate (overcast),
+    // and rain bands alike. Was previously 9px / 45% cream with no halo —
+    // illegible over the yellow sun bands.
+    ctx.font         = '700 11px "Inter", system-ui, sans-serif';
     ctx.textBaseline = 'top';
     ctx.textAlign    = 'center';
+    ctx.lineJoin     = 'round';
+    ctx.miterLimit   = 2;
     for (const h of labelHours) {
       if (h < minH || h > maxH) continue;
       const x = Math.max(capSafePad, Math.min(BAR_W - capSafePad, timeToX(h)));
-      ctx.fillText(String(h).padStart(2, '0'), x, bleed + 3);
+      const txt = String(h).padStart(2, '0');
+      ctx.lineWidth   = 2.5;
+      ctx.strokeStyle = 'rgba(15,27,42,0.65)';
+      ctx.strokeText(txt, x, bleed + 4);
+      ctx.fillStyle   = 'rgba(255,244,224,0.95)';
+      ctx.fillText(txt, x, bleed + 4);
     }
     ctx.restore();
   }

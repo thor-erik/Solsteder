@@ -64,7 +64,7 @@
 <script defer src="js/render-seating.js?v=20260508a"></script>
 <script defer src="js/render-editor.js?v=20260508a"></script>
 <script defer src="js/render-pins.js?v=20260510c"></script>
-<script defer src="js/ui-shared.js?v=20260511c"></script>
+<script defer src="js/ui-shared.js?v=20260511d"></script>
 <script defer src="js/ui-list.js?v=20260510a"></script>
 <script defer src="js/admin-review.js?v=20260505a"></script>
 <script defer src="js/ui-shelter.js?v=20260416a"></script>
@@ -1331,56 +1331,60 @@
   }
 
   /* ── DOM Thumb — true lens with backdrop-blur + CSS 3D tilt ──────────────
-     Position is set by JS via `left: X%`. Tilt is set by JS via CSS vars
-     --tilt-x / --tilt-y (range -1 to 1). The thumb is purely visual:
-     pointer events go to the track. */
+     Position is set by JS via `left: X%`. Centering is via translate(-50%)
+     in the transform so it survives all states (tilt, scale, lift). Tilt
+     is driven by CSS vars --tilt-x / --tilt-y (range -1 to 1) set by JS
+     on pointermove. The thumb is purely visual; pointer events go to the
+     track. */
   #fts-thumb {
     position: absolute;
     top: 50%;
     left: 50%;                 /* JS overrides on every draw */
-    width: 30px;
-    height: 30px;
-    margin-left: -15px;
-    margin-top:  -15px;
+    width: 32px;
+    height: 32px;
     pointer-events: none;
     --tilt-x: 0;
     --tilt-y: 0;
     transform-style: preserve-3d;
-    perspective: 220px;
+    perspective: 240px;
     z-index: 5;
-    transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1);
+    /* Idle: just the centering translate. Subclasses append rotate/scale. */
+    transform: translate(-50%, -50%);
+    transition: transform 220ms cubic-bezier(0.32, 0.72, 0, 1);
+    will-change: transform;
   }
+  /* Lens edge — double rim creates "thickness" so the edge reads like
+     real bevelled glass instead of a painted line. Cream outer band +
+     dark slate inner ring + inner soft shadow + outer drop shadow.
+     Plus the backdrop-blur frosting the band behind. */
   .fts-thumb-frame {
     position: absolute;
     inset: 0;
     border-radius: 50%;
-    /* Lens body — slight cream wash inside backdrop-blurred glass. The
-       blur frosts whatever weather band is behind the thumb. */
-    background: rgba(255,244,224,0.06);
-    backdrop-filter: blur(3px) saturate(110%);
-    -webkit-backdrop-filter: blur(3px) saturate(110%);
-    /* Cream rim outside + dark inner ring (cheap refraction stand-in)
-       + drop shadow. */
-    border: 1.4px solid rgba(255,244,224,0.88);
+    background: rgba(255,244,224,0.05);
+    backdrop-filter: blur(3px) saturate(115%);
+    -webkit-backdrop-filter: blur(3px) saturate(115%);
+    border: 1.4px solid rgba(255,244,224,0.78);
     box-shadow:
-      inset 0 0 0 1px rgba(20,30,50,0.20),
-      0 3px 8px rgba(0,0,0,0.36);
-    /* Inner content sits on the same 3D plane as the frame so the tilt
-       applies coherently. */
-    transform: translateZ(0);
+      /* Dark inner ring — the *thickness* of the lens frame. */
+      inset 0 0 0 1.6px rgba(15,27,42,0.55),
+      /* Inner soft falloff — light bending into the lens body. */
+      inset 0 0 6px rgba(15,27,42,0.22),
+      /* Outer drop shadow — the lens sitting above the track. */
+      0 3px 8px rgba(0,0,0,0.38);
     transition:
-      border-width 180ms ease,
-      border-color 180ms ease,
-      box-shadow   180ms ease,
-      background   180ms ease;
+      border-width 200ms ease,
+      border-color 200ms ease,
+      box-shadow   200ms ease,
+      background   200ms ease;
   }
   .fts-thumb-sheen {
     position: absolute;
     inset: 0;
     border-radius: 50%;
-    /* Top-left crescent simulating reflected sky. Position shifts on tilt
-       via `transform: translate` so the sheen feels like it's catching
-       light from a fixed source as the lens tilts. */
+    /* Top-left crescent — reflected sky. Sits on its own 3D layer so the
+       tilt rotates the frame but the sheen parallax-translates farther,
+       creating real depth instead of a flat decal. */
     background: radial-gradient(
       circle at 28% 22%,
       rgba(255,255,255,0.55) 0%,
@@ -1388,39 +1392,52 @@
       rgba(255,255,255,0)    48%
     );
     pointer-events: none;
-    /* Sheen moves a touch FARTHER than the lens itself — parallax. */
-    transform: translate3d(calc(var(--tilt-x) * 2px), calc(var(--tilt-y) * 2px), 4px);
-    transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1), opacity 180ms ease;
-    opacity: 0.85;
+    transform: translate3d(calc(var(--tilt-x) * 4px), calc(var(--tilt-y) * 4px), 6px);
+    transition: transform 220ms cubic-bezier(0.32, 0.72, 0, 1), opacity 180ms ease;
+    opacity: 0.9;
   }
-  /* Hover: tilt the whole thumb via perspective + rotate. The sheen
-     parallax-translates farther (already handled above). */
+
+  /* Hover — real 3D tilt + a small lift off the track. Translate-y the
+     lift; rotate-X/Y the tilt; centering translate comes first. */
   #fts-thumb.is-tilting {
     transform:
-      rotateY(calc(var(--tilt-x) * 14deg))
-      rotateX(calc(var(--tilt-y) * -14deg));
+      translate(-50%, -50%)
+      translateY(-2px)
+      rotateY(calc(var(--tilt-x) * 22deg))
+      rotateX(calc(var(--tilt-y) * -22deg));
   }
-  /* Active (drag) — tilt cancelled, scale up, frame thickens + brightens,
-     deeper shadow + honey halo. Reads as "picked up". */
+  /* Active (drag) — pick-up scale + a small lift AND the tilt still
+     applies. Frame thickens + brightens, drop shadow deepens, honey
+     halo expands. The tilt-from-cursor-offset persists while dragging
+     so the lens "leans" toward where the user is pulling it. */
   #fts-thumb.is-active {
-    --tilt-x: 0;
-    --tilt-y: 0;
-    transform: scale(1.22);
+    transform:
+      translate(-50%, -50%)
+      translateY(-3px)
+      scale(1.20)
+      rotateY(calc(var(--tilt-x) * 22deg))
+      rotateX(calc(var(--tilt-y) * -22deg));
   }
   #fts-thumb.is-active .fts-thumb-frame {
     border-width: 1.6px;
-    border-color: rgba(255,244,224,1.0);
+    border-color: rgba(255,244,224,0.95);
     background: rgba(255,244,224,0.10);
+    /* Picked-up = deeper drop shadow + a SOFT warm aura. No solid honey
+       ring (it read as a painted outline); the brand-presence comes from
+       the diffuse warm glow underneath, not a stroke. */
     box-shadow:
-      inset 0 0 0 1px rgba(20,30,50,0.22),
-      0 8px 20px rgba(0,0,0,0.50),
-      0 0 0 6px rgba(245,194,94,0.22),
-      0 0 14px 4px rgba(245,194,94,0.20);
+      inset 0 0 0 1.8px rgba(15,27,42,0.60),
+      inset 0 0 8px rgba(15,27,42,0.25),
+      0 12px 24px rgba(0,0,0,0.55),
+      0 0 22px 3px rgba(245,194,94,0.20);
   }
   #fts-thumb.is-active .fts-thumb-sheen { opacity: 1; }
 
   @media (prefers-reduced-motion: reduce) {
     #fts-thumb, .fts-thumb-frame, .fts-thumb-sheen { transition: none; }
+    #fts-thumb.is-tilting, #fts-thumb.is-active {
+      transform: translate(-50%, -50%);
+    }
   }
 
   /* Time label — floats above the thumb. Two states:
