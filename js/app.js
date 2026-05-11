@@ -521,7 +521,11 @@ function updateHeaderDateChip() {
   } else if (sel === tomorrowStr) {
     dateLabel.textContent = t('tomorrow');
   } else if (diffDays > 0 && diffDays <= 6) {
-    dateLabel.textContent = _ftsDays()[d.getDay()] + ' ' + d.getDate();
+    // Full day name (not 3-letter abbrev) — "Sun" was reading as "sun"
+    // in a sun-finding app. Locale-aware via toLocaleDateString.
+    const lang = (typeof prefLang === 'function') ? prefLang() : undefined;
+    const longDay = d.toLocaleDateString(lang, { weekday: 'long' });
+    dateLabel.textContent = longDay.charAt(0).toUpperCase() + longDay.slice(1) + ' ' + d.getDate();
   } else {
     dateLabel.textContent = d.getDate() + '. ' + _ftsMonths()[d.getMonth()];
   }

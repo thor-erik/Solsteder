@@ -5174,43 +5174,47 @@
   #qc-notice.visible { opacity: 1; }
 
 
-  /* ── Day header — unified 2-row composition. Row 1: date · weather ·
-     wind · sort (flex row, plain text, no chip borders). Row 2: city-
-     wide sun outlook (always present). Both rows share the same outer
-     padding so they read as one block. */
+  /* ── Day header — unified 2-row composition.
+     Row 1: date · weather (context, smaller, muted)
+     Row 2: city-wide sun outlook (the answer, slightly larger, primary)
+     Bottom hairline separates the header from the list below so the
+     block reads as a contained title module, not text floating in space.
+     8pt vertical rhythm; tight typography scale (13 → 16) so the two
+     rows feel related, not jumbled. */
   #day-header {
     flex-shrink: 0;
-    padding: 8px 14px 10px;
+    padding: 12px 14px 12px;
+    border-bottom: 1px solid rgba(155,169,188,0.10);
   }
 
-  /* Row 1 — text run with a sort button pinned to the right. */
+  /* Row 1 — flex row, plain text, sort pinned right. */
   #list-sun-header.dh-row1 {
     display: flex;
     align-items: center;
-    gap: 6px;
-    min-height: 28px;
+    gap: 8px;
+    min-height: 24px;
     font-family: 'Inter', sans-serif;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
-    color: rgba(255, 244, 224, 0.78);
+    color: rgba(255, 244, 224, 0.62);
     white-space: nowrap;
+    letter-spacing: 0.005em;
   }
-  .dh-sep { opacity: 0.4; flex-shrink: 0; }
+  .dh-sep { opacity: 0.35; flex-shrink: 0; font-weight: 400; }
 
   /* Date — tappable text (not a chip). Calendar icon + label, transparent
-     bg, accent on hover. Keeps the affordance without the heavy button
-     border the previous chip carried. */
+     bg, accent on hover. Same affordance as before, no glass-button weight. */
   #header-date-chip.dh-date {
     background: transparent;
     border: 0;
     box-shadow: none;
-    padding: 4px 6px 4px 0;
-    margin: 0;
+    padding: 2px 4px;
+    margin: -2px -4px -2px -4px;     /* counteract padding for flush alignment */
     height: auto;
     width: auto;
-    color: var(--text);
+    color: rgba(255, 244, 224, 0.85);
     font: inherit;
-    font-weight: 600;
+    font-weight: 500;
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -5219,41 +5223,63 @@
     border-radius: 6px;
     transition: color 0.12s ease, background 0.12s ease;
   }
-  #header-date-chip.dh-date:hover { color: var(--accent); background: rgba(255,242,235,0.04); }
+  #header-date-chip.dh-date:hover { color: var(--accent); background: rgba(255,242,235,0.05); }
+  #header-date-chip.dh-date:hover .chip-cal-icon { color: var(--accent); }
   #header-date-chip.dh-date.active { color: var(--accent); }
   #header-date-chip.dh-date.active .chip-cal-icon { color: var(--accent); }
-  #header-date-chip.dh-date .chip-cal-icon { color: var(--muted); flex-shrink: 0; }
+  #header-date-chip.dh-date .chip-cal-icon {
+    color: rgba(255, 244, 224, 0.55);
+    flex-shrink: 0;
+    transition: color 0.12s ease;
+  }
 
-  /* Weather inline group — icon + temp + (mid-dot) + wind. */
+  /* Weather inline group — icon + temp · wind. */
   #header-wx-chip.dh-weather {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
     background: transparent;
     border: 0;
     padding: 0;
-    color: rgba(255, 244, 224, 0.78);
+    color: inherit;
     font-weight: 500;
-    flex: 1;       /* take available width so sort button is pushed right */
+    flex: 1;
     min-width: 0;
   }
-  #header-wx-chip.dh-weather #header-wx-icon { font-size: 15px; line-height: 1; flex-shrink: 0; }
-  #header-wx-chip.dh-weather #header-wx-temp { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+  #header-wx-chip.dh-weather #header-wx-icon {
+    font-size: 14px;
+    line-height: 1;
+    flex-shrink: 0;
+    opacity: 0.85;
+    display: inline-flex;
+    align-items: center;
+  }
+  #header-wx-chip.dh-weather #header-wx-temp {
+    color: rgba(255, 244, 224, 0.85);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
   #header-wx-chip.dh-weather #header-wx-wind { font-variant-numeric: tabular-nums; }
-  #header-wx-chip.dh-weather .dh-sep-mid { opacity: 0.4; }
+  #header-wx-chip.dh-weather .dh-sep-mid { opacity: 0.35; }
 
-  /* Sort icon — small, sits at the right end of row 1. */
+  /* Sort icon — must override the legacy #sort-toggle-btn glass-button
+     styling that's still in the cascade (specificity-wise the ID rule
+     above wins over .sort-icon-btn, hence #sort-toggle-btn here). */
   .sort-icon-label-sr {
     position: absolute;
     width: 1px; height: 1px;
     padding: 0; margin: -1px; overflow: hidden;
     clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
   }
-  .sort-icon-btn {
+  #day-header #sort-toggle-btn,
+  #sort-toggle-btn.sort-icon-btn {
     background: transparent;
     border: 0;
+    box-shadow: none;
     padding: 0;
-    width: 32px; height: 32px;
+    margin: 0 -4px 0 0;
+    width: 28px;
+    height: 28px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -5261,12 +5287,15 @@
     border-radius: 8px;
     flex-shrink: 0;
     -webkit-tap-highlight-color: transparent;
-    transition: background 0.12s ease;
+    transition: background 0.12s ease, color 0.12s ease;
   }
-  .sort-icon-btn:hover { background: rgba(255,242,235,0.06); }
-  .sort-icon { color: var(--text); opacity: 0.80; transition: color 0.12s, opacity 0.12s; }
-  .sort-icon-btn:hover  .sort-icon { color: var(--accent); opacity: 1; }
-  .sort-icon-btn.open   .sort-icon { color: var(--accent); opacity: 1; }
+  #day-header #sort-toggle-btn:hover,
+  #sort-toggle-btn.sort-icon-btn:hover  { background: rgba(255,242,235,0.06); border-color: transparent; }
+  #day-header #sort-toggle-btn.open,
+  #sort-toggle-btn.sort-icon-btn.open   { background: rgba(245,194,94,0.10); border-color: transparent; box-shadow: none; }
+  .sort-icon { color: rgba(255, 244, 224, 0.55); opacity: 1; transition: color 0.12s ease; }
+  #day-header #sort-toggle-btn:hover .sort-icon { color: var(--accent); }
+  #day-header #sort-toggle-btn.open  .sort-icon { color: var(--accent); }
   #header-wx-chip .chip-dot { opacity: 0.55; }
 
   /* Sort button — tappable, glass with chevron. Pinned to the right edge so
@@ -5294,25 +5323,28 @@
   /* ── Sun-section bar: "Sun now — N places in the sun" ─────────────────
      Two stacked text lines on a vertical translate track. JS toggles
      .later on the bar to slide the second line into view (calendar-style). */
-  /* Sun outlook row inside the day-header. Plain text, full width, wraps
-     naturally if the sentence is too long for the panel. Never hidden —
-     even on clear days we show "Sun all day" so the row is never empty. */
+  /* Sun outlook row — the "answer" line. Slightly bigger than row 1 but
+     not jumbo. Primary text color. Wraps naturally if too long. Always
+     present (Sun all day on clear days) so the row is never empty. */
   #sun-section-bar.dh-outlook {
-    padding: 2px 0 0;
+    padding: 4px 0 0;
     display: block;
   }
   #sun-section-bar.ssb-empty { display: none; }
   .ssb-text {
     display: block;
     font-family: 'Inter', sans-serif;
-    font-size: 17px;
+    font-size: 16px;
     font-weight: 500;
-    line-height: 1.3;
-    color: var(--text);
+    line-height: 1.35;
+    color: rgba(255, 244, 224, 0.95);
     letter-spacing: -0.005em;
     font-variant-numeric: tabular-nums;
     overflow-wrap: break-word;
     min-width: 0;
+    /* Bring the sort row's right padding back in line — outlook row
+       extends full-width with no sort button on its row. */
+    padding-right: 4px;
   }
 
   /* Sort icon sits in this row now — small, right-aligned via the grid's
