@@ -155,20 +155,34 @@ const PLUS_GAP_INNER    = 2;      // gap between last avatar and "+N" text insid
 const PLUS_PAD_RIGHT    = 5;      // inner padding on the right edge of the capsule
 
 // ── Status colour for the dot / friend capsule ────────────────────────────────
-// Two states only — sun or shadow:
-//   hero (in sun now)            → --accent (honey)
-//   waiting OR context (shadow)  → --surface (slate-mid; the same mid-slate
-//                                  used as the card-surface base. Lighter
-//                                  than --bg so the dot reads as a distinct
-//                                  layer above the slate panel rather than
-//                                  blending into it.)
-function _dotColors(tier, closed) {
+// Three semantic states, two solid + one transparent for each:
+//   IN SUN (hero)                  → solid honey
+//   IN SHADE (waiting / context)   → solid rain-blue
+//   OPENING SOON (closedOpeningIntoSun)  → transparent variant of the destination
+//     state (transparent honey if it opens into sun, transparent blue if not).
+// Previously waiting/context used --surface (slate) which read as "shades of
+// blue" muddying the sun/shade contrast. Rain-blue is a clearly different hue
+// from the slate map background.
+function _dotColors(tier, closed, hasSunLaterToday) {
+  const SUN_RING = _rgba(TOKENS.accentOn, 0.40);
+  const SHADE    = TOKENS.rain || '#6F8AA8';
+  const SHADE_RING = _rgba(SHADE, 0.35);
+
+  // Sun NOW
   if (tier === 'hero') {
     return closed
-      ? { fill: _rgba(TOKENS.accent, 0.55), ring: _rgba(TOKENS.accentOn, 0.30) }
-      : { fill: TOKENS.accent,              ring: _rgba(TOKENS.accentOn, 0.40) };
+      ? { fill: _rgba(TOKENS.accent, 0.55), ring: _rgba(TOKENS.accentOn, 0.25) } // opening soon, into sun
+      : { fill: TOKENS.accent,              ring: SUN_RING };                    // in sun
   }
-  return { fill: TOKENS.surface || '#284463', ring: _rgba(TOKENS.text, 0.30) };
+  // Sun LATER (waiting) — currently shaded but sun is coming
+  if (tier === 'waiting') {
+    return closed
+      ? { fill: _rgba(SHADE, 0.45), ring: _rgba(SHADE, 0.22) }                  // opening soon, into shade-then-sun
+      : { fill: SHADE,              ring: SHADE_RING };                          // in shade, sun later
+  }
+  // Context — no near-term sun. Fade further when no more sun today at all.
+  const a = hasSunLaterToday ? 0.65 : 0.35;
+  return { fill: _rgba(SHADE, a), ring: _rgba(SHADE, 0.20) };
 }
 
 // ── Vector category icons ─────────────────────────────────────────────────────
@@ -856,11 +870,12 @@ function draw() {
     const tier       = cls.tier;
     const hasFriends = friends.length > 0;
 
-    // Context tier without friends → tiny dot. Context tier WITH friends gets
-    // the full friend pill (social signal earns chrome regardless of sun).
+    // Context tier without friends → tiny dot using the shared sun/shade
+    // palette. Stays rain-blue for "in shade" so the user reads the whole
+    // map as two colour states (yellow = sun, blue = shade) instead of
+    // three (yellow / mid-slate / dark-slate).
     if (tier === 'context' && !hasFriends) {
       const r = (zoom >= 16 ? 4 : 3);
-      const alpha = cls.hasSunLaterToday ? 0.85 : 0.45;
       // Hide the small context dot when it would land inside or on top of
       // a higher-priority pill that's already placed (avoids the
       // overlapping-dot-on-pill artefact).
@@ -870,10 +885,11 @@ function draw() {
             pt.y >= p.y - 5 && pt.y <= p.y + p.h + 5) { dotOverlaps = true; break; }
       }
       if (!dotOverlaps) {
+        const dot = _dotColors('context', false, !!cls.hasSunLaterToday);
         ctx.save();
         ctx.beginPath(); ctx.arc(pt.x, pt.y, r, 0, Math.PI * 2);
-        ctx.fillStyle   = _rgba(TOKENS.surface || '#284463', alpha);
-        ctx.strokeStyle = _rgba(TOKENS.text, 0.20);
+        ctx.fillStyle   = dot.fill;
+        ctx.strokeStyle = dot.ring;
         ctx.lineWidth   = 0.75;
         ctx.fill(); ctx.stroke();
         ctx.restore();
@@ -937,7 +953,7 @@ function draw() {
             pt.y >= p.y - 5 && pt.y <= p.y + p.h + 5) { dotOverlaps = true; break; }
       }
       if (!dotOverlaps) {
-        const dot = _dotColors(tier, closedOpens);
+        const dot = _dotColors(tier, closedOpens, !!cls.hasSunLaterToday);
         ctx.save();
         ctx.beginPath(); ctx.arc(pt.x, pt.y, 4.5, 0, Math.PI * 2);
         ctx.fillStyle = dot.fill;
