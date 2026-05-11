@@ -1386,40 +1386,36 @@
     transition: transform 220ms cubic-bezier(0.32, 0.72, 0, 1);
     will-change: transform;
   }
-  /* Bevelless lens — at idle, a single thin uniform dark outer rim.
-     When tilted, a SECOND visible rim appears INSIDE the lens body
-     (the .fts-thumb-frame::before pseudo) representing the refracted
-     view of the far rim through the glass. The inner rim translates
-     toward the cursor; the outer rim thickens on the cursor side via
-     an offset inset shadow. Together they read as a real 3D glass
-     disc rotating in space, not a flat circle with a stroke. */
+  /* Bevelless lens — the entire edge is driven by a single radial gradient
+     inside the lens body. Light cream at the centre (the bright part of
+     real glass) fades to a dark ring at 100% extent (light refracting at
+     the glass boundary). At idle the gradient is centred → symmetric
+     dark edge all around (uniform rim). On tilt, JS sets --grad-x /
+     --grad-y as percentages and the gradient centre moves: the dark
+     edge thickens on the cursor side (where the gradient compresses
+     against the lens edge) and thins on the opposite side (where there's
+     more room to fall off). One declarative source of truth — no rim +
+     ring + shadow stack that read as a bead. */
   .fts-thumb-frame {
     position: absolute;
     inset: 0;
     border-radius: 50%;
-    background: rgba(255,244,224,0.04);
+    /* Gradient position is driven directly by the lerped --tilt-x /
+       --tilt-y vars (set by JS). The browser repaints on every var
+       change — JS already animates these smoothly, so the gradient
+       moves smoothly with no need for @property registration. */
+    background: radial-gradient(
+      circle at calc(50% - var(--tilt-x, 0) * 25%) calc(50% - var(--tilt-y, 0) * 25%),
+      rgba(255,244,224,0.14) 0%,
+      rgba(255,244,224,0.06) 50%,
+      rgba(15,27,42,0.10)    78%,
+      rgba(15,27,42,0.32)    93%,
+      rgba(15,27,42,0.50)    100%
+    );
     backdrop-filter: blur(3px) saturate(115%);
     -webkit-backdrop-filter: blur(3px) saturate(115%);
-    box-shadow:
-      inset 0 0 0 1px rgba(15,27,42,0.38),
-      0 3px 7px rgba(0,0,0,0.30);
-    transition: box-shadow 220ms ease, background 220ms ease;
-  }
-  /* Inner rim — the refracted view of the back of the lens, only visible
-     on tilt. Hidden at idle so the lens stays clean. */
-  .fts-thumb-frame::before {
-    content: '';
-    position: absolute;
-    inset: 3px;
-    border-radius: 50%;
-    border: 1px solid rgba(15,27,42,0.45);
-    pointer-events: none;
-    opacity: 0;
-    transform: translate(0, 0);
-    transition:
-      transform    220ms cubic-bezier(0.32, 0.72, 0, 1),
-      opacity      220ms ease,
-      border-color 220ms ease;
+    box-shadow: 0 3px 7px rgba(0,0,0,0.32);
+    transition: box-shadow 220ms ease;
   }
   .fts-thumb-sheen {
     position: absolute;
@@ -1461,41 +1457,30 @@
       rotateY(calc(var(--tilt-x) * 22deg))
       rotateX(calc(var(--tilt-y) * -22deg));
   }
-  /* Tilting reveals the inner refracted rim AND thickens the outer rim
-     on the cursor side via an offset inset shadow. */
-  #fts-thumb.is-tilting .fts-thumb-frame {
-    box-shadow:
-      inset 0 0 0 1px rgba(15,27,42,0.38),
-      inset
-        calc(var(--tilt-x) *  3px)
-        calc(var(--tilt-y) *  3px)
-        6px
-        rgba(15,27,42,0.36),
-      0 3px 7px rgba(0,0,0,0.30);
-  }
-  #fts-thumb.is-tilting .fts-thumb-frame::before {
-    opacity: 1;
-    transform: translate(calc(var(--tilt-x) * 3px), calc(var(--tilt-y) * 3px));
-  }
-  /* Active (drag) preserves the tilt-driven inner+outer rim depth, AND
-     adds the picked-up cues: deeper drop shadow + a soft warm aura. No
-     solid honey ring — the brand-presence comes from the diffuse glow. */
+  /* Tilt mechanics:
+     - Gradient centre shifts OPPOSITE to the cursor (calc(50% - tilt-x * 25%))
+     - So the dark band at 93-100% extent is FARTHER from the cursor side
+       of the lens — meaning the dark band has more room to grow there
+       before hitting the edge → thicker visible dark edge on cursor side
+     - On the opposite side, the dark band is right at the edge already,
+       so it appears thinner / fades faster
+     The whole thing is driven by --tilt-x / --tilt-y already set on the
+     thumb element by JS. No additional CSS needed here for the gradient. */
+
+  /* Active (drag) — slightly stronger gradient contrast + picked-up
+     deeper drop shadow + warm aura. */
   #fts-thumb.is-active .fts-thumb-frame {
-    background: rgba(255,244,224,0.07);
+    background: radial-gradient(
+      circle at calc(50% - var(--tilt-x, 0) * 32%) calc(50% - var(--tilt-y, 0) * 32%),
+      rgba(255,244,224,0.22) 0%,
+      rgba(255,244,224,0.08) 50%,
+      rgba(15,27,42,0.16)    78%,
+      rgba(15,27,42,0.42)    93%,
+      rgba(15,27,42,0.62)    100%
+    );
     box-shadow:
-      inset 0 0 0 1px rgba(15,27,42,0.45),
-      inset
-        calc(var(--tilt-x) *  3.5px)
-        calc(var(--tilt-y) *  3.5px)
-        8px
-        rgba(15,27,42,0.45),
       0 12px 24px rgba(0,0,0,0.55),
       0 0 22px 3px rgba(245,194,94,0.20);
-  }
-  #fts-thumb.is-active .fts-thumb-frame::before {
-    opacity: 1;
-    border-color: rgba(15,27,42,0.58);
-    transform: translate(calc(var(--tilt-x) * 4.5px), calc(var(--tilt-y) * 4.5px));
   }
   #fts-thumb.is-active .fts-thumb-sheen { opacity: 1; }
 
