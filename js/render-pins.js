@@ -600,28 +600,29 @@ function _drawName(ctx, pt, pillRect, name, secondary, placedPills, placedNames,
   // blur, one crisp on top. Anchor alpha (opts.alpha) lets the label
   // fade in/out with the pill morph.
   const LIGHT_FILL  = '#FFFFFF';
-  const HALO_COLOR  = 'rgba(0, 0, 0, 0.85)';
+  const HALO_COLOR  = 'rgba(0, 0, 0, 1)';
   const labelAlpha  = opts.alpha != null ? opts.alpha : 1;
 
   ctx.save();
   ctx.globalAlpha = labelAlpha;
 
-  // Pass 1+2: text-shaped halo via shadowBlur, drawn twice for intensity.
+  // Stack 4 shadow passes so the halo compounds into a solid dark
+  // glow. Two passes weren't dark enough — blurred edges read as
+  // pale gray against warm map tiles. Four at full opacity gives
+  // Google Maps-grade legibility on any background.
   ctx.shadowColor   = HALO_COLOR;
   ctx.shadowBlur    = 4;
   ctx.shadowOffsetX = 0;
   ctx.shadowOffsetY = 0;
   ctx.fillStyle     = LIGHT_FILL;
   ctx.font          = '600 12px "Inter", system-ui, sans-serif';
-  ctx.fillText(name, tx, nameY);
-  ctx.fillText(name, tx, nameY);
+  for (let i = 0; i < 4; i++) ctx.fillText(name, tx, nameY);
   if (secondary) {
     ctx.font = '500 11px "Inter", system-ui, sans-serif';
-    ctx.fillText(secondary, tx, secY);
-    ctx.fillText(secondary, tx, secY);
+    for (let i = 0; i < 4; i++) ctx.fillText(secondary, tx, secY);
   }
 
-  // Pass 3: crisp text on top, shadow disabled.
+  // Final pass: crisp text on top, shadow disabled.
   ctx.shadowBlur    = 0;
   ctx.shadowColor   = 'transparent';
   ctx.font          = '600 12px "Inter", system-ui, sans-serif';
@@ -922,14 +923,11 @@ function draw() {
   }
   projVenues.sort((a, b) => priScore(a) - priScore(b));
 
-  // ── 3. Zoom-stability: freeze visible set during a pinch gesture ──────────
-  if (_zoomCache.active) {
-    if (!_zoomCache.frozenIds) {
-      _zoomCache.frozenIds = new Set(projVenues.map(e => e.v.id));
-    } else {
-      projVenues = projVenues.filter(e => _zoomCache.frozenIds.has(e.v.id));
-    }
-  }
+  // ── 3. Zoom-stability ─────────────────────────────────────────────────────
+  // Previously froze the visible set during pinch to prevent pop-in.
+  // Removed: the hysteresis bonus + morph animation handle smooth
+  // transitions DURING the gesture now, not just on release. Pills
+  // shrink into dots / dots grow into pills as the zoom changes.
 
   // ── 4. Draw pills (overlap allowed; only fully-shadowed pills demote) ────
   // Reset every state's target_alpha to 0 — entries that aren't refreshed by
@@ -954,19 +952,24 @@ function draw() {
     // three (yellow / mid-slate / dark-slate).
     if (tier === 'context' && !hasFriends) {
       // Slightly larger dots to match Google Maps (~12px diameter at
-      // zoom ≥ 16, ~10px lower). We DON'T suppress when the dot would
-      // overlap a placed pill anymore — without the suppression the user
-      // sees the full constellation of venues even when some have pills
-      // on top, which is what they want.
+      // zoom ≥ 16, ~10px lower). Suppress when the dot would overlap
+      // a placed pill body — dots stuck inside pills read as artefacts.
       const r = (zoom >= 16 ? 6 : 5);
-      const dot = _dotColors('context', false, !!cls.hasSunLaterToday);
-      ctx.save();
-      ctx.beginPath(); ctx.arc(pt.x, pt.y, r, 0, Math.PI * 2);
-      ctx.fillStyle   = dot.fill;
-      ctx.strokeStyle = dot.ring;
-      ctx.lineWidth   = 1;
-      ctx.fill(); ctx.stroke();
-      ctx.restore();
+      let dotOverlaps = false;
+      for (const p of placedPills) {
+        if (pt.x >= p.x - r && pt.x <= p.x + p.w + r &&
+            pt.y >= p.y - r && pt.y <= p.y + p.h + r) { dotOverlaps = true; break; }
+      }
+      if (!dotOverlaps) {
+        const dot = _dotColors('context', false, !!cls.hasSunLaterToday);
+        ctx.save();
+        ctx.beginPath(); ctx.arc(pt.x, pt.y, r, 0, Math.PI * 2);
+        ctx.fillStyle   = dot.fill;
+        ctx.strokeStyle = dot.ring;
+        ctx.lineWidth   = 1;
+        ctx.fill(); ctx.stroke();
+        ctx.restore();
+      }
       // Review badge on context dots (admin)
       if (isReviewMode && typeof venueReviewFlags === 'function' && venueReviewFlags(v)) {
         _drawReviewBadge(pt.x - r - 1, pt.y - r - 1);
@@ -1023,11 +1026,17 @@ function draw() {
       }
     }
     if (demote) {
+      // Suppress the dot if it would land on or near a placed pill body
+      // — dots stuck against pills read as artefacts. Pin still goes
+      // into _lastLayout so hit testing works.
+      let dotOverlaps = false;
+      for (const p of placedPills) {
+        if (pt.x >= p.x - 6 && pt.x <= p.x + p.w + 6 &&
+            pt.y >= p.y - 6 && pt.y <= p.y + p.h + 6) { dotOverlaps = true; break; }
+      }
       // Drive the morph target toward 0 (dot). The pill scales down as
       // it fades; the dot grows in at (1 - morph) so the two cross-fade
-      // smoothly across the transition. No more dotOverlaps suppression
-      // — yellow / blue dots stay visible across the constellation even
-      // when one would land near a placed pill.
+      // smoothly across the transition.
       const stDot = _ensureState(v.id);
       stDot.target_alpha = 0;
       stDot.morphTarget  = 0;
@@ -1054,7 +1063,7 @@ function draw() {
         ctx.restore();
       }
 
-      if (dotAlpha > 0.04) {
+      if (!dotOverlaps && dotAlpha > 0.04) {
         const dot = _dotColors(tier, closedOpens, !!cls.hasSunLaterToday);
         ctx.save();
         ctx.globalAlpha = dotAlpha;
