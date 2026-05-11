@@ -98,6 +98,28 @@ function drawSeatingAreas() {
 
 // ── Shadow overlay ────────────────────────────────────────────────────────────
 /**
+ * Returns the SAME pixel-space seating polygons that drawSeatingAreas paints
+ * for a venue. Used by the shadow-overlay clip so the dark shadow fill
+ * doesn't overpaint the seating area. Returns null when there's no
+ * polygon to clip against (rare fan-fallback case).
+ */
+function _venueSeatingPolygonsPx(v) {
+  const overridePoly = (typeof getSeatingPolygon === 'function') ? getSeatingPolygon(v) : null;
+  if (Array.isArray(overridePoly) && overridePoly.length >= 3) {
+    return [projectSeatingPolygon(overridePoly)];
+  }
+  if (typeof getTerraceWalls === 'function' && typeof terracePolygons === 'function') {
+    const depth = (typeof getEffectiveDepth === 'function') ? getEffectiveDepth(v) : 0;
+    const walls = getTerraceWalls(v);
+    if (walls.length > 0 && walls[0].aLat != null) {
+      const polys = terracePolygons(v, walls, depth * pxPerMetre(v));
+      if (Array.isArray(polys) && polys.length) return polys;
+    }
+  }
+  return null;
+}
+
+/**
  * For the selected venue: draw nearby building footprints, their cast shadows,
  * and a probe dot 2 m in front of the terrace wall (yellow = sun, blue = shade).
  */
@@ -125,18 +147,21 @@ function drawShadowOverlay(venue) {
 
   // Scoped clip: even-odd outer-rect-minus-seating polygon, so the dark
   // shadow fill below doesn't paint inside the venue's outdoor-serving
-  // area (where the seating polygon's own cool tint already conveys the
-  // shadowed state — doubling it with a darker rectangle was muddy).
-  // Wrapped in its own save/restore so the probe dot drawn below the
-  // loop isn't affected.
-  const seatingPoly = (typeof getSeatingPolygon === 'function') ? getSeatingPolygon(venue) : null;
+  // area. The polygon we exclude must match whatever drawSeatingAreas
+  // actually painted for this venue — override first, then the terrace-
+  // walls fallback (which is how the vast majority of venues render).
+  // The first .save() up there pairs with the .restore() at the bottom
+  // of the function; this inner save() pairs with one right after the
+  // building loop so the probe dot escapes the clip.
+  const seatingPolys = _venueSeatingPolygonsPx(venue);
   ctx.save();
-  if (seatingPoly && seatingPoly.length >= 3 && canvas) {
-    const seatingPx = projectSeatingPolygon(seatingPoly);
+  if (seatingPolys && seatingPolys.length && canvas) {
     ctx.beginPath();
     ctx.rect(0, 0, canvas.width, canvas.height);
-    seatingPx.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
-    ctx.closePath();
+    for (const poly of seatingPolys) {
+      poly.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+      ctx.closePath();
+    }
     ctx.clip('evenodd');
   }
 

@@ -5877,6 +5877,12 @@
     opacity: 1;
     pointer-events: auto;
   }
+  /* Desktop cal-open: don't slide the side panel away (it doesn't
+     visually overlap the FTS float anyway), but drop its z-index so
+     it can never sit in front of the calendar by accident. */
+  body.cal-open #detail-panel.open {
+    z-index: 700;
+  }
   /* dp-content wraps the rendered content so dp-handle can sit above the scroll area */
   #dp-content {
     flex: 1;
@@ -7074,14 +7080,21 @@
       backface-visibility: hidden;
     }
     #detail-panel.open { transform: translateY(0); }
-    /* When the calendar is open, slide the detail panel back off-screen
-       (same transform as its closed state) AND drop its z-index below
-       the backdrop so even if a stacking context masks the transform,
-       the detail panel sits clearly behind the calendar. Matched timing
-       (0.3s cubic-bezier) to the calendar's transition. */
+    /* When the calendar is open, hide the detail panel three ways:
+         - translateY(100%) — slides it back down
+         - opacity 0 — fades it out (defensive: visible even if some
+           stacking context masks the transform)
+         - pointer-events none — drops interaction
+         - z-index 800 — below the cal backdrop (1100) and float (1200)
+       Matched 0.3s cubic-bezier to the calendar's slide-up timing. */
     body.cal-open #detail-panel.open {
       transform: translateY(100%) translateZ(0);
-      z-index: 800;       /* below ptb-cal-backdrop (1100) and ptb-cal-float (1200) */
+      opacity: 0;
+      pointer-events: none;
+      z-index: 800;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                  opacity 0.3s ease,
+                  height 0.3s ease, border-radius 0.3s ease;
     }
     #detail-panel.dp-fullscreen {
       height: 100svh;
