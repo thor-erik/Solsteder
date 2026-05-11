@@ -1396,16 +1396,16 @@
      against the lens edge) and thins on the opposite side (where there's
      more room to fall off). One declarative source of truth — no rim +
      ring + shadow stack that read as a bead. */
+  /* Back layer — the lens substrate. Static (no displacement on tilt) so
+     the outer boundary stays anchored to the time position. Radial
+     gradient creates the soft Gaussian-blurred dark edge falloff (the
+     visible lens rim). Backdrop-blur frosts the weather bands behind. */
   .fts-thumb-frame {
     position: absolute;
     inset: 0;
     border-radius: 50%;
-    /* Gradient position is driven directly by the lerped --tilt-x /
-       --tilt-y vars (set by JS). The browser repaints on every var
-       change — JS already animates these smoothly, so the gradient
-       moves smoothly with no need for @property registration. */
     background: radial-gradient(
-      circle at calc(50% - var(--tilt-x, 0) * 25%) calc(50% - var(--tilt-y, 0) * 25%),
+      circle at 50% 50%,
       rgba(255,244,224,0.14) 0%,
       rgba(255,244,224,0.06) 50%,
       rgba(15,27,42,0.10)    78%,
@@ -1415,25 +1415,57 @@
     backdrop-filter: blur(3px) saturate(115%);
     -webkit-backdrop-filter: blur(3px) saturate(115%);
     box-shadow: 0 3px 7px rgba(0,0,0,0.32);
-    transition: box-shadow 220ms ease;
+    transition: box-shadow 220ms ease, background 220ms ease;
+  }
+  /* Mid layer — the lens FRONT FACE. Concentric inside the back at idle
+     (subtle ring). Translates by tilt × 6px on hover and × 8px on drag —
+     more than the back (which is static), less than the sheen above.
+     Relative motion between this and the back creates real parallax depth:
+     on the cursor side, the front-face rim approaches the back rim,
+     reading as a thicker dark edge band; on the opposite side, they
+     separate, reading as visible glass thickness between the two surfaces. */
+  .fts-thumb-inner {
+    position: absolute;
+    inset: 5px;
+    border-radius: 50%;
+    border: 0.5px solid rgba(15,27,42,0.32);
+    /* Subtle inner highlight from a fixed light source, so the front
+       face has its own catch-light separate from the sheen. */
+    background: radial-gradient(
+      circle at 30% 25%,
+      rgba(255,244,224,0.10) 0%,
+      rgba(255,244,224,0)    55%
+    );
+    pointer-events: none;
+    transform: translate3d(
+      calc(var(--tilt-x, 0) * 6px),
+      calc(var(--tilt-y, 0) * 6px),
+      3px
+    );
+    transition:
+      transform 220ms cubic-bezier(0.32, 0.72, 0, 1),
+      border-color 220ms ease,
+      inset 220ms ease;
   }
   .fts-thumb-sheen {
     position: absolute;
     inset: 0;
     border-radius: 50%;
-    /* Top-left crescent — reflected sky. Sits on its own 3D layer so the
-       tilt rotates the frame but the sheen parallax-translates farther,
-       creating real depth instead of a flat decal. */
+    /* Front-most layer — reflected sky / surface catch-light. Translates
+       MORE than the inner layer (tilt × 8px vs × 6px), so the parallax
+       order back→mid→front is back-static / mid-medium / sheen-most.
+       That ordering is the 3D depth cue: brain reads "the closer thing
+       moves more". */
     background: radial-gradient(
       circle at 28% 22%,
-      rgba(255,255,255,0.55) 0%,
-      rgba(255,255,255,0.18) 28%,
+      rgba(255,255,255,0.58) 0%,
+      rgba(255,255,255,0.20) 28%,
       rgba(255,255,255,0)    48%
     );
     pointer-events: none;
-    transform: translate3d(calc(var(--tilt-x) * 4px), calc(var(--tilt-y) * 4px), 6px);
+    transform: translate3d(calc(var(--tilt-x) * 8px), calc(var(--tilt-y) * 8px), 6px);
     transition: transform 220ms cubic-bezier(0.32, 0.72, 0, 1), opacity 180ms ease;
-    opacity: 0.9;
+    opacity: 0.92;
   }
 
   /* Hover — real 3D tilt + a small lift off the track. Translate-y the
@@ -1467,11 +1499,13 @@
      The whole thing is driven by --tilt-x / --tilt-y already set on the
      thumb element by JS. No additional CSS needed here for the gradient. */
 
-  /* Active (drag) — slightly stronger gradient contrast + picked-up
-     deeper drop shadow + warm aura. */
+  /* Active (drag) — gradient contrast bumps + deeper drop shadow + warm
+     aura. Back layer gradient still STATIC at centre — the picked-up
+     feel comes from scale + the parallax intensity (mid + sheen push
+     farther on drag, see below). */
   #fts-thumb.is-active .fts-thumb-frame {
     background: radial-gradient(
-      circle at calc(50% - var(--tilt-x, 0) * 32%) calc(50% - var(--tilt-y, 0) * 32%),
+      circle at 50% 50%,
       rgba(255,244,224,0.22) 0%,
       rgba(255,244,224,0.08) 50%,
       rgba(15,27,42,0.16)    78%,
@@ -1482,13 +1516,34 @@
       0 12px 24px rgba(0,0,0,0.55),
       0 0 22px 3px rgba(245,194,94,0.20);
   }
+  /* On drag, push the mid + front layers farther — exaggerates the
+     parallax depth cue while the lens is "picked up". */
+  #fts-thumb.is-active .fts-thumb-inner {
+    border-color: rgba(15,27,42,0.42);
+    transform: translate3d(
+      calc(var(--tilt-x, 0) * 8px),
+      calc(var(--tilt-y, 0) * 8px),
+      3px
+    );
+  }
+  #fts-thumb.is-active .fts-thumb-sheen {
+    transform: translate3d(
+      calc(var(--tilt-x, 0) * 11px),
+      calc(var(--tilt-y, 0) * 11px),
+      6px
+    );
+    opacity: 1;
+  }
   #fts-thumb.is-active .fts-thumb-sheen { opacity: 1; }
 
   @media (prefers-reduced-motion: reduce) {
-    #fts-thumb, .fts-thumb-frame, .fts-thumb-sheen { transition: none; }
+    #fts-thumb, .fts-thumb-frame, .fts-thumb-inner, .fts-thumb-sheen {
+      transition: none;
+    }
     #fts-thumb.is-tilting, #fts-thumb.is-active {
       transform: translate(-50%, -50%);
     }
+    .fts-thumb-inner, .fts-thumb-sheen { transform: none !important; }
   }
 
   /* Time label — floats above the thumb. Two states:
@@ -9152,6 +9207,7 @@
            --tilt-x / --tilt-y CSS vars on pointermove. -->
       <div id="fts-thumb" aria-hidden="true">
         <div class="fts-thumb-frame">
+          <div class="fts-thumb-inner"></div>
           <div class="fts-thumb-sheen"></div>
         </div>
       </div>
