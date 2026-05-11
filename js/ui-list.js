@@ -524,15 +524,34 @@ function renderListPage(list, dateStr, fromHour, toHour, isPoint, reset) {
   const to   = Math.min(from + LIST_PAGE, _listFiltered.length);
 
   const nowCount   = _listBuckets.now.length;
+  const laterCount = _listBuckets.later.length;
+  // Surface a "now" section header when this page touches the now bucket
+  // AND a "later" section header when it touches the later bucket. Only
+  // emit each one ONCE per render — if a later page picks up later
+  // venues, no header is needed (the boundary was already drawn).
+  const showNowHeader   = from === 0          && nowCount   > 0;
+  const showLaterHeader = from < nowCount + laterCount
+                       && to   > nowCount     && laterCount > 0;
+  // Future-mode? Same phrasing logic as the day-header.
+  const isFutureMode = (typeof nowMode !== 'undefined' && !nowMode &&
+                        dateStr === todayStr() &&
+                        Math.abs(fromHour - currentHour()) > 5/60)
+                    || dateStr > todayStr();
+  const nowHeaderTxt   = isFutureMode ? t('section_sun_at',    { time: formatHour(fromHour) }) : t('section_sun_now');
+  const laterHeaderTxt = isFutureMode ? t('section_sun_after', { time: formatHour(fromHour) }) : t('section_sun_later');
 
-  // Section split is now surfaced by the sticky #sun-section-bar above the
-  // list (driven by scroll position). Cards carry data-bucket so the bar
-  // can find the bucket boundary by querying the DOM.
   let html = '';
 
   // Cards in render order: indices 0..nowCount-1 are "now", rest are "later".
-  // The sticky #sun-section-bar reads this boundary via _listBuckets.now.length.
+  // Section headers are emitted at the boundary so the user always knows
+  // which bucket they're scrolling through.
   for (let i = from; i < to; i++) {
+    if (i === 0 && showNowHeader) {
+      html += `<div class="venue-section-header">${nowHeaderTxt}</div>`;
+    }
+    if (i === nowCount && showLaterHeader) {
+      html += `<div class="venue-section-header">${laterHeaderTxt}</div>`;
+    }
     html += renderCard(_listFiltered[i], dateStr, fromHour, toHour, isPoint);
   }
 

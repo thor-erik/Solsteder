@@ -133,22 +133,29 @@ const _STRINGS = {
     state_no_sun_future:     'No sun',
     state_done:              'Done',
     // ── Soft Zebra: section headers, pills, empty states ──────────────────────
+    // In-list bucket section headers (between sun-now venues and
+    // sun-later venues in the venue-list).
+    section_sun_now:            'Sunny now',
+    section_sun_later:          'Sunny later',
+    section_sun_at:             'Sunny at {time}',
+    section_sun_after:          'Sunny after {time}',
+
     // City-wide sun outlook — full conversational sentences about the
     // day's sun pattern from the slider time forward. Now-state at the
     // start, later-state at the end.
     // {nowState} resolves to "now" (present mode) or "at HH:MM" (future).
     outlook_now:                'now',
     outlook_at_time:            'at {time}',
-    outlook_clear:              'Sun all day',
-    outlook_sun_until_cloud:    'Sun {nowState}, then cloudy from {end}',
-    outlook_sun_until_rain:     'Sun {nowState}, then rain from {end}',
-    outlook_sun_from_cloud:     'Cloudy {nowState}, sun from {start}',
-    outlook_sun_from_rain:      'Rainy {nowState}, sun from {start}',
-    outlook_sun_window_cloud:   'Cloudy {nowState}, sun {start}–{end}',
-    outlook_sun_window_rain:    'Rainy {nowState}, sun {start}–{end}',
-    outlook_sun_then_again:     'Sun until {end}, then again {cStart}–{cEnd}',
-    outlook_two_windows_cloud:  'Cloudy {nowState}, sun {aStart}–{aEnd} and {cStart}–{cEnd}',
-    outlook_two_windows_rain:   'Rainy {nowState}, sun {aStart}–{aEnd} and {cStart}–{cEnd}',
+    outlook_clear:              'Sunny rest of the day',
+    outlook_sun_until_cloud:    'Sunny {nowState}, then cloudy from {end}',
+    outlook_sun_until_rain:     'Sunny {nowState}, then rain from {end}',
+    outlook_sun_from_cloud:     'Cloudy {nowState}, sunny from {start}',
+    outlook_sun_from_rain:      'Rainy {nowState}, sunny from {start}',
+    outlook_sun_window_cloud:   'Cloudy {nowState}, sunny {start}–{end}',
+    outlook_sun_window_rain:    'Rainy {nowState}, sunny {start}–{end}',
+    outlook_sun_then_again:     'Sunny until {end}, then again {cStart}–{cEnd}',
+    outlook_two_windows_cloud:  'Cloudy {nowState}, sunny {aStart}–{aEnd} and {cStart}–{cEnd}',
+    outlook_two_windows_rain:   'Rainy {nowState}, sunny {aStart}–{aEnd} and {cStart}–{cEnd}',
     outlook_no_sun_cloud:       'Overcast today, no sun',
     outlook_no_sun_rain:        'Rainy today, no sun',
     empty_no_sun_now:          'No venues in sun right now',
@@ -587,6 +594,12 @@ const _STRINGS = {
     state_no_sun_future:     'Ingen sol',
     state_done:              'Ferdig',
     // ── Soft Zebra: section headers, pills, empty states ──────────────────────
+    // In-list bucket section headers
+    section_sun_now:            'Sol nå',
+    section_sun_later:          'Sol senere',
+    section_sun_at:             'Sol kl {time}',
+    section_sun_after:          'Sol etter kl {time}',
+
     // City-wide sun outlook — full sentences
     outlook_now:                'nå',
     outlook_at_time:            'kl {time}',

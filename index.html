@@ -2445,12 +2445,18 @@
      bucket boundary. */
   .venue-section-header {
     padding: 14px 4px 6px;
+    font-family: 'Inter', sans-serif;
     font-size: 11px;
-    color: var(--muted);
+    font-weight: 600;
+    color: rgba(255, 244, 224, 0.55);
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    opacity: 0.7;
+    letter-spacing: 0.08em;
     transition: opacity 200ms ease;
+  }
+  /* First section header sits closer to the day-header (no extra top
+     padding) since the bottom hairline already provides separation. */
+  #venue-list > .venue-section-header:first-child {
+    padding-top: 4px;
   }
   .venue-section-header .section-count { opacity: 0.65; margin-left: 4px; }
   .empty-section {
@@ -3613,12 +3619,15 @@
     #zoom-jog { bottom: calc(var(--peek-h, 252px) + 14px + 34px + 10px); }
     body.fts #zoom-jog { bottom: calc(var(--fts-bottom, 160px) + 34px + 10px); transition: bottom 0.34s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease; }
 
-    /* Handle: grabber pill only — chevron retired (venue peek carries swipe-up signal) */
+    /* Handle: grabber pill only — Google-Maps-tight spacing so the
+       header content sits high in the panel.
+       Was 16/0/4 (20px total); now 8/0/4 (12px) — reclaims 8px for
+       the header content above. */
     #panel-handle {
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 16px 0 4px;
+      padding: 8px 0 4px;
       flex-shrink: 0;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
@@ -3627,7 +3636,7 @@
     #panel-handle-pill {
       width: 36px;
       height: 4px;
-      background: rgba(156,189,231,0.25);
+      background: rgba(156,189,231,0.28);
       border-radius: 2px;
     }
 
@@ -3669,12 +3678,16 @@
     #panel-header { padding-top: 0; }
 
     #venue-list {
-      /* 20px top padding so the first card body sits fully below the
-         16px top-fade mask. */
-      padding: 20px 16px 32px;
+      /* 12px top padding — the smoother mask below means the first card
+         no longer needs 20px to clear a hard fade edge. */
+      padding: 12px 16px 32px;
       overscroll-behavior-y: none;
-      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 16px, black 100%);
-      mask-image: linear-gradient(to bottom, transparent 0%, black 16px, black 100%);
+      /* Smoother top fade — three-stop gradient with an intermediate
+         50%-opacity step gives a soft entry instead of the previous
+         hard cutoff at 16px. Reads as "cards melt into the header"
+         rather than "cards clipped behind a wall". */
+      -webkit-mask-image: linear-gradient(to bottom, transparent 0, rgba(0,0,0,0.55) 12px, black 24px, black 100%);
+      mask-image:         linear-gradient(to bottom, transparent 0, rgba(0,0,0,0.55) 12px, black 24px, black 100%);
     }
 
     .venue-card {
