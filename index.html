@@ -5300,23 +5300,18 @@
   /* ── Sun-section bar: "Sun now — N places in the sun" ─────────────────
      Two stacked text lines on a vertical translate track. JS toggles
      .later on the bar to slide the second line into view (calendar-style). */
-  /* Sun headline row — the answer to "is there sun?". Sun glyph (left),
-     count-led label (middle, morphs between now/later buckets on scroll),
-     sort icon (right). Promoted from the old 22px slate sub-line: now
-     reads as the visual headline above the chip row.
-     Uses GRID (not flex) so the three children always sit on one row
-     regardless of the morphing track's internal stacking. */
+  /* Sun headline row — the answer to "is there sun?". Track + sort
+     button in a 2-column grid. The sun glyph lives INSIDE each .ssb-line
+     so it aligns to the text via flex `align-items: center` — putting
+     the glyph as a sibling outside the line caused a baseline-vs-grid-
+     center misalignment that read as "off by 2-3px." */
   #sun-section-bar {
     flex-shrink: 0;
     padding: 6px 14px 2px;
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     column-gap: 8px;
-  }
-  .ssb-sun-glyph {
-    color: var(--accent);
-    flex-shrink: 0;
   }
   #sun-section-bar .ssb-track {
     position: relative;
@@ -5328,14 +5323,16 @@
   #sun-section-bar.later .ssb-track { transform: translateY(-22px); }
   .ssb-line {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 6px;
     height: 22px;
-    line-height: 22px;
     font-family: 'Inter', sans-serif;
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis;
+  }
+  .ssb-line .ssb-sun-glyph {
+    color: var(--accent);
+    flex-shrink: 0;
   }
   .ssb-line .ssb-count {
     font-size: 15px;
@@ -8886,16 +8883,27 @@
 
     <!-- Sun headline + sort icon — PRIMARY (top). Morphs between "Sun now" /
          "Sun later" as the user scrolls past each bucket (JS-driven, see
-         updateSunSectionBar). Count is bold so it leads the eye. Sort lives
-         here because sort is a list-level action; fits the headline row. -->
+         updateSunSectionBar). Count is bold so it leads the eye. The sun
+         glyph is duplicated INSIDE each .ssb-line so the icon aligns
+         to the text's vertical center via flex (a glyph outside the line
+         box ends up baseline-misaligned). Sort lives here because sort
+         is a list-level action; fits the headline row. -->
     <div id="sun-section-bar" aria-live="polite">
-      <svg class="ssb-sun-glyph" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <circle cx="12" cy="12" r="4"/>
-        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
-      </svg>
       <div class="ssb-track">
-        <span class="ssb-line ssb-now"><span class="ssb-count"></span><span class="ssb-label"></span></span>
-        <span class="ssb-line ssb-later"><span class="ssb-count"></span><span class="ssb-label"></span></span>
+        <span class="ssb-line ssb-now">
+          <svg class="ssb-sun-glyph" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+          </svg>
+          <span class="ssb-count"></span><span class="ssb-label"></span>
+        </span>
+        <span class="ssb-line ssb-later">
+          <svg class="ssb-sun-glyph" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+          </svg>
+          <span class="ssb-count"></span><span class="ssb-label"></span>
+        </span>
       </div>
       <button id="sort-toggle-btn" class="sort-icon-btn" onclick="toggleSortPanel()" aria-label="Sortér" title="Sortér">
         <svg class="sort-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
