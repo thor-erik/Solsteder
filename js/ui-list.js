@@ -82,8 +82,10 @@ function buildTimelineLabels(pills, fromHour, minH, maxH, qual) {
   const fmt = (h) => (typeof formatHour === 'function') ? formatHour(h) : `${Math.floor(h)}:00`;
   const pct = (h) => Math.max(0, Math.min(100, (h - minH) / (maxH - minH) * 100));
   const slots = [];
-  // The current time always gets a base slot at low priority.
-  slots.push({ time: fromHour, label: fmt(fromHour), prio: 1, kind: 'current' });
+  // The current/slider time is the user's reference point — give it a
+  // mid-high priority so it survives most collisions. Below the window
+  // start/end markers (95/100) but above far-away pill labels.
+  slots.push({ time: fromHour, label: fmt(fromHour), prio: 70, kind: 'current' });
   // The earliest qualifying window's boundaries match the anchor row's
   // "fra HH:MM · til HH:MM". Surface them so the timeline always tells the
   // same story as the anchor — high priority so they survive collisions.

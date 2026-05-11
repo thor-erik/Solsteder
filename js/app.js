@@ -218,9 +218,12 @@ function _syncFtsPosition() {
   }
   // (When editingVenueId, --fts-bottom is set by the ResizeObserver instead.)
 
-  // Flip popup below bar when FTS is near the top (fullscreen mode)
+  // Popup stays ABOVE the thumb in all panel states — the user wants
+  // the time label to read like a tooltip pointing down at the thumb,
+  // not floating beneath the slider where it overlaps map content.
+  // (Was flipped below in fullscreen previously — undone.)
   const popup = document.getElementById('fts-popup');
-  if (popup) popup.classList.toggle('fts-popup-below', isFull);
+  if (popup) popup.classList.remove('fts-popup-below');
 
   // Track panel state across calls so we can pan the map in sync with the list
   // when the user just located themselves and is centered on the user dot.
@@ -3572,14 +3575,12 @@ document.addEventListener('DOMContentLoaded', () => {
               _ftsEl.style.transition = 'none';
               _ftsEl.style.bottom = ftsBottom + 'px';
 
-              // Item 2: when the panel "catches" the FTS (desired < ceiling),
-              // we're no longer in fullscreen-anchor mode, so the floating
-              // time label flips back ABOVE the thumb.
+              // Popup stays above the thumb in all states — see the
+              // ancillary toggle in setFtsBottom/applyPanelLayoutMobile
+              // which is now also pinned to "above" (was: flip below
+              // in fullscreen).
               const popup = document.getElementById('fts-popup');
-              if (popup) {
-                const stillFull = desired >= ceiling;
-                popup.classList.toggle('fts-popup-below', stillFull);
-              }
+              if (popup) popup.classList.remove('fts-popup-below');
             }
           }
           // Track locate button + zoom jog with panel during drag.

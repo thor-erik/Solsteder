@@ -369,7 +369,10 @@ function _friendsInSunHeadline(checkins) {
  *  is rendered on the photo overlay (top-right). Plans got promoted to their
  *  own block, _renderPlansBlock, rendered separately by the caller. */
 function _renderSocialSection(v) {
-  const inviteSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>`;
+  // "Invite friends here" — a location-pin-with-people glyph reads more
+  // contextually than the old generic user-plus icon. Pin says "this
+  // place"; the two figures inside say "friends".
+  const inviteSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 1 1 16 0z"/><circle cx="9.6" cy="9.5" r="1.6"/><circle cx="14.4" cy="9.5" r="1.6"/><path d="M7 13.5c.6-1.1 1.6-1.7 2.6-1.7M14.4 11.8c1 0 2 .6 2.6 1.7"/></svg>`;
   return `
     <div class="social-card">
       <button class="dp-invite-cta" onclick="_openInviteSheet(${v.id})">

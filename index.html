@@ -702,7 +702,8 @@
   #locate-btn {
     position: fixed;
     right: 16px;
-    bottom: var(--fts-bottom, 16px);
+    /* +3px to vertically center with the 40px FTS slider (34px button). */
+    bottom: calc(var(--fts-bottom, 16px) + 3px);
     z-index: 920;
     width: 34px;
     height: 34px;
@@ -734,7 +735,8 @@
   #zoom-jog {
     position: fixed;
     right: 16px;
-    bottom: calc(var(--fts-bottom, 16px) + 34px + 10px);  /* sits above locate-btn */
+    /* +3px to maintain the gap above the (now-lifted) locate-btn. */
+    bottom: calc(var(--fts-bottom, 16px) + 3px + 34px + 10px);
     z-index: 900;
     touch-action: none;
     user-select: none;
@@ -3807,16 +3809,23 @@
     }
 
 
-    /* Locate button: sits at right end of FTS row (vertically aligned).
-       Bottom transition matches panel + FTS so it follows the sheet
-       through state changes instead of snapping to the new position. */
-    #locate-btn { bottom: calc(var(--peek-h, 252px) + 14px); right: 12px; }
-    body.fts #locate-btn { bottom: var(--fts-bottom, 160px); right: 12px; transition: bottom 0.34s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease; }
+    /* Locate button — vertically centered with the FTS slider.
+       FTS is 40px tall, locate-btn is 34px tall → +3px to align centers. */
+    #locate-btn { bottom: calc(var(--peek-h, 252px) + 14px + 3px); right: 12px; }
+    body.fts #locate-btn { bottom: calc(var(--fts-bottom, 160px) + 3px); right: 12px; transition: bottom 0.34s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease; }
 
-    /* Zoom jog: sits above locate-btn on mobile (10px gap) */
+    /* Zoom jog — same +3px lift to maintain the gap above locate-btn. */
     #zoom-jog { right: 12px; }
-    #zoom-jog { bottom: calc(var(--peek-h, 252px) + 14px + 34px + 10px); }
-    body.fts #zoom-jog { bottom: calc(var(--fts-bottom, 160px) + 34px + 10px); transition: bottom 0.34s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease; }
+    #zoom-jog { bottom: calc(var(--peek-h, 252px) + 14px + 3px + 34px + 10px); }
+    body.fts #zoom-jog { bottom: calc(var(--fts-bottom, 160px) + 3px + 34px + 10px); transition: bottom 0.34s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease; }
+
+    /* FTS thumb sized up on mobile for a comfortable touch target — 32px
+       was below the iOS HIG 44px guideline and felt small to grab. Lens
+       magnification clip radius scales to match. */
+    #fts-thumb { width: 40px; height: 40px; }
+    #fts-track:has(#fts-thumb.is-hover)  #fts-labels-mag { --lens-r: 21px; }
+    #fts-track:has(#fts-thumb.is-active) #fts-labels-mag { --lens-r: 24px; }
+    #fts-labels-mag { --lens-r: 20px; }
 
     /* Handle: grabber pill only — Google-Maps-tight spacing so the
        header content sits high in the panel.
@@ -3885,9 +3894,10 @@
     #panel-header { padding-top: 0; }
 
     #venue-list {
-      /* 12px top padding — the smoother mask below means the first card
-         no longer needs 20px to clear a hard fade edge. */
-      padding: 12px 16px 32px;
+      /* 12px top padding — smoother mask handles the entry fade. Bottom
+         padding 88px so the FTS popup (above-thumb tooltip) doesn't
+         cover the last card during a slider drag. */
+      padding: 12px 16px 88px;
       overscroll-behavior-y: none;
       /* Smoother top fade — three-stop gradient with an intermediate
          50%-opacity step gives a soft entry instead of the previous
@@ -6411,10 +6421,11 @@
   .dp-card.state-done .dp-sun-headline {
     color: rgba(255,244,224,0.65);
   }
-  /* Spacing between the headline block and the pills row inside the card. */
+  /* Spacing between the headline block and the pills row inside the card.
+     Was 12px — tightened to 8px so the card breathes less between rows. */
   .dp-card .dp-sun-headline + .dp-sun-sub + .card-pills,
   .dp-card .dp-sun-headline + .card-pills {
-    margin-top: 12px;
+    margin-top: 8px;
   }
 
   /* ── Section title (used by Avtaler + Le for vind) ─────────────────────── */
@@ -6898,13 +6909,15 @@
      anchor meta) plus the rich timeline bar at the bottom — no fill bar. */
   .dp-card {
     cursor: default;
-    margin-bottom: 14px;
-    padding: 16px 16px 14px;
+    margin-bottom: 12px;
+    /* Was 16/16/14 — tightened to 12/14/12 to cut the dead space the
+       card was carrying without changing the visual hierarchy. */
+    padding: 12px 14px 12px;
     animation: none;
     border-radius: 14px;
     overflow: visible;  /* re-allow timeline to render outside compact's clip */
   }
-  .dp-card.card-compact { padding-bottom: 14px; overflow: visible; }
+  .dp-card.card-compact { padding-bottom: 12px; overflow: visible; }
   .dp-card.card-compact .card-fillbar { display: none; }
   .dp-card:hover { background: var(--glass-card-bg); }   /* kill list-card hover */
   .dp-card .card-top { gap: 14px; align-items: flex-start; }
@@ -6938,8 +6951,8 @@
     line-height: 1.35;
     margin-top: 1px;
   }
-  /* Timeline block sits at the bottom — same shipped sun-bar as before. */
-  .dp-card .card-timeline-block { margin-top: 12px; }
+  /* Timeline block sits at the bottom — 8px gap below the pills row (was 12). */
+  .dp-card .card-timeline-block { margin-top: 8px; }
 
   /* dp-card timeline matches the list card's thin variant (8px). The tall
      38px treatment is gone now that the FTS pill is no longer reparented
@@ -7065,7 +7078,13 @@
     }
 
     #dp-handle { display: flex; }
-    #dp-scroll { padding-top: 4px; }
+    #dp-scroll {
+      padding-top: 4px;
+      /* Bottom padding clears the FTS slider + its popup-above-thumb
+         so the last content row doesn't disappear behind them during
+         drag. 88px = FTS height (40) + popup (30) + gap (6) + buffer (12). */
+      padding-bottom: 88px;
+    }
     .dp-photos { margin-top: 0; }
     /* Back button style on mobile: chevron + "Venues" */
     #dp-close-btn {
