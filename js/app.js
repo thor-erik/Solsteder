@@ -393,10 +393,7 @@ function initFts() {
     track.setPointerCapture(e.pointerId);
     window._qcThumbActive = true;
     const _thumbEl = document.getElementById('fts-thumb');
-    if (_thumbEl) {
-      _thumbEl.classList.add('is-active');
-      _thumbEl.classList.remove('is-tilting');
-    }
+    if (_thumbEl) _thumbEl.classList.add('is-active');
     setTimeFromPointer(e.clientX);
     setFtsPopupExpanded(true);
   });
@@ -434,8 +431,6 @@ function initFts() {
     const c = window._ftsThumbTiltCur;
     thumbEl.style.setProperty('--tilt-x', c.x.toFixed(3));
     thumbEl.style.setProperty('--tilt-y', c.y.toFixed(3));
-    const isTilting = Math.abs(c.x) > 0.01 || Math.abs(c.y) > 0.01;
-    thumbEl.classList.toggle('is-tilting', isTilting && !window._qcThumbActive);
   }
   function _ftsTiltStep() {
     const cur = window._ftsThumbTiltCur;

@@ -58,7 +58,7 @@
 <script defer src="js/weather.js?v=20260411b"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260511c"></script>
+<script defer src="js/app.js?v=20260511d"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
@@ -1363,179 +1363,99 @@
     .fts-label { transition: none; --scale: 1 !important; }
   }
 
-  /* ── DOM Thumb — true lens with backdrop-blur + CSS 3D tilt ──────────────
-     Position is set by JS via `left: X%`. Centering is via translate(-50%)
-     in the transform so it survives all states (tilt, scale, lift). Tilt
-     is driven by CSS vars --tilt-x / --tilt-y (range -1 to 1) set by JS
-     on pointermove. The thumb is purely visual; pointer events go to the
-     track. */
+  /* ── FTS Thumb — translucent glass lens (single-element) ────────────────
+     One element. All visual depth comes from layered CSS background +
+     box-shadow stacks driven by --tilt-x / --tilt-y (set by JS on
+     pointermove). Same recipe as Apple's iOS Magnifier loupe and
+     Stripe/Linear glass hover surfaces — clean, performant, looks like
+     real glass at small scales where multi-layer parallax just adds
+     noise. */
   #fts-thumb {
     position: absolute;
     top: 50%;
-    left: 50%;                 /* JS overrides on every draw */
+    left: 50%;               /* JS overrides on every frame */
     width: 32px;
     height: 32px;
+    border-radius: 50%;
     pointer-events: none;
+    z-index: 5;
     --tilt-x: 0;
     --tilt-y: 0;
-    transform-style: preserve-3d;
-    perspective: 240px;
-    z-index: 5;
-    /* Idle: just the centering translate. Subclasses append rotate/scale. */
+
+    /* Body — two stacked backgrounds:
+       1. Moving highlight glint. radial-gradient with its centre offset
+          OPPOSITE to the cursor (--tilt × negative). Reads as a fixed
+          light source catching the glass as the lens tilts. THIS is
+          what creates the perceived 3D rotation without actually using
+          rotate3d, which would clip + clash with backdrop-filter.
+       2. Bottom-right inner shadow. radial at the opposite side,
+          slate-coloured, giving a subtle "underside of glass" depth
+          that adds dimensionality even at idle. */
+    background:
+      radial-gradient(
+        circle at calc(32% - var(--tilt-x) * 14%) calc(28% - var(--tilt-y) * 14%),
+        rgba(255,255,255,0.55) 0%,
+        rgba(255,255,255,0.20) 16%,
+        rgba(255,255,255,0)    36%
+      ),
+      radial-gradient(
+        circle at calc(72% + var(--tilt-x) * 14%) calc(78% + var(--tilt-y) * 14%),
+        rgba(15,27,42,0.18) 0%,
+        rgba(15,27,42,0.08) 22%,
+        rgba(15,27,42,0)    48%
+      ),
+      rgba(255,244,224,0.10);
+
+    /* Frosted-glass: same recipe the panels use, browser-GPU cheap. */
+    backdrop-filter: blur(3px) saturate(125%);
+    -webkit-backdrop-filter: blur(3px) saturate(125%);
+
+    /* Edge stack:
+       - Outer thin dark rim — the defined lens silhouette.
+       - Cream inner highlight ring (1px inside the rim) — the glass
+         catch on the surface, like a real lens has where light grazes
+         the curve.
+       - Inner offset slate shadow — THICKENS the visible edge on the
+         cursor side via the tilt-driven offset. Reads as "the lens is
+         tilting that way" without needing a rotation transform.
+       - Outer drop shadow — lifts the lens off the track. */
+    box-shadow:
+      inset 0 0 0 1px rgba(15,27,42,0.55),
+      inset 0 0 0 1.8px rgba(255,244,224,0.22),
+      inset
+        calc(var(--tilt-x) * 4px)
+        calc(var(--tilt-y) * 4px)
+        7px -1px
+        rgba(15,27,42,0.42),
+      0 3px 8px rgba(0,0,0,0.35);
+
     transform: translate(-50%, -50%);
-    transition: transform 220ms cubic-bezier(0.32, 0.72, 0, 1);
+    transition:
+      transform   220ms cubic-bezier(0.32, 0.72, 0, 1),
+      box-shadow  220ms cubic-bezier(0.32, 0.72, 0, 1),
+      background  220ms ease;
     will-change: transform;
   }
-  /* Bevelless lens — the entire edge is driven by a single radial gradient
-     inside the lens body. Light cream at the centre (the bright part of
-     real glass) fades to a dark ring at 100% extent (light refracting at
-     the glass boundary). At idle the gradient is centred → symmetric
-     dark edge all around (uniform rim). On tilt, JS sets --grad-x /
-     --grad-y as percentages and the gradient centre moves: the dark
-     edge thickens on the cursor side (where the gradient compresses
-     against the lens edge) and thins on the opposite side (where there's
-     more room to fall off). One declarative source of truth — no rim +
-     ring + shadow stack that read as a bead. */
-  /* Back layer — the lens substrate. A DEFINED circle: explicit 1px
-     dark border (so the silhouette is unambiguous) + a softer interior
-     radial gradient for the glass-y depth. Backdrop-blur stays. No more
-     soft fadeout edge — each layer needs to read as a discrete circle. */
-  .fts-thumb-frame {
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    border: 1px solid rgba(15,27,42,0.50);
-    background: radial-gradient(
-      circle at 50% 50%,
-      rgba(255,244,224,0.16) 0%,
-      rgba(255,244,224,0.08) 55%,
-      rgba(15,27,42,0.08)    85%,
-      rgba(15,27,42,0.18)    100%
-    );
-    backdrop-filter: blur(3px) saturate(115%);
-    -webkit-backdrop-filter: blur(3px) saturate(115%);
-    box-shadow: 0 3px 7px rgba(0,0,0,0.32);
-    transition: box-shadow 220ms ease, background 220ms ease, border-color 220ms ease;
-  }
-  /* Mid layer — the lens FRONT FACE. A discrete inner circle with a
-     visible 1px border so it reads as a clear shape. Concentric with
-     the back at idle (looks like an inner reflection ring). On tilt
-     translates × 6px so its rim diverges from the back's rim — visible
-     as a clear two-rim parallax effect. */
-  .fts-thumb-inner {
-    position: absolute;
-    inset: 4px;
-    border-radius: 50%;
-    border: 1px solid rgba(15,27,42,0.45);
-    background: radial-gradient(
-      circle at 30% 25%,
-      rgba(255,244,224,0.12) 0%,
-      rgba(255,244,224,0)    60%
-    );
-    pointer-events: none;
-    transform: translate3d(
-      calc(var(--tilt-x, 0) * 6px),
-      calc(var(--tilt-y, 0) * 6px),
-      3px
-    );
-    transition:
-      transform 220ms cubic-bezier(0.32, 0.72, 0, 1),
-      border-color 220ms ease;
-  }
-  .fts-thumb-sheen {
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    /* Front-most layer — reflected sky / surface catch-light. Translates
-       MORE than the inner layer (tilt × 8px vs × 6px), so the parallax
-       order back→mid→front is back-static / mid-medium / sheen-most.
-       That ordering is the 3D depth cue: brain reads "the closer thing
-       moves more". */
-    background: radial-gradient(
-      circle at 28% 22%,
-      rgba(255,255,255,0.58) 0%,
-      rgba(255,255,255,0.20) 28%,
-      rgba(255,255,255,0)    48%
-    );
-    pointer-events: none;
-    transform: translate3d(calc(var(--tilt-x) * 8px), calc(var(--tilt-y) * 8px), 6px);
-    transition: transform 220ms cubic-bezier(0.32, 0.72, 0, 1), opacity 180ms ease;
-    opacity: 0.92;
-  }
 
-  /* Hover — real 3D tilt + a small lift off the track. Translate-y the
-     lift; rotate-X/Y the tilt; centering translate comes first. */
-  #fts-thumb.is-tilting {
-    transform:
-      translate(-50%, -50%)
-      translateY(-2px)
-      rotateY(calc(var(--tilt-x) * 22deg))
-      rotateX(calc(var(--tilt-y) * -22deg));
-  }
-  /* Active (drag) — pick-up scale + a small lift AND the tilt still
-     applies. Frame thickens + brightens, drop shadow deepens, honey
-     halo expands. The tilt-from-cursor-offset persists while dragging
-     so the lens "leans" toward where the user is pulling it. */
+  /* Active (drag) — scale up, deepen the shadow, add a soft warm aura,
+     bump the edge contrast. No layer juggling, no nested DOM. */
   #fts-thumb.is-active {
-    transform:
-      translate(-50%, -50%)
-      translateY(-3px)
-      scale(1.20)
-      rotateY(calc(var(--tilt-x) * 22deg))
-      rotateX(calc(var(--tilt-y) * -22deg));
-  }
-  /* Tilt mechanics:
-     - Gradient centre shifts OPPOSITE to the cursor (calc(50% - tilt-x * 25%))
-     - So the dark band at 93-100% extent is FARTHER from the cursor side
-       of the lens — meaning the dark band has more room to grow there
-       before hitting the edge → thicker visible dark edge on cursor side
-     - On the opposite side, the dark band is right at the edge already,
-       so it appears thinner / fades faster
-     The whole thing is driven by --tilt-x / --tilt-y already set on the
-     thumb element by JS. No additional CSS needed here for the gradient. */
-
-  /* Active (drag) — bump every layer's contrast + push the parallax
-     farther. Back layer's border darkens, interior brightens. Mid and
-     sheen layers translate farther for stronger parallax depth. */
-  #fts-thumb.is-active .fts-thumb-frame {
-    border-color: rgba(15,27,42,0.62);
-    background: radial-gradient(
-      circle at 50% 50%,
-      rgba(255,244,224,0.22) 0%,
-      rgba(255,244,224,0.10) 55%,
-      rgba(15,27,42,0.10)    85%,
-      rgba(15,27,42,0.24)    100%
-    );
+    transform: translate(-50%, -50%) scale(1.20);
     box-shadow:
-      0 12px 24px rgba(0,0,0,0.55),
-      0 0 22px 3px rgba(245,194,94,0.20);
+      inset 0 0 0 1.2px rgba(15,27,42,0.65),
+      inset 0 0 0 2px rgba(255,244,224,0.28),
+      inset
+        calc(var(--tilt-x) * 5px)
+        calc(var(--tilt-y) * 5px)
+        9px -1px
+        rgba(15,27,42,0.52),
+      0 10px 22px rgba(0,0,0,0.52),
+      0 0 22px 2px rgba(245,194,94,0.22);
   }
-  #fts-thumb.is-active .fts-thumb-inner {
-    border-color: rgba(15,27,42,0.58);
-    transform: translate3d(
-      calc(var(--tilt-x, 0) * 8px),
-      calc(var(--tilt-y, 0) * 8px),
-      3px
-    );
-  }
-  #fts-thumb.is-active .fts-thumb-sheen {
-    transform: translate3d(
-      calc(var(--tilt-x, 0) * 11px),
-      calc(var(--tilt-y, 0) * 11px),
-      6px
-    );
-    opacity: 1;
-  }
-  #fts-thumb.is-active .fts-thumb-sheen { opacity: 1; }
 
   @media (prefers-reduced-motion: reduce) {
-    #fts-thumb, .fts-thumb-frame, .fts-thumb-inner, .fts-thumb-sheen {
-      transition: none;
-    }
-    #fts-thumb.is-tilting, #fts-thumb.is-active {
-      transform: translate(-50%, -50%);
-    }
-    .fts-thumb-inner, .fts-thumb-sheen { transform: none !important; }
+    #fts-thumb { transition: none; }
+    #fts-thumb.is-active { transform: translate(-50%, -50%); }
   }
 
   /* Time label — floats above the thumb. Two states:
@@ -9197,17 +9117,7 @@
            3D tilt, and CSS transitions for the pick-up animation. JS sets
            the thumb's `left` from the current time and applies the
            --tilt-x / --tilt-y CSS vars on pointermove. -->
-      <div id="fts-thumb" aria-hidden="true">
-        <!-- Three sibling layers (not nested). Nesting was clipping the
-             displaced layers at the back layer's circular boundary,
-             killing the parallax. As siblings, each layer can translate
-             freely — when the mid/front shift past the back's edge,
-             the rim "sticks out" exactly like a real surface at a
-             different depth would. -->
-        <div class="fts-thumb-frame"></div>
-        <div class="fts-thumb-inner"></div>
-        <div class="fts-thumb-sheen"></div>
-      </div>
+      <div id="fts-thumb" aria-hidden="true"></div>
       <!-- Popup lives inside the track so it follows the thumb natively
            when the track animates (date-pill slide-in shifts margin-left,
            panel state changes shift the FTS bottom). Position is set as
