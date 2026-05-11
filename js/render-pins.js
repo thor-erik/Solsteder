@@ -38,6 +38,26 @@
 
 'use strict';
 
+// ── Density rule (Google-Maps-style) ───────────────────────────────────────────
+// Within NEAR_USER_KM of the user's geolocation we allow unlimited pills
+// (only fully-overlapping pills are still demoted as a sanity guard);
+// outside that "free zone" pills must keep MIN_PILL_GAP_PX between centres
+// or the lower-priority one demotes to a dot. Priority order (already
+// applied via priScore in draw()):
+//   selected > friends > hero (sun, urgency-first) > waiting > context.
+// Selected + friend pills bypass the spacing check entirely so the user
+// never "loses" their context to density rules.
+const NEAR_USER_KM     = 1.0;
+const MIN_PILL_GAP_PX  = 80;
+const ABS_OVERLAP_PX   = 14;   // sanity overlap guard inside the free zone
+
+function _kmFromUser(lng, lat) {
+  if (typeof userLocation === 'undefined' || !userLocation) return Infinity;
+  const dLat = (lat - userLocation.lat) * 111;
+  const dLng = (lng - userLocation.lng) * 111 * Math.cos(lat * Math.PI / 180);
+  return Math.hypot(dLat, dLng);
+}
+
 // ── Pin tier classification ────────────────────────────────────────────────────
 // WAITING_HORIZON_MIN: venues count as Waiting if sun arrives within this window.
 // HERO_ACTIONABLE_MIN: legacy actionable cutoff — kept for compatibility with
@@ -828,23 +848,33 @@ function draw() {
   });
 
   // ── 2. Priority sort ───────────────────────────────────────────────────────
-  // selected → friends → hero (urgency) → waiting (proximity) →
-  // closed-but-opens (proximity) → context. Friend venues sort within their
-  // group by tier so a sunny friend > a context friend.
-  function priScore(e) {
-    let s;
-    if (e.cls.tier === 'hero') {
-      s = 0    + (e.cls.minsLeft     ?? 9999) / 100;
-    } else if (e.cls.tier === 'waiting' && e.cls.closedOpeningIntoSun) {
-      s = 2000 + (e.cls.minutesUntil ?? 9999) / 100;
-    } else if (e.cls.tier === 'waiting') {
-      s = 1000 + (e.cls.minutesUntil ?? 9999) / 100;
-    } else {
-      s = 3000;
+  // selected → friends → list rank (active sort) → fallback tier scoring.
+  // The list rank carries the user's active sort (Best Match / Most Sun /
+  // Distance / etc.) so the map mirrors the list: when two pills compete
+  // for the same spatial slot, the one the user's sort prefers wins.
+  // Venues not in the list at all fall back to tier/urgency scoring.
+  const _listRank = new Map();
+  if (typeof _listFiltered !== 'undefined' && Array.isArray(_listFiltered)) {
+    for (let i = 0; i < _listFiltered.length; i++) {
+      _listRank.set(_listFiltered[i].id, i);
     }
+  }
+  function priScore(e) {
     if (e.v.id === selectedId) return -100000;
-    if (_friendVenueIds.has(e.v.id)) return s - 50000;
-    return s;
+    if (_friendVenueIds.has(e.v.id)) {
+      // Friends keep tier ordering among themselves so a sunny friend
+      // beats a context friend in a spacing conflict.
+      const rank = _listRank.get(e.v.id);
+      return -50000 + (rank != null ? rank : 9999);
+    }
+    const rank = _listRank.get(e.v.id);
+    if (rank != null) return rank;          // pure list rank
+    // Not in the list (filtered out, off-viewport, etc.) — fall back to
+    // tier-based scoring so the placement order is still deterministic.
+    if (e.cls.tier === 'hero')    return 20000 + (e.cls.minsLeft     ?? 9999) / 100;
+    if (e.cls.tier === 'waiting' && e.cls.closedOpeningIntoSun) return 22000 + (e.cls.minutesUntil ?? 9999) / 100;
+    if (e.cls.tier === 'waiting') return 21000 + (e.cls.minutesUntil ?? 9999) / 100;
+    return 30000;                            // context fallback
   }
   projVenues.sort((a, b) => priScore(a) - priScore(b));
 
@@ -933,13 +963,20 @@ function draw() {
       h: PILL_H + TAIL_H,
     };
 
-    // Demote to dot when fully shadowed by a higher-priority pill.
+    // Density rule (Google-Maps style):
+    //  - Selected + friend pills bypass the spacing check entirely.
+    //  - Within NEAR_USER_KM of the user's geolocation, unlimited pills
+    //    (only absolute-overlap is guarded against, ~14 px).
+    //  - Outside that free zone, pills must keep MIN_PILL_GAP_PX between
+    //    centres; lower-priority pin (later in the sort) demotes to dot.
     let demote = false;
     if (v.id !== selectedId && !_friendVenueIds.has(v.id)) {
+      const inFreeZone = _kmFromUser(v.lng, v.lat) < NEAR_USER_KM;
+      const minGap = inFreeZone ? ABS_OVERLAP_PX : MIN_PILL_GAP_PX;
       for (const p of placedPills) {
         const dx = (pillRect.x + pillRect.w / 2) - (p.x + p.w / 2);
         const dy = (pillRect.y + pillRect.h / 2) - (p.y + p.h / 2);
-        if (Math.hypot(dx, dy) < 14) { demote = true; break; }
+        if (Math.hypot(dx, dy) < minGap) { demote = true; break; }
       }
     }
     if (demote) {
