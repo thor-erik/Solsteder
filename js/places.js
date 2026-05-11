@@ -30,10 +30,6 @@ async function initPlaces() {
     const n = VENUES.filter(v => v.photoUrls?.length).length;
     console.log(`Places: loaded photos for ${n}/${VENUES.length} venues`);
     if (typeof updateDetailPanel === 'function') updateDetailPanel();
-    // Re-render the list so the card thumbnails pick up the now-available
-    // photoUrls. (The list cards render before initPlaces resolves; without
-    // this hook they'd keep showing the initial-letter placeholder.)
-    if (typeof renderList === 'function') renderList();
   } catch (err) {
     console.warn('Places: venue-photos.json unavailable —', err.message);
   }

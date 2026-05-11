@@ -2556,8 +2556,7 @@
       inset 0 -1px 0 rgba(15,30,55,0.40),
       0 1px 2px rgba(0,0,0,0.18),
       0 4px 14px rgba(0,0,0,0.30);
-    transition: border-color 0.15s ease-out, background 0.12s ease-out, opacity 0.2s,
-                transform 0.15s cubic-bezier(0.32, 0.72, 0, 1), box-shadow 0.15s ease-out;
+    transition: border-color 0.12s ease-out, background 0.12s ease-out, opacity 0.2s;
     position: relative;
     overflow: visible;
     contain: layout style;
@@ -2581,9 +2580,12 @@
   /* Hover only on devices with a real pointer. On iOS Safari :hover sticks
      after a tap until the user taps elsewhere — that's the "blue box" the
      user reported on the source card after the panel closes.
-     New: subtle 1px lift + honey-tinted border + lifted shadow. Modern
-     card-hover convention (Stripe / Linear). Reads as responsive without
-     pulling attention away from the rest of the list. */
+     New: 1px lift + honey-tinted border + lifted shadow. Modern card-hover
+     convention (Stripe / Linear). */
+  .venue-card {
+    transition: border-color 0.15s ease-out, background 0.12s ease-out, opacity 0.2s,
+                transform 0.15s cubic-bezier(0.32, 0.72, 0, 1), box-shadow 0.15s ease-out;
+  }
   @media (hover: hover) and (pointer: fine) {
     .venue-card:hover {
       border-color: rgba(245,194,94,0.42);
@@ -2866,153 +2868,64 @@
     color: var(--accent);
   }
 
-  /* ── v3 list-card layout (thumbnail + stat column + bottom row) ──────
-     Applied via `.card-compact`. The detail panel still uses `.card-rich`
-     and the venue-peek/invite sheets use `.compact-card` — neither
-     touched by this grid. Structure:
-       col 1 [44px]:  thumbnail spanning rows 1+2
-       col 2 [1fr]:   name (row 1) / meta (row 2)
-       col 3 [auto]:  stat — duration + anchor — spanning rows 1+2
-       row 3 (cols 2-end): bottom row — pills (left) + social (right) */
+  /* ── v2 list-card layout ──────────────────────────────────────────────
+     Applied via `.card-compact`. The detail panel uses `.card-rich` and
+     keeps its prior layout (timeline + labels). For the list variant:
+       • card-meta is a 1fr/auto grid: meta-text left, anchor right
+       • card-pills is always rendered (preserves card height)
+       • bottom 3px fill bar shows sun-fraction of remaining day */
   .venue-card.card-compact {
-    display: grid;
-    grid-template-columns: 44px minmax(0, 1fr) auto;
-    grid-template-rows: auto auto auto;
-    column-gap: 12px;
-    row-gap: 2px;
-    align-items: center;
-    padding: 10px 14px 12px;
-    overflow: hidden;            /* clip the absolute fill bar to the rounded corner */
-    gap: 0;                      /* override the .venue-card flex `gap: 4px` */
-  }
-  /* Thumbnail — 44×44 photo (or initial placeholder) on the card's left.
-     `box-shadow` is the state ring (sun/shadow/rain/done — see further
-     down). Image lays on top of the initial-letter placeholder so a
-     failed load gracefully falls back without a layout flash. */
-  .card-thumb {
-    grid-column: 1;
-    grid-row: 1 / 3;
-    width: 44px;
-    height: 44px;
-    border-radius: 9px;
-    position: relative;
+    /* Bar is flush bottom (3px tall); padding-bottom matches padding-top so
+       the visual breathing space above the name row equals the space below
+       the meta row. The card clips to its own rounded shape so the fill
+       bar's corners follow the 12px card-corner curve. */
+    padding-bottom: 12px;
     overflow: hidden;
-    background:
-      linear-gradient(135deg,
-        hsl(var(--thumb-hue, 30deg) 38% 22% / 0.95),
-        hsl(var(--thumb-hue, 30deg) 32% 14% / 0.95));
-    flex-shrink: 0;
-    box-shadow: inset 0 0 0 1px rgba(155,169,188,0.34);
-    transition: box-shadow 0.18s ease-out;
   }
-  .card-thumb img {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-  .card-thumb-initial {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font: 700 18px "Inter", system-ui, sans-serif;
-    color: rgba(255, 244, 224, 0.55);
-    pointer-events: none;
-    z-index: 0;          /* under the photo */
-  }
-  /* Row 1: name in col 2 */
-  .venue-card.card-compact .card-name {
-    grid-column: 2;
-    grid-row: 1;
-    align-self: end;
-    flex: none;          /* override base .card-name flex:1 — grid handles sizing */
-  }
-  /* Row 2: meta in col 2 — no inline anchor, no grid (was 1fr/auto before).
-     Single inline run, ellipsis on overflow. */
   .venue-card.card-compact .card-meta {
-    grid-column: 2;
-    grid-row: 2;
-    align-self: start;
-    display: block;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 8px;
+  }
+  .venue-card.card-compact .card-meta-left {
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  /* Stat column — duration + anchor stacked. Right-aligned, spans rows 1+2
-     so it reads as one hero numeric block beside the title/meta. */
-  .card-stat {
-    grid-column: 3;
-    grid-row: 1 / 3;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 1px;
-  }
-  .card-stat .card-duration { line-height: 1.2; }
-  .card-anchor {
-    font-size: 11px;
-    font-weight: 500;
+  .venue-card.card-compact .card-anchor {
+    justify-self: end;
+    flex-shrink: 0;
     color: var(--muted);
-    opacity: 0.78;
+    /* Match the venue meta strength — sub-text but not so faint it falls
+       below the area · type · distance line on the same row. */
+    opacity: 0.92;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
-    line-height: 1.2;
   }
-  /* Bottom row — pills (left) + social (right). Renders only when there's
-     at least one to show, so cards with neither collapse to a 2-row stack. */
-  .card-bottom {
-    grid-column: 2 / -1;
-    grid-row: 3;
-    margin-top: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    min-width: 0;
+  /* v2 list cards let their height vary with pill count — no min-height
+     reservation. Cards with no pills collapse to row1 + meta + fill bar
+     and gain back the spacing they don't need. Pills sit on the right
+     so they read as a small status cluster anchored to the duration
+     column above, rather than competing with the venue name on the
+     left for visual start-of-row attention. */
+  .venue-card.card-compact .card-pills {
+    margin: 6px 0 2px;
+    justify-content: flex-end;
   }
-  .card-bottom .card-pills {
-    margin: 0;
-    flex: 1 1 auto;
-    min-width: 0;
-    justify-content: flex-start;
-  }
-  .card-bottom .card-pills-empty { flex: 0 0 auto; }
-  /* Pills get the 8px backdrop blur from --glass-blur-pill. */
+  /* Pills get the 8px backdrop blur from --glass-blur-pill. Cards
+     don't blur (parent panel does), but pills sit on top of everything
+     and benefit from the subtle haze. */
   .venue-card.card-compact .card-pill {
     backdrop-filter: var(--glass-blur-pill);
     -webkit-backdrop-filter: var(--glass-blur-pill);
   }
-  /* Social cluster — friend dots (here now, orange) + going dots (planned,
-     blue), packed tightly at the card's bottom-right. */
-  .card-social {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    flex-shrink: 0;
-  }
-  /* Re-target the badges so they sit cleanly inside .card-social (the old
-     position was in the title row, which had a 6px left margin built in). */
-  .card-social .card-friend-badge,
-  .card-social .card-going-badge {
-    margin-left: 0;
-  }
-
-  /* ── State rings on the thumbnail — card-level state signal ───────────
-     The thumbnail's ring colour-codes the venue's current sun status, so
-     a user can scan the list and see "this one's in shade, this one's
-     getting rain, this one's basking" without reading the pills. */
-  .venue-card.state-sun     .card-thumb { box-shadow: inset 0 0 0 1px rgba(245,194,94,0.22), 0 0 0 2px rgba(245,194,94,0.55); }
-  .venue-card.state-shadow  .card-thumb { box-shadow: inset 0 0 0 1px rgba(156,189,231,0.18), 0 0 0 2px rgba(156,189,231,0.45); }
-  .venue-card.state-rain    .card-thumb { box-shadow: inset 0 0 0 1px rgba(96,140,200,0.20),  0 0 0 2px rgba(96,140,200,0.55); }
-  .venue-card.state-done    .card-thumb { box-shadow: inset 0 0 0 1px rgba(155,169,188,0.20), 0 0 0 2px rgba(155,169,188,0.30); filter: saturate(0.45); }
-
   /* ── Fill bar — flush against the card's bottom border ──
      The card clips to its 12px corner radius, so the bar's bottom-left
-     and bottom-right corners follow the card's curve naturally. */
+     and bottom-right corners follow the card's curve naturally. Track
+     spans the full width; fill is one contiguous level meter from the
+     left. */
   .venue-card.card-compact .card-fillbar {
     position: absolute;
     left: 0;
@@ -5205,12 +5118,10 @@
     cursor: pointer;
   }
   .venue-card.closed-card:hover { opacity: 0.75; }
-  /* Hidden by default — they were noisy at 0.4 opacity and rarely engaged.
+  /* Hidden by default — closed-day venues were quiet noise at 0.4 opacity.
      The toggle at the bottom of the list reveals them on demand. */
   body:not(.show-closed) #venue-list .venue-card.closed-card { display: none; }
 
-  /* Toggle button shown at the bottom of the list when there are
-     closed-day venues hidden. Minimal styling — matches list-expand-tab. */
   #closed-toggle {
     display: flex;
     align-items: center;
@@ -5308,14 +5219,15 @@
      for visual symmetry on the row. Weather centers in the middle. */
   #header-date-chip               { justify-self: start;  width: 116px; }
   #header-wx-chip                 { justify-self: center; }
+  /* Sort is a compact 36×36 icon button on the right — reclaims ~80px
+     so date + weather can breathe. The label stays in the DOM (other
+     code reads it to know the current sort) but is screen-reader only. */
   #list-sun-header #sort-toggle-btn {
     justify-self: end;
     width: 36px;
     padding: 0;
     gap: 0;
   }
-  /* Sort label stays in DOM (other code reads it to know the current sort)
-     but is screen-reader only — only the icon shows. */
   .sort-icon-label-sr {
     position: absolute;
     width: 1px; height: 1px;
@@ -8955,8 +8867,8 @@
         <span class="chip-dot" aria-hidden="true">·</span>
         <span id="header-wx-wind"></span>
       </div>
-      <!-- Sort moved to a compact icon button — full label opens via toggleSortPanel.
-           The current sort name is encoded in aria-label so it stays accessible. -->
+      <!-- Sort: compact 36×36 icon button. Current sort label stays in DOM
+           as a screen-reader-only span so other code paths can still read it. -->
       <button id="sort-toggle-btn" class="sort-icon-btn" onclick="toggleSortPanel()" aria-label="Sortér" title="Sortér">
         <svg class="sort-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <line x1="6"  y1="5"  x2="6"  y2="19"/>

@@ -210,28 +210,6 @@ const SUN_GLYPH = '<svg class="sun-glyph" viewBox="0 0 24 24" width="13" height=
 // next to the distance.
 const WALK_GLYPH = '<svg class="walk-glyph" viewBox="0 0 24 24" width="11" height="11" fill="currentColor" aria-hidden="true"><circle cx="13" cy="4" r="2"/><path d="M9.5 22l1.5-7-2-2v-5.5c0-.55.45-1 1-1h3.83c.43 0 .81.27.95.67L16 11l3 1.5-.45.9-3-1.4-1.5-3v3l2 2.5L15 22h-1.5l-1-6.5L11 13.5V22H9.5z"/></svg>';
 
-/** Thumbnail block for a list card. Uses v.photoUrls (loaded async by
- *  initPlaces) when available; otherwise renders a hue-coded placeholder
- *  with the venue's initial. The placeholder stays even after the photo
- *  loads (sits underneath the <img>) so a failed/blocked image gracefully
- *  reveals it without a layout flash. */
-function _renderCardThumb(v) {
-  const initial = (v.name?.[0] || '?').toUpperCase();
-  // Hue stable per venue id — same venue always gets the same placeholder
-  // colour, so a re-render doesn't reshuffle the visual.
-  const idStr = String(v.id ?? v.name ?? '');
-  let hash = 0;
-  for (let i = 0; i < idStr.length; i++) hash = (hash * 31 + idStr.charCodeAt(i)) & 0x7fffffff;
-  const hue = hash % 360;
-  const photo = v.photoUrls?.[0];
-  const imgHtml = photo
-    ? `<img src="${photo}" loading="lazy" decoding="async" alt="" onerror="this.remove()">`
-    : '';
-  return `<div class="card-thumb" style="--thumb-hue:${hue}deg" aria-hidden="true">
-    <span class="card-thumb-initial">${initial}</span>${imgHtml}
-  </div>`;
-}
-
 function _formatDurationFromMin(minutes) {
   if (!minutes || minutes <= 0) return '';
   const h = Math.floor(minutes / 60);
@@ -343,21 +321,25 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
   ).join('');
 
   // Meta line: area · type · distance. Walk-time was redundant with
-  // distance (one is a proxy for the other); we dropped the walk-icon
-  // for the redesign so the meta line stays scan-fast and uncluttered.
-  // Walk-time still surfaces in the detail panel for users who want it.
+  // distance (one is a proxy for the other); dropping the walk-icon keeps
+  // the meta row scan-fast. Walk-time still surfaces in the detail panel
+  // for users who want a concrete travel-time number.
   const metaParts = [v.area, catLabel(v), distStr].filter(Boolean);
   const metaInner = metaParts.map((p, i) =>
     (i > 0 ? '<span class="card-meta-dot">·</span>' : '') + `<span>${p}</span>`
   ).join('');
 
   // v2 list cards split the meta row into a left (text) column and a right
-  // Anchor text ("til 21:00" / "fra 14:00 · til 21:00") — now rendered inside
-  // the stat column (next to the duration), not inline with the meta row.
+  // anchor column ("til 21:00" / "fra 14:00 · til 21:00"). Rich/detail cards
+  // keep the meta as a single inline run so their layout doesn't shift.
   const bucket = (qual && qual.earliest && qual.earliest.start <= fromHour + 0.001) ? 'now' : 'later';
+  // dpVariant uses compact's left+anchor meta layout (same as the list card).
   const useCompactMeta = !rich || dpVariant;
   const anchorText = (useCompactMeta && qual && qual.surfaced && typeof formatAnchor === 'function')
     ? formatAnchor(qual, bucket, sundownH) : '';
+  const metaHtml = useCompactMeta
+    ? `<span class="card-meta-left">${metaInner}</span>${anchorText ? `<span class="card-anchor">${anchorText}</span>` : ''}`
+    : metaInner;
 
   // Rich + dpVariant emit the detailed timeline. Labels render ABOVE the
   // timeline (one per disruption event); _resolveTimelineLabelCollisions
@@ -388,11 +370,6 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
     ? `<svg class="card-fav-heart" width="11" height="11" viewBox="0 0 24 24" fill="var(--accent)" stroke="var(--accent)" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>`
     : '';
 
-  // Social cues — friends here now (orange) and friends going (blue).
-  // Moved out of the title row into a single bottom-right cluster so the
-  // name + duration get an uncluttered first-glance read. Two clusters
-  // keep the orange/blue colour-coding that distinguishes "here now"
-  // from "planning to go".
   const friendCheckins = typeof getFriendCheckinsForVenue === 'function' ? getFriendCheckinsForVenue(v.id) : [];
   const friendBadge = friendCheckins.length
     ? `<div class="card-friend-badge" title="${friendCheckins.map(c => c.user.name || c.user.email).join(', ')}">
@@ -412,8 +389,6 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
         ).join('')}${going.length > 3 ? `<div class="card-going-dot card-going-dot-init">+${going.length - 3}</div>` : ''}
       </div>`
     : '';
-  const socialBlock = (friendBadge || goingBadge)
-    ? `<div class="card-social">${friendBadge}${goingBadge}</div>` : '';
 
   // Determine state class so other CSS rules (selection ring, etc.) keep
   // working. Source of truth shifts from venueState.mainText to qual.
@@ -466,38 +441,16 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
       </div>`;
   }
 
-  // ── New card IA (grid layout) ────────────────────────────────────────
-  // Three-column grid: [thumb 44px] [text 1fr] [stat auto].
-  //   row 1: name        |  duration (☀ Xt Ym)
-  //   row 2: meta        |  anchor   (til HH:MM)
-  //   row 3: bottom row spans cols 2+3 — pills (left) + social (right)
-  // Thumbnail and stat column both span rows 1+2 so the right-side
-  // numerics read as a single "hero stat" block beside the title/meta.
-  // The anchor was previously inline in the meta row; it moves into
-  // the stat column so the duration + clock-time read as one unit.
-  const compactMetaHtml = metaInner;  // left side of meta row — no inline anchor
-  const anchorBlock = anchorText
-    ? `<div class="card-anchor">${anchorText}</div>` : '';
-  const statBlock = (durationStr || anchorBlock)
-    ? `<div class="card-stat">
-         ${durationStr ? `<div class="card-duration">${SUN_GLYPH}${durationStr}</div>` : ''}
-         ${anchorBlock}
-       </div>` : '';
-  const bottomBlock = (pillsHtml || socialBlock)
-    ? `<div class="card-bottom">
-         ${pillsHtml ? `<div class="card-pills">${pillsHtml}</div>` : '<div class="card-pills card-pills-empty"></div>'}
-         ${socialBlock}
-       </div>` : '';
-
   return `
     <div class="venue-card ${stateClass}${variantCls} ${v.id === selectedId ? 'selected' : ''}${flags ? ' review-flagged' : ''}"
          data-vid="${v.id}" onclick="selectVenue(${typeof v.id === 'number' ? v.id : `'${v.id}'`}, true)"
          onmouseenter="setHoveredVenue(${typeof v.id === 'number' ? v.id : `'${v.id}'`})" onmouseleave="setHoveredVenue(null)">
-      ${_renderCardThumb(v)}
-      <div class="card-name">${v.name}${favHeart}</div>
-      ${statBlock}
-      <div class="card-meta">${compactMetaHtml}</div>
-      ${bottomBlock}
+      <div class="card-row1">
+        <div class="card-name">${v.name}${favHeart}${friendBadge}${goingBadge}</div>
+        ${durationStr ? `<div class="card-duration">${SUN_GLYPH}${durationStr}</div>` : ''}
+      </div>
+      <div class="card-meta">${metaHtml}</div>
+      ${pillsRowHtml}
       ${timelineBlock}
       ${reviewChips}
       ${reviewActions}
