@@ -807,54 +807,92 @@ function drawTimeline(ctx, opts) {
     }
   }
 
-  // 8. Thumb — "sun-through-the-lens" disc. Solid honey (the sun) with a
-  //    cream rim (the sunglass frame) and a single soft top-left highlight
-  //    crescent (sheen on glass). Honey halo expands when active so the
-  //    handle reads as live during drag.
+  // 8. Thumb — true lens. Interior is transparent (user sees the weather/
+  //    segment behind the thumb). Cream rim is the sunglass frame. Single
+  //    top-left highlight crescent is the lens sheen. On hover (when not
+  //    dragging), the sheen + rim tilt subtly toward the cursor — same
+  //    vocabulary as the card tilt. On drag, tilt resets, the thumb scales
+  //    up, the halo expands (honey), the shadow deepens → reads as "picked
+  //    up". The transparent interior is also a practical win: when the user
+  //    releases the thumb they can see exactly which weather band they
+  //    dropped on.
   if (drawThumb && thumbHour != null) {
     const rawX = timeToX(thumbHour) + springOffset;
     const sx   = Math.max(TRACK_R, Math.min(BAR_W - TRACK_R, rawX));
     const cy_  = bleed + TRACK_H / 2;
     const R    = TRACK_H * 0.42;
+
+    // Tilt vector — normalised cursor offset from thumb centre, clamped to
+    // ±1. Suppressed during active drag (straightens on pick-up).
+    const tilt   = (!thumbActive && opts.thumbTilt) ? opts.thumbTilt : { x: 0, y: 0 };
+    const tiltX  = Math.max(-1, Math.min(1, tilt.x || 0));
+    const tiltY  = Math.max(-1, Math.min(1, tilt.y || 0));
+
     ctx.save();
     ctx.translate(sx, cy_);
-    const sc = thumbActive ? 1.18 : 1.0;
+    const sc = thumbActive ? 1.20 : 1.0;
     ctx.scale(sc, sc);
     ctx.translate(-sx, -cy_);
 
-    // Honey halo — emanates from the thumb. Tighter and brighter when active.
-    const halo = ctx.createRadialGradient(sx, cy_, R * 0.7, sx, cy_, R * 1.35);
-    const accent = TOKENS.accent || '#F5C25E';
-    halo.addColorStop(0, thumbActive ? _ftsRgba(accent, 0.50) : _ftsRgba(accent, 0.30));
-    halo.addColorStop(1, _ftsRgba(accent, 0));
-    ctx.fillStyle = halo;
-    ctx.beginPath(); ctx.arc(sx, cy_, R * 1.35, 0, Math.PI * 2); ctx.fill();
+    const accent  = TOKENS.accent || '#F5C25E';
+    const cream   = TOKENS.text   || '#FFF4E0';
 
-    // Body — solid honey with a subtle drop shadow.
+    // Halo — only when active. Honey radial gradient emanating from the
+    // lifted thumb. Suppressed at rest so the lens reads cleanly.
+    if (thumbActive) {
+      const halo = ctx.createRadialGradient(sx, cy_, R * 0.7, sx, cy_, R * 1.55);
+      halo.addColorStop(0, _ftsRgba(accent, 0.45));
+      halo.addColorStop(1, _ftsRgba(accent, 0));
+      ctx.fillStyle = halo;
+      ctx.beginPath(); ctx.arc(sx, cy_, R * 1.55, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // Drop shadow disc — drawn under the rim so the thumb appears to
+    // float over the track. Heavier when active (lifted further).
     ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,0.40)';
-    ctx.shadowBlur  = 5;
-    ctx.shadowOffsetY = 1.2;
+    ctx.shadowColor   = thumbActive ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0.32)';
+    ctx.shadowBlur    = thumbActive ? 9 : 5;
+    ctx.shadowOffsetY = thumbActive ? 3 : 1.5;
     ctx.beginPath(); ctx.arc(sx, cy_, R, 0, Math.PI * 2);
-    ctx.fillStyle = accent;
+    // A nearly-invisible fill so the shadow casts. Slight cream wash so
+    // the lens isn't *completely* clear (real glass tints a touch).
+    ctx.fillStyle = _ftsRgba(cream, thumbActive ? 0.10 : 0.06);
     ctx.fill();
     ctx.restore();
 
-    // Top-left highlight crescent — the lens sheen. Single stroke, low
-    // alpha, subtle. No multi-stop gradient (used to read as a "bead").
+    // Inner edge — a faint dark ring just inside the rim, simulating the
+    // thicker-glass refraction look without paying the cost of an actual
+    // displacement filter. Stays at thumb-scale so it's free.
+    ctx.beginPath();
+    ctx.arc(sx, cy_, R - 1.6, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(20,30,50,0.18)';
+    ctx.lineWidth   = 1;
+    ctx.stroke();
+
+    // Top highlight crescent — the lens sheen. Position rotates with the
+    // hover tilt: cursor on the right → crescent rotates right.
+    const baseStart = Math.PI * 0.88;
+    const baseEnd   = Math.PI * 1.55;
+    const tiltRot   = tiltX * 0.45 + tiltY * 0.18;
     ctx.save();
     ctx.beginPath();
-    ctx.arc(sx, cy_, R - 1.4, Math.PI * 0.88, Math.PI * 1.55);
-    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
-    ctx.lineWidth   = 1.4;
+    ctx.arc(sx, cy_, R - 1.6, baseStart + tiltRot, baseEnd + tiltRot);
+    ctx.strokeStyle = thumbActive
+      ? 'rgba(255,255,255,0.80)'
+      : 'rgba(255,255,255,0.55)';
+    ctx.lineWidth   = 1.6;
     ctx.lineCap     = 'round';
     ctx.stroke();
     ctx.restore();
 
-    // Cream rim — the sunglass frame. 1.2px stroke at the thumb edge.
-    ctx.beginPath(); ctx.arc(sx, cy_, R - 0.6, 0, Math.PI * 2);
-    ctx.strokeStyle = _ftsRgba(TOKENS.text || '#FFF4E0', 0.85);
-    ctx.lineWidth   = 1.2;
+    // Cream rim — the sunglass frame. Subtly translated with the tilt
+    // (parallax-style; rim moves a little less than the highlight).
+    const rimDx = tiltX * 0.6;
+    const rimDy = tiltY * 0.6;
+    ctx.beginPath();
+    ctx.arc(sx + rimDx, cy_ + rimDy, R - 0.6, 0, Math.PI * 2);
+    ctx.strokeStyle = _ftsRgba(cream, thumbActive ? 1.0 : 0.88);
+    ctx.lineWidth   = thumbActive ? 1.6 : 1.3;
     ctx.stroke();
 
     ctx.restore();

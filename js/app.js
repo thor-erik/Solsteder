@@ -410,6 +410,60 @@ function initFts() {
     scheduleFtsPopupHide();
   });
 
+  // ── Thumb tilt-on-hover ──────────────────────────────────────────────
+  // Mouse position relative to the thumb tilts the lens sheen + rim
+  // (same vocabulary as the card tilt). Smooth lerp so it never jitters.
+  // Suppressed during drag (the thumb straightens on pick-up).
+  window._ftsThumbTiltCur = { x: 0, y: 0 };
+  window._ftsThumbTiltTar = { x: 0, y: 0 };
+  let _ftsTiltRaf = null;
+  function _ftsTiltStep() {
+    const cur = window._ftsThumbTiltCur;
+    const tar = window._ftsThumbTiltTar;
+    const dx  = tar.x - cur.x;
+    const dy  = tar.y - cur.y;
+    if (Math.abs(dx) < 0.005 && Math.abs(dy) < 0.005) {
+      window._ftsThumbTiltCur = { x: tar.x, y: tar.y };
+      _ftsTiltRaf = null;
+      drawFtsCanvas();
+      return;
+    }
+    window._ftsThumbTiltCur = { x: cur.x + dx * 0.22, y: cur.y + dy * 0.22 };
+    drawFtsCanvas();
+    _ftsTiltRaf = requestAnimationFrame(_ftsTiltStep);
+  }
+  function _ftsTiltSetTarget(target) {
+    window._ftsThumbTiltTar = target;
+    if (!_ftsTiltRaf) _ftsTiltRaf = requestAnimationFrame(_ftsTiltStep);
+  }
+  function _ftsThumbPosition() {
+    const rect   = track.getBoundingClientRect();
+    const trackW = rect.width;
+    const fromH  = parseFloat(timeFromEl.value);
+    const xPct   = (fromH - MIN_H_ARC) / (MAX_H_ARC - MIN_H_ARC);
+    const capR   = rect.height / 2;
+    const cx     = rect.left + Math.max(capR, Math.min(trackW - capR, xPct * trackW));
+    const cy     = rect.top + rect.height / 2;
+    const R      = rect.height * 0.42;
+    return { cx, cy, R };
+  }
+  track.addEventListener('pointermove', (e) => {
+    if (window._qcThumbActive) return;              // dragging: ignore tilt
+    const { cx, cy, R } = _ftsThumbPosition();
+    const dx = (e.clientX - cx) / R;
+    const dy = (e.clientY - cy) / R;
+    const dist = Math.hypot(dx, dy);
+    if (dist > 3.5) { _ftsTiltSetTarget({ x: 0, y: 0 }); return; }
+    const cap = Math.min(1, 1 / Math.max(0.001, dist));
+    _ftsTiltSetTarget({
+      x: Math.max(-1, Math.min(1, dx * cap)),
+      y: Math.max(-1, Math.min(1, dy * cap)),
+    });
+  });
+  track.addEventListener('pointerleave', () => {
+    _ftsTiltSetTarget({ x: 0, y: 0 });
+  });
+
   // Pointer cancel
   track.addEventListener('pointercancel', () => {
     _ftsDragging = false;
@@ -480,6 +534,7 @@ function drawFtsCanvas() {
     drawThumb: true,
     thumbHour: fromH,
     thumbActive: !!window._qcThumbActive,
+    thumbTilt:   window._ftsThumbTiltCur || null,
     springOffset: (typeof window._ftsSpringOffset === 'number') ? window._ftsSpringOffset : 0,
   });
 
