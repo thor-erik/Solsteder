@@ -3670,6 +3670,13 @@
     #venue-count { display: none; }
     #venue-header { display: none; }
 
+    /* In peek mode, hide the in-list bucket section headers so the peek
+       height stays as low as possible — the user just needs to see the
+       first card or two. The headers re-appear once the panel expands. */
+    #panel:not(.mobile-expanded):not(.mobile-fullscreen):not(.mobile-hidden) .venue-section-header {
+      display: none;
+    }
+
     /* The unified day-header is visible in every panel state — peek
        mode included — so the user sees both the chip row and the sun
        outlook at all times. */
