@@ -643,15 +643,17 @@ function drawTimeline(ctx, opts) {
       const wx   = getWeatherAt(dateStr, h + 0.5);
       const rain = wx ? (wx.precip ?? wx.prec ?? 0) > 0.3 : false;
       const cf   = wx ? (wx.cloud ?? 0) : 0;
+      // Cloud-fraction thresholds shifted out one notch from the previous
+      // 0.15/0.40/0.65 ramp. The old "overcast at ≥65% cloud" was visually
+      // aggressive — a sky with sun behind a layer of cloud (~0.7 cf) was
+      // rendering as the cool slate "overcast" band, contradicting reality.
+      // Meteorologically: clear ≤25%, partly 25-50%, mostly cloudy 50-75%,
+      // overcast ≥75%. The new bands track that more honestly.
       if      (rain)       color = TOKENS.weatherRain;
-      else if (cf < 0.15)  color = TOKENS.weatherClear;
-      else if (cf < 0.40)  color = TOKENS.weatherClearSoft;
-      else if (cf < 0.65)  color = TOKENS.weatherPartly;
+      else if (cf < 0.20)  color = TOKENS.weatherClear;
+      else if (cf < 0.50)  color = TOKENS.weatherClearSoft;
+      else if (cf < 0.75)  color = TOKENS.weatherPartly;
       else                 color = TOKENS.weatherOvercast;
-      // 3 sun bands (yellow gradient) + 1 cool grey (overcast).
-      // The legacy `weatherCloudy` token (cf < 0.85) was a second cool
-      // grey — collapsed into overcast since the user reads any
-      // beyond-65%-cloud as "no sun" cleanly.
     }
     const x1 = Math.round(timeToX(Math.max(h, minH)));
     const x2 = Math.round(timeToX(Math.min(h + 1, maxH)));
@@ -696,7 +698,10 @@ function drawTimeline(ctx, opts) {
     ctx.fillRect(0, bleed, pastX, TRACK_H);
   }
 
-  // 5. Shadow gaps overlay — dim portions where the venue is in shadow
+  // 5. Shadow gaps overlay — diagonal slate stripes (semantic: "obstructed
+  //    sun, not absent sun"). Distinct from the solid past-hour dim (time
+  //    has passed) and the solid opening-hours dim (venue is closed). Three
+  //    patterns, three meanings.
   if (sunWindows) {
     const wins = sunWindows.windows || [];
     const sOpen  = sunWindows.open  ?? minH;
@@ -718,8 +723,26 @@ function drawTimeline(ctx, opts) {
       const gx1 = Math.round(timeToX(Math.max(minH, gap.start)));
       const gx2 = Math.round(timeToX(Math.min(maxH, gap.end)));
       if (gx2 <= gx1) continue;
-      ctx.fillStyle = 'rgba(0,0,0,0.45)';
+      // Base dim under the stripes — softer than the solid past/closed dim.
+      ctx.fillStyle = 'rgba(15,27,42,0.32)';
       ctx.fillRect(gx1, bleed, gx2 - gx1, TRACK_H);
+      // Diagonal slate stripes (45°, ~4px spacing) clipped to the gap rect.
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(gx1, bleed, gx2 - gx1, TRACK_H);
+      ctx.clip();
+      ctx.strokeStyle = 'rgba(15,27,42,0.45)';
+      ctx.lineWidth   = 1;
+      ctx.beginPath();
+      const stripeSpacing = 4;
+      const startD = Math.floor(gx1 / stripeSpacing) * stripeSpacing - TRACK_H;
+      const endD   = gx2 + TRACK_H;
+      for (let d = startD; d <= endD; d += stripeSpacing) {
+        ctx.moveTo(d,             bleed);
+        ctx.lineTo(d + TRACK_H,   bleed + TRACK_H);
+      }
+      ctx.stroke();
+      ctx.restore();
     }
   }
 
@@ -739,9 +762,31 @@ function drawTimeline(ctx, opts) {
     }
   }
 
+  // 6.5 Hour labels — small muted-cream numerals at 3-hour intervals,
+  //    positioned inside the track near the top. Skipped near the
+  //    rounded caps so the digits don't kiss the pill edge.
+  if (TRACK_H >= 32) {
+    const HOUR_TICKS = [9, 12, 15, 18];
+    const labelEdgePad = TRACK_R + 4;  // distance from cap inside
+    ctx.save();
+    ctx.font         = '600 9px "Inter", system-ui, sans-serif';
+    ctx.fillStyle    = 'rgba(255,244,224,0.45)';
+    ctx.textBaseline = 'top';
+    ctx.textAlign    = 'center';
+    for (const h of HOUR_TICKS) {
+      if (h < minH || h > maxH) continue;
+      const x = timeToX(h);
+      if (x < labelEdgePad || x > BAR_W - labelEdgePad) continue;
+      ctx.fillText(String(h).padStart(2, '0'), x, bleed + 3);
+    }
+    ctx.restore();
+  }
+
   ctx.restore(); // exit rounded-rect clip — tick + thumb draw unclipped
 
-  // 7. NÅ tick — dashed vertical at wall-clock time (today only, not at thumb)
+  // 7. NÅ tick — dashed vertical at wall-clock time (today only, not at thumb).
+  //    Cream-toned so it reads across both honey (sunny) and slate (overcast)
+  //    weather bands. Was legacy Jordy blue — invisible on slate.
   if (isToday && nowH != null && nowH >= minH && nowH <= maxH) {
     const nx = timeToX(nowH);
     const showTick = !drawThumb || (() => {
@@ -751,7 +796,7 @@ function drawTimeline(ctx, opts) {
     if (showTick) {
       ctx.save();
       ctx.setLineDash([2, 3]);
-      ctx.strokeStyle = 'rgba(156,189,231,0.55)';
+      ctx.strokeStyle = _ftsRgba(TOKENS.text || '#FFF4E0', 0.55);
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(nx, bleed);
@@ -762,11 +807,10 @@ function drawTimeline(ctx, opts) {
     }
   }
 
-  // 8. Thumb — FTS only. We don't gate on thumbHour ∈ [minH, maxH]: the
-  // sx clamp below already keeps the thumb visually pinned to the nearest
-  // track edge, so an out-of-range value (page load before the first
-  // update() clamps timeFromEl, drag overshoot past either end) still
-  // renders rather than disappearing.
+  // 8. Thumb — "sun-through-the-lens" disc. Solid honey (the sun) with a
+  //    cream rim (the sunglass frame) and a single soft top-left highlight
+  //    crescent (sheen on glass). Honey halo expands when active so the
+  //    handle reads as live during drag.
   if (drawThumb && thumbHour != null) {
     const rawX = timeToX(thumbHour) + springOffset;
     const sx   = Math.max(TRACK_R, Math.min(BAR_W - TRACK_R, rawX));
@@ -777,30 +821,59 @@ function drawTimeline(ctx, opts) {
     const sc = thumbActive ? 1.18 : 1.0;
     ctx.scale(sc, sc);
     ctx.translate(-sx, -cy_);
-    const halo = ctx.createRadialGradient(sx, cy_, R * 0.7, sx, cy_, R * 1.3);
-    halo.addColorStop(0, thumbActive ? 'rgba(255,175,133,0.42)' : 'rgba(255,175,133,0.28)');
-    halo.addColorStop(1, 'rgba(255,175,133,0)');
+
+    // Honey halo — emanates from the thumb. Tighter and brighter when active.
+    const halo = ctx.createRadialGradient(sx, cy_, R * 0.7, sx, cy_, R * 1.35);
+    const accent = TOKENS.accent || '#F5C25E';
+    halo.addColorStop(0, thumbActive ? _ftsRgba(accent, 0.50) : _ftsRgba(accent, 0.30));
+    halo.addColorStop(1, _ftsRgba(accent, 0));
     ctx.fillStyle = halo;
-    ctx.beginPath(); ctx.arc(sx, cy_, R * 1.3, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(sx, cy_, R * 1.35, 0, Math.PI * 2); ctx.fill();
+
+    // Body — solid honey with a subtle drop shadow.
     ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,0.45)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 1.5;
+    ctx.shadowColor = 'rgba(0,0,0,0.40)';
+    ctx.shadowBlur  = 5;
+    ctx.shadowOffsetY = 1.2;
     ctx.beginPath(); ctx.arc(sx, cy_, R, 0, Math.PI * 2);
-    const body = ctx.createRadialGradient(sx, cy_ - R * 0.35, R * 0.1, sx, cy_ + R * 0.4, R * 1.1);
-    body.addColorStop(0, 'rgba(255,255,253,1)');
-    body.addColorStop(0.55, 'rgba(255,242,235,0.96)');
-    body.addColorStop(1, 'rgba(232,210,196,0.92)');
-    ctx.fillStyle = body; ctx.fill();
+    ctx.fillStyle = accent;
+    ctx.fill();
     ctx.restore();
+
+    // Top-left highlight crescent — the lens sheen. Single stroke, low
+    // alpha, subtle. No multi-stop gradient (used to read as a "bead").
     ctx.save();
-    ctx.beginPath(); ctx.arc(sx, cy_, R, 0, Math.PI * 2); ctx.clip();
-    const hl = ctx.createLinearGradient(sx, cy_ - R, sx, cy_);
-    hl.addColorStop(0, 'rgba(255,255,255,0.55)');
-    hl.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.fillStyle = hl; ctx.fillRect(sx - R, cy_ - R, R * 2, R);
+    ctx.beginPath();
+    ctx.arc(sx, cy_, R - 1.4, Math.PI * 0.88, Math.PI * 1.55);
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+    ctx.lineWidth   = 1.4;
+    ctx.lineCap     = 'round';
+    ctx.stroke();
     ctx.restore();
-    ctx.beginPath(); ctx.arc(sx, cy_, R - 0.5, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(42,26,12,0.20)';
-    ctx.lineWidth = 1; ctx.stroke();
+
+    // Cream rim — the sunglass frame. 1.2px stroke at the thumb edge.
+    ctx.beginPath(); ctx.arc(sx, cy_, R - 0.6, 0, Math.PI * 2);
+    ctx.strokeStyle = _ftsRgba(TOKENS.text || '#FFF4E0', 0.85);
+    ctx.lineWidth   = 1.2;
+    ctx.stroke();
+
     ctx.restore();
   }
+}
+
+// Local rgba helper for drawTimeline — same pattern used in render-pins.js,
+// inlined here so ui-shared.js doesn't add a cross-module dep just for this.
+function _ftsRgba(color, a) {
+  if (!color) return `rgba(0,0,0,${a})`;
+  if (color[0] === '#') {
+    const h    = color.slice(1);
+    const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
+    const r = parseInt(full.slice(0, 2), 16);
+    const g = parseInt(full.slice(2, 4), 16);
+    const b = parseInt(full.slice(4, 6), 16);
+    return `rgba(${r},${g},${b},${a})`;
+  }
+  const m = color.match(/^rgba?\s*\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)/);
+  if (m) return `rgba(${m[1]},${m[2]},${m[3]},${a})`;
+  return color;
 }

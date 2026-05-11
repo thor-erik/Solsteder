@@ -64,7 +64,7 @@
 <script defer src="js/render-seating.js?v=20260508a"></script>
 <script defer src="js/render-editor.js?v=20260508a"></script>
 <script defer src="js/render-pins.js?v=20260510c"></script>
-<script defer src="js/ui-shared.js?v=20260510a"></script>
+<script defer src="js/ui-shared.js?v=20260511a"></script>
 <script defer src="js/ui-list.js?v=20260510a"></script>
 <script defer src="js/admin-review.js?v=20260505a"></script>
 <script defer src="js/ui-shelter.js?v=20260416a"></script>
@@ -1248,7 +1248,7 @@
     bottom: 16px;
     width: var(--fts-width, 480px);
     z-index: 925;
-    height: 34px;          /* match locate-btn so they sit on the same baseline */
+    height: 40px;          /* taller for readability — weather bands + hour labels need room */
     align-items: center;
     gap: 8px;
     padding: 0;
@@ -1267,7 +1267,7 @@
   body.fts #fts-date-btn {
     position: absolute;
     left: 0; top: 50%;
-    width: 34px; height: 34px;
+    width: 40px; height: 40px;
     padding: 0;
     border-radius: 50%;
     background: var(--glass-action-bg);
@@ -1289,7 +1289,7 @@
     transition: opacity 0.22s ease, transform 0.22s ease, background 0.15s, border-color 0.15s;
   }
   body.fts #fts-date-btn:hover { background: rgba(20,46,82,0.60); border-color: rgba(156,189,231,0.30); }
-  body.fts #fts-date-btn.active { border-color: rgba(255,175,133,0.35); color: var(--accent); }
+  body.fts #fts-date-btn.active { border-color: rgba(245,194,94,0.45); color: var(--accent); }
   body.fts #fts-date-btn.active .fts-cal-icon { color: var(--accent); }
   body.fts #fts-date-btn .fts-cal-icon { color: var(--muted); }
   body.fts #fts-track {
@@ -1301,13 +1301,13 @@
     pointer-events: auto;
   }
   body:has(#detail-panel.open) #fts-track {
-    margin-left: calc(34px + 8px);  /* button + gap */
+    margin-left: calc(40px + 8px);  /* button + gap */
   }
 
   /* Slider track — canvas fills remaining width · glass rim treatment */
   #fts-track {
     flex: 1 1 0; min-width: 0;
-    height: 34px;
+    height: 40px;
     border-radius: 999px;
     overflow: visible;       /* let active thumb glow extend beyond track */
     position: relative;
@@ -1385,11 +1385,10 @@
     clip-path: polygon(50% 0, 0 100%, 100% 100%);
   }
   .fts-popup-row { display: flex; align-items: center; gap: 6px; line-height: 1; }
-  /* Compact: row gap 0 so the time sits flush against the padding when the
-     icon is collapsed. Expanded overrides this back up. Transitioned so the
-     gap opens in lockstep with the icon's max-width. */
+  /* Compact: a small gap so the time + weather glyph have breathing room.
+     Expanded opens further. Transitioned for the morph. */
   .fts-popup-primary {
-    gap: 0;
+    gap: 5px;
     transition: gap 0.18s cubic-bezier(0.32, 0.72, 0, 1);
   }
   /* Secondary is fully removed from layout in compact (display: none).
@@ -1412,19 +1411,16 @@
     letter-spacing: -0.01em;
     transition: font-size 0.18s cubic-bezier(0.32, 0.72, 0, 1);
   }
-  /* Compact: icon is fully removed from layout (display:none).
-     Expanded: icon switches to inline and grows in via font-size.
-     Bulletproof against flex min-width: auto sneaking width back in. */
+  /* Weather glyph — shown in BOTH compact and expanded so the user gets
+     at-a-glance forecast without needing to drag. Smaller in compact;
+     grows in expanded via font-size. */
   #fts-popup-wx-icon {
-    display: none;
-    font-size: 14px;
+    display: inline-block;
+    font-size: 13px;
     line-height: 1;
     transition:
       font-size 0.18s cubic-bezier(0.32, 0.72, 0, 1),
       opacity 0.14s ease;
-  }
-  #fts-popup.fts-popup-expanded #fts-popup-wx-icon {
-    display: inline-block;
   }
   #fts-popup-temp {
     font: 600 10px/1 'Inter', sans-serif;
