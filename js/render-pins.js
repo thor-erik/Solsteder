@@ -175,18 +175,19 @@ const PLUS_GAP_INNER    = 2;      // gap between last avatar and "+N" text insid
 const PLUS_PAD_RIGHT    = 5;      // inner padding on the right edge of the capsule
 
 // ── Status colour for the dot / friend capsule ────────────────────────────────
-// Three semantic states, two solid + one transparent for each:
+// Two semantic states, with transparent variants for "opening soon":
 //   IN SUN (hero)                  → solid honey
-//   IN SHADE (waiting / context)   → solid rain-blue
-//   OPENING SOON (closedOpeningIntoSun)  → transparent variant of the destination
-//     state (transparent honey if it opens into sun, transparent blue if not).
-// Previously waiting/context used --surface (slate) which read as "shades of
-// blue" muddying the sun/shade contrast. Rain-blue is a clearly different hue
-// from the slate map background.
+//   IN SHADE (waiting / context)   → solid dark slate (TOKENS.surface) —
+//                                    same colour the pill uses on select,
+//                                    so the system reads as one palette.
+// Closed-but-opens-into-sun gets a transparent variant of the destination
+// state. Previously waiting/context used --rain (mid-blue) which felt
+// washy against the warm map; the deeper surface slate gives the dots
+// real presence.
 function _dotColors(tier, closed, hasSunLaterToday) {
-  const SUN_RING = _rgba(TOKENS.accentOn, 0.40);
-  const SHADE    = TOKENS.rain || '#6F8AA8';
-  const SHADE_RING = _rgba(SHADE, 0.35);
+  const SUN_RING   = _rgba(TOKENS.accentOn, 0.40);
+  const SHADE      = TOKENS.surface || '#284463';
+  const SHADE_RING = _rgba('#ffffff', 0.18);
 
   // Sun NOW
   if (tier === 'hero') {
@@ -197,12 +198,12 @@ function _dotColors(tier, closed, hasSunLaterToday) {
   // Sun LATER (waiting) — currently shaded but sun is coming
   if (tier === 'waiting') {
     return closed
-      ? { fill: _rgba(SHADE, 0.45), ring: _rgba(SHADE, 0.22) }                  // opening soon, into shade-then-sun
+      ? { fill: _rgba(SHADE, 0.55), ring: _rgba('#ffffff', 0.12) }              // opening soon, into shade-then-sun
       : { fill: SHADE,              ring: SHADE_RING };                          // in shade, sun later
   }
   // Context — no near-term sun. Fade further when no more sun today at all.
-  const a = hasSunLaterToday ? 0.65 : 0.35;
-  return { fill: _rgba(SHADE, a), ring: _rgba(SHADE, 0.20) };
+  const a = hasSunLaterToday ? 0.85 : 0.55;
+  return { fill: _rgba(SHADE, a), ring: _rgba('#ffffff', 0.10) };
 }
 
 // ── Vector category icons ─────────────────────────────────────────────────────
@@ -592,13 +593,14 @@ function _drawName(ctx, pt, pillRect, name, secondary, placedPills, placedNames,
   const secY   = best.cy + lineH / 2;
 
   // Google-Maps-style label treatment: white text with a SOFT BLURRED
-  // halo (not a hard stroke). The halo is drawn via canvas shadowBlur
-  // — two passes intensify the blur into a readable glow against any
-  // map background. A final crisp pass renders the text without shadow
-  // on top. Anchor alpha (opts.alpha) lets the label fade in/out with
-  // the pill morph.
+  // halo (not a hard stroke). The halo is near-black to avoid the
+  // light-blue tint the previous slate halo created at the blurred
+  // edges (where opacity falls off, slate read as pale blue against
+  // warm map tiles). Three passes: two with shadow to intensify the
+  // blur, one crisp on top. Anchor alpha (opts.alpha) lets the label
+  // fade in/out with the pill morph.
   const LIGHT_FILL  = '#FFFFFF';
-  const HALO_COLOR  = 'rgba(15, 30, 55, 0.85)';
+  const HALO_COLOR  = 'rgba(0, 0, 0, 0.85)';
   const labelAlpha  = opts.alpha != null ? opts.alpha : 1;
 
   ctx.save();
@@ -951,25 +953,20 @@ function draw() {
     // map as two colour states (yellow = sun, blue = shade) instead of
     // three (yellow / mid-slate / dark-slate).
     if (tier === 'context' && !hasFriends) {
-      const r = (zoom >= 16 ? 4 : 3);
-      // Hide the small context dot when it would land inside or on top of
-      // a higher-priority pill that's already placed (avoids the
-      // overlapping-dot-on-pill artefact).
-      let dotOverlaps = false;
-      for (const p of placedPills) {
-        if (pt.x >= p.x - 5 && pt.x <= p.x + p.w + 5 &&
-            pt.y >= p.y - 5 && pt.y <= p.y + p.h + 5) { dotOverlaps = true; break; }
-      }
-      if (!dotOverlaps) {
-        const dot = _dotColors('context', false, !!cls.hasSunLaterToday);
-        ctx.save();
-        ctx.beginPath(); ctx.arc(pt.x, pt.y, r, 0, Math.PI * 2);
-        ctx.fillStyle   = dot.fill;
-        ctx.strokeStyle = dot.ring;
-        ctx.lineWidth   = 0.75;
-        ctx.fill(); ctx.stroke();
-        ctx.restore();
-      }
+      // Slightly larger dots to match Google Maps (~12px diameter at
+      // zoom ≥ 16, ~10px lower). We DON'T suppress when the dot would
+      // overlap a placed pill anymore — without the suppression the user
+      // sees the full constellation of venues even when some have pills
+      // on top, which is what they want.
+      const r = (zoom >= 16 ? 6 : 5);
+      const dot = _dotColors('context', false, !!cls.hasSunLaterToday);
+      ctx.save();
+      ctx.beginPath(); ctx.arc(pt.x, pt.y, r, 0, Math.PI * 2);
+      ctx.fillStyle   = dot.fill;
+      ctx.strokeStyle = dot.ring;
+      ctx.lineWidth   = 1;
+      ctx.fill(); ctx.stroke();
+      ctx.restore();
       // Review badge on context dots (admin)
       if (isReviewMode && typeof venueReviewFlags === 'function' && venueReviewFlags(v)) {
         _drawReviewBadge(pt.x - r - 1, pt.y - r - 1);
@@ -1026,32 +1023,29 @@ function draw() {
       }
     }
     if (demote) {
-      // Skip the dot if it would land on top of a placed pill (the venue
-      // pt of the demoted pin can sit inside another pill's body when the
-      // two venues are very close — would read as a stray dot stuck to
-      // the chevron). Pin still goes into _lastLayout so hit testing works.
-      let dotOverlaps = false;
-      for (const p of placedPills) {
-        if (pt.x >= p.x - 5 && pt.x <= p.x + p.w + 5 &&
-            pt.y >= p.y - 5 && pt.y <= p.y + p.h + 5) { dotOverlaps = true; break; }
-      }
-      // Drive the morph target toward 0 (dot). The pill alpha drains
-      // toward 0 each frame; the dot draws at (1 - pillAlpha) so the
-      // two cross-fade across the transition.
+      // Drive the morph target toward 0 (dot). The pill scales down as
+      // it fades; the dot grows in at (1 - morph) so the two cross-fade
+      // smoothly across the transition. No more dotOverlaps suppression
+      // — yellow / blue dots stay visible across the constellation even
+      // when one would land near a placed pill.
       const stDot = _ensureState(v.id);
       stDot.target_alpha = 0;
       stDot.morphTarget  = 0;
-      const aMovingD = _stepLerp(stDot, 'alpha', stDot.target_alpha, 0.18);
-      const mMovingD = _stepLerp(stDot, 'morph', stDot.morphTarget, 0.18);
+      const aMovingD = _stepLerp(stDot, 'alpha', stDot.target_alpha, 0.14);
+      const mMovingD = _stepLerp(stDot, 'morph', stDot.morphTarget, 0.12);
       if (aMovingD || mMovingD) _animDirty = true;
       const dotAlpha = 1 - stDot.morph;       // fades in as pill fades out
 
-      // Lingering pill during the transition: draw it at the alpha
-      // that's still bleeding off so the swap is a true cross-fade,
-      // not a snap.
+      // Shrinking pill — interpolate scale from 1.0 down to 0.4 as morph
+      // crosses to 0, alongside the fading alpha. Reads as "the pill
+      // collapses back into the dot."
       if (stDot.alpha > 0.04 && stDot.snapshot) {
         ctx.save();
+        const shrinkScale = 0.4 + 0.6 * stDot.morph;
         ctx.globalAlpha = stDot.alpha;
+        ctx.translate(pt.x, pt.y);
+        ctx.scale(shrinkScale, shrinkScale);
+        ctx.translate(-pt.x, -pt.y);
         const snap = stDot.snapshot;
         _drawPill(ctx, pt, snap.w, snap.time, snap.tier, {
           selected: false, hovered: false, closedNow: !!snap.closedNow,
@@ -1060,14 +1054,14 @@ function draw() {
         ctx.restore();
       }
 
-      if (!dotOverlaps && dotAlpha > 0.04) {
+      if (dotAlpha > 0.04) {
         const dot = _dotColors(tier, closedOpens, !!cls.hasSunLaterToday);
         ctx.save();
         ctx.globalAlpha = dotAlpha;
-        ctx.beginPath(); ctx.arc(pt.x, pt.y, 4.5, 0, Math.PI * 2);
+        ctx.beginPath(); ctx.arc(pt.x, pt.y, 6, 0, Math.PI * 2);
         ctx.fillStyle = dot.fill;
         ctx.fill();
-        ctx.beginPath(); ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+        ctx.beginPath(); ctx.arc(pt.x, pt.y, 5.5, 0, Math.PI * 2);
         ctx.strokeStyle = dot.ring;
         ctx.lineWidth   = 1;
         ctx.stroke();
@@ -1098,17 +1092,18 @@ function draw() {
     st.snapshot     = { tier, w, time, category: v.category, closedNow: closedOpens, friends };
     const aMoving = _stepLerp(st, 'alpha', st.target_alpha, 0.20);
     const sMoving = _stepLerp(st, 'scale', st.target_scale, 0.22);
-    const mMoving = _stepLerp(st, 'morph', st.morphTarget, 0.18);
+    const mMoving = _stepLerp(st, 'morph', st.morphTarget, 0.12);
     if (aMoving || sMoving || mMoving) _animDirty = true;
 
-    // When promoting from dot → pill, also bleed off a residual dot so
-    // the swap is a true cross-fade.
+    // When promoting from dot → pill, bleed off a residual dot
+    // underneath so the swap reads as a smooth cross-fade rather
+    // than a snap.
     const promoDotAlpha = 1 - st.morph;
     if (promoDotAlpha > 0.04) {
       const dot = _dotColors(tier, closedOpens, !!cls.hasSunLaterToday);
       ctx.save();
       ctx.globalAlpha = promoDotAlpha;
-      ctx.beginPath(); ctx.arc(pt.x, pt.y, 4.5, 0, Math.PI * 2);
+      ctx.beginPath(); ctx.arc(pt.x, pt.y, 6, 0, Math.PI * 2);
       ctx.fillStyle = dot.fill;
       ctx.fill();
       ctx.restore();
