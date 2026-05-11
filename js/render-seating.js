@@ -189,14 +189,14 @@ function drawShadowOverlay(venue) {
     const hull = convexHull([...footPx, ...shadowPx]);
 
     if (casting) {
-      // Full unified shadow. Opacity dropped from 0.40 → 0.18 so the
-      // shadow whisper-reads as context without painting a dark blue
-      // rectangle over the seating area when the building self-shadows.
-      // Belt-and-braces with the seating-polygon clip above.
+      // Shadow polygon fill TEMPORARILY at opacity 0 to verify the
+      // rendering path. If a dark-blue polygon still appears over the
+      // seating area in this build, it isn't coming from here — it's
+      // a different overlay we haven't identified yet.
       ctx.beginPath();
       hull.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
       ctx.closePath();
-      ctx.fillStyle = 'rgba(10,14,40,0.18)';
+      ctx.fillStyle = 'rgba(10,14,40,0.0)';
       ctx.fill();
     } else {
       // Non-casting building — subtle outline only
