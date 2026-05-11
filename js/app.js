@@ -564,11 +564,8 @@ function updateSunSectionBar() {
       nowLine.querySelector('.ssb-count').textContent = '';
       nowLine.querySelector('.ssb-label').textContent = t(`outlook_no_sun_${w}`);
       nowLine.querySelector('.ssb-tail').textContent  = '';
-      if (laterLine) {
-        laterLine.querySelector('.ssb-count').textContent = '';
-        laterLine.querySelector('.ssb-label').textContent = '';
-        laterLine.querySelector('.ssb-tail').textContent  = '';
-      }
+      nowLine.hidden = false;
+      if (laterLine) laterLine.hidden = true;
       bar.classList.remove('later');
       bar.dataset.locked = '1';
       return;
@@ -577,6 +574,12 @@ function updateSunSectionBar() {
     return;
   }
   bar.classList.remove('ssb-empty');
+
+  // Hide bucket lines whose count is 0. A line with count=0 used to render
+  // ghost text like "in sun now" with no number — confusing. The line is
+  // gone entirely when there's nothing to count.
+  if (nowLine)   nowLine.hidden   = nowCount   === 0;
+  if (laterLine) laterLine.hidden = laterCount === 0;
 
   const isFuture = (typeof nowMode !== 'undefined' && !nowMode &&
                     dateStr === todayStr() &&
