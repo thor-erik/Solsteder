@@ -1911,9 +1911,17 @@ function _closeQcPanel() {
     calFloat.style.width = '';
   }
   document.getElementById('ptb-cal-backdrop')?.remove();
-  // Release the cal-open class so the detail panel (if open) slides back
-  // up into view at the same time the calendar slides down.
+  // Release the cal-open class + the inline style hide so the detail
+  // panel (if open) slides back up into view at the same time the
+  // calendar slides down.
   document.body.classList.remove('cal-open');
+  const _dpC = document.getElementById('detail-panel');
+  if (_dpC) {
+    _dpC.style.transform = '';
+    _dpC.style.opacity = '';
+    _dpC.style.pointerEvents = '';
+    _dpC.style.zIndex = '';
+  }
   // Update header date chip: remove active state, restore visibility, update label
   if (USE_FLOATING_TIME_SLIDER) {
     document.getElementById('header-date-chip')?.classList.remove('active');
@@ -1972,8 +1980,19 @@ function toggleQcPanel(section) {
   calFloat?.classList.add('open');
   // When the detail panel is open AND the user taps the calendar from
   // its FTS, slide the detail panel out of the way while the calendar
-  // comes up — coordinated swap. body.cal-open is the CSS hook.
+  // comes up — coordinated swap. body.cal-open is the CSS hook, but
+  // also apply styles directly so the swap fires regardless of any
+  // CSS specificity / stacking issues we might not be seeing.
   document.body.classList.add('cal-open');
+  const _dp = document.getElementById('detail-panel');
+  if (_dp && _dp.classList.contains('open')) {
+    if (isMobile()) {
+      _dp.style.transform = 'translateY(100%) translateZ(0)';
+      _dp.style.opacity = '0';
+      _dp.style.pointerEvents = 'none';
+    }
+    _dp.style.zIndex = '700';
+  }
   // On mobile, add a backdrop overlay behind the bottom-sheet calendar
   if (isMobile() && !document.getElementById('ptb-cal-backdrop')) {
     const bd = document.createElement('div');
