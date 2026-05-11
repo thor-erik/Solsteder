@@ -3661,15 +3661,10 @@
     #venue-count { display: none; }
     #venue-header { display: none; }
 
-    /* Mobile chip row tightening — same content as desktop. */
-    #list-sun-header { padding: 4px 14px 6px !important; }
-    /* In peek mode (mobile, panel collapsed), HIDE the chip row and SHOW
-       only the sun headline. Date is already reachable via the FTS slider,
-       and the sun headline is the answer the user opened the app for. The
-       chip row reappears once the panel expands. */
-    #panel:not(.mobile-expanded):not(.mobile-fullscreen):not(.mobile-hidden) #list-sun-header {
-      display: none;
-    }
+    /* The unified day-header is visible in every panel state — peek
+       mode included — so the user sees both the chip row and the sun
+       outlook at all times. */
+    #day-header { padding: 6px 14px 8px !important; }
 
     #panel-header { padding-top: 0; }
 
@@ -5179,41 +5174,75 @@
   #qc-notice.visible { opacity: 1; }
 
 
-  /* ── Header chip row: date (left), weather (right). Sort has moved to
-     the sun-section-bar row above. 2-column grid: date pinned left,
-     weather flowing right of it. Date keeps its 116px chip so it doesn't
-     resize between today/tomorrow/dated states. */
-  #list-sun-header {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    align-items: center;
-    column-gap: 10px;
-    padding: 4px 14px 8px;
+  /* ── Day header — unified 2-row composition. Row 1: date · weather ·
+     wind · sort (flex row, plain text, no chip borders). Row 2: city-
+     wide sun outlook (always present). Both rows share the same outer
+     padding so they read as one block. */
+  #day-header {
     flex-shrink: 0;
+    padding: 8px 14px 10px;
   }
 
-  #header-date-chip,
-  #header-wx-chip {
+  /* Row 1 — text run with a sort button pinned to the right. */
+  #list-sun-header.dh-row1 {
     display: flex;
     align-items: center;
     gap: 6px;
-    height: 36px;
-    padding: 0 14px;
-    color: var(--text);
+    min-height: 28px;
     font-family: 'Inter', sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    -webkit-tap-highlight-color: transparent;
-    outline: none;
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255, 244, 224, 0.78);
     white-space: nowrap;
-    box-sizing: border-box;
-    transition: background 0.12s, border-color 0.12s, color 0.12s;
   }
-  #header-date-chip               { justify-self: start; justify-content: center; width: 116px; }
-  #header-wx-chip                 { justify-self: start; justify-content: flex-start; padding-left: 4px; }
+  .dh-sep { opacity: 0.4; flex-shrink: 0; }
 
-  /* Sort icon styles still apply when the button lives in #sun-section-bar.
-     The label stays in DOM as a screen-reader-only span. */
+  /* Date — tappable text (not a chip). Calendar icon + label, transparent
+     bg, accent on hover. Keeps the affordance without the heavy button
+     border the previous chip carried. */
+  #header-date-chip.dh-date {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    padding: 4px 6px 4px 0;
+    margin: 0;
+    height: auto;
+    width: auto;
+    color: var(--text);
+    font: inherit;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    border-radius: 6px;
+    transition: color 0.12s ease, background 0.12s ease;
+  }
+  #header-date-chip.dh-date:hover { color: var(--accent); background: rgba(255,242,235,0.04); }
+  #header-date-chip.dh-date.active { color: var(--accent); }
+  #header-date-chip.dh-date.active .chip-cal-icon { color: var(--accent); }
+  #header-date-chip.dh-date .chip-cal-icon { color: var(--muted); flex-shrink: 0; }
+
+  /* Weather inline group — icon + temp + (mid-dot) + wind. */
+  #header-wx-chip.dh-weather {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    color: rgba(255, 244, 224, 0.78);
+    font-weight: 500;
+    flex: 1;       /* take available width so sort button is pushed right */
+    min-width: 0;
+  }
+  #header-wx-chip.dh-weather #header-wx-icon { font-size: 15px; line-height: 1; flex-shrink: 0; }
+  #header-wx-chip.dh-weather #header-wx-temp { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+  #header-wx-chip.dh-weather #header-wx-wind { font-variant-numeric: tabular-nums; }
+  #header-wx-chip.dh-weather .dh-sep-mid { opacity: 0.4; }
+
+  /* Sort icon — small, sits at the right end of row 1. */
   .sort-icon-label-sr {
     position: absolute;
     width: 1px; height: 1px;
@@ -5230,6 +5259,7 @@
     justify-content: center;
     cursor: pointer;
     border-radius: 8px;
+    flex-shrink: 0;
     -webkit-tap-highlight-color: transparent;
     transition: background 0.12s ease;
   }
@@ -5237,42 +5267,6 @@
   .sort-icon { color: var(--text); opacity: 0.80; transition: color 0.12s, opacity 0.12s; }
   .sort-icon-btn:hover  .sort-icon { color: var(--accent); opacity: 1; }
   .sort-icon-btn.open   .sort-icon { color: var(--accent); opacity: 1; }
-
-  /* Date chip — tappable, opens picker. Glass action button. */
-  #header-date-chip {
-    background: var(--glass-action-bg);
-    border: var(--glass-border);
-    border-radius: 10px;
-    box-shadow: var(--glass-inset);
-    cursor: pointer;
-    transition: color 0.12s, border-color 0.12s, background 0.12s;
-  }
-  #header-date-chip:hover { border-color: rgba(155,169,188,0.42); background: rgba(26,44,66,0.65); }
-  #header-date-chip.active {
-    border-color: rgba(245,194,94,0.45);
-    color: var(--accent);
-    box-shadow: var(--glass-inset), inset 0 0 0 1px rgba(245,194,94,0.18);
-  }
-  #header-date-chip.active .chip-cal-icon { color: var(--accent); }
-  #header-date-chip .chip-cal-icon { color: var(--muted); flex-shrink: 0; }
-
-  /* Weather chip — info-only. Borderless, transparent, clearly not a button.
-     Font-size + line-height match the other two chips so the row's text
-     baselines align. Icon sized to sit between the date/sort chip text rather
-     than dominating the row. */
-  #header-wx-chip {
-    background: transparent;
-    border: none;
-    cursor: default;
-    color: var(--muted);
-    font-weight: 500;
-    padding: 0 8px;
-    font-size: 13px;
-    gap: 6px;
-  }
-  #header-wx-chip #header-wx-icon { font-size: 16px; line-height: 1; flex-shrink: 0; }
-  #header-wx-chip #header-wx-temp { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
-  #header-wx-chip #header-wx-wind { font-variant-numeric: tabular-nums; }
   #header-wx-chip .chip-dot { opacity: 0.55; }
 
   /* Sort button — tappable, glass with chevron. Pinned to the right edge so
@@ -5300,18 +5294,16 @@
   /* ── Sun-section bar: "Sun now — N places in the sun" ─────────────────
      Two stacked text lines on a vertical translate track. JS toggles
      .later on the bar to slide the second line into view (calendar-style). */
-  /* Sun headline — sentence + sort button in a 2-column grid. Single
-     text flow, wraps naturally when too long for the panel width. */
-  #sun-section-bar {
-    flex-shrink: 0;
-    padding: 8px 14px 10px;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-    column-gap: 8px;
+  /* Sun outlook row inside the day-header. Plain text, full width, wraps
+     naturally if the sentence is too long for the panel. Never hidden —
+     even on clear days we show "Sun all day" so the row is never empty. */
+  #sun-section-bar.dh-outlook {
+    padding: 2px 0 0;
+    display: block;
   }
   #sun-section-bar.ssb-empty { display: none; }
   .ssb-text {
+    display: block;
     font-family: 'Inter', sans-serif;
     font-size: 17px;
     font-weight: 500;
@@ -8852,43 +8844,41 @@
     </div>
 
 
-    <!-- Sun headline — one conversational sentence about the city's sun
-         pattern from the slider time forward. No count (the count was
-         slider-tied and confusing — 92 at 14:45 might be 142 at 15:15);
-         no bucket morph. Sort icon still lives here as the list-level
-         action. Hidden when the day is fully clear (no disruption ahead). -->
-    <div id="sun-section-bar" aria-live="polite">
-      <span class="ssb-text"></span>
-      <button id="sort-toggle-btn" class="sort-icon-btn" onclick="toggleSortPanel()" aria-label="Sortér" title="Sortér">
-        <svg class="sort-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <line x1="6"  y1="5"  x2="6"  y2="19"/>
-          <polyline points="3 15 6 19 9 15"/>
-          <line x1="14" y1="6"  x2="20" y2="6"/>
-          <line x1="14" y1="12" x2="18" y2="12"/>
-          <line x1="14" y1="18" x2="16" y2="18"/>
-        </svg>
-        <span id="sort-label" class="sort-icon-label-sr">Mest sol</span>
-      </button>
-    </div>
-
-    <!-- Chip row — date (tappable) + weather (passive readout). Sits below
-         the sun headline as context for "what slice of time/conditions am
-         I looking at." -->
-    <div id="list-sun-header">
-      <button id="header-date-chip" onclick="toggleQcPanel('date')" aria-label="Velg dato">
-        <svg class="chip-cal-icon" width="14" height="14" viewBox="0 0 16 16" fill="none">
-          <rect x="1.5" y="3" width="13" height="11.5" rx="2" stroke="currentColor" stroke-width="1.5"/>
-          <line x1="1.5" y1="6.5" x2="14.5" y2="6.5" stroke="currentColor" stroke-width="1.5"/>
-          <line x1="5" y1="1.5" x2="5" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          <line x1="11" y1="1.5" x2="11" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        </svg>
-        <span id="header-date-label"></span>
-      </button>
-      <div id="header-wx-chip" role="status" aria-live="polite">
-        <span id="header-wx-icon" aria-hidden="true"></span>
-        <span id="header-wx-temp"></span>
-        <span class="chip-dot" aria-hidden="true">·</span>
-        <span id="header-wx-wind"></span>
+    <!-- Day header — unified 2-row composition.
+         Row 1: date (tappable) · weather · wind · sort
+         Row 2: city-wide sun outlook — always present.
+         No chip borders — flows as one block, not stacked controls. -->
+    <div id="day-header">
+      <div id="list-sun-header" class="dh-row1">
+        <button id="header-date-chip" class="dh-date" onclick="toggleQcPanel('date')" aria-label="Velg dato">
+          <svg class="chip-cal-icon" width="14" height="14" viewBox="0 0 16 16" fill="none">
+            <rect x="1.5" y="3" width="13" height="11.5" rx="2" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="1.5" y1="6.5" x2="14.5" y2="6.5" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="5" y1="1.5" x2="5" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="11" y1="1.5" x2="11" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <span id="header-date-label"></span>
+        </button>
+        <span class="dh-sep" aria-hidden="true">·</span>
+        <span id="header-wx-chip" class="dh-weather" role="status" aria-live="polite">
+          <span id="header-wx-icon" aria-hidden="true"></span>
+          <span id="header-wx-temp"></span>
+          <span class="dh-sep dh-sep-mid" aria-hidden="true">·</span>
+          <span id="header-wx-wind"></span>
+        </span>
+        <button id="sort-toggle-btn" class="sort-icon-btn" onclick="toggleSortPanel()" aria-label="Sortér" title="Sortér">
+          <svg class="sort-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="6"  y1="5"  x2="6"  y2="19"/>
+            <polyline points="3 15 6 19 9 15"/>
+            <line x1="14" y1="6"  x2="20" y2="6"/>
+            <line x1="14" y1="12" x2="18" y2="12"/>
+            <line x1="14" y1="18" x2="16" y2="18"/>
+          </svg>
+          <span id="sort-label" class="sort-icon-label-sr">Mest sol</span>
+        </button>
+      </div>
+      <div id="sun-section-bar" class="dh-outlook" aria-live="polite">
+        <span class="ssb-text"></span>
       </div>
     </div>
 

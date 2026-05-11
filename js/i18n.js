@@ -139,6 +139,7 @@ const _STRINGS = {
     // {nowState} resolves to "now" (present mode) or "at HH:MM" (future).
     outlook_now:                'now',
     outlook_at_time:            'at {time}',
+    outlook_clear:              'Sun all day',
     outlook_sun_until_cloud:    'Sun {nowState}, then cloudy from {end}',
     outlook_sun_until_rain:     'Sun {nowState}, then rain from {end}',
     outlook_sun_from_cloud:     'Cloudy {nowState}, sun from {start}',
@@ -589,6 +590,7 @@ const _STRINGS = {
     // City-wide sun outlook — full sentences
     outlook_now:                'nå',
     outlook_at_time:            'kl {time}',
+    outlook_clear:              'Sol hele dagen',
     outlook_sun_until_cloud:    'Sol {nowState}, så skyer fra {end}',
     outlook_sun_until_rain:     'Sol {nowState}, så regn fra {end}',
     outlook_sun_from_cloud:     'Skyer {nowState}, sol fra {start}',

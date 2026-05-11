@@ -548,15 +548,14 @@ function updateSunSectionBar() {
   const outlook = (typeof computeCityWideSunOutlook === 'function' && sundownH != null)
     ? computeCityWideSunOutlook(dateStr, fromHour, sundownH) : null;
 
-  // Clear days: nothing useful to say — the FTS slider's weather bands
-  // already convey "all sun ahead" graphically. Hide the row.
+  // Always show the outlook row. On clear days the sentence is "Sun all
+  // day" (or sunset-bounded variant) — it's reassuring + keeps the
+  // header from going visually empty.
+  bar.classList.remove('ssb-empty');
   if (!outlook || outlook.code === 'clear') {
-    bar.classList.add('ssb-empty');
-    textEl.textContent = '';
+    textEl.textContent = t('outlook_clear');
     return;
   }
-
-  bar.classList.remove('ssb-empty');
 
   // When the slider is set to a future hour (not "now"), the outlook
   // sentences read more clearly with "at HH:MM" instead of "now":
