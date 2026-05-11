@@ -58,13 +58,13 @@
 <script defer src="js/weather.js?v=20260411b"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260511b"></script>
+<script defer src="js/app.js?v=20260511c"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
 <script defer src="js/render-editor.js?v=20260508a"></script>
 <script defer src="js/render-pins.js?v=20260510c"></script>
-<script defer src="js/ui-shared.js?v=20260511d"></script>
+<script defer src="js/ui-shared.js?v=20260511e"></script>
 <script defer src="js/ui-list.js?v=20260510a"></script>
 <script defer src="js/admin-review.js?v=20260505a"></script>
 <script defer src="js/ui-shelter.js?v=20260416a"></script>
@@ -1330,6 +1330,39 @@
     pointer-events: none;      /* touch events go to track, not canvas */
   }
 
+  /* ── Hour labels (DOM, behind the thumb) ────────────────────────────────
+     Z-stack inside #fts-track: canvas (1) < labels (2) < thumb (5). The
+     thumb's backdrop-blur naturally blurs labels passing under it, AND
+     each label scales up based on proximity to the thumb centre — together
+     these simulate magnification through the lens. */
+  #fts-labels {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+  }
+  .fts-label {
+    position: absolute;
+    top: 4px;
+    --scale: 1;
+    transform: translateX(-50%) scale(var(--scale));
+    transform-origin: center top;
+    font: 700 11px "Inter", system-ui, sans-serif;
+    color: rgba(255,244,224,0.95);
+    /* Multi-stop dark halo so the digits read against any band colour. */
+    text-shadow:
+      0 0 2px rgba(15,27,42,0.85),
+      0 0 2px rgba(15,27,42,0.85),
+      0 1px 2px rgba(15,27,42,0.75);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    /* Smooth magnification spring as the thumb passes by. */
+    transition: transform 220ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .fts-label { transition: none; --scale: 1 !important; }
+  }
+
   /* ── DOM Thumb — true lens with backdrop-blur + CSS 3D tilt ──────────────
      Position is set by JS via `left: X%`. Centering is via translate(-50%)
      in the transform so it survives all states (tilt, scale, lift). Tilt
@@ -1353,30 +1386,25 @@
     transition: transform 220ms cubic-bezier(0.32, 0.72, 0, 1);
     will-change: transform;
   }
-  /* Lens edge — double rim creates "thickness" so the edge reads like
-     real bevelled glass instead of a painted line. Cream outer band +
-     dark slate inner ring + inner soft shadow + outer drop shadow.
-     Plus the backdrop-blur frosting the band behind. */
+  /* Bevelless lens edge — no hard rim or bright highlight. Just a soft
+     gaussian-blurred dark falloff at the boundary (like real glass
+     refracting light at its edge) + a subtle drop shadow. On hover the
+     dark band offsets toward the cursor direction so the edge visibly
+     "thickens" on that side — simulating real 3D rotation of a circular
+     lens — with a smaller counter-thickening on the opposite side. */
   .fts-thumb-frame {
     position: absolute;
     inset: 0;
     border-radius: 50%;
-    background: rgba(255,244,224,0.05);
+    background: rgba(255,244,224,0.04);
     backdrop-filter: blur(3px) saturate(115%);
     -webkit-backdrop-filter: blur(3px) saturate(115%);
-    border: 1.4px solid rgba(255,244,224,0.78);
+    /* Idle: symmetric soft dark edge all around. No border, no bright
+       highlight — that combination read as a bevel. */
     box-shadow:
-      /* Dark inner ring — the *thickness* of the lens frame. */
-      inset 0 0 0 1.6px rgba(15,27,42,0.55),
-      /* Inner soft falloff — light bending into the lens body. */
-      inset 0 0 6px rgba(15,27,42,0.22),
-      /* Outer drop shadow — the lens sitting above the track. */
-      0 3px 8px rgba(0,0,0,0.38);
-    transition:
-      border-width 200ms ease,
-      border-color 200ms ease,
-      box-shadow   200ms ease,
-      background   200ms ease;
+      inset 0 0 4px rgba(15,27,42,0.32),
+      0 2px 6px rgba(0,0,0,0.28);
+    transition: box-shadow 220ms ease, background 220ms ease;
   }
   .fts-thumb-sheen {
     position: absolute;
@@ -9086,6 +9114,14 @@
     </button>
     <div id="fts-track">
       <canvas id="fts-canvas"></canvas>
+      <!-- Hour labels live in the DOM (not the canvas) so the thumb's
+           backdrop-filter:blur naturally blurs them when they sit behind
+           the lens — same recipe as a real magnifying glass passing over
+           printed text. Each label also CSS-scales up based on proximity
+           to the thumb centre, simulating the magnification through the
+           lens. Populated by _updateFtsLabels() and re-positioned when
+           the slider's hour range (minH/maxH) changes. -->
+      <div id="fts-labels" aria-hidden="true"></div>
       <!-- Thumb: DOM element so it can use backdrop-filter:blur (GPU-cheap,
            same recipe the panels use), CSS perspective + rotate for true
            3D tilt, and CSS transitions for the pick-up animation. JS sets

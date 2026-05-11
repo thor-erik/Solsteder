@@ -337,6 +337,7 @@ function initFts() {
 
   _syncFtsPosition();
   updateHeaderDateChip();
+  _updateFtsLabels();
   drawFtsCanvas();
 
   // Redraw the slider bitmap whenever the canvas's CSS width changes.
@@ -574,6 +575,74 @@ function _updateFtsThumbDom(fromH) {
   const capPct = (capPx / trackW) * 100;
   const pct = Math.max(capPct, Math.min(100 - capPct, xPct * 100));
   thumb.style.left = pct + '%';
+  _updateFtsLabelMagnify();
+}
+
+/** Build / refresh the DOM hour labels inside #fts-labels. Called on init
+ *  and whenever MIN_H_ARC / MAX_H_ARC change (e.g. when sun table loads
+ *  with a new sunrise/sunset). Standard interior ticks (09 / 12 / 15 / 18)
+ *  plus the actual min/max bookends. Position clamped inward so the digits
+ *  sit safely inside the rounded cap curvature. */
+function _updateFtsLabels() {
+  const container = document.getElementById('fts-labels');
+  const track     = document.getElementById('fts-track');
+  if (!container || !track) return;
+  const trackW = track.offsetWidth || 0;
+  if (!trackW) return;
+
+  const hours = [9, 12, 15, 18];
+  const minBookend = Math.ceil(MIN_H_ARC);
+  const maxBookend = Math.floor(MAX_H_ARC);
+  if (!hours.includes(minBookend) && minBookend >= MIN_H_ARC) hours.unshift(minBookend);
+  if (!hours.includes(maxBookend) && maxBookend <= MAX_H_ARC) hours.push(maxBookend);
+
+  const capSafePx  = 18;
+  const capSafePct = (capSafePx / trackW) * 100;
+
+  // Rebuild — cheap (few elements). Avoids tracking removed/added hours.
+  container.innerHTML = '';
+  for (const h of hours) {
+    if (h < MIN_H_ARC || h > MAX_H_ARC) continue;
+    const lbl = document.createElement('div');
+    lbl.className = 'fts-label';
+    lbl.dataset.hour = h;
+    lbl.textContent = String(h).padStart(2, '0');
+    const xPct = (h - MIN_H_ARC) / (MAX_H_ARC - MIN_H_ARC) * 100;
+    const pct  = Math.max(capSafePct, Math.min(100 - capSafePct, xPct));
+    lbl.style.left = pct + '%';
+    container.appendChild(lbl);
+  }
+}
+
+/** Magnify-through-the-lens effect — each label's CSS scale grows as the
+ *  thumb centre approaches its X. Combined with the thumb's existing
+ *  backdrop-filter:blur, this reads as "a lens passing over printed text".
+ *  Called on every thumb position change. */
+function _updateFtsLabelMagnify() {
+  const thumb = document.getElementById('fts-thumb');
+  if (!thumb) return;
+  const tRect = thumb.getBoundingClientRect();
+  if (!tRect.width) return;
+  const thumbCx = tRect.left + tRect.width / 2;
+  const R       = tRect.width / 2;
+  const labels  = document.querySelectorAll('#fts-labels .fts-label');
+  for (const lbl of labels) {
+    const lRect = lbl.getBoundingClientRect();
+    if (!lRect.width) continue;
+    const lCx  = lRect.left + lRect.width / 2;
+    const dist = Math.abs(thumbCx - lCx);
+    // Falloff: full magnification inside the thumb, easing back to 1.0
+    // by 2× the thumb radius.
+    const reach = R * 2;
+    let scale = 1;
+    if (dist < reach) {
+      const t = 1 - (dist / reach);
+      // Smoothstep for a softer entry/exit
+      const eased = t * t * (3 - 2 * t);
+      scale = 1 + eased * 0.7;   // up to 1.7× at thumb centre
+    }
+    lbl.style.setProperty('--scale', scale.toFixed(3));
+  }
 }
 
 /** Spring-back animation for the FTS thumb. */
@@ -2268,6 +2337,8 @@ function update() {
     // If the user's selected time is now in the past (e.g. clock ticked past
     // their selection), nudge it to MIN_H_ARC so the thumb stays on-canvas.
     if (parseFloat(timeFromEl.value) < MIN_H_ARC) timeFromEl.value = MIN_H_ARC;
+    // Refresh DOM hour labels whenever the range changes — bookends shift.
+    if (typeof _updateFtsLabels === 'function') _updateFtsLabels();
   }
 
   // Auto-advance to tomorrow after sunset (once per session startup)
