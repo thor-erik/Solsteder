@@ -562,8 +562,7 @@ function updateSunSectionBar() {
       bar.classList.remove('ssb-empty');
       const w = outlook.params?.weather === 'rain' ? 'rain' : 'cloud';
       nowLine.querySelector('.ssb-count').textContent = '';
-      nowLine.querySelector('.ssb-label').textContent = t(`outlook_no_sun_${w}`);
-      nowLine.querySelector('.ssb-tail').textContent  = '';
+      nowLine.querySelector('.ssb-text').textContent  = t(`outlook_no_sun_${w}`);
       nowLine.hidden = false;
       if (laterLine) laterLine.hidden = true;
       bar.classList.remove('later');
@@ -575,9 +574,8 @@ function updateSunSectionBar() {
   }
   bar.classList.remove('ssb-empty');
 
-  // Hide bucket lines whose count is 0. A line with count=0 used to render
-  // ghost text like "in sun now" with no number — confusing. The line is
-  // gone entirely when there's nothing to count.
+  // Hide bucket lines whose count is 0 — keeps an empty bucket from
+  // ghost-rendering its label without a number.
   if (nowLine)   nowLine.hidden   = nowCount   === 0;
   if (laterLine) laterLine.hidden = laterCount === 0;
 
@@ -589,25 +587,27 @@ function updateSunSectionBar() {
   const nowLabelBase   = isFuture ? t('section_sun_at',    { time: formatHour(fromHour) }) : t('section_sun_now');
   const laterLabelBase = isFuture ? t('section_sun_after', { time: formatHour(fromHour) }) : t('section_sun_later');
 
-  // Tail (row 2) continuation per bucket. Re-orients the outlook fact for
-  // whichever bucket the line is describing. Empty string when no tail.
+  // Outlook continuation per bucket — re-orients the city outlook for
+  // whichever perspective the bucket cares about. Empty when nothing
+  // to continue with.
   const nowTail   = _computeSsbTail('now',   outlook);
   const laterTail = _computeSsbTail('later', outlook);
 
-  // Append a trailing comma to the label when there's a tail, so the line
-  // reads as one sentence broken at the comma into two visual rows.
-  const nowLabel   = nowLabelBase   + (nowTail   ? ',' : '');
-  const laterLabel = laterLabelBase + (laterTail ? ',' : '');
+  // Build the full conversational sentence per bucket:
+  //   "places in the sun at 14:45, then cloudy from 17:00"
+  // Renders as one continuous text run after the bold count. Wraps to
+  // multiple visual lines naturally if the sentence is too long for
+  // the panel width — no truncation, no forced break-at-comma.
+  const nowText   = nowLabelBase   + (nowTail   ? ', ' + nowTail   : '');
+  const laterText = laterLabelBase + (laterTail ? ', ' + laterTail : '');
 
   if (nowLine) {
     nowLine.querySelector('.ssb-count').textContent = nowCount > 0 ? String(nowCount) : '';
-    nowLine.querySelector('.ssb-label').textContent = nowLabel;
-    nowLine.querySelector('.ssb-tail').textContent  = nowTail;
+    nowLine.querySelector('.ssb-text').textContent  = nowText;
   }
   if (laterLine) {
     laterLine.querySelector('.ssb-count').textContent = laterCount > 0 ? String(laterCount) : '';
-    laterLine.querySelector('.ssb-label').textContent = laterLabel;
-    laterLine.querySelector('.ssb-tail').textContent  = laterTail;
+    laterLine.querySelector('.ssb-text').textContent  = laterText;
   }
 
   // If only one bucket has content, lock the bar to that line — no scroll

@@ -133,22 +133,23 @@ const _STRINGS = {
     state_no_sun_future:     'No sun',
     state_done:              'Done',
     // ── Soft Zebra: section headers, pills, empty states ──────────────────────
-    section_sun_now:           'in sun now',
-    section_sun_at:            'in sun at {time}',
-    section_sun_later:         'in sun later',
-    section_sun_after:         'in sun after {time}',
+    section_sun_now:           'places in the sun now',
+    section_sun_at:            'places in the sun at {time}',
+    section_sun_later:         'places in the sun later',
+    section_sun_after:         'places in the sun after {time}',
 
     // No-sun standalone messages (shown when both buckets are empty
     // because the day is fully overcast/rainy).
     outlook_no_sun_cloud:       'Overcast today, no sun',
     outlook_no_sun_rain:        'Rainy today, no sun',
 
-    // Tail (row 2) continuation per bucket. Reads as the next clause after
-    // the bucket label: "29 in sun now, {tail}" / "142 in sun later, {tail}".
-    // Empty when the bucket has nothing further to say.
-    tail_cloudy_from:           'cloudy from {end}',
-    tail_rain_from:             'rain from {end}',
-    tail_again_window:          'again {cStart}–{cEnd}',
+    // Tail continuation per bucket. Reads as the next clause after the
+    // bucket label: "124 places in the sun at 14:45, {tail}".
+    // "then" prefix on now-bucket tails reinforces the sequential reading
+    // (sun now, THEN something later).
+    tail_cloudy_from:           'then cloudy from {end}',
+    tail_rain_from:             'then rain from {end}',
+    tail_again_window:          'then sun again {cStart}–{cEnd}',
     tail_from:                  'from {start}',
     tail_window:                '{start}–{end}',
     tail_two_windows:           '{aStart}–{aEnd} and {cStart}–{cEnd}',
@@ -588,19 +589,19 @@ const _STRINGS = {
     state_no_sun_future:     'Ingen sol',
     state_done:              'Ferdig',
     // ── Soft Zebra: section headers, pills, empty states ──────────────────────
-    section_sun_now:           'i sol nå',
-    section_sun_at:            'i sol kl {time}',
-    section_sun_later:         'i sol senere',
-    section_sun_after:         'i sol etter {time}',
+    section_sun_now:           'steder i solen nå',
+    section_sun_at:            'steder i solen kl {time}',
+    section_sun_later:         'steder i solen senere',
+    section_sun_after:         'steder i solen etter {time}',
 
     // No-sun standalone (both buckets empty)
     outlook_no_sun_cloud:       'Overskyet i dag, ingen sol',
     outlook_no_sun_rain:        'Regn i dag, ingen sol',
 
-    // Tail (row 2) per bucket
-    tail_cloudy_from:           'skyer fra {end}',
-    tail_rain_from:             'regn fra {end}',
-    tail_again_window:          'igjen {cStart}–{cEnd}',
+    // Tail per bucket — "så" / "så sol" prefix for sequential reading.
+    tail_cloudy_from:           'så skyer fra {end}',
+    tail_rain_from:             'så regn fra {end}',
+    tail_again_window:          'så sol igjen {cStart}–{cEnd}',
     tail_from:                  'fra {start}',
     tail_window:                '{start}–{end}',
     tail_two_windows:           '{aStart}–{aEnd} og {cStart}–{cEnd}',
