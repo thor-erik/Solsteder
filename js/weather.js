@@ -12,12 +12,20 @@
  *   skyIcon(cloudFraction)               — ☀ / 🌤 / ⛅ / 🌥 / ☁
  *   skyLabel(cloudFraction)              — "Clear" | "Partly cloudy" | …
  *
- * WeatherSlot: { temp, cloud, wspd, wdir, precip }
- *   temp   — °C (integer)
- *   cloud  — 0–1 fraction
- *   wspd   — m/s (float)
- *   wdir   — degrees the wind is coming FROM (0 = N, 90 = E, …)
- *   precip — mm in next 1 h
+ * WeatherSlot: { temp, cloud, cloudLow, cloudMid, cloudHigh, sunBlock,
+ *                symbol, wspd, wdir, precip, humidity }
+ *   temp      — °C (integer)
+ *   cloud     — 0–1 fraction, total cloud area
+ *   cloudLow  — 0–1 fraction, low cloud layer (null if unavailable)
+ *   cloudMid  — 0–1 fraction, mid cloud layer (null if unavailable)
+ *   cloudHigh — 0–1 fraction, high cloud layer (null if unavailable)
+ *   sunBlock  — 0–1 layer-weighted "blocks the sun" fraction. Use this
+ *               (not raw cloud) for any "is it sunny right now" gate —
+ *               thin high cirrus barely blocks; low stratus blocks fully.
+ *   symbol    — MET symbol code, e.g. "fair_day", "partlycloudy_day"
+ *   wspd      — m/s (float)
+ *   wdir      — degrees the wind is coming FROM (0 = N, 90 = E, …)
+ *   precip    — mm in next 1 h
  */
 
 // Internal storage: Map<"YYYY-MM-DD-H", WeatherSlot>
@@ -43,9 +51,33 @@ async function initWeather(lat = 59.9125, lng = 10.728) {
       const pad = n => String(n).padStart(2, '0');
       const key = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}-${d.getHours()}`;
       const det = ts.data.instant.details;
+      const cloud    = (det.cloud_area_fraction        ?? 0) / 100;
+      // Low / medium / high cloud layers (MET provides all three on hourly slots).
+      // High cirrus blocks little sun; low stratus/cumulus blocks most. Combine
+      // into a "sunBlock" coefficient that better matches what people experience
+      // as "sunny" — a 70% high-cirrus day still feels sunny on a terrace, while
+      // a 60% low-cloud day does not.
+      const cLow     = (det.cloud_area_fraction_low    ?? -1) / 100;
+      const cMid     = (det.cloud_area_fraction_medium ?? -1) / 100;
+      const cHigh    = (det.cloud_area_fraction_high   ?? -1) / 100;
+      const hasLayers = cLow >= 0 && cMid >= 0 && cHigh >= 0;
+      const sunBlock = hasLayers
+        ? Math.min(1, cLow * 1.0 + cMid * 0.55 + cHigh * 0.18)
+        : cloud;  // fallback for forecast slots that omit layer breakdown
+      // Symbol code (e.g. "fair_day", "partlycloudy_day") from the next-N-hours
+      // summary block. Useful when raw cloud values disagree with the human
+      // reading; MET's symbol already accounts for layer thickness.
+      const symbol = ts.data.next_1_hours?.summary?.symbol_code
+                  ?? ts.data.next_6_hours?.summary?.symbol_code
+                  ?? null;
       data.set(key, {
         temp:     Math.round(det.air_temperature),
-        cloud:    det.cloud_area_fraction / 100,
+        cloud,
+        cloudLow:  cLow >= 0 ? cLow  : null,
+        cloudMid:  cMid >= 0 ? cMid  : null,
+        cloudHigh: cHigh >= 0 ? cHigh : null,
+        sunBlock,
+        symbol,
         wspd:     det.wind_speed,
         wdir:     det.wind_from_direction,
         precip:   ts.data.next_1_hours?.details?.precipitation_amount ?? 0,
@@ -129,7 +161,7 @@ function windCardinal(deg) {
   return dirs[Math.round(((deg % 360) + 360) % 360 / 45) % 8];
 }
 
-/** Sky condition emoji from cloud fraction (0–1). */
+/** Sky condition emoji from sun-blocking fraction (0–1). */
 function skyIcon(cf) {
   if (cf < 0.15) return '☀\uFE0F';
   if (cf < 0.40) return '🌤';
@@ -148,24 +180,35 @@ function skyLabel(cf) {
 }
 
 /**
- * Aggregate daytime weather for a date → icon, peakTemp, avgCloud.
- * Samples hours 8, 10, 12, 14, 16. Returns null if no forecast data.
+ * Aggregate daytime weather for a date → icon, peakTemp, sun-blocking
+ * fraction (layer-aware). Scans hours 8..18 so an overcast night doesn't
+ * push the average toward "cloudy" on an otherwise sunny day. Returns
+ * both avgCloud (raw total) and avgSunBlock (the layer-aware metric).
+ * Callers should classify on avgSunBlock; avgCloud kept for back-compat.
  */
 function getDayWeatherSummary(dateStr) {
-  // Scan all 24 hours to handle both hourly and 6-hourly forecast intervals
   const pad = n => String(n).padStart(2, '0');
   const d   = new Date(dateStr + 'T12:00:00');
   const base = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-  const slots = [];
-  for (let h = 0; h <= 23; h++) {
+  let slots = [];
+  for (let h = 8; h <= 18; h++) {
     const w = _wxData.get(`${base}-${h}`);
     if (w) slots.push(w);
   }
+  // 6-hourly forecast slots (days 3+) often miss the 8–18 band. Fall back
+  // to scanning the full day rather than reporting null.
+  if (!slots.length) {
+    for (let h = 0; h <= 23; h++) {
+      const w = _wxData.get(`${base}-${h}`);
+      if (w) slots.push(w);
+    }
+  }
   if (!slots.length) return null;
-  const avgCloud  = slots.reduce((s, w) => s + w.cloud, 0) / slots.length;
-  const peakTemp  = Math.max(...slots.map(w => w.temp));
-  const totPrecip = slots.reduce((s, w) => s + w.precip, 0);
-  return { avgCloud, peakTemp, totPrecip, icon: skyIcon(avgCloud) };
+  const avgCloud    = slots.reduce((s, w) => s + (w.cloud    ?? 0), 0) / slots.length;
+  const avgSunBlock = slots.reduce((s, w) => s + (w.sunBlock ?? w.cloud ?? 0), 0) / slots.length;
+  const peakTemp    = Math.max(...slots.map(w => w.temp));
+  const totPrecip   = slots.reduce((s, w) => s + w.precip, 0);
+  return { avgCloud, avgSunBlock, peakTemp, totPrecip, icon: skyIcon(avgSunBlock) };
 }
 
 // Auto-refresh every 30 min

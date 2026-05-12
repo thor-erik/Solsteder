@@ -433,10 +433,12 @@ function _evalCloudIncoming() {
   if (dateStr !== todayStr()) return null;
   const now = currentHour();
   const wxNow = getWeatherAt(dateStr, Math.floor(now));
-  if (!wxNow || wxNow.cloud > 0.5) return null; // already cloudy
+  // Layer-aware: don't suppress the "cloud incoming" toast just because of
+  // thin high cirrus — the user still has functional sun.
+  if (!wxNow || (wxNow.sunBlock ?? wxNow.cloud) > 0.5) return null; // already cloudy
   for (let h = 1; h <= 3; h++) {
     const wxFuture = getWeatherAt(dateStr, Math.floor(now) + h);
-    if (wxFuture && wxFuture.cloud > 0.7) {
+    if (wxFuture && (wxFuture.sunBlock ?? wxFuture.cloud) > 0.7) {
       const cloudArrivesHour = Math.floor(now) + h;
       return {
         id: 'weather_cloud_incoming', priority: 0, category: 'weather',
@@ -504,7 +506,7 @@ function _evalBestSunWindow() {
   // Suppress when peak hour is mostly cloudy or wet (skip gating if no weather data)
   if (typeof getWeatherAt === 'function') {
     const wx = getWeatherAt(dateStr, bestHour);
-    if (wx && (wx.cloud > 0.65 || wx.precip >= 0.2)) return null;
+    if (wx && ((wx.sunBlock ?? wx.cloud) > 0.65 || wx.precip >= 0.2)) return null;
   }
   // Find the peak block (contiguous hours with same-ish count)
   let blockStart = bestHour, blockEnd = bestHour;

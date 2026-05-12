@@ -1842,8 +1842,11 @@ function _formatPlanTimeShort(iso) {
 function _composeShareContext(v, d, h) {
   const wx = (typeof getWeatherAt === 'function') ? getWeatherAt(d, Math.floor(h)) : null;
   const isRain     = (wx?.precip ?? 0) > 0.4;
-  const isOvercast = !isRain && (wx?.cloud ?? 0) > 0.7;
-  const isPartly   = !isRain && !isOvercast && (wx?.cloud ?? 0) > 0.35;
+  // Layer-aware: thin high cirrus shouldn't tip the share context into
+  // "overcast" when low/mid skies are clear.
+  const blocked    = wx?.sunBlock ?? wx?.cloud ?? 0;
+  const isOvercast = !isRain && blocked > 0.7;
+  const isPartly   = !isRain && !isOvercast && blocked > 0.35;
 
   if (isRain)     return { context: t('share_ctx_rain'),     icon: '🌧️' };
   if (isOvercast) return { context: t('share_ctx_overcast'), icon: '☁️' };

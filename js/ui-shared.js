@@ -39,10 +39,12 @@ function venueState(venue, selectedTime) {
     return '5 min'; // Minimum show 5 min for windows < 5 min
   };
 
-  // Weather check: rain or heavy overcast overrides sun geometry
+  // Weather check: rain or heavy overcast overrides sun geometry.
+  // Use layer-aware sun-blocking so a 90%-high-cirrus sky doesn't force
+  // an "overcast" verdict when low/mid skies are clear.
   const wx = typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, fromHour) : null;
   const isRainy    = (wx?.precip ?? 0) > 0.3;
-  const isOvercast = !isRainy && (wx?.cloud ?? 0) >= 0.85;
+  const isOvercast = !isRainy && (wx?.sunBlock ?? wx?.cloud ?? 0) >= 0.85;
 
   if (isRainy || isOvercast) {
     const mainText = isFuture
@@ -468,16 +470,13 @@ function computeCityWideSunOutlook(dateStr, fromHour, sundownH) {
 function wxBucket(dateStr, h) {
   const wx = (typeof getWeatherAt === 'function') ? getWeatherAt(dateStr, h) : null;
   if (!wx) return null;
-  const precip = wx.precip ?? 0;
-  const cloud  = wx.cloud  ?? 0;
-  // 'skyer' = truly overcast (cloud ≥ 0.85), matching the threshold venueState
-  // already uses for its overcast display state. Partly cloudy / sub-overcast
-  // hours still count as 'sol' so a venue with sun behind a few clouds isn't
-  // wrongly filtered out of the list. The wxColor() helper above keeps a
-  // finer 4-step gradient for the timeline-bar paint — that's a visual ramp,
-  // not a filter input.
-  if (precip > 0.3)  return 'regn';
-  if (cloud  >= 0.85) return 'skyer';
+  const precip   = wx.precip ?? 0;
+  // Use layer-aware sun-blocking fraction when available — total cloud over-
+  // counts thin high cirrus that lets plenty of sun through. Fall back to
+  // raw total for forecast slots that omit the layer breakdown.
+  const blocked  = wx.sunBlock ?? wx.cloud ?? 0;
+  if (precip > 0.3)   return 'regn';
+  if (blocked >= 0.85) return 'skyer';
   return 'sol';
 }
 
@@ -487,11 +486,13 @@ function wxBucket(dateStr, h) {
  */
 function wxColor(dateStr, h, bright) {
   const wx = (typeof getWeatherAt === 'function') ? getWeatherAt(dateStr, h) : null;
-  const precip = wx?.precip ?? 0;
-  const cloud  = wx?.cloud  ?? 0;
+  const precip  = wx?.precip ?? 0;
+  // Use layer-aware sun-blocking fraction — thin high cirrus doesn't darken
+  // the ramp; thick low/mid cloud does.
+  const blocked = wx?.sunBlock ?? wx?.cloud ?? 0;
   const isRainy    = precip > 0.3;
-  const isOvercast = !isRainy && cloud > 0.65;
-  const isPartly   = !isRainy && !isOvercast && cloud > 0.38;
+  const isOvercast = !isRainy && blocked > 0.65;
+  const isPartly   = !isRainy && !isOvercast && blocked > 0.38;
   if (bright) {
     if (isRainy)    return 'rgba(156,189,231,0.25)';
     if (isOvercast) return 'rgba(156,189,231,0.45)';
@@ -642,7 +643,10 @@ function drawTimeline(ctx, opts) {
     if (hasWx) {
       const wx   = getWeatherAt(dateStr, h + 0.5);
       const rain = wx ? (wx.precip ?? wx.prec ?? 0) > 0.3 : false;
-      const cf   = wx ? (wx.cloud ?? 0) : 0;
+      // Layer-aware sun-blocking: thin high cirrus shouldn't darken the
+      // ramp; thick low/mid cloud should. Fall back to total cloud when
+      // the slot lacks the layer breakdown.
+      const cf   = wx ? (wx.sunBlock ?? wx.cloud ?? 0) : 0;
       // Cloud-fraction thresholds shifted out one notch from the previous
       // 0.15/0.40/0.65 ramp. The old "overcast at ≥65% cloud" was visually
       // aggressive — a sky with sun behind a layer of cloud (~0.7 cf) was

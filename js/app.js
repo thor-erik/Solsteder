@@ -775,7 +775,7 @@ function updateHeaderWxChip(hour) {
     return;
   }
   const rain = (wx.precip ?? wx.prec ?? 0) > 0.3;
-  if (iconEl) iconEl.textContent = rain ? '🌧' : (typeof skyIcon === 'function' ? skyIcon(wx.cloud ?? 0) : '☀️');
+  if (iconEl) iconEl.textContent = rain ? '🌧' : (typeof skyIcon === 'function' ? skyIcon(wx.sunBlock ?? wx.cloud ?? 0) : '☀️');
   if (tempEl) tempEl.textContent = wx.temp != null ? Math.round(wx.temp) + '°' : '';
   if (windEl) windEl.textContent = wx.wspd != null ? Math.round(wx.wspd) + ' m/s' : '';
 }
@@ -805,7 +805,7 @@ function showFtsPopup(hour) {
     const wx = getWeatherAt(dateStr, hour);
     if (wx) {
       const rain = (wx.precip ?? wx.prec ?? 0) > 0.3;
-      const cf   = wx.cloud ?? 0;
+      const cf   = wx.sunBlock ?? wx.cloud ?? 0;
       if (wxIconEl) wxIconEl.textContent = rain ? '🌧' : (typeof skyIcon === 'function' ? skyIcon(cf) : '☀️');
       if (tempEl)   tempEl.textContent = wx.temp != null ? Math.round(wx.temp) + '°' : '';
       if (windEl)   windEl.textContent = wx.wspd != null ? Math.round(wx.wspd) + ' m/s' : '';
@@ -1480,7 +1480,7 @@ function updateDateWeatherStrip() {
   const rain    = wx.precip >= 0.2
     ? `<span class="wx-rain">🌧 ${wx.precip.toFixed(1)}</span>`
     : '';
-  el.innerHTML = `<span>${skyIcon(wx.cloud)}</span>`
+  el.innerHTML = `<span>${skyIcon(wx.sunBlock ?? wx.cloud)}</span>`
     + `<span class="wx-temp-strip">${formatTemp(wx.temp)}</span>`
     + `<span class="wx-sep">·</span>`
     + `<span class="wx-wind">${arrow} ${Math.round(wx.wspd)} m/s</span>`
@@ -1503,8 +1503,12 @@ function renderDateCalendar() {
     if (i === 0)        cls += ' today';
     if (dStr === selected) cls += ' selected';
     if (summ) {
-      if (summ.avgCloud < 0.30) cls += ' sun-high';
-      else if (summ.avgCloud < 0.60) cls += ' sun-mid';
+      // Classify on the layer-aware sun-blocking fraction so a day of high
+      // cirrus doesn't get demoted to "cloudy" when the sun is still hitting.
+      const sb = summ.avgSunBlock ?? summ.avgCloud;
+      if (sb < 0.30)      cls += ' sun-high';
+      else if (sb < 0.60) cls += ' sun-mid';
+      else                cls += ' sun-low';
     } else {
       cls += ' no-data';
     }
@@ -2097,9 +2101,14 @@ function _dcTileHtml(dStr, todayStr_, selected) {
   if (dStr === todayStr_)  cls += ' today';
   if (dStr === selected)   cls += ' selected';
   if (hasForecast) {
-    if (summ.avgCloud < 0.30)      cls += ' sun-high';
-    else if (summ.avgCloud < 0.60) cls += ' sun-mid';
-    else                            cls += ' sun-low'; // mostly overcast — dimmed
+    // Classify on the layer-aware sun-blocking fraction so a day of high
+    // cirrus (which lets plenty of sun through) doesn't get demoted to
+    // "cloudy". Fall back to raw cloud total for slots that lack the layer
+    // breakdown.
+    const sb = summ.avgSunBlock ?? summ.avgCloud;
+    if (sb < 0.30)      cls += ' sun-high';
+    else if (sb < 0.60) cls += ' sun-mid';
+    else                cls += ' sun-low'; // mostly overcast — dimmed
   } else {
     cls += ' solar-only'; // beyond forecast window — solar data only
   }
@@ -2323,11 +2332,11 @@ function _earliestSunHourFor(dateStr) {
 }
 
 /** Returns the hour where the first sun window of `dateStr` begins: the
- *  first hour in [sunrise, sunset] where weather is sunny (cloud < 50%).
- *  Falls back to sunrise if weather is fully overcast or no forecast yet
- *  exists (e.g. day 8+ out). Used by selectQcDate to position the slider
- *  on "the first time the user will actually see sun" rather than just
- *  "when the sun crosses the horizon". */
+ *  first hour in [sunrise, sunset] where the layer-aware sun-blocking
+ *  fraction is < 50%. Falls back to sunrise if the day is fully overcast
+ *  or no forecast yet exists (e.g. day 8+ out). Used by selectQcDate to
+ *  position the slider on "the first time the user will actually see
+ *  sun" rather than just "when the sun crosses the horizon". */
 function _firstSunWindowStartFor(dateStr) {
   if (typeof buildSunTable !== 'function' || typeof findSunCrossingFromTable !== 'function') return null;
   const table   = buildSunTable(dateStr);
@@ -2338,7 +2347,8 @@ function _firstSunWindowStartFor(dateStr) {
   const endH   = sunset != null ? Math.floor(sunset) : 21;
   for (let h = Math.ceil(sunrise); h <= endH; h++) {
     const wx = getWeatherAt(dateStr, h);
-    if (wx && wx.cloud != null && wx.cloud < 0.50) return h;
+    const blocked = wx?.sunBlock ?? wx?.cloud;
+    if (blocked != null && blocked < 0.50) return h;
   }
   return sunrise;
 }
