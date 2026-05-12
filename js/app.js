@@ -2353,15 +2353,21 @@ function _firstSunWindowStartFor(dateStr) {
   const sunset = findSunCrossingFromTable(table, false);
   const endH   = sunset != null ? Math.floor(sunset) : 21;
   const MIN_USEFUL_HOURS = 2;
+  // Start at floor(sunrise) so we don't skip a half-hour-overlap with
+  // sunrise itself — at high latitudes sunrise can land at e.g. 04:20
+  // and Math.ceil() would otherwise push the scan to hour 5, missing
+  // an already-sun-touched 04:00 slot. The eventual return value is
+  // clamped to >= sunrise so the slider doesn't land before the sun
+  // is actually up.
   let runStart = null, runLen = 0;
-  for (let h = Math.ceil(sunrise); h <= endH; h++) {
+  for (let h = Math.floor(sunrise); h <= endH; h++) {
     const wx = getWeatherAt(dateStr, h);
     const blocked = wx?.sunBlock ?? wx?.cloud;
     const isSun = blocked != null && blocked < 0.75;
     if (isSun) {
       if (runStart == null) runStart = h;
       runLen++;
-      if (runLen >= MIN_USEFUL_HOURS) return runStart;
+      if (runLen >= MIN_USEFUL_HOURS) return Math.max(sunrise, runStart);
     } else {
       runStart = null;
       runLen = 0;

@@ -388,14 +388,14 @@ function computeCityWideSunOutlook(dateStr, fromHour, sundownH) {
   }
 
   // Walk forward hourly from fromHour to sundown, bucketing each mid-hour
-  // into sun / cloud / rain using an FTS-aligned threshold: sunBlock < 0.50
-  // (canvas paints "clear"/"clearSoft") counts as sun, ≥ 0.50 ("partly" or
-  // "overcast" on the canvas) counts as cloud. Aligning here keeps the
-  // header copy from saying "Sun all day" while the canvas paints a clear
-  // cloud band. wxBucket's stricter 0.85 cutoff is left alone — it gates
-  // qualifyingWindows + the venue-overcast verdict, where "still some sun"
-  // genuinely matters.
-  const SUN_THRESHOLD = 0.50;
+  // into sun / cloud / rain using the FTS canvas's own "overcast" cutoff:
+  // sunBlock < 0.75 (anything the canvas paints as clear / clearSoft /
+  // partly) counts as sun, ≥ 0.75 (the canvas's overcast band) counts as
+  // cloud. With this alignment the header copy and the canvas can never
+  // disagree about whether a given hour is sun-touched. wxBucket's
+  // stricter 0.85 cutoff is left alone — it gates qualifyingWindows and
+  // the venue-overcast verdict, where "still some sun" genuinely matters.
+  const SUN_THRESHOLD = 0.75;
   const sampleBucket = (h) => {
     const wx = getWeatherAt(dateStr, h);
     if (!wx) return null;
