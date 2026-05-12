@@ -229,6 +229,28 @@ function auditMatchesFilter(v) {
 function markVenueAudited(venueId, via = 'good') {
   _auditCache.set(venueId, { at: new Date().toISOString(), via });
   _saveAudit();
+  // "Looks good" is a positive training signal — the admin is confirming
+  // that the venue's current geometry (AI-detected polygon, terrace walls,
+  // facing, etc.) is correct. Record a saveCorrection of type 'confirmed'
+  // so seating-detection training sees positive examples, not only edits
+  // and archives. The 'edited' path already saves its own correction via
+  // exitEditMode(), so skip when called from there to avoid duplicates.
+  if (via === 'good' && typeof saveCorrection === 'function'
+      && typeof VENUES !== 'undefined') {
+    const v = VENUES.find(x => x.id === venueId);
+    if (v) {
+      const snapshot = (typeof _venueEditSnapshot === 'function')
+        ? _venueEditSnapshot(v)
+        : { terraceType: v.terraceType ?? null, facing: v.facing ?? null };
+      saveCorrection('confirmed', {
+        id: venueId, name: v.name, category: v.category,
+        state: snapshot,
+        buildingNodeCount: v.buildingGeometry?.length ?? null,
+        autoState: 'audit-confirmed',
+      });
+    }
+  }
+  _invalidateCorrCache();
   _updateAuditIndicator();
   if (typeof draw === 'function') draw();
   if (auditModeActive && typeof renderList === 'function') renderList();
