@@ -1341,7 +1341,19 @@ function _findFirstSunDayAndHour() {
         }
       } catch (e) { /* ignore */ }
     }
-    if (earliest != null) return { date: dateStr, hour: earliest };
+    if (earliest != null) {
+      // Pre-snap the hour to the slider's 5-minute step (anchored at
+      // min=4) so the value lands cleanly on a grid point. The input
+      // element auto-snaps too, but rounding here means our internal
+      // `found.hour` matches what the user sees in the popup label
+      // (formatHour) without depending on browser snap rounding. User
+      // reported the slider 'stopped at 0600' when the actual first
+      // sun window was 0640 — explicit pre-snap eliminates the drift.
+      const STEP = 5 / 60;
+      const N = Math.round((earliest - 4) / STEP);
+      const snapped = Math.max(4, Math.min(23, 4 + N * STEP));
+      return { date: dateStr, hour: snapped };
+    }
   }
   return null;
 }
