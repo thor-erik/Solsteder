@@ -939,29 +939,17 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
         plannedAt: opts.plannedAt || null,
       };
     }
-    // Drop the legacy "You're in!" top toast — the post-accept panel
-    // mounts its own static .dpacc-toast-pill at the top with more
-    // informative copy ("You're in — see you on Sunday at 20:40").
-    // The two surfaced simultaneously and read as duplicate yellow
-    // toasts. Panel pill stays; auto-toast is gone.
     if (typeof _aTrack === 'function') _aTrack('plan_preview_accept', { venue_id: venue.id, has_invite_id: !!opts.inviteId, off_plan_time: !!arrivalIso });
-    // skipDetailOpen + keepCamera: the post-accept panel mounts as the
-    // ONLY UI on top of the map. v1 had closePlanPreview opening the
-    // detail panel via selectVenue, then post-accept overlay mounting
-    // on top — which the user saw as 'panel sits wrongly on top of the
-    // detail panel'. The new flow: plan-preview closes → post-accept
-    // panel alone → on close, _closePostAcceptPanel opens the detail
-    // panel (via stashed followupVenueId).
-    // Set post-accept-active BEFORE closing the plan-preview so the
-    // chrome-hide rules stay applied through the 360ms handoff window.
-    // Without this, plan-preview-active was removed and the venue list
-    // / search / FTS faded in for ~110ms before the post-accept panel
-    // mounted — user saw 'venue list shows up behind the confirmation
-    // page' as the chrome flashed through.
+
+    // Crossover slide — mirrors the venue-card → detail-panel transition:
+    // accept panel slides DOWN, post-accept panel slides UP at the same
+    // time. Both start in the same frame, same duration. v1 closed the
+    // plan-preview first and waited 360 ms before mounting the post-
+    // accept — read as a sluggish 'fade away, then arrive'. Setting
+    // post-accept-active before the close keeps the chrome-hide rules
+    // continuously applied through the swap.
     document.body.classList.add('post-accept-active');
-    closePlanPreview({ skipDetailOpen: true, keepCamera: true });
-    setTimeout(() => {
-      if (typeof _openPostAcceptPanel !== 'function') return;
+    if (typeof _openPostAcceptPanel === 'function') {
       const whenLabel = (typeof _inviteWhenLabel === 'function' && opts.plannedAt)
         ? _inviteWhenLabel(opts.plannedAt.slice(0, 10), arrivalHour) : '';
       const arrivalDateLabel = (typeof _fmtInviteDate === 'function' && opts.plannedAt)
@@ -999,7 +987,8 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
         inviterId:   opts.inviterId || null,
         attendees:   accepted,
       });
-    }, 360);
+    }
+    closePlanPreview({ skipDetailOpen: true, keepCamera: true });
   };
 
   const declineBtn = el.querySelector('#pp-decline');

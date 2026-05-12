@@ -8746,13 +8746,16 @@
      Replaces the sequential question carousel with parallel action cards
      (Calendar / Directions / Open / Add friend / Share). IDs preserved
      (#post-accept-overlay, #post-accept-panel) for legacy callers. */
+  /* Transparent host — matches the venue-list ↔ detail-panel pattern
+     (no full-screen backdrop wash). The panel below is the only thing
+     drawing on screen; tapping outside the panel still closes via the
+     overlay.onclick handler. */
   .post-accept-overlay,
   .dpacc-overlay {
     position: fixed;
     inset: 0;
     z-index: 1150;
-    background: rgba(0,0,0,0);
-    transition: background 0.3s ease;
+    background: transparent;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
@@ -8760,7 +8763,6 @@
   }
   .post-accept-overlay.open,
   .dpacc-overlay.open {
-    background: rgba(0,0,0,0.32);
     pointer-events: auto;
   }
   .dpacc-panel {
