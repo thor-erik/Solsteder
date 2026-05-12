@@ -436,6 +436,9 @@ const _STRINGS = {
     notif_sun_setting_body:      'Sun sets very soon. See tomorrow instead?',
     notif_see_tomorrow:          'See tomorrow',
     notif_auto_advance_body:     'Sun has set for today. Showing you tomorrow instead',
+    notif_explore_day_switch_body: 'Now showing {day}',
+    day_today:                   'today',
+    day_tomorrow:                'tomorrow',
     // Notifications – P1 Social
     notif_friend_at_body:        '{name} is at {venue} right now',
     notif_friends_at_body:       '{count} friends at {venue} right now',
@@ -900,6 +903,9 @@ const _STRINGS = {
     notif_sun_setting_body:      'Solen går snart ned. Se i morgen i stedet?',
     notif_see_tomorrow:          'Se i morgen',
     notif_auto_advance_body:     'Solen har gått ned. Viser deg i morgen i stedet',
+    notif_explore_day_switch_body: 'Viser {day} nå',
+    day_today:                   'i dag',
+    day_tomorrow:                'i morgen',
     // Notifications – P1 Social
     notif_friend_at_body:        '{name} er på {venue} nå',
     notif_friends_at_body:       '{count} venner er på {venue} nå',
@@ -1311,6 +1317,9 @@ const _STRINGS = {
     notif_sun_setting_body:      'Solen går snart ner. Se imorgon istället?',
     notif_see_tomorrow:          'Se imorgon',
     notif_auto_advance_body:     'Solen har gått ner. Visar dig imorgon istället',
+    notif_explore_day_switch_body: 'Visar {day} nu',
+    day_today:                   'idag',
+    day_tomorrow:                'imorgon',
     // Notifications – P1 Social
     notif_friend_at_body:        '{name} är på {venue} just nu',
     notif_friends_at_body:       '{count} vänner är på {venue} just nu',
@@ -1718,6 +1727,9 @@ const _STRINGS = {
     notif_sun_setting_body:      'Solen går snart ned. Se i morgen i stedet?',
     notif_see_tomorrow:          'Se i morgen',
     notif_auto_advance_body:     'Solen er gået ned. Viser dig i morgen i stedet',
+    notif_explore_day_switch_body: 'Viser {day} nu',
+    day_today:                   'i dag',
+    day_tomorrow:                'i morgen',
     // Notifications – P1 Social
     notif_friend_at_body:        '{name} er på {venue} lige nu',
     notif_friends_at_body:       '{count} venner er på {venue} lige nu',

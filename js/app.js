@@ -1306,6 +1306,118 @@ const tooltip         = document.getElementById('hover-tooltip');
 
 // ── Utility formatters ────────────────────────────────────────────────────────
 function todayStr() { return new Date().toISOString().slice(0, 10); }
+
+// ── Explore-mode post-flow helper ───────────────────────────────────────────
+// After the user declines an invite (or closes the detail panel they
+// landed on after accepting), drop them into a state that invites
+// exploration: the first day with sun, the start of its earliest sun
+// window, camera centred on their geolocation, venue list expanded.
+// Used by ui-plan-preview.js's decline handler and the closeDetailPanel
+// post-accept hook (window._exitToExploreOnDetailClose). Universal: any
+// auto-day-switch from here triggers a "Now showing {day}" notification.
+function _findFirstSunDayAndHour() {
+  if (typeof VENUES === 'undefined' || typeof computeSunWindows !== 'function') return null;
+  const today = todayStr();
+  const nowH = new Date().getHours() + new Date().getMinutes() / 60;
+  const pad = n => String(n).padStart(2, '0');
+  // Search up to 7 days out — beyond that the practical answer is
+  // "you live in the wrong city for this app", and we don't want an
+  // infinite loop in the unlikely edge case.
+  for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+    const d = new Date(today + 'T12:00:00');
+    d.setDate(d.getDate() + dayOffset);
+    const dateStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const minHour = (dayOffset === 0) ? nowH : 0;
+    let earliest = null;
+    for (const v of VENUES) {
+      try {
+        const { windows } = computeSunWindows(v, dateStr) || {};
+        if (!windows || !windows.length) continue;
+        for (const w of windows) {
+          if (w.end <= minHour) continue;
+          const start = Math.max(w.start, minHour);
+          if (earliest == null || start < earliest) earliest = start;
+          break;
+        }
+      } catch (e) { /* ignore */ }
+    }
+    if (earliest != null) return { date: dateStr, hour: earliest };
+  }
+  return null;
+}
+
+function _dayLabel(dateStr) {
+  if (!dateStr) return '';
+  const lang = (typeof prefLang === 'function') ? prefLang() : 'no';
+  const locale = ({ en: 'en-GB', no: 'nb-NO', se: 'sv-SE', dk: 'da-DK' })[lang] || 'nb-NO';
+  const today = todayStr();
+  const pad = n => String(n).padStart(2, '0');
+  const tom = new Date(); tom.setDate(tom.getDate() + 1);
+  const tomStr = `${tom.getFullYear()}-${pad(tom.getMonth() + 1)}-${pad(tom.getDate())}`;
+  if (dateStr === today)  return t('day_today');
+  if (dateStr === tomStr) return t('day_tomorrow');
+  const d = new Date(dateStr + 'T12:00:00');
+  const todayMs = new Date(today + 'T12:00:00').getTime();
+  const daysOut = Math.round((d.getTime() - todayMs) / (24 * 60 * 60 * 1000));
+  if (daysOut > 0 && daysOut <= 7) {
+    return d.toLocaleDateString(locale, { weekday: 'long' });
+  }
+  return d.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
+}
+
+function _exitToExploreMode() {
+  const found = _findFirstSunDayAndHour();
+  if (!found) return;
+  // Sync date + time pickers — both dispatch the events the rest of the
+  // app listens to (renderList re-runs, slider repaints, etc.).
+  if (datePicker && datePicker.value !== found.date) {
+    datePicker.value = found.date;
+    datePicker.dispatchEvent(new Event('change'));
+  }
+  if (timeFromEl) {
+    timeFromEl.value = String(found.hour);
+    timeFromEl.dispatchEvent(new Event('input'));
+  }
+  // Expand the venue list (mobile only — desktop list is always visible).
+  const panel = document.getElementById('panel');
+  if (panel && typeof isMobile === 'function' && isMobile()) {
+    panel.classList.remove('mobile-hidden', 'mobile-fullscreen');
+    panel.classList.add('mobile-expanded');
+    if (typeof _syncFtsPosition === 'function') _syncFtsPosition();
+  }
+  // Camera → user's geolocation. Falls through silently when location
+  // is unavailable; the date/time/list changes still apply.
+  if (typeof userLocation !== 'undefined' && userLocation
+      && Number.isFinite(userLocation.lat) && Number.isFinite(userLocation.lng)
+      && typeof map !== 'undefined' && map && typeof map.flyTo === 'function') {
+    try {
+      map.flyTo({
+        center: [userLocation.lng, userLocation.lat],
+        zoom: 14,
+        pitch: 30,
+        bearing: 0,
+        duration: 900,
+        essential: true,
+      });
+    } catch (e) { /* ignore */ }
+  }
+  // Day-switch notification — universal: any time we auto-pick a
+  // non-today date, tell the user what day they're looking at.
+  if (found.date !== todayStr() && typeof _notifShowImmediate === 'function') {
+    _notifShowImmediate({
+      id: 'explore_day_switch_' + found.date,
+      priority: 1,
+      category: 'weather',
+      icon: '☀️',
+      bodyKey: 'notif_explore_day_switch_body',
+      bodyVars: { day: _dayLabel(found.date) },
+      _legacyDismiss: 4500,
+    });
+  }
+}
+if (typeof window !== 'undefined') {
+  window._exitToExploreMode = _exitToExploreMode;
+}
 function currentHour() { const n = new Date(); return n.getHours() + n.getMinutes() / 60; }
 
 function formatHour(h) {
@@ -2835,6 +2947,16 @@ function closeDetailPanel(expandList = true) {
       map.easeTo({ center: restoreCenter, zoom: restoreZoom, pitch: 15, bearing: 0, duration: 600,
                    padding: { top: 0, bottom: 0, left: 0, right: 0 } });
     }
+  }
+  // Post-accept hook: if the accept handler in ui-plan-preview set this
+  // flag, transition into explore mode now (the user has finished
+  // inspecting the venue they just accepted for). Cleared on
+  // consumption so the next ordinary detail close doesn't fire it.
+  if (typeof window !== 'undefined' && window._exitToExploreOnDetailClose) {
+    window._exitToExploreOnDetailClose = false;
+    setTimeout(() => {
+      if (typeof _exitToExploreMode === 'function') _exitToExploreMode();
+    }, 280);
   }
 }
 

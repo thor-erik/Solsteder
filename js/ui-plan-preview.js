@@ -405,7 +405,7 @@ function _ppWireDragHandle(overlay) {
   grabber.style.margin = '-8px auto -10px';
 }
 
-function closePlanPreview() {
+function closePlanPreview(opts = {}) {
   const st = _planPreviewState;
   if (!st) return;
   if (st.rafId) cancelAnimationFrame(st.rafId);
@@ -434,7 +434,7 @@ function closePlanPreview() {
   setTimeout(() => { try { st.overlay.remove(); } catch {} }, 320);
   _planPreviewState = null;
 
-  if (venue && typeof selectVenue === 'function') {
+  if (!opts.skipDetailOpen && venue && typeof selectVenue === 'function') {
     // Open the detail panel — it runs its own FLIP morph + FTS hosting from
     // the venue-card source; no FTS hand-off needed from here since the
     // plan-preview no longer reparents FTS.
@@ -801,6 +801,11 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   }
 
   // Accept handler — same backend contract; new UI shell.
+  // Sets window._exitToExploreOnDetailClose so the detail panel that
+  // closePlanPreview opens for the venue takes the user into
+  // explore-mode (expanded list, first-sun-day, camera on user) when
+  // they eventually close it. The post-accept overlay panel still
+  // mounts on top of the detail panel as usual.
   const acceptBtn = el.querySelector('#pp-accept');
   if (acceptBtn) acceptBtn.onclick = async () => {
     let arrivalIso = null;
@@ -827,6 +832,7 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     }
     if (typeof _showToast === 'function') _showToast(t('plan_preview_joined'));
     if (typeof _aTrack === 'function') _aTrack('plan_preview_accept', { venue_id: venue.id, has_invite_id: !!opts.inviteId, off_plan_time: !!arrivalIso });
+    if (typeof window !== 'undefined') window._exitToExploreOnDetailClose = true;
     closePlanPreview();
     setTimeout(() => {
       if (typeof _openPostAcceptPanel !== 'function') return;
@@ -865,7 +871,15 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
       try { await respondToPlanInvite(opts.inviteId, 'declined'); } catch (e) { /* ignore */ }
     }
     if (typeof _aTrack === 'function') _aTrack('plan_preview_decline', { venue_id: venue.id, has_invite_id: !!opts.inviteId });
-    closePlanPreview();
+    // Decline path: do NOT open the venue's detail panel afterwards.
+    // The user said no to this venue; drop them into explore mode
+    // (first day with sun, camera on their location, list expanded)
+    // so the app feels useful instead of stranding them on a venue
+    // they just rejected.
+    closePlanPreview({ skipDetailOpen: true });
+    setTimeout(() => {
+      if (typeof _exitToExploreMode === 'function') _exitToExploreMode();
+    }, 360);
   };
 
   const closeCta = el.querySelector('#pp-close-cta');
