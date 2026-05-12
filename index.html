@@ -1577,66 +1577,10 @@
       0 0 22px 2px rgba(245,194,94,0.24);
   }
 
-  /* Breathing honey aura — idle interactability signal. Lives in a
-     ::before pseudo so we don't have to re-derive the tilt-driven
-     box-shadow stack inside @keyframes (which would mean redeclaring
-     every shadow on every keyframe — unmaintainable).
-     The aura sits BEHIND the thumb body via z-index: -1; for that to
-     work the thumb itself must be its own stacking context, which it
-     already is (z-index: 5 on the rule above).
-     Brand metaphor: warm honey light catching the sunglass lens —
-     ties the "this can be touched" affordance to the Shades identity. */
-  #fts-thumb::before {
-    content: '';
-    position: absolute;
-    inset: -6px;
-    border-radius: 50%;
-    background: radial-gradient(
-      circle,
-      rgba(245,194,94,0.32) 36%,
-      rgba(245,194,94,0.14) 58%,
-      rgba(245,194,94,0)    74%
-    );
-    pointer-events: none;
-    z-index: -1;
-    animation: ftsThumbBreathe 2.6s ease-in-out infinite;
-  }
-  @keyframes ftsThumbBreathe {
-    0%, 100% { opacity: 0.55; transform: scale(0.94); }
-    50%      { opacity: 1.0;  transform: scale(1.08); }
-  }
-  /* Hover: snap to a stronger, static aura — no breathing while the
-     user has engaged. */
-  #fts-thumb.is-hover::before {
-    animation: none;
-    opacity: 1;
-    transform: scale(1.12);
-    background: radial-gradient(
-      circle,
-      rgba(245,194,94,0.46) 36%,
-      rgba(245,194,94,0.20) 58%,
-      rgba(245,194,94,0)    74%
-    );
-  }
-  /* Active: even stronger aura. The .is-active box-shadow also has a
-     22px honey halo; the two stack to maximum "this is hot" signal. */
-  #fts-thumb.is-active::before {
-    animation: none;
-    opacity: 1;
-    transform: scale(1.18);
-    background: radial-gradient(
-      circle,
-      rgba(245,194,94,0.58) 36%,
-      rgba(245,194,94,0.26) 60%,
-      rgba(245,194,94,0)    78%
-    );
-  }
-
   @media (prefers-reduced-motion: reduce) {
     #fts-thumb { transition: none; }
     #fts-thumb.is-hover  { transform: translate(-50%, -50%); }
     #fts-thumb.is-active { transform: translate(-50%, -50%); }
-    #fts-thumb::before   { animation: none; opacity: 0.75; transform: scale(1); }
   }
 
   /* Time label — floats above the thumb. Two states:
