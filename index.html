@@ -8595,32 +8595,38 @@
     pointer-events: none;
   }
 
-  /* "Coming later" offset chips — popover-style strip that slides up
-     above the CTA row when the user taps 'Coming later'. Replaces the
-     v1 free-form <input type="time"> which let users pick any time
-     including ones in the past or hours after the invite. Capped at
-     +2h offsets per user request. */
+  /* "Coming later" offset chips — popover-style grid that slides up
+     above the CTA row when the user taps 'Coming later'. 4-column
+     grid → 2 rows of 4 equal-width chips for a clean visual rhythm
+     (v1 used flex-wrap with variable widths, which staggered the
+     chips in an unrhythmic way). Capped at +2h offsets per user
+     request. */
   .pp-later-strip {
     display: none;
-    flex-wrap: wrap;
+    grid-template-columns: repeat(4, 1fr);
     gap: 6px;
-    padding: 10px 0 0;
-    margin-bottom: -2px;
+    padding: 12px 0 4px;
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(8px);
     transition: opacity 0.18s ease, transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .pp-later-strip.open {
-    display: flex;
+    display: grid;
     opacity: 1;
     transform: translateY(0);
   }
   .pp-later-strip .pp-later-chip {
-    height: 34px;
-    padding: 0 12px;
-    font-size: 13px;
+    width: 100%;
+    height: 36px;
+    padding: 0 4px;
+    font-size: 12.5px;
     font-weight: 600;
-    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+  .pp-later-strip .pp-later-chip.is-selected {
+    background: var(--accent);
+    color: var(--accent-on, #2a1a0c);
+    border-color: transparent;
   }
 
   @media (min-width: 640px) {
@@ -8749,12 +8755,18 @@
   /* Transparent host — matches the venue-list ↔ detail-panel pattern
      (no full-screen backdrop wash). The panel below is the only thing
      drawing on screen; tapping outside the panel still closes via the
-     overlay.onclick handler. */
+     overlay.onclick handler.
+
+     z-index 1250 sits ABOVE the plan-preview overlay (1200) so during
+     the accept → confirm crossover slide the incoming confirm panel
+     covers the outgoing accept panel rather than the other way round
+     (incoming-on-top reads as 'new layer arrives' instead of 'old
+     layer falls away then new layer appears'). */
   .post-accept-overlay,
   .dpacc-overlay {
     position: fixed;
     inset: 0;
-    z-index: 1150;
+    z-index: 1250;
     background: transparent;
     display: flex;
     flex-direction: column;
@@ -8799,7 +8811,7 @@
     position: fixed;
     top: calc(env(safe-area-inset-top, 0px) + 12px);
     left: 0; right: 0;
-    z-index: 1151;
+    z-index: 1251;
     display: flex;
     justify-content: center;
     pointer-events: none;

@@ -897,10 +897,18 @@ function _closePostAcceptPanel(opts = {}) {
     window._pendingFriendPrompt = null;
     window._pendingShareNudge = null;
   }
-  // Lift the chrome-hiding body class once the panel is gone. Both the
-  // explore-mode hand-off and the 'reopen plan-preview' path set their
-  // own takeover state immediately after, so timing is safe.
-  document.body.classList.remove('post-accept-active');
+  // Defer body-class removal until the slide-down completes so the
+  // venue list / search / FTS doesn't reveal while the panel is still
+  // visible mid-slide. User: 'When you close the confirm panel, the
+  // venue list instantly displays.' v1 removed the class synchronously
+  // which fired the chrome's 0.25s opacity transition the instant the
+  // slide started. opts.skipBodyClassRemoval lets the change-response
+  // path hand off to plan-preview-active without touching this class.
+  if (!opts.skipBodyClassRemoval) {
+    setTimeout(() => {
+      document.body.classList.remove('post-accept-active');
+    }, 320);
+  }
   // Default close path → drop straight into explore mode. User: 'the
   // detail panel should not even appear when clicking I'm in. It's a
   // lot simpler than you made it.' The previous version opened the
@@ -936,13 +944,19 @@ function _reopenInviteFromAccept() {
     ? !!authCurrentUser()
     : (typeof window !== 'undefined' && !!window._currentUser);
   inviteOpts.mode = isAuthed ? 'invite' : 'invite-anon';
-  // Skip the default close-→-explore-mode path: user is revising, not
-  // exiting.
-  _closePostAcceptPanel({ skipExitToExplore: true });
-  // 320 ms gap for the post-accept panel's fade-out before the plan-
-  // preview overlay slides up. Matches the other panel-swap timings
-  // throughout the app.
+  // Skip both the default explore-mode hand-off AND the body-class
+  // removal — we hand off directly to plan-preview-active. Removing
+  // post-accept-active synchronously made the venue list flash for
+  // ~320 ms between the confirm slide-down and the accept slide-up.
+  // openPlanPreview adds plan-preview-active (same chrome-hide rules),
+  // so leaving post-accept-active on until the slide finishes keeps
+  // chrome continuously hidden through the swap.
+  _closePostAcceptPanel({ skipExitToExplore: true, skipBodyClassRemoval: true });
+  // 320 ms gap so the confirm panel finishes its slide-down before
+  // the accept panel slides up. Sequential by request — user: 'It
+  // should slide up after confirm panel close.'
   setTimeout(() => {
+    document.body.classList.remove('post-accept-active');
     try { openPlanPreview(inviteOpts); } catch (e) { /* ignore */ }
   }, 320);
 }

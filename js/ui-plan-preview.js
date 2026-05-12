@@ -897,6 +897,11 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
         // user sees what's currently picked at a glance.
         const labelSpan = suggestBtn.querySelector('span');
         if (labelSpan) labelSpan.textContent = chip.textContent;
+        // Surface the active selection by keeping the chip accented —
+        // when the user re-opens the strip they can see which offset
+        // is currently applied at a glance.
+        laterStrip.querySelectorAll('.pp-later-chip').forEach(c => c.classList.remove('is-selected'));
+        chip.classList.add('is-selected');
         laterStrip.classList.remove('open');
       });
       // Outside-tap dismiss
