@@ -744,82 +744,71 @@ function _drawReviewBadge(x, y) {
   ctx.restore();
 }
 
-// ── Audit badge (admin) — green check on reviewed venues. ────────────────────
-function _drawAuditBadge(x, y) {
-  const r = 7.5;
-  ctx.save();
-  ctx.beginPath(); ctx.arc(x, y, r + 1, 0, Math.PI * 2);
-  ctx.fillStyle = '#064e3b'; ctx.fill();
-  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.fillStyle = '#10b981'; ctx.fill();
-  ctx.strokeStyle = '#fff';
-  ctx.lineWidth   = 1.6;
-  ctx.lineCap     = 'round';
-  ctx.lineJoin    = 'round';
-  ctx.beginPath();
-  ctx.moveTo(x - 3.0, y + 0.2);
-  ctx.lineTo(x - 0.7, y + 2.5);
-  ctx.lineTo(x + 3.2, y - 2.5);
-  ctx.stroke();
-  ctx.restore();
-}
-
-// Amber pending badge — venue still needs review. Sized to match the
-// reviewed badge so the two states swap cleanly when the admin ticks one off.
-function _drawAuditPendingBadge(x, y) {
-  const r = 6;
-  ctx.save();
-  ctx.beginPath(); ctx.arc(x, y, r + 1, 0, Math.PI * 2);
-  ctx.fillStyle = '#78350f'; ctx.fill();
-  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.fillStyle = '#f59e0b'; ctx.fill();
-  ctx.restore();
-}
-
-// Reviewed-state replacement pin — venue's polygon has been audited.
-// Permanently demoted to a green dot so the map clears as the audit
-// progresses; the pill/dot priority pipeline is skipped entirely.
+// ── Audit pins (admin) ──────────────────────────────────────────────────────
+// Colors come from TOKENS so the canvas tracks the design system. Inner
+// fill uses the semantic status token (success / error); outer ring uses
+// the deepest slate so the dot reads against the warm map tiles.
+const _AUDIT_DOT_RING_R   = 7;
+const _AUDIT_DOT_FILL_R   = 5.5;
 function _drawAuditReviewedPin(pt) {
+  const fill = (TOKENS && TOKENS.success) || '#64FFB4';
+  const ring = (TOKENS && TOKENS.surfaceDeep) || '#0F1B2A';
   ctx.save();
-  ctx.beginPath(); ctx.arc(pt.x, pt.y, 7, 0, Math.PI * 2);
-  ctx.fillStyle   = '#064e3b';
-  ctx.fill();
-  ctx.beginPath(); ctx.arc(pt.x, pt.y, 5.5, 0, Math.PI * 2);
-  ctx.fillStyle   = '#10b981';
-  ctx.fill();
-  ctx.strokeStyle = '#ecfdf5';
-  ctx.lineWidth   = 1.2;
+  ctx.beginPath(); ctx.arc(pt.x, pt.y, _AUDIT_DOT_RING_R, 0, Math.PI * 2);
+  ctx.fillStyle = ring; ctx.fill();
+  ctx.beginPath(); ctx.arc(pt.x, pt.y, _AUDIT_DOT_FILL_R, 0, Math.PI * 2);
+  ctx.fillStyle = fill; ctx.fill();
+  // Check glyph in slate-on-mint so the dot reads as "done" at a glance.
+  ctx.strokeStyle = ring;
+  ctx.lineWidth   = 1.3;
   ctx.lineCap     = 'round';
   ctx.lineJoin    = 'round';
   ctx.beginPath();
-  ctx.moveTo(pt.x - 2.5, pt.y + 0.2);
-  ctx.lineTo(pt.x - 0.7, pt.y + 2.2);
-  ctx.lineTo(pt.x + 2.6, pt.y - 2.0);
+  ctx.moveTo(pt.x - 2.4, pt.y + 0.2);
+  ctx.lineTo(pt.x - 0.6, pt.y + 2.0);
+  ctx.lineTo(pt.x + 2.4, pt.y - 1.8);
   ctx.stroke();
   ctx.restore();
 }
-
-// Archived-state replacement pin — venue removed from the live app.
-// Shown only inside audit mode so the admin can still see + un-archive.
 function _drawAuditArchivedPin(pt) {
+  const fill = (TOKENS && TOKENS.error) || '#FF6B6B';
+  const ring = (TOKENS && TOKENS.surfaceDeep) || '#0F1B2A';
   ctx.save();
-  ctx.beginPath(); ctx.arc(pt.x, pt.y, 7, 0, Math.PI * 2);
-  ctx.fillStyle   = '#7f1d1d';
-  ctx.fill();
-  ctx.beginPath(); ctx.arc(pt.x, pt.y, 5.5, 0, Math.PI * 2);
-  ctx.fillStyle   = '#ef4444';
-  ctx.fill();
-  ctx.strokeStyle = '#fff';
+  ctx.beginPath(); ctx.arc(pt.x, pt.y, _AUDIT_DOT_RING_R, 0, Math.PI * 2);
+  ctx.fillStyle = ring; ctx.fill();
+  ctx.beginPath(); ctx.arc(pt.x, pt.y, _AUDIT_DOT_FILL_R, 0, Math.PI * 2);
+  ctx.fillStyle = fill; ctx.fill();
+  // ✕ glyph in slate so the archived state reads at a glance.
+  ctx.strokeStyle = ring;
   ctx.lineWidth   = 1.4;
   ctx.lineCap     = 'round';
   ctx.beginPath();
-  ctx.moveTo(pt.x - 2.2, pt.y - 2.2);
-  ctx.lineTo(pt.x + 2.2, pt.y + 2.2);
-  ctx.moveTo(pt.x + 2.2, pt.y - 2.2);
-  ctx.lineTo(pt.x - 2.2, pt.y + 2.2);
+  ctx.moveTo(pt.x - 2.0, pt.y - 2.0);
+  ctx.lineTo(pt.x + 2.0, pt.y + 2.0);
+  ctx.moveTo(pt.x + 2.0, pt.y - 2.0);
+  ctx.lineTo(pt.x - 2.0, pt.y + 2.0);
   ctx.stroke();
   ctx.restore();
 }
+
+// Amber pending badge on top-right of an unreviewed pin. Distinct from
+// the honey "in sun" pill — uses TOKENS.weatherPartly (project-defined
+// amber band) so the canvas tracks the design system.
+function _drawAuditPendingBadge(x, y) {
+  const r = 5.5;
+  const fill = (TOKENS && TOKENS.weatherPartly) || '#D5B068';
+  const ring = (TOKENS && TOKENS.surfaceDeep)   || '#0F1B2A';
+  ctx.save();
+  ctx.beginPath(); ctx.arc(x, y, r + 1, 0, Math.PI * 2);
+  ctx.fillStyle = ring; ctx.fill();
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = fill; ctx.fill();
+  ctx.restore();
+}
+
+// Kept for hover/legacy callsites. Reviewed venues short-circuit to a
+// dot in audit mode (see _drawAuditReviewedPin), so this is unused.
+function _drawAuditBadge(x, y) { _drawAuditReviewedPin({ x, y }); }
 
 // Single dispatcher — used by every pin draw path so the audit overlay logic
 // lives in one place. No-op outside audit mode. Reviewed venues never reach

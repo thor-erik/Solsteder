@@ -465,13 +465,15 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
         <button class="audit-action-btn audit-undo" onclick="unarchiveVenue(${idArg})">Un-archive</button>
       </div>`;
     } else if (audited) {
+      // Already reviewed: no primary action — everything is secondary glass.
       auditActionsHtml = `<div class="audit-actions" onclick="event.stopPropagation()">
         <span class="audit-state-badge">${viaLabel}</span>
         <button class="audit-action-btn audit-undo" onclick="unmarkVenueAudited(${idArg})">Undo</button>
-        <button class="audit-action-btn" onclick="enterEditMode(${idArg})">Edit polygon</button>
+        <button class="audit-action-btn audit-undo" onclick="enterEditMode(${idArg})">Edit polygon</button>
         <button class="audit-action-btn audit-archive" onclick="archiveVenue(${idArg})" title="Hide from users">Archive</button>
       </div>`;
     } else {
+      // Unreviewed: Mark good is honey primary; the rest are secondary glass.
       auditActionsHtml = `<div class="audit-actions" onclick="event.stopPropagation()">
         <button class="audit-action-btn" onclick="markVenueAudited(${idArg},'good')">Mark good</button>
         <button class="audit-action-btn audit-undo" onclick="enterEditMode(${idArg})">Edit polygon</button>
