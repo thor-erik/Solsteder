@@ -77,7 +77,7 @@ function classifyPin(v, dateStr, hour) {
   try {
     ({ windows } = computeSunWindows(v, dateStr));
   } catch (e) {
-    return { tier: 'context', hasSunLaterToday: false, closedOpeningIntoSun: false };
+    return { tier: 'context', surfaced: false, hasSunLaterToday: false, closedOpeningIntoSun: false };
   }
 
   const { open: vOpen, close: vClose } = v.openingHours ?? {};
@@ -119,7 +119,7 @@ function classifyPin(v, dateStr, hour) {
     return { tier: 'waiting', minutesUntil: mins, nextStart: next.start, closedOpeningIntoSun };
   }
 
-  return { tier: 'context', hasSunLaterToday: !!next, closedOpeningIntoSun: false };
+  return { tier: 'context', surfaced, hasSunLaterToday: !!next, closedOpeningIntoSun: false };
 }
 
 // ── Token-derived rgba helper ──────────────────────────────────────────────────
@@ -950,7 +950,12 @@ function draw() {
     // palette. Stays rain-blue for "in shade" so the user reads the whole
     // map as two colour states (yellow = sun, blue = shade) instead of
     // three (yellow / mid-slate / dark-slate).
+    //
+    // Filter parity with the list: venues that would never qualify for the
+    // surfaced list (no sun today, or all windows rain-killed) get no dot.
+    // A dot the list would never promote is just noise on the map.
     if (tier === 'context' && !hasFriends) {
+      if (cls.surfaced === false) continue;
       // Slightly larger dots to match Google Maps (~12px diameter at
       // zoom ≥ 16, ~10px lower). Suppress when the dot would overlap
       // a placed pill body — dots stuck inside pills read as artefacts.
