@@ -897,6 +897,18 @@ function _closePostAcceptPanel(opts = {}) {
     window._pendingFriendPrompt = null;
     window._pendingShareNudge = null;
   }
+  // Fire the explore-mode hand-off IMMEDIATELY (not deferred), so the
+  // slider + venue list update while the panel is still sliding down.
+  // The user reveals a list already showing sunny venues at the next
+  // sun-window time — the panel's slide-down feels like 'curtains
+  // opening on a new scene', not 'panel falls away then app catches
+  // up'. User: 'Clicking close on the confirm panel should take you
+  // to the next sun window.' 'Open venue' card opts out via
+  // skipExitToExplore + selects the venue explicitly; 'Change
+  // response' opts out + reopens plan-preview.
+  if (!opts.skipExitToExplore && typeof _exitToExploreMode === 'function') {
+    try { _exitToExploreMode(); } catch (e) { /* ignore */ }
+  }
   // Defer body-class removal until the slide-down completes so the
   // venue list / search / FTS doesn't reveal while the panel is still
   // visible mid-slide. User: 'When you close the confirm panel, the
@@ -907,18 +919,6 @@ function _closePostAcceptPanel(opts = {}) {
   if (!opts.skipBodyClassRemoval) {
     setTimeout(() => {
       document.body.classList.remove('post-accept-active');
-    }, 320);
-  }
-  // Default close path → drop straight into explore mode. User: 'the
-  // detail panel should not even appear when clicking I'm in. It's a
-  // lot simpler than you made it.' The previous version opened the
-  // detail panel as an intermediate step, then explore-on-close — too
-  // many surfaces. Now: accept → post-accept → explore. 'Open venue'
-  // action card opts out via skipExitToExplore and selects the venue
-  // explicitly; 'Change response' opts out + reopens plan-preview.
-  if (!opts.skipExitToExplore && typeof _exitToExploreMode === 'function') {
-    setTimeout(() => {
-      try { _exitToExploreMode(); } catch (e) { /* ignore */ }
     }, 320);
   }
 }

@@ -38,7 +38,15 @@ function drawSeatingAreas() {
 
   ctx.save();
 
+  // Plan-preview lock: only the invited venue's seating polygon renders
+  // on the accept page (matches the single-pin rule). openPlanPreview
+  // forces selectedId to the invited venue so we reuse it as the lock.
+  const _planLockId = (typeof document !== 'undefined'
+    && document.body.classList.contains('plan-preview-active')
+    && typeof selectedId !== 'undefined') ? selectedId : null;
+
   VENUES.forEach(v => {
+    if (_planLockId != null && v.id !== _planLockId) return;
     if (!bounds.contains([v.lng, v.lat])) return;
     // Archived venues hide everywhere except audit mode.
     if (v.auditArchived && !_audit) return;

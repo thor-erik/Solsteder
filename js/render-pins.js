@@ -938,7 +938,15 @@ function draw() {
   let projVenues = [];
   const auditOverridePins = []; // [{ v, pt, kind: 'reviewed'|'archived' }]
   _friendVenueIds = new Set();
+  // Plan-preview lock: on the accept page only the invited venue's pin
+  // should render — other pins compete with the hero card's framing
+  // and add noise to the dive view. selectedId is forced to the invited
+  // venue by openPlanPreview, so we use it as the lock id.
+  const _planLockId = (typeof document !== 'undefined'
+    && document.body.classList.contains('plan-preview-active')
+    && typeof selectedId !== 'undefined') ? selectedId : null;
   VENUES.forEach(v => {
+    if (_planLockId != null && v.id !== _planLockId) return;
     if (!bounds.contains([v.lng, v.lat])) return;
     // Outside audit mode, archived venues are completely invisible.
     if (!isAuditMode && v.auditArchived) return;
