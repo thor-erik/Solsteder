@@ -7744,16 +7744,17 @@
     pointer-events: none;
     transition: opacity 0.22s ease;
   }
-  /* Lift the FTS to sit just above the share sheet. --dpinvite-sheet-h is
-     written on document root by _openInviteSheet via a ResizeObserver.
-     Stack: sheet (h) → 8px gap → FTS (38px) → 10px gap → callout (this
-     bottom + ~58px). */
+  /* Lift the FTS to sit FLUSH with the share sheet's top edge — the
+     slider and the in-sheet time readout below it should read as one
+     visual unit, not two separate surfaces with an air gap between
+     them. The whole bottom-anchored panel (slider + sheet header +
+     friend row + actions) is the "compose your invite" zone. */
   body.invite-sheet-open #fts {
-    bottom: calc(var(--dpinvite-sheet-h, 320px) + 8px) !important;
-    z-index: 1102; /* above the sheet (1100) + top chip (1101) */
+    bottom: calc(var(--dpinvite-sheet-h, 320px)) !important;
+    z-index: 1102; /* above the sheet (1100) */
   }
-  /* The FTS popup (existing tooltip) is replaced by .dpinvite-fts-callout
-     during invite-sheet-open. Hide the old popup to avoid duplicate UI. */
+  /* The default FTS popup is suppressed — the in-sheet header below
+     the slider carries the readout now. */
   body.invite-sheet-open #fts-popup {
     opacity: 0 !important;
     pointer-events: none !important;
@@ -7787,58 +7788,58 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 16px 0 14px;
+    /* Tighter than v1's 16/14 — the slider sits flush above the sheet
+       now, so the handle just needs enough breathing room to be
+       grippable, not to act as a chrome gap between the slider and
+       the sheet's first line of content. */
+    padding: 10px 0 8px;
     flex-shrink: 0;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     touch-action: none;
   }
   .dpinvite-grabber {
-    width: 36px;
+    width: 38px;
     height: 4px;
     border-radius: 2px;
-    background: rgba(156,189,231,0.25);
+    background: rgba(156,189,231,0.28);
   }
 
-  /* Top header — full-width glass-action card with venue eyebrow +
-     "Når kommer du?" prompt. Lives ABOVE the sheet (separate floating
-     surface, not inside the panel) so the user always sees what they're
-     setting. No close button: swipe-down on the sheet handle / tap
-     backdrop / Esc are the dismissal paths. */
-  .dpinvite-top-chip {
-    position: fixed;
-    top: calc(env(safe-area-inset-top, 0px) + 12px);
-    left: 16px;
-    right: 16px;
-    z-index: 1101;
-    transform: translateY(-130%);
-    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
-    pointer-events: none;
-  }
-  .dpinvite-top-chip.open { transform: translateY(0); }
-  .dpinvite-header {
-    pointer-events: auto;
-    padding: 12px 16px;
-    border-radius: 18px;
+  /* The v1 floating top-card has been folded INTO the sheet itself as
+     a "moment" block at the top — that way the venue + live time
+     readout sit right below the slider (which sits flush against the
+     sheet's top edge), so the user reads the answer the moment they
+     stop scrubbing. .dpinvite-top-chip stays as a no-op selector for
+     any legacy markup that might still reference it. */
+  .dpinvite-top-chip { display: none; }
+
+  /* The "moment" block — venue line + live when-line. Lives at the
+     top of the sheet body, right below the drag handle. Pairs with the
+     FTS slider flush above it: the user's eye lands on the slider,
+     drops ~24 px to read the moment block, and never has to dart up
+     to a separate surface to confirm what was picked. */
+  .dpinvite-moment {
+    padding: 6px 0 14px;
     display: flex;
     flex-direction: column;
     gap: 4px;
+    border-bottom: 1px solid rgba(156,189,231,0.10);
   }
-  /* Persistent invite header — venue line (primary) + when-line (secondary).
-     Replaces the v1 eyebrow + question pair. The when-line updates live
-     as the user scrubs the slider, so the header IS the answer instead
-     of asking the question and floating the answer on a separate
-     callout. */
   .dpinvite-venue-line {
-    font-size: 17px;
-    font-weight: 600;
+    font-size: 18px;
+    font-weight: 700;
     color: var(--text);
-    line-height: 1.25;
+    line-height: 1.2;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 7px;
+    letter-spacing: -0.01em;
   }
-  .dpinvite-venue-line svg { color: var(--muted); flex-shrink: 0; }
+  .dpinvite-venue-line svg {
+    color: var(--accent);
+    flex-shrink: 0;
+    opacity: 0.85;
+  }
   .dpinvite-venue-line span {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -7846,10 +7847,10 @@
     min-width: 0;
   }
   .dpinvite-when-line {
-    font-size: 13px;
+    font-size: 13.5px;
     font-weight: 500;
     color: var(--muted);
-    line-height: 1.3;
+    line-height: 1.35;
     display: inline-flex;
     align-items: baseline;
     gap: 6px;
@@ -7865,22 +7866,17 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    padding: 4px 18px 14px;
+    padding: 0 18px 14px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 14px;
     -webkit-overflow-scrolling: touch;
   }
 
-  /* In-sheet title — symmetric with the top header's "Når drar du?". The
-     top asks WHEN, the sheet asks WHO. Same typography (17px / weight 600)
-     as .dpinvite-venue-name so the two surfaces read as a paired flow. */
-  .dpinvite-section-title {
-    font-size: 17px;
-    font-weight: 600;
-    color: var(--text);
-    line-height: 1.25;
-  }
+  /* Was the "Who are you inviting?" section title — kept as no-op for
+     legacy markup. The avatar row is self-evident; an explicit title
+     above it just added chrome without adding information. */
+  .dpinvite-section-title { display: none; }
 
   /* FTS callout removed — the floating "Going at 13:25" chip used to
      live here. Its job (showing the picked time + sun-until status) is
@@ -7888,21 +7884,37 @@
      header, which doesn't ask a question and float its answer on a
      separate surface. Single source of truth, less chrome over the map. */
 
-  /* Group chips strip — uses .chip-pill primitives. */
-  .dpinvite-group-chips {
-    display: flex; gap: 6px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+  /* Recent / All group chips removed — both chips showed the same count
+     in any small-friend-list state, which made the toggle look meaningless.
+     Hidden via display: none so the JS that still emits the strip is a
+     no-op visually. We'll bring back filtering / pagination once the
+     friend graph is bigger and a search affordance is added. */
+  .dpinvite-group-chips { display: none; }
+
+  /* Compact "Send til" label above the avatar row — replaces the
+     section title. Reads as a small eyebrow, not a question. */
+  .dpinvite-friends-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    line-height: 1;
+    margin-top: 2px;
+    margin-bottom: 8px;
   }
 
-  /* Avatar carousel — horizontal scroll, multi-select, 56px circles.
-     Padding-top is 6px so the 5px selection ring isn't clipped by the
-     implicit overflow-y from overflow-x: auto. 6px ≥ 5px ring. */
+  /* Avatar row — horizontal scroll, multi-select, 40 px circles
+     (was 56 px in v1, which dominated the sheet for a 4-avatar list).
+     40 px keeps a generous tap target while leaving room for ~6 avatars
+     in a single row at typical sheet widths, and reads as a quick
+     "share to these people" picker rather than a select-your-fighter
+     screen. */
   .dpinvite-avatar-row {
-    display: flex; gap: 14px;
+    display: flex; gap: 12px;
     overflow-x: auto;
-    padding: 6px 4px;
-    margin: 0 -4px;
+    padding: 4px 2px;
+    margin: 0 -2px;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
   }
@@ -7911,9 +7923,9 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
     flex-shrink: 0;
-    width: 64px;
+    width: 48px;
     background: transparent;
     border: 0;
     padding: 0;
@@ -7924,11 +7936,11 @@
   .dpinvite-avatar[hidden] { display: none; }
   .dpinvite-avatar-img {
     position: relative;
-    width: 56px; height: 56px;
+    width: 40px; height: 40px;
   }
   .dpinvite-avatar-img > img,
   .dpinvite-avatar-init {
-    width: 56px; height: 56px;
+    width: 40px; height: 40px;
     border-radius: 50%;
     display: block;
     object-fit: cover;
@@ -7937,7 +7949,7 @@
   .dpinvite-avatar-init {
     display: flex; align-items: center; justify-content: center;
     color: #fff;
-    font-size: 22px;
+    font-size: 16px;
     font-weight: 700;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), inset 0 -1px 0 rgba(0,0,0,0.20);
   }
@@ -7951,11 +7963,13 @@
   .dpinvite-avatar-init.init-color-7 { background: linear-gradient(135deg, #B0C0CE 0%, #7D8FA0 100%); }
   .dpinvite-avatar[aria-checked="true"] .dpinvite-avatar-img > img,
   .dpinvite-avatar[aria-checked="true"] .dpinvite-avatar-init {
-    box-shadow: 0 0 0 3px #111E38, 0 0 0 5px var(--accent);
+    /* Tighter ring proportions for the smaller avatars — 2 px gap +
+       2 px ring reads cleanly at 40 px. */
+    box-shadow: 0 0 0 2px #111E38, 0 0 0 4px var(--accent);
   }
   .dpinvite-avatar-check {
     position: absolute; bottom: -2px; right: -2px;
-    width: 20px; height: 20px;
+    width: 16px; height: 16px;
     border-radius: 50%;
     background: var(--accent);
     color: var(--accent-on, #2a1a0c);
@@ -7966,13 +7980,14 @@
     transition: opacity 0.15s ease, transform 0.15s ease;
     pointer-events: none;
   }
+  .dpinvite-avatar-check svg { width: 9px; height: 9px; }
   .dpinvite-avatar[aria-checked="true"] .dpinvite-avatar-check {
     opacity: 1;
     transform: scale(1);
   }
   .dpinvite-online-dot {
-    position: absolute; bottom: 2px; right: 2px;
-    width: 12px; height: 12px;
+    position: absolute; bottom: 0; right: 0;
+    width: 10px; height: 10px;
     border-radius: 50%;
     background: #5DCABA;
     border: 2px solid #111E38;
@@ -7980,11 +7995,11 @@
   }
   .dpinvite-avatar[aria-checked="true"] .dpinvite-online-dot { display: none; }
   .dpinvite-avatar-name {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 500;
-    color: var(--text);
+    color: var(--muted);
     line-height: 1.2;
-    max-width: 64px;
+    max-width: 52px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -8048,21 +8063,32 @@
     pointer-events: none;
   }
 
-  /* Cancel row — full-width pill matching the share button's form factor
-     (h48, r999) so the two stack as a coherent action group. Negative
-     margin-top tightens the visual gap to ~8px (body gap is 10px) so the
-     two action pills read as one paired stack instead of two siblings. */
+  /* Cancel — demoted from a full-width pill to a small text link. The
+     swipe-down handle + backdrop tap + Esc are the primary close
+     paths; the link is just an explicit fallback for users who don't
+     intuit the gestures. No need to eat a whole row at the bottom. */
   .dpinvite-cancel-row {
     display: flex;
-    margin-top: -2px;
+    justify-content: center;
+    margin-top: 4px;
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
   .dpinvite-cancel-row .g-rnd {
-    flex: 1;
-    height: 48px;
-    border-radius: 999px;
-    font-size: 14px;
-    font-weight: 600;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 500;
+    height: 36px;
+    padding: 0 14px;
+    border-radius: 18px;
+    cursor: pointer;
+    transition: color 0.12s, background 0.12s;
+  }
+  .dpinvite-cancel-row .g-rnd:hover {
+    color: var(--text);
+    background: rgba(255,244,224,0.06);
   }
 
   /* Desktop: cap width and centre the sheet + top chip. */

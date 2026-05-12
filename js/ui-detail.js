@@ -981,7 +981,6 @@ function _openInviteSheet(venueId) {
 
 
   const avatarsHtml   = _renderInviteAvatarCarousel(friends, _hashColor, checkSvgSm);
-  const groupChipsHtml = _renderInviteGroupChips('recent', recentSet.size, friends.length);
 
   // Build overlay + sheet (IDs preserved for legacy close path).
   const overlay = document.createElement('div');
@@ -993,20 +992,18 @@ function _openInviteSheet(venueId) {
   sheet.id = 'invite-sheet';
   sheet.className = 'dpinvite-sheet';
 
-  // In-sheet title — symmetric with the top header's "Når drar du?".
-  // The top asks WHEN, the sheet asks WHO. A single question framing
-  // clarifies the user's mental model without needing decorative chrome.
-  const sheetTitle = `<div class="dpinvite-section-title">${t('invite_recipients_title')}</div>`;
-
+  // Friends block — compact horizontal row preceded by a small "Send til"
+  // eyebrow. The v1 section title ("Hvem inviterer du?") and the
+  // Recent / All chip toggle (both chips showed 4 in a 4-friend list,
+  // making the toggle meaningless) are gone. Empty state retains its
+  // own copy + sub.
   const friendsBlock = hasFriends ? `
-        ${sheetTitle}
-        <div class="dpinvite-group-chips no-scrollbar" id="dpinvite-group-chips">
-          ${groupChipsHtml}
-        </div>
-        <div class="dpinvite-avatar-row no-scrollbar" id="dpinvite-avatar-row">
-          ${avatarsHtml}
+        <div>
+          <div class="dpinvite-friends-label">${t('invite_friends_label')}</div>
+          <div class="dpinvite-avatar-row no-scrollbar" id="dpinvite-avatar-row">
+            ${avatarsHtml}
+          </div>
         </div>` : `
-        ${sheetTitle}
         <div class="dpinvite-empty-card">
           <div class="dpinvite-empty-title">${t('invite_no_friends_title')}</div>
           <div class="dpinvite-empty-sub">${t('invite_no_friends_sub')}</div>
@@ -1041,18 +1038,37 @@ function _openInviteSheet(venueId) {
           </button>
         </div>`;
 
-  // Sheet markup. The eyebrow + "Når kommer du?" prompt has been lifted
-  // OUT of the sheet into its own floating box at the top (built below as
-  // topCard) — it stays visible above the FTS so the user always sees what
-  // they're scheduling. The sheet itself only does WHO + SEND.
-  // Body order:
-  //   1. Friends block (group chips + avatar carousel) OR empty state
-  //   2. CTA row (primary pill + optional .s-circ link companion)
+  // The "moment" block — venue name + live time/sun readout, folded
+  // INTO the top of the sheet so it sits right below the FTS slider
+  // (which now sits flush against the sheet's top edge). The v1
+  // floating top-card has been dropped; the question/answer split it
+  // created is replaced by a single persistent answer surface adjacent
+  // to the control that produces it.
+  // Dedup: when the venue's name already ends with the area name (e.g.
+  // "Mamma Pizza Nydalen" + area "Nydalen"), drop the redundant suffix.
+  const dispArea = _dedupeAreaForVenue(venueName, v?.area);
+  const venueLineLabel = dispArea ? `${venueName} · ${dispArea}` : venueName;
+  const momentBlock = `
+        <div class="dpinvite-moment">
+          <div class="dpinvite-venue-line">${pinSvg}<span>${venueLineLabel}</span></div>
+          <div class="dpinvite-when-line" id="dpinvite-when-line">
+            <span class="when-primary" id="dpinvite-when-primary"></span>
+            <span class="when-sep" aria-hidden="true">·</span>
+            <span class="when-sun" id="dpinvite-when-sun"></span>
+          </div>
+        </div>`;
+
+  // Sheet body order:
+  //   1. Moment block (venue + live time/sun readout)
+  //   2. Friends row (compact, no title chrome)
+  //   3. CTA row (primary pill + Copy companion)
+  //   4. Cancel link (small, centred, demoted from full-width pill)
   sheet.innerHTML = `
     <div class="dpinvite-handle" id="dpinvite-handle" aria-label="${t('close') || 'Close'}">
       <div class="dpinvite-grabber" aria-hidden="true"></div>
     </div>
     <div class="dpinvite-body">
+      ${momentBlock}
       ${friendsBlock}
       ${ctaRow}
       <div class="dpinvite-cancel-row">
@@ -1060,32 +1076,8 @@ function _openInviteSheet(venueId) {
       </div>
     </div>`;
 
-  // Floating top header — persistent answer surface. Venue line on top
-  // (title case, name + area) + when-line that updates LIVE as the slider
-  // scrubs ("Du drar kl. 13:25 · sol til 19:25"). Replaces the v1 question
-  // header + separate floating FTS callout. NO close button: the user
-  // dismisses via swipe-down on the sheet handle / cancel button /
-  // backdrop tap / Esc.
-  const topCard = document.createElement('div');
-  topCard.id = 'invite-top-card';
-  topCard.className = 'dpinvite-top-chip';
-  // Dedup: when the venue's name already ends with the area name (e.g.
-  // "Mamma Pizza Nydalen" + area "Nydalen"), drop the redundant suffix.
-  const dispArea = _dedupeAreaForVenue(venueName, v?.area);
-  const venueLineLabel = dispArea ? `${venueName} · ${dispArea}` : venueName;
-  topCard.innerHTML = `
-    <div class="dpinvite-header glass-action">
-      <div class="dpinvite-venue-line">${pinSvg}<span>${venueLineLabel}</span></div>
-      <div class="dpinvite-when-line" id="dpinvite-when-line">
-        <span class="when-primary" id="dpinvite-when-primary"></span>
-        <span class="when-sep" aria-hidden="true">·</span>
-        <span class="when-sun" id="dpinvite-when-sun"></span>
-      </div>
-    </div>`;
-
   overlay.appendChild(sheet);
   document.body.appendChild(overlay);
-  document.body.appendChild(topCard);
 
   sheet._venueName = venueName;
   sheet._venueId = venueId;
@@ -1312,20 +1304,16 @@ function _openInviteSheet(venueId) {
   // which left the user looking at zoom-13 city level. The padding shifts the
   // logical centre downward by half (top-card height) and upward by half
   // (sheet height) so the venue sits in the visible mid-strip.
-  // Centre the venue between the bottom of the top header and the top of
-  // the FTS pill above the sheet. Mapbox padding shifts the camera's
-  // logical centre, so passing the heights of the chrome that occlude the
-  // map (top header above, sheet + FTS below) gives us a visible mid-strip
-  // with the venue exactly in the middle.
-  //   FTS chrome below sheet: 8px gap + 38px FTS = 46px
-  //     (the v1 floating callout has been removed — its 50px is gone, so
-  //      the visible mid-strip grows by ~50px and the live shadow render
-  //      on the venue gets more of the screen.)
-  //   Top header chrome:      env-inset + 12px + topCard height + 8px gap
+  // Centre the venue in the visible map strip above the sheet. Mapbox
+  // padding shifts the camera's logical centre — passing the height of
+  // the chrome that occludes the map (sheet + FTS slider flush above
+  // it) puts the venue in the middle of the *visible* area. Top
+  // padding is just a safe-area inset since the v1 floating top-card
+  // is gone and the map now extends to the top of the screen.
   if (typeof map !== 'undefined' && map && typeof map.easeTo === 'function' && v) {
     requestAnimationFrame(() => {
-      const padTop    = 12 + (topCard.offsetHeight || 80) + 8;
-      const ftsChrome = 8 + 38 + 12;
+      const padTop    = 24;
+      const ftsChrome = 38;
       const padBottom = (sheet.offsetHeight || 320) + ftsChrome;
       sheet._mapPadOpen = { top: padTop, bottom: padBottom, left: 0, right: 0 };
       map.easeTo({
@@ -1338,11 +1326,11 @@ function _openInviteSheet(venueId) {
     });
   }
 
-  // Animate in — backdrop fades, sheet slides up, top card slides down.
+  // Animate in — backdrop fades, sheet slides up. (v1 also had a top
+  // card to slide down; gone now.)
   requestAnimationFrame(() => {
     overlay.classList.add('open');
     sheet.classList.add('open');
-    topCard.classList.add('open');
   });
 }
 
@@ -1686,7 +1674,6 @@ function _refreshInvitePrimaryCTA() {
 function _closeInviteSheet() {
   const overlay = document.getElementById('invite-sheet-backdrop');
   const sheet = document.getElementById('invite-sheet');
-  const topCard = document.getElementById('invite-top-card');
   if (sheet) {
     if (sheet._sliderCleanup) sheet._sliderCleanup();
     sheet.classList.remove('open');
@@ -1696,17 +1683,13 @@ function _closeInviteSheet() {
   // in normal use.
   _invFtsDetach();
   // Restore the map's padding to zero so the venue is no longer biased
-  // upward once the sheet/top-card are gone.
+  // upward once the sheet is gone.
   if (typeof map !== 'undefined' && map && typeof map.easeTo === 'function') {
     map.easeTo({ padding: { top: 0, bottom: 0, left: 0, right: 0 }, duration: 280 });
   }
   if (overlay) {
     overlay.classList.remove('open');
     setTimeout(() => overlay.remove(), 300);
-  }
-  if (topCard) {
-    topCard.classList.remove('open');
-    setTimeout(() => topCard.remove(), 320);
   }
   document.body.classList.remove('invite-sheet-open');
   // Restore the FTS to its proper position now that body.invite-sheet-open
