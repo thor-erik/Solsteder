@@ -892,7 +892,6 @@ function _closePostAcceptPanel(opts = {}) {
     overlay.classList.remove('open');
     setTimeout(() => overlay.remove(), 300);
   }
-  document.body.classList.remove('post-accept-active');
   // Belt-and-suspenders: clear any post-accept stash (so reopening the
   // detail panel later doesn't surface the legacy banners).
   if (typeof window !== 'undefined') {
@@ -963,7 +962,15 @@ function _reopenInviteFromAccept() {
   // 320 ms gap so the confirm panel finishes its slide-down before
   // the accept panel slides up. Sequential by request — user: 'It
   // should slide up after confirm panel close.'
+  //
+  // Class swap order matters: ADD plan-preview-active BEFORE removing
+  // post-accept-active so the chrome-hide rules are never momentarily
+  // absent (both classes apply the same hide rules; with neither set,
+  // the chrome's 0.25 s opacity transition would fire and the venue
+  // list / search bar would flash in mid-swap). User reported this
+  // exact flash before the fix.
   setTimeout(() => {
+    document.body.classList.add('plan-preview-active');
     document.body.classList.remove('post-accept-active');
     try { openPlanPreview(inviteOpts); } catch (e) { /* ignore */ }
   }, 320);

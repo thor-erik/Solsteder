@@ -8855,23 +8855,27 @@
 
   /* "Coming later" offset chips — popover-style grid that slides up
      above the CTA row when the user taps 'Coming later'. 4-column
-     grid → 2 rows of 4 equal-width chips for a clean visual rhythm
-     (v1 used flex-wrap with variable widths, which staggered the
-     chips in an unrhythmic way). Capped at +2h offsets per user
-     request. */
+     grid → 2 rows of 4 equal-width chips. Always in flow (display:
+     grid, max-height 0 → 100px) so the panel's height grows smoothly
+     and slides upward by the chip strip's height — same animatable
+     transition as the rest of the panel. v1 used display: none → grid
+     which caused the panel to jump in height with no animation. */
   .pp-later-strip {
-    display: none;
+    display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 6px;
-    padding: 12px 0 4px;
+    max-height: 0;
+    padding: 0;
     opacity: 0;
-    transform: translateY(8px);
-    transition: opacity 0.18s ease, transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    transition: max-height 0.28s cubic-bezier(0.32, 0.72, 0, 1),
+                padding 0.22s cubic-bezier(0.32, 0.72, 0, 1),
+                opacity 0.2s ease;
   }
   .pp-later-strip.open {
-    display: grid;
+    max-height: 100px; /* generous: two rows of 36 px + gap + padding */
+    padding: 12px 0 4px;
     opacity: 1;
-    transform: translateY(0);
   }
   .pp-later-strip .pp-later-chip {
     width: 100%;
