@@ -2333,12 +2333,17 @@ function _earliestSunHourFor(dateStr) {
   return findSunCrossingFromTable(buildSunTable(dateStr), true);
 }
 
-/** Returns the hour where the first sun window of `dateStr` begins: the
- *  first hour in [sunrise, sunset] that the FTS ramp paints as NOT
- *  overcast (sunBlock < 0.75 — matches drawTimeline's "partly" cutoff in
- *  ui-shared.js, so the slider always lands where the band first looks
- *  sun-touched). Falls back to sunrise on fully-overcast days or beyond
- *  the forecast horizon. */
+/** Returns the hour where the first *useful* sun window of `dateStr`
+ *  begins. Rules:
+ *    - Walk [sunrise, sunset] hour-by-hour.
+ *    - A "sun-touched" hour has sunBlock < 0.75 (matches drawTimeline's
+ *      "not overcast" cutoff — slider lands where the canvas first looks
+ *      sun-touched).
+ *    - Require a contiguous run of MIN_USEFUL_HOURS sun-touched hours
+ *      before counting it as a window — a single sunny hour wedged
+ *      between cloudy ones isn't worth surfacing.
+ *    - Return the START of that first qualifying run. Falls back to
+ *      sunrise on overcast / no-forecast days. */
 function _firstSunWindowStartFor(dateStr) {
   if (typeof buildSunTable !== 'function' || typeof findSunCrossingFromTable !== 'function') return null;
   const table   = buildSunTable(dateStr);
@@ -2347,10 +2352,20 @@ function _firstSunWindowStartFor(dateStr) {
   if (typeof getWeatherAt !== 'function') return sunrise;
   const sunset = findSunCrossingFromTable(table, false);
   const endH   = sunset != null ? Math.floor(sunset) : 21;
+  const MIN_USEFUL_HOURS = 2;
+  let runStart = null, runLen = 0;
   for (let h = Math.ceil(sunrise); h <= endH; h++) {
     const wx = getWeatherAt(dateStr, h);
     const blocked = wx?.sunBlock ?? wx?.cloud;
-    if (blocked != null && blocked < 0.75) return h;
+    const isSun = blocked != null && blocked < 0.75;
+    if (isSun) {
+      if (runStart == null) runStart = h;
+      runLen++;
+      if (runLen >= MIN_USEFUL_HOURS) return runStart;
+    } else {
+      runStart = null;
+      runLen = 0;
+    }
   }
   return sunrise;
 }

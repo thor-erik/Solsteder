@@ -383,12 +383,27 @@ function venueHasSunInRange(v, dateStr, fromHour, toHour) {
  *   params. The i18n keys are paired (sun_until_cloudy/sun_until_rain etc).
  */
 function computeCityWideSunOutlook(dateStr, fromHour, sundownH) {
-  if (typeof wxBucket !== 'function' || sundownH == null || fromHour == null) {
+  if (typeof getWeatherAt !== 'function' || sundownH == null || fromHour == null) {
     return { code: 'clear' };
   }
 
-  // Walk forward hourly from fromHour to sundown. Bucket each hour into
-  // sun / cloud / rain. Build contiguous sun bands.
+  // Walk forward hourly from fromHour to sundown, bucketing each mid-hour
+  // into sun / cloud / rain using an FTS-aligned threshold: sunBlock < 0.50
+  // (canvas paints "clear"/"clearSoft") counts as sun, ≥ 0.50 ("partly" or
+  // "overcast" on the canvas) counts as cloud. Aligning here keeps the
+  // header copy from saying "Sun all day" while the canvas paints a clear
+  // cloud band. wxBucket's stricter 0.85 cutoff is left alone — it gates
+  // qualifyingWindows + the venue-overcast verdict, where "still some sun"
+  // genuinely matters.
+  const SUN_THRESHOLD = 0.50;
+  const sampleBucket = (h) => {
+    const wx = getWeatherAt(dateStr, h);
+    if (!wx) return null;
+    if ((wx.precip ?? 0) > 0.3) return 'regn';
+    const blocked = wx.sunBlock ?? wx.cloud ?? 0;
+    return blocked >= SUN_THRESHOLD ? 'skyer' : 'sol';
+  };
+
   const startH = fromHour;
   const endH   = sundownH;
   if (endH <= startH + 0.001) return { code: 'clear' };
@@ -398,7 +413,7 @@ function computeCityWideSunOutlook(dateStr, fromHour, sundownH) {
   let cloudHours = 0;
   let rainHours = 0;
   for (let h = Math.floor(startH); h < Math.ceil(endH); h++) {
-    const b = wxBucket(dateStr, h + 0.5);   // sample mid-hour
+    const b = sampleBucket(h + 0.5);   // sample mid-hour
     if (b === 'regn') rainHours++;
     else if (b === 'skyer') cloudHours++;
     const isSun = b === 'sol' || b == null; // null forecast = assume sun
