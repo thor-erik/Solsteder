@@ -1050,11 +1050,14 @@ function _openInviteSheet(venueId) {
   const venueLineLabel = dispArea ? `${venueName} · ${dispArea}` : venueName;
   const momentBlock = `
         <div class="dpinvite-moment">
-          <div class="dpinvite-venue-line">${pinSvg}<span>${venueLineLabel}</span></div>
-          <div class="dpinvite-when-line" id="dpinvite-when-line">
-            <span class="when-primary" id="dpinvite-when-primary"></span>
-            <span class="when-sep" aria-hidden="true">·</span>
-            <span class="when-sun" id="dpinvite-when-sun"></span>
+          <div class="dpinvite-moment-pin" aria-hidden="true">${pinSvg}</div>
+          <div class="dpinvite-moment-text">
+            <div class="dpinvite-venue-line">${venueLineLabel}</div>
+            <div class="dpinvite-when-line" id="dpinvite-when-line">
+              <span class="when-primary" id="dpinvite-when-primary"></span>
+              <span class="when-sep" aria-hidden="true">·</span>
+              <span class="when-sun" id="dpinvite-when-sun"></span>
+            </div>
           </div>
         </div>`;
 

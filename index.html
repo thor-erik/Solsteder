@@ -7744,21 +7744,20 @@
     pointer-events: none;
     transition: opacity 0.22s ease;
   }
-  /* Lift the FTS to sit FLUSH with the share sheet's top edge — the
-     slider and the in-sheet time readout below it should read as one
-     visual unit, not two separate surfaces with an air gap between
-     them. The whole bottom-anchored panel (slider + sheet header +
-     friend row + actions) is the "compose your invite" zone. */
+  /* Lift the FTS to sit above the share sheet with a small breathing
+     gap. v1 used 8 px which read fine; v2-flush (0 px) made the
+     slider's rounded body look stuck to the sheet's top edge. 8 px
+     restored. */
   body.invite-sheet-open #fts {
-    bottom: calc(var(--dpinvite-sheet-h, 320px)) !important;
+    bottom: calc(var(--dpinvite-sheet-h, 320px) + 8px) !important;
     z-index: 1102; /* above the sheet (1100) */
   }
-  /* The default FTS popup is suppressed — the in-sheet header below
-     the slider carries the readout now. */
-  body.invite-sheet-open #fts-popup {
-    opacity: 0 !important;
-    pointer-events: none !important;
-  }
+  /* The FTS popup (its native time/weather pill that floats above the
+     thumb) was suppressed in v1 to avoid duplicating the floating
+     callout. v2 dropped the callout and v3 dropped the floating top
+     card — the popup is now restored so the user gets the same
+     follow-the-thumb feedback they have everywhere else in the app
+     while scrubbing inside the invite sheet. */
 
   .dpinvite-sheet {
     position: absolute;
@@ -7813,38 +7812,46 @@
      any legacy markup that might still reference it. */
   .dpinvite-top-chip { display: none; }
 
-  /* The "moment" block — venue line + live when-line. Lives at the
-     top of the sheet body, right below the drag handle. Pairs with the
-     FTS slider flush above it: the user's eye lands on the slider,
-     drops ~24 px to read the moment block, and never has to dart up
-     to a separate surface to confirm what was picked. */
+  /* The "moment" block — pin glyph in the left column, venue line +
+     live when-line stacked in the right column so they both align to
+     the same x edge. v3 had the pin inline with the venue line, which
+     pushed the venue text right by ~21 px while the when-line below
+     started flush with the pin → visual zigzag. Two-column flex fixes
+     it without dropping the pin (the pin is the visual cue that this
+     block is "the place + the moment", not just text). */
   .dpinvite-moment {
     padding: 6px 0 14px;
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    gap: 10px;
+    align-items: flex-start;
     border-bottom: 1px solid rgba(156,189,231,0.10);
+  }
+  .dpinvite-moment-pin {
+    flex-shrink: 0;
+    color: var(--accent);
+    opacity: 0.9;
+    /* Vertically nudge the pin so its centre aligns with the venue
+       line's cap-height rather than its top edge — purely an optical
+       correction since SVG bounding boxes don't share the font's
+       internal metrics. */
+    padding-top: 3px;
+  }
+  .dpinvite-moment-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
   }
   .dpinvite-venue-line {
     font-size: 18px;
     font-weight: 700;
     color: var(--text);
     line-height: 1.2;
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
     letter-spacing: -0.01em;
-  }
-  .dpinvite-venue-line svg {
-    color: var(--accent);
-    flex-shrink: 0;
-    opacity: 0.85;
-  }
-  .dpinvite-venue-line span {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    min-width: 0;
   }
   .dpinvite-when-line {
     font-size: 13.5px;
