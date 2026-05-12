@@ -1069,7 +1069,10 @@ function _openInviteSheet(venueId) {
   const topCard = document.createElement('div');
   topCard.id = 'invite-top-card';
   topCard.className = 'dpinvite-top-chip';
-  const venueLineLabel = v?.area ? `${venueName} · ${v.area}` : venueName;
+  // Dedup: when the venue's name already ends with the area name (e.g.
+  // "Mamma Pizza Nydalen" + area "Nydalen"), drop the redundant suffix.
+  const dispArea = _dedupeAreaForVenue(venueName, v?.area);
+  const venueLineLabel = dispArea ? `${venueName} · ${dispArea}` : venueName;
   topCard.innerHTML = `
     <div class="dpinvite-header glass-action">
       <div class="dpinvite-venue-line">${pinSvg}<span>${venueLineLabel}</span></div>
@@ -1904,6 +1907,21 @@ function _isNowSend(d, h) {
  *
  *  When _isNowSend(d, h) the message swaps to the "I'm at X now — come join"
  *  variant so the receiver reads a present-tense ping, not a future invite. */
+/** Returns the area string IF it would add information to the venue name,
+ *  empty string if the venue name already ends with the area (e.g. data
+ *  has venue.name = "Mamma Pizza Nydalen" and venue.area = "Nydalen").
+ *  Suffix match is case-insensitive and word-boundary-anchored so
+ *  "Café Bislett" / area "Bislett" → dedup, but "Bislett Stadion" /
+ *  area "Bislett" → keep (area not at the end). */
+function _dedupeAreaForVenue(name, area) {
+  const n = (name || '').trim();
+  const a = (area || '').trim();
+  if (!a) return '';
+  if (!n) return a;
+  const rx = new RegExp('\\s' + a.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&') + '$', 'i');
+  return rx.test(n) ? '' : a;
+}
+
 /** Norwegian preposition for an Oslo area name. Most Oslo neighbourhoods
  *  take "på" (the local convention, going back to former farms and
  *  open-district names — "på Tjuvholmen", "på Frogner", "på Bislett").
@@ -1937,9 +1955,12 @@ function _composeInviteShareText(v, d, h, link) {
   // {area_segment} carries its own leading space so the template stays
   // "{venue}{area_segment} {when}, …" — when the venue has no area the
   // segment is empty and the surrounding template doesn't get a stray
-  // double-space.
-  const areaSegment = v?.area
-    ? ` ${_areaPreposition(v.area, lang)} ${v.area}`
+  // double-space. Same dedup as the header: when the venue's name
+  // already ends with the area name, drop the segment so the share
+  // text doesn't read "Mamma Pizza Nydalen i Nydalen …".
+  const dispArea = _dedupeAreaForVenue(venueName, v?.area);
+  const areaSegment = dispArea
+    ? ` ${_areaPreposition(dispArea, lang)} ${dispArea}`
     : '';
   const isNow = _isNowSend(d, h);
   const when = isNow ? '' : _inviteWhenLabel(d, h);
