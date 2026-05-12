@@ -2026,12 +2026,14 @@ function _shareInviteLink(venueId, overrides = {}) {
     if (typeof _showToast === 'function') _showToast(t('invite_link_copied'));
   }
 
-  // Now-share → also flip pin presence so the share link's "I'm at X now"
-  // body matches reality on the map. Deferred via setTimeout so navigator.share
-  // keeps its synchronous user-activation path.
-  if (_isNowSend(d, h) && typeof checkIn === 'function') {
-    setTimeout(() => { checkIn(venueId, ''); }, 0);
-  }
+  // Now-share → flip pin presence so the share link's "I'm at X now"
+  // body matches reality on the map. v1 fired the check-in immediately;
+  // user feedback: "you should not get checked in until the notification
+  // is gone — give me an option to NOT check in via a CTA." The new
+  // path shows a "Checking you in…" notification with a "Don't check in"
+  // action and only commits the check-in if that ~4.5s window elapses
+  // without the user opting out.
+  if (_isNowSend(d, h)) _deferredCheckInAfterInvite(venueId);
 }
 
 /** Explicit copy-to-clipboard variant of the invite share. Always copies
@@ -2047,9 +2049,35 @@ function _copyInviteLink(venueId, overrides = {}) {
     navigator.clipboard?.writeText(text);
   } catch (e) { /* clipboard unavailable — no fallback worth the noise */ }
   if (typeof _showToast === 'function') _showToast(t('invite_link_copied'));
-  if (_isNowSend(d, h) && typeof checkIn === 'function') {
-    setTimeout(() => { checkIn(venueId, ''); }, 0);
+  if (_isNowSend(d, h)) _deferredCheckInAfterInvite(venueId);
+}
+
+/** Schedule a check-in to fire after a short notification window during
+ *  which the user can tap "Don't check in" to cancel. The notification
+ *  acts as the success toast — once dismissed (timeout OR action), the
+ *  silent checkIn fires (or doesn't, if cancelled). */
+function _deferredCheckInAfterInvite(venueId) {
+  if (typeof checkIn !== 'function') return;
+  const v = typeof VENUES !== 'undefined' ? VENUES.find(x => x.id === venueId) : null;
+  const venueName = v?.name || '';
+  let cancelled = false;
+  const TIMER_MS = 4500;
+  if (typeof _notifShowImmediate === 'function') {
+    _notifShowImmediate({
+      id: 'invite_checkin_' + venueId,
+      priority: 1,
+      category: 'social',
+      icon: '☀️',
+      _rawText: t('checkin_inviting_at', { venue: venueName }),
+      actionKey: 'checkin_skip',
+      action: () => { cancelled = true; },
+      _legacyDismiss: TIMER_MS,
+    });
   }
+  setTimeout(() => {
+    if (cancelled) return;
+    checkIn(venueId, '', { silent: true });
+  }, TIMER_MS);
 }
 
 /** Post-render hook for the wind-shelter canvas. Called from openDetailPanel

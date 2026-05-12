@@ -1558,7 +1558,7 @@ function getFriendCheckinsForVenue(venueId) {
 
 function getMyCheckin() { return _myCheckin; }
 
-async function checkIn(venueId, message) {
+async function checkIn(venueId, message, opts = {}) {
   if (!_currentUser) { toggleProfilePanel(); return; }
   const vid = String(venueId);
   // Remove existing checkin first
@@ -1572,7 +1572,10 @@ async function checkIn(venueId, message) {
   }).select().single();
   if (!error && data) _myCheckin = data;
   await loadFriendCheckins();
-  _showToast(t('check_in_success'));
+  // opts.silent suppresses the success toast — used by callers that
+  // already showed their own notification leading up to this check-in
+  // (e.g. the invite-flow "Don't check in" countdown).
+  if (!opts.silent) _showToast(t('check_in_success'));
   // Re-render
   if (typeof renderList === 'function') renderList();
   if (typeof draw === 'function') draw();
