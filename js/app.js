@@ -1381,7 +1381,13 @@ function _exitToExploreMode() {
   // the time AFTER the date change to put the slider at the intended
   // first-sun-window start. We also re-set the value on the next frame
   // in case any synchronous listener inside update() clamps it down.
-  if (datePicker && datePicker.value !== found.date) {
+  // Always dispatch the date change — even when the value already
+  // matches found.date — so any listener that needs to refresh in
+  // response (sun-table rebuild, MIN/MAX_H_ARC recompute, list filter)
+  // re-runs. v1's `!==` guard skipped the dispatch when the date was
+  // already today, which could leave inherited invite state on the
+  // slider chain.
+  if (datePicker) {
     datePicker.value = found.date;
     datePicker.dispatchEvent(new Event('change'));
   }
@@ -1392,15 +1398,16 @@ function _exitToExploreMode() {
     console.log('[exitToExplore] set timeFromEl.value to', found.hour, 'actual:', timeFromEl.value);
   };
   applyTime();
-  // Belt-and-suspenders: on the next frame, re-apply if the update()
-  // chain clamped the value back to MIN_H_ARC (which on today snaps
-  // to NOW). Verifying with a console.log so we can see the chain.
-  requestAnimationFrame(() => {
-    if (timeFromEl && parseFloat(timeFromEl.value) !== found.hour) {
+  // Belt-and-suspenders re-apply at 200 ms — long enough for the
+  // date-change update() chain to settle (sun table rebuilt, sliders
+  // resized) but short enough not to feel laggy. v1 used a single
+  // rAF (~16 ms), which wasn't enough on slower devices.
+  setTimeout(() => {
+    if (timeFromEl && Math.abs(parseFloat(timeFromEl.value) - found.hour) > 0.02) {
       console.log('[exitToExplore] value drifted to', timeFromEl.value, '— reapplying');
       applyTime();
     }
-  });
+  }, 200);
   // Expand the venue list (mobile only — desktop list is always visible).
   const panel = document.getElementById('panel');
   if (panel && typeof isMobile === 'function' && isMobile()) {
@@ -2437,13 +2444,15 @@ function selectQcDate(dateStr) {
 
 /** Returns the sunrise hour for `dateStr`, or null if the sun never rises
  *  enough that day. Builds a temporary sun table — cheap, doesn't disturb
- *  the cached currentSunTable. */
+ *  the cached currentSunTable.
+ *  Note: no MIN_H_ARC floor here — that value is set for the CURRENT date
+ *  and would clamp a future date's sunrise to today's "now". Callers that
+ *  set timeFromEl.value will get the right floor applied by update()'s
+ *  post-rebuild auto-clamp (app.js: "If the user's selected time is now
+ *  in the past…"). */
 function _earliestSunHourFor(dateStr) {
   if (typeof buildSunTable !== 'function' || typeof findSunCrossingFromTable !== 'function') return null;
-  const table = buildSunTable(dateStr);
-  const sunrise = findSunCrossingFromTable(table, true);
-  if (sunrise == null) return null;
-  return Math.max(MIN_H_ARC, sunrise);
+  return findSunCrossingFromTable(buildSunTable(dateStr), true);
 }
 
 let _qcPanelHeight = 0; // cached, set on load/resize/list-render

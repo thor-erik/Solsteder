@@ -116,7 +116,17 @@ function openPlanPreview(opts) {
   // bottom). Approximated before the panel mounts.
   const TIMELAPSE_MS = 5000;
   const phase3TimeoutId = { id: null };
-  if (typeof map !== 'undefined' && map && typeof map.jumpTo === 'function') {
+  // Defer the camera dive until the splash starts fading. User feedback:
+  // 'the animation should start after the splash'. v1 ran the dive
+  // immediately, which made it invisible behind the splash overlay —
+  // the user only saw the END state when the splash faded. Coordinated
+  // with SPLASH_MIN_MS (the same minimum the regular intro uses).
+  const _splashElapsed = (typeof _splashStart === 'number')
+    ? (performance.now() - _splashStart) : 9999;
+  const _splashMinMs   = (typeof SPLASH_MIN_MS === 'number') ? SPLASH_MIN_MS : 1500;
+  const _splashWaitMs  = Math.max(0, _splashMinMs - _splashElapsed);
+  const _startDive = () => {
+    if (typeof map === 'undefined' || !map || typeof map.jumpTo !== 'function') return;
     const vh = (window.visualViewport?.height ?? window.innerHeight);
     const panelH = Math.min(Math.round(vh * 0.42), 460);
     const topBarH = 16;
@@ -146,6 +156,27 @@ function openPlanPreview(opts) {
         essential: true,
       });
     } catch (e) { /* ignore */ }
+  };
+  const _hideInviteSplash = () => {
+    const splash = document.getElementById('splash');
+    const splashLogo = document.getElementById('splash-logo');
+    const splashLoader = document.getElementById('splash-loader');
+    if (!splash) return;
+    splash.classList.add('bg-out');
+    if (splashLogo) splashLogo.classList.add('fade-out');
+    if (splashLoader) splashLoader.classList.add('fade-out');
+    setTimeout(() => splash.classList.add('done'), 500);
+  };
+  if (_splashWaitMs > 0) {
+    setTimeout(() => {
+      _hideInviteSplash();
+      // Brief gap so the splash bg begins fading before the dive starts
+      // visually — reads as 'splash gone, now show me the place'.
+      setTimeout(_startDive, 200);
+    }, _splashWaitMs);
+  } else {
+    _hideInviteSplash();
+    _startDive();
   }
   // Reveal the map only after Mapbox is idle for the current view — i.e.
   // the dive's tiles have rendered. Removing the gate sooner exposes the
@@ -159,20 +190,9 @@ function openPlanPreview(opts) {
       if (revealed) return;
       revealed = true;
       document.documentElement.classList.remove('invite-loading');
-      // Hide the splash now that the plan-preview's tiles are ready
-      // and the overlay is about to be visible. _skipIntro({ keepSplash
-      // }) deferred the hide to this moment so the user doesn't see a
-      // slate-only flash between the splash and the plan-preview
-      // mount.
-      const splash = document.getElementById('splash');
-      const splashLogo = document.getElementById('splash-logo');
-      const splashLoader = document.getElementById('splash-loader');
-      if (splash) {
-        splash.classList.add('bg-out');
-        if (splashLogo) splashLogo.classList.add('fade-out');
-        if (splashLoader) splashLoader.classList.add('fade-out');
-        setTimeout(() => splash.classList.add('done'), 500);
-      }
+      // Splash hide is handled by the time-based SPLASH_MIN_MS branch
+      // above so the splash + camera dive are coordinated. This
+      // reveal handler only manages the pin canvas now.
     };
     map.once('idle', reveal);
     setTimeout(reveal, 1800);
@@ -887,7 +907,14 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     // toasts. Panel pill stays; auto-toast is gone.
     if (typeof _aTrack === 'function') _aTrack('plan_preview_accept', { venue_id: venue.id, has_invite_id: !!opts.inviteId, off_plan_time: !!arrivalIso });
     if (typeof window !== 'undefined') window._exitToExploreOnDetailClose = true;
-    closePlanPreview();
+    // skipDetailOpen + keepCamera: the post-accept panel mounts as the
+    // ONLY UI on top of the map. v1 had closePlanPreview opening the
+    // detail panel via selectVenue, then post-accept overlay mounting
+    // on top — which the user saw as 'panel sits wrongly on top of the
+    // detail panel'. The new flow: plan-preview closes → post-accept
+    // panel alone → on close, _closePostAcceptPanel opens the detail
+    // panel (via stashed followupVenueId).
+    closePlanPreview({ skipDetailOpen: true, keepCamera: true });
     setTimeout(() => {
       if (typeof _openPostAcceptPanel !== 'function') return;
       const whenLabel = (typeof _inviteWhenLabel === 'function' && opts.plannedAt)

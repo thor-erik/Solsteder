@@ -751,17 +751,16 @@ function _openPostAcceptPanel(opts) {
       <button class="s-rnd" type="button" onclick="_closePostAcceptPanel()">${t('accepted_close')}</button>
     </div>`;
 
-  // Floating "you're in" toast pill at the top.
-  const toastPill = document.createElement('div');
-  toastPill.className = 'dpacc-toast-pill';
-  toastPill.innerHTML = `
-    <div class="dpacc-toast-card">
-      <span class="dpacc-toast-check">${checkSvg}</span>
-      <span>${t('accepted_sees_pill', { time: safeWhen })}</span>
-    </div>`;
-
-  overlay.appendChild(toastPill);
+  // Floating "you're in" toast pill removed — the panel header below
+  // already says "Confirmed · {venue} · {date} · at {time}", which is
+  // the same information with more context. v1 surfaced both, which
+  // the user read as duplicate yellow toasts.
   overlay.appendChild(panel);
+  // Stash the venueId on the overlay so _closePostAcceptPanel can open
+  // the detail panel for the accepted venue after the panel fades.
+  // Matches the user-requested flow: accept → post-accept panel →
+  // (on close) detail panel → (on close) explore mode.
+  if (opts.venueId != null) overlay._followupVenueId = opts.venueId;
   document.body.appendChild(overlay);
 
   requestAnimationFrame(() => {
@@ -844,8 +843,10 @@ function _acceptedActionClick(type, venueId, inviterId, inviterName) {
         : `https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lng}&travelmode=walking`;
       window.open(url, '_blank', 'noopener');
     } else if (type === 'open') {
+      // _closePostAcceptPanel now handles the detail-panel hand-off
+      // itself (reads the stashed followupVenueId), so we don't need
+      // to call selectVenue here — that would double-open the panel.
       _closePostAcceptPanel();
-      if (typeof selectVenue === 'function') selectVenue(venueId, true);
     } else if (type === 'add_friend') {
       if (inviterId) _handleFriendPromptAdd(inviterId);
     } else if (type === 'share') {
@@ -854,9 +855,10 @@ function _acceptedActionClick(type, venueId, inviterId, inviterName) {
   } catch (e) { /* never block the carousel on a handler failure */ }
 }
 
-function _closePostAcceptPanel() {
+function _closePostAcceptPanel(opts = {}) {
   const overlay = document.getElementById('post-accept-overlay');
   const panel = document.getElementById('post-accept-panel');
+  const followupVenueId = overlay && overlay._followupVenueId;
   if (panel) panel.classList.remove('open');
   if (overlay) {
     overlay.classList.remove('open');
@@ -867,6 +869,15 @@ function _closePostAcceptPanel() {
   if (typeof window !== 'undefined') {
     window._pendingFriendPrompt = null;
     window._pendingShareNudge = null;
+  }
+  // Hand off to the detail panel after the panel fades — completes the
+  // user-requested flow: post-accept panel → detail panel → explore.
+  // opts.skipDetailOpen lets specific paths bypass the hand-off when
+  // they should just dismiss.
+  if (followupVenueId != null && !opts.skipDetailOpen && typeof selectVenue === 'function') {
+    setTimeout(() => {
+      try { selectVenue(followupVenueId, true); } catch (e) { /* ignore */ }
+    }, 280);
   }
 }
 
