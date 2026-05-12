@@ -934,9 +934,9 @@ try {
     // Sprites may have been built against the sync-fallback windows; rebuild them
     // now that the worker has confirmed (or corrected) the sun window data.
     clearSpriteCache();
-    // Refresh admin-review flags now that we have accurate sun windows.
-    if (typeof reviewModeActive !== 'undefined' && reviewModeActive &&
-        typeof refreshReviewFlags === 'function') {
+    // Refresh audit flag chips now that we have accurate sun windows.
+    if (typeof refreshReviewFlags === 'function' &&
+        typeof auditModeActive !== 'undefined' && auditModeActive) {
       refreshReviewFlags(dateStr);
     }
     // Re-render with worker-computed data
@@ -3220,6 +3220,8 @@ function exitEditMode() {
           after,
           buildingNodeCount: v.buildingGeometry?.length ?? null,
         });
+        // Editing a polygon implicitly counts as a polygon review.
+        if (typeof markVenueAudited === 'function') markVenueAudited(v.id, 'edited');
       } else {
         // Regular user: submit proposal, revert local state
         submitEditProposal(v, _editBeforeSnapshot, after);
@@ -3273,6 +3275,8 @@ function confirmEditCorrect() {
         state: _editBeforeSnapshot,
         buildingNodeCount: v.buildingGeometry?.length ?? null,
       });
+      // Confirming "looks good" inside the editor also ticks the audit box.
+      if (typeof markVenueAudited === 'function') markVenueAudited(v.id, 'good');
     }
   }
   exitEditMode();

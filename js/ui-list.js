@@ -295,7 +295,10 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
   // Closed-all-day with no upcoming qualifying window: keep the legacy
   // collapsed one-row card. Closed-but-opens-later venues with a qualifying
   // window get the full layout below (see openLater handling).
-  if (!isOpen && !isOpeningSoon && !(qual && qual.surfaced)) {
+  // Audit mode skips this collapse so the action row (Mark good / Edit /
+  // Archive) is reachable on every venue regardless of opening hours.
+  const _auditHere = typeof auditModeActive !== 'undefined' && auditModeActive;
+  if (!_auditHere && !isOpen && !isOpeningSoon && !(qual && qual.surfaced)) {
     return `
       <div class="venue-card closed-card ${v.id === selectedId ? 'selected' : ''}"
            data-vid="${v.id}" onclick="selectVenue(${typeof v.id === 'number' ? v.id : `'${v.id}'`}, true)"
@@ -421,22 +424,66 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
   const stateClass = (qual && qual.earliest && qual.earliest.start <= fromHour + 0.001)
     ? 'state-sun' : 'state-shadow';
 
-  // ── Admin review-mode extras: flag chips + action row at the card's bottom.
-  let reviewChips = '', reviewActions = '';
-  const flags = (typeof reviewModeActive !== 'undefined' && reviewModeActive &&
-                 typeof venueReviewFlags === 'function') ? venueReviewFlags(v) : null;
-  if (flags) {
-    reviewChips = `<div class="review-chips">${
-      flags.map(c => `<span class="review-chip" data-flag="${c}">${
-        typeof reviewFlagLabel === 'function' ? reviewFlagLabel(c) : c
-      }</span>`).join('')
-    }</div>`;
-    const idArg = typeof v.id === 'number' ? v.id : `'${v.id}'`;
-    reviewActions = `<div class="review-actions" onclick="event.stopPropagation()">
-      <button class="review-action-btn" onclick="enterEditMode(${idArg})">Edit</button>
-      <button class="review-action-btn" onclick="dismissReviewFlag(${idArg})">Mark OK</button>
-      <button class="review-action-btn review-action-danger" onclick="hideVenueFromMap(${idArg})">Hide</button>
-    </div>`;
+  // Review-flag chips + AI-training chip share one row above the action
+  // bar. Flag chips signal "polygon may be off"; training chip signals
+  // "this venue's correction data has (or hasn't) been fed to the model."
+  let reviewChips = '';
+  const _auditActive = typeof auditModeActive !== 'undefined' && auditModeActive;
+  const flags = (_auditActive && typeof venueReviewFlags === 'function')
+    ? venueReviewFlags(v) : null;
+  const trainStatus = (_auditActive && typeof venueTrainingStatus === 'function')
+    ? venueTrainingStatus(v) : 'untrained';
+  if (flags || trainStatus !== 'untrained') {
+    const flagHtml = flags
+      ? flags.map(c => `<span class="review-chip" data-flag="${c}">${
+          typeof reviewFlagLabel === 'function' ? reviewFlagLabel(c) : c
+        }</span>`).join('')
+      : '';
+    const trainHtml = (trainStatus === 'untrained') ? '' :
+      `<span class="audit-train-chip is-${trainStatus}" title="${trainStatus === 'trained'
+        ? 'Included in a previous Export — already fed to AI training.'
+        : 'New corrections since last Export — queued for the next training pass.'}">${
+        trainStatus === 'trained' ? '✓ Trained' : '● Pending export'
+      }</span>`;
+    reviewChips = `<div class="review-chips">${flagHtml}${trainHtml}</div>`;
+  }
+
+  // Admin audit-mode row: per-card status badge + Mark good / Edit / Archive.
+  let auditActionsHtml = '', auditCardCls = '';
+  if (typeof auditModeActive !== 'undefined' && auditModeActive) {
+    const idArg     = typeof v.id === 'number' ? v.id : `'${v.id}'`;
+    const archived  = !!v.auditArchived;
+    const audited   = !archived && (typeof isVenueAudited === 'function') && isVenueAudited(v);
+    const entry     = audited && typeof venueAuditEntry === 'function' ? venueAuditEntry(v) : null;
+    const viaLabel  = entry?.via === 'edited' ? 'Edited ✓' : 'Looks good ✓';
+    if (audited)  auditCardCls = ' audit-reviewed';
+    if (archived) auditCardCls = ' audit-archived';
+    // Action order is fixed: state-badge / state-action · destructive · edit.
+    // Edit-polygon always sits rightmost, isolated from the primary action.
+    if (archived) {
+      const archReasonLabel = (typeof AUDIT_ARCHIVE_REASONS !== 'undefined'
+        && v.auditArchiveReason && AUDIT_ARCHIVE_REASONS[v.auditArchiveReason])
+        || 'Archived';
+      const noteHint = v.auditArchiveNote ? ` · ${v.auditArchiveNote}` : '';
+      auditActionsHtml = `<div class="audit-actions" onclick="event.stopPropagation()">
+        <span class="audit-state-badge" title="${noteHint ? v.auditArchiveNote : ''}">Archived · ${archReasonLabel}${noteHint && !v.auditArchiveNote ? '' : ''}</span>
+        <button class="audit-action-btn audit-undo" onclick="unarchiveVenue(${idArg})">Restore</button>
+        <button class="audit-action-btn audit-undo" onclick="enterEditMode(${idArg})">Edit</button>
+      </div>`;
+    } else if (audited) {
+      auditActionsHtml = `<div class="audit-actions" onclick="event.stopPropagation()">
+        <span class="audit-state-badge">${viaLabel}</span>
+        <button class="audit-action-btn audit-undo"    onclick="unmarkVenueAudited(${idArg})">Undo</button>
+        <button class="audit-action-btn audit-archive" onclick="beginArchiveVenue(${idArg})" title="Hide from users (with a reason)">Archive</button>
+        <button class="audit-action-btn audit-undo"    onclick="enterEditMode(${idArg})">Edit</button>
+      </div>`;
+    } else {
+      auditActionsHtml = `<div class="audit-actions" onclick="event.stopPropagation()">
+        <button class="audit-action-btn"               onclick="markVenueAudited(${idArg},'good')">Mark good</button>
+        <button class="audit-action-btn audit-archive" onclick="beginArchiveVenue(${idArg})" title="Hide from users (with a reason)">Archive</button>
+        <button class="audit-action-btn audit-undo"    onclick="enterEditMode(${idArg})">Edit</button>
+      </div>`;
+    }
   }
 
   // dpVariant uses card-compact layout (3-row stack with anchor meta) but
@@ -456,19 +503,19 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
     const headlineMain = dpState?.mainText || '—';
     const headlineSub  = dpState?.subText  || '';
     return `
-      <div class="venue-card card-compact ${stateClass}${flags ? ' review-flagged' : ''}"
+      <div class="venue-card card-compact ${stateClass}${flags ? ' review-flagged' : ''}${auditCardCls}"
            data-vid="${v.id}">
         <div class="dp-sun-headline">${headlineMain}</div>
         ${headlineSub ? `<div class="dp-sun-sub">${headlineSub}</div>` : ''}
         ${pillsRowHtml}
         ${timelineBlock}
         ${reviewChips}
-        ${reviewActions}
+        ${auditActionsHtml}
       </div>`;
   }
 
   return `
-    <div class="venue-card ${stateClass}${variantCls} ${v.id === selectedId ? 'selected' : ''}${flags ? ' review-flagged' : ''}"
+    <div class="venue-card ${stateClass}${variantCls} ${v.id === selectedId ? 'selected' : ''}${flags ? ' review-flagged' : ''}${auditCardCls}"
          data-vid="${v.id}" onclick="selectVenue(${typeof v.id === 'number' ? v.id : `'${v.id}'`}, true)"
          onmouseenter="setHoveredVenue(${typeof v.id === 'number' ? v.id : `'${v.id}'`})" onmouseleave="setHoveredVenue(null)">
       <div class="card-row1">
@@ -479,7 +526,7 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
       ${pillsRowHtml}
       ${timelineBlock}
       ${reviewChips}
-      ${reviewActions}
+      ${auditActionsHtml}
       ${fillBarHtml}
     </div>`;
 }
@@ -563,8 +610,11 @@ function renderListPage(list, dateStr, fromHour, toHour, isPoint, reset) {
                         dateStr === todayStr() &&
                         Math.abs(fromHour - currentHour()) > 5/60)
                     || dateStr > todayStr();
-  const nowHeaderTxt   = isFutureMode ? t('section_sun_at',    { time: formatHour(fromHour) }) : t('section_sun_now');
-  const laterHeaderTxt = isFutureMode ? t('section_sun_after', { time: formatHour(fromHour) }) : t('section_sun_later');
+  const _auditList = typeof auditModeActive !== 'undefined' && auditModeActive;
+  const nowHeaderTxt   = _auditList ? `Til vurdering · ${nowCount}`
+                                    : (isFutureMode ? t('section_sun_at',    { time: formatHour(fromHour) }) : t('section_sun_now'));
+  const laterHeaderTxt = _auditList ? `Vurdert · ${laterCount}`
+                                    : (isFutureMode ? t('section_sun_after', { time: formatHour(fromHour) }) : t('section_sun_later'));
 
   let html = '';
 
@@ -724,7 +774,15 @@ function renderList() {
     venues = venues.filter(v => venueReviewFlags(v));
   }
 
-  if (searchQ) {
+  // Admin "Audit" mode — show *every* venue alphabetically by area + name
+  // so the admin can walk the catalog and tick off each polygon. Bypasses
+  // search/area/viewport/surfacing entirely.
+  const auditActive = typeof auditModeActive !== 'undefined' && auditModeActive;
+
+  // Outside audit mode, archived venues are hidden from the list.
+  if (!auditActive) venues = venues.filter(v => !v.auditArchived);
+
+  if (searchQ && !auditActive) {
     const alias = typeof _resolveAlias === 'function' ? _resolveAlias(searchQ) : null;
     // Diacritics-stripped comparison only matters for ≥3-char queries; for
     // 1-2 chars plain .includes() already covers everything (mirrors
@@ -743,7 +801,7 @@ function renderList() {
       return false;
     });
   }
-  if (activeArea) venues = venues.filter(v => v.area === activeArea);
+  if (activeArea && !auditActive) venues = venues.filter(v => v.area === activeArea);
   // Favorites filtering is handled by sortBy === 'favorites' below
 
   // Compute the viewport bounds (with 20% pad) once. Used both to filter
@@ -752,7 +810,7 @@ function renderList() {
   // center). filterMapViewActive is normally true; the gate is kept as an
   // escape valve in case it's ever toggled off programmatically.
   let _viewportBounds = null;
-  if (filterMapViewActive) {
+  if (filterMapViewActive && !auditActive) {
     // While a venue is selected, keep the list frozen at the pre-zoom viewport
     const bounds = (selectedId != null && _frozenBounds) ? _frozenBounds : map.getBounds();
     const sw = bounds.getSouthWest(), ne = bounds.getNorthEast();
@@ -834,7 +892,7 @@ function renderList() {
   // the user's "vis alle" escape hatch + admin review mode.
   const reviewActive = typeof reviewModeActive !== 'undefined' && reviewModeActive;
   const showAllPass = _showAllOnce; _showAllOnce = false;
-  if (!showAllPass && !reviewActive) {
+  if (!showAllPass && !reviewActive && !auditActive) {
     venues = venues.filter(v => {
       if (v._ownSuggestion) return true;
       if (searchQ) return true; // search results bypass the filter
@@ -1031,6 +1089,33 @@ function renderList() {
   }
   venues = [...bucketNow, ...bucketLater];
 
+  // Audit mode override — admin walks the catalog systematically.
+  // Two visual buckets: "To review" (top) and "Reviewed + Archived" (bottom).
+  // The bucketNow/bucketLater split is reused so renderListPage's existing
+  // section-header machinery works for free — we just relabel the headers.
+  if (auditActive) {
+    if (typeof auditMatchesFilter === 'function') {
+      venues = venues.filter(v => auditMatchesFilter(v));
+    }
+    const _audited = (v) => (typeof isVenueAudited === 'function' && isVenueAudited(v));
+    const _cmp = (a, b) => {
+      const ar = (a.area || 'ÅÅÅ'), br = (b.area || 'ÅÅÅ');
+      if (ar !== br) return ar.localeCompare(br, 'nb');
+      return (a.name || '').localeCompare(b.name || '', 'nb');
+    };
+    const _todo = [], _done = [], _arch = [];
+    for (const v of venues) {
+      if (v.auditArchived) _arch.push(v);
+      else if (_audited(v)) _done.push(v);
+      else _todo.push(v);
+    }
+    _todo.sort(_cmp); _done.sort(_cmp); _arch.sort(_cmp);
+    // Archived land below reviewed — they're a closed state, not a triage queue.
+    venues = [..._todo, ..._done, ..._arch];
+    bucketNow.length = 0;                       bucketLater.length = 0;
+    bucketNow.push(..._todo);                   bucketLater.push(..._done, ..._arch);
+  }
+
   // ── After-sunset state: real clock vs actual sunset, today only ───────────
   const isToday     = dateStr === todayStr();
   const sunsetH     = currentSunTable ? findSunCrossingFromTable(currentSunTable, false) : null;
@@ -1040,7 +1125,7 @@ function renderList() {
   // Freeze / unfreeze arc interaction
   document.getElementById('floating-bottom')?.classList.toggle('arc-frozen', isAfterSunset);
 
-  if (isAfterSunset) {
+  if (isAfterSunset && !auditActive) {
     if (_listObserver) { _listObserver.disconnect(); _listObserver = null; }
     list.innerHTML = '';
     // Banner

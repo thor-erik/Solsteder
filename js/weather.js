@@ -122,7 +122,18 @@ function getWeatherHoursForDate(dateStr) {
  * Return weather for a given local date string ("YYYY-MM-DD") and hour (float).
  * Rounds to the nearest integer hour. Returns null when data is unavailable.
  */
+// Synthetic clear-sky slot used when the admin is auditing polygons —
+// every venue should render as if weather is perfect so the polygon's
+// solar behaviour is judged on its own, not punished by cloud/rain.
+const _AUDIT_CLEAR_WEATHER = Object.freeze({
+  temp: 22, cloud: 0, precip: 0, wspd: 1.5, wdir: 180,
+  humidity: 50, sym: 'clearsky_day',
+});
+
 function getWeatherAt(dateStr, hour) {
+  if (typeof auditModeActive !== 'undefined' && auditModeActive) {
+    return _AUDIT_CLEAR_WEATHER;
+  }
   const h   = Math.round(hour);
   const pad = n => String(n).padStart(2, '0');
   const d   = new Date(dateStr + 'T12:00:00');
