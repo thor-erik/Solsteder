@@ -247,6 +247,15 @@ function _updateAuditIndicator() {
     }
   }
 
+  // Export-button badge — count of pending corrections that can be exported.
+  const exportBtn   = document.getElementById('audit-export-btn');
+  const exportCount = document.getElementById('audit-export-count');
+  if (exportBtn && exportCount) {
+    const n = (typeof loadCorrections === 'function') ? loadCorrections().length : 0;
+    exportCount.textContent = n;
+    exportBtn.classList.toggle('has-active', n > 0);
+  }
+
   // Status chip counts + active state
   const statusCounts = {
     unreviewed: auditUnreviewedCount(),
@@ -324,8 +333,6 @@ function toggleAuditMode() {
     auditFilters = { unreviewed: true, reviewed: true, archived: false };
     auditFlagFilters.clear();
     _filterPanelOpen = false;
-    if (typeof reviewModeActive !== 'undefined' && reviewModeActive
-        && typeof toggleReviewMode === 'function') toggleReviewMode();
     if (typeof refreshReviewFlags === 'function' && typeof datePicker !== 'undefined') {
       refreshReviewFlags(datePicker.value);
     }

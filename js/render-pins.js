@@ -33,7 +33,7 @@
  *             selectWallByIdx, saveFacingCache (app.js / ui.js)
  *             tooltip, buildTooltipContent (ui.js)
  *             getFriendCheckinsForVenue, getGoingFriendsForVenue (auth.js)
- *             reviewModeActive, venueReviewFlags (admin-review.js)
+ *             auditModeActive, isVenueAudited (admin-audit.js)
  */
 
 'use strict';
@@ -727,38 +727,21 @@ function _wireZoomGate() {
   });
 }
 
-// ── Review badge (admin) ──────────────────────────────────────────────────────
-// Small red exclamation badge — same visual weight as the friend badge.
-function _drawReviewBadge(x, y) {
-  const r = 7.5;
-  ctx.save();
-  ctx.beginPath(); ctx.arc(x, y, r + 1, 0, Math.PI * 2);
-  ctx.fillStyle = '#7f1d1d'; ctx.fill();
-  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.fillStyle = '#dc2626'; ctx.fill();
-  ctx.fillStyle = '#fff';
-  ctx.font      = 'bold 10px -apple-system, BlinkMacSystemFont, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('!', x, y + 0.5);
-  ctx.restore();
-}
-
 // ── Audit pins (admin) ──────────────────────────────────────────────────────
-// Colors come from TOKENS so the canvas tracks the design system. Inner
-// fill uses the semantic status token (success / error); outer ring uses
-// the deepest slate so the dot reads against the warm map tiles.
-const _AUDIT_DOT_RING_R   = 7;
-const _AUDIT_DOT_FILL_R   = 5.5;
+// Reviewed venues short-circuit to a green dot; archived to a red dot. Both
+// skip the pill/dot priority pipeline. Unreviewed venues render normally
+// — no extra badge — so the absence of a coloured dot signals "still to do."
+// Colors come from TOKENS so the canvas tracks the design system.
+const _AUDIT_DOT_RING_R = 7;
+const _AUDIT_DOT_FILL_R = 5.5;
 function _drawAuditReviewedPin(pt) {
-  const fill = (TOKENS && TOKENS.success) || '#64FFB4';
+  const fill = (TOKENS && TOKENS.success)     || '#64FFB4';
   const ring = (TOKENS && TOKENS.surfaceDeep) || '#0F1B2A';
   ctx.save();
   ctx.beginPath(); ctx.arc(pt.x, pt.y, _AUDIT_DOT_RING_R, 0, Math.PI * 2);
   ctx.fillStyle = ring; ctx.fill();
   ctx.beginPath(); ctx.arc(pt.x, pt.y, _AUDIT_DOT_FILL_R, 0, Math.PI * 2);
   ctx.fillStyle = fill; ctx.fill();
-  // Check glyph in slate-on-mint so the dot reads as "done" at a glance.
   ctx.strokeStyle = ring;
   ctx.lineWidth   = 1.3;
   ctx.lineCap     = 'round';
@@ -771,14 +754,13 @@ function _drawAuditReviewedPin(pt) {
   ctx.restore();
 }
 function _drawAuditArchivedPin(pt) {
-  const fill = (TOKENS && TOKENS.error) || '#FF6B6B';
+  const fill = (TOKENS && TOKENS.error)       || '#FF6B6B';
   const ring = (TOKENS && TOKENS.surfaceDeep) || '#0F1B2A';
   ctx.save();
   ctx.beginPath(); ctx.arc(pt.x, pt.y, _AUDIT_DOT_RING_R, 0, Math.PI * 2);
   ctx.fillStyle = ring; ctx.fill();
   ctx.beginPath(); ctx.arc(pt.x, pt.y, _AUDIT_DOT_FILL_R, 0, Math.PI * 2);
   ctx.fillStyle = fill; ctx.fill();
-  // ✕ glyph in slate so the archived state reads at a glance.
   ctx.strokeStyle = ring;
   ctx.lineWidth   = 1.4;
   ctx.lineCap     = 'round';
@@ -789,35 +771,6 @@ function _drawAuditArchivedPin(pt) {
   ctx.lineTo(pt.x - 2.0, pt.y + 2.0);
   ctx.stroke();
   ctx.restore();
-}
-
-// Amber pending badge on top-right of an unreviewed pin. Distinct from
-// the honey "in sun" pill — uses TOKENS.weatherPartly (project-defined
-// amber band) so the canvas tracks the design system.
-function _drawAuditPendingBadge(x, y) {
-  const r = 5.5;
-  const fill = (TOKENS && TOKENS.weatherPartly) || '#D5B068';
-  const ring = (TOKENS && TOKENS.surfaceDeep)   || '#0F1B2A';
-  ctx.save();
-  ctx.beginPath(); ctx.arc(x, y, r + 1, 0, Math.PI * 2);
-  ctx.fillStyle = ring; ctx.fill();
-  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.fillStyle = fill; ctx.fill();
-  ctx.restore();
-}
-
-// Kept for hover/legacy callsites. Reviewed venues short-circuit to a
-// dot in audit mode (see _drawAuditReviewedPin), so this is unused.
-function _drawAuditBadge(x, y) { _drawAuditReviewedPin({ x, y }); }
-
-// Single dispatcher — used by every pin draw path so the audit overlay logic
-// lives in one place. No-op outside audit mode. Reviewed venues never reach
-// the pill/dot pipeline in audit mode (they short-circuit to a green dot),
-// so this is only ever called for unreviewed venues — the badge is always
-// the amber "pending" marker.
-function _drawAuditStateBadge(v, x, y) {
-  if (typeof auditModeActive === 'undefined' || !auditModeActive) return;
-  _drawAuditPendingBadge(x, y);
 }
 
 // ── Layout state (consumed by hit testing + external code) ────────────────────
@@ -964,8 +917,7 @@ function draw() {
     if (sel) drawShadowOverlay(sel);
   }
 
-  const isReviewMode = (typeof reviewModeActive !== 'undefined' && reviewModeActive);
-  const isAuditMode  = (typeof auditModeActive  !== 'undefined' && auditModeActive);
+  const isAuditMode = (typeof auditModeActive !== 'undefined' && auditModeActive);
   const isAuditAll   = isAuditMode && typeof auditSubMode !== 'undefined' && auditSubMode === 'all';
 
   // ── 1. Project + classify visible venues. Friend venues bypass the
@@ -1099,12 +1051,6 @@ function draw() {
         ctx.fill(); ctx.stroke();
         ctx.restore();
       }
-      // Review badge on context dots (admin)
-      if (isReviewMode && typeof venueReviewFlags === 'function' && venueReviewFlags(v)) {
-        _drawReviewBadge(pt.x - r - 1, pt.y - r - 1);
-      }
-      // Audit overlay — reviewed (green ✓) or pending (amber).
-      if (isAuditMode) _drawAuditStateBadge(v, pt.x + r + 1, pt.y - r - 1);
       layout.push({
         v, pt, classResult: cls, isDot: true, extraStem: 0,
         spr: { anchorX: 0, anchorY: 0, cssW: r * 2, cssH: r * 2 + COMPAT_STEM_H, pillW: 0, pillH: 0, pillR: 0 },
@@ -1206,10 +1152,6 @@ function draw() {
         ctx.lineWidth   = 1;
         ctx.stroke();
         ctx.restore();
-        if (isReviewMode && typeof venueReviewFlags === 'function' && venueReviewFlags(v)) {
-          _drawReviewBadge(pt.x - 5, pt.y - 5);
-        }
-        if (isAuditMode) _drawAuditStateBadge(v, pt.x + 5, pt.y - 5);
       }
       layout.push({
         v, pt, classResult: cls, isDot: true, extraStem: 0,
@@ -1292,13 +1234,6 @@ function draw() {
       scale:     st.scale,
     });
     ctx.restore();
-
-    // Review badge on top-left of pill (admin)
-    if (isReviewMode && typeof venueReviewFlags === 'function' && venueReviewFlags(v)) {
-      _drawReviewBadge(pillRect.x + 1, pillRect.y + 1);
-    }
-    // Audit overlay on the top-right of the pill.
-    if (isAuditMode) _drawAuditStateBadge(v, pillRect.x + pillRect.w - 1, pillRect.y + 1);
 
     layout.push({
       v, pt, classResult: cls, isDot: false, extraStem: 0,

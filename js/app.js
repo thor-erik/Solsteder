@@ -934,11 +934,9 @@ try {
     // Sprites may have been built against the sync-fallback windows; rebuild them
     // now that the worker has confirmed (or corrected) the sun window data.
     clearSpriteCache();
-    // Refresh admin-review flags now that we have accurate sun windows.
-    // Audit mode reuses the same flag chips, so refresh in either mode.
+    // Refresh audit flag chips now that we have accurate sun windows.
     if (typeof refreshReviewFlags === 'function' &&
-        ((typeof reviewModeActive !== 'undefined' && reviewModeActive) ||
-         (typeof auditModeActive  !== 'undefined' && auditModeActive))) {
+        typeof auditModeActive !== 'undefined' && auditModeActive) {
       refreshReviewFlags(dateStr);
     }
     // Re-render with worker-computed data

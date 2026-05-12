@@ -4538,41 +4538,10 @@
 
   .profile-admin-row:hover { background: rgba(255,255,255,0.05); }
 
-  /* ── Admin review mode ────────────────────────────────────────────── */
-  #review-mode-indicator {
-    position: fixed;
-    top: 12px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 9000;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 10px 6px 14px;
-    background: #7f1d1d;
-    color: #fff;
-    border-radius: 999px;
-    font-size: 13px;
-    font-weight: 600;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.25);
-  }
-  #review-mode-indicator button {
-    background: rgba(255,255,255,0.18);
-    color: #fff;
-    border: none;
-    padding: 3px 10px;
-    border-radius: 999px;
-    font-weight: 600;
-    font-size: 12px;
-    cursor: pointer;
-  }
-  #review-mode-indicator button:hover { background: rgba(255,255,255,0.28); }
-  #review-indicator-count { opacity: 0.85; font-weight: 500; }
-
   /* ── Admin audit mode (polygon walk-through) ──────────────────────────────
      Glass-lens surfaces on slate, single honey accent for active state.
      Tokens: --glass-panel-bg, --glass-border, --glass-inset, --accent,
-             --accent-dim, --text, --muted, --color-error-soft.
+             --accent-dim, --text, --muted, --red-500.
      Audit and Review modes share .review-chip (retuned below).
   ─────────────────────────────────────────────────────────────────────── */
   #audit-mode-indicator {
@@ -4751,20 +4720,23 @@
      archived = error-soft (subdued red tint, lower opacity). */
   .venue-card.audit-reviewed { border-left: 3px solid var(--accent); }
   .venue-card.audit-archived {
-    border-left: 3px solid var(--color-error);
+    border-left: 3px solid var(--red-500);
     opacity: 0.65;
   }
 
-  /* Card action row + badge */
+  /* Card action row + badge — single line, intrinsic widths so 3 buttons
+     fit on one row even in narrow cards. Smaller than indicator chips so
+     they recede inside the card. */
   .audit-actions {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 6px;
     padding: 8px 10px 10px;
     align-items: center;
     border-top: 1px solid rgba(155,169,188,0.10);
   }
   .audit-state-badge {
+    flex: 0 0 auto;
     font: 700 10px 'Inter', sans-serif;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -4775,14 +4747,16 @@
     white-space: nowrap;
   }
   .venue-card.audit-archived .audit-state-badge {
-    background: var(--color-error-bg, rgba(255,107,107,0.18));
-    color: var(--color-error, #FF6B6B);
+    background: rgba(255,107,107,0.18);
+    color: var(--red-500);
   }
-  /* Action buttons reuse a single base style. Primary = honey, secondaries
-     = glass; destructive = glass with error-tinted border + text. */
+  /* Action buttons. Primary = honey; secondaries = glass; destructive =
+     glass with error-tinted border. Edit-polygon is the rightmost item;
+     it gets the .audit-edit modifier so it can pin-right without flexing. */
   .audit-action-btn {
-    height: 28px;
-    padding: 0 12px;
+    flex: 0 0 auto;
+    height: 26px;
+    padding: 0 10px;
     border-radius: 999px;
     font: 700 11px 'Inter', sans-serif;
     cursor: pointer;
@@ -4793,6 +4767,7 @@
     border: none;
     box-shadow: 0 1px 4px rgba(0,0,0,0.28);
     transition: background 120ms ease-out, color 120ms ease-out, border-color 120ms ease-out;
+    white-space: nowrap;
   }
   .audit-action-btn:hover { background: var(--accent-hover); }
   .audit-action-btn.audit-undo {
@@ -4804,11 +4779,14 @@
   .audit-action-btn.audit-undo:hover { color: var(--text); border-color: rgba(156,189,231,0.32); }
   .audit-action-btn.audit-archive {
     background: var(--glass-action-bg);
-    color: var(--color-error, #FF6B6B);
-    border: 1px solid rgba(255,107,107,0.32);
+    color: var(--red-500);
+    border: 1px solid rgba(255,107,107,0.28);
     box-shadow: var(--glass-inset);
   }
   .audit-action-btn.audit-archive:hover { border-color: rgba(255,107,107,0.55); background: rgba(255,107,107,0.10); }
+  /* Push the rightmost button to the right edge of the card so Edit feels
+     spatially separate from the state action. */
+  .audit-actions > .audit-action-btn:last-child { margin-left: auto; }
 
   .review-chips {
     display: flex;
@@ -4830,31 +4808,6 @@
   .venue-card.review-flagged {
     border-left: 3px solid var(--accent);
   }
-  .review-actions {
-    display: flex;
-    gap: 6px;
-    padding: 6px 10px 8px;
-    border-top: 1px solid rgba(255,255,255,0.05);
-  }
-  .review-action-btn {
-    flex: 1;
-    background: rgba(255,255,255,0.08);
-    color: var(--text);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 6px;
-    padding: 4px 8px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-  .review-action-btn:hover { background: rgba(255,255,255,0.16); }
-  .review-action-danger {
-    background: rgba(220,38,38,0.18);
-    border-color: rgba(220,38,38,0.4);
-    color: #fca5a5;
-  }
-  .review-action-danger:hover { background: rgba(220,38,38,0.32); }
-
   .profile-role-badge {
     display: inline-flex;
     align-items: center;
@@ -9413,13 +9366,6 @@
   <p>Hundrevis av uteserveringer i Oslo. Shades finner den med mest sol — time for time, hele dagen. Se sanntids solkart, sjekk vær og vind, og finn vennene dine. Aktiver JavaScript for å bruke appen.</p>
 </noscript>
 <div id="app">
-  <!-- ADMIN: review-mode indicator (shown only when reviewModeActive) -->
-  <div id="review-mode-indicator" style="display:none">
-    <span>Review mode</span>
-    <span id="review-indicator-count"></span>
-    <button onclick="toggleReviewMode()">Exit</button>
-  </div>
-
   <!-- ADMIN: polygon audit mode indicator (shown only when auditModeActive) -->
   <div id="audit-mode-indicator" style="display:none">
     <div class="audit-indicator-row">
@@ -9431,6 +9377,7 @@
         <button id="audit-mode-all"     type="button" class="audit-submode-btn" onclick="setAuditSubMode('all')"     title="Show every venue, ignore time">Show all</button>
       </div>
       <button id="audit-filter-toggle" type="button" class="audit-pill" onclick="toggleAuditFilterPanel()" title="Filter venues">Filter<span id="audit-filter-toggle-badge" class="audit-filter-toggle-badge"></span></button>
+      <button id="audit-export-btn" type="button" class="audit-pill" onclick="exportCorrections()" title="Download all corrections + audit decisions as JSON for AI training / promotion to data/venues.json">Export<span id="audit-export-count" class="audit-filter-toggle-badge"></span></button>
       <span class="audit-indicator-divider" aria-hidden="true"></span>
       <button type="button" class="audit-pill is-ghost" onclick="resetAuditProgress()" title="Reset all reviewed flags">Reset</button>
       <button type="button" class="audit-pill is-ghost" onclick="toggleAuditMode()" title="Exit audit mode">Exit</button>

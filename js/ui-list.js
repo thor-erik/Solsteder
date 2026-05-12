@@ -424,14 +424,11 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
   const stateClass = (qual && qual.earliest && qual.earliest.start <= fromHour + 0.001)
     ? 'state-sun' : 'state-shadow';
 
-  // ── Admin review-mode extras: flag chips + action row at the card's bottom.
-  // Audit mode reuses the chips (so admins see flagged polygons inline while
-  // walking the catalog) but skips the Mark OK / Hide actions — audit has
-  // its own action row below.
-  let reviewChips = '', reviewActions = '';
-  const _reviewActive = typeof reviewModeActive !== 'undefined' && reviewModeActive;
-  const _auditActive  = typeof auditModeActive  !== 'undefined' && auditModeActive;
-  const flags = ((_reviewActive || _auditActive) && typeof venueReviewFlags === 'function')
+  // Review-flag chips: surfaced inline on audit cards so the admin spots
+  // problematic polygons while walking the catalog.
+  let reviewChips = '';
+  const _auditActive = typeof auditModeActive !== 'undefined' && auditModeActive;
+  const flags = (_auditActive && typeof venueReviewFlags === 'function')
     ? venueReviewFlags(v) : null;
   if (flags) {
     reviewChips = `<div class="review-chips">${
@@ -439,14 +436,6 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
         typeof reviewFlagLabel === 'function' ? reviewFlagLabel(c) : c
       }</span>`).join('')
     }</div>`;
-    if (_reviewActive) {
-      const idArg = typeof v.id === 'number' ? v.id : `'${v.id}'`;
-      reviewActions = `<div class="review-actions" onclick="event.stopPropagation()">
-        <button class="review-action-btn" onclick="enterEditMode(${idArg})">Edit</button>
-        <button class="review-action-btn" onclick="dismissReviewFlag(${idArg})">Mark OK</button>
-        <button class="review-action-btn review-action-danger" onclick="hideVenueFromMap(${idArg})">Hide</button>
-      </div>`;
-    }
   }
 
   // Admin audit-mode row: per-card status badge + Mark good / Edit / Archive.
@@ -459,25 +448,26 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
     const viaLabel  = entry?.via === 'edited' ? 'Edited ✓' : 'Looks good ✓';
     if (audited)  auditCardCls = ' audit-reviewed';
     if (archived) auditCardCls = ' audit-archived';
+    // Action order is fixed: state-badge / state-action · destructive · edit.
+    // Edit-polygon always sits rightmost, isolated from the primary action.
     if (archived) {
       auditActionsHtml = `<div class="audit-actions" onclick="event.stopPropagation()">
         <span class="audit-state-badge">Archived</span>
-        <button class="audit-action-btn audit-undo" onclick="unarchiveVenue(${idArg})">Un-archive</button>
+        <button class="audit-action-btn audit-undo" onclick="unarchiveVenue(${idArg})">Restore</button>
+        <button class="audit-action-btn audit-undo" onclick="enterEditMode(${idArg})">Edit</button>
       </div>`;
     } else if (audited) {
-      // Already reviewed: no primary action — everything is secondary glass.
       auditActionsHtml = `<div class="audit-actions" onclick="event.stopPropagation()">
         <span class="audit-state-badge">${viaLabel}</span>
-        <button class="audit-action-btn audit-undo" onclick="unmarkVenueAudited(${idArg})">Undo</button>
-        <button class="audit-action-btn audit-undo" onclick="enterEditMode(${idArg})">Edit polygon</button>
+        <button class="audit-action-btn audit-undo"    onclick="unmarkVenueAudited(${idArg})">Undo</button>
         <button class="audit-action-btn audit-archive" onclick="archiveVenue(${idArg})" title="Hide from users">Archive</button>
+        <button class="audit-action-btn audit-undo"    onclick="enterEditMode(${idArg})">Edit</button>
       </div>`;
     } else {
-      // Unreviewed: Mark good is honey primary; the rest are secondary glass.
       auditActionsHtml = `<div class="audit-actions" onclick="event.stopPropagation()">
-        <button class="audit-action-btn" onclick="markVenueAudited(${idArg},'good')">Mark good</button>
-        <button class="audit-action-btn audit-undo" onclick="enterEditMode(${idArg})">Edit polygon</button>
+        <button class="audit-action-btn"               onclick="markVenueAudited(${idArg},'good')">Mark good</button>
         <button class="audit-action-btn audit-archive" onclick="archiveVenue(${idArg})" title="Hide from users">Archive</button>
+        <button class="audit-action-btn audit-undo"    onclick="enterEditMode(${idArg})">Edit</button>
       </div>`;
     }
   }
@@ -506,7 +496,6 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
         ${pillsRowHtml}
         ${timelineBlock}
         ${reviewChips}
-        ${reviewActions}
         ${auditActionsHtml}
       </div>`;
   }
@@ -523,7 +512,6 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
       ${pillsRowHtml}
       ${timelineBlock}
       ${reviewChips}
-      ${reviewActions}
       ${auditActionsHtml}
       ${fillBarHtml}
     </div>`;
