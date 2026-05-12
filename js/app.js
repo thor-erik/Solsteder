@@ -2099,6 +2099,7 @@ function _dcTileHtml(dStr, todayStr_, selected) {
   if (hasForecast) {
     if (summ.avgCloud < 0.30)      cls += ' sun-high';
     else if (summ.avgCloud < 0.60) cls += ' sun-mid';
+    else                            cls += ' sun-low'; // mostly overcast — dimmed
   } else {
     cls += ' solar-only'; // beyond forecast window — solar data only
   }
@@ -2284,14 +2285,19 @@ function _syncQcPanelHeightExpanded() {
 }
 
 function selectQcDate(dateStr) {
+  const dateChanged = dateStr !== datePicker.value;
   datePicker.value = dateStr;
-  if (dateStr !== todayStr() && nowMode) {
-    nowMode = false;
-    clearInterval(nowInterval); nowInterval = null;
-    nowBtn?.classList.remove('active');
-    timeRangeWrap?.classList.remove('now-active');
-    // Default time to the earliest sun on the picked day (sunrise) — the user
-    // can scrub from there. Falls back to noon for polar-night-style days.
+  // On any date change, snap the slider to the first sun window of the new
+  // day. Without this the slider sticks at the previous hour (e.g. 22:00),
+  // landing the user past sundown on a fresh day and reading as "no sun."
+  if (dateChanged) {
+    if (nowMode) {
+      nowMode = false;
+      clearInterval(nowInterval); nowInterval = null;
+      nowBtn?.classList.remove('active');
+      timeRangeWrap?.classList.remove('now-active');
+    }
+    setActiveIntentBtn(null);
     const earliestSun = _earliestSunHourFor(dateStr);
     timeFromEl.value = earliestSun != null ? earliestSun : 12;
   }

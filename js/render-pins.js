@@ -888,10 +888,14 @@ function draw() {
 
   // ── 1. Project + classify visible venues. Friend venues bypass the
   //      shouldShowAtZoom density filter — they're always relevant. ────────────
+  // When a venue is selected (detail panel open), keep only the selected
+  // pin on the map. The detail panel already commands focus; surrounding
+  // pins compete for attention and clutter the shadow context.
   let projVenues = [];
   _friendVenueIds = new Set();
   VENUES.forEach(v => {
     if (!bounds.contains([v.lng, v.lat])) return;
+    if (selectedId && v.id !== selectedId) return;
     const friends = _getCheckins(v);
     if (friends.length === 0
         && typeof shouldShowAtZoom === 'function'

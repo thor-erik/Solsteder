@@ -1694,14 +1694,13 @@
     align-items: center;
     gap: 0;
     padding: 4px 5px;
-    background: linear-gradient(135deg, rgba(20,46,82,0.55) 0%, rgba(14,30,52,0.62) 100%);
-    backdrop-filter: blur(10px) saturate(170%) brightness(0.92);
-    -webkit-backdrop-filter: blur(10px) saturate(170%) brightness(0.92);
-    border: 1px solid rgba(156,189,231,0.22);
+    background: var(--glass-panel-bg);
+    backdrop-filter: var(--glass-blur-panel);
+    -webkit-backdrop-filter: var(--glass-blur-panel);
+    border: var(--glass-border);
     border-radius: 10px;
     box-shadow:
-      inset 0 1px 0 rgba(255,242,235,0.18),
-      inset 0 -1px 0 rgba(20,46,82,0.40),
+      var(--glass-inset),
       0 6px 18px rgba(0,0,0,0.42);
     white-space: nowrap;
     pointer-events: none;
@@ -1719,7 +1718,7 @@
     bottom: -6px; left: 50%;
     transform: translateX(-50%);
     width: 12px; height: 6px;
-    background: rgba(20,46,82,0.62);
+    background: rgba(26,44,66,0.55);
     clip-path: polygon(0 0, 100% 0, 50% 100%);
   }
   #fts-popup.fts-popup-below {
@@ -1956,7 +1955,17 @@
   .dc-tile.today       { border-color: rgba(255,175,133,0.4); }
   /* Selected: inset accent ring + subtle glow; keep glass top-sheen for continuity (no bg fill) */
   .dc-tile.selected    { box-shadow: inset 0 0 0 2px var(--accent), inset 0 0 10px rgba(255,175,133,0.12), inset 0 1px 0 rgba(255,242,235,0.14) !important; border-color: transparent !important; }
-  .dc-tile.sun-high    { border-color: rgba(255,175,133,0.2); }
+  /* Sunny days lean into the honey/sun palette — warmer border, honey-tinted glass, accented temp */
+  .dc-tile.sun-high {
+    background: linear-gradient(135deg, rgba(255,175,133,0.16) 0%, rgba(255,175,133,0.06) 100%), var(--glass-card-bg);
+    border-color: rgba(255,175,133,0.55);
+    box-shadow: var(--glass-inset), inset 0 0 12px rgba(255,175,133,0.10);
+  }
+  .dc-tile.sun-high .dc-temp { color: rgba(255,175,133,0.9); }
+  .dc-tile.sun-high:hover:not(.no-data) { border-color: rgba(255,175,133,0.75); }
+  /* Mostly-overcast days: dimmed to dissuade tap (informational, not blocked) */
+  .dc-tile.sun-low     { opacity: 0.55; }
+  .dc-tile.sun-low:hover:not(.no-data) { opacity: 0.85; }
   .dc-tile.no-data     { opacity: 0.4; }
   /* Beyond-horizon tiles: reduced-opacity glass with the same diagonal gradient — no dashed borders */
   .dc-tile.solar-only  {
