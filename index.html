@@ -8788,21 +8788,36 @@
     padding: 0 4px;
   }
   .dpacc-header-text { flex: 1; min-width: 0; }
+  /* Sentence-case eyebrow (was ALL CAPS in v1). Same design-language
+     fix as the invite sheet + accept screen. */
   .dpacc-eyebrow {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.6px;
+    font-size: 13px;
+    font-weight: 500;
     color: var(--muted);
-    text-transform: uppercase;
-    line-height: 1.2;
+    line-height: 1.25;
+  }
+  /* Venue row — pin glyph + name align to the same baseline as the
+     accept screen's moment block. */
+  .dpacc-venue-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-top: 2px;
+  }
+  .dpacc-venue-pin {
+    flex-shrink: 0;
+    color: var(--accent);
+    opacity: 0.9;
+    align-self: center;
   }
   .dpacc-venue {
     font-size: 22px;
     font-weight: 700;
     color: var(--text);
     line-height: 1.15;
-    margin-top: 4px;
     text-wrap: balance;
+    letter-spacing: -0.01em;
+    min-width: 0;
   }
   .dpacc-subtitle {
     font-size: 13px;
@@ -8933,12 +8948,38 @@
     white-space: nowrap;
   }
 
-  /* Close button row at the bottom of the accepted panel */
+  /* Close — demoted from full-width .s-rnd pill to a small centred
+     text link, matching the same demotion we did to the invite
+     sheet's Cancel button and the accept screen's Decline. The
+     post-accept panel has multiple dismissal paths (handle drag,
+     backdrop tap, action-card 'open', Change response link), so a
+     prominent Close pill is overkill. */
   .dpacc-close-row {
     display: flex;
     justify-content: center;
     margin-top: 4px;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
+  .dpacc-close-link {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    color: var(--muted);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    height: 36px;
+    padding: 0 14px;
+    border-radius: 18px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.12s ease-out, background 0.12s ease-out, transform 90ms ease-out;
+  }
+  .dpacc-close-link:hover {
+    color: var(--text);
+    background: rgba(255,244,224,0.06);
+  }
+  .dpacc-close-link:active { transform: scale(0.97); }
 
   /* Per-invitee time chip on plan-preview attendees row */
   .pp-av-wrap {

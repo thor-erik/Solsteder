@@ -659,18 +659,22 @@ function _openPostAcceptPanel(opts) {
   const showAddFriend = !!(fp && fp.inviterId && fp.inviterName);
   const showShare     = !!(sn && String(sn.venueId) === String(opts.venueId));
 
-  // After-sundown variant: when the meeting time is at or past the
-  // day's last sun-window end, the subtitle's sun fragment switches
-  // from 'sun until {time}' (which read as 'sun ends at the meeting
-  // time' when sundown === planHour) to 'sun went down at {time}'
-  // so the time reads as a past sundown moment.
+  // Subtitle: drop the redundant {arrivalDate} segment — whenLabel
+  // already carries the date in user-friendly form ('today at 14:00'
+  // / 'on Sunday at 20:40' / 'Saturday 4 May at 14:00'), so showing
+  // both produced lines like 'Sun 17 May · on Sunday at 20:40' that
+  // repeat the day. After-sundown variant collapses 'on Sunday at
+  // 20:40 · sun went down at 20:40' into 'on Sunday at 20:40 · sun
+  // gone' so the same time doesn't appear twice.
   const isAfterSundown = (opts.sunEndNum != null && opts.arrivalHour != null
                           && opts.sunEndNum <= opts.arrivalHour + 0.01);
-  const sunFragmentKey = isAfterSundown
-    ? 'invite_hero_sun_went_down'
-    : 'invite_hero_sun_until';
-  const subtitle = [arrivalDate, whenLabel, sunUntil ? `${t(sunFragmentKey).toLowerCase()} ${sunUntil}` : '']
-    .filter(Boolean).join(' · ') || venueName;
+  let sunFragment = '';
+  if (isAfterSundown) {
+    sunFragment = t('invite_hero_remaining_no_sun').toLowerCase();
+  } else if (sunUntil) {
+    sunFragment = `${t('invite_hero_sun_until').toLowerCase()} ${sunUntil}`;
+  }
+  const subtitle = [whenLabel, sunFragment].filter(Boolean).join(' · ') || venueName;
 
   const checkSvg   = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
   const safeName    = venueName.replace(/</g, '&lt;');
@@ -740,7 +744,10 @@ function _openPostAcceptPanel(opts) {
     <div class="dpacc-header-row">
       <div class="dpacc-header-text">
         <div class="dpacc-eyebrow">${t('accepted_eyebrow')}</div>
-        <div class="dpacc-venue">${safeName}</div>
+        <div class="dpacc-venue-row">
+          <span class="dpacc-venue-pin" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
+          <span class="dpacc-venue">${safeName}</span>
+        </div>
         <div class="dpacc-subtitle">${safeSubtitle}</div>
       </div>
       <button class="g-rnd dpacc-change-rsvp" type="button" onclick="_closePostAcceptPanel()">${t('accepted_change_rsvp')}</button>
@@ -748,7 +755,7 @@ function _openPostAcceptPanel(opts) {
     <div class="dpacc-action-row no-scrollbar">${cardsHtml}</div>
     ${attendeesHtml}
     <div class="dpacc-close-row">
-      <button class="s-rnd" type="button" onclick="_closePostAcceptPanel()">${t('accepted_close')}</button>
+      <button class="dpacc-close-link" type="button" onclick="_closePostAcceptPanel()">${t('accepted_close')}</button>
     </div>`;
 
   // Floating "you're in" toast pill removed — the panel header below
