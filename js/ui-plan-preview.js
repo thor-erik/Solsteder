@@ -439,17 +439,28 @@ function closePlanPreview(opts = {}) {
     // the venue-card source; no FTS hand-off needed from here since the
     // plan-preview no longer reparents FTS.
     selectVenue(venueId, true);
-  } else if (st.savedCamera && typeof map !== 'undefined' && map && typeof map.flyTo === 'function') {
-    try {
-      map.flyTo({
-        center:  st.savedCamera.center,
-        zoom:    st.savedCamera.zoom,
-        pitch:   st.savedCamera.pitch,
-        bearing: st.savedCamera.bearing,
-        duration: 800,
-        essential: true,
-      });
-    } catch (e) { /* ignore */ }
+  } else {
+    // skipDetailOpen path: we won't be calling selectVenue (which would
+    // otherwise re-write selectedId). openPlanPreview overrode
+    // selectedId to give the invited venue pin-priority — restore the
+    // pre-preview selectedId so the map state doesn't carry a stale
+    // selection forward. Without this, the pin keeps the selected
+    // styling forever after a decline.
+    if (typeof selectedId !== 'undefined' && st.savedSelectedId !== undefined) {
+      try { selectedId = st.savedSelectedId; } catch (e) { /* ignore */ }
+    }
+    if (st.savedCamera && typeof map !== 'undefined' && map && typeof map.flyTo === 'function') {
+      try {
+        map.flyTo({
+          center:  st.savedCamera.center,
+          zoom:    st.savedCamera.zoom,
+          pitch:   st.savedCamera.pitch,
+          bearing: st.savedCamera.bearing,
+          duration: 800,
+          essential: true,
+        });
+      } catch (e) { /* ignore */ }
+    }
   }
 }
 
@@ -901,7 +912,13 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   if (anonDecline) anonDecline.onclick = () => {
     if (typeof _aTrack === 'function') _aTrack('plan_preview_anon_decline', { venue_id: venue.id });
     if (typeof window !== 'undefined') window._pendingInvite = null;
-    closePlanPreview();
+    // Anon decline takes the same explore-mode path as the logged-in
+    // decline — the user said no, drop them somewhere useful instead
+    // of stranding them on the rejected venue's detail panel.
+    closePlanPreview({ skipDetailOpen: true });
+    setTimeout(() => {
+      if (typeof _exitToExploreMode === 'function') _exitToExploreMode();
+    }, 360);
   };
 
   return el;
