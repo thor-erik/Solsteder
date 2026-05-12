@@ -73,6 +73,19 @@ function openPlanPreview(opts) {
 
   document.body.classList.add('plan-preview-active');
 
+  // Stash + override selectedId so the invited venue gets the priority
+  // boost in the pin renderer (priScore = -100000 for selectedId in
+  // render-pins.js draw()). Without this, on locate's fit-both view
+  // the pin competes with every other venue in the visible bounds and
+  // gets demoted to a dot or filtered out, leaving the venue
+  // unrepresented on the map. Restored on close so the underlying
+  // detail-panel state isn't perturbed. The detail panel itself stays
+  // hidden via the body.plan-preview-active CSS rule.
+  const savedSelectedId = (typeof selectedId !== 'undefined') ? selectedId : null;
+  if (typeof selectedId !== 'undefined') {
+    try { selectedId = venue.id; } catch (e) { /* ignore */ }
+  }
+
   // Save current camera so we can restore it on close.
   let savedCamera = null;
   if (typeof map !== 'undefined' && map && typeof map.getCenter === 'function') {
@@ -190,12 +203,13 @@ function openPlanPreview(opts) {
     overlay,
     venueId:  venue.id,
     inviterId: opts.inviterId || null,
-    savedTime, savedDate, savedCamera,
+    savedTime, savedDate, savedCamera, savedSelectedId,
     planHour, animateTo, dateStr,
     rafId: null,
     timeouts: [phase3TimeoutId],
     autoplayDone: false,
     resizeObs,
+    locateState: 'dive', // dive (initial) → fit → user → dive (cycle)
   };
 
   requestAnimationFrame(() => {
@@ -242,14 +256,28 @@ function _planPreviewLocate() {
   const hasUser = (typeof userLocation !== 'undefined') && userLocation
     && Number.isFinite(userLocation.lat) && Number.isFinite(userLocation.lng);
 
-  if (typeof _aTrack === 'function') _aTrack('plan_preview_locate', { state: _planPreviewState.locateState || 'fit' });
-
-  // Toggle between the two states. State 'fit' = both visible; 'user' = zoomed on user.
-  const next = _planPreviewState.locateState === 'fit' ? 'user' : 'fit';
+  // Triple-state cycle: dive → fit → user → dive. v1 ping-ponged
+  // between fit and user with no path back to the original
+  // venue-focused dive view; this gave the user no obvious way
+  // to return after exploring. The third state is the dive itself,
+  // re-running the same camera params as the initial entry choreography.
+  // When userLocation is missing, fit and user states are skipped
+  // (locate just snaps back to dive).
+  const cur = _planPreviewState.locateState || 'dive';
+  let next;
+  if (!hasUser) {
+    next = 'dive';
+  } else if (cur === 'dive')      next = 'fit';
+  else if (cur === 'fit')         next = 'user';
+  else                            next = 'dive';
   _planPreviewState.locateState = next;
+  if (typeof _aTrack === 'function') _aTrack('plan_preview_locate', { state: next });
+  if (btn) {
+    btn.classList.remove('locate-state-dive', 'locate-state-fit', 'locate-state-user');
+    btn.classList.add('locate-state-' + next);
+  }
 
-  if (next === 'fit' && hasUser) {
-    // Fit bounds containing both venue and user.
+  if (next === 'fit') {
     try {
       const sw = [Math.min(venue.lng, userLocation.lng), Math.min(venue.lat, userLocation.lat)];
       const ne = [Math.max(venue.lng, userLocation.lng), Math.max(venue.lat, userLocation.lat)];
@@ -264,8 +292,7 @@ function _planPreviewLocate() {
     return;
   }
 
-  if (next === 'user' && hasUser) {
-    // Zoom in on the user's location.
+  if (next === 'user') {
     try {
       map.easeTo({
         center: [userLocation.lng, userLocation.lat],
@@ -279,18 +306,20 @@ function _planPreviewLocate() {
     return;
   }
 
-  // No userLocation — center back on venue at the dive state.
+  // 'dive' — same camera params as openPlanPreview's Phase 1 flyTo so
+  // the user gets the same orienting view they started with.
+  const wallBearing   = venue.wallSegment?.bearing ?? venue.facing ?? 0;
+  const targetBearing = (wallBearing + 180) % 360;
   try {
     map.easeTo({
       center: [venue.lng, venue.lat],
       zoom: 17.6,
       pitch: 58,
-      bearing: 0,
-      duration: 600,
+      bearing: targetBearing,
+      duration: 700,
       padding,
     });
   } catch (e) { /* ignore */ }
-  _planPreviewState.locateState = 'fit'; // reset since we couldn't toggle
 }
 
 /** Wire up the drag handle (.pp-handle wrapper) for drag-to-dismiss. The
@@ -576,31 +605,27 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     const declineId = isAnon ? 'pp-anon-decline' : 'pp-decline';
     // Anon mode: the primary button actually opens a login modal — be
     // honest about that in the label ('Log in to accept') so the user
-    // isn't surprised by an unexpected auth gate. Also hide the
-    // "Coming later" secondary in anon mode: it implies rescheduling
-    // is possible pre-login, which it isn't (login is required first
-    // either way). Anon row collapses to just one fallback: Decline.
+    // isn't surprised by an unexpected auth gate. The secondary
+    // 'Coming later' and 'Decline' are kept in anon mode too: now
+    // that the primary CTA explicitly says 'Log in to …', the user
+    // already understands the same auth wall applies to the other
+    // options — no need to hide them.
     const primaryLabel = isAnon ? t('plan_preview_anon_im_in') : t('plan_preview_im_in');
     const primaryIcon  = isAnon ? '' : checkSvg;
-    const secondaryHtml = isAnon
-      ? `
-        <button class="dprcv-cta-link is-decline" id="${declineId}" type="button">
-          <span>${t('plan_decline')}</span>
-        </button>`
-      : `
+    ctaHtml = `
+      <button class="p-pill dprcv-cta-primary" id="${acceptId}" type="button">
+        ${primaryIcon}
+        ${primaryLabel}
+      </button>
+      <div class="dprcv-cta-row">
         <button class="dprcv-cta-link" id="pp-suggest" type="button">
           ${editSvg}<span>${t('invite_secondary_later')}</span>
         </button>
         <span class="dprcv-cta-sep" aria-hidden="true">·</span>
         <button class="dprcv-cta-link is-decline" id="${declineId}" type="button">
           <span>${t('plan_decline')}</span>
-        </button>`;
-    ctaHtml = `
-      <button class="p-pill dprcv-cta-primary" id="${acceptId}" type="button">
-        ${primaryIcon}
-        ${primaryLabel}
-      </button>
-      <div class="dprcv-cta-row">${secondaryHtml}</div>`;
+        </button>
+      </div>`;
   } else if (isPreview) {
     ctaHtml = `
       <button class="p-pill dprcv-cta-primary" id="pp-share-onward" type="button">

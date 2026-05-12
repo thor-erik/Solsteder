@@ -8234,19 +8234,22 @@
     pointer-events: none !important;
     transition: opacity 0.25s ease;
   }
-  /* Locate-me + zoom slider stay visible during plan-preview — the receiver
-     can frame both venue and themselves on the map (custom 2-state click
-     handler in ui-plan-preview.js) and zoom in for detail. Anchored above
-     the .pp-bottom panel via --pp-bottom-h (written by openPlanPreview from
-     offsetHeight, kept in sync via ResizeObserver) — same mechanism the
-     venue list uses via --peek-h. */
-  body.plan-preview-active #locate-btn,
-  body.plan-preview-active #zoom-jog {
+  /* During plan-preview the receiver's interaction is choreographed
+     by the locate-btn cycle (dive → fit-both → user → dive) — the
+     zoom slider serves no purpose here (it can zoom in but can't
+     restore the deliberate dive view) and visually competes with the
+     dive's framing. Hidden via display:none; locate stays + lifts
+     above the preview overlay. Anchored above the .pp-bottom panel
+     via --pp-bottom-h (written by openPlanPreview from offsetHeight,
+     kept in sync via ResizeObserver) — same mechanism the venue list
+     uses via --peek-h. */
+  body.plan-preview-active #locate-btn {
     z-index: 1210; /* above the plan-preview overlay (1200) */
     opacity: 1;
     pointer-events: auto;
     transition: bottom 0.22s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease;
   }
+  body.plan-preview-active #zoom-jog { display: none; }
   body.plan-preview-active #locate-btn {
     bottom: calc(var(--pp-bottom-h, 220px) + 14px);
   }
@@ -8272,7 +8275,11 @@
   .dprcv-bottom {
     pointer-events: auto;
     margin: 0;
-    padding: 0 18px calc(14px + env(safe-area-inset-bottom, 0px));
+    /* 24px floor bottom padding (was 14px) — on iOS the inset adds the
+       home-indicator buffer; on desktop browsers the inset is 0 and
+       14px left the secondary CTAs feeling cramped against the
+       viewport edge. */
+    padding: 0 18px calc(24px + env(safe-area-inset-bottom, 0px));
     border-radius: 20px 20px 0 0;
     background: var(--glass-panel-bg);
     backdrop-filter: blur(22px) saturate(180%) brightness(0.92);
