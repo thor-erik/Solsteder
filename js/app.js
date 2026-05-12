@@ -3155,6 +3155,8 @@ function exitEditMode() {
           after,
           buildingNodeCount: v.buildingGeometry?.length ?? null,
         });
+        // Editing a polygon implicitly counts as a polygon review.
+        if (typeof markVenueAudited === 'function') markVenueAudited(v.id, 'edited');
       } else {
         // Regular user: submit proposal, revert local state
         submitEditProposal(v, _editBeforeSnapshot, after);
@@ -3208,6 +3210,8 @@ function confirmEditCorrect() {
         state: _editBeforeSnapshot,
         buildingNodeCount: v.buildingGeometry?.length ?? null,
       });
+      // Confirming "looks good" inside the editor also ticks the audit box.
+      if (typeof markVenueAudited === 'function') markVenueAudited(v.id, 'good');
     }
   }
   exitEditMode();

@@ -744,6 +744,26 @@ function _drawReviewBadge(x, y) {
   ctx.restore();
 }
 
+// ── Audit badge (admin) — green check on reviewed venues. ────────────────────
+function _drawAuditBadge(x, y) {
+  const r = 7.5;
+  ctx.save();
+  ctx.beginPath(); ctx.arc(x, y, r + 1, 0, Math.PI * 2);
+  ctx.fillStyle = '#064e3b'; ctx.fill();
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = '#10b981'; ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth   = 1.6;
+  ctx.lineCap     = 'round';
+  ctx.lineJoin    = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x - 3.0, y + 0.2);
+  ctx.lineTo(x - 0.7, y + 2.5);
+  ctx.lineTo(x + 3.2, y - 2.5);
+  ctx.stroke();
+  ctx.restore();
+}
+
 // ── Layout state (consumed by hit testing + external code) ────────────────────
 let _lastLayout      = [];     // [{v, pt, classResult, isDot, spr, _pillRect}] per frame
 let _hoverClearTimer = null;   // debounce timer for clearing map hover
@@ -885,15 +905,18 @@ function draw() {
   }
 
   const isReviewMode = (typeof reviewModeActive !== 'undefined' && reviewModeActive);
+  const isAuditMode  = (typeof auditModeActive  !== 'undefined' && auditModeActive);
 
   // ── 1. Project + classify visible venues. Friend venues bypass the
-  //      shouldShowAtZoom density filter — they're always relevant. ────────────
+  //      shouldShowAtZoom density filter — they're always relevant.
+  //      Audit mode bypasses the density filter for every venue.
   let projVenues = [];
   _friendVenueIds = new Set();
   VENUES.forEach(v => {
     if (!bounds.contains([v.lng, v.lat])) return;
     const friends = _getCheckins(v);
-    if (friends.length === 0
+    if (!isAuditMode
+        && friends.length === 0
         && typeof shouldShowAtZoom === 'function'
         && !shouldShowAtZoom(v, zoom)) return;
     let cls;
@@ -997,6 +1020,10 @@ function draw() {
       // Review badge on context dots (admin)
       if (isReviewMode && typeof venueReviewFlags === 'function' && venueReviewFlags(v)) {
         _drawReviewBadge(pt.x - r - 1, pt.y - r - 1);
+      }
+      // Audit badge — venue's polygon has been reviewed by an admin
+      if (isAuditMode && typeof isVenueAudited === 'function' && isVenueAudited(v)) {
+        _drawAuditBadge(pt.x + r + 1, pt.y - r - 1);
       }
       layout.push({
         v, pt, classResult: cls, isDot: true, extraStem: 0,
@@ -1102,6 +1129,9 @@ function draw() {
         if (isReviewMode && typeof venueReviewFlags === 'function' && venueReviewFlags(v)) {
           _drawReviewBadge(pt.x - 5, pt.y - 5);
         }
+        if (isAuditMode && typeof isVenueAudited === 'function' && isVenueAudited(v)) {
+          _drawAuditBadge(pt.x + 5, pt.y - 5);
+        }
       }
       layout.push({
         v, pt, classResult: cls, isDot: true, extraStem: 0,
@@ -1188,6 +1218,11 @@ function draw() {
     // Review badge on top-left of pill (admin)
     if (isReviewMode && typeof venueReviewFlags === 'function' && venueReviewFlags(v)) {
       _drawReviewBadge(pillRect.x + 1, pillRect.y + 1);
+    }
+    // Audit badge on top-right of pill (admin) — sibling position so the two
+    // modes are visually distinct even when both happen to be active.
+    if (isAuditMode && typeof isVenueAudited === 'function' && isVenueAudited(v)) {
+      _drawAuditBadge(pillRect.x + pillRect.w - 1, pillRect.y + 1);
     }
 
     layout.push({

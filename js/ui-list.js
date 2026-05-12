@@ -439,6 +439,24 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
     </div>`;
   }
 
+  // Admin audit-mode row: per-card "Mark good" / "Reviewed" affordance.
+  let auditActionsHtml = '', auditCardCls = '';
+  if (typeof auditModeActive !== 'undefined' && auditModeActive) {
+    const idArg     = typeof v.id === 'number' ? v.id : `'${v.id}'`;
+    const audited   = (typeof isVenueAudited === 'function') && isVenueAudited(v);
+    const entry     = audited && typeof venueAuditEntry === 'function' ? venueAuditEntry(v) : null;
+    const viaLabel  = entry?.via === 'edited' ? 'Edited ✓' : 'Looks good ✓';
+    if (audited) auditCardCls = ' audit-reviewed';
+    auditActionsHtml = `<div class="audit-actions" onclick="event.stopPropagation()">
+      ${audited
+        ? `<span class="audit-state-badge">${viaLabel}</span>
+           <button class="audit-action-btn audit-undo" onclick="unmarkVenueAudited(${idArg})">Undo</button>
+           <button class="audit-action-btn" onclick="enterEditMode(${idArg})">Edit polygon</button>`
+        : `<button class="audit-action-btn" onclick="markVenueAudited(${idArg},'good')">Mark good</button>
+           <button class="audit-action-btn audit-undo" onclick="enterEditMode(${idArg})">Edit polygon</button>`}
+    </div>`;
+  }
+
   // dpVariant uses card-compact layout (3-row stack with anchor meta) but
   // also gets the dp-card class added by _populateDpCardSlot for sizing.
   const variantCls = (rich && !dpVariant) ? ' card-rich' : ' card-compact';
@@ -456,7 +474,7 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
     const headlineMain = dpState?.mainText || '—';
     const headlineSub  = dpState?.subText  || '';
     return `
-      <div class="venue-card card-compact ${stateClass}${flags ? ' review-flagged' : ''}"
+      <div class="venue-card card-compact ${stateClass}${flags ? ' review-flagged' : ''}${auditCardCls}"
            data-vid="${v.id}">
         <div class="dp-sun-headline">${headlineMain}</div>
         ${headlineSub ? `<div class="dp-sun-sub">${headlineSub}</div>` : ''}
@@ -464,11 +482,12 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
         ${timelineBlock}
         ${reviewChips}
         ${reviewActions}
+        ${auditActionsHtml}
       </div>`;
   }
 
   return `
-    <div class="venue-card ${stateClass}${variantCls} ${v.id === selectedId ? 'selected' : ''}${flags ? ' review-flagged' : ''}"
+    <div class="venue-card ${stateClass}${variantCls} ${v.id === selectedId ? 'selected' : ''}${flags ? ' review-flagged' : ''}${auditCardCls}"
          data-vid="${v.id}" onclick="selectVenue(${typeof v.id === 'number' ? v.id : `'${v.id}'`}, true)"
          onmouseenter="setHoveredVenue(${typeof v.id === 'number' ? v.id : `'${v.id}'`})" onmouseleave="setHoveredVenue(null)">
       <div class="card-row1">
@@ -480,6 +499,7 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
       ${timelineBlock}
       ${reviewChips}
       ${reviewActions}
+      ${auditActionsHtml}
       ${fillBarHtml}
     </div>`;
 }
@@ -724,7 +744,12 @@ function renderList() {
     venues = venues.filter(v => venueReviewFlags(v));
   }
 
-  if (searchQ) {
+  // Admin "Audit" mode — show *every* venue alphabetically by area + name
+  // so the admin can walk the catalog and tick off each polygon. Bypasses
+  // search/area/viewport/surfacing entirely.
+  const auditActive = typeof auditModeActive !== 'undefined' && auditModeActive;
+
+  if (searchQ && !auditActive) {
     const alias = typeof _resolveAlias === 'function' ? _resolveAlias(searchQ) : null;
     // Diacritics-stripped comparison only matters for ≥3-char queries; for
     // 1-2 chars plain .includes() already covers everything (mirrors
@@ -743,7 +768,7 @@ function renderList() {
       return false;
     });
   }
-  if (activeArea) venues = venues.filter(v => v.area === activeArea);
+  if (activeArea && !auditActive) venues = venues.filter(v => v.area === activeArea);
   // Favorites filtering is handled by sortBy === 'favorites' below
 
   // Compute the viewport bounds (with 20% pad) once. Used both to filter
@@ -752,7 +777,7 @@ function renderList() {
   // center). filterMapViewActive is normally true; the gate is kept as an
   // escape valve in case it's ever toggled off programmatically.
   let _viewportBounds = null;
-  if (filterMapViewActive) {
+  if (filterMapViewActive && !auditActive) {
     // While a venue is selected, keep the list frozen at the pre-zoom viewport
     const bounds = (selectedId != null && _frozenBounds) ? _frozenBounds : map.getBounds();
     const sw = bounds.getSouthWest(), ne = bounds.getNorthEast();
@@ -834,7 +859,7 @@ function renderList() {
   // the user's "vis alle" escape hatch + admin review mode.
   const reviewActive = typeof reviewModeActive !== 'undefined' && reviewModeActive;
   const showAllPass = _showAllOnce; _showAllOnce = false;
-  if (!showAllPass && !reviewActive) {
+  if (!showAllPass && !reviewActive && !auditActive) {
     venues = venues.filter(v => {
       if (v._ownSuggestion) return true;
       if (searchQ) return true; // search results bypass the filter
@@ -1031,6 +1056,19 @@ function renderList() {
   }
   venues = [...bucketNow, ...bucketLater];
 
+  // Audit mode override — admin walks the catalog systematically.
+  // Sort: unreviewed first (so each tap shrinks the queue), then by area + name.
+  if (auditActive) {
+    const _audited = (v) => (typeof isVenueAudited === 'function' && isVenueAudited(v));
+    venues.sort((a, b) => {
+      const aa = _audited(a) ? 1 : 0, bb = _audited(b) ? 1 : 0;
+      if (aa !== bb) return aa - bb;
+      const ar = (a.area || 'ÅÅÅ'), br = (b.area || 'ÅÅÅ');
+      if (ar !== br) return ar.localeCompare(br, 'nb');
+      return (a.name || '').localeCompare(b.name || '', 'nb');
+    });
+  }
+
   // ── After-sunset state: real clock vs actual sunset, today only ───────────
   const isToday     = dateStr === todayStr();
   const sunsetH     = currentSunTable ? findSunCrossingFromTable(currentSunTable, false) : null;
@@ -1040,7 +1078,7 @@ function renderList() {
   // Freeze / unfreeze arc interaction
   document.getElementById('floating-bottom')?.classList.toggle('arc-frozen', isAfterSunset);
 
-  if (isAfterSunset) {
+  if (isAfterSunset && !auditActive) {
     if (_listObserver) { _listObserver.disconnect(); _listObserver = null; }
     list.innerHTML = '';
     // Banner

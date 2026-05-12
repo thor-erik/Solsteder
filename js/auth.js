@@ -392,6 +392,11 @@ function _renderSettingsView() {
           <span class="settings-row__label">Review terraces</span>
           <span class="settings-row__chevron">${_SETTINGS_ICON.chevron}</span>
         </button>
+        <button class="settings-row" onclick="toggleAuditMode();closeProfilePanel()">
+          <span class="settings-row__icon">${_SETTINGS_ICON.eye}</span>
+          <span class="settings-row__label">Audit polygons</span>
+          <span class="settings-row__chevron">${_SETTINGS_ICON.chevron}</span>
+        </button>
         <button class="settings-row" id="debug-row" onclick="toggleZoomDebugHelper()">
           <span class="settings-row__icon">${_SETTINGS_ICON.search}</span>
           <span id="zoom-debug-toggle-label" class="settings-row__label">Show Debug</span>

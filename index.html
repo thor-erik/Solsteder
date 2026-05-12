@@ -67,6 +67,7 @@
 <script defer src="js/ui-shared.js?v=20260511e"></script>
 <script defer src="js/ui-list.js?v=20260510a"></script>
 <script defer src="js/admin-review.js?v=20260505a"></script>
+<script defer src="js/admin-audit.js?v=20260512a"></script>
 <script defer src="js/ui-shelter.js?v=20260416a"></script>
 <script defer src="js/render-wind.js?v=20260416b"></script>
 <script defer src="js/ui-detail.js?v=20260510e"></script>
@@ -4567,6 +4568,77 @@
   }
   #review-mode-indicator button:hover { background: rgba(255,255,255,0.28); }
   #review-indicator-count { opacity: 0.85; font-weight: 500; }
+
+  /* ── Admin audit mode (polygon walk-through) ──────────────────────── */
+  #audit-mode-indicator {
+    position: fixed;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9000;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px 6px 14px;
+    background: #065f46;
+    color: #fff;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+  }
+  #audit-mode-indicator button {
+    background: rgba(255,255,255,0.18);
+    color: #fff;
+    border: none;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  #audit-mode-indicator button:hover { background: rgba(255,255,255,0.28); }
+  #audit-mode-indicator button.audit-reset {
+    background: rgba(255,255,255,0.10);
+    opacity: 0.85;
+  }
+  #audit-indicator-count { opacity: 0.85; font-weight: 500; font-variant-numeric: tabular-nums; }
+
+  .venue-card.audit-reviewed { border-left: 3px solid #10b981; }
+  .venue-card.audit-reviewed .audit-state-badge { background: rgba(16,185,129,0.22); color: #6ee7b7; }
+  .audit-actions {
+    display: flex;
+    gap: 6px;
+    padding: 6px 10px 8px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    align-items: center;
+  }
+  .audit-state-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.06);
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .audit-action-btn {
+    background: rgba(16,185,129,0.18);
+    color: #6ee7b7;
+    border: 1px solid rgba(16,185,129,0.35);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .audit-action-btn:hover { background: rgba(16,185,129,0.30); }
+  .audit-action-btn.audit-undo {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.16);
+    color: var(--muted);
+  }
+  .audit-action-btn.audit-undo:hover { background: rgba(255,255,255,0.16); }
 
   .review-chips {
     display: flex;
@@ -9176,6 +9248,14 @@
     <span>Review mode</span>
     <span id="review-indicator-count"></span>
     <button onclick="toggleReviewMode()">Exit</button>
+  </div>
+
+  <!-- ADMIN: polygon audit mode indicator (shown only when auditModeActive) -->
+  <div id="audit-mode-indicator" style="display:none">
+    <span>Polygon audit</span>
+    <span id="audit-indicator-count"></span>
+    <button class="audit-reset" onclick="resetAuditProgress()" title="Reset all reviewed flags">Reset</button>
+    <button onclick="toggleAuditMode()">Exit</button>
   </div>
 
   <!-- INTRO SPLASH — covers everything until geo + map are ready -->
