@@ -1415,6 +1415,21 @@
      Stripe/Linear glass hover surfaces — clean, performant, looks like
      real glass at small scales where multi-layer parallax just adds
      noise. */
+  /* @property registration so the idle-glint drift custom properties
+     interpolate smoothly across keyframes (without this, CSS animations
+     between non-registered custom properties just snap at each keyframe
+     — no in-between values). Supported in modern Chromium / Safari 16.4+;
+     unsupported browsers degrade to instant value jumps, still safe. */
+  @property --idle-x {
+    syntax: '<number>';
+    inherits: false;
+    initial-value: 0;
+  }
+  @property --idle-y {
+    syntax: '<number>';
+    inherits: false;
+    initial-value: 0;
+  }
   #fts-thumb {
     position: absolute;
     top: 50%;
@@ -1426,6 +1441,12 @@
     z-index: 5;
     --tilt-x: 0;
     --tilt-y: 0;
+    --idle-x: 0;
+    --idle-y: 0;
+    /* Idle drift — the highlight glint wanders in a slow Lissajous-ish
+       arc, like a real lens catching changing light. Suppressed once
+       the user engages (hover / active states override animation). */
+    animation: ftsGlintDrift 5.2s ease-in-out infinite;
 
     /* Sunglass lens recipe — four stacked backgrounds, top to bottom:
        1. Tilt-driven highlight glint — fixed-light catch on the curved
@@ -1440,7 +1461,7 @@
           as tinted glass rather than a faint disc. */
     background:
       radial-gradient(
-        circle at calc(34% - var(--tilt-x) * 20%) calc(30% - var(--tilt-y) * 20%),
+        circle at calc(34% - var(--tilt-x) * 20% + var(--idle-x) * 9%) calc(30% - var(--tilt-y) * 20% + var(--idle-y) * 9%),
         rgba(255,244,224,0.46) 0%,
         rgba(255,244,224,0.14) 18%,
         rgba(255,244,224,0)    40%
@@ -1500,9 +1521,13 @@
      doesn't compete with the drag (.is-active) state. */
   #fts-thumb.is-hover {
     transform: translate(-50%, -50%) translateY(-1.5px) scale(1.06);
+    /* Stop the idle drift once the user is engaged — tilt-driven
+       glint takes over. animation-play-state preserves the current
+       drift values so the glint doesn't jump back to centre. */
+    animation-play-state: paused;
     background:
       radial-gradient(
-        circle at calc(34% - var(--tilt-x) * 20%) calc(30% - var(--tilt-y) * 20%),
+        circle at calc(34% - var(--tilt-x) * 20% + var(--idle-x) * 9%) calc(30% - var(--tilt-y) * 20% + var(--idle-y) * 9%),
         rgba(255,244,224,0.56) 0%,
         rgba(255,244,224,0.18) 18%,
         rgba(255,244,224,0)    40%
@@ -1540,9 +1565,10 @@
      add a warm honey aura. Same sunglass palette as base + hover. */
   #fts-thumb.is-active {
     transform: translate(-50%, -50%) scale(1.20);
+    animation-play-state: paused;
     background:
       radial-gradient(
-        circle at calc(34% - var(--tilt-x) * 20%) calc(30% - var(--tilt-y) * 20%),
+        circle at calc(34% - var(--tilt-x) * 20% + var(--idle-x) * 9%) calc(30% - var(--tilt-y) * 20% + var(--idle-y) * 9%),
         rgba(255,244,224,0.62) 0%,
         rgba(255,244,224,0.22) 18%,
         rgba(255,244,224,0)    40%
@@ -1577,8 +1603,20 @@
       0 0 22px 2px rgba(245,194,94,0.24);
   }
 
+  /* Idle glint drift — the highlight wanders slowly through 4 corner-ish
+     positions. Asymmetric path so it doesn't read as a perfect loop;
+     amplitude (±1 multiplied by the 9% calc) keeps the drift well inside
+     the lens body so the glint never leaves the visible disc. */
+  @keyframes ftsGlintDrift {
+    0%   { --idle-x: -0.8; --idle-y: -0.5; }
+    25%  { --idle-x:  0.6; --idle-y:  0.7; }
+    50%  { --idle-x:  0.9; --idle-y: -0.3; }
+    75%  { --idle-x: -0.5; --idle-y:  0.8; }
+    100% { --idle-x: -0.8; --idle-y: -0.5; }
+  }
+
   @media (prefers-reduced-motion: reduce) {
-    #fts-thumb { transition: none; }
+    #fts-thumb { transition: none; animation: none; }
     #fts-thumb.is-hover  { transform: translate(-50%, -50%); }
     #fts-thumb.is-active { transform: translate(-50%, -50%); }
   }
