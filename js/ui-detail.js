@@ -1016,20 +1016,28 @@ function _openInviteSheet(venueId) {
   // .s-circ link companion that only appears when 1+ friends are picked.
   // _refreshInvitePrimaryCTA handles the swap. Initial render reflects the
   // 0-selected state ("Send delingslenke", full-width, link icon).
+  // Inline copy icon — small clipboard glyph, same stroke weight as the
+  // other CTA icons. Reused by the .s-circ Copy companion in both
+  // selection modes so desktop users have a reliable clipboard path
+  // (macOS Safari's native share sheet doesn't include a Copy option).
+  const copySvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
   const ctaRow = hasFriends ? `
         <div class="dpinvite-cta-row">
           <button class="p-pill" id="invite-primary-btn" data-mode="share" onclick="_invitePrimaryClick(${venueId})">
             <span id="invite-primary-icon">${linkSvg}</span>
             <span id="invite-primary-label">${t('share_link')}</span>
           </button>
-          <button class="s-circ" id="invite-secondary-btn" type="button" onclick="_shareInviteLink(${venueId})" title="${t('share_link')}" aria-label="${t('share_link')}" aria-hidden="true" tabindex="-1">
-            ${linkSvg}
+          <button class="s-circ" id="invite-secondary-btn" type="button" onclick="_copyInviteLink(${venueId})" title="${t('copy_invite_link')}" aria-label="${t('copy_invite_link')}">
+            ${copySvg}
           </button>
         </div>` : `
         <div class="dpinvite-cta-row">
           <button class="p-pill" onclick="_shareInviteLink(${venueId})" style="flex:1">
             ${linkSvg}
             <span>${t('share_link')}</span>
+          </button>
+          <button class="s-circ" type="button" onclick="_copyInviteLink(${venueId})" title="${t('copy_invite_link')}" aria-label="${t('copy_invite_link')}">
+            ${copySvg}
           </button>
         </div>`;
 
@@ -1681,11 +1689,14 @@ function _refreshInvitePrimaryCTA() {
     }
   }
 
+  // The companion is now a Copy button, useful in every state — no need
+  // to hide it when 0 friends are selected. (Previously it was a redundant
+  // duplicate Share button, hidden in the 0-state to avoid two identical
+  // CTAs side-by-side.)
   if (companion) {
-    const visible = n > 0;
-    companion.classList.toggle('is-visible', visible);
-    companion.setAttribute('aria-hidden', visible ? 'false' : 'true');
-    companion.tabIndex = visible ? 0 : -1;
+    companion.classList.add('is-visible');
+    companion.setAttribute('aria-hidden', 'false');
+    companion.tabIndex = 0;
   }
 }
 
@@ -1945,7 +1956,7 @@ function _composeInviteShareText(v, d, h, link) {
  *  thread a specific planId + plannedAt instead of reading the live pickers
  *  and the invite-sheet plan id.
  */
-function _shareInviteLink(venueId, overrides = {}) {
+function _prepareInvitePayload(venueId, overrides = {}) {
   let d, h;
   if (overrides.plannedAt) {
     const dt = new Date(overrides.plannedAt);
@@ -1960,7 +1971,7 @@ function _shareInviteLink(venueId, overrides = {}) {
   const mInt = Math.round((h - hInt) * 60);
   const timeVal = `${d}T${String(hInt).padStart(2,'0')}:${String(mInt).padStart(2,'0')}`;
   const user = typeof authCurrentUser === 'function' ? authCurrentUser() : null;
-  if (!user) return;
+  if (!user) return null;
 
   const sheet = document.getElementById('invite-sheet');
   const planId = overrides.planId || (sheet && sheet._planId ? sheet._planId : null);
@@ -1980,9 +1991,20 @@ function _shareInviteLink(venueId, overrides = {}) {
   // separate `url` field on share() to avoid duplicate URLs on platforms that
   // append it.
   const text = _composeInviteShareText(v, d, h, url);
+  return { v, d, h, url, text };
+}
+
+function _shareInviteLink(venueId, overrides = {}) {
+  const payload = _prepareInvitePayload(venueId, overrides);
+  if (!payload) return;
+  const { v, d, h, text } = payload;
   if (navigator.share) {
+    // Title kept short and venue-only — macOS Safari's share sheet
+    // concatenates title + text into the preview, so an awkward title
+    // like "Lorry — Invite friends here" ends up reading as "Lorry —
+    // Invite friends here and I'm at Lorry…" in the recipient app.
     navigator.share({
-      title: v ? `${v.name} — ${t('invite_friends')}` : t('invite_friends'),
+      title: v ? v.name : '',
       text,
     }).catch(err => {
       if (err && err.name !== 'AbortError') console.warn('[share] navigator.share failed:', err);
@@ -1995,6 +2017,24 @@ function _shareInviteLink(venueId, overrides = {}) {
   // Now-share → also flip pin presence so the share link's "I'm at X now"
   // body matches reality on the map. Deferred via setTimeout so navigator.share
   // keeps its synchronous user-activation path.
+  if (_isNowSend(d, h) && typeof checkIn === 'function') {
+    setTimeout(() => { checkIn(venueId, ''); }, 0);
+  }
+}
+
+/** Explicit copy-to-clipboard variant of the invite share. Always copies
+ *  the same composed text (incl. URL) regardless of navigator.share
+ *  availability — exists because macOS Safari's share sheet doesn't
+ *  expose a Copy option, so users on desktop had no easy path to
+ *  paste the link into a non-Apple app. */
+function _copyInviteLink(venueId, overrides = {}) {
+  const payload = _prepareInvitePayload(venueId, overrides);
+  if (!payload) return;
+  const { d, h, text } = payload;
+  try {
+    navigator.clipboard?.writeText(text);
+  } catch (e) { /* clipboard unavailable — no fallback worth the noise */ }
+  if (typeof _showToast === 'function') _showToast(t('invite_link_copied'));
   if (_isNowSend(d, h) && typeof checkIn === 'function') {
     setTimeout(() => { checkIn(venueId, ''); }, 0);
   }
