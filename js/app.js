@@ -400,6 +400,15 @@ function initFts() {
       _thumbEl.classList.remove('is-hover');
       _thumbEl.classList.add('is-active');
     }
+    // Show skeleton wireframes from the moment the thumb is picked up —
+    // not just when an input event fires. setTimeFromPointer below will
+    // also trigger scheduleRenderList, but its 300 ms timer is held off
+    // for the duration of the drag (see scheduleRenderList).
+    if (typeof _injectScrubSkeletons === 'function' &&
+        !document.body.classList.contains('list-scrubbing')) {
+      _injectScrubSkeletons();
+      document.body.classList.add('list-scrubbing');
+    }
     setTimeFromPointer(e.clientX);
     setFtsPopupExpanded(true);
   });
@@ -507,6 +516,7 @@ function initFts() {
     drawFtsCanvas();
     setFtsPopupExpanded(false);
     hideFtsPopup();
+    if (typeof flushRenderListNow === 'function') flushRenderListNow();
   });
 
   // Appstart popup: show time once for 2s, then fade
@@ -1743,6 +1753,10 @@ function scheduleRenderList() {
     _injectScrubSkeletons();
   }
   document.body.classList.add('list-scrubbing');
+  // Hold the skeletons in place for the entire duration of an FTS drag.
+  // Without this guard a 300 ms pause mid-drag would swap real cards back
+  // in under the user's finger. Pointerup will flushRenderListNow().
+  if (window._qcThumbActive) return;
   _renderListTimer = setTimeout(_runListRenderAndUnmark, 300);
 }
 
@@ -1764,12 +1778,18 @@ function _runListRenderAndUnmark() {
 }
 
 // Flush the pending list render NOW — bound to the slider's pointerup so
-// the user sees the new list as soon as they release, instead of waiting
-// the full 300 ms debounce tail.
+// the user sees the new list as soon as they release. During an active
+// drag the debounce timer is never set (scheduleRenderList returns early
+// when _qcThumbActive), so we render whenever the list is in scrubbing
+// state, with or without a pending timer.
 function flushRenderListNow() {
-  if (!_renderListTimer) return;
-  clearTimeout(_renderListTimer);
-  _runListRenderAndUnmark();
+  if (_renderListTimer) {
+    clearTimeout(_renderListTimer);
+    _renderListTimer = null;
+  }
+  if (document.body.classList.contains('list-scrubbing')) {
+    _runListRenderAndUnmark();
+  }
 }
 
 // Swap the real venue cards for skeleton placeholders. Reuses the same
