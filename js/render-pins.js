@@ -764,6 +764,29 @@ function _drawAuditBadge(x, y) {
   ctx.restore();
 }
 
+// Amber pending badge — venue still needs review. Sized to match the
+// reviewed badge so the two states swap cleanly when the admin ticks one off.
+function _drawAuditPendingBadge(x, y) {
+  const r = 6;
+  ctx.save();
+  ctx.beginPath(); ctx.arc(x, y, r + 1, 0, Math.PI * 2);
+  ctx.fillStyle = '#78350f'; ctx.fill();
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = '#f59e0b'; ctx.fill();
+  ctx.restore();
+}
+
+// Single dispatcher — used by every pin draw path so the audit overlay logic
+// lives in one place. No-op outside audit mode.
+function _drawAuditStateBadge(v, x, y) {
+  if (typeof auditModeActive === 'undefined' || !auditModeActive) return;
+  if (typeof isVenueAudited === 'function' && isVenueAudited(v)) {
+    _drawAuditBadge(x, y);
+  } else {
+    _drawAuditPendingBadge(x, y);
+  }
+}
+
 // ── Layout state (consumed by hit testing + external code) ────────────────────
 let _lastLayout      = [];     // [{v, pt, classResult, isDot, spr, _pillRect}] per frame
 let _hoverClearTimer = null;   // debounce timer for clearing map hover
@@ -1021,10 +1044,8 @@ function draw() {
       if (isReviewMode && typeof venueReviewFlags === 'function' && venueReviewFlags(v)) {
         _drawReviewBadge(pt.x - r - 1, pt.y - r - 1);
       }
-      // Audit badge — venue's polygon has been reviewed by an admin
-      if (isAuditMode && typeof isVenueAudited === 'function' && isVenueAudited(v)) {
-        _drawAuditBadge(pt.x + r + 1, pt.y - r - 1);
-      }
+      // Audit overlay — reviewed (green ✓) or pending (amber).
+      if (isAuditMode) _drawAuditStateBadge(v, pt.x + r + 1, pt.y - r - 1);
       layout.push({
         v, pt, classResult: cls, isDot: true, extraStem: 0,
         spr: { anchorX: 0, anchorY: 0, cssW: r * 2, cssH: r * 2 + COMPAT_STEM_H, pillW: 0, pillH: 0, pillR: 0 },
@@ -1129,9 +1150,7 @@ function draw() {
         if (isReviewMode && typeof venueReviewFlags === 'function' && venueReviewFlags(v)) {
           _drawReviewBadge(pt.x - 5, pt.y - 5);
         }
-        if (isAuditMode && typeof isVenueAudited === 'function' && isVenueAudited(v)) {
-          _drawAuditBadge(pt.x + 5, pt.y - 5);
-        }
+        if (isAuditMode) _drawAuditStateBadge(v, pt.x + 5, pt.y - 5);
       }
       layout.push({
         v, pt, classResult: cls, isDot: true, extraStem: 0,
@@ -1219,11 +1238,8 @@ function draw() {
     if (isReviewMode && typeof venueReviewFlags === 'function' && venueReviewFlags(v)) {
       _drawReviewBadge(pillRect.x + 1, pillRect.y + 1);
     }
-    // Audit badge on top-right of pill (admin) — sibling position so the two
-    // modes are visually distinct even when both happen to be active.
-    if (isAuditMode && typeof isVenueAudited === 'function' && isVenueAudited(v)) {
-      _drawAuditBadge(pillRect.x + pillRect.w - 1, pillRect.y + 1);
-    }
+    // Audit overlay on the top-right of the pill.
+    if (isAuditMode) _drawAuditStateBadge(v, pillRect.x + pillRect.w - 1, pillRect.y + 1);
 
     layout.push({
       v, pt, classResult: cls, isDot: false, extraStem: 0,

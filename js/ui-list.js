@@ -422,21 +422,28 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
     ? 'state-sun' : 'state-shadow';
 
   // ── Admin review-mode extras: flag chips + action row at the card's bottom.
+  // Audit mode reuses the chips (so admins see flagged polygons inline while
+  // walking the catalog) but skips the Mark OK / Hide actions — audit has
+  // its own action row below.
   let reviewChips = '', reviewActions = '';
-  const flags = (typeof reviewModeActive !== 'undefined' && reviewModeActive &&
-                 typeof venueReviewFlags === 'function') ? venueReviewFlags(v) : null;
+  const _reviewActive = typeof reviewModeActive !== 'undefined' && reviewModeActive;
+  const _auditActive  = typeof auditModeActive  !== 'undefined' && auditModeActive;
+  const flags = ((_reviewActive || _auditActive) && typeof venueReviewFlags === 'function')
+    ? venueReviewFlags(v) : null;
   if (flags) {
     reviewChips = `<div class="review-chips">${
       flags.map(c => `<span class="review-chip" data-flag="${c}">${
         typeof reviewFlagLabel === 'function' ? reviewFlagLabel(c) : c
       }</span>`).join('')
     }</div>`;
-    const idArg = typeof v.id === 'number' ? v.id : `'${v.id}'`;
-    reviewActions = `<div class="review-actions" onclick="event.stopPropagation()">
-      <button class="review-action-btn" onclick="enterEditMode(${idArg})">Edit</button>
-      <button class="review-action-btn" onclick="dismissReviewFlag(${idArg})">Mark OK</button>
-      <button class="review-action-btn review-action-danger" onclick="hideVenueFromMap(${idArg})">Hide</button>
-    </div>`;
+    if (_reviewActive) {
+      const idArg = typeof v.id === 'number' ? v.id : `'${v.id}'`;
+      reviewActions = `<div class="review-actions" onclick="event.stopPropagation()">
+        <button class="review-action-btn" onclick="enterEditMode(${idArg})">Edit</button>
+        <button class="review-action-btn" onclick="dismissReviewFlag(${idArg})">Mark OK</button>
+        <button class="review-action-btn review-action-danger" onclick="hideVenueFromMap(${idArg})">Hide</button>
+      </div>`;
+    }
   }
 
   // Admin audit-mode row: per-card "Mark good" / "Reviewed" affordance.
@@ -583,8 +590,11 @@ function renderListPage(list, dateStr, fromHour, toHour, isPoint, reset) {
                         dateStr === todayStr() &&
                         Math.abs(fromHour - currentHour()) > 5/60)
                     || dateStr > todayStr();
-  const nowHeaderTxt   = isFutureMode ? t('section_sun_at',    { time: formatHour(fromHour) }) : t('section_sun_now');
-  const laterHeaderTxt = isFutureMode ? t('section_sun_after', { time: formatHour(fromHour) }) : t('section_sun_later');
+  const _auditList = typeof auditModeActive !== 'undefined' && auditModeActive;
+  const nowHeaderTxt   = _auditList ? `Til vurdering · ${nowCount}`
+                                    : (isFutureMode ? t('section_sun_at',    { time: formatHour(fromHour) }) : t('section_sun_now'));
+  const laterHeaderTxt = _auditList ? `Vurdert · ${laterCount}`
+                                    : (isFutureMode ? t('section_sun_after', { time: formatHour(fromHour) }) : t('section_sun_later'));
 
   let html = '';
 
@@ -1057,16 +1067,25 @@ function renderList() {
   venues = [...bucketNow, ...bucketLater];
 
   // Audit mode override — admin walks the catalog systematically.
-  // Sort: unreviewed first (so each tap shrinks the queue), then by area + name.
+  // Two visual buckets: "To review" (top) and "Reviewed" (bottom). The
+  // bucketNow/bucketLater split is reused so renderListPage's existing
+  // section-header machinery works for free — we just relabel the headers.
   if (auditActive) {
+    if (typeof auditMatchesFilter === 'function') {
+      venues = venues.filter(v => auditMatchesFilter(v));
+    }
     const _audited = (v) => (typeof isVenueAudited === 'function' && isVenueAudited(v));
-    venues.sort((a, b) => {
-      const aa = _audited(a) ? 1 : 0, bb = _audited(b) ? 1 : 0;
-      if (aa !== bb) return aa - bb;
+    const _cmp = (a, b) => {
       const ar = (a.area || 'ÅÅÅ'), br = (b.area || 'ÅÅÅ');
       if (ar !== br) return ar.localeCompare(br, 'nb');
       return (a.name || '').localeCompare(b.name || '', 'nb');
-    });
+    };
+    const _todo = [], _done = [];
+    for (const v of venues) (_audited(v) ? _done : _todo).push(v);
+    _todo.sort(_cmp); _done.sort(_cmp);
+    venues = [..._todo, ..._done];
+    bucketNow.length = 0;   bucketLater.length = 0;
+    bucketNow.push(..._todo); bucketLater.push(..._done);
   }
 
   // ── After-sunset state: real clock vs actual sunset, today only ───────────

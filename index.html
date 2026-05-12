@@ -4603,6 +4603,41 @@
     opacity: 0.85;
   }
   #audit-indicator-count { opacity: 0.85; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .audit-indicator-divider { opacity: 0.4; padding: 0 2px; }
+  .audit-filter-row { display: inline-flex; gap: 4px; }
+  .audit-filter-btn {
+    background: rgba(255,255,255,0.10);
+    color: #fff;
+    border: none;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 12px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    opacity: 0.7;
+  }
+  .audit-filter-btn:hover { background: rgba(255,255,255,0.20); opacity: 1; }
+  .audit-filter-btn.active {
+    background: rgba(255,255,255,0.92);
+    color: #064e3b;
+    opacity: 1;
+  }
+  .audit-filter-count {
+    font-variant-numeric: tabular-nums;
+    background: rgba(0,0,0,0.18);
+    padding: 0 5px;
+    border-radius: 999px;
+    font-size: 11px;
+    min-width: 14px;
+    text-align: center;
+  }
+  .audit-filter-btn.active .audit-filter-count {
+    background: rgba(6,95,70,0.20);
+    color: #064e3b;
+  }
 
   .venue-card.audit-reviewed { border-left: 3px solid #10b981; }
   .venue-card.audit-reviewed .audit-state-badge { background: rgba(16,185,129,0.22); color: #6ee7b7; }
@@ -9252,8 +9287,14 @@
 
   <!-- ADMIN: polygon audit mode indicator (shown only when auditModeActive) -->
   <div id="audit-mode-indicator" style="display:none">
-    <span>Polygon audit</span>
+    <span class="audit-indicator-title">Polygon audit</span>
     <span id="audit-indicator-count"></span>
+    <span class="audit-indicator-divider">·</span>
+    <div class="audit-filter-row" role="tablist">
+      <button id="audit-filter-all"  type="button" class="audit-filter-btn" onclick="setAuditFilter('all')">All</button>
+      <button id="audit-filter-todo" type="button" class="audit-filter-btn" onclick="setAuditFilter('todo')">To review <span class="audit-filter-count" id="audit-filter-todo-n">0</span></button>
+      <button id="audit-filter-done" type="button" class="audit-filter-btn" onclick="setAuditFilter('done')">Reviewed <span class="audit-filter-count" id="audit-filter-done-n">0</span></button>
+    </div>
     <button class="audit-reset" onclick="resetAuditProgress()" title="Reset all reviewed flags">Reset</button>
     <button onclick="toggleAuditMode()">Exit</button>
   </div>

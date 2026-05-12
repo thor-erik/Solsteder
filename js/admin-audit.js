@@ -21,7 +21,8 @@
  */
 
 let auditModeActive  = false;
-let _auditCache      = new Map();   // venueId → { at, via }
+let auditFilter      = 'all';        // 'all' | 'todo' | 'done'
+let _auditCache      = new Map();    // venueId → { at, via }
 
 const AUDIT_KEY = 'solsteder_audit_v1';
 
@@ -52,6 +53,19 @@ function auditReviewedCount()  {
   let n = 0;
   for (const v of VENUES) if (_auditCache.has(v.id)) n++;
   return n;
+}
+
+function auditMatchesFilter(v) {
+  if (auditFilter === 'all')  return true;
+  const reviewed = _auditCache.has(v.id);
+  return auditFilter === 'done' ? reviewed : !reviewed;
+}
+
+function setAuditFilter(f) {
+  if (!['all', 'todo', 'done'].includes(f)) return;
+  auditFilter = f;
+  _updateAuditIndicator();
+  if (typeof renderList === 'function') renderList();
 }
 
 // ── Mutations ────────────────────────────────────────────────────────────────
@@ -86,11 +100,19 @@ function _updateAuditIndicator() {
   const count = document.getElementById('audit-indicator-count');
   if (!ind || !count) return;
   ind.style.display = auditModeActive ? '' : 'none';
-  if (auditModeActive) {
-    count.textContent = `${auditReviewedCount()} / ${auditTotalCount()}`;
-  } else {
-    count.textContent = '';
+  if (!auditModeActive) { count.textContent = ''; return; }
+  const total = auditTotalCount();
+  const done  = auditReviewedCount();
+  const todo  = total - done;
+  count.textContent = `${done} / ${total}`;
+  for (const f of ['all', 'todo', 'done']) {
+    const btn = document.getElementById(`audit-filter-${f}`);
+    if (btn) btn.classList.toggle('active', auditFilter === f);
   }
+  const _todoSpan = document.getElementById('audit-filter-todo-n');
+  const _doneSpan = document.getElementById('audit-filter-done-n');
+  if (_todoSpan) _todoSpan.textContent = todo;
+  if (_doneSpan) _doneSpan.textContent = done;
 }
 
 function toggleAuditMode() {
@@ -99,11 +121,16 @@ function toggleAuditMode() {
   if (auditModeActive) {
     // Lazy-load on first activation; persists across sessions.
     _auditCache = _loadAudit();
-    // Mode dominates other filters — drop the review mode if it was on, to
-    // avoid two indicators stacking and surprising filter combinations.
+    auditFilter = 'all';
+    // Audit dominates Review mode — drop it so two top-bar pills don't stack.
     if (typeof reviewModeActive !== 'undefined' && reviewModeActive
         && typeof toggleReviewMode === 'function') {
       toggleReviewMode();
+    }
+    // Surface admin-review.js's flag heuristics inline on audit cards so the
+    // admin can spot likely-broken polygons without leaving audit mode.
+    if (typeof refreshReviewFlags === 'function' && typeof datePicker !== 'undefined') {
+      refreshReviewFlags(datePicker.value);
     }
   }
   _updateAuditIndicator();

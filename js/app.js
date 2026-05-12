@@ -935,8 +935,10 @@ try {
     // now that the worker has confirmed (or corrected) the sun window data.
     clearSpriteCache();
     // Refresh admin-review flags now that we have accurate sun windows.
-    if (typeof reviewModeActive !== 'undefined' && reviewModeActive &&
-        typeof refreshReviewFlags === 'function') {
+    // Audit mode reuses the same flag chips, so refresh in either mode.
+    if (typeof refreshReviewFlags === 'function' &&
+        ((typeof reviewModeActive !== 'undefined' && reviewModeActive) ||
+         (typeof auditModeActive  !== 'undefined' && auditModeActive))) {
       refreshReviewFlags(dateStr);
     }
     // Re-render with worker-computed data

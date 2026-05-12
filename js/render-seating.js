@@ -28,7 +28,10 @@ function shouldShowAtZoom(v, zoom) {
 function drawSeatingAreas() {
   if (!currentSun) return;
   const zoom = map.getZoom();
-  if (zoom < 16.5) return;
+  const _audit = (typeof auditModeActive !== 'undefined' && auditModeActive);
+  // Audit mode unlocks the terrace overlay one zoom step earlier so admins
+  // can scan groups of polygons without leaning on max zoom for every venue.
+  if (zoom < (_audit ? 15.5 : 16.5)) return;
   const bounds = map.getBounds();
   const { az, alt } = currentSun;
 
@@ -36,7 +39,7 @@ function drawSeatingAreas() {
 
   VENUES.forEach(v => {
     if (!bounds.contains([v.lng, v.lat])) return;
-    if (!shouldShowAtZoom(v, zoom)) return;
+    if (!_audit && !shouldShowAtZoom(v, zoom)) return;
 
     const sunny = venueSunState(v, az, alt);
     const fillSunny   = 'rgba(255,175,133,0.20)';
