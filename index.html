@@ -342,9 +342,9 @@
       linear-gradient(135deg, rgba(26,44,66,0.36) 0%, rgba(58,92,130,0.22) 100%),
       rgba(26,44,66,0.78);
   }
-  /* Primary action card keeps its solid honey accent under Lens-FX —
-     the rule above otherwise clobbered the 'one Primary per screen'
-     signal on the post-accept carousel. */
+  /* Primary action card keeps its solid honey accent even under the
+     Lens-FX body treatment — the rule above otherwise clobbered the
+     'one Primary per screen' signal on the post-accept carousel. */
   body[data-fx] .dpacc-action-card.dpacc-action-primary {
     background: var(--accent);
   }
@@ -1701,15 +1701,16 @@
     align-items: center;
     gap: 0;
     padding: 4px 5px;
-    background: linear-gradient(135deg, rgba(20,46,82,0.55) 0%, rgba(14,30,52,0.62) 100%);
-    backdrop-filter: blur(10px) saturate(170%) brightness(0.92);
-    -webkit-backdrop-filter: blur(10px) saturate(170%) brightness(0.92);
-    border: 1px solid rgba(156,189,231,0.22);
+    /* Same glass recipe as the venue-list panel (.glass-panel) — same tokens
+       end-to-end so the popup reads as part of the panel system. */
+    background: var(--glass-panel-bg);
+    backdrop-filter: var(--glass-blur-panel);
+    -webkit-backdrop-filter: var(--glass-blur-panel);
+    border: var(--glass-border);
     border-radius: 10px;
     box-shadow:
-      inset 0 1px 0 rgba(255,242,235,0.18),
-      inset 0 -1px 0 rgba(20,46,82,0.40),
-      0 6px 18px rgba(0,0,0,0.42);
+      var(--glass-inset),
+      0 6px 24px rgba(0,0,0,0.50);
     white-space: nowrap;
     pointer-events: none;
     opacity: 1;
@@ -1726,7 +1727,10 @@
     bottom: -6px; left: 50%;
     transform: translateX(-50%);
     width: 12px; height: 6px;
-    background: rgba(20,46,82,0.62);
+    /* Tail picks up the same slate-base layer of --glass-panel-bg so it reads
+       as one body with the popup. Can't directly inherit the gradient layer,
+       so we approximate with the alpha base of the token. */
+    background: rgba(26,44,66,0.42);
     clip-path: polygon(0 0, 100% 0, 50% 100%);
   }
   #fts-popup.fts-popup-below {
@@ -1963,7 +1967,19 @@
   .dc-tile.today       { border-color: rgba(255,175,133,0.4); }
   /* Selected: inset accent ring + subtle glow; keep glass top-sheen for continuity (no bg fill) */
   .dc-tile.selected    { box-shadow: inset 0 0 0 2px var(--accent), inset 0 0 10px rgba(255,175,133,0.12), inset 0 1px 0 rgba(255,242,235,0.14) !important; border-color: transparent !important; }
-  .dc-tile.sun-high    { border-color: rgba(255,175,133,0.2); }
+  /* Sun-touched days: tile fill stays the default glass card — only the
+     border picks up the honey accent. Keeps the selected-state inset ring
+     as the dominant "this is the picked day" signal (different geometry:
+     selected = inset 2px, sun-high/mid = outline border). */
+  .dc-tile.sun-high { border-color: var(--accent); }
+  .dc-tile.sun-mid  { border-color: rgba(255,175,133,0.45); }
+  .dc-tile.sun-high:hover:not(.no-data),
+  .dc-tile.sun-mid:hover:not(.no-data) { border-color: var(--accent); }
+  /* Truly overcast days: lightly faded to dissuade tap (informational, never
+     blocked). Keep opacity high enough that the tile doesn't read as broken
+     or disabled — just less inviting than a sun-touched day. */
+  .dc-tile.sun-low     { opacity: 0.75; }
+  .dc-tile.sun-low:hover:not(.no-data) { opacity: 1; }
   .dc-tile.no-data     { opacity: 0.4; }
   /* Beyond-horizon tiles: reduced-opacity glass with the same diagonal gradient — no dashed borders */
   .dc-tile.solar-only  {
@@ -8481,7 +8497,9 @@
   body.post-accept-active #qc-wrap,
   body.post-accept-active #fts,
   body.post-accept-active #fts-popup,
-  body.post-accept-active #notif-toast-wrap {
+  body.post-accept-active #notif-toast-wrap,
+  body.post-accept-active #locate-btn,
+  body.post-accept-active #zoom-jog {
     opacity: 0 !important;
     pointer-events: none !important;
     transition: opacity 0.25s ease;

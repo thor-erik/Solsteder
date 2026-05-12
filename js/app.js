@@ -775,7 +775,7 @@ function updateHeaderWxChip(hour) {
     return;
   }
   const rain = (wx.precip ?? wx.prec ?? 0) > 0.3;
-  if (iconEl) iconEl.textContent = rain ? '🌧' : (typeof skyIcon === 'function' ? skyIcon(wx.cloud ?? 0) : '☀️');
+  if (iconEl) iconEl.textContent = rain ? '🌧' : (typeof skyIcon === 'function' ? skyIcon(wx.sunBlock ?? wx.cloud ?? 0) : '☀️');
   if (tempEl) tempEl.textContent = wx.temp != null ? Math.round(wx.temp) + '°' : '';
   if (windEl) windEl.textContent = wx.wspd != null ? Math.round(wx.wspd) + ' m/s' : '';
 }
@@ -805,7 +805,7 @@ function showFtsPopup(hour) {
     const wx = getWeatherAt(dateStr, hour);
     if (wx) {
       const rain = (wx.precip ?? wx.prec ?? 0) > 0.3;
-      const cf   = wx.cloud ?? 0;
+      const cf   = wx.sunBlock ?? wx.cloud ?? 0;
       if (wxIconEl) wxIconEl.textContent = rain ? '🌧' : (typeof skyIcon === 'function' ? skyIcon(cf) : '☀️');
       if (tempEl)   tempEl.textContent = wx.temp != null ? Math.round(wx.temp) + '°' : '';
       if (windEl)   windEl.textContent = wx.wspd != null ? Math.round(wx.wspd) + ' m/s' : '';
@@ -1634,7 +1634,7 @@ function updateDateWeatherStrip() {
   const rain    = wx.precip >= 0.2
     ? `<span class="wx-rain">🌧 ${wx.precip.toFixed(1)}</span>`
     : '';
-  el.innerHTML = `<span>${skyIcon(wx.cloud)}</span>`
+  el.innerHTML = `<span>${skyIcon(wx.sunBlock ?? wx.cloud)}</span>`
     + `<span class="wx-temp-strip">${formatTemp(wx.temp)}</span>`
     + `<span class="wx-sep">·</span>`
     + `<span class="wx-wind">${arrow} ${Math.round(wx.wspd)} m/s</span>`
@@ -1657,8 +1657,14 @@ function renderDateCalendar() {
     if (i === 0)        cls += ' today';
     if (dStr === selected) cls += ' selected';
     if (summ) {
-      if (summ.avgCloud < 0.30) cls += ' sun-high';
-      else if (summ.avgCloud < 0.60) cls += ' sun-mid';
+      // Classify on the SUNNIEST daytime hour, not the average. A day with
+      // one clear hour bracketed by cloud is still a "sun day" worth showing.
+      // Averaging would demote it to overcast even though the icon (avg-
+      // based) still shows partly sunny.
+      const sb = summ.minSunBlock ?? summ.avgSunBlock ?? summ.avgCloud;
+      if (sb < 0.30)      cls += ' sun-high';
+      else if (sb < 0.65) cls += ' sun-mid';
+      else                cls += ' sun-low';
     } else {
       cls += ' no-data';
     }
@@ -2251,8 +2257,14 @@ function _dcTileHtml(dStr, todayStr_, selected) {
   if (dStr === todayStr_)  cls += ' today';
   if (dStr === selected)   cls += ' selected';
   if (hasForecast) {
-    if (summ.avgCloud < 0.30)      cls += ' sun-high';
-    else if (summ.avgCloud < 0.60) cls += ' sun-mid';
+    // Classify on the SUNNIEST daytime hour, not the average. A day with
+    // one clear hour bracketed by cloud is still a "sun day" worth showing.
+    // Averaging would demote it to overcast even though the icon (avg-
+    // based) still shows partly sunny.
+    const sb = summ.minSunBlock ?? summ.avgSunBlock ?? summ.avgCloud;
+    if (sb < 0.30)      cls += ' sun-high';
+    else if (sb < 0.65) cls += ' sun-mid';
+    else                cls += ' sun-low'; // entirely overcast — dimmed
   } else {
     cls += ' solar-only'; // beyond forecast window — solar data only
   }
@@ -2438,16 +2450,24 @@ function _syncQcPanelHeightExpanded() {
 }
 
 function selectQcDate(dateStr) {
+  const dateChanged = dateStr !== datePicker.value;
   datePicker.value = dateStr;
-  if (dateStr !== todayStr() && nowMode) {
-    nowMode = false;
-    clearInterval(nowInterval); nowInterval = null;
-    nowBtn?.classList.remove('active');
-    timeRangeWrap?.classList.remove('now-active');
-    // Default time to the earliest sun on the picked day (sunrise) — the user
-    // can scrub from there. Falls back to noon for polar-night-style days.
-    const earliestSun = _earliestSunHourFor(dateStr);
-    timeFromEl.value = earliestSun != null ? earliestSun : 12;
+  // On any date change, snap the slider to the start of the first sun
+  // window of the new day. Without this the slider sticks at the previous
+  // hour (e.g. 22:00), stranding the user past sundown.
+  if (dateChanged) {
+    if (nowMode) {
+      nowMode = false;
+      clearInterval(nowInterval); nowInterval = null;
+      nowBtn?.classList.remove('active');
+      timeRangeWrap?.classList.remove('now-active');
+    }
+    setActiveIntentBtn(null);
+    const sunWindow = _firstSunWindowStartFor(dateStr);
+    timeFromEl.value = sunWindow != null ? sunWindow : 12;
+    // Notify listeners that read timeFromEl via events (e.g. invite sheet
+    // confirmation hook). update() handles the main rendering pipeline.
+    timeFromEl.dispatchEvent(new Event('input'));
   }
   _closeQcPanel();
   document.getElementById('header-date-chip')?.focus();
@@ -2457,14 +2477,57 @@ function selectQcDate(dateStr) {
 /** Returns the sunrise hour for `dateStr`, or null if the sun never rises
  *  enough that day. Builds a temporary sun table — cheap, doesn't disturb
  *  the cached currentSunTable.
- *  Note: no MIN_H_ARC floor here — that value is set for the CURRENT date
- *  and would clamp a future date's sunrise to today's "now". Callers that
- *  set timeFromEl.value will get the right floor applied by update()'s
- *  post-rebuild auto-clamp (app.js: "If the user's selected time is now
- *  in the past…"). */
+ *  Why no MIN_H_ARC floor here: MIN_H_ARC is set for the CURRENT date — on
+ *  today it's "now". When the user picks a future date, flooring sunrise
+ *  to today's "now" stranded the slider at the current time. update()
+ *  auto-clamps timeFromEl.value to the new date's MIN_H_ARC after the sun
+ *  table is rebuilt. */
 function _earliestSunHourFor(dateStr) {
   if (typeof buildSunTable !== 'function' || typeof findSunCrossingFromTable !== 'function') return null;
   return findSunCrossingFromTable(buildSunTable(dateStr), true);
+}
+
+/** Returns the hour where the first *useful* sun window of `dateStr`
+ *  begins. Rules:
+ *    - Walk [sunrise, sunset] hour-by-hour.
+ *    - A "sun-touched" hour has sunBlock < 0.75 (matches drawTimeline's
+ *      "not overcast" cutoff — slider lands where the canvas first looks
+ *      sun-touched).
+ *    - Require a contiguous run of MIN_USEFUL_HOURS sun-touched hours
+ *      before counting it as a window — a single sunny hour wedged
+ *      between cloudy ones isn't worth surfacing.
+ *    - Return the START of that first qualifying run. Falls back to
+ *      sunrise on overcast / no-forecast days. */
+function _firstSunWindowStartFor(dateStr) {
+  if (typeof buildSunTable !== 'function' || typeof findSunCrossingFromTable !== 'function') return null;
+  const table   = buildSunTable(dateStr);
+  const sunrise = findSunCrossingFromTable(table, true);
+  if (sunrise == null) return null;
+  if (typeof getWeatherAt !== 'function') return sunrise;
+  const sunset = findSunCrossingFromTable(table, false);
+  const endH   = sunset != null ? Math.floor(sunset) : 21;
+  const MIN_USEFUL_HOURS = 2;
+  // Start at floor(sunrise) so we don't skip a half-hour-overlap with
+  // sunrise itself — at high latitudes sunrise can land at e.g. 04:20
+  // and Math.ceil() would otherwise push the scan to hour 5, missing
+  // an already-sun-touched 04:00 slot. The eventual return value is
+  // clamped to >= sunrise so the slider doesn't land before the sun
+  // is actually up.
+  let runStart = null, runLen = 0;
+  for (let h = Math.floor(sunrise); h <= endH; h++) {
+    const wx = getWeatherAt(dateStr, h);
+    const blocked = wx?.sunBlock ?? wx?.cloud;
+    const isSun = blocked != null && blocked < 0.75;
+    if (isSun) {
+      if (runStart == null) runStart = h;
+      runLen++;
+      if (runLen >= MIN_USEFUL_HOURS) return Math.max(sunrise, runStart);
+    } else {
+      runStart = null;
+      runLen = 0;
+    }
+  }
+  return sunrise;
 }
 
 let _qcPanelHeight = 0; // cached, set on load/resize/list-render

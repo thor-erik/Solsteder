@@ -139,13 +139,16 @@ function drawSunCurve(canvasEl) {
     const x2 = timeToX(nextH);
     if (x2 <= x1) continue;
 
-    // Color: warm-tinted for clear, cool/grey for clouds — alpha conveys severity
+    // Color: warm-tinted for clear, cool/grey for clouds — alpha conveys severity.
+    // Use the layer-aware sun-blocking fraction so thin cirrus doesn't paint a
+    // dark "overcast" band over what feels like a sunny hour.
+    const blocked = wx.sunBlock ?? wx.cloud ?? 0;
     let r, g, b, alpha;
-    if (wx.cloud < 0.15)      { r=255; g=220; b=150; alpha=0.00; } // clear: no fill
-    else if (wx.cloud < 0.40) { r=200; g=200; b=220; alpha=0.08; }
-    else if (wx.cloud < 0.65) { r=110; g=130; b=175; alpha=0.18; }
-    else if (wx.cloud < 0.85) { r= 80; g=105; b=155; alpha=0.28; }
-    else                      { r= 60; g= 85; b=135; alpha=0.40; }
+    if (blocked < 0.15)      { r=255; g=220; b=150; alpha=0.00; } // clear: no fill
+    else if (blocked < 0.40) { r=200; g=200; b=220; alpha=0.08; }
+    else if (blocked < 0.65) { r=110; g=130; b=175; alpha=0.18; }
+    else if (blocked < 0.85) { r= 80; g=105; b=155; alpha=0.28; }
+    else                     { r= 60; g= 85; b=135; alpha=0.40; }
 
     if (alpha > 0) {
       c.fillStyle = `rgba(${r},${g},${b},${alpha})`;

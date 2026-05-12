@@ -932,9 +932,14 @@ function draw() {
 
   // ── 1. Project + classify visible venues. Friend venues bypass the
   //      shouldShowAtZoom density filter — they're always relevant.
-  //      Audit mode bypasses the density filter for every venue.
+  //      Audit mode bypasses the density filter for every venue and
+  //      lifts the selection-focus restriction (the admin is walking
+  //      the catalog, not zooming on one venue).
   //      Reviewed + archived venues skip the pill pipeline entirely and
   //      render as simple status dots (drawn after the main loop).
+  //      Outside audit mode, when a venue is selected (detail panel
+  //      open) the surrounding pins are suppressed — the panel
+  //      commands focus and stray pins clutter the shadow context.
   let projVenues = [];
   const auditOverridePins = []; // [{ v, pt, kind: 'reviewed'|'archived' }]
   _friendVenueIds = new Set();
@@ -950,6 +955,8 @@ function draw() {
     if (!bounds.contains([v.lng, v.lat])) return;
     // Outside audit mode, archived venues are completely invisible.
     if (!isAuditMode && v.auditArchived) return;
+    // Detail-panel focus mode (non-audit only).
+    if (!isAuditMode && selectedId && v.id !== selectedId) return;
     // Inside audit mode, reviewed and archived venues short-circuit to
     // simple-dot rendering — they don't compete for pill space.
     if (isAuditMode) {
