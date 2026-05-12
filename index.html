@@ -4788,6 +4788,17 @@
      spatially separate from the state action. */
   .audit-actions > .audit-action-btn:last-child { margin-left: auto; }
 
+  /* Archive reason chooser — the audit-actions row morphs in place into
+     a list of reason chips. Allow wrap so all presets stay visible on
+     narrow cards; drop the right-edge margin so Cancel sits flush. */
+  .audit-actions.is-choosing-reason { flex-wrap: wrap; gap: 4px; }
+  .audit-actions.is-choosing-reason > .audit-action-btn:last-child { margin-left: auto; }
+  .audit-actions.is-choosing-reason .audit-state-badge {
+    color: var(--accent);
+    background: var(--accent-dim);
+    border: 1px solid var(--accent-border);
+  }
+
   /* AI training-status chip — pinned next to the state badge so the admin
      can read "polygon-decision + training-status" in one glance. Subtle
      by design; the row's primary signal is still the action button. */

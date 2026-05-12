@@ -22,9 +22,36 @@
 let auditModeActive  = false;
 let auditSubMode     = 'shadows';                   // 'shadows' | 'all'
 let _auditCache      = new Map();                   // venueId → { at, via }
-let _archiveCache    = new Set();                   // archived venueIds
+let _archiveCache    = new Map();                   // venueId → { archivedAt, reason, note? }
 let _trainedCache    = new Map();                   // venueId → { exportedAt: ISO }
 let _filterPanelOpen = false;
+
+// Archive-reason taxonomy. Each entry maps to a downstream rule for
+// scripts/fetch-venues-places.mjs (and friends):
+//
+//   not-a-venue        → permanent skip; place isn't a hospitality venue
+//   no-outdoor-seating → permanent skip; venue exists but lacks a terrace
+//   closed-permanently → permanent skip + ask Places API to confirm before
+//                        re-checking (covers reopens under same place_id)
+//   duplicate          → soft skip; admin should merge into the canonical row
+//   wrong-location     → re-run geocoding before re-fetching
+//   other              → manual review; free-text note recorded alongside
+//
+// Exported JSON shape (from Export button):
+//   { type: 'correction',
+//     timestamp: ISO,
+//     id, name,
+//     before: { auditArchived: false },
+//     after:  { auditArchived: true, reason, note? },
+//     autoState: 'audit-archive' }
+const AUDIT_ARCHIVE_REASONS = {
+  'not-a-venue':        'Not a venue',
+  'no-outdoor-seating': 'No outdoor seating',
+  'closed-permanently': 'Permanently closed',
+  'duplicate':          'Duplicate',
+  'wrong-location':     'Wrong location',
+  'other':              'Other',
+};
 
 const AUDIT_KEY         = 'solsteder_audit_v1';
 const AUDIT_ARCHIVE_KEY = 'solsteder_audit_archive_v1';
@@ -55,14 +82,20 @@ function _saveAudit() {
 }
 function _loadArchive() {
   try {
-    const raw = JSON.parse(localStorage.getItem(AUDIT_ARCHIVE_KEY) || '[]');
-    return new Set(raw.map(_coerceId));
-  } catch { return new Set(); }
+    const raw = JSON.parse(localStorage.getItem(AUDIT_ARCHIVE_KEY) || '{}');
+    // Legacy migration: prior versions stored a bare array of ids.
+    if (Array.isArray(raw)) {
+      const out = new Map();
+      for (const id of raw) out.set(_coerceId(id), { archivedAt: null, reason: 'other' });
+      return out;
+    }
+    return new Map(Object.entries(raw).map(([k, v]) => [_coerceId(k), v]));
+  } catch { return new Map(); }
 }
 function _saveArchive() {
-  try {
-    localStorage.setItem(AUDIT_ARCHIVE_KEY, JSON.stringify([..._archiveCache]));
-  } catch {}
+  const obj = {};
+  for (const [k, v] of _archiveCache) obj[String(k)] = v;
+  try { localStorage.setItem(AUDIT_ARCHIVE_KEY, JSON.stringify(obj)); } catch {}
 }
 function _loadTrained() {
   try {
@@ -82,7 +115,10 @@ function _saveTrained() {
 function applyAuditArchiveTags() {
   if (typeof VENUES === 'undefined' || !Array.isArray(VENUES)) return;
   for (const v of VENUES) {
-    v.auditArchived = _archiveCache.has(v.id);
+    const entry = _archiveCache.get(v.id);
+    v.auditArchived       = !!entry;
+    v.auditArchiveReason  = entry?.reason ?? null;
+    v.auditArchiveNote    = entry?.note   ?? null;
   }
 }
 
@@ -204,18 +240,46 @@ function unmarkVenueAudited(venueId) {
   if (typeof draw === 'function') draw();
   if (auditModeActive && typeof renderList === 'function') renderList();
 }
-function archiveVenue(venueId) {
+// Open an inline reason chooser in the venue's audit-actions row. Each
+// preset maps to a downstream rule for the discovery scripts (see
+// AUDIT_ARCHIVE_REASONS above).
+function beginArchiveVenue(venueId) {
+  if (typeof document === 'undefined') return;
+  const idArg = typeof venueId === 'number' ? venueId : `'${venueId}'`;
+  // Match by attribute selector — works for numeric and string ids.
+  const card = document.querySelector(`.venue-card[data-vid="${venueId}"]`);
+  const row  = card?.querySelector('.audit-actions');
+  if (!row) return;
+  const chips = Object.entries(AUDIT_ARCHIVE_REASONS).map(([k, label]) =>
+    `<button class="audit-chip" onclick="archiveVenue(${idArg},'${k}')">${label}</button>`
+  ).join('');
+  row.classList.add('is-choosing-reason');
+  row.innerHTML = `
+    <span class="audit-state-badge">Why archive?</span>
+    ${chips}
+    <button class="audit-action-btn audit-undo" onclick="renderList()">Cancel</button>`;
+}
+
+function archiveVenue(venueId, reason = 'other', note = null) {
   const v = (typeof VENUES !== 'undefined') ? VENUES.find(x => x.id === venueId) : null;
   if (!v) return;
-  if (!confirm(`Archive "${v.name}"?\n\nIt will be hidden from users until you un-archive. The change is local to this device until you commit data/venues.json.`)) return;
-  _archiveCache.add(venueId);
+  if (!(reason in AUDIT_ARCHIVE_REASONS)) reason = 'other';
+  if (reason === 'other' && !note) {
+    note = prompt(`Archive "${v.name}" — why?`, '');
+    if (note == null) { if (typeof renderList === 'function') renderList(); return; }
+  }
+  const entry = { archivedAt: new Date().toISOString(), reason };
+  if (note) entry.note = note.trim();
+  _archiveCache.set(venueId, entry);
   _saveArchive();
-  v.auditArchived = true;
+  v.auditArchived      = true;
+  v.auditArchiveReason = reason;
+  v.auditArchiveNote   = entry.note ?? null;
   if (typeof saveCorrection === 'function') {
     saveCorrection('correction', {
       id: venueId, name: v.name,
       before: { auditArchived: false },
-      after:  { auditArchived: true },
+      after:  { auditArchived: true, reason, note: entry.note ?? null },
       autoState: 'audit-archive',
     });
   }
@@ -225,13 +289,18 @@ function archiveVenue(venueId) {
 }
 function unarchiveVenue(venueId) {
   const v = (typeof VENUES !== 'undefined') ? VENUES.find(x => x.id === venueId) : null;
+  const prev = _archiveCache.get(venueId) ?? null;
   _archiveCache.delete(venueId);
   _saveArchive();
-  if (v) v.auditArchived = false;
+  if (v) {
+    v.auditArchived      = false;
+    v.auditArchiveReason = null;
+    v.auditArchiveNote   = null;
+  }
   if (typeof saveCorrection === 'function' && v) {
     saveCorrection('correction', {
       id: venueId, name: v.name,
-      before: { auditArchived: true },
+      before: { auditArchived: true, reason: prev?.reason ?? null, note: prev?.note ?? null },
       after:  { auditArchived: false },
       autoState: 'audit-unarchive',
     });

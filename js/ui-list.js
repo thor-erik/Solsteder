@@ -461,8 +461,12 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
     // Action order is fixed: state-badge / state-action · destructive · edit.
     // Edit-polygon always sits rightmost, isolated from the primary action.
     if (archived) {
+      const archReasonLabel = (typeof AUDIT_ARCHIVE_REASONS !== 'undefined'
+        && v.auditArchiveReason && AUDIT_ARCHIVE_REASONS[v.auditArchiveReason])
+        || 'Archived';
+      const noteHint = v.auditArchiveNote ? ` · ${v.auditArchiveNote}` : '';
       auditActionsHtml = `<div class="audit-actions" onclick="event.stopPropagation()">
-        <span class="audit-state-badge">Archived</span>
+        <span class="audit-state-badge" title="${noteHint ? v.auditArchiveNote : ''}">Archived · ${archReasonLabel}${noteHint && !v.auditArchiveNote ? '' : ''}</span>
         <button class="audit-action-btn audit-undo" onclick="unarchiveVenue(${idArg})">Restore</button>
         <button class="audit-action-btn audit-undo" onclick="enterEditMode(${idArg})">Edit</button>
       </div>`;
@@ -470,13 +474,13 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
       auditActionsHtml = `<div class="audit-actions" onclick="event.stopPropagation()">
         <span class="audit-state-badge">${viaLabel}</span>
         <button class="audit-action-btn audit-undo"    onclick="unmarkVenueAudited(${idArg})">Undo</button>
-        <button class="audit-action-btn audit-archive" onclick="archiveVenue(${idArg})" title="Hide from users">Archive</button>
+        <button class="audit-action-btn audit-archive" onclick="beginArchiveVenue(${idArg})" title="Hide from users (with a reason)">Archive</button>
         <button class="audit-action-btn audit-undo"    onclick="enterEditMode(${idArg})">Edit</button>
       </div>`;
     } else {
       auditActionsHtml = `<div class="audit-actions" onclick="event.stopPropagation()">
         <button class="audit-action-btn"               onclick="markVenueAudited(${idArg},'good')">Mark good</button>
-        <button class="audit-action-btn audit-archive" onclick="archiveVenue(${idArg})" title="Hide from users">Archive</button>
+        <button class="audit-action-btn audit-archive" onclick="beginArchiveVenue(${idArg})" title="Hide from users (with a reason)">Archive</button>
         <button class="audit-action-btn audit-undo"    onclick="enterEditMode(${idArg})">Edit</button>
       </div>`;
     }
