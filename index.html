@@ -7216,6 +7216,24 @@
       pointer-events: none;
       transition: opacity 0.22s ease;
     }
+    /* Invite sheet behaves the same way the detail panel does when the
+       calendar opens — slide back down out of view so the calendar has
+       a clean stage, then slide back up once the calendar closes (the
+       body.cal-open class is removed, the transform reverts to the
+       .open state's translateY(0)). The backdrop fades to avoid
+       stacking with the calendar's own backdrop. */
+    body.cal-open .dpinvite-sheet.open {
+      transform: translateY(100%);
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                  opacity 0.3s ease;
+    }
+    body.cal-open .dpinvite-backdrop.open {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.22s ease;
+    }
     #detail-panel.dp-fullscreen {
       height: 100svh;
       border-radius: 0;
@@ -8110,6 +8128,21 @@
     }
     .dpinvite-sheet.open {
       transform: translateX(-50%) translateY(0);
+    }
+    /* Desktop variant of the cal-open swap — same translateY(100%)
+       slide-down as mobile, but preserving the translateX(-50%)
+       horizontal centring the desktop sheet relies on. */
+    body.cal-open .dpinvite-sheet.open {
+      transform: translateX(-50%) translateY(100%);
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                  opacity 0.3s ease;
+    }
+    body.cal-open .dpinvite-backdrop.open {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.22s ease;
     }
     .dpinvite-top-chip {
       max-width: 460px;

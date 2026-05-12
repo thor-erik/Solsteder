@@ -1331,8 +1331,34 @@ async function toggleSunAlert(venueId, evt) {
 }
 
 function _showToast(msg) {
-  // Always use the simple fixed-position toast for user-triggered feedback
-  // (check-in, check-out, etc.) — not the smart notification system.
+  // Route every legacy toast through the smart notification system so
+  // ALL user-facing toasts appear in one consistent place — the top
+  // notification slot — instead of a second bottom #app-toast surface
+  // that competes with the same role.
+  //
+  // The v1 comment here said "Always use the simple fixed-position toast
+  // for user-triggered feedback (check-in, etc.) — not the smart
+  // notification system." That intentional separation has aged poorly:
+  // it splits ~10 confirmation messages (link copied, friend request
+  // sent, plan created/updated, sun-alert on/off, check-in/out, "Du er
+  // med!") off into a second visual layer for no real benefit. Users
+  // learn one location for system messages, not two.
+  //
+  // Falls back to the legacy bottom toast only during early boot before
+  // notifications.js has set _notifInitDone — at that point the priority
+  // queue silently drops anything, so the fallback keeps early
+  // confirmations visible.
+  if (typeof _notifShowImmediate === 'function' &&
+      typeof _notifInitDone !== 'undefined' && _notifInitDone) {
+    _notifShowImmediate({
+      id: '_legacy_toast_' + Date.now(),
+      priority: 1,
+      category: 'system',
+      _rawText: msg,
+      _legacyDismiss: 3500,
+    });
+    return;
+  }
   let toast = document.getElementById('app-toast');
   if (!toast) {
     toast = document.createElement('div');
