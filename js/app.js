@@ -1503,11 +1503,13 @@ function renderDateCalendar() {
     if (i === 0)        cls += ' today';
     if (dStr === selected) cls += ' selected';
     if (summ) {
-      // Same thresholds as _dcTileHtml so the strip / month / legacy grids
-      // agree on what counts as "sun-touched" vs overcast.
-      const sb = summ.avgSunBlock ?? summ.avgCloud;
+      // Classify on the SUNNIEST daytime hour, not the average. A day with
+      // one clear hour bracketed by cloud is still a "sun day" worth showing.
+      // Averaging would demote it to overcast even though the icon (avg-
+      // based) still shows partly sunny.
+      const sb = summ.minSunBlock ?? summ.avgSunBlock ?? summ.avgCloud;
       if (sb < 0.30)      cls += ' sun-high';
-      else if (sb < 0.75) cls += ' sun-mid';
+      else if (sb < 0.65) cls += ' sun-mid';
       else                cls += ' sun-low';
     } else {
       cls += ' no-data';
@@ -2101,16 +2103,14 @@ function _dcTileHtml(dStr, todayStr_, selected) {
   if (dStr === todayStr_)  cls += ' today';
   if (dStr === selected)   cls += ' selected';
   if (hasForecast) {
-    // Classify on the layer-aware sun-blocking fraction so a day of high
-    // cirrus (which lets plenty of sun through) doesn't get demoted to
-    // "cloudy". Thresholds mirror the FTS ramp + meteorological norms:
-    //   <0.30 clear-ish, <0.75 sun-behind-cloud, ≥0.75 truly overcast.
-    // The wide sun-mid band keeps days with broken cloud / partial sun
-    // out of the dim sun-low bucket.
-    const sb = summ.avgSunBlock ?? summ.avgCloud;
+    // Classify on the SUNNIEST daytime hour, not the average. A day with
+    // one clear hour bracketed by cloud is still a "sun day" worth showing.
+    // Averaging would demote it to overcast even though the icon (avg-
+    // based) still shows partly sunny.
+    const sb = summ.minSunBlock ?? summ.avgSunBlock ?? summ.avgCloud;
     if (sb < 0.30)      cls += ' sun-high';
-    else if (sb < 0.75) cls += ' sun-mid';
-    else                cls += ' sun-low'; // overcast — dimmed
+    else if (sb < 0.65) cls += ' sun-mid';
+    else                cls += ' sun-low'; // entirely overcast — dimmed
   } else {
     cls += ' solar-only'; // beyond forecast window — solar data only
   }

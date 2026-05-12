@@ -185,10 +185,13 @@ function skyLabel(cf) {
 
 /**
  * Aggregate daytime weather for a date → icon, peakTemp, sun-blocking
- * fraction (layer-aware). Scans hours 8..18 so an overcast night doesn't
- * push the average toward "cloudy" on an otherwise sunny day. Returns
- * both avgCloud (raw total) and avgSunBlock (the layer-aware metric).
- * Callers should classify on avgSunBlock; avgCloud kept for back-compat.
+ * fractions (layer-aware). Scans hours 8..18 so an overcast night doesn't
+ * push the average toward "cloudy" on an otherwise sunny day. Returns:
+ *   avgCloud     — raw total cloud average (back-compat)
+ *   avgSunBlock  — layer-weighted average (drives the icon)
+ *   minSunBlock  — sunniest hour of the day. Use this for "does this day
+ *                  contain any sun-touched window?" classification —
+ *                  averaging hides one good hour between cloudy ones.
  */
 function getDayWeatherSummary(dateStr) {
   const pad = n => String(n).padStart(2, '0');
@@ -209,10 +212,12 @@ function getDayWeatherSummary(dateStr) {
   }
   if (!slots.length) return null;
   const avgCloud    = slots.reduce((s, w) => s + (w.cloud    ?? 0), 0) / slots.length;
-  const avgSunBlock = slots.reduce((s, w) => s + (w.sunBlock ?? w.cloud ?? 0), 0) / slots.length;
+  const sbValues    = slots.map(w => w.sunBlock ?? w.cloud ?? 0);
+  const avgSunBlock = sbValues.reduce((s, v) => s + v, 0) / sbValues.length;
+  const minSunBlock = Math.min(...sbValues);
   const peakTemp    = Math.max(...slots.map(w => w.temp));
   const totPrecip   = slots.reduce((s, w) => s + w.precip, 0);
-  return { avgCloud, avgSunBlock, peakTemp, totPrecip, icon: skyIcon(avgSunBlock) };
+  return { avgCloud, avgSunBlock, minSunBlock, peakTemp, totPrecip, icon: skyIcon(avgSunBlock) };
 }
 
 // Auto-refresh every 30 min

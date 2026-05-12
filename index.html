@@ -1966,26 +1966,14 @@
   .dc-tile.today       { border-color: rgba(255,175,133,0.4); }
   /* Selected: inset accent ring + subtle glow; keep glass top-sheen for continuity (no bg fill) */
   .dc-tile.selected    { box-shadow: inset 0 0 0 2px var(--accent), inset 0 0 10px rgba(255,175,133,0.12), inset 0 1px 0 rgba(255,242,235,0.14) !important; border-color: transparent !important; }
-  /* Sunny days lean into the honey/sun palette. Border stays soft so the
-     selected-state yellow ring remains the dominant "this is the picked day"
-     signal. sun-high = strong honey fill (clear days); sun-mid = subtle honey
-     wash (partly sunny). Most days in Oslo are partly sunny, so sun-mid is
-     what users see most often — it must still feel honey-touched. */
-  .dc-tile.sun-high {
-    background: linear-gradient(135deg, rgba(255,175,133,0.50) 0%, rgba(255,175,133,0.22) 100%), rgba(70,52,38,0.40);
-    border-color: rgba(255,175,133,0.45);
-    box-shadow: var(--glass-inset), inset 0 0 14px rgba(255,175,133,0.26);
-  }
-  .dc-tile.sun-high .dc-day  { color: rgba(255,194,158,0.95); }
-  .dc-tile.sun-high .dc-temp { color: rgba(255,210,176,1.00); }
-  .dc-tile.sun-high:hover:not(.no-data) { border-color: rgba(255,175,133,0.65); }
-  .dc-tile.sun-mid {
-    background: linear-gradient(135deg, rgba(255,175,133,0.22) 0%, rgba(255,175,133,0.08) 100%), var(--glass-card-bg);
-    border-color: rgba(255,175,133,0.30);
-    box-shadow: var(--glass-inset), inset 0 0 10px rgba(255,175,133,0.10);
-  }
-  .dc-tile.sun-mid .dc-temp { color: rgba(255,210,176,0.85); }
-  .dc-tile.sun-mid:hover:not(.no-data) { border-color: rgba(255,175,133,0.45); }
+  /* Sun-touched days: tile fill stays the default glass card — only the
+     border picks up the honey accent. Keeps the selected-state inset ring
+     as the dominant "this is the picked day" signal (different geometry:
+     selected = inset 2px, sun-high/mid = outline border). */
+  .dc-tile.sun-high { border-color: var(--accent); }
+  .dc-tile.sun-mid  { border-color: rgba(255,175,133,0.45); }
+  .dc-tile.sun-high:hover:not(.no-data),
+  .dc-tile.sun-mid:hover:not(.no-data) { border-color: var(--accent); }
   /* Truly overcast days: lightly faded to dissuade tap (informational, never
      blocked). Keep opacity high enough that the tile doesn't read as broken
      or disabled — just less inviting than a sun-touched day. */
