@@ -245,6 +245,11 @@ async function loadVenues() {
   // here is simple and keeps initialisation linear.
   await loadSeatingCache();
 
+  // Apply the admin's local audit-archive list so archived venues are hidden
+  // from the rest of the app before the first render. Inside audit mode they
+  // remain visible as red dots; everywhere else they're skipped.
+  if (typeof applyAuditArchiveTags === 'function') applyAuditArchiveTags();
+
   VENUE_CLUSTER = computeVenueCluster(VENUES);
 }
 

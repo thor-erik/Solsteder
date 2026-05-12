@@ -33,7 +33,7 @@
  *             selectWallByIdx, saveFacingCache (app.js / ui.js)
  *             tooltip, buildTooltipContent (ui.js)
  *             getFriendCheckinsForVenue, getGoingFriendsForVenue (auth.js)
- *             reviewModeActive, venueReviewFlags (admin-review.js)
+ *             auditModeActive, isVenueAudited (admin-audit.js)
  */
 
 'use strict';
@@ -738,20 +738,49 @@ function _wireZoomGate() {
   });
 }
 
-// ── Review badge (admin) ──────────────────────────────────────────────────────
-// Small red exclamation badge — same visual weight as the friend badge.
-function _drawReviewBadge(x, y) {
-  const r = 7.5;
+// ── Audit pins (admin) ──────────────────────────────────────────────────────
+// Reviewed venues short-circuit to a green dot; archived to a red dot. Both
+// skip the pill/dot priority pipeline. Unreviewed venues render normally
+// — no extra badge — so the absence of a coloured dot signals "still to do."
+// Colors come from TOKENS so the canvas tracks the design system.
+const _AUDIT_DOT_RING_R = 7;
+const _AUDIT_DOT_FILL_R = 5.5;
+function _drawAuditReviewedPin(pt) {
+  const fill = (TOKENS && TOKENS.success)     || '#64FFB4';
+  const ring = (TOKENS && TOKENS.surfaceDeep) || '#0F1B2A';
   ctx.save();
-  ctx.beginPath(); ctx.arc(x, y, r + 1, 0, Math.PI * 2);
-  ctx.fillStyle = '#7f1d1d'; ctx.fill();
-  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.fillStyle = '#dc2626'; ctx.fill();
-  ctx.fillStyle = '#fff';
-  ctx.font      = 'bold 10px -apple-system, BlinkMacSystemFont, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('!', x, y + 0.5);
+  ctx.beginPath(); ctx.arc(pt.x, pt.y, _AUDIT_DOT_RING_R, 0, Math.PI * 2);
+  ctx.fillStyle = ring; ctx.fill();
+  ctx.beginPath(); ctx.arc(pt.x, pt.y, _AUDIT_DOT_FILL_R, 0, Math.PI * 2);
+  ctx.fillStyle = fill; ctx.fill();
+  ctx.strokeStyle = ring;
+  ctx.lineWidth   = 1.3;
+  ctx.lineCap     = 'round';
+  ctx.lineJoin    = 'round';
+  ctx.beginPath();
+  ctx.moveTo(pt.x - 2.4, pt.y + 0.2);
+  ctx.lineTo(pt.x - 0.6, pt.y + 2.0);
+  ctx.lineTo(pt.x + 2.4, pt.y - 1.8);
+  ctx.stroke();
+  ctx.restore();
+}
+function _drawAuditArchivedPin(pt) {
+  const fill = (TOKENS && TOKENS.error)       || '#FF6B6B';
+  const ring = (TOKENS && TOKENS.surfaceDeep) || '#0F1B2A';
+  ctx.save();
+  ctx.beginPath(); ctx.arc(pt.x, pt.y, _AUDIT_DOT_RING_R, 0, Math.PI * 2);
+  ctx.fillStyle = ring; ctx.fill();
+  ctx.beginPath(); ctx.arc(pt.x, pt.y, _AUDIT_DOT_FILL_R, 0, Math.PI * 2);
+  ctx.fillStyle = fill; ctx.fill();
+  ctx.strokeStyle = ring;
+  ctx.lineWidth   = 1.4;
+  ctx.lineCap     = 'round';
+  ctx.beginPath();
+  ctx.moveTo(pt.x - 2.0, pt.y - 2.0);
+  ctx.lineTo(pt.x + 2.0, pt.y + 2.0);
+  ctx.moveTo(pt.x + 2.0, pt.y - 2.0);
+  ctx.lineTo(pt.x - 2.0, pt.y + 2.0);
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -890,21 +919,44 @@ function draw() {
   };
 
   drawSeatingAreas();
-  if (selectedId) {
+  // Show-all sub-mode hides the shadow overlay — admin is auditing polygon
+  // *shape*, not sun behaviour. Shadows return as soon as they flip back.
+  const _hideShadows = (typeof auditModeActive !== 'undefined' && auditModeActive &&
+                        typeof auditSubMode    !== 'undefined' && auditSubMode === 'all');
+  if (selectedId && !_hideShadows) {
     const sel = VENUES.find(v => v.id === selectedId);
     if (sel) drawShadowOverlay(sel);
   }
 
-  const isReviewMode = (typeof reviewModeActive !== 'undefined' && reviewModeActive);
+  const isAuditMode = (typeof auditModeActive !== 'undefined' && auditModeActive);
 
   // ── 1. Project + classify visible venues. Friend venues bypass the
-  //      shouldShowAtZoom density filter — they're always relevant. ────────────
+  //      shouldShowAtZoom density filter — they're always relevant.
+  //      Audit mode bypasses the density filter for every venue.
+  //      Reviewed + archived venues skip the pill pipeline entirely and
+  //      render as simple status dots (drawn after the main loop).
   let projVenues = [];
+  const auditOverridePins = []; // [{ v, pt, kind: 'reviewed'|'archived' }]
   _friendVenueIds = new Set();
   VENUES.forEach(v => {
     if (!bounds.contains([v.lng, v.lat])) return;
+    // Outside audit mode, archived venues are completely invisible.
+    if (!isAuditMode && v.auditArchived) return;
+    // Inside audit mode, reviewed and archived venues short-circuit to
+    // simple-dot rendering — they don't compete for pill space.
+    if (isAuditMode) {
+      if (v.auditArchived) {
+        auditOverridePins.push({ v, pt: map.project([v.lng, v.lat]), kind: 'archived' });
+        return;
+      }
+      if (typeof isVenueAudited === 'function' && isVenueAudited(v)) {
+        auditOverridePins.push({ v, pt: map.project([v.lng, v.lat]), kind: 'reviewed' });
+        return;
+      }
+    }
     const friends = _getCheckins(v);
-    if (friends.length === 0
+    if (!isAuditMode
+        && friends.length === 0
         && typeof shouldShowAtZoom === 'function'
         && !shouldShowAtZoom(v, zoom)) return;
     let cls;
@@ -1004,10 +1056,6 @@ function draw() {
         ctx.lineWidth   = 1;
         ctx.fill(); ctx.stroke();
         ctx.restore();
-      }
-      // Review badge on context dots (admin)
-      if (isReviewMode && typeof venueReviewFlags === 'function' && venueReviewFlags(v)) {
-        _drawReviewBadge(pt.x - r - 1, pt.y - r - 1);
       }
       layout.push({
         v, pt, classResult: cls, isDot: true, extraStem: 0,
@@ -1110,9 +1158,6 @@ function draw() {
         ctx.lineWidth   = 1;
         ctx.stroke();
         ctx.restore();
-        if (isReviewMode && typeof venueReviewFlags === 'function' && venueReviewFlags(v)) {
-          _drawReviewBadge(pt.x - 5, pt.y - 5);
-        }
       }
       layout.push({
         v, pt, classResult: cls, isDot: true, extraStem: 0,
@@ -1195,11 +1240,6 @@ function draw() {
       scale:     st.scale,
     });
     ctx.restore();
-
-    // Review badge on top-left of pill (admin)
-    if (isReviewMode && typeof venueReviewFlags === 'function' && venueReviewFlags(v)) {
-      _drawReviewBadge(pillRect.x + 1, pillRect.y + 1);
-    }
 
     layout.push({
       v, pt, classResult: cls, isDot: false, extraStem: 0,
@@ -1285,6 +1325,20 @@ function draw() {
       placedPills, placedNames, viewport,
       { selected: sel, force: sel || isFriend, alpha: labelAlpha, venueId: v.id },
     );
+  }
+
+  // ── Audit override pins (reviewed + archived) ─────────────────────────────
+  // Drawn after pills/labels so they sit on top of overlapping pill bodies
+  // when a pill lands close to an already-reviewed venue.
+  if (isAuditMode && auditOverridePins.length) {
+    for (const { v, pt, kind } of auditOverridePins) {
+      if (kind === 'reviewed') _drawAuditReviewedPin(pt);
+      else                     _drawAuditArchivedPin(pt);
+      layout.push({
+        v, pt, classResult: { tier: 'context' }, isDot: true, extraStem: 0,
+        spr: { anchorX: 0, anchorY: 0, cssW: 14, cssH: 14 + COMPAT_STEM_H, pillW: 0, pillH: 0, pillR: 0 },
+      });
+    }
   }
 
   _lastLayout = layout;
