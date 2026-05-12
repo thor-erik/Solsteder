@@ -821,12 +821,11 @@
     box-shadow: var(--glass-inset), 0 4px 20px rgba(0,0,0,0.30);
   }
   #floating-search:focus-within {
-    /* Honey border + subtle inner highlight — DESIGN.md tier-1/3 focus spec */
-    border-color: rgba(245,194,94,0.55);
-    box-shadow:
-      inset 0 0 0 1px rgba(245,194,94,0.18),
-      var(--glass-inset),
-      0 4px 20px rgba(0,0,0,0.30);
+    /* Subtle cream-tinted border lift on focus — the previous honey
+       inset highlight read as a yellow box around the input. Just
+       slightly brighter than the rest border, no inset bloom. */
+    border-color: rgba(255, 244, 224, 0.42);
+    box-shadow: var(--glass-inset), 0 4px 20px rgba(0,0,0,0.30);
   }
   #search-icon {
     flex-shrink: 0;
@@ -2149,6 +2148,16 @@
   #notif-toast-wrap.show {
     opacity: 1;
     pointer-events: auto;
+  }
+  /* Block notifications from overlapping the search dropdown / focused
+     search bar. When the user is interacting with search, force opacity
+     0 + no interaction even if .show is set. Notif comes back once
+     search closes. */
+  body:has(#search-dropdown.open) #notif-toast-wrap,
+  body:has(#floating-search:focus-within) #notif-toast-wrap {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 0.18s ease;
   }
   /* Swipe-dismiss: only transition opacity. Locks transform so removing .show
      can't trigger the default upward-slide animation on top of the inner
