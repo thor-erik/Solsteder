@@ -2334,11 +2334,11 @@ function _earliestSunHourFor(dateStr) {
 }
 
 /** Returns the hour where the first sun window of `dateStr` begins: the
- *  first hour in [sunrise, sunset] where the layer-aware sun-blocking
- *  fraction is < 50%. Falls back to sunrise if the day is fully overcast
- *  or no forecast yet exists (e.g. day 8+ out). Used by selectQcDate to
- *  position the slider on "the first time the user will actually see
- *  sun" rather than just "when the sun crosses the horizon". */
+ *  first hour in [sunrise, sunset] that the FTS ramp paints as NOT
+ *  overcast (sunBlock < 0.75 — matches drawTimeline's "partly" cutoff in
+ *  ui-shared.js, so the slider always lands where the band first looks
+ *  sun-touched). Falls back to sunrise on fully-overcast days or beyond
+ *  the forecast horizon. */
 function _firstSunWindowStartFor(dateStr) {
   if (typeof buildSunTable !== 'function' || typeof findSunCrossingFromTable !== 'function') return null;
   const table   = buildSunTable(dateStr);
@@ -2350,7 +2350,7 @@ function _firstSunWindowStartFor(dateStr) {
   for (let h = Math.ceil(sunrise); h <= endH; h++) {
     const wx = getWeatherAt(dateStr, h);
     const blocked = wx?.sunBlock ?? wx?.cloud;
-    if (blocked != null && blocked < 0.50) return h;
+    if (blocked != null && blocked < 0.75) return h;
   }
   return sunrise;
 }
