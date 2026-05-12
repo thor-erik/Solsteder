@@ -4399,10 +4399,40 @@ let _geoTimer    = null;    // debounce timer
 let _geoQuery    = '';      // last query sent to geocoder
 let _geoMarker   = null;    // mapboxgl.Marker for address pins
 
+// Per-type icons for search dropdown rows. Distinct silhouettes so
+// the user can tell at-a-glance whether a row is an area, an existing
+// venue, an addable candidate, a Google result, or a recent.
 const _GEO_ICON = {
-  area:    '<svg class="sd-icon" viewBox="0 0 16 16"><path d="M2 4h4v4H2V4Zm4 4h4v4H6V8Zm4-4h4v4h-4V4Z" fill="currentColor" opacity="0.7"/><rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>',
-  venue:   '<svg class="sd-icon" viewBox="0 0 16 16"><circle cx="8" cy="6" r="2.5" fill="currentColor"/><path d="M4 13c0-2.2 1.8-4 4-4s4 1.8 4 4" stroke="currentColor" stroke-width="1.2" fill="none" stroke-linecap="round"/></svg>',
+  area:      '<svg class="sd-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 14s-5-4.5-5-8.5a5 5 0 0 1 10 0C13 9.5 8 14 8 14Z"/><circle cx="8" cy="5.5" r="2"/></svg>',
+  venue:     '<svg class="sd-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6.5h7v4.5a2 2 0 0 1-2 2h-3a2 2 0 0 1-2-2V6.5Z"/><path d="M10.5 8h1.5a1.5 1.5 0 0 1 0 3h-1.5"/><path d="M5 4.2c.4-.6.4-1.2 0-1.8M7 4.2c.4-.6.4-1.2 0-1.8M9 4.2c.4-.6.4-1.2 0-1.8"/></svg>',
+  candidate: '<svg class="sd-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="6.5"/><line x1="8" y1="5" x2="8" y2="11"/><line x1="5" y1="8" x2="11" y2="8"/></svg>',
+  google:    '<svg class="sd-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>',
+  recent:    '<svg class="sd-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/></svg>',
 };
+
+// ── Recent searches (localStorage-backed) ──────────────────────────────────────
+const _RECENTS_KEY = 'shades_search_recents';
+const _RECENTS_MAX = 5;
+function _getRecentSearches() {
+  try { return JSON.parse(localStorage.getItem(_RECENTS_KEY) || '[]'); }
+  catch { return []; }
+}
+function _addRecentSearch(entry) {
+  // entry = { kind, name, area?, id?, ... } — slim payload only
+  if (!entry?.name) return;
+  let recents = _getRecentSearches();
+  const key = (entry.name + '|' + (entry.kind || '')).toLowerCase();
+  recents = recents.filter(r =>
+    ((r.name || '') + '|' + (r.kind || '')).toLowerCase() !== key
+  );
+  recents.unshift(entry);
+  recents = recents.slice(0, _RECENTS_MAX);
+  try { localStorage.setItem(_RECENTS_KEY, JSON.stringify(recents)); } catch {}
+}
+function _clearRecentSearches() {
+  try { localStorage.removeItem(_RECENTS_KEY); } catch {}
+  _renderSearchDropdown();
+}
 
 function _isAreaType(type) {
   return ['neighborhood', 'locality', 'place', 'district', 'region'].includes(type);
@@ -4450,6 +4480,7 @@ function _removeGeoMarker() {
 }
 
 function _sdPickArea(areaName) {
+  _addRecentSearch({ kind: 'area', name: areaName });
   _searchInput.value = '';
   _syncSearchClearBtn();
   _searchDropdown.classList.remove('open');
@@ -4675,7 +4706,32 @@ function _venueSecondary(v, matchedField) {
 
 function _renderSearchDropdown(geoOnly) {
   const q = _searchInput.value.trim().toLowerCase();
-  if (!q) { _searchDropdown.classList.remove('open'); return; }
+
+  // Empty input → render recents (when present) as the empty state.
+  if (!q) {
+    const recents = _getRecentSearches();
+    if (recents.length === 0) {
+      _searchDropdown.classList.remove('open');
+      _searchSelectedIdx = -1;
+      return;
+    }
+    const head = `<div class="sd-section-header">
+      <span>${t('search_recent')}</span>
+      <button class="sd-section-action" type="button" onclick="_clearRecentSearches()">${t('search_clear_recents')}</button>
+    </div>`;
+    const rows = recents.map(r => {
+      const payload = encodeURIComponent(JSON.stringify(r));
+      return `<div class="sd-row" data-sd-row onclick="_sdPickRecent('${payload}')">
+        <span class="sd-row-icon">${_GEO_ICON.recent}</span>
+        <span class="sd-row-name">${r.name}</span>
+        ${r.area ? `<span class="sd-row-area">${r.area}</span>` : ''}
+      </div>`;
+    }).join('');
+    _searchDropdown.innerHTML = head + rows;
+    _searchDropdown.classList.add('open');
+    _searchSelectedIdx = -1;
+    return;
+  }
 
   const MAX_RESULTS = 8;
 
@@ -4743,60 +4799,87 @@ function _renderSearchDropdown(geoOnly) {
   const localVenueCount = scored.filter(r => r.kind === 'curated' || r.kind === 'candidate').length;
   const hasGoogleResults = _googleResults.length > 0;
 
-  // ── Render rows ─────────────────────────────────────────────────────────
+  // ── Render rows ─ grouped by kind with section headers ───────────────────
+  // Order: areas → venues → addable candidates → geo results → google
+  // matches. Each group gets a small uppercase section header so the
+  // user can tell at a glance whether they're picking an area, an
+  // existing venue, or about to add a new one.
 
-  let html = results.map(r => {
-    if (r.kind === 'area') {
+  const groups = { area: [], curated: [], candidate: [], geo: [], google: [] };
+  for (const r of results) (groups[r.kind] || []).push(r);
+
+  const sectionHeader = (label) =>
+    `<div class="sd-section-header"><span>${label}</span></div>`;
+
+  let html = '';
+
+  if (groups.area.length) {
+    html += sectionHeader(t('search_section_areas'));
+    html += groups.area.map(r => {
       const a = r.data;
       const aName = a.name.replace(/'/g, "\\'");
-      return `
-      <div class="sd-row" onclick="_sdPickArea('${aName}')">
+      return `<div class="sd-row" data-sd-row onclick="_sdPickArea('${aName}')">
         <span class="sd-row-icon">${_GEO_ICON.area}</span>
         <span class="sd-row-name">${a.name}</span>
-        <span class="sd-row-area">${a.count} venues</span>
+        <span class="sd-row-area">${a.count} ${t('search_venue_count')}</span>
       </div>`;
-    }
-    if (r.kind === 'curated') {
+    }).join('');
+  }
+
+  if (groups.curated.length) {
+    html += sectionHeader(t('search_section_venues'));
+    html += groups.curated.map(r => {
       const v = r.data;
       const secondary = _venueSecondary(v, r.matchedField);
-      return `
-      <div class="sd-row" onclick="_sdPick(${JSON.stringify(v.id)})">
+      return `<div class="sd-row" data-sd-row onclick="_sdPick(${JSON.stringify(v.id)})">
         <span class="sd-row-icon">${_GEO_ICON.venue}</span>
         <span class="sd-row-name">${v.name}</span>
         ${secondary ? `<span class="sd-row-area">${secondary}</span>` : ''}
       </div>`;
-    }
-    if (r.kind === 'candidate') {
+    }).join('');
+  }
+
+  if (groups.candidate.length) {
+    html += sectionHeader(t('search_section_add'));
+    html += groups.candidate.map(r => {
       const c = r.data;
       const cData = encodeURIComponent(JSON.stringify(c)).replace(/'/g, '%27');
-      return `
-      <div class="sd-row sd-row-candidate" onclick="_sdPickCandidate(decodeURIComponent('${cData}'))">
-        <span class="sd-row-icon">${_GEO_ICON.venue}</span>
+      return `<div class="sd-row sd-row-candidate" data-sd-row onclick="_sdPickCandidate(decodeURIComponent('${cData}'))">
+        <span class="sd-row-icon">${_GEO_ICON.candidate}</span>
         <span class="sd-row-name">${c.name}</span>
         <span class="sd-candidate-btn">${t('candidate_badge')}</span>
       </div>`;
-    }
-    if (r.kind === 'google') {
+    }).join('');
+  }
+
+  if (groups.geo.length) {
+    // Geo results from Mapbox aren't in our area index — show as
+    // additional areas with their full address as the secondary line.
+    if (!groups.area.length) html += sectionHeader(t('search_section_areas'));
+    html += groups.geo.map(r => {
+      const g = r.data;
+      const i = r.geoIdx;
+      const subtext = (g.full || '').split(', ').slice(1, 3).join(', ') || t('search_section_areas');
+      return `<div class="sd-row sd-row-geo" data-sd-row onclick="_sdPickGeo(${i})">
+        <span class="sd-row-icon">${_GEO_ICON.area}</span>
+        <span class="sd-row-name">${g.name}</span>
+        <span class="sd-row-area">${subtext}</span>
+      </div>`;
+    }).join('');
+  }
+
+  if (groups.google.length) {
+    html += sectionHeader(t('search_section_google'));
+    html += groups.google.map(r => {
       const g = r.data;
       const i = r.googleIdx;
-      return `
-      <div class="sd-row sd-row-candidate" onclick="_sdPickGoogle(${i})">
-        <span class="sd-row-icon">${_GEO_ICON.venue}</span>
+      return `<div class="sd-row sd-row-candidate" data-sd-row onclick="_sdPickGoogle(${i})">
+        <span class="sd-row-icon">${_GEO_ICON.google}</span>
         <span class="sd-row-name">${g.name}</span>
-        <span class="sd-row-area">${g.secondary}</span>
+        <span class="sd-row-area">${g.secondary || ''}</span>
       </div>`;
-    }
-    // geo (Mapbox area not in our index)
-    const g = r.data;
-    const i = r.geoIdx;
-    const subtext = (g.full || '').split(', ').slice(1, 3).join(', ') || 'Area';
-    return `
-    <div class="sd-row sd-row-geo" onclick="_sdPickGeo(${i})">
-      <span class="sd-row-icon">${_GEO_ICON.area}</span>
-      <span class="sd-row-name">${g.name}</span>
-      <span class="sd-row-area">${subtext}</span>
-    </div>`;
-  }).join('');
+    }).join('');
+  }
 
   // ── Footer: "Search Google" button when no local venue matches, or "Suggest venue" ──
   const noMatch = results.length === 0;
@@ -4805,11 +4888,13 @@ function _renderSearchDropdown(geoOnly) {
     const label = noMatch
       ? `${t('no_results_for')} "<strong>${rawQ}</strong>"`
       : '';
-    const btnLabel = _googleSearching ? t('searching_google') : t('search_google');
+    const btnInner = _googleSearching
+      ? `<span class="sd-spinner" aria-hidden="true"></span>${t('searching_google')}`
+      : t('search_google');
     const btnDisabled = _googleSearching ? 'disabled' : '';
     html += `<div class="sd-suggest-row">
       ${label ? `<span class="sd-suggest-label">${label}</span>` : ''}
-      <button class="sd-suggest-btn" onclick="_sdSearchGoogle()" ${btnDisabled}>${btnLabel}</button>
+      <button class="sd-suggest-btn" onclick="_sdSearchGoogle()" ${btnDisabled}>${btnInner}</button>
     </div>`;
   } else {
     const label = noMatch
@@ -4823,6 +4908,7 @@ function _renderSearchDropdown(geoOnly) {
 
   _searchDropdown.innerHTML = html;
   _searchDropdown.classList.add('open');
+  _searchSelectedIdx = -1;
 
   // Kick off candidate loading in the background if not yet loaded
   if (_candidates === null) _ensureCandidates().then(() => {
@@ -4831,6 +4917,61 @@ function _renderSearchDropdown(geoOnly) {
 
   // Kick off geocoding (debounced)
   if (!geoOnly) _debounceGeocode(q);
+}
+
+// ── Search selection: keyboard nav + recents picker ──────────────────────────
+let _searchSelectedIdx = -1;
+
+function _searchRows() {
+  return _searchDropdown.querySelectorAll('[data-sd-row]');
+}
+function _updateSearchSelection() {
+  const rows = _searchRows();
+  rows.forEach((row, i) => {
+    const sel = i === _searchSelectedIdx;
+    row.classList.toggle('sd-row-selected', sel);
+    if (sel) row.scrollIntoView({ block: 'nearest' });
+  });
+}
+
+// Wire ArrowUp/Down/Enter/Escape on the search input.
+if (_searchInput) {
+  _searchInput.addEventListener('keydown', (e) => {
+    if (!_searchDropdown.classList.contains('open')) return;
+    const rows = _searchRows();
+    if (!rows.length) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      _searchSelectedIdx = Math.min(rows.length - 1, _searchSelectedIdx + 1);
+      _updateSearchSelection();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      _searchSelectedIdx = Math.max(-1, _searchSelectedIdx - 1);
+      _updateSearchSelection();
+    } else if (e.key === 'Enter') {
+      if (_searchSelectedIdx >= 0 && _searchSelectedIdx < rows.length) {
+        e.preventDefault();
+        rows[_searchSelectedIdx].click();
+      }
+    } else if (e.key === 'Escape') {
+      _searchInput.value = '';
+      _searchInput.dispatchEvent(new Event('input'));
+      _searchInput.blur();
+    }
+  });
+}
+
+// Re-pick from the recents list. Only area + curated-venue recents are
+// stored (geo / google / candidate paths involve transient external IDs
+// that don't round-trip cleanly). The stored entry dispatches to the
+// same handler the live result would call.
+function _sdPickRecent(payloadEncoded) {
+  let entry;
+  try { entry = JSON.parse(decodeURIComponent(payloadEncoded)); }
+  catch { return; }
+  if (!entry) return;
+  if (entry.kind === 'area' && entry.name)               _sdPickArea(entry.name);
+  else if (entry.kind === 'curated' && entry.id != null) _sdPick(entry.id);
 }
 
 // ── Google Places Autocomplete search (on-demand) ────────────────────────────
@@ -4903,6 +5044,8 @@ async function _loadGooglePlace(place) {
 
 
 function _sdPick(id) {
+  const v = VENUES.find(x => x.id === id);
+  if (v) _addRecentSearch({ kind: 'curated', id: v.id, name: v.name, area: v.area || '' });
   _searchInput.value = '';
   _syncSearchClearBtn();
   _searchDropdown.classList.remove('open');

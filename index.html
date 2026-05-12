@@ -860,20 +860,22 @@
   #search-clear-btn {
     display: none;
     flex-shrink: 0;
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     border: none;
-    background: rgba(255,242,235,0.1);
+    background: rgba(255,242,235,0.10);
     border-radius: 50%;
-    color: var(--muted);
-    font-size: 14px;
+    color: rgba(255, 244, 224, 0.65);
     cursor: pointer;
     padding: 0;
     align-items: center;
     justify-content: center;
     transition: background 0.15s, color 0.15s;
+    -webkit-tap-highlight-color: transparent;
   }
-  #search-clear-btn:hover { background: rgba(255,242,235,0.18); color: var(--text); }
+  #search-clear-btn svg { display: block; }
+  #search-clear-btn:hover  { background: rgba(255,242,235,0.20); color: var(--text); }
+  #search-clear-btn:active { background: rgba(255,175,133,0.28); color: var(--accent); }
   #floating-search.has-query #search-clear-btn { display: flex; }
 
 
@@ -952,53 +954,107 @@
     border-radius: 14px;
     box-shadow: var(--glass-inset), 0 8px 32px rgba(0,0,0,0.55);
     overflow: hidden;
-    display: none;
+    /* Hide via visibility + opacity (not display:none) so the open
+       transition animates cleanly. visibility flips immediately on
+       open so the element gets click events; opacity/transform
+       animates the visual entry. */
+    visibility: hidden;
+    opacity: 0;
+    transform: translateY(-4px);
+    pointer-events: none;
+    transition: opacity 160ms ease, transform 160ms ease, visibility 0s linear 160ms;
   }
-  #search-dropdown.open { display: block; }
+  #search-dropdown.open {
+    visibility: visible;
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+    transition: opacity 160ms ease, transform 160ms ease, visibility 0s;
+  }
+
+  /* Section header: small uppercase eyebrow above each result group
+     (Areas / Venues / Add new / Google results / Recent). Lets the
+     user scan by type rather than reading every row. */
+  .sd-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px 4px;
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: rgba(255, 244, 224, 0.55);
+  }
+  .sd-section-header:first-child { padding-top: 8px; }
+  .sd-section-action {
+    background: none;
+    border: 0;
+    color: rgba(255, 175, 133, 0.85);
+    font: 600 11px 'Inter', sans-serif;
+    text-transform: none;
+    letter-spacing: 0;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: color 0.12s, background 0.12s;
+  }
+  .sd-section-action:hover { color: var(--accent); background: rgba(255,175,133,0.10); }
+
   .sd-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 14px;
+    padding: 9px 14px;
     cursor: pointer;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
     transition: background 0.1s;
-    gap: 8px;
+    gap: 10px;
   }
-  .sd-row:last-child { border-bottom: none; }
-  .sd-row:hover { background: rgba(255,175,133,0.09); }
-  .sd-row:active, .sd-row.sd-row-clicked {
-    background: rgba(255,175,133,0.22);
-    transform: scale(0.98);
+  .sd-row:hover { background: rgba(255,175,133,0.10); }
+  .sd-row:active {
+    background: rgba(255,175,133,0.20);
+    transform: scale(0.99);
     transition: background 0.05s, transform 0.05s;
+  }
+  /* Keyboard navigation selection: matches hover visual so the user
+     reads it as the next row to land on with Enter. */
+  .sd-row.sd-row-selected {
+    background: rgba(255,175,133,0.18);
   }
   .sd-row-icon {
     flex-shrink: 0;
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--muted);
+    color: rgba(255, 244, 224, 0.65);
   }
   .sd-row-icon .sd-icon {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
   }
+  /* Candidate row icon picks up the honey accent — signals "this will
+     add a new venue", not "this is already an existing venue". */
+  .sd-row-candidate .sd-row-icon { color: var(--accent); }
   .sd-row-name {
     font-size: 14px;
     color: var(--text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    flex: 1;
+    flex: 1 1 auto;
     min-width: 0;
   }
   .sd-row-area {
     font-size: 11px;
-    color: var(--muted);
+    color: rgba(255, 244, 224, 0.55);
     white-space: nowrap;
-    flex-shrink: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 0 1 auto;
+    max-width: 40%;
   }
   .sd-suggest-row {
     display: flex;
@@ -1026,6 +1082,21 @@
     flex-shrink: 0;
   }
   .sd-suggest-btn:hover { background: rgba(255,175,133,0.22); }
+  .sd-suggest-btn:disabled { opacity: 0.6; cursor: default; }
+
+  /* Inline spinner shown in the suggest button while Google fetches. */
+  .sd-spinner {
+    display: inline-block;
+    width: 11px; height: 11px;
+    border: 1.5px solid rgba(255, 175, 133, 0.30);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: sd-spin 0.7s linear infinite;
+    vertical-align: -1px;
+    margin-right: 5px;
+  }
+  @keyframes sd-spin { to { transform: rotate(360deg); } }
+
   @media (max-width: 639px) {
     #search-dropdown {
       left: 6px;
@@ -9044,7 +9115,12 @@
   <div id="floating-search" class="floating-card intro-hidden">
     <span id="search-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8.5" cy="8.5" r="5.5"/><line x1="13" y1="13" x2="18" y2="18"/></svg></span>
     <input type="text" id="venue-search" placeholder="Søk etter steder eller områder…" autocomplete="off" aria-label="Søk etter steder eller områder">
-    <button id="search-clear-btn" type="button" aria-label="Clear search">✕</button>
+    <button id="search-clear-btn" type="button" aria-label="Clear search">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <line x1="2.5" y1="2.5" x2="9.5" y2="9.5"/>
+        <line x1="9.5" y1="2.5" x2="2.5" y2="9.5"/>
+      </svg>
+    </button>
     <button id="search-profile-btn" onclick="toggleProfilePanel(event)" title="Profil" aria-label="Profil"></button>
   </div>
 
