@@ -867,10 +867,14 @@ function _acceptedActionClick(type, venueId, inviterId, inviterName) {
         : `https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lng}&travelmode=walking`;
       window.open(url, '_blank', 'noopener');
     } else if (type === 'open') {
-      // _closePostAcceptPanel now handles the detail-panel hand-off
-      // itself (reads the stashed followupVenueId), so we don't need
-      // to call selectVenue here — that would double-open the panel.
-      _closePostAcceptPanel();
+      // 'Open venue' is the explicit detail-panel entry from the
+      // post-accept carousel. Close with skipExitToExplore so the
+      // default close-→-explore-mode path doesn't fight us, then open
+      // the detail panel after the panel fades.
+      _closePostAcceptPanel({ skipExitToExplore: true });
+      setTimeout(() => {
+        if (typeof selectVenue === 'function') selectVenue(venueId, true);
+      }, 320);
     } else if (type === 'add_friend') {
       if (inviterId) _handleFriendPromptAdd(inviterId);
     } else if (type === 'share') {
@@ -882,7 +886,6 @@ function _acceptedActionClick(type, venueId, inviterId, inviterName) {
 function _closePostAcceptPanel(opts = {}) {
   const overlay = document.getElementById('post-accept-overlay');
   const panel = document.getElementById('post-accept-panel');
-  const followupVenueId = overlay && overlay._followupVenueId;
   if (panel) panel.classList.remove('open');
   if (overlay) {
     overlay.classList.remove('open');
@@ -894,19 +897,21 @@ function _closePostAcceptPanel(opts = {}) {
     window._pendingFriendPrompt = null;
     window._pendingShareNudge = null;
   }
-  // Lift the chrome-hiding body class once the panel is gone. Done
-  // unconditionally — both the detail-handoff and the 'reopen plan-
-  // preview' paths set their own takeover state immediately after.
+  // Lift the chrome-hiding body class once the panel is gone. Both the
+  // explore-mode hand-off and the 'reopen plan-preview' path set their
+  // own takeover state immediately after, so timing is safe.
   document.body.classList.remove('post-accept-active');
-  // Hand off to the detail panel after the panel fades — completes the
-  // user-requested flow: post-accept panel → detail panel → explore.
-  // opts.skipDetailOpen lets specific paths bypass the hand-off when
-  // they should just dismiss (e.g. 'Change response' which reopens
-  // the plan-preview instead).
-  if (followupVenueId != null && !opts.skipDetailOpen && typeof selectVenue === 'function') {
+  // Default close path → drop straight into explore mode. User: 'the
+  // detail panel should not even appear when clicking I'm in. It's a
+  // lot simpler than you made it.' The previous version opened the
+  // detail panel as an intermediate step, then explore-on-close — too
+  // many surfaces. Now: accept → post-accept → explore. 'Open venue'
+  // action card opts out via skipExitToExplore and selects the venue
+  // explicitly; 'Change response' opts out + reopens plan-preview.
+  if (!opts.skipExitToExplore && typeof _exitToExploreMode === 'function') {
     setTimeout(() => {
-      try { selectVenue(followupVenueId, true); } catch (e) { /* ignore */ }
-    }, 280);
+      try { _exitToExploreMode(); } catch (e) { /* ignore */ }
+    }, 320);
   }
 }
 
@@ -921,10 +926,19 @@ function _reopenInviteFromAccept() {
     _closePostAcceptPanel();
     return;
   }
-  // Cancel the auto-exit-to-explore that the accept handler queued —
-  // user wants to revise their decision, not be dropped into explore.
-  if (typeof window !== 'undefined') window._exitToExploreOnDetailClose = false;
-  _closePostAcceptPanel({ skipDetailOpen: true });
+  // Derive the invite mode from CURRENT auth state, not the stashed
+  // value. v2 used the stashed mode which could be 'invite-anon'
+  // (e.g. when the original landing was anon and the user logged in
+  // mid-flow): reopening with the stale mode showed the 'Log in to
+  // accept' button even though the user IS now logged in. Re-derive
+  // here so the reopened plan-preview matches reality.
+  const isAuthed = (typeof authCurrentUser === 'function')
+    ? !!authCurrentUser()
+    : (typeof window !== 'undefined' && !!window._currentUser);
+  inviteOpts.mode = isAuthed ? 'invite' : 'invite-anon';
+  // Skip the default close-→-explore-mode path: user is revising, not
+  // exiting.
+  _closePostAcceptPanel({ skipExitToExplore: true });
   // 320 ms gap for the post-accept panel's fade-out before the plan-
   // preview overlay slides up. Matches the other panel-swap timings
   // throughout the app.

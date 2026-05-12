@@ -871,11 +871,12 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   }
 
   // Accept handler — same backend contract; new UI shell.
-  // Sets window._exitToExploreOnDetailClose so the detail panel that
-  // closePlanPreview opens for the venue takes the user into
-  // explore-mode (expanded list, first-sun-day, camera on user) when
-  // they eventually close it. The post-accept overlay panel still
-  // mounts on top of the detail panel as usual.
+  // Flow: plan-preview slides down → post-accept panel slides up
+  // (closePlanPreview with skipDetailOpen). When post-accept closes
+  // (default path), _exitToExploreMode fires from inside
+  // _closePostAcceptPanel. Detail panel is NOT involved — user
+  // feedback: 'the detail panel should not even appear when clicking
+  // I'm in.'
   const acceptBtn = el.querySelector('#pp-accept');
   if (acceptBtn) acceptBtn.onclick = async () => {
     let arrivalIso = null;
@@ -906,7 +907,6 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     // The two surfaced simultaneously and read as duplicate yellow
     // toasts. Panel pill stays; auto-toast is gone.
     if (typeof _aTrack === 'function') _aTrack('plan_preview_accept', { venue_id: venue.id, has_invite_id: !!opts.inviteId, off_plan_time: !!arrivalIso });
-    if (typeof window !== 'undefined') window._exitToExploreOnDetailClose = true;
     // skipDetailOpen + keepCamera: the post-accept panel mounts as the
     // ONLY UI on top of the map. v1 had closePlanPreview opening the
     // detail panel via selectVenue, then post-accept overlay mounting
