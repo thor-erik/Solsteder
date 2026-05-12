@@ -944,6 +944,12 @@ function _reopenInviteFromAccept() {
     ? !!authCurrentUser()
     : (typeof window !== 'undefined' && !!window._currentUser);
   inviteOpts.mode = isAuthed ? 'invite' : 'invite-anon';
+  // Skip the splash + camera-dive choreography on reopen — the camera
+  // is already framed on the venue and the splash is long gone. v1
+  // replayed jumpTo zoom-14 → flyTo zoom-17.6 (1500 ms) every time
+  // the user tapped 'Change response', which read as a 'zoom out
+  // then dive back in' regression.
+  inviteOpts.skipCameraDive = true;
   // Skip both the default explore-mode hand-off AND the body-class
   // removal — we hand off directly to plan-preview-active. Removing
   // post-accept-active synchronously made the venue list flash for

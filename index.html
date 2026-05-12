@@ -8309,8 +8309,15 @@
     -webkit-backdrop-filter: blur(22px) saturate(180%) brightness(0.92);
     box-shadow: var(--glass-inset), 0 -16px 40px rgba(0,0,0,0.55);
     color: var(--text);
-    transform: translateY(100%);
-    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Match #panel.mobile-hidden's slide-down feel: cubic-bezier(0.32,
+       0.72, 0, 1) for a smoother ease-out, +20 px extra throw past the
+       viewport edge so the perceptible motion finishes before the
+       transition's tail. v1's Material easing (0.4, 0, 0.2, 1) decel-
+       erates slowly at the end — user saw the panel 'hang briefly'
+       just before clearing the screen. */
+    transform: translateY(calc(100% + 20px));
+    transition: transform 0.34s cubic-bezier(0.32, 0.72, 0, 1);
+    will-change: transform;
     display: flex;
     flex-direction: column;
     gap: 10px;

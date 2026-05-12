@@ -116,6 +116,12 @@ function openPlanPreview(opts) {
   // bottom). Approximated before the panel mounts.
   const TIMELAPSE_MS = 5000;
   const phase3TimeoutId = { id: null };
+  // Skip camera dive + splash work on reopen — the 'Change response'
+  // path re-enters openPlanPreview while the camera is already framed
+  // on the venue and the splash is long gone. Replaying jumpTo/flyTo
+  // (zoom 14 → 17.6 over 1500 ms) was visible as a 'zoom out then
+  // dive back in' regression.
+  const _skipDive = !!opts.skipCameraDive;
   // Defer the camera dive until the splash starts fading. User feedback:
   // 'the animation should start after the splash'. v1 ran the dive
   // immediately, which made it invisible behind the splash overlay —
@@ -167,37 +173,39 @@ function openPlanPreview(opts) {
     if (splashLoader) splashLoader.classList.add('fade-out');
     setTimeout(() => splash.classList.add('done'), 500);
   };
-  if (_splashWaitMs > 0) {
-    setTimeout(() => {
+  if (!_skipDive) {
+    if (_splashWaitMs > 0) {
+      setTimeout(() => {
+        _hideInviteSplash();
+        // Brief gap so the splash bg begins fading before the dive starts
+        // visually — reads as 'splash gone, now show me the place'.
+        setTimeout(_startDive, 200);
+      }, _splashWaitMs);
+    } else {
       _hideInviteSplash();
-      // Brief gap so the splash bg begins fading before the dive starts
-      // visually — reads as 'splash gone, now show me the place'.
-      setTimeout(_startDive, 200);
-    }, _splashWaitMs);
-  } else {
-    _hideInviteSplash();
-    _startDive();
-  }
-  // Reveal the map only after Mapbox is idle for the current view — i.e.
-  // the dive's tiles have rendered. Removing the gate sooner exposes the
-  // canvas-overlay pins drawn against a dark empty background (the bug
-  // shown in the screenshot). 1800ms fallback in case 'idle' never fires
-  // (offline / very slow connection). The class also hides #canvas-overlay
-  // (CSS rule in index.html) so pins don't leak through during the wait.
-  if (typeof map !== 'undefined' && map && typeof map.once === 'function') {
-    let revealed = false;
-    const reveal = () => {
-      if (revealed) return;
-      revealed = true;
+      _startDive();
+    }
+    // Reveal the map only after Mapbox is idle for the current view — i.e.
+    // the dive's tiles have rendered. Removing the gate sooner exposes the
+    // canvas-overlay pins drawn against a dark empty background (the bug
+    // shown in the screenshot). 1800ms fallback in case 'idle' never fires
+    // (offline / very slow connection). The class also hides #canvas-overlay
+    // (CSS rule in index.html) so pins don't leak through during the wait.
+    if (typeof map !== 'undefined' && map && typeof map.once === 'function') {
+      let revealed = false;
+      const reveal = () => {
+        if (revealed) return;
+        revealed = true;
+        document.documentElement.classList.remove('invite-loading');
+        // Splash hide is handled by the time-based SPLASH_MIN_MS branch
+        // above so the splash + camera dive are coordinated. This
+        // reveal handler only manages the pin canvas now.
+      };
+      map.once('idle', reveal);
+      setTimeout(reveal, 1800);
+    } else {
       document.documentElement.classList.remove('invite-loading');
-      // Splash hide is handled by the time-based SPLASH_MIN_MS branch
-      // above so the splash + camera dive are coordinated. This
-      // reveal handler only manages the pin canvas now.
-    };
-    map.once('idle', reveal);
-    setTimeout(reveal, 1800);
-  } else {
-    document.documentElement.classList.remove('invite-loading');
+    }
   }
 
   // _skipIntro (run earlier on the invite path) calls _syncFtsPosition,
