@@ -936,6 +936,11 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
         venueName:  venue.name,
         planId:     opts.planTokenP || null,
         plannedAt:  opts.plannedAt || null,
+        // inviteId is the plan_invites row id — passed through so the
+        // post-accept panel's 'Change response' affordance can reopen
+        // the plan-preview with the same invite context (re-trigger
+        // the accept/decline decision).
+        inviteId:   opts.inviteId || null,
         whenLabel,
         arrivalDate: arrivalDateLabel,
         sunUntil:   sunUntilForAccepted,

@@ -341,6 +341,12 @@
       linear-gradient(135deg, rgba(26,44,66,0.36) 0%, rgba(58,92,130,0.22) 100%),
       rgba(26,44,66,0.78);
   }
+  /* Primary action card keeps its solid honey accent under Lens-FX —
+     the rule above otherwise clobbered the 'one Primary per screen'
+     signal on the post-accept carousel. */
+  body[data-fx] .dpacc-action-card.dpacc-action-primary {
+    background: var(--accent);
+  }
   /* Make sure panel content sits above the panel overlay */
   body[data-fx] #panel > *,
   body[data-fx] #detail-panel > *,
@@ -8229,7 +8235,20 @@
   body.plan-preview-active #qc-wrap,
   body.plan-preview-active #fts,
   body.plan-preview-active #fts-popup,
-  body.plan-preview-active #notif-toast-wrap {
+  body.plan-preview-active #notif-toast-wrap,
+  /* Post-accept panel is also a takeover moment — same chrome-hiding
+     rules so the panel is the only thing on screen. v1 left the
+     search bar, venue list, FTS, and header chip visible behind the
+     panel, which made the moment feel busy ('here's the app + here's
+     a panel' state). */
+  body.post-accept-active #panel,
+  body.post-accept-active #detail-panel,
+  body.post-accept-active #floating-search,
+  body.post-accept-active #floating-brand,
+  body.post-accept-active #qc-wrap,
+  body.post-accept-active #fts,
+  body.post-accept-active #fts-popup,
+  body.post-accept-active #notif-toast-wrap {
     opacity: 0 !important;
     pointer-events: none !important;
     transition: opacity 0.25s ease;
@@ -8796,19 +8815,20 @@
     color: var(--muted);
     line-height: 1.25;
   }
-  /* Venue row — pin glyph + name align to the same baseline as the
-     accept screen's moment block. */
+  /* Venue row — pin glyph + name optically centred (was baseline, which
+     pushed the pin above the venue text mid-line). 6 px top gap above
+     the eyebrow gives a clean visual rhythm between the three lines
+     (eyebrow → venue → subtitle). */
   .dpacc-venue-row {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 8px;
-    margin-top: 2px;
+    margin-top: 6px;
   }
   .dpacc-venue-pin {
     flex-shrink: 0;
     color: var(--accent);
     opacity: 0.9;
-    align-self: center;
   }
   .dpacc-venue {
     font-size: 22px;

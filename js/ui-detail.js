@@ -750,7 +750,7 @@ function _openPostAcceptPanel(opts) {
         </div>
         <div class="dpacc-subtitle">${safeSubtitle}</div>
       </div>
-      <button class="g-rnd dpacc-change-rsvp" type="button" onclick="_closePostAcceptPanel()">${t('accepted_change_rsvp')}</button>
+      <button class="g-rnd dpacc-change-rsvp" type="button" onclick="_reopenInviteFromAccept()">${t('accepted_change_rsvp')}</button>
     </div>
     <div class="dpacc-action-row no-scrollbar">${cardsHtml}</div>
     ${attendeesHtml}
@@ -767,7 +767,24 @@ function _openPostAcceptPanel(opts) {
   // the detail panel for the accepted venue after the panel fades.
   // Matches the user-requested flow: accept → post-accept panel →
   // (on close) detail panel → (on close) explore mode.
-  if (opts.venueId != null) overlay._followupVenueId = opts.venueId;
+  if (opts.venueId != null) {
+    overlay._followupVenueId = opts.venueId;
+    // Stash the original invite opts so 'Change response' can reopen
+    // the plan-preview with the same context (venue, time, inviter).
+    overlay._inviteOpts = {
+      venueId:     opts.venueId,
+      plannedAt:   opts.plannedAt || null,
+      inviteId:    opts.inviteId || null,
+      inviterId:   opts.inviterId || null,
+      inviterName: opts.inviterName || null,
+      planTokenP:  opts.planId || null,
+      mode:        opts.inviteId ? 'invite' : 'invite-anon',
+    };
+  }
+  // Hide the main app chrome behind the panel — set BEFORE the overlay
+  // is appended so the transition aligns with the panel's slide-up.
+  // Removed in _closePostAcceptPanel.
+  document.body.classList.add('post-accept-active');
   document.body.appendChild(overlay);
 
   requestAnimationFrame(() => {
@@ -877,15 +894,46 @@ function _closePostAcceptPanel(opts = {}) {
     window._pendingFriendPrompt = null;
     window._pendingShareNudge = null;
   }
+  // Lift the chrome-hiding body class once the panel is gone. Done
+  // unconditionally — both the detail-handoff and the 'reopen plan-
+  // preview' paths set their own takeover state immediately after.
+  document.body.classList.remove('post-accept-active');
   // Hand off to the detail panel after the panel fades — completes the
   // user-requested flow: post-accept panel → detail panel → explore.
   // opts.skipDetailOpen lets specific paths bypass the hand-off when
-  // they should just dismiss.
+  // they should just dismiss (e.g. 'Change response' which reopens
+  // the plan-preview instead).
   if (followupVenueId != null && !opts.skipDetailOpen && typeof selectVenue === 'function') {
     setTimeout(() => {
       try { selectVenue(followupVenueId, true); } catch (e) { /* ignore */ }
     }, 280);
   }
+}
+
+/** Reopen the plan-preview from the post-accept panel — the 'Change
+ *  response' affordance. Closes the post-accept panel without the
+ *  detail-handoff, then reopens openPlanPreview with the stashed
+ *  invite opts so the user can switch their accept/decline. */
+function _reopenInviteFromAccept() {
+  const overlay = document.getElementById('post-accept-overlay');
+  const inviteOpts = overlay && overlay._inviteOpts;
+  if (!inviteOpts || typeof openPlanPreview !== 'function') {
+    _closePostAcceptPanel();
+    return;
+  }
+  // Cancel the auto-exit-to-explore that the accept handler queued —
+  // user wants to revise their decision, not be dropped into explore.
+  if (typeof window !== 'undefined') window._exitToExploreOnDetailClose = false;
+  _closePostAcceptPanel({ skipDetailOpen: true });
+  // 320 ms gap for the post-accept panel's fade-out before the plan-
+  // preview overlay slides up. Matches the other panel-swap timings
+  // throughout the app.
+  setTimeout(() => {
+    try { openPlanPreview(inviteOpts); } catch (e) { /* ignore */ }
+  }, 320);
+}
+if (typeof window !== 'undefined') {
+  window._reopenInviteFromAccept = _reopenInviteFromAccept;
 }
 
 // ── Instant check-in toggle ──────────────────────────────────────────────────
