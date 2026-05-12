@@ -424,18 +424,28 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
   const stateClass = (qual && qual.earliest && qual.earliest.start <= fromHour + 0.001)
     ? 'state-sun' : 'state-shadow';
 
-  // Review-flag chips: surfaced inline on audit cards so the admin spots
-  // problematic polygons while walking the catalog.
+  // Review-flag chips + AI-training chip share one row above the action
+  // bar. Flag chips signal "polygon may be off"; training chip signals
+  // "this venue's correction data has (or hasn't) been fed to the model."
   let reviewChips = '';
   const _auditActive = typeof auditModeActive !== 'undefined' && auditModeActive;
   const flags = (_auditActive && typeof venueReviewFlags === 'function')
     ? venueReviewFlags(v) : null;
-  if (flags) {
-    reviewChips = `<div class="review-chips">${
-      flags.map(c => `<span class="review-chip" data-flag="${c}">${
-        typeof reviewFlagLabel === 'function' ? reviewFlagLabel(c) : c
-      }</span>`).join('')
-    }</div>`;
+  const trainStatus = (_auditActive && typeof venueTrainingStatus === 'function')
+    ? venueTrainingStatus(v) : 'untrained';
+  if (flags || trainStatus !== 'untrained') {
+    const flagHtml = flags
+      ? flags.map(c => `<span class="review-chip" data-flag="${c}">${
+          typeof reviewFlagLabel === 'function' ? reviewFlagLabel(c) : c
+        }</span>`).join('')
+      : '';
+    const trainHtml = (trainStatus === 'untrained') ? '' :
+      `<span class="audit-train-chip is-${trainStatus}" title="${trainStatus === 'trained'
+        ? 'Included in a previous Export — already fed to AI training.'
+        : 'New corrections since last Export — queued for the next training pass.'}">${
+        trainStatus === 'trained' ? '✓ Trained' : '● Pending export'
+      }</span>`;
+    reviewChips = `<div class="review-chips">${flagHtml}${trainHtml}</div>`;
   }
 
   // Admin audit-mode row: per-card status badge + Mark good / Edit / Archive.

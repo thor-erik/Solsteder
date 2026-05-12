@@ -23,13 +23,17 @@ let auditModeActive  = false;
 let auditSubMode     = 'shadows';                   // 'shadows' | 'all'
 let _auditCache      = new Map();                   // venueId → { at, via }
 let _archiveCache    = new Set();                   // archived venueIds
+let _trainedCache    = new Map();                   // venueId → { exportedAt: ISO }
 let _filterPanelOpen = false;
 
-const AUDIT_KEY        = 'solsteder_audit_v1';
+const AUDIT_KEY         = 'solsteder_audit_v1';
 const AUDIT_ARCHIVE_KEY = 'solsteder_audit_archive_v1';
+const AUDIT_TRAINED_KEY = 'solsteder_audit_trained_v1';
 
 // Status filter chips (multi-select OR). Default: show non-archived.
-let auditFilters = { unreviewed: true, reviewed: true, archived: false };
+// Training filters are additive — they layer on top of the status set.
+let auditFilters     = { unreviewed: true, reviewed: true, archived: false };
+let auditTrainFilter = 'all';   // 'all' | 'trained' | 'pending'
 // Per-flag filter chips (OR within flag set). Empty = no flag restriction.
 let auditFlagFilters = new Set();   // any of admin-review.js REVIEW_FLAG_LABELS keys
 
@@ -59,6 +63,17 @@ function _saveArchive() {
   try {
     localStorage.setItem(AUDIT_ARCHIVE_KEY, JSON.stringify([..._archiveCache]));
   } catch {}
+}
+function _loadTrained() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(AUDIT_TRAINED_KEY) || '{}');
+    return new Map(Object.entries(raw).map(([k, v]) => [_coerceId(k), v]));
+  } catch { return new Map(); }
+}
+function _saveTrained() {
+  const obj = {};
+  for (const [k, v] of _trainedCache) obj[String(k)] = v;
+  try { localStorage.setItem(AUDIT_TRAINED_KEY, JSON.stringify(obj)); } catch {}
 }
 
 // ── Apply archive to VENUES on load ─────────────────────────────────────────
@@ -96,8 +111,64 @@ function auditFlaggedCount() {
   return n;
 }
 
-// Multi-select filter — venue passes if ANY active status chip matches AND,
-// when flag chips are active, it carries at least one selected flag.
+// ── Training-status tracking ────────────────────────────────────────────────
+// Each saveCorrection() writes a timestamped record to localStorage. A venue
+// is "trained" when every correction for it predates its last export to
+// JSON; "pending" when newer corrections have accumulated since the last
+// export; "untrained" when there are no corrections at all.
+//
+// The training cache is rebuilt per call (cheap — corrections log is small
+// relative to render cost). If this ever pages-out, memoize per-render.
+function _lastCorrectionAtByVenue() {
+  const out = new Map();
+  if (typeof loadCorrections !== 'function') return out;
+  for (const c of loadCorrections()) {
+    if (c.id == null) continue;
+    const t = c.timestamp;
+    if (!t) continue;
+    const prev = out.get(c.id);
+    if (!prev || prev < t) out.set(c.id, t);
+  }
+  return out;
+}
+let _lastCorrCache = null;
+let _lastCorrCacheStamp = 0;
+function _lastCorrectionAt(venueId) {
+  // Invalidate every 2s so we don't re-scan localStorage on every card render
+  // but still pick up new corrections within the session.
+  const now = Date.now();
+  if (!_lastCorrCache || (now - _lastCorrCacheStamp) > 2000) {
+    _lastCorrCache = _lastCorrectionAtByVenue();
+    _lastCorrCacheStamp = now;
+  }
+  return _lastCorrCache.get(venueId) ?? null;
+}
+function _invalidateCorrCache() { _lastCorrCache = null; }
+
+function venueTrainingStatus(v) {
+  if (!v) return 'untrained';
+  const lastT = _lastCorrectionAt(v.id);
+  if (!lastT) return 'untrained';
+  const entry = _trainedCache.get(v.id);
+  if (!entry) return 'pending';
+  return entry.exportedAt >= lastT ? 'trained' : 'pending';
+}
+function auditTrainedCount() {
+  if (typeof VENUES === 'undefined') return 0;
+  let n = 0;
+  for (const v of VENUES) if (venueTrainingStatus(v) === 'trained') n++;
+  return n;
+}
+function auditPendingTrainingCount() {
+  if (typeof VENUES === 'undefined') return 0;
+  let n = 0;
+  for (const v of VENUES) if (venueTrainingStatus(v) === 'pending') n++;
+  return n;
+}
+
+// Multi-select filter — venue passes if ANY active status chip matches AND
+// the active training filter accepts the venue AND, when flag chips are
+// active, the venue carries at least one selected flag.
 function auditMatchesFilter(v) {
   // Status chips (OR among checked):
   let statusMatch = false;
@@ -107,6 +178,9 @@ function auditMatchesFilter(v) {
   if (auditFilters.reviewed   && reviewed && !archived) statusMatch = true;
   if (auditFilters.unreviewed && !reviewed && !archived) statusMatch = true;
   if (!statusMatch) return false;
+  // Training filter (single-select):
+  if (auditTrainFilter === 'trained' && venueTrainingStatus(v) !== 'trained') return false;
+  if (auditTrainFilter === 'pending' && venueTrainingStatus(v) !== 'pending') return false;
   // Flag chips (OR among checked). Empty = no restriction.
   if (auditFlagFilters.size === 0) return true;
   if (typeof venueReviewFlags !== 'function') return true;
@@ -167,6 +241,36 @@ function unarchiveVenue(venueId) {
   if (typeof renderList === 'function') renderList();
 }
 
+// Export wrapper — invokes the existing exportCorrections() download AND
+// stamps every venue mentioned in the corrections log as trained-as-of-now,
+// so the audit can distinguish "fed to AI" from "still queued."
+function auditExport() {
+  if (typeof loadCorrections !== 'function') return;
+  const corrections = loadCorrections();
+  if (!corrections.length) {
+    alert('No corrections recorded yet — nothing to export.');
+    return;
+  }
+  const now = new Date().toISOString();
+  const ids = new Set();
+  for (const c of corrections) if (c.id != null) ids.add(c.id);
+  for (const id of ids) _trainedCache.set(id, { exportedAt: now });
+  _saveTrained();
+  _invalidateCorrCache();
+  if (typeof exportCorrections === 'function') exportCorrections();
+  _updateAuditIndicator();
+  if (typeof draw === 'function') draw();
+  if (typeof renderList === 'function') renderList();
+}
+
+function clearTrainingHistory() {
+  if (!confirm('Clear the training-export log?\n\nThis forgets which venues you have already exported. Audit + archive state are preserved.')) return;
+  _trainedCache.clear();
+  _saveTrained();
+  _updateAuditIndicator();
+  if (typeof renderList === 'function') renderList();
+}
+
 function resetAuditProgress() {
   if (!confirm('Reset polygon audit progress?\n\nThis clears the reviewed flag on every venue. Archive list is preserved.')) return;
   _auditCache.clear();
@@ -202,6 +306,13 @@ function toggleAuditFilterPanel() {
   _filterPanelOpen = !_filterPanelOpen;
   _updateAuditIndicator();
 }
+function setAuditTrainFilter(mode) {
+  if (!['all', 'trained', 'pending'].includes(mode)) return;
+  auditTrainFilter = mode;
+  _updateAuditIndicator();
+  if (typeof draw === 'function') draw();
+  if (typeof renderList === 'function') renderList();
+}
 function setAuditSubMode(mode) {
   if (mode !== 'shadows' && mode !== 'all') return;
   if (auditSubMode === mode) return;
@@ -236,22 +347,26 @@ function _updateAuditIndicator() {
   const activeStatuses = Object.values(auditFilters).filter(Boolean).length;
   const filterBtn = document.getElementById('audit-filter-toggle');
   if (filterBtn) {
-    const flagN = auditFlagFilters.size;
-    const restricted = activeStatuses < 3 || flagN > 0;
+    const flagN     = auditFlagFilters.size;
+    const trainRes  = auditTrainFilter !== 'all' ? 1 : 0;
+    const restricted = activeStatuses < 3 || flagN > 0 || trainRes > 0;
     filterBtn.classList.toggle('has-active', restricted);
     const badge = document.getElementById('audit-filter-toggle-badge');
     if (badge) {
-      const n = (3 - activeStatuses) + flagN; // "how many away from default"
+      const n = (3 - activeStatuses) + flagN + trainRes;
       badge.textContent = restricted ? n : '';
       badge.style.display = restricted ? '' : 'none';
     }
   }
 
-  // Export-button badge — count of pending corrections that can be exported.
+  // Export-button badge — count of venues whose corrections are *new since*
+  // the last export. Drops to 0 once Export is clicked; bumps back up when
+  // the admin saves another edit.
   const exportBtn   = document.getElementById('audit-export-btn');
   const exportCount = document.getElementById('audit-export-count');
   if (exportBtn && exportCount) {
-    const n = (typeof loadCorrections === 'function') ? loadCorrections().length : 0;
+    _invalidateCorrCache();
+    const n = auditPendingTrainingCount();
     exportCount.textContent = n;
     exportBtn.classList.toggle('has-active', n > 0);
   }
@@ -269,6 +384,16 @@ function _updateAuditIndicator() {
     const n = chip.querySelector('.audit-chip-count');
     if (n) n.textContent = statusCounts[key];
   }
+  // Training filter chips
+  for (const m of ['all', 'trained', 'pending']) {
+    const c = document.getElementById(`audit-train-chip-${m}`);
+    if (c) c.classList.toggle('active', auditTrainFilter === m);
+  }
+  const _tT = document.getElementById('audit-train-count-trained');
+  const _tP = document.getElementById('audit-train-count-pending');
+  if (_tT) _tT.textContent = auditTrainedCount();
+  if (_tP) _tP.textContent = auditPendingTrainingCount();
+
   // Flag chips
   if (typeof REVIEW_FLAG_LABELS !== 'undefined') {
     const flagCounts = _flagCounts();
@@ -314,10 +439,19 @@ function _renderAuditFilterPanel() {
       </div>
     </div>
     <div class="audit-filter-group">
+      <div class="audit-filter-label">AI training</div>
+      <div class="audit-chip-row">
+        <button class="audit-chip" id="audit-train-chip-all"     onclick="setAuditTrainFilter('all')">All</button>
+        <button class="audit-chip" id="audit-train-chip-trained" onclick="setAuditTrainFilter('trained')">Trained<span class="audit-chip-count" id="audit-train-count-trained">0</span></button>
+        <button class="audit-chip" id="audit-train-chip-pending" onclick="setAuditTrainFilter('pending')">Pending export<span class="audit-chip-count" id="audit-train-count-pending">0</span></button>
+      </div>
+    </div>
+    <div class="audit-filter-group">
       <div class="audit-filter-label">Flags (any matching)</div>
       <div class="audit-chip-row">${flagChips}</div>
     </div>
     <div class="audit-filter-footer">
+      <button class="audit-chip" onclick="clearTrainingHistory()" title="Forget which venues you've already exported">Clear training log</button>
       <button class="audit-chip" onclick="clearAuditFilters()">Reset filters</button>
     </div>`;
 }
@@ -329,8 +463,10 @@ function toggleAuditMode() {
   if (auditModeActive) {
     _auditCache   = _loadAudit();
     _archiveCache = _loadArchive();
+    _trainedCache = _loadTrained();
     applyAuditArchiveTags();
-    auditFilters = { unreviewed: true, reviewed: true, archived: false };
+    auditFilters    = { unreviewed: true, reviewed: true, archived: false };
+    auditTrainFilter = 'all';
     auditFlagFilters.clear();
     _filterPanelOpen = false;
     if (typeof refreshReviewFlags === 'function' && typeof datePicker !== 'undefined') {
@@ -348,3 +484,4 @@ function toggleAuditMode() {
 //     whether or not the admin opens audit mode this session). ───────────────
 _auditCache   = _loadAudit();
 _archiveCache = _loadArchive();
+_trainedCache = _loadTrained();

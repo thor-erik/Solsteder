@@ -4788,6 +4788,33 @@
      spatially separate from the state action. */
   .audit-actions > .audit-action-btn:last-child { margin-left: auto; }
 
+  /* AI training-status chip — pinned next to the state badge so the admin
+     can read "polygon-decision + training-status" in one glance. Subtle
+     by design; the row's primary signal is still the action button. */
+  .audit-train-chip {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 999px;
+    font: 600 10px 'Inter', sans-serif;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    border: 1px solid transparent;
+  }
+  .audit-train-chip.is-trained {
+    color: var(--green-500);
+    background: rgba(100,255,180,0.10);
+    border-color: rgba(100,255,180,0.30);
+  }
+  .audit-train-chip.is-pending {
+    color: var(--accent);
+    background: var(--accent-dim);
+    border-color: var(--accent-border);
+  }
+
   .review-chips {
     display: flex;
     flex-wrap: wrap;
@@ -9377,7 +9404,7 @@
         <button id="audit-mode-all"     type="button" class="audit-submode-btn" onclick="setAuditSubMode('all')"     title="Show every venue, ignore time">Show all</button>
       </div>
       <button id="audit-filter-toggle" type="button" class="audit-pill" onclick="toggleAuditFilterPanel()" title="Filter venues">Filter<span id="audit-filter-toggle-badge" class="audit-filter-toggle-badge"></span></button>
-      <button id="audit-export-btn" type="button" class="audit-pill" onclick="exportCorrections()" title="Download all corrections + audit decisions as JSON for AI training / promotion to data/venues.json">Export<span id="audit-export-count" class="audit-filter-toggle-badge"></span></button>
+      <button id="audit-export-btn" type="button" class="audit-pill" onclick="auditExport()" title="Download all corrections as JSON for AI training. Each export stamps the included venues as 'trained' so the badge knows what is fresh vs. queued.">Export<span id="audit-export-count" class="audit-filter-toggle-badge"></span></button>
       <span class="audit-indicator-divider" aria-hidden="true"></span>
       <button type="button" class="audit-pill is-ghost" onclick="resetAuditProgress()" title="Reset all reviewed flags">Reset</button>
       <button type="button" class="audit-pill is-ghost" onclick="toggleAuditMode()" title="Exit audit mode">Exit</button>
