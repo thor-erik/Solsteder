@@ -580,13 +580,12 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
         ${t('plan_preview_im_in')}
       </button>
       <div class="dprcv-cta-row">
-        <button class="s-rnd" id="pp-suggest" type="button">
-          ${editSvg}
-          ${t('invite_secondary_later')}
+        <button class="dprcv-cta-link" id="pp-suggest" type="button">
+          ${editSvg}<span>${t('invite_secondary_later')}</span>
         </button>
-        <button class="g-rnd" id="${declineId}" type="button">
-          ${xSvg}
-          ${t('plan_decline')}
+        <span class="dprcv-cta-sep" aria-hidden="true">·</span>
+        <button class="dprcv-cta-link is-decline" id="${declineId}" type="button">
+          <span>${t('plan_decline')}</span>
         </button>
       </div>`;
   } else if (isPreview) {
@@ -596,7 +595,7 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
         ${t('preview_share_onwards')}
       </button>
       <div class="dprcv-cta-row">
-        <button class="g-rnd" id="pp-close-cta" type="button">${t('close')}</button>
+        <button class="dprcv-cta-link" id="pp-close-cta" type="button"><span>${t('close')}</span></button>
       </div>`;
   }
 
@@ -627,10 +626,32 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
       </div>`;
   }
 
-  // Eyebrow above venue name
-  const eyebrow = isInvite
-    ? (opts.inviterName ? t('pp_invited_line_named', { name: inviterName }) : t('pp_invited_line_anon'))
-    : (sunEnd != null ? `${t('invite_hero_sun_until')} ${sunUntilStr}` : '');
+  // Eyebrow above venue name — sentence case (was ALL-CAPS in v1). Only
+  // shown when the top "From {inviter}" pill is absent (anon token), so
+  // we don't duplicate the same info on two surfaces. For named invites
+  // the top pill carries the attribution and the venue line gets a
+  // cleaner heading. For anon, the eyebrow is "{inviterName} inviterer
+  // deg" (or anon fallback "Du er invitert"). The named-with-pill case
+  // suppresses the eyebrow entirely.
+  const hasTopPill = !!(isInvite && opts.inviterName);
+  let eyebrow = '';
+  if (isInvite && !hasTopPill) {
+    eyebrow = opts.inviterName
+      ? t('pp_invited_line_named', { name: `<strong>${inviterName}</strong>` })
+      : t('pp_invited_line_anon');
+  } else if (!isInvite && sunEnd != null) {
+    eyebrow = `${t('invite_hero_sun_until')} ${sunUntilStr}`;
+  }
+
+  // Venue line — pin glyph + name·area (same anchor pattern as the
+  // invite sheet's moment block). Dedup area when redundant with the
+  // venue name (e.g. "Mamma Pizza Nydalen" + area "Nydalen").
+  const venuePinSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
+  const venueNameSafe = venue.name.replace(/</g, '&lt;');
+  const dispArea = (typeof _dedupeAreaForVenue === 'function')
+    ? _dedupeAreaForVenue(venue.name, venue.area)
+    : (venue.area || '');
+  const venueDisplay = dispArea ? `${venueNameSafe} · ${dispArea.replace(/</g, '&lt;')}` : venueNameSafe;
 
   // Build full DOM
   el.innerHTML = `
@@ -641,10 +662,13 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
       </div>
       <div class="dprcv-title-block">
         ${eyebrow ? `<div class="dprcv-eyebrow">${eyebrow}</div>` : ''}
-        <div class="dprcv-venue">${venue.name.replace(/</g, '&lt;')}</div>
+        <div class="dprcv-venue-row">
+          <span class="dprcv-venue-pin" aria-hidden="true">${venuePinSvg}</span>
+          <span class="dprcv-venue">${venueDisplay}</span>
+        </div>
         ${metaHtml ? `<div class="dprcv-meta">${metaHtml}</div>` : ''}
       </div>
-      <div class="card dprcv-hero">
+      <div class="dprcv-hero">
         <div class="dprcv-hero-row">
           <div class="dprcv-hero-left">
             <div class="dprcv-hero-label">${t('invite_hero_meets')}</div>

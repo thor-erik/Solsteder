@@ -649,6 +649,10 @@ function _drawName(ctx, pt, pillRect, name, secondary, placedPills, placedNames,
 }
 
 // ── Sun-hours summary line (used as secondary line at zoom ≥ 16) ──────────────
+// v1 hardcoded Norwegian ("5,3 t sol" / "45 min sol") and a comma decimal,
+// which surfaced as a mixed-locale bug when the rest of the UI ran in
+// English. v2 pulls the suffix from i18n and chooses the decimal
+// separator by language.
 function _sunHoursLine(v, dateStr) {
   if (typeof computeSunWindows !== 'function') return '';
   try {
@@ -656,9 +660,16 @@ function _sunHoursLine(v, dateStr) {
     if (!windows.length) return '';
     const total = windows.reduce((s, w) => s + (w.end - w.start), 0);
     if (total <= 0.05) return '';
-    return total >= 1
-      ? total.toFixed(1).replace('.', ',') + ' t sol'
-      : Math.round(total * 60) + ' min sol';
+    const lang = (typeof prefLang === 'function') ? prefLang() : 'no';
+    if (total >= 1) {
+      const raw = total.toFixed(1);
+      const display = (lang === 'en') ? raw : raw.replace('.', ',');
+      return (typeof t === 'function') ? t('map_pin_sun_hours', { h: display })
+                                       : (display + ' t sol');
+    }
+    const mins = String(Math.round(total * 60));
+    return (typeof t === 'function') ? t('map_pin_sun_minutes', { n: mins })
+                                     : (mins + ' min sol');
   } catch { return ''; }
 }
 

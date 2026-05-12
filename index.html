@@ -8344,7 +8344,9 @@
     margin-left: 4px;
   }
 
-  /* Title block — "{name} inviterer deg" eyebrow + venue name + meta */
+  /* Title block — sentence-case eyebrow + venue name (with pin glyph) + meta.
+     Matches the invite-sheet design language: no ALL-CAPS, pin anchors
+     the venue identity, secondary text demoted to muted weight. */
   .dprcv-title-block {
     display: flex;
     flex-direction: column;
@@ -8352,20 +8354,32 @@
     margin-top: 2px;
   }
   .dprcv-eyebrow {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.6px;
+    font-size: 13px;
+    font-weight: 500;
     color: var(--muted);
-    text-transform: uppercase;
-    line-height: 1.2;
+    line-height: 1.25;
+  }
+  .dprcv-eyebrow strong { color: var(--text); font-weight: 700; }
+  .dprcv-venue-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-top: 2px;
+  }
+  .dprcv-venue-pin {
+    flex-shrink: 0;
+    color: var(--accent);
+    opacity: 0.9;
+    align-self: center;
   }
   .dprcv-venue {
-    font-size: 26px;
+    font-size: 24px;
     font-weight: 700;
     color: var(--text);
-    line-height: 1.1;
-    margin-top: 2px;
+    line-height: 1.15;
     text-wrap: balance;
+    letter-spacing: -0.01em;
+    min-width: 0;
   }
   .dprcv-meta {
     display: flex;
@@ -8380,12 +8394,19 @@
   }
   .dprcv-meta-dot { opacity: 0.5; }
 
-  /* Hero card — uses .card surface; layout-only here. */
+  /* Hero block — used to be a nested .card surface (slate-blue panel on
+     the sheet's lighter slate, reading as a 'stuck-on' second surface).
+     v2 drops the card chrome and uses pure typography hierarchy on the
+     sheet's own background, with a hairline divider above to separate
+     it from the title block. Same design language as the invite sheet
+     redesign — one surface, typography does the work. */
   .dprcv-hero {
-    padding: 14px;
+    padding: 14px 0 4px;
     display: flex;
     flex-direction: column;
     gap: 10px;
+    border-top: 1px solid rgba(156,189,231,0.10);
+    margin-top: 4px;
   }
   .dprcv-hero-row {
     display: flex;
@@ -8397,29 +8418,32 @@
   .dprcv-hero-left,
   .dprcv-hero-right { min-width: 0; }
   .dprcv-hero-right { text-align: right; }
+  /* Sentence-case labels (was ALL-CAPS uppercase eyebrow). Same size as
+     the meta line so the labels read as part of the title-block voice,
+     not a separate stamp on top of the hero card. */
   .dprcv-hero-label {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.6px;
+    font-size: 12px;
+    font-weight: 500;
     color: var(--muted);
-    text-transform: uppercase;
-    line-height: 1.2;
+    line-height: 1.25;
   }
   .dprcv-arrival-time {
-    font-size: 28px;
-    font-weight: 700;
-    color: var(--accent);
-    line-height: 1;
-    margin-top: 4px;
-    font-variant-numeric: tabular-nums;
-  }
-  .dprcv-suntil-time {
-    font-size: 22px;
+    font-size: 32px;
     font-weight: 700;
     color: var(--text);
     line-height: 1;
     margin-top: 4px;
     font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+  .dprcv-suntil-time {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+    margin-top: 4px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
   }
   .dprcv-arrival-sub,
   .dprcv-remaining {
@@ -8496,13 +8520,52 @@
   /* Primary CTA wrapper — uses .p-pill; tall variant for the hero. */
   .dprcv-cta-primary { width: 100%; height: 52px; font-size: 15px; }
 
-  /* Secondary row — Kommer senere + Avslå (2 buttons, equal width). */
+  /* Secondary row — v1 had two equal-width .s-rnd / .g-rnd buttons that
+     read as weighty alternatives to the primary CTA. The accept moment
+     is meant to lead with a single confident "I'm in", with the
+     alternatives demoted to discoverable but not prominent options.
+     v2: text links, separated by a middot, centred under the primary
+     pill. Mirrors the same demotion we did to the invite sheet's
+     Cancel row. */
   .dprcv-cta-row {
     display: flex;
-    gap: 8px;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 6px;
   }
-  .dprcv-cta-row > .s-rnd,
-  .dprcv-cta-row > .g-rnd { flex: 1; }
+  .dprcv-cta-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    color: var(--muted);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    height: 32px;
+    padding: 0 8px;
+    border-radius: 16px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.12s ease-out, background 0.12s ease-out, transform 90ms ease-out;
+  }
+  .dprcv-cta-link svg { width: 13px; height: 13px; opacity: 0.7; }
+  .dprcv-cta-link:hover {
+    color: var(--text);
+    background: rgba(255,244,224,0.06);
+  }
+  .dprcv-cta-link:active { transform: scale(0.97); }
+  .dprcv-cta-link.is-decline:hover { color: var(--text); }
+  .dprcv-cta-sep {
+    color: var(--muted);
+    opacity: 0.4;
+    font-size: 13px;
+    user-select: none;
+    pointer-events: none;
+  }
 
   @media (min-width: 640px) {
     .dprcv-bottom {
