@@ -2287,9 +2287,9 @@ function _syncQcPanelHeightExpanded() {
 function selectQcDate(dateStr) {
   const dateChanged = dateStr !== datePicker.value;
   datePicker.value = dateStr;
-  // On any date change, snap the slider to the first sun window of the new
-  // day. Without this the slider sticks at the previous hour (e.g. 22:00),
-  // landing the user past sundown on a fresh day and reading as "no sun."
+  // On any date change, snap the slider to the start of the first sun
+  // window of the new day. Without this the slider sticks at the previous
+  // hour (e.g. 22:00), stranding the user past sundown.
   if (dateChanged) {
     if (nowMode) {
       nowMode = false;
@@ -2298,8 +2298,11 @@ function selectQcDate(dateStr) {
       timeRangeWrap?.classList.remove('now-active');
     }
     setActiveIntentBtn(null);
-    const earliestSun = _earliestSunHourFor(dateStr);
-    timeFromEl.value = earliestSun != null ? earliestSun : 12;
+    const sunWindow = _firstSunWindowStartFor(dateStr);
+    timeFromEl.value = sunWindow != null ? sunWindow : 12;
+    // Notify listeners that read timeFromEl via events (e.g. invite sheet
+    // confirmation hook). update() handles the main rendering pipeline.
+    timeFromEl.dispatchEvent(new Event('input'));
   }
   _closeQcPanel();
   document.getElementById('header-date-chip')?.focus();
@@ -2309,15 +2312,35 @@ function selectQcDate(dateStr) {
 /** Returns the sunrise hour for `dateStr`, or null if the sun never rises
  *  enough that day. Builds a temporary sun table — cheap, doesn't disturb
  *  the cached currentSunTable.
- *  Why: this function was previously flooring at MIN_H_ARC, but that bound
- *  is set for the CURRENT date — on today it's "now". When the user picks
- *  a future date, sunrise (e.g. 5:00) gets clamped to today's "now"
- *  (e.g. 17:00), stranding the slider at the current time. Return raw
- *  sunrise; update() auto-clamps timeFromEl.value to the new date's
- *  MIN_H_ARC after the sun table is rebuilt. */
+ *  Why no MIN_H_ARC floor here: MIN_H_ARC is set for the CURRENT date — on
+ *  today it's "now". When the user picks a future date, flooring sunrise
+ *  to today's "now" stranded the slider at the current time. update()
+ *  auto-clamps timeFromEl.value to the new date's MIN_H_ARC after the sun
+ *  table is rebuilt. */
 function _earliestSunHourFor(dateStr) {
   if (typeof buildSunTable !== 'function' || typeof findSunCrossingFromTable !== 'function') return null;
   return findSunCrossingFromTable(buildSunTable(dateStr), true);
+}
+
+/** Returns the hour where the first sun window of `dateStr` begins: the
+ *  first hour in [sunrise, sunset] where weather is sunny (cloud < 50%).
+ *  Falls back to sunrise if weather is fully overcast or no forecast yet
+ *  exists (e.g. day 8+ out). Used by selectQcDate to position the slider
+ *  on "the first time the user will actually see sun" rather than just
+ *  "when the sun crosses the horizon". */
+function _firstSunWindowStartFor(dateStr) {
+  if (typeof buildSunTable !== 'function' || typeof findSunCrossingFromTable !== 'function') return null;
+  const table   = buildSunTable(dateStr);
+  const sunrise = findSunCrossingFromTable(table, true);
+  if (sunrise == null) return null;
+  if (typeof getWeatherAt !== 'function') return sunrise;
+  const sunset = findSunCrossingFromTable(table, false);
+  const endH   = sunset != null ? Math.floor(sunset) : 21;
+  for (let h = Math.ceil(sunrise); h <= endH; h++) {
+    const wx = getWeatherAt(dateStr, h);
+    if (wx && wx.cloud != null && wx.cloud < 0.50) return h;
+  }
+  return sunrise;
 }
 
 let _qcPanelHeight = 0; // cached, set on load/resize/list-render

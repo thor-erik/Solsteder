@@ -341,6 +341,12 @@
       linear-gradient(135deg, rgba(26,44,66,0.36) 0%, rgba(58,92,130,0.22) 100%),
       rgba(26,44,66,0.78);
   }
+  /* Primary action card keeps its solid honey accent even under the
+     Lens-FX body treatment — the rule above otherwise clobbered the
+     'one Primary per screen' signal on the post-accept carousel. */
+  body[data-fx] .dpacc-action-card.dpacc-action-primary {
+    background: var(--accent);
+  }
   /* Make sure panel content sits above the panel overlay */
   body[data-fx] #panel > *,
   body[data-fx] #detail-panel > *,
@@ -1694,22 +1700,16 @@
     align-items: center;
     gap: 0;
     padding: 4px 5px;
-    /* Match the venue-list panel's APPARENT colour. The panel uses --glass-panel-bg
-       but its alpha layers over a dark map, so the effective tone is denser than
-       the raw token. The popup sits over the colourful FTS canvas, so we paint a
-       solid slate base (matching the panel's perceived colour) plus the same
-       diagonal sheen gradient — keeps the visual identity without depending on
-       backdrop transparency. */
-    background:
-      linear-gradient(135deg, rgba(26,44,66,0.36) 0%, rgba(58,92,130,0.22) 100%),
-      rgba(28,46,68,0.94);
+    /* Same glass recipe as the venue-list panel (.glass-panel) — same tokens
+       end-to-end so the popup reads as part of the panel system. */
+    background: var(--glass-panel-bg);
     backdrop-filter: var(--glass-blur-panel);
     -webkit-backdrop-filter: var(--glass-blur-panel);
     border: var(--glass-border);
     border-radius: 10px;
     box-shadow:
       var(--glass-inset),
-      0 6px 18px rgba(0,0,0,0.42);
+      0 6px 24px rgba(0,0,0,0.50);
     white-space: nowrap;
     pointer-events: none;
     opacity: 1;
@@ -1726,7 +1726,10 @@
     bottom: -6px; left: 50%;
     transform: translateX(-50%);
     width: 12px; height: 6px;
-    background: rgba(28,46,68,0.94);
+    /* Tail picks up the same slate-base layer of --glass-panel-bg so it reads
+       as one body with the popup. Can't directly inherit the gradient layer,
+       so we approximate with the alpha base of the token. */
+    background: rgba(26,44,66,0.42);
     clip-path: polygon(0 0, 100% 0, 50% 100%);
   }
   #fts-popup.fts-popup-below {
@@ -1963,17 +1966,26 @@
   .dc-tile.today       { border-color: rgba(255,175,133,0.4); }
   /* Selected: inset accent ring + subtle glow; keep glass top-sheen for continuity (no bg fill) */
   .dc-tile.selected    { box-shadow: inset 0 0 0 2px var(--accent), inset 0 0 10px rgba(255,175,133,0.12), inset 0 1px 0 rgba(255,242,235,0.14) !important; border-color: transparent !important; }
-  /* Sunny days lean into the honey/sun palette — warm fill that reads at thumbnail size,
-     honey-tinted day/temp text. Border stays soft so the selected-state yellow ring
-     remains the dominant signal for "this is the picked day". */
+  /* Sunny days lean into the honey/sun palette. Border stays soft so the
+     selected-state yellow ring remains the dominant "this is the picked day"
+     signal. sun-high = strong honey fill (clear days); sun-mid = subtle honey
+     wash (partly sunny). Most days in Oslo are partly sunny, so sun-mid is
+     what users see most often — it must still feel honey-touched. */
   .dc-tile.sun-high {
-    background: linear-gradient(135deg, rgba(255,175,133,0.40) 0%, rgba(255,175,133,0.18) 100%), rgba(70,52,38,0.35);
-    border-color: rgba(255,175,133,0.30);
-    box-shadow: var(--glass-inset), inset 0 0 14px rgba(255,175,133,0.22);
+    background: linear-gradient(135deg, rgba(255,175,133,0.50) 0%, rgba(255,175,133,0.22) 100%), rgba(70,52,38,0.40);
+    border-color: rgba(255,175,133,0.45);
+    box-shadow: var(--glass-inset), inset 0 0 14px rgba(255,175,133,0.26);
   }
-  .dc-tile.sun-high .dc-day  { color: rgba(255,194,158,0.85); }
-  .dc-tile.sun-high .dc-temp { color: rgba(255,210,176,0.95); }
-  .dc-tile.sun-high:hover:not(.no-data) { border-color: rgba(255,175,133,0.55); }
+  .dc-tile.sun-high .dc-day  { color: rgba(255,194,158,0.95); }
+  .dc-tile.sun-high .dc-temp { color: rgba(255,210,176,1.00); }
+  .dc-tile.sun-high:hover:not(.no-data) { border-color: rgba(255,175,133,0.65); }
+  .dc-tile.sun-mid {
+    background: linear-gradient(135deg, rgba(255,175,133,0.22) 0%, rgba(255,175,133,0.08) 100%), var(--glass-card-bg);
+    border-color: rgba(255,175,133,0.30);
+    box-shadow: var(--glass-inset), inset 0 0 10px rgba(255,175,133,0.10);
+  }
+  .dc-tile.sun-mid .dc-temp { color: rgba(255,210,176,0.85); }
+  .dc-tile.sun-mid:hover:not(.no-data) { border-color: rgba(255,175,133,0.45); }
   /* Mostly-overcast days: dimmed to dissuade tap (informational, not blocked) */
   .dc-tile.sun-low     { opacity: 0.55; }
   .dc-tile.sun-low:hover:not(.no-data) { opacity: 0.85; }
