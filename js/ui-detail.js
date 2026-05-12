@@ -753,6 +753,7 @@ function _openPostAcceptPanel(opts) {
   overlay.appendChild(toastPill);
   overlay.appendChild(panel);
   document.body.appendChild(overlay);
+  document.body.classList.add('post-accept-active');
 
   requestAnimationFrame(() => {
     overlay.classList.add('open');
@@ -852,6 +853,7 @@ function _closePostAcceptPanel() {
     overlay.classList.remove('open');
     setTimeout(() => overlay.remove(), 300);
   }
+  document.body.classList.remove('post-accept-active');
   // Belt-and-suspenders: clear any post-accept stash (so reopening the
   // detail panel later doesn't surface the legacy banners).
   if (typeof window !== 'undefined') {
