@@ -159,6 +159,20 @@ function openPlanPreview(opts) {
       if (revealed) return;
       revealed = true;
       document.documentElement.classList.remove('invite-loading');
+      // Hide the splash now that the plan-preview's tiles are ready
+      // and the overlay is about to be visible. _skipIntro({ keepSplash
+      // }) deferred the hide to this moment so the user doesn't see a
+      // slate-only flash between the splash and the plan-preview
+      // mount.
+      const splash = document.getElementById('splash');
+      const splashLogo = document.getElementById('splash-logo');
+      const splashLoader = document.getElementById('splash-loader');
+      if (splash) {
+        splash.classList.add('bg-out');
+        if (splashLogo) splashLogo.classList.add('fade-out');
+        if (splashLoader) splashLoader.classList.add('fade-out');
+        setTimeout(() => splash.classList.add('done'), 500);
+      }
     };
     map.once('idle', reveal);
     setTimeout(reveal, 1800);
@@ -866,7 +880,11 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
         plannedAt: opts.plannedAt || null,
       };
     }
-    if (typeof _showToast === 'function') _showToast(t('plan_preview_joined'));
+    // Drop the legacy "You're in!" top toast — the post-accept panel
+    // mounts its own static .dpacc-toast-pill at the top with more
+    // informative copy ("You're in — see you on Sunday at 20:40").
+    // The two surfaced simultaneously and read as duplicate yellow
+    // toasts. Panel pill stays; auto-toast is gone.
     if (typeof _aTrack === 'function') _aTrack('plan_preview_accept', { venue_id: venue.id, has_invite_id: !!opts.inviteId, off_plan_time: !!arrivalIso });
     if (typeof window !== 'undefined') window._exitToExploreOnDetailClose = true;
     closePlanPreview();
@@ -894,6 +912,12 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
         whenLabel,
         arrivalDate: arrivalDateLabel,
         sunUntil:   sunUntilForAccepted,
+        // Pass numeric sun-end + arrival hour so the post-accept panel
+        // can swap 'sun until' → 'sun went down at' when the meeting
+        // time is past the day's last sun window (same after-sundown
+        // wording fix landed on the accept screen).
+        sunEndNum:   sunEnd,
+        arrivalHour: arrivalHour,
         inviterName: opts.inviterName || null,
         inviterId:   opts.inviterId || null,
         attendees:   accepted,

@@ -659,7 +659,17 @@ function _openPostAcceptPanel(opts) {
   const showAddFriend = !!(fp && fp.inviterId && fp.inviterName);
   const showShare     = !!(sn && String(sn.venueId) === String(opts.venueId));
 
-  const subtitle = [arrivalDate, whenLabel, sunUntil ? `${t('invite_hero_sun_until').toLowerCase()} ${sunUntil}` : '']
+  // After-sundown variant: when the meeting time is at or past the
+  // day's last sun-window end, the subtitle's sun fragment switches
+  // from 'sun until {time}' (which read as 'sun ends at the meeting
+  // time' when sundown === planHour) to 'sun went down at {time}'
+  // so the time reads as a past sundown moment.
+  const isAfterSundown = (opts.sunEndNum != null && opts.arrivalHour != null
+                          && opts.sunEndNum <= opts.arrivalHour + 0.01);
+  const sunFragmentKey = isAfterSundown
+    ? 'invite_hero_sun_went_down'
+    : 'invite_hero_sun_until';
+  const subtitle = [arrivalDate, whenLabel, sunUntil ? `${t(sunFragmentKey).toLowerCase()} ${sunUntil}` : '']
     .filter(Boolean).join(' · ') || venueName;
 
   const checkSvg   = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;

@@ -5858,7 +5858,11 @@ function _introCheckReady() {
       // FTS, list panel) stays hidden during the brief wait for auth to settle.
       // The plan-preview's open() will leave it set; close() removes it.
       document.body.classList.add('plan-preview-active');
-      _skipIntro();
+      // Skip the regular intro flow but KEEP the splash visible. The
+      // splash hides later, in openPlanPreview's map.once('idle') handler,
+      // so the user doesn't see a slate flash between the splash hide
+      // and the plan-preview overlay mount.
+      _skipIntro({ keepSplash: true });
       return;
     }
 
@@ -6086,7 +6090,13 @@ function _introRevealUI(search, brand, qcWrap, panel, opts) {
  *                  map area above the panel.
  *
  *  All sub-animations use the same cubic ease-out for cinematic flow. */
-function _skipIntro(seqId) {
+function _skipIntro(seqId, opts) {
+  // Argument shape: _skipIntro() | _skipIntro(seqId) | _skipIntro(opts)
+  // (legacy callers pass only seqId; new caller from the invite path
+  // passes opts.)
+  if (seqId && typeof seqId === 'object' && opts === undefined) {
+    opts = seqId; seqId = undefined;
+  }
   if (seqId !== undefined && _introSeqId !== seqId) return;
   const localSeq = ++_introSeqId;
 
@@ -6114,11 +6124,18 @@ function _skipIntro(seqId) {
   map.stop();
   map.jumpTo({ center: _introCenter, zoom: 14.5, pitch: 15, bearing: 0 });
 
-  // Hide splash instantly (same as before)
-  splash.style.transition = 'none';
-  splash.classList.add('bg-out', 'done');
-  if (splashLogo) { splashLogo.style.transition = 'none'; splashLogo.classList.add('fade-out'); }
-  if (loader)     { loader.style.transition = 'none'; loader.classList.add('fade-out'); }
+  // Hide splash instantly (same as before) — unless opts.keepSplash
+  // is set, in which case the invite path takes over and hides the
+  // splash later (when openPlanPreview's map.once('idle') fires).
+  // Otherwise the slate body briefly shows between splash-hide and
+  // plan-preview-overlay-mount, which the user perceives as a blue
+  // loading flash.
+  if (!opts?.keepSplash) {
+    splash.style.transition = 'none';
+    splash.classList.add('bg-out', 'done');
+    if (splashLogo) { splashLogo.style.transition = 'none'; splashLogo.classList.add('fade-out'); }
+    if (loader)     { loader.style.transition = 'none'; loader.classList.add('fade-out'); }
+  }
 
   // Cubic ease-out — slows toward the end, the cinematic feel users expect
   // from settling shots in films / map apps.
