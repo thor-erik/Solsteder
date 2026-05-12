@@ -1919,14 +1919,19 @@ function _isNowSend(d, h) {
  *  When _isNowSend(d, h) the message swaps to the "I'm at X now — come join"
  *  variant so the receiver reads a present-tense ping, not a future invite. */
 function _composeInviteShareText(v, d, h, link) {
+  // Feed venue + area into the {venue} placeholder so the recipient sees
+  // WHERE the place is at a glance (e.g. "Lorry · Bislett"). The middot
+  // works across languages without needing a translated preposition; the
+  // existing i18n templates stay untouched.
   const venueName = v?.name || '';
+  const venueLabel = v?.area ? `${venueName} · ${v.area}` : venueName;
   const isNow = _isNowSend(d, h);
   const when = isNow ? '' : _inviteWhenLabel(d, h);
   const { context, icon } = _composeShareContext(v, d, h);
   let key;
   if (isNow) key = link ? 'share_invite_text_now_w_link' : 'share_invite_text_now';
   else       key = link ? 'share_invite_text_w_link'      : 'share_invite_text';
-  return t(key, { venue: venueName, when, context, icon, link: link || '' });
+  return t(key, { venue: venueLabel, when, context, icon, link: link || '' });
 }
 
 /** Share an invite link via native share or clipboard.

@@ -1698,7 +1698,60 @@ async function respondToPlanInvite(inviteId, status, arrivalTime) {
   if (error && /arrival_time/.test(error.message || '')) {
     await _supabase.from('plan_invites').update({ status }).eq('id', inviteId);
   }
+  if (status === 'accepted') {
+    await _autoFriendInviter(inviteId);
+  }
   await loadPlans();
+}
+
+/** Auto-friend on accept: when a user accepts a plan invite, also create
+ *  (or upgrade-to-accepted) the friendship between them and the plan's
+ *  creator. Removes the previous two-step flow where the receiver had
+ *  to separately tap a friend-add banner in the detail panel.
+ *
+ *  Idempotent + symmetric-aware: checks both row directions before
+ *  inserting, so we never produce duplicate friendship rows. Pending
+ *  rows in either direction get flipped to 'accepted'.
+ */
+async function _autoFriendInviter(inviteId) {
+  const me = _currentUser;
+  if (!me) return;
+  let inviterId = null;
+  try {
+    const { data: inv } = await _supabase
+      .from('plan_invites')
+      .select('plan:plans!plan_invites_plan_id_fkey(created_by)')
+      .eq('id', inviteId)
+      .maybeSingle();
+    inviterId = inv?.plan?.created_by || null;
+  } catch (e) { return; }
+  if (!inviterId || inviterId === me.id) return;
+
+  try {
+    const { data: existing } = await _supabase
+      .from('friendships')
+      .select('id, status, user_id, friend_id')
+      .or(`and(user_id.eq.${inviterId},friend_id.eq.${me.id}),and(user_id.eq.${me.id},friend_id.eq.${inviterId})`);
+    if (existing && existing.length > 0) {
+      for (const row of existing) {
+        if (row.status !== 'accepted') {
+          await _supabase.from('friendships').update({ status: 'accepted' }).eq('id', row.id);
+        }
+      }
+    } else {
+      await _supabase.from('friendships').insert({
+        user_id: inviterId,
+        friend_id: me.id,
+        status: 'accepted',
+      });
+    }
+  } catch (e) { return; }
+
+  // Clear the now-redundant friend-add banner — the friendship is done.
+  if (typeof window !== 'undefined') window._pendingFriendPrompt = null;
+  const banner = (typeof document !== 'undefined') ? document.getElementById('friend-prompt-banner') : null;
+  if (banner) banner.remove();
+  if (typeof loadFriends === 'function') await loadFriends();
 }
 
 function getPlansForVenue(venueId) {
