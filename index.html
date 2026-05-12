@@ -1694,7 +1694,15 @@
     align-items: center;
     gap: 0;
     padding: 4px 5px;
-    background: var(--glass-panel-bg);
+    /* Match the venue-list panel's APPARENT colour. The panel uses --glass-panel-bg
+       but its alpha layers over a dark map, so the effective tone is denser than
+       the raw token. The popup sits over the colourful FTS canvas, so we paint a
+       solid slate base (matching the panel's perceived colour) plus the same
+       diagonal sheen gradient — keeps the visual identity without depending on
+       backdrop transparency. */
+    background:
+      linear-gradient(135deg, rgba(26,44,66,0.36) 0%, rgba(58,92,130,0.22) 100%),
+      rgba(28,46,68,0.94);
     backdrop-filter: var(--glass-blur-panel);
     -webkit-backdrop-filter: var(--glass-blur-panel);
     border: var(--glass-border);
@@ -1718,7 +1726,7 @@
     bottom: -6px; left: 50%;
     transform: translateX(-50%);
     width: 12px; height: 6px;
-    background: rgba(26,44,66,0.55);
+    background: rgba(28,46,68,0.94);
     clip-path: polygon(0 0, 100% 0, 50% 100%);
   }
   #fts-popup.fts-popup-below {
@@ -1955,14 +1963,17 @@
   .dc-tile.today       { border-color: rgba(255,175,133,0.4); }
   /* Selected: inset accent ring + subtle glow; keep glass top-sheen for continuity (no bg fill) */
   .dc-tile.selected    { box-shadow: inset 0 0 0 2px var(--accent), inset 0 0 10px rgba(255,175,133,0.12), inset 0 1px 0 rgba(255,242,235,0.14) !important; border-color: transparent !important; }
-  /* Sunny days lean into the honey/sun palette — warmer border, honey-tinted glass, accented temp */
+  /* Sunny days lean into the honey/sun palette — warm fill that reads at thumbnail size,
+     honey-tinted day/temp text. Border stays soft so the selected-state yellow ring
+     remains the dominant signal for "this is the picked day". */
   .dc-tile.sun-high {
-    background: linear-gradient(135deg, rgba(255,175,133,0.16) 0%, rgba(255,175,133,0.06) 100%), var(--glass-card-bg);
-    border-color: rgba(255,175,133,0.55);
-    box-shadow: var(--glass-inset), inset 0 0 12px rgba(255,175,133,0.10);
+    background: linear-gradient(135deg, rgba(255,175,133,0.40) 0%, rgba(255,175,133,0.18) 100%), rgba(70,52,38,0.35);
+    border-color: rgba(255,175,133,0.30);
+    box-shadow: var(--glass-inset), inset 0 0 14px rgba(255,175,133,0.22);
   }
-  .dc-tile.sun-high .dc-temp { color: rgba(255,175,133,0.9); }
-  .dc-tile.sun-high:hover:not(.no-data) { border-color: rgba(255,175,133,0.75); }
+  .dc-tile.sun-high .dc-day  { color: rgba(255,194,158,0.85); }
+  .dc-tile.sun-high .dc-temp { color: rgba(255,210,176,0.95); }
+  .dc-tile.sun-high:hover:not(.no-data) { border-color: rgba(255,175,133,0.55); }
   /* Mostly-overcast days: dimmed to dissuade tap (informational, not blocked) */
   .dc-tile.sun-low     { opacity: 0.55; }
   .dc-tile.sun-low:hover:not(.no-data) { opacity: 0.85; }

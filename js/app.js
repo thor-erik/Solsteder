@@ -2308,13 +2308,16 @@ function selectQcDate(dateStr) {
 
 /** Returns the sunrise hour for `dateStr`, or null if the sun never rises
  *  enough that day. Builds a temporary sun table — cheap, doesn't disturb
- *  the cached currentSunTable. */
+ *  the cached currentSunTable.
+ *  Why: this function was previously flooring at MIN_H_ARC, but that bound
+ *  is set for the CURRENT date — on today it's "now". When the user picks
+ *  a future date, sunrise (e.g. 5:00) gets clamped to today's "now"
+ *  (e.g. 17:00), stranding the slider at the current time. Return raw
+ *  sunrise; update() auto-clamps timeFromEl.value to the new date's
+ *  MIN_H_ARC after the sun table is rebuilt. */
 function _earliestSunHourFor(dateStr) {
   if (typeof buildSunTable !== 'function' || typeof findSunCrossingFromTable !== 'function') return null;
-  const table = buildSunTable(dateStr);
-  const sunrise = findSunCrossingFromTable(table, true);
-  if (sunrise == null) return null;
-  return Math.max(MIN_H_ARC, sunrise);
+  return findSunCrossingFromTable(buildSunTable(dateStr), true);
 }
 
 let _qcPanelHeight = 0; // cached, set on load/resize/list-render
