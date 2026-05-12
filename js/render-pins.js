@@ -776,15 +776,59 @@ function _drawAuditPendingBadge(x, y) {
   ctx.restore();
 }
 
+// Reviewed-state replacement pin — venue's polygon has been audited.
+// Permanently demoted to a green dot so the map clears as the audit
+// progresses; the pill/dot priority pipeline is skipped entirely.
+function _drawAuditReviewedPin(pt) {
+  ctx.save();
+  ctx.beginPath(); ctx.arc(pt.x, pt.y, 7, 0, Math.PI * 2);
+  ctx.fillStyle   = '#064e3b';
+  ctx.fill();
+  ctx.beginPath(); ctx.arc(pt.x, pt.y, 5.5, 0, Math.PI * 2);
+  ctx.fillStyle   = '#10b981';
+  ctx.fill();
+  ctx.strokeStyle = '#ecfdf5';
+  ctx.lineWidth   = 1.2;
+  ctx.lineCap     = 'round';
+  ctx.lineJoin    = 'round';
+  ctx.beginPath();
+  ctx.moveTo(pt.x - 2.5, pt.y + 0.2);
+  ctx.lineTo(pt.x - 0.7, pt.y + 2.2);
+  ctx.lineTo(pt.x + 2.6, pt.y - 2.0);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// Archived-state replacement pin — venue removed from the live app.
+// Shown only inside audit mode so the admin can still see + un-archive.
+function _drawAuditArchivedPin(pt) {
+  ctx.save();
+  ctx.beginPath(); ctx.arc(pt.x, pt.y, 7, 0, Math.PI * 2);
+  ctx.fillStyle   = '#7f1d1d';
+  ctx.fill();
+  ctx.beginPath(); ctx.arc(pt.x, pt.y, 5.5, 0, Math.PI * 2);
+  ctx.fillStyle   = '#ef4444';
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth   = 1.4;
+  ctx.lineCap     = 'round';
+  ctx.beginPath();
+  ctx.moveTo(pt.x - 2.2, pt.y - 2.2);
+  ctx.lineTo(pt.x + 2.2, pt.y + 2.2);
+  ctx.moveTo(pt.x + 2.2, pt.y - 2.2);
+  ctx.lineTo(pt.x - 2.2, pt.y + 2.2);
+  ctx.stroke();
+  ctx.restore();
+}
+
 // Single dispatcher — used by every pin draw path so the audit overlay logic
-// lives in one place. No-op outside audit mode.
+// lives in one place. No-op outside audit mode. Reviewed venues never reach
+// the pill/dot pipeline in audit mode (they short-circuit to a green dot),
+// so this is only ever called for unreviewed venues — the badge is always
+// the amber "pending" marker.
 function _drawAuditStateBadge(v, x, y) {
   if (typeof auditModeActive === 'undefined' || !auditModeActive) return;
-  if (typeof isVenueAudited === 'function' && isVenueAudited(v)) {
-    _drawAuditBadge(x, y);
-  } else {
-    _drawAuditPendingBadge(x, y);
-  }
+  _drawAuditPendingBadge(x, y);
 }
 
 // ── Layout state (consumed by hit testing + external code) ────────────────────
@@ -922,21 +966,43 @@ function draw() {
   };
 
   drawSeatingAreas();
-  if (selectedId) {
+  // Show-all sub-mode hides the shadow overlay — admin is auditing polygon
+  // *shape*, not sun behaviour. Shadows return as soon as they flip back.
+  const _hideShadows = (typeof auditModeActive !== 'undefined' && auditModeActive &&
+                        typeof auditSubMode    !== 'undefined' && auditSubMode === 'all');
+  if (selectedId && !_hideShadows) {
     const sel = VENUES.find(v => v.id === selectedId);
     if (sel) drawShadowOverlay(sel);
   }
 
   const isReviewMode = (typeof reviewModeActive !== 'undefined' && reviewModeActive);
   const isAuditMode  = (typeof auditModeActive  !== 'undefined' && auditModeActive);
+  const isAuditAll   = isAuditMode && typeof auditSubMode !== 'undefined' && auditSubMode === 'all';
 
   // ── 1. Project + classify visible venues. Friend venues bypass the
   //      shouldShowAtZoom density filter — they're always relevant.
   //      Audit mode bypasses the density filter for every venue.
+  //      Reviewed + archived venues skip the pill pipeline entirely and
+  //      render as simple status dots (drawn after the main loop).
   let projVenues = [];
+  const auditOverridePins = []; // [{ v, pt, kind: 'reviewed'|'archived' }]
   _friendVenueIds = new Set();
   VENUES.forEach(v => {
     if (!bounds.contains([v.lng, v.lat])) return;
+    // Outside audit mode, archived venues are completely invisible.
+    if (!isAuditMode && v.auditArchived) return;
+    // Inside audit mode, reviewed and archived venues short-circuit to
+    // simple-dot rendering — they don't compete for pill space.
+    if (isAuditMode) {
+      if (v.auditArchived) {
+        auditOverridePins.push({ v, pt: map.project([v.lng, v.lat]), kind: 'archived' });
+        return;
+      }
+      if (typeof isVenueAudited === 'function' && isVenueAudited(v)) {
+        auditOverridePins.push({ v, pt: map.project([v.lng, v.lat]), kind: 'reviewed' });
+        return;
+      }
+    }
     const friends = _getCheckins(v);
     if (!isAuditMode
         && friends.length === 0
@@ -944,6 +1010,10 @@ function draw() {
         && !shouldShowAtZoom(v, zoom)) return;
     let cls;
     try { cls = classifyPin(v, dateStr, currentHour); } catch { cls = { tier: 'context' }; }
+    // Show-all sub-mode flattens every unreviewed venue to a context dot —
+    // ignore sun-tier classification, opening hours, all of it. The point
+    // is "see the polygon," not "judge the venue."
+    if (isAuditAll) cls = { tier: 'context' };
     if (friends.length > 0) _friendVenueIds.add(v.id);
     projVenues.push({ v, cls, pt: map.project([v.lng, v.lat]), friends });
   });
@@ -1325,6 +1395,20 @@ function draw() {
       placedPills, placedNames, viewport,
       { selected: sel, force: sel || isFriend, alpha: labelAlpha, venueId: v.id },
     );
+  }
+
+  // ── Audit override pins (reviewed + archived) ─────────────────────────────
+  // Drawn after pills/labels so they sit on top of overlapping pill bodies
+  // when a pill lands close to an already-reviewed venue.
+  if (isAuditMode && auditOverridePins.length) {
+    for (const { v, pt, kind } of auditOverridePins) {
+      if (kind === 'reviewed') _drawAuditReviewedPin(pt);
+      else                     _drawAuditArchivedPin(pt);
+      layout.push({
+        v, pt, classResult: { tier: 'context' }, isDot: true, extraStem: 0,
+        spr: { anchorX: 0, anchorY: 0, cssW: 14, cssH: 14 + COMPAT_STEM_H, pillW: 0, pillH: 0, pillR: 0 },
+      });
+    }
   }
 
   _lastLayout = layout;

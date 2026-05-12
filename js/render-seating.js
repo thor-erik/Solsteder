@@ -28,7 +28,8 @@ function shouldShowAtZoom(v, zoom) {
 function drawSeatingAreas() {
   if (!currentSun) return;
   const zoom = map.getZoom();
-  const _audit = (typeof auditModeActive !== 'undefined' && auditModeActive);
+  const _audit    = (typeof auditModeActive !== 'undefined' && auditModeActive);
+  const _auditAll = _audit && typeof auditSubMode !== 'undefined' && auditSubMode === 'all';
   // Audit mode unlocks the terrace overlay one zoom step earlier so admins
   // can scan groups of polygons without leaning on max zoom for every venue.
   if (zoom < (_audit ? 15.5 : 16.5)) return;
@@ -39,11 +40,17 @@ function drawSeatingAreas() {
 
   VENUES.forEach(v => {
     if (!bounds.contains([v.lng, v.lat])) return;
+    // Archived venues hide everywhere except audit mode.
+    if (v.auditArchived && !_audit) return;
     if (!_audit && !shouldShowAtZoom(v, zoom)) return;
 
-    const sunny = venueSunState(v, az, alt);
-    const fillSunny   = 'rgba(255,175,133,0.20)';
-    const strokeSunny = 'rgba(255,175,133,0.65)';
+    // Show-all sub-mode draws every polygon in a neutral accent colour —
+    // sun/shade differentiation would lie about the venue (since weather
+    // is forced sunny anyway). Audit-archived venues paint red so you can
+    // spot them as outliers among the polygons.
+    const sunny = _auditAll ? true : venueSunState(v, az, alt);
+    const fillSunny   = _auditAll ? 'rgba(245,194,94,0.22)' : 'rgba(255,175,133,0.20)';
+    const strokeSunny = _auditAll ? 'rgba(245,194,94,0.85)' : 'rgba(255,175,133,0.65)';
     const fillShade   = 'rgba(40,80,180,0.13)';
     const strokeShade = 'rgba(80,130,220,0.35)';
 

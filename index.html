@@ -4604,12 +4604,40 @@
   }
   #audit-indicator-count { opacity: 0.85; font-weight: 500; font-variant-numeric: tabular-nums; }
   .audit-indicator-divider { opacity: 0.4; padding: 0 2px; }
-  .audit-filter-row { display: inline-flex; gap: 4px; }
-  .audit-filter-btn {
-    background: rgba(255,255,255,0.10);
+  .audit-indicator-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+  /* Sub-mode segmented control */
+  .audit-submode {
+    display: inline-flex;
+    background: rgba(0,0,0,0.20);
+    border-radius: 999px;
+    padding: 2px;
+    gap: 2px;
+  }
+  .audit-submode-btn {
+    background: transparent;
     color: #fff;
     border: none;
-    padding: 3px 9px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 12px;
+    cursor: pointer;
+    opacity: 0.75;
+  }
+  .audit-submode-btn:hover { opacity: 1; }
+  .audit-submode-btn.active {
+    background: rgba(255,255,255,0.92);
+    color: #064e3b;
+    opacity: 1;
+  }
+
+  /* Filter toggle button + badge */
+  .audit-iconbtn {
+    background: rgba(255,255,255,0.18);
+    color: #fff;
+    border: none;
+    padding: 3px 10px;
     border-radius: 999px;
     font-weight: 600;
     font-size: 12px;
@@ -4617,27 +4645,91 @@
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    opacity: 0.7;
   }
-  .audit-filter-btn:hover { background: rgba(255,255,255,0.20); opacity: 1; }
-  .audit-filter-btn.active {
-    background: rgba(255,255,255,0.92);
-    color: #064e3b;
-    opacity: 1;
-  }
-  .audit-filter-count {
-    font-variant-numeric: tabular-nums;
-    background: rgba(0,0,0,0.18);
-    padding: 0 5px;
+  .audit-iconbtn:hover { background: rgba(255,255,255,0.28); }
+  .audit-iconbtn.has-active { background: #f59e0b; color: #1f2937; }
+  .audit-iconbtn.has-active:hover { background: #fbbf24; }
+  .audit-filter-toggle-badge {
+    background: rgba(0,0,0,0.25);
+    color: #fff;
     border-radius: 999px;
+    padding: 0 6px;
     font-size: 11px;
+    font-weight: 700;
     min-width: 14px;
     text-align: center;
+    display: none;
   }
-  .audit-filter-btn.active .audit-filter-count {
-    background: rgba(6,95,70,0.20);
+  .audit-iconbtn.has-active .audit-filter-toggle-badge { display: inline-block; }
+
+  /* Filter popover panel */
+  .audit-filter-panel {
+    background: rgba(0,0,0,0.35);
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin-top: 8px;
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .audit-filter-group { display: flex; flex-direction: column; gap: 4px; }
+  .audit-filter-label {
+    font-size: 11px;
+    font-weight: 700;
+    opacity: 0.75;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .audit-chip-row { display: flex; flex-wrap: wrap; gap: 4px; }
+  .audit-chip {
+    background: rgba(255,255,255,0.10);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.15);
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 11px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    opacity: 0.8;
+  }
+  .audit-chip:hover { background: rgba(255,255,255,0.20); opacity: 1; }
+  .audit-chip.active {
+    background: #fff;
     color: #064e3b;
+    border-color: #fff;
+    opacity: 1;
   }
+  .audit-chip-count {
+    background: rgba(0,0,0,0.20);
+    padding: 0 5px;
+    border-radius: 999px;
+    font-size: 10px;
+    min-width: 14px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .audit-chip.active .audit-chip-count { background: rgba(6,95,70,0.15); color: #064e3b; }
+  .audit-filter-footer { display: flex; justify-content: flex-end; }
+
+  /* Archived list card */
+  .venue-card.audit-archived {
+    border-left: 3px solid #ef4444;
+    opacity: 0.7;
+  }
+  .venue-card.audit-archived .audit-state-badge {
+    background: rgba(239,68,68,0.22);
+    color: #fca5a5;
+  }
+  .audit-action-btn.audit-archive {
+    background: rgba(239,68,68,0.18);
+    border-color: rgba(239,68,68,0.40);
+    color: #fca5a5;
+  }
+  .audit-action-btn.audit-archive:hover { background: rgba(239,68,68,0.32); }
 
   .venue-card.audit-reviewed { border-left: 3px solid #10b981; }
   .venue-card.audit-reviewed .audit-state-badge { background: rgba(16,185,129,0.22); color: #6ee7b7; }
@@ -9287,16 +9379,19 @@
 
   <!-- ADMIN: polygon audit mode indicator (shown only when auditModeActive) -->
   <div id="audit-mode-indicator" style="display:none">
-    <span class="audit-indicator-title">Polygon audit</span>
-    <span id="audit-indicator-count"></span>
-    <span class="audit-indicator-divider">·</span>
-    <div class="audit-filter-row" role="tablist">
-      <button id="audit-filter-all"  type="button" class="audit-filter-btn" onclick="setAuditFilter('all')">All</button>
-      <button id="audit-filter-todo" type="button" class="audit-filter-btn" onclick="setAuditFilter('todo')">To review <span class="audit-filter-count" id="audit-filter-todo-n">0</span></button>
-      <button id="audit-filter-done" type="button" class="audit-filter-btn" onclick="setAuditFilter('done')">Reviewed <span class="audit-filter-count" id="audit-filter-done-n">0</span></button>
+    <div class="audit-indicator-row">
+      <span class="audit-indicator-title">Polygon audit</span>
+      <span id="audit-indicator-count"></span>
+      <span class="audit-indicator-divider">·</span>
+      <div class="audit-submode" role="tablist" aria-label="Audit sub-mode">
+        <button id="audit-mode-shadows" type="button" class="audit-submode-btn" onclick="setAuditSubMode('shadows')" title="Show sun + shadow simulation">Shadows</button>
+        <button id="audit-mode-all"     type="button" class="audit-submode-btn" onclick="setAuditSubMode('all')"     title="Show every venue, ignore time">Show all</button>
+      </div>
+      <button id="audit-filter-toggle" type="button" class="audit-iconbtn" onclick="toggleAuditFilterPanel()" title="Filter venues">Filter <span id="audit-filter-toggle-badge" class="audit-filter-toggle-badge"></span></button>
+      <button class="audit-reset" onclick="resetAuditProgress()" title="Reset all reviewed flags">Reset</button>
+      <button onclick="toggleAuditMode()">Exit</button>
     </div>
-    <button class="audit-reset" onclick="resetAuditProgress()" title="Reset all reviewed flags">Reset</button>
-    <button onclick="toggleAuditMode()">Exit</button>
+    <div id="audit-filter-panel" class="audit-filter-panel" style="display:none"></div>
   </div>
 
   <!-- INTRO SPLASH — covers everything until geo + map are ready -->

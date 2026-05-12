@@ -295,7 +295,10 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
   // Closed-all-day with no upcoming qualifying window: keep the legacy
   // collapsed one-row card. Closed-but-opens-later venues with a qualifying
   // window get the full layout below (see openLater handling).
-  if (!isOpen && !isOpeningSoon && !(qual && qual.surfaced)) {
+  // Audit mode skips this collapse so the action row (Mark good / Edit /
+  // Archive) is reachable on every venue regardless of opening hours.
+  const _auditHere = typeof auditModeActive !== 'undefined' && auditModeActive;
+  if (!_auditHere && !isOpen && !isOpeningSoon && !(qual && qual.surfaced)) {
     return `
       <div class="venue-card closed-card ${v.id === selectedId ? 'selected' : ''}"
            data-vid="${v.id}" onclick="selectVenue(${typeof v.id === 'number' ? v.id : `'${v.id}'`}, true)"
@@ -446,22 +449,35 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
     }
   }
 
-  // Admin audit-mode row: per-card "Mark good" / "Reviewed" affordance.
+  // Admin audit-mode row: per-card status badge + Mark good / Edit / Archive.
   let auditActionsHtml = '', auditCardCls = '';
   if (typeof auditModeActive !== 'undefined' && auditModeActive) {
     const idArg     = typeof v.id === 'number' ? v.id : `'${v.id}'`;
-    const audited   = (typeof isVenueAudited === 'function') && isVenueAudited(v);
+    const archived  = !!v.auditArchived;
+    const audited   = !archived && (typeof isVenueAudited === 'function') && isVenueAudited(v);
     const entry     = audited && typeof venueAuditEntry === 'function' ? venueAuditEntry(v) : null;
     const viaLabel  = entry?.via === 'edited' ? 'Edited ✓' : 'Looks good ✓';
-    if (audited) auditCardCls = ' audit-reviewed';
-    auditActionsHtml = `<div class="audit-actions" onclick="event.stopPropagation()">
-      ${audited
-        ? `<span class="audit-state-badge">${viaLabel}</span>
-           <button class="audit-action-btn audit-undo" onclick="unmarkVenueAudited(${idArg})">Undo</button>
-           <button class="audit-action-btn" onclick="enterEditMode(${idArg})">Edit polygon</button>`
-        : `<button class="audit-action-btn" onclick="markVenueAudited(${idArg},'good')">Mark good</button>
-           <button class="audit-action-btn audit-undo" onclick="enterEditMode(${idArg})">Edit polygon</button>`}
-    </div>`;
+    if (audited)  auditCardCls = ' audit-reviewed';
+    if (archived) auditCardCls = ' audit-archived';
+    if (archived) {
+      auditActionsHtml = `<div class="audit-actions" onclick="event.stopPropagation()">
+        <span class="audit-state-badge">Archived</span>
+        <button class="audit-action-btn audit-undo" onclick="unarchiveVenue(${idArg})">Un-archive</button>
+      </div>`;
+    } else if (audited) {
+      auditActionsHtml = `<div class="audit-actions" onclick="event.stopPropagation()">
+        <span class="audit-state-badge">${viaLabel}</span>
+        <button class="audit-action-btn audit-undo" onclick="unmarkVenueAudited(${idArg})">Undo</button>
+        <button class="audit-action-btn" onclick="enterEditMode(${idArg})">Edit polygon</button>
+        <button class="audit-action-btn audit-archive" onclick="archiveVenue(${idArg})" title="Hide from users">Archive</button>
+      </div>`;
+    } else {
+      auditActionsHtml = `<div class="audit-actions" onclick="event.stopPropagation()">
+        <button class="audit-action-btn" onclick="markVenueAudited(${idArg},'good')">Mark good</button>
+        <button class="audit-action-btn audit-undo" onclick="enterEditMode(${idArg})">Edit polygon</button>
+        <button class="audit-action-btn audit-archive" onclick="archiveVenue(${idArg})" title="Hide from users">Archive</button>
+      </div>`;
+    }
   }
 
   // dpVariant uses card-compact layout (3-row stack with anchor meta) but
@@ -758,6 +774,9 @@ function renderList() {
   // so the admin can walk the catalog and tick off each polygon. Bypasses
   // search/area/viewport/surfacing entirely.
   const auditActive = typeof auditModeActive !== 'undefined' && auditModeActive;
+
+  // Outside audit mode, archived venues are hidden from the list.
+  if (!auditActive) venues = venues.filter(v => !v.auditArchived);
 
   if (searchQ && !auditActive) {
     const alias = typeof _resolveAlias === 'function' ? _resolveAlias(searchQ) : null;
@@ -1067,8 +1086,8 @@ function renderList() {
   venues = [...bucketNow, ...bucketLater];
 
   // Audit mode override — admin walks the catalog systematically.
-  // Two visual buckets: "To review" (top) and "Reviewed" (bottom). The
-  // bucketNow/bucketLater split is reused so renderListPage's existing
+  // Two visual buckets: "To review" (top) and "Reviewed + Archived" (bottom).
+  // The bucketNow/bucketLater split is reused so renderListPage's existing
   // section-header machinery works for free — we just relabel the headers.
   if (auditActive) {
     if (typeof auditMatchesFilter === 'function') {
@@ -1080,12 +1099,17 @@ function renderList() {
       if (ar !== br) return ar.localeCompare(br, 'nb');
       return (a.name || '').localeCompare(b.name || '', 'nb');
     };
-    const _todo = [], _done = [];
-    for (const v of venues) (_audited(v) ? _done : _todo).push(v);
-    _todo.sort(_cmp); _done.sort(_cmp);
-    venues = [..._todo, ..._done];
-    bucketNow.length = 0;   bucketLater.length = 0;
-    bucketNow.push(..._todo); bucketLater.push(..._done);
+    const _todo = [], _done = [], _arch = [];
+    for (const v of venues) {
+      if (v.auditArchived) _arch.push(v);
+      else if (_audited(v)) _done.push(v);
+      else _todo.push(v);
+    }
+    _todo.sort(_cmp); _done.sort(_cmp); _arch.sort(_cmp);
+    // Archived land below reviewed — they're a closed state, not a triage queue.
+    venues = [..._todo, ..._done, ..._arch];
+    bucketNow.length = 0;                       bucketLater.length = 0;
+    bucketNow.push(..._todo);                   bucketLater.push(..._done, ..._arch);
   }
 
   // ── After-sunset state: real clock vs actual sunset, today only ───────────
