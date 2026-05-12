@@ -574,14 +574,24 @@ function _drawName(ctx, pt, pillRect, name, secondary, placedPills, placedNames,
     { side: 'bottom', x: cx - labelW / 2,               cy: pillTipY    + gap + labelH / 2 },
   ];
 
+  // Hysteresis: once a label chose a side, give that side a bonus on
+  // subsequent frames so panning doesn't reshuffle sides as pills enter
+  // / leave the viewport and shift the collision landscape. Big enough
+  // to absorb small collision deltas (~25 pts), small enough that an
+  // actually off-viewport side still loses to a valid one (-100 pts).
+  const stickySide = opts.venueId != null ? _lastNameAnchor.get(opts.venueId) : null;
+  const NAME_ANCHOR_HYSTERESIS = 25;
+
   let best = null, bestScore = opts.force ? -Infinity : 0;
   for (const c of candidates) {
     const rect = { x: c.x, y: c.cy - labelH / 2, w: labelW, h: labelH };
-    const s = _scoreAnchor(rect, placedPills, placedNames, viewport);
+    let s = _scoreAnchor(rect, placedPills, placedNames, viewport);
+    if (stickySide === c.side && s > -Infinity) s += NAME_ANCHOR_HYSTERESIS;
     if (s > bestScore) { bestScore = s; best = { ...c, ...rect }; }
   }
   if (!best) return null;
   placedNames.push(best);
+  if (opts.venueId != null) _lastNameAnchor.set(opts.venueId, best.side);
 
   ctx.textBaseline = 'middle';
   ctx.textAlign    = 'left';
@@ -660,8 +670,13 @@ function _sunHoursLine(v, dateStr) {
 //                          dot radius (4.5px) and full pill width.
 // _lastPilledIds: ids of pins that finished the previous frame as pills,
 // used as hysteresis input (priScore bonus to reduce flicker on zoom).
+// _lastNameAnchor: id → 'right' | 'left' | 'top' | 'bottom'. Used by
+// _drawName to keep a label on the same side of its pill across pans —
+// otherwise the per-frame scoring would flip sides as pills enter / leave
+// the viewport and shift the collision landscape.
 const _pinState  = new Map();   // id → { alpha, scale, morph, target_alpha, target_scale, morphTarget, snapshot }
 const _lastPilledIds = new Set();
+const _lastNameAnchor = new Map();
 let   _animDirty = false;
 let   _animScheduled = false;
 
@@ -1257,7 +1272,7 @@ function draw() {
       ctx, entry.pt, entry._pillRect,
       shortName(v.name), sec,
       placedPills, placedNames, viewport,
-      { selected: sel, force: sel || isFriend, alpha: labelAlpha },
+      { selected: sel, force: sel || isFriend, alpha: labelAlpha, venueId: v.id },
     );
   }
 
