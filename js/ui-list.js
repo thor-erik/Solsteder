@@ -11,6 +11,30 @@
  *             selectVenue, setHoveredVenue (app.js / ui.js)
  */
 
+// ── Skeleton cards ────────────────────────────────────────────────────────────
+// Shared helper used by both the after-sunset empty state and the slider-scrub
+// signal (see _injectScrubSkeletons in app.js). Markup mirrors a real
+// .venue-card (row1 name + duration, meta line, mini-timeline) so the swap
+// doesn't reshape the list height.
+function renderSkeletonCards(container, n = 7) {
+  const nameW = [60, 75, 48, 68, 52, 82, 44, 64, 58];
+  const metaW = [38, 52, 32, 46, 56, 28, 62, 44, 50];
+  for (let i = 0; i < n; i++) {
+    const card = document.createElement('div');
+    card.className = 'venue-card skeleton';
+    card.innerHTML =
+      '<div class="card-row1">' +
+        `<div class="skel skel-name" style="width:${nameW[i % nameW.length]}%"></div>` +
+        '<div class="skel skel-duration"></div>' +
+      '</div>' +
+      '<div class="card-meta">' +
+        `<div class="skel skel-meta" style="width:${metaW[i % metaW.length]}%"></div>` +
+      '</div>' +
+      '<div class="skel skel-timeline"></div>';
+    container.appendChild(card);
+  }
+}
+
 // ── Venue list ────────────────────────────────────────────────────────────────
 
 const LIST_PAGE = 30; // cards rendered per batch
@@ -1024,27 +1048,7 @@ function renderList() {
     banner.id = 'no-sun-banner';
     banner.innerHTML = `<span>${t('sun_set_today')}</span><button onclick="advanceDay(1, 12)">${t('tomorrow_arrow')}</button>`;
     list.appendChild(banner);
-    // Skeleton cards
-    const nameW = [60, 75, 48, 68, 52, 82, 44];
-    const metaW = [38, 52, 32, 46, 56, 28, 62];
-    for (let i = 0; i < 7; i++) {
-      const card = document.createElement('div');
-      card.className = 'venue-card skeleton';
-      card.innerHTML = `
-        <div class="card-body">
-          <div class="skel skel-watch"></div>
-          <div class="card-content">
-            <div class="card-top-row">
-              <div style="flex:1;display:flex;flex-direction:column;gap:6px">
-                <div class="skel skel-line" style="width:${nameW[i]}%"></div>
-                <div class="skel skel-line" style="width:${metaW[i]}%;height:7px"></div>
-              </div>
-              <div class="skel skel-score-block"></div>
-            </div>
-          </div>
-        </div>`;
-      list.appendChild(card);
-    }
+    renderSkeletonCards(list, 7);
     // Count label
     const countEl = document.getElementById('venue-count');
     if (countEl) { countEl.textContent = '—'; countEl.className = ''; }

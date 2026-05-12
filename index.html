@@ -3439,27 +3439,50 @@
     letter-spacing: 0.1px;
   }
 
-  /* ── Skeleton placeholder cards (after-sunset state) ─────────────── */
+  /* ── Skeleton placeholder cards ──────────────────────────────────── */
+  /* Shown in two situations:
+     1. After-sunset / no-sun-left empty state — passive placeholder.
+     2. Time-slider scrub state — strong "list is being recomputed" signal,
+        replaces the real cards while the user drags the slider.
+     Layout mirrors the real .venue-card (card-row1 + card-meta + timeline
+     placeholder) so the swap doesn't reshape the list height. */
   .venue-card.skeleton {
     pointer-events: none;
-    opacity: 0.28;
-    animation: none;
+    animation: skeletonFadeIn 0.18s ease-out both,
+               skeletonPulse 1.4s ease-in-out 0.18s infinite;
+  }
+  @keyframes skeletonFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 0.55; }
+  }
+  @keyframes skeletonPulse {
+    0%, 100% { opacity: 0.42; }
+    50%      { opacity: 0.62; }
   }
   .skel {
-    background: rgba(156,189,231,0.25);
+    background: rgba(156,189,231,0.22);
     border-radius: 4px;
   }
-  .skel-watch {
-    width: 72px; height: 72px;
-    border-radius: 50%;
+  .skel-name {
+    height: 14px;
+    border-radius: 4px;
+  }
+  .skel-duration {
+    width: 46px;
+    height: 13px;
+    border-radius: 4px;
     flex-shrink: 0;
   }
-  .skel-line { height: 9px; border-radius: 3px; }
-  .skel-score-block {
-    width: 28px; height: 36px;
-    border-radius: 6px;
-    flex-shrink: 0;
-    align-self: center;
+  .skel-meta {
+    height: 9px;
+    border-radius: 3px;
+  }
+  .skel-timeline {
+    width: 100%;
+    height: 12px;
+    margin-top: 6px;
+    border-radius: 2px;
+    background: rgba(156,189,231,0.10);
   }
 
   /* ── Arc frozen state (after sunset, today only) ──────────────────── */

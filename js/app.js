@@ -421,6 +421,9 @@ function initFts() {
     _qcSpringBackFts();
     setFtsPopupExpanded(false);
     scheduleFtsPopupHide();
+    // Flush the list render NOW so the user sees the new cards on release
+    // instead of waiting the full 300 ms debounce tail.
+    if (typeof flushRenderListNow === 'function') flushRenderListNow();
   });
 
   // ── Thumb tilt-on-hover ──────────────────────────────────────────────
@@ -1724,6 +1727,11 @@ function _aTrackTimeChange() {
 }
 
 // ── Debounced list render (avoids jitter when dragging time slider) ────────────
+// On the first call in a scrub cycle we IMMEDIATELY swap the real cards for
+// skeleton placeholders so the user sees a strong "list is being recomputed"
+// signal — instead of stale cards lingering until release. The actual
+// renderList still fires on the debounce tail (or sooner via
+// flushRenderListNow when the slider's pointerup hook calls it).
 let _renderListTimer = null;
 function scheduleRenderList() {
   clearTimeout(_renderListTimer);
@@ -1731,16 +1739,49 @@ function scheduleRenderList() {
   // venues cross sun-window boundaries during a drag. Kept on across
   // renderList so the new divider mounts hidden, then fades in on the next
   // frame after the class is removed.
+  if (!document.body.classList.contains('list-scrubbing')) {
+    _injectScrubSkeletons();
+  }
   document.body.classList.add('list-scrubbing');
-  _renderListTimer = setTimeout(() => {
-    renderList();
-    setTimeout(_syncQcPanelHeight, 80);
+  _renderListTimer = setTimeout(_runListRenderAndUnmark, 300);
+}
+
+function _runListRenderAndUnmark() {
+  _renderListTimer = null;
+  // Fade the new cards in: clearing data-mounted lets renderList's
+  // initial-mount cardIn animation fire once for this batch (renderList
+  // sets it back via rAF). Matches the strong skeleton-out / cards-in
+  // signal the user expects on slider release.
+  const list = document.getElementById('venue-list');
+  if (list) delete list.dataset.mounted;
+  renderList();
+  setTimeout(_syncQcPanelHeight, 80);
+  requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        document.body.classList.remove('list-scrubbing');
-      });
+      document.body.classList.remove('list-scrubbing');
     });
-  }, 300);
+  });
+}
+
+// Flush the pending list render NOW — bound to the slider's pointerup so
+// the user sees the new list as soon as they release, instead of waiting
+// the full 300 ms debounce tail.
+function flushRenderListNow() {
+  if (!_renderListTimer) return;
+  clearTimeout(_renderListTimer);
+  _runListRenderAndUnmark();
+}
+
+// Swap the real venue cards for skeleton placeholders. Reuses the same
+// .venue-card.skeleton design used by the after-sunset state so we only
+// have one wireframe style to maintain. The infinite-scroll observer
+// bound to the previous cards becomes inert once those nodes leave the
+// DOM; renderList rebinds it on the next real render.
+function _injectScrubSkeletons() {
+  const list = document.getElementById('venue-list');
+  if (!list || typeof renderSkeletonCards !== 'function') return;
+  list.innerHTML = '';
+  renderSkeletonCards(list, 7);
 }
 
 // ── QC notice (below date/time picker) ───────────────────────────────────────
