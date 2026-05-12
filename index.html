@@ -8593,6 +8593,34 @@
     pointer-events: none;
   }
 
+  /* "Coming later" offset chips — popover-style strip that slides up
+     above the CTA row when the user taps 'Coming later'. Replaces the
+     v1 free-form <input type="time"> which let users pick any time
+     including ones in the past or hours after the invite. Capped at
+     +2h offsets per user request. */
+  .pp-later-strip {
+    display: none;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 10px 0 0;
+    margin-bottom: -2px;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.18s ease, transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .pp-later-strip.open {
+    display: flex;
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .pp-later-strip .pp-later-chip {
+    height: 34px;
+    padding: 0 12px;
+    font-size: 13px;
+    font-weight: 600;
+    flex: 0 0 auto;
+  }
+
   @media (min-width: 640px) {
     .dprcv-bottom {
       max-width: 460px;

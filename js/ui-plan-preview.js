@@ -838,34 +838,72 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     if (typeof timeFromEl !== 'undefined' && timeFromEl) timeFromEl.removeEventListener('input', onTimeInput);
   };
 
-  // "Kommer senere" secondary opens a hidden <input type="time"> picker.
-  // Selecting a later time updates arrivalHour; tapping "Jeg er med" then
-  // writes accept w/ that custom arrival_time. Anon mode opens the login
-  // modal (no per-invitee write possible without auth).
+  // "Kommer senere" secondary — v1 opened a free-form <input type="time">
+  // picker, which let users pick literally any time including times in
+  // the past or hours after the invite (often the wrong action). User
+  // feedback: 'I think we should limit what the user can select in
+  // later. Maybe even a pre made list: +5 min, +10, +15, +30, +45,
+  // +1h, +1h 30m, +2h. Is +2h max we should allow?'
+  // New: chip strip with relative offsets capped at +2h, anchored
+  // above the CTA row. Tap a chip → arrivalHour updates + chip strip
+  // hides. Anon mode still opens the login modal.
   let arrivalHour = planHour;
-  let arrivalInput = null;
+  let arrivalSelected = false; // tracks whether user picked a non-default offset
   const suggestBtn = el.querySelector('#pp-suggest');
+  let laterStrip = null;
   if (suggestBtn) {
     if (isAnon) {
       suggestBtn.onclick = () => {
         if (typeof toggleProfilePanel === 'function') toggleProfilePanel();
       };
     } else {
-      arrivalInput = document.createElement('input');
-      arrivalInput.type = 'time';
-      arrivalInput.style.cssText = 'position:absolute;opacity:0;width:0;height:0;pointer-events:none;';
-      arrivalInput.value = `${String(Math.floor(planHour)).padStart(2,'0')}:${String(Math.round((planHour - Math.floor(planHour)) * 60)).padStart(2,'0')}`;
-      suggestBtn.appendChild(arrivalInput);
+      const lang = (typeof prefLang === 'function') ? prefLang() : 'no';
+      const hSuf = (lang === 'en') ? 'h' : 't';
+      const offsets = [
+        { m: 5,   label: '+5 min' },
+        { m: 10,  label: '+10 min' },
+        { m: 15,  label: '+15 min' },
+        { m: 30,  label: '+30 min' },
+        { m: 45,  label: '+45 min' },
+        { m: 60,  label: `+1${hSuf}` },
+        { m: 90,  label: `+1${hSuf} 30 min` },
+        { m: 120, label: `+2${hSuf}` },
+      ];
+      // Build the chip strip. Mounted as a sibling of the CTA row so
+      // it can slide above it on toggle without disturbing layout.
+      laterStrip = document.createElement('div');
+      laterStrip.className = 'pp-later-strip';
+      laterStrip.innerHTML = offsets.map(o =>
+        `<button class="chip-pill pp-later-chip" data-offset-min="${o.m}" type="button">${o.label}</button>`
+      ).join('');
+      const ctaRow = el.querySelector('.dprcv-cta-row');
+      if (ctaRow && ctaRow.parentNode) {
+        ctaRow.parentNode.insertBefore(laterStrip, ctaRow);
+      }
       suggestBtn.onclick = (e) => {
         e.preventDefault();
-        arrivalInput.showPicker?.() || arrivalInput.click();
+        e.stopPropagation();
+        laterStrip.classList.toggle('open');
       };
-      arrivalInput.addEventListener('change', () => {
-        const m = arrivalInput.value.match(/^(\d{1,2}):(\d{2})$/);
-        if (!m) return;
-        arrivalHour = parseInt(m[1], 10) + parseInt(m[2], 10) / 60;
+      laterStrip.addEventListener('click', (ev) => {
+        const chip = ev.target.closest('[data-offset-min]');
+        if (!chip) return;
+        const offsetMin = parseInt(chip.dataset.offsetMin, 10);
+        arrivalHour = planHour + (offsetMin / 60);
+        arrivalSelected = true;
         const lbl = el.querySelector('#pp-arrival-time');
         if (lbl) lbl.textContent = formatHour(arrivalHour);
+        // Mirror the chosen offset in the suggest button label so the
+        // user sees what's currently picked at a glance.
+        const labelSpan = suggestBtn.querySelector('span');
+        if (labelSpan) labelSpan.textContent = chip.textContent;
+        laterStrip.classList.remove('open');
+      });
+      // Outside-tap dismiss
+      document.addEventListener('click', (ev) => {
+        if (!laterStrip.classList.contains('open')) return;
+        if (laterStrip.contains(ev.target) || suggestBtn.contains(ev.target)) return;
+        laterStrip.classList.remove('open');
       });
     }
   }
@@ -880,7 +918,7 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   const acceptBtn = el.querySelector('#pp-accept');
   if (acceptBtn) acceptBtn.onclick = async () => {
     let arrivalIso = null;
-    if (arrivalInput && Math.abs(arrivalHour - planHour) > 0.05) {
+    if (arrivalSelected && Math.abs(arrivalHour - planHour) > 0.05) {
       const dateStr2 = opts.plannedAt ? opts.plannedAt.slice(0, 10) : datePicker?.value;
       if (dateStr2) {
         const hh = Math.floor(arrivalHour);
