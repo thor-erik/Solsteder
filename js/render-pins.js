@@ -918,7 +918,6 @@ function draw() {
   }
 
   const isAuditMode = (typeof auditModeActive !== 'undefined' && auditModeActive);
-  const isAuditAll   = isAuditMode && typeof auditSubMode !== 'undefined' && auditSubMode === 'all';
 
   // ── 1. Project + classify visible venues. Friend venues bypass the
   //      shouldShowAtZoom density filter — they're always relevant.
@@ -951,10 +950,6 @@ function draw() {
         && !shouldShowAtZoom(v, zoom)) return;
     let cls;
     try { cls = classifyPin(v, dateStr, currentHour); } catch { cls = { tier: 'context' }; }
-    // Show-all sub-mode flattens every unreviewed venue to a context dot —
-    // ignore sun-tier classification, opening hours, all of it. The point
-    // is "see the polygon," not "judge the venue."
-    if (isAuditAll) cls = { tier: 'context' };
     if (friends.length > 0) _friendVenueIds.add(v.id);
     projVenues.push({ v, cls, pt: map.project([v.lng, v.lat]), friends });
   });
