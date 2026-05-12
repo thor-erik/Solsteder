@@ -7715,10 +7715,13 @@
   }
   .invite-backdrop.open,
   .dpinvite-backdrop.open {
-    /* Slate-tinted modal backdrop — design system tier-1 backdrop spec. */
-    background: rgba(15, 30, 55, 0.55);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
+    /* Light-tint backdrop — was 55% slate + 6px blur, which obscured the
+       LIVE shadow render on the map underneath. The map shadows shifting
+       as the user scrubs the time slider IS the app's value prop, so we
+       drop the blur entirely and lower the tint to a vignette-like 22%.
+       Sheet/header surfaces remain readable thanks to their own glass
+       backgrounds. */
+    background: rgba(15, 30, 55, 0.22);
   }
 
   /* Slide the underlying surfaces down out of view so the user focuses on the
@@ -7821,30 +7824,42 @@
     flex-direction: column;
     gap: 4px;
   }
-  .dpinvite-eyebrow {
-    font-size: 11px;
+  /* Persistent invite header — venue line (primary) + when-line (secondary).
+     Replaces the v1 eyebrow + question pair. The when-line updates live
+     as the user scrubs the slider, so the header IS the answer instead
+     of asking the question and floating the answer on a separate
+     callout. */
+  .dpinvite-venue-line {
+    font-size: 17px;
     font-weight: 600;
-    letter-spacing: 0.6px;
-    color: var(--muted);
-    text-transform: uppercase;
-    line-height: 1.2;
+    color: var(--text);
+    line-height: 1.25;
     display: inline-flex;
     align-items: center;
     gap: 6px;
   }
-  .dpinvite-eyebrow svg { color: var(--muted); flex-shrink: 0; }
-  .dpinvite-eyebrow span {
+  .dpinvite-venue-line svg { color: var(--muted); flex-shrink: 0; }
+  .dpinvite-venue-line span {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     min-width: 0;
   }
-  .dpinvite-venue-name {
-    font-size: 17px;
-    font-weight: 600;
-    color: var(--text);
-    line-height: 1.25;
+  .dpinvite-when-line {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    line-height: 1.3;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    flex-wrap: wrap;
+    font-variant-numeric: tabular-nums;
   }
+  .dpinvite-when-line .when-primary { color: var(--text); font-weight: 600; }
+  .dpinvite-when-line .when-sep     { opacity: 0.55; }
+  .dpinvite-when-line .when-sun     { color: var(--accent); font-weight: 600; }
+  .dpinvite-when-line.is-no-sun .when-sun { color: var(--muted); font-weight: 500; }
 
   .dpinvite-body {
     flex: 1;
@@ -7867,60 +7882,11 @@
     line-height: 1.25;
   }
 
-  /* FTS callout — follows the slider thumb above the FTS while the share
-     sheet is open. Two-line readout: "Jeg kommer 17:00" / "3t 25m sol · sol
-     til 20:25". JS tracks the thumb's viewport x and clamps the callout's
-     left edge to a safe gutter so it never overflows the screen. */
-  .dpinvite-fts-callout {
-    position: fixed;
-    /* sheet (h) + 8px FTS-gap + 38px FTS-height + 12px callout-gap. */
-    bottom: calc(var(--dpinvite-sheet-h, 320px) + 58px);
-    left: 0;
-    z-index: 1103;
-    pointer-events: none;
-    display: inline-flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    padding: 8px 14px;
-    border-radius: 14px;
-    background: var(--glass-action-bg);
-    backdrop-filter: var(--glass-blur-action);
-    -webkit-backdrop-filter: var(--glass-blur-action);
-    border: var(--glass-border);
-    box-shadow: var(--glass-inset), 0 4px 12px rgba(0,0,0,0.35);
-    transition: left 80ms ease-out, opacity 0.22s ease, transform 0.22s ease;
-    transform: translateY(8px);
-    opacity: 0;
-    white-space: nowrap;
-    font-family: 'Inter', sans-serif;
-  }
-  .dpinvite-fts-callout.open { opacity: 1; transform: translateY(0); }
-  .dpinvite-fts-callout-line1 {
-    display: inline-flex; align-items: baseline; gap: 8px;
-    font-variant-numeric: tabular-nums;
-  }
-  .dpinvite-fts-callout-line1 .label {
-    font-size: 13px; font-weight: 500; color: var(--muted);
-  }
-  .dpinvite-fts-callout-line1 .time {
-    font-size: 18px; font-weight: 700; color: var(--text);
-  }
-  .dpinvite-fts-callout-line2 {
-    display: inline-flex; align-items: center; gap: 6px;
-    font-size: 11px; font-weight: 600;
-    color: var(--accent);
-    font-variant-numeric: tabular-nums;
-  }
-  .dpinvite-fts-callout-line2.no-sun { color: var(--muted); }
-  .dpinvite-fts-callout-dot {
-    width: 7px; height: 7px; border-radius: 50%;
-    background: radial-gradient(circle at 35% 35%, #FFE9D0, #FF7A3A 80%);
-    flex-shrink: 0;
-  }
-  .dpinvite-fts-callout-line2.no-sun .dpinvite-fts-callout-dot {
-    background: rgba(156,189,231,0.4);
-  }
+  /* FTS callout removed — the floating "Going at 13:25" chip used to
+     live here. Its job (showing the picked time + sun-until status) is
+     now done by the persistent .dpinvite-when-line inside the top
+     header, which doesn't ask a question and float its answer on a
+     separate surface. Single source of truth, less chrome over the map. */
 
   /* Group chips strip — uses .chip-pill primitives. */
   .dpinvite-group-chips {
