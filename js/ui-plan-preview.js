@@ -952,6 +952,13 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     // detail panel'. The new flow: plan-preview closes → post-accept
     // panel alone → on close, _closePostAcceptPanel opens the detail
     // panel (via stashed followupVenueId).
+    // Set post-accept-active BEFORE closing the plan-preview so the
+    // chrome-hide rules stay applied through the 360ms handoff window.
+    // Without this, plan-preview-active was removed and the venue list
+    // / search / FTS faded in for ~110ms before the post-accept panel
+    // mounted — user saw 'venue list shows up behind the confirmation
+    // page' as the chrome flashed through.
+    document.body.classList.add('post-accept-active');
     closePlanPreview({ skipDetailOpen: true, keepCamera: true });
     setTimeout(() => {
       if (typeof _openPostAcceptPanel !== 'function') return;
