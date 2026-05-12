@@ -574,20 +574,33 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   if (isInvite) {
     const acceptId = isAnon ? 'pp-anon-accept' : 'pp-accept';
     const declineId = isAnon ? 'pp-anon-decline' : 'pp-decline';
-    ctaHtml = `
-      <button class="p-pill dprcv-cta-primary" id="${acceptId}" type="button">
-        ${checkSvg}
-        ${t('plan_preview_im_in')}
-      </button>
-      <div class="dprcv-cta-row">
+    // Anon mode: the primary button actually opens a login modal — be
+    // honest about that in the label ('Log in to accept') so the user
+    // isn't surprised by an unexpected auth gate. Also hide the
+    // "Coming later" secondary in anon mode: it implies rescheduling
+    // is possible pre-login, which it isn't (login is required first
+    // either way). Anon row collapses to just one fallback: Decline.
+    const primaryLabel = isAnon ? t('plan_preview_anon_im_in') : t('plan_preview_im_in');
+    const primaryIcon  = isAnon ? '' : checkSvg;
+    const secondaryHtml = isAnon
+      ? `
+        <button class="dprcv-cta-link is-decline" id="${declineId}" type="button">
+          <span>${t('plan_decline')}</span>
+        </button>`
+      : `
         <button class="dprcv-cta-link" id="pp-suggest" type="button">
           ${editSvg}<span>${t('invite_secondary_later')}</span>
         </button>
         <span class="dprcv-cta-sep" aria-hidden="true">·</span>
         <button class="dprcv-cta-link is-decline" id="${declineId}" type="button">
           <span>${t('plan_decline')}</span>
-        </button>
-      </div>`;
+        </button>`;
+    ctaHtml = `
+      <button class="p-pill dprcv-cta-primary" id="${acceptId}" type="button">
+        ${primaryIcon}
+        ${primaryLabel}
+      </button>
+      <div class="dprcv-cta-row">${secondaryHtml}</div>`;
   } else if (isPreview) {
     ctaHtml = `
       <button class="p-pill dprcv-cta-primary" id="pp-share-onward" type="button">
