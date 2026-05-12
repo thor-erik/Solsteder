@@ -1396,9 +1396,10 @@
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
     /* Soft glass blur — reads as "through the lens" without destroying
-       legibility. Matches the lens material character without inheriting
-       the panel's 3px backdrop-blur (which would obliterate 17px text). */
-    filter: blur(0.5px) saturate(108%);
+       legibility. Matches the new sunglass thumb's heavier 7px backdrop
+       blur, so the labels feel like they live in the same optical
+       material instead of floating in clean air above a tinted disc. */
+    filter: blur(1px) saturate(112%);
   }
   /* Lens radius scales with thumb state so the clip follows the lens edge. */
   #fts-track:has(#fts-thumb.is-hover)  #fts-labels-mag { --lens-r: 17px;   }
@@ -1426,52 +1427,64 @@
     --tilt-x: 0;
     --tilt-y: 0;
 
-    /* Body — two stacked backgrounds:
-       1. Moving highlight glint. radial-gradient with its centre offset
-          OPPOSITE to the cursor (--tilt × negative). Reads as a fixed
-          light source catching the glass as the lens tilts. THIS is
-          what creates the perceived 3D rotation without actually using
-          rotate3d, which would clip + clash with backdrop-filter.
-       2. Bottom-right inner shadow. radial at the opposite side,
-          slate-coloured, giving a subtle "underside of glass" depth
-          that adds dimensionality even at idle. */
+    /* Sunglass lens recipe — four stacked backgrounds, top to bottom:
+       1. Tilt-driven highlight glint — fixed-light catch on the curved
+          glass surface. Smaller + softer than the v1 thumb so it doesn't
+          dominate the tinted body.
+       2. Inner vignette — radial darkening at the outer edge that reads
+          as lens curvature. Without this the disc looks flat.
+       3. Underside shadow (tilt-driven) — gives a sense of depth on
+          the side opposite the highlight.
+       4. Base tint — slate body at ~30% opacity. Darker than v1's
+          rgba(255,244,224,0.10) cream, so the thumb genuinely reads
+          as tinted glass rather than a faint disc. */
     background:
       radial-gradient(
-        circle at calc(32% - var(--tilt-x) * 22%) calc(28% - var(--tilt-y) * 22%),
-        rgba(255,255,255,0.55) 0%,
-        rgba(255,255,255,0.20) 16%,
-        rgba(255,255,255,0)    36%
+        circle at calc(34% - var(--tilt-x) * 20%) calc(30% - var(--tilt-y) * 20%),
+        rgba(255,244,224,0.46) 0%,
+        rgba(255,244,224,0.14) 18%,
+        rgba(255,244,224,0)    40%
+      ),
+      radial-gradient(
+        circle at 50% 50%,
+        rgba(8,18,32,0)    52%,
+        rgba(8,18,32,0.22) 78%,
+        rgba(8,18,32,0.48) 100%
       ),
       radial-gradient(
         circle at calc(72% + var(--tilt-x) * 22%) calc(78% + var(--tilt-y) * 22%),
-        rgba(15,27,42,0.18) 0%,
-        rgba(15,27,42,0.08) 22%,
-        rgba(15,27,42,0)    48%
+        rgba(8,18,32,0.20) 0%,
+        rgba(8,18,32,0.08) 22%,
+        rgba(8,18,32,0)    50%
       ),
-      rgba(255,244,224,0.10);
+      linear-gradient(180deg,
+        rgba(36,56,84,0.42) 0%,
+        rgba(18,32,54,0.55) 100%
+      );
 
-    /* Frosted-glass: same recipe the panels use, browser-GPU cheap. */
-    backdrop-filter: blur(3px) saturate(125%);
-    -webkit-backdrop-filter: blur(3px) saturate(125%);
+    /* Sunglass-grade backdrop blur — heavier than v1's 3px so the map
+       beneath reads as obscured-by-glass, not just slightly diffused. */
+    backdrop-filter: blur(7px) saturate(155%);
+    -webkit-backdrop-filter: blur(7px) saturate(155%);
 
-    /* Edge stack:
-       - Outer thin dark rim — the defined lens silhouette.
-       - Cream inner highlight ring (1px inside the rim) — the glass
-         catch on the surface, like a real lens has where light grazes
-         the curve.
-       - Inner offset slate shadow — THICKENS the visible edge on the
-         cursor side via the tilt-driven offset. Reads as "the lens is
-         tilting that way" without needing a rotation transform.
-       - Outer drop shadow — lifts the lens off the track. */
+    /* Edge stack — softer than v1 (no hard 1px inner-highlight ring,
+       which read as a cheap stroke on a tinted body). Now:
+       - Outer dark rim (0.5px, blended) — silhouette only.
+       - Bottom inner shadow — adds vertical curvature signal.
+       - Top inner highlight (1px, low opacity) — glass catch.
+       - Tilt-driven inner slate shadow — directional curvature.
+       - Two drop shadows — tight contact + soft lift. */
     box-shadow:
-      inset 0 0 0 1px rgba(15,27,42,0.55),
-      inset 0 0 0 1.8px rgba(255,244,224,0.22),
+      inset 0 0 0 0.5px rgba(8,18,32,0.70),
+      inset 0 -2px 6px -1px rgba(8,18,32,0.55),
+      inset 0 1px 1.2px rgba(255,244,224,0.18),
       inset
         calc(var(--tilt-x) * 4px)
         calc(var(--tilt-y) * 4px)
-        7px -1px
-        rgba(15,27,42,0.42),
-      0 3px 8px rgba(0,0,0,0.35);
+        8px -2px
+        rgba(8,18,32,0.40),
+      0 1px 2px rgba(0,0,0,0.55),
+      0 4px 12px rgba(0,0,0,0.40);
 
     transform: translate(-50%, -50%);
     transition:
@@ -1489,43 +1502,79 @@
     transform: translate(-50%, -50%) translateY(-1.5px) scale(1.06);
     background:
       radial-gradient(
-        circle at calc(32% - var(--tilt-x) * 22%) calc(28% - var(--tilt-y) * 22%),
-        rgba(255,255,255,0.68) 0%,
-        rgba(255,255,255,0.26) 16%,
-        rgba(255,255,255,0)    36%
+        circle at calc(34% - var(--tilt-x) * 20%) calc(30% - var(--tilt-y) * 20%),
+        rgba(255,244,224,0.56) 0%,
+        rgba(255,244,224,0.18) 18%,
+        rgba(255,244,224,0)    40%
+      ),
+      radial-gradient(
+        circle at 50% 50%,
+        rgba(8,18,32,0)    50%,
+        rgba(8,18,32,0.24) 78%,
+        rgba(8,18,32,0.52) 100%
       ),
       radial-gradient(
         circle at calc(72% + var(--tilt-x) * 22%) calc(78% + var(--tilt-y) * 22%),
-        rgba(15,27,42,0.22) 0%,
-        rgba(15,27,42,0.10) 22%,
-        rgba(15,27,42,0)    48%
+        rgba(8,18,32,0.22) 0%,
+        rgba(8,18,32,0.10) 22%,
+        rgba(8,18,32,0)    50%
       ),
-      rgba(255,244,224,0.14);
+      linear-gradient(180deg,
+        rgba(40,62,92,0.46) 0%,
+        rgba(20,36,60,0.58) 100%
+      );
     box-shadow:
-      inset 0 0 0 1.1px rgba(15,27,42,0.62),
-      inset 0 0 0 2px rgba(255,244,224,0.30),
+      inset 0 0 0 0.5px rgba(8,18,32,0.78),
+      inset 0 -2.5px 7px -1px rgba(8,18,32,0.60),
+      inset 0 1px 1.2px rgba(255,244,224,0.24),
       inset
         calc(var(--tilt-x) * 5px)
         calc(var(--tilt-y) * 5px)
-        8px -1px
-        rgba(15,27,42,0.48),
-      0 5px 14px rgba(0,0,0,0.42);
+        9px -2px
+        rgba(8,18,32,0.46),
+      0 1px 2px rgba(0,0,0,0.55),
+      0 6px 16px rgba(0,0,0,0.45);
   }
 
-  /* Active (drag) — scale up, deepen the shadow, add a soft warm aura,
-     bump the edge contrast. No layer juggling, no nested DOM. */
+  /* Active (drag) — scale up, deepen the vignette, brighten the glint,
+     add a warm honey aura. Same sunglass palette as base + hover. */
   #fts-thumb.is-active {
     transform: translate(-50%, -50%) scale(1.20);
+    background:
+      radial-gradient(
+        circle at calc(34% - var(--tilt-x) * 20%) calc(30% - var(--tilt-y) * 20%),
+        rgba(255,244,224,0.62) 0%,
+        rgba(255,244,224,0.22) 18%,
+        rgba(255,244,224,0)    40%
+      ),
+      radial-gradient(
+        circle at 50% 50%,
+        rgba(8,18,32,0)    48%,
+        rgba(8,18,32,0.28) 78%,
+        rgba(8,18,32,0.56) 100%
+      ),
+      radial-gradient(
+        circle at calc(72% + var(--tilt-x) * 22%) calc(78% + var(--tilt-y) * 22%),
+        rgba(8,18,32,0.24) 0%,
+        rgba(8,18,32,0.10) 22%,
+        rgba(8,18,32,0)    50%
+      ),
+      linear-gradient(180deg,
+        rgba(44,68,102,0.50) 0%,
+        rgba(22,38,64,0.62) 100%
+      );
     box-shadow:
-      inset 0 0 0 1.2px rgba(15,27,42,0.65),
-      inset 0 0 0 2px rgba(255,244,224,0.28),
+      inset 0 0 0 0.6px rgba(8,18,32,0.82),
+      inset 0 -3px 8px -1px rgba(8,18,32,0.62),
+      inset 0 1px 1.4px rgba(255,244,224,0.26),
       inset
         calc(var(--tilt-x) * 5px)
         calc(var(--tilt-y) * 5px)
-        9px -1px
-        rgba(15,27,42,0.52),
-      0 10px 22px rgba(0,0,0,0.52),
-      0 0 22px 2px rgba(245,194,94,0.22);
+        10px -2px
+        rgba(8,18,32,0.50),
+      0 2px 4px rgba(0,0,0,0.60),
+      0 12px 26px rgba(0,0,0,0.52),
+      0 0 22px 2px rgba(245,194,94,0.24);
   }
 
   @media (prefers-reduced-motion: reduce) {
