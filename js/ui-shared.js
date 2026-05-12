@@ -771,7 +771,16 @@ function drawTimeline(ctx, opts) {
   // 7. NÅ tick — dashed vertical at wall-clock time (today only, not at thumb).
   //    Cream-toned so it reads across both honey (sunny) and slate (overcast)
   //    weather bands. Was legacy Jordy blue — invisible on slate.
-  if (isToday && nowH != null && nowH >= minH && nowH <= maxH) {
+  //    Skip the tick when nowH coincides with the slider's start/end edge:
+  //    today's MIN_H_ARC snaps to NOW, so the tick would draw at x=0 right
+  //    on top of the rounded cap → reads as a dashed-line artefact, not
+  //    as a "current time" cue. The 0.04h (~2.5 min) threshold is wide
+  //    enough to catch the snap but narrow enough to keep the tick
+  //    useful pre-sunrise (when minH is still SUNRISE, not NOW).
+  const NOW_TICK_EDGE_TOL = 0.04;
+  if (isToday && nowH != null
+      && nowH >= minH + NOW_TICK_EDGE_TOL
+      && nowH <= maxH - NOW_TICK_EDGE_TOL) {
     const nx = timeToX(nowH);
     const showTick = !drawThumb || (() => {
       const thumbX = Math.max(TRACK_R, Math.min(BAR_W - TRACK_R, timeToX(thumbHour)));
