@@ -1929,20 +1929,50 @@ function _isNowSend(d, h) {
  *
  *  When _isNowSend(d, h) the message swaps to the "I'm at X now — come join"
  *  variant so the receiver reads a present-tense ping, not a future invite. */
+/** Norwegian preposition for an Oslo area name. Most Oslo neighbourhoods
+ *  take "på" (the local convention, going back to former farms and
+ *  open-district names — "på Tjuvholmen", "på Frogner", "på Bislett").
+ *  Exceptions take "i" — valleys (-dal[en]) and "sentrum"/"byen".
+ *  Falls back to "i" for non-Scandinavian locales' translations of the
+ *  same segment (covered via the locale switch below).
+ *
+ *  Hardcoded overrides cover Oslo areas that don't follow the suffix
+ *  rule but where colloquial Norwegian still takes one preposition
+ *  consistently. Add new exceptions here as new areas land. */
+const _AREA_PREP_OVERRIDES_NO = {
+  'Nydalen': 'i',
+  'Sentrum': 'i',
+};
+function _areaPreposition(area, lang) {
+  if (!area) return '';
+  // Only Norwegian (and the very-similar Swedish / Danish) have the
+  // i / på distinction for place names. English always uses "in".
+  if (lang === 'en') return 'in';
+  const a = area.trim();
+  if (_AREA_PREP_OVERRIDES_NO[a]) return _AREA_PREP_OVERRIDES_NO[a];
+  const lower = a.toLowerCase();
+  if (/dalen?$/.test(lower)) return 'i';          // valleys (Nydalen, Sogndal)
+  if (lower === 'sentrum' || lower === 'byen') return 'i';
+  return 'på';
+}
+
 function _composeInviteShareText(v, d, h, link) {
-  // Feed venue + area into the {venue} placeholder so the recipient sees
-  // WHERE the place is at a glance (e.g. "Lorry · Bislett"). The middot
-  // works across languages without needing a translated preposition; the
-  // existing i18n templates stay untouched.
   const venueName = v?.name || '';
-  const venueLabel = v?.area ? `${venueName} · ${v.area}` : venueName;
+  const lang = (typeof prefLang === 'function') ? prefLang() : 'no';
+  // {area_segment} carries its own leading space so the template stays
+  // "{venue}{area_segment} {when}, …" — when the venue has no area the
+  // segment is empty and the surrounding template doesn't get a stray
+  // double-space.
+  const areaSegment = v?.area
+    ? ` ${_areaPreposition(v.area, lang)} ${v.area}`
+    : '';
   const isNow = _isNowSend(d, h);
   const when = isNow ? '' : _inviteWhenLabel(d, h);
   const { context, icon } = _composeShareContext(v, d, h);
   let key;
   if (isNow) key = link ? 'share_invite_text_now_w_link' : 'share_invite_text_now';
   else       key = link ? 'share_invite_text_w_link'      : 'share_invite_text';
-  return t(key, { venue: venueLabel, when, context, icon, link: link || '' });
+  return t(key, { venue: venueName, area_segment: areaSegment, when, context, icon, link: link || '' });
 }
 
 /** Share an invite link via native share or clipboard.
