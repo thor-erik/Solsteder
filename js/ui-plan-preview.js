@@ -449,7 +449,14 @@ function closePlanPreview(opts = {}) {
     if (typeof selectedId !== 'undefined' && st.savedSelectedId !== undefined) {
       try { selectedId = st.savedSelectedId; } catch (e) { /* ignore */ }
     }
-    if (st.savedCamera && typeof map !== 'undefined' && map && typeof map.flyTo === 'function') {
+    // Skip restoring savedCamera when the caller will fly somewhere
+    // else next (decline → _exitToExploreMode flies to userLocation).
+    // Otherwise the user sees two consecutive camera flights — first to
+    // the saved pre-preview camera (800 ms), then to userLocation
+    // (900 ms) — reading as a janky two-stage zoom-out. opts.keepCamera
+    // = true tells closePlanPreview to leave the camera where it is.
+    if (!opts.keepCamera
+        && st.savedCamera && typeof map !== 'undefined' && map && typeof map.flyTo === 'function') {
       try {
         map.flyTo({
           center:  st.savedCamera.center,
@@ -548,6 +555,12 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     }
   } catch (e) { /* ignore */ }
   const sunUntilStr = (sunEnd != null) ? formatHour(sunEnd) : '—';
+  // After-sundown variant: when the meeting time is past the day's last
+  // sun-window end, switch the right-side hero label from 'Sun until'
+  // (which implied 'still some sun left at meeting time') to 'Sun went
+  // down at' so the time shown reads as a *past* sundown moment, not
+  // as 'sun ends at the meeting time'. Subtext shows how long ago.
+  const isAfterSundown = (sunEnd != null && sunEnd <= planHour);
   let remainingStr = '';
   if (sunEnd != null) {
     const rem = sunEnd - planHour;
@@ -555,10 +568,22 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
       const h = Math.floor(rem);
       const m = Math.max(0, Math.round((rem - h) * 60));
       remainingStr = t('invite_hero_remaining', { h, m });
+    } else if (isAfterSundown) {
+      const gone = planHour - sunEnd;
+      if (gone < 1) {
+        remainingStr = t('invite_hero_sundown_minutes_ago', { n: Math.round(gone * 60) });
+      } else {
+        const h = Math.floor(gone);
+        const m = Math.max(0, Math.round((gone - h) * 60));
+        remainingStr = (m > 0)
+          ? t('invite_hero_sundown_hm_ago', { h, m })
+          : t('invite_hero_sundown_h_ago',  { h });
+      }
     } else {
       remainingStr = t('invite_hero_remaining_no_sun');
     }
   }
+  const sunHeroLabelKey = isAfterSundown ? 'invite_hero_sun_went_down' : 'invite_hero_sun_until';
 
   // ── Inline icon set (Lucide-style)
   const checkSvg    = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
@@ -725,7 +750,7 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
             ${arrivalSub ? `<div class="dprcv-arrival-sub">${arrivalSub}</div>` : ''}
           </div>
           <div class="dprcv-hero-right">
-            <div class="dprcv-hero-label">${t('invite_hero_sun_until')}</div>
+            <div class="dprcv-hero-label">${t(sunHeroLabelKey)}</div>
             <div class="dprcv-suntil-time">${sunUntilStr}</div>
             ${remainingStr ? `<div class="dprcv-remaining">${remainingStr}</div>` : ''}
           </div>
@@ -886,11 +911,14 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     // The user said no to this venue; drop them into explore mode
     // (first day with sun, camera on their location, list expanded)
     // so the app feels useful instead of stranding them on a venue
-    // they just rejected.
-    closePlanPreview({ skipDetailOpen: true });
+    // they just rejected. keepCamera tells closePlanPreview not to
+    // run the savedCamera flyTo — _exitToExploreMode will fly to
+    // userLocation in a single move, avoiding a janky two-stage
+    // zoom-out.
+    closePlanPreview({ skipDetailOpen: true, keepCamera: true });
     setTimeout(() => {
       if (typeof _exitToExploreMode === 'function') _exitToExploreMode();
-    }, 360);
+    }, 200);
   };
 
   const closeCta = el.querySelector('#pp-close-cta');
@@ -915,10 +943,10 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     // Anon decline takes the same explore-mode path as the logged-in
     // decline — the user said no, drop them somewhere useful instead
     // of stranding them on the rejected venue's detail panel.
-    closePlanPreview({ skipDetailOpen: true });
+    closePlanPreview({ skipDetailOpen: true, keepCamera: true });
     setTimeout(() => {
       if (typeof _exitToExploreMode === 'function') _exitToExploreMode();
-    }, 360);
+    }, 200);
   };
 
   return el;

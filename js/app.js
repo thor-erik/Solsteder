@@ -1367,17 +1367,40 @@ function _dayLabel(dateStr) {
 
 function _exitToExploreMode() {
   const found = _findFirstSunDayAndHour();
-  if (!found) return;
+  console.log('[exitToExplore] found:', found,
+              'currentDate:', datePicker?.value,
+              'currentTime:', timeFromEl?.value);
+  if (!found) {
+    console.log('[exitToExplore] no sun day found, bailing');
+    return;
+  }
   // Sync date + time pickers — both dispatch the events the rest of the
   // app listens to (renderList re-runs, slider repaints, etc.).
+  // Order matters: setting the date first triggers update() which
+  // recomputes MIN_H_ARC and may clamp timeFromEl.value to it. We set
+  // the time AFTER the date change to put the slider at the intended
+  // first-sun-window start. We also re-set the value on the next frame
+  // in case any synchronous listener inside update() clamps it down.
   if (datePicker && datePicker.value !== found.date) {
     datePicker.value = found.date;
     datePicker.dispatchEvent(new Event('change'));
   }
-  if (timeFromEl) {
+  const applyTime = () => {
+    if (!timeFromEl) return;
     timeFromEl.value = String(found.hour);
     timeFromEl.dispatchEvent(new Event('input'));
-  }
+    console.log('[exitToExplore] set timeFromEl.value to', found.hour, 'actual:', timeFromEl.value);
+  };
+  applyTime();
+  // Belt-and-suspenders: on the next frame, re-apply if the update()
+  // chain clamped the value back to MIN_H_ARC (which on today snaps
+  // to NOW). Verifying with a console.log so we can see the chain.
+  requestAnimationFrame(() => {
+    if (timeFromEl && parseFloat(timeFromEl.value) !== found.hour) {
+      console.log('[exitToExplore] value drifted to', timeFromEl.value, '— reapplying');
+      applyTime();
+    }
+  });
   // Expand the venue list (mobile only — desktop list is always visible).
   const panel = document.getElementById('panel');
   if (panel && typeof isMobile === 'function' && isMobile()) {
