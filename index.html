@@ -184,9 +184,11 @@
 
     --bg:         #1A2C42;                     /* slate (was --blue-900 / Polynesian) */
     --panel:      #1A2C42;
-    --accent:     #F5C25E;                     /* honey gold (was --coral-500) */
-    --accent-dim: rgba(245,194,94,0.16);
-    --accent-on:  #2C1F02;                     /* warm dark, drawn ON --accent */
+    --accent:        #F5C25E;                     /* honey gold (was --coral-500) */
+    --accent-hover:  #FAD17C;                     /* lighter honey for :hover */
+    --accent-active: #D9A845;                     /* darker honey for :active */
+    --accent-dim:    rgba(245,194,94,0.16);
+    --accent-on:     #2C1F02;                     /* warm dark, drawn ON --accent */
     --text:       #FFF4E0;                     /* warm cream */
     --muted:      #9BA9BC;                     /* cool grey (was Jordy blue) */
     --card-bg:    rgba(26,44,66,0.40);
@@ -515,8 +517,8 @@
     box-shadow: 0 2px 8px rgba(0,0,0,0.35);
     transition: background 120ms ease-out, box-shadow 120ms ease-out, transform 60ms ease-out;
   }
-  .p-pill:hover:not([disabled]) { background: #FFC49A; box-shadow: 0 6px 24px rgba(0,0,0,0.50); }
-  .p-pill:active:not([disabled]) { background: #F09060; transform: translateY(1px); box-shadow: none; }
+  .p-pill:hover:not([disabled]) { background: var(--accent-hover); box-shadow: 0 6px 24px rgba(0,0,0,0.50); }
+  .p-pill:active:not([disabled]) { background: var(--accent-active); transform: translateY(1px); box-shadow: none; }
   .p-pill[disabled] { background: rgba(255,175,133,0.28); color: rgba(42,26,12,0.40); cursor: not-allowed; }
 
   /* SECONDARY · Pill — uses existing --glass-action-bg / --glass-border. */
@@ -581,7 +583,7 @@
   .p-sq {
     background: var(--accent); color: var(--accent-on); box-shadow: 0 2px 8px rgba(0,0,0,0.35);
   }
-  .p-sq:hover { background: #FFC49A; }
+  .p-sq:hover { background: var(--accent-hover); }
 
   /* CIRCLE · 44 — icon-only */
   .s-circ {
@@ -630,7 +632,7 @@
   .chip-pill:active, .s-circ:active, .s-sq:active {
     transform: scale(0.97);
   }
-  .p-sq:active { background: #F09060; transform: translateY(1px); box-shadow: none; }
+  .p-sq:active { background: var(--accent-active); transform: translateY(1px); box-shadow: none; }
 
   /* Accept / Decline plan-invite responses — v1 had zero hover or active
      feedback, so they read like static text rather than interactive
@@ -2302,8 +2304,8 @@
     white-space: nowrap;
     transition: background 0.12s ease-out, transform 0.06s ease-out, box-shadow 0.12s ease-out;
   }
-  .notif-toast-action:hover { background: #FFC49A; box-shadow: 0 4px 12px rgba(0,0,0,0.40); }
-  .notif-toast-action:active { background: #F09060; transform: translateY(1px); box-shadow: none; }
+  .notif-toast-action:hover { background: var(--accent-hover); box-shadow: 0 4px 12px rgba(0,0,0,0.40); }
+  .notif-toast-action:active { background: var(--accent-active); transform: translateY(1px); box-shadow: none; }
   .notif-toast-close {
     flex-shrink: 0;
     width: 24px;
@@ -4414,8 +4416,8 @@
     line-height: 1;
   }
 
-  .primary-pill:hover { background: #FFC49A; }
-  .primary-pill:active { background: #F09060; }
+  .primary-pill:hover { background: var(--accent-hover); }
+  .primary-pill:active { background: var(--accent-active); }
 
   .primary-pill[disabled] {
     opacity: 0.40;
@@ -8788,7 +8790,7 @@
     color: var(--accent-on, #2a1a0c);
     box-shadow: 0 2px 8px rgba(0,0,0,0.35);
   }
-  .dpacc-action-primary:hover { background: #FFC49A; }
+  .dpacc-action-primary:hover { background: var(--accent-hover); }
   .dpacc-action-icon {
     width: 30px; height: 30px;
     border-radius: 9px;
