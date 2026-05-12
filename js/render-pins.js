@@ -47,7 +47,7 @@
 //   selected > friends > hero (sun, urgency-first) > waiting > context.
 // Selected + friend pills bypass the spacing check entirely so the user
 // never "loses" their context to density rules.
-const NEAR_USER_KM     = 1.0;
+const NEAR_USER_KM     = 0.4;
 const MIN_PILL_GAP_PX  = 80;
 const ABS_OVERLAP_PX   = 14;   // sanity overlap guard inside the free zone
 
@@ -895,8 +895,12 @@ function draw() {
   // outside pills demote against any free-zone pill near them — without it,
   // a high-rank outside pill could place before a low-rank free-zone pill
   // and the free-zone one would then "always show" right on top of it.
-  // Hysteresis: pins that rendered as pills last frame get a small bonus
-  // so they keep their pill status across zoom changes (reduces flicker).
+  // Hysteresis: pins that rendered as pills last frame get a large bonus
+  // so they keep their pill status across zoom changes. Google-Maps-style
+  // initial-placement stickiness — once a venue earns a label it holds it
+  // unless something privileged (selected / friend / free-zone) crowds in.
+  // Strong enough to beat any list-rank challenger, weak enough to fold
+  // to selected (−100k), friends (−50k), and free zone (−25k).
   const _listRank = new Map();
   if (typeof _listFiltered !== 'undefined' && Array.isArray(_listFiltered)) {
     for (let i = 0; i < _listFiltered.length; i++) {
@@ -904,7 +908,7 @@ function draw() {
     }
   }
   const _FREE_ZONE_BONUS = -25000;
-  const _HYSTERESIS_BONUS = -40;
+  const _HYSTERESIS_BONUS = -5000;
   function priScore(e) {
     if (e.v.id === selectedId) return -100000;
     const rank = _listRank.get(e.v.id);
@@ -1251,7 +1255,7 @@ function draw() {
     if (labelAlpha <= 0.02) continue;
     _drawName(
       ctx, entry.pt, entry._pillRect,
-      v.name, sec,
+      shortName(v.name), sec,
       placedPills, placedNames, viewport,
       { selected: sel, force: sel || isFriend, alpha: labelAlpha },
     );
