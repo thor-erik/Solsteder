@@ -305,8 +305,15 @@ function _notifHide() {
   if (wrap) wrap.classList.remove('show');
   document.documentElement.style.setProperty('--notif-h', '0px');
   _notifCurrent = null;
-  // After hide animation, try next in queue
-  setTimeout(() => _notifAdvance(), 400);
+  // Try the next queued toast mid-fade-out (the wrap's CSS opacity
+  // transition is 300 ms). v1 waited a full 400 ms after starting
+  // fade-out, then triggered another 300 ms fade-in — total ~1 s of
+  // dead air between consecutive toasts that read as a glitch, not
+  // pacing. 150 ms hand-off interrupts the fade-out around half-way,
+  // _notifShow updates the toast contents in place (one DOM node,
+  // reused), and the .show class re-triggers the opacity transition
+  // upward → reads as a smooth morph from one toast to the next.
+  setTimeout(() => _notifAdvance(), 150);
 }
 
 // Pause auto-dismiss while a blocking overlay (e.g. full-screen login) is up.

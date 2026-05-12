@@ -613,6 +613,59 @@
   .chip-pill.is-selected { background: var(--accent-dim); border-color: rgba(255,175,133,0.35); color: var(--accent); }
   .chip-pill.is-selected .count { color: rgba(255,175,133,0.7); }
 
+  /* ── Universal pressed-state polish ───────────────────────────────────────
+     The button audit found most secondary primitives had hover states but
+     no :active — tapping them on mobile felt unresponsive. Adding a
+     unified scale(0.97) + faint background tint for press feedback. The
+     transform transition is added to each primitive's existing transition
+     list so the press → release motion stays smooth.
+     .p-pill / .p-sq already have proper pressed states (translateY + bg
+     darken), so they're excluded. Buttons with stronger semantics
+     (Accept / Decline below) keep their own state stack. */
+  .s-pill, .s-rnd, .g-rnd, .chip-pill, .s-circ, .s-sq {
+    transition: border-color 120ms ease-out, color 120ms ease-out,
+                background 120ms ease-out, transform 90ms ease-out;
+  }
+  .s-pill:active, .s-rnd:active, .g-rnd:active,
+  .chip-pill:active, .s-circ:active, .s-sq:active {
+    transform: scale(0.97);
+  }
+  .p-sq:active { background: #F09060; transform: translateY(1px); box-shadow: none; }
+
+  /* Accept / Decline plan-invite responses — v1 had zero hover or active
+     feedback, so they read like static text rather than interactive
+     buttons. Adding both states and a transition stack. */
+  .btn-accept {
+    transition: background 120ms ease-out, box-shadow 120ms ease-out, transform 90ms ease-out;
+  }
+  .btn-accept:hover {
+    background: rgba(255,175,133,0.22);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.28);
+  }
+  .btn-accept:active {
+    background: rgba(255,175,133,0.32);
+    transform: scale(0.97);
+    box-shadow: none;
+  }
+  .btn-decline {
+    transition: background 120ms ease-out, border-color 120ms ease-out, color 120ms ease-out, transform 90ms ease-out;
+  }
+  .btn-decline:hover {
+    background: rgba(20,46,82,0.45);
+    border-color: rgba(156,189,231,0.45);
+    color: var(--text);
+  }
+  .btn-decline:active {
+    transform: scale(0.97);
+  }
+
+  /* Toggle switch — v1 had no hover feedback, leaving the control
+     feeling dead until tapped. A subtle border lift on hover signals
+     interactivity without competing with the actual on/off state. */
+  .toggle-switch:hover { border-color: rgba(156,189,231,0.45); }
+  .toggle-switch.is-on:hover { border-color: rgba(255,175,133,0.85); }
+  .toggle-switch:active::after { transform: translateY(-50%) scale(1.15); }
+
   /* Card surface — thin alias of .glass-card + 12px radius for content
      blocks inside panels. */
   .card {
@@ -2215,8 +2268,10 @@
     will-change: transform, opacity;
     touch-action: pan-y;  /* swipe handler decides on horizontal */
   }
-  /* Close X is removed — swipe up/left/right dismisses, or auto-hide kicks in */
-  .notif-toast-close { display: none !important; }
+  /* Close X restored — v1 removed it in favour of swipe-only dismissal,
+     which left desktop users (no swipe gesture) and unfamiliar mobile
+     users with no clear way to dismiss. The button is small (16 px),
+     muted, and aria-labelled. Swipe still works. */
   #notif-toast.notif-dragging { transition: none !important; }
   #notif-toast.notif-dismissing {
     transition: transform 0.22s ease-out, opacity 0.22s ease-out;
@@ -2251,16 +2306,23 @@
   .notif-toast-action:active { background: #F09060; transform: translateY(1px); box-shadow: none; }
   .notif-toast-close {
     flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     background: none;
     border: none;
     color: var(--muted);
     cursor: pointer;
-    padding: 4px;
+    padding: 0;
     line-height: 1;
-    opacity: 0.6;
-    transition: opacity 0.12s;
+    opacity: 0.55;
+    border-radius: 50%;
+    transition: opacity 0.12s ease-out, background 0.12s ease-out, transform 90ms ease-out;
   }
-  .notif-toast-close:hover { opacity: 1; }
+  .notif-toast-close:hover { opacity: 1; background: rgba(255,242,235,0.08); }
+  .notif-toast-close:active { transform: scale(0.9); }
 
   /* CONTROLS */
   .control-row {
@@ -4870,7 +4932,7 @@
     border-radius: 50%;
     background: #FFF2EB;
     transform: translateY(-50%);
-    transition: left 0.16s ease, background 0.16s ease;
+    transition: left 0.16s ease, background 0.16s ease, transform 90ms ease-out;
     box-shadow: 0 1px 2px rgba(0,0,0,0.35);
   }
   .toggle-switch.is-on {
