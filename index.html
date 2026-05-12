@@ -821,11 +821,15 @@
     box-shadow: var(--glass-inset), 0 4px 20px rgba(0,0,0,0.30);
   }
   #floating-search:focus-within {
-    /* Subtle cream-tinted border lift on focus — the previous honey
-       inset highlight read as a yellow box around the input. Just
-       slightly brighter than the rest border, no inset bloom. */
+    /* Whole pill carries the focus state — modern pattern. Outer ring
+       (via box-shadow, not outline, so it picks up the pill's border-
+       radius cleanly) signals "the bar is active". Border softly
+       brightens; no honey inside the bar. */
     border-color: rgba(255, 244, 224, 0.42);
-    box-shadow: var(--glass-inset), 0 4px 20px rgba(0,0,0,0.30);
+    box-shadow:
+      0 0 0 2px rgba(245, 194, 94, 0.45),
+      var(--glass-inset),
+      0 6px 22px rgba(0,0,0,0.32);
   }
   #search-icon {
     flex-shrink: 0;
@@ -848,7 +852,15 @@
     font-size: 15px;
     color: var(--text);
   }
-  #floating-search #venue-search:focus { border: none; outline: none; }
+  /* Suppress the global :focus-visible honey outline on the input
+     itself — modern pattern is the WHOLE pill carries the focus
+     state, not a nested outline inside it. The outer pill's
+     :focus-within rule below provides the keyboard-focus signal. */
+  #floating-search #venue-search:focus,
+  #floating-search #venue-search:focus-visible {
+    border: none;
+    outline: none !important;
+  }
   /* Brighter placeholder — opacity-dimmed cream reads more cleanly on
      translucent slate than chromatic --muted. Per DESIGN.md principle 03. */
   #floating-search #venue-search::placeholder {
