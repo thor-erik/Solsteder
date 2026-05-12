@@ -37,8 +37,12 @@ async function initWeather(lat = 59.9125, lng = 10.728) {
   if (_wxFetching || Date.now() < _wxExpiry) return;
   _wxFetching = true;
   try {
+    // /complete (not /compact) carries cloud_area_fraction_{low,medium,high}
+    // and fog_area_fraction, which sunBlock depends on. /compact returns only
+    // the total cloud_area_fraction, so the layer-aware sun assessment would
+    // silently fall back to raw total cloud.
     const res = await fetch(
-      `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${lat.toFixed(4)}&lon=${lng.toFixed(4)}`,
+      `https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=${lat.toFixed(4)}&lon=${lng.toFixed(4)}`,
       { headers: { 'User-Agent': 'Solsteder/1.0 (solsteder.app)' } }
     );
     if (!res.ok) throw new Error(`HTTP ${res.status}`);

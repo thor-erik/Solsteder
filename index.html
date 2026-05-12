@@ -1986,9 +1986,11 @@
   }
   .dc-tile.sun-mid .dc-temp { color: rgba(255,210,176,0.85); }
   .dc-tile.sun-mid:hover:not(.no-data) { border-color: rgba(255,175,133,0.45); }
-  /* Mostly-overcast days: dimmed to dissuade tap (informational, not blocked) */
-  .dc-tile.sun-low     { opacity: 0.55; }
-  .dc-tile.sun-low:hover:not(.no-data) { opacity: 0.85; }
+  /* Truly overcast days: lightly faded to dissuade tap (informational, never
+     blocked). Keep opacity high enough that the tile doesn't read as broken
+     or disabled — just less inviting than a sun-touched day. */
+  .dc-tile.sun-low     { opacity: 0.75; }
+  .dc-tile.sun-low:hover:not(.no-data) { opacity: 1; }
   .dc-tile.no-data     { opacity: 0.4; }
   /* Beyond-horizon tiles: reduced-opacity glass with the same diagonal gradient — no dashed borders */
   .dc-tile.solar-only  {
