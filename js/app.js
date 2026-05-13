@@ -3276,61 +3276,77 @@ function updateDetailPanel() {
   if (typeof _updateFriendsPill === 'function') _updateFriendsPill();
 }
 
-/** Render the floating "friends going" pill above the detail panel sheet.
- *  Surfaces accepted friend RSVPs + declined-friend count for the currently
- *  selected venue + date. Hidden when no friends have responded, or when
- *  no venue is selected. Anon / non-friend responses are intentionally
- *  invisible — getDeclinedFriendsForVenue / getGoingFriendsForVenue both
- *  filter to known friends. */
-function _updateFriendsPill() {
-  const pill = document.getElementById('friends-pill');
-  if (!pill) return;
+/** Populate window._friendsPin with the data the canvas renderer needs
+ *  to draw the invite-style avatar card above the venue when its detail
+ *  panel is open and at least one friend is attending an upcoming plan.
+ *  Mirrors the structure ui-plan-preview.js builds for window._invitePin,
+ *  so render-pins.js can reuse _drawInviteAvatarPin verbatim. Cleared
+ *  when no friends are going, the panel closes, or auth is anonymous. */
+function _updateFriendsCanvasPin() {
+  const prev = (typeof window !== 'undefined') ? window._friendsPin : null;
   const dp = document.getElementById('detail-panel');
   const isOpen = dp && dp.classList.contains('open') && selectedId != null;
-  if (!isOpen) {
-    pill.classList.remove('show');
-    pill.hidden = true;
-    return;
-  }
   const dateStr = (typeof datePicker !== 'undefined' && datePicker) ? datePicker.value : null;
-  const going = (typeof getGoingFriendsForVenue === 'function')
-    ? getGoingFriendsForVenue(selectedId, dateStr) : [];
-  const declined = (typeof getDeclinedFriendsForVenue === 'function')
-    ? getDeclinedFriendsForVenue(selectedId, dateStr) : [];
-  if (!going.length && !declined.length) {
-    pill.classList.remove('show');
-    pill.hidden = true;
-    return;
+  let next = null;
+  if (isOpen && dateStr && typeof getPlansForVenue === 'function') {
+    const plans = getPlansForVenue(selectedId) || [];
+    // Pick the plan on the selected date — if multiple, prefer the one
+    // closest to the slider's current hour so the meet-time bubble lines
+    // up with what the user is looking at on the timeline.
+    const fromHour = (typeof timeFromEl !== 'undefined' && timeFromEl) ? parseFloat(timeFromEl.value) : 12;
+    const sameDate = plans.filter(p => typeof p.planned_at === 'string' && p.planned_at.slice(0, 10) === dateStr);
+    let plan = null;
+    if (sameDate.length) {
+      sameDate.sort((a, b) => {
+        const ha = new Date(a.planned_at).getHours() + new Date(a.planned_at).getMinutes() / 60;
+        const hb = new Date(b.planned_at).getHours() + new Date(b.planned_at).getMinutes() / 60;
+        return Math.abs(ha - fromHour) - Math.abs(hb - fromHour);
+      });
+      plan = sameDate[0];
+    }
+    if (plan && Array.isArray(plan._invitees)) {
+      const accepted = plan._invitees.filter(i => i.status === 'accepted' && i.user);
+      const myId = (typeof authCurrentUser === 'function' && authCurrentUser())
+        ? authCurrentUser().id : null;
+      // Filter to known friends only — random anon accepts have no name
+      // and would render as bare initials. The card is meant to surface
+      // social context, not raw RSVP counts.
+      const friendIds = new Set((typeof _friends !== 'undefined' && Array.isArray(_friends))
+        ? _friends.map(f => String(f.id)) : []);
+      const planDateMs = new Date(plan.planned_at).getTime();
+      const planHour   = new Date(plan.planned_at).getHours()
+                       + new Date(plan.planned_at).getMinutes() / 60;
+      const attendees = [];
+      for (const inv of accepted) {
+        const uid = inv.user && inv.user.id;
+        if (myId && uid && String(uid) === String(myId)) continue;
+        if (!friendIds.has(String(uid))) continue;
+        let offsetMin = 0;
+        if (inv.arrival_time) {
+          offsetMin = Math.round((new Date(inv.arrival_time).getTime() - planDateMs) / 60000);
+        }
+        attendees.push({
+          id:        uid,
+          name:      (inv.user.name || inv.user.email || '').split('@')[0],
+          offsetMin,
+        });
+      }
+      if (attendees.length) {
+        next = { venueId: selectedId, meetHour: planHour, attendees };
+      }
+    }
   }
-  const avatarsEl = pill.querySelector('.friends-pill-avatars');
-  const textEl    = pill.querySelector('.friends-pill-text');
-  if (!avatarsEl || !textEl) return;
-  // Compose avatar stack: accepted first (full color), then declined
-  // (greyed + struck-through). Cap at 4 visible to keep the pill compact.
-  const avatarHtml = (g, declinedFlag) => {
-    const init = (g.user.name || g.user.email || '?')[0].toUpperCase();
-    const cls = `friends-pill-avatar${declinedFlag ? ' declined' : ''}`;
-    return g.user.avatar_url
-      ? `<img class="${cls}" src="${g.user.avatar_url}" alt="${g.user.name || g.user.email}">`
-      : `<div class="${cls}">${init}</div>`;
-  };
-  const items = [
-    ...going.map(g => ({ html: avatarHtml(g, false), label: g.user.name || g.user.email })),
-    ...declined.map(g => ({ html: avatarHtml(g, true), label: g.user.name || g.user.email })),
-  ];
-  const visible = items.slice(0, 4);
-  const overflow = items.length - visible.length;
-  avatarsEl.innerHTML = visible.map(i => i.html).join('') +
-    (overflow > 0 ? `<div class="friends-pill-avatar">+${overflow}</div>` : '');
-  // Text: prefer count-based ("3 going", "1 going · 1 declined") so the
-  // pill reads at a glance without name-by-name parsing.
-  const parts = [];
-  if (going.length)    parts.push(t('friends_pill_going',    { count: going.length }));
-  if (declined.length) parts.push(t('friends_pill_declined', { count: declined.length }));
-  textEl.textContent = parts.join(' · ');
-  pill.hidden = false;
-  requestAnimationFrame(() => pill.classList.add('show'));
+  if (typeof window !== 'undefined') window._friendsPin = next;
+  // Trigger a redraw only when the pin's presence actually changed, so
+  // we don't thrash the canvas on every renderList tick.
+  const changed = (!!prev) !== (!!next)
+    || (prev && next && (prev.venueId !== next.venueId
+                      || prev.meetHour !== next.meetHour
+                      || prev.attendees.length !== next.attendees.length));
+  if (changed && typeof draw === 'function') draw();
 }
+// Back-compat shim: external callers still reference _updateFriendsPill.
+function _updateFriendsPill() { _updateFriendsCanvasPin(); }
 
 /** Toggle the small dot on the search-bar avatar when there are pending
  *  incoming friend requests. The full count lives in the profile panel's

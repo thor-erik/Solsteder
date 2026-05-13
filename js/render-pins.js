@@ -1140,6 +1140,14 @@ function draw() {
     return;
   }
 
+  // Friends-going pin on the venue detail page — same canvas card as the
+  // invite-flow pin, but ADDS itself rather than replacing the rest of
+  // the pin pipeline. Populated by _updateFriendsCanvasPin (app.js) when
+  // the detail panel is open and at least one friend has accepted a
+  // plan at this venue+date. Render is deferred until AFTER the main
+  // pin loop so it stacks above other pins; see the bottom of draw().
+  // (We just capture the flag here; the actual draw call sits below.)
+
   const isAuditMode = (typeof auditModeActive !== 'undefined' && auditModeActive);
 
   // ── 1. Project + classify visible venues. Friend venues bypass the
@@ -1575,6 +1583,31 @@ function draw() {
   _lastPilledIds.clear();
   for (const id of _thisFramePilledIds) _lastPilledIds.add(id);
   _scheduleAnim();
+
+  // Friends-going pin: drawn last so it stacks ABOVE other pins.
+  // Active when the detail panel is open and _updateFriendsCanvasPin
+  // (app.js) has populated window._friendsPin. Reuses the same canvas
+  // card the invite-flow uses for visual consistency.
+  const _friendsPin = (typeof window !== 'undefined') ? window._friendsPin : null;
+  if (_friendsPin) {
+    const fv = VENUES.find(v => String(v.id) === String(_friendsPin.venueId));
+    if (fv) {
+      let pt;
+      if (fv.wallSegment) {
+        const RAD = Math.PI / 180;
+        const br = fv.wallSegment.bearing * RAD;
+        const wy = fv.wallSegment.my;
+        const wx = fv.wallSegment.mx;
+        const tLat = wy + Math.cos(br) * 2 / 111320;
+        const tLng = wx + Math.sin(br) * 2 / (111320 * Math.cos(wy * RAD));
+        pt = map.project([tLng, tLat]);
+      } else {
+        pt = map.project([fv.lng, fv.lat]);
+      }
+      _drawInviteAvatarPin(ctx, pt, _friendsPin);
+    }
+  }
+
   ctx.restore();
 }
 

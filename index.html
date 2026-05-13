@@ -58,12 +58,12 @@
 <script defer src="js/weather.js?v=20260411b"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260513d"></script>
+<script defer src="js/app.js?v=20260513e"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
 <script defer src="js/render-editor.js?v=20260508a"></script>
-<script defer src="js/render-pins.js?v=20260510c"></script>
+<script defer src="js/render-pins.js?v=20260513e"></script>
 <script defer src="js/ui-shared.js?v=20260511e"></script>
 <script defer src="js/ui-list.js?v=20260510a"></script>
 <script defer src="js/admin-review.js?v=20260505a"></script>
@@ -1043,83 +1043,6 @@
     border: 2px solid var(--bg);
     pointer-events: none;
   }
-
-  /* ── Friends-going pill (floats on the map area when a venue is open) ─── */
-  .friends-pill {
-    position: fixed;
-    left: 50%;
-    /* Below the search bar (top 16 + height 46 + 14 gap = 76px) so they
-       don't overlap on desktop. On mobile the search bar is hidden
-       behind body.mobile-ui-hidden while a venue is open, but keeping
-       the same offset avoids the pill jumping when the panel reopens. */
-    top: calc(env(safe-area-inset-top, 0px) + 76px);
-    transform: translateX(-50%);
-    z-index: 950;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 12px 6px 8px;
-    border-radius: 999px;
-    background: var(--glass-panel-bg);
-    backdrop-filter: var(--glass-blur-panel);
-    -webkit-backdrop-filter: var(--glass-blur-panel);
-    box-shadow: var(--glass-inset), 0 4px 16px rgba(0,0,0,0.32);
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text);
-    white-space: nowrap;
-    pointer-events: none;
-    opacity: 0;
-    transform: translateX(-50%) translateY(8px);
-    transition: opacity 0.24s ease, transform 0.24s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  .friends-pill.show {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-    pointer-events: auto;
-  }
-  .friends-pill-avatars {
-    display: inline-flex;
-    align-items: center;
-  }
-  .friends-pill-avatars > * + * { margin-left: -6px; }
-  .friends-pill-avatar {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    border: 2px solid var(--bg);
-    background: var(--accent);
-    color: #000;
-    font-size: 11px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    object-fit: cover;
-  }
-  .friends-pill-avatar.declined {
-    background: rgba(180, 180, 180, 0.4);
-    color: var(--muted);
-    position: relative;
-  }
-  .friends-pill-avatar.declined::after {
-    content: '';
-    position: absolute;
-    left: 3px; right: 3px;
-    top: 50%;
-    height: 2px;
-    background: var(--muted);
-    transform: rotate(-22deg);
-    border-radius: 1px;
-  }
-  .friends-pill-text {
-    line-height: 1.2;
-  }
-  /* Hidden when nothing to show, or while a takeover sheet is up. */
-  .friends-pill[hidden] { display: none; }
-  body.plan-preview-active .friends-pill,
-  body.post-accept-active  .friends-pill,
-  body.invite-sheet-open   .friends-pill { display: none; }
 
   /* ── Zoom debug helper ───────────────────────────────────────────────────── */
   #zoom-debug {
@@ -10104,14 +10027,6 @@
   <!-- Profile popover — anchored below search bar -->
   <div id="profile-panel" class="glass-panel"></div>
 
-  <!-- Friends-going pill — floats above the detail panel sheet, on the
-       visible map area. Populated by _updateFriendsPill when a venue is
-       selected and at least one friend has responded to a plan for that
-       venue+date (accepted or declined). Hidden otherwise. -->
-  <div id="friends-pill" class="friends-pill" hidden>
-    <div class="friends-pill-avatars"></div>
-    <div class="friends-pill-text"></div>
-  </div>
 
   <!-- Zoom debug helper — admin-only, hidden by default -->
   <div id="zoom-debug" class="floating-card hidden" style="display:none"></div>
