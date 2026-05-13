@@ -694,9 +694,24 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     : ((typeof _fmtInviteDate === 'function' && dateStr) ? _fmtInviteDate(dateStr) : '');
   const nowH        = (typeof timeFromEl !== 'undefined' && timeFromEl) ? parseFloat(timeFromEl.value) : planHour;
   const minutesUntil = Math.max(0, Math.round((planHour - nowH) * 60));
-  const arrivalSub  = dateLabel
-    ? (minutesUntil > 0 ? `${dateLabel} · ${t('invite_hero_in_minutes', { n: minutesUntil })}` : dateLabel)
-    : '';
+  // Temperature at meet time — appended after the date so the receiver
+  // sees 'Sunday · 19°' as one read. Skipped silently when the weather
+  // data isn't available (returns null) so the row never shows a
+  // dangling separator.
+  let meetTemp = null;
+  try {
+    if (typeof getWeatherAt === 'function' && dateStr) {
+      const _wxMeet = getWeatherAt(dateStr, planHour + 0.001);
+      if (_wxMeet && Number.isFinite(_wxMeet.temp)) meetTemp = Math.round(_wxMeet.temp);
+    }
+  } catch (e) { /* ignore */ }
+  const tempChip = (meetTemp != null) ? `${meetTemp}°` : '';
+  const arrivalSubParts = [
+    dateLabel,
+    minutesUntil > 0 ? t('invite_hero_in_minutes', { n: minutesUntil }) : '',
+    tempChip,
+  ].filter(Boolean);
+  const arrivalSub = arrivalSubParts.join(' · ');
   let sunEnd = null;
   try {
     if (typeof computeSunWindows === 'function') {
@@ -967,7 +982,17 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
             scrubberEl.style.left = xPct + '%';
             if (labelEl) {
               const glyph = TIMELINE_EVENT_GLYPHS[stateAt(h)] || '';
-              labelEl.innerHTML = `<span class="dprcv-timeline-scrubber-time">${formatHour(h)}</span>${glyph}`;
+              // Temp at the scrubbed hour — appears between time and
+              // weather glyph. Silently skipped when forecast data
+              // isn't available so the label doesn't show ' · °'.
+              let tempStr = '';
+              try {
+                if (typeof getWeatherAt === 'function') {
+                  const _wx = getWeatherAt(dateStr, h + 0.001);
+                  if (_wx && Number.isFinite(_wx.temp)) tempStr = `<span class="dprcv-timeline-scrubber-temp">${Math.round(_wx.temp)}°</span>`;
+                }
+              } catch (e) { /* ignore */ }
+              labelEl.innerHTML = `<span class="dprcv-timeline-scrubber-time">${formatHour(h)}</span>${tempStr}${glyph}`;
             }
             scrubberEl.classList.add('is-active');
           };
