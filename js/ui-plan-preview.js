@@ -1165,6 +1165,11 @@ const TIMELINE_EVENT_GLYPHS = {
   cloud: `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
     <path d="M19 18H6c-2.2 0-4-1.8-4-4 0-2 1.5-3.7 3.5-4 .5-3.3 3.3-6 6.8-6 3.4 0 6.2 2.5 6.7 5.8 2.3.4 4 2.4 4 4.7 0 2.5-2 4.5-4.5 4.5z"/>
   </svg>`,
+  partly: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <circle cx="9" cy="9" r="3" fill="currentColor"/>
+    <path d="M9 2.5v1.5M9 14v1.5M2.5 9h1.5M13.5 9H15M4.5 4.5l1 1M13 13l-1-1" />
+    <path d="M21 17.5h-7a3 3 0 010-6 4 4 0 017.8.4 2.5 2.5 0 01-.8 4.9z" fill="currentColor" stroke="none"/>
+  </svg>`,
   rain: `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
     <path d="M19 13H6c-2.2 0-4-1.8-4-4 0-2 1.5-3.7 3.5-4C6 1.7 8.8-1 12.3-1c3.4 0 6.2 2.5 6.7 5.8 2.3.4 4 2.4 4 4.7 0 2.5-2 4.5-4.5 4.5z" transform="translate(0,2)"/>
     <line x1="8" y1="18" x2="6" y2="22" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
@@ -1205,8 +1210,13 @@ function _computeTimelineEvents(v, dateStr, minH, maxH) {
       .sort((a, b) => a.hour - b.hour);
   }
   const events = [];
+  // Shadow events: each gap between consecutive sun windows that falls
+  // within the meet → sundown range. Same data the bar uses for the
+  // diagonal-stripe shadow overlay, so icons land where the stripes do.
+  let sunWindowsDebug = null;
   if (typeof computeSunWindows === 'function') {
     const sw = computeSunWindows(v, dateStr);
+    sunWindowsDebug = sw;
     const wins = (sw && sw.windows) || [];
     for (let i = 0; i < wins.length - 1; i++) {
       const gapStart = wins[i].end;
@@ -1215,18 +1225,26 @@ function _computeTimelineEvents(v, dateStr, minH, maxH) {
       }
     }
   }
+  // Weather events: detect transitions across the bar's 4-band
+  // classification (clear / partly / overcast / rain). Granular enough
+  // to surface 'sun → light clouds' shifts the receiver might care
+  // about — coarser than per-hour but finer than just sun-vs-cloud.
+  const weatherSamples = [];
   if (typeof getWeatherAt === 'function') {
     const classify = (wx) => {
       if (!wx) return null;
       const rain = (wx.precip ?? wx.prec ?? 0) > 0.3;
       if (rain) return 'rain';
       const cf = wx.sunBlock ?? wx.cloud ?? 0;
-      if (cf < 0.50) return 'sun';
+      if (cf < 0.25) return 'sun';
+      if (cf < 0.75) return 'partly';
       return 'cloud';
     };
     let prevState = null;
     for (let h = Math.floor(minH); h <= Math.ceil(maxH); h++) {
-      const state = classify(getWeatherAt(dateStr, h + 0.5));
+      const wx = getWeatherAt(dateStr, h + 0.5);
+      const state = classify(wx);
+      weatherSamples.push({ h, state, cf: wx?.sunBlock ?? wx?.cloud, precip: wx?.precip ?? wx?.prec });
       if (state && prevState && state !== prevState) {
         if (h > minH + 0.1 && h < maxH - 0.1) {
           events.push({ type: 'weather', hour: h, state });
@@ -1235,6 +1253,15 @@ function _computeTimelineEvents(v, dateStr, minH, maxH) {
       if (state) prevState = state;
     }
   }
+  // Surface the raw data so debugging on a real venue shows why the
+  // icon row is (or isn't) populated. Logged once per build.
+  try {
+    console.log('[timeline-events.raw]', {
+      venue: v?.id, dateStr, minH, maxH,
+      sunWindows: sunWindowsDebug?.windows,
+      weatherSamples,
+    });
+  } catch (e) { /* never block on logging */ }
   events.sort((a, b) => a.hour - b.hour);
   // Coalesce: drop any event within 0.5 h of the previous one.
   const out = [];
