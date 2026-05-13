@@ -72,13 +72,10 @@ function openPlanPreview(opts) {
   }
 
   document.body.classList.add('plan-preview-active');
-  // Mask the timeline canvas until the worker's precise sun windows
-  // arrive — the worker callback adds .timeline-ready, fading it in.
-  // 700 ms fallback in case the worker doesn't run (offline, or sync
-  // path only). Idempotent: removing on each open ensures repeated
-  // opens re-mask while the worker recomputes.
+  // Reset the worker-done flag — the splash hide-out below waits on
+  // .timeline-ready so the user never sees the sync-fallback 'simple
+  // facing' bar before the worker-corrected version lands.
   document.body.classList.remove('timeline-ready');
-  setTimeout(() => document.body.classList.add('timeline-ready'), 700);
 
   // Stash + override selectedId so the invited venue gets the priority
   // boost in the pin renderer (priScore = -100000 for selectedId in
@@ -247,17 +244,34 @@ function openPlanPreview(opts) {
     setTimeout(() => splash.classList.add('done'), 500);
   };
   if (!_skipDive) {
-    if (_splashWaitMs > 0) {
-      setTimeout(() => {
-        _hideInviteSplash();
-        // Brief gap so the splash bg begins fading before the dive starts
-        // visually — reads as 'splash gone, now show me the place'.
-        setTimeout(_startDive, 200);
-      }, _splashWaitMs);
-    } else {
+    // Hold the splash until BOTH (a) the splash-min duration has
+    // elapsed AND (b) the worker has finished the precise sun windows
+    // (= body has .timeline-ready). Whichever lands second triggers
+    // the hide. v1 hid on min-duration only, so the user could see
+    // the sync-fallback bar briefly before the worker corrected it.
+    // 2.5 s safety cap so a broken / offline worker never strands the
+    // splash forever.
+    const _splashReleased = { value: false };
+    const _releaseSplash = () => {
+      if (_splashReleased.value) return;
+      _splashReleased.value = true;
       _hideInviteSplash();
-      _startDive();
-    }
+      setTimeout(_startDive, 200);
+    };
+    const _waitForTimelineReady = (maxMs) => new Promise(res => {
+      if (document.body.classList.contains('timeline-ready')) return res();
+      const start = performance.now();
+      const tick = () => {
+        if (document.body.classList.contains('timeline-ready')) return res();
+        if (performance.now() - start > maxMs) return res();
+        requestAnimationFrame(tick);
+      };
+      tick();
+    });
+    Promise.all([
+      new Promise(r => setTimeout(r, Math.max(0, _splashWaitMs))),
+      _waitForTimelineReady(2500),
+    ]).then(_releaseSplash);
     // Reveal the map only after Mapbox is idle for the current view — i.e.
     // the dive's tiles have rendered. Removing the gate sooner exposes the
     // canvas-overlay pins drawn against a dark empty background (the bug
@@ -1351,32 +1365,19 @@ function _computeTimelineEvents(v, dateStr, minH, maxH) {
       }
     }
   }
-  // Weather events: detect transitions across the bar's 4-band
-  // classification (clear / partly / overcast / rain). Granular enough
-  // to surface 'sun → light clouds' shifts the receiver might care
-  // about — coarser than per-hour but finer than just sun-vs-cloud.
+  // Weather-change events removed — kept the row to JUST sun/shade
+  // transitions + meet, which align exactly with the bar's visible
+  // gap boundaries. User: 'markers now literally missing the mark'
+  // — weather transitions were firing at integer hours, near (but
+  // not exactly on) gap boundaries, and competing with the
+  // sun/shade events for coalesce slots so the wrong glyph won.
+  // The bar's colored bands already convey weather visually; we
+  // don't also need icons for it. Sample log retained for debug.
   const weatherSamples = [];
   if (typeof getWeatherAt === 'function') {
-    const classify = (wx) => {
-      if (!wx) return null;
-      const rain = (wx.precip ?? wx.prec ?? 0) > 0.3;
-      if (rain) return 'rain';
-      const cf = wx.sunBlock ?? wx.cloud ?? 0;
-      if (cf < 0.25) return 'sun';
-      if (cf < 0.75) return 'partly';
-      return 'cloud';
-    };
-    let prevState = null;
     for (let h = Math.floor(minH); h <= Math.ceil(maxH); h++) {
       const wx = getWeatherAt(dateStr, h + 0.5);
-      const state = classify(wx);
-      weatherSamples.push({ h, state, cf: wx?.sunBlock ?? wx?.cloud, precip: wx?.precip ?? wx?.prec });
-      if (state && prevState && state !== prevState) {
-        if (h > minH + 0.1 && h < maxH - 0.1) {
-          events.push({ type: 'weather', hour: h, state });
-        }
-      }
-      if (state) prevState = state;
+      weatherSamples.push({ h, cf: wx?.sunBlock ?? wx?.cloud, precip: wx?.precip ?? wx?.prec });
     }
   }
   // Surface the raw data so debugging on a real venue shows why the

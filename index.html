@@ -8845,14 +8845,14 @@
     height: 14px;
   }
   .dprcv-timeline-event-tick {
-    width: 2px;
-    /* Stretched so the tick reaches the bar's top edge — reads as a
-       proper callout line from icon → bar, not a stub floating in the
-       gap. v1 was 4 px, which left a 4 px void between tick and bar. */
-    height: 10px;
+    /* Thin and softly faded — reads as a connecting hairline, not a
+       weight-bearing element. Reaches the bar's top edge but keeps
+       the breathing room above (between icon and tick) clean. */
+    width: 1px;
+    height: 8px;
     background: currentColor;
-    opacity: 0.7;
-    border-radius: 1px;
+    opacity: 0.55;
+    margin-top: 2px;
   }
   /* Meet icon at the bar's left edge — flush-left rather than centred
      so it doesn't extend off the timeline's left side. Keeps the
@@ -8933,32 +8933,10 @@
     touch-action: none;
   }
   .dprcv-timeline-canvas.card-timeline-canvas:active { cursor: grabbing; }
-  /* The accept-page bar is painted once with the sync 'fast-facing' sun
-     windows (worker still computing), then repainted once the worker
-     finishes with the precise building-shadow windows. Hide the canvas
-     for the first paint so the user only sees the corrected version;
-     .timeline-ready (set by the worker callback or a 700 ms fallback)
-     fades it in. */
   body.plan-preview-active .dprcv-timeline-canvas {
     display: block !important;
-    pointer-events: auto !important;
-    opacity: 0;
-    transition: opacity 0.22s ease;
-  }
-  body.plan-preview-active.timeline-ready .dprcv-timeline-canvas {
     opacity: 1 !important;
-  }
-  /* Event row + meet marker also fade in so the row doesn't jump in
-     before the bar lands. Tied to the same class so they reveal
-     together. */
-  body.plan-preview-active .dprcv-timeline-events,
-  body.plan-preview-active .dprcv-timeline-meet-marker {
-    opacity: 0;
-    transition: opacity 0.22s ease;
-  }
-  body.plan-preview-active.timeline-ready .dprcv-timeline-events,
-  body.plan-preview-active.timeline-ready .dprcv-timeline-meet-marker {
-    opacity: 1;
+    pointer-events: auto !important;
   }
 
   /* Attendees row — uses .card surface; layout-only here. */
