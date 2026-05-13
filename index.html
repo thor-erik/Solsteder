@@ -1154,8 +1154,13 @@
       border-radius: 12px;
       margin-bottom: 0;
     }
-    /* Move notification to very top when detail panel is open */
-    body:has(#detail-panel.open) #notif-toast-wrap {
+    /* Move notification to very top when detail panel is open OR
+       during the accept / post-accept takeover (search bar is
+       hidden during those flows so the toast has no chrome to
+       clear). */
+    body:has(#detail-panel.open) #notif-toast-wrap,
+    body.plan-preview-active #notif-toast-wrap,
+    body.post-accept-active #notif-toast-wrap {
       top: 12px;
     }
     /* Hide notif while either panel reaches fullscreen so it doesn't overlap
@@ -9443,7 +9448,7 @@
     background: currentColor;
     opacity: 0.45;
     transform-origin: right center;
-    animation: dpacc-friend-debounce 4s linear forwards;
+    animation: dpacc-friend-debounce 3s linear forwards;
   }
   @keyframes dpacc-friend-debounce {
     from { transform: scaleX(1); }
@@ -9464,14 +9469,11 @@
   }
   /* Animate bg + color when classes flip (e.g. .card → .dpacc-action-
      primary on promotion). Transform stays fast (0.05 s) so the
-     :active press feedback isn't sluggish. */
+     :active press feedback isn't sluggish. The FLIP slide for the
+     friend-card commit uses Web Animations API directly so it
+     doesn't override these CSS transitions. */
   .dpacc-action-card {
     transition: background 0.34s ease, color 0.34s ease, transform 0.05s;
-  }
-  /* When JS is mid-FLIP, the card gets .is-flipping → bump transform
-     to a real animation; cleared after the slide settles. */
-  .dpacc-action-card.is-flipping {
-    transition: transform 0.34s cubic-bezier(0.4, 0, 0.2, 1), background 0.34s ease, color 0.34s ease;
   }
   /* Primary tile — solid accent, accent-on text */
   .dpacc-action-primary {

@@ -475,7 +475,7 @@ function _renderPlansBlock(v) {
  *  the right timer. */
 const _friendRequestTimers   = new Map();
 const _committedFriendRequests = new Set();
-const FRIEND_DEBOUNCE_MS = 4000;
+const FRIEND_DEBOUNCE_MS = 3000;
 function _commitFriendRequest(inviterId) {
   // Test-token inviters are namespaced 'test-' — skip the actual
   // Supabase upsert (the fake UUID would fail the foreign key) but
@@ -526,45 +526,32 @@ function _slideOutFriendCard(cardEl) {
     const siblings = Array.from(row.children).filter(s => s !== cardEl);
     const prevRects = siblings.map(s => s.getBoundingClientRect());
     cardEl.style.display = 'none';
-    // Inverse: siblings keep their OLD pixel positions via translateX.
+    // Use Web Animations API for the FLIP — keyframe each sibling
+    // from its OLD pixel position back to its NEW one. This avoids
+    // touching the element's inline `transition` property, which
+    // would clobber the CSS background/color transitions and make
+    // the new leader's glass→accent swap snap instead of fade.
     siblings.forEach((s, i) => {
       const newRect = s.getBoundingClientRect();
       const dx = prevRects[i].left - newRect.left;
       if (Math.abs(dx) < 0.5) return;
-      s.classList.add('is-flipping');
-      // No-animation transform jump (CSS .is-flipping has the transition,
-      // but the transform property is changing FROM none → translateX(dx),
-      // and we want this assignment to NOT animate so we force a reflow
-      // before applying it. We do that by reading offsetHeight on the row
-      // after style.transition is set inline to 'none' for one frame.)
-      s.style.transition = 'none';
-      s.style.transform = `translateX(${dx}px)`;
+      if (typeof s.animate === 'function') {
+        s.animate(
+          [{ transform: `translateX(${dx}px)` }, { transform: 'translateX(0)' }],
+          { duration: 340, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'none' }
+        );
+      }
     });
-    // Force the browser to commit the inline styles.
-    row.offsetHeight;
-    // Promote new leader — add .dpacc-action-primary alongside .card so
-    // the CSS bg/color transitions animate the colour shift.
+    // Promote new leader — add .dpacc-action-primary alongside .card.
+    // CSS transitions on .dpacc-action-card handle the bg/color
+    // animation; they run in parallel with the WAAPI slide above.
     const newLead = siblings[0];
     if (newLead && newLead.classList) {
       newLead.classList.add('dpacc-action-primary');
     }
-    // Next frame: clear inline transforms — CSS transition kicks in,
-    // siblings slide to translateX(0) (their actual new positions).
-    requestAnimationFrame(() => {
-      siblings.forEach(s => {
-        s.style.transition = '';
-        s.style.transform = '';
-      });
-    });
-    // Settle: drop the FLIP class + remove the friend card from DOM.
     setTimeout(() => {
       try { cardEl.remove(); } catch (e) { /* ignore */ }
-      siblings.forEach(s => {
-        s.classList.remove('is-flipping');
-        s.style.transform = '';
-        s.style.transition = '';
-      });
-    }, 400);
+    }, 360);
   }, 220);
 }
 function _handleFriendPromptAdd(inviterId, inviterName) {
