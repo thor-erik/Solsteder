@@ -1140,15 +1140,19 @@
       right: 6px;
       width: auto;
     }
-    /* Mobile: position below search bar */
+    /* Mobile: position below search bar, centred + sized to content
+       so short messages don't get a wall of dead space on the right.
+       (v1 stretched left:6 right:6 — single-line toasts looked
+       hollow.) */
     #notif-toast-wrap {
       top: calc(12px + 46px + 8px);
-      left: 6px;
-      right: 6px;
-      transform: translateY(-20px);
+      left: 50%;
+      max-width: calc(100vw - 24px);
+      transform: translateX(-50%) translateY(-20px);
+      width: max-content;
     }
     #notif-toast-wrap.show {
-      transform: translateY(0);
+      transform: translateX(-50%) translateY(0);
     }
     #notif-toast {
       border-radius: 12px;
@@ -2355,7 +2359,9 @@
   }
   .notif-toast-icon { font-size: 20px; flex-shrink: 0; line-height: 1; }
   .notif-toast-content { flex: 1; min-width: 0; cursor: pointer; }
-  .notif-toast-body { font-size: 13px; color: var(--text); line-height: 1.3; }
+  /* Bolder + slightly bigger so notifications read as actionable
+     content, not whispered status text. */
+  .notif-toast-body { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.3; }
   /* CTA — primary pill (matches .p-pill design-system token, sized down for
      the toast). Solid accent background reads unmistakably as clickable. */
   .notif-toast-action {
@@ -9448,7 +9454,7 @@
     background: currentColor;
     opacity: 0.45;
     transform-origin: right center;
-    animation: dpacc-friend-debounce 3s linear forwards;
+    animation: dpacc-friend-debounce 2.5s linear forwards;
   }
   @keyframes dpacc-friend-debounce {
     from { transform: scaleX(1); }

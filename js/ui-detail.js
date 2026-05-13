@@ -475,7 +475,41 @@ function _renderPlansBlock(v) {
  *  the right timer. */
 const _friendRequestTimers   = new Map();
 const _committedFriendRequests = new Set();
-const FRIEND_DEBOUNCE_MS = 3000;
+const FRIEND_DEBOUNCE_MS = 2500;
+
+/** Friend-flow toast helper — bypasses _showToast so we can pass an
+ *  icon AND animate a clean swap when the user cancels mid-debounce.
+ *  v1 called _showToast on both send and cancel, which routed to
+ *  _notifShowImmediate. That function dismissed + re-showed
+ *  synchronously, so the wrap's .show class oscillated removed →
+ *  added in one tick — no exit-then-enter animation. Here we
+ *  manually remove .show first, wait for the slide-up + fade-out to
+ *  complete, then show the new toast (which slides down + fades in
+ *  via the same CSS). */
+function _friendFlowToast(iconSym, bodyKey) {
+  const fire = () => {
+    if (typeof _notifShowImmediate === 'function' &&
+        typeof _notifInitDone !== 'undefined' && _notifInitDone) {
+      _notifShowImmediate({
+        id:       'friend_flow_' + Date.now(),
+        priority: 1,
+        category: 'system',
+        icon:     iconSym,
+        bodyKey:  bodyKey,
+        _legacyDismiss: 3500,
+      });
+    } else if (typeof _showToast === 'function') {
+      _showToast(t(bodyKey));
+    }
+  };
+  const wrap = document.getElementById('notif-toast-wrap');
+  if (wrap && wrap.classList.contains('show')) {
+    wrap.classList.remove('show'); // triggers slide-up + fade-out
+    setTimeout(fire, 280);          // ~ matches CSS opacity 0.3 s + transform
+  } else {
+    fire();
+  }
+}
 function _commitFriendRequest(inviterId) {
   // Test-token inviters are namespaced 'test-' — skip the actual
   // Supabase upsert (the fake UUID would fail the foreign key) but
@@ -568,13 +602,13 @@ function _handleFriendPromptAdd(inviterId, inviterName) {
     _friendRequestTimers.delete(inviterId);
     _revertFriendCard(cardEl, inviterName);
     if (typeof _aTrack === 'function') _aTrack('invite_friend_prompt', { action: 'withdrawn' });
-    if (typeof _showToast === 'function') _showToast(t('friend_request_withdrawn'));
+    _friendFlowToast('↶', 'friend_request_withdrawn');
     return;
   }
   // First tap — optimistic UI + debounced commit.
   if (typeof _aTrack === 'function') _aTrack('invite_friend_prompt', { action: 'added' });
   _pendingFriendCard(cardEl, inviterName);
-  if (typeof _showToast === 'function') _showToast(t('friend_request_sent'));
+  _friendFlowToast('✓', 'friend_request_sent');
   const tid = setTimeout(() => {
     _friendRequestTimers.delete(inviterId);
     _committedFriendRequests.add(inviterId);
