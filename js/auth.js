@@ -61,6 +61,11 @@ function _captureAuthRestoreState() {
     area:    typeof activeArea   !== 'undefined' ? activeArea                   : '',
     sortBy:  typeof activeSortBy !== 'undefined' ? activeSortBy                 : 'distance',
     panel:   document.getElementById('panel')?.className || '',
+    // Capture the post-login intent (set by surfaces that need auth, e.g.
+    // _openInviteSheet stashing 'reopen the invite sheet for this venue'
+    // when an anon user tries to invite). _restorePreAuthState replays it
+    // after the date/time/venue have been restored.
+    intent:  (typeof window !== 'undefined') ? window._postLoginIntent : null,
     savedAt: Date.now(),
   };
 }

@@ -6030,15 +6030,44 @@ function _restorePreAuthState() {
     // Small delay: let auth state settle and list render before opening the panel
     setTimeout(() => { if (typeof selectVenue === 'function') selectVenue(saved.venueId, true); }, 300);
   }
+
+  // Replay the post-login intent (e.g. reopen the invite sheet on the
+  // venue the user was about to invite friends to). Run after the venue
+  // has had a moment to open so the invite sheet has a real selectedId
+  // to anchor against.
+  if (saved.intent && saved.intent.type === 'invite_sheet' && saved.intent.venueId != null) {
+    const wantedId = saved.intent.venueId;
+    setTimeout(() => {
+      if (typeof _openInviteSheet === 'function' && typeof authCurrentUser === 'function' && authCurrentUser()) {
+        try { _openInviteSheet(wantedId); } catch (e) { /* ignore */ }
+      }
+      if (typeof window !== 'undefined') window._postLoginIntent = null;
+    }, 700);
+  }
 }
 
 function _introCheckReady() {
   if (_introMapReady && _introGeoReady && _introDataReady && !_introRunning) {
     _introRunning = true;
-    // Skip intro animation if this is an OAuth redirect return
+    // Skip intro animation if this is an OAuth redirect return. Two
+    // detection paths: the URL still carries OAuth markers (fast path),
+    // or sessionStorage has a fresh auth-restore snapshot left by
+    // _captureAuthRestoreState (works even when Supabase already stripped
+    // the URL via history.replaceState before this code ran — a race we
+    // were losing on slower devices, sending the user back to today/now).
     const isOAuthReturn = window.location.hash.includes('access_token=') ||
                           new URLSearchParams(window.location.search).has('code');
-    if (isOAuthReturn) { _skipIntro(); _restorePreAuthState(); return; }
+    let hasFreshRestore = false;
+    try {
+      const raw = sessionStorage.getItem('solsteder_auth_restore')
+               || localStorage.getItem('solsteder_auth_restore');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        hasFreshRestore = !!(parsed && parsed.savedAt
+          && Date.now() - parsed.savedAt < _AUTH_RESTORE_TTL_MS);
+      }
+    } catch (_) {}
+    if (isOAuthReturn || hasFreshRestore) { _skipIntro(); _restorePreAuthState(); return; }
 
     // If opened via a share link, focus on that venue at the sender's time.
     // New format: #venue-name-<id>/20260420T16

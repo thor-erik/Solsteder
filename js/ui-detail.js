@@ -1343,6 +1343,13 @@ function _fmtInviteConfirm(venueName, dateStr, hour) {
  *  _isNowSend returns true and the send path swaps message + checks in. */
 function _openInviteSheet(venueId) {
   if (typeof authCurrentUser === 'function' && !authCurrentUser()) {
+    // Stash intent so _restorePreAuthState can reopen the invite sheet
+    // on the same venue after the user signs in. Without this the user
+    // gets bounced back to today / now and has to redo the whole
+    // date-time-venue flow before they can tap 'Invite friends' again.
+    if (typeof window !== 'undefined') {
+      window._postLoginIntent = { type: 'invite_sheet', venueId };
+    }
     if (typeof toggleProfilePanel === 'function') toggleProfilePanel();
     return;
   }
