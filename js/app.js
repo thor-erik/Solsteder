@@ -902,8 +902,21 @@ const sunWindowCache = new Map();
 function computeSunWindows(venue, dateStr) {
   const key = `${venue.id}-${dateStr}`;
   if (sunWindowCache.has(key)) return sunWindowCache.get(key);
-  if (!currentSunTable) currentSunTable = buildSunTable(dateStr);
-  const result = computeSunWindowsFromTable(venue, currentSunTable, { fast: !!sunWorker });
+  // currentSunTable is built for whatever date the user is currently
+  // viewing (datePicker.value). For dates OTHER than that — e.g.
+  // _findFirstSunDayAndHour scanning the next 7 days for an exit-to-
+  // explore landing — using the wrong table gives sun positions for
+  // the WRONG day. v1 cached results per dateStr but still used the
+  // stale table for the actual computation, so 'next day with sun'
+  // never picked up the real next-day sun. Build a fresh table when
+  // the requested date doesn't match the viewer's current date.
+  const viewerDate = (typeof datePicker !== 'undefined' && datePicker) ? datePicker.value : null;
+  const table = (dateStr === viewerDate && currentSunTable)
+    ? currentSunTable
+    : buildSunTable(dateStr);
+  // Also seed currentSunTable on first ever call (defensive).
+  if (!currentSunTable) currentSunTable = table;
+  const result = computeSunWindowsFromTable(venue, table, { fast: !!sunWorker });
   sunWindowCache.set(key, result);
   return result;
 }

@@ -652,15 +652,71 @@ function _handleFriendPromptDismiss(inviterId) {
   }
 }
 
-/** Post-accept share nudge — Del lenke action. Reuses _shareInviteLink with
- *  the original plan's id + plannedAt so the link points to THE same meetup
- *  rather than minting a new one. */
+/** Post-accept share nudge — Del videre action. Routing:
+ *    - User has no friends saved, OR every friend has already
+ *      accepted this plan → native share (just the link).
+ *    - Otherwise → open the invite sheet pre-filled with the plan's
+ *      venue + meet time so the user can pick specific friends.
+ *  v1 always fired native share; the invite-sheet path is a much
+ *  higher-engagement way to invite the next friend(s) to the same
+ *  plan without re-entering the venue / time. */
 function _handleShareNudgeShare(venueId) {
   const sn = (typeof window !== 'undefined') ? window._pendingShareNudge : null;
   if (typeof _aTrack === 'function') _aTrack('share_nudge', { action: 'shared' });
   if (typeof window !== 'undefined') window._pendingShareNudge = null;
   const banner = document.getElementById('share-nudge-banner');
   if (banner) banner.remove();
+
+  // Decide routing.
+  const friends = (typeof _friends !== 'undefined' && Array.isArray(_friends)) ? _friends : [];
+  let allFriendsAccepted = false;
+  if (friends.length > 0 && sn && sn.planId && typeof getPlansForVenue === 'function') {
+    try {
+      const plans = getPlansForVenue(venueId) || [];
+      const plan = plans.find(p => String(p.id) === String(sn.planId)) || plans[0];
+      if (plan && Array.isArray(plan._invitees)) {
+        const acceptedIds = new Set(plan._invitees
+          .filter(i => i.status === 'accepted' && i.user && i.user.id)
+          .map(i => String(i.user.id)));
+        const remaining = friends.filter(f => !acceptedIds.has(String(f.id)));
+        allFriendsAccepted = remaining.length === 0;
+      }
+    } catch (e) { /* ignore — fall through to native share */ }
+  }
+  const canOpenInviteSheet = friends.length > 0
+    && !allFriendsAccepted
+    && typeof _openInviteSheet === 'function';
+
+  if (canOpenInviteSheet) {
+    // Pre-fill the global date/time pickers with the plan's plannedAt
+    // so _openInviteSheet inherits the right moment. Sheet reads from
+    // datePicker.value / timeFromEl.value at open-time.
+    if (sn && sn.plannedAt && typeof datePicker !== 'undefined' && datePicker) {
+      const dt = new Date(sn.plannedAt);
+      if (!isNaN(dt.getTime())) {
+        const pad = n => String(n).padStart(2, '0');
+        const dateStr = `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
+        const hour = dt.getHours() + dt.getMinutes() / 60;
+        if (datePicker.value !== dateStr) {
+          datePicker.value = dateStr;
+          datePicker.dispatchEvent(new Event('change'));
+        }
+        if (typeof timeFromEl !== 'undefined' && timeFromEl) {
+          timeFromEl.value = hour;
+          timeFromEl.dispatchEvent(new Event('input'));
+        }
+      }
+    }
+    // Close the post-accept panel cleanly, then open the invite sheet
+    // after the slide-down — same 320 ms handoff the change-response
+    // path uses.
+    _closePostAcceptPanel({ skipExitToExplore: true });
+    setTimeout(() => {
+      try { _openInviteSheet(venueId); } catch (e) { /* ignore */ }
+    }, 320);
+    return;
+  }
+  // Fallback: native share (existing behaviour).
   if (typeof _shareInviteLink === 'function') {
     _shareInviteLink(venueId, {
       planId:    sn && sn.planId,
