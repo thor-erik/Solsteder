@@ -1210,18 +1210,23 @@ function _computeTimelineEvents(v, dateStr, minH, maxH) {
       .sort((a, b) => a.hour - b.hour);
   }
   const events = [];
-  // Shadow events: each gap between consecutive sun windows that falls
-  // within the meet → sundown range. Same data the bar uses for the
-  // diagonal-stripe shadow overlay, so icons land where the stripes do.
+  // Shadow events: every sun→shade transition within the meet → sundown
+  // range. Each sun window's END is a transition: either the start of a
+  // mid-day gap (window i → window i+1) OR the start of the late-day
+  // shadow before geographic sundown (last window → sClose). v1 only
+  // looped consecutive pairs (i < wins.length - 1) so it missed the
+  // last-window case — which is the common case for most venues (one
+  // continuous sun window that ends well before sundown, leaving a
+  // long striped tail on the bar). Iterating ALL windows mirrors the
+  // bar's own gap detection in drawTimeline.
   let sunWindowsDebug = null;
   if (typeof computeSunWindows === 'function') {
     const sw = computeSunWindows(v, dateStr);
     sunWindowsDebug = sw;
     const wins = (sw && sw.windows) || [];
-    for (let i = 0; i < wins.length - 1; i++) {
-      const gapStart = wins[i].end;
-      if (gapStart > minH + 0.1 && gapStart < maxH - 0.1) {
-        events.push({ type: 'shade', hour: gapStart });
+    for (const win of wins) {
+      if (win.end > minH + 0.1 && win.end < maxH - 0.1) {
+        events.push({ type: 'shade', hour: win.end });
       }
     }
   }
