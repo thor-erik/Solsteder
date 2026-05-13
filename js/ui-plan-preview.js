@@ -289,13 +289,8 @@ function openPlanPreview(opts) {
   });
   // Seed the locate-button cycle to 'dive' (venue icon) since the
   // plan-preview opens with the camera framed on the venue. First tap
-  // moves to 'fit'. Without this the button defaults to the user icon
-  // even though tapping won't move to the user state first.
-  const _locBtnPP = document.getElementById('locate-btn');
-  if (_locBtnPP) {
-    _locBtnPP.classList.remove('locate-state-fit', 'locate-state-user', 'locate-state-venue');
-    _locBtnPP.classList.add('locate-state-dive');
-  }
+  // moves to 'fit'. _setLocateBtnState animates the swap (push-down).
+  if (typeof _setLocateBtnState === 'function') _setLocateBtnState('dive');
 
   const overlay = _ppBuildDom(venue, opts, { planHour, animateTo, dateStr });
   document.body.appendChild(overlay);
@@ -389,10 +384,7 @@ function _planPreviewLocate() {
   else                            next = 'dive';
   _planPreviewState.locateState = next;
   if (typeof _aTrack === 'function') _aTrack('plan_preview_locate', { state: next });
-  if (btn) {
-    btn.classList.remove('locate-state-dive', 'locate-state-fit', 'locate-state-user');
-    btn.classList.add('locate-state-' + next);
-  }
+  if (typeof _setLocateBtnState === 'function') _setLocateBtnState(next);
 
   if (next === 'fit') {
     try {
@@ -550,9 +542,8 @@ function closePlanPreview(opts = {}) {
   document.body.classList.remove('plan-preview-active');
   // Drop the locate-button cycle state so the button reverts to its
   // default single-action 'fly to me' (user icon) when nothing on the
-  // map is venue-focused anymore.
-  const _locBtnCpp = document.getElementById('locate-btn');
-  if (_locBtnCpp) _locBtnCpp.classList.remove('locate-state-dive', 'locate-state-fit', 'locate-state-user', 'locate-state-venue');
+  // map is venue-focused anymore. _setLocateBtnState handles the animation.
+  if (typeof _setLocateBtnState === 'function') _setLocateBtnState(null);
   setTimeout(() => { try { st.overlay.remove(); } catch {} }, 320);
   _planPreviewState = null;
 

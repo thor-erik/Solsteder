@@ -991,6 +991,47 @@ function _updateLocationDot() {
   el.style.display = '';
 }
 
+/** Apply a new locate-cycle state to the button — swaps state classes
+ *  AND animates the icon (push-down: previous icon slides out
+ *  translateY(100%), new icon slides in from translateY(-100%)). All
+ *  callers (selectVenue / closeDetailPanel / _locateCycleForVenue /
+ *  openPlanPreview / closePlanPreview / _planPreviewLocate) go through
+ *  this so the animation is consistent across surfaces.
+ *
+ *  newState ∈ null | 'venue' | 'dive' | 'fit' | 'user'.
+ *  Maps to icon: null/fit → user, venue/dive → fit, user → venue. */
+function _setLocateBtnState(newState) {
+  const btn = document.getElementById('locate-btn');
+  if (!btn) return;
+  const iconForState = {
+    null:  'locate-icon-user',
+    venue: 'locate-icon-fit',
+    dive:  'locate-icon-fit',
+    fit:   'locate-icon-user',
+    user:  'locate-icon-venue',
+  };
+  const newIconCls = iconForState[newState || 'null'] || 'locate-icon-user';
+  btn.classList.remove('locate-state-venue', 'locate-state-dive', 'locate-state-fit', 'locate-state-user');
+  if (newState) btn.classList.add('locate-state-' + newState);
+  const prevActive = btn.querySelector('.locate-icon.is-active');
+  const newActive  = btn.querySelector('.' + newIconCls);
+  if (prevActive === newActive) return;
+  if (prevActive) {
+    prevActive.classList.add('is-leaving');
+    prevActive.classList.remove('is-active');
+    setTimeout(() => prevActive.classList.remove('is-leaving'), 280);
+  }
+  if (newActive) newActive.classList.add('is-active');
+}
+window._setLocateBtnState = _setLocateBtnState;
+// Seed the initial visible icon (user/crosshair) so the very first tap
+// animates cleanly instead of popping the icon in from nowhere.
+if (typeof document !== 'undefined') {
+  const _seed = () => _setLocateBtnState(null);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _seed);
+  else _seed();
+}
+
 function locateUser() {
   // Plan-preview takeover owns the locate button while it's active — the
   // 3-state cycle (dive ↔ fit ↔ user) is handled by _planPreviewLocate
@@ -1065,9 +1106,8 @@ function _locateCycleForVenue(venueId) {
   else if (cur === 'fit')     next = 'user';
   else                        next = 'venue';
 
+  _setLocateBtnState(next);
   if (btn) {
-    btn.classList.remove('locate-state-venue', 'locate-state-fit', 'locate-state-user');
-    btn.classList.add('locate-state-' + next);
     btn.classList.add('tracking');
     setTimeout(() => btn.classList.remove('tracking'), 1200);
   }
@@ -2978,12 +3018,9 @@ function openDetailPanel(v) {
   dp.classList.add('open');
   // Seed the locate-button cycle to 'venue' — selectVenue runs _flyToVenue
   // before this, so the camera is currently framed on the venue. First
-  // tap on locate then moves to 'fit'.
-  const _locBtnOpen = document.getElementById('locate-btn');
-  if (_locBtnOpen) {
-    _locBtnOpen.classList.remove('locate-state-fit', 'locate-state-user');
-    _locBtnOpen.classList.add('locate-state-venue');
-  }
+  // tap on locate then moves to 'fit'. _setLocateBtnState handles the
+  // animated icon swap (push-down) too.
+  _setLocateBtnState('venue');
 
   _startWindForVenue(v);
 
@@ -3082,8 +3119,7 @@ function closeDetailPanel(expandList = true) {
   if (dp) dp.classList.remove('open', 'dp-fullscreen');
   // Drop the locate-button cycle state when leaving the venue context —
   // back to single-action 'fly to me' (default user icon).
-  const _locBtnClose = document.getElementById('locate-btn');
-  if (_locBtnClose) _locBtnClose.classList.remove('locate-state-venue', 'locate-state-fit', 'locate-state-user');
+  _setLocateBtnState(null);
 
   if (isMobile()) {
     const panel = document.getElementById('panel');

@@ -786,23 +786,31 @@
   }
   /* Icon swap by cycle state — only one .locate-icon visible at a time.
      Each class represents the CURRENT camera framing, but the icon shown
-     is the NEXT action (what tapping will do). User feedback: 'the icons
-     should indicate what's going to happen when you click, not what state
-     you're in currently.' Cycle is venue → fit → user → venue, so:
-       locate-state-venue (currently at venue) → next is fit  → show FIT icon
-       locate-state-fit   (currently at fit)   → next is user → show USER icon
-       locate-state-user  (currently at user)  → next is venue→ show VENUE icon
-     Default (no locate-state class) shows the user/crosshair icon — the
-     no-context single-action 'fly to me' affordance. */
-  #locate-btn .locate-icon { display: none; }
-  #locate-btn .locate-icon-user { display: block; }
-  #locate-btn.locate-state-venue .locate-icon-user,
-  #locate-btn.locate-state-dive  .locate-icon-user,
-  #locate-btn.locate-state-fit   .locate-icon-user { display: none; }
-  #locate-btn.locate-state-venue .locate-icon-fit,
-  #locate-btn.locate-state-dive  .locate-icon-fit { display: block; }
-  #locate-btn.locate-state-fit   .locate-icon-user { display: block; }
-  #locate-btn.locate-state-user  .locate-icon-venue { display: block; }
+     is the NEXT action (what tapping will do). v1 used display:none/block
+     which couldn't animate the swap; v2 stacks all three icons absolutely
+     in the same slot and crossfades via .is-active / .is-leaving classes
+     applied by _setLocateBtnState(state). Pattern is 'push down': the
+     departing icon slides DOWN out (translateY(100%)) while the new icon
+     enters from ABOVE (translateY(-100% → 0)). */
+  #locate-btn .locate-icon {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: translateY(-100%);
+    transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.18s ease;
+    pointer-events: none;
+  }
+  #locate-btn .locate-icon.is-active {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  #locate-btn .locate-icon.is-leaving {
+    opacity: 0;
+    transform: translateY(100%);
+  }
   #locate-btn:hover {
     background: rgba(24,52,95,0.85);
     border-color: rgba(255,175,133,0.35);
@@ -8751,24 +8759,22 @@
     color: var(--muted);
     line-height: 1.25;
   }
-  .dprcv-arrival-time {
+  /* Meet-at and Sun-until use IDENTICAL typography so the two hero
+     columns mirror each other — same size, weight, line-height, and
+     tracking. Only colour differs (text vs accent) to carry the
+     semantic. User noted '21:15 has a smaller font size'; that was
+     the asymmetry. */
+  .dprcv-arrival-time,
+  .dprcv-suntil-time {
     font-size: 28px;
     font-weight: 700;
-    color: var(--text);
     line-height: 1;
     margin-top: 4px;
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.01em;
   }
-  .dprcv-suntil-time {
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--accent);
-    line-height: 1;
-    margin-top: 4px;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: -0.01em;
-  }
+  .dprcv-arrival-time { color: var(--text); }
+  .dprcv-suntil-time  { color: var(--accent); }
   .dprcv-arrival-sub,
   .dprcv-remaining {
     font-size: 12px;
@@ -8784,9 +8790,11 @@
     position: relative;
     /* Bar height + a 22 px event-row above it. Container is no longer
        overflow:hidden because the event row sits above and a thin tick
-       drops down to mark the bar position. */
+       drops down to mark the bar position. Extra 10 px top margin so
+       the event icons don't crowd the hero block above. */
     height: 62px;
     padding-top: 22px;
+    margin-top: 10px;
     border-radius: 0;
   }
   /* Event row above the bar — absolute icons positioned by left-% based
