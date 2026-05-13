@@ -475,7 +475,14 @@ function _renderPlansBlock(v) {
  *  the right timer. */
 const _friendRequestTimers   = new Map();
 const _committedFriendRequests = new Set();
-const FRIEND_DEBOUNCE_MS = 2500;
+const FRIEND_DEBOUNCE_MS = 3000;
+// SVG glyphs for the friend-flow toast — same Lucide-style 'user-plus'
+// the action card uses for 'sent', and a 'user-minus' (- instead of +
+// next to the silhouette) for the cancelled state. SVGs are passed
+// via notif.iconHtml so the toast renders proper line art rather than
+// emoji that vary by platform.
+const FRIEND_ICON_SENT      = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>';
+const FRIEND_ICON_CANCELLED = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="17" y1="11" x2="23" y2="11"/></svg>';
 
 /** Friend-flow toast helper — bypasses _showToast so we can pass an
  *  icon AND animate a clean swap when the user cancels mid-debounce.
@@ -486,7 +493,7 @@ const FRIEND_DEBOUNCE_MS = 2500;
  *  manually remove .show first, wait for the slide-up + fade-out to
  *  complete, then show the new toast (which slides down + fades in
  *  via the same CSS). */
-function _friendFlowToast(iconSym, bodyKey) {
+function _friendFlowToast(iconHtml, bodyKey) {
   const fire = () => {
     if (typeof _notifShowImmediate === 'function' &&
         typeof _notifInitDone !== 'undefined' && _notifInitDone) {
@@ -494,7 +501,7 @@ function _friendFlowToast(iconSym, bodyKey) {
         id:       'friend_flow_' + Date.now(),
         priority: 1,
         category: 'system',
-        icon:     iconSym,
+        iconHtml: iconHtml,
         bodyKey:  bodyKey,
         _legacyDismiss: 3500,
       });
@@ -602,13 +609,13 @@ function _handleFriendPromptAdd(inviterId, inviterName) {
     _friendRequestTimers.delete(inviterId);
     _revertFriendCard(cardEl, inviterName);
     if (typeof _aTrack === 'function') _aTrack('invite_friend_prompt', { action: 'withdrawn' });
-    _friendFlowToast('↶', 'friend_request_withdrawn');
+    _friendFlowToast(FRIEND_ICON_CANCELLED, 'friend_request_withdrawn');
     return;
   }
   // First tap — optimistic UI + debounced commit.
   if (typeof _aTrack === 'function') _aTrack('invite_friend_prompt', { action: 'added' });
   _pendingFriendCard(cardEl, inviterName);
-  _friendFlowToast('✓', 'friend_request_sent');
+  _friendFlowToast(FRIEND_ICON_SENT, 'friend_request_sent');
   const tid = setTimeout(() => {
     _friendRequestTimers.delete(inviterId);
     _committedFriendRequests.add(inviterId);

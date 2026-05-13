@@ -2357,7 +2357,8 @@
     transition: transform 0.22s ease-out, opacity 0.22s ease-out;
     opacity: 0;
   }
-  .notif-toast-icon { font-size: 20px; flex-shrink: 0; line-height: 1; }
+  .notif-toast-icon { font-size: 20px; flex-shrink: 0; line-height: 1; display: flex; align-items: center; }
+  .notif-toast-icon svg { width: 18px; height: 18px; display: block; }
   .notif-toast-content { flex: 1; min-width: 0; cursor: pointer; }
   /* Bolder + slightly bigger so notifications read as actionable
      content, not whispered status text. */
@@ -9454,7 +9455,7 @@
     background: currentColor;
     opacity: 0.45;
     transform-origin: right center;
-    animation: dpacc-friend-debounce 2.5s linear forwards;
+    animation: dpacc-friend-debounce 3s linear forwards;
   }
   @keyframes dpacc-friend-debounce {
     from { transform: scaleX(1); }

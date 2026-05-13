@@ -220,10 +220,12 @@ function _notifShow(notif) {
   const wrapForReset = document.getElementById('notif-toast-wrap');
   if (wrapForReset) wrapForReset.classList.remove('swipe-dismissing');
 
-  // Icon
+  // Icon — supports either an emoji/text glyph (notif.icon) OR raw SVG
+  // markup (notif.iconHtml). iconHtml wins; falls back to text.
   const iconEl = el.querySelector('.notif-toast-icon');
-  if (notif.icon) { iconEl.textContent = notif.icon; iconEl.style.display = ''; }
-  else { iconEl.style.display = 'none'; }
+  if (notif.iconHtml)     { iconEl.innerHTML = notif.iconHtml; iconEl.style.display = ''; }
+  else if (notif.icon)    { iconEl.textContent = notif.icon;  iconEl.style.display = ''; }
+  else                    { iconEl.style.display = 'none'; }
 
   // Body text — support raw text (legacy) or i18n
   const bodyEl = el.querySelector('.notif-toast-body');
