@@ -8850,20 +8850,20 @@
     background: currentColor;
     opacity: 0.5;
   }
-  /* Meet-time tick — small honey accent line at the bar's left edge,
-     dropping a few px into the bar like a pin. The bar's left edge IS
-     the meet time, so this just anchors that fact visually. Inset 13 px
-     to clear the bar's rounded left corner; tick centred on that point. */
+  /* Meet-time pill — cream vertical capsule at the bar's left edge.
+     Sits half above / half embedded in the bar so it reads as a pin
+     planted at the meeting time. Drop shadow lifts it off the bar.
+     Inset 13 px to clear the bar's rounded left corner. */
   .dprcv-timeline-meet-marker {
     position: absolute;
     top: 14px;
     left: 13px;
     transform: translateX(-50%);
-    width: 2px;
-    height: 14px;
-    background: var(--accent);
-    border-radius: 1px;
-    opacity: 0.85;
+    width: 3px;
+    height: 18px;
+    background: #FAF1DD;
+    border-radius: 1.5px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
     pointer-events: none;
     z-index: 2;
   }
