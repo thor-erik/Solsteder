@@ -8845,11 +8845,13 @@
     height: 14px;
   }
   .dprcv-timeline-event-tick {
-    /* Thin and softly faded — reads as a connecting hairline, not a
-       weight-bearing element. Reaches the bar's top edge but keeps
-       the breathing room above (between icon and tick) clean. */
+    /* Thin hairline connecting icon to bar. Height is set inline by
+       _populateTimelineEvents per event — constant 2 px padding above
+       (margin-top), variable length so the bottom always lands on the
+       bar's top edge (longer at the rounded corners, shorter in the
+       middle). User: 'padding is always the same, but the length can
+       be different'. */
     width: 1px;
-    height: 8px;
     background: currentColor;
     opacity: 0.55;
     margin-top: 2px;

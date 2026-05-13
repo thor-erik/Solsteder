@@ -1403,13 +1403,35 @@ function _computeTimelineEvents(v, dateStr, minH, maxH) {
   out.unshift({ type: 'meet', hour: minH });
   return out;
 }
-/** Populate the .dprcv-timeline-events host with icons positioned by left-%. */
+/** Populate the .dprcv-timeline-events host with icons positioned by left-%.
+ *  Stashes a ._refresh closure on the host so the worker callback can
+ *  re-run it once the precise sun windows replace the sync-fallback ones.
+ *  Without that, the events row stayed locked to the FAST/SIMPLE window
+ *  positions even though the bar itself repainted with precise data. */
 function _populateTimelineEvents(host, v, dateStr, minH, maxH) {
   host.innerHTML = '';
   if (!(maxH > minH + 0.1)) return;
   const events = _computeTimelineEvents(v, dateStr, minH, maxH);
-  // Trace what we got — surfaces test-token overrides + real-data results
-  // for quick visual debugging on preview. Strip when we're confident.
+  // Bar geometry for variable-length ticks. Padding from icon→tick is
+  // constant; tick length stretches so the tick's bottom always lands
+  // on the bar's top edge — longer at the rounded corners (x ∈ [0, R]
+  // or [W-R, W]), shorter on the flat top in the middle.
+  const barW = host.clientWidth || (host.offsetWidth || 360);
+  const BAR_R = 13;
+  const ICON_BOTTOM_Y = 14;   // icon height
+  const TICK_PADDING  = 2;    // constant gap icon→tick
+  const FLAT_TOP_Y    = 22;   // events row height — y where flat bar top sits
+  const tickLenAt = (xPx) => {
+    let barTopAtX = FLAT_TOP_Y;
+    if (xPx < BAR_R) {
+      const dx = BAR_R - xPx;
+      barTopAtX = FLAT_TOP_Y + BAR_R - Math.sqrt(Math.max(0, BAR_R * BAR_R - dx * dx));
+    } else if (xPx > barW - BAR_R) {
+      const dx = xPx - (barW - BAR_R);
+      barTopAtX = FLAT_TOP_Y + BAR_R - Math.sqrt(Math.max(0, BAR_R * BAR_R - dx * dx));
+    }
+    return Math.max(4, Math.round(barTopAtX - ICON_BOTTOM_Y - TICK_PADDING));
+  };
   try {
     console.log('[timeline-events]', {
       venue: v && v.id, dateStr, minH, maxH,
@@ -1432,9 +1454,13 @@ function _populateTimelineEvents(host, v, dateStr, minH, maxH) {
     node.className = 'dprcv-timeline-event';
     if (e.type === 'meet') node.classList.add('dprcv-timeline-event-meet');
     node.style.left = xPct + '%';
-    node.innerHTML = glyph + '<div class="dprcv-timeline-event-tick"></div>';
+    const xPx = (xPct / 100) * barW;
+    const tickH = tickLenAt(xPx);
+    node.innerHTML = glyph + `<div class="dprcv-timeline-event-tick" style="height:${tickH}px"></div>`;
     host.appendChild(node);
   }
+  // Stash for worker-callback refresh.
+  host._refresh = () => _populateTimelineEvents(host, v, dateStr, minH, maxH);
 }
 
 /** Walk-info helper — distance string + walk minutes. Returns { distLabel,
