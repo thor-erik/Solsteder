@@ -911,13 +911,33 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
             if (cf < 0.75) return 'partly';
             return 'cloud';
           };
+          // State at hour h — shade trumps weather (no sun on seating
+          // means weather doesn't matter). Test-token override checks
+          // the most recent d.events entry at/before h; real data uses
+          // computeSunWindows + getWeatherAt.
+          const stateAt = (h) => {
+            if (typeof window !== 'undefined' && Array.isArray(window._testTimelineEvents) && window._testTimelineEvents.length) {
+              const sorted = window._testTimelineEvents.slice().sort((a, b) => a.h - b.h);
+              for (let i = sorted.length - 1; i >= 0; i--) {
+                if (sorted[i].h <= h) return sorted[i].t;
+              }
+              // Fall through if h is before the first test event
+            }
+            if (typeof computeSunWindows === 'function') {
+              const sw = computeSunWindows(venue, dateStr);
+              const wins = (sw && sw.windows) || [];
+              const inSunWindow = wins.some(w => h >= w.start && h <= w.end);
+              if (!inSunWindow) return 'shade';
+            }
+            return wxKeyAt(h);
+          };
           const update = () => {
             const h = parseFloat(timeFromEl.value);
             if (!Number.isFinite(h)) return;
             const xPct = Math.max(0, Math.min(100, ((h - barMinH) / (barMaxH - barMinH)) * 100));
             scrubberEl.style.left = xPct + '%';
             if (labelEl) {
-              const glyph = TIMELINE_EVENT_GLYPHS[wxKeyAt(h)] || '';
+              const glyph = TIMELINE_EVENT_GLYPHS[stateAt(h)] || '';
               labelEl.innerHTML = `<span class="dprcv-timeline-scrubber-time">${formatHour(h)}</span>${glyph}`;
             }
             scrubberEl.classList.add('is-active');
@@ -927,14 +947,32 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
             if (timelineEl && timelineEl.contains(ev.target)) return;
             scrubberEl.classList.remove('is-active');
           };
+          // Tap vs drag — first input after pointerdown uses the slow
+          // 'slide-to-position' transition; subsequent pointermoves
+          // switch to instant tracking. Means a tap looks like a smooth
+          // glide to the tapped hour, but a drag still feels 1:1 with
+          // the finger.
+          const onCanvasDown = () => scrubberEl.classList.remove('is-dragging');
+          const onCanvasMove = (ev) => {
+            if (ev.buttons === 0 && ev.pressure === 0 && ev.pointerType !== 'touch') return;
+            scrubberEl.classList.add('is-dragging');
+          };
+          if (ftsCanvas) {
+            ftsCanvas.addEventListener('pointerdown', onCanvasDown);
+            ftsCanvas.addEventListener('pointermove', onCanvasMove);
+          }
           timeFromEl.addEventListener('input', update);
           document.addEventListener('pointerdown', onDocPointer);
-          // Chain cleanup so closePlanPreview's _cleanup() drops both.
+          // Chain cleanup so closePlanPreview's _cleanup() drops all.
           const prevCleanup = el._cleanup;
           el._cleanup = () => {
             if (prevCleanup) prevCleanup();
             timeFromEl.removeEventListener('input', update);
             document.removeEventListener('pointerdown', onDocPointer);
+            if (ftsCanvas) {
+              ftsCanvas.removeEventListener('pointerdown', onCanvasDown);
+              ftsCanvas.removeEventListener('pointermove', onCanvasMove);
+            }
           };
         }
       } catch (e) { /* never block render on event errors */ }

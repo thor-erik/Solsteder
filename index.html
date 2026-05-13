@@ -8876,10 +8876,16 @@
     height: 40px;
     pointer-events: none;
     opacity: 0;
-    transition: opacity 0.18s ease, left 0.05s linear;
+    /* Slow slide for taps (user request — clicks should slide to the
+       tapped point, not snap). .is-dragging switches to instant so the
+       pill tracks the finger during drags without lag. */
+    transition: opacity 0.18s ease, left 0.22s cubic-bezier(0.32, 0.72, 0, 1);
     z-index: 3;
   }
   .dprcv-timeline-scrubber.is-active { opacity: 1; }
+  .dprcv-timeline-scrubber.is-dragging {
+    transition: opacity 0.18s ease, left 0s linear;
+  }
   .dprcv-timeline-scrubber-pill {
     position: absolute;
     top: 0;
