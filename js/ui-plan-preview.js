@@ -72,6 +72,13 @@ function openPlanPreview(opts) {
   }
 
   document.body.classList.add('plan-preview-active');
+  // Mask the timeline canvas until the worker's precise sun windows
+  // arrive — the worker callback adds .timeline-ready, fading it in.
+  // 700 ms fallback in case the worker doesn't run (offline, or sync
+  // path only). Idempotent: removing on each open ensures repeated
+  // opens re-mask while the worker recomputes.
+  document.body.classList.remove('timeline-ready');
+  setTimeout(() => document.body.classList.add('timeline-ready'), 700);
 
   // Stash + override selectedId so the invited venue gets the priority
   // boost in the pin renderer (priScore = -100000 for selectedId in

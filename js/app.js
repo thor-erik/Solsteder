@@ -949,6 +949,9 @@ try {
     draw();
     renderList();
     if (typeof drawAllCardTimelines === 'function') drawAllCardTimelines();
+    // Reveal any plan-preview timelines that were masked while we
+    // waited for the precise windows. Idempotent.
+    document.body.classList.add('timeline-ready');
   };
 } catch (e) {
   console.warn('Web Worker unavailable (run via http:// for background computation):', e.message);
