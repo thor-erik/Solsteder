@@ -5,26 +5,21 @@
 -- fires for events that actually persisted.
 --
 -- Two triggers:
---   * plan_invites status change → 'X said yes / no to {venue}'
+--   * plan_invites status change → 'X said yes / no'
 --   * friendships insert at status=pending → 'X wants to be your friend'
---
--- Both call the same send-push function with { user_id, payload }.
--- The function signs the push with the VAPID private key (stored as a
--- Supabase secret) and POSTs to each of the recipient's push
--- subscriptions.
 --
 -- Prerequisites:
 --   1. The send-push edge function deployed:
 --        supabase functions deploy send-push --no-verify-jwt
---   2. pg_net extension enabled (for net.http_post):
---        create extension if not exists pg_net;
---   3. Settings populated with your project's function URL + anon key:
---        alter database postgres set app.send_push_url   = 'https://<project-ref>.supabase.co/functions/v1/send-push';
---        alter database postgres set app.send_push_token = '<your project anon key>';
---      (Run those once. The token is the anon key — the function was
---       deployed --no-verify-jwt so any caller with the right shape
---       reaches it, but we still send the anon key in Authorization to
---       satisfy the Supabase gateway.)
+--      (or via the Supabase Studio Functions UI with Verify JWT off)
+--   2. pg_net extension (this script enables it).
+--
+-- Note: the function URL and Bearer token are inlined into each trigger
+-- below. We tried `alter database postgres set app.send_push_url = ...`
+-- but the SQL editor's role lacks permission on hosted Supabase. Inlining
+-- is fine: both values are already public (the anon key is in the JS
+-- bundle, the function URL is the same one the client hits). If you
+-- rotate the anon key, update both occurrences below + js/auth.js.
 
 CREATE EXTENSION IF NOT EXISTS pg_net;
 
@@ -39,7 +34,6 @@ DECLARE
   v_body          text;
   v_payload       jsonb;
 BEGIN
-  -- Only fire when the status actually transitions into accepted / declined.
   IF NEW.status NOT IN ('accepted', 'declined') THEN RETURN NEW; END IF;
   IF (TG_OP = 'UPDATE') AND OLD.status = NEW.status THEN RETURN NEW; END IF;
 
@@ -71,10 +65,10 @@ BEGIN
   );
 
   PERFORM net.http_post(
-    url     := current_setting('app.send_push_url', true),
+    url     := 'https://wxalqodaeqgzahwlovnw.supabase.co/functions/v1/send-push',
     headers := jsonb_build_object(
       'Content-Type',  'application/json',
-      'Authorization', 'Bearer ' || current_setting('app.send_push_token', true)
+      'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4YWxxb2RhZXFnemFod2xvdm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxODcyNDYsImV4cCI6MjA5MTc2MzI0Nn0.RzP2Fsft1yqTt7Hg-u2t1UnGLE7FvFBoG88mKstUJgo'
     ),
     body    := v_payload
   );
@@ -114,10 +108,10 @@ BEGIN
   );
 
   PERFORM net.http_post(
-    url     := current_setting('app.send_push_url', true),
+    url     := 'https://wxalqodaeqgzahwlovnw.supabase.co/functions/v1/send-push',
     headers := jsonb_build_object(
       'Content-Type',  'application/json',
-      'Authorization', 'Bearer ' || current_setting('app.send_push_token', true)
+      'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4YWxxb2RhZXFnemFod2xvdm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxODcyNDYsImV4cCI6MjA5MTc2MzI0Nn0.RzP2Fsft1yqTt7Hg-u2t1UnGLE7FvFBoG88mKstUJgo'
     ),
     body    := v_payload
   );
