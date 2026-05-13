@@ -702,17 +702,15 @@ function _evalInviteAccepted() {
 }
 
 /**
- * Inviter-side: an invitee declined one of MY plans. Only fires when the
- * decliner is a known friend (anon / non-friend declines stay silent — the
- * inviter has no social context for them and the toast would be noise).
- * Dedupes via the same 'seen_invite_responses' map _evalInviteAccepted uses.
+ * Inviter-side: an invitee declined one of MY plans. Fires for every
+ * decliner — friend or not. Names come from the profiles join when the
+ * decliner is authenticated; anon decline rows (no joined profile) fall
+ * back to the 'attendee_someone' localized string. Dedupes via the same
+ * 'seen_invite_responses' map _evalInviteAccepted uses.
  */
 function _evalInviteDeclined() {
   if (typeof _currentUser === 'undefined' || !_currentUser) return null;
   if (typeof _plans === 'undefined' || !_plans.length) return null;
-  const friendIds = new Set((typeof _friends !== 'undefined' && Array.isArray(_friends))
-    ? _friends.map(f => String(f.id)) : []);
-  if (!friendIds.size) return null;
   const KEY = 'solsteder_seen_invite_responses';
   let seen = {};
   try { seen = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch {}
@@ -722,10 +720,13 @@ function _evalInviteDeclined() {
     if (!Array.isArray(p._invitees)) continue;
     for (const inv of p._invitees) {
       if (inv.status !== 'declined') continue;
-      if (!inv.user || !friendIds.has(String(inv.user_id))) continue;
-      const k = `${p.id}:${inv.user_id}`;
+      // Dedupe key uses the user_id when present, else the row id, so
+      // multiple anon decline rows each get their own seen-marker.
+      const inviteeKey = inv.user_id || inv.id;
+      if (!inviteeKey) continue;
+      const k = `${p.id}:${inviteeKey}`;
       if (seen[k] === 'declined') continue;
-      newDeclines.push({ plan: p, invitee: inv });
+      newDeclines.push({ plan: p, invitee: inv, dedupeKey: k });
     }
   }
   if (!newDeclines.length) return null;
@@ -733,18 +734,18 @@ function _evalInviteDeclined() {
   const venue = (typeof VENUES !== 'undefined') ? VENUES.find(x => String(x.id) === String(head.plan.venue_id)) : null;
   if (!venue) return null;
   const u = head.invitee.user || {};
-  const name = (u.name || u.email || '').split(' ')[0].split('@')[0] || '…';
+  const name = (u.name || u.email || '').split(' ')[0].split('@')[0] || t('attendee_someone');
   const extra = newDeclines.length - 1;
   const bodyKey = extra > 0 ? 'notif_invite_declined_multi' : 'notif_invite_declined_body';
   const markSeen = () => {
     try {
       const cur = JSON.parse(localStorage.getItem(KEY) || '{}');
-      for (const d of newDeclines) cur[`${d.plan.id}:${d.invitee.user_id}`] = 'declined';
+      for (const d of newDeclines) cur[d.dedupeKey] = 'declined';
       localStorage.setItem(KEY, JSON.stringify(cur));
     } catch {}
   };
   return {
-    id: 'social_invite_declined_' + head.plan.id + '_' + head.invitee.user_id,
+    id: 'social_invite_declined_' + head.dedupeKey,
     priority: 1, category: 'social',
     icon: '🙅',
     bodyKey,

@@ -1809,28 +1809,33 @@ function getPlansForVenue(venueId) {
  * Returns: [{ user: {id, name, email, avatar_url}, status: 'accepted'|'creator' }]
  */
 /**
- * Friends who DECLINED a plan at this venue on this date. Only surfaces
- * declines from people who are still in the user's `_friends` list — anon
- * declines and non-friend declines are deliberately invisible.
- * Returns: [{ user: {id, name, email, avatar_url}, status: 'declined' }]
+ * Everyone who DECLINED a plan at this venue on this date. Includes both
+ * known friends and non-friend invitees (the profiles join surfaces names
+ * for any authenticated decliner). Rows without a joined user object are
+ * surfaced too with `user: null` — callers should render those with the
+ * 'attendee_someone' fallback string. Self is excluded.
+ * Returns: [{ user: {id, name, email, avatar_url} | null, status: 'declined' }]
  */
 function getDeclinedFriendsForVenue(venueId, dateStr) {
   if (!_currentUser || !Array.isArray(_plans)) return [];
   const vid = String(venueId);
   const sameDate = (iso) => typeof iso === 'string' && iso.slice(0, 10) === dateStr;
-  const friendIds = new Set((Array.isArray(_friends) ? _friends : []).map(f => String(f.id)));
   const result = new Map();
+  let anonCount = 0;
   for (const p of _plans) {
     if (String(p.venue_id) !== vid) continue;
     if (!sameDate(p.planned_at)) continue;
     if (!Array.isArray(p._invitees)) continue;
     for (const inv of p._invitees) {
-      if (inv.status !== 'declined' || !inv.user) continue;
-      if (inv.user.id === _currentUser.id) continue;
-      // Only surface declines from known friends — random anon declines
-      // are not socially meaningful to display.
-      if (!friendIds.has(String(inv.user.id))) continue;
-      result.set(inv.user.id, { user: inv.user, status: 'declined' });
+      if (inv.status !== 'declined') continue;
+      if (inv.user && inv.user.id === _currentUser.id) continue;
+      if (inv.user && inv.user.id) {
+        result.set(inv.user.id, { user: inv.user, status: 'declined' });
+      } else {
+        // Anonymous decline (no profile join hit) — bucket under a
+        // synthetic key so multiple anon declines coexist in the map.
+        result.set(`__anon_${anonCount++}`, { user: null, status: 'declined' });
+      }
     }
   }
   return Array.from(result.values());

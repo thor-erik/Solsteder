@@ -3305,31 +3305,27 @@ function _updateFriendsCanvasPin() {
       plan = sameDate[0];
     }
     if (plan && Array.isArray(plan._invitees)) {
-      const accepted = plan._invitees.filter(i => i.status === 'accepted' && i.user);
+      const accepted = plan._invitees.filter(i => i.status === 'accepted');
       const myId = (typeof authCurrentUser === 'function' && authCurrentUser())
         ? authCurrentUser().id : null;
-      // Filter to known friends only — random anon accepts have no name
-      // and would render as bare initials. The card is meant to surface
-      // social context, not raw RSVP counts.
-      const friendIds = new Set((typeof _friends !== 'undefined' && Array.isArray(_friends))
-        ? _friends.map(f => String(f.id)) : []);
       const planDateMs = new Date(plan.planned_at).getTime();
       const planHour   = new Date(plan.planned_at).getHours()
                        + new Date(plan.planned_at).getMinutes() / 60;
       const attendees = [];
       for (const inv of accepted) {
-        const uid = inv.user && inv.user.id;
-        if (myId && uid && String(uid) === String(myId)) continue;
-        if (!friendIds.has(String(uid))) continue;
+        const u = inv.user || {};
+        if (myId && u.id && String(u.id) === String(myId)) continue;
         let offsetMin = 0;
         if (inv.arrival_time) {
           offsetMin = Math.round((new Date(inv.arrival_time).getTime() - planDateMs) / 60000);
         }
-        attendees.push({
-          id:        uid,
-          name:      (inv.user.name || inv.user.email || '').split('@')[0],
-          offsetMin,
-        });
+        // Names come from the profiles join — present for any
+        // authenticated accepter regardless of friendship. Anon paths
+        // can't reach accept (the anon CTA opens login), so this fall-
+        // through really only fires for malformed rows.
+        const name = (u.name || u.email || '').split('@')[0]
+          || (typeof t === 'function' ? t('attendee_someone') : 'Someone');
+        attendees.push({ id: u.id || null, name, offsetMin });
       }
       if (attendees.length) {
         next = { venueId: selectedId, meetHour: planHour, attendees };
