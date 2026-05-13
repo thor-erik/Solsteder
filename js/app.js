@@ -6000,6 +6000,18 @@ function _introCheckReady() {
               window._pendingFriendPrompt = { inviterId: d.u, inviterName };
             }
           }
+          // Test-token affordance: d.fp = 1 forces the friend-add card
+          // on the post-accept panel regardless of auth state / friend
+          // status / dismiss history. Lets us preview the Phase-A
+          // debounce + undo flow without needing two real accounts.
+          // Inviter ID is namespaced 'test-' so _commitFriendRequest
+          // can skip the actual Supabase upsert (would fail FK anyway).
+          if (d.fp) {
+            window._pendingFriendPrompt = {
+              inviterId:   'test-' + (d.u || 'anon'),
+              inviterName: inviterName || d.n || 'Anna',
+            };
+          }
 
           // plan_invites upsert only runs when authenticated. Anonymous users
           // see the preview but get the "Logg inn for å svare" CTA; after login,

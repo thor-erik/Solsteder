@@ -477,6 +477,10 @@ const _friendRequestTimers   = new Map();
 const _committedFriendRequests = new Set();
 const FRIEND_DEBOUNCE_MS = 4000;
 function _commitFriendRequest(inviterId) {
+  // Test-token inviters are namespaced 'test-' — skip the actual
+  // Supabase upsert (the fake UUID would fail the foreign key) but
+  // pretend everything succeeded so the UI flow still completes.
+  if (typeof inviterId === 'string' && inviterId.startsWith('test-')) return;
   if (typeof _supabase === 'undefined' || typeof authCurrentUser !== 'function' || !authCurrentUser()) return;
   return _supabase.from('friendships').upsert({
     user_id:   inviterId,
