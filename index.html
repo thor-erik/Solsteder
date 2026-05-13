@@ -8850,17 +8850,20 @@
     background: currentColor;
     opacity: 0.5;
   }
-  /* Meet-time pill — cream vertical capsule at the bar's left edge.
-     Sits half above / half embedded in the bar so it reads as a pin
-     planted at the meeting time. Drop shadow lifts it off the bar.
-     Inset 13 px to clear the bar's rounded left corner. */
+  /* Meet-time pill — cream vertical capsule sitting fully INSIDE the
+     bar. 28 px tall in a 40 px bar = 6 px breathing room top and bottom
+     so the marker reads as 'this is where the meeting falls on the bar'
+     without poking out above or below the silhouette. Drop shadow gives
+     it depth against the colored band underneath. Inset 13 px to land
+     just inside the bar's rounded left corner — same offset clears the
+     curvature so the pill doesn't crowd the bar's tip. */
   .dprcv-timeline-meet-marker {
     position: absolute;
-    top: 14px;
+    top: 28px;
     left: 13px;
     transform: translateX(-50%);
     width: 3px;
-    height: 18px;
+    height: 28px;
     background: #FAF1DD;
     border-radius: 1.5px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
