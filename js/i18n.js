@@ -366,6 +366,7 @@ const _STRINGS = {
     accepted_attending_names:        '{names} and you',
     // Invite-received hero
     invite_hero_meets:               'Meet at',
+    invite_pin_meeting_at:           'Meeting at',
     invite_hero_coming:              'Coming at',
     invite_hero_sun_until:           'Sun until',
     invite_hero_remaining:           '{h}h {m}m of sun',
@@ -838,6 +839,7 @@ const _STRINGS = {
     accepted_attending_names:        '{names} og deg',
     // Invite-received hero
     invite_hero_meets:               'Møtes',
+    invite_pin_meeting_at:           'Møtes',
     invite_hero_coming:              'Kommer kl.',
     invite_hero_sun_until:           'Sol til',
     invite_hero_remaining:           '{h}t {m}m i sol',
@@ -1257,6 +1259,7 @@ const _STRINGS = {
     accepted_attending_names:        '{names} och du',
     // Invite-received hero
     invite_hero_meets:               'Möts',
+    invite_pin_meeting_at:           'Möts',
     invite_hero_coming:              'Kommer kl.',
     invite_hero_sun_until:           'Sol till',
     invite_hero_remaining:           '{h}t {m}m i sol',
@@ -1672,6 +1675,7 @@ const _STRINGS = {
     accepted_attending_names:        '{names} og dig',
     // Invite-received hero
     invite_hero_meets:               'Mødes',
+    invite_pin_meeting_at:           'Mødes',
     invite_hero_coming:              'Kommer kl.',
     invite_hero_sun_until:           'Sol til',
     invite_hero_remaining:           '{h}t {m}m i sol',

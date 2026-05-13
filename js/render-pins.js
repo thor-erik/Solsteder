@@ -427,9 +427,11 @@ function _drawInviteAvatarPin(ctx, pt, invitePin) {
   const visible = attendees.slice(0, INVITE_MAX_ROWS);
   const overflow = Math.max(0, attendees.length - INVITE_MAX_ROWS);
   const timeStr  = (typeof _fmtTime === 'function') ? _fmtTime(invitePin.meetHour) : '';
-  // Prefix the time with a localized 'Meet at' so the header reads as a
-  // sentence ('Meeting at 18:00') rather than a bare timestamp.
-  const meetLabel = (typeof t === 'function') ? t('invite_hero_meets') : 'Meet at';
+  // Prefix the time with a localized 'Meeting at' so the header reads
+  // as a sentence ('Meeting at 18:00') rather than a bare timestamp.
+  // Distinct from the panel hero's 'Meet at' so the pin can use the
+  // continuous tense (English) without affecting the panel.
+  const meetLabel = (typeof t === 'function') ? t('invite_pin_meeting_at') : 'Meeting at';
   const headerTime = timeStr ? `${meetLabel} ${timeStr}` : '';
 
   // Measure: card width = max(rows, header) + padding. Each row's width is
