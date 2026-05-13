@@ -287,6 +287,15 @@ function openPlanPreview(opts) {
       el.style.pointerEvents = '';
     }
   });
+  // Seed the locate-button cycle to 'dive' (venue icon) since the
+  // plan-preview opens with the camera framed on the venue. First tap
+  // moves to 'fit'. Without this the button defaults to the user icon
+  // even though tapping won't move to the user state first.
+  const _locBtnPP = document.getElementById('locate-btn');
+  if (_locBtnPP) {
+    _locBtnPP.classList.remove('locate-state-fit', 'locate-state-user', 'locate-state-venue');
+    _locBtnPP.classList.add('locate-state-dive');
+  }
 
   const overlay = _ppBuildDom(venue, opts, { planHour, animateTo, dateStr });
   document.body.appendChild(overlay);
@@ -539,6 +548,11 @@ function closePlanPreview(opts = {}) {
 
   st.overlay.classList.remove('open');
   document.body.classList.remove('plan-preview-active');
+  // Drop the locate-button cycle state so the button reverts to its
+  // default single-action 'fly to me' (user icon) when nothing on the
+  // map is venue-focused anymore.
+  const _locBtnCpp = document.getElementById('locate-btn');
+  if (_locBtnCpp) _locBtnCpp.classList.remove('locate-state-dive', 'locate-state-fit', 'locate-state-user', 'locate-state-venue');
   setTimeout(() => { try { st.overlay.remove(); } catch {} }, 320);
   _planPreviewState = null;
 
@@ -757,22 +771,11 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   const sentSub = (isInvite && sentAgoFilled)
     ? sentAgoTemplate.replace('{ago}', sentAgoFilled)
     : '';
-  let topPillHtml = '';
-  if (isInvite && opts.inviterName) {
-    const firstLetter = opts.inviterName[0].toUpperCase();
-    const colorIdx = (firstLetter.charCodeAt(0) || 0) % 8;
-    const inviterAvHtml = opts.inviterAvatarUrl
-      ? `<img src="${opts.inviterAvatarUrl}" alt="">`
-      : `<div class="dpinvite-avatar-init init-color-${colorIdx}" style="width:100%;height:100%;font-size:13px;border-radius:50%">${firstLetter}</div>`;
-    topPillHtml = `
-      <div class="dprcv-top-pill">
-        <div class="dprcv-top-pill-card glass-action">
-          <div class="dprcv-top-pill-av">${inviterAvHtml}</div>
-          <span class="dprcv-top-pill-name">${inviterName}</span>
-          ${sentSub ? `<span class="dprcv-top-pill-sub">${sentSub}</span>` : ''}
-        </div>
-      </div>`;
-  }
+  // Top 'From Anna' pill — removed. The vertical avatar pin anchored
+  // to the venue already carries the inviter's avatar + name AND a
+  // spatial relationship to the meeting place, so the top pill was
+  // redundant + ambiguous ('am I Anna?'). User confirmed removal.
+  const topPillHtml = '';
 
   // Eyebrow above venue name — sentence case (was ALL-CAPS in v1). Only
   // shown when the top "From {inviter}" pill is absent (anon token), so

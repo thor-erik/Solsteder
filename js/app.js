@@ -993,10 +993,19 @@ function _updateLocationDot() {
 
 function locateUser() {
   // Plan-preview takeover owns the locate button while it's active — the
-  // 2-state behavior (fit-both ↔ zoom-user) is handled by _planPreviewLocate
+  // 3-state cycle (dive ↔ fit ↔ user) is handled by _planPreviewLocate
   // in ui-plan-preview.js, which has access to the invited venue's coords.
   if (typeof _planPreviewLocate === 'function' && typeof _planPreviewState !== 'undefined' && _planPreviewState) {
     return _planPreviewLocate();
+  }
+  // Detail-panel context: 3-state cycle venue → fit → user → venue.
+  // Same affordance as plan-preview so the locate button has the same
+  // 'where do I want the camera' semantics whenever the user is focused
+  // on a specific venue. Without this, locate was a single-shot 'fly
+  // to me' that left the venue out of frame after one tap.
+  const dpOpen = document.getElementById('detail-panel')?.classList.contains('open');
+  if (dpOpen && selectedId != null) {
+    return _locateCycleForVenue(selectedId);
   }
   if (!userLocation) return;
   _aTrack('locate_user', {});
@@ -1005,24 +1014,6 @@ function locateUser() {
   if (si && document.activeElement === si) si.blur();
   const btn = document.getElementById('locate-btn');
   if (btn) { btn.classList.add('tracking'); setTimeout(() => btn.classList.remove('tracking'), 1200); }
-  // Desktop with detail panel open: fit the selected venue + user dot together
-  // so the user can see both. The venue list (336px) + detail panel (336px)
-  // occupy the left ~720px of the viewport, so bias padding to the right.
-  if (!isMobile() && selectedId != null) {
-    const v = (typeof VENUES !== 'undefined') ? VENUES.find(x => x.id === selectedId) : null;
-    if (v && Number.isFinite(v.lat) && Number.isFinite(v.lng)) {
-      const sw = [Math.min(v.lng, userLocation.lng), Math.min(v.lat, userLocation.lat)];
-      const ne = [Math.max(v.lng, userLocation.lng), Math.max(v.lat, userLocation.lat)];
-      map.fitBounds([sw, ne], {
-        padding: { top: 96, bottom: 96, left: 720, right: 80 },
-        maxZoom: 16,
-        pitch: 0,
-        bearing: 0,
-        duration: 700,
-      });
-      return;
-    }
-  }
   // Account for the bottom panel covering part of the map: pass padding so
   // the user dot lands in the *visible* (non-occluded) portion, not the
   // viewport center. Padding shifts the camera's logical center.
@@ -1048,6 +1039,82 @@ function locateUser() {
     duration: 600,
     padding,
   });
+}
+
+// Detail-panel locate cycle: venue → fit → user → venue. Mirrors the
+// plan-preview locate behaviour so the same button has the same
+// semantics whenever a specific venue is on screen. State lives on
+// the button's class (locate-state-venue / locate-state-fit /
+// locate-state-user) so the icon swap is purely CSS-driven.
+function _locateCycleForVenue(venueId) {
+  const v = (typeof VENUES !== 'undefined') ? VENUES.find(x => x.id === venueId) : null;
+  if (!v || typeof map === 'undefined' || !map) return;
+  const btn = document.getElementById('locate-btn');
+  const hasUser = userLocation && Number.isFinite(userLocation.lat) && Number.isFinite(userLocation.lng);
+
+  // Read the current state from the button's class. Fall back to 'venue'
+  // since the detail panel always opens with the camera framed on the
+  // venue (selectVenue runs _flyToVenue before this is hit).
+  const cur = btn?.classList.contains('locate-state-fit')  ? 'fit'
+            : btn?.classList.contains('locate-state-user') ? 'user'
+            : 'venue';
+  let next;
+  if (!hasUser) {
+    next = 'venue'; // collapse to single-state when geolocation isn't available
+  } else if (cur === 'venue') next = 'fit';
+  else if (cur === 'fit')     next = 'user';
+  else                        next = 'venue';
+
+  if (btn) {
+    btn.classList.remove('locate-state-venue', 'locate-state-fit', 'locate-state-user');
+    btn.classList.add('locate-state-' + next);
+    btn.classList.add('tracking');
+    setTimeout(() => btn.classList.remove('tracking'), 1200);
+  }
+  if (typeof _aTrack === 'function') _aTrack('locate_cycle', { state: next, venue_id: venueId });
+
+  // Bottom padding accounts for the detail panel covering part of the map.
+  let bottomPad = 16;
+  if (isMobile()) {
+    const dp = document.getElementById('detail-panel');
+    if (dp && dp.classList.contains('open')) {
+      const r = dp.getBoundingClientRect();
+      if (r.top > 0 && r.top < window.innerHeight) bottomPad = window.innerHeight - r.top + 16;
+    }
+  }
+  const padding = { top: 96, bottom: bottomPad, left: 24, right: 24 };
+
+  if (next === 'fit' && hasUser) {
+    const sw = [Math.min(v.lng, userLocation.lng), Math.min(v.lat, userLocation.lat)];
+    const ne = [Math.max(v.lng, userLocation.lng), Math.max(v.lat, userLocation.lat)];
+    try {
+      map.fitBounds([sw, ne], {
+        padding: isMobile()
+          ? padding
+          : { top: 96, bottom: 96, left: 720, right: 80 },
+        maxZoom: 15.5,
+        pitch: 30,
+        bearing: 0,
+        duration: 700,
+      });
+    } catch (e) { /* ignore */ }
+    return;
+  }
+  if (next === 'user' && hasUser) {
+    try {
+      map.easeTo({
+        center: [userLocation.lng, userLocation.lat],
+        zoom: 16,
+        pitch: 45,
+        bearing: 0,
+        duration: 700,
+        padding,
+      });
+    } catch (e) { /* ignore */ }
+    return;
+  }
+  // 'venue' — re-run the same dive _flyToVenue uses on initial selection.
+  _flyToVenue(v);
 }
 
 map.on('move',    _updateLocationDot);
@@ -2909,6 +2976,14 @@ function openDetailPanel(v) {
   content.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
   dp.classList.remove('dp-fullscreen');
   dp.classList.add('open');
+  // Seed the locate-button cycle to 'venue' — selectVenue runs _flyToVenue
+  // before this, so the camera is currently framed on the venue. First
+  // tap on locate then moves to 'fit'.
+  const _locBtnOpen = document.getElementById('locate-btn');
+  if (_locBtnOpen) {
+    _locBtnOpen.classList.remove('locate-state-fit', 'locate-state-user');
+    _locBtnOpen.classList.add('locate-state-venue');
+  }
 
   _startWindForVenue(v);
 
@@ -3005,6 +3080,10 @@ function closeDetailPanel(expandList = true) {
 
   const dp = document.getElementById('detail-panel');
   if (dp) dp.classList.remove('open', 'dp-fullscreen');
+  // Drop the locate-button cycle state when leaving the venue context —
+  // back to single-action 'fly to me' (default user icon).
+  const _locBtnClose = document.getElementById('locate-btn');
+  if (_locBtnClose) _locBtnClose.classList.remove('locate-state-venue', 'locate-state-fit', 'locate-state-user');
 
   if (isMobile()) {
     const panel = document.getElementById('panel');
