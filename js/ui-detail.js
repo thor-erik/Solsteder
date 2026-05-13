@@ -536,7 +536,9 @@ function _revertFriendCard(cardEl, inviterName) {
   cardEl.removeAttribute('data-pending');
   const titleEl = cardEl.querySelector('.dpacc-action-title');
   const subEl   = cardEl.querySelector('.dpacc-action-sub');
-  if (titleEl) titleEl.textContent = t('accepted_action_add_friend', { name: inviterName || '' });
+  if (titleEl) titleEl.textContent = inviterName
+    ? t('accepted_action_add_friend',      { name: inviterName })
+    : t('accepted_action_add_friend_anon');
   if (subEl)   subEl.textContent   = t('accepted_action_add_friend_sub');
 }
 function _pendingFriendCard(cardEl, inviterName) {
@@ -544,7 +546,9 @@ function _pendingFriendCard(cardEl, inviterName) {
   cardEl.setAttribute('data-pending', '1');
   const titleEl = cardEl.querySelector('.dpacc-action-title');
   const subEl   = cardEl.querySelector('.dpacc-action-sub');
-  if (titleEl) titleEl.textContent = t('accepted_action_add_friend_done', { name: inviterName || '' });
+  if (titleEl) titleEl.textContent = inviterName
+    ? t('accepted_action_add_friend_done',      { name: inviterName })
+    : t('accepted_action_add_friend_done_anon');
   if (subEl)   subEl.textContent   = t('accepted_action_add_friend_undo');
 }
 /** Three-phase slide-out for the committed friend card. Used after
@@ -919,7 +923,13 @@ function _openPostAcceptPanel(opts) {
   const sn = (typeof window !== 'undefined') ? window._pendingShareNudge : null;
   const inviterName = (fp && fp.inviterName) || opts.inviterName || '';
   const inviterId   = (fp && fp.inviterId)   || opts.inviterId   || null;
-  const showAddFriend = !!(fp && fp.inviterId && fp.inviterName);
+  // Gate the friend card on the inviter id only — the name is best-effort
+  // (profile lookup may fail under stricter RLS or transient errors), so
+  // dropping the card when it's missing surprises users who expected to
+  // see an Add Friend option. User-reported: 'In her confirmation page
+  // she also did not get the option to add me as a friend.' Card title
+  // falls back to a name-less string when inviterName is empty.
+  const showAddFriend = !!(fp && fp.inviterId);
   const showShare     = !!(sn && String(sn.venueId) === String(opts.venueId));
 
   // Subtitle: drop the redundant {arrivalDate} segment — whenLabel
@@ -1088,7 +1098,11 @@ function _renderAcceptedActionCard(type, opts) {
     sub   = titleStr('accepted_action_open_sub');
     iconSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
   } else if (type === 'add_friend') {
-    title = titleStr('accepted_action_add_friend', { name: opts.inviterName || '' });
+    // Name-less fallback when the inviter's profile lookup didn't give
+    // us a name. Avoids rendering 'Add ' with a dangling space.
+    title = opts.inviterName
+      ? titleStr('accepted_action_add_friend', { name: opts.inviterName })
+      : titleStr('accepted_action_add_friend_anon');
     sub   = titleStr('accepted_action_add_friend_sub');
     iconSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>`;
   } else if (type === 'share') {
