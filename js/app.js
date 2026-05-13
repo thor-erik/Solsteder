@@ -5921,6 +5921,11 @@ function _introCheckReady() {
             window._testAttendeesNames = null;
             window._testAttendeesOffsets = null;
           }
+          // Timeline-events override: array of {t, h} pairs that bypass
+          // the real sun-windows + weather computation and seed the
+          // event row above the accept-page timeline with a known
+          // sequence. t ∈ 'shade' | 'sun' | 'cloud' | 'rain'.
+          window._testTimelineEvents = Array.isArray(d.events) ? d.events : null;
 
           // Stash friend-add prompt for the post-Lukk detail panel render
           // (only meaningful when logged in — friendships are user-scoped).

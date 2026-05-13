@@ -1199,6 +1199,20 @@ const TIMELINE_EVENT_GLYPHS = {
  *  Adjacent events within ~30 min get coalesced (keep the earlier one)
  *  so the row doesn't pile up. */
 function _computeTimelineEvents(v, dateStr, minH, maxH) {
+  // Test-token override: skip all real computation and use the supplied
+  // sequence directly. Lets us preview the event row at varying weather
+  // / shade densities without seeding actual venue or weather data.
+  if (typeof window !== 'undefined' && Array.isArray(window._testTimelineEvents) && window._testTimelineEvents.length) {
+    return window._testTimelineEvents
+      .filter(e => e && Number.isFinite(e.h) && e.h > minH + 0.05 && e.h < maxH - 0.05)
+      .map(e => {
+        const type = (e.t === 'shade') ? 'shade' : 'weather';
+        const out = { type, hour: e.h };
+        if (type === 'weather') out.state = e.t;
+        return out;
+      })
+      .sort((a, b) => a.hour - b.hour);
+  }
   const events = [];
   if (typeof computeSunWindows === 'function') {
     const sw = computeSunWindows(v, dateStr);
