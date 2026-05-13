@@ -8782,14 +8782,45 @@
      Drag handlers in JS update timeFromEl, which re-fires the painter. */
   .dprcv-timeline {
     position: relative;
-    height: 40px;
-    border-radius: 13px;
-    overflow: hidden;
+    /* Bar height + a 22 px event-row above it. Container is no longer
+       overflow:hidden because the event row sits above and a thin tick
+       drops down to mark the bar position. */
+    height: 62px;
+    padding-top: 22px;
+    border-radius: 0;
+  }
+  /* Event row above the bar — absolute icons positioned by left-% based
+     on (eventHour - minH) / (maxH - minH). Each .dprcv-timeline-event
+     centres itself on its anchor and trails a thin tick to the bar top
+     so the spatial relationship is unambiguous. */
+  .dprcv-timeline-events {
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 22px;
+    pointer-events: none;
+  }
+  .dprcv-timeline-event {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: var(--text);
+    opacity: 0.85;
+  }
+  .dprcv-timeline-event svg { display: block; }
+  .dprcv-timeline-event-tick {
+    width: 1px;
+    height: 4px;
+    background: currentColor;
+    opacity: 0.5;
   }
   .dprcv-timeline-canvas.card-timeline-canvas {
     width: 100%;
-    height: 100%;
+    height: 40px;
     display: block;
+    border-radius: 13px;
     cursor: grab;
     touch-action: none;
   }

@@ -841,6 +841,10 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
           </div>
         </div>
         <div class="dprcv-timeline">
+          <!-- Event row rides above the bar; populated by JS after layout
+               with shade/weather glyphs at their x-positions (computed
+               from minH=meet time, maxH=sundown). -->
+          <div class="dprcv-timeline-events" data-vid="${venue.id}"></div>
           <canvas class="card-timeline-canvas dprcv-timeline-canvas" data-vid="${venue.id}" width="600" height="40"></canvas>
         </div>
       </div>
@@ -863,6 +867,23 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   const ftsCanvas = el.querySelector('.dprcv-timeline-canvas');
   if (ftsCanvas && typeof window._wireInlineFtsCanvas === 'function') {
     window._wireInlineFtsCanvas(ftsCanvas);
+  }
+
+  // Populate the event row above the timeline with shade / weather-change
+  // glyphs anchored at their hour positions. Computed from the same data
+  // sources the bar uses, so they always agree.
+  const eventsHost = el.querySelector('.dprcv-timeline-events');
+  if (eventsHost) {
+    requestAnimationFrame(() => {
+      try {
+        const sundownH = (typeof findSunCrossingFromTable === 'function' && typeof currentSunTable !== 'undefined' && currentSunTable)
+          ? findSunCrossingFromTable(currentSunTable, false)
+          : (typeof MAX_H_ARC !== 'undefined' ? MAX_H_ARC : 22);
+        const minH = planHour;
+        const maxH = sundownH || (planHour + 4);
+        _populateTimelineEvents(eventsHost, venue, dateStr, minH, maxH);
+      } catch (e) { /* never block render on event errors */ }
+    });
   }
 
   // Tap-to-close on the handle area. Drag-to-dismiss is wired separately in
@@ -1125,6 +1146,115 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   };
 
   return el;
+}
+
+// ── Timeline event glyphs ────────────────────────────────────────────────────
+// Small icons drawn above the accept-page sun-timeline at the hour the event
+// happens (shade falling on the seating area, weather changing, etc.). The
+// shade glyph is a high-res reproduction of the user's sketch — solid left
+// semicircle + diagonal stripes filling the right semicircle. Same metaphor
+// the timeline bar uses for shadow gaps, surfaced as a discrete icon.
+const TIMELINE_EVENT_GLYPHS = {
+  shade: `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <defs>
+      <clipPath id="shade-clip-right"><path d="M12 2 A10 10 0 0 1 12 22 Z"/></clipPath>
+    </defs>
+    <path d="M12 2 A10 10 0 0 0 12 22 Z"/>
+    <g clip-path="url(#shade-clip-right)">
+      <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <g stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none">
+        <line x1="2" y1="20" x2="20" y2="2"/>
+        <line x1="6" y1="22" x2="22" y2="6"/>
+        <line x1="10" y1="24" x2="24" y2="10"/>
+        <line x1="14" y1="24" x2="24" y2="14"/>
+        <line x1="18" y1="24" x2="24" y2="18"/>
+      </g>
+    </g>
+  </svg>`,
+  cloud: `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M19 18H6c-2.2 0-4-1.8-4-4 0-2 1.5-3.7 3.5-4 .5-3.3 3.3-6 6.8-6 3.4 0 6.2 2.5 6.7 5.8 2.3.4 4 2.4 4 4.7 0 2.5-2 4.5-4.5 4.5z"/>
+  </svg>`,
+  rain: `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M19 13H6c-2.2 0-4-1.8-4-4 0-2 1.5-3.7 3.5-4C6 1.7 8.8-1 12.3-1c3.4 0 6.2 2.5 6.7 5.8 2.3.4 4 2.4 4 4.7 0 2.5-2 4.5-4.5 4.5z" transform="translate(0,2)"/>
+    <line x1="8" y1="18" x2="6" y2="22" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    <line x1="12" y1="18" x2="10" y2="22" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    <line x1="16" y1="18" x2="14" y2="22" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+  </svg>`,
+  sun: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="4" fill="currentColor"/>
+    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+  </svg>`,
+};
+/** Compute event timestamps (hour, type) for the accept-page timeline.
+ *  Range is [minH, maxH] (meet time → sundown). Returns chronological
+ *  array of {type, hour, label?} entries.
+ *
+ *  Events surfaced:
+ *    - 'shade' at each shadow-window start within range (seating goes
+ *      into shade, per computeSunWindows gap boundaries)
+ *    - 'weather' at hours where adjacent-hour weather transitions
+ *      between clear / cloud / rain bands (one icon per transition,
+ *      icon = the NEW state)
+ *
+ *  Adjacent events within ~30 min get coalesced (keep the earlier one)
+ *  so the row doesn't pile up. */
+function _computeTimelineEvents(v, dateStr, minH, maxH) {
+  const events = [];
+  if (typeof computeSunWindows === 'function') {
+    const sw = computeSunWindows(v, dateStr);
+    const wins = (sw && sw.windows) || [];
+    for (let i = 0; i < wins.length - 1; i++) {
+      const gapStart = wins[i].end;
+      if (gapStart > minH + 0.1 && gapStart < maxH - 0.1) {
+        events.push({ type: 'shade', hour: gapStart });
+      }
+    }
+  }
+  if (typeof getWeatherAt === 'function') {
+    const classify = (wx) => {
+      if (!wx) return null;
+      const rain = (wx.precip ?? wx.prec ?? 0) > 0.3;
+      if (rain) return 'rain';
+      const cf = wx.sunBlock ?? wx.cloud ?? 0;
+      if (cf < 0.50) return 'sun';
+      return 'cloud';
+    };
+    let prevState = null;
+    for (let h = Math.floor(minH); h <= Math.ceil(maxH); h++) {
+      const state = classify(getWeatherAt(dateStr, h + 0.5));
+      if (state && prevState && state !== prevState) {
+        if (h > minH + 0.1 && h < maxH - 0.1) {
+          events.push({ type: 'weather', hour: h, state });
+        }
+      }
+      if (state) prevState = state;
+    }
+  }
+  events.sort((a, b) => a.hour - b.hour);
+  // Coalesce: drop any event within 0.5 h of the previous one.
+  const out = [];
+  for (const e of events) {
+    if (out.length && (e.hour - out[out.length - 1].hour) < 0.5) continue;
+    out.push(e);
+  }
+  return out;
+}
+/** Populate the .dprcv-timeline-events host with icons positioned by left-%. */
+function _populateTimelineEvents(host, v, dateStr, minH, maxH) {
+  host.innerHTML = '';
+  if (!(maxH > minH + 0.1)) return;
+  const events = _computeTimelineEvents(v, dateStr, minH, maxH);
+  for (const e of events) {
+    const xPct = ((e.hour - minH) / (maxH - minH)) * 100;
+    if (xPct < 2 || xPct > 98) continue; // skip edges
+    const glyphKey = e.type === 'shade' ? 'shade' : (e.state || 'sun');
+    const glyph = TIMELINE_EVENT_GLYPHS[glyphKey] || TIMELINE_EVENT_GLYPHS.shade;
+    const node = document.createElement('div');
+    node.className = 'dprcv-timeline-event';
+    node.style.left = xPct + '%';
+    node.innerHTML = glyph + '<div class="dprcv-timeline-event-tick"></div>';
+    host.appendChild(node);
+  }
 }
 
 /** Walk-info helper — distance string + walk minutes. Returns { distLabel,
