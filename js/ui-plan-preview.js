@@ -888,6 +888,24 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
       if (ctaRow && ctaRow.parentNode) {
         ctaRow.parentNode.insertBefore(laterStrip, ctaRow);
       }
+      // Capture the suggest button's initial label text so 'tap again
+      // to deselect' can restore it. The label span is the second text
+      // node — querySelector('span') is robust to either layout.
+      const labelSpan = suggestBtn.querySelector('span');
+      const suggestDefaultLabel = labelSpan ? labelSpan.textContent : '';
+      // The hero label sits in .dprcv-hero-left → first .dprcv-hero-label.
+      const heroLabelEl = el.querySelector('.dprcv-hero-left .dprcv-hero-label');
+      const meetLabel   = t('invite_hero_meets');
+      const comingLabel = t('invite_hero_coming');
+      const resetArrival = () => {
+        arrivalHour = planHour;
+        arrivalSelected = false;
+        const lbl = el.querySelector('#pp-arrival-time');
+        if (lbl) lbl.textContent = planTimeStr;
+        if (heroLabelEl) heroLabelEl.textContent = meetLabel;
+        if (labelSpan) labelSpan.textContent = suggestDefaultLabel;
+        laterStrip.querySelectorAll('.pp-later-chip').forEach(c => c.classList.remove('is-selected'));
+      };
       suggestBtn.onclick = (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -896,14 +914,25 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
       laterStrip.addEventListener('click', (ev) => {
         const chip = ev.target.closest('[data-offset-min]');
         if (!chip) return;
+        // Tap-the-selected-chip-to-deselect: restores Meet at + plan time
+        // and clears the offset state. Without this, once a user picked
+        // a chip they had no way back to the original meet time.
+        if (chip.classList.contains('is-selected')) {
+          resetArrival();
+          laterStrip.classList.remove('open');
+          return;
+        }
         const offsetMin = parseInt(chip.dataset.offsetMin, 10);
         arrivalHour = planHour + (offsetMin / 60);
         arrivalSelected = true;
         const lbl = el.querySelector('#pp-arrival-time');
         if (lbl) lbl.textContent = formatHour(arrivalHour);
+        // Swap the hero label from 'Meet at' → 'Coming at' so the
+        // receiver-side wording reflects that they're arriving late
+        // relative to the meet time (and the inviter sees this too).
+        if (heroLabelEl) heroLabelEl.textContent = comingLabel;
         // Mirror the chosen offset in the suggest button label so the
         // user sees what's currently picked at a glance.
-        const labelSpan = suggestBtn.querySelector('span');
         if (labelSpan) labelSpan.textContent = chip.textContent;
         // Surface the active selection by keeping the chip accented —
         // when the user re-opens the strip they can see which offset
