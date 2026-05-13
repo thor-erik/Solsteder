@@ -538,6 +538,9 @@ function _ppWireDragHandle(overlay) {
 function closePlanPreview(opts = {}) {
   const st = _planPreviewState;
   if (!st) return;
+  // Drop the hero-refresh hook so the worker callback doesn't try to
+  // mutate the now-detached DOM after the takeover closes.
+  if (typeof window !== 'undefined') window._refreshAcceptPageHero = null;
   if (st.rafId) cancelAnimationFrame(st.rafId);
   if (Array.isArray(st.timeouts)) {
     for (const tref of st.timeouts) { if (tref && tref.id != null) clearTimeout(tref.id); }
@@ -694,22 +697,12 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     : ((typeof _fmtInviteDate === 'function' && dateStr) ? _fmtInviteDate(dateStr) : '');
   const nowH        = (typeof timeFromEl !== 'undefined' && timeFromEl) ? parseFloat(timeFromEl.value) : planHour;
   const minutesUntil = Math.max(0, Math.round((planHour - nowH) * 60));
-  // Temperature at meet time — appended after the date so the receiver
-  // sees 'Sunday · 19°' as one read. Skipped silently when the weather
-  // data isn't available (returns null) so the row never shows a
-  // dangling separator.
-  let meetTemp = null;
-  try {
-    if (typeof getWeatherAt === 'function' && dateStr) {
-      const _wxMeet = getWeatherAt(dateStr, planHour + 0.001);
-      if (_wxMeet && Number.isFinite(_wxMeet.temp)) meetTemp = Math.round(_wxMeet.temp);
-    }
-  } catch (e) { /* ignore */ }
-  const tempChip = (meetTemp != null) ? `${meetTemp}°` : '';
+  // Left subtitle (under Meet at): just the day + (optionally) 'in X
+  // min' for upcoming meets. Temp moved to the right side per user
+  // request — pairs better with the sun-related info.
   const arrivalSubParts = [
     dateLabel,
     minutesUntil > 0 ? t('invite_hero_in_minutes', { n: minutesUntil }) : '',
-    tempChip,
   ].filter(Boolean);
   const arrivalSub = arrivalSubParts.join(' · ');
   let sunEnd = null;
@@ -727,13 +720,37 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   // down at' so the time shown reads as a *past* sundown moment, not
   // as 'sun ends at the meeting time'. Subtext shows how long ago.
   const isAfterSundown = (sunEnd != null && sunEnd <= planHour);
+  // Temperature at meet time for the right subtitle.
+  let meetTemp = null;
+  try {
+    if (typeof getWeatherAt === 'function' && dateStr) {
+      const _wxMeet = getWeatherAt(dateStr, planHour + 0.001);
+      if (_wxMeet && Number.isFinite(_wxMeet.temp)) meetTemp = Math.round(_wxMeet.temp);
+    }
+  } catch (e) { /* ignore */ }
+  // Right subtitle reads: '☀ 11h 15m · 21°' (sun glyph + duration of
+  // sun remaining + temp at meet time). User: 'sun icon then amount
+  // of sun then · 21° (ie. remove "of sun")'. Build the duration part
+  // inline so we don't have to fork the i18n keys to drop the ' of
+  // sun' suffix — keeps the no/se/dk translations untouched.
+  const _hSuf = (typeof t === 'function') ? (t('unit_h_short') || 't') : 't';
+  const _durOnly = (rem) => {
+    const h = Math.floor(rem);
+    const m = Math.max(0, Math.round((rem - h) * 60));
+    if (h > 0 && m > 0) return `${h}${_hSuf} ${m}m`;
+    if (h > 0) return `${h}${_hSuf}`;
+    return `${m}m`;
+  };
   let remainingStr = '';
   if (sunEnd != null) {
     const rem = sunEnd - planHour;
     if (rem > 0) {
-      const h = Math.floor(rem);
-      const m = Math.max(0, Math.round((rem - h) * 60));
-      remainingStr = t('invite_hero_remaining', { h, m });
+      // Sun glyph + duration; temp appended after a middot when available.
+      const sunGlyph = (typeof TIMELINE_EVENT_GLYPHS !== 'undefined' && TIMELINE_EVENT_GLYPHS.sun)
+        ? TIMELINE_EVENT_GLYPHS.sun : '';
+      const parts = [`<span class="dprcv-remaining-glyph">${sunGlyph}</span><span>${_durOnly(rem)}</span>`];
+      if (meetTemp != null) parts.push(`<span>${meetTemp}°</span>`);
+      remainingStr = parts.join(' · ');
     } else if (isAfterSundown) {
       const gone = planHour - sunEnd;
       if (gone < 1) {
@@ -926,6 +943,46 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     window._wireInlineFtsCanvas(ftsCanvas, { minH: barMinH, maxH: barMaxH });
   }
 
+  // Hero refresh — recompute sunEnd/duration/temperature against the
+  // (possibly worker-corrected) cache and update the right-side
+  // subtitle. v1 captured these once during DOM build, so when the
+  // worker corrected the sun windows the bar repainted but the
+  // 'Sun until 20:40 / 11h 15m / 21°' strings stayed stuck on the
+  // sync-fallback values. Stashed on window so the app.js worker
+  // callback can call it.
+  const _refreshHero = () => {
+    let _sunEnd = null;
+    try {
+      if (typeof computeSunWindows === 'function') {
+        const sw2 = computeSunWindows(venue, dateStr);
+        const ws2 = sw2 && sw2.windows ? sw2.windows : [];
+        if (ws2.length) _sunEnd = ws2[ws2.length - 1].end;
+      }
+    } catch (e) { /* ignore */ }
+    const suntilEl = el.querySelector('.dprcv-suntil-time');
+    const remainingHost = el.querySelector('.dprcv-hero-right .dprcv-remaining');
+    const heroLabel = el.querySelector('.dprcv-hero-right .dprcv-hero-label');
+    if (suntilEl) suntilEl.textContent = (_sunEnd != null) ? formatHour(_sunEnd) : '—';
+    const _isAfter = (_sunEnd != null && _sunEnd <= planHour);
+    if (heroLabel) heroLabel.textContent = t(_isAfter ? 'invite_hero_sun_went_down' : 'invite_hero_sun_until');
+    if (remainingHost && _sunEnd != null) {
+      const rem = _sunEnd - planHour;
+      if (rem > 0) {
+        const sunGlyph = (typeof TIMELINE_EVENT_GLYPHS !== 'undefined' && TIMELINE_EVENT_GLYPHS.sun) ? TIMELINE_EVENT_GLYPHS.sun : '';
+        let tempNow = null;
+        try {
+          if (typeof getWeatherAt === 'function') {
+            const wxNow = getWeatherAt(dateStr, planHour + 0.001);
+            if (wxNow && Number.isFinite(wxNow.temp)) tempNow = Math.round(wxNow.temp);
+          }
+        } catch (e) {}
+        const parts = [`<span class="dprcv-remaining-glyph">${sunGlyph}</span><span>${_durOnly(rem)}</span>`];
+        if (tempNow != null) parts.push(`<span>${tempNow}°</span>`);
+        remainingHost.innerHTML = parts.join(' · ');
+      }
+    }
+  };
+  window._refreshAcceptPageHero = _refreshHero;
   // Populate the event row above the timeline with shade / weather-change
   // glyphs anchored at their hour positions. Computed from the same data
   // sources the bar uses, so they always agree.

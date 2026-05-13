@@ -8819,6 +8819,25 @@
     color: var(--text);
     letter-spacing: 0.01em;
   }
+  /* Sun-side subtitle: sun glyph + duration + temp inline. Matches the
+     date subtitle's weight (700) so the receiver reads both lines at
+     the same prominence; coloured honey to tie it to the sun-until
+     time above. */
+  .dprcv-remaining {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    justify-content: flex-end;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.01em;
+  }
+  .dprcv-remaining-glyph {
+    display: inline-flex;
+    align-items: center;
+  }
+  .dprcv-remaining-glyph svg { width: 13px; height: 13px; display: block; }
 
   /* Timeline wrapper — interactive canvas (paint via drawAllCardTimelines).
      Drag handlers in JS update timeFromEl, which re-fires the painter. */

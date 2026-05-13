@@ -959,6 +959,11 @@ try {
     document.querySelectorAll('.dprcv-timeline-events').forEach(host => {
       if (typeof host._refresh === 'function') host._refresh();
     });
+    // Same correction for the hero's right-subtitle (Sun until X,
+    // remaining duration, meet-time temp) — built once from the
+    // sync-fallback windows, can show e.g. '20:40' while the bar's
+    // precise data has sun until 21:20.
+    if (typeof window._refreshAcceptPageHero === 'function') window._refreshAcceptPageHero();
     // Reveal any plan-preview timelines that were masked while we
     // waited for the precise windows. Idempotent.
     document.body.classList.add('timeline-ready');
