@@ -836,10 +836,15 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
                with shade/weather glyphs at their x-positions (computed
                from minH=meet time, maxH=sundown). -->
           <div class="dprcv-timeline-events" data-vid="${venue.id}"></div>
-          <!-- Meet-time anchor at the bar's left edge — always present,
-               since the bar always starts at meet time. Honey accent
-               tick that pokes a few pixels into the bar like a pin. -->
-          <div class="dprcv-timeline-meet-marker" aria-hidden="true"></div>
+          <!-- Scrubber pill — hidden until the user taps the bar. Then it
+               appears at the touched hour with a time label above; further
+               drags move it. Meeting time is now anchored by the meet icon
+               in the events row above, so this marker is purely interactive
+               'where am I checking right now' state. -->
+          <div class="dprcv-timeline-scrubber" aria-hidden="true">
+            <div class="dprcv-timeline-scrubber-label"></div>
+            <div class="dprcv-timeline-scrubber-pill"></div>
+          </div>
           <canvas class="card-timeline-canvas dprcv-timeline-canvas" data-vid="${venue.id}" width="600" height="40"></canvas>
         </div>
       </div>
@@ -868,6 +873,7 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   // glyphs anchored at their hour positions. Computed from the same data
   // sources the bar uses, so they always agree.
   const eventsHost = el.querySelector('.dprcv-timeline-events');
+  const scrubberEl = el.querySelector('.dprcv-timeline-scrubber');
   if (eventsHost) {
     requestAnimationFrame(() => {
       try {
@@ -877,6 +883,34 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
         const minH = planHour;
         const maxH = sundownH || (planHour + 4);
         _populateTimelineEvents(eventsHost, venue, dateStr, minH, maxH);
+        // Wire the scrubber: when the user drags the bar (which the
+        // existing _wireInlineFtsCanvas handler translates to
+        // timeFromEl 'input' events) the pill slides + the label
+        // updates. The first input also reveals the pill (which is
+        // hidden by default — meeting time anchor lives in the events
+        // row above as the 'meet' icon).
+        if (scrubberEl && typeof timeFromEl !== 'undefined' && timeFromEl) {
+          const labelEl = scrubberEl.querySelector('.dprcv-timeline-scrubber-label');
+          const update = () => {
+            const h = parseFloat(timeFromEl.value);
+            if (!Number.isFinite(h)) return;
+            const xPct = Math.max(0, Math.min(100, ((h - minH) / (maxH - minH)) * 100));
+            scrubberEl.style.left = xPct + '%';
+            if (labelEl) labelEl.textContent = formatHour(h);
+            scrubberEl.classList.add('is-active');
+          };
+          timeFromEl.addEventListener('input', update);
+          // Remember so closePlanPreview's cleanup can drop the listener.
+          if (el._cleanup) {
+            const prevCleanup = el._cleanup;
+            el._cleanup = () => {
+              prevCleanup();
+              timeFromEl.removeEventListener('input', update);
+            };
+          } else {
+            el._cleanup = () => timeFromEl.removeEventListener('input', update);
+          }
+        }
       } catch (e) { /* never block render on event errors */ }
     });
   }
@@ -1150,6 +1184,14 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
 // semicircle + diagonal stripes filling the right semicircle. Same metaphor
 // the timeline bar uses for shadow gaps, surfaced as a discrete icon.
 const TIMELINE_EVENT_GLYPHS = {
+  // Clock face — anchors the START of the bar as the meeting time. Same
+  // visual register as the weather/shade icons so the row reads as a
+  // unified set of glyphs marking notable moments along the timeline.
+  meet: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="9" fill="currentColor" opacity="0.18" stroke="none"/>
+    <circle cx="12" cy="12" r="9"/>
+    <polyline points="12 7 12 12 16 14"/>
+  </svg>`,
   shade: `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
     <defs>
       <clipPath id="shade-clip-right"><path d="M12 2 A10 10 0 0 1 12 22 Z"/></clipPath>
@@ -1278,6 +1320,11 @@ function _computeTimelineEvents(v, dateStr, minH, maxH) {
     if (out.length && (e.hour - out[out.length - 1].hour) < 0.5) continue;
     out.push(e);
   }
+  // Always lead with the meeting anchor at minH — every accept page has
+  // this, every receiver needs to see 'this is where the meeting is on
+  // the bar'. Bypasses the coalesce filter so it's never lost behind a
+  // nearby shade / weather event in the first 30 min.
+  out.unshift({ type: 'meet', hour: minH });
   return out;
 }
 /** Populate the .dprcv-timeline-events host with icons positioned by left-%. */
@@ -1297,11 +1344,17 @@ function _populateTimelineEvents(host, v, dateStr, minH, maxH) {
   } catch (e) { /* never block render on logging */ }
   for (const e of events) {
     const xPct = ((e.hour - minH) / (maxH - minH)) * 100;
-    if (xPct < 2 || xPct > 98) continue; // skip edges
-    const glyphKey = e.type === 'shade' ? 'shade' : (e.state || 'sun');
+    // Meet anchor is allowed at the bar's left edge (xPct == 0). Other
+    // events skip the edges so they don't crowd the meet / sundown
+    // tips of the bar.
+    if (e.type !== 'meet' && (xPct < 2 || xPct > 98)) continue;
+    const glyphKey = e.type === 'shade' ? 'shade'
+                   : e.type === 'meet'  ? 'meet'
+                   : (e.state || 'sun');
     const glyph = TIMELINE_EVENT_GLYPHS[glyphKey] || TIMELINE_EVENT_GLYPHS.shade;
     const node = document.createElement('div');
     node.className = 'dprcv-timeline-event';
+    if (e.type === 'meet') node.classList.add('dprcv-timeline-event-meet');
     node.style.left = xPct + '%';
     node.innerHTML = glyph + '<div class="dprcv-timeline-event-tick"></div>';
     host.appendChild(node);

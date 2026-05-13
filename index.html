@@ -8850,25 +8850,63 @@
     background: currentColor;
     opacity: 0.5;
   }
-  /* Meet-time pill — cream vertical capsule sitting fully INSIDE the
-     bar. 28 px tall in a 40 px bar = 6 px breathing room top and bottom
-     so the marker reads as 'this is where the meeting falls on the bar'
-     without poking out above or below the silhouette. Drop shadow gives
-     it depth against the colored band underneath. Inset 13 px to land
-     just inside the bar's rounded left corner — same offset clears the
-     curvature so the pill doesn't crowd the bar's tip. */
-  .dprcv-timeline-meet-marker {
+  /* Meet icon at the bar's left edge — no tick (the bar itself is the
+     anchor), flush-left rather than centred so it doesn't extend off
+     the timeline's left side. */
+  .dprcv-timeline-event.dprcv-timeline-event-meet {
+    transform: translateX(0);
+  }
+  .dprcv-timeline-event.dprcv-timeline-event-meet .dprcv-timeline-event-tick {
+    display: none;
+  }
+  /* Scrubber — cream pill spanning the full bar height + a glass time
+     label hovering above. Hidden by default; .is-active reveals it.
+     User taps / drags the bar → JS sets left:% based on timeFromEl,
+     updates the label text, and adds .is-active. The pill stays put
+     after a drag so the user can compare its position to the event
+     icons above. */
+  .dprcv-timeline-scrubber {
     position: absolute;
-    top: 28px;
-    left: 13px;
-    transform: translateX(-50%);
+    /* Anchored at the bar's top edge (22 px = padding-top of
+       .dprcv-timeline). Height matches the bar so the pill spans
+       it edge-to-edge. */
+    top: 22px;
+    left: 0;
+    width: 0;
+    height: 40px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.18s ease, left 0.05s linear;
+    z-index: 3;
+  }
+  .dprcv-timeline-scrubber.is-active { opacity: 1; }
+  .dprcv-timeline-scrubber-pill {
+    position: absolute;
+    top: 0;
+    left: -1.5px; /* centre the 3 px pill on x=0 of the scrubber */
     width: 3px;
-    height: 28px;
+    height: 100%;
     background: #FAF1DD;
     border-radius: 1.5px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  }
+  .dprcv-timeline-scrubber-label {
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 0;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+    background: var(--glass-action-bg);
+    backdrop-filter: blur(10px) saturate(160%);
+    -webkit-backdrop-filter: blur(10px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-variant-numeric: tabular-nums;
     pointer-events: none;
-    z-index: 2;
   }
   .dprcv-timeline-canvas.card-timeline-canvas {
     width: 100%;
