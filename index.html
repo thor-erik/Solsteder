@@ -772,16 +772,18 @@
     height: 40px;
     padding: 0;
     border-radius: 50%;
-    background: var(--glass-action-bg);
-    backdrop-filter: var(--glass-blur-action);
-    -webkit-backdrop-filter: var(--glass-blur-action);
+    /* Match the venue-list panel's glass instead of the more-solid action
+       token — user observed the button 'looks more blue than the
+       transparent gaussian background of the venue list panel.' Panel
+       tokens give a softer, more transparent feel for a standalone
+       floating button against the map. */
+    background: var(--glass-panel-bg);
+    backdrop-filter: var(--glass-blur-panel);
+    -webkit-backdrop-filter: var(--glass-blur-panel);
     border: var(--glass-border);
     box-shadow: var(--glass-inset);
     color: rgba(156,189,231,0.8);
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     transition: background 0.15s, border-color 0.15s, color 0.15s;
   }
   /* Icon swap by cycle state — only one .locate-icon visible at a time.
@@ -794,14 +796,18 @@
      enters from ABOVE (translateY(-100% → 0)). */
   #locate-btn .locate-icon {
     position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    /* v1 used inset:0 + display:flex on the SVG itself, which broke its
+       intrinsic sizing and pushed the glyph to the upper-left of the
+       40 px button. Pin to centre via explicit size + margin offset. */
+    width: 20px;
+    height: 20px;
+    top: 50%;
+    left: 50%;
+    margin: -10px 0 0 -10px;
     opacity: 0;
+    pointer-events: none;
     transform: translateY(-100%);
     transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.18s ease;
-    pointer-events: none;
   }
   #locate-btn .locate-icon.is-active {
     opacity: 1;
