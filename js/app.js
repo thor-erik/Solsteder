@@ -939,9 +939,16 @@ try {
         typeof auditModeActive !== 'undefined' && auditModeActive) {
       refreshReviewFlags(dateStr);
     }
-    // Re-render with worker-computed data
+    // Re-render with worker-computed data. drawAllCardTimelines runs
+    // with no root so it scans the whole document — important because
+    // the accept page's timeline (.dprcv-timeline-canvas) lives OUTSIDE
+    // #venue-list and was previously stuck with the sync-fallback
+    // 'simple facing' windows even after the worker corrected them.
+    // Result: bar showed sunny while the polygon + scrubber label
+    // (both reading the corrected cache) showed shade.
     draw();
     renderList();
+    if (typeof drawAllCardTimelines === 'function') drawAllCardTimelines();
   };
 } catch (e) {
   console.warn('Web Worker unavailable (run via http:// for background computation):', e.message);
