@@ -3114,6 +3114,7 @@ function openDetailPanel(v) {
 
   _populateDpCardSlot(v);
   if (typeof _populateDpShelter === 'function') _populateDpShelter(v);
+  if (typeof _updateFriendsPill === 'function') _updateFriendsPill();
 
   _syncFtsPosition();
   // Re-position the floating time label after the date pill slides in and
@@ -3196,6 +3197,7 @@ function closeDetailPanel(expandList = true) {
   // Drop the locate-button cycle state when leaving the venue context —
   // back to single-action 'fly to me' (default user icon).
   _setLocateBtnState(null);
+  if (typeof _updateFriendsPill === 'function') _updateFriendsPill();
 
   if (isMobile()) {
     const panel = document.getElementById('panel');
@@ -3271,6 +3273,81 @@ function updateDetailPanel() {
   _populateDpCardSlot(v);
   if (typeof _populateDpShelter === 'function') _populateDpShelter(v);
   _startWindForVenue(v);
+  if (typeof _updateFriendsPill === 'function') _updateFriendsPill();
+}
+
+/** Render the floating "friends going" pill above the detail panel sheet.
+ *  Surfaces accepted friend RSVPs + declined-friend count for the currently
+ *  selected venue + date. Hidden when no friends have responded, or when
+ *  no venue is selected. Anon / non-friend responses are intentionally
+ *  invisible — getDeclinedFriendsForVenue / getGoingFriendsForVenue both
+ *  filter to known friends. */
+function _updateFriendsPill() {
+  const pill = document.getElementById('friends-pill');
+  if (!pill) return;
+  const dp = document.getElementById('detail-panel');
+  const isOpen = dp && dp.classList.contains('open') && selectedId != null;
+  if (!isOpen) {
+    pill.classList.remove('show');
+    pill.hidden = true;
+    return;
+  }
+  const dateStr = (typeof datePicker !== 'undefined' && datePicker) ? datePicker.value : null;
+  const going = (typeof getGoingFriendsForVenue === 'function')
+    ? getGoingFriendsForVenue(selectedId, dateStr) : [];
+  const declined = (typeof getDeclinedFriendsForVenue === 'function')
+    ? getDeclinedFriendsForVenue(selectedId, dateStr) : [];
+  if (!going.length && !declined.length) {
+    pill.classList.remove('show');
+    pill.hidden = true;
+    return;
+  }
+  const avatarsEl = pill.querySelector('.friends-pill-avatars');
+  const textEl    = pill.querySelector('.friends-pill-text');
+  if (!avatarsEl || !textEl) return;
+  // Compose avatar stack: accepted first (full color), then declined
+  // (greyed + struck-through). Cap at 4 visible to keep the pill compact.
+  const avatarHtml = (g, declinedFlag) => {
+    const init = (g.user.name || g.user.email || '?')[0].toUpperCase();
+    const cls = `friends-pill-avatar${declinedFlag ? ' declined' : ''}`;
+    return g.user.avatar_url
+      ? `<img class="${cls}" src="${g.user.avatar_url}" alt="${g.user.name || g.user.email}">`
+      : `<div class="${cls}">${init}</div>`;
+  };
+  const items = [
+    ...going.map(g => ({ html: avatarHtml(g, false), label: g.user.name || g.user.email })),
+    ...declined.map(g => ({ html: avatarHtml(g, true), label: g.user.name || g.user.email })),
+  ];
+  const visible = items.slice(0, 4);
+  const overflow = items.length - visible.length;
+  avatarsEl.innerHTML = visible.map(i => i.html).join('') +
+    (overflow > 0 ? `<div class="friends-pill-avatar">+${overflow}</div>` : '');
+  // Text: prefer count-based ("3 going", "1 going · 1 declined") so the
+  // pill reads at a glance without name-by-name parsing.
+  const parts = [];
+  if (going.length)    parts.push(t('friends_pill_going',    { count: going.length }));
+  if (declined.length) parts.push(t('friends_pill_declined', { count: declined.length }));
+  textEl.textContent = parts.join(' · ');
+  pill.hidden = false;
+  requestAnimationFrame(() => pill.classList.add('show'));
+}
+
+/** Toggle the small dot on the search-bar avatar when there are pending
+ *  incoming friend requests. The full count lives in the profile panel's
+ *  Friends row; the dot is just the at-a-glance "you have something
+ *  waiting" signal. */
+function _updateAvatarBadge() {
+  const btn = document.getElementById('search-profile-btn');
+  if (!btn) return;
+  const has = (typeof _pendingRequests !== 'undefined'
+            && Array.isArray(_pendingRequests)
+            && _pendingRequests.length > 0);
+  btn.classList.toggle('has-badge', has);
+}
+
+if (typeof window !== 'undefined') {
+  window._updateFriendsPill  = _updateFriendsPill;
+  window._updateAvatarBadge  = _updateAvatarBadge;
 }
 
 // ── Edit mode ─────────────────────────────────────────────────────────────────
@@ -4810,6 +4887,7 @@ datePicker.addEventListener('change', () => {
     timeFromEl.value = 12;
   }
   update();
+  if (typeof _updateFriendsPill === 'function') _updateFriendsPill();
 });
 
 let _lastSliderStep = null;

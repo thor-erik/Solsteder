@@ -1452,6 +1452,10 @@ async function loadFriends() {
   // Always inject dummy friends for test accounts (even if table missing)
   _injectDummyFriends();
   if (typeof _renderProfilePanel === 'function') _renderProfilePanel();
+  // Surface the pending-request dot on the search-bar avatar so the user
+  // sees there's something waiting without having to open the popover.
+  if (typeof _updateAvatarBadge === 'function') _updateAvatarBadge();
+  if (typeof _updateFriendsPill === 'function') _updateFriendsPill();
 }
 
 const _DUMMY_FRIENDS = [
@@ -1653,6 +1657,9 @@ async function loadPlans() {
     .select('*, plan:plans(*, creator:profiles!plans_creator_id_fkey(id, name, email, avatar_url))')
     .eq('user_id', _currentUser.id);
   if (!ie) _planInvites = (invites || []).filter(i => i.plan && new Date(i.plan.planned_at) > new Date());
+  // Refresh the friends-going pill — _plans / _planInvites just changed
+  // and the visible pill should reflect new accept/decline data.
+  if (typeof _updateFriendsPill === 'function') _updateFriendsPill();
 }
 
 async function createPlan(venueId, plannedAt, message, friendIds) {
@@ -1727,9 +1734,9 @@ async function respondToPlanInvite(inviteId, status, arrivalTime) {
   if (error && /arrival_time/.test(error.message || '')) {
     await _supabase.from('plan_invites').update({ status }).eq('id', inviteId);
   }
-  if (status === 'accepted') {
-    await _autoFriendInviter(inviteId);
-  }
+  // Auto-friend on accept removed: invite-link senders may not want to
+  // auto-friend everyone who accepts. Friendship is now an explicit
+  // user action via the 'Add friend' card on the post-accept panel.
   await loadPlans();
 }
 
@@ -1801,6 +1808,34 @@ function getPlansForVenue(venueId) {
  *
  * Returns: [{ user: {id, name, email, avatar_url}, status: 'accepted'|'creator' }]
  */
+/**
+ * Friends who DECLINED a plan at this venue on this date. Only surfaces
+ * declines from people who are still in the user's `_friends` list — anon
+ * declines and non-friend declines are deliberately invisible.
+ * Returns: [{ user: {id, name, email, avatar_url}, status: 'declined' }]
+ */
+function getDeclinedFriendsForVenue(venueId, dateStr) {
+  if (!_currentUser || !Array.isArray(_plans)) return [];
+  const vid = String(venueId);
+  const sameDate = (iso) => typeof iso === 'string' && iso.slice(0, 10) === dateStr;
+  const friendIds = new Set((Array.isArray(_friends) ? _friends : []).map(f => String(f.id)));
+  const result = new Map();
+  for (const p of _plans) {
+    if (String(p.venue_id) !== vid) continue;
+    if (!sameDate(p.planned_at)) continue;
+    if (!Array.isArray(p._invitees)) continue;
+    for (const inv of p._invitees) {
+      if (inv.status !== 'declined' || !inv.user) continue;
+      if (inv.user.id === _currentUser.id) continue;
+      // Only surface declines from known friends — random anon declines
+      // are not socially meaningful to display.
+      if (!friendIds.has(String(inv.user.id))) continue;
+      result.set(inv.user.id, { user: inv.user, status: 'declined' });
+    }
+  }
+  return Array.from(result.values());
+}
+
 function getGoingFriendsForVenue(venueId, dateStr) {
   if (!_currentUser) return [];
   const vid = String(venueId);

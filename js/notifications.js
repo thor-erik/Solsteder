@@ -681,9 +681,11 @@ function _evalInviteAccepted() {
         for (const a of newAccepts) cur[`${a.plan.id}:${a.invitee.user_id}`] = 'accepted';
         localStorage.setItem(KEY, JSON.stringify(cur));
       } catch {}
-      if (typeof openPlanPreview === 'function') {
-        openPlanPreview({ venueId: head.plan.venue_id, plannedAt: head.plan.planned_at, mode: 'preview' });
-      } else if (typeof selectVenue === 'function') {
+      // Open the venue's detail panel (not the plan-preview sheet) — the
+      // friends-going pill on the detail page is the canonical surface
+      // for "who said yes". Plan-preview is a sender-flow surface, not
+      // appropriate for an inviter checking their accept count.
+      if (typeof selectVenue === 'function') {
         selectVenue(Number(head.plan.venue_id), true);
       }
     },
@@ -696,6 +698,102 @@ function _evalInviteAccepted() {
         localStorage.setItem(KEY, JSON.stringify(cur));
       } catch {}
     },
+  };
+}
+
+/**
+ * Inviter-side: an invitee declined one of MY plans. Only fires when the
+ * decliner is a known friend (anon / non-friend declines stay silent — the
+ * inviter has no social context for them and the toast would be noise).
+ * Dedupes via the same 'seen_invite_responses' map _evalInviteAccepted uses.
+ */
+function _evalInviteDeclined() {
+  if (typeof _currentUser === 'undefined' || !_currentUser) return null;
+  if (typeof _plans === 'undefined' || !_plans.length) return null;
+  const friendIds = new Set((typeof _friends !== 'undefined' && Array.isArray(_friends))
+    ? _friends.map(f => String(f.id)) : []);
+  if (!friendIds.size) return null;
+  const KEY = 'solsteder_seen_invite_responses';
+  let seen = {};
+  try { seen = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch {}
+  const newDeclines = [];
+  for (const p of _plans) {
+    if (p.creator_id !== _currentUser.id) continue;
+    if (!Array.isArray(p._invitees)) continue;
+    for (const inv of p._invitees) {
+      if (inv.status !== 'declined') continue;
+      if (!inv.user || !friendIds.has(String(inv.user_id))) continue;
+      const k = `${p.id}:${inv.user_id}`;
+      if (seen[k] === 'declined') continue;
+      newDeclines.push({ plan: p, invitee: inv });
+    }
+  }
+  if (!newDeclines.length) return null;
+  const head = newDeclines[0];
+  const venue = (typeof VENUES !== 'undefined') ? VENUES.find(x => String(x.id) === String(head.plan.venue_id)) : null;
+  if (!venue) return null;
+  const u = head.invitee.user || {};
+  const name = (u.name || u.email || '').split(' ')[0].split('@')[0] || '…';
+  const extra = newDeclines.length - 1;
+  const bodyKey = extra > 0 ? 'notif_invite_declined_multi' : 'notif_invite_declined_body';
+  const markSeen = () => {
+    try {
+      const cur = JSON.parse(localStorage.getItem(KEY) || '{}');
+      for (const d of newDeclines) cur[`${d.plan.id}:${d.invitee.user_id}`] = 'declined';
+      localStorage.setItem(KEY, JSON.stringify(cur));
+    } catch {}
+  };
+  return {
+    id: 'social_invite_declined_' + head.plan.id + '_' + head.invitee.user_id,
+    priority: 1, category: 'social',
+    icon: '🙅',
+    bodyKey,
+    bodyVars: { name, venue: venue.name, extra },
+    actionKey: 'notif_open_plan',
+    action: () => {
+      markSeen();
+      if (typeof selectVenue === 'function') {
+        selectVenue(Number(head.plan.venue_id), true);
+      }
+    },
+    ttl: 600000, dedupe: true,
+    _onShow: markSeen,
+  };
+}
+
+/**
+ * Receiver-side: someone sent ME a friend request. Surfaces a P1 social
+ * toast that persists across sessions until the request is no longer
+ * pending (accepted, rejected, or withdrawn). Action opens the Friends
+ * modal where the user can Accept inline. Dedupes on the friendship row
+ * id so we don't re-fire on every poll for the same request.
+ */
+function _evalIncomingFriendRequest() {
+  if (typeof _currentUser === 'undefined' || !_currentUser) return null;
+  if (typeof _pendingRequests === 'undefined' || !Array.isArray(_pendingRequests) || !_pendingRequests.length) return null;
+  const head = _pendingRequests[0];
+  if (!head || !head.friendshipId) return null;
+  const name = (head.name || head.email || '').split(' ')[0].split('@')[0] || '…';
+  const extra = _pendingRequests.length - 1;
+  const bodyKey = extra > 0 ? 'notif_friend_request_multi' : 'notif_friend_request_body';
+  return {
+    // Stable id (not per-row) so a dismiss covers ALL pending requests
+    // for this session — and the next session re-fires it fresh while
+    // any pending row still exists. The body uses {name} +{extra} so a
+    // single toast represents the whole pending set.
+    id: 'social_friend_request',
+    priority: 1, category: 'social',
+    icon: '👤',
+    bodyKey,
+    bodyVars: { name, extra },
+    actionKey: 'notif_open_friends',
+    action: () => {
+      if (typeof openFriendsModal === 'function') openFriendsModal();
+      else if (typeof toggleProfilePanel === 'function') toggleProfilePanel();
+    },
+    // Don't TTL-out the toast: we want it on every session until handled.
+    // dedupe still prevents multiple copies in the queue at once.
+    dedupe: true,
   };
 }
 
@@ -804,6 +902,8 @@ const _notifEvaluators = [
   _evalCheckinPrompt,
   _evalFriendPlanning,
   _evalInviteAccepted,
+  _evalInviteDeclined,
+  _evalIncomingFriendRequest,
   // P1 Login prompts (high priority so they reach anon users)
   _evalLoginWeather,
   _evalLoginFriends,
