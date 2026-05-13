@@ -532,6 +532,20 @@ function _handleFriendPromptAdd(inviterId, inviterName) {
     _committedFriendRequests.add(inviterId);
     _commitFriendRequest(inviterId);
     if (typeof window !== 'undefined') window._pendingFriendPrompt = null;
+    // Slide the card out — gives the user a visible 'committed' beat
+    // after the 4 s debounce. Promote the next card to primary so the
+    // carousel still has a confident leading action (Share onward).
+    if (cardEl && cardEl.isConnected) {
+      const nextEl = cardEl.nextElementSibling;
+      cardEl.classList.add('is-leaving');
+      setTimeout(() => {
+        try { cardEl.remove(); } catch (e) { /* ignore */ }
+        if (nextEl && nextEl.classList) {
+          nextEl.classList.remove('card');
+          nextEl.classList.add('dpacc-action-primary');
+        }
+      }, 340);
+    }
   }, FRIEND_DEBOUNCE_MS);
   _friendRequestTimers.set(inviterId, tid);
   // Legacy banner cleanup — irrelevant on the new post-accept panel

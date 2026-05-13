@@ -9447,6 +9447,16 @@
     from { transform: scaleX(1); }
     to   { transform: scaleX(0); }
   }
+  /* Commit visual — slide the card out after the debounce fires.
+     Combination of fade + downscale + sideways slide so the card
+     reads as 'flying off' rather than just disappearing. The next
+     card in the carousel gets promoted to primary inline. */
+  .dpacc-action-card.is-leaving {
+    opacity: 0;
+    transform: scale(0.85) translateX(-12px);
+    transition: opacity 0.28s ease, transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+  }
   /* Primary tile — solid accent, accent-on text */
   .dpacc-action-primary {
     background: var(--accent);
