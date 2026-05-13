@@ -8836,7 +8836,14 @@
     color: var(--text);
     opacity: 0.85;
   }
-  .dprcv-timeline-event svg { display: block; }
+  .dprcv-timeline-event svg {
+    display: block;
+    /* Some browsers (Safari) drop the SVG width/height attributes when
+       the parent is a flex container; lock the size here so the icon
+       always renders at its intended 14 px. */
+    width: 14px;
+    height: 14px;
+  }
   .dprcv-timeline-event-tick {
     width: 1px;
     height: 4px;

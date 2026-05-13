@@ -1249,6 +1249,16 @@ function _populateTimelineEvents(host, v, dateStr, minH, maxH) {
   host.innerHTML = '';
   if (!(maxH > minH + 0.1)) return;
   const events = _computeTimelineEvents(v, dateStr, minH, maxH);
+  // Trace what we got — surfaces test-token overrides + real-data results
+  // for quick visual debugging on preview. Strip when we're confident.
+  try {
+    console.log('[timeline-events]', {
+      venue: v && v.id, dateStr, minH, maxH,
+      testOverride: !!(typeof window !== 'undefined' && Array.isArray(window._testTimelineEvents) && window._testTimelineEvents.length),
+      count: events.length,
+      events,
+    });
+  } catch (e) { /* never block render on logging */ }
   for (const e of events) {
     const xPct = ((e.hour - minH) / (maxH - minH)) * 100;
     if (xPct < 2 || xPct > 98) continue; // skip edges
