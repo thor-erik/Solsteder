@@ -8530,7 +8530,10 @@
   body.plan-preview-active #qc-wrap,
   body.plan-preview-active #fts,
   body.plan-preview-active #fts-popup,
-  body.plan-preview-active #notif-toast-wrap,
+  /* Notif-toast-wrap intentionally NOT hidden — toasts at the top of
+     the screen are useful during the accept / confirm flow (friend
+     request sent / withdrawn, calendar added, etc.). They sit above
+     the bottom panel and never overlap it. */
   /* Post-accept panel is also a takeover moment — same chrome-hiding
      rules so the panel is the only thing on screen. v1 left the
      search bar, venue list, FTS, and header chip visible behind the
@@ -8543,7 +8546,6 @@
   body.post-accept-active #qc-wrap,
   body.post-accept-active #fts,
   body.post-accept-active #fts-popup,
-  body.post-accept-active #notif-toast-wrap,
   body.post-accept-active #locate-btn,
   body.post-accept-active #zoom-jog {
     opacity: 0 !important;
@@ -9447,15 +9449,29 @@
     from { transform: scaleX(1); }
     to   { transform: scaleX(0); }
   }
-  /* Commit visual — slide the card out after the debounce fires.
-     Combination of fade + downscale + sideways slide so the card
-     reads as 'flying off' rather than just disappearing. The next
-     card in the carousel gets promoted to primary inline. */
-  .dpacc-action-card.is-leaving {
+  /* Three-phase commit animation per user spec:
+       1. Fade out the friend card in place (opacity 0).
+       2. Cards to the right slide left into the new positions (FLIP).
+       3. As they slide, the new leading card transitions from glass
+          surface → honey accent (CSS bg/color transitions).
+     The fading state is purely opacity; the FLIP translateX is set
+     inline by JS so we can use the FLIP technique (record old
+     positions → remove card → invert transform → animate to 0). */
+  .dpacc-action-card.is-fading {
     opacity: 0;
-    transform: scale(0.85) translateX(-12px);
-    transition: opacity 0.28s ease, transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.22s ease;
     pointer-events: none;
+  }
+  /* Animate bg + color when classes flip (e.g. .card → .dpacc-action-
+     primary on promotion). Transform stays fast (0.05 s) so the
+     :active press feedback isn't sluggish. */
+  .dpacc-action-card {
+    transition: background 0.34s ease, color 0.34s ease, transform 0.05s;
+  }
+  /* When JS is mid-FLIP, the card gets .is-flipping → bump transform
+     to a real animation; cleared after the slide settles. */
+  .dpacc-action-card.is-flipping {
+    transition: transform 0.34s cubic-bezier(0.4, 0, 0.2, 1), background 0.34s ease, color 0.34s ease;
   }
   /* Primary tile — solid accent, accent-on text */
   .dpacc-action-primary {

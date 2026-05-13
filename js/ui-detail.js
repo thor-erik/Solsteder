@@ -506,6 +506,67 @@ function _pendingFriendCard(cardEl, inviterName) {
   if (titleEl) titleEl.textContent = t('accepted_action_add_friend_done', { name: inviterName || '' });
   if (subEl)   subEl.textContent   = t('accepted_action_add_friend_undo');
 }
+/** Three-phase slide-out for the committed friend card. Used after
+ *  the 4-s debounce fires so the user gets a clear 'done, moving on'
+ *  beat. Phases:
+ *    1. Fade out the friend card (opacity 0, in place).
+ *    2. Remove from layout; record sibling positions; apply inverse
+ *       translateX so siblings appear in their OLD positions.
+ *    3. Promote the next card to primary AND clear inline transforms —
+ *       siblings slide left into the gap while the new leader's
+ *       background animates glass → accent (both via CSS transitions
+ *       on .dpacc-action-card). */
+function _slideOutFriendCard(cardEl) {
+  if (!cardEl || !cardEl.isConnected) return;
+  cardEl.classList.add('is-fading');
+  setTimeout(() => {
+    if (!cardEl.isConnected) return;
+    const row = cardEl.parentElement;
+    if (!row) return;
+    const siblings = Array.from(row.children).filter(s => s !== cardEl);
+    const prevRects = siblings.map(s => s.getBoundingClientRect());
+    cardEl.style.display = 'none';
+    // Inverse: siblings keep their OLD pixel positions via translateX.
+    siblings.forEach((s, i) => {
+      const newRect = s.getBoundingClientRect();
+      const dx = prevRects[i].left - newRect.left;
+      if (Math.abs(dx) < 0.5) return;
+      s.classList.add('is-flipping');
+      // No-animation transform jump (CSS .is-flipping has the transition,
+      // but the transform property is changing FROM none → translateX(dx),
+      // and we want this assignment to NOT animate so we force a reflow
+      // before applying it. We do that by reading offsetHeight on the row
+      // after style.transition is set inline to 'none' for one frame.)
+      s.style.transition = 'none';
+      s.style.transform = `translateX(${dx}px)`;
+    });
+    // Force the browser to commit the inline styles.
+    row.offsetHeight;
+    // Promote new leader — add .dpacc-action-primary alongside .card so
+    // the CSS bg/color transitions animate the colour shift.
+    const newLead = siblings[0];
+    if (newLead && newLead.classList) {
+      newLead.classList.add('dpacc-action-primary');
+    }
+    // Next frame: clear inline transforms — CSS transition kicks in,
+    // siblings slide to translateX(0) (their actual new positions).
+    requestAnimationFrame(() => {
+      siblings.forEach(s => {
+        s.style.transition = '';
+        s.style.transform = '';
+      });
+    });
+    // Settle: drop the FLIP class + remove the friend card from DOM.
+    setTimeout(() => {
+      try { cardEl.remove(); } catch (e) { /* ignore */ }
+      siblings.forEach(s => {
+        s.classList.remove('is-flipping');
+        s.style.transform = '';
+        s.style.transition = '';
+      });
+    }, 400);
+  }, 220);
+}
 function _handleFriendPromptAdd(inviterId, inviterName) {
   // Already-committed guard: once the debounce has fired and the
   // friendships row exists, further taps on the same card are no-ops
@@ -532,20 +593,12 @@ function _handleFriendPromptAdd(inviterId, inviterName) {
     _committedFriendRequests.add(inviterId);
     _commitFriendRequest(inviterId);
     if (typeof window !== 'undefined') window._pendingFriendPrompt = null;
-    // Slide the card out — gives the user a visible 'committed' beat
-    // after the 4 s debounce. Promote the next card to primary so the
-    // carousel still has a confident leading action (Share onward).
-    if (cardEl && cardEl.isConnected) {
-      const nextEl = cardEl.nextElementSibling;
-      cardEl.classList.add('is-leaving');
-      setTimeout(() => {
-        try { cardEl.remove(); } catch (e) { /* ignore */ }
-        if (nextEl && nextEl.classList) {
-          nextEl.classList.remove('card');
-          nextEl.classList.add('dpacc-action-primary');
-        }
-      }, 340);
-    }
+    // Three-phase commit animation:
+    //   1. Friend card fades out in place (220 ms)
+    //   2. Cards to the right slide left into the gap (FLIP, 340 ms)
+    //   3. New leading card transitions glass → honey accent during
+    //      the slide (CSS bg/color transitions tied to class swap)
+    if (cardEl && cardEl.isConnected) _slideOutFriendCard(cardEl);
   }, FRIEND_DEBOUNCE_MS);
   _friendRequestTimers.set(inviterId, tid);
   // Legacy banner cleanup — irrelevant on the new post-accept panel
