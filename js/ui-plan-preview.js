@@ -1418,9 +1418,10 @@ function _populateTimelineEvents(host, v, dateStr, minH, maxH) {
   // or [W-R, W]), shorter on the flat top in the middle.
   const barW = host.clientWidth || (host.offsetWidth || 360);
   const BAR_R = 13;
-  const ICON_BOTTOM_Y = 14;   // icon height
-  const TICK_PADDING  = 2;    // constant gap icon→tick
-  const FLAT_TOP_Y    = 22;   // events row height — y where flat bar top sits
+  const ICON_BOTTOM_Y     = 14;   // icon height
+  const TICK_PADDING_TOP  = 2;    // gap icon → tick
+  const TICK_PADDING_BOT  = 2;    // gap tick → bar (same as top so it reads symmetric)
+  const FLAT_TOP_Y        = 22;   // events row height — y where flat bar top sits
   const tickLenAt = (xPx) => {
     let barTopAtX = FLAT_TOP_Y;
     if (xPx < BAR_R) {
@@ -1430,7 +1431,7 @@ function _populateTimelineEvents(host, v, dateStr, minH, maxH) {
       const dx = xPx - (barW - BAR_R);
       barTopAtX = FLAT_TOP_Y + BAR_R - Math.sqrt(Math.max(0, BAR_R * BAR_R - dx * dx));
     }
-    return Math.max(4, Math.round(barTopAtX - ICON_BOTTOM_Y - TICK_PADDING));
+    return Math.max(2, Math.round(barTopAtX - ICON_BOTTOM_Y - TICK_PADDING_TOP - TICK_PADDING_BOT));
   };
   try {
     console.log('[timeline-events]', {
