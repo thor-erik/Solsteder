@@ -730,8 +730,22 @@ function updateSunSectionBar() {
   // day" (or sunset-bounded variant) — it's reassuring + keeps the
   // header from going visually empty.
   bar.classList.remove('ssb-empty');
+  // Future DATE (not just future hour today) — lead with the day name
+  // so the user is never in doubt that the headline describes a day
+  // other than today. Triggered by close-on-confirm jumping forward
+  // to the next sunny day. User: 'we need to make sure the user
+  // understands clearly that it [is] another day' — adjust the copy
+  // above the venue list to surface the day name.
+  const isFutureDate = dateStr > todayStr();
+  let dayLabel = '';
+  if (isFutureDate && typeof _dayLabel === 'function') {
+    const raw = _dayLabel(dateStr);
+    dayLabel = raw && raw.length ? raw.charAt(0).toUpperCase() + raw.slice(1) : raw;
+  }
   if (!outlook || outlook.code === 'clear') {
-    textEl.textContent = t('outlook_clear');
+    textEl.textContent = isFutureDate
+      ? t('outlook_future_clear', { day: dayLabel })
+      : t('outlook_clear');
     return;
   }
 
@@ -739,22 +753,23 @@ function updateSunSectionBar() {
   // sentences read more clearly with "at HH:MM" instead of "now":
   //   "Sun at 14:45, then cloudy from 17:00"
   // Computed once here and passed into the templates as {nowState}.
-  const isFuture = (typeof nowMode !== 'undefined' && !nowMode &&
-                    dateStr === todayStr() &&
-                    Math.abs(fromHour - currentHour()) > 5/60)
-                || dateStr > todayStr();
-  const nowState = isFuture ? t('outlook_at_time', { time: formatHour(fromHour) }) : t('outlook_now');
+  const isFutureHour = (typeof nowMode !== 'undefined' && !nowMode &&
+                        dateStr === todayStr() &&
+                        Math.abs(fromHour - currentHour()) > 5/60)
+                    || dateStr > todayStr();
+  const nowState = isFutureHour ? t('outlook_at_time', { time: formatHour(fromHour) }) : t('outlook_now');
 
-  const p = { ...outlook.params, nowState };
+  const p = { ...outlook.params, nowState, day: dayLabel };
   for (const k of ['start', 'end', 'aStart', 'aEnd', 'cStart', 'cEnd']) {
     if (p[k] != null) p[k] = formatHour(p[k]);
   }
 
   const w = p.weather === 'rain' ? 'rain' : 'cloud';
+  const prefix = isFutureDate ? 'outlook_future_' : 'outlook_';
   let key;
-  if (outlook.code === 'sun_then_again')   key = 'outlook_sun_then_again';
-  else if (outlook.code === 'two_windows') key = `outlook_two_windows_${w}`;
-  else                                     key = `outlook_${outlook.code}_${w}`;
+  if (outlook.code === 'sun_then_again')   key = `${prefix}sun_then_again`;
+  else if (outlook.code === 'two_windows') key = `${prefix}two_windows_${w}`;
+  else                                     key = `${prefix}${outlook.code}_${w}`;
 
   textEl.textContent = t(key, p);
 }
