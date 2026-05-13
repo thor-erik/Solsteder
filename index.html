@@ -817,11 +817,24 @@
     opacity: 0;
     transform: translateY(100%);
   }
+  /* Hover keeps the glass background — only border + icon colour shift
+     so the tap target reads as 'available' without breaking the
+     transparent feel. v1 replaced background with a solid slate-blue,
+     which destroyed the glass illusion the moment the user hovered. */
   #locate-btn:hover {
-    background: rgba(24,52,95,0.85);
-    border-color: rgba(255,175,133,0.35);
-    color: rgba(255,175,133,0.9);
+    border-color: rgba(255,175,133,0.45);
+    color: rgba(255,175,133,0.95);
   }
+  /* Active (mousedown / touch) — subtle press-down. The button briefly
+     scales down to confirm the tap; the absolute-positioned icons
+     scale with their parent which feels right (one unit, not parts). */
+  #locate-btn:active {
+    transform: scale(0.94);
+    transition: transform 0.1s ease;
+  }
+  /* Tracking — post-click state during the camera fly. Honey-accent
+     border + cool-blue icon for the 'I'm doing the thing now' beat.
+     Unchanged from v1 because the user explicitly liked this colour. */
   #locate-btn.tracking {
     border-color: rgba(74,144,226,0.7);
     color: #4A90E2;
