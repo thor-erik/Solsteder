@@ -1539,28 +1539,14 @@
     #fts-labels-mag { transition: none; }
   }
 
-  /* ── FTS Thumb — translucent glass lens (single-element) ────────────────
-     One element. All visual depth comes from layered CSS background +
-     box-shadow stacks driven by --tilt-x / --tilt-y (set by JS on
-     pointermove). Same recipe as Apple's iOS Magnifier loupe and
-     Stripe/Linear glass hover surfaces — clean, performant, looks like
-     real glass at small scales where multi-layer parallax just adds
-     noise. */
-  /* @property registration so the idle-glint drift custom properties
-     interpolate smoothly across keyframes (without this, CSS animations
-     between non-registered custom properties just snap at each keyframe
-     — no in-between values). Supported in modern Chromium / Safari 16.4+;
-     unsupported browsers degrade to instant value jumps, still safe. */
-  @property --idle-x {
-    syntax: '<number>';
-    inherits: false;
-    initial-value: 0;
-  }
-  @property --idle-y {
-    syntax: '<number>';
-    inherits: false;
-    initial-value: 0;
-  }
+  /* ── FTS Thumb — lens-glass surface control, matched to #fts-date-btn ──
+     Shares the calendar button's glass vocabulary (--glass-action-bg /
+     --glass-border / --glass-inset) so the thumb reads as a tier-3
+     control flanking the track, not a one-off lens decoration. On
+     desktop drag the circle morphs to a thin playhead pill (6px wide),
+     letting the underlying sun/weather ramp stay readable while
+     scrubbing. Mobile keeps the circle — finger occludes the thumb
+     during drag so a thin needle adds no value. */
   #fts-thumb {
     position: absolute;
     top: 50%;
@@ -1570,186 +1556,69 @@
     border-radius: 50%;
     pointer-events: none;
     z-index: 5;
-    --tilt-x: 0;
-    --tilt-y: 0;
-    --idle-x: 0;
-    --idle-y: 0;
-    /* Idle drift — the highlight glint wanders in a slow Lissajous-ish
-       arc, like a real lens catching changing light. Suppressed once
-       the user engages (hover / active states override animation). */
-    animation: ftsGlintDrift 5.2s ease-in-out infinite;
 
-    /* Sunglass lens recipe — four stacked backgrounds, top to bottom:
-       1. Tilt-driven highlight glint — fixed-light catch on the curved
-          glass surface. Smaller + softer than the v1 thumb so it doesn't
-          dominate the tinted body.
-       2. Inner vignette — radial darkening at the outer edge that reads
-          as lens curvature. Without this the disc looks flat.
-       3. Underside shadow (tilt-driven) — gives a sense of depth on
-          the side opposite the highlight.
-       4. Base tint — slate body at ~30% opacity. Darker than v1's
-          rgba(255,244,224,0.10) cream, so the thumb genuinely reads
-          as tinted glass rather than a faint disc. */
-    background:
-      radial-gradient(
-        circle at calc(34% - var(--tilt-x) * 20% + var(--idle-x) * 9%) calc(30% - var(--tilt-y) * 20% + var(--idle-y) * 9%),
-        rgba(255,244,224,0.46) 0%,
-        rgba(255,244,224,0.14) 18%,
-        rgba(255,244,224,0)    40%
-      ),
-      radial-gradient(
-        circle at 50% 50%,
-        rgba(26,44,66,0)    52%,
-        rgba(26,44,66,0.36) 78%,
-        rgba(26,44,66,0.72) 100%
-      ),
-      radial-gradient(
-        circle at calc(72% + var(--tilt-x) * 22%) calc(78% + var(--tilt-y) * 22%),
-        rgba(26,44,66,0.26) 0%,
-        rgba(26,44,66,0.10) 22%,
-        rgba(26,44,66,0)    50%
-      ),
-      linear-gradient(180deg,
-        rgba(36,56,84,0.42) 0%,
-        rgba(18,32,54,0.55) 100%
-      );
-
-    /* Sunglass-grade backdrop blur — heavier than v1's 3px so the map
-       beneath reads as obscured-by-glass, not just slightly diffused. */
-    backdrop-filter: blur(7px) saturate(155%);
-    -webkit-backdrop-filter: blur(7px) saturate(155%);
-
-    /* Edge stack — softer than v1 (no hard 1px inner-highlight ring,
-       which read as a cheap stroke on a tinted body). Now:
-       - Outer dark rim (0.5px, blended) — silhouette only.
-       - Bottom inner shadow — adds vertical curvature signal.
-       - Top inner highlight (1px, low opacity) — glass catch.
-       - Tilt-driven inner slate shadow — directional curvature.
-       - Two drop shadows — tight contact + soft lift. */
+    background: var(--glass-action-bg);
+    backdrop-filter: var(--glass-blur-action);
+    -webkit-backdrop-filter: var(--glass-blur-action);
+    border: var(--glass-border);
     box-shadow:
-      inset 0 0 0 0.5px rgba(8,18,32,0.70),
-      inset 0 -2px 6px -1px rgba(8,18,32,0.55),
-      inset 0 1px 1.2px rgba(255,244,224,0.18),
-      inset
-        calc(var(--tilt-x) * 4px)
-        calc(var(--tilt-y) * 4px)
-        8px -2px
-        rgba(8,18,32,0.40),
-      0 1px 2px rgba(0,0,0,0.55),
-      0 4px 12px rgba(0,0,0,0.40);
+      var(--glass-inset),
+      0 1px 2px rgba(0,0,0,0.45),
+      0 4px 12px rgba(0,0,0,0.35);
 
     transform: translate(-50%, -50%);
     transition:
-      transform   220ms cubic-bezier(0.32, 0.72, 0, 1),
-      box-shadow  220ms cubic-bezier(0.32, 0.72, 0, 1),
-      background  220ms ease;
-    will-change: transform;
+      transform     220ms cubic-bezier(0.32, 0.72, 0, 1),
+      width         180ms cubic-bezier(0.32, 0.72, 0, 1),
+      border-radius 180ms cubic-bezier(0.32, 0.72, 0, 1),
+      border-color  160ms ease,
+      background    160ms ease,
+      box-shadow    220ms cubic-bezier(0.32, 0.72, 0, 1);
+    will-change: transform, width;
   }
 
-  /* Hover — visible "pickup" feedback before drag. Lifts off the track,
-     scales slightly, brightens the glint, deepens the rim. Distinct
-     enough that the cursor proximity reads, gentle enough that it
-     doesn't compete with the drag (.is-active) state. */
+  /* Hover — "picked up" feedback before drag. Mirrors #fts-date-btn:hover. */
   #fts-thumb.is-hover {
     transform: translate(-50%, -50%) translateY(-1.5px) scale(1.06);
-    /* Stop the idle drift once the user is engaged — tilt-driven
-       glint takes over. animation-play-state preserves the current
-       drift values so the glint doesn't jump back to centre. */
-    animation-play-state: paused;
-    background:
-      radial-gradient(
-        circle at calc(34% - var(--tilt-x) * 20% + var(--idle-x) * 9%) calc(30% - var(--tilt-y) * 20% + var(--idle-y) * 9%),
-        rgba(255,244,224,0.56) 0%,
-        rgba(255,244,224,0.18) 18%,
-        rgba(255,244,224,0)    40%
-      ),
-      radial-gradient(
-        circle at 50% 50%,
-        rgba(26,44,66,0)    50%,
-        rgba(26,44,66,0.40) 78%,
-        rgba(26,44,66,0.76) 100%
-      ),
-      radial-gradient(
-        circle at calc(72% + var(--tilt-x) * 22%) calc(78% + var(--tilt-y) * 22%),
-        rgba(26,44,66,0.28) 0%,
-        rgba(26,44,66,0.12) 22%,
-        rgba(26,44,66,0)    50%
-      ),
-      linear-gradient(180deg,
-        rgba(40,62,92,0.46) 0%,
-        rgba(20,36,60,0.58) 100%
-      );
+    background: rgba(20,46,82,0.60);
+    border-color: rgba(156,189,231,0.30);
     box-shadow:
-      inset 0 0 0 0.5px rgba(8,18,32,0.78),
-      inset 0 -2.5px 7px -1px rgba(8,18,32,0.60),
-      inset 0 1px 1.2px rgba(255,244,224,0.24),
-      inset
-        calc(var(--tilt-x) * 5px)
-        calc(var(--tilt-y) * 5px)
-        9px -2px
-        rgba(8,18,32,0.46),
-      0 1px 2px rgba(0,0,0,0.55),
-      0 6px 16px rgba(0,0,0,0.45);
+      var(--glass-inset),
+      0 1px 2px rgba(0,0,0,0.50),
+      0 6px 16px rgba(0,0,0,0.40);
   }
 
-  /* Active (drag) — scale up, deepen the vignette, brighten the glint,
-     add a warm honey aura. Same sunglass palette as base + hover. */
+  /* Active (drag) — honey-tinted border (matches #fts-date-btn.active),
+     honey aura, slight scale-up. */
   #fts-thumb.is-active {
-    transform: translate(-50%, -50%) scale(1.20);
-    animation-play-state: paused;
-    background:
-      radial-gradient(
-        circle at calc(34% - var(--tilt-x) * 20% + var(--idle-x) * 9%) calc(30% - var(--tilt-y) * 20% + var(--idle-y) * 9%),
-        rgba(255,244,224,0.62) 0%,
-        rgba(255,244,224,0.22) 18%,
-        rgba(255,244,224,0)    40%
-      ),
-      radial-gradient(
-        circle at 50% 50%,
-        rgba(26,44,66,0)    48%,
-        rgba(26,44,66,0.44) 78%,
-        rgba(26,44,66,0.82) 100%
-      ),
-      radial-gradient(
-        circle at calc(72% + var(--tilt-x) * 22%) calc(78% + var(--tilt-y) * 22%),
-        rgba(26,44,66,0.30) 0%,
-        rgba(26,44,66,0.12) 22%,
-        rgba(26,44,66,0)    50%
-      ),
-      linear-gradient(180deg,
-        rgba(44,68,102,0.50) 0%,
-        rgba(22,38,64,0.62) 100%
-      );
+    transform: translate(-50%, -50%) scale(1.12);
+    border-color: rgba(245,194,94,0.55);
     box-shadow:
-      inset 0 0 0 0.6px rgba(8,18,32,0.82),
-      inset 0 -3px 8px -1px rgba(8,18,32,0.62),
-      inset 0 1px 1.4px rgba(255,244,224,0.26),
-      inset
-        calc(var(--tilt-x) * 5px)
-        calc(var(--tilt-y) * 5px)
-        10px -2px
-        rgba(8,18,32,0.50),
-      0 2px 4px rgba(0,0,0,0.60),
-      0 12px 26px rgba(0,0,0,0.52),
-      0 0 22px 2px rgba(245,194,94,0.24);
+      var(--glass-inset),
+      0 2px 4px rgba(0,0,0,0.55),
+      0 10px 22px rgba(0,0,0,0.45),
+      0 0 22px 2px rgba(245,194,94,0.28);
   }
 
-  /* Idle glint drift — the highlight wanders slowly through 4 corner-ish
-     positions. Asymmetric path so it doesn't read as a perfect loop;
-     amplitude (±1 multiplied by the 9% calc) keeps the drift well inside
-     the lens body so the glint never leaves the visible disc. */
-  @keyframes ftsGlintDrift {
-    0%   { --idle-x: -0.8; --idle-y: -0.5; }
-    25%  { --idle-x:  0.6; --idle-y:  0.7; }
-    50%  { --idle-x:  0.9; --idle-y: -0.3; }
-    75%  { --idle-x: -0.5; --idle-y:  0.8; }
-    100% { --idle-x: -0.8; --idle-y: -0.5; }
+  /* Desktop only: morph circle → 6px playhead pill on active drag.
+     Targets fine-pointer devices (mouse/trackpad); touch keeps the
+     full circle. */
+  @media (hover: hover) and (pointer: fine) {
+    #fts-thumb.is-active {
+      width: 6px;
+      border-radius: 3px;
+      transform: translate(-50%, -50%) scale(1.0);
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    #fts-thumb { transition: none; animation: none; }
+    #fts-thumb { transition: none; }
     #fts-thumb.is-hover  { transform: translate(-50%, -50%); }
-    #fts-thumb.is-active { transform: translate(-50%, -50%); }
+    #fts-thumb.is-active {
+      transform: translate(-50%, -50%);
+      width: 32px;
+      border-radius: 50%;
+    }
   }
 
   /* Time label — floats above the thumb. Two states:
