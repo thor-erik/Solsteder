@@ -363,13 +363,16 @@ function initFts() {
   }
 
   // -- Pointer / touch events on the track --
-  // During drag the thumb tracks the pointer continuously (no quantisation).
-  // On release we snap to the 5-min grid via _ftsSnapToGrid() — same final
-  // resolution as before, but the path there is smooth.
+  // Value snaps to the 5-min grid every move (so the popup reads as
+  // discrete steps), but the thumb's visual x and the popup's x stash
+  // the raw pointer hour in window._ftsRawHour. _updateFtsThumbDom and
+  // showFtsPopup read it to render smoothly. On release the raw is
+  // cleared and the thumb settles onto the snapped position.
   const setTimeFromPointer = (clientX) => {
     const rect = track.getBoundingClientRect();
     const t    = MIN_H_ARC + (clientX - rect.left) / rect.width * (MAX_H_ARC - MIN_H_ARC);
-    const hour = Math.max(MIN_H_ARC, Math.min(MAX_H_ARC, t));
+    const tClamped = Math.max(MIN_H_ARC, Math.min(MAX_H_ARC, t));
+    const hour = _clampHour(t);
     if (nowMode) {
       nowMode = false;
       nowBtn?.classList.remove('active');
@@ -377,21 +380,11 @@ function initFts() {
       clearInterval(nowInterval); nowInterval = null;
     }
     setActiveIntentBtn(null);
+    window._ftsRawHour = tClamped;
     timeFromEl.value = hour;
     update();
     timeFromEl.dispatchEvent(new Event('input'));
-    showFtsPopup(hour);
-  };
-
-  const _ftsSnapToGrid = () => {
-    const h = parseFloat(timeFromEl.value);
-    if (!isFinite(h)) return;
-    const snapped = _clampHour(h);
-    if (snapped === h) return;
-    timeFromEl.value = snapped;
-    update();
-    timeFromEl.dispatchEvent(new Event('input'));
-    showFtsPopup(snapped);
+    showFtsPopup(tClamped);
   };
 
   // Pointer down — start drag; close calendar picker if open. The popup
@@ -434,9 +427,13 @@ function initFts() {
     if (!_ftsDragging) return;
     _ftsDragging = false;
     window._qcThumbActive = false;
+    window._ftsRawHour = null;
     const _thumbEl = document.getElementById('fts-thumb');
     if (_thumbEl) _thumbEl.classList.remove('is-active');
-    _ftsSnapToGrid();
+    // Settle the thumb onto the snapped position (the step shown in
+    // the popup). _updateFtsThumbDom now reads timeFromEl.value since
+    // _ftsRawHour was just cleared.
+    _updateFtsThumbDom(parseFloat(timeFromEl.value));
     drawFtsCanvas();
     _qcSpringBackFts();
     setFtsPopupExpanded(false);
@@ -522,9 +519,10 @@ function initFts() {
   track.addEventListener('pointercancel', () => {
     _ftsDragging = false;
     window._qcThumbActive = false;
+    window._ftsRawHour = null;
     const _thumbEl = document.getElementById('fts-thumb');
     if (_thumbEl) _thumbEl.classList.remove('is-active');
-    _ftsSnapToGrid();
+    _updateFtsThumbDom(parseFloat(timeFromEl.value));
     drawFtsCanvas();
     setFtsPopupExpanded(false);
     hideFtsPopup();
@@ -600,14 +598,16 @@ function drawFtsCanvas() {
   _updateFtsThumbDom(fromH);
 }
 
-/** Sync the DOM thumb's position + state with the slider value. */
+/** Sync the DOM thumb's position with the slider value, or with the raw
+ *  pointer hour during a smooth drag (window._ftsRawHour). */
 function _updateFtsThumbDom(fromH) {
   const thumb = document.getElementById('fts-thumb');
   const track = document.getElementById('fts-track');
   if (!thumb || !track) return;
   const trackW = track.offsetWidth || 300;
   if (!trackW) return;
-  const xPct = (fromH - MIN_H_ARC) / (MAX_H_ARC - MIN_H_ARC);
+  const visualH = (typeof window._ftsRawHour === 'number') ? window._ftsRawHour : fromH;
+  const xPct = (visualH - MIN_H_ARC) / (MAX_H_ARC - MIN_H_ARC);
   // Clamp the percentage to keep the thumb visually pinned to the nearest
   // cap, matching the canvas thumb's old sx-clamp.
   const capPx = thumb.offsetHeight / 2 || 15;
@@ -788,14 +788,19 @@ function showFtsPopup(hour) {
 
   if (_ftsHideTimeout) { clearTimeout(_ftsHideTimeout); _ftsHideTimeout = null; }
 
-  timeEl.textContent = formatHour(hour);
+  // `hour` may be raw (mid-drag) or snapped (release/idle callers).
+  // Text + weather always read the snapped value so the popup steps
+  // through discrete 5-min increments; position uses the raw hour so
+  // the popup glides under the smoothly-moving thumb.
+  const snappedHour = _clampHour(hour);
+  timeEl.textContent = formatHour(snappedHour);
 
   // Weather: keep the secondary row populated even while it's collapsed, so
   // when the user starts dragging and the popup expands, the values are
   // already in place (no flash of empty content).
   const dateStr = (typeof datePicker !== 'undefined' && datePicker) ? datePicker.value : null;
   if (dateStr && typeof getWeatherAt === 'function') {
-    const wx = getWeatherAt(dateStr, hour);
+    const wx = getWeatherAt(dateStr, snappedHour);
     if (wx) {
       const rain = (wx.precip ?? wx.prec ?? 0) > 0.3;
       const cf   = wx.sunBlock ?? wx.cloud ?? 0;
