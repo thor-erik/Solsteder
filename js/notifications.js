@@ -787,10 +787,18 @@ function _evalIncomingFriendRequest() {
     icon: '👤',
     bodyKey,
     bodyVars: { name, extra },
-    actionKey: 'notif_open_friends',
-    action: () => {
-      if (typeof openFriendsModal === 'function') openFriendsModal();
-      else if (typeof toggleProfilePanel === 'function') toggleProfilePanel();
+    // Inline Accept — single tap turns it into a real friendship; no
+    // round-trip through the Friends modal needed. The 'extra > 0' case
+    // accepts the head request only; the rest stay pending and re-fire
+    // next session.
+    actionKey: extra > 0 ? 'notif_open_friends' : 'notif_friend_request_accept',
+    action: async () => {
+      if (extra > 0) {
+        if (typeof openFriendsModal === 'function') openFriendsModal();
+        else if (typeof toggleProfilePanel === 'function') toggleProfilePanel();
+      } else if (typeof acceptFriendRequest === 'function') {
+        await acceptFriendRequest(head.friendshipId);
+      }
     },
     // Don't TTL-out the toast: we want it on every session until handled.
     // dedupe still prevents multiple copies in the queue at once.
@@ -953,6 +961,33 @@ function _notifToggle(category) {
   if (typeof _renderProfilePanel === 'function') _renderProfilePanel();
 }
 
+/** Read the live push-subscribed state and reflect it on the toggle. */
+async function _notifSyncPushToggleState() {
+  const btn = document.getElementById('push-toggle-btn');
+  if (!btn) return;
+  if (typeof pushIsSubscribed !== 'function') return;
+  const on = await pushIsSubscribed();
+  btn.classList.toggle('is-on', on);
+  btn.setAttribute('aria-checked', String(!!on));
+}
+
+/** Flip the push subscription. Granting permission also subscribes;
+ *  flipping it off un-subscribes and deletes the server row. */
+async function _notifPushToggle() {
+  if (typeof pushIsSubscribed !== 'function') return;
+  const wasOn = await pushIsSubscribed();
+  if (wasOn) {
+    if (typeof pushDisable === 'function') await pushDisable();
+  } else {
+    if (typeof pushRequestPermission === 'function') await pushRequestPermission();
+  }
+  await _notifSyncPushToggleState();
+}
+if (typeof window !== 'undefined') {
+  window._notifSyncPushToggleState = _notifSyncPushToggleState;
+  window._notifPushToggle = _notifPushToggle;
+}
+
 /** Build the notification settings HTML for the profile panel. */
 function _notifSettingsHtml() {
   const settings = _notifGetSettings();
@@ -961,11 +996,33 @@ function _notifSettingsHtml() {
     { key: 'social',     labelKey: 'notif_cat_social' },
     { key: 'suggestion', labelKey: 'notif_cat_suggestion' },
   ];
-  let rows = `<div class="settings-row pref-row is-disabled">
-    <span class="settings-row__label">${t('notif_push_coming_soon')}</span>
-    <span class="settings-row__value">${t('push_status_off')}</span>
-    <span class="settings-status-pill">${t('notif_coming_soon')}</span>
-  </div>`;
+  // Push toggle — only surfaces when the browser supports the APIs AND
+  // a VAPID key is configured. Otherwise we drop the row entirely
+  // (no 'coming soon' chrome). State is fetched async; we render with
+  // 'unknown' then refresh once pushIsSubscribed resolves.
+  let rows = '';
+  const pushAvail = (typeof pushIsAvailable === 'function') && pushIsAvailable();
+  if (pushAvail) {
+    const denied = (typeof pushPermissionState === 'function') && pushPermissionState() === 'denied';
+    if (denied) {
+      rows += `<div class="settings-row pref-row is-disabled">
+        <span class="settings-row__label">${t('notif_push_label')}</span>
+        <span class="settings-row__value">${t('notif_push_blocked')}</span>
+      </div>`;
+    } else {
+      rows += `<div class="settings-row pref-row" id="push-toggle-row">
+        <span class="settings-row__label">${t('notif_push_label')}</span>
+        <button class="toggle-switch" id="push-toggle-btn"
+                role="switch" aria-checked="false"
+                aria-label="${t('notif_push_label')}"
+                onclick="_notifPushToggle()"></button>
+      </div>`;
+      // Refresh state async after the row mounts.
+      if (typeof requestAnimationFrame !== 'undefined') {
+        requestAnimationFrame(_notifSyncPushToggleState);
+      }
+    }
+  }
   for (const cat of categories) {
     const on = settings[cat.key] !== false;
     rows += `<div class="settings-row pref-row">

@@ -55,16 +55,11 @@ async function _syncProfileFromUserMetadata() {
   if (!_currentUser) return;
   const meta = _currentUser.user_metadata || {};
   const patch = {};
-  // Names from Google/Apple/etc — Supabase populates these on first sign-in.
   const fullName = meta.full_name || meta.name || meta.preferred_username || null;
   if (fullName) patch.name = fullName;
   if (meta.avatar_url) patch.avatar_url = meta.avatar_url;
   if (!Object.keys(patch).length) return;
-  // Try the full patch first; on a missing-column error retry with name only.
-  let { error } = await _supabase.from('profiles').update(patch).eq('id', _currentUser.id);
-  if (error && /avatar_url/.test(error.message || '') && patch.name) {
-    await _supabase.from('profiles').update({ name: patch.name }).eq('id', _currentUser.id);
-  }
+  await _supabase.from('profiles').update(patch).eq('id', _currentUser.id);
 }
 
 async function authSetUserRole(email, role) {
@@ -341,11 +336,47 @@ function _renderInvitationsSection() {
       }).join('')}`;
   }
 
+  // Recent responses on the user's own plans — flatten every accepted /
+  // declined invitee into a single sorted list so the host doesn't need
+  // to drill into each plan to see who's said what. Sort key is the
+  // plan's planned_at descending (upcoming first; near-past last) since
+  // plan_invites has no per-row updated_at to use as a recency anchor.
+  let responsesHtml = '';
+  const responses = [];
+  for (const p of ownUpcoming) {
+    if (!Array.isArray(p._invitees)) continue;
+    for (const inv of p._invitees) {
+      if (inv.status !== 'accepted' && inv.status !== 'declined') continue;
+      const u = inv.user || {};
+      const displayName = (u.name || u.email || '').split('@')[0]
+        || (typeof t === 'function' ? t('attendee_someone') : 'Someone');
+      responses.push({ plan: p, invitee: inv, name: displayName });
+    }
+  }
+  if (responses.length) {
+    responses.sort((a, b) => new Date(b.plan.planned_at) - new Date(a.plan.planned_at));
+    const top = responses.slice(0, 6);
+    responsesHtml = `
+      <div class="profile-section-label profile-section-label-sub">${t('recent_responses_label')}</div>
+      ${top.map(r => {
+        const vName = venueName(r.plan.venue_id);
+        const statusKey = r.invitee.status === 'accepted' ? 'response_said_yes' : 'response_said_no';
+        const statusLabel = t(statusKey, { name: r.name, venue: vName });
+        return `<div class="inbox-row inbox-row-compact">
+          <div class="inbox-row-info">
+            <div class="inbox-row-title">${statusLabel}</div>
+            <div class="inbox-row-meta">${fmt(r.plan.planned_at)}</div>
+          </div>
+        </div>`;
+      }).join('')}`;
+  }
+
   return `
     <div class="profile-panel-section invitations-section">
       ${friendReqHtml}
       ${pendingHtml}
       ${yoursHtml}
+      ${responsesHtml}
     </div>`;
 }
 

@@ -6552,6 +6552,7 @@ function _runIntroSequence() {
               document.removeEventListener('touchstart', skipHandler);
               if (_sharedVenueId) selectVenue(_sharedVenueId, true);
               if (typeof _notifInit === 'function') _notifInit();
+              if (typeof pushInit === 'function') pushInit();
               try { localStorage.setItem('solsteder_intro_seen', '1'); } catch (_) {}
             }, PHASE3_MS + 80);
           }, PHASE2_MS + PHASE3_PAUSE);
@@ -6738,6 +6739,7 @@ function _skipIntro(seqId, opts) {
     if (_introSeqId !== localSeq) return;
     if (_sharedVenueId) selectVenue(_sharedVenueId, true);
     if (typeof _notifInit === 'function') _notifInit();
+              if (typeof pushInit === 'function') pushInit();
   }, 1400);
 
   if (document.documentElement.classList.contains('invite-loading')) {

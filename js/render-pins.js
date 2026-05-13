@@ -449,7 +449,10 @@ function _drawInviteAvatarPin(ctx, pt, invitePin) {
     const disc = _inviteOffsetLabel(a.offsetMin);
     return { name: first, disc, declined: false, original: a };
   });
-  if (overflow > 0) rowDescriptors.push({ name: `+${overflow} more`, disc: '', isOverflow: true });
+  if (overflow > 0) {
+    const moreLabel = (typeof t === 'function') ? t('pin_overflow_more', { count: overflow }) : `+${overflow} more`;
+    rowDescriptors.push({ name: moreLabel, disc: '', isOverflow: true });
+  }
   // Declined block — separator + rendered rows. Separator is a virtual
   // row that consumes no extra height; rendering handles it inline by
   // measuring whether we just crossed from accepted to declined.
@@ -458,7 +461,8 @@ function _drawInviteAvatarPin(ctx, pt, invitePin) {
     rowDescriptors.push({ name: first, disc: '', declined: true, original: d });
   }
   if (declinedOverflow > 0) {
-    rowDescriptors.push({ name: `+${declinedOverflow} declined`, disc: '', isOverflow: true, declined: true });
+    const declinedLabel = (typeof t === 'function') ? t('pin_overflow_declined', { count: declinedOverflow }) : `+${declinedOverflow} declined`;
+    rowDescriptors.push({ name: declinedLabel, disc: '', isOverflow: true, declined: true });
   }
 
   let maxRowW = 0;
