@@ -385,6 +385,10 @@ const INVITE_BUBBLE_H       = 22;
 const INVITE_BUBBLE_PAD_X   = 9;
 const INVITE_BUBBLE_GAP     = 6;    // gap between avatar and time bubble
 const INVITE_BUBBLE_FONT    = '600 12px "Inter", system-ui, sans-serif';
+const INVITE_NAME_H         = 22;
+const INVITE_NAME_PAD_X     = 10;
+const INVITE_NAME_GAP       = 6;    // gap between name pill and avatar halo
+const INVITE_NAME_FONT      = '600 12.5px "Inter", system-ui, sans-serif';
 function _drawInviteAvatarPin(ctx, pt, invitePin) {
   const cx = pt.x;
   const cy = pt.y - INVITE_LIFT - INVITE_AVATAR_R;
@@ -409,6 +413,26 @@ function _drawInviteAvatarPin(ctx, pt, invitePin) {
   ctx.textBaseline = 'middle';
   ctx.textAlign    = 'center';
   ctx.fillText(initial, cx, cy + 1);
+
+  // Inviter's first name — cream pill above the avatar so the pin is
+  // self-explanatory ('this is Anna') without the panel chrome. Just
+  // the first name; full name lives in the panel below.
+  const firstName = (invitePin.name || '').trim().split(/\s+/)[0];
+  if (firstName) {
+    ctx.font = INVITE_NAME_FONT;
+    const textW = Math.ceil(ctx.measureText(firstName).width);
+    const nw = textW + INVITE_NAME_PAD_X * 2;
+    const nx = cx - nw / 2;
+    const ny = cy - INVITE_AVATAR_R - INVITE_HALO_W - INVITE_NAME_GAP - INVITE_NAME_H;
+    ctx.beginPath();
+    ctx.roundRect(nx, ny, nw, INVITE_NAME_H, INVITE_NAME_H / 2);
+    ctx.fillStyle = '#FAF1DD';
+    ctx.fill();
+    ctx.fillStyle    = _rgba(TOKENS.bg, 0.92);
+    ctx.textBaseline = 'middle';
+    ctx.textAlign    = 'center';
+    ctx.fillText(firstName, cx, ny + INVITE_NAME_H / 2 + 0.5);
+  }
 
   // Small triangle tip pointing from the avatar's bottom edge to the venue
   // location, so the pin still anchors a *place*. Drawn behind the bubble.
