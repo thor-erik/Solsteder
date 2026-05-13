@@ -8846,18 +8846,18 @@
   }
   .dprcv-timeline-event-tick {
     width: 1px;
-    height: 4px;
+    /* Stretched so the tick reaches the bar's top edge — reads as a
+       proper callout line from icon → bar, not a stub floating in the
+       gap. v1 was 4 px, which left a 4 px void between tick and bar. */
+    height: 8px;
     background: currentColor;
-    opacity: 0.5;
+    opacity: 0.55;
   }
-  /* Meet icon at the bar's left edge — no tick (the bar itself is the
-     anchor), flush-left rather than centred so it doesn't extend off
-     the timeline's left side. */
+  /* Meet icon at the bar's left edge — flush-left rather than centred
+     so it doesn't extend off the timeline's left side. Keeps the
+     callout line so the icon visually anchors to the bar's start. */
   .dprcv-timeline-event.dprcv-timeline-event-meet {
     transform: translateX(0);
-  }
-  .dprcv-timeline-event.dprcv-timeline-event-meet .dprcv-timeline-event-tick {
-    display: none;
   }
   /* Scrubber — cream pill spanning the full bar height + a glass time
      label hovering above. Hidden by default; .is-active reveals it.

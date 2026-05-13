@@ -1320,26 +1320,27 @@ function _computeTimelineEvents(v, dateStr, minH, maxH) {
       .sort((a, b) => a.hour - b.hour);
   }
   const events = [];
-  // Shadow events: anchor a shade glyph at the MIDPOINT of each
-  // shadow region (sun-window-end → next-window-start, or window-end →
-  // maxH for the last region). The midpoint reads as 'this region is
-  // shaded' rather than 'shade starts here' — useful when the receiver
-  // scrubs into a long shadow tail and expects an icon nearby. v1
-  // anchored at win.end which left the late-day shadow tail without
-  // any icon above it (icon sat at the boundary, ~3 h to the left of
-  // where the user was scrubbing).
+  // Shadow + sun transitions. Each sun window's END marks a sun→shade
+  // transition (shade glyph); each sun window's START marks a shade→
+  // sun transition (sun glyph). v1 placed the shade at the gap midpoint
+  // which read as 'this region is shaded' but lost the boundary signal
+  // — user wanted shade where shadow STARTS and sun where shadow ENDS
+  // ('the shadow icon where the shadow start, then the full sun later
+  // when the shadow ends'). Bounded by minH / maxH so transitions
+  // outside the visible bar drop out.
   let sunWindowsDebug = null;
   if (typeof computeSunWindows === 'function') {
     const sw = computeSunWindows(v, dateStr);
     sunWindowsDebug = sw;
     const wins = (sw && sw.windows) || [];
-    for (let i = 0; i < wins.length; i++) {
-      const gapStart = wins[i].end;
-      const gapEnd   = (i + 1 < wins.length) ? wins[i + 1].start : maxH;
-      if (!(gapEnd > gapStart + 0.05)) continue;
-      const mid = (gapStart + gapEnd) / 2;
-      if (mid > minH + 0.1 && mid < maxH - 0.1) {
-        events.push({ type: 'shade', hour: mid });
+    for (const win of wins) {
+      // shade→sun transition at window start (sun arrives on the seating)
+      if (win.start > minH + 0.1 && win.start < maxH - 0.1) {
+        events.push({ type: 'weather', hour: win.start, state: 'sun' });
+      }
+      // sun→shade transition at window end (shadow falls on the seating)
+      if (win.end > minH + 0.1 && win.end < maxH - 0.1) {
+        events.push({ type: 'shade', hour: win.end });
       }
     }
   }

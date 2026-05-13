@@ -725,9 +725,17 @@ function drawTimeline(ctx, opts) {
     const wins = sunWindows.windows || [];
     const sOpen  = sunWindows.open  ?? minH;
     const sClose = sunWindows.close ?? maxH;
+    // Early gap starts at the bar's actual left edge (minH), not sOpen.
+    // For the accept page where minH = meet time < sOpen (venue opens
+    // later), the period [minH, sOpen] was previously left without
+    // stripes — even though sun wasn't on the seating yet. User saw
+    // a darkened-but-unstriped band from 09:25 → 11:30 on Vinland.
+    // Math.min so list cards (where minH typically > sOpen) keep their
+    // existing behaviour.
+    const earlyStart = Math.min(minH, sOpen);
     const gaps = [];
     if (wins.length > 0) {
-      if (wins[0].start > sOpen + 0.01) gaps.push({ start: sOpen, end: wins[0].start });
+      if (wins[0].start > earlyStart + 0.01) gaps.push({ start: earlyStart, end: wins[0].start });
       for (let i = 0; i < wins.length - 1; i++) {
         if (wins[i + 1].start > wins[i].end + 0.01) {
           gaps.push({ start: wins[i].end, end: wins[i + 1].start });
@@ -735,8 +743,8 @@ function drawTimeline(ctx, opts) {
       }
       const lastEnd = wins[wins.length - 1].end;
       if (lastEnd < sClose - 0.01) gaps.push({ start: lastEnd, end: sClose });
-    } else if (sClose > sOpen) {
-      gaps.push({ start: sOpen, end: sClose });
+    } else if (sClose > earlyStart) {
+      gaps.push({ start: earlyStart, end: sClose });
     }
     for (const gap of gaps) {
       const gx1 = Math.round(timeToX(Math.max(minH, gap.start)));
