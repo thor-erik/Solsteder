@@ -38,6 +38,33 @@ async function authLoadRole() {
     _currentRole = data?.role ?? 'user';
   }
   _renderProfilePanel();
+  // Mirror user_metadata.{name, avatar_url} into the profiles row so
+  // other users see this person's name + avatar when they show up as
+  // an attendee or friend. Fire-and-forget: avatar_url column may not
+  // exist yet, in which case Supabase rejects the update — that's why
+  // we patch only the columns we know are there (name) and treat any
+  // avatar update as best-effort. Requires the one-time SQL migration:
+  //   alter table public.profiles add column if not exists avatar_url text;
+  _syncProfileFromUserMetadata().catch(() => {});
+}
+
+/** Patch the current user's profile row with their auth user_metadata
+ *  so friends/attendees show their proper name and avatar everywhere.
+ *  Runs on every auth load. Idempotent. */
+async function _syncProfileFromUserMetadata() {
+  if (!_currentUser) return;
+  const meta = _currentUser.user_metadata || {};
+  const patch = {};
+  // Names from Google/Apple/etc — Supabase populates these on first sign-in.
+  const fullName = meta.full_name || meta.name || meta.preferred_username || null;
+  if (fullName) patch.name = fullName;
+  if (meta.avatar_url) patch.avatar_url = meta.avatar_url;
+  if (!Object.keys(patch).length) return;
+  // Try the full patch first; on a missing-column error retry with name only.
+  let { error } = await _supabase.from('profiles').update(patch).eq('id', _currentUser.id);
+  if (error && /avatar_url/.test(error.message || '') && patch.name) {
+    await _supabase.from('profiles').update({ name: patch.name }).eq('id', _currentUser.id);
+  }
 }
 
 async function authSetUserRole(email, role) {
@@ -190,7 +217,9 @@ function _renderInvitationsSection() {
   const ownUpcoming = (typeof _plans !== 'undefined')
     ? _plans.filter(p => p && p.creator_id === (_currentUser && _currentUser.id))
     : [];
-  if (!pending.length && !ownUpcoming.length) return '';
+  const friendReqs = (typeof _pendingRequests !== 'undefined' && Array.isArray(_pendingRequests))
+    ? _pendingRequests : [];
+  if (!pending.length && !ownUpcoming.length && !friendReqs.length) return '';
 
   const fmt = (iso) => {
     try {
@@ -203,6 +232,33 @@ function _renderInvitationsSection() {
     const v = VENUES.find(x => String(x.id) === String(vid));
     return v ? v.name : '';
   };
+
+  // Friend requests at the top — same affordances as the Friends modal
+  // (Accept + reject ✕), but inline so the user can resolve everything
+  // from one screen.
+  let friendReqHtml = '';
+  if (friendReqs.length) {
+    friendReqHtml = `
+      <div class="profile-section-label">${t('friend_requests')} (${friendReqs.length})</div>
+      ${friendReqs.map(r => {
+        const label = (r.name || r.email || '').toString().replace(/'/g, "\\'");
+        return `<div class="inbox-row">
+          <div class="inbox-row-info">
+            <div class="inbox-row-title">${r.name || r.email}</div>
+          </div>
+          <div class="inbox-row-actions">
+            <button class="inbox-btn inbox-btn-accept"
+                    onclick="_handleAcceptFriendRequest('${r.friendshipId}');_renderProfilePanel?.();">
+              ${t('plan_accept')}
+            </button>
+            <button class="inbox-btn inbox-btn-decline"
+                    onclick="_handleRejectFriendRequest('${r.friendshipId}');_renderProfilePanel?.();">
+              ${t('plan_decline')}
+            </button>
+          </div>
+        </div>`;
+      }).join('')}`;
+  }
 
   let pendingHtml = '';
   if (pending.length) {
@@ -287,6 +343,7 @@ function _renderInvitationsSection() {
 
   return `
     <div class="profile-panel-section invitations-section">
+      ${friendReqHtml}
       ${pendingHtml}
       ${yoursHtml}
     </div>`;
@@ -736,9 +793,13 @@ function _renderFriendsModal(modal) {
             break;
           }
         }
+        // Confirm before remove — accidental ✕ taps in a small list
+        // shouldn't quietly tear down a friendship. The modal re-render
+        // is awaited inside _confirmRemoveFriend so we don't race the
+        // async delete.
         return `<div class="friend-item">
           <div class="friend-item-left">${avatar}<div class="friend-item-info"><div class="friend-item-name">${f.name || f.email}</div>${checkinInfo}</div></div>
-          <button class="btn-icon-sm friend-remove" onclick="removeFriend('${f.friendshipId}');_renderFriendsModal()" title="${t('friend_removed')}">✕</button>
+          <button class="btn-icon-sm friend-remove" onclick="_confirmRemoveFriend('${f.friendshipId}', ${JSON.stringify(f.name || f.email)})" title="${t('friend_remove_title')}">✕</button>
         </div>`;
       }).join('')
     : `<div class="friends-empty">${t('no_friends_yet')}</div>`;
@@ -752,7 +813,10 @@ function _renderFriendsModal(modal) {
         return `<div class="friend-item friend-request">
           ${avatar}
           <div class="friend-item-info"><div class="friend-item-name">${r.name || r.email}</div></div>
-          <button class="btn-accept" onclick="acceptFriendRequest('${r.friendshipId}');_renderFriendsModal()">${t('plan_accept')}</button>
+          <div class="friend-item-actions">
+            <button class="btn-accept" onclick="_handleAcceptFriendRequest('${r.friendshipId}')">${t('plan_accept')}</button>
+            <button class="btn-icon-sm friend-remove" onclick="_handleRejectFriendRequest('${r.friendshipId}')" title="${t('friend_reject_title')}">✕</button>
+          </div>
         </div>`;
       }).join('')
     : '';
@@ -1519,6 +1583,25 @@ async function removeFriend(friendshipId) {
   await loadFriends();
 }
 
+/** UI handler for the ✕ on a friend row. Confirms before deleting so an
+ *  accidental tap in a small list doesn't silently unfriend somebody. */
+async function _confirmRemoveFriend(friendshipId, friendName) {
+  const label = friendName || t('attendee_someone');
+  if (!confirm(t('friend_remove_confirm', { name: label }))) return;
+  await removeFriend(friendshipId);
+  _renderFriendsModal();
+}
+async function _handleAcceptFriendRequest(friendshipId) {
+  await acceptFriendRequest(friendshipId);
+  _renderFriendsModal();
+}
+async function _handleRejectFriendRequest(friendshipId) {
+  if (typeof _aTrack === 'function') _aTrack('friend_request_rejected', {});
+  await _supabase.from('friendships').delete().eq('id', friendshipId);
+  await loadFriends();
+  _renderFriendsModal();
+}
+
 // ── Check-ins ────────────────────────────────────────────────────────────────
 
 async function loadFriendCheckins() {
@@ -1630,6 +1713,38 @@ function _subscribeToCheckins() {
     .subscribe();
 }
 
+// Realtime channels for the social tables. The eval-loop (every 60 s in
+// notifications.js) still runs the dedup logic against fresh data, so a
+// realtime refresh just brings the data forward and lets the toast fire
+// within seconds of the receiver's action instead of after a minute.
+// Requires the tables to be in the supabase_realtime publication; if
+// they're not, the subscription is a no-op and the 60 s poll remains
+// the fallback. SQL to enable (run once per project, in SQL editor):
+//   alter publication supabase_realtime add table public.plan_invites;
+//   alter publication supabase_realtime add table public.friendships;
+let _planInvitesSubscription = null;
+let _friendshipsSubscription = null;
+function _subscribeToPlanInvites() {
+  if (_planInvitesSubscription) _planInvitesSubscription.unsubscribe();
+  if (!_currentUser) return;
+  _planInvitesSubscription = _supabase
+    .channel('plan-invites-realtime')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'plan_invites' }, () => {
+      loadPlans().catch(() => {});
+    })
+    .subscribe();
+}
+function _subscribeToFriendships() {
+  if (_friendshipsSubscription) _friendshipsSubscription.unsubscribe();
+  if (!_currentUser) return;
+  _friendshipsSubscription = _supabase
+    .channel('friendships-realtime')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships' }, () => {
+      loadFriends().catch(() => {});
+    })
+    .subscribe();
+}
+
 // ── Periodic social poll ─────────────────────────────────────────────────────
 //
 // Without realtime subscriptions, the inviter has no way to learn that a
@@ -1705,8 +1820,11 @@ async function loadPlans() {
     .eq('user_id', _currentUser.id);
   if (!ie) _planInvites = (invites || []).filter(i => i.plan && new Date(i.plan.planned_at) > new Date());
   // Refresh the friends-going pill — _plans / _planInvites just changed
-  // and the visible pill should reflect new accept/decline data.
+  // and the visible pill should reflect new accept/decline data. Same
+  // for the avatar badge, which lights up on pending plan invites.
   if (typeof _updateFriendsPill === 'function') _updateFriendsPill();
+  if (typeof _updateAvatarBadge === 'function') _updateAvatarBadge();
+  if (typeof _renderProfilePanel === 'function') _renderProfilePanel();
 }
 
 async function createPlan(venueId, plannedAt, message, friendIds) {
@@ -1968,6 +2086,8 @@ _supabase.auth.onAuthStateChange((event, session) => {
     loadPlans();
     loadOwnSuggestions();
     _subscribeToCheckins();
+    _subscribeToPlanInvites();
+    _subscribeToFriendships();
     _startSocialPoll();
   } else {
     _currentRole = null;
@@ -1976,7 +2096,9 @@ _supabase.auth.onAuthStateChange((event, session) => {
     _friends = []; _pendingRequests = [];
     _friendCheckins.clear(); _myCheckin = null;
     _plans = []; _planInvites = [];
-    if (_checkinSubscription) { _checkinSubscription.unsubscribe(); _checkinSubscription = null; }
+    if (_checkinSubscription)     { _checkinSubscription.unsubscribe();     _checkinSubscription = null; }
+    if (_planInvitesSubscription) { _planInvitesSubscription.unsubscribe(); _planInvitesSubscription = null; }
+    if (_friendshipsSubscription) { _friendshipsSubscription.unsubscribe(); _friendshipsSubscription = null; }
     _stopSocialPoll();
   }
 
@@ -2007,6 +2129,12 @@ _supabase.auth.onAuthStateChange((event, session) => {
   // when window._pendingInvite is null (already consumed).
   if (!wasLoggedIn && _currentUser && typeof window._tryPendingInvite === 'function' && window._pendingInvite) {
     setTimeout(() => window._tryPendingInvite(), 200);
+  }
+  // Same pattern for cold-link friend invites — the welcome card is up
+  // when the user lands without auth; this resumes the friendship insert
+  // after they sign in.
+  if (!wasLoggedIn && _currentUser && typeof window._tryFriendInvite === 'function' && window._pendingFriendInvite) {
+    setTimeout(() => window._tryFriendInvite(), 200);
   }
 
   // After sign-out: close the detail panel

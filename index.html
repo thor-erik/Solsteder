@@ -45,10 +45,10 @@
     }
   })();
 </script>
-<script defer src="js/i18n.js?v=20260513h"></script>
+<script defer src="js/i18n.js?v=20260513j"></script>
 <script defer src="js/config.js?v=20260425b"></script>
 <script defer src="js/tokens.js?v=20260509e"></script>
-<script defer src="js/auth.js?v=20260513i"></script>
+<script defer src="js/auth.js?v=20260513j"></script>
 <script defer src="js/login-carousel.js?v=20260428a"></script>
 <script defer src="js/analytics.js"></script>
 <script defer src="js/places.js?v=20260411b"></script>
@@ -58,12 +58,12 @@
 <script defer src="js/weather.js?v=20260411b"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260513i"></script>
+<script defer src="js/app.js?v=20260513j"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
 <script defer src="js/render-editor.js?v=20260508a"></script>
-<script defer src="js/render-pins.js?v=20260513e"></script>
+<script defer src="js/render-pins.js?v=20260513j"></script>
 <script defer src="js/ui-shared.js?v=20260511e"></script>
 <script defer src="js/ui-list.js?v=20260510a"></script>
 <script defer src="js/admin-review.js?v=20260505a"></script>
@@ -1028,6 +1028,66 @@
     align-items: center;
     justify-content: center;
     color: var(--muted);
+  }
+
+  /* ── Cold-link friend-invite welcome card ──────────────────────────────── */
+  .friend-invite-welcome {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 30, 55, 0.22);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.28s ease;
+  }
+  .friend-invite-welcome.show {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .fiw-card {
+    width: min(360px, calc(100vw - 32px));
+    padding: 28px 24px 20px;
+    border-radius: 20px;
+    text-align: center;
+    transform: translateY(12px);
+    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .friend-invite-welcome.show .fiw-card { transform: translateY(0); }
+  .fiw-icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 14px;
+    border-radius: 50%;
+    background: rgba(245, 194, 94, 0.18);
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .fiw-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.25;
+    margin-bottom: 8px;
+  }
+  .fiw-sub {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.4;
+    margin-bottom: 20px;
+  }
+  .fiw-cta { width: 100%; margin-bottom: 8px; }
+  .fiw-dismiss {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 8px 12px;
+    cursor: pointer;
   }
 
   /* ── Avatar badge dot (pending friend requests) ────────────────────────── */

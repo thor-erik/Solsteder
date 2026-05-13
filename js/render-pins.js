@@ -422,10 +422,18 @@ function _inviteOffsetLabel(offsetMin) {
 }
 function _drawInviteAvatarPin(ctx, pt, invitePin) {
   const attendees = Array.isArray(invitePin.attendees) ? invitePin.attendees : [];
-  if (!attendees.length) return; // no one accepted yet — pin renders nothing
+  const declined  = Array.isArray(invitePin.declined)  ? invitePin.declined  : [];
+  if (!attendees.length && !declined.length) return; // nobody responded yet
 
+  // Budget rows across accepted + declined. Accepted always get rendered
+  // first; declined rows stack below a hairline separator. If the total
+  // would overflow INVITE_MAX_ROWS, declined are trimmed first via a
+  // '+N declined' overflow line.
   const visible = attendees.slice(0, INVITE_MAX_ROWS);
   const overflow = Math.max(0, attendees.length - INVITE_MAX_ROWS);
+  const remainingRows = Math.max(0, INVITE_MAX_ROWS - visible.length - (overflow > 0 ? 1 : 0));
+  const visibleDeclined = declined.slice(0, remainingRows);
+  const declinedOverflow = Math.max(0, declined.length - visibleDeclined.length);
   const timeStr  = (typeof _fmtTime === 'function') ? _fmtTime(invitePin.meetHour) : '';
   // Prefix the time with a localized 'Meeting at' so the header reads
   // as a sentence ('Meeting at 18:00') rather than a bare timestamp.
@@ -439,9 +447,19 @@ function _drawInviteAvatarPin(ctx, pt, invitePin) {
   const rowDescriptors = visible.map(a => {
     const first = (a.name || '').trim().split(/\s+/)[0] || '?';
     const disc = _inviteOffsetLabel(a.offsetMin);
-    return { name: first, disc };
+    return { name: first, disc, declined: false, original: a };
   });
   if (overflow > 0) rowDescriptors.push({ name: `+${overflow} more`, disc: '', isOverflow: true });
+  // Declined block — separator + rendered rows. Separator is a virtual
+  // row that consumes no extra height; rendering handles it inline by
+  // measuring whether we just crossed from accepted to declined.
+  for (const d of visibleDeclined) {
+    const first = (d.name || '').trim().split(/\s+/)[0] || '?';
+    rowDescriptors.push({ name: first, disc: '', declined: true, original: d });
+  }
+  if (declinedOverflow > 0) {
+    rowDescriptors.push({ name: `+${declinedOverflow} declined`, disc: '', isOverflow: true, declined: true });
+  }
 
   let maxRowW = 0;
   for (const r of rowDescriptors) {
@@ -492,37 +510,62 @@ function _drawInviteAvatarPin(ctx, pt, invitePin) {
   }
 
   // Rows
+  let drewDeclineSeparator = false;
   for (let i = 0; i < rowDescriptors.length; i++) {
     const r = rowDescriptors[i];
+    // Draw a hairline separator the first time we enter the declined
+    // block, so the visual structure reads as 'accepted, then declined'
+    // instead of one flat list.
+    if (r.declined && !drewDeclineSeparator) {
+      ctx.beginPath();
+      ctx.moveTo(cardX + INVITE_CARD_PAD_X, cursorY + 0.5);
+      ctx.lineTo(cardX + cardW - INVITE_CARD_PAD_X, cursorY + 0.5);
+      ctx.strokeStyle = _rgba(TOKENS.bg, 0.10);
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      drewDeclineSeparator = true;
+    }
     const rowCy = cursorY + INVITE_CARD_ROW_H / 2;
 
     if (r.isOverflow) {
       ctx.font         = INVITE_OVERFLOW_FONT;
-      ctx.fillStyle    = _rgba(TOKENS.bg, 0.55);
+      ctx.fillStyle    = _rgba(TOKENS.bg, r.declined ? 0.40 : 0.55);
       ctx.textBaseline = 'middle';
       ctx.textAlign    = 'left';
       ctx.fillText(r.name, cardX + INVITE_CARD_PAD_X, rowCy);
     } else {
-      // Avatar
+      // Avatar — full colour for accepted, greyed for declined.
       const avCx = cardX + INVITE_CARD_PAD_X + INVITE_AV_R;
-      const original = visible[i];
+      const original = r.original;
       ctx.beginPath();
       ctx.arc(avCx, rowCy, INVITE_AV_R, 0, Math.PI * 2);
-      ctx.fillStyle = _friendColor(original.id || original.name);
+      ctx.fillStyle = r.declined
+        ? _rgba(TOKENS.bg, 0.20)
+        : _friendColor(original.id || original.name);
       ctx.fill();
       // Initial
       ctx.font         = INVITE_INITIAL_FONT;
-      ctx.fillStyle    = _rgba(TOKENS.bg, 0.92);
+      ctx.fillStyle    = r.declined ? _rgba(TOKENS.bg, 0.45) : _rgba(TOKENS.bg, 0.92);
       ctx.textBaseline = 'middle';
       ctx.textAlign    = 'center';
       ctx.fillText(_friendInitial({ name: original.name }), avCx, rowCy + 0.5);
       // Name
       ctx.font         = INVITE_NAME_FONT;
-      ctx.fillStyle    = _rgba(TOKENS.bg, 0.92);
+      ctx.fillStyle    = r.declined ? _rgba(TOKENS.bg, 0.45) : _rgba(TOKENS.bg, 0.92);
       ctx.textBaseline = 'middle';
       ctx.textAlign    = 'left';
       const nameX = avCx + INVITE_AV_R + INVITE_AV_GAP;
       ctx.fillText(r.name, nameX, rowCy);
+      // Strikethrough on declined rows — same color as the dimmed text.
+      if (r.declined) {
+        const nameW = Math.ceil(ctx.measureText(r.name).width);
+        ctx.beginPath();
+        ctx.moveTo(nameX, rowCy + 0.5);
+        ctx.lineTo(nameX + nameW, rowCy + 0.5);
+        ctx.strokeStyle = _rgba(TOKENS.bg, 0.45);
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+      }
       // Discrepancy (right-aligned, deeper amber for contrast).
       if (r.disc) {
         ctx.font         = INVITE_DISC_FONT;

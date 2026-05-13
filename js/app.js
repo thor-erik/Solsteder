@@ -3335,56 +3335,121 @@ function _updateFriendsCanvasPin() {
       plan = sameDate[0];
     }
     if (plan && Array.isArray(plan._invitees)) {
-      const accepted = plan._invitees.filter(i => i.status === 'accepted');
       const myId = (typeof authCurrentUser === 'function' && authCurrentUser())
         ? authCurrentUser().id : null;
       const planDateMs = new Date(plan.planned_at).getTime();
       const planHour   = new Date(plan.planned_at).getHours()
                        + new Date(plan.planned_at).getMinutes() / 60;
-      const attendees = [];
-      for (const inv of accepted) {
+      const fallbackName = (typeof t === 'function' ? t('attendee_someone') : 'Someone');
+      const toAttendee = (inv) => {
         const u = inv.user || {};
-        if (myId && u.id && String(u.id) === String(myId)) continue;
         let offsetMin = 0;
         if (inv.arrival_time) {
           offsetMin = Math.round((new Date(inv.arrival_time).getTime() - planDateMs) / 60000);
         }
-        // Names come from the profiles join — present for any
-        // authenticated accepter regardless of friendship. Anon paths
-        // can't reach accept (the anon CTA opens login), so this fall-
-        // through really only fires for malformed rows.
-        const name = (u.name || u.email || '').split('@')[0]
-          || (typeof t === 'function' ? t('attendee_someone') : 'Someone');
-        attendees.push({ id: u.id || null, name, offsetMin });
+        const name = (u.name || u.email || '').split('@')[0] || fallbackName;
+        return { id: u.id || null, name, offsetMin };
+      };
+      const attendees = [];
+      const declined  = [];
+      for (const inv of plan._invitees) {
+        const u = inv.user || {};
+        if (myId && u.id && String(u.id) === String(myId)) continue;
+        if (inv.status === 'accepted') attendees.push(toAttendee(inv));
+        else if (inv.status === 'declined') declined.push(toAttendee(inv));
       }
-      if (attendees.length) {
-        next = { venueId: selectedId, meetHour: planHour, attendees };
+      if (attendees.length || declined.length) {
+        next = { venueId: selectedId, meetHour: planHour, attendees, declined };
       }
     }
   }
   if (typeof window !== 'undefined') window._friendsPin = next;
   // Trigger a redraw only when the pin's presence actually changed, so
   // we don't thrash the canvas on every renderList tick.
+  const _len = (p) => (p ? (p.attendees?.length || 0) + (p.declined?.length || 0) : 0);
   const changed = (!!prev) !== (!!next)
     || (prev && next && (prev.venueId !== next.venueId
                       || prev.meetHour !== next.meetHour
-                      || prev.attendees.length !== next.attendees.length));
+                      || _len(prev) !== _len(next)));
   if (changed && typeof draw === 'function') draw();
 }
 // Back-compat shim: external callers still reference _updateFriendsPill.
 function _updateFriendsPill() { _updateFriendsCanvasPin(); }
 
-/** Toggle the small dot on the search-bar avatar when there are pending
- *  incoming friend requests. The full count lives in the profile panel's
- *  Friends row; the dot is just the at-a-glance "you have something
- *  waiting" signal. */
+/** Toggle the small dot on the search-bar avatar when ANYTHING is
+ *  waiting for the user — incoming friend requests OR pending plan
+ *  invites they haven't responded to. The full breakdown lives in the
+ *  profile panel's Activity view; the dot is just the at-a-glance
+ *  'you have something waiting' signal. */
+/** Cold-link welcome card for anon visitors clicking #friend/<id>.
+ *  Looks up the sender's name (best-effort via the public profile read),
+ *  shows a centred glass card naming them, and opens the profile login
+ *  panel on tap. Auto-dismisses after sign-in via the auth-state-change
+ *  resume in auth.js. */
+async function _showFriendInviteWelcome(friendUserId) {
+  let senderName = '';
+  try {
+    const { data: prof } = await _supabase
+      .from('profiles').select('name, email').eq('id', friendUserId).single();
+    if (prof) senderName = (prof.name || prof.email || '').split('@')[0];
+  } catch (e) { /* ignore — falls back to generic copy */ }
+  const existing = document.getElementById('friend-invite-welcome');
+  if (existing) existing.remove();
+  const wrap = document.createElement('div');
+  wrap.id = 'friend-invite-welcome';
+  wrap.className = 'friend-invite-welcome';
+  const titleKey = senderName ? 'friend_welcome_title' : 'friend_welcome_title_generic';
+  wrap.innerHTML = `
+    <div class="fiw-card glass-panel">
+      <div class="fiw-icon" aria-hidden="true">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+      </div>
+      <div class="fiw-title">${t(titleKey, { name: senderName || '' })}</div>
+      <div class="fiw-sub">${t('friend_welcome_sub')}</div>
+      <button class="p-pill fiw-cta" type="button" onclick="_fiwSignIn()">${t('friend_welcome_cta')}</button>
+      <button class="fiw-dismiss" type="button" onclick="_fiwDismiss()">${t('friend_welcome_dismiss')}</button>
+    </div>`;
+  document.body.appendChild(wrap);
+  requestAnimationFrame(() => wrap.classList.add('show'));
+}
+
+function _fiwSignIn() {
+  if (typeof toggleProfilePanel === 'function') toggleProfilePanel();
+}
+function _fiwDismiss() {
+  const wrap = document.getElementById('friend-invite-welcome');
+  if (!wrap) return;
+  wrap.classList.remove('show');
+  setTimeout(() => wrap.remove(), 280);
+  // Clear the pending state so a later auth event doesn't fire the
+  // friendship insert behind the user's back.
+  if (typeof window !== 'undefined') window._pendingFriendInvite = null;
+  if (typeof history !== 'undefined') history.replaceState(null, '', location.pathname);
+}
+if (typeof window !== 'undefined') {
+  window._showFriendInviteWelcome = _showFriendInviteWelcome;
+  window._fiwSignIn = _fiwSignIn;
+  window._fiwDismiss = _fiwDismiss;
+}
+
+/** Auto-dismiss the welcome card the moment a friendship insert
+ *  resolves successfully. Wired via _tryFriendInvite -> on success. */
+function _dismissFriendInviteWelcomeIfOpen() {
+  const wrap = document.getElementById('friend-invite-welcome');
+  if (wrap) _fiwDismiss();
+}
+if (typeof window !== 'undefined') window._dismissFriendInviteWelcomeIfOpen = _dismissFriendInviteWelcomeIfOpen;
+
 function _updateAvatarBadge() {
   const btn = document.getElementById('search-profile-btn');
   if (!btn) return;
-  const has = (typeof _pendingRequests !== 'undefined'
-            && Array.isArray(_pendingRequests)
-            && _pendingRequests.length > 0);
-  btn.classList.toggle('has-badge', has);
+  const reqs = (typeof _pendingRequests !== 'undefined'
+             && Array.isArray(_pendingRequests))
+    ? _pendingRequests.length : 0;
+  const invs = (typeof _planInvites !== 'undefined' && Array.isArray(_planInvites))
+    ? _planInvites.filter(i => i.status === 'pending' && i.plan).length
+    : 0;
+  btn.classList.toggle('has-badge', reqs + invs > 0);
 }
 
 if (typeof window !== 'undefined') {
@@ -6087,10 +6152,21 @@ function _introCheckReady() {
       const friendUserId = hash.slice(7);
       if (friendUserId) {
         window._pendingFriendInvite = friendUserId;
-        const _tryFriendInvite = async () => {
+        // Hoist to window so the auth-state-change handler in auth.js can
+        // re-invoke this after the welcome card → login round-trip.
+        window._tryFriendInvite = async () => {
           if (typeof authCurrentUser !== 'function') return;
           const user = authCurrentUser();
-          if (!user) return; // Will re-check on auth state change
+          if (!user) {
+            // Anon visitor → show a welcome card naming the sender and
+            // prompting login. The friendship gets created on the next
+            // _tryFriendInvite tick after auth resumes (auth.js
+            // re-invokes the pending invite handler on SIGNED_IN).
+            if (typeof _showFriendInviteWelcome === 'function') {
+              _showFriendInviteWelcome(friendUserId);
+            }
+            return;
+          }
           if (user.id !== friendUserId) {
             // Look up the sender's profile so the toast can name them.
             let senderName = '';
@@ -6104,6 +6180,9 @@ function _introCheckReady() {
               friend_id: user.id,
               status:    'accepted',
             }, { onConflict: 'user_id,friend_id' });
+            if (typeof _dismissFriendInviteWelcomeIfOpen === 'function') {
+              _dismissFriendInviteWelcomeIfOpen();
+            }
             if (typeof _showToast === 'function') {
               _showToast(senderName
                 ? t('friend_added_via_link', { name: senderName })
@@ -6114,7 +6193,7 @@ function _introCheckReady() {
           window._pendingFriendInvite = null;
           history.replaceState(null, '', location.pathname);
         };
-        setTimeout(_tryFriendInvite, 1500);
+        setTimeout(window._tryFriendInvite, 1500);
       }
     }
 
