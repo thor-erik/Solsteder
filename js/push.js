@@ -32,7 +32,7 @@
 
 // Set this when you generate VAPID keys. Leave empty to keep the push
 // UI hidden until the project is configured.
-const VAPID_PUBLIC_KEY = '';
+const VAPID_PUBLIC_KEY = 'BOAYKO4hXSbw_iaLL80fl-FyoZFET64rfPsklV5znQ3Q1UB1z4MwAkBRRezgAJHw885n90ZiRuszHZLVOMMNrxE';
 
 let _pushRegistration = null;
 
