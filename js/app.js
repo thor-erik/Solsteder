@@ -6016,30 +6016,45 @@ function _introCheckReady() {
     const hash = window.location.hash.slice(1);
 
     // Handle friend invite link: #friend/<userId>
+    //
+    // Semantics: the SENDER created the link explicitly to invite this
+    // recipient as a friend. The recipient clicking the link is a clear
+    // second-party consent. Both parties have opted in, so the row
+    // lands at status='accepted' directly — no separate "Accept friend
+    // request" step. User-reported confusion: 'When she opened the link
+    // SHE got a notification saying Friend request sent!' — because the
+    // toast text + 'pending' status implied she had to do something else.
     if (hash.startsWith('friend/')) {
       const friendUserId = hash.slice(7);
       if (friendUserId) {
         window._pendingFriendInvite = friendUserId;
-        // Process after auth is ready
-        const _tryFriendInvite = () => {
+        const _tryFriendInvite = async () => {
           if (typeof authCurrentUser !== 'function') return;
           const user = authCurrentUser();
           if (!user) return; // Will re-check on auth state change
-          if (user.id !== friendUserId && typeof sendFriendRequest === 'function') {
-            // Use direct insert by ID instead of email lookup
-            _supabase.from('friendships').upsert({
-              user_id: friendUserId,
+          if (user.id !== friendUserId) {
+            // Look up the sender's profile so the toast can name them.
+            let senderName = '';
+            try {
+              const { data: prof } = await _supabase
+                .from('profiles').select('name, email').eq('id', friendUserId).single();
+              if (prof) senderName = (prof.name || prof.email || '').split('@')[0];
+            } catch (e) { /* ignore — toast falls back to generic copy */ }
+            await _supabase.from('friendships').upsert({
+              user_id:   friendUserId,
               friend_id: user.id,
-              status: 'pending'
-            }, { onConflict: 'user_id,friend_id' }).then(() => {
-              if (typeof _showToast === 'function') _showToast(t('friend_request_sent'));
-              if (typeof loadFriends === 'function') loadFriends();
-            });
+              status:    'accepted',
+            }, { onConflict: 'user_id,friend_id' });
+            if (typeof _showToast === 'function') {
+              _showToast(senderName
+                ? t('friend_added_via_link', { name: senderName })
+                : t('friend_added_via_link_generic'));
+            }
+            if (typeof loadFriends === 'function') loadFriends();
           }
           window._pendingFriendInvite = null;
           history.replaceState(null, '', location.pathname);
         };
-        // Try now, and also on auth change
         setTimeout(_tryFriendInvite, 1500);
       }
     }

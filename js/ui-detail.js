@@ -853,17 +853,23 @@ function _handleCalendarAdd(venueId, inviterName) {
   });
   if (!ics) return;
 
-  // iOS Safari doesn't fully honour <a href="blob:..." download> — it
-  // tends to navigate to the blob URL instead of triggering the system's
-  // 'Add to Calendar' sheet. The data-URI path is universally accepted
-  // by iOS's URL handlers and works as the import trigger. For desktop
-  // browsers the <a download> with a blob URL is the cleanest path
-  // (filename preserved, no navigation away from the page). Detect iOS
-  // Safari and branch accordingly.
-  const isIos = /iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+  // Calendar download is fiddly on mobile WebKit. Two distinct paths:
+  //   * iOS Safari: the data: URI via window.location is the only thing
+  //     that triggers the system 'Add to Calendar' sheet — blob downloads
+  //     just navigate to the blob URL showing raw ICS text.
+  //   * iOS Chrome (CriOS): does NOT recognise data:text/calendar as a
+  //     calendar event — it shows a Save-to-Files prompt with a filename
+  //     of 'unknown'. The blob+download path gives it a proper .ics
+  //     filename, which the user can then tap from Files to open in
+  //     Calendar. User-reported: 'iPhone 17 Chrome, downloaded ics
+  //     labeled "unknown" with Disk/Filer options'.
+  //   * Desktop: blob+download (filename preserved, no navigation).
+  const ua = navigator.userAgent || '';
+  const isIos = /iPhone|iPad|iPod/i.test(ua);
+  const isIosSafari = isIos && !/CriOS|FxiOS|EdgiOS/i.test(ua);
   const filename = `solsteder-${_slugForFile(v.name)}.ics`;
 
-  if (isIos) {
+  if (isIosSafari) {
     // btoa needs latin-1; use the unescape/encodeURIComponent trick to
     // handle any non-ASCII chars in venue names ('Ekebergrestauranten' etc.).
     const b64 = btoa(unescape(encodeURIComponent(ics)));

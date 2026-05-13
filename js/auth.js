@@ -340,6 +340,14 @@ function _renderSettingsView() {
   const avatar   = _currentUser.user_metadata?.avatar_url;
   const name     = _currentUser.user_metadata?.name ?? '';
   const email    = _currentUser.email ?? '';
+  // Apple ID's private email relay generates @privaterelay.appleid.com
+  // addresses that are opaque tokens — surfacing them as 'your email'
+  // confuses users who don't recognise the format. Show a 'Signed in
+  // with Apple' label in its place. User-reported: 'her email is
+  // *@privaterelay.appleid.com, should we not just say signed in with
+  // Apple?'.
+  const isAppleRelay = /@privaterelay\.appleid\.com$/i.test(email);
+  const emailLabel = isAppleRelay ? t('signed_in_with_apple') : email;
   const lang     = typeof prefLang     === 'function' ? prefLang()     : 'no';
   const tempUnit = typeof prefTempUnit === 'function' ? prefTempUnit() : 'C';
 
@@ -407,8 +415,8 @@ function _renderSettingsView() {
         <div class="settings-identity" style="cursor:default">
           ${avatarHtml}
           <div class="settings-identity__info">
-            <div class="settings-identity__name">${name || email} ${roleBadge}</div>
-            ${name ? `<div class="settings-identity__email">${email}</div>` : ''}
+            <div class="settings-identity__name">${name || emailLabel} ${roleBadge}</div>
+            ${name ? `<div class="settings-identity__email">${emailLabel}</div>` : ''}
           </div>
         </div>
       </div>
@@ -1617,6 +1625,40 @@ function _subscribeToCheckins() {
     .subscribe();
 }
 
+// ── Periodic social poll ─────────────────────────────────────────────────────
+//
+// Without realtime subscriptions, the inviter has no way to learn that a
+// recipient accepted/declined until they reload or re-auth. Poll plans
+// and friends every 60 s while the app is in the foreground so the
+// '{name} said yes to {venue}' toast, friends pin, and pending-request
+// dot all update within a minute of the receiver's action. Foreground
+// gate via document.visibilityState avoids churn while the user is in
+// another app.
+let _socialPollTimer = null;
+const _SOCIAL_POLL_MS = 60000;
+function _socialPollTick() {
+  if (!_currentUser) return;
+  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+  loadPlans().catch(() => {});
+  loadFriends().catch(() => {});
+}
+function _startSocialPoll() {
+  if (_socialPollTimer) return;
+  _socialPollTimer = setInterval(_socialPollTick, _SOCIAL_POLL_MS);
+  // Also trigger an immediate refresh when the tab regains focus so the
+  // user isn't waiting up to 60 s after coming back to the app.
+  if (typeof document !== 'undefined' && !_socialVisibilityWired) {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') _socialPollTick();
+    });
+    _socialVisibilityWired = true;
+  }
+}
+function _stopSocialPoll() {
+  if (_socialPollTimer) { clearInterval(_socialPollTimer); _socialPollTimer = null; }
+}
+let _socialVisibilityWired = false;
+
 // ── Plans ────────────────────────────────────────────────────────────────────
 
 async function loadPlans() {
@@ -1921,6 +1963,7 @@ _supabase.auth.onAuthStateChange((event, session) => {
     loadPlans();
     loadOwnSuggestions();
     _subscribeToCheckins();
+    _startSocialPoll();
   } else {
     _currentRole = null;
     _favoritesSet.clear();
@@ -1929,6 +1972,7 @@ _supabase.auth.onAuthStateChange((event, session) => {
     _friendCheckins.clear(); _myCheckin = null;
     _plans = []; _planInvites = [];
     if (_checkinSubscription) { _checkinSubscription.unsubscribe(); _checkinSubscription = null; }
+    _stopSocialPoll();
   }
 
   // Stash the currently-selected venue BEFORE the closeDetailPanel call below
