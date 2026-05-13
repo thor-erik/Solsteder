@@ -683,7 +683,15 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
 
   // ── Hero header data (Møtes left, Sol til right)
   const planTimeStr = formatHour(planHour);
-  const dateLabel   = (typeof _fmtInviteDate === 'function' && dateStr) ? _fmtInviteDate(dateStr) : '';
+  // Relative-day phrasing for the subtitle — 'Today' / 'Tomorrow' /
+  // 'Sunday' / '17 May'. v1 used _fmtInviteDate which always returned
+  // 'Sun 17 May'-style, which read as a label, not data. The relative
+  // form is what the receiver actually needs ('Tomorrow' is unmissable
+  // in a way 'Sun 17 May' isn't). Capitalised so it carries weight.
+  const _capFirst = (s) => (s && s.length) ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+  const dateLabel = (typeof _dayLabel === 'function' && dateStr)
+    ? _capFirst(_dayLabel(dateStr))
+    : ((typeof _fmtInviteDate === 'function' && dateStr) ? _fmtInviteDate(dateStr) : '');
   const nowH        = (typeof timeFromEl !== 'undefined' && timeFromEl) ? parseFloat(timeFromEl.value) : planHour;
   const minutesUntil = Math.max(0, Math.round((planHour - nowH) * 60));
   const arrivalSub  = dateLabel
@@ -1172,8 +1180,14 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     if (typeof _openPostAcceptPanel === 'function') {
       const whenLabel = (typeof _inviteWhenLabel === 'function' && opts.plannedAt)
         ? _inviteWhenLabel(opts.plannedAt.slice(0, 10), arrivalHour) : '';
-      const arrivalDateLabel = (typeof _fmtInviteDate === 'function' && opts.plannedAt)
-        ? _fmtInviteDate(opts.plannedAt.slice(0, 10)) : '';
+      // Relative-day phrasing on the post-accept too, so the receiver
+      // sees the same 'Tomorrow' / 'Sunday' / '17 May' shape from
+      // accept → confirm.
+      const _dateStr = opts.plannedAt ? opts.plannedAt.slice(0, 10) : '';
+      const _capRel = (s) => (s && s.length) ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+      const arrivalDateLabel = (typeof _dayLabel === 'function' && _dateStr)
+        ? _capRel(_dayLabel(_dateStr))
+        : ((typeof _fmtInviteDate === 'function' && _dateStr) ? _fmtInviteDate(_dateStr) : '');
       const sunUntilForAccepted = (sunEnd != null) ? formatHour(sunEnd) : '';
       const accepted = (typeof getPlansForVenue === 'function')
         ? (() => {

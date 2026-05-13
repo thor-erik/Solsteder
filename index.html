@@ -8580,11 +8580,18 @@
     position: fixed;
     inset: 0;
     z-index: 1200;
+    /* none while opening/closing so the slide animation doesn't capture
+       stray taps; auto once .open so the transparent area above the
+       bottom panel BLOCKS clicks to the map underneath. v1 left it as
+       none with only the bottom panel having auto — clicks above the
+       panel passed through to the canvas-overlay pins, letting the user
+       select OTHER venues while the accept page was on screen. */
     pointer-events: none;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
   }
+  .dprcv-overlay.open { pointer-events: auto; }
   .dprcv-overlay.open .dprcv-bottom { transform: translateY(0); }
 
   /* Bottom sheet — glass-panel surface. Slides up on open, down on close
@@ -8802,16 +8809,26 @@
     margin-top: 2px;
     font-variant-numeric: tabular-nums;
   }
+  /* Bump the meet-side subtitle (carries the relative day — 'Tomorrow',
+     'Sunday', '17 May') so the receiver can't miss what day they're
+     committing to. Sun-side .dprcv-remaining stays muted — it's just a
+     duration tally, less load-bearing. */
+  .dprcv-arrival-sub {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 0.01em;
+  }
 
   /* Timeline wrapper — interactive canvas (paint via drawAllCardTimelines).
      Drag handlers in JS update timeFromEl, which re-fires the painter. */
   .dprcv-timeline {
     position: relative;
-    /* Bar height + a 22 px event-row above it. Container is no longer
-       overflow:hidden because the event row sits above and a thin tick
-       drops down to mark the bar position. Extra 10 px top margin so
-       the event icons don't crowd the hero block above. */
-    height: 62px;
+    /* Bar (48 px — bumped from 40 for a meatier tap target + visual
+       presence against the 52 px CTA below) + 22 px event-row above
+       = 70 px total. Margin-top 10 px keeps the icons from crowding
+       the hero block. */
+    height: 70px;
     padding-top: 22px;
     margin-top: 10px;
     border-radius: 0;
@@ -8876,7 +8893,7 @@
     top: 22px;
     left: 0;
     width: 0;
-    height: 40px;
+    height: 48px;
     pointer-events: none;
     opacity: 0;
     /* Slow slide for taps (user request — clicks should slide to the
@@ -8928,7 +8945,7 @@
   .dprcv-timeline-scrubber-time { line-height: 1; }
   .dprcv-timeline-canvas.card-timeline-canvas {
     width: 100%;
-    height: 40px;
+    height: 48px;
     display: block;
     border-radius: 13px;
     cursor: grab;
