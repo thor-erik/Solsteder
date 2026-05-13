@@ -1455,8 +1455,21 @@ function _populateTimelineEvents(host, v, dateStr, minH, maxH) {
     node.className = 'dprcv-timeline-event';
     if (e.type === 'meet') node.classList.add('dprcv-timeline-event-meet');
     node.style.left = xPct + '%';
-    const xPx = (xPct / 100) * barW;
-    const tickH = tickLenAt(xPx);
+    // Tick's actual x position is the icon's RENDERED centre, not
+    // necessarily the event's left:%%. For non-meet events with
+    // translateX(-50%), centre = left:% = xPx. For meet (flush-left,
+    // translateX(0)), centre = left + icon_width/2 = 7 px. v1 used
+    // xPx for everything → meet computed against x=0 (deepest curve
+    // point, bar top at y=35) but the tick was actually rendered at
+    // x=7 → tick overshot into the bar. Use the RENDERED centre for
+    // both the geometry lookup and the visual alignment.
+    let tickX;
+    if (e.type === 'meet') {
+      tickX = 7;
+    } else {
+      tickX = (xPct / 100) * barW;
+    }
+    const tickH = tickLenAt(tickX);
     node.innerHTML = glyph + `<div class="dprcv-timeline-event-tick" style="height:${tickH}px"></div>`;
     host.appendChild(node);
   }
