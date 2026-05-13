@@ -836,6 +836,10 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
                with shade/weather glyphs at their x-positions (computed
                from minH=meet time, maxH=sundown). -->
           <div class="dprcv-timeline-events" data-vid="${venue.id}"></div>
+          <!-- Meet-time anchor at the bar's left edge — always present,
+               since the bar always starts at meet time. Honey accent
+               tick that pokes a few pixels into the bar like a pin. -->
+          <div class="dprcv-timeline-meet-marker" aria-hidden="true"></div>
           <canvas class="card-timeline-canvas dprcv-timeline-canvas" data-vid="${venue.id}" width="600" height="40"></canvas>
         </div>
       </div>

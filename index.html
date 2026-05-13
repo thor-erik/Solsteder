@@ -8850,6 +8850,23 @@
     background: currentColor;
     opacity: 0.5;
   }
+  /* Meet-time tick — small honey accent line at the bar's left edge,
+     dropping a few px into the bar like a pin. The bar's left edge IS
+     the meet time, so this just anchors that fact visually. Inset 13 px
+     to clear the bar's rounded left corner; tick centred on that point. */
+  .dprcv-timeline-meet-marker {
+    position: absolute;
+    top: 14px;
+    left: 13px;
+    transform: translateX(-50%);
+    width: 2px;
+    height: 14px;
+    background: var(--accent);
+    border-radius: 1px;
+    opacity: 0.85;
+    pointer-events: none;
+    z-index: 2;
+  }
   .dprcv-timeline-canvas.card-timeline-canvas {
     width: 100%;
     height: 40px;
