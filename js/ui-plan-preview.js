@@ -651,7 +651,10 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   const venueArea = venue.area || '';
   const venueCat  = (typeof catLabel === 'function') ? catLabel(venue) : '';
   const distMin   = _dprcvWalkInfo(venue);
-  const walkSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="13" cy="4" r="2"/><path d="M7 22l3-6 2-5 4 2v8"/><path d="M8 13l-3 1 1 4"/><path d="M14 13l1-2 5 2"/></svg>`;
+  // Material 'directions_walk' glyph — walking person mid-stride. Same
+  // shape Google Maps + Apple Maps both use, so the metaphor is
+  // immediately legible.
+  const walkSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7"/></svg>`;
   // Walk chip drops the textual ' min walk' suffix in favour of a glyph
   // + the minute number. Less repetition with the unit and visually
   // anchors the chip as 'walking time' at a glance.

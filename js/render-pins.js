@@ -1116,7 +1116,24 @@ function draw() {
   if (_invitePin) {
     const inviteV = VENUES.find(v => String(v.id) === String(_invitePin.venueId));
     if (inviteV) {
-      const pt = map.project([inviteV.lng, inviteV.lat]);
+      // Target the probe-dot location (2 m in front of the terrace wall)
+      // rather than the venue's lng/lat. The probe is the visible yellow/
+      // blue 'sun status' dot drawn by drawShadowOverlay; the venue lng/
+      // lat is the building centre, which puts the tip well above the
+      // dot in the screenshot. Falls back to venue centre when no
+      // wallSegment is available.
+      let pt;
+      if (inviteV.wallSegment) {
+        const RAD = Math.PI / 180;
+        const br = inviteV.wallSegment.bearing * RAD;
+        const wy = inviteV.wallSegment.my;
+        const wx = inviteV.wallSegment.mx;
+        const tLat = wy + Math.cos(br) * 2 / 111320;
+        const tLng = wx + Math.sin(br) * 2 / (111320 * Math.cos(wy * RAD));
+        pt = map.project([tLng, tLat]);
+      } else {
+        pt = map.project([inviteV.lng, inviteV.lat]);
+      }
       _drawInviteAvatarPin(ctx, pt, _invitePin);
     }
     ctx.restore();

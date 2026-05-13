@@ -8675,11 +8675,15 @@
     flex-shrink: 0;
     color: var(--accent);
     opacity: 0.9;
-    /* Pin glyph's optical mass sits below its geometric centre (tip at
-       y=23 of 24, head at y=10). Nudge up so the head reads aligned
-       with the venue text's x-height. */
-    transform: translateY(-3px);
+    /* Match the venue text's cap-height. Without an explicit height
+       the 16x16 SVG floats relative to the 24 px title and reads as
+       'glued to the top'. line-height:1 + height:matching-cap pins
+       the glyph to the text's vertical centre. */
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
   }
+  .dprcv-venue-pin svg { display: block; }
   .dprcv-venue {
     font-size: 24px;
     font-weight: 700;
@@ -9172,8 +9176,11 @@
     flex-shrink: 0;
     color: var(--accent);
     opacity: 0.9;
-    transform: translateY(-3px);
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
   }
+  .dpacc-venue-pin svg { display: block; }
   .dpacc-venue {
     font-size: 22px;
     font-weight: 700;
