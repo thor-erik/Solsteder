@@ -88,6 +88,71 @@ node scripts/fetch-photos.mjs          # Fetch venue photo URLs
 
 `geometry.json` is derived from `venues.json` — never edit it directly.
 
+## Backend (Supabase)
+
+The app talks to a single Supabase project. Anon key + URL are
+checked-in (domain-restricted; safe). All persistence + auth + realtime
++ push fan-out lives here.
+
+### Tables (in `public`)
+| Table | What |
+|-------|------|
+| `profiles` | One row per auth user. `id` (= auth.users.id), `email`, `name`, `role`, `avatar_url`. Auto-created via the `on_auth_user_created` trigger on signup. `name`/`avatar_url` resynced from `user_metadata` on every authLoadRole. |
+| `events` | Analytics event sink. |
+| `suggested_venues` | User-submitted venue suggestions, admin-reviewed. |
+| `favorites` | Per-user favorited venues. |
+| `sun_alerts` | Per-user sun-window notification rules. |
+| `user_preferences` | Per-user lang / temp unit / default area. |
+| `friendships` | Bidirectional friend graph. `status ∈ pending/accepted/blocked`. Row direction = `user_id` requested friendship with `friend_id`. |
+| `checkins` | Friend check-ins (expire after 3h). |
+| `plans` | Created plans. Creator only. |
+| `plan_invites` | Per-invitee status on a plan. `status ∈ pending/accepted/declined`, optional `arrival_time` for off-plan arrivals. |
+| `push_subscriptions` | Web push endpoints + keys. One row per device the user enabled push on. |
+
+Migrations live in `sql/` (`003`–`011`). They were run manually against
+the prod project. Re-run any time you stand up a fresh project — they
+are all `CREATE ... IF NOT EXISTS` / idempotent.
+
+### Realtime
+`plan_invites` and `friendships` are in the `supabase_realtime`
+publication. `js/auth.js` subscribes to both on auth load; changes
+trigger `loadPlans` / `loadFriends`. The 60 s social poll remains as a
+fallback for tabs that drop the channel.
+
+### Web push (live in prod)
+Pipeline: receiver action → trigger row writes to `plan_invites` /
+`friendships` → DB trigger calls the `send-push` edge function via
+`pg_net.http_post` → edge function reads `push_subscriptions` for the
+target user → signs payload with VAPID private key → POSTs to each
+device's push endpoint.
+
+* Client: `js/push.js`. `VAPID_PUBLIC_KEY` constant must be set or the
+  toggle stays hidden. Profile panel toggle wires `pushRequestPermission`
+  / `pushDisable`. Service worker at `sw.js` (root) handles `push` and
+  `notificationclick`.
+* Edge function: `supabase/functions/send-push/index.ts`. Reads three
+  secrets — `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`.
+  Deployed with `--no-verify-jwt`. Endpoint:
+  `https://wxalqodaeqgzahwlovnw.supabase.co/functions/v1/send-push`.
+* Triggers: `sql/011-push-triggers.sql` — fires on `plan_invites`
+  status change and `friendships` insert at `status='pending'`. URL +
+  bearer token are inlined in the function bodies (the SQL editor
+  can't `ALTER DATABASE SET` on hosted Supabase, so settings-based
+  lookup wasn't an option).
+* Rotating the anon key: update both `js/auth.js` AND both
+  `Authorization: Bearer ...` lines in `sql/011-push-triggers.sql`,
+  then re-run the SQL.
+* iOS caveat: web push needs iOS 16.4+ AND the site added to home
+  screen as a PWA. Capability check in `pushIsAvailable()` hides the
+  toggle on unsupported browsers.
+
+### Profiles + RLS
+`profiles` has a public-readable SELECT policy + column grant so the
+anon role can read `id` + `name` only (email is grant-revoked). This is
+what lets a logged-out invite-link visitor see "Anna invited you to X".
+If a future need surfaces emails to anon, restore the grant; otherwise
+keep it tight.
+
 ## Reading large files efficiently
 
 Three files are large enough that reading them in full wastes significant context. Always grep first, then read the specific line range.
