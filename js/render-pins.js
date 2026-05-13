@@ -372,6 +372,73 @@ function _drawFriendModule(ctx, cx, cy, friends, statusFill) {
   return { x, y, w, h };
 }
 
+// ── Invite avatar pin (accept page / post-accept confirm) ─────────────────────
+// Replaces the standard pill with a larger avatar circle anchored at the
+// venue, plus a honey time-bubble below. Drawn only when the body has
+// plan-preview-active OR post-accept-active AND window._invitePin is set.
+// Phase-1 visual: initial + colour (no photo loading yet — same simplification
+// the friend module makes). A photo-loader cache can layer on later.
+const INVITE_AVATAR_R       = 22;   // 44 px diameter avatar
+const INVITE_HALO_W         = 3;    // cream halo around the avatar
+const INVITE_LIFT           = 6;    // px the avatar floats above the venue point
+const INVITE_BUBBLE_H       = 22;
+const INVITE_BUBBLE_PAD_X   = 9;
+const INVITE_BUBBLE_GAP     = 6;    // gap between avatar and time bubble
+const INVITE_BUBBLE_FONT    = '600 12px "Inter", system-ui, sans-serif';
+function _drawInviteAvatarPin(ctx, pt, invitePin) {
+  const cx = pt.x;
+  const cy = pt.y - INVITE_LIFT - INVITE_AVATAR_R;
+
+  // Cream halo (separation from the map and from the seating overlay below).
+  ctx.beginPath();
+  ctx.arc(cx, cy, INVITE_AVATAR_R + INVITE_HALO_W, 0, Math.PI * 2);
+  ctx.fillStyle = '#FAF1DD';
+  ctx.fill();
+
+  // Avatar fill — colour derived from inviterId so it's stable per friend.
+  const fill = _friendColor(invitePin.inviterId || invitePin.name);
+  ctx.beginPath();
+  ctx.arc(cx, cy, INVITE_AVATAR_R, 0, Math.PI * 2);
+  ctx.fillStyle = fill;
+  ctx.fill();
+
+  // Initial in slate. textBaseline 'middle' + 0.5px nudge to optical-centre.
+  const initial = _friendInitial({ name: invitePin.name });
+  ctx.fillStyle    = _rgba(TOKENS.bg, 0.92);
+  ctx.font         = '700 20px "Inter", system-ui, sans-serif';
+  ctx.textBaseline = 'middle';
+  ctx.textAlign    = 'center';
+  ctx.fillText(initial, cx, cy + 1);
+
+  // Small triangle tip pointing from the avatar's bottom edge to the venue
+  // location, so the pin still anchors a *place*. Drawn behind the bubble.
+  ctx.beginPath();
+  ctx.moveTo(cx - 6, cy + INVITE_AVATAR_R - 2);
+  ctx.lineTo(cx + 6, cy + INVITE_AVATAR_R - 2);
+  ctx.lineTo(cx,     pt.y - 1);
+  ctx.closePath();
+  ctx.fillStyle = '#FAF1DD';
+  ctx.fill();
+
+  // Time bubble — honey pill below the avatar with the meet/coming hour.
+  const timeStr = (typeof _fmtTime === 'function') ? _fmtTime(invitePin.timeHour) : '';
+  if (timeStr) {
+    ctx.font = INVITE_BUBBLE_FONT;
+    const textW = Math.ceil(ctx.measureText(timeStr).width);
+    const bw = textW + INVITE_BUBBLE_PAD_X * 2;
+    const bx = cx - bw / 2;
+    const by = pt.y + INVITE_BUBBLE_GAP;
+    ctx.beginPath();
+    ctx.roundRect(bx, by, bw, INVITE_BUBBLE_H, INVITE_BUBBLE_H / 2);
+    ctx.fillStyle = TOKENS.accent || '#F5C25E';
+    ctx.fill();
+    ctx.fillStyle    = _rgba(TOKENS.bg, 0.92);
+    ctx.textBaseline = 'middle';
+    ctx.textAlign    = 'center';
+    ctx.fillText(timeStr, cx, by + INVITE_BUBBLE_H / 2 + 0.5);
+  }
+}
+
 // ── Pulse rings (privileged ambient on friend pills) ──────────────────────────
 // Two stroke-only capsule rings emanating from the friend module. Each ring
 // expands for ACTIVE_MS, then rests for the remainder of PERIOD_MS. The 1s
@@ -926,6 +993,25 @@ function draw() {
   if (selectedId && !_hideShadows) {
     const sel = VENUES.find(v => v.id === selectedId);
     if (sel) drawShadowOverlay(sel);
+  }
+
+  // Invite-flow avatar pin: while the accept page or post-accept confirm
+  // is on screen, the only pin shown is the INVITER's avatar with a
+  // honey time bubble. Replaces the standard pill pipeline so the moment
+  // feels personal ('meeting [face]') rather than abstract. Bypasses the
+  // forEach below entirely — no other pins, no density logic.
+  const _inInviteFlow = typeof document !== 'undefined'
+    && (document.body.classList.contains('plan-preview-active')
+        || document.body.classList.contains('post-accept-active'));
+  const _invitePin = (_inInviteFlow && typeof window !== 'undefined') ? window._invitePin : null;
+  if (_invitePin) {
+    const inviteV = VENUES.find(v => String(v.id) === String(_invitePin.venueId));
+    if (inviteV) {
+      const pt = map.project([inviteV.lng, inviteV.lat]);
+      _drawInviteAvatarPin(ctx, pt, _invitePin);
+    }
+    ctx.restore();
+    return;
   }
 
   const isAuditMode = (typeof auditModeActive !== 'undefined' && auditModeActive);

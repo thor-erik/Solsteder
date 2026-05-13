@@ -86,6 +86,24 @@ function openPlanPreview(opts) {
     try { selectedId = venue.id; } catch (e) { /* ignore */ }
   }
 
+  // Stash invite-pin context for render-pins.js. While the accept page
+  // (or the post-accept confirm) is on screen, the single pin on the
+  // map is rendered as the INVITER's avatar with a time bubble — same
+  // map state, same single-pin lock, just a different visual. This
+  // makes the moment feel personal ('this is where you're meeting
+  // [face]') instead of abstract. Only set for invite modes — the
+  // preview mode (user looking at their own plan) has no inviter, so
+  // it keeps the standard pill rendering.
+  const _isInviteMode = (opts.mode === 'invite' || opts.mode === 'invite-anon');
+  if (typeof window !== 'undefined') {
+    window._invitePin = _isInviteMode ? {
+      venueId:    venue.id,
+      inviterId:  opts.inviterId || null,
+      name:       opts.inviterName || '',
+      timeHour:   planHour,
+    } : null;
+  }
+
   // Save current camera so we can restore it on close.
   let savedCamera = null;
   if (typeof map !== 'undefined' && map && typeof map.getCenter === 'function') {
@@ -905,6 +923,10 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
         if (heroLabelEl) heroLabelEl.textContent = meetLabel;
         if (labelSpan) labelSpan.textContent = suggestDefaultLabel;
         laterStrip.querySelectorAll('.pp-later-chip').forEach(c => c.classList.remove('is-selected'));
+        if (typeof window !== 'undefined' && window._invitePin) {
+          window._invitePin.timeHour = planHour;
+          if (typeof draw === 'function') draw();
+        }
       };
       suggestBtn.onclick = (e) => {
         e.preventDefault();
@@ -927,6 +949,11 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
         arrivalSelected = true;
         const lbl = el.querySelector('#pp-arrival-time');
         if (lbl) lbl.textContent = formatHour(arrivalHour);
+        // Mirror the new arrival on the avatar pin's time bubble.
+        if (typeof window !== 'undefined' && window._invitePin) {
+          window._invitePin.timeHour = arrivalHour;
+          if (typeof draw === 'function') draw();
+        }
         // Swap the hero label from 'Meet at' → 'Coming at' so the
         // receiver-side wording reflects that they're arriving late
         // relative to the meet time (and the inviter sees this too).
