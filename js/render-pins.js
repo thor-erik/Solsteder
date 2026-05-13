@@ -373,94 +373,169 @@ function _drawFriendModule(ctx, cx, cy, friends, statusFill) {
 }
 
 // ── Invite avatar pin (accept page / post-accept confirm) ─────────────────────
-// Replaces the standard pill with a larger avatar circle anchored at the
-// venue, plus a honey time-bubble below. Drawn only when the body has
-// plan-preview-active OR post-accept-active AND window._invitePin is set.
-// Phase-1 visual: initial + colour (no photo loading yet — same simplification
-// the friend module makes). A photo-loader cache can layer on later.
-const INVITE_AVATAR_R       = 22;   // 44 px diameter avatar
-const INVITE_HALO_W         = 3;    // cream halo around the avatar
-const INVITE_LIFT           = 6;    // px the avatar floats above the venue point
-const INVITE_BUBBLE_H       = 22;
-const INVITE_BUBBLE_PAD_X   = 9;
-const INVITE_BUBBLE_GAP     = 6;    // gap between avatar and time bubble
-const INVITE_BUBBLE_FONT    = '600 12px "Inter", system-ui, sans-serif';
-const INVITE_NAME_H         = 22;
-const INVITE_NAME_PAD_X     = 10;
-const INVITE_NAME_GAP       = 6;    // gap between name pill and avatar halo
-const INVITE_NAME_FONT      = '600 12.5px "Inter", system-ui, sans-serif';
+// Renders the entire attendee list as a vertical cream card hanging above
+// the venue:
+//   ┌─────────────────────┐
+//   │ 18:00               │  ← header (meet time)
+//   ├─────────────────────┤
+//   │ (A) Anna            │
+//   │ (J) Jonas  +10m     │  ← honey-tinted discrepancy
+//   │ (M) Marit           │
+//   │ (E) Erik   +1h      │
+//   └──────────┬──────────┘
+//              ▼
+//              ●          ← venue point
+// Drawn only when body.plan-preview-active OR body.post-accept-active is set
+// AND window._invitePin is populated. Receiver themselves is excluded from
+// the attendee list (panel handles their own RSVP).
+const INVITE_CARD_PAD_X       = 10;
+const INVITE_CARD_PAD_Y       = 6;
+const INVITE_CARD_ROW_H       = 22;
+const INVITE_CARD_HEADER_H    = 24;
+const INVITE_CARD_HEADER_GAP  = 4;   // gap between header and first row
+const INVITE_AV_R             = 9;   // 18 px diameter — small enough to stack
+const INVITE_AV_GAP           = 8;   // gap between avatar and name
+const INVITE_DISC_GAP         = 10;  // gap between name and discrepancy
+const INVITE_TIP_H            = 8;
+const INVITE_TIP_W            = 12;
+const INVITE_TIP_GAP          = 2;   // gap between tip bottom and venue point
+const INVITE_MAX_ROWS         = 6;   // overflow → '+N more' as the 7th row
+const INVITE_CARD_MIN_W       = 130;
+const INVITE_CARD_MAX_W       = 240;
+const INVITE_NAME_FONT        = '600 13px "Inter", system-ui, sans-serif';
+const INVITE_DISC_FONT        = '700 11.5px "Inter", system-ui, sans-serif';
+const INVITE_HEADER_FONT      = '700 14px "Inter", system-ui, sans-serif';
+const INVITE_OVERFLOW_FONT    = '500 12px "Inter", system-ui, sans-serif';
+const INVITE_INITIAL_FONT     = '700 11px "Inter", system-ui, sans-serif';
+function _inviteOffsetLabel(offsetMin) {
+  if (!Number.isFinite(offsetMin) || Math.abs(offsetMin) < 5) return '';
+  const sign = offsetMin < 0 ? '-' : '+';
+  const m = Math.abs(Math.round(offsetMin));
+  if (m < 60) return `${sign}${m}m`;
+  const h = Math.floor(m / 60);
+  const r = m % 60;
+  return r === 0 ? `${sign}${h}h` : `${sign}${h}h ${r}m`;
+}
 function _drawInviteAvatarPin(ctx, pt, invitePin) {
-  const cx = pt.x;
-  const cy = pt.y - INVITE_LIFT - INVITE_AVATAR_R;
+  const attendees = Array.isArray(invitePin.attendees) ? invitePin.attendees : [];
+  if (!attendees.length) return; // no one accepted yet — pin renders nothing
 
-  // Cream halo (separation from the map and from the seating overlay below).
+  const visible = attendees.slice(0, INVITE_MAX_ROWS);
+  const overflow = Math.max(0, attendees.length - INVITE_MAX_ROWS);
+  const headerTime = (typeof _fmtTime === 'function') ? _fmtTime(invitePin.meetHour) : '';
+
+  // Measure: card width = max(rows, header) + padding. Each row's width is
+  // pad + avatar + gap + name + (disc ? gap + disc : 0) + pad.
+  const rowDescriptors = visible.map(a => {
+    const first = (a.name || '').trim().split(/\s+/)[0] || '?';
+    const disc = _inviteOffsetLabel(a.offsetMin);
+    return { name: first, disc };
+  });
+  if (overflow > 0) rowDescriptors.push({ name: `+${overflow} more`, disc: '', isOverflow: true });
+
+  let maxRowW = 0;
+  for (const r of rowDescriptors) {
+    ctx.font = r.isOverflow ? INVITE_OVERFLOW_FONT : INVITE_NAME_FONT;
+    let w = INVITE_CARD_PAD_X * 2 + 2 * INVITE_AV_R + INVITE_AV_GAP + Math.ceil(ctx.measureText(r.name).width);
+    if (r.disc) {
+      ctx.font = INVITE_DISC_FONT;
+      w += INVITE_DISC_GAP + Math.ceil(ctx.measureText(r.disc).width);
+    }
+    if (w > maxRowW) maxRowW = w;
+  }
+  if (headerTime) {
+    ctx.font = INVITE_HEADER_FONT;
+    const hW = INVITE_CARD_PAD_X * 2 + Math.ceil(ctx.measureText(headerTime).width);
+    if (hW > maxRowW) maxRowW = hW;
+  }
+  const cardW = Math.max(INVITE_CARD_MIN_W, Math.min(INVITE_CARD_MAX_W, maxRowW));
+
+  const headerH = headerTime ? INVITE_CARD_HEADER_H + INVITE_CARD_HEADER_GAP : 0;
+  const rowsH   = rowDescriptors.length * INVITE_CARD_ROW_H;
+  const cardH   = INVITE_CARD_PAD_Y * 2 + headerH + rowsH;
+
+  const cardX = Math.round(pt.x - cardW / 2);
+  const cardY = Math.round(pt.y - INVITE_TIP_GAP - INVITE_TIP_H - cardH);
+
+  // Card background
   ctx.beginPath();
-  ctx.arc(cx, cy, INVITE_AVATAR_R + INVITE_HALO_W, 0, Math.PI * 2);
+  ctx.roundRect(cardX, cardY, cardW, cardH, 14);
   ctx.fillStyle = '#FAF1DD';
   ctx.fill();
 
-  // Avatar fill — colour derived from inviterId so it's stable per friend.
-  const fill = _friendColor(invitePin.inviterId || invitePin.name);
-  ctx.beginPath();
-  ctx.arc(cx, cy, INVITE_AVATAR_R, 0, Math.PI * 2);
-  ctx.fillStyle = fill;
-  ctx.fill();
-
-  // Initial in slate. textBaseline 'middle' + 0.5px nudge to optical-centre.
-  const initial = _friendInitial({ name: invitePin.name });
-  ctx.fillStyle    = _rgba(TOKENS.bg, 0.92);
-  ctx.font         = '700 20px "Inter", system-ui, sans-serif';
-  ctx.textBaseline = 'middle';
-  ctx.textAlign    = 'center';
-  ctx.fillText(initial, cx, cy + 1);
-
-  // Inviter's first name — cream pill above the avatar so the pin is
-  // self-explanatory ('this is Anna') without the panel chrome. Just
-  // the first name; full name lives in the panel below.
-  const firstName = (invitePin.name || '').trim().split(/\s+/)[0];
-  if (firstName) {
-    ctx.font = INVITE_NAME_FONT;
-    const textW = Math.ceil(ctx.measureText(firstName).width);
-    const nw = textW + INVITE_NAME_PAD_X * 2;
-    const nx = cx - nw / 2;
-    const ny = cy - INVITE_AVATAR_R - INVITE_HALO_W - INVITE_NAME_GAP - INVITE_NAME_H;
-    ctx.beginPath();
-    ctx.roundRect(nx, ny, nw, INVITE_NAME_H, INVITE_NAME_H / 2);
-    ctx.fillStyle = '#FAF1DD';
-    ctx.fill();
+  // Header (meet time)
+  let cursorY = cardY + INVITE_CARD_PAD_Y;
+  if (headerTime) {
+    ctx.font         = INVITE_HEADER_FONT;
     ctx.fillStyle    = _rgba(TOKENS.bg, 0.92);
     ctx.textBaseline = 'middle';
-    ctx.textAlign    = 'center';
-    ctx.fillText(firstName, cx, ny + INVITE_NAME_H / 2 + 0.5);
+    ctx.textAlign    = 'left';
+    ctx.fillText(headerTime, cardX + INVITE_CARD_PAD_X, cursorY + INVITE_CARD_HEADER_H / 2);
+    // Hairline divider
+    ctx.beginPath();
+    ctx.moveTo(cardX + INVITE_CARD_PAD_X, cursorY + INVITE_CARD_HEADER_H + 1);
+    ctx.lineTo(cardX + cardW - INVITE_CARD_PAD_X, cursorY + INVITE_CARD_HEADER_H + 1);
+    ctx.strokeStyle = _rgba(TOKENS.bg, 0.10);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    cursorY += INVITE_CARD_HEADER_H + INVITE_CARD_HEADER_GAP;
   }
 
-  // Small triangle tip pointing from the avatar's bottom edge to the venue
-  // location, so the pin still anchors a *place*. Drawn behind the bubble.
+  // Rows
+  for (let i = 0; i < rowDescriptors.length; i++) {
+    const r = rowDescriptors[i];
+    const rowCy = cursorY + INVITE_CARD_ROW_H / 2;
+
+    if (r.isOverflow) {
+      ctx.font         = INVITE_OVERFLOW_FONT;
+      ctx.fillStyle    = _rgba(TOKENS.bg, 0.55);
+      ctx.textBaseline = 'middle';
+      ctx.textAlign    = 'left';
+      ctx.fillText(r.name, cardX + INVITE_CARD_PAD_X, rowCy);
+    } else {
+      // Avatar
+      const avCx = cardX + INVITE_CARD_PAD_X + INVITE_AV_R;
+      const original = visible[i];
+      ctx.beginPath();
+      ctx.arc(avCx, rowCy, INVITE_AV_R, 0, Math.PI * 2);
+      ctx.fillStyle = _friendColor(original.id || original.name);
+      ctx.fill();
+      // Initial
+      ctx.font         = INVITE_INITIAL_FONT;
+      ctx.fillStyle    = _rgba(TOKENS.bg, 0.92);
+      ctx.textBaseline = 'middle';
+      ctx.textAlign    = 'center';
+      ctx.fillText(_friendInitial({ name: original.name }), avCx, rowCy + 0.5);
+      // Name
+      ctx.font         = INVITE_NAME_FONT;
+      ctx.fillStyle    = _rgba(TOKENS.bg, 0.92);
+      ctx.textBaseline = 'middle';
+      ctx.textAlign    = 'left';
+      const nameX = avCx + INVITE_AV_R + INVITE_AV_GAP;
+      ctx.fillText(r.name, nameX, rowCy);
+      // Discrepancy (right-aligned, honey)
+      if (r.disc) {
+        ctx.font         = INVITE_DISC_FONT;
+        ctx.fillStyle    = TOKENS.accent || '#F5C25E';
+        ctx.textAlign    = 'right';
+        ctx.fillText(r.disc, cardX + cardW - INVITE_CARD_PAD_X, rowCy);
+      }
+    }
+
+    cursorY += INVITE_CARD_ROW_H;
+  }
+
+  // Tip — equilateral-ish triangle pointing from the card bottom centre to
+  // the venue point. Drawn in the same cream so it merges with the card.
+  const tipCx = pt.x;
+  const tipTop = cardY + cardH;
   ctx.beginPath();
-  ctx.moveTo(cx - 6, cy + INVITE_AVATAR_R - 2);
-  ctx.lineTo(cx + 6, cy + INVITE_AVATAR_R - 2);
-  ctx.lineTo(cx,     pt.y - 1);
+  ctx.moveTo(tipCx - INVITE_TIP_W / 2, tipTop);
+  ctx.lineTo(tipCx + INVITE_TIP_W / 2, tipTop);
+  ctx.lineTo(tipCx, tipTop + INVITE_TIP_H);
   ctx.closePath();
   ctx.fillStyle = '#FAF1DD';
   ctx.fill();
-
-  // Time bubble — honey pill below the avatar with the meet/coming hour.
-  const timeStr = (typeof _fmtTime === 'function') ? _fmtTime(invitePin.timeHour) : '';
-  if (timeStr) {
-    ctx.font = INVITE_BUBBLE_FONT;
-    const textW = Math.ceil(ctx.measureText(timeStr).width);
-    const bw = textW + INVITE_BUBBLE_PAD_X * 2;
-    const bx = cx - bw / 2;
-    const by = pt.y + INVITE_BUBBLE_GAP;
-    ctx.beginPath();
-    ctx.roundRect(bx, by, bw, INVITE_BUBBLE_H, INVITE_BUBBLE_H / 2);
-    ctx.fillStyle = TOKENS.accent || '#F5C25E';
-    ctx.fill();
-    ctx.fillStyle    = _rgba(TOKENS.bg, 0.92);
-    ctx.textBaseline = 'middle';
-    ctx.textAlign    = 'center';
-    ctx.fillText(timeStr, cx, by + INVITE_BUBBLE_H / 2 + 0.5);
-  }
 }
 
 // ── Pulse rings (privileged ambient on friend pills) ──────────────────────────

@@ -5833,9 +5833,14 @@ function _introCheckReady() {
           if (d.a != null) {
             window._testAttendeesCount = Math.max(1, parseInt(d.a, 10) || 1);
             window._testAttendeesNames = Array.isArray(d.names) ? d.names : null;
+            // offsets is a per-attendee array of minutes (0 = on-time,
+            // 10 = arriving 10 min later, etc.). Lets us preview the
+            // discrepancy display on the pin without seeding the DB.
+            window._testAttendeesOffsets = Array.isArray(d.offsets) ? d.offsets : null;
           } else {
             window._testAttendeesCount = null;
             window._testAttendeesNames = null;
+            window._testAttendeesOffsets = null;
           }
 
           // Stash friend-add prompt for the post-Lukk detail panel render

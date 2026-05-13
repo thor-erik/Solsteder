@@ -88,19 +88,67 @@ function openPlanPreview(opts) {
 
   // Stash invite-pin context for render-pins.js. While the accept page
   // (or the post-accept confirm) is on screen, the single pin on the
-  // map is rendered as the INVITER's avatar with a time bubble — same
-  // map state, same single-pin lock, just a different visual. This
-  // makes the moment feel personal ('this is where you're meeting
-  // [face]') instead of abstract. Only set for invite modes — the
-  // preview mode (user looking at their own plan) has no inviter, so
-  // it keeps the standard pill rendering.
+  // map renders as a vertical card hanging above the venue, listing
+  // every accepted attendee (avatar + first name, plus a honey-tinted
+  // discrepancy like '+10m' if they're arriving off the meet time).
+  // The receiver themselves is excluded — pin shows 'who else is
+  // going', the panel handles their own RSVP. Only set for invite
+  // modes; preview mode (user looking at their own plan) keeps the
+  // standard pill.
   const _isInviteMode = (opts.mode === 'invite' || opts.mode === 'invite-anon');
+  let _pinAttendees = [];
+  if (_isInviteMode) {
+    // Resolve attendees from test override OR live plan_invites cache.
+    // Order matters: inviter first (host convention), then by accept
+    // time. Tests synthesize a deterministic list; production reads
+    // from the plan record loaded by getPlansForVenue.
+    if (typeof window !== 'undefined' && window._testAttendeesCount) {
+      const n = window._testAttendeesCount;
+      const fallbackNames = ['Anna', 'Jonas', 'Marit', 'Erik', 'Ida', 'Lars', 'Sofie', 'Tobias'];
+      const names = (Array.isArray(window._testAttendeesNames) && window._testAttendeesNames.length)
+        ? window._testAttendeesNames
+        : fallbackNames;
+      const offsets = Array.isArray(window._testAttendeesOffsets) ? window._testAttendeesOffsets : [];
+      for (let i = 0; i < n; i++) {
+        const offsetMin = Number.isFinite(offsets[i]) ? offsets[i] : 0;
+        _pinAttendees.push({
+          id:        'test-' + i,
+          name:      names[i % names.length],
+          offsetMin: offsetMin,
+        });
+      }
+    } else if (typeof getPlansForVenue === 'function') {
+      const plans = getPlansForVenue(venue.id);
+      const target = opts.plannedAt ? new Date(opts.plannedAt).getTime() : null;
+      const plan = target == null ? plans[0] : (
+        plans.find(p => p.planned_at && Math.abs(new Date(p.planned_at).getTime() - target) < 30 * 60 * 1000)
+        || plans[0]
+      );
+      if (plan && Array.isArray(plan._invitees)) {
+        const accepted = plan._invitees.filter(i => i.status === 'accepted');
+        const myId = (typeof authCurrentUser === 'function' && authCurrentUser())
+          ? authCurrentUser().id : null;
+        for (const inv of accepted) {
+          if (myId && inv.user && String(inv.user.id) === String(myId)) continue; // exclude self
+          const u = inv.user || {};
+          let offsetMin = 0;
+          if (inv.arrival_time && plan.planned_at) {
+            offsetMin = Math.round((new Date(inv.arrival_time).getTime() - new Date(plan.planned_at).getTime()) / 60000);
+          }
+          _pinAttendees.push({
+            id:        u.id || null,
+            name:      (u.name || u.email || '').split('@')[0],
+            offsetMin: offsetMin,
+          });
+        }
+      }
+    }
+  }
   if (typeof window !== 'undefined') {
     window._invitePin = _isInviteMode ? {
       venueId:    venue.id,
-      inviterId:  opts.inviterId || null,
-      name:       opts.inviterName || '',
-      timeHour:   planHour,
+      meetHour:   planHour,
+      attendees:  _pinAttendees,
     } : null;
   }
 
@@ -653,62 +701,11 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   const sendSvg     = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>`;
   const chevDownSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
 
-  // ── Attendees + quoted message (logged-in invite mode only — anon doesn't
-  // have plan_invites visibility yet).
-  let attendeesHtml = '';
-  // Test-token override: if app.js detected `d.a` in the invite payload,
-  // synthesize a fake accepted-attendees array so we can review the UI at
-  // varying counts without seeding the DB. Skipped for real share flows.
-  let plan = null;
-  if (typeof window !== 'undefined' && window._testAttendeesCount) {
-    const n = window._testAttendeesCount;
-    const fallbackNames = ['Anna', 'Jonas', 'Marit', 'Erik', 'Ida', 'Lars', 'Sofie', 'Tobias'];
-    const names = (Array.isArray(window._testAttendeesNames) && window._testAttendeesNames.length)
-      ? window._testAttendeesNames
-      : fallbackNames;
-    const invitees = [];
-    for (let i = 0; i < n; i++) {
-      invitees.push({ status: 'accepted', user: { id: 'test-' + i, name: names[i % names.length] } });
-    }
-    plan = { _invitees: invitees, planned_at: opts.plannedAt || null, message: '' };
-  } else if (typeof getPlansForVenue === 'function' && !isAnon) {
-    const plans = getPlansForVenue(venue.id);
-    const target = opts.plannedAt ? new Date(opts.plannedAt).getTime() : null;
-    plan = target == null
-      ? plans[0]
-      : plans.find(p => p.planned_at && Math.abs(new Date(p.planned_at).getTime() - target) < 30 * 60 * 1000)
-        || plans[0];
-  }
-  if (plan) {
-    if (Array.isArray(plan._invitees) && plan._invitees.length) {
-      const accepted = plan._invitees.filter(i => i.status === 'accepted');
-      if (accepted.length) {
-        const stack = accepted.slice(0, 3).map(i => {
-          const u = i.user;
-          const init = (((u && (u.name || u.email)) || '?')[0] || '?').toUpperCase();
-          const colorIdx = (init.charCodeAt(0) || 0) % 8;
-          if (u && u.avatar_url) {
-            return `<img class="dprcv-att-av" src="${u.avatar_url}" alt="">`;
-          }
-          return `<div class="dprcv-att-av dpinvite-avatar-init init-color-${colorIdx}">${init}</div>`;
-        }).join('');
-        const inviterFirst = (opts.inviterName || '').split(/\s+/)[0] || '';
-        const others = Math.max(0, accepted.length - 1);
-        const lineText = inviterFirst
-          ? (others > 0 ? `${inviterFirst} + ${others} til` : `${inviterFirst} er klar`)
-          : t('attendees_label', { count: accepted.length });
-        const planMessage = (plan.message || '').replace(/</g, '&lt;');
-        attendeesHtml = `
-          <div class="dprcv-attendees">
-            <div class="dprcv-att-stack">${stack}</div>
-            <div class="dprcv-att-info">
-              <div class="dprcv-att-line">${lineText.replace(/</g, '&lt;')}</div>
-              ${planMessage ? `<div class="dprcv-quote">"${planMessage}"</div>` : ''}
-            </div>
-          </div>`;
-      }
-    }
-  }
+  // The attendees row has moved entirely onto the avatar pin (vertical
+  // card above the venue) so the panel doesn't duplicate the same info.
+  // Quoted message could still belong here in the future but the v1
+  // share flow doesn't surface plan.message anywhere, so it's dropped.
+  const attendeesHtml = '';
 
   // ── CTAs vary by mode. One Primary per screen (.p-pill); secondaries use
   // .s-rnd / .g-rnd from the design-system button kit.
@@ -940,10 +937,6 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
         if (heroLabelEl) heroLabelEl.textContent = meetLabel;
         if (labelSpan) labelSpan.textContent = suggestDefaultLabel;
         laterStrip.querySelectorAll('.pp-later-chip').forEach(c => c.classList.remove('is-selected'));
-        if (typeof window !== 'undefined' && window._invitePin) {
-          window._invitePin.timeHour = planHour;
-          if (typeof draw === 'function') draw();
-        }
       };
       suggestBtn.onclick = (e) => {
         e.preventDefault();
@@ -966,11 +959,6 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
         arrivalSelected = true;
         const lbl = el.querySelector('#pp-arrival-time');
         if (lbl) lbl.textContent = formatHour(arrivalHour);
-        // Mirror the new arrival on the avatar pin's time bubble.
-        if (typeof window !== 'undefined' && window._invitePin) {
-          window._invitePin.timeHour = arrivalHour;
-          if (typeof draw === 'function') draw();
-        }
         // Swap the hero label from 'Meet at' → 'Coming at' so the
         // receiver-side wording reflects that they're arriving late
         // relative to the meet time (and the inviter sees this too).
