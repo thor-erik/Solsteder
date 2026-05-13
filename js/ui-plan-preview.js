@@ -795,11 +795,10 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   // invite sheet's moment block). Dedup area when redundant with the
   // venue name (e.g. "Mamma Pizza Nydalen" + area "Nydalen").
   const venuePinSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
-  const venueNameSafe = venue.name.replace(/</g, '&lt;');
-  const dispArea = (typeof _dedupeAreaForVenue === 'function')
-    ? _dedupeAreaForVenue(venue.name, venue.area)
-    : (venue.area || '');
-  const venueDisplay = dispArea ? `${venueNameSafe} · ${dispArea.replace(/</g, '&lt;')}` : venueNameSafe;
+  // Title shows venue name only — the neighbourhood appears in the meta
+  // line below ('Grünerløkka · Restaurant · 1.9 km'), so duplicating it
+  // here read as redundant.
+  const venueDisplay = venue.name.replace(/</g, '&lt;');
 
   // Build full DOM
   el.innerHTML = `

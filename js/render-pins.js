@@ -407,6 +407,10 @@ const INVITE_DISC_FONT        = '700 11.5px "Inter", system-ui, sans-serif';
 const INVITE_HEADER_FONT      = '700 14px "Inter", system-ui, sans-serif';
 const INVITE_OVERFLOW_FONT    = '500 12px "Inter", system-ui, sans-serif';
 const INVITE_INITIAL_FONT     = '700 11px "Inter", system-ui, sans-serif';
+// Deeper amber for the discrepancy label so it has real contrast on cream
+// (TOKENS.accent #F5C25E is too pale on #FAF1DD — barely legible). Stays
+// in the honey family so it still reads as a 'sun' notice, not a warning.
+const INVITE_DISC_COLOR       = '#A86F1A';
 function _inviteOffsetLabel(offsetMin) {
   if (!Number.isFinite(offsetMin) || Math.abs(offsetMin) < 5) return '';
   const sign = offsetMin < 0 ? '-' : '+';
@@ -422,7 +426,11 @@ function _drawInviteAvatarPin(ctx, pt, invitePin) {
 
   const visible = attendees.slice(0, INVITE_MAX_ROWS);
   const overflow = Math.max(0, attendees.length - INVITE_MAX_ROWS);
-  const headerTime = (typeof _fmtTime === 'function') ? _fmtTime(invitePin.meetHour) : '';
+  const timeStr  = (typeof _fmtTime === 'function') ? _fmtTime(invitePin.meetHour) : '';
+  // Prefix the time with a localized 'Meet at' so the header reads as a
+  // sentence ('Meeting at 18:00') rather than a bare timestamp.
+  const meetLabel = (typeof t === 'function') ? t('invite_hero_meets') : 'Meet at';
+  const headerTime = timeStr ? `${meetLabel} ${timeStr}` : '';
 
   // Measure: card width = max(rows, header) + padding. Each row's width is
   // pad + avatar + gap + name + (disc ? gap + disc : 0) + pad.
@@ -513,10 +521,10 @@ function _drawInviteAvatarPin(ctx, pt, invitePin) {
       ctx.textAlign    = 'left';
       const nameX = avCx + INVITE_AV_R + INVITE_AV_GAP;
       ctx.fillText(r.name, nameX, rowCy);
-      // Discrepancy (right-aligned, honey)
+      // Discrepancy (right-aligned, deeper amber for contrast).
       if (r.disc) {
         ctx.font         = INVITE_DISC_FONT;
-        ctx.fillStyle    = TOKENS.accent || '#F5C25E';
+        ctx.fillStyle    = INVITE_DISC_COLOR;
         ctx.textAlign    = 'right';
         ctx.fillText(r.disc, cardX + cardW - INVITE_CARD_PAD_X, rowCy);
       }
