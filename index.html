@@ -785,18 +785,24 @@
     transition: background 0.15s, border-color 0.15s, color 0.15s;
   }
   /* Icon swap by cycle state — only one .locate-icon visible at a time.
-     Default (no locate-state class) shows the user/crosshair icon. The
-     plan-preview accept page and the detail-panel-open state set
-     locate-state-* explicitly via JS to surface fit/venue affordances. */
+     Each class represents the CURRENT camera framing, but the icon shown
+     is the NEXT action (what tapping will do). User feedback: 'the icons
+     should indicate what's going to happen when you click, not what state
+     you're in currently.' Cycle is venue → fit → user → venue, so:
+       locate-state-venue (currently at venue) → next is fit  → show FIT icon
+       locate-state-fit   (currently at fit)   → next is user → show USER icon
+       locate-state-user  (currently at user)  → next is venue→ show VENUE icon
+     Default (no locate-state class) shows the user/crosshair icon — the
+     no-context single-action 'fly to me' affordance. */
   #locate-btn .locate-icon { display: none; }
   #locate-btn .locate-icon-user { display: block; }
-  #locate-btn.locate-state-fit .locate-icon-user,
   #locate-btn.locate-state-venue .locate-icon-user,
-  #locate-btn.locate-state-dive .locate-icon-user { display: none; }
-  #locate-btn.locate-state-fit .locate-icon-fit { display: block; }
-  #locate-btn.locate-state-user .locate-icon-user { display: block; }
-  #locate-btn.locate-state-venue .locate-icon-venue,
-  #locate-btn.locate-state-dive .locate-icon-venue { display: block; }
+  #locate-btn.locate-state-dive  .locate-icon-user,
+  #locate-btn.locate-state-fit   .locate-icon-user { display: none; }
+  #locate-btn.locate-state-venue .locate-icon-fit,
+  #locate-btn.locate-state-dive  .locate-icon-fit { display: block; }
+  #locate-btn.locate-state-fit   .locate-icon-user { display: block; }
+  #locate-btn.locate-state-user  .locate-icon-venue { display: block; }
   #locate-btn:hover {
     background: rgba(24,52,95,0.85);
     border-color: rgba(255,175,133,0.35);
@@ -8661,7 +8667,7 @@
   .dprcv-eyebrow strong { color: var(--text); font-weight: 700; }
   .dprcv-venue-row {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 8px;
     margin-top: 2px;
   }
@@ -8669,7 +8675,10 @@
     flex-shrink: 0;
     color: var(--accent);
     opacity: 0.9;
-    align-self: center;
+    /* Pin glyph's optical mass sits below its geometric centre (tip at
+       y=23 of 24, head at y=10). Nudge up so the head reads aligned
+       with the venue text's x-height. */
+    transform: translateY(-3px);
   }
   .dprcv-venue {
     font-size: 24px;
@@ -8684,6 +8693,10 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    /* Indent past the pin (16 + 8 gap) so the meta line aligns with the
+       venue name, not the pin. Reads as a clean header block: pin as
+       the icon, name + meta as the text column. */
+    padding-left: 24px;
     margin-top: 4px;
     font-size: 13px;
     font-weight: 500;
@@ -8692,6 +8705,14 @@
     flex-wrap: wrap;
   }
   .dprcv-meta-dot { opacity: 0.5; }
+  /* Walking-person glyph rides at the start of the walk-time meta chip
+     so the units don't repeat (' min walk' became 'walking-icon X min'). */
+  .dprcv-meta-walk {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .dprcv-meta-walk svg { flex-shrink: 0; opacity: 0.8; }
 
   /* Hero block — used to be a nested .card surface (slate-blue panel on
      the sheet's lighter slate, reading as a 'stuck-on' second surface).
@@ -9120,7 +9141,9 @@
   /* Confirmation header — eyebrow / venue / subtitle / "Endre svar" link */
   .dpacc-header-row {
     display: flex;
-    align-items: flex-start;
+    /* center the 'Change response' link with the venue name (was
+     flex-start which floated it above the eyebrow). */
+    align-items: center;
     justify-content: space-between;
     gap: 12px;
     padding: 0 4px;
@@ -9133,11 +9156,12 @@
     font-weight: 500;
     color: var(--muted);
     line-height: 1.25;
+    /* Indent so the eyebrow aligns with the venue name, not the pin. */
+    padding-left: 24px;
   }
-  /* Venue row — pin glyph + name optically centred (was baseline, which
-     pushed the pin above the venue text mid-line). 6 px top gap above
-     the eyebrow gives a clean visual rhythm between the three lines
-     (eyebrow → venue → subtitle). */
+  /* Venue row — pin glyph + name. Pin nudged up to match the text's
+     optical centre (pin glyph mass sits below its geometric centre
+     because the tip points down). Same fix as the accept-page header. */
   .dpacc-venue-row {
     display: flex;
     align-items: center;
@@ -9148,6 +9172,7 @@
     flex-shrink: 0;
     color: var(--accent);
     opacity: 0.9;
+    transform: translateY(-3px);
   }
   .dpacc-venue {
     font-size: 22px;
@@ -9163,6 +9188,10 @@
     font-weight: 500;
     color: var(--muted);
     margin-top: 4px;
+    /* Indent the subtitle past the pin so it aligns with the venue name,
+       not the pin. Reads as a clean header block — pin = icon, name +
+       subtitle = text column. Mirrors the accept-page header. */
+    padding-left: 24px;
     font-variant-numeric: tabular-nums;
     line-height: 1.4;
   }

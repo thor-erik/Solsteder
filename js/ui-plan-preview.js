@@ -647,17 +647,23 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   const isAnon       = (opts.mode === 'invite-anon');
   const isPreview    = (opts.mode === 'preview');
 
-  // ── Venue meta line: area · category · "{dist} m" · "{walkMin} min å gå"
+  // ── Venue meta line: area · category · "{dist} m" · walk-icon "{walkMin} min"
   const venueArea = venue.area || '';
   const venueCat  = (typeof catLabel === 'function') ? catLabel(venue) : '';
   const distMin   = _dprcvWalkInfo(venue);
+  const walkSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="13" cy="4" r="2"/><path d="M7 22l3-6 2-5 4 2v8"/><path d="M8 13l-3 1 1 4"/><path d="M14 13l1-2 5 2"/></svg>`;
+  // Walk chip drops the textual ' min walk' suffix in favour of a glyph
+  // + the minute number. Less repetition with the unit and visually
+  // anchors the chip as 'walking time' at a glance.
   const metaParts = [
-    [venueArea, venueCat].filter(Boolean).join(' · '),
-    distMin && distMin.distLabel ? distMin.distLabel : '',
-    distMin && distMin.walkMin != null ? `${distMin.walkMin} ${t('accepted_action_directions_sub', { n: distMin.walkMin }).split(/\s/).slice(1).join(' ') || 'min'}` : '',
-  ].filter(Boolean);
+    { html: [venueArea, venueCat].filter(Boolean).join(' · ').replace(/</g, '&lt;') },
+    distMin && distMin.distLabel ? { html: distMin.distLabel.replace(/</g, '&lt;') } : null,
+    distMin && distMin.walkMin != null
+      ? { html: `<span class="dprcv-meta-walk">${walkSvg}<span>${distMin.walkMin} min</span></span>` }
+      : null,
+  ].filter(Boolean).filter(p => p.html);
   const metaHtml = metaParts.map((p, i) =>
-    (i > 0 ? '<span class="dprcv-meta-dot">·</span>' : '') + `<span>${p.replace(/</g, '&lt;')}</span>`
+    (i > 0 ? '<span class="dprcv-meta-dot">·</span>' : '') + `<span>${p.html}</span>`
   ).join('');
 
   // ── Hero header data (Møtes left, Sol til right)
