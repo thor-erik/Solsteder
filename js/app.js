@@ -363,10 +363,13 @@ function initFts() {
   }
 
   // -- Pointer / touch events on the track --
+  // During drag the thumb tracks the pointer continuously (no quantisation).
+  // On release we snap to the 5-min grid via _ftsSnapToGrid() — same final
+  // resolution as before, but the path there is smooth.
   const setTimeFromPointer = (clientX) => {
     const rect = track.getBoundingClientRect();
     const t    = MIN_H_ARC + (clientX - rect.left) / rect.width * (MAX_H_ARC - MIN_H_ARC);
-    const hour = _clampHour(t);
+    const hour = Math.max(MIN_H_ARC, Math.min(MAX_H_ARC, t));
     if (nowMode) {
       nowMode = false;
       nowBtn?.classList.remove('active');
@@ -376,12 +379,19 @@ function initFts() {
     setActiveIntentBtn(null);
     timeFromEl.value = hour;
     update();
-    // Dispatch input so anything that listens to timeFromEl (e.g. the invite
-    // sheet's _updateInviteConfirm hook that re-renders the venue card +
-    // bubble) picks up FTS canvas scrubs. update() handles the main app's
-    // own rendering paths — this just notifies the standard event channel.
     timeFromEl.dispatchEvent(new Event('input'));
     showFtsPopup(hour);
+  };
+
+  const _ftsSnapToGrid = () => {
+    const h = parseFloat(timeFromEl.value);
+    if (!isFinite(h)) return;
+    const snapped = _clampHour(h);
+    if (snapped === h) return;
+    timeFromEl.value = snapped;
+    update();
+    timeFromEl.dispatchEvent(new Event('input'));
+    showFtsPopup(snapped);
   };
 
   // Pointer down — start drag; close calendar picker if open. The popup
@@ -426,6 +436,7 @@ function initFts() {
     window._qcThumbActive = false;
     const _thumbEl = document.getElementById('fts-thumb');
     if (_thumbEl) _thumbEl.classList.remove('is-active');
+    _ftsSnapToGrid();
     drawFtsCanvas();
     _qcSpringBackFts();
     setFtsPopupExpanded(false);
@@ -513,6 +524,7 @@ function initFts() {
     window._qcThumbActive = false;
     const _thumbEl = document.getElementById('fts-thumb');
     if (_thumbEl) _thumbEl.classList.remove('is-active');
+    _ftsSnapToGrid();
     drawFtsCanvas();
     setFtsPopupExpanded(false);
     hideFtsPopup();
