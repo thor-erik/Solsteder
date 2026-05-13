@@ -1473,28 +1473,55 @@ function _findFirstSunDayAndHour() {
     d.setDate(d.getDate() + dayOffset);
     const dateStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
     const minHour = (dayOffset === 0) ? nowH : 0;
+    // Weather lookup for this day, memoized per integer hour. wxBucket
+    // returns 'sol' / 'skyer' / 'regn' / null. Beyond the forecast
+    // horizon (~10 days), getWeatherAt → null → wxBucket null → both
+    // flags false → astronomical sun wins. User: 'Still not going to
+    // the next sun window. All it does is go to today, set the time
+    // to current time' — the previous scan ignored weather, so an
+    // overcast day still resolved to "now" via astronomical sun.
+    const _wxCache = new Map();
+    const wxLookup = (h) => {
+      const hb = Math.floor(h);
+      if (!_wxCache.has(hb)) {
+        const b = (typeof wxBucket === 'function') ? wxBucket(dateStr, hb + 0.5) : null;
+        _wxCache.set(hb, { rainy: b === 'regn', overcast: b === 'skyer' });
+      }
+      return _wxCache.get(hb);
+    };
+    // Sundown anchor — clamp the qualifyingWindows search range.
+    const sunTable = (typeof buildSunTable === 'function') ? buildSunTable(dateStr) : null;
+    const sundownH = (sunTable && typeof findSunCrossingFromTable === 'function')
+      ? (findSunCrossingFromTable(sunTable, false) ?? 22) : 22;
     let earliest = null;
     for (const v of VENUES) {
       // Skip search-added venues (negative ids) from the scan. Their
       // facing/terraceTestPoints come from OSM enrichment at runtime
-      // and are unreliable — terrace points often land inside the
-      // venue's own building footprint, producing either zero sun
-      // (always shadowed) or all-day sun (null-facing fallback).
-      // Either way, including them in the global "next sun" scan
-      // anchors the result to a fake window. User: 'I am not taken
+      // and can be unreliable — terrace points sometimes land inside
+      // adjacent buildings, and the wall scoring can pick a wall that
+      // faces the wrong direction. A bad candidate's fake sun window
+      // anchors the scan to a useless result. User: 'I am not taken
       // to another sun window because of Hummus & Wine, a venue
-      // added through the search bar' — Hummus & Wine's null-facing
-      // fallback produced today-at-now and the scan never advanced.
+      // added through the search bar'.
       if (typeof v.id === 'number' && v.id < 0) continue;
       try {
         const { windows } = computeSunWindows(v, dateStr) || {};
         if (!windows || !windows.length) continue;
-        for (const w of windows) {
-          if (w.end <= minHour) continue;
-          const start = Math.max(w.start, minHour);
-          if (earliest == null || start < earliest) earliest = start;
-          break;
-        }
+        // Use the same qualifying-windows logic the list surfacing
+        // uses: weather-gated dry slices + 45-min duration floor.
+        // This keeps the scan in lockstep with what the user will
+        // actually see when the list re-renders for the new day.
+        const open  = v.openingHours?.open  ?? 11;
+        const close = v.openingHours?.close ?? 23;
+        const qual = (typeof qualifyingWindows === 'function')
+          ? qualifyingWindows(windows, wxLookup, {
+              selectedHour: minHour, sundownHour: sundownH,
+              openHour:     open,    closeHour:   close,
+            })
+          : null;
+        if (!qual || !qual.surfaced || !qual.earliest) continue;
+        const start = Math.max(qual.earliest.start, minHour);
+        if (earliest == null || start < earliest) earliest = start;
       } catch (e) { /* ignore */ }
     }
     if (earliest != null) {
