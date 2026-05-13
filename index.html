@@ -9423,6 +9423,30 @@
     transition: transform 0.05s;
   }
   .dpacc-action-card:active { transform: scale(0.99); }
+  /* Pending friend-request state — between tap and the 4 s debounce
+     firing the actual upsert. Subtle inset stripe at the top edge
+     ticks down 0→100% over 4 s as a visual undo window, plus a
+     gentle accent tint so the card reads as 'in flight'. */
+  .dpacc-action-card[data-pending="1"] {
+    position: relative;
+    overflow: hidden;
+  }
+  .dpacc-action-card[data-pending="1"]::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 2px;
+    width: 100%;
+    background: currentColor;
+    opacity: 0.45;
+    transform-origin: right center;
+    animation: dpacc-friend-debounce 4s linear forwards;
+  }
+  @keyframes dpacc-friend-debounce {
+    from { transform: scaleX(1); }
+    to   { transform: scaleX(0); }
+  }
   /* Primary tile — solid accent, accent-on text */
   .dpacc-action-primary {
     background: var(--accent);

@@ -452,21 +452,86 @@ function _renderPlansBlock(v) {
     </div>`;
 }
 
-/** Friend-add banner: insert pending friendship row + clear banner. */
-async function _handleFriendPromptAdd(inviterId) {
-  if (typeof _aTrack === 'function') _aTrack('invite_friend_prompt', { action: 'added' });
-  if (typeof _supabase !== 'undefined' && typeof authCurrentUser === 'function' && authCurrentUser()) {
-    try {
-      await _supabase.from('friendships').upsert({
-        user_id:   inviterId,
-        friend_id: authCurrentUser().id,
-        status:    'pending',
-      }, { onConflict: 'user_id,friend_id' });
-      if (typeof loadFriends === 'function') loadFriends();
-      if (typeof _showToast === 'function') _showToast(t('friend_request_sent'));
-    } catch (e) { /* ignore */ }
+/** Friend-add: debounced send + tap-again-to-undo flow.
+ *
+ *  v1 fired the friendships upsert synchronously on tap, with no UI
+ *  state change on the card afterwards. The user could mis-tap with
+ *  no way back, and the action card stuck around as if nothing had
+ *  happened. Phase A of the new flow:
+ *
+ *    Tap →
+ *      1. Show 'Friend request sent' toast immediately (optimistic UI)
+ *      2. Swap the card content to a benefit line + 'tap to undo' hint
+ *      3. Wait 4 s, THEN fire the actual upsert
+ *
+ *    Tap again during the 4 s window →
+ *      1. Cancel the timer (upsert never runs)
+ *      2. Revert the card content + show 'withdrawn' toast
+ *
+ *  Phase B (slide-out + promote next card) layers on top later.
+ *
+ *  State is tracked on the card DOM via data-pending="1" + a per-id
+ *  timer in a module-level Map so the second tap can find and clear
+ *  the right timer. */
+const _friendRequestTimers   = new Map();
+const _committedFriendRequests = new Set();
+const FRIEND_DEBOUNCE_MS = 4000;
+function _commitFriendRequest(inviterId) {
+  if (typeof _supabase === 'undefined' || typeof authCurrentUser !== 'function' || !authCurrentUser()) return;
+  return _supabase.from('friendships').upsert({
+    user_id:   inviterId,
+    friend_id: authCurrentUser().id,
+    status:    'pending',
+  }, { onConflict: 'user_id,friend_id' }).then(() => {
+    if (typeof loadFriends === 'function') loadFriends();
+  }).catch(() => { /* ignore */ });
+}
+function _revertFriendCard(cardEl, inviterName) {
+  if (!cardEl) return;
+  cardEl.removeAttribute('data-pending');
+  const titleEl = cardEl.querySelector('.dpacc-action-title');
+  const subEl   = cardEl.querySelector('.dpacc-action-sub');
+  if (titleEl) titleEl.textContent = t('accepted_action_add_friend', { name: inviterName || '' });
+  if (subEl)   subEl.textContent   = t('accepted_action_add_friend_sub');
+}
+function _pendingFriendCard(cardEl, inviterName) {
+  if (!cardEl) return;
+  cardEl.setAttribute('data-pending', '1');
+  const titleEl = cardEl.querySelector('.dpacc-action-title');
+  const subEl   = cardEl.querySelector('.dpacc-action-sub');
+  if (titleEl) titleEl.textContent = t('accepted_action_add_friend_done', { name: inviterName || '' });
+  if (subEl)   subEl.textContent   = t('accepted_action_add_friend_undo');
+}
+function _handleFriendPromptAdd(inviterId, inviterName) {
+  // Already-committed guard: once the debounce has fired and the
+  // friendships row exists, further taps on the same card are no-ops
+  // (we don't want a duplicate row OR a misleading 'undo' UI).
+  if (_committedFriendRequests.has(inviterId)) return;
+  const cardEl = document.querySelector('.dpacc-action-card[data-action="add_friend"]');
+  // If a request is already pending for this inviter, this second tap
+  // is an UNDO — cancel the timer + revert.
+  if (_friendRequestTimers.has(inviterId)) {
+    const tid = _friendRequestTimers.get(inviterId);
+    clearTimeout(tid);
+    _friendRequestTimers.delete(inviterId);
+    _revertFriendCard(cardEl, inviterName);
+    if (typeof _aTrack === 'function') _aTrack('invite_friend_prompt', { action: 'withdrawn' });
+    if (typeof _showToast === 'function') _showToast(t('friend_request_withdrawn'));
+    return;
   }
-  if (typeof window !== 'undefined') window._pendingFriendPrompt = null;
+  // First tap — optimistic UI + debounced commit.
+  if (typeof _aTrack === 'function') _aTrack('invite_friend_prompt', { action: 'added' });
+  _pendingFriendCard(cardEl, inviterName);
+  if (typeof _showToast === 'function') _showToast(t('friend_request_sent'));
+  const tid = setTimeout(() => {
+    _friendRequestTimers.delete(inviterId);
+    _committedFriendRequests.add(inviterId);
+    _commitFriendRequest(inviterId);
+    if (typeof window !== 'undefined') window._pendingFriendPrompt = null;
+  }, FRIEND_DEBOUNCE_MS);
+  _friendRequestTimers.set(inviterId, tid);
+  // Legacy banner cleanup — irrelevant on the new post-accept panel
+  // but kept so older surfaces that surface the same handler clean up.
   const banner = document.getElementById('friend-prompt-banner');
   if (banner) banner.remove();
 }
@@ -877,7 +942,7 @@ function _acceptedActionClick(type, venueId, inviterId, inviterName) {
         if (typeof selectVenue === 'function') selectVenue(venueId, true);
       }, 320);
     } else if (type === 'add_friend') {
-      if (inviterId) _handleFriendPromptAdd(inviterId);
+      if (inviterId) _handleFriendPromptAdd(inviterId, inviterName);
     } else if (type === 'share') {
       _handleShareNudgeShare(venueId);
     }
