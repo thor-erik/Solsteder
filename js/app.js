@@ -1475,6 +1475,17 @@ function _findFirstSunDayAndHour() {
     const minHour = (dayOffset === 0) ? nowH : 0;
     let earliest = null;
     for (const v of VENUES) {
+      // Skip search-added venues (negative ids) from the scan. Their
+      // facing/terraceTestPoints come from OSM enrichment at runtime
+      // and are unreliable — terrace points often land inside the
+      // venue's own building footprint, producing either zero sun
+      // (always shadowed) or all-day sun (null-facing fallback).
+      // Either way, including them in the global "next sun" scan
+      // anchors the result to a fake window. User: 'I am not taken
+      // to another sun window because of Hummus & Wine, a venue
+      // added through the search bar' — Hummus & Wine's null-facing
+      // fallback produced today-at-now and the scan never advanced.
+      if (typeof v.id === 'number' && v.id < 0) continue;
       try {
         const { windows } = computeSunWindows(v, dateStr) || {};
         if (!windows || !windows.length) continue;

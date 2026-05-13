@@ -709,8 +709,17 @@ function _handleShareNudgeShare(venueId) {
     }
     // Close the post-accept panel cleanly, then open the invite sheet
     // after the slide-down — same 320 ms handoff the change-response
-    // path uses.
-    _closePostAcceptPanel({ skipExitToExplore: true });
+    // path uses. The 'return to post-accept' flag tells _closeInviteSheet
+    // to reopen the confirmation panel if the user backs out (cancel,
+    // backdrop tap, drag-down).
+    if (typeof window !== 'undefined') {
+      window._inviteSheetReturnToPostAccept = true;
+    }
+    _closePostAcceptPanel({
+      skipExitToExplore:    true,
+      skipClearShareNudge:  true,
+      skipBodyClassRemoval: true,
+    });
     setTimeout(() => {
       try { _openInviteSheet(venueId); } catch (e) { /* ignore */ }
     }, 320);
@@ -826,7 +835,13 @@ function _handleCalendarAdd(venueId, inviterName) {
       plannedAt = new Date(`${d}T${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:00`).toISOString();
     }
   }
-  if (!v || !plannedAt) return;
+  if (!v || !plannedAt) {
+    if (typeof console !== 'undefined') {
+      console.warn('[calendar] aborted —',
+        !v ? `venue ${venueId} not in VENUES` : 'no plannedAt (share-nudge cleared and pickers empty)');
+    }
+    return;
+  }
 
   const ics = _buildIcs({
     venue: v,
@@ -838,15 +853,33 @@ function _handleCalendarAdd(venueId, inviterName) {
   });
   if (!ics) return;
 
-  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `solsteder-${_slugForFile(v.name)}.ics`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  // iOS Safari doesn't fully honour <a href="blob:..." download> — it
+  // tends to navigate to the blob URL instead of triggering the system's
+  // 'Add to Calendar' sheet. The data-URI path is universally accepted
+  // by iOS's URL handlers and works as the import trigger. For desktop
+  // browsers the <a download> with a blob URL is the cleanest path
+  // (filename preserved, no navigation away from the page). Detect iOS
+  // Safari and branch accordingly.
+  const isIos = /iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+  const filename = `solsteder-${_slugForFile(v.name)}.ics`;
+
+  if (isIos) {
+    // btoa needs latin-1; use the unescape/encodeURIComponent trick to
+    // handle any non-ASCII chars in venue names ('Ekebergrestauranten' etc.).
+    const b64 = btoa(unescape(encodeURIComponent(ics)));
+    const dataUri = `data:text/calendar;charset=utf-8;base64,${b64}`;
+    window.location.href = dataUri;
+  } else {
+    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
 
   if (typeof window !== 'undefined') window._pendingShareNudge = null;
   const banner = document.getElementById('share-nudge-banner');
@@ -867,6 +900,10 @@ function _handleCalendarAdd(venueId, inviterName) {
 function _openPostAcceptPanel(opts) {
   const existing = document.getElementById('post-accept-overlay');
   if (existing) existing.remove();
+
+  // Stash the full opts so Share Onward can reopen this exact panel
+  // when the user backs out of the invite sheet (cancel/backdrop).
+  if (typeof window !== 'undefined') window._lastPostAcceptOpts = opts;
 
   const venueName  = opts.venueName || '';
   const whenLabel  = opts.whenLabel || '';
@@ -1119,9 +1156,12 @@ function _closePostAcceptPanel(opts = {}) {
   }
   // Belt-and-suspenders: clear any post-accept stash (so reopening the
   // detail panel later doesn't surface the legacy banners).
+  // skipClearShareNudge keeps the share-nudge alive so the post-accept
+  // panel can reopen with the same Share card (used by the invite-sheet
+  // back-out flow).
   if (typeof window !== 'undefined') {
     window._pendingFriendPrompt = null;
-    window._pendingShareNudge = null;
+    if (!opts.skipClearShareNudge) window._pendingShareNudge = null;
   }
   // Fire the explore-mode hand-off IMMEDIATELY (not deferred), so the
   // slider + venue list update while the panel is still sliding down.
@@ -1675,6 +1715,14 @@ function _openInviteSheet(venueId) {
 
   // Animate in — backdrop fades, sheet slides up. (v1 also had a top
   // card to slide down; gone now.)
+  // Force a synchronous layout pass so the browser commits the initial
+  // translateY(100%) state before the .open class flips it to 0. Without
+  // this, mounting + class-add in the same task lets the browser collapse
+  // both into the final state and skip the transition — the user sees the
+  // sheet flash in place. User: 'The invite panel seems to first show up,
+  // then start a slide up animation'.
+  // eslint-disable-next-line no-unused-expressions
+  sheet.offsetHeight;
   requestAnimationFrame(() => {
     overlay.classList.add('open');
     sheet.classList.add('open');
@@ -2030,6 +2078,12 @@ function _refreshInvitePrimaryCTA() {
 function _closeInviteSheet() {
   const overlay = document.getElementById('invite-sheet-backdrop');
   const sheet = document.getElementById('invite-sheet');
+  // If the sheet was opened from the post-accept Share Onward card,
+  // the cancel/backdrop path returns to the confirmation panel instead
+  // of falling through to the detail panel / explore mode.
+  const returnToPostAccept = (typeof window !== 'undefined')
+    && window._inviteSheetReturnToPostAccept === true;
+  if (typeof window !== 'undefined') window._inviteSheetReturnToPostAccept = false;
   if (sheet) {
     if (sheet._sliderCleanup) sheet._sliderCleanup();
     sheet.classList.remove('open');
@@ -2052,6 +2106,16 @@ function _closeInviteSheet() {
   // is gone. _syncFtsPosition will re-attach it to the docked card slot
   // (if detail panel is open) or sit it back at the bottom of the screen.
   if (typeof _syncFtsPosition === 'function') _syncFtsPosition();
+  // Back-to-post-accept: reopen the confirmation panel with the same opts
+  // we stashed at open-time. Skip the detail-panel refresh below so it
+  // doesn't fight the post-accept slide-up.
+  if (returnToPostAccept && typeof window !== 'undefined' && window._lastPostAcceptOpts) {
+    setTimeout(() => {
+      try { _openPostAcceptPanel(window._lastPostAcceptOpts); }
+      catch (e) { /* ignore */ }
+    }, 300);
+    return;
+  }
   // Defensive refresh of the detail panel underneath. The eager plan-create
   // ran during the sheet's lifetime; if any downstream listener mutated panel
   // state (e.g. the detail panel's docked card got detached), updateDetailPanel

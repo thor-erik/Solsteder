@@ -182,6 +182,38 @@ out geom;`;
   }
 
   v.terraceTestPoints = computeTerraceTestPoints(v, osmEl);
+
+  // Defensive cleanup for search-added venues: drop any test point that
+  // lands inside a nearby building. Without this, wall projection on
+  // cramped city-block layouts can place points inside the adjacent
+  // building's footprint, where pointInBuildingShadow returns true
+  // unconditionally — the venue then reads as permanently shaded and
+  // produces zero sun windows. User-reported symptom: 'Hummus & Wine
+  // [added through search] does not seem to have any sun calculations
+  // or something' and 'I am not taken to another sun window' after
+  // close-on-confirm. Filter bad points; if all are bad, try a shallow
+  // 1.5 m probe; last-resort fall back to the venue pin so the venue
+  // still surfaces sun windows via the facing-only heuristic.
+  if (v.terraceTestPoints?.length && v.nearbyBuildings?.length) {
+    const insideAnyNearby = (lat, lng) => {
+      for (const b of v.nearbyBuildings) {
+        if (b.geometry && pointInPolygon(lat, lng, b.geometry)) return true;
+      }
+      return false;
+    };
+    const filtered = v.terraceTestPoints.filter(pt => !insideAnyNearby(pt.lat, pt.lng));
+    if (filtered.length) {
+      v.terraceTestPoints = filtered;
+    } else if (v.wallSegment) {
+      const shallow = probePoint(v.wallSegment, 1.5);
+      v.terraceTestPoints = insideAnyNearby(shallow.lat, shallow.lng)
+        ? [{ lat: v.lat, lng: v.lng }]
+        : [{ lat: shallow.lat, lng: shallow.lng }];
+    } else {
+      v.terraceTestPoints = [{ lat: v.lat, lng: v.lng }];
+    }
+  }
+
   v.noiseScore = computeNoiseScore(v, highways);
 
   return v;
