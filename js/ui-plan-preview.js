@@ -656,14 +656,31 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   // ── Attendees + quoted message (logged-in invite mode only — anon doesn't
   // have plan_invites visibility yet).
   let attendeesHtml = '';
-  if (typeof getPlansForVenue === 'function' && !isAnon) {
+  // Test-token override: if app.js detected `d.a` in the invite payload,
+  // synthesize a fake accepted-attendees array so we can review the UI at
+  // varying counts without seeding the DB. Skipped for real share flows.
+  let plan = null;
+  if (typeof window !== 'undefined' && window._testAttendeesCount) {
+    const n = window._testAttendeesCount;
+    const fallbackNames = ['Anna', 'Jonas', 'Marit', 'Erik', 'Ida', 'Lars', 'Sofie', 'Tobias'];
+    const names = (Array.isArray(window._testAttendeesNames) && window._testAttendeesNames.length)
+      ? window._testAttendeesNames
+      : fallbackNames;
+    const invitees = [];
+    for (let i = 0; i < n; i++) {
+      invitees.push({ status: 'accepted', user: { id: 'test-' + i, name: names[i % names.length] } });
+    }
+    plan = { _invitees: invitees, planned_at: opts.plannedAt || null, message: '' };
+  } else if (typeof getPlansForVenue === 'function' && !isAnon) {
     const plans = getPlansForVenue(venue.id);
     const target = opts.plannedAt ? new Date(opts.plannedAt).getTime() : null;
-    const plan = target == null
+    plan = target == null
       ? plans[0]
       : plans.find(p => p.planned_at && Math.abs(new Date(p.planned_at).getTime() - target) < 30 * 60 * 1000)
         || plans[0];
-    if (plan && Array.isArray(plan._invitees) && plan._invitees.length) {
+  }
+  if (plan) {
+    if (Array.isArray(plan._invitees) && plan._invitees.length) {
       const accepted = plan._invitees.filter(i => i.status === 'accepted');
       if (accepted.length) {
         const stack = accepted.slice(0, 3).map(i => {

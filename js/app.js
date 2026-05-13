@@ -5824,6 +5824,19 @@ function _introCheckReady() {
               }
             } catch (e) { /* ignore — preview still works without name */ }
           }
+          // Test-token overrides (preview branch only): d.n hard-codes the
+          // inviter name without needing a real profile row, and d.a seeds
+          // a fake accepted-attendees count so we can review the attendee
+          // row at varying sizes. Both are unused by real share-flow tokens
+          // (encodeInviteToken in ui-detail.js doesn't emit them).
+          if (d.n) inviterName = String(d.n);
+          if (d.a != null) {
+            window._testAttendeesCount = Math.max(1, parseInt(d.a, 10) || 1);
+            window._testAttendeesNames = Array.isArray(d.names) ? d.names : null;
+          } else {
+            window._testAttendeesCount = null;
+            window._testAttendeesNames = null;
+          }
 
           // Stash friend-add prompt for the post-Lukk detail panel render
           // (only meaningful when logged in — friendships are user-scoped).
