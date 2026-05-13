@@ -1032,6 +1032,16 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
             }
             return wxKeyAt(h);
           };
+          // Auto-hide timer — fades the scrubber back out a few seconds
+          // after the last drag, so a lingering pill at a non-plan time
+          // doesn't read as 'I've changed my arrival time to this'. The
+          // outside-tap dismiss path (onDocPointer below) still runs
+          // immediately when the user taps elsewhere; this just adds an
+          // idle-timeout fallback. User: 'when you move the marker, it
+          // should disappear after a while … so they don't think they
+          // are selecting another time to join'.
+          let _scrubAutoHideTimer = null;
+          const SCRUB_AUTO_HIDE_MS = 2500;
           const update = () => {
             const h = parseFloat(timeFromEl.value);
             if (!Number.isFinite(h)) return;
@@ -1053,11 +1063,18 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
               labelEl.innerHTML = `<span class="dprcv-timeline-scrubber-time">${formatHour(h)}</span>${glyph}${tempStr}`;
             }
             scrubberEl.classList.add('is-active');
+            if (_scrubAutoHideTimer) clearTimeout(_scrubAutoHideTimer);
+            _scrubAutoHideTimer = setTimeout(() => {
+              scrubberEl.classList.remove('is-active');
+              scrubberEl.classList.remove('is-dragging');
+              _scrubAutoHideTimer = null;
+            }, SCRUB_AUTO_HIDE_MS);
           };
           const onDocPointer = (ev) => {
             if (!scrubberEl.classList.contains('is-active')) return;
             if (timelineEl && timelineEl.contains(ev.target)) return;
             scrubberEl.classList.remove('is-active');
+            if (_scrubAutoHideTimer) { clearTimeout(_scrubAutoHideTimer); _scrubAutoHideTimer = null; }
           };
           // Tap vs drag — first input after pointerdown uses the slow
           // 'slide-to-position' transition; subsequent pointermoves
@@ -1079,6 +1096,7 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
           const prevCleanup = el._cleanup;
           el._cleanup = () => {
             if (prevCleanup) prevCleanup();
+            if (_scrubAutoHideTimer) { clearTimeout(_scrubAutoHideTimer); _scrubAutoHideTimer = null; }
             timeFromEl.removeEventListener('input', update);
             document.removeEventListener('pointerdown', onDocPointer);
             if (ftsCanvas) {
