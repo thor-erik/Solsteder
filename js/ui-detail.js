@@ -907,14 +907,19 @@ function _openPostAcceptPanel(opts) {
     </div>
     <div class="dpacc-header-row">
       <div class="dpacc-header-text">
-        <div class="dpacc-eyebrow">${t('accepted_eyebrow')}</div>
+        <div class="dpacc-eyebrow-row">
+          <div class="dpacc-eyebrow">${t('accepted_eyebrow')}</div>
+          <button class="dpacc-change-rsvp" type="button" onclick="_reopenInviteFromAccept()">
+            <span>${t('accepted_change_rsvp')}</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
         <div class="dpacc-venue-row">
           <span class="dpacc-venue-pin" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
           <span class="dpacc-venue">${safeName}</span>
         </div>
         <div class="dpacc-subtitle">${safeSubtitle}</div>
       </div>
-      <button class="g-rnd dpacc-change-rsvp" type="button" onclick="_reopenInviteFromAccept()">${t('accepted_change_rsvp')}</button>
     </div>
     <div class="dpacc-action-row no-scrollbar">${cardsHtml}</div>
     ${attendeesHtml}

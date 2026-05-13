@@ -9395,7 +9395,19 @@
     font-variant-numeric: tabular-nums;
     line-height: 1.4;
   }
+  /* Change-response trigger — now lives on the eyebrow row instead of
+     hanging in the header's far-right corner as a pill. Reads as a
+     text link with a forward chevron, not a button. */
+  .dpacc-eyebrow-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
   .dpacc-change-rsvp {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
     font-size: 12px;
     font-weight: 600;
     color: var(--muted);
@@ -9406,8 +9418,13 @@
     white-space: nowrap;
     font-family: 'Inter', sans-serif;
     transition: color 0.12s;
+    /* Cancel any inherited padding-left from .dpacc-eyebrow's own
+       indent rule (it lives inside .dpacc-eyebrow-row now). */
+    margin-right: -2px;
   }
+  .dpacc-change-rsvp svg { opacity: 0.85; }
   .dpacc-change-rsvp:hover { color: var(--text); }
+  .dpacc-change-rsvp:hover svg { opacity: 1; }
 
   /* Action carousel — horizontally scrolling tiles. Most use .card; the
      primary tile uses solid --accent (one Primary per screen rule). */
