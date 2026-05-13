@@ -1383,7 +1383,7 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
 // shade glyph is a high-res reproduction of the user's sketch — solid left
 // semicircle + diagonal stripes filling the right semicircle. Same metaphor
 // the timeline bar uses for shadow gaps, surfaced as a discrete icon.
-const TIMELINE_EVENT_GLYPHS = {
+window.TIMELINE_EVENT_GLYPHS = {
   // Clock face — anchors the START of the bar as the meeting time. Same
   // visual register as the weather/shade icons so the row reads as a
   // unified set of glyphs marking notable moments along the timeline.

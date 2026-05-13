@@ -789,10 +789,6 @@ function drawTimeline(ctx, opts) {
     }
   }
 
-  // Hour labels are now DOM elements (#fts-labels) so the thumb's
-  // backdrop-blur naturally frosts them when overlapping. See
-  // _updateFtsLabels / _updateFtsLabelMagnify in app.js.
-
   ctx.restore(); // exit rounded-rect clip — tick + thumb draw unclipped
 
   // 7. NÅ tick — dashed vertical at wall-clock time (today only, not at thumb).

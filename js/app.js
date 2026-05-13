@@ -340,7 +340,7 @@ function initFts() {
 
   _syncFtsPosition();
   updateHeaderDateChip();
-  _updateFtsLabels();
+  _populateFtsEvents();
   drawFtsCanvas();
 
   // Redraw the slider bitmap whenever the canvas's CSS width changes.
@@ -596,6 +596,10 @@ function drawFtsCanvas() {
   c.restore();
 
   _updateFtsThumbDom(fromH);
+  // Refresh the event row whenever the canvas redraws — cheap (idempotent
+  // via signature cache) and catches weather/worker updates without a
+  // separate hook.
+  _populateFtsEvents();
 }
 
 /** Sync the DOM thumb's position with the slider value, or with the raw
@@ -616,40 +620,67 @@ function _updateFtsThumbDom(fromH) {
   thumb.style.left = pct + '%';
 }
 
-/** Build / refresh the DOM hour labels inside #fts-labels. Called on init
- *  and whenever MIN_H_ARC / MAX_H_ARC change (e.g. when sun table loads
- *  with a new sunrise/sunset). Standard interior ticks (09 / 12 / 15 / 18)
- *  plus the actual min/max bookends. Position clamped inward so the digits
- *  sit safely inside the rounded cap curvature. */
-function _updateFtsLabels() {
-  const container = document.getElementById('fts-labels');
-  const track     = document.getElementById('fts-track');
-  if (!container || !track) return;
-  const trackW = track.offsetWidth || 0;
-  if (!trackW) return;
+/** Build / refresh the event row above the FTS bar — weather-state glyphs
+ *  at each transition hour, each trailing a tick to the bar top. Same
+ *  vocabulary as the accept-page sun-timeline. Cached against a signature
+ *  of the events array so repeat calls (drawFtsCanvas runs ~60Hz during
+ *  drag) only mutate the DOM when the set actually changes. */
+function _populateFtsEvents() {
+  const host  = document.getElementById('fts-events');
+  const track = document.getElementById('fts-track');
+  if (!host || !track) return;
+  if (!(MAX_H_ARC > MIN_H_ARC + 0.1)) return;
+  const dateStr = (typeof datePicker !== 'undefined' && datePicker) ? datePicker.value : null;
+  if (!dateStr) return;
 
-  const hours = [9, 12, 15, 18];
-  const minBookend = Math.ceil(MIN_H_ARC);
-  const maxBookend = Math.floor(MAX_H_ARC);
-  if (!hours.includes(minBookend) && minBookend >= MIN_H_ARC) hours.unshift(minBookend);
-  if (!hours.includes(maxBookend) && maxBookend <= MAX_H_ARC) hours.push(maxBookend);
+  const glyphs = window.TIMELINE_EVENT_GLYPHS;
+  if (!glyphs) return;
 
-  const capSafePx  = 18;
-  const capSafePct = (capSafePx / trackW) * 100;
+  const wxKeyAt = (h) => {
+    if (typeof getWeatherAt !== 'function') return null;
+    const wx = getWeatherAt(dateStr, h + 0.5);
+    if (!wx) return null;
+    const rain = (wx.precip ?? wx.prec ?? 0) > 0.3;
+    if (rain) return 'rain';
+    const cf = wx.sunBlock ?? wx.cloud ?? 0;
+    if (cf < 0.25) return 'sun';
+    if (cf < 0.75) return 'partly';
+    return 'cloud';
+  };
 
-  container.innerHTML = '';
-  for (const h of hours) {
-    if (h < MIN_H_ARC || h > MAX_H_ARC) continue;
-    const text = String(h).padStart(2, '0');
-    const xPct = (h - MIN_H_ARC) / (MAX_H_ARC - MIN_H_ARC) * 100;
-    const pct  = Math.max(capSafePct, Math.min(100 - capSafePct, xPct));
+  // Lead with the starting state at MIN_H, then one icon at every hour
+  // where the weather band differs from the previous hour. Keeps the row
+  // sparse on stable-weather days and informative on changing ones.
+  const events = [];
+  let lastKey = null;
+  const startH = Math.ceil(MIN_H_ARC);
+  const endH   = Math.floor(MAX_H_ARC);
+  for (let h = startH; h <= endH; h++) {
+    const key = wxKeyAt(h);
+    if (key == null) continue;
+    if (key !== lastKey) {
+      events.push({ hour: h, state: key });
+      lastKey = key;
+    }
+  }
 
-    const lbl = document.createElement('div');
-    lbl.className = 'fts-label';
-    lbl.dataset.hour = h;
-    lbl.textContent = text;
-    lbl.style.left = pct + '%';
-    container.appendChild(lbl);
+  const sig = events.map(e => e.hour + ':' + e.state).join('|');
+  if (host._lastSig === sig) return;
+  host._lastSig = sig;
+
+  host.innerHTML = '';
+  if (events.length === 0) return;
+
+  for (const e of events) {
+    const xPct = ((e.hour - MIN_H_ARC) / (MAX_H_ARC - MIN_H_ARC)) * 100;
+    if (xPct < 2 || xPct > 98) continue;
+    const glyph = glyphs[e.state];
+    if (!glyph) continue;
+    const node = document.createElement('div');
+    node.className = 'fts-event';
+    node.style.left = xPct + '%';
+    node.innerHTML = glyph + '<div class="fts-event-tick"></div>';
+    host.appendChild(node);
   }
 }
 
@@ -804,11 +835,12 @@ function showFtsPopup(hour) {
     if (wx) {
       const rain = (wx.precip ?? wx.prec ?? 0) > 0.3;
       const cf   = wx.sunBlock ?? wx.cloud ?? 0;
-      if (wxIconEl) wxIconEl.textContent = rain ? '🌧' : (typeof skyIcon === 'function' ? skyIcon(cf) : '☀️');
+      const wxKey = rain ? 'rain' : (cf < 0.25 ? 'sun' : cf < 0.75 ? 'partly' : 'cloud');
+      if (wxIconEl) wxIconEl.innerHTML = (window.TIMELINE_EVENT_GLYPHS && window.TIMELINE_EVENT_GLYPHS[wxKey]) || '';
       if (tempEl)   tempEl.textContent = wx.temp != null ? Math.round(wx.temp) + '°' : '';
       if (windEl)   windEl.textContent = wx.wspd != null ? Math.round(wx.wspd) + ' m/s' : '';
     } else {
-      if (wxIconEl) wxIconEl.textContent = '';
+      if (wxIconEl) wxIconEl.innerHTML = '';
       if (tempEl)   tempEl.textContent = '';
       if (windEl)   windEl.textContent = '';
     }
@@ -2807,7 +2839,7 @@ function update() {
     // their selection), nudge it to MIN_H_ARC so the thumb stays on-canvas.
     if (parseFloat(timeFromEl.value) < MIN_H_ARC) timeFromEl.value = MIN_H_ARC;
     // Refresh DOM hour labels whenever the range changes — bookends shift.
-    if (typeof _updateFtsLabels === 'function') _updateFtsLabels();
+    if (typeof _populateFtsEvents === 'function') _populateFtsEvents();
   }
 
   // Auto-advance to tomorrow after sunset (once per session startup)

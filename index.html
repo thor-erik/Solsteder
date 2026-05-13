@@ -1443,7 +1443,7 @@
     flex: 1 1 0; min-width: 0;
     height: 40px;
     border-radius: 999px;
-    overflow: visible;       /* let active thumb glow extend beyond track */
+    overflow: visible;       /* let event icons + thumb glow extend beyond track */
     position: relative;
     cursor: ew-resize;
     touch-action: none;    /* prevent scroll during drag */
@@ -1451,9 +1451,7 @@
     backdrop-filter: var(--glass-blur-action);
     -webkit-backdrop-filter: var(--glass-blur-action);
     border: var(--glass-border);
-    box-shadow:
-      var(--glass-inset),
-      0 2px 8px rgba(0,0,0,0.35);
+    box-shadow: var(--glass-inset);
   }
   #fts-canvas {
     display: block;
@@ -1464,27 +1462,40 @@
     pointer-events: none;      /* touch events go to track, not canvas */
   }
 
-  /* ── Hour labels ──────────────────────────────────────────────────────── */
-  #fts-labels {
+  /* ── Event row above the FTS bar ─────────────────────────────────────────
+     Mirrors the accept-page sun-timeline event row: a horizontal strip of
+     SVG glyphs (weather state at each transition hour), each trailing a
+     thin tick down to the bar top. Positioned absolutely above the track
+     so we don't have to grow the FTS pill height. */
+  #fts-events {
     position: absolute;
-    inset: 0;
+    left: 0; right: 0;
+    bottom: calc(100% + 2px);
+    height: 22px;
     pointer-events: none;
-    z-index: 2;
+    z-index: 6;
   }
-  .fts-label {
+  .fts-event {
     position: absolute;
-    top: 4px;
+    bottom: 0;
     transform: translateX(-50%);
-    transform-origin: center top;
-    font: 700 11px "Inter", system-ui, sans-serif;
-    color: rgba(255,244,224,0.95);
-    /* Multi-stop dark halo so the digits read against any band colour. */
-    text-shadow:
-      0 0 2px rgba(15,27,42,0.85),
-      0 0 2px rgba(15,27,42,0.85),
-      0 1px 2px rgba(15,27,42,0.75);
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: var(--text);
+    opacity: 0.85;
+  }
+  .fts-event svg {
+    display: block;
+    width: 14px;
+    height: 14px;
+  }
+  .fts-event-tick {
+    width: 1px;
+    height: 4px;
+    background: currentColor;
+    opacity: 0.55;
+    margin-top: 2px;
   }
 
   /* ── FTS Thumb — lens-glass surface control, matched to #fts-date-btn ──
@@ -1659,16 +1670,21 @@
     letter-spacing: -0.01em;
     transition: font-size 0.18s cubic-bezier(0.32, 0.72, 0, 1);
   }
-  /* Weather glyph — shown in BOTH compact and expanded so the user gets
-     at-a-glance forecast without needing to drag. Smaller in compact;
-     grows in expanded via font-size. */
+  /* Weather glyph — same SVG set as the accept-page timeline event row
+     (TIMELINE_EVENT_GLYPHS). Inherits currentColor from the popup text so
+     light / dark theming is automatic. */
   #fts-popup-wx-icon {
-    display: inline-block;
-    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
     line-height: 1;
-    transition:
-      font-size 0.18s cubic-bezier(0.32, 0.72, 0, 1),
-      opacity 0.14s ease;
+    transition: opacity 0.14s ease;
+  }
+  #fts-popup-wx-icon svg {
+    width: 13px;
+    height: 13px;
+    display: block;
+    transition: width 0.18s cubic-bezier(0.32, 0.72, 0, 1),
+                height 0.18s cubic-bezier(0.32, 0.72, 0, 1);
   }
   #fts-popup-temp {
     font: 600 10px/1 'Inter', sans-serif;
@@ -1701,7 +1717,7 @@
     border-radius: 14px;
   }
   #fts-popup.fts-popup-expanded #fts-popup-time     { font-size: 20px; }
-  #fts-popup.fts-popup-expanded #fts-popup-wx-icon  { font-size: 20px; }
+  #fts-popup.fts-popup-expanded #fts-popup-wx-icon svg { width: 20px; height: 20px; }
   #fts-popup.fts-popup-expanded #fts-popup-temp     { font-size: 13px; }
   #fts-popup.fts-popup-expanded #fts-popup-wind     { font-size: 13px; }
   #fts-popup.fts-popup-expanded .fts-dot            { font-size: 12px; }
@@ -10034,14 +10050,11 @@
     </button>
     <div id="fts-track">
       <canvas id="fts-canvas"></canvas>
-      <!-- Hour labels live in the DOM (not the canvas) so the thumb's
-           backdrop-filter:blur naturally blurs them when they sit behind
-           the lens — same recipe as a real magnifying glass passing over
-           printed text. Each label also CSS-scales up based on proximity
-           to the thumb centre, simulating the magnification through the
-           lens. Populated by _updateFtsLabels() and re-positioned when
-           the slider's hour range (minH/maxH) changes. -->
-      <div id="fts-labels" aria-hidden="true"></div>
+      <!-- Event row above the bar — weather-state glyphs at transition
+           hours, each trailing a tick to the bar top. Populated by
+           _populateFtsEvents() in app.js, refreshed when the date /
+           weather / hour-range changes. -->
+      <div id="fts-events" aria-hidden="true"></div>
       <!-- Thumb: DOM element so it can use backdrop-filter:blur (GPU-cheap,
            same recipe the panels use), CSS perspective + rotate for true
            3D tilt, and CSS transitions for the pick-up animation. JS sets
