@@ -1457,15 +1457,24 @@ function _openInviteSheet(venueId) {
 }
 
 /** Wire a card-timeline-canvas to drag-scrub timeFromEl. Drag math mirrors
- *  the body-level FTS — clientX → MIN_H_ARC..MAX_H_ARC range. The 'input'
- *  event dispatched on timeFromEl propagates to all listeners (weather,
+ *  the body-level FTS — clientX → minH..maxH range. The 'input' event
+ *  dispatched on timeFromEl propagates to all listeners (weather,
  *  notifications, our own _updateInviteConfirm), which re-fires
- *  drawAllCardTimelines to repaint. */
-function _wireInlineFtsCanvas(canvas) {
+ *  drawAllCardTimelines to repaint.
+ *
+ *  opts.minH / opts.maxH override the default global FTS range. The
+ *  accept-page bar uses planHour..sundownH (a narrow slice of the day)
+ *  so without overrides, a click at x=50% of the visible bar would set
+ *  timeFromEl to ~13:30 — well outside the bar's range — and the
+ *  scrubber pill would clamp to the bar's left edge. Same canvas
+ *  drag handler, different mapping. */
+function _wireInlineFtsCanvas(canvas, opts) {
   if (!canvas || canvas._dpInlineFtsWired) return;
   canvas._dpInlineFtsWired = true;
-  const minH = (typeof MIN_H_ARC === 'number') ? MIN_H_ARC : 4;
-  const maxH = (typeof MAX_H_ARC === 'number') ? MAX_H_ARC : 23;
+  const minH = (opts && Number.isFinite(opts.minH)) ? opts.minH
+             : (typeof MIN_H_ARC === 'number') ? MIN_H_ARC : 4;
+  const maxH = (opts && Number.isFinite(opts.maxH)) ? opts.maxH
+             : (typeof MAX_H_ARC === 'number') ? MAX_H_ARC : 23;
   const range = Math.max(0.0001, maxH - minH);
   const setHourFromX = (clientX) => {
     if (typeof timeFromEl === 'undefined' || !timeFromEl) return;

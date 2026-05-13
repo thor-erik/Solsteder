@@ -861,12 +861,25 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     requestAnimationFrame(() => drawAllCardTimelines(el));
   }
 
-  // Wire the canvas to drag-scrub timeFromEl (so receivers can verify
-  // weather/sun across the day). Drag updates propagate via 'input' and the
-  // existing onTimeInput cancels the autoplay automatically.
+  // Compute the bar's visible range — used for BOTH the canvas drag
+  // mapping AND the scrubber positioning so they agree pixel-for-pixel.
+  // v1 wired the canvas without overrides, so its handler mapped clicks
+  // to MIN_H_ARC..MAX_H_ARC (the global FTS range, 4..23) — far wider
+  // than the bar's visible range. Result: clicks in the left half of
+  // the bar set timeFromEl < planHour, which clamped the scrubber to
+  // xPct=0 (the meet edge). User reported 'no matter where, marker
+  // appears at the start'.
+  const _ppSundownH = (typeof findSunCrossingFromTable === 'function' && typeof currentSunTable !== 'undefined' && currentSunTable)
+    ? findSunCrossingFromTable(currentSunTable, false)
+    : (typeof MAX_H_ARC !== 'undefined' ? MAX_H_ARC : 22);
+  const barMinH = planHour;
+  const barMaxH = _ppSundownH || (planHour + 4);
+
+  // Wire the canvas to drag-scrub timeFromEl, constrained to the bar's
+  // own range so clicks land where the user expects.
   const ftsCanvas = el.querySelector('.dprcv-timeline-canvas');
   if (ftsCanvas && typeof window._wireInlineFtsCanvas === 'function') {
-    window._wireInlineFtsCanvas(ftsCanvas);
+    window._wireInlineFtsCanvas(ftsCanvas, { minH: barMinH, maxH: barMaxH });
   }
 
   // Populate the event row above the timeline with shade / weather-change
@@ -874,42 +887,55 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   // sources the bar uses, so they always agree.
   const eventsHost = el.querySelector('.dprcv-timeline-events');
   const scrubberEl = el.querySelector('.dprcv-timeline-scrubber');
+  const timelineEl = el.querySelector('.dprcv-timeline');
   if (eventsHost) {
     requestAnimationFrame(() => {
       try {
-        const sundownH = (typeof findSunCrossingFromTable === 'function' && typeof currentSunTable !== 'undefined' && currentSunTable)
-          ? findSunCrossingFromTable(currentSunTable, false)
-          : (typeof MAX_H_ARC !== 'undefined' ? MAX_H_ARC : 22);
-        const minH = planHour;
-        const maxH = sundownH || (planHour + 4);
-        _populateTimelineEvents(eventsHost, venue, dateStr, minH, maxH);
+        _populateTimelineEvents(eventsHost, venue, dateStr, barMinH, barMaxH);
         // Wire the scrubber: when the user drags the bar (which the
         // existing _wireInlineFtsCanvas handler translates to
-        // timeFromEl 'input' events) the pill slides + the label
-        // updates. The first input also reveals the pill (which is
-        // hidden by default — meeting time anchor lives in the events
-        // row above as the 'meet' icon).
+        // timeFromEl 'input' events) the pill slides, the label
+        // updates with the hour + weather icon for that hour, and
+        // the pill reveals. Outside-the-timeline clicks fade the
+        // scrubber back out.
         if (scrubberEl && typeof timeFromEl !== 'undefined' && timeFromEl) {
           const labelEl = scrubberEl.querySelector('.dprcv-timeline-scrubber-label');
+          const wxKeyAt = (h) => {
+            if (typeof getWeatherAt !== 'function') return 'sun';
+            const wx = getWeatherAt(dateStr, h + 0.5);
+            if (!wx) return 'sun';
+            const rain = (wx.precip ?? wx.prec ?? 0) > 0.3;
+            if (rain) return 'rain';
+            const cf = wx.sunBlock ?? wx.cloud ?? 0;
+            if (cf < 0.25) return 'sun';
+            if (cf < 0.75) return 'partly';
+            return 'cloud';
+          };
           const update = () => {
             const h = parseFloat(timeFromEl.value);
             if (!Number.isFinite(h)) return;
-            const xPct = Math.max(0, Math.min(100, ((h - minH) / (maxH - minH)) * 100));
+            const xPct = Math.max(0, Math.min(100, ((h - barMinH) / (barMaxH - barMinH)) * 100));
             scrubberEl.style.left = xPct + '%';
-            if (labelEl) labelEl.textContent = formatHour(h);
+            if (labelEl) {
+              const glyph = TIMELINE_EVENT_GLYPHS[wxKeyAt(h)] || '';
+              labelEl.innerHTML = `<span class="dprcv-timeline-scrubber-time">${formatHour(h)}</span>${glyph}`;
+            }
             scrubberEl.classList.add('is-active');
           };
+          const onDocPointer = (ev) => {
+            if (!scrubberEl.classList.contains('is-active')) return;
+            if (timelineEl && timelineEl.contains(ev.target)) return;
+            scrubberEl.classList.remove('is-active');
+          };
           timeFromEl.addEventListener('input', update);
-          // Remember so closePlanPreview's cleanup can drop the listener.
-          if (el._cleanup) {
-            const prevCleanup = el._cleanup;
-            el._cleanup = () => {
-              prevCleanup();
-              timeFromEl.removeEventListener('input', update);
-            };
-          } else {
-            el._cleanup = () => timeFromEl.removeEventListener('input', update);
-          }
+          document.addEventListener('pointerdown', onDocPointer);
+          // Chain cleanup so closePlanPreview's _cleanup() drops both.
+          const prevCleanup = el._cleanup;
+          el._cleanup = () => {
+            if (prevCleanup) prevCleanup();
+            timeFromEl.removeEventListener('input', update);
+            document.removeEventListener('pointerdown', onDocPointer);
+          };
         }
       } catch (e) { /* never block render on event errors */ }
     });
