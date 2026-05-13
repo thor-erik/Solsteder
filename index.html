@@ -1464,23 +1464,7 @@
     pointer-events: none;      /* touch events go to track, not canvas */
   }
 
-  /* ── Hour labels — two stacked layers for real magnifying-glass behaviour ─
-     Z-stack inside #fts-track:
-       canvas (1) < base labels (2) < thumb (5) < magnified labels (6).
-     The base layer is the "ink under the lens" — always at 1×, sits behind
-     the thumb so it gets backdrop-blurred where the lens overlaps it.
-     The magnified layer is the same labels at a fixed scale (1.55×),
-     positioned ABOVE the thumb but clipped via clip-path to the exact
-     lens silhouette. JS keeps --lens-x in sync with the thumb's centre
-     so the clip "follows" the lens as you drag. Outside the lens the
-     magnified layer is invisible; inside it dominates the base layer.
-     That's a real magnifying glass: enlarged content visible ONLY where
-     the lens covers it. */
-  @property --lens-r {
-    syntax: '<length>';
-    inherits: true;
-    initial-value: 16px;
-  }
+  /* ── Hour labels ──────────────────────────────────────────────────────── */
   #fts-labels {
     position: absolute;
     inset: 0;
@@ -1501,42 +1485,6 @@
       0 1px 2px rgba(15,27,42,0.75);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
-  }
-  #fts-labels-mag {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 6;                 /* above the thumb (5) */
-    --lens-x: 0%;
-    --lens-r: 16px;
-    clip-path: circle(var(--lens-r) at var(--lens-x) 50%);
-    -webkit-clip-path: circle(var(--lens-r) at var(--lens-x) 50%);
-    transition: --lens-r 220ms cubic-bezier(0.32, 0.72, 0, 1);
-  }
-  .fts-label-mag {
-    position: absolute;
-    top: 4px;
-    transform: translateX(-50%) scale(1.55);
-    transform-origin: center top;
-    font: 700 11px "Inter", system-ui, sans-serif;
-    color: rgba(255,244,224,0.98);
-    text-shadow:
-      0 0 2px rgba(15,27,42,0.88),
-      0 0 2px rgba(15,27,42,0.88),
-      0 1px 2px rgba(15,27,42,0.78);
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-    /* Soft glass blur — reads as "through the lens" without destroying
-       legibility. Matches the new sunglass thumb's heavier 7px backdrop
-       blur, so the labels feel like they live in the same optical
-       material instead of floating in clean air above a tinted disc. */
-    filter: blur(1px) saturate(112%);
-  }
-  /* Lens radius scales with thumb state so the clip follows the lens edge. */
-  #fts-track:has(#fts-thumb.is-hover)  #fts-labels-mag { --lens-r: 17px;   }
-  #fts-track:has(#fts-thumb.is-active) #fts-labels-mag { --lens-r: 19.2px; }
-  @media (prefers-reduced-motion: reduce) {
-    #fts-labels-mag { transition: none; }
   }
 
   /* ── FTS Thumb — lens-glass surface control, matched to #fts-date-btn ──
@@ -3960,12 +3908,8 @@
 
     /* FTS thumb sized up on mobile (was 32, tried 40 — settled on 36px).
        Balance: 36 is a comfortable touch target without feeling oversized
-       relative to the 40px FTS track. Lens magnification clip radius
-       scales to match. */
+       relative to the 40px FTS track. */
     #fts-thumb { width: 36px; height: 36px; }
-    #fts-track:has(#fts-thumb.is-hover)  #fts-labels-mag { --lens-r: 19px; }
-    #fts-track:has(#fts-thumb.is-active) #fts-labels-mag { --lens-r: 22px; }
-    #fts-labels-mag { --lens-r: 18px; }
 
     /* Handle: grabber pill only — Google-Maps-tight spacing so the
        header content sits high in the panel.
@@ -10099,12 +10043,6 @@
            the thumb's `left` from the current time and applies the
            --tilt-x / --tilt-y CSS vars on pointermove. -->
       <div id="fts-thumb" aria-hidden="true"></div>
-      <!-- Magnified labels — same hour copies at a fixed scale, clipped
-           via clip-path to the lens silhouette so only the portion under
-           the lens shows enlarged. JS keeps --lens-x synced with the
-           thumb so the clip follows it. Sits above the thumb in z-order
-           so the magnified text reads crisp inside the lens. -->
-      <div id="fts-labels-mag" aria-hidden="true"></div>
       <!-- Popup lives inside the track so it follows the thumb natively
            when the track animates (date-pill slide-in shifts margin-left,
            panel state changes shift the FTS bottom). Position is set as

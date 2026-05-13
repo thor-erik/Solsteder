@@ -602,10 +602,6 @@ function _updateFtsThumbDom(fromH) {
   const capPct = (capPx / trackW) * 100;
   const pct = Math.max(capPct, Math.min(100 - capPct, xPct * 100));
   thumb.style.left = pct + '%';
-  // Drive the magnified-labels clip-path centre — same percentage as the
-  // thumb's CSS `left`, so the lens circle follows the thumb exactly.
-  const magC = document.getElementById('fts-labels-mag');
-  if (magC) magC.style.setProperty('--lens-x', pct + '%');
 }
 
 /** Build / refresh the DOM hour labels inside #fts-labels. Called on init
@@ -614,9 +610,8 @@ function _updateFtsThumbDom(fromH) {
  *  plus the actual min/max bookends. Position clamped inward so the digits
  *  sit safely inside the rounded cap curvature. */
 function _updateFtsLabels() {
-  const container    = document.getElementById('fts-labels');
-  const containerMag = document.getElementById('fts-labels-mag');
-  const track        = document.getElementById('fts-track');
+  const container = document.getElementById('fts-labels');
+  const track     = document.getElementById('fts-track');
   if (!container || !track) return;
   const trackW = track.offsetWidth || 0;
   if (!trackW) return;
@@ -630,9 +625,7 @@ function _updateFtsLabels() {
   const capSafePx  = 18;
   const capSafePct = (capSafePx / trackW) * 100;
 
-  // Rebuild — cheap (few elements). Avoids tracking removed/added hours.
   container.innerHTML = '';
-  if (containerMag) containerMag.innerHTML = '';
   for (const h of hours) {
     if (h < MIN_H_ARC || h > MAX_H_ARC) continue;
     const text = String(h).padStart(2, '0');
@@ -645,18 +638,6 @@ function _updateFtsLabels() {
     lbl.textContent = text;
     lbl.style.left = pct + '%';
     container.appendChild(lbl);
-
-    // Magnified twin — same X, but scaled up. The mag layer's clip-path
-    // hides everything outside the lens circle, so this only shows where
-    // the lens is currently overlapping the label.
-    if (containerMag) {
-      const mlbl = document.createElement('div');
-      mlbl.className = 'fts-label-mag';
-      mlbl.dataset.hour = h;
-      mlbl.textContent = text;
-      mlbl.style.left = pct + '%';
-      containerMag.appendChild(mlbl);
-    }
   }
 }
 
