@@ -1039,9 +1039,10 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
             scrubberEl.style.left = xPct + '%';
             if (labelEl) {
               const glyph = TIMELINE_EVENT_GLYPHS[stateAt(h)] || '';
-              // Temp at the scrubbed hour — appears between time and
-              // weather glyph. Silently skipped when forecast data
-              // isn't available so the label doesn't show ' · °'.
+              // Temp at the scrubbed hour — appears at the END so the
+              // label reads {time} {icon} {temp}°. Silently skipped
+              // when forecast data isn't available so the label
+              // doesn't show a dangling '°'.
               let tempStr = '';
               try {
                 if (typeof getWeatherAt === 'function') {
@@ -1049,7 +1050,7 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
                   if (_wx && Number.isFinite(_wx.temp)) tempStr = `<span class="dprcv-timeline-scrubber-temp">${Math.round(_wx.temp)}°</span>`;
                 }
               } catch (e) { /* ignore */ }
-              labelEl.innerHTML = `<span class="dprcv-timeline-scrubber-time">${formatHour(h)}</span>${tempStr}${glyph}`;
+              labelEl.innerHTML = `<span class="dprcv-timeline-scrubber-time">${formatHour(h)}</span>${glyph}${tempStr}`;
             }
             scrubberEl.classList.add('is-active');
           };
