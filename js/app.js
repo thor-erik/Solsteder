@@ -6505,11 +6505,16 @@ function _runIntroSequence() {
   const loader     = document.getElementById('splash-loader');
   const splashLogo = document.getElementById('splash-logo');
 
-  // Cinematic phase timings (after splash hides):
-  const PHASE1_MS = 900;   // zoom 14→16, pitch 0→65°
-  const PHASE2_MS = 600;   // zoom 16→15.2, pitch 65→15° (default)
-  const PHASE3_PAUSE = 200;
-  const PHASE3_MS = 380;   // panel peek → expanded
+  // Cinematic phase timings (after splash hides). Phase 1 is the long
+  // establishing breath — 1700ms is slow enough that the camera reads
+  // as one sustained motion instead of a snap. Phase 2 settles in
+  // 750ms. Together they restore the "single breath" feel the prior
+  // 900+600 ms cut introduced — that abrupt mid-phase velocity drop
+  // read as robotic.
+  const PHASE1_MS = 1700;  // zoom 14→16, pitch 0→65°
+  const PHASE2_MS = 750;   // zoom 16→15.2, pitch 65→15° (default)
+  const PHASE3_PAUSE = 280;
+  const PHASE3_MS = 420;   // panel peek → expanded
 
   // After splash min, fade splash and start map cinematic
   setTimeout(() => {
