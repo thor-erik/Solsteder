@@ -623,10 +623,12 @@ function _updateFtsThumbDom(fromH) {
   _updateThumbWxIcon(visualH);
 }
 
-/** Place the current weather glyph inside the FTS thumb. When the state
- *  changes mid-scrub the new icon enters from the same side the user is
- *  dragging toward and the old one pushes out the other side (drag right
- *  → new from right, old to left). No animation when nothing changed. */
+/** Place the current state glyph inside the FTS thumb. State priority
+ *  matches the bar: closed > shade > weather. When the state changes
+ *  mid-scrub the new icon enters from the drag-direction side and the
+ *  old one pushes out the other side. No animation when nothing
+ *  changed.  Also toggles #fts-popup.is-closed for the expanded
+ *  popup's "Closed" treatment. */
 function _updateThumbWxIcon(hour) {
   const thumb = document.getElementById('fts-thumb');
   if (!thumb) return;
@@ -635,15 +637,41 @@ function _updateThumbWxIcon(hour) {
   const dateStr = (typeof datePicker !== 'undefined' && datePicker) ? datePicker.value : null;
   if (!dateStr || typeof getWeatherAt !== 'function') return;
 
-  // Same classification as _populateFtsEvents → matches canvas bands.
-  const wx = getWeatherAt(dateStr, hour);
+  // Resolve state at this hour with closed > shade > weather priority.
   let wxKey = null;
-  if (wx) {
-    const rain = (wx.precip ?? wx.prec ?? 0) > 0.3;
-    const cf   = wx.sunBlock ?? wx.cloud ?? 0;
-    wxKey = rain ? 'rain' : (cf < 0.50 ? 'sun' : cf < 0.75 ? 'partly' : 'cloud');
+  if (typeof selectedId !== 'undefined' && selectedId != null
+      && typeof VENUES !== 'undefined') {
+    const sv = VENUES.find(x => x.id === selectedId);
+    if (sv) {
+      if (typeof getVenueHoursForDay === 'function') {
+        const dh = getVenueHoursForDay(sv, dateStr);
+        if (dh) {
+          if (hour < dh.open || hour >= dh.close) wxKey = 'closed';
+        }
+      }
+      if (!wxKey && typeof computeSunWindows === 'function') {
+        const sw = computeSunWindows(sv, dateStr);
+        const wins = (sw && sw.windows) || [];
+        if (wins.length > 0) {
+          const inSun = wins.some(w => hour >= w.start && hour < w.end);
+          if (!inSun) wxKey = 'shade';
+        }
+      }
+    }
+  }
+  if (!wxKey) {
+    const wx = getWeatherAt(dateStr, hour);
+    if (wx) {
+      const rain = (wx.precip ?? wx.prec ?? 0) > 0.3;
+      const cf   = wx.sunBlock ?? wx.cloud ?? 0;
+      wxKey = rain ? 'rain' : (cf < 0.50 ? 'sun' : cf < 0.75 ? 'partly' : 'cloud');
+    }
   }
   if (!wxKey) return;
+
+  // Sync the popup's closed state alongside the in-thumb icon.
+  const popup = document.getElementById('fts-popup');
+  if (popup) popup.classList.toggle('is-closed', wxKey === 'closed');
 
   const prevKey  = thumb._lastWxKey;
   const prevHour = thumb._lastWxHour;
@@ -696,20 +724,22 @@ function _updateThumbWxIcon(hour) {
   thumb._lastWxKey = wxKey;
 }
 
-/** Build / refresh the event row inside the FTS bar — weather-state
- *  glyphs centred on the MIDPOINT of each continuous weather segment.
+/** Build / refresh the event row inside the FTS bar.
  *
- *  When a venue is selected, each segment is intersected with the
- *  venue's sun windows and the icon re-centres on the LARGEST visible
- *  sub-segment (the chunk where sun actually reaches the seating).
- *  Segments that are entirely in shadow drop their icon — surfacing
- *  one is misleading there.
+ *  Each segment of continuous EFFECTIVE state gets one icon at its
+ *  midpoint. Priority of state when a venue is selected:
+ *      closed  >  shade  >  weather
+ *  Closed = current hour is outside the venue's open hours.
+ *  Shade  = venue selected and the hour falls in a shadow gap.
+ *  Weather = sun / partly / cloud / rain bucket.
+ *
+ *  With no venue selected only weather states exist.
  *
  *  Animation: when the segment sequence is unchanged but positions
- *  shift (venue swap, panel open/close), each icon's left:% is
- *  updated in place and CSS transitions slide it to the new spot.
- *  When the sequence itself changes (date change, weather refresh)
- *  the row is rebuilt from scratch. */
+ *  shift (venue swap, panel open/close), each icon's left:% is updated
+ *  in place and CSS transitions slide it to the new spot. When the
+ *  sequence itself changes (date / weather / selection change) the row
+ *  is rebuilt from scratch. */
 function _populateFtsEvents() {
   const host  = document.getElementById('fts-events');
   const track = document.getElementById('fts-track');
@@ -721,12 +751,7 @@ function _populateFtsEvents() {
   const glyphs = window.TIMELINE_EVENT_GLYPHS;
   if (!glyphs) return;
 
-  // Match the canvas band logic exactly so icons land on the bands they
-  // describe. Canvas (drawTimeline) classifies via getWeatherAt(h+0.5)
-  // with thresholds rain / cf<0.20 (clear) / cf<0.50 (clearSoft) /
-  // cf<0.75 (partly) / overcast. We collapse clear + clearSoft into one
-  // 'sun' bucket (no separate icon for "soft sun"), giving four
-  // segment states that map 1:1 to our icon set.
+  // Weather classification — matches the canvas band thresholds.
   const wxKeyAt = (h) => {
     if (typeof getWeatherAt !== 'function') return null;
     const wx = getWeatherAt(dateStr, h + 0.5);
@@ -739,61 +764,58 @@ function _populateFtsEvents() {
     return 'cloud';
   };
 
-  // 1. Build weather segments — continuous spans of the same state.
+  // Selected venue — pulls sun windows + open hours so we can compute
+  // the shade and closed states for the bar.
+  let sunWindows = null;
+  let openH = null, closeH = null;
+  if (typeof selectedId !== 'undefined' && selectedId != null
+      && typeof VENUES !== 'undefined') {
+    const sv = VENUES.find(x => x.id === selectedId);
+    if (sv && typeof computeSunWindows === 'function') {
+      const sw = computeSunWindows(sv, dateStr);
+      sunWindows = (sw && sw.windows) || [];
+    }
+    if (sv && typeof getVenueHoursForDay === 'function') {
+      const dh = getVenueHoursForDay(sv, dateStr);
+      if (dh) { openH = dh.open; closeH = dh.close; }
+    }
+  }
+
+  // Effective state at a given hour — closed beats shade beats weather.
+  const effectiveStateAt = (h) => {
+    if (openH != null && h < openH)  return 'closed';
+    if (closeH != null && h >= closeH) return 'closed';
+    if (sunWindows && sunWindows.length > 0) {
+      const inSun = sunWindows.some(w => h >= w.start && h < w.end);
+      if (!inSun) return 'shade';
+    }
+    return wxKeyAt(h);
+  };
+
+  // Build segments of continuous effective state.
   const startH = Math.ceil(MIN_H_ARC);
   const endH   = Math.floor(MAX_H_ARC);
   const segs   = [];
   let curStart = startH;
-  let curKey   = wxKeyAt(startH);
+  let curState = effectiveStateAt(startH);
   for (let h = startH + 1; h <= endH; h++) {
-    const k = wxKeyAt(h);
-    if (k !== curKey) {
-      if (curKey != null) segs.push({ start: curStart, end: h, state: curKey });
+    const s = effectiveStateAt(h);
+    if (s !== curState) {
+      if (curState != null) segs.push({ start: curStart, end: h, state: curState });
       curStart = h;
-      curKey   = k;
+      curState = s;
     }
   }
-  if (curKey != null) segs.push({ start: curStart, end: endH + 1, state: curKey });
+  if (curState != null) segs.push({ start: curStart, end: endH + 1, state: curState });
 
-  // 2. If a venue is selected, fetch its sun windows to clip segments.
-  let sunWindows = null;
-  if (typeof selectedId !== 'undefined' && selectedId != null
-      && typeof VENUES !== 'undefined' && typeof computeSunWindows === 'function') {
-    const sv = VENUES.find(x => x.id === selectedId);
-    if (sv) {
-      const sw = computeSunWindows(sv, dateStr);
-      sunWindows = (sw && sw.windows) || [];
-    }
-  }
-
-  // 3. For each segment, pick the midpoint of its LARGEST sun-visible
-  //    sub-segment (or the full segment when no venue is selected).
-  const events = [];
-  segs.forEach((seg, i) => {
-    let pickStart = seg.start;
-    let pickEnd   = seg.end;
-    if (sunWindows && sunWindows.length > 0) {
-      let bestLen = 0, bs = seg.start, be = seg.start;
-      for (const win of sunWindows) {
-        const subStart = Math.max(seg.start, win.start);
-        const subEnd   = Math.min(seg.end,   win.end);
-        if (subEnd > subStart) {
-          const len = subEnd - subStart;
-          if (len > bestLen) { bestLen = len; bs = subStart; be = subEnd; }
-        }
-      }
-      if (bestLen <= 0) return;  // segment entirely shaded — skip
-      pickStart = bs;
-      pickEnd   = be;
-    }
-    events.push({
-      hour:   (pickStart + pickEnd) / 2,
-      state:  seg.state,
-      segKey: `${seg.state}-${i}`,
-      segStart: seg.start,
-      segEnd:   seg.end,
-    });
-  });
+  // Emit one icon per segment at its midpoint.
+  const events = segs.map((seg, i) => ({
+    hour:   (seg.start + seg.end) / 2,
+    state:  seg.state,
+    segKey: `${seg.state}-${i}`,
+    segStart: seg.start,
+    segEnd:   seg.end,
+  }));
 
   // Current thumb hour — raw during drag, snapped otherwise. Used to
   // hide the icon in whichever segment the thumb is currently over so
@@ -983,11 +1005,12 @@ function updateHeaderWxChip(hour) {
  *  by `setFtsPopupExpanded`. Both states share the same horizontal anchor,
  *  so this just keeps the centerline locked to the thumb. */
 function showFtsPopup(hour) {
-  const popup    = document.getElementById('fts-popup');
-  const timeEl   = document.getElementById('fts-popup-time');
-  const wxIconEl = document.getElementById('fts-popup-wx-icon');
-  const tempEl   = document.getElementById('fts-popup-temp');
-  const windEl   = document.getElementById('fts-popup-wind');
+  const popup       = document.getElementById('fts-popup');
+  const timeEl      = document.getElementById('fts-popup-time');
+  const wxIconEl    = document.getElementById('fts-popup-wx-icon');
+  const tempEl      = document.getElementById('fts-popup-temp');
+  const windEl      = document.getElementById('fts-popup-wind');
+  const closedLabel = document.getElementById('fts-popup-closed-label');
   if (!popup || !timeEl) return;
 
   if (_ftsHideTimeout) { clearTimeout(_ftsHideTimeout); _ftsHideTimeout = null; }
@@ -999,6 +1022,20 @@ function showFtsPopup(hour) {
   const snappedHour = _clampHour(hour);
   timeEl.textContent = formatHour(snappedHour);
 
+  // Closed detection — selected venue + hour outside open range.
+  // Toggles the popup's is-closed treatment (swaps temp + wind row for
+  // a "Closed" label) and uses the moon glyph for the primary icon.
+  let isClosed = false;
+  if (typeof selectedId !== 'undefined' && selectedId != null
+      && typeof VENUES !== 'undefined'
+      && typeof getVenueHoursForDay === 'function') {
+    const sv = VENUES.find(x => x.id === selectedId);
+    const dh = sv ? getVenueHoursForDay(sv, datePicker.value) : null;
+    if (dh) isClosed = (snappedHour < dh.open || snappedHour >= dh.close);
+  }
+  popup.classList.toggle('is-closed', isClosed);
+  if (closedLabel && isClosed) closedLabel.textContent = t('closed');
+
   // Weather: keep the secondary row populated even while it's collapsed, so
   // when the user starts dragging and the popup expands, the values are
   // already in place (no flash of empty content).
@@ -1008,7 +1045,9 @@ function showFtsPopup(hour) {
     if (wx) {
       const rain = (wx.precip ?? wx.prec ?? 0) > 0.3;
       const cf   = wx.sunBlock ?? wx.cloud ?? 0;
-      const wxKey = rain ? 'rain' : (cf < 0.25 ? 'sun' : cf < 0.75 ? 'partly' : 'cloud');
+      const wxKey = isClosed
+        ? 'closed'
+        : (rain ? 'rain' : (cf < 0.50 ? 'sun' : cf < 0.75 ? 'partly' : 'cloud'));
       if (wxIconEl) wxIconEl.innerHTML = (window.TIMELINE_EVENT_GLYPHS && window.TIMELINE_EVENT_GLYPHS[wxKey]) || '';
       if (tempEl)   tempEl.textContent = wx.temp != null ? Math.round(wx.temp) + '°' : '';
       if (windEl)   windEl.textContent = wx.wspd != null ? Math.round(wx.wspd) + ' m/s' : '';

@@ -1426,6 +1426,12 @@ window.TIMELINE_EVENT_GLYPHS = {
     <circle cx="12" cy="12" r="4" fill="currentColor"/>
     <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
   </svg>`,
+  // Closed — moon-shape. Used on the FTS bar for time-of-day ranges
+  // before a selected venue opens or after it closes; complements the
+  // sun glyph naturally (Shades brand: sun ↔ moon).
+  closed: `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.5 6.5 0 0 0 9.8 9.8z" opacity="0.92"/>
+  </svg>`,
 };
 /** Compute event timestamps (hour, type) for the accept-page timeline.
  *  Range is [minH, maxH] (meet time → sundown). Returns chronological
