@@ -875,14 +875,21 @@ function showFtsPopup(hour) {
   const pct    = Math.max(minPct, Math.min(maxPct, rawPct));
   popup.style.left = pct + '%';
 
-  // Tail tracks the thumb when the popup body is clamped. Offset is the
-  // distance from the popup's centre (where the tail naturally sits) to
-  // the thumb's actual x. Capped to popupW/2 - 6 so the tail stays in
-  // the popup body.
+  // Tail tracks the thumb when the popup body is clamped. The triangle
+  // is anchored at popup.bottom -6px, so it can only attach to the
+  // popup's FLAT bottom region — past the rounded corner it dangles in
+  // empty space. Clamp the offset to that flat region, and fade the
+  // tail when the desired offset exceeds it (popup is jammed against
+  // the viewport edge and the tail can no longer point at the thumb
+  // — the thumb's own proximity carries the visual link instead).
   const tailOffsetPx = (rawPct - pct) * trackW / 100;
-  const tailMax      = Math.max(0, popupW / 2 - 6);
+  const popupBR      = parseFloat(getComputedStyle(popup).borderTopLeftRadius) || 10;
+  const TAIL_HALF_W  = 6;
+  const tailMax      = Math.max(0, popupW / 2 - popupBR - TAIL_HALF_W);
   const tailClamped  = Math.max(-tailMax, Math.min(tailMax, tailOffsetPx));
+  const tailOpacity  = Math.abs(tailOffsetPx) > tailMax + 1 ? 0 : 1;
   popup.style.setProperty('--tail-offset', tailClamped + 'px');
+  popup.style.setProperty('--tail-opacity', tailOpacity);
 
   popup.classList.add('visible');
 }
