@@ -1523,41 +1523,38 @@
     pointer-events: none;      /* touch events go to track, not canvas */
   }
 
-  /* ── Event row above the FTS bar ─────────────────────────────────────────
-     Mirrors the accept-page sun-timeline event row: a horizontal strip of
-     SVG glyphs (weather state at each transition hour), each trailing a
-     thin tick down to the bar top. Positioned absolutely above the track
-     so we don't have to grow the FTS pill height. */
+  /* ── Event row INSIDE the FTS bar ────────────────────────────────────────
+     Weather-state glyphs at transition hours, vertically centred in the
+     bar so each icon sits at the time it refers to. Ticks dropped — the
+     icon's position on the bar IS the connection. Dark drop-shadow halo
+     keeps icons legible across the full weather gradient (honey →
+     slate). Thumb (z-5) covers icons as it passes; acceptable since the
+     playhead is the dominant indicator during a scrub. */
   #fts-events {
     position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
     left: 0; right: 0;
-    bottom: calc(100% + 2px);
-    height: 22px;
+    height: 14px;
     pointer-events: none;
-    z-index: 6;
+    z-index: 3;
   }
   .fts-event {
     position: absolute;
-    bottom: 0;
+    top: 0;
     transform: translateX(-50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    color: var(--text);
-    opacity: 0.85;
+    display: block;
+    color: rgba(255, 244, 224, 0.96);
+    filter: drop-shadow(0 0 2px rgba(15, 27, 42, 0.85))
+            drop-shadow(0 0 1px rgba(15, 27, 42, 0.85));
   }
   .fts-event svg {
     display: block;
     width: 14px;
     height: 14px;
   }
-  .fts-event-tick {
-    width: 1px;
-    height: 4px;
-    background: currentColor;
-    opacity: 0.55;
-    margin-top: 2px;
-  }
+  /* Ticks no longer used — icons live on the bar itself. */
+  .fts-event-tick { display: none; }
 
   /* ── FTS Thumb — lens-glass surface control, matched to #fts-date-btn ──
      Shares the calendar button's glass vocabulary (--glass-action-bg /
