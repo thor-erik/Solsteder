@@ -695,11 +695,20 @@ function _updateThumbWxIcon(hour) {
   thumb._lastWxKey = wxKey;
 }
 
-/** Build / refresh the event row above the FTS bar — weather-state glyphs
- *  at each transition hour, each trailing a tick to the bar top. Same
- *  vocabulary as the accept-page sun-timeline. Cached against a signature
- *  of the events array so repeat calls (drawFtsCanvas runs ~60Hz during
- *  drag) only mutate the DOM when the set actually changes. */
+/** Build / refresh the event row inside the FTS bar — weather-state
+ *  glyphs centred on the MIDPOINT of each continuous weather segment.
+ *
+ *  When a venue is selected, each segment is intersected with the
+ *  venue's sun windows and the icon re-centres on the LARGEST visible
+ *  sub-segment (the chunk where sun actually reaches the seating).
+ *  Segments that are entirely in shadow drop their icon — surfacing
+ *  one is misleading there.
+ *
+ *  Animation: when the segment sequence is unchanged but positions
+ *  shift (venue swap, panel open/close), each icon's left:% is
+ *  updated in place and CSS transitions slide it to the new spot.
+ *  When the sequence itself changes (date change, weather refresh)
+ *  the row is rebuilt from scratch. */
 function _populateFtsEvents() {
   const host  = document.getElementById('fts-events');
   const track = document.getElementById('fts-track');
@@ -713,7 +722,7 @@ function _populateFtsEvents() {
 
   const wxKeyAt = (h) => {
     if (typeof getWeatherAt !== 'function') return null;
-    const wx = getWeatherAt(dateStr, h + 0.5);
+    const wx = getWeatherAt(dateStr, h);
     if (!wx) return null;
     const rain = (wx.precip ?? wx.prec ?? 0) > 0.3;
     if (rain) return 'rain';
@@ -723,38 +732,85 @@ function _populateFtsEvents() {
     return 'cloud';
   };
 
-  // Lead with the starting state at MIN_H, then one icon at every hour
-  // where the weather band differs from the previous hour. Keeps the row
-  // sparse on stable-weather days and informative on changing ones.
-  const events = [];
-  let lastKey = null;
+  // 1. Build weather segments — continuous spans of the same state.
   const startH = Math.ceil(MIN_H_ARC);
   const endH   = Math.floor(MAX_H_ARC);
-  for (let h = startH; h <= endH; h++) {
-    const key = wxKeyAt(h);
-    if (key == null) continue;
-    if (key !== lastKey) {
-      events.push({ hour: h, state: key });
-      lastKey = key;
+  const segs   = [];
+  let curStart = startH;
+  let curKey   = wxKeyAt(startH);
+  for (let h = startH + 1; h <= endH; h++) {
+    const k = wxKeyAt(h);
+    if (k !== curKey) {
+      if (curKey != null) segs.push({ start: curStart, end: h, state: curKey });
+      curStart = h;
+      curKey   = k;
+    }
+  }
+  if (curKey != null) segs.push({ start: curStart, end: endH + 1, state: curKey });
+
+  // 2. If a venue is selected, fetch its sun windows to clip segments.
+  let sunWindows = null;
+  if (typeof selectedId !== 'undefined' && selectedId != null
+      && typeof VENUES !== 'undefined' && typeof computeSunWindows === 'function') {
+    const sv = VENUES.find(x => x.id === selectedId);
+    if (sv) {
+      const sw = computeSunWindows(sv, dateStr);
+      sunWindows = (sw && sw.windows) || [];
     }
   }
 
-  const sig = events.map(e => e.hour + ':' + e.state).join('|');
-  if (host._lastSig === sig) return;
-  host._lastSig = sig;
+  // 3. For each segment, pick the midpoint of its LARGEST sun-visible
+  //    sub-segment (or the full segment when no venue is selected).
+  const events = [];
+  segs.forEach((seg, i) => {
+    let pickStart = seg.start;
+    let pickEnd   = seg.end;
+    if (sunWindows && sunWindows.length > 0) {
+      let bestLen = 0, bs = seg.start, be = seg.start;
+      for (const win of sunWindows) {
+        const subStart = Math.max(seg.start, win.start);
+        const subEnd   = Math.min(seg.end,   win.end);
+        if (subEnd > subStart) {
+          const len = subEnd - subStart;
+          if (len > bestLen) { bestLen = len; bs = subStart; be = subEnd; }
+        }
+      }
+      if (bestLen <= 0) return;  // segment entirely shaded — skip
+      pickStart = bs;
+      pickEnd   = be;
+    }
+    events.push({
+      hour:   (pickStart + pickEnd) / 2,
+      state:  seg.state,
+      segKey: `${seg.state}-${i}`,
+    });
+  });
+
+  const pctFor = (e) => {
+    const x = ((e.hour - MIN_H_ARC) / (MAX_H_ARC - MIN_H_ARC)) * 100;
+    return Math.max(2, Math.min(98, x));
+  };
+
+  // 4. Diff: if the segKey sequence matches the existing nodes, just
+  //    update left:% (CSS transition slides them). Otherwise rebuild.
+  const existing = Array.from(host.querySelectorAll('.fts-event'));
+  const sameSequence = existing.length === events.length &&
+    events.every((e, i) => existing[i].dataset.key === e.segKey);
+
+  if (sameSequence) {
+    events.forEach((e, i) => { existing[i].style.left = pctFor(e) + '%'; });
+    return;
+  }
 
   host.innerHTML = '';
-  if (events.length === 0) return;
-
   for (const e of events) {
-    const xPct = ((e.hour - MIN_H_ARC) / (MAX_H_ARC - MIN_H_ARC)) * 100;
-    if (xPct < 2 || xPct > 98) continue;
     const glyph = glyphs[e.state];
     if (!glyph) continue;
     const node = document.createElement('div');
     node.className = 'fts-event';
-    node.style.left = xPct + '%';
-    node.innerHTML = glyph + '<div class="fts-event-tick"></div>';
+    node.dataset.key = e.segKey;
+    node.style.left  = pctFor(e) + '%';
+    node.innerHTML   = glyph + '<div class="fts-event-tick"></div>';
     host.appendChild(node);
   }
 }
