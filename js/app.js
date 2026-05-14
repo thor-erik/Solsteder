@@ -635,12 +635,13 @@ function _updateThumbWxIcon(hour) {
   const dateStr = (typeof datePicker !== 'undefined' && datePicker) ? datePicker.value : null;
   if (!dateStr || typeof getWeatherAt !== 'function') return;
 
+  // Same classification as _populateFtsEvents → matches canvas bands.
   const wx = getWeatherAt(dateStr, hour);
   let wxKey = null;
   if (wx) {
     const rain = (wx.precip ?? wx.prec ?? 0) > 0.3;
     const cf   = wx.sunBlock ?? wx.cloud ?? 0;
-    wxKey = rain ? 'rain' : (cf < 0.25 ? 'sun' : cf < 0.75 ? 'partly' : 'cloud');
+    wxKey = rain ? 'rain' : (cf < 0.50 ? 'sun' : cf < 0.75 ? 'partly' : 'cloud');
   }
   if (!wxKey) return;
 
@@ -720,14 +721,20 @@ function _populateFtsEvents() {
   const glyphs = window.TIMELINE_EVENT_GLYPHS;
   if (!glyphs) return;
 
+  // Match the canvas band logic exactly so icons land on the bands they
+  // describe. Canvas (drawTimeline) classifies via getWeatherAt(h+0.5)
+  // with thresholds rain / cf<0.20 (clear) / cf<0.50 (clearSoft) /
+  // cf<0.75 (partly) / overcast. We collapse clear + clearSoft into one
+  // 'sun' bucket (no separate icon for "soft sun"), giving four
+  // segment states that map 1:1 to our icon set.
   const wxKeyAt = (h) => {
     if (typeof getWeatherAt !== 'function') return null;
-    const wx = getWeatherAt(dateStr, h);
+    const wx = getWeatherAt(dateStr, h + 0.5);
     if (!wx) return null;
     const rain = (wx.precip ?? wx.prec ?? 0) > 0.3;
     if (rain) return 'rain';
     const cf = wx.sunBlock ?? wx.cloud ?? 0;
-    if (cf < 0.25) return 'sun';
+    if (cf < 0.50) return 'sun';
     if (cf < 0.75) return 'partly';
     return 'cloud';
   };
