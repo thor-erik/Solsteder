@@ -1687,7 +1687,11 @@
   #fts-popup::after {
     content: '';
     position: absolute;
-    bottom: -6px; left: 50%;
+    bottom: -6px;
+    /* Tail tracks the thumb's x even when the popup body is clamped
+       against the viewport edges. --tail-offset is set by showFtsPopup
+       in pixels (popup-local), 0 = centred. */
+    left: calc(50% + var(--tail-offset, 0px));
     transform: translateX(-50%);
     width: 12px; height: 6px;
     /* Tail picks up the same slate-base layer of --glass-panel-bg so it reads
@@ -6299,6 +6303,10 @@
     overflow: hidden;         /* clip rounded corners */
     overflow-x: auto;         /* re-enable horizontal scroll */
     position: relative;
+    /* Browser claims horizontal pans for native scroll, so the detail
+       panel's drag handler never sees them (was sliding the panel up/
+       down on any minor vertical drift during a swipe). */
+    touch-action: pan-x;
   }
   /* Bevel: soft gradient at the top of the photo section, blending into the panel glass */
   .dp-photos::before {

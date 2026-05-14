@@ -1775,7 +1775,8 @@ function _enableMapInteractions() {
 
 const _UI_OVERLAY_SELECTOR = '#qc-wrap, #panel, #floating-search, #search-dropdown, #ptb-cal-float, ' +
   '#profile-panel, #search-wrap, #floating-date, #detail-panel, .mapboxgl-ctrl, .mapboxgl-popup, ' +
-  '#locate-btn, #notif-toast, #fts';
+  '#locate-btn, #notif-toast, #fts, ' +
+  '.dprcv-overlay, .dpinvite-sheet, #post-accept-overlay, #post-accept-panel';
 
 canvas.addEventListener('pointerdown', e => {
   canvas.style.pointerEvents = 'none';

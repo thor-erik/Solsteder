@@ -846,20 +846,43 @@ function showFtsPopup(hour) {
     }
   }
 
-  // Position the popup centered on the thumb. The popup lives inside
-  // #fts-track so all we need is the thumb's percent along the track —
-  // when the track animates (margin-left, panel-state bottom transition,
-  // FTS width change), the popup follows natively because it's a child.
-  // Clamp to keep the popup edges inside the track so it doesn't extend
-  // off-screen near the day's start/end.
+  // Position the popup centered on the thumb. Track has overflow:visible,
+  // so the popup can extend past the track's left/right ends — we clamp
+  // against the viewport instead of the track. The tail (--tail-offset)
+  // tracks the thumb's actual x when the body has to be clamped.
   const MIN_H = MIN_H_ARC, MAX_H = MAX_H_ARC;
-  const trackEl = document.getElementById('fts-track');
-  const trackW  = trackEl?.offsetWidth || 300;
-  const popupW  = popup.offsetWidth || 60;
-  const halfPct = Math.min(45, (popupW / 2 + 4) / trackW * 100);
-  const rawPct  = (hour - MIN_H) / (MAX_H - MIN_H) * 100;
-  const pct     = Math.max(halfPct, Math.min(100 - halfPct, rawPct));
+  const trackEl   = document.getElementById('fts-track');
+  const trackRect = trackEl ? trackEl.getBoundingClientRect() : null;
+  const trackW    = trackEl?.offsetWidth || 300;
+  const trackL    = trackRect ? trackRect.left : 0;
+  const popupW    = popup.offsetWidth || 60;
+  const viewportW = window.innerWidth || trackW;
+
+  // In mobile peek the zoom-jog floats at the bottom-right and the popup
+  // can crash into it at the day's tail. Reserve space on the right when
+  // peek mode is the live state. Other states (panel expanded / detail
+  // open) push the zoom-jog out of the way already.
+  const _zjEl = document.getElementById('zoom-jog');
+  const _zjVisible = !!(_zjEl && _zjEl.offsetWidth > 0 &&
+                        getComputedStyle(_zjEl).display !== 'none' &&
+                        getComputedStyle(_zjEl).opacity !== '0');
+  const LEFT_MARGIN  = 4;
+  const RIGHT_MARGIN = _zjVisible ? 56 : 4;
+
+  const rawPct = (hour - MIN_H) / (MAX_H - MIN_H) * 100;
+  const minPct = (LEFT_MARGIN + popupW / 2 - trackL) / trackW * 100;
+  const maxPct = (viewportW - RIGHT_MARGIN - popupW / 2 - trackL) / trackW * 100;
+  const pct    = Math.max(minPct, Math.min(maxPct, rawPct));
   popup.style.left = pct + '%';
+
+  // Tail tracks the thumb when the popup body is clamped. Offset is the
+  // distance from the popup's centre (where the tail naturally sits) to
+  // the thumb's actual x. Capped to popupW/2 - 6 so the tail stays in
+  // the popup body.
+  const tailOffsetPx = (rawPct - pct) * trackW / 100;
+  const tailMax      = Math.max(0, popupW / 2 - 6);
+  const tailClamped  = Math.max(-tailMax, Math.min(tailMax, tailOffsetPx));
+  popup.style.setProperty('--tail-offset', tailClamped + 'px');
 
   popup.classList.add('visible');
 }
@@ -4638,7 +4661,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // When dp-scroll is at the top and the finger moves down, start panel drag.
       const dpContent = document.getElementById('dp-content');
       if (dpContent) {
-        const _DP_INTERACTIVE = 'button, a, input, select, textarea, canvas, [role="button"], #fts, #fts-track';
+        const _DP_INTERACTIVE = 'button, a, input, select, textarea, canvas, [role="button"], #fts, #fts-track, .dp-photos';
         let _dpContentStartY = 0;
         dpContent.addEventListener('touchstart', e => {
           if (e.target.closest(_DP_INTERACTIVE)) return;
