@@ -621,12 +621,15 @@ function _updateFtsThumbDom(fromH) {
   const pct = Math.max(capPct, Math.min(100 - capPct, xPct * 100));
   thumb.style.left = pct + '%';
 
-  // Position-based glint — simulate a fixed light source overhead-left.
-  // Left thumb → glint near right side of disc (66%); right thumb →
-  // glint near left side (34%). Maps the track position linearly.
-  const tNorm   = Math.max(0, Math.min(1, xPct));
-  const glintBX = 66 - tNorm * 32;   // 66% .. 34%
-  thumb.style.setProperty('--glint-base-x', glintBX + '%');
+  // Position-based glint — the bright arc on the rim tracks a fixed
+  // overhead-centre sun. As the thumb slides left → right, the arc
+  // rotates from upper-right (left thumb) through top (centre) to
+  // upper-left (right thumb). --glint-base-angle is the conic START;
+  // the gradient's peak sits 30° after that, so we offset by -30°
+  // to land the peak straight up at centre.
+  const tNorm = Math.max(0, Math.min(1, xPct));
+  const baseAngleDeg = -tNorm * 60;  // 0° (left) → -60° (right)
+  thumb.style.setProperty('--glint-base-angle', baseAngleDeg + 'deg');
 
   _updateThumbWxIcon(visualH);
 }

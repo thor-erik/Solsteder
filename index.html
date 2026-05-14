@@ -58,7 +58,7 @@
 <script defer src="js/weather.js?v=20260514b"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260514f"></script>
+<script defer src="js/app.js?v=20260514g"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
@@ -1572,12 +1572,12 @@
      letting the underlying sun/weather ramp stay readable while
      scrubbing. Mobile keeps the circle — finger occludes the thumb
      during drag so a thin needle adds no value. */
-  /* Glint position is a base (JS-driven by thumb's track position) plus
-     a drift (idle keyframe) and minor offset. Registered properties
-     so the keyframe interpolates smoothly. */
-  @property --glint-base-x { syntax: '<percentage>'; inherits: false; initial-value: 50%; }
-  @property --glint-drift-x { syntax: '<length>'; inherits: false; initial-value: 0px; }
-  @property --glint-drift-y { syntax: '<length>'; inherits: false; initial-value: 0px; }
+  /* Rotating-arc glint on the rim. --glint-base-angle is the conic
+     gradient START — set by JS from the thumb's track position so the
+     bright arc tracks a fixed overhead-centre light source. --glint-
+     drift-angle is a small idle wobble. Effective angle = base + drift. */
+  @property --glint-base-angle  { syntax: '<angle>'; inherits: false; initial-value: -30deg; }
+  @property --glint-drift-angle { syntax: '<angle>'; inherits: false; initial-value: 0deg;   }
 
   #fts-thumb {
     position: absolute;
@@ -1589,60 +1589,28 @@
     pointer-events: none;
     z-index: 5;
 
-    /* Glint position. --glint-base-x set by JS based on the thumb's
-       position along the track (left thumb → glint to its right, right
-       thumb → glint to its left), simulating a fixed sun overhead-left.
-       Idle keyframe nudges the glint by --glint-drift-x/y so the lens
-       reads as a living surface. */
-    --glint-base-x: 50%;
-    --glint-drift-x: 0px;
-    --glint-drift-y: 0px;
+    --glint-base-angle: -30deg;
+    --glint-drift-angle: 0deg;
+    --glint-angle: calc(var(--glint-base-angle) + var(--glint-drift-angle));
 
-    background:
-      /* 1. Sharp specular catch — the "sun glare". Small + bright. */
-      radial-gradient(
-        circle 5px at
-        calc(var(--glint-base-x) + var(--glint-drift-x))
-        calc(28% + var(--glint-drift-y)),
-        rgba(255,250,232,0.85) 0%,
-        rgba(255,250,232,0.20) 60%,
-        rgba(255,250,232,0)   100%
-      ),
-      /* 2. Soft halo around the specular */
-      radial-gradient(
-        circle 11px at
-        calc(var(--glint-base-x) + var(--glint-drift-x))
-        calc(30% + var(--glint-drift-y)),
-        rgba(255,248,230,0.18) 0%,
-        rgba(255,248,230,0)   100%
-      ),
-      /* 3. Refraction shading — body darkens slightly near the edge,
-            simulating the bend of light through curved glass. */
-      radial-gradient(
-        circle at 50% 50%,
-        transparent 55%,
-        rgba(15,27,42,0.18) 90%,
-        rgba(15,27,42,0.32) 100%
-      ),
-      /* 4. Lens body — slate-tinted glass */
-      var(--glass-action-bg);
+    background: var(--glass-action-bg);
     backdrop-filter: var(--glass-blur-action);
     -webkit-backdrop-filter: var(--glass-blur-action);
 
-    /* Subtle glass rim — soft cream catch around the top of the disc;
-       no aggressive 'iOS knob' outline. */
-    border: 1px solid rgba(255,242,235,0.22);
+    /* Venue-card-inspired rim — soft blue-grey perimeter so the lens
+       silhouette reads consistently against any band, without an
+       aggressive 'iOS knob' outline. */
+    border: 1px solid rgba(155,169,188,0.34);
 
+    /* Same elevation language as a venue card: top-light catch + bottom
+       inner shade + a tight contact shadow + soft lift. Plus an outer
+       dark hairline for silhouette readability on the lightest bands. */
     box-shadow:
-      /* Inner top catch — light hits the upper edge of the curved glass. */
-      inset 0 1px 0 rgba(255,250,232,0.40),
-      /* Inner bottom shade — bottom of glass falls into shadow. */
-      inset 0 -1px 0 rgba(15,27,42,0.40),
-      /* Outer hairline — keeps the silhouette readable against light bands. */
-      0 0 0 0.5px rgba(15,27,42,0.55),
-      /* Ground contact + soft lift */
+      inset 0 1px 0 rgba(255,250,235,0.22),
+      inset 0 -1px 0 rgba(15,30,55,0.42),
+      0 0 0 0.5px rgba(15,27,42,0.50),
       0 1px 2px rgba(0,0,0,0.28),
-      0 0 8px rgba(0,0,0,0.30);
+      0 4px 10px rgba(0,0,0,0.32);
 
     transform: translate(-50%, -50%);
     transition:
@@ -1653,16 +1621,46 @@
       box-shadow    220ms cubic-bezier(0.32, 0.72, 0, 1);
     will-change: transform, width;
 
-    /* Idle face animation — a small wander of the glint position so the
-       lens catches "moving" ambient light. Stays on the FACE (drift
-       limited to ±2 px). Paused during active drag. */
+    /* Idle: ±4° wobble of the bright-arc angle so the lens reads as a
+       living surface even when the slider is at rest. Paused during
+       active drag (see #fts-thumb.is-active below). */
     animation: fts-thumb-glint-idle 6s ease-in-out infinite;
   }
 
+  /* Rim glint — a 1.5 px ring around the thumb showing a conic-gradient
+     arc that peaks ~30° after --glint-angle. Drawn via the ring trick:
+     padded pseudo-element + mask:exclude subtracts the inner area so
+     only the padding-thick rim renders. The arc thus appears to
+     "rotate" around the thumb as the slider moves, tracking a fixed
+     sun overhead. */
+  #fts-thumb::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    padding: 1.5px;
+    background: conic-gradient(
+      from var(--glint-angle),
+      rgba(255,250,232,0)    0deg,
+      rgba(255,250,232,0)   10deg,
+      rgba(255,250,232,0.85) 30deg,
+      rgba(255,250,232,0)   75deg,
+      rgba(255,250,232,0)  360deg
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+            mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+            mask-composite: exclude;
+    pointer-events: none;
+  }
+
   @keyframes fts-thumb-glint-idle {
-    0%,  100% { --glint-drift-x: -1.5px; --glint-drift-y: -0.5px; }
-    33%       { --glint-drift-x:  1.5px; --glint-drift-y:  0.5px; }
-    66%       { --glint-drift-x:  0.5px; --glint-drift-y:  1.8px; }
+    0%, 100% { --glint-drift-angle: -4deg; }
+    50%      { --glint-drift-angle:  4deg; }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -1871,8 +1869,6 @@
     font: 600 10px/1 'Inter', sans-serif;
     color: var(--text);
     opacity: 0.9;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
     transition: font-size 0.18s cubic-bezier(0.32, 0.72, 0, 1);
   }
   #fts-popup.is-closed #fts-popup-temp,
