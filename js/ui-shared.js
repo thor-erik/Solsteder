@@ -706,35 +706,45 @@ function drawTimeline(ctx, opts) {
   // outward). The result is a 2–3 px gradient of darkness just below
   // the top edge — the "depth" of the channel.
   if (drawIndent && TRACK_H >= 16) {
-    // All-shadow approach: no visible stroke contribution, just a big
-    // soft feathered inset that traces the pill curve naturally
-    // because the stroked path IS the pill outline. shadowOffsetY
-    // pushes the dark band 2-3 px inside the top edge; the same shadow
-    // on the bottom edge falls outside the clip. Wider blur → diffuse,
-    // polished, modern slider-channel feel.
+    // Two-layer recess:
+    //   1. A defined top-edge contour (gradient stroke) — the visible
+    //      'lip' of the channel that traces the rounded ends.
+    //   2. A wide feathered shadow below it — the diffuse 'depth' that
+    //      reads as the channel curving inward.
+    // Either alone reads incomplete; together they look like the
+    // recessed track on a modern (Apple / Linear) UI slider.
+
+    // 1. Top contour + bottom highlight via gradient stroke on the
+    //    inset pill path.
     ctx.save();
+    const insetPx = 0.5;
     ctx.beginPath();
-    ctx.roundRect(0, bleed, BAR_W, TRACK_H, TRACK_R);
-    ctx.shadowColor   = 'rgba(0,0,0,0.55)';
-    ctx.shadowBlur    = 7;
-    ctx.shadowOffsetY = 2.5;
-    // Stroke barely visible; it exists so the shadow has a silhouette
-    // to project from. Alpha kept low so the line itself doesn't read.
-    ctx.strokeStyle   = 'rgba(0,0,0,0.35)';
-    ctx.lineWidth     = 0.5;
+    ctx.roundRect(insetPx, bleed + insetPx,
+                  BAR_W - insetPx * 2, TRACK_H - insetPx * 2,
+                  Math.max(0, TRACK_R - insetPx));
+    const g = ctx.createLinearGradient(0, bleed, 0, bleed + TRACK_H);
+    g.addColorStop(0,    'rgba(0,0,0,0.50)');
+    g.addColorStop(0.30, 'rgba(0,0,0,0)');
+    g.addColorStop(0.70, 'rgba(255,250,232,0)');
+    g.addColorStop(1,    'rgba(255,250,232,0.18)');
+    ctx.strokeStyle = g;
+    ctx.lineWidth   = 1;
     ctx.stroke();
     ctx.restore();
 
-    // Reflected catch from the far edge of the channel — cream tint,
-    // soft blur, projects UP from the bottom rim.
+    // 2. Wider feathered shadow projecting INTO the channel from the
+    //    top rim. shadowOffsetY pushes the dark band 2 px below the
+    //    rim; shadowBlur=6 spreads it across ~6 px so it dissolves
+    //    smoothly into the weather colour. Bottom-edge shadow falls
+    //    outside the clip and isn't visible.
     ctx.save();
     ctx.beginPath();
     ctx.roundRect(0, bleed, BAR_W, TRACK_H, TRACK_R);
-    ctx.shadowColor   = 'rgba(255,250,232,0.28)';
-    ctx.shadowBlur    = 4;
-    ctx.shadowOffsetY = -1.5;
-    ctx.strokeStyle   = 'rgba(255,250,232,0.18)';
-    ctx.lineWidth     = 0.3;
+    ctx.shadowColor   = 'rgba(0,0,0,0.45)';
+    ctx.shadowBlur    = 6;
+    ctx.shadowOffsetY = 2;
+    ctx.strokeStyle   = 'rgba(0,0,0,0.50)';
+    ctx.lineWidth     = 0.4;
     ctx.stroke();
     ctx.restore();
   }
