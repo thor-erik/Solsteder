@@ -3964,33 +3964,30 @@
 
     #panel-toggle-icon { display: none; }
 
-    /* FTS: mobile full-width minus space for locate-btn at right end.
-       When the detail panel is open, locate-me is hidden, so FTS expands.
-       Bottom transition matches the panel's transform transition (0.34s)
-       so the slider follows the sheet smoothly through state changes. */
+    /* FTS — mobile full-width. Locate + zoom-jog now stack ABOVE the bar
+       (not to the side), so the slider gets the full viewport width and
+       weather icons inside the bar have room to breathe. */
     body.fts #fts {
-      left: 12px; right: calc(12px + 34px + 8px);  /* locate-btn (34) + gap (8) */
+      left: 12px; right: 12px;
       width: auto;
       bottom: var(--fts-bottom, 160px);
-      transition: bottom 0.34s cubic-bezier(0.25, 0.9, 0.4, 1), right 0.22s ease;
+      transition: bottom 0.34s cubic-bezier(0.25, 0.9, 0.4, 1);
       will-change: bottom;
       padding: 0;
       gap: 8px;
     }
-    body.fts:has(#detail-panel.open) #fts {
-      right: 12px;  /* fill the locate-me space when it's hidden */
-    }
 
 
-    /* Locate button — same 40px height as the FTS slider so they align
-       on the same baseline AND match in visual weight. */
+    /* Locate button — sits 10 px above the FTS bar in mobile peek so the
+       FTS can take the full pill width. 40 px FTS + 10 px gap = 50 px
+       above the FTS bottom. */
     #locate-btn { bottom: calc(var(--peek-h, 252px) + 14px); right: 12px; }
-    body.fts #locate-btn { bottom: var(--fts-bottom, 160px); right: 12px; transition: bottom 0.34s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease; }
+    body.fts #locate-btn { bottom: calc(var(--fts-bottom, 160px) + 40px + 10px); right: 12px; transition: bottom 0.34s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease; }
 
-    /* Zoom jog — sits 10px above the 40px locate-btn. */
+    /* Zoom jog — 10 px above the 40 px locate button (stacks on top). */
     #zoom-jog { right: 12px; }
     #zoom-jog { bottom: calc(var(--peek-h, 252px) + 14px + 40px + 10px); }
-    body.fts #zoom-jog { bottom: calc(var(--fts-bottom, 160px) + 40px + 10px); transition: bottom 0.34s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease; }
+    body.fts #zoom-jog { bottom: calc(var(--fts-bottom, 160px) + 40px + 10px + 40px + 10px); transition: bottom 0.34s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease; }
 
     /* FTS thumb sized up on mobile (was 32, tried 40 — settled on 36px).
        Balance: 36 is a comfortable touch target without feeling oversized
