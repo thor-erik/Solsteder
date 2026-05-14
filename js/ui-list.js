@@ -1150,6 +1150,18 @@ function renderList() {
             ${t('suggest_this_venue')}
           </button>
         </div>`;
+    } else if (document.body.classList.contains('day-no-sun')) {
+      // Header is showing the "no sun today" message + Tomorrow CTA.
+      // Skip the duplicate .empty-all block — render skeleton cards
+      // so the list area reads as a content placeholder rather than
+      // empty void, while the header carries the action.
+      list.innerHTML = '';
+      if (typeof renderSkeletonCards === 'function') renderSkeletonCards(list, 5);
+      _listFiltered = [];
+      _listBuckets = { now: [], later: [] };
+      const countEl1 = document.getElementById('venue-count');
+      if (countEl1) { countEl1.textContent = t('no_places_in_sun'); countEl1.className = ''; }
+      return;
     } else {
       // Empty-all consolidated state (Cases A & B from the redesign spec):
       // one centered message + one primary CTA opening the calendar

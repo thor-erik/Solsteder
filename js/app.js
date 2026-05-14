@@ -750,6 +750,26 @@ function updateSunSectionBar() {
   const outlook = (typeof computeCityWideSunOutlook === 'function' && sundownH != null)
     ? computeCityWideSunOutlook(dateStr, fromHour, sundownH) : null;
 
+  // Header takes ownership of the "no sun" state — shows the message
+  // and an inline "Tomorrow →" CTA. Body class drives the empty-state
+  // styling (CTA shown, sort hidden) and tells renderList to skip its
+  // own duplicate .empty-all block.
+  const isNoSun = !!(outlook && outlook.code === 'no_sun');
+  document.body.classList.toggle('day-no-sun', isNoSun);
+  const ctaBtn = document.getElementById('sun-empty-cta');
+  if (ctaBtn) {
+    const label = ctaBtn.querySelector('.sun-empty-cta-label');
+    if (label) label.textContent = t('tomorrow_arrow');
+    if (!ctaBtn._wired) {
+      ctaBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof advanceDay === 'function') advanceDay(1, 12);
+      });
+      ctaBtn._wired = true;
+    }
+  }
+
   // Always show the outlook row. On clear days the sentence is "Sun all
   // day" (or sunset-bounded variant) — it's reassuring + keeps the
   // header from going visually empty.

@@ -5901,6 +5901,12 @@
   }
   #header-wx-chip.dh-weather #header-wx-wind { font-variant-numeric: tabular-nums; }
   #header-wx-chip.dh-weather .dh-sep-mid { opacity: 0.35; }
+  /* Wind hidden from the header — surfaced per-venue in the card and
+     detail panel where wind-shelter actually changes the recommendation.
+     At the day level it was reading as noise. JS still writes to these
+     spans (cheap, harmless); CSS hides them. */
+  #header-wx-chip.dh-weather #header-wx-wind,
+  #header-wx-chip.dh-weather .dh-sep-mid { display: none; }
 
   /* Sort icon — must override the legacy #sort-toggle-btn glass-button
      styling that's still in the cascade (specificity-wise the ID rule
@@ -6010,6 +6016,31 @@
   #sun-section-bar #sort-toggle-btn:hover  { background: rgba(255,242,235,0.06); border-color: transparent; }
   #sun-section-bar #sort-toggle-btn.open   { background: rgba(245,194,94,0.10); border-color: transparent; box-shadow: none; }
   #sun-section-bar #sort-toggle-btn.open .sort-icon { color: var(--accent); opacity: 1; }
+
+  /* Empty-state CTA in the outlook row — shown when body.day-no-sun is
+     on (the day has no usable sun, so the header takes ownership of the
+     "Pick another day" decision instead of the list body duplicating
+     it). Replaces the sort button, since there's nothing to sort. */
+  #sun-empty-cta {
+    display: none;
+    align-items: center;
+    gap: 4px;
+    background: var(--glass-action-bg);
+    border: var(--glass-border);
+    border-radius: 999px;
+    box-shadow: var(--glass-inset);
+    padding: 6px 12px;
+    font: 600 12px/1 'Inter', sans-serif;
+    color: var(--accent);
+    cursor: pointer;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.12s, border-color 0.12s, transform 0.08s;
+  }
+  #sun-empty-cta:hover  { background: rgba(245,194,94,0.14); border-color: rgba(245,194,94,0.32); }
+  #sun-empty-cta:active { transform: scale(0.97); }
+  body.day-no-sun #sun-empty-cta   { display: inline-flex; }
+  body.day-no-sun #sort-toggle-btn { display: none; }
 
   /* ── Calendar float — outside #panel, position: fixed so it escapes transforms ── */
   #ptb-cal-float {
@@ -10077,6 +10108,9 @@
       </div>
       <div id="sun-section-bar" class="dh-outlook" aria-live="polite">
         <span class="ssb-text"></span>
+        <button id="sun-empty-cta" type="button" aria-label="Pick another day">
+          <span class="sun-empty-cta-label"></span>
+        </button>
         <button id="sort-toggle-btn" class="sort-icon-btn" onclick="toggleSortPanel()" aria-label="Sortér" title="Sortér">
           <svg class="sort-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <line x1="6"  y1="5"  x2="6"  y2="19"/>
