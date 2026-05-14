@@ -1684,23 +1684,24 @@
       bottom 0.18s ease,
       top 0.18s ease;
   }
-  #fts-popup::after {
-    content: '';
+  /* Tail — SVG with dynamically computed polygon. The two shoulders sit
+     on the popup's bottom outline (riding up the rounded-corner curve
+     when the tail leans near the corner); the tip points at the thumb's
+     actual x even when the popup body is clamped against the viewport
+     edge. Geometry is recomputed in showFtsPopup whenever the thumb or
+     popup state changes. overflow:visible lets the tip render outside
+     the SVG bounds when the lean carries it past the popup edge. */
+  #fts-popup-tail {
     position: absolute;
+    left: 0;
     bottom: -6px;
-    /* Tail tracks the thumb's x within the popup's flat bottom region
-       (showFtsPopup clamps --tail-offset so the triangle never strays
-       under the rounded corner). --tail-opacity fades it to 0 when the
-       popup is jammed against the viewport edge and the tail can't
-       reach the thumb anyway — at that point the thumb's proximity
-       carries the visual link. */
-    left: calc(50% + var(--tail-offset, 0px));
-    transform: translateX(-50%);
-    width: 12px; height: 6px;
-    background: rgba(26,44,66,0.42);
-    clip-path: polygon(0 0, 100% 0, 50% 100%);
-    opacity: var(--tail-opacity, 1);
-    transition: opacity 140ms ease;
+    width: 100%;
+    height: 6px;
+    overflow: visible;
+    pointer-events: none;
+  }
+  #fts-popup-tail polygon {
+    fill: rgba(26,44,66,0.42);
   }
   #fts-popup.fts-popup-below {
     bottom: auto;
@@ -10180,6 +10181,12 @@
           <span class="fts-dot">·</span>
           <span id="fts-popup-wind"></span>
         </div>
+        <!-- Tail rendered as SVG so the shoulders can ride the popup's
+             rounded corner curve while the tip continues to point at the
+             thumb's actual x. Geometry recomputed in showFtsPopup. -->
+        <svg id="fts-popup-tail" aria-hidden="true" preserveAspectRatio="none">
+          <polygon points="0,0 12,0 6,6"/>
+        </svg>
       </div>
     </div>
   </div>

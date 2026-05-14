@@ -895,21 +895,52 @@ function showFtsPopup(hour) {
   const pct    = Math.max(minPct, Math.min(maxPct, rawPct));
   popup.style.left = pct + '%';
 
-  // Tail tracks the thumb when the popup body is clamped. The triangle
-  // is anchored at popup.bottom -6px, so it can only attach to the
-  // popup's FLAT bottom region — past the rounded corner it dangles in
-  // empty space. Clamp the offset to that flat region, and fade the
-  // tail when the desired offset exceeds it (popup is jammed against
-  // the viewport edge and the tail can no longer point at the thumb
-  // — the thumb's own proximity carries the visual link instead).
-  const tailOffsetPx = (rawPct - pct) * trackW / 100;
-  const popupBR      = parseFloat(getComputedStyle(popup).borderTopLeftRadius) || 10;
-  const TAIL_HALF_W  = 6;
-  const tailMax      = Math.max(0, popupW / 2 - popupBR - TAIL_HALF_W);
-  const tailClamped  = Math.max(-tailMax, Math.min(tailMax, tailOffsetPx));
-  const tailOpacity  = Math.abs(tailOffsetPx) > tailMax + 1 ? 0 : 1;
-  popup.style.setProperty('--tail-offset', tailClamped + 'px');
-  popup.style.setProperty('--tail-opacity', tailOpacity);
+  // Tail geometry — SVG polygon whose shoulders sit on the popup's
+  // bottom outline (riding up the corner curve when the tail leans
+  // toward an edge) and whose tip continues to point at the thumb's
+  // actual x even when the popup body is clamped against the viewport.
+  // Border radius is read live each call so both compact (10) and
+  // expanded (14) popup states curve the shoulders correctly.
+  const tailSvg = document.getElementById('fts-popup-tail');
+  if (tailSvg) {
+    const poly = tailSvg.querySelector('polygon');
+    if (poly) {
+      const tailOffsetPx = (rawPct - pct) * trackW / 100;
+      const r            = parseFloat(getComputedStyle(popup).borderTopLeftRadius) || 10;
+      const TAIL_HALF    = 6;
+      const TIP_DEPTH    = 6;
+
+      // Tip x in popup-local pixels (0 = popup left, popupW = popup right).
+      // Clamped to popup bounds so a far-clamped popup doesn't lean
+      // grotesquely — at extremes the tip rests on the corner.
+      let tipX = popupW / 2 + tailOffsetPx;
+      tipX = Math.max(0, Math.min(popupW, tipX));
+
+      // Shoulder attach x — clamped so both shoulders remain on the
+      // popup's width.
+      const attachX = Math.max(TAIL_HALF, Math.min(popupW - TAIL_HALF, tipX));
+
+      // Shoulder y in SVG-local coords. SVG top edge = popup.bottom,
+      // y grows downward. Flat region returns 0; corner region returns
+      // negative (shoulder rides up into the popup body, visible thanks
+      // to overflow:visible on the SVG).
+      const outlineY = (x) => {
+        if (x >= r && x <= popupW - r) return 0;
+        const dx = x < r ? (r - x) : (x - (popupW - r));
+        return -(r - Math.sqrt(Math.max(0, r * r - dx * dx)));
+      };
+
+      const sLx = attachX - TAIL_HALF;
+      const sRx = attachX + TAIL_HALF;
+      const sLy = outlineY(sLx);
+      const sRy = outlineY(sRx);
+
+      tailSvg.setAttribute('width',  popupW);
+      tailSvg.setAttribute('height', TIP_DEPTH);
+      poly.setAttribute('points',
+        `${sLx},${sLy} ${sRx},${sRy} ${tipX},${TIP_DEPTH}`);
+    }
+  }
 
   popup.classList.add('visible');
 }
