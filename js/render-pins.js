@@ -1006,6 +1006,26 @@ function _drawAuditArchivedPin(pt) {
   ctx.stroke();
   ctx.restore();
 }
+// "Unsure" — amber dot with a "?" glyph; same priority short-circuit as
+// reviewed/archived so it doesn't compete for pill space. Stops the
+// stoplight: green = done, amber = needs second look, red = removed.
+function _drawAuditUnsurePin(pt) {
+  const fill = (TOKENS && TOKENS.weatherPartly) || '#D5B068';
+  const ring = (TOKENS && TOKENS.surfaceDeep)   || '#0F1B2A';
+  ctx.save();
+  ctx.beginPath(); ctx.arc(pt.x, pt.y, _AUDIT_DOT_RING_R, 0, Math.PI * 2);
+  ctx.fillStyle = ring; ctx.fill();
+  ctx.beginPath(); ctx.arc(pt.x, pt.y, _AUDIT_DOT_FILL_R, 0, Math.PI * 2);
+  ctx.fillStyle = fill; ctx.fill();
+  // "?" glyph in slate-on-amber. 8px Inter weight 700 reads cleanly at the
+  // 11px dot footprint without anti-alias fuzz.
+  ctx.fillStyle = ring;
+  ctx.font = '700 8px Inter, system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('?', pt.x, pt.y + 0.6);
+  ctx.restore();
+}
 
 // ── Layout state (consumed by hit testing + external code) ────────────────────
 let _lastLayout      = [];     // [{v, pt, classResult, isDot, spr, _pillRect}] per frame
@@ -1224,8 +1244,8 @@ function draw() {
     if (!isAuditMode && v.auditArchived) return;
     // Detail-panel focus mode (non-audit only).
     if (!isAuditMode && selectedId && v.id !== selectedId) return;
-    // Inside audit mode, reviewed and archived venues short-circuit to
-    // simple-dot rendering — they don't compete for pill space.
+    // Inside audit mode, reviewed / archived / unsure venues short-circuit
+    // to simple-dot rendering — they don't compete for pill space.
     if (isAuditMode) {
       if (v.auditArchived) {
         auditOverridePins.push({ v, pt: map.project([v.lng, v.lat]), kind: 'archived' });
@@ -1233,6 +1253,10 @@ function draw() {
       }
       if (typeof isVenueAudited === 'function' && isVenueAudited(v)) {
         auditOverridePins.push({ v, pt: map.project([v.lng, v.lat]), kind: 'reviewed' });
+        return;
+      }
+      if (typeof isVenueUnsure === 'function' && isVenueUnsure(v)) {
+        auditOverridePins.push({ v, pt: map.project([v.lng, v.lat]), kind: 'unsure' });
         return;
       }
     }
@@ -1609,13 +1633,14 @@ function draw() {
     );
   }
 
-  // ── Audit override pins (reviewed + archived) ─────────────────────────────
+  // ── Audit override pins (reviewed + archived + unsure) ────────────────────
   // Drawn after pills/labels so they sit on top of overlapping pill bodies
-  // when a pill lands close to an already-reviewed venue.
+  // when a pill lands close to an already-classified venue.
   if (isAuditMode && auditOverridePins.length) {
     for (const { v, pt, kind } of auditOverridePins) {
-      if (kind === 'reviewed') _drawAuditReviewedPin(pt);
-      else                     _drawAuditArchivedPin(pt);
+      if      (kind === 'reviewed') _drawAuditReviewedPin(pt);
+      else if (kind === 'unsure')   _drawAuditUnsurePin(pt);
+      else                          _drawAuditArchivedPin(pt);
       layout.push({
         v, pt, classResult: { tier: 'context' }, isDot: true, extraStem: 0,
         spr: { anchorX: 0, anchorY: 0, cssW: 14, cssH: 14 + COMPAT_STEM_H, pillW: 0, pillH: 0, pillR: 0 },
@@ -2279,6 +2304,16 @@ if (_isTouchDevice) {
     const cx = t.clientX - rect.left, cy = t.clientY - rect.top;
     const hit = hitTestVenue(cx, cy) || hitTestDot(cx, cy);
     if (hit) {
+      // Parity with the desktop click path (which stops propagation +
+      // clears any in-flight Mapbox animation before the selectVenue
+      // easeTo fires). Without these, Mapbox's tap-tracking state can
+      // leak velocity into the next frame and the camera move reads
+      // 'not quite the same' as the card-click path that never touches
+      // the map canvas.
+      e.stopPropagation();
+      if (typeof map !== 'undefined' && map && typeof map.stop === 'function') {
+        map.stop();
+      }
       selectVenue(hit.id, true);
     }
   }, { passive: true });
