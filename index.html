@@ -58,13 +58,13 @@
 <script defer src="js/weather.js?v=20260514b"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260514g"></script>
+<script defer src="js/app.js?v=20260514h"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
 <script defer src="js/render-editor.js?v=20260508a"></script>
 <script defer src="js/render-pins.js?v=20260514b"></script>
-<script defer src="js/ui-shared.js?v=20260514b"></script>
+<script defer src="js/ui-shared.js?v=20260514h"></script>
 <script defer src="js/ui-list.js?v=20260514b"></script>
 <script defer src="js/admin-review.js?v=20260505a"></script>
 <script defer src="js/admin-audit.js?v=20260512a"></script>
@@ -1499,9 +1499,10 @@
     margin-left: calc(40px + 8px);  /* button + gap */
   }
 
-  /* Slider track — canvas fills remaining width. Borderless, flat read
-     (the inset glass-inset stays for a faint top-highlight / bottom-
-     shade catch but is otherwise minimal). */
+  /* Slider track — canvas fills remaining width. Borderless. The
+     "indent" / recessed-channel cue is painted into the canvas itself
+     by drawTimeline's drawIndent option, since inset box-shadows
+     would otherwise sit behind the canvas child and never render. */
   #fts-track {
     flex: 1 1 0; min-width: 0;
     height: 40px;
@@ -1514,7 +1515,7 @@
     backdrop-filter: var(--glass-blur-action);
     -webkit-backdrop-filter: var(--glass-blur-action);
     border: 0;
-    box-shadow: var(--glass-inset);
+    box-shadow: none;
   }
   #fts-canvas {
     display: block;

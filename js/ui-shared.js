@@ -622,6 +622,7 @@ function drawTimeline(ctx, opts) {
     openHour = null, closeHour = null,   // venue's open hours (dim outside)
     sunWindows = null,                   // [{start,end}] — dim shadow gaps
     drawSheen = true,                    // top-light + bottom-shade gradients
+    drawIndent = false,                  // inverse: top-shadow + bottom-light = "recessed channel"
     drawThumb = false,
     thumbHour = null, thumbActive = false,
     springOffset = 0,
@@ -690,7 +691,21 @@ function drawTimeline(ctx, opts) {
     ctx.fillRect(seg.x1, bleed, seg.x2 - seg.x1, TRACK_H);
   }
 
-  // 3. Lens sheen (skip on small heights — sheen dominates < ~16px)
+  // 3a. Indent — recessed-channel cue. Inverse of the sheen: a short
+  // top shadow (light from above doesn't reach the sunken top edge)
+  // plus a faint bottom highlight (light reflects from the far edge
+  // of the channel). Reads as a physical slider groove.
+  if (drawIndent && TRACK_H >= 16) {
+    const top = ctx.createLinearGradient(0, bleed, 0, bleed + 3);
+    top.addColorStop(0, 'rgba(0,0,0,0.34)');
+    top.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = top;
+    ctx.fillRect(0, bleed, BAR_W, 3);
+    ctx.fillStyle = 'rgba(255,250,232,0.10)';
+    ctx.fillRect(0, bleed + TRACK_H - 1, BAR_W, 1);
+  }
+
+  // 3b. Lens sheen (skip on small heights — sheen dominates < ~16px)
   if (drawSheen && TRACK_H >= 16) {
     const sheen = ctx.createLinearGradient(0, bleed, 0, bleed + TRACK_H * 0.55);
     sheen.addColorStop(0,    'rgba(255,242,235,0.28)');

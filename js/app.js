@@ -590,6 +590,7 @@ function drawFtsCanvas() {
     openHour, closeHour,
     sunWindows: sunWindowsForShadow,
     drawSheen: false,
+    drawIndent: true,
     drawThumb: false,
   });
 
