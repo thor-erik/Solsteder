@@ -429,7 +429,14 @@ function initFts() {
     window._qcThumbActive = false;
     window._ftsRawHour = null;
     const _thumbEl = document.getElementById('fts-thumb');
-    if (_thumbEl) _thumbEl.classList.remove('is-active');
+    if (_thumbEl) {
+      _thumbEl.classList.remove('is-active');
+      // Release bounce — quick compress + overshoot back to rest. CSS
+      // keyframe runs for ~320ms; class self-removes after so re-press
+      // doesn't compound.
+      _thumbEl.classList.add('is-releasing');
+      setTimeout(() => _thumbEl.classList.remove('is-releasing'), 340);
+    }
     // Settle the thumb onto the snapped position (the step shown in
     // the popup). _updateFtsThumbDom now reads timeFromEl.value since
     // _ftsRawHour was just cleared.
@@ -521,7 +528,11 @@ function initFts() {
     window._qcThumbActive = false;
     window._ftsRawHour = null;
     const _thumbEl = document.getElementById('fts-thumb');
-    if (_thumbEl) _thumbEl.classList.remove('is-active');
+    if (_thumbEl) {
+      _thumbEl.classList.remove('is-active');
+      _thumbEl.classList.add('is-releasing');
+      setTimeout(() => _thumbEl.classList.remove('is-releasing'), 340);
+    }
     _updateFtsThumbDom(parseFloat(timeFromEl.value));
     drawFtsCanvas();
     setFtsPopupExpanded(false);

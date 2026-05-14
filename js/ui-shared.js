@@ -706,16 +706,31 @@ function drawTimeline(ctx, opts) {
   // outward). The result is a 2–3 px gradient of darkness just below
   // the top edge — the "depth" of the channel.
   if (drawIndent && TRACK_H >= 16) {
-    // Two-layer recess:
+    // Three-layer recess for a polished, slightly-curved feel:
+    //   0. Tonal shading across the whole bar — upper portion slightly
+    //      darker (deepest part of the recess), lower portion catches
+    //      a faint reflected highlight from the front lip. Reads as
+    //      curvature inside the channel.
     //   1. A defined top-edge contour (gradient stroke) — the visible
     //      'lip' of the channel that traces the rounded ends.
-    //   2. A wide feathered shadow below it — the diffuse 'depth' that
+    //   2. A feathered shadow below the rim — the diffuse 'depth' that
     //      reads as the channel curving inward.
-    // Either alone reads incomplete; together they look like the
-    // recessed track on a modern (Apple / Linear) UI slider.
+
+    // 0. Curvature shading — fills the full bar with a vertical
+    //    gradient: darker up top (back of recess), neutral middle,
+    //    a faint cream catch at the bottom (front lip).
+    ctx.save();
+    const curve = ctx.createLinearGradient(0, bleed, 0, bleed + TRACK_H);
+    curve.addColorStop(0,    'rgba(0,0,0,0.22)');
+    curve.addColorStop(0.45, 'rgba(0,0,0,0)');
+    curve.addColorStop(0.70, 'rgba(255,250,232,0)');
+    curve.addColorStop(1,    'rgba(255,250,232,0.07)');
+    ctx.fillStyle = curve;
+    ctx.fillRect(0, bleed, BAR_W, TRACK_H);
+    ctx.restore();
 
     // 1. Top contour + bottom highlight via gradient stroke on the
-    //    inset pill path.
+    //    inset pill path. Strokes follow the rounded ends naturally.
     ctx.save();
     const insetPx = 0.5;
     ctx.beginPath();
@@ -723,27 +738,26 @@ function drawTimeline(ctx, opts) {
                   BAR_W - insetPx * 2, TRACK_H - insetPx * 2,
                   Math.max(0, TRACK_R - insetPx));
     const g = ctx.createLinearGradient(0, bleed, 0, bleed + TRACK_H);
-    g.addColorStop(0,    'rgba(0,0,0,0.50)');
+    g.addColorStop(0,    'rgba(0,0,0,0.55)');
     g.addColorStop(0.30, 'rgba(0,0,0,0)');
     g.addColorStop(0.70, 'rgba(255,250,232,0)');
-    g.addColorStop(1,    'rgba(255,250,232,0.18)');
+    g.addColorStop(1,    'rgba(255,250,232,0.22)');
     ctx.strokeStyle = g;
     ctx.lineWidth   = 1;
     ctx.stroke();
     ctx.restore();
 
     // 2. Wider feathered shadow projecting INTO the channel from the
-    //    top rim. shadowOffsetY pushes the dark band 2 px below the
-    //    rim; shadowBlur=6 spreads it across ~6 px so it dissolves
-    //    smoothly into the weather colour. Bottom-edge shadow falls
-    //    outside the clip and isn't visible.
+    //    rim. shadowBlur=7 spreads the depth across ~7 px so it
+    //    dissolves smoothly. Bottom-edge shadow falls outside the
+    //    clip and isn't visible.
     ctx.save();
     ctx.beginPath();
     ctx.roundRect(0, bleed, BAR_W, TRACK_H, TRACK_R);
-    ctx.shadowColor   = 'rgba(0,0,0,0.45)';
-    ctx.shadowBlur    = 6;
+    ctx.shadowColor   = 'rgba(0,0,0,0.50)';
+    ctx.shadowBlur    = 7;
     ctx.shadowOffsetY = 2;
-    ctx.strokeStyle   = 'rgba(0,0,0,0.50)';
+    ctx.strokeStyle   = 'rgba(0,0,0,0.45)';
     ctx.lineWidth     = 0.4;
     ctx.stroke();
     ctx.restore();
