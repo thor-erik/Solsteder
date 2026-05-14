@@ -1570,6 +1570,11 @@
      letting the underlying sun/weather ramp stay readable while
      scrubbing. Mobile keeps the circle — finger occludes the thumb
      during drag so a thin needle adds no value. */
+  /* Register --glint-x/y so they interpolate smoothly across keyframes
+     (without @property, custom-prop animation snaps between values). */
+  @property --glint-x { syntax: '<percentage>'; inherits: false; initial-value: 38%; }
+  @property --glint-y { syntax: '<percentage>'; inherits: false; initial-value: 26%; }
+
   #fts-thumb {
     position: absolute;
     top: 50%;
@@ -1580,18 +1585,34 @@
     pointer-events: none;
     z-index: 5;
 
-    background: var(--glass-action-bg);
+    /* Glass lens — specular highlight + tinted body. The radial gradient
+       sits OVER --glass-action-bg, mimicking light catching the curved
+       surface of a glass disc. Position drifts via the idle keyframe so
+       the lens reads as a living surface, not a flat sticker. */
+    --glint-x: 38%;
+    --glint-y: 26%;
+    background:
+      radial-gradient(
+        circle at var(--glint-x) var(--glint-y),
+        rgba(255,242,235,0.42) 0%,
+        rgba(255,242,235,0.12) 28%,
+        transparent 50%
+      ),
+      var(--glass-action-bg);
     backdrop-filter: var(--glass-blur-action);
     -webkit-backdrop-filter: var(--glass-blur-action);
-    border: var(--glass-border);
-    /* Symmetric ambient drop shadow (0-offset) plus a faint downward
-       contact so the thumb still lifts off the weather ramp without
-       the shadow weighting the optical centroid below the geometric
-       centre. */
+    /* Stronger cream rim so the thumb's silhouette reads against dark
+       rain / overcast bands where its body tone matches the bar. */
+    border: 1px solid rgba(255,242,235,0.42);
+    /* Edge stack — top highlight catch, bottom inner shadow for depth,
+       outer dark hairline for contrast against the lighter sun bands,
+       contact shadow + soft lift below. */
     box-shadow:
-      var(--glass-inset),
-      0 0 6px rgba(0,0,0,0.28),
-      0 1px 2px rgba(0,0,0,0.22);
+      inset 0 1.5px 0 rgba(255,242,235,0.45),
+      inset 0 -1.5px 0 rgba(20,46,82,0.50),
+      0 0 0 0.5px rgba(15,27,42,0.50),
+      0 1px 2px rgba(0,0,0,0.30),
+      0 0 8px rgba(0,0,0,0.32);
 
     transform: translate(-50%, -50%);
     transition:
@@ -1602,30 +1623,48 @@
       background    160ms ease,
       box-shadow    220ms cubic-bezier(0.32, 0.72, 0, 1);
     will-change: transform, width;
+    /* Idle: a slow wander of the specular highlight (~7s loop) so the
+       lens feels alive. Paused during active drag (handled by the
+       .is-active state overriding key visual properties). */
+    animation: fts-thumb-glint-drift 7s ease-in-out infinite;
   }
 
-  /* Hover — "picked up" feedback before drag. Mirrors #fts-date-btn:hover. */
+  @keyframes fts-thumb-glint-drift {
+    0%, 100% { --glint-x: 36%; --glint-y: 24%; }
+    50%      { --glint-x: 46%; --glint-y: 32%; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #fts-thumb { animation: none; }
+  }
+
+  /* Hover — "picked up" feedback before drag. Mirrors #fts-date-btn:hover.
+     Preserves the glass-lens edge stack so the rim doesn't visually
+     collapse during the hover state. */
   #fts-thumb.is-hover {
     transform: translate(-50%, -50%) scale(1.06);
-    background: rgba(20,46,82,0.60);
-    border-color: rgba(156,189,231,0.30);
+    border-color: rgba(255,242,235,0.55);
     box-shadow:
-      var(--glass-inset),
-      0 0 8px rgba(0,0,0,0.32),
-      0 1px 2px rgba(0,0,0,0.26);
+      inset 0 1.5px 0 rgba(255,242,235,0.55),
+      inset 0 -1.5px 0 rgba(20,46,82,0.55),
+      0 0 0 0.5px rgba(15,27,42,0.55),
+      0 1px 2px rgba(0,0,0,0.35),
+      0 0 10px rgba(0,0,0,0.36);
   }
 
-  /* Active (drag) — honey-tinted border (matches #fts-date-btn.active),
-     honey aura, slight scale-up. Aura is symmetric so the active state
-     stays vertically centred. */
+  /* Active (drag) — honey-tinted rim + honey aura. Edge stack stays so
+     the lens shape is preserved during the press. */
   #fts-thumb.is-active {
     transform: translate(-50%, -50%) scale(1.12);
-    border-color: rgba(245,194,94,0.55);
+    border-color: rgba(245,194,94,0.60);
+    animation-play-state: paused;
     box-shadow:
-      var(--glass-inset),
-      0 0 10px rgba(0,0,0,0.40),
-      0 1px 2px rgba(0,0,0,0.30),
-      0 0 22px 2px rgba(245,194,94,0.28);
+      inset 0 1.5px 0 rgba(255,242,235,0.50),
+      inset 0 -1.5px 0 rgba(20,46,82,0.55),
+      0 0 0 0.5px rgba(15,27,42,0.50),
+      0 1px 2px rgba(0,0,0,0.40),
+      0 0 12px rgba(0,0,0,0.40),
+      0 0 22px 2px rgba(245,194,94,0.32);
   }
 
   /* Desktop only: morph circle → 6px playhead pill on active drag.
