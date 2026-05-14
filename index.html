@@ -58,7 +58,7 @@
 <script defer src="js/weather.js?v=20260514b"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260514c"></script>
+<script defer src="js/app.js?v=20260514d"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
@@ -1547,11 +1547,13 @@
     color: rgba(255, 244, 224, 0.96);
     filter: drop-shadow(0 0 2px rgba(15, 27, 42, 0.85))
             drop-shadow(0 0 1px rgba(15, 27, 42, 0.85));
-    /* Smooth slide when a venue is selected/changed and shadow clips
-       a weather segment — icons re-centre on the largest sun-visible
-       sub-segment. */
-    transition: left 320ms cubic-bezier(0.32, 0.72, 0, 1);
+    transition: left 320ms cubic-bezier(0.32, 0.72, 0, 1),
+                opacity 180ms ease;
   }
+  /* Icon hides when the thumb is in its segment — the thumb's own
+     in-circle glyph takes over the read for that slice, so the bar
+     icon would just duplicate / fight for space under the disc. */
+  .fts-event.fts-event-under-thumb { opacity: 0; }
   .fts-event svg {
     display: block;
     width: 14px;

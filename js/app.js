@@ -589,7 +589,7 @@ function drawFtsCanvas() {
     nowH: nowH_, isToday: isToday_,
     openHour, closeHour,
     sunWindows: sunWindowsForShadow,
-    drawSheen: true,
+    drawSheen: false,
     drawThumb: false,
   });
 
@@ -790,8 +790,19 @@ function _populateFtsEvents() {
       hour:   (pickStart + pickEnd) / 2,
       state:  seg.state,
       segKey: `${seg.state}-${i}`,
+      segStart: seg.start,
+      segEnd:   seg.end,
     });
   });
+
+  // Current thumb hour — raw during drag, snapped otherwise. Used to
+  // hide the icon in whichever segment the thumb is currently over so
+  // the two visuals don't fight for the same space.
+  const thumbVisualH = (typeof window._ftsRawHour === 'number')
+    ? window._ftsRawHour
+    : (typeof timeFromEl !== 'undefined' && timeFromEl ? parseFloat(timeFromEl.value) : null);
+  const isUnderThumb = (e) => Number.isFinite(thumbVisualH) &&
+    thumbVisualH >= e.segStart && thumbVisualH < e.segEnd;
 
   const pctFor = (e) => {
     const x = ((e.hour - MIN_H_ARC) / (MAX_H_ARC - MIN_H_ARC)) * 100;
@@ -805,7 +816,10 @@ function _populateFtsEvents() {
     events.every((e, i) => existing[i].dataset.key === e.segKey);
 
   if (sameSequence) {
-    events.forEach((e, i) => { existing[i].style.left = pctFor(e) + '%'; });
+    events.forEach((e, i) => {
+      existing[i].style.left = pctFor(e) + '%';
+      existing[i].classList.toggle('fts-event-under-thumb', isUnderThumb(e));
+    });
     return;
   }
 
@@ -818,6 +832,7 @@ function _populateFtsEvents() {
     node.dataset.key = e.segKey;
     node.style.left  = pctFor(e) + '%';
     node.innerHTML   = glyph + '<div class="fts-event-tick"></div>';
+    if (isUnderThumb(e)) node.classList.add('fts-event-under-thumb');
     host.appendChild(node);
   }
 }
