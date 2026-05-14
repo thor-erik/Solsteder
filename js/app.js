@@ -1462,6 +1462,12 @@ function updateSunLighting() {
   if (!mapLoaded || !currentSun) return;
   const { az, alt } = currentSun;
   if (alt > 0) {
+    // Lift ambient (0.30→0.42) + lower directional intensity (0.9→0.78)
+    // so the lit/shadow contrast drops. The shadow-map aliasing (stair-
+    // stepping along shadow edges, flickering on zoom) is intrinsic to
+    // Mapbox's renderer — there's no soft-shadow knob — so the only
+    // lever we have is contrast. Lower contrast makes the jaggy edge
+    // pixels much less visible without losing the shadow story.
     map.setLights([
       {
         id: 'sun',
@@ -1469,14 +1475,14 @@ function updateSunLighting() {
         properties: {
           direction: [az, 90 - alt],
           'cast-shadows': true,
-          intensity: 0.9,
+          intensity: 0.78,
           color: '#ffffff',
         }
       },
       {
         id: 'ambient',
         type: 'ambient',
-        properties: { intensity: 0.30, color: '#ffffff' }
+        properties: { intensity: 0.42, color: '#ffffff' }
       }
     ]);
   } else {
