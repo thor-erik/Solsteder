@@ -620,6 +620,14 @@ function _updateFtsThumbDom(fromH) {
   const capPct = (capPx / trackW) * 100;
   const pct = Math.max(capPct, Math.min(100 - capPct, xPct * 100));
   thumb.style.left = pct + '%';
+
+  // Position-based glint — simulate a fixed light source overhead-left.
+  // Left thumb → glint near right side of disc (66%); right thumb →
+  // glint near left side (34%). Maps the track position linearly.
+  const tNorm   = Math.max(0, Math.min(1, xPct));
+  const glintBX = 66 - tNorm * 32;   // 66% .. 34%
+  thumb.style.setProperty('--glint-base-x', glintBX + '%');
+
   _updateThumbWxIcon(visualH);
 }
 

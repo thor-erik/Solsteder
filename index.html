@@ -58,7 +58,7 @@
 <script defer src="js/weather.js?v=20260514b"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260514e"></script>
+<script defer src="js/app.js?v=20260514f"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
@@ -1499,7 +1499,9 @@
     margin-left: calc(40px + 8px);  /* button + gap */
   }
 
-  /* Slider track — canvas fills remaining width · glass rim treatment */
+  /* Slider track — canvas fills remaining width. Borderless, flat read
+     (the inset glass-inset stays for a faint top-highlight / bottom-
+     shade catch but is otherwise minimal). */
   #fts-track {
     flex: 1 1 0; min-width: 0;
     height: 40px;
@@ -1511,7 +1513,7 @@
     background: var(--glass-action-bg);
     backdrop-filter: var(--glass-blur-action);
     -webkit-backdrop-filter: var(--glass-blur-action);
-    border: var(--glass-border);
+    border: 0;
     box-shadow: var(--glass-inset);
   }
   #fts-canvas {
@@ -1570,10 +1572,12 @@
      letting the underlying sun/weather ramp stay readable while
      scrubbing. Mobile keeps the circle — finger occludes the thumb
      during drag so a thin needle adds no value. */
-  /* Register --glint-x/y so they interpolate smoothly across keyframes
-     (without @property, custom-prop animation snaps between values). */
-  @property --glint-x { syntax: '<percentage>'; inherits: false; initial-value: 38%; }
-  @property --glint-y { syntax: '<percentage>'; inherits: false; initial-value: 26%; }
+  /* Glint position is a base (JS-driven by thumb's track position) plus
+     a drift (idle keyframe) and minor offset. Registered properties
+     so the keyframe interpolates smoothly. */
+  @property --glint-base-x { syntax: '<percentage>'; inherits: false; initial-value: 50%; }
+  @property --glint-drift-x { syntax: '<length>'; inherits: false; initial-value: 0px; }
+  @property --glint-drift-y { syntax: '<length>'; inherits: false; initial-value: 0px; }
 
   #fts-thumb {
     position: absolute;
@@ -1585,34 +1589,60 @@
     pointer-events: none;
     z-index: 5;
 
-    /* Glass lens — specular highlight + tinted body. The radial gradient
-       sits OVER --glass-action-bg, mimicking light catching the curved
-       surface of a glass disc. Position drifts via the idle keyframe so
-       the lens reads as a living surface, not a flat sticker. */
-    --glint-x: 38%;
-    --glint-y: 26%;
+    /* Glint position. --glint-base-x set by JS based on the thumb's
+       position along the track (left thumb → glint to its right, right
+       thumb → glint to its left), simulating a fixed sun overhead-left.
+       Idle keyframe nudges the glint by --glint-drift-x/y so the lens
+       reads as a living surface. */
+    --glint-base-x: 50%;
+    --glint-drift-x: 0px;
+    --glint-drift-y: 0px;
+
     background:
+      /* 1. Sharp specular catch — the "sun glare". Small + bright. */
       radial-gradient(
-        circle at var(--glint-x) var(--glint-y),
-        rgba(255,242,235,0.42) 0%,
-        rgba(255,242,235,0.12) 28%,
-        transparent 50%
+        circle 5px at
+        calc(var(--glint-base-x) + var(--glint-drift-x))
+        calc(28% + var(--glint-drift-y)),
+        rgba(255,250,232,0.85) 0%,
+        rgba(255,250,232,0.20) 60%,
+        rgba(255,250,232,0)   100%
       ),
+      /* 2. Soft halo around the specular */
+      radial-gradient(
+        circle 11px at
+        calc(var(--glint-base-x) + var(--glint-drift-x))
+        calc(30% + var(--glint-drift-y)),
+        rgba(255,248,230,0.18) 0%,
+        rgba(255,248,230,0)   100%
+      ),
+      /* 3. Refraction shading — body darkens slightly near the edge,
+            simulating the bend of light through curved glass. */
+      radial-gradient(
+        circle at 50% 50%,
+        transparent 55%,
+        rgba(15,27,42,0.18) 90%,
+        rgba(15,27,42,0.32) 100%
+      ),
+      /* 4. Lens body — slate-tinted glass */
       var(--glass-action-bg);
     backdrop-filter: var(--glass-blur-action);
     -webkit-backdrop-filter: var(--glass-blur-action);
-    /* Stronger cream rim so the thumb's silhouette reads against dark
-       rain / overcast bands where its body tone matches the bar. */
-    border: 1px solid rgba(255,242,235,0.42);
-    /* Edge stack — top highlight catch, bottom inner shadow for depth,
-       outer dark hairline for contrast against the lighter sun bands,
-       contact shadow + soft lift below. */
+
+    /* Subtle glass rim — soft cream catch around the top of the disc;
+       no aggressive 'iOS knob' outline. */
+    border: 1px solid rgba(255,242,235,0.22);
+
     box-shadow:
-      inset 0 1.5px 0 rgba(255,242,235,0.45),
-      inset 0 -1.5px 0 rgba(20,46,82,0.50),
-      0 0 0 0.5px rgba(15,27,42,0.50),
-      0 1px 2px rgba(0,0,0,0.30),
-      0 0 8px rgba(0,0,0,0.32);
+      /* Inner top catch — light hits the upper edge of the curved glass. */
+      inset 0 1px 0 rgba(255,250,232,0.40),
+      /* Inner bottom shade — bottom of glass falls into shadow. */
+      inset 0 -1px 0 rgba(15,27,42,0.40),
+      /* Outer hairline — keeps the silhouette readable against light bands. */
+      0 0 0 0.5px rgba(15,27,42,0.55),
+      /* Ground contact + soft lift */
+      0 1px 2px rgba(0,0,0,0.28),
+      0 0 8px rgba(0,0,0,0.30);
 
     transform: translate(-50%, -50%);
     transition:
@@ -1620,51 +1650,49 @@
       width         180ms cubic-bezier(0.32, 0.72, 0, 1),
       border-radius 180ms cubic-bezier(0.32, 0.72, 0, 1),
       border-color  160ms ease,
-      background    160ms ease,
       box-shadow    220ms cubic-bezier(0.32, 0.72, 0, 1);
     will-change: transform, width;
-    /* Idle: a slow wander of the specular highlight (~7s loop) so the
-       lens feels alive. Paused during active drag (handled by the
-       .is-active state overriding key visual properties). */
-    animation: fts-thumb-glint-drift 7s ease-in-out infinite;
+
+    /* Idle face animation — a small wander of the glint position so the
+       lens catches "moving" ambient light. Stays on the FACE (drift
+       limited to ±2 px). Paused during active drag. */
+    animation: fts-thumb-glint-idle 6s ease-in-out infinite;
   }
 
-  @keyframes fts-thumb-glint-drift {
-    0%, 100% { --glint-x: 36%; --glint-y: 24%; }
-    50%      { --glint-x: 46%; --glint-y: 32%; }
+  @keyframes fts-thumb-glint-idle {
+    0%,  100% { --glint-drift-x: -1.5px; --glint-drift-y: -0.5px; }
+    33%       { --glint-drift-x:  1.5px; --glint-drift-y:  0.5px; }
+    66%       { --glint-drift-x:  0.5px; --glint-drift-y:  1.8px; }
   }
 
   @media (prefers-reduced-motion: reduce) {
     #fts-thumb { animation: none; }
   }
 
-  /* Hover — "picked up" feedback before drag. Mirrors #fts-date-btn:hover.
-     Preserves the glass-lens edge stack so the rim doesn't visually
-     collapse during the hover state. */
+  /* Hover — slight scale, gentle rim warm-up. */
   #fts-thumb.is-hover {
     transform: translate(-50%, -50%) scale(1.06);
-    border-color: rgba(255,242,235,0.55);
+    border-color: rgba(255,242,235,0.32);
     box-shadow:
-      inset 0 1.5px 0 rgba(255,242,235,0.55),
-      inset 0 -1.5px 0 rgba(20,46,82,0.55),
+      inset 0 1px 0 rgba(255,250,232,0.50),
+      inset 0 -1px 0 rgba(15,27,42,0.45),
       0 0 0 0.5px rgba(15,27,42,0.55),
-      0 1px 2px rgba(0,0,0,0.35),
-      0 0 10px rgba(0,0,0,0.36);
+      0 1px 2px rgba(0,0,0,0.32),
+      0 0 10px rgba(0,0,0,0.34);
   }
 
-  /* Active (drag) — honey-tinted rim + honey aura. Edge stack stays so
-     the lens shape is preserved during the press. */
+  /* Active (drag) — honey-tinted rim + honey aura. */
   #fts-thumb.is-active {
     transform: translate(-50%, -50%) scale(1.12);
-    border-color: rgba(245,194,94,0.60);
+    border-color: rgba(245,194,94,0.45);
     animation-play-state: paused;
     box-shadow:
-      inset 0 1.5px 0 rgba(255,242,235,0.50),
-      inset 0 -1.5px 0 rgba(20,46,82,0.55),
+      inset 0 1px 0 rgba(255,250,232,0.45),
+      inset 0 -1px 0 rgba(15,27,42,0.45),
       0 0 0 0.5px rgba(15,27,42,0.50),
-      0 1px 2px rgba(0,0,0,0.40),
-      0 0 12px rgba(0,0,0,0.40),
-      0 0 22px 2px rgba(245,194,94,0.32);
+      0 1px 2px rgba(0,0,0,0.36),
+      0 0 12px rgba(0,0,0,0.38),
+      0 0 22px 2px rgba(245,194,94,0.30);
   }
 
   /* Desktop only: morph circle → 6px playhead pill on active drag.
