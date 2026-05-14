@@ -1,0 +1,32 @@
+# Cloudflare Pages headers. Applied to every response.
+#
+# The goals:
+#   1. The service worker file itself must never be cached aggressively
+#      — otherwise new SW versions take forever to roll out.
+#   2. index.html must revalidate so new deploys reach users right away.
+#   3. Versioned JS/CSS (?v=...) is safe to cache for a year — the query
+#      string is the cache key and we bump it on every change.
+#   4. JSON data files (venues.json, geometry.json) revalidate fresh on
+#      every visit; the service worker handles the offline copy.
+#   5. Static assets without versioning (icons, manifest, favicons) get
+#      a short cache so design swaps propagate within minutes.
+
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/index.html
+  Cache-Control: no-cache
+
+/manifest.json
+  Cache-Control: public, max-age=300
+
+/data/*.json
+  Cache-Control: no-cache
+
+/js/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Service worker is at /sw.js — explicit allow-scope header keeps us
+# safe if it ever moves under a subdirectory.
+/sw.js
+  Service-Worker-Allowed: /
