@@ -603,7 +603,9 @@ function drawFtsCanvas() {
 }
 
 /** Sync the DOM thumb's position with the slider value, or with the raw
- *  pointer hour during a smooth drag (window._ftsRawHour). */
+ *  pointer hour during a smooth drag (window._ftsRawHour). Also updates
+ *  the in-thumb weather icon (with push-on-direction animation when the
+ *  weather state changes mid-scrub). */
 function _updateFtsThumbDom(fromH) {
   const thumb = document.getElementById('fts-thumb');
   const track = document.getElementById('fts-track');
@@ -618,6 +620,79 @@ function _updateFtsThumbDom(fromH) {
   const capPct = (capPx / trackW) * 100;
   const pct = Math.max(capPct, Math.min(100 - capPct, xPct * 100));
   thumb.style.left = pct + '%';
+  _updateThumbWxIcon(visualH);
+}
+
+/** Place the current weather glyph inside the FTS thumb. When the state
+ *  changes mid-scrub the new icon enters from the same side the user is
+ *  dragging toward and the old one pushes out the other side (drag right
+ *  → new from right, old to left). No animation when nothing changed. */
+function _updateThumbWxIcon(hour) {
+  const thumb = document.getElementById('fts-thumb');
+  if (!thumb) return;
+  const glyphs = window.TIMELINE_EVENT_GLYPHS;
+  if (!glyphs) return;
+  const dateStr = (typeof datePicker !== 'undefined' && datePicker) ? datePicker.value : null;
+  if (!dateStr || typeof getWeatherAt !== 'function') return;
+
+  const wx = getWeatherAt(dateStr, hour);
+  let wxKey = null;
+  if (wx) {
+    const rain = (wx.precip ?? wx.prec ?? 0) > 0.3;
+    const cf   = wx.sunBlock ?? wx.cloud ?? 0;
+    wxKey = rain ? 'rain' : (cf < 0.25 ? 'sun' : cf < 0.75 ? 'partly' : 'cloud');
+  }
+  if (!wxKey) return;
+
+  const prevKey  = thumb._lastWxKey;
+  const prevHour = thumb._lastWxHour;
+  thumb._lastWxHour = hour;
+
+  let mainIcon = thumb.querySelector('.fts-thumb-icon:not(.fts-thumb-icon-ghost)');
+  const glyph  = glyphs[wxKey];
+  if (!glyph) return;
+
+  // First paint — just place the icon.
+  if (!mainIcon) {
+    mainIcon = document.createElement('span');
+    mainIcon.className = 'fts-thumb-icon';
+    mainIcon.dataset.wxKey = wxKey;
+    mainIcon.innerHTML = glyph;
+    thumb.appendChild(mainIcon);
+    thumb._lastWxKey = wxKey;
+    return;
+  }
+  if (prevKey === wxKey) return;
+
+  // State changed — animate. direction: +1 = drag toward later hour.
+  const direction = (prevHour != null && hour > prevHour) ? 1 : -1;
+
+  // Old icon clone slides OUT in the opposite of drag direction.
+  const ghost = mainIcon.cloneNode(true);
+  ghost.classList.add('fts-thumb-icon-ghost');
+  thumb.appendChild(ghost);
+  requestAnimationFrame(() => {
+    const exitPx = direction > 0 ? -22 : 22;
+    ghost.style.transform = `translate(calc(-50% + ${exitPx}px), -50%)`;
+    ghost.style.opacity   = '0';
+  });
+  setTimeout(() => ghost.remove(), 320);
+
+  // New icon enters from the drag-direction side.
+  const enterPx = direction > 0 ? 22 : -22;
+  mainIcon.innerHTML = glyph;
+  mainIcon.dataset.wxKey = wxKey;
+  mainIcon.style.transition = 'none';
+  mainIcon.style.transform  = `translate(calc(-50% + ${enterPx}px), -50%)`;
+  mainIcon.style.opacity    = '0';
+  // Force layout flush before re-enabling transition.
+  void mainIcon.offsetWidth;
+  requestAnimationFrame(() => {
+    mainIcon.style.transition = '';
+    mainIcon.style.transform  = 'translate(-50%, -50%)';
+    mainIcon.style.opacity    = '1';
+  });
+  thumb._lastWxKey = wxKey;
 }
 
 /** Build / refresh the event row above the FTS bar — weather-state glyphs
