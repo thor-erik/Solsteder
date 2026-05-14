@@ -1,11 +1,19 @@
 {
+  "id": "/?source=pwa",
   "name": "Shades - Din plass i sola",
   "short_name": "Shades",
   "description": "Hundrevis av uteserveringer. Shades finner den med mest sol. Og vennene dine.",
-  "start_url": ".",
+  "lang": "nb",
+  "dir": "ltr",
+  "start_url": "/?source=pwa",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "browser"],
+  "orientation": "portrait-primary",
   "background_color": "#FFF2EB",
   "theme_color": "#142E52",
+  "categories": ["travel", "lifestyle", "food"],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "favicon-192.png",
@@ -14,10 +22,40 @@
       "purpose": "any"
     },
     {
+      "src": "favicon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
       "src": "design/logo-pack-png-512x512/logo-color-2000w.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "design/logo-pack-png-512x512/logo-color-2000w.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "design/og-picture.png",
+      "sizes": "1200x630",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Find the sunniest seat in Oslo"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Find sunny venues now",
+      "short_name": "Sol nå",
+      "description": "Open the map at the current time",
+      "url": "/?source=pwa-shortcut",
+      "icons": [{ "src": "favicon-192.png", "sizes": "192x192" }]
     }
   ]
 }
