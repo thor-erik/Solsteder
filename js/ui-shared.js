@@ -691,18 +691,53 @@ function drawTimeline(ctx, opts) {
     ctx.fillRect(seg.x1, bleed, seg.x2 - seg.x1, TRACK_H);
   }
 
-  // 3a. Indent — recessed-channel cue. Inverse of the sheen: a short
-  // top shadow (light from above doesn't reach the sunken top edge)
-  // plus a faint bottom highlight (light reflects from the far edge
-  // of the channel). Reads as a physical slider groove.
+  // 3a. Indent — recessed-channel cue that FOLLOWS the curve at the
+  // rounded ends. We stroke a slightly-inset rounded-rect path with a
+  // vertical-gradient colour (dark → transparent → cream); since the
+  // stroke traces the pill outline, each pixel along the curve picks
+  // up the gradient by its y position. Result: top edge reads as a
+  // recessed shadow, bottom as a faint reflected highlight, and the
+  // curved ends transition between them smoothly. Same trick Apple /
+  // Linear use on rounded slider tracks.
+  //
+  // Then we add a soft feathered top shadow via shadowBlur on a near-
+  // invisible stroke of the same path, projecting down INTO the track
+  // (clipped out at the bottom since the shadow extends past the path
+  // outward). The result is a 2–3 px gradient of darkness just below
+  // the top edge — the "depth" of the channel.
   if (drawIndent && TRACK_H >= 16) {
-    const top = ctx.createLinearGradient(0, bleed, 0, bleed + 3);
-    top.addColorStop(0, 'rgba(0,0,0,0.34)');
-    top.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = top;
-    ctx.fillRect(0, bleed, BAR_W, 3);
-    ctx.fillStyle = 'rgba(255,250,232,0.10)';
-    ctx.fillRect(0, bleed + TRACK_H - 1, BAR_W, 1);
+    ctx.save();
+    const insetPx = 0.5;
+    ctx.beginPath();
+    ctx.roundRect(insetPx, bleed + insetPx,
+                  BAR_W - insetPx * 2, TRACK_H - insetPx * 2,
+                  Math.max(0, TRACK_R - insetPx));
+    const g = ctx.createLinearGradient(0, bleed, 0, bleed + TRACK_H);
+    g.addColorStop(0,    'rgba(0,0,0,0.55)');
+    g.addColorStop(0.18, 'rgba(0,0,0,0.18)');
+    g.addColorStop(0.45, 'rgba(0,0,0,0)');
+    g.addColorStop(0.55, 'rgba(255,250,232,0)');
+    g.addColorStop(0.85, 'rgba(255,250,232,0.10)');
+    g.addColorStop(1,    'rgba(255,250,232,0.22)');
+    ctx.strokeStyle = g;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+
+    // Feather: cast a small inward shadow from the top of the track.
+    // shadowOffsetY=2 + shadowBlur=3 projects a soft dark band 1–4 px
+    // inside the top edge; the same shadow at the bottom edge falls
+    // outside the clip and isn't visible.
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(0, bleed, BAR_W, TRACK_H, TRACK_R);
+    ctx.shadowColor   = 'rgba(0,0,0,0.40)';
+    ctx.shadowBlur    = 3;
+    ctx.shadowOffsetY = 2;
+    ctx.strokeStyle   = 'rgba(0,0,0,0.85)';
+    ctx.lineWidth     = 0.5;
+    ctx.stroke();
+    ctx.restore();
   }
 
   // 3b. Lens sheen (skip on small heights — sheen dominates < ~16px)
