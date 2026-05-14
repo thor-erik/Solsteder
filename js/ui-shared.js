@@ -706,6 +706,10 @@ function drawTimeline(ctx, opts) {
   // outward). The result is a 2–3 px gradient of darkness just below
   // the top edge — the "depth" of the channel.
   if (drawIndent && TRACK_H >= 16) {
+    // Softer gradient stroke — fades start sooner (0.10 → 0.35) so the
+    // dark transitions to neutral over a wider band, and overall alpha
+    // is dropped (0.55 → 0.28 top, 0.22 → 0.10 bottom). Reads as a
+    // gentle recess rather than a sharp scribe line.
     ctx.save();
     const insetPx = 0.5;
     ctx.beginPath();
@@ -713,29 +717,28 @@ function drawTimeline(ctx, opts) {
                   BAR_W - insetPx * 2, TRACK_H - insetPx * 2,
                   Math.max(0, TRACK_R - insetPx));
     const g = ctx.createLinearGradient(0, bleed, 0, bleed + TRACK_H);
-    g.addColorStop(0,    'rgba(0,0,0,0.55)');
-    g.addColorStop(0.18, 'rgba(0,0,0,0.18)');
-    g.addColorStop(0.45, 'rgba(0,0,0,0)');
-    g.addColorStop(0.55, 'rgba(255,250,232,0)');
-    g.addColorStop(0.85, 'rgba(255,250,232,0.10)');
-    g.addColorStop(1,    'rgba(255,250,232,0.22)');
+    g.addColorStop(0,    'rgba(0,0,0,0.28)');
+    g.addColorStop(0.10, 'rgba(0,0,0,0.16)');
+    g.addColorStop(0.35, 'rgba(0,0,0,0)');
+    g.addColorStop(0.65, 'rgba(255,250,232,0)');
+    g.addColorStop(0.90, 'rgba(255,250,232,0.06)');
+    g.addColorStop(1,    'rgba(255,250,232,0.10)');
     ctx.strokeStyle = g;
     ctx.lineWidth = 1;
     ctx.stroke();
     ctx.restore();
 
-    // Feather: cast a small inward shadow from the top of the track.
-    // shadowOffsetY=2 + shadowBlur=3 projects a soft dark band 1–4 px
-    // inside the top edge; the same shadow at the bottom edge falls
-    // outside the clip and isn't visible.
+    // Softer feather — bigger blur (3 → 5) and lower alpha (0.40 →
+    // 0.22) so the shadow blends into the band rather than reading as
+    // a distinct dark line below the top.
     ctx.save();
     ctx.beginPath();
     ctx.roundRect(0, bleed, BAR_W, TRACK_H, TRACK_R);
-    ctx.shadowColor   = 'rgba(0,0,0,0.40)';
-    ctx.shadowBlur    = 3;
+    ctx.shadowColor   = 'rgba(0,0,0,0.22)';
+    ctx.shadowBlur    = 5;
     ctx.shadowOffsetY = 2;
-    ctx.strokeStyle   = 'rgba(0,0,0,0.85)';
-    ctx.lineWidth     = 0.5;
+    ctx.strokeStyle   = 'rgba(0,0,0,0.30)';
+    ctx.lineWidth     = 0.3;
     ctx.stroke();
     ctx.restore();
   }
