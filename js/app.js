@@ -429,6 +429,7 @@ function initFts() {
     window._qcThumbActive = false;
     window._ftsRawHour = null;
     const _thumbEl = document.getElementById('fts-thumb');
+    const _popupEl = document.getElementById('fts-popup');
     if (_thumbEl) {
       _thumbEl.classList.remove('is-active');
       // Release bounce — quick compress + overshoot back to rest. CSS
@@ -436,6 +437,10 @@ function initFts() {
       // doesn't compound.
       _thumbEl.classList.add('is-releasing');
       setTimeout(() => _thumbEl.classList.remove('is-releasing'), 340);
+    }
+    if (_popupEl) {
+      _popupEl.classList.add('is-releasing');
+      setTimeout(() => _popupEl.classList.remove('is-releasing'), 340);
     }
     // Settle the thumb onto the snapped position (the step shown in
     // the popup). _updateFtsThumbDom now reads timeFromEl.value since
@@ -528,10 +533,15 @@ function initFts() {
     window._qcThumbActive = false;
     window._ftsRawHour = null;
     const _thumbEl = document.getElementById('fts-thumb');
+    const _popupEl = document.getElementById('fts-popup');
     if (_thumbEl) {
       _thumbEl.classList.remove('is-active');
       _thumbEl.classList.add('is-releasing');
       setTimeout(() => _thumbEl.classList.remove('is-releasing'), 340);
+    }
+    if (_popupEl) {
+      _popupEl.classList.add('is-releasing');
+      setTimeout(() => _popupEl.classList.remove('is-releasing'), 340);
     }
     _updateFtsThumbDom(parseFloat(timeFromEl.value));
     drawFtsCanvas();

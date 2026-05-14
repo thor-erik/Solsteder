@@ -58,7 +58,7 @@
 <script defer src="js/weather.js?v=20260514b"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260514m"></script>
+<script defer src="js/app.js?v=20260514n"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
@@ -1786,6 +1786,23 @@
       bottom 0.18s ease,
       top 0.18s ease;
   }
+
+  /* Release bounce — matches the thumb's spring-back. Keyframe preserves
+     translateX(-50%) so the popup stays centred horizontally during the
+     scale wobble; transform-origin: bottom centre means the bounce
+     pivots from the tail anchor at the thumb. */
+  #fts-popup.is-releasing {
+    animation: fts-popup-release 320ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
+  }
+  @keyframes fts-popup-release {
+    0%   { transform: translateX(-50%) scale(1.00); }
+    40%  { transform: translateX(-50%) scale(0.94); }
+    72%  { transform: translateX(-50%) scale(1.03); }
+    100% { transform: translateX(-50%) scale(1.00); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #fts-popup.is-releasing { animation: none; }
+  }
   /* Tail — SVG with dynamically computed polygon. The two shoulders sit
      on the popup's bottom outline (riding up the rounded-corner curve
      when the tail leans near the corner); the tip points at the thumb's
@@ -1835,11 +1852,16 @@
   }
   #fts-popup-time {
     font: 700 13px/1 'Inter', sans-serif;
-    color: var(--accent);
+    /* Cream on the compact popup — neutral, polished. Honey/accent
+       only when the popup expands (drag) to mark the active state. */
+    color: rgba(255,244,224,0.95);
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.01em;
-    transition: font-size 0.18s cubic-bezier(0.32, 0.72, 0, 1);
+    transition:
+      font-size 0.18s cubic-bezier(0.32, 0.72, 0, 1),
+      color    0.22s ease;
   }
+  #fts-popup.fts-popup-expanded #fts-popup-time { color: var(--accent); }
   /* Weather glyph — same SVG set as the accept-page timeline event row
      (TIMELINE_EVENT_GLYPHS). Hidden in the compact popup state since the
      thumb itself now carries the current weather icon — only shown in
