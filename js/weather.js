@@ -91,10 +91,32 @@ async function initWeather(lat = 59.9125, lng = 10.728) {
 
     _wxData   = data;
     _wxExpiry = Date.now() + 30 * 60 * 1000;
+    console.info('[weather] loaded', data.size, 'hourly slots');
 
     // Re-render once data arrives (update() is defined in app.js)
     if (typeof update === 'function') update();
     if (typeof _notifEvaluate === 'function') _notifEvaluate();
+
+    // Defensive: explicitly refresh every surface that reads weather.
+    // update() drives all of these via syncFts() etc., but on first
+    // load there's a race where the initial update() ran before
+    // weather and update()-triggered syncFts may not repopulate the
+    // FTS popup body (compact state stays clear of weather icon /
+    // temp / wind). Calling the surfaces directly here makes the
+    // first-render-with-weather deterministic.
+    try {
+      const h = (typeof timeFromEl !== 'undefined' && timeFromEl) ? parseFloat(timeFromEl.value) : null;
+      if (h != null && Number.isFinite(h)) {
+        if (typeof updateHeaderWxChip === 'function') updateHeaderWxChip(h);
+        if (typeof showFtsPopup === 'function' && document.body.classList.contains('fts')) showFtsPopup(h);
+      }
+      if (typeof updateDateWeatherStrip === 'function') updateDateWeatherStrip();
+      if (typeof updateSunSectionBar === 'function') updateSunSectionBar();
+      if (typeof renderDateCalendar === 'function') renderDateCalendar();
+    } catch (e) { console.warn('[weather] post-load refresh error:', e.message); }
+
+    // Notify any listeners outside the well-known set (no-op if none).
+    window.dispatchEvent(new CustomEvent('weather-ready', { detail: { size: data.size } }));
   } catch (err) {
     console.warn('Weather fetch failed:', err.message);
   } finally {
