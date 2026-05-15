@@ -4309,6 +4309,10 @@
     /* Stage 4b-1: Profile panel uses the same bottom-sheet shape on mobile
        as on desktop. No mobile-specific position override needed — base
        rule handles it. */
+    /* Stage 4b-1: Sub-view header bar. No solid background or backdrop
+       blur — the sheet itself provides those; a second layer on top
+       reads as a separate slab. Just the close/back button + title
+       floating on the sheet glass. */
     .profile-panel-mobile-bar {
       position: sticky;
       top: 0;
@@ -4316,27 +4320,24 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: calc(env(safe-area-inset-top, 0px) + 10px) 12px 10px;
-      background:
-        linear-gradient(135deg, rgba(20,46,82,0.40), rgba(32,73,131,0.22)),
-        rgba(20,46,82,0.96);
-      backdrop-filter: blur(14px) saturate(170%);
-      -webkit-backdrop-filter: blur(14px) saturate(170%);
-      border-bottom: 1px solid rgba(156,189,231,0.12);
+      padding: 12px 12px 8px;
+      background: none;
+      border-bottom: none;
     }
     .profile-panel-mobile-back {
-      background: rgba(156,189,231,0.14);
-      border: none;
+      background: var(--glass-action-bg);
+      border: var(--glass-border);
+      box-shadow: var(--glass-inset);
       border-radius: 50%;
-      width: 36px; height: 36px;
+      width: 34px; height: 34px;
       display: flex; align-items: center; justify-content: center;
       color: var(--text);
       cursor: pointer;
       flex-shrink: 0;
     }
-    .profile-panel-mobile-back:hover { background: rgba(156,189,231,0.22); }
+    .profile-panel-mobile-back:hover { background: rgba(155,169,188,0.22); }
     .profile-panel-mobile-title {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 600;
       color: var(--text);
       letter-spacing: -0.01em;
@@ -5305,17 +5306,20 @@
   }
 
   .pending-badge {
+    /* Honey-dim pill — matches the badge pattern across the redesign
+       (count badges on bell, friend requests, pending suggestions). */
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: var(--accent);
-    color: #142E52;
+    background: var(--accent-dim);
+    color: var(--accent);
+    border: 1px solid var(--accent-border);
     border-radius: 10px;
     font-size: 11px;
-    font-weight: 700;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 5px;
+    font-weight: 600;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 7px;
     margin-left: auto;
   }
 
@@ -5340,27 +5344,35 @@
     font-size: 13px;
     color: var(--text);
   }
+  /* Segmented control — single container with inset background, the
+     individual buttons sit inside without their own chrome. Active
+     button gets the honey-dim treatment. */
   .profile-pref-pills {
-    display: flex;
-    gap: 4px;
+    display: inline-flex;
+    background: rgba(7,16,31,0.40);
+    border: 1px solid rgba(155,169,188,0.20);
+    border-radius: 10px;
+    padding: 2px;
+    gap: 0;
   }
   .pref-pill {
     font-family: 'Inter', sans-serif;
     font-size: 12px;
     font-weight: 600;
-    padding: 3px 10px;
-    border-radius: 6px;
-    border: 1px solid rgba(156,189,231,0.25);
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: none;
     background: transparent;
     color: var(--muted);
     cursor: pointer;
-    transition: background 0.12s, color 0.12s, border-color 0.12s;
+    min-width: 32px;
+    transition: background 0.12s, color 0.12s;
   }
-  .pref-pill:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+  .pref-pill:hover { color: var(--text); }
   .pref-pill.active {
-    background: rgba(255,175,133,0.15);
-    border-color: rgba(255,175,133,0.5);
+    background: var(--accent-dim);
     color: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--accent-border);
   }
   .profile-pref-desc {
     font-size: 11px;
@@ -5451,11 +5463,19 @@
     color: var(--muted);
     padding: 0 6px 6px;
   }
+  /* Stage 4b-2: settings-group as a Tier 2 lens object (was --card-bg
+     legacy). Layered shadow gives it a card silhouette inside the
+     sheet without competing with the panel's own glass. */
   .settings-group {
-    background: var(--card-bg);
-    border: var(--glass-border);
-    border-radius: 12px;
+    background: var(--glass-card-bg);
+    border: 1px solid rgba(155,169,188,0.22);
+    border-radius: 14px;
     overflow: hidden;
+    box-shadow:
+      inset 0 1px 0 rgba(255,250,235,0.10),
+      inset 0 -1px 0 rgba(15,30,55,0.30),
+      0 1px 2px rgba(0,0,0,0.18),
+      0 4px 14px rgba(0,0,0,0.22);
   }
   .settings-row {
     display: flex;
@@ -5505,10 +5525,12 @@
     flex-shrink: 0;
     opacity: 0.7;
   }
-  .settings-row.destructive { color: #ff8a8a; }
+  /* Stage 4b-2: destructive soft red (was bright #ff8a8a). Reads as
+     "danger" without yelling. */
+  .settings-row.destructive { color: #E47B7B; }
   .settings-row.destructive .settings-row__icon,
-  .settings-row.destructive .settings-row__chevron { color: #ff8a8a; }
-  .settings-row.destructive:hover { background: rgba(255,107,107,0.06); }
+  .settings-row.destructive .settings-row__chevron { color: #E47B7B; }
+  .settings-row.destructive:hover { background: rgba(228,123,123,0.06); }
 
   /* Identity card variant — full bleed within group */
   /* Stage 4b-1: Hero identity — centered, 72px avatar, soft honey halo.
