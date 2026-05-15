@@ -48,7 +48,7 @@
 <script defer src="js/i18n.js?v=20260514e"></script>
 <script defer src="js/config.js?v=20260425b"></script>
 <script defer src="js/tokens.js?v=20260509e"></script>
-<script defer src="js/auth.js?v=20260515j"></script>
+<script defer src="js/auth.js?v=20260515k"></script>
 <script defer src="js/login-carousel.js?v=20260428a"></script>
 <script defer src="js/analytics.js"></script>
 <script defer src="js/places.js?v=20260411b"></script>
@@ -1515,18 +1515,47 @@
     border-top: 1px solid rgba(155,169,188,0.10);
   }
   .bd-row:first-of-type { border-top: none; }
-  .bd-row__icon {
+  /* Leading element — 32px slot. Avatar for friend events, line icon
+     for system events. Same width either way so all rows line up. */
+  .bd-row__lead {
     flex-shrink: 0;
-    width: 28px; height: 28px;
-    border-radius: 50%;
-    background: var(--accent-dim);
-    color: var(--accent);
+    width: 32px; height: 32px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
-    border: 1px solid var(--accent-border, rgba(245,194,94,0.42));
   }
+  .bd-row__avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #5C7A9E, #2C4564);
+    color: var(--text);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font: 600 13px/1 'Inter', sans-serif;
+    border: 1px solid rgba(155,169,188,0.22);
+    position: relative;
+    overflow: hidden;
+  }
+  .bd-row__avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .bd-row__avatar-plus {
+    position: absolute;
+    right: -3px; bottom: -3px;
+    background: var(--bg);
+    color: var(--muted);
+    font: 600 9px/1 'Inter', sans-serif;
+    padding: 2px 4px;
+    border-radius: 8px;
+    border: 1px solid rgba(155,169,188,0.30);
+  }
+  .bd-row__sys-icon {
+    color: var(--muted);
+    width: 20px; height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .bd-row__sys-icon svg { width: 18px; height: 18px; }
   .bd-row__body {
     flex: 1 1 auto;
     min-width: 0;

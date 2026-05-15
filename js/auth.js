@@ -1065,6 +1065,35 @@ function _formatTimeAgo(iso) {
   return Math.floor(ms / 86_400_000) + ' d';
 }
 
+// Monochrome line icons for system notifications (weather, suggestion).
+// Feather-style stroke icons, no background tint, no circle — same visual
+// language Linear / Slack / Notion use for system events.
+const _BELL_SYS_ICON = {
+  sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.07" y2="4.93"/></svg>',
+  rain: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="19" x2="8" y2="21"/><line x1="8" y1="13" x2="8" y2="15"/><line x1="16" y1="19" x2="16" y2="21"/><line x1="16" y1="13" x2="16" y2="15"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="12" y1="15" x2="12" y2="17"/><path d="M20 16.58A5 5 0 0018 7h-1.26A8 8 0 104 15.25"/></svg>',
+  bulb: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c0-1 .8-2.43 1.91-3.59A5 5 0 1010 6.69V11"/></svg>',
+  wind: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.59 4.59A2 2 0 1111 8H2m10.59 11.41A2 2 0 1014 16H2m15.73-8.27A2.5 2.5 0 1119.5 12H2"/></svg>',
+};
+
+function _bellInitial(name) {
+  return ((name || '?').trim()[0] || '?').toUpperCase();
+}
+
+function _bellAvatar(name, extraCount) {
+  const init = _bellInitial(name);
+  const plus = extraCount > 0
+    ? `<span class="bd-row__avatar-plus">+${extraCount}</span>` : '';
+  return `<span class="bd-row__lead">
+    <span class="bd-row__avatar">${init}${plus}</span>
+  </span>`;
+}
+
+function _bellSysLead(iconKey) {
+  return `<span class="bd-row__lead">
+    <span class="bd-row__sys-icon">${_BELL_SYS_ICON[iconKey] || ''}</span>
+  </span>`;
+}
+
 function _renderBellDropdown() {
   const dropdown = document.getElementById('bell-dropdown');
   if (!dropdown) return;
@@ -1074,10 +1103,6 @@ function _renderBellDropdown() {
   const invs = (typeof _planInvites !== 'undefined' && Array.isArray(_planInvites))
     ? _planInvites.filter(i => i.status === 'pending' && i.plan) : [];
 
-  // Build a flat list of entries — each carries a sort time and rendered
-  // markup. Sorted descending so most recent appears at the top, regardless
-  // of category. (Samples use plausible recent timestamps so the user can
-  // see how the order falls out in practice.)
   const NOW = Date.now();
   const entries = [];
 
@@ -1088,9 +1113,9 @@ function _renderBellDropdown() {
       t: new Date(r.requestedAt || r.created_at || NOW).getTime(),
       html: `
         <div class="bd-row" id="bd-req-${r.friendshipId}">
-          <span class="bd-row__icon">👤</span>
+          ${_bellAvatar(name)}
           <div class="bd-row__body">
-            <div class="bd-row__msg"><strong>${name}</strong> vil bli venn.</div>
+            <div class="bd-row__msg"><strong>${name}</strong> ønsker å bli venn.</div>
             <div class="bd-row__meta">${_formatTimeAgo(r.requestedAt || r.created_at)}</div>
             <div class="bd-row__actions">
               <button class="bd-action primary" onclick="_handleAcceptFriendRequest('${r.friendshipId}')">Godta</button>
@@ -1110,7 +1135,7 @@ function _renderBellDropdown() {
       t: new Date(i.created_at || NOW).getTime(),
       html: `
         <div class="bd-row" id="bd-inv-${i.id}">
-          <span class="bd-row__icon">📅</span>
+          ${_bellAvatar(creator)}
           <div class="bd-row__body">
             <div class="bd-row__msg"><strong>${creator}</strong> inviterer deg til <strong>${venue}</strong>${time ? ' kl ' + time : ''}.</div>
             <div class="bd-row__meta">${_formatTimeAgo(i.created_at)}</div>
@@ -1123,49 +1148,50 @@ function _renderBellDropdown() {
     });
   });
 
-  // ── Sample rows covering every notification type the system has ──────
-  // Each click closes the bell and demos the route the live version would
-  // take. Times are spread over the last day so the chronological order
-  // reads naturally.
+  // ── Samples covering every notification type the system has ──────────
+  // Friend events get an avatar (real friend or initials). System events
+  // get a small monochrome line icon — no circle, no emoji.
   const samples = [
-    // social_friends_at — friends are currently at a venue
-    { mins: 8, icon: '👋',
+    // social_friends_at — multiple friends at a venue
+    { mins: 8, lead: _bellAvatar('Anna', 1),
       msg: '<strong>Anna</strong> og <strong>Marius</strong> er på <strong>Hummus &amp; Wine</strong>.',
       action: "_bellSampleNav('venue', 'Hummus & Wine')" },
-    // social_checkin — friend just checked in
-    { mins: 24, icon: '📍',
+    // social_checkin — single friend just checked in
+    { mins: 24, lead: _bellAvatar('Marius'),
       msg: '<strong>Marius</strong> sjekket inn på <strong>Mathallen</strong>.',
       action: "_bellSampleNav('venue', 'Mathallen')" },
     // social_invite_accepted — friend accepted your plan invite
-    { mins: 47, icon: '✓',
+    { mins: 47, lead: _bellAvatar('Anna'),
       msg: '<strong>Anna</strong> sa ja til planen din på <strong>Lekteren</strong>.',
       action: "_bellSampleNav('plan', 'Lekteren')" },
-    // social_friend_plan — friend made a plan you could join
-    { mins: 95, icon: '🗓',
-      msg: '<strong>Lars</strong> planlegger <strong>Vinland</strong> kl 19:00.',
+    // social_friend_plan — reminder: you have a plan today with a friend
+    // (You're invited to it. Plans are private to creator + invitees;
+    // friends don't see plans they're not part of.)
+    { mins: 95, lead: _bellAvatar('Lars'),
+      msg: 'Plan med <strong>Lars</strong> i dag på <strong>Vinland</strong> kl 19:00.',
       action: "_bellSampleNav('plan', 'Vinland')" },
     // weather — sun opening at a venue
-    { mins: 145, icon: '☀',
+    { mins: 145, lead: _bellSysLead('sun'),
       msg: 'Sol åpner på <strong>Nedre Foss Gård</strong> kl 17:00.',
       action: "_bellSampleNav('venue', 'Nedre Foss Gård')" },
     // social_invite_declined — friend declined your plan
-    { mins: 220, icon: '✕',
+    { mins: 220, lead: _bellAvatar('Sara'),
       msg: '<strong>Sara</strong> sa nei til planen på <strong>Michaels</strong>.',
       action: "_bellSampleNav('plan', 'Michaels')" },
     // suggestion — lunch suggestion
-    { mins: 340, icon: '💡',
+    { mins: 340, lead: _bellSysLead('bulb'),
       msg: 'Prøv <strong>Mathallen</strong> til lunsj — sol fra 12:00.',
       action: "_bellSampleNav('venue', 'Mathallen')" },
     // weather — rain warning
-    { mins: 480, icon: '🌧',
+    { mins: 480, lead: _bellSysLead('rain'),
       msg: 'Regn forventet kl 14:00 i dag.',
       action: "_bellSampleNav('weather', null)" },
     // suggestion — sheltered alternative
-    { mins: 720, icon: '💨',
+    { mins: 720, lead: _bellSysLead('wind'),
       msg: 'Vind i dag — prøv <strong>Lekteren</strong> for ly.',
       action: "_bellSampleNav('venue', 'Lekteren')" },
-    // social — new friend connection
-    { mins: 1440, icon: '🎉',
+    // new friend connection
+    { mins: 1440, lead: _bellAvatar('Henrik'),
       msg: 'Du og <strong>Henrik</strong> er nå venner.',
       action: "_bellSampleNav('friends', null)" },
   ];
@@ -1176,7 +1202,7 @@ function _renderBellDropdown() {
       t: ts,
       html: `
         <div class="bd-row bd-row--clickable bd-row--sample" onclick="${s.action}">
-          <span class="bd-row__icon">${s.icon}</span>
+          ${s.lead}
           <div class="bd-row__body">
             <div class="bd-row__msg">${s.msg}</div>
             <div class="bd-row__meta">${_formatTimeAgo(new Date(ts).toISOString())}</div>
@@ -1185,7 +1211,6 @@ function _renderBellDropdown() {
     });
   });
 
-  // Chronological: newest first
   entries.sort((a, b) => b.t - a.t);
 
   if (!entries.length) {
