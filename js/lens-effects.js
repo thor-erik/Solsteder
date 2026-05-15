@@ -199,6 +199,11 @@
     if (card.dataset.lensFx === '1') return;
     card.dataset.lensFx = '1';
 
+    // Smaller controls (filter pills, sort buttons) get half-magnitude tilt —
+    // 12° on a 32px pill looks cartoonish.
+    const isPill = card.matches('.panel-filter-pill, .sort-btn');
+    const tiltMax = isPill ? 6 : 12;
+
     let raf = null, mx = 50, my = 50, rx = 0, ry = 0;
     const update = () => {
       card.style.setProperty('--mx', mx + '%');
@@ -207,7 +212,7 @@
         card.style.transform = `perspective(800px) rotateX(${rx}deg) rotateY(${ry}deg)`;
       }
       if (!reduce) {
-        const rxN = rx / 12, ryN = ry / 12;
+        const rxN = rx / tiltMax, ryN = ry / tiltMax;
         card.style.setProperty('--rim-top',    Math.max(0,  rxN).toFixed(2));
         card.style.setProperty('--rim-bottom', Math.max(0, -rxN).toFixed(2));
         card.style.setProperty('--rim-left',   Math.max(0, -ryN).toFixed(2));
@@ -222,8 +227,8 @@
       const py = (e.clientY - r.top)  / r.height;
       mx = px * 100; my = py * 100;
       if (!reduce) {
-        ry = (px - 0.5) * 12;
-        rx = (0.5 - py) * 12;
+        ry = (px - 0.5) * tiltMax;
+        rx = (0.5 - py) * tiltMax;
         if (isScrolling(card)) {
           card.classList.remove('lens-fx-tilting');
           card.style.transform = 'perspective(800px) rotateX(0deg) rotateY(0deg)';
@@ -266,9 +271,10 @@
   }
 
   // All Tier-2 lens objects get the motion stack. Selector matches the CSS
-  // rule for body[data-fx] in index.html.
+  // rule for body[data-fx] in index.html. Filter / sort pills opt in too —
+  // smaller magnitude is handled per-element in wireCard.
   const TIER2_SELECTOR =
-    '.venue-card, .dp-card, .dp-action-card, .dpacc-action-card';
+    '.venue-card, .dp-card, .dp-action-card, .dpacc-action-card, .panel-filter-pill, .sort-btn';
 
   function wireAll() {
     document.querySelectorAll(TIER2_SELECTOR).forEach(wireCard);
@@ -283,10 +289,10 @@
     const detailPanel = document.getElementById('detail-panel');
     if (detailPanel) attachScrollGate(detailPanel);
 
-    // Watch both list (where venue cards re-render on slider tick / sort)
-    // AND detail panel (where dp-card etc. mount when detail opens).
+    // Watch list, panel (filter pills live here), and detail panel.
     const obs = new MutationObserver(() => wireAll());
     obs.observe(list, { childList: true, subtree: false });
+    if (panel) obs.observe(panel, { childList: true, subtree: true });
     if (detailPanel) obs.observe(detailPanel, { childList: true, subtree: true });
     wireAll();
 

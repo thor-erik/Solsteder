@@ -818,14 +818,23 @@ function _populateFtsEvents() {
     segEnd:   seg.end,
   }));
 
-  // Current thumb hour — raw during drag, snapped otherwise. Used to
-  // hide the icon in whichever segment the thumb is currently over so
-  // the two visuals don't fight for the same space.
+  // Current thumb hour — raw during drag, snapped otherwise. Used to fade
+  // only the icon in the thumb's current segment (not crossing boundaries),
+  // so the icon vanishes only as the thumb passes directly over it.
   const thumbVisualH = (typeof window._ftsRawHour === 'number')
     ? window._ftsRawHour
     : (typeof timeFromEl !== 'undefined' && timeFromEl ? parseFloat(timeFromEl.value) : null);
-  const isUnderThumb = (e) => Number.isFinite(thumbVisualH) &&
-    thumbVisualH >= e.segStart && thumbVisualH < e.segEnd;
+  // Returns opacity 0..1. Icons in adjacent segments stay fully opaque;
+  // within the active segment, opacity ramps linearly from 0 (centered
+  // under thumb) to 1 (at segment edges).
+  const opacityFor = (e) => {
+    if (!Number.isFinite(thumbVisualH)) return 1;
+    if (thumbVisualH < e.segStart || thumbVisualH >= e.segEnd) return 1;
+    const halfSeg = (e.segEnd - e.segStart) / 2;
+    if (halfSeg <= 0) return 0;
+    const dist = Math.abs(thumbVisualH - e.hour);
+    return Math.min(1, dist / halfSeg);
+  };
 
   const pctFor = (e) => {
     const x = ((e.hour - MIN_H_ARC) / (MAX_H_ARC - MIN_H_ARC)) * 100;
@@ -841,7 +850,7 @@ function _populateFtsEvents() {
   if (sameSequence) {
     events.forEach((e, i) => {
       existing[i].style.left = pctFor(e) + '%';
-      existing[i].classList.toggle('fts-event-under-thumb', isUnderThumb(e));
+      existing[i].style.opacity = opacityFor(e);
     });
     return;
   }
@@ -854,8 +863,8 @@ function _populateFtsEvents() {
     node.className = 'fts-event';
     node.dataset.key = e.segKey;
     node.style.left  = pctFor(e) + '%';
+    node.style.opacity = opacityFor(e);
     node.innerHTML   = glyph + '<div class="fts-event-tick"></div>';
-    if (isUnderThumb(e)) node.classList.add('fts-event-under-thumb');
     host.appendChild(node);
   }
 }
@@ -3560,6 +3569,10 @@ function closeDetailPanel(expandList = true) {
     if (idx !== -1) VENUES.splice(idx, 1);
 
     selectedId = null;
+    // Clear stale hover so the suppressed-while-selected hover ring doesn't
+    // re-appear on the just-closed pin.
+    highlight.id = null;
+    highlight.source = null;
     _frozenBounds  = null;
     clearSpriteCache();
     draw();

@@ -58,7 +58,7 @@
 <script defer src="js/weather.js?v=20260514b"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260515r"></script>
+<script defer src="js/app.js?v=20260515s"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
@@ -75,7 +75,7 @@
 <script defer src="js/osm.js?v=20260513a"></script>
 <script defer src="js/notifications.js?v=20260515d"></script>
 <script defer src="js/push.js?v=20260514b"></script>
-<script defer src="js/lens-effects.js?v=20260510a"></script>
+<script defer src="js/lens-effects.js?v=20260515a"></script>
 <script defer src="js/init.js?v=20260427a"></script>
 <style>
   /* Inter — inlined latin + latin-ext @font-face (eliminates Google Fonts CSS round-trip) */
@@ -1158,6 +1158,9 @@
   }
   #top-strip .ts-date.active .ts-chev { color: var(--accent); transform: rotate(180deg); }
   #top-strip .ts-center .ts-dot { color: rgba(155,169,188,0.4); font-weight: 400; }
+  /* Date and weather icon read as a pair — pull the icon tighter against
+     the date button (no dot separator between them, unlike temp/wind). */
+  #top-strip .ts-center .ts-date + .ts-wx-icon { margin-left: -2px; }
   #top-strip .ts-center .ts-wx-icon { font-size: 15px; line-height: 1; }
   #top-strip .ts-center .ts-meta { color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums; }
 
@@ -1333,13 +1336,30 @@
     align-items: center;
     gap: 4px;
     -webkit-tap-highlight-color: transparent;
-    transition: background 120ms, border-color 120ms, color 120ms;
+    transform-origin: center;
+    transition: background 120ms, border-color 120ms, color 120ms,
+                transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    will-change: transform;
   }
   .panel-filter-pill:hover { color: var(--accent); border-color: rgba(245,194,94,0.32); }
   .panel-filter-pill.active {
-    background: var(--accent-dim);
-    border-color: rgba(245,194,94,0.42);
+    background: rgba(245,194,94,0.18);
+    border-color: var(--accent);
     color: var(--accent);
+  }
+  /* Clear residual mouse-focus ring after click; keyboard focus still shows. */
+  .panel-filter-pill:focus { outline: none; }
+  .panel-filter-pill:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  /* Press feedback (lens-fx) uses fast linear easing during tilt engagement. */
+  body[data-fx] .panel-filter-pill.lens-fx-tilting {
+    transition: transform 0.05s linear,
+                background 120ms, border-color 120ms, color 120ms;
+  }
+  body[data-fx] .panel-filter-pill.lens-fx-rippling {
+    animation: lens-fx-click-hint 0.45s ease-out;
   }
   #panel-actions-sort {
     flex-shrink: 0;
@@ -1717,7 +1737,7 @@
       transform: translateX(-50%) translateY(0);
     }
     #notif-toast {
-      border-radius: 12px;
+      border-radius: 16px;
       margin-bottom: 0;
     }
     /* Move notification to very top when detail panel is open OR
@@ -2048,12 +2068,11 @@
     filter: drop-shadow(0 0 2px rgba(15, 27, 42, 0.85))
             drop-shadow(0 0 1px rgba(15, 27, 42, 0.85));
     transition: left 320ms cubic-bezier(0.32, 0.72, 0, 1),
-                opacity 180ms ease;
+                opacity 80ms linear;
   }
-  /* Icon hides when the thumb is in its segment — the thumb's own
-     in-circle glyph takes over the read for that slice, so the bar
-     icon would just duplicate / fight for space under the disc. */
-  .fts-event.fts-event-under-thumb { opacity: 0; }
+  /* Opacity is now driven inline (style.opacity) by _populateFtsEvents:
+     within-segment proximity fade — 0 directly under thumb, 1 at segment
+     edges, 1 in adjacent segments. */
   .fts-event svg {
     display: block;
     width: 14px;
@@ -2265,11 +2284,11 @@
     align-items: center;
     gap: 0;
     padding: 4px 5px;
-    /* Same glass recipe as the venue-list panel (.glass-panel) — same tokens
-       end-to-end so the popup reads as part of the panel system. */
-    background: var(--glass-panel-bg);
-    backdrop-filter: var(--glass-blur-panel);
-    -webkit-backdrop-filter: var(--glass-blur-panel);
+    /* Tier-2 card surface — solid enough that the time + weather text
+       reads cleanly without competing with the map underneath. */
+    background: var(--glass-card-bg);
+    backdrop-filter: var(--glass-blur-card);
+    -webkit-backdrop-filter: var(--glass-blur-card);
     border: var(--glass-border);
     border-radius: 10px;
     box-shadow:
@@ -2319,7 +2338,7 @@
     pointer-events: none;
   }
   #fts-popup-tail polygon {
-    fill: rgba(26,44,66,0.42);
+    fill: rgba(26,44,66,0.78);
   }
   #fts-popup.fts-popup-below {
     bottom: auto;
@@ -2868,14 +2887,16 @@
       top: calc(70px + var(--notif-h, 0px) + 8px);
     }
   }
-  /* Notification toast — pill-shaped on a lighter glass surface so it feels
-     distinct from the search bar without competing for visual weight. Swipe
-     up / left / right to dismiss (handled in notifications.js). */
+  /* Notification toast — rounded glass banner that wraps cleanly to 2
+     lines for longer messages. Same Tier-3 surface as before; the shape
+     change (pill → rounded rect) is what makes multi-line content read
+     as designed instead of a ballooning pill. Swipe up / left / right
+     to dismiss (handled in notifications.js). */
   #notif-toast {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 8px 14px;
+    padding: 12px 14px;
     margin-bottom: 0;
     background:
       linear-gradient(180deg, rgba(255,242,235,0.06) 0%, rgba(255,242,235,0) 100%),
@@ -2883,7 +2904,7 @@
     backdrop-filter: var(--glass-blur-action);
     -webkit-backdrop-filter: var(--glass-blur-action);
     border: 1px solid rgba(255,175,133,0.22);
-    border-radius: 999px;  /* full pill, like the search bar */
+    border-radius: 16px;  /* card-shape, matches venue cards / dp-cards */
     box-shadow:
       var(--glass-inset),
       0 6px 18px rgba(0,0,0,0.28);
@@ -2907,8 +2928,18 @@
   .notif-toast-icon svg { width: 18px; height: 18px; display: block; }
   .notif-toast-content { flex: 1; min-width: 0; cursor: pointer; }
   /* Bolder + slightly bigger so notifications read as actionable
-     content, not whispered status text. */
-  .notif-toast-body { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.3; }
+     content, not whispered status text. Cap at 2 lines — long messages
+     truncate with ellipsis instead of growing the banner unboundedly. */
+  .notif-toast-body {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
   /* CTA — primary pill (matches .p-pill design-system token, sized down for
      the toast). Solid accent background reads unmistakably as clickable. */
   .notif-toast-action {
@@ -3330,14 +3361,32 @@
     font-weight: 500;
     padding: 11px 14px;
     cursor: pointer;
-    transition: all 0.12s;
+    transition: color 0.12s, background 0.12s,
+                transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
     white-space: nowrap;
     text-align: left;
     width: 100%;
     -webkit-tap-highlight-color: transparent;
+    transform-origin: center;
+    will-change: transform;
   }
   .sort-btn:hover:not(.active) { color: var(--muted); background: rgba(156,189,231,0.10); }
-  .sort-btn.active { background: rgba(255,175,133,0.14); color: var(--accent); font-weight: 600; }
+  .sort-btn.active {
+    background: rgba(245,194,94,0.18);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .sort-btn:focus { outline: none; }
+  .sort-btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  body[data-fx] .sort-btn.lens-fx-tilting {
+    transition: transform 0.05s linear, color 0.12s, background 0.12s;
+  }
+  body[data-fx] .sort-btn.lens-fx-rippling {
+    animation: lens-fx-click-hint 0.45s ease-out;
+  }
   #sort-toggle-btn {
     display: flex;
     align-items: center;
@@ -10646,7 +10695,6 @@
           <path d="M6 9l6 6 6-6"/>
         </svg>
       </button>
-      <span class="ts-dot ts-glyph-dot">·</span>
       <span class="ts-wx-icon" id="ts-wx-icon">☀</span>
       <span class="ts-dot ts-temp-dot">·</span>
       <span class="ts-meta ts-temp" id="ts-temp">13°</span>
