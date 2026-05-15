@@ -6709,11 +6709,22 @@ function _introCheckReady() {
                 .from('profiles').select('name, email').eq('id', friendUserId).single();
               if (prof) senderName = (prof.name || prof.email || '').split('@')[0];
             } catch (e) { /* ignore — toast falls back to generic copy */ }
-            await _supabase.from('friendships').upsert({
-              user_id:   friendUserId,
-              friend_id: user.id,
-              status:    'accepted',
-            }, { onConflict: 'user_id,friend_id' });
+            const { data: upsertData, error: upsertErr } = await _supabase
+              .from('friendships')
+              .upsert({
+                user_id:   friendUserId,
+                friend_id: user.id,
+                status:    'accepted',
+              }, { onConflict: 'user_id,friend_id' })
+              .select();
+            if (upsertErr) {
+              console.warn('[friend-invite] upsert failed:', upsertErr.message, upsertErr);
+              // Bail out without showing a misleading "now friends" toast.
+              window._pendingFriendInvite = null;
+              history.replaceState(null, '', location.pathname);
+              return;
+            }
+            console.info('[friend-invite] upserted', upsertData);
             if (typeof _dismissFriendInviteWelcomeIfOpen === 'function') {
               _dismissFriendInviteWelcomeIfOpen();
             }
