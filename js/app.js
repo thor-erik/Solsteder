@@ -825,11 +825,11 @@ function _populateFtsEvents() {
     ? window._ftsRawHour
     : (typeof timeFromEl !== 'undefined' && timeFromEl ? parseFloat(timeFromEl.value) : null);
   // Returns opacity 0..1. Icons in adjacent segments stay fully opaque.
-  // Within the active segment: 0 inside ±1 h of the thumb (fully clear so
-  // the thumb's own glyph reads), ramps from 0 → 1 between ±1 h and ±2 h,
-  // 1 beyond ±2 h.
-  const FADE_INNER_H = 1;  // fully transparent inside this radius
-  const FADE_OUTER_H = 2;  // fully opaque outside this radius
+  // Within the active segment: 0 inside ±2 h of the thumb (fully clear so
+  // the thumb's own glyph reads), ramps from 0 → 1 between ±2 h and ±3 h,
+  // 1 beyond ±3 h.
+  const FADE_INNER_H = 2;  // fully transparent inside this radius
+  const FADE_OUTER_H = 3;  // fully opaque outside this radius
   const opacityFor = (e) => {
     if (!Number.isFinite(thumbVisualH)) return 1;
     if (thumbVisualH < e.segStart || thumbVisualH >= e.segEnd) return 1;
@@ -1164,6 +1164,23 @@ function setFtsPopupExpanded(expanded) {
   const popup = document.getElementById('fts-popup');
   if (!popup) return;
   popup.classList.toggle('fts-popup-expanded', !!expanded);
+  // The compact↔expanded morph runs as a 180 ms CSS transition on the
+  // popup's padding / border-radius / secondary-row max-height, which
+  // changes popupW continuously. showFtsPopup recomputes the tail tip
+  // from popupW, but it's only normally called on slider input — so on
+  // shrink-back the tail's last-set polygon (sized for the wide popup)
+  // floats to the right of the now-compact body. Drive showFtsPopup per
+  // frame for the duration of the morph so the tail tracks.
+  const startTs = performance.now();
+  const tick = (now) => {
+    if (typeof timeFromEl !== 'undefined' && timeFromEl) {
+      const h = (typeof window._ftsRawHour === 'number')
+        ? window._ftsRawHour : parseFloat(timeFromEl.value);
+      showFtsPopup(h);
+    }
+    if (now - startTs < 220) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
 }
 
 /** Hide the floating time label. (Retained for API compatibility — the label
