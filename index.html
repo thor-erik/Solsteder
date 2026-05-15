@@ -1177,6 +1177,17 @@
      hide #top-strip when the JS applies/removes those classes — same as
      it does for #floating-search. No extra CSS needed. */
 
+  /* ── Panel header cleanup (Stage 2a) ──────────────────────────────────
+     The date chip + weather chip line and the prose sun-outlook line are
+     redundant with the new top strip (date + weather) and FTS (hourly
+     forecast). Hide the whole #day-header so the venue list starts cleanly.
+     The sort button lived inside #sun-section-bar — it'll come back in
+     Stage 2c as part of the action row. Sort still works via the inbuilt
+     keyboard shortcut + future filter row. Hidden, not removed: paint
+     functions (updateHeaderDateChip / updateDateWeatherStrip / etc.) keep
+     running into these DOM nodes without breaking. */
+  #day-header { display: none; }
+
   /* ── Cold-link friend-invite welcome card ──────────────────────────────── */
   .friend-invite-welcome {
     position: fixed;
