@@ -58,7 +58,7 @@
 <script defer src="js/weather.js?v=20260514b"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260515c"></script>
+<script defer src="js/app.js?v=20260515d"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
@@ -1586,74 +1586,30 @@
   }
   #floating-brand #brand-logo { margin-right: 2px; }
 
-  /* ── Floating time slider — round 12 ─────────────────────────────────────── */
-  /* Pill container: position:fixed, bottom tracks panel top edge via --fts-bottom */
+  /* ── Time slider — Stage 2b: child of #panel, normal flow ─────────────────
+     Was a position:fixed top-level element; now lives inside the panel
+     header (after #panel-handle). The date button is gone — the top
+     strip's date link is the only date picker entry point. */
   #fts {
     display: none;  /* hidden by default; shown by body.fts */
   }
   body.fts #fts {
     display: flex;
-    position: fixed;
-    /* Desktop: centered in the map area via JS-set --fts-left, capped at 480px */
-    left: var(--fts-left, 368px);
-    right: auto;
-    bottom: 16px;
-    width: var(--fts-width, 480px);
-    z-index: 925;
-    height: 40px;          /* taller for readability — weather bands + hour labels need room */
+    position: relative;
+    margin: 6px 12px 10px;
+    height: 40px;
     align-items: center;
     gap: 8px;
     padding: 0;
-    /* No pill background — children float independently */
     background: none;
     border: none;
     box-shadow: none;
-    transition: left 0.28s ease, width 0.28s ease, bottom 0.35s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.22s ease, transform 0.22s ease;
-    will-change: left, bottom;
+    /* No transition on positional props — FTS no longer animates between
+       fixed positions. Opacity still transitions for intro reveal. */
+    transition: opacity 0.22s ease;
   }
-  /* The FTS pill stays in document.body — its position is shifted via --fts-bottom
-     when the detail panel opens. */
-
-  /* Floating date pill: hidden by default, animates in when detail panel is open.
-     Positioned absolute so the slider keeps full width when the pill is offscreen. */
-  body.fts #fts-date-btn {
-    position: absolute;
-    left: 0; top: 50%;
-    width: 40px; height: 40px;
-    padding: 0;
-    border-radius: 50%;
-    background: var(--glass-action-bg);
-    backdrop-filter: var(--glass-blur-action);
-    -webkit-backdrop-filter: var(--glass-blur-action);
-    border: var(--glass-border);
-    box-shadow: var(--glass-inset);
-    color: var(--text);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    -webkit-tap-highlight-color: transparent;
-    outline: none;
-    opacity: 0;
-    transform: translateY(-50%) translateX(-12px);
-    pointer-events: none;
-    transition: opacity 0.22s ease, transform 0.22s ease, background 0.15s, border-color 0.15s;
-  }
-  body.fts #fts-date-btn:hover { background: rgba(20,46,82,0.60); border-color: rgba(156,189,231,0.30); }
-  body.fts #fts-date-btn.active { border-color: rgba(245,194,94,0.45); color: var(--accent); }
-  body.fts #fts-date-btn.active .fts-cal-icon { color: var(--accent); }
-  body.fts #fts-date-btn .fts-cal-icon { color: var(--muted); }
   body.fts #fts-track {
-    transition: margin-left 0.22s ease, background 0.15s;
-  }
-  body:has(#detail-panel.open) #fts-date-btn {
-    opacity: 1;
-    transform: translateY(-50%) translateX(0);
-    pointer-events: auto;
-  }
-  body:has(#detail-panel.open) #fts-track {
-    margin-left: calc(40px + 8px);  /* button + gap */
+    transition: background 0.15s;
   }
 
   /* Slider track — canvas fills remaining width. Borderless. The
@@ -2095,28 +2051,15 @@
   /* When calendar picker is open: mark date button active, FTS stays fully visible */
   #fts.fts-cal-open #fts-popup { opacity: 0; pointer-events: none; transition: opacity 180ms ease-out; }
 
-  /* Expanded: list bottom padding so last cards clear the pill sitting above panel */
-  body.fts #panel.mobile-expanded #venue-list {
-    padding-bottom: 72px !important;  /* 48 pill + 12 gap + 12 breathing */
-  }
-
-  /* Fullscreen: handle is slim (just safe-area + grabber). The FTS sits
-     below the chip row (a margin-bottom on #list-sun-header reserves the
-     space the floating slider visually occupies). */
+  /* Stage 2b: FTS lives inside the panel now, so the cards no longer need
+     bottom padding to clear a floating pill, the fullscreen header no
+     longer needs margin-bottom to reserve space, and the fullscreen
+     FTS no longer needs a right-edge override. Fullscreen handle slim
+     style is kept — it's about handle layout, not FTS. */
   body.fts #panel.mobile-fullscreen #panel-handle {
     height: calc(env(safe-area-inset-top, 0px) + 16px + 4px + 14px);
     padding-top: calc(env(safe-area-inset-top, 0px) + 16px);
     padding-bottom: 0;
-  }
-  body.fts #panel.mobile-fullscreen #list-sun-header {
-    /* gap (8) + FTS height (34) + popup gap (6) + popup height (~24)
-       + breathing (8). The popup sits below the FTS in fullscreen
-       (toggleFtsPopupBelow flips it) so the header has to clear it too. */
-    margin-bottom: 80px;
-  }
-  /* Fullscreen: FTS spans full width (locate-me is hidden in this state). */
-  body.fts:has(#panel.mobile-fullscreen) #fts {
-    right: 12px;
   }
 
   /* ── Bottom-center: date pill + sun arc + intent presets ──────────────────── */
@@ -4264,17 +4207,12 @@
 
     #panel-toggle-icon { display: none; }
 
-    /* FTS — mobile full-width. Locate + zoom-jog now stack ABOVE the bar
-       (not to the side), so the slider gets the full viewport width and
-       weather icons inside the bar have room to breathe. */
+    /* FTS — Stage 2b: inside #panel, flow-positioned. Mobile override
+       just resets any leftover fixed-position properties. */
     body.fts #fts {
-      left: 12px; right: 12px;
+      left: auto; right: auto; bottom: auto;
       width: auto;
-      bottom: var(--fts-bottom, 160px);
-      transition: bottom 0.34s cubic-bezier(0.25, 0.9, 0.4, 1);
-      will-change: bottom;
-      padding: 0;
-      gap: 8px;
+      will-change: auto;
     }
 
 
@@ -10414,6 +10352,31 @@
       <div id="panel-handle-pill"></div>
     </div>
 
+    <!-- Time slider — relocated INSIDE the panel header (Stage 2b). The
+         date button is gone; the top-strip date link is the single date
+         picker entry point. -->
+    <div id="fts">
+      <div id="fts-track">
+        <canvas id="fts-canvas"></canvas>
+        <div id="fts-events" aria-hidden="true"></div>
+        <div id="fts-thumb" aria-hidden="true"></div>
+        <div id="fts-popup">
+          <div class="fts-popup-row fts-popup-primary">
+            <span id="fts-popup-time"></span>
+            <span id="fts-popup-wx-icon" aria-hidden="true"></span>
+          </div>
+          <div class="fts-popup-row fts-popup-secondary">
+            <span id="fts-popup-temp"></span>
+            <span class="fts-dot">·</span>
+            <span id="fts-popup-wind"></span>
+            <span id="fts-popup-closed-label"></span>
+          </div>
+          <svg id="fts-popup-tail" aria-hidden="true" preserveAspectRatio="none">
+            <polygon points="0,0 12,0 6,6"/>
+          </svg>
+        </div>
+      </div>
+    </div>
 
     <!-- Day header — unified 2-row composition.
          Row 1: date (tappable) · weather · wind · sort
@@ -10475,55 +10438,7 @@
     <button class="sort-btn"        data-sort="favorites" onclick="setSortBy('favorites')">Favoritter</button>
   </div>
 
-  <!-- Floating time slider (round 12) — outside #panel, tracks panel top edge -->
-  <div id="fts" class="intro-hidden">
-    <button id="fts-date-btn" onclick="toggleQcPanel('date')" aria-label="Velg dato" tabindex="-1">
-      <svg class="fts-cal-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <rect x="1.5" y="3" width="13" height="11.5" rx="2" stroke="currentColor" stroke-width="1.5"/>
-        <line x1="1.5" y1="6.5" x2="14.5" y2="6.5" stroke="currentColor" stroke-width="1.5"/>
-        <line x1="5" y1="1.5" x2="5" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        <line x1="11" y1="1.5" x2="11" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-      </svg>
-    </button>
-    <div id="fts-track">
-      <canvas id="fts-canvas"></canvas>
-      <!-- Event row above the bar — weather-state glyphs at transition
-           hours, each trailing a tick to the bar top. Populated by
-           _populateFtsEvents() in app.js, refreshed when the date /
-           weather / hour-range changes. -->
-      <div id="fts-events" aria-hidden="true"></div>
-      <!-- Thumb: DOM element so it can use backdrop-filter:blur (GPU-cheap,
-           same recipe the panels use), CSS perspective + rotate for true
-           3D tilt, and CSS transitions for the pick-up animation. JS sets
-           the thumb's `left` from the current time and applies the
-           --tilt-x / --tilt-y CSS vars on pointermove. -->
-      <div id="fts-thumb" aria-hidden="true"></div>
-      <!-- Popup lives inside the track so it follows the thumb natively
-           when the track animates (date-pill slide-in shifts margin-left,
-           panel state changes shift the FTS bottom). Position is set as
-           a percentage of the track width — no BCR / offsetLeft math. -->
-      <div id="fts-popup">
-        <div class="fts-popup-row fts-popup-primary">
-          <span id="fts-popup-time"></span>
-          <span id="fts-popup-wx-icon" aria-hidden="true"></span>
-        </div>
-        <div class="fts-popup-row fts-popup-secondary">
-          <span id="fts-popup-temp"></span>
-          <span class="fts-dot">·</span>
-          <span id="fts-popup-wind"></span>
-          <!-- Swaps in for temp/wind when the selected venue is closed
-               at the current hour. Toggled via #fts-popup.is-closed. -->
-          <span id="fts-popup-closed-label"></span>
-        </div>
-        <!-- Tail rendered as SVG so the shoulders can ride the popup's
-             rounded corner curve while the tip continues to point at the
-             thumb's actual x. Geometry recomputed in showFtsPopup. -->
-        <svg id="fts-popup-tail" aria-hidden="true" preserveAspectRatio="none">
-          <polygon points="0,0 12,0 6,6"/>
-        </svg>
-      </div>
-    </div>
-  </div>
+  <!-- (FTS markup moved inside #panel; see Stage 2b.) -->
 </div>
 
 </body>

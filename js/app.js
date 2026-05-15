@@ -143,37 +143,9 @@ function _syncFtsPosition() {
   const dp    = document.getElementById('detail-panel');
   if (!panel) return;
 
-  // ── Desktop: center in map area, capped at 480px ────────────────────
-  if (!isMobile()) {
-    if (!ftsEl) return;
-    // Edit mode: editor banner is centered at the bottom; centre the FTS
-    // horizontally over it. Vertical position comes from the ResizeObserver
-    // via --fts-bottom + the body.edit-mode #fts rule in CSS.
-    if (editingVenueId) {
-      const w = Math.min(480, window.innerWidth - 32);
-      const left = Math.round((window.innerWidth - w) / 2);
-      ftsEl.style.setProperty('--fts-left', left + 'px');
-      ftsEl.style.setProperty('--fts-width', w + 'px');
-      return;
-    }
-    const dpOpen = dp?.classList.contains('open');
-    let mapLeft;
-    if (panelVisible) {
-      mapLeft = dpOpen ? 684 : 368; // 16+336+16 [+300+16]
-    } else {
-      mapLeft = dpOpen ? 332 : 16;  // 16 [+300+16]
-    }
-    const mapRight = 16 + 34 + 8; // right margin + locate-btn (34) + gap (8)
-    const available = window.innerWidth - mapLeft - mapRight;
-    const w = Math.min(480, available);
-    const center = mapLeft + available / 2;
-    const left = Math.round(center - w / 2);
-    ftsEl.style.setProperty('--fts-left', left + 'px');
-    ftsEl.style.setProperty('--fts-width', w + 'px');
-    return;
-  }
-
-  // ── Mobile: --fts-bottom tracks the top edge of the active fts-host ──
+  // Stage 2b: FTS now lives inside #panel as a normal-flow child — no
+  // JS positioning of the FTS itself is needed. Clear any leftover
+  // inline styles from the previous fixed-position implementation.
   if (ftsEl) {
     ftsEl.style.left = '';
     ftsEl.style.removeProperty('--fts-left');
@@ -218,12 +190,11 @@ function _syncFtsPosition() {
   }
   // (When editingVenueId, --fts-bottom is set by the ResizeObserver instead.)
 
-  // Popup stays ABOVE the thumb in all panel states — the user wants
-  // the time label to read like a tooltip pointing down at the thumb,
-  // not floating beneath the slider where it overlaps map content.
-  // (Was flipped below in fullscreen previously — undone.)
+  // Stage 2b: FTS is at the top of the panel header, so the popup
+  // must flip BELOW the thumb — otherwise it extends above the panel
+  // edge and gets clipped by #panel{overflow:hidden}.
   const popup = document.getElementById('fts-popup');
-  if (popup) popup.classList.remove('fts-popup-below');
+  if (popup) popup.classList.add('fts-popup-below');
 
   // Track panel state across calls so we can pan the map in sync with the list
   // when the user just located themselves and is centered on the user dot.
@@ -2665,6 +2636,7 @@ function _closeQcPanel() {
   const calFloat = document.getElementById('ptb-cal-float');
   if (calFloat) {
     calFloat.classList.remove('open');
+    calFloat.style.top = '';
     calFloat.style.bottom = '';
     calFloat.style.left = '';
     calFloat.style.width = '';
@@ -2717,15 +2689,18 @@ function toggleQcPanel(section) {
 
   _qcActiveSection = 'date';
   _navPush('qc');
-  // On desktop, position calendar float above the FTS, matching its width
+  // On desktop, position calendar float BELOW the top-strip date button
+  // (Stage 2b — was anchored above the FTS, which is now inside the panel).
   if (!isMobile() && calFloat) {
-    const ftsEl = document.getElementById('fts');
-    if (ftsEl) {
-      const r = ftsEl.getBoundingClientRect();
-      calFloat.style.top = '';
-      calFloat.style.bottom = (window.innerHeight - r.top + 8) + 'px';
-      calFloat.style.left = r.left + 'px';
-      calFloat.style.width = r.width + 'px';
+    const anchor = document.getElementById('ts-date-btn')
+                || document.getElementById('header-date-chip')
+                || document.getElementById('fts');
+    if (anchor) {
+      const r = anchor.getBoundingClientRect();
+      calFloat.style.bottom = '';
+      calFloat.style.top = (r.bottom + 8) + 'px';
+      calFloat.style.left = Math.max(16, r.left) + 'px';
+      calFloat.style.width = '';  // fall back to CSS default
     }
   }
   calFloat?.classList.add('open');
@@ -4577,12 +4552,10 @@ document.addEventListener('DOMContentLoaded', () => {
               _ftsEl.style.transition = 'none';
               _ftsEl.style.bottom = ftsBottom + 'px';
 
-              // Popup stays above the thumb in all states — see the
-              // ancillary toggle in setFtsBottom/applyPanelLayoutMobile
-              // which is now also pinned to "above" (was: flip below
-              // in fullscreen).
+              // Stage 2b: popup pinned below the thumb (FTS is at the
+              // top of the panel; "above" gets clipped by panel overflow).
               const popup = document.getElementById('fts-popup');
-              if (popup) popup.classList.remove('fts-popup-below');
+              if (popup) popup.classList.add('fts-popup-below');
             }
           }
           // Track locate button + zoom jog with panel during drag.
