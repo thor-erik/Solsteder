@@ -4660,7 +4660,11 @@
       top: auto;
       left: 0;
       right: 0;
-      bottom: 0;
+      /* PWA standalone has no bottom URL bar — that area now shows as
+         dead panel space. Lift by safe-area-inset-bottom so the
+         home-indicator gesture zone shows the map (Safari already
+         returns 0 here, so browser mode is unchanged). */
+      bottom: env(safe-area-inset-bottom, 0px);
       width: 100%;
       height: 50svh;    /* svh = small viewport height: stable, unaffected by toolbar */
       border-radius: 20px 20px 0 0;
