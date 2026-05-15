@@ -10,6 +10,10 @@
 <link rel="icon" href="favicon.ico" sizes="32x32">
 <link rel="icon" href="favicon-192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="167x167" href="apple-touch-icon-167x167.png">
+<link rel="apple-touch-icon" sizes="152x152" href="apple-touch-icon-152x152.png">
+<link rel="apple-touch-icon" sizes="120x120" href="apple-touch-icon-120x120.png">
+<link rel="apple-touch-icon" sizes="76x76"   href="apple-touch-icon-76x76.png">
 <meta name="theme-color" content="#142E52">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -62,7 +66,7 @@
 <script defer src="js/weather.js?v=20260514b"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260515v"></script>
+<script defer src="js/app.js?v=20260515w"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
@@ -729,7 +733,11 @@
     top: 0; left: 0;
     pointer-events: none;
     z-index: 690;
-    will-change: transform;
+    /* No will-change here. iOS Safari GPU-rasterizes a will-change layer
+       at screen DPI rather than the canvas's full DPR, which blurs every
+       pixel of pin text + venue-name halos that we drew at 2× / 3×. The
+       canvas is never actually transformed, so the hint was buying a
+       blur for no benefit. */
     touch-action: none; /* prevent browser-level pinch-zoom; Mapbox handles gestures */
   }
 

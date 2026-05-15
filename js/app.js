@@ -1110,13 +1110,14 @@ function showFtsPopup(hour) {
   const pct    = Math.max(minPct, Math.min(maxPct, rawPct));
   popup.style.left = pct + '%';
 
-  // Tail geometry — always a symmetric isoceles triangle centered under
-  // the popup. Earlier versions tried to "lean" the tip toward the thumb
-  // when the popup was clamped against the viewport, but that created
-  // asymmetric polygons that rode up the corner curve and jumped during
-  // the compact↔expanded morph. Centered is cleaner: when the popup is
-  // clamped, the popup itself sits next to the slider edge, so a centered
-  // tail still reads as "this popup belongs to the nearby thumb."
+  // Tail geometry — anchor-and-shift (YouTube scrubber pattern).
+  // The popup body is allowed to clamp against the viewport edge so its
+  // text stays readable, but the tail tip stays locked to the actual
+  // thumb position. When the body shifts away from the thumb, the tail
+  // leans toward the thumb. Shoulders stay on the popup's flat bottom
+  // outline (clamped to a safe range) — no corner-curve riding, so the
+  // polygon stays a clean leaning triangle even during the compact↔
+  // expanded morph.
   const tailSvg = document.getElementById('fts-popup-tail');
   if (tailSvg) {
     const poly = tailSvg.querySelector('polygon');
@@ -1127,13 +1128,28 @@ function showFtsPopup(hour) {
       // thumb with a visible gap.
       const TIP_DEPTH = 10;
 
-      const cx  = popupW / 2;
-      const sLx = cx - TAIL_HALF;
-      const sRx = cx + TAIL_HALF;
+      // tipX = thumb position in popup-local pixels. (rawPct - pct) is the
+      // delta between thumb and popup-center; positive = thumb right of
+      // center.
+      const tailOffsetPx = (rawPct - pct) * trackW / 100;
+      const tipX = popupW / 2 + tailOffsetPx;
+
+      // Shoulder center clamped so both shoulders remain on the popup's
+      // flat bottom outline (avoids the corner-curve area). When the tip
+      // leans hard, shoulders stay anchored at the popup's edge while the
+      // tip continues out toward the thumb.
+      const r = parseFloat(getComputedStyle(popup).borderTopLeftRadius) || 10;
+      const minAttach = TAIL_HALF + r;
+      const maxAttach = popupW - TAIL_HALF - r;
+      const attachX = (maxAttach < minAttach)
+        ? popupW / 2
+        : Math.max(minAttach, Math.min(maxAttach, tipX));
+      const sLx = attachX - TAIL_HALF;
+      const sRx = attachX + TAIL_HALF;
 
       tailSvg.setAttribute('width',  popupW);
       tailSvg.setAttribute('height', TIP_DEPTH);
-      poly.setAttribute('points', `${sLx},0 ${sRx},0 ${cx},${TIP_DEPTH}`);
+      poly.setAttribute('points', `${sLx},0 ${sRx},0 ${tipX},${TIP_DEPTH}`);
     }
   }
 
