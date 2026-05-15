@@ -6019,22 +6019,100 @@ function enterSearchMode() {
   const input = document.getElementById('venue-search');
   if (!strip || !input) return;
   strip.classList.add('searching');
-  // Wait a frame so the input is display:flex before we try to focus.
+  // Kick off the typewriter so users discover what they can search for.
+  // It auto-stops the moment they type anything.
+  _startSearchPlaceholderAnim();
   requestAnimationFrame(() => input.focus());
 }
 
-/** Exit search mode — clears the input, blurs it (which triggers
- *  _exitSearchSession via the blur handler), and collapses the strip. */
+/** Exit search mode — clears the input, blurs it, collapses the strip. */
 function exitSearchMode() {
   const strip = document.getElementById('top-strip');
   const input = document.getElementById('venue-search');
   if (!strip || !input) return;
   input.value = '';
-  // Fire input event so any debounced render clears stale results.
   input.dispatchEvent(new Event('input', { bubbles: true }));
   input.blur();
   strip.classList.remove('searching');
+  _stopSearchPlaceholderAnim();
 }
+
+// ── Search placeholder typewriter ────────────────────────────────────────────
+// Cycles example queries through the placeholder so users discover what
+// they can search for. Pauses while the strip is in search mode (the real
+// placeholder shows then) and while there's any user input.
+const _SEARCH_PLACEHOLDER_EXAMPLES = [
+  'Frogner',
+  'Kafé i sol nå',
+  'Restaurant med 2t+ sol',
+  'Skjermet bar',
+  'Aker brygge',
+];
+const _SEARCH_PH_TYPE_MS   = 70;
+const _SEARCH_PH_HOLD_MS   = 1600;
+const _SEARCH_PH_DELETE_MS = 40;
+const _SEARCH_PH_GAP_MS    = 400;
+let _searchPhTimer = null;
+let _searchPhExampleIdx = 0;
+let _searchPhCharIdx = 0;
+let _searchPhPhase = 'typing';  // typing | holding | deleting | gap
+let _searchPhBaseText = 'Søk etter steder eller områder…';
+
+function _startSearchPlaceholderAnim() {
+  const input = document.getElementById('venue-search');
+  if (!input) return;
+  _stopSearchPlaceholderAnim();
+  if (input.value) return;  // user has typed; don't fight them
+  _searchPhExampleIdx = 0;
+  _searchPhCharIdx = 0;
+  _searchPhPhase = 'typing';
+  _searchPhTick();
+}
+
+function _stopSearchPlaceholderAnim() {
+  if (_searchPhTimer) {
+    clearTimeout(_searchPhTimer);
+    _searchPhTimer = null;
+  }
+  const input = document.getElementById('venue-search');
+  if (input) input.placeholder = _searchPhBaseText;
+}
+
+function _searchPhTick() {
+  const input = document.getElementById('venue-search');
+  if (!input) return;
+  // Bail if user typed something or strip is no longer in search mode.
+  const inSearch = document.getElementById('top-strip')?.classList.contains('searching');
+  if (input.value || !inSearch) {
+    _stopSearchPlaceholderAnim();
+    return;
+  }
+  const example = _SEARCH_PLACEHOLDER_EXAMPLES[_searchPhExampleIdx];
+  if (_searchPhPhase === 'typing') {
+    _searchPhCharIdx++;
+    input.placeholder = example.slice(0, _searchPhCharIdx);
+    if (_searchPhCharIdx >= example.length) _searchPhPhase = 'holding';
+    _searchPhTimer = setTimeout(_searchPhTick,
+      _searchPhPhase === 'holding' ? _SEARCH_PH_HOLD_MS : _SEARCH_PH_TYPE_MS);
+  } else if (_searchPhPhase === 'holding') {
+    _searchPhPhase = 'deleting';
+    _searchPhTimer = setTimeout(_searchPhTick, _SEARCH_PH_DELETE_MS);
+  } else if (_searchPhPhase === 'deleting') {
+    _searchPhCharIdx--;
+    input.placeholder = example.slice(0, _searchPhCharIdx);
+    if (_searchPhCharIdx <= 0) {
+      _searchPhPhase = 'gap';
+      _searchPhExampleIdx = (_searchPhExampleIdx + 1) % _SEARCH_PLACEHOLDER_EXAMPLES.length;
+    }
+    _searchPhTimer = setTimeout(_searchPhTick,
+      _searchPhPhase === 'gap' ? _SEARCH_PH_GAP_MS : _SEARCH_PH_DELETE_MS);
+  } else {
+    _searchPhPhase = 'typing';
+    _searchPhCharIdx = 0;
+    _searchPhTick();
+  }
+}
+
 
 function _enterSearchSession() {
   if (_searchSessionActive) return;

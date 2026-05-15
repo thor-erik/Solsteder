@@ -58,7 +58,7 @@
 <script defer src="js/weather.js?v=20260514b"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260515j"></script>
+<script defer src="js/app.js?v=20260515k"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
@@ -1178,20 +1178,24 @@
      it does for #floating-search. No extra CSS needed. */
 
   /* ── Top strip search mode (Stage 3) ───────────────────────────────────
-     Click search → strip transforms to a full-width input + close (X).
-     Search results dropdown stays as-is, anchored below the strip. */
+     Click search → strip cross-fades into a single search field. The
+     strip itself becomes the field — no pill-in-pill chrome, no border,
+     no inset shadow on the inner element. Cross-fade via opacity so the
+     transition feels smooth (display:none/flex would snap). */
   #top-strip .ts-search-input {
-    display: none;
+    position: absolute;
+    inset: 4px;
+    display: flex;
     align-items: center;
     gap: 8px;
     padding: 0 6px 0 12px;
-    height: 38px;
     border-radius: 19px;
-    background: var(--glass-action-bg);
-    backdrop-filter: var(--glass-blur-action);
-    -webkit-backdrop-filter: var(--glass-blur-action);
-    border: var(--glass-border);
-    box-shadow: var(--glass-inset);
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 160ms ease;
   }
   #top-strip .ts-search-input .ts-search-input-icon {
     flex-shrink: 0;
@@ -1208,6 +1212,13 @@
     padding: 0;
     color: var(--text);
     font: 500 14px/1 'Inter', sans-serif;
+  }
+  /* Suppress the global :focus-visible outline — the pill chrome itself
+     is a clear "this is active" signal; the honey ring on top is noise. */
+  #top-strip .ts-search-input #venue-search:focus,
+  #top-strip .ts-search-input #venue-search:focus-visible {
+    outline: none !important;
+    box-shadow: none;
   }
   #top-strip .ts-search-input #venue-search::placeholder {
     color: rgba(255,244,224,0.55);
@@ -1232,14 +1243,24 @@
     background: rgba(255,242,235,0.18);
     color: var(--text);
   }
-  #top-strip.searching {
-    grid-template-columns: 1fr;
-    padding: 4px;
+
+  /* Cross-fade between normal layout and search field. The grid columns
+     don't transition, but opacity on both layers gives a smooth swap. */
+  #top-strip .ts-left,
+  #top-strip .ts-center,
+  #top-strip .ts-right {
+    transition: opacity 160ms ease;
   }
   #top-strip.searching .ts-left,
   #top-strip.searching .ts-center,
-  #top-strip.searching .ts-right { display: none; }
-  #top-strip.searching .ts-search-input { display: flex; }
+  #top-strip.searching .ts-right {
+    opacity: 0;
+    pointer-events: none;
+  }
+  #top-strip.searching .ts-search-input {
+    opacity: 1;
+    pointer-events: auto;
+  }
 
   /* ── Panel header cleanup (Stage 2a) ──────────────────────────────────
      The date chip + weather chip line and the prose sun-outlook line are
@@ -1420,6 +1441,10 @@
     box-shadow: var(--glass-inset), 0 8px 32px rgba(0,0,0,0.55);
     overflow: hidden;
     display: none;
+    /* Override the .glass-panel translucent mix — this dropdown is
+       scannable content, not a lens surface. Slate at 92% alpha keeps
+       a hint of translucency without sacrificing legibility. */
+    background: rgba(26, 44, 66, 0.92) !important;
   }
   #search-dropdown.open { display: block; }
   .sd-row {
