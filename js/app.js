@@ -3061,9 +3061,9 @@ function _updatePeekHeight() {
   if (!isMobile()) return;
   const panel = document.getElementById('panel');
   if (!panel) return;
-  // Peek stack: handle (~17) + popup-reserve gap (30) + FTS (40) + FTS
-  // margin-bottom (10) + venue-peek pad (12) + card top sliver (~17) ≈ 126.
-  panel.style.setProperty('--peek-h', '126px');
+  // Peek stack: handle (~17) + popup-reserve gap (36) + FTS (40) + FTS
+  // margin-bottom (10) + venue-peek pad (12) + card top sliver (~17) ≈ 132.
+  panel.style.setProperty('--peek-h', '132px');
   _syncFtsPosition();
 }
 
@@ -4529,27 +4529,10 @@ document.addEventListener('DOMContentLoaded', () => {
             panelEl.style.height = '';
           }
 
-          // Track pill with panel during drag. FTS sits at panel-top + GAP,
-          // capped at its fullscreen ceiling (just below the chip row). This
-          // makes it linger when dragging from fullscreen toward peek (the
-          // panel needs to descend before the FTS starts following), and lets
-          // it rise normally when growing the panel from peek/expanded.
-          if (USE_FLOATING_TIME_SLIDER) {
-            if (!_ftsEl) _ftsEl = document.getElementById('fts');
-            if (_ftsEl) {
-              const panelTop = panelEl.getBoundingClientRect().top;
-              const viewH    = window.innerHeight;
-              const desired  = viewH - panelTop + FTS_GAP;
-              const ceiling  = _ftsCeilingBottom();
-              const ftsBottom = Math.min(desired, ceiling);
-              _ftsEl.style.transition = 'none';
-              _ftsEl.style.bottom = ftsBottom + 'px';
-
-              // Popup stays above the thumb — finger doesn't obscure it.
-              const popup = document.getElementById('fts-popup');
-              if (popup) popup.classList.remove('fts-popup-below');
-            }
-          }
+          // FTS is now a child of #panel — it rides the panel transform
+          // automatically, no separate bottom-tracking needed. (Setting
+          // .style.bottom on a position:relative element shifts it out
+          // of normal flow, which was the disappearing-FTS bug.)
           // Track locate button + zoom jog with panel during drag.
           // Locate-me now sits at the FTS row (same baseline as the slider),
           // not above it — so its bottom matches the FTS bottom exactly.
@@ -4736,11 +4719,17 @@ document.addEventListener('DOMContentLoaded', () => {
       // bar shouldn't toggle peek↔expanded — keep it neutral.
       if (ftsEl) _wireSwipeTarget(ftsEl, { excludeSelector: '#fts-thumb', tapToggle: false });
 
-      // Catch-all: wire the panel itself for peek state so any gap between child
-      // elements (handle, sun-header, venue-peek) is also draggable. The peekOnly
-      // guard prevents interference with venue-list scrolling in expanded state.
-      // _beginDrag's own guard prevents double-fire when a child already started drag.
-      _wireSwipeTarget(panelEl, { peekOnly: true, excludeInteractive: true, excludeSelector: '#venue-list' });
+      // Catch-all: anywhere above the scrollable list should drive panel
+      // drag, in any panel state. excludeSelector keeps the venue-list
+      // scrollable and lets the FTS thumb own its horizontal scrub.
+      // excludeInteractive lets buttons (sort, filters, future actions)
+      // receive their own taps. tapToggle off — tapping random empty
+      // panel space shouldn't toggle peek↔expanded.
+      _wireSwipeTarget(panelEl, {
+        excludeInteractive: true,
+        excludeSelector: '#venue-list, #fts-thumb',
+        tapToggle: false,
+      });
 
 
       // Expose panel state helpers for use by toggleQcPanel / _closeQcPanel

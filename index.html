@@ -58,7 +58,7 @@
 <script defer src="js/weather.js?v=20260514b"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260515f"></script>
+<script defer src="js/app.js?v=20260515g"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
@@ -1596,10 +1596,10 @@
   body.fts #fts {
     display: flex;
     position: relative;
-    /* margin-top tight to the handle — popup body (~24px) + tail (6px)
-       fits in 30px. Expanded popup overflows above into the map area
-       (panel has overflow:visible). */
-    margin: 30px 12px 10px;
+    /* margin-top = popup body (~24px) + tail (6px) + 6px top padding
+       (mirroring the 6px gap between popup bottom and FTS top). Total
+       36px. The compact popup overlaps the handle area — accepted. */
+    margin: 36px 12px 10px;
     height: 40px;
     align-items: center;
     gap: 8px;
