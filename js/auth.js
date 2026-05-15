@@ -6,7 +6,16 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let _currentUser = null;
 let _currentRole = null; // 'user' | 'editor' | 'admin' | null
-let _profilePanelView = 'settings'; // 'settings' | 'activity' | 'visibility' | 'notif-types'
+let _profilePanelView = 'settings';
+// View states: 'settings' | 'activity' | 'visibility' | 'notif-types'
+//            | 'admin-edits' | 'admin-suggestions' | 'admin-users'
+
+// Module-level caches for admin sub-views — survive the slide-animation
+// re-render that fires inside _slideProfileView at transitionend.
+// Each: null = not yet loaded; {error} = fetch failed; array = loaded items.
+let _adminEditsCache       = null;
+let _adminSuggestionsCache = null;
+let _adminUsersCache       = null;
 
 // Social tables may not exist yet — probe once and skip all social queries if missing.
 let _socialTablesReady = null; // null = unchecked, true/false after probe
@@ -408,11 +417,14 @@ function _setProfilePanelView(view) {
 
 function _renderProfileViewByName(view) {
   switch (view) {
-    case 'activity':    return _renderActivityView();
-    case 'visibility':  return _renderVisibilityView();
-    case 'notif-types': return _renderNotifTypesView();
+    case 'activity':           return _renderActivityView();
+    case 'visibility':         return _renderVisibilityView();
+    case 'notif-types':        return _renderNotifTypesView();
+    case 'admin-edits':        return _renderAdminEditsView();
+    case 'admin-suggestions':  return _renderAdminSuggestionsView();
+    case 'admin-users':        return _renderAdminUsersView();
     case 'settings':
-    default:            return _renderSettingsView();
+    default:                   return _renderSettingsView();
   }
 }
 
@@ -546,19 +558,19 @@ function _renderSettingsView() {
     <div>
       <div class="settings-group-label">${t('settings_section_admin')}</div>
       <div class="settings-group">
-        <button class="settings-row" onclick="openAdminReviewPanel();closeProfilePanel()">
+        <button class="settings-row" onclick="openAdminReviewPanel()">
           <span class="settings-row__icon">${_SETTINGS_ICON.edit}</span>
           <span class="settings-row__label">${t('pending_edits')}</span>
           <span id="pending-count-badge" class="pending-badge" style="display:none">…</span>
           <span class="settings-row__chevron">${_SETTINGS_ICON.chevron}</span>
         </button>
-        <button class="settings-row" onclick="openAdminVenueSuggestionsPanel();closeProfilePanel()">
+        <button class="settings-row" onclick="openAdminVenueSuggestionsPanel()">
           <span class="settings-row__icon">${_SETTINGS_ICON.plus}</span>
           <span class="settings-row__label">${t('admin_venue_suggestions')}</span>
           <span id="venue-suggestions-count-badge" class="pending-badge" style="display:none">…</span>
           <span class="settings-row__chevron">${_SETTINGS_ICON.chevron}</span>
         </button>
-        <button class="settings-row" onclick="openRoleManagerPanel();closeProfilePanel()">
+        <button class="settings-row" onclick="openRoleManagerPanel()">
           <span class="settings-row__icon">${_SETTINGS_ICON.users}</span>
           <span class="settings-row__label">${t('manage_users')}</span>
           <span class="settings-row__chevron">${_SETTINGS_ICON.chevron}</span>
@@ -756,6 +768,142 @@ function _renderNotifTypesView() {
   `;
 }
 
+// ── Admin sub-views — render the same content the old modals used, but
+//    wrapped in the sheet sub-view shell. Body IDs match the originals so
+//    the existing approve/reject/loaded-list code keeps working unchanged.
+//    Data is cached at module scope so the slide-animation re-render
+//    (which fires after transitionend) doesn't wipe the loaded items.
+
+function _renderAdminEditsView() {
+  let body;
+  if (_adminEditsCache === null) {
+    body = `<div class="settings-subview__loading" style="color:var(--muted);font-size:13px;padding:24px 0;text-align:center">Laster…</div>`;
+  } else if (_adminEditsCache.error) {
+    const msg = _adminEditsCache.error.code === '42P01'
+      ? 'pending_edits table not set up yet.'
+      : 'Feil ved lasting.';
+    body = `<div class="settings-subview__empty">${msg}</div>`;
+  } else if (!_adminEditsCache.length) {
+    body = `<div class="settings-subview__empty">Ingen ventende endringer.</div>`;
+  } else {
+    body = _adminEditsCache.map(e => {
+      const before = e.before_state ?? {};
+      const after  = e.after_state  ?? {};
+      const changes = Object.keys(after).filter(k => JSON.stringify(before[k]) !== JSON.stringify(after[k]));
+      const diffHtml = changes.map(k =>
+        `<div class="admin-diff-row"><span class="admin-diff-key">${k}</span>
+         <span class="admin-diff-before">${JSON.stringify(before[k])}</span>
+         <span class="admin-diff-arrow">→</span>
+         <span class="admin-diff-after">${JSON.stringify(after[k])}</span></div>`
+      ).join('');
+      return `<div class="admin-edit-card" id="admin-edit-${e.id}">
+        <div class="admin-edit-header">
+          <div class="admin-edit-venue">${e.venue_name ?? 'Ukjent'}</div>
+          <div class="admin-edit-meta">${e.user_name ?? e.user_email ?? 'Ukjent bruker'} · ${new Date(e.created_at).toLocaleDateString('no-NO')}</div>
+        </div>
+        <div class="admin-edit-diff">${diffHtml || '<span style="color:var(--muted);font-size:12px">Ingen endringer registrert</span>'}</div>
+        <div class="admin-edit-actions">
+          <button class="admin-approve-btn" onclick="adminApproveEdit('${e.id}', ${e.venue_id}, ${JSON.stringify(JSON.stringify(e.after_state))})">Godkjenn</button>
+          <button class="admin-reject-btn"  onclick="adminRejectEdit('${e.id}')">Avvis</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  return `
+    ${_renderSettingsMobileBar('Ventende forslag', "_setProfilePanelView('settings')")}
+    <div class="settings-subview admin-subview">
+      <div id="admin-review-body">${body}</div>
+    </div>
+  `;
+}
+
+function _renderAdminSuggestionsView() {
+  let body;
+  if (_adminSuggestionsCache === null) {
+    body = `<div class="settings-subview__loading" style="color:var(--muted);font-size:13px;padding:24px 0;text-align:center">Laster…</div>`;
+  } else if (_adminSuggestionsCache.error) {
+    body = `<div class="settings-subview__empty">Feil ved lasting.</div>`;
+  } else if (!_adminSuggestionsCache.length) {
+    body = `<div class="settings-subview__empty">Ingen ventende stedforslag.</div>`;
+  } else {
+    body = _adminSuggestionsCache.map(s => `
+      <div class="admin-edit-card" id="vsug-${s.id}">
+        <div class="admin-edit-header">
+          <div class="admin-edit-venue">${s.name}</div>
+          <div class="admin-edit-meta">${s.user_name ?? s.user_email ?? 'Ukjent'} · ${new Date(s.created_at).toLocaleDateString('no-NO')}</div>
+        </div>
+        <div class="admin-diff-row" style="font-size:12px;color:var(--muted)">
+          ${s.address ? `${s.address} · ` : ''}${s.lat?.toFixed(5)}, ${s.lng?.toFixed(5)}
+          ${s.notes ? `<br><em>${s.notes}</em>` : ''}
+        </div>
+        <div class="admin-edit-actions">
+          <button class="admin-approve-btn" onclick="adminApproveVenueSuggestion('${s.id}')">Godkjenn</button>
+          <button class="admin-reject-btn"  onclick="adminRejectVenueSuggestion('${s.id}')">Avvis</button>
+        </div>
+      </div>`).join('');
+  }
+
+  return `
+    ${_renderSettingsMobileBar(t('admin_venue_suggestions'), "_setProfilePanelView('settings')")}
+    <div class="settings-subview admin-subview">
+      <div id="venue-suggestions-body">${body}</div>
+    </div>
+  `;
+}
+
+function _renderAdminUsersView() {
+  let listHtml;
+  if (_adminUsersCache === null) {
+    listHtml = 'Laster…';
+  } else if (_adminUsersCache.error) {
+    listHtml = '<div style="font-size:12px;color:#ff6b6b">Feil ved lasting.</div>';
+  } else if (!_adminUsersCache.length) {
+    listHtml = '<div style="font-size:12px;color:var(--muted)">Ingen forhøyede brukere ennå.</div>';
+  } else {
+    listHtml = _adminUsersCache.map(u => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+      <div><div style="font-size:13px;color:var(--text)">${u.name ?? u.email}</div><div style="font-size:11px;color:var(--muted)">${u.email}</div></div>
+      <span class="profile-role-badge ${u.role}">${u.role}</span>
+    </div>`).join('');
+  }
+
+  return `
+    ${_renderSettingsMobileBar('Administrer brukere', "_setProfilePanelView('settings')")}
+    <div class="settings-subview admin-subview">
+      <div style="margin-bottom:16px">
+        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px">E-post</label>
+        <input id="role-email-input" type="email" placeholder="bruker@example.com" style="
+          width:100%;box-sizing:border-box;background:rgba(255,255,255,0.07);
+          border:1px solid rgba(156,189,231,0.3);border-radius:8px;
+          color:var(--text);font-family:'Inter',sans-serif;font-size:13px;
+          padding:9px 12px;outline:none;">
+        <label style="font-size:12px;color:var(--muted);display:block;margin-top:12px;margin-bottom:6px">Rolle</label>
+        <select id="role-select" style="
+          width:100%;background:rgba(255,255,255,0.07);
+          border:1px solid rgba(156,189,231,0.3);border-radius:8px;
+          color:var(--text);font-family:'Inter',sans-serif;font-size:13px;
+          padding:9px 12px;outline:none;">
+          <option value="user">user — kan foreslå endringer</option>
+          <option value="editor">editor — kan redigere direkte</option>
+          <option value="admin">admin — full tilgang</option>
+        </select>
+        <button onclick="roleManagerSubmit()" style="
+          margin-top:12px;width:100%;
+          background:var(--accent-dim);border:1px solid var(--accent-border, rgba(245,194,94,0.42));
+          border-radius:8px;color:var(--accent);font-family:'Inter',sans-serif;
+          font-size:13px;font-weight:600;padding:10px;cursor:pointer;">
+          Oppdater rolle
+        </button>
+        <div id="role-manager-result" style="margin-top:10px;font-size:12px;min-height:18px;text-align:center"></div>
+      </div>
+      <div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Alle brukere med forhøyet tilgang</div>
+        <div id="role-manager-list">${listHtml}</div>
+      </div>
+    </div>
+  `;
+}
+
 // ── About row tap handler — 5 taps reveals Show Debug ────────────────────────
 
 let _aboutTapCount = 0;
@@ -785,6 +933,12 @@ function _renderProfilePanel() {
       panel.innerHTML = _renderVisibilityView();
     } else if (_profilePanelView === 'notif-types') {
       panel.innerHTML = _renderNotifTypesView();
+    } else if (_profilePanelView === 'admin-edits') {
+      panel.innerHTML = _renderAdminEditsView();
+    } else if (_profilePanelView === 'admin-suggestions') {
+      panel.innerHTML = _renderAdminSuggestionsView();
+    } else if (_profilePanelView === 'admin-users') {
+      panel.innerHTML = _renderAdminUsersView();
     } else {
       panel.innerHTML = _renderSettingsView();
       if (authIsAdmin()) { _loadPendingCount(); _loadVenueSuggestionsCount(); }
@@ -1197,23 +1351,9 @@ async function loadOwnSuggestions() {
 // ── Admin venue suggestions panel ─────────────────────────────────────────────
 
 async function openAdminVenueSuggestionsPanel() {
-  let modal = document.getElementById('venue-suggestions-modal');
-  if (!modal) {
-    modal = document.createElement('div');
-    modal.id = 'venue-suggestions-modal';
-    modal.className = 'admin-modal';
-    document.body.appendChild(modal);
-  }
-  modal.innerHTML = `<div class="admin-modal-inner">
-    <div class="admin-modal-header">
-      <div class="admin-modal-title">${t('admin_venue_suggestions')}</div>
-      <button class="admin-modal-close" onclick="document.getElementById('venue-suggestions-modal').remove()">✕</button>
-    </div>
-    <div class="admin-modal-body" id="venue-suggestions-body">
-      <div style="color:var(--muted);font-size:13px;padding:24px 0;text-align:center">Laster…</div>
-    </div>
-  </div>`;
-  modal.style.display = 'flex';
+  // Reset cache to loading state and navigate to the sub-view (slides in).
+  _adminSuggestionsCache = null;
+  _setProfilePanelView('admin-suggestions');
 
   const { data: suggestions, error } = await _supabase
     .from('suggested_venues')
@@ -1221,28 +1361,9 @@ async function openAdminVenueSuggestionsPanel() {
     .eq('status', 'pending')
     .order('created_at', { ascending: false });
 
-  const body = document.getElementById('venue-suggestions-body');
-  if (!body) return;
-  if (error || !suggestions?.length) {
-    body.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:24px 0;text-align:center">${error ? 'Feil ved lasting.' : 'Ingen ventende stedforslag.'}</div>`;
-    return;
-  }
-
-  body.innerHTML = suggestions.map(s => `
-    <div class="admin-edit-card" id="vsug-${s.id}">
-      <div class="admin-edit-header">
-        <div class="admin-edit-venue">${s.name}</div>
-        <div class="admin-edit-meta">${s.user_name ?? s.user_email ?? 'Ukjent'} · ${new Date(s.created_at).toLocaleDateString('no-NO')}</div>
-      </div>
-      <div class="admin-diff-row" style="font-size:12px;color:var(--muted)">
-        ${s.address ? `${s.address} · ` : ''}${s.lat?.toFixed(5)}, ${s.lng?.toFixed(5)}
-        ${s.notes ? `<br><em>${s.notes}</em>` : ''}
-      </div>
-      <div class="admin-edit-actions">
-        <button class="admin-approve-btn" onclick="adminApproveVenueSuggestion('${s.id}')">Godkjenn</button>
-        <button class="admin-reject-btn"  onclick="adminRejectVenueSuggestion('${s.id}')">Avvis</button>
-      </div>
-    </div>`).join('');
+  _adminSuggestionsCache = error ? { error } : (suggestions || []);
+  // Re-render if user is still on this view (didn't navigate away mid-fetch).
+  if (_profilePanelView === 'admin-suggestions') _renderProfilePanel();
 }
 
 async function adminApproveVenueSuggestion(id) {
@@ -1277,23 +1398,8 @@ async function adminRejectVenueSuggestion(id) {
 // ── Admin review panel ────────────────────────────────────────────────────────
 
 async function openAdminReviewPanel() {
-  let modal = document.getElementById('admin-review-modal');
-  if (!modal) {
-    modal = document.createElement('div');
-    modal.id = 'admin-review-modal';
-    modal.className = 'admin-modal';
-    document.body.appendChild(modal);
-  }
-  modal.innerHTML = `<div class="admin-modal-inner">
-    <div class="admin-modal-header">
-      <div class="admin-modal-title">Ventende forslag</div>
-      <button class="admin-modal-close" onclick="document.getElementById('admin-review-modal').remove()">✕</button>
-    </div>
-    <div class="admin-modal-body" id="admin-review-body">
-      <div style="color:var(--muted);font-size:13px;padding:24px 0;text-align:center">Laster…</div>
-    </div>
-  </div>`;
-  modal.style.display = 'flex';
+  _adminEditsCache = null;
+  _setProfilePanelView('admin-edits');
 
   let edits = null;
   let error = null;
@@ -1309,39 +1415,8 @@ async function openAdminReviewPanel() {
     error = { code: '42P01', message: 'pending_edits table not set up yet.' };
   }
 
-  const body = document.getElementById('admin-review-body');
-  if (!body) return;
-  if (error || !edits?.length) {
-    const msg = error?.code === '42P01'
-      ? 'pending_edits table not set up yet.'
-      : error ? 'Feil ved lasting.' : 'Ingen ventende endringer.';
-    body.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:24px 0;text-align:center">${msg}</div>`;
-    return;
-  }
-
-  body.innerHTML = edits.map(e => {
-    const before = e.before_state ?? {};
-    const after  = e.after_state  ?? {};
-    const changes = Object.keys(after).filter(k => JSON.stringify(before[k]) !== JSON.stringify(after[k]));
-    const diffHtml = changes.map(k =>
-      `<div class="admin-diff-row"><span class="admin-diff-key">${k}</span>
-       <span class="admin-diff-before">${JSON.stringify(before[k])}</span>
-       <span class="admin-diff-arrow">→</span>
-       <span class="admin-diff-after">${JSON.stringify(after[k])}</span></div>`
-    ).join('');
-    return `
-      <div class="admin-edit-card" id="admin-edit-${e.id}">
-        <div class="admin-edit-header">
-          <div class="admin-edit-venue">${e.venue_name ?? 'Ukjent'}</div>
-          <div class="admin-edit-meta">${e.user_name ?? e.user_email ?? 'Ukjent bruker'} · ${new Date(e.created_at).toLocaleDateString('no-NO')}</div>
-        </div>
-        <div class="admin-edit-diff">${diffHtml || '<span style="color:var(--muted);font-size:12px">Ingen endringer registrert</span>'}</div>
-        <div class="admin-edit-actions">
-          <button class="admin-approve-btn" onclick="adminApproveEdit('${e.id}', ${e.venue_id}, ${JSON.stringify(JSON.stringify(e.after_state))})">Godkjenn</button>
-          <button class="admin-reject-btn"  onclick="adminRejectEdit('${e.id}')">Avvis</button>
-        </div>
-      </div>`;
-  }).join('');
+  _adminEditsCache = error ? { error } : (edits || []);
+  if (_profilePanelView === 'admin-edits') _renderProfilePanel();
 }
 
 async function adminApproveEdit(editId, venueId, afterStateJson) {
@@ -1385,68 +1460,17 @@ async function adminRejectEdit(editId) {
 // ── Role manager panel ────────────────────────────────────────────────────────
 
 async function openRoleManagerPanel() {
-  let modal = document.getElementById('role-manager-modal');
-  if (!modal) {
-    modal = document.createElement('div');
-    modal.id = 'role-manager-modal';
-    modal.className = 'admin-modal';
-    document.body.appendChild(modal);
-  }
-  modal.style.display = 'flex';
-  modal.innerHTML = `<div class="admin-modal-inner">
-    <div class="admin-modal-header">
-      <div class="admin-modal-title">Administrer brukere</div>
-      <button class="admin-modal-close" onclick="document.getElementById('role-manager-modal').remove()">✕</button>
-    </div>
-    <div class="admin-modal-body">
-      <div style="margin-bottom:16px">
-        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px">E-post</label>
-        <input id="role-email-input" type="email" placeholder="bruker@example.com" style="
-          width:100%;box-sizing:border-box;background:rgba(255,255,255,0.07);
-          border:1px solid rgba(156,189,231,0.3);border-radius:8px;
-          color:var(--text);font-family:'Inter',sans-serif;font-size:13px;
-          padding:9px 12px;outline:none;">
-        <label style="font-size:12px;color:var(--muted);display:block;margin-top:12px;margin-bottom:6px">Rolle</label>
-        <select id="role-select" style="
-          width:100%;background:rgba(255,255,255,0.07);
-          border:1px solid rgba(156,189,231,0.3);border-radius:8px;
-          color:var(--text);font-family:'Inter',sans-serif;font-size:13px;
-          padding:9px 12px;outline:none;">
-          <option value="user">user — kan foreslå endringer</option>
-          <option value="editor">editor — kan redigere direkte</option>
-          <option value="admin">admin — full tilgang</option>
-        </select>
-        <button onclick="roleManagerSubmit()" style="
-          margin-top:12px;width:100%;
-          background:rgba(255,175,133,0.15);border:1px solid rgba(255,175,133,0.45);
-          border-radius:8px;color:var(--accent);font-family:'Inter',sans-serif;
-          font-size:13px;font-weight:600;padding:10px;cursor:pointer;">
-          Oppdater rolle
-        </button>
-        <div id="role-manager-result" style="margin-top:10px;font-size:12px;min-height:18px;text-align:center"></div>
-      </div>
-      <div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Alle brukere med forhøyet tilgang</div>
-        <div id="role-manager-list">Laster…</div>
-      </div>
-    </div>
-  </div>`;
+  _adminUsersCache = null;
+  _setProfilePanelView('admin-users');
 
-  // Load existing elevated users
-  const { data } = await _supabase
+  const { data, error } = await _supabase
     .from('profiles')
     .select('email, name, role')
     .in('role', ['admin', 'editor'])
     .order('role');
-  const listEl = document.getElementById('role-manager-list');
-  if (listEl) {
-    listEl.innerHTML = data?.length
-      ? data.map(u => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
-          <div><div style="font-size:13px;color:var(--text)">${u.name ?? u.email}</div><div style="font-size:11px;color:var(--muted)">${u.email}</div></div>
-          <span class="profile-role-badge ${u.role}">${u.role}</span>
-        </div>`).join('')
-      : '<div style="font-size:12px;color:var(--muted)">Ingen forhøyede brukere ennå.</div>';
-  }
+
+  _adminUsersCache = error ? { error } : (data || []);
+  if (_profilePanelView === 'admin-users') _renderProfilePanel();
 }
 
 async function roleManagerSubmit() {
