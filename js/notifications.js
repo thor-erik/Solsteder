@@ -693,6 +693,17 @@ function _evalInviteAccepted() {
         selectVenue(Number(head.plan.venue_id), true);
       }
     },
+    // Bell-row override: from the inbox, the user is reviewing past
+    // events, so plan-preview (creator + time + invitees status) reads
+    // better than the venue detail. _bellRecord picks bellAction over
+    // action when present.
+    bellAction: () => {
+      if (typeof openPlanPreview === 'function') {
+        openPlanPreview({ venueId: head.plan.venue_id, plannedAt: head.plan.planned_at });
+      } else if (typeof selectVenue === 'function') {
+        selectVenue(Number(head.plan.venue_id), true);
+      }
+    },
     ttl: 600000, dedupe: true,
     _onShow: () => {
       // Persist dedupe at show-time so a missed action still doesn't re-fire.
@@ -758,6 +769,15 @@ function _evalInviteDeclined() {
     action: () => {
       markSeen();
       if (typeof selectVenue === 'function') {
+        selectVenue(Number(head.plan.venue_id), true);
+      }
+    },
+    // Bell-row override: open the plan-preview sheet for context.
+    bellAction: () => {
+      markSeen();
+      if (typeof openPlanPreview === 'function') {
+        openPlanPreview({ venueId: head.plan.venue_id, plannedAt: head.plan.planned_at });
+      } else if (typeof selectVenue === 'function') {
         selectVenue(Number(head.plan.venue_id), true);
       }
     },
@@ -831,6 +851,15 @@ function _evalFriendPlanning() {
     bodyVars: { name: creator, venue: venueName, time },
     actionKey: 'notif_go_to_venue',
     action: () => { if (typeof selectVenue === 'function') selectVenue(Number(plan.venue_id), true); },
+    // Bell-row override: this is a reminder of YOUR upcoming plan, so
+    // plan-preview reads better than just the venue.
+    bellAction: () => {
+      if (typeof openPlanPreview === 'function') {
+        openPlanPreview({ venueId: plan.venue_id, plannedAt: plan.planned_at });
+      } else if (typeof selectVenue === 'function') {
+        selectVenue(Number(plan.venue_id), true);
+      }
+    },
     ttl: 600000, dedupe: true,
   };
 }
@@ -1074,4 +1103,7 @@ _notifShow = function(notif) {
   if (typeof notif._onShow === 'function') {
     try { notif._onShow(); } catch (e) { /* ignore */ }
   }
+  // Surface in the bell inbox. Captures the rendered body + click action
+  // so the row routes correctly when tapped.
+  if (typeof _bellRecord === 'function') _bellRecord(notif);
 };

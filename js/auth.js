@@ -1018,9 +1018,111 @@ function _loginSlideIcon(i) {
 }
 
 // ── Bell dropdown — top-strip notifications inbox (Stage 5) ─────────────────
-// Social events only (friend requests + plan invites). Tap a row → handle
-// inline. Tap outside → close. Bell dot mirrors badge state from
-// _updateAvatarBadge so opening either surface dismisses both.
+// Real-time inbox: pending friend requests + plan invites + every
+// notification captured from _notifShow. Tap a row → invoke its action
+// (or open the plan preview for plan-related events). Tap outside →
+// close. Bell dot mirrors aggregate "has new" state.
+
+// In-memory store of notifications fired this session. Each entry keeps
+// the rendered body + lead + action ref so the bell row can replay the
+// click. Map by notif.id so a re-firing notification dedupes/updates.
+const _bellHistory = new Map();
+const _BELL_HISTORY_MAX = 30;
+
+// Persisted unread cutoff — items with ts > _bellLastOpenedTs render
+// with the honey "new" dot.
+let _bellLastOpenedTs = (() => {
+  try { return parseInt(localStorage.getItem('bell.lastOpened') || '0', 10) || 0; }
+  catch { return 0; }
+})();
+
+function _bellNoteOpened() {
+  _bellLastOpenedTs = Date.now();
+  try { localStorage.setItem('bell.lastOpened', String(_bellLastOpenedTs)); }
+  catch { /* ignore */ }
+}
+
+/** Render body with bodyVars bolded. _notifShow's wrapper renders the
+ *  template via t() with var substitution; we do the same here but wrap
+ *  each value in <strong> so names + venues stand out. */
+function _bellRenderBody(notif) {
+  if (!notif || !notif.bodyKey) return '';
+  let body = (typeof t === 'function') ? t(notif.bodyKey) : notif.bodyKey;
+  if (notif.bodyVars) {
+    for (const [k, v] of Object.entries(notif.bodyVars)) {
+      body = body.replaceAll(`{${k}}`, `<strong>${v}</strong>`);
+    }
+  }
+  return body;
+}
+
+/** Choose lead element: avatar for friend-named social events,
+ *  monochrome line icon for weather/suggestion. */
+function _bellLeadForNotif(notif) {
+  const vars = notif.bodyVars || {};
+  const name = vars.name;
+  if (notif.category === 'social' && name) {
+    const count = vars.count || (vars.extra ? vars.extra + 1 : 1);
+    return _bellAvatar(name, Math.max(0, count - 1));
+  }
+  if (notif.category === 'weather') {
+    const id = String(notif.id || '');
+    if (id.includes('rain'))  return _bellSysLead('rain');
+    if (id.includes('cloud')) return _bellSysLead('rain');
+    return _bellSysLead('sun');
+  }
+  if (notif.category === 'suggestion') {
+    return notif.id?.includes('sheltered')
+      ? _bellSysLead('wind')
+      : _bellSysLead('bulb');
+  }
+  return _bellSysLead('bulb');
+}
+
+/** Public: capture a notification into the bell history when it fires.
+ *  Called from notifications.js's _notifShow wrapper. */
+function _bellRecord(notif) {
+  if (!notif || !notif.bodyKey) return;
+  _bellHistory.set(notif.id, {
+    id: notif.id,
+    category: notif.category,
+    ts: Date.now(),
+    body: _bellRenderBody(notif),
+    lead: _bellLeadForNotif(notif),
+    // bellAction overrides action when present — plan-related notifs
+    // use it to open the plan-preview sheet instead of the venue detail.
+    action: notif.bellAction || notif.action,
+  });
+  // Cap — drop the oldest if we're over the limit
+  if (_bellHistory.size > _BELL_HISTORY_MAX) {
+    let oldestId = null, oldestTs = Infinity;
+    _bellHistory.forEach((v, k) => { if (v.ts < oldestTs) { oldestTs = v.ts; oldestId = k; } });
+    if (oldestId) _bellHistory.delete(oldestId);
+  }
+  if (typeof _updateAvatarBadge === 'function') _updateAvatarBadge();
+}
+
+/** Click handler for bell rows backed by a recorded notification. */
+function _bellInvokeAction(id) {
+  const entry = _bellHistory.get(id);
+  _closeBellDropdown();
+  if (!entry || typeof entry.action !== 'function') return;
+  try { entry.action(); } catch (e) { console.warn('[bell] action failed:', e); }
+}
+
+/** True if any current inbox item is newer than the last bell-open. */
+function _bellHasUnread() {
+  const reqs = (typeof _pendingRequests !== 'undefined' && Array.isArray(_pendingRequests))
+    ? _pendingRequests : [];
+  const invs = (typeof _planInvites !== 'undefined' && Array.isArray(_planInvites))
+    ? _planInvites.filter(i => i.status === 'pending' && i.plan) : [];
+  // Pending requests / invites are always "new" until acted on.
+  if (reqs.length > 0 || invs.length > 0) return true;
+  for (const e of _bellHistory.values()) {
+    if (e.ts > _bellLastOpenedTs) return true;
+  }
+  return false;
+}
 
 function toggleBellDropdown(e) {
   if (e) e.stopPropagation();
@@ -1041,6 +1143,9 @@ function toggleBellDropdown(e) {
 function _closeBellDropdown() {
   document.getElementById('bell-dropdown')?.classList.remove('open');
   document.getElementById('ts-bell-btn')?.classList.remove('active');
+  // Mark everything currently visible as seen — next open won't dot it.
+  _bellNoteOpened();
+  if (typeof _updateAvatarBadge === 'function') _updateAvatarBadge();
 }
 
 function _bellDropdownOutsideClick(e) {
@@ -1106,13 +1211,15 @@ function _renderBellDropdown() {
   const NOW = Date.now();
   const entries = [];
 
-  // ── Real data ────────────────────────────────────────────────────────
+  // ── Real data: pending friend requests + plan invites ───────────────
+  // These are always "new" until the user acts on them — the bd-row--new
+  // dot stays until accept/decline removes the row.
   reqs.forEach(r => {
     const name = r.name || r.email || 'Ukjent';
     entries.push({
       t: new Date(r.requestedAt || r.created_at || NOW).getTime(),
       html: `
-        <div class="bd-row" id="bd-req-${r.friendshipId}">
+        <div class="bd-row bd-row--new" id="bd-req-${r.friendshipId}">
           ${_bellAvatar(name)}
           <div class="bd-row__body">
             <div class="bd-row__msg"><strong>${name}</strong> ønsker å bli venn.</div>
@@ -1134,7 +1241,7 @@ function _renderBellDropdown() {
     entries.push({
       t: new Date(i.created_at || NOW).getTime(),
       html: `
-        <div class="bd-row" id="bd-inv-${i.id}">
+        <div class="bd-row bd-row--new" id="bd-inv-${i.id}">
           ${_bellAvatar(creator)}
           <div class="bd-row__body">
             <div class="bd-row__msg"><strong>${creator}</strong> inviterer deg til <strong>${venue}</strong>${time ? ' kl ' + time : ''}.</div>
@@ -1148,67 +1255,18 @@ function _renderBellDropdown() {
     });
   });
 
-  // ── Samples covering every notification type the system has ──────────
-  // Each sample is wired to the real navigation handler (selectVenue /
-  // openFriendsModal). Samples without a real plan payload use a stub
-  // since plan-preview needs full plan data the sample doesn't carry.
-  const samples = [
-    // social_friends_at — multiple friends at a venue
-    { mins: 8, lead: _bellAvatar('Anna', 1),
-      msg: '<strong>Anna</strong> og <strong>Marius</strong> er på <strong>Hummus &amp; Wine</strong>.',
-      action: "_bellOpenVenueByName('Hummus &amp; Wine')" },
-    // social_checkin — single friend just checked in
-    { mins: 24, lead: _bellAvatar('Marius'),
-      msg: '<strong>Marius</strong> sjekket inn på <strong>Mathallen</strong>.',
-      action: "_bellOpenVenueByName('Mathallen')" },
-    // social_invite_accepted — friend accepted your plan invite
-    { mins: 47, lead: _bellAvatar('Anna'),
-      msg: '<strong>Anna</strong> sa ja til planen din på <strong>Lekteren</strong>.',
-      action: "_bellOpenVenueByName('Lekteren')" },
-    // social_friend_plan — reminder of an upcoming plan you're invited to
-    { mins: 95, lead: _bellAvatar('Lars'),
-      msg: 'Plan med <strong>Lars</strong> i dag på <strong>Vinland</strong> kl 19:00.',
-      action: "_bellOpenVenueByName('Vinland')" },
-    // weather — sun opening at a venue
-    { mins: 145, lead: _bellSysLead('sun'),
-      msg: 'Sol åpner på <strong>Nedre Foss Gård</strong> kl 17:00.',
-      action: "_bellOpenVenueByName('Nedre Foss Gård')" },
-    // social_invite_declined — friend declined your plan
-    { mins: 220, lead: _bellAvatar('Sara'),
-      msg: '<strong>Sara</strong> sa nei til planen på <strong>Michaels</strong>.',
-      action: "_bellOpenVenueByName('Michaels')" },
-    // suggestion — lunch suggestion
-    { mins: 340, lead: _bellSysLead('bulb'),
-      msg: 'Prøv <strong>Mathallen</strong> til lunsj — sol fra 12:00.',
-      action: "_bellOpenVenueByName('Mathallen')" },
-    // weather — rain warning (no specific venue; just dismisses)
-    { mins: 480, lead: _bellSysLead('rain'),
-      msg: 'Regn forventet kl 14:00 i dag.',
-      action: "_closeBellDropdown()" },
-    // suggestion — sheltered alternative
-    { mins: 720, lead: _bellSysLead('wind'),
-      msg: 'Vind i dag — prøv <strong>Lekteren</strong> for ly.',
-      action: "_bellOpenVenueByName('Lekteren')" },
-    // new friend connection
-    { mins: 1440, lead: _bellAvatar('Henrik'),
-      msg: 'Du og <strong>Henrik</strong> er nå venner.',
-      action: "_bellOpenFriendsModal()" },
-  ];
-
-  samples.forEach((s, idx) => {
-    const ts = NOW - (s.mins * 60_000);
-    // First 3 samples flagged as "new" for the unread-dot demo. Real
-    // implementation would persist last-opened timestamp in localStorage
-    // and compare each entry's timestamp against it.
-    const newClass = idx < 3 ? ' bd-row--new' : '';
+  // ── Captured notifications — every notification that fired this
+  //    session gets surfaced here. Real data, real click actions. ──────
+  _bellHistory.forEach(entry => {
+    const isNew = entry.ts > _bellLastOpenedTs ? ' bd-row--new' : '';
     entries.push({
-      t: ts,
+      t: entry.ts,
       html: `
-        <div class="bd-row bd-row--clickable bd-row--sample${newClass}" onclick="${s.action}">
-          ${s.lead}
+        <div class="bd-row bd-row--clickable${isNew}" onclick="_bellInvokeAction('${entry.id}')">
+          ${entry.lead}
           <div class="bd-row__body">
-            <div class="bd-row__msg">${s.msg}</div>
-            <div class="bd-row__meta">${_formatTimeAgo(new Date(ts).toISOString())}</div>
+            <div class="bd-row__msg">${entry.body}</div>
+            <div class="bd-row__meta">${_formatTimeAgo(new Date(entry.ts).toISOString())}</div>
           </div>
         </div>`,
     });
