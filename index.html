@@ -1192,7 +1192,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 0 12px 10px;
+    padding: 0 12px 4px;
     flex-shrink: 0;
   }
   #panel-actions .panel-actions-pills {
@@ -4331,11 +4331,16 @@
        Bottom fade signals there's more content below. */
     #venue-peek {
       flex-shrink: 0;
-      padding: 12px 14px 0;
+      /* Top pad tightened — chip row that used to sit above is hidden;
+         the action row directly above already provides spacing. */
+      padding: 6px 14px 0;
       overflow: hidden;
       max-height: 104px;
-      -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
-      mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+      /* Fade only the very bottom edge as a soft "more below" hint —
+         not the whole lower third (was 60→100). Keeps the card body
+         solid + readable, just feathers the cut. */
+      -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
+      mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
     }
 
     /* Hide peek when list is visible */
