@@ -1043,8 +1043,14 @@ function _profilePanelOutsideClick(e) {
   const panel = document.getElementById('profile-panel');
   const btn   = document.getElementById('search-profile-btn');
   const tsBtn = document.getElementById('ts-avatar-btn');
+  // Drill-in handlers replace panel.innerHTML synchronously, which detaches
+  // the original target before this bubble-phase handler runs. composedPath()
+  // captures the ancestor chain at dispatch time, so it still sees #profile-panel
+  // even after the click target was removed from the DOM.
+  const path = (typeof e.composedPath === 'function') ? e.composedPath() : [];
+  const inPanel = panel && (panel.contains(e.target) || path.includes(panel));
   const onAnchor = (btn && btn.contains(e.target)) || (tsBtn && tsBtn.contains(e.target));
-  if (panel && !panel.contains(e.target) && !onAnchor) {
+  if (panel && !inPanel && !onAnchor) {
     closeProfilePanel();
   } else if (panel && panel.classList.contains('open')) {
     document.addEventListener('click', _profilePanelOutsideClick, { once: true });

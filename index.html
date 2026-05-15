@@ -48,7 +48,7 @@
 <script defer src="js/i18n.js?v=20260514e"></script>
 <script defer src="js/config.js?v=20260425b"></script>
 <script defer src="js/tokens.js?v=20260509e"></script>
-<script defer src="js/auth.js?v=20260515e"></script>
+<script defer src="js/auth.js?v=20260515f"></script>
 <script defer src="js/login-carousel.js?v=20260428a"></script>
 <script defer src="js/analytics.js"></script>
 <script defer src="js/places.js?v=20260411b"></script>
@@ -1592,11 +1592,11 @@
      Slides up from below; rests just under the top strip. */
   #profile-panel {
     position: fixed;
-    top: 76px;            /* below #top-strip (14 + 46 + 16 gap) */
+    top: 0;               /* full-screen takeover; sheet rises to the notch */
     left: 0; right: 0; bottom: 0;
     z-index: 1100;
-    border-radius: 26px 26px 0 0;
-    border-top: 1px solid rgba(156,189,231,0.18);
+    border-radius: 0;
+    border-top: none;
     background: var(--glass-panel-bg);
     backdrop-filter: blur(20px) saturate(160%);
     -webkit-backdrop-filter: blur(20px) saturate(160%);
@@ -4340,7 +4340,9 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 12px 12px 8px;
+      /* Top pad reserves the iOS safe area (notch / Dynamic Island)
+         plus the visual breathing room above the back button. */
+      padding: calc(env(safe-area-inset-top, 0px) + 12px) 12px 8px;
       background: none;
       border-bottom: none;
     }
@@ -4366,6 +4368,8 @@
     body.profile-panel-open #qc-wrap,
     body.profile-panel-open #floating-search,
     body.profile-panel-open #floating-brand,
+    body.profile-panel-open #top-strip,
+    body.profile-panel-open #fts,
     body.profile-panel-open #panel,
     body.profile-panel-open #detail-panel {
       opacity: 0;
