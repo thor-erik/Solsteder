@@ -135,6 +135,9 @@ async function authSignInWithMagicLink(email) {
 }
 
 async function authSignOut() {
+  if (typeof _bellUnsubscribeRealtime === 'function') _bellUnsubscribeRealtime();
+  _bellHistory.clear();
+  _bellHydrated = false;
   await _supabase.auth.signOut();
 }
 
@@ -223,6 +226,11 @@ function _updateUserIndicator() {
   // Pull recent notifications into the bell on auth-ready. Internally
   // gated by _bellHydrated so this is a no-op after the first run.
   if (_currentUser && typeof _bellHydrate === 'function') _bellHydrate();
+  // Subscribe to Realtime inserts so events fired on another device (or
+  // by a server trigger) reach the bell without a page reload.
+  if (_currentUser && typeof _bellSubscribeRealtime === 'function') {
+    _bellSubscribeRealtime();
+  }
 }
 
 /** Render the invitations inbox section: pending invites + own upcoming plans. */
@@ -1131,12 +1139,25 @@ function _bellNavigate(nav) {
   }
 }
 
+/** True if a notif id is handled by a server-side trigger. Those events
+ *  are written to the notifications table by Postgres and delivered to
+ *  the client via Realtime, so we skip the client-side write to avoid
+ *  duplicate rows. The toast still fires (in-session UX); only the
+ *  bell-history write is skipped. */
+function _isServerHandledNotif(id) {
+  return id.startsWith('social_invite_accepted_')
+      || id.startsWith('social_invite_declined_');
+}
+
 /** Public: capture a notification into the bell history when it fires.
  *  Called from notifications.js's _notifShow wrapper. Persists to
  *  Supabase fire-and-forget so the entry survives page reload + syncs
  *  across devices. */
 function _bellRecord(notif) {
   if (!notif || !notif.bodyKey) return;
+  // Server triggers write these — Realtime delivers the canonical row,
+  // so a client-side write would produce a duplicate with a different id.
+  if (_isServerHandledNotif(notif.id)) return;
   const leadDescriptor = _bellLeadDescriptor(notif);
   const nav = _bellExtractNav(notif);
   const entry = {
@@ -1242,6 +1263,50 @@ async function _bellMarkRead(notifId) {
       .eq('user_id',  _currentUser.id)
       .eq('notif_id', notifId);
   } catch { /* ignore */ }
+}
+
+// ── Realtime: subscribe to INSERTs on notifications for the current user.
+// Server-side triggers fan out events into this table; this subscription
+// is how they reach the client in real time (and across devices). ────────
+let _bellChannel = null;
+
+function _bellSubscribeRealtime() {
+  if (!_currentUser || typeof _supabase === 'undefined') return;
+  if (_bellChannel) return;  // already subscribed
+  _bellChannel = _supabase
+    .channel(`notifications:${_currentUser.id}`)
+    .on('postgres_changes', {
+      event:  'INSERT',
+      schema: 'public',
+      table:  'notifications',
+      filter: `user_id=eq.${_currentUser.id}`,
+    }, (payload) => {
+      const row = payload.new;
+      if (!row) return;
+      _bellHistory.set(row.notif_id, {
+        id:       row.notif_id,
+        category: row.category,
+        ts:       new Date(row.created_at).getTime(),
+        body:     row.body,
+        lead:     _bellLeadFromDescriptor(row.lead),
+        leadDescriptor: row.lead,
+        nav:      row.nav,
+        readAt:   row.read_at,
+        // No action() for server-delivered rows — fall through to nav.
+      });
+      if (typeof _updateAvatarBadge === 'function') _updateAvatarBadge();
+      const dropdown = document.getElementById('bell-dropdown');
+      if (dropdown && dropdown.classList.contains('open')) {
+        _renderBellDropdown();
+      }
+    })
+    .subscribe();
+}
+
+function _bellUnsubscribeRealtime() {
+  if (!_bellChannel) return;
+  try { _bellChannel.unsubscribe(); } catch { /* ignore */ }
+  _bellChannel = null;
 }
 
 /** True if any current inbox item is newer than the last bell-open. */
