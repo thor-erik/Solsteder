@@ -1052,10 +1052,10 @@
     position: absolute;
     /* PWA standalone on iOS extends the viewport behind the Dynamic
        Island / camera notch — env(safe-area-inset-top) pushes the
-       strip below it. 8px sits tight under the Island without
-       touching it. Falls back to 14px in browser mode where the URL
-       bar provides the visual clearance instead. */
-    top: calc(env(safe-area-inset-top, 6px) + 8px);
+       strip below it. 2px sits as tight as it can without kissing the
+       Island. Falls back to 12px in browser mode where the URL bar
+       provides the visual clearance instead. */
+    top: calc(env(safe-area-inset-top, 10px) + 2px);
     left: 12px; right: 12px;
     z-index: 900;
     height: 46px;
@@ -3558,8 +3558,9 @@
     /* Fill the venue-list area so the empty state sits centered in the
        available panel height instead of leaving a tall slate band
        below — was very noticeable on iOS PWA where the panel runs to
-       50svh regardless of content. */
-    flex: 1 1 auto;
+       50svh regardless of content. height: 100% works because
+       #venue-list itself flex-grows to fill the panel. */
+    height: 100%;
     min-height: 220px;
     gap: 12px;
   }
