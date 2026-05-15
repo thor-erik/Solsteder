@@ -364,25 +364,23 @@ function initFts() {
   // DOM thumb gets .is-active for the "picked up" CSS state (scale +
   // halo + deeper shadow), and .is-tilting is cleared so it straightens.
   track.addEventListener('pointerdown', e => {
+    // Drag only starts when the user grabs the thumb. Anything outside
+    // the thumb passes through so the FTS area can be a panel-drag
+    // surface (wired separately via _wireSwipeTarget on #fts).
+    const _thumbEl = document.getElementById('fts-thumb');
+    if (!_thumbEl || !_thumbEl.contains(e.target)) return;
     e.preventDefault();
     if (_qcActiveSection) _closeQcPanel();
     _ftsDragging = true;
     track.setPointerCapture(e.pointerId);
     window._qcThumbActive = true;
-    const _thumbEl = document.getElementById('fts-thumb');
-    if (_thumbEl) {
-      _thumbEl.classList.remove('is-hover');
-      _thumbEl.classList.add('is-active');
-    }
+    _thumbEl.classList.remove('is-hover');
+    _thumbEl.classList.add('is-active');
     if (typeof _injectScrubSkeletons === 'function' &&
         !document.body.classList.contains('list-scrubbing')) {
       _injectScrubSkeletons();
       document.body.classList.add('list-scrubbing');
     }
-    // No click-to-select: tapping a position on the bar does NOT jump
-    // the thumb there. Time only changes via subsequent pointermove
-    // (drag). Keeps the thumb as the affordance and frees the bar
-    // surface for future panel-drag-from-FTS gestures.
     setFtsPopupExpanded(true);
   });
 
@@ -3063,11 +3061,9 @@ function _updatePeekHeight() {
   if (!isMobile()) return;
   const panel = document.getElementById('panel');
   if (!panel) return;
-  // Stage 2b peek stack: handle (~17) + popup-reserve gap (36) + FTS (40)
-  // + FTS margin-bottom (10) + venue-peek pad (12) + card top sliver (~17)
-  // ≈ 132. The popup-reserve is empty space above the FTS where the
-  // compact scrub popup sits during interaction.
-  panel.style.setProperty('--peek-h', '132px');
+  // Peek stack: handle (~17) + popup-reserve gap (30) + FTS (40) + FTS
+  // margin-bottom (10) + venue-peek pad (12) + card top sliver (~17) ≈ 126.
+  panel.style.setProperty('--peek-h', '126px');
   _syncFtsPosition();
 }
 
@@ -4730,10 +4726,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const sunSectionBar = document.getElementById('sun-section-bar');
       const venuePeek    = document.getElementById('venue-peek');
       const panelHeader  = document.getElementById('panel-header');
+      const ftsEl        = document.getElementById('fts');
       if (listSunHdr) _wireSwipeTarget(listSunHdr, { deferred: true, tapToggle: false });
       if (sunSectionBar) _wireSwipeTarget(sunSectionBar);
       if (venuePeek)  _wireSwipeTarget(venuePeek);
       if (panelHeader) _wireSwipeTarget(panelHeader);
+      // FTS becomes a panel-drag surface EXCEPT the thumb itself, which
+      // retains horizontal scrub. tapToggle:false because tapping the
+      // bar shouldn't toggle peek↔expanded — keep it neutral.
+      if (ftsEl) _wireSwipeTarget(ftsEl, { excludeSelector: '#fts-thumb', tapToggle: false });
 
       // Catch-all: wire the panel itself for peek state so any gap between child
       // elements (handle, sun-header, venue-peek) is also draggable. The peekOnly
