@@ -6941,10 +6941,10 @@ function _introCheckReady() {
     // Skip intro when landing via an invite link — the plan-preview takeover
     // (queued by _tryInvite at +1500ms) owns the camera, time, and chrome,
     // and the intro's parallel animations were stomping on it.
-    const _hasInviteLink = hash.startsWith('friend/')
-                        || hash.startsWith('invite/')
-                        || /\/i\/[A-Za-z0-9+/=_-]+\/?$/.test(window.location.pathname);
-    if (_hasInviteLink) {
+    const _hasPlanInviteLink = hash.startsWith('invite/')
+                            || /\/i\/[A-Za-z0-9+/=_-]+\/?$/.test(window.location.pathname);
+    const _hasFriendInviteLink = hash.startsWith('friend/');
+    if (_hasPlanInviteLink) {
       // Add the takeover body class immediately so chrome (search bar, qc-wrap,
       // FTS, list panel) stays hidden during the brief wait for auth to settle.
       // The plan-preview's open() will leave it set; close() removes it.
@@ -6954,6 +6954,16 @@ function _introCheckReady() {
       // so the user doesn't see a slate flash between the splash hide
       // and the plan-preview overlay mount.
       _skipIntro({ keepSplash: true });
+      return;
+    }
+    if (_hasFriendInviteLink) {
+      // Friend-invite is a much lighter takeover than plan-invite — no
+      // preview overlay to mount, just a toast + a friendship row. Skip
+      // the intro animation but let the splash dismiss normally so the
+      // app is interactive while the friendship upsert runs in the
+      // background. Without this branch the splash stayed forever and
+      // the user was stuck looking at it.
+      _skipIntro();
       return;
     }
 
