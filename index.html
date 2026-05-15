@@ -712,7 +712,11 @@
 
   /* MAP — fills the entire viewport, sits behind all floating UI */
   #map-container {
-    position: absolute;
+    /* fixed so it's positioned to the layout viewport rather than the
+       containing block — on iOS Chrome PWA, the body can end above
+       the bottom system reservation and an absolute-inset-0 child
+       inherits that ceiling. fixed escapes it. */
+    position: fixed;
     inset: 0;
   }
 
