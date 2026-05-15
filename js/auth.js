@@ -1149,59 +1149,62 @@ function _renderBellDropdown() {
   });
 
   // ── Samples covering every notification type the system has ──────────
-  // Friend events get an avatar (real friend or initials). System events
-  // get a small monochrome line icon — no circle, no emoji.
+  // Each sample is wired to the real navigation handler (selectVenue /
+  // openFriendsModal). Samples without a real plan payload use a stub
+  // since plan-preview needs full plan data the sample doesn't carry.
   const samples = [
     // social_friends_at — multiple friends at a venue
     { mins: 8, lead: _bellAvatar('Anna', 1),
       msg: '<strong>Anna</strong> og <strong>Marius</strong> er på <strong>Hummus &amp; Wine</strong>.',
-      action: "_bellSampleNav('venue', 'Hummus & Wine')" },
+      action: "_bellOpenVenueByName('Hummus &amp; Wine')" },
     // social_checkin — single friend just checked in
     { mins: 24, lead: _bellAvatar('Marius'),
       msg: '<strong>Marius</strong> sjekket inn på <strong>Mathallen</strong>.',
-      action: "_bellSampleNav('venue', 'Mathallen')" },
+      action: "_bellOpenVenueByName('Mathallen')" },
     // social_invite_accepted — friend accepted your plan invite
     { mins: 47, lead: _bellAvatar('Anna'),
       msg: '<strong>Anna</strong> sa ja til planen din på <strong>Lekteren</strong>.',
-      action: "_bellSampleNav('plan', 'Lekteren')" },
-    // social_friend_plan — reminder: you have a plan today with a friend
-    // (You're invited to it. Plans are private to creator + invitees;
-    // friends don't see plans they're not part of.)
+      action: "_bellOpenVenueByName('Lekteren')" },
+    // social_friend_plan — reminder of an upcoming plan you're invited to
     { mins: 95, lead: _bellAvatar('Lars'),
       msg: 'Plan med <strong>Lars</strong> i dag på <strong>Vinland</strong> kl 19:00.',
-      action: "_bellSampleNav('plan', 'Vinland')" },
+      action: "_bellOpenVenueByName('Vinland')" },
     // weather — sun opening at a venue
     { mins: 145, lead: _bellSysLead('sun'),
       msg: 'Sol åpner på <strong>Nedre Foss Gård</strong> kl 17:00.',
-      action: "_bellSampleNav('venue', 'Nedre Foss Gård')" },
+      action: "_bellOpenVenueByName('Nedre Foss Gård')" },
     // social_invite_declined — friend declined your plan
     { mins: 220, lead: _bellAvatar('Sara'),
       msg: '<strong>Sara</strong> sa nei til planen på <strong>Michaels</strong>.',
-      action: "_bellSampleNav('plan', 'Michaels')" },
+      action: "_bellOpenVenueByName('Michaels')" },
     // suggestion — lunch suggestion
     { mins: 340, lead: _bellSysLead('bulb'),
       msg: 'Prøv <strong>Mathallen</strong> til lunsj — sol fra 12:00.',
-      action: "_bellSampleNav('venue', 'Mathallen')" },
-    // weather — rain warning
+      action: "_bellOpenVenueByName('Mathallen')" },
+    // weather — rain warning (no specific venue; just dismisses)
     { mins: 480, lead: _bellSysLead('rain'),
       msg: 'Regn forventet kl 14:00 i dag.',
-      action: "_bellSampleNav('weather', null)" },
+      action: "_closeBellDropdown()" },
     // suggestion — sheltered alternative
     { mins: 720, lead: _bellSysLead('wind'),
       msg: 'Vind i dag — prøv <strong>Lekteren</strong> for ly.',
-      action: "_bellSampleNav('venue', 'Lekteren')" },
+      action: "_bellOpenVenueByName('Lekteren')" },
     // new friend connection
     { mins: 1440, lead: _bellAvatar('Henrik'),
       msg: 'Du og <strong>Henrik</strong> er nå venner.',
-      action: "_bellSampleNav('friends', null)" },
+      action: "_bellOpenFriendsModal()" },
   ];
 
-  samples.forEach(s => {
+  samples.forEach((s, idx) => {
     const ts = NOW - (s.mins * 60_000);
+    // First 3 samples flagged as "new" for the unread-dot demo. Real
+    // implementation would persist last-opened timestamp in localStorage
+    // and compare each entry's timestamp against it.
+    const newClass = idx < 3 ? ' bd-row--new' : '';
     entries.push({
       t: ts,
       html: `
-        <div class="bd-row bd-row--clickable bd-row--sample" onclick="${s.action}">
+        <div class="bd-row bd-row--clickable bd-row--sample${newClass}" onclick="${s.action}">
           ${s.lead}
           <div class="bd-row__body">
             <div class="bd-row__msg">${s.msg}</div>
@@ -1228,15 +1231,24 @@ function _renderBellDropdown() {
   dropdown.innerHTML = entries.map(e => e.html).join('');
 }
 
-/** Stub action handler for sample rows in the bell — demos the routing
- *  pattern (venue / plan / friends list) without needing live data wired
- *  for every type. Live versions of these notifications would call the
- *  real navigation handlers instead. */
-function _bellSampleNav(kind, label) {
+/** Bell row → venue detail. Looks up the venue by name in the global
+ *  VENUES array and routes through the existing selectVenue handler. */
+function _bellOpenVenueByName(name) {
   _closeBellDropdown();
-  // Placeholder feedback so the user sees the click registered. Real
-  // notifications will route to selectVenue / openPlanPreview / etc.
-  console.log('[bell] sample click:', kind, label);
+  if (!name || typeof VENUES === 'undefined' || !Array.isArray(VENUES)) return;
+  // Decode HTML entities the sample HTML uses (Hummus &amp; Wine → ...)
+  const decoded = name.replace(/&amp;/g, '&').replace(/&#39;/g, "'");
+  const target = decoded.trim().toLowerCase();
+  const v = VENUES.find(v => v.name && v.name.toLowerCase() === target);
+  if (v && typeof selectVenue === 'function') {
+    selectVenue(Number(v.id), true);
+  }
+}
+
+/** Bell row → friends list. */
+function _bellOpenFriendsModal() {
+  _closeBellDropdown();
+  if (typeof openFriendsModal === 'function') openFriendsModal();
 }
 
 function toggleProfilePanel(e) {

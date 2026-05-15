@@ -48,7 +48,7 @@
 <script defer src="js/i18n.js?v=20260514e"></script>
 <script defer src="js/config.js?v=20260425b"></script>
 <script defer src="js/tokens.js?v=20260509e"></script>
-<script defer src="js/auth.js?v=20260515k"></script>
+<script defer src="js/auth.js?v=20260515l"></script>
 <script defer src="js/login-carousel.js?v=20260428a"></script>
 <script defer src="js/analytics.js"></script>
 <script defer src="js/places.js?v=20260411b"></script>
@@ -1473,26 +1473,44 @@
   }
 
   /* Bell dropdown — full-width below the top strip. Same legibility
-     treatment as the search dropdown. */
+     treatment as the search dropdown. Capped at 60vh so it doesn't
+     dominate the screen; content scrolls inside. */
   #bell-dropdown {
     position: absolute;
     top: calc(14px + 46px + 8px);
     left: 12px;
     right: 12px;
     width: auto;
-    max-height: calc(100vh - 80px - 24px);
+    max-height: min(60vh, 520px);
     z-index: 1050;
     border-radius: 14px;
     box-shadow: var(--glass-inset), 0 8px 32px rgba(0,0,0,0.55);
     overflow-y: auto;
     overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
     display: none;
     background: rgba(26, 44, 66, 0.92) !important;
   }
   #bell-dropdown.open { display: block; }
   /* Rows clickable for nav-style notifications (check-ins, plans). */
-  .bd-row.bd-row--clickable { cursor: pointer; transition: background 120ms; }
+  .bd-row.bd-row--clickable {
+    cursor: pointer;
+    transition: background 120ms;
+    -webkit-tap-highlight-color: transparent;
+  }
   .bd-row.bd-row--clickable:hover { background: rgba(155,169,188,0.06); }
+  .bd-row.bd-row--clickable:active { background: rgba(155,169,188,0.14); }
+  /* New / unread indicator — small honey dot floating at the right edge */
+  .bd-row.bd-row--new { position: relative; }
+  .bd-row.bd-row--new::after {
+    content: '';
+    position: absolute;
+    top: 16px; right: 14px;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 6px rgba(245,194,94,0.55);
+  }
   .bd-empty {
     padding: 28px 16px;
     text-align: center;
@@ -1516,9 +1534,12 @@
   }
   .bd-row:first-of-type { border-top: none; }
   /* Leading element — 32px slot. Avatar for friend events, line icon
-     for system events. Same width either way so all rows line up. */
+     for system events. Same width either way so all rows line up.
+     position:relative so the +1 badge can sit outside the avatar's
+     overflow-clipped circle. */
   .bd-row__lead {
     flex-shrink: 0;
+    position: relative;
     width: 32px; height: 32px;
     display: inline-flex;
     align-items: center;
@@ -1534,19 +1555,21 @@
     justify-content: center;
     font: 600 13px/1 'Inter', sans-serif;
     border: 1px solid rgba(155,169,188,0.22);
-    position: relative;
     overflow: hidden;
   }
   .bd-row__avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  /* +1 badge — sibling of the avatar, anchored to the lead container
+     so it can render past the avatar's clipped circle. */
   .bd-row__avatar-plus {
     position: absolute;
-    right: -3px; bottom: -3px;
-    background: var(--bg);
-    color: var(--muted);
-    font: 600 9px/1 'Inter', sans-serif;
-    padding: 2px 4px;
-    border-radius: 8px;
-    border: 1px solid rgba(155,169,188,0.30);
+    right: -6px; bottom: -4px;
+    background: var(--panel);
+    color: var(--text);
+    font: 700 9px/1 'Inter', sans-serif;
+    padding: 3px 5px;
+    border-radius: 9px;
+    border: 1.5px solid var(--panel);
+    box-shadow: 0 0 0 1px rgba(155,169,188,0.30);
   }
   .bd-row__sys-icon {
     color: var(--muted);
@@ -1579,24 +1602,28 @@
   }
   .bd-action {
     flex: 1 1 0;
-    height: 30px;
+    height: 32px;
     padding: 0 10px;
     border-radius: 8px;
     border: none;
     cursor: pointer;
     font: 600 12px/1 'Inter', sans-serif;
-    transition: background 120ms, color 120ms;
+    transition: background 120ms, color 120ms, transform 80ms, filter 120ms;
+    -webkit-tap-highlight-color: transparent;
   }
+  .bd-action:active { transform: scale(0.97); }
   .bd-action.primary {
     background: var(--accent);
     color: var(--accent-on);
   }
   .bd-action.primary:hover { filter: brightness(1.08); }
+  .bd-action.primary:active { filter: brightness(0.95); }
   .bd-action.secondary {
     background: rgba(155,169,188,0.14);
     color: var(--text);
   }
   .bd-action.secondary:hover { background: rgba(155,169,188,0.22); }
+  .bd-action.secondary:active { background: rgba(155,169,188,0.30); }
   #search-dropdown.open { display: block; }
   .sd-row {
     display: flex;
