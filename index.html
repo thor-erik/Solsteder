@@ -58,7 +58,7 @@
 <script defer src="js/weather.js?v=20260514b"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260515d"></script>
+<script defer src="js/app.js?v=20260515e"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
@@ -1596,7 +1596,10 @@
   body.fts #fts {
     display: flex;
     position: relative;
-    margin: 6px 12px 10px;
+    /* margin-top reserves space above the FTS for the compact scrub
+       popup (~28px popup + 6px tail-gap = ~34px, +2 breathing room).
+       Expanded popup intentionally overlaps the handle area. */
+    margin: 36px 12px 10px;
     height: 40px;
     align-items: center;
     gap: 8px;
@@ -1604,8 +1607,6 @@
     background: none;
     border: none;
     box-shadow: none;
-    /* No transition on positional props — FTS no longer animates between
-       fixed positions. Opacity still transitions for intro reveal. */
     transition: opacity 0.22s ease;
   }
   body.fts #fts-track {
@@ -4216,16 +4217,16 @@
     }
 
 
-    /* Locate button — sits 10 px above the FTS bar in mobile peek so the
-       FTS can take the full pill width. 40 px FTS + 10 px gap = 50 px
-       above the FTS bottom. */
+    /* Locate button — sits ~6px above the panel top edge. FTS used to
+       float ABOVE the panel and locate-btn stacked above it; now FTS
+       lives inside the panel, so locate-btn just hugs the panel top. */
     #locate-btn { bottom: calc(var(--peek-h, 252px) + 14px); right: 12px; }
-    body.fts #locate-btn { bottom: calc(var(--fts-bottom, 160px) + 40px + 10px); right: 12px; transition: bottom 0.34s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease; }
+    body.fts #locate-btn { bottom: calc(var(--fts-bottom, 160px) + 6px); right: 12px; transition: bottom 0.34s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease; }
 
-    /* Zoom jog — 10 px above the 40 px locate button (stacks on top). */
+    /* Zoom jog — stacked 10px above the 40px locate button. */
     #zoom-jog { right: 12px; }
     #zoom-jog { bottom: calc(var(--peek-h, 252px) + 14px + 40px + 10px); }
-    body.fts #zoom-jog { bottom: calc(var(--fts-bottom, 160px) + 40px + 10px + 40px + 10px); transition: bottom 0.34s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease; }
+    body.fts #zoom-jog { bottom: calc(var(--fts-bottom, 160px) + 6px + 40px + 10px); transition: bottom 0.34s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease; }
 
     /* FTS thumb sized up on mobile (was 32, tried 40 — settled on 36px).
        Balance: 36 is a comfortable touch target without feeling oversized

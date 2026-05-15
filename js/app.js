@@ -190,11 +190,11 @@ function _syncFtsPosition() {
   }
   // (When editingVenueId, --fts-bottom is set by the ResizeObserver instead.)
 
-  // Stage 2b: FTS is at the top of the panel header, so the popup
-  // must flip BELOW the thumb — otherwise it extends above the panel
-  // edge and gets clipped by #panel{overflow:hidden}.
+  // Popup stays ABOVE the thumb — finger doesn't obscure the readout.
+  // FTS has enough margin-top inside the panel to fit the compact popup;
+  // expanded popup intentionally overlaps the handle area.
   const popup = document.getElementById('fts-popup');
-  if (popup) popup.classList.add('fts-popup-below');
+  if (popup) popup.classList.remove('fts-popup-below');
 
   // Track panel state across calls so we can pan the map in sync with the list
   // when the user just located themselves and is centered on the user dot.
@@ -374,16 +374,15 @@ function initFts() {
       _thumbEl.classList.remove('is-hover');
       _thumbEl.classList.add('is-active');
     }
-    // Show skeleton wireframes from the moment the thumb is picked up —
-    // not just when an input event fires. setTimeFromPointer below will
-    // also trigger scheduleRenderList, but its 300 ms timer is held off
-    // for the duration of the drag (see scheduleRenderList).
     if (typeof _injectScrubSkeletons === 'function' &&
         !document.body.classList.contains('list-scrubbing')) {
       _injectScrubSkeletons();
       document.body.classList.add('list-scrubbing');
     }
-    setTimeFromPointer(e.clientX);
+    // No click-to-select: tapping a position on the bar does NOT jump
+    // the thumb there. Time only changes via subsequent pointermove
+    // (drag). Keeps the thumb as the affordance and frees the bar
+    // surface for future panel-drag-from-FTS gestures.
     setFtsPopupExpanded(true);
   });
 
@@ -3064,13 +3063,11 @@ function _updatePeekHeight() {
   if (!isMobile()) return;
   const panel = document.getElementById('panel');
   if (!panel) return;
-  // Fixed peek height. Stack: 1 (border) + ~24 (handle) + ~50 (chip row)
-  // + 12 (venue-peek padding-top) + ~12 (rounded card top) = 99. Card
-  // body has its own 14px padding-top before any text, so the visible
-  // sliver lands fully inside that padding — no card text shows. We
-  // tune slightly above the math to absorb sub-pixel browser quirks
-  // (Safari especially) without leaking text into view.
-  panel.style.setProperty('--peek-h', '102px');
+  // Stage 2b peek stack: handle (~17) + popup-reserve gap (36) + FTS (40)
+  // + FTS margin-bottom (10) + venue-peek pad (12) + card top sliver (~17)
+  // ≈ 132. The popup-reserve is empty space above the FTS where the
+  // compact scrub popup sits during interaction.
+  panel.style.setProperty('--peek-h', '132px');
   _syncFtsPosition();
 }
 
@@ -4552,10 +4549,9 @@ document.addEventListener('DOMContentLoaded', () => {
               _ftsEl.style.transition = 'none';
               _ftsEl.style.bottom = ftsBottom + 'px';
 
-              // Stage 2b: popup pinned below the thumb (FTS is at the
-              // top of the panel; "above" gets clipped by panel overflow).
+              // Popup stays above the thumb — finger doesn't obscure it.
               const popup = document.getElementById('fts-popup');
-              if (popup) popup.classList.add('fts-popup-below');
+              if (popup) popup.classList.remove('fts-popup-below');
             }
           }
           // Track locate button + zoom jog with panel during drag.
