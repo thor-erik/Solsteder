@@ -254,7 +254,11 @@
   }
 
   html, body {
-    height: 100%;
+    /* dvh extends past the home-indicator zone in iOS PWA standalone
+       so #map-container (inset: 0) fills edge-to-edge. With plain
+       100%/100vh, the body terminated above the home indicator and
+       the slate --bg painted in the gap below. */
+    height: 100dvh;
     background: var(--bg);
     color: var(--text);
     font-family: 'Inter', system-ui, sans-serif;
