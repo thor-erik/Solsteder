@@ -8903,13 +8903,14 @@
     pointer-events: none;
     transition: opacity 0.22s ease;
   }
-  /* Lift the FTS to sit above the share sheet with a small breathing
-     gap. v1 used 8 px which read fine; v2-flush (0 px) made the
-     slider's rounded body look stuck to the sheet's top edge. 8 px
-     restored. */
+  /* Hide the FTS while the invite/share sheet is open. v2 lifted it
+     above the sheet for in-flow time scrubbing, but the duplicate
+     "04:00" (thumb above the sheet AND the "Du drar kl. 04:00" line
+     inside it) confused users. Cancel-and-reopen lets them pick a
+     new time; that's the documented path. */
   body.invite-sheet-open #fts {
-    bottom: calc(var(--dpinvite-sheet-h, 320px) + 8px) !important;
-    z-index: 1102; /* above the sheet (1100) */
+    opacity: 0 !important;
+    pointer-events: none !important;
   }
   /* The FTS popup (its native time/weather pill that floats above the
      thumb) was suppressed in v1 to avoid duplicating the floating
@@ -9385,6 +9386,13 @@
        14px left the secondary CTAs feeling cramped against the
        viewport edge. */
     padding: 0 18px calc(24px + env(safe-area-inset-bottom, 0px));
+    /* Cap the sheet's height so the Accept/Decline CTAs stay above
+       the home indicator on small phones. Without this, taller
+       content (venue meta + timeline + CTA row) pushed the buttons
+       below the visible viewport in iOS PWA standalone. */
+    max-height: 85svh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     border-radius: 20px 20px 0 0;
     background: var(--glass-panel-bg);
     backdrop-filter: blur(22px) saturate(180%) brightness(0.92);
