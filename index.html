@@ -58,7 +58,7 @@
 <script defer src="js/weather.js?v=20260514b"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260515a"></script>
+<script defer src="js/app.js?v=20260515b"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
@@ -1084,12 +1084,13 @@
     color: var(--accent);
   }
   #top-strip .ts-avatar {
-    background: linear-gradient(135deg, #5C7A9E, #2C4564);
+    /* Same chrome as bell + search — token-based glass. The avatar image or
+       anon icon inside provides differentiation, not the button background. */
     color: var(--text);
     font: 600 12px/1 'Inter', sans-serif;
     overflow: hidden;
   }
-  #top-strip .ts-avatar.active { box-shadow: var(--glass-inset), 0 0 0 2px rgba(245,194,94,0.42); }
+  #top-strip .ts-avatar.active { box-shadow: var(--glass-inset), 0 0 0 2px var(--accent-border, rgba(245,194,94,0.42)); }
   #top-strip .ts-avatar img { width: 38px; height: 38px; border-radius: 50%; display: block; }
   #top-strip .ts-avatar .profile-initials,
   #top-strip .ts-avatar .profile-anon {
@@ -1107,9 +1108,9 @@
     font-weight: 700;
   }
   #top-strip .ts-avatar .profile-anon {
-    background: rgba(155,169,188,0.12);
+    background: transparent;
     color: var(--muted);
-    border: 1.5px solid rgba(155,169,188,0.30);
+    border: none;
   }
   #top-strip .ts-bell-dot {
     position: absolute;

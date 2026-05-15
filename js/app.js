@@ -938,6 +938,10 @@ function updateHeaderDateChip() {
 
   chip.classList.toggle('active', _qcActiveSection === 'date');
   document.getElementById('fts-date-btn')?.classList.toggle('active', _qcActiveSection === 'date');
+  // Mirror date label + active state into the top-strip date link.
+  const tsLabel = document.getElementById('ts-date-label');
+  if (tsLabel) tsLabel.textContent = dateLabel.textContent;
+  document.getElementById('ts-date-btn')?.classList.toggle('active', _qcActiveSection === 'date');
 }
 
 /** Update the sun-section bar labels and apply current scroll state.
@@ -2164,6 +2168,14 @@ function updateDateWeatherStrip() {
     + `<span class="wx-sep">·</span>`
     + `<span class="wx-wind">${arrow} ${Math.round(wx.wspd)} m/s</span>`
     + rain;
+
+  // Mirror into the new top-strip sentence (Stage 1b).
+  const tsIcon = document.getElementById('ts-wx-icon');
+  const tsTemp = document.getElementById('ts-temp');
+  const tsWind = document.getElementById('ts-wind');
+  if (tsIcon) tsIcon.textContent = skyIcon(wx.sunBlock ?? wx.cloud);
+  if (tsTemp) tsTemp.textContent = formatTemp(wx.temp);
+  if (tsWind) tsWind.textContent = `${arrow} ${Math.round(wx.wspd)} m/s`;
 }
 
 
@@ -5056,10 +5068,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const calFloat  = document.getElementById('ptb-cal-float');
     const dateChip  = document.getElementById('header-date-chip');
     const ftsBtn    = document.getElementById('fts-date-btn');
+    const tsBtn     = document.getElementById('ts-date-btn');
     if (qcPanel?.classList.contains('open')
         && !calFloat?.contains(e.target)
         && !dateChip?.contains(e.target)
-        && !ftsBtn?.contains(e.target)) {
+        && !ftsBtn?.contains(e.target)
+        && !tsBtn?.contains(e.target)) {
       _closeQcPanel();
     }
   });
