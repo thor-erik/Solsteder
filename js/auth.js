@@ -59,15 +59,15 @@ async function authLoadRole() {
 
 /** Patch the current user's profile row with their auth user_metadata
  *  so friends/attendees show their proper name and avatar everywhere.
- *  Runs on every auth load. Idempotent. */
+ *  Also stamps last_seen_at — the auth-load is the cheapest place to
+ *  treat as a heartbeat. Runs on every auth load. Idempotent. */
 async function _syncProfileFromUserMetadata() {
   if (!_currentUser) return;
   const meta = _currentUser.user_metadata || {};
-  const patch = {};
+  const patch = { last_seen_at: new Date().toISOString() };
   const fullName = meta.full_name || meta.name || meta.preferred_username || null;
   if (fullName) patch.name = fullName;
   if (meta.avatar_url) patch.avatar_url = meta.avatar_url;
-  if (!Object.keys(patch).length) return;
   await _supabase.from('profiles').update(patch).eq('id', _currentUser.id);
 }
 
@@ -964,7 +964,7 @@ function _renderProfilePanel() {
       panel.innerHTML = _renderAdminUsersView();
     } else {
       panel.innerHTML = _renderSettingsView();
-      if (authIsAdmin()) { _loadPendingCount(); _loadVenueSuggestionsCount(); }
+      if (authIsAdmin()) { _loadPendingCount(); _loadVenueSuggestionsCount(); _subscribeSuggestionsRealtime(); }
       _loadMySuggestions();
     }
   } else {
@@ -1040,17 +1040,24 @@ function _loginSlideIcon(i) {
 const _bellHistory = new Map();
 const _BELL_HISTORY_MAX = 30;
 
-// Persisted unread cutoff — items with ts > _bellLastOpenedTs render
-// with the honey "new" dot.
-let _bellLastOpenedTs = (() => {
-  try { return parseInt(localStorage.getItem('bell.lastOpened') || '0', 10) || 0; }
-  catch { return 0; }
-})();
-
-function _bellNoteOpened() {
-  _bellLastOpenedTs = Date.now();
-  try { localStorage.setItem('bell.lastOpened', String(_bellLastOpenedTs)); }
-  catch { /* ignore */ }
+// Unread state lives on the notifications row (read_at column). Bell
+// open marks every visible entry read; per-row click also marks the
+// row read via _bellMarkRead. No localStorage cutoff anymore — works
+// across devices because the read state is server-side.
+async function _bellNoteOpened() {
+  const now = new Date().toISOString();
+  let changed = false;
+  for (const entry of _bellHistory.values()) {
+    if (!entry.readAt) { entry.readAt = now; changed = true; }
+  }
+  if (!changed) return;
+  if (!_currentUser || typeof _supabase === 'undefined') return;
+  try {
+    await _supabase.from('notifications')
+      .update({ read_at: now })
+      .eq('user_id', _currentUser.id)
+      .is('read_at', null);
+  } catch { /* fire-and-forget */ }
 }
 
 /** Render body with bodyVars bolded. _notifShow's wrapper renders the
@@ -1318,7 +1325,7 @@ function _bellHasUnread() {
   // Pending requests / invites are always "new" until acted on.
   if (reqs.length > 0 || invs.length > 0) return true;
   for (const e of _bellHistory.values()) {
-    if (e.ts > _bellLastOpenedTs) return true;
+    if (!e.readAt) return true;
   }
   return false;
 }
@@ -1457,7 +1464,7 @@ function _renderBellDropdown() {
   // ── Captured notifications — every notification that fired this
   //    session gets surfaced here. Real data, real click actions. ──────
   _bellHistory.forEach(entry => {
-    const isNew = entry.ts > _bellLastOpenedTs ? ' bd-row--new' : '';
+    const isNew = entry.readAt ? '' : ' bd-row--new';
     entries.push({
       t: entry.ts,
       html: `
@@ -1769,6 +1776,22 @@ async function _loadVenueSuggestionsCount() {
   }
 }
 
+// Realtime: keep the admin-suggestions badge fresh without re-polling on
+// every profile-panel open. Subscribe once per admin session.
+let _suggestionsChannel = null;
+function _subscribeSuggestionsRealtime() {
+  if (_suggestionsChannel) return;
+  if (typeof _supabase === 'undefined' || !authIsAdmin()) return;
+  _suggestionsChannel = _supabase
+    .channel('admin-suggestions')
+    .on('postgres_changes', {
+      event:  '*',
+      schema: 'public',
+      table:  'suggested_venues',
+    }, () => _loadVenueSuggestionsCount())
+    .subscribe();
+}
+
 // ── Load approved suggested venues into VENUES ────────────────────────────────
 // Called after VENUES is populated. Merges in admin-approved user submissions
 // so they appear on the map and list for all users.
@@ -1881,6 +1904,7 @@ async function adminApproveVenueSuggestion(id) {
     reviewed_at: new Date().toISOString(),
     reviewed_by: _currentUser.id,
   }).eq('id', id);
+  if (typeof _aTrack === 'function') _aTrack('admin_suggestion_review', { id, action: 'approved' });
   const card = document.getElementById(`vsug-${id}`);
   if (card) {
     card.style.opacity = '0.4';
@@ -1896,6 +1920,7 @@ async function adminRejectVenueSuggestion(id) {
     reviewed_at: new Date().toISOString(),
     reviewed_by: _currentUser.id,
   }).eq('id', id);
+  if (typeof _aTrack === 'function') _aTrack('admin_suggestion_review', { id, action: 'rejected' });
   const card = document.getElementById(`vsug-${id}`);
   if (card) {
     card.style.opacity = '0.4';
@@ -2150,6 +2175,7 @@ async function loadUserPreferences() {
   if (data.default_area && typeof setAreaFilter === 'function') {
     setAreaFilter(data.default_area);
   }
+  _userStateMerge(data.state || {});
   if (typeof _renderProfilePanel === 'function') _renderProfilePanel();
   if (typeof update === 'function') update();
 }
@@ -2159,6 +2185,58 @@ async function saveUserPreference(key, value) {
   const row = { user_id: _currentUser.id, updated_at: new Date().toISOString() };
   row[key] = value;
   await _supabase.from('user_preferences').upsert(row, { onConflict: 'user_id' });
+  if (typeof _aTrack === 'function') _aTrack('preference_change', { key, value });
+}
+
+// ── Cross-device UI state (user_preferences.state JSONB) ────────────────────
+// Holds dismissed UI prompts + per-friend visibility toggles + anything
+// else we want to survive across devices without its own column.
+// localStorage stays as the fast local cache; we merge on auth load.
+let _userState = {};
+
+function _userStateMerge(remote) {
+  const localHidden = (() => {
+    try { return JSON.parse(localStorage.getItem('hidden_checkin_friends') || '[]'); }
+    catch { return []; }
+  })();
+  const localDismissed = (() => {
+    try { return JSON.parse(localStorage.getItem('solsteder_dismissed_friend_prompts') || '[]'); }
+    catch { return []; }
+  })();
+  const remoteHidden = Array.isArray(remote.hiddenCheckinFriends) ? remote.hiddenCheckinFriends : [];
+  const remoteDismissed = Array.isArray(remote.dismissedFriendPrompts) ? remote.dismissedFriendPrompts : [];
+  const mergedHidden = [...new Set([...remoteHidden, ...localHidden])];
+  const mergedDismissed = [...new Set([...remoteDismissed, ...localDismissed])];
+
+  _userState = { ...remote, hiddenCheckinFriends: mergedHidden, dismissedFriendPrompts: mergedDismissed };
+
+  _hiddenCheckinFriends = new Set(mergedHidden);
+  localStorage.setItem('hidden_checkin_friends', JSON.stringify(mergedHidden));
+  localStorage.setItem('solsteder_dismissed_friend_prompts', JSON.stringify(mergedDismissed));
+
+  // If the merge added local values the server didn't have, push back.
+  if (mergedHidden.length !== remoteHidden.length || mergedDismissed.length !== remoteDismissed.length) {
+    _persistUserState();
+  }
+}
+
+async function _persistUserState() {
+  if (!_currentUser || typeof _supabase === 'undefined') return;
+  try {
+    await _supabase.from('user_preferences').upsert({
+      user_id: _currentUser.id,
+      state: _userState,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id' });
+  } catch { /* fire-and-forget */ }
+}
+
+function userStateAddDismissedPrompt(inviterId) {
+  if (!Array.isArray(_userState.dismissedFriendPrompts)) _userState.dismissedFriendPrompts = [];
+  if (!_userState.dismissedFriendPrompts.includes(inviterId)) {
+    _userState.dismissedFriendPrompts.push(inviterId);
+    _persistUserState();
+  }
 }
 
 function toggleCheckinVisibility(friendId) {
@@ -2167,7 +2245,10 @@ function toggleCheckinVisibility(friendId) {
   } else {
     _hiddenCheckinFriends.add(friendId);
   }
-  localStorage.setItem('hidden_checkin_friends', JSON.stringify([..._hiddenCheckinFriends]));
+  const arr = [..._hiddenCheckinFriends];
+  localStorage.setItem('hidden_checkin_friends', JSON.stringify(arr));
+  _userState.hiddenCheckinFriends = arr;
+  _persistUserState();
   if (typeof _renderProfilePanel === 'function') _renderProfilePanel();
   if (typeof renderList === 'function') renderList();
   if (typeof draw === 'function') draw();
@@ -2350,6 +2431,7 @@ async function checkIn(venueId, message, opts = {}) {
     message: message || ''
   }).select().single();
   if (!error && data) _myCheckin = data;
+  if (typeof _aTrack === 'function') _aTrack('checkin', { venueId: vid, hasMessage: !!message });
   await loadFriendCheckins();
   // opts.silent suppresses the success toast — used by callers that
   // already showed their own notification leading up to this check-in
@@ -2366,7 +2448,9 @@ async function checkIn(venueId, message, opts = {}) {
 
 async function checkOut() {
   if (!_currentUser || !_myCheckin) return;
+  const vid = _myCheckin.venue_id;
   await _supabase.from('checkins').delete().eq('id', _myCheckin.id);
+  if (typeof _aTrack === 'function') _aTrack('checkout', { venueId: vid });
   _myCheckin = null;
   await loadFriendCheckins();
   _showToast(t('check_out_success'));

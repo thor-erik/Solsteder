@@ -612,6 +612,7 @@ function _handleFriendPromptDismiss(inviterId) {
     if (!dismissed.includes(inviterId)) dismissed.push(inviterId);
     localStorage.setItem(KEY, JSON.stringify(dismissed));
   } catch {}
+  if (typeof userStateAddDismissedPrompt === 'function') userStateAddDismissedPrompt(inviterId);
   if (typeof window !== 'undefined') window._pendingFriendPrompt = null;
   const banner = document.getElementById('friend-prompt-banner');
   if (banner) banner.remove();
