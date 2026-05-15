@@ -1058,12 +1058,14 @@
 
   #top-strip {
     position: absolute;
-    /* PWA standalone on iOS extends the viewport behind the Dynamic
-       Island / camera notch — env(safe-area-inset-top) pushes the
-       strip below it. 2px sits as tight as it can without kissing the
-       Island. Falls back to 12px in browser mode where the URL bar
-       provides the visual clearance instead. */
-    top: calc(env(safe-area-inset-top, 10px) + 2px);
+    /* max() so each platform gets the spacing it needs:
+       - iOS PWA: env returns ~59px (Island + status bar), so top ≈
+         61px → tight under the Dynamic Island, as requested.
+       - Android PWA: env returns 0 (status bar painted by theme-
+         color, no inset), so the 14px floor kicks in → breathing
+         room under the system status bar.
+       - Browser: env returns 0 too, floor gives 14px. */
+    top: max(calc(env(safe-area-inset-top, 0px) + 2px), 14px);
     left: 12px; right: 12px;
     z-index: 900;
     height: 46px;
