@@ -6011,6 +6011,31 @@ let _preSearchPanelState = null;
 let _searchSessionActive = false;
 let _searchBlurTimer = null;
 
+/** Enter search mode — transforms #top-strip into a full-width input.
+ *  Focusing #venue-search triggers _enterSearchSession via its existing
+ *  focus handler, which shows the dropdown when there's a query. */
+function enterSearchMode() {
+  const strip = document.getElementById('top-strip');
+  const input = document.getElementById('venue-search');
+  if (!strip || !input) return;
+  strip.classList.add('searching');
+  // Wait a frame so the input is display:flex before we try to focus.
+  requestAnimationFrame(() => input.focus());
+}
+
+/** Exit search mode — clears the input, blurs it (which triggers
+ *  _exitSearchSession via the blur handler), and collapses the strip. */
+function exitSearchMode() {
+  const strip = document.getElementById('top-strip');
+  const input = document.getElementById('venue-search');
+  if (!strip || !input) return;
+  input.value = '';
+  // Fire input event so any debounced render clears stale results.
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  input.blur();
+  strip.classList.remove('searching');
+}
+
 function _enterSearchSession() {
   if (_searchSessionActive) return;
   _searchSessionActive = true;

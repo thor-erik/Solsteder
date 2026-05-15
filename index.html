@@ -58,7 +58,7 @@
 <script defer src="js/weather.js?v=20260514b"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260515i"></script>
+<script defer src="js/app.js?v=20260515j"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
@@ -1176,6 +1176,70 @@
   /* .intro-hidden + .mobile-ui-hidden (display:none !important) already
      hide #top-strip when the JS applies/removes those classes — same as
      it does for #floating-search. No extra CSS needed. */
+
+  /* ── Top strip search mode (Stage 3) ───────────────────────────────────
+     Click search → strip transforms to a full-width input + close (X).
+     Search results dropdown stays as-is, anchored below the strip. */
+  #top-strip .ts-search-input {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    padding: 0 6px 0 12px;
+    height: 38px;
+    border-radius: 19px;
+    background: var(--glass-action-bg);
+    backdrop-filter: var(--glass-blur-action);
+    -webkit-backdrop-filter: var(--glass-blur-action);
+    border: var(--glass-border);
+    box-shadow: var(--glass-inset);
+  }
+  #top-strip .ts-search-input .ts-search-input-icon {
+    flex-shrink: 0;
+    width: 18px; height: 18px;
+    color: var(--muted);
+    display: inline-flex;
+  }
+  #top-strip .ts-search-input #venue-search {
+    flex: 1 1 auto;
+    min-width: 0;
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 0;
+    color: var(--text);
+    font: 500 14px/1 'Inter', sans-serif;
+  }
+  #top-strip .ts-search-input #venue-search::placeholder {
+    color: rgba(255,244,224,0.55);
+  }
+  #top-strip .ts-search-input-close {
+    flex-shrink: 0;
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,242,235,0.10);
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 120ms, color 120ms;
+  }
+  #top-strip .ts-search-input-close:hover {
+    background: rgba(255,242,235,0.18);
+    color: var(--text);
+  }
+  #top-strip.searching {
+    grid-template-columns: 1fr;
+    padding: 4px;
+  }
+  #top-strip.searching .ts-left,
+  #top-strip.searching .ts-center,
+  #top-strip.searching .ts-right { display: none; }
+  #top-strip.searching .ts-search-input { display: flex; }
 
   /* ── Panel header cleanup (Stage 2a) ──────────────────────────────────
      The date chip + weather chip line and the prose sun-outlook line are
@@ -10259,10 +10323,11 @@
 
   </div>
 
-  <!-- Top-left: search bar (legacy — hidden by CSS; kept in DOM so JS handlers don't break) -->
+  <!-- Top-left: search bar (legacy — hidden by CSS; kept in DOM so JS
+       handlers + cached refs don't break. #venue-search moved into the
+       new top strip's search-mode container below. -->
   <div id="floating-search" class="floating-card intro-hidden">
     <span id="search-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8.5" cy="8.5" r="5.5"/><line x1="13" y1="13" x2="18" y2="18"/></svg></span>
-    <input type="text" id="venue-search" placeholder="Søk etter steder eller områder…" autocomplete="off" aria-label="Søk etter steder eller områder">
     <button id="search-clear-btn" type="button" aria-label="Clear search">✕</button>
     <button id="search-profile-btn" onclick="toggleProfilePanel(event)" title="Profil" aria-label="Profil"></button>
   </div>
@@ -10295,12 +10360,28 @@
       <span class="ts-meta ts-wind" id="ts-wind">💨 4 m/s</span>
     </div>
     <div class="ts-right">
-      <button class="ts-btn" id="ts-search-btn" title="Søk" aria-label="Søk">
+      <button class="ts-btn" id="ts-search-btn" title="Søk" aria-label="Søk"
+              onclick="enterSearchMode()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="11" cy="11" r="7"/>
           <path d="M21 21l-4.35-4.35"/>
         </svg>
       </button>
+    </div>
+    <!-- Search-mode contents — shown when #top-strip has .searching.
+         #venue-search is the same element the existing search logic
+         is wired to; relocated from #floating-search. -->
+    <div class="ts-search-input" aria-hidden="true">
+      <span class="ts-search-input-icon" aria-hidden="true">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="8.5" cy="8.5" r="5.5"/><line x1="13" y1="13" x2="18" y2="18"/>
+        </svg>
+      </span>
+      <input type="text" id="venue-search"
+             placeholder="Søk etter steder eller områder…"
+             autocomplete="off" aria-label="Søk etter steder eller områder">
+      <button class="ts-search-input-close" type="button"
+              onclick="exitSearchMode()" aria-label="Lukk søk">✕</button>
     </div>
   </div>
 
