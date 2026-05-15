@@ -1071,9 +1071,14 @@ function showFtsPopup(hour) {
   const MIN_H = MIN_H_ARC, MAX_H = MAX_H_ARC;
   const trackEl   = document.getElementById('fts-track');
   const trackRect = trackEl ? trackEl.getBoundingClientRect() : null;
-  const trackW    = trackEl?.offsetWidth || 300;
+  // BCR.width reflects the *current* layout (including transitional
+  // states). offsetWidth rounds + can be stale during the compact↔
+  // expanded popup morph, which made the tail tip drift away from the
+  // thumb mid-scrub. BCR is the reliable read here.
+  const trackW    = (trackRect ? trackRect.width : trackEl?.offsetWidth) || 300;
   const trackL    = trackRect ? trackRect.left : 0;
-  const popupW    = popup.offsetWidth || 60;
+  const popupBCR  = popup.getBoundingClientRect();
+  const popupW    = popupBCR.width || popup.offsetWidth || 60;
   const viewportW = window.innerWidth || trackW;
 
   // In mobile peek the zoom-jog floats at the bottom-right and the popup
