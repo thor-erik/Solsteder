@@ -5565,6 +5565,14 @@
     border: none !important;
     box-shadow: none !important;
   }
+  /* .settings-root is a column flex container with overflow-y:auto. By
+     default flex items can shrink (flex-shrink:1); combined with
+     .settings-group's overflow:hidden, the identity group can collapse
+     to height:0 when total content exceeds the visible area — which
+     hides the hero. The other groups have min-height:46px rows that
+     keep them above 0. Lock children to their natural size and let the
+     container scroll. */
+  #profile-panel .settings-root > * { flex-shrink: 0; }
   .settings-identity {
     display: flex;
     flex-direction: column;
