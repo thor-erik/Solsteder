@@ -9336,8 +9336,11 @@
   .dpinvite-cancel-row {
     display: flex;
     justify-content: center;
-    margin-top: 4px;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    /* Balanced breathing room above + below the Avbryt button. The
+       parent .dpinvite-sheet already pads --app-pad-b at its bottom,
+       so don't double up here — just add a matching gap above. */
+    margin-top: 12px;
+    margin-bottom: 4px;
   }
   .dpinvite-cancel-row .g-rnd {
     background: transparent;
@@ -9483,10 +9486,12 @@
     /* See viewport tokens block at top of CSS. --app-pad-b is the
        guaranteed-visible bottom-content padding across all hosts. */
     padding: 0 18px var(--app-pad-b);
-    /* Sheet never exceeds the visible viewport. overflow-y auto so
-       long content (venue + timeline + CTAs on small phones) can be
-       scrolled — the Accept button is always reachable. */
-    max-height: var(--app-h, 100svh);
+    /* Cap at 92% of the visible viewport so there's always a sliver
+       of map showing above — both lets users see the venue and
+       guarantees the sheet's top edge isn't flush with the status
+       bar / Dynamic Island. overflow-y: auto so long content scrolls
+       internally; the Accept button is always reachable. */
+    max-height: calc(var(--app-h, 100svh) * 0.92);
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     border-radius: 20px 20px 0 0;
