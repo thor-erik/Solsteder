@@ -3738,14 +3738,25 @@ if (typeof window !== 'undefined') window._dismissFriendInviteWelcomeIfOpen = _d
 
 function _updateAvatarBadge() {
   const btn = document.getElementById('search-profile-btn');
-  if (!btn) return;
   const reqs = (typeof _pendingRequests !== 'undefined'
              && Array.isArray(_pendingRequests))
     ? _pendingRequests.length : 0;
   const invs = (typeof _planInvites !== 'undefined' && Array.isArray(_planInvites))
     ? _planInvites.filter(i => i.status === 'pending' && i.plan).length
     : 0;
-  btn.classList.toggle('has-badge', reqs + invs > 0);
+  const has = reqs + invs > 0;
+  if (btn) btn.classList.toggle('has-badge', has);
+  // Mirror to the top-strip bell dot. The bell carries "what just happened"
+  // (social events) while the avatar holds "your stuff" — same count, two
+  // surfaces.
+  const dot = document.getElementById('ts-bell-dot');
+  if (dot) dot.style.display = has ? 'block' : 'none';
+  // If the bell dropdown is open, refresh it so newly-arrived / handled
+  // items appear or vanish.
+  if (typeof _renderBellDropdown === 'function'
+      && document.getElementById('bell-dropdown')?.classList.contains('open')) {
+    _renderBellDropdown();
+  }
 }
 
 if (typeof window !== 'undefined') {

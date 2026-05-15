@@ -1801,7 +1801,7 @@ function _enableMapInteractions() {
   } catch (_) {}
 }
 
-const _UI_OVERLAY_SELECTOR = '#qc-wrap, #panel, #floating-search, #top-strip, #search-dropdown, #ptb-cal-float, ' +
+const _UI_OVERLAY_SELECTOR = '#qc-wrap, #panel, #floating-search, #top-strip, #search-dropdown, #bell-dropdown, #ptb-cal-float, ' +
   '#profile-panel, #search-wrap, #floating-date, #detail-panel, .mapboxgl-ctrl, .mapboxgl-popup, ' +
   '#locate-btn, #notif-toast, #fts, ' +
   '.dprcv-overlay, .dpinvite-sheet, #post-accept-overlay, #post-accept-panel';

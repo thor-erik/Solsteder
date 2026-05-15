@@ -1017,6 +1017,120 @@ function _loginSlideIcon(i) {
   return `<svg viewBox="0 0 24 24" ${stroke}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>`;
 }
 
+// ── Bell dropdown — top-strip notifications inbox (Stage 5) ─────────────────
+// Social events only (friend requests + plan invites). Tap a row → handle
+// inline. Tap outside → close. Bell dot mirrors badge state from
+// _updateAvatarBadge so opening either surface dismisses both.
+
+function toggleBellDropdown(e) {
+  if (e) e.stopPropagation();
+  const dropdown = document.getElementById('bell-dropdown');
+  if (!dropdown) return;
+  if (dropdown.classList.contains('open')) {
+    _closeBellDropdown();
+    return;
+  }
+  _renderBellDropdown();
+  dropdown.classList.add('open');
+  document.getElementById('ts-bell-btn')?.classList.add('active');
+  setTimeout(() => {
+    document.addEventListener('click', _bellDropdownOutsideClick, { once: true });
+  }, 0);
+}
+
+function _closeBellDropdown() {
+  document.getElementById('bell-dropdown')?.classList.remove('open');
+  document.getElementById('ts-bell-btn')?.classList.remove('active');
+}
+
+function _bellDropdownOutsideClick(e) {
+  const dropdown = document.getElementById('bell-dropdown');
+  const btn      = document.getElementById('ts-bell-btn');
+  const path = (typeof e.composedPath === 'function') ? e.composedPath() : [];
+  const inside = (dropdown && (dropdown.contains(e.target) || path.includes(dropdown)))
+              || (btn && btn.contains(e.target));
+  if (dropdown && !inside) {
+    _closeBellDropdown();
+  } else if (dropdown && dropdown.classList.contains('open')) {
+    document.addEventListener('click', _bellDropdownOutsideClick, { once: true });
+  }
+}
+
+function _formatTimeAgo(iso) {
+  if (!iso) return '';
+  const ms = Date.now() - new Date(iso).getTime();
+  if (ms < 60_000) return 'nå';
+  if (ms < 3_600_000) return Math.floor(ms / 60_000) + ' min';
+  if (ms < 86_400_000) return Math.floor(ms / 3_600_000) + ' t';
+  return Math.floor(ms / 86_400_000) + ' d';
+}
+
+function _renderBellDropdown() {
+  const dropdown = document.getElementById('bell-dropdown');
+  if (!dropdown) return;
+
+  const reqs = (typeof _pendingRequests !== 'undefined' && Array.isArray(_pendingRequests))
+    ? _pendingRequests : [];
+  const invs = (typeof _planInvites !== 'undefined' && Array.isArray(_planInvites))
+    ? _planInvites.filter(i => i.status === 'pending' && i.plan) : [];
+
+  if (!reqs.length && !invs.length) {
+    dropdown.innerHTML = `
+      <div class="bd-empty">
+        <svg class="bd-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 01-3.46 0"/>
+        </svg>
+        <div class="bd-empty-text">Ingenting nytt akkurat nå.</div>
+      </div>`;
+    return;
+  }
+
+  let html = '';
+  if (reqs.length) {
+    html += `<div class="bd-section">Venneforespørsler</div>`;
+    html += reqs.map(r => {
+      const name = r.name || r.email || 'Ukjent';
+      return `
+        <div class="bd-row" id="bd-req-${r.friendshipId}">
+          <span class="bd-row__icon">👤</span>
+          <div class="bd-row__body">
+            <div class="bd-row__msg"><strong>${name}</strong> vil bli venn.</div>
+            <div class="bd-row__actions">
+              <button class="bd-action primary" onclick="_handleAcceptFriendRequest('${r.friendshipId}')">Godta</button>
+              <button class="bd-action secondary" onclick="_handleRejectFriendRequest('${r.friendshipId}')">Avslå</button>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  if (invs.length) {
+    html += `<div class="bd-section">Planinvitasjoner</div>`;
+    html += invs.map(i => {
+      const p = i.plan || {};
+      const creator = p.creator_name || p.creator_email || 'Noen';
+      const venue   = p.venue_name || 'et sted';
+      const time    = p.time ? new Date(p.time).toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' }) : '';
+      const meta    = [_formatTimeAgo(i.created_at), time].filter(Boolean).join(' · ');
+      return `
+        <div class="bd-row" id="bd-inv-${i.id}">
+          <span class="bd-row__icon">📅</span>
+          <div class="bd-row__body">
+            <div class="bd-row__msg"><strong>${creator}</strong> inviterer deg til <strong>${venue}</strong>.</div>
+            ${meta ? `<div class="bd-row__meta">${meta}</div>` : ''}
+            <div class="bd-row__actions">
+              <button class="bd-action primary" onclick="_handleInboxResponse('${i.id}', 'accepted', this)">Godta</button>
+              <button class="bd-action secondary" onclick="_handleInboxResponse('${i.id}', 'declined', this)">Avslå</button>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  dropdown.innerHTML = html;
+}
+
 function toggleProfilePanel(e) {
   if (e) e.stopPropagation();
   const panel = document.getElementById('profile-panel');
