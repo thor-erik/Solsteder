@@ -2348,17 +2348,15 @@ if (_isTouchDevice) {
     const cx = t.clientX - rect.left, cy = t.clientY - rect.top;
     const hit = hitTestVenue(cx, cy) || hitTestDot(cx, cy);
     if (hit) {
-      // Parity with the desktop click path (which stops propagation +
-      // clears any in-flight Mapbox animation before the selectVenue
-      // easeTo fires). Without these, Mapbox's tap-tracking state can
-      // leak velocity into the next frame and the camera move reads
-      // 'not quite the same' as the card-click path that never touches
-      // the map canvas.
       e.stopPropagation();
-      if (typeof map !== 'undefined' && map && typeof map.stop === 'function') {
-        map.stop();
-      }
-      selectVenue(hit.id, true);
+      // map.stop() previously fired here for "parity" with the desktop
+      // path, but it raced with Mapbox's own tap-handling on iOS and the
+      // selectVenue → _flyToVenue easeTo never landed (zoom didn't
+      // happen). Card-click goes straight to selectVenue without ever
+      // touching the canvas; mirror that path here — let Mapbox finish
+      // its tap state, then easeTo on the next frame so it isn't fighting
+      // the touch handler.
+      requestAnimationFrame(() => selectVenue(hit.id, true));
     }
   }, { passive: true });
 }

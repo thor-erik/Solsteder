@@ -824,15 +824,19 @@ function _populateFtsEvents() {
   const thumbVisualH = (typeof window._ftsRawHour === 'number')
     ? window._ftsRawHour
     : (typeof timeFromEl !== 'undefined' && timeFromEl ? parseFloat(timeFromEl.value) : null);
-  // Returns opacity 0..1. Icons in adjacent segments stay fully opaque;
-  // within the active segment, opacity ramps linearly from 0 (under thumb)
-  // back up to 1 over a 3-hour radius (soft falloff).
-  const FADE_RADIUS_H = 3;
+  // Returns opacity 0..1. Icons in adjacent segments stay fully opaque.
+  // Within the active segment: 0 inside ±1 h of the thumb (fully clear so
+  // the thumb's own glyph reads), ramps from 0 → 1 between ±1 h and ±2 h,
+  // 1 beyond ±2 h.
+  const FADE_INNER_H = 1;  // fully transparent inside this radius
+  const FADE_OUTER_H = 2;  // fully opaque outside this radius
   const opacityFor = (e) => {
     if (!Number.isFinite(thumbVisualH)) return 1;
     if (thumbVisualH < e.segStart || thumbVisualH >= e.segEnd) return 1;
     const dist = Math.abs(thumbVisualH - e.hour);
-    return Math.min(1, dist / FADE_RADIUS_H);
+    if (dist <= FADE_INNER_H) return 0;
+    if (dist >= FADE_OUTER_H) return 1;
+    return (dist - FADE_INNER_H) / (FADE_OUTER_H - FADE_INNER_H);
   };
 
   const pctFor = (e) => {
