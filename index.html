@@ -746,8 +746,7 @@
 
   #app {
     position: relative;
-    height: 100vh;
-    height: 100svh;
+    height: var(--app-h, 100svh);
     overflow: hidden;
   }
 
@@ -1586,7 +1585,7 @@
     left: 12px;
     right: 12px;
     width: auto;
-    max-height: min(60vh, 520px);
+    max-height: min(calc(var(--app-h, 100svh) * 0.6), 520px);
     z-index: 1050;
     border-radius: 14px;
     box-shadow: var(--glass-inset), 0 8px 32px rgba(0,0,0,0.55);
@@ -1925,8 +1924,8 @@
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
     width: 100%;
-    height: 100svh;
-    max-height: 100svh;
+    height: var(--app-h, 100svh);
+    max-height: var(--app-h, 100svh);
     border-radius: 0;
     z-index: 9999;            /* above notifications (9998) */
     transform: translateX(0);
@@ -4737,7 +4736,7 @@
        Chrome 105+ have :has(); we already require those for push. */
     #panel.mobile-expanded:has(#venue-list > .empty-all:only-child) {
       height: auto;
-      max-height: 50svh;
+      max-height: calc(var(--app-h, 100svh) * 0.5);
     }
 
     /* Fully hidden (covered by detail panel) — slides down behind the morphed card.
@@ -6270,7 +6269,7 @@
     border-radius: 16px;
     width: 100%;
     max-width: 520px;
-    max-height: 80vh;
+    max-height: calc(var(--app-h, 100svh) * 0.8);
     display: flex;
     flex-direction: column;
     box-shadow: 0 8px 40px rgba(0,0,0,0.7);
@@ -6927,7 +6926,7 @@
       width: auto;
       top: auto;
       bottom: 0;
-      max-height: 56svh;  /* one month + peek of the next */
+      max-height: calc(var(--app-h, 100svh) * 0.56);  /* one month + peek of the next */
       padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 20px);
       box-sizing: border-box;
       background: var(--glass-panel-bg);
@@ -7022,7 +7021,7 @@
     #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-icon { font-size: 15px; line-height: 1.2; }
     #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-temp { font-size: 10px; font-weight: 600; color: rgba(156,189,231,0.72); }
     /* Month-view full calendar on mobile */
-    #ptb-cal-float #qc-cal .dc-cal-scroll { height: 55vh; }
+    #ptb-cal-float #qc-cal .dc-cal-scroll { height: calc(var(--app-h, 100svh) * 0.55); }
     #ptb-cal-float #qc-cal .dc-month-grid .dc-tile { height: 48px; }
     #ptb-cal-float #qc-cal .dc-month-grid .dc-tile.solar-only { height: 48px; min-height: 48px; }
   }
@@ -8362,7 +8361,7 @@
       top: auto;
       left: 0; right: 0; bottom: 0;
       width: 100%;
-      height: 62svh;    /* svh = small viewport height; lowered from 69svh to make room for floating pill */
+      height: calc(var(--app-h, 100svh) * 0.62);    /* lowered from 69% to make room for floating pill */
       max-height: none;
       border-radius: 20px 20px 0 0;
       border-left: none; border-right: none; border-bottom: none;
@@ -8419,7 +8418,7 @@
       transition: opacity 0.22s ease;
     }
     #detail-panel.dp-fullscreen {
-      height: 100svh;
+      height: var(--app-h, 100svh);
       border-radius: 0;
     }
 
@@ -8967,7 +8966,7 @@
     bottom: 0;
     left: 0;
     right: 0;
-    max-height: 78svh;
+    max-height: calc(var(--app-h, 100svh) * 0.78);
     height: auto;
     border-radius: 20px 20px 0 0;
     background: var(--glass-panel-bg);
@@ -9305,7 +9304,7 @@
   @media (min-width: 640px) {
     .dpinvite-sheet {
       max-width: 460px;
-      max-height: 78vh;
+      max-height: calc(var(--app-h, 100svh) * 0.78);
       height: auto;
       left: 50%;
       transform: translateX(-50%) translateY(100%);
@@ -10571,7 +10570,7 @@
   .friends-modal-card {
     width: 100%;
     max-width: 400px;
-    max-height: 80vh;
+    max-height: calc(var(--app-h, 100svh) * 0.8);
     overflow-y: auto;
     padding: 20px;
     border-radius: 16px;
