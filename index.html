@@ -1588,26 +1588,55 @@
   }
 
   /* ── Profile popover ──────────────────────────────────────────────────────── */
+  /* Stage 4b-1: Bottom sheet on both mobile and desktop — Tier 1 lens panel.
+     Slides up from below; rests just under the top strip. */
   #profile-panel {
-    position: absolute;
-    top: 70px;            /* match #panel: 16 search-top + 46 search-h + 8 gap */
-    left: 16px;
-    bottom: 16px;
-    width: 336px;          /* match the venue-list panel width */
+    position: fixed;
+    top: 76px;            /* below #top-strip (14 + 46 + 16 gap) */
+    left: 0; right: 0; bottom: 0;
     z-index: 1100;
-    border-radius: 16px;
-    box-shadow: var(--glass-inset), 0 8px 32px rgba(0,0,0,0.55);
+    border-radius: 26px 26px 0 0;
+    border-top: 1px solid rgba(156,189,231,0.18);
+    background: var(--glass-panel-bg);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    box-shadow:
+      var(--glass-inset),
+      0 -8px 40px rgba(0,0,0,0.45);
     display: flex;
     flex-direction: column;
-    overflow-y: auto;
+    overflow: hidden;
     -webkit-overflow-scrolling: touch;
-    transform: translateX(calc(-100% - 24px));
+    transform: translateY(100%);
     opacity: 0;
     pointer-events: none;
     transition: transform 0.28s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.22s ease;
   }
+  /* Mirror-sky overlay — Tier 1 spec. Subtle warm/cool dispersion that's
+     barely perceptible at first glance. Lives on a pseudo-element so it
+     doesn't paint over the panel contents. */
+  #profile-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 20% 0%, rgba(255,244,224,0.06), transparent 50%),
+      radial-gradient(ellipse at 100% 100%, rgba(26,44,66,0.20), transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  #profile-panel > * { position: relative; z-index: 1; }
+  /* Inner scroll container — the panel itself is overflow:hidden so the
+     mirror-sky overlay doesn't smear. The settings-root wrapper handles
+     scrolling. */
+  #profile-panel .settings-root {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+  }
   #profile-panel.open {
-    transform: translateX(0);
+    transform: translateY(0);
     opacity: 1;
     pointer-events: auto;
   }
@@ -4277,24 +4306,9 @@
       top: 12px;
     }
 
-    /* Logged-in profile panel goes full-screen on mobile so the Invitations
-       inbox + settings remain reachable via scroll. Logged-out variant
-       already takes over the full screen via the .logged-out rule below.
-       Mobile uses a simple fade — overrides the desktop slide-in animation. */
-    #profile-panel {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      width: 100%;
-      height: 100svh;
-      max-height: 100svh;
-      border-radius: 0;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      padding-bottom: env(safe-area-inset-bottom, 0px);
-      z-index: 9990;
-      transform: none;
-      transition: opacity 0.25s ease;
-    }
+    /* Stage 4b-1: Profile panel uses the same bottom-sheet shape on mobile
+       as on desktop. No mobile-specific position override needed — base
+       rule handles it. */
     .profile-panel-mobile-bar {
       position: sticky;
       top: 0;
@@ -5497,52 +5511,75 @@
   .settings-row.destructive:hover { background: rgba(255,107,107,0.06); }
 
   /* Identity card variant — full bleed within group */
+  /* Stage 4b-1: Hero identity — centered, 72px avatar, soft honey halo.
+     The wrapping .settings-identity-group has its card chrome stripped so
+     the hero floats free at the top of the sheet. */
+  .settings-identity-group {
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
   .settings-identity {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 14px;
-    padding: 18px 14px;
-    cursor: pointer;
+    text-align: center;
+    gap: 0;
+    padding: 22px 16px 26px;
     background: none;
     border: none;
     width: 100%;
     color: var(--text);
-    text-align: left;
-    transition: background 0.12s;
+    cursor: default;
   }
-  .settings-identity:hover { background: rgba(255,255,255,0.04); }
   .settings-identity__avatar,
   .settings-identity__avatar-initials {
-    width: 52px; height: 52px;
+    width: 72px; height: 72px;
     border-radius: 50%;
     flex-shrink: 0;
     object-fit: cover;
+    margin-bottom: 12px;
+    /* "Sun on you" halo — subtle honey glow + soft elevation. */
+    box-shadow:
+      inset 0 1px 0 rgba(255,250,235,0.16),
+      0 0 0 4px rgba(245,194,94,0.08),
+      0 0 24px rgba(245,194,94,0.08),
+      0 8px 24px rgba(0,0,0,0.40);
+    border: 1.5px solid rgba(155,169,188,0.30);
   }
   .settings-identity__avatar-initials {
     background: var(--accent);
     display: flex; align-items: center; justify-content: center;
-    font-size: 19px; font-weight: 700;
+    font-size: 24px; font-weight: 700;
     color: var(--accent-on);
   }
-  .settings-identity__info { min-width: 0; flex: 1 1 auto; }
+  .settings-identity__info {
+    min-width: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
   .settings-identity__name {
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 700;
     color: var(--text);
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 8px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    justify-content: center;
+    line-height: 1.2;
+    max-width: 100%;
   }
   .settings-identity__email {
     font-size: 12px;
     color: var(--muted);
-    margin-top: 3px;
-    white-space: nowrap;
+    line-height: 1.2;
+    max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   /* Inline pref row (segmented controls inside a settings-group) */
