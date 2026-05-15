@@ -202,9 +202,14 @@ function _updateUserIndicator() {
   if (_currentUser) {
     const avatar = _currentUser.user_metadata?.avatar_url;
     const name   = _currentUser.user_metadata?.name ?? _currentUser.email ?? '';
+    const initial = (name[0] || '?').toUpperCase();
+    // referrerpolicy=no-referrer: Google avatar CDN blocks requests with
+    // a different-origin referrer header. onerror: swap to initials if
+    // the image fails to load (CORS, 404, network drop).
     html = avatar
-      ? `<img src="${avatar}" alt="${name}">`
-      : `<div class="profile-initials">${name[0].toUpperCase()}</div>`;
+      ? `<img src="${avatar}" alt="${name}" referrerpolicy="no-referrer"
+              onerror="this.outerHTML='&lt;div class=&quot;profile-initials&quot;&gt;${initial}&lt;/div&gt;'">`
+      : `<div class="profile-initials">${initial}</div>`;
   } else {
     html = `<div class="profile-anon">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -531,9 +536,16 @@ function _renderSettingsView() {
   const lang     = typeof prefLang     === 'function' ? prefLang()     : 'no';
   const tempUnit = typeof prefTempUnit === 'function' ? prefTempUnit() : 'C';
 
+  const initial = ((name || email)[0] || '?').toUpperCase();
+  // referrerpolicy + onerror — same reasoning as _updateUserIndicator.
+  // Without these, a CORS-blocked Google OAuth avatar URL renders a blank
+  // 72px circle with the halo glow but nothing inside — looks like "the
+  // avatar disappeared" even though the hero itself is on screen.
   const avatarHtml = avatar
-    ? `<img class="settings-identity__avatar" src="${avatar}" alt="${name}">`
-    : `<div class="settings-identity__avatar-initials">${(name || email)[0].toUpperCase()}</div>`;
+    ? `<img class="settings-identity__avatar" src="${avatar}" alt="${name}"
+            referrerpolicy="no-referrer"
+            onerror="this.outerHTML='&lt;div class=&quot;settings-identity__avatar-initials&quot;&gt;${initial}&lt;/div&gt;'">`
+    : `<div class="settings-identity__avatar-initials">${initial}</div>`;
 
   const roleBadge = _currentRole === 'admin'
     ? `<span class="profile-role-badge admin">Admin</span>`
