@@ -273,6 +273,48 @@
        Slate-tuned: cool = lighter slate-grey, rain = mid slate-blue. */
     --cool: #B5BCC8;
     --rain: #6F8AA8;
+
+    /* ────────────────────────────────────────────────────────────────────
+       VIEWPORT + SAFE-AREA TOKENS — read this before adding any panel
+       ────────────────────────────────────────────────────────────────────
+       The app runs in five different host modes (iOS Safari, iOS Safari
+       PWA, iOS Chrome WebView PWA, Android Chrome PWA, desktop) and each
+       reports viewport metrics differently. Use these tokens instead of
+       raw vh/svh/dvh/innerHeight or raw env(safe-area-inset-bottom) so
+       that bottom-anchored panels can't slip past the visible bottom
+       on any host.
+
+       --app-h          — visualViewport.height in px (set by JS in
+                          <head>; svh fallback). Use for panel heights
+                          and max-heights.
+       --app-bottom-inset
+                        — innerHeight - visualViewport.height. Non-zero
+                          when the layout viewport exceeds the visual
+                          viewport (some iOS modes). 0 elsewhere.
+       --app-pad-b      — MAXIMUM of three signals + a sane floor:
+                            * env(safe-area-inset-bottom) — Safari PWA
+                              reports the home-indicator inset here
+                            * --app-bottom-inset — iOS Chrome WebView
+                              PWA tends to report it here instead
+                            * 28px — guaranteed floor so content has
+                              breathing room even if both report 0
+                          USE for padding-bottom on any panel whose
+                          content (CTA, last card, sign-out row) must
+                          stay above the home-indicator gesture zone.
+
+       RULES for new bottom-anchored panels:
+         1. bottom: 0           — panel BG flush with screen edge
+         2. max-height: var(--app-h)
+                                — panel never taller than visible area
+         3. overflow-y: auto    — content scrollable if it overflows
+         4. padding-bottom: var(--app-pad-b)
+                                — last content row stays visible
+    */
+    --app-pad-b: max(
+      env(safe-area-inset-bottom, 0px),
+      var(--app-bottom-inset, 0px),
+      28px
+    );
   }
 
   /* ── Accessibility globals ────────────────────────────────────────────────── */
@@ -1903,7 +1945,9 @@
     flex: 1 1 auto;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
+    /* See --app-pad-b token (top of CSS) — guaranteed-visible bottom
+       across all hosts including iOS Chrome WebView PWA. */
+    padding-bottom: var(--app-pad-b);
   }
 
   /* Sliding view container — used during drill-in / back navigation
@@ -3570,12 +3614,10 @@
   #venue-list {
     flex: 1;
     overflow-y: auto;
-    /* Bottom padding pushes the scrollable content above the Safari
-       URL-bar reserve / home-indicator zone — so the last card can
-       scroll up far enough to be fully readable instead of being
-       half-covered by iOS chrome. Equivalent on Android: matches the
-       gesture nav inset. Standard iOS scrolling-list pattern. */
-    padding: 4px 14px calc(env(safe-area-inset-bottom, 0px) + 24px);
+    /* See --app-pad-b token (top of CSS). The scrollable list pads
+       its bottom so the last card scrolls up clear of the home-
+       indicator gesture zone / Safari URL-bar reserve. */
+    padding: 4px 14px var(--app-pad-b);
     scrollbar-width: thin;
     scrollbar-color: rgba(255,175,133,0.2) transparent;
   }
@@ -4720,12 +4762,7 @@
       top: auto;
       left: 0;
       right: 0;
-      /* Anchor to the visual viewport bottom (not layout viewport).
-         --app-bottom-inset is innerHeight - visualViewport.height,
-         which is non-zero on iOS PWA standalone (home-indicator zone)
-         and 0 everywhere else. Without this, the panel pokes past
-         the visible area on iOS. */
-      bottom: var(--app-bottom-inset, 0px);
+      bottom: 0;
       width: 100%;
       /* 50% of the JS-tracked visible viewport — see --app-h. 50svh
          is the fallback used until the visualViewport probe runs. */
@@ -8377,9 +8414,7 @@
       position: fixed;  /* fixed avoids parent height issues */
       top: auto;
       left: 0; right: 0;
-      /* Anchor to visual viewport bottom (not layout) — see #panel for
-         why. iOS PWA = home-indicator inset; everywhere else = 0. */
-      bottom: var(--app-bottom-inset, 0px);
+      bottom: 0;
       width: 100%;
       height: calc(var(--app-h, 100svh) * 0.62);    /* lowered from 69% to make room for floating pill */
       max-height: none;
@@ -8983,10 +9018,10 @@
 
   .dpinvite-sheet {
     position: absolute;
-    bottom: var(--app-bottom-inset, 0px);
+    bottom: 0;
     left: 0;
     right: 0;
-    max-height: calc(var(--app-h, 100svh) * 0.78);
+    max-height: var(--app-h, 100svh);
     height: auto;
     border-radius: 20px 20px 0 0;
     background: var(--glass-panel-bg);
@@ -8998,7 +9033,9 @@
     flex-direction: column;
     transform: translateY(100%);
     transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-bottom: var(--app-pad-b);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
   .dpinvite-sheet.open { transform: translateY(0); }
 
@@ -9324,7 +9361,7 @@
   @media (min-width: 640px) {
     .dpinvite-sheet {
       max-width: 460px;
-      max-height: calc(var(--app-h, 100svh) * 0.78);
+      max-height: var(--app-h, 100svh);
       height: auto;
       left: 50%;
       transform: translateX(-50%) translateY(100%);
@@ -9419,11 +9456,7 @@
   .plan-preview,
   .dprcv-overlay {
     position: fixed;
-    /* Bottom inset pulls the overlay (and its flex-end child sheet)
-       above the layout-viewport bottom on iOS PWA so the sheet sits
-       inside the visible area. */
-    top: 0; left: 0; right: 0;
-    bottom: var(--app-bottom-inset, 0px);
+    inset: 0;
     z-index: 1200;
     /* none while opening/closing so the slide animation doesn't capture
        stray taps; auto once .open so the transparent area above the
@@ -9447,16 +9480,13 @@
   .dprcv-bottom {
     pointer-events: auto;
     margin: 0;
-    /* 24px floor bottom padding (was 14px) — on iOS the inset adds the
-       home-indicator buffer; on desktop browsers the inset is 0 and
-       14px left the secondary CTAs feeling cramped against the
-       viewport edge. */
-    padding: 0 18px calc(24px + env(safe-area-inset-bottom, 0px));
-    /* Cap the sheet's height so the Accept/Decline CTAs stay above
-       the home indicator on small phones. Without this, taller
-       content (venue meta + timeline + CTA row) pushed the buttons
-       below the visible viewport in iOS PWA standalone. */
-    max-height: calc(var(--app-h, 100svh) * 0.85);
+    /* See viewport tokens block at top of CSS. --app-pad-b is the
+       guaranteed-visible bottom-content padding across all hosts. */
+    padding: 0 18px var(--app-pad-b);
+    /* Sheet never exceeds the visible viewport. overflow-y auto so
+       long content (venue + timeline + CTAs on small phones) can be
+       scrolled — the Accept button is always reachable. */
+    max-height: var(--app-h, 100svh);
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     border-radius: 20px 20px 0 0;
