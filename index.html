@@ -1173,7 +1173,16 @@
   /* Date and weather icon read as a pair — pull the icon tighter against
      the date button (no dot separator between them, unlike temp/wind). */
   #top-strip .ts-center .ts-date + .ts-wx-icon { margin-left: -2px; }
-  #top-strip .ts-center .ts-wx-icon { font-size: 15px; line-height: 1; }
+  /* Explicit emoji fallback fonts so iOS Safari resolves ☀️ ⛅ 🌤 ☁️ 🌧
+     to Apple Color Emoji even when the parent font-family ('Inter') has
+     no glyph for them. Without this list, iOS sometimes renders nothing.
+     line-height bumped from 1 → 1.2 so the emoji glyph isn't clipped by
+     the tight line-box. */
+  #top-strip .ts-center .ts-wx-icon {
+    font-size: 15px;
+    line-height: 1.2;
+    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+  }
   #top-strip .ts-center .ts-meta { color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums; }
 
   /* Adaptive sentence — drop in priority order: wind → temp → glyph
@@ -10716,7 +10725,7 @@
           <path d="M6 9l6 6 6-6"/>
         </svg>
       </button>
-      <span class="ts-wx-icon" id="ts-wx-icon">☀</span>
+      <span class="ts-wx-icon" id="ts-wx-icon">☀️</span>
       <span class="ts-dot ts-temp-dot">·</span>
       <span class="ts-meta ts-temp" id="ts-temp">13°</span>
       <span class="ts-dot ts-wind-dot">·</span>
