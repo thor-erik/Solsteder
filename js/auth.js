@@ -101,13 +101,28 @@ function _captureAuthRestoreState() {
   };
 }
 
+/** When the app is launched as an installed PWA, redirect OAuth back
+ *  to /?source=pwa so Android Chrome can route the callback to the
+ *  installed app instead of opening a fresh browser tab. Otherwise
+ *  the session lives in the browser's storage and the PWA window
+ *  stays logged out. */
+function _oauthRedirectTo() {
+  const isStandalone =
+    (typeof window !== 'undefined' && window.matchMedia &&
+     window.matchMedia('(display-mode: standalone)').matches) ||
+    (typeof navigator !== 'undefined' && navigator.standalone === true);
+  return isStandalone
+    ? `${window.location.origin}/?source=pwa`
+    : window.location.origin;
+}
+
 async function authSignInWithGoogle() {
   try {
     sessionStorage.setItem('solsteder_auth_restore', JSON.stringify(_captureAuthRestoreState()));
   } catch (_) {}
   await _supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: window.location.origin }
+    options: { redirectTo: _oauthRedirectTo() }
   });
 }
 
@@ -117,7 +132,7 @@ async function authSignInWithApple() {
   } catch (_) {}
   await _supabase.auth.signInWithOAuth({
     provider: 'apple',
-    options: { redirectTo: window.location.origin }
+    options: { redirectTo: _oauthRedirectTo() }
   });
 }
 
