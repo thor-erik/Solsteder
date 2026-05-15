@@ -41,9 +41,13 @@ async function initWeather(lat = 59.9125, lng = 10.728) {
     // and fog_area_fraction, which sunBlock depends on. /compact returns only
     // the total cloud_area_fraction, so the layer-aware sun assessment would
     // silently fall back to raw total cloud.
+    // No custom headers: User-Agent is a forbidden request-header in
+    // browsers (silently stripped), and setting it can trigger a CORS
+    // preflight on some engines (iOS Chrome WebView has been seen
+    // failing the OPTIONS check). met.no accepts unauthenticated
+    // browser requests with the browser's own UA.
     const res = await fetch(
-      `https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=${lat.toFixed(4)}&lon=${lng.toFixed(4)}`,
-      { headers: { 'User-Agent': 'Solsteder/1.0 (solsteder.app)' } }
+      `https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=${lat.toFixed(4)}&lon=${lng.toFixed(4)}`
     );
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
