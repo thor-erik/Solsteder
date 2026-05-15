@@ -3547,21 +3547,13 @@
     opacity: 0.7;
   }
   .empty-all {
-    padding: 32px 16px;
+    padding: 32px 16px 24px;
     color: var(--muted);
     font-size: 13px;
     text-align: center;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    /* Fill the venue-list area so the empty state sits centered in the
-       available panel height instead of leaving a tall slate band
-       below — was very noticeable on iOS PWA where the panel runs to
-       50svh regardless of content. height: 100% works because
-       #venue-list itself flex-grows to fill the panel. */
-    height: 100%;
-    min-height: 220px;
     gap: 12px;
   }
   .empty-all-headline {
@@ -4661,11 +4653,7 @@
       top: auto;
       left: 0;
       right: 0;
-      /* PWA standalone has no bottom URL bar — that area now shows as
-         dead panel space. Lift by safe-area-inset-bottom so the
-         home-indicator gesture zone shows the map (Safari already
-         returns 0 here, so browser mode is unchanged). */
-      bottom: env(safe-area-inset-bottom, 0px);
+      bottom: 0;
       width: 100%;
       height: 50svh;    /* svh = small viewport height: stable, unaffected by toolbar */
       border-radius: 20px 20px 0 0;
@@ -4682,6 +4670,16 @@
     #panel.mobile-expanded {
       transform: translateY(0);
       z-index: 910;  /* zoom-jog (900) sits behind list; locate-btn (920) stays on top */
+    }
+
+    /* Empty-state — when #venue-list contains only .empty-all, the
+       50svh-tall panel leaves a tall dark band below the content.
+       Shrink the panel to its natural content height so the map
+       shows through above the home-indicator zone. iOS 16.4+ +
+       Chrome 105+ have :has(); we already require those for push. */
+    #panel.mobile-expanded:has(#venue-list > .empty-all:only-child) {
+      height: auto;
+      max-height: 50svh;
     }
 
     /* Fully hidden (covered by detail panel) — slides down behind the morphed card.
