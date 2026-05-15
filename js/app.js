@@ -1090,7 +1090,17 @@ function showFtsPopup(hour) {
   const trackW    = (trackRect ? trackRect.width : trackEl?.offsetWidth) || 300;
   const trackL    = trackRect ? trackRect.left : 0;
   const popupBCR  = popup.getBoundingClientRect();
-  const popupW    = popupBCR.width || popup.offsetWidth || 60;
+  // BCR.width includes the popup's transform: scale during the
+  // .is-releasing bounce. Re-running showFtsPopup at the scaled width
+  // would set polygon points and SVG width for the scaled body, then
+  // the parent's transform would scale the SVG again — double-scaling
+  // → tail wiggles. offsetWidth ignores transforms (intrinsic layout
+  // width) and the SVG inherits the popup's transform, so the tail
+  // bounces in unison with the body.
+  const isBouncing = popup.classList.contains('is-releasing');
+  const popupW    = isBouncing
+    ? (popup.offsetWidth || popupBCR.width || 60)
+    : (popupBCR.width || popup.offsetWidth || 60);
   const viewportW = window.innerWidth || trackW;
 
   // In mobile peek the zoom-jog floats at the bottom-right and the popup
@@ -1120,8 +1130,10 @@ function showFtsPopup(hour) {
   // at 95%). Shoulders stay on the popup's flat bottom outline.
   const tailSvg = document.getElementById('fts-popup-tail');
   if (tailSvg) {
-    const poly     = tailSvg.querySelector('polygon');
-    const polyline = tailSvg.querySelector('polyline');
+    const polyBase    = tailSvg.querySelector('polygon.tail-base');
+    const polyOverlay = tailSvg.querySelector('polygon.tail-overlay');
+    const polyline    = tailSvg.querySelector('polyline');
+    const poly        = polyBase || tailSvg.querySelector('polygon');
     if (poly) {
       const TAIL_HALF = 7;
       // Tail must bridge popup-bottom (6 px above track top) and thumb-top
@@ -1152,7 +1164,10 @@ function showFtsPopup(hour) {
 
       tailSvg.setAttribute('width',  popupW);
       tailSvg.setAttribute('height', TIP_DEPTH);
-      poly.setAttribute('points', `${sLx},0 ${sRx},0 ${tipX},${TIP_DEPTH}`);
+      const points = `${sLx},0 ${sRx},0 ${tipX},${TIP_DEPTH}`;
+      if (polyBase)    polyBase.setAttribute('points', points);
+      if (polyOverlay) polyOverlay.setAttribute('points', points);
+      if (!polyBase)   poly.setAttribute('points', points);
       // Polyline strokes only the two slanted sides (not the top edge,
       // which sits flush with the popup's bottom border). Continues the
       // popup's hairline visually into the tail.

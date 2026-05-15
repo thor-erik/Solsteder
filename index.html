@@ -66,7 +66,7 @@
 <script defer src="js/weather.js?v=20260514b"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260515y"></script>
+<script defer src="js/app.js?v=20260515z"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
@@ -2366,9 +2366,12 @@
     overflow: visible;
     pointer-events: none;
   }
-  #fts-popup-tail polygon {
-    fill: rgba(26,44,66,0.78);
-  }
+  /* Two layered polygons replicate --glass-card-bg's two stacked layers:
+     a base slate at 0.78 alpha, plus the same 135° blue-tint gradient
+     overlay the popup uses. Single-fill polygons came out a shade off
+     because the popup's gradient was missing. */
+  #fts-popup-tail polygon.tail-base    { fill: rgba(26,44,66,0.78); }
+  #fts-popup-tail polygon.tail-overlay { fill: url(#fts-tail-overlay); }
   /* Hairline border on the slanted sides only — visually continues the
      popup's --glass-border into the tail. */
   #fts-popup-tail polyline {
@@ -10916,8 +10919,20 @@
             <span id="fts-popup-closed-label"></span>
           </div>
           <svg id="fts-popup-tail" aria-hidden="true" preserveAspectRatio="none">
-            <polygon points="0,0 14,0 7,10"/>
-            <polyline points="0,0 7,10 14,0" fill="none"/>
+            <defs>
+              <!-- 135° gradient mirrors --glass-card-bg's overlay layer
+                   so the tail and popup body share the same blue-tinted
+                   diagonal at the join. Without this the tail reads as a
+                   darker shade because the popup gradient adds a lift the
+                   solid fill missed. -->
+              <linearGradient id="fts-tail-overlay" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%"   stop-color="rgb(26,44,66)"  stop-opacity="0.36"/>
+                <stop offset="100%" stop-color="rgb(58,92,130)" stop-opacity="0.22"/>
+              </linearGradient>
+            </defs>
+            <polygon class="tail-base"    points="0,0 14,0 7,10"/>
+            <polygon class="tail-overlay" points="0,0 14,0 7,10"/>
+            <polyline                     points="0,0 7,10 14,0" fill="none"/>
           </svg>
         </div>
       </div>
