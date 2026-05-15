@@ -826,8 +826,8 @@ function _populateFtsEvents() {
     : (typeof timeFromEl !== 'undefined' && timeFromEl ? parseFloat(timeFromEl.value) : null);
   // Returns opacity 0..1. Icons in adjacent segments stay fully opaque;
   // within the active segment, opacity ramps linearly from 0 (under thumb)
-  // back up to 1 over a 2-hour radius (medium falloff).
-  const FADE_RADIUS_H = 2;
+  // back up to 1 over a 3-hour radius (soft falloff).
+  const FADE_RADIUS_H = 3;
   const opacityFor = (e) => {
     if (!Number.isFinite(thumbVisualH)) return 1;
     if (thumbVisualH < e.segStart || thumbVisualH >= e.segEnd) return 1;
@@ -1106,53 +1106,30 @@ function showFtsPopup(hour) {
   const pct    = Math.max(minPct, Math.min(maxPct, rawPct));
   popup.style.left = pct + '%';
 
-  // Tail geometry — SVG polygon whose shoulders sit on the popup's
-  // bottom outline (riding up the corner curve when the tail leans
-  // toward an edge) and whose tip continues to point at the thumb's
-  // actual x even when the popup body is clamped against the viewport.
-  // Border radius is read live each call so both compact (10) and
-  // expanded (14) popup states curve the shoulders correctly.
+  // Tail geometry — always a symmetric isoceles triangle centered under
+  // the popup. Earlier versions tried to "lean" the tip toward the thumb
+  // when the popup was clamped against the viewport, but that created
+  // asymmetric polygons that rode up the corner curve and jumped during
+  // the compact↔expanded morph. Centered is cleaner: when the popup is
+  // clamped, the popup itself sits next to the slider edge, so a centered
+  // tail still reads as "this popup belongs to the nearby thumb."
   const tailSvg = document.getElementById('fts-popup-tail');
   if (tailSvg) {
     const poly = tailSvg.querySelector('polygon');
     if (poly) {
-      const tailOffsetPx = (rawPct - pct) * trackW / 100;
-      const r            = parseFloat(getComputedStyle(popup).borderTopLeftRadius) || 10;
-      const TAIL_HALF    = 7;
+      const TAIL_HALF = 7;
       // Tail must bridge popup-bottom (6 px above track top) and thumb-top
       // (4 px below track top) — total 10 px — or the tip floats above the
       // thumb with a visible gap.
-      const TIP_DEPTH    = 10;
+      const TIP_DEPTH = 10;
 
-      // Tip x in popup-local pixels (0 = popup left, popupW = popup right).
-      // Clamped to popup bounds so a far-clamped popup doesn't lean
-      // grotesquely — at extremes the tip rests on the corner.
-      let tipX = popupW / 2 + tailOffsetPx;
-      tipX = Math.max(0, Math.min(popupW, tipX));
-
-      // Shoulder attach x — clamped so both shoulders remain on the
-      // popup's width.
-      const attachX = Math.max(TAIL_HALF, Math.min(popupW - TAIL_HALF, tipX));
-
-      // Shoulder y in SVG-local coords. SVG top edge = popup.bottom,
-      // y grows downward. Flat region returns 0; corner region returns
-      // negative (shoulder rides up into the popup body, visible thanks
-      // to overflow:visible on the SVG).
-      const outlineY = (x) => {
-        if (x >= r && x <= popupW - r) return 0;
-        const dx = x < r ? (r - x) : (x - (popupW - r));
-        return -(r - Math.sqrt(Math.max(0, r * r - dx * dx)));
-      };
-
-      const sLx = attachX - TAIL_HALF;
-      const sRx = attachX + TAIL_HALF;
-      const sLy = outlineY(sLx);
-      const sRy = outlineY(sRx);
+      const cx  = popupW / 2;
+      const sLx = cx - TAIL_HALF;
+      const sRx = cx + TAIL_HALF;
 
       tailSvg.setAttribute('width',  popupW);
       tailSvg.setAttribute('height', TIP_DEPTH);
-      poly.setAttribute('points',
-        `${sLx},${sLy} ${sRx},${sRy} ${tipX},${TIP_DEPTH}`);
+      poly.setAttribute('points', `${sLx},0 ${sRx},0 ${cx},${TIP_DEPTH}`);
     }
   }
 

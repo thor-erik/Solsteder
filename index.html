@@ -58,12 +58,12 @@
 <script defer src="js/weather.js?v=20260514b"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260515t"></script>
+<script defer src="js/app.js?v=20260515u"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
 <script defer src="js/render-editor.js?v=20260508a"></script>
-<script defer src="js/render-pins.js?v=20260515d"></script>
+<script defer src="js/render-pins.js?v=20260515e"></script>
 <script defer src="js/ui-shared.js?v=20260514m"></script>
 <script defer src="js/ui-list.js?v=20260515a"></script>
 <script defer src="js/admin-review.js?v=20260505a"></script>
@@ -1366,9 +1366,8 @@
     transition: transform 0.05s linear,
                 background 120ms, border-color 120ms, color 120ms;
   }
-  body[data-fx] .panel-filter-pill.lens-fx-rippling {
-    animation: lens-fx-click-hint 0.45s ease-out;
-  }
+  /* No border-flash animation here — it reads as a slow lag on a control
+     this small. The :active scale + tilt are enough press feedback. */
   #panel-actions-sort {
     flex-shrink: 0;
     width: 32px; height: 32px;
@@ -3396,9 +3395,7 @@
   body[data-fx] .sort-btn.lens-fx-tilting {
     transition: transform 0.05s linear, color 0.12s, background 0.12s;
   }
-  body[data-fx] .sort-btn.lens-fx-rippling {
-    animation: lens-fx-click-hint 0.45s ease-out;
-  }
+  /* Border-flash animation skipped — same reasoning as filter pills. */
   #sort-toggle-btn {
     display: flex;
     align-items: center;

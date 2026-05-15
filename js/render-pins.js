@@ -1484,12 +1484,12 @@ function draw() {
     const hovered   = !sel && v.id === hoverId;
     const baseAlphaTarget = closedOpens ? 0.70 : 1.0;
 
-    // Friend-presence pin: when one or more friends are checked in, swap
-    // the standard pill for the invite-style avatar card so the pin reads
-    // the same visual language as the active-invite floating card. The
-    // header reuses the venue's existing time string (`fra HH:MM`, `til
-    // HH:MM`, `Åpner HH:MM`).
-    if (hasFriends) {
+    // Friend-presence pin: when the venue is selected (detail panel open)
+    // AND has friend check-ins, swap the standard pill for the invite-style
+    // avatar card so the pin reads the same visual language as the active-
+    // invite floating card. On the map (no panel), keep the standard pill
+    // with the friend module — less screen real estate, more glance-able.
+    if (hasFriends && sel) {
       const friendCardData = {
         headerText: time || '',
         attendees: friends.map(f => ({
@@ -1642,6 +1642,10 @@ function draw() {
     if (entry.classResult.tier === 'context' && zoom < 16 && !(entry._friends && entry._friends.length)) continue;
     const v        = entry.v;
     const sel      = v.id === selectedId;
+    // The detail panel already shows the venue name (huge header). The
+    // floating label on top of the pin would just duplicate it and crash
+    // into the friend-pin card body when it's drawn.
+    if (sel) continue;
     const isFriend = entry._friends && entry._friends.length > 0;
     const going    = _getGoing(v, dateStr);
 
