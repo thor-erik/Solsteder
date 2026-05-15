@@ -48,7 +48,7 @@
 <script defer src="js/i18n.js?v=20260514e"></script>
 <script defer src="js/config.js?v=20260425b"></script>
 <script defer src="js/tokens.js?v=20260509e"></script>
-<script defer src="js/auth.js?v=20260515i"></script>
+<script defer src="js/auth.js?v=20260515j"></script>
 <script defer src="js/login-carousel.js?v=20260428a"></script>
 <script defer src="js/analytics.js"></script>
 <script defer src="js/places.js?v=20260411b"></script>
@@ -1472,22 +1472,27 @@
     background: rgba(26, 44, 66, 0.92) !important;
   }
 
-  /* Bell dropdown — anchored to the bell button on the left side of the
-     top strip. Same legibility treatment as the search dropdown. */
+  /* Bell dropdown — full-width below the top strip. Same legibility
+     treatment as the search dropdown. */
   #bell-dropdown {
     position: absolute;
     top: calc(14px + 46px + 8px);
     left: 12px;
-    width: 320px;
-    max-width: calc(100vw - 24px);
+    right: 12px;
+    width: auto;
+    max-height: calc(100vh - 80px - 24px);
     z-index: 1050;
     border-radius: 14px;
     box-shadow: var(--glass-inset), 0 8px 32px rgba(0,0,0,0.55);
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     display: none;
     background: rgba(26, 44, 66, 0.92) !important;
   }
   #bell-dropdown.open { display: block; }
+  /* Rows clickable for nav-style notifications (check-ins, plans). */
+  .bd-row.bd-row--clickable { cursor: pointer; transition: background 120ms; }
+  .bd-row.bd-row--clickable:hover { background: rgba(155,169,188,0.06); }
   .bd-empty {
     padding: 28px 16px;
     text-align: center;
@@ -1501,13 +1506,6 @@
   }
   .bd-empty .bd-empty-text {
     font: 500 13px/1.4 'Inter', sans-serif;
-  }
-  .bd-section {
-    padding: 12px 14px 6px;
-    font: 600 10px/1 'Inter', sans-serif;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--muted);
   }
   .bd-row {
     display: flex;

@@ -1074,94 +1074,144 @@ function _renderBellDropdown() {
   const invs = (typeof _planInvites !== 'undefined' && Array.isArray(_planInvites))
     ? _planInvites.filter(i => i.status === 'pending' && i.plan) : [];
 
-  let html = '';
+  // Build a flat list of entries — each carries a sort time and rendered
+  // markup. Sorted descending so most recent appears at the top, regardless
+  // of category. (Samples use plausible recent timestamps so the user can
+  // see how the order falls out in practice.)
+  const NOW = Date.now();
+  const entries = [];
 
-  // ── Forespørsler — real data, actionable inline ─────────────────────
-  if (reqs.length || invs.length) {
-    html += `<div class="bd-section">Forespørsler</div>`;
-    html += reqs.map(r => {
-      const name = r.name || r.email || 'Ukjent';
-      return `
+  // ── Real data ────────────────────────────────────────────────────────
+  reqs.forEach(r => {
+    const name = r.name || r.email || 'Ukjent';
+    entries.push({
+      t: new Date(r.requestedAt || r.created_at || NOW).getTime(),
+      html: `
         <div class="bd-row" id="bd-req-${r.friendshipId}">
           <span class="bd-row__icon">👤</span>
           <div class="bd-row__body">
             <div class="bd-row__msg"><strong>${name}</strong> vil bli venn.</div>
+            <div class="bd-row__meta">${_formatTimeAgo(r.requestedAt || r.created_at)}</div>
             <div class="bd-row__actions">
               <button class="bd-action primary" onclick="_handleAcceptFriendRequest('${r.friendshipId}')">Godta</button>
               <button class="bd-action secondary" onclick="_handleRejectFriendRequest('${r.friendshipId}')">Avslå</button>
             </div>
           </div>
-        </div>`;
-    }).join('');
-    html += invs.map(i => {
-      const p = i.plan || {};
-      const creator = p.creator_name || p.creator_email || 'Noen';
-      const venue   = p.venue_name || 'et sted';
-      const time    = p.time ? new Date(p.time).toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' }) : '';
-      const meta    = [_formatTimeAgo(i.created_at), time].filter(Boolean).join(' · ');
-      return `
+        </div>`,
+    });
+  });
+
+  invs.forEach(i => {
+    const p = i.plan || {};
+    const creator = p.creator_name || p.creator_email || 'Noen';
+    const venue   = p.venue_name || 'et sted';
+    const time    = p.time ? new Date(p.time).toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' }) : '';
+    entries.push({
+      t: new Date(i.created_at || NOW).getTime(),
+      html: `
         <div class="bd-row" id="bd-inv-${i.id}">
           <span class="bd-row__icon">📅</span>
           <div class="bd-row__body">
-            <div class="bd-row__msg"><strong>${creator}</strong> inviterer deg til <strong>${venue}</strong>.</div>
-            ${meta ? `<div class="bd-row__meta">${meta}</div>` : ''}
+            <div class="bd-row__msg"><strong>${creator}</strong> inviterer deg til <strong>${venue}</strong>${time ? ' kl ' + time : ''}.</div>
+            <div class="bd-row__meta">${_formatTimeAgo(i.created_at)}</div>
             <div class="bd-row__actions">
               <button class="bd-action primary" onclick="_handleInboxResponse('${i.id}', 'accepted', this)">Godta</button>
               <button class="bd-action secondary" onclick="_handleInboxResponse('${i.id}', 'declined', this)">Avslå</button>
             </div>
           </div>
-        </div>`;
-    }).join('');
+        </div>`,
+    });
+  });
+
+  // ── Sample rows covering every notification type the system has ──────
+  // Each click closes the bell and demos the route the live version would
+  // take. Times are spread over the last day so the chronological order
+  // reads naturally.
+  const samples = [
+    // social_friends_at — friends are currently at a venue
+    { mins: 8, icon: '👋',
+      msg: '<strong>Anna</strong> og <strong>Marius</strong> er på <strong>Hummus &amp; Wine</strong>.',
+      action: "_bellSampleNav('venue', 'Hummus & Wine')" },
+    // social_checkin — friend just checked in
+    { mins: 24, icon: '📍',
+      msg: '<strong>Marius</strong> sjekket inn på <strong>Mathallen</strong>.',
+      action: "_bellSampleNav('venue', 'Mathallen')" },
+    // social_invite_accepted — friend accepted your plan invite
+    { mins: 47, icon: '✓',
+      msg: '<strong>Anna</strong> sa ja til planen din på <strong>Lekteren</strong>.',
+      action: "_bellSampleNav('plan', 'Lekteren')" },
+    // social_friend_plan — friend made a plan you could join
+    { mins: 95, icon: '🗓',
+      msg: '<strong>Lars</strong> planlegger <strong>Vinland</strong> kl 19:00.',
+      action: "_bellSampleNav('plan', 'Vinland')" },
+    // weather — sun opening at a venue
+    { mins: 145, icon: '☀',
+      msg: 'Sol åpner på <strong>Nedre Foss Gård</strong> kl 17:00.',
+      action: "_bellSampleNav('venue', 'Nedre Foss Gård')" },
+    // social_invite_declined — friend declined your plan
+    { mins: 220, icon: '✕',
+      msg: '<strong>Sara</strong> sa nei til planen på <strong>Michaels</strong>.',
+      action: "_bellSampleNav('plan', 'Michaels')" },
+    // suggestion — lunch suggestion
+    { mins: 340, icon: '💡',
+      msg: 'Prøv <strong>Mathallen</strong> til lunsj — sol fra 12:00.',
+      action: "_bellSampleNav('venue', 'Mathallen')" },
+    // weather — rain warning
+    { mins: 480, icon: '🌧',
+      msg: 'Regn forventet kl 14:00 i dag.',
+      action: "_bellSampleNav('weather', null)" },
+    // suggestion — sheltered alternative
+    { mins: 720, icon: '💨',
+      msg: 'Vind i dag — prøv <strong>Lekteren</strong> for ly.',
+      action: "_bellSampleNav('venue', 'Lekteren')" },
+    // social — new friend connection
+    { mins: 1440, icon: '🎉',
+      msg: 'Du og <strong>Henrik</strong> er nå venner.',
+      action: "_bellSampleNav('friends', null)" },
+  ];
+
+  samples.forEach(s => {
+    const ts = NOW - (s.mins * 60_000);
+    entries.push({
+      t: ts,
+      html: `
+        <div class="bd-row bd-row--clickable bd-row--sample" onclick="${s.action}">
+          <span class="bd-row__icon">${s.icon}</span>
+          <div class="bd-row__body">
+            <div class="bd-row__msg">${s.msg}</div>
+            <div class="bd-row__meta">${_formatTimeAgo(new Date(ts).toISOString())}</div>
+          </div>
+        </div>`,
+    });
+  });
+
+  // Chronological: newest first
+  entries.sort((a, b) => b.t - a.t);
+
+  if (!entries.length) {
+    dropdown.innerHTML = `
+      <div class="bd-empty">
+        <svg class="bd-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 01-3.46 0"/>
+        </svg>
+        <div class="bd-empty-text">Ingenting nytt akkurat nå.</div>
+      </div>`;
+    return;
   }
 
-  // ── Vær — currently sample only; wire to live weather rules later. ─
-  html += `<div class="bd-section">Vær</div>`;
-  html += `
-    <div class="bd-row bd-row--sample">
-      <span class="bd-row__icon">☀</span>
-      <div class="bd-row__body">
-        <div class="bd-row__msg">Sol åpner på <strong>Hummus &amp; Wine</strong> kl 17:00.</div>
-        <div class="bd-row__meta">i dag · 1t 12min sol</div>
-      </div>
-    </div>
-    <div class="bd-row bd-row--sample">
-      <span class="bd-row__icon">🌧</span>
-      <div class="bd-row__body">
-        <div class="bd-row__msg">Regn forventet kl 14:00.</div>
-        <div class="bd-row__meta">i dag · 2 mm over 1t</div>
-      </div>
-    </div>`;
+  dropdown.innerHTML = entries.map(e => e.html).join('');
+}
 
-  // ── Sosialt (ikke-handlingsbart) — friends activity ─────────────────
-  html += `<div class="bd-section">Sosialt</div>`;
-  html += `
-    <div class="bd-row bd-row--sample">
-      <span class="bd-row__icon">📍</span>
-      <div class="bd-row__body">
-        <div class="bd-row__msg"><strong>Anna</strong> sjekket inn på <strong>Mathallen</strong>.</div>
-        <div class="bd-row__meta">12 min</div>
-      </div>
-    </div>`;
-
-  // ── Forslag — suggestions for the user ──────────────────────────────
-  html += `<div class="bd-section">Forslag</div>`;
-  html += `
-    <div class="bd-row bd-row--sample">
-      <span class="bd-row__icon">💡</span>
-      <div class="bd-row__body">
-        <div class="bd-row__msg">Prøv <strong>Mathallen</strong> til lunsj — sol fra 12:00.</div>
-        <div class="bd-row__meta">3 venner anbefaler</div>
-      </div>
-    </div>
-    <div class="bd-row bd-row--sample">
-      <span class="bd-row__icon">💨</span>
-      <div class="bd-row__body">
-        <div class="bd-row__msg">Vind i dag — prøv <strong>Lekteren</strong> for ly.</div>
-        <div class="bd-row__meta">Skjermet · 2t sol</div>
-      </div>
-    </div>`;
-
-  dropdown.innerHTML = html;
+/** Stub action handler for sample rows in the bell — demos the routing
+ *  pattern (venue / plan / friends list) without needing live data wired
+ *  for every type. Live versions of these notifications would call the
+ *  real navigation handlers instead. */
+function _bellSampleNav(kind, label) {
+  _closeBellDropdown();
+  // Placeholder feedback so the user sees the click registered. Real
+  // notifications will route to selectVenue / openPlanPreview / etc.
+  console.log('[bell] sample click:', kind, label);
 }
 
 function toggleProfilePanel(e) {
