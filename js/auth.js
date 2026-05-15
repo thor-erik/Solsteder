@@ -6,7 +6,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let _currentUser = null;
 let _currentRole = null; // 'user' | 'editor' | 'admin' | null
-let _profilePanelView = 'settings'; // 'settings' | 'activity' | 'visibility'
+let _profilePanelView = 'settings'; // 'settings' | 'activity' | 'visibility' | 'notif-types'
 
 // Social tables may not exist yet — probe once and skip all social queries if missing.
 let _socialTablesReady = null; // null = unchecked, true/false after probe
@@ -654,6 +654,37 @@ function _renderVisibilityView() {
   `;
 }
 
+// ── Notification types sub-view (Stage 4b-3) ─────────────────────────────────
+// Reached via the Varslingstyper drill-in row in the Innstillinger section.
+// Hosts the per-category toggles that used to live flat on the main view —
+// scales for future categories without bloating the main sheet.
+
+function _renderNotifTypesView() {
+  const settings = (typeof _notifGetSettings === 'function') ? _notifGetSettings() : {};
+  const categories = [
+    { key: 'weather',    labelKey: 'notif_cat_weather' },
+    { key: 'social',     labelKey: 'notif_cat_social' },
+    { key: 'suggestion', labelKey: 'notif_cat_suggestion' },
+  ];
+  const rows = categories.map(cat => {
+    const on = settings[cat.key] !== false;
+    return `<div class="settings-row pref-row">
+      <span class="settings-row__label">${t(cat.labelKey)}</span>
+      <button class="toggle-switch${on ? ' is-on' : ''}"
+              role="switch" aria-checked="${on}"
+              aria-label="${t(cat.labelKey)}"
+              onclick="_notifToggle('${cat.key}')"></button>
+    </div>`;
+  }).join('');
+
+  return `
+    ${_renderSettingsMobileBar('Varslingstyper', "_setProfilePanelView('settings')")}
+    <div class="settings-subview">
+      <div class="settings-group">${rows}</div>
+    </div>
+  `;
+}
+
 // ── About row tap handler — 5 taps reveals Show Debug ────────────────────────
 
 let _aboutTapCount = 0;
@@ -681,6 +712,8 @@ function _renderProfilePanel() {
       panel.innerHTML = _renderActivityView();
     } else if (_profilePanelView === 'visibility') {
       panel.innerHTML = _renderVisibilityView();
+    } else if (_profilePanelView === 'notif-types') {
+      panel.innerHTML = _renderNotifTypesView();
     } else {
       panel.innerHTML = _renderSettingsView();
       if (authIsAdmin()) { _loadPendingCount(); _loadVenueSuggestionsCount(); }

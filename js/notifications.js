@@ -996,10 +996,12 @@ function _notifSettingsHtml() {
     { key: 'social',     labelKey: 'notif_cat_social' },
     { key: 'suggestion', labelKey: 'notif_cat_suggestion' },
   ];
-  // Push toggle — only surfaces when the browser supports the APIs AND
-  // a VAPID key is configured. Otherwise we drop the row entirely
-  // (no 'coming soon' chrome). State is fetched async; we render with
-  // 'unknown' then refresh once pushIsSubscribed resolves.
+  const activeCount = categories.filter(c => settings[c.key] !== false).length;
+  const totalCount  = categories.length;
+
+  // Push toggle (master) — only shows when the browser supports APIs AND
+  // a VAPID key is configured. Per-category toggles moved to a sub-view
+  // (Stage 4b-3) so adding new types doesn't bloat the main sheet.
   let rows = '';
   const pushAvail = (typeof pushIsAvailable === 'function') && pushIsAvailable();
   if (pushAvail) {
@@ -1017,22 +1019,19 @@ function _notifSettingsHtml() {
                 aria-label="${t('notif_push_label')}"
                 onclick="_notifPushToggle()"></button>
       </div>`;
-      // Refresh state async after the row mounts.
       if (typeof requestAnimationFrame !== 'undefined') {
         requestAnimationFrame(_notifSyncPushToggleState);
       }
     }
   }
-  for (const cat of categories) {
-    const on = settings[cat.key] !== false;
-    rows += `<div class="settings-row pref-row">
-      <span class="settings-row__label">${t(cat.labelKey)}</span>
-      <button class="toggle-switch${on ? ' is-on' : ''}"
-              role="switch" aria-checked="${on}"
-              aria-label="${t(cat.labelKey)}"
-              onclick="_notifToggle('${cat.key}')"></button>
-    </div>`;
-  }
+  // Drill-in to per-category toggles.
+  rows += `<button class="settings-row" onclick="_setProfilePanelView('notif-types')">
+    <span class="settings-row__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
+    <span class="settings-row__label">Varslingstyper</span>
+    <span class="settings-row__value">${activeCount} av ${totalCount} aktive</span>
+    <span class="settings-row__chevron"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+  </button>`;
+
   return `<div>
     <div class="settings-group-label">${t('notif_settings')}</div>
     <div class="settings-group">${rows}</div>
