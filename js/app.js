@@ -3061,9 +3061,9 @@ function _updatePeekHeight() {
   if (!isMobile()) return;
   const panel = document.getElementById('panel');
   if (!panel) return;
-  // Peek stack: handle (~17) + popup-reserve gap (36) + FTS (40) + FTS
-  // margin-bottom (10) + venue-peek pad (12) + card top sliver (~17) ≈ 132.
-  panel.style.setProperty('--peek-h', '132px');
+  // Peek stack: handle (16) + FTS margin-top (20) + FTS (40) + FTS
+  // margin-bottom (10) + venue-peek pad (12) + card top sliver (~18) = 116.
+  panel.style.setProperty('--peek-h', '116px');
   _syncFtsPosition();
 }
 
