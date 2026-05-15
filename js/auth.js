@@ -2283,23 +2283,45 @@ let _checkinSubscription = null;
 async function loadFriends() {
   if (!_currentUser) { _friends = []; _pendingRequests = []; return; }
   if (!await _checkSocialTables()) { _injectDummyFriends(); return; }
-  const { data, error } = await _supabase
+  // Two-step fetch: friendships first, then resolve profiles for the
+  // "other side" of each row. The previous embed via
+  // profiles!friendships_user_id_fkey was returning null silently
+  // because the FK on friendships points at auth.users, not profiles.
+  const { data: rows, error } = await _supabase
     .from('friendships')
-    .select('*, user:profiles!friendships_user_id_fkey(id, name, email, avatar_url), friend:profiles!friendships_friend_id_fkey(id, name, email, avatar_url)')
+    .select('id, user_id, friend_id, status, created_at')
     .or(`user_id.eq.${_currentUser.id},friend_id.eq.${_currentUser.id}`);
-  if (!error) {
-    _friends = [];
-    _pendingRequests = [];
-    for (const r of (data || [])) {
-      if (r.status === 'accepted') {
-        const other = r.user_id === _currentUser.id ? r.friend : r.user;
-        _friends.push({ ...other, friendshipId: r.id });
-      } else if (r.status === 'pending' && r.friend_id === _currentUser.id) {
-        _pendingRequests.push({ ...r.user, friendshipId: r.id });
+  if (error) {
+    console.warn('[auth] loadFriends failed:', error.message);
+  } else {
+    const otherIds = new Set();
+    for (const r of (rows || [])) {
+      otherIds.add(r.user_id === _currentUser.id ? r.friend_id : r.user_id);
+    }
+    let profilesById = new Map();
+    if (otherIds.size > 0) {
+      const { data: profs, error: profErr } = await _supabase
+        .from('profiles')
+        .select('id, name, email, avatar_url')
+        .in('id', [...otherIds]);
+      if (profErr) {
+        console.warn('[auth] loadFriends profile fetch failed:', profErr.message);
+      } else {
+        for (const p of (profs || [])) profilesById.set(p.id, p);
       }
     }
-  } else {
-    console.warn('[auth] loadFriends failed:', error.message);
+    _friends = [];
+    _pendingRequests = [];
+    for (const r of (rows || [])) {
+      const otherId = r.user_id === _currentUser.id ? r.friend_id : r.user_id;
+      const other = profilesById.get(otherId)
+                 || { id: otherId, name: null, email: null, avatar_url: null };
+      if (r.status === 'accepted') {
+        _friends.push({ ...other, friendshipId: r.id });
+      } else if (r.status === 'pending' && r.friend_id === _currentUser.id) {
+        _pendingRequests.push({ ...other, friendshipId: r.id });
+      }
+    }
   }
   // Always inject dummy friends for test accounts (even if table missing)
   _injectDummyFriends();
