@@ -48,7 +48,7 @@
 <script defer src="js/i18n.js?v=20260514e"></script>
 <script defer src="js/config.js?v=20260425b"></script>
 <script defer src="js/tokens.js?v=20260509e"></script>
-<script defer src="js/auth.js?v=20260514a"></script>
+<script defer src="js/auth.js?v=20260515a"></script>
 <script defer src="js/login-carousel.js?v=20260428a"></script>
 <script defer src="js/analytics.js"></script>
 <script defer src="js/places.js?v=20260411b"></script>
@@ -58,12 +58,12 @@
 <script defer src="js/weather.js?v=20260514b"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260514n"></script>
+<script defer src="js/app.js?v=20260515a"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
 <script defer src="js/render-editor.js?v=20260508a"></script>
-<script defer src="js/render-pins.js?v=20260514b"></script>
+<script defer src="js/render-pins.js?v=20260515a"></script>
 <script defer src="js/ui-shared.js?v=20260514m"></script>
 <script defer src="js/ui-list.js?v=20260514b"></script>
 <script defer src="js/admin-review.js?v=20260505a"></script>
@@ -1030,6 +1030,151 @@
     justify-content: center;
     color: var(--muted);
   }
+
+  /* ── Top strip (redesign — Stage 1a) ───────────────────────────────────
+     Three-zone layout: [avatar + bell] / [centered date + weather sentence]
+     / [search]. Replaces #floating-search; old bar hidden below. */
+  #floating-search { display: none !important; }
+
+  #top-strip {
+    position: absolute;
+    top: 14px; left: 12px; right: 12px;
+    z-index: 900;
+    height: 46px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 6px;
+    padding: 4px;
+    border-radius: 23px;
+    background: var(--glass-panel-bg);
+    backdrop-filter: var(--glass-blur-panel);
+    -webkit-backdrop-filter: var(--glass-blur-panel);
+    border: var(--glass-border);
+    box-shadow: var(--glass-inset), 0 6px 20px rgba(0,0,0,0.30);
+    container-type: inline-size;
+    container-name: topstrip;
+  }
+  #top-strip .ts-left, #top-strip .ts-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  #top-strip .ts-btn {
+    flex-shrink: 0;
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    background: var(--glass-action-bg);
+    border: var(--glass-border);
+    box-shadow: var(--glass-inset);
+    color: var(--muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    position: relative;
+    transition: color 120ms, background 120ms, border-color 120ms;
+  }
+  #top-strip .ts-btn:hover { color: var(--text); }
+  #top-strip .ts-btn svg { width: 18px; height: 18px; }
+  #top-strip .ts-btn.active {
+    background: var(--accent-dim);
+    border-color: rgba(245,194,94,0.42);
+    color: var(--accent);
+  }
+  #top-strip .ts-avatar {
+    background: linear-gradient(135deg, #5C7A9E, #2C4564);
+    color: var(--text);
+    font: 600 12px/1 'Inter', sans-serif;
+    overflow: hidden;
+  }
+  #top-strip .ts-avatar.active { box-shadow: var(--glass-inset), 0 0 0 2px rgba(245,194,94,0.42); }
+  #top-strip .ts-avatar img { width: 38px; height: 38px; border-radius: 50%; display: block; }
+  #top-strip .ts-avatar .profile-initials,
+  #top-strip .ts-avatar .profile-anon {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #top-strip .ts-avatar .profile-initials {
+    background: var(--accent);
+    color: var(--accent-on);
+    font-size: 14px;
+    font-weight: 700;
+  }
+  #top-strip .ts-avatar .profile-anon {
+    background: rgba(155,169,188,0.12);
+    color: var(--muted);
+    border: 1.5px solid rgba(155,169,188,0.30);
+  }
+  #top-strip .ts-bell-dot {
+    position: absolute;
+    top: 7px; right: 7px;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--panel);
+  }
+
+  #top-strip .ts-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font: 500 13px/1 'Inter', sans-serif;
+    color: var(--text);
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    padding: 0 4px;
+  }
+  #top-strip .ts-date {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    color: var(--text);
+    font-weight: 600;
+    padding: 5px 8px;
+    margin: -5px -2px -5px -8px;
+    border-radius: 12px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: inherit;
+    font-size: inherit;
+    transition: background 120ms;
+  }
+  #top-strip .ts-date:hover { background: rgba(155,169,188,0.10); }
+  #top-strip .ts-date.active { color: var(--accent); }
+  #top-strip .ts-date .ts-chev {
+    width: 11px; height: 11px;
+    color: var(--muted);
+    transition: transform 120ms, color 120ms;
+  }
+  #top-strip .ts-date.active .ts-chev { color: var(--accent); transform: rotate(180deg); }
+  #top-strip .ts-center .ts-dot { color: rgba(155,169,188,0.4); font-weight: 400; }
+  #top-strip .ts-center .ts-wx-icon { font-size: 15px; line-height: 1; }
+  #top-strip .ts-center .ts-meta { color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums; }
+
+  /* Adaptive sentence — drop in priority order: wind → temp → glyph
+     (date stays always). Breakpoints are on container width, not viewport. */
+  @container topstrip (max-width: 340px) {
+    #top-strip .ts-wind, #top-strip .ts-wind-dot { display: none; }
+  }
+  @container topstrip (max-width: 290px) {
+    #top-strip .ts-temp, #top-strip .ts-temp-dot { display: none; }
+  }
+  @container topstrip (max-width: 240px) {
+    #top-strip .ts-wx-icon, #top-strip .ts-glyph-dot { display: none; }
+  }
+
+  /* .intro-hidden + .mobile-ui-hidden (display:none !important) already
+     hide #top-strip when the JS applies/removes those classes — same as
+     it does for #floating-search. No extra CSS needed. */
 
   /* ── Cold-link friend-invite welcome card ──────────────────────────────── */
   .friend-invite-welcome {
@@ -10087,12 +10232,49 @@
 
   </div>
 
-  <!-- Top-left: search bar -->
+  <!-- Top-left: search bar (legacy — hidden by CSS; kept in DOM so JS handlers don't break) -->
   <div id="floating-search" class="floating-card intro-hidden">
     <span id="search-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8.5" cy="8.5" r="5.5"/><line x1="13" y1="13" x2="18" y2="18"/></svg></span>
     <input type="text" id="venue-search" placeholder="Søk etter steder eller områder…" autocomplete="off" aria-label="Søk etter steder eller områder">
     <button id="search-clear-btn" type="button" aria-label="Clear search">✕</button>
     <button id="search-profile-btn" onclick="toggleProfilePanel(event)" title="Profil" aria-label="Profil"></button>
+  </div>
+
+  <!-- Top strip — Stage 1a: visual shell + avatar / date wired to existing handlers.
+       Bell + search button are placeholders; sentence text hardcoded until 1b. -->
+  <div id="top-strip" class="intro-hidden" role="toolbar" aria-label="App controls">
+    <div class="ts-left">
+      <button class="ts-btn ts-avatar" id="ts-avatar-btn" onclick="toggleProfilePanel(event)" title="Profil" aria-label="Profil"></button>
+      <button class="ts-btn" id="ts-bell-btn" title="Varsler" aria-label="Varsler">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 8a6 6 0 1112 0c0 7 3 9 3 9H3s3-2 3-9"/>
+          <path d="M10 21a2 2 0 004 0"/>
+        </svg>
+        <span class="ts-bell-dot"></span>
+      </button>
+    </div>
+    <div class="ts-center" id="ts-center">
+      <button class="ts-date" id="ts-date-btn" onclick="toggleQcPanel('date')" aria-label="Velg dato" type="button">
+        <span id="ts-date-label">I dag</span>
+        <svg class="ts-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 9l6 6 6-6"/>
+        </svg>
+      </button>
+      <span class="ts-dot ts-glyph-dot">·</span>
+      <span class="ts-wx-icon" id="ts-wx-icon">☀</span>
+      <span class="ts-dot ts-temp-dot">·</span>
+      <span class="ts-meta ts-temp" id="ts-temp">13°</span>
+      <span class="ts-dot ts-wind-dot">·</span>
+      <span class="ts-meta ts-wind" id="ts-wind">💨 4 m/s</span>
+    </div>
+    <div class="ts-right">
+      <button class="ts-btn" id="ts-search-btn" title="Søk" aria-label="Søk">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"/>
+          <path d="M21 21l-4.35-4.35"/>
+        </svg>
+      </button>
+    </div>
   </div>
 
   <!-- Search dropdown — live results, anchored below search bar -->

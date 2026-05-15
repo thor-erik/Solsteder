@@ -3451,6 +3451,7 @@ function openDetailPanel(v) {
       panel.classList.add('mobile-hidden');
     }
     document.getElementById('floating-search')?.classList.add('mobile-ui-hidden');
+    document.getElementById('top-strip')?.classList.add('mobile-ui-hidden');
     document.getElementById('qc-wrap')?.classList.add('mobile-ui-hidden');
   }
 
@@ -3552,6 +3553,7 @@ function closeDetailPanel(expandList = true) {
     }
     _panelStateBeforeOpen = null;
     document.getElementById('floating-search')?.classList.remove('mobile-ui-hidden');
+    document.getElementById('top-strip')?.classList.remove('mobile-ui-hidden');
     document.getElementById('qc-wrap')?.classList.remove('mobile-ui-hidden');
     document.getElementById('locate-btn')?.classList.remove('mobile-ui-hidden');
     document.getElementById('zoom-jog')?.classList.remove('mobile-ui-hidden');
@@ -5935,6 +5937,7 @@ async function _sdPickCandidate(encodedOrObj) {
       _syncFtsPosition();
     }
     document.getElementById('floating-search')?.classList.add('mobile-ui-hidden');
+    document.getElementById('top-strip')?.classList.add('mobile-ui-hidden');
     document.getElementById('qc-wrap')?.classList.add('mobile-ui-hidden');
   }
 
@@ -6896,6 +6899,19 @@ function _introRevealUI(search, brand, qcWrap, panel, opts) {
     search.style.transition = 'transform 0.45s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.4s ease';
     search.style.transform = '';
     setTimeout(() => { if (search) search.style.transition = ''; }, 500);
+  }
+
+  // New top strip rides the same slide-in as the legacy search bar.
+  const topStrip = document.getElementById('top-strip');
+  if (topStrip) {
+    topStrip.style.transition = 'none';
+    topStrip.style.opacity = '1';
+    topStrip.style.transform = 'translateY(-72px)';
+    topStrip.classList.remove('intro-hidden');
+    topStrip.getBoundingClientRect();
+    topStrip.style.transition = 'transform 0.45s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.4s ease';
+    topStrip.style.transform = '';
+    setTimeout(() => { if (topStrip) topStrip.style.transition = ''; }, 500);
   }
 
   // Brand + qc-wrap fade in (kept simple — they're decorative chrome).

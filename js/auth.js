@@ -187,20 +187,24 @@ async function handleMagicLinkSubmit(e, form) {
 
 function _updateUserIndicator() {
   const btn = document.getElementById('search-profile-btn');
-  if (!btn) return;
+  const tsBtn = document.getElementById('ts-avatar-btn');
+  if (!btn && !tsBtn) return;
+  let html;
   if (_currentUser) {
     const avatar = _currentUser.user_metadata?.avatar_url;
     const name   = _currentUser.user_metadata?.name ?? _currentUser.email ?? '';
-    btn.innerHTML = avatar
+    html = avatar
       ? `<img src="${avatar}" alt="${name}">`
       : `<div class="profile-initials">${name[0].toUpperCase()}</div>`;
   } else {
-    btn.innerHTML = `<div class="profile-anon">
+    html = `<div class="profile-anon">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
       </svg>
     </div>`;
   }
+  if (btn) btn.innerHTML = html;
+  if (tsBtn) tsBtn.innerHTML = html;
   _renderProfilePanel();
 }
 
@@ -774,10 +778,11 @@ function closeProfilePanel() {
 function _profilePanelOutsideClick(e) {
   const panel = document.getElementById('profile-panel');
   const btn   = document.getElementById('search-profile-btn');
-  if (panel && !panel.contains(e.target) && btn && !btn.contains(e.target)) {
+  const tsBtn = document.getElementById('ts-avatar-btn');
+  const onAnchor = (btn && btn.contains(e.target)) || (tsBtn && tsBtn.contains(e.target));
+  if (panel && !panel.contains(e.target) && !onAnchor) {
     closeProfilePanel();
   } else if (panel && panel.classList.contains('open')) {
-    // Re-attach if click was inside panel
     document.addEventListener('click', _profilePanelOutsideClick, { once: true });
   }
 }
