@@ -1242,6 +1242,9 @@ function draw() {
     if (!bounds.contains([v.lng, v.lat])) return;
     // Outside audit mode, archived venues are completely invisible.
     if (!isAuditMode && v.auditArchived) return;
+    // Panel action-row filter pills — hide non-matching pins (non-audit).
+    if (!isAuditMode && typeof window._passesActiveFilters === 'function'
+        && !window._passesActiveFilters(v)) return;
     // Detail-panel focus mode (non-audit only).
     if (!isAuditMode && selectedId && v.id !== selectedId) return;
     // Inside audit mode, reviewed / archived / unsure venues short-circuit

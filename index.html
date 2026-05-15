@@ -58,14 +58,14 @@
 <script defer src="js/weather.js?v=20260514b"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260515m"></script>
+<script defer src="js/app.js?v=20260515n"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
 <script defer src="js/render-editor.js?v=20260508a"></script>
-<script defer src="js/render-pins.js?v=20260515a"></script>
+<script defer src="js/render-pins.js?v=20260515b"></script>
 <script defer src="js/ui-shared.js?v=20260514m"></script>
-<script defer src="js/ui-list.js?v=20260514b"></script>
+<script defer src="js/ui-list.js?v=20260515a"></script>
 <script defer src="js/admin-review.js?v=20260505a"></script>
 <script defer src="js/admin-audit.js?v=20260512a"></script>
 <script defer src="js/ui-shelter.js?v=20260416a"></script>
@@ -10633,15 +10633,15 @@
     <div id="panel-actions">
       <div class="panel-actions-pills">
         <button class="panel-filter-pill" data-filter="cafe"
-                onclick="this.classList.toggle('active')">Kafé</button>
+                onclick="toggleListFilter('cafe', this)">Kafé</button>
         <button class="panel-filter-pill" data-filter="restaurant"
-                onclick="this.classList.toggle('active')">Restaurant</button>
+                onclick="toggleListFilter('restaurant', this)">Restaurant</button>
         <button class="panel-filter-pill" data-filter="bar"
-                onclick="this.classList.toggle('active')">Bar</button>
+                onclick="toggleListFilter('bar', this)">Bar</button>
         <button class="panel-filter-pill" data-filter="sun2h"
-                onclick="this.classList.toggle('active')">2t+ sol</button>
+                onclick="toggleListFilter('sun2h', this)">2t+ sol</button>
         <button class="panel-filter-pill" data-filter="sheltered"
-                onclick="this.classList.toggle('active')">Skjermet</button>
+                onclick="toggleListFilter('sheltered', this)">Skjermet</button>
       </div>
       <button id="panel-actions-sort" onclick="toggleSortPanel()"
               aria-label="Sortér" title="Sortér">

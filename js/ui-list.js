@@ -802,6 +802,10 @@ function renderList() {
     });
   }
   if (activeArea && !auditActive) venues = venues.filter(v => v.area === activeArea);
+  // Panel action-row filter pills (Stage 2c)
+  if (!auditActive && typeof window._passesActiveFilters === 'function') {
+    venues = venues.filter(window._passesActiveFilters);
+  }
   // Favorites filtering is handled by sortBy === 'favorites' below
 
   // Compute the viewport bounds (with 20% pad) once. Used both to filter

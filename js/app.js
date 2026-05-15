@@ -6011,6 +6011,42 @@ let _preSearchPanelState = null;
 let _searchSessionActive = false;
 let _searchBlurTimer = null;
 
+// ── Panel action-row filters (Stage 2c wiring) ───────────────────────────────
+// Categories: 'cafe' | 'restaurant' | 'bar' — multi-select. Empty set = no
+// category filter (all shown). sun2h + sheltered are placeholder toggles
+// (visual-only for now); will wire once sun-hour + shelter scoring is hooked.
+window._activeFilters = {
+  categories: new Set(),
+  sun2h: false,
+  sheltered: false,
+};
+
+window._passesActiveFilters = function(v) {
+  const f = window._activeFilters;
+  if (f.categories.size > 0 && !f.categories.has(v.category)) return false;
+  // sun2h + sheltered: not wired yet
+  return true;
+};
+
+function toggleListFilter(filter, btn) {
+  const f = window._activeFilters;
+  if (filter === 'cafe' || filter === 'restaurant' || filter === 'bar') {
+    if (f.categories.has(filter)) {
+      f.categories.delete(filter);
+      btn?.classList.remove('active');
+    } else {
+      f.categories.add(filter);
+      btn?.classList.add('active');
+    }
+    if (typeof renderList === 'function') renderList();
+    if (typeof window.markPinLayoutStale === 'function') window.markPinLayoutStale();
+    if (typeof draw === 'function') draw();
+    return;
+  }
+  // sun2h, sheltered: still placeholder toggles
+  btn?.classList.toggle('active');
+}
+
 /** Enter search mode — transforms #top-strip into a full-width input.
  *  Focusing #venue-search triggers _enterSearchSession via its existing
  *  focus handler, which shows the dropdown when there's a query. */
