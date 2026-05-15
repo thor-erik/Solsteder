@@ -220,6 +220,9 @@ function _updateUserIndicator() {
   if (btn) btn.innerHTML = html;
   if (tsBtn) tsBtn.innerHTML = html;
   _renderProfilePanel();
+  // Pull recent notifications into the bell on auth-ready. Internally
+  // gated by _bellHydrated so this is a no-op after the first run.
+  if (_currentUser && typeof _bellHydrate === 'function') _bellHydrate();
 }
 
 /** Render the invitations inbox section: pending invites + own upcoming plans. */
@@ -1056,58 +1059,189 @@ function _bellRenderBody(notif) {
   return body;
 }
 
-/** Choose lead element: avatar for friend-named social events,
- *  monochrome line icon for weather/suggestion. */
-function _bellLeadForNotif(notif) {
+/** Build a serializable descriptor for the row's leading element so we
+ *  can re-render it after a page reload (hydrating from Supabase). */
+function _bellLeadDescriptor(notif) {
   const vars = notif.bodyVars || {};
   const name = vars.name;
   if (notif.category === 'social' && name) {
     const count = vars.count || (vars.extra ? vars.extra + 1 : 1);
-    return _bellAvatar(name, Math.max(0, count - 1));
+    return { type: 'avatar', name, count: Math.max(0, count - 1) };
   }
   if (notif.category === 'weather') {
     const id = String(notif.id || '');
-    if (id.includes('rain'))  return _bellSysLead('rain');
-    if (id.includes('cloud')) return _bellSysLead('rain');
-    return _bellSysLead('sun');
+    if (id.includes('rain'))  return { type: 'sys', icon: 'rain' };
+    if (id.includes('cloud')) return { type: 'sys', icon: 'rain' };
+    return { type: 'sys', icon: 'sun' };
   }
   if (notif.category === 'suggestion') {
     return notif.id?.includes('sheltered')
-      ? _bellSysLead('wind')
-      : _bellSysLead('bulb');
+      ? { type: 'sys', icon: 'wind' }
+      : { type: 'sys', icon: 'bulb' };
   }
+  return { type: 'sys', icon: 'bulb' };
+}
+
+/** Render the row's leading HTML from a descriptor. */
+function _bellLeadFromDescriptor(d) {
+  if (!d || !d.type) return _bellSysLead('bulb');
+  if (d.type === 'avatar') return _bellAvatar(d.name || '?', d.count || 0);
+  if (d.type === 'sys')    return _bellSysLead(d.icon || 'bulb');
   return _bellSysLead('bulb');
 }
 
+/** Choose lead element from a notification (capture-time entry point). */
+function _bellLeadForNotif(notif) {
+  return _bellLeadFromDescriptor(_bellLeadDescriptor(notif));
+}
+
+/** Serializable click descriptor. Used after page reload when the
+ *  original action function is no longer in memory. Each notification
+ *  rule can set its own `notif.nav` explicitly; otherwise we best-effort
+ *  extract a venue from bodyVars.venue. */
+function _bellExtractNav(notif) {
+  if (notif?.nav) return notif.nav;
+  const vars = notif?.bodyVars || {};
+  if (vars.venue && typeof VENUES !== 'undefined' && Array.isArray(VENUES)) {
+    const target = String(vars.venue).toLowerCase();
+    const v = VENUES.find(x => x.name && x.name.toLowerCase() === target);
+    if (v) return { kind: 'venue', venueId: v.id };
+  }
+  return { kind: 'none' };
+}
+
+/** Route from a nav descriptor (works post-reload without action ref). */
+function _bellNavigate(nav) {
+  if (!nav || !nav.kind || nav.kind === 'none') return;
+  if (nav.kind === 'venue' && nav.venueId != null) {
+    if (typeof selectVenue === 'function') selectVenue(Number(nav.venueId), true);
+    return;
+  }
+  if (nav.kind === 'plan') {
+    if (typeof openPlanPreview === 'function') {
+      openPlanPreview({ venueId: nav.venueId, plannedAt: nav.plannedAt });
+    } else if (typeof selectVenue === 'function' && nav.venueId != null) {
+      selectVenue(Number(nav.venueId), true);
+    }
+    return;
+  }
+  if (nav.kind === 'friends' || nav.kind === 'friend-request') {
+    if (typeof openFriendsModal === 'function') openFriendsModal();
+    return;
+  }
+}
+
 /** Public: capture a notification into the bell history when it fires.
- *  Called from notifications.js's _notifShow wrapper. */
+ *  Called from notifications.js's _notifShow wrapper. Persists to
+ *  Supabase fire-and-forget so the entry survives page reload + syncs
+ *  across devices. */
 function _bellRecord(notif) {
   if (!notif || !notif.bodyKey) return;
-  _bellHistory.set(notif.id, {
+  const leadDescriptor = _bellLeadDescriptor(notif);
+  const nav = _bellExtractNav(notif);
+  const entry = {
     id: notif.id,
     category: notif.category,
     ts: Date.now(),
     body: _bellRenderBody(notif),
-    lead: _bellLeadForNotif(notif),
+    lead: _bellLeadFromDescriptor(leadDescriptor),
+    leadDescriptor,
+    nav,
     // bellAction overrides action when present — plan-related notifs
     // use it to open the plan-preview sheet instead of the venue detail.
     action: notif.bellAction || notif.action,
-  });
-  // Cap — drop the oldest if we're over the limit
+  };
+  _bellHistory.set(notif.id, entry);
   if (_bellHistory.size > _BELL_HISTORY_MAX) {
     let oldestId = null, oldestTs = Infinity;
     _bellHistory.forEach((v, k) => { if (v.ts < oldestTs) { oldestTs = v.ts; oldestId = k; } });
     if (oldestId) _bellHistory.delete(oldestId);
   }
   if (typeof _updateAvatarBadge === 'function') _updateAvatarBadge();
+  _bellPersist(entry);
 }
 
-/** Click handler for bell rows backed by a recorded notification. */
+/** Fire-and-forget upsert to the notifications table. Dedupes via the
+ *  UNIQUE (user_id, notif_id) index — re-firing updates the row. */
+async function _bellPersist(entry) {
+  if (!_currentUser || typeof _supabase === 'undefined') return;
+  try {
+    await _supabase.from('notifications').upsert({
+      user_id:  _currentUser.id,
+      notif_id: entry.id,
+      category: entry.category,
+      body:     entry.body,
+      lead:     entry.leadDescriptor,
+      nav:      entry.nav,
+    }, { onConflict: 'user_id,notif_id' });
+  } catch (e) {
+    console.warn('[bell] persist failed:', e);
+  }
+}
+
+/** Pull the last 30 days of notifications for the current user into
+ *  _bellHistory on auth-ready. Session captures take priority — we
+ *  don't overwrite an in-memory entry with the row from Supabase. */
+let _bellHydrated = false;
+async function _bellHydrate() {
+  if (_bellHydrated) return;
+  if (!_currentUser || typeof _supabase === 'undefined') return;
+  _bellHydrated = true;
+  try {
+    const cutoff = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+    const { data, error } = await _supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', _currentUser.id)
+      .gte('created_at', cutoff)
+      .order('created_at', { ascending: false })
+      .limit(_BELL_HISTORY_MAX);
+    if (error) { console.warn('[bell] hydrate failed:', error.message); return; }
+    for (const row of (data || [])) {
+      if (_bellHistory.has(row.notif_id)) continue;  // in-session capture wins
+      _bellHistory.set(row.notif_id, {
+        id:       row.notif_id,
+        category: row.category,
+        ts:       new Date(row.created_at).getTime(),
+        body:     row.body,
+        lead:     _bellLeadFromDescriptor(row.lead),
+        leadDescriptor: row.lead,
+        nav:      row.nav,
+        readAt:   row.read_at,
+        // No action() — function refs don't survive reload. _bellInvokeAction
+        // falls back to nav-based routing for these.
+      });
+    }
+    if (typeof _updateAvatarBadge === 'function') _updateAvatarBadge();
+  } catch (e) {
+    console.warn('[bell] hydrate exception:', e);
+  }
+}
+
+/** Click handler for bell rows. Prefers the in-memory action function
+ *  when available (most expressive); falls back to nav-based routing
+ *  for entries restored from Supabase across a reload. */
 function _bellInvokeAction(id) {
   const entry = _bellHistory.get(id);
   _closeBellDropdown();
-  if (!entry || typeof entry.action !== 'function') return;
-  try { entry.action(); } catch (e) { console.warn('[bell] action failed:', e); }
+  if (!entry) return;
+  // Mark this row read server-side (fire-and-forget).
+  _bellMarkRead(id);
+  if (typeof entry.action === 'function') {
+    try { entry.action(); } catch (e) { console.warn('[bell] action failed:', e); }
+    return;
+  }
+  _bellNavigate(entry.nav);
+}
+
+async function _bellMarkRead(notifId) {
+  if (!_currentUser || typeof _supabase === 'undefined') return;
+  try {
+    await _supabase.from('notifications')
+      .update({ read_at: new Date().toISOString() })
+      .eq('user_id',  _currentUser.id)
+      .eq('notif_id', notifId);
+  } catch { /* ignore */ }
 }
 
 /** True if any current inbox item is newer than the last bell-open. */

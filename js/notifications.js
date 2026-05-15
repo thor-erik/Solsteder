@@ -704,6 +704,9 @@ function _evalInviteAccepted() {
         selectVenue(Number(head.plan.venue_id), true);
       }
     },
+    // Serializable nav for the bell row — used after a page reload when
+    // the action function is no longer in memory.
+    nav: { kind: 'plan', venueId: head.plan.venue_id, plannedAt: head.plan.planned_at },
     ttl: 600000, dedupe: true,
     _onShow: () => {
       // Persist dedupe at show-time so a missed action still doesn't re-fire.
@@ -781,6 +784,7 @@ function _evalInviteDeclined() {
         selectVenue(Number(head.plan.venue_id), true);
       }
     },
+    nav: { kind: 'plan', venueId: head.plan.venue_id, plannedAt: head.plan.planned_at },
     ttl: 600000, dedupe: true,
     _onShow: markSeen,
   };
@@ -827,6 +831,7 @@ function _evalIncomingFriendRequest() {
     // Don't TTL-out the toast: we want it on every session until handled.
     // dedupe still prevents multiple copies in the queue at once.
     dedupe: true,
+    nav: { kind: 'friends' },
   };
 }
 
@@ -860,6 +865,7 @@ function _evalFriendPlanning() {
         selectVenue(Number(plan.venue_id), true);
       }
     },
+    nav: { kind: 'plan', venueId: plan.venue_id, plannedAt: plan.planned_at },
     ttl: 600000, dedupe: true,
   };
 }
