@@ -48,7 +48,7 @@
 <script defer src="js/i18n.js?v=20260514e"></script>
 <script defer src="js/config.js?v=20260425b"></script>
 <script defer src="js/tokens.js?v=20260509e"></script>
-<script defer src="js/auth.js?v=20260515c"></script>
+<script defer src="js/auth.js?v=20260515d"></script>
 <script defer src="js/login-carousel.js?v=20260428a"></script>
 <script defer src="js/analytics.js"></script>
 <script defer src="js/places.js?v=20260411b"></script>
@@ -1634,6 +1634,26 @@
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     padding-bottom: max(20px, env(safe-area-inset-bottom));
+  }
+
+  /* Sliding view container — used during drill-in / back navigation
+     between sub-views. Two pages stacked horizontally; transform on the
+     wrapper slides between them. After the transition completes, JS
+     re-renders in the canonical un-wrapped layout. */
+  #profile-panel .profile-pages {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: row;
+    width: 200%;
+    will-change: transform;
+  }
+  #profile-panel .profile-pages .profile-page {
+    flex: 0 0 50%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
   }
   #profile-panel.open {
     transform: translateY(0);

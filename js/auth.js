@@ -385,11 +385,82 @@ function _renderInvitationsSection() {
 }
 
 function _setProfilePanelView(view) {
-  _profilePanelView = view;
-  _renderProfilePanel();
-  // Restore scroll to top when navigating between sub-views
   const panel = document.getElementById('profile-panel');
-  if (panel) panel.scrollTop = 0;
+  if (!panel) return;
+  const prev = _profilePanelView;
+  if (prev === view) return;
+
+  _profilePanelView = view;
+
+  // iOS-Settings-style slide: drilling INTO a sub-view from 'settings'
+  // slides left; going back FROM a sub-view to 'settings' slides right.
+  // Sibling-to-sibling sub-view moves are rare; we just swap.
+  const ROOT = 'settings';
+  const drillingIn = (prev === ROOT && view !== ROOT);
+  const goingBack  = (view === ROOT && prev !== ROOT);
+
+  if (!drillingIn && !goingBack) {
+    _renderProfilePanel();
+    return;
+  }
+  _slideProfileView(prev, view, drillingIn);
+}
+
+function _renderProfileViewByName(view) {
+  switch (view) {
+    case 'activity':    return _renderActivityView();
+    case 'visibility':  return _renderVisibilityView();
+    case 'notif-types': return _renderNotifTypesView();
+    case 'settings':
+    default:            return _renderSettingsView();
+  }
+}
+
+function _slideProfileView(fromView, toView, drillingIn) {
+  const panel = document.getElementById('profile-panel');
+  if (!panel) { _renderProfilePanel(); return; }
+
+  const fromHtml = _renderProfileViewByName(fromView);
+  const toHtml   = _renderProfileViewByName(toView);
+
+  // Lay out both pages in a 2-page horizontal track. For drillingIn: from
+  // is left, to is right — animate translateX 0 → -50%. For goingBack:
+  // to is left, from is right — animate -50% → 0.
+  const leftHtml  = drillingIn ? fromHtml : toHtml;
+  const rightHtml = drillingIn ? toHtml   : fromHtml;
+
+  panel.innerHTML = `
+    <div class="profile-pages">
+      <div class="profile-page">${leftHtml}</div>
+      <div class="profile-page">${rightHtml}</div>
+    </div>
+  `;
+
+  const pages = panel.querySelector('.profile-pages');
+  if (!pages) { _renderProfilePanel(); return; }
+
+  // Initial transform (no transition yet)
+  pages.style.transition = 'none';
+  pages.style.transform  = drillingIn ? 'translateX(0)' : 'translateX(-50%)';
+  // Force layout so the next frame's transform actually animates
+  // eslint-disable-next-line no-unused-expressions
+  pages.offsetWidth;
+
+  // Animate to final transform
+  pages.style.transition = 'transform 280ms cubic-bezier(0.25, 0.9, 0.4, 1)';
+  pages.style.transform  = drillingIn ? 'translateX(-50%)' : 'translateX(0)';
+
+  let cleaned = false;
+  const cleanup = () => {
+    if (cleaned) return;
+    cleaned = true;
+    pages.removeEventListener('transitionend', cleanup);
+    // Re-render in the canonical un-wrapped layout
+    _renderProfilePanel();
+  };
+  pages.addEventListener('transitionend', cleanup);
+  // Safety net in case transitionend doesn't fire (interrupted, hidden, etc.)
+  setTimeout(cleanup, 360);
 }
 
 // ── Settings view (root) ─────────────────────────────────────────────────────
