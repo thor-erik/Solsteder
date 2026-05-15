@@ -58,7 +58,7 @@
 <script defer src="js/weather.js?v=20260514b"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260515k"></script>
+<script defer src="js/app.js?v=20260515l"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
@@ -1225,23 +1225,23 @@
   }
   #top-strip .ts-search-input-close {
     flex-shrink: 0;
-    width: 26px; height: 26px;
+    width: 28px; height: 28px;
     border-radius: 50%;
     border: none;
-    background: rgba(255,242,235,0.10);
-    color: var(--muted);
-    font-size: 13px;
+    background: rgba(255,244,224,0.22);
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 500;
     line-height: 1;
     cursor: pointer;
     padding: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    transition: background 120ms, color 120ms;
+    transition: background 120ms;
   }
   #top-strip .ts-search-input-close:hover {
-    background: rgba(255,242,235,0.18);
-    color: var(--text);
+    background: rgba(255,244,224,0.32);
   }
 
   /* Cross-fade between normal layout and search field. The grid columns

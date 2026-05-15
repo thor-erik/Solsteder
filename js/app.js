@@ -6041,17 +6041,19 @@ function exitSearchMode() {
 // Cycles example queries through the placeholder so users discover what
 // they can search for. Pauses while the strip is in search mode (the real
 // placeholder shows then) and while there's any user input.
+// Literal matches the existing keyword search handles — no AI-implying
+// natural-language examples until/unless we wire actual semantic search.
 const _SEARCH_PLACEHOLDER_EXAMPLES = [
   'Frogner',
-  'Kafé i sol nå',
-  'Restaurant med 2t+ sol',
-  'Skjermet bar',
   'Aker brygge',
+  'Mathallen',
+  'Sentrum',
+  'Grünerløkka',
 ];
-const _SEARCH_PH_TYPE_MS   = 70;
-const _SEARCH_PH_HOLD_MS   = 1600;
-const _SEARCH_PH_DELETE_MS = 40;
-const _SEARCH_PH_GAP_MS    = 400;
+const _SEARCH_PH_TYPE_MS   = 35;
+const _SEARCH_PH_HOLD_MS   = 1100;
+const _SEARCH_PH_DELETE_MS = 20;
+const _SEARCH_PH_GAP_MS    = 280;
 let _searchPhTimer = null;
 let _searchPhExampleIdx = 0;
 let _searchPhCharIdx = 0;
