@@ -2636,11 +2636,25 @@ async function createPlan(venueId, plannedAt, message, friendIds) {
     planned_at: plannedAt,
     message: message || ''
   }).select().single();
-  if (error || !plan) return { error: error?.message || 'Failed to create plan' };
+  if (error || !plan) {
+    console.error('[plans] createPlan failed:', error?.message, error);
+    if (typeof _showToast === 'function') _showToast('Kunne ikke lage plan: ' + (error?.message || 'ukjent feil'));
+    return { error: error?.message || 'Failed to create plan' };
+  }
+  console.info('[plans] created', plan.id, plan);
   // Create invites
   if (friendIds && friendIds.length) {
-    const invites = friendIds.map(fid => ({ plan_id: plan.id, user_id: fid }));
-    await _supabase.from('plan_invites').insert(invites);
+    const invites = friendIds.map(fid => ({ plan_id: plan.id, user_id: fid, status: 'pending' }));
+    const { data: invRows, error: invErr } = await _supabase
+      .from('plan_invites')
+      .insert(invites)
+      .select();
+    if (invErr) {
+      console.error('[plans] plan_invites insert failed:', invErr.message, invErr);
+      if (typeof _showToast === 'function') _showToast('Plan laget, men kunne ikke invitere venner: ' + invErr.message);
+    } else {
+      console.info('[plans] invited', invRows);
+    }
   }
   await loadPlans();
   _showToast(t('plan_created'));
