@@ -58,19 +58,19 @@
 <script defer src="js/weather.js?v=20260514b"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260515s"></script>
+<script defer src="js/app.js?v=20260515t"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
 <script defer src="js/render-editor.js?v=20260508a"></script>
-<script defer src="js/render-pins.js?v=20260515c"></script>
+<script defer src="js/render-pins.js?v=20260515d"></script>
 <script defer src="js/ui-shared.js?v=20260514m"></script>
 <script defer src="js/ui-list.js?v=20260515a"></script>
 <script defer src="js/admin-review.js?v=20260505a"></script>
 <script defer src="js/admin-audit.js?v=20260512a"></script>
 <script defer src="js/ui-shelter.js?v=20260416a"></script>
 <script defer src="js/render-wind.js?v=20260416b"></script>
-<script defer src="js/ui-detail.js?v=20260513i"></script>
+<script defer src="js/ui-detail.js?v=20260515j"></script>
 <script defer src="js/ui-plan-preview.js?v=20260514e"></script>
 <script defer src="js/osm.js?v=20260513a"></script>
 <script defer src="js/notifications.js?v=20260515d"></script>
@@ -1341,12 +1341,20 @@
                 transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
     will-change: transform;
   }
-  .panel-filter-pill:hover { color: var(--accent); border-color: rgba(245,194,94,0.32); }
+  /* Hover scoped to pointer-fine devices — prevents sticky :hover state
+     on iOS Safari that otherwise leaves the accent color + border on a
+     pill after a tap. */
+  @media (hover: hover) and (pointer: fine) {
+    .panel-filter-pill:hover { color: var(--accent); border-color: rgba(245,194,94,0.32); }
+  }
   .panel-filter-pill.active {
     background: rgba(245,194,94,0.18);
     border-color: var(--accent);
     color: var(--accent);
   }
+  /* Tactile press feedback that works on touch (the lens-fx tilt is barely
+     visible under a finger). Quick scale-down then snap back. */
+  .panel-filter-pill:active { transform: scale(0.94); }
   /* Clear residual mouse-focus ring after click; keyboard focus still shows. */
   .panel-filter-pill:focus { outline: none; }
   .panel-filter-pill:focus-visible {
@@ -2329,11 +2337,12 @@
      popup state changes. overflow:visible lets the tip render outside
      the SVG bounds when the lean carries it past the popup edge. */
   #fts-popup-tail {
+    display: block;
     position: absolute;
     left: 0;
-    bottom: -6px;
+    bottom: -10px;
     width: 100%;
-    height: 6px;
+    height: 10px;
     overflow: visible;
     pointer-events: none;
   }
@@ -3370,12 +3379,15 @@
     transform-origin: center;
     will-change: transform;
   }
-  .sort-btn:hover:not(.active) { color: var(--muted); background: rgba(156,189,231,0.10); }
+  @media (hover: hover) and (pointer: fine) {
+    .sort-btn:hover:not(.active) { color: var(--muted); background: rgba(156,189,231,0.10); }
+  }
   .sort-btn.active {
     background: rgba(245,194,94,0.18);
     color: var(--accent);
     font-weight: 600;
   }
+  .sort-btn:active { transform: scale(0.97); }
   .sort-btn:focus { outline: none; }
   .sort-btn:focus-visible {
     outline: 2px solid var(--accent);

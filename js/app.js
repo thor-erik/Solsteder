@@ -825,15 +825,14 @@ function _populateFtsEvents() {
     ? window._ftsRawHour
     : (typeof timeFromEl !== 'undefined' && timeFromEl ? parseFloat(timeFromEl.value) : null);
   // Returns opacity 0..1. Icons in adjacent segments stay fully opaque;
-  // within the active segment, opacity ramps linearly from 0 (centered
-  // under thumb) to 1 (at segment edges).
+  // within the active segment, opacity ramps linearly from 0 (under thumb)
+  // back up to 1 over a 2-hour radius (medium falloff).
+  const FADE_RADIUS_H = 2;
   const opacityFor = (e) => {
     if (!Number.isFinite(thumbVisualH)) return 1;
     if (thumbVisualH < e.segStart || thumbVisualH >= e.segEnd) return 1;
-    const halfSeg = (e.segEnd - e.segStart) / 2;
-    if (halfSeg <= 0) return 0;
     const dist = Math.abs(thumbVisualH - e.hour);
-    return Math.min(1, dist / halfSeg);
+    return Math.min(1, dist / FADE_RADIUS_H);
   };
 
   const pctFor = (e) => {
@@ -1119,8 +1118,11 @@ function showFtsPopup(hour) {
     if (poly) {
       const tailOffsetPx = (rawPct - pct) * trackW / 100;
       const r            = parseFloat(getComputedStyle(popup).borderTopLeftRadius) || 10;
-      const TAIL_HALF    = 6;
-      const TIP_DEPTH    = 6;
+      const TAIL_HALF    = 7;
+      // Tail must bridge popup-bottom (6 px above track top) and thumb-top
+      // (4 px below track top) — total 10 px — or the tip floats above the
+      // thumb with a visible gap.
+      const TIP_DEPTH    = 10;
 
       // Tip x in popup-local pixels (0 = popup left, popupW = popup right).
       // Clamped to popup bounds so a far-clamped popup doesn't lean

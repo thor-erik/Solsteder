@@ -435,12 +435,14 @@ function _drawInviteAvatarPin(ctx, pt, invitePin) {
   const visibleDeclined = declined.slice(0, remainingRows);
   const declinedOverflow = Math.max(0, declined.length - visibleDeclined.length);
   const timeStr  = (typeof _fmtTime === 'function') ? _fmtTime(invitePin.meetHour) : '';
-  // Prefix the time with a localized 'Meeting at' so the header reads
-  // as a sentence ('Meeting at 18:00') rather than a bare timestamp.
-  // Distinct from the panel hero's 'Meet at' so the pin can use the
-  // continuous tense (English) without affecting the panel.
-  const meetLabel = (typeof t === 'function') ? t('invite_pin_meeting_at') : 'Meeting at';
-  const headerTime = timeStr ? `${meetLabel} ${timeStr}` : '';
+  // headerLabel can override the default "Meeting at" prefix — used by
+  // friend-presence pins to read "Sol fra 18:35" etc. Bare strings are
+  // also accepted (passed via headerText, no time appended).
+  const meetLabel = invitePin.headerLabel
+    ?? ((typeof t === 'function') ? t('invite_pin_meeting_at') : 'Meeting at');
+  const headerTime = invitePin.headerText
+    ? invitePin.headerText
+    : (timeStr ? `${meetLabel} ${timeStr}` : '');
 
   // Measure: card width = max(rows, header) + padding. Each row's width is
   // pad + avatar + gap + name + (disc ? gap + disc : 0) + pad.
@@ -1482,6 +1484,60 @@ function draw() {
     const hovered   = !sel && v.id === hoverId;
     const baseAlphaTarget = closedOpens ? 0.70 : 1.0;
 
+    // Friend-presence pin: when one or more friends are checked in, swap
+    // the standard pill for the invite-style avatar card so the pin reads
+    // the same visual language as the active-invite floating card. The
+    // header reuses the venue's existing time string (`fra HH:MM`, `til
+    // HH:MM`, `Åpner HH:MM`).
+    if (hasFriends) {
+      const friendCardData = {
+        headerText: time || '',
+        attendees: friends.map(f => ({
+          id:        f.user?.id ?? f.id ?? null,
+          name:      f.user?.name || f.user?.email || f.name || '?',
+          offsetMin: 0,
+        })),
+        declined: [],
+      };
+      ctx.save();
+      const stF = _ensureState(v.id);
+      stF.target_alpha = baseAlphaTarget;
+      stF.morphTarget  = 1;
+      _stepLerp(stF, 'alpha', stF.target_alpha, 0.20);
+      _stepLerp(stF, 'morph', stF.morphTarget, 0.12);
+      ctx.globalAlpha = stF.alpha;
+      _drawInviteAvatarPin(ctx, pt, friendCardData);
+      ctx.restore();
+
+      // Layout entry — bbox covers the card body + tip so hit-test picks
+      // up clicks anywhere on the card.
+      const _attendees = friendCardData.attendees;
+      const _rows = Math.min(_attendees.length, INVITE_MAX_ROWS)
+                  + (_attendees.length > INVITE_MAX_ROWS ? 1 : 0);
+      const _headerH = friendCardData.headerText
+        ? INVITE_CARD_HEADER_H + INVITE_CARD_HEADER_GAP : 0;
+      const _cardH = INVITE_CARD_PAD_Y * 2 + _headerH + _rows * INVITE_CARD_ROW_H;
+      // Card width is dynamic; clamp to a safe upper bound for hit-test.
+      const _cardW = INVITE_CARD_MAX_W;
+      layout.push({
+        v, pt, classResult: cls, isDot: false, extraStem: 0,
+        spr: {
+          anchorX: _cardW / 2,
+          anchorY: _cardH + INVITE_TIP_GAP + INVITE_TIP_H + COMPAT_STEM_H,
+          cssW:    _cardW,
+          cssH:    _cardH + INVITE_TIP_GAP + INVITE_TIP_H + COMPAT_STEM_H,
+          pillW:   _cardW,
+          pillH:   _cardH + INVITE_TIP_GAP + INVITE_TIP_H,
+          pillR:   14,
+        },
+        _pillRect: pillRect,
+        _closedOpens: closedOpens,
+        _nextStart:   cls.nextStart,
+        _friends:     friends,
+      });
+      continue;
+    }
+
     // Animation state — drive both alpha and morph toward the pill state.
     const st = _ensureState(v.id);
     st.target_alpha = baseAlphaTarget;
@@ -1504,25 +1560,6 @@ function draw() {
       ctx.beginPath(); ctx.arc(pt.x, pt.y, 6, 0, Math.PI * 2);
       ctx.fillStyle = dot.fill;
       ctx.fill();
-      ctx.restore();
-    }
-
-    // Pulse rings BEFORE the pill so they sit behind it. Only friend pills
-    // pulse — the privileged ambient marks the social signal.
-    if (hasFriends && st.alpha > 0.1) {
-      const moduleW = _friendModuleW(ctx, friends.length);
-      const moduleH = CIRCLE_R * 2;
-      const moduleX = pt.x - w / 2 + PAD_L;
-      const moduleY = pt.y - PILL_H - TAIL_H + (PILL_H - moduleH) / 2;
-      ctx.save();
-      ctx.globalAlpha = st.alpha;
-      if (st.scale !== 1.0) {
-        ctx.translate(pt.x, pt.y);
-        ctx.scale(st.scale, st.scale);
-        ctx.translate(-pt.x, -pt.y);
-      }
-      _drawPulseRings(ctx, { x: moduleX, y: moduleY, w: moduleW, h: moduleH },
-                      performance.now(), v.id);
       ctx.restore();
     }
 

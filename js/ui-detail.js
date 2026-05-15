@@ -150,44 +150,9 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
   // Revisit when venueWindShelter() is wired into the detail render.
   const shelterHtml = '';
 
-  // Friend chip on the photo top-right. Tap-to-expand: the compact pill
-  // ("Anna +N her") expands inline to a small panel listing every friend
-  // with their check-in time ("siden 13:24"). For 1 friend the panel is
-  // suppressed (the pill already shows the name).
-  const _photoFriendCheckins = typeof getFriendCheckinsForVenue === 'function'
-    ? getFriendCheckinsForVenue(v.id) : [];
-  const _fmtCheckin = (c) => {
-    if (!c.created_at) return '';
-    const d = new Date(c.created_at);
-    if (isNaN(d.getTime())) return '';
-    const hh = String(d.getHours()).padStart(2, '0');
-    const mm = String(d.getMinutes()).padStart(2, '0');
-    return `siden ${hh}:${mm}`;
-  };
-  const photoChipHtml = _photoFriendCheckins.length
-    ? `<div class="photo-overlay-chip${_photoFriendCheckins.length >= 2 ? ' is-expandable' : ''}"
-            onclick="this.classList.toggle('expanded'); event.stopPropagation();">
-        <div class="photo-overlay-chip-summary">
-          <div class="avatar-row sm">${_renderFriendAvatarsHtml(_photoFriendCheckins, 3, 18)}</div>
-          <span>${_friendsHereChipLabel(_photoFriendCheckins)}</span>
-        </div>
-        ${_photoFriendCheckins.length >= 2 ? `<div class="photo-overlay-chip-list">
-          ${_photoFriendCheckins.map(c => {
-            const u = c.user || {};
-            const name = (u.name || u.email || '').replace(/"/g, '&quot;');
-            const initial = ((u.name || u.email || '?')[0] || '?').toUpperCase();
-            const av = u.avatar_url
-              ? `<img class="chip-list-avatar" src="${u.avatar_url}" alt="">`
-              : `<span class="chip-list-avatar chip-list-avatar-init" style="background:${_dpFriendColor(u.id)}">${initial}</span>`;
-            return `<div class="chip-list-row">
-              ${av}
-              <div class="chip-list-name">${name}</div>
-              <div class="chip-list-time">${_fmtCheckin(c)}</div>
-            </div>`;
-          }).join('')}
-        </div>` : ''}
-      </div>`
-    : '';
+  // Friend chip on the photo overlay removed — friends-here is now the
+  // pin's primary signal (avatar-card design), so the chip duplicated info.
+  const photoChipHtml = '';
 
   // Meta line on the photo overlay. Star + rating prepended when present so
   // the trust signal reads alongside identity. Falls back gracefully when any
