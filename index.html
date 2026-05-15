@@ -53,6 +53,44 @@
     }
   })();
 </script>
+<script>
+  // ── Viewport tracker — single source of truth for visible height ─────────
+  // Exposes --app-h (CSS variable) = the visible viewport height in px.
+  // Why we need this:
+  //   - 100vh is broken on iOS Safari (includes URL bar)
+  //   - 100dvh is unreliable on PWA cold-start (the home-indicator zone
+  //     isn't always accounted for at first paint)
+  //   - 100svh is "the small viewport" but doesn't update when the URL
+  //     bar collapses/expands
+  //   - window.innerHeight is wrong on iOS when the keyboard is up
+  // window.visualViewport.height is the only measurement that reflects
+  // the actually-visible area across iOS Safari, iOS Chrome WebView PWA,
+  // Android Chrome PWA, and desktop. Use var(--app-h, 100svh) in CSS;
+  // the 100svh fallback applies if JS hasn't set it yet.
+  //
+  // Probe pattern: set immediately, again on visualViewport/window
+  // resize + orientationchange, AND after short delays — iOS PWA cold-
+  // starts report stale values until the WebView's chrome-area
+  // measurements settle.
+  (function () {
+    var html = document.documentElement;
+    function set() {
+      var h = (window.visualViewport && window.visualViewport.height)
+            || window.innerHeight;
+      if (h && h > 0) html.style.setProperty('--app-h', h + 'px');
+    }
+    set();
+    window.addEventListener('resize', set, { passive: true });
+    window.addEventListener('orientationchange', set, { passive: true });
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', set, { passive: true });
+    }
+    // Cold-start probes — iOS PWAs commonly report visualViewport.height
+    // a few px short on the first tick. Re-probing after layout settles
+    // gives the correct value without making the user wait.
+    [60, 180, 500, 1200].forEach(function (d) { setTimeout(set, d); });
+  })();
+</script>
 <script defer src="js/i18n.js?v=20260514e"></script>
 <script defer src="js/config.js?v=20260425b"></script>
 <script defer src="js/tokens.js?v=20260509e"></script>
@@ -254,11 +292,14 @@
   }
 
   html, body {
-    /* dvh extends past the home-indicator zone in iOS PWA standalone
-       so #map-container (inset: 0) fills edge-to-edge. With plain
-       100%/100vh, the body terminated above the home indicator and
-       the slate --bg painted in the gap below. */
-    height: 100dvh;
+    /* Robust viewport height across iOS Safari, iOS Chrome PWA,
+       Android Chrome, and desktop. --app-h is set from JS using
+       window.visualViewport.height (see _initViewportTracker in
+       app.js) — the only measurement that always equals the visible
+       area on every engine. 100svh is the fallback if JS hasn't run
+       yet. Don't switch to 100dvh / 100lvh / 100% — each one breaks
+       at least one platform. */
+    height: var(--app-h, 100svh);
     background: var(--bg);
     color: var(--text);
     font-family: 'Inter', system-ui, sans-serif;
@@ -4670,7 +4711,9 @@
       right: 0;
       bottom: 0;
       width: 100%;
-      height: 50svh;    /* svh = small viewport height: stable, unaffected by toolbar */
+      /* 50% of the JS-tracked visible viewport — see --app-h. 50svh
+         is the fallback used until the visualViewport probe runs. */
+      height: calc(var(--app-h, 100svh) * 0.5);
       border-radius: 20px 20px 0 0;
       border-left: none;
       border-right: none;
@@ -4852,7 +4895,7 @@
     /* Fullscreen state: panel covers everything */
     #panel.mobile-fullscreen {
       transform: translateY(0);
-      height: 100svh;
+      height: var(--app-h, 100svh);
       border-radius: 0;
       z-index: 910;
     }
@@ -9390,7 +9433,7 @@
        the home indicator on small phones. Without this, taller
        content (venue meta + timeline + CTA row) pushed the buttons
        below the visible viewport in iOS PWA standalone. */
-    max-height: 85svh;
+    max-height: calc(var(--app-h, 100svh) * 0.85);
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     border-radius: 20px 20px 0 0;
