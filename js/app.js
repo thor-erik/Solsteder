@@ -825,11 +825,11 @@ function _populateFtsEvents() {
     ? window._ftsRawHour
     : (typeof timeFromEl !== 'undefined' && timeFromEl ? parseFloat(timeFromEl.value) : null);
   // Returns opacity 0..1. Icons in adjacent segments stay fully opaque.
-  // Within the active segment: 0 inside ±2 h of the thumb (fully clear so
-  // the thumb's own glyph reads), ramps from 0 → 1 between ±2 h and ±3 h,
-  // 1 beyond ±3 h.
-  const FADE_INNER_H = 2;  // fully transparent inside this radius
-  const FADE_OUTER_H = 3;  // fully opaque outside this radius
+  // Within the active segment: 0 inside ±1 h of the thumb (fully clear so
+  // the thumb's own glyph reads), ramps from 0 → 1 between ±1 h and ±2 h,
+  // 1 beyond ±2 h.
+  const FADE_INNER_H = 1;  // fully transparent inside this radius
+  const FADE_OUTER_H = 2;  // fully opaque outside this radius
   const opacityFor = (e) => {
     if (!Number.isFinite(thumbVisualH)) return 1;
     if (thumbVisualH < e.segStart || thumbVisualH >= e.segEnd) return 1;
@@ -1112,15 +1112,16 @@ function showFtsPopup(hour) {
 
   // Tail geometry — anchor-and-shift (YouTube scrubber pattern).
   // The popup body is allowed to clamp against the viewport edge so its
-  // text stays readable, but the tail tip stays locked to the actual
-  // thumb position. When the body shifts away from the thumb, the tail
-  // leans toward the thumb. Shoulders stay on the popup's flat bottom
-  // outline (clamped to a safe range) — no corner-curve riding, so the
-  // polygon stays a clean leaning triangle even during the compact↔
-  // expanded morph.
+  // text stays readable, but the tail tip points at the visual thumb
+  // position. The thumb itself is clamped slightly inside the slider
+  // (capPct in _updateFtsThumbDom), so the tail tip is clamped to the
+  // SAME visual range — otherwise the tail overshoots the visible thumb
+  // at extreme hours (rawPct can hit 100% while the thumb visually stops
+  // at 95%). Shoulders stay on the popup's flat bottom outline.
   const tailSvg = document.getElementById('fts-popup-tail');
   if (tailSvg) {
-    const poly = tailSvg.querySelector('polygon');
+    const poly     = tailSvg.querySelector('polygon');
+    const polyline = tailSvg.querySelector('polyline');
     if (poly) {
       const TAIL_HALF = 7;
       // Tail must bridge popup-bottom (6 px above track top) and thumb-top
@@ -1128,16 +1129,18 @@ function showFtsPopup(hour) {
       // thumb with a visible gap.
       const TIP_DEPTH = 10;
 
-      // tipX = thumb position in popup-local pixels. (rawPct - pct) is the
-      // delta between thumb and popup-center; positive = thumb right of
-      // center.
-      const tailOffsetPx = (rawPct - pct) * trackW / 100;
+      // Visual thumb clamping — match _updateFtsThumbDom's capPct so the
+      // tail tip lands on the thumb circle, not in empty space past it.
+      const thumb = document.getElementById('fts-thumb');
+      const thumbCapPx = thumb ? thumb.offsetHeight / 2 : 16;
+      const thumbCapPct = (thumbCapPx / trackW) * 100;
+      const thumbVisualPct = Math.max(thumbCapPct,
+                                      Math.min(100 - thumbCapPct, rawPct));
+      const tailOffsetPx = (thumbVisualPct - pct) * trackW / 100;
       const tipX = popupW / 2 + tailOffsetPx;
 
       // Shoulder center clamped so both shoulders remain on the popup's
-      // flat bottom outline (avoids the corner-curve area). When the tip
-      // leans hard, shoulders stay anchored at the popup's edge while the
-      // tip continues out toward the thumb.
+      // flat bottom outline (avoids the corner-curve area).
       const r = parseFloat(getComputedStyle(popup).borderTopLeftRadius) || 10;
       const minAttach = TAIL_HALF + r;
       const maxAttach = popupW - TAIL_HALF - r;
@@ -1150,6 +1153,13 @@ function showFtsPopup(hour) {
       tailSvg.setAttribute('width',  popupW);
       tailSvg.setAttribute('height', TIP_DEPTH);
       poly.setAttribute('points', `${sLx},0 ${sRx},0 ${tipX},${TIP_DEPTH}`);
+      // Polyline strokes only the two slanted sides (not the top edge,
+      // which sits flush with the popup's bottom border). Continues the
+      // popup's hairline visually into the tail.
+      if (polyline) {
+        polyline.setAttribute('points',
+          `${sLx},0 ${tipX},${TIP_DEPTH} ${sRx},0`);
+      }
     }
   }
 

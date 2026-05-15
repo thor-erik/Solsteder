@@ -66,7 +66,7 @@
 <script defer src="js/weather.js?v=20260514b"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260515x"></script>
+<script defer src="js/app.js?v=20260515y"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
@@ -2368,6 +2368,15 @@
   }
   #fts-popup-tail polygon {
     fill: rgba(26,44,66,0.78);
+  }
+  /* Hairline border on the slanted sides only — visually continues the
+     popup's --glass-border into the tail. */
+  #fts-popup-tail polyline {
+    fill: none;
+    stroke: rgba(155,169,188,0.22);
+    stroke-width: 1;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
   #fts-popup.fts-popup-below {
     bottom: auto;
@@ -10907,7 +10916,8 @@
             <span id="fts-popup-closed-label"></span>
           </div>
           <svg id="fts-popup-tail" aria-hidden="true" preserveAspectRatio="none">
-            <polygon points="0,0 12,0 6,6"/>
+            <polygon points="0,0 14,0 7,10"/>
+            <polyline points="0,0 7,10 14,0" fill="none"/>
           </svg>
         </div>
       </div>
