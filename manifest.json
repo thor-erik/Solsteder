@@ -11,7 +11,7 @@
   "display_override": ["window-controls-overlay", "standalone", "browser"],
   "orientation": "portrait-primary",
   "background_color": "#FFF2EB",
-  "theme_color": "#142E52",
+  "theme_color": "#FFF2EB",
   "categories": ["travel", "lifestyle", "food"],
   "prefer_related_applications": false,
   "icons": [
