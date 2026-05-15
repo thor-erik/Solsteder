@@ -58,7 +58,7 @@
 <script defer src="js/weather.js?v=20260514b"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260515o"></script>
+<script defer src="js/app.js?v=20260515p"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
@@ -10623,17 +10623,9 @@
 
   </div>
 
-  <!-- Top-left: search bar (legacy — hidden by CSS; kept in DOM so JS
-       handlers + cached refs don't break. #venue-search moved into the
-       new top strip's search-mode container below. -->
-  <div id="floating-search" class="floating-card intro-hidden">
-    <span id="search-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8.5" cy="8.5" r="5.5"/><line x1="13" y1="13" x2="18" y2="18"/></svg></span>
-    <button id="search-clear-btn" type="button" aria-label="Clear search">✕</button>
-    <button id="search-profile-btn" onclick="toggleProfilePanel(event)" title="Profil" aria-label="Profil"></button>
-  </div>
+  <!-- Top strip — replaces the legacy #floating-search bar. Avatar +
+       inbox + date+weather sentence + search button. -->
 
-  <!-- Top strip — Stage 1a: visual shell + avatar / date wired to existing handlers.
-       Bell + search button are placeholders; sentence text hardcoded until 1b. -->
   <div id="top-strip" class="intro-hidden" role="toolbar" aria-label="App controls">
     <div class="ts-left">
       <button class="ts-btn ts-avatar" id="ts-avatar-btn" onclick="toggleProfilePanel(event)" title="Profil" aria-label="Profil"></button>

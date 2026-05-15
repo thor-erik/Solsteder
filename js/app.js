@@ -3862,7 +3862,10 @@ function enterEditMode(venueId) {
   document.body.classList.add('edit-mode');
   document.body.classList.add('edit-satellite');
   document.getElementById('edit-overlay').style.display = 'flex';
-  document.getElementById('floating-search').style.display = 'none';
+  const _fsEdit = document.getElementById('floating-search');
+  if (_fsEdit) _fsEdit.style.display = 'none';
+  const _tsEdit = document.getElementById('top-strip');
+  if (_tsEdit) _tsEdit.style.display = 'none';
   document.getElementById('panel').style.display = 'none';
   document.getElementById('detail-panel').style.display = 'none';
   document.getElementById('qc-wrap').style.display = 'none';
@@ -4085,7 +4088,10 @@ function exitEditMode() {
   document.body.classList.remove('edit-satellite');
   _stopEditBannerObserver();
   document.getElementById('edit-overlay').style.display = 'none';
-  document.getElementById('floating-search').style.display = '';
+  const _fsExit = document.getElementById('floating-search');
+  if (_fsExit) _fsExit.style.display = '';
+  const _tsExit = document.getElementById('top-strip');
+  if (_tsExit) _tsExit.style.display = '';
   document.getElementById('panel').style.display = '';
   document.getElementById('detail-panel').style.display = '';
   document.getElementById('qc-wrap').style.display = '';
