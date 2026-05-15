@@ -75,15 +75,27 @@
   (function () {
     var html = document.documentElement;
     function set() {
-      var h = (window.visualViewport && window.visualViewport.height)
-            || window.innerHeight;
-      if (h && h > 0) html.style.setProperty('--app-h', h + 'px');
+      var vvh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+      var ih  = window.innerHeight || vvh;
+      if (vvh && vvh > 0) html.style.setProperty('--app-h', vvh + 'px');
+      // --app-bottom-inset: the gap between the layout viewport (window
+      // innerHeight) and the visual viewport (visualViewport.height).
+      // On iOS PWA standalone this is the home-indicator gesture zone +
+      // anything else iOS reserves. position: fixed elements with
+      // bottom: 0 anchor to the layout viewport, which puts them BELOW
+      // the visible area on iOS PWA. Using bottom: var(--app-bottom-
+      // inset) pulls them up to the visual viewport bottom — fully
+      // visible, no clipping behind the home indicator. Safari + Chrome
+      // browser: gap is 0 → no offset. Android PWA: gap is 0 → no offset.
+      var gap = Math.max(0, ih - vvh);
+      html.style.setProperty('--app-bottom-inset', gap + 'px');
     }
     set();
     window.addEventListener('resize', set, { passive: true });
     window.addEventListener('orientationchange', set, { passive: true });
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', set, { passive: true });
+      window.visualViewport.addEventListener('scroll', set, { passive: true });
     }
     // Cold-start probes — iOS PWAs commonly report visualViewport.height
     // a few px short on the first tick. Re-probing after layout settles
@@ -4708,7 +4720,12 @@
       top: auto;
       left: 0;
       right: 0;
-      bottom: 0;
+      /* Anchor to the visual viewport bottom (not layout viewport).
+         --app-bottom-inset is innerHeight - visualViewport.height,
+         which is non-zero on iOS PWA standalone (home-indicator zone)
+         and 0 everywhere else. Without this, the panel pokes past
+         the visible area on iOS. */
+      bottom: var(--app-bottom-inset, 0px);
       width: 100%;
       /* 50% of the JS-tracked visible viewport — see --app-h. 50svh
          is the fallback used until the visualViewport probe runs. */
@@ -8357,9 +8374,12 @@
 
   @media (max-width: 639px) {
     #detail-panel {
-      position: fixed;  /* fixed avoids parent height issues; bottom:0 anchors to visual viewport */
+      position: fixed;  /* fixed avoids parent height issues */
       top: auto;
-      left: 0; right: 0; bottom: 0;
+      left: 0; right: 0;
+      /* Anchor to visual viewport bottom (not layout) — see #panel for
+         why. iOS PWA = home-indicator inset; everywhere else = 0. */
+      bottom: var(--app-bottom-inset, 0px);
       width: 100%;
       height: calc(var(--app-h, 100svh) * 0.62);    /* lowered from 69% to make room for floating pill */
       max-height: none;
@@ -8963,7 +8983,7 @@
 
   .dpinvite-sheet {
     position: absolute;
-    bottom: 0;
+    bottom: var(--app-bottom-inset, 0px);
     left: 0;
     right: 0;
     max-height: calc(var(--app-h, 100svh) * 0.78);
@@ -9399,7 +9419,11 @@
   .plan-preview,
   .dprcv-overlay {
     position: fixed;
-    inset: 0;
+    /* Bottom inset pulls the overlay (and its flex-end child sheet)
+       above the layout-viewport bottom on iOS PWA so the sheet sits
+       inside the visible area. */
+    top: 0; left: 0; right: 0;
+    bottom: var(--app-bottom-inset, 0px);
     z-index: 1200;
     /* none while opening/closing so the slide animation doesn't capture
        stray taps; auto once .open so the transparent area above the
