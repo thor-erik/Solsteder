@@ -504,11 +504,35 @@ function _renderSettingsView() {
       </div>
     </div>` : '';
 
+  // ── "Din aktivitet" section — activity events + social state ──────────
+  let aktivitetRows = '';
+  if (activityCount > 0) {
+    aktivitetRows += `<button class="settings-row" onclick="_setProfilePanelView('activity')">
+      <span class="settings-row__icon">${_SETTINGS_ICON.inbox}</span>
+      <span class="settings-row__label">${t('activity')}</span>
+      <span class="pending-badge">${activityCount}</span>
+      <span class="settings-row__chevron">${_SETTINGS_ICON.chevron}</span>
+    </button>`;
+  }
+  aktivitetRows += `<button class="settings-row" onclick="openFriendsModal()">
+    <span class="settings-row__icon">${_SETTINGS_ICON.users}</span>
+    <span class="settings-row__label">${friendsLabel}</span>
+    ${_pendingRequests.length ? `<span class="pending-badge">${_pendingRequests.length}</span>` : ''}
+    <span class="settings-row__chevron">${_SETTINGS_ICON.chevron}</span>
+  </button>`;
+  if (_friends.length) {
+    aktivitetRows += `<button class="settings-row" onclick="_setProfilePanelView('visibility')">
+      <span class="settings-row__icon">${_SETTINGS_ICON.eye}</span>
+      <span class="settings-row__label">${t('visibility_drill')}</span>
+      <span class="settings-row__chevron">${_SETTINGS_ICON.chevron}</span>
+    </button>`;
+  }
+
   return `
     ${_renderSettingsMobileBar(t('settings'), 'closeProfilePanel()')}
     <div class="settings-root">
 
-      <div class="settings-group">
+      <div class="settings-group settings-identity-group">
         <div class="settings-identity" style="cursor:default">
           ${avatarHtml}
           <div class="settings-identity__info">
@@ -518,13 +542,13 @@ function _renderSettingsView() {
         </div>
       </div>
 
-      ${activityEntry ? `
       <div>
-        <div class="settings-group">${activityEntry}</div>
-      </div>` : ''}
+        <div class="settings-group-label">Din aktivitet</div>
+        <div class="settings-group">${aktivitetRows}</div>
+      </div>
 
       <div>
-        <div class="settings-group-label">${t('settings_section_display')}</div>
+        <div class="settings-group-label">Innstillinger</div>
         <div class="settings-group">
           <div class="settings-row pref-row">
             <span class="settings-row__label">${t('language')}</span>
@@ -546,24 +570,6 @@ function _renderSettingsView() {
       </div>
 
       ${typeof _notifSettingsHtml === 'function' ? _notifSettingsHtml() : ''}
-
-      <div>
-        <div class="settings-group-label">${t('settings_section_friends')}</div>
-        <div class="settings-group">
-          <button class="settings-row" onclick="openFriendsModal()">
-            <span class="settings-row__icon">${_SETTINGS_ICON.users}</span>
-            <span class="settings-row__label">${friendsLabel}</span>
-            ${_pendingRequests.length ? `<span class="pending-badge">${_pendingRequests.length}</span>` : ''}
-            <span class="settings-row__chevron">${_SETTINGS_ICON.chevron}</span>
-          </button>
-          ${_friends.length ? `
-          <button class="settings-row" onclick="_setProfilePanelView('visibility')">
-            <span class="settings-row__icon">${_SETTINGS_ICON.eye}</span>
-            <span class="settings-row__label">${t('visibility_drill')}</span>
-            <span class="settings-row__chevron">${_SETTINGS_ICON.chevron}</span>
-          </button>` : ''}
-        </div>
-      </div>
 
       ${adminGroup}
 
