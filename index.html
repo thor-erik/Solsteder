@@ -1701,7 +1701,9 @@
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    pointer-events: none;
+    /* pointer-events stays auto so e.target on a thumb-touch is the
+       thumb itself — the FTS pointerdown handler uses that to
+       distinguish "grab the thumb" from "drag the panel via FTS". */
     z-index: 5;
 
     --glint-base-angle: -30deg;
