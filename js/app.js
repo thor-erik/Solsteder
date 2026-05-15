@@ -6022,7 +6022,10 @@ function enterSearchMode() {
   // Kick off the typewriter so users discover what they can search for.
   // It auto-stops the moment they type anything.
   _startSearchPlaceholderAnim();
-  requestAnimationFrame(() => input.focus());
+  // Focus SYNCHRONOUSLY inside the user-gesture handler so iOS Safari
+  // honors it and opens the keyboard. (rAF defers past the gesture
+  // window and the keyboard may not open on mobile.)
+  input.focus();
 }
 
 /** Exit search mode — clears the input, blurs it, collapses the strip. */
@@ -6041,14 +6044,17 @@ function exitSearchMode() {
 // Cycles example queries through the placeholder so users discover what
 // they can search for. Pauses while the strip is in search mode (the real
 // placeholder shows then) and while there's any user input.
-// Literal matches the existing keyword search handles — no AI-implying
-// natural-language examples until/unless we wire actual semantic search.
+// Literal matches the existing keyword search handles. Skews venue-heavy
+// with two areas — there are more venues than areas in the dataset, so
+// the placeholder examples should reflect that.
 const _SEARCH_PLACEHOLDER_EXAMPLES = [
+  'Vinland',
+  'Lekteren',
+  'Nedre Foss Gård',
+  'Michaels',
+  'Mathallen',
   'Frogner',
   'Aker brygge',
-  'Mathallen',
-  'Sentrum',
-  'Grünerløkka',
 ];
 const _SEARCH_PH_TYPE_MS   = 35;
 const _SEARCH_PH_HOLD_MS   = 1100;

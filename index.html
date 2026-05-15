@@ -58,7 +58,7 @@
 <script defer src="js/weather.js?v=20260514b"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260515l"></script>
+<script defer src="js/app.js?v=20260515m"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
@@ -1244,22 +1244,47 @@
     background: rgba(255,244,224,0.32);
   }
 
-  /* Cross-fade between normal layout and search field. The grid columns
-     don't transition, but opacity on both layers gives a smooth swap. */
+  /* Cross-fade + slide. The right search button slides leftward as it
+     fades, so the user perceives the icon moving toward the search
+     field's leading-icon position. The input's own icon fades in on
+     a slight delay, landing where the slid button "arrived". */
   #top-strip .ts-left,
-  #top-strip .ts-center,
+  #top-strip .ts-center {
+    transition: opacity 160ms ease, transform 200ms ease;
+  }
   #top-strip .ts-right {
-    transition: opacity 160ms ease;
+    transition: transform 260ms cubic-bezier(0.2, 0.8, 0.3, 1),
+                opacity 200ms ease 40ms;
+  }
+  #top-strip .ts-search-input .ts-search-input-icon {
+    opacity: 0;
+    transition: opacity 200ms ease 120ms;
   }
   #top-strip.searching .ts-left,
-  #top-strip.searching .ts-center,
-  #top-strip.searching .ts-right {
+  #top-strip.searching .ts-center {
     opacity: 0;
+    transform: translateX(-12px);
     pointer-events: none;
   }
-  #top-strip.searching .ts-search-input {
-    opacity: 1;
-    pointer-events: auto;
+  #top-strip.searching .ts-right {
+    transform: translateX(-60px);
+    opacity: 0;
+  }
+  #top-strip.searching .ts-search-input { opacity: 1; pointer-events: auto; }
+  #top-strip.searching .ts-search-input .ts-search-input-icon { opacity: 1; }
+
+  /* Honey ring on the strip in search mode — signals "active". */
+  #top-strip {
+    transition:
+      box-shadow 220ms ease,
+      border-color 220ms ease;
+  }
+  #top-strip.searching {
+    border-color: rgba(245,194,94,0.35);
+    box-shadow:
+      var(--glass-inset),
+      0 6px 20px rgba(0,0,0,0.30),
+      0 0 0 1px rgba(245,194,94,0.28);
   }
 
   /* ── Panel header cleanup (Stage 2a) ──────────────────────────────────
@@ -1458,9 +1483,9 @@
     gap: 8px;
   }
   .sd-row:last-child { border-bottom: none; }
-  .sd-row:hover { background: rgba(255,175,133,0.09); }
+  .sd-row:hover { background: rgba(245,194,94,0.12); }
   .sd-row:active, .sd-row.sd-row-clicked {
-    background: rgba(255,175,133,0.22);
+    background: rgba(245,194,94,0.28);
     transform: scale(0.98);
     transition: background 0.05s, transform 0.05s;
   }
