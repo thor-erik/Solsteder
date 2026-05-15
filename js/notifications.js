@@ -44,7 +44,11 @@ function _notifGetSettings() {
     const s = JSON.parse(localStorage.getItem(_NOTIF_STORAGE_SETTINGS) || 'null');
     if (s) return s;
   } catch { /* ignore */ }
-  return { weather: true, social: true, suggestion: true, login: true };
+  // Weather toasts default OFF — they were firing on every app open
+  // ("Sol åpner på X kl Y") which the user reported as intrusive noise.
+  // Ambient weather info now lives in the bell dropdown instead. Users
+  // can opt back in via Innstillinger → Varslingstyper.
+  return { weather: false, social: true, suggestion: true, login: true };
 }
 
 function _notifSaveSettings(settings) {

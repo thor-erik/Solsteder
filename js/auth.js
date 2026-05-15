@@ -1074,21 +1074,11 @@ function _renderBellDropdown() {
   const invs = (typeof _planInvites !== 'undefined' && Array.isArray(_planInvites))
     ? _planInvites.filter(i => i.status === 'pending' && i.plan) : [];
 
-  if (!reqs.length && !invs.length) {
-    dropdown.innerHTML = `
-      <div class="bd-empty">
-        <svg class="bd-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-          <path d="M13.73 21a2 2 0 01-3.46 0"/>
-        </svg>
-        <div class="bd-empty-text">Ingenting nytt akkurat nå.</div>
-      </div>`;
-    return;
-  }
-
   let html = '';
-  if (reqs.length) {
-    html += `<div class="bd-section">Venneforespørsler</div>`;
+
+  // ── Forespørsler — real data, actionable inline ─────────────────────
+  if (reqs.length || invs.length) {
+    html += `<div class="bd-section">Forespørsler</div>`;
     html += reqs.map(r => {
       const name = r.name || r.email || 'Ukjent';
       return `
@@ -1103,10 +1093,6 @@ function _renderBellDropdown() {
           </div>
         </div>`;
     }).join('');
-  }
-
-  if (invs.length) {
-    html += `<div class="bd-section">Planinvitasjoner</div>`;
     html += invs.map(i => {
       const p = i.plan || {};
       const creator = p.creator_name || p.creator_email || 'Noen';
@@ -1127,6 +1113,53 @@ function _renderBellDropdown() {
         </div>`;
     }).join('');
   }
+
+  // ── Vær — currently sample only; wire to live weather rules later. ─
+  html += `<div class="bd-section">Vær</div>`;
+  html += `
+    <div class="bd-row bd-row--sample">
+      <span class="bd-row__icon">☀</span>
+      <div class="bd-row__body">
+        <div class="bd-row__msg">Sol åpner på <strong>Hummus &amp; Wine</strong> kl 17:00.</div>
+        <div class="bd-row__meta">i dag · 1t 12min sol</div>
+      </div>
+    </div>
+    <div class="bd-row bd-row--sample">
+      <span class="bd-row__icon">🌧</span>
+      <div class="bd-row__body">
+        <div class="bd-row__msg">Regn forventet kl 14:00.</div>
+        <div class="bd-row__meta">i dag · 2 mm over 1t</div>
+      </div>
+    </div>`;
+
+  // ── Sosialt (ikke-handlingsbart) — friends activity ─────────────────
+  html += `<div class="bd-section">Sosialt</div>`;
+  html += `
+    <div class="bd-row bd-row--sample">
+      <span class="bd-row__icon">📍</span>
+      <div class="bd-row__body">
+        <div class="bd-row__msg"><strong>Anna</strong> sjekket inn på <strong>Mathallen</strong>.</div>
+        <div class="bd-row__meta">12 min</div>
+      </div>
+    </div>`;
+
+  // ── Forslag — suggestions for the user ──────────────────────────────
+  html += `<div class="bd-section">Forslag</div>`;
+  html += `
+    <div class="bd-row bd-row--sample">
+      <span class="bd-row__icon">💡</span>
+      <div class="bd-row__body">
+        <div class="bd-row__msg">Prøv <strong>Mathallen</strong> til lunsj — sol fra 12:00.</div>
+        <div class="bd-row__meta">3 venner anbefaler</div>
+      </div>
+    </div>
+    <div class="bd-row bd-row--sample">
+      <span class="bd-row__icon">💨</span>
+      <div class="bd-row__body">
+        <div class="bd-row__msg">Vind i dag — prøv <strong>Lekteren</strong> for ly.</div>
+        <div class="bd-row__meta">Skjermet · 2t sol</div>
+      </div>
+    </div>`;
 
   dropdown.innerHTML = html;
 }
