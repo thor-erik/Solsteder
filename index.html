@@ -5663,6 +5663,12 @@
 
   /* Activity sub-panel rows reuse .inbox-row styling already defined */
   .settings-subview {
+    /* Stage 4b-4: sub-view becomes the scroll container so the sticky
+       mobile bar stays in place at the top of the sheet while content
+       scrolls beneath. Matches .settings-root behavior. */
+    flex: 1 1 auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     padding: 12px 12px calc(20px + env(safe-area-inset-bottom, 0px));
     display: flex;
     flex-direction: column;
