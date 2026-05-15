@@ -3123,6 +3123,30 @@ function _updatePeekHeight() {
   _syncFtsPosition();
 }
 
+// Drop expensive backdrop-filter while the panel slides between
+// peek/expanded/fullscreen — re-blurring the map underneath at 60fps
+// was the visible lag on iOS Chrome PWA. Auto-managed via transition
+// events so every class-change site benefits without code changes.
+(function _wirePanelSlideClass() {
+  const panel = document.getElementById('panel');
+  if (!panel) return;
+  let pending = 0;
+  panel.addEventListener('transitionrun', (e) => {
+    if (e.target !== panel) return;
+    if (e.propertyName !== 'transform' && e.propertyName !== 'height') return;
+    pending++;
+    panel.classList.add('is-sliding');
+  });
+  const clear = (e) => {
+    if (e.target !== panel) return;
+    if (e.propertyName !== 'transform' && e.propertyName !== 'height') return;
+    pending = Math.max(0, pending - 1);
+    if (pending === 0) panel.classList.remove('is-sliding');
+  };
+  panel.addEventListener('transitionend',    clear);
+  panel.addEventListener('transitioncancel', clear);
+})();
+
 // ── Venue peek: render actual first venue card into #venue-peek ──────────────
 function updateVenuePeek(venues) {
   const el = document.getElementById('venue-peek');

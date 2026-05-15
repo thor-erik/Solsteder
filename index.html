@@ -66,7 +66,7 @@
 <script defer src="js/weather.js?v=20260516b"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260515z"></script>
+<script defer src="js/app.js?v=20260516a"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
@@ -4862,6 +4862,23 @@
     #panel.panel-dragging .venue-card {
       animation: none !important;
       transition: none !important;
+    }
+
+    /* Containment isolates the panel's paint+layout from the rest of
+       the document so transforms don't trigger full-page repaints.
+       Big win on iOS Chrome PWA where panel sliding was visibly
+       laggy through backdrop-filter recompositing the map under it. */
+    #panel { contain: layout style paint; }
+
+    /* Drop backdrop-filter during slide animations. The blur effect
+       is what makes the panel "look like glass"; re-blurring at 60fps
+       while the underlying map scrolls is the actual cost. Solid
+       fallback for the duration of the slide. JS toggles
+       .is-sliding around the transition. */
+    #panel.is-sliding {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      background: rgba(26,44,66,0.95) !important;
     }
   }
 
