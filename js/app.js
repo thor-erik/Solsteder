@@ -3062,8 +3062,9 @@ function _updatePeekHeight() {
   const panel = document.getElementById('panel');
   if (!panel) return;
   // Peek stack: handle (16) + FTS margin-top (20) + FTS (40) + FTS
-  // margin-bottom (10) + venue-peek pad (12) + card top sliver (~18) = 116.
-  panel.style.setProperty('--peek-h', '116px');
+  // margin-bottom (10) + action row (32 + 10 pad) + venue-peek pad (12)
+  // + card top sliver (~18) = 158.
+  panel.style.setProperty('--peek-h', '158px');
   _syncFtsPosition();
 }
 

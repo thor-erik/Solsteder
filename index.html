@@ -58,7 +58,7 @@
 <script defer src="js/weather.js?v=20260514b"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260515h"></script>
+<script defer src="js/app.js?v=20260515i"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
@@ -1181,12 +1181,75 @@
      The date chip + weather chip line and the prose sun-outlook line are
      redundant with the new top strip (date + weather) and FTS (hourly
      forecast). Hide the whole #day-header so the venue list starts cleanly.
-     The sort button lived inside #sun-section-bar — it'll come back in
-     Stage 2c as part of the action row. Sort still works via the inbuilt
-     keyboard shortcut + future filter row. Hidden, not removed: paint
-     functions (updateHeaderDateChip / updateDateWeatherStrip / etc.) keep
-     running into these DOM nodes without breaking. */
+     Hidden, not removed: paint functions keep running without breaking. */
   #day-header { display: none; }
+
+  /* ── Panel action row (Stage 2c) — filter pills + sort ────────────────
+     Sits above #venue-peek. Horizontally-scrolling pill row on the left,
+     sort button pinned right. Pills are tier-3 surface controls; active
+     state uses honey-dim like the bell badge. */
+  #panel-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px 10px;
+    flex-shrink: 0;
+  }
+  #panel-actions .panel-actions-pills {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  #panel-actions .panel-actions-pills::-webkit-scrollbar { display: none; }
+  .panel-filter-pill {
+    flex-shrink: 0;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 16px;
+    background: var(--glass-action-bg);
+    backdrop-filter: var(--glass-blur-action);
+    -webkit-backdrop-filter: var(--glass-blur-action);
+    border: var(--glass-border);
+    box-shadow: var(--glass-inset);
+    color: var(--text);
+    font: 500 12px/1 'Inter', sans-serif;
+    cursor: pointer;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 120ms, border-color 120ms, color 120ms;
+  }
+  .panel-filter-pill:hover { color: var(--accent); border-color: rgba(245,194,94,0.32); }
+  .panel-filter-pill.active {
+    background: var(--accent-dim);
+    border-color: rgba(245,194,94,0.42);
+    color: var(--accent);
+  }
+  #panel-actions-sort {
+    flex-shrink: 0;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--glass-action-bg);
+    backdrop-filter: var(--glass-blur-action);
+    -webkit-backdrop-filter: var(--glass-blur-action);
+    border: var(--glass-border);
+    box-shadow: var(--glass-inset);
+    color: var(--muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 120ms;
+  }
+  #panel-actions-sort:hover { color: var(--text); }
 
   /* ── Cold-link friend-invite welcome card ──────────────────────────────── */
   .friend-invite-welcome {
@@ -10426,6 +10489,36 @@
           <span id="sort-label" class="sort-icon-label-sr">Mest sol</span>
         </button>
       </div>
+    </div>
+
+    <!-- Action row — Stage 2c: filter pills (horizontal scroll) + sort.
+         Pills are visual-only for now; clicks toggle the active class.
+         Wiring to actual list/pin filtering happens in a follow-up. -->
+    <div id="panel-actions">
+      <div class="panel-actions-pills">
+        <button class="panel-filter-pill" data-filter="cafe"
+                onclick="this.classList.toggle('active')">Kafé</button>
+        <button class="panel-filter-pill" data-filter="restaurant"
+                onclick="this.classList.toggle('active')">Restaurant</button>
+        <button class="panel-filter-pill" data-filter="bar"
+                onclick="this.classList.toggle('active')">Bar</button>
+        <button class="panel-filter-pill" data-filter="sun2h"
+                onclick="this.classList.toggle('active')">2t+ sol</button>
+        <button class="panel-filter-pill" data-filter="sheltered"
+                onclick="this.classList.toggle('active')">Skjermet</button>
+      </div>
+      <button id="panel-actions-sort" onclick="toggleSortPanel()"
+              aria-label="Sortér" title="Sortér">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round"
+             stroke-linejoin="round" aria-hidden="true">
+          <line x1="6"  y1="5"  x2="6"  y2="19"/>
+          <polyline points="3 15 6 19 9 15"/>
+          <line x1="14" y1="6"  x2="20" y2="6"/>
+          <line x1="14" y1="12" x2="18" y2="12"/>
+          <line x1="14" y1="18" x2="16" y2="18"/>
+        </svg>
+      </button>
     </div>
 
     <!-- Venue peek: first card preview visible in collapsed state -->
