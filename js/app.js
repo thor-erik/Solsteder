@@ -927,11 +927,12 @@ function updateHeaderDateChip() {
   } else if (sel === tomorrowStr) {
     dateLabel.textContent = t('tomorrow');
   } else if (diffDays > 0 && diffDays <= 6) {
-    // Full day name (not 3-letter abbrev) — "Sun" was reading as "sun"
-    // in a sun-finding app. Locale-aware via toLocaleDateString.
+    // Days 1–6 ahead: weekday name only. Day 7 (next same weekday)
+    // falls through to the date format below so it doesn't collide with
+    // today's weekday. Locale-aware via toLocaleDateString.
     const lang = (typeof prefLang === 'function') ? prefLang() : undefined;
     const longDay = d.toLocaleDateString(lang, { weekday: 'long' });
-    dateLabel.textContent = longDay.charAt(0).toUpperCase() + longDay.slice(1) + ' ' + d.getDate();
+    dateLabel.textContent = longDay.charAt(0).toUpperCase() + longDay.slice(1);
   } else {
     dateLabel.textContent = d.getDate() + '. ' + _ftsMonths()[d.getMonth()];
   }
