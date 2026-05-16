@@ -206,6 +206,13 @@ function drawAllCardTimelines(root) {
     ctx.scale(dpr, dpr);
     const sunWindowsForShadow = (typeof computeSunWindows === 'function') ? computeSunWindows(v, dateStr) : null;
     const dayHours = (typeof getVenueHoursForDay === 'function') ? getVenueHoursForDay(v, dateStr) : null;
+    // Plan-preview timelines (.dprcv-timeline-canvas) suppress the
+    // opening-hours dim. The venue + meet time are already chosen — a
+    // dark "closed" band before the meet hour (e.g. an invite for 04:40
+    // when the venue opens 07:00) reads as a confusing artifact rather
+    // than useful "browse to find what's open" context. Browse-mode
+    // cards still get the dim via the same drawTimeline call.
+    const isPlanPreviewCanvas = cv.classList.contains('dprcv-timeline-canvas');
     drawTimeline(ctx, {
       cssW, cssH,
       bleed: 0,
@@ -213,8 +220,8 @@ function drawAllCardTimelines(root) {
       dateStr,
       sunTable: currentSunTable,
       nowH: nowH_, isToday: isToday_,
-      openHour:  dayHours?.open  ?? null,
-      closeHour: dayHours?.close ?? null,
+      openHour:  isPlanPreviewCanvas ? null : (dayHours?.open  ?? null),
+      closeHour: isPlanPreviewCanvas ? null : (dayHours?.close ?? null),
       sunWindows: sunWindowsForShadow,
       drawSheen: false,
       drawThumb: false,

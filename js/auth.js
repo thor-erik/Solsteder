@@ -1454,50 +1454,60 @@ function _renderBellDropdown() {
     });
   });
 
-  invs.forEach(i => {
-    const p = i.plan || {};
-    // Embedded creator via plans_creator_id_fkey (now → profiles, see
-    // migration 023). First-name + first-token strips trailing email
-    // domain or middle/last names for a compact display.
-    const creatorName = (p.creator && (p.creator.name || p.creator.email)) || '';
-    const creator = creatorName ? creatorName.split('@')[0].split(' ')[0] : 'Noen';
-    // venue_name was never a column on plans — look up from VENUES.
-    const venueObj = (typeof VENUES !== 'undefined' && Array.isArray(VENUES))
-      ? VENUES.find(v => String(v.id) === String(p.venue_id)) : null;
-    const venue = (venueObj && venueObj.name) || 'et sted';
-    // The plan time column is `planned_at`, not `time`.
-    const time = p.planned_at
-      ? new Date(p.planned_at).toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' })
-      : '';
-    entries.push({
-      t: new Date(i.created_at || NOW).getTime(),
-      html: `
-        <div class="bd-row bd-row--new" id="bd-inv-${i.id}">
-          ${_bellAvatar(creator)}
-          <div class="bd-row__body">
-            <div class="bd-row__msg"><strong>${creator}</strong> inviterer deg til <strong>${venue}</strong>${time ? ' kl ' + time : ''}.</div>
-            <div class="bd-row__meta">${_formatTimeAgo(i.created_at)}</div>
-            <div class="bd-row__actions">
-              <button class="bd-action primary" onclick="_handleInboxResponse('${i.id}', 'accepted', this)">Godta</button>
-              <button class="bd-action secondary" onclick="_handleInboxResponse('${i.id}', 'declined', this)">Avslå</button>
-            </div>
-          </div>
-        </div>`,
-    });
-  });
+  // Pending plan_invites are NOT rendered as their own bell rows —
+  // the SQL trigger (sql/022) writes a row into the notifications table
+  // when the invite is created, which arrives via _bellHistory below.
+  // Rendering both produced two visible rows for the same invite with
+  // inconsistent wording. Now there's one row, one CTA (open the
+  // accept panel), and the inline Godta/Avslå have moved to the
+  // accept panel itself where they belong.
 
   // ── Captured notifications — every notification that fired this
   //    session gets surfaced here. Real data, real click actions. ──────
   _bellHistory.forEach(entry => {
     const isNew = entry.readAt ? '' : ' bd-row--new';
+    // Enrich plan-invite notifications with the venue name + relative
+    // day + time the SQL trigger can't reach (venues live in
+    // venues.json, not the DB). Detect by nav.kind='plan' and rewrite
+    // the body. Past plans get the past-tense verb + a dim row class
+    // so the user can tell at a glance the invite has expired (the
+    // CTA still opens the past-event plan-preview panel).
+    let body = entry.body;
+    let pastClass = '';
+    let metaSuffix = '';
+    if (entry.nav && entry.nav.kind === 'plan' && entry.nav.venueId != null) {
+      const venueObj = (typeof VENUES !== 'undefined' && Array.isArray(VENUES))
+        ? VENUES.find(v => String(v.id) === String(entry.nav.venueId)) : null;
+      const venueName = (venueObj && venueObj.name) || '';
+      const plannedAt = entry.nav.plannedAt || null;
+      const plannedMs = plannedAt ? new Date(plannedAt).getTime() : NaN;
+      const dateStr = plannedAt ? plannedAt.slice(0, 10) : '';
+      const dayPart = (dateStr && typeof _dayLabel === 'function') ? _dayLabel(dateStr) : '';
+      const timePart = !isNaN(plannedMs)
+        ? new Date(plannedMs).toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' })
+        : '';
+      const whenStr = [dayPart, timePart].filter(Boolean).join(' kl ');
+      // Pull the creator's name from the original body's <strong>...</strong> wrapper.
+      const m = entry.body && entry.body.match(/<strong>([^<]+)<\/strong>/);
+      const creatorRaw = (m && m[1]) || 'Noen';
+      const creator = creatorRaw.split('@')[0].split(' ')[0];
+      const isPast = !isNaN(plannedMs) && plannedMs < Date.now() - 30 * 60 * 1000;
+      const verb = isPast ? 'inviterte' : 'har invitert';
+      const venuePart = venueName ? `<strong>${venueName}</strong>` : 'et sted';
+      body = `<strong>${creator}</strong> ${verb} deg til ${venuePart}${whenStr ? ' ' + whenStr : ''}.`;
+      if (isPast) {
+        pastClass = ' bd-row--past';
+        metaSuffix = ' · Utgått';
+      }
+    }
     entries.push({
       t: entry.ts,
       html: `
-        <div class="bd-row bd-row--clickable${isNew}" onclick="_bellInvokeAction('${entry.id}')">
+        <div class="bd-row bd-row--clickable${isNew}${pastClass}" onclick="_bellInvokeAction('${entry.id}')">
           ${entry.lead}
           <div class="bd-row__body">
-            <div class="bd-row__msg">${entry.body}</div>
-            <div class="bd-row__meta">${_formatTimeAgo(new Date(entry.ts).toISOString())}</div>
+            <div class="bd-row__msg">${body}</div>
+            <div class="bd-row__meta">${_formatTimeAgo(new Date(entry.ts).toISOString())}${metaSuffix}</div>
           </div>
         </div>`,
     });
