@@ -8499,6 +8499,22 @@
       height: var(--app-h, 100svh);
       border-radius: 0;
     }
+    /* Half-open contract: panel hugs content but ONLY through the
+       directions button. Everything below that — the share/heart/bell
+       chip row, the info list (address/busyness/noise/hours), the
+       shelter section, the quiet footer — is hidden in the half-open
+       state and revealed only when the user drags up to .dp-fullscreen.
+       This adapts the cut-off to the device automatically: tall phones
+       (Pixel 7) and short phones (Galaxy S25) both stop at the
+       directions button because the content sequence is identical;
+       the panel just hugs content up to that point. */
+    #detail-panel:not(.dp-fullscreen) .dp-secondary-row,
+    #detail-panel:not(.dp-fullscreen) .info-chips,
+    #detail-panel:not(.dp-fullscreen) .info-list,
+    #detail-panel:not(.dp-fullscreen) .dp-footer-quiet,
+    #detail-panel:not(.dp-fullscreen) #dp-shelter {
+      display: none;
+    }
 
     #dp-handle { display: flex; }
     #dp-scroll {
@@ -9364,11 +9380,12 @@
   .dpinvite-cancel-row {
     display: flex;
     justify-content: center;
-    /* Balanced breathing room above + below the Avbryt button. The
-       parent .dpinvite-sheet already pads --app-pad-b at its bottom,
-       so don't double up here — just add a matching gap above. */
-    margin-top: 12px;
-    margin-bottom: 4px;
+    /* Generous breathing room — 20px gap above the Avbryt link and
+       28px below give the link "air" so it doesn't feel pinned to
+       the sheet edge. Parent .dpinvite-sheet still adds --app-pad-b
+       for the home-indicator clearance below this. */
+    margin-top: 20px;
+    margin-bottom: 28px;
   }
   .dpinvite-cancel-row .g-rnd {
     background: transparent;
@@ -9939,15 +9956,20 @@
   }
 
   /* Primary CTA wrapper — uses .p-pill; tall variant for the hero. */
-  /* Sticky CTA footer — Accept button + secondary row stick to the
+  /* Sticky CTA footer — Accept button + secondary row stay at the
      bottom of the scrolling sheet so they're always visible even
      when the venue + timeline + meta combined would otherwise push
      them off-screen on small phones. The parent .dprcv-bottom is
-     overflow-y: auto which is what position: sticky needs. */
+     overflow-y: auto + display: flex column, which is what position:
+     sticky needs to anchor at bottom: 0 of the scrollport.
+     Simplified from the previous negative-bottom trick (bottom: calc
+     (var(--app-pad-b) * -1)) which interacted badly with the new
+     standards-based --app-pad-b formula and could leave the footer
+     positioned just below the visible bottom on some hosts. */
   .dprcv-footer {
     position: sticky;
-    bottom: calc(var(--app-pad-b) * -1);  /* cancel parent's bottom pad so footer hugs visible bottom */
-    margin: 0 -18px calc(var(--app-pad-b) * -1);
+    bottom: 0;
+    margin: 0 -18px;                /* extend background to sheet edges */
     padding: 12px 18px var(--app-pad-b);
     background: var(--glass-panel-bg);
     backdrop-filter: blur(22px) saturate(180%) brightness(0.92);
