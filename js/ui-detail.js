@@ -1470,16 +1470,23 @@ function _openInviteSheet(venueId) {
   _dpinviteApplyGroupFilter('recent');
   _refreshInvitePrimaryCTA();
 
-  // Drag-to-dismiss on the handle (primary close gesture). Mirrors the
-  // plan-preview's _ppWireDragHandle: track Y-delta, translate the sheet
-  // during the drag, close on >100px or fast flick.
+  // Drag-to-dismiss — attached to the whole sheet (Vaul/Radix pattern), not
+  // just the handle. Bails on interactive children (avatars, buttons, links)
+  // and when the user is scrolling content inside the sheet. The handle
+  // keeps its tap-to-close behavior.
   const _handleEl = sheet.querySelector('#dpinvite-handle');
-  if (_handleEl) {
+  {
     let _dStartY = null, _dStartT = null, _dragging = false, _moved = false;
     const THRESHOLD_PX = 100;
     const FLICK_VELOCITY = 0.6;
     const MOVE_TRIGGER_PX = 4;
+    const INTERACTIVE_SEL = 'button, input, textarea, select, a, [role="button"], [data-no-drag], .dpinvite-avatar, .dpinvite-friend';
+    const isInteractive = (el) => !!(el && el.closest && el.closest(INTERACTIVE_SEL));
     const onStart = (e) => {
+      // Don't hijack taps on actionable elements (Del lenke, Avbryt, avatars).
+      if (isInteractive(e.target)) return;
+      // Don't fight native scroll if the sheet has scrolled content.
+      if (sheet.scrollTop > 0) return;
       const t = e.touches ? e.touches[0] : e;
       _dStartY = t.clientY;
       _dStartT = performance.now();
@@ -1490,10 +1497,12 @@ function _openInviteSheet(venueId) {
     const onMove = (e) => {
       if (!_dragging || _dStartY == null) return;
       const t = e.touches ? e.touches[0] : e;
-      const dy = Math.max(0, t.clientY - _dStartY);
+      const dy = t.clientY - _dStartY;
+      // Only translate downward; upward gestures let native scroll take over.
+      if (dy <= 0) return;
       if (dy > MOVE_TRIGGER_PX) {
         _moved = true;
-        _handleEl.dataset.dragging = '1';
+        if (_handleEl) _handleEl.dataset.dragging = '1';
       }
       sheet.style.transform = `translateY(${dy}px)`;
       if (e.cancelable) e.preventDefault();
@@ -1512,13 +1521,14 @@ function _openInviteSheet(venueId) {
         _closeInviteSheet();
         return;
       }
-      if (_moved) requestAnimationFrame(() => { delete _handleEl.dataset.dragging; });
+      if (_moved && _handleEl) requestAnimationFrame(() => { delete _handleEl.dataset.dragging; });
     };
-    _handleEl.addEventListener('touchstart', onStart, { passive: true });
-    _handleEl.addEventListener('touchmove', onMove, { passive: false });
-    _handleEl.addEventListener('touchend', onEnd, { passive: true });
-    _handleEl.addEventListener('touchcancel', onEnd, { passive: true });
-    _handleEl.addEventListener('mousedown', (e) => {
+    sheet.addEventListener('touchstart', onStart, { passive: true });
+    sheet.addEventListener('touchmove', onMove, { passive: false });
+    sheet.addEventListener('touchend', onEnd, { passive: true });
+    sheet.addEventListener('touchcancel', onEnd, { passive: true });
+    sheet.addEventListener('mousedown', (e) => {
+      if (isInteractive(e.target)) return;
       onStart(e);
       const moveHandler = (ev) => onMove(ev);
       const upHandler = (ev) => {
@@ -1529,12 +1539,14 @@ function _openInviteSheet(venueId) {
       window.addEventListener('mousemove', moveHandler);
       window.addEventListener('mouseup', upHandler);
     });
-    // Tap (not drag) on the handle also closes the sheet — explicit
-    // discoverability for users who don't intuit the swipe gesture.
-    _handleEl.addEventListener('click', () => {
-      if (_handleEl.dataset.dragging === '1') return;
-      _closeInviteSheet();
-    });
+    // Tap on the handle still closes the sheet — explicit discoverability
+    // for users who don't intuit the swipe gesture.
+    if (_handleEl) {
+      _handleEl.addEventListener('click', () => {
+        if (_handleEl.dataset.dragging === '1') return;
+        _closeInviteSheet();
+      });
+    }
   }
 
   // Track sheet height in --dpinvite-sheet-h so the FTS rule can sit just
