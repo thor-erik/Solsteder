@@ -8416,7 +8416,10 @@
       left: 0; right: 0;
       bottom: 0;
       width: 100%;
-      height: calc(var(--app-h, 100svh) * 0.62);    /* lowered from 69% to make room for floating pill */
+      /* Stops at the directions button on standard phones (S25/iPhone 15+).
+         Buttons below directions (share, favorite, alert) are reachable by
+         dragging the panel into expanded state. */
+      height: calc(var(--app-h, 100svh) * 0.55);
       max-height: none;
       border-radius: 20px 20px 0 0;
       border-left: none; border-right: none; border-bottom: none;
