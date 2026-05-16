@@ -1456,9 +1456,19 @@ function _renderBellDropdown() {
 
   invs.forEach(i => {
     const p = i.plan || {};
-    const creator = p.creator_name || p.creator_email || 'Noen';
-    const venue   = p.venue_name || 'et sted';
-    const time    = p.time ? new Date(p.time).toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' }) : '';
+    // Embedded creator via plans_creator_id_fkey (now → profiles, see
+    // migration 023). First-name + first-token strips trailing email
+    // domain or middle/last names for a compact display.
+    const creatorName = (p.creator && (p.creator.name || p.creator.email)) || '';
+    const creator = creatorName ? creatorName.split('@')[0].split(' ')[0] : 'Noen';
+    // venue_name was never a column on plans — look up from VENUES.
+    const venueObj = (typeof VENUES !== 'undefined' && Array.isArray(VENUES))
+      ? VENUES.find(v => String(v.id) === String(p.venue_id)) : null;
+    const venue = (venueObj && venueObj.name) || 'et sted';
+    // The plan time column is `planned_at`, not `time`.
+    const time = p.planned_at
+      ? new Date(p.planned_at).toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' })
+      : '';
     entries.push({
       t: new Date(i.created_at || NOW).getTime(),
       html: `

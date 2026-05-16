@@ -72,28 +72,6 @@ function openPlanPreview(opts) {
     opts.inviteId = opts.inviteId || matchingInvite.id;
     opts.inviterName = opts.inviterName || matchingInvite.plan?.creator?.name || '';
   }
-  // Temporary diagnostic — surfaces why the auto-detect did or didn't
-  // fire. Visible in DevTools console. Remove once the receiver-side
-  // flow is verified end-to-end on a real device.
-  if (typeof console !== 'undefined' && console.debug) {
-    const invSnap = (typeof _planInvites !== 'undefined' && Array.isArray(_planInvites))
-      ? _planInvites.map(i => ({
-          id: i?.id,
-          status: i?.status,
-          venue_id: i?.plan?.venue_id,
-          planned_at: i?.plan?.planned_at,
-        }))
-      : null;
-    console.debug('[openPlanPreview] mode-decision', {
-      optsMode: opts.mode,
-      optsVenueId: opts.venueId,
-      optsPlannedAt: opts.plannedAt,
-      planInvitesCount: invSnap ? invSnap.length : 'unavailable',
-      planInvites: invSnap,
-      matchFound: !!matchingInvite,
-      matchingInviteId: matchingInvite?.id || null,
-    });
-  }
 
   const savedTime = (typeof timeFromEl !== 'undefined' && timeFromEl) ? parseFloat(timeFromEl.value) : null;
   const savedDate = (typeof datePicker !== 'undefined' && datePicker) ? datePicker.value : null;
@@ -180,12 +158,29 @@ function openPlanPreview(opts) {
         plans.find(p => p.planned_at && Math.abs(new Date(p.planned_at).getTime() - target) < 30 * 60 * 1000)
         || plans[0]
       );
+      const myId = (typeof authCurrentUser === 'function' && authCurrentUser())
+        ? authCurrentUser().id : null;
+      // Prepend the inviter (plan creator). They're implicitly attending
+      // their own plan, and the receiver expects to see the host on the
+      // pin alongside any accepted invitees. plan.creator is now the
+      // embedded profile row (FK target fixed in migration 023);
+      // opts.inviterName / opts.inviterId is the fallback when the
+      // caller had the data before the panel opened.
+      const inviterUser = (plan && plan.creator) || null;
+      const inviterId   = (inviterUser && inviterUser.id) || opts.inviterId || null;
+      const inviterRaw  = (inviterUser && (inviterUser.name || inviterUser.email)) || opts.inviterName || '';
+      if (inviterId && (!myId || String(inviterId) !== String(myId))) {
+        _pinAttendees.push({
+          id:        inviterId,
+          name:      String(inviterRaw).split('@')[0].split(' ')[0],
+          offsetMin: 0,
+        });
+      }
       if (plan && Array.isArray(plan._invitees)) {
         const accepted = plan._invitees.filter(i => i.status === 'accepted');
-        const myId = (typeof authCurrentUser === 'function' && authCurrentUser())
-          ? authCurrentUser().id : null;
         for (const inv of accepted) {
           if (myId && inv.user && String(inv.user.id) === String(myId)) continue; // exclude self
+          if (inviterId && inv.user && String(inv.user.id) === String(inviterId)) continue; // already added
           const u = inv.user || {};
           let offsetMin = 0;
           if (inv.arrival_time && plan.planned_at) {
@@ -583,10 +578,13 @@ function _ppWireDragHandle(overlay) {
   });
   handle.style.cursor = 'grab';
   if (grabber) {
+    // Only set touch-action — never inflate the visible pill with padding.
+    // The expanded tap target lives on the parent .dprcv-handle wrapper
+    // (10px padding above + below the pill), which is the actual
+    // touchstart/mousedown target. Adding padding to the grabber itself
+    // turned the 38×4 pill into a ~62×28 box because box-sizing defaults
+    // to content-box on this element.
     grabber.style.touchAction = 'none';
-    // Expand the touch target around the visible pill (44pt min target)
-    grabber.style.padding = '12px';
-    grabber.style.margin = '-8px auto -10px';
   }
 }
 
