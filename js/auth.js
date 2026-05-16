@@ -2650,9 +2650,47 @@ async function loadPlans() {
 async function createPlan(venueId, plannedAt, message, friendIds) {
   if (!_currentUser) { toggleProfilePanel(); return; }
   if (typeof _aTrack === 'function') _aTrack('plan_created', { venue_id: venueId, invites: friendIds?.length ?? 0 });
+
+  // Look up the venue once — used for opening-hours validation, for the
+  // denormalized venue_name we now write to the row (so the push-notif
+  // trigger can include it in the body), and for the closed-time
+  // toast copy if validation rejects.
+  const venue = (typeof VENUES !== 'undefined' && Array.isArray(VENUES))
+    ? VENUES.find(v => String(v.id) === String(venueId)) : null;
+
+  // Opening-hours validation. Reject plans for times the venue is
+  // closed — both because the receiver can't actually go (so the
+  // invite is misleading), AND because the plan-preview timeline's
+  // closed-hours dim band reads as a confusing dark zone on the bar.
+  // Skipped when we can't resolve hours (no VENUES yet, or the venue
+  // has no openingHours data) — we'd rather allow the plan than block
+  // it on missing data.
+  if (venue && typeof getVenueHoursForDay === 'function' && plannedAt) {
+    try {
+      const planTime = new Date(plannedAt);
+      const dateStr  = `${planTime.getFullYear()}-${String(planTime.getMonth() + 1).padStart(2, '0')}-${String(planTime.getDate()).padStart(2, '0')}`;
+      const planHour = planTime.getHours() + planTime.getMinutes() / 60;
+      const dayHours = getVenueHoursForDay(venue, dateStr);
+      if (dayHours && Number.isFinite(dayHours.open) && Number.isFinite(dayHours.close)
+          && dayHours.close > dayHours.open
+          && (planHour < dayHours.open || planHour >= dayHours.close)) {
+        const fmt = (h) => {
+          const hh = Math.floor(h);
+          const mm = Math.round((h - hh) * 60);
+          return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+        };
+        const msg = `Stedet er stengt kl ${fmt(planHour)}. Åpent kl ${fmt(dayHours.open)}–${fmt(dayHours.close)}.`;
+        console.warn('[plans] createPlan rejected: closed-hour time', { venueId, plannedAt, planHour, dayHours });
+        if (typeof _showToast === 'function') _showToast(msg);
+        return { error: 'closed_hours', message: msg };
+      }
+    } catch (e) { /* ignore — don't block creation on a validation crash */ }
+  }
+
   const { data: plan, error } = await _supabase.from('plans').insert({
     creator_id: _currentUser.id,
     venue_id: String(venueId),
+    venue_name: (venue && venue.name) || null,
     planned_at: plannedAt,
     message: message || ''
   }).select().single();
