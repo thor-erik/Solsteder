@@ -511,8 +511,9 @@ function _planPreviewLocate() {
  *  (or fast flick). Sets handle.dataset.dragging during the drag so the
  *  separate click-to-close listener doesn't fire on the synthetic click. */
 function _ppWireDragHandle(overlay) {
-  const handle = overlay.querySelector('.dprcv-handle') || overlay.querySelector('.pp-handle');
-  const panel  = overlay.querySelector('.dprcv-bottom') || overlay.querySelector('.pp-bottom');
+  const handle  = overlay.querySelector('.dprcv-handle') || overlay.querySelector('.pp-handle');
+  const grabber = overlay.querySelector('.dprcv-grabber') || overlay.querySelector('.pp-grabber');
+  const panel   = overlay.querySelector('.dprcv-bottom') || overlay.querySelector('.pp-bottom');
   if (!handle || !panel) return;
   let startY = null;
   let startT = null;
@@ -581,10 +582,12 @@ function _ppWireDragHandle(overlay) {
     window.addEventListener('mouseup', upHandler);
   });
   handle.style.cursor = 'grab';
-  grabber.style.touchAction = 'none';
-  // Expand the touch target around the visible pill (44pt min target)
-  grabber.style.padding = '12px';
-  grabber.style.margin = '-8px auto -10px';
+  if (grabber) {
+    grabber.style.touchAction = 'none';
+    // Expand the touch target around the visible pill (44pt min target)
+    grabber.style.padding = '12px';
+    grabber.style.margin = '-8px auto -10px';
+  }
 }
 
 function closePlanPreview(opts = {}) {
