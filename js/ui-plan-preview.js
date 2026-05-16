@@ -72,6 +72,28 @@ function openPlanPreview(opts) {
     opts.inviteId = opts.inviteId || matchingInvite.id;
     opts.inviterName = opts.inviterName || matchingInvite.plan?.creator?.name || '';
   }
+  // Temporary diagnostic — surfaces why the auto-detect did or didn't
+  // fire. Visible in DevTools console. Remove once the receiver-side
+  // flow is verified end-to-end on a real device.
+  if (typeof console !== 'undefined' && console.debug) {
+    const invSnap = (typeof _planInvites !== 'undefined' && Array.isArray(_planInvites))
+      ? _planInvites.map(i => ({
+          id: i?.id,
+          status: i?.status,
+          venue_id: i?.plan?.venue_id,
+          planned_at: i?.plan?.planned_at,
+        }))
+      : null;
+    console.debug('[openPlanPreview] mode-decision', {
+      optsMode: opts.mode,
+      optsVenueId: opts.venueId,
+      optsPlannedAt: opts.plannedAt,
+      planInvitesCount: invSnap ? invSnap.length : 'unavailable',
+      planInvites: invSnap,
+      matchFound: !!matchingInvite,
+      matchingInviteId: matchingInvite?.id || null,
+    });
+  }
 
   const savedTime = (typeof timeFromEl !== 'undefined' && timeFromEl) ? parseFloat(timeFromEl.value) : null;
   const savedDate = (typeof datePicker !== 'undefined' && datePicker) ? datePicker.value : null;
@@ -1422,7 +1444,7 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   };
 
   const closeCta = el.querySelector('#pp-close-cta');
-  if (closeCta) closeCta.onclick = () => closePlanPreview();
+  if (closeCta) closeCta.onclick = () => closePlanPreview(isPast ? { skipDetailOpen: true } : {});
 
   const shareCta = el.querySelector('#pp-share-onward');
   if (shareCta) shareCta.onclick = () => {
