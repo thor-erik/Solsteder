@@ -1160,6 +1160,21 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
               } catch (e) { /* ignore */ }
               labelEl.innerHTML = `<span class="dprcv-timeline-scrubber-time">${formatHour(h)}</span>${glyph}${tempStr}`;
             }
+            // Suppress visibility during the autoplay timelapse — the
+            // marker would just drift across the bar following the time
+            // animation, adding noise to a state the user can't yet
+            // interact with. Position still updates so when autoplay
+            // settles, the scrubber lands at the right hour. Once
+            // _planPreviewState.autoplayDone flips to true (either
+            // because the animation completed OR because the user
+            // touched the FTS — see the cancel block lower in this
+            // file), normal is-active behavior resumes.
+            const isAutoplaying = !!(_planPreviewState && _planPreviewState.autoplayDone === false);
+            if (isAutoplaying) {
+              scrubberEl.classList.remove('is-active');
+              if (_scrubAutoHideTimer) { clearTimeout(_scrubAutoHideTimer); _scrubAutoHideTimer = null; }
+              return;
+            }
             scrubberEl.classList.add('is-active');
             if (_scrubAutoHideTimer) clearTimeout(_scrubAutoHideTimer);
             _scrubAutoHideTimer = setTimeout(() => {
