@@ -43,29 +43,34 @@ function openPlanPreview(opts) {
   const venue = VENUES.find(v => String(v.id) === String(opts.venueId));
   if (!venue) return;
 
-  // Auto-detect invite mode — most callers (notifications.js bellActions,
-  // auth.js deeplink nav) don't pass mode/inviteId, but the current user
-  // might still be the receiver of a pending plan_invite for this plan.
-  // Walk _planInvites (populated by auth.js loadPlans) and match on
-  // venue + planned_at. If found, force mode='invite' + inviteId so the
-  // sheet renders the Accept/Decline footer instead of the share-onwards
-  // (preview) footer. Skip when mode is already explicitly set.
-  if (!opts.mode && opts.plannedAt && typeof _planInvites !== 'undefined' && Array.isArray(_planInvites)) {
-    const match = _planInvites.find(inv => {
-      if (!inv || !inv.plan) return false;
-      if (inv.status === 'declined') return false;
-      if (String(inv.plan.venue_id) !== String(opts.venueId)) return false;
-      // Tolerate sub-second differences between the ISO string in the
-      // notification payload and the one Supabase stored.
-      const a = new Date(inv.plan.planned_at).getTime();
-      const b = new Date(opts.plannedAt).getTime();
-      return !isNaN(a) && !isNaN(b) && Math.abs(a - b) < 60 * 1000;
-    });
-    if (match) {
-      opts.mode = 'invite';
-      opts.inviteId = opts.inviteId || match.id;
-      opts.inviterName = opts.inviterName || match.plan?.creator?.name || '';
-    }
+  // Auto-detect invite mode — if the current user is the receiver of a
+  // pending plan_invite for this plan, force mode='invite' so the sheet
+  // renders Accept/Decline regardless of how the caller invoked us.
+  // This overrides mode='preview' too (a caller passing 'preview' often
+  // doesn't know the user is also an invitee — notifications.js bell
+  // actions, deeplink handlers in auth.js, etc.). The only callers we
+  // respect-without-override are those that explicitly set 'invite' or
+  // 'invite-anon' (they already have the inviteId + inviter data).
+  const matchingInvite = (
+    opts.plannedAt &&
+    typeof _planInvites !== 'undefined' &&
+    Array.isArray(_planInvites)
+  )
+    ? _planInvites.find(inv => {
+        if (!inv || !inv.plan) return false;
+        if (inv.status === 'declined') return false;
+        if (String(inv.plan.venue_id) !== String(opts.venueId)) return false;
+        // Tolerate sub-second differences between the ISO string in the
+        // notification payload and the one Supabase stored.
+        const a = new Date(inv.plan.planned_at).getTime();
+        const b = new Date(opts.plannedAt).getTime();
+        return !isNaN(a) && !isNaN(b) && Math.abs(a - b) < 60 * 1000;
+      })
+    : null;
+  if (matchingInvite && opts.mode !== 'invite' && opts.mode !== 'invite-anon') {
+    opts.mode = 'invite';
+    opts.inviteId = opts.inviteId || matchingInvite.id;
+    opts.inviterName = opts.inviterName || matchingInvite.plan?.creator?.name || '';
   }
 
   const savedTime = (typeof timeFromEl !== 'undefined' && timeFromEl) ? parseFloat(timeFromEl.value) : null;
