@@ -43,6 +43,31 @@ function openPlanPreview(opts) {
   const venue = VENUES.find(v => String(v.id) === String(opts.venueId));
   if (!venue) return;
 
+  // Auto-detect invite mode — most callers (notifications.js bellActions,
+  // auth.js deeplink nav) don't pass mode/inviteId, but the current user
+  // might still be the receiver of a pending plan_invite for this plan.
+  // Walk _planInvites (populated by auth.js loadPlans) and match on
+  // venue + planned_at. If found, force mode='invite' + inviteId so the
+  // sheet renders the Accept/Decline footer instead of the share-onwards
+  // (preview) footer. Skip when mode is already explicitly set.
+  if (!opts.mode && opts.plannedAt && typeof _planInvites !== 'undefined' && Array.isArray(_planInvites)) {
+    const match = _planInvites.find(inv => {
+      if (!inv || !inv.plan) return false;
+      if (inv.status === 'declined') return false;
+      if (String(inv.plan.venue_id) !== String(opts.venueId)) return false;
+      // Tolerate sub-second differences between the ISO string in the
+      // notification payload and the one Supabase stored.
+      const a = new Date(inv.plan.planned_at).getTime();
+      const b = new Date(opts.plannedAt).getTime();
+      return !isNaN(a) && !isNaN(b) && Math.abs(a - b) < 60 * 1000;
+    });
+    if (match) {
+      opts.mode = 'invite';
+      opts.inviteId = opts.inviteId || match.id;
+      opts.inviterName = opts.inviterName || match.plan?.creator?.name || '';
+    }
+  }
+
   const savedTime = (typeof timeFromEl !== 'undefined' && timeFromEl) ? parseFloat(timeFromEl.value) : null;
   const savedDate = (typeof datePicker !== 'undefined' && datePicker) ? datePicker.value : null;
 
@@ -670,9 +695,20 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     opts.mode = 'preview';
   }
 
-  const isInvite     = (opts.mode === 'invite' || opts.mode === 'invite-anon');
-  const isAnon       = (opts.mode === 'invite-anon');
-  const isPreview    = (opts.mode === 'preview');
+  // Past-event branch — when the plan's scheduled time is more than 30
+  // minutes in the past, the panel is purely retrospective: Accept /
+  // Decline / Share onwards aren't meaningful actions. Override mode to
+  // suppress the active-CTA branches; the eyebrow + footer below render
+  // a "Tidligere · {date}" label and a single Lukk button. 30-minute
+  // grace window keeps the active CTAs visible for the brief "just
+  // arrived" moment when users typically still want to RSVP.
+  const isPast = !!opts.plannedAt && (
+    new Date(opts.plannedAt).getTime() < Date.now() - 30 * 60 * 1000
+  );
+
+  const isInvite     = !isPast && (opts.mode === 'invite' || opts.mode === 'invite-anon');
+  const isAnon       = !isPast && (opts.mode === 'invite-anon');
+  const isPreview    = !isPast && (opts.mode === 'preview');
 
   // ── Venue meta line: area · category · "{dist} m" · walk-icon "{walkMin} min"
   const venueArea = venue.area || '';
@@ -836,6 +872,16 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
           <button class="dprcv-cta-link" id="pp-close-cta" type="button"><span>${t('close')}</span></button>
         </div>
       </div>`;
+  } else if (isPast) {
+    // Past-event footer — single Lukk link, no primary CTA. Accept/Share
+    // would be meaningless on a retrospective view; the eyebrow already
+    // labels the context as past.
+    ctaHtml = `
+      <div class="dprcv-footer">
+        <div class="dprcv-cta-row">
+          <button class="dprcv-cta-link" id="pp-close-cta" type="button"><span>${t('close')}</span></button>
+        </div>
+      </div>`;
   }
 
   // ── From-friend pill (top floating). Only render when we actually have an
@@ -863,7 +909,15 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   // suppresses the eyebrow entirely.
   const hasTopPill = !!(isInvite && opts.inviterName);
   let eyebrow = '';
-  if (isInvite && !hasTopPill) {
+  if (isPast) {
+    // Past-event eyebrow — "Tidligere · i går" / "Tidligere · søndag" /
+    // "Tidligere · 12. mai" depending on how far back. _dayLabel handles
+    // the relative phrasing across all 4 locales.
+    const pastDayLabel = (typeof _dayLabel === 'function' && dateStr)
+      ? _capFirst(_dayLabel(dateStr))
+      : ((typeof _fmtInviteDate === 'function' && dateStr) ? _fmtInviteDate(dateStr) : '');
+    eyebrow = t('pp_past_eyebrow', { date: pastDayLabel || '' });
+  } else if (isInvite && !hasTopPill) {
     eyebrow = opts.inviterName
       ? t('pp_invited_line_named', { name: `<strong>${inviterName}</strong>` })
       : t('pp_invited_line_anon');

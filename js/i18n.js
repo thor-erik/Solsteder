@@ -451,6 +451,8 @@ const _STRINGS = {
     notif_explore_day_switch_body: 'Now showing {day}',
     day_today:                   'today',
     day_tomorrow:                'tomorrow',
+    day_yesterday:               'yesterday',
+    pp_past_eyebrow:             'Past · {date}',
     // Notifications – P1 Social
     notif_friend_at_body:        '{name} is at {venue} right now',
     notif_friends_at_body:       '{count} friends at {venue} right now',
@@ -957,6 +959,8 @@ const _STRINGS = {
     notif_explore_day_switch_body: 'Viser {day} nå',
     day_today:                   'i dag',
     day_tomorrow:                'i morgen',
+    day_yesterday:               'i går',
+    pp_past_eyebrow:             'Tidligere · {date}',
     // Notifications – P1 Social
     notif_friend_at_body:        '{name} er på {venue} nå',
     notif_friends_at_body:       '{count} venner er på {venue} nå',
@@ -1407,6 +1411,8 @@ const _STRINGS = {
     notif_explore_day_switch_body: 'Visar {day} nu',
     day_today:                   'idag',
     day_tomorrow:                'imorgon',
+    day_yesterday:               'igår',
+    pp_past_eyebrow:             'Tidigare · {date}',
     // Notifications – P1 Social
     notif_friend_at_body:        '{name} är på {venue} just nu',
     notif_friends_at_body:       '{count} vänner är på {venue} just nu',
@@ -1826,6 +1832,8 @@ const _STRINGS = {
     notif_explore_day_switch_body: 'Viser {day} nu',
     day_today:                   'i dag',
     day_tomorrow:                'i morgen',
+    day_yesterday:               'i går',
+    pp_past_eyebrow:             'Tidligere · {date}',
     // Notifications – P1 Social
     notif_friend_at_body:        '{name} er på {venue} lige nu',
     notif_friends_at_body:       '{count} venner er på {venue} lige nu',

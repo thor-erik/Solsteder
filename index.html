@@ -103,7 +103,7 @@
     [60, 180, 500, 1200].forEach(function (d) { setTimeout(set, d); });
   })();
 </script>
-<script defer src="js/i18n.js?v=20260514e"></script>
+<script defer src="js/i18n.js?v=20260516a"></script>
 <script defer src="js/config.js?v=20260425b"></script>
 <script defer src="js/tokens.js?v=20260509e"></script>
 <script defer src="js/auth.js?v=20260516d"></script>
@@ -116,7 +116,7 @@
 <script defer src="js/weather.js?v=20260516b"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260516d"></script>
+<script defer src="js/app.js?v=20260516e"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
@@ -129,7 +129,7 @@
 <script defer src="js/ui-shelter.js?v=20260416a"></script>
 <script defer src="js/render-wind.js?v=20260416b"></script>
 <script defer src="js/ui-detail.js?v=20260516e"></script>
-<script defer src="js/ui-plan-preview.js?v=20260516b"></script>
+<script defer src="js/ui-plan-preview.js?v=20260516c"></script>
 <script defer src="js/osm.js?v=20260513a"></script>
 <script defer src="js/notifications.js?v=20260515e"></script>
 <script defer src="js/push.js?v=20260514b"></script>
@@ -9947,18 +9947,15 @@
      them off-screen on small phones. The parent .dprcv-bottom is
      overflow-y: auto + display: flex column, which is what position:
      sticky needs to anchor at bottom: 0 of the scrollport.
-     Simplified from the previous negative-bottom trick (bottom: calc
-     (var(--app-pad-b) * -1)) which interacted badly with the new
-     standards-based --app-pad-b formula and could leave the footer
-     positioned just below the visible bottom on some hosts. */
+     Transparent background — the previous version painted a darker
+     glass + brightness(0.92) on top of the parent panel, which read
+     as a "strange black footer band" against the sheet's main color.
+     The CTAs sit directly on the sheet's own glass-panel surface
+     now, matching the old screenshot. */
   .dprcv-footer {
     position: sticky;
     bottom: 0;
-    margin: 0 -18px;                /* extend background to sheet edges */
-    padding: 12px 18px var(--app-pad-b);
-    background: var(--glass-panel-bg);
-    backdrop-filter: blur(22px) saturate(180%) brightness(0.92);
-    -webkit-backdrop-filter: blur(22px) saturate(180%) brightness(0.92);
+    padding: 12px 0 0;
     z-index: 2;
     display: flex;
     flex-direction: column;

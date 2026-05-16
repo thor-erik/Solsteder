@@ -1940,7 +1940,14 @@ function _dayLabel(dateStr) {
   const d = new Date(dateStr + 'T12:00:00');
   const todayMs = new Date(today + 'T12:00:00').getTime();
   const daysOut = Math.round((d.getTime() - todayMs) / (24 * 60 * 60 * 1000));
+  if (daysOut === -1) return t('day_yesterday');
   if (daysOut > 0 && daysOut <= 7) {
+    return d.toLocaleDateString(locale, { weekday: 'long' });
+  }
+  // Past week (e.g. Saturday) — same weekday rendering as the upcoming
+  // week. Callers that need to distinguish past vs upcoming (e.g. the
+  // plan-preview past-event eyebrow) wrap this with their own context.
+  if (daysOut < -1 && daysOut >= -6) {
     return d.toLocaleDateString(locale, { weekday: 'long' });
   }
   return d.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
