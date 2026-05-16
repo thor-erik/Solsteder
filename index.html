@@ -2,7 +2,7 @@
 <html lang="nb">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
 <title>Shades - Din plass i sola</title>
 <meta name="description" content="Hundrevis av uteserveringer. Shades finner den med mest sol. Og vennene dine.">
 <link rel="canonical" href="https://findshades.app/">
@@ -277,44 +277,50 @@
     /* ────────────────────────────────────────────────────────────────────
        VIEWPORT + SAFE-AREA TOKENS — read this before adding any panel
        ────────────────────────────────────────────────────────────────────
-       The app runs in five different host modes (iOS Safari, iOS Safari
-       PWA, iOS Chrome WebView PWA, Android Chrome PWA, desktop) and each
-       reports viewport metrics differently. Use these tokens instead of
-       raw vh/svh/dvh/innerHeight or raw env(safe-area-inset-bottom) so
-       that bottom-anchored panels can't slip past the visible bottom
-       on any host.
+       Standards-based (2026) cross-host adaptation. The runtime no longer
+       needs custom JS to figure out the visible viewport — modern CSS
+       primitives handle every host correctly. The contract:
 
-       --app-h          — visualViewport.height in px (set by JS in
-                          <head>; svh fallback). Use for panel heights
-                          and max-heights.
-       --app-bottom-inset
-                        — innerHeight - visualViewport.height. Non-zero
-                          when the layout viewport exceeds the visual
-                          viewport (some iOS modes). 0 elsewhere.
-       --app-pad-b      — MAXIMUM of three signals + a sane floor:
-                            * env(safe-area-inset-bottom) — Safari PWA
-                              reports the home-indicator inset here
-                            * --app-bottom-inset — iOS Chrome WebView
-                              PWA tends to report it here instead
-                            * 28px — guaranteed floor so content has
-                              breathing room even if both report 0
-                          USE for padding-bottom on any panel whose
-                          content (CTA, last card, sign-out row) must
-                          stay above the home-indicator gesture zone.
+         1. <meta viewport> declares `viewport-fit=cover` (unlocks
+            env(safe-area-inset-*) on iOS) and `interactive-widget=
+            resizes-content` (Android keyboard now shrinks the layout
+            viewport — same as iOS — so svh/dvh/% all reflect it).
+         2. Bottom-anchored sheets use `bottom: 0` + `max-height: Xsvh`
+            (small viewport, never clipped by chrome) + `padding-bottom:
+            var(--app-pad-b)`.
+         3. `--app-pad-b` collapses while a form field is focused — see
+            the :has(:focus-visible) rule below — so the sheet hugs the
+            keyboard instead of leaving a stale safe-area gap above it.
 
-       RULES for new bottom-anchored panels:
-         1. bottom: 0           — panel BG flush with screen edge
-         2. max-height: var(--app-h)
-                                — panel never taller than visible area
-         3. overflow-y: auto    — content scrollable if it overflows
-         4. padding-bottom: var(--app-pad-b)
-                                — last content row stays visible
+       --app-pad-b — `max(env(safe-area-inset-bottom), 12px)`.
+                     iOS PWA: env() ≈ 34px (home indicator). Android
+                     Chrome 135+ PWA: env() ≈ 24–48px (gesture chin —
+                     edge-to-edge migration now reports it). Older
+                     Android / desktop: env() = 0, falls back to 12px.
+                     This single signal is correct on every host — no
+                     more JS-tracked --app-bottom-inset hack required.
+
+       --app-h      — visualViewport.height in px (JS-tracked, 100svh
+                     fallback). Retained for legacy panel rules and the
+                     few JS measurements that need exact pixel math.
+                     New code should prefer `svh` directly. See JS
+                     viewport tracker block in <head>.
+
+       Drag-to-dismiss math (NOT layout) still uses window.visualViewport
+       in JS — that API is the only way to read pinch-zoom + keyboard
+       offsets for gesture handlers. Layout no longer needs it.
     */
-    --app-pad-b: max(
-      env(safe-area-inset-bottom, 0px),
-      var(--app-bottom-inset, 0px),
-      28px
-    );
+    --app-pad-b: max(env(safe-area-inset-bottom, 0px), 12px);
+  }
+  /* Keyboard-open override — when a form field is focused, env(safe-
+     area-inset-bottom) doesn't change but the keyboard now overlaps the
+     home-indicator zone. The 34px (iOS) or ~30px (Android) inset becomes
+     dead space ABOVE the keyboard, leaving the sheet floating mid-screen.
+     Collapse to 8px so the sheet hugs the keyboard. (Webventures 2025
+     pattern, https://webventures.rejh.nl/blog/2025/safe-area-inset-
+     bottom-does-not-update/) */
+  :root:has(:is(input, textarea, [contenteditable]):focus-visible) {
+    --app-pad-b: 8px;
   }
 
   /* ── Accessibility globals ────────────────────────────────────────────────── */
@@ -6979,14 +6985,12 @@
       right: 0;
       width: auto;
       top: auto;
-      /* Sheet contract — anchor to visual viewport bottom so the calendar
-         doesn't ride behind iOS Safari's tab bar. */
-      bottom: var(--app-bottom-inset, 0px);
+      bottom: 0;
       /* The calendar is one of the few sheets where a deliberate fixed
          beat (one month + peek of the next) matters more than content-fit.
-         Keep the 56svh cap; the visual-viewport anchor above is the part
-         that fixes the toolbar-overlap bug. */
-      max-height: calc(var(--app-h, 100svh) * 0.56);
+         Keep the 56svh cap — svh = stable visible viewport, never clipped
+         by browser chrome. */
+      max-height: 56svh;
       padding: 0 16px var(--app-pad-b);
       box-sizing: border-box;
       background: var(--glass-panel-bg);
@@ -8417,23 +8421,21 @@
 
   @media (max-width: 639px) {
     #detail-panel {
-      position: fixed;  /* fixed avoids parent height issues */
+      position: fixed;
       top: auto;
       left: 0; right: 0;
-      /* Sheet contract — anchor to visual viewport bottom, not layout
-         viewport. --app-bottom-inset is non-zero when iOS Safari's bottom
-         toolbar overlays the layout viewport; lifting by that delta keeps
-         the panel's bottom edge above the toolbar instead of behind it. */
-      bottom: var(--app-bottom-inset, 0px);
+      bottom: 0;
       width: 100%;
-      /* Sheet contract — height hugs content, capped at viewport minus the
-         top inset (status bar / Dynamic Island) and a small breathing gap.
-         min-height keeps the half-open panel readable as a "sheet" even
-         when content is short (single card). Drag-to-expand still elevates
-         to .dp-fullscreen which overrides height to var(--app-h). */
+      /* Sheet contract — height hugs content, capped at the small
+         viewport (svh = stable smallest visible area; never clipped by
+         iOS Safari's address bar regardless of scroll state, and now
+         shrinks correctly when Android's soft keyboard opens thanks to
+         interactive-widget=resizes-content in the viewport meta).
+         min-height keeps a half-open sheet readable on short content.
+         Drag-to-expand still elevates to .dp-fullscreen → 100svh. */
       height: auto;
       min-height: 280px;
-      max-height: calc(var(--app-h, 100svh) - env(safe-area-inset-top, 0px) - 12px);
+      max-height: 88svh;
       border-radius: 20px 20px 0 0;
       border-left: none; border-right: none; border-bottom: none;
       transform: translateY(100%) translateZ(0);
@@ -8442,6 +8444,11 @@
       transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), height 0.3s ease, border-radius 0.3s ease;
       will-change: transform, height;
       backface-visibility: hidden;
+      /* Standard isolation contract — drag-to-dismiss + scroll trap
+         (Vaul / Radix pattern). pan-y allows vertical gestures only;
+         contain prevents scroll bubbling to the map underneath. */
+      overscroll-behavior: contain;
+      touch-action: pan-y;
     }
     #detail-panel.open { transform: translateY(0); }
     /* When the calendar is open, slide the detail panel back down
@@ -9034,15 +9041,13 @@
 
   .dpinvite-sheet {
     position: absolute;
-    /* Sheet contract — lift above iOS Safari's bottom toolbar so the
-       Avbryt / Del lenke row never slides behind chrome. */
-    bottom: var(--app-bottom-inset, 0px);
+    /* Sheet contract — bottom: 0 + svh max-height is correct on every
+       host now (iOS Safari/PWA, Android Chrome/PWA, desktop) thanks to
+       the viewport meta's interactive-widget=resizes-content. */
+    bottom: 0;
     left: 0;
     right: 0;
-    /* Sheet contract — cap at visible viewport minus top inset + gap so
-       a long avatar list scrolls inside the sheet instead of pushing the
-       handle under the status bar / Dynamic Island. */
-    max-height: calc(var(--app-h, 100svh) - env(safe-area-inset-top, 0px) - 12px);
+    max-height: 92svh;
     height: auto;
     border-radius: 20px 20px 0 0;
     background: var(--glass-panel-bg);
@@ -9057,6 +9062,8 @@
     padding-bottom: var(--app-pad-b);
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
   }
   .dpinvite-sheet.open { transform: translateY(0); }
 
@@ -9385,10 +9392,7 @@
   @media (min-width: 640px) {
     .dpinvite-sheet {
       max-width: 460px;
-      /* Desktop also follows the Sheet contract — cap inside visible
-         viewport minus top inset so a tall sheet doesn't push under
-         the system chrome on macOS Safari with the toolbar visible. */
-      max-height: calc(var(--app-h, 100svh) - env(safe-area-inset-top, 0px) - 12px);
+      max-height: 92svh;
       height: auto;
       left: 50%;
       transform: translateX(-50%) translateY(100%);
@@ -9483,13 +9487,7 @@
   .plan-preview,
   .dprcv-overlay {
     position: fixed;
-    /* Sheet contract — size the overlay to the visible viewport (not the
-       layout viewport) so its justify-content: flex-end aligns the bottom
-       sheet to the visual bottom, not behind iOS Safari's tab bar. The
-       --app-bottom-inset offset handles iOS Chrome WebView PWA where the
-       inset shows up there instead of in env(safe-area-inset-bottom). */
-    top: 0; left: 0; right: 0;
-    height: var(--app-h, 100svh);
+    inset: 0;
     z-index: 1200;
     /* none while opening/closing so the slide animation doesn't capture
        stray taps; auto once .open so the transparent area above the
@@ -9514,17 +9512,18 @@
     pointer-events: auto;
     margin: 0;
     /* See viewport tokens block at top of CSS. --app-pad-b is the
-       guaranteed-visible bottom-content padding across all hosts. */
+       standards-based bottom-content padding — env(safe-area-inset-
+       bottom) with a 12px floor, collapses to 8px when a field is
+       focused (keyboard up). */
     padding: 0 18px var(--app-pad-b);
-    /* Sheet contract — cap at visible viewport minus top inset + gap.
-       This was 92svh; the new bound is functionally similar on a phone
-       with the Dynamic Island (status inset ~ 47px) but always leaves
-       exactly the safe sliver above. Content scrolls internally; the
-       Accept button stays reachable because the parent .dprcv-overlay
-       is now sized to var(--app-h) and the sheet padding-bottom uses
-       --app-pad-b for the home-indicator clearance. */
-    max-height: calc(var(--app-h, 100svh) - env(safe-area-inset-top, 0px) - 12px);
+    /* Sheet contract — svh is the stable smallest visible viewport.
+       Never clipped by Safari's address bar. Shrinks correctly when
+       the Android keyboard opens (interactive-widget=resizes-content
+       in the viewport meta makes Android match iOS behavior). */
+    max-height: 92svh;
     overflow-y: auto;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
     -webkit-overflow-scrolling: touch;
     border-radius: 20px 20px 0 0;
     background: var(--glass-panel-bg);
@@ -10197,7 +10196,15 @@
     width: 100%;
     max-width: 460px;
     margin: 0 auto;
-    padding: 0 18px calc(20px + env(safe-area-inset-bottom, 0px));
+    /* Sheet contract — standards-based safe-area padding (var(--app-pad-b)
+       = max(env(safe-area-inset-bottom), 12px), collapses to 8px when a
+       form field is focused). svh cap keeps a sliver of map visible above
+       the panel and never lets content push past the visible viewport. */
+    padding: 0 18px var(--app-pad-b);
+    max-height: 88svh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
     border-radius: 20px 20px 0 0;
     background: var(--glass-panel-bg);
     backdrop-filter: var(--glass-blur-panel);

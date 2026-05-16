@@ -102,23 +102,27 @@ Every UI surface belongs to exactly **one** tier. The tier determines opacity, e
 
 #### Sheet contract — bottom-anchored Tier-1 panels
 
-Any panel that slides up from the bottom (`#detail-panel`, `.dpinvite-sheet`, `.dprcv-bottom`, `#ptb-cal-float`, future post-accept / share / confirmation sheets) MUST follow this contract. The contract exists because every other approach has shipped a bug on at least one host (iOS Safari toolbar, Dynamic Island, Android Chrome PWA, iOS Chrome WebView).
+Any panel that slides up from the bottom (`#detail-panel`, `.dpinvite-sheet`, `.dprcv-bottom`, `#ptb-cal-float`, `.dpacc-panel`, future share / confirmation sheets) MUST follow this contract. It is standards-based (2026): no custom JS measurement, no per-host hacks. The contract works on iOS Safari, iOS PWA, Android Chrome, Android PWA, Dynamic Island devices, devices with home indicators, soft keyboards opening, foldables, and desktop — because each line below maps to a platform primitive that already handles those cases.
 
 | Rule | Why |
 |---|---|
-| `bottom: var(--app-bottom-inset, 0px)` | Anchors to the **visual** viewport bottom, not the layout viewport. Lifts the sheet above iOS Safari's address-bar toolbar so CTAs never hide behind chrome. |
-| `height: auto` + `min-height: 280px` (where applicable) | Content drives height. A half-open sheet on short content (~one card) still reads as a sheet, not a chip. The calendar sheet is an explicit exception — see the rule below. |
-| `max-height: calc(var(--app-h) - env(safe-area-inset-top, 0px) - 12px)` | Caps at the **visible** viewport minus the top inset (status bar / Dynamic Island) and a 12 px breathing gap. Replaces the older `* 0.92` / `* 0.58` percentage idioms. |
-| `padding-bottom: var(--app-pad-b)` | Last content row stays above the home-indicator gesture zone. |
-| `overflow-y: auto` | Long content scrolls inside the sheet — never below the safe area. |
+| `<meta viewport ... viewport-fit=cover, interactive-widget=resizes-content>` | `viewport-fit=cover` unlocks `env(safe-area-inset-*)` on iOS. `interactive-widget=resizes-content` makes the Android soft keyboard shrink the layout viewport the same way iOS already does — so `svh` / `dvh` / `bottom: 0` all reflect the keyboard correctly. Set once in `index.html`. |
+| `position: fixed; bottom: 0` | No `var(--app-bottom-inset)` lift needed. With the viewport meta above, every host puts `bottom: 0` at the correct visible bottom. |
+| `max-height: 88svh` (sheets) or `92svh` (overlays) | `svh` = the **small** viewport unit = stable smallest visible area. Never clipped by Safari's address bar (regardless of scroll state), never recalculates during scroll (no jank), automatically respects the keyboard. **Do not use `vh`** — it equals `lvh` on mobile and clips. **Do not use `dvh` for layout** — its updates are throttled and animating from/to it causes jank (per spec). |
+| `height: auto` + `min-height: 280px` (where applicable) | Content drives height. A half-open sheet on short content still reads as a sheet, not a chip. The calendar sheet is an explicit exception — see below. |
+| `padding-bottom: var(--app-pad-b)` | `var(--app-pad-b)` = `max(env(safe-area-inset-bottom), 12px)`. Single signal correct on every host: iOS PWA ≈ 34 px home indicator, Android Chrome 135+ PWA ≈ 24–48 px gesture chin, desktop/older Android = 12 px floor. The `:has(:focus-visible)` rule in `:root` collapses this to 8 px while a form field is focused, so the sheet hugs the keyboard. |
+| `overflow-y: auto` | Long content scrolls inside the sheet. |
+| `overscroll-behavior: contain` + `touch-action: pan-y` | Standard isolation contract used by Vaul / Radix. Drag bubbles don't leak to the map underneath; vertical gestures only. |
 
-**Anti-pattern (Sheet contract violation):** sizing a sheet as a fixed fraction of the viewport (`calc(var(--app-h) * 0.58)`, `* 0.92`). Percentages ignore content — short content wastes space, long content gets clipped. Use the contract above.
+**Anti-pattern (Sheet contract violation):** sizing a sheet as a fraction of `var(--app-h)` (`calc(var(--app-h) * 0.58)`, `* 0.92`). The `--app-h` JS hack predates `svh` and is no longer needed for sheets. Use `Xsvh` directly.
 
-**Calendar exception (`#ptb-cal-float`):** the calendar deliberately shows "one month + peek of the next" as a visual beat. It keeps a `max-height: calc(var(--app-h) * 0.56)` instead of content-fit, but still uses `bottom: var(--app-bottom-inset)` and `padding-bottom: var(--app-pad-b)`. The visual-viewport anchor is non-negotiable; the content-fit rule is.
+**Anti-pattern (legacy lifts):** `bottom: var(--app-bottom-inset, 0px)` and `bottom: env(safe-area-inset-bottom)`. Both were attempts to solve toolbar overlap; with the new viewport meta they are no-ops at best and double-apply the inset at worst.
 
-**Drag-to-expand (`#detail-panel.dp-fullscreen`):** when the user drags the panel up, `.dp-fullscreen` overrides `height` to `var(--app-h)` and `border-radius` to `0`. The min/max rules above only describe the half-open state.
+**Calendar exception (`#ptb-cal-float`):** the calendar deliberately shows "one month + peek of the next." It keeps `max-height: 56svh` instead of content-fit. All other contract rules apply.
 
-**JS coupling:** components positioned relative to a Sheet-contract panel (the FTS slider, the post-accept handoff) must read the panel's live `offsetHeight` rather than assuming the old percentage. `js/app.js → _syncFtsPosition()` writes `--dp-open-h` from the live height; consumers reference `var(--dp-open-h, 58svh)` with the percentage as a graceful fallback. New consumers should follow the same pattern.
+**Drag-to-expand (`#detail-panel.dp-fullscreen`):** the fullscreen state overrides `height` to `100svh` and `border-radius: 0`. The min/max rules above only describe the half-open state.
+
+**JS coupling:** components positioned relative to a sheet (the FTS slider) must read the panel's live `offsetHeight` rather than assuming a percentage. `js/app.js → _syncFtsPosition()` writes `--dp-open-h` from the live height; consumers reference `var(--dp-open-h, 58svh)` with the percentage as a fallback. The `visualViewport` API is still used in JS **for drag-to-dismiss gesture math** (it's the only way to read pinch-zoom and keyboard offsets), but never for layout.
 
 ### Tier 2 · Lens object
 **Role:** solid content tile. An object resting in the lens.
@@ -204,8 +208,9 @@ All motion respects `prefers-reduced-motion` and suspends during scroll (200ms d
 - ✗ Raw hex colors in CSS (run `node scripts/validate-tokens.mjs` to catch).
 - ✗ Pure white `#FFFFFF` for text or fills — use `var(--text)` for warmth and consistency.
 - ✗ Inventing a fourth glass surface variant — only `panel`, `card`, `action` exist.
-- ✗ Sizing a bottom sheet as a fraction of the viewport (`calc(var(--app-h) * 0.X)`) — violates the Sheet contract. Content drives, viewport caps. See "Tier 1 · Sheet contract".
-- ✗ Anchoring a bottom sheet with `bottom: 0` on a `position: fixed` element — anchors to layout viewport, slides behind iOS Safari's toolbar. Use `bottom: var(--app-bottom-inset, 0px)`.
+- ✗ Sizing a bottom sheet as a fraction of `var(--app-h)` (`calc(var(--app-h) * 0.X)`) — predates `svh` and ignores content. Use `Xsvh` for caps and `height: auto` for the half-open state. See "Tier 1 · Sheet contract".
+- ✗ `bottom: var(--app-bottom-inset)` / `bottom: env(safe-area-inset-bottom)` on a bottom sheet — both are legacy lifts. With `interactive-widget=resizes-content` in the viewport meta, `bottom: 0` is correct on every host.
+- ✗ Using `100vh` or `100dvh` for sheet `max-height`. `vh` includes browser chrome → clips on iOS. `dvh` reflows during scroll and animations → jank. Always use `svh` for sheet caps.
 
 ---
 
