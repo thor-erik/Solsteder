@@ -116,7 +116,7 @@
 <script defer src="js/weather.js?v=20260516b"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260516c"></script>
+<script defer src="js/app.js?v=20260516d"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
@@ -6979,9 +6979,15 @@
       right: 0;
       width: auto;
       top: auto;
-      bottom: 0;
-      max-height: calc(var(--app-h, 100svh) * 0.56);  /* one month + peek of the next */
-      padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 20px);
+      /* Sheet contract — anchor to visual viewport bottom so the calendar
+         doesn't ride behind iOS Safari's tab bar. */
+      bottom: var(--app-bottom-inset, 0px);
+      /* The calendar is one of the few sheets where a deliberate fixed
+         beat (one month + peek of the next) matters more than content-fit.
+         Keep the 56svh cap; the visual-viewport anchor above is the part
+         that fixes the toolbar-overlap bug. */
+      max-height: calc(var(--app-h, 100svh) * 0.56);
+      padding: 0 16px var(--app-pad-b);
       box-sizing: border-box;
       background: var(--glass-panel-bg);
       backdrop-filter: var(--glass-blur-panel);
@@ -8414,13 +8420,20 @@
       position: fixed;  /* fixed avoids parent height issues */
       top: auto;
       left: 0; right: 0;
-      bottom: 0;
+      /* Sheet contract — anchor to visual viewport bottom, not layout
+         viewport. --app-bottom-inset is non-zero when iOS Safari's bottom
+         toolbar overlays the layout viewport; lifting by that delta keeps
+         the panel's bottom edge above the toolbar instead of behind it. */
+      bottom: var(--app-bottom-inset, 0px);
       width: 100%;
-      /* Stops at the directions button on standard phones (S25/iPhone 15+).
-         Buttons below directions (share, favorite, alert) are reachable by
-         dragging the panel into expanded state. */
-      height: calc(var(--app-h, 100svh) * 0.58);
-      max-height: none;
+      /* Sheet contract — height hugs content, capped at viewport minus the
+         top inset (status bar / Dynamic Island) and a small breathing gap.
+         min-height keeps the half-open panel readable as a "sheet" even
+         when content is short (single card). Drag-to-expand still elevates
+         to .dp-fullscreen which overrides height to var(--app-h). */
+      height: auto;
+      min-height: 280px;
+      max-height: calc(var(--app-h, 100svh) - env(safe-area-inset-top, 0px) - 12px);
       border-radius: 20px 20px 0 0;
       border-left: none; border-right: none; border-bottom: none;
       transform: translateY(100%) translateZ(0);
@@ -9021,10 +9034,15 @@
 
   .dpinvite-sheet {
     position: absolute;
-    bottom: 0;
+    /* Sheet contract — lift above iOS Safari's bottom toolbar so the
+       Avbryt / Del lenke row never slides behind chrome. */
+    bottom: var(--app-bottom-inset, 0px);
     left: 0;
     right: 0;
-    max-height: var(--app-h, 100svh);
+    /* Sheet contract — cap at visible viewport minus top inset + gap so
+       a long avatar list scrolls inside the sheet instead of pushing the
+       handle under the status bar / Dynamic Island. */
+    max-height: calc(var(--app-h, 100svh) - env(safe-area-inset-top, 0px) - 12px);
     height: auto;
     border-radius: 20px 20px 0 0;
     background: var(--glass-panel-bg);
@@ -9367,7 +9385,10 @@
   @media (min-width: 640px) {
     .dpinvite-sheet {
       max-width: 460px;
-      max-height: var(--app-h, 100svh);
+      /* Desktop also follows the Sheet contract — cap inside visible
+         viewport minus top inset so a tall sheet doesn't push under
+         the system chrome on macOS Safari with the toolbar visible. */
+      max-height: calc(var(--app-h, 100svh) - env(safe-area-inset-top, 0px) - 12px);
       height: auto;
       left: 50%;
       transform: translateX(-50%) translateY(100%);
@@ -9462,7 +9483,13 @@
   .plan-preview,
   .dprcv-overlay {
     position: fixed;
-    inset: 0;
+    /* Sheet contract — size the overlay to the visible viewport (not the
+       layout viewport) so its justify-content: flex-end aligns the bottom
+       sheet to the visual bottom, not behind iOS Safari's tab bar. The
+       --app-bottom-inset offset handles iOS Chrome WebView PWA where the
+       inset shows up there instead of in env(safe-area-inset-bottom). */
+    top: 0; left: 0; right: 0;
+    height: var(--app-h, 100svh);
     z-index: 1200;
     /* none while opening/closing so the slide animation doesn't capture
        stray taps; auto once .open so the transparent area above the
@@ -9489,12 +9516,14 @@
     /* See viewport tokens block at top of CSS. --app-pad-b is the
        guaranteed-visible bottom-content padding across all hosts. */
     padding: 0 18px var(--app-pad-b);
-    /* Cap at 92% of the visible viewport so there's always a sliver
-       of map showing above — both lets users see the venue and
-       guarantees the sheet's top edge isn't flush with the status
-       bar / Dynamic Island. overflow-y: auto so long content scrolls
-       internally; the Accept button is always reachable. */
-    max-height: calc(var(--app-h, 100svh) * 0.92);
+    /* Sheet contract — cap at visible viewport minus top inset + gap.
+       This was 92svh; the new bound is functionally similar on a phone
+       with the Dynamic Island (status inset ~ 47px) but always leaves
+       exactly the safe sliver above. Content scrolls internally; the
+       Accept button stays reachable because the parent .dprcv-overlay
+       is now sized to var(--app-h) and the sheet padding-bottom uses
+       --app-pad-b for the home-indicator clearance. */
+    max-height: calc(var(--app-h, 100svh) - env(safe-area-inset-top, 0px) - 12px);
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     border-radius: 20px 20px 0 0;

@@ -100,6 +100,26 @@ Every UI surface belongs to exactly **one** tier. The tier determines opacity, e
 **Motion:** none on container. Reactive elements inside.
 **Examples:** `#panel`, `#detail-panel`, `#search-dropdown`, `#sort-panel`, `#profile-panel`, modals, toasts, login splash.
 
+#### Sheet contract — bottom-anchored Tier-1 panels
+
+Any panel that slides up from the bottom (`#detail-panel`, `.dpinvite-sheet`, `.dprcv-bottom`, `#ptb-cal-float`, future post-accept / share / confirmation sheets) MUST follow this contract. The contract exists because every other approach has shipped a bug on at least one host (iOS Safari toolbar, Dynamic Island, Android Chrome PWA, iOS Chrome WebView).
+
+| Rule | Why |
+|---|---|
+| `bottom: var(--app-bottom-inset, 0px)` | Anchors to the **visual** viewport bottom, not the layout viewport. Lifts the sheet above iOS Safari's address-bar toolbar so CTAs never hide behind chrome. |
+| `height: auto` + `min-height: 280px` (where applicable) | Content drives height. A half-open sheet on short content (~one card) still reads as a sheet, not a chip. The calendar sheet is an explicit exception — see the rule below. |
+| `max-height: calc(var(--app-h) - env(safe-area-inset-top, 0px) - 12px)` | Caps at the **visible** viewport minus the top inset (status bar / Dynamic Island) and a 12 px breathing gap. Replaces the older `* 0.92` / `* 0.58` percentage idioms. |
+| `padding-bottom: var(--app-pad-b)` | Last content row stays above the home-indicator gesture zone. |
+| `overflow-y: auto` | Long content scrolls inside the sheet — never below the safe area. |
+
+**Anti-pattern (Sheet contract violation):** sizing a sheet as a fixed fraction of the viewport (`calc(var(--app-h) * 0.58)`, `* 0.92`). Percentages ignore content — short content wastes space, long content gets clipped. Use the contract above.
+
+**Calendar exception (`#ptb-cal-float`):** the calendar deliberately shows "one month + peek of the next" as a visual beat. It keeps a `max-height: calc(var(--app-h) * 0.56)` instead of content-fit, but still uses `bottom: var(--app-bottom-inset)` and `padding-bottom: var(--app-pad-b)`. The visual-viewport anchor is non-negotiable; the content-fit rule is.
+
+**Drag-to-expand (`#detail-panel.dp-fullscreen`):** when the user drags the panel up, `.dp-fullscreen` overrides `height` to `var(--app-h)` and `border-radius` to `0`. The min/max rules above only describe the half-open state.
+
+**JS coupling:** components positioned relative to a Sheet-contract panel (the FTS slider, the post-accept handoff) must read the panel's live `offsetHeight` rather than assuming the old percentage. `js/app.js → _syncFtsPosition()` writes `--dp-open-h` from the live height; consumers reference `var(--dp-open-h, 58svh)` with the percentage as a graceful fallback. New consumers should follow the same pattern.
+
 ### Tier 2 · Lens object
 **Role:** solid content tile. An object resting in the lens.
 **Treatment:**
@@ -184,6 +204,8 @@ All motion respects `prefers-reduced-motion` and suspends during scroll (200ms d
 - ✗ Raw hex colors in CSS (run `node scripts/validate-tokens.mjs` to catch).
 - ✗ Pure white `#FFFFFF` for text or fills — use `var(--text)` for warmth and consistency.
 - ✗ Inventing a fourth glass surface variant — only `panel`, `card`, `action` exist.
+- ✗ Sizing a bottom sheet as a fraction of the viewport (`calc(var(--app-h) * 0.X)`) — violates the Sheet contract. Content drives, viewport caps. See "Tier 1 · Sheet contract".
+- ✗ Anchoring a bottom sheet with `bottom: 0` on a `position: fixed` element — anchors to layout viewport, slides behind iOS Safari's toolbar. Use `bottom: var(--app-bottom-inset, 0px)`.
 
 ---
 

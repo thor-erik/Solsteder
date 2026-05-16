@@ -184,6 +184,18 @@ function _syncFtsPosition() {
     }
   }
 
+  // Track the live #detail-panel height so the FTS slider's bottom-anchor
+  // stays glued to the panel's top edge even though the panel is now
+  // content-fit (Sheet contract) rather than a fixed 58svh slab. Cleared
+  // when the panel closes so _ftsHostBottom's fallback (58svh) kicks in
+  // during the close transition. dp-fullscreen has its own branch and
+  // doesn't depend on this var.
+  if (dp?.classList.contains('open') && !dp.classList.contains('dp-fullscreen')) {
+    document.documentElement.style.setProperty('--dp-open-h', dp.offsetHeight + 'px');
+  } else {
+    document.documentElement.style.removeProperty('--dp-open-h');
+  }
+
   const ftsBottom = _ftsHostBottom(panel, dp);
   if (ftsBottom !== null) {
     document.body.style.setProperty('--fts-bottom', ftsBottom);
@@ -216,7 +228,11 @@ function _ftsHostBottom(panel, dp) {
     if (dp.classList.contains('dp-fullscreen')) {
       return `calc(100svh - env(safe-area-inset-top, 0px) - 46px - 16px - 4px - 14px)`;
     }
-    return `calc(62svh + ${FTS_GAP}px)`;
+    // --dp-open-h is set by _syncFtsPosition each call from the live
+    // detail-panel offsetHeight. Fallback to 58svh matches the pre-Sheet-
+    // contract value so the FTS doesn't jump during the first paint
+    // before _syncFtsPosition has run.
+    return `calc(var(--dp-open-h, 58svh) + ${FTS_GAP}px)`;
   }
   if (panel.classList.contains('mobile-hidden'))     return `${FTS_GAP}px`;
   // Fullscreen: FTS sits below the chip row (not at the very top), so users
