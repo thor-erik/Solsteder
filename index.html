@@ -129,7 +129,7 @@
 <script defer src="js/ui-shelter.js?v=20260416a"></script>
 <script defer src="js/render-wind.js?v=20260416b"></script>
 <script defer src="js/ui-detail.js?v=20260515k"></script>
-<script defer src="js/ui-plan-preview.js?v=20260514e"></script>
+<script defer src="js/ui-plan-preview.js?v=20260516a"></script>
 <script defer src="js/osm.js?v=20260513a"></script>
 <script defer src="js/notifications.js?v=20260515e"></script>
 <script defer src="js/push.js?v=20260514b"></script>
@@ -8419,7 +8419,7 @@
       /* Stops at the directions button on standard phones (S25/iPhone 15+).
          Buttons below directions (share, favorite, alert) are reachable by
          dragging the panel into expanded state. */
-      height: calc(var(--app-h, 100svh) * 0.55);
+      height: calc(var(--app-h, 100svh) * 0.58);
       max-height: none;
       border-radius: 20px 20px 0 0;
       border-left: none; border-right: none; border-bottom: none;
@@ -9911,6 +9911,24 @@
   }
 
   /* Primary CTA wrapper — uses .p-pill; tall variant for the hero. */
+  /* Sticky CTA footer — Accept button + secondary row stick to the
+     bottom of the scrolling sheet so they're always visible even
+     when the venue + timeline + meta combined would otherwise push
+     them off-screen on small phones. The parent .dprcv-bottom is
+     overflow-y: auto which is what position: sticky needs. */
+  .dprcv-footer {
+    position: sticky;
+    bottom: calc(var(--app-pad-b) * -1);  /* cancel parent's bottom pad so footer hugs visible bottom */
+    margin: 0 -18px calc(var(--app-pad-b) * -1);
+    padding: 12px 18px var(--app-pad-b);
+    background: var(--glass-panel-bg);
+    backdrop-filter: blur(22px) saturate(180%) brightness(0.92);
+    -webkit-backdrop-filter: blur(22px) saturate(180%) brightness(0.92);
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
   .dprcv-cta-primary { width: 100%; height: 52px; font-size: 15px; }
 
   /* Secondary row — v1 had two equal-width .s-rnd / .g-rnd buttons that

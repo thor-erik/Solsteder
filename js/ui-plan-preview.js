@@ -798,27 +798,31 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     const primaryLabel = isAnon ? t('plan_preview_anon_im_in') : t('plan_preview_im_in');
     const primaryIcon  = isAnon ? '' : checkSvg;
     ctaHtml = `
-      <button class="p-pill dprcv-cta-primary" id="${acceptId}" type="button">
-        ${primaryIcon}
-        ${primaryLabel}
-      </button>
-      <div class="dprcv-cta-row">
-        <button class="dprcv-cta-link" id="pp-suggest" type="button">
-          ${editSvg}<span>${t('invite_secondary_later')}</span>
+      <div class="dprcv-footer">
+        <button class="p-pill dprcv-cta-primary" id="${acceptId}" type="button">
+          ${primaryIcon}
+          ${primaryLabel}
         </button>
-        <span class="dprcv-cta-sep" aria-hidden="true">·</span>
-        <button class="dprcv-cta-link is-decline" id="${declineId}" type="button">
-          <span>${t('plan_decline')}</span>
-        </button>
+        <div class="dprcv-cta-row">
+          <button class="dprcv-cta-link" id="pp-suggest" type="button">
+            ${editSvg}<span>${t('invite_secondary_later')}</span>
+          </button>
+          <span class="dprcv-cta-sep" aria-hidden="true">·</span>
+          <button class="dprcv-cta-link is-decline" id="${declineId}" type="button">
+            <span>${t('plan_decline')}</span>
+          </button>
+        </div>
       </div>`;
   } else if (isPreview) {
     ctaHtml = `
-      <button class="p-pill dprcv-cta-primary" id="pp-share-onward" type="button">
-        ${sendSvg}
-        ${t('preview_share_onwards')}
-      </button>
-      <div class="dprcv-cta-row">
-        <button class="dprcv-cta-link" id="pp-close-cta" type="button"><span>${t('close')}</span></button>
+      <div class="dprcv-footer">
+        <button class="p-pill dprcv-cta-primary" id="pp-share-onward" type="button">
+          ${sendSvg}
+          ${t('preview_share_onwards')}
+        </button>
+        <div class="dprcv-cta-row">
+          <button class="dprcv-cta-link" id="pp-close-cta" type="button"><span>${t('close')}</span></button>
+        </div>
       </div>`;
   }
 
