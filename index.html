@@ -129,7 +129,7 @@
 <script defer src="js/ui-shelter.js?v=20260416a"></script>
 <script defer src="js/render-wind.js?v=20260416b"></script>
 <script defer src="js/ui-detail.js?v=20260516e"></script>
-<script defer src="js/ui-plan-preview.js?v=20260516a"></script>
+<script defer src="js/ui-plan-preview.js?v=20260516b"></script>
 <script defer src="js/osm.js?v=20260513a"></script>
 <script defer src="js/notifications.js?v=20260515e"></script>
 <script defer src="js/push.js?v=20260514b"></script>
@@ -8426,16 +8426,17 @@
       left: 0; right: 0;
       bottom: 0;
       width: 100%;
-      /* Sheet contract — height hugs content, capped at the small
-         viewport (svh = stable smallest visible area; never clipped by
-         iOS Safari's address bar regardless of scroll state, and now
-         shrinks correctly when Android's soft keyboard opens thanks to
-         interactive-widget=resizes-content in the viewport meta).
-         min-height keeps a half-open sheet readable on short content.
-         Drag-to-expand still elevates to .dp-fullscreen → 100svh. */
-      height: auto;
-      min-height: 280px;
-      max-height: 88svh;
+      /* Half-open: fixed 58svh — calibrated on the S25 so the panel's
+         visible bottom lands right at the directions button. Content
+         below (share/heart/bell row, address, busyness, noise, hours)
+         is in the DOM and reachable via internal scroll OR by dragging
+         the panel up into .dp-fullscreen. svh keeps the cap stable
+         against browser-chrome show/hide. Per-device fine-tuning is
+         intentional: 58svh ≈ "shows directions button" on the user's
+         primary device; other devices may show slightly more or less,
+         which the scroll handles. */
+      height: 58svh;
+      max-height: 58svh;
       border-radius: 20px 20px 0 0;
       border-left: none; border-right: none; border-bottom: none;
       transform: translateY(100%) translateZ(0);
@@ -8444,9 +8445,9 @@
       transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), height 0.3s ease, border-radius 0.3s ease;
       will-change: transform, height;
       backface-visibility: hidden;
-      /* Standard isolation contract — drag-to-dismiss + scroll trap
-         (Vaul / Radix pattern). pan-y allows vertical gestures only;
-         contain prevents scroll bubbling to the map underneath. */
+      /* Isolation contract — drag-to-dismiss + scroll trap (Vaul / Radix
+         pattern). pan-y allows vertical gestures only; contain prevents
+         scroll bubbling to the map underneath. */
       overscroll-behavior: contain;
       touch-action: pan-y;
     }
@@ -8498,22 +8499,6 @@
     #detail-panel.dp-fullscreen {
       height: var(--app-h, 100svh);
       border-radius: 0;
-    }
-    /* Half-open contract: panel hugs content but ONLY through the
-       directions button. Everything below that — the share/heart/bell
-       chip row, the info list (address/busyness/noise/hours), the
-       shelter section, the quiet footer — is hidden in the half-open
-       state and revealed only when the user drags up to .dp-fullscreen.
-       This adapts the cut-off to the device automatically: tall phones
-       (Pixel 7) and short phones (Galaxy S25) both stop at the
-       directions button because the content sequence is identical;
-       the panel just hugs content up to that point. */
-    #detail-panel:not(.dp-fullscreen) .dp-secondary-row,
-    #detail-panel:not(.dp-fullscreen) .info-chips,
-    #detail-panel:not(.dp-fullscreen) .info-list,
-    #detail-panel:not(.dp-fullscreen) .dp-footer-quiet,
-    #detail-panel:not(.dp-fullscreen) #dp-shelter {
-      display: none;
     }
 
     #dp-handle { display: flex; }
@@ -9380,12 +9365,12 @@
   .dpinvite-cancel-row {
     display: flex;
     justify-content: center;
-    /* Generous breathing room — 20px gap above the Avbryt link and
-       28px below give the link "air" so it doesn't feel pinned to
-       the sheet edge. Parent .dpinvite-sheet still adds --app-pad-b
-       for the home-indicator clearance below this. */
-    margin-top: 20px;
-    margin-bottom: 28px;
+    /* Avbryt sits as close to the sheet's bottom edge as the
+       --app-pad-b safe-area allows — no extra margin below. The
+       complaint here was wasted space below the link; the small
+       margin-top keeps a tap-target gap above. */
+    margin-top: 8px;
+    margin-bottom: 0;
   }
   .dpinvite-cancel-row .g-rnd {
     background: transparent;

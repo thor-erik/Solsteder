@@ -658,6 +658,18 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   el.id = 'plan-preview';
   el.className = 'plan-preview dprcv-overlay';
 
+  // Default mode to 'preview' when callers omit it. Several entry points
+  // (notifications.js bellActions, auth.js nav, deeplink handlers) call
+  // openPlanPreview without setting opts.mode, which previously caused
+  // both isInvite AND isPreview to evaluate false → ctaHtml='' → no
+  // visible Accept/Share buttons at the bottom of the sheet. User-
+  // reported as "the buttons on the accepts panel disappeared after
+  // backend connection fixes" — the backend fix changed which entry
+  // points fire, exposing the missing-default bug.
+  if (opts.mode !== 'invite' && opts.mode !== 'invite-anon') {
+    opts.mode = 'preview';
+  }
+
   const isInvite     = (opts.mode === 'invite' || opts.mode === 'invite-anon');
   const isAnon       = (opts.mode === 'invite-anon');
   const isPreview    = (opts.mode === 'preview');
