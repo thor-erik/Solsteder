@@ -1053,6 +1053,12 @@ function _loginSlideIcon(i) {
 // the rendered body + lead + action ref so the bell row can replay the
 // click. Map by notif.id so a re-firing notification dedupes/updates.
 const _bellHistory = new Map();
+// IDs currently rendered in the open bell dropdown. Used by
+// _renderBellDropdown to detect fresh arrivals (entries that weren't
+// present at the prior render) so they animate in via bd-row--entering.
+// Cleared when the dropdown closes so the next open re-establishes the
+// baseline without animating everything.
+let _bellRenderedIds = new Set();
 const _BELL_HISTORY_MAX = 30;
 
 // Unread state lives on the notifications row (read_at column). Bell
@@ -1369,6 +1375,8 @@ function _closeBellDropdown() {
   document.getElementById('bell-dropdown')?.classList.remove('open');
   document.body.classList.remove('bell-open');
   document.getElementById('ts-bell-btn')?.classList.remove('active');
+  // Reset arrival tracking — next open re-establishes the baseline.
+  _bellRenderedIds.clear();
   // Mark everything currently visible as seen — next open won't dot it.
   _bellNoteOpened();
   if (typeof _updateAvatarBadge === 'function') _updateAvatarBadge();
@@ -1499,10 +1507,29 @@ function _renderBellDropdown() {
         </svg>
         <div class="bd-empty-text">Innboksen er tom.</div>
       </div>`;
+    _bellRenderedIds.clear();
     return;
   }
 
-  dropdown.innerHTML = entries.map(e => e.html).join('');
+  // Identify newly-arrived rows (rendered for the first time while the
+  // dropdown is open) so we can animate them in. The first render after
+  // open establishes the baseline — entries already present then are
+  // NOT animated. Subsequent renders (loadPlans realtime refresh) mark
+  // entries whose id wasn't in the previous set as new.
+  const seedRender = _bellRenderedIds.size === 0;
+  const nextRenderedIds = new Set();
+  for (const e of entries) nextRenderedIds.add(e.id);
+
+  dropdown.innerHTML = entries.map(e => {
+    const isFreshArrival = !seedRender && !_bellRenderedIds.has(e.id);
+    if (isFreshArrival) {
+      // Inject the bd-row--entering class onto the outer .bd-row div.
+      return e.html.replace(/class="bd-row /, 'class="bd-row bd-row--entering ');
+    }
+    return e.html;
+  }).join('');
+
+  _bellRenderedIds = nextRenderedIds;
 }
 
 /** Produce the state-dependent body for plan-related bell rows.

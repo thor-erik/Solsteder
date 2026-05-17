@@ -106,7 +106,7 @@
 <script defer src="js/i18n.js?v=20260516a"></script>
 <script defer src="js/config.js?v=20260425b"></script>
 <script defer src="js/tokens.js?v=20260509e"></script>
-<script defer src="js/auth.js?v=20260517b"></script>
+<script defer src="js/auth.js?v=20260517c"></script>
 <script defer src="js/login-carousel.js?v=20260428a"></script>
 <script defer src="js/analytics.js"></script>
 <script defer src="js/places.js?v=20260411b"></script>
@@ -1691,6 +1691,26 @@
   .bd-row.bd-row--past { opacity: 0.55; }
   .bd-row.bd-row--past .bd-row__avatar,
   .bd-row.bd-row--past .bd-row__lead { opacity: 1; }
+
+  /* Freshly-arrived row — entry animation when a new notification
+     lands while the inbox is already open (realtime accept/decline
+     pushes a new bell row at the top). Slides down from above the
+     viewport with a brief fade-in. Other rows reflow into their new
+     positions instantly (innerHTML rebuild) — a true FLIP "siblings
+     slide down" would require DOM-diffing the render path, deferred
+     for now since the new row's motion alone is the strong signal. */
+  @keyframes bd-row-arrive {
+    0%   { transform: translateY(-14px); opacity: 0; }
+    60%  { transform: translateY(0);     opacity: 1; }
+    100% { transform: translateY(0);     opacity: 1; }
+  }
+  .bd-row.bd-row--entering {
+    animation: bd-row-arrive 0.42s cubic-bezier(0.32, 0.72, 0, 1) both;
+    transform-origin: top center;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .bd-row.bd-row--entering { animation: none; }
+  }
   /* New / unread indicator — small honey dot floating at the right edge */
   .bd-row.bd-row--new { position: relative; }
   .bd-row.bd-row--new::after {
