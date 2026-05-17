@@ -790,10 +790,16 @@ function _evalInviteDeclined() {
     if (!venue) continue;
 
     // Head = newest decline (last in newOnes — see _evalInviteAccepted
-    // for the same ordering rationale).
-    const head = newOnes[newOnes.length - 1];
+    // for the same ordering rationale). Prefer a NAMED decliner over
+    // an anonymous one when possible — anon rows lack a profile, so
+    // an "anon" head reads as "Noen +N har avslått" which is less
+    // informative than "Anna +N har avslått" even when Anna isn't
+    // the very newest.
+    const namedHead = [...newOnes].reverse().find(d => d.user && (d.user.name || d.user.email));
+    const head = namedHead || newOnes[newOnes.length - 1];
     const u = head.user || {};
-    const headName = (u.name || u.email || '').split(' ')[0].split('@')[0] || t('attendee_someone');
+    const headName = (u.name || u.email || '').split(' ')[0].split('@')[0]
+      || (declinedAll.length === 1 ? 'Person' : t('attendee_someone'));
     // extra = OTHER declines beyond the head being named (across the
     // full declined set, not just newOnes). User wants a live total
     // so the bell stays accurate as more decline.

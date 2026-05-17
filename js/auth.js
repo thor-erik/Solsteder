@@ -1068,16 +1068,42 @@ const _BELL_HISTORY_MAX = 30;
 async function _bellNoteOpened() {
   const now = new Date().toISOString();
   let changed = false;
+  const markedIds = [];
   for (const entry of _bellHistory.values()) {
-    if (!entry.readAt) { entry.readAt = now; changed = true; }
+    if (entry.readAt) continue;
+    // Action-required rows stay unread until the user actually
+    // responds. Pending plan invites need an Accept/Decline tap —
+    // collapsing the unread dot on bell-open would let an invite
+    // disappear from attention before the user has done anything.
+    // We check the LIVE plan_invite status: only mark read once
+    // status is no longer 'pending'. Friend requests follow the
+    // same rule (must be acted on).
+    if (typeof entry.id === 'string' && entry.id.startsWith('plan_invite_pending:')) {
+      const inviteId = entry.id.substring('plan_invite_pending:'.length);
+      const inv = (typeof _planInvites !== 'undefined' && Array.isArray(_planInvites))
+        ? _planInvites.find(i => i && i.id === inviteId) : null;
+      if (!inv || inv.status === 'pending') continue;
+    }
+    if (typeof entry.id === 'string' && entry.id === 'social_friend_request') {
+      const stillPending = (typeof _pendingRequests !== 'undefined'
+        && Array.isArray(_pendingRequests) && _pendingRequests.length > 0);
+      if (stillPending) continue;
+    }
+    entry.readAt = now;
+    markedIds.push(entry.id);
+    changed = true;
   }
   if (!changed) return;
   if (!_currentUser || typeof _supabase === 'undefined') return;
   try {
+    // Only update the rows we actually just marked — leaves
+    // pending-invite rows with read_at = NULL in the DB so they
+    // re-render as unread on next session too.
     await _supabase.from('notifications')
       .update({ read_at: now })
       .eq('user_id', _currentUser.id)
-      .is('read_at', null);
+      .is('read_at', null)
+      .in('notif_id', markedIds);
   } catch { /* fire-and-forget */ }
 }
 
@@ -1641,8 +1667,16 @@ function _enrichPlanNotificationBody(entry) {
     const acceptedTotal = myInvite.plan._acceptedCount ?? 0;
     const othersAccepted = Math.max(0, acceptedTotal - 1); // minus self
     const tail = othersAccepted > 0 ? ` +${othersAccepted}` : '';
+    // Self-creator guard — if the current user IS the creator of this
+    // plan, the "med X" tail would read "med deg selv" (with yourself),
+    // which is awkward. Drop the tail entirely; the row just says
+    // "Du skal til Y i morgen kl 12" + the +N counter if others are
+    // also coming.
+    const creatorId = myInvite.plan && myInvite.plan.creator && myInvite.plan.creator.id;
+    const isSelfCreator = creatorId && _currentUser && String(creatorId) === String(_currentUser.id);
+    const withClause = isSelfCreator ? tail : ` med <strong>${creator}</strong>${tail}`;
     return {
-      body: `Du skal til ${venuePart}${whenStr ? ' ' + whenStr : ''} med <strong>${creator}</strong>${tail}.`,
+      body: `Du skal til ${venuePart}${whenStr ? ' ' + whenStr : ''}${withClause}.`,
       pastClass,
       metaSuffix,
     };
