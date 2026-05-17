@@ -1334,6 +1334,14 @@
     font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
   }
   #top-strip .ts-center .ts-meta { color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums; }
+  /* Temperature carries the most decision-load in the strip — bump
+     to text color + slight weight bump so it reads cleanly without
+     visually competing with the date (which is the primary CTA). */
+  #top-strip .ts-center .ts-temp {
+    color: var(--text);
+    font-weight: 600;
+    margin-left: 2px;   /* tighten next to the glyph (the dot is gone) */
+  }
 
   /* Adaptive sentence — drop in priority order: wind → temp → glyph
      (date stays always). Breakpoints are on container width, not viewport. */
@@ -1347,17 +1355,18 @@
     #top-strip .ts-wx-icon, #top-strip .ts-glyph-dot { display: none; }
   }
 
-  /* Desktop: stop the strip stretching corner-to-corner. Caps at the
-     natural content width plus breathing room, anchored against the
-     left edge so it aligns with the venue-list panel column below. */
+  /* Desktop: stop the strip stretching corner-to-corner. Anchored against
+     the left edge so it aligns with the venue-list panel column below.
+     Explicit width (instead of max-content) is required because the grid
+     uses `auto 1fr auto` — max-content collapses the 1fr middle column
+     and the children stack onto each other. The 580 px floor fits the
+     full cluster: avatar + bell + date(I dag) + glyph · temp · wind +
+     search + brand-name + compass without ellipsing. */
   @media (min-width: 640px) {
     #top-strip {
       left: 16px;
       right: auto;
-      max-width: 720px;
-      /* width:max-content lets the grid shrink to whatever the cluster
-         actually needs (no trailing empty padding past the brand). */
-      width: max-content;
+      width: min(580px, calc(100vw - 32px));
     }
   }
 
@@ -11074,7 +11083,6 @@
         </svg>
       </button>
       <span class="ts-wx-icon" id="ts-wx-icon">☀️</span>
-      <span class="ts-dot ts-temp-dot">·</span>
       <span class="ts-meta ts-temp" id="ts-temp">13°</span>
       <span class="ts-dot ts-wind-dot">·</span>
       <span class="ts-meta ts-wind" id="ts-wind">💨 4 m/s</span>
