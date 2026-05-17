@@ -1355,6 +1355,10 @@ function toggleBellDropdown(e) {
   }
   _renderBellDropdown();
   dropdown.classList.add('open');
+  // body.bell-open is the suppress signal for toast notifications
+  // (notifications.js _notifCanShow checks this class). Keeps incoming
+  // toasts from overlapping the user reading their inbox.
+  document.body.classList.add('bell-open');
   document.getElementById('ts-bell-btn')?.classList.add('active');
   setTimeout(() => {
     document.addEventListener('click', _bellDropdownOutsideClick, { once: true });
@@ -1363,6 +1367,7 @@ function toggleBellDropdown(e) {
 
 function _closeBellDropdown() {
   document.getElementById('bell-dropdown')?.classList.remove('open');
+  document.body.classList.remove('bell-open');
   document.getElementById('ts-bell-btn')?.classList.remove('active');
   // Mark everything currently visible as seen — next open won't dot it.
   _bellNoteOpened();
@@ -1466,40 +1471,10 @@ function _renderBellDropdown() {
   //    session gets surfaced here. Real data, real click actions. ──────
   _bellHistory.forEach(entry => {
     const isNew = entry.readAt ? '' : ' bd-row--new';
-    // Enrich plan-invite notifications with the venue name + relative
-    // day + time the SQL trigger can't reach (venues live in
-    // venues.json, not the DB). Detect by nav.kind='plan' and rewrite
-    // the body. Past plans get the past-tense verb + a dim row class
-    // so the user can tell at a glance the invite has expired (the
-    // CTA still opens the past-event plan-preview panel).
-    let body = entry.body;
-    let pastClass = '';
-    let metaSuffix = '';
-    if (entry.nav && entry.nav.kind === 'plan' && entry.nav.venueId != null) {
-      const venueObj = (typeof VENUES !== 'undefined' && Array.isArray(VENUES))
-        ? VENUES.find(v => String(v.id) === String(entry.nav.venueId)) : null;
-      const venueName = (venueObj && venueObj.name) || '';
-      const plannedAt = entry.nav.plannedAt || null;
-      const plannedMs = plannedAt ? new Date(plannedAt).getTime() : NaN;
-      const dateStr = plannedAt ? plannedAt.slice(0, 10) : '';
-      const dayPart = (dateStr && typeof _dayLabel === 'function') ? _dayLabel(dateStr) : '';
-      const timePart = !isNaN(plannedMs)
-        ? new Date(plannedMs).toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' })
-        : '';
-      const whenStr = [dayPart, timePart].filter(Boolean).join(' kl ');
-      // Pull the creator's name from the original body's <strong>...</strong> wrapper.
-      const m = entry.body && entry.body.match(/<strong>([^<]+)<\/strong>/);
-      const creatorRaw = (m && m[1]) || 'Noen';
-      const creator = creatorRaw.split('@')[0].split(' ')[0];
-      const isPast = !isNaN(plannedMs) && plannedMs < Date.now() - 30 * 60 * 1000;
-      const verb = isPast ? 'inviterte' : 'har invitert';
-      const venuePart = venueName ? `<strong>${venueName}</strong>` : 'et sted';
-      body = `<strong>${creator}</strong> ${verb} deg til ${venuePart}${whenStr ? ' ' + whenStr : ''}.`;
-      if (isPast) {
-        pastClass = ' bd-row--past';
-        metaSuffix = ' · Utgått';
-      }
-    }
+    const enriched = _enrichPlanNotificationBody(entry);
+    const body       = enriched ? enriched.body       : entry.body;
+    const pastClass  = enriched ? enriched.pastClass  : '';
+    const metaSuffix = enriched ? enriched.metaSuffix : '';
     entries.push({
       t: entry.ts,
       html: `
@@ -1528,6 +1503,118 @@ function _renderBellDropdown() {
   }
 
   dropdown.innerHTML = entries.map(e => e.html).join('');
+}
+
+/** Produce the state-dependent body for plan-related bell rows.
+ *
+ *  Receiver perspective (the user was invited):
+ *    - pending:  "X har invitert deg til Y i morgen kl 12"
+ *    - accepted: "Du skal til Y i morgen kl 12 med X +N"
+ *    - declined: "Du avslo Xs invitasjon til Y i morgen kl 12"
+ *    - past:     "X inviterte deg til Y …" + dim row + "Utgått" meta
+ *
+ *  Inviter perspective (someone responded to the user's invite):
+ *    Detected by notif.id prefix social_invite_accepted_* / _declined_*.
+ *    - accepted: "Anna har godtatt invitasjonen til Y i morgen kl 12"
+ *    - declined: "Anna har avslått invitasjonen til Y i morgen kl 12"
+ *
+ *  Returns null when the entry isn't a plan notification — caller
+ *  uses the original entry.body as-is.
+ */
+function _enrichPlanNotificationBody(entry) {
+  if (!entry || !entry.nav || entry.nav.kind !== 'plan' || entry.nav.venueId == null) {
+    return null;
+  }
+
+  const venueObj = (typeof VENUES !== 'undefined' && Array.isArray(VENUES))
+    ? VENUES.find(v => String(v.id) === String(entry.nav.venueId)) : null;
+  const venueName = (venueObj && venueObj.name) || '';
+  const venuePart = venueName ? `<strong>${venueName}</strong>` : 'et sted';
+
+  const plannedAt = entry.nav.plannedAt || null;
+  const plannedMs = plannedAt ? new Date(plannedAt).getTime() : NaN;
+  const dateStr = plannedAt ? plannedAt.slice(0, 10) : '';
+  const dayPart = (dateStr && typeof _dayLabel === 'function') ? _dayLabel(dateStr) : '';
+  const timePart = !isNaN(plannedMs)
+    ? new Date(plannedMs).toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' })
+    : '';
+  const whenStr = [dayPart, timePart].filter(Boolean).join(' kl ');
+  const isPast = !isNaN(plannedMs) && plannedMs < Date.now() - 30 * 60 * 1000;
+  const pastClass = isPast ? ' bd-row--past' : '';
+  const metaSuffix = isPast ? ' · Utgått' : '';
+
+  // Pull the actor's display name from the existing body's <strong> wrapper.
+  // Server-rendered bodies wrap the relevant person's name; client-rendered
+  // bodies do the same. Fall back to "Noen" if missing.
+  const m = entry.body && entry.body.match(/<strong>([^<]+)<\/strong>/);
+  const actorRaw = (m && m[1]) || 'Noen';
+  const actor = actorRaw.split('@')[0].split(' ')[0];
+
+  // Inviter-side notifications — fired by _evalInviteAccepted / _evalInviteDeclined.
+  // The actor is the INVITEE who responded; subject is the current user's plan.
+  if (typeof entry.id === 'string' && entry.id.startsWith('social_invite_accepted_')) {
+    return {
+      body: `<strong>${actor}</strong> har godtatt invitasjonen til ${venuePart}${whenStr ? ' ' + whenStr : ''}.`,
+      pastClass,
+      metaSuffix,
+    };
+  }
+  if (typeof entry.id === 'string' && entry.id.startsWith('social_invite_declined_')) {
+    return {
+      body: `<strong>${actor}</strong> har avslått invitasjonen til ${venuePart}${whenStr ? ' ' + whenStr : ''}.`,
+      pastClass,
+      metaSuffix,
+    };
+  }
+
+  // Receiver perspective — find the user's invite row to read its status.
+  // _planInvites is filtered to FUTURE plans only, so past invites fall
+  // through to the generic past-tense wording below.
+  const myInvite = (typeof _planInvites !== 'undefined' && Array.isArray(_planInvites))
+    ? _planInvites.find(inv =>
+        inv && inv.plan
+        && String(inv.plan.venue_id) === String(entry.nav.venueId)
+        && !isNaN(new Date(inv.plan.planned_at).getTime())
+        && Math.abs(new Date(inv.plan.planned_at).getTime() - plannedMs) < 60 * 1000)
+    : null;
+
+  // Creator name preference: from the embedded plan.creator (live data),
+  // else from the actorRaw extracted above (server-rendered text).
+  const creatorFromInvite = myInvite && myInvite.plan && myInvite.plan.creator
+    && (myInvite.plan.creator.name || myInvite.plan.creator.email) || '';
+  const creator = (creatorFromInvite ? creatorFromInvite : actorRaw).split('@')[0].split(' ')[0];
+
+  if (myInvite && myInvite.status === 'accepted') {
+    // "+N" = OTHER accepted invitees beyond the inviter implicitly named
+    // ("med Malene"). Total accepted (server-counted) includes the user;
+    // we exclude self + creator from the "+N" tail. Creator isn't in
+    // plan_invites (they're the creator), so total_accepted is invitees
+    // who accepted including self.
+    const acceptedTotal = myInvite.plan._acceptedCount ?? 0;
+    const othersAccepted = Math.max(0, acceptedTotal - 1); // minus self
+    const tail = othersAccepted > 0 ? ` +${othersAccepted}` : '';
+    return {
+      body: `Du skal til ${venuePart}${whenStr ? ' ' + whenStr : ''} med <strong>${creator}</strong>${tail}.`,
+      pastClass,
+      metaSuffix,
+    };
+  }
+  if (myInvite && myInvite.status === 'declined') {
+    return {
+      body: `Du avslo <strong>${creator}</strong>s invitasjon til ${venuePart}${whenStr ? ' ' + whenStr : ''}.`,
+      pastClass,
+      metaSuffix,
+    };
+  }
+
+  // Default: pending invite (or past, since past invites are filtered
+  // out of _planInvites and we fall through to here).
+  const verb = isPast ? 'inviterte' : 'har invitert';
+  return {
+    body: `<strong>${creator}</strong> ${verb} deg til ${venuePart}${whenStr ? ' ' + whenStr : ''}.`,
+    pastClass,
+    metaSuffix,
+  };
 }
 
 /** Bell row → venue detail. Looks up the venue by name in the global
@@ -2639,6 +2726,27 @@ async function loadPlans() {
     .select('*, plan:plans(*, creator:profiles!plans_creator_id_fkey(id, name, email, avatar_url))')
     .eq('user_id', _currentUser.id);
   if (!ie) _planInvites = (invites || []).filter(i => i.plan && new Date(i.plan.planned_at) > new Date());
+
+  // Decorate each invite's plan with _acceptedCount so the bell-inbox
+  // "Du skal til X med Y +N" wording has a live counter. Uses the
+  // SECURITY DEFINER helper plan_accepted_counts (migration 025) which
+  // bypasses plan_invites RLS (otherwise an invitee can only count
+  // their own row, not others' accepted statuses). One RPC for all
+  // invites; cheap.
+  if (_planInvites.length) {
+    const planIds = _planInvites.map(i => i.plan.id).filter(Boolean);
+    if (planIds.length) {
+      try {
+        const { data: counts } = await _supabase.rpc('plan_accepted_counts', { plan_ids: planIds });
+        if (Array.isArray(counts)) {
+          const byPlan = new Map(counts.map(c => [c.plan_id, c.count]));
+          for (const inv of _planInvites) {
+            if (inv.plan) inv.plan._acceptedCount = byPlan.get(inv.plan.id) ?? 0;
+          }
+        }
+      } catch (e) { /* RPC unavailable on first paint — bell render falls back to 0 */ }
+    }
+  }
   // Refresh the friends-going pill — _plans / _planInvites just changed
   // and the visible pill should reflect new accept/decline data. Same
   // for the avatar badge, which lights up on pending plan invites.

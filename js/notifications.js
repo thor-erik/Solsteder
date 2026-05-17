@@ -15,6 +15,12 @@ const _NOTIF_AUTO_P0          = 8000;   // P0 auto-dismiss
 const _NOTIF_AUTO_DEFAULT     = 6000;   // other auto-dismiss
 const _NOTIF_LEGACY_DISMISS   = 2200;   // legacy _showToast timing
 
+// Temporary app-wide kill-switch: only `social` notifications fire while we
+// dial the others in. Overrides per-user settings — toggles for these
+// categories are also hidden in the profile panel. To re-enable, remove
+// the category from this set.
+const _NOTIF_DISABLED_CATEGORIES = new Set(['weather', 'suggestion', 'login']);
+
 // ── Mutable State ─────────────────────────────────────────────��──────────────
 
 let _notifQueue         = [];         // sorted by priority then FIFO
@@ -97,6 +103,7 @@ function _notifCanShow() {
   if (document.body.classList.contains('post-accept-active'))  return false;
   if (document.body.classList.contains('invite-sheet-open'))   return false;
   if (document.body.classList.contains('profile-panel-open'))  return false;
+  if (document.body.classList.contains('bell-open'))           return false;
   // Grace period: no queued toasts for first 8s (lets user orient)
   const elapsed = Date.now() - _notifSessionStart;
   if (elapsed < _NOTIF_GRACE_PERIOD) return false;
@@ -614,6 +621,16 @@ function _evalCheckinPrompt() {
     if (dist < nearestDist) { nearestDist = dist; nearest = v; }
   }
   if (!nearest || nearestDist > 100) return null;
+  // Don't prompt for venues that are closed or whose hours we don't know.
+  // Hit a real case where the toast suggested a permanently-closed spot.
+  if (nearest.businessStatus && nearest.businessStatus !== 'OPERATIONAL') return null;
+  if (!nearest.openingHours && !nearest.openingHoursWeekly) return null;
+  if (typeof getVenueHoursForDay === 'function' && typeof currentHour === 'function' && typeof todayStr === 'function') {
+    const hours = getVenueHoursForDay(nearest, todayStr());
+    const now = currentHour();
+    if (!hours || hours.open == null || hours.close == null) return null;
+    if (now < hours.open || now > hours.close) return null;
+  }
   return {
     id: 'social_checkin', priority: 1, category: 'social',
     icon: '📍', bodyKey: 'notif_checkin_body',
@@ -970,6 +987,7 @@ function _notifEvaluate() {
     try {
       const notif = evaluator();
       if (!notif) continue;
+      if (_NOTIF_DISABLED_CATEGORIES.has(notif.category)) { console.log('[notif] blocked by kill-switch:', notif.id); continue; }
       if (!settings[notif.category]) { console.log('[notif] blocked by settings:', notif.id); continue; }
       if (_notifDismissed.has(notif.id)) { console.log('[notif] dismissed:', notif.id); continue; }
       // Login prompts: max 1 per type per session
@@ -1034,7 +1052,7 @@ function _notifSettingsHtml() {
     { key: 'weather',    labelKey: 'notif_cat_weather' },
     { key: 'social',     labelKey: 'notif_cat_social' },
     { key: 'suggestion', labelKey: 'notif_cat_suggestion' },
-  ];
+  ].filter(c => !_NOTIF_DISABLED_CATEGORIES.has(c.key));
   const activeCount = categories.filter(c => settings[c.key] !== false).length;
   const totalCount  = categories.length;
 

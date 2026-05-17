@@ -58,7 +58,14 @@ function openPlanPreview(opts) {
   )
     ? _planInvites.find(inv => {
         if (!inv || !inv.plan) return false;
-        if (inv.status === 'declined') return false;
+        // Match pending AND declined invites — a user re-opening a
+        // notification they previously declined should land in invite
+        // mode so they can change their answer to 'I'm in'. The plan-
+        // preview footer reads the current status when it renders, so
+        // the button row reflects "you've declined" if applicable.
+        // Accepted invites also match: opening from the bell row gives
+        // them the Accept/Decline footer too, so they can flip to
+        // declined or just see the plan in context.
         if (String(inv.plan.venue_id) !== String(opts.venueId)) return false;
         // Tolerate sub-second differences between the ISO string in the
         // notification payload and the one Supabase stored.
