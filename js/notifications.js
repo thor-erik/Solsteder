@@ -69,7 +69,21 @@ function _notifSaveSettings(settings) {
 
 function _notifEnqueue(notif) {
   if (_notifDismissed.has(notif.id)) return;
-  if (notif.dedupe && _notifQueue.some(n => n.id === notif.id)) return;
+  // If a notif with the same id is already in the queue, REPLACE it
+  // rather than drop the new one. Aggregating evaluators (e.g.
+  // _evalInviteAccepted, _evalInviteDeclined) produce a fresher notif
+  // on each cycle as new acceptors/decliners come in — dropping the
+  // new one would lock the queue to the stale bodyVars. The freshest
+  // copy wins so the toast (when it eventually shows) and bell entry
+  // both reflect the latest count + newest acceptor name.
+  if (notif.dedupe) {
+    const existingIdx = _notifQueue.findIndex(n => n.id === notif.id);
+    if (existingIdx >= 0) {
+      notif._queuedAt = _notifQueue[existingIdx]._queuedAt || Date.now();
+      _notifQueue[existingIdx] = notif;
+      return;
+    }
+  }
   if (_notifCurrent && _notifCurrent.id === notif.id) return;
   notif._queuedAt = Date.now();
   // Insert sorted: lower priority number first, then FIFO
@@ -652,88 +666,99 @@ function _evalInviteAccepted() {
   const KEY = 'solsteder_seen_invite_responses';
   let seen = {};
   try { seen = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch {}
-  const newAccepts = []; // [{plan, invitee}]
+
+  // Aggregate per plan (not per acceptor) — the inviter sees one row
+  // per plan in their inbox: "Anna +2 har godtatt invitasjonen din til
+  // Starbucks i morgen kl 12". Each fresh accept overwrites the bell
+  // entry (same id, fresh readAt → "new" dot re-appears) and updates
+  // the displayed head name + count.
+  //
+  // The seen-cache is still per-(plan, invitee) so we don't re-fire
+  // for accepts the user has already been notified about. But the
+  // notif we return is per-plan.
+  //
+  // Walks all the user's plans; for the first plan with any NEW accept
+  // (not in seen-cache), builds + returns the notif. Other plans with
+  // new accepts get picked up on subsequent eval cycles (realtime on
+  // plan_invites + the 60s social poll triggers loadPlans → eval again
+  // within a few seconds).
   for (const p of _plans) {
     if (p.creator_id !== _currentUser.id) continue;
     if (!Array.isArray(p._invitees)) continue;
-    for (const inv of p._invitees) {
-      if (inv.status !== 'accepted') continue;
-      const k = `${p.id}:${inv.user_id}`;
-      if (seen[k] === 'accepted') continue;
-      newAccepts.push({ plan: p, invitee: inv });
-    }
-  }
-  if (!newAccepts.length) return null;
-  const head = newAccepts[0];
-  const venue = (typeof VENUES !== 'undefined') ? VENUES.find(x => String(x.id) === String(head.plan.venue_id)) : null;
-  if (!venue) return null;
-  const u = head.invitee.user || {};
-  const name = (u.name || u.email || '').split(' ')[0].split('@')[0] || '…';
-  const extra = newAccepts.length - 1;
-  // Off-plan-time arrival → include the time in the toast: "Maja sa ja til
-  // Egon — kommer 14:00". Skips when arrival_time is null or within 5 min of
-  // plan time. Only applies to the single-accept (extra === 0) variant.
-  let arrivalTime = null;
-  if (extra === 0 && head.invitee.arrival_time && head.plan.planned_at) {
-    const planMs = new Date(head.plan.planned_at).getTime();
-    const arrMs = new Date(head.invitee.arrival_time).getTime();
-    if (Math.abs(arrMs - planMs) >= 5 * 60 * 1000) {
-      const d = new Date(arrMs);
-      arrivalTime = (typeof formatHour === 'function')
-        ? formatHour(d.getHours() + d.getMinutes() / 60)
-        : `${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
-    }
-  }
-  let bodyKey;
-  if (extra > 0) bodyKey = 'notif_invite_accepted_multi';
-  else if (arrivalTime) bodyKey = 'notif_invite_accepted_at';
-  else bodyKey = 'notif_invite_accepted_body';
-  return {
-    id: 'social_invite_accepted_' + head.plan.id + '_' + head.invitee.user_id,
-    priority: 1, category: 'social',
-    icon: '☀',
-    bodyKey,
-    bodyVars: { name, venue: venue.name, extra, time: arrivalTime || '' },
-    actionKey: 'notif_open_plan',
-    action: () => {
-      // Mark all queued accepts as seen (don't keep nagging once user has responded)
-      try {
-        const cur = JSON.parse(localStorage.getItem(KEY) || '{}');
-        for (const a of newAccepts) cur[`${a.plan.id}:${a.invitee.user_id}`] = 'accepted';
-        localStorage.setItem(KEY, JSON.stringify(cur));
-      } catch {}
-      // Open the venue's detail panel (not the plan-preview sheet) — the
-      // friends-going pill on the detail page is the canonical surface
-      // for "who said yes". Plan-preview is a sender-flow surface, not
-      // appropriate for an inviter checking their accept count.
-      if (typeof selectVenue === 'function') {
-        selectVenue(Number(head.plan.venue_id), true);
+    const acceptedAll = p._invitees.filter(i => i.status === 'accepted');
+    if (!acceptedAll.length) continue;
+    const newAccepts = acceptedAll.filter(inv => seen[`${p.id}:${inv.user_id}`] !== 'accepted');
+    if (!newAccepts.length) continue;
+
+    const venue = (typeof VENUES !== 'undefined')
+      ? VENUES.find(x => String(x.id) === String(p.venue_id)) : null;
+    if (!venue) continue;
+
+    // Head = the newest accept (last item of newAccepts — the eval
+    // sees them in DB-load order, freshest accept appears last in
+    // the realtime → loadPlans round-trip).
+    const head = newAccepts[newAccepts.length - 1];
+    const u = head.user || {};
+    const headName = (u.name || u.email || '').split(' ')[0].split('@')[0] || '…';
+    // extra = OTHER accepted invitees beyond the head being named.
+    // Counts the full accepted set, not just newAccepts — the user
+    // wants the live total: "Anna +2" means Anna and 2 others total.
+    const extra = Math.max(0, acceptedAll.length - 1);
+
+    // Off-plan-time arrival → include the time in the toast (single-
+    // accept variant only). Skips for the aggregated multi variant
+    // since arrival times would conflict.
+    let arrivalTime = null;
+    if (extra === 0 && head.arrival_time && p.planned_at) {
+      const planMs = new Date(p.planned_at).getTime();
+      const arrMs = new Date(head.arrival_time).getTime();
+      if (Math.abs(arrMs - planMs) >= 5 * 60 * 1000) {
+        const d = new Date(arrMs);
+        arrivalTime = (typeof formatHour === 'function')
+          ? formatHour(d.getHours() + d.getMinutes() / 60)
+          : `${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
       }
-    },
-    // Bell-row override: from the inbox, the user is reviewing past
-    // events, so plan-preview (creator + time + invitees status) reads
-    // better than the venue detail. _bellRecord picks bellAction over
-    // action when present.
-    bellAction: () => {
-      if (typeof openPlanPreview === 'function') {
-        openPlanPreview({ venueId: head.plan.venue_id, plannedAt: head.plan.planned_at });
-      } else if (typeof selectVenue === 'function') {
-        selectVenue(Number(head.plan.venue_id), true);
-      }
-    },
-    // Serializable nav for the bell row — used after a page reload when
-    // the action function is no longer in memory.
-    nav: { kind: 'plan', venueId: head.plan.venue_id, plannedAt: head.plan.planned_at },
-    ttl: 600000, dedupe: true,
-    _onShow: () => {
-      // Persist dedupe at show-time so a missed action still doesn't re-fire.
-      try {
-        const cur = JSON.parse(localStorage.getItem(KEY) || '{}');
-        for (const a of newAccepts) cur[`${a.plan.id}:${a.invitee.user_id}`] = 'accepted';
-        localStorage.setItem(KEY, JSON.stringify(cur));
-      } catch {}
-    },
-  };
+    }
+    const bodyKey = extra > 0
+      ? 'notif_invite_accepted_multi'
+      : (arrivalTime ? 'notif_invite_accepted_at' : 'notif_invite_accepted_body');
+
+    return {
+      id: 'social_invite_accepted_' + p.id,
+      priority: 1, category: 'social',
+      icon: '☀',
+      bodyKey,
+      bodyVars: { name: headName, venue: venue.name, extra, time: arrivalTime || '' },
+      actionKey: 'notif_open_plan',
+      action: () => {
+        try {
+          const cur = JSON.parse(localStorage.getItem(KEY) || '{}');
+          for (const a of newAccepts) cur[`${p.id}:${a.user_id}`] = 'accepted';
+          localStorage.setItem(KEY, JSON.stringify(cur));
+        } catch {}
+        if (typeof selectVenue === 'function') {
+          selectVenue(Number(p.venue_id), true);
+        }
+      },
+      bellAction: () => {
+        if (typeof openPlanPreview === 'function') {
+          openPlanPreview({ venueId: p.venue_id, plannedAt: p.planned_at });
+        } else if (typeof selectVenue === 'function') {
+          selectVenue(Number(p.venue_id), true);
+        }
+      },
+      nav: { kind: 'plan', venueId: p.venue_id, plannedAt: p.planned_at },
+      ttl: 600000, dedupe: true,
+      _onShow: () => {
+        try {
+          const cur = JSON.parse(localStorage.getItem(KEY) || '{}');
+          for (const a of newAccepts) cur[`${p.id}:${a.user_id}`] = 'accepted';
+          localStorage.setItem(KEY, JSON.stringify(cur));
+        } catch {}
+      },
+    };
+  }
+  return null;
 }
 
 /**
@@ -749,62 +774,70 @@ function _evalInviteDeclined() {
   const KEY = 'solsteder_seen_invite_responses';
   let seen = {};
   try { seen = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch {}
-  const newDeclines = [];
   for (const p of _plans) {
     if (p.creator_id !== _currentUser.id) continue;
     if (!Array.isArray(p._invitees)) continue;
-    for (const inv of p._invitees) {
-      if (inv.status !== 'declined') continue;
-      // Dedupe key uses the user_id when present, else the row id, so
-      // multiple anon decline rows each get their own seen-marker.
+    const declinedAll = p._invitees.filter(i => i.status === 'declined');
+    if (!declinedAll.length) continue;
+    const newOnes = declinedAll.filter(inv => {
       const inviteeKey = inv.user_id || inv.id;
-      if (!inviteeKey) continue;
-      const k = `${p.id}:${inviteeKey}`;
-      if (seen[k] === 'declined') continue;
-      newDeclines.push({ plan: p, invitee: inv, dedupeKey: k });
-    }
+      return inviteeKey && seen[`${p.id}:${inviteeKey}`] !== 'declined';
+    });
+    if (!newOnes.length) continue;
+
+    const venue = (typeof VENUES !== 'undefined')
+      ? VENUES.find(x => String(x.id) === String(p.venue_id)) : null;
+    if (!venue) continue;
+
+    // Head = newest decline (last in newOnes — see _evalInviteAccepted
+    // for the same ordering rationale).
+    const head = newOnes[newOnes.length - 1];
+    const u = head.user || {};
+    const headName = (u.name || u.email || '').split(' ')[0].split('@')[0] || t('attendee_someone');
+    // extra = OTHER declines beyond the head being named (across the
+    // full declined set, not just newOnes). User wants a live total
+    // so the bell stays accurate as more decline.
+    const extra = Math.max(0, declinedAll.length - 1);
+    const bodyKey = extra > 0 ? 'notif_invite_declined_multi' : 'notif_invite_declined_body';
+
+    const markSeen = () => {
+      try {
+        const cur = JSON.parse(localStorage.getItem(KEY) || '{}');
+        for (const d of newOnes) {
+          const inviteeKey = d.user_id || d.id;
+          if (inviteeKey) cur[`${p.id}:${inviteeKey}`] = 'declined';
+        }
+        localStorage.setItem(KEY, JSON.stringify(cur));
+      } catch {}
+    };
+
+    return {
+      id: 'social_invite_declined_' + p.id,
+      priority: 1, category: 'social',
+      icon: '🙅',
+      bodyKey,
+      bodyVars: { name: headName, venue: venue.name, extra },
+      actionKey: 'notif_open_plan',
+      action: () => {
+        markSeen();
+        if (typeof selectVenue === 'function') {
+          selectVenue(Number(p.venue_id), true);
+        }
+      },
+      bellAction: () => {
+        markSeen();
+        if (typeof openPlanPreview === 'function') {
+          openPlanPreview({ venueId: p.venue_id, plannedAt: p.planned_at });
+        } else if (typeof selectVenue === 'function') {
+          selectVenue(Number(p.venue_id), true);
+        }
+      },
+      nav: { kind: 'plan', venueId: p.venue_id, plannedAt: p.planned_at },
+      ttl: 600000, dedupe: true,
+      _onShow: markSeen,
+    };
   }
-  if (!newDeclines.length) return null;
-  const head = newDeclines[0];
-  const venue = (typeof VENUES !== 'undefined') ? VENUES.find(x => String(x.id) === String(head.plan.venue_id)) : null;
-  if (!venue) return null;
-  const u = head.invitee.user || {};
-  const name = (u.name || u.email || '').split(' ')[0].split('@')[0] || t('attendee_someone');
-  const extra = newDeclines.length - 1;
-  const bodyKey = extra > 0 ? 'notif_invite_declined_multi' : 'notif_invite_declined_body';
-  const markSeen = () => {
-    try {
-      const cur = JSON.parse(localStorage.getItem(KEY) || '{}');
-      for (const d of newDeclines) cur[d.dedupeKey] = 'declined';
-      localStorage.setItem(KEY, JSON.stringify(cur));
-    } catch {}
-  };
-  return {
-    id: 'social_invite_declined_' + head.dedupeKey,
-    priority: 1, category: 'social',
-    icon: '🙅',
-    bodyKey,
-    bodyVars: { name, venue: venue.name, extra },
-    actionKey: 'notif_open_plan',
-    action: () => {
-      markSeen();
-      if (typeof selectVenue === 'function') {
-        selectVenue(Number(head.plan.venue_id), true);
-      }
-    },
-    // Bell-row override: open the plan-preview sheet for context.
-    bellAction: () => {
-      markSeen();
-      if (typeof openPlanPreview === 'function') {
-        openPlanPreview({ venueId: head.plan.venue_id, plannedAt: head.plan.planned_at });
-      } else if (typeof selectVenue === 'function') {
-        selectVenue(Number(head.plan.venue_id), true);
-      }
-    },
-    nav: { kind: 'plan', venueId: head.plan.venue_id, plannedAt: head.plan.planned_at },
-    ttl: 600000, dedupe: true,
-    _onShow: markSeen,
-  };
+  return null;
 }
 
 /**

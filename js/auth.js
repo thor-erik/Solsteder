@@ -1543,25 +1543,46 @@ function _enrichPlanNotificationBody(entry) {
   const pastClass = isPast ? ' bd-row--past' : '';
   const metaSuffix = isPast ? ' · Utgått' : '';
 
-  // Pull the actor's display name from the existing body's <strong> wrapper.
-  // Server-rendered bodies wrap the relevant person's name; client-rendered
-  // bodies do the same. Fall back to "Noen" if missing.
-  const m = entry.body && entry.body.match(/<strong>([^<]+)<\/strong>/);
-  const actorRaw = (m && m[1]) || 'Noen';
+  // Pull the actor's display name from the existing body. Server-
+  // rendered bodies (SQL trigger 022/024) wrap the name in <strong>;
+  // client-rendered toast bodies (i18n templates like "{name} sa ja
+  // til {venue}") have it as the first whitespace-bounded token. Try
+  // both, fall back to "Noen" if neither matches.
+  const mStrong = entry.body && entry.body.match(/<strong>([^<]+)<\/strong>/);
+  const firstToken = entry.body ? entry.body.split(/\s+/)[0].replace(/^<\w+>/, '').replace(/<\/\w+>$/, '') : '';
+  const actorRaw = (mStrong && mStrong[1]) || firstToken || 'Noen';
   const actor = actorRaw.split('@')[0].split(' ')[0];
 
-  // Inviter-side notifications — fired by _evalInviteAccepted / _evalInviteDeclined.
-  // The actor is the INVITEE who responded; subject is the current user's plan.
+  // Inviter-side notifications — fired by _evalInviteAccepted /
+  // _evalInviteDeclined. ID prefix carries the plan_id; look up the
+  // live plan to compute the +N tail. User-requested wording:
+  //   "Anna +2 har godtatt invitasjonen din til Starbucks i morgen kl 12"
+  //   "Anna +1 har avslått invitasjonen din til Starbucks ..."
+  // +N excludes the head being named (always the most recent
+  // responder), so the total = head + N others. Live because _plans
+  // gets refreshed by realtime → loadPlans → bell re-render.
   if (typeof entry.id === 'string' && entry.id.startsWith('social_invite_accepted_')) {
+    const planId = entry.id.substring('social_invite_accepted_'.length);
+    const plan = (typeof _plans !== 'undefined' && Array.isArray(_plans))
+      ? _plans.find(p => p && p.id === planId) : null;
+    const total = plan ? (plan._invitees || []).filter(i => i.status === 'accepted').length : 1;
+    const extra = Math.max(0, total - 1);
+    const tail = extra > 0 ? ` +${extra}` : '';
     return {
-      body: `<strong>${actor}</strong> har godtatt invitasjonen til ${venuePart}${whenStr ? ' ' + whenStr : ''}.`,
+      body: `<strong>${actor}</strong>${tail} har godtatt invitasjonen din til ${venuePart}${whenStr ? ' ' + whenStr : ''}.`,
       pastClass,
       metaSuffix,
     };
   }
   if (typeof entry.id === 'string' && entry.id.startsWith('social_invite_declined_')) {
+    const planId = entry.id.substring('social_invite_declined_'.length);
+    const plan = (typeof _plans !== 'undefined' && Array.isArray(_plans))
+      ? _plans.find(p => p && p.id === planId) : null;
+    const total = plan ? (plan._invitees || []).filter(i => i.status === 'declined').length : 1;
+    const extra = Math.max(0, total - 1);
+    const tail = extra > 0 ? ` +${extra}` : '';
     return {
-      body: `<strong>${actor}</strong> har avslått invitasjonen til ${venuePart}${whenStr ? ' ' + whenStr : ''}.`,
+      body: `<strong>${actor}</strong>${tail} har avslått invitasjonen din til ${venuePart}${whenStr ? ' ' + whenStr : ''}.`,
       pastClass,
       metaSuffix,
     };
@@ -2753,6 +2774,14 @@ async function loadPlans() {
   if (typeof _updateFriendsPill === 'function') _updateFriendsPill();
   if (typeof _updateAvatarBadge === 'function') _updateAvatarBadge();
   if (typeof _renderProfilePanel === 'function') _renderProfilePanel();
+  // Bell-inbox live update — if the user has the dropdown open while
+  // a new accept/decline lands (realtime → loadPlans → here), repaint
+  // the rows so "Anna +N" reflects the fresh count without requiring
+  // a close+reopen.
+  if (document.getElementById('bell-dropdown')?.classList.contains('open')
+      && typeof _renderBellDropdown === 'function') {
+    _renderBellDropdown();
+  }
 }
 
 async function createPlan(venueId, plannedAt, message, friendIds) {
