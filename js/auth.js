@@ -1586,6 +1586,15 @@ function _enrichPlanNotificationBody(entry) {
   if (!entry || !entry.nav || entry.nav.kind !== 'plan' || entry.nav.venueId == null) {
     return null;
   }
+  // Reminder rows (sql/029 trigger) come pre-rendered with timing-
+  // sensitive copy ("Du skal til X om 30 min."). Skip the enrichment
+  // so we don't overwrite that with the standard "accepted state"
+  // wording from the receiver-perspective branch below.
+  if (typeof entry.id === 'string'
+      && (entry.id.startsWith('plan_reminder_creator:')
+          || entry.id.startsWith('plan_reminder_invitee:'))) {
+    return null;
+  }
 
   const venueObj = (typeof VENUES !== 'undefined' && Array.isArray(VENUES))
     ? VENUES.find(v => String(v.id) === String(entry.nav.venueId)) : null;
