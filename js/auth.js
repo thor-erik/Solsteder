@@ -1053,13 +1053,17 @@ function _loginSlideIcon(i) {
 // the rendered body + lead + action ref so the bell row can replay the
 // click. Map by notif.id so a re-firing notification dedupes/updates.
 const _bellHistory = new Map();
-// IDs currently rendered in the open bell dropdown. Used by
-// _renderBellDropdown to detect fresh arrivals (entries that weren't
-// present at the prior render) so they animate in via bd-row--entering.
-// Cleared when the dropdown closes so the next open re-establishes the
-// baseline without animating everything.
-let _bellRenderedIds = new Set();
-const _BELL_HISTORY_MAX = 30;
+// Rows currently rendered in the open bell dropdown, keyed by id.
+// Used by _renderBellDropdown to diff against the next render so:
+//   - existing rows keep stable DOM nodes (no innerHTML rebuild flash)
+//   - removed rows disappear cleanly
+//   - new rows insert with a max-height animation that pushes
+//     existing siblings down via natural layout reflow
+// Cleared when the dropdown closes so the next open re-establishes
+// the baseline without animating everything.
+let _bellRenderedRows = new Map();
+const _BELL_HISTORY_MAX = 30;          // hard upper bound (anti-runaway)
+const _BELL_HISTORY_TTL_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
 
 // Unread state lives on the notifications row (read_at column). Bell
 // open marks every visible entry read; per-row click also marks the
@@ -1235,6 +1239,14 @@ function _bellRecord(notif) {
     action: notif.bellAction || notif.action,
   };
   _bellHistory.set(notif.id, entry);
+  // Time-based eviction — drop anything older than 14 days. Keeps the
+  // inbox "active" without infinite scroll-back. Hard cap stays as a
+  // belt-and-braces guard against pathological burst (60+ rows in a
+  // single day still trips the cap).
+  const cutoff = Date.now() - _BELL_HISTORY_TTL_MS;
+  for (const [k, v] of _bellHistory) {
+    if (v.ts < cutoff) _bellHistory.delete(k);
+  }
   if (_bellHistory.size > _BELL_HISTORY_MAX) {
     let oldestId = null, oldestTs = Infinity;
     _bellHistory.forEach((v, k) => { if (v.ts < oldestTs) { oldestTs = v.ts; oldestId = k; } });
@@ -1409,8 +1421,9 @@ function _closeBellDropdown() {
   document.getElementById('bell-dropdown')?.classList.remove('open');
   document.body.classList.remove('bell-open');
   document.getElementById('ts-bell-btn')?.classList.remove('active');
-  // Reset arrival tracking — next open re-establishes the baseline.
-  _bellRenderedIds.clear();
+  // Reset diff tracking — next open re-establishes the baseline so
+  // existing rows don't animate in as "fresh."
+  _bellRenderedRows.clear();
   // Mark everything currently visible as seen — next open won't dot it.
   _bellNoteOpened();
   if (typeof _updateAvatarBadge === 'function') _updateAvatarBadge();
@@ -1541,29 +1554,100 @@ function _renderBellDropdown() {
         </svg>
         <div class="bd-empty-text">Innboksen er tom.</div>
       </div>`;
-    _bellRenderedIds.clear();
+    _bellRenderedRows.clear();
     return;
   }
 
-  // Identify newly-arrived rows (rendered for the first time while the
-  // dropdown is open) so we can animate them in. The first render after
-  // open establishes the baseline — entries already present then are
-  // NOT animated. Subsequent renders (loadPlans realtime refresh) mark
-  // entries whose id wasn't in the previous set as new.
-  const seedRender = _bellRenderedIds.size === 0;
-  const nextRenderedIds = new Set();
-  for (const e of entries) nextRenderedIds.add(e.id);
+  // DOM-diff render: keep stable node identity per id so existing rows
+  // don't re-mount (no flash on +N updates), and new rows animate in
+  // with a max-height transition that naturally pushes existing
+  // siblings down via reflow.
+  const seedRender = _bellRenderedRows.size === 0;
+  const targetIds = new Set(entries.map(e => e.id));
 
-  dropdown.innerHTML = entries.map(e => {
-    const isFreshArrival = !seedRender && !_bellRenderedIds.has(e.id);
-    if (isFreshArrival) {
-      // Inject the bd-row--entering class onto the outer .bd-row div.
-      return e.html.replace(/class="bd-row /, 'class="bd-row bd-row--entering ');
+  // 1. Remove DOM nodes whose ids are no longer in the target set.
+  for (const [id, row] of _bellRenderedRows) {
+    if (!targetIds.has(id)) { row.remove(); _bellRenderedRows.delete(id); }
+  }
+  // Clean up any leftover non-bd-row children (e.g. the empty-state
+  // svg from a prior empty render) so the diff has a clean canvas.
+  for (const child of [...dropdown.children]) {
+    if (!child.classList || !child.classList.contains('bd-row')) child.remove();
+  }
+
+  // 2. Walk target entries in order; ensure each is in DOM at the
+  //    correct position. Existing rows get their inner content updated
+  //    in place; new rows are created and slid in.
+  let prevNode = null;
+  for (const entry of entries) {
+    let row = _bellRenderedRows.get(entry.id);
+    if (row) {
+      // Existing — refresh inner content (handles +N changes, body
+      // rewrites, read-state class flips). Outer attrs stay so we
+      // don't lose the node identity.
+      const tmp = document.createElement('div');
+      tmp.innerHTML = entry.html.trim();
+      const fresh = tmp.firstElementChild;
+      if (fresh) {
+        row.className = fresh.className;
+        // Re-bind onclick (rendered inline in entry.html) so the
+        // captured-id stays current after refresh.
+        const onclickAttr = fresh.getAttribute('onclick');
+        if (onclickAttr) row.setAttribute('onclick', onclickAttr); else row.removeAttribute('onclick');
+        row.innerHTML = fresh.innerHTML;
+      }
+      // Move to correct position if needed
+      const expectedPrev = prevNode;
+      if (expectedPrev ? expectedPrev.nextSibling !== row : dropdown.firstChild !== row) {
+        if (expectedPrev) expectedPrev.after(row);
+        else dropdown.prepend(row);
+      }
+    } else {
+      // New — create + insert + animate in (skipped on seed render so
+      // opening the inbox doesn't animate every row).
+      const tmp = document.createElement('div');
+      tmp.innerHTML = entry.html.trim();
+      row = tmp.firstElementChild;
+      if (!row) continue;
+      if (prevNode) prevNode.after(row); else dropdown.prepend(row);
+      _bellRenderedRows.set(entry.id, row);
+      if (!seedRender) _bellAnimateRowIn(row);
     }
-    return e.html;
-  }).join('');
+    prevNode = row;
+  }
+}
 
-  _bellRenderedIds = nextRenderedIds;
+/** Slide a freshly-inserted row in via max-height + opacity. Existing
+ *  siblings reflow down naturally as the row's height grows from 0 to
+ *  its natural scrollHeight. */
+function _bellAnimateRowIn(row) {
+  if (!row) return;
+  // Skip animation when the user has reduced-motion enabled.
+  if (typeof matchMedia !== 'undefined'
+      && matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    return;
+  }
+  const target = row.scrollHeight;
+  if (!target) return; // off-screen / display:none — bail
+  row.style.maxHeight = '0px';
+  row.style.opacity = '0';
+  row.style.overflow = 'hidden';
+  // Force a reflow so the starting state is committed before we
+  // apply the transition target.
+  void row.offsetHeight;
+  row.style.transition = 'max-height 0.42s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.32s ease 0.10s';
+  row.style.maxHeight = target + 'px';
+  row.style.opacity = '1';
+  const cleanup = () => {
+    row.style.maxHeight = '';
+    row.style.opacity = '';
+    row.style.overflow = '';
+    row.style.transition = '';
+  };
+  row.addEventListener('transitionend', cleanup, { once: true });
+  // Belt-and-braces in case transitionend doesn't fire (display: none,
+  // forced reflow, etc.) — clean up after the animation duration.
+  setTimeout(cleanup, 600);
 }
 
 /** Produce the state-dependent body for plan-related bell rows.
@@ -2787,10 +2871,19 @@ function _startSocialPoll() {
   if (_socialPollTimer) return;
   _socialPollTimer = setInterval(_socialPollTick, _SOCIAL_POLL_MS);
   // Also trigger an immediate refresh when the tab regains focus so the
-  // user isn't waiting up to 60 s after coming back to the app.
+  // user isn't waiting up to 60 s after coming back to the app. Plus a
+  // realtime resubscribe — if the websocket dropped silently while the
+  // tab was backgrounded (some browsers throttle/close inactive sockets
+  // after a few minutes), the next message wouldn't arrive. Re-binding
+  // the channels on resume catches that.
   if (typeof document !== 'undefined' && !_socialVisibilityWired) {
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') _socialPollTick();
+      if (document.visibilityState !== 'visible') return;
+      _socialPollTick();
+      try {
+        if (typeof _subscribeToPlanInvites === 'function') _subscribeToPlanInvites();
+        if (typeof _subscribeToFriendships === 'function') _subscribeToFriendships();
+      } catch { /* re-bind failures fall back to poll */ }
     });
     _socialVisibilityWired = true;
   }
