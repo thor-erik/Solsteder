@@ -1299,27 +1299,37 @@
   #top-strip .ts-date {
     display: inline-flex;
     align-items: center;
-    gap: 3px;
+    gap: 4px;
     color: var(--text);
     font-weight: 600;
-    padding: 5px 8px;
-    margin: -5px -2px -5px -8px;
-    border-radius: 12px;
+    padding: 5px 9px;
+    margin: -5px -2px -5px -4px;
+    border-radius: 10px;
     cursor: pointer;
-    background: none;
+    /* Subtle resting fill so the date reads as a control rather than
+       inline text. Same surface alpha as glass-action buttons, but
+       borderless so it stays integrated with the strip cluster. */
+    background: rgba(155,169,188,0.10);
     border: none;
     font-family: inherit;
     font-size: inherit;
-    transition: background 120ms;
+    transition: background 120ms, color 120ms;
   }
-  #top-strip .ts-date:hover { background: rgba(155,169,188,0.10); }
-  #top-strip .ts-date.active { color: var(--accent); }
+  #top-strip .ts-date:hover { background: rgba(155,169,188,0.18); }
+  #top-strip .ts-date.active {
+    background: rgba(245,194,94,0.16);
+    color: var(--accent);
+  }
   #top-strip .ts-date .ts-chev {
     width: 11px; height: 11px;
-    color: var(--muted);
-    transition: transform 120ms, color 120ms;
+    /* Brighter chevron so the "tap to open" affordance is legible at
+     glance — was --muted, dropped into the noise next to the dots. */
+    color: var(--text);
+    opacity: 0.7;
+    transition: transform 120ms, color 120ms, opacity 120ms;
   }
-  #top-strip .ts-date.active .ts-chev { color: var(--accent); transform: rotate(180deg); }
+  #top-strip .ts-date:hover .ts-chev { opacity: 1; }
+  #top-strip .ts-date.active .ts-chev { color: var(--accent); opacity: 1; transform: rotate(180deg); }
   #top-strip .ts-center .ts-dot { color: rgba(155,169,188,0.4); font-weight: 400; }
   /* Date and weather icon read as a pair — pull the icon tighter against
      the date button (no dot separator between them, unlike temp/wind). */
