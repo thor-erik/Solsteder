@@ -718,6 +718,13 @@ function _drawPill(ctx, pt, w, time, tier, opts) {
   ctx.shadowColor = 'transparent';
   if (hasFriends) {
     _drawFriendModule(ctx, moduleCx, moduleCy, friends, dot.fill);
+  } else if (opts.favorited) {
+    // Favourited: the circle itself becomes a heart, filled with the same
+    // tier colour the dot would have used (hero=honey, waiting/shadow=
+    // slate) so the sun-state read is preserved. No inner glyph — the
+    // heart silhouette IS the identity, and category info on a venue
+    // you've favourited is something you already know.
+    _drawHeartIcon(ctx, moduleCx, moduleCy, CIRCLE_R * 2 + 1, dot.fill);
   } else {
     ctx.beginPath();
     ctx.arc(moduleCx, moduleCy, CIRCLE_R, 0, Math.PI * 2);
@@ -741,60 +748,29 @@ function _drawPill(ctx, pt, w, time, tier, opts) {
     ctx.fillText(time, moduleCx + moduleW / 2 + CIRCLE_TIME_GAP, moduleCy + 0.5);
   }
 
-  // Favorite badge — heart at the top-right corner of the pill. Reads
-  // as a state overlay rather than replacing the category icon
-  // (recognition-load-bearing in the list). Solid honey heart on a
-  // cream halo so it reads against both light pills (cream-on-cream
-  // halo gives the heart its silhouette) and selected pills (the halo
-  // separates it from the slate body).
-  if (opts.favorited) {
-    // Anchor: corner of the pill, sat slightly outside so the heart
-    // reads as an applied badge rather than baked into the body.
-    const cxH = x + w - 2;
-    const cyH = y + 2;
-    // Heart bbox = 12×11 px. Tweak together to resize.
-    const W = 12, H = 11;
-    const left = cxH - W / 2;
-    const top  = cyH - H / 2;
-    ctx.save();
-
-    // Cream halo — a slightly inflated heart outline so the badge
-    // separates from whatever colour the pill body is.
-    ctx.beginPath();
-    _heartPath(ctx, left - 1.4, top - 1.4, W + 2.8, H + 2.8);
-    ctx.fillStyle = '#FAF1DD';
-    ctx.fill();
-
-    // Honey fill — the badge itself.
-    ctx.beginPath();
-    _heartPath(ctx, left, top, W, H);
-    ctx.fillStyle = TOKENS.accent || '#F5C25E';
-    ctx.fill();
-
-    ctx.restore();
-  }
 }
 
-// Heart silhouette inscribed in the (x, y, w, h) box. Two cardioid lobes
-// joined into a downward point at the bottom — symmetric, no tip-curl,
-// reads as a heart at 12 px and still at 8 px. Drawn as a stand-alone
-// helper because both the halo and the fill use the same shape.
-function _heartPath(ctx, x, y, w, h) {
-  const topY     = y + h * 0.30;   // lobe centre row
-  const lobeR    = w * 0.275;       // lobe radius
-  const cxL      = x + w * 0.27;    // left  lobe centre x
-  const cxR      = x + w * 0.73;    // right lobe centre x
-  const bottomY  = y + h;           // point apex
-  const cxMid    = x + w / 2;
-  // Top of each lobe → outer side of each lobe → meet at point.
-  ctx.moveTo(cxMid, topY + lobeR * 0.6);
-  // Left lobe — sweep up over the left half
-  ctx.bezierCurveTo(cxMid, topY - lobeR * 0.6, cxL - lobeR, topY - lobeR * 0.9, cxL - lobeR, topY);
-  ctx.bezierCurveTo(cxL - lobeR, topY + lobeR * 0.85, cxL,           topY + lobeR * 1.35, cxMid, bottomY);
-  // Right lobe — mirror
-  ctx.bezierCurveTo(cxR,           topY + lobeR * 1.35, cxR + lobeR, topY + lobeR * 0.85, cxR + lobeR, topY);
-  ctx.bezierCurveTo(cxR + lobeR, topY - lobeR * 0.9, cxMid, topY - lobeR * 0.6, cxMid, topY + lobeR * 0.6);
-  ctx.closePath();
+// Material Design heart icon — well-formed at small sizes, no hand-rolled
+// Bézier guesswork. Drawn via Path2D so the same path string renders
+// pixel-identically at any size. Inscribed in a 24×24 viewBox; the
+// caller passes the desired output size + a fill colour. Filled, not
+// stroked — the silhouette is what makes the heart read.
+const _HEART_PATH_2D = (typeof Path2D !== 'undefined')
+  ? new Path2D('M 12 21.35 C 6.5 16 2 12.5 2 8.5 C 2 5.5 4.5 3 7.5 3 C 9.24 3 10.91 3.81 12 5.09 C 13.09 3.81 14.76 3 16.5 3 C 19.5 3 22 5.5 22 8.5 C 22 12.5 17.5 16 12 21.35 Z')
+  : null;
+
+function _drawHeartIcon(ctx, cx, cy, size, fill) {
+  if (!_HEART_PATH_2D) return;
+  const s = size / 24;
+  ctx.save();
+  // The Material heart's optical centre sits a touch below geometric
+  // centre (the bottom point pulls the mass down) — nudge the translate
+  // up by ~6% of size so the heart reads as centred in the module slot.
+  ctx.translate(cx - 12 * s, cy - 12 * s - size * 0.04);
+  ctx.scale(s, s);
+  ctx.fillStyle = fill;
+  ctx.fill(_HEART_PATH_2D);
+  ctx.restore();
 }
 
 // ── AABB overlap & density score (for floating name placement) ────────────────
