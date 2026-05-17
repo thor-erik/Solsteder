@@ -741,9 +741,34 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     new Date(opts.plannedAt).getTime() < Date.now() - 30 * 60 * 1000
   );
 
-  const isInvite     = !isPast && (opts.mode === 'invite' || opts.mode === 'invite-anon');
-  const isAnon       = !isPast && (opts.mode === 'invite-anon');
-  const isPreview    = !isPast && (opts.mode === 'preview');
+  // Cancelled plan — detect from any live source we have access to.
+  // Receiver-side: _planInvites[i].plan.cancelled_at. Creator-side:
+  // _plans[i].cancelled_at. Fallback: opts.cancelled (some callers
+  // pass it explicitly from the notification nav payload). Overrides
+  // every other mode/branch: a cancelled plan only shows context +
+  // Lukk, no Accept/Decline/Share.
+  let isCancelled = !!opts.cancelled;
+  if (!isCancelled && opts.plannedAt) {
+    const planMs = new Date(opts.plannedAt).getTime();
+    const findMatch = (arr, getPlan) => arr && arr.find(item => {
+      const pl = getPlan(item);
+      if (!pl || String(pl.venue_id) !== String(opts.venueId)) return false;
+      const t = new Date(pl.planned_at).getTime();
+      return !isNaN(t) && Math.abs(t - planMs) < 60 * 1000;
+    });
+    const fromInvites = (typeof _planInvites !== 'undefined' && Array.isArray(_planInvites))
+      ? findMatch(_planInvites, i => i.plan) : null;
+    const fromPlans = (typeof _plans !== 'undefined' && Array.isArray(_plans))
+      ? findMatch(_plans, p => p) : null;
+    if ((fromInvites && fromInvites.plan && fromInvites.plan.cancelled_at)
+        || (fromPlans && fromPlans.cancelled_at)) {
+      isCancelled = true;
+    }
+  }
+
+  const isInvite     = !isPast && !isCancelled && (opts.mode === 'invite' || opts.mode === 'invite-anon');
+  const isAnon       = !isPast && !isCancelled && (opts.mode === 'invite-anon');
+  const isPreview    = !isPast && !isCancelled && (opts.mode === 'preview');
 
   // ── Venue meta line: area · category · "{dist} m" · walk-icon "{walkMin} min"
   const venueArea = venue.area || '';
@@ -897,6 +922,28 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
         </div>
       </div>`;
   } else if (isPreview) {
+    // Detect creator-of-this-plan to surface the "Avlys plan" link.
+    // In preview mode the user is almost always the creator (the
+    // auto-detect routes invitees to 'invite' mode), but double-check
+    // via _plans so we don't show Cancel to a passerby. The find-by-
+    // venue+time match is the same lookup pattern used elsewhere.
+    let isCreator = false;
+    let cancelPlanId = null;
+    try {
+      const planMs = opts.plannedAt ? new Date(opts.plannedAt).getTime() : NaN;
+      const ownPlan = (typeof _plans !== 'undefined' && Array.isArray(_plans))
+        ? _plans.find(p => p && p.creator_id === (typeof _currentUser !== 'undefined' && _currentUser && _currentUser.id)
+            && String(p.venue_id) === String(venue.id)
+            && !isNaN(planMs)
+            && Math.abs(new Date(p.planned_at).getTime() - planMs) < 60 * 1000
+            && !p.cancelled_at)
+        : null;
+      if (ownPlan) { isCreator = true; cancelPlanId = ownPlan.id; }
+    } catch (e) { /* leave isCreator false */ }
+    const cancelLink = isCreator && cancelPlanId
+      ? `<span class="dprcv-cta-sep" aria-hidden="true">·</span>
+         <button class="dprcv-cta-link is-decline" id="pp-cancel-plan" data-plan-id="${cancelPlanId}" type="button"><span>Avlys plan</span></button>`
+      : '';
     ctaHtml = `
       <div class="dprcv-footer">
         <button class="p-pill dprcv-cta-primary" id="pp-share-onward" type="button">
@@ -905,12 +952,23 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
         </button>
         <div class="dprcv-cta-row">
           <button class="dprcv-cta-link" id="pp-close-cta" type="button"><span>${t('close')}</span></button>
+          ${cancelLink}
         </div>
       </div>`;
   } else if (isPast) {
     // Past-event footer — single Lukk link, no primary CTA. Accept/Share
     // would be meaningless on a retrospective view; the eyebrow already
     // labels the context as past.
+    ctaHtml = `
+      <div class="dprcv-footer">
+        <div class="dprcv-cta-row">
+          <button class="dprcv-cta-link" id="pp-close-cta" type="button"><span>${t('close')}</span></button>
+        </div>
+      </div>`;
+  } else if (isCancelled) {
+    // Cancelled plan — same Lukk-only footer as past. The action set
+    // is dead; the invitee/creator opened this just to read the
+    // context of what was planned.
     ctaHtml = `
       <div class="dprcv-footer">
         <div class="dprcv-cta-row">
@@ -944,7 +1002,15 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   // suppresses the eyebrow entirely.
   const hasTopPill = !!(isInvite && opts.inviterName);
   let eyebrow = '';
-  if (isPast) {
+  if (isCancelled) {
+    // Cancelled plan — the host called it off. Eyebrow says
+    // "Kansellert" + the date the plan WAS for, so the invitee
+    // knows which plan this references at a glance.
+    const cancelDayLabel = (typeof _dayLabel === 'function' && dateStr)
+      ? _capFirst(_dayLabel(dateStr))
+      : ((typeof _fmtInviteDate === 'function' && dateStr) ? _fmtInviteDate(dateStr) : '');
+    eyebrow = cancelDayLabel ? `Kansellert · ${cancelDayLabel}` : 'Kansellert';
+  } else if (isPast) {
     // Past-event eyebrow — "Tidligere · i går" / "Tidligere · søndag" /
     // "Tidligere · 12. mai" depending on how far back. _dayLabel handles
     // the relative phrasing across all 4 locales.
@@ -1467,7 +1533,36 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   };
 
   const closeCta = el.querySelector('#pp-close-cta');
-  if (closeCta) closeCta.onclick = () => closePlanPreview(isPast ? { skipDetailOpen: true } : {});
+  if (closeCta) closeCta.onclick = () => closePlanPreview((isPast || isCancelled) ? { skipDetailOpen: true } : {});
+
+  const cancelCta = el.querySelector('#pp-cancel-plan');
+  if (cancelCta) cancelCta.onclick = async (ev) => {
+    const planId = cancelCta.getAttribute('data-plan-id');
+    if (!planId) return;
+    // Two-tap confirm — first tap arms ("Sikker?"), second tap commits.
+    // Keeps the click away from being a destructive single-tap mistake
+    // without dragging in a full modal.
+    if (cancelCta.dataset.armed !== '1') {
+      cancelCta.dataset.armed = '1';
+      const labelEl = cancelCta.querySelector('span');
+      const original = labelEl ? labelEl.textContent : '';
+      if (labelEl) labelEl.textContent = 'Sikker?';
+      setTimeout(() => {
+        if (cancelCta.dataset.armed === '1') {
+          delete cancelCta.dataset.armed;
+          if (labelEl) labelEl.textContent = original;
+        }
+      }, 4000);
+      ev.preventDefault();
+      return;
+    }
+    delete cancelCta.dataset.armed;
+    cancelCta.disabled = true;
+    if (typeof cancelPlan === 'function') {
+      await cancelPlan(planId);
+    }
+    closePlanPreview({ skipDetailOpen: true });
+  };
 
   const shareCta = el.querySelector('#pp-share-onward');
   if (shareCta) shareCta.onclick = () => {

@@ -106,7 +106,7 @@
 <script defer src="js/i18n.js?v=20260516a"></script>
 <script defer src="js/config.js?v=20260425b"></script>
 <script defer src="js/tokens.js?v=20260509e"></script>
-<script defer src="js/auth.js?v=20260517d"></script>
+<script defer src="js/auth.js?v=20260517e"></script>
 <script defer src="js/login-carousel.js?v=20260428a"></script>
 <script defer src="js/analytics.js"></script>
 <script defer src="js/places.js?v=20260411b"></script>
@@ -129,7 +129,7 @@
 <script defer src="js/ui-shelter.js?v=20260416a"></script>
 <script defer src="js/render-wind.js?v=20260416b"></script>
 <script defer src="js/ui-detail.js?v=20260516e"></script>
-<script defer src="js/ui-plan-preview.js?v=20260517a"></script>
+<script defer src="js/ui-plan-preview.js?v=20260517b"></script>
 <script defer src="js/osm.js?v=20260513a"></script>
 <script defer src="js/notifications.js?v=20260517c"></script>
 <script defer src="js/push.js?v=20260514b"></script>
@@ -884,13 +884,15 @@
   /* Sits at the right end of the FTS row (vertically aligned to its bottom). */
   #locate-btn {
     position: fixed;
-    right: 16px;
-    /* 40px — matches the FTS slider height so both vertically align
-       cleanly without the previous +3px nudge. */
-    bottom: var(--fts-bottom, 16px);
+    /* Desktop default — tucked into the bottom-right corner.
+       Mobile (max-width 639px) overrides right + bottom + size below. */
+    right: 12px;
+    bottom: 12px;
     z-index: 920;
-    width: 40px;
-    height: 40px;
+    /* 34px on pointer-fine devices reads as right-sized for a mouse;
+       mobile rule below pushes it back to 40px for touch. */
+    width: 34px;
+    height: 34px;
     padding: 0;
     border-radius: 50%;
     /* Match the venue-list panel's glass instead of the more-solid action
@@ -919,12 +921,12 @@
     position: absolute;
     /* v1 used inset:0 + display:flex on the SVG itself, which broke its
        intrinsic sizing and pushed the glyph to the upper-left of the
-       40 px button. Pin to centre via explicit size + margin offset. */
-    width: 20px;
-    height: 20px;
+       button. Pin to centre via explicit size + margin offset. */
+    width: 18px;
+    height: 18px;
     top: 50%;
     left: 50%;
-    margin: -10px 0 0 -10px;
+    margin: -9px 0 0 -9px;
     opacity: 0;
     pointer-events: none;
     transform: translateY(-100%);
@@ -964,9 +966,10 @@
   /* ── Zoom jog slider ──────────────────────────────────────────────────────── */
   #zoom-jog {
     position: fixed;
-    right: 16px;
-    /* Sits 10px above the 40px locate-btn. */
-    bottom: calc(var(--fts-bottom, 16px) + 40px + 10px);
+    right: 12px;
+    /* Sits 8px above the 34px locate-btn on desktop (mobile rule below
+       restores the 40+10 stack). */
+    bottom: calc(12px + 34px + 8px);
     z-index: 900;
     touch-action: none;
     user-select: none;
@@ -974,9 +977,9 @@
     transition: opacity 0.25s ease;
   }
   .zj-track {
-    width: 40px;
-    height: 108px;
-    border-radius: 20px;
+    width: 34px;
+    height: 92px;
+    border-radius: 17px;
     background: var(--glass-action-bg);
     backdrop-filter: var(--glass-blur-action);
     -webkit-backdrop-filter: var(--glass-blur-action);
@@ -999,8 +1002,8 @@
     z-index: 1;
   }
   .zj-thumb {
-    width: 30px;
-    height: 30px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     background: rgba(156,189,231,0.25);
     border: 1.5px solid rgba(156,189,231,0.45);
@@ -1166,7 +1169,12 @@
          room under the system status bar.
        - Browser: env returns 0 too, floor gives 14px. */
     top: max(calc(env(safe-area-inset-top, 0px) + 2px), 14px);
-    left: 12px; right: 12px;
+    /* Mobile (default): edge-to-edge with 12px breathing on both sides.
+       Desktop overrides below cap the width so the strip reads as a
+       discrete control surface, not a chrome bar that flies along the
+       top of the page. */
+    left: 12px;
+    right: 12px;
     z-index: 900;
     height: 46px;
     display: grid;
@@ -1194,10 +1202,13 @@
      motion reads as "the bar leaves the screen" rather than "the bar
      fades to nothing while sitting in place." pointer-events:none keeps
      the (off-screen) bar from intercepting taps. */
+  /* Detail panel intentionally NOT in this list — the user wants the
+     strip to stay so they can scrub the date/time and re-evaluate the
+     same venue at another moment. Invite sheet stays hidden because
+     the plan is pinned to its planned_at. */
   body.plan-preview-active #top-strip,
   body.post-accept-active #top-strip,
   body.profile-panel-open #top-strip,
-  body:has(#detail-panel.open) #top-strip,
   body.invite-sheet-open #top-strip {
     transform: translateY(calc(-100% - env(safe-area-inset-top, 0px) - 14px));
     pointer-events: none;
@@ -1272,7 +1283,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    /* Tighter cluster: 4px between siblings reads as a single phrase;
+       the dot separators carry the visual break between temp / wind /
+       glyph groups, so the inter-sibling gap doesn't need to do that
+       work too. */
+    gap: 4px;
     font: 500 13px/1 'Inter', sans-serif;
     color: var(--text);
     min-width: 0;
@@ -1330,6 +1345,20 @@
   }
   @container topstrip (max-width: 240px) {
     #top-strip .ts-wx-icon, #top-strip .ts-glyph-dot { display: none; }
+  }
+
+  /* Desktop: stop the strip stretching corner-to-corner. Caps at the
+     natural content width plus breathing room, anchored against the
+     left edge so it aligns with the venue-list panel column below. */
+  @media (min-width: 640px) {
+    #top-strip {
+      left: 16px;
+      right: auto;
+      max-width: 720px;
+      /* width:max-content lets the grid shrink to whatever the cluster
+         actually needs (no trailing empty padding past the brand). */
+      width: max-content;
+    }
   }
 
   /* .intro-hidden + .mobile-ui-hidden (display:none !important) already
@@ -2164,20 +2193,48 @@
   }
   .profile-panel-signout:hover { background: rgba(255,255,255,0.05); color: var(--text); }
 
-  /* ── Top-right: brand logo ─────────────────────────────────────────────────── */
-  #floating-brand {
-    position: absolute;
-    top: 16px;
-    right: 16px;
-    z-index: 900;
-  }
-  #floating-brand .floating-card {
-    padding: 9px 14px;
-    display: flex;
+  /* ── Brand fold inside #top-strip (ts-right) ────────────────────────────────
+     Replaces the old #floating-brand floating-card. Sun-compass is the
+     primary brand affordance (animated, informational); the name is a
+     compact wordmark that disappears at narrow container widths. */
+  #top-strip .ts-brand {
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
+    margin-left: 4px;
+    padding: 0 6px 0 8px;
+    /* Subtle separator from the search button — same kind the date/temp
+       pair uses in ts-center. */
+    border-left: 1px solid rgba(155,169,188,0.18);
+    height: 30px;
   }
-  #floating-brand #brand-logo { margin-right: 2px; }
+  #top-strip .ts-brand-name {
+    font: 700 13px/1 'Inter', sans-serif;
+    color: var(--text);
+    letter-spacing: 0.01em;
+    flex-shrink: 0;
+  }
+  #top-strip .ts-sun-compass {
+    display: block;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  /* Mobile: drop the brand block — top-strip is tight, the avatar +
+     bell + search trio already fills the row. */
+  @media (max-width: 639px) {
+    #top-strip .ts-brand { display: none; }
+  }
+  /* Container query (matches the existing ts-center fallbacks): drop
+     the wordmark first so the compass + chrome survive on narrower
+     desktop windows. */
+  @container topstrip (max-width: 560px) {
+    #top-strip .ts-brand-name { display: none; }
+  }
+  @container topstrip (max-width: 460px) {
+    #top-strip .ts-brand { display: none; }
+  }
 
   /* ── Time slider — Stage 2b: child of #panel, normal flow ─────────────────
      Was a position:fixed top-level element; now lives inside the panel
@@ -4868,14 +4925,24 @@
 
     /* Locate button — sits ~6px above the panel top edge. FTS used to
        float ABOVE the panel and locate-btn stacked above it; now FTS
-       lives inside the panel, so locate-btn just hugs the panel top. */
-    #locate-btn { bottom: calc(var(--peek-h, 252px) + 14px); right: 12px; }
+       lives inside the panel, so locate-btn just hugs the panel top.
+       Restore the 40 px touch target on mobile (desktop default is 34). */
+    #locate-btn {
+      width: 40px;
+      height: 40px;
+      bottom: calc(var(--peek-h, 252px) + 14px);
+      right: 12px;
+    }
+    #locate-btn .locate-icon { width: 20px; height: 20px; margin: -10px 0 0 -10px; }
     body.fts #locate-btn { bottom: calc(var(--fts-bottom, 160px) + 6px); right: 12px; transition: bottom 0.34s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease; }
 
     /* Zoom jog — stacked 10px above the 40px locate button. */
     #zoom-jog { right: 12px; }
     #zoom-jog { bottom: calc(var(--peek-h, 252px) + 14px + 40px + 10px); }
     body.fts #zoom-jog { bottom: calc(var(--fts-bottom, 160px) + 6px + 40px + 10px); transition: bottom 0.34s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease; }
+    /* Mobile: restore the larger touch-friendly zoom-jog (40×108 with 30 px thumb). */
+    .zj-track { width: 40px; height: 108px; border-radius: 20px; }
+    .zj-thumb { width: 30px; height: 30px; }
 
     /* FTS thumb sized up on mobile (was 32, tried 40 — settled on 36px).
        Balance: 36 is a comfortable touch target without feeling oversized
@@ -11020,6 +11087,14 @@
           <path d="M21 21l-4.35-4.35"/>
         </svg>
       </button>
+      <!-- Brand + sun-compass folded INTO the top-strip on desktop so the
+           logo shares the strip's glass instead of floating in a separate
+           card with a perceived different background. Mobile hides this
+           block via the .ts-brand visibility rule below. -->
+      <div class="ts-brand" aria-hidden="false">
+        <span id="brand-name" class="ts-brand-name">Shades</span>
+        <canvas id="sun-compass" class="ts-sun-compass" width="36" height="36"></canvas>
+      </div>
     </div>
     <!-- Search-mode contents — shown when #top-strip has .searching.
          #venue-search is the same element the existing search logic
@@ -11080,14 +11155,8 @@
     </svg>
   </button>
 
-  <!-- Top-right: brand logo + sun compass -->
-  <div id="floating-brand" class="intro-hidden">
-    <div class="floating-card">
-      <div id="brand-logo"><img src="design/logo-pack-svg/logo-color-2000w.svg" alt="Shades" width="32" height="32" loading="lazy"></div>
-      <span id="brand-name">Shades</span>
-      <canvas id="sun-compass" width="36" height="36"></canvas>
-    </div>
-  </div>
+  <!-- Top-right brand floating card replaced by .ts-brand inside #top-strip. -->
+
 
   <!-- Bottom-center: date pill + sun arc + intent presets (hidden — replaced by qc-bar) -->
   <div id="floating-bottom" style="display:none">

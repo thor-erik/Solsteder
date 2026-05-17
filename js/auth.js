@@ -1181,7 +1181,15 @@ function _bellNavigate(nav) {
   }
   if (nav.kind === 'plan') {
     if (typeof openPlanPreview === 'function') {
-      openPlanPreview({ venueId: nav.venueId, plannedAt: nav.plannedAt });
+      openPlanPreview({
+        venueId: nav.venueId,
+        plannedAt: nav.plannedAt,
+        // Forward the cancelled flag from the notification's nav
+        // payload so the plan-preview can render the cancelled state
+        // even when the plan is no longer in _plans/_planInvites
+        // (cancelled plans are filtered out of those active lists).
+        cancelled: !!nav.cancelled,
+      });
     } else if (typeof selectVenue === 'function' && nav.venueId != null) {
       selectVenue(Number(nav.venueId), true);
     }
@@ -1605,6 +1613,21 @@ function _enrichPlanNotificationBody(entry) {
   const firstToken = entry.body ? entry.body.split(/\s+/)[0].replace(/^<\w+>/, '').replace(/<\/\w+>$/, '') : '';
   const actorRaw = (mStrong && mStrong[1]) || firstToken || 'Noen';
   const actor = actorRaw.split('@')[0].split(' ')[0];
+
+  // Cancelled plan — written by sql/026 trigger when the creator
+  // sets plans.cancelled_at. Render with the actor (creator) as a
+  // dimmed past-style row since the plan is no longer happening.
+  // CTA still opens the plan-preview in its cancelled state so the
+  // invitee can see context.
+  if (typeof entry.id === 'string' && entry.id.startsWith('plan_cancelled:')) {
+    return {
+      body: `<strong>${actor}</strong> kansellerte planen til ${venuePart}${whenStr ? ' ' + whenStr : ''}.`,
+      // Always dim — cancelled plans are dead state, regardless of
+      // whether the plan time has passed.
+      pastClass: ' bd-row--past',
+      metaSuffix: ' · Kansellert',
+    };
+  }
 
   // Inviter-side notifications — fired by _evalInviteAccepted /
   // _evalInviteDeclined. ID prefix carries the plan_id; look up the
@@ -2779,7 +2802,11 @@ async function loadPlans() {
     .or(`creator_id.eq.${_currentUser.id}`)
     .gt('planned_at', new Date().toISOString())
     .order('planned_at', { ascending: true });
-  if (!pe) _plans = plans || [];
+  // Filter cancelled plans out of the creator's active list — they
+  // shouldn't appear in friends-going pills, plan-preview suggestions,
+  // or the conflict-detection logic. The cancellation notification
+  // already informs invitees; the row stays in plans for that flow.
+  if (!pe) _plans = (plans || []).filter(p => !p.cancelled_at);
 
   // For plans the user created, also pull invitee statuses (for status pips +
   // the "your invite was accepted" notification evaluator).
@@ -2807,7 +2834,15 @@ async function loadPlans() {
     .from('plan_invites')
     .select('*, plan:plans(*, creator:profiles!plans_creator_id_fkey(id, name, email, avatar_url))')
     .eq('user_id', _currentUser.id);
-  if (!ie) _planInvites = (invites || []).filter(i => i.plan && new Date(i.plan.planned_at) > new Date());
+  // _planInvites holds the user's invitations for FUTURE, NON-CANCELLED
+  // plans. Cancelled plans get their own bell notification (sql/026
+  // trigger) and the invitee can still open the plan-preview in
+  // cancelled state via that row's CTA — but they don't appear in
+  // active-plan UI surfaces (avatar badge, friends-going pill, etc.).
+  if (!ie) _planInvites = (invites || []).filter(i =>
+    i.plan
+    && new Date(i.plan.planned_at) > new Date()
+    && !i.plan.cancelled_at);
 
   // Decorate each invite's plan with _acceptedCount so the bell-inbox
   // "Du skal til X med Y +N" wording has a live counter. Uses the
@@ -2915,6 +2950,32 @@ async function createPlan(venueId, plannedAt, message, friendIds) {
   await loadPlans();
   _showToast(t('plan_created'));
   return { success: true, plan };
+}
+
+/** Host cancels a plan. Soft-cancel: sets plans.cancelled_at, which
+ *  fires the DB triggers (sql/026) — invitees get a notifications-row
+ *  + push: "X kansellerte planen til Y …". The row stays in plans so
+ *  invitees can still open the cancelled plan-preview for context;
+ *  active-plan lists in the UI filter it out.
+ *
+ *  RLS allows UPDATE only by the creator (per migration 026), so this
+ *  fails clean if a non-creator somehow calls it. */
+async function cancelPlan(planId) {
+  if (!_currentUser || !planId) return { error: 'invalid' };
+  if (typeof _aTrack === 'function') _aTrack('plan_cancelled', { plan_id: planId });
+  const { error } = await _supabase
+    .from('plans')
+    .update({ cancelled_at: new Date().toISOString() })
+    .eq('id', planId)
+    .eq('creator_id', _currentUser.id);
+  if (error) {
+    console.error('[plans] cancelPlan failed:', error.message, error);
+    if (typeof _showToast === 'function') _showToast('Kunne ikke kansellere: ' + error.message);
+    return { error: error.message };
+  }
+  await loadPlans();
+  if (typeof _showToast === 'function') _showToast('Planen er kansellert.');
+  return { success: true };
 }
 
 /** Merge new invitees into an existing plan instead of creating a parallel
