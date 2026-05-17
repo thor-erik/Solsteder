@@ -1390,11 +1390,10 @@ const map = new mapboxgl.Map({
   container: 'map',
   style: buildShadeStyle(),
   center: [10.728, 59.9125],
-  // Default was 13. Google Maps' city-level for Oslo lands at ~12; that
-  // shows the whole inner city (Frogner ↔ Grünerløkka) in one frame
-  // rather than just the harbour, so the first impression is "this is
-  // an Oslo-wide tool" instead of "this is a Sentrum tool".
-  zoom: 12,
+  // 14 = Google Maps' "neighbourhood" level for Oslo. 13 read as Sentrum-
+  // only; 12 (a/b round) was too wide — too many off-screen pins after the
+  // intro settle. 14 keeps Aker brygge → Grünerløkka in frame.
+  zoom: 14,
   pitch: 15,
   antialias: true,
   attributionControl: false,
@@ -2368,16 +2367,33 @@ function _applyAutoDefaultSort() {
 }
 
 // ── Sort ──────────────────────────────────────────────────────────────────────
+/** Find whichever sort button is currently in the layout. The HTML has two
+ *  (a chrome-styled #sort-toggle-btn in #sun-section-bar, and a filter-bar
+ *  #panel-actions-sort in #panel-actions); only one is visible at a time
+ *  depending on panel state and body.day-no-sun. Both onclicks call
+ *  toggleSortPanel(), so we anchor the dropdown to the one the user
+ *  actually sees. offsetParent === null is the standard "is this element
+ *  in the render tree" check (covers display:none on the node or any
+ *  ancestor). */
+function _visibleSortBtn() {
+  const a = document.getElementById('sort-toggle-btn');
+  if (a && a.offsetParent !== null) return a;
+  const b = document.getElementById('panel-actions-sort');
+  if (b && b.offsetParent !== null) return b;
+  return a || b || null;
+}
+
 function _closeSortPanel() {
   if (!_navHandlingPop) _navDropLayer('sort');
   document.getElementById('sort-panel')?.classList.remove('open');
   document.getElementById('sort-toggle-btn')?.classList.remove('open');
+  document.getElementById('panel-actions-sort')?.classList.remove('open');
   document.getElementById('sort-backdrop')?.remove();
 }
 
 function toggleSortPanel() {
   const panel = document.getElementById('sort-panel');
-  const btn   = document.getElementById('sort-toggle-btn');
+  const btn   = _visibleSortBtn();
   if (!panel || !btn) return;
   if (panel.classList.contains('open')) { _closeSortPanel(); return; }
 
@@ -2407,7 +2423,7 @@ function toggleSortPanel() {
 
 function _openSortPanelNow() {
   const panel = document.getElementById('sort-panel');
-  const btn   = document.getElementById('sort-toggle-btn');
+  const btn   = _visibleSortBtn();
   if (!panel || !btn) return;
   if (panel.classList.contains('open')) return;
   _navPush('sort');
@@ -3537,7 +3553,8 @@ function openDetailPanel(v) {
       panel.classList.add('mobile-hidden');
     }
     document.getElementById('floating-search')?.classList.add('mobile-ui-hidden');
-    document.getElementById('top-strip')?.classList.add('mobile-ui-hidden');
+    // top-strip intentionally NOT hidden — user needs the date/time
+    // affordance to re-evaluate this venue at another moment.
     document.getElementById('qc-wrap')?.classList.add('mobile-ui-hidden');
   }
 
@@ -5126,11 +5143,19 @@ document.addEventListener('DOMContentLoaded', () => {
     _arcDragging = false;
   });
 
-  // Close sort panel when clicking outside it
+  // Close sort panel when clicking outside it. Two sort-button instances
+  // live in the DOM (#sort-toggle-btn in the sun-section-bar header and
+  // #panel-actions-sort in the filter-pill row); the click only counts as
+  // "inside" if it lands on EITHER, otherwise switching between them would
+  // close the panel before _openSortPanelNow even ran.
   document.addEventListener('click', e => {
-    const btn   = document.getElementById('sort-toggle-btn');
+    const btnA  = document.getElementById('sort-toggle-btn');
+    const btnB  = document.getElementById('panel-actions-sort');
     const panel = document.getElementById('sort-panel');
-    if (panel?.classList.contains('open') && !btn?.contains(e.target) && !panel?.contains(e.target)) {
+    if (panel?.classList.contains('open')
+        && !btnA?.contains(e.target)
+        && !btnB?.contains(e.target)
+        && !panel?.contains(e.target)) {
       _closeSortPanel();
     }
     // Close date calendar when clicking outside it
@@ -7111,7 +7136,11 @@ function _runIntroSequence() {
           const isMobileEnd = window.innerWidth < 640;
           map.easeTo({
             center: _introCenter,
-            zoom: 15.2,
+            // Was 15.2 — felt too close after the cinematic; settle at 14
+            // so the resting view matches the new default zoom rather
+            // than dropping the user into a tighter frame than they'll
+            // get on subsequent loads.
+            zoom: 14,
             pitch: 15,
             bearing: 0,
             duration: PHASE2_MS,
@@ -7276,9 +7305,11 @@ function _skipIntro(seqId, opts) {
   }
   update();
 
-  // Phase 0 — instant: map at user location, default tilt, zoom 14.5
+  // Phase 0 — instant: map at user location, default tilt, zoom 13.5
+  // (slightly wider than the 14 resting zoom so the zoom-in still reads
+  // as a settle, not a snap).
   map.stop();
-  map.jumpTo({ center: _introCenter, zoom: 14.5, pitch: 15, bearing: 0 });
+  map.jumpTo({ center: _introCenter, zoom: 13.5, pitch: 15, bearing: 0 });
 
   // Hide splash instantly (same as before) — unless opts.keepSplash
   // is set, in which case the invite path takes over and hides the
@@ -7297,11 +7328,11 @@ function _skipIntro(seqId, opts) {
   // from settling shots in films / map apps.
   const easeOut = t => 1 - Math.pow(1 - t, 3);
 
-  // Phase 1 (800ms): zoom in to default. NO padding — geo dot stays at
+  // Phase 1 (800ms): zoom in to default 14. NO padding — geo dot stays at
   // viewport center until the panel slides up in Phase 3.
   map.easeTo({
     center: _introCenter,
-    zoom: 15.2,
+    zoom: 14,
     pitch: 15,
     bearing: 0,
     duration: 800,

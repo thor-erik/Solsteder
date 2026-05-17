@@ -1059,7 +1059,8 @@ const _bellHistory = new Map();
 // Cleared when the dropdown closes so the next open re-establishes the
 // baseline without animating everything.
 let _bellRenderedIds = new Set();
-const _BELL_HISTORY_MAX = 30;
+const _BELL_HISTORY_MAX = 30;          // hard upper bound (anti-runaway)
+const _BELL_HISTORY_TTL_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
 
 // Unread state lives on the notifications row (read_at column). Bell
 // open marks every visible entry read; per-row click also marks the
@@ -1235,6 +1236,14 @@ function _bellRecord(notif) {
     action: notif.bellAction || notif.action,
   };
   _bellHistory.set(notif.id, entry);
+  // Time-based eviction — drop anything older than 14 days. Keeps the
+  // inbox "active" without infinite scroll-back. Hard cap stays as a
+  // belt-and-braces guard against pathological burst (60+ rows in a
+  // single day still trips the cap).
+  const cutoff = Date.now() - _BELL_HISTORY_TTL_MS;
+  for (const [k, v] of _bellHistory) {
+    if (v.ts < cutoff) _bellHistory.delete(k);
+  }
   if (_bellHistory.size > _BELL_HISTORY_MAX) {
     let oldestId = null, oldestTs = Infinity;
     _bellHistory.forEach((v, k) => { if (v.ts < oldestTs) { oldestTs = v.ts; oldestId = k; } });
@@ -2787,10 +2796,19 @@ function _startSocialPoll() {
   if (_socialPollTimer) return;
   _socialPollTimer = setInterval(_socialPollTick, _SOCIAL_POLL_MS);
   // Also trigger an immediate refresh when the tab regains focus so the
-  // user isn't waiting up to 60 s after coming back to the app.
+  // user isn't waiting up to 60 s after coming back to the app. Plus a
+  // realtime resubscribe — if the websocket dropped silently while the
+  // tab was backgrounded (some browsers throttle/close inactive sockets
+  // after a few minutes), the next message wouldn't arrive. Re-binding
+  // the channels on resume catches that.
   if (typeof document !== 'undefined' && !_socialVisibilityWired) {
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') _socialPollTick();
+      if (document.visibilityState !== 'visible') return;
+      _socialPollTick();
+      try {
+        if (typeof _subscribeToPlanInvites === 'function') _subscribeToPlanInvites();
+        if (typeof _subscribeToFriendships === 'function') _subscribeToFriendships();
+      } catch { /* re-bind failures fall back to poll */ }
     });
     _socialVisibilityWired = true;
   }

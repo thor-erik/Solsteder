@@ -126,11 +126,44 @@ function _notifCanShow() {
   return !_notifLastShownAt || (Date.now() - _notifLastShownAt) > _NOTIF_COOLDOWN;
 }
 
+// Cross-tab dedup: when the user has the app open in multiple tabs,
+// each tab runs its own evaluators and would otherwise fire the same
+// toast independently. localStorage acts as a shared signal — before
+// showing, we check whether ANY tab has shown this notif id in the
+// last 60s. After showing, we stamp the same key so the other tabs
+// see it and skip. 60s window covers the realistic case of two tabs
+// catching the same realtime event simultaneously.
+const _NOTIF_CROSSTAB_TTL_MS = 60 * 1000;
+function _notifWasShownInOtherTab(id) {
+  try {
+    const raw = localStorage.getItem('solsteder_notif_shown:' + id);
+    if (!raw) return false;
+    const t = parseInt(raw, 10);
+    return Number.isFinite(t) && (Date.now() - t) < _NOTIF_CROSSTAB_TTL_MS;
+  } catch { return false; }
+}
+function _notifMarkShownGlobal(id) {
+  try { localStorage.setItem('solsteder_notif_shown:' + id, String(Date.now())); }
+  catch { /* localStorage full / disabled — fail open */ }
+}
+
 function _notifAdvance() {
   if (_notifCurrent) return; // one at a time
   if (!_notifCanShow()) return;
   const notif = _notifDequeue();
-  if (notif) _notifShow(notif);
+  if (!notif) return;
+  if (_notifWasShownInOtherTab(notif.id)) {
+    // Another tab beat us to it. Skip the toast but still record the
+    // bell entry so this tab's inbox stays in sync.
+    if (typeof _bellRecord === 'function') _bellRecord(notif);
+    // Recurse — try the next queued notif. Guard against infinite
+    // recursion: each call shifts from the queue, so progress is
+    // monotonic.
+    _notifAdvance();
+    return;
+  }
+  _notifMarkShownGlobal(notif.id);
+  _notifShow(notif);
 }
 
 // ── Toast UI ──────────────────────────────────────────��──────────────────────

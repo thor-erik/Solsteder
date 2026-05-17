@@ -741,36 +741,60 @@ function _drawPill(ctx, pt, w, time, tier, opts) {
     ctx.fillText(time, moduleCx + moduleW / 2 + CIRCLE_TIME_GAP, moduleCy + 0.5);
   }
 
-  // Favorite badge — small heart at the top-right corner of the pill.
-  // Reads as a state overlay rather than replacing the category icon
-  // (recognition-load-bearing in the list). 7 px radius circle, accent
-  // fill, white heart glyph.
+  // Favorite badge — heart at the top-right corner of the pill. Reads
+  // as a state overlay rather than replacing the category icon
+  // (recognition-load-bearing in the list). Solid honey heart on a
+  // cream halo so it reads against both light pills (cream-on-cream
+  // halo gives the heart its silhouette) and selected pills (the halo
+  // separates it from the slate body).
   if (opts.favorited) {
-    const bx = x + w - 1;        // anchor: just outside pill's right edge
-    const by = y + 1;            // anchor: just inside pill's top edge
-    const br = 6;
+    // Anchor: corner of the pill, sat slightly outside so the heart
+    // reads as an applied badge rather than baked into the body.
+    const cxH = x + w - 2;
+    const cyH = y + 2;
+    // Heart bbox = 12×11 px. Tweak together to resize.
+    const W = 12, H = 11;
+    const left = cxH - W / 2;
+    const top  = cyH - H / 2;
     ctx.save();
-    // Halo / outline to lift the badge off the pill body
+
+    // Cream halo — a slightly inflated heart outline so the badge
+    // separates from whatever colour the pill body is.
     ctx.beginPath();
-    ctx.arc(bx, by, br + 1, 0, Math.PI * 2);
+    _heartPath(ctx, left - 1.4, top - 1.4, W + 2.8, H + 2.8);
     ctx.fillStyle = '#FAF1DD';
     ctx.fill();
-    // Accent fill
+
+    // Honey fill — the badge itself.
     ctx.beginPath();
-    ctx.arc(bx, by, br, 0, Math.PI * 2);
+    _heartPath(ctx, left, top, W, H);
     ctx.fillStyle = TOKENS.accent || '#F5C25E';
     ctx.fill();
-    // Heart glyph — two lobes + tip, sized to fit inside the circle
-    const hx = bx, hy = by + 0.3, hs = 4.4;
-    ctx.beginPath();
-    ctx.moveTo(hx, hy + hs * 0.7);
-    ctx.bezierCurveTo(hx - hs, hy - hs * 0.2, hx - hs * 0.95, hy - hs * 0.9, hx, hy - hs * 0.25);
-    ctx.bezierCurveTo(hx + hs * 0.95, hy - hs * 0.9, hx + hs, hy - hs * 0.2, hx, hy + hs * 0.7);
-    ctx.closePath();
-    ctx.fillStyle = TOKENS.accentOn || '#2C1F02';
-    ctx.fill();
+
     ctx.restore();
   }
+}
+
+// Heart silhouette inscribed in the (x, y, w, h) box. Two cardioid lobes
+// joined into a downward point at the bottom — symmetric, no tip-curl,
+// reads as a heart at 12 px and still at 8 px. Drawn as a stand-alone
+// helper because both the halo and the fill use the same shape.
+function _heartPath(ctx, x, y, w, h) {
+  const topY     = y + h * 0.30;   // lobe centre row
+  const lobeR    = w * 0.275;       // lobe radius
+  const cxL      = x + w * 0.27;    // left  lobe centre x
+  const cxR      = x + w * 0.73;    // right lobe centre x
+  const bottomY  = y + h;           // point apex
+  const cxMid    = x + w / 2;
+  // Top of each lobe → outer side of each lobe → meet at point.
+  ctx.moveTo(cxMid, topY + lobeR * 0.6);
+  // Left lobe — sweep up over the left half
+  ctx.bezierCurveTo(cxMid, topY - lobeR * 0.6, cxL - lobeR, topY - lobeR * 0.9, cxL - lobeR, topY);
+  ctx.bezierCurveTo(cxL - lobeR, topY + lobeR * 0.85, cxL,           topY + lobeR * 1.35, cxMid, bottomY);
+  // Right lobe — mirror
+  ctx.bezierCurveTo(cxR,           topY + lobeR * 1.35, cxR + lobeR, topY + lobeR * 0.85, cxR + lobeR, topY);
+  ctx.bezierCurveTo(cxR + lobeR, topY - lobeR * 0.9, cxMid, topY - lobeR * 0.6, cxMid, topY + lobeR * 0.6);
+  ctx.closePath();
 }
 
 // ── AABB overlap & density score (for floating name placement) ────────────────
