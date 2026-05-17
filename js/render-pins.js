@@ -740,6 +740,37 @@ function _drawPill(ctx, pt, w, time, tier, opts) {
     ctx.textAlign    = 'left';
     ctx.fillText(time, moduleCx + moduleW / 2 + CIRCLE_TIME_GAP, moduleCy + 0.5);
   }
+
+  // Favorite badge — small heart at the top-right corner of the pill.
+  // Reads as a state overlay rather than replacing the category icon
+  // (recognition-load-bearing in the list). 7 px radius circle, accent
+  // fill, white heart glyph.
+  if (opts.favorited) {
+    const bx = x + w - 1;        // anchor: just outside pill's right edge
+    const by = y + 1;            // anchor: just inside pill's top edge
+    const br = 6;
+    ctx.save();
+    // Halo / outline to lift the badge off the pill body
+    ctx.beginPath();
+    ctx.arc(bx, by, br + 1, 0, Math.PI * 2);
+    ctx.fillStyle = '#FAF1DD';
+    ctx.fill();
+    // Accent fill
+    ctx.beginPath();
+    ctx.arc(bx, by, br, 0, Math.PI * 2);
+    ctx.fillStyle = TOKENS.accent || '#F5C25E';
+    ctx.fill();
+    // Heart glyph — two lobes + tip, sized to fit inside the circle
+    const hx = bx, hy = by + 0.3, hs = 4.4;
+    ctx.beginPath();
+    ctx.moveTo(hx, hy + hs * 0.7);
+    ctx.bezierCurveTo(hx - hs, hy - hs * 0.2, hx - hs * 0.95, hy - hs * 0.9, hx, hy - hs * 0.25);
+    ctx.bezierCurveTo(hx + hs * 0.95, hy - hs * 0.9, hx + hs, hy - hs * 0.2, hx, hy + hs * 0.7);
+    ctx.closePath();
+    ctx.fillStyle = TOKENS.accentOn || '#2C1F02';
+    ctx.fill();
+    ctx.restore();
+  }
 }
 
 // ── AABB overlap & density score (for floating name placement) ────────────────
@@ -1146,6 +1177,7 @@ function draw() {
       _drawPill(ctx, pt, w, time, cls.tier, {
         selected: false, hovered: false, closedNow: closedOpens,
         category: v.category, friends, scale: 1,
+        favorited: (typeof isFavorite === 'function' && isFavorite(v.id)),
       });
     });
     ctx.globalAlpha = 1;
@@ -1453,6 +1485,7 @@ function draw() {
         _drawPill(ctx, pt, snap.w, snap.time, snap.tier, {
           selected: false, hovered: false, closedNow: !!snap.closedNow,
           category: snap.category, friends: snap.friends || [], scale: 1,
+          favorited: !!snap.favorited,
         });
         ctx.restore();
       }
@@ -1543,7 +1576,8 @@ function draw() {
     st.target_alpha = baseAlphaTarget;
     st.target_scale = sel ? 1.14 : (hovered ? 1.07 : 1.0);
     st.morphTarget  = 1;
-    st.snapshot     = { tier, w, time, category: v.category, closedNow: closedOpens, friends };
+    const _fav = (typeof isFavorite === 'function' && isFavorite(v.id));
+    st.snapshot     = { tier, w, time, category: v.category, closedNow: closedOpens, friends, favorited: _fav };
     const aMoving = _stepLerp(st, 'alpha', st.target_alpha, 0.20);
     const sMoving = _stepLerp(st, 'scale', st.target_scale, 0.22);
     const mMoving = _stepLerp(st, 'morph', st.morphTarget, 0.12);
@@ -1584,6 +1618,7 @@ function draw() {
       category:  v.category,
       friends,
       scale:     st.scale,
+      favorited: _fav,
     });
     ctx.restore();
 
@@ -1627,6 +1662,7 @@ function draw() {
       category:  st.snapshot.category,
       friends:   st.snapshot.friends || [],
       scale:     1.0,
+      favorited: !!st.snapshot.favorited,
     });
     ctx.restore();
   }

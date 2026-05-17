@@ -2107,6 +2107,22 @@ function _closeInviteSheet() {
     setTimeout(() => overlay.remove(), 300);
   }
   document.body.classList.remove('invite-sheet-open');
+  // The open handler reparented #fts to <body> so the body.invite-sheet-open
+  // rule could float it above the sheet. Now that the rule no longer applies,
+  // put the slider back inside #panel where the FTS contract expects it to
+  // live (otherwise it stays in <body> with no positioning anchor, reads as
+  // "the FTS just disappeared" when the user returns to the venue list).
+  const _ftsForReturn = document.getElementById('fts');
+  const _panelForReturn = document.getElementById('panel');
+  if (_ftsForReturn && _panelForReturn && _ftsForReturn.parentNode !== _panelForReturn) {
+    // Drop the inline transform/width the desktop sheet rule applied.
+    _ftsForReturn.style.cssText = '';
+    // Stage 2b contract: FTS sits inside #panel as a normal-flow child,
+    // immediately after #panel-handle.
+    const handle = _panelForReturn.querySelector('#panel-handle');
+    if (handle && handle.nextSibling) _panelForReturn.insertBefore(_ftsForReturn, handle.nextSibling);
+    else _panelForReturn.appendChild(_ftsForReturn);
+  }
   // Restore the FTS to its proper position now that body.invite-sheet-open
   // is gone. _syncFtsPosition will re-attach it to the docked card slot
   // (if detail panel is open) or sit it back at the bottom of the screen.

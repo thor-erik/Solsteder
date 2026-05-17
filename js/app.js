@@ -1390,7 +1390,11 @@ const map = new mapboxgl.Map({
   container: 'map',
   style: buildShadeStyle(),
   center: [10.728, 59.9125],
-  zoom: 13,
+  // Default was 13. Google Maps' city-level for Oslo lands at ~12; that
+  // shows the whole inner city (Frogner ↔ Grünerløkka) in one frame
+  // rather than just the harbour, so the first impression is "this is
+  // an Oslo-wide tool" instead of "this is a Sentrum tool".
+  zoom: 12,
   pitch: 15,
   antialias: true,
   attributionControl: false,
@@ -2381,8 +2385,12 @@ function toggleSortPanel() {
   // peek expands the list panel first so the dropdown anchors on a stable
   // button position (the panel-state transition would otherwise drag the
   // anchor mid-animation). Defer the open by one transition tick.
+  // Mobile-only: desktop has no peek/expand state — its panel is always
+  // open, so the inPeek path would add a no-op .mobile-expanded class and
+  // burn 360 ms before showing the dropdown, making the button feel dead.
   const listPanel = document.getElementById('panel');
-  const inPeek = listPanel
+  const inPeek = isMobile()
+    && listPanel
     && !listPanel.classList.contains('mobile-expanded')
     && !listPanel.classList.contains('mobile-fullscreen')
     && !listPanel.classList.contains('mobile-hidden');
@@ -3245,16 +3253,10 @@ function update() {
       _autoAdvancedAfterSunset = true;
       setTimeout(() => {
         advanceDay(1, 12);
+        // qc-notice (transient picker hint) is enough — the auto-advance
+        // toast was landing in the bell inbox and reading as a stored
+        // event rather than a one-time "by the way, I bumped the date".
         showQcNotice(t('sunset_notice'));
-        // Show a toast so the user understands why the date changed
-        if (typeof _notifShowImmediate === 'function') {
-          _notifShowImmediate({
-            id: 'auto_advance_tomorrow', priority: 0, category: 'weather',
-            icon: '🌅', bodyKey: 'notif_auto_advance_body',
-            actionKey: null, action: null,
-            ttl: 30000, dedupe: true,
-          });
-        }
       }, 0);
       return;
     }
