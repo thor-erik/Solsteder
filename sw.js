@@ -21,7 +21,7 @@
  * string is a unique cache key under the same domain).
  */
 
-const CACHE_VERSION = '2026-05-18l';
+const CACHE_VERSION = '2026-05-18m';
 const CACHE_NAME    = `shades-shell-${CACHE_VERSION}`;
 
 // Pre-cache only path-stable resources. Versioned JS/CSS (`?v=...`)
@@ -160,19 +160,33 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const targetUrl = (event.notification.data && event.notification.data.url) || '/';
+  // Resolve targetUrl to a same-origin path. The send-push edge function
+  // (post sql/037) already rejects external URLs at delivery, but a service
+  // worker can outlive any backend tightening — a previously-delivered
+  // notification still resident on the device could carry a stale targetUrl
+  // from before the gate existed. Defense in depth: never openWindow() or
+  // navigate() to a cross-origin URL based on push payload alone.
+  const raw = (event.notification.data && event.notification.data.url) || '/';
+  let safeUrl = '/';
+  try {
+    const resolved = new URL(raw, self.location.origin);
+    if (resolved.origin === self.location.origin) {
+      safeUrl = resolved.pathname + resolved.search + resolved.hash;
+    }
+  } catch (e) { /* malformed — keep default '/' */ }
+
   event.waitUntil((async () => {
     const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     for (const w of wins) {
       const url = new URL(w.url);
       if (url.origin === self.location.origin) {
         await w.focus();
-        if (targetUrl && targetUrl !== '/' && targetUrl !== url.pathname + url.search + url.hash) {
-          try { await w.navigate(targetUrl); } catch (e) { /* some browsers block navigate */ }
+        if (safeUrl && safeUrl !== '/' && safeUrl !== url.pathname + url.search + url.hash) {
+          try { await w.navigate(safeUrl); } catch (e) { /* some browsers block navigate */ }
         }
         return;
       }
     }
-    await self.clients.openWindow(targetUrl);
+    await self.clients.openWindow(safeUrl);
   })());
 });

@@ -4,6 +4,30 @@ const SUPABASE_URL      = 'https://wxalqodaeqgzahwlovnw.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4YWxxb2RhZXFnemFod2xvdm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxODcyNDYsImV4cCI6MjA5MTc2MzI0Nn0.RzP2Fsft1yqTt7Hg-u2t1UnGLE7FvFBoG88mKstUJgo';
 
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// HTML-escape any value bound for innerHTML or an HTML attribute. The five
+// chars cover both text content (< > &) and attribute contexts (" '). Use
+// _escAllowStrong below for fields the server has already wrapped in
+// <strong>...</strong> markup that we want preserved.
+function _esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Server-rendered notification bodies (sql/030+) wrap names and venues in
+// <strong>...</strong>. We can't strip those tags (they're load-bearing for
+// emphasis) but we MUST escape everything else — name and venue_name flow
+// in unsanitized from profiles + plans. Strategy: escape everything, then
+// revive only the literal opening/closing <strong> tokens the server emits.
+// Anything fancier (e.g. <strong class="…">) won't survive, which is fine.
+function _escAllowStrong(s) {
+  return _esc(s).replace(/&lt;strong&gt;/g, '<strong>').replace(/&lt;\/strong&gt;/g, '</strong>');
+}
+
 let _currentUser = null;
 let _currentRole = null; // 'user' | 'editor' | 'admin' | null
 let _profilePanelView = 'settings';
@@ -150,9 +174,9 @@ async function authSignInWithMagicLink(email) {
 }
 
 async function authSignOut() {
-  if (typeof _bellUnsubscribeRealtime === 'function') _bellUnsubscribeRealtime();
-  _bellHistory.clear();
-  _bellHydrated = false;
+  // All cleanup now lives in the SIGNED_OUT branch of onAuthStateChange so
+  // it runs whether sign-out was initiated here, by token expiry, or by
+  // another tab. This wrapper is just the user-action entry point.
   await _supabase.auth.signOut();
 }
 
@@ -216,27 +240,45 @@ function _updateUserIndicator() {
   const btn = document.getElementById('search-profile-btn');
   const tsBtn = document.getElementById('ts-avatar-btn');
   if (!btn && !tsBtn) return;
-  let html;
-  if (_currentUser) {
-    const avatar = _currentUser.user_metadata?.avatar_url;
-    const name   = _currentUser.user_metadata?.name ?? _currentUser.email ?? '';
+  // Build nodes rather than strings so OAuth-supplied name/avatar can't
+  // break out of attribute context. The previous template-string version
+  // interpolated raw user_metadata into `<img src="${avatar}" alt="${name}"
+  // onerror="…${initial}…">` — a name with a `"` would have escaped the
+  // attribute. With Apple Sign-In letting the user pick any display name at
+  // consent, that was a real (self-only) XSS path.
+  const buildAvatarNode = () => {
+    if (!_currentUser) {
+      const wrap = document.createElement('div');
+      wrap.className = 'profile-anon';
+      wrap.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>`;
+      return wrap;
+    }
+    const avatar  = _currentUser.user_metadata?.avatar_url;
+    const name    = _currentUser.user_metadata?.name ?? _currentUser.email ?? '';
     const initial = (name[0] || '?').toUpperCase();
-    // referrerpolicy=no-referrer: Google avatar CDN blocks requests with
-    // a different-origin referrer header. onerror: swap to initials if
-    // the image fails to load (CORS, 404, network drop).
-    html = avatar
-      ? `<img src="${avatar}" alt="${name}" referrerpolicy="no-referrer"
-              onerror="this.outerHTML='&lt;div class=&quot;profile-initials&quot;&gt;${initial}&lt;/div&gt;'">`
-      : `<div class="profile-initials">${initial}</div>`;
-  } else {
-    html = `<div class="profile-anon">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-      </svg>
-    </div>`;
-  }
-  if (btn) btn.innerHTML = html;
-  if (tsBtn) tsBtn.innerHTML = html;
+    const initialsNode = () => {
+      const d = document.createElement('div');
+      d.className = 'profile-initials';
+      d.textContent = initial;
+      return d;
+    };
+    if (!avatar) return initialsNode();
+    const img = document.createElement('img');
+    img.src              = avatar;
+    img.alt              = name;
+    img.referrerPolicy   = 'no-referrer';
+    img.addEventListener('error', () => {
+      const replacement = initialsNode();
+      if (img.parentNode) img.parentNode.replaceChild(replacement, img);
+    });
+    return img;
+  };
+  const fill = (host) => {
+    if (!host) return;
+    host.replaceChildren(buildAvatarNode());
+  };
+  fill(btn);
+  fill(tsBtn);
   _renderProfilePanel();
   // Pull recent notifications into the bell on auth-ready. Internally
   // gated by _bellHydrated so this is a no-op after the first run.
@@ -278,21 +320,20 @@ function _renderInvitationsSection() {
   let friendReqHtml = '';
   if (friendReqs.length) {
     friendReqHtml = `
-      <div class="profile-section-label">${t('friend_requests')} (${friendReqs.length})</div>
+      <div class="profile-section-label">${_esc(t('friend_requests'))} (${friendReqs.length})</div>
       ${friendReqs.map(r => {
-        const label = (r.name || r.email || '').toString().replace(/'/g, "\\'");
         return `<div class="inbox-row">
           <div class="inbox-row-info">
-            <div class="inbox-row-title">${r.name || r.email}</div>
+            <div class="inbox-row-title">${_esc(r.name || r.email)}</div>
           </div>
           <div class="inbox-row-actions">
             <button class="inbox-btn inbox-btn-accept"
-                    onclick="_handleAcceptFriendRequest('${r.friendshipId}');_renderProfilePanel?.();">
-              ${t('plan_accept')}
+                    onclick="_handleAcceptFriendRequest('${_esc(r.friendshipId)}');_renderProfilePanel?.();">
+              ${_esc(t('plan_accept'))}
             </button>
             <button class="inbox-btn inbox-btn-decline"
-                    onclick="_handleRejectFriendRequest('${r.friendshipId}');_renderProfilePanel?.();">
-              ${t('plan_decline')}
+                    onclick="_handleRejectFriendRequest('${_esc(r.friendshipId)}');_renderProfilePanel?.();">
+              ${_esc(t('plan_decline'))}
             </button>
           </div>
         </div>`;
@@ -302,28 +343,34 @@ function _renderInvitationsSection() {
   let pendingHtml = '';
   if (pending.length) {
     pendingHtml = `
-      <div class="profile-section-label">${t('invitations_label')} (${pending.length})</div>
+      <div class="profile-section-label">${_esc(t('invitations_label'))} (${pending.length})</div>
       ${pending.map(inv => {
         const p = inv.plan;
         const creator = p.creator?.name || p.creator?.email || '';
         const vName = venueName(p.venue_id);
+        // inviterName is interpolated into an onclick attribute (HTML-attribute
+        // context) AND a JS string literal inside it. JSON.stringify gives us a
+        // valid JS string; _esc then makes it attribute-safe by escaping the "
+        // chars JSON.stringify produces.
+        const inviterArg = _esc(JSON.stringify(creator || ''));
+        const venueArg   = _esc(JSON.stringify(p.venue_id));
         return `<div class="inbox-row">
           <div class="inbox-row-info">
-            <div class="inbox-row-title">${vName}</div>
-            <div class="inbox-row-meta">${creator} · ${fmt(p.planned_at)}</div>
+            <div class="inbox-row-title">${_esc(vName)}</div>
+            <div class="inbox-row-meta">${_esc(creator)} · ${_esc(fmt(p.planned_at))}</div>
           </div>
           <div class="inbox-row-actions">
             <button class="inbox-btn inbox-btn-preview"
-                    onclick="closeProfilePanel();openPlanPreview({venueId:${JSON.stringify(p.venue_id)}, plannedAt:'${p.planned_at}', inviteId:'${inv.id}', inviterName:'${(creator||'').replace(/'/g, "\\'")}', mode:'invite'})">
-              ${t('preview_plan')}
+                    onclick="closeProfilePanel();openPlanPreview({venueId:${venueArg}, plannedAt:'${_esc(p.planned_at)}', inviteId:'${_esc(inv.id)}', inviterName:${inviterArg}, mode:'invite'})">
+              ${_esc(t('preview_plan'))}
             </button>
             <button class="inbox-btn inbox-btn-accept"
-                    onclick="_handleInboxResponse('${inv.id}','accepted', this)">
-              ${t('plan_accept')}
+                    onclick="_handleInboxResponse('${_esc(inv.id)}','accepted', this)">
+              ${_esc(t('plan_accept'))}
             </button>
             <button class="inbox-btn inbox-btn-decline"
-                    onclick="_handleInboxResponse('${inv.id}','declined', this)">
-              ${t('plan_decline')}
+                    onclick="_handleInboxResponse('${_esc(inv.id)}','declined', this)">
+              ${_esc(t('plan_decline'))}
             </button>
           </div>
         </div>`;
@@ -345,7 +392,7 @@ function _renderInvitationsSection() {
       } catch { return ''; }
     };
     yoursHtml = `
-      <div class="profile-section-label profile-section-label-sub">${t('your_plans_label')}</div>
+      <div class="profile-section-label profile-section-label-sub">${_esc(t('your_plans_label'))}</div>
       ${ownUpcoming.map(p => {
         const vName = venueName(p.venue_id);
         const accepted = (p._invitees || []).filter(i => i.status === 'accepted').length;
@@ -362,18 +409,19 @@ function _renderInvitationsSection() {
             return first ? `${first} ${fmtH(i.arrival_time)}` : fmtH(i.arrival_time);
           });
         const offPlanLine = offPlan.length
-          ? `<div class="inbox-row-arrivals">${offPlan.slice(0, 3).join(' · ')}${offPlan.length > 3 ? ` +${offPlan.length - 3}` : ''}</div>`
+          ? `<div class="inbox-row-arrivals">${_esc(offPlan.slice(0, 3).join(' · '))}${offPlan.length > 3 ? ` +${offPlan.length - 3}` : ''}</div>`
           : '';
+        const venueArg = _esc(JSON.stringify(p.venue_id));
         return `<div class="inbox-row">
           <div class="inbox-row-info">
-            <div class="inbox-row-title">${vName}</div>
-            <div class="inbox-row-meta">${fmt(p.planned_at)}${ratio ? ` · ${ratio} ✓` : ''}</div>
+            <div class="inbox-row-title">${_esc(vName)}</div>
+            <div class="inbox-row-meta">${_esc(fmt(p.planned_at))}${ratio ? ` · ${_esc(ratio)} ✓` : ''}</div>
             ${offPlanLine}
           </div>
           <div class="inbox-row-actions">
             <button class="inbox-btn inbox-btn-preview"
-                    onclick="closeProfilePanel();openPlanPreview({venueId:${JSON.stringify(p.venue_id)}, plannedAt:'${p.planned_at}', mode:'preview'})">
-              ${t('preview_plan')}
+                    onclick="closeProfilePanel();openPlanPreview({venueId:${venueArg}, plannedAt:'${_esc(p.planned_at)}', mode:'preview'})">
+              ${_esc(t('preview_plan'))}
             </button>
           </div>
         </div>`;
@@ -401,15 +449,18 @@ function _renderInvitationsSection() {
     responses.sort((a, b) => new Date(b.plan.planned_at) - new Date(a.plan.planned_at));
     const top = responses.slice(0, 6);
     responsesHtml = `
-      <div class="profile-section-label profile-section-label-sub">${t('recent_responses_label')}</div>
+      <div class="profile-section-label profile-section-label-sub">${_esc(t('recent_responses_label'))}</div>
       ${top.map(r => {
         const vName = venueName(r.plan.venue_id);
         const statusKey = r.invitee.status === 'accepted' ? 'response_said_yes' : 'response_said_no';
+        // i18n t() does raw string substitution with no HTML escape — the
+        // {name}/{venue} placeholders carry user-controlled values, so the
+        // whole rendered label gets HTML-escaped before going into innerHTML.
         const statusLabel = t(statusKey, { name: r.name, venue: vName });
         return `<div class="inbox-row inbox-row-compact">
           <div class="inbox-row-info">
-            <div class="inbox-row-title">${statusLabel}</div>
-            <div class="inbox-row-meta">${fmt(r.plan.planned_at)}</div>
+            <div class="inbox-row-title">${_esc(statusLabel)}</div>
+            <div class="inbox-row-meta">${_esc(fmt(r.plan.planned_at))}</div>
           </div>
         </div>`;
       }).join('')}`;
@@ -1468,9 +1519,12 @@ function _bellInitial(name) {
 }
 
 function _bellAvatar(name, extraCount) {
-  const init = _bellInitial(name);
+  // `name` flows from the server `notifications.lead` jsonb (profile name,
+  // unsanitized). Escape the initial so a malicious display name can't break
+  // out of the avatar span. extraCount is numeric — Number() coerces safely.
+  const init = _esc(_bellInitial(name));
   const plus = extraCount > 0
-    ? `<span class="bd-row__avatar-plus">+${extraCount}</span>` : '';
+    ? `<span class="bd-row__avatar-plus">+${Number(extraCount) || 0}</span>` : '';
   return `<span class="bd-row__lead">
     <span class="bd-row__avatar">${init}${plus}</span>
   </span>`;
@@ -1499,17 +1553,18 @@ function _renderBellDropdown() {
   // dot stays until accept/decline removes the row.
   reqs.forEach(r => {
     const name = r.name || r.email || 'Ukjent';
+    const fid  = _esc(r.friendshipId);
     entries.push({
       t: new Date(r.requestedAt || r.created_at || NOW).getTime(),
       html: `
-        <div class="bd-row bd-row--new" id="bd-req-${r.friendshipId}">
+        <div class="bd-row bd-row--new" id="bd-req-${fid}">
           ${_bellAvatar(name)}
           <div class="bd-row__body">
-            <div class="bd-row__msg"><strong>${name}</strong> ønsker å bli venn.</div>
-            <div class="bd-row__meta">${_formatTimeAgo(r.requestedAt || r.created_at)}</div>
+            <div class="bd-row__msg"><strong>${_esc(name)}</strong> ønsker å bli venn.</div>
+            <div class="bd-row__meta">${_esc(_formatTimeAgo(r.requestedAt || r.created_at))}</div>
             <div class="bd-row__actions">
-              <button class="bd-action primary" onclick="_handleAcceptFriendRequest('${r.friendshipId}')">Godta</button>
-              <button class="bd-action secondary" onclick="_handleRejectFriendRequest('${r.friendshipId}')">Avslå</button>
+              <button class="bd-action primary" onclick="_handleAcceptFriendRequest('${fid}')">Godta</button>
+              <button class="bd-action secondary" onclick="_handleRejectFriendRequest('${fid}')">Avslå</button>
             </div>
           </div>
         </div>`,
@@ -1538,17 +1593,28 @@ function _renderBellDropdown() {
     // bell-row → plan-preview → Avlys nav for hosts who decide to
     // bail before the meet time.
     const cancelPlanId = enriched && enriched.cancelPlanId;
+    const cancelIdEsc  = cancelPlanId ? _esc(cancelPlanId) : '';
     const cancelBtnHtml = cancelPlanId
-      ? `<button class="bd-row__quick-cancel" type="button" data-plan-id="${cancelPlanId}" aria-label="Avlys plan" onclick="event.stopPropagation(); _bellQuickCancel(event, '${cancelPlanId}')">×</button>`
+      ? `<button class="bd-row__quick-cancel" type="button" data-plan-id="${cancelIdEsc}" aria-label="Avlys plan" onclick="event.stopPropagation(); _bellQuickCancel(event, '${cancelIdEsc}')">×</button>`
       : '';
+    // `body` is server-rendered HTML from public.notifications.body, e.g.
+    // '<strong>Anna</strong> har invitert deg til <strong>Starbucks</strong>'.
+    // The <strong> wraps are load-bearing markup we want preserved; the
+    // names and venue inside them flow in unsanitized from profiles +
+    // plans. _escAllowStrong escapes everything else and revives just the
+    // <strong>/</strong> pair, blocking the stored XSS path.
+    // entry.id is a notif_id (server-generated string like
+    // 'plan_invite_pending:<uuid>' or 'friend_accepted:<uuid>') so a
+    // colon is the only structural char — still _esc as defense in depth.
+    const idEsc = _esc(entry.id);
     entries.push({
       t: entry.ts,
       html: `
-        <div class="bd-row bd-row--clickable${isNew}${pastClass}" onclick="_bellInvokeAction('${entry.id}')">
+        <div class="bd-row bd-row--clickable${isNew}${pastClass}" onclick="_bellInvokeAction('${idEsc}')">
           ${entry.lead}
           <div class="bd-row__body">
-            <div class="bd-row__msg">${body}</div>
-            <div class="bd-row__meta">${_formatTimeAgo(new Date(entry.ts).toISOString())}${metaSuffix}</div>
+            <div class="bd-row__msg">${_escAllowStrong(body)}</div>
+            <div class="bd-row__meta">${_esc(_formatTimeAgo(new Date(entry.ts).toISOString()))}${_esc(metaSuffix)}</div>
           </div>
           ${cancelBtnHtml}
         </div>`,
@@ -2006,11 +2072,14 @@ function _renderFriendsModal(modal) {
   if (!modal) modal = document.getElementById('friends-modal');
   if (!modal) return;
 
+  // Friend name/email/avatar_url all flow in from another user's profile,
+  // so every interpolation into innerHTML or an attribute is escaped.
   const friendsHtml = _friends.length
     ? _friends.map(f => {
+        const label = f.name || f.email;
         const avatar = f.avatar_url
-          ? `<img class="friend-avatar" src="${f.avatar_url}" alt="${f.name || f.email}">`
-          : `<div class="friend-avatar friend-avatar-initials">${(f.name || f.email)[0].toUpperCase()}</div>`;
+          ? `<img class="friend-avatar" src="${_esc(f.avatar_url)}" alt="${_esc(label)}">`
+          : `<div class="friend-avatar friend-avatar-initials">${_esc((label || '?')[0].toUpperCase())}</div>`;
         // Check if friend is checked in somewhere
         let checkinInfo = '';
         for (const [vid, list] of _friendCheckins) {
@@ -2018,7 +2087,7 @@ function _renderFriendsModal(modal) {
           if (match) {
             const vName = typeof VENUES !== 'undefined' ? (VENUES.find(v => String(v.id) === vid)?.name || vid) : vid;
             const until = new Date(match.checkin.expires_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            checkinInfo = `<div class="friend-checkin-info">📍 ${vName} · ${t('checked_in_until', { time: until })}</div>`;
+            checkinInfo = `<div class="friend-checkin-info">📍 ${_esc(vName)} · ${_esc(t('checked_in_until', { time: until }))}</div>`;
             break;
           }
         }
@@ -2026,25 +2095,30 @@ function _renderFriendsModal(modal) {
         // shouldn't quietly tear down a friendship. The modal re-render
         // is awaited inside _confirmRemoveFriend so we don't race the
         // async delete.
+        // Second arg to _confirmRemoveFriend goes through JSON.stringify (a
+        // valid JS string literal) then _esc to make the resulting `"` chars
+        // attribute-safe inside the outer onclick="…".
+        const labelArg = _esc(JSON.stringify(label || ''));
         return `<div class="friend-item">
-          <div class="friend-item-left">${avatar}<div class="friend-item-info"><div class="friend-item-name">${f.name || f.email}</div>${checkinInfo}</div></div>
-          <button class="btn-icon-sm friend-remove" onclick="_confirmRemoveFriend('${f.friendshipId}', ${JSON.stringify(f.name || f.email)})" title="${t('friend_remove_title')}">✕</button>
+          <div class="friend-item-left">${avatar}<div class="friend-item-info"><div class="friend-item-name">${_esc(label)}</div>${checkinInfo}</div></div>
+          <button class="btn-icon-sm friend-remove" onclick="_confirmRemoveFriend('${_esc(f.friendshipId)}', ${labelArg})" title="${_esc(t('friend_remove_title'))}">✕</button>
         </div>`;
       }).join('')
-    : `<div class="friends-empty">${t('no_friends_yet')}</div>`;
+    : `<div class="friends-empty">${_esc(t('no_friends_yet'))}</div>`;
 
   const pendingHtml = _pendingRequests.length
-    ? `<div class="friends-section-label">${t('friend_requests')} (${_pendingRequests.length})</div>` +
+    ? `<div class="friends-section-label">${_esc(t('friend_requests'))} (${_pendingRequests.length})</div>` +
       _pendingRequests.map(r => {
+        const label = r.name || r.email;
         const avatar = r.avatar_url
-          ? `<img class="friend-avatar" src="${r.avatar_url}" alt="${r.name || r.email}">`
-          : `<div class="friend-avatar friend-avatar-initials">${(r.name || r.email)[0].toUpperCase()}</div>`;
+          ? `<img class="friend-avatar" src="${_esc(r.avatar_url)}" alt="${_esc(label)}">`
+          : `<div class="friend-avatar friend-avatar-initials">${_esc((label || '?')[0].toUpperCase())}</div>`;
         return `<div class="friend-item friend-request">
           ${avatar}
-          <div class="friend-item-info"><div class="friend-item-name">${r.name || r.email}</div></div>
+          <div class="friend-item-info"><div class="friend-item-name">${_esc(label)}</div></div>
           <div class="friend-item-actions">
-            <button class="btn-accept" onclick="_handleAcceptFriendRequest('${r.friendshipId}')">${t('plan_accept')}</button>
-            <button class="btn-icon-sm friend-remove" onclick="_handleRejectFriendRequest('${r.friendshipId}')" title="${t('friend_reject_title')}">✕</button>
+            <button class="btn-accept" onclick="_handleAcceptFriendRequest('${_esc(r.friendshipId)}')">${_esc(t('plan_accept'))}</button>
+            <button class="btn-icon-sm friend-remove" onclick="_handleRejectFriendRequest('${_esc(r.friendshipId)}')" title="${_esc(t('friend_reject_title'))}">✕</button>
           </div>
         </div>`;
       }).join('')
@@ -2053,14 +2127,14 @@ function _renderFriendsModal(modal) {
   modal.innerHTML = `
     <div class="friends-modal-card glass-panel">
       <div class="friends-modal-header">
-        <h3>${t('friends')}</h3>
+        <h3>${_esc(t('friends'))}</h3>
         <button class="friends-modal-close" onclick="closeFriendsModal()">✕</button>
       </div>
       ${pendingHtml}
-      <div class="friends-section-label">${t('friends')}${_friends.length ? ` (${_friends.length})` : ''}</div>
+      <div class="friends-section-label">${_esc(t('friends'))}${_friends.length ? ` (${_friends.length})` : ''}</div>
       ${friendsHtml}
       <div class="friends-add-section">
-        <div class="friends-section-label">${t('add_friend')}</div>
+        <div class="friends-section-label">${_esc(t('add_friend'))}</div>
         <button class="social-form-btn" onclick="_copyFriendInviteLink()" style="width:100%">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
           ${t('copy_invite_link')}
@@ -2749,19 +2823,21 @@ function _injectDummyFriends() {
 async function sendFriendRequest(email) {
   if (!_currentUser) { toggleProfilePanel(); return; }
   if (typeof _aTrack === 'function') _aTrack('friend_request_sent', {});
-  // Look up user by email
-  const { data: profiles, error: lookupErr } = await _supabase
-    .from('profiles')
-    .select('id')
-    .eq('email', email)
-    .single();
-  if (lookupErr || !profiles) return { error: 'User not found' };
-  if (profiles.id === _currentUser.id) return { error: 'Cannot add yourself' };
-  const { error } = await _supabase.from('friendships').insert({
-    user_id: _currentUser.id,
-    friend_id: profiles.id
-  });
+  // Route through the SECURITY DEFINER RPC instead of SELECTing profiles
+  // directly. Lets sql/039 revoke SELECT(email) without breaking add-friend
+  // by email — the RPC is the only path that resolves the lookup.
+  const { data, error } = await _supabase.rpc('request_friend_by_email', { p_email: email });
   if (error) return { error: error.message };
+  if (!data || !data.ok) {
+    const errMap = {
+      not_found:         'User not found',
+      self:              'Cannot add yourself',
+      already_exists:    'Already friends or pending request',
+      invalid_email:     'Invalid email',
+      not_authenticated: 'Not signed in',
+    };
+    return { error: errMap[data?.error] || 'Cannot send friend request' };
+  }
   await loadFriends();
   return { success: true };
 }
@@ -3266,10 +3342,19 @@ async function _autoFriendInviter(inviteId) {
         }
       }
     } else {
+      // Recipient-side INSERT. Two semantic changes vs. the old version:
+      // 1. status='pending', not 'accepted'. The sql/036 RLS now rejects
+      //    recipient-side inserts that land at 'accepted' — without inviter
+      //    consent it was an enumeration / cross-user-friendship-spoof vector.
+      // 2. Row direction flipped (user_id=me, friend_id=inviter) so the
+      //    actor is the requester. notify_friend_request fires on inserts
+      //    with status='pending' and pushes NEW.friend_id (the inviter),
+      //    which is the desired "X clicked your share link" notification.
+      //    The inviter accepts via the regular friend-request UI.
       await _supabase.from('friendships').insert({
-        user_id: inviterId,
-        friend_id: me.id,
-        status: 'accepted',
+        user_id: me.id,
+        friend_id: inviterId,
+        status: 'pending',
       });
     }
   } catch (e) { return; }
@@ -3428,6 +3513,18 @@ _supabase.auth.onAuthStateChange((event, session) => {
     _adminEditsCache = null;
     _adminSuggestionsCache = null;
     _adminUsersCache = null;
+    // Bell state used to be cleared only by the authSignOut() wrapper. When
+    // sign-out came from token expiry or another tab the bell history stayed
+    // populated and the next user signing in on this browser inherited it.
+    // Centralize the cleanup here so every SIGNED_OUT path goes through it.
+    if (typeof _bellUnsubscribeRealtime === 'function') _bellUnsubscribeRealtime();
+    _bellHistory.clear();
+    _bellHydrated = false;
+    if (_bellRenderedRows && typeof _bellRenderedRows.clear === 'function') _bellRenderedRows.clear();
+    // Social-tables probe is per-session not per-user, but resetting on
+    // sign-out forces a re-probe under the new user's permissions — the
+    // legitimate case where probe results could meaningfully differ.
+    _socialTablesReady = null;
     if (_checkinSubscription)     { _checkinSubscription.unsubscribe();     _checkinSubscription = null; }
     if (_planInvitesSubscription) { _planInvitesSubscription.unsubscribe(); _planInvitesSubscription = null; }
     if (_friendshipsSubscription) { _friendshipsSubscription.unsubscribe(); _friendshipsSubscription = null; }
