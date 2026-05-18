@@ -958,7 +958,11 @@ function _evalInviteAccepted() {
 
     return {
       id: notifId,
-      priority: 1, category: 'social',
+      // P0 — event-driven, interrupts ambient P1 toasts (friends-at-venue,
+      // friend-planning). An invite-accept is a response to an action the
+      // host took; surfacing it behind a "look, friends are at X" ambient
+      // toast hid it for users testing both flows simultaneously.
+      priority: 0, category: 'social',
       icon: '☀',
       bodyKey,
       bodyVars: { name: headName, venue: venue.name, extra, time: arrivalTime || '' },
@@ -1026,7 +1030,8 @@ function _evalInviteDeclined() {
 
     return {
       id: notifId,
-      priority: 1, category: 'social',
+      // P0 — see _evalInviteAccepted above for rationale.
+      priority: 0, category: 'social',
       icon: '🙅',
       bodyKey,
       bodyVars: { name: headName, venue: venue.name, extra },
@@ -1091,7 +1096,8 @@ function _evalIncomingPlanInvite() {
 
     return {
       id: notifId,
-      priority: 1, category: 'social',
+      // P0 — event-driven, interrupts ambient P1 toasts.
+      priority: 0, category: 'social',
       icon: '📅',
       bodyKey: 'notif_invite_received_body',
       bodyVars: { name: senderName, venue: venueName },
@@ -1146,7 +1152,8 @@ function _evalIncomingFriendRequest() {
     // any pending row still exists. The body uses {name} +{extra} so a
     // single toast represents the whole pending set.
     id: 'social_friend_request',
-    priority: 1, category: 'social',
+    // P0 — event-driven, interrupts ambient P1 toasts.
+    priority: 0, category: 'social',
     icon: '👤',
     bodyKey,
     bodyVars: { name, extra },
@@ -1218,14 +1225,15 @@ const _notifEvaluators = [
   _evalSunSettingSoon,
   _evalCloudIncoming,
   _evalRainWindow,
-  // P1 Social
-  _evalFriendsAtVenue,
-  _evalCheckinPrompt,
-  _evalFriendPlanning,
+  // P0 Social — event-driven, take precedence over ambient observations
   _evalIncomingPlanInvite,
   _evalInviteAccepted,
   _evalInviteDeclined,
   _evalIncomingFriendRequest,
+  // P1 Social — ambient observations (friends nearby, friend's plan)
+  _evalFriendsAtVenue,
+  _evalCheckinPrompt,
+  _evalFriendPlanning,
 ];
 
 // ── Evaluate & Schedule ──────────────────────────────────────────────────────
