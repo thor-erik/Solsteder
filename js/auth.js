@@ -3054,7 +3054,13 @@ function _subscribeToPlanInvites() {
   _planInvitesSubscription = _supabase
     .channel('plan-invites-realtime')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'plan_invites' }, () => {
-      loadPlans().catch(() => {});
+      // Eval after the Realtime-driven refresh so the matching social toast
+      // (incoming-invite / accept / decline) fires within the loadPlans
+      // round-trip rather than waiting for the next 60s poll cycle. P0
+      // socials are urgent: true so they bypass time-based rate limits.
+      loadPlans().then(() => {
+        if (typeof _notifEvaluate === 'function') _notifEvaluate();
+      }).catch(() => {});
     })
     .subscribe();
 }
@@ -3064,7 +3070,11 @@ function _subscribeToFriendships() {
   _friendshipsSubscription = _supabase
     .channel('friendships-realtime')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships' }, () => {
-      loadFriends().catch(() => {});
+      // See _subscribeToPlanInvites — same eval-after-load pattern so the
+      // incoming-friend-request toast fires live.
+      loadFriends().then(() => {
+        if (typeof _notifEvaluate === 'function') _notifEvaluate();
+      }).catch(() => {});
     })
     .subscribe();
 }
@@ -3083,8 +3093,16 @@ const _SOCIAL_POLL_MS = 60000;
 function _socialPollTick() {
   if (!_currentUser) return;
   if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
-  loadPlans().catch(() => {});
-  loadFriends().catch(() => {});
+  // Use Promise.all so the eval runs once after both data sets are fresh,
+  // not twice with stale state in between. Realtime is the primary delivery
+  // path for live toasts; this poll is the 60s fallback for tabs that
+  // dropped the websocket — same eval-after-load contract.
+  Promise.all([
+    loadPlans().catch(() => {}),
+    loadFriends().catch(() => {}),
+  ]).then(() => {
+    if (typeof _notifEvaluate === 'function') _notifEvaluate();
+  });
 }
 function _startSocialPoll() {
   if (_socialPollTimer) return;
