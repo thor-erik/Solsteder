@@ -51,6 +51,25 @@ async function _checkSocialTables() {
   return _socialTablesReady;
 }
 
+// pending_edits table is referenced by the admin venue-edit moderation
+// flow but has no migration in sql/ — it was never created on prod and
+// every call site spammed 404s on each invocation. Probe once and cache;
+// subsequent calls short-circuit so the user only sees ONE network 404
+// per session instead of many. To re-enable the feature later, add a
+// migration that creates the table and the probe will flip to true on
+// the next page load.
+let _pendingEditsTableReady = null;
+async function _checkPendingEditsTable() {
+  if (_pendingEditsTableReady !== null) return _pendingEditsTableReady;
+  try {
+    const { error } = await _supabase
+      .from('pending_edits').select('id', { head: true, count: 'exact' }).limit(0);
+    _pendingEditsTableReady = !error;
+  } catch { _pendingEditsTableReady = false; }
+  if (!_pendingEditsTableReady) console.debug('[auth] pending_edits table not set up — admin moderation calls disabled this session');
+  return _pendingEditsTableReady;
+}
+
 function authCurrentUser()   { return _currentUser; }
 function authIsAdmin()       { return _currentRole === 'admin'; }
 function authIsEditor()      { return _currentRole === 'editor' || _currentRole === 'admin'; }
@@ -2215,6 +2234,7 @@ async function _loadPendingCount() {
   const badge = document.getElementById('pending-count-badge');
   if (!badge) return;
   if (!await _checkSocialTables()) { badge.style.display = 'none'; return; }
+  if (!await _checkPendingEditsTable()) { badge.style.display = 'none'; return; }
   try {
     const { count, error } = await _supabase
       .from('pending_edits')
@@ -2474,16 +2494,23 @@ async function openAdminReviewPanel() {
 
   let edits = null;
   let error = null;
-  try {
-    const result = await _supabase
-      .from('pending_edits')
-      .select('*')
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false });
-    edits = result.data;
-    error = result.error;
-  } catch (err) {
+  // Gate behind the probe so we don't network-404 every time the admin
+  // opens this panel. _adminEditsCache below carries a structured error
+  // shape the render path already knows how to display ("not set up yet").
+  if (!await _checkPendingEditsTable()) {
     error = { code: '42P01', message: 'pending_edits table not set up yet.' };
+  } else {
+    try {
+      const result = await _supabase
+        .from('pending_edits')
+        .select('*')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+      edits = result.data;
+      error = result.error;
+    } catch (err) {
+      error = { code: '42P01', message: 'pending_edits table not set up yet.' };
+    }
   }
 
   _adminEditsCache = error ? { error } : (edits || []);
@@ -2693,11 +2720,15 @@ function _showToast(msg) {
 async function loadUserPreferences() {
   if (!_currentUser) return;
   if (!await _checkSocialTables()) return;
+  // .maybeSingle (not .single) — first-time users have no user_preferences
+  // row until they save anything. .single() returns a 406 in that case,
+  // which surfaces as a console error on every fresh login. .maybeSingle
+  // returns { data: null, error: null } and falls through naturally.
   const { data, error } = await _supabase
     .from('user_preferences')
     .select('*')
     .eq('user_id', _currentUser.id)
-    .single();
+    .maybeSingle();
   if (error || !data) return;
   // Cloud overrides local
   if (data.lang && typeof setPrefLang === 'function') {
