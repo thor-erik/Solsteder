@@ -1978,13 +1978,7 @@ function _dayLabel(dateStr) {
 
 function _exitToExploreMode() {
   const found = _findFirstSunDayAndHour();
-  console.log('[exitToExplore] found:', found,
-              'currentDate:', datePicker?.value,
-              'currentTime:', timeFromEl?.value);
-  if (!found) {
-    console.log('[exitToExplore] no sun day found, bailing');
-    return;
-  }
+  if (!found) return;
   // Sync date + time pickers — both dispatch the events the rest of the
   // app listens to (renderList re-runs, slider repaints, etc.).
   // Order matters: setting the date first triggers update() which
@@ -2006,7 +2000,6 @@ function _exitToExploreMode() {
     if (!timeFromEl) return;
     timeFromEl.value = String(found.hour);
     timeFromEl.dispatchEvent(new Event('input'));
-    console.log('[exitToExplore] set timeFromEl.value to', found.hour, 'actual:', timeFromEl.value);
   };
   applyTime();
   // Belt-and-suspenders re-apply at 200 ms — long enough for the
@@ -2015,7 +2008,6 @@ function _exitToExploreMode() {
   // rAF (~16 ms), which wasn't enough on slower devices.
   setTimeout(() => {
     if (timeFromEl && Math.abs(parseFloat(timeFromEl.value) - found.hour) > 0.02) {
-      console.log('[exitToExplore] value drifted to', timeFromEl.value, '— reapplying');
       applyTime();
     }
   }, 200);
@@ -6462,13 +6454,11 @@ async function suggestVenueFlow(query) {
   try {
     const searchQuery = query;
     const proxyUrl = `/api/places-search?q=${encodeURIComponent(searchQuery)}`;
-    console.log('[suggestVenueFlow] Looking up:', searchQuery);
     const resp = await fetch(proxyUrl);
     if (resp.ok) {
       const data = await resp.json();
       if (data.status === 'OK' && data.results?.length) {
         results = data.results;
-        console.log('[suggestVenueFlow] Found', results.length, 'results');
       } else {
         console.warn('[suggestVenueFlow] API status:', data.status, data);
       }

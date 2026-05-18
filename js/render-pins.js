@@ -77,6 +77,7 @@ function classifyPin(v, dateStr, hour) {
   try {
     ({ windows } = computeSunWindows(v, dateStr));
   } catch (e) {
+    console.warn('[classifyPin] computeSunWindows threw for', v && v.id, e);
     return { tier: 'context', surfaced: false, hasSunLaterToday: false, closedOpeningIntoSun: false };
   }
 
@@ -163,7 +164,6 @@ const CIRCLE_R          = 10;     // status-dot radius (20px diameter; same as 1
 const PAD_L             = 3;      // gap between pill left edge and dot/friend module
 const PAD_R             = 9;      // gap between time text and pill right edge
 const CIRCLE_TIME_GAP   = 5;      // gap between dot right edge and time text
-const COMPAT_STEM_H     = 14;     // padding baked into spr.cssH so hitTestVenue maths works
 
 // Friend module geometry (capsule of stacked avatars)
 const AVATAR_R          = 8;      // each avatar is 16px diameter
@@ -1303,7 +1303,11 @@ function draw() {
         && typeof shouldShowAtZoom === 'function'
         && !shouldShowAtZoom(v, zoom)) return;
     let cls;
-    try { cls = classifyPin(v, dateStr, currentHour); } catch { cls = { tier: 'context' }; }
+    try { cls = classifyPin(v, dateStr, currentHour); }
+    catch (e) {
+      console.warn('[draw] classifyPin threw for', v && v.id, e);
+      cls = { tier: 'context' };
+    }
     if (friends.length > 0) _friendVenueIds.add(v.id);
     projVenues.push({ v, cls, pt: map.project([v.lng, v.lat]), friends });
   });
@@ -1401,8 +1405,8 @@ function draw() {
         ctx.restore();
       }
       layout.push({
-        v, pt, classResult: cls, isDot: true, extraStem: 0,
-        spr: { anchorX: 0, anchorY: 0, cssW: r * 2, cssH: r * 2 + COMPAT_STEM_H, pillW: 0, pillH: 0, pillR: 0 },
+        v, pt, classResult: cls, isDot: true,
+        spr: { anchorX: 0, anchorY: 0, cssW: r * 2, cssH: r * 2, pillW: 0, pillH: 0, pillR: 0 },
       });
       continue;
     }
@@ -1504,8 +1508,8 @@ function draw() {
         ctx.restore();
       }
       layout.push({
-        v, pt, classResult: cls, isDot: true, extraStem: 0,
-        spr: { anchorX: 0, anchorY: 0, cssW: 8, cssH: 8 + COMPAT_STEM_H, pillW: 0, pillH: 0, pillR: 0 },
+        v, pt, classResult: cls, isDot: true,
+        spr: { anchorX: 0, anchorY: 0, cssW: 8, cssH: 8, pillW: 0, pillH: 0, pillR: 0 },
       });
       continue;
     }
@@ -1553,12 +1557,12 @@ function draw() {
       // Card width is dynamic; clamp to a safe upper bound for hit-test.
       const _cardW = INVITE_CARD_MAX_W;
       layout.push({
-        v, pt, classResult: cls, isDot: false, extraStem: 0,
+        v, pt, classResult: cls, isDot: false,
         spr: {
           anchorX: _cardW / 2,
-          anchorY: _cardH + INVITE_TIP_GAP + INVITE_TIP_H + COMPAT_STEM_H,
+          anchorY: _cardH + INVITE_TIP_GAP + INVITE_TIP_H,
           cssW:    _cardW,
-          cssH:    _cardH + INVITE_TIP_GAP + INVITE_TIP_H + COMPAT_STEM_H,
+          cssH:    _cardH + INVITE_TIP_GAP + INVITE_TIP_H,
           pillW:   _cardW,
           pillH:   _cardH + INVITE_TIP_GAP + INVITE_TIP_H,
           pillR:   14,
@@ -1623,12 +1627,12 @@ function draw() {
     ctx.restore();
 
     layout.push({
-      v, pt, classResult: cls, isDot: false, extraStem: 0,
+      v, pt, classResult: cls, isDot: false,
       spr: {
         anchorX: w / 2,
-        anchorY: PILL_H + TAIL_H + COMPAT_STEM_H,
+        anchorY: PILL_H + TAIL_H,
         cssW:    w,
-        cssH:    PILL_H + TAIL_H + COMPAT_STEM_H,
+        cssH:    PILL_H + TAIL_H,
         pillW:   w,
         pillH:   PILL_H + TAIL_H,
         pillR:   PILL_R,
@@ -1722,8 +1726,8 @@ function draw() {
       else if (kind === 'unsure')   _drawAuditUnsurePin(pt);
       else                          _drawAuditArchivedPin(pt);
       layout.push({
-        v, pt, classResult: { tier: 'context' }, isDot: true, extraStem: 0,
-        spr: { anchorX: 0, anchorY: 0, cssW: 14, cssH: 14 + COMPAT_STEM_H, pillW: 0, pillH: 0, pillR: 0 },
+        v, pt, classResult: { tier: 'context' }, isDot: true,
+        spr: { anchorX: 0, anchorY: 0, cssW: 14, cssH: 14, pillW: 0, pillH: 0, pillR: 0 },
       });
     }
   }
@@ -1771,7 +1775,7 @@ function hitTestVenue(cx, cy) {
     const rx = pt.x - spr.anchorX - 4;
     const ry = pt.y - spr.anchorY - 4;
     const rw = spr.cssW + 8;
-    const rh = spr.cssH - COMPAT_STEM_H + 8;
+    const rh = spr.cssH + 8;
     if (cx >= rx && cx <= rx + rw && cy >= ry && cy <= ry + rh) return v;
   }
   return null;

@@ -606,6 +606,11 @@ function closePlanPreview(opts = {}) {
     for (const tref of st.timeouts) { if (tref && tref.id != null) clearTimeout(tref.id); }
   }
   if (st.resizeObs) { try { st.resizeObs.disconnect(); } catch {} }
+  // Drop FTS scrubber + timeFromEl + outside-tap listeners wired during _ppBuildDom.
+  if (st.overlay && typeof st.overlay._cleanup === 'function') {
+    try { st.overlay._cleanup(); }
+    catch (e) { console.warn('[plan-preview] overlay cleanup threw', e); }
+  }
   document.documentElement.style.removeProperty('--pp-bottom-h');
   if (st.savedDate != null && datePicker && datePicker.value !== st.savedDate) {
     datePicker.value = st.savedDate;
@@ -1315,7 +1320,9 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     }
   };
   if (typeof timeFromEl !== 'undefined' && timeFromEl) timeFromEl.addEventListener('input', onTimeInput);
+  const _prevCleanupOnTime = el._cleanup;
   el._cleanup = () => {
+    if (_prevCleanupOnTime) _prevCleanupOnTime();
     if (typeof timeFromEl !== 'undefined' && timeFromEl) timeFromEl.removeEventListener('input', onTimeInput);
   };
 
@@ -1414,12 +1421,19 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
         chip.classList.add('is-selected');
         laterStrip.classList.remove('open');
       });
-      // Outside-tap dismiss
-      document.addEventListener('click', (ev) => {
+      // Outside-tap dismiss — chained into el._cleanup so closePlanPreview
+      // can drop it. Previously this leaked across plan-preview lifecycles.
+      const onOutsideTap = (ev) => {
         if (!laterStrip.classList.contains('open')) return;
         if (laterStrip.contains(ev.target) || suggestBtn.contains(ev.target)) return;
         laterStrip.classList.remove('open');
-      });
+      };
+      document.addEventListener('click', onOutsideTap);
+      const _prevCleanupLaterStrip = el._cleanup;
+      el._cleanup = () => {
+        if (_prevCleanupLaterStrip) _prevCleanupLaterStrip();
+        document.removeEventListener('click', onOutsideTap);
+      };
     }
   }
 
@@ -1442,7 +1456,8 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
       }
     }
     if (typeof respondToPlanInvite === 'function' && opts.inviteId) {
-      try { await respondToPlanInvite(opts.inviteId, 'accepted', arrivalIso); } catch (e) { /* ignore */ }
+      try { await respondToPlanInvite(opts.inviteId, 'accepted', arrivalIso); }
+      catch (e) { console.warn('[plan-preview] respondToPlanInvite(accepted) failed', opts.inviteId, e); }
     }
     const friendsList = (typeof _friends !== 'undefined') ? _friends : [];
     const isFriendOfInviter = !opts.inviterId
@@ -1515,7 +1530,8 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   const declineBtn = el.querySelector('#pp-decline');
   if (declineBtn) declineBtn.onclick = async () => {
     if (typeof respondToPlanInvite === 'function' && opts.inviteId) {
-      try { await respondToPlanInvite(opts.inviteId, 'declined'); } catch (e) { /* ignore */ }
+      try { await respondToPlanInvite(opts.inviteId, 'declined'); }
+      catch (e) { console.warn('[plan-preview] respondToPlanInvite(declined) failed', opts.inviteId, e); }
     }
     if (typeof _aTrack === 'function') _aTrack('plan_preview_decline', { venue_id: venue.id, has_invite_id: !!opts.inviteId });
     // Decline path: do NOT open the venue's detail panel afterwards.
@@ -1685,10 +1701,8 @@ function _computeTimelineEvents(v, dateStr, minH, maxH) {
   // ('the shadow icon where the shadow start, then the full sun later
   // when the shadow ends'). Bounded by minH / maxH so transitions
   // outside the visible bar drop out.
-  let sunWindowsDebug = null;
   if (typeof computeSunWindows === 'function') {
     const sw = computeSunWindows(v, dateStr);
-    sunWindowsDebug = sw;
     const wins = (sw && sw.windows) || [];
     for (const win of wins) {
       // shade→sun transition at window start (sun arrives on the seating)
@@ -1701,30 +1715,10 @@ function _computeTimelineEvents(v, dateStr, minH, maxH) {
       }
     }
   }
-  // Weather-change events removed — kept the row to JUST sun/shade
-  // transitions + meet, which align exactly with the bar's visible
-  // gap boundaries. User: 'markers now literally missing the mark'
-  // — weather transitions were firing at integer hours, near (but
-  // not exactly on) gap boundaries, and competing with the
-  // sun/shade events for coalesce slots so the wrong glyph won.
-  // The bar's colored bands already convey weather visually; we
-  // don't also need icons for it. Sample log retained for debug.
-  const weatherSamples = [];
-  if (typeof getWeatherAt === 'function') {
-    for (let h = Math.floor(minH); h <= Math.ceil(maxH); h++) {
-      const wx = getWeatherAt(dateStr, h + 0.5);
-      weatherSamples.push({ h, cf: wx?.sunBlock ?? wx?.cloud, precip: wx?.precip ?? wx?.prec });
-    }
-  }
-  // Surface the raw data so debugging on a real venue shows why the
-  // icon row is (or isn't) populated. Logged once per build.
-  try {
-    console.log('[timeline-events.raw]', {
-      venue: v?.id, dateStr, minH, maxH,
-      sunWindows: sunWindowsDebug?.windows,
-      weatherSamples,
-    });
-  } catch (e) { /* never block on logging */ }
+  // Weather-change events were removed — the bar's coloured bands
+  // already convey weather visually. Keeping the row to JUST sun/shade
+  // transitions + meet aligned the glyphs exactly with the bar's gap
+  // boundaries (user: 'markers now literally missing the mark').
   events.sort((a, b) => a.hour - b.hour);
   // Coalesce: drop any event within 0.5 h of the previous one.
   const out = [];
@@ -1769,14 +1763,6 @@ function _populateTimelineEvents(host, v, dateStr, minH, maxH) {
     }
     return Math.max(2, Math.round(barTopAtX - ICON_BOTTOM_Y - TICK_PADDING_TOP - TICK_PADDING_BOT));
   };
-  try {
-    console.log('[timeline-events]', {
-      venue: v && v.id, dateStr, minH, maxH,
-      testOverride: !!(typeof window !== 'undefined' && Array.isArray(window._testTimelineEvents) && window._testTimelineEvents.length),
-      count: events.length,
-      events,
-    });
-  } catch (e) { /* never block render on logging */ }
   for (const e of events) {
     const xPct = ((e.hour - minH) / (maxH - minH)) * 100;
     // Meet anchor is allowed at the bar's left edge (xPct == 0). Other

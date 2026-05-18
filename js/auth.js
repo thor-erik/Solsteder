@@ -1110,7 +1110,7 @@ async function _bellNoteOpened() {
       .eq('user_id', _currentUser.id)
       .is('read_at', null)
       .in('notif_id', markedIds);
-  } catch { /* fire-and-forget */ }
+  } catch (e) { console.warn('[bell] mark-as-read failed', e); }
 }
 
 /** Render body with bodyVars bolded. _notifShow's wrapper renders the
@@ -3422,9 +3422,16 @@ _supabase.auth.onAuthStateChange((event, session) => {
     _friends = []; _pendingRequests = [];
     _friendCheckins.clear(); _myCheckin = null;
     _plans = []; _planInvites = [];
+    // Clear admin-only caches so a previous admin's reviewed-edits /
+    // suggestions / users data doesn't render to a freshly-logged-in
+    // non-admin (or stay visible after a role demotion).
+    _adminEditsCache = null;
+    _adminSuggestionsCache = null;
+    _adminUsersCache = null;
     if (_checkinSubscription)     { _checkinSubscription.unsubscribe();     _checkinSubscription = null; }
     if (_planInvitesSubscription) { _planInvitesSubscription.unsubscribe(); _planInvitesSubscription = null; }
     if (_friendshipsSubscription) { _friendshipsSubscription.unsubscribe(); _friendshipsSubscription = null; }
+    if (_suggestionsChannel)      { try { _suggestionsChannel.unsubscribe(); } catch { /* idempotent */ } _suggestionsChannel = null; }
     _stopSocialPoll();
   }
 

@@ -154,20 +154,19 @@ function _notifMarkShownGlobal(id) {
 function _notifAdvance() {
   if (_notifCurrent) return; // one at a time
   if (!_notifCanShow()) return;
-  const notif = _notifDequeue();
-  if (!notif) return;
-  if (_notifWasShownInOtherTab(notif.id)) {
-    // Another tab beat us to it. Skip the toast but still record the
-    // bell entry so this tab's inbox stays in sync.
-    if (typeof _bellRecord === 'function') _bellRecord(notif);
-    // Recurse — try the next queued notif. Guard against infinite
-    // recursion: each call shifts from the queue, so progress is
-    // monotonic.
-    _notifAdvance();
+  // Iterative skip of items already shown in another tab. Each pass
+  // shifts the queue, so the loop is bounded by queue length.
+  while (true) {
+    const notif = _notifDequeue();
+    if (!notif) return;
+    if (_notifWasShownInOtherTab(notif.id)) {
+      if (typeof _bellRecord === 'function') _bellRecord(notif);
+      continue;
+    }
+    _notifMarkShownGlobal(notif.id);
+    _notifShow(notif);
     return;
   }
-  _notifMarkShownGlobal(notif.id);
-  _notifShow(notif);
 }
 
 // ── Toast UI ──────────────────────────────────────────��──────────────────────
@@ -273,8 +272,27 @@ function _notifEnsureEl() {
   return el;
 }
 
+function _notifStartAutoDismissTimer(notif) {
+  clearTimeout(_notifAutoTimer);
+  const duration = notif._legacyDismiss || (notif.priority === 0 ? 30000 : _NOTIF_AUTO_DEFAULT);
+  _notifAutoTimer = setTimeout(() => {
+    if (typeof _aTrack === 'function' && _notifCurrent) _aTrack('notification_dismiss', {
+      id: _notifCurrent.id, priority: _notifCurrent.priority, category: _notifCurrent.category, method: 'auto'
+    });
+    _notifHide();
+  }, duration);
+}
+
+function _notifInvokeAction(notif) {
+  try { notif.action(); }
+  catch (e) { console.warn('[notif] action threw:', notif.id, e); }
+  if (typeof _aTrack === 'function') _aTrack('notification_action', {
+    id: notif.id, priority: notif.priority, category: notif.category,
+  });
+  _notifHide();
+}
+
 function _notifShow(notif) {
-  console.log('[notif] showing:', notif.id, notif.bodyKey || notif._rawText);
   _notifCurrent = notif;
   const el = _notifEnsureEl();
 
@@ -308,11 +326,7 @@ function _notifShow(notif) {
   if (notif.actionKey && notif.action) {
     actionBtn.textContent = t(notif.actionKey, notif.bodyVars || {});
     actionBtn.style.display = '';
-    actionBtn.onclick = () => {
-      notif.action();
-      if (typeof _aTrack === 'function') _aTrack('notification_action', { id: notif.id, priority: notif.priority, category: notif.category });
-      _notifHide();
-    };
+    actionBtn.onclick = () => _notifInvokeAction(notif);
   } else {
     actionBtn.style.display = 'none';
   }
@@ -325,11 +339,7 @@ function _notifShow(notif) {
 
   // Tap on body area also triggers action (if available) for easy mobile use
   el.querySelector('.notif-toast-content').onclick = () => {
-    if (notif.action) {
-      notif.action();
-      if (typeof _aTrack === 'function') _aTrack('notification_action', { id: notif.id, priority: notif.priority, category: notif.category });
-      _notifHide();
-    }
+    if (notif.action) _notifInvokeAction(notif);
   };
 
   // Swipe-to-dismiss: up / left / right past 60px commits a dismiss with
@@ -355,15 +365,15 @@ function _notifShow(notif) {
     id: notif.id, priority: notif.priority, category: notif.category, queue_depth: _notifQueue.length
   });
 
-  // Auto-dismiss: P0 gets 30s (long but not forever), others 6s, legacy 2.2s
-  clearTimeout(_notifAutoTimer);
-  const duration = notif._legacyDismiss || (notif.priority === 0 ? 30000 : _NOTIF_AUTO_DEFAULT);
-  _notifAutoTimer = setTimeout(() => {
-    if (typeof _aTrack === 'function' && _notifCurrent) _aTrack('notification_dismiss', {
-      id: _notifCurrent.id, priority: _notifCurrent.priority, category: _notifCurrent.category, method: 'auto'
-    });
-    _notifHide();
-  }, duration);
+  // Per-notification _onShow hook (used by social_invite_accepted to persist
+  // dedupe, and by bell-only evaluators to stamp per-day state).
+  if (typeof notif._onShow === 'function') {
+    try { notif._onShow(); }
+    catch (e) { console.warn('[notif] _onShow threw:', notif.id, e); }
+  }
+  if (typeof _bellRecord === 'function') _bellRecord(notif);
+
+  _notifStartAutoDismissTimer(notif);
 }
 
 function _notifHide() {
@@ -395,14 +405,7 @@ function notifFreezeAutoDismiss() {
 
 function notifResumeAutoDismiss() {
   if (!_notifCurrent || _notifAutoTimer) return;
-  const notif = _notifCurrent;
-  const duration = notif._legacyDismiss || (notif.priority === 0 ? 30000 : _NOTIF_AUTO_DEFAULT);
-  _notifAutoTimer = setTimeout(() => {
-    if (typeof _aTrack === 'function' && _notifCurrent) _aTrack('notification_dismiss', {
-      id: _notifCurrent.id, priority: _notifCurrent.priority, category: _notifCurrent.category, method: 'auto'
-    });
-    _notifHide();
-  }, duration);
+  _notifStartAutoDismissTimer(_notifCurrent);
 }
 
 window.notifFreezeAutoDismiss = notifFreezeAutoDismiss;
@@ -441,13 +444,7 @@ function _notifResumeAfterSearch() {
   if (!_notifCurrent || _notifCurrent.id !== notif.id) return;
   const wrap = document.getElementById('notif-toast-wrap');
   if (wrap) wrap.classList.add('show');
-  const duration = notif._legacyDismiss || (notif.priority === 0 ? 30000 : _NOTIF_AUTO_DEFAULT);
-  _notifAutoTimer = setTimeout(() => {
-    if (typeof _aTrack === 'function' && _notifCurrent) _aTrack('notification_dismiss', {
-      id: _notifCurrent.id, priority: _notifCurrent.priority, category: _notifCurrent.category, method: 'auto'
-    });
-    _notifHide();
-  }, duration);
+  _notifStartAutoDismissTimer(notif);
 }
 
 // ── Evaluators: P0 Alerts (user-opted-in) ────────────────────────────────────
@@ -491,7 +488,8 @@ function _evalSunAlerts() {
       // Strictly "incoming" — at least a minute out so we never fire after
       // the window has technically begun.
       if (hoursUntil < 1/60 || hoursUntil > leadHours) continue;
-      const dedupeKey = `${dateStr}:${vidStr}:${w.start.toFixed(2)}`;
+      // Minute-resolution key — toFixed(2) on a float risked rounding collisions.
+      const dedupeKey = `${dateStr}:${vidStr}:${Math.round(w.start * 60)}`;
       if (fired[dedupeKey]) continue;
       if (!best || w.start < best.windowStart) {
         best = {
@@ -1194,35 +1192,31 @@ const _notifEvaluators = [
 // ── Evaluate & Schedule ──────────────────────────────────────────────────────
 
 function _notifEvaluate() {
-  if (!_notifInitDone) { console.log('[notif] evaluate skipped: not init'); return; }
+  if (!_notifInitDone) return;
   const settings = _notifGetSettings();
-  let enqueued = 0;
   for (const evaluator of _notifEvaluators) {
     try {
       const notif = evaluator();
       if (!notif) continue;
-      if (_NOTIF_DISABLED_CATEGORIES.has(notif.category)) { console.log('[notif] blocked by kill-switch:', notif.id); continue; }
-      if (!settings[notif.category]) { console.log('[notif] blocked by settings:', notif.id); continue; }
-      if (_notifDismissed.has(notif.id)) { console.log('[notif] dismissed:', notif.id); continue; }
+      if (_NOTIF_DISABLED_CATEGORIES.has(notif.category)) continue;
+      if (!settings[notif.category]) continue;
+      if (_notifDismissed.has(notif.id)) continue;
       // bellOnly: silent inbox record, no toast. Used for ambient state
       // the UI already exposes (no sun today, best-sun summary) where a
       // toast would just duplicate what the user can see.
       if (notif.bellOnly) {
         if (typeof _bellRecord === 'function') _bellRecord(notif);
         if (typeof notif._onShow === 'function') {
-          try { notif._onShow(); } catch (e) { /* ignore */ }
+          try { notif._onShow(); }
+          catch (e) { console.warn('[notif] bellOnly _onShow threw:', notif.id, e); }
         }
-        console.log('[notif] bell-only record:', notif.id);
         continue;
       }
       _notifEnqueue(notif);
-      enqueued++;
-      console.log('[notif] enqueued:', notif.id, 'p' + notif.priority);
     } catch (e) {
       console.warn('[notif] evaluator error:', evaluator.name, e);
     }
   }
-  console.log('[notif] evaluate done. queue:', _notifQueue.length, 'current:', _notifCurrent?.id || 'none', 'canShow:', _notifCanShow());
   // If P0 in queue and current toast is lower priority, preempt
   if (_notifCurrent && _notifQueue.length && _notifQueue[0].priority < _notifCurrent.priority) {
     _notifHide(); // will auto-advance to higher priority
@@ -1322,7 +1316,6 @@ function _notifSettingsHtml() {
 // ── Init ─────────────────────────────────────────���───────────────────────────
 
 function _notifInit() {
-  console.log('[notif] init called');
   const state = _notifLoadState();
   state.sessionCount = (state.sessionCount || 0) + 1;
   state.lastSessionTs = Date.now();
@@ -1335,15 +1328,3 @@ function _notifInit() {
   setTimeout(_notifEvaluate, 8000);
 }
 
-const _origNotifShow = _notifShow;
-_notifShow = function(notif) {
-  _origNotifShow(notif);
-  // Per-notification _onShow hook (used by social_invite_accepted to persist
-  // dedupe, and by bell-only evaluators to stamp per-day state).
-  if (typeof notif._onShow === 'function') {
-    try { notif._onShow(); } catch (e) { /* ignore */ }
-  }
-  // Surface in the bell inbox. Captures the rendered body + click action
-  // so the row routes correctly when tapped.
-  if (typeof _bellRecord === 'function') _bellRecord(notif);
-};
