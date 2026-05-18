@@ -630,9 +630,12 @@ function _updateFtsThumbDom(fromH) {
   if (!trackW) return;
   const visualH = (typeof window._ftsRawHour === 'number') ? window._ftsRawHour : fromH;
   const xPct = (visualH - MIN_H_ARC) / (MAX_H_ARC - MIN_H_ARC);
-  // Clamp the percentage to keep the thumb visually pinned to the nearest
-  // cap, matching the canvas thumb's old sx-clamp.
-  const capPx = thumb.offsetHeight / 2 || 15;
+  // Clamp by the track's cap radius (not the thumb radius). At the extreme,
+  // thumb center lands at (trackW - capR, trackH/2) — concentric with the
+  // pill's corner curve — so the gap between the thumb's edge and the pill's
+  // curve is uniform (= capR − thumbR = 4px) all the way around the thumb,
+  // matching the 4px margin on top/bottom.
+  const capPx = (track.offsetHeight / 2) || 20;
   const capPct = (capPx / trackW) * 100;
   const pct = Math.max(capPct, Math.min(100 - capPct, xPct * 100));
   thumb.style.left = pct + '%';
@@ -1141,9 +1144,17 @@ function showFtsPopup(hour) {
   const RIGHT_MARGIN = _zjVisible ? 56 : 4;
 
   const rawPct = (hour - MIN_H) / (MAX_H - MIN_H) * 100;
-  const minPct = (LEFT_MARGIN + popupW / 2 - trackL) / trackW * 100;
-  const maxPct = (viewportW - RIGHT_MARGIN - popupW / 2 - trackL) / trackW * 100;
-  const pct    = Math.max(minPct, Math.min(maxPct, rawPct));
+  // Match the thumb's visual clamp (cap radius, not thumb radius) so the
+  // popup body lands directly over the thumb at all positions.
+  const _thumbEl = document.getElementById('fts-thumb');
+  const _trackH  = trackEl ? trackEl.offsetHeight : 40;
+  const capPxPop = (_trackH / 2) || 20;
+  const capPctPop = (capPxPop / trackW) * 100;
+  const thumbVisualPctEarly = Math.max(capPctPop, Math.min(100 - capPctPop, rawPct));
+  // Center the popup body on the thumb — no viewport clamp. The tail's
+  // offset (computed below) then stays at zero, so the popup never slides
+  // sideways or angles its tail away from the thumb at the extremes.
+  const pct = thumbVisualPctEarly;
   popup.style.left = pct + '%';
 
   // Tail geometry — anchor-and-shift (YouTube scrubber pattern).
@@ -1167,10 +1178,9 @@ function showFtsPopup(hour) {
       // thumb with a visible gap.
       const TIP_DEPTH = 10;
 
-      // Visual thumb clamping — match _updateFtsThumbDom's capPct so the
-      // tail tip lands on the thumb circle, not in empty space past it.
-      const thumb = document.getElementById('fts-thumb');
-      const thumbCapPx = thumb ? thumb.offsetHeight / 2 : 16;
+      // Visual thumb clamping — match _updateFtsThumbDom (cap radius, not
+      // thumb radius) so the tail tip lands on the thumb circle.
+      const thumbCapPx = (_trackH / 2) || 20;
       const thumbCapPct = (thumbCapPx / trackW) * 100;
       const thumbVisualPct = Math.max(thumbCapPct,
                                       Math.min(100 - thumbCapPct, rawPct));
