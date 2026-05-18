@@ -15,11 +15,12 @@ const _NOTIF_AUTO_P0          = 8000;   // P0 auto-dismiss
 const _NOTIF_AUTO_DEFAULT     = 6000;   // other auto-dismiss
 const _NOTIF_LEGACY_DISMISS   = 2200;   // legacy _showToast timing
 
-// Temporary app-wide kill-switch: only `social` notifications fire while we
-// dial the others in. Overrides per-user settings — toggles for these
-// categories are also hidden in the profile panel. To re-enable, remove
-// the category from this set.
-const _NOTIF_DISABLED_CATEGORIES = new Set(['weather', 'suggestion', 'login']);
+// App-wide kill-switch. Categories listed here are blocked even if the user
+// has them enabled in settings, and their toggles are hidden in the profile
+// panel. `suggestion` and `login` are retained as a guard — the evaluators
+// for those categories were removed (see audit 2026-05-18), so nothing fires
+// for them today; the entries here prevent stray re-introductions.
+const _NOTIF_DISABLED_CATEGORIES = new Set(['suggestion', 'login']);
 
 // ── Mutable State ─────────────────────────────────────────────��──────────────
 
@@ -33,7 +34,6 @@ let _notifAutoTimer     = null;
 let _notifLoginShown    = new Set();  // login prompt ids shown this session
 let _notifInitDone      = false;
 let _notifEvalTimer     = null;
-let _notifWeatherShownThisSession = false; // track if any P0 weather was shown
 
 // ── localStorage Helpers ─────────��───────────────────────────────────────────
 
@@ -46,15 +46,19 @@ function _notifSaveState(state) {
 }
 
 function _notifGetSettings() {
-  try {
-    const s = JSON.parse(localStorage.getItem(_NOTIF_STORAGE_SETTINGS) || 'null');
-    if (s) return s;
-  } catch { /* ignore */ }
-  // Weather toasts default OFF — they were firing on every app open
-  // ("Sol åpner på X kl Y") which the user reported as intrusive noise.
-  // Ambient weather info now lives in the bell dropdown instead. Users
-  // can opt back in via Innstillinger → Varslingstyper.
-  return { weather: false, social: true, suggestion: true, login: true };
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem(_NOTIF_STORAGE_SETTINGS) || 'null'); } catch { /* ignore */ }
+  // Defaults. The 'alert' category covers user-opted-in per-venue sun alerts
+  // and plan reminders — defaults ON because the user explicitly subscribed.
+  // 'weather' defaults ON now that the loud evaluators (lunch, wind) are gone
+  // and the survivors (cloud/sunset/rain) have real actions + a 2-min
+  // cooldown. Suggestion/login are vestigial — no evaluators feed them, kept
+  // so older persisted settings still parse cleanly.
+  const defaults = { alert: true, weather: true, social: true, suggestion: true, login: true };
+  if (!s) return defaults;
+  // Merge so new categories get their default when a user has an older saved
+  // settings blob in localStorage.
+  return { ...defaults, ...s };
 }
 
 function _notifSaveSettings(settings) {
@@ -351,9 +355,6 @@ function _notifShow(notif) {
     id: notif.id, priority: notif.priority, category: notif.category, queue_depth: _notifQueue.length
   });
 
-  // Track for follow-up notifications
-  if (notif.category === 'weather') _notifWeatherShownThisSession = true;
-
   // Auto-dismiss: P0 gets 30s (long but not forever), others 6s, legacy 2.2s
   clearTimeout(_notifAutoTimer);
   const duration = notif._legacyDismiss || (notif.priority === 0 ? 30000 : _NOTIF_AUTO_DEFAULT);
@@ -449,13 +450,174 @@ function _notifResumeAfterSearch() {
   }, duration);
 }
 
+// ── Evaluators: P0 Alerts (user-opted-in) ────────────────────────────────────
+
+/**
+ * Sun-hits-alerted-venue. Fires when a venue the user explicitly subscribed
+ * to (via the bell button on the venue detail) is about to be hit by sun
+ * within its configured lead time (default 30 min from sql/004-sun-alerts.sql).
+ *
+ * Dedupe is per (date, venueId, windowStart) and persisted to localStorage so
+ * the alert fires exactly once per sun window across sessions/tabs. Once-per-
+ * window is the right granularity: a venue with sun 10:00–11:30 + 13:00–14:30
+ * should get two alerts on the same day, not one.
+ */
+function _evalSunAlerts() {
+  if (typeof _currentUser === 'undefined' || !_currentUser) return null;
+  if (typeof _alertsMap === 'undefined' || !_alertsMap.size) return null;
+  if (typeof VENUES === 'undefined' || !VENUES) return null;
+  if (typeof datePicker === 'undefined' || !datePicker) return null;
+  // Alerts are about real-time arrival, so only fire while viewing today.
+  if (datePicker.value !== todayStr()) return null;
+
+  const dateStr = todayStr();
+  const now = currentHour();
+  const KEY = 'solsteder_sun_alert_fired';
+  let fired = {};
+  try { fired = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch {}
+
+  // Pick the earliest upcoming window across all alerted venues. The other
+  // venues' windows get picked up on subsequent eval cycles within 60s.
+  let best = null;
+  for (const [vidStr, alert] of _alertsMap) {
+    if (alert.enabled === false) continue;
+    const leadHours = (alert.notify_minutes_before ?? 30) / 60;
+    const venue = VENUES.find(v => String(v.id) === String(vidStr));
+    if (!venue) continue;
+    const { windows } = computeSunWindows(venue, dateStr) || {};
+    if (!windows || !windows.length) continue;
+    for (const w of windows) {
+      const hoursUntil = w.start - now;
+      // Strictly "incoming" — at least a minute out so we never fire after
+      // the window has technically begun.
+      if (hoursUntil < 1/60 || hoursUntil > leadHours) continue;
+      const dedupeKey = `${dateStr}:${vidStr}:${w.start.toFixed(2)}`;
+      if (fired[dedupeKey]) continue;
+      if (!best || w.start < best.windowStart) {
+        best = {
+          venue, vidStr,
+          minutesUntil: Math.max(1, Math.round(hoursUntil * 60)),
+          windowStart: w.start,
+          dedupeKey,
+        };
+      }
+    }
+  }
+  if (!best) return null;
+
+  return {
+    id: 'sun_alert_' + best.dedupeKey,
+    priority: 0, category: 'alert',
+    icon: '☀️',
+    bodyKey: 'notif_sun_alert_body',
+    bodyVars: { venue: best.venue.name, minutes: best.minutesUntil },
+    actionKey: 'notif_go_to_venue',
+    action: () => {
+      if (typeof selectVenue === 'function') selectVenue(Number(best.venue.id), true);
+    },
+    ttl: 600000, dedupe: true,
+    _onShow: () => {
+      try {
+        const cur = JSON.parse(localStorage.getItem(KEY) || '{}');
+        cur[best.dedupeKey] = Date.now();
+        // Prune entries older than 2 days so the map doesn't grow forever.
+        const cutoff = Date.now() - 2 * 86400 * 1000;
+        for (const k of Object.keys(cur)) if (cur[k] < cutoff) delete cur[k];
+        localStorage.setItem(KEY, JSON.stringify(cur));
+      } catch {}
+    },
+  };
+}
+
+/**
+ * Plan-starts-soon reminder. Fires 30 min before `planned_at` for plans the
+ * user created OR accepted. One-shot per plan id, persisted across sessions.
+ *
+ * Why P0 + 'alert' category: the user explicitly committed to this plan (by
+ * creating it or accepting the invite), so a reminder is opt-in rather than
+ * ambient — same shape as sun alerts.
+ */
+function _evalPlanReminder() {
+  if (typeof _currentUser === 'undefined' || !_currentUser) return null;
+  if (typeof VENUES === 'undefined' || !VENUES) return null;
+
+  const KEY = 'solsteder_plan_reminders_fired';
+  let fired = {};
+  try { fired = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch {}
+
+  const now = Date.now();
+  const LEAD_MS = 30 * 60 * 1000;
+  const MIN_MS  = 60 * 1000;
+
+  const candidates = [];
+  if (typeof _plans !== 'undefined' && Array.isArray(_plans)) {
+    for (const p of _plans) {
+      if (p.creator_id !== _currentUser.id) continue;
+      candidates.push({ id: p.id, planned_at: p.planned_at, venue_id: p.venue_id });
+    }
+  }
+  if (typeof _planInvites !== 'undefined' && Array.isArray(_planInvites)) {
+    for (const inv of _planInvites) {
+      if (inv.status !== 'accepted') continue;
+      const p = inv.plan;
+      if (!p) continue;
+      candidates.push({ id: p.id, planned_at: p.planned_at, venue_id: p.venue_id });
+    }
+  }
+
+  let best = null;
+  for (const c of candidates) {
+    if (!c.planned_at || fired[c.id]) continue;
+    const planMs = new Date(c.planned_at).getTime();
+    if (!Number.isFinite(planMs)) continue;
+    const msUntil = planMs - now;
+    if (msUntil < MIN_MS || msUntil > LEAD_MS) continue;
+    if (!best || planMs < best.planMs) best = { ...c, planMs, msUntil };
+  }
+  if (!best) return null;
+
+  const venue = VENUES.find(v => String(v.id) === String(best.venue_id));
+  if (!venue) return null;
+  const minutes = Math.max(1, Math.round(best.msUntil / 60000));
+
+  const open = () => {
+    if (typeof openPlanPreview === 'function') {
+      openPlanPreview({ venueId: best.venue_id, plannedAt: best.planned_at });
+    } else if (typeof selectVenue === 'function') {
+      selectVenue(Number(best.venue_id), true);
+    }
+  };
+
+  return {
+    id: 'plan_reminder_' + best.id,
+    priority: 0, category: 'alert',
+    icon: '⏰',
+    bodyKey: 'notif_plan_reminder_body',
+    bodyVars: { venue: venue.name, minutes },
+    actionKey: 'notif_open_plan',
+    action: open,
+    bellAction: open,
+    nav: { kind: 'plan', venueId: best.venue_id, plannedAt: best.planned_at },
+    ttl: 600000, dedupe: true,
+    _onShow: () => {
+      try {
+        const cur = JSON.parse(localStorage.getItem(KEY) || '{}');
+        cur[best.id] = Date.now();
+        const cutoff = Date.now() - 7 * 86400 * 1000;
+        for (const k of Object.keys(cur)) if (cur[k] < cutoff) delete cur[k];
+        localStorage.setItem(KEY, JSON.stringify(cur));
+      } catch {}
+    },
+  };
+}
+
 // ── Evaluators: P0 Weather ───────────────���─────────────────────────────���─────
 
 function _evalNoSunToday() {
   if (typeof VENUES === 'undefined' || !VENUES || !VENUES.length) return null;
   if (typeof datePicker === 'undefined' || !datePicker) return null;
   if (datePicker.value !== todayStr()) return null;
-  // Only show once per calendar day — don't nag on every session
+  // Only record once per calendar day — don't re-stamp the bell entry
   const state = _notifLoadState();
   if (state.noSunShownDate === todayStr()) return null;
   // Check if ANY venue has sun from now onwards (not the whole day)
@@ -465,11 +627,19 @@ function _evalNoSunToday() {
     return windows && windows.some(w => w.end > now);
   });
   if (hasSun) return null;
+  // Bell-only: the empty venue list already shows "no sun" visually.
+  // A toast would just duplicate the UI. Bell record lets users still
+  // see what happened if they check the inbox.
   return {
     id: 'weather_no_sun', priority: 0, category: 'weather',
     icon: '☁️', bodyKey: 'notif_no_sun_body', actionKey: 'notif_open_calendar',
     action: () => { if (typeof _openQcPanel === 'function') _openQcPanel(); },
-    ttl: 600000, dedupe: true,
+    ttl: 600000, dedupe: true, bellOnly: true,
+    _onShow: () => {
+      const s = _notifLoadState();
+      s.noSunShownDate = todayStr();
+      _notifSaveState(s);
+    },
   };
 }
 
@@ -479,15 +649,27 @@ function _evalSunSettingSoon() {
   if (typeof SUNSET_H_ARC === 'undefined' || SUNSET_H_ARC == null) return null;
   const now = currentHour();
   const timeLeft = SUNSET_H_ARC - now;
-  // Fire when 30–60 min of sun remain
-  if (timeLeft <= 0 || timeLeft > 1 || timeLeft < 0.5) return null;
+  // Fire 20–60 min before sunset — wide enough that an app open in the
+  // final hour doesn't miss it; tight enough to feel time-sensitive.
+  if (timeLeft <= 0 || timeLeft > 1 || timeLeft < 20/60) return null;
+  // Suppress if it's already overcast right now — "sun setting soon" reads
+  // as misleading when the user can see the sky is grey.
+  if (typeof getWeatherAt === 'function') {
+    const wxNow = getWeatherAt(datePicker.value, Math.floor(now));
+    if (wxNow && (wxNow.sunBlock ?? wxNow.cloud) > 0.5) return null;
+  }
   const sunsetTime = formatHour(SUNSET_H_ARC);
   return {
     id: 'weather_sun_setting', priority: 0, category: 'weather',
     icon: '🌅', bodyKey: 'notif_sun_setting_body',
     bodyVars: { time: sunsetTime },
-    actionKey: 'notif_see_tomorrow',
-    action: () => { if (typeof advanceDay === 'function') advanceDay(1, 12); },
+    actionKey: 'notif_show_sun_now',
+    // Snap the slider to "now" so the panel shows the venues that still
+    // have sun in this last window. The list is already sun-now ranked,
+    // so activating now-mode is the most direct path to actionable info.
+    action: () => {
+      if (typeof _activateNowMode === 'function') _activateNowMode();
+    },
     ttl: 600000, dedupe: true,
   };
 }
@@ -498,20 +680,36 @@ function _evalCloudIncoming() {
   const dateStr = datePicker.value;
   if (dateStr !== todayStr()) return null;
   const now = currentHour();
-  const wxNow = getWeatherAt(dateStr, Math.floor(now));
-  // Layer-aware: don't suppress the "cloud incoming" toast just because of
-  // thin high cirrus — the user still has functional sun.
-  if (!wxNow || (wxNow.sunBlock ?? wxNow.cloud) > 0.5) return null; // already cloudy
+  const baseHour = Math.floor(now);
+  const wxNow = getWeatherAt(dateStr, baseHour);
+  // Layer-aware: don't suppress just because of thin high cirrus — the user
+  // still has functional sun.
+  if (!wxNow || (wxNow.sunBlock ?? wxNow.cloud) > 0.5) return null;
+  // Don't bother if sun is setting before the cloud could arrive. Avoids
+  // firing "clouds in 2hr" at 20:00 when sunset is 21:00.
+  if (typeof SUNSET_H_ARC !== 'undefined' && SUNSET_H_ARC != null && SUNSET_H_ARC - now < 1.5) {
+    return null;
+  }
+  // Require TWO consecutive cloudy hours to call it incoming. A single
+  // cloud-prediction flicker in the forecast was triggering false alerts.
   for (let h = 1; h <= 3; h++) {
-    const wxFuture = getWeatherAt(dateStr, Math.floor(now) + h);
-    if (wxFuture && (wxFuture.sunBlock ?? wxFuture.cloud) > 0.7) {
-      const cloudArrivesHour = Math.floor(now) + h;
+    const wx1 = getWeatherAt(dateStr, baseHour + h);
+    const wx2 = getWeatherAt(dateStr, baseHour + h + 1);
+    if (!wx1 || !wx2) continue;
+    const c1 = wx1.sunBlock ?? wx1.cloud;
+    const c2 = wx2.sunBlock ?? wx2.cloud;
+    if (c1 > 0.7 && c2 > 0.7) {
+      const cloudArrivesHour = baseHour + h;
       return {
         id: 'weather_cloud_incoming', priority: 0, category: 'weather',
         icon: '🌥️', bodyKey: 'notif_cloud_incoming_body',
         bodyVars: { hour: formatHour(cloudArrivesHour) },
-        actionKey: null, action: null,
-        ttl: 300000, dedupe: true,
+        actionKey: 'notif_show_sun_now',
+        // Snap to now-mode so the user immediately sees what still has sun.
+        action: () => {
+          if (typeof _activateNowMode === 'function') _activateNowMode();
+        },
+        ttl: 600000, dedupe: true,
       };
     }
   }
@@ -555,6 +753,10 @@ function _evalBestSunWindow() {
   if (typeof datePicker === 'undefined' || !datePicker) return null;
   const dateStr = datePicker.value;
   if (dateStr !== todayStr()) return null;
+  // Once-per-day bell record — re-stamping moves the row to the top of
+  // the inbox on every refresh, which reads as spam.
+  const state = _notifLoadState();
+  if (state.bestSunShownDate === todayStr()) return null;
   const now = currentHour();
   // Too late in the day for a "peak" to be actionable
   if (now >= 18) return null;
@@ -602,6 +804,9 @@ function _evalBestSunWindow() {
   if (bestCount < nowCount * 1.3 && bestCount - nowCount < 5) return null;
   // Only show if peak is in the future
   if (blockEnd <= now) return null;
+  // Bell-only: the peak hour is already visible in the slider + arc, and a
+  // toast would preempt a more time-sensitive social/weather alert. The bell
+  // record gives users a tappable "jump to peak" affordance without nagging.
   return {
     id: 'weather_best_sun', priority: 0, category: 'weather',
     icon: '☀️', bodyKey: 'notif_best_sun_body',
@@ -613,7 +818,12 @@ function _evalBestSunWindow() {
         timeFromEl.dispatchEvent(new Event('input'));
       }
     },
-    ttl: 600000, dedupe: true,
+    ttl: 600000, dedupe: true, bellOnly: true,
+    _onShow: () => {
+      const s = _notifLoadState();
+      s.bestSunShownDate = todayStr();
+      _notifSaveState(s);
+    },
   };
 }
 
@@ -959,81 +1169,19 @@ function _evalFriendPlanning() {
   };
 }
 
-// ── Evaluators: P2 Suggestions ───────────────────────────────────────────────
-
-function _evalLunchBreak() {
-  if (typeof datePicker === 'undefined' || datePicker.value !== todayStr()) return null;
-  const now = currentHour();
-  if (now < 11 || now > 13) return null;
-  const day = new Date().getDay();
-  if (day === 0 || day === 6) return null; // weekdays only
-  return {
-    id: 'suggest_lunch', priority: 2, category: 'suggestion',
-    icon: '🍽️', bodyKey: 'notif_lunch_body',
-    bodyVars: { hour: '12:00' },
-    actionKey: 'notif_set_time',
-    action: () => {
-      if (typeof timeFromEl !== 'undefined' && timeFromEl) {
-        timeFromEl.value = 12;
-        timeFromEl.dispatchEvent(new Event('input'));
-      }
-    },
-    ttl: 120000, dedupe: true,
-  };
-}
-
-function _evalWindSheltered() {
-  if (typeof getWeatherAt !== 'function') return null;
-  if (typeof datePicker === 'undefined') return null;
-  if (datePicker.value !== todayStr()) return null;
-  const wx = getWeatherAt(datePicker.value, Math.floor(currentHour()));
-  if (!wx || wx.wspd <= 8) return null;
-  return {
-    id: 'suggest_sheltered', priority: 2, category: 'suggestion',
-    icon: '🛡️', bodyKey: 'notif_sheltered_body',
-    actionKey: null, action: null,
-    ttl: 300000, dedupe: true,
-  };
-}
-
-// ── Evaluators: P1 Login Prompts ─────────────────────────────────────────────
-
-function _evalLoginWeather() {
-  if (typeof _currentUser !== 'undefined' && _currentUser) return null;
-  if (!_notifWeatherShownThisSession) return null;
-  if (_notifLoginShown.has('login_weather')) return null;
-  return {
-    id: 'login_weather', priority: 1, category: 'login',
-    icon: '🔔', bodyKey: 'notif_login_weather_body',
-    actionKey: 'notif_login_action',
-    action: () => { if (typeof toggleProfilePanel === 'function') toggleProfilePanel(); },
-    ttl: 120000, dedupe: true,
-  };
-}
-
-function _evalLoginFriends() {
-  if (typeof _currentUser !== 'undefined' && _currentUser) return null;
-  const state = _notifLoadState();
-  if ((state.sessionCount || 0) < 2) return null;
-  if (_notifLoginShown.has('login_friends')) return null;
-  return {
-    id: 'login_friends', priority: 1, category: 'login',
-    icon: '👥', bodyKey: 'notif_login_friends_body',
-    actionKey: 'notif_login_action',
-    action: () => { if (typeof toggleProfilePanel === 'function') toggleProfilePanel(); },
-    ttl: 120000, dedupe: true,
-  };
-}
-
 // ── Evaluator Registry ───────────────���──────────────────────────────────────���
 
 const _notifEvaluators = [
-  // P0 Weather
+  // P0 Alerts (user-opted-in — bypass kill-switch)
+  _evalSunAlerts,
+  _evalPlanReminder,
+  // P0 Weather (bell-only)
   _evalNoSunToday,
+  _evalBestSunWindow,
+  // P0 Weather (toast)
   _evalSunSettingSoon,
   _evalCloudIncoming,
   _evalRainWindow,
-  _evalBestSunWindow,
   // P1 Social
   _evalFriendsAtVenue,
   _evalCheckinPrompt,
@@ -1041,12 +1189,6 @@ const _notifEvaluators = [
   _evalInviteAccepted,
   _evalInviteDeclined,
   _evalIncomingFriendRequest,
-  // P1 Login prompts (high priority so they reach anon users)
-  _evalLoginWeather,
-  _evalLoginFriends,
-  // P2 Suggestions
-  _evalLunchBreak,
-  _evalWindSheltered,
 ];
 
 // ── Evaluate & Schedule ──────────────────────────────────────────────────────
@@ -1062,8 +1204,17 @@ function _notifEvaluate() {
       if (_NOTIF_DISABLED_CATEGORIES.has(notif.category)) { console.log('[notif] blocked by kill-switch:', notif.id); continue; }
       if (!settings[notif.category]) { console.log('[notif] blocked by settings:', notif.id); continue; }
       if (_notifDismissed.has(notif.id)) { console.log('[notif] dismissed:', notif.id); continue; }
-      // Login prompts: max 1 per type per session
-      if (notif.category === 'login' && _notifLoginShown.has(notif.id)) continue;
+      // bellOnly: silent inbox record, no toast. Used for ambient state
+      // the UI already exposes (no sun today, best-sun summary) where a
+      // toast would just duplicate what the user can see.
+      if (notif.bellOnly) {
+        if (typeof _bellRecord === 'function') _bellRecord(notif);
+        if (typeof notif._onShow === 'function') {
+          try { notif._onShow(); } catch (e) { /* ignore */ }
+        }
+        console.log('[notif] bell-only record:', notif.id);
+        continue;
+      }
       _notifEnqueue(notif);
       enqueued++;
       console.log('[notif] enqueued:', notif.id, 'p' + notif.priority);
@@ -1121,6 +1272,7 @@ if (typeof window !== 'undefined') {
 function _notifSettingsHtml() {
   const settings = _notifGetSettings();
   const categories = [
+    { key: 'alert',      labelKey: 'notif_cat_alert' },
     { key: 'weather',    labelKey: 'notif_cat_weather' },
     { key: 'social',     labelKey: 'notif_cat_social' },
     { key: 'suggestion', labelKey: 'notif_cat_suggestion' },
@@ -1186,16 +1338,8 @@ function _notifInit() {
 const _origNotifShow = _notifShow;
 _notifShow = function(notif) {
   _origNotifShow(notif);
-  if (notif.category === 'login') {
-    _notifLoginShown.add(notif.id);
-  }
-  // Mark "no sun" as shown for today so it doesn't repeat across sessions
-  if (notif.id === 'weather_no_sun') {
-    const state = _notifLoadState();
-    state.noSunShownDate = todayStr();
-    _notifSaveState(state);
-  }
-  // Per-notification _onShow hook (used by social_invite_accepted to persist dedupe)
+  // Per-notification _onShow hook (used by social_invite_accepted to persist
+  // dedupe, and by bell-only evaluators to stamp per-day state).
   if (typeof notif._onShow === 'function') {
     try { notif._onShow(); } catch (e) { /* ignore */ }
   }

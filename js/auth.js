@@ -782,11 +782,13 @@ function _renderVisibilityView() {
 
 function _renderNotifTypesView() {
   const settings = (typeof _notifGetSettings === 'function') ? _notifGetSettings() : {};
+  const _disabled = (typeof _NOTIF_DISABLED_CATEGORIES !== 'undefined') ? _NOTIF_DISABLED_CATEGORIES : new Set();
   const categories = [
+    { key: 'alert',      labelKey: 'notif_cat_alert' },
     { key: 'weather',    labelKey: 'notif_cat_weather' },
     { key: 'social',     labelKey: 'notif_cat_social' },
     { key: 'suggestion', labelKey: 'notif_cat_suggestion' },
-  ];
+  ].filter(c => !_disabled.has(c.key));
   const rows = categories.map(cat => {
     const on = settings[cat.key] !== false;
     return `<div class="settings-row pref-row">
