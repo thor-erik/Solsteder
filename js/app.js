@@ -6735,13 +6735,25 @@ function _introCheckReady() {
 
     // Handle friend invite link: #friend/<userId>
     //
-    // Semantics: the SENDER created the link explicitly to invite this
-    // recipient as a friend. The recipient clicking the link is a clear
-    // second-party consent. Both parties have opted in, so the row
-    // lands at status='accepted' directly — no separate "Accept friend
-    // request" step. User-reported confusion: 'When she opened the link
-    // SHE got a notification saying Friend request sent!' — because the
-    // toast text + 'pending' status implied she had to do something else.
+    // Semantics. The SENDER published the link; the RECIPIENT clicking it is
+    // the recipient's consent. The sender's consent isn't proven by anything
+    // verifiable — anyone with a user's UUID could craft a "/#friend/<uuid>"
+    // link, so accepting a fresh row at status='accepted' on the recipient
+    // side would let any attacker force-friendship anyone whose UUID they
+    // could harvest from plan invites or profile embeds. sql/036 closed that
+    // by rejecting recipient-side INSERTs at 'accepted'. This handler matches
+    // that policy by branching on whether the inviter has already shown
+    // consent (a pre-existing row) and otherwise creating a 'pending' row.
+    //
+    // Three outcomes:
+    //   1. Row exists in either direction at status != accepted → UPDATE to
+    //      'accepted'. Both sides have now opted in (sender via the prior
+    //      row, recipient via clicking the link). "Now friends" toast.
+    //   2. Row exists at status='accepted' → already friends. No-op, no toast.
+    //   3. No row → INSERT (user_id=me, friend_id=sender, status='pending').
+    //      Recipient is signalling consent; sender's consent will land when
+    //      they tap Accept on the friend request that appears in their inbox.
+    //      "Request sent" toast.
     if (hash.startsWith('friend/')) {
       const friendUserId = hash.slice(7);
       if (friendUserId) {
@@ -6769,29 +6781,68 @@ function _introCheckReady() {
                 .from('profiles').select('name, email').eq('id', friendUserId).single();
               if (prof) senderName = (prof.name || prof.email || '').split('@')[0];
             } catch (e) { /* ignore — toast falls back to generic copy */ }
-            const { data: upsertData, error: upsertErr } = await _supabase
+
+            // Check both row directions in one query so we know whether to
+            // update-existing or insert-new without racing two writes.
+            const { data: existing, error: lookupErr } = await _supabase
               .from('friendships')
-              .upsert({
-                user_id:   friendUserId,
-                friend_id: user.id,
-                status:    'accepted',
-              }, { onConflict: 'user_id,friend_id' })
-              .select();
-            if (upsertErr) {
-              console.warn('[friend-invite] upsert failed:', upsertErr.message, upsertErr);
-              // Bail out without showing a misleading "now friends" toast.
+              .select('id, status, user_id, friend_id')
+              .or(`and(user_id.eq.${friendUserId},friend_id.eq.${user.id}),and(user_id.eq.${user.id},friend_id.eq.${friendUserId})`);
+            if (lookupErr) {
+              console.warn('[friend-invite] lookup failed:', lookupErr.message, lookupErr);
               window._pendingFriendInvite = null;
               history.replaceState(null, '', location.pathname);
               return;
             }
-            console.info('[friend-invite] upserted', upsertData);
+
+            let toastKey = null;
+            let writeErr = null;
+            if (existing && existing.length > 0) {
+              const acceptedRow = existing.find(r => r.status === 'accepted');
+              if (acceptedRow) {
+                // Already friends — no write, no toast.
+              } else {
+                // Flip the first non-accepted row to accepted. Either we're
+                // accepting their prior pending request, or upgrading our own.
+                const row = existing[0];
+                const { error } = await _supabase
+                  .from('friendships').update({ status: 'accepted' }).eq('id', row.id);
+                writeErr = error;
+                if (!error) toastKey = 'now_friends';
+              }
+            } else {
+              // No prior row in either direction. Insert pending from us → them.
+              // sql/036 requires status='pending' for recipient-side inserts;
+              // the row direction (user_id=me) matches the inviter-side branch
+              // of that policy. notify_friend_request will push the sender.
+              const { error } = await _supabase.from('friendships').insert({
+                user_id:   user.id,
+                friend_id: friendUserId,
+                status:    'pending',
+              });
+              writeErr = error;
+              if (!error) toastKey = 'request_sent';
+            }
+
+            if (writeErr) {
+              console.warn('[friend-invite] write failed:', writeErr.message, writeErr);
+              window._pendingFriendInvite = null;
+              history.replaceState(null, '', location.pathname);
+              return;
+            }
             if (typeof _dismissFriendInviteWelcomeIfOpen === 'function') {
               _dismissFriendInviteWelcomeIfOpen();
             }
-            if (typeof _showToast === 'function') {
-              _showToast(senderName
-                ? t('friend_added_via_link', { name: senderName })
-                : t('friend_added_via_link_generic'));
+            if (toastKey && typeof _showToast === 'function') {
+              if (toastKey === 'now_friends') {
+                _showToast(senderName
+                  ? t('friend_added_via_link', { name: senderName })
+                  : t('friend_added_via_link_generic'));
+              } else {
+                _showToast(senderName
+                  ? t('friend_request_sent_to', { name: senderName })
+                  : t('friend_request_sent_generic'));
+              }
             }
             if (typeof loadFriends === 'function') loadFriends();
           }
