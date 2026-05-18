@@ -6755,7 +6755,12 @@ function _introCheckReady() {
     //      they tap Accept on the friend request that appears in their inbox.
     //      "Request sent" toast.
     if (hash.startsWith('friend/')) {
-      const friendUserId = hash.slice(7);
+      // URL forms: '#friend/<inviter_id>' (legacy / tokenless fallback)
+      //         or '#friend/<inviter_id>/<token>' (sql/041 token path)
+      const tail = hash.slice(7);
+      const slashIdx = tail.indexOf('/');
+      const friendUserId = slashIdx === -1 ? tail : tail.slice(0, slashIdx);
+      const inviteToken  = slashIdx === -1 ? null : tail.slice(slashIdx + 1) || null;
       if (friendUserId) {
         window._pendingFriendInvite = friendUserId;
         // Hoist to window so the auth-state-change handler in auth.js can
@@ -6782,46 +6787,77 @@ function _introCheckReady() {
               if (prof) senderName = (prof.name || prof.email || '').split('@')[0];
             } catch (e) { /* ignore — toast falls back to generic copy */ }
 
-            // Check both row directions in one query so we know whether to
-            // update-existing or insert-new without racing two writes.
-            const { data: existing, error: lookupErr } = await _supabase
-              .from('friendships')
-              .select('id, status, user_id, friend_id')
-              .or(`and(user_id.eq.${friendUserId},friend_id.eq.${user.id}),and(user_id.eq.${user.id},friend_id.eq.${friendUserId})`);
-            if (lookupErr) {
-              console.warn('[friend-invite] lookup failed:', lookupErr.message, lookupErr);
-              window._pendingFriendInvite = null;
-              history.replaceState(null, '', location.pathname);
-              return;
-            }
-
             let toastKey = null;
             let writeErr = null;
-            if (existing && existing.length > 0) {
-              const acceptedRow = existing.find(r => r.status === 'accepted');
-              if (acceptedRow) {
-                // Already friends — no write, no toast.
+
+            // ── Token path (sql/041): instant accept via the consume RPC.
+            // The sender minted the token when they copied the link, which
+            // is verifiable proof of their consent. RPC bypasses RLS to
+            // create the friendship at status='accepted' directly.
+            // On token failure (used / expired / invalid) we fall through
+            // to the tokenless path so the user still gets *something*
+            // (a pending request) rather than a silent dead-end.
+            let tokenSucceeded = false;
+            if (inviteToken) {
+              const { data: tokRes, error: tokErr } = await _supabase
+                .rpc('consume_friend_invite_token', { p_token: inviteToken });
+              if (tokErr) {
+                console.warn('[friend-invite] token consume errored:', tokErr.message);
+              } else if (tokRes && tokRes.ok) {
+                tokenSucceeded = true;
+                toastKey = 'now_friends';
               } else {
-                // Flip the first non-accepted row to accepted. Either we're
-                // accepting their prior pending request, or upgrading our own.
-                const row = existing[0];
-                const { error } = await _supabase
-                  .from('friendships').update({ status: 'accepted' }).eq('id', row.id);
-                writeErr = error;
-                if (!error) toastKey = 'now_friends';
+                // Token didn't take (used/expired/invalid/self). Log and
+                // fall through to the tokenless flow.
+                console.info('[friend-invite] token rejected:', tokRes && tokRes.error);
               }
-            } else {
-              // No prior row in either direction. Insert pending from us → them.
-              // sql/036 requires status='pending' for recipient-side inserts;
-              // the row direction (user_id=me) matches the inviter-side branch
-              // of that policy. notify_friend_request will push the sender.
-              const { error } = await _supabase.from('friendships').insert({
-                user_id:   user.id,
-                friend_id: friendUserId,
-                status:    'pending',
-              });
-              writeErr = error;
-              if (!error) toastKey = 'request_sent';
+            }
+
+            // ── Tokenless path (sql/036-compatible): used when no token in
+            // URL OR when the token RPC failed. Branches on prior row state:
+            //   * existing non-accepted → UPDATE to accepted
+            //   * existing accepted     → no-op
+            //   * no row                → INSERT pending from us → them
+            if (!tokenSucceeded) {
+              // Check both row directions in one query so we know whether to
+              // update-existing or insert-new without racing two writes.
+              const { data: existing, error: lookupErr } = await _supabase
+                .from('friendships')
+                .select('id, status, user_id, friend_id')
+                .or(`and(user_id.eq.${friendUserId},friend_id.eq.${user.id}),and(user_id.eq.${user.id},friend_id.eq.${friendUserId})`);
+              if (lookupErr) {
+                console.warn('[friend-invite] lookup failed:', lookupErr.message, lookupErr);
+                window._pendingFriendInvite = null;
+                history.replaceState(null, '', location.pathname);
+                return;
+              }
+
+              if (existing && existing.length > 0) {
+                const acceptedRow = existing.find(r => r.status === 'accepted');
+                if (acceptedRow) {
+                  // Already friends — no write, no toast.
+                } else {
+                  // Flip the first non-accepted row to accepted. Either we're
+                  // accepting their prior pending request, or upgrading our own.
+                  const row = existing[0];
+                  const { error } = await _supabase
+                    .from('friendships').update({ status: 'accepted' }).eq('id', row.id);
+                  writeErr = error;
+                  if (!error) toastKey = 'now_friends';
+                }
+              } else {
+                // No prior row in either direction. Insert pending from us → them.
+                // sql/036 requires status='pending' for recipient-side inserts;
+                // the row direction (user_id=me) matches the inviter-side branch
+                // of that policy. notify_friend_request will push the sender.
+                const { error } = await _supabase.from('friendships').insert({
+                  user_id:   user.id,
+                  friend_id: friendUserId,
+                  status:    'pending',
+                });
+                writeErr = error;
+                if (!error) toastKey = 'request_sent';
+              }
             }
 
             if (writeErr) {

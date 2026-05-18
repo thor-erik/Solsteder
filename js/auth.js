@@ -2144,10 +2144,27 @@ function _renderFriendsModal(modal) {
     </div>`;
 }
 
-function _copyFriendInviteLink() {
+async function _copyFriendInviteLink() {
   if (!_currentUser) return;
-  const url = `${location.origin}${location.pathname}#friend/${_currentUser.id}`;
   const result = document.getElementById('friend-add-result');
+
+  // Mint a one-shot token (sql/041) so the recipient's click can land at
+  // status='accepted' directly via the consume RPC. Without the token, the
+  // recipient falls back to the pending-request flow (sql/036). Token mint
+  // failure is non-fatal — we ship the tokenless URL and the recipient sees
+  // the slightly-awkward "request sent" path instead.
+  let token = null;
+  try {
+    const { data, error } = await _supabase.rpc('create_friend_invite_token');
+    if (!error && data && data.ok) token = data.token;
+    else if (error) console.warn('[friend-invite] mint failed:', error.message);
+  } catch (e) {
+    console.warn('[friend-invite] mint threw:', e?.message || e);
+  }
+
+  const base = `${location.origin}${location.pathname}#friend/${_currentUser.id}`;
+  const url  = token ? `${base}/${token}` : base;
+
   if (navigator.share) {
     navigator.share({ title: t('add_friend'), url }).catch(() => {});
   } else {
