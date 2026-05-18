@@ -7180,60 +7180,80 @@ function _introRevealUI(search, brand, qcWrap, panel, opts) {
   const locateBtn   = document.getElementById('locate-btn');
   const zoomJog     = document.getElementById('zoom-jog');
   const isMobile    = window.innerWidth < 640;
+  const topStrip    = document.getElementById('top-strip');
 
-  // Search bar slides DOWN from above the viewport — matches the bottom
-  // panel sliding UP from below. Same easing curve so they feel like a
-  // pair.
-  if (search) {
+  // Mobile: search bar slides down from above (paired with panel sliding
+  // up). Desktop reveal is fully horizontal — chrome enters from the
+  // side it lives on, not from the top edge.
+  if (search && isMobile) {
     search.style.transition = 'none';
     search.style.opacity = '1';
     search.style.transform = 'translateY(-72px)';
     search.classList.remove('intro-hidden');
-    search.getBoundingClientRect();  // commit start frame
+    search.getBoundingClientRect();
     search.style.transition = 'transform 0.45s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.4s ease';
     search.style.transform = '';
     setTimeout(() => { if (search) search.style.transition = ''; }, 500);
+  } else if (search) {
+    search.classList.remove('intro-hidden');
   }
 
-  // New top strip rides the same slide-in as the legacy search bar.
-  const topStrip = document.getElementById('top-strip');
-  if (topStrip) {
-    topStrip.style.transition = 'none';
-    topStrip.style.opacity = '1';
-    topStrip.style.transform = 'translateY(-72px)';
-    topStrip.classList.remove('intro-hidden');
-    topStrip.getBoundingClientRect();
-    topStrip.style.transition = 'transform 0.45s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.4s ease';
-    topStrip.style.transform = '';
-    setTimeout(() => { if (topStrip) topStrip.style.transition = ''; }, 500);
-  }
-
-  // Brand + qc-wrap fade in (kept simple — they're decorative chrome).
-  [brand, qcWrap].forEach(el => {
+  // Top-strip + venue-list panel + brand all slide in together. On
+  // desktop the strip + panel come from the LEFT (the column they live
+  // in) and the brand from the RIGHT (the top-right card). On mobile
+  // the strip drops from above, the panel rises from below — keep the
+  // legacy direction for touch.
+  const _slideIn = (el, startTransform) => {
     if (!el) return;
-    el.style.transition = 'opacity 0.5s ease';
-    requestAnimationFrame(() => {
-      el.classList.remove('intro-hidden');
-      setTimeout(() => { el.style.transition = ''; }, 600);
-    });
-  });
+    el.style.transition = 'none';
+    el.style.opacity = '1';
+    el.style.transform = startTransform;
+    el.classList.remove('intro-hidden');
+    el.getBoundingClientRect();
+    el.style.transition = 'transform 0.45s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.4s ease';
+    el.style.transform = '';
+    setTimeout(() => { if (el) el.style.transition = ''; }, 500);
+  };
 
-  // Locate-me + zoom-jog: fade in (their bottom is already CSS-anchored to
-  // the panel/FTS, no transform needed).
-  [locateBtn, zoomJog].forEach(el => {
-    if (!el) return;
-    el.style.transition = 'opacity 0.5s ease';
-    requestAnimationFrame(() => {
-      el.classList.remove('intro-hidden');
-      setTimeout(() => { el.style.transition = ''; }, 600);
-    });
-  });
-
-  if (!isMobile && panel) {
-    panel.style.transition = 'opacity 0.5s ease';
-    requestAnimationFrame(() => {
-      panel.classList.remove('intro-hidden');
-      setTimeout(() => { panel.style.transition = ''; }, 600);
+  if (!isMobile) {
+    // Desktop: top-strip + panel rise from the left edge in lock-step;
+    // brand + locate + zoom-jog rise from the right. The 110% slide
+    // distance guarantees the element is fully off-screen at the start
+    // regardless of where its anchored left/right offset puts it.
+    _slideIn(topStrip,  'translateX(calc(-100% - 32px))');
+    _slideIn(panel,     'translateX(calc(-100% - 32px))');
+    _slideIn(brand,     'translateX(calc(100% + 32px))');
+    _slideIn(locateBtn, 'translateX(calc(100% + 32px))');
+    _slideIn(zoomJog,   'translateX(calc(100% + 32px))');
+    // qc-wrap is the toast strip — fade rather than slide so a queued
+    // toast on app-start doesn't appear mid-flight.
+    if (qcWrap) {
+      qcWrap.style.transition = 'opacity 0.5s ease';
+      requestAnimationFrame(() => {
+        qcWrap.classList.remove('intro-hidden');
+        setTimeout(() => { qcWrap.style.transition = ''; }, 600);
+      });
+    }
+  } else {
+    // Mobile: top-strip slides down (matches the legacy search-bar
+    // behavior), brand + chrome fade.
+    if (topStrip) {
+      topStrip.style.transition = 'none';
+      topStrip.style.opacity = '1';
+      topStrip.style.transform = 'translateY(-72px)';
+      topStrip.classList.remove('intro-hidden');
+      topStrip.getBoundingClientRect();
+      topStrip.style.transition = 'transform 0.45s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.4s ease';
+      topStrip.style.transform = '';
+      setTimeout(() => { if (topStrip) topStrip.style.transition = ''; }, 500);
+    }
+    [brand, qcWrap, locateBtn, zoomJog].forEach(el => {
+      if (!el) return;
+      el.style.transition = 'opacity 0.5s ease';
+      requestAnimationFrame(() => {
+        el.classList.remove('intro-hidden');
+        setTimeout(() => { el.style.transition = ''; }, 600);
+      });
     });
   }
 
