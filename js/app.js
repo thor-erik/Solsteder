@@ -357,7 +357,17 @@ function initFts() {
   // cleared and the thumb settles onto the snapped position.
   const setTimeFromPointer = (clientX) => {
     const rect = track.getBoundingClientRect();
-    const t    = MIN_H_ARC + (clientX - rect.left) / rect.width * (MAX_H_ARC - MIN_H_ARC);
+    // Inset the pointer→time mapping by one cap radius (= track.height/2)
+    // so cursor positions inside the curved ends pin to MIN/MAX instead of
+    // producing intermediate times. Without this, dragging the cursor across
+    // the cap area kept updating tClamped, and the popup kept showing
+    // different time values even though the thumb itself was at its limit.
+    const R       = rect.height / 2;
+    const xMin    = R;
+    const xMax    = rect.width - R;
+    const xRel    = Math.max(xMin, Math.min(xMax, clientX - rect.left));
+    const usable  = Math.max(1, xMax - xMin);
+    const t       = MIN_H_ARC + (xRel - xMin) / usable * (MAX_H_ARC - MIN_H_ARC);
     const tClamped = Math.max(MIN_H_ARC, Math.min(MAX_H_ARC, t));
     const hour = _clampHour(t);
     if (nowMode) {
