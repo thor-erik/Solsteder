@@ -1,0 +1,102 @@
+name: Capacitor sync sanity check
+
+# Runs `npm run cap:sync` on every push that touches web assets and
+# verifies the freshly-built native web bundles match the root web
+# assets. The native public dirs (ios/App/App/public,
+# android/app/src/main/assets/public) are gitignored, so this is a
+# semantic match — we compare content hashes, not git diff.
+#
+# Catches:
+#   * The build script silently dropping a file (e.g. missing sw.js
+#     in the cp list).
+#   * `npm run cap:sync` failing outright.
+#
+# Does NOT catch: a human archiving an iOS build without running
+# cap:sync first. That's a release-checklist problem; this workflow
+# only proves the build is reproducible.
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'index.html'
+      - 'privacy.html'
+      - 'terms.html'
+      - 'manifest.json'
+      - 'sw.js'
+      - 'js/**'
+      - 'data/**'
+      - 'design/**'
+      - 'favicon*'
+      - 'apple-touch-icon*'
+      - 'shades-logo.png'
+      - 'package.json'
+      - 'capacitor.config.json'
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'privacy.html'
+      - 'terms.html'
+      - 'manifest.json'
+      - 'sw.js'
+      - 'js/**'
+      - 'data/**'
+      - 'design/**'
+      - 'favicon*'
+      - 'apple-touch-icon*'
+      - 'shades-logo.png'
+      - 'package.json'
+      - 'capacitor.config.json'
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Capacitor CLI
+        run: npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+
+      - name: Run cap:sync (build www/ + copy into ios/ + android/)
+        run: npm run cap:sync
+
+      - name: Verify native bundles match root web assets
+        run: |
+          set -e
+          fail=0
+          for f in index.html sw.js manifest.json privacy.html; do
+            if [ ! -f "$f" ]; then continue; fi
+            root_hash=$(shasum -a 256 "$f" | awk '{print $1}')
+            ios_hash=$(shasum -a 256 "ios/App/App/public/$f" 2>/dev/null | awk '{print $1}' || echo "MISSING")
+            and_hash=$(shasum -a 256 "android/app/src/main/assets/public/$f" 2>/dev/null | awk '{print $1}' || echo "MISSING")
+            if [ "$root_hash" != "$ios_hash" ]; then
+              echo "::error file=$f::iOS bundle for $f differs from root (root=$root_hash ios=$ios_hash)"
+              fail=1
+            fi
+            if [ "$root_hash" != "$and_hash" ]; then
+              echo "::error file=$f::Android bundle for $f differs from root (root=$root_hash android=$and_hash)"
+              fail=1
+            fi
+          done
+          # JS bundle parity
+          for f in js/*.js; do
+            root_hash=$(shasum -a 256 "$f" | awk '{print $1}')
+            ios_hash=$(shasum -a 256 "ios/App/App/public/$f" 2>/dev/null | awk '{print $1}' || echo "MISSING")
+            if [ "$root_hash" != "$ios_hash" ]; then
+              echo "::error file=$f::iOS bundle missing/stale ($f)"
+              fail=1
+            fi
+          done
+          if [ "$fail" -ne 0 ]; then
+            echo "::error::Capacitor sync produced bundles that don't match root assets. Check the build script in package.json."
+            exit 1
+          fi
+          echo "Native bundles match root assets."

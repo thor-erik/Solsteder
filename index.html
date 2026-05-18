@@ -133,9 +133,21 @@
 <script defer src="js/ui-plan-preview.js?v=20260518a"></script>
 <script defer src="js/osm.js?v=20260513a"></script>
 <script defer src="js/notifications.js?v=20260518e"></script>
-<script defer src="js/push.js?v=20260518a"></script>
+<script defer src="js/push.js?v=20260518b"></script>
 <script defer src="js/lens-effects.js?v=20260515a"></script>
 <script defer src="js/init.js?v=20260427a"></script>
+<script>
+  // Register the service worker at boot so offline support and the
+  // CACHE_VERSION rollover machinery work for every visitor — not only
+  // the subset that enables push notifications. Push code in js/push.js
+  // still calls register('/sw.js') itself; the second call is a no-op
+  // and returns the same registration. Skip inside Capacitor (WebView
+  // origin is capacitor://localhost — no SW needed, and registering can
+  // log noisy errors).
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  }
+</script>
 <style>
   /* Inter — inlined latin + latin-ext @font-face (eliminates Google Fonts CSS round-trip) */
   @font-face { font-family:'Inter'; font-style:normal; font-weight:400; font-display:swap; src:url(https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7W0Q5nw.woff2) format('woff2'); unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }

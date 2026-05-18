@@ -92,7 +92,7 @@
     </a>
 
     <h1>Privacy Policy</h1>
-    <p class="updated">Last updated: 24 April 2026</p>
+    <p class="updated">Last updated: 18 May 2026</p>
 
     <p>
       Solsteder is a solar-optimised venue finder for Oslo. This policy explains what
@@ -116,48 +116,108 @@
     <h3>Account information</h3>
     <p>
       When you sign in with Google we receive your name, email address, and profile
-      picture via Google OAuth. This is stored in our database solely to identify
-      your account and personalise the experience.
+      picture (avatar) via Google OAuth. We store these in a <code>profiles</code> row
+      tied to your unique user ID, along with your role (regular user, editor, or
+      admin) and language and unit preferences. This is used to identify your account
+      and personalise the experience.
     </p>
 
     <h3>User-generated content</h3>
     <p>
-      If you suggest a venue, submit an edit, leave a review, or upload a photo, we
-      store that content alongside your account identifier for attribution and
-      moderation. You can withdraw pending suggestions from your profile.
-    </p>
-
-    <h3>Usage data</h3>
-    <p>
-      We collect anonymous usage data to understand how the service is used and to
-      improve it. This may include:
+      When you actively create content in the app we store it tied to your account
+      identifier:
     </p>
     <ul>
-      <li>Pages and venues viewed, clicks, and interactions with the map</li>
-      <li>Time spent in the app and navigation flow</li>
-      <li>Device type, screen size, browser, and operating system</li>
-      <li>Approximate location (city or district level, not precise coordinates)</li>
-      <li>Referring source (how you found the app)</li>
+      <li><strong>Suggested venues</strong> — name, location, notes, and review status.</li>
+      <li><strong>Venue edits</strong> — proposed changes to opening hours, seating geometry, or other venue attributes.</li>
+      <li><strong>Favorites</strong> — the list of venues you have starred.</li>
+      <li><strong>Sun alerts</strong> — the venues and time windows you have set up notifications for.</li>
+      <li><strong>Plans</strong> — venue, date and time, optional notes, and the list of friends you invited.</li>
+      <li><strong>Plan responses</strong> — your accept/decline status and optional arrival time on plans others have invited you to.</li>
+      <li><strong>Check-ins</strong> — venue + timestamp, visible to your friends. Check-ins automatically expire after three hours.</li>
+      <li><strong>Friend invite tokens</strong> — when you copy a one-click share-link to add a friend, we mint a single-use token tied to your user ID. The token contains no personal data, is unguessable (122 bits of entropy), expires after 30 days, and is consumed the first time someone clicks the link.</li>
     </ul>
     <p>
-      Usage data is collected in aggregate or pseudonymised form. It is never sold
-      and is used solely to operate, analyse, and improve the service.
+      You can withdraw pending suggestions, remove favorites, cancel sun alerts,
+      delete plans you host, decline invites, and end check-ins yourself from the app.
     </p>
+
+    <h3>Usage data (analytics)</h3>
+    <p>
+      We log a small set of in-app events to a first-party analytics table in our own
+      Supabase database. Events are linked to your account identifier when you are
+      signed in; otherwise they are tied only to an in-memory session ID that resets
+      every page load. We never use this data for cross-app or cross-site tracking and
+      do not share it with advertising networks.
+    </p>
+    <p>Events we log include:</p>
+    <ul>
+      <li><strong>Session lifecycle</strong> — session start, page hide, page unload.</li>
+      <li><strong>Map and time interactions</strong> — map movement, day navigation, time changes, calendar opens, area filter changes, sort changes.</li>
+      <li><strong>Venue interactions</strong> — venue impressions, venue views, detail panel opens and closes, share actions.</li>
+      <li><strong>Search</strong> — the search terms you type into the search box.</li>
+      <li><strong>Location</strong> — whether you granted or denied browser location access, and when you tapped the &ldquo;locate me&rdquo; button.</li>
+      <li><strong>Social features</strong> — plan invite responses and plan preview opens.</li>
+      <li><strong>Editor</strong> — when you open the venue editor and submit a proposed edit (editors and admins only).</li>
+    </ul>
+    <p>Each event includes:</p>
+    <ul>
+      <li>Session ID (in-memory UUID, resets on every page load).</li>
+      <li>Your user ID, only when you are signed in.</li>
+      <li>Event-specific properties (e.g. which venue, which filter).</li>
+      <li>A device snapshot: screen size, viewport size, language, mobile flag, referring URL.</li>
+      <li>UTM parameters from the URL, if present.</li>
+      <li>Timestamp.</li>
+    </ul>
 
     <h3>Location data</h3>
     <p>
-      If you grant location permission, your precise location is used in the browser
-      to centre the map. We may store approximate, anonymised location data (e.g.
-      city district) for analytics purposes, but we do not store or transmit your
-      precise GPS coordinates to our servers.
+      If you grant browser location permission, your precise location is used inside
+      the browser only &mdash; to centre the map, sort venues by distance, and show a
+      &ldquo;you are here&rdquo; dot. <strong>We do not store or transmit your precise
+      GPS coordinates to our servers.</strong> We log whether you granted or denied
+      the permission (so we can measure how the location feature is used), but not
+      the coordinates themselves.
+    </p>
+
+    <h3>Social features</h3>
+    <p>
+      If you use the app&rsquo;s social features we store the following so the feature
+      can work:
+    </p>
+    <ul>
+      <li><strong>Friend graph</strong> &mdash; an entry per friendship with the two
+      user IDs involved and a status (pending, accepted, blocked).</li>
+      <li><strong>Plan invites</strong> &mdash; the user IDs of people you invite to a
+      plan and their response status. Invitees can see the host&rsquo;s name and
+      avatar.</li>
+      <li><strong>Check-ins</strong> &mdash; the venue you checked in at and the
+      timestamp, visible to your accepted friends. Auto-expires after three hours.</li>
+    </ul>
+    <p>
+      Anyone you have not added as a friend cannot see your friend list, plans, or
+      check-ins. A logged-out visitor following an invite link only sees the inviter&rsquo;s
+      first name and the venue.
+    </p>
+
+    <h3>Push notifications</h3>
+    <p>
+      If you enable push notifications, your browser issues a push subscription
+      endpoint (a URL provided by Apple, Google, or Mozilla&rsquo;s push service)
+      together with two cryptographic keys. We store these in the
+      <code>push_subscriptions</code> table so we can send you notifications when, for
+      example, a friend invites you to a plan or your saved sun window is starting.
+      One row is stored per device you enable push on. You can disable push from the
+      profile panel; this removes the row from our database and tells the push service
+      to stop accepting messages.
     </p>
 
     <h3>Communications</h3>
     <p>
-      If you contact us or opt in to notifications, we may store your email address
-      and message content to respond and to send service-related communications such
-      as updates about your suggestions or important changes to the service. You can
-      opt out of non-essential communications at any time.
+      If you contact us by email, we store your email address and message content to
+      respond and to send service-related communications such as updates about your
+      suggestions or important changes to the service. You can opt out of
+      non-essential communications at any time.
     </p>
 
     <h2>Legal basis for processing</h2>
@@ -226,10 +286,12 @@
     <h2>Third-party services</h2>
     <p>The app uses the following external services, each with their own privacy terms:</p>
     <ul>
-      <li><strong>Supabase</strong> — database and authentication (EU region). <a href="https://supabase.com/privacy" target="_blank" rel="noopener">Privacy policy</a></li>
-      <li><strong>Mapbox</strong> — map tiles and rendering. <a href="https://www.mapbox.com/legal/privacy" target="_blank" rel="noopener">Privacy policy</a></li>
+      <li><strong>Supabase</strong> — database, authentication, realtime, and push fan-out (EU region). <a href="https://supabase.com/privacy" target="_blank" rel="noopener">Privacy policy</a></li>
+      <li><strong>Mapbox</strong> — map tiles and rendering. Your IP address is exposed to Mapbox when tiles are loaded. <a href="https://www.mapbox.com/legal/privacy" target="_blank" rel="noopener">Privacy policy</a></li>
+      <li><strong>Google Places</strong> — venue suggestions in the search box. Search queries are forwarded to Google&rsquo;s Places API. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Privacy policy</a></li>
       <li><strong>Yr / MET Norway</strong> — weather forecast data. No personal data is sent.</li>
       <li><strong>Google OAuth</strong> — sign-in only. We do not access your Google data beyond the profile fields listed above.</li>
+      <li><strong>Apple Push, Google FCM, Mozilla autopush</strong> — your browser&rsquo;s push service, used to deliver push notifications if you enable them.</li>
     </ul>
     <p>
       We may integrate additional analytics or communication services in the future.
@@ -251,8 +313,16 @@
       your account, all personal data is removed within 30 days.
     </p>
     <p>
-      Anonymised usage data and aggregated statistics are retained indefinitely as
-      they cannot be linked back to you.
+      Check-ins auto-expire and are deleted three hours after creation.
+    </p>
+    <p>
+      Push subscription records are deleted as soon as you disable push notifications
+      or sign out from the device.
+    </p>
+    <p>
+      Analytics events that are tied to a user ID are deleted with your account.
+      Analytics events that are not tied to a user (logged-out sessions) are retained
+      indefinitely in pseudonymised form for service analysis.
     </p>
     <p>
       Venue suggestions you withdraw are marked as withdrawn and excluded from the

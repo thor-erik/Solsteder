@@ -37,6 +37,13 @@ const VAPID_PUBLIC_KEY = 'BOAYKO4hXSbw_iaLL80fl-FyoZFET64rfPsklV5znQ3Q1UB1z4MwAk
 let _pushRegistration = null;
 
 function pushIsAvailable() {
+  // Inside the Capacitor iOS/Android WebView, Notification/PushManager
+  // symbols exist but the WebView has no push entitlement — subscription
+  // succeeds silently and no notifications are ever delivered. Hide the
+  // toggle entirely on native builds until native APN/FCM is wired up.
+  if (typeof window !== 'undefined' && window.Capacitor &&
+      typeof window.Capacitor.isNativePlatform === 'function' &&
+      window.Capacitor.isNativePlatform()) return false;
   return typeof window !== 'undefined'
       && 'serviceWorker' in navigator
       && 'PushManager' in window
