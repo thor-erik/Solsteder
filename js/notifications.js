@@ -904,46 +904,38 @@ function _evalCheckinPrompt() {
 function _evalInviteAccepted() {
   if (typeof _currentUser === 'undefined' || !_currentUser) return null;
   if (typeof _plans === 'undefined' || !_plans.length) return null;
-  const KEY = 'solsteder_seen_invite_responses';
-  let seen = {};
-  try { seen = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch {}
 
-  // Aggregate per plan (not per acceptor) — the inviter sees one row
-  // per plan in their inbox: "Anna +2 har godtatt invitasjonen din til
-  // Starbucks i morgen kl 12". Each fresh accept overwrites the bell
-  // entry (same id, fresh readAt → "new" dot re-appears) and updates
-  // the displayed head name + count.
-  //
-  // The seen-cache is still per-(plan, invitee) so we don't re-fire
-  // for accepts the user has already been notified about. But the
-  // notif we return is per-plan.
-  //
-  // Walks all the user's plans; for the first plan with any NEW accept
-  // (not in seen-cache), builds + returns the notif. Other plans with
-  // new accepts get picked up on subsequent eval cycles (realtime on
-  // plan_invites + the 60s social poll triggers loadPlans → eval again
-  // within a few seconds).
+  // Dedup via the server-side bell row's read_at, NOT a localStorage
+  // seen-cache. The corresponding row in public.notifications has the
+  // same id as the toast (notif_id = 'social_invite_accepted_<plan_id>').
+  // The sql/030 trigger does ON CONFLICT DO UPDATE that RESETS read_at
+  // to NULL on each new accept, so the toast naturally re-fires when
+  // another invitee accepts the same plan. Prior versions used a
+  // per-(plan, invitee) localStorage map that persisted forever and
+  // could silently suppress legitimate fresh toasts when entries
+  // carried over from earlier test cycles (the bug behind "no toast
+  // when X accepts" even though the bell row was unread).
   for (const p of _plans) {
     if (p.creator_id !== _currentUser.id) continue;
     if (!Array.isArray(p._invitees)) continue;
     const acceptedAll = p._invitees.filter(i => i.status === 'accepted');
     if (!acceptedAll.length) continue;
-    const newAccepts = acceptedAll.filter(inv => seen[`${p.id}:${inv.user_id}`] !== 'accepted');
-    if (!newAccepts.length) continue;
+
+    const notifId = 'social_invite_accepted_' + p.id;
+    if (typeof _bellHistory !== 'undefined' && _bellHistory && _bellHistory.get) {
+      const bellEntry = _bellHistory.get(notifId);
+      if (bellEntry && bellEntry.readAt) continue;
+    }
 
     const venue = (typeof VENUES !== 'undefined')
       ? VENUES.find(x => String(x.id) === String(p.venue_id)) : null;
     if (!venue) continue;
 
-    // Head = the newest accept (last item of newAccepts — the eval
-    // sees them in DB-load order, freshest accept appears last in
-    // the realtime → loadPlans round-trip).
-    const head = newAccepts[newAccepts.length - 1];
+    // Head = the latest accept (last in DB-load order, freshest accept
+    // appears last in the realtime → loadPlans round-trip).
+    const head = acceptedAll[acceptedAll.length - 1];
     const u = head.user || {};
     const headName = (u.name || u.email || '').split(' ')[0].split('@')[0] || '…';
-    // extra = OTHER accepted invitees beyond the head being named.
-    // Counts the full accepted set, not just newAccepts — the user
-    // wants the live total: "Anna +2" means Anna and 2 others total.
     const extra = Math.max(0, acceptedAll.length - 1);
 
     // Off-plan-time arrival → include the time in the toast (single-
@@ -965,18 +957,13 @@ function _evalInviteAccepted() {
       : (arrivalTime ? 'notif_invite_accepted_at' : 'notif_invite_accepted_body');
 
     return {
-      id: 'social_invite_accepted_' + p.id,
+      id: notifId,
       priority: 1, category: 'social',
       icon: '☀',
       bodyKey,
       bodyVars: { name: headName, venue: venue.name, extra, time: arrivalTime || '' },
       actionKey: 'notif_open_plan',
       action: () => {
-        try {
-          const cur = JSON.parse(localStorage.getItem(KEY) || '{}');
-          for (const a of newAccepts) cur[`${p.id}:${a.user_id}`] = 'accepted';
-          localStorage.setItem(KEY, JSON.stringify(cur));
-        } catch {}
         if (typeof selectVenue === 'function') {
           selectVenue(Number(p.venue_id), true);
         }
@@ -990,13 +977,6 @@ function _evalInviteAccepted() {
       },
       nav: { kind: 'plan', venueId: p.venue_id, plannedAt: p.planned_at },
       ttl: 600000, dedupe: true,
-      _onShow: () => {
-        try {
-          const cur = JSON.parse(localStorage.getItem(KEY) || '{}');
-          for (const a of newAccepts) cur[`${p.id}:${a.user_id}`] = 'accepted';
-          localStorage.setItem(KEY, JSON.stringify(cur));
-        } catch {}
-      },
     };
   }
   return null;
@@ -1012,67 +992,51 @@ function _evalInviteAccepted() {
 function _evalInviteDeclined() {
   if (typeof _currentUser === 'undefined' || !_currentUser) return null;
   if (typeof _plans === 'undefined' || !_plans.length) return null;
-  const KEY = 'solsteder_seen_invite_responses';
-  let seen = {};
-  try { seen = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch {}
+
+  // Dedup via the bell row's read_at — same pattern as _evalInviteAccepted
+  // above. The localStorage seen-cache used to handle this; it could
+  // suppress fresh toasts when entries persisted across sessions.
   for (const p of _plans) {
     if (p.creator_id !== _currentUser.id) continue;
     if (!Array.isArray(p._invitees)) continue;
     const declinedAll = p._invitees.filter(i => i.status === 'declined');
     if (!declinedAll.length) continue;
-    const newOnes = declinedAll.filter(inv => {
-      const inviteeKey = inv.user_id || inv.id;
-      return inviteeKey && seen[`${p.id}:${inviteeKey}`] !== 'declined';
-    });
-    if (!newOnes.length) continue;
+
+    const notifId = 'social_invite_declined_' + p.id;
+    if (typeof _bellHistory !== 'undefined' && _bellHistory && _bellHistory.get) {
+      const bellEntry = _bellHistory.get(notifId);
+      if (bellEntry && bellEntry.readAt) continue;
+    }
 
     const venue = (typeof VENUES !== 'undefined')
       ? VENUES.find(x => String(x.id) === String(p.venue_id)) : null;
     if (!venue) continue;
 
-    // Head = newest decline (last in newOnes — see _evalInviteAccepted
-    // for the same ordering rationale). Prefer a NAMED decliner over
-    // an anonymous one when possible — anon rows lack a profile, so
-    // an "anon" head reads as "Noen +N har avslått" which is less
-    // informative than "Anna +N har avslått" even when Anna isn't
-    // the very newest.
-    const namedHead = [...newOnes].reverse().find(d => d.user && (d.user.name || d.user.email));
-    const head = namedHead || newOnes[newOnes.length - 1];
+    // Head = newest decline. Prefer a NAMED decliner over an anonymous
+    // one — anon rows lack a profile, so an "anon" head reads as
+    // "Noen +N har avslått" which is less informative than
+    // "Anna +N har avslått" even when Anna isn't the very newest.
+    const namedHead = [...declinedAll].reverse().find(d => d.user && (d.user.name || d.user.email));
+    const head = namedHead || declinedAll[declinedAll.length - 1];
     const u = head.user || {};
     const headName = (u.name || u.email || '').split(' ')[0].split('@')[0]
       || (declinedAll.length === 1 ? 'Person' : t('attendee_someone'));
-    // extra = OTHER declines beyond the head being named (across the
-    // full declined set, not just newOnes). User wants a live total
-    // so the bell stays accurate as more decline.
     const extra = Math.max(0, declinedAll.length - 1);
     const bodyKey = extra > 0 ? 'notif_invite_declined_multi' : 'notif_invite_declined_body';
 
-    const markSeen = () => {
-      try {
-        const cur = JSON.parse(localStorage.getItem(KEY) || '{}');
-        for (const d of newOnes) {
-          const inviteeKey = d.user_id || d.id;
-          if (inviteeKey) cur[`${p.id}:${inviteeKey}`] = 'declined';
-        }
-        localStorage.setItem(KEY, JSON.stringify(cur));
-      } catch {}
-    };
-
     return {
-      id: 'social_invite_declined_' + p.id,
+      id: notifId,
       priority: 1, category: 'social',
       icon: '🙅',
       bodyKey,
       bodyVars: { name: headName, venue: venue.name, extra },
       actionKey: 'notif_open_plan',
       action: () => {
-        markSeen();
         if (typeof selectVenue === 'function') {
           selectVenue(Number(p.venue_id), true);
         }
       },
       bellAction: () => {
-        markSeen();
         if (typeof openPlanPreview === 'function') {
           openPlanPreview({ venueId: p.venue_id, plannedAt: p.planned_at });
         } else if (typeof selectVenue === 'function') {
@@ -1081,7 +1045,81 @@ function _evalInviteDeclined() {
       },
       nav: { kind: 'plan', venueId: p.venue_id, plannedAt: p.planned_at },
       ttl: 600000, dedupe: true,
-      _onShow: markSeen,
+    };
+  }
+  return null;
+}
+
+/**
+ * Receiver-side: someone invited ME to a plan. Surfaces a P1 social
+ * toast for the freshest pending invite the user hasn't yet read in the
+ * bell. Toast id matches the server bell-row id (sql/030
+ * notif_on_plan_invite_created writes 'plan_invite_pending:<invite_id>'),
+ * so bell-row read state naturally dedupes the toast across sessions.
+ * Once the user opens the bell, the row's read_at gets stamped and the
+ * toast stops firing for that invite.
+ */
+function _evalIncomingPlanInvite() {
+  if (typeof _currentUser === 'undefined' || !_currentUser) return null;
+  if (typeof _planInvites === 'undefined' || !Array.isArray(_planInvites) || !_planInvites.length) return null;
+
+  // Walk newest-first so the freshest unread invite wins the toast slot.
+  // _planInvites is filtered to FUTURE plans only, so past invites can't
+  // surface a "you were invited" toast for an event that's already happened.
+  for (let i = _planInvites.length - 1; i >= 0; i--) {
+    const inv = _planInvites[i];
+    if (!inv || inv.status !== 'pending' || !inv.plan) continue;
+    if (inv.plan.cancelled_at) continue;
+
+    const notifId = 'plan_invite_pending:' + inv.id;
+    if (typeof _bellHistory !== 'undefined' && _bellHistory && _bellHistory.get) {
+      const bellEntry = _bellHistory.get(notifId);
+      if (bellEntry && bellEntry.readAt) continue;
+    }
+
+    const creator = inv.plan.creator || {};
+    const senderName = (creator.name || creator.email || '').split(' ')[0].split('@')[0] || '…';
+
+    let venueName = '';
+    if (typeof VENUES !== 'undefined' && Array.isArray(VENUES) && inv.plan.venue_id) {
+      const v = VENUES.find(x => String(x.id) === String(inv.plan.venue_id));
+      venueName = (v && v.name) || inv.plan.venue_name || '';
+    } else {
+      venueName = inv.plan.venue_name || '';
+    }
+    if (!venueName) continue;
+
+    return {
+      id: notifId,
+      priority: 1, category: 'social',
+      icon: '📅',
+      bodyKey: 'notif_invite_received_body',
+      bodyVars: { name: senderName, venue: venueName },
+      actionKey: 'notif_open_plan',
+      action: () => {
+        if (typeof openPlanPreview === 'function') {
+          openPlanPreview({
+            venueId:     inv.plan.venue_id,
+            plannedAt:   inv.plan.planned_at,
+            inviteId:    inv.id,
+            inviterName: senderName,
+            mode:        'invite',
+          });
+        }
+      },
+      bellAction: () => {
+        if (typeof openPlanPreview === 'function') {
+          openPlanPreview({
+            venueId:     inv.plan.venue_id,
+            plannedAt:   inv.plan.planned_at,
+            inviteId:    inv.id,
+            inviterName: senderName,
+            mode:        'invite',
+          });
+        }
+      },
+      nav: { kind: 'plan', venueId: inv.plan.venue_id, plannedAt: inv.plan.planned_at },
+      ttl: 600000, dedupe: true,
     };
   }
   return null;
@@ -1184,6 +1222,7 @@ const _notifEvaluators = [
   _evalFriendsAtVenue,
   _evalCheckinPrompt,
   _evalFriendPlanning,
+  _evalIncomingPlanInvite,
   _evalInviteAccepted,
   _evalInviteDeclined,
   _evalIncomingFriendRequest,

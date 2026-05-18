@@ -1265,7 +1265,12 @@ function _bellNavigate(nav) {
  *  bell-history write is skipped. */
 function _isServerHandledNotif(id) {
   return id.startsWith('social_invite_accepted_')
-      || id.startsWith('social_invite_declined_');
+      || id.startsWith('social_invite_declined_')
+      // sql/030 notif_on_plan_invite_created writes this row when an
+      // invite lands. The new _evalIncomingPlanInvite toast (notifications.js)
+      // reuses the same id so bell-row read state can dedupe it across
+      // sessions; we skip the client-side bell write to avoid a duplicate.
+      || id.startsWith('plan_invite_pending:');
 }
 
 /** Public: capture a notification into the bell history when it fires.
