@@ -10,3 +10,9 @@ data/seating-review-assets/
 .cache/
 node_modules/
 *.p8
+
+# Build output of `npm run cap:sync` — iOS Capacitor webDir, regenerated from root
+www/
+
+# Supabase CLI local state
+supabase/.temp/
