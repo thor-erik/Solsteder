@@ -199,14 +199,20 @@ function initFts() {
   // -- Pointer / touch events on the track --
   const setTimeFromPointer = (clientX) => {
     const rect   = track.getBoundingClientRect();
-    // Geometry: pill = rectangle + two cap half-circles (cap radius = thumb
-    // radius = R). Time range maps to the rectangle [R, width − R], so at the
-    // extremes the thumb's center sits on the rectangle/cap boundary and the
-    // thumb's circle perfectly inscribes the cap's half-circle. The caps are
-    // purely cosmetic — no data is addressable there.
+    // Pill = rectangle + two cap half-circles (cap radius = thumb radius = R).
+    // Addressable time range maps INSIDE the rectangle, inset by one thumb
+    // diameter (2R) on each side, so the thumb's *body* stops at the cap
+    // boundary. We clamp the pointer x to the addressable range BEFORE
+    // computing t — cursor positions inside the caps map to the start/end
+    // time exactly, never to anything in between. The caps + adjacent R-wide
+    // strips inside the rectangle are dead-zones with no data.
     const R      = Math.floor(rect.height / 2);
-    const usable = Math.max(1, rect.width - 2 * R);
-    const t      = MIN_H_ARC + (clientX - rect.left - R) / usable * (MAX_H_ARC - MIN_H_ARC);
+    const inset  = 2 * R;
+    const xMin   = inset;
+    const xMax   = rect.width - inset;
+    const xRel   = Math.max(xMin, Math.min(xMax, clientX - rect.left));
+    const usable = Math.max(1, xMax - xMin);
+    const t      = MIN_H_ARC + (xRel - xMin) / usable * (MAX_H_ARC - MIN_H_ARC);
     const hour   = _clampHour(t);
     if (nowMode) {
       nowMode = false;
@@ -299,14 +305,12 @@ function drawFtsCanvas() {
   const dateStr = datePicker.value;
   const fromH   = parseFloat(timeFromEl.value);
 
-  // Time maps to the rectangle portion of the pill: timeToX(MIN_H) = TRACK_R,
-  // timeToX(MAX_H) = BAR_W − TRACK_R. At the extremes the thumb's center sits
-  // on the rectangle/cap boundary, and the thumb (same radius as the cap)
-  // perfectly inscribes the cap. The caps are cosmetic and carry no data —
-  // the leading/trailing fill below paints them with the first/last segment
-  // color as a visual extension.
-  const usableW = Math.max(1, BAR_W - 2 * TRACK_R);
-  const timeToX = t => TRACK_R + (t - MIN_H) / (MAX_H - MIN_H) * usableW;
+  // Time maps INSIDE the rectangle, inset by one thumb diameter (2·TRACK_R).
+  // Thumb body at extremes sits flush against the cap boundary but never
+  // enters the curve. The caps + R-wide adjacent strips are dead zones.
+  const insetX  = 2 * TRACK_R;
+  const usableW = Math.max(1, BAR_W - 2 * insetX);
+  const timeToX = t => insetX + (t - MIN_H) / (MAX_H - MIN_H) * usableW;
 
   // Helper: rounded-rect path for the track shape (offset by BLEED)
   function trackRoundRect() {
@@ -349,19 +353,9 @@ function drawFtsCanvas() {
     segments.push({ x1, x2, color });
   }
 
-  // 3. Fill rounded ends with first/last weather color
-  if (segments.length > 0) {
-    const first = segments[0];
-    const last  = segments[segments.length - 1];
-    if (first.x1 > 0) {
-      c.fillStyle = first.color;
-      c.fillRect(0, BLEED, first.x1, TRACK_H);
-    }
-    if (last.x2 < BAR_W) {
-      c.fillStyle = last.color;
-      c.fillRect(last.x2, BLEED, BAR_W - last.x2, TRACK_H);
-    }
-  }
+  // 3. (Cap/dead-strip fill removed.) Caps and the R-wide strips adjacent to
+  // them are purely cosmetic — no weather color echo, no time data. They
+  // show the night-blue background fill from step 1.
 
   // 4. Draw weather segments
   for (const seg of segments) {
@@ -611,11 +605,12 @@ function showFtsPopup(hour) {
       const trackLeft = trackEl.offsetLeft;
       const trackW    = trackEl.offsetWidth;
       const MIN_H     = MIN_H_ARC, MAX_H = MAX_H_ARC;
-      // Match drawFtsCanvas: time maps to the rectangle (inset by one cap
-      // radius), so the popup follows the thumb's actual center position.
+      // Match drawFtsCanvas: time maps inside the rectangle, inset by one
+      // thumb diameter, so the popup follows the thumb's actual center.
       const R         = Math.floor(trackEl.offsetHeight / 2);
-      const usableW   = Math.max(1, trackW - 2 * R);
-      const thumbX    = trackLeft + R + (hour - MIN_H) / (MAX_H - MIN_H) * usableW;
+      const inset     = 2 * R;
+      const usableW   = Math.max(1, trackW - 2 * inset);
+      const thumbX    = trackLeft + inset + (hour - MIN_H) / (MAX_H - MIN_H) * usableW;
       const ftsW      = ftsEl.offsetWidth;
       // Clamp so popup doesn't overflow edges
       const popupW    = popup.offsetWidth || 160;
