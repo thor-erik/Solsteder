@@ -1,49 +1,75 @@
 /**
- * Web push notifications — subscription management on the client.
+ * Push notifications — subscription management on the client.
  *
- * Architecture overview:
+ * Single source file for web + native (iOS/Android via Capacitor). Same
+ * public API (`pushIsAvailable`, `pushRequestPermission`, `pushDisable`,
+ * `pushIsSubscribed`, `pushDismissTag`); the internals branch on
+ * `Capacitor.isNativePlatform()` to pick the right delivery channel.
+ *
+ * Web path:
  *   1. `pushInit()` registers the service worker (sw.js at the site root).
- *   2. `pushRequestPermission()` prompts the user for Notification permission,
- *      creates a PushSubscription via the registration, and persists it to the
- *      `push_subscriptions` Supabase table.
- *   3. `pushDisable()` deletes the subscription locally and removes the
- *      DB row so the server stops trying to deliver to it.
- *   4. Server (Supabase edge function — see sql/010-push-subscriptions.sql)
- *      reads the row at push-send time, signs the request with the VAPID
- *      private key, and POSTs to the user's push endpoint.
+ *   2. `pushRequestPermission()` prompts for Notification permission,
+ *      creates a VAPID-keyed PushSubscription via the registration, and
+ *      persists it to `push_subscriptions` (platform='web').
+ *   3. Server-side `send-push` edge function signs payloads with the VAPID
+ *      private key and POSTs to the browser's push endpoint.
  *
- * VAPID setup (one-time, per project):
- *   1. Generate a keypair:
- *        npx web-push generate-vapid-keys
- *      Save the PUBLIC key to window.VAPID_PUBLIC_KEY below; keep the
- *      PRIVATE key as a Supabase secret (`supabase secrets set
- *      VAPID_PRIVATE_KEY=...`) — never ship it to the browser.
- *   2. Run sql/010-push-subscriptions.sql to create the table.
- *   3. Deploy the edge function at supabase/functions/send-push (template
- *      in that file's doc block).
+ * Native path (iOS APN + Android FCM via @capacitor/push-notifications):
+ *   1. `pushInit()` attaches event listeners on the Capacitor plugin.
+ *   2. `pushRequestPermission()` calls `PushNotifications.requestPermissions()`
+ *      then `PushNotifications.register()` and waits for the `registration`
+ *      event to deliver the device token. Persists to `push_subscriptions`
+ *      with platform='ios' (apn_token=token) or platform='android'
+ *      (fcm_token=token).
+ *   3. Server-side `send-push` reads the platform discriminator and POSTs
+ *      to api.push.apple.com (signed with the APN .p8) or fcm.googleapis.com
+ *      (signed with the FCM service account JWT).
  *
- * iOS caveat: web push only works on iOS 16.4+ AND only when the page
- * has been added to the home screen as a PWA. The permission prompt is
- * suppressed in regular Safari tabs on iOS. The capability check below
- * (Notification + PushManager) covers this gracefully — on unsupported
- * browsers `pushIsAvailable()` returns false and the UI hides the
- * toggle entirely.
+ * VAPID is web-only — it's irrelevant on native. The constant below is
+ * checked only on the web path; native availability depends on whether
+ * the @capacitor/push-notifications plugin is installed.
  */
 
-// Set this when you generate VAPID keys. Leave empty to keep the push
-// UI hidden until the project is configured.
 const VAPID_PUBLIC_KEY = 'BOAYKO4hXSbw_iaLL80fl-FyoZFET64rfPsklV5znQ3Q1UB1z4MwAkBRRezgAJHw885n90ZiRuszHZLVOMMNrxE';
 
-let _pushRegistration = null;
+let _pushRegistration = null;        // web: ServiceWorkerRegistration. null on native.
+let _nativeListenersAttached = false; // native: idempotency guard for plugin listeners
+let _nativePendingRegister = null;    // native: deferred {resolve, reject} for the
+                                      //         current register() awaiting a 'registration'
+                                      //         event from the plugin.
+
+// ── Platform detection ──────────────────────────────────────────────────────
+
+function _isNative() {
+  return typeof window !== 'undefined' && window.Capacitor &&
+         typeof window.Capacitor.isNativePlatform === 'function' &&
+         window.Capacitor.isNativePlatform();
+}
+
+function _nativePlatform() {
+  // Capacitor.getPlatform() → 'ios' | 'android' | 'web'.
+  return (typeof window !== 'undefined' && window.Capacitor &&
+          typeof window.Capacitor.getPlatform === 'function')
+    ? window.Capacitor.getPlatform()
+    : 'web';
+}
+
+function _nativePushPlugin() {
+  return (typeof window !== 'undefined' && window.Capacitor &&
+          window.Capacitor.Plugins && window.Capacitor.Plugins.PushNotifications)
+    || null;
+}
+
+// ── Public API ──────────────────────────────────────────────────────────────
 
 function pushIsAvailable() {
-  // Inside the Capacitor iOS/Android WebView, Notification/PushManager
-  // symbols exist but the WebView has no push entitlement — subscription
-  // succeeds silently and no notifications are ever delivered. Hide the
-  // toggle entirely on native builds until native APN/FCM is wired up.
-  if (typeof window !== 'undefined' && window.Capacitor &&
-      typeof window.Capacitor.isNativePlatform === 'function' &&
-      window.Capacitor.isNativePlatform()) return false;
+  if (_isNative()) {
+    // Native: depends on the Capacitor PushNotifications plugin being
+    // present in the WebView bridge. The plugin is auto-injected by
+    // `npx cap sync` when @capacitor/push-notifications is in
+    // package.json AND the native target was rebuilt afterwards.
+    return !!_nativePushPlugin();
+  }
   return typeof window !== 'undefined'
       && 'serviceWorker' in navigator
       && 'PushManager' in window
@@ -52,11 +78,78 @@ function pushIsAvailable() {
 }
 
 function pushPermissionState() {
+  if (_isNative()) {
+    // Plugin permission state is async-only; expose a sync probe based
+    // on Notification.permission if the WebView still surfaces it
+    // (Capacitor sometimes does), else 'default'. The async truth lives
+    // behind pushRequestPermission().
+    return (typeof Notification !== 'undefined') ? Notification.permission : 'default';
+  }
   if (typeof Notification === 'undefined') return 'unsupported';
-  return Notification.permission; // 'default' | 'granted' | 'denied'
+  return Notification.permission;
 }
 
 async function pushInit() {
+  if (_isNative()) {
+    const plugin = _nativePushPlugin();
+    if (!plugin || _nativeListenersAttached) return;
+    _nativeListenersAttached = true;
+
+    // Device token from APN (iOS) or FCM (Android). Fires once after a
+    // successful PushNotifications.register() call. The token is the only
+    // value we need server-side to address this device.
+    plugin.addListener('registration', async (token) => {
+      const value = token && token.value;
+      try {
+        if (value) await _saveNativeSubscription(value);
+        if (_nativePendingRegister) _nativePendingRegister.resolve(true);
+      } catch (e) {
+        if (_nativePendingRegister) _nativePendingRegister.resolve(false);
+      } finally {
+        _nativePendingRegister = null;
+      }
+    });
+
+    plugin.addListener('registrationError', (err) => {
+      console.warn('[push] native registration error:', err && err.error);
+      if (_nativePendingRegister) {
+        _nativePendingRegister.resolve(false);
+        _nativePendingRegister = null;
+      }
+    });
+
+    // Foreground push delivery. APN/FCM don't show OS-level UI when the
+    // app is in the foreground — the existing in-app toast layer
+    // (notifications.js) handles surfacing, identical to how Realtime
+    // events flow. Same payload shape so downstream code doesn't care
+    // whether the event came from Realtime, polling, or push.
+    plugin.addListener('pushNotificationReceived', (notification) => {
+      if (typeof window === 'undefined') return;
+      // Bubble through the same event the notifications.js evaluator
+      // listens for. Notification has {title, body, data, ...}.
+      window.dispatchEvent(new CustomEvent('shades:push-received', { detail: notification }));
+    });
+
+    // OS notification tapped → app foregrounded. Mirrors what sw.js does
+    // for web push in the notificationclick handler: navigate to the
+    // payload's url if same-origin, else /.
+    plugin.addListener('pushNotificationActionPerformed', (action) => {
+      const data = (action && action.notification && action.notification.data) || {};
+      const raw = data.url || '/';
+      // Same defense-in-depth as sw.js — resolve against our origin and
+      // ignore anything cross-origin.
+      try {
+        const resolved = new URL(raw, location.origin);
+        if (resolved.origin === location.origin && location.pathname + location.search !== resolved.pathname + resolved.search) {
+          location.assign(resolved.pathname + resolved.search + resolved.hash);
+        }
+      } catch (e) { /* malformed — stay put */ }
+    });
+
+    return;
+  }
+
+  // Web path
   if (!('serviceWorker' in navigator)) return;
   try {
     _pushRegistration = await navigator.serviceWorker.register('/sw.js');
@@ -65,11 +158,40 @@ async function pushInit() {
   }
 }
 
-/** Request Notification permission, subscribe to the push service, and
- *  persist the subscription server-side. Returns true on success. */
+/** Request permission, subscribe / register, persist server-side.
+ *  Returns true on success, false otherwise. */
 async function pushRequestPermission() {
   if (!pushIsAvailable()) return false;
   if (typeof authCurrentUser !== 'function' || !authCurrentUser()) return false;
+
+  if (_isNative()) {
+    const plugin = _nativePushPlugin();
+    if (!plugin) return false;
+    if (!_nativeListenersAttached) await pushInit();
+
+    let perm;
+    try { perm = await plugin.requestPermissions(); }
+    catch (e) { console.warn('[push] requestPermissions failed:', e.message); return false; }
+    if (!perm || perm.receive !== 'granted') return false;
+
+    // PushNotifications.register() returns void — the device token arrives
+    // asynchronously via the 'registration' event listener attached in
+    // pushInit. Set up a deferred so the caller awaits the full round-trip.
+    if (_nativePendingRegister) return false; // another register in flight
+    const ready = new Promise((resolve) => { _nativePendingRegister = { resolve }; });
+    try { await plugin.register(); }
+    catch (e) {
+      console.warn('[push] native register failed:', e.message);
+      _nativePendingRegister = null;
+      return false;
+    }
+    // Safety timeout — if no 'registration' event fires within 15 s,
+    // give up so the UI doesn't hang.
+    const timeout = new Promise((resolve) => setTimeout(() => resolve(false), 15000));
+    return Promise.race([ready, timeout]);
+  }
+
+  // Web path
   if (!_pushRegistration) await pushInit();
   if (!_pushRegistration) return false;
 
@@ -90,12 +212,29 @@ async function pushRequestPermission() {
     return false;
   }
 
-  await _savePushSubscription(subscription);
+  await _saveWebSubscription(subscription);
   return true;
 }
 
 /** Un-subscribe locally + delete the server-side row. */
 async function pushDisable() {
+  if (_isNative()) {
+    const platform = _nativePlatform();
+    if (typeof _supabase === 'undefined') return;
+    if (typeof authCurrentUser !== 'function' || !authCurrentUser()) return;
+    try {
+      await _supabase.from('push_subscriptions')
+        .delete()
+        .eq('user_id', authCurrentUser().id)
+        .eq('platform', platform);
+    } catch (e) { /* ignore */ }
+    // Capacitor doesn't expose a clean "unregister" on iOS — the token
+    // stays valid until iOS rotates it. Deleting the DB row stops
+    // server-side fan-out, which is the user-visible behavior we need.
+    return;
+  }
+
+  // Web path
   if (!_pushRegistration) return;
   const subscription = await _pushRegistration.pushManager.getSubscription();
   if (!subscription) return;
@@ -107,46 +246,97 @@ async function pushDisable() {
   }
 }
 
-/** Whether a subscription is currently active in this browser. Used by
- *  the profile panel toggle to display the correct state. */
+/** Whether this device has an active subscription. */
 async function pushIsSubscribed() {
-  if (!pushIsAvailable() || !_pushRegistration) return false;
+  if (!pushIsAvailable()) return false;
+
+  if (_isNative()) {
+    // No client-side "is this device registered" call on the Capacitor
+    // plugin — the source of truth is our DB row. Query for any row
+    // matching this user + platform combination. Imperfect (we don't
+    // distinguish multiple devices of the same platform) but accurate
+    // for the toggle's purpose: "do I currently get pushes here".
+    if (typeof _supabase === 'undefined') return false;
+    if (typeof authCurrentUser !== 'function' || !authCurrentUser()) return false;
+    try {
+      const { count } = await _supabase.from('push_subscriptions')
+        .select('id', { head: true, count: 'exact' })
+        .eq('user_id', authCurrentUser().id)
+        .eq('platform', _nativePlatform());
+      return (count || 0) > 0;
+    } catch (e) { return false; }
+  }
+
+  if (!_pushRegistration) return false;
   try {
     const sub = await _pushRegistration.pushManager.getSubscription();
     return !!sub;
   } catch (e) { return false; }
 }
 
-async function _savePushSubscription(subscription) {
+// ── Persistence ─────────────────────────────────────────────────────────────
+
+async function _saveWebSubscription(subscription) {
   if (typeof _supabase === 'undefined') return;
   if (typeof authCurrentUser !== 'function' || !authCurrentUser()) return;
   const json = subscription.toJSON();
-  // Upsert by endpoint so re-subscribing on the same device doesn't
-  // create duplicate rows. The user_id pins this subscription to the
-  // currently-logged-in identity so server-side fan-out is straightforward.
   await _supabase.from('push_subscriptions').upsert({
-    user_id:   authCurrentUser().id,
-    endpoint:  json.endpoint,
-    p256dh:    json.keys && json.keys.p256dh,
-    auth:      json.keys && json.keys.auth,
+    user_id:    authCurrentUser().id,
+    platform:   'web',
+    endpoint:   json.endpoint,
+    p256dh:     json.keys && json.keys.p256dh,
+    auth:       json.keys && json.keys.auth,
     user_agent: navigator.userAgent || null,
   }, { onConflict: 'endpoint' });
 }
 
-/** Close any OS-level push notifications matching the given tag. Used
- *  when the user has interacted with the in-app surface for an event
- *  (opened the bell, tapped a row) so the lock-screen / notification
- *  shade entry doesn't linger after the user has already seen it.
- *
- *  Returns the number of notifications closed. No-op (returns 0) if
- *  the SW isn't available or there's no registration yet — caller can
- *  ignore the return value.
- *
- *  Notification.close() is purely a UI removal; it doesn't send any
- *  signal back to the push service. The push has already been delivered
- *  to this device and is sitting in the notification shade. */
+async function _saveNativeSubscription(token) {
+  if (typeof _supabase === 'undefined') return;
+  if (typeof authCurrentUser !== 'function' || !authCurrentUser()) return;
+  const platform = _nativePlatform(); // 'ios' or 'android'
+  const row = {
+    user_id:    authCurrentUser().id,
+    platform,
+    user_agent: navigator.userAgent || null,
+  };
+  if (platform === 'ios')     row.apn_token = token;
+  if (platform === 'android') row.fcm_token = token;
+  // Conflict target depends on platform — partial unique indexes on
+  // apn_token / fcm_token enforce one-row-per-device.
+  const onConflict = (platform === 'ios') ? 'apn_token' : 'fcm_token';
+  await _supabase.from('push_subscriptions').upsert(row, { onConflict });
+}
+
+// ── Notification dismissal ──────────────────────────────────────────────────
+//
+// Close any delivered notifications matching the given tag — used when
+// the user has interacted with the in-app surface for an event (opened
+// the bell, tapped a row) so the lock-screen entry doesn't linger.
+//
+// Web: SW's getNotifications({tag}).close(). Tag is the SW-side tag.
+// Native: Capacitor exposes getDeliveredNotifications() returning the
+// full delivered set; we filter by data.tag and call
+// removeDeliveredNotifications({notifications: [...]}). Server-side
+// puts the same tag string into the APN/FCM payload's data.tag so the
+// mapping matches.
 async function pushDismissTag(tag) {
   if (!tag) return 0;
+
+  if (_isNative()) {
+    const plugin = _nativePushPlugin();
+    if (!plugin || typeof plugin.getDeliveredNotifications !== 'function') return 0;
+    try {
+      const { notifications } = await plugin.getDeliveredNotifications();
+      const matching = (notifications || []).filter(n => {
+        const t = (n && n.data && n.data.tag) || n.tag;
+        return t === tag;
+      });
+      if (matching.length === 0) return 0;
+      await plugin.removeDeliveredNotifications({ notifications: matching });
+      return matching.length;
+    } catch (e) { return 0; }
+  }
+
   if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return 0;
   try {
     const reg = _pushRegistration || await navigator.serviceWorker.getRegistration();
@@ -171,13 +361,6 @@ async function pushDismissTag(tag) {
  */
 function pushTagForBellId(bellId) {
   if (typeof bellId !== 'string') return null;
-  // Each entry: [bell-row id prefix, push tag prefix]. Server trigger
-  // sources for the tag side:
-  //   sql/032 notify_plan_invite_created   → 'social_plan_invite_<invite_id>'
-  //   sql/032 notify_invite_response       → 'social_plan_response_<status>_<plan_id>'
-  //   sql/032 notify_plan_cancelled        → 'social_plan_cancelled_<plan_id>'
-  //   sql/037 notify_friend_accepted       → 'social_friend_accepted_<friendship_id>'
-  //   sql/032 process_plan_reminders       → 'plan_reminder_{creator,invitee}_<plan_id>'
   const mappings = [
     ['plan_invite_pending:',    'social_plan_invite_'],
     ['social_invite_accepted_', 'social_plan_response_accepted_'],
@@ -196,7 +379,7 @@ function pushTagForBellId(bellId) {
 }
 
 /** Convert the base64url-encoded VAPID public key into the Uint8Array
- *  shape PushManager.subscribe() expects. */
+ *  shape PushManager.subscribe() expects. Web-path only. */
 function _urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
