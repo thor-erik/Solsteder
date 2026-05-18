@@ -718,6 +718,13 @@ function _drawPill(ctx, pt, w, time, tier, opts) {
   ctx.shadowColor = 'transparent';
   if (hasFriends) {
     _drawFriendModule(ctx, moduleCx, moduleCy, friends, dot.fill);
+  } else if (opts.favorited) {
+    // Favourited: the circle itself becomes a heart, filled with the same
+    // tier colour the dot would have used (hero=honey, waiting/shadow=
+    // slate) so the sun-state read is preserved. No inner glyph — the
+    // heart silhouette IS the identity, and category info on a venue
+    // you've favourited is something you already know.
+    _drawHeartIcon(ctx, moduleCx, moduleCy, CIRCLE_R * 2 + 1, dot.fill);
   } else {
     ctx.beginPath();
     ctx.arc(moduleCx, moduleCy, CIRCLE_R, 0, Math.PI * 2);
@@ -740,6 +747,30 @@ function _drawPill(ctx, pt, w, time, tier, opts) {
     ctx.textAlign    = 'left';
     ctx.fillText(time, moduleCx + moduleW / 2 + CIRCLE_TIME_GAP, moduleCy + 0.5);
   }
+
+}
+
+// Material Design heart icon — well-formed at small sizes, no hand-rolled
+// Bézier guesswork. Drawn via Path2D so the same path string renders
+// pixel-identically at any size. Inscribed in a 24×24 viewBox; the
+// caller passes the desired output size + a fill colour. Filled, not
+// stroked — the silhouette is what makes the heart read.
+const _HEART_PATH_2D = (typeof Path2D !== 'undefined')
+  ? new Path2D('M 12 21.35 C 6.5 16 2 12.5 2 8.5 C 2 5.5 4.5 3 7.5 3 C 9.24 3 10.91 3.81 12 5.09 C 13.09 3.81 14.76 3 16.5 3 C 19.5 3 22 5.5 22 8.5 C 22 12.5 17.5 16 12 21.35 Z')
+  : null;
+
+function _drawHeartIcon(ctx, cx, cy, size, fill) {
+  if (!_HEART_PATH_2D) return;
+  const s = size / 24;
+  ctx.save();
+  // The Material heart's optical centre sits a touch below geometric
+  // centre (the bottom point pulls the mass down) — nudge the translate
+  // up by ~6% of size so the heart reads as centred in the module slot.
+  ctx.translate(cx - 12 * s, cy - 12 * s - size * 0.04);
+  ctx.scale(s, s);
+  ctx.fillStyle = fill;
+  ctx.fill(_HEART_PATH_2D);
+  ctx.restore();
 }
 
 // ── AABB overlap & density score (for floating name placement) ────────────────
@@ -1146,6 +1177,7 @@ function draw() {
       _drawPill(ctx, pt, w, time, cls.tier, {
         selected: false, hovered: false, closedNow: closedOpens,
         category: v.category, friends, scale: 1,
+        favorited: (typeof isFavorite === 'function' && isFavorite(v.id)),
       });
     });
     ctx.globalAlpha = 1;
@@ -1453,6 +1485,7 @@ function draw() {
         _drawPill(ctx, pt, snap.w, snap.time, snap.tier, {
           selected: false, hovered: false, closedNow: !!snap.closedNow,
           category: snap.category, friends: snap.friends || [], scale: 1,
+          favorited: !!snap.favorited,
         });
         ctx.restore();
       }
@@ -1543,7 +1576,8 @@ function draw() {
     st.target_alpha = baseAlphaTarget;
     st.target_scale = sel ? 1.14 : (hovered ? 1.07 : 1.0);
     st.morphTarget  = 1;
-    st.snapshot     = { tier, w, time, category: v.category, closedNow: closedOpens, friends };
+    const _fav = (typeof isFavorite === 'function' && isFavorite(v.id));
+    st.snapshot     = { tier, w, time, category: v.category, closedNow: closedOpens, friends, favorited: _fav };
     const aMoving = _stepLerp(st, 'alpha', st.target_alpha, 0.20);
     const sMoving = _stepLerp(st, 'scale', st.target_scale, 0.22);
     const mMoving = _stepLerp(st, 'morph', st.morphTarget, 0.12);
@@ -1584,6 +1618,7 @@ function draw() {
       category:  v.category,
       friends,
       scale:     st.scale,
+      favorited: _fav,
     });
     ctx.restore();
 
@@ -1627,6 +1662,7 @@ function draw() {
       category:  st.snapshot.category,
       friends:   st.snapshot.friends || [],
       scale:     1.0,
+      favorited: !!st.snapshot.favorited,
     });
     ctx.restore();
   }

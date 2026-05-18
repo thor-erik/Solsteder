@@ -117,19 +117,19 @@
 <script defer src="js/weather.js?v=20260516b"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260517g"></script>
+<script defer src="js/app.js?v=20260517h"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
 <script defer src="js/render-editor.js?v=20260508a"></script>
-<script defer src="js/render-pins.js?v=20260517g"></script>
+<script defer src="js/render-pins.js?v=20260517h"></script>
 <script defer src="js/ui-shared.js?v=20260514m"></script>
 <script defer src="js/ui-list.js?v=20260516a"></script>
 <script defer src="js/admin-review.js?v=20260505a"></script>
 <script defer src="js/admin-audit.js?v=20260512a"></script>
 <script defer src="js/ui-shelter.js?v=20260416a"></script>
 <script defer src="js/render-wind.js?v=20260416b"></script>
-<script defer src="js/ui-detail.js?v=20260517f"></script>
+<script defer src="js/ui-detail.js?v=20260517h"></script>
 <script defer src="js/ui-plan-preview.js?v=20260517b"></script>
 <script defer src="js/osm.js?v=20260513a"></script>
 <script defer src="js/notifications.js?v=20260517d"></script>
@@ -1366,18 +1366,16 @@
     #top-strip .ts-wx-icon, #top-strip .ts-glyph-dot { display: none; }
   }
 
-  /* Desktop: stop the strip stretching corner-to-corner. Anchored against
-     the left edge so it aligns with the venue-list panel column below.
-     Explicit width (instead of max-content) is required because the grid
-     uses `auto 1fr auto` — max-content collapses the 1fr middle column
-     and the children stack onto each other. The 580 px floor fits the
-     full cluster: avatar + bell + date(I dag) + glyph · temp · wind +
-     search + brand-name + compass without ellipsing. */
+  /* Desktop: align with the venue-list panel column (380 px). The grid
+     uses `auto 1fr auto` so explicit width is required — max-content
+     would collapse the 1fr middle column. Container queries above drop
+     the wordmark (and ultimately the whole brand block) when this width
+     leaves the cluster cramped, so the row gracefully shrinks. */
   @media (min-width: 640px) {
     #top-strip {
       left: 16px;
       right: auto;
-      width: min(580px, calc(100vw - 32px));
+      width: 380px;
     }
   }
 
@@ -1692,7 +1690,7 @@
     position: absolute;
     top: calc(16px + 46px + 6px);
     left: 16px;
-    width: 336px;
+    width: 380px;
     z-index: 1050;
     border-radius: 14px;
     box-shadow: var(--glass-inset), 0 8px 32px rgba(0,0,0,0.55);
@@ -2248,11 +2246,13 @@
   }
   /* Container query (matches the existing ts-center fallbacks): drop
      the wordmark first so the compass + chrome survive on narrower
-     desktop windows. */
-  @container topstrip (max-width: 560px) {
+     desktop windows. Aligned to the 380 px sidebar — at that width
+     the container is ≈ 372 px, so the wordmark goes but the compass
+     keeps reading the sun position right next to the search. */
+  @container topstrip (max-width: 420px) {
     #top-strip .ts-brand-name { display: none; }
   }
-  @container topstrip (max-width: 460px) {
+  @container topstrip (max-width: 280px) {
     #top-strip .ts-brand { display: none; }
   }
 
@@ -2828,7 +2828,7 @@
     bottom: calc(100% + 8px);
     left: 50%;
     transform: translateX(-50%);
-    width: 336px;
+    width: 380px;
     background: var(--glass-panel-bg);
     backdrop-filter: var(--glass-blur-panel);
     -webkit-backdrop-filter: var(--glass-blur-panel);
@@ -3159,7 +3159,7 @@
     #notif-toast-wrap {
       top: 70px;            /* aligned with panel top */
       left: 16px;           /* aligned with panel left */
-      width: 336px;         /* match panel width */
+      width: 380px;         /* match panel width */
       transform: translateY(-8px);
     }
     #notif-toast-wrap.show {
@@ -3463,7 +3463,12 @@
     top: 70px;      /* 16 search-top + 46 search-h + 8 gap */
     left: 16px;
     bottom: 16px;
-    width: 336px;
+    /* Was 336 px — felt cramped for a venue card that holds a 64 px
+       thumbnail + title + sun-summary + meta. 380 px gives the cards
+       a comfortable reading width without pushing toward sidebar-as-
+       wall territory (Google Maps' sidebar is 408 px; Apple Maps
+       inspector is ~340 px). Top-strip aligns to this same column. */
+    width: 380px;
     border-radius: 16px;
     display: flex;
     flex-direction: column;
@@ -6854,7 +6859,7 @@
     position: absolute;
     left: 16px;
     top: 70px;     /* search top(16) + search height(46) + gap(8) */
-    width: 336px;
+    width: 380px;
     z-index: 820;
     pointer-events: none;
     transition: left 0.28s ease;
@@ -7358,9 +7363,9 @@
   #detail-panel {
     position: absolute;
     top: 70px;     /* align with list panel: 16 search-top + 46 search-h + 8 gap */
-    left: 368px;   /* 16 + 336 + 16 */
+    left: 412px;   /* 16 + 380 + 16 */
     bottom: 16px;
-    width: 336px;  /* match the venue-list panel width */
+    width: 380px;  /* match the venue-list panel width */
     border-radius: 16px;
     display: flex;
     flex-direction: column;
@@ -9187,7 +9192,12 @@
     left: 12px !important;
     right: 12px !important;
     bottom: calc(var(--dpinvite-sheet-h, 320px) + 10px) !important;
-    z-index: 1000;
+    /* Above .dpinvite-backdrop (z-index 1100) — otherwise the full-screen
+       backdrop swallows pointerdown on the thumb and the slider becomes
+       inert. The sheet itself is positioned above the backdrop via
+       stacking-context (it's inside the backdrop overlay), so this only
+       needs to clear the backdrop layer, not the sheet. */
+    z-index: 1150 !important;
     margin: 0 !important;
     transition: bottom 0.32s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.22s ease;
   }

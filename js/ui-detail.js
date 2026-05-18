@@ -2107,10 +2107,48 @@ function _closeInviteSheet() {
     setTimeout(() => overlay.remove(), 300);
   }
   document.body.classList.remove('invite-sheet-open');
+  // The open handler reparented #fts to <body> so the body.invite-sheet-open
+  // rule could float it above the sheet. Now that the rule no longer applies,
+  // put the slider back inside #panel where the FTS contract expects it to
+  // live (otherwise it stays in <body> with no positioning anchor, reads as
+  // "the FTS just disappeared" when the user returns to the venue list).
+  const _ftsForReturn = document.getElementById('fts');
+  const _panelForReturn = document.getElementById('panel');
+  if (_ftsForReturn && _panelForReturn && _ftsForReturn.parentNode !== _panelForReturn) {
+    // Drop the inline transform/width the desktop sheet rule applied.
+    _ftsForReturn.style.cssText = '';
+    // Stage 2b contract: FTS sits inside #panel as a normal-flow child,
+    // immediately after #panel-handle.
+    const handle = _panelForReturn.querySelector('#panel-handle');
+    if (handle && handle.nextSibling) _panelForReturn.insertBefore(_ftsForReturn, handle.nextSibling);
+    else _panelForReturn.appendChild(_ftsForReturn);
+  }
+  // The scrub popup lives inside #fts and gets inline position/below-flip
+  // state during a drag-over-the-sheet session. Strip any leftover inline
+  // styles + state classes so the popup is in a known state when we
+  // re-show it below. Without this, the popup can be left with stale
+  // `left: NN%` + a `top:` inline override that lands it off-screen in
+  // the new (narrower) #panel container.
+  const _ftsPopupReturn = document.getElementById('fts-popup');
+  if (_ftsPopupReturn) {
+    _ftsPopupReturn.style.cssText = '';
+    _ftsPopupReturn.classList.remove('fts-popup-below', 'is-releasing', 'fts-popup-expanded');
+  }
   // Restore the FTS to its proper position now that body.invite-sheet-open
   // is gone. _syncFtsPosition will re-attach it to the docked card slot
   // (if detail panel is open) or sit it back at the bottom of the screen.
   if (typeof _syncFtsPosition === 'function') _syncFtsPosition();
+  // Re-render the popup at the current hour so the "12:00" compact pill
+  // is visible the moment the user is back in the list, not deferred
+  // until the next pointer interaction. Wrapped because typeof check —
+  // showFtsPopup is defined in app.js and exposed at module scope.
+  if (typeof showFtsPopup === 'function'
+      && typeof timeFromEl !== 'undefined'
+      && timeFromEl
+      && document.body.classList.contains('fts')) {
+    try { showFtsPopup(parseFloat(timeFromEl.value)); }
+    catch (e) { /* graceful — the popup just stays whatever state it's in */ }
+  }
   // Back-to-post-accept: reopen the confirmation panel with the same opts
   // we stashed at open-time. Skip the detail-panel refresh below so it
   // doesn't fight the post-accept slide-up.
