@@ -199,11 +199,13 @@ function initFts() {
   // -- Pointer / touch events on the track --
   const setTimeFromPointer = (clientX) => {
     const rect   = track.getBoundingClientRect();
-    // Inset by one cap radius so the addressable range matches the straight
-    // section of the pill — clicks in the rounded caps clamp to the endpoints.
+    // Inset by one thumb diameter on each side so the thumb's body stops at
+    // the start of the cap (thumb center at rect.left + 2R). The caps + the
+    // adjacent dead strip get the first/last segment color in drawFtsCanvas.
     const R      = Math.floor(rect.height / 2);
-    const usable = Math.max(1, rect.width - 2 * R);
-    const t      = MIN_H_ARC + (clientX - rect.left - R) / usable * (MAX_H_ARC - MIN_H_ARC);
+    const inset  = 2 * R;
+    const usable = Math.max(1, rect.width - 2 * inset);
+    const t      = MIN_H_ARC + (clientX - rect.left - inset) / usable * (MAX_H_ARC - MIN_H_ARC);
     const hour   = _clampHour(t);
     if (nowMode) {
       nowMode = false;
@@ -290,11 +292,14 @@ function drawFtsCanvas() {
   const dateStr = datePicker.value;
   const fromH   = parseFloat(timeFromEl.value);
 
-  // Map time to the straight section of the pill, leaving the rounded caps
-  // outside the addressable range. The leading/trailing gap (caps) gets filled
-  // with the first/last segment color below, so they read as a natural extension.
-  const usableW = Math.max(1, BAR_W - 2 * TRACK_R);
-  const timeToX = t => TRACK_R + (t - MIN_H) / (MAX_H - MIN_H) * usableW;
+  // Map time so the thumb's body stays entirely in the straight section.
+  // Thumb diameter = 2·TRACK_R, so inset by one thumb diameter on each side:
+  // thumb center sweeps [2·TRACK_R, BAR_W − 2·TRACK_R], its right edge stops
+  // at BAR_W − TRACK_R (= start of the right cap). The cap region + the
+  // narrow dead-strip next to it pick up the first/last segment color below.
+  const insetX  = 2 * TRACK_R;
+  const usableW = Math.max(1, BAR_W - 2 * insetX);
+  const timeToX = t => insetX + (t - MIN_H) / (MAX_H - MIN_H) * usableW;
 
   // Helper: rounded-rect path for the track shape (offset by BLEED)
   function trackRoundRect() {
@@ -599,10 +604,11 @@ function showFtsPopup(hour) {
       const trackLeft = trackEl.offsetLeft;
       const trackW    = trackEl.offsetWidth;
       const MIN_H     = MIN_H_ARC, MAX_H = MAX_H_ARC;
-      // Match drawFtsCanvas: time maps to the straight section, not the full pill.
+      // Match drawFtsCanvas: thumb-body fully inside straight section.
       const R         = Math.floor(trackEl.offsetHeight / 2);
-      const usableW   = Math.max(1, trackW - 2 * R);
-      const thumbX    = trackLeft + R + (hour - MIN_H) / (MAX_H - MIN_H) * usableW;
+      const inset     = 2 * R;
+      const usableW   = Math.max(1, trackW - 2 * inset);
+      const thumbX    = trackLeft + inset + (hour - MIN_H) / (MAX_H - MIN_H) * usableW;
       const ftsW      = ftsEl.offsetWidth;
       // Clamp so popup doesn't overflow edges
       const popupW    = popup.offsetWidth || 160;
