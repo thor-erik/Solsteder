@@ -198,9 +198,13 @@ function initFts() {
 
   // -- Pointer / touch events on the track --
   const setTimeFromPointer = (clientX) => {
-    const rect = track.getBoundingClientRect();
-    const t    = MIN_H_ARC + (clientX - rect.left) / rect.width * (MAX_H_ARC - MIN_H_ARC);
-    const hour = _clampHour(t);
+    const rect   = track.getBoundingClientRect();
+    // Inset by one cap radius so the addressable range matches the straight
+    // section of the pill — clicks in the rounded caps clamp to the endpoints.
+    const R      = Math.floor(rect.height / 2);
+    const usable = Math.max(1, rect.width - 2 * R);
+    const t      = MIN_H_ARC + (clientX - rect.left - R) / usable * (MAX_H_ARC - MIN_H_ARC);
+    const hour   = _clampHour(t);
     if (nowMode) {
       nowMode = false;
       nowBtn?.classList.remove('active');
@@ -286,7 +290,11 @@ function drawFtsCanvas() {
   const dateStr = datePicker.value;
   const fromH   = parseFloat(timeFromEl.value);
 
-  const timeToX = t => (t - MIN_H) / (MAX_H - MIN_H) * BAR_W;
+  // Map time to the straight section of the pill, leaving the rounded caps
+  // outside the addressable range. The leading/trailing gap (caps) gets filled
+  // with the first/last segment color below, so they read as a natural extension.
+  const usableW = Math.max(1, BAR_W - 2 * TRACK_R);
+  const timeToX = t => TRACK_R + (t - MIN_H) / (MAX_H - MIN_H) * usableW;
 
   // Helper: rounded-rect path for the track shape (offset by BLEED)
   function trackRoundRect() {
@@ -591,7 +599,10 @@ function showFtsPopup(hour) {
       const trackLeft = trackEl.offsetLeft;
       const trackW    = trackEl.offsetWidth;
       const MIN_H     = MIN_H_ARC, MAX_H = MAX_H_ARC;
-      const thumbX    = trackLeft + (hour - MIN_H) / (MAX_H - MIN_H) * trackW;
+      // Match drawFtsCanvas: time maps to the straight section, not the full pill.
+      const R         = Math.floor(trackEl.offsetHeight / 2);
+      const usableW   = Math.max(1, trackW - 2 * R);
+      const thumbX    = trackLeft + R + (hour - MIN_H) / (MAX_H - MIN_H) * usableW;
       const ftsW      = ftsEl.offsetWidth;
       // Clamp so popup doesn't overflow edges
       const popupW    = popup.offsetWidth || 160;
