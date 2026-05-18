@@ -1642,24 +1642,20 @@ function _openInviteSheet(venueId) {
     }, 400);
   }
 
-  (async () => {
-    if (typeof _supabase === 'undefined') return;
-    const user = (typeof authCurrentUser === 'function') ? authCurrentUser() : null;
-    if (!user) return;
-    const isoTime = new Date(`${curDate}T${String(Math.floor(curHour)).padStart(2,'0')}:${String(Math.round((curHour-Math.floor(curHour))*60)).padStart(2,'0')}:00`).toISOString();
-    try {
-      const { data: plan } = await _supabase
-        .from('plans')
-        .insert({ creator_id: user.id, venue_id: String(venueId), planned_at: isoTime, message: '' })
-        .select('id')
-        .single();
-      if (plan && plan.id && document.getElementById('invite-sheet') === sheet) {
-        sheet._planId = plan.id;
-      }
-    } catch (e) { /* graceful — share-link still works without plan_id */ }
-    // Plan id is now available (or absent); kick off the shortener regardless.
-    _eagerShortenUrl();
-  })();
+  // Kick off the URL shortener immediately. The share-link's token carries
+  // {u, v, t} (and optionally plan_id when one exists); when no plan
+  // exists yet the recipient lands on a "join at this venue/time" preview
+  // that resolves to a real plan + invite at accept-time.
+  //
+  // Previously this block eagerly INSERTed an empty placeholder plan (no
+  // venue_name, no invitees) just to get a plan_id for the token.
+  // createPlan() then INSERTed a SECOND plan with the full payload,
+  // leaving the placeholder orphaned. A few test runs accumulated ~10
+  // orphans in public.plans and pg_cron's plan-reminders job fired
+  // "Planen din på et sted starter om 30 min" for every one (et sted =
+  // COALESCE fallback when venue_name IS NULL). createPlan is now the
+  // sole plan-insert path; sheet._planId stays null until then.
+  _eagerShortenUrl();
 
   // Re-shorten on time/date change so the cached short URL matches the
   // current pickers (otherwise the receiver would land on a stale time).

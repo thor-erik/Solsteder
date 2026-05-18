@@ -129,7 +129,7 @@
 <script defer src="js/admin-audit.js?v=20260512a"></script>
 <script defer src="js/ui-shelter.js?v=20260416a"></script>
 <script defer src="js/render-wind.js?v=20260416b"></script>
-<script defer src="js/ui-detail.js?v=20260517h"></script>
+<script defer src="js/ui-detail.js?v=20260518a"></script>
 <script defer src="js/ui-plan-preview.js?v=20260518a"></script>
 <script defer src="js/osm.js?v=20260513a"></script>
 <script defer src="js/notifications.js?v=20260518d"></script>
@@ -2022,11 +2022,14 @@
       border-radius: 16px;
       margin-bottom: 0;
     }
-    /* Move notification to very top when detail panel is open OR
-       during the accept / post-accept takeover (search bar is
-       hidden during those flows so the toast has no chrome to
-       clear). */
-    body:has(#detail-panel.open) #notif-toast-wrap,
+    /* Move notification to very top during the accept / post-accept
+       takeover. #top-strip is hidden in those flows (see the
+       body.{plan-preview-active,post-accept-active} #top-strip rule
+       above), so the toast has no chrome to clear. detail-panel.open
+       was previously in this list, but it does NOT hide #top-strip —
+       the toast at top:12px overlapped the bell + profile bar. With
+       detail-panel.open removed here, the default mobile position
+       (top: calc(12px + 46px + 8px)) keeps the toast below the strip. */
     body.plan-preview-active #notif-toast-wrap,
     body.post-accept-active #notif-toast-wrap {
       top: 12px;
