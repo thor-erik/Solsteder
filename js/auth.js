@@ -1162,6 +1162,15 @@ async function _bellNoteOpened() {
       .is('read_at', null)
       .in('notif_id', markedIds);
   } catch (e) { console.warn('[bell] mark-as-read failed', e); }
+  // Dismiss matching OS push notifications. The bell-open is an
+  // explicit "I've seen these" signal; the lock-screen entries
+  // shouldn't outlive the user's acknowledgment.
+  if (typeof pushTagForBellId === 'function' && typeof pushDismissTag === 'function') {
+    for (const id of markedIds) {
+      const tag = pushTagForBellId(id);
+      if (tag) pushDismissTag(tag);
+    }
+  }
 }
 
 /** Render body with bodyVars bolded. _notifShow's wrapper renders the
@@ -1395,6 +1404,14 @@ async function _bellMarkRead(notifId) {
       .eq('user_id',  _currentUser.id)
       .eq('notif_id', notifId);
   } catch { /* ignore */ }
+  // Dismiss the corresponding OS push so the user doesn't see both a
+  // stale lock-screen entry and the in-app row (now read). pushTagForBellId
+  // returns null for ids with no push counterpart — pushDismissTag is a
+  // no-op in that case.
+  if (typeof pushTagForBellId === 'function' && typeof pushDismissTag === 'function') {
+    const tag = pushTagForBellId(notifId);
+    if (tag) pushDismissTag(tag);
+  }
 }
 
 // ── Realtime: subscribe to INSERTs on notifications for the current user.
@@ -3527,7 +3544,18 @@ _supabase.auth.onAuthStateChange((event, session) => {
       if (typeof renderList === 'function') renderList();
       if (typeof draw === 'function') draw();
     });
-    loadPlans().then(() => _maybeHandlePushDeeplink());
+    loadPlans().then(() => {
+      _maybeHandlePushDeeplink();
+      // Trigger the notif evaluator so any social toast that's ready
+      // surfaces immediately on cold-open (e.g. user tapped a push,
+      // app loaded fresh, _planInvites just populated). Previously
+      // the only eval triggers were the 8s initial setTimeout, the
+      // 60s interval poll, and Realtime-delivered updates after
+      // boot — so a push-tap open could wait 8-30+ seconds for the
+      // matching in-app toast. P0 socials are urgent: true so they
+      // bypass _NOTIF_GRACE_PERIOD / _NOTIF_EARLY_WINDOW here too.
+      if (typeof _notifEvaluate === 'function') _notifEvaluate();
+    });
     loadOwnSuggestions();
     _subscribeToCheckins();
     _subscribeToPlanInvites();

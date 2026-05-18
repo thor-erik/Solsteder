@@ -106,23 +106,27 @@ function _notifDequeue() {
   return null;
 }
 
-function _notifCanShow() {
-  // Don't show if profile panel is open
+function _notifCanShow(notif) {
+  // Visual-conflict gates: always apply regardless of urgency. Showing
+  // a toast on top of an open panel is just bad UX, even for P0 events.
   const pp = document.getElementById('profile-panel');
   if (pp && pp.classList.contains('open')) return false;
-  // Suppress while a takeover sheet is up (plan preview, post-accept
-  // confirmation, invite sheet) — these own the user's attention and
-  // toasts visually conflict with them. _notifShowImmediate bypasses
-  // this gate, so the friend-flow toasts ('Sent to {name}' / 'Friend
-  // request cancelled') still fire during the post-accept panel.
-  // User-reported: 'Two friends at Grunerhaven' notification leaked
-  // through on the confirmation page — post-accept-active was missing.
   if (document.body.classList.contains('plan-preview-active')) return false;
   if (document.body.classList.contains('post-accept-active'))  return false;
   if (document.body.classList.contains('invite-sheet-open'))   return false;
   if (document.body.classList.contains('profile-panel-open'))  return false;
   if (document.body.classList.contains('bell-open'))           return false;
-  // Grace period: no queued toasts for first 8s (lets user orient)
+
+  // Time-based rate limits: skipped for "urgent" notifs. Urgent means the
+  // event has a push-notification counterpart (incoming-invite, accept,
+  // decline, friend-request) — the OS push has already grabbed the
+  // user's attention. The rate limit was designed for cold-start ambient
+  // toasts ("3 friends are at Grunerhaven") that the user hadn't asked
+  // to see yet. Push-driven events should surface live, not "after a
+  // little while".
+  if (notif && notif.urgent) return true;
+
+  // Grace period: no queued toasts for first 4s (lets user orient)
   const elapsed = Date.now() - _notifSessionStart;
   if (elapsed < _NOTIF_GRACE_PERIOD) return false;
   // Rate limit: max 1 in first 30s after grace, then 2-min cooldown
@@ -153,12 +157,15 @@ function _notifMarkShownGlobal(id) {
 
 function _notifAdvance() {
   if (_notifCurrent) return; // one at a time
-  if (!_notifCanShow()) return;
-  // Iterative skip of items already shown in another tab. Each pass
-  // shifts the queue, so the loop is bounded by queue length.
-  while (true) {
+  // Peek the queue head BEFORE the canShow gate so urgent notifs can
+  // bypass the rate-limit checks (rate-limit decisions depend on the
+  // specific notif — see _notifCanShow(notif)). Iterative skip of
+  // items already shown in another tab; each pass shifts the queue.
+  while (_notifQueue.length) {
+    const head = _notifQueue[0];
+    if (!_notifCanShow(head)) return;
     const notif = _notifDequeue();
-    if (!notif) return;
+    if (!notif) return; // should not happen given the length check
     if (_notifWasShownInOtherTab(notif.id)) {
       if (typeof _bellRecord === 'function') _bellRecord(notif);
       continue;
@@ -962,7 +969,11 @@ function _evalInviteAccepted() {
       // friend-planning). An invite-accept is a response to an action the
       // host took; surfacing it behind a "look, friends are at X" ambient
       // toast hid it for users testing both flows simultaneously.
-      priority: 0, category: 'social',
+      // urgent: bypass time-based rate limits (grace period + early-window
+      // cap) because the matching push has already grabbed the user's
+      // attention — the in-app toast should surface live, not "after a
+      // little while" once the early-window cooldown clears.
+      priority: 0, category: 'social', urgent: true,
       icon: '☀',
       bodyKey,
       bodyVars: { name: headName, venue: venue.name, extra, time: arrivalTime || '' },
@@ -1030,8 +1041,8 @@ function _evalInviteDeclined() {
 
     return {
       id: notifId,
-      // P0 — see _evalInviteAccepted above for rationale.
-      priority: 0, category: 'social',
+      // P0 + urgent — see _evalInviteAccepted above for rationale.
+      priority: 0, category: 'social', urgent: true,
       icon: '🙅',
       bodyKey,
       bodyVars: { name: headName, venue: venue.name, extra },
@@ -1096,8 +1107,8 @@ function _evalIncomingPlanInvite() {
 
     return {
       id: notifId,
-      // P0 — event-driven, interrupts ambient P1 toasts.
-      priority: 0, category: 'social',
+      // P0 + urgent — event-driven, push counterpart, bypass rate limits.
+      priority: 0, category: 'social', urgent: true,
       icon: '📅',
       bodyKey: 'notif_invite_received_body',
       bodyVars: { name: senderName, venue: venueName },
@@ -1152,8 +1163,8 @@ function _evalIncomingFriendRequest() {
     // any pending row still exists. The body uses {name} +{extra} so a
     // single toast represents the whole pending set.
     id: 'social_friend_request',
-    // P0 — event-driven, interrupts ambient P1 toasts.
-    priority: 0, category: 'social',
+    // P0 + urgent — event-driven, push counterpart, bypass rate limits.
+    priority: 0, category: 'social', urgent: true,
     icon: '👤',
     bodyKey,
     bodyVars: { name, extra },

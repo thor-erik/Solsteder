@@ -126,6 +126,68 @@ async function _savePushSubscription(subscription) {
   }, { onConflict: 'endpoint' });
 }
 
+/** Close any OS-level push notifications matching the given tag. Used
+ *  when the user has interacted with the in-app surface for an event
+ *  (opened the bell, tapped a row) so the lock-screen / notification
+ *  shade entry doesn't linger after the user has already seen it.
+ *
+ *  Returns the number of notifications closed. No-op (returns 0) if
+ *  the SW isn't available or there's no registration yet — caller can
+ *  ignore the return value.
+ *
+ *  Notification.close() is purely a UI removal; it doesn't send any
+ *  signal back to the push service. The push has already been delivered
+ *  to this device and is sitting in the notification shade. */
+async function pushDismissTag(tag) {
+  if (!tag) return 0;
+  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return 0;
+  try {
+    const reg = _pushRegistration || await navigator.serviceWorker.getRegistration();
+    if (!reg || typeof reg.getNotifications !== 'function') return 0;
+    const notifs = await reg.getNotifications({ tag });
+    for (const n of notifs) n.close();
+    return notifs.length;
+  } catch (e) { return 0; }
+}
+
+/** Map a bell-row notif_id (the format public.notifications.notif_id
+ *  uses) to the OS push tag the matching server trigger sets. The two
+ *  naming conventions are parallel but use different prefixes —
+ *  client-side bell rows came first, push tags were added later and
+ *  chose a different shape. Both sides carry the same trailing UUID,
+ *  so this helper is purely a prefix swap.
+ *
+ *  Used by auth.js _bellMarkRead + _bellNoteOpened to dismiss the OS
+ *  push when the user marks the corresponding bell row as read.
+ *  Returns null for ids with no push counterpart (e.g. friend_request
+ *  on the recipient side has a separate handling path).
+ */
+function pushTagForBellId(bellId) {
+  if (typeof bellId !== 'string') return null;
+  // Each entry: [bell-row id prefix, push tag prefix]. Server trigger
+  // sources for the tag side:
+  //   sql/032 notify_plan_invite_created   → 'social_plan_invite_<invite_id>'
+  //   sql/032 notify_invite_response       → 'social_plan_response_<status>_<plan_id>'
+  //   sql/032 notify_plan_cancelled        → 'social_plan_cancelled_<plan_id>'
+  //   sql/037 notify_friend_accepted       → 'social_friend_accepted_<friendship_id>'
+  //   sql/032 process_plan_reminders       → 'plan_reminder_{creator,invitee}_<plan_id>'
+  const mappings = [
+    ['plan_invite_pending:',    'social_plan_invite_'],
+    ['social_invite_accepted_', 'social_plan_response_accepted_'],
+    ['social_invite_declined_', 'social_plan_response_declined_'],
+    ['plan_cancelled:',         'social_plan_cancelled_'],
+    ['friend_accepted:',        'social_friend_accepted_'],
+    ['plan_reminder_creator:',  'plan_reminder_creator_'],
+    ['plan_reminder_invitee:',  'plan_reminder_invitee_'],
+  ];
+  for (const [bellPrefix, tagPrefix] of mappings) {
+    if (bellId.startsWith(bellPrefix)) {
+      return tagPrefix + bellId.substring(bellPrefix.length);
+    }
+  }
+  return null;
+}
+
 /** Convert the base64url-encoded VAPID public key into the Uint8Array
  *  shape PushManager.subscribe() expects. */
 function _urlBase64ToUint8Array(base64String) {
@@ -144,4 +206,6 @@ if (typeof window !== 'undefined') {
   window.pushRequestPermission = pushRequestPermission;
   window.pushDisable           = pushDisable;
   window.pushIsSubscribed      = pushIsSubscribed;
+  window.pushDismissTag        = pushDismissTag;
+  window.pushTagForBellId      = pushTagForBellId;
 }
