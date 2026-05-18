@@ -199,17 +199,15 @@ function initFts() {
   // -- Pointer / touch events on the track --
   const setTimeFromPointer = (clientX) => {
     const rect    = track.getBoundingClientRect();
-    // Pill = rectangle + two cap half-circles (cap radius = thumb radius = R).
-    // Addressable range is inset by one thumb diameter (2R) so the thumb's
-    // BODY stops at the cap boundary. Pointer x is clamped to this range
-    // BEFORE computing t — cursor positions inside the caps/dead-strips can
-    // never produce an intermediate time value. AND: when the cursor is
-    // outside the addressable range, the popup is hidden, so the cap region
-    // has no "selected time" indicator at all. The curves are fully inert.
+    // The track is now a literal rectangle (the rounded "caps" are separate
+    // pseudo-element nubs outside this rect). Inset by one cap radius R so
+    // the thumb's body stays inside the rectangle at extremes. Pointer x is
+    // clamped to the addressable range — and when the cursor is outside it
+    // (in the nub area or the inner dead strip), the popup is hidden so no
+    // time indicator shows up anywhere outside the data area.
     const R       = Math.floor(rect.height / 2);
-    const inset   = 2 * R;
-    const xMin    = inset;
-    const xMax    = rect.width - inset;
+    const xMin    = R;
+    const xMax    = rect.width - R;
     const xRaw    = clientX - rect.left;
     const inRange = xRaw >= xMin && xRaw <= xMax;
     const xRel    = Math.max(xMin, Math.min(xMax, xRaw));
@@ -310,20 +308,23 @@ function drawFtsCanvas() {
   const dateStr = datePicker.value;
   const fromH   = parseFloat(timeFromEl.value);
 
-  // Time maps INSIDE the rectangle, inset by one thumb diameter (2·TRACK_R).
-  // Thumb body at extremes sits flush against the cap boundary but never
-  // enters the curve. The caps + R-wide adjacent strips are dead zones.
-  const insetX  = 2 * TRACK_R;
-  const usableW = Math.max(1, BAR_W - 2 * insetX);
-  const timeToX = t => insetX + (t - MIN_H) / (MAX_H - MIN_H) * usableW;
+  // The canvas covers ONLY the rectangle (the rounded caps live outside as
+  // CSS pseudo-elements). Time maps inset by R within the rectangle so the
+  // thumb's body stays inside the canvas at extremes. Leading/trailing fill
+  // below paints the R-wide dead strip with the first/last segment color so
+  // the strip blends seamlessly with the cosmetic nubs on the outside.
+  const usableW = Math.max(1, BAR_W - 2 * TRACK_R);
+  const timeToX = t => TRACK_R + (t - MIN_H) / (MAX_H - MIN_H) * usableW;
 
-  // Helper: rounded-rect path for the track shape (offset by BLEED)
+  // Helper: rectangle path for the track shape. The track is a literal
+  // rectangle now — the rounded ends are CSS pseudo-element nubs OUTSIDE
+  // the track, so the canvas clip has no curvature.
   function trackRoundRect() {
     c.beginPath();
-    c.roundRect(0, BLEED, BAR_W, TRACK_H, TRACK_R);
+    c.rect(0, BLEED, BAR_W, TRACK_H);
   }
 
-  // 1. Background — night color, clipped to rounded rect
+  // 1. Background — night color, clipped to the rectangle.
   c.save();
   trackRoundRect(); c.clip();
   c.fillStyle = '#2A3B5E';
@@ -358,9 +359,27 @@ function drawFtsCanvas() {
     segments.push({ x1, x2, color });
   }
 
-  // 3. (Cap/dead-strip fill removed.) Caps and the R-wide strips adjacent to
-  // them are purely cosmetic — no weather color echo, no time data. They
-  // show the night-blue background fill from step 1.
+  // 3. Fill the R-wide dead strips at the rectangle edges with the first/
+  // last segment color, so they blend with the cosmetic nubs outside the
+  // canvas. The nubs themselves are styled via the CSS vars set below.
+  if (segments.length > 0) {
+    const first = segments[0];
+    const last  = segments[segments.length - 1];
+    if (first.x1 > 0) {
+      c.fillStyle = first.color;
+      c.fillRect(0, BLEED, first.x1, TRACK_H);
+    }
+    if (last.x2 < BAR_W) {
+      c.fillStyle = last.color;
+      c.fillRect(last.x2, BLEED, BAR_W - last.x2, TRACK_H);
+    }
+    // Sync the cosmetic nubs (CSS pseudo-elements) to match.
+    const trackEl = canvasEl.parentElement;
+    if (trackEl) {
+      trackEl.style.setProperty('--fts-nub-left',  first.color);
+      trackEl.style.setProperty('--fts-nub-right', last.color);
+    }
+  }
 
   // 4. Draw weather segments
   for (const seg of segments) {
@@ -610,12 +629,11 @@ function showFtsPopup(hour) {
       const trackLeft = trackEl.offsetLeft;
       const trackW    = trackEl.offsetWidth;
       const MIN_H     = MIN_H_ARC, MAX_H = MAX_H_ARC;
-      // Match drawFtsCanvas: time maps inside the rectangle, inset by one
-      // thumb diameter, so the popup follows the thumb's actual center.
+      // Match drawFtsCanvas: track is now the rectangle (no caps), inset
+      // by one cap radius keeps the thumb's body inside the rectangle.
       const R         = Math.floor(trackEl.offsetHeight / 2);
-      const inset     = 2 * R;
-      const usableW   = Math.max(1, trackW - 2 * inset);
-      const thumbX    = trackLeft + inset + (hour - MIN_H) / (MAX_H - MIN_H) * usableW;
+      const usableW   = Math.max(1, trackW - 2 * R);
+      const thumbX    = trackLeft + R + (hour - MIN_H) / (MAX_H - MIN_H) * usableW;
       const ftsW      = ftsEl.offsetWidth;
       // Clamp so popup doesn't overflow edges
       const popupW    = popup.offsetWidth || 160;

@@ -594,15 +594,42 @@
   #fts-date-btn.fts-today #fts-date-label,
   #fts-date-btn.fts-today .fts-chevron { display: none; }
 
-  /* Slider track — canvas fills remaining width */
+  /* Slider track — literal rectangle. Curved ends are separate cosmetic
+     pseudo-elements attached on each side. The canvas covers ONLY the
+     rectangle, so the thumb can't physically be drawn into the curves. */
   #fts-track {
     flex: 1 1 0; min-width: 0;
     height: 38px;
-    border-radius: 19px;
-    overflow: visible;       /* let active thumb glow extend beyond track */
+    border-radius: 0;        /* sharp corners — true rectangle */
+    overflow: visible;       /* let thumb glow + nubs render outside box */
     position: relative;
     cursor: ew-resize;
-    touch-action: none;    /* prevent scroll during drag */
+    touch-action: none;      /* prevent scroll during drag */
+    margin: 0 19px;          /* leave one cap-radius on each side for nubs */
+  }
+  /* Cosmetic half-circle nubs flanking the rectangle. Their background
+     color is set from JS to match the first/last segment color, so they
+     read as a soft visual extension of the timeline — but they're not
+     part of the canvas and carry no data, no thumb, no interaction. */
+  #fts-track::before,
+  #fts-track::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    width: 19px;
+    height: 38px;
+    pointer-events: none;
+    transition: background-color 200ms ease;
+  }
+  #fts-track::before {
+    left: -19px;
+    border-radius: 19px 0 0 19px;
+    background-color: var(--fts-nub-left, #2A3B5E);
+  }
+  #fts-track::after {
+    right: -19px;
+    border-radius: 0 19px 19px 0;
+    background-color: var(--fts-nub-right, #2A3B5E);
   }
   #fts-canvas {
     display: block;
@@ -5306,7 +5333,7 @@
 <script src="js/weather.js?v=20260411b"></script>
 <script src="js/scoring.js?v=20260411b"></script>
 <script src="js/map-style.js?v=20260418b"></script>
-<script src="js/app.js?v=20260518g"></script>
+<script src="js/app.js?v=20260518h"></script>
 <script src="js/render-helpers.js?v=20260411b"></script>
 <script src="js/render-arc.js?v=20260411b"></script>
 <script src="js/render-seating.js?v=20260411b"></script>
