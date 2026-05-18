@@ -1530,6 +1530,15 @@ function _renderBellDropdown() {
     const body       = enriched ? enriched.body       : entry.body;
     const pastClass  = enriched ? enriched.pastClass  : '';
     const metaSuffix = enriched ? enriched.metaSuffix : '';
+    // Host-side quick-cancel button — surfaces an Avlys-plan shortcut
+    // directly on the inbox row for plans the user created (accept/
+    // decline response rows and creator reminders). Saves the
+    // bell-row → plan-preview → Avlys nav for hosts who decide to
+    // bail before the meet time.
+    const cancelPlanId = enriched && enriched.cancelPlanId;
+    const cancelBtnHtml = cancelPlanId
+      ? `<button class="bd-row__quick-cancel" type="button" data-plan-id="${cancelPlanId}" aria-label="Avlys plan" onclick="event.stopPropagation(); _bellQuickCancel(event, '${cancelPlanId}')">×</button>`
+      : '';
     entries.push({
       t: entry.ts,
       html: `
@@ -1539,6 +1548,7 @@ function _renderBellDropdown() {
             <div class="bd-row__msg">${body}</div>
             <div class="bd-row__meta">${_formatTimeAgo(new Date(entry.ts).toISOString())}${metaSuffix}</div>
           </div>
+          ${cancelBtnHtml}
         </div>`,
     });
   });
@@ -1741,6 +1751,9 @@ function _enrichPlanNotificationBody(entry) {
       body: `<strong>${actor}</strong>${tail} har godtatt invitasjonen din til ${venuePart}${whenStr ? ' ' + whenStr : ''}.`,
       pastClass,
       metaSuffix,
+      // Host quick-cancel — plan still active (not in _plans means
+      // already cancelled, so no button needed).
+      cancelPlanId: plan ? planId : null,
     };
   }
   if (typeof entry.id === 'string' && entry.id.startsWith('social_invite_declined_')) {
@@ -1754,7 +1767,18 @@ function _enrichPlanNotificationBody(entry) {
       body: `<strong>${actor}</strong>${tail} har avslått invitasjonen din til ${venuePart}${whenStr ? ' ' + whenStr : ''}.`,
       pastClass,
       metaSuffix,
+      cancelPlanId: plan ? planId : null,
     };
+  }
+  // Creator-side reminder — host gets a quick-cancel here too.
+  if (typeof entry.id === 'string' && entry.id.startsWith('plan_reminder_creator:')) {
+    const planId = entry.id.substring('plan_reminder_creator:'.length);
+    const plan = (typeof _plans !== 'undefined' && Array.isArray(_plans))
+      ? _plans.find(p => p && p.id === planId) : null;
+    if (plan) {
+      return { body: entry.body, pastClass: '', metaSuffix: '', cancelPlanId: planId };
+    }
+    return null;
   }
 
   // Receiver perspective — find the user's invite row to read its status.
@@ -1813,6 +1837,73 @@ function _enrichPlanNotificationBody(entry) {
     pastClass,
     metaSuffix,
   };
+}
+
+/** Push-click deeplink handler. Fired once after the first loadPlans
+ *  on auth-ready. Reads URL params written by the SQL triggers'
+ *  push payloads ('?nav=plan&v=<id>&t=<iso>&cancelled=<0|1>') and
+ *  opens the matching plan-preview. Cleans the URL afterwards so a
+ *  refresh doesn't re-open the panel.
+ *
+ *  Why here and not init.js: openPlanPreview's auto-detect needs
+ *  _planInvites populated to resolve mode='invite' for receivers.
+ *  Firing after loadPlans guarantees the data is there. */
+let _deeplinkHandled = false;
+function _maybeHandlePushDeeplink() {
+  if (_deeplinkHandled) return;
+  _deeplinkHandled = true;
+  try {
+    const u = new URL(window.location.href);
+    const nav = u.searchParams.get('nav');
+    if (nav !== 'plan') return;
+    const venueId   = u.searchParams.get('v');
+    const plannedAt = u.searchParams.get('t');
+    const cancelled = u.searchParams.get('cancelled') === '1';
+    if (!venueId || !plannedAt) return;
+    // Clear the URL params before navigating so a refresh / bookmark
+    // doesn't keep re-firing the panel open.
+    u.searchParams.delete('nav');
+    u.searchParams.delete('v');
+    u.searchParams.delete('t');
+    u.searchParams.delete('cancelled');
+    history.replaceState({}, '', u.toString());
+    if (typeof openPlanPreview === 'function') {
+      openPlanPreview({ venueId, plannedAt, cancelled });
+    }
+  } catch (e) { /* malformed URL — fail open */ }
+}
+
+/** Host quick-cancel from the inbox row. Two-tap confirm pattern —
+ *  matches the Avlys-plan button inside the plan-preview footer. The
+ *  first tap turns the × into "Avlys?"; second tap commits via the
+ *  existing cancelPlan(). Inline events.stopPropagation is on the
+ *  button itself so the row's onclick (which opens the plan-preview)
+ *  doesn't fire underneath. */
+async function _bellQuickCancel(event, planId) {
+  if (event && typeof event.stopPropagation === 'function') event.stopPropagation();
+  if (!planId) return;
+  const btn = event && event.currentTarget;
+  if (!btn) return;
+  if (btn.dataset.armed !== '1') {
+    btn.dataset.armed = '1';
+    const original = btn.textContent;
+    btn.textContent = 'Avlys?';
+    btn.classList.add('bd-row__quick-cancel--armed');
+    setTimeout(() => {
+      if (btn.dataset.armed === '1') {
+        delete btn.dataset.armed;
+        btn.textContent = original;
+        btn.classList.remove('bd-row__quick-cancel--armed');
+      }
+    }, 4000);
+    return;
+  }
+  delete btn.dataset.armed;
+  btn.disabled = true;
+  if (typeof cancelPlan === 'function') {
+    await cancelPlan(planId);
+    if (typeof _renderBellDropdown === 'function') _renderBellDropdown();
+  }
 }
 
 /** Bell row → venue detail. Looks up the venue by name in the global
@@ -3316,7 +3407,7 @@ _supabase.auth.onAuthStateChange((event, session) => {
       if (typeof renderList === 'function') renderList();
       if (typeof draw === 'function') draw();
     });
-    loadPlans();
+    loadPlans().then(() => _maybeHandlePushDeeplink());
     loadOwnSuggestions();
     _subscribeToCheckins();
     _subscribeToPlanInvites();

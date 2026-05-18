@@ -1739,6 +1739,46 @@
   .bd-row.bd-row--past .bd-row__avatar,
   .bd-row.bd-row--past .bd-row__lead { opacity: 1; }
 
+  /* Host quick-cancel button — small × in the row's right edge that
+     opens a two-tap "Avlys?" confirm. Only renders for inviter-side
+     rows whose plan is still active (host-side accepted/declined
+     responses + creator reminder). Pinned via flex on the parent
+     .bd-row; doesn't bubble taps to the row's own onclick. */
+  .bd-row__quick-cancel {
+    margin-left: auto;
+    align-self: flex-start;
+    margin-top: 14px;
+    margin-right: 8px;
+    flex-shrink: 0;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    border: 0;
+    background: rgba(155, 169, 188, 0.10);
+    color: var(--muted);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.14s ease, color 0.14s ease, width 0.14s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .bd-row__quick-cancel:hover {
+    background: rgba(255, 100, 100, 0.18);
+    color: #ff8c8c;
+  }
+  .bd-row__quick-cancel--armed {
+    width: auto;
+    padding: 0 10px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background: rgba(255, 100, 100, 0.22);
+    color: #ff8c8c;
+  }
+
   /* Freshly-arrived row — entry animation when a new notification
      lands while the inbox is already open (realtime accept/decline
      pushes a new bell row at the top). Slides down from above the
