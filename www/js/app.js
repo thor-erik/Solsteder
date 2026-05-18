@@ -198,22 +198,24 @@ function initFts() {
 
   // -- Pointer / touch events on the track --
   const setTimeFromPointer = (clientX) => {
-    const rect   = track.getBoundingClientRect();
+    const rect    = track.getBoundingClientRect();
     // Pill = rectangle + two cap half-circles (cap radius = thumb radius = R).
-    // Addressable time range maps INSIDE the rectangle, inset by one thumb
-    // diameter (2R) on each side, so the thumb's *body* stops at the cap
-    // boundary. We clamp the pointer x to the addressable range BEFORE
-    // computing t — cursor positions inside the caps map to the start/end
-    // time exactly, never to anything in between. The caps + adjacent R-wide
-    // strips inside the rectangle are dead-zones with no data.
-    const R      = Math.floor(rect.height / 2);
-    const inset  = 2 * R;
-    const xMin   = inset;
-    const xMax   = rect.width - inset;
-    const xRel   = Math.max(xMin, Math.min(xMax, clientX - rect.left));
-    const usable = Math.max(1, xMax - xMin);
-    const t      = MIN_H_ARC + (xRel - xMin) / usable * (MAX_H_ARC - MIN_H_ARC);
-    const hour   = _clampHour(t);
+    // Addressable range is inset by one thumb diameter (2R) so the thumb's
+    // BODY stops at the cap boundary. Pointer x is clamped to this range
+    // BEFORE computing t — cursor positions inside the caps/dead-strips can
+    // never produce an intermediate time value. AND: when the cursor is
+    // outside the addressable range, the popup is hidden, so the cap region
+    // has no "selected time" indicator at all. The curves are fully inert.
+    const R       = Math.floor(rect.height / 2);
+    const inset   = 2 * R;
+    const xMin    = inset;
+    const xMax    = rect.width - inset;
+    const xRaw    = clientX - rect.left;
+    const inRange = xRaw >= xMin && xRaw <= xMax;
+    const xRel    = Math.max(xMin, Math.min(xMax, xRaw));
+    const usable  = Math.max(1, xMax - xMin);
+    const t       = MIN_H_ARC + (xRel - xMin) / usable * (MAX_H_ARC - MIN_H_ARC);
+    const hour    = _clampHour(t);
     if (nowMode) {
       nowMode = false;
       nowBtn?.classList.remove('active');
@@ -223,7 +225,10 @@ function initFts() {
     setActiveIntentBtn(null);
     timeFromEl.value = hour;
     update();
-    showFtsPopup(hour);
+    // Popup only visible while the cursor is inside the addressable range.
+    // Outside, the cap/dead-strip shows no data — no time indicator at all.
+    if (inRange) showFtsPopup(hour);
+    else         hideFtsPopup();
   };
 
   // Pointer down — start drag
