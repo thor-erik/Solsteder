@@ -11,9 +11,15 @@ data/seating-review-assets/
 .cache/
 node_modules/
 *.p8
+firebase-admin.json
+google-services.json
 
 # Build output of `npm run cap:sync` — iOS Capacitor webDir, regenerated from root
 www/
 
 # Supabase CLI local state
 supabase/.temp/
+
+# Android Studio per-developer project state
+android/.idea/
+android/local.properties

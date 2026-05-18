@@ -57,8 +57,13 @@
 //                             identical.
 //
 //   Android push (FCM — set after Firebase project setup):
-//   FCM_PROJECT_ID          — Firebase project ID
-//   FCM_SERVICE_ACCOUNT     — service account JSON (one line, escaped)
+//   FCM_SERVICE_ACCOUNT_BASE64  — base64-encoded service account JSON
+//                                 (downloaded from Firebase Console →
+//                                 Project Settings → Service Accounts →
+//                                 Generate new private key). Includes
+//                                 project_id, client_email, private_key.
+//                                 Generate locally with:
+//                                   base64 -i firebase-admin.json
 //
 // Any platform with missing secrets is silently skipped — the function
 // still delivers to platforms that ARE configured. So you can stand up
@@ -88,9 +93,23 @@ const APN_BUNDLE_ID = Deno.env.get('APN_BUNDLE_ID') || '';
 const APN_ENV       = Deno.env.get('APN_ENV')       || 'sandbox';
 const APN_CONFIGURED = !!(APN_AUTH_KEY_BASE64 && APN_KEY_ID && APN_TEAM_ID && APN_BUNDLE_ID);
 
-const FCM_PROJECT_ID     = Deno.env.get('FCM_PROJECT_ID')     || '';
-const FCM_SERVICE_ACCT   = Deno.env.get('FCM_SERVICE_ACCOUNT') || '';
-const FCM_CONFIGURED = !!(FCM_PROJECT_ID && FCM_SERVICE_ACCT);
+const FCM_SERVICE_ACCOUNT_BASE64 = Deno.env.get('FCM_SERVICE_ACCOUNT_BASE64') || '';
+// Lazy-parsed at first FCM send; failure surfaces in _sendFcm rather than at boot.
+let _fcmServiceAccount: {
+  project_id?: string; client_email?: string; private_key?: string; private_key_id?: string;
+} | null = null;
+function _loadFcmServiceAccount() {
+  if (_fcmServiceAccount) return _fcmServiceAccount;
+  if (!FCM_SERVICE_ACCOUNT_BASE64) return null;
+  try {
+    _fcmServiceAccount = JSON.parse(atob(FCM_SERVICE_ACCOUNT_BASE64));
+    return _fcmServiceAccount;
+  } catch (e) {
+    console.error('[send-push] FCM_SERVICE_ACCOUNT_BASE64 invalid JSON:', (e as Error).message);
+    return null;
+  }
+}
+const FCM_CONFIGURED = !!FCM_SERVICE_ACCOUNT_BASE64;
 
 const TRIGGER_SECRET = Deno.env.get('PUSH_TRIGGER_SECRET') || '';
 
@@ -245,19 +264,138 @@ async function _sendApn(deviceToken: string, payload: PushPayload):
 
 // ── FCM HTTP v1 (Android) ───────────────────────────────────────────────────
 //
-// Stub for now — real implementation comes after the user sets up a
-// Firebase project. The shape matches what the dispatcher expects so
-// adding FCM later only touches this function and the env vars.
+// Two-step flow:
+//   1. Mint a JWT signed with the service-account private key (RS256),
+//      exchange it for a Google OAuth access token (1h lifetime, cached).
+//   2. POST to fcm.googleapis.com/v1/projects/{project_id}/messages:send
+//      with that access token + the device token + the notification payload.
+//
+// Google's docs: https://firebase.google.com/docs/cloud-messaging/auth-server
 
-async function _sendFcm(_deviceToken: string, _payload: PushPayload):
+let _fcmAccessToken    = '';
+let _fcmAccessExpiryMs = 0;
+let _fcmKeyPromise: Promise<CryptoKey> | null = null;
+
+async function _importFcmKey(privateKeyPem: string): Promise<CryptoKey> {
+  if (!_fcmKeyPromise) {
+    _fcmKeyPromise = (async () => {
+      // The service-account private_key is a PEM-formatted RSA key with
+      // BEGIN/END markers and \n separators. Strip and decode to DER.
+      const pemBody = privateKeyPem
+        .replace(/-----BEGIN PRIVATE KEY-----/g, '')
+        .replace(/-----END PRIVATE KEY-----/g, '')
+        .replace(/\\n/g, '\n')   // service account JSON often has escaped newlines
+        .replace(/\s+/g, '');
+      const der = Uint8Array.from(atob(pemBody), c => c.charCodeAt(0));
+      return await crypto.subtle.importKey(
+        'pkcs8',
+        der,
+        { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+        false,
+        ['sign'],
+      );
+    })();
+  }
+  return _fcmKeyPromise;
+}
+
+async function _getFcmAccessToken(): Promise<string | null> {
+  if (_fcmAccessToken && _fcmAccessExpiryMs > Date.now() + 60_000) return _fcmAccessToken;
+  const sa = _loadFcmServiceAccount();
+  if (!sa || !sa.private_key || !sa.client_email) return null;
+
+  const key  = await _importFcmKey(sa.private_key);
+  const now  = Math.floor(Date.now() / 1000);
+  const exp  = now + 3600;
+  const header  = { alg: 'RS256', typ: 'JWT', kid: sa.private_key_id };
+  const payload = {
+    iss:   sa.client_email,
+    scope: 'https://www.googleapis.com/auth/firebase.messaging',
+    aud:   'https://oauth2.googleapis.com/token',
+    iat:   now,
+    exp,
+  };
+  const signingInput = `${_b64urlEncodeJson(header)}.${_b64urlEncodeJson(payload)}`;
+  const sigBuf = await crypto.subtle.sign(
+    { name: 'RSASSA-PKCS1-v1_5' },
+    key,
+    new TextEncoder().encode(signingInput),
+  );
+  const jwt = `${signingInput}.${_b64urlEncode(sigBuf)}`;
+
+  const resp = await fetch('https://oauth2.googleapis.com/token', {
+    method:  'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body:    new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      assertion:  jwt,
+    }).toString(),
+  });
+  if (!resp.ok) {
+    const txt = await resp.text().catch(() => '');
+    console.error('[send-push] FCM OAuth exchange failed:', resp.status, txt);
+    return null;
+  }
+  const json = await resp.json() as { access_token?: string; expires_in?: number };
+  if (!json.access_token) return null;
+  _fcmAccessToken    = json.access_token;
+  _fcmAccessExpiryMs = Date.now() + ((json.expires_in || 3600) - 60) * 1000;
+  return _fcmAccessToken;
+}
+
+async function _sendFcm(deviceToken: string, payload: PushPayload):
     Promise<{ ok: boolean; status: number; reason?: string }> {
   if (!FCM_CONFIGURED) {
     return { ok: false, status: 501, reason: 'fcm-not-configured' };
   }
-  // TODO: implement when Firebase is wired up. Needs service-account JWT
-  // exchange for an OAuth token + POST to
-  // https://fcm.googleapis.com/v1/projects/{FCM_PROJECT_ID}/messages:send.
-  return { ok: false, status: 501, reason: 'fcm-not-implemented' };
+  const sa = _loadFcmServiceAccount();
+  if (!sa || !sa.project_id) {
+    return { ok: false, status: 500, reason: 'fcm-service-account-invalid' };
+  }
+  const accessToken = await _getFcmAccessToken();
+  if (!accessToken) return { ok: false, status: 500, reason: 'fcm-oauth-failed' };
+
+  // Capacitor's PushNotifications plugin on Android expects the FCM
+  // 'notification' field for OS-level display (background) AND emits
+  // 'pushNotificationReceived' to JS for foreground delivery. Extra
+  // fields (url, tag) ride in 'data' and are read by the JS listener.
+  const body = JSON.stringify({
+    message: {
+      token: deviceToken,
+      notification: { title: payload.title, body: payload.body },
+      data: {
+        url: payload.url,
+        tag: payload.tag,
+      },
+      android: {
+        collapse_key: payload.tag.slice(0, 64),
+        priority:     'high',
+        notification: {
+          tag: payload.tag.slice(0, 64),
+        },
+      },
+    },
+  });
+
+  const resp = await fetch(
+    `https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`,
+    {
+      method:  'POST',
+      headers: {
+        'authorization': `Bearer ${accessToken}`,
+        'content-type':  'application/json',
+      },
+      body,
+    },
+  );
+  if (resp.ok) return { ok: true, status: resp.status };
+  // FCM returns JSON {"error":{"status":"UNREGISTERED",...}} for bad tokens
+  let reason: string | undefined;
+  try {
+    const j = await resp.json();
+    reason = j?.error?.status || j?.error?.message;
+  } catch { /* no-op */ }
+  return { ok: false, status: resp.status, reason };
 }
 
 // ── Per-platform dispatch ───────────────────────────────────────────────────

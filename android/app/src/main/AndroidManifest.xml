@@ -24,6 +24,16 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- OAuth callback. Mirrors CFBundleURLTypes in ios/.../Info.plist
+                 so Chrome Custom Tabs can hand the post-auth redirect back to
+                 the app instead of spinning forever on app.findshades://. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="app.findshades" />
+            </intent-filter>
+
         </activity>
 
         <provider

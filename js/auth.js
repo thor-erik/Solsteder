@@ -159,10 +159,95 @@ function _oauthRedirectTo() {
     : window.location.origin;
 }
 
+// ── Native OAuth (Capacitor iOS / Android) ─────────────────────────────────
+//
+// Inside the Capacitor WebView, the standard web-redirect OAuth flow breaks:
+// Supabase's redirect lands on findshades.app which iOS opens in Safari
+// (since Capacitor's allowNavigation doesn't claim accounts.google.com), and
+// the session ends up in Safari's storage instead of the app's WebView.
+//
+// Mobile fix: open the OAuth URL in @capacitor/browser (SFSafariViewController
+// — shares Safari's cookies so the user stays signed in to Google), redirect
+// to the app.findshades:// custom URL scheme registered in Info.plist, catch
+// the callback via the @capacitor/app appUrlOpen listener, extract tokens
+// from the URL fragment, and finish the auth by calling setSession in the
+// app's WebView.
+//
+// Requires Supabase dashboard → Authentication → URL Configuration:
+//   Add `app.findshades://auth/callback` to Redirect URLs.
+let _capOAuthInitialized = false;
+
+function _isCapNative() {
+  return typeof window !== 'undefined' && window.Capacitor &&
+         typeof window.Capacitor.isNativePlatform === 'function' &&
+         window.Capacitor.isNativePlatform();
+}
+
+function _capPlugin(name) {
+  return (typeof window !== 'undefined' && window.Capacitor &&
+          window.Capacitor.Plugins && window.Capacitor.Plugins[name]) || null;
+}
+
+async function _ensureCapOAuthListener() {
+  if (_capOAuthInitialized || !_isCapNative()) return;
+  const App = _capPlugin('App');
+  if (!App) return;
+  _capOAuthInitialized = true;
+  await App.addListener('appUrlOpen', async ({ url }) => {
+    if (!url || !url.startsWith('app.findshades://auth/callback')) return;
+    // Fragment carries access_token, refresh_token, expires_in, etc.
+    // The error path is also surfaced via fragment (?error=... if implicit-
+    // flow errors) — log and bail without setting a session.
+    const fragment = url.split('#')[1] || '';
+    const params = new URLSearchParams(fragment);
+    const err = params.get('error_description') || params.get('error');
+    if (err) { console.warn('[auth] OAuth callback error:', err); }
+    const access_token  = params.get('access_token');
+    const refresh_token = params.get('refresh_token');
+    if (access_token && refresh_token) {
+      try {
+        await _supabase.auth.setSession({ access_token, refresh_token });
+      } catch (e) {
+        console.warn('[auth] setSession from app URL failed:', e.message);
+      }
+    }
+    const Browser = _capPlugin('Browser');
+    if (Browser && typeof Browser.close === 'function') {
+      try { await Browser.close(); } catch (_) {}
+    }
+  });
+}
+
+async function _capacitorOAuthFlow(provider) {
+  const Browser = _capPlugin('Browser');
+  if (!Browser) {
+    console.warn('[auth] @capacitor/browser plugin missing — cannot start native OAuth');
+    return;
+  }
+  await _ensureCapOAuthListener();
+  const { data, error } = await _supabase.auth.signInWithOAuth({
+    provider,
+    options: {
+      redirectTo: 'app.findshades://auth/callback',
+      skipBrowserRedirect: true,
+    },
+  });
+  if (error || !data || !data.url) {
+    console.warn('[auth] signInWithOAuth failed to build URL:', error && error.message);
+    return;
+  }
+  try {
+    await Browser.open({ url: data.url, presentationStyle: 'fullscreen' });
+  } catch (e) {
+    console.warn('[auth] Browser.open failed:', e.message);
+  }
+}
+
 async function authSignInWithGoogle() {
   try {
     sessionStorage.setItem('solsteder_auth_restore', JSON.stringify(_captureAuthRestoreState()));
   } catch (_) {}
+  if (_isCapNative()) { await _capacitorOAuthFlow('google'); return; }
   await _supabase.auth.signInWithOAuth({
     provider: 'google',
     options: { redirectTo: _oauthRedirectTo() }
@@ -173,6 +258,7 @@ async function authSignInWithApple() {
   try {
     sessionStorage.setItem('solsteder_auth_restore', JSON.stringify(_captureAuthRestoreState()));
   } catch (_) {}
+  if (_isCapNative()) { await _capacitorOAuthFlow('apple'); return; }
   await _supabase.auth.signInWithOAuth({
     provider: 'apple',
     options: { redirectTo: _oauthRedirectTo() }
@@ -3685,3 +3771,11 @@ _supabase.auth.onAuthStateChange((event, session) => {
   // Re-evaluate notifications on auth change (login unlocks social, logout unlocks login prompts)
   if (typeof _notifEvaluate === 'function') setTimeout(_notifEvaluate, 1000);
 });
+
+// Native (Capacitor) only: register the appUrlOpen listener at boot so a
+// late-arriving OAuth callback (user backgrounded the app mid-flow) still
+// completes the session even if the user dismissed the in-app browser.
+if (typeof window !== 'undefined') {
+  // Fire-and-forget — failures are logged inside the helper.
+  _ensureCapOAuthListener();
+}

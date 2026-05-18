@@ -94,16 +94,19 @@ async function pushInit() {
     const plugin = _nativePushPlugin();
     if (!plugin || _nativeListenersAttached) return;
     _nativeListenersAttached = true;
+    console.log('[push] pushInit attaching native listeners');
 
     // Device token from APN (iOS) or FCM (Android). Fires once after a
     // successful PushNotifications.register() call. The token is the only
     // value we need server-side to address this device.
     plugin.addListener('registration', async (token) => {
       const value = token && token.value;
+      console.log('[push] registration event; token length=', value ? value.length : 0);
       try {
         if (value) await _saveNativeSubscription(value);
         if (_nativePendingRegister) _nativePendingRegister.resolve(true);
       } catch (e) {
+        console.warn('[push] _saveNativeSubscription threw:', e.message);
         if (_nativePendingRegister) _nativePendingRegister.resolve(false);
       } finally {
         _nativePendingRegister = null;
@@ -111,7 +114,7 @@ async function pushInit() {
     });
 
     plugin.addListener('registrationError', (err) => {
-      console.warn('[push] native registration error:', err && err.error);
+      console.warn('[push] native registration error:', err && (err.error || JSON.stringify(err)));
       if (_nativePendingRegister) {
         _nativePendingRegister.resolve(false);
         _nativePendingRegister = null;
@@ -161,33 +164,44 @@ async function pushInit() {
 /** Request permission, subscribe / register, persist server-side.
  *  Returns true on success, false otherwise. */
 async function pushRequestPermission() {
-  if (!pushIsAvailable()) return false;
-  if (typeof authCurrentUser !== 'function' || !authCurrentUser()) return false;
+  console.log('[push] pushRequestPermission start; native=', _isNative(),
+              'plugin=', !!_nativePushPlugin(),
+              'user=', !!(typeof authCurrentUser === 'function' && authCurrentUser()));
+  if (!pushIsAvailable()) { console.warn('[push] not available'); return false; }
+  if (typeof authCurrentUser !== 'function' || !authCurrentUser()) {
+    console.warn('[push] no current user');
+    return false;
+  }
 
   if (_isNative()) {
     const plugin = _nativePushPlugin();
-    if (!plugin) return false;
+    if (!plugin) { console.warn('[push] native plugin missing on window.Capacitor.Plugins.PushNotifications'); return false; }
     if (!_nativeListenersAttached) await pushInit();
 
     let perm;
-    try { perm = await plugin.requestPermissions(); }
-    catch (e) { console.warn('[push] requestPermissions failed:', e.message); return false; }
-    if (!perm || perm.receive !== 'granted') return false;
+    try {
+      perm = await plugin.requestPermissions();
+      console.log('[push] requestPermissions returned:', JSON.stringify(perm));
+    } catch (e) { console.warn('[push] requestPermissions threw:', e.message); return false; }
+    if (!perm || perm.receive !== 'granted') {
+      console.warn('[push] permission not granted, receive=', perm && perm.receive);
+      return false;
+    }
 
-    // PushNotifications.register() returns void — the device token arrives
-    // asynchronously via the 'registration' event listener attached in
-    // pushInit. Set up a deferred so the caller awaits the full round-trip.
-    if (_nativePendingRegister) return false; // another register in flight
+    if (_nativePendingRegister) { console.warn('[push] register already in flight'); return false; }
     const ready = new Promise((resolve) => { _nativePendingRegister = { resolve }; });
-    try { await plugin.register(); }
-    catch (e) {
-      console.warn('[push] native register failed:', e.message);
+    try {
+      console.log('[push] calling plugin.register()');
+      await plugin.register();
+    } catch (e) {
+      console.warn('[push] native register threw:', e.message);
       _nativePendingRegister = null;
       return false;
     }
-    // Safety timeout — if no 'registration' event fires within 15 s,
-    // give up so the UI doesn't hang.
-    const timeout = new Promise((resolve) => setTimeout(() => resolve(false), 15000));
+    const timeout = new Promise((resolve) => setTimeout(() => {
+      console.warn('[push] registration event timed out after 15s — APN never replied');
+      resolve(false);
+    }, 15000));
     return Promise.race([ready, timeout]);
   }
 
@@ -294,17 +308,30 @@ async function _saveNativeSubscription(token) {
   if (typeof _supabase === 'undefined') return;
   if (typeof authCurrentUser !== 'function' || !authCurrentUser()) return;
   const platform = _nativePlatform(); // 'ios' or 'android'
+  const userId   = authCurrentUser().id;
   const row = {
-    user_id:    authCurrentUser().id,
+    user_id:    userId,
     platform,
     user_agent: navigator.userAgent || null,
   };
   if (platform === 'ios')     row.apn_token = token;
   if (platform === 'android') row.fcm_token = token;
-  // Conflict target depends on platform — partial unique indexes on
-  // apn_token / fcm_token enforce one-row-per-device.
-  const onConflict = (platform === 'ios') ? 'apn_token' : 'fcm_token';
-  await _supabase.from('push_subscriptions').upsert(row, { onConflict });
+
+  // Delete-then-insert instead of upsert. The DB has partial unique
+  // indexes on apn_token / fcm_token (WHERE token IS NOT NULL), but
+  // supabase-js's onConflict path hangs against PostgREST when the
+  // conflict target is a partial unique index — observed on Android
+  // 2026-05-18, ~15 s silent hang then no DB write. Two round-trips
+  // is fine here; the user is only registering once per device.
+  await _supabase.from('push_subscriptions')
+    .delete()
+    .eq('user_id', userId)
+    .eq('platform', platform);
+  const { error } = await _supabase.from('push_subscriptions').insert(row);
+  if (error) {
+    console.warn('[push] native subscription insert failed:', error.message);
+    throw new Error(error.message);
+  }
 }
 
 // ── Notification dismissal ──────────────────────────────────────────────────
