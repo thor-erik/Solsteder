@@ -1555,6 +1555,13 @@ function _renderBellDropdown() {
     const name = r.name || r.email || 'Ukjent';
     const fid  = _esc(r.friendshipId);
     entries.push({
+      // Stable id is load-bearing for the DOM-diff render below — without
+      // it, `entries.map(e => e.id)` returns all undefined, the
+      // _bellRenderedRows cache collapses to a single key, and only one
+      // row ever renders (the oldest, since the sort is newest-first and
+      // each iteration overwrites the previous DOM node). Prefix to
+      // avoid collision with notification ids (which are notif_id strings).
+      id: 'bd-req-' + r.friendshipId,
       t: new Date(r.requestedAt || r.created_at || NOW).getTime(),
       html: `
         <div class="bd-row bd-row--new" id="bd-req-${fid}">
@@ -1608,6 +1615,10 @@ function _renderBellDropdown() {
     // colon is the only structural char — still _esc as defense in depth.
     const idEsc = _esc(entry.id);
     entries.push({
+      // Mirror of the friend-request push above: id is required by the
+      // DOM-diff render. entry.id is the server-side notif_id, already
+      // unique per row.
+      id: entry.id,
       t: entry.ts,
       html: `
         <div class="bd-row bd-row--clickable${isNew}${pastClass}" onclick="_bellInvokeAction('${idEsc}')">
