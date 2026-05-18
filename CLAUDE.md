@@ -97,61 +97,103 @@ checked-in (domain-restricted; safe). All persistence + auth + realtime
 ### Tables (in `public`)
 | Table | What |
 |-------|------|
-| `profiles` | One row per auth user. `id` (= auth.users.id), `email`, `name`, `role`, `avatar_url`. Auto-created via the `on_auth_user_created` trigger on signup. `name`/`avatar_url` resynced from `user_metadata` on every authLoadRole. |
-| `events` | Analytics event sink. |
+| `profiles` | One row per auth user. `id` (= auth.users.id), `email`, `name`, `role`, `avatar_url`, `locale`, `created_at`, `last_seen_at`. Auto-created via the `on_auth_user_created` trigger on signup. `name`/`avatar_url` set once at signup from `user_metadata`. |
+| `events` | Analytics event sink. Anon-insert allowed; `events_event_length` + `events_properties_size` CHECK constraints cap per-row size. |
 | `suggested_venues` | User-submitted venue suggestions, admin-reviewed. |
 | `favorites` | Per-user favorited venues. |
 | `sun_alerts` | Per-user sun-window notification rules. |
-| `user_preferences` | Per-user lang / temp unit / default area. |
-| `friendships` | Bidirectional friend graph. `status ∈ pending/accepted/blocked`. Row direction = `user_id` requested friendship with `friend_id`. |
+| `user_preferences` | Per-user lang / temp unit / default area. Also a `state` JSONB bag for cross-device UI state (dismissed prompts, hidden friend visibility, bell-opened timestamp). |
+| `friendships` | Bidirectional friend graph. `status ∈ pending/accepted/blocked`. Row direction = `user_id` requested friendship with `friend_id`. Recipient-side INSERT is restricted to `status='pending'` (sql/036) so a recipient can't claim an accepted friendship without the inviter's consent. |
 | `checkins` | Friend check-ins (expire after 3h). |
-| `plans` | Created plans. Creator only. |
+| `plans` | Created plans. Creator only. `venue_name` denormalized so the push trigger can include it. `cancelled_at` is the soft-cancel flag. `reminder_sent_at` stamps when the 30-min cron reminder fired. A BEFORE UPDATE trigger (sql/040) blocks writes to `id`/`creator_id`/`venue_id`/`venue_name`/`planned_at`/`created_at` so the creator can't mutate set-once fields after invitees accept. |
 | `plan_invites` | Per-invitee status on a plan. `status ∈ pending/accepted/declined`, optional `arrival_time` for off-plan arrivals. |
 | `push_subscriptions` | Web push endpoints + keys. One row per device the user enabled push on. |
+| `notifications` | Per-user notification inbox backing the bell dropdown. `body` is server-rendered HTML containing only `<strong>...</strong>` markup; the client renders via `_escAllowStrong` (auth.js) to preserve emphasis while neutralizing any other tag. |
+| `_app_settings` | Internal key/value config (RLS deny-all). Holds `send_push_url`, `send_push_bearer`, `send_push_secret`. Read by `_do_send_push` (SECURITY DEFINER) from every push-firing trigger. Rotation goes through `UPDATE _app_settings SET value = ... WHERE key = ...`. |
 
-Migrations live in `sql/` (`003`–`011`). They were run manually against
+Migrations live in `sql/` (`003`–`040`). They were run manually against
 the prod project. Re-run any time you stand up a fresh project — they
-are all `CREATE ... IF NOT EXISTS` / idempotent.
+are all `CREATE ... IF NOT EXISTS` / idempotent. `sql/039-revoke-profile-email-HOLD.sql`
+is suffix-named so a wildcard apply doesn't sweep it in; rename to drop
+`-HOLD` only after confirming the client's friend-add path is on the
+`request_friend_by_email` RPC.
 
 ### Realtime
-`plan_invites` and `friendships` are in the `supabase_realtime`
-publication. `js/auth.js` subscribes to both on auth load; changes
-trigger `loadPlans` / `loadFriends`. The 60 s social poll remains as a
-fallback for tabs that drop the channel.
+`plan_invites`, `friendships`, `notifications`, and `suggested_venues`
+are in the `supabase_realtime` publication. `js/auth.js` subscribes on
+auth load; changes trigger `loadPlans` / `loadFriends` / bell rerender
+/ admin badge refresh. The 60 s social poll remains as a fallback for
+tabs that drop the channel.
+
+### Scheduled (pg_cron)
+| Job | Schedule | What |
+|-----|----------|------|
+| `plan-reminders` | `*/5 * * * *` | `process_plan_reminders()` — writes inbox rows + fires push for plans starting in 25–35 min |
+| `notifications-ttl-cleanup` | `0 1 * * *` | Deletes `notifications` rows older than 30 days |
 
 ### Web push (live in prod)
 Pipeline: receiver action → trigger row writes to `plan_invites` /
-`friendships` → DB trigger calls the `send-push` edge function via
-`pg_net.http_post` → edge function reads `push_subscriptions` for the
-target user → signs payload with VAPID private key → POSTs to each
-device's push endpoint.
+`friendships` / `plans` → DB trigger calls `_do_send_push(target, payload)`
+helper → helper reads URL/bearer/secret from `_app_settings` and posts
+to the `send-push` edge function with `X-Push-Secret` header → edge
+function constant-time-compares the secret to `PUSH_TRIGGER_SECRET`,
+validates `user_id` is a UUID and `payload.url` is a same-origin path,
+reads `push_subscriptions` for the target → signs payload with VAPID
+private key → POSTs to each device's push endpoint.
 
 * Client: `js/push.js`. `VAPID_PUBLIC_KEY` constant must be set or the
   toggle stays hidden. Profile panel toggle wires `pushRequestPermission`
   / `pushDisable`. Service worker at `sw.js` (root) handles `push` and
-  `notificationclick`.
-* Edge function: `supabase/functions/send-push/index.ts`. Reads three
-  secrets — `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`.
-  Deployed with `--no-verify-jwt`. Endpoint:
+  `notificationclick`. `notificationclick` resolves the target through
+  `new URL(...)` and only navigates/openWindows when the resolved origin
+  is same-origin — defense in depth against stale notification payloads
+  carrying external URLs.
+* Edge function: `supabase/functions/send-push/index.ts`. Reads four
+  secrets — `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`,
+  `PUSH_TRIGGER_SECRET`. Deployed with `--no-verify-jwt` (the
+  `X-Push-Secret` header is the actual auth gate; JWT verify isn't
+  workable because DB triggers don't carry a user JWT). Endpoint:
   `https://wxalqodaeqgzahwlovnw.supabase.co/functions/v1/send-push`.
-* Triggers: `sql/011-push-triggers.sql` — fires on `plan_invites`
-  status change and `friendships` insert at `status='pending'`. URL +
-  bearer token are inlined in the function bodies (the SQL editor
-  can't `ALTER DATABASE SET` on hosted Supabase, so settings-based
-  lookup wasn't an option).
-* Rotating the anon key: update both `js/auth.js` AND both
-  `Authorization: Bearer ...` lines in `sql/011-push-triggers.sql`,
-  then re-run the SQL.
+* Triggers that fire push: `notify_friend_request`, `notify_friend_accepted`,
+  `notify_plan_invite_created`, `notify_invite_response`,
+  `notify_plan_cancelled`, `process_plan_reminders`. All call
+  `_do_send_push` — none inline the bearer or URL anymore.
+* Rotating the Supabase anon key:
+  1. Update `js/auth.js` (`SUPABASE_ANON_KEY` constant).
+  2. `UPDATE public._app_settings SET value = '<new key>' WHERE key = 'send_push_bearer';`
+  3. Bump `js/auth.js?v=...` in `index.html` and `CACHE_VERSION` in `sw.js`.
+
+  No SQL migration re-run, no trigger rewrites, no app redeploy needed.
+  (Pre-sql/037 each trigger function inlined the bearer; rotation
+  required re-running nine SQL files. The helper indirection removed
+  that.)
+* Rotating the trigger secret:
+  1. `UPDATE public._app_settings SET value = encode(gen_random_bytes(32), 'hex') WHERE key = 'send_push_secret' RETURNING value;`
+  2. `supabase secrets set PUSH_TRIGGER_SECRET=<value from step 1>`
+  3. `supabase functions deploy send-push --no-verify-jwt`
+
+  Triggers pick up the new secret on the next `_do_send_push` call. Any
+  in-flight push fired between step 1 and step 3 will 401 — the secret
+  rotation should be quick to avoid the gap.
 * iOS caveat: web push needs iOS 16.4+ AND the site added to home
   screen as a PWA. Capability check in `pushIsAvailable()` hides the
   toggle on unsupported browsers.
 
 ### Profiles + RLS
-`profiles` has a public-readable SELECT policy + column grant so the
-anon role can read `id` + `name` only (email is grant-revoked). This is
-what lets a logged-out invite-link visitor see "Anna invited you to X".
-If a future need surfaces emails to anon, restore the grant; otherwise
-keep it tight.
+`profiles` has a public-readable SELECT policy intact so anon invite-link
+visitors can render "Anna invited you to X". Column-level SELECT grant
+restricts anon/authenticated to `(id, name, avatar_url, role, locale,
+created_at, last_seen_at)` (sql/039) — `email` is not readable via REST.
+The only path to resolve a profile by email is the SECURITY DEFINER RPC
+`request_friend_by_email(p_email)` (sql/038), which atomically looks up
+the user and inserts a `pending` friendship row in one call. The
+existing inviter-side `sendFriendRequest` in `js/auth.js` routes through
+this RPC; the share-link recipient path in `_tryFriendInvite` inserts
+its own `pending` row (also direction-flipped so the requester is
+`user_id`, matching the trigger that fires `notify_friend_request`).
+
+If a future need surfaces emails to anon or authenticated, GRANT them
+explicitly — don't drop the column-level restriction.
 
 ## Reading large files efficiently
 
