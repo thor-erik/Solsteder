@@ -1,181 +1,104 @@
 # Solsteder
 
-Solar-optimized venue finder for Oslo. Pure frontend — no build step, no tests, no bundler. Open `index.html` directly in a browser or serve statically.
+Solar-optimized venue finder for Oslo. Tells you which outdoor terraces have
+sun *right now* (or at any hour you scrub to), filters by weather, lets you
+make plans with friends, and surfaces friend check-ins on the map.
 
-## Quick Start
+Web build runs as a pure-frontend PWA — no build step, no bundler. The same
+codebase ships to iOS (App Store) via Capacitor; Android wrapping is staged
+but unshipped.
 
-### 1. Clone the repo
+## Tech stack
+
+- **Frontend**: vanilla JS PWA (no framework, no bundler). All scripts loaded
+  from `index.html` with `?v=` cache-bust query strings.
+- **Map**: [Mapbox GL JS](https://docs.mapbox.com/mapbox-gl-js/) for the
+  basemap and 3D buildings; sun arc and shadow overlay drawn on a 2D canvas
+  layered above.
+- **Backend**: [Supabase](https://supabase.com/) — Postgres + Auth + RLS
+  + Realtime + Edge Functions + pg_cron. Auth via Google OAuth.
+- **Push**: Web Push via VAPID-signed payloads, fanned out from DB triggers
+  through a `send-push` edge function gated by an `X-Push-Secret` header.
+- **Hosting**: [Cloudflare Pages](https://pages.cloudflare.com/) for the web
+  build (git integration auto-deploys from the repo). [Cloudflare Pages
+  Functions](https://developers.cloudflare.com/pages/functions/) proxy Google
+  Places requests so the API key stays server-side.
+- **iOS**: [Capacitor](https://capacitorjs.com/) wraps the same `index.html`
+  + JS bundle in a WKWebView; the iOS-specific bits live in `ios/`.
+
+## Local dev
+
 ```bash
+# 1. Clone
 git clone https://github.com/thor-erik/Solsteder.git
 cd Solsteder
-```
 
-### 2. Set up API keys
-```bash
+# 2. Set up keys
 cp js/config.example.js js/config.js
+# Edit js/config.js: fill MAPBOX_TOKEN_WEB, MAPBOX_TOKEN_NATIVE, GOOGLE_PLACES_KEY.
+# (GOOGLE_PLACES_KEY only needs to be truthy for client gates — Places
+#  traffic goes through the Cloudflare Pages Function proxy.)
+
+# 3. Serve
+open index.html               # works for most things
+python3 -m http.server 8000   # recommended (avoids file:// CORS edges)
 ```
 
-Then edit `js/config.js` and fill in your API keys:
+Open http://localhost:8000.
 
-- **MAPBOX_TOKEN**: Get from [mapbox.com account page](https://account.mapbox.com)
-- **GOOGLE_PLACES_KEY**: Create a Google Cloud project, enable "Places API" (Text Search), and get the API key from [console.cloud.google.com](https://console.cloud.google.com)
+## Deploy
 
-### 3. Run locally
+### Web (production)
 
-**Option A: Open in browser directly**
+Push to `master` → Cloudflare Pages auto-deploys to **findshades.app** within
+2–5 min. No build step on the Cloudflare side — repo root is the document
+root.
+
+### Web (preview)
+
+Push any other branch → Cloudflare Pages publishes a preview at
+`<branch>.solsteder.pages.dev`. Note: images and Supabase auth are
+domain-restricted to `findshades.app`, so previews can verify UI / layout
+but **not** the logged-in flows or venue photos.
+
+**CRITICAL**: commits alone don't deploy — only `git push` does.
+
+### iOS
+
 ```bash
-open index.html
+npm run cap:sync   # rm -rf www && cp -R <web assets> www/ && npx cap sync
 ```
 
-**Option B: Run a simple HTTP server** (recommended for better performance)
+`www/` is the iOS bundle root. It's a **build artifact** (gitignored) — the
+web app ships from repo root, the iOS app ships from `www/`. Both run the
+same source. Any iOS release must run `cap:sync` first or it'll ship stale
+code. A CI workflow (`.github/workflows/cap-sync-check.yml`) verifies www/
+matches root by content hash on every push to master.
+
+After `cap:sync`:
+
 ```bash
-# Python 3
-python3 -m http.server 8000
-
-# Or Node.js
-npx serve
+npm run cap:ios       # opens Xcode for signing + archive
+npm run cap:android   # opens Android Studio (Play Store wrap is staged)
 ```
-
-Then open [http://localhost:8000](http://localhost:8000)
 
 ## Architecture
 
-### Core Technologies
-- **Map rendering**: [Mapbox GL JS](https://docs.mapbox.com/mapbox-gl-js/) — interactive 3D map
-- **Backend**: [Supabase](https://supabase.com/) — PostgreSQL + Auth + Row Level Security
-- **Data source**: [OpenStreetMap](https://www.openstreetmap.org/) via [Overpass API](https://overpass-api.de/)
-- **Solar computation**: Web Worker (off-thread calculations to keep UI responsive)
-- **Weather**: [yr.no / MET Norway](https://www.yr.no/) API
+`index.html` loads all scripts in dependency order and calls `init()` at the
+bottom. There's no module system — globals are namespaced by file role.
+Most files own a slice of the UI; map + sun math are split across worker +
+solar.js.
 
-### Codebase Structure
+See [CLAUDE.md](CLAUDE.md) for the full file map, the design system, the
+backend reference, and debugging protocols.
 
-```
-index.html                   # Entry point, loads all scripts in order
-js/
-  ├─ i18n.js               # Internationalization (EN/NO)
-  ├─ config.js             # API keys (gitignored, see config.example.js)
-  ├─ auth.js               # Supabase Auth + user profile/role management
-  ├─ app.js                # State, orchestration, map setup, main event loop
-  ├─ solar.js              # Sun position math, shadow logic
-  ├─ scoring.js            # Venue scoring from solar exposure
-  ├─ weather.js            # Weather fetch + icon mapping
-  ├─ osm.js                # Overpass queries, OSM building geometry parsing
-  ├─ data.js               # Venue data loading and filtering
-  ├─ busyness.js           # Crowd/busyness estimates
-  ├─ places.js             # Venue photo URLs from Google Places
-  ├─ render-pins.js        # Sprites, pin layout/animation, hit testing, canvas draw
-  ├─ render-arc.js         # Sun compass + day arc canvas
-  ├─ render-seating.js     # Seating area shadows, zoom density filter
-  ├─ render-editor.js      # Building editor overlay
-  ├─ render-wind.js        # Wind direction overlay
-  ├─ render-helpers.js     # Shared geometry: convex hull, terrace polygons, etc
-  ├─ ui-shared.js          # Shared UI helpers
-  ├─ ui-list.js            # Venue cards, list rendering, infinite scroll
-  ├─ ui-detail.js          # Detail panel, sun dial, timeline, busyness chart
-  ├─ ui-shelter.js         # Wind shelter isometric diagram
-  ├─ map-style.js          # Mapbox style definition
-  ├─ worker.js             # Web worker for solar computation
-  └─ config.example.js     # Template for config.js (copy and fill with your keys)
-data/
-  ├─ venues.json           # Curated venue database (source of truth)
-  ├─ geometry.json         # Pre-computed building geometry (auto-generated)
-  ├─ oslo-candidates.json  # OSM venue candidates (auto-generated)
-  └─ *.json                # Generated by scripts/
-scripts/
-  ├─ fetch-venues-places.mjs      # Fetch venues from Google Places
-  ├─ update-geometry.mjs            # Recompute geometry.json from venues.json
-  ├─ fetch-photos.mjs               # Fetch venue photo URLs
-  ├─ fetch-oslo-candidates.mjs      # Fetch OSM restaurant/bar/cafe candidates
-  ├─ setup-profiles-table.sql       # Create profiles table + RLS
-  └─ setup-suggested-venues.sql     # Create suggested_venues table + RLS
-```
+## Database
 
-### Data Flow
-
-1. **User lands on the site**
-   - `index.html` loads all JS in order
-   - `init()` function starts the app
-   - Map initializes with Mapbox GL
-   - Venue data loads from `data/venues.json`
-
-2. **User searches**
-   - Dropdown shows curated venues + OSM candidates
-   - Clicking a venue calls `selectVenue(id)` → fetches solar/weather data
-   - Web Worker computes sun position, shadows, exposure score
-
-3. **User suggests a venue**
-   - Google Places API lookup finds the venue
-   - Map flies to the location
-   - Confirm modal shows venue details
-   - On submit: inserts into `suggested_venues` table (Supabase)
-   - Admin can approve → makes it visible to all users
-
-4. **Admin panel**
-   - Manage user roles
-   - Review pending venue suggestions
-   - Review pending venue edits
-
-### Authentication & Permissions
-
-- **Login**: Google OAuth via Supabase Auth
-- **Roles**: `user` (default), `editor`, `admin`
-- **Row Level Security (RLS)**:
-  - Everyone can read approved venues
-  - Users can read their own suggestions
-  - Admins can read all suggestions and manage approvals
-  - Users can only insert their own suggestions
-
-## Development Workflow
-
-See [CLAUDE.md](CLAUDE.md) for detailed development notes, file structure, and debugging protocols.
-
-### Quick tips:
-- **No build step**: Changes to JS files are live-reloaded
-- **Cache busting**: Update version params in `index.html` if browser serves stale scripts
-  - Example: `app.js?v=20260425a` forces a fresh load
-- **Solar computation**: Uses Web Worker (`js/worker.js`) so heavy calculations don't block the UI
-- **Venue data pipeline**: Never edit `geometry.json` directly — it's auto-generated from `venues.json`
-
-## Database (Supabase)
-
-Two main tables:
-
-### `profiles`
-- `id` (UUID, PK → auth.users)
-- `email`, `name`, `role` (user/editor/admin)
-- Auto-populated on first sign-in via trigger
-
-### `suggested_venues`
-- `id`, `user_id`, `name`, `address`, `lat`, `lng`, `outdoor`
-- `status` (pending/approved/rejected/withdrawn)
-- `created_at`, `reviewed_at`, `reviewed_by`
-- RLS policies: public reads approved; users read/insert/withdraw own; admins read/update all
-
-## Deployment
-
-The app is static — no server-side code needed. Deploy to:
-- GitHub Pages
-- Netlify
-- Vercel
-- Any static host
-
-Just ensure your `config.js` is deployed with the API keys.
-
-## Troubleshooting
-
-**"GOOGLE_PLACES_KEY is not defined"**
-- Check that `js/config.js` exists and has `GOOGLE_PLACES_KEY = '...'` defined
-- Hard-refresh your browser (Cmd+Shift+R or Ctrl+Shift+R)
-- Check DevTools Console for error messages
-
-**Venue suggestions not appearing in admin panel**
-- Ensure you're logged in as admin
-- Check Supabase dashboard → `suggested_venues` table directly
-- Verify RLS policies are set up (run `scripts/setup-suggested-venues.sql`)
-
-**Map not showing buildings**
-- Building geometry is in `data/geometry.json` — it's auto-generated
-- If missing, run `node scripts/update-geometry.mjs`
+Supabase project: single instance hosts auth, RLS-protected user data, the
+notifications inbox, friend/plan graph, web-push subscriptions, and analytics
+events. Migrations live in `sql/` (003–042, idempotent). See CLAUDE.md
+"Backend (Supabase)" for the full table reference, RLS notes, and push-pipeline
+rotation procedures.
 
 ## License
 

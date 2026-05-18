@@ -159,3 +159,16 @@ Mål: PWA-baseline klar for innlevering (PWABuilder eller Capacitor-wrapper).
 - [ ] Smart auto-shift av møtetid på accept-page: når en mottaker velger en ankomsttid som avviker betydelig (f.eks. >1t) fra `planned_at`, OG ingen andre har akseptert ennå, oppdater planens `planned_at` automatisk til den nye tiden og varsle inviteren ("{name} flyttet møtet til {time}"). Bredere "foreslå annen dag/tid"-flyt kan bygges på toppen som en tredje knapp ved siden av Aksepter/Avslå med backend-skriving til en `proposed_at`-kolonne. Tenk gjennom: terskel for "betydelig avvik", hva skjer hvis mottaker 2 også vil shifte, om inviter kan opt-ute, og om mottakeren får en tydelig "dette flytter møtet"-bekreftelse før tap.
 - [ ] Drag-to-dismiss-gest på accept-page-panelet: drag-handlen (`.pp-grabber` i `js/ui-plan-preview.js` + CSS i `index.html`) er kosmetisk nå. Wire opp touch-events → translateY-tracking → terskel for `closePlanPreview()` (samme close-flyt som tilbake-knappen) for native iOS-følelse. Mønster å gjenbruke: `.invite-sheet`-animasjonen i `js/ui-detail.js`.
 - [ ] Quick-share-rad på inviter-arket: WhatsApp / Messenger / SMS / Mail-ikon-chips over venneliste, så brukere som vet hvilken app de vil bruke slipper å scrolle gjennom venner først. Krever per-plattform-deeplink-håndtering (`whatsapp://send?text=...`, `sms:?body=...`, `mailto:?body=...`) + plattform-deteksjon for å skjule chips som ikke er installert.
+
+## Deferred from 2026-05-18 audit
+
+Real work surfaced by the multi-agent audit (Phase 2a/2b/2c) but deliberately skipped at fix-time. Distinct from `CLEANUP_LOG.md` wontfix entries (which were false positives) — these are real-but-not-now items, mostly deliberate refactors waiting for the right trigger.
+
+- [ ] **State consolidation in `app.js`** — ~10 module-level `let`s tracking sub-state of single concepts (e.g. 4 separate flags for the QC calendar). Audit flagged as state-duplication candidates. Real refactor work, not a bug fix; do as a deliberate consolidation pass, not opportunistically.
+- [ ] **Sheet state as DOM properties in `ui-detail.js`** — `sheet._planId`, `sheet._shortUrl`, `window._inviteSheetReturnToPostAccept`. Real race risk if two sheets open in rapid succession. Fix is a proper state object, not a one-line change. Trigger: next time the invite-sheet flow gets touched substantively.
+- [ ] **31 `typeof X !== 'undefined'` guards in `auth.js`** — mostly cargo cult from fragile load order. Stripping en masse is risky for a non-bug. Strip opportunistically when touching the surrounding code; don't do a flag-day pass.
+- [ ] **Inline `style="..."` strings in `ui-detail.js` bypassing the tier system** — per `feedback_design_before_tokenize` (memory), don't tokenize until the UI is settled. Defer until detail-panel design is locked.
+
+### Cache-bust coordination note (transient, delete after parallel work merges)
+
+Commit `ef0e313` (2026-05-18) bumped `?v=...` strings in `index.html` for `notifications.js` / `ui-plan-preview.js` / `auth.js` / `app.js` / `render-pins.js` AND bumped `CACHE_VERSION` in `sw.js` to `2026-05-18x`. Any parallel agent editing those files needs to bump again or users will be stuck on what `ef0e313` shipped. Standing rule lives in `CLAUDE.md` → "Cache-bust constants"; this note exists only because the file overlap is high right now.

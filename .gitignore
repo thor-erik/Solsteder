@@ -25,3 +25,6 @@ supabase/.temp/
 # Android Studio per-developer project state
 android/.idea/
 android/local.properties
+
+# Xcode Swift Package Manager resolution state (per-developer)
+ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
