@@ -117,7 +117,7 @@
 <script defer src="js/weather.js?v=20260516b"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260517h"></script>
+<script defer src="js/app.js?v=20260518a"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
@@ -1210,7 +1210,11 @@
   body.plan-preview-active #top-strip,
   body.post-accept-active #top-strip,
   body.profile-panel-open #top-strip,
-  body.invite-sheet-open #top-strip {
+  body.invite-sheet-open #top-strip,
+  body.plan-preview-active #floating-brand,
+  body.post-accept-active #floating-brand,
+  body.profile-panel-open #floating-brand,
+  body.invite-sheet-open #floating-brand {
     transform: translateY(calc(-100% - env(safe-area-inset-top, 0px) - 14px));
     pointer-events: none;
   }
@@ -2211,49 +2215,33 @@
   }
   .profile-panel-signout:hover { background: rgba(255,255,255,0.05); color: var(--text); }
 
-  /* ── Brand fold inside #top-strip (ts-right) ────────────────────────────────
-     Replaces the old #floating-brand floating-card. Sun-compass is the
-     primary brand affordance (animated, informational); the name is a
-     compact wordmark that disappears at narrow container widths. */
-  #top-strip .ts-brand {
-    display: inline-flex;
+  /* ── Top-right brand card — desktop only ───────────────────────────────────
+     Sits as its own pill to the right of the top-strip. Same glass
+     tokens as #top-strip, same top-offset + height — the two surfaces
+     read as a single chrome plane interrupted by a clean visual gap,
+     not as "logo inside the toolbar".
+
+     Mobile rule below (line ~4815) hides this entirely; the top-strip's
+     avatar carries the identity at touch widths. */
+  #floating-brand {
+    position: absolute;
+    top: max(calc(env(safe-area-inset-top, 0px) + 2px), 14px);
+    right: 16px;
+    z-index: 900;
+    height: 46px;
+    box-sizing: border-box;
+    padding: 4px 14px;
+    border-radius: 23px;
+    background: var(--glass-panel-bg);
+    backdrop-filter: var(--glass-blur-panel);
+    -webkit-backdrop-filter: var(--glass-blur-panel);
+    border: var(--glass-border);
+    box-shadow: var(--glass-inset), 0 6px 20px rgba(0,0,0,0.30);
+    display: flex;
     align-items: center;
-    gap: 6px;
-    margin-left: 4px;
-    padding: 0 6px 0 8px;
-    /* Subtle separator from the search button — same kind the date/temp
-       pair uses in ts-center. */
-    border-left: 1px solid rgba(155,169,188,0.18);
-    height: 30px;
-  }
-  #top-strip .ts-brand-name {
-    font: 700 13px/1 'Inter', sans-serif;
-    color: var(--text);
-    letter-spacing: 0.01em;
-    flex-shrink: 0;
-  }
-  #top-strip .ts-sun-compass {
-    display: block;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-  /* Mobile: drop the brand block — top-strip is tight, the avatar +
-     bell + search trio already fills the row. */
-  @media (max-width: 639px) {
-    #top-strip .ts-brand { display: none; }
-  }
-  /* Container query (matches the existing ts-center fallbacks): drop
-     the wordmark first so the compass + chrome survive on narrower
-     desktop windows. Aligned to the 380 px sidebar — at that width
-     the container is ≈ 372 px, so the wordmark goes but the compass
-     keeps reading the sun position right next to the search. */
-  @container topstrip (max-width: 420px) {
-    #top-strip .ts-brand-name { display: none; }
-  }
-  @container topstrip (max-width: 280px) {
-    #top-strip .ts-brand { display: none; }
+    gap: 10px;
+    transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.22s ease;
+    will-change: transform;
   }
 
   /* ── Time slider — Stage 2b: child of #panel, normal flow ─────────────────
@@ -2272,7 +2260,12 @@
        in flow, so margin-top = 36 - 16 = 20px. Compact popup overlaps
        the handle pill — accepted. Expanded popup overflows above the
        panel via overflow:visible. */
-    margin: 20px 12px 10px;
+    /* Top margin bumped 20 → 38 so the compact scrub popup (≈ 28 px
+       tall + 8 px tail + gap) clears the panel top edge cleanly. The
+       expanded popup is taller and intentionally overshoots into the
+       top-strip band — that's now allowed because #panel z-index 901
+       stacks the popup above the strip (see #panel rule). */
+    margin: 38px 12px 10px;
     height: 40px;
     align-items: center;
     gap: 8px;
@@ -2497,18 +2490,9 @@
       0 0 14px rgba(0,0,0,0.40);
   }
 
-  /* Desktop only: morph circle → 6px playhead pill on active drag.
-     Targets fine-pointer devices (mouse/trackpad); touch keeps the
-     full circle. */
-  @media (hover: hover) and (pointer: fine) {
-    #fts-thumb.is-active {
-      width: 6px;
-      border-radius: 3px;
-      transform: translate(-50%, -50%) scale(1.0);
-    }
-    /* No room for an icon in the 6 px playhead — hide during pill morph. */
-    #fts-thumb.is-active .fts-thumb-icon { opacity: 0; transition: opacity 100ms ease; }
-  }
+  /* (Desktop circle→playhead morph removed — the compression read as a
+     stutter when scrubbing. Desktop now uses the mobile thumb design:
+     same circle, same scale on .is-active, same weather glyph inside.) */
 
   /* Weather glyph inside the thumb. Centred via translate; the push-on-
      scrub animation in _updateThumbWxIcon overrides transform when a new
@@ -3477,7 +3461,15 @@
        overflow-y:auto for card scrolling. */
     overflow: visible;
     transition: top 0.3s ease, transform 0.28s ease, opacity 0.28s ease, height 0.3s ease, border-radius 0.3s ease;
-    z-index: 800;
+    /* z-index 901 so the FTS scrub popup (a child of #panel) can render
+       ABOVE the top-strip (z-index 900) when the expanded weather
+       popup overshoots into the strip's vertical band. #panel creates
+       a stacking context — children can't escape — so the only way
+       for the popup to clear the strip is for the whole panel column
+       to stack above it. Both surfaces are vertically separated
+       (panel top:70, strip top:14) so the swap has no visual impact
+       elsewhere. */
+    z-index: 901;
   }
 
   #panel-header {
@@ -9174,12 +9166,13 @@
     transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.22s ease;
   }
   body.invite-sheet-open #qc-wrap,
-  body.invite-sheet-open #floating-search,
-  body.invite-sheet-open #floating-brand {
+  body.invite-sheet-open #floating-search {
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.22s ease;
   }
+  /* (Brand slide-up handled by the unified rule near line 1210 alongside
+     the top-strip — same direction, same easing.) */
   /* FTS over the invite/share sheet — lifted above the sheet so the
      inviter can pick the meet time without closing the sheet. v2 hid
      it because the time was duplicated as a "Du drar kl. 04:00" line
@@ -9613,7 +9606,6 @@
   body.plan-preview-active #panel,
   body.plan-preview-active #detail-panel,
   body.plan-preview-active #floating-search,
-  body.plan-preview-active #floating-brand,
   body.plan-preview-active #qc-wrap,
   body.plan-preview-active #fts,
   body.plan-preview-active #fts-popup,
@@ -9629,7 +9621,6 @@
   body.post-accept-active #panel,
   body.post-accept-active #detail-panel,
   body.post-accept-active #floating-search,
-  body.post-accept-active #floating-brand,
   body.post-accept-active #qc-wrap,
   body.post-accept-active #fts,
   body.post-accept-active #fts-popup,
@@ -11146,14 +11137,6 @@
           <path d="M21 21l-4.35-4.35"/>
         </svg>
       </button>
-      <!-- Brand + sun-compass folded INTO the top-strip on desktop so the
-           logo shares the strip's glass instead of floating in a separate
-           card with a perceived different background. Mobile hides this
-           block via the .ts-brand visibility rule below. -->
-      <div class="ts-brand" aria-hidden="false">
-        <span id="brand-name" class="ts-brand-name">Shades</span>
-        <canvas id="sun-compass" class="ts-sun-compass" width="36" height="36"></canvas>
-      </div>
     </div>
     <!-- Search-mode contents — shown when #top-strip has .searching.
          #venue-search is the same element the existing search logic
@@ -11214,7 +11197,17 @@
     </svg>
   </button>
 
-  <!-- Top-right brand floating card replaced by .ts-brand inside #top-strip. -->
+  <!-- Top-right brand card — desktop only. Shares the top-strip's glass
+       tokens so the two surfaces read as the same chrome plane while
+       remaining visually separate (the gap reads as "brand sits to the
+       side of the controls", not "brand is inside the toolbar"). Hidden
+       on mobile via the media-query rule below — top-strip is tight
+       there and the avatar already carries the identity. -->
+  <div id="floating-brand" class="intro-hidden">
+    <div id="brand-logo"><img src="design/logo-pack-svg/logo-color-2000w.svg" alt="Shades" width="32" height="32" loading="lazy"></div>
+    <span id="brand-name">Shades</span>
+    <canvas id="sun-compass" width="36" height="36"></canvas>
+  </div>
 
 
   <!-- Bottom-center: date pill + sun arc + intent presets (hidden — replaced by qc-bar) -->
