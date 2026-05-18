@@ -199,13 +199,11 @@ function initFts() {
   // -- Pointer / touch events on the track --
   const setTimeFromPointer = (clientX) => {
     const rect   = track.getBoundingClientRect();
-    // Inset by one thumb diameter on each side so the thumb's body stops at
-    // the start of the cap (thumb center at rect.left + 2R). The caps + the
-    // adjacent dead strip get the first/last segment color in drawFtsCanvas.
+    // Addressable range = straight section of the pill. Cursor positions in
+    // the curved caps clamp to the start/end time via _clampHour below.
     const R      = Math.floor(rect.height / 2);
-    const inset  = 2 * R;
-    const usable = Math.max(1, rect.width - 2 * inset);
-    const t      = MIN_H_ARC + (clientX - rect.left - inset) / usable * (MAX_H_ARC - MIN_H_ARC);
+    const usable = Math.max(1, rect.width - 2 * R);
+    const t      = MIN_H_ARC + (clientX - rect.left - R) / usable * (MAX_H_ARC - MIN_H_ARC);
     const hour   = _clampHour(t);
     if (nowMode) {
       nowMode = false;
@@ -224,6 +222,10 @@ function initFts() {
     e.preventDefault();
     _ftsDragging = true;
     track.setPointerCapture(e.pointerId);
+    // Hide the OS cursor for the duration of the scrub: the thumb stops at
+    // the straight-section edge, but the cursor would otherwise drift past it
+    // into the cap. With the cursor hidden, the thumb is the sole indicator.
+    track.style.cursor = 'none';
     window._qcThumbActive = true;
     setTimeFromPointer(e.clientX);
   });
@@ -239,6 +241,7 @@ function initFts() {
     if (!_ftsDragging) return;
     _ftsDragging = false;
     window._qcThumbActive = false;
+    track.style.cursor = '';
     drawFtsCanvas();
     _qcSpringBackFts();
     scheduleFtsPopupHide();
@@ -248,6 +251,7 @@ function initFts() {
   track.addEventListener('pointercancel', () => {
     _ftsDragging = false;
     window._qcThumbActive = false;
+    track.style.cursor = '';
     drawFtsCanvas();
     hideFtsPopup();
   });
@@ -292,14 +296,11 @@ function drawFtsCanvas() {
   const dateStr = datePicker.value;
   const fromH   = parseFloat(timeFromEl.value);
 
-  // Map time so the thumb's body stays entirely in the straight section.
-  // Thumb diameter = 2·TRACK_R, so inset by one thumb diameter on each side:
-  // thumb center sweeps [2·TRACK_R, BAR_W − 2·TRACK_R], its right edge stops
-  // at BAR_W − TRACK_R (= start of the right cap). The cap region + the
-  // narrow dead-strip next to it pick up the first/last segment color below.
-  const insetX  = 2 * TRACK_R;
-  const usableW = Math.max(1, BAR_W - 2 * insetX);
-  const timeToX = t => insetX + (t - MIN_H) / (MAX_H - MIN_H) * usableW;
+  // Start/End time pin to the straight section's edges; the caps fall outside
+  // the addressable range. The existing leading/trailing fill (step 3 below)
+  // then paints the cap region with the first/last segment color.
+  const usableW = Math.max(1, BAR_W - 2 * TRACK_R);
+  const timeToX = t => TRACK_R + (t - MIN_H) / (MAX_H - MIN_H) * usableW;
 
   // Helper: rounded-rect path for the track shape (offset by BLEED)
   function trackRoundRect() {
@@ -604,11 +605,10 @@ function showFtsPopup(hour) {
       const trackLeft = trackEl.offsetLeft;
       const trackW    = trackEl.offsetWidth;
       const MIN_H     = MIN_H_ARC, MAX_H = MAX_H_ARC;
-      // Match drawFtsCanvas: thumb-body fully inside straight section.
+      // Match drawFtsCanvas: time maps to the straight section, not the full pill.
       const R         = Math.floor(trackEl.offsetHeight / 2);
-      const inset     = 2 * R;
-      const usableW   = Math.max(1, trackW - 2 * inset);
-      const thumbX    = trackLeft + inset + (hour - MIN_H) / (MAX_H - MIN_H) * usableW;
+      const usableW   = Math.max(1, trackW - 2 * R);
+      const thumbX    = trackLeft + R + (hour - MIN_H) / (MAX_H - MIN_H) * usableW;
       const ftsW      = ftsEl.offsetWidth;
       // Clamp so popup doesn't overflow edges
       const popupW    = popup.offsetWidth || 160;
