@@ -19,7 +19,7 @@ If a UI change wants to break a rule in `DESIGN.md`, update the doc first and ju
 
 ## Workflow
 
-Two tiers based on risk. When unsure, default to the branch flow.
+Three tiers based on risk and ship target. When unsure, default to the branch flow.
 
 ### Tier 1 — Direct push to master
 
@@ -49,6 +49,24 @@ No draft PR by default — pushing the branch alone gets a preview. Open a PR on
 **CRITICAL:** Commits alone do not deploy. Pushing to `master` deploys to production; pushing to any other branch deploys to a preview URL. If you commit without pushing, nothing goes live.
 
 Use concise commit messages. Skip the commit/push step only if the user explicitly says not to commit yet.
+
+### Tier 3 — Native release (Capacitor → App Store / Play Store)
+
+Use when shipping a build to the iOS App Store or Google Play. Web changes
+must already be on master FIRST (master is the source of truth for `www/`).
+
+Procedure:
+1. `nvm use 22 && npm run cap:sync` (Capacitor CLI 8.x requires Node 22+).
+2. iOS: bump `CFBundleVersion` in Xcode (or via `agvtool`) → Product → Archive
+   → Distribute App → Upload to App Store Connect → submit to TestFlight or
+   App Store review.
+3. Android: bump `versionCode` in `android/app/build.gradle` → `./gradlew
+   bundleRelease` → upload AAB to Play Console → Internal Testing or
+   Production track.
+4. Both stores reject duplicate build numbers — every upload increments.
+
+Native releases are **always manual**. Nothing auto-deploys to the stores.
+See "Deployment topology" for the full toolchain.
 
 ## File map
 
@@ -210,53 +228,99 @@ tabs that drop the channel.
 | `plan-reminders` | `*/5 * * * *` | `process_plan_reminders()` — writes inbox rows + fires push for plans starting in 25–35 min |
 | `notifications-ttl-cleanup` | `0 1 * * *` | Deletes `notifications` rows older than 30 days |
 
-### Web push (live in prod)
+### Push (web + native, live in prod)
+One pipeline, three delivery channels — `send-push` edge function
+dispatches per-row based on `push_subscriptions.platform`.
+
 Pipeline: receiver action → trigger row writes to `plan_invites` /
 `friendships` / `plans` → DB trigger calls `_do_send_push(target, payload)`
 helper → helper reads URL/bearer/secret from `_app_settings` and posts
 to the `send-push` edge function with `X-Push-Secret` header → edge
 function constant-time-compares the secret to `PUSH_TRIGGER_SECRET`,
 validates `user_id` is a UUID and `payload.url` is a same-origin path,
-reads `push_subscriptions` for the target → signs payload with VAPID
-private key → POSTs to each device's push endpoint.
+reads `push_subscriptions` for the target, then per row:
+- `platform='web'`     → web-push (VAPID-signed) POST to subscription endpoint
+- `platform='ios'`     → APN HTTP/2 POST to api.{sandbox,}.push.apple.com,
+                          signed with the .p8 auth key (ES256 JWT)
+- `platform='android'` → FCM HTTP v1 POST to fcm.googleapis.com, signed
+                          with the Firebase service-account JWT exchanged
+                          for a Google OAuth access token
 
-* Client: `js/push.js`. `VAPID_PUBLIC_KEY` constant must be set or the
-  toggle stays hidden. Profile panel toggle wires `pushRequestPermission`
-  / `pushDisable`. Service worker at `sw.js` (root) handles `push` and
-  `notificationclick`. `notificationclick` resolves the target through
-  `new URL(...)` and only navigates/openWindows when the resolved origin
-  is same-origin — defense in depth against stale notification payloads
-  carrying external URLs.
-* Edge function: `supabase/functions/send-push/index.ts`. Reads four
-  secrets — `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`,
-  `PUSH_TRIGGER_SECRET`. Deployed with `--no-verify-jwt` (the
-  `X-Push-Secret` header is the actual auth gate; JWT verify isn't
-  workable because DB triggers don't carry a user JWT). Endpoint:
-  `https://wxalqodaeqgzahwlovnw.supabase.co/functions/v1/send-push`.
-* Triggers that fire push: `notify_friend_request`, `notify_friend_accepted`,
-  `notify_plan_invite_created`, `notify_invite_response`,
-  `notify_plan_cancelled`, `process_plan_reminders`. All call
-  `_do_send_push` — none inline the bearer or URL anymore.
+Per-row dispatch (see `_deliver` in
+`supabase/functions/send-push/index.ts`). Failed deliveries with
+platform-specific "token is gone" codes (web: 410/404, APN:
+BadDeviceToken/410, FCM: UNREGISTERED) cause the row to be deleted.
+
+* Client: `js/push.js`. ONE API surface — `pushIsAvailable`,
+  `pushRequestPermission`, `pushDisable`, `pushIsSubscribed`,
+  `pushDismissTag` — works on web AND native.
+  - Web: registers `/sw.js` Service Worker, subscribes via VAPID,
+    upserts row with platform='web' + endpoint + p256dh + auth.
+  - Native: uses `@capacitor/push-notifications`. Listens for
+    `registration` event → device token → delete-then-insert row
+    with platform='ios' (apn_token) or platform='android' (fcm_token).
+    Avoids supabase-js's `.upsert(..., { onConflict })` which hangs
+    silently against partial unique indexes.
+* Profile panel toggle (`js/notifications.js`) wires the same API
+  regardless of platform. Toggle render only shows when
+  `pushIsAvailable()` returns true.
+* iOS native: `ios/App/App/AppDelegate.swift` has
+  `didRegisterForRemoteNotificationsWithDeviceToken` +
+  `didFailToRegisterForRemoteNotificationsWithError` forwarders to
+  `NotificationCenter` — required by `@capacitor/push-notifications`,
+  without them the JS-side `register()` hangs forever waiting for the
+  token.
+* Service worker `sw.js` (web only, ignored on native) handles `push`
+  and `notificationclick`. `notificationclick` resolves the target
+  through `new URL(...)` and only navigates / openWindows when the
+  resolved origin is same-origin.
+
+Edge function: `supabase/functions/send-push/index.ts`. Deployed
+`--no-verify-jwt` (X-Push-Secret is the actual auth gate). Endpoint:
+`https://wxalqodaeqgzahwlovnw.supabase.co/functions/v1/send-push`.
+
+Secrets:
+- `PUSH_TRIGGER_SECRET` — matches `_app_settings.value WHERE key='send_push_secret'`
+- Web (VAPID): `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`
+- iOS (APN): `APN_AUTH_KEY_BASE64` (base64 of .p8), `APN_KEY_ID`,
+  `APN_TEAM_ID`, `APN_BUNDLE_ID` (= `app.findshades`), `APN_ENV`
+  (`sandbox` for dev/TestFlight Internal, `production` for TestFlight
+  External + App Store releases). One .p8 key works for both
+  environments; the env var picks which APN endpoint to hit.
+- Android (FCM): `FCM_SERVICE_ACCOUNT_BASE64` — base64 of the Firebase
+  service-account JSON. project_id, client_email, private_key all
+  read from inside the JSON (no separate FCM_PROJECT_ID needed).
+
+Triggers that fire push: `notify_friend_request`,
+`notify_friend_accepted`, `notify_plan_invite_created`,
+`notify_invite_response`, `notify_plan_cancelled`,
+`process_plan_reminders`. All call `_do_send_push` — none inline the
+bearer or URL.
+
 * Rotating the Supabase anon key:
   1. Update `js/auth.js` (`SUPABASE_ANON_KEY` constant).
   2. `UPDATE public._app_settings SET value = '<new key>' WHERE key = 'send_push_bearer';`
   3. Bump `js/auth.js?v=...` in `index.html` and `CACHE_VERSION` in `sw.js`.
 
-  No SQL migration re-run, no trigger rewrites, no app redeploy needed.
-  (Pre-sql/037 each trigger function inlined the bearer; rotation
-  required re-running nine SQL files. The helper indirection removed
-  that.)
-* Rotating the trigger secret:
+* Rotating the PUSH_TRIGGER_SECRET:
   1. `UPDATE public._app_settings SET value = encode(gen_random_bytes(32), 'hex') WHERE key = 'send_push_secret' RETURNING value;`
   2. `supabase secrets set PUSH_TRIGGER_SECRET=<value from step 1>`
   3. `supabase functions deploy send-push --no-verify-jwt`
 
-  Triggers pick up the new secret on the next `_do_send_push` call. Any
-  in-flight push fired between step 1 and step 3 will 401 — the secret
-  rotation should be quick to avoid the gap.
-* iOS caveat: web push needs iOS 16.4+ AND the site added to home
-  screen as a PWA. Capability check in `pushIsAvailable()` hides the
-  toggle on unsupported browsers.
+* Rotating APN credentials: mint a new key in Apple Developer portal →
+  delete old key → `base64 -i AuthKey_NEW.p8` → set
+  `APN_AUTH_KEY_BASE64` + `APN_KEY_ID` via `supabase secrets set` →
+  redeploy `send-push`. APN_TEAM_ID and APN_BUNDLE_ID don't change.
+
+* Rotating FCM credentials: generate new service account in Firebase
+  Console → Project settings → Service accounts → Generate new private
+  key → `base64 -i firebase-admin.json` → set
+  `FCM_SERVICE_ACCOUNT_BASE64` → redeploy `send-push`.
+
+* iOS web push (legacy, before native shipped): needs iOS 16.4+ AND the
+  site added to home screen as a PWA. Native path supersedes this for
+  the App Store build; web push still works on findshades.app for
+  browser users.
 
 ### Profiles + RLS
 `profiles` has a public-readable SELECT policy intact so anon invite-link
@@ -487,6 +551,44 @@ Mobile-specific caveats:
   - `data/venues-osm-unresolved.json` — OSM-tagged terraces with no Google match
 - Mapbox GL JS is the map renderer; solar arc and shadows are drawn on a canvas overlay
 
+### Cross-platform contract (web + iOS + Android = one js/)
+
+Capacitor is the reason: one js/ codebase ships to all three platforms.
+Platform-conditional features live in shared files behind
+`Capacitor.isNativePlatform()` runtime guards — never in separate files,
+never via build-time bundle swaps.
+
+Current runtime branches:
+- `js/config.js` — `MAPBOX_TOKEN` picks pk_web vs pk_native at boot.
+  Web token is URL-restricted to findshades.app + preview origins;
+  native token has no URL restriction (Mapbox's allowlist format can't
+  represent the Capacitor WebView origin). Both are public `pk.*` tokens.
+- `js/auth.js` — `_capacitorOAuthFlow()` opens the OAuth URL in
+  Capacitor.Browser (SFSafariViewController on iOS, Chrome Custom Tabs
+  on Android) and listens for the `app.findshades://auth/callback`
+  redirect via Capacitor.App.appUrlOpen. Web stays on the existing
+  `signInWithOAuth` redirect-to-origin path.
+- `js/push.js` — `_isNative()` branches between web push (VAPID +
+  Service Worker) and native push (`@capacitor/push-notifications` →
+  APN/FCM). One pushIsAvailable / pushRequestPermission / pushDisable
+  API surface; per-platform implementation underneath.
+
+API key restrictions follow the same rule: prefer ONE key with
+multi-origin restrictions when the vendor supports it (Google Maps
+Platform: URL referrer + iOS bundle + Android package on one key).
+Mint a second key + runtime-branch only when vendor restrictions can't
+represent all three origins (Mapbox GL JS: only HTTPS URL allowlist).
+
+For iOS/Android native integration:
+- Bundle ID: `app.findshades` (registered with Apple Developer Program
+  + Firebase Android app).
+- URL scheme `app.findshades://` registered in
+  `ios/App/App/Info.plist` (CFBundleURLTypes) AND
+  `android/app/src/main/AndroidManifest.xml` (intent-filter on
+  MainActivity). Same scheme, both platforms.
+- OAuth redirect URL `app.findshades://auth/callback` whitelisted in
+  Supabase Dashboard → Authentication → URL Configuration.
+
 ## Deployment topology
 
 Two ship paths, one source tree.
@@ -509,24 +611,82 @@ Skip either and existing users see stale code indefinitely.
 iOS ships from `www/`, which is a **build artifact** (gitignored).
 
 ```
-npm run build      # rm -rf www && mkdir -p www && cp -R index.html privacy.html
-                   #                                       terms.html manifest.json
-                   #                                       sw.js shades-logo.png
-                   #                                       favicon* apple-touch-icon-*
-                   #                                       js data design www/
-npm run cap:sync   # npm run build && npx cap sync
-npm run cap:ios    # cap:sync && npx cap open ios
+nvm use 22                # Capacitor CLI 8.x needs Node 22+
+npm run build             # rm -rf www && mkdir -p www && cp -R index.html
+                          # privacy.html terms.html manifest.json sw.js
+                          # shades-logo.png favicon* apple-touch-icon-*
+                          # js data design www/
+npm run cap:sync          # build + npx cap sync (copies www → ios/.../public)
+open ios/App/App.xcodeproj
+# In Xcode: pick simulator/device → Cmd+R
 ```
 
-**Any iOS release must run `cap:sync` first** or it ships stale code (literally the previous archive's web bundle). `.github/workflows/cap-sync-check.yml` runs cap:sync on every master push + every PR touching web assets and content-hashes www/ vs root; catches the `npm run build` cp list silently dropping a file.
+CLI-only build (no Xcode UI needed) for sanity checking:
+```
+cd ios/App
+xcodebuild -project App.xcodeproj -scheme App -configuration Debug \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+  -derivedDataPath /tmp/Solsteder-DerivedData build CODE_SIGNING_ALLOWED=NO
+xcrun simctl install booted /tmp/Solsteder-DerivedData/Build/Products/Debug-iphonesimulator/App.app
+xcrun simctl launch booted app.findshades
+```
+
+**Daily driver: iPhone simulator.** UI, OAuth (in-app SFSafariViewController),
+location, weather, map tiles, every JS interaction works there. No need to
+plug in a real phone for the vast majority of dev work.
+
+**Known simulator limitation: APN registration silently fails.** The permission
+prompt fires, `PushNotifications.register()` resolves, but
+`application:didRegisterForRemoteNotificationsWithDeviceToken:` never fires —
+no device token, no DB row. To test push end-to-end on iOS, use either:
+- TestFlight build on a real iPhone (proper APN path), OR
+- `xcrun simctl push booted app.findshades payload.apns` for fake-payload
+  reception testing (bypasses registration; proves the receiving path works)
+
+Android (S25) is the primary push-test device since the iOS sim path is broken.
+
+**Any iOS release must run `cap:sync` first** or it ships stale code (literally
+the previous archive's web bundle). `.github/workflows/cap-sync-check.yml`
+runs cap:sync on every master push + every PR touching web assets and
+content-hashes www/ vs root; catches the `npm run build` cp list silently
+dropping a file.
 
 The cp list is fragile. When adding a new top-level asset:
 1. Add it to the cp list in `package.json` (`build` script).
 2. Confirm it's referenced from a `www/`-served HTML or JS.
 3. Push and wait for `cap-sync-check.yml` to go green.
 
+For TestFlight / App Store: Xcode → Product → Archive → Distribute App → Upload.
+`CFBundleVersion` (Build) in the Xcode target settings must be unique per upload.
+
 ### Android (Capacitor)
-Same `cap:sync` pipeline. Ships from `android/app/src/main/assets/public/`. Wrap is built but unshipped to Play Store as of 2026-05-18.
+Same `cap:sync` pipeline. Ships from `android/app/src/main/assets/public/`.
+
+```
+nvm use 22
+npm run cap:sync
+cd android
+JAVA_HOME=/Applications/Android\ Studio.app/Contents/jbr/Contents/Home \
+  ./gradlew assembleDebug
+# APK at android/app/build/outputs/apk/debug/app-debug.apk
+~/Library/Android/sdk/platform-tools/adb install -r \
+  android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+Wireless ADB pairing (one-time, persists across reboots):
+1. Phone → Settings → Developer options → Wireless debugging → **Pair using
+   QR code**
+2. Mac → Android Studio → Device Manager → **Pair using Wi-Fi** → scan
+3. After this, `adb devices` shows the phone whenever both are on the same
+   Wi-Fi network. No USB cable needed.
+
+`android/app/google-services.json` (gitignored) is required for FCM — download
+from Firebase Console → Project settings → General → Your apps → Android. The
+conditional `apply plugin: 'com.google.gms.google-services'` in
+`android/app/build.gradle` activates only when the file is present.
+
+For Play release: `./gradlew bundleRelease` → upload AAB to Play Console.
+`versionCode` in `android/app/build.gradle` must increase per upload.
 
 ## Patterns standardized during cleanup
 
