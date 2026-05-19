@@ -276,7 +276,9 @@ function openPlanPreview(opts) {
       });
       map.flyTo({
         center:  [venue.lng, venue.lat],
-        zoom:    17.6,
+        // Was 17.6 — user feedback that the dive was too close across
+        // detail / invite / accept. 16.75 matches _flyToVenue.
+        zoom:    16.75,
         pitch:   58,
         bearing: targetBearing,
         padding,
@@ -376,6 +378,26 @@ function openPlanPreview(opts) {
 
   const overlay = _ppBuildDom(venue, opts, { planHour, animateTo, dateStr });
   document.body.appendChild(overlay);
+
+  // Fit meta pills after the overlay is in the DOM so we have real
+  // widths to measure against. Re-run on viewport resize (e.g.
+  // orientation change).
+  requestAnimationFrame(() => {
+    const metaEl = overlay.querySelector('.dprcv-meta');
+    if (metaEl && typeof window._fitMetaPills === 'function') {
+      window._fitMetaPills(metaEl);
+    }
+  });
+  if (typeof ResizeObserver !== 'undefined') {
+    const metaEl = overlay.querySelector('.dprcv-meta');
+    if (metaEl) {
+      const ro = new ResizeObserver(() => {
+        if (typeof window._fitMetaPills === 'function') window._fitMetaPills(metaEl);
+      });
+      ro.observe(overlay);
+      overlay._metaResizeObs = ro;
+    }
+  }
 
   // Track the bottom panel's height as --pp-bottom-h so the locate-me +
   // zoom-jog can anchor above it — same pattern the venue list uses via
@@ -541,7 +563,10 @@ function _planPreviewLocate() {
   try {
     map.easeTo({
       center: [venue.lng, venue.lat],
-      zoom: 17.6,
+      // Was 17.6 — user wanted less aggressive zoom across detail / invite
+      // / accept. 16.75 matches _flyToVenue and gives a ring of surrounding
+      // context.
+      zoom: 16.75,
       pitch: 58,
       bearing: targetBearing,
       duration: 700,
@@ -650,6 +675,9 @@ function closePlanPreview(opts = {}) {
     for (const tref of st.timeouts) { if (tref && tref.id != null) clearTimeout(tref.id); }
   }
   if (st.resizeObs) { try { st.resizeObs.disconnect(); } catch {} }
+  if (st.overlay && st.overlay._metaResizeObs) {
+    try { st.overlay._metaResizeObs.disconnect(); } catch {}
+  }
   // Drop FTS scrubber + timeFromEl + outside-tap listeners wired during _ppBuildDom.
   if (st.overlay && typeof st.overlay._cleanup === 'function') {
     try { st.overlay._cleanup(); }
@@ -836,6 +864,10 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   // 4 metas: area · category · distance · walk-time (separately so each
   // reads as its own pill of information). v1 joined area+cat into one
   // chunk; user feedback was that the metas felt halved.
+  // Each pill is wrapped in `.dprcv-meta-item` so _fitMetaPills (called
+  // after layout) can drop whole trailing pills + their preceding dot
+  // when the row overflows, instead of letting the browser ellipsise
+  // a partial pill ("5 mi…").
   const metaParts = [
     venueArea ? { html: venueArea.replace(/</g, '&lt;') } : null,
     venueCat  ? { html: venueCat.replace(/</g, '&lt;')  } : null,
@@ -845,7 +877,7 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
       : null,
   ].filter(Boolean).filter(p => p.html);
   const metaHtml = metaParts.map((p, i) =>
-    (i > 0 ? '<span class="dprcv-meta-dot">·</span>' : '') + `<span>${p.html}</span>`
+    (i > 0 ? '<span class="dprcv-meta-dot">·</span>' : '') + `<span class="dprcv-meta-item">${p.html}</span>`
   ).join('');
 
   // ── Hero header data (Møtes left, Sol til right)
@@ -1128,8 +1160,12 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
       : ((typeof _fmtInviteDate === 'function' && dateStr) ? _fmtInviteDate(dateStr) : '');
     eyebrow = t('pp_past_eyebrow', { date: pastDayLabel || '' });
   } else if (isInvite) {
+    // Inviter name renders inline, NOT wrapped in <strong>. User wanted
+    // the whole eyebrow to read as one continuous voice (same weight,
+    // same colour) — heavy-weight name was reading as a separate label
+    // glued to a lighter caption.
     eyebrow = opts.inviterName
-      ? t('pp_invited_line_named', { name: `<strong>${inviterName}</strong>` })
+      ? t('pp_invited_line_named', { name: inviterName })
       : t('pp_invited_line_anon');
   } else {
     // Fallback so the eyebrow ALWAYS has content. Preview mode (the

@@ -1428,13 +1428,16 @@ function _openInviteSheet(venueId) {
   const _walkInfo = (typeof window !== 'undefined' && typeof window._dprcvWalkInfo === 'function')
     ? window._dprcvWalkInfo(v) : null;
   const _walkSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7"/></svg>`;
+  // Each pill is wrapped in `.dpinvite-meta-item` so _fitMetaPills can
+  // drop whole trailing pills + their preceding dot when the row
+  // overflows instead of clipping mid-text.
   const _invMetaItems = [
-    dispArea  ? `<span>${String(dispArea).replace(/</g, '&lt;')}</span>` : '',
-    _catLabel ? `<span>${String(_catLabel).replace(/</g, '&lt;')}</span>` : '',
+    dispArea  ? `<span class="dpinvite-meta-item">${String(dispArea).replace(/</g, '&lt;')}</span>` : '',
+    _catLabel ? `<span class="dpinvite-meta-item">${String(_catLabel).replace(/</g, '&lt;')}</span>` : '',
     _walkInfo && _walkInfo.distLabel
-      ? `<span>${String(_walkInfo.distLabel).replace(/</g, '&lt;')}</span>` : '',
+      ? `<span class="dpinvite-meta-item">${String(_walkInfo.distLabel).replace(/</g, '&lt;')}</span>` : '',
     _walkInfo && _walkInfo.walkMin != null
-      ? `<span class="dpinvite-meta-walk">${_walkSvg}<span>${_walkInfo.walkMin} min</span></span>` : '',
+      ? `<span class="dpinvite-meta-item dpinvite-meta-walk">${_walkSvg}<span>${_walkInfo.walkMin} min</span></span>` : '',
   ].filter(Boolean);
   const _invMetaHtml = _invMetaItems.length
     ? _invMetaItems.join('<span class="dpinvite-meta-dot" aria-hidden="true">·</span>')
@@ -1489,6 +1492,26 @@ function _openInviteSheet(venueId) {
 
   overlay.appendChild(sheet);
   document.body.appendChild(overlay);
+
+  // Whole-pill drop on overflow for the meta row (same pattern as the
+  // accept page). Runs after the sheet is in the DOM so we have real
+  // widths. ResizeObserver keeps it in sync if the sheet width changes.
+  requestAnimationFrame(() => {
+    const metaEl = sheet.querySelector('.dpinvite-meta');
+    if (metaEl && typeof window._fitMetaPills === 'function') {
+      window._fitMetaPills(metaEl);
+    }
+  });
+  if (typeof ResizeObserver !== 'undefined') {
+    const metaEl = sheet.querySelector('.dpinvite-meta');
+    if (metaEl) {
+      const ro = new ResizeObserver(() => {
+        if (typeof window._fitMetaPills === 'function') window._fitMetaPills(metaEl);
+      });
+      ro.observe(sheet);
+      sheet._metaResizeObs = ro;
+    }
+  }
 
   // Wire the day-button programmatically. Inline onclick attributes have
   // intermittent mobile-Safari reliability (see app.js:349 — same pattern
@@ -1765,7 +1788,9 @@ function _openInviteSheet(venueId) {
       sheet._mapPadOpen = { top: padTop, bottom: padBottom, left: 0, right: 0 };
       map.easeTo({
         center:   [v.lng, v.lat],
-        zoom:     17.5,
+        // Was 17.5 — user pulled the detail/invite/accept zoom back to
+        // 16.75 across the board so the venue stays in context.
+        zoom:     16.75,
         pitch:    45,
         padding:  sheet._mapPadOpen,
         duration: 480,
@@ -2117,6 +2142,7 @@ function _closeInviteSheet() {
   if (typeof window !== 'undefined') window._inviteSheetReturnToPostAccept = false;
   if (sheet) {
     if (sheet._sliderCleanup) sheet._sliderCleanup();
+    if (sheet._metaResizeObs) { try { sheet._metaResizeObs.disconnect(); } catch {} }
     sheet.classList.remove('open');
   }
   // Defensive: if any code path ever reparents the FTS into the sheet, detach

@@ -114,10 +114,10 @@
 <script defer src="js/busyness.js?v=20260411b"></script>
 <script defer src="js/solar.js?v=20260411b"></script>
 <script defer src="js/data.js?v=20260519p"></script>
-<script defer src="js/weather.js?v=20260519b"></script>
+<script defer src="js/weather.js?v=20260519c"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260519u"></script>
+<script defer src="js/app.js?v=20260519v"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
@@ -129,8 +129,8 @@
 <script defer src="js/admin-audit.js?v=20260512a"></script>
 <script defer src="js/ui-shelter.js?v=20260416a"></script>
 <script defer src="js/render-wind.js?v=20260416b"></script>
-<script defer src="js/ui-detail.js?v=20260519t"></script>
-<script defer src="js/ui-plan-preview.js?v=20260519s"></script>
+<script defer src="js/ui-detail.js?v=20260519u"></script>
+<script defer src="js/ui-plan-preview.js?v=20260519t"></script>
 <script defer src="js/osm.js?v=20260519p"></script>
 <script defer src="js/notifications.js?v=20260519d"></script>
 <script defer src="js/push.js?v=20260518c"></script>
@@ -2326,7 +2326,7 @@
        between the drag handle and the panel top edge. The compact
        popup overlaps the handle pill area (z-index 10 keeps it on
        top); expanded popup overshoots above the panel as before. */
-    margin: 22px 12px 10px;
+    margin: 20px 12px 10px;
     height: 40px;
     align-items: center;
     gap: 8px;
@@ -2724,6 +2724,10 @@
     display: inline-flex;
     align-items: center;
     line-height: 1;
+    /* Inherit the unified white + drop-shadow glyph treatment so the
+       FTS popup weather icon matches the timeline / top-strip / date-strip. */
+    color: rgba(255, 244, 224, 0.92);
+    filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.35));
     transition: opacity 0.14s ease;
   }
   .fts-popup:not(.fts-popup-expanded) .fts-popup-wx-icon { display: none; }
@@ -2895,6 +2899,12 @@
     display: block;
     width: 14px;
     height: 14px;
+    /* Cream/white monochrome with the same drop-shadow backdrop the
+       timeline icons use (.dprcv-timeline-wx-icon). Unifies the FTS popup,
+       top-strip, header chip, date-strip, calendar grid and timeline so
+       the weather icon set reads as one family across the app. */
+    color: rgba(255, 244, 224, 0.92);
+    filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.35));
   }
   #top-strip .ts-wx-icon,
   #header-wx-chip #header-wx-icon,
@@ -5208,20 +5218,19 @@
       z-index: 910;
     }
 
-    /* During the slide animation between peek / expanded / fullscreen
-       states, iOS WebKit briefly drops backdrop-filter rendering on the
-       transformed compositor layer — the panel reads as transparent for
-       a few frames. Swap in a near-solid slate fallback for the duration
-       of the transform transition (toggled from JS via transitionrun /
-       transitionend on #panel) so the panel stays visually consistent
-       with its resting state. backdrop-filter is unset during the swap
-       so the browser doesn't try to recompute it on the moving layer. */
-    #panel.panel-transitioning {
+    /* Mobile venue-list panel: bump the base slate to a near-solid alpha
+       so iOS WebKit's brief backdrop-filter drop during the transform
+       animation isn't visible. Static + motion now look identical because
+       the panel doesn't depend on backdrop-filter to look opaque — blur
+       is purely additive on top of an already-substantial slate base.
+       (Previous attempt swapped in a solid bg only DURING the transition,
+       which itself flashed as a different colour. The fix is to make the
+       resting state opaque enough that the blur drop is imperceptible.)
+       The shorthand-with-image rule overrides the .glass-panel cascade. */
+    #panel {
       background:
-        linear-gradient(135deg, rgba(26,44,66,0.92) 0%, rgba(58,92,130,0.86) 100%),
-        rgba(20,32,54,0.94) !important;
-      backdrop-filter: none !important;
-      -webkit-backdrop-filter: none !important;
+        linear-gradient(135deg, rgba(26,44,66,0.32) 0%, rgba(58,92,130,0.20) 100%),
+        rgba(20,32,54,0.92);
     }
 
     /* Kill expensive effects while the user is actively dragging the panel */
@@ -8884,6 +8893,25 @@
     #panel { will-change: transform; }
   }
 
+  /* Register --fts-bottom as a typed custom property so transitions on
+     `bottom: calc(var(--fts-bottom) + ...)` actually animate when the var
+     changes. Without @property, changing a CSS custom property updates
+     dependent computed values instantly — locate-btn / zoom-jog were
+     jumping to their new offsets on panel state change instead of sliding
+     with the panel. iOS 16.4+ / Chrome 85+ both support @property. */
+  @property --fts-bottom {
+    syntax: '<length>';
+    inherits: true;
+    initial-value: 160px;
+  }
+  /* Same treatment for --peek-h so the no-fts fallback path on locate-btn
+     (which reads var(--peek-h) directly) also transitions. */
+  @property --peek-h {
+    syntax: '<length>';
+    inherits: true;
+    initial-value: 252px;
+  }
+
   /* ── Performance & accessibility — reduced transparency ─────────────────── */
   @media (prefers-reduced-transparency: reduce) {
     .glass-panel, .glass-card, .glass-action,
@@ -9502,9 +9530,15 @@
     font-weight: 500;
     color: var(--muted);
     font-variant-numeric: tabular-nums;
-    flex-wrap: wrap;
+    /* Whole-pill drop on overflow — see .dprcv-meta. _fitMetaPills hides
+       trailing `.dpinvite-meta-item` pills + their preceding dot when
+       this row's scrollWidth exceeds offsetWidth. */
+    flex-wrap: nowrap;
+    overflow: hidden;
+    white-space: nowrap;
   }
-  .dpinvite-meta-dot { opacity: 0.5; }
+  .dpinvite-meta-item { flex-shrink: 0; }
+  .dpinvite-meta-dot { flex-shrink: 0; opacity: 0.5; }
   /* Right column — Meeting label / live time / live day. Same visual
      register as the accept panel's .dprcv-moment-col so a user moving
      between sending and receiving an invite sees a consistent shape. */
@@ -10058,10 +10092,13 @@
   }
   .dprcv-moment-col {
     flex-shrink: 0;
-    /* Tight: width is exactly max-content (the widest child line — the
-       big time, typically). No min-width clamp so the column collapses
-       all the way to its content; adapts naturally to text-size bumps. */
+    /* Width is max-content (sized to its widest child — typically the
+       big time), but capped so the right column never eats more than
+       ~38% of the row. Earlier behaviour let "Mandag · in 30 min" expand
+       moment-col enough to truncate the meta string in title-col on
+       narrow screens. */
     width: max-content;
+    max-width: 38%;
     min-width: 0;
     text-align: right;
     display: flex;
@@ -10118,7 +10155,9 @@
     white-space: nowrap;
   }
   .dprcv-meta {
-    display: block;
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
     /* Indent past the pin (16 + 8 gap) so the meta line aligns with the
        venue name, not the pin. */
     padding-left: 24px;
@@ -10128,14 +10167,16 @@
     color: var(--muted);
     font-variant-numeric: tabular-nums;
     line-height: 1.4;
-    /* Single line with ellipsis. The walk-time tends to be the last
-       part of the meta string ("Sentrum · Restaurant · 420 m · 5 min")
-       and is the safest item to lose when space runs out. */
-    white-space: nowrap;
+    /* Whole-pill drop on overflow: _fitMetaPills (js/app.js) measures
+       scrollWidth vs offsetWidth after layout and hides trailing
+       `.dprcv-meta-item` pills (+ their preceding dot) until they fit.
+       Cleaner than mid-text ellipsis on the trailing pill. */
     overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: nowrap;
   }
+  .dprcv-meta-item { flex-shrink: 0; }
   .dprcv-meta-dot {
+    flex-shrink: 0;
     opacity: 0.5;
     margin: 0 5px;
   }
@@ -11661,8 +11702,10 @@
                 onclick="toggleListFilter('bar', this)">Bar</button>
         <button class="panel-filter-pill" data-filter="sun2h"
                 onclick="toggleListFilter('sun2h', this)">2t+ sol</button>
-        <button class="panel-filter-pill" data-filter="sheltered"
-                onclick="toggleListFilter('sheltered', this)">Skjermet</button>
+        <button class="panel-filter-pill" data-filter="quiet"
+                onclick="toggleListFilter('quiet', this)">Stille</button>
+        <button class="panel-filter-pill" data-filter="friends"
+                onclick="toggleListFilter('friends', this)">Venner</button>
       </div>
       <button id="panel-actions-sort" onclick="toggleSortPanel()"
               aria-label="Sortér" title="Sortér">

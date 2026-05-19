@@ -211,85 +211,64 @@ function skyIcon(cf) {
   return '☁\uFE0F';
 }
 
-/** Sky condition as inline colored SVG. DOM-rendered surfaces (top-strip,
- *  date-wx-strip, header-wx-chip) use this instead of skyIcon because iOS
- *  WKWebView tofu's the cloud emoji codepoints (U+1F324 / U+1F325 / U+1F327)
- *  even with VS-16 — Apple Color Emoji isn't reached via the font-fallback
- *  chain in the Capacitor WebView context. */
+/** Sky condition as inline white SVG. Unified with TIMELINE_EVENT_GLYPHS
+ *  (sun / partly / cloud) so every weather-icon surface in the app — FTS
+ *  popup, panel timelines, top-strip, date-strip, calendar grid, header
+ *  chip — shows the same monochrome glyph set with a drop-shadow backdrop.
+ *  Was previously a coloured ramp (honey sun, slate cloud) which read as
+ *  inconsistent against the timeline icons in the accept/detail panels.
+ *  Uses currentColor so the .wx-sky-icon CSS rule controls colour. */
 function skyIconSvg(cf) {
-  if (cf < 0.15) return _wxSvgSun();
-  if (cf < 0.40) return _wxSvgSunSmallCloud();
-  if (cf < 0.65) return _wxSvgSunCloud();
-  if (cf < 0.85) return _wxSvgCloudSun();
+  if (cf < 0.20) return _wxSvgSun();
+  if (cf < 0.55) return _wxSvgPartly();
   return _wxSvgCloud();
 }
 
-/** Rain icon (cloud + drops) as inline colored SVG. */
+// Back-compat shims — the old ramp had 5 buckets (Sun · SunSmallCloud ·
+// SunCloud · CloudSun · Cloud). The new ramp has 3 (Sun · Partly · Cloud)
+// since the timeline glyph set defines those three. SunSmallCloud / SunCloud
+// / CloudSun all fall through to the Partly glyph.
+function _wxSvgSunSmallCloud() { return _wxSvgPartly(); }
+function _wxSvgSunCloud()      { return _wxSvgPartly(); }
+function _wxSvgCloudSun()      { return _wxSvgPartly(); }
+
+/** Rain icon as inline white SVG. Same currentColor + drop-shadow contract. */
 function rainIconSvg() { return _wxSvgRain(); }
 
-const _WX_SUN = '#F5C25E';
-const _WX_CLD = '#9CBDE7';
-
+// Sun — filled core + 8 rays (lucide-style). Mirrors TIMELINE_EVENT_GLYPHS.sun
+// in ui-plan-preview.js, scaled into the wx-sky-icon's 16-vb tile.
 function _wxSvgSun() {
-  return `<svg class="wx-sky-icon" viewBox="0 0 16 16" aria-hidden="true">`
-    + `<circle cx="8" cy="8" r="3" fill="${_WX_SUN}"/>`
-    + `<g stroke="${_WX_SUN}" stroke-width="1.4" stroke-linecap="round">`
-    + `<line x1="8" y1="1.5" x2="8" y2="2.8"/>`
-    + `<line x1="8" y1="13.2" x2="8" y2="14.5"/>`
-    + `<line x1="1.5" y1="8" x2="2.8" y2="8"/>`
-    + `<line x1="13.2" y1="8" x2="14.5" y2="8"/>`
-    + `<line x1="3.3" y1="3.3" x2="4.2" y2="4.2"/>`
-    + `<line x1="11.8" y1="11.8" x2="12.7" y2="12.7"/>`
-    + `<line x1="3.3" y1="12.7" x2="4.2" y2="11.8"/>`
-    + `<line x1="11.8" y1="4.2" x2="12.7" y2="3.3"/>`
-    + `</g></svg>`;
-}
-
-function _wxSvgSunSmallCloud() {
-  return `<svg class="wx-sky-icon" viewBox="0 0 16 16" aria-hidden="true">`
-    + `<circle cx="6" cy="6" r="2.5" fill="${_WX_SUN}"/>`
-    + `<g stroke="${_WX_SUN}" stroke-width="1.1" stroke-linecap="round">`
-    + `<line x1="6" y1="1.2" x2="6" y2="2.2"/>`
-    + `<line x1="1.2" y1="6" x2="2.2" y2="6"/>`
-    + `<line x1="2.6" y1="2.6" x2="3.2" y2="3.2"/>`
-    + `</g>`
-    + `<path d="M7.2 13.5 Q5.5 13.5 5.5 12 Q5.5 10.6 7 10.6 Q7.4 9 9.2 9 Q11 9 11.4 10.6 Q13 10.6 13 12 Q13 13.5 11.4 13.5 Z" fill="${_WX_CLD}"/>`
+  return `<svg class="wx-sky-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">`
+    + `<circle cx="12" cy="12" r="4" fill="currentColor"/>`
+    + `<path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>`
     + `</svg>`;
 }
 
-function _wxSvgSunCloud() {
-  return `<svg class="wx-sky-icon" viewBox="0 0 16 16" aria-hidden="true">`
-    + `<circle cx="5.2" cy="5.2" r="2.4" fill="${_WX_SUN}"/>`
-    + `<g stroke="${_WX_SUN}" stroke-width="1" stroke-linecap="round">`
-    + `<line x1="5.2" y1="0.8" x2="5.2" y2="1.7"/>`
-    + `<line x1="0.8" y1="5.2" x2="1.7" y2="5.2"/>`
-    + `<line x1="2" y1="2" x2="2.6" y2="2.6"/>`
-    + `</g>`
-    + `<path d="M5 13.6 Q3 13.6 3 12 Q3 10.4 4.7 10.4 Q5.2 8.4 7.7 8.4 Q10.3 8.4 10.8 10.4 Q12.6 10.4 12.6 12 Q12.6 13.6 10.8 13.6 Z" fill="${_WX_CLD}"/>`
+// Partly cloudy — small sun behind a filled cloud. Mirrors
+// TIMELINE_EVENT_GLYPHS.partly so the same shape shows on the timeline + FTS.
+function _wxSvgPartly() {
+  return `<svg class="wx-sky-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">`
+    + `<circle cx="9" cy="9" r="3" fill="currentColor"/>`
+    + `<path d="M9 2.5v1.5M9 14v1.5M2.5 9h1.5M13.5 9H15M4.5 4.5l1 1M13 13l-1-1"/>`
+    + `<path d="M21 17.5h-7a3 3 0 010-6 4 4 0 017.8.4 2.5 2.5 0 01-.8 4.9z" fill="currentColor" stroke="none"/>`
     + `</svg>`;
 }
 
-function _wxSvgCloudSun() {
-  return `<svg class="wx-sky-icon" viewBox="0 0 16 16" aria-hidden="true">`
-    + `<circle cx="3.8" cy="4.4" r="1.6" fill="${_WX_SUN}"/>`
-    + `<path d="M3.5 12.6 Q1.5 12.6 1.5 11 Q1.5 9.3 3.4 9.3 Q3.9 7.2 6.6 7.2 Q9.4 7.2 9.9 9.3 Q11.8 9.3 11.8 11 Q11.8 12.6 9.9 12.6 Z" fill="${_WX_CLD}"/>`
-    + `</svg>`;
-}
-
+// Cloud — single filled cloud. Mirrors TIMELINE_EVENT_GLYPHS.cloud.
 function _wxSvgCloud() {
-  return `<svg class="wx-sky-icon" viewBox="0 0 16 16" aria-hidden="true">`
-    + `<path d="M3.8 12 Q1.6 12 1.6 10.2 Q1.6 8.4 3.6 8.4 Q4.2 5.8 7.7 5.8 Q11.3 5.8 11.8 8.4 Q13.8 8.4 13.8 10.2 Q13.8 12 11.8 12 Z" fill="${_WX_CLD}"/>`
+  return `<svg class="wx-sky-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">`
+    + `<path d="M19 18H6c-2.2 0-4-1.8-4-4 0-2 1.5-3.7 3.5-4 .5-3.3 3.3-6 6.8-6 3.4 0 6.2 2.5 6.7 5.8 2.3.4 4 2.4 4 4.7 0 2.5-2 4.5-4.5 4.5z"/>`
     + `</svg>`;
 }
 
+// Rain — cloud + droplets. Mirrors TIMELINE_EVENT_GLYPHS.rain.
 function _wxSvgRain() {
-  return `<svg class="wx-sky-icon" viewBox="0 0 16 16" aria-hidden="true">`
-    + `<path d="M3.5 9.5 Q1.7 9.5 1.7 8 Q1.7 6.5 3.6 6.5 Q4 4.5 7 4.5 Q10 4.5 10.5 6.5 Q12.3 6.5 12.3 8 Q12.3 9.5 10.5 9.5 Z" fill="${_WX_CLD}"/>`
-    + `<g fill="${_WX_CLD}">`
-    + `<ellipse cx="4.6" cy="12.3" rx="0.7" ry="1.4"/>`
-    + `<ellipse cx="7" cy="13" rx="0.7" ry="1.4"/>`
-    + `<ellipse cx="9.4" cy="12.3" rx="0.7" ry="1.4"/>`
-    + `</g></svg>`;
+  return `<svg class="wx-sky-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">`
+    + `<path d="M19 13H6c-2.2 0-4-1.8-4-4 0-2 1.5-3.7 3.5-4 0-3.3 3-6 6.5-6 3.4 0 6.2 2.5 6.7 5.8 2.3.4 4 2.4 4 4.7 0 2.5-2 4.5-4.5 4.5z" transform="translate(0,2)"/>`
+    + `<line x1="8" y1="18" x2="6" y2="22" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>`
+    + `<line x1="12" y1="18" x2="10" y2="22" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>`
+    + `<line x1="16" y1="18" x2="14" y2="22" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>`
+    + `</svg>`;
 }
 
 /** Short sky condition label. */

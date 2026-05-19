@@ -247,28 +247,38 @@ function _ftsHostBottom(panel, dp) {
 
 let _prevPanelMobileState = null;
 
-// Toggle .panel-transitioning during the panel's transform animation so a
-// near-solid fallback background (defined in CSS) masks iOS WebKit's
-// brief drop of backdrop-filter on the transforming compositor layer.
-// Without this the panel reads as ~transparent for a few frames during
-// peek ↔ expanded ↔ fullscreen transitions.
-(function _wireUpPanelTransitionMask() {
-  const panel = document.getElementById('panel');
-  if (!panel) return;
-  const onStart = (e) => {
-    if (e.target !== panel) return;
-    if (e.propertyName !== 'transform' && e.propertyName !== 'height') return;
-    panel.classList.add('panel-transitioning');
-  };
-  const onEnd = (e) => {
-    if (e.target !== panel) return;
-    if (e.propertyName !== 'transform' && e.propertyName !== 'height') return;
-    panel.classList.remove('panel-transitioning');
-  };
-  panel.addEventListener('transitionrun', onStart);
-  panel.addEventListener('transitionend', onEnd);
-  panel.addEventListener('transitioncancel', onEnd);
-})();
+/** Whole-item overflow handling for the accept-panel / invite-sheet meta
+ *  rows. Browsers don't natively support "drop the last flex item when
+ *  the container would overflow" — text-overflow ellipses cut mid-text
+ *  on the trailing pill ("5 mi…"), which user feedback explicitly
+ *  rejected. This helper measures scrollWidth vs offsetWidth after
+ *  layout and hides trailing pills (with their preceding separator
+ *  dot) until the row fits. Items need class `.dprcv-meta-item` (or
+ *  `.dpinvite-meta-item`); dots need class `.dprcv-meta-dot` (or
+ *  `.dpinvite-meta-dot`). */
+window._fitMetaPills = function(container) {
+  if (!container) return;
+  const items = Array.from(container.querySelectorAll('.dprcv-meta-item, .dpinvite-meta-item'));
+  if (items.length === 0) return;
+  // Reset any previous hides so the measurement is from the full set —
+  // re-renders / resizes should re-evaluate.
+  for (const el of items) el.style.display = '';
+  const dots = container.querySelectorAll('.dprcv-meta-dot, .dpinvite-meta-dot');
+  for (const el of dots)  el.style.display = '';
+  // Force layout. Bail if there's no overflow.
+  if (container.scrollWidth <= container.offsetWidth + 1) return;
+  // Walk the items in reverse, hiding each one + its preceding sibling
+  // dot until the row fits OR only the first pill remains.
+  for (let i = items.length - 1; i >= 1; i--) {
+    items[i].style.display = 'none';
+    const prev = items[i].previousElementSibling;
+    if (prev && (prev.classList.contains('dprcv-meta-dot')
+              || prev.classList.contains('dpinvite-meta-dot'))) {
+      prev.style.display = 'none';
+    }
+    if (container.scrollWidth <= container.offsetWidth + 1) break;
+  }
+};
 
 /** When the venue list expands/collapses and the map is currently centered on
  *  the user's location, animate the map so the user dot stays visually centered
@@ -3537,7 +3547,9 @@ let _switchingVenue = false;
 // Uses easeTo (smooth interpolation) so the animation looks correct whether
 // the user is already zoomed in (pin click) or coming from overview (list click).
 function _flyToVenue(v) {
-  const targetZoom = 17;
+  // Was 17. User feedback: zoom-in across detail / invite / accept feels
+  // too close. 16.75 keeps the venue and one ring of context in frame.
+  const targetZoom = 16.75;
   const opts = { center: [v.lng, v.lat], zoom: targetZoom, pitch: 45, duration: 600 };
 
   if (isMobile()) {
@@ -6368,7 +6380,8 @@ let _searchBlurTimer = null;
 window._activeFilters = {
   categories: new Set(),
   sun2h: false,
-  sheltered: false,
+  quiet: false,
+  friends: false,
 };
 
 window._passesActiveFilters = function(v) {
@@ -6393,7 +6406,37 @@ window._passesActiveFilters = function(v) {
     }
     if (total < 2) return false;
   }
-  // sheltered: not wired yet
+  if (f.quiet) {
+    // Reuse the score's noise model: noiseScore is OSM-highway-proximity
+    // derived (lower v.noiseScore = quieter). Threshold 70/100 keeps the
+    // bar high enough that only genuinely sheltered spots pass.
+    if (typeof noiseScore !== 'function') return false;
+    if (noiseScore(v) < 70) return false;
+  }
+  if (f.friends) {
+    // A friend is "at" the venue if they're checked in OR they're going
+    // (creator / accepted invitee on any plan at the venue today). Pulls
+    // from the same caches the pin renderer + friends pill already use.
+    let hasFriend = false;
+    if (typeof getFriendCheckinsForVenue === 'function') {
+      const checkins = getFriendCheckinsForVenue(v.id) || [];
+      if (checkins.length) hasFriend = true;
+    }
+    if (!hasFriend && typeof getPlansForVenue === 'function') {
+      const plans = getPlansForVenue(v.id) || [];
+      for (const p of plans) {
+        if (!p || p.cancelled_at) continue;
+        // Any plan involving an accepted invitee (the creator is implicit)
+        // counts as a friend going. We don't filter by today specifically
+        // since plans are already pruned to the active window upstream.
+        if (Array.isArray(p._invitees) && p._invitees.some(i => i.status === 'accepted')) {
+          hasFriend = true; break;
+        }
+        if (p.creator && p.creator.id) { hasFriend = true; break; }
+      }
+    }
+    if (!hasFriend) return false;
+  }
   return true;
 };
 
@@ -6412,15 +6455,15 @@ function toggleListFilter(filter, btn) {
     if (typeof draw === 'function') draw();
     return;
   }
-  if (filter === 'sun2h') {
-    f.sun2h = !f.sun2h;
-    btn?.classList.toggle('active', f.sun2h);
+  if (filter === 'sun2h' || filter === 'quiet' || filter === 'friends') {
+    f[filter] = !f[filter];
+    btn?.classList.toggle('active', f[filter]);
     if (typeof renderList === 'function') renderList();
     if (typeof window.markPinLayoutStale === 'function') window.markPinLayoutStale();
     if (typeof draw === 'function') draw();
     return;
   }
-  // sheltered: still placeholder toggle
+  // Unknown filter — just toggle the visual active state.
   btn?.classList.toggle('active');
 }
 
@@ -7499,10 +7542,12 @@ function _runIntroSequence() {
         if (_introSeqId !== seqId) return;
         skipEnabled = true;
 
-        // Reveal the pin canvas a touch before phase 1 ends so the world
-        // populates as the camera arrives.
-        canvas.style.transition = 'opacity 0.4s ease';
-        canvas.classList.remove('intro-hidden');
+        // Pin canvas reveal is now deferred to _introRevealUI (called at
+        // phase 2) so the pins fade in synced to the panel slide-up,
+        // rather than populating mid-cinematic-zoom against an empty
+        // map. Pre-set the transition so when the class is removed in
+        // phase 2 the opacity tween is in place.
+        canvas.style.transition = 'opacity 0.45s cubic-bezier(0.2, 0.8, 0.3, 1)';
 
         // Phase 1: zoom in + tilt up (cinematic establishing shot)
         const easing = t => t * t * (3 - 2 * t); // smoothstep
@@ -7659,6 +7704,15 @@ function _introRevealUI(search, brand, qcWrap, panel, opts) {
     panel.getBoundingClientRect();
     panel.style.transition = 'transform 0.45s cubic-bezier(0.2, 0.8, 0.3, 1)';
     panel.style.transform  = '';  // CSS rule lands the panel at peek
+
+    // Fade the pin canvas IN as the panel slides up. v1 revealed the
+    // canvas during the phase-1 cinematic zoom which left an empty map
+    // visible while the panel was still off-screen; user wanted "no
+    // pins on the map at page load, fade in as the venue list slides
+    // up". Transition on #canvas-overlay was primed in _runIntroSequence
+    // so removing intro-hidden here triggers the opacity tween.
+    const _canvasOverlay = document.getElementById('canvas-overlay');
+    if (_canvasOverlay) _canvasOverlay.classList.remove('intro-hidden');
   }
 
   if (USE_FLOATING_TIME_SLIDER && !(opts && opts.skipFts)) {
