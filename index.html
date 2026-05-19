@@ -9409,11 +9409,20 @@
   }
   .dpinvite-moment-col {
     flex-shrink: 0;
-    min-width: 88px;
-    max-width: 140px;
+    /* Tight to content (matches the accept panel's .dprcv-moment-col).
+       Removes the previous min-width: 88 / max-width: 140 clamp so the
+       column collapses to whatever the time string needs and grows
+       naturally when the user bumps system text size. */
+    width: max-content;
+    min-width: 0;
     text-align: right;
     display: flex;
     flex-direction: column;
+    /* Matches .dpinvite-moment-left's gap so the two columns share the
+       same inter-row spacing — without this, the right column's rows
+       sat 4 px tighter than the left and the venue / time and meta /
+       day-button baselines didn't line up. */
+    gap: 4px;
   }
   .dpinvite-eyebrow {
     font-size: 13px;
@@ -9465,16 +9474,18 @@
      register as the accept panel's .dprcv-moment-col so a user moving
      between sending and receiving an invite sees a consistent shape. */
   .dpinvite-moment-label {
-    font-size: 12px;
+    /* Matches .dpinvite-eyebrow */
+    font-size: 13px;
     font-weight: 500;
     color: var(--muted);
     line-height: 1.25;
   }
   .dpinvite-moment-time {
-    font-size: 22px;
+    /* Matches .dpinvite-venue-line */
+    font-size: 20px;
     font-weight: 700;
     color: var(--text);
-    line-height: 1.05;
+    line-height: 1.18;
     margin-top: 2px;
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.01em;
@@ -9490,7 +9501,11 @@
     color: var(--text);
     font-size: 13px;
     font-weight: 700;
-    margin-top: 4px;
+    /* margin-top matches the left-column meta (.dpinvite-meta uses 2px)
+       — combined with the column's gap: 4, the day-button's BOX top
+       lands at the same y as the meta-text top on the left, keeping
+       the third-row baseline aligned across columns. */
+    margin-top: 2px;
     padding: 4px 6px 4px 9px;
     border-radius: 8px;
     letter-spacing: 0.01em;
@@ -10016,6 +10031,11 @@
     text-align: right;
     display: flex;
     flex-direction: column;
+    /* Matches .dprcv-title-col's gap so the two columns share the same
+       inter-row spacing — without this, the right column's rows sat
+       4 px tighter than the left and the venue / time and meta / sub
+       baselines didn't line up. */
+    gap: 4px;
   }
   .dprcv-eyebrow {
     font-size: 13px;
