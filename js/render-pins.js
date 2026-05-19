@@ -51,11 +51,26 @@ const NEAR_USER_KM     = 0.4;
 const MIN_PILL_GAP_PX  = 80;
 const ABS_OVERLAP_PX   = 14;   // sanity overlap guard inside the free zone
 
-function _kmFromUser(lng, lat) {
+// Cached per-venue distance from the user location. The cache is keyed by
+// venue.id; we detect userLocation moves by comparing the live ref against
+// the one captured at fill time and rebuild on miss. Venue coordinates are
+// effectively immutable (only newly-pushed suggested venues add entries),
+// so an id-keyed cache stays correct across pan/zoom.
+const _kmFromUserCache = new Map();
+let _kmFromUserRef = null;
+function _kmFromUser(v) {
   if (typeof userLocation === 'undefined' || !userLocation) return Infinity;
-  const dLat = (lat - userLocation.lat) * 111;
-  const dLng = (lng - userLocation.lng) * 111 * Math.cos(lat * Math.PI / 180);
-  return Math.hypot(dLat, dLng);
+  if (userLocation !== _kmFromUserRef) {
+    _kmFromUserCache.clear();
+    _kmFromUserRef = userLocation;
+  }
+  const cached = _kmFromUserCache.get(v.id);
+  if (cached !== undefined) return cached;
+  const dLat = (v.lat - userLocation.lat) * 111;
+  const dLng = (v.lng - userLocation.lng) * 111 * Math.cos(v.lat * Math.PI / 180);
+  const km = Math.hypot(dLat, dLng);
+  _kmFromUserCache.set(v.id, km);
+  return km;
 }
 
 // ── Pin tier classification ────────────────────────────────────────────────────
@@ -66,6 +81,21 @@ function _kmFromUser(lng, lat) {
 const WAITING_HORIZON_MIN = 240;
 const HERO_ACTIONABLE_MIN = 60;
 
+// Memoized classification cache. Keyed by venue.id + dateStr + 5-min hour
+// bucket — fine for tier accuracy since a venue's tier only changes at sun
+// window boundaries, and a 5-min bucket means the worst-case staleness is
+// 5 min around a transition. minsLeft / minutesUntil are recomputed
+// post-cache from the continuous-hour value so the badges stay live.
+//
+// Invalidation: dateStr change, weather/sun-table refresh, or explicit
+// clear. The cache is cleared from app.js via window.invalidateClassifyPin.
+const _classifyPinCache = new Map();
+function _classifyPinKey(vid, dateStr, hour) {
+  return `${vid}|${dateStr}|${Math.floor(hour * 12)}`;
+}
+function invalidateClassifyPin() { _classifyPinCache.clear(); }
+if (typeof window !== 'undefined') window.invalidateClassifyPin = invalidateClassifyPin;
+
 /**
  * Classify a venue into Hero / Waiting / Context for the given hour and date.
  * Returns: { tier, actionable?, endHour?, minsLeft?,
@@ -73,6 +103,27 @@ const HERO_ACTIONABLE_MIN = 60;
  *            hasSunLaterToday?, closedOpeningIntoSun? }
  */
 function classifyPin(v, dateStr, hour) {
+  // Cache lookup. The hour-dependent fields (minsLeft / minutesUntil) are
+  // recomputed on cache hit from the actual hour, since the bucket has up
+  // to 5 min of resolution and we don't want the badge text to stall.
+  const key = _classifyPinKey(v.id, dateStr, hour);
+  const cached = _classifyPinCache.get(key);
+  if (cached) {
+    if (cached.tier === 'hero' && cached.endHour != null) {
+      return { ...cached, minsLeft: Math.round(Math.max(0, cached.endHour - hour) * 60) };
+    }
+    if (cached.tier === 'waiting' && cached.nextStart != null) {
+      return { ...cached, minutesUntil: Math.round((cached.nextStart - hour) * 60) };
+    }
+    return cached;
+  }
+
+  const result = _classifyPinUncached(v, dateStr, hour);
+  _classifyPinCache.set(key, result);
+  return result;
+}
+
+function _classifyPinUncached(v, dateStr, hour) {
   let windows;
   try {
     ({ windows } = computeSunWindows(v, dateStr));
@@ -778,22 +829,65 @@ function _overlaps(a, b, m) {
   return !(a.x + a.w + m < b.x || b.x + b.w + m < a.x ||
            a.y + a.h + m < b.y || b.y + b.h + m < a.y);
 }
-function _scoreAnchor(rect, pills, names, viewport) {
+// Spatial hash for label anchor scoring. v1 was O(N²): every candidate
+// anchor checked every placed pill AND every placed name. The decay radius
+// is only 70px, so we bucket placed rects into 96px cells and only check
+// the surrounding 9 cells (centre + 8 neighbours) per scoring call. With
+// 50 visible labels that's ~9 vs ~50 comparisons per call — same output,
+// linear cost. The bucket builder is called once per draw at the start
+// of the name-placement pass.
+const _ANCHOR_CELL = 96;
+function _bucketRect(grid, rect) {
+  const x0 = Math.floor(rect.x / _ANCHOR_CELL);
+  const y0 = Math.floor(rect.y / _ANCHOR_CELL);
+  const x1 = Math.floor((rect.x + rect.w) / _ANCHOR_CELL);
+  const y1 = Math.floor((rect.y + rect.h) / _ANCHOR_CELL);
+  for (let cx = x0; cx <= x1; cx++) {
+    for (let cy = y0; cy <= y1; cy++) {
+      const key = cx + ',' + cy;
+      let arr = grid.get(key);
+      if (!arr) { arr = []; grid.set(key, arr); }
+      arr.push(rect);
+    }
+  }
+}
+function _forEachNearbyCell(grid, rect, fn) {
+  // Expand the query rect by the decay radius (70px) so cells that
+  // contain pills near the corner aren't missed.
+  const PAD = 70;
+  const x0 = Math.floor((rect.x - PAD) / _ANCHOR_CELL);
+  const y0 = Math.floor((rect.y - PAD) / _ANCHOR_CELL);
+  const x1 = Math.floor((rect.x + rect.w + PAD) / _ANCHOR_CELL);
+  const y1 = Math.floor((rect.y + rect.h + PAD) / _ANCHOR_CELL);
+  for (let cx = x0; cx <= x1; cx++) {
+    for (let cy = y0; cy <= y1; cy++) {
+      const arr = grid.get(cx + ',' + cy);
+      if (!arr) continue;
+      for (const r of arr) fn(r);
+    }
+  }
+}
+function _scoreAnchor(rect, pillsGrid, namesGrid, viewport) {
   let s = 100;
   const acx = rect.x + rect.w / 2;
   const acy = rect.y + rect.h / 2;
-  for (const p of pills) {
-    if (_overlaps(rect, p, 0)) return -Infinity;
+  let collided = false;
+  _forEachNearbyCell(pillsGrid, rect, (p) => {
+    if (collided) return;
+    if (_overlaps(rect, p, 0)) { collided = true; return; }
     const px = p.x + p.w / 2, py = p.y + p.h / 2;
     const d  = Math.hypot(acx - px, acy - py);
     if (d < 70) s -= (70 - d) * 0.6;
-  }
-  for (const n of names) {
-    if (_overlaps(rect, n, 1)) return -Infinity;
+  });
+  if (collided) return -Infinity;
+  _forEachNearbyCell(namesGrid, rect, (n) => {
+    if (collided) return;
+    if (_overlaps(rect, n, 1)) { collided = true; return; }
     const nx = n.x + n.w / 2, ny = n.y + n.h / 2;
     const d  = Math.hypot(acx - nx, acy - ny);
     if (d < 70) s -= (70 - d) * 0.9;
-  }
+  });
+  if (collided) return -Infinity;
   if (viewport) {
     if (rect.x < 0)                       s -= 100;
     if (rect.y < 0)                       s -= 100;
@@ -803,16 +897,33 @@ function _scoreAnchor(rect, pills, names, viewport) {
   return s;
 }
 
+// measureText cache. Pin labels don't change between frames; v1 measured
+// every name (and secondary line) per frame per visible pin — a moderate
+// allocation + a moderately expensive text-shaping call. Cache keyed by
+// "font|text". Cleared when a new VENUES list loads (rebuildVenuesById).
+const _textWidthCache = new Map();
+function _cachedTextWidth(ctx, font, text) {
+  const key = font + '|' + text;
+  const hit = _textWidthCache.get(key);
+  if (hit !== undefined) return hit;
+  ctx.font = font;
+  const w = Math.ceil(ctx.measureText(text).width);
+  _textWidthCache.set(key, w);
+  return w;
+}
+
 // ── Floating name with cream halo + density-aware anchor ──────────────────────
 // Strict: if best candidate's score ≤ 0 (collisions), hidden unless forced.
+// placedPills / placedNames are now spatial-hash grids (Map<cellKey, rects[]>).
+// _scoreAnchor reads them; _drawName writes new names into placedNames.
 function _drawName(ctx, pt, pillRect, name, secondary, placedPills, placedNames, viewport, opts) {
   const lineH = 13;
-  ctx.font = '600 12px "Inter", system-ui, sans-serif';
-  const nw = Math.ceil(ctx.measureText(name).width);
+  const FONT_PRIMARY   = '600 12px "Inter", system-ui, sans-serif';
+  const FONT_SECONDARY = '500 11px "Inter", system-ui, sans-serif';
+  const nw = _cachedTextWidth(ctx, FONT_PRIMARY, name);
   let sw = 0;
   if (secondary) {
-    ctx.font = '500 11px "Inter", system-ui, sans-serif';
-    sw = Math.ceil(ctx.measureText(secondary).width);
+    sw = _cachedTextWidth(ctx, FONT_SECONDARY, secondary);
   }
   const labelW = Math.max(nw, sw) + 2;
   const labelH = (secondary ? 2 : 1) * lineH;
@@ -846,7 +957,7 @@ function _drawName(ctx, pt, pillRect, name, secondary, placedPills, placedNames,
     if (s > bestScore) { bestScore = s; best = { ...c, ...rect }; }
   }
   if (!best) return null;
-  placedNames.push(best);
+  _bucketRect(placedNames, best);
   if (opts.venueId != null) _lastNameAnchor.set(opts.venueId, best.side);
 
   ctx.textBaseline = 'middle';
@@ -881,21 +992,21 @@ function _drawName(ctx, pt, pillRect, name, secondary, placedPills, placedNames,
   ctx.shadowOffsetX = 0;
   ctx.shadowOffsetY = 0;
   ctx.fillStyle     = LIGHT_FILL;
-  ctx.font          = '600 12px "Inter", system-ui, sans-serif';
+  ctx.font          = FONT_PRIMARY;
   for (let i = 0; i < 4; i++) ctx.fillText(name, tx, nameY);
   if (secondary) {
-    ctx.font = '500 11px "Inter", system-ui, sans-serif';
+    ctx.font = FONT_SECONDARY;
     for (let i = 0; i < 4; i++) ctx.fillText(secondary, tx, secY);
   }
 
   // Final pass: crisp text on top, shadow disabled.
   ctx.shadowBlur    = 0;
   ctx.shadowColor   = 'transparent';
-  ctx.font          = '600 12px "Inter", system-ui, sans-serif';
+  ctx.font          = FONT_PRIMARY;
   ctx.fillStyle     = LIGHT_FILL;
   ctx.fillText(name, tx, nameY);
   if (secondary) {
-    ctx.font      = '500 11px "Inter", system-ui, sans-serif';
+    ctx.font      = FONT_SECONDARY;
     ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
     ctx.fillText(secondary, tx, secY);
   }
@@ -1214,7 +1325,7 @@ function draw() {
   const _hideShadows = (typeof auditModeActive !== 'undefined' && auditModeActive &&
                         typeof auditSubMode    !== 'undefined' && auditSubMode === 'all');
   if (selectedId && !_hideShadows) {
-    const sel = VENUES.find(v => v.id === selectedId);
+    const sel = venueById(selectedId);
     if (sel) drawShadowOverlay(sel);
   }
 
@@ -1228,7 +1339,7 @@ function draw() {
         || document.body.classList.contains('post-accept-active'));
   const _invitePin = (_inInviteFlow && typeof window !== 'undefined') ? window._invitePin : null;
   if (_invitePin) {
-    const inviteV = VENUES.find(v => String(v.id) === String(_invitePin.venueId));
+    const inviteV = venueById(_invitePin.venueId);
     if (inviteV) {
       // Target the probe-dot location (2 m in front of the terrace wall)
       // rather than the venue's lng/lat. The probe is the visible yellow/
@@ -1359,7 +1470,7 @@ function draw() {
       : 30000;
     let s = baseRank;
     if (_friendVenueIds.has(e.v.id)) s -= 50000;
-    if (_kmFromUser(e.v.lng, e.v.lat) < NEAR_USER_KM) s += _FREE_ZONE_BONUS;
+    if (_kmFromUser(e.v) < NEAR_USER_KM) s += _FREE_ZONE_BONUS;
     if (_lastPilledIds.has(e.v.id)) s += _HYSTERESIS_BONUS;
     return s;
   }
@@ -1460,7 +1571,7 @@ function draw() {
     //    centres; lower-priority pin (later in the sort) demotes to dot.
     let demote = false;
     if (v.id !== selectedId && !_friendVenueIds.has(v.id)) {
-      const inFreeZone = _kmFromUser(v.lng, v.lat) < NEAR_USER_KM;
+      const inFreeZone = _kmFromUser(v) < NEAR_USER_KM;
       const minGap = inFreeZone ? ABS_OVERLAP_PX : MIN_PILL_GAP_PX;
       for (const p of placedPills) {
         const dx = (pillRect.x + pillRect.w / 2) - (p.x + p.w / 2);
@@ -1667,7 +1778,7 @@ function draw() {
       _pinState.delete(id);
       continue;
     }
-    const v = VENUES.find(vx => vx.id === id);
+    const v = venueById(id);
     if (!v) { _pinState.delete(id); continue; }
     const pt = map.project([v.lng, v.lat]);
     ctx.save();
@@ -1689,7 +1800,14 @@ function draw() {
   //   1. closed-but-opens  → "Sol fra HH:mm"  (the *reason* the pill is here)
   //   2. friends going     → "Anna +N planlegger"
   //   3. zoom ≥ 16         → "X t sol"        (informational)
-  const placedNames = [];
+  //
+  // Spatial-hash placedPills (read by _scoreAnchor) and create the empty
+  // names grid (written by _drawName via _bucketRect). The grids replace
+  // v1's O(N²) array scans inside the anchor scoring with O(1) lookups
+  // against the ~9 neighbouring cells of each candidate's bucket.
+  const placedPillsGrid = new Map();
+  for (const p of placedPills) _bucketRect(placedPillsGrid, p);
+  const placedNamesGrid = new Map();
   for (const entry of layout) {
     if (entry.isDot) continue;
     if (entry.classResult.tier === 'context' && zoom < 16 && !(entry._friends && entry._friends.length)) continue;
@@ -1725,7 +1843,7 @@ function draw() {
     _drawName(
       ctx, entry.pt, entry._pillRect,
       shortName(v.name), sec,
-      placedPills, placedNames, viewport,
+      placedPillsGrid, placedNamesGrid, viewport,
       { selected: sel, force: sel || isFriend, alpha: labelAlpha, venueId: v.id },
     );
   }
@@ -1759,7 +1877,7 @@ function draw() {
   // card the invite-flow uses for visual consistency.
   const _friendsPin = (typeof window !== 'undefined') ? window._friendsPin : null;
   if (_friendsPin) {
-    const fv = VENUES.find(v => String(v.id) === String(_friendsPin.venueId));
+    const fv = venueById(_friendsPin.venueId);
     if (fv) {
       let pt;
       if (fv.wallSegment) {
@@ -1805,7 +1923,7 @@ function hitTestDot(cx, cy) {
 
 function hitTestDetachedPin(cx, cy) {
   if (!editingVenueId) return false;
-  const v = VENUES.find(x => x.id === editingVenueId);
+  const v = venueById(editingVenueId);
   if (!v || v.terraceType !== 'detached') return false;
   const loc = v.terraceDetachedLocation ?? { lat: v.lat, lng: v.lng };
   const pt  = map.project([loc.lng, loc.lat]);
@@ -1814,7 +1932,7 @@ function hitTestDetachedPin(cx, cy) {
 
 function hitTestDepthHandle(cx, cy) {
   if (!editingVenueId) return null;
-  const v = VENUES.find(x => x.id === editingVenueId);
+  const v = venueById(editingVenueId);
   if (!v || (v.terraceType && v.terraceType !== 'street')) return null;
   const walls  = (typeof getTerraceWalls === 'function') ? getTerraceWalls(v) : [];
   const depth  = (typeof getEffectiveDepth === 'function') ? getEffectiveDepth(v) : 0;
@@ -1830,7 +1948,7 @@ function hitTestDepthHandle(cx, cy) {
 
 function hitTestWall(cx, cy) {
   if (!editingVenueId) return null;
-  const v = VENUES.find(x => x.id === editingVenueId);
+  const v = venueById(editingVenueId);
   if (!v?.wallNormals) return null;
   let bestIdx = null, bestDistSq = 100;
   v.wallNormals.forEach((wall, idx) => {
@@ -2004,7 +2122,7 @@ canvas.addEventListener('click', e => {
   const rect = canvas.getBoundingClientRect();
   const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
   if (editingVenueId) {
-    const v = VENUES.find(x => x.id === editingVenueId);
+    const v = venueById(editingVenueId);
 
     if (typeof editVertexMode !== 'undefined' && editVertexMode === 'del') {
       const idx = (typeof hitTestActivePolygonVertex === 'function')
@@ -2086,7 +2204,7 @@ canvas.addEventListener('mousemove', e => {
     }
 
     if (editDraggingDepth && editDragWallObj) {
-      const v = VENUES.find(x => x.id === editingVenueId);
+      const v = venueById(editingVenueId);
       if (v) {
         const { normX, normY, mx, my } = wallOutwardNormal(v, editDragWallObj);
         const pixelDist = (cx - mx) * normX + (cy - my) * normY;
@@ -2096,7 +2214,7 @@ canvas.addEventListener('mousemove', e => {
       return;
     }
 
-    const vEdit = VENUES.find(x => x.id === editingVenueId);
+    const vEdit = venueById(editingVenueId);
 
     if (typeof editVertexMode !== 'undefined' && editVertexMode) {
       canvas.style.cursor = 'crosshair';
@@ -2191,7 +2309,7 @@ window.addEventListener('mouseup', () => {
       endPolygonTranslate();
     }
     canvas.style.cursor    = 'default';
-    const v = VENUES.find(x => x.id === editingVenueId);
+    const v = venueById(editingVenueId);
     if (v) saveFacingCache(v.id, v.facing, v.facingSource, v.terraceWallIndices ?? [], v.terraceDepth,
       null, v.terraceType, v.terraceDetachedLocation, v.terraceWallTrimStart, v.terraceWallTrimEnd,
       v.seatingPolygonOverride);
@@ -2204,7 +2322,7 @@ window.addEventListener('mouseup', () => {
   }
   if (editDraggingDepth) {
     editDraggingDepth = false;
-    const v = VENUES.find(x => x.id === editingVenueId);
+    const v = venueById(editingVenueId);
     if (v) saveFacingCache(v.id, v.facing, v.facingSource, v.terraceWallIndices ?? [], v.terraceDepth,
       null, v.terraceType, v.terraceDetachedLocation, v.terraceWallTrimStart, v.terraceWallTrimEnd);
     editDragWallObj = null;
@@ -2311,7 +2429,7 @@ if (_isTouchDevice) {
       e.preventDefault(); return;
     }
     if (editDraggingDepth && editDragWallObj) {
-      const v = VENUES.find(x => x.id === editingVenueId);
+      const v = venueById(editingVenueId);
       if (v) {
         const { normX, normY, mx, my } = wallOutwardNormal(v, editDragWallObj);
         const pixelDist = (cx - mx) * normX + (cy - my) * normY;
@@ -2325,7 +2443,7 @@ if (_isTouchDevice) {
   document.addEventListener('touchend', e => {
     if (editingVenueId && (editDraggingDepth || editDraggingPolyVertex
                         || editDraggingPolyEdge || editDraggingPolyTranslate)) {
-      const v = VENUES.find(x => x.id === editingVenueId);
+      const v = venueById(editingVenueId);
       if (v) saveFacingCache(v.id, v.facing, v.facingSource, v.terraceWallIndices ?? [], v.terraceDepth,
         null, v.terraceType, v.terraceDetachedLocation, v.terraceWallTrimStart, v.terraceWallTrimEnd,
         v.seatingPolygonOverride);
@@ -2355,7 +2473,7 @@ if (_isTouchDevice) {
       if (dx * dx + dy * dy >= 100) return;
       const rect = canvas.getBoundingClientRect();
       const cx = t.clientX - rect.left, cy = t.clientY - rect.top;
-      const v = VENUES.find(x => x.id === editingVenueId);
+      const v = venueById(editingVenueId);
 
       if (typeof editVertexMode !== 'undefined' && editVertexMode === 'del') {
         const idx = (typeof hitTestActivePolygonVertex === 'function')

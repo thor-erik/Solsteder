@@ -1360,6 +1360,9 @@ try {
     // Sprites may have been built against the sync-fallback windows; rebuild them
     // now that the worker has confirmed (or corrected) the sun window data.
     clearSpriteCache();
+    // Worker may have replaced sync-fallback windows with precise ones — drop
+    // the classifyPin cache so pin tiers re-evaluate against the new windows.
+    if (typeof invalidateClassifyPin === 'function') invalidateClassifyPin();
     // Refresh audit flag chips now that we have accurate sun windows.
     if (typeof refreshReviewFlags === 'function' &&
         typeof auditModeActive !== 'undefined' && auditModeActive) {
@@ -3270,6 +3273,7 @@ function update() {
     currentDateStr   = dateStr;
     sunWindowCache.clear();
     clearSpriteCache();
+    if (typeof invalidateClassifyPin === 'function') invalidateClassifyPin();
     dispatchToWorker(dateStr);
   }
 
@@ -3723,7 +3727,10 @@ function closeDetailPanel(expandList = true) {
 
   if (selectedId != null) {
     const idx = VENUES.findIndex(v => v.id === selectedId && v._isCandidate);
-    if (idx !== -1) VENUES.splice(idx, 1);
+    if (idx !== -1) {
+      VENUES.splice(idx, 1);
+      if (typeof rebuildVenuesById === 'function') rebuildVenuesById();
+    }
 
     selectedId = null;
     // Clear stale hover so the suppressed-while-selected hover ring doesn't
@@ -6210,6 +6217,7 @@ async function _sdPickCandidate(encodedOrObj) {
 
   // Add to VENUES temporarily so computeSunWindows and the rest works
   VENUES.push(enriched);
+  if (typeof rebuildVenuesById === 'function') rebuildVenuesById();
   sunWindowCache.clear();
 
   // Small delay so the user sees the status progress

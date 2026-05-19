@@ -198,6 +198,30 @@ function getSeatingPolygon(v, opts = {}) {
   return null;
 }
 
+// id → venue lookup. Replaces ~30 VENUES.find(v => v.id === id) calls in
+// the per-frame draw path. Rebuilt whenever VENUES is reassigned (loader,
+// admin tools, suggestion approval). Read via venueById(id).
+let _venuesById = new Map();
+function _rebuildVenuesById() {
+  _venuesById = new Map();
+  for (const v of VENUES) _venuesById.set(v.id, v);
+}
+function venueById(id) {
+  // Tolerate both numeric and string ids — render-pins.js / ui-detail.js
+  // sometimes coerce ids when crossing user-input boundaries.
+  if (_venuesById.has(id)) return _venuesById.get(id);
+  const s = String(id);
+  if (_venuesById.has(s)) return _venuesById.get(s);
+  for (const v of VENUES) if (String(v.id) === s) return v;
+  return undefined;
+}
+if (typeof window !== 'undefined') {
+  window.venueById = venueById;
+  // Call after any external mutation of VENUES (push/splice/replace).
+  // Cheap (one Map allocation + iteration) — fine to invoke conservatively.
+  window.rebuildVenuesById = _rebuildVenuesById;
+}
+
 // ── Loader ────────────────────────────────────────────────────────────────────
 async function loadVenues() {
   try {
@@ -209,11 +233,13 @@ async function loadVenues() {
     // are hidden from users.
     const live = raw.filter(v => v.businessStatus !== 'CLOSED_PERMANENTLY');
     VENUES = live.map(normalizeVenue);
+    _rebuildVenuesById();
     const skipped = raw.length - live.length;
     console.log(`Loaded ${VENUES.length} venues from data/venues.json${skipped ? ` (${skipped} closed permanently, hidden)` : ''}`);
   } catch (e) {
     console.warn('venues.json unavailable, using built-in data:', e.message);
     VENUES = FALLBACK_VENUES.map(normalizeVenue);
+    _rebuildVenuesById();
   }
 
   // Apply persisted facing overrides (OSM-computed or manually set via edit tool).

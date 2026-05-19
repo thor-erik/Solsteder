@@ -2470,7 +2470,10 @@ async function loadApprovedSuggestions() {
       });
       added++;
     }
-    if (added > 0 && typeof renderList === 'function') renderList();
+    if (added > 0) {
+      if (typeof rebuildVenuesById === 'function') rebuildVenuesById();
+      if (typeof renderList === 'function') renderList();
+    }
   } catch (e) {
     console.warn('[auth] loadApprovedSuggestions:', e.message);
   }
@@ -2515,6 +2518,7 @@ async function loadOwnSuggestions() {
       added++;
     }
     if (added > 0) {
+      if (typeof rebuildVenuesById === 'function') rebuildVenuesById();
       if (typeof renderList === 'function') renderList();
       if (typeof draw === 'function') draw();
     }
