@@ -1415,40 +1415,50 @@ function _openInviteSheet(venueId) {
           </button>
         </div>`;
 
-  // The "moment" block — venue name + live time/sun readout, folded
-  // INTO the top of the sheet so it sits right below the FTS slider
-  // (which now sits flush against the sheet's top edge). The v1
-  // floating top-card has been dropped; the question/answer split it
-  // created is replaced by a single persistent answer surface adjacent
-  // to the control that produces it.
-  // Dedup: when the venue's name already ends with the area name (e.g.
-  // "Mamma Pizza Nydalen" + area "Nydalen"), drop the redundant suffix.
+  // Two-column header — mirrors the accept page so sender and receiver
+  // see the same shape. Left = WHAT (eyebrow + venue + meta); right =
+  // WHEN (Meeting label + live time + live day) which updates as the
+  // user scrubs the FTS inside the sheet.
   const dispArea = _dedupeAreaForVenue(venueName, v?.area);
-  const venueLineLabel = dispArea ? `${venueName} · ${dispArea}` : venueName;
+  const _catLabel = (typeof catLabel === 'function') ? catLabel(v) : null;
+  const _metaParts = [dispArea, _catLabel].filter(Boolean);
+  const _invMetaHtml = _metaParts.length
+    ? _metaParts.map(s => `<span>${String(s).replace(/</g, '&lt;')}</span>`).join('<span class="dpinvite-meta-dot" aria-hidden="true">·</span>')
+    : '';
   const momentBlock = `
         <div class="dpinvite-moment">
-          <div class="dpinvite-moment-pin" aria-hidden="true">${pinSvg}</div>
-          <div class="dpinvite-moment-text">
-            <div class="dpinvite-venue-line">${venueLineLabel}</div>
-            <div class="dpinvite-when-line" id="dpinvite-when-line">
-              <span class="when-primary" id="dpinvite-when-primary"></span>
-              <span class="when-sep" aria-hidden="true">·</span>
-              <span class="when-sun" id="dpinvite-when-sun"></span>
+          <div class="dpinvite-moment-row">
+            <div class="dpinvite-moment-left">
+              <div class="dpinvite-eyebrow">${t('invite_eyebrow_invite_to')}</div>
+              <div class="dpinvite-venue-row">
+                <span class="dpinvite-moment-pin" aria-hidden="true">${pinSvg}</span>
+                <span class="dpinvite-venue-line">${venueName}</span>
+              </div>
+              ${_invMetaHtml ? `<div class="dpinvite-meta">${_invMetaHtml}</div>` : ''}
+            </div>
+            <div class="dpinvite-moment-col">
+              <div class="dpinvite-moment-label">${t('invite_hero_meets')}</div>
+              <div class="dpinvite-moment-time" id="dpinvite-moment-time"></div>
+              <div class="dpinvite-moment-sub" id="dpinvite-moment-sub"></div>
             </div>
           </div>
         </div>`;
 
   // Sheet body order:
-  //   1. Moment block (venue + live time/sun readout)
-  //   2. Friends row (compact, no title chrome)
-  //   3. CTA row (primary pill + Copy companion)
-  //   4. Cancel link (small, centred, demoted from full-width pill)
+  //   1. Moment block (venue + live Meeting tile)
+  //   2. FTS slot — the floating time slider is reparented into this
+  //      placeholder on open so the scrubber lives INSIDE the sheet
+  //      instead of floating above it. Restored to <body> on close.
+  //   3. Friends row (compact, no title chrome)
+  //   4. CTA row (primary pill + Copy companion)
+  //   5. Cancel link (small, centred, demoted from full-width pill)
   sheet.innerHTML = `
     <div class="dpinvite-handle" id="dpinvite-handle" aria-label="${t('close') || 'Close'}">
       <div class="dpinvite-grabber" aria-hidden="true"></div>
     </div>
     <div class="dpinvite-body">
       ${momentBlock}
+      <div class="dpinvite-fts-slot" id="dpinvite-fts-slot" aria-hidden="false"></div>
       ${friendsBlock}
       ${ctaRow}
       <div class="dpinvite-cancel-row">
@@ -1672,16 +1682,24 @@ function _openInviteSheet(venueId) {
     if (typeof datePicker !== 'undefined' && datePicker) datePicker.removeEventListener('change', _shortenOnChange);
   };
 
-  // Detach the FTS from any docked-card / preview parent so the
-  // body.invite-sheet-open #fts CSS rule can position it above the sheet.
-  // If the FTS was inside #detail-panel (which gets opacity:0 during the
-  // share sheet), it would otherwise cascade-fade to invisible.
+  // Reparent the FTS INTO the sheet so the scrubber lives next to the
+  // moment tile it drives. Was: body-anchored with a fixed-position CSS
+  // rule floating above the sheet (`body.invite-sheet-open #fts`). New:
+  // FTS slot inside the sheet body, FTS appended into it, normal flow
+  // positioning takes over via the `fts-in-invite` class. Restored to
+  // <body> on close in _invFtsDetach.
   const _ftsForReparent = document.getElementById('fts');
+  const _ftsSlot = sheet.querySelector('#dpinvite-fts-slot');
   if (_ftsForReparent) {
     if (_ftsForReparent.classList.contains('fts-in-card')) _ftsForReparent.classList.remove('fts-in-card');
     if (_ftsForReparent.classList.contains('fts-in-preview')) _ftsForReparent.classList.remove('fts-in-preview');
     _ftsForReparent.style.cssText = '';
-    if (_ftsForReparent.parentNode !== document.body) document.body.appendChild(_ftsForReparent);
+    _ftsForReparent.classList.add('fts-in-invite');
+    if (_ftsSlot) {
+      if (_ftsForReparent.parentNode !== _ftsSlot) _ftsSlot.appendChild(_ftsForReparent);
+    } else if (_ftsForReparent.parentNode !== document.body) {
+      document.body.appendChild(_ftsForReparent);
+    }
   }
 
   document.body.classList.add('invite-sheet-open');
@@ -1776,63 +1794,32 @@ function _wireInlineFtsCanvas(canvas, opts) {
 }
 if (typeof window !== 'undefined') window._wireInlineFtsCanvas = _wireInlineFtsCanvas;
 
-/** Update the persistent invite header — refreshes the when-line (primary
- *  + sun-status) in response to slider input or date change. Replaces
- *  the v1 floating callout (_updateFtsCallout). Pulls strings from i18n
- *  so the locale bug ("6t 0m sol · sol til..." stuck in Norwegian when
- *  the rest of the UI was English) is gone. */
+/** Update the persistent invite header — refreshes the live Meeting tile
+ *  (time + day) in the right column as the FTS scrubs. Replaces the v1
+ *  floating callout (_updateFtsCallout) AND the v2 single-line when-line.
+ *  The eyebrow + venue + meta on the left stay static; the right column
+ *  is the only thing that tracks the slider. */
 function _updateInviteHeader(venue, dateStr, hour) {
-  const primaryEl = document.getElementById('dpinvite-when-primary');
-  const sunEl     = document.getElementById('dpinvite-when-sun');
-  const lineEl    = document.getElementById('dpinvite-when-line');
-  if (!primaryEl || !sunEl || !lineEl) return;
+  const timeEl = document.getElementById('dpinvite-moment-time');
+  const subEl  = document.getElementById('dpinvite-moment-sub');
+  if (!timeEl && !subEl) return;
 
   const fmt = (h) => (typeof formatHour === 'function')
     ? formatHour(h)
     : `${Math.floor(h)}:${String(Math.round((h % 1) * 60)).padStart(2, '0')}`;
 
-  // Primary: "Du drar kl. 13:25" (future) OR "Du er der nå" (within ±30 min).
-  // Reuses _isNowSend from the share-text composer so the same threshold
-  // governs both surfaces — header phrasing matches what the share message
-  // will actually say.
+  // Big time — current FTS hour. Today: when the picked moment is ~now
+  // (per _isNowSend's threshold), swap to a "Going now" label so the
+  // sender sees the same phrasing the share message will use.
   const isNow = (typeof _isNowSend === 'function') ? _isNowSend(dateStr, hour) : false;
-  primaryEl.textContent = isNow
-    ? t('invite_when_at_now')
-    : t('invite_when_at_time', { time: fmt(hour) });
+  if (timeEl) timeEl.textContent = isNow ? t('invite_when_at_now') : fmt(hour);
 
-  // Sun status: pick the first applicable phrase given the venue's sun
-  // windows at the selected hour.
-  //   in-window  → "sol til {end}"
-  //   sun-coming → "sol fra {start}"
-  //   all-past   → "etter solnedgang"
-  //   no-windows → "ingen sol i dag"
-  let windows = [];
-  try {
-    if (typeof computeSunWindows === 'function' && venue) {
-      const sw = computeSunWindows(venue, dateStr);
-      windows = (sw && sw.windows) ? sw.windows : [];
-    }
-  } catch (e) { /* ignore */ }
-
-  let sunPhrase = '';
-  let noSun = false;
-  if (!windows.length) {
-    sunPhrase = t('invite_no_sun_today');
-    noSun = true;
-  } else {
-    const inWin = windows.find(w => hour >= w.start && hour < w.end);
-    const next  = windows.find(w => w.start > hour);
-    if (inWin) {
-      sunPhrase = t('invite_sun_until_compact', { time: fmt(inWin.end) });
-    } else if (next) {
-      sunPhrase = t('invite_sun_from_compact', { time: fmt(next.start) });
-    } else {
-      sunPhrase = t('invite_after_sunset_compact');
-      noSun = true;
-    }
+  // Sub — day label. _dayLabel returns "i dag" / "i morgen" / "tirsdag" /
+  // "12. mai" depending on how far the picked date is from today.
+  if (subEl) {
+    const dayPart = (dateStr && typeof _dayLabel === 'function') ? _dayLabel(dateStr) : '';
+    subEl.textContent = isNow ? '' : (dayPart ? dayPart.charAt(0).toUpperCase() + dayPart.slice(1) : '');
   }
-  sunEl.textContent = sunPhrase;
-  lineEl.classList.toggle('is-no-sun', noSun);
 }
 if (typeof window !== 'undefined') window._updateInviteHeader = _updateInviteHeader;
 

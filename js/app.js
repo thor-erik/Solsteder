@@ -1406,14 +1406,13 @@ try {
     draw();
     renderList();
     if (typeof drawAllCardTimelines === 'function') drawAllCardTimelines();
-    // The accept page's event row was populated once at initial RAF
-    // against the sync-fallback windows; now that the worker has
-    // corrected the cache, refresh it so the icons re-position
-    // against the precise sun-window boundaries. Without this the bar
-    // updated (canvas redraw) but the event icons stayed locked to
-    // the stale positions — user reported markers at wrong positions
-    // until they triggered a re-build via 'Change response'.
-    document.querySelectorAll('.dprcv-timeline-events').forEach(host => {
+    // The accept page's in-bar weather row was populated once at initial
+    // RAF against the sync-fallback windows; now that the worker has
+    // corrected the cache, refresh it so the glyphs re-bucket against the
+    // precise sun-window boundaries. Without this the bar updated (canvas
+    // redraw) but the weather icons stayed locked to stale shade/sun
+    // bands — user would see a 'partly' glyph over what's now a sun band.
+    document.querySelectorAll('.dprcv-timeline-weather').forEach(host => {
       if (typeof host._refresh === 'function') host._refresh();
     });
     // Same correction for the hero's right-subtitle (Sun until X,
