@@ -1440,8 +1440,10 @@ function _openInviteSheet(venueId) {
               <div class="dpinvite-moment-label">${t('invite_hero_meets')}</div>
               <div class="dpinvite-moment-time" id="dpinvite-moment-time"></div>
               <button type="button" class="dpinvite-moment-sub" id="dpinvite-moment-sub"
-                      onclick="if(typeof toggleQcPanel==='function')toggleQcPanel('date')"
-                      aria-label="${t('invite_eyebrow_select_time')}"></button>
+                      aria-label="${t('invite_eyebrow_select_time')}">
+                <span id="dpinvite-moment-sub-text"></span>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
             </div>
           </div>
         </div>`;
@@ -1473,6 +1475,20 @@ function _openInviteSheet(venueId) {
 
   overlay.appendChild(sheet);
   document.body.appendChild(overlay);
+
+  // Wire the day-button programmatically. Inline onclick attributes have
+  // intermittent mobile-Safari reliability (see app.js:349 — same pattern
+  // applied to the header date chip). pointerup runs before click and
+  // dodges the rare touch-cancel that swallows click events when the
+  // sheet's drag-to-dismiss handler is also listening. Sheet slides down
+  // via the body.cal-open CSS rule so the calendar isn't covered.
+  const _daySubBtn = sheet.querySelector('#dpinvite-moment-sub');
+  if (_daySubBtn) {
+    _daySubBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (typeof toggleQcPanel === 'function') toggleQcPanel('date');
+    });
+  }
 
   sheet._venueName = venueName;
   sheet._venueId = venueId;
@@ -1806,30 +1822,29 @@ function _wireInlineFtsCanvas(canvas, opts) {
 if (typeof window !== 'undefined') window._wireInlineFtsCanvas = _wireInlineFtsCanvas;
 
 /** Update the persistent invite header — refreshes the live Meeting tile
- *  (time + day) in the right column as the FTS scrubs. Replaces the v1
- *  floating callout (_updateFtsCallout) AND the v2 single-line when-line.
- *  The eyebrow + venue + meta on the left stay static; the right column
- *  is the only thing that tracks the slider. */
+ *  (time + day) in the right column as the FTS scrubs. The eyebrow +
+ *  venue + meta on the left stay static; the right column is the only
+ *  thing that tracks the slider. */
 function _updateInviteHeader(venue, dateStr, hour) {
-  const timeEl = document.getElementById('dpinvite-moment-time');
-  const subEl  = document.getElementById('dpinvite-moment-sub');
-  if (!timeEl && !subEl) return;
+  const timeEl    = document.getElementById('dpinvite-moment-time');
+  const subTextEl = document.getElementById('dpinvite-moment-sub-text');
+  if (!timeEl && !subTextEl) return;
 
   const fmt = (h) => (typeof formatHour === 'function')
     ? formatHour(h)
     : `${Math.floor(h)}:${String(Math.round((h % 1) * 60)).padStart(2, '0')}`;
 
   // Big time — current FTS hour. Today: when the picked moment is ~now
-  // (per _isNowSend's threshold), swap to a "Going now" label so the
-  // sender sees the same phrasing the share message will use.
+  // (per _isNowSend's threshold), swap to a short "Now" label.
   const isNow = (typeof _isNowSend === 'function') ? _isNowSend(dateStr, hour) : false;
   if (timeEl) timeEl.textContent = isNow ? t('invite_when_at_now') : fmt(hour);
 
   // Sub — day label. _dayLabel returns "i dag" / "i morgen" / "tirsdag" /
-  // "12. mai" depending on how far the picked date is from today.
-  if (subEl) {
+  // "12. mai" depending on how far the picked date is from today. Text
+  // goes in a separate span so the date-picker chevron isn't overwritten.
+  if (subTextEl) {
     const dayPart = (dateStr && typeof _dayLabel === 'function') ? _dayLabel(dateStr) : '';
-    subEl.textContent = isNow ? '' : (dayPart ? dayPart.charAt(0).toUpperCase() + dayPart.slice(1) : '');
+    subTextEl.textContent = isNow ? '' : (dayPart ? dayPart.charAt(0).toUpperCase() + dayPart.slice(1) : '');
   }
 }
 if (typeof window !== 'undefined') window._updateInviteHeader = _updateInviteHeader;

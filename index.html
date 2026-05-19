@@ -103,7 +103,7 @@
     [60, 180, 500, 1200].forEach(function (d) { setTimeout(set, d); });
   })();
 </script>
-<script defer src="js/i18n.js?v=20260519n"></script>
+<script defer src="js/i18n.js?v=20260519p"></script>
 <script defer src="js/config.js?v=20260518a"></script>
 <script defer src="js/tokens.js?v=20260509e"></script>
 <script defer src="js/auth.js?v=20260519a"></script>
@@ -129,8 +129,8 @@
 <script defer src="js/admin-audit.js?v=20260512a"></script>
 <script defer src="js/ui-shelter.js?v=20260416a"></script>
 <script defer src="js/render-wind.js?v=20260416b"></script>
-<script defer src="js/ui-detail.js?v=20260519n"></script>
-<script defer src="js/ui-plan-preview.js?v=20260519n"></script>
+<script defer src="js/ui-detail.js?v=20260519p"></script>
+<script defer src="js/ui-plan-preview.js?v=20260519p"></script>
 <script defer src="js/osm.js?v=20260513a"></script>
 <script defer src="js/notifications.js?v=20260519c"></script>
 <script defer src="js/push.js?v=20260518c"></script>
@@ -9441,8 +9441,8 @@
     letter-spacing: -0.01em;
   }
   /* Interactive day-button — taps open the date picker (toggleQcPanel('date')),
-     mirroring the FTS top-bar date chip. Styled as a tappable pill so the
-     affordance is visible without dominating the column. */
+     mirroring the FTS top-bar date chip. Styled as a tappable pill with a
+     down chevron so the affordance is unambiguous. */
   button.dpinvite-moment-sub {
     appearance: none;
     border: 0;
@@ -9452,45 +9452,44 @@
     font-size: 13px;
     font-weight: 700;
     margin-top: 4px;
-    padding: 4px 8px;
+    padding: 4px 6px 4px 9px;
     border-radius: 8px;
     letter-spacing: 0.01em;
-    /* Tabular-nums for the dotted date variant ("12. mai") — keeps
-       digits aligned column-wise. */
     font-variant-numeric: tabular-nums;
     text-align: center;
     align-self: flex-end;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
     transition: background 0.14s ease, color 0.14s ease, transform 90ms ease-out;
     -webkit-tap-highlight-color: transparent;
+  }
+  button.dpinvite-moment-sub svg {
+    flex-shrink: 0;
+    opacity: 0.7;
+    transition: opacity 0.14s ease;
   }
   button.dpinvite-moment-sub:hover {
     background: rgba(245, 194, 94, 0.18);
     color: var(--accent);
   }
+  button.dpinvite-moment-sub:hover svg { opacity: 1; }
   button.dpinvite-moment-sub:active { transform: scale(0.97); }
-  /* Fallback for the static div variant (if rendered without the button). */
-  div.dpinvite-moment-sub {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--text);
-    margin-top: 2px;
-    letter-spacing: 0.01em;
-  }
   /* FTS slot — host for the floating time slider when the invite sheet
-     is open. Reparented from <body> on open, restored on close. The
-     `.fts-in-invite` class on #fts turns off the body-anchored fixed
-     positioning so the slider flows in-place here. Top padding reserves
-     just enough room for the compact FTS popup that floats above the
-     thumb — tightened so the popup sits close to the 'Select time'
-     label above instead of leaving a wide gap. */
+     is open. Reparented from <body> on open, restored on close.
+     padding-top reserves room the compact FTS popup needs to float
+     above the thumb (~24 px popup + 6 px tail). A negative margin-top
+     pulls the slot UP under the 'Select time' label so the visible
+     gap matches 'Send til' → first avatar (~8 px) — the popup itself
+     renders inside the padding-top region, partially overlapping the
+     label area, but the popup is opaque slate-glass so it reads as a
+     deliberate stack rather than overflow. */
   .dpinvite-fts-slot {
     width: 100%;
-    /* Compact popup is ~22 px tall + 6 px tail + breathing. The
-       expanded state overflows upward into the parent's bottom margin,
-       which is fine — Inviter title sits well above this. */
+    position: relative;
     padding-top: 30px;
     padding-bottom: 4px;
-    position: relative;
+    margin-top: -22px;
   }
   .dpinvite-fts-slot:empty { display: none; }
 
@@ -10073,17 +10072,18 @@
   }
 
   /* Sun summary chip — single honey-tinted strip between header and
-     timeline. Form: ☀ Sol til 20:40 · 2t 40m · 21°. Centred so the
-     row reads as a piece of information, not anchored to one side.
-     Tight bottom padding so the compact FTS-popup-style scrubber bubble
-     above the marker has visible breathing room without a wide gap. */
+     timeline. Form: ☀ Sol til 20:40 · 2t 40m · 21°. Centred. Bottom
+     padding is 0 — the chip sits flush against the bar, with only the
+     timeline wrapper's tiny padding-top as separation. The scrubber
+     bubble (only visible mid-interaction) overflows briefly into this
+     space, which is acceptable since it's opaque slate-glass. */
   .dprcv-sun-chip {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
     flex-wrap: wrap;
-    padding: 10px 0 2px;
+    padding: 10px 0 0;
     margin-top: 8px;
     border-top: 1px solid rgba(156,189,231,0.10);
     font-size: 13px;
@@ -10110,13 +10110,11 @@
      floats above the marker; the bar (48 px) sits below. */
   .dprcv-timeline {
     position: relative;
-    height: 78px;
-    padding-top: 30px;
-    /* Tight gap above the bar — the compact scrubber bubble (only
-       visible while the receiver is interacting) lives in this 30 px
-       padding-top band, and the sun chip above already provides the
-       visual break. Was 10 → 2 to pull the chip closer to the bar. */
-    margin-top: 2px;
+    /* Bar (48 px) + padding-top (6 px buffer above for sun chip visual
+       break + the compact scrubber bubble overflow when active) = 54 px. */
+    height: 54px;
+    padding-top: 6px;
+    margin-top: 0;
     border-radius: 0;
   }
   /* In-bar weather row — absolute icons centred over the canvas bar area
@@ -10126,9 +10124,9 @@
     position: absolute;
     left: 0;
     right: 0;
-    /* Bar starts at top = 30 (wrapper padding-top); height = 48. The
+    /* Bar starts at top = 6 (wrapper padding-top); height = 48. The
        wx row sits inside that band, centred. */
-    top: 30px;
+    top: 6px;
     height: 48px;
     pointer-events: none;
     z-index: 2;
@@ -10155,8 +10153,8 @@
      icons above. */
   .dprcv-timeline-scrubber {
     position: absolute;
-    /* Bar top is at wrapper-top + 30 (padding-top), bar height 48. */
-    top: 30px;
+    /* Bar top is at wrapper-top + 6 (padding-top), bar height 48. */
+    top: 6px;
     left: 0;
     width: 0;
     height: 48px;
