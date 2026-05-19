@@ -642,14 +642,36 @@ function renderListPage(list, dateStr, fromHour, toHour, isPoint, reset) {
     // Stash + restore scrollTop so periodic re-renders (slider tick, nowMode
     // 30s tick) don't snap the list back to top under the user.
     const savedScroll = list.scrollTop;
+    // Detect whether the card SET changed — slider scrubs typically render
+    // the same venues at a new time (same set; same hash). Date changes,
+    // sort changes, filter changes, and panel-open-from-hidden change the
+    // set. Re-fire the cardIn animation only on actual set changes so the
+    // list doesn't strobe on every slider tick.
+    const _hashOf = (items, n) => {
+      const k = Math.min(items.length, n);
+      let s = items.length + '|';
+      for (let i = 0; i < k; i++) s += items[i].id + ',';
+      return s;
+    };
+    const newHash = _hashOf(_listFiltered, 6);
+    const contentChanged = list.dataset.contentHash !== newHash;
     list.innerHTML = html;
     if (savedScroll) list.scrollTop = savedScroll;
-    // Set data-mounted in the next frame so the FIRST reset's layout pass
-    // sees the attribute absent (cardIn fires once across the new cards),
-    // and SUBSEQUENT resets see it present (cardIn gated off → no flash).
     if (!list.dataset.mounted) {
+      // First-ever mount: schedule the data-mounted flag for the next
+      // frame so the initial cardIn cascade fires across the new cards.
       requestAnimationFrame(() => { list.dataset.mounted = '1'; });
+    } else if (contentChanged) {
+      // Set actually changed (date / sort / filter / hidden→expanded
+      // panel open). Re-fire the cardIn cascade by toggling
+      // data-mounted off → on across two frames so CSS picks up the
+      // animation restart on the new cards.
+      delete list.dataset.mounted;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => { list.dataset.mounted = '1'; });
+      });
     }
+    list.dataset.contentHash = newHash;
   } else {
     // Suppress entry animation for scroll-paginated cards
     list.setAttribute('data-no-anim', '');
