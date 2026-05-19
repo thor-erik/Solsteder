@@ -205,10 +205,91 @@ function windCardinal(deg) {
 /** Sky condition emoji from sun-blocking fraction (0–1). */
 function skyIcon(cf) {
   if (cf < 0.15) return '☀\uFE0F';
-  if (cf < 0.40) return '🌤';
+  if (cf < 0.40) return '🌤️';
   if (cf < 0.65) return '⛅';
-  if (cf < 0.85) return '🌥';
+  if (cf < 0.85) return '🌥️';
   return '☁\uFE0F';
+}
+
+/** Sky condition as inline colored SVG. DOM-rendered surfaces (top-strip,
+ *  date-wx-strip, header-wx-chip) use this instead of skyIcon because iOS
+ *  WKWebView tofu's the cloud emoji codepoints (U+1F324 / U+1F325 / U+1F327)
+ *  even with VS-16 — Apple Color Emoji isn't reached via the font-fallback
+ *  chain in the Capacitor WebView context. */
+function skyIconSvg(cf) {
+  if (cf < 0.15) return _wxSvgSun();
+  if (cf < 0.40) return _wxSvgSunSmallCloud();
+  if (cf < 0.65) return _wxSvgSunCloud();
+  if (cf < 0.85) return _wxSvgCloudSun();
+  return _wxSvgCloud();
+}
+
+/** Rain icon (cloud + drops) as inline colored SVG. */
+function rainIconSvg() { return _wxSvgRain(); }
+
+const _WX_SUN = '#F5C25E';
+const _WX_CLD = '#9CBDE7';
+
+function _wxSvgSun() {
+  return `<svg class="wx-sky-icon" viewBox="0 0 16 16" aria-hidden="true">`
+    + `<circle cx="8" cy="8" r="3" fill="${_WX_SUN}"/>`
+    + `<g stroke="${_WX_SUN}" stroke-width="1.4" stroke-linecap="round">`
+    + `<line x1="8" y1="1.5" x2="8" y2="2.8"/>`
+    + `<line x1="8" y1="13.2" x2="8" y2="14.5"/>`
+    + `<line x1="1.5" y1="8" x2="2.8" y2="8"/>`
+    + `<line x1="13.2" y1="8" x2="14.5" y2="8"/>`
+    + `<line x1="3.3" y1="3.3" x2="4.2" y2="4.2"/>`
+    + `<line x1="11.8" y1="11.8" x2="12.7" y2="12.7"/>`
+    + `<line x1="3.3" y1="12.7" x2="4.2" y2="11.8"/>`
+    + `<line x1="11.8" y1="4.2" x2="12.7" y2="3.3"/>`
+    + `</g></svg>`;
+}
+
+function _wxSvgSunSmallCloud() {
+  return `<svg class="wx-sky-icon" viewBox="0 0 16 16" aria-hidden="true">`
+    + `<circle cx="6" cy="6" r="2.5" fill="${_WX_SUN}"/>`
+    + `<g stroke="${_WX_SUN}" stroke-width="1.1" stroke-linecap="round">`
+    + `<line x1="6" y1="1.2" x2="6" y2="2.2"/>`
+    + `<line x1="1.2" y1="6" x2="2.2" y2="6"/>`
+    + `<line x1="2.6" y1="2.6" x2="3.2" y2="3.2"/>`
+    + `</g>`
+    + `<path d="M7.2 13.5 Q5.5 13.5 5.5 12 Q5.5 10.6 7 10.6 Q7.4 9 9.2 9 Q11 9 11.4 10.6 Q13 10.6 13 12 Q13 13.5 11.4 13.5 Z" fill="${_WX_CLD}"/>`
+    + `</svg>`;
+}
+
+function _wxSvgSunCloud() {
+  return `<svg class="wx-sky-icon" viewBox="0 0 16 16" aria-hidden="true">`
+    + `<circle cx="5.2" cy="5.2" r="2.4" fill="${_WX_SUN}"/>`
+    + `<g stroke="${_WX_SUN}" stroke-width="1" stroke-linecap="round">`
+    + `<line x1="5.2" y1="0.8" x2="5.2" y2="1.7"/>`
+    + `<line x1="0.8" y1="5.2" x2="1.7" y2="5.2"/>`
+    + `<line x1="2" y1="2" x2="2.6" y2="2.6"/>`
+    + `</g>`
+    + `<path d="M5 13.6 Q3 13.6 3 12 Q3 10.4 4.7 10.4 Q5.2 8.4 7.7 8.4 Q10.3 8.4 10.8 10.4 Q12.6 10.4 12.6 12 Q12.6 13.6 10.8 13.6 Z" fill="${_WX_CLD}"/>`
+    + `</svg>`;
+}
+
+function _wxSvgCloudSun() {
+  return `<svg class="wx-sky-icon" viewBox="0 0 16 16" aria-hidden="true">`
+    + `<circle cx="3.8" cy="4.4" r="1.6" fill="${_WX_SUN}"/>`
+    + `<path d="M3.5 12.6 Q1.5 12.6 1.5 11 Q1.5 9.3 3.4 9.3 Q3.9 7.2 6.6 7.2 Q9.4 7.2 9.9 9.3 Q11.8 9.3 11.8 11 Q11.8 12.6 9.9 12.6 Z" fill="${_WX_CLD}"/>`
+    + `</svg>`;
+}
+
+function _wxSvgCloud() {
+  return `<svg class="wx-sky-icon" viewBox="0 0 16 16" aria-hidden="true">`
+    + `<path d="M3.8 12 Q1.6 12 1.6 10.2 Q1.6 8.4 3.6 8.4 Q4.2 5.8 7.7 5.8 Q11.3 5.8 11.8 8.4 Q13.8 8.4 13.8 10.2 Q13.8 12 11.8 12 Z" fill="${_WX_CLD}"/>`
+    + `</svg>`;
+}
+
+function _wxSvgRain() {
+  return `<svg class="wx-sky-icon" viewBox="0 0 16 16" aria-hidden="true">`
+    + `<path d="M3.5 9.5 Q1.7 9.5 1.7 8 Q1.7 6.5 3.6 6.5 Q4 4.5 7 4.5 Q10 4.5 10.5 6.5 Q12.3 6.5 12.3 8 Q12.3 9.5 10.5 9.5 Z" fill="${_WX_CLD}"/>`
+    + `<g fill="${_WX_CLD}">`
+    + `<ellipse cx="4.6" cy="12.3" rx="0.7" ry="1.4"/>`
+    + `<ellipse cx="7" cy="13" rx="0.7" ry="1.4"/>`
+    + `<ellipse cx="9.4" cy="12.3" rx="0.7" ry="1.4"/>`
+    + `</g></svg>`;
 }
 
 /** Short sky condition label. */

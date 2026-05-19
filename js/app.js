@@ -1041,7 +1041,13 @@ function updateHeaderWxChip(hour) {
     return;
   }
   const rain = (wx.precip ?? wx.prec ?? 0) > 0.3;
-  if (iconEl) iconEl.textContent = rain ? '🌧' : (typeof skyIcon === 'function' ? skyIcon(wx.sunBlock ?? wx.cloud ?? 0) : '☀️');
+  if (iconEl) {
+    // SVG glyphs (not emoji) — iOS WKWebView tofu's the cloud codepoints
+    // even with VS-16. innerHTML is safe here: no user input flows in.
+    iconEl.innerHTML = rain
+      ? (typeof rainIconSvg === 'function' ? rainIconSvg() : '🌧️')
+      : (typeof skyIconSvg === 'function' ? skyIconSvg(wx.sunBlock ?? wx.cloud ?? 0) : '☀️');
+  }
   if (tempEl) tempEl.textContent = wx.temp != null ? Math.round(wx.temp) + '°' : '';
   if (windEl) windEl.textContent = wx.wspd != null ? Math.round(wx.wspd) + ' m/s' : '';
 }
@@ -2220,12 +2226,21 @@ function updateDateWeatherStrip() {
     : null;
   if (!wx) { el.style.display = 'none'; return; }
   el.style.display = '';
-  const ARROWS = ['↑','↗','→','↘','↓','↙','←','↖'];
-  const arrow   = ARROWS[Math.round(((wx.wdir + 180) % 360) / 45) % 8];
+  // SVG wind arrow rotated by direction (0° = north = up). wx.wdir is the
+  // meteorological FROM-direction, so add 180° to get the TO-direction the
+  // arrow should point. Inline SVG avoids the iOS tofu we used to hit when
+  // Unicode arrow codepoints (↗ ↘ ↙ ↖) had no glyph in the WKWebView font
+  // fallback chain.
+  const windAngle = ((wx.wdir + 180) % 360);
+  const arrow = `<svg class="wx-arrow" viewBox="0 0 12 12" aria-hidden="true" style="transform: rotate(${windAngle}deg);"><path d="M6 11 L6 2 M3 5 L6 2 L9 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  const skySvg  = (typeof skyIconSvg === 'function')
+    ? skyIconSvg(wx.sunBlock ?? wx.cloud)
+    : skyIcon(wx.sunBlock ?? wx.cloud);
+  const rainSvg = (typeof rainIconSvg === 'function') ? rainIconSvg() : '🌧️';
   const rain    = wx.precip >= 0.2
-    ? `<span class="wx-rain">🌧 ${wx.precip.toFixed(1)}</span>`
+    ? `<span class="wx-rain">${rainSvg} ${wx.precip.toFixed(1)}</span>`
     : '';
-  el.innerHTML = `<span>${skyIcon(wx.sunBlock ?? wx.cloud)}</span>`
+  el.innerHTML = `<span>${skySvg}</span>`
     + `<span class="wx-temp-strip">${formatTemp(wx.temp)}</span>`
     + `<span class="wx-sep">·</span>`
     + `<span class="wx-wind">${arrow} ${Math.round(wx.wspd)} m/s</span>`
@@ -2235,9 +2250,9 @@ function updateDateWeatherStrip() {
   const tsIcon = document.getElementById('ts-wx-icon');
   const tsTemp = document.getElementById('ts-temp');
   const tsWind = document.getElementById('ts-wind');
-  if (tsIcon) tsIcon.textContent = skyIcon(wx.sunBlock ?? wx.cloud);
+  if (tsIcon) tsIcon.innerHTML = skySvg;
   if (tsTemp) tsTemp.textContent = formatTemp(wx.temp);
-  if (tsWind) tsWind.textContent = `${arrow} ${Math.round(wx.wspd)} m/s`;
+  if (tsWind) tsWind.innerHTML = `${arrow} ${Math.round(wx.wspd)} m/s`;
 }
 
 
@@ -3352,7 +3367,7 @@ function popupSunLine(v) {
     const rem = curWin.end - hour;
     const h = Math.floor(rem), m = Math.round((rem - h) * 60);
     const dur = (h > 0 ? h + 'h ' : '') + (m > 0 ? m + 'm' : '');
-    return `<div class="popup-status sunny">☀ In sun until ${formatHour(curWin.end)} · ${dur.trim()} left</div>`;
+    return `<div class="popup-status sunny">☀️ In sun until ${formatHour(curWin.end)} · ${dur.trim()} left</div>`;
   }
 
   const next = windows.find(w => w.start > hour);

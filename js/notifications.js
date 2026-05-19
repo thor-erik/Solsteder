@@ -35,6 +35,24 @@ let _notifLoginShown    = new Set();  // login prompt ids shown this session
 let _notifInitDone      = false;
 let _notifEvalTimer     = null;
 
+// Weather emoji codepoints (☀ ☁ 🌤 🌥 🌧 🌦) have text-default presentation
+// per Unicode. iOS WKWebView doesn't reach Apple Color Emoji via font
+// fallback for these even when VS-16 (U+FE0F) is appended, so they render
+// as tofu. Map them to inline SVG glyphs (defined in weather.js) so toast
+// notification icons always render. Other emoji icons (⏰ 🌅 👋 📍 📅 👤)
+// are emoji-default and render fine.
+function _wxEmojiToSvg(icon) {
+  if (typeof icon !== 'string' || !icon) return null;
+  if (typeof skyIconSvg !== 'function' || typeof rainIconSvg !== 'function') return null;
+  if (icon.includes('🌧') || icon.includes('🌦')) return rainIconSvg();
+  if (icon.includes('☀'))                          return skyIconSvg(0.0);
+  if (icon.includes('🌤'))                          return skyIconSvg(0.3);
+  if (icon.includes('⛅'))                          return skyIconSvg(0.5);
+  if (icon.includes('🌥'))                          return skyIconSvg(0.7);
+  if (icon.includes('☁'))                          return skyIconSvg(0.9);
+  return null;
+}
+
 // ── localStorage Helpers ─────────��───────────────────────────────────────────
 
 function _notifLoadState() {
@@ -315,9 +333,15 @@ function _notifShow(notif) {
 
   // Icon — supports either an emoji/text glyph (notif.icon) OR raw SVG
   // markup (notif.iconHtml). iconHtml wins; falls back to text.
+  //
+  // Weather emoji (☀ ☁ 🌤 🌥 🌧 🌦) have text-default Unicode presentation
+  // and iOS WKWebView doesn't reach Apple Color Emoji via font fallback
+  // even with VS-16 → they render as tofu. Re-route those to inline SVG.
   const iconEl = el.querySelector('.notif-toast-icon');
+  const wxSvg = notif.icon ? _wxEmojiToSvg(notif.icon) : null;
   if (notif.iconHtml)     { iconEl.innerHTML = notif.iconHtml; iconEl.style.display = ''; }
-  else if (notif.icon)    { iconEl.textContent = notif.icon;  iconEl.style.display = ''; }
+  else if (wxSvg)         { iconEl.innerHTML = wxSvg;          iconEl.style.display = ''; }
+  else if (notif.icon)    { iconEl.textContent = notif.icon;   iconEl.style.display = ''; }
   else                    { iconEl.style.display = 'none'; }
 
   // Body text — support raw text (legacy) or i18n
@@ -974,7 +998,7 @@ function _evalInviteAccepted() {
       // attention — the in-app toast should surface live, not "after a
       // little while" once the early-window cooldown clears.
       priority: 0, category: 'social', urgent: true,
-      icon: '☀',
+      icon: '☀️',
       bodyKey,
       bodyVars: { name: headName, venue: venue.name, extra, time: arrivalTime || '' },
       actionKey: 'notif_open_plan',
