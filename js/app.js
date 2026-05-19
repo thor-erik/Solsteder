@@ -7345,19 +7345,36 @@ function _runIntroSequence() {
   const PHASE3_MS = 420;   // panel peek → expanded
 
   // After splash min, wait for the worker to deliver precise sun windows,
-  // then fade splash and start map cinematic. The wait is capped at 4s so
-  // a slow / failed worker can't stall the intro indefinitely (the safety
-  // net in render-pins.js force-releases the draw gate at 8s regardless).
-  // The first heavy draw fires synchronously inside _releaseBootDrawGate
-  // BEFORE the splash fade starts — so the spike happens behind a still-
-  // solid splash, invisible to the user.
+  // then fire the heavy first paint, then start the fade. Three guards:
+  //   1. Wait cap (8s) — caps the worker wait so a slow / failed worker
+  //      can't strand the splash; the safety net in render-pins.js at 12s
+  //      is the outer backstop.
+  //   2. Force renderList before fading — scheduleRenderList is normally
+  //      debounced 300ms, so without this it lands DURING the fade and
+  //      janks it on slow phones.
+  //   3. Double-rAF wait after the heavy paint — ensures the browser
+  //      has GPU-flushed the first frame before the splash starts fading,
+  //      so the fade itself has full frame budget.
   setTimeout(() => {
     if (_introSeqId !== seqId) return;
     _onBootWorkerReady(() => {
       if (_introSeqId !== seqId) return;
+      // Releases gate + fires deferred draw() synchronously.
       if (typeof _releaseBootDrawGate === 'function') _releaseBootDrawGate();
-      _startSplashFade();
-    }, 4000);
+      // Force-run the venue list paint now, while the splash is still up.
+      // Without this it lands ~300ms later (the scheduleRenderList debounce
+      // tail), exactly during the splash fade, and stutters it.
+      if (typeof renderList === 'function') {
+        try { renderList(); } catch (e) { console.warn('[boot] renderList threw', e); }
+      }
+      // Wait two rAFs so the heavy paint is committed to the GPU before
+      // the fade animation steals the main thread. One rAF = layout +
+      // paint scheduled; two = previous frame flushed.
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        if (_introSeqId !== seqId) return;
+        _startSplashFade();
+      }));
+    }, 8000);
   }, waitMs);
 
   // The fade choreography is extracted into a named local so the worker-wait

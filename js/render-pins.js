@@ -1222,12 +1222,17 @@ function _releaseBootDrawGate() {
   }
 }
 if (typeof window !== 'undefined') window._releaseBootDrawGate = _releaseBootDrawGate;
+// 12s safety net — outer backstop in case neither the intro nor the
+// skip-intro nor the plan-preview path releases the gate. Has to sit
+// AFTER the longest in-flight wait the boot orchestrator can use (the
+// intro's 8s worker wait), or the gate could release before the intro
+// finishes its own choreography on slow phones.
 setTimeout(() => {
   if (!_bootDrawGateOpen) {
     console.warn('[boot] draw gate auto-released by safety timeout');
     _releaseBootDrawGate();
   }
-}, 8000);
+}, 12000);
 
 // rAF-coalesce draw() across map events. Mapbox fires `move` faster than
 // vsync during pan/zoom; without gating, the 600+ line draw() body runs many
