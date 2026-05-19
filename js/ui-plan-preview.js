@@ -309,6 +309,13 @@ function openPlanPreview(opts) {
     const _releaseSplash = () => {
       if (_splashReleased.value) return;
       _splashReleased.value = true;
+      // Release the boot draw gate at the same moment we dismiss the
+      // splash. _skipIntro({keepSplash:true}) left the gate closed for
+      // this path; releasing here fires the deferred first paint behind
+      // the still-solid splash, just before the fade choreography starts.
+      if (typeof window._releaseBootDrawGate === 'function') {
+        window._releaseBootDrawGate();
+      }
       _hideInviteSplash();
       setTimeout(_startDive, 200);
     };

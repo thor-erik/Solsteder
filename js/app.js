@@ -1342,6 +1342,27 @@ let sunWorker = null;
 // earlier dispatch (e.g. the pre-initFacings() worker that lacks nearbyBuildings)
 // are silently discarded instead of overwriting the correct cache.
 let _workerGeneration = 0;
+
+// Boot-time signal: has the worker delivered its first batch of sun
+// windows? The intro path waits on this before fading the splash, so the
+// first heavy classifyPin pass hits the precise (worker-computed) cache
+// instead of the sync fallback (which is ~22M shadow checks for ~300
+// venues — a 200-500ms main-thread freeze on mid-tier mobile).
+let _bootWorkerReady = false;
+const _bootWorkerReadyCbs = [];
+function _onBootWorkerReady(cb, maxWaitMs) {
+  if (_bootWorkerReady) { cb(); return; }
+  _bootWorkerReadyCbs.push(cb);
+  if (maxWaitMs && maxWaitMs > 0) {
+    setTimeout(() => {
+      const idx = _bootWorkerReadyCbs.indexOf(cb);
+      if (idx >= 0) {
+        _bootWorkerReadyCbs.splice(idx, 1);
+        cb();
+      }
+    }, maxWaitMs);
+  }
+}
 try {
   sunWorker = new Worker('js/worker.js');
   sunWorker.onmessage = function(e) {
@@ -1363,6 +1384,13 @@ try {
     // Worker may have replaced sync-fallback windows with precise ones — drop
     // the classifyPin cache so pin tiers re-evaluate against the new windows.
     if (typeof invalidateClassifyPin === 'function') invalidateClassifyPin();
+    // First worker batch — fire any pending boot-wait callbacks so the
+    // intro can release the draw gate and start the splash fade.
+    if (!_bootWorkerReady) {
+      _bootWorkerReady = true;
+      const cbs = _bootWorkerReadyCbs.splice(0);
+      for (const cb of cbs) { try { cb(); } catch (e) { console.warn('[boot] worker-ready cb threw', e); } }
+    }
     // Refresh audit flag chips now that we have accurate sun windows.
     if (typeof refreshReviewFlags === 'function' &&
         typeof auditModeActive !== 'undefined' && auditModeActive) {
@@ -7316,9 +7344,25 @@ function _runIntroSequence() {
   const PHASE3_PAUSE = 280;
   const PHASE3_MS = 420;   // panel peek → expanded
 
-  // After splash min, fade splash and start map cinematic
+  // After splash min, wait for the worker to deliver precise sun windows,
+  // then fade splash and start map cinematic. The wait is capped at 4s so
+  // a slow / failed worker can't stall the intro indefinitely (the safety
+  // net in render-pins.js force-releases the draw gate at 8s regardless).
+  // The first heavy draw fires synchronously inside _releaseBootDrawGate
+  // BEFORE the splash fade starts — so the spike happens behind a still-
+  // solid splash, invisible to the user.
   setTimeout(() => {
     if (_introSeqId !== seqId) return;
+    _onBootWorkerReady(() => {
+      if (_introSeqId !== seqId) return;
+      if (typeof _releaseBootDrawGate === 'function') _releaseBootDrawGate();
+      _startSplashFade();
+    }, 4000);
+  }, waitMs);
+
+  // The fade choreography is extracted into a named local so the worker-wait
+  // path above can invoke it once the gate releases.
+  function _startSplashFade() {
     const loaderVisible = loader?.classList.contains('visible');
     if (loaderVisible) loader.classList.add('fade-out');
     const loaderFadeMs = loaderVisible ? 280 : 0;
@@ -7391,7 +7435,7 @@ function _runIntroSequence() {
         }, PHASE1_MS);
       }, 220);
     }, loaderFadeMs);
-  }, waitMs);
+  }
 }
 
 function _introRevealUI(search, brand, qcWrap, panel, opts) {
@@ -7556,11 +7600,19 @@ function _skipIntro(seqId, opts) {
   // plan-preview-overlay-mount, which the user perceives as a blue
   // loading flash.
   if (!opts?.keepSplash) {
+    // Release the boot draw gate BEFORE hiding the splash so the first
+    // heavy classifyPin pass paints behind the still-visible splash. The
+    // splash hide that follows is instant; the user sees the precomputed
+    // canvas immediately rather than a blank frame followed by a draw.
+    if (typeof _releaseBootDrawGate === 'function') _releaseBootDrawGate();
     splash.style.transition = 'none';
     splash.classList.add('bg-out', 'done');
     if (splashLogo) { splashLogo.style.transition = 'none'; splashLogo.classList.add('fade-out'); }
     if (loader)     { loader.style.transition = 'none'; loader.classList.add('fade-out'); }
   }
+  // keepSplash path: the gate stays closed; openPlanPreview's idle handler
+  // (ui-plan-preview.js) releases it at the same moment it dismisses the
+  // splash.
 
   // Cubic ease-out — slows toward the end, the cinematic feel users expect
   // from settling shots in films / map apps.

@@ -1200,6 +1200,35 @@ window.addEventListener('resize', () => {
   drawSunCompass();
 });
 
+// Boot-time gate around draw(). The first paint over all visible venues
+// runs classifyPin → computeSunWindows for each pin. If the worker has
+// not yet delivered precise sun windows (the fast geometry.json path
+// dispatches but the result is async), that cascades into ~22M shadow
+// checks on the main thread (osm.js comment ref). On mid-tier mobile
+// this lands as a 200-500ms freeze during the splash-fade and camera
+// dive. The gate suppresses draw() until app.js calls
+// _releaseBootDrawGate() — which intro paths do AFTER the worker has
+// delivered (so the deferred draw uses the cached precise windows).
+// Safety net: auto-release after 8s in case no release path fires
+// (e.g. dev reload with workers disabled).
+let _bootDrawGateOpen = false;
+let _bootDrawDeferred = false;
+function _releaseBootDrawGate() {
+  if (_bootDrawGateOpen) return;
+  _bootDrawGateOpen = true;
+  if (_bootDrawDeferred) {
+    _bootDrawDeferred = false;
+    draw();
+  }
+}
+if (typeof window !== 'undefined') window._releaseBootDrawGate = _releaseBootDrawGate;
+setTimeout(() => {
+  if (!_bootDrawGateOpen) {
+    console.warn('[boot] draw gate auto-released by safety timeout');
+    _releaseBootDrawGate();
+  }
+}, 8000);
+
 // rAF-coalesce draw() across map events. Mapbox fires `move` faster than
 // vsync during pan/zoom; without gating, the 600+ line draw() body runs many
 // times per frame. The gate collapses every queued event into a single
@@ -1266,6 +1295,10 @@ function _getGoing(v, dateStr) {
 
 // ── Main draw ─────────────────────────────────────────────────────────────────
 function draw() {
+  // Boot gate — return without painting if the splash is still up. The
+  // deferred-draw flag is set so _releaseBootDrawGate fires one paint at
+  // the moment the splash starts dismissing.
+  if (!_bootDrawGateOpen) { _bootDrawDeferred = true; return; }
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   const dpr = window.devicePixelRatio || 1;
   ctx.save();
