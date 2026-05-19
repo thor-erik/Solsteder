@@ -1094,6 +1094,10 @@ const _lastNameAnchor = new Map();
 const _lastLabelInfo = new Map();
 let   _animDirty = false;
 let   _animScheduled = false;
+// Set by map move/zoom events AND by _scheduleAnim. Consumed by the
+// 'render' handler at the bottom of this file. Declared here so it's in
+// scope for _scheduleAnim (defined a few lines below).
+let   _drawDirty = false;
 
 // Global label alpha that fades labels out collectively during map
 // motion (pan/zoom). Lerps toward _labelMotionTarget at the same rate
@@ -1123,14 +1127,20 @@ function _stepLerp(s, key, target, rate) {
   return true;
 }
 
+// Animations (pin alpha lerps, morph, label motion) drive the next draw
+// through Mapbox's repaint cycle so the canvas overlay commits in the
+// SAME browser tick as Mapbox's tiles. A standalone requestAnimationFrame
+// (the previous approach) ran in a separate slot and could miss the
+// frame Mapbox was preparing — causing pins to visibly trail tiles by
+// ~16ms during pan ("wiggle" lag). triggerRepaint puts us inside
+// Mapbox's frame loop instead.
 function _scheduleAnim() {
-  if (!_animDirty || _animScheduled) return;
-  _animScheduled = true;
-  _animDirty     = false;
-  requestAnimationFrame(() => {
-    _animScheduled = false;
-    if (typeof draw === 'function') draw();
-  });
+  if (!_animDirty) return;
+  _animDirty = false;
+  _drawDirty = true;
+  if (typeof map !== 'undefined' && map && typeof map.triggerRepaint === 'function') {
+    map.triggerRepaint();
+  }
 }
 
 function _ensureState(id) {
@@ -1314,22 +1324,22 @@ setTimeout(() => {
   }
 }, 12000);
 
-// rAF-coalesce draw() across map events. Mapbox fires `move` faster than
-// vsync during pan/zoom; without gating, the 600+ line draw() body runs many
-// times per frame. The gate collapses every queued event into a single
-// repaint per animation frame.
-let _drawScheduled = false;
-function _scheduleDraw() {
-  if (_drawScheduled) return;
-  _drawScheduled = true;
-  requestAnimationFrame(() => {
-    _drawScheduled = false;
-    draw();
-  });
-}
-map.on('move',     _scheduleDraw);
-map.on('moveend',  _scheduleDraw);
-map.on('zoomend',  _scheduleDraw);
+// Sync the canvas overlay to Mapbox's frame loop. v1 used a standalone
+// requestAnimationFrame coalesce; that decoupled the canvas draw from
+// Mapbox's tile commit and produced ~16ms of pin-lag-behind-tiles during
+// fast pans. Hooking 'render' instead puts the draw() inside Mapbox's
+// own frame cycle — canvas + tiles commit together, no visible drift.
+// _drawDirty is set by move/zoom events (and by _scheduleAnim for
+// non-map animations); the 'render' handler consumes the flag.
+function _markDrawDirty() { _drawDirty = true; }
+map.on('move',     _markDrawDirty);
+map.on('moveend',  _markDrawDirty);
+map.on('zoomend',  _markDrawDirty);
+map.on('render',   () => {
+  if (!_drawDirty) return;
+  _drawDirty = false;
+  draw();
+});
 
 // ── Map pan helper ────────────────────────────────────────────────────────────
 /**

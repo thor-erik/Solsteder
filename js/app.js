@@ -1641,20 +1641,21 @@ function _locateCycleForVenue(venueId) {
   _flyToVenue(v);
 }
 
-// rAF-coalesce the location dot reposition. Pairs with the draw() gate in
-// render-pins.js — both pieces of per-frame map work now run at most once
-// per vsync instead of N times per `move` event.
-let _locDotScheduled = false;
-function _scheduleLocDotUpdate() {
-  if (_locDotScheduled) return;
-  _locDotScheduled = true;
-  requestAnimationFrame(() => {
-    _locDotScheduled = false;
-    _updateLocationDot();
-  });
-}
-map.on('move',    _scheduleLocDotUpdate);
-map.on('zoomend', _scheduleLocDotUpdate);
+// Sync the location dot to Mapbox's frame loop. v1 used a standalone
+// requestAnimationFrame; that ran in a separate frame slot from Mapbox's
+// tile commit, so the dot visibly trailed the map by ~16ms during pan.
+// Hooking 'render' keeps the dot's screen position commit in the SAME
+// browser tick as Mapbox's tile commit.
+let _locDotDirty = false;
+const _markLocDotDirty = () => { _locDotDirty = true; };
+map.on('move',    _markLocDotDirty);
+map.on('moveend', _markLocDotDirty);
+map.on('zoomend', _markLocDotDirty);
+map.on('render',  () => {
+  if (!_locDotDirty) return;
+  _locDotDirty = false;
+  _updateLocationDot();
+});
 map.on('zoom',    _updateZoomDebug);
 map.on('pitch',   _updateZoomDebug);
 
