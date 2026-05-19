@@ -1840,11 +1840,14 @@ function _updateInviteHeader(venue, dateStr, hour) {
   if (timeEl) timeEl.textContent = isNow ? t('invite_when_at_now') : fmt(hour);
 
   // Sub — day label. _dayLabel returns "i dag" / "i morgen" / "tirsdag" /
-  // "12. mai" depending on how far the picked date is from today. Text
-  // goes in a separate span so the date-picker chevron isn't overwritten.
+  // "12. mai" depending on how far the picked date is from today. Always
+  // shown, even in the "Now" case — the day still carries useful info
+  // ("Now / Today" reads cleaner than a blank chip when inviting the
+  // current moment). Text goes in a separate span so the chevron isn't
+  // overwritten.
   if (subTextEl) {
     const dayPart = (dateStr && typeof _dayLabel === 'function') ? _dayLabel(dateStr) : '';
-    subTextEl.textContent = isNow ? '' : (dayPart ? dayPart.charAt(0).toUpperCase() + dayPart.slice(1) : '');
+    subTextEl.textContent = dayPart ? dayPart.charAt(0).toUpperCase() + dayPart.slice(1) : '';
   }
 }
 if (typeof window !== 'undefined') window._updateInviteHeader = _updateInviteHeader;

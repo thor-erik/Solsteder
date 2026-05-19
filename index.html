@@ -129,7 +129,7 @@
 <script defer src="js/admin-audit.js?v=20260512a"></script>
 <script defer src="js/ui-shelter.js?v=20260416a"></script>
 <script defer src="js/render-wind.js?v=20260416b"></script>
-<script defer src="js/ui-detail.js?v=20260519p"></script>
+<script defer src="js/ui-detail.js?v=20260519s"></script>
 <script defer src="js/ui-plan-preview.js?v=20260519r"></script>
 <script defer src="js/osm.js?v=20260513a"></script>
 <script defer src="js/notifications.js?v=20260519c"></script>
@@ -9740,11 +9740,10 @@
   .dpinvite-cancel-row {
     display: flex;
     justify-content: center;
-    /* Avbryt sits as close to the sheet's bottom edge as the
-       --app-pad-b safe-area allows — no extra margin below. The
-       complaint here was wasted space below the link; the small
-       margin-top keeps a tap-target gap above. */
-    margin-top: 8px;
+    /* Match the accept-panel secondary row's vertical rhythm — tight
+     margin above (the body's gap supplies most of the breathing room),
+     no margin below. */
+    margin-top: 0;
     margin-bottom: 0;
   }
   .dpinvite-cancel-row .g-rnd {
@@ -9754,10 +9753,14 @@
     color: var(--muted);
     font-size: 13px;
     font-weight: 500;
-    height: 36px;
-    padding: 0 14px;
-    border-radius: 18px;
+    /* Matches .dprcv-cta-link in the accept panel (32 px tall, 8 px
+       horizontal padding) so the two surfaces share a secondary-link
+       cadence. */
+    height: 32px;
+    padding: 0 8px;
+    border-radius: 16px;
     cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
     transition: color 0.12s, background 0.12s;
   }
   .dpinvite-cancel-row .g-rnd:hover {
@@ -9992,7 +9995,9 @@
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 14px;
+    /* 10 px (was 14) gives the meta line more horizontal room before
+       truncation kicks in. */
+    gap: 10px;
   }
   .dprcv-title-col {
     flex: 1;
@@ -10072,7 +10077,7 @@
   }
   .dprcv-meta-dot {
     opacity: 0.5;
-    margin: 0 6px;
+    margin: 0 5px;
   }
   .dprcv-meta-walk {
     display: inline-flex;
@@ -10085,43 +10090,50 @@
   /* Hero block — used to be a 2-column row (Meet/Sun) above the timeline.
      The two-column header above now carries Meeting/time/day on the right;
      sun info moved into .dprcv-sun-chip between header and bar. This
-     wrapper just hosts the timeline now. */
+     wrapper just hosts the timeline now and intentionally adds no top
+     padding so the chip + bar read as one connected unit. */
   .dprcv-hero {
-    padding: 10px 0 4px;
+    padding: 0 0 4px;
     display: flex;
     flex-direction: column;
   }
-  /* Right-column meeting tile — labels mirror the left's eyebrow size, the
-     time mirrors the venue's bold prominence, sub mirrors the meta line.
-     Symmetrical visual rhythm across the two columns. */
+  /* Right-column meeting tile — every row matches the left column's
+     corresponding row in font-size, weight, and color so the header
+     reads as two columns of identical rhythm, not two stacks with
+     different typography. */
   .dprcv-hero-label {
-    font-size: 12px;
+    /* Matches .dprcv-eyebrow */
+    font-size: 13px;
     font-weight: 500;
     color: var(--muted);
     line-height: 1.25;
   }
   .dprcv-arrival-time {
-    font-size: 26px;
+    /* Matches .dprcv-venue */
+    font-size: 24px;
     font-weight: 700;
     color: var(--text);
-    line-height: 1.05;
+    line-height: 1.15;
     margin-top: 2px;
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.01em;
   }
   .dprcv-arrival-sub {
+    /* Matches .dprcv-meta */
     font-size: 13px;
-    font-weight: 700;
-    color: var(--text);
-    margin-top: 2px;
-    letter-spacing: 0.01em;
+    font-weight: 500;
+    color: var(--muted);
+    margin-top: 4px;
+    letter-spacing: 0;
+    line-height: 1.4;
     font-variant-numeric: tabular-nums;
   }
 
   /* Sun summary chip — single strip between header and bar. Form:
-     "Sol til 20:40 · ☀ 2t 40m · 21°". More breathing room above (between
-     the section divider and chip text), and line-height 1 so the chip
-     reads as glued to the bar below it. The scrubber bubble overflows
+     "Sol til 20:40 · ☀ 2t 40m · 21°". Generous room above (between the
+     section divider and chip text) so it reads as belonging to the
+     bar below; line-height 1 + negative margin-bottom pulls the chip
+     visually flush against the bar. The scrubber bubble overflows
      briefly into this space during interaction — acceptable since
      scrubbing is rare and the bubble is opaque slate-glass. */
   .dprcv-sun-chip {
@@ -10130,10 +10142,11 @@
     justify-content: center;
     gap: 6px;
     flex-wrap: wrap;
-    padding: 16px 0 0;
+    padding: 18px 0 0;
     margin-top: 8px;
+    margin-bottom: -4px;
     border-top: 1px solid rgba(156,189,231,0.10);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
     color: var(--accent);
     letter-spacing: 0.01em;
@@ -10146,7 +10159,7 @@
     align-items: center;
     color: var(--accent);
   }
-  .dprcv-sun-chip-glyph svg { width: 14px; height: 14px; display: block; }
+  .dprcv-sun-chip-glyph svg { width: 15px; height: 15px; display: block; }
   .dprcv-sun-chip-label { color: var(--accent); }
   .dprcv-sun-chip-sep   { color: var(--muted); opacity: 0.6; font-weight: 500; }
   .dprcv-sun-chip-detail { color: var(--text); opacity: 0.92; }
