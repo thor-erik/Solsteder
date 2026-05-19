@@ -6475,6 +6475,22 @@
   }
   .auth-magic-link-input:focus { border-color: rgba(156,189,231,0.5); }
   .auth-magic-link-input::placeholder { color: var(--muted); }
+  /* Password input mirrors the email input visually; only visible when the
+     user explicitly tabs into it (still occupies layout space for the hint
+     line below). Optional — empty value means "use magic link". */
+  .auth-password-input {
+    width: 100%; box-sizing: border-box;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
+    color: var(--text); font-family: 'Inter', sans-serif; font-size: 13px;
+    padding: 10px 14px; outline: none;
+  }
+  .auth-password-input:focus { border-color: rgba(156,189,231,0.5); }
+  .auth-password-input::placeholder { color: var(--muted); }
+  .auth-password-hint {
+    font-size: 11px; line-height: 1.4; color: var(--muted);
+    text-align: center; padding: 0 4px;
+  }
   .auth-magic-link-status {
     font-size: 12px; line-height: 1.4; min-height: 17px; text-align: center;
   }

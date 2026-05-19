@@ -283,6 +283,22 @@ async function authSignInWithMagicLink(email) {
   return { error };
 }
 
+// Email + password sign-in. Used by App Store / Play Store reviewer accounts
+// where Google OAuth + magic-link flows are both impractical (reviewers can't
+// access our @findshades.app inboxes for magic links, and creating dedicated
+// Google accounts adds friction). Also a nice option for any user who prefers
+// a traditional password flow. Supabase Auth's `signInWithPassword` returns
+// an error rather than auto-creating accounts; sign-up happens separately via
+// the dashboard or `signUp` (not exposed in the UI yet — only used for
+// pre-created accounts).
+async function authSignInWithPassword(email, password) {
+  try {
+    sessionStorage.setItem('solsteder_auth_restore', JSON.stringify(_captureAuthRestoreState()));
+  } catch (_) {}
+  const { error } = await _supabase.auth.signInWithPassword({ email, password });
+  return { error };
+}
+
 async function authSignOut() {
   // All cleanup now lives in the SIGNED_OUT branch of onAuthStateChange so
   // it runs whether sign-out was initiated here, by token expiry, or by
@@ -315,8 +331,10 @@ function renderLoginGate(v) {
         </button>
         <div class="auth-divider"><span>or</span></div>
         <form class="auth-magic-link-form" onsubmit="handleMagicLinkSubmit(event, this)">
-          <input type="email" class="auth-magic-link-input" placeholder="${t('magic_link_placeholder')}" required>
-          <button type="submit" class="auth-btn auth-btn-email">${t('magic_link_send')}</button>
+          <input type="email" class="auth-magic-link-input" placeholder="${t('magic_link_placeholder')}" autocomplete="email" required>
+          <input type="password" class="auth-password-input" placeholder="${t('signin_password_placeholder')}" autocomplete="current-password">
+          <button type="submit" class="auth-btn auth-btn-email">${t('signin_email_button')}</button>
+          <div class="auth-password-hint">${t('signin_password_hint')}</div>
           <div class="auth-magic-link-status"></div>
         </form>
       </div>
@@ -326,24 +344,43 @@ function renderLoginGate(v) {
 
 async function handleMagicLinkSubmit(e, form) {
   e.preventDefault();
-  const input  = form.querySelector('.auth-magic-link-input');
-  const btn    = form.querySelector('.auth-btn-email');
-  const status = form.querySelector('.auth-magic-link-status');
-  const email  = input.value.trim();
+  const emailInput    = form.querySelector('.auth-magic-link-input');
+  const passwordInput = form.querySelector('.auth-password-input');
+  const btn           = form.querySelector('.auth-btn-email');
+  const status        = form.querySelector('.auth-magic-link-status');
+  const email    = emailInput.value.trim();
+  const password = passwordInput ? passwordInput.value : '';
   if (!email) return;
   btn.disabled = true;
   btn.textContent = '…';
-  const { error } = await authSignInWithMagicLink(email);
-  if (error) {
-    status.textContent = t('magic_link_error');
-    status.className = 'auth-magic-link-status error';
+  // Branch on password presence:
+  //  * filled → traditional email + password sign-in (Supabase
+  //             signInWithPassword). Used for reviewer accounts.
+  //  * empty  → magic link (Supabase signInWithOtp), as before.
+  if (password) {
+    const { error } = await authSignInWithPassword(email, password);
+    if (error) {
+      status.textContent = t('signin_password_error');
+      status.className = 'auth-magic-link-status error';
+    } else {
+      // Success — onAuthStateChange will re-render the UI. Briefly show
+      // a confirmation so the user knows the submit landed.
+      status.textContent = t('signin_password_success');
+      status.className = 'auth-magic-link-status success';
+    }
   } else {
-    status.textContent = t('magic_link_sent');
-    status.className = 'auth-magic-link-status success';
-    input.disabled = true;
+    const { error } = await authSignInWithMagicLink(email);
+    if (error) {
+      status.textContent = t('magic_link_error');
+      status.className = 'auth-magic-link-status error';
+    } else {
+      status.textContent = t('magic_link_sent');
+      status.className = 'auth-magic-link-status success';
+      emailInput.disabled = true;
+    }
   }
   btn.disabled = false;
-  btn.textContent = t('magic_link_send');
+  btn.textContent = t('signin_email_button');
 }
 
 function _updateUserIndicator() {
