@@ -1439,7 +1439,9 @@ function _openInviteSheet(venueId) {
             <div class="dpinvite-moment-col">
               <div class="dpinvite-moment-label">${t('invite_hero_meets')}</div>
               <div class="dpinvite-moment-time" id="dpinvite-moment-time"></div>
-              <div class="dpinvite-moment-sub" id="dpinvite-moment-sub"></div>
+              <button type="button" class="dpinvite-moment-sub" id="dpinvite-moment-sub"
+                      onclick="if(typeof toggleQcPanel==='function')toggleQcPanel('date')"
+                      aria-label="${t('invite_eyebrow_select_time')}"></button>
             </div>
           </div>
         </div>`;
@@ -1458,7 +1460,10 @@ function _openInviteSheet(venueId) {
     </div>
     <div class="dpinvite-body">
       ${momentBlock}
-      <div class="dpinvite-fts-slot" id="dpinvite-fts-slot" aria-hidden="false"></div>
+      <div>
+        <div class="dpinvite-friends-label">${t('invite_eyebrow_select_time')}</div>
+        <div class="dpinvite-fts-slot" id="dpinvite-fts-slot" aria-hidden="false"></div>
+      </div>
       ${friendsBlock}
       ${ctaRow}
       <div class="dpinvite-cancel-row">
@@ -1490,7 +1495,13 @@ function _openInviteSheet(venueId) {
     const THRESHOLD_PX = 100;
     const FLICK_VELOCITY = 0.6;
     const MOVE_TRIGGER_PX = 4;
-    const INTERACTIVE_SEL = 'button, input, textarea, select, a, [role="button"], [data-no-drag], .dpinvite-avatar, .dpinvite-friend';
+    // FTS lives INSIDE the sheet now — its thumb / track / popup are
+    // pointerdown targets the user touches while picking the meet time.
+    // Without #fts in the exempt list, dragging the thumb also drags the
+    // sheet downward (the sheet's drag-to-dismiss handler hijacks the
+    // pointer move). The .dpinvite-fts-slot wraps the relocated FTS so
+    // a single selector covers all interior elements.
+    const INTERACTIVE_SEL = 'button, input, textarea, select, a, [role="button"], [data-no-drag], .dpinvite-avatar, .dpinvite-friend, #fts, .dpinvite-fts-slot';
     const isInteractive = (el) => !!(el && el.closest && el.closest(INTERACTIVE_SEL));
     const onStart = (e) => {
       // Don't hijack taps on actionable elements (Del lenke, Avbryt, avatars).

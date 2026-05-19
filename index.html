@@ -103,7 +103,7 @@
     [60, 180, 500, 1200].forEach(function (d) { setTimeout(set, d); });
   })();
 </script>
-<script defer src="js/i18n.js?v=20260519m"></script>
+<script defer src="js/i18n.js?v=20260519n"></script>
 <script defer src="js/config.js?v=20260518a"></script>
 <script defer src="js/tokens.js?v=20260509e"></script>
 <script defer src="js/auth.js?v=20260519a"></script>
@@ -129,8 +129,8 @@
 <script defer src="js/admin-audit.js?v=20260512a"></script>
 <script defer src="js/ui-shelter.js?v=20260416a"></script>
 <script defer src="js/render-wind.js?v=20260416b"></script>
-<script defer src="js/ui-detail.js?v=20260519m"></script>
-<script defer src="js/ui-plan-preview.js?v=20260519m"></script>
+<script defer src="js/ui-detail.js?v=20260519n"></script>
+<script defer src="js/ui-plan-preview.js?v=20260519n"></script>
 <script defer src="js/osm.js?v=20260513a"></script>
 <script defer src="js/notifications.js?v=20260519c"></script>
 <script defer src="js/push.js?v=20260518c"></script>
@@ -2581,10 +2581,21 @@
      • expanded (drag): time + weather icon on row 1, temp + wind on row 2.
      Morph between the two via the same transitions on padding/border-radius/
      gap; child rows fade their secondary line in/out. */
-  #fts-popup {
+  /* Popup body — used by BOTH the floating time slider (#fts-popup) and
+     the accept-panel timeline scrubber (.dprcv-timeline-scrubber-label).
+     Same Tier-2 slate-glass card surface, same compact↔expanded morph,
+     so the receiver gets one consistent 'time + weather' feedback element
+     across the app. The two callers differ only in:
+       - parent container (FTS-track vs scrubber wrapper)
+       - tail (FTS uses SVG #fts-popup-tail with computed polygons;
+         scrubber uses a CSS clip-path triangle, since it never clamps
+         against viewport edges)
+       - JS that drives the expanded toggle (FTS: pointerdown on thumb;
+         scrubber: pointerdown on the timeline canvas) */
+  .fts-popup {
     position: absolute;
     bottom: calc(100% + 6px);
-    left: 50%;                /* repositioned by JS to follow thumb */
+    left: 50%;                /* FTS overrides via JS to follow thumb */
     transform: translateX(-50%);
     transform-origin: bottom center;
     z-index: 10;
@@ -2593,8 +2604,6 @@
     align-items: center;
     gap: 0;
     padding: 4px 5px;
-    /* Tier-2 card surface — solid enough that the time + weather text
-       reads cleanly without competing with the map underneath. */
     background: var(--glass-card-bg);
     backdrop-filter: var(--glass-blur-card);
     -webkit-backdrop-filter: var(--glass-blur-card);
@@ -2618,7 +2627,7 @@
      translateX(-50%) so the popup stays centred horizontally during the
      scale wobble; transform-origin: bottom centre means the bounce
      pivots from the tail anchor at the thumb. */
-  #fts-popup.is-releasing {
+  .fts-popup.is-releasing {
     animation: fts-popup-release 320ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
   }
   @keyframes fts-popup-release {
@@ -2628,7 +2637,7 @@
     100% { transform: translateX(-50%) scale(1.00); }
   }
   @media (prefers-reduced-motion: reduce) {
-    #fts-popup.is-releasing { animation: none; }
+    .fts-popup.is-releasing { animation: none; }
   }
   /* Tail — SVG with dynamically computed polygon. The two shoulders sit
      on the popup's bottom outline (riding up the rounded-corner curve
@@ -2662,11 +2671,11 @@
     stroke-linecap: round;
     stroke-linejoin: round;
   }
-  #fts-popup.fts-popup-below {
+  .fts-popup.fts-popup-below {
     bottom: auto;
     top: calc(100% + 6px);
   }
-  #fts-popup.fts-popup-below::after {
+  .fts-popup.fts-popup-below::after {
     bottom: auto; top: -6px;
     clip-path: polygon(50% 0, 0 100%, 100% 100%);
   }
@@ -2687,10 +2696,10 @@
     gap: 5px;
     margin-top: 0;
   }
-  #fts-popup.fts-popup-expanded .fts-popup-secondary {
+  .fts-popup.fts-popup-expanded .fts-popup-secondary {
     display: flex;
   }
-  #fts-popup-time {
+  .fts-popup-time {
     font: 700 13px/1 'Inter', sans-serif;
     /* Cream on the compact popup — neutral, polished. Honey/accent
        only when the popup expands (drag) to mark the active state. */
@@ -2701,26 +2710,25 @@
       font-size 0.18s cubic-bezier(0.32, 0.72, 0, 1),
       color    0.22s ease;
   }
-  #fts-popup.fts-popup-expanded #fts-popup-time { color: var(--accent); }
-  /* Weather glyph — same SVG set as the accept-page timeline event row
-     (TIMELINE_EVENT_GLYPHS). Hidden in the compact popup state since the
-     thumb itself now carries the current weather icon — only shown in
-     the expanded card during drag, where it pairs with temp + wind. */
-  #fts-popup-wx-icon {
+  .fts-popup.fts-popup-expanded .fts-popup-time { color: var(--accent); }
+  /* Weather glyph — same SVG set as the accept-page TIMELINE_EVENT_GLYPHS.
+     Hidden in compact (the thumb itself / the in-bar weather row already
+     carries the current weather icon) — only shown in expanded during drag. */
+  .fts-popup-wx-icon {
     display: inline-flex;
     align-items: center;
     line-height: 1;
     transition: opacity 0.14s ease;
   }
-  #fts-popup:not(.fts-popup-expanded) #fts-popup-wx-icon { display: none; }
-  #fts-popup-wx-icon svg {
+  .fts-popup:not(.fts-popup-expanded) .fts-popup-wx-icon { display: none; }
+  .fts-popup-wx-icon svg {
     width: 13px;
     height: 13px;
     display: block;
     transition: width 0.18s cubic-bezier(0.32, 0.72, 0, 1),
                 height 0.18s cubic-bezier(0.32, 0.72, 0, 1);
   }
-  #fts-popup-temp {
+  .fts-popup-temp {
     font: 600 10px/1 'Inter', sans-serif;
     color: var(--text);
     opacity: 0.9;
@@ -2733,7 +2741,7 @@
     opacity: 0.9;
     transition: font-size 0.18s cubic-bezier(0.32, 0.72, 0, 1);
   }
-  #fts-popup-wind {
+  .fts-popup-wind {
     font: 600 10px/1 'Inter', sans-serif;
     color: var(--text);
     opacity: 0.9;
@@ -2742,35 +2750,35 @@
   }
   /* "Closed" replaces the temp + wind row when the selected venue is
      closed at the current hour. */
-  #fts-popup-closed-label {
+  .fts-popup-closed-label {
     display: none;
     font: 600 10px/1 'Inter', sans-serif;
     color: var(--text);
     opacity: 0.9;
     transition: font-size 0.18s cubic-bezier(0.32, 0.72, 0, 1);
   }
-  #fts-popup.is-closed #fts-popup-temp,
-  #fts-popup.is-closed #fts-popup-wind,
-  #fts-popup.is-closed .fts-dot { display: none; }
-  #fts-popup.is-closed #fts-popup-closed-label { display: inline; }
-  #fts-popup.fts-popup-expanded #fts-popup-closed-label { font-size: 13px; }
+  .fts-popup.is-closed .fts-popup-temp,
+  .fts-popup.is-closed .fts-popup-wind,
+  .fts-popup.is-closed .fts-dot { display: none; }
+  .fts-popup.is-closed .fts-popup-closed-label { display: inline; }
+  .fts-popup.fts-popup-expanded .fts-popup-closed-label { font-size: 13px; }
 
-  /* Expanded state — applied while dragging the thumb. Pill grows to show
-     the weather row, secondary fades in, primary's icon slides into place.
+  /* Expanded state — applied while dragging. Pill grows to show the
+     weather row, secondary fades in, primary's icon slides into place.
      Type and icon scale up alongside padding so the card reads as a
      deliberately larger overlay during scrub, not just a wider compact pill. */
-  #fts-popup.fts-popup-expanded {
+  .fts-popup.fts-popup-expanded {
     padding: 10px 14px 9px;
     gap: 4px;
     border-radius: 14px;
   }
-  #fts-popup.fts-popup-expanded #fts-popup-time     { font-size: 20px; }
-  #fts-popup.fts-popup-expanded #fts-popup-wx-icon svg { width: 20px; height: 20px; }
-  #fts-popup.fts-popup-expanded #fts-popup-temp     { font-size: 13px; }
-  #fts-popup.fts-popup-expanded #fts-popup-wind     { font-size: 13px; }
-  #fts-popup.fts-popup-expanded .fts-dot            { font-size: 12px; }
-  #fts-popup.fts-popup-expanded .fts-popup-primary  { gap: 8px; }
-  #fts-popup.fts-popup-expanded .fts-popup-secondary {
+  .fts-popup.fts-popup-expanded .fts-popup-time     { font-size: 20px; }
+  .fts-popup.fts-popup-expanded .fts-popup-wx-icon svg { width: 20px; height: 20px; }
+  .fts-popup.fts-popup-expanded .fts-popup-temp     { font-size: 13px; }
+  .fts-popup.fts-popup-expanded .fts-popup-wind     { font-size: 13px; }
+  .fts-popup.fts-popup-expanded .fts-dot            { font-size: 12px; }
+  .fts-popup.fts-popup-expanded .fts-popup-primary  { gap: 8px; }
+  .fts-popup.fts-popup-expanded .fts-popup-secondary {
     margin-top: 2px;
     gap: 6px;
   }
@@ -9432,7 +9440,36 @@
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.01em;
   }
-  .dpinvite-moment-sub {
+  /* Interactive day-button — taps open the date picker (toggleQcPanel('date')),
+     mirroring the FTS top-bar date chip. Styled as a tappable pill so the
+     affordance is visible without dominating the column. */
+  button.dpinvite-moment-sub {
+    appearance: none;
+    border: 0;
+    cursor: pointer;
+    background: rgba(245, 194, 94, 0.10);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 700;
+    margin-top: 4px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    letter-spacing: 0.01em;
+    /* Tabular-nums for the dotted date variant ("12. mai") — keeps
+       digits aligned column-wise. */
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    align-self: flex-end;
+    transition: background 0.14s ease, color 0.14s ease, transform 90ms ease-out;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button.dpinvite-moment-sub:hover {
+    background: rgba(245, 194, 94, 0.18);
+    color: var(--accent);
+  }
+  button.dpinvite-moment-sub:active { transform: scale(0.97); }
+  /* Fallback for the static div variant (if rendered without the button). */
+  div.dpinvite-moment-sub {
     font-size: 13px;
     font-weight: 700;
     color: var(--text);
@@ -9442,12 +9479,16 @@
   /* FTS slot — host for the floating time slider when the invite sheet
      is open. Reparented from <body> on open, restored on close. The
      `.fts-in-invite` class on #fts turns off the body-anchored fixed
-     positioning so the slider flows in-place here. The top padding
-     reserves room for the FTS popup that floats above the thumb. */
+     positioning so the slider flows in-place here. Top padding reserves
+     just enough room for the compact FTS popup that floats above the
+     thumb — tightened so the popup sits close to the 'Select time'
+     label above instead of leaving a wide gap. */
   .dpinvite-fts-slot {
     width: 100%;
-    /* Room above for the FTS popup (~28 px tall + tail + breathing). */
-    padding-top: 38px;
+    /* Compact popup is ~22 px tall + 6 px tail + breathing. The
+       expanded state overflows upward into the parent's bottom margin,
+       which is fine — Inviter title sits well above this. */
+    padding-top: 30px;
     padding-bottom: 4px;
     position: relative;
   }
@@ -9924,8 +9965,13 @@
   }
   .dprcv-moment-col {
     flex-shrink: 0;
-    min-width: 88px;
-    max-width: 140px;
+    /* Tight: width grows only as much as the time string needs.
+       fit-content lets long time strings (e.g. "20:00" + a wide
+       weekday in the sub) breathe, but at default ~5-char readouts
+       the column collapses to ~62 px. Adapts naturally to user text-
+       size increases since nothing is hard-clamped. */
+    width: fit-content;
+    min-width: 60px;
     text-align: right;
     display: flex;
     flex-direction: column;
@@ -10027,14 +10073,17 @@
   }
 
   /* Sun summary chip — single honey-tinted strip between header and
-     timeline. Form: ☀ Sol til 20:40 · 2t 40m · 21°. Sits over the same
-     hairline divider the old hero used so the section break stays. */
+     timeline. Form: ☀ Sol til 20:40 · 2t 40m · 21°. Centred so the
+     row reads as a piece of information, not anchored to one side.
+     Tight bottom padding so the compact FTS-popup-style scrubber bubble
+     above the marker has visible breathing room without a wide gap. */
   .dprcv-sun-chip {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
     flex-wrap: wrap;
-    padding: 10px 0 0;
+    padding: 10px 0 2px;
     margin-top: 8px;
     border-top: 1px solid rgba(156,189,231,0.10);
     font-size: 13px;
@@ -10063,7 +10112,11 @@
     position: relative;
     height: 78px;
     padding-top: 30px;
-    margin-top: 10px;
+    /* Tight gap above the bar — the compact scrubber bubble (only
+       visible while the receiver is interacting) lives in this 30 px
+       padding-top band, and the sun chip above already provides the
+       visual break. Was 10 → 2 to pull the chip closer to the bar. */
+    margin-top: 2px;
     border-radius: 0;
   }
   /* In-bar weather row — absolute icons centred over the canvas bar area
@@ -10129,35 +10182,11 @@
     border-radius: 1.5px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
   }
-  /* Scrubber bubble — FTS-popup vocabulary (slate-glass card, hairline
-     border, inset + drop shadow, ::after tail pointing down to the pill).
-     Reads as the same overlay surface as the floating time slider's
-     popup, so the receiver gets one consistent 'time + weather' feedback
-     element across the app. */
-  .dprcv-timeline-scrubber-label {
-    position: absolute;
-    bottom: calc(100% + 6px);
-    left: 0;
-    transform: translateX(-50%);
-    white-space: nowrap;
-    font: 700 13px/1 'Inter', sans-serif;
-    color: rgba(255,244,224,0.95);
-    background: var(--glass-card-bg);
-    backdrop-filter: var(--glass-blur-card);
-    -webkit-backdrop-filter: var(--glass-blur-card);
-    border: var(--glass-border);
-    padding: 4px 8px;
-    border-radius: 10px;
-    box-shadow: var(--glass-inset), 0 6px 24px rgba(0,0,0,0.50);
-    font-variant-numeric: tabular-nums;
-    letter-spacing: -0.01em;
-    pointer-events: none;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  /* Down-pointing tail — small slate triangle so the bubble reads as
-     pointing at the cream marker below. */
+  /* Scrubber bubble — the visual body comes from the shared .fts-popup
+     class (slate-glass card + compact↔expanded morph). Only the tail
+     stays scrubber-specific: a CSS clip-path triangle, since the
+     scrubber never clamps against viewport edges (the FTS popup's SVG
+     polygon trick isn't needed here). */
   .dprcv-timeline-scrubber-label::after {
     content: '';
     position: absolute;
@@ -10169,16 +10198,13 @@
     background: rgba(26, 44, 66, 0.86);
     clip-path: polygon(0 0, 100% 0, 50% 100%);
     pointer-events: none;
+    transition: width 0.18s cubic-bezier(0.32, 0.72, 0, 1),
+                height 0.18s cubic-bezier(0.32, 0.72, 0, 1);
   }
-  .dprcv-timeline-scrubber-label svg {
-    width: 13px;
-    height: 13px;
-    flex-shrink: 0;
-    display: block;
+  .dprcv-timeline-scrubber-label.fts-popup-expanded::after {
+    width: 12px;
+    height: 7px;
   }
-  .dprcv-timeline-scrubber-time,
-  .dprcv-timeline-scrubber-temp { line-height: 1; }
-  .dprcv-timeline-scrubber-temp { opacity: 0.85; font-size: 11px; font-weight: 600; }
   .dprcv-timeline-canvas.card-timeline-canvas {
     width: 100%;
     height: 48px;
@@ -10250,7 +10276,12 @@
   .dprcv-footer {
     position: sticky;
     bottom: 0;
-    padding: 12px 0 0;
+    /* Bottom padding clears the Android gesture bar / iOS home indicator.
+       --app-pad-b already brings safe-area inset, but on Android phones
+       with 0-inset gestures, "Coming later · Decline" was sitting flush
+       against the OS handle. Add an explicit baseline so the secondary
+       row has at least ~14 px of clearance regardless of platform inset. */
+    padding: 12px 0 14px;
     z-index: 2;
     display: flex;
     flex-direction: column;
@@ -11423,16 +11454,16 @@
         <canvas id="fts-canvas"></canvas>
         <div id="fts-events" aria-hidden="true"></div>
         <div id="fts-thumb" aria-hidden="true"></div>
-        <div id="fts-popup">
+        <div id="fts-popup" class="fts-popup">
           <div class="fts-popup-row fts-popup-primary">
-            <span id="fts-popup-time"></span>
-            <span id="fts-popup-wx-icon" aria-hidden="true"></span>
+            <span id="fts-popup-time" class="fts-popup-time"></span>
+            <span id="fts-popup-wx-icon" class="fts-popup-wx-icon" aria-hidden="true"></span>
           </div>
           <div class="fts-popup-row fts-popup-secondary">
-            <span id="fts-popup-temp"></span>
+            <span id="fts-popup-temp" class="fts-popup-temp"></span>
             <span class="fts-dot">·</span>
-            <span id="fts-popup-wind"></span>
-            <span id="fts-popup-closed-label"></span>
+            <span id="fts-popup-wind" class="fts-popup-wind"></span>
+            <span id="fts-popup-closed-label" class="fts-popup-closed-label"></span>
           </div>
           <svg id="fts-popup-tail" aria-hidden="true" preserveAspectRatio="none">
             <defs>

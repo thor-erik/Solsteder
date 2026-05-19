@@ -1127,7 +1127,17 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
                appears at the touched hour with an FTS-style bubble above;
                further drags move it. Auto-hides after a brief idle. -->
           <div class="dprcv-timeline-scrubber" aria-hidden="true">
-            <div class="dprcv-timeline-scrubber-label"></div>
+            <div class="dprcv-timeline-scrubber-label fts-popup">
+              <div class="fts-popup-row fts-popup-primary">
+                <span class="fts-popup-time"></span>
+                <span class="fts-popup-wx-icon" aria-hidden="true"></span>
+              </div>
+              <div class="fts-popup-row fts-popup-secondary">
+                <span class="fts-popup-temp"></span>
+                <span class="fts-dot">·</span>
+                <span class="fts-popup-wind"></span>
+              </div>
+            </div>
             <div class="dprcv-timeline-scrubber-pill"></div>
           </div>
           <canvas class="card-timeline-canvas dprcv-timeline-canvas" data-vid="${venue.id}" width="600" height="40"></canvas>
@@ -1254,25 +1264,26 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
           // are selecting another time to join'.
           let _scrubAutoHideTimer = null;
           const SCRUB_AUTO_HIDE_MS = 2500;
+          // Cache child slots — written per-frame as the user scrubs.
+          const timeSlot = labelEl && labelEl.querySelector('.fts-popup-time');
+          const wxSlot   = labelEl && labelEl.querySelector('.fts-popup-wx-icon');
+          const tempSlot = labelEl && labelEl.querySelector('.fts-popup-temp');
+          const windSlot = labelEl && labelEl.querySelector('.fts-popup-wind');
           const update = () => {
             const h = parseFloat(timeFromEl.value);
             if (!Number.isFinite(h)) return;
             const xPct = Math.max(0, Math.min(100, ((h - barMinH) / (barMaxH - barMinH)) * 100));
             scrubberEl.style.left = xPct + '%';
             if (labelEl) {
-              const glyph = TIMELINE_EVENT_GLYPHS[stateAt(h)] || '';
-              // Temp at the scrubbed hour — appears at the END so the
-              // label reads {time} {icon} {temp}°. Silently skipped
-              // when forecast data isn't available so the label
-              // doesn't show a dangling '°'.
-              let tempStr = '';
+              if (timeSlot) timeSlot.textContent = formatHour(h);
+              if (wxSlot)   wxSlot.innerHTML = TIMELINE_EVENT_GLYPHS[stateAt(h)] || '';
               try {
                 if (typeof getWeatherAt === 'function') {
                   const _wx = getWeatherAt(dateStr, h + 0.001);
-                  if (_wx && Number.isFinite(_wx.temp)) tempStr = `<span class="dprcv-timeline-scrubber-temp">${Math.round(_wx.temp)}°</span>`;
+                  if (tempSlot) tempSlot.textContent = (_wx && Number.isFinite(_wx.temp)) ? `${Math.round(_wx.temp)}°` : '';
+                  if (windSlot) windSlot.textContent = (_wx && Number.isFinite(_wx.wspd)) ? `${Math.round(_wx.wspd)} m/s` : '';
                 }
               } catch (e) { /* ignore */ }
-              labelEl.innerHTML = `<span class="dprcv-timeline-scrubber-time">${formatHour(h)}</span>${glyph}${tempStr}`;
             }
             // Suppress visibility during the autoplay timelapse — the
             // marker would just drift across the bar following the time
@@ -1307,15 +1318,25 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
           // 'slide-to-position' transition; subsequent pointermoves
           // switch to instant tracking. Means a tap looks like a smooth
           // glide to the tapped hour, but a drag still feels 1:1 with
-          // the finger.
-          const onCanvasDown = () => scrubberEl.classList.remove('is-dragging');
+          // the finger. On pointerdown the bubble morphs to the FTS-popup
+          // expanded vocab (larger, accent time, wx + temp + wind row);
+          // pointerup snaps back to compact.
+          const onCanvasDown = () => {
+            scrubberEl.classList.remove('is-dragging');
+            if (labelEl) labelEl.classList.add('fts-popup-expanded');
+          };
           const onCanvasMove = (ev) => {
             if (ev.buttons === 0 && ev.pressure === 0 && ev.pointerType !== 'touch') return;
             scrubberEl.classList.add('is-dragging');
           };
+          const onCanvasUp = () => {
+            if (labelEl) labelEl.classList.remove('fts-popup-expanded');
+          };
           if (ftsCanvas) {
             ftsCanvas.addEventListener('pointerdown', onCanvasDown);
             ftsCanvas.addEventListener('pointermove', onCanvasMove);
+            ftsCanvas.addEventListener('pointerup', onCanvasUp);
+            ftsCanvas.addEventListener('pointercancel', onCanvasUp);
           }
           timeFromEl.addEventListener('input', update);
           document.addEventListener('pointerdown', onDocPointer);
@@ -1329,6 +1350,8 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
             if (ftsCanvas) {
               ftsCanvas.removeEventListener('pointerdown', onCanvasDown);
               ftsCanvas.removeEventListener('pointermove', onCanvasMove);
+              ftsCanvas.removeEventListener('pointerup', onCanvasUp);
+              ftsCanvas.removeEventListener('pointercancel', onCanvasUp);
             }
           };
         }
