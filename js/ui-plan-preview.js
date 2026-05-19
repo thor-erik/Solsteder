@@ -753,12 +753,13 @@ function closePlanPreview(opts = {}) {
     // handoff (post-accept transition). Without recovery the user is
     // dropped onto a bare map: chrome was hidden by plan-preview-active,
     // and removing the class on close is a no-op visually because no
-    // other surface re-appears. Surface the venue list expanded — the
-    // canonical "I'm browsing" state — so there's always SOMETHING to
-    // come back to.
+    // other surface re-appears. Slide the venue list up — same motion
+    // as the page-load intro so the user sees it arrive explicitly.
     if (!opts.skipDetailOpen && !st.detailWasOpen && window.innerWidth < 640) {
       try {
-        if (typeof window._applyMobilePanelState === 'function') {
+        if (typeof window._slideUpVenueListToExpanded === 'function') {
+          window._slideUpVenueListToExpanded();
+        } else if (typeof window._applyMobilePanelState === 'function') {
           window._applyMobilePanelState('expanded');
         }
       } catch (e) { /* ignore */ }

@@ -1159,7 +1159,12 @@ function _closePostAcceptPanel(opts = {}) {
   // skipExitToExplore + selects the venue explicitly; 'Change
   // response' opts out + reopens plan-preview.
   if (!opts.skipExitToExplore && typeof _exitToExploreMode === 'function') {
-    try { _exitToExploreMode(); } catch (e) { /* ignore */ }
+    // Pre-warm data (date / slider / list) but skip the panel slide here
+    // — body.post-accept-active is still on (kept for 320 ms so the
+    // post-accept slide-down doesn't fight a venue-list reveal). The
+    // slide-up fires once that class is removed below, so the user
+    // sees the venue list arrive AFTER the takeover is gone.
+    try { _exitToExploreMode({ skipPanelSlide: true }); } catch (e) { /* ignore */ }
   }
   // Defer body-class removal until the slide-down completes so the
   // venue list / search / FTS doesn't reveal while the panel is still
@@ -1171,6 +1176,14 @@ function _closePostAcceptPanel(opts = {}) {
   if (!opts.skipBodyClassRemoval) {
     setTimeout(() => {
       document.body.classList.remove('post-accept-active');
+      // Slide the venue list up from off-screen — same motion as the
+      // page-load intro. Fires AFTER the body class is gone so the
+      // panel is actually visible during the slide (opacity-0 mask
+      // is now lifted).
+      if (window.innerWidth < 640
+          && typeof window._slideUpVenueListToExpanded === 'function') {
+        window._slideUpVenueListToExpanded();
+      }
     }, 320);
   }
 }

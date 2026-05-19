@@ -2116,16 +2116,40 @@ function _dayLabel(dateStr) {
   return d.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 }
 
-function _exitToExploreMode() {
-  // Expand the venue list FIRST so the user always has UI to come back
-  // to — even if _findFirstSunDayAndHour returns null (no upcoming sun)
-  // and the rest of this function early-returns. Without this the
-  // post-accept close could land on a bare map.
+/** Slide the venue list panel UP from off-screen to the expanded state.
+ *  Used by the takeover-close recovery paths (closePlanPreview after
+ *  accept/decline, _closePostAcceptPanel after the confirmation closes)
+ *  so the user sees the venue list arrive with the same motion the
+ *  page-load intro uses — not appear instantly. Mobile only; desktop's
+ *  panel is always visible. Idempotent guard via opts.skipIfVisible if
+ *  the panel is already on-screen we leave it alone. */
+function _slideUpVenueListToExpanded(opts) {
   const panel = document.getElementById('panel');
-  if (panel && typeof isMobile === 'function' && isMobile()) {
-    panel.classList.remove('mobile-hidden', 'mobile-fullscreen');
-    panel.classList.add('mobile-expanded');
-    if (typeof _syncFtsPosition === 'function') _syncFtsPosition();
+  if (!panel) return;
+  if (typeof isMobile === 'function' && !isMobile()) return;
+  // Clear any inline overrides that could fight the slide animation.
+  panel.style.transition = 'none';
+  panel.style.opacity    = '1';
+  panel.style.bottom     = `-${Math.round(window.innerHeight)}px`;
+  panel.classList.remove('mobile-hidden', 'mobile-fullscreen');
+  panel.classList.add('mobile-expanded');
+  // Force layout so the off-screen bottom is committed as the start of
+  // the transition.
+  panel.getBoundingClientRect();
+  panel.style.transition = 'bottom 0.45s cubic-bezier(0.2, 0.8, 0.3, 1)';
+  panel.style.bottom     = '';
+  if (typeof _syncFtsPosition === 'function') _syncFtsPosition();
+}
+window._slideUpVenueListToExpanded = _slideUpVenueListToExpanded;
+
+function _exitToExploreMode(opts) {
+  opts = opts || {};
+  // Surface the venue list (mobile only). Callers can pass
+  // skipPanelSlide:true when they want to coordinate the slide
+  // themselves (e.g., _closePostAcceptPanel synchronises it with the
+  // 320 ms post-accept slide-down). Default: slide up immediately.
+  if (typeof isMobile === 'function' && isMobile() && !opts.skipPanelSlide) {
+    _slideUpVenueListToExpanded();
   }
   const found = _findFirstSunDayAndHour();
   if (!found) return;
