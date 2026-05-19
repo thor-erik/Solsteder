@@ -922,10 +922,23 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
       }
     } catch (e) { /* ignore */ }
     if (temp != null) detailParts.push(`${temp}°`);
-    const detailStr = detailParts.join(' · ');
-    return `<span class="dprcv-sun-chip-glyph" aria-hidden="true">${sunGlyph}</span>`
-         + `<span class="dprcv-sun-chip-label">${labelStr}</span>`
-         + (detailStr ? `<span class="dprcv-sun-chip-sep" aria-hidden="true">·</span><span class="dprcv-sun-chip-detail">${detailStr}</span>` : '');
+    // Glyph slots BEFORE the duration ("Sol til 20:40 · ☀ 2t 40m · 21°"),
+    // not before the label — the label already names the metric ("Sol til"),
+    // and the glyph reads as an icon FOR the duration itself. After-sundown,
+    // the first detail is "X min ago" — the glyph there would read as a
+    // sun glyph next to a past-tense duration, so it's omitted.
+    const firstDetail = detailParts[0] || '';
+    const restDetail  = detailParts.slice(1).join(' · ');
+    const showGlyph   = firstDetail && !after;
+    const firstHtml   = firstDetail
+      ? `<span class="dprcv-sun-chip-sep" aria-hidden="true">·</span>`
+      + (showGlyph ? `<span class="dprcv-sun-chip-glyph" aria-hidden="true">${sunGlyph}</span>` : '')
+      + `<span class="dprcv-sun-chip-detail">${firstDetail}</span>`
+      : '';
+    const restHtml = restDetail
+      ? `<span class="dprcv-sun-chip-sep" aria-hidden="true">·</span><span class="dprcv-sun-chip-detail">${restDetail}</span>`
+      : '';
+    return `<span class="dprcv-sun-chip-label">${labelStr}</span>${firstHtml}${restHtml}`;
   };
 
   // ── Inline icon set (Lucide-style)

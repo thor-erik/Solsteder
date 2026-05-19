@@ -140,6 +140,11 @@ function _captureAuthRestoreState() {
     // when an anon user tries to invite). _restorePreAuthState replays it
     // after the date/time/venue have been restored.
     intent:  (typeof window !== 'undefined') ? window._postLoginIntent : null,
+    // Capture the pending plan-invite payload (set in app.js when the
+    // user lands on a /i/<token>/ or #invite/... URL). Survives the
+    // OAuth round-trip so the receiver re-lands on the plan preview
+    // instead of an empty home screen after signing in to RSVP.
+    pendingInvite: (typeof window !== 'undefined') ? (window._pendingInvite || null) : null,
     savedAt: Date.now(),
   };
 }

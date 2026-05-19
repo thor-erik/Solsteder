@@ -6851,6 +6851,22 @@ function _restorePreAuthState() {
       if (typeof window !== 'undefined') window._postLoginIntent = null;
     }, 700);
   }
+
+  // Rehydrate the pending plan-invite payload so the receiver lands back
+  // on the plan-preview card after they sign in to RSVP. Supabase strips
+  // the invite token from the URL during the OAuth callback, so on the
+  // second page-load the URL no longer carries the data — sessionStorage
+  // is the only path back. window._tryPendingInvite is now exposed
+  // unconditionally so we can invoke it whether or not the URL carried
+  // the original token.
+  if (saved.pendingInvite) {
+    window._pendingInvite = saved.pendingInvite;
+    setTimeout(() => {
+      if (typeof window._tryPendingInvite === 'function') {
+        try { window._tryPendingInvite(); } catch (e) { /* ignore */ }
+      }
+    }, 900);
+  }
 }
 
 function _introCheckReady() {
@@ -7047,16 +7063,17 @@ function _introCheckReady() {
       const _pathMatch = window.location.pathname.match(/\/i\/([A-Za-z0-9+/=_-]+)\/?$/);
       if (_pathMatch) _inviteToken = _pathMatch[1];
     }
-    if (_inviteToken) {
-      try {
-        const data = JSON.parse(atob(_inviteToken));
-        window._pendingInvite = data;
-        // _tryInvite no longer bails when logged-out — it opens the preview in
-        // mode='invite-anon' so the receiver sees what they're invited to before
-        // the login prompt. The DB-write side (plan_invites upsert) only runs
-        // when authenticated; if the user logs in later, we resume via the
-        // auth-state-change listener (see auth.js _resumePendingInvite).
-        const _tryInvite = async () => {
+    // _tryPendingInvite is exposed unconditionally so it can be invoked
+    // AFTER an OAuth round-trip — Supabase strips the invite token from the
+    // URL when it processes the callback, so on the second page load the
+    // `if (_inviteToken)` branch below doesn't run. _restorePreAuthState
+    // rehydrates window._pendingInvite from sessionStorage and then this
+    // function (already defined) resumes the flow. _tryPendingInvite is
+    // also called from auth.js on SIGNED_IN — same code path serves both.
+    //
+    // The function bails when window._pendingInvite is null (first line),
+    // so it's safe to call any time.
+    window._tryPendingInvite = async () => {
           const d = window._pendingInvite;
           if (!d) return;
           const user = (typeof authCurrentUser === 'function') ? authCurrentUser() : null;
@@ -7202,9 +7219,12 @@ function _introCheckReady() {
           if (user) window._pendingInvite = null;
           history.replaceState(null, '', location.pathname);
         };
-        setTimeout(_tryInvite, 1500);
-        // Expose for the auth listener to call after login
-        window._tryPendingInvite = _tryInvite;
+
+    if (_inviteToken) {
+      try {
+        const data = JSON.parse(atob(_inviteToken));
+        window._pendingInvite = data;
+        setTimeout(window._tryPendingInvite, 1500);
       } catch (e) { console.warn('[app] Invalid invite link:', e); }
     }
 
