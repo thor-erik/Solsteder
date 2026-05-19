@@ -7627,14 +7627,10 @@ function _skipIntro(seqId, opts) {
   }
   update();
 
-  // Map at user location, default tilt, zoom 14 (the resting zoom).
-  // v1 jumped to 13.5 and then easeTo(14, 800ms) — a cinematic 800ms
-  // zoom-in. That dive burnt the first-second main-thread budget on
-  // returning visits where the user just wants the app to be ready.
-  // Splash now holds long enough that the map is settled BEFORE it
-  // dismisses, so the user sees the resting state immediately.
+  // Map at user location, slightly wider than the resting zoom so the
+  // post-splash easeTo reads as a settle rather than a snap.
   map.stop();
-  map.jumpTo({ center: _introCenter, zoom: 14, pitch: 15, bearing: 0 });
+  map.jumpTo({ center: _introCenter, zoom: 13.5, pitch: 15, bearing: 0 });
 
   // Hide splash — unless opts.keepSplash is set (plan-invite path,
   // which lets openPlanPreview's map.once('idle') handler dismiss the
@@ -7657,42 +7653,55 @@ function _skipIntro(seqId, opts) {
     if (loader)     { loader.style.transition = 'none'; loader.classList.add('fade-out'); }
   };
 
-  // The post-splash choreography. Map camera is already at its resting
-  // state (from the jumpTo above + map.idle wait below). This function
-  // runs after the splash hides and reveals the canvas + slides in UI.
-  // No camera dive — the dive was a cosmetic 800ms zoom that compounded
-  // with the first-paint work and stuttered the early experience.
+  // Cubic ease-out — slows toward the end, the cinematic feel users expect
+  // from settling shots in films / map apps.
+  const easeOut = t => 1 - Math.pow(1 - t, 3);
+
+  // The post-splash choreography. Splash hides, camera dives from 13.5 to
+  // 14 over 800ms (subtle zoom-in settle), UI slides in alongside the dive,
+  // panel goes peek → expanded. The boot gate has already held the splash
+  // through worker-ready + map.idle, so by the time this fires the heavy
+  // first paint is done and the dive runs at near-cached cost (classifyPin
+  // memoized, labels skip _scoreAnchor while map.isMoving).
   const _runSkipChoreography = () => {
     if (_introSeqId !== localSeq) return;
+    // Phase 1 (800ms): zoom 13.5 → 14
+    map.easeTo({
+      center: _introCenter,
+      zoom: 14,
+      pitch: 15,
+      bearing: 0,
+      duration: 800,
+      easing: easeOut,
+    });
     if (canvas) {
       canvas.style.transition = 'opacity 0.55s ease';
       canvas.classList.remove('intro-hidden');
     }
-    // UI slide-in + panel to peek (starts immediately — there's no camera
-    // dive to overlap with anymore).
+    // Phase 2 (start at 350ms, overlap with zoom): UI slide-in + panel to peek
     setTimeout(() => {
       if (_introSeqId !== localSeq) return;
       _introRevealUI(search, brand, qcWrap, panel);
-    }, 50);
-    // Panel peek → expanded (starts after the slide-in settles).
+    }, 350);
+    // Phase 3 (start at 950ms): panel peek → expanded
     setTimeout(() => {
       if (_introSeqId !== localSeq) return;
       if (panel && isMobileSkip) {
         panel.classList.add('mobile-expanded');
         _syncFtsPosition();
       }
-    }, 600);
+    }, 950);
     // Wrap-up
     setTimeout(() => {
       if (_introSeqId !== localSeq) return;
       if (_sharedVenueId) selectVenue(_sharedVenueId, true);
       if (typeof _notifInit === 'function') _notifInit();
       if (typeof pushInit === 'function') pushInit();
-    }, 1050);
+    }, 1400);
     if (document.documentElement.classList.contains('invite-loading')) {
       setTimeout(() => {
         document.documentElement.classList.remove('invite-loading');
-      }, 1500);
+      }, 1800);
     }
   };
 

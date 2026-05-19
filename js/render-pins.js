@@ -1095,6 +1095,15 @@ let   _animScheduled = false;
 // map starts moving.
 let _labelMotionAlpha  = 1;
 let _labelMotionTarget = 1;
+// One-shot flag: set true on moveend/zoomend, consumed by the next draw
+// to run a single re-scoring pass. The re-score happens while labels
+// are still fading in (alpha near 0), so any side change lands BEFORE
+// the labels become visible — preventing the "label snaps to new
+// position after fade-in completes" artifact. Without this flag,
+// re-scoring was deferred until alpha settled above 0.98, by which
+// time the labels were fully drawn at the (potentially stale) cached
+// side and any reposition was visibly abrupt.
+let _needsLabelRescore = false;
 
 function _stepLerp(s, key, target, rate) {
   const cur = s[key];
@@ -1139,8 +1148,12 @@ function _wireZoomGate() {
   // Helper: flip the label-motion target and nudge the animation loop
   // so labels lerp smoothly even between map events (the lerp itself
   // runs inside draw, which the map.on('move') hook already calls).
+  // When transitioning to target=1 (motion settled), arm a one-shot
+  // re-score so labels reposition while still invisible — not after
+  // they've already become visible at the stale cached side.
   const _setLabelMotion = (target) => {
     _labelMotionTarget = target;
+    if (target === 1) _needsLabelRescore = true;
     _animDirty = true;
     _scheduleAnim();
   };
@@ -1945,11 +1958,18 @@ function draw() {
     }
   }
   // Spatial-hash placedPills (read by _scoreAnchor) and create the empty
-  // names grid. Only build during settled state — during motion we
-  // bypass scoring and read cached sides.
+  // names grid. Scoring runs:
+  //   - ONCE at moveend/zoomend (via _needsLabelRescore) — labels are
+  //     still fading in, so any side change is invisible
+  //   - When labels are fully settled (alpha ~1, target=1) AND there's
+  //     no pending rescore — keeps labels live to data changes that
+  //     happen post-settle (e.g. time-slider drag updating tiers)
+  // skipScoring is the fast cached-side path used during motion and
+  // during fade-in BETWEEN the moveend rescore and full settle.
   const placedPillsGrid = new Map();
   const placedNamesGrid = new Map();
-  const _doScoring = _labelMotionAlpha > 0.98 && _labelMotionTarget === 1;
+  const _doScoring = _needsLabelRescore
+    || (_labelMotionAlpha > 0.98 && _labelMotionTarget === 1);
   if (_doScoring) for (const p of placedPills) _bucketRect(placedPillsGrid, p);
   // Skip the whole loop only when labels are fully invisible AND we're
   // not re-scoring on settle. Even at low motion alpha we still draw
@@ -1987,7 +2007,12 @@ function draw() {
       ? Math.max(0, Math.min(1, (stEntry.morph - 0.5) / 0.3))
       : 1;
     const labelAlpha = morphAlpha * _labelMotionAlpha;
-    if (labelAlpha <= 0.02) continue;
+    // Skip the call when invisible AND we're not currently re-scoring
+    // (the moveend one-shot). When _doScoring is true we run _drawName
+    // even at alpha=0 so the scoring pass updates _lastNameAnchor /
+    // _lastLabelInfo — that way the fade-in lands at the freshly chosen
+    // side, no visible reposition.
+    if (labelAlpha <= 0.02 && !_doScoring) continue;
     _drawName(
       ctx, entry.pt, entry._pillRect,
       shortName(v.name), sec,
@@ -2005,6 +2030,9 @@ function draw() {
       },
     );
   }
+  // Consume the one-shot rescore flag — next frame uses skipScoring
+  // again unless another moveend / zoomend re-arms it.
+  if (_needsLabelRescore) _needsLabelRescore = false;
 
   // ── Audit override pins (reviewed + archived + unsure) ────────────────────
   // Drawn after pills/labels so they sit on top of overlapping pill bodies
