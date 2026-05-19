@@ -117,14 +117,14 @@
 <script defer src="js/weather.js?v=20260519d"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260519aa"></script>
+<script defer src="js/app.js?v=20260520a"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
 <script defer src="js/render-editor.js?v=20260508a"></script>
 <script defer src="js/render-pins.js?v=20260519u"></script>
 <script defer src="js/ui-shared.js?v=20260514m"></script>
-<script defer src="js/ui-list.js?v=20260516a"></script>
+<script defer src="js/ui-list.js?v=20260520a"></script>
 <script defer src="js/admin-review.js?v=20260505a"></script>
 <script defer src="js/admin-audit.js?v=20260512a"></script>
 <script defer src="js/ui-shelter.js?v=20260416a"></script>
@@ -1318,22 +1318,31 @@
     gap: 4px;
     color: var(--text);
     font-weight: 600;
-    padding: 5px 9px;
+    /* Right padding tightened 9 → 5: the chevron-to-right-edge area
+       was stretching past the chevron's visual centre, making the
+       button feel oversized to the right of the glyph. Left padding
+       kept at 9 for the date text. */
+    padding: 5px 5px 5px 9px;
     margin: -5px -2px -5px -4px;
     border-radius: 10px;
     cursor: pointer;
-    /* Subtle resting fill so the date reads as a control rather than
-       inline text. Same surface alpha as glass-action buttons, but
-       borderless so it stays integrated with the strip cluster. */
-    background: rgba(155,169,188,0.10);
-    border: none;
+    /* Match the invite-sheet day-button (.dpinvite-moment-sub) — honey
+       tint instead of the previous slate. Plus a 1 px hairline border
+       at low alpha so the affordance reads as a clickable surface
+       even at rest. Hover deepens the fill + border. */
+    background: rgba(245, 194, 94, 0.10);
+    border: 1px solid rgba(245, 194, 94, 0.18);
     font-family: inherit;
     font-size: inherit;
-    transition: background 120ms, color 120ms;
+    transition: background 120ms, color 120ms, border-color 120ms;
   }
-  #top-strip .ts-date:hover { background: rgba(155,169,188,0.18); }
+  #top-strip .ts-date:hover {
+    background: rgba(245, 194, 94, 0.18);
+    border-color: rgba(245, 194, 94, 0.32);
+  }
   #top-strip .ts-date.active {
-    background: rgba(245,194,94,0.16);
+    background: rgba(245, 194, 94, 0.20);
+    border-color: rgba(245, 194, 94, 0.42);
     color: var(--accent);
   }
   #top-strip .ts-date .ts-chev {
@@ -1347,9 +1356,10 @@
   #top-strip .ts-date:hover .ts-chev { opacity: 1; }
   #top-strip .ts-date.active .ts-chev { color: var(--accent); opacity: 1; transform: rotate(180deg); }
   #top-strip .ts-center .ts-dot { color: rgba(155,169,188,0.4); font-weight: 400; }
-  /* Date and weather icon read as a pair — pull the icon tighter against
-     the date button (no dot separator between them, unlike temp/wind). */
-  #top-strip .ts-center .ts-date + .ts-wx-icon { margin-left: -2px; }
+  /* Date and weather icon read as a pair. Margin compensates for the
+     tighter date button right padding (5 → was 9, total -4 px) so the
+     chevron-to-icon visible gap stays roughly where it was. */
+  #top-strip .ts-center .ts-date + .ts-wx-icon { margin-left: 2px; }
   /* Explicit emoji fallback fonts so iOS Safari resolves ☀️ ⛅ 🌤 ☁️ 🌧
      to Apple Color Emoji even when the parent font-family ('Inter') has
      no glyph for them. Without this list, iOS sometimes renders nothing.
@@ -1367,7 +1377,10 @@
   #top-strip .ts-center .ts-temp {
     color: var(--text);
     font-weight: 600;
-    margin-left: 2px;   /* tighten next to the glyph (the dot is gone) */
+    /* Negative margin pulls the temp tight against the weather glyph —
+       they read as one unit (icon + value), tighter than the row's
+       default 4 px gap. */
+    margin-left: -2px;
   }
 
   /* Adaptive sentence — drop in priority order: wind → temp → glyph
@@ -3976,12 +3989,12 @@
   }
 
   @keyframes cardIn {
-    from { opacity: 0; }
-    to   { opacity: 1; }
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
   @keyframes cardInDimmed {
-    from { opacity: 0; }
-    to   { opacity: 0.5; }
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 0.5; transform: translateY(0); }
   }
 
   .venue-card {
@@ -4014,12 +4027,25 @@
      the column flex so name + "opens at" badge sit side-by-side. */
   .venue-card.closed-card { gap: 0; }
   .venue-card.closed-card .closed-row { flex: 1; }
-  /* First-render fade: cardIn runs once before #venue-list gets data-mounted
-     (set via rAF after the first reset). Subsequent resets keep the attribute
-     so CSS doesn't re-fire the cascade on every slider tick. */
+  /* Content-change fade with stagger: cardIn fires when the venue list's
+     card SET changes (date change, sort change, panel open from hidden).
+     Slider-scrub re-renders keep [data-mounted] so the animation doesn't
+     re-fire on every tick — ui-list.js clears data-mounted only when the
+     content hash actually changes. Staggered nth-child delays give the
+     row a gentle cascade rather than all cards flashing in at once. */
   #venue-list:not([data-mounted]) .venue-card {
-    animation: cardIn 0.18s ease-out;
+    animation: cardIn 0.32s cubic-bezier(0.2, 0.8, 0.3, 1) both;
   }
+  #venue-list:not([data-mounted]) .venue-card:nth-child(1)  { animation-delay: 0ms; }
+  #venue-list:not([data-mounted]) .venue-card:nth-child(2)  { animation-delay: 30ms; }
+  #venue-list:not([data-mounted]) .venue-card:nth-child(3)  { animation-delay: 60ms; }
+  #venue-list:not([data-mounted]) .venue-card:nth-child(4)  { animation-delay: 90ms; }
+  #venue-list:not([data-mounted]) .venue-card:nth-child(5)  { animation-delay: 120ms; }
+  #venue-list:not([data-mounted]) .venue-card:nth-child(6)  { animation-delay: 150ms; }
+  #venue-list:not([data-mounted]) .venue-card:nth-child(7)  { animation-delay: 175ms; }
+  #venue-list:not([data-mounted]) .venue-card:nth-child(8)  { animation-delay: 200ms; }
+  #venue-list:not([data-mounted]) .venue-card:nth-child(9)  { animation-delay: 220ms; }
+  #venue-list:not([data-mounted]) .venue-card:nth-child(n+10) { animation-delay: 240ms; }
 
   /* Hover only on devices with a real pointer. On iOS Safari :hover sticks
      after a tap until the user taps elsewhere — that's the "blue box" the

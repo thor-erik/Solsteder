@@ -7804,16 +7804,23 @@ function _introRevealUI(search, brand, qcWrap, panel, opts) {
     }
   } else {
     // Mobile: top-strip slides down (matches the legacy search-bar
-    // behavior), brand + chrome fade.
+    // behavior), brand + chrome fade. The top-strip reveal is DEFERRED
+    // 600 ms so it arrives alongside the panel reaching its expanded
+    // state — landing it WITH the rest of the post-expand chrome (pins,
+    // locate-me, zoom-jog) instead of dropping during the panel slide.
+    // User feedback: "we're just missing the top bar" — the only piece
+    // still revealing on the early panel-slide moment.
     if (topStrip) {
-      topStrip.style.transition = 'none';
-      topStrip.style.opacity = '1';
-      topStrip.style.transform = 'translateY(-72px)';
-      topStrip.classList.remove('intro-hidden');
-      topStrip.getBoundingClientRect();
-      topStrip.style.transition = 'transform 0.45s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.4s ease';
-      topStrip.style.transform = '';
-      setTimeout(() => { if (topStrip) topStrip.style.transition = ''; }, 500);
+      setTimeout(() => {
+        topStrip.style.transition = 'none';
+        topStrip.style.opacity = '1';
+        topStrip.style.transform = 'translateY(-72px)';
+        topStrip.classList.remove('intro-hidden');
+        topStrip.getBoundingClientRect();
+        topStrip.style.transition = 'transform 0.45s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.4s ease';
+        topStrip.style.transform = '';
+        setTimeout(() => { if (topStrip) topStrip.style.transition = ''; }, 500);
+      }, 600);
     }
     // brand + qc-wrap reveal with the rest of the chrome. locate-btn and
     // zoom-jog are intentionally HELD until the panel reaches expanded
