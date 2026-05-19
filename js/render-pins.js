@@ -1845,14 +1845,25 @@ function draw() {
   //   2. friends going     → "Anna +N planlegger"
   //   3. zoom ≥ 16         → "X t sol"        (informational)
   //
+  // Skip the whole label pass while the map is animating (pan/zoom). The
+  // anchor scoring is the most expensive per-frame work for labelled
+  // pins (4 candidates × placedPillsGrid + placedNamesGrid lookups +
+  // measureText per pin). Pills track the camera smoothly without labels;
+  // labels reappear when the map settles via moveend → _scheduleDraw.
+  // Matches Google Maps' "labels fade during interaction" pattern.
+  //
+  // The post-loop bookkeeping (_lastLayout for hit-testing, _lastPilledIds
+  // for hysteresis) still has to run, so we can't early-return — just gate
+  // the loop body.
+  const _mapIsAnimating = (typeof map !== 'undefined' && map.isMoving && map.isMoving());
   // Spatial-hash placedPills (read by _scoreAnchor) and create the empty
   // names grid (written by _drawName via _bucketRect). The grids replace
   // v1's O(N²) array scans inside the anchor scoring with O(1) lookups
   // against the ~9 neighbouring cells of each candidate's bucket.
   const placedPillsGrid = new Map();
-  for (const p of placedPills) _bucketRect(placedPillsGrid, p);
+  if (!_mapIsAnimating) for (const p of placedPills) _bucketRect(placedPillsGrid, p);
   const placedNamesGrid = new Map();
-  for (const entry of layout) {
+  if (!_mapIsAnimating) for (const entry of layout) {
     if (entry.isDot) continue;
     if (entry.classResult.tier === 'context' && zoom < 16 && !(entry._friends && entry._friends.length)) continue;
     const v        = entry.v;

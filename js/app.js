@@ -7608,11 +7608,14 @@ function _skipIntro(seqId, opts) {
   }
   update();
 
-  // Phase 0 — instant: map at user location, default tilt, zoom 13.5
-  // (slightly wider than the 14 resting zoom so the zoom-in still reads
-  // as a settle, not a snap).
+  // Map at user location, default tilt, zoom 14 (the resting zoom).
+  // v1 jumped to 13.5 and then easeTo(14, 800ms) — a cinematic 800ms
+  // zoom-in. That dive burnt the first-second main-thread budget on
+  // returning visits where the user just wants the app to be ready.
+  // Splash now holds long enough that the map is settled BEFORE it
+  // dismisses, so the user sees the resting state immediately.
   map.stop();
-  map.jumpTo({ center: _introCenter, zoom: 13.5, pitch: 15, bearing: 0 });
+  map.jumpTo({ center: _introCenter, zoom: 14, pitch: 15, bearing: 0 });
 
   // Hide splash — unless opts.keepSplash is set (plan-invite path,
   // which lets openPlanPreview's map.once('idle') handler dismiss the
@@ -7635,54 +7638,42 @@ function _skipIntro(seqId, opts) {
     if (loader)     { loader.style.transition = 'none'; loader.classList.add('fade-out'); }
   };
 
-  // Cubic ease-out — slows toward the end, the cinematic feel users expect
-  // from settling shots in films / map apps.
-  const easeOut = t => 1 - Math.pow(1 - t, 3);
-
-  // The post-splash choreography. Pulled into a function so the fresh-boot
-  // path can defer it until the worker has delivered (otherwise the camera
-  // dives behind the still-visible splash and the user sees the END state
-  // when the splash finally hides, instead of the dive itself).
+  // The post-splash choreography. Map camera is already at its resting
+  // state (from the jumpTo above + map.idle wait below). This function
+  // runs after the splash hides and reveals the canvas + slides in UI.
+  // No camera dive — the dive was a cosmetic 800ms zoom that compounded
+  // with the first-paint work and stuttered the early experience.
   const _runSkipChoreography = () => {
     if (_introSeqId !== localSeq) return;
-    // Phase 1 (800ms): zoom in to default 14. NO padding — geo dot stays at
-    // viewport center until the panel slides up in Phase 3.
-    map.easeTo({
-      center: _introCenter,
-      zoom: 14,
-      pitch: 15,
-      bearing: 0,
-      duration: 800,
-      easing: easeOut,
-    });
     if (canvas) {
       canvas.style.transition = 'opacity 0.55s ease';
       canvas.classList.remove('intro-hidden');
     }
-    // Phase 2 (start at 350ms, overlap with zoom): UI slide-in + panel to peek
+    // UI slide-in + panel to peek (starts immediately — there's no camera
+    // dive to overlap with anymore).
     setTimeout(() => {
       if (_introSeqId !== localSeq) return;
       _introRevealUI(search, brand, qcWrap, panel);
-    }, 350);
-    // Phase 3 (start at 950ms): panel peek → expanded.
+    }, 50);
+    // Panel peek → expanded (starts after the slide-in settles).
     setTimeout(() => {
       if (_introSeqId !== localSeq) return;
       if (panel && isMobileSkip) {
         panel.classList.add('mobile-expanded');
         _syncFtsPosition();
       }
-    }, 950);
+    }, 600);
     // Wrap-up
     setTimeout(() => {
       if (_introSeqId !== localSeq) return;
       if (_sharedVenueId) selectVenue(_sharedVenueId, true);
       if (typeof _notifInit === 'function') _notifInit();
       if (typeof pushInit === 'function') pushInit();
-    }, 1400);
+    }, 1050);
     if (document.documentElement.classList.contains('invite-loading')) {
       setTimeout(() => {
         document.documentElement.classList.remove('invite-loading');
-      }, 1800);
+      }, 1500);
     }
   };
 
@@ -7702,6 +7693,12 @@ function _skipIntro(seqId, opts) {
       _hideSplashInstantly();
       _runSkipChoreography();
     } else {
+      // Dynamic hold: don't dismiss the splash until the worker has
+      // delivered AND the map has reached idle (tiles loaded for the
+      // current viewport). This is the "hold until performance is
+      // genuinely ready" pattern — the user sees a still splash for
+      // however long the device needs, then everything is smooth from
+      // the moment the splash hides.
       _onBootWorkerReady(() => {
         if (_introSeqId !== localSeq) return;
         if (typeof _releaseBootDrawGate === 'function') _releaseBootDrawGate();
@@ -7712,11 +7709,31 @@ function _skipIntro(seqId, opts) {
         if (typeof renderList === 'function') {
           try { renderList(); } catch (e) { console.warn('[boot] renderList threw', e); }
         }
-        requestAnimationFrame(() => requestAnimationFrame(() => {
+        // Wait for map.idle (tiles loaded for current view) before
+        // dismissing. Cap at 2.5s so a slow / failed tile fetch can't
+        // strand the splash. Whichever fires first dismisses.
+        let _dismissed = false;
+        const _dismissOnce = () => {
+          if (_dismissed) return;
+          _dismissed = true;
           if (_introSeqId !== localSeq) return;
-          _hideSplashInstantly();
-          _runSkipChoreography();
-        }));
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            if (_introSeqId !== localSeq) return;
+            _hideSplashInstantly();
+            _runSkipChoreography();
+          }));
+        };
+        if (typeof map !== 'undefined' && map && typeof map.once === 'function') {
+          if (map.loaded && map.loaded() && !map.isMoving()) {
+            // Already idle by the time worker resolved — dismiss now.
+            _dismissOnce();
+          } else {
+            map.once('idle', _dismissOnce);
+            setTimeout(_dismissOnce, 2500);
+          }
+        } else {
+          _dismissOnce();
+        }
       }, 8000);
     }
   }
