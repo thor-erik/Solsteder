@@ -161,6 +161,44 @@ function _syncFtsPosition() {
   const isExpanded = panel.classList.contains('mobile-expanded');
   const isFull     = panel.classList.contains('mobile-fullscreen');
 
+  // Resolve the panel-anchored bottom for locate-me + zoom-jog as a
+  // concrete pixel value, then set inline `bottom` on each button. iOS
+  // Safari doesn't transition `bottom: calc(var(--fts-bottom)...)` even
+  // with @property registration, so the previous CSS-var-based anchoring
+  // snapped on state change instead of riding the panel. Inline length
+  // values transition reliably via the existing `transition: bottom`
+  // rule. Mobile-only — desktop keeps its position-independent layout.
+  const _isMobile = window.innerWidth < 640;
+  if (_isMobile) {
+    const FTS_BTM_PX = (() => {
+      // Mirror _ftsHostBottom but resolve to px so transitions interpolate.
+      if (editingVenueId) return null; // edit mode owns positioning
+      if (dpOpen && dp) {
+        if (dp.classList.contains('dp-fullscreen')) {
+          // Same calc as _ftsHostBottom dp-fullscreen branch.
+          return Math.round(window.innerHeight - 16 - 46 - 16 - 4 - 14);
+        }
+        const dpH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--dp-open-h')) || dp.offsetHeight || 0;
+        return Math.round(dpH + FTS_GAP);
+      }
+      if (panel.classList.contains('mobile-hidden')) return FTS_GAP;
+      if (panel.classList.contains('mobile-fullscreen')) {
+        return Math.round(window.innerHeight - 34 - 50 - 8 - 34);
+      }
+      if (panel.classList.contains('mobile-expanded')) {
+        return Math.round(window.innerHeight * 0.5 + FTS_GAP);
+      }
+      const peekH = parseInt(panel.style.getPropertyValue('--peek-h')) || 252;
+      return peekH + FTS_GAP;
+    })();
+    if (locateEl && FTS_BTM_PX != null) {
+      locateEl.style.bottom = (FTS_BTM_PX + 6) + 'px';
+    }
+    if (zoomJog && FTS_BTM_PX != null) {
+      zoomJog.style.bottom = (FTS_BTM_PX + 6 + 40 + 10) + 'px';
+    }
+  }
+
   if (locateEl) {
     if (dpOpen || isFull) {
       locateEl.style.opacity = '0';
@@ -4892,17 +4930,32 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!_zoomJogEl) _zoomJogEl = document.getElementById('zoom-jog');
         if (_zoomJogEl) { _zoomJogEl.style.transition = ''; _zoomJogEl.style.bottom = ''; _zoomJogEl.style.opacity = ''; }
 
-        // FLIP-style commit: apply target classes while inline transform keeps
-        // the panel at its drag position, then release inline styles so the CSS
-        // transition animates smoothly from drag position → target position.
+        // FLIP-style commit for the new bottom-based positioning. The panel
+        // now uses `bottom` (layout, transitionable, backdrop-filter-safe)
+        // instead of `transform` for its resting states; only the drag
+        // itself still uses `transform` for per-frame visual feedback. To
+        // commit without snapping, snapshot the panel's current visual
+        // bottom, apply the target state, set inline bottom + clear
+        // transform to keep the panel visually pinned to the drag end-
+        // point, then clear inline so the CSS new-state bottom transitions
+        // from there.
+        const beforeBCR = panelEl.getBoundingClientRect();
+        const viewportH = window.innerHeight;
+        const currentVisualBottom = viewportH - (beforeBCR.top + panelEl.offsetHeight);
         _applyState(target);
         panelEl.classList.remove('panel-dragging');
-        panelEl.style.transition = '';
-        // Force layout so browser registers current inline transform as start point
+        // Pin the current visual position via inline bottom (overrides the
+        // new class's bottom). Clear inline transform without snapping.
+        panelEl.style.transition = 'none';
+        panelEl.style.bottom    = currentVisualBottom + 'px';
+        panelEl.style.transform = '';
+        panelEl.style.height    = '';
+        // Force layout so the pinned position is the start of the transition.
         void panelEl.offsetHeight;
-        // Release inline overrides — CSS transition kicks in from here
-        panelEl.style.transform  = '';
-        panelEl.style.height     = '';
+        // Restore CSS transition + clear inline bottom — CSS new-state
+        // bottom takes over, animating from the pinned position.
+        panelEl.style.transition = '';
+        panelEl.style.bottom     = '';
       }
 
       // Wire a swipe target: touchstart/move/end → panel drag state machine
@@ -6407,16 +6460,23 @@ window._passesActiveFilters = function(v) {
     if (total < 2) return false;
   }
   if (f.quiet) {
-    // Reuse the score's noise model: noiseScore is OSM-highway-proximity
-    // derived (lower v.noiseScore = quieter). Threshold 70/100 keeps the
-    // bar high enough that only genuinely sheltered spots pass.
-    if (typeof noiseScore !== 'function') return false;
-    if (noiseScore(v) < 70) return false;
+    // venues.json doesn't carry noiseScore for any record (the OSM-highway
+    // pass that populates it hasn't run on this dataset), so the noise
+    // model fell back to a neutral 50 and the filter dropped everything.
+    // Use busyness instead — "quiet" = not crowded RIGHT NOW. < 40 maps
+    // to "Low" / "Not too busy" on busynessLabel's bucket scale.
+    if (typeof getBusynessAt !== 'function') return true;
+    const dateStr = (typeof datePicker !== 'undefined' && datePicker) ? datePicker.value : null;
+    const fromH   = (typeof timeFromEl !== 'undefined' && timeFromEl) ? parseFloat(timeFromEl.value) : 0;
+    if (!dateStr) return true;
+    const b = getBusynessAt(v, dateStr, fromH);
+    if (!(b < 40)) return false; // includes NaN guard
   }
   if (f.friends) {
-    // A friend is "at" the venue if they're checked in OR they're going
-    // (creator / accepted invitee on any plan at the venue today). Pulls
-    // from the same caches the pin renderer + friends pill already use.
+    // Venue has SOMETHING happening with friends: checked-in friends, OR
+    // any non-cancelled plan at the venue (creator + accepted invitees
+    // both count as "friends going"). Includes the user's own plans
+    // since they likely want to surface those too.
     let hasFriend = false;
     if (typeof getFriendCheckinsForVenue === 'function') {
       const checkins = getFriendCheckinsForVenue(v.id) || [];
@@ -6426,13 +6486,11 @@ window._passesActiveFilters = function(v) {
       const plans = getPlansForVenue(v.id) || [];
       for (const p of plans) {
         if (!p || p.cancelled_at) continue;
-        // Any plan involving an accepted invitee (the creator is implicit)
-        // counts as a friend going. We don't filter by today specifically
-        // since plans are already pruned to the active window upstream.
-        if (Array.isArray(p._invitees) && p._invitees.some(i => i.status === 'accepted')) {
-          hasFriend = true; break;
-        }
-        if (p.creator && p.creator.id) { hasFriend = true; break; }
+        // Any non-cancelled plan at the venue qualifies — the user is
+        // going (creator), a friend invited them (accepted invite), or
+        // they're hosting friends. The pin renderer already gates on the
+        // same data set.
+        hasFriend = true; break;
       }
     }
     if (!hasFriend) return false;
@@ -7542,11 +7600,13 @@ function _runIntroSequence() {
         if (_introSeqId !== seqId) return;
         skipEnabled = true;
 
-        // Pin canvas reveal is now deferred to _introRevealUI (called at
-        // phase 2) so the pins fade in synced to the panel slide-up,
-        // rather than populating mid-cinematic-zoom against an empty
-        // map. Pre-set the transition so when the class is removed in
-        // phase 2 the opacity tween is in place.
+        // Pin canvas reveal is deferred to _introRevealUI (called at
+        // phase 2) so the pins fade in synced to the panel slide-up.
+        // Belt-and-braces: explicit inline opacity 0 so any stale
+        // computed style or cached SW asset can't leak pins through
+        // before the reveal. _introRevealUI sets opacity = '1' once
+        // the panel begins to slide, and the transition animates it.
+        canvas.style.opacity    = '0';
         canvas.style.transition = 'opacity 0.45s cubic-bezier(0.2, 0.8, 0.3, 1)';
 
         // Phase 1: zoom in + tilt up (cinematic establishing shot)
@@ -7693,26 +7753,31 @@ function _introRevealUI(search, brand, qcWrap, panel, opts) {
   }
 
   if (panel && isMobile) {
-    // Slide up from off-screen → PEEK. Phase 3 adds .mobile-expanded
-    // shortly after, animating peek → expanded.
+    // Slide up from off-screen → PEEK using `bottom` (layout property)
+    // instead of `transform`. Transform-based slides on iOS WebKit
+    // briefly drop backdrop-filter during the animation; bottom keeps
+    // the panel's compositor layer stable so the glass look holds
+    // start-to-end. Phase 3 adds .mobile-expanded shortly after,
+    // animating peek → expanded via the CSS bottom rule.
     panel.style.transition = 'none';
     panel.style.opacity    = '1';
-    panel.style.transform  = 'translateY(100%)';
+    panel.style.bottom     = `-${Math.round(window.innerHeight)}px`;
     panel.classList.remove('intro-hidden');
     _prevPanelMobileState = 'peek';
     _updatePeekHeight();
     panel.getBoundingClientRect();
-    panel.style.transition = 'transform 0.45s cubic-bezier(0.2, 0.8, 0.3, 1)';
-    panel.style.transform  = '';  // CSS rule lands the panel at peek
+    panel.style.transition = 'bottom 0.45s cubic-bezier(0.2, 0.8, 0.3, 1)';
+    panel.style.bottom     = '';  // clear inline → CSS peek-state bottom takes over
 
-    // Fade the pin canvas IN as the panel slides up. v1 revealed the
-    // canvas during the phase-1 cinematic zoom which left an empty map
-    // visible while the panel was still off-screen; user wanted "no
-    // pins on the map at page load, fade in as the venue list slides
-    // up". Transition on #canvas-overlay was primed in _runIntroSequence
-    // so removing intro-hidden here triggers the opacity tween.
+    // Fade the pin canvas IN as the panel slides up. Sets inline
+    // opacity '1' (transition + opacity:'0' were primed earlier in the
+    // splash hide-out / phase-1 setup) and removes the intro-hidden
+    // class so the class-rule no longer reapplies opacity 0.
     const _canvasOverlay = document.getElementById('canvas-overlay');
-    if (_canvasOverlay) _canvasOverlay.classList.remove('intro-hidden');
+    if (_canvasOverlay) {
+      _canvasOverlay.classList.remove('intro-hidden');
+      _canvasOverlay.style.opacity = '1';
+    }
   }
 
   if (USE_FLOATING_TIME_SLIDER && !(opts && opts.skipFts)) {
@@ -7849,8 +7914,11 @@ function _skipIntro(seqId, opts) {
   const _runSkipChoreography = () => {
     if (_introSeqId !== localSeq) return;
     if (canvas) {
-      canvas.style.transition = 'opacity 0.55s ease';
-      canvas.classList.remove('intro-hidden');
+      // Pre-arm the opacity tween + force inline opacity 0 (belt-and-
+      // braces against stale styles / SW-cached assets). _introRevealUI
+      // sets opacity = '1' in lock-step with the panel slide.
+      canvas.style.opacity    = '0';
+      canvas.style.transition = 'opacity 0.55s cubic-bezier(0.2, 0.8, 0.3, 1)';
     }
     // UI slide-in + panel to peek (starts immediately — no dive to overlap with).
     setTimeout(() => {

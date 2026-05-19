@@ -1812,24 +1812,15 @@ window.TIMELINE_EVENT_GLYPHS = {
       </g>
     </g>
   </svg>`,
-  cloud: `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-    <path d="M19 18H6c-2.2 0-4-1.8-4-4 0-2 1.5-3.7 3.5-4 .5-3.3 3.3-6 6.8-6 3.4 0 6.2 2.5 6.7 5.8 2.3.4 4 2.4 4 4.7 0 2.5-2 4.5-4.5 4.5z"/>
-  </svg>`,
-  partly: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-    <circle cx="9" cy="9" r="3" fill="currentColor"/>
-    <path d="M9 2.5v1.5M9 14v1.5M2.5 9h1.5M13.5 9H15M4.5 4.5l1 1M13 13l-1-1" />
-    <path d="M21 17.5h-7a3 3 0 010-6 4 4 0 017.8.4 2.5 2.5 0 01-.8 4.9z" fill="currentColor" stroke="none"/>
-  </svg>`,
-  rain: `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-    <path d="M19 13H6c-2.2 0-4-1.8-4-4 0-2 1.5-3.7 3.5-4C6 1.7 8.8-1 12.3-1c3.4 0 6.2 2.5 6.7 5.8 2.3.4 4 2.4 4 4.7 0 2.5-2 4.5-4.5 4.5z" transform="translate(0,2)"/>
-    <line x1="8" y1="18" x2="6" y2="22" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-    <line x1="12" y1="18" x2="10" y2="22" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-    <line x1="16" y1="18" x2="14" y2="22" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-  </svg>`,
-  sun: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-    <circle cx="12" cy="12" r="4" fill="currentColor"/>
-    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
-  </svg>`,
+  // Weather glyphs delegate to the same _wxSvg* set the top-strip /
+  // header / date-strip / calendar uses (defined in weather.js). User
+  // feedback: FTS popup, thumb, and panel timelines should match the
+  // top-bar icons, not the other way around. Same currentColor +
+  // drop-shadow contract handled via .wx-sky-icon CSS.
+  cloud:  (typeof _wxSvgCloud         === 'function') ? _wxSvgCloud()         : '',
+  partly: (typeof _wxSvgSunCloud      === 'function') ? _wxSvgSunCloud()      : '',
+  rain:   (typeof rainIconSvg         === 'function') ? rainIconSvg()         : '',
+  sun:    (typeof _wxSvgSun           === 'function') ? _wxSvgSun()           : '',
   // Closed — moon-shape. Used on the FTS bar for time-of-day ranges
   // before a selected venue opens or after it closes; complements the
   // sun glyph naturally (Shades brand: sun ↔ moon).

@@ -1458,8 +1458,8 @@ function _openInviteSheet(venueId) {
               <div class="dpinvite-moment-time" id="dpinvite-moment-time"></div>
               <button type="button" class="dpinvite-moment-sub" id="dpinvite-moment-sub"
                       aria-label="${t('invite_eyebrow_select_time')}">
-                <span id="dpinvite-moment-sub-text"></span>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                <span id="dpinvite-moment-sub-text"></span>
               </button>
             </div>
           </div>
@@ -2149,10 +2149,24 @@ function _closeInviteSheet() {
   // it cleanly. v2 of the sheet uses a chip picker instead, so this is a no-op
   // in normal use.
   _invFtsDetach();
-  // Restore the map's padding to zero so the venue is no longer biased
-  // upward once the sheet is gone.
+  // Restore the underlying camera framing. If the detail panel is still
+  // open beneath the sheet, re-apply ITS bottom padding (the same shape
+  // _flyToVenue uses) so the venue sits in the visible viewport above
+  // the panel instead of getting yanked back to viewport-centre — the
+  // previous "padding: 0" reset put it dead-centre under the detail
+  // panel chrome. When no detail panel is open, fall through to a flat
+  // reset.
   if (typeof map !== 'undefined' && map && typeof map.easeTo === 'function') {
-    map.easeTo({ padding: { top: 0, bottom: 0, left: 0, right: 0 }, duration: 280 });
+    const dp = document.getElementById('detail-panel');
+    if (dp && dp.classList.contains('open')
+        && !dp.classList.contains('dp-fullscreen')
+        && typeof window.innerWidth === 'number' && window.innerWidth < 640) {
+      // Mirror _flyToVenue mobile padding (bottom ≈ 69% of viewport).
+      const panelH = Math.round((window.visualViewport?.height ?? window.innerHeight) * 0.69);
+      map.easeTo({ padding: { top: 0, bottom: panelH, left: 0, right: 0 }, duration: 280 });
+    } else {
+      map.easeTo({ padding: { top: 0, bottom: 0, left: 0, right: 0 }, duration: 280 });
+    }
   }
   if (overlay) {
     overlay.classList.remove('open');

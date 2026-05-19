@@ -114,10 +114,10 @@
 <script defer src="js/busyness.js?v=20260411b"></script>
 <script defer src="js/solar.js?v=20260411b"></script>
 <script defer src="js/data.js?v=20260519p"></script>
-<script defer src="js/weather.js?v=20260519c"></script>
+<script defer src="js/weather.js?v=20260519d"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260519v"></script>
+<script defer src="js/app.js?v=20260519w"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
@@ -129,8 +129,8 @@
 <script defer src="js/admin-audit.js?v=20260512a"></script>
 <script defer src="js/ui-shelter.js?v=20260416a"></script>
 <script defer src="js/render-wind.js?v=20260416b"></script>
-<script defer src="js/ui-detail.js?v=20260519u"></script>
-<script defer src="js/ui-plan-preview.js?v=20260519t"></script>
+<script defer src="js/ui-detail.js?v=20260519v"></script>
+<script defer src="js/ui-plan-preview.js?v=20260519u"></script>
 <script defer src="js/osm.js?v=20260519p"></script>
 <script defer src="js/notifications.js?v=20260519d"></script>
 <script defer src="js/push.js?v=20260518c"></script>
@@ -5005,35 +5005,40 @@
       text-align: center;
     }
 
-    /* Venue list — peek state height driven by --peek-h CSS var, set by JS */
+    /* Venue list — peek state position driven by --peek-h CSS var.
+       Position-based animation (bottom + height) instead of transform.
+       Transform-based slides on iOS WebKit caused the panel's
+       backdrop-filter to drop for a few frames as the compositor layer
+       recomposited mid-animation — the visible "transparency flash" the
+       user reported. `bottom` and `height` are layout properties, not
+       compositor ones, so backdrop-filter stays stable across the slide.
+       Slightly more layout cost per frame but the slide is short and
+       the glass look stays consistent end-to-end. */
     #panel {
-      position: fixed;  /* fixed avoids parent height/overflow issues on iOS */
+      position: fixed;
       top: auto;
       left: 0;
       right: 0;
-      bottom: 0;
       width: 100%;
       /* 50% of the JS-tracked visible viewport — see --app-h. 50svh
-         is the fallback used until the visualViewport probe runs. */
+         is the fallback until the visualViewport probe runs. */
       height: calc(var(--app-h, 100svh) * 0.5);
+      /* Negative bottom in peek state: the panel's bottom edge sits
+         (panel-height − peek-h) below the viewport bottom, so only
+         peek-h is visible. Equivalent to the old translateY rule. */
+      bottom: calc(var(--peek-h, 252px) - calc(var(--app-h, 100svh) * 0.5));
       border-radius: 20px 20px 0 0;
       border-left: none;
       border-right: none;
       border-bottom: none;
-      transform: translateY(calc(100% - var(--peek-h, 252px))) translateZ(0);
-      transition: transform 0.34s cubic-bezier(0.25, 0.9, 0.4, 1), height 0.34s cubic-bezier(0.25, 0.9, 0.4, 1);
-      will-change: transform, height;
-      backface-visibility: hidden;
+      transition:
+        bottom 0.34s cubic-bezier(0.25, 0.9, 0.4, 1),
+        height 0.34s cubic-bezier(0.25, 0.9, 0.4, 1);
     }
 
-    /* Expanded state — tap handle to open */
+    /* Expanded state — bottom 0 so the full 50svh panel is in view. */
     #panel.mobile-expanded {
-      /* translateZ(0) parity with the peek state — keeps the panel on a
-         hardware compositor layer so the backdrop-filter doesn't briefly
-         drop during the transform animation (iOS WebKit otherwise renders
-         the panel as near-transparent for a few frames as the layer
-         recomposites). */
-      transform: translateY(0) translateZ(0);
+      bottom: 0;
       z-index: 910;  /* zoom-jog (900) sits behind list; locate-btn (920) stays on top */
     }
 
@@ -5050,10 +5055,13 @@
     /* Fully hidden (covered by detail panel) — slides down behind the morphed card.
        Transition matches the panel morph (320ms) so list and detail move together. */
     #panel.mobile-hidden {
-      transform: translateY(calc(100% + 20px)) !important;
+      /* Position-based slide-off (matches the new bottom-based animation
+         scheme). Bottom set so the entire panel sits BELOW the viewport
+         plus a 20 px buffer. */
+      bottom: calc(-1 * calc(var(--app-h, 100svh) * 0.5) - 20px) !important;
       opacity: 0 !important;
       pointer-events: none !important;
-      transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.22s ease !important;
+      transition: bottom 0.32s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.22s ease !important;
     }
 
     #panel-toggle-icon { display: none; }
@@ -5211,26 +5219,10 @@
 
     /* Fullscreen state: panel covers everything */
     #panel.mobile-fullscreen {
-      /* translateZ(0) parity — see #panel.mobile-expanded above. */
-      transform: translateY(0) translateZ(0);
+      bottom: 0;
       height: var(--app-h, 100svh);
       border-radius: 0;
       z-index: 910;
-    }
-
-    /* Mobile venue-list panel: bump the base slate to a near-solid alpha
-       so iOS WebKit's brief backdrop-filter drop during the transform
-       animation isn't visible. Static + motion now look identical because
-       the panel doesn't depend on backdrop-filter to look opaque — blur
-       is purely additive on top of an already-substantial slate base.
-       (Previous attempt swapped in a solid bg only DURING the transition,
-       which itself flashed as a different colour. The fix is to make the
-       resting state opaque enough that the blur drop is imperceptible.)
-       The shorthand-with-image rule overrides the .glass-panel cascade. */
-    #panel {
-      background:
-        linear-gradient(135deg, rgba(26,44,66,0.32) 0%, rgba(58,92,130,0.20) 100%),
-        rgba(20,32,54,0.92);
     }
 
     /* Kill expensive effects while the user is actively dragging the panel */
@@ -8889,9 +8881,10 @@
   /* ── Sliding surfaces — will-change only on panels that translate ────────── */
   /* No will-change: backdrop-filter anywhere — it bloats GPU memory.          */
   #detail-panel, #ptb-cal-float { will-change: transform; }
-  @media (max-width: 639px) {
-    #panel { will-change: transform; }
-  }
+  /* #panel was previously hinted will-change: transform, which on iOS
+     WebKit forced a compositor layer that lost backdrop-filter during
+     transform animations. The panel now animates via bottom + height
+     (layout properties) instead, so no compositor hint is needed. */
 
   /* Register --fts-bottom as a typed custom property so transitions on
      `bottom: calc(var(--fts-bottom) + ...)` actually animate when the var
@@ -9569,13 +9562,19 @@
     background: rgba(245, 194, 94, 0.10);
     color: var(--text);
     font-size: 13px;
-    font-weight: 700;
+    /* Lighter weight per user feedback — heavy 700 read as a separate
+       label instead of an inline meta affordance. 500 sits in line
+       with the rest of the meta row. */
+    font-weight: 500;
     /* margin-top matches the left-column meta (.dpinvite-meta uses 2px)
        — combined with the column's gap: 4, the day-button's BOX top
        lands at the same y as the meta-text top on the left, keeping
        the third-row baseline aligned across columns. */
     margin-top: 2px;
-    padding: 4px 6px 4px 9px;
+    /* Chevron moved BEFORE the text (flex-direction below stacks the
+       SVG first), so the padding flips: tighter on the chevron side,
+       looser on the text side. */
+    padding: 4px 9px 4px 6px;
     border-radius: 8px;
     letter-spacing: 0.01em;
     font-variant-numeric: tabular-nums;
@@ -9583,6 +9582,9 @@
     align-self: flex-end;
     display: inline-flex;
     align-items: center;
+    /* Chevron rendered before the text in the markup (button structure
+       updated alongside this rule). No row-reverse here — markup order
+       is authoritative. */
     gap: 4px;
     transition: background 0.14s ease, color 0.14s ease, transform 90ms ease-out;
     -webkit-tap-highlight-color: transparent;
