@@ -7308,7 +7308,16 @@ function _introCheckReady() {
       return;
     }
 
-    _runIntroSequence();
+    // Unified boot: returning AND first-time visitors both run _skipIntro.
+    // The cinematic _runIntroSequence (zoom 14→16→14, pitch 0→65→15) was
+    // the source of the perceived first-load lag — labels and pins had
+    // to track that camera motion while classifyPin was still warming
+    // its caches. With _skipIntro now positioning the map at the user
+    // geolocation BEHIND the splash (worker-wait + map.idle gate), the
+    // first frame the user sees is settled and stable. _runIntroSequence
+    // is kept for reference but no caller routes to it.
+    try { localStorage.setItem('solsteder_intro_seen', '1'); } catch (_) {}
+    _skipIntro();
   }
 }
 
@@ -7627,10 +7636,27 @@ function _skipIntro(seqId, opts) {
   }
   update();
 
-  // Map at user location, slightly wider than the resting zoom so the
-  // post-splash easeTo reads as a settle rather than a snap.
+  // Position the map at user geolocation BEFORE the splash hides, with
+  // padding equivalent to the expanded panel's bottom 50% — so the user
+  // dot lands at the upper-half visual centre. When the panel transitions
+  // peek → expanded a beat later, _maybePanMapForPanelState sees the dot
+  // is already at the new visible centre and skips its pan: the panel
+  // slides up over a static map instead of dragging the camera with it.
+  //
+  // User spec: "load centered in the geolocation and then the UI elements
+  // slide in" + "center the map in the position where the geolocation is
+  // going to be once the venue list has expanded before it actually
+  // expands". No easeTo dive — the map is at its final state from frame
+  // one of the visible app.
   map.stop();
-  map.jumpTo({ center: _introCenter, zoom: 13.5, pitch: 15, bearing: 0 });
+  const _expandedPanelH = window.innerHeight * 0.5;
+  map.jumpTo({
+    center: _introCenter,
+    zoom: 14,
+    pitch: 15,
+    bearing: 0,
+    padding: { top: 0, bottom: _expandedPanelH, left: 0, right: 0 },
+  });
 
   // Hide splash — unless opts.keepSplash is set (plan-invite path,
   // which lets openPlanPreview's map.once('idle') handler dismiss the
@@ -7653,55 +7679,46 @@ function _skipIntro(seqId, opts) {
     if (loader)     { loader.style.transition = 'none'; loader.classList.add('fade-out'); }
   };
 
-  // Cubic ease-out — slows toward the end, the cinematic feel users expect
-  // from settling shots in films / map apps.
-  const easeOut = t => 1 - Math.pow(1 - t, 3);
-
-  // The post-splash choreography. Splash hides, camera dives from 13.5 to
-  // 14 over 800ms (subtle zoom-in settle), UI slides in alongside the dive,
-  // panel goes peek → expanded. The boot gate has already held the splash
-  // through worker-ready + map.idle, so by the time this fires the heavy
-  // first paint is done and the dive runs at near-cached cost (classifyPin
-  // memoized, labels skip _scoreAnchor while map.isMoving).
+  // The post-splash choreography. NO camera motion: map is already at
+  // its final state (zoom 14, centered on user geolocation, padded for
+  // expanded panel) from the jumpTo above. The boot gate held the splash
+  // through worker-ready + map.idle so tiles are loaded too. All this
+  // function does is reveal the canvas and slide the UI in over a
+  // static map. Panel goes peek → expanded WITHOUT a map pan because
+  // the user dot is already at the expanded-state visual centre.
   const _runSkipChoreography = () => {
     if (_introSeqId !== localSeq) return;
-    // Phase 1 (800ms): zoom 13.5 → 14
-    map.easeTo({
-      center: _introCenter,
-      zoom: 14,
-      pitch: 15,
-      bearing: 0,
-      duration: 800,
-      easing: easeOut,
-    });
     if (canvas) {
       canvas.style.transition = 'opacity 0.55s ease';
       canvas.classList.remove('intro-hidden');
     }
-    // Phase 2 (start at 350ms, overlap with zoom): UI slide-in + panel to peek
+    // UI slide-in + panel to peek (starts immediately — no dive to overlap with).
     setTimeout(() => {
       if (_introSeqId !== localSeq) return;
       _introRevealUI(search, brand, qcWrap, panel);
-    }, 350);
-    // Phase 3 (start at 950ms): panel peek → expanded
+    }, 50);
+    // Panel peek → expanded. With the pre-positioning padding,
+    // _maybePanMapForPanelState's "user dot near current visible centre"
+    // check fails (the dot is at the EXPANDED centre, not the peek one),
+    // so the function bails and the map stays put while the panel slides.
     setTimeout(() => {
       if (_introSeqId !== localSeq) return;
       if (panel && isMobileSkip) {
         panel.classList.add('mobile-expanded');
         _syncFtsPosition();
       }
-    }, 950);
+    }, 600);
     // Wrap-up
     setTimeout(() => {
       if (_introSeqId !== localSeq) return;
       if (_sharedVenueId) selectVenue(_sharedVenueId, true);
       if (typeof _notifInit === 'function') _notifInit();
       if (typeof pushInit === 'function') pushInit();
-    }, 1400);
+    }, 1050);
     if (document.documentElement.classList.contains('invite-loading')) {
       setTimeout(() => {
         document.documentElement.classList.remove('invite-loading');
-      }, 1800);
+      }, 1500);
     }
   };
 

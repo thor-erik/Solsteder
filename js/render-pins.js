@@ -967,6 +967,16 @@ function _drawName(ctx, pt, pillRect, name, secondary, placedPills, placedNames,
       if (stickySide === c.side && s > -Infinity) s += NAME_ANCHOR_HYSTERESIS;
       if (s > bestScore) { bestScore = s; best = { ...c, ...rect }; }
     }
+    // Fallback: if no candidate scored above threshold (e.g. all collide
+    // with newly-shifted pills after a pan reshuffled the layout), reuse
+    // the cached side rather than dropping the label entirely. The cached
+    // side may itself be in collision, but the user prefers a transient
+    // overlap over labels popping out of existence ("labels appear then
+    // disappear as they notice colliding pins" report).
+    if (!best && stickySide) {
+      const c = candidates.find(c => c.side === stickySide);
+      if (c) best = { ...c, x: c.x, y: c.cy - labelH / 2, w: labelW, h: labelH };
+    }
     if (!best) return null;
     _bucketRect(placedNames, best);
     if (opts.venueId != null) _lastNameAnchor.set(opts.venueId, best.side);
