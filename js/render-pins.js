@@ -1089,9 +1089,22 @@ window.addEventListener('resize', () => {
   drawSunCompass();
 });
 
-map.on('move',     draw);
-map.on('moveend',  draw);
-map.on('zoomend',  draw);
+// rAF-coalesce draw() across map events. Mapbox fires `move` faster than
+// vsync during pan/zoom; without gating, the 600+ line draw() body runs many
+// times per frame. The gate collapses every queued event into a single
+// repaint per animation frame.
+let _drawScheduled = false;
+function _scheduleDraw() {
+  if (_drawScheduled) return;
+  _drawScheduled = true;
+  requestAnimationFrame(() => {
+    _drawScheduled = false;
+    draw();
+  });
+}
+map.on('move',     _scheduleDraw);
+map.on('moveend',  _scheduleDraw);
+map.on('zoomend',  _scheduleDraw);
 
 // ── Map pan helper ────────────────────────────────────────────────────────────
 /**

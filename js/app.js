@@ -331,8 +331,15 @@ function initFts() {
   drawFtsCanvas();
 
   // Redraw the slider bitmap whenever the canvas's CSS width changes.
+  // Skip during panel transitions — the canvas resizes step-by-step as the
+  // panel height interpolates, which previously redrew the FTS canvas 10-15×
+  // per swipe for no visible benefit. A single redraw at transitionend
+  // (driven by _repaintPinsAfterPanel's downstream syncFts call) is enough.
   if (typeof ResizeObserver === 'function') {
-    new ResizeObserver(() => drawFtsCanvas()).observe(canvas);
+    new ResizeObserver(() => {
+      if (document.body.classList.contains('panel-transitioning')) return;
+      drawFtsCanvas();
+    }).observe(canvas);
   }
 
   // The popup is a child of #fts-track and positioned with `left: X%`,
@@ -1604,8 +1611,20 @@ function _locateCycleForVenue(venueId) {
   _flyToVenue(v);
 }
 
-map.on('move',    _updateLocationDot);
-map.on('zoomend', _updateLocationDot);
+// rAF-coalesce the location dot reposition. Pairs with the draw() gate in
+// render-pins.js — both pieces of per-frame map work now run at most once
+// per vsync instead of N times per `move` event.
+let _locDotScheduled = false;
+function _scheduleLocDotUpdate() {
+  if (_locDotScheduled) return;
+  _locDotScheduled = true;
+  requestAnimationFrame(() => {
+    _locDotScheduled = false;
+    _updateLocationDot();
+  });
+}
+map.on('move',    _scheduleLocDotUpdate);
+map.on('zoomend', _scheduleLocDotUpdate);
 map.on('zoom',    _updateZoomDebug);
 map.on('pitch',   _updateZoomDebug);
 
@@ -3343,7 +3362,11 @@ function update() {
   updateQcLabels();
   updateQcIndicator(null);
   syncFts();
-  if (typeof _notifEvaluate === 'function') _notifEvaluate();
+  // _notifEvaluate is intentionally NOT called here — it runs on its own
+  // 60s interval (see notifications.js _notifInit) and on datePicker change.
+  // Firing it on every update() tick would re-evaluate every notification
+  // rule 60× per second during slider drag, which both wastes work and
+  // risks firing spurious notifications mid-drag.
 }
 
 // ── Popup helpers ─────────────────────────────────────────────────────────────
@@ -4664,6 +4687,14 @@ document.addEventListener('DOMContentLoaded', () => {
         return window.innerHeight - safeTop - 34 - 50 - 8 - 34;
       }
 
+      // Panel top + viewport height + peek top + expanded top — all captured
+      // at drag start so _trackDrag can derive the current panel top from
+      // arithmetic instead of getBoundingClientRect() per rAF (which forced
+      // a synchronous layout per touchmove frame).
+      let _dragPanelTopAtStart = 0;
+      let _dragViewportH = 0;
+      let _dragPeekTop = 0;
+      let _dragExpandedTop = 0;
       function _beginDrag(y) {
         if (_dragActive) return; // already initiated by a child element
         _dragY0         = y;
@@ -4672,6 +4703,12 @@ document.addEventListener('DOMContentLoaded', () => {
         _dragStartState = _currentState();
         _dragStartTime  = Date.now();
         _dragInitH      = panelEl.offsetHeight;
+        // One-time geometry capture — the panel's top edge, viewport height,
+        // and snap-state thresholds don't change mid-drag. Cache them.
+        _dragPanelTopAtStart = panelEl.getBoundingClientRect().top;
+        _dragViewportH       = window.innerHeight;
+        _dragPeekTop         = _dragViewportH - (parseInt(panelEl.style.getPropertyValue('--peek-h')) || 160);
+        _dragExpandedTop     = _dragViewportH * 0.45;
         panelEl.style.transition = 'none';
         panelEl.classList.add('panel-dragging');
       }
@@ -4705,12 +4742,17 @@ document.addEventListener('DOMContentLoaded', () => {
           // not above it — so its bottom matches the FTS bottom exactly.
           if (!_locateEl) _locateEl = document.getElementById('locate-btn');
           if (!_zoomJogEl) _zoomJogEl = document.getElementById('zoom-jog');
-          const panelTopD = panelEl.getBoundingClientRect().top;
-          const viewHD    = window.innerHeight;
-          const locateBottom = viewHD - panelTopD + FTS_GAP;
-          const peekTop = viewHD - (parseInt(panelEl.style.getPropertyValue('--peek-h')) || 160);
-          const expandedTop = viewHD * 0.45;
-          const progress = Math.max(0, Math.min(1, (peekTop - panelTopD) / (peekTop - expandedTop)));
+          // Derive panel top arithmetically — both branches of the
+          // transform/height logic above collapse to the same expression:
+          //   newY >= 0: top delta = transform delta = newY - _dragT0
+          //   newY <  0: transform=0 (delta = -_dragT0) plus height grew by
+          //              |newY| which moves the bottom-anchored panel's top
+          //              up by |newY| (= -|newY| = newY). Sum = newY - _dragT0.
+          // Avoids the per-frame getBoundingClientRect that previously
+          // forced a synchronous layout per touchmove rAF.
+          const panelTopD = _dragPanelTopAtStart + (newY - _dragT0);
+          const locateBottom = _dragViewportH - panelTopD + FTS_GAP;
+          const progress = Math.max(0, Math.min(1, (_dragPeekTop - panelTopD) / (_dragPeekTop - _dragExpandedTop)));
           if (_locateEl) {
             _locateEl.style.transition = 'none';
             _locateEl.style.bottom = locateBottom + 'px';
@@ -4836,35 +4878,74 @@ document.addEventListener('DOMContentLoaded', () => {
         el.addEventListener('touchcancel', () => { _localPending = false; }, { passive: true });
       }
 
+      // Map panel state to a single key. Used to detect when a class
+      // mutation actually changes the panel's MODE (vs e.g. .panel-dragging
+      // toggling, which mutates the class attribute but doesn't represent a
+      // new state). Skipping non-mode mutations prevents spurious repaints.
+      function _panelModeKey(el) {
+        if (el.classList.contains('mobile-fullscreen')) return 'fullscreen';
+        if (el.classList.contains('mobile-expanded'))   return 'expanded';
+        if (el.classList.contains('mobile-hidden'))     return 'hidden';
+        return 'peek';
+      }
+
       // After any panel transform/height transition (drag, tap, programmatic
       // _applyState), repaint the pin canvas. The CSS transition moves the
       // bottom sheet but doesn't trigger any Mapbox event — without this
       // listener the pin canvas keeps its previous frame, which on hard refresh
       // can leave gaps in the area the sheet just uncovered, especially for
       // friend pins that were force-pilled in the post-load redraw.
+      //
+      // Single-fire guard: transitionend AND the MutationObserver fallback
+      // both schedule a repaint. We arm the guard when a state change starts
+      // and let whichever signal arrives first do the repaint; subsequent
+      // signals in the same transition are no-ops. v1 fired BOTH which
+      // doubled the map.resize() + draw() cost per panel swipe.
+      let _panelRepaintArmed = false;
+      let _panelRepaintTid = null;
+      let _lastViewportH = window.innerHeight;
       function _repaintPinsAfterPanel() {
-        // Mapbox occasionally caches the map element size and doesn't notice
-        // when its container resizes (panel transition, address bar collapse,
-        // DevTools emulation). Force a resize so getBounds() / project() use
-        // the current viewport, then refresh the pin canvas.
-        try { if (typeof map !== 'undefined' && map?.resize) map.resize(); } catch (_) {}
+        if (!_panelRepaintArmed) return;
+        _panelRepaintArmed = false;
+        if (_panelRepaintTid) { clearTimeout(_panelRepaintTid); _panelRepaintTid = null; }
+        // Only call map.resize() when the viewport ACTUALLY changed
+        // (orientation, address-bar collapse). Panel state changes don't
+        // resize the map element — Mapbox is layered behind a fixed panel.
+        // v1 unconditionally called map.resize() on every panel transition,
+        // which was a 100% wasted GL operation.
+        const viewportChanged = window.innerHeight !== _lastViewportH;
+        if (viewportChanged) {
+          try { if (typeof map !== 'undefined' && map?.resize) map.resize(); } catch (_) {}
+          _lastViewportH = window.innerHeight;
+        }
         if (typeof window.markPinLayoutStale === 'function') window.markPinLayoutStale();
         if (typeof resizeCanvas === 'function') resizeCanvas();
         if (typeof draw === 'function') draw();
+        // Clear the transition flag BEFORE the final FTS redraw so the
+        // ResizeObserver gate releases and the canvas paints its final state.
+        document.body.classList.remove('panel-transitioning');
+        if (typeof drawFtsCanvas === 'function') drawFtsCanvas();
       }
       panelEl.addEventListener('transitionend', (e) => {
         if (e.target !== panelEl) return;
         if (e.propertyName !== 'transform' && e.propertyName !== 'height') return;
         _repaintPinsAfterPanel();
       });
-      // MutationObserver fallback — class flips on panelEl reflect every state
-      // change (mobile-expanded / mobile-fullscreen / mobile-hidden / peek).
-      // Schedule a repaint at the transition's tail (~260ms) so we don't depend
-      // on transitionend firing reliably under DevTools mobile emulation.
-      let _panelRepaintTid = null;
+      // MutationObserver fallback — only the four mode classes matter. The
+      // .panel-dragging toggle fires class mutations at drag start AND end
+      // but doesn't represent a state change, so we ignore it. Tracking the
+      // previous mode lets us skip mutations that don't actually move
+      // between peek/expanded/fullscreen/hidden.
+      let _prevPanelMode = _panelModeKey(panelEl);
       const _panelClassObs = new MutationObserver(() => {
-        clearTimeout(_panelRepaintTid);
-        _panelRepaintTid = setTimeout(_repaintPinsAfterPanel, 260);
+        const cur = _panelModeKey(panelEl);
+        if (cur === _prevPanelMode) return;
+        _prevPanelMode = cur;
+        _panelRepaintArmed = true;
+        if (_panelRepaintTid) clearTimeout(_panelRepaintTid);
+        _panelRepaintTid = setTimeout(_repaintPinsAfterPanel, 320);
+        // Mark transition for ResizeObserver-driven FTS redraws to skip.
+        document.body.classList.add('panel-transitioning');
       });
       _panelClassObs.observe(panelEl, { attributes: true, attributeFilter: ['class'] });
 
@@ -5458,9 +5539,27 @@ datePicker.addEventListener('change', () => {
   }
   update();
   if (typeof _updateFriendsPill === 'function') _updateFriendsPill();
+  // Date crossings change which notifications are relevant. update() no
+  // longer triggers _notifEvaluate (it was firing per slider tick), so fire
+  // once here on a real date change.
+  if (typeof _notifEvaluate === 'function') _notifEvaluate();
 });
 
 let _lastSliderStep = null;
+// rAF-coalesce slider input → update(). Touch input fires up to 60Hz, and
+// update() does heavy work (draw, drawSunCompass, drawSunCurve, drawFtsCanvas,
+// updateSunLighting). The gate ensures only the latest hour is processed per
+// frame; intermediate ticks coalesce into the next vsync.
+let _sliderUpdateScheduled = false;
+function _scheduleSliderUpdate() {
+  if (_sliderUpdateScheduled) return;
+  _sliderUpdateScheduled = true;
+  requestAnimationFrame(() => {
+    _sliderUpdateScheduled = false;
+    updateRangeFill();
+    update();
+  });
+}
 timeFromEl.addEventListener('input', () => {
   _expansionPages = 0;
   if (_timeAnimId) { cancelAnimationFrame(_timeAnimId); _timeAnimId = null; }
@@ -5471,8 +5570,7 @@ timeFromEl.addEventListener('input', () => {
     clearInterval(nowInterval); nowInterval = null;
   }
   setActiveIntentBtn(null);
-  updateRangeFill();
-  update();
+  _scheduleSliderUpdate();
 });
 
 // ── Oslo candidate index (lazy-loaded on first search miss) ───────────────────
