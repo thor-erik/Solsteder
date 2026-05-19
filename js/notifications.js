@@ -35,22 +35,41 @@ let _notifLoginShown    = new Set();  // login prompt ids shown this session
 let _notifInitDone      = false;
 let _notifEvalTimer     = null;
 
-// Weather emoji codepoints (☀ ☁ 🌤 🌥 🌧 🌦) have text-default presentation
-// per Unicode. iOS WKWebView doesn't reach Apple Color Emoji via font
-// fallback for these even when VS-16 (U+FE0F) is appended, so they render
-// as tofu. Map them to inline SVG glyphs (defined in weather.js) so toast
-// notification icons always render. Other emoji icons (⏰ 🌅 👋 📍 📅 👤)
-// are emoji-default and render fine.
+// iOS WKWebView (Capacitor) doesn't reach Apple Color Emoji via font
+// fallback for many emoji codepoints — even with VS-16 and an explicit
+// `font-family: 'Apple Color Emoji'` declaration. Toasts that use emoji
+// icons render them as tofu (the square-with-question-mark glyph). We
+// route the known-broken icons through inline SVG so the toast always
+// has something to draw.
+//
+// Add new entries here as users hit additional tofu icons. Each entry
+// returns SVG markup; .notif-toast-icon's `svg { width: 18px }` rule in
+// index.html sizes them. SVGs use currentColor so they pick up the
+// notification's text tone.
 function _wxEmojiToSvg(icon) {
   if (typeof icon !== 'string' || !icon) return null;
-  if (typeof skyIconSvg !== 'function' || typeof rainIconSvg !== 'function') return null;
-  if (icon.includes('🌧') || icon.includes('🌦')) return rainIconSvg();
-  if (icon.includes('☀'))                          return skyIconSvg(0.0);
-  if (icon.includes('🌤'))                          return skyIconSvg(0.3);
-  if (icon.includes('⛅'))                          return skyIconSvg(0.5);
-  if (icon.includes('🌥'))                          return skyIconSvg(0.7);
-  if (icon.includes('☁'))                          return skyIconSvg(0.9);
+  // Weather (delegated to weather.js — colored SVG sun/cloud compositions).
+  if (typeof skyIconSvg === 'function' && typeof rainIconSvg === 'function') {
+    if (icon.includes('🌧') || icon.includes('🌦')) return rainIconSvg();
+    if (icon.includes('☀'))                          return skyIconSvg(0.0);
+    if (icon.includes('🌤'))                          return skyIconSvg(0.3);
+    if (icon.includes('⛅'))                          return skyIconSvg(0.5);
+    if (icon.includes('🌥'))                          return skyIconSvg(0.7);
+    if (icon.includes('☁'))                          return skyIconSvg(0.9);
+  }
+  // Social / system icons — monochrome line SVGs in currentColor.
+  if (icon.includes('👋')) return _notifSvgWave();
   return null;
+}
+
+function _notifSvgWave() {
+  // Lucide-style "wave hand" — 4 finger strokes + arm curl.
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">`
+    + `<path d="M18 11V6a2 2 0 0 0-4 0"/>`
+    + `<path d="M14 10V4a2 2 0 0 0-4 0v2"/>`
+    + `<path d="M10 10.5V6a2 2 0 0 0-4 0v8"/>`
+    + `<path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>`
+    + `</svg>`;
 }
 
 // ── localStorage Helpers ─────────��───────────────────────────────────────────

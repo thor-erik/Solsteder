@@ -132,7 +132,7 @@
 <script defer src="js/ui-detail.js?v=20260518a"></script>
 <script defer src="js/ui-plan-preview.js?v=20260518a"></script>
 <script defer src="js/osm.js?v=20260513a"></script>
-<script defer src="js/notifications.js?v=20260519b"></script>
+<script defer src="js/notifications.js?v=20260519c"></script>
 <script defer src="js/push.js?v=20260518c"></script>
 <script defer src="js/lens-effects.js?v=20260515a"></script>
 <script defer src="js/init.js?v=20260427a"></script>
@@ -2874,16 +2874,25 @@
   #top-strip .ts-wind .wx-arrow { width: 11px; height: 11px; vertical-align: -1px; }
   /* Sky-condition glyph rendered as inline colored SVG (sun + cloud
      compositions). Same reason as .wx-arrow — iOS WKWebView tofu's the
-     U+1F324 / U+1F325 / U+1F327 emoji codepoints even with VS-16. */
+     U+1F324 / U+1F325 / U+1F327 emoji codepoints even with VS-16. The
+     containing span is a flex box so the SVG centers cleanly against
+     the surrounding text without relying on baseline math. */
   .wx-sky-icon {
-    display: inline-block;
+    display: block;
     width: 14px;
     height: 14px;
-    vertical-align: -3px;
   }
-  #top-strip .ts-wx-icon .wx-sky-icon { width: 17px; height: 17px; vertical-align: -4px; }
-  #header-wx-chip #header-wx-icon .wx-sky-icon { width: 14px; height: 14px; vertical-align: -3px; }
-  #date-wx-strip .wx-sky-icon { width: 13px; height: 13px; vertical-align: -2px; }
+  #top-strip .ts-wx-icon,
+  #header-wx-chip #header-wx-icon,
+  #date-wx-strip > span:first-child {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+  #top-strip .ts-wx-icon .wx-sky-icon         { width: 17px; height: 17px; }
+  #header-wx-chip #header-wx-icon .wx-sky-icon { width: 14px; height: 14px; }
+  #date-wx-strip .wx-sky-icon                  { width: 13px; height: 13px; }
   /* Custom date calendar dropdown */
   #date-calendar {
     position: absolute;
@@ -3269,7 +3278,14 @@
     transition: transform 0.22s ease-out, opacity 0.22s ease-out;
     opacity: 0;
   }
-  .notif-toast-icon { font-size: 20px; flex-shrink: 0; line-height: 1; display: flex; align-items: center; }
+  /* Explicit emoji fallback fonts so iOS WKWebView reaches Apple Color
+     Emoji for the toast icon (👋 📍 📅 etc.). Without this the parent
+     font-family ('Inter') has no glyph for emoji codepoints and they
+     render as tofu — even emoji-default codepoints. */
+  .notif-toast-icon {
+    font-size: 20px; flex-shrink: 0; line-height: 1; display: flex; align-items: center;
+    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+  }
   .notif-toast-icon svg { width: 18px; height: 18px; display: block; }
   .notif-toast-content { flex: 1; min-width: 0; cursor: pointer; }
   /* Bolder + slightly bigger so notifications read as actionable
