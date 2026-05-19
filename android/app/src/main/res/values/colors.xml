@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Shades brand colors. Source: Shades Brand Pack v1. -->
+<resources>
+    <color name="shades_ink">#111E38</color>
+    <color name="shades_cream">#FFF2EB</color>
+    <color name="shades_sun">#F5C25E</color>
+    <color name="shades_muted">#9CBDE7</color>
+</resources>

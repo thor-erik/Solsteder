@@ -18,7 +18,7 @@ function drawSunCompass() {
   c.clearRect(0, 0, w, h);
   c.beginPath(); c.arc(cx, cy, outerR, 0, Math.PI * 2);
   c.fillStyle = 'rgba(255,255,255,0.04)'; c.fill();
-  c.strokeStyle = 'rgba(255,175,133,0.18)'; c.lineWidth = 1; c.stroke();
+  c.strokeStyle = 'rgba(245,194,94,0.18)'; c.lineWidth = 1; c.stroke();
 
   for (let i = 0; i < 8; i++) {
     const angle = (i * 45 - 90) * RAD;
@@ -41,9 +41,9 @@ function drawSunCompass() {
     const sr = outerR - 3;
     const sx = cx + sr * Math.cos(sunAngle), sy = cy + sr * Math.sin(sunAngle);
     c.beginPath(); c.moveTo(cx, cy); c.lineTo(sx, sy);
-    c.strokeStyle = 'rgba(255,175,133,0.25)'; c.lineWidth = 1; c.stroke();
+    c.strokeStyle = 'rgba(245,194,94,0.25)'; c.lineWidth = 1; c.stroke();
     const glow = c.createRadialGradient(sx, sy, 0, sx, sy, 9);
-    glow.addColorStop(0, 'rgba(255,175,133,0.55)'); glow.addColorStop(1, 'rgba(255,175,133,0)');
+    glow.addColorStop(0, 'rgba(245,194,94,0.55)'); glow.addColorStop(1, 'rgba(245,194,94,0)');
     c.beginPath(); c.arc(sx, sy, 9, 0, Math.PI * 2); c.fillStyle = glow; c.fill();
     c.beginPath(); c.arc(sx, sy, 3.5, 0, Math.PI * 2); c.fillStyle = TOKENS.accent; c.fill();
   } else {
@@ -197,12 +197,12 @@ function drawSunCurve(canvasEl) {
   };
 
   if (pastPts.length > 1) {
-    _fillCurve(pastPts, 'rgba(255,175,133,0.04)');
+    _fillCurve(pastPts, 'rgba(245,194,94,0.04)');
   }
   if (futurePts.length > 1) {
     const fg = c.createLinearGradient(0, PAD_T, 0, baseY);
-    fg.addColorStop(0, 'rgba(255,175,133,0.18)');
-    fg.addColorStop(1, 'rgba(255,175,133,0.02)');
+    fg.addColorStop(0, 'rgba(245,194,94,0.18)');
+    fg.addColorStop(1, 'rgba(245,194,94,0.02)');
     _fillCurve(futurePts, fg);
   }
 
@@ -217,8 +217,8 @@ function drawSunCurve(canvasEl) {
     c.strokeStyle = strokeStyle; c.lineWidth = lineWidth; c.stroke();
   };
 
-  if (pastPts.length > 1)   _strokeCurve(pastPts,   'rgba(255,175,133,0.22)', 1.5);
-  if (futurePts.length > 1) _strokeCurve(futurePts, 'rgba(255,175,133,0.90)', 2);
+  if (pastPts.length > 1)   _strokeCurve(pastPts,   'rgba(245,194,94,0.22)', 1.5);
+  if (futurePts.length > 1) _strokeCurve(futurePts, 'rgba(245,194,94,0.90)', 2);
 
   // ── 4. Sunrise / sunset ticks ───────────────────────────────────────────────
   const sunrise = findSunCrossingFromTable(currentSunTable, true);
@@ -229,9 +229,9 @@ function drawSunCurve(canvasEl) {
     if (t == null) return;
     const tx = timeToX(t);
     c.beginPath(); c.moveTo(tx, PAD_T); c.lineTo(tx, bottomY);
-    c.strokeStyle = 'rgba(255,175,133,0.20)'; c.lineWidth = 1;
+    c.strokeStyle = 'rgba(245,194,94,0.20)'; c.lineWidth = 1;
     c.setLineDash([2, 3]); c.stroke(); c.setLineDash([]);
-    c.fillStyle = 'rgba(255,175,133,0.50)';
+    c.fillStyle = 'rgba(245,194,94,0.50)';
     c.fillText(formatHour(t), tx, bottomY + 2);
   });
 
@@ -325,8 +325,8 @@ function _drawSunArc(c, cw, ch, dateStr, fromH, isToday, MIN_H, MAX_H, PAD_X, ti
 
     if (pastSamp.length > 1) {
       const pg = c.createLinearGradient(0, PAD_T, 0, horizY);
-      pg.addColorStop(0, 'rgba(255,175,133,0.07)');
-      pg.addColorStop(1, 'rgba(255,175,133,0.01)');
+      pg.addColorStop(0, 'rgba(245,194,94,0.07)');
+      pg.addColorStop(1, 'rgba(245,194,94,0.01)');
       c.beginPath();
       c.moveTo(timeToX(pastSamp[0].t), horizY);
       pastSamp.forEach(s => c.lineTo(timeToX(s.t), altToY(s.alt)));
@@ -335,12 +335,12 @@ function _drawSunArc(c, cw, ch, dateStr, fromH, isToday, MIN_H, MAX_H, PAD_X, ti
       c.beginPath();
       c.moveTo(timeToX(pastSamp[0].t), altToY(pastSamp[0].alt));
       pastSamp.forEach(s => c.lineTo(timeToX(s.t), altToY(s.alt)));
-      c.strokeStyle = 'rgba(255,175,133,0.2)'; c.lineWidth = 1.5; c.stroke();
+      c.strokeStyle = 'rgba(245,194,94,0.2)'; c.lineWidth = 1.5; c.stroke();
     }
     if (futureSamp.length > 1) {
       const grad = c.createLinearGradient(0, PAD_T, 0, horizY);
-      grad.addColorStop(0, 'rgba(255,175,133,0.28)');
-      grad.addColorStop(1, 'rgba(255,175,133,0.04)');
+      grad.addColorStop(0, 'rgba(245,194,94,0.28)');
+      grad.addColorStop(1, 'rgba(245,194,94,0.04)');
       c.beginPath();
       c.moveTo(timeToX(futureSamp[0].t), horizY);
       futureSamp.forEach(s => c.lineTo(timeToX(s.t), altToY(s.alt)));
@@ -349,7 +349,7 @@ function _drawSunArc(c, cw, ch, dateStr, fromH, isToday, MIN_H, MAX_H, PAD_X, ti
       c.beginPath();
       c.moveTo(timeToX(futureSamp[0].t), altToY(futureSamp[0].alt));
       futureSamp.forEach(s => c.lineTo(timeToX(s.t), altToY(s.alt)));
-      c.strokeStyle = 'rgba(255,175,133,0.9)'; c.lineWidth = 2; c.stroke();
+      c.strokeStyle = 'rgba(245,194,94,0.9)'; c.lineWidth = 2; c.stroke();
     }
   }
 
@@ -362,8 +362,8 @@ function _drawSunArc(c, cw, ch, dateStr, fromH, isToday, MIN_H, MAX_H, PAD_X, ti
     if (t == null) return;
     const tx = timeToX(t);
     c.beginPath(); c.moveTo(tx, horizY - 2); c.lineTo(tx, horizY + 4);
-    c.strokeStyle = 'rgba(255,175,133,0.45)'; c.lineWidth = 1; c.stroke();
-    c.fillStyle = 'rgba(255,175,133,0.65)';
+    c.strokeStyle = 'rgba(245,194,94,0.45)'; c.lineWidth = 1; c.stroke();
+    c.fillStyle = 'rgba(245,194,94,0.65)';
     c.fillText(formatHour(t), tx, horizY + 5);
   });
 

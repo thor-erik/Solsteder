@@ -57,8 +57,8 @@ function drawSeatingAreas() {
     // is forced sunny anyway). Audit-archived venues paint red so you can
     // spot them as outliers among the polygons.
     const sunny = _auditAll ? true : venueSunState(v, az, alt);
-    const fillSunny   = _auditAll ? 'rgba(245,194,94,0.22)' : 'rgba(255,175,133,0.20)';
-    const strokeSunny = _auditAll ? 'rgba(245,194,94,0.85)' : 'rgba(255,175,133,0.65)';
+    const fillSunny   = _auditAll ? 'rgba(245,194,94,0.22)' : 'rgba(245,194,94,0.20)';
+    const strokeSunny = _auditAll ? 'rgba(245,194,94,0.85)' : 'rgba(245,194,94,0.65)';
     const fillShade   = 'rgba(40,80,180,0.13)';
     const strokeShade = 'rgba(80,130,220,0.35)';
 
@@ -241,7 +241,7 @@ function drawShadowOverlay(venue) {
     const sunny = venueSunState(venue, az, alt);
 
     const glow = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, 13);
-    glow.addColorStop(0, sunny ? 'rgba(255,175,133,0.5)' : 'rgba(100,130,210,0.45)');
+    glow.addColorStop(0, sunny ? 'rgba(245,194,94,0.5)' : 'rgba(100,130,210,0.45)');
     glow.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.beginPath(); ctx.arc(pt.x, pt.y, 13, 0, Math.PI * 2);
     ctx.fillStyle = glow; ctx.fill();

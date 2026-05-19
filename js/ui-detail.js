@@ -270,7 +270,7 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
 
 // Deterministic friend color, mirrors the canvas pin palette so the avatar
 // reads as the same person between map pin and detail panel.
-const _DP_FRIEND_COLORS = ['#FFAF85', '#9CBDE7', '#FFD488', '#E6C08A', '#FFCFAA', '#DECCC0'];
+const _DP_FRIEND_COLORS = ['#F5C25E', '#9CBDE7', '#FFD488', '#E6C08A', '#FFCFAA', '#DECCC0'];
 function _dpFriendColor(userId) {
   const s = String(userId || '');
   let h = 0;

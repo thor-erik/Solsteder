@@ -398,7 +398,7 @@ function drawBuildingEditor() {
 
   if (!v.buildingGeometry || !v.wallNormals) {
     const pt = map.project([v.lng, v.lat]);
-    ctx.strokeStyle = 'rgba(255,175,133,0.7)'; ctx.lineWidth = 1.5; ctx.setLineDash([6,4]);
+    ctx.strokeStyle = 'rgba(245,194,94,0.7)'; ctx.lineWidth = 1.5; ctx.setLineDash([6,4]);
     ctx.beginPath(); ctx.moveTo(pt.x - 20, pt.y); ctx.lineTo(pt.x + 20, pt.y); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(pt.x, pt.y - 20); ctx.lineTo(pt.x, pt.y + 20); ctx.stroke();
     ctx.setLineDash([]);
@@ -415,7 +415,7 @@ function drawBuildingEditor() {
     i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y);
   });
   ctx.closePath();
-  const bldFill = { rooftop: 'rgba(255,175,133,0.18)', courtyard: 'rgba(160,100,255,0.18)',
+  const bldFill = { rooftop: 'rgba(245,194,94,0.18)', courtyard: 'rgba(160,100,255,0.18)',
                     detached: 'rgba(24,88,180,0.22)', street: 'rgba(24,88,180,0.45)' };
   ctx.fillStyle = bldFill[terrType] ?? bldFill.street;
   ctx.fill();
@@ -505,8 +505,8 @@ function drawBuildingEditor() {
         ctx.beginPath();
         poly.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
         ctx.closePath();
-        ctx.fillStyle = 'rgba(255,175,133,0.10)'; ctx.fill();
-        ctx.strokeStyle = 'rgba(255,175,133,0.55)'; ctx.lineWidth = 1.5;
+        ctx.fillStyle = 'rgba(245,194,94,0.10)'; ctx.fill();
+        ctx.strokeStyle = 'rgba(245,194,94,0.55)'; ctx.lineWidth = 1.5;
         ctx.stroke();
 
         // Only draw handles on the FIRST chain — bakeStreetPolygon picks chain 0.
@@ -531,7 +531,7 @@ function drawBuildingEditor() {
     const loc = v.terraceDetachedLocation ?? { lat: v.lat, lng: v.lng };
     const pt  = map.project([loc.lng, loc.lat]);
     ctx.beginPath(); ctx.arc(pt.x, pt.y, 11, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255,175,133,0.18)'; ctx.fill();
+    ctx.fillStyle = 'rgba(245,194,94,0.18)'; ctx.fill();
     ctx.strokeStyle = TOKENS.accent; ctx.lineWidth = 2.5; ctx.stroke();
   }
 }
@@ -541,13 +541,13 @@ function drawBuildingEditor() {
 function _drawPolygonOutlinePx(px, key) {
   if (!Array.isArray(px) || px.length < 3) return;
   const fillStyle = key === 'courtyard' ? 'rgba(192,122,255,0.10)'
-                  : key === 'detached'  ? 'rgba(255,175,133,0.10)'
+                  : key === 'detached'  ? 'rgba(245,194,94,0.10)'
                   : key === 'ai'        ? 'rgba(168,230,197,0.10)'
-                  :                       'rgba(255,175,133,0.10)';
+                  :                       'rgba(245,194,94,0.10)';
   const strokeStyle = key === 'courtyard' ? 'rgba(192,122,255,0.85)'
-                    : key === 'detached'  ? 'rgba(255,175,133,0.85)'
+                    : key === 'detached'  ? 'rgba(245,194,94,0.85)'
                     : key === 'ai'        ? 'rgba(168,230,197,0.85)'
-                    :                       'rgba(255,175,133,0.70)';
+                    :                       'rgba(245,194,94,0.70)';
   ctx.beginPath();
   px.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
   ctx.closePath();
@@ -601,7 +601,7 @@ function _drawPolygonHandlesPx(px, key) {
 
     ctx.save();
     // Outer halo (no offset) — felt rather than seen
-    ctx.shadowColor   = 'rgba(255,175,133,0.65)';
+    ctx.shadowColor   = 'rgba(245,194,94,0.65)';
     ctx.shadowBlur    = dragging ? 14 : 10;
     ctx.shadowOffsetY = 0;
     ctx.beginPath();

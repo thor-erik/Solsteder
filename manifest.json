@@ -11,10 +11,11 @@
   "display_override": ["window-controls-overlay", "standalone", "browser"],
   "orientation": "portrait-primary",
   "background_color": "#FFF2EB",
-  "theme_color": "#142E52",
+  "theme_color": "#111E38",
   "categories": ["travel", "lifestyle", "food"],
   "prefer_related_applications": false,
   "icons": [
+    { "src": "shades-mark.svg",              "sizes": "any",     "type": "image/svg+xml", "purpose": "any" },
     { "src": "apple-touch-icon-76x76.png",   "sizes": "76x76",   "type": "image/png", "purpose": "any" },
     { "src": "apple-touch-icon-120x120.png", "sizes": "120x120", "type": "image/png", "purpose": "any" },
     { "src": "apple-touch-icon-152x152.png", "sizes": "152x152", "type": "image/png", "purpose": "any" },

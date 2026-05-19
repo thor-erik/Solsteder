@@ -512,13 +512,13 @@ function wxColor(dateStr, h, bright) {
     if (isRainy)    return 'rgba(156,189,231,0.25)';
     if (isOvercast) return 'rgba(156,189,231,0.45)';
     if (isPartly)   return 'rgba(156,189,231,0.70)';
-    return 'rgba(255,175,133,0.85)';
+    return 'rgba(245,194,94,0.85)';
   } else {
     // Past arcs: dimmed versions of the same colors
     if (isRainy)    return 'rgba(156,189,231,0.12)';
     if (isOvercast) return 'rgba(156,189,231,0.22)';
     if (isPartly)   return 'rgba(156,189,231,0.35)';
-    return 'rgba(255,175,133,0.40)';
+    return 'rgba(245,194,94,0.40)';
   }
 }
 

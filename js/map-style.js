@@ -101,7 +101,7 @@ function buildShadeStyle() {
 
       // ── Roads ──────────────────────────────────────────────────────────────
       // Warm-gray ramp one step darker than near-white so streets are clearly
-      // visible against the sunlit ground. Stays well clear of peach #FFAF85
+      // visible against the sunlit ground. Stays well clear of peach #F5C25E
       // so hero pins remain the loudest warm element on the map.
       {
         id: 'road-motorway',
