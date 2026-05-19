@@ -1269,6 +1269,16 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
           const wxSlot   = labelEl && labelEl.querySelector('.fts-popup-wx-icon');
           const tempSlot = labelEl && labelEl.querySelector('.fts-popup-temp');
           const windSlot = labelEl && labelEl.querySelector('.fts-popup-wind');
+          // Visibility is GATED on real user interaction — autoplay scrubs
+          // through the timeline by dispatching synthetic 'input' events on
+          // timeFromEl, which fire this `update` function. v3 used an
+          // isAutoplaying-flag toggle here, but the final autoplay frame
+          // arrived AFTER autoplayDone flipped to true, briefly flashing
+          // the bubble at the settle position. The new contract: position
+          // updates happen always (so the marker is correct when the user
+          // first interacts), but is-active is only ever added by
+          // onCanvasDown below. The auto-hide timer reset still happens
+          // here so continued scrubbing keeps the bubble alive.
           const update = () => {
             const h = parseFloat(timeFromEl.value);
             if (!Number.isFinite(h)) return;
@@ -1285,28 +1295,18 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
                 }
               } catch (e) { /* ignore */ }
             }
-            // Suppress visibility during the autoplay timelapse — the
-            // marker would just drift across the bar following the time
-            // animation, adding noise to a state the user can't yet
-            // interact with. Position still updates so when autoplay
-            // settles, the scrubber lands at the right hour. Once
-            // _planPreviewState.autoplayDone flips to true (either
-            // because the animation completed OR because the user
-            // touched the FTS — see the cancel block lower in this
-            // file), normal is-active behavior resumes.
-            const isAutoplaying = !!(_planPreviewState && _planPreviewState.autoplayDone === false);
-            if (isAutoplaying) {
-              scrubberEl.classList.remove('is-active');
-              if (_scrubAutoHideTimer) { clearTimeout(_scrubAutoHideTimer); _scrubAutoHideTimer = null; }
-              return;
+            // Only refresh the auto-hide timer if the bubble is already
+            // visible (the user is in the middle of a scrub session).
+            // Don't add is-active here.
+            if (scrubberEl.classList.contains('is-active')) {
+              if (_scrubAutoHideTimer) clearTimeout(_scrubAutoHideTimer);
+              _scrubAutoHideTimer = setTimeout(() => {
+                scrubberEl.classList.remove('is-active');
+                scrubberEl.classList.remove('is-dragging');
+                if (labelEl) labelEl.classList.remove('fts-popup-expanded');
+                _scrubAutoHideTimer = null;
+              }, SCRUB_AUTO_HIDE_MS);
             }
-            scrubberEl.classList.add('is-active');
-            if (_scrubAutoHideTimer) clearTimeout(_scrubAutoHideTimer);
-            _scrubAutoHideTimer = setTimeout(() => {
-              scrubberEl.classList.remove('is-active');
-              scrubberEl.classList.remove('is-dragging');
-              _scrubAutoHideTimer = null;
-            }, SCRUB_AUTO_HIDE_MS);
           };
           const onDocPointer = (ev) => {
             if (!scrubberEl.classList.contains('is-active')) return;
@@ -1323,7 +1323,20 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
           // pointerup snaps back to compact.
           const onCanvasDown = () => {
             scrubberEl.classList.remove('is-dragging');
+            // Reveal the bubble — this is the ONLY place is-active is
+            // added, so autoplay (which only fires synthetic 'input'
+            // events, never pointerdown) can't accidentally surface it.
+            scrubberEl.classList.add('is-active');
             if (labelEl) labelEl.classList.add('fts-popup-expanded');
+            // Kick off the auto-hide timer so an idle bar fades the
+            // bubble out 2.5 s after the last input.
+            if (_scrubAutoHideTimer) clearTimeout(_scrubAutoHideTimer);
+            _scrubAutoHideTimer = setTimeout(() => {
+              scrubberEl.classList.remove('is-active');
+              scrubberEl.classList.remove('is-dragging');
+              if (labelEl) labelEl.classList.remove('fts-popup-expanded');
+              _scrubAutoHideTimer = null;
+            }, SCRUB_AUTO_HIDE_MS);
           };
           const onCanvasMove = (ev) => {
             if (ev.buttons === 0 && ev.pressure === 0 && ev.pointerType !== 'touch') return;

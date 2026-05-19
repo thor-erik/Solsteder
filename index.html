@@ -130,7 +130,7 @@
 <script defer src="js/ui-shelter.js?v=20260416a"></script>
 <script defer src="js/render-wind.js?v=20260416b"></script>
 <script defer src="js/ui-detail.js?v=20260519p"></script>
-<script defer src="js/ui-plan-preview.js?v=20260519p"></script>
+<script defer src="js/ui-plan-preview.js?v=20260519q"></script>
 <script defer src="js/osm.js?v=20260513a"></script>
 <script defer src="js/notifications.js?v=20260519c"></script>
 <script defer src="js/push.js?v=20260518c"></script>
@@ -9286,6 +9286,45 @@
     z-index: auto;
   }
 
+  /* Invite-mode popup behavior: hidden at rest, revealed only while the
+     user is actively dragging (the FTS sets .fts-popup-expanded during
+     drag, removes it on release). A 0.4s delay before fade-out lets the
+     picked time linger briefly after release — same UX rhythm as the
+     thumb's release bounce. */
+  .fts-in-invite #fts-popup {
+    opacity: 0;
+    transition: opacity 0.4s ease 0.4s;
+  }
+  .fts-in-invite #fts-popup.fts-popup-expanded {
+    opacity: 1;
+    transition: opacity 0.15s ease 0s;
+  }
+
+  /* Idle bounce hint — only when FTS is parked inside the invite sheet
+     AND the thumb is at rest (not hovered, not actively dragged, not
+     mid-release). Runs every 5 s with the bounce occupying the last
+     ~600 ms of the cycle; the rest sits flat at scale(1) so it reads as
+     an intermittent nudge ("you can drag me") rather than a constant
+     pulse. Mirrors the thumb's release-bounce easing for visual
+     continuity. The :not() chain hands the thumb back to its hover /
+     active / release states the moment the user touches it. */
+  @keyframes fts-thumb-idle-bounce {
+    0%, 88%  { transform: translate(-50%, -50%) scale(1); }
+    92%      { transform: translate(-50%, -50%) scale(1.08); }
+    95%      { transform: translate(-50%, -50%) scale(0.96); }
+    98%      { transform: translate(-50%, -50%) scale(1.03); }
+    100%     { transform: translate(-50%, -50%) scale(1); }
+  }
+  .fts-in-invite #fts-thumb:not(.is-hover):not(.is-active):not(.is-releasing) {
+    animation: fts-thumb-glint-idle 6s ease-in-out infinite,
+               fts-thumb-idle-bounce 5s cubic-bezier(0.32, 0.72, 0, 1) infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .fts-in-invite #fts-thumb:not(.is-hover):not(.is-active):not(.is-releasing) {
+      animation: none;
+    }
+  }
+
   .dpinvite-sheet {
     position: absolute;
     /* Sheet contract — bottom: 0 + svh max-height is correct on every
@@ -10110,10 +10149,13 @@
      floats above the marker; the bar (48 px) sits below. */
   .dprcv-timeline {
     position: relative;
-    /* Bar (48 px) + padding-top (6 px buffer above for sun chip visual
-       break + the compact scrubber bubble overflow when active) = 54 px. */
-    height: 54px;
-    padding-top: 6px;
+    /* No padding above the bar — the sun chip sits flush against it,
+       reading as "this chip describes THIS bar". The scrubber bubble
+       overflows above the bar (into the sun-chip area) when active,
+       which is acceptable because the bubble is only visible during
+       a user-initiated scrub. */
+    height: 48px;
+    padding-top: 0;
     margin-top: 0;
     border-radius: 0;
   }
@@ -10124,9 +10166,8 @@
     position: absolute;
     left: 0;
     right: 0;
-    /* Bar starts at top = 6 (wrapper padding-top); height = 48. The
-       wx row sits inside that band, centred. */
-    top: 6px;
+    /* Bar fills the wrapper now (no padding-top), so the wx row matches. */
+    top: 0;
     height: 48px;
     pointer-events: none;
     z-index: 2;
@@ -10153,8 +10194,8 @@
      icons above. */
   .dprcv-timeline-scrubber {
     position: absolute;
-    /* Bar top is at wrapper-top + 6 (padding-top), bar height 48. */
-    top: 6px;
+    /* Bar fills the wrapper top-to-bottom; scrubber spans the same range. */
+    top: 0;
     left: 0;
     width: 0;
     height: 48px;
