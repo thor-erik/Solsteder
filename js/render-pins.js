@@ -1973,7 +1973,14 @@ function draw() {
     if (Math.abs(d) < 0.005) {
       _labelMotionAlpha = _labelMotionTarget;
     } else {
-      _labelMotionAlpha += d * 0.20;
+      // Asymmetric lerp: fade-out at 0.20/frame (~80 ms to mostly invisible),
+      // fade-in at 0.08/frame (~250 ms to mostly full). The user reported
+      // labels "only fading out, never fading in" — same 0.20 rate in both
+      // directions made the fade-in snap back too fast to perceive as an
+      // animation (especially when motion was brief and alpha didn't drop
+      // far). Slower fade-in makes the return read as an actual reveal.
+      const rate = d > 0 ? 0.08 : 0.20;
+      _labelMotionAlpha += d * rate;
       _animDirty = true;
     }
   }
