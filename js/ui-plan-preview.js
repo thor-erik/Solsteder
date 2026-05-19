@@ -311,11 +311,15 @@ function openPlanPreview(opts) {
     const _releaseSplash = () => {
       if (_splashReleased.value) return;
       _splashReleased.value = true;
-      // Release the boot draw gate at the same moment we dismiss the
-      // splash. _skipIntro({keepSplash:true}) left the gate closed for
-      // this path; releasing here fires the deferred first paint behind
-      // the still-solid splash, just before the fade choreography starts.
-      if (typeof window._releaseBootDrawGate === 'function') {
+      // Release the boot draw gate AND reveal the canvas + chrome at
+      // the same moment we dismiss the splash. _skipIntro({keepSplash:
+      // true}) left the gate closed for this path; the plan-invite
+      // takeover needs the pin canvas visible so the inviter avatar
+      // pin shows. (Locate-me / zoom-jog visibility is then governed
+      // by body.plan-preview-active CSS rules.)
+      if (typeof window._revealCanvasAndChrome === 'function') {
+        window._revealCanvasAndChrome();
+      } else if (typeof window._releaseBootDrawGate === 'function') {
         window._releaseBootDrawGate();
       }
       _hideInviteSplash();

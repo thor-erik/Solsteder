@@ -1767,6 +1767,38 @@ function _openInviteSheet(venueId) {
   }
 
   document.body.classList.add('invite-sheet-open');
+  // Stash the venue id so _closeInviteSheet's recovery path knows which
+  // venue to return to if the underlying detail panel was somehow torn
+  // down during the sheet's lifetime (the "close → empty map" regression).
+  if (typeof window !== 'undefined') window._inviteSheetVenueId = venueId;
+
+  // Show the SENDER's own avatar pin on the map while the invite sheet
+  // is being composed. Mirrors the accept-page _invitePin pattern (and
+  // the _friendsPin pattern app.js uses for plans with friends going)
+  // so the user has a visual "you're going to be here" anchor on the
+  // map even before they've sent the invite or copied the link. Cleared
+  // in _closeInviteSheet; _updateFriendsCanvasPin restores the real
+  // attendee state if a plan was actually created.
+  if (typeof window !== 'undefined' && typeof authCurrentUser === 'function') {
+    const me = authCurrentUser();
+    if (me) {
+      const rawName = (me.user_metadata && me.user_metadata.name)
+        || (me.email ? me.email.split('@')[0] : '')
+        || 'Du';
+      window._friendsPin = {
+        venueId: venueId,
+        meetHour: curHour,
+        attendees: [{
+          id: me.id || null,
+          name: String(rawName).split(' ')[0],
+          offsetMin: 0,
+        }],
+        declined: [],
+      };
+      if (typeof window.markPinLayoutStale === 'function') window.markPinLayoutStale();
+      if (typeof draw === 'function') draw();
+    }
+  }
 
   // Pan the map so the venue lands centred between the floating top card and
   // the sheet. Use the proper zoom + pitch (matches panToVenueCenter) so the
@@ -2173,6 +2205,17 @@ function _closeInviteSheet() {
     setTimeout(() => overlay.remove(), 300);
   }
   document.body.classList.remove('invite-sheet-open');
+
+  // Clear the preview pin set in _openInviteSheet and let
+  // _updateFriendsCanvasPin restore the real attendee state — if a
+  // plan was created during the sheet's lifetime, the pin re-populates
+  // with the real attendees; if not, it stays empty.
+  if (typeof window !== 'undefined') window._friendsPin = null;
+  if (typeof _updateFriendsCanvasPin === 'function') {
+    try { _updateFriendsCanvasPin(); } catch (e) { /* ignore */ }
+  }
+  if (typeof window.markPinLayoutStale === 'function') window.markPinLayoutStale();
+  if (typeof draw === 'function') draw();
   // The open handler reparented #fts to <body> so the body.invite-sheet-open
   // rule could float it above the sheet. Now that the rule no longer applies,
   // put the slider back inside #panel where the FTS contract expects it to
@@ -2232,6 +2275,20 @@ function _closeInviteSheet() {
   // returned (per the body.invite-sheet-open CSS rule) before we measure.
   setTimeout(() => {
     if (typeof updateDetailPanel === 'function') updateDetailPanel();
+    // If for some reason the detail panel is not open (e.g. the sheet
+    // was opened from a path that bypassed selectVenue, or the .open
+    // class was dropped by another handler during the sheet's life),
+    // re-open it on the venue currently associated with the sheet so
+    // the user lands back on the venue page instead of a bare map.
+    // This is the recovery for the "close → empty map" regression.
+    try {
+      const dp = document.getElementById('detail-panel');
+      const sheetVenueId = (typeof window !== 'undefined') ? window._inviteSheetVenueId : null;
+      if (sheetVenueId != null && (!dp || !dp.classList.contains('open'))
+          && typeof selectVenue === 'function') {
+        selectVenue(sheetVenueId, true);
+      }
+    } catch (e) { /* ignore */ }
   }, 280);
 }
 

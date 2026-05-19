@@ -6460,17 +6460,27 @@ window._passesActiveFilters = function(v) {
     if (total < 2) return false;
   }
   if (f.quiet) {
-    // venues.json doesn't carry noiseScore for any record (the OSM-highway
-    // pass that populates it hasn't run on this dataset), so the noise
-    // model fell back to a neutral 50 and the filter dropped everything.
-    // Use busyness instead — "quiet" = not crowded RIGHT NOW. < 40 maps
-    // to "Low" / "Not too busy" on busynessLabel's bucket scale.
-    if (typeof getBusynessAt !== 'function') return true;
+    // "Quiet" = relatively low busyness compared to the venue's own peak.
+    // Absolute thresholds (e.g. < 40) failed because at dinner/lunch hours
+    // most categories sit at 60–90 and ZERO venues passed. Relative
+    // threshold instead: include the venue if current busyness is in the
+    // bottom 50% of its day-profile range. Always-empty profiles (closed
+    // venues) fall through to pass since 0 ≤ 0.5*peak. Note: venues.json
+    // uses `cafe` (no accent); the busyness profile key is `café`, so
+    // those fall back to the restaurant profile — known mismatch
+    // upstream, accepted here.
+    if (typeof getBusynessAt !== 'function' || typeof getBusynessForDay !== 'function') return true;
     const dateStr = (typeof datePicker !== 'undefined' && datePicker) ? datePicker.value : null;
     const fromH   = (typeof timeFromEl !== 'undefined' && timeFromEl) ? parseFloat(timeFromEl.value) : 0;
     if (!dateStr) return true;
+    const profile = getBusynessForDay(v, dateStr);
+    let peak = 0;
+    for (let i = 0; i < profile.length; i++) if (profile[i] > peak) peak = profile[i];
     const b = getBusynessAt(v, dateStr, fromH);
-    if (!(b < 40)) return false; // includes NaN guard
+    // Quiet = below half of the day's peak. Also clamp absolute: anything
+    // < 50 unconditionally passes so genuinely off-peak hours surface
+    // across all venues.
+    if (peak > 0 && b > Math.min(50, peak * 0.5)) return false;
   }
   if (f.friends) {
     // Venue has SOMETHING happening with friends: checked-in friends, OR
@@ -7558,15 +7568,19 @@ function _runIntroSequence() {
     if (_introSeqId !== seqId) return;
     _onBootWorkerReady(() => {
       if (_introSeqId !== seqId) return;
-      // Releases gate + fires deferred draw() synchronously.
-      if (typeof _releaseBootDrawGate === 'function') _releaseBootDrawGate();
+      // Pin canvas paint deliberately DEFERRED to _revealCanvasAndChrome
+      // (called at phase 3, when the panel reaches expanded). Holding
+      // the boot draw gate closed throughout intro means draw() returns
+      // early on every call (no paint cycles → no perf cost, and no
+      // partially-painted pins visible during the splash fade or the
+      // cinematic zoom). Released once at panel-expand with one deferred
+      // draw() catching up.
       // Cancel the pending scheduleRenderList timer (update() armed a
       // 300ms debounce that would otherwise re-paint the list a moment
       // after our force-fire below, stuttering the fade).
       if (_renderListTimer) { clearTimeout(_renderListTimer); _renderListTimer = null; }
       // Force-run the venue list paint now, while the splash is still up.
-      // Without this it lands ~300ms later (the scheduleRenderList debounce
-      // tail), exactly during the splash fade, and stutters it.
+      // (DOM render — independent of the canvas boot gate.)
       if (typeof renderList === 'function') {
         try { renderList(); } catch (e) { console.warn('[boot] renderList threw', e); }
       }
@@ -7652,6 +7666,15 @@ function _runIntroSequence() {
               panel.classList.add('mobile-expanded');
               _syncFtsPosition();
             }
+            // Reveal pin canvas + locate-me + zoom-jog now that the
+            // panel is reaching expanded. boot draw gate releases here
+            // so the deferred draw() paints AT this moment (the canvas
+            // was empty up to this point — no pins, no paint cycles).
+            _revealCanvasAndChrome();
+            // Desktop: no peek/expanded distinction, but we still gated
+            // pins + chrome behind this moment. _revealCanvasAndChrome
+            // is idempotent so calling it both here and in the desktop
+            // branch end is safe.
 
             setTimeout(() => {
               if (_introSeqId !== seqId) return;
@@ -7670,6 +7693,47 @@ function _runIntroSequence() {
     }, loaderFadeMs);
   }
 }
+
+/** Reveal the pin canvas, locate-me, and zoom-jog after the venue list
+ *  panel has reached its target state (expanded on mobile, slid-in on
+ *  desktop). Boot draw gate is released here too — that's the moment
+ *  draw() actually paints to the canvas for the first time, so the
+ *  pins materialise in step with the opacity fade-in.
+ *
+ *  Called from:
+ *   - Fresh intro: phase 3 (right after panel.classList.add('mobile-expanded'))
+ *   - Skip intro: right after the panel-expand setTimeout
+ *   - Desktop intro: end of _introRevealUI (panel has no peek/expanded states)
+ *
+ *  Idempotent — repeat calls are no-ops because intro-hidden is already
+ *  removed and opacity is already '1'. */
+function _revealCanvasAndChrome() {
+  const canvasOverlay = document.getElementById('canvas-overlay');
+  const locateBtn     = document.getElementById('locate-btn');
+  const zoomJog       = document.getElementById('zoom-jog');
+  // Release the gate FIRST so the deferred draw() paints into the canvas
+  // BEFORE opacity transitions from 0 → 1. The pins are already painted
+  // (invisible) when the fade begins.
+  if (typeof _releaseBootDrawGate === 'function') {
+    try { _releaseBootDrawGate(); } catch (e) { /* ignore */ }
+  }
+  if (canvasOverlay) {
+    canvasOverlay.classList.remove('intro-hidden');
+    canvasOverlay.style.opacity = '1';
+  }
+  // Fade locate-me + zoom-jog in. They've been held hidden via
+  // intro-hidden since boot. Use the same 0.5s opacity easing the rest
+  // of the chrome uses so the reveal reads as one unified moment.
+  for (const el of [locateBtn, zoomJog]) {
+    if (!el || !el.classList.contains('intro-hidden')) continue;
+    el.style.transition = 'opacity 0.5s ease';
+    requestAnimationFrame(() => {
+      el.classList.remove('intro-hidden');
+      setTimeout(() => { if (el) el.style.transition = ''; }, 600);
+    });
+  }
+}
+window._revealCanvasAndChrome = _revealCanvasAndChrome;
 
 function _introRevealUI(search, brand, qcWrap, panel, opts) {
   const locateBtn   = document.getElementById('locate-btn');
@@ -7712,14 +7776,14 @@ function _introRevealUI(search, brand, qcWrap, panel, opts) {
 
   if (!isMobile) {
     // Desktop: top-strip + panel rise from the left edge in lock-step;
-    // brand + locate + zoom-jog rise from the right. The 110% slide
-    // distance guarantees the element is fully off-screen at the start
-    // regardless of where its anchored left/right offset puts it.
+    // brand rises from the right. locate-btn + zoom-jog are HELD until
+    // _revealCanvasAndChrome fires (alongside the pin canvas) so they
+    // appear together with the pins, not before. The 110% slide distance
+    // guarantees the element is fully off-screen at the start regardless
+    // of where its anchored left/right offset puts it.
     _slideIn(topStrip,  'translateX(calc(-100% - 32px))');
     _slideIn(panel,     'translateX(calc(-100% - 32px))');
     _slideIn(brand,     'translateX(calc(100% + 32px))');
-    _slideIn(locateBtn, 'translateX(calc(100% + 32px))');
-    _slideIn(zoomJog,   'translateX(calc(100% + 32px))');
     // qc-wrap is the toast strip — fade rather than slide so a queued
     // toast on app-start doesn't appear mid-flight.
     if (qcWrap) {
@@ -7742,7 +7806,11 @@ function _introRevealUI(search, brand, qcWrap, panel, opts) {
       topStrip.style.transform = '';
       setTimeout(() => { if (topStrip) topStrip.style.transition = ''; }, 500);
     }
-    [brand, qcWrap, locateBtn, zoomJog].forEach(el => {
+    // brand + qc-wrap reveal with the rest of the chrome. locate-btn and
+    // zoom-jog are intentionally HELD until the panel reaches expanded
+    // state — they're revealed alongside the pin canvas in
+    // _revealCanvasAndChrome (called from phase 3 / panel-expand step).
+    [brand, qcWrap].forEach(el => {
       if (!el) return;
       el.style.transition = 'opacity 0.5s ease';
       requestAnimationFrame(() => {
@@ -7769,15 +7837,11 @@ function _introRevealUI(search, brand, qcWrap, panel, opts) {
     panel.style.transition = 'bottom 0.45s cubic-bezier(0.2, 0.8, 0.3, 1)';
     panel.style.bottom     = '';  // clear inline → CSS peek-state bottom takes over
 
-    // Fade the pin canvas IN as the panel slides up. Sets inline
-    // opacity '1' (transition + opacity:'0' were primed earlier in the
-    // splash hide-out / phase-1 setup) and removes the intro-hidden
-    // class so the class-rule no longer reapplies opacity 0.
-    const _canvasOverlay = document.getElementById('canvas-overlay');
-    if (_canvasOverlay) {
-      _canvasOverlay.classList.remove('intro-hidden');
-      _canvasOverlay.style.opacity = '1';
-    }
+    // Canvas reveal moved to _revealCanvasAndChrome (fires at phase 3 /
+    // panel-expand). User wanted pins + locate-me + zoom-jog all to fade
+    // in AFTER the venue list has expanded, not when it first slides
+    // into peek. Boot draw gate is also released there so no paint
+    // happens during intro.
   }
 
   if (USE_FLOATING_TIME_SLIDER && !(opts && opts.skipFts)) {
@@ -7790,6 +7854,16 @@ function _introRevealUI(search, brand, qcWrap, panel, opts) {
       });
     }
     requestAnimationFrame(() => syncFts());
+  }
+
+  // Desktop: no peek/expanded distinction, so the canvas + locate +
+  // zoom reveal can't piggy-back on the panel-expand moment that mobile
+  // uses. Fire it here at the end of the desktop reveal so the pins
+  // appear together with the chrome slide-in. (Idempotent — the mobile
+  // path's later _revealCanvasAndChrome call is a no-op once everything
+  // is already revealed.)
+  if (!isMobile) {
+    _revealCanvasAndChrome();
   }
 }
 
@@ -7831,8 +7905,14 @@ function _skipIntro(seqId, opts) {
     if (sl) { sl.style.transition = 'none'; sl.classList.add('fade-out'); }
     const ldr = document.getElementById('splash-loader');
     if (ldr) { ldr.style.transition = 'none'; ldr.classList.add('fade-out'); }
-    // Also release the draw gate so pins paint if they haven't yet.
-    if (typeof window._releaseBootDrawGate === 'function') {
+    // Backstop reveal: release the gate AND make canvas + chrome visible.
+    // Normal intro paths call _revealCanvasAndChrome at panel-expand; if
+    // those never fire (intro stalled, this 12s kill-switch fires), the
+    // backstop must surface the pins + locate-me + zoom-jog too so the
+    // user isn't left looking at an empty map.
+    if (typeof window._revealCanvasAndChrome === 'function') {
+      try { window._revealCanvasAndChrome(); } catch (e) {}
+    } else if (typeof window._releaseBootDrawGate === 'function') {
       try { window._releaseBootDrawGate(); } catch (e) {}
     }
   }, 12000);
@@ -7935,6 +8015,10 @@ function _skipIntro(seqId, opts) {
         panel.classList.add('mobile-expanded');
         _syncFtsPosition();
       }
+      // Reveal pin canvas + locate-me + zoom-jog in step with the
+      // panel reaching expanded. Boot draw gate releases here so this
+      // is the first moment draw() actually paints to the canvas.
+      _revealCanvasAndChrome();
     }, 600);
     // Wrap-up
     setTimeout(() => {
@@ -7974,9 +8058,10 @@ function _skipIntro(seqId, opts) {
       // the moment the splash hides.
       _onBootWorkerReady(() => {
         if (_introSeqId !== localSeq) return;
-        try {
-          if (typeof _releaseBootDrawGate === 'function') _releaseBootDrawGate();
-        } catch (e) { console.warn('[boot] _releaseBootDrawGate threw', e); }
+        // Pin canvas paint deferred to _revealCanvasAndChrome (called at
+        // panel-expand inside _runSkipChoreography). Boot draw gate stays
+        // closed through the splash hide so no canvas paint happens until
+        // the panel is reaching its target state.
         // Cancel the pending scheduleRenderList timer (the earlier
         // update() inside _skipIntro armed a 300ms debounce that would
         // otherwise re-paint the list a moment after our force-fire).
