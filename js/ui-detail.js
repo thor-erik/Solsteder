@@ -1159,7 +1159,12 @@ function _closePostAcceptPanel(opts = {}) {
   // skipExitToExplore + selects the venue explicitly; 'Change
   // response' opts out + reopens plan-preview.
   if (!opts.skipExitToExplore && typeof _exitToExploreMode === 'function') {
-    try { _exitToExploreMode(); } catch (e) { /* ignore */ }
+    // Pre-warm data (date / slider / list) but skip the panel slide here
+    // — body.post-accept-active is still on (kept for 320 ms so the
+    // post-accept slide-down doesn't fight a venue-list reveal). The
+    // slide-up fires once that class is removed below, so the user
+    // sees the venue list arrive AFTER the takeover is gone.
+    try { _exitToExploreMode({ skipPanelSlide: true }); } catch (e) { /* ignore */ }
   }
   // Defer body-class removal until the slide-down completes so the
   // venue list / search / FTS doesn't reveal while the panel is still
@@ -1171,6 +1176,14 @@ function _closePostAcceptPanel(opts = {}) {
   if (!opts.skipBodyClassRemoval) {
     setTimeout(() => {
       document.body.classList.remove('post-accept-active');
+      // Slide the venue list up from off-screen — same motion as the
+      // page-load intro. Fires AFTER the body class is gone so the
+      // panel is actually visible during the slide (opacity-0 mask
+      // is now lifted).
+      if (window.innerWidth < 640
+          && typeof window._slideUpVenueListToExpanded === 'function') {
+        window._slideUpVenueListToExpanded();
+      }
     }, 320);
   }
 }
@@ -1419,11 +1432,28 @@ function _openInviteSheet(venueId) {
   // see the same shape. Left = WHAT (eyebrow + venue + meta); right =
   // WHEN (Meeting label + live time + live day) which updates as the
   // user scrubs the FTS inside the sheet.
+  // 4 metas — area · category · distance · walk-time. Same shape as the
+  // accept page; sender and receiver read the same row. _dprcvWalkInfo
+  // is exposed from ui-plan-preview.js (assigned to window) so we can
+  // reuse the same haversine + walk-pace calc instead of duplicating it.
   const dispArea = _dedupeAreaForVenue(venueName, v?.area);
   const _catLabel = (typeof catLabel === 'function') ? catLabel(v) : null;
-  const _metaParts = [dispArea, _catLabel].filter(Boolean);
-  const _invMetaHtml = _metaParts.length
-    ? _metaParts.map(s => `<span>${String(s).replace(/</g, '&lt;')}</span>`).join('<span class="dpinvite-meta-dot" aria-hidden="true">·</span>')
+  const _walkInfo = (typeof window !== 'undefined' && typeof window._dprcvWalkInfo === 'function')
+    ? window._dprcvWalkInfo(v) : null;
+  const _walkSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7"/></svg>`;
+  // Each pill is wrapped in `.dpinvite-meta-item` so _fitMetaPills can
+  // drop whole trailing pills + their preceding dot when the row
+  // overflows instead of clipping mid-text.
+  const _invMetaItems = [
+    dispArea  ? `<span class="dpinvite-meta-item">${String(dispArea).replace(/</g, '&lt;')}</span>` : '',
+    _catLabel ? `<span class="dpinvite-meta-item">${String(_catLabel).replace(/</g, '&lt;')}</span>` : '',
+    _walkInfo && _walkInfo.distLabel
+      ? `<span class="dpinvite-meta-item">${String(_walkInfo.distLabel).replace(/</g, '&lt;')}</span>` : '',
+    _walkInfo && _walkInfo.walkMin != null
+      ? `<span class="dpinvite-meta-item dpinvite-meta-walk">${_walkSvg}<span>${_walkInfo.walkMin} min</span></span>` : '',
+  ].filter(Boolean);
+  const _invMetaHtml = _invMetaItems.length
+    ? _invMetaItems.join('<span class="dpinvite-meta-dot" aria-hidden="true">·</span>')
     : '';
   const momentBlock = `
         <div class="dpinvite-moment">
@@ -1441,8 +1471,8 @@ function _openInviteSheet(venueId) {
               <div class="dpinvite-moment-time" id="dpinvite-moment-time"></div>
               <button type="button" class="dpinvite-moment-sub" id="dpinvite-moment-sub"
                       aria-label="${t('invite_eyebrow_select_time')}">
-                <span id="dpinvite-moment-sub-text"></span>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                <span id="dpinvite-moment-sub-text"></span>
               </button>
             </div>
           </div>
@@ -1475,6 +1505,26 @@ function _openInviteSheet(venueId) {
 
   overlay.appendChild(sheet);
   document.body.appendChild(overlay);
+
+  // Whole-pill drop on overflow for the meta row (same pattern as the
+  // accept page). Runs after the sheet is in the DOM so we have real
+  // widths. ResizeObserver keeps it in sync if the sheet width changes.
+  requestAnimationFrame(() => {
+    const metaEl = sheet.querySelector('.dpinvite-meta');
+    if (metaEl && typeof window._fitMetaPills === 'function') {
+      window._fitMetaPills(metaEl);
+    }
+  });
+  if (typeof ResizeObserver !== 'undefined') {
+    const metaEl = sheet.querySelector('.dpinvite-meta');
+    if (metaEl) {
+      const ro = new ResizeObserver(() => {
+        if (typeof window._fitMetaPills === 'function') window._fitMetaPills(metaEl);
+      });
+      ro.observe(sheet);
+      sheet._metaResizeObs = ro;
+    }
+  }
 
   // Wire the day-button programmatically. Inline onclick attributes have
   // intermittent mobile-Safari reliability (see app.js:349 — same pattern
@@ -1730,6 +1780,38 @@ function _openInviteSheet(venueId) {
   }
 
   document.body.classList.add('invite-sheet-open');
+  // Stash the venue id so _closeInviteSheet's recovery path knows which
+  // venue to return to if the underlying detail panel was somehow torn
+  // down during the sheet's lifetime (the "close → empty map" regression).
+  if (typeof window !== 'undefined') window._inviteSheetVenueId = venueId;
+
+  // Show the SENDER's own avatar pin on the map while the invite sheet
+  // is being composed. Mirrors the accept-page _invitePin pattern (and
+  // the _friendsPin pattern app.js uses for plans with friends going)
+  // so the user has a visual "you're going to be here" anchor on the
+  // map even before they've sent the invite or copied the link. Cleared
+  // in _closeInviteSheet; _updateFriendsCanvasPin restores the real
+  // attendee state if a plan was actually created.
+  if (typeof window !== 'undefined' && typeof authCurrentUser === 'function') {
+    const me = authCurrentUser();
+    if (me) {
+      const rawName = (me.user_metadata && me.user_metadata.name)
+        || (me.email ? me.email.split('@')[0] : '')
+        || 'Du';
+      window._friendsPin = {
+        venueId: venueId,
+        meetHour: curHour,
+        attendees: [{
+          id: me.id || null,
+          name: String(rawName).split(' ')[0],
+          offsetMin: 0,
+        }],
+        declined: [],
+      };
+      if (typeof window.markPinLayoutStale === 'function') window.markPinLayoutStale();
+      if (typeof draw === 'function') draw();
+    }
+  }
 
   // Pan the map so the venue lands centred between the floating top card and
   // the sheet. Use the proper zoom + pitch (matches panToVenueCenter) so the
@@ -1751,7 +1833,9 @@ function _openInviteSheet(venueId) {
       sheet._mapPadOpen = { top: padTop, bottom: padBottom, left: 0, right: 0 };
       map.easeTo({
         center:   [v.lng, v.lat],
-        zoom:     17.5,
+        // Was 17.5 — user pulled the detail/invite/accept zoom back to
+        // 16.75 across the board so the venue stays in context.
+        zoom:     16.75,
         pitch:    45,
         padding:  sheet._mapPadOpen,
         duration: 480,
@@ -2103,22 +2187,48 @@ function _closeInviteSheet() {
   if (typeof window !== 'undefined') window._inviteSheetReturnToPostAccept = false;
   if (sheet) {
     if (sheet._sliderCleanup) sheet._sliderCleanup();
+    if (sheet._metaResizeObs) { try { sheet._metaResizeObs.disconnect(); } catch {} }
     sheet.classList.remove('open');
   }
   // Defensive: if any code path ever reparents the FTS into the sheet, detach
   // it cleanly. v2 of the sheet uses a chip picker instead, so this is a no-op
   // in normal use.
   _invFtsDetach();
-  // Restore the map's padding to zero so the venue is no longer biased
-  // upward once the sheet is gone.
+  // Restore the underlying camera framing. If the detail panel is still
+  // open beneath the sheet, re-apply ITS bottom padding (the same shape
+  // _flyToVenue uses) so the venue sits in the visible viewport above
+  // the panel instead of getting yanked back to viewport-centre — the
+  // previous "padding: 0" reset put it dead-centre under the detail
+  // panel chrome. When no detail panel is open, fall through to a flat
+  // reset.
   if (typeof map !== 'undefined' && map && typeof map.easeTo === 'function') {
-    map.easeTo({ padding: { top: 0, bottom: 0, left: 0, right: 0 }, duration: 280 });
+    const dp = document.getElementById('detail-panel');
+    if (dp && dp.classList.contains('open')
+        && !dp.classList.contains('dp-fullscreen')
+        && typeof window.innerWidth === 'number' && window.innerWidth < 640) {
+      // Mirror _flyToVenue mobile padding (bottom ≈ 69% of viewport).
+      const panelH = Math.round((window.visualViewport?.height ?? window.innerHeight) * 0.69);
+      map.easeTo({ padding: { top: 0, bottom: panelH, left: 0, right: 0 }, duration: 280 });
+    } else {
+      map.easeTo({ padding: { top: 0, bottom: 0, left: 0, right: 0 }, duration: 280 });
+    }
   }
   if (overlay) {
     overlay.classList.remove('open');
     setTimeout(() => overlay.remove(), 300);
   }
   document.body.classList.remove('invite-sheet-open');
+
+  // Clear the preview pin set in _openInviteSheet and let
+  // _updateFriendsCanvasPin restore the real attendee state — if a
+  // plan was created during the sheet's lifetime, the pin re-populates
+  // with the real attendees; if not, it stays empty.
+  if (typeof window !== 'undefined') window._friendsPin = null;
+  if (typeof _updateFriendsCanvasPin === 'function') {
+    try { _updateFriendsCanvasPin(); } catch (e) { /* ignore */ }
+  }
+  if (typeof window.markPinLayoutStale === 'function') window.markPinLayoutStale();
+  if (typeof draw === 'function') draw();
   // The open handler reparented #fts to <body> so the body.invite-sheet-open
   // rule could float it above the sheet. Now that the rule no longer applies,
   // put the slider back inside #panel where the FTS contract expects it to
@@ -2178,6 +2288,20 @@ function _closeInviteSheet() {
   // returned (per the body.invite-sheet-open CSS rule) before we measure.
   setTimeout(() => {
     if (typeof updateDetailPanel === 'function') updateDetailPanel();
+    // If for some reason the detail panel is not open (e.g. the sheet
+    // was opened from a path that bypassed selectVenue, or the .open
+    // class was dropped by another handler during the sheet's life),
+    // re-open it on the venue currently associated with the sheet so
+    // the user lands back on the venue page instead of a bare map.
+    // This is the recovery for the "close → empty map" regression.
+    try {
+      const dp = document.getElementById('detail-panel');
+      const sheetVenueId = (typeof window !== 'undefined') ? window._inviteSheetVenueId : null;
+      if (sheetVenueId != null && (!dp || !dp.classList.contains('open'))
+          && typeof selectVenue === 'function') {
+        selectVenue(sheetVenueId, true);
+      }
+    } catch (e) { /* ignore */ }
   }, 280);
 }
 

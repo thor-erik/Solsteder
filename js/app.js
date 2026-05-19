@@ -161,6 +161,57 @@ function _syncFtsPosition() {
   const isExpanded = panel.classList.contains('mobile-expanded');
   const isFull     = panel.classList.contains('mobile-fullscreen');
 
+  // Resolve the panel-anchored bottom for locate-me + zoom-jog as a
+  // concrete pixel value, then set inline `bottom` on each button. iOS
+  // Safari doesn't transition `bottom: calc(var(--fts-bottom)...)` even
+  // with @property registration, so the previous CSS-var-based anchoring
+  // snapped on state change instead of riding the panel. Inline length
+  // values transition reliably via the existing `transition: bottom`
+  // rule. Mobile-only — desktop keeps its position-independent layout.
+  // SKIPPED when plan-preview / post-accept / invite-sheet is active —
+  // those modes anchor locate-btn to their own bottom-panel via CSS
+  // (--pp-bottom-h or similar). Writing inline bottom here would
+  // override and cause the button to overlap the takeover sheet. Clear
+  // any inline bottom we left from a prior panel-state pass.
+  const _isMobile = window.innerWidth < 640;
+  const _isPreviewTakeover = typeof document !== 'undefined' && (
+    document.body.classList.contains('plan-preview-active')
+    || document.body.classList.contains('post-accept-active')
+    || document.body.classList.contains('invite-sheet-open'));
+  if (_isMobile && _isPreviewTakeover) {
+    if (locateEl) locateEl.style.bottom = '';
+    if (zoomJog)  zoomJog.style.bottom  = '';
+  }
+  if (_isMobile && !_isPreviewTakeover) {
+    const FTS_BTM_PX = (() => {
+      // Mirror _ftsHostBottom but resolve to px so transitions interpolate.
+      if (editingVenueId) return null; // edit mode owns positioning
+      if (dpOpen && dp) {
+        if (dp.classList.contains('dp-fullscreen')) {
+          // Same calc as _ftsHostBottom dp-fullscreen branch.
+          return Math.round(window.innerHeight - 16 - 46 - 16 - 4 - 14);
+        }
+        const dpH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--dp-open-h')) || dp.offsetHeight || 0;
+        return Math.round(dpH + FTS_GAP);
+      }
+      if (panel.classList.contains('mobile-hidden')) return FTS_GAP;
+      if (panel.classList.contains('mobile-fullscreen')) {
+        return Math.round(window.innerHeight - 34 - 50 - 8 - 34);
+      }
+      if (panel.classList.contains('mobile-expanded')) {
+        return Math.round(window.innerHeight * 0.5 + FTS_GAP);
+      }
+      const peekH = parseInt(panel.style.getPropertyValue('--peek-h')) || 252;
+      return peekH + FTS_GAP;
+    })();
+    if (locateEl && FTS_BTM_PX != null) {
+      locateEl.style.bottom = (FTS_BTM_PX + 6) + 'px';
+    }
+    if (zoomJog && FTS_BTM_PX != null) {
+      zoomJog.style.bottom = (FTS_BTM_PX + 6 + 40 + 10) + 'px';
+    }
+  }
+
   if (locateEl) {
     if (dpOpen || isFull) {
       locateEl.style.opacity = '0';
@@ -246,6 +297,39 @@ function _ftsHostBottom(panel, dp) {
 }
 
 let _prevPanelMobileState = null;
+
+/** Whole-item overflow handling for the accept-panel / invite-sheet meta
+ *  rows. Browsers don't natively support "drop the last flex item when
+ *  the container would overflow" — text-overflow ellipses cut mid-text
+ *  on the trailing pill ("5 mi…"), which user feedback explicitly
+ *  rejected. This helper measures scrollWidth vs offsetWidth after
+ *  layout and hides trailing pills (with their preceding separator
+ *  dot) until the row fits. Items need class `.dprcv-meta-item` (or
+ *  `.dpinvite-meta-item`); dots need class `.dprcv-meta-dot` (or
+ *  `.dpinvite-meta-dot`). */
+window._fitMetaPills = function(container) {
+  if (!container) return;
+  const items = Array.from(container.querySelectorAll('.dprcv-meta-item, .dpinvite-meta-item'));
+  if (items.length === 0) return;
+  // Reset any previous hides so the measurement is from the full set —
+  // re-renders / resizes should re-evaluate.
+  for (const el of items) el.style.display = '';
+  const dots = container.querySelectorAll('.dprcv-meta-dot, .dpinvite-meta-dot');
+  for (const el of dots)  el.style.display = '';
+  // Force layout. Bail if there's no overflow.
+  if (container.scrollWidth <= container.offsetWidth + 1) return;
+  // Walk the items in reverse, hiding each one + its preceding sibling
+  // dot until the row fits OR only the first pill remains.
+  for (let i = items.length - 1; i >= 1; i--) {
+    items[i].style.display = 'none';
+    const prev = items[i].previousElementSibling;
+    if (prev && (prev.classList.contains('dprcv-meta-dot')
+              || prev.classList.contains('dpinvite-meta-dot'))) {
+      prev.style.display = 'none';
+    }
+    if (container.scrollWidth <= container.offsetWidth + 1) break;
+  }
+};
 
 /** When the venue list expands/collapses and the map is currently centered on
  *  the user's location, animate the map so the user dot stays visually centered
@@ -2032,7 +2116,41 @@ function _dayLabel(dateStr) {
   return d.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 }
 
-function _exitToExploreMode() {
+/** Slide the venue list panel UP from off-screen to the expanded state.
+ *  Used by the takeover-close recovery paths (closePlanPreview after
+ *  accept/decline, _closePostAcceptPanel after the confirmation closes)
+ *  so the user sees the venue list arrive with the same motion the
+ *  page-load intro uses — not appear instantly. Mobile only; desktop's
+ *  panel is always visible. Idempotent guard via opts.skipIfVisible if
+ *  the panel is already on-screen we leave it alone. */
+function _slideUpVenueListToExpanded(opts) {
+  const panel = document.getElementById('panel');
+  if (!panel) return;
+  if (typeof isMobile === 'function' && !isMobile()) return;
+  // Clear any inline overrides that could fight the slide animation.
+  panel.style.transition = 'none';
+  panel.style.opacity    = '1';
+  panel.style.bottom     = `-${Math.round(window.innerHeight)}px`;
+  panel.classList.remove('mobile-hidden', 'mobile-fullscreen');
+  panel.classList.add('mobile-expanded');
+  // Force layout so the off-screen bottom is committed as the start of
+  // the transition.
+  panel.getBoundingClientRect();
+  panel.style.transition = 'bottom 0.45s cubic-bezier(0.2, 0.8, 0.3, 1)';
+  panel.style.bottom     = '';
+  if (typeof _syncFtsPosition === 'function') _syncFtsPosition();
+}
+window._slideUpVenueListToExpanded = _slideUpVenueListToExpanded;
+
+function _exitToExploreMode(opts) {
+  opts = opts || {};
+  // Surface the venue list (mobile only). Callers can pass
+  // skipPanelSlide:true when they want to coordinate the slide
+  // themselves (e.g., _closePostAcceptPanel synchronises it with the
+  // 320 ms post-accept slide-down). Default: slide up immediately.
+  if (typeof isMobile === 'function' && isMobile() && !opts.skipPanelSlide) {
+    _slideUpVenueListToExpanded();
+  }
   const found = _findFirstSunDayAndHour();
   if (!found) return;
   // Sync date + time pickers — both dispatch the events the rest of the
@@ -2067,13 +2185,6 @@ function _exitToExploreMode() {
       applyTime();
     }
   }, 200);
-  // Expand the venue list (mobile only — desktop list is always visible).
-  const panel = document.getElementById('panel');
-  if (panel && typeof isMobile === 'function' && isMobile()) {
-    panel.classList.remove('mobile-hidden', 'mobile-fullscreen');
-    panel.classList.add('mobile-expanded');
-    if (typeof _syncFtsPosition === 'function') _syncFtsPosition();
-  }
   // Camera → user's geolocation. Falls through silently when location
   // is unavailable; the date/time/list changes still apply.
   if (typeof userLocation !== 'undefined' && userLocation
@@ -2332,7 +2443,14 @@ function renderDateCalendar() {
     } else {
       cls += ' no-data';
     }
-    const icon = summ ? summ.icon : '·';
+    // Use the same SVG glyphs as the top-bar / date-strip so the calendar
+    // visual matches the rest of the app. Emoji cloud codepoints (the prior
+    // summ.icon path) tofu on iOS WKWebView even with VS-16 — Apple Color
+    // Emoji isn't reached via the WebView font-fallback chain.
+    const sbForIcon = summ ? (summ.avgSunBlock ?? summ.avgCloud ?? 0) : null;
+    const icon = (summ && typeof skyIconSvg === 'function')
+      ? skyIconSvg(sbForIcon)
+      : (summ ? summ.icon : '·');
     const temp = summ ? formatTemp(summ.peakTemp) : '';
     html += `<button class="${cls}" onclick="selectCalendarDate('${dStr}')">`
       + `<span class="dc-day">${DAYS[d.getDay()]}</span>`
@@ -2958,7 +3076,12 @@ function _dcTileHtml(dStr, todayStr_, selected) {
     cls += ' solar-only'; // beyond forecast window — solar data only
   }
 
-  const icon = hasForecast ? summ.icon : '';
+  // SVG glyph (parity with top-strip / date-strip) — avoids iOS WKWebView
+  // tofu on the cloud emoji codepoints.
+  const sbForIcon = hasForecast ? (summ.avgSunBlock ?? summ.avgCloud ?? 0) : null;
+  const icon = (hasForecast && typeof skyIconSvg === 'function')
+    ? skyIconSvg(sbForIcon)
+    : (hasForecast ? summ.icon : '');
   const temp = hasForecast ? `${summ.peakTemp}°` : '';
 
   // Today indicator: --accent dot, centered in flow, below day number / glyph
@@ -3502,7 +3625,9 @@ let _switchingVenue = false;
 // Uses easeTo (smooth interpolation) so the animation looks correct whether
 // the user is already zoomed in (pin click) or coming from overview (list click).
 function _flyToVenue(v) {
-  const targetZoom = 17;
+  // Was 17. User feedback: zoom-in across detail / invite / accept feels
+  // too close. 16.75 keeps the venue and one ring of context in frame.
+  const targetZoom = 16.75;
   const opts = { center: [v.lng, v.lat], zoom: targetZoom, pitch: 45, duration: 600 };
 
   if (isMobile()) {
@@ -3805,7 +3930,14 @@ function updateDetailPanel() {
   const v = VENUES.find(x => x.id === selectedId);
   if (!v) return;
 
+  // Preserve scroll position across the re-render. Notification toasts +
+  // worker callbacks + 30s nowMode ticks all call updateDetailPanel; without
+  // this save/restore each tick reset the user's scroll to the top of the
+  // panel.
+  const scroll = document.getElementById('dp-scroll');
+  const savedScroll = scroll ? scroll.scrollTop : 0;
   content.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
+  if (scroll && savedScroll) scroll.scrollTop = savedScroll;
   _populateDpCardSlot(v);
   if (typeof _populateDpShelter === 'function') _populateDpShelter(v);
   _startWindForVenue(v);
@@ -4688,22 +4820,11 @@ document.addEventListener('DOMContentLoaded', () => {
         _syncFtsPosition();
       }
 
-      // Restore on next pass — only when the intro has already landed the
-      // panel in mobile-expanded. Returning users with a saved 'peek' or
-      // 'fullscreen' get reapplied here; first-time users keep the intro's
-      // default. Skipped during the intro animation itself so it doesn't
-      // race with the in-flight transform tween.
-      try {
-        const saved = localStorage.getItem('solsteder.sheetSnap');
-        if (saved === 'peek' || saved === 'fullscreen') {
-          // Defer until after the intro settles. Intro tween is ~650ms; we
-          // wait a frame past that so the user perceives the saved state as
-          // "where they left it" rather than a re-shuffle on top of intro.
-          setTimeout(() => {
-            if (!panelEl.classList.contains('intro-hidden')) _applyState(saved);
-          }, 700);
-        }
-      } catch {}
+      // Saved sheet-snap is now applied UPFRONT in _introRevealUI (which
+      // reads localStorage and lands the panel directly in the saved
+      // state), so there's no post-intro setTimeout that yanks the panel
+      // from expanded down to peek anymore — that yo-yo was the bug
+      // the user reported.
 
       let _dragInitH = 0; // panel height at drag start (px)
       let _dragRafId = null;
@@ -4838,17 +4959,32 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!_zoomJogEl) _zoomJogEl = document.getElementById('zoom-jog');
         if (_zoomJogEl) { _zoomJogEl.style.transition = ''; _zoomJogEl.style.bottom = ''; _zoomJogEl.style.opacity = ''; }
 
-        // FLIP-style commit: apply target classes while inline transform keeps
-        // the panel at its drag position, then release inline styles so the CSS
-        // transition animates smoothly from drag position → target position.
+        // FLIP-style commit for the new bottom-based positioning. The panel
+        // now uses `bottom` (layout, transitionable, backdrop-filter-safe)
+        // instead of `transform` for its resting states; only the drag
+        // itself still uses `transform` for per-frame visual feedback. To
+        // commit without snapping, snapshot the panel's current visual
+        // bottom, apply the target state, set inline bottom + clear
+        // transform to keep the panel visually pinned to the drag end-
+        // point, then clear inline so the CSS new-state bottom transitions
+        // from there.
+        const beforeBCR = panelEl.getBoundingClientRect();
+        const viewportH = window.innerHeight;
+        const currentVisualBottom = viewportH - (beforeBCR.top + panelEl.offsetHeight);
         _applyState(target);
         panelEl.classList.remove('panel-dragging');
-        panelEl.style.transition = '';
-        // Force layout so browser registers current inline transform as start point
+        // Pin the current visual position via inline bottom (overrides the
+        // new class's bottom). Clear inline transform without snapping.
+        panelEl.style.transition = 'none';
+        panelEl.style.bottom    = currentVisualBottom + 'px';
+        panelEl.style.transform = '';
+        panelEl.style.height    = '';
+        // Force layout so the pinned position is the start of the transition.
         void panelEl.offsetHeight;
-        // Release inline overrides — CSS transition kicks in from here
-        panelEl.style.transform  = '';
-        panelEl.style.height     = '';
+        // Restore CSS transition + clear inline bottom — CSS new-state
+        // bottom takes over, animating from the pinned position.
+        panelEl.style.transition = '';
+        panelEl.style.bottom     = '';
       }
 
       // Wire a swipe target: touchstart/move/end → panel drag state machine
@@ -6326,13 +6462,65 @@ let _searchBlurTimer = null;
 window._activeFilters = {
   categories: new Set(),
   sun2h: false,
-  sheltered: false,
+  quiet: false,
+  friends: false,
 };
 
 window._passesActiveFilters = function(v) {
   const f = window._activeFilters;
   if (f.categories.size > 0 && !f.categories.has(v.category)) return false;
-  // sun2h + sheltered: not wired yet
+  if (f.sun2h) {
+    // Total upcoming sun hours from now until close, clamped to open hours.
+    // Reads the same precomputed windows the score uses — same data path
+    // means the filter agrees with what the user sees on the card.
+    if (typeof computeSunWindows !== 'function') return false;
+    const dateStr = (typeof datePicker !== 'undefined' && datePicker) ? datePicker.value : null;
+    const fromH   = (typeof timeFromEl !== 'undefined' && timeFromEl) ? parseFloat(timeFromEl.value) : 0;
+    if (!dateStr) return true;
+    const sw = computeSunWindows(v, dateStr);
+    const open  = sw?.open  ?? 0;
+    const close = sw?.close ?? 24;
+    let total = 0;
+    for (const w of (sw?.windows || [])) {
+      const s = Math.max(w.start, fromH, open);
+      const e = Math.min(w.end, close);
+      if (e > s) total += (e - s);
+    }
+    if (total < 2) return false;
+  }
+  if (f.quiet) {
+    // Stille is supposed to mean "quiet" (noise-based, not busyness).
+    // venues.json carries NO noiseScore data on any row — the OSM-
+    // highway-proximity backfill pipeline hasn't been run on this
+    // dataset. Filtering by category as a noise proxy or by busyness
+    // is dishonest, so the pill is removed from the UI for now and
+    // this branch is dormant. Restore once the data is in.
+    if (typeof noiseScore !== 'function') return false;
+    if (noiseScore(v) < 70) return false;
+  }
+  if (f.friends) {
+    // Venue has SOMETHING happening with friends: checked-in friends, OR
+    // any non-cancelled plan at the venue (creator + accepted invitees
+    // both count as "friends going"). Includes the user's own plans
+    // since they likely want to surface those too.
+    let hasFriend = false;
+    if (typeof getFriendCheckinsForVenue === 'function') {
+      const checkins = getFriendCheckinsForVenue(v.id) || [];
+      if (checkins.length) hasFriend = true;
+    }
+    if (!hasFriend && typeof getPlansForVenue === 'function') {
+      const plans = getPlansForVenue(v.id) || [];
+      for (const p of plans) {
+        if (!p || p.cancelled_at) continue;
+        // Any non-cancelled plan at the venue qualifies — the user is
+        // going (creator), a friend invited them (accepted invite), or
+        // they're hosting friends. The pin renderer already gates on the
+        // same data set.
+        hasFriend = true; break;
+      }
+    }
+    if (!hasFriend) return false;
+  }
   return true;
 };
 
@@ -6351,7 +6539,15 @@ function toggleListFilter(filter, btn) {
     if (typeof draw === 'function') draw();
     return;
   }
-  // sun2h, sheltered: still placeholder toggles
+  if (filter === 'sun2h' || filter === 'quiet' || filter === 'friends') {
+    f[filter] = !f[filter];
+    btn?.classList.toggle('active', f[filter]);
+    if (typeof renderList === 'function') renderList();
+    if (typeof window.markPinLayoutStale === 'function') window.markPinLayoutStale();
+    if (typeof draw === 'function') draw();
+    return;
+  }
+  // Unknown filter — just toggle the visual active state.
   btn?.classList.toggle('active');
 }
 
@@ -7388,15 +7584,19 @@ function _runIntroSequence() {
     if (_introSeqId !== seqId) return;
     _onBootWorkerReady(() => {
       if (_introSeqId !== seqId) return;
-      // Releases gate + fires deferred draw() synchronously.
-      if (typeof _releaseBootDrawGate === 'function') _releaseBootDrawGate();
+      // Pin canvas paint deliberately DEFERRED to _revealCanvasAndChrome
+      // (called at phase 3, when the panel reaches expanded). Holding
+      // the boot draw gate closed throughout intro means draw() returns
+      // early on every call (no paint cycles → no perf cost, and no
+      // partially-painted pins visible during the splash fade or the
+      // cinematic zoom). Released once at panel-expand with one deferred
+      // draw() catching up.
       // Cancel the pending scheduleRenderList timer (update() armed a
       // 300ms debounce that would otherwise re-paint the list a moment
       // after our force-fire below, stuttering the fade).
       if (_renderListTimer) { clearTimeout(_renderListTimer); _renderListTimer = null; }
       // Force-run the venue list paint now, while the splash is still up.
-      // Without this it lands ~300ms later (the scheduleRenderList debounce
-      // tail), exactly during the splash fade, and stutters it.
+      // (DOM render — independent of the canvas boot gate.)
       if (typeof renderList === 'function') {
         try { renderList(); } catch (e) { console.warn('[boot] renderList threw', e); }
       }
@@ -7430,10 +7630,14 @@ function _runIntroSequence() {
         if (_introSeqId !== seqId) return;
         skipEnabled = true;
 
-        // Reveal the pin canvas a touch before phase 1 ends so the world
-        // populates as the camera arrives.
-        canvas.style.transition = 'opacity 0.4s ease';
-        canvas.classList.remove('intro-hidden');
+        // Pin canvas reveal is deferred to _introRevealUI (called at
+        // phase 2) so the pins fade in synced to the panel slide-up.
+        // Belt-and-braces: explicit inline opacity 0 so any stale
+        // computed style or cached SW asset can't leak pins through
+        // before the reveal. _introRevealUI sets opacity = '1' once
+        // the panel begins to slide, and the transition animates it.
+        canvas.style.opacity    = '0';
+        canvas.style.transition = 'opacity 0.45s cubic-bezier(0.2, 0.8, 0.3, 1)';
 
         // Phase 1: zoom in + tilt up (cinematic establishing shot)
         const easing = t => t * t * (3 - 2 * t); // smoothstep
@@ -7441,11 +7645,19 @@ function _runIntroSequence() {
         map.easeTo({ zoom: 16, pitch: 65, duration: PHASE1_MS, easing });
 
         // Phase 2 (after Phase 1): settle to default zoom/tilt, panel
-        // arrives in PEEK, UI slides/fades in. Map stays geo-centered
-        // (no bottom padding yet) — geo dot is in viewport center.
+        // arrives in PEEK, UI slides/fades in. Bottom padding eased in
+        // so the camera lifts the user dot into the upper half BEFORE
+        // the panel covers the lower half — without this the dot lands
+        // at viewport-centre, the panel hides it during phase 3, and
+        // _maybePanMapForPanelState bails because the dot is >100 px
+        // below the peek visible-centre threshold. Matches _skipIntro
+        // for returning users.
         setTimeout(() => {
           if (_introSeqId !== seqId) return;
           const isMobileEnd = window.innerWidth < 640;
+          const phase2Padding = isMobileEnd
+            ? { top: 0, bottom: window.innerHeight * 0.5, left: 0, right: 0 }
+            : undefined;
           map.easeTo({
             center: _introCenter,
             // Was 15.2 — felt too close after the cinematic; settle at 14
@@ -7457,19 +7669,22 @@ function _runIntroSequence() {
             bearing: 0,
             duration: PHASE2_MS,
             easing,
+            ...(phase2Padding ? { padding: phase2Padding } : {}),
           });
           _introRevealUI(search, brand, qcWrap, panel);
 
-          // Phase 3: pause in peek, then panel slides peek → expanded.
-          // _syncFtsPosition's built-in _maybePanMapForPanelState handles
-          // the map pan so the geo dot rises into the visible area.
+          // _introRevealUI lands the panel directly in expanded (single
+          // slide, no peek pause). Sync FTS / locate-me / zoom-jog
+          // positioning to the new state, then reveal pin canvas +
+          // locate-me + zoom-jog AFTER the slide settles (panel
+          // transition is 0.45s; PANEL_SLIDE_MS gives us a small buffer).
+          if (panel && isMobileEnd) _syncFtsPosition();
+          const PANEL_SLIDE_MS = 500;
           setTimeout(() => {
             if (_introSeqId !== seqId) return;
-            if (panel && isMobileEnd) {
-              panel.classList.add('mobile-expanded');
-              _syncFtsPosition();
-            }
-
+            _revealCanvasAndChrome();
+            // Final settling — happens shortly after the canvas/chrome
+            // reveal so all UI states settle in one beat.
             setTimeout(() => {
               if (_introSeqId !== seqId) return;
               if (_sharedHour === null && !_autoAdvancedAfterSunset) _activateNowMode();
@@ -7480,13 +7695,54 @@ function _runIntroSequence() {
               if (typeof _notifInit === 'function') _notifInit();
               if (typeof pushInit === 'function') pushInit();
               try { localStorage.setItem('solsteder_intro_seen', '1'); } catch (_) {}
-            }, PHASE3_MS + 80);
-          }, PHASE2_MS + PHASE3_PAUSE);
+            }, 200);
+          }, PANEL_SLIDE_MS);
         }, PHASE1_MS);
       }, 220);
     }, loaderFadeMs);
   }
 }
+
+/** Reveal the pin canvas, locate-me, and zoom-jog after the venue list
+ *  panel has reached its target state (expanded on mobile, slid-in on
+ *  desktop). Boot draw gate is released here too — that's the moment
+ *  draw() actually paints to the canvas for the first time, so the
+ *  pins materialise in step with the opacity fade-in.
+ *
+ *  Called from:
+ *   - Fresh intro: phase 3 (right after panel.classList.add('mobile-expanded'))
+ *   - Skip intro: right after the panel-expand setTimeout
+ *   - Desktop intro: end of _introRevealUI (panel has no peek/expanded states)
+ *
+ *  Idempotent — repeat calls are no-ops because intro-hidden is already
+ *  removed and opacity is already '1'. */
+function _revealCanvasAndChrome() {
+  const canvasOverlay = document.getElementById('canvas-overlay');
+  const locateBtn     = document.getElementById('locate-btn');
+  const zoomJog       = document.getElementById('zoom-jog');
+  // Release the gate FIRST so the deferred draw() paints into the canvas
+  // BEFORE opacity transitions from 0 → 1. The pins are already painted
+  // (invisible) when the fade begins.
+  if (typeof _releaseBootDrawGate === 'function') {
+    try { _releaseBootDrawGate(); } catch (e) { /* ignore */ }
+  }
+  if (canvasOverlay) {
+    canvasOverlay.classList.remove('intro-hidden');
+    canvasOverlay.style.opacity = '1';
+  }
+  // Fade locate-me + zoom-jog in. They've been held hidden via
+  // intro-hidden since boot. Use the same 0.5s opacity easing the rest
+  // of the chrome uses so the reveal reads as one unified moment.
+  for (const el of [locateBtn, zoomJog]) {
+    if (!el || !el.classList.contains('intro-hidden')) continue;
+    el.style.transition = 'opacity 0.5s ease';
+    requestAnimationFrame(() => {
+      el.classList.remove('intro-hidden');
+      setTimeout(() => { if (el) el.style.transition = ''; }, 600);
+    });
+  }
+}
+window._revealCanvasAndChrome = _revealCanvasAndChrome;
 
 function _introRevealUI(search, brand, qcWrap, panel, opts) {
   const locateBtn   = document.getElementById('locate-btn');
@@ -7529,14 +7785,14 @@ function _introRevealUI(search, brand, qcWrap, panel, opts) {
 
   if (!isMobile) {
     // Desktop: top-strip + panel rise from the left edge in lock-step;
-    // brand + locate + zoom-jog rise from the right. The 110% slide
-    // distance guarantees the element is fully off-screen at the start
-    // regardless of where its anchored left/right offset puts it.
+    // brand rises from the right. locate-btn + zoom-jog are HELD until
+    // _revealCanvasAndChrome fires (alongside the pin canvas) so they
+    // appear together with the pins, not before. The 110% slide distance
+    // guarantees the element is fully off-screen at the start regardless
+    // of where its anchored left/right offset puts it.
     _slideIn(topStrip,  'translateX(calc(-100% - 32px))');
     _slideIn(panel,     'translateX(calc(-100% - 32px))');
     _slideIn(brand,     'translateX(calc(100% + 32px))');
-    _slideIn(locateBtn, 'translateX(calc(100% + 32px))');
-    _slideIn(zoomJog,   'translateX(calc(100% + 32px))');
     // qc-wrap is the toast strip — fade rather than slide so a queued
     // toast on app-start doesn't appear mid-flight.
     if (qcWrap) {
@@ -7559,7 +7815,11 @@ function _introRevealUI(search, brand, qcWrap, panel, opts) {
       topStrip.style.transform = '';
       setTimeout(() => { if (topStrip) topStrip.style.transition = ''; }, 500);
     }
-    [brand, qcWrap, locateBtn, zoomJog].forEach(el => {
+    // brand + qc-wrap reveal with the rest of the chrome. locate-btn and
+    // zoom-jog are intentionally HELD until the panel reaches expanded
+    // state — they're revealed alongside the pin canvas in
+    // _revealCanvasAndChrome (called from phase 3 / panel-expand step).
+    [brand, qcWrap].forEach(el => {
       if (!el) return;
       el.style.transition = 'opacity 0.5s ease';
       requestAnimationFrame(() => {
@@ -7570,17 +7830,42 @@ function _introRevealUI(search, brand, qcWrap, panel, opts) {
   }
 
   if (panel && isMobile) {
-    // Slide up from off-screen → PEEK. Phase 3 adds .mobile-expanded
-    // shortly after, animating peek → expanded.
+    // Slide up directly from off-screen → user's preferred state (default
+    // EXPANDED). The old two-stage (peek → pause → expanded) sequence
+    // read as a hesitation; a single unified slide is cleaner. Reading
+    // the saved snap UPFRONT (instead of restoring after a 700 ms
+    // setTimeout) avoids the post-intro yo-yo where the panel landed
+    // at expanded then slid back to a saved peek.
+    let _savedSnap = 'expanded';
+    try {
+      const s = localStorage.getItem('solsteder.sheetSnap');
+      if (s === 'peek' || s === 'expanded' || s === 'fullscreen') _savedSnap = s;
+    } catch {}
+
     panel.style.transition = 'none';
     panel.style.opacity    = '1';
-    panel.style.transform  = 'translateY(100%)';
+    panel.style.bottom     = `-${Math.round(window.innerHeight)}px`;
     panel.classList.remove('intro-hidden');
-    _prevPanelMobileState = 'peek';
+    // Apply the saved state's classes BEFORE clearing inline bottom so
+    // the CSS rule's bottom is the slide target.
+    panel.classList.remove('mobile-expanded', 'mobile-fullscreen', 'mobile-hidden');
+    if (_savedSnap === 'fullscreen') {
+      panel.classList.add('mobile-expanded', 'mobile-fullscreen');
+    } else if (_savedSnap === 'expanded') {
+      panel.classList.add('mobile-expanded');
+    }
+    // (peek leaves all state classes off — that's the base #panel rule.)
+    _prevPanelMobileState = _savedSnap;
     _updatePeekHeight();
     panel.getBoundingClientRect();
-    panel.style.transition = 'transform 0.45s cubic-bezier(0.2, 0.8, 0.3, 1)';
-    panel.style.transform  = '';  // CSS rule lands the panel at peek
+    panel.style.transition = 'bottom 0.45s cubic-bezier(0.2, 0.8, 0.3, 1), height 0.45s cubic-bezier(0.2, 0.8, 0.3, 1)';
+    panel.style.bottom     = '';  // clear inline → CSS saved-state bottom takes over
+
+    // Canvas reveal moved to _revealCanvasAndChrome (fires at phase 3 /
+    // panel-expand). User wanted pins + locate-me + zoom-jog all to fade
+    // in AFTER the venue list has expanded, not when it first slides
+    // into peek. Boot draw gate is also released there so no paint
+    // happens during intro.
   }
 
   if (USE_FLOATING_TIME_SLIDER && !(opts && opts.skipFts)) {
@@ -7593,6 +7878,16 @@ function _introRevealUI(search, brand, qcWrap, panel, opts) {
       });
     }
     requestAnimationFrame(() => syncFts());
+  }
+
+  // Desktop: no peek/expanded distinction, so the canvas + locate +
+  // zoom reveal can't piggy-back on the panel-expand moment that mobile
+  // uses. Fire it here at the end of the desktop reveal so the pins
+  // appear together with the chrome slide-in. (Idempotent — the mobile
+  // path's later _revealCanvasAndChrome call is a no-op once everything
+  // is already revealed.)
+  if (!isMobile) {
+    _revealCanvasAndChrome();
   }
 }
 
@@ -7634,8 +7929,14 @@ function _skipIntro(seqId, opts) {
     if (sl) { sl.style.transition = 'none'; sl.classList.add('fade-out'); }
     const ldr = document.getElementById('splash-loader');
     if (ldr) { ldr.style.transition = 'none'; ldr.classList.add('fade-out'); }
-    // Also release the draw gate so pins paint if they haven't yet.
-    if (typeof window._releaseBootDrawGate === 'function') {
+    // Backstop reveal: release the gate AND make canvas + chrome visible.
+    // Normal intro paths call _revealCanvasAndChrome at panel-expand; if
+    // those never fire (intro stalled, this 12s kill-switch fires), the
+    // backstop must surface the pins + locate-me + zoom-jog too so the
+    // user isn't left looking at an empty map.
+    if (typeof window._revealCanvasAndChrome === 'function') {
+      try { window._revealCanvasAndChrome(); } catch (e) {}
+    } else if (typeof window._releaseBootDrawGate === 'function') {
       try { window._releaseBootDrawGate(); } catch (e) {}
     }
   }, 12000);
@@ -7717,25 +8018,27 @@ function _skipIntro(seqId, opts) {
   const _runSkipChoreography = () => {
     if (_introSeqId !== localSeq) return;
     if (canvas) {
-      canvas.style.transition = 'opacity 0.55s ease';
-      canvas.classList.remove('intro-hidden');
+      // Pre-arm the opacity tween + force inline opacity 0 (belt-and-
+      // braces against stale styles / SW-cached assets). _introRevealUI
+      // sets opacity = '1' in lock-step with the panel slide.
+      canvas.style.opacity    = '0';
+      canvas.style.transition = 'opacity 0.55s cubic-bezier(0.2, 0.8, 0.3, 1)';
     }
-    // UI slide-in + panel to peek (starts immediately — no dive to overlap with).
+    // UI slide-in + panel slides directly to EXPANDED (single stage; the
+    // old peek → pause → expanded sequence felt like a hesitation).
     setTimeout(() => {
       if (_introSeqId !== localSeq) return;
       _introRevealUI(search, brand, qcWrap, panel);
+      if (panel && isMobileSkip) _syncFtsPosition();
     }, 50);
-    // Panel peek → expanded. With the pre-positioning padding,
-    // _maybePanMapForPanelState's "user dot near current visible centre"
-    // check fails (the dot is at the EXPANDED centre, not the peek one),
-    // so the function bails and the map stays put while the panel slides.
+    // Reveal pin canvas + locate-me + zoom-jog AFTER the panel-slide
+    // settles (panel transition is 0.45s; small buffer added). Boot
+    // draw gate releases here so this is the first moment draw()
+    // actually paints to the canvas.
     setTimeout(() => {
       if (_introSeqId !== localSeq) return;
-      if (panel && isMobileSkip) {
-        panel.classList.add('mobile-expanded');
-        _syncFtsPosition();
-      }
-    }, 600);
+      _revealCanvasAndChrome();
+    }, 550);
     // Wrap-up
     setTimeout(() => {
       if (_introSeqId !== localSeq) return;
@@ -7774,9 +8077,10 @@ function _skipIntro(seqId, opts) {
       // the moment the splash hides.
       _onBootWorkerReady(() => {
         if (_introSeqId !== localSeq) return;
-        try {
-          if (typeof _releaseBootDrawGate === 'function') _releaseBootDrawGate();
-        } catch (e) { console.warn('[boot] _releaseBootDrawGate threw', e); }
+        // Pin canvas paint deferred to _revealCanvasAndChrome (called at
+        // panel-expand inside _runSkipChoreography). Boot draw gate stays
+        // closed through the splash hide so no canvas paint happens until
+        // the panel is reaching its target state.
         // Cancel the pending scheduleRenderList timer (the earlier
         // update() inside _skipIntro armed a 300ms debounce that would
         // otherwise re-paint the list a moment after our force-fire).

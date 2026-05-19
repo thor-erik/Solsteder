@@ -276,7 +276,9 @@ function openPlanPreview(opts) {
       });
       map.flyTo({
         center:  [venue.lng, venue.lat],
-        zoom:    17.6,
+        // Was 17.6 — user feedback that the dive was too close across
+        // detail / invite / accept. 16.75 matches _flyToVenue.
+        zoom:    16.75,
         pitch:   58,
         bearing: targetBearing,
         padding,
@@ -309,11 +311,15 @@ function openPlanPreview(opts) {
     const _releaseSplash = () => {
       if (_splashReleased.value) return;
       _splashReleased.value = true;
-      // Release the boot draw gate at the same moment we dismiss the
-      // splash. _skipIntro({keepSplash:true}) left the gate closed for
-      // this path; releasing here fires the deferred first paint behind
-      // the still-solid splash, just before the fade choreography starts.
-      if (typeof window._releaseBootDrawGate === 'function') {
+      // Release the boot draw gate AND reveal the canvas + chrome at
+      // the same moment we dismiss the splash. _skipIntro({keepSplash:
+      // true}) left the gate closed for this path; the plan-invite
+      // takeover needs the pin canvas visible so the inviter avatar
+      // pin shows. (Locate-me / zoom-jog visibility is then governed
+      // by body.plan-preview-active CSS rules.)
+      if (typeof window._revealCanvasAndChrome === 'function') {
+        window._revealCanvasAndChrome();
+      } else if (typeof window._releaseBootDrawGate === 'function') {
         window._releaseBootDrawGate();
       }
       _hideInviteSplash();
@@ -377,6 +383,26 @@ function openPlanPreview(opts) {
   const overlay = _ppBuildDom(venue, opts, { planHour, animateTo, dateStr });
   document.body.appendChild(overlay);
 
+  // Fit meta pills after the overlay is in the DOM so we have real
+  // widths to measure against. Re-run on viewport resize (e.g.
+  // orientation change).
+  requestAnimationFrame(() => {
+    const metaEl = overlay.querySelector('.dprcv-meta');
+    if (metaEl && typeof window._fitMetaPills === 'function') {
+      window._fitMetaPills(metaEl);
+    }
+  });
+  if (typeof ResizeObserver !== 'undefined') {
+    const metaEl = overlay.querySelector('.dprcv-meta');
+    if (metaEl) {
+      const ro = new ResizeObserver(() => {
+        if (typeof window._fitMetaPills === 'function') window._fitMetaPills(metaEl);
+      });
+      ro.observe(overlay);
+      overlay._metaResizeObs = ro;
+    }
+  }
+
   // Track the bottom panel's height as --pp-bottom-h so the locate-me +
   // zoom-jog can anchor above it — same pattern the venue list uses via
   // --peek-h. ResizeObserver keeps the var in sync as content changes.
@@ -393,11 +419,23 @@ function openPlanPreview(opts) {
     }
   }
 
+  // Remember whether the detail panel was open BEFORE the preview took
+  // over — closePlanPreview restores back to that state instead of
+  // unconditionally opening the detail panel. Without this, swipe-down
+  // close always landed on the venue's detail panel even when the user
+  // came from the list / map / bell, which read as "I dismissed it but
+  // got dragged into a different layer." The bell-row / push-deeplink
+  // path doesn't have a detail panel underneath; the in-app "preview
+  // this plan" path from the detail panel does.
+  const _detailWasOpen = (typeof document !== 'undefined')
+    && !!document.getElementById('detail-panel')?.classList.contains('open');
+
   _planPreviewState = {
     overlay,
     venueId:  venue.id,
     inviterId: opts.inviterId || null,
     savedTime, savedDate, savedCamera, savedSelectedId,
+    detailWasOpen: _detailWasOpen,
     planHour, animateTo, dateStr,
     rafId: null,
     timeouts: [phase3TimeoutId],
@@ -414,12 +452,37 @@ function openPlanPreview(opts) {
   // drag down past 100px → close. Less than that → snap back. iOS-native feel.
   _ppWireDragHandle(overlay);
 
-  // Time-lapse starts after the panel slide-in settles (320ms transition).
+  // Time-lapse starts AFTER the camera dive finishes — otherwise the
+  // sun + shadow scrub plays out while the camera is still tilting in,
+  // and the user sees the shadow march end before the venue is even
+  // framed. Two paths:
+  //   - _skipDive (reopen, e.g. "Change response"): camera is already
+  //     where we want it, so kick off after the panel slide-in settles
+  //     (320 ms is the overlay transform transition).
+  //   - Fresh open (camera dive will run): wait for the flyTo's moveend
+  //     before starting, with a 3500 ms safety net in case 'moveend'
+  //     somehow doesn't land (offline tile fetches stalling, etc.).
   if (animateTo > planHour + 0.05) {
-    phase3TimeoutId.id = setTimeout(() => {
+    const _kickAnim = () => {
       if (!_planPreviewState) return;
+      if (_planPreviewState.autoplayDone) return;
       _ppAnimate(planHour, animateTo, TIMELAPSE_MS);
-    }, 360);
+    };
+    if (_skipDive) {
+      phase3TimeoutId.id = setTimeout(_kickAnim, 360);
+    } else if (typeof map !== 'undefined' && map && typeof map.once === 'function') {
+      // moveend fires when the flyTo settles. _startDive is itself
+      // gated on a splash-min wait, so subscribe here (before that
+      // setTimeout runs) and Mapbox queues us correctly.
+      let fired = false;
+      const onMoveEnd = () => { if (fired) return; fired = true; _kickAnim(); };
+      map.once('moveend', onMoveEnd);
+      // Safety: a 3500 ms backstop covers splash-wait (≤1500) + flyTo
+      // duration (1500) + a 500 ms buffer.
+      phase3TimeoutId.id = setTimeout(() => { onMoveEnd(); }, 3500);
+    } else {
+      phase3TimeoutId.id = setTimeout(_kickAnim, 360);
+    }
   }
 
   if (typeof _aTrack === 'function') {
@@ -504,7 +567,10 @@ function _planPreviewLocate() {
   try {
     map.easeTo({
       center: [venue.lng, venue.lat],
-      zoom: 17.6,
+      // Was 17.6 — user wanted less aggressive zoom across detail / invite
+      // / accept. 16.75 matches _flyToVenue and gives a ring of surrounding
+      // context.
+      zoom: 16.75,
       pitch: 58,
       bearing: targetBearing,
       duration: 700,
@@ -613,6 +679,9 @@ function closePlanPreview(opts = {}) {
     for (const tref of st.timeouts) { if (tref && tref.id != null) clearTimeout(tref.id); }
   }
   if (st.resizeObs) { try { st.resizeObs.disconnect(); } catch {} }
+  if (st.overlay && st.overlay._metaResizeObs) {
+    try { st.overlay._metaResizeObs.disconnect(); } catch {}
+  }
   // Drop FTS scrubber + timeFromEl + outside-tap listeners wired during _ppBuildDom.
   if (st.overlay && typeof st.overlay._cleanup === 'function') {
     try { st.overlay._cleanup(); }
@@ -643,10 +712,13 @@ function closePlanPreview(opts = {}) {
   setTimeout(() => { try { st.overlay.remove(); } catch {} }, 320);
   _planPreviewState = null;
 
-  if (!opts.skipDetailOpen && venue && typeof selectVenue === 'function') {
+  if (!opts.skipDetailOpen && st.detailWasOpen && venue && typeof selectVenue === 'function') {
     // Open the detail panel — it runs its own FLIP morph + FTS hosting from
     // the venue-card source; no FTS hand-off needed from here since the
     // plan-preview no longer reparents FTS.
+    // Gated on detailWasOpen so we only return to the detail panel when
+    // the user came from there. Bell-row / push / share-link entries fall
+    // into the else branch below where the venue list is surfaced.
     selectVenue(venueId, true);
   } else {
     // skipDetailOpen path: we won't be calling selectVenue (which would
@@ -675,6 +747,21 @@ function closePlanPreview(opts = {}) {
           duration: 800,
           essential: true,
         });
+      } catch (e) { /* ignore */ }
+    }
+    // No detail panel was open before AND we're not in a skipDetailOpen
+    // handoff (post-accept transition). Without recovery the user is
+    // dropped onto a bare map: chrome was hidden by plan-preview-active,
+    // and removing the class on close is a no-op visually because no
+    // other surface re-appears. Slide the venue list up — same motion
+    // as the page-load intro so the user sees it arrive explicitly.
+    if (!opts.skipDetailOpen && !st.detailWasOpen && window.innerWidth < 640) {
+      try {
+        if (typeof window._slideUpVenueListToExpanded === 'function') {
+          window._slideUpVenueListToExpanded();
+        } else if (typeof window._applyMobilePanelState === 'function') {
+          window._applyMobilePanelState('expanded');
+        }
       } catch (e) { /* ignore */ }
     }
   }
@@ -793,15 +880,23 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   // Walk chip drops the textual ' min walk' suffix in favour of a glyph
   // + the minute number. Less repetition with the unit and visually
   // anchors the chip as 'walking time' at a glance.
+  // 4 metas: area · category · distance · walk-time (separately so each
+  // reads as its own pill of information). v1 joined area+cat into one
+  // chunk; user feedback was that the metas felt halved.
+  // Each pill is wrapped in `.dprcv-meta-item` so _fitMetaPills (called
+  // after layout) can drop whole trailing pills + their preceding dot
+  // when the row overflows, instead of letting the browser ellipsise
+  // a partial pill ("5 mi…").
   const metaParts = [
-    { html: [venueArea, venueCat].filter(Boolean).join(' · ').replace(/</g, '&lt;') },
+    venueArea ? { html: venueArea.replace(/</g, '&lt;') } : null,
+    venueCat  ? { html: venueCat.replace(/</g, '&lt;')  } : null,
     distMin && distMin.distLabel ? { html: distMin.distLabel.replace(/</g, '&lt;') } : null,
     distMin && distMin.walkMin != null
       ? { html: `<span class="dprcv-meta-walk">${walkSvg}<span>${distMin.walkMin} min</span></span>` }
       : null,
   ].filter(Boolean).filter(p => p.html);
   const metaHtml = metaParts.map((p, i) =>
-    (i > 0 ? '<span class="dprcv-meta-dot">·</span>' : '') + `<span>${p.html}</span>`
+    (i > 0 ? '<span class="dprcv-meta-dot">·</span>' : '') + `<span class="dprcv-meta-item">${p.html}</span>`
   ).join('');
 
   // ── Hero header data (Møtes left, Sol til right)
@@ -1084,9 +1179,21 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
       : ((typeof _fmtInviteDate === 'function' && dateStr) ? _fmtInviteDate(dateStr) : '');
     eyebrow = t('pp_past_eyebrow', { date: pastDayLabel || '' });
   } else if (isInvite) {
+    // Inviter name renders inline, NOT wrapped in <strong>. User wanted
+    // the whole eyebrow to read as one continuous voice (same weight,
+    // same colour) — heavy-weight name was reading as a separate label
+    // glued to a lighter caption.
     eyebrow = opts.inviterName
-      ? t('pp_invited_line_named', { name: `<strong>${inviterName}</strong>` })
+      ? t('pp_invited_line_named', { name: inviterName })
       : t('pp_invited_line_anon');
+  } else {
+    // Fallback so the eyebrow ALWAYS has content. Preview mode (the
+    // creator viewing their own plan) and the rare race where the
+    // invite row hasn't loaded yet would otherwise collapse this row
+    // entirely, shifting venue + meta upward and breaking alignment
+    // against the two-column header. Anon line ("You're invited to")
+    // is the safest fallback — generic enough to fit either mode.
+    eyebrow = t('pp_invited_line_anon');
   }
 
   // Venue line — pin glyph + name·area (same anchor pattern as the
@@ -1115,7 +1222,7 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
       <div class="dprcv-title-block">
         <div class="dprcv-title-row">
           <div class="dprcv-title-col">
-            ${eyebrow ? `<div class="dprcv-eyebrow">${eyebrow}</div>` : ''}
+            <div class="dprcv-eyebrow">${eyebrow || '&nbsp;'}</div>
             <div class="dprcv-venue-row">
               <span class="dprcv-venue-pin" aria-hidden="true">${venuePinSvg}</span>
               <span class="dprcv-venue">${venueDisplay}</span>
@@ -1724,24 +1831,15 @@ window.TIMELINE_EVENT_GLYPHS = {
       </g>
     </g>
   </svg>`,
-  cloud: `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-    <path d="M19 18H6c-2.2 0-4-1.8-4-4 0-2 1.5-3.7 3.5-4 .5-3.3 3.3-6 6.8-6 3.4 0 6.2 2.5 6.7 5.8 2.3.4 4 2.4 4 4.7 0 2.5-2 4.5-4.5 4.5z"/>
-  </svg>`,
-  partly: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-    <circle cx="9" cy="9" r="3" fill="currentColor"/>
-    <path d="M9 2.5v1.5M9 14v1.5M2.5 9h1.5M13.5 9H15M4.5 4.5l1 1M13 13l-1-1" />
-    <path d="M21 17.5h-7a3 3 0 010-6 4 4 0 017.8.4 2.5 2.5 0 01-.8 4.9z" fill="currentColor" stroke="none"/>
-  </svg>`,
-  rain: `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-    <path d="M19 13H6c-2.2 0-4-1.8-4-4 0-2 1.5-3.7 3.5-4C6 1.7 8.8-1 12.3-1c3.4 0 6.2 2.5 6.7 5.8 2.3.4 4 2.4 4 4.7 0 2.5-2 4.5-4.5 4.5z" transform="translate(0,2)"/>
-    <line x1="8" y1="18" x2="6" y2="22" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-    <line x1="12" y1="18" x2="10" y2="22" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-    <line x1="16" y1="18" x2="14" y2="22" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-  </svg>`,
-  sun: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-    <circle cx="12" cy="12" r="4" fill="currentColor"/>
-    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
-  </svg>`,
+  // Weather glyphs delegate to the same _wxSvg* set the top-strip /
+  // header / date-strip / calendar uses (defined in weather.js). User
+  // feedback: FTS popup, thumb, and panel timelines should match the
+  // top-bar icons, not the other way around. Same currentColor +
+  // drop-shadow contract handled via .wx-sky-icon CSS.
+  cloud:  (typeof _wxSvgCloud         === 'function') ? _wxSvgCloud()         : '',
+  partly: (typeof _wxSvgSunCloud      === 'function') ? _wxSvgSunCloud()      : '',
+  rain:   (typeof rainIconSvg         === 'function') ? rainIconSvg()         : '',
+  sun:    (typeof _wxSvgSun           === 'function') ? _wxSvgSun()           : '',
   // Closed — moon-shape. Used on the FTS bar for time-of-day ranges
   // before a selected venue opens or after it closes; complements the
   // sun glyph naturally (Shades brand: sun ↔ moon).
@@ -1974,3 +2072,4 @@ function _dprcvWalkInfo(venue) {
 
 window.openPlanPreview  = openPlanPreview;
 window.closePlanPreview = closePlanPreview;
+window._dprcvWalkInfo   = _dprcvWalkInfo;

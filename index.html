@@ -114,25 +114,25 @@
 <script defer src="js/busyness.js?v=20260411b"></script>
 <script defer src="js/solar.js?v=20260411b"></script>
 <script defer src="js/data.js?v=20260519p"></script>
-<script defer src="js/weather.js?v=20260519b"></script>
+<script defer src="js/weather.js?v=20260519d"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260519t"></script>
+<script defer src="js/app.js?v=20260519aa"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
 <script defer src="js/render-editor.js?v=20260508a"></script>
-<script defer src="js/render-pins.js?v=20260519t"></script>
+<script defer src="js/render-pins.js?v=20260519u"></script>
 <script defer src="js/ui-shared.js?v=20260514m"></script>
 <script defer src="js/ui-list.js?v=20260516a"></script>
 <script defer src="js/admin-review.js?v=20260505a"></script>
 <script defer src="js/admin-audit.js?v=20260512a"></script>
 <script defer src="js/ui-shelter.js?v=20260416a"></script>
 <script defer src="js/render-wind.js?v=20260416b"></script>
-<script defer src="js/ui-detail.js?v=20260519s"></script>
-<script defer src="js/ui-plan-preview.js?v=20260519r"></script>
+<script defer src="js/ui-detail.js?v=20260519x"></script>
+<script defer src="js/ui-plan-preview.js?v=20260519x"></script>
 <script defer src="js/osm.js?v=20260519p"></script>
-<script defer src="js/notifications.js?v=20260519c"></script>
+<script defer src="js/notifications.js?v=20260519d"></script>
 <script defer src="js/push.js?v=20260518c"></script>
 <script defer src="js/lens-effects.js?v=20260515a"></script>
 <script defer src="js/init.js?v=20260427a"></script>
@@ -1535,6 +1535,12 @@
     overflow-x: auto;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
+    /* Soft fade-out at the right edge so the row reads as "scroll for
+       more" instead of "cut off by a hard line". 8px fade keeps the
+       pills fully visible until they're right at the edge.
+       Mask is on `mask-image` (and -webkit- for Safari/iOS Capacitor). */
+    -webkit-mask-image: linear-gradient(to right, black 0, black calc(100% - 16px), transparent 100%);
+    mask-image: linear-gradient(to right, black 0, black calc(100% - 16px), transparent 100%);
   }
   #panel-actions .panel-actions-pills::-webkit-scrollbar { display: none; }
   .panel-filter-pill {
@@ -2315,12 +2321,12 @@
        in flow, so margin-top = 36 - 16 = 20px. Compact popup overlaps
        the handle pill — accepted. Expanded popup overflows above the
        panel via overflow:visible. */
-    /* Top margin bumped 20 → 38 so the compact scrub popup (≈ 28 px
-       tall + 8 px tail + gap) clears the panel top edge cleanly. The
-       expanded popup is taller and intentionally overshoots into the
-       top-strip band — that's now allowed because #panel z-index 901
-       stacks the popup above the strip (see #panel rule). */
-    margin: 38px 12px 10px;
+    /* Top margin tightened from 38 → 22 so the gap between the drag
+       handle and the unexpanded scrub popup roughly equals the gap
+       between the drag handle and the panel top edge. The compact
+       popup overlaps the handle pill area (z-index 10 keeps it on
+       top); expanded popup overshoots above the panel as before. */
+    margin: 20px 12px 10px;
     height: 40px;
     align-items: center;
     gap: 8px;
@@ -2718,6 +2724,10 @@
     display: inline-flex;
     align-items: center;
     line-height: 1;
+    /* Inherit the unified white + drop-shadow glyph treatment so the
+       FTS popup weather icon matches the timeline / top-strip / date-strip. */
+    color: rgba(255, 244, 224, 0.92);
+    filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.35));
     transition: opacity 0.14s ease;
   }
   .fts-popup:not(.fts-popup-expanded) .fts-popup-wx-icon { display: none; }
@@ -2889,6 +2899,12 @@
     display: block;
     width: 14px;
     height: 14px;
+    /* Cream/white monochrome with the same drop-shadow backdrop the
+       timeline icons use (.dprcv-timeline-wx-icon). Unifies the FTS popup,
+       top-strip, header chip, date-strip, calendar grid and timeline so
+       the weather icon set reads as one family across the app. */
+    color: rgba(255, 244, 224, 0.92);
+    filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.35));
   }
   #top-strip .ts-wx-icon,
   #header-wx-chip #header-wx-icon,
@@ -2988,7 +3004,11 @@
   .dc-tile-empty       { border: none; background: transparent; pointer-events: none; }
   .dc-day  { font-size: 7px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(156,189,231,0.4); line-height: 1; }
   .dc-num  { font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.1; font-family: 'Inter', sans-serif; }
-  .dc-icon { font-size: 11px; line-height: 1.2; }
+  .dc-icon { font-size: 11px; line-height: 1.2; display: inline-flex; align-items: center; justify-content: center; }
+  /* SVG sky-icon (used in place of emoji for iOS glyph parity with the
+     top-bar / date-strip surfaces). Sizes scale with the .dc-icon
+     context (top-strip / mini-cal / month grid). */
+  .dc-icon .wx-sky-icon { width: 14px; height: 14px; }
   .dc-temp { font-size: 8px; font-weight: 600; color: rgba(156,189,231,0.55); line-height: 1; }
   .dc-tile.today .dc-day { color: rgba(255,175,133,0.75); }
   .dc-tile.selected .dc-num { color: var(--accent); }
@@ -4985,30 +5005,40 @@
       text-align: center;
     }
 
-    /* Venue list — peek state height driven by --peek-h CSS var, set by JS */
+    /* Venue list — peek state position driven by --peek-h CSS var.
+       Position-based animation (bottom + height) instead of transform.
+       Transform-based slides on iOS WebKit caused the panel's
+       backdrop-filter to drop for a few frames as the compositor layer
+       recomposited mid-animation — the visible "transparency flash" the
+       user reported. `bottom` and `height` are layout properties, not
+       compositor ones, so backdrop-filter stays stable across the slide.
+       Slightly more layout cost per frame but the slide is short and
+       the glass look stays consistent end-to-end. */
     #panel {
-      position: fixed;  /* fixed avoids parent height/overflow issues on iOS */
+      position: fixed;
       top: auto;
       left: 0;
       right: 0;
-      bottom: 0;
       width: 100%;
       /* 50% of the JS-tracked visible viewport — see --app-h. 50svh
-         is the fallback used until the visualViewport probe runs. */
+         is the fallback until the visualViewport probe runs. */
       height: calc(var(--app-h, 100svh) * 0.5);
+      /* Negative bottom in peek state: the panel's bottom edge sits
+         (panel-height − peek-h) below the viewport bottom, so only
+         peek-h is visible. Equivalent to the old translateY rule. */
+      bottom: calc(var(--peek-h, 252px) - calc(var(--app-h, 100svh) * 0.5));
       border-radius: 20px 20px 0 0;
       border-left: none;
       border-right: none;
       border-bottom: none;
-      transform: translateY(calc(100% - var(--peek-h, 252px))) translateZ(0);
-      transition: transform 0.34s cubic-bezier(0.25, 0.9, 0.4, 1), height 0.34s cubic-bezier(0.25, 0.9, 0.4, 1);
-      will-change: transform, height;
-      backface-visibility: hidden;
+      transition:
+        bottom 0.34s cubic-bezier(0.25, 0.9, 0.4, 1),
+        height 0.34s cubic-bezier(0.25, 0.9, 0.4, 1);
     }
 
-    /* Expanded state — tap handle to open */
+    /* Expanded state — bottom 0 so the full 50svh panel is in view. */
     #panel.mobile-expanded {
-      transform: translateY(0);
+      bottom: 0;
       z-index: 910;  /* zoom-jog (900) sits behind list; locate-btn (920) stays on top */
     }
 
@@ -5025,10 +5055,13 @@
     /* Fully hidden (covered by detail panel) — slides down behind the morphed card.
        Transition matches the panel morph (320ms) so list and detail move together. */
     #panel.mobile-hidden {
-      transform: translateY(calc(100% + 20px)) !important;
+      /* Position-based slide-off (matches the new bottom-based animation
+         scheme). Bottom set so the entire panel sits BELOW the viewport
+         plus a 20 px buffer. */
+      bottom: calc(-1 * calc(var(--app-h, 100svh) * 0.5) - 20px) !important;
       opacity: 0 !important;
       pointer-events: none !important;
-      transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.22s ease !important;
+      transition: bottom 0.32s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.22s ease !important;
     }
 
     #panel-toggle-icon { display: none; }
@@ -5186,7 +5219,7 @@
 
     /* Fullscreen state: panel covers everything */
     #panel.mobile-fullscreen {
-      transform: translateY(0);
+      bottom: 0;
       height: var(--app-h, 100svh);
       border-radius: 0;
       z-index: 910;
@@ -7329,6 +7362,7 @@
     #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-day  { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; }
     #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-num  { font-size: 17px; font-weight: 700; line-height: 1; }
     #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-icon { font-size: 15px; line-height: 1.2; }
+    #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-icon .wx-sky-icon { width: 18px; height: 18px; }
     #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-temp { font-size: 10px; font-weight: 600; color: rgba(156,189,231,0.72); }
     /* Month-view full calendar on mobile */
     #ptb-cal-float #qc-cal .dc-cal-scroll { height: calc(var(--app-h, 100svh) * 0.55); }
@@ -7415,6 +7449,8 @@
   #qc-cal .dc-grid:not(.dc-month-grid) .dc-day   { font-size: 8px; }
   #qc-cal .dc-grid:not(.dc-month-grid) .dc-num   { font-size: 15px; }
   #qc-cal .dc-grid:not(.dc-month-grid) .dc-icon  { font-size: 17px; line-height: 1.1; }
+  #qc-cal .dc-grid:not(.dc-month-grid) .dc-icon .wx-sky-icon { width: 20px; height: 20px; }
+  #qc-cal .dc-month-grid .dc-icon .wx-sky-icon { width: 16px; height: 16px; }
   #qc-cal .dc-grid:not(.dc-month-grid) .dc-temp  { font-size: 12px; font-weight: 700; color: rgba(156,189,231,0.72); }
   /* Full-calendar month grid: 7 columns, 4px gap, 48px tiles */
   #qc-cal .dc-month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; width: 100%; box-sizing: border-box; }
@@ -8845,8 +8881,28 @@
   /* ── Sliding surfaces — will-change only on panels that translate ────────── */
   /* No will-change: backdrop-filter anywhere — it bloats GPU memory.          */
   #detail-panel, #ptb-cal-float { will-change: transform; }
-  @media (max-width: 639px) {
-    #panel { will-change: transform; }
+  /* #panel was previously hinted will-change: transform, which on iOS
+     WebKit forced a compositor layer that lost backdrop-filter during
+     transform animations. The panel now animates via bottom + height
+     (layout properties) instead, so no compositor hint is needed. */
+
+  /* Register --fts-bottom as a typed custom property so transitions on
+     `bottom: calc(var(--fts-bottom) + ...)` actually animate when the var
+     changes. Without @property, changing a CSS custom property updates
+     dependent computed values instantly — locate-btn / zoom-jog were
+     jumping to their new offsets on panel state change instead of sliding
+     with the panel. iOS 16.4+ / Chrome 85+ both support @property. */
+  @property --fts-bottom {
+    syntax: '<length>';
+    inherits: true;
+    initial-value: 160px;
+  }
+  /* Same treatment for --peek-h so the no-fts fallback path on locate-btn
+     (which reads var(--peek-h) directly) also transitions. */
+  @property --peek-h {
+    syntax: '<length>';
+    inherits: true;
+    initial-value: 252px;
   }
 
   /* ── Performance & accessibility — reduced transparency ─────────────────── */
@@ -9268,7 +9324,9 @@
     transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.22s ease;
   }
   body.invite-sheet-open #qc-wrap,
-  body.invite-sheet-open #floating-search {
+  body.invite-sheet-open #floating-search,
+  body.invite-sheet-open #locate-btn,
+  body.invite-sheet-open #zoom-jog {
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.22s ease;
@@ -9467,9 +9525,15 @@
     font-weight: 500;
     color: var(--muted);
     font-variant-numeric: tabular-nums;
-    flex-wrap: wrap;
+    /* Whole-pill drop on overflow — see .dprcv-meta. _fitMetaPills hides
+       trailing `.dpinvite-meta-item` pills + their preceding dot when
+       this row's scrollWidth exceeds offsetWidth. */
+    flex-wrap: nowrap;
+    overflow: hidden;
+    white-space: nowrap;
   }
-  .dpinvite-meta-dot { opacity: 0.5; }
+  .dpinvite-meta-item { flex-shrink: 0; }
+  .dpinvite-meta-dot { flex-shrink: 0; opacity: 0.5; }
   /* Right column — Meeting label / live time / live day. Same visual
      register as the accept panel's .dprcv-moment-col so a user moving
      between sending and receiving an invite sees a consistent shape. */
@@ -9500,13 +9564,19 @@
     background: rgba(245, 194, 94, 0.10);
     color: var(--text);
     font-size: 13px;
-    font-weight: 700;
+    /* Lighter weight per user feedback — heavy 700 read as a separate
+       label instead of an inline meta affordance. 500 sits in line
+       with the rest of the meta row. */
+    font-weight: 500;
     /* margin-top matches the left-column meta (.dpinvite-meta uses 2px)
        — combined with the column's gap: 4, the day-button's BOX top
        lands at the same y as the meta-text top on the left, keeping
        the third-row baseline aligned across columns. */
     margin-top: 2px;
-    padding: 4px 6px 4px 9px;
+    /* Chevron moved BEFORE the text (flex-direction below stacks the
+       SVG first), so the padding flips: tighter on the chevron side,
+       looser on the text side. */
+    padding: 4px 9px 4px 6px;
     border-radius: 8px;
     letter-spacing: 0.01em;
     font-variant-numeric: tabular-nums;
@@ -9514,6 +9584,9 @@
     align-self: flex-end;
     display: inline-flex;
     align-items: center;
+    /* Chevron rendered before the text in the markup (button structure
+       updated alongside this rule). No row-reverse here — markup order
+       is authoritative. */
     gap: 4px;
     transition: background 0.14s ease, color 0.14s ease, transform 90ms ease-out;
     -webkit-tap-highlight-color: transparent;
@@ -10023,10 +10096,13 @@
   }
   .dprcv-moment-col {
     flex-shrink: 0;
-    /* Tight: width is exactly max-content (the widest child line — the
-       big time, typically). No min-width clamp so the column collapses
-       all the way to its content; adapts naturally to text-size bumps. */
+    /* Width is max-content (sized to its widest child — typically the
+       big time), but capped so the right column never eats more than
+       ~38% of the row. Earlier behaviour let "Mandag · in 30 min" expand
+       moment-col enough to truncate the meta string in title-col on
+       narrow screens. */
     width: max-content;
+    max-width: 38%;
     min-width: 0;
     text-align: right;
     display: flex;
@@ -10042,6 +10118,11 @@
     font-weight: 500;
     color: var(--muted);
     line-height: 1.25;
+    /* Reserve the row height even when content collapses to &nbsp; so the
+       venue + meta stay vertically aligned with the right-column "Meets at"
+       label. Without this, an empty eyebrow shifted the entire title-col up
+       in self-invite / race-condition cases. */
+    min-height: calc(13px * 1.25);
   }
   .dprcv-eyebrow strong { color: var(--text); font-weight: 700; }
   .dprcv-venue-row {
@@ -10078,7 +10159,9 @@
     white-space: nowrap;
   }
   .dprcv-meta {
-    display: block;
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
     /* Indent past the pin (16 + 8 gap) so the meta line aligns with the
        venue name, not the pin. */
     padding-left: 24px;
@@ -10088,24 +10171,28 @@
     color: var(--muted);
     font-variant-numeric: tabular-nums;
     line-height: 1.4;
-    /* Single line with ellipsis. The walk-time tends to be the last
-       part of the meta string ("Sentrum · Restaurant · 420 m · 5 min")
-       and is the safest item to lose when space runs out. */
-    white-space: nowrap;
+    /* Whole-pill drop on overflow: _fitMetaPills (js/app.js) measures
+       scrollWidth vs offsetWidth after layout and hides trailing
+       `.dprcv-meta-item` pills (+ their preceding dot) until they fit.
+       Cleaner than mid-text ellipsis on the trailing pill. */
     overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: nowrap;
   }
+  .dprcv-meta-item { flex-shrink: 0; }
   .dprcv-meta-dot {
+    flex-shrink: 0;
     opacity: 0.5;
     margin: 0 5px;
   }
-  .dprcv-meta-walk {
+  .dprcv-meta-walk,
+  .dpinvite-meta-walk {
     display: inline-flex;
     align-items: center;
     gap: 4px;
     vertical-align: middle;
   }
-  .dprcv-meta-walk svg { flex-shrink: 0; opacity: 0.8; }
+  .dprcv-meta-walk svg,
+  .dpinvite-meta-walk svg { flex-shrink: 0; opacity: 0.8; }
 
   /* Hero block — used to be a 2-column row (Meet/Sun) above the timeline.
      The two-column header above now carries Meeting/time/day on the right;
@@ -11619,8 +11706,13 @@
                 onclick="toggleListFilter('bar', this)">Bar</button>
         <button class="panel-filter-pill" data-filter="sun2h"
                 onclick="toggleListFilter('sun2h', this)">2t+ sol</button>
-        <button class="panel-filter-pill" data-filter="sheltered"
-                onclick="toggleListFilter('sheltered', this)">Skjermet</button>
+        <!-- Stille (noise) filter intentionally removed for now — venues.json
+             carries no noiseScore (the OSM-highway-proximity backfill
+             pipeline that populates it hasn't been run). Restore once the
+             column is populated; the JS filter implementation lives in
+             _passesActiveFilters and is currently dormant. -->
+        <button class="panel-filter-pill" data-filter="friends"
+                onclick="toggleListFilter('friends', this)">Venner</button>
       </div>
       <button id="panel-actions-sort" onclick="toggleSortPanel()"
               aria-label="Sortér" title="Sortér">
