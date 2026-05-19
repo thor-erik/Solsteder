@@ -7657,25 +7657,18 @@ function _runIntroSequence() {
           });
           _introRevealUI(search, brand, qcWrap, panel);
 
-          // Phase 3: pause in peek, then panel slides peek → expanded.
-          // _syncFtsPosition's built-in _maybePanMapForPanelState handles
-          // the map pan so the geo dot rises into the visible area.
+          // _introRevealUI lands the panel directly in expanded (single
+          // slide, no peek pause). Sync FTS / locate-me / zoom-jog
+          // positioning to the new state, then reveal pin canvas +
+          // locate-me + zoom-jog AFTER the slide settles (panel
+          // transition is 0.45s; PANEL_SLIDE_MS gives us a small buffer).
+          if (panel && isMobileEnd) _syncFtsPosition();
+          const PANEL_SLIDE_MS = 500;
           setTimeout(() => {
             if (_introSeqId !== seqId) return;
-            if (panel && isMobileEnd) {
-              panel.classList.add('mobile-expanded');
-              _syncFtsPosition();
-            }
-            // Reveal pin canvas + locate-me + zoom-jog now that the
-            // panel is reaching expanded. boot draw gate releases here
-            // so the deferred draw() paints AT this moment (the canvas
-            // was empty up to this point — no pins, no paint cycles).
             _revealCanvasAndChrome();
-            // Desktop: no peek/expanded distinction, but we still gated
-            // pins + chrome behind this moment. _revealCanvasAndChrome
-            // is idempotent so calling it both here and in the desktop
-            // branch end is safe.
-
+            // Final settling — happens shortly after the canvas/chrome
+            // reveal so all UI states settle in one beat.
             setTimeout(() => {
               if (_introSeqId !== seqId) return;
               if (_sharedHour === null && !_autoAdvancedAfterSunset) _activateNowMode();
@@ -7686,8 +7679,8 @@ function _runIntroSequence() {
               if (typeof _notifInit === 'function') _notifInit();
               if (typeof pushInit === 'function') pushInit();
               try { localStorage.setItem('solsteder_intro_seen', '1'); } catch (_) {}
-            }, PHASE3_MS + 80);
-          }, PHASE2_MS + PHASE3_PAUSE);
+            }, 200);
+          }, PANEL_SLIDE_MS);
         }, PHASE1_MS);
       }, 220);
     }, loaderFadeMs);
@@ -7821,21 +7814,24 @@ function _introRevealUI(search, brand, qcWrap, panel, opts) {
   }
 
   if (panel && isMobile) {
-    // Slide up from off-screen → PEEK using `bottom` (layout property)
-    // instead of `transform`. Transform-based slides on iOS WebKit
-    // briefly drop backdrop-filter during the animation; bottom keeps
-    // the panel's compositor layer stable so the glass look holds
-    // start-to-end. Phase 3 adds .mobile-expanded shortly after,
-    // animating peek → expanded via the CSS bottom rule.
+    // Slide up directly from off-screen → EXPANDED. The old two-stage
+    // (peek → pause → expanded) sequence read as a hesitation; a single
+    // unified slide is cleaner and gets the user to the venue list
+    // faster. Position is animated via `bottom` (layout property) so
+    // backdrop-filter stays stable across the slide on iOS WebKit —
+    // transform animations made the panel flash transparent.
     panel.style.transition = 'none';
     panel.style.opacity    = '1';
     panel.style.bottom     = `-${Math.round(window.innerHeight)}px`;
     panel.classList.remove('intro-hidden');
-    _prevPanelMobileState = 'peek';
+    // Mark expanded BEFORE the slide so the CSS rule's bottom: 0 is
+    // the slide target when we clear the inline bottom below.
+    panel.classList.add('mobile-expanded');
+    _prevPanelMobileState = 'expanded';
     _updatePeekHeight();
     panel.getBoundingClientRect();
     panel.style.transition = 'bottom 0.45s cubic-bezier(0.2, 0.8, 0.3, 1)';
-    panel.style.bottom     = '';  // clear inline → CSS peek-state bottom takes over
+    panel.style.bottom     = '';  // clear inline → CSS expanded bottom (0) takes over
 
     // Canvas reveal moved to _revealCanvasAndChrome (fires at phase 3 /
     // panel-expand). User wanted pins + locate-me + zoom-jog all to fade
@@ -8000,26 +7996,21 @@ function _skipIntro(seqId, opts) {
       canvas.style.opacity    = '0';
       canvas.style.transition = 'opacity 0.55s cubic-bezier(0.2, 0.8, 0.3, 1)';
     }
-    // UI slide-in + panel to peek (starts immediately — no dive to overlap with).
+    // UI slide-in + panel slides directly to EXPANDED (single stage; the
+    // old peek → pause → expanded sequence felt like a hesitation).
     setTimeout(() => {
       if (_introSeqId !== localSeq) return;
       _introRevealUI(search, brand, qcWrap, panel);
+      if (panel && isMobileSkip) _syncFtsPosition();
     }, 50);
-    // Panel peek → expanded. With the pre-positioning padding,
-    // _maybePanMapForPanelState's "user dot near current visible centre"
-    // check fails (the dot is at the EXPANDED centre, not the peek one),
-    // so the function bails and the map stays put while the panel slides.
+    // Reveal pin canvas + locate-me + zoom-jog AFTER the panel-slide
+    // settles (panel transition is 0.45s; small buffer added). Boot
+    // draw gate releases here so this is the first moment draw()
+    // actually paints to the canvas.
     setTimeout(() => {
       if (_introSeqId !== localSeq) return;
-      if (panel && isMobileSkip) {
-        panel.classList.add('mobile-expanded');
-        _syncFtsPosition();
-      }
-      // Reveal pin canvas + locate-me + zoom-jog in step with the
-      // panel reaching expanded. Boot draw gate releases here so this
-      // is the first moment draw() actually paints to the canvas.
       _revealCanvasAndChrome();
-    }, 600);
+    }, 550);
     // Wrap-up
     setTimeout(() => {
       if (_introSeqId !== localSeq) return;
