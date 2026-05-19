@@ -2950,7 +2950,7 @@ async function loadFriends() {
     if (otherIds.size > 0) {
       const { data: profs, error: profErr } = await _supabase
         .from('profiles')
-        .select('id, name, email, avatar_url')
+        .select('id, name, avatar_url')
         .in('id', [...otherIds]);
       if (profErr) {
         console.warn('[auth] loadFriends profile fetch failed:', profErr.message);
@@ -3058,7 +3058,7 @@ async function loadFriendCheckins() {
   if (await _checkSocialTables()) {
     const { data, error } = await _supabase
       .from('checkins')
-      .select('*, user:profiles!checkins_user_id_fkey(id, name, email, avatar_url)')
+      .select('*, user:profiles!checkins_user_id_fkey(id, name, avatar_url)')
       .gt('expires_at', new Date().toISOString());
     if (!error) {
       for (const c of (data || [])) {
@@ -3263,7 +3263,7 @@ async function loadPlans() {
   if (!await _checkSocialTables()) return;
   const { data: plans, error: pe } = await _supabase
     .from('plans')
-    .select('*, creator:profiles!plans_creator_id_fkey(id, name, email, avatar_url)')
+    .select('*, creator:profiles!plans_creator_id_fkey(id, name, avatar_url)')
     .or(`creator_id.eq.${_currentUser.id}`)
     .gt('planned_at', new Date().toISOString())
     .order('planned_at', { ascending: true });
@@ -3280,7 +3280,7 @@ async function loadPlans() {
     if (ownPlanIds.length) {
       const { data: ownInvites } = await _supabase
         .from('plan_invites')
-        .select('*, user:profiles!plan_invites_user_id_fkey(id, name, email, avatar_url)')
+        .select('*, user:profiles!plan_invites_user_id_fkey(id, name, avatar_url)')
         .in('plan_id', ownPlanIds);
       if (ownInvites) {
         const byPlan = new Map();
@@ -3297,7 +3297,7 @@ async function loadPlans() {
 
   const { data: invites, error: ie } = await _supabase
     .from('plan_invites')
-    .select('*, plan:plans(*, creator:profiles!plans_creator_id_fkey(id, name, email, avatar_url))')
+    .select('*, plan:plans(*, creator:profiles!plans_creator_id_fkey(id, name, avatar_url))')
     .eq('user_id', _currentUser.id);
   // _planInvites holds the user's invitations for FUTURE, NON-CANCELLED
   // plans. Cancelled plans get their own bell notification (sql/026
