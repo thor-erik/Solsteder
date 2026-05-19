@@ -117,7 +117,7 @@
 <script defer src="js/weather.js?v=20260519d"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260519y"></script>
+<script defer src="js/app.js?v=20260519z"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
@@ -130,7 +130,7 @@
 <script defer src="js/ui-shelter.js?v=20260416a"></script>
 <script defer src="js/render-wind.js?v=20260416b"></script>
 <script defer src="js/ui-detail.js?v=20260519w"></script>
-<script defer src="js/ui-plan-preview.js?v=20260519v"></script>
+<script defer src="js/ui-plan-preview.js?v=20260519w"></script>
 <script defer src="js/osm.js?v=20260519p"></script>
 <script defer src="js/notifications.js?v=20260519d"></script>
 <script defer src="js/push.js?v=20260518c"></script>
@@ -11706,8 +11706,11 @@
                 onclick="toggleListFilter('bar', this)">Bar</button>
         <button class="panel-filter-pill" data-filter="sun2h"
                 onclick="toggleListFilter('sun2h', this)">2t+ sol</button>
-        <button class="panel-filter-pill" data-filter="quiet"
-                onclick="toggleListFilter('quiet', this)">Stille</button>
+        <!-- Stille (noise) filter intentionally removed for now — venues.json
+             carries no noiseScore (the OSM-highway-proximity backfill
+             pipeline that populates it hasn't been run). Restore once the
+             column is populated; the JS filter implementation lives in
+             _passesActiveFilters and is currently dormant. -->
         <button class="panel-filter-pill" data-filter="friends"
                 onclick="toggleListFilter('friends', this)">Venner</button>
       </div>

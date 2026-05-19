@@ -717,8 +717,8 @@ function closePlanPreview(opts = {}) {
     // the venue-card source; no FTS hand-off needed from here since the
     // plan-preview no longer reparents FTS.
     // Gated on detailWasOpen so we only return to the detail panel when
-    // the user came from there. Bell-row / push / share-link entries don't
-    // have a detail panel underneath; close drops them back to the map.
+    // the user came from there. Bell-row / push / share-link entries fall
+    // into the else branch below where the venue list is surfaced.
     selectVenue(venueId, true);
   } else {
     // skipDetailOpen path: we won't be calling selectVenue (which would
@@ -747,6 +747,20 @@ function closePlanPreview(opts = {}) {
           duration: 800,
           essential: true,
         });
+      } catch (e) { /* ignore */ }
+    }
+    // No detail panel was open before AND we're not in a skipDetailOpen
+    // handoff (post-accept transition). Without recovery the user is
+    // dropped onto a bare map: chrome was hidden by plan-preview-active,
+    // and removing the class on close is a no-op visually because no
+    // other surface re-appears. Surface the venue list expanded — the
+    // canonical "I'm browsing" state — so there's always SOMETHING to
+    // come back to.
+    if (!opts.skipDetailOpen && !st.detailWasOpen && window.innerWidth < 640) {
+      try {
+        if (typeof window._applyMobilePanelState === 'function') {
+          window._applyMobilePanelState('expanded');
+        }
       } catch (e) { /* ignore */ }
     }
   }

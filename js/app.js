@@ -168,8 +168,21 @@ function _syncFtsPosition() {
   // snapped on state change instead of riding the panel. Inline length
   // values transition reliably via the existing `transition: bottom`
   // rule. Mobile-only — desktop keeps its position-independent layout.
+  // SKIPPED when plan-preview / post-accept / invite-sheet is active —
+  // those modes anchor locate-btn to their own bottom-panel via CSS
+  // (--pp-bottom-h or similar). Writing inline bottom here would
+  // override and cause the button to overlap the takeover sheet. Clear
+  // any inline bottom we left from a prior panel-state pass.
   const _isMobile = window.innerWidth < 640;
-  if (_isMobile) {
+  const _isPreviewTakeover = typeof document !== 'undefined' && (
+    document.body.classList.contains('plan-preview-active')
+    || document.body.classList.contains('post-accept-active')
+    || document.body.classList.contains('invite-sheet-open'));
+  if (_isMobile && _isPreviewTakeover) {
+    if (locateEl) locateEl.style.bottom = '';
+    if (zoomJog)  zoomJog.style.bottom  = '';
+  }
+  if (_isMobile && !_isPreviewTakeover) {
     const FTS_BTM_PX = (() => {
       // Mirror _ftsHostBottom but resolve to px so transitions interpolate.
       if (editingVenueId) return null; // edit mode owns positioning
@@ -2104,6 +2117,16 @@ function _dayLabel(dateStr) {
 }
 
 function _exitToExploreMode() {
+  // Expand the venue list FIRST so the user always has UI to come back
+  // to — even if _findFirstSunDayAndHour returns null (no upcoming sun)
+  // and the rest of this function early-returns. Without this the
+  // post-accept close could land on a bare map.
+  const panel = document.getElementById('panel');
+  if (panel && typeof isMobile === 'function' && isMobile()) {
+    panel.classList.remove('mobile-hidden', 'mobile-fullscreen');
+    panel.classList.add('mobile-expanded');
+    if (typeof _syncFtsPosition === 'function') _syncFtsPosition();
+  }
   const found = _findFirstSunDayAndHour();
   if (!found) return;
   // Sync date + time pickers — both dispatch the events the rest of the
@@ -2138,13 +2161,6 @@ function _exitToExploreMode() {
       applyTime();
     }
   }, 200);
-  // Expand the venue list (mobile only — desktop list is always visible).
-  const panel = document.getElementById('panel');
-  if (panel && typeof isMobile === 'function' && isMobile()) {
-    panel.classList.remove('mobile-hidden', 'mobile-fullscreen');
-    panel.classList.add('mobile-expanded');
-    if (typeof _syncFtsPosition === 'function') _syncFtsPosition();
-  }
   // Camera → user's geolocation. Falls through silently when location
   // is unavailable; the date/time/list changes still apply.
   if (typeof userLocation !== 'undefined' && userLocation
@@ -4780,22 +4796,11 @@ document.addEventListener('DOMContentLoaded', () => {
         _syncFtsPosition();
       }
 
-      // Restore on next pass — only when the intro has already landed the
-      // panel in mobile-expanded. Returning users with a saved 'peek' or
-      // 'fullscreen' get reapplied here; first-time users keep the intro's
-      // default. Skipped during the intro animation itself so it doesn't
-      // race with the in-flight transform tween.
-      try {
-        const saved = localStorage.getItem('solsteder.sheetSnap');
-        if (saved === 'peek' || saved === 'fullscreen') {
-          // Defer until after the intro settles. Intro tween is ~650ms; we
-          // wait a frame past that so the user perceives the saved state as
-          // "where they left it" rather than a re-shuffle on top of intro.
-          setTimeout(() => {
-            if (!panelEl.classList.contains('intro-hidden')) _applyState(saved);
-          }, 700);
-        }
-      } catch {}
+      // Saved sheet-snap is now applied UPFRONT in _introRevealUI (which
+      // reads localStorage and lands the panel directly in the saved
+      // state), so there's no post-intro setTimeout that yanks the panel
+      // from expanded down to peek anymore — that yo-yo was the bug
+      // the user reported.
 
       let _dragInitH = 0; // panel height at drag start (px)
       let _dragRafId = null;
@@ -6460,27 +6465,14 @@ window._passesActiveFilters = function(v) {
     if (total < 2) return false;
   }
   if (f.quiet) {
-    // "Quiet" = relatively low busyness compared to the venue's own peak.
-    // Absolute thresholds (e.g. < 40) failed because at dinner/lunch hours
-    // most categories sit at 60–90 and ZERO venues passed. Relative
-    // threshold instead: include the venue if current busyness is in the
-    // bottom 50% of its day-profile range. Always-empty profiles (closed
-    // venues) fall through to pass since 0 ≤ 0.5*peak. Note: venues.json
-    // uses `cafe` (no accent); the busyness profile key is `café`, so
-    // those fall back to the restaurant profile — known mismatch
-    // upstream, accepted here.
-    if (typeof getBusynessAt !== 'function' || typeof getBusynessForDay !== 'function') return true;
-    const dateStr = (typeof datePicker !== 'undefined' && datePicker) ? datePicker.value : null;
-    const fromH   = (typeof timeFromEl !== 'undefined' && timeFromEl) ? parseFloat(timeFromEl.value) : 0;
-    if (!dateStr) return true;
-    const profile = getBusynessForDay(v, dateStr);
-    let peak = 0;
-    for (let i = 0; i < profile.length; i++) if (profile[i] > peak) peak = profile[i];
-    const b = getBusynessAt(v, dateStr, fromH);
-    // Quiet = below half of the day's peak. Also clamp absolute: anything
-    // < 50 unconditionally passes so genuinely off-peak hours surface
-    // across all venues.
-    if (peak > 0 && b > Math.min(50, peak * 0.5)) return false;
+    // Stille is supposed to mean "quiet" (noise-based, not busyness).
+    // venues.json carries NO noiseScore data on any row — the OSM-
+    // highway-proximity backfill pipeline hasn't been run on this
+    // dataset. Filtering by category as a noise proxy or by busyness
+    // is dishonest, so the pill is removed from the UI for now and
+    // this branch is dormant. Restore once the data is in.
+    if (typeof noiseScore !== 'function') return false;
+    if (noiseScore(v) < 70) return false;
   }
   if (f.friends) {
     // Venue has SOMETHING happening with friends: checked-in friends, OR
@@ -7814,24 +7806,36 @@ function _introRevealUI(search, brand, qcWrap, panel, opts) {
   }
 
   if (panel && isMobile) {
-    // Slide up directly from off-screen → EXPANDED. The old two-stage
-    // (peek → pause → expanded) sequence read as a hesitation; a single
-    // unified slide is cleaner and gets the user to the venue list
-    // faster. Position is animated via `bottom` (layout property) so
-    // backdrop-filter stays stable across the slide on iOS WebKit —
-    // transform animations made the panel flash transparent.
+    // Slide up directly from off-screen → user's preferred state (default
+    // EXPANDED). The old two-stage (peek → pause → expanded) sequence
+    // read as a hesitation; a single unified slide is cleaner. Reading
+    // the saved snap UPFRONT (instead of restoring after a 700 ms
+    // setTimeout) avoids the post-intro yo-yo where the panel landed
+    // at expanded then slid back to a saved peek.
+    let _savedSnap = 'expanded';
+    try {
+      const s = localStorage.getItem('solsteder.sheetSnap');
+      if (s === 'peek' || s === 'expanded' || s === 'fullscreen') _savedSnap = s;
+    } catch {}
+
     panel.style.transition = 'none';
     panel.style.opacity    = '1';
     panel.style.bottom     = `-${Math.round(window.innerHeight)}px`;
     panel.classList.remove('intro-hidden');
-    // Mark expanded BEFORE the slide so the CSS rule's bottom: 0 is
-    // the slide target when we clear the inline bottom below.
-    panel.classList.add('mobile-expanded');
-    _prevPanelMobileState = 'expanded';
+    // Apply the saved state's classes BEFORE clearing inline bottom so
+    // the CSS rule's bottom is the slide target.
+    panel.classList.remove('mobile-expanded', 'mobile-fullscreen', 'mobile-hidden');
+    if (_savedSnap === 'fullscreen') {
+      panel.classList.add('mobile-expanded', 'mobile-fullscreen');
+    } else if (_savedSnap === 'expanded') {
+      panel.classList.add('mobile-expanded');
+    }
+    // (peek leaves all state classes off — that's the base #panel rule.)
+    _prevPanelMobileState = _savedSnap;
     _updatePeekHeight();
     panel.getBoundingClientRect();
-    panel.style.transition = 'bottom 0.45s cubic-bezier(0.2, 0.8, 0.3, 1)';
-    panel.style.bottom     = '';  // clear inline → CSS expanded bottom (0) takes over
+    panel.style.transition = 'bottom 0.45s cubic-bezier(0.2, 0.8, 0.3, 1), height 0.45s cubic-bezier(0.2, 0.8, 0.3, 1)';
+    panel.style.bottom     = '';  // clear inline → CSS saved-state bottom takes over
 
     // Canvas reveal moved to _revealCanvasAndChrome (fires at phase 3 /
     // panel-expand). User wanted pins + locate-me + zoom-jog all to fade
