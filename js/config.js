@@ -43,3 +43,47 @@ const MAPBOX_TOKEN = (typeof window !== 'undefined'
 // This constant is kept for backward compatibility with js/app.js's
 // `if (!GOOGLE_PLACES_KEY)` gate around the suggest-venue flow.
 const GOOGLE_PLACES_KEY = 'proxied-via-cloudflare-functions';
+
+// ── Runtime-fetched data files ──────────────────────────────────────────────
+//
+// On web, data/*.json is served from the same origin as the app and the
+// service worker handles caching. On native (Capacitor), `fetch('data/X.json')`
+// resolves against capacitor://localhost → the BUNDLED file inside the .app /
+// APK. That bundle is frozen at build time, so weekly geometry refreshes /
+// venue updates / new seating polygons never reach native users until the
+// next App Store / Play release.
+//
+// Fix: on native, fetch from https://findshades.app/data/... at runtime. The
+// bundled `data/` stays as the offline fallback (catastrophic network).
+// Web users hit the same-origin path unchanged.
+//
+// `data/*.json` is served by Cloudflare with `Cache-Control: no-cache` per
+// `_headers`, so native users will pick up updates on their next launch /
+// fetch — no CACHE_VERSION bump needed for data refreshes.
+const _DATA_REMOTE_BASE = 'https://findshades.app/data';
+const _DATA_LOCAL_BASE  = 'data';
+const _USE_REMOTE_DATA  = (typeof window !== 'undefined'
+                           && window.Capacitor
+                           && typeof window.Capacitor.isNativePlatform === 'function'
+                           && window.Capacitor.isNativePlatform());
+
+function dataUrl(path) {
+  const clean = String(path || '').replace(/^\/?(data\/)?/, '');
+  return (_USE_REMOTE_DATA ? _DATA_REMOTE_BASE : _DATA_LOCAL_BASE) + '/' + clean;
+}
+
+async function dataFetch(path, init) {
+  const clean = String(path || '').replace(/^\/?(data\/)?/, '');
+  if (!_USE_REMOTE_DATA) return fetch(_DATA_LOCAL_BASE + '/' + clean, init);
+  // Native: try remote first, fall back to bundled on any failure
+  // (offline, DNS, 4xx/5xx). Catches both cold-launch-offline and
+  // mid-flight network drops. Bundled copy may be stale but usable.
+  try {
+    const resp = await fetch(_DATA_REMOTE_BASE + '/' + clean, init);
+    if (resp.ok) return resp;
+    throw new Error('non-ok ' + resp.status);
+  } catch (e) {
+    console.warn('[data] remote fetch failed, falling back to bundled:', path, e.message);
+    return fetch(_DATA_LOCAL_BASE + '/' + clean, init);
+  }
+}

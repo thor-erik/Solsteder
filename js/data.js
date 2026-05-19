@@ -151,7 +151,7 @@ const SEATING_CONFIDENCE_GATE = 0.5;
 
 async function loadSeatingCache() {
   try {
-    const resp = await fetch('data/seating-detected.json');
+    const resp = await dataFetch('seating-detected.json');
     if (!resp.ok) return;
     const data = await resp.json();
     const records = data.venues ?? {};
@@ -225,7 +225,7 @@ if (typeof window !== 'undefined') {
 // ── Loader ────────────────────────────────────────────────────────────────────
 async function loadVenues() {
   try {
-    const resp = await fetch('data/venues.json');
+    const resp = await dataFetch('venues.json');
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const raw = await resp.json();
     // Drop permanently-closed venues at load time. They stay in venues.json

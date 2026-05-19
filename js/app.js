@@ -5616,7 +5616,7 @@ async function _ensureCandidates() {
   if (_candidates !== null || _candidatesLoading) return;
   _candidatesLoading = true;
   try {
-    const resp = await fetch('data/oslo-candidates.json');
+    const resp = await dataFetch('oslo-candidates.json');
     _candidates = resp.ok ? await resp.json() : [];
   } catch (_) {
     _candidates = [];

@@ -629,7 +629,7 @@ function scoreWall(wall, venue, buildings, venueBuilding, openPolygons, entrance
  */
 async function tryLoadPrecomputed() {
   try {
-    const resp = await fetch('data/geometry.json');
+    const resp = await dataFetch('geometry.json');
     if (!resp.ok) return false;
     const data = await resp.json();
     const version = data.v ?? data.version ?? 1;

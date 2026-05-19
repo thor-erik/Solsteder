@@ -9,7 +9,7 @@
 
 async function initPlaces() {
   try {
-    const resp = await fetch('data/venue-photos.json');
+    const resp = await dataFetch('venue-photos.json');
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const entries = await resp.json();
 
