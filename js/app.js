@@ -7616,6 +7616,29 @@ function _skipIntro(seqId, opts) {
   if (seqId !== undefined && _introSeqId !== seqId) return;
   const localSeq = ++_introSeqId;
 
+  // Absolute splash kill-switch: defensive backstop that ALWAYS dismisses
+  // the splash after 12s no matter what. The boot flow has multiple
+  // shorter timeouts (worker-wait cap 8s, map.idle cap 2.5s) but if any
+  // of the surrounding code throws unexpectedly, those nested timeouts
+  // may never register. This outer setTimeout doesn't depend on
+  // anything else — it grabs the splash element directly and force-hides.
+  setTimeout(() => {
+    const sp = document.getElementById('splash');
+    if (!sp) return;
+    if (sp.classList.contains('done')) return;
+    console.warn('[boot] splash hard-dismissed by 12s safety timeout');
+    sp.style.transition = 'none';
+    sp.classList.add('bg-out', 'done');
+    const sl = document.getElementById('splash-logo');
+    if (sl) { sl.style.transition = 'none'; sl.classList.add('fade-out'); }
+    const ldr = document.getElementById('splash-loader');
+    if (ldr) { ldr.style.transition = 'none'; ldr.classList.add('fade-out'); }
+    // Also release the draw gate so pins paint if they haven't yet.
+    if (typeof window._releaseBootDrawGate === 'function') {
+      try { window._releaseBootDrawGate(); } catch (e) {}
+    }
+  }, 12000);
+
   const splash = document.getElementById('splash');
   const canvas = document.getElementById('canvas-overlay');
   const search = document.getElementById('floating-search');
@@ -7649,14 +7672,18 @@ function _skipIntro(seqId, opts) {
   // expands". No easeTo dive — the map is at its final state from frame
   // one of the visible app.
   map.stop();
-  const _expandedPanelH = window.innerHeight * 0.5;
-  map.jumpTo({
-    center: _introCenter,
-    zoom: 14,
-    pitch: 15,
-    bearing: 0,
-    padding: { top: 0, bottom: _expandedPanelH, left: 0, right: 0 },
-  });
+  // Pre-position with padding for the expanded panel state. Splitting the
+  // padding into setPadding (instead of inline in jumpTo) is the safer
+  // path — some Mapbox builds quietly accept padding in jumpTo while
+  // others don't, and a silent rejection would leave the user dot at
+  // the default visual centre.
+  try {
+    const _expandedPanelH = window.innerHeight * 0.5;
+    if (typeof map.setPadding === 'function') {
+      map.setPadding({ top: 0, bottom: _expandedPanelH, left: 0, right: 0 });
+    }
+  } catch (e) { console.warn('[boot] setPadding failed', e); }
+  map.jumpTo({ center: _introCenter, zoom: 14, pitch: 15, bearing: 0 });
 
   // Hide splash — unless opts.keepSplash is set (plan-invite path,
   // which lets openPlanPreview's map.once('idle') handler dismiss the
@@ -7746,7 +7773,9 @@ function _skipIntro(seqId, opts) {
       // the moment the splash hides.
       _onBootWorkerReady(() => {
         if (_introSeqId !== localSeq) return;
-        if (typeof _releaseBootDrawGate === 'function') _releaseBootDrawGate();
+        try {
+          if (typeof _releaseBootDrawGate === 'function') _releaseBootDrawGate();
+        } catch (e) { console.warn('[boot] _releaseBootDrawGate threw', e); }
         // Cancel the pending scheduleRenderList timer (the earlier
         // update() inside _skipIntro armed a 300ms debounce that would
         // otherwise re-paint the list a moment after our force-fire).
