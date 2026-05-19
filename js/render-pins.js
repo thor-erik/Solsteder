@@ -1221,7 +1221,13 @@ function _releaseBootDrawGate() {
     draw();
   }
 }
-if (typeof window !== 'undefined') window._releaseBootDrawGate = _releaseBootDrawGate;
+if (typeof window !== 'undefined') {
+  window._releaseBootDrawGate = _releaseBootDrawGate;
+  // Boot orchestrators (app.js _skipIntro etc.) check this to know whether
+  // they're on the initial-load path (gate closed → wait for worker) vs a
+  // mid-session call (gate open → hide splash instantly).
+  window._isBootDrawGateOpen = () => _bootDrawGateOpen;
+}
 // 12s safety net — outer backstop in case neither the intro nor the
 // skip-intro nor the plan-preview path releases the gate. Has to sit
 // AFTER the longest in-flight wait the boot orchestrator can use (the

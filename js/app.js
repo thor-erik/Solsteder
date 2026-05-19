@@ -7361,6 +7361,10 @@ function _runIntroSequence() {
       if (_introSeqId !== seqId) return;
       // Releases gate + fires deferred draw() synchronously.
       if (typeof _releaseBootDrawGate === 'function') _releaseBootDrawGate();
+      // Cancel the pending scheduleRenderList timer (update() armed a
+      // 300ms debounce that would otherwise re-paint the list a moment
+      // after our force-fire below, stuttering the fade).
+      if (_renderListTimer) { clearTimeout(_renderListTimer); _renderListTimer = null; }
       // Force-run the venue list paint now, while the splash is still up.
       // Without this it lands ~300ms later (the scheduleRenderList debounce
       // tail), exactly during the splash fade, and stutters it.
@@ -7610,79 +7614,113 @@ function _skipIntro(seqId, opts) {
   map.stop();
   map.jumpTo({ center: _introCenter, zoom: 13.5, pitch: 15, bearing: 0 });
 
-  // Hide splash instantly (same as before) — unless opts.keepSplash
-  // is set, in which case the invite path takes over and hides the
-  // splash later (when openPlanPreview's map.once('idle') fires).
-  // Otherwise the slate body briefly shows between splash-hide and
-  // plan-preview-overlay-mount, which the user perceives as a blue
-  // loading flash.
-  if (!opts?.keepSplash) {
-    // Release the boot draw gate BEFORE hiding the splash so the first
-    // heavy classifyPin pass paints behind the still-visible splash. The
-    // splash hide that follows is instant; the user sees the precomputed
-    // canvas immediately rather than a blank frame followed by a draw.
-    if (typeof _releaseBootDrawGate === 'function') _releaseBootDrawGate();
+  // Hide splash — unless opts.keepSplash is set (plan-invite path,
+  // which lets openPlanPreview's map.once('idle') handler dismiss the
+  // splash so there's no slate flash between hide and overlay mount).
+  //
+  // Two sub-paths inside the !keepSplash branch:
+  //   1. Fresh boot (gate still closed): wait for the worker to deliver
+  //      precise sun windows, fire the heavy first paint + renderList
+  //      synchronously, then hide the splash. Same hold-then-paint
+  //      pattern as _runIntroSequence — returning users hit this path
+  //      since they bypass the intro, and on slow phones the immediate
+  //      hide previously left the camera-dive janking against an
+  //      uncomputed pin canvas. The 8s cap matches _runIntroSequence.
+  //   2. Mid-session call (gate already open): splash is mid-fade or
+  //      already gone from an earlier boot path; hide instantly.
+  const _hideSplashInstantly = () => {
     splash.style.transition = 'none';
     splash.classList.add('bg-out', 'done');
     if (splashLogo) { splashLogo.style.transition = 'none'; splashLogo.classList.add('fade-out'); }
     if (loader)     { loader.style.transition = 'none'; loader.classList.add('fade-out'); }
-  }
-  // keepSplash path: the gate stays closed; openPlanPreview's idle handler
-  // (ui-plan-preview.js) releases it at the same moment it dismisses the
-  // splash.
+  };
 
   // Cubic ease-out — slows toward the end, the cinematic feel users expect
   // from settling shots in films / map apps.
   const easeOut = t => 1 - Math.pow(1 - t, 3);
 
-  // Phase 1 (800ms): zoom in to default 14. NO padding — geo dot stays at
-  // viewport center until the panel slides up in Phase 3.
-  map.easeTo({
-    center: _introCenter,
-    zoom: 14,
-    pitch: 15,
-    bearing: 0,
-    duration: 800,
-    easing: easeOut,
-  });
-  if (canvas) {
-    canvas.style.transition = 'opacity 0.55s ease';
-    canvas.classList.remove('intro-hidden');
-  }
-
-  // Phase 2 (start at 350ms, overlap with zoom): UI slide-in + panel to peek
-  setTimeout(() => {
+  // The post-splash choreography. Pulled into a function so the fresh-boot
+  // path can defer it until the worker has delivered (otherwise the camera
+  // dives behind the still-visible splash and the user sees the END state
+  // when the splash finally hides, instead of the dive itself).
+  const _runSkipChoreography = () => {
     if (_introSeqId !== localSeq) return;
-    _introRevealUI(search, brand, qcWrap, panel);
-  }, 350);
-
-  // Phase 3 (start at 950ms): panel peek → expanded. _syncFtsPosition's
-  // built-in _maybePanMapForPanelState handles the map pan so the geo dot
-  // rises out from under the panel — same logic the panel drag uses.
-  setTimeout(() => {
-    if (_introSeqId !== localSeq) return;
-    if (panel && isMobileSkip) {
-      panel.classList.add('mobile-expanded');
-      // Important: leave _prevPanelMobileState as 'peek' (set in
-      // _introRevealUI) so _syncFtsPosition sees a peek → expanded
-      // transition and triggers the map pan.
-      _syncFtsPosition();
+    // Phase 1 (800ms): zoom in to default 14. NO padding — geo dot stays at
+    // viewport center until the panel slides up in Phase 3.
+    map.easeTo({
+      center: _introCenter,
+      zoom: 14,
+      pitch: 15,
+      bearing: 0,
+      duration: 800,
+      easing: easeOut,
+    });
+    if (canvas) {
+      canvas.style.transition = 'opacity 0.55s ease';
+      canvas.classList.remove('intro-hidden');
     }
-  }, 950);
-
-  // Wrap-up
-  setTimeout(() => {
-    if (_introSeqId !== localSeq) return;
-    if (_sharedVenueId) selectVenue(_sharedVenueId, true);
-    if (typeof _notifInit === 'function') _notifInit();
-              if (typeof pushInit === 'function') pushInit();
-  }, 1400);
-
-  if (document.documentElement.classList.contains('invite-loading')) {
+    // Phase 2 (start at 350ms, overlap with zoom): UI slide-in + panel to peek
     setTimeout(() => {
-      document.documentElement.classList.remove('invite-loading');
-    }, 1800);
+      if (_introSeqId !== localSeq) return;
+      _introRevealUI(search, brand, qcWrap, panel);
+    }, 350);
+    // Phase 3 (start at 950ms): panel peek → expanded.
+    setTimeout(() => {
+      if (_introSeqId !== localSeq) return;
+      if (panel && isMobileSkip) {
+        panel.classList.add('mobile-expanded');
+        _syncFtsPosition();
+      }
+    }, 950);
+    // Wrap-up
+    setTimeout(() => {
+      if (_introSeqId !== localSeq) return;
+      if (_sharedVenueId) selectVenue(_sharedVenueId, true);
+      if (typeof _notifInit === 'function') _notifInit();
+      if (typeof pushInit === 'function') pushInit();
+    }, 1400);
+    if (document.documentElement.classList.contains('invite-loading')) {
+      setTimeout(() => {
+        document.documentElement.classList.remove('invite-loading');
+      }, 1800);
+    }
+  };
+
+  // Hide splash + run choreography. Two sub-paths inside !keepSplash:
+  //   1. Fresh boot (gate still closed): wait for the worker so the heavy
+  //      first paint + renderList land behind the splash, then hide and
+  //      run the dive. Same hold-then-paint pattern as _runIntroSequence —
+  //      returning users + OAuth returns hit this path.
+  //   2. Mid-session (gate already open): hide instantly and dive now.
+  // keepSplash path: openPlanPreview's idle handler dismisses the splash
+  // AND releases the gate — the skip-intro choreography is replaced by
+  // the plan-preview overlay so we don't run our own dive on that path.
+  if (!opts?.keepSplash) {
+    const gateAlreadyOpen = typeof window._isBootDrawGateOpen === 'function'
+      && window._isBootDrawGateOpen();
+    if (gateAlreadyOpen) {
+      _hideSplashInstantly();
+      _runSkipChoreography();
+    } else {
+      _onBootWorkerReady(() => {
+        if (_introSeqId !== localSeq) return;
+        if (typeof _releaseBootDrawGate === 'function') _releaseBootDrawGate();
+        // Cancel the pending scheduleRenderList timer (the earlier
+        // update() inside _skipIntro armed a 300ms debounce that would
+        // otherwise re-paint the list a moment after our force-fire).
+        if (_renderListTimer) { clearTimeout(_renderListTimer); _renderListTimer = null; }
+        if (typeof renderList === 'function') {
+          try { renderList(); } catch (e) { console.warn('[boot] renderList threw', e); }
+        }
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          if (_introSeqId !== localSeq) return;
+          _hideSplashInstantly();
+          _runSkipChoreography();
+        }));
+      }, 8000);
+    }
   }
+  // keepSplash: plan-invite takeover owns the dive; we run nothing here.
 }
 
 // ── Back-button / popstate handler ───────────────────────────────────────────
