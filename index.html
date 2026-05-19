@@ -117,7 +117,7 @@
 <script defer src="js/weather.js?v=20260519b"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260509a"></script>
-<script defer src="js/app.js?v=20260519t"></script>
+<script defer src="js/app.js?v=20260519u"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260508a"></script>
 <script defer src="js/render-seating.js?v=20260508a"></script>
@@ -129,10 +129,10 @@
 <script defer src="js/admin-audit.js?v=20260512a"></script>
 <script defer src="js/ui-shelter.js?v=20260416a"></script>
 <script defer src="js/render-wind.js?v=20260416b"></script>
-<script defer src="js/ui-detail.js?v=20260519s"></script>
-<script defer src="js/ui-plan-preview.js?v=20260519r"></script>
+<script defer src="js/ui-detail.js?v=20260519t"></script>
+<script defer src="js/ui-plan-preview.js?v=20260519s"></script>
 <script defer src="js/osm.js?v=20260519p"></script>
-<script defer src="js/notifications.js?v=20260519c"></script>
+<script defer src="js/notifications.js?v=20260519d"></script>
 <script defer src="js/push.js?v=20260518c"></script>
 <script defer src="js/lens-effects.js?v=20260515a"></script>
 <script defer src="js/init.js?v=20260427a"></script>
@@ -1535,6 +1535,12 @@
     overflow-x: auto;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
+    /* Soft fade-out at the right edge so the row reads as "scroll for
+       more" instead of "cut off by a hard line". 8px fade keeps the
+       pills fully visible until they're right at the edge.
+       Mask is on `mask-image` (and -webkit- for Safari/iOS Capacitor). */
+    -webkit-mask-image: linear-gradient(to right, black 0, black calc(100% - 16px), transparent 100%);
+    mask-image: linear-gradient(to right, black 0, black calc(100% - 16px), transparent 100%);
   }
   #panel-actions .panel-actions-pills::-webkit-scrollbar { display: none; }
   .panel-filter-pill {
@@ -2315,12 +2321,12 @@
        in flow, so margin-top = 36 - 16 = 20px. Compact popup overlaps
        the handle pill — accepted. Expanded popup overflows above the
        panel via overflow:visible. */
-    /* Top margin bumped 20 → 38 so the compact scrub popup (≈ 28 px
-       tall + 8 px tail + gap) clears the panel top edge cleanly. The
-       expanded popup is taller and intentionally overshoots into the
-       top-strip band — that's now allowed because #panel z-index 901
-       stacks the popup above the strip (see #panel rule). */
-    margin: 38px 12px 10px;
+    /* Top margin tightened from 38 → 22 so the gap between the drag
+       handle and the unexpanded scrub popup roughly equals the gap
+       between the drag handle and the panel top edge. The compact
+       popup overlaps the handle pill area (z-index 10 keeps it on
+       top); expanded popup overshoots above the panel as before. */
+    margin: 22px 12px 10px;
     height: 40px;
     align-items: center;
     gap: 8px;
@@ -2988,7 +2994,11 @@
   .dc-tile-empty       { border: none; background: transparent; pointer-events: none; }
   .dc-day  { font-size: 7px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(156,189,231,0.4); line-height: 1; }
   .dc-num  { font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.1; font-family: 'Inter', sans-serif; }
-  .dc-icon { font-size: 11px; line-height: 1.2; }
+  .dc-icon { font-size: 11px; line-height: 1.2; display: inline-flex; align-items: center; justify-content: center; }
+  /* SVG sky-icon (used in place of emoji for iOS glyph parity with the
+     top-bar / date-strip surfaces). Sizes scale with the .dc-icon
+     context (top-strip / mini-cal / month grid). */
+  .dc-icon .wx-sky-icon { width: 14px; height: 14px; }
   .dc-temp { font-size: 8px; font-weight: 600; color: rgba(156,189,231,0.55); line-height: 1; }
   .dc-tile.today .dc-day { color: rgba(255,175,133,0.75); }
   .dc-tile.selected .dc-num { color: var(--accent); }
@@ -5008,7 +5018,12 @@
 
     /* Expanded state — tap handle to open */
     #panel.mobile-expanded {
-      transform: translateY(0);
+      /* translateZ(0) parity with the peek state — keeps the panel on a
+         hardware compositor layer so the backdrop-filter doesn't briefly
+         drop during the transform animation (iOS WebKit otherwise renders
+         the panel as near-transparent for a few frames as the layer
+         recomposites). */
+      transform: translateY(0) translateZ(0);
       z-index: 910;  /* zoom-jog (900) sits behind list; locate-btn (920) stays on top */
     }
 
@@ -5186,10 +5201,27 @@
 
     /* Fullscreen state: panel covers everything */
     #panel.mobile-fullscreen {
-      transform: translateY(0);
+      /* translateZ(0) parity — see #panel.mobile-expanded above. */
+      transform: translateY(0) translateZ(0);
       height: var(--app-h, 100svh);
       border-radius: 0;
       z-index: 910;
+    }
+
+    /* During the slide animation between peek / expanded / fullscreen
+       states, iOS WebKit briefly drops backdrop-filter rendering on the
+       transformed compositor layer — the panel reads as transparent for
+       a few frames. Swap in a near-solid slate fallback for the duration
+       of the transform transition (toggled from JS via transitionrun /
+       transitionend on #panel) so the panel stays visually consistent
+       with its resting state. backdrop-filter is unset during the swap
+       so the browser doesn't try to recompute it on the moving layer. */
+    #panel.panel-transitioning {
+      background:
+        linear-gradient(135deg, rgba(26,44,66,0.92) 0%, rgba(58,92,130,0.86) 100%),
+        rgba(20,32,54,0.94) !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
     }
 
     /* Kill expensive effects while the user is actively dragging the panel */
@@ -7329,6 +7361,7 @@
     #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-day  { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; }
     #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-num  { font-size: 17px; font-weight: 700; line-height: 1; }
     #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-icon { font-size: 15px; line-height: 1.2; }
+    #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-icon .wx-sky-icon { width: 18px; height: 18px; }
     #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-temp { font-size: 10px; font-weight: 600; color: rgba(156,189,231,0.72); }
     /* Month-view full calendar on mobile */
     #ptb-cal-float #qc-cal .dc-cal-scroll { height: calc(var(--app-h, 100svh) * 0.55); }
@@ -7415,6 +7448,8 @@
   #qc-cal .dc-grid:not(.dc-month-grid) .dc-day   { font-size: 8px; }
   #qc-cal .dc-grid:not(.dc-month-grid) .dc-num   { font-size: 15px; }
   #qc-cal .dc-grid:not(.dc-month-grid) .dc-icon  { font-size: 17px; line-height: 1.1; }
+  #qc-cal .dc-grid:not(.dc-month-grid) .dc-icon .wx-sky-icon { width: 20px; height: 20px; }
+  #qc-cal .dc-month-grid .dc-icon .wx-sky-icon { width: 16px; height: 16px; }
   #qc-cal .dc-grid:not(.dc-month-grid) .dc-temp  { font-size: 12px; font-weight: 700; color: rgba(156,189,231,0.72); }
   /* Full-calendar month grid: 7 columns, 4px gap, 48px tiles */
   #qc-cal .dc-month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; width: 100%; box-sizing: border-box; }
@@ -10042,6 +10077,11 @@
     font-weight: 500;
     color: var(--muted);
     line-height: 1.25;
+    /* Reserve the row height even when content collapses to &nbsp; so the
+       venue + meta stay vertically aligned with the right-column "Meets at"
+       label. Without this, an empty eyebrow shifted the entire title-col up
+       in self-invite / race-condition cases. */
+    min-height: calc(13px * 1.25);
   }
   .dprcv-eyebrow strong { color: var(--text); font-weight: 700; }
   .dprcv-venue-row {
@@ -10099,13 +10139,15 @@
     opacity: 0.5;
     margin: 0 5px;
   }
-  .dprcv-meta-walk {
+  .dprcv-meta-walk,
+  .dpinvite-meta-walk {
     display: inline-flex;
     align-items: center;
     gap: 4px;
     vertical-align: middle;
   }
-  .dprcv-meta-walk svg { flex-shrink: 0; opacity: 0.8; }
+  .dprcv-meta-walk svg,
+  .dpinvite-meta-walk svg { flex-shrink: 0; opacity: 0.8; }
 
   /* Hero block — used to be a 2-column row (Meet/Sun) above the timeline.
      The two-column header above now carries Meeting/time/day on the right;

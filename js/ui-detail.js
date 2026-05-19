@@ -1419,11 +1419,25 @@ function _openInviteSheet(venueId) {
   // see the same shape. Left = WHAT (eyebrow + venue + meta); right =
   // WHEN (Meeting label + live time + live day) which updates as the
   // user scrubs the FTS inside the sheet.
+  // 4 metas — area · category · distance · walk-time. Same shape as the
+  // accept page; sender and receiver read the same row. _dprcvWalkInfo
+  // is exposed from ui-plan-preview.js (assigned to window) so we can
+  // reuse the same haversine + walk-pace calc instead of duplicating it.
   const dispArea = _dedupeAreaForVenue(venueName, v?.area);
   const _catLabel = (typeof catLabel === 'function') ? catLabel(v) : null;
-  const _metaParts = [dispArea, _catLabel].filter(Boolean);
-  const _invMetaHtml = _metaParts.length
-    ? _metaParts.map(s => `<span>${String(s).replace(/</g, '&lt;')}</span>`).join('<span class="dpinvite-meta-dot" aria-hidden="true">·</span>')
+  const _walkInfo = (typeof window !== 'undefined' && typeof window._dprcvWalkInfo === 'function')
+    ? window._dprcvWalkInfo(v) : null;
+  const _walkSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7"/></svg>`;
+  const _invMetaItems = [
+    dispArea  ? `<span>${String(dispArea).replace(/</g, '&lt;')}</span>` : '',
+    _catLabel ? `<span>${String(_catLabel).replace(/</g, '&lt;')}</span>` : '',
+    _walkInfo && _walkInfo.distLabel
+      ? `<span>${String(_walkInfo.distLabel).replace(/</g, '&lt;')}</span>` : '',
+    _walkInfo && _walkInfo.walkMin != null
+      ? `<span class="dpinvite-meta-walk">${_walkSvg}<span>${_walkInfo.walkMin} min</span></span>` : '',
+  ].filter(Boolean);
+  const _invMetaHtml = _invMetaItems.length
+    ? _invMetaItems.join('<span class="dpinvite-meta-dot" aria-hidden="true">·</span>')
     : '';
   const momentBlock = `
         <div class="dpinvite-moment">

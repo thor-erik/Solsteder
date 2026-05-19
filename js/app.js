@@ -247,6 +247,29 @@ function _ftsHostBottom(panel, dp) {
 
 let _prevPanelMobileState = null;
 
+// Toggle .panel-transitioning during the panel's transform animation so a
+// near-solid fallback background (defined in CSS) masks iOS WebKit's
+// brief drop of backdrop-filter on the transforming compositor layer.
+// Without this the panel reads as ~transparent for a few frames during
+// peek ↔ expanded ↔ fullscreen transitions.
+(function _wireUpPanelTransitionMask() {
+  const panel = document.getElementById('panel');
+  if (!panel) return;
+  const onStart = (e) => {
+    if (e.target !== panel) return;
+    if (e.propertyName !== 'transform' && e.propertyName !== 'height') return;
+    panel.classList.add('panel-transitioning');
+  };
+  const onEnd = (e) => {
+    if (e.target !== panel) return;
+    if (e.propertyName !== 'transform' && e.propertyName !== 'height') return;
+    panel.classList.remove('panel-transitioning');
+  };
+  panel.addEventListener('transitionrun', onStart);
+  panel.addEventListener('transitionend', onEnd);
+  panel.addEventListener('transitioncancel', onEnd);
+})();
+
 /** When the venue list expands/collapses and the map is currently centered on
  *  the user's location, animate the map so the user dot stays visually centered
  *  in the visible area above the panel — moving in lock-step with the list. */
@@ -2332,7 +2355,14 @@ function renderDateCalendar() {
     } else {
       cls += ' no-data';
     }
-    const icon = summ ? summ.icon : '·';
+    // Use the same SVG glyphs as the top-bar / date-strip so the calendar
+    // visual matches the rest of the app. Emoji cloud codepoints (the prior
+    // summ.icon path) tofu on iOS WKWebView even with VS-16 — Apple Color
+    // Emoji isn't reached via the WebView font-fallback chain.
+    const sbForIcon = summ ? (summ.avgSunBlock ?? summ.avgCloud ?? 0) : null;
+    const icon = (summ && typeof skyIconSvg === 'function')
+      ? skyIconSvg(sbForIcon)
+      : (summ ? summ.icon : '·');
     const temp = summ ? formatTemp(summ.peakTemp) : '';
     html += `<button class="${cls}" onclick="selectCalendarDate('${dStr}')">`
       + `<span class="dc-day">${DAYS[d.getDay()]}</span>`
@@ -2958,7 +2988,12 @@ function _dcTileHtml(dStr, todayStr_, selected) {
     cls += ' solar-only'; // beyond forecast window — solar data only
   }
 
-  const icon = hasForecast ? summ.icon : '';
+  // SVG glyph (parity with top-strip / date-strip) — avoids iOS WKWebView
+  // tofu on the cloud emoji codepoints.
+  const sbForIcon = hasForecast ? (summ.avgSunBlock ?? summ.avgCloud ?? 0) : null;
+  const icon = (hasForecast && typeof skyIconSvg === 'function')
+    ? skyIconSvg(sbForIcon)
+    : (hasForecast ? summ.icon : '');
   const temp = hasForecast ? `${summ.peakTemp}°` : '';
 
   // Today indicator: --accent dot, centered in flow, below day number / glyph
@@ -3805,7 +3840,14 @@ function updateDetailPanel() {
   const v = VENUES.find(x => x.id === selectedId);
   if (!v) return;
 
+  // Preserve scroll position across the re-render. Notification toasts +
+  // worker callbacks + 30s nowMode ticks all call updateDetailPanel; without
+  // this save/restore each tick reset the user's scroll to the top of the
+  // panel.
+  const scroll = document.getElementById('dp-scroll');
+  const savedScroll = scroll ? scroll.scrollTop : 0;
   content.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
+  if (scroll && savedScroll) scroll.scrollTop = savedScroll;
   _populateDpCardSlot(v);
   if (typeof _populateDpShelter === 'function') _populateDpShelter(v);
   _startWindForVenue(v);
@@ -6332,7 +6374,26 @@ window._activeFilters = {
 window._passesActiveFilters = function(v) {
   const f = window._activeFilters;
   if (f.categories.size > 0 && !f.categories.has(v.category)) return false;
-  // sun2h + sheltered: not wired yet
+  if (f.sun2h) {
+    // Total upcoming sun hours from now until close, clamped to open hours.
+    // Reads the same precomputed windows the score uses — same data path
+    // means the filter agrees with what the user sees on the card.
+    if (typeof computeSunWindows !== 'function') return false;
+    const dateStr = (typeof datePicker !== 'undefined' && datePicker) ? datePicker.value : null;
+    const fromH   = (typeof timeFromEl !== 'undefined' && timeFromEl) ? parseFloat(timeFromEl.value) : 0;
+    if (!dateStr) return true;
+    const sw = computeSunWindows(v, dateStr);
+    const open  = sw?.open  ?? 0;
+    const close = sw?.close ?? 24;
+    let total = 0;
+    for (const w of (sw?.windows || [])) {
+      const s = Math.max(w.start, fromH, open);
+      const e = Math.min(w.end, close);
+      if (e > s) total += (e - s);
+    }
+    if (total < 2) return false;
+  }
+  // sheltered: not wired yet
   return true;
 };
 
@@ -6351,7 +6412,15 @@ function toggleListFilter(filter, btn) {
     if (typeof draw === 'function') draw();
     return;
   }
-  // sun2h, sheltered: still placeholder toggles
+  if (filter === 'sun2h') {
+    f.sun2h = !f.sun2h;
+    btn?.classList.toggle('active', f.sun2h);
+    if (typeof renderList === 'function') renderList();
+    if (typeof window.markPinLayoutStale === 'function') window.markPinLayoutStale();
+    if (typeof draw === 'function') draw();
+    return;
+  }
+  // sheltered: still placeholder toggle
   btn?.classList.toggle('active');
 }
 
@@ -7441,11 +7510,19 @@ function _runIntroSequence() {
         map.easeTo({ zoom: 16, pitch: 65, duration: PHASE1_MS, easing });
 
         // Phase 2 (after Phase 1): settle to default zoom/tilt, panel
-        // arrives in PEEK, UI slides/fades in. Map stays geo-centered
-        // (no bottom padding yet) — geo dot is in viewport center.
+        // arrives in PEEK, UI slides/fades in. Bottom padding eased in
+        // so the camera lifts the user dot into the upper half BEFORE
+        // the panel covers the lower half — without this the dot lands
+        // at viewport-centre, the panel hides it during phase 3, and
+        // _maybePanMapForPanelState bails because the dot is >100 px
+        // below the peek visible-centre threshold. Matches _skipIntro
+        // for returning users.
         setTimeout(() => {
           if (_introSeqId !== seqId) return;
           const isMobileEnd = window.innerWidth < 640;
+          const phase2Padding = isMobileEnd
+            ? { top: 0, bottom: window.innerHeight * 0.5, left: 0, right: 0 }
+            : undefined;
           map.easeTo({
             center: _introCenter,
             // Was 15.2 — felt too close after the cinematic; settle at 14
@@ -7457,6 +7534,7 @@ function _runIntroSequence() {
             bearing: 0,
             duration: PHASE2_MS,
             easing,
+            ...(phase2Padding ? { padding: phase2Padding } : {}),
           });
           _introRevealUI(search, brand, qcWrap, panel);
 
