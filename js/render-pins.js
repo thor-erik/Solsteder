@@ -949,16 +949,35 @@ function _drawName(ctx, pt, pillRect, name, secondary, placedPills, placedNames,
   const stickySide = opts.venueId != null ? _lastNameAnchor.get(opts.venueId) : null;
   const NAME_ANCHOR_HYSTERESIS = 25;
 
-  let best = null, bestScore = opts.force ? -Infinity : 0;
-  for (const c of candidates) {
-    const rect = { x: c.x, y: c.cy - labelH / 2, w: labelW, h: labelH };
-    let s = _scoreAnchor(rect, placedPills, placedNames, viewport);
-    if (stickySide === c.side && s > -Infinity) s += NAME_ANCHOR_HYSTERESIS;
-    if (s > bestScore) { bestScore = s; best = { ...c, ...rect }; }
+  let best;
+  // skipScoring path (map motion): re-use the cached side from a prior
+  // settled frame. Skips the 4×_scoreAnchor calls per pin which were the
+  // dominant per-frame cost during pan/zoom. Falls back to 'right' for
+  // pins that never settled (e.g. just appeared mid-motion).
+  if (opts.skipScoring) {
+    const side = stickySide || 'right';
+    const c = candidates.find(c => c.side === side) || candidates[0];
+    best = { ...c, x: c.x, y: c.cy - labelH / 2, w: labelW, h: labelH };
+  } else {
+    let bestScore = opts.force ? -Infinity : 0;
+    best = null;
+    for (const c of candidates) {
+      const rect = { x: c.x, y: c.cy - labelH / 2, w: labelW, h: labelH };
+      let s = _scoreAnchor(rect, placedPills, placedNames, viewport);
+      if (stickySide === c.side && s > -Infinity) s += NAME_ANCHOR_HYSTERESIS;
+      if (s > bestScore) { bestScore = s; best = { ...c, ...rect }; }
+    }
+    if (!best) return null;
+    _bucketRect(placedNames, best);
+    if (opts.venueId != null) _lastNameAnchor.set(opts.venueId, best.side);
   }
-  if (!best) return null;
-  _bucketRect(placedNames, best);
-  if (opts.venueId != null) _lastNameAnchor.set(opts.venueId, best.side);
+  // Cache content for the fade-out pass in section 5 of draw() — when
+  // the pin demotes and its label is no longer rendered here, that pass
+  // re-renders the label with the pill's lerping alpha so label fade-out
+  // matches pin fade-out (user spec).
+  if (opts.venueId != null) {
+    _lastLabelInfo.set(opts.venueId, { name, secondary, side: best.side });
+  }
 
   ctx.textBaseline = 'middle';
   ctx.textAlign    = 'left';
@@ -1055,8 +1074,27 @@ function _sunHoursLine(v, dateStr) {
 const _pinState  = new Map();   // id → { alpha, scale, morph, target_alpha, target_scale, morphTarget, snapshot }
 const _lastPilledIds = new Set();
 const _lastNameAnchor = new Map();
+// Cached label content per pin. Populated by _drawName each time a label
+// successfully renders; read by the fade-out pass (section 5 of draw())
+// so demoting pins fade their label out at the same rate as the pill —
+// label animation = pin animation as the user requested.
+// { name, secondary, side } — side is the chosen anchor ('right'|'left'|
+// 'top'|'bottom'); position is recomputed from current pillRect on each
+// fade-out frame so labels track the pin if the camera moves mid-fade.
+const _lastLabelInfo = new Map();
 let   _animDirty = false;
 let   _animScheduled = false;
+
+// Global label alpha that fades labels out collectively during map
+// motion (pan/zoom). Lerps toward _labelMotionTarget at the same rate
+// as pin alpha (0.20 per frame ≈ 200ms) so motion and pin animations
+// share a tempo. During motion the label SCORING is skipped — we reuse
+// each pin's cached anchor side and just track the pill position. The
+// motion alpha multiplies the per-pin morph alpha, so a label that was
+// also animating in (low morph) doesn't snap to full opacity when the
+// map starts moving.
+let _labelMotionAlpha  = 1;
+let _labelMotionTarget = 1;
 
 function _stepLerp(s, key, target, rate) {
   const cur = s[key];
@@ -1098,11 +1136,24 @@ function _wireZoomGate() {
   if (_zoomCache._wired) return;
   _zoomCache._wired = true;
   if (typeof map === 'undefined' || !map) return;
-  map.on('zoomstart', () => { _zoomCache.active = true; });
+  // Helper: flip the label-motion target and nudge the animation loop
+  // so labels lerp smoothly even between map events (the lerp itself
+  // runs inside draw, which the map.on('move') hook already calls).
+  const _setLabelMotion = (target) => {
+    _labelMotionTarget = target;
+    _animDirty = true;
+    _scheduleAnim();
+  };
+  map.on('zoomstart', () => { _zoomCache.active = true; _setLabelMotion(0); });
   map.on('zoomend',   () => {
     _zoomCache.active    = false;
     _zoomCache.frozenIds = null;
+    _setLabelMotion(1);
   });
+  // Pan motion uses move/moveend rather than dragstart/dragend so the
+  // fade also covers programmatic camera moves (flyTo, easeTo).
+  map.on('movestart', () => _setLabelMotion(0));
+  map.on('moveend',   () => _setLabelMotion(1));
 }
 
 // ── Audit pins (admin) ──────────────────────────────────────────────────────
@@ -1820,10 +1871,13 @@ function draw() {
     if (moving) _animDirty = true;
     if (st.alpha < 0.04 || !st.snapshot) {
       _pinState.delete(id);
+      // Drop the label info too so a future re-promotion doesn't render
+      // stale text on the first frame before _drawName rebuilds it.
+      _lastLabelInfo.delete(id);
       continue;
     }
     const v = venueById(id);
-    if (!v) { _pinState.delete(id); continue; }
+    if (!v) { _pinState.delete(id); _lastLabelInfo.delete(id); continue; }
     const pt = map.project([v.lng, v.lat]);
     ctx.save();
     ctx.globalAlpha = st.alpha;
@@ -1837,6 +1891,35 @@ function draw() {
       favorited: !!st.snapshot.favorited,
     });
     ctx.restore();
+    // Label fade-out: if this venue had a label on its last live frame,
+    // redraw it here at the pill's current lerped alpha so the label
+    // fades out at the same rate as the pill. Without this, the label
+    // would vanish instantly while the pill keeps fading — exactly the
+    // mismatch the user flagged.
+    const labelInfo = _lastLabelInfo.get(id);
+    if (labelInfo) {
+      const pillRect = {
+        x: pt.x - st.snapshot.w / 2,
+        y: pt.y - PILL_H - TAIL_H,
+        w: st.snapshot.w,
+        h: PILL_H + TAIL_H,
+      };
+      // Use the cached side, skip scoring (consistent with motion path).
+      // Multiplied by motion alpha so a pin demoting mid-pan also fades
+      // its label with the rest.
+      _drawName(
+        ctx, pt, pillRect,
+        labelInfo.name, labelInfo.secondary,
+        null, null, null,
+        {
+          selected: false,
+          force: true,
+          alpha: st.alpha * _labelMotionAlpha,
+          venueId: id,
+          skipScoring: true,
+        },
+      );
+    }
   }
 
   // ── 6. Floating names (with collision detection) ─────────────────────────
@@ -1845,25 +1928,34 @@ function draw() {
   //   2. friends going     → "Anna +N planlegger"
   //   3. zoom ≥ 16         → "X t sol"        (informational)
   //
-  // Skip the whole label pass while the map is animating (pan/zoom). The
-  // anchor scoring is the most expensive per-frame work for labelled
-  // pins (4 candidates × placedPillsGrid + placedNamesGrid lookups +
-  // measureText per pin). Pills track the camera smoothly without labels;
-  // labels reappear when the map settles via moveend → _scheduleDraw.
-  // Matches Google Maps' "labels fade during interaction" pattern.
-  //
-  // The post-loop bookkeeping (_lastLayout for hit-testing, _lastPilledIds
-  // for hysteresis) still has to run, so we can't early-return — just gate
-  // the loop body.
-  const _mapIsAnimating = (typeof map !== 'undefined' && map.isMoving && map.isMoving());
+  // Motion fade: when the map is moving (pan/zoom), all labels fade out
+  // collectively at the pin-alpha rate (0.20). When the map settles,
+  // they fade back in. During motion the per-pin anchor scoring is
+  // skipped — we reuse the cached side from _lastNameAnchor and just
+  // track the pill position. That keeps the expensive _scoreAnchor
+  // calls out of the hot path while still drawing labels that follow
+  // their pins smoothly.
+  {
+    const d = _labelMotionTarget - _labelMotionAlpha;
+    if (Math.abs(d) < 0.005) {
+      _labelMotionAlpha = _labelMotionTarget;
+    } else {
+      _labelMotionAlpha += d * 0.20;
+      _animDirty = true;
+    }
+  }
   // Spatial-hash placedPills (read by _scoreAnchor) and create the empty
-  // names grid (written by _drawName via _bucketRect). The grids replace
-  // v1's O(N²) array scans inside the anchor scoring with O(1) lookups
-  // against the ~9 neighbouring cells of each candidate's bucket.
+  // names grid. Only build during settled state — during motion we
+  // bypass scoring and read cached sides.
   const placedPillsGrid = new Map();
-  if (!_mapIsAnimating) for (const p of placedPills) _bucketRect(placedPillsGrid, p);
   const placedNamesGrid = new Map();
-  if (!_mapIsAnimating) for (const entry of layout) {
+  const _doScoring = _labelMotionAlpha > 0.98 && _labelMotionTarget === 1;
+  if (_doScoring) for (const p of placedPills) _bucketRect(placedPillsGrid, p);
+  // Skip the whole loop only when labels are fully invisible AND we're
+  // not re-scoring on settle. Even at low motion alpha we still draw
+  // (so the fade-out reads as continuous), unless alpha is below the
+  // pin-fade-out threshold.
+  if (_labelMotionAlpha > 0.04 || _labelMotionTarget === 1) for (const entry of layout) {
     if (entry.isDot) continue;
     if (entry.classResult.tier === 'context' && zoom < 16 && !(entry._friends && entry._friends.length)) continue;
     const v        = entry.v;
@@ -1889,17 +1981,28 @@ function draw() {
 
     // Label alpha follows the pill's morph — fades in only when the
     // pill is mostly visible (morph > 0.5), then full from ~0.8 onward.
-    // Avoids labels appearing alongside half-grown pills.
+    // Multiplied by the global motion alpha so pan/zoom dims everything.
     const stEntry = _pinState.get(v.id);
-    const labelAlpha = stEntry
+    const morphAlpha = stEntry
       ? Math.max(0, Math.min(1, (stEntry.morph - 0.5) / 0.3))
       : 1;
+    const labelAlpha = morphAlpha * _labelMotionAlpha;
     if (labelAlpha <= 0.02) continue;
     _drawName(
       ctx, entry.pt, entry._pillRect,
       shortName(v.name), sec,
       placedPillsGrid, placedNamesGrid, viewport,
-      { selected: sel, force: sel || isFriend, alpha: labelAlpha, venueId: v.id },
+      {
+        selected: sel,
+        force: sel || isFriend,
+        alpha: labelAlpha,
+        venueId: v.id,
+        // During motion we use the cached side and skip the per-candidate
+        // scoring entirely. _drawName branches on this and goes straight
+        // to the cached anchor or falls back to 'right' for venues with
+        // no prior anchor.
+        skipScoring: !_doScoring,
+      },
     );
   }
 
