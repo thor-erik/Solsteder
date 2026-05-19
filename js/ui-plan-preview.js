@@ -888,6 +888,46 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   }
   const sunHeroLabelKey = isAfterSundown ? 'invite_hero_sun_went_down' : 'invite_hero_sun_until';
 
+  // Sun-summary chip builder (used at render + by _refreshHero when the
+  // worker delivers precise sun windows). Renders one line:
+  //   "{sun-glyph} Sol til 20:40 · 2t 40m · 21°"
+  // or the after-sundown variant. Returns '' when sunEnd is null so the
+  // host can hide cleanly.
+  const _buildSunChipContent = (endH, fromH, dStr, after, lblKey, untilStr) => {
+    if (endH == null) return '';
+    const sunGlyph = (typeof TIMELINE_EVENT_GLYPHS !== 'undefined' && TIMELINE_EVENT_GLYPHS.sun)
+      ? TIMELINE_EVENT_GLYPHS.sun : '';
+    const labelStr = `${t(lblKey)} ${untilStr}`;
+    let detailParts = [];
+    if (!after) {
+      const rem = endH - fromH;
+      if (rem > 0) detailParts.push(_durOnly(rem));
+    } else {
+      const gone = fromH - endH;
+      if (gone < 1) {
+        detailParts.push(t('invite_hero_sundown_minutes_ago', { n: Math.round(gone * 60) }));
+      } else {
+        const hh = Math.floor(gone);
+        const mm = Math.max(0, Math.round((gone - hh) * 60));
+        detailParts.push(mm > 0
+          ? t('invite_hero_sundown_hm_ago', { h: hh, m: mm })
+          : t('invite_hero_sundown_h_ago',  { h: hh }));
+      }
+    }
+    let temp = null;
+    try {
+      if (typeof getWeatherAt === 'function' && dStr) {
+        const _wx = getWeatherAt(dStr, fromH + 0.001);
+        if (_wx && Number.isFinite(_wx.temp)) temp = Math.round(_wx.temp);
+      }
+    } catch (e) { /* ignore */ }
+    if (temp != null) detailParts.push(`${temp}°`);
+    const detailStr = detailParts.join(' · ');
+    return `<span class="dprcv-sun-chip-glyph" aria-hidden="true">${sunGlyph}</span>`
+         + `<span class="dprcv-sun-chip-label">${labelStr}</span>`
+         + (detailStr ? `<span class="dprcv-sun-chip-sep" aria-hidden="true">·</span><span class="dprcv-sun-chip-detail">${detailStr}</span>` : '');
+  };
+
   // ── Inline icon set (Lucide-style)
   const checkSvg    = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
   const clockSvg    = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
@@ -1030,12 +1070,10 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
       ? _capFirst(_dayLabel(dateStr))
       : ((typeof _fmtInviteDate === 'function' && dateStr) ? _fmtInviteDate(dateStr) : '');
     eyebrow = t('pp_past_eyebrow', { date: pastDayLabel || '' });
-  } else if (isInvite && !hasTopPill) {
+  } else if (isInvite) {
     eyebrow = opts.inviterName
       ? t('pp_invited_line_named', { name: `<strong>${inviterName}</strong>` })
       : t('pp_invited_line_anon');
-  } else if (!isInvite && sunEnd != null) {
-    eyebrow = `${t('invite_hero_sun_until')} ${sunUntilStr}`;
   }
 
   // Venue line — pin glyph + name·area (same anchor pattern as the
@@ -1047,6 +1085,13 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   // here read as redundant.
   const venueDisplay = venue.name.replace(/</g, '&lt;');
 
+  // Sun chip content (between header and timeline). Built once here, refreshed
+  // by _refreshHero below when the worker delivers precise sun windows.
+  const sunChipHtml = _buildSunChipContent(sunEnd, planHour, dateStr, isAfterSundown, sunHeroLabelKey, sunUntilStr);
+  // Stash for _refreshHero so it can rebuild against worker-corrected data
+  // without redefining the closure.
+  el._buildSunChipContent = _buildSunChipContent;
+
   // Build full DOM
   el.innerHTML = `
     ${topPillHtml}
@@ -1055,36 +1100,32 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
         <div class="dprcv-grabber pp-grabber" aria-hidden="true"></div>
       </div>
       <div class="dprcv-title-block">
-        ${eyebrow ? `<div class="dprcv-eyebrow">${eyebrow}</div>` : ''}
-        <div class="dprcv-venue-row">
-          <span class="dprcv-venue-pin" aria-hidden="true">${venuePinSvg}</span>
-          <span class="dprcv-venue">${venueDisplay}</span>
-        </div>
-        ${metaHtml ? `<div class="dprcv-meta">${metaHtml}</div>` : ''}
-      </div>
-      <div class="dprcv-hero">
-        <div class="dprcv-hero-row">
-          <div class="dprcv-hero-left">
+        <div class="dprcv-title-row">
+          <div class="dprcv-title-col">
+            ${eyebrow ? `<div class="dprcv-eyebrow">${eyebrow}</div>` : ''}
+            <div class="dprcv-venue-row">
+              <span class="dprcv-venue-pin" aria-hidden="true">${venuePinSvg}</span>
+              <span class="dprcv-venue">${venueDisplay}</span>
+            </div>
+            ${metaHtml ? `<div class="dprcv-meta">${metaHtml}</div>` : ''}
+          </div>
+          <div class="dprcv-moment-col">
             <div class="dprcv-hero-label">${t('invite_hero_meets')}</div>
             <div class="dprcv-arrival-time" id="pp-arrival-time">${planTimeStr}</div>
             ${arrivalSub ? `<div class="dprcv-arrival-sub">${arrivalSub}</div>` : ''}
           </div>
-          <div class="dprcv-hero-right">
-            <div class="dprcv-hero-label">${t(sunHeroLabelKey)}</div>
-            <div class="dprcv-suntil-time">${sunUntilStr}</div>
-            ${remainingStr ? `<div class="dprcv-remaining">${remainingStr}</div>` : ''}
-          </div>
         </div>
+      </div>
+      <div class="dprcv-sun-chip" aria-hidden="${sunChipHtml ? 'false' : 'true'}">${sunChipHtml}</div>
+      <div class="dprcv-hero">
         <div class="dprcv-timeline">
-          <!-- Event row rides above the bar; populated by JS after layout
-               with shade/weather glyphs at their x-positions (computed
-               from minH=meet time, maxH=sundown). -->
-          <div class="dprcv-timeline-events" data-vid="${venue.id}"></div>
+          <!-- Weather row sits INSIDE the bar (overlayed on the canvas) —
+               one centered glyph per same-state band of weather. Populated
+               by _populateTimelineWeather after layout. -->
+          <div class="dprcv-timeline-weather" data-vid="${venue.id}"></div>
           <!-- Scrubber pill — hidden until the user taps the bar. Then it
-               appears at the touched hour with a time label above; further
-               drags move it. Meeting time is now anchored by the meet icon
-               in the events row above, so this marker is purely interactive
-               'where am I checking right now' state. -->
+               appears at the touched hour with an FTS-style bubble above;
+               further drags move it. Auto-hides after a brief idle. -->
           <div class="dprcv-timeline-scrubber" aria-hidden="true">
             <div class="dprcv-timeline-scrubber-label"></div>
             <div class="dprcv-timeline-scrubber-pill"></div>
@@ -1142,40 +1183,28 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
         if (ws2.length) _sunEnd = ws2[ws2.length - 1].end;
       }
     } catch (e) { /* ignore */ }
-    const suntilEl = el.querySelector('.dprcv-suntil-time');
-    const remainingHost = el.querySelector('.dprcv-hero-right .dprcv-remaining');
-    const heroLabel = el.querySelector('.dprcv-hero-right .dprcv-hero-label');
-    if (suntilEl) suntilEl.textContent = (_sunEnd != null) ? formatHour(_sunEnd) : '—';
+    const chip = el.querySelector('.dprcv-sun-chip');
+    if (!chip) return;
     const _isAfter = (_sunEnd != null && _sunEnd <= planHour);
-    if (heroLabel) heroLabel.textContent = t(_isAfter ? 'invite_hero_sun_went_down' : 'invite_hero_sun_until');
-    if (remainingHost && _sunEnd != null) {
-      const rem = _sunEnd - planHour;
-      if (rem > 0) {
-        const sunGlyph = (typeof TIMELINE_EVENT_GLYPHS !== 'undefined' && TIMELINE_EVENT_GLYPHS.sun) ? TIMELINE_EVENT_GLYPHS.sun : '';
-        let tempNow = null;
-        try {
-          if (typeof getWeatherAt === 'function') {
-            const wxNow = getWeatherAt(dateStr, planHour + 0.001);
-            if (wxNow && Number.isFinite(wxNow.temp)) tempNow = Math.round(wxNow.temp);
-          }
-        } catch (e) {}
-        const parts = [`<span class="dprcv-remaining-glyph">${sunGlyph}</span><span>${_durOnly(rem)}</span>`];
-        if (tempNow != null) parts.push(`<span>${tempNow}°</span>`);
-        remainingHost.innerHTML = parts.join(' · ');
-      }
-    }
+    const _lblKey  = _isAfter ? 'invite_hero_sun_went_down' : 'invite_hero_sun_until';
+    const _untilStr = (_sunEnd != null) ? formatHour(_sunEnd) : '—';
+    const html = (typeof el._buildSunChipContent === 'function')
+      ? el._buildSunChipContent(_sunEnd, planHour, dateStr, _isAfter, _lblKey, _untilStr)
+      : '';
+    chip.innerHTML = html;
+    chip.setAttribute('aria-hidden', html ? 'false' : 'true');
   };
   window._refreshAcceptPageHero = _refreshHero;
-  // Populate the event row above the timeline with shade / weather-change
-  // glyphs anchored at their hour positions. Computed from the same data
-  // sources the bar uses, so they always agree.
-  const eventsHost = el.querySelector('.dprcv-timeline-events');
+  // Populate the in-bar weather row — one centred icon per same-state band
+  // (sun / partly / cloud / rain), overlayed on the canvas. Mirrors the FTS
+  // bar's segment colours, surfaced as glyphs for at-a-glance forecast.
+  const weatherHost = el.querySelector('.dprcv-timeline-weather');
   const scrubberEl = el.querySelector('.dprcv-timeline-scrubber');
   const timelineEl = el.querySelector('.dprcv-timeline');
-  if (eventsHost) {
+  if (weatherHost) {
     requestAnimationFrame(() => {
       try {
-        _populateTimelineEvents(eventsHost, venue, dateStr, barMinH, barMaxH);
+        _populateTimelineWeather(weatherHost, venue, dateStr, barMinH, barMaxH);
         // Wire the scrubber: when the user drags the bar (which the
         // existing _wireInlineFtsCanvas handler translates to
         // timeFromEl 'input' events) the pill slides, the label
@@ -1804,6 +1833,79 @@ function _populateTimelineEvents(host, v, dateStr, minH, maxH) {
   }
   // Stash for worker-callback refresh.
   host._refresh = () => _populateTimelineEvents(host, v, dateStr, minH, maxH);
+}
+
+/** Populate the in-bar weather overlay. Each hour [minH, maxH] is bucketed
+ *  into a weather state (sun / partly / cloud / rain), consecutive same-state
+ *  hours are coalesced into bands, and one glyph is rendered centred over
+ *  each band's midpoint (clipped to the visible bar range). Shade gaps
+ *  (sun blocked by buildings on the seating) override weather and render
+ *  as 'shade' glyphs since the weather doesn't matter when the seating is
+ *  shaded. Stashed as host._refresh so the worker callback can re-fire
+ *  once precise sun windows replace the sync-fallback data. */
+function _populateTimelineWeather(host, v, dateStr, minH, maxH) {
+  host.innerHTML = '';
+  if (!(maxH > minH + 0.1)) return;
+  if (typeof TIMELINE_EVENT_GLYPHS === 'undefined') return;
+  const wxKeyAt = (h) => {
+    if (typeof getWeatherAt !== 'function') return 'sun';
+    const wx = getWeatherAt(dateStr, h + 0.5);
+    if (!wx) return 'sun';
+    const rain = (wx.precip ?? wx.prec ?? 0) > 0.3;
+    if (rain) return 'rain';
+    const cf = wx.sunBlock ?? wx.cloud ?? 0;
+    if (cf < 0.25) return 'sun';
+    if (cf < 0.75) return 'partly';
+    return 'cloud';
+  };
+  // Shade lookup — outside any sun window means the seating is in shadow
+  // and we want the shade glyph instead of the weather one.
+  let sunWindows = [];
+  try {
+    if (typeof computeSunWindows === 'function') {
+      const sw = computeSunWindows(v, dateStr);
+      sunWindows = (sw && sw.windows) || [];
+    }
+  } catch (e) { /* ignore */ }
+  const inSun = (h) => sunWindows.some(w => h >= w.start && h <= w.end);
+
+  // Step through whole-hour buckets within the visible range, snap state.
+  const startH = Math.floor(minH);
+  const endH   = Math.ceil(maxH);
+  const states = [];
+  for (let h = startH; h < endH; h++) {
+    const mid = h + 0.5;
+    if (mid < minH || mid > maxH) { states.push({ h, state: null }); continue; }
+    const state = (sunWindows.length && !inSun(mid)) ? 'shade' : wxKeyAt(h);
+    states.push({ h, state });
+  }
+  // Coalesce consecutive same-state hours into bands.
+  const bands = [];
+  for (const s of states) {
+    if (s.state == null) continue;
+    const last = bands[bands.length - 1];
+    if (last && last.state === s.state && last.endH === s.h) {
+      last.endH = s.h + 1;
+    } else {
+      bands.push({ state: s.state, startH: s.h, endH: s.h + 1 });
+    }
+  }
+  // Render one glyph per band, centred on the visible-clipped band midpoint.
+  for (const band of bands) {
+    const left  = Math.max(band.startH, minH);
+    const right = Math.min(band.endH,   maxH);
+    if (right - left < 0.35) continue; // too narrow — would crowd a neighbour
+    const midH = (left + right) / 2;
+    const xPct = ((midH - minH) / (maxH - minH)) * 100;
+    const glyph = TIMELINE_EVENT_GLYPHS[band.state] || TIMELINE_EVENT_GLYPHS.sun;
+    const node = document.createElement('div');
+    node.className = 'dprcv-timeline-wx-icon';
+    node.dataset.state = band.state;
+    node.style.left = xPct + '%';
+    node.innerHTML = glyph;
+    host.appendChild(node);
+  }
+  host._refresh = () => _populateTimelineWeather(host, v, dateStr, minH, maxH);
 }
 
 /** Walk-info helper — distance string + walk minutes. Returns { distLabel,
