@@ -121,12 +121,12 @@
 <script defer src="js/weather.js?v=20260519d"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260521a"></script>
-<script defer src="js/app.js?v=20260521b"></script>
+<script defer src="js/app.js?v=20260521a"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260519b"></script>
 <script defer src="js/render-seating.js?v=20260519b"></script>
 <script defer src="js/render-editor.js?v=20260519b"></script>
-<script defer src="js/render-pins.js?v=20260521b"></script>
+<script defer src="js/render-pins.js?v=20260521a"></script>
 <script defer src="js/ui-shared.js?v=20260519b"></script>
 <script defer src="js/ui-list.js?v=20260520a"></script>
 <script defer src="js/admin-review.js?v=20260505a"></script>
@@ -273,27 +273,15 @@
     --border:     rgba(17,30,56,0.12);         /* dark subtle outline for cream map */
     --pill-bg:    rgba(17,30,56,0.45);
 
-    /* ── Glass levels — cream-map recipe ──────────────────────────────────
-     * SURFACE A — Transparent glass panels (on cream map)
-     *   → --glass-panel-bg (0% opacity) + --glass-blur-panel (6px blur, no saturate)
-     *   → Text: --panel-text (#111E38). Muted: rgba(17,30,56,0.50).
-     *   → Controls ON surface A: --glass-lens-bg (cream frosted) + --glass-lens-border
-     *
-     * SURFACE B — Opaque dark cards (#111E38, floating on map or panel)
-     *   → --glass-card-bg (opaque navy). Text: --text (#FFF4E0).
-     *   → Controls ON surface B: --glass-action-bg (dark semi-glass) + cream rim
-     * ──────────────────────────────────────────────────────────────────── */
-    --glass-panel-bg:    rgba(17,30,56,0.00);
-    --glass-card-bg:     linear-gradient(135deg, rgba(17,30,56,0.36) 0%, rgba(49,78,120,0.22) 100%), rgba(17,30,56,1.00);
-    --glass-action-bg:   linear-gradient(135deg, rgba(17,30,56,0.36) 0%, rgba(49,78,120,0.22) 100%), rgba(17,30,56,0.55);
-    /* Controls ON transparent panels: cream frosted glass — reads clearly on the cream map */
-    --glass-lens-bg:     rgba(255,252,248,0.68);
-    --glass-lens-border: 1px solid rgba(17,30,56,0.13);
-    /* Panel blur: no saturate — saturation amplifies map hues and creates a blue cast */
-    --glass-blur-panel:  blur(6px);
-    --glass-blur-card:   blur(12px);
-    --glass-blur-action: blur(10px);
-    --glass-blur-pill:   blur(8px);
+    /* Glass levels — cream-map recipe. Panels are transparent (Tier 1 = lens);
+       cards are fully opaque dark Delft Blue (Tier 2 = islands on cream map). */
+    --glass-panel-bg:  rgba(17,30,56,0.00);
+    --glass-card-bg:   linear-gradient(135deg, rgba(17,30,56,0.36) 0%, rgba(49,78,120,0.22) 100%), rgba(17,30,56,1.00);
+    --glass-action-bg: linear-gradient(135deg, rgba(17,30,56,0.36) 0%, rgba(49,78,120,0.22) 100%), rgba(17,30,56,0.55);
+    --glass-blur-panel: blur(6px) saturate(160%);
+    --glass-blur-card:  blur(12px) saturate(160%);
+    --glass-blur-action: blur(10px) saturate(160%);
+    --glass-blur-pill:  blur(8px)  saturate(160%);
     --glass-border: 1px solid rgba(17,30,56,0.12);
     --glass-border-light: 1px solid rgba(17,30,56,0.08);
     /* Null inset — no sheen on transparent panels. Using a transparent shadow
@@ -398,13 +386,9 @@
     font-family: 'Inter', system-ui, sans-serif;
     overflow: hidden;
   }
-  /* ── SURFACE A: dark text catch-all for all transparent glass panels ──────
-   * Every transparent panel that sits on the cream map uses dark Delft Blue
-   * as its base text color. Explicit color rules on children override this
-   * inheritance — see scoped overrides below for those cases.             */
+  /* Dark text catch-all for transparent panel surfaces */
   #top-strip, #panel, #detail-panel,
-  #search-dropdown, #sort-panel, #bell-dropdown, #profile-panel,
-  .dpinvite-sheet, .dprcv-overlay, #date-calendar {
+  #search-dropdown, #sort-panel, #bell-dropdown, #profile-panel {
     color: var(--panel-text, #111E38);
   }
   /* Scoped overrides: dropdown / panel children that set var(--text) or
@@ -417,26 +401,6 @@
   #search-dropdown .sd-suggest-label,
   #bell-dropdown .bd-row__meta,
   #bell-dropdown .bd-row__sys-icon { color: rgba(17,30,56,0.50); }
-
-  /* Plan-preview / accept page — transparent panel, needs dark text */
-  .dprcv-eyebrow                    { color: rgba(17,30,56,0.50); }
-  .dprcv-eyebrow strong,
-  .dprcv-venue                      { color: var(--panel-text); }
-  .dprcv-sun-chip-sep,
-  .dprcv-sun-chip-detail            { color: rgba(17,30,56,0.60); }
-
-  /* Invite sheet — transparent panel, needs dark text */
-  .dpinvite-grabber                 { background: rgba(17,30,56,0.18); }
-  .dpinvite-empty-title             { color: var(--panel-text); }
-  .dpinvite-empty-sub               { color: rgba(17,30,56,0.50); }
-
-  /* Calendar — use cream background for legibility of date tiles */
-  #date-calendar                    { background: rgba(255,242,235,0.96) !important; }
-  .dc-weekday                       { color: rgba(17,30,56,0.35); }
-  .dc-month-row-label               { color: rgba(17,30,56,0.45); }
-  .dc-expand-btn-wide               { background: var(--glass-lens-bg); border: var(--glass-lens-border); color: var(--panel-text); }
-  .dc-expand-btn-wide:hover         { background: rgba(255,252,248,0.90); border-color: rgba(17,30,56,0.22); }
-  .dc-btn-chev                      { color: rgba(17,30,56,0.45); }
 
   /* Profile panel — cream surface needs all text flipped to dark */
   #profile-panel .settings-row      { color: var(--panel-text); }
@@ -464,10 +428,7 @@
     backdrop-filter: var(--glass-blur-panel);
     -webkit-backdrop-filter: var(--glass-blur-panel);
     border: var(--glass-border);
-    box-shadow:
-      0 -1px 0 rgba(255,252,248,0.50) inset,    /* top rim: cream highlight */
-      0 8px 32px rgba(17,30,56,0.10),            /* ambient lift shadow */
-      0 2px 8px  rgba(17,30,56,0.07);            /* close shadow for crisp edge */
+    box-shadow: 0 2px 16px rgba(17,30,56,0.06);
     position: relative;
   }
   /* Removed cream-sheen pseudo-element — no longer meaningful on transparent surface */
@@ -2988,7 +2949,7 @@
     line-height: 1;
   }
   #top-strip .ts-wx-icon .wx-sky-icon         { width: 17px; height: 17px; }
-  #header-wx-chip #header-wx-icon .wx-sky-icon { width: 14px; height: 14px; color: rgba(17,30,56,0.75); filter: none; }
+  #header-wx-chip #header-wx-icon .wx-sky-icon { width: 14px; height: 14px; color: rgba(17,30,56,0.55); filter: none; }
   #date-wx-strip .wx-sky-icon                  { width: 13px; height: 13px; }
   /* Custom date calendar dropdown */
   #date-calendar {
@@ -3766,10 +3727,10 @@
   /* Area chips — hidden */
   #area-chips { display: none; }
   .area-chip {
-    background: var(--glass-lens-bg);
-    border: var(--glass-lens-border);
+    background: rgba(156,189,231,0.1);
+    border: 1px solid rgba(156,189,231,0.18);
     border-radius: 20px;
-    color: rgba(17,30,56,0.60);
+    color: rgba(156,189,231,0.45);
     font-family: 'Inter', sans-serif;
     font-size: 10px;
     font-weight: 700;
@@ -3781,11 +3742,11 @@
     flex-shrink: 0;
     transition: all 0.15s;
   }
-  .area-chip:hover:not(.active) { color: rgba(17,30,56,0.85); border-color: rgba(17,30,56,0.22); background: rgba(255,252,248,0.85); }
+  .area-chip:hover:not(.active) { color: rgba(156,189,231,0.8); border-color: rgba(156,189,231,0.35); }
   .area-chip.active {
     background: var(--accent);
     border-color: var(--accent);
-    color: var(--accent-on);
+    color: #142E52;
   }
 
   /* Venue list header: title (left) · panel toggle (right) */
@@ -7142,11 +7103,11 @@
      -webkit-tap-highlight stays default so iOS adds its native flash
      on top of our :active — belt and braces. */
   #header-date-chip.dh-date {
-    background: var(--glass-lens-bg);
-    border: var(--glass-lens-border);
+    background: transparent;
+    border: 0;
     box-shadow: none;
-    padding: 4px 10px;
-    margin: 0;
+    padding: 2px 4px;
+    margin: -2px -4px -2px -4px;
     height: auto;
     width: auto;
     color: rgba(17, 30, 56, 0.75);
@@ -7159,9 +7120,9 @@
     border-radius: 6px;
     transition: color 0.12s ease, background 0.12s ease;
   }
-  #header-date-chip.dh-date:hover { color: var(--accent); background: rgba(255,252,248,0.90); border-color: rgba(245,194,94,0.35); }
+  #header-date-chip.dh-date:hover { color: var(--accent); background: rgba(17,30,56,0.06); }
   #header-date-chip.dh-date:hover .chip-cal-icon { color: var(--accent); }
-  #header-date-chip.dh-date:active { background: rgba(255,252,248,0.95); color: var(--accent); }
+  #header-date-chip.dh-date:active { background: rgba(17,30,56,0.08); color: var(--accent); }
   #header-date-chip.dh-date:active .chip-cal-icon { color: var(--accent); }
   #header-date-chip.dh-date.active { color: var(--accent); }
   #header-date-chip.dh-date.active .chip-cal-icon { color: var(--accent); }
@@ -7857,10 +7818,10 @@
     align-items: center;
     gap: 5px;
     padding: 10px 6px 8px;
-    background: var(--glass-lens-bg);
-    border: var(--glass-lens-border);
+    background: var(--glass-action-bg);
+    border: var(--glass-border);
     border-radius: 12px;
-    box-shadow: none;
+    box-shadow: var(--glass-inset);
     color: var(--accent);
     font-size: 12px;
     font-weight: 500;
@@ -7871,7 +7832,7 @@
     text-align: center;
     transition: background 0.12s;
   }
-  .dp-gm-chip:hover { background: rgba(255,252,248,0.90); }
+  .dp-gm-chip:hover { background: rgba(17,30,56,0.60); }
   .dp-gm-chip svg { stroke: var(--accent); flex-shrink: 0; }
 
   .dp-actions {
@@ -7884,9 +7845,9 @@
     font-weight: 500;
     padding: 7px 10px;
     border-radius: 12px;
-    border: var(--glass-lens-border);
-    background: var(--glass-lens-bg);
-    box-shadow: none;
+    border: var(--glass-border);
+    background: var(--glass-action-bg);
+    box-shadow: var(--glass-inset);
     color: var(--accent);
     cursor: pointer;
     text-decoration: none;
@@ -7894,13 +7855,13 @@
     transition: background 0.12s;
     font-family: 'Inter', sans-serif;
   }
-  .dp-action-btn:hover { background: rgba(255,252,248,0.90); }
+  .dp-action-btn:hover { background: rgba(17,30,56,0.60); }
   .dp-action-btn.directions {
-    background: var(--glass-lens-bg);
-    border: var(--glass-lens-border);
+    background: var(--glass-action-bg);
+    border: var(--glass-border);
     color: var(--accent);
   }
-  .dp-action-btn.directions:hover { background: rgba(255,252,248,0.90); }
+  .dp-action-btn.directions:hover { background: rgba(17,30,56,0.60); }
 
   .dp-busy-row {
     display: flex;
@@ -8233,10 +8194,10 @@
     gap: 6px;
     padding: 6px 10px;
     border-radius: 999px;
-    background: var(--glass-lens-bg);
-    border: var(--glass-lens-border);
-    box-shadow: none;
-    color: var(--panel-text);
+    background: var(--glass-action-bg);
+    border: var(--glass-border);
+    box-shadow: var(--glass-inset);
+    color: var(--text);
     font-size: 12px;
     font-weight: 500;
     line-height: 1;
@@ -8245,7 +8206,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: rgba(17,30,56,0.45);
+    color: var(--muted);
     font-size: 14px;
   }
   .info-chip-text { font-variant-numeric: tabular-nums; }
@@ -9536,7 +9497,7 @@
     width: 38px;
     height: 4px;
     border-radius: 2px;
-    background: rgba(17,30,56,0.18);
+    background: rgba(156,189,231,0.28);
   }
 
   /* The v1 floating top-card has been folded INTO the sheet itself as
@@ -10097,12 +10058,10 @@
     -webkit-overflow-scrolling: touch;
     border-radius: 20px 20px 0 0;
     background: var(--glass-panel-bg);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    box-shadow:
-      0 -1px 0 rgba(255,252,248,0.50) inset,
-      0 -16px 40px rgba(17,30,56,0.18);
-    color: var(--panel-text);
+    backdrop-filter: blur(22px) saturate(180%) brightness(0.92);
+    -webkit-backdrop-filter: blur(22px) saturate(180%) brightness(0.92);
+    box-shadow: var(--glass-inset), 0 -16px 40px rgba(0,0,0,0.55);
+    color: var(--text);
     /* Match #panel.mobile-hidden's slide-down feel: cubic-bezier(0.32,
        0.72, 0, 1) for a smoother ease-out, +20 px extra throw past the
        viewport edge so the perceptible motion finishes before the
@@ -10128,7 +10087,7 @@
   }
   .dprcv-grabber {
     width: 36px; height: 4px; border-radius: 2px;
-    background: rgba(17,30,56,0.18);
+    background: rgba(156,189,231,0.40);
     flex-shrink: 0;
   }
 
