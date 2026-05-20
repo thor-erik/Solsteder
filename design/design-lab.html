@@ -449,6 +449,12 @@ input[type=range]::-webkit-slider-thumb {
                oninput="onBlur(this)">
         <span class="slider-val" id="val-blur">16px</span>
       </div>
+      <div class="slider-row" id="length-row" style="display:none">
+        <span class="slider-lbl">Length</span>
+        <input type="range" id="sl-length" min="5" max="180" value="50" step="5"
+               oninput="onLength(this)">
+        <span class="slider-val" id="val-length">50m</span>
+      </div>
     </div>
 
     <div id="text-color-section" style="display:none">
@@ -517,7 +523,7 @@ const COMPS = [
   {id:'pin-sun',      label:'Sun Pin',   blur:false},
   {id:'pin-shade',    label:'Shade Pin', blur:false},
   {id:'pin-dot',      label:'Pin Dot',   blur:false},
-  {id:'shadow',       label:'Shadow',    blur:false},
+  {id:'shadow',       label:'Shadow',    blur:false, length:true},
 ];
 
 // ── State ──────────────────────────────────────────────────────────
@@ -535,7 +541,7 @@ const S = {
     'pin-sun':      {color:'#FAF1DD', opacity:1.00, blur:0,  diag:false, diagBg:null, textCol:null},
     'pin-shade':    {color:'#284463', opacity:1.00, blur:0,  diag:false, diagBg:null, textCol:null},
     'pin-dot':      {color:'#F5C25E', opacity:1.00, blur:0,  diag:false, diagBg:null},
-    'shadow':       {color:'#0A0E28', opacity:0.28, blur:0,  diag:false, diagBg:null},
+    'shadow':       {color:'#0A0E28', opacity:0.38, blur:0,  diag:false, diagBg:null, length:50},
   }
 };
 
@@ -635,45 +641,65 @@ function applyAll() {
 }
 
 // ── Shadow polygons ────────────────────────────────────────────────
-// Hardcoded building shadow outlines for ~15:00 Oslo time (May).
-// Sun is roughly WSW (azimuth ~235°) at altitude ~34° → shadows extend NE.
-// Each poly is an array of [lng, lat] vertices (CCW).
-const SHADOW_POLYS = [
-  // Block NW of Fiskeriet Youngstorget — shadow drapes across the square
-  [[10.7475, 59.9135],[10.7481, 59.9135],[10.7485, 59.9148],[10.7479, 59.9148]],
-  // Block on Møllergata casting NE
-  [[10.7468, 59.9138],[10.7473, 59.9138],[10.7476, 59.9150],[10.7471, 59.9150]],
-  // Grünerløkka block near Brutal
-  [[10.7618, 59.9205],[10.7626, 59.9205],[10.7632, 59.9220],[10.7624, 59.9220]],
-  [[10.7628, 59.9208],[10.7636, 59.9208],[10.7641, 59.9222],[10.7633, 59.9222]],
-  // Aker Brygge waterfront building
-  [[10.7282, 59.9070],[10.7293, 59.9070],[10.7300, 59.9087],[10.7289, 59.9087]],
-  // Grønland block near Café Sara
-  [[10.7540, 59.9098],[10.7548, 59.9098],[10.7553, 59.9112],[10.7545, 59.9112]],
-  // Mathallen / Vulkan building
-  [[10.7502, 59.9200],[10.7514, 59.9200],[10.7519, 59.9214],[10.7507, 59.9214]],
-];
-
+// Queries actual rendered building footprints and casts shadows from them.
+// Oslo ~15:00 May: sun azimuth ~235° (WSW) → shadows extend NNE (55°).
 function drawShadowPolygons(ctx) {
   const map = window._map;
-  if (!map) return;
+  if (!map || !map.isStyleLoaded()) return;
   const sv = S.v['shadow'];
+  if (sv.opacity < 0.01) return;
+
+  // Shadow direction: azimuth 55° from North (NNE), length in meters
+  const az   = 55 * Math.PI / 180;
+  const len  = sv.length ?? 50;
+  const lat0 = 59.912;
+  const dLat = len * Math.cos(az) / 111320;
+  const dLng = len * Math.sin(az) / (111320 * Math.cos(lat0 * Math.PI / 180));
+
+  // Query rendered building footprints
+  const layerIds = ['building-flat', 'building'].filter(id => {
+    try { return !!map.getLayer(id); } catch { return false; }
+  });
+  if (!layerIds.length) return;
+
+  const features = map.queryRenderedFeatures({ layers: layerIds });
+  if (!features.length) return;
+
   ctx.save();
   ctx.fillStyle = rgba(sv.color, sv.opacity);
 
-  SHADOW_POLYS.forEach(poly => {
-    const pts = poly.map(([lng, lat]) => {
-      try { return map.project([lng, lat]); }
-      catch { return null; }
-    });
-    if (pts.some(p => !p)) return;
+  const seen = new Set();
+  let n = 0;
+  for (const f of features) {
+    if (n > 150) break;
+    // Deduplicate by first vertex coords
+    const key = f.id != null
+      ? `${f.layer.id}:${f.id}`
+      : JSON.stringify(f.geometry.coordinates[0]?.slice(0, 2));
+    if (seen.has(key)) continue;
+    seen.add(key); n++;
 
-    ctx.beginPath();
-    ctx.moveTo(pts[0].x, pts[0].y);
-    for (let i=1; i<pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
-    ctx.closePath();
-    ctx.fill();
-  });
+    const geom = f.geometry;
+    const rings = geom.type === 'Polygon'
+      ? [geom.coordinates[0]]
+      : geom.type === 'MultiPolygon'
+        ? geom.coordinates.map(p => p[0])
+        : [];
+
+    rings.forEach(ring => {
+      if (!ring?.length) return;
+      try {
+        const orig = ring.map(([lng, lat]) => map.project([lng, lat]));
+        const shad = ring.map(([lng, lat]) => map.project([lng + dLng, lat + dLat]));
+        // Shadow shape = building outline swept in shadow direction
+        ctx.beginPath();
+        orig.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+        shad.slice().reverse().forEach(p => ctx.lineTo(p.x, p.y));
+        ctx.closePath();
+        ctx.fill();
+      } catch(e) {}
+    });
+  }
 
   ctx.restore();
 }
@@ -939,6 +965,11 @@ function onBlur(input) {
   document.getElementById('val-blur').textContent = input.value + 'px';
   applyComp(S.comp);
 }
+function onLength(input) {
+  S.v[S.comp].length = +input.value;
+  document.getElementById('val-length').textContent = input.value + 'm';
+  applyComp(S.comp);
+}
 
 function syncCtrl() {
   const comp = COMPS.find(c => c.id === S.comp);
@@ -971,6 +1002,15 @@ function syncCtrl() {
     const bs = document.getElementById('sl-blur');
     bs.value = v.blur;
     document.getElementById('val-blur').textContent = v.blur + 'px';
+  }
+
+  // Length row (shadow)
+  const lengthRow = document.getElementById('length-row');
+  lengthRow.style.display = comp?.length ? 'flex' : 'none';
+  if (comp?.length) {
+    const ls = document.getElementById('sl-length');
+    ls.value = v.length ?? 50;
+    document.getElementById('val-length').textContent = (v.length ?? 50) + 'm';
   }
 
   // Text color section — only for components with text/icons
@@ -1065,9 +1105,10 @@ function initMap() {
     drawPins();
   });
 
-  // Redraw pins whenever the camera moves
+  // Redraw pins whenever the camera moves or tiles finish loading
   map.on('move', drawPins);
   map.on('zoom', drawPins);
+  map.on('idle', drawPins);
 }
 
 // ── Boot ───────────────────────────────────────────────────────────
