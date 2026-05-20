@@ -299,12 +299,47 @@ html, body {
 .swatch-diag {
   background: repeating-linear-gradient(
     -45deg,
-    rgba(255,244,224,0.65) 0px, rgba(255,244,224,0.65) 2px,
-    rgba(26,44,66,0.80) 2px, rgba(26,44,66,0.80) 7px
+    rgba(255,244,224,0.65) 0px, rgba(255,244,224,0.65) 3.5px,
+    rgba(26,44,66,0.80)    3.5px, rgba(26,44,66,0.80)  9px
   );
   border-color: rgba(155,169,188,0.28) !important;
 }
 .swatch-diag.selected { border-color: rgba(255,244,224,0.90) !important; }
+/* Cream-gap variant: Delft Blue lines on Cream, matching logo light variant */
+.swatch-diag-cream {
+  background: repeating-linear-gradient(
+    -45deg,
+    #111E38 0px, #111E38 3.5px,
+    #FFF2EB 3.5px, #FFF2EB 9px
+  );
+  border-color: rgba(155,169,188,0.28) !important;
+}
+.swatch-diag-cream.selected { border-color: rgba(255,244,224,0.90) !important; }
+
+/* Brand mark reference widget */
+#brand-marks {
+  position: fixed;
+  top: 76px;
+  right: 14px;
+  z-index: 95;
+  display: flex;
+  gap: 8px;
+  flex-direction: column;
+  align-items: center;
+}
+.brand-mark-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.brand-mark-wrap span {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: rgba(255,244,224,0.32);
+}
 
 /* Sliders */
 .slider-rows { display: flex; flex-direction: column; gap: 8px; }
@@ -385,6 +420,46 @@ input[type=range]::-webkit-slider-thumb {
         <circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/>
       </svg>
     </button>
+  </div>
+</div>
+
+<!-- Brand mark reference: light + dark variants -->
+<div id="brand-marks">
+  <div class="brand-mark-wrap">
+    <!-- Light variant: cream bg, Delft Blue stripes (fillRatio 0.55 → stripe=8.25/15) -->
+    <svg viewBox="0 0 240 240" width="44" height="44" xmlns="http://www.w3.org/2000/svg" shape-rendering="geometricPrecision">
+      <defs>
+        <clipPath id="mk-l-clip"><rect x="0" y="0" width="240" height="240" rx="54" ry="54"/></clipPath>
+        <pattern id="mk-l-pat" x="0" y="0" width="15" height="15" patternUnits="userSpaceOnUse" patternTransform="rotate(-45 120 96)">
+          <rect width="15" height="15" fill="#FFF2EB"/>
+          <rect width="8.25" height="15" fill="#111E38"/>
+        </pattern>
+      </defs>
+      <g clip-path="url(#mk-l-clip)">
+        <rect width="240" height="240" fill="#FFF2EB"/>
+        <circle cx="120" cy="96" r="78" fill="url(#mk-l-pat)"/>
+        <path d="M25 200 A95 95 0 0 1 215 200 Z" fill="#F5C25E"/>
+      </g>
+    </svg>
+    <span>Light</span>
+  </div>
+  <div class="brand-mark-wrap">
+    <!-- Dark variant: Delft Blue bg, cream stripes (fillRatio 0.62 → stripe=9.3/15) -->
+    <svg viewBox="0 0 240 240" width="44" height="44" xmlns="http://www.w3.org/2000/svg" shape-rendering="geometricPrecision">
+      <defs>
+        <clipPath id="mk-d-clip"><rect x="0" y="0" width="240" height="240" rx="54" ry="54"/></clipPath>
+        <pattern id="mk-d-pat" x="0" y="0" width="15" height="15" patternUnits="userSpaceOnUse" patternTransform="rotate(-45 120 96)">
+          <rect width="15" height="15" fill="#111E38"/>
+          <rect width="9.3" height="15" fill="#FFF2EB"/>
+        </pattern>
+      </defs>
+      <g clip-path="url(#mk-d-clip)">
+        <rect width="240" height="240" fill="#111E38"/>
+        <circle cx="120" cy="96" r="78" fill="url(#mk-d-pat)"/>
+        <path d="M25 200 A95 95 0 0 1 215 200 Z" fill="#F5C25E"/>
+      </g>
+    </svg>
+    <span>Dark</span>
   </div>
 </div>
 
@@ -490,17 +565,17 @@ const S = {
   mode: 'preview',
   comp: 'glass-panel',
   v: {
-    'map-bg':       {color:'#EFE4CD', opacity:1.00, blur:0,  diag:false},
-    'map-building': {color:'#A89D8A', opacity:1.00, blur:0,  diag:false},
-    'map-water':    {color:'#7BA0B8', opacity:0.85, blur:0,  diag:false},
-    'map-roads':    {color:'#B8AC8E', opacity:1.00, blur:0,  diag:false},
-    'map-parks':    {color:'#D4D8B2', opacity:1.00, blur:0,  diag:false},
-    'glass-panel':  {color:'#1A2C42', opacity:0.42, blur:16, diag:false},
-    'glass-card':   {color:'#1A2C42', opacity:0.78, blur:12, diag:false},
-    'pin-sun':      {color:'#FAF1DD', opacity:1.00, blur:0,  diag:false},
-    'pin-shade':    {color:'#284463', opacity:1.00, blur:0,  diag:false},
-    'pin-dot':      {color:'#F5C25E', opacity:1.00, blur:0,  diag:false},
-    'shadow':       {color:'#0A0E28', opacity:0.28, blur:0,  diag:false},
+    'map-bg':       {color:'#EFE4CD', opacity:1.00, blur:0,  diag:false, diagBg:null},
+    'map-building': {color:'#A89D8A', opacity:1.00, blur:0,  diag:false, diagBg:null},
+    'map-water':    {color:'#7BA0B8', opacity:0.85, blur:0,  diag:false, diagBg:null},
+    'map-roads':    {color:'#B8AC8E', opacity:1.00, blur:0,  diag:false, diagBg:null},
+    'map-parks':    {color:'#D4D8B2', opacity:1.00, blur:0,  diag:false, diagBg:null},
+    'glass-panel':  {color:'#1A2C42', opacity:0.42, blur:16, diag:false, diagBg:null},
+    'glass-card':   {color:'#1A2C42', opacity:0.78, blur:12, diag:false, diagBg:null},
+    'pin-sun':      {color:'#FAF1DD', opacity:1.00, blur:0,  diag:false, diagBg:null},
+    'pin-shade':    {color:'#284463', opacity:1.00, blur:0,  diag:false, diagBg:null},
+    'pin-dot':      {color:'#F5C25E', opacity:1.00, blur:0,  diag:false, diagBg:null},
+    'shadow':       {color:'#0A0E28', opacity:0.28, blur:0,  diag:false, diagBg:null},
   }
 };
 
@@ -676,16 +751,18 @@ function pillPath(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-function diagPat(ctx, color, opacity) {
+function diagPat(ctx, color, opacity, bgHex) {
+  // Tile geometry matches the Shades logo: stripeGap=15, fillRatio≈0.55.
+  // At pin scale we use a 9px tile; lineWidth 3.5 gives ~55% perpendicular fill.
   const pc = document.createElement('canvas');
   pc.width = 9; pc.height = 9;
   const px = pc.getContext('2d');
+  if (bgHex) { px.fillStyle = bgHex; px.fillRect(0, 0, 9, 9); }
   px.strokeStyle = rgba(color, opacity);
-  px.lineWidth = 1.8;
-  // -45° stripes matching the Shades mark
+  px.lineWidth = 3.5;
   px.beginPath();
-  px.moveTo(-2, 11); px.lineTo(11, -2);
-  px.moveTo(-2, 20); px.lineTo(20, -2);
+  px.moveTo(-3, 12); px.lineTo(12, -3);
+  px.moveTo(-3, 21); px.lineTo(21, -3);
   px.stroke();
   return ctx.createPattern(pc, 'repeat');
 }
@@ -708,7 +785,7 @@ function drawPill(ctx, cx, cy, label, isSun, isSelected) {
   if (sv.diag) {
     pillPath(ctx, x0, y0, PW, PH, R);
     ctx.shadowColor='transparent'; ctx.shadowBlur=0; ctx.shadowOffsetY=0;
-    ctx.fillStyle = diagPat(ctx, sv.color, sv.opacity);
+    ctx.fillStyle = diagPat(ctx, sv.color, sv.opacity, sv.diagBg);
     ctx.fill();
     ctx.strokeStyle = rgba(sv.color, 0.55);
     ctx.lineWidth = 1; ctx.stroke();
@@ -727,6 +804,9 @@ function drawPill(ctx, cx, cy, label, isSun, isSelected) {
     ctx.strokeStyle = '#F5C25E'; ctx.lineWidth = 2.5; ctx.stroke();
   }
 
+  // Effective luminance: when diagBg is set, the gap color dominates visually
+  const pillLum = sv.diagBg ? lum(sv.diagBg) : (sv.diag ? 0.3 : lum(sv.color));
+
   // Status dot — uses pin-dot color; shade pins get reduced opacity for contrast
   const dotX = x0 + PAD + DR/2;
   ctx.beginPath(); ctx.arc(dotX, cy, DR/2, 0, Math.PI*2);
@@ -734,14 +814,14 @@ function drawPill(ctx, cx, cy, label, isSun, isSelected) {
     ? rgba(dot.color, dot.opacity)
     : rgba(dot.color, dot.opacity * 0.35);
   ctx.fill();
-  // Dot inner contrast ring so it pops on light pills
-  if (lum(sv.color) > 0.55) {
+  // Dot contrast ring on light-background pills
+  if (pillLum > 0.55) {
     ctx.beginPath(); ctx.arc(dotX, cy, DR/2, 0, Math.PI*2);
     ctx.strokeStyle = 'rgba(26,44,66,0.18)'; ctx.lineWidth = 1; ctx.stroke();
   }
 
-  // Text — auto light/dark based on pill luminance
-  const textColor = lum(sv.color) > 0.55
+  // Text — auto light/dark based on effective pill luminance
+  const textColor = pillLum > 0.55
     ? 'rgba(26,44,66,0.92)'
     : 'rgba(255,244,224,0.95)';
   ctx.fillStyle = textColor;
@@ -802,13 +882,21 @@ function buildCtrl() {
     pr.appendChild(sw);
   });
 
-  // Diagonal lines swatch (special)
+  // Diagonal lines swatch — transparent gaps (transparent bg)
   const ds = document.createElement('div');
   ds.className = 'swatch swatch-diag';
-  ds.title = 'Diagonal lines';
+  ds.title = 'Diagonal lines (transparent gaps)';
   ds.dataset.diag = '1';
   ds.onclick = () => pickDiag();
   pr.appendChild(ds);
+
+  // Diagonal lines swatch — cream gaps (logo light variant)
+  const dc = document.createElement('div');
+  dc.className = 'swatch swatch-diag-cream';
+  dc.title = 'Diagonal lines (cream gaps)';
+  dc.dataset.diagCream = '1';
+  dc.onclick = () => pickDiagCream();
+  pr.appendChild(dc);
 
   syncCtrl();
 }
@@ -818,13 +906,21 @@ function selectComp(id) {
   syncCtrl();
 }
 function pickColor(hex) {
-  S.v[S.comp].color = hex;
-  S.v[S.comp].diag  = false;
+  S.v[S.comp].color  = hex;
+  S.v[S.comp].diag   = false;
+  S.v[S.comp].diagBg = null;
   applyComp(S.comp);
   syncCtrl();
 }
 function pickDiag() {
-  S.v[S.comp].diag = true;
+  S.v[S.comp].diag   = true;
+  S.v[S.comp].diagBg = null;
+  applyComp(S.comp);
+  syncCtrl();
+}
+function pickDiagCream() {
+  S.v[S.comp].diag   = true;
+  S.v[S.comp].diagBg = '#FFF2EB';
   applyComp(S.comp);
   syncCtrl();
 }
@@ -850,8 +946,10 @@ function syncCtrl() {
 
   // Swatches
   document.querySelectorAll('.swatch').forEach(sw => {
-    if (sw.dataset.diag)
-      sw.classList.toggle('selected', v.diag);
+    if (sw.dataset.diagCream)
+      sw.classList.toggle('selected', v.diag && v.diagBg === '#FFF2EB');
+    else if (sw.dataset.diag)
+      sw.classList.toggle('selected', v.diag && !v.diagBg);
     else
       sw.classList.toggle('selected', !v.diag && sw.dataset.hex?.toLowerCase() === v.color.toLowerCase());
   });
