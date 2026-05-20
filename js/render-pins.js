@@ -226,35 +226,24 @@ const PLUS_GAP_INNER    = 2;      // gap between last avatar and "+N" text insid
 const PLUS_PAD_RIGHT    = 5;      // inner padding on the right edge of the capsule
 
 // ── Status colour for the dot / friend capsule ────────────────────────────────
-// Two semantic states, with transparent variants for "opening soon":
-//   IN SUN (hero)                  → solid honey
-//   IN SHADE (waiting / context)   → solid dark slate (TOKENS.surface) —
-//                                    same colour the pill uses on select,
-//                                    so the system reads as one palette.
-// Closed-but-opens-into-sun gets a transparent variant of the destination
-// state. Previously waiting/context used --rain (mid-blue) which felt
-// washy against the warm map; the deeper surface slate gives the dots
-// real presence.
+// All dots use Delft Blue (#111E38) at varying opacities — provides strong
+// contrast against both Sunny golden pills (hero) and Jordy Blue shade pills.
 function _dotColors(tier, closed, hasSunLaterToday) {
-  const SUN_RING   = _rgba(TOKENS.accentOn, 0.40);
-  const SHADE      = TOKENS.surface || '#284463';
-  const SHADE_RING = _rgba('#ffffff', 0.18);
+  const DOT = TOKENS.bg || '#111E38';  // always Delft Blue
 
-  // Sun NOW
   if (tier === 'hero') {
     return closed
-      ? { fill: _rgba(TOKENS.accent, 0.55), ring: _rgba(TOKENS.accentOn, 0.25) } // opening soon, into sun
-      : { fill: TOKENS.accent,              ring: SUN_RING };                    // in sun
+      ? { fill: _rgba(DOT, 0.50), ring: _rgba(DOT, 0.20) }  // opening soon
+      : { fill: DOT,              ring: _rgba(DOT, 0.30) };  // in sun
   }
-  // Sun LATER (waiting) — currently shaded but sun is coming
   if (tier === 'waiting') {
     return closed
-      ? { fill: _rgba(SHADE, 0.55), ring: _rgba('#ffffff', 0.12) }              // opening soon, into shade-then-sun
-      : { fill: SHADE,              ring: SHADE_RING };                          // in shade, sun later
+      ? { fill: _rgba(DOT, 0.35), ring: _rgba(DOT, 0.15) }  // opening soon
+      : { fill: _rgba(DOT, 0.55), ring: _rgba(DOT, 0.20) }; // in shade, sun later
   }
-  // Context — no near-term sun. Fade further when no more sun today at all.
-  const a = hasSunLaterToday ? 0.85 : 0.55;
-  return { fill: _rgba(SHADE, a), ring: _rgba('#ffffff', 0.10) };
+  // Context — no near-term sun
+  const a = hasSunLaterToday ? 0.45 : 0.30;
+  return { fill: _rgba(DOT, a), ring: _rgba(DOT, 0.12) };
 }
 
 // ── Vector category icons ─────────────────────────────────────────────────────
@@ -728,16 +717,18 @@ function _drawPill(ctx, pt, w, time, tier, opts) {
   // larger offset) and switch the body fill to slate. Hover gets a smaller
   // lift via opts.scale (set by the per-pin scale animation).
   const scale = opts.scale || 1.0;
-  const shAlpha   = 0.28 + Math.max(0, scale - 1) * 0.7;
+  const shAlpha   = 0.18 + Math.max(0, scale - 1) * 0.60;
   const shBlur    = 6 + Math.max(0, scale - 1) * 18;
   const shOffsetY = 2 + Math.max(0, scale - 1) * 6;
 
   ctx.save();
-  ctx.shadowColor   = `rgba(20,30,50,${shAlpha.toFixed(2)})`;
+  ctx.shadowColor   = `rgba(17,30,56,${shAlpha.toFixed(2)})`;
   ctx.shadowBlur    = shBlur;
   ctx.shadowOffsetY = shOffsetY;
   pillPath();
-  ctx.fillStyle = opts.selected ? (TOKENS.surface || '#284463') : '#FAF1DD';
+  // Pill fill: hero=Sunny golden, waiting/context=Jordy Blue, selected=dark Delft Blue
+  const unselectedFill = (tier === 'hero') ? '#F5C25E' : '#9CBDE7';
+  ctx.fillStyle = opts.selected ? (TOKENS.surface || '#142E52') : unselectedFill;
   ctx.fill();
   ctx.restore();
 
@@ -781,19 +772,16 @@ function _drawPill(ctx, pt, w, time, tier, opts) {
     ctx.arc(moduleCx, moduleCy, CIRCLE_R, 0, Math.PI * 2);
     ctx.fillStyle = dot.fill;
     ctx.fill();
-    // Icon colour is tier-aware: dark warm brown on the honey hero dot
-    // (high contrast on the light yellow), white on the slate shadow dot.
-    const iconCol = (tier === 'hero')
-      ? (TOKENS.accentOn || '#2C1F02')
-      : '#fff';
+    // Icon colour: always cream — dot is always Delft Blue so cream is the correct contrast.
+    const iconCol = TOKENS.text || '#FFF4E0';
     _drawCategoryIcon(ctx, moduleCx, moduleCy, opts.category, iconCol);
   }
   ctx.restore();
 
-  // Time text — cream on slate selected pill, slate on cream default pill.
+  // Time text — cream on selected (dark Delft Blue) pill, dark on Sunny/Jordy Blue pill.
   if (time) {
     ctx.font         = '600 11px "Inter", system-ui, sans-serif';
-    ctx.fillStyle    = opts.selected ? (TOKENS.text || '#FFF4E0') : _rgba(TOKENS.bg, 0.92);
+    ctx.fillStyle    = opts.selected ? (TOKENS.text || '#FFF4E0') : _rgba(TOKENS.bg, 0.88);
     ctx.textBaseline = 'middle';
     ctx.textAlign    = 'left';
     ctx.fillText(time, moduleCx + moduleW / 2 + CIRCLE_TIME_GAP, moduleCy + 0.5);
