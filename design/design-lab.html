@@ -296,6 +296,12 @@ html, body {
   transform: scale(1.20);
 }
 .swatch:active { transform: scale(0.88); }
+.swatch.main-color {
+  box-shadow: 0 0 0 2px rgba(245,194,94,0.65);
+}
+.swatch.main-color.selected {
+  box-shadow: none;
+}
 .swatch-diag {
   background: repeating-linear-gradient(
     -45deg,
@@ -468,19 +474,19 @@ input[type=range]::-webkit-slider-thumb {
 const PALETTE = [
   // ── Blues (Delft → Jordy) ────────────────────────────────────────
   {hex:'#070E1C', name:'Abyss'},
-  {hex:'#111E38', name:'Delft Blue'},
-  {hex:'#1A2C42', name:'Slate'},
+  {hex:'#111E38', name:'Delft Blue',  main:true},
+  {hex:'#1A2C42', name:'Slate',       main:true},
   {hex:'#284463', name:'Mid Slate'},
   {hex:'#3A6289', name:'Steel'},
   {hex:'#5E8AB4', name:'Cornflower'},
-  {hex:'#9CBDE7', name:'Jordy Blue'},
+  {hex:'#9CBDE7', name:'Jordy Blue',  main:true},
   {hex:'#C4D9F0', name:'Ice Blue'},
   // ── Warm neutrals (map / glass) ──────────────────────────────────
   {hex:'#A89D8A', name:'Sand'},
   {hex:'#C6BAA6', name:'Stone'},
   {hex:'#DDD3C2', name:'Linen'},
   {hex:'#EFE4CD', name:'Map Beige'},
-  {hex:'#FFF2EB', name:'Cream'},
+  {hex:'#FFF2EB', name:'Cream',       main:true},
   {hex:'#FFF8F2', name:'Warm White'},
   // ── Greens (parks / nature) ──────────────────────────────────────
   {hex:'#1F3C26', name:'Forest'},
@@ -494,7 +500,7 @@ const PALETTE = [
   {hex:'#7A4C18', name:'Umber'},
   {hex:'#B87A30', name:'Bronze'},
   {hex:'#F2B948', name:'Amber'},
-  {hex:'#F5C25E', name:'Sunny'},
+  {hex:'#F5C25E', name:'Sunny',       main:true},
   {hex:'#F9D98C', name:'Buttercup'},
   {hex:'#FDE8B4', name:'Champagne'},
 ];
@@ -853,7 +859,8 @@ function buildCtrl() {
     sw.title = p.name;
     sw.dataset.hex = p.hex;
     // Inset ring for very light swatches so they're visible on dark bg
-    if (lum(p.hex) > 0.70) sw.style.boxShadow = 'inset 0 0 0 1px rgba(0,0,0,0.14)';
+    if (p.main) sw.classList.add('main-color');
+    if (lum(p.hex) > 0.70) sw.style.boxShadow = (p.main ? '0 0 0 2px rgba(245,194,94,0.65), ' : '') + 'inset 0 0 0 1px rgba(0,0,0,0.14)';
     sw.onclick = () => pickColor(p.hex);
     pr.appendChild(sw);
   });
