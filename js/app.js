@@ -5079,16 +5079,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!_panelRepaintArmed) return;
         _panelRepaintArmed = false;
         if (_panelRepaintTid) { clearTimeout(_panelRepaintTid); _panelRepaintTid = null; }
-        // Only call map.resize() when the viewport ACTUALLY changed
-        // (orientation, address-bar collapse). Panel state changes don't
-        // resize the map element — Mapbox is layered behind a fixed panel.
-        // v1 unconditionally called map.resize() on every panel transition,
-        // which was a 100% wasted GL operation.
-        const viewportChanged = window.innerHeight !== _lastViewportH;
-        if (viewportChanged) {
-          try { if (typeof map !== 'undefined' && map?.resize) map.resize(); } catch (_) {}
-          _lastViewportH = window.innerHeight;
-        }
+        // Always resize. The map ELEMENT doesn't change size when the panel
+        // slides over it (Mapbox is layered behind a position:fixed panel),
+        // but map.resize() is load-bearing for a second reason: it forces
+        // Mapbox to recompute its projection + getBounds(). The pin draw
+        // loop culls venues outside getBounds() — and on iOS the GL viewport
+        // goes stale when the layout viewport shifts (address bar, safe-area,
+        // the --app-h recalc the panel drives), leaving getBounds() shorter
+        // than the real screen. Without a resize, expanded → peek leaves the
+        // newly-revealed lower half culled (blank). The arm/disarm guard
+        // above already limits this to one resize per panel mode change, so
+        // gating it on an innerHeight delta (the old approach) saved nothing
+        // and broke correctness.
+        try { if (typeof map !== 'undefined' && map?.resize) map.resize(); } catch (_) {}
+        _lastViewportH = window.innerHeight;
         if (typeof window.markPinLayoutStale === 'function') window.markPinLayoutStale();
         if (typeof resizeCanvas === 'function') resizeCanvas();
         if (typeof draw === 'function') draw();
