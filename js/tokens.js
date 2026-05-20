@@ -23,7 +23,7 @@
     cream100:  '#DECCC0',
     // Delft Blue / surfaces
     bg:        '#111E38',  // Delft Blue (--bg)
-    surface:   '#142E52',  // deep blue-800 (canvas card-surface)
+    surface:   '#111E38',  // deep blue-800 (canvas card-surface)
     surfaceDeep: '#0A1830',
     muted:     '#9BA9BC',  // cool grey (--muted)
     cool:      '#B5BCC8',  // (--cool)

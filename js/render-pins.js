@@ -728,7 +728,7 @@ function _drawPill(ctx, pt, w, time, tier, opts) {
   pillPath();
   // Pill fill: hero=Sunny golden, waiting/context=Jordy Blue, selected=dark Delft Blue
   const unselectedFill = (tier === 'hero') ? '#F5C25E' : '#9CBDE7';
-  ctx.fillStyle = opts.selected ? (TOKENS.surface || '#142E52') : unselectedFill;
+  ctx.fillStyle = opts.selected ? (TOKENS.surface || '#111E38') : unselectedFill;
   ctx.fill();
   ctx.restore();
 

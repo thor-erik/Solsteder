@@ -109,7 +109,7 @@
 </script>
 <script defer src="js/i18n.js?v=20260520b"></script>
 <script defer src="js/config.js?v=20260519s"></script>
-<script defer src="js/tokens.js?v=20260520g"></script>
+<script defer src="js/tokens.js?v=20260521d"></script>
 <script defer src="js/auth.js?v=20260520b"></script>
 
 <script defer src="js/login-carousel.js?v=20260428a"></script>
@@ -126,7 +126,7 @@
 <script defer src="js/render-arc.js?v=20260519b"></script>
 <script defer src="js/render-seating.js?v=20260519b"></script>
 <script defer src="js/render-editor.js?v=20260519b"></script>
-<script defer src="js/render-pins.js?v=20260521c"></script>
+<script defer src="js/render-pins.js?v=20260521d"></script>
 <script defer src="js/ui-shared.js?v=20260519b"></script>
 <script defer src="js/ui-list.js?v=20260520a"></script>
 <script defer src="js/admin-review.js?v=20260505a"></script>
@@ -196,7 +196,7 @@
     --blue-400:  #7FA5D9;  /* rain */
     --blue-500:  #4A90E2;
     --blue-700:  #204983;  /* glass gradient mid */
-    --blue-800:  #142E52;  /* surface */
+    --blue-800:  #111E38;  /* surface */
     --blue-900:  #111E38;  /* canvas */
     --blue-950:  #0A1830;
 
@@ -642,7 +642,7 @@
     font-size: 11px; font-weight: 600;
     padding: 5px 10px;
     border-radius: 999px;
-    background: rgba(20,46,82,0.45);
+    background: rgba(17,30,56,0.45);
     border: 1px solid rgba(156,189,231,0.22);
     color: var(--cloud, #B5BCC8);
     cursor: pointer;
@@ -732,7 +732,7 @@
     border: 1px solid rgba(156,189,231,0.28); color: var(--muted);
     transition: border-color 120ms ease-out, color 120ms ease-out, background 120ms ease-out;
   }
-  .g-rnd:hover { border-color: rgba(156,189,231,0.45); color: var(--text); background: rgba(20,46,82,0.18); }
+  .g-rnd:hover { border-color: rgba(156,189,231,0.45); color: var(--text); background: rgba(17,30,56,0.18); }
 
   /* SQUARE · 48×48 r12 — companion icon button */
   .sq {
@@ -821,7 +821,7 @@
     transition: background 120ms ease-out, border-color 120ms ease-out, color 120ms ease-out, transform 90ms ease-out;
   }
   .btn-decline:hover {
-    background: rgba(20,46,82,0.45);
+    background: rgba(17,30,56,0.45);
     border-color: rgba(156,189,231,0.45);
     color: var(--text);
   }
@@ -2716,7 +2716,7 @@
      a base slate at 0.78 alpha, plus the same 135° blue-tint gradient
      overlay the popup uses. Single-fill polygons came out a shade off
      because the popup's gradient was missing. */
-  #fts-popup-tail polygon.tail-base    { fill: rgba(26,44,66,0.78); }
+  #fts-popup-tail polygon.tail-base    { fill: rgba(17,30,56,0.78); }
   #fts-popup-tail polygon.tail-overlay { fill: url(#fts-tail-overlay); }
   /* Hairline border on the slanted sides only — visually continues the
      popup's --glass-border into the tail. */
@@ -3076,8 +3076,8 @@
     display: flex; align-items: center; justify-content: center; gap: 6px;
     flex-shrink: 0; -webkit-tap-highlight-color: transparent; outline: none;
   }
-  .dc-expand-btn-wide:hover { background: rgba(20,46,82,0.55); border-color: rgba(156,189,231,0.28); }
-  .dc-expand-btn-wide:active { background: rgba(20,46,82,0.35); }
+  .dc-expand-btn-wide:hover { background: rgba(17,30,56,0.55); border-color: rgba(156,189,231,0.28); }
+  .dc-expand-btn-wide:active { background: rgba(17,30,56,0.35); }
   /* Trailing chevron inside mode-toggle buttons */
   .dc-btn-chev { display: inline-block; color: var(--muted); flex-shrink: 0; }
   .dc-btn-chev-up { transform: rotate(180deg); }
@@ -3455,10 +3455,10 @@
     position: relative;
   }
 
-  .mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip { border-top-color: rgba(20,46,82,0.55); }
-  .mapboxgl-popup-anchor-top    .mapboxgl-popup-tip { border-bottom-color: rgba(20,46,82,0.55); }
-  .mapboxgl-popup-anchor-left   .mapboxgl-popup-tip { border-right-color: rgba(20,46,82,0.55); }
-  .mapboxgl-popup-anchor-right  .mapboxgl-popup-tip { border-left-color: rgba(20,46,82,0.55); }
+  .mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip { border-top-color: rgba(17,30,56,0.55); }
+  .mapboxgl-popup-anchor-top    .mapboxgl-popup-tip { border-bottom-color: rgba(17,30,56,0.55); }
+  .mapboxgl-popup-anchor-left   .mapboxgl-popup-tip { border-right-color: rgba(17,30,56,0.55); }
+  .mapboxgl-popup-anchor-right  .mapboxgl-popup-tip { border-left-color: rgba(17,30,56,0.55); }
 
   .mapboxgl-popup-close-button {
     color: var(--muted);
@@ -3497,7 +3497,7 @@
     width: 34px !important;
     height: 34px !important;
     border-radius: 50% !important;
-    background: rgba(20,46,82,0.5) !important;
+    background: rgba(17,30,56,0.5) !important;
     border: 1px solid rgba(156,189,231,0.18) !important;
     box-shadow: none !important;
     transition: background 0.15s, border-color 0.15s !important;
@@ -3536,7 +3536,7 @@
     width: 20px !important;
     height: 20px !important;
     border-radius: 50% !important;
-    background: rgba(20,46,82,0.72) !important;
+    background: rgba(17,30,56,0.72) !important;
     border: 1px solid rgba(156,189,231,0.22) !important;
     color: rgba(156,189,231,0.7) !important;
     font-size: 10px !important;
@@ -3736,7 +3736,7 @@
     text-align: center;
   }
   .intent-btn:hover:not(.active) { color: rgba(156,189,231,0.85); }
-  .intent-btn.active { color: #142E52; }
+  .intent-btn.active { color: #111E38; }
 
   /* Area chips — hidden */
   #area-chips { display: none; }
@@ -3760,7 +3760,7 @@
   .area-chip.active {
     background: var(--accent);
     border-color: var(--accent);
-    color: #142E52;
+    color: #111E38;
   }
 
   /* Venue list header: title (left) · panel toggle (right) */
@@ -3870,21 +3870,21 @@
      has 2 IDs, so hover/open need to match or beat it. */
   #list-sun-header #sort-toggle-btn:hover {
     border-color: rgba(155,169,188,0.42);
-    background: rgba(26,44,66,0.65);
+    background: rgba(17,30,56,0.65);
   }
   #list-sun-header #sort-toggle-btn.open {
     border-color: rgba(245,194,94,0.45);
-    background: rgba(26,44,66,0.55);
+    background: rgba(17,30,56,0.55);
     color: var(--accent);
     box-shadow: var(--glass-inset), inset 0 0 0 1px rgba(245,194,94,0.18);
   }
   #list-sun-header #sort-toggle-btn.open .sort-chevron { transform: rotate(180deg); color: var(--accent); }
   /* Keep the legacy non-header sort-toggle-btn hover (lower specificity is fine
      where the element isn't inside #list-sun-header). */
-  #sort-toggle-btn:hover { border-color: rgba(155,169,188,0.42); background: rgba(26,44,66,0.65); }
+  #sort-toggle-btn:hover { border-color: rgba(155,169,188,0.42); background: rgba(17,30,56,0.65); }
   #sort-toggle-btn.open  {
     border-color: rgba(245,194,94,0.45);
-    background: rgba(26,44,66,0.55);
+    background: rgba(17,30,56,0.55);
     color: var(--accent);
   }
   #sort-toggle-btn.open .sort-chevron { transform: rotate(180deg); }
@@ -4113,7 +4113,7 @@
   .venue-card { -webkit-tap-highlight-color: transparent; }
 
   .venue-card.selected {
-    background: rgba(26,44,66,0.72);
+    background: rgba(17,30,56,0.72);
   }
   /* Selection outline that *emanates from the click position*. The lens-fx
      pointerdown handler in lens-effects.js sets --ripple-x / --ripple-y on
@@ -5314,7 +5314,7 @@
        while the underlying map scrolls is the actual cost. JS toggles
        .is-sliding around the transition.
 
-       v2 swapped to a near-opaque rgba(26,44,66,0.95) fallback, which
+       v2 swapped to a near-opaque rgba(17,30,56,0.95) fallback, which
        was much darker than the resting glass and read as a visible
        opacity *jump* at the start and end of the slide — the panel
        darkened, then lightened. The fallback now sits near the glass
@@ -5426,7 +5426,7 @@
   }
 
   .edit-chip {
-    background: rgba(20,46,82,0.55);
+    background: rgba(17,30,56,0.55);
     backdrop-filter: blur(10px) brightness(0.92);
     -webkit-backdrop-filter: blur(10px) brightness(0.92);
     border: 1px solid rgba(156,189,231,0.22);
@@ -5504,7 +5504,7 @@
     left: 0;
     width: max-content;
     min-width: 100%;
-    background: rgba(20, 46, 82, 0.92);
+    background: rgba(17,30,56, 0.92);
     backdrop-filter: blur(16px) brightness(0.92);
     -webkit-backdrop-filter: blur(16px) brightness(0.92);
     border: 1px solid rgba(156,189,231,0.22);
@@ -6422,7 +6422,7 @@
   }
   .toggle-switch.is-on::after {
     left: 17px;
-    background: #142E52;
+    background: #111E38;
   }
   .toggle-switch:focus-visible {
     outline: 2px solid var(--accent);
@@ -7459,7 +7459,7 @@
   }
   .qc-preset-btn {
     flex: 1;
-    background: rgba(20, 46, 82, 0.55);
+    background: rgba(17,30,56, 0.55);
     border: 1px solid rgba(156, 189, 231, 0.22);
     border-radius: 7px;
     color: rgba(156, 189, 231, 0.65);
@@ -7480,7 +7480,7 @@
     background: rgba(24, 52, 95, 0.8);
     border-color: rgba(245, 194, 94, 0.28);
   }
-  .qc-preset-btn.active { background: var(--accent); color: #142E52; border-color: var(--accent); }
+  .qc-preset-btn.active { background: var(--accent); color: #111E38; border-color: var(--accent); }
 
   /* Calendar section inside the calendar float */
   #qc-panel {
@@ -7541,7 +7541,7 @@
     display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
     height: 24px; align-items: center;
     position: sticky; top: 0; z-index: 2;
-    background: rgba(20,46,82,0.85);
+    background: rgba(17,30,56,0.85);
     backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
     border-bottom: 1px solid rgba(156,189,231,0.12);
     margin-bottom: 2px;
@@ -7550,7 +7550,7 @@
   #qc-cal .dc-month-row-label {
     position: sticky; top: 26px; /* weekday row (24px) + bottom border (1px) + gap (1px) */
     z-index: 1;
-    background: rgba(20,46,82,0.85);
+    background: rgba(17,30,56,0.85);
     backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
     padding: 4px 2px;
   }
@@ -7638,7 +7638,7 @@
     object-fit: cover;
     flex-shrink: 0;
     scroll-snap-align: start;
-    background: rgba(20,46,82,0.6);
+    background: rgba(17,30,56,0.6);
   }
   .dp-photo:first-child:last-child {
     width: 100%; /* single photo fills full width */
@@ -7734,7 +7734,7 @@
     font-weight: 700;
     letter-spacing: 0.08em;
   }
-  .dp-sun-pill.sunny    { background: rgba(245,194,94,0.88); color: #142E52; }
+  .dp-sun-pill.sunny    { background: rgba(245,194,94,0.88); color: #111E38; }
   .dp-sun-pill.overcast { background: rgba(165,170,178,0.18); color: rgba(165,170,178,0.9); border: 1px solid rgba(165,170,178,0.28); }
   .dp-sun-pill.rainy    { background: rgba(156,189,231,0.18); color: rgba(156,189,231,0.9); border: 1px solid rgba(156,189,231,0.28); }
   .dp-sun-pill.neutral  { background: rgba(245,194,94,0.12); color: var(--accent); border: 1px solid rgba(245,194,94,0.28); }
@@ -8344,7 +8344,7 @@
     white-space: nowrap;
     box-shadow:
       inset 0 1px 0 rgba(255,242,235,0.14),
-      inset 0 -1px 0 rgba(20,46,82,0.30),
+      inset 0 -1px 0 rgba(17,30,56,0.30),
       0 2px 10px rgba(0,0,0,0.32);
     transition: transform 120ms ease-out, background 120ms ease-out, border-color 120ms ease-out, box-shadow 120ms ease-out;
   }
@@ -8356,7 +8356,7 @@
     border-color: rgba(156,189,231,0.36);
     box-shadow:
       inset 0 1px 0 rgba(255,242,235,0.18),
-      inset 0 -1px 0 rgba(20,46,82,0.30),
+      inset 0 -1px 0 rgba(17,30,56,0.30),
       0 8px 22px rgba(0,0,0,0.40);
   }
   .dp-primary-cta:active {
@@ -8385,7 +8385,7 @@
     border: 1px solid rgba(156,189,231,0.20);
     box-shadow:
       inset 0 1px 0 rgba(255,242,235,0.14),
-      inset 0 -1px 0 rgba(20,46,82,0.30),
+      inset 0 -1px 0 rgba(17,30,56,0.30),
       0 2px 8px rgba(0,0,0,0.30);
     color: var(--muted);
     cursor: pointer;
@@ -8477,7 +8477,7 @@
   }
 
   .btn-icon-sec:hover {
-    background: rgba(20,46,82,0.65);
+    background: rgba(17,30,56,0.65);
   }
 
   .btn-icon-sec svg,
@@ -8606,7 +8606,7 @@
   .avatar-row { display: inline-flex; }
   .avatar-row .avatar {
     border-radius: 50%;
-    box-shadow: 0 0 0 2px rgba(20, 46, 82, 0.95);
+    box-shadow: 0 0 0 2px rgba(17,30,56, 0.95);
     margin-left: -6px;
     display: inline-flex;
     align-items: center;
@@ -8620,7 +8620,7 @@
   .avatar-row .avatar:first-child { margin-left: 0; }
   .avatar-row.sm .avatar { margin-left: -4px; }
   .avatar-row .avatar.avatar-overflow {
-    background: #142E52;
+    background: #111E38;
     color: var(--text);
   }
 
@@ -9214,12 +9214,12 @@
     width: 26px; height: 26px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid rgba(20,46,82,0.8);
+    border: 2px solid rgba(17,30,56,0.8);
     margin-left: -6px;
   }
   .social-avatar:first-child { margin-left: 0; }
   .social-avatar-init {
-    background: rgba(20,46,82,0.6);
+    background: rgba(17,30,56,0.6);
     color: var(--muted);
     display: flex; align-items: center; justify-content: center;
     font-size: 10px; font-weight: 600;
@@ -9279,7 +9279,7 @@
   .social-form-input {
     width: 100%;
     padding: 8px 10px;
-    background: rgba(20,46,82,0.5);
+    background: rgba(17,30,56,0.5);
     border: 1px solid var(--border);
     border-radius: 10px;
     color: var(--text);
@@ -9356,7 +9356,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: rgba(20,46,82,0.6);
+    background: rgba(17,30,56,0.6);
     color: var(--muted);
     font-size: 9px;
     font-weight: 600;
@@ -10438,7 +10438,7 @@
     transform: translateX(-50%);
     width: 10px;
     height: 6px;
-    background: rgba(26, 44, 66, 0.86);
+    background: rgba(17,30,56, 0.86);
     clip-path: polygon(0 0, 100% 0, 50% 100%);
     pointer-events: none;
     transition: width 0.18s cubic-bezier(0.32, 0.72, 0, 1),
@@ -11183,7 +11183,7 @@
     display: block;
   }
   .plan-invitee .pi-init {
-    background: rgba(20,46,82,0.6);
+    background: rgba(17,30,56,0.6);
     color: var(--muted);
     font-size: 10px;
     font-weight: 700;
@@ -11194,7 +11194,7 @@
     right: -2px; bottom: -2px;
     width: 10px; height: 10px;
     border-radius: 50%;
-    border: 2px solid rgba(20,46,82,0.95);
+    border: 2px solid rgba(17,30,56,0.95);
   }
   .pi-pip-accepted { background: #6BCB77; }
   .pi-pip-declined { background: #FF7B72; }
@@ -11216,7 +11216,7 @@
     vertical-align: middle;
   }
   .card-friend-dot-init {
-    background: rgba(20,46,82,0.6);
+    background: rgba(17,30,56,0.6);
     color: var(--muted);
     font-size: 8px; font-weight: 600;
     display: inline-flex; align-items: center; justify-content: center;
@@ -11238,7 +11238,7 @@
     vertical-align: middle;
   }
   .card-going-dot-init {
-    background: rgba(20,46,82,0.6);
+    background: rgba(17,30,56,0.6);
     color: rgba(156,189,231,0.95);
     font-size: 8px; font-weight: 600;
     display: inline-flex; align-items: center; justify-content: center;
@@ -11321,7 +11321,7 @@
     flex-shrink: 0;
   }
   .friend-avatar-initials {
-    background: rgba(20,46,82,0.6);
+    background: rgba(17,30,56,0.6);
     color: var(--muted);
     display: flex; align-items: center; justify-content: center;
     font-size: 13px; font-weight: 600;
@@ -11361,7 +11361,7 @@
   .friends-search-input {
     flex: 1;
     padding: 8px 10px;
-    background: rgba(20,46,82,0.5);
+    background: rgba(17,30,56,0.5);
     border: 1px solid var(--border);
     border-radius: 8px;
     color: var(--text);
