@@ -1971,7 +1971,7 @@ function updateSunLighting() {
       },
       {
         id: 'ambient',
-        type: 'ambient',
+        type: 'flat',
         properties: { intensity: 0.42, color: '#ffffff' }
       }
     ]);
@@ -1979,7 +1979,7 @@ function updateSunLighting() {
     map.setLights([
       {
         id: 'ambient',
-        type: 'ambient',
+        type: 'flat',
         properties: { intensity: 0.45, color: '#ffffff' }
       }
     ]);
