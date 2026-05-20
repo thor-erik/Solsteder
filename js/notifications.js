@@ -283,7 +283,7 @@ function _wireNotifSwipe(el, notif) {
       else            elTransform = `translateY(-120%)`;
       el.style.transform = elTransform;
       el.style.opacity = '0';
-      if (typeof _aTrack === 'function') _aTrack('notification_dismiss', {
+      if (typeof _aTrack === 'function' && !notif.noAnalytics) _aTrack('notification_dismiss', {
         id: notif.id, priority: notif.priority, category: notif.category, method: 'swipe',
       });
       setTimeout(() => { _notifDismiss(notif.id); }, 240);
@@ -324,7 +324,7 @@ function _notifStartAutoDismissTimer(notif) {
   clearTimeout(_notifAutoTimer);
   const duration = notif._legacyDismiss || (notif.priority === 0 ? 30000 : _NOTIF_AUTO_DEFAULT);
   _notifAutoTimer = setTimeout(() => {
-    if (typeof _aTrack === 'function' && _notifCurrent) _aTrack('notification_dismiss', {
+    if (typeof _aTrack === 'function' && _notifCurrent && !_notifCurrent.noAnalytics) _aTrack('notification_dismiss', {
       id: _notifCurrent.id, priority: _notifCurrent.priority, category: _notifCurrent.category, method: 'auto'
     });
     _notifHide();
@@ -334,7 +334,7 @@ function _notifStartAutoDismissTimer(notif) {
 function _notifInvokeAction(notif) {
   try { notif.action(); }
   catch (e) { console.warn('[notif] action threw:', notif.id, e); }
-  if (typeof _aTrack === 'function') _aTrack('notification_action', {
+  if (typeof _aTrack === 'function' && !notif.noAnalytics) _aTrack('notification_action', {
     id: notif.id, priority: notif.priority, category: notif.category,
   });
   _notifHide();
@@ -387,7 +387,7 @@ function _notifShow(notif) {
 
   // Close button
   el.querySelector('.notif-toast-close').onclick = () => {
-    if (typeof _aTrack === 'function') _aTrack('notification_dismiss', { id: notif.id, priority: notif.priority, category: notif.category, method: 'close' });
+    if (typeof _aTrack === 'function' && !notif.noAnalytics) _aTrack('notification_dismiss', { id: notif.id, priority: notif.priority, category: notif.category, method: 'close' });
     _notifDismiss(notif.id);
   };
 
@@ -415,7 +415,11 @@ function _notifShow(notif) {
   _notifShownCount++;
   _notifLastShownAt = Date.now();
 
-  if (typeof _aTrack === 'function') _aTrack('notification_shown', {
+  // noAnalytics notifs are suppressed from the events sink entirely. Used by
+  // social_checkin: it only fires when the device is within 100m of a venue,
+  // so logging even its id server-side would persist a location-derived signal.
+  // Keep this guard — removing it re-introduces that signal into events.
+  if (typeof _aTrack === 'function' && !notif.noAnalytics) _aTrack('notification_shown', {
     id: notif.id, priority: notif.priority, category: notif.category, queue_depth: _notifQueue.length
   });
 
@@ -947,6 +951,10 @@ function _evalCheckinPrompt() {
     actionKey: 'notif_checkin_action',
     action: () => { if (typeof checkInToVenue === 'function') checkInToVenue(nearest.id); },
     ttl: 300000, dedupe: true,
+    // Proximity-gated (fires only within 100m of a venue) → never log its
+    // show/action/dismiss to the events sink, to keep zero location-derived
+    // data server-side. See the guard in _notifShow.
+    noAnalytics: true,
   };
 }
 
