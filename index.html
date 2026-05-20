@@ -109,7 +109,7 @@
 </script>
 <script defer src="js/i18n.js?v=20260520b"></script>
 <script defer src="js/config.js?v=20260519s"></script>
-<script defer src="js/tokens.js?v=20260520g"></script>
+<script defer src="js/tokens.js?v=20260521a"></script>
 <script defer src="js/auth.js?v=20260520b"></script>
 
 <script defer src="js/login-carousel.js?v=20260428a"></script>
@@ -120,13 +120,13 @@
 <script defer src="js/data.js?v=20260519p"></script>
 <script defer src="js/weather.js?v=20260519d"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
-<script defer src="js/map-style.js?v=20260520g"></script>
-<script defer src="js/app.js?v=20260520g"></script>
+<script defer src="js/map-style.js?v=20260521a"></script>
+<script defer src="js/app.js?v=20260521a"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260519b"></script>
 <script defer src="js/render-seating.js?v=20260519b"></script>
 <script defer src="js/render-editor.js?v=20260519b"></script>
-<script defer src="js/render-pins.js?v=20260520g"></script>
+<script defer src="js/render-pins.js?v=20260521a"></script>
 <script defer src="js/ui-shared.js?v=20260519b"></script>
 <script defer src="js/ui-list.js?v=20260520a"></script>
 <script defer src="js/admin-review.js?v=20260505a"></script>
@@ -391,6 +391,29 @@
   #search-dropdown, #sort-panel, #bell-dropdown, #profile-panel {
     color: var(--panel-text, #111E38);
   }
+  /* Scoped overrides: dropdown / panel children that set var(--text) or
+     var(--muted) explicitly — explicit color beats inherited color, so the
+     catch-all above only helps elements that DON'T have their own rule. */
+  #search-dropdown .sd-row-name,
+  #bell-dropdown .bd-row__msg { color: var(--panel-text); }
+  #search-dropdown .sd-row-icon,
+  #search-dropdown .sd-row-area,
+  #search-dropdown .sd-suggest-label,
+  #bell-dropdown .bd-row__meta,
+  #bell-dropdown .bd-row__sys-icon { color: rgba(17,30,56,0.50); }
+
+  /* Profile panel — cream surface needs all text flipped to dark */
+  #profile-panel .settings-row      { color: var(--panel-text); }
+  #profile-panel .settings-row:hover { background: rgba(17,30,56,0.05); }
+  #profile-panel .settings-row + .settings-row { border-top-color: rgba(17,30,56,0.07); }
+  #profile-panel .settings-row__icon,
+  #profile-panel .settings-row__value,
+  #profile-panel .settings-row__chevron { color: rgba(17,30,56,0.45); }
+  #profile-panel .profile-pref-label { color: var(--panel-text); }
+  #profile-panel .pref-pill          { color: rgba(17,30,56,0.50); }
+  #profile-panel .pref-pill:hover    { color: var(--panel-text); }
+  #profile-panel .profile-section-label,
+  #profile-panel .profile-pref-desc  { color: rgba(17,30,56,0.45); }
 
   @supports not (backdrop-filter: blur(1px)) {
     .glass-panel, .glass-card, .glass-action { background: rgba(17, 30, 56, 0.97) !important; }
@@ -1763,8 +1786,8 @@
     transition: background 120ms;
     -webkit-tap-highlight-color: transparent;
   }
-  .bd-row.bd-row--clickable:hover { background: rgba(155,169,188,0.06); }
-  .bd-row.bd-row--clickable:active { background: rgba(155,169,188,0.14); }
+  .bd-row.bd-row--clickable:hover { background: rgba(17,30,56,0.05); }
+  .bd-row.bd-row--clickable:active { background: rgba(17,30,56,0.10); }
   /* Past-event invite row — the plan time has come and gone. Dimmed
      to ~55% so the user sees at a glance it's expired, but stays
      clickable so they can still open the (past-state) plan-preview
@@ -1952,11 +1975,11 @@
   .bd-action.primary:hover { filter: brightness(1.08); }
   .bd-action.primary:active { filter: brightness(0.95); }
   .bd-action.secondary {
-    background: rgba(155,169,188,0.14);
-    color: var(--text);
+    background: rgba(17,30,56,0.10);
+    color: var(--panel-text);
   }
-  .bd-action.secondary:hover { background: rgba(155,169,188,0.22); }
-  .bd-action.secondary:active { background: rgba(155,169,188,0.30); }
+  .bd-action.secondary:hover { background: rgba(17,30,56,0.16); }
+  .bd-action.secondary:active { background: rgba(17,30,56,0.22); }
   #search-dropdown.open { display: block; }
   .sd-row {
     display: flex;
@@ -1964,7 +1987,7 @@
     justify-content: space-between;
     padding: 10px 14px;
     cursor: pointer;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    border-bottom: 1px solid rgba(17,30,56,0.07);
     transition: background 0.1s;
     gap: 8px;
   }
@@ -2926,7 +2949,7 @@
     line-height: 1;
   }
   #top-strip .ts-wx-icon .wx-sky-icon         { width: 17px; height: 17px; }
-  #header-wx-chip #header-wx-icon .wx-sky-icon { width: 14px; height: 14px; }
+  #header-wx-chip #header-wx-icon .wx-sky-icon { width: 14px; height: 14px; color: rgba(17,30,56,0.55); filter: none; }
   #date-wx-strip .wx-sky-icon                  { width: 13px; height: 13px; }
   /* Custom date calendar dropdown */
   #date-calendar {
@@ -3769,7 +3792,7 @@
     background: none;
     border: none;
     border-radius: 8px;
-    color: rgba(213,196,171,0.72);
+    color: rgba(17,30,56,0.65);
     font-family: 'Inter', sans-serif;
     font-size: 14px;
     font-weight: 500;
@@ -3785,7 +3808,7 @@
     will-change: transform;
   }
   @media (hover: hover) and (pointer: fine) {
-    .sort-btn:hover:not(.active) { color: var(--muted); background: rgba(156,189,231,0.10); }
+    .sort-btn:hover:not(.active) { color: rgba(17,30,56,0.85); background: rgba(17,30,56,0.06); }
   }
   .sort-btn.active {
     background: rgba(245,194,94,0.18);
@@ -3898,7 +3921,7 @@
     font-family: 'Inter', sans-serif;
     font-size: 11px;
     font-weight: 600;
-    color: rgba(255, 244, 224, 0.55);
+    color: rgba(17, 30, 56, 0.45);
     text-transform: uppercase;
     letter-spacing: 0.08em;
     transition: opacity 200ms ease;
@@ -4008,10 +4031,10 @@
     /* Layered shadow — 1px tight contact + 14px soft lift — for proper
        elevation. Modern card convention (Linear / Apple / Stripe). */
     box-shadow:
-      inset 0 1px 0 rgba(255,250,235,0.16),
-      inset 0 -1px 0 rgba(15,30,55,0.40),
-      0 1px 2px rgba(0,0,0,0.18),
-      0 4px 14px rgba(0,0,0,0.30);
+      inset 0 1px 0 rgba(255,250,235,0.12),
+      inset 0 -1px 0 rgba(15,30,55,0.30),
+      0 1px 3px rgba(17,30,56,0.10),
+      0 4px 16px rgba(17,30,56,0.18);
     transition: border-color 0.12s ease-out, background 0.12s ease-out, opacity 0.2s;
     position: relative;
     overflow: visible;
@@ -4061,10 +4084,10 @@
       background: rgba(17,30,56,0.72);
       transform: translateY(-1px);
       box-shadow:
-        inset 0 1px 0 rgba(255,250,235,0.18),
-        inset 0 -1px 0 rgba(15,30,55,0.40),
-        0 2px 4px rgba(0,0,0,0.22),
-        0 10px 22px rgba(0,0,0,0.36);
+        inset 0 1px 0 rgba(255,250,235,0.14),
+        inset 0 -1px 0 rgba(15,30,55,0.30),
+        0 2px 6px rgba(17,30,56,0.12),
+        0 10px 24px rgba(17,30,56,0.22);
     }
   }
   @media (prefers-reduced-motion: reduce) {
@@ -4074,7 +4097,7 @@
   .venue-card { -webkit-tap-highlight-color: transparent; }
 
   .venue-card.selected {
-    background: rgba(26,44,66,0.72);
+    background: rgba(17,30,56,0.88);
   }
   /* Selection outline that *emanates from the click position*. The lens-fx
      pointerdown handler in lens-effects.js sets --ripple-x / --ripple-y on
@@ -6072,8 +6095,8 @@
      button gets the honey-dim treatment. */
   .profile-pref-pills {
     display: inline-flex;
-    background: rgba(7,16,31,0.40);
-    border: 1px solid rgba(155,169,188,0.20);
+    background: rgba(17,30,56,0.08);
+    border: 1px solid rgba(17,30,56,0.15);
     border-radius: 10px;
     padding: 2px;
     gap: 0;
@@ -7066,7 +7089,7 @@
     font-family: 'Inter', sans-serif;
     font-size: 13px;
     font-weight: 500;
-    color: rgba(255, 244, 224, 0.62);
+    color: rgba(17, 30, 56, 0.60);
     white-space: nowrap;
     letter-spacing: 0.005em;
   }
@@ -7087,7 +7110,7 @@
     margin: -2px -4px -2px -4px;
     height: auto;
     width: auto;
-    color: rgba(255, 244, 224, 0.85);
+    color: rgba(17, 30, 56, 0.75);
     font: inherit;
     font-weight: 500;
     display: inline-flex;
@@ -7097,14 +7120,14 @@
     border-radius: 6px;
     transition: color 0.12s ease, background 0.12s ease;
   }
-  #header-date-chip.dh-date:hover { color: var(--accent); background: rgba(255,242,235,0.05); }
+  #header-date-chip.dh-date:hover { color: var(--accent); background: rgba(17,30,56,0.06); }
   #header-date-chip.dh-date:hover .chip-cal-icon { color: var(--accent); }
-  #header-date-chip.dh-date:active { background: rgba(255,242,235,0.12); color: var(--accent); }
+  #header-date-chip.dh-date:active { background: rgba(17,30,56,0.08); color: var(--accent); }
   #header-date-chip.dh-date:active .chip-cal-icon { color: var(--accent); }
   #header-date-chip.dh-date.active { color: var(--accent); }
   #header-date-chip.dh-date.active .chip-cal-icon { color: var(--accent); }
   #header-date-chip.dh-date .chip-cal-icon {
-    color: rgba(255, 244, 224, 0.55);
+    color: rgba(17, 30, 56, 0.40);
     flex-shrink: 0;
     transition: color 0.12s ease;
   }
@@ -7131,7 +7154,7 @@
     align-items: center;
   }
   #header-wx-chip.dh-weather #header-wx-temp {
-    color: rgba(255, 244, 224, 0.85);
+    color: rgba(17, 30, 56, 0.75);
     font-weight: 500;
     font-variant-numeric: tabular-nums;
   }
@@ -7171,14 +7194,15 @@
     transition: background 0.12s ease, color 0.12s ease;
   }
   #day-header #sort-toggle-btn:hover,
-  #sort-toggle-btn.sort-icon-btn:hover  { background: rgba(255,242,235,0.06); border-color: transparent; }
+  #sort-toggle-btn.sort-icon-btn:hover  { background: rgba(17,30,56,0.07); border-color: transparent; }
   /* Tap-down feedback for mobile (and desktop click). Stronger than
      hover so the user sees their press register. */
   #day-header #sort-toggle-btn:active,
-  #sort-toggle-btn.sort-icon-btn:active { background: rgba(255,242,235,0.14); }
+  #sort-toggle-btn.sort-icon-btn:active { background: rgba(17,30,56,0.12); }
   #day-header #sort-toggle-btn.open,
   #sort-toggle-btn.sort-icon-btn.open   { background: rgba(245,194,94,0.10); border-color: transparent; box-shadow: none; }
-  .sort-icon { color: rgba(255, 244, 224, 0.55); opacity: 1; transition: color 0.12s ease; }
+  .sort-icon { color: rgba(17, 30, 56, 0.50); opacity: 1; transition: color 0.12s ease; }
+  #list-sun-header .sort-icon { color: rgba(255, 244, 224, 0.70); }
   #day-header #sort-toggle-btn:hover  .sort-icon { color: var(--accent); }
   #day-header #sort-toggle-btn:active .sort-icon { color: var(--accent); }
   #day-header #sort-toggle-btn.open   .sort-icon { color: var(--accent); }
@@ -7228,7 +7252,7 @@
     font-size: 16px;
     font-weight: 500;
     line-height: 1.35;
-    color: rgba(255, 244, 224, 0.95);
+    color: rgba(17, 30, 56, 0.80);
     letter-spacing: -0.005em;
     font-variant-numeric: tabular-nums;
     overflow-wrap: break-word;
@@ -7249,7 +7273,7 @@
     gap: 0;
     justify-self: end;
   }
-  #sun-section-bar #sort-toggle-btn:hover  { background: rgba(255,242,235,0.06); border-color: transparent; }
+  #sun-section-bar #sort-toggle-btn:hover  { background: rgba(17,30,56,0.07); border-color: transparent; }
   #sun-section-bar #sort-toggle-btn.open   { background: rgba(245,194,94,0.10); border-color: transparent; box-shadow: none; }
   #sun-section-bar #sort-toggle-btn.open .sort-icon { color: var(--accent); opacity: 1; }
 
