@@ -46,7 +46,7 @@ function buildShadeStyle() {
         type: 'fill',
         source: 'composite',
         'source-layer': 'water',
-        paint: { 'fill-color': '#C4D9F0', 'fill-opacity': 0.85 },
+        paint: { 'fill-color': '#C4D9F0', 'fill-opacity': 0.5 },
       },
       {
         id: 'waterway',
@@ -55,7 +55,7 @@ function buildShadeStyle() {
         'source-layer': 'waterway',
         paint: {
           'line-color': '#C4D9F0',
-          'line-opacity': 0.85,
+          'line-opacity': 0.4,
           'line-width': ['interpolate', ['linear'], ['zoom'], 10, 0.5, 16, 2],
         },
       },
@@ -71,7 +71,7 @@ function buildShadeStyle() {
         'source-layer': 'landuse',
         filter: ['match', ['get', 'class'],
           ['park', 'national_park', 'nature_reserve', 'grass', 'pitch', 'golf_course'], true, false],
-        paint: { 'fill-color': '#C2D6B5', 'fill-opacity': 0.30 },
+        paint: { 'fill-color': '#D9E8D0', 'fill-opacity': 0.30 },
       },
       {
         id: 'landuse-wood',
@@ -79,7 +79,7 @@ function buildShadeStyle() {
         source: 'composite',
         'source-layer': 'landuse',
         filter: ['match', ['get', 'class'], ['wood', 'forest', 'scrub'], true, false],
-        paint: { 'fill-color': '#C2D6B5', 'fill-opacity': 0.30 },
+        paint: { 'fill-color': '#D9E8D0', 'fill-opacity': 0.30 },
       },
       {
         id: 'landuse-other',
@@ -112,6 +112,7 @@ function buildShadeStyle() {
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
           'line-color': '#EFE4CD',
+          'line-opacity': 0.86,
           'line-width': ['interpolate', ['linear'], ['zoom'], 10, 1.5, 16, 7],
         },
       },
@@ -124,6 +125,7 @@ function buildShadeStyle() {
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
           'line-color': '#EFE4CD',
+          'line-opacity': 0.86,
           'line-width': ['interpolate', ['linear'], ['zoom'], 10, 1, 16, 5],
         },
       },
@@ -136,6 +138,7 @@ function buildShadeStyle() {
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
           'line-color': '#EFE4CD',
+          'line-opacity': 0.86,
           'line-width': ['interpolate', ['linear'], ['zoom'], 10, 0.5, 16, 4],
         },
       },
@@ -152,6 +155,7 @@ function buildShadeStyle() {
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
           'line-color': '#EFE4CD',
+          'line-opacity': 0.86,
           'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.5, 16, 2.5],
         },
       },

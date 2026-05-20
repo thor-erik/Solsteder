@@ -120,13 +120,13 @@
 <script defer src="js/data.js?v=20260519p"></script>
 <script defer src="js/weather.js?v=20260519d"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
-<script defer src="js/map-style.js?v=20260520g"></script>
-<script defer src="js/app.js?v=20260520g"></script>
+<script defer src="js/map-style.js?v=20260521c"></script>
+<script defer src="js/app.js?v=20260521c"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260519b"></script>
 <script defer src="js/render-seating.js?v=20260519b"></script>
 <script defer src="js/render-editor.js?v=20260519b"></script>
-<script defer src="js/render-pins.js?v=20260520g"></script>
+<script defer src="js/render-pins.js?v=20260521c"></script>
 <script defer src="js/ui-shared.js?v=20260519b"></script>
 <script defer src="js/ui-list.js?v=20260520a"></script>
 <script defer src="js/admin-review.js?v=20260505a"></script>
@@ -273,20 +273,53 @@
     --border:     rgba(17,30,56,0.12);         /* dark subtle outline for cream map */
     --pill-bg:    rgba(17,30,56,0.45);
 
-    /* Glass levels — cream-map recipe. Panels are transparent (Tier 1 = lens);
-       cards are fully opaque dark Delft Blue (Tier 2 = islands on cream map). */
+    /* Glass levels — cream-map recipe. FLAT solid fills only — no gradients,
+       no saturate (saturate amplified the map's pin colors into a blue cast).
+       Panel  = transparent lens (Tier 1), depth comes from a drop shadow.
+       Card   = fully opaque Delft Blue island (Tier 2).
+       Action = semi-dark raised pill for glass-on-glass controls (Tier 3). */
     --glass-panel-bg:  rgba(17,30,56,0.00);
-    --glass-card-bg:   linear-gradient(135deg, rgba(17,30,56,0.36) 0%, rgba(49,78,120,0.22) 100%), rgba(17,30,56,1.00);
-    --glass-action-bg: linear-gradient(135deg, rgba(17,30,56,0.36) 0%, rgba(49,78,120,0.22) 100%), rgba(17,30,56,0.55);
-    --glass-blur-panel: blur(6px) saturate(160%);
-    --glass-blur-card:  blur(12px) saturate(160%);
-    --glass-blur-action: blur(10px) saturate(160%);
-    --glass-blur-pill:  blur(8px)  saturate(160%);
+    --glass-card-bg:   rgba(17,30,56,1.00);
+    --glass-action-bg: rgba(17,30,56,0.55);
+    --glass-blur-panel: blur(6px);
+    --glass-blur-card:  blur(6px);
+    --glass-blur-action: blur(8px);
+    --glass-blur-pill:  blur(8px);
     --glass-border: 1px solid rgba(17,30,56,0.12);
     --glass-border-light: 1px solid rgba(17,30,56,0.08);
     /* Null inset — no sheen on transparent panels. Using a transparent shadow
        rather than `none` so it remains valid in comma-separated box-shadow lists. */
     --glass-inset: 0 0 0 0 transparent;
+
+    /* ── Cream-redesign surface system ──────────────────────────────────────
+       THREE surface roles. Every element belongs to exactly one. Text/icon
+       colour is determined by the role, not by the element:
+
+         A · Floating bar (transparent)  → #top-strip, #panel, #detail-panel,
+              FTS track. Backdrop = blurred map. Direct text = DARK (#111E38).
+              Controls sitting on it use the glass-on-glass pill below.
+         B · Card (opaque Delft Blue)     → .venue-card, .dp-card.
+              Text/icons = CREAM (--text). Never put dark text here.
+         C · Content panel (cream frosted)→ calendar, invite, accept/plan-preview,
+              profile, search/bell dropdowns, sort. Predictable backdrop, so
+              text = DARK (#111E38), muted = rgba(17,30,56,0.55). */
+    --content-bg:    rgba(255,242,235,0.50);   /* cream @ 50% */
+    --content-blur:  blur(6px);
+    --content-text:  #111E38;
+    --content-muted: rgba(17,30,56,0.55);
+
+    /* Glass-on-glass control pill — for controls on a transparent bar (Surface
+       A). Flat semi-dark fill that PROTRUDES via a drop shadow; presses IN via
+       an inset shadow on :active (same language as the FTS thumb). Icons/text
+       on these = CREAM. No gradients. */
+    --ctl-bg:        rgba(17,30,56,0.50);
+    --ctl-bg-hover:  rgba(17,30,56,0.62);
+    --ctl-icon:      #FFF4E0;
+    --ctl-raise:     0 2px 6px rgba(17,30,56,0.22);
+    --ctl-press:     inset 0 2px 5px rgba(17,30,56,0.40);
+
+    /* Drop shadow lifting a transparent floating bar off the cream map. */
+    --panel-shadow:  0 4px 20px rgba(17,30,56,0.10);
 
     /* Card-pill subject colors — kept distinct from --muted/--accent so the
        "Skyer" (cool gray) and "Regn" (blue) pill text reads cleanly on glass.
@@ -386,9 +419,11 @@
     font-family: 'Inter', system-ui, sans-serif;
     overflow: hidden;
   }
-  /* Dark text catch-all for transparent panel surfaces */
+  /* Dark text catch-all for transparent bars (A) + cream content panels (C).
+     Both want dark text directly on the surface. NOT .dpinvite-sheet or
+     .dprcv-* — those are mixed surfaces (dark cards live inside them). */
   #top-strip, #panel, #detail-panel,
-  #search-dropdown, #sort-panel, #bell-dropdown, #profile-panel {
+  #search-dropdown, #sort-panel, #bell-dropdown, #profile-panel, #date-calendar {
     color: var(--panel-text, #111E38);
   }
 
@@ -1202,7 +1237,7 @@
     backdrop-filter: var(--glass-blur-panel);
     -webkit-backdrop-filter: var(--glass-blur-panel);
     border: var(--glass-border);
-    box-shadow: 0 2px 12px rgba(17,30,56,0.08);
+    box-shadow: var(--panel-shadow);
     container-type: inline-size;
     container-name: topstrip;
     /* Slide-up animation — when a takeover state (plan-preview, post-
@@ -1237,27 +1272,30 @@
     align-items: center;
     gap: 6px;
   }
+  /* Glass-on-glass control pill — raised navy bubble on the transparent bar,
+     cream icon, presses in on :active (same language as the FTS thumb). */
   #top-strip .ts-btn {
     flex-shrink: 0;
     width: 38px; height: 38px;
     border-radius: 50%;
-    background: var(--glass-action-bg);
-    border: 1px solid rgba(255,250,235,0.10);
-    box-shadow: 0 1px 4px rgba(17,30,56,0.18);
-    color: rgba(255,244,224,0.70);
+    background: var(--ctl-bg);
+    border: none;
+    box-shadow: var(--ctl-raise);
+    color: var(--ctl-icon);
     display: inline-flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     padding: 0;
     position: relative;
-    transition: color 120ms, background 120ms, border-color 120ms;
+    transition: color 120ms, background 120ms, box-shadow 120ms;
   }
-  #top-strip .ts-btn:hover { color: var(--text); }
+  #top-strip .ts-btn:hover { background: var(--ctl-bg-hover); }
+  #top-strip .ts-btn:active { background: var(--ctl-bg-hover); box-shadow: var(--ctl-press); }
   #top-strip .ts-btn svg { width: 18px; height: 18px; }
   #top-strip .ts-btn.active {
-    background: var(--accent-dim);
-    border-color: rgba(245,194,94,0.42);
+    background: var(--ctl-bg-hover);
+    box-shadow: var(--ctl-raise), inset 0 0 0 1.5px rgba(245,194,94,0.55);
     color: var(--accent);
   }
   #top-strip .ts-avatar {
@@ -1729,12 +1767,13 @@
     width: 380px;
     z-index: 1050;
     border-radius: 14px;
-    box-shadow: var(--glass-inset), 0 8px 32px rgba(0,0,0,0.55);
+    box-shadow: 0 8px 32px rgba(17,30,56,0.18);
     overflow: hidden;
     display: none;
-    /* Cream-tinted for legibility over the map — scannable content needs
-       an opaque-ish backdrop, not a transparent lens. */
-    background: rgba(255,242,235,0.96) !important;
+    /* Content surface — cream frosted (Surface C). */
+    background: var(--content-bg) !important;
+    backdrop-filter: var(--content-blur);
+    -webkit-backdrop-filter: var(--content-blur);
   }
 
   /* Bell dropdown — full-width below the top strip. Same legibility
@@ -1749,14 +1788,19 @@
     max-height: min(calc(var(--app-h, 100svh) * 0.6), 520px);
     z-index: 1050;
     border-radius: 14px;
-    box-shadow: var(--glass-inset), 0 8px 32px rgba(0,0,0,0.55);
+    box-shadow: 0 8px 32px rgba(17,30,56,0.18);
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     display: none;
-    background: rgba(255,242,235,0.96) !important;
+    background: var(--content-bg) !important;
+    backdrop-filter: var(--content-blur);
+    -webkit-backdrop-filter: var(--content-blur);
   }
-  #bell-dropdown.open { display: block; }
+  #bell-dropdown.open {
+    display: block;
+    box-shadow: 0 8px 32px rgba(17,30,56,0.18);
+  }
   /* Rows clickable for nav-style notifications (check-ins, plans). */
   .bd-row.bd-row--clickable {
     cursor: pointer;
@@ -2086,9 +2130,9 @@
     z-index: 1100;
     border-radius: 0;
     border-top: none;
-    background: rgba(255,242,235,0.96);
-    backdrop-filter: blur(20px) saturate(120%);
-    -webkit-backdrop-filter: blur(20px) saturate(120%);
+    background: var(--content-bg);
+    backdrop-filter: var(--content-blur);
+    -webkit-backdrop-filter: var(--content-blur);
     box-shadow:
       0 -8px 40px rgba(17,30,56,0.12);
     display: flex;
@@ -2935,9 +2979,9 @@
     left: 50%;
     transform: translateX(-50%);
     width: 380px;
-    background: var(--glass-panel-bg);
-    backdrop-filter: var(--glass-blur-panel);
-    -webkit-backdrop-filter: var(--glass-blur-panel);
+    background: var(--content-bg);
+    backdrop-filter: var(--content-blur);
+    -webkit-backdrop-filter: var(--content-blur);
     border: var(--glass-border);
     border-radius: 16px;
     padding: 10px 8px 8px;
@@ -2992,9 +3036,9 @@
   .dc-tile.no-data     { opacity: 0.4; }
   /* Beyond-horizon tiles: reduced-opacity glass with the same diagonal gradient — no dashed borders */
   .dc-tile.solar-only  {
-    background: linear-gradient(135deg, rgba(20,46,82,0.26) 0%, rgba(32,73,131,0.16) 100%), rgba(20,46,82,0.30);
-    border-color: rgba(156,189,231,0.12);
-    box-shadow: inset 0 1px 0 rgba(255,242,235,0.08);
+    background: rgba(17,30,56,0.30);
+    border-color: rgba(17,30,56,0.18);
+    box-shadow: none;
   }
   .dc-tile.solar-only:hover:not(.no-data) { border-color: rgba(156,189,231,0.22); }
   /* Past tiles: 0.45 opacity matches the time bar past-state rule */
@@ -3755,7 +3799,9 @@
     display: none;
     flex-direction: column;
     min-width: 160px;
-    background: rgba(255,242,235,0.96) !important;
+    background: var(--content-bg) !important;
+    backdrop-filter: var(--content-blur);
+    -webkit-backdrop-filter: var(--content-blur);
     box-shadow: 0 8px 32px rgba(17,30,56,0.15);
   }
   #sort-panel.open { display: flex; }
@@ -7794,10 +7840,10 @@
     align-items: center;
     gap: 5px;
     padding: 10px 6px 8px;
-    background: var(--glass-action-bg);
-    border: var(--glass-border);
+    background: var(--ctl-bg);
+    border: none;
     border-radius: 12px;
-    box-shadow: var(--glass-inset);
+    box-shadow: var(--ctl-raise);
     color: var(--accent);
     font-size: 12px;
     font-weight: 500;
@@ -7806,9 +7852,10 @@
     cursor: pointer;
     text-decoration: none;
     text-align: center;
-    transition: background 0.12s;
+    transition: background 0.12s, box-shadow 0.12s;
   }
-  .dp-gm-chip:hover { background: rgba(17,30,56,0.60); }
+  .dp-gm-chip:hover  { background: var(--ctl-bg-hover); }
+  .dp-gm-chip:active { background: var(--ctl-bg-hover); box-shadow: var(--ctl-press); }
   .dp-gm-chip svg { stroke: var(--accent); flex-shrink: 0; }
 
   .dp-actions {
@@ -7821,23 +7868,24 @@
     font-weight: 500;
     padding: 7px 10px;
     border-radius: 12px;
-    border: var(--glass-border);
-    background: var(--glass-action-bg);
-    box-shadow: var(--glass-inset);
+    border: none;
+    background: var(--ctl-bg);
+    box-shadow: var(--ctl-raise);
     color: var(--accent);
     cursor: pointer;
     text-decoration: none;
     text-align: center;
-    transition: background 0.12s;
+    transition: background 0.12s, box-shadow 0.12s;
     font-family: 'Inter', sans-serif;
   }
-  .dp-action-btn:hover { background: rgba(17,30,56,0.60); }
+  .dp-action-btn:hover  { background: var(--ctl-bg-hover); }
+  .dp-action-btn:active { background: var(--ctl-bg-hover); box-shadow: var(--ctl-press); }
   .dp-action-btn.directions {
-    background: var(--glass-action-bg);
-    border: var(--glass-border);
+    background: var(--ctl-bg);
+    border: none;
     color: var(--accent);
   }
-  .dp-action-btn.directions:hover { background: rgba(17,30,56,0.60); }
+  .dp-action-btn.directions:hover { background: var(--ctl-bg-hover); }
 
   .dp-busy-row {
     display: flex;
