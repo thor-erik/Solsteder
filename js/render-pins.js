@@ -229,21 +229,12 @@ const PLUS_PAD_RIGHT    = 5;      // inner padding on the right edge of the caps
 // All dots use Delft Blue (#111E38) at varying opacities — provides strong
 // contrast against both Sunny golden pills (hero) and Jordy Blue shade pills.
 function _dotColors(tier, closed, hasSunLaterToday) {
-  const DOT = TOKENS.bg || '#111E38';  // always Delft Blue
-
-  if (tier === 'hero') {
-    return closed
-      ? { fill: _rgba(DOT, 0.50), ring: _rgba(DOT, 0.20) }  // opening soon
-      : { fill: DOT,              ring: _rgba(DOT, 0.30) };  // in sun
-  }
-  if (tier === 'waiting') {
-    return closed
-      ? { fill: _rgba(DOT, 0.35), ring: _rgba(DOT, 0.15) }  // opening soon
-      : { fill: _rgba(DOT, 0.55), ring: _rgba(DOT, 0.20) }; // in shade, sun later
-  }
-  // Context — no near-term sun
-  const a = hasSunLaterToday ? 0.45 : 0.30;
-  return { fill: _rgba(DOT, a), ring: _rgba(DOT, 0.12) };
+  // All pills use the same Delft Blue dot — uniform across sun/shade tiers.
+  // Closed venues get 50% alpha; open venues get full opacity.
+  const DOT = TOKENS.bg || '#111E38';
+  return closed
+    ? { fill: _rgba(DOT, 0.50), ring: _rgba(DOT, 0.20) }
+    : { fill: DOT,              ring: _rgba(DOT, 0.30) };
 }
 
 // ── Vector category icons ─────────────────────────────────────────────────────
