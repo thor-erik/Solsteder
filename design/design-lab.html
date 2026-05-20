@@ -331,6 +331,24 @@ input[type=range]::-webkit-slider-thumb {
   background: var(--text); cursor: pointer;
   box-shadow: 0 1px 5px rgba(0,0,0,0.45);
 }
+
+/* Export button */
+#export-btn {
+  width: 100%; height: 38px;
+  background: rgba(255,244,224,0.07);
+  border: 1px solid rgba(255,244,224,0.18);
+  border-radius: 10px;
+  color: rgba(255,244,224,0.60);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px; font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer; transition: all 0.15s;
+}
+#export-btn:active, #export-btn.copied {
+  background: rgba(245,194,94,0.14);
+  border-color: rgba(245,194,94,0.45);
+  color: var(--accent);
+}
 </style>
 </head>
 <body>
@@ -416,6 +434,8 @@ input[type=range]::-webkit-slider-thumb {
       </div>
     </div>
 
+    <button id="export-btn" onclick="exportState()">Kopier verdier</button>
+
   </div>
 </div>
 
@@ -438,7 +458,10 @@ const PALETTE = [
   {hex:'#7BA0B8', name:'Water Blue'},
   {hex:'#EFE4CD', name:'Map Beige'},
   {hex:'#CBD5DC', name:'Cool Grey'},
-  {hex:'#D4D8B2', name:'Green'},
+  {hex:'#D4D8B2', name:'Park (current)'},
+  {hex:'#9BB89C', name:'Park Mid'},
+  {hex:'#3D6840', name:'Park Dark'},
+  {hex:'#1F3C26', name:'Forest'},
   {hex:'#A89D8A', name:'Building'},
   {hex:'#FFF2EB', name:'Cream'},
   {hex:'#FFF4E0', name:'Warm Cream'},
@@ -455,8 +478,10 @@ const COMPS = [
   {id:'map-roads',    label:'Roads',     blur:false},
   {id:'glass-panel',  label:'Panel',     blur:true },
   {id:'glass-card',   label:'Card',      blur:true },
+  {id:'map-parks',    label:'Parks',     blur:false},
   {id:'pin-sun',      label:'Sun Pin',   blur:false},
   {id:'pin-shade',    label:'Shade Pin', blur:false},
+  {id:'pin-dot',      label:'Pin Dot',   blur:false},
   {id:'shadow',       label:'Shadow',    blur:false},
 ];
 
@@ -469,11 +494,13 @@ const S = {
     'map-building': {color:'#A89D8A', opacity:1.00, blur:0,  diag:false},
     'map-water':    {color:'#7BA0B8', opacity:0.85, blur:0,  diag:false},
     'map-roads':    {color:'#B8AC8E', opacity:1.00, blur:0,  diag:false},
+    'map-parks':    {color:'#D4D8B2', opacity:1.00, blur:0,  diag:false},
     'glass-panel':  {color:'#1A2C42', opacity:0.42, blur:16, diag:false},
     'glass-card':   {color:'#1A2C42', opacity:0.78, blur:12, diag:false},
     'pin-sun':      {color:'#FAF1DD', opacity:1.00, blur:0,  diag:false},
     'pin-shade':    {color:'#284463', opacity:1.00, blur:0,  diag:false},
-    'shadow':       {color:'#0A0E28', opacity:0.18, blur:0,  diag:false},
+    'pin-dot':      {color:'#F5C25E', opacity:1.00, blur:0,  diag:false},
+    'shadow':       {color:'#0A0E28', opacity:0.28, blur:0,  diag:false},
   }
 };
 
@@ -527,6 +554,12 @@ function applyMapLayer(id) {
       if (map.getLayer(l)) map.setPaintProperty(l,'line-color',c);
     });
   }
+
+  if (id==='map-parks') {
+    ['landuse-green','landuse-wood','landuse-other'].forEach(l => {
+      if (map.getLayer(l)) map.setPaintProperty(l,'fill-color',c);
+    });
+  }
 }
 
 function applyGlassPanel() {
@@ -550,14 +583,58 @@ function applyGlassCard() {
 }
 
 function applyComp(id) {
-  if (['map-bg','map-building','map-water','map-roads'].includes(id)) applyMapLayer(id);
+  if (['map-bg','map-building','map-water','map-roads','map-parks'].includes(id)) applyMapLayer(id);
   else if (id==='glass-panel') applyGlassPanel();
   else if (id==='glass-card')  applyGlassCard();
-  else /* pin-sun, pin-shade, shadow */ drawPins();
+  else /* pin-sun, pin-shade, pin-dot, shadow */ drawPins();
 }
 
 function applyAll() {
   Object.keys(S.v).forEach(id => applyComp(id));
+}
+
+// ── Shadow polygons ────────────────────────────────────────────────
+// Hardcoded building shadow outlines for ~15:00 Oslo time (May).
+// Sun is roughly WSW (azimuth ~235°) at altitude ~34° → shadows extend NE.
+// Each poly is an array of [lng, lat] vertices (CCW).
+const SHADOW_POLYS = [
+  // Block NW of Fiskeriet Youngstorget — shadow drapes across the square
+  [[10.7475, 59.9135],[10.7481, 59.9135],[10.7485, 59.9148],[10.7479, 59.9148]],
+  // Block on Møllergata casting NE
+  [[10.7468, 59.9138],[10.7473, 59.9138],[10.7476, 59.9150],[10.7471, 59.9150]],
+  // Grünerløkka block near Brutal
+  [[10.7618, 59.9205],[10.7626, 59.9205],[10.7632, 59.9220],[10.7624, 59.9220]],
+  [[10.7628, 59.9208],[10.7636, 59.9208],[10.7641, 59.9222],[10.7633, 59.9222]],
+  // Aker Brygge waterfront building
+  [[10.7282, 59.9070],[10.7293, 59.9070],[10.7300, 59.9087],[10.7289, 59.9087]],
+  // Grønland block near Café Sara
+  [[10.7540, 59.9098],[10.7548, 59.9098],[10.7553, 59.9112],[10.7545, 59.9112]],
+  // Mathallen / Vulkan building
+  [[10.7502, 59.9200],[10.7514, 59.9200],[10.7519, 59.9214],[10.7507, 59.9214]],
+];
+
+function drawShadowPolygons(ctx) {
+  const map = window._map;
+  if (!map) return;
+  const sv = S.v['shadow'];
+  ctx.save();
+  ctx.fillStyle = rgba(sv.color, sv.opacity);
+
+  SHADOW_POLYS.forEach(poly => {
+    const pts = poly.map(([lng, lat]) => {
+      try { return map.project([lng, lat]); }
+      catch { return null; }
+    });
+    if (pts.some(p => !p)) return;
+
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i=1; i<pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+    ctx.closePath();
+    ctx.fill();
+  });
+
+  ctx.restore();
 }
 
 // ── Pin canvas ─────────────────────────────────────────────────────
@@ -577,6 +654,8 @@ function _doPins() {
   ctx.clearRect(0, 0, cv.width, cv.height);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   if (!window._map) return;
+
+  drawShadowPolygons(ctx);
 
   VENUES.forEach((v, i) => {
     try {
@@ -612,14 +691,15 @@ function diagPat(ctx, color, opacity) {
 }
 
 function drawPill(ctx, cx, cy, label, isSun, isSelected) {
-  const PH=28, DR=10, PAD=10, GAP=6;
+  const PH=28, DR=14, PAD=10, GAP=6;
   ctx.save();
   ctx.font = '600 11.5px Inter, system-ui, sans-serif';
   const tw = ctx.measureText(label).width;
   const PW = PAD + DR + GAP + tw + PAD;
   const x0 = cx - PW/2, y0 = cy - PH/2, R = PH/2;
 
-  const sv = S.v[isSun ? 'pin-sun' : 'pin-shade'];
+  const sv  = S.v[isSun ? 'pin-sun' : 'pin-shade'];
+  const dot = S.v['pin-dot'];
 
   // Drop shadow
   ctx.shadowColor = 'rgba(8,14,34,0.58)';
@@ -647,11 +727,18 @@ function drawPill(ctx, cx, cy, label, isSun, isSelected) {
     ctx.strokeStyle = '#F5C25E'; ctx.lineWidth = 2.5; ctx.stroke();
   }
 
-  // Status dot
+  // Status dot — uses pin-dot color; shade pins get reduced opacity for contrast
   const dotX = x0 + PAD + DR/2;
   ctx.beginPath(); ctx.arc(dotX, cy, DR/2, 0, Math.PI*2);
-  ctx.fillStyle = isSun ? rgba('#F5C25E', 1.0) : rgba('#ffffff', 0.28);
+  ctx.fillStyle = isSun
+    ? rgba(dot.color, dot.opacity)
+    : rgba(dot.color, dot.opacity * 0.35);
   ctx.fill();
+  // Dot inner contrast ring so it pops on light pills
+  if (lum(sv.color) > 0.55) {
+    ctx.beginPath(); ctx.arc(dotX, cy, DR/2, 0, Math.PI*2);
+    ctx.strokeStyle = 'rgba(26,44,66,0.18)'; ctx.lineWidth = 1; ctx.stroke();
+  }
 
   // Text — auto light/dark based on pill luminance
   const textColor = lum(sv.color) > 0.55
@@ -784,6 +871,23 @@ function syncCtrl() {
   }
 }
 
+// ── Export ─────────────────────────────────────────────────────────
+function exportState() {
+  const out = JSON.stringify(S.v, null, 2);
+  navigator.clipboard.writeText(out).then(() => {
+    const btn = document.getElementById('export-btn');
+    btn.textContent = 'Kopiert ✓';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = 'Kopier verdier';
+      btn.classList.remove('copied');
+    }, 2000);
+  }).catch(() => {
+    // Fallback: prompt with text
+    prompt('Kopier disse verdiene:', out);
+  });
+}
+
 // ── Mode ───────────────────────────────────────────────────────────
 function setMode(mode) {
   S.mode = mode;
@@ -843,6 +947,7 @@ function initMap() {
     applyMapLayer('map-building');
     applyMapLayer('map-water');
     applyMapLayer('map-roads');
+    applyMapLayer('map-parks');
     drawPins();
   });
 
