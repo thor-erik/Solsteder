@@ -641,22 +641,27 @@ function applyAll() {
 }
 
 // ── Shadow polygons ────────────────────────────────────────────────
-// Queries actual rendered building footprints and casts shadows from them.
-// Oslo ~15:00 May: sun azimuth ~235° (WSW) → shadows extend NNE (55°).
+// Queries rendered building footprints and draws offset shadow patches.
+// Oslo ~15:00 May: sun azimuth ~235° (WSW) → shadow direction NNE (55°).
+//
+// Two key design decisions:
+//   1. Draw only the OFFSET footprint (where shadow lands), not a sweep
+//      from the building — the sweep algorithm self-intersects on complex
+//      polygons and creates huge dark blobs on pitched maps.
+//   2. Composite via an offscreen canvas at the final opacity so overlapping
+//      shadows from adjacent buildings don't compound and darken.
 function drawShadowPolygons(ctx) {
   const map = window._map;
   if (!map || !map.isStyleLoaded()) return;
   const sv = S.v['shadow'];
   if (sv.opacity < 0.01) return;
 
-  // Shadow direction: azimuth 55° from North (NNE), length in meters
-  const az   = 55 * Math.PI / 180;
-  const len  = sv.length ?? 50;
+  const az   = 55 * Math.PI / 180;   // 55° from North = NNE
+  const len  = sv.length ?? 50;       // metres
   const lat0 = 59.912;
   const dLat = len * Math.cos(az) / 111320;
   const dLng = len * Math.sin(az) / (111320 * Math.cos(lat0 * Math.PI / 180));
 
-  // Query rendered building footprints
   const layerIds = ['building-flat', 'building'].filter(id => {
     try { return !!map.getLayer(id); } catch { return false; }
   });
@@ -665,14 +670,21 @@ function drawShadowPolygons(ctx) {
   const features = map.queryRenderedFeatures({ layers: layerIds });
   if (!features.length) return;
 
-  ctx.save();
-  ctx.fillStyle = rgba(sv.color, sv.opacity);
+  // Offscreen canvas: all shadows drawn at full opacity, then composited
+  // once — prevents overlap areas from becoming disproportionately dark.
+  const cv  = document.getElementById('pin-canvas');
+  const dpr = window.devicePixelRatio || 1;
+  const tmp = document.createElement('canvas');
+  tmp.width  = cv.width;
+  tmp.height = cv.height;
+  const tctx = tmp.getContext('2d');
+  tctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  tctx.fillStyle = rgba(sv.color, 1.0);
 
   const seen = new Set();
   let n = 0;
   for (const f of features) {
     if (n > 150) break;
-    // Deduplicate by first vertex coords
     const key = f.id != null
       ? `${f.layer.id}:${f.id}`
       : JSON.stringify(f.geometry.coordinates[0]?.slice(0, 2));
@@ -689,18 +701,20 @@ function drawShadowPolygons(ctx) {
     rings.forEach(ring => {
       if (!ring?.length) return;
       try {
-        const orig = ring.map(([lng, lat]) => map.project([lng, lat]));
-        const shad = ring.map(([lng, lat]) => map.project([lng + dLng, lat + dLat]));
-        // Shadow shape = building outline swept in shadow direction
-        ctx.beginPath();
-        orig.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
-        shad.slice().reverse().forEach(p => ctx.lineTo(p.x, p.y));
-        ctx.closePath();
-        ctx.fill();
+        // Project only the shadow-offset ring — the patch where sun is blocked
+        const pts = ring.map(([lng, lat]) => map.project([lng + dLng, lat + dLat]));
+        tctx.beginPath();
+        pts.forEach((p, i) => i === 0 ? tctx.moveTo(p.x, p.y) : tctx.lineTo(p.x, p.y));
+        tctx.closePath();
+        tctx.fill();
       } catch(e) {}
     });
   }
 
+  // Composite the flat shadow layer at the chosen opacity
+  ctx.save();
+  ctx.globalAlpha = sv.opacity;
+  ctx.drawImage(tmp, 0, 0, cv.width / dpr, cv.height / dpr);
   ctx.restore();
 }
 
