@@ -316,30 +316,6 @@ html, body {
 }
 .swatch-diag-cream.selected { border-color: rgba(255,244,224,0.90) !important; }
 
-/* Brand mark reference widget */
-#brand-marks {
-  position: fixed;
-  top: 76px;
-  right: 14px;
-  z-index: 95;
-  display: flex;
-  gap: 8px;
-  flex-direction: column;
-  align-items: center;
-}
-.brand-mark-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-.brand-mark-wrap span {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.10em;
-  text-transform: uppercase;
-  color: rgba(255,244,224,0.32);
-}
 
 /* Sliders */
 .slider-rows { display: flex; flex-direction: column; gap: 8px; }
@@ -423,46 +399,6 @@ input[type=range]::-webkit-slider-thumb {
   </div>
 </div>
 
-<!-- Brand mark reference: light + dark variants -->
-<div id="brand-marks">
-  <div class="brand-mark-wrap">
-    <!-- Light variant: cream bg, Delft Blue stripes (fillRatio 0.55 → stripe=8.25/15) -->
-    <svg viewBox="0 0 240 240" width="44" height="44" xmlns="http://www.w3.org/2000/svg" shape-rendering="geometricPrecision">
-      <defs>
-        <clipPath id="mk-l-clip"><rect x="0" y="0" width="240" height="240" rx="54" ry="54"/></clipPath>
-        <pattern id="mk-l-pat" x="0" y="0" width="15" height="15" patternUnits="userSpaceOnUse" patternTransform="rotate(-45 120 96)">
-          <rect width="15" height="15" fill="#FFF2EB"/>
-          <rect width="8.25" height="15" fill="#111E38"/>
-        </pattern>
-      </defs>
-      <g clip-path="url(#mk-l-clip)">
-        <rect width="240" height="240" fill="#FFF2EB"/>
-        <circle cx="120" cy="96" r="78" fill="url(#mk-l-pat)"/>
-        <path d="M25 200 A95 95 0 0 1 215 200 Z" fill="#F5C25E"/>
-      </g>
-    </svg>
-    <span>Light</span>
-  </div>
-  <div class="brand-mark-wrap">
-    <!-- Dark variant: Delft Blue bg, cream stripes (fillRatio 0.62 → stripe=9.3/15) -->
-    <svg viewBox="0 0 240 240" width="44" height="44" xmlns="http://www.w3.org/2000/svg" shape-rendering="geometricPrecision">
-      <defs>
-        <clipPath id="mk-d-clip"><rect x="0" y="0" width="240" height="240" rx="54" ry="54"/></clipPath>
-        <pattern id="mk-d-pat" x="0" y="0" width="15" height="15" patternUnits="userSpaceOnUse" patternTransform="rotate(-45 120 96)">
-          <rect width="15" height="15" fill="#111E38"/>
-          <rect width="9.3" height="15" fill="#FFF2EB"/>
-        </pattern>
-      </defs>
-      <g clip-path="url(#mk-d-clip)">
-        <rect width="240" height="240" fill="#111E38"/>
-        <circle cx="120" cy="96" r="78" fill="url(#mk-d-pat)"/>
-        <path d="M25 200 A95 95 0 0 1 215 200 Z" fill="#F5C25E"/>
-      </g>
-    </svg>
-    <span>Dark</span>
-  </div>
-</div>
-
 <!-- Mode toggle -->
 <div id="mode-toggle">
   <button class="mode-btn active" onclick="setMode('preview')">Preview</button>
@@ -509,6 +445,11 @@ input[type=range]::-webkit-slider-thumb {
       </div>
     </div>
 
+    <div id="text-color-section" style="display:none">
+      <div class="ctrl-lbl" style="margin-top:6px">Tekst + ikon</div>
+      <div class="comp-row" id="text-chip-row"></div>
+    </div>
+
     <button id="export-btn" onclick="exportState()">Kopier verdier</button>
 
   </div>
@@ -520,29 +461,42 @@ input[type=range]::-webkit-slider-thumb {
 <script>
 'use strict';
 
-// ── Palette ────────────────────────────────────────────────────────
+// ── Palette ─────────────────────────────────────────────────────────
+// Brand-complementary only. Blues scale from near-black to Jordy;
+// neutrals from map beige/cream to warm mid; greens for parks;
+// warm accents from Sunny. All steps are harmonically stepped.
 const PALETTE = [
-  {hex:'#0B1428', name:'Deep Navy'},
+  // ── Blues (Delft → Jordy) ────────────────────────────────────────
+  {hex:'#070E1C', name:'Abyss'},
   {hex:'#111E38', name:'Delft Blue'},
   {hex:'#1A2C42', name:'Slate'},
-  {hex:'#284463', name:'Surface'},
-  {hex:'#4A6FA5', name:'Mid Blue'},
+  {hex:'#284463', name:'Mid Slate'},
+  {hex:'#3A6289', name:'Steel'},
+  {hex:'#5E8AB4', name:'Cornflower'},
   {hex:'#9CBDE7', name:'Jordy Blue'},
-  {hex:'#B5BCC8', name:'Cool'},
-  {hex:'#9BA9BC', name:'Muted'},
-  {hex:'#7BA0B8', name:'Water Blue'},
+  {hex:'#C4D9F0', name:'Ice Blue'},
+  // ── Warm neutrals (map / glass) ──────────────────────────────────
+  {hex:'#A89D8A', name:'Sand'},
+  {hex:'#C6BAA6', name:'Stone'},
+  {hex:'#DDD3C2', name:'Linen'},
   {hex:'#EFE4CD', name:'Map Beige'},
-  {hex:'#CBD5DC', name:'Cool Grey'},
-  {hex:'#D4D8B2', name:'Park (current)'},
-  {hex:'#9BB89C', name:'Park Mid'},
-  {hex:'#3D6840', name:'Park Dark'},
-  {hex:'#1F3C26', name:'Forest'},
-  {hex:'#A89D8A', name:'Building'},
   {hex:'#FFF2EB', name:'Cream'},
-  {hex:'#FFF4E0', name:'Warm Cream'},
-  {hex:'#F5C25E', name:'Sunny'},
+  {hex:'#FFF8F2', name:'Warm White'},
+  // ── Greens (parks / nature) ──────────────────────────────────────
+  {hex:'#1F3C26', name:'Forest'},
+  {hex:'#2E5C38', name:'Pine'},
+  {hex:'#4A7D56', name:'Moss'},
+  {hex:'#6FA07A', name:'Sage'},
+  {hex:'#9BB89C', name:'Park'},
+  {hex:'#C2D6B5', name:'Meadow'},
+  {hex:'#D9E8D0', name:'Lawn'},
+  // ── Warm accents (Sunny family) ──────────────────────────────────
+  {hex:'#7A4C18', name:'Umber'},
+  {hex:'#B87A30', name:'Bronze'},
   {hex:'#F2B948', name:'Amber'},
-  {hex:'#FFAF85', name:'Tangerine'},
+  {hex:'#F5C25E', name:'Sunny'},
+  {hex:'#F9D98C', name:'Buttercup'},
+  {hex:'#FDE8B4', name:'Champagne'},
 ];
 
 // ── Components ─────────────────────────────────────────────────────
@@ -570,10 +524,10 @@ const S = {
     'map-water':    {color:'#7BA0B8', opacity:0.85, blur:0,  diag:false, diagBg:null},
     'map-roads':    {color:'#B8AC8E', opacity:1.00, blur:0,  diag:false, diagBg:null},
     'map-parks':    {color:'#D4D8B2', opacity:1.00, blur:0,  diag:false, diagBg:null},
-    'glass-panel':  {color:'#1A2C42', opacity:0.42, blur:16, diag:false, diagBg:null},
-    'glass-card':   {color:'#1A2C42', opacity:0.78, blur:12, diag:false, diagBg:null},
-    'pin-sun':      {color:'#FAF1DD', opacity:1.00, blur:0,  diag:false, diagBg:null},
-    'pin-shade':    {color:'#284463', opacity:1.00, blur:0,  diag:false, diagBg:null},
+    'glass-panel':  {color:'#1A2C42', opacity:0.42, blur:16, diag:false, diagBg:null, textCol:null},
+    'glass-card':   {color:'#1A2C42', opacity:0.78, blur:12, diag:false, diagBg:null, textCol:null},
+    'pin-sun':      {color:'#FAF1DD', opacity:1.00, blur:0,  diag:false, diagBg:null, textCol:null},
+    'pin-shade':    {color:'#284463', opacity:1.00, blur:0,  diag:false, diagBg:null, textCol:null},
     'pin-dot':      {color:'#F5C25E', opacity:1.00, blur:0,  diag:false, diagBg:null},
     'shadow':       {color:'#0A0E28', opacity:0.28, blur:0,  diag:false, diagBg:null},
   }
@@ -638,8 +592,9 @@ function applyMapLayer(id) {
 }
 
 function applyGlassPanel() {
+  const v   = S.v['glass-panel'];
   const bg  = glassBg('glass-panel');
-  const fil = `blur(${S.v['glass-panel'].blur}px) saturate(160%)`;
+  const fil = `blur(${v.blur}px) saturate(160%)`;
   ['#top-strip','#venue-panel'].forEach(sel => {
     const el = document.querySelector(sel);
     if (!el) return;
@@ -647,14 +602,19 @@ function applyGlassPanel() {
     el.style.backdropFilter       = fil;
     el.style.webkitBackdropFilter = fil;
   });
+  // SVG icons use stroke="currentColor" so color change applies to both text and icons
+  const col = v.textCol || '';
+  document.querySelectorAll('#top-strip .ts-btn, #top-strip .ts-date, #top-strip .ts-meta, #top-strip .ts-dot').forEach(el => {
+    el.style.color = col;
+  });
 }
 
 function applyGlassCard() {
+  const v  = S.v['glass-card'];
   const bg = glassBg('glass-card');
-  document.querySelectorAll('.venue-card').forEach(el => {
-    el.style.background = bg;
-    // No backdrop-filter — cards sit inside the panel which already blurs
-  });
+  document.querySelectorAll('.venue-card').forEach(el => { el.style.background = bg; });
+  const col = v.textCol || '';
+  document.querySelectorAll('.card-name, .card-meta').forEach(el => { el.style.color = col; });
 }
 
 function applyComp(id) {
@@ -769,34 +729,35 @@ function diagPat(ctx, color, opacity, bgHex) {
 
 function drawPill(ctx, cx, cy, label, isSun, isSelected) {
   const PH=28, DR=14, PAD=10, GAP=6;
+
   ctx.save();
   ctx.font = '600 11.5px Inter, system-ui, sans-serif';
   const tw = ctx.measureText(label).width;
   const PW = PAD + DR + GAP + tw + PAD;
-  const x0 = cx - PW/2, y0 = cy - PH/2, R = PH/2;
+
+  // Translate to pill center so the diagonal pattern tiles from (0,0)
+  // in pill-local space — stripes stay anchored to the pill as the map pans.
+  ctx.translate(cx, cy);
+  const x0 = -PW/2, y0 = -PH/2, R = PH/2;
 
   const sv  = S.v[isSun ? 'pin-sun' : 'pin-shade'];
   const dot = S.v['pin-dot'];
 
-  // Drop shadow
+  // Drop shadow on pill body
   ctx.shadowColor = 'rgba(8,14,34,0.58)';
   ctx.shadowBlur = 10; ctx.shadowOffsetY = 4;
+  pillPath(ctx, x0, y0, PW, PH, R);
 
   if (sv.diag) {
-    pillPath(ctx, x0, y0, PW, PH, R);
-    ctx.shadowColor='transparent'; ctx.shadowBlur=0; ctx.shadowOffsetY=0;
     ctx.fillStyle = diagPat(ctx, sv.color, sv.opacity, sv.diagBg);
-    ctx.fill();
-    ctx.strokeStyle = rgba(sv.color, 0.55);
-    ctx.lineWidth = 1; ctx.stroke();
   } else {
-    pillPath(ctx, x0, y0, PW, PH, R);
     ctx.fillStyle = rgba(sv.color, sv.opacity);
-    ctx.fill();
-    ctx.shadowColor='transparent'; ctx.shadowBlur=0; ctx.shadowOffsetY=0;
-    ctx.strokeStyle = rgba(sv.color, 0.32);
-    ctx.lineWidth = 1; ctx.stroke();
   }
+  ctx.fill();
+
+  ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+  ctx.strokeStyle = rgba(sv.color, sv.diag ? 0.55 : 0.32);
+  ctx.lineWidth = 1; ctx.stroke();
 
   // Selected ring
   if (isSelected) {
@@ -804,29 +765,44 @@ function drawPill(ctx, cx, cy, label, isSun, isSelected) {
     ctx.strokeStyle = '#F5C25E'; ctx.lineWidth = 2.5; ctx.stroke();
   }
 
-  // Effective luminance: when diagBg is set, the gap color dominates visually
-  const pillLum = sv.diagBg ? lum(sv.diagBg) : (sv.diag ? 0.3 : lum(sv.color));
+  // Effective luminance: gap color dominates on cream-diag, stripes read dark on transparent-diag
+  const pillLum = sv.diagBg ? lum(sv.diagBg) : (sv.diag ? 0.28 : lum(sv.color));
 
-  // Status dot — uses pin-dot color; shade pins get reduced opacity for contrast
+  // Status dot — opaque backing on diagonal so it doesn't bleed through
   const dotX = x0 + PAD + DR/2;
-  ctx.beginPath(); ctx.arc(dotX, cy, DR/2, 0, Math.PI*2);
+  if (sv.diag) {
+    ctx.beginPath(); ctx.arc(dotX, 0, DR/2 + 2, 0, Math.PI*2);
+    ctx.fillStyle = sv.diagBg || (pillLum > 0.4 ? 'rgba(255,255,255,0.88)' : 'rgba(10,20,50,0.88)');
+    ctx.fill();
+  }
+  ctx.beginPath(); ctx.arc(dotX, 0, DR/2, 0, Math.PI*2);
   ctx.fillStyle = isSun
     ? rgba(dot.color, dot.opacity)
     : rgba(dot.color, dot.opacity * 0.35);
   ctx.fill();
-  // Dot contrast ring on light-background pills
   if (pillLum > 0.55) {
-    ctx.beginPath(); ctx.arc(dotX, cy, DR/2, 0, Math.PI*2);
+    ctx.beginPath(); ctx.arc(dotX, 0, DR/2, 0, Math.PI*2);
     ctx.strokeStyle = 'rgba(26,44,66,0.18)'; ctx.lineWidth = 1; ctx.stroke();
   }
 
-  // Text — auto light/dark based on effective pill luminance
-  const textColor = pillLum > 0.55
-    ? 'rgba(26,44,66,0.92)'
-    : 'rgba(255,244,224,0.95)';
-  ctx.fillStyle = textColor;
+  // Text color: explicit override or auto-contrast
+  const autoText = pillLum > 0.55 ? 'rgba(26,44,66,0.92)' : 'rgba(255,244,224,0.95)';
+  const textColor = sv.textCol ? rgba(sv.textCol, 1.0) : autoText;
+  const isTextLight = sv.textCol ? lum(sv.textCol) > 0.5 : pillLum <= 0.55;
+  const haloCol = isTextLight ? 'rgba(8,18,42,0.82)' : 'rgba(255,248,235,0.90)';
+
+  const textX = x0 + PAD + DR + GAP;
   ctx.font = '600 11.5px Inter, system-ui, sans-serif';
-  ctx.fillText(label, x0+PAD+DR+GAP, cy+4);
+
+  // Outline/halo on diagonal fills so text never competes with stripe lines
+  if (sv.diag) {
+    ctx.strokeStyle = haloCol;
+    ctx.lineWidth = 3.5; ctx.lineJoin = 'round';
+    ctx.strokeText(label, textX, 4);
+  }
+  ctx.fillStyle = textColor;
+  ctx.fillText(label, textX, 4);
+
   ctx.restore();
 }
 
@@ -898,6 +874,23 @@ function buildCtrl() {
   dc.onclick = () => pickDiagCream();
   pr.appendChild(dc);
 
+  // Text color chips — shown only for components that have text/icons
+  const TEXT_COMPS = ['glass-panel','glass-card','pin-sun','pin-shade'];
+  const tcr = document.getElementById('text-chip-row');
+  [
+    {label:'Auto',  value:null},
+    {label:'Lys',   value:'#FFF8F2'},
+    {label:'Muted', value:'#9CBDE7'},
+    {label:'Mørk',  value:'#111E38'},
+  ].forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'comp-chip';
+    btn.textContent = opt.label;
+    btn.dataset.textVal = opt.value || '';
+    btn.onclick = () => setTextCol(opt.value);
+    tcr.appendChild(btn);
+  });
+
   syncCtrl();
 }
 
@@ -921,6 +914,11 @@ function pickDiag() {
 function pickDiagCream() {
   S.v[S.comp].diag   = true;
   S.v[S.comp].diagBg = '#FFF2EB';
+  applyComp(S.comp);
+  syncCtrl();
+}
+function setTextCol(hexOrNull) {
+  S.v[S.comp].textCol = hexOrNull;
   applyComp(S.comp);
   syncCtrl();
 }
@@ -966,6 +964,17 @@ function syncCtrl() {
     const bs = document.getElementById('sl-blur');
     bs.value = v.blur;
     document.getElementById('val-blur').textContent = v.blur + 'px';
+  }
+
+  // Text color section — only for components with text/icons
+  const TEXT_COMPS = ['glass-panel','glass-card','pin-sun','pin-shade'];
+  const textSec = document.getElementById('text-color-section');
+  textSec.style.display = TEXT_COMPS.includes(S.comp) ? 'block' : 'none';
+  if (TEXT_COMPS.includes(S.comp)) {
+    const cur = v.textCol || '';
+    document.querySelectorAll('#text-chip-row .comp-chip').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.textVal === cur);
+    });
   }
 }
 
