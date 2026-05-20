@@ -89,11 +89,12 @@ html, body {
   gap: 5px; overflow: hidden; padding: 0 4px;
 }
 .ts-date {
-  background: transparent; border: none; cursor: default;
+  background: rgba(255,244,224,0.10); cursor: default;
   font-family: 'Inter', sans-serif;
   font-size: 13px; font-weight: 600; color: var(--text);
   display: flex; align-items: center; gap: 3px;
-  padding: 2px 6px; border-radius: 6px;
+  padding: 4px 10px; border-radius: 999px;
+  border: 1px solid rgba(255,244,224,0.20);
 }
 .ts-date svg { width: 12px; height: 12px; opacity: 0.55; }
 .ts-dot { opacity: 0.3; font-size: 12px; }
@@ -450,10 +451,16 @@ input[type=range]::-webkit-slider-thumb {
         <span class="slider-val" id="val-blur">16px</span>
       </div>
       <div class="slider-row" id="length-row" style="display:none">
-        <span class="slider-lbl">Length</span>
-        <input type="range" id="sl-length" min="5" max="180" value="50" step="5"
+        <span class="slider-lbl">Altitude</span>
+        <input type="range" id="sl-length" min="5" max="85" value="34" step="1"
                oninput="onLength(this)">
-        <span class="slider-val" id="val-length">50m</span>
+        <span class="slider-val" id="val-length">34°</span>
+      </div>
+      <div class="slider-row" id="azimuth-row" style="display:none">
+        <span class="slider-lbl">Azimuth</span>
+        <input type="range" id="sl-azimuth" min="0" max="360" value="235" step="1"
+               oninput="onAzimuth(this)">
+        <span class="slider-val" id="val-azimuth">235°</span>
       </div>
     </div>
 
@@ -541,7 +548,7 @@ const S = {
     'pin-sun':      {color:'#FAF1DD', opacity:1.00, blur:0,  diag:false, diagBg:null, textCol:null},
     'pin-shade':    {color:'#284463', opacity:1.00, blur:0,  diag:false, diagBg:null, textCol:null},
     'pin-dot':      {color:'#F5C25E', opacity:1.00, blur:0,  diag:false, diagBg:null},
-    'shadow':       {color:'#0A0E28', opacity:0.38, blur:0,  diag:false, diagBg:null, length:50},
+    'shadow':       {color:'#0A0E28', opacity:0.55, blur:0,  diag:false, diagBg:null, length:34, azimuth:235},
   }
 };
 
@@ -633,89 +640,42 @@ function applyComp(id) {
   if (['map-bg','map-building','map-water','map-roads','map-parks'].includes(id)) applyMapLayer(id);
   else if (id==='glass-panel') applyGlassPanel();
   else if (id==='glass-card')  applyGlassCard();
-  else /* pin-sun, pin-shade, pin-dot, shadow */ drawPins();
+  else if (id==='shadow')      applyShadowLighting();
+  else /* pin-sun, pin-shade, pin-dot */ drawPins();
 }
 
 function applyAll() {
   Object.keys(S.v).forEach(id => applyComp(id));
 }
 
-// ── Shadow polygons ────────────────────────────────────────────────
-// Queries rendered building footprints and draws offset shadow patches.
-// Oslo ~15:00 May: sun azimuth ~235° (WSW) → shadow direction NNE (55°).
-//
-// Two key design decisions:
-//   1. Draw only the OFFSET footprint (where shadow lands), not a sweep
-//      from the building — the sweep algorithm self-intersects on complex
-//      polygons and creates huge dark blobs on pitched maps.
-//   2. Composite via an offscreen canvas at the final opacity so overlapping
-//      shadows from adjacent buildings don't compound and darken.
-function drawShadowPolygons(ctx) {
+// ── Shadow lighting (Mapbox native) ───────────────────────────────
+// Uses map.setLights() with cast-shadows:true. Ambient light keeps
+// building faces uniformly coloured; directional is kept at near-zero
+// intensity so face-lighting is barely visible but shadows still cast.
+function applyShadowLighting() {
   const map = window._map;
   if (!map || !map.isStyleLoaded()) return;
   const sv = S.v['shadow'];
-  if (sv.opacity < 0.01) return;
-
-  const az   = 55 * Math.PI / 180;   // 55° from North = NNE
-  const len  = sv.length ?? 50;       // metres
-  const lat0 = 59.912;
-  const dLat = len * Math.cos(az) / 111320;
-  const dLng = len * Math.sin(az) / (111320 * Math.cos(lat0 * Math.PI / 180));
-
-  const layerIds = ['building-flat', 'building'].filter(id => {
-    try { return !!map.getLayer(id); } catch { return false; }
-  });
-  if (!layerIds.length) return;
-
-  const features = map.queryRenderedFeatures({ layers: layerIds });
-  if (!features.length) return;
-
-  // Offscreen canvas: all shadows drawn at full opacity, then composited
-  // once — prevents overlap areas from becoming disproportionately dark.
-  const cv  = document.getElementById('pin-canvas');
-  const dpr = window.devicePixelRatio || 1;
-  const tmp = document.createElement('canvas');
-  tmp.width  = cv.width;
-  tmp.height = cv.height;
-  const tctx = tmp.getContext('2d');
-  tctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  tctx.fillStyle = rgba(sv.color, 1.0);
-
-  const seen = new Set();
-  let n = 0;
-  for (const f of features) {
-    if (n > 150) break;
-    const key = f.id != null
-      ? `${f.layer.id}:${f.id}`
-      : JSON.stringify(f.geometry.coordinates[0]?.slice(0, 2));
-    if (seen.has(key)) continue;
-    seen.add(key); n++;
-
-    const geom = f.geometry;
-    const rings = geom.type === 'Polygon'
-      ? [geom.coordinates[0]]
-      : geom.type === 'MultiPolygon'
-        ? geom.coordinates.map(p => p[0])
-        : [];
-
-    rings.forEach(ring => {
-      if (!ring?.length) return;
-      try {
-        // Project only the shadow-offset ring — the patch where sun is blocked
-        const pts = ring.map(([lng, lat]) => map.project([lng + dLng, lat + dLat]));
-        tctx.beginPath();
-        pts.forEach((p, i) => i === 0 ? tctx.moveTo(p.x, p.y) : tctx.lineTo(p.x, p.y));
-        tctx.closePath();
-        tctx.fill();
-      } catch(e) {}
-    });
-  }
-
-  // Composite the flat shadow layer at the chosen opacity
-  ctx.save();
-  ctx.globalAlpha = sv.opacity;
-  ctx.drawImage(tmp, 0, 0, cv.width / dpr, cv.height / dpr);
-  ctx.restore();
+  try {
+    map.setLights([
+      {
+        id: 'lab-ambient',
+        type: 'ambient',
+        properties: { color: 'white', intensity: 0.95 }
+      },
+      {
+        id: 'lab-sun',
+        type: 'directional',
+        properties: {
+          direction:        [sv.azimuth ?? 235, sv.length ?? 34],
+          color:            'white',
+          intensity:        0.05,
+          'cast-shadows':   true,
+          'shadow-intensity': sv.opacity
+        }
+      }
+    ]);
+  } catch(e) { console.warn('setLights:', e); }
 }
 
 // ── Pin canvas ─────────────────────────────────────────────────────
@@ -735,8 +695,6 @@ function _doPins() {
   ctx.clearRect(0, 0, cv.width, cv.height);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   if (!window._map) return;
-
-  drawShadowPolygons(ctx);
 
   VENUES.forEach((v, i) => {
     try {
@@ -981,7 +939,12 @@ function onBlur(input) {
 }
 function onLength(input) {
   S.v[S.comp].length = +input.value;
-  document.getElementById('val-length').textContent = input.value + 'm';
+  document.getElementById('val-length').textContent = input.value + '°';
+  applyComp(S.comp);
+}
+function onAzimuth(input) {
+  S.v[S.comp].azimuth = +input.value;
+  document.getElementById('val-azimuth').textContent = input.value + '°';
   applyComp(S.comp);
 }
 
@@ -1018,13 +981,21 @@ function syncCtrl() {
     document.getElementById('val-blur').textContent = v.blur + 'px';
   }
 
-  // Length row (shadow)
-  const lengthRow = document.getElementById('length-row');
-  lengthRow.style.display = comp?.length ? 'flex' : 'none';
+  // Altitude + Azimuth rows (shadow only)
+  const lengthRow  = document.getElementById('length-row');
+  const azimuthRow = document.getElementById('azimuth-row');
+  const isShadow   = S.comp === 'shadow';
+  lengthRow.style.display  = comp?.length  ? 'flex' : 'none';
+  azimuthRow.style.display = isShadow      ? 'flex' : 'none';
   if (comp?.length) {
     const ls = document.getElementById('sl-length');
-    ls.value = v.length ?? 50;
-    document.getElementById('val-length').textContent = (v.length ?? 50) + 'm';
+    ls.value = v.length ?? 34;
+    document.getElementById('val-length').textContent = (v.length ?? 34) + '°';
+  }
+  if (isShadow) {
+    const as = document.getElementById('sl-azimuth');
+    as.value = v.azimuth ?? 235;
+    document.getElementById('val-azimuth').textContent = (v.azimuth ?? 235) + '°';
   }
 
   // Text color section — only for components with text/icons
@@ -1116,6 +1087,7 @@ function initMap() {
     applyMapLayer('map-water');
     applyMapLayer('map-roads');
     applyMapLayer('map-parks');
+    applyShadowLighting();
     drawPins();
   });
 
