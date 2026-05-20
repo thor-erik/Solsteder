@@ -649,33 +649,35 @@ function applyAll() {
 }
 
 // ── Shadow lighting (Mapbox native) ───────────────────────────────
-// Uses map.setLights() with cast-shadows:true. Ambient light keeps
-// building faces uniformly coloured; directional is kept at near-zero
-// intensity so face-lighting is barely visible but shadows still cast.
+// Mapbox GL v3 light types: 'flat' (ambient fill) + 'directional'.
+// 'ambient' was renamed to 'flat' in v3 — using wrong type throws silently.
+// direction: [azimuthal°, polar°]; polar 0=overhead, 90=horizon.
+// sv.length is sun altitude above horizon, so polar = 90 - altitude.
 function applyShadowLighting() {
   const map = window._map;
   if (!map || !map.isStyleLoaded()) return;
   const sv = S.v['shadow'];
-  try {
-    map.setLights([
-      {
-        id: 'lab-ambient',
-        type: 'ambient',
-        properties: { color: 'white', intensity: 0.95 }
-      },
-      {
-        id: 'lab-sun',
-        type: 'directional',
-        properties: {
-          direction:        [sv.azimuth ?? 235, sv.length ?? 34],
-          color:            'white',
-          intensity:        0.05,
-          'cast-shadows':   true,
-          'shadow-intensity': sv.opacity
-        }
+  const altitude   = sv.length  ?? 34;
+  const azimuth    = sv.azimuth ?? 235;
+  const polarAngle = 90 - altitude;
+  map.setLights([
+    {
+      id: 'lab-flat',
+      type: 'flat',
+      properties: { color: 'white', intensity: 0.9 }
+    },
+    {
+      id: 'lab-sun',
+      type: 'directional',
+      properties: {
+        direction:          [azimuth, polarAngle],
+        color:              'white',
+        intensity:          0.1,
+        'cast-shadows':     true,
+        'shadow-intensity': sv.opacity
       }
-    ]);
-  } catch(e) { console.warn('setLights:', e); }
+    }
+  ]);
 }
 
 // ── Pin canvas ─────────────────────────────────────────────────────
@@ -1074,7 +1076,7 @@ function initMap() {
     style,
     center:             [10.745, 59.912],
     zoom:               14.2,
-    pitch:              0,
+    pitch:              45,
     bearing:            0,
     attributionControl: false,
     logoPosition:       'bottom-left',
