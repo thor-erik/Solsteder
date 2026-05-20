@@ -21,10 +21,10 @@
     // Cream / text
     text:      '#FFF4E0',  // warm cream (--text)
     cream100:  '#DECCC0',
-    // Delft Blue / surfaces
-    bg:        '#111E38',  // Delft Blue (--bg)
-    surface:   '#142E52',  // deep blue-800 (canvas card-surface)
-    surfaceDeep: '#0A1830',
+    // Slate / surfaces
+    bg:        '#1A2C42',  // slate (--bg)
+    surface:   '#284463',  // slate mid (canvas card-surface)
+    surfaceDeep: '#0F1B2A',
     muted:     '#9BA9BC',  // cool grey (--muted)
     cool:      '#B5BCC8',  // (--cool)
     rain:      '#6F8AA8',  // (--rain)
