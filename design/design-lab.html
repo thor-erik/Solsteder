@@ -1,0 +1,864 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Shades — Design Lab</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.10.0/mapbox-gl.css" rel="stylesheet" />
+<style>
+/* ── Reset ──────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Design tokens (mirrors app :root) ───────────────────────────── */
+:root {
+  --bg:            #1A2C42;
+  --text:          #FFF4E0;
+  --accent:        #F5C25E;
+  --accent-on:     #2C1F02;
+  --accent-dim:    rgba(245,194,94,0.16);
+  --accent-border: rgba(245,194,94,0.42);
+  --muted:         #9BA9BC;
+  --cool:          #B5BCC8;
+  --rain:          #6F8AA8;
+
+  --glass-panel-bg:   linear-gradient(135deg, rgba(26,44,66,0.36) 0%, rgba(58,92,130,0.22) 100%), rgba(26,44,66,0.42);
+  --glass-card-bg:    linear-gradient(135deg, rgba(26,44,66,0.36) 0%, rgba(58,92,130,0.22) 100%), rgba(26,44,66,0.78);
+  --glass-blur-panel: blur(16px) saturate(160%);
+  --glass-blur-card:  blur(12px) saturate(160%);
+  --glass-border:     1px solid rgba(155,169,188,0.22);
+  --glass-inset:      inset 0 1px 0 rgba(255,244,224,0.14), inset 0 -1px 0 rgba(26,44,66,0.35);
+}
+
+html, body {
+  width: 100%; height: 100%; overflow: hidden;
+  background: #0F1B2A;
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  color: var(--text);
+}
+
+/* ── Map ─────────────────────────────────────────────────────────── */
+#map { position: fixed; inset: 0; z-index: 0; }
+
+/* ── Pin canvas ──────────────────────────────────────────────────── */
+#pin-canvas {
+  position: fixed; inset: 0;
+  z-index: 5; pointer-events: none;
+}
+
+/* ── Top strip (exact app spec) ──────────────────────────────────── */
+#top-strip {
+  position: fixed;
+  top: max(calc(env(safe-area-inset-top, 0px) + 2px), 14px);
+  left: 12px; right: 12px;
+  height: 46px;
+  z-index: 100;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 23px;
+  background: var(--glass-panel-bg);
+  backdrop-filter: var(--glass-blur-panel);
+  -webkit-backdrop-filter: var(--glass-blur-panel);
+  border: var(--glass-border);
+  box-shadow: var(--glass-inset), 0 6px 20px rgba(0,0,0,0.30);
+}
+.ts-left, .ts-right {
+  display: flex; align-items: center; gap: 2px;
+}
+.ts-btn {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text); opacity: 0.72;
+  background: transparent; border: none; cursor: default;
+}
+.ts-btn svg { width: 18px; height: 18px; }
+.ts-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: rgba(155,169,188,0.22);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: var(--muted);
+  margin: 0 4px;
+}
+.ts-center {
+  display: flex; align-items: center; justify-content: center;
+  gap: 5px; overflow: hidden; padding: 0 4px;
+}
+.ts-date {
+  background: transparent; border: none; cursor: default;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px; font-weight: 600; color: var(--text);
+  display: flex; align-items: center; gap: 3px;
+  padding: 2px 6px; border-radius: 6px;
+}
+.ts-date svg { width: 12px; height: 12px; opacity: 0.55; }
+.ts-dot { opacity: 0.3; font-size: 12px; }
+.ts-meta { font-size: 12px; font-weight: 500; color: rgba(255,244,224,0.72); }
+
+/* ── Mode toggle ─────────────────────────────────────────────────── */
+#mode-toggle {
+  position: fixed;
+  bottom: 316px;
+  right: 14px;
+  z-index: 110;
+  display: flex;
+  background: rgba(12,22,42,0.88);
+  backdrop-filter: blur(14px) saturate(180%);
+  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  border: var(--glass-border);
+  border-radius: 999px;
+  overflow: hidden;
+  box-shadow: 0 2px 14px rgba(0,0,0,0.55);
+}
+.mode-btn {
+  border: none; background: transparent;
+  color: rgba(255,244,224,0.45);
+  font-family: 'Inter', sans-serif;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 7px 14px;
+  cursor: pointer; transition: all 0.15s;
+}
+.mode-btn.active {
+  background: rgba(255,244,224,0.11);
+  color: var(--text);
+}
+
+/* ── Shared bottom panel base ────────────────────────────────────── */
+.bottom-panel {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  z-index: 90;
+  border-radius: 18px 18px 0 0;
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 12px);
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.bottom-panel.hidden { transform: translateY(110%); }
+.ph { /* panel handle */
+  display: flex; justify-content: center;
+  padding: 10px 0 6px;
+}
+.ph-bar {
+  width: 36px; height: 4px; border-radius: 2px;
+  background: rgba(255,244,224,0.20);
+}
+
+/* ── Venue panel ─────────────────────────────────────────────────── */
+#venue-panel {
+  background: var(--glass-panel-bg);
+  backdrop-filter: var(--glass-blur-panel);
+  -webkit-backdrop-filter: var(--glass-blur-panel);
+  border-top: var(--glass-border);
+  box-shadow: var(--glass-inset), 0 -8px 32px rgba(0,0,0,0.45);
+}
+.panel-header {
+  padding: 0 16px 8px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.panel-header-title {
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: rgba(255,244,224,0.38);
+}
+.panel-header-sub {
+  font-size: 11px; font-weight: 500;
+  color: rgba(255,244,224,0.30);
+}
+.panel-list {
+  padding: 0 10px 4px;
+  display: flex; flex-direction: column;
+  max-height: 270px;
+  overflow-y: auto; overscroll-behavior: contain;
+}
+
+/* ── Venue card (exact app CSS) ──────────────────────────────────── */
+.venue-card {
+  background: var(--glass-card-bg);
+  /* No backdrop-filter — cards sit inside #venue-panel which already blurs */
+  border: 1px solid rgba(155,169,188,0.34);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  display: flex; flex-direction: column; gap: 4px;
+  position: relative;
+  box-shadow:
+    inset 0 1px 0 rgba(255,250,235,0.16),
+    inset 0 -1px 0 rgba(15,30,55,0.40),
+    0 1px 2px rgba(0,0,0,0.18),
+    0 4px 14px rgba(0,0,0,0.30);
+}
+.card-row1 {
+  display: flex; align-items: center;
+  justify-content: space-between; gap: 8px;
+}
+.card-name {
+  flex: 1; min-width: 0;
+  font-size: 15px; font-weight: 700; line-height: 1.2;
+  color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.card-duration {
+  flex-shrink: 0;
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 14px; font-weight: 600; color: var(--accent);
+  white-space: nowrap;
+}
+.card-meta {
+  font-size: 11px; font-weight: 500; color: var(--muted);
+  display: flex; align-items: center; gap: 0;
+  white-space: nowrap; overflow: hidden;
+}
+.card-meta .card-meta-dot { opacity: 0.4; margin: 0 4px; }
+.card-pills { display: flex; gap: 6px; margin: 4px 0 0; }
+.card-pill {
+  height: 26px; padding: 0 11px; border-radius: 13px;
+  font-size: 12px; font-weight: 600; line-height: 1;
+  display: inline-flex; align-items: center; white-space: nowrap;
+}
+.card-pill.pill-sol {
+  background: var(--accent-dim);
+  border: 1px solid rgba(245,194,94,0.35);
+  color: var(--accent);
+}
+.card-pill.pill-skygge {
+  background: rgba(156,189,231,0.10);
+  border: 1px solid rgba(156,189,231,0.22);
+  color: var(--muted);
+}
+.card-pill.pill-aapner {
+  background: rgba(255,242,235,0.10);
+  border: 1px solid rgba(255,242,235,0.18);
+  color: rgba(255,242,235,0.70);
+}
+
+/* ── Control panel ───────────────────────────────────────────────── */
+#ctrl-panel {
+  background: rgba(13,22,44,0.95);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border-top: 1px solid rgba(155,169,188,0.16);
+  box-shadow: 0 -8px 40px rgba(0,0,0,0.60);
+}
+.ctrl-body {
+  padding: 2px 16px 8px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.ctrl-lbl {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: rgba(255,244,224,0.32);
+  margin-bottom: 7px;
+}
+
+/* Component chips — horizontal scroll */
+.comp-row {
+  display: flex; flex-wrap: nowrap; overflow-x: auto;
+  gap: 6px; padding-bottom: 2px;
+  -webkit-overflow-scrolling: touch; scrollbar-width: none;
+}
+.comp-row::-webkit-scrollbar { display: none; }
+.comp-chip {
+  flex-shrink: 0;
+  height: 28px; padding: 0 11px; border-radius: 14px;
+  border: 1px solid rgba(155,169,188,0.20);
+  background: rgba(255,244,224,0.04);
+  color: rgba(255,244,224,0.50);
+  font-family: 'Inter', sans-serif;
+  font-size: 11px; font-weight: 600;
+  cursor: pointer; transition: all 0.12s; white-space: nowrap;
+}
+.comp-chip.active {
+  background: rgba(255,244,224,0.12);
+  border-color: rgba(255,244,224,0.40);
+  color: var(--text);
+}
+
+/* Palette — horizontal scroll */
+.palette-row {
+  display: flex; flex-wrap: nowrap; overflow-x: auto;
+  gap: 8px; padding: 2px 0 6px;
+  -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  align-items: center;
+}
+.palette-row::-webkit-scrollbar { display: none; }
+.swatch {
+  flex-shrink: 0;
+  width: 26px; height: 26px; border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform 0.12s, border-color 0.12s;
+}
+.swatch.selected {
+  border-color: rgba(255,244,224,0.90);
+  transform: scale(1.20);
+}
+.swatch:active { transform: scale(0.88); }
+.swatch-diag {
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(255,244,224,0.65) 0px, rgba(255,244,224,0.65) 2px,
+    rgba(26,44,66,0.80) 2px, rgba(26,44,66,0.80) 7px
+  );
+  border-color: rgba(155,169,188,0.28) !important;
+}
+.swatch-diag.selected { border-color: rgba(255,244,224,0.90) !important; }
+
+/* Sliders */
+.slider-rows { display: flex; flex-direction: column; gap: 8px; }
+.slider-row { display: flex; align-items: center; gap: 10px; }
+.slider-lbl {
+  font-size: 11px; font-weight: 600;
+  color: rgba(255,244,224,0.42);
+  width: 52px; flex-shrink: 0;
+}
+.slider-val {
+  font-size: 11px; font-weight: 600;
+  color: rgba(255,244,224,0.42);
+  width: 38px; text-align: right; flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+input[type=range] {
+  flex: 1; -webkit-appearance: none; appearance: none;
+  height: 4px; background: rgba(255,244,224,0.13);
+  border-radius: 2px; outline: none;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--text); cursor: pointer;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.45);
+}
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+<canvas id="pin-canvas"></canvas>
+
+<!-- Top strip -->
+<div id="top-strip">
+  <div class="ts-left">
+    <button class="ts-btn"><div class="ts-avatar">TE</div></button>
+    <button class="ts-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/>
+        <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
+      </svg>
+    </button>
+  </div>
+  <div class="ts-center">
+    <button class="ts-date">
+      I dag
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <path d="M6 9l6 6 6-6"/>
+      </svg>
+    </button>
+    <span class="ts-dot">·</span>
+    <span class="ts-meta">☀️ 18°</span>
+    <span class="ts-dot">·</span>
+    <span class="ts-meta">💨 3 m/s</span>
+  </div>
+  <div class="ts-right">
+    <button class="ts-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<!-- Mode toggle -->
+<div id="mode-toggle">
+  <button class="mode-btn active" onclick="setMode('preview')">Preview</button>
+  <button class="mode-btn"        onclick="setMode('controls')">Kontroller</button>
+</div>
+
+<!-- Venue panel (preview mode) -->
+<div id="venue-panel" class="bottom-panel">
+  <div class="ph"><div class="ph-bar"></div></div>
+  <div class="panel-header">
+    <span class="panel-header-title">Solrike steder</span>
+    <span class="panel-header-sub">5 åpne nå</span>
+  </div>
+  <div class="panel-list" id="panel-list"></div>
+</div>
+
+<!-- Control panel (controls mode) -->
+<div id="ctrl-panel" class="bottom-panel hidden">
+  <div class="ph"><div class="ph-bar"></div></div>
+  <div class="ctrl-body">
+
+    <div>
+      <div class="ctrl-lbl">Komponent</div>
+      <div class="comp-row" id="comp-row"></div>
+    </div>
+
+    <div>
+      <div class="ctrl-lbl">Farge</div>
+      <div class="palette-row" id="palette-row"></div>
+    </div>
+
+    <div class="slider-rows">
+      <div class="slider-row">
+        <span class="slider-lbl">Opacity</span>
+        <input type="range" id="sl-opacity" min="0" max="100" value="42"
+               oninput="onOpacity(this)">
+        <span class="slider-val" id="val-opacity">42%</span>
+      </div>
+      <div class="slider-row" id="blur-row" style="display:none">
+        <span class="slider-lbl">Blur</span>
+        <input type="range" id="sl-blur" min="0" max="32" value="16"
+               oninput="onBlur(this)">
+        <span class="slider-val" id="val-blur">16px</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.10.0/mapbox-gl.js"></script>
+<script src="../js/config.js" onerror="void(0)"></script>
+<script src="../js/map-style.js" onerror="void(0)"></script>
+<script>
+'use strict';
+
+// ── Palette ────────────────────────────────────────────────────────
+const PALETTE = [
+  {hex:'#0B1428', name:'Deep Navy'},
+  {hex:'#111E38', name:'Delft Blue'},
+  {hex:'#1A2C42', name:'Slate'},
+  {hex:'#284463', name:'Surface'},
+  {hex:'#4A6FA5', name:'Mid Blue'},
+  {hex:'#9CBDE7', name:'Jordy Blue'},
+  {hex:'#B5BCC8', name:'Cool'},
+  {hex:'#9BA9BC', name:'Muted'},
+  {hex:'#7BA0B8', name:'Water Blue'},
+  {hex:'#EFE4CD', name:'Map Beige'},
+  {hex:'#CBD5DC', name:'Cool Grey'},
+  {hex:'#D4D8B2', name:'Green'},
+  {hex:'#A89D8A', name:'Building'},
+  {hex:'#FFF2EB', name:'Cream'},
+  {hex:'#FFF4E0', name:'Warm Cream'},
+  {hex:'#F5C25E', name:'Sunny'},
+  {hex:'#F2B948', name:'Amber'},
+  {hex:'#FFAF85', name:'Tangerine'},
+];
+
+// ── Components ─────────────────────────────────────────────────────
+const COMPS = [
+  {id:'map-bg',       label:'Map BG',    blur:false},
+  {id:'map-building', label:'Buildings', blur:false},
+  {id:'map-water',    label:'Water',     blur:false},
+  {id:'map-roads',    label:'Roads',     blur:false},
+  {id:'glass-panel',  label:'Panel',     blur:true },
+  {id:'glass-card',   label:'Card',      blur:true },
+  {id:'pin-sun',      label:'Sun Pin',   blur:false},
+  {id:'pin-shade',    label:'Shade Pin', blur:false},
+  {id:'shadow',       label:'Shadow',    blur:false},
+];
+
+// ── State ──────────────────────────────────────────────────────────
+const S = {
+  mode: 'preview',
+  comp: 'glass-panel',
+  v: {
+    'map-bg':       {color:'#EFE4CD', opacity:1.00, blur:0,  diag:false},
+    'map-building': {color:'#A89D8A', opacity:1.00, blur:0,  diag:false},
+    'map-water':    {color:'#7BA0B8', opacity:0.85, blur:0,  diag:false},
+    'map-roads':    {color:'#B8AC8E', opacity:1.00, blur:0,  diag:false},
+    'glass-panel':  {color:'#1A2C42', opacity:0.42, blur:16, diag:false},
+    'glass-card':   {color:'#1A2C42', opacity:0.78, blur:12, diag:false},
+    'pin-sun':      {color:'#FAF1DD', opacity:1.00, blur:0,  diag:false},
+    'pin-shade':    {color:'#284463', opacity:1.00, blur:0,  diag:false},
+    'shadow':       {color:'#0A0E28', opacity:0.18, blur:0,  diag:false},
+  }
+};
+
+// ── Venues ─────────────────────────────────────────────────────────
+const VENUES = [
+  {name:'Fiskeriet Youngstorget', area:'Sentrum',     duration:'3t 20min', sun:true,  dist:'5 min',  lng:10.749, lat:59.9132},
+  {name:'Brutal',                 area:'Grünerløkka', duration:'5t 10min', sun:true,  dist:'12 min', lng:10.763, lat:59.9210},
+  {name:'Mathallen Oslo',         area:'Vulkan',      duration:'1t 45min', sun:false, dist:'8 min',  lng:10.752, lat:59.9208},
+  {name:'Aker Brygge',            area:'Tjuvholmen',  duration:'6t 00min', sun:true,  dist:'20 min', lng:10.730, lat:59.9075},
+  {name:'Café Sara',              area:'Grønland',    duration:'2t 30min', sun:false, dist:'7 min',  lng:10.755, lat:59.9102},
+];
+
+// ── Colour helpers ─────────────────────────────────────────────────
+function rgb(hex) {
+  const h = hex.replace('#','');
+  return [parseInt(h,16)>>16&255, parseInt(h,16)>>8&255, parseInt(h,16)&255];
+}
+function rgba(hex, a) { const [r,g,b]=rgb(hex); return `rgba(${r},${g},${b},${a})`; }
+function lum(hex)     { const [r,g,b]=rgb(hex); return (0.299*r+0.587*g+0.114*b)/255; }
+
+// ── Build glass background string ─────────────────────────────────
+function glassBg(id) {
+  const v = S.v[id];
+  const [r,g,b] = rgb(v.color);
+  const r2=Math.min(255,r+32), g2=Math.min(255,g+48), b2=Math.min(255,b+64);
+  return `linear-gradient(135deg,rgba(${r},${g},${b},0.36) 0%,rgba(${r2},${g2},${b2},0.22) 100%),rgba(${r},${g},${b},${v.opacity})`;
+}
+
+// ── Apply ──────────────────────────────────────────────────────────
+function applyMapLayer(id) {
+  const map = window._map;
+  if (!map || !map.isStyleLoaded()) return;
+  const v = S.v[id];
+  const c = rgba(v.color, v.opacity);
+
+  if (id==='map-bg')
+    map.setPaintProperty('background', 'background-color', c);
+
+  if (id==='map-water') {
+    if (map.getLayer('water'))     map.setPaintProperty('water',     'fill-color', c);
+    if (map.getLayer('waterway'))  map.setPaintProperty('waterway',  'line-color', rgba(v.color, v.opacity*0.80));
+  }
+
+  if (id==='map-building') {
+    if (map.getLayer('building-flat')) map.setPaintProperty('building-flat','fill-color',c);
+    if (map.getLayer('building'))      map.setPaintProperty('building','fill-extrusion-color',v.color);
+  }
+
+  if (id==='map-roads') {
+    ['road-motorway','road-primary','road-secondary','road-minor'].forEach(l => {
+      if (map.getLayer(l)) map.setPaintProperty(l,'line-color',c);
+    });
+  }
+}
+
+function applyGlassPanel() {
+  const bg  = glassBg('glass-panel');
+  const fil = `blur(${S.v['glass-panel'].blur}px) saturate(160%)`;
+  ['#top-strip','#venue-panel'].forEach(sel => {
+    const el = document.querySelector(sel);
+    if (!el) return;
+    el.style.background           = bg;
+    el.style.backdropFilter       = fil;
+    el.style.webkitBackdropFilter = fil;
+  });
+}
+
+function applyGlassCard() {
+  const bg = glassBg('glass-card');
+  document.querySelectorAll('.venue-card').forEach(el => {
+    el.style.background = bg;
+    // No backdrop-filter — cards sit inside the panel which already blurs
+  });
+}
+
+function applyComp(id) {
+  if (['map-bg','map-building','map-water','map-roads'].includes(id)) applyMapLayer(id);
+  else if (id==='glass-panel') applyGlassPanel();
+  else if (id==='glass-card')  applyGlassCard();
+  else /* pin-sun, pin-shade, shadow */ drawPins();
+}
+
+function applyAll() {
+  Object.keys(S.v).forEach(id => applyComp(id));
+}
+
+// ── Pin canvas ─────────────────────────────────────────────────────
+let _pinPending = false;
+function drawPins() {
+  if (_pinPending) return;
+  _pinPending = true;
+  requestAnimationFrame(_doPins);
+}
+
+function _doPins() {
+  _pinPending = false;
+  const cv  = document.getElementById('pin-canvas');
+  const ctx = cv.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const W = cv.width/dpr, H = cv.height/dpr;
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (!window._map) return;
+
+  VENUES.forEach((v, i) => {
+    try {
+      const pt = window._map.project([v.lng, v.lat]);
+      if (pt.x < -130 || pt.x > W+130 || pt.y < -45 || pt.y > H+45) return;
+      drawPill(ctx, pt.x, pt.y, v.name, v.sun, i===1 /* Brutal = selected */);
+    } catch(e) {}
+  });
+}
+
+function pillPath(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y);    ctx.arcTo(x+w, y,   x+w, y+r,   r);
+  ctx.lineTo(x+w, y+h-r);  ctx.arcTo(x+w, y+h, x+w-r, y+h, r);
+  ctx.lineTo(x+r, y+h);    ctx.arcTo(x,   y+h, x,   y+h-r, r);
+  ctx.lineTo(x, y+r);      ctx.arcTo(x,   y,   x+r, y,      r);
+  ctx.closePath();
+}
+
+function diagPat(ctx, color, opacity) {
+  const pc = document.createElement('canvas');
+  pc.width = 9; pc.height = 9;
+  const px = pc.getContext('2d');
+  px.strokeStyle = rgba(color, opacity);
+  px.lineWidth = 1.8;
+  // -45° stripes matching the Shades mark
+  px.beginPath();
+  px.moveTo(-2, 11); px.lineTo(11, -2);
+  px.moveTo(-2, 20); px.lineTo(20, -2);
+  px.stroke();
+  return ctx.createPattern(pc, 'repeat');
+}
+
+function drawPill(ctx, cx, cy, label, isSun, isSelected) {
+  const PH=28, DR=10, PAD=10, GAP=6;
+  ctx.save();
+  ctx.font = '600 11.5px Inter, system-ui, sans-serif';
+  const tw = ctx.measureText(label).width;
+  const PW = PAD + DR + GAP + tw + PAD;
+  const x0 = cx - PW/2, y0 = cy - PH/2, R = PH/2;
+
+  const sv = S.v[isSun ? 'pin-sun' : 'pin-shade'];
+
+  // Drop shadow
+  ctx.shadowColor = 'rgba(8,14,34,0.58)';
+  ctx.shadowBlur = 10; ctx.shadowOffsetY = 4;
+
+  if (sv.diag) {
+    pillPath(ctx, x0, y0, PW, PH, R);
+    ctx.shadowColor='transparent'; ctx.shadowBlur=0; ctx.shadowOffsetY=0;
+    ctx.fillStyle = diagPat(ctx, sv.color, sv.opacity);
+    ctx.fill();
+    ctx.strokeStyle = rgba(sv.color, 0.55);
+    ctx.lineWidth = 1; ctx.stroke();
+  } else {
+    pillPath(ctx, x0, y0, PW, PH, R);
+    ctx.fillStyle = rgba(sv.color, sv.opacity);
+    ctx.fill();
+    ctx.shadowColor='transparent'; ctx.shadowBlur=0; ctx.shadowOffsetY=0;
+    ctx.strokeStyle = rgba(sv.color, 0.32);
+    ctx.lineWidth = 1; ctx.stroke();
+  }
+
+  // Selected ring
+  if (isSelected) {
+    pillPath(ctx, x0-2.5, y0-2.5, PW+5, PH+5, R+2.5);
+    ctx.strokeStyle = '#F5C25E'; ctx.lineWidth = 2.5; ctx.stroke();
+  }
+
+  // Status dot
+  const dotX = x0 + PAD + DR/2;
+  ctx.beginPath(); ctx.arc(dotX, cy, DR/2, 0, Math.PI*2);
+  ctx.fillStyle = isSun ? rgba('#F5C25E', 1.0) : rgba('#ffffff', 0.28);
+  ctx.fill();
+
+  // Text — auto light/dark based on pill luminance
+  const textColor = lum(sv.color) > 0.55
+    ? 'rgba(26,44,66,0.92)'
+    : 'rgba(255,244,224,0.95)';
+  ctx.fillStyle = textColor;
+  ctx.font = '600 11.5px Inter, system-ui, sans-serif';
+  ctx.fillText(label, x0+PAD+DR+GAP, cy+4);
+  ctx.restore();
+}
+
+// ── Venue cards ────────────────────────────────────────────────────
+function renderCards() {
+  const list = document.getElementById('panel-list');
+  list.innerHTML = '';
+  VENUES.forEach(v => {
+    const el = document.createElement('div');
+    el.className = 'venue-card';
+    el.innerHTML = `
+      <div class="card-row1">
+        <div class="card-name">${v.name}</div>
+        ${v.sun ? `<div class="card-duration"><span>☀</span> ${v.duration}</div>` : ''}
+      </div>
+      <div class="card-meta">
+        <span>${v.area}</span>
+        <span class="card-meta-dot">·</span>
+        <span>${v.dist}</span>
+      </div>
+      <div class="card-pills">
+        <div class="card-pill ${v.sun ? 'pill-sol' : 'pill-skygge'}">${v.sun ? 'I solen nå' : 'I skygge nå'}</div>
+        <div class="card-pill pill-aapner">Åpent til 23:00</div>
+      </div>`;
+    list.appendChild(el);
+  });
+}
+
+// ── Control UI ─────────────────────────────────────────────────────
+function buildCtrl() {
+  // Component chips
+  const row = document.getElementById('comp-row');
+  COMPS.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'comp-chip';
+    btn.textContent = c.label;
+    btn.dataset.id = c.id;
+    btn.onclick = () => selectComp(c.id);
+    row.appendChild(btn);
+  });
+
+  // Palette swatches
+  const pr = document.getElementById('palette-row');
+  PALETTE.forEach(p => {
+    const sw = document.createElement('div');
+    sw.className = 'swatch';
+    sw.style.background = p.hex;
+    sw.title = p.name;
+    sw.dataset.hex = p.hex;
+    // Inset ring for very light swatches so they're visible on dark bg
+    if (lum(p.hex) > 0.70) sw.style.boxShadow = 'inset 0 0 0 1px rgba(0,0,0,0.14)';
+    sw.onclick = () => pickColor(p.hex);
+    pr.appendChild(sw);
+  });
+
+  // Diagonal lines swatch (special)
+  const ds = document.createElement('div');
+  ds.className = 'swatch swatch-diag';
+  ds.title = 'Diagonal lines';
+  ds.dataset.diag = '1';
+  ds.onclick = () => pickDiag();
+  pr.appendChild(ds);
+
+  syncCtrl();
+}
+
+function selectComp(id) {
+  S.comp = id;
+  syncCtrl();
+}
+function pickColor(hex) {
+  S.v[S.comp].color = hex;
+  S.v[S.comp].diag  = false;
+  applyComp(S.comp);
+  syncCtrl();
+}
+function pickDiag() {
+  S.v[S.comp].diag = true;
+  applyComp(S.comp);
+  syncCtrl();
+}
+function onOpacity(input) {
+  S.v[S.comp].opacity = +input.value / 100;
+  document.getElementById('val-opacity').textContent = input.value + '%';
+  applyComp(S.comp);
+}
+function onBlur(input) {
+  S.v[S.comp].blur = +input.value;
+  document.getElementById('val-blur').textContent = input.value + 'px';
+  applyComp(S.comp);
+}
+
+function syncCtrl() {
+  const comp = COMPS.find(c => c.id === S.comp);
+  const v    = S.v[S.comp];
+
+  // Comp chips
+  document.querySelectorAll('.comp-chip').forEach(el =>
+    el.classList.toggle('active', el.dataset.id === S.comp)
+  );
+
+  // Swatches
+  document.querySelectorAll('.swatch').forEach(sw => {
+    if (sw.dataset.diag)
+      sw.classList.toggle('selected', v.diag);
+    else
+      sw.classList.toggle('selected', !v.diag && sw.dataset.hex?.toLowerCase() === v.color.toLowerCase());
+  });
+
+  // Opacity slider
+  const os = document.getElementById('sl-opacity');
+  os.value = Math.round(v.opacity * 100);
+  document.getElementById('val-opacity').textContent = os.value + '%';
+
+  // Blur row
+  const blurRow = document.getElementById('blur-row');
+  blurRow.style.display = comp?.blur ? 'flex' : 'none';
+  if (comp?.blur) {
+    const bs = document.getElementById('sl-blur');
+    bs.value = v.blur;
+    document.getElementById('val-blur').textContent = v.blur + 'px';
+  }
+}
+
+// ── Mode ───────────────────────────────────────────────────────────
+function setMode(mode) {
+  S.mode = mode;
+  document.querySelectorAll('.mode-btn').forEach((btn, i) =>
+    btn.classList.toggle('active', (i===0) === (mode==='preview'))
+  );
+  document.getElementById('venue-panel').classList.toggle('hidden', mode !== 'preview');
+  document.getElementById('ctrl-panel').classList.toggle('hidden', mode !== 'controls');
+  setTimeout(drawPins, 360);
+}
+
+// ── Canvas resize ──────────────────────────────────────────────────
+function resizeCanvas() {
+  const cv  = document.getElementById('pin-canvas');
+  const dpr = window.devicePixelRatio || 1;
+  cv.width  = innerWidth  * dpr;
+  cv.height = innerHeight * dpr;
+  cv.style.width  = innerWidth  + 'px';
+  cv.style.height = innerHeight + 'px';
+  drawPins();
+}
+
+// ── Map init ───────────────────────────────────────────────────────
+function initMap() {
+  const token =
+    (typeof MAPBOX_TOKEN_WEB !== 'undefined' && MAPBOX_TOKEN_WEB) ||
+    (typeof MAPBOX_TOKEN     !== 'undefined' && MAPBOX_TOKEN)     ||
+    '';
+
+  if (!token) {
+    document.getElementById('map').innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;gap:8px;padding:24px;text-align:center;">' +
+      '<span style="color:#F5C25E;font-size:14px;font-weight:700;">⚠ Ingen Mapbox-token</span>' +
+      '<span style="color:rgba(255,244,224,0.45);font-size:12px;">Sørg for at /js/config.js er tilgjengelig</span></div>';
+    return;
+  }
+
+  mapboxgl.accessToken = token;
+  const style = (typeof buildShadeStyle === 'function')
+    ? buildShadeStyle()
+    : 'mapbox://styles/mapbox/light-v11';
+
+  const map = new mapboxgl.Map({
+    container:          'map',
+    style,
+    center:             [10.745, 59.912],
+    zoom:               14.2,
+    pitch:              0,
+    bearing:            0,
+    attributionControl: false,
+    logoPosition:       'bottom-left',
+  });
+  window._map = map;
+
+  map.on('style.load', () => {
+    applyMapLayer('map-bg');
+    applyMapLayer('map-building');
+    applyMapLayer('map-water');
+    applyMapLayer('map-roads');
+    drawPins();
+  });
+
+  // Redraw pins whenever the camera moves
+  map.on('move', drawPins);
+  map.on('zoom', drawPins);
+}
+
+// ── Boot ───────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+  renderCards();
+  buildCtrl();
+  initMap();
+});
+</script>
+</body>
+</html>
