@@ -92,7 +92,7 @@
     </a>
 
     <h1>Privacy Policy</h1>
-    <p class="updated">Last updated: 19 May 2026</p>
+    <p class="updated">Last updated: 20 May 2026</p>
 
     <p>
       Solsteder is a solar-optimised venue finder for Oslo. This policy explains what
@@ -202,14 +202,22 @@
 
     <h3>Push notifications</h3>
     <p>
-      If you enable push notifications, your browser issues a push subscription
-      endpoint (a URL provided by Apple, Google, or Mozilla&rsquo;s push service)
-      together with two cryptographic keys. We store these in the
-      <code>push_subscriptions</code> table so we can send you notifications when, for
-      example, a friend invites you to a plan or your saved sun window is starting.
-      One row is stored per device you enable push on. You can disable push from the
-      profile panel; this removes the row from our database and tells the push service
-      to stop accepting messages.
+      If you enable push notifications, we store a per-device push identifier so we can
+      send you notifications when, for example, a friend invites you to a plan or your
+      saved sun window is starting:
+    </p>
+    <ul>
+      <li><strong>On the web</strong>, your browser issues a push subscription endpoint
+      (a URL provided by Apple, Google, or Mozilla&rsquo;s push service) together with
+      two cryptographic keys.</li>
+      <li><strong>In the iOS and Android apps</strong>, the operating system issues a
+      device push token (Apple Push Notification service on iOS, Firebase Cloud
+      Messaging on Android). This token identifies your device to the push service.</li>
+    </ul>
+    <p>
+      We store these in the <code>push_subscriptions</code> table, one row per device you
+      enable push on. You can disable push from the profile panel; this removes the row
+      from our database and tells the push service to stop accepting messages.
     </p>
 
     <h3>Communications</h3>
