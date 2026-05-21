@@ -3418,6 +3418,20 @@ function _updatePeekHeight() {
   panel.addEventListener('transitioncancel', clear);
 })();
 
+// Keep body.panel-fullscreen-active in lockstep with the panel's actual
+// mobile-fullscreen class — no matter which path sets/clears it (drag commit,
+// tap toggle, detail-close restore, intro restore, programmatic). The top-bar
+// slide-up rule keys off this body class; deriving it from reality (not from
+// one code path) prevents it getting stuck on and hiding the top bar.
+(function _syncPanelFullscreenBodyClass() {
+  const panel = document.getElementById('panel');
+  if (!panel) return;
+  const sync = () => document.body.classList.toggle(
+    'panel-fullscreen-active', panel.classList.contains('mobile-fullscreen'));
+  new MutationObserver(sync).observe(panel, { attributes: true, attributeFilter: ['class'] });
+  sync();
+})();
+
 // ── Venue peek: render actual first venue card into #venue-peek ──────────────
 function updateVenuePeek(venues) {
   const el = document.getElementById('venue-peek');
@@ -4898,10 +4912,9 @@ document.addEventListener('DOMContentLoaded', () => {
           panelEl.classList.remove('mobile-expanded', 'mobile-fullscreen', 'mobile-hidden');
           requestAnimationFrame(_updatePeekHeight);
         }
-        // Mirror the fullscreen state onto a plain body class so the top-bar
-        // slide-up rule keys off it (body.panel-fullscreen-active) — reliable
-        // and consistent with the other slide-up states.
-        document.body.classList.toggle('panel-fullscreen-active', state === 'fullscreen');
+        // (body.panel-fullscreen-active is kept in sync by a MutationObserver
+        // on #panel — see _syncPanelFullscreenBodyClass — so it's correct no
+        // matter which path changes the panel, not just this one.)
         // Persist the last snap point so it restores next session. 'hidden'
         // AND 'fullscreen' are transient take-over states — don't persist them
         // (we never want to LAND on a map-covering panel at load), so the saved
