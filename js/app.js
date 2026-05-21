@@ -4837,23 +4837,6 @@ document.addEventListener('DOMContentLoaded', () => {
           try { localStorage.setItem('solsteder.sheetSnap', state); } catch {}
         }
         _syncFtsPosition();
-        // The drag/programmatic slide is pure CSS — Mapbox fires no camera
-        // event, so the pin canvas keeps the pre-slide render in the area a
-        // collapse reveals, until the next camera move (which is why locate-me
-        // "fixed" it). Mirror togglePanel's redrawAfterTransition: nudge Mapbox
-        // to re-render once the slide settles.
-        let _redrawDone = false;
-        const _redrawOnSettle = (e) => {
-          if (e && (e.target !== panelEl || (e.propertyName !== 'bottom' && e.propertyName !== 'height'))) return;
-          if (_redrawDone) return;
-          _redrawDone = true;
-          panelEl.removeEventListener('transitionend', _redrawOnSettle);
-          try { if (map?.resize) map.resize(); } catch (_) {}
-          try { resizeCanvas(); } catch (_) {}
-          if (typeof draw === 'function') draw();
-        };
-        panelEl.addEventListener('transitionend', _redrawOnSettle);
-        setTimeout(_redrawOnSettle, 420); // fallback if no transition fires
       }
 
       // Saved sheet-snap is now applied UPFRONT in _introRevealUI (which
