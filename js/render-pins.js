@@ -226,35 +226,39 @@ const PLUS_GAP_INNER    = 2;      // gap between last avatar and "+N" text insid
 const PLUS_PAD_RIGHT    = 5;      // inner padding on the right edge of the capsule
 
 // ── Status colour for the dot / friend capsule ────────────────────────────────
-// Two semantic states, with transparent variants for "opening soon":
-//   IN SUN (hero)                  → solid honey
-//   IN SHADE (waiting / context)   → solid dark slate (TOKENS.surface) —
-//                                    same colour the pill uses on select,
-//                                    so the system reads as one palette.
-// Closed-but-opens-into-sun gets a transparent variant of the destination
-// state. Previously waiting/context used --rain (mid-blue) which felt
-// washy against the warm map; the deeper surface slate gives the dots
-// real presence.
+// All dots use Delft Blue (#111E38) at varying opacities — provides strong
+// contrast against both Sunny golden pills (hero) and Jordy Blue shade pills.
 function _dotColors(tier, closed, hasSunLaterToday) {
-  const SUN_RING   = _rgba(TOKENS.accentOn, 0.40);
-  const SHADE      = TOKENS.surface || '#284463';
-  const SHADE_RING = _rgba('#ffffff', 0.18);
+  const DOT = TOKENS.bg || '#111E38';  // always Delft Blue
 
-  // Sun NOW
   if (tier === 'hero') {
     return closed
-      ? { fill: _rgba(TOKENS.accent, 0.55), ring: _rgba(TOKENS.accentOn, 0.25) } // opening soon, into sun
-      : { fill: TOKENS.accent,              ring: SUN_RING };                    // in sun
+      ? { fill: _rgba(DOT, 0.50), ring: _rgba(DOT, 0.20) }  // opening soon
+      : { fill: DOT,              ring: _rgba(DOT, 0.30) };  // in sun
   }
-  // Sun LATER (waiting) — currently shaded but sun is coming
   if (tier === 'waiting') {
     return closed
-      ? { fill: _rgba(SHADE, 0.55), ring: _rgba('#ffffff', 0.12) }              // opening soon, into shade-then-sun
-      : { fill: SHADE,              ring: SHADE_RING };                          // in shade, sun later
+      ? { fill: _rgba(DOT, 0.35), ring: _rgba(DOT, 0.15) }  // opening soon
+      : { fill: _rgba(DOT, 0.55), ring: _rgba(DOT, 0.20) }; // in shade, sun later
   }
-  // Context — no near-term sun. Fade further when no more sun today at all.
-  const a = hasSunLaterToday ? 0.85 : 0.55;
-  return { fill: _rgba(SHADE, a), ring: _rgba('#ffffff', 0.10) };
+  // Context — no near-term sun
+  const a = hasSunLaterToday ? 0.45 : 0.30;
+  return { fill: _rgba(DOT, a), ring: _rgba(DOT, 0.12) };
+}
+
+// Map dot colour — for STANDALONE dots + the dot⇄pill morph residual. Matches
+// the pill body colour (gold = sun, blue = shade) so a dot reads as the same
+// venue in collapsed form; opening-soon is a hollow ghost with a dark ring.
+// Distinct from _dotColors above, which colours the small status dot INSIDE a
+// pill (that stays dark Delft for contrast on the coloured pill body).
+function _dotMapColors(tier, closed, hasSunLaterToday) {
+  const INK = TOKENS.bg || '#111E38';
+  if (closed) {
+    return { fill: 'transparent', ring: _rgba(INK, 0.45) };  // ghost
+  }
+  const base = (tier === 'hero') ? '#F5C25E' : '#9CBDE7';
+  const a = (tier === 'context') ? (hasSunLaterToday ? 0.75 : 0.55) : 1.0;
+  return { fill: _rgba(base, a), ring: _rgba(INK, 0.20) };
 }
 
 // ── Vector category icons ─────────────────────────────────────────────────────
@@ -700,6 +704,26 @@ function _pillWidth(ctx, time, friendCount) {
   return w;
 }
 
+// Clock glyph for opening-soon ghost pills — outline face + two hands.
+function _drawClockIcon(ctx, cx, cy, r, col) {
+  const rr = r * 0.74;
+  ctx.save();
+  ctx.strokeStyle = col;
+  ctx.lineWidth   = 1.4;
+  ctx.lineCap     = 'round';
+  ctx.lineJoin    = 'round';
+  ctx.beginPath();
+  ctx.arc(cx, cy, rr, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(cx, cy - rr * 0.55);
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(cx + rr * 0.42, cy + rr * 0.16);
+  ctx.stroke();
+  ctx.restore();
+}
+
 // ── Pill drawing ───────────────────────────────────────────────────────────────
 // Pill is positioned with its tail tip at pt. Body sits ABOVE the venue point.
 function _drawPill(ctx, pt, w, time, tier, opts) {
@@ -724,28 +748,44 @@ function _drawPill(ctx, pt, w, time, tier, opts) {
     ctx.closePath();
   }
 
-  // Drop shadow + body fill. Selected pills lift off the map (deeper shadow,
-  // larger offset) and switch the body fill to slate. Hover gets a smaller
-  // lift via opts.scale (set by the per-pin scale animation).
+  // Opening-soon (closed now, opens later): de-emphasized "ghost" pill —
+  // transparent body + dark hairline outline + reduced group opacity so it
+  // recedes vs the solid gold (sun) / blue (shade) pills. Selected still lifts.
+  const isGhost = !!opts.closedNow && !opts.selected;
+
+  // Group alpha for the ghost state — wraps the whole pill (body, dot, text).
+  ctx.save();
+  if (isGhost) ctx.globalAlpha = 0.72;
+
   const scale = opts.scale || 1.0;
-  const shAlpha   = 0.28 + Math.max(0, scale - 1) * 0.7;
+  const shAlpha   = 0.18 + Math.max(0, scale - 1) * 0.60;
   const shBlur    = 6 + Math.max(0, scale - 1) * 18;
   const shOffsetY = 2 + Math.max(0, scale - 1) * 6;
 
-  ctx.save();
-  ctx.shadowColor   = `rgba(20,30,50,${shAlpha.toFixed(2)})`;
-  ctx.shadowBlur    = shBlur;
-  ctx.shadowOffsetY = shOffsetY;
-  pillPath();
-  ctx.fillStyle = opts.selected ? (TOKENS.surface || '#284463') : '#FAF1DD';
-  ctx.fill();
-  ctx.restore();
+  if (isGhost) {
+    // Outline-only — no fill, no drop shadow.
+    pillPath();
+    ctx.strokeStyle = _rgba(TOKENS.bg, 0.45);
+    ctx.lineWidth   = 1.25;
+    ctx.stroke();
+  } else {
+    ctx.save();
+    ctx.shadowColor   = `rgba(17,30,56,${shAlpha.toFixed(2)})`;
+    ctx.shadowBlur    = shBlur;
+    ctx.shadowOffsetY = shOffsetY;
+    pillPath();
+    // Pill fill: hero=Sunny golden, waiting/context=Jordy Blue, selected=dark Delft Blue
+    const unselectedFill = (tier === 'hero') ? '#F5C25E' : '#9CBDE7';
+    ctx.fillStyle = opts.selected ? (TOKENS.surface || '#111E38') : unselectedFill;
+    ctx.fill();
+    ctx.restore();
 
-  // Hairline border for definition
-  pillPath();
-  ctx.strokeStyle = opts.selected ? _rgba(TOKENS.text, 0.18) : _rgba(TOKENS.bg, 0.18);
-  ctx.lineWidth   = 1;
-  ctx.stroke();
+    // Hairline border for definition
+    pillPath();
+    ctx.strokeStyle = opts.selected ? _rgba(TOKENS.text, 0.18) : _rgba(TOKENS.bg, 0.18);
+    ctx.lineWidth   = 1;
+    ctx.stroke();
+  }
 
   // Hover outline — full --rain blue ring just outside the pill body. Skipped
   // when selected (selected has its own treatment via slate body + lift).
@@ -767,7 +807,11 @@ function _drawPill(ctx, pt, w, time, tier, opts) {
 
   ctx.save();
   ctx.shadowColor = 'transparent';
-  if (hasFriends) {
+  if (isGhost && !hasFriends && !opts.favorited) {
+    // Ghost: a dark clock glyph (outline) instead of a filled category dot —
+    // signals "opening later", not available now.
+    _drawClockIcon(ctx, moduleCx, moduleCy, CIRCLE_R, _rgba(TOKENS.bg, 0.80));
+  } else if (hasFriends) {
     _drawFriendModule(ctx, moduleCx, moduleCy, friends, dot.fill);
   } else if (opts.favorited) {
     // Favourited: the circle itself becomes a heart, filled with the same
@@ -781,24 +825,23 @@ function _drawPill(ctx, pt, w, time, tier, opts) {
     ctx.arc(moduleCx, moduleCy, CIRCLE_R, 0, Math.PI * 2);
     ctx.fillStyle = dot.fill;
     ctx.fill();
-    // Icon colour is tier-aware: dark warm brown on the honey hero dot
-    // (high contrast on the light yellow), white on the slate shadow dot.
-    const iconCol = (tier === 'hero')
-      ? (TOKENS.accentOn || '#2C1F02')
-      : '#fff';
+    // Icon colour: always cream — dot is always Delft Blue so cream is the correct contrast.
+    const iconCol = TOKENS.text || '#FFF4E0';
     _drawCategoryIcon(ctx, moduleCx, moduleCy, opts.category, iconCol);
   }
   ctx.restore();
 
-  // Time text — cream on slate selected pill, slate on cream default pill.
+  // Time text — cream on selected (dark Delft Blue) pill; dark on Sunny/Jordy
+  // Blue pill; dark on the transparent ghost pill (opening-soon).
   if (time) {
     ctx.font         = '600 11px "Inter", system-ui, sans-serif';
-    ctx.fillStyle    = opts.selected ? (TOKENS.text || '#FFF4E0') : _rgba(TOKENS.bg, 0.92);
+    ctx.fillStyle    = opts.selected ? (TOKENS.text || '#FFF4E0') : _rgba(TOKENS.bg, 0.88);
     ctx.textBaseline = 'middle';
     ctx.textAlign    = 'left';
     ctx.fillText(time, moduleCx + moduleW / 2 + CIRCLE_TIME_GAP, moduleCy + 0.5);
   }
 
+  ctx.restore();   // group alpha (ghost)
 }
 
 // Material Design heart icon — well-formed at small sizes, no hand-rolled
@@ -1647,7 +1690,7 @@ function draw() {
             pt.y >= p.y - r && pt.y <= p.y + p.h + r) { dotOverlaps = true; break; }
       }
       if (!dotOverlaps) {
-        const dot = _dotColors('context', false, !!cls.hasSunLaterToday);
+        const dot = _dotMapColors('context', false, !!cls.hasSunLaterToday);
         ctx.save();
         ctx.beginPath(); ctx.arc(pt.x, pt.y, r, 0, Math.PI * 2);
         ctx.fillStyle   = dot.fill;
@@ -1747,7 +1790,7 @@ function draw() {
       }
 
       if (!dotOverlaps && dotAlpha > 0.04) {
-        const dot = _dotColors(tier, closedOpens, !!cls.hasSunLaterToday);
+        const dot = _dotMapColors(tier, closedOpens, !!cls.hasSunLaterToday);
         ctx.save();
         ctx.globalAlpha = dotAlpha;
         ctx.beginPath(); ctx.arc(pt.x, pt.y, 6, 0, Math.PI * 2);
@@ -1844,7 +1887,7 @@ function draw() {
     // than a snap.
     const promoDotAlpha = 1 - st.morph;
     if (promoDotAlpha > 0.04) {
-      const dot = _dotColors(tier, closedOpens, !!cls.hasSunLaterToday);
+      const dot = _dotMapColors(tier, closedOpens, !!cls.hasSunLaterToday);
       ctx.save();
       ctx.globalAlpha = promoDotAlpha;
       ctx.beginPath(); ctx.arc(pt.x, pt.y, 6, 0, Math.PI * 2);
