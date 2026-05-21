@@ -126,7 +126,7 @@
 <script defer src="js/render-arc.js?v=20260519b"></script>
 <script defer src="js/render-seating.js?v=20260519b"></script>
 <script defer src="js/render-editor.js?v=20260519b"></script>
-<script defer src="js/render-pins.js?v=20260521e"></script>
+<script defer src="js/render-pins.js?v=20260521f"></script>
 <script defer src="js/ui-shared.js?v=20260521e"></script>
 <script defer src="js/ui-list.js?v=20260520a"></script>
 <script defer src="js/admin-review.js?v=20260505a"></script>
@@ -328,8 +328,10 @@
     --glassctl-raise:     0 1px 4px rgba(17,30,56,0.13);
     --glassctl-press:     inset 0 2px 4px rgba(17,30,56,0.18);
 
-    /* Drop shadow lifting a transparent floating bar off the cream map. */
-    --panel-shadow:  0 4px 20px rgba(17,30,56,0.10);
+    /* Drop shadow lifting a transparent floating bar off the cream map.
+       Two layers: a tight contact shadow + a soft ambient lift so panels
+       read as clearly floating, not flat. */
+    --panel-shadow:  0 2px 6px rgba(17,30,56,0.14), 0 10px 28px rgba(17,30,56,0.18);
     /* Upward shadow for bottom sheets (invite, accept, confirm). */
     --sheet-shadow:  0 -8px 32px rgba(17,30,56,0.18);
     /* Dark muted text for transparent (A) + cream (C) surfaces — replaces
@@ -962,12 +964,12 @@
        transparent gaussian background of the venue list panel.' Panel
        tokens give a softer, more transparent feel for a standalone
        floating button against the map. */
-    background: var(--glass-panel-bg);
-    backdrop-filter: var(--glass-blur-panel);
-    -webkit-backdrop-filter: var(--glass-blur-panel);
-    border: var(--glass-border);
-    box-shadow: var(--glass-inset);
-    color: rgba(156,189,231,0.8);
+    background: var(--glassctl-bg);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    border: var(--glassctl-border);
+    box-shadow: var(--panel-shadow);
+    color: rgba(17,30,56,0.70);
     cursor: pointer;
     transition: background 0.15s, border-color 0.15s, color 0.15s;
   }
@@ -1046,7 +1048,7 @@
     backdrop-filter: blur(3px);
     -webkit-backdrop-filter: blur(3px);
     border: var(--glassctl-border);
-    box-shadow: var(--glassctl-raise);
+    box-shadow: var(--panel-shadow);
     position: relative;
     display: flex;
     flex-direction: column;
@@ -1365,39 +1367,33 @@
     white-space: nowrap;
     padding: 0 4px;
   }
+  /* Glass-on-glass pill, fully contained within the strip row (no negative
+     margins — those made the fill/border clip top & bottom). */
   #top-strip .ts-date {
     display: inline-flex;
     align-items: center;
     gap: 4px;
     color: var(--panel-text);
     font-weight: 600;
-    /* Right padding tightened 9 → 5: the chevron-to-right-edge area
-       was stretching past the chevron's visual centre, making the
-       button feel oversized to the right of the glyph. Left padding
-       kept at 9 for the date text. */
-    padding: 5px 5px 5px 9px;
-    margin: -5px -2px -5px -4px;
-    border-radius: 10px;
+    padding: 6px 11px;
+    margin: 0;
+    border-radius: 999px;
     cursor: pointer;
-    /* Match the invite-sheet day-button (.dpinvite-moment-sub) — honey
-       tint instead of the previous slate. Plus a 1 px hairline border
-       at low alpha so the affordance reads as a clickable surface
-       even at rest. Hover deepens the fill + border. */
-    background: rgba(245, 194, 94, 0.10);
-    border: 1px solid rgba(245, 194, 94, 0.18);
+    background: var(--glassctl-bg);
+    border: var(--glassctl-border);
+    box-shadow: var(--glassctl-raise);
     font-family: inherit;
     font-size: inherit;
     transition: background 120ms, color 120ms, border-color 120ms;
   }
   #top-strip .ts-date:hover {
-    background: rgba(245, 194, 94, 0.18);
-    border-color: rgba(245, 194, 94, 0.32);
+    background: var(--glassctl-bg-hover);
     color: var(--panel-text);
   }
   #top-strip .ts-date.active {
-    background: rgba(245, 194, 94, 0.20);
-    border-color: rgba(245, 194, 94, 0.42);
-    color: var(--accent);
+    background: rgba(245, 194, 94, 0.32);
+    border-color: rgba(245, 194, 94, 0.55);
+    color: var(--accent-on);
   }
   #top-strip .ts-date .ts-chev {
     width: 11px; height: 11px;
@@ -1406,7 +1402,7 @@
     transition: transform 120ms, color 120ms, opacity 120ms;
   }
   #top-strip .ts-date:hover .ts-chev { opacity: 1; }
-  #top-strip .ts-date.active .ts-chev { color: var(--accent); opacity: 1; transform: rotate(180deg); }
+  #top-strip .ts-date.active .ts-chev { color: var(--accent-on); opacity: 1; transform: rotate(180deg); }
   #top-strip .ts-center .ts-dot { color: rgba(17,30,56,0.30); font-weight: 400; }
   /* Date and weather icon read as a pair. Margin compensates for the
      tighter date button right padding (5 → was 9, total -4 px) so the
@@ -3955,19 +3951,19 @@
   .venue-section-header {
     /* No horizontal padding — the section header flush-aligns with the
        venue cards' outer edges (cards span venue-list's inner width). */
-    padding: 14px 0 6px;
+    padding: 4px 0 6px;
     font-family: 'Inter', sans-serif;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
-    color: rgba(255, 244, 224, 0.55);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+    color: var(--ink-muted);
+    text-transform: none;
+    letter-spacing: 0;
     transition: opacity 200ms ease;
   }
   /* First section header sits closer to the day-header (no extra top
      padding) since the bottom hairline already provides separation. */
   #venue-list > .venue-section-header:first-child {
-    padding-top: 4px;
+    padding-top: 0;
   }
   .venue-section-header .section-count { opacity: 0.65; margin-left: 4px; }
   .empty-section {
@@ -7283,7 +7279,7 @@
     font-size: 16px;
     font-weight: 500;
     line-height: 1.35;
-    color: rgba(255, 244, 224, 0.95);
+    color: var(--panel-text);
     letter-spacing: -0.005em;
     font-variant-numeric: tabular-nums;
     overflow-wrap: break-word;
@@ -8350,9 +8346,11 @@
     width: 100%;
     height: 46px;
     border-radius: 999px;
-    background: rgba(17,30,56,0.36);
-    border: 1px solid rgba(156,189,231,0.24);
-    color: var(--text);
+    background: var(--glassctl-bg);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    border: var(--glassctl-border);
+    color: var(--panel-text);
     font-family: 'Inter', sans-serif;
     font-size: 14px;
     font-weight: 600;
@@ -8363,26 +8361,18 @@
     cursor: pointer;
     text-decoration: none;
     white-space: nowrap;
-    box-shadow:
-      inset 0 1px 0 rgba(255,242,235,0.14),
-      inset 0 -1px 0 rgba(17,30,56,0.30),
-      0 2px 10px rgba(0,0,0,0.32);
-    transition: transform 120ms ease-out, background 120ms ease-out, border-color 120ms ease-out, box-shadow 120ms ease-out;
+    box-shadow: var(--glassctl-raise);
+    transition: transform 120ms ease-out, background 120ms ease-out, box-shadow 120ms ease-out;
   }
-  .dp-primary-cta svg { width: 18px; height: 18px; stroke: currentColor; flex-shrink: 0; color: var(--accent); }
+  .dp-primary-cta svg { width: 18px; height: 18px; stroke: currentColor; flex-shrink: 0; color: var(--panel-text); }
   .dp-primary-cta-label { overflow: hidden; text-overflow: ellipsis; }
   .dp-primary-cta:hover {
     transform: translateY(-1px);
-    background: rgba(17,30,56,0.48);
-    border-color: rgba(156,189,231,0.36);
-    box-shadow:
-      inset 0 1px 0 rgba(255,242,235,0.18),
-      inset 0 -1px 0 rgba(17,30,56,0.30),
-      0 8px 22px rgba(0,0,0,0.40);
+    background: var(--glassctl-bg-hover);
   }
   .dp-primary-cta:active {
     transform: translateY(1px);
-    box-shadow: 0 1px 4px rgba(0,0,0,0.30);
+    box-shadow: var(--glassctl-press);
   }
 
   /* Tier 3 secondary toggles — equal-weight peers in a single row. Each is
@@ -8402,13 +8392,12 @@
     height: 52px;
     padding: 0 6px;
     border-radius: 12px;
-    background: rgba(17,30,56,0.30);
-    border: 1px solid rgba(156,189,231,0.20);
-    box-shadow:
-      inset 0 1px 0 rgba(255,242,235,0.14),
-      inset 0 -1px 0 rgba(17,30,56,0.30),
-      0 2px 8px rgba(0,0,0,0.30);
-    color: var(--muted);
+    background: var(--glassctl-bg);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    border: var(--glassctl-border);
+    box-shadow: var(--glassctl-raise);
+    color: var(--glassctl-icon);
     cursor: pointer;
     text-decoration: none;
     font-family: 'Inter', sans-serif;
@@ -8433,9 +8422,8 @@
     max-width: 100%;
   }
   .dp-secondary-btn:hover {
-    background: rgba(17,30,56,0.42);
-    border-color: rgba(156,189,231,0.32);
-    color: var(--text);
+    background: var(--glassctl-bg-hover);
+    color: var(--panel-text);
   }
   /* Active toggle state — decisive honey fill so "is it on?" is unambiguous. */
   .dp-secondary-btn.is-active {
@@ -8736,16 +8724,16 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--accent);
+    color: rgba(17,30,56,0.70);
     flex-shrink: 0;
-    opacity: 0.85;
+    opacity: 1;
   }
 
   .info-icon svg {
     width: 20px;
     height: 20px;
     stroke: currentColor;
-    color: var(--accent);
+    color: currentColor;
   }
 
   .info-label {
@@ -8755,19 +8743,19 @@
 
   .info-label-strong {
     font-weight: 600;
-    color: var(--text);
+    color: var(--panel-text);
   }
 
   .info-label-sub {
     font-size: 12px;
-    color: var(--muted);
+    color: var(--ink-muted);
     margin-top: 2px;
   }
 
   .info-value {
-    color: var(--accent);
+    color: var(--panel-text);
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     text-align: right;
   }
 

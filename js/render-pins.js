@@ -246,6 +246,21 @@ function _dotColors(tier, closed, hasSunLaterToday) {
   return { fill: _rgba(DOT, a), ring: _rgba(DOT, 0.12) };
 }
 
+// Map dot colour — for STANDALONE dots + the dot⇄pill morph residual. Matches
+// the pill body colour (gold = sun, blue = shade) so a dot reads as the same
+// venue in collapsed form; opening-soon is a hollow ghost with a dark ring.
+// Distinct from _dotColors above, which colours the small status dot INSIDE a
+// pill (that stays dark Delft for contrast on the coloured pill body).
+function _dotMapColors(tier, closed, hasSunLaterToday) {
+  const INK = TOKENS.bg || '#111E38';
+  if (closed) {
+    return { fill: 'transparent', ring: _rgba(INK, 0.45) };  // ghost
+  }
+  const base = (tier === 'hero') ? '#F5C25E' : '#9CBDE7';
+  const a = (tier === 'context') ? (hasSunLaterToday ? 0.75 : 0.55) : 1.0;
+  return { fill: _rgba(base, a), ring: _rgba(INK, 0.20) };
+}
+
 // ── Vector category icons ─────────────────────────────────────────────────────
 // Filled silhouettes sized to fill the 20px dot (extents up to ±4.5). Colour
 // is tier-aware: dark warm brown on honey for hero (high contrast on light
@@ -1675,7 +1690,7 @@ function draw() {
             pt.y >= p.y - r && pt.y <= p.y + p.h + r) { dotOverlaps = true; break; }
       }
       if (!dotOverlaps) {
-        const dot = _dotColors('context', false, !!cls.hasSunLaterToday);
+        const dot = _dotMapColors('context', false, !!cls.hasSunLaterToday);
         ctx.save();
         ctx.beginPath(); ctx.arc(pt.x, pt.y, r, 0, Math.PI * 2);
         ctx.fillStyle   = dot.fill;
@@ -1775,7 +1790,7 @@ function draw() {
       }
 
       if (!dotOverlaps && dotAlpha > 0.04) {
-        const dot = _dotColors(tier, closedOpens, !!cls.hasSunLaterToday);
+        const dot = _dotMapColors(tier, closedOpens, !!cls.hasSunLaterToday);
         ctx.save();
         ctx.globalAlpha = dotAlpha;
         ctx.beginPath(); ctx.arc(pt.x, pt.y, 6, 0, Math.PI * 2);
@@ -1872,7 +1887,7 @@ function draw() {
     // than a snap.
     const promoDotAlpha = 1 - st.morph;
     if (promoDotAlpha > 0.04) {
-      const dot = _dotColors(tier, closedOpens, !!cls.hasSunLaterToday);
+      const dot = _dotMapColors(tier, closedOpens, !!cls.hasSunLaterToday);
       ctx.save();
       ctx.globalAlpha = promoDotAlpha;
       ctx.beginPath(); ctx.arc(pt.x, pt.y, 6, 0, Math.PI * 2);
