@@ -46,8 +46,8 @@ What components consume. Updating these is how brand work happens.
 
 | Token | Value | Role |
 |---|---|---|
-| `--bg`, `--panel` | `#1A2C42` | Slate base for surfaces and app backdrop |
-| `--accent` | `#F5C25E` | Honey gold — the discovery signal, "the sun" |
+| `--bg`, `--panel` | `#111E38` | Delft Blue base for surfaces and app backdrop (was `#1A2C42` Slate) |
+| `--accent` | `#F5C25E` | Honey "Sunny" gold — the discovery signal, "the sun" |
 | `--accent-on` | `#2C1F02` | Warm dark — text/icon ON `--accent` |
 | `--accent-dim` | `rgba(245,194,94,0.16)` | Honey-tinted background for badges |
 | `--accent-border` | `rgba(245,194,94,0.42)` | Honey border on dim backgrounds |
@@ -55,6 +55,8 @@ What components consume. Updating these is how brand work happens.
 | `--muted` | `#9BA9BC` | Slate-grey — secondary cool text (use sparingly; cream-at-opacity is preferred) |
 | `--cool` | `#B5BCC8` | Brighter slate-grey — for cool weather chips |
 | `--rain` | `#6F8AA8` | Slate-blue — rain pills, water on map |
+
+**Two yellows, one rule.** The in-product accent is **Sunny `#F5C25E`** — every sun/discovery signal and the primary CTA. **Tangerine `#FFAF85` is mark-only** (the logo). Tangerine reads as sunset warmth rather than overhead sun and collided with selected-state pills, so it never appears in the UI; the swap to Sunny was a deliberate decision (recorded in the brand pack's `Sunny Color Study.html`). The brand-pack README still lists Tangerine as the accent — it predates this decision. **This table is canonical.**
 
 ### Glass surfaces (component layer)
 
@@ -78,9 +80,79 @@ What components consume. Updating these is how brand work happens.
 
 ---
 
+## Surface & elevation model
+
+The Six Tiers below describe *how* a surface is treated. This model describes *which* surface a thing gets and how surfaces stack. It is the higher-level rule; the tiers are its vocabulary. When in doubt, resolve here first, then pick the tier.
+
+### Two worlds: chrome vs content
+
+The lens metaphor (principle 1) is also the layout rule. Every surface is one of two things:
+
+- **Chrome — the lens you look *through*.** Light, translucent, floats over the map. Top bar, filter/sort chips, search, calendar and date sheets, login splash. Text is ink (`--panel-text` `#111E38`).
+- **Content — the objects you look *at*.** Slate, opaque, sits *in* the lens. Venue cards, detail tiles, the sun timeline, invite sheets. Text is cream (`--text`).
+
+If a surface's treatment is unclear, ask the only question that matters: **is this chrome or content?** Everything else follows.
+
+### Controls step away from their container
+
+A control is **never the same surface as the thing it sits on** — it steps one level away, or it disappears. This is why a light pill works over the map but turns to mush on a light panel.
+
+| Control sits on… | Treatment |
+|---|---|
+| The **map** (chrome floating over it) | Light glass pill — pops against the map via scrim + shadow |
+| A **light / chrome panel** (calendar, sort, login) | Step to **slate (ink fill/outline)** or **honey** (primary). A light pill here is banned — zero contrast. |
+| A **slate / content surface** | **glass-action** (lighter slate) for secondary, **honey** for primary, **ghost** for tertiary |
+
+"Lens-light button" is not a type you choose — it is simply what a control becomes when it floats over the map. Inside a panel, a control is always container-relative.
+
+### Button roles — colour encodes role, not flow
+
+Every button is one of four roles, and colour carries exactly one meaning each. Do **not** invent per-flow button classes — the sprawl of `dprcv-cta-primary`, `dpacc-action-primary`, `fts-popup-primary`, `inbox-btn-accept` is the drift this rule retires (one logical role, five implementations that drift apart).
+
+| Role | Treatment | Rule |
+|---|---|---|
+| **Primary — "the decision"** | Tier 4 honey (`--accent` bg, `--accent-on` text) | **Exactly one per screen.** Two honey buttons = one is mislabelled. |
+| **Secondary — "supporting"** | Tier 3 glass (`--glass-action-bg`, `--text`, `--glass-border`) | Repeatable. The slate-grey-*filled* variant is retired — it competed with secondaries and read as disabled. |
+| **Tertiary — "low-stakes / dismiss"** | Ghost: transparent, `--muted` → `--text` on hover | Cancel, "Kommer senere", "Rediger informasjon". |
+| **Destructive** | Red (`--color-error`), text or outline only | "Avslå", delete. Visually separated from primary. |
+
+Selection chips (`+5 min`, intent filters, sort) are **not** buttons in this ladder — they share the Tier-3 selectable-chip style, never a bespoke grey fill.
+
+### Backgrounds: steps, not new hues
+
+Stacking is expressed by **opacity + shadow + a hairline border — never a new colour.** A third hue dilutes warm-on-cool (principle 7); adding elevation steps *is* principle 6. Each world has a short tint ladder:
+
+- **Chrome:** chrome glass → *raised* light surface (more opaque + stronger shadow) for popovers/sheets.
+- **Content:** panel (42%) → card (**opaque**) → *raised* opaque slate for menus/modals.
+
+The only genuinely new token to add is a **scrim** (`--scrim`, dark veil) behind focus-stealing layers.
+
+### Content tiles are opaque slate — never translucent, never cream
+
+Venue cards and detail tiles are **fully opaque slate**. Reasons, in priority order:
+
+1. **The honey signal needs a dark base.** Sun = honey is the whole product. `#F5C25E` on slate sings; on cream it is two warm tones at similar lightness — the sun-hours, progress bar, and badges drop from signal to barely-there.
+2. **Content = objects you look at.** Cream cards would make them chrome and break the model — and the ripple wouldn't stop at the list (detail tiles, invite sheets, timeline are all slate too).
+3. **Photos & figure-ground.** Dark frames recede behind venue photos and separate hard from the light map; cream would need borders just to not vanish.
+
+Outdoor glare (a sun-app is used in bright light) argues for a light *map* and light *chrome* — which we have — with dark cards as the high-contrast results that punch through glare. If cards ever read as heavy, the lever is **opacity, spacing, and slate brightness — not switching to cream.**
+
+> **Code follow-up:** retires the legacy `--glass-card-bg` 78% alpha — content resolves to full-opacity slate (`#111E38`).
+
+### Overlap & dropdowns
+
+1. **A raised layer goes opaque (or near) and casts a shadow the layer below doesn't.** Never stack two translucent layers of the same world and trust `backdrop-filter` — two blurs = mud (see the current sort dropdown, where content bleeds through). An opaque raised layer is also self-consistent regardless of what's beneath it.
+2. **Elevation = opacity step + shadow + z-tier.** Bind each step to the existing z-ladder (`--z-panel` < `--z-modal` < `--z-toast`) so stacking order is deterministic. Focus-stealing layers (modals, sheets) also get the `--scrim`; lightweight popovers (sort) just need to be opaque + shadowed.
+
+### In three sentences
+
+Chrome is the lens (light, over the map); content is the objects (opaque slate). A control steps away from its container, never matches it. A raised layer goes opaque and casts a shadow the layer below doesn't.
+
+---
+
 ## Six tiers
 
-Every UI surface belongs to exactly **one** tier. The tier determines opacity, effects, motion, and accent usage. See `system.html` for visual examples.
+Every UI surface belongs to exactly **one** tier. The tier determines opacity, effects, motion, and accent usage. The Surface & elevation model above decides *which* tier applies where. See `system.html` for visual examples.
 
 ### Tier 0 · Map & ambient
 **Role:** the world. Static. The user looks *through* it, not *at* it.
@@ -127,7 +199,7 @@ Any panel that slides up from the bottom (`#detail-panel`, `.dpinvite-sheet`, `.
 ### Tier 2 · Lens object
 **Role:** solid content tile. An object resting in the lens.
 **Treatment:**
-- Background: `var(--glass-card-bg)` (slate at 78% alpha — opacity advantage over panel)
+- Background: `var(--glass-card-bg)` — **fully opaque slate** (`#111E38`). Content tiles are never translucent and never cream; see "Surface & elevation model → Content tiles are opaque slate". (The legacy 78% alpha is being retired in code.)
 - Chromatic overlay via `body[data-fx]` rule (warm/cool corner gradient — simulates lens dispersion)
 - Border: `1px solid rgba(155,169,188,0.34)` (clearer than panel border)
 - Shadow: layered — `inset 0 1px 0 rgba(255,250,235,0.16)`, `inset 0 -1px 0 rgba(15,30,55,0.40)`, `0 1px 2px rgba(0,0,0,0.18)`, `0 4px 14px rgba(0,0,0,0.30)`
@@ -208,6 +280,11 @@ All motion respects `prefers-reduced-motion` and suspends during scroll (200ms d
 - ✗ Raw hex colors in CSS (run `node scripts/validate-tokens.mjs` to catch).
 - ✗ Pure white `#FFFFFF` for text or fills — use `var(--text)` for warmth and consistency.
 - ✗ Inventing a fourth glass surface variant — only `panel`, `card`, `action` exist.
+- ✗ A light control on a light panel (zero contrast) — a control must step away from its container. See "Surface & elevation model → Controls step away from their container".
+- ✗ Per-flow button classes (`dprcv-cta-primary`, `dpacc-action-primary`, `fts-popup-primary`…) — buttons are one of four roles; colour encodes role, not flow.
+- ✗ More than one Tier-4 honey button on a screen — honey means "the decision", once.
+- ✗ Translucent or cream content tiles — venue/detail tiles are opaque slate. Honey dies on cream.
+- ✗ Stacking two translucent layers of the same world (dropdown over panel) and trusting `backdrop-filter` — the raised layer goes opaque + shadow.
 - ✗ Sizing a bottom sheet as a fraction of `var(--app-h)` (`calc(var(--app-h) * 0.X)`) — predates `svh` and ignores content. Use `Xsvh` for caps and `height: auto` for the half-open state. See "Tier 1 · Sheet contract".
 - ✗ `bottom: var(--app-bottom-inset)` / `bottom: env(safe-area-inset-bottom)` on a bottom sheet — both are legacy lifts. With `interactive-widget=resizes-content` in the viewport meta, `bottom: 0` is correct on every host.
 - ✗ Using `100vh` or `100dvh` for sheet `max-height`. `vh` includes browser chrome → clips on iOS. `dvh` reflows during scroll and animations → jank. Always use `svh` for sheet caps.
