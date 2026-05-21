@@ -4837,6 +4837,22 @@ document.addEventListener('DOMContentLoaded', () => {
           try { localStorage.setItem('solsteder.sheetSnap', state); } catch {}
         }
         _syncFtsPosition();
+        // A panel slide is pure CSS — Mapbox fires no camera event, so the pin
+        // canvas isn't refreshed and the area a collapse reveals keeps its
+        // pre-slide render until the next map move. Force a plain draw() on
+        // settle. (NOT map.resize() — resize re-applies the camera padding and
+        // visibly re-centers; a draw() is enough now that pin culling uses the
+        // full-canvas bounds in render-pins, not the padding-shrunk getBounds.)
+        let _redrawDone = false;
+        const _redrawOnSettle = (e) => {
+          if (e && (e.target !== panelEl || (e.propertyName !== 'bottom' && e.propertyName !== 'height'))) return;
+          if (_redrawDone) return;
+          _redrawDone = true;
+          panelEl.removeEventListener('transitionend', _redrawOnSettle);
+          if (typeof draw === 'function') draw();
+        };
+        panelEl.addEventListener('transitionend', _redrawOnSettle);
+        setTimeout(_redrawOnSettle, 420); // fallback if no transition fires
       }
 
       // Saved sheet-snap is now applied UPFRONT in _introRevealUI (which

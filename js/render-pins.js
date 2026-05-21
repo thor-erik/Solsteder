@@ -1481,7 +1481,27 @@ function draw() {
     return;
   }
 
-  const bounds      = map.getBounds();
+  // Cull bounds = the FULL canvas, from corner unprojection — NOT
+  // map.getBounds(). getBounds() shrinks by the camera `padding`; a stale
+  // bottom padding left by a prior camera move (opening a venue, the intro fit,
+  // locate-me) parked the cull line at the old expanded-panel top, so venues
+  // below it animated out and only reappeared after a padding-resetting move.
+  // Corner unprojection is padding-independent, so pins render across the whole
+  // canvas — including behind the translucent list panel.
+  let _bW, _bE, _bS, _bN;
+  try {
+    const _cw = canvas.clientWidth, _ch = canvas.clientHeight;
+    const _corners = [map.unproject([0, 0]), map.unproject([_cw, 0]),
+                      map.unproject([_cw, _ch]), map.unproject([0, _ch])];
+    _bW = Math.min(..._corners.map(c => c.lng));
+    _bE = Math.max(..._corners.map(c => c.lng));
+    _bS = Math.min(..._corners.map(c => c.lat));
+    _bN = Math.max(..._corners.map(c => c.lat));
+  } catch (e) {
+    const _b = map.getBounds();
+    _bW = _b.getWest(); _bE = _b.getEast(); _bS = _b.getSouth(); _bN = _b.getNorth();
+  }
+  const bounds = { contains: ([lng, lat]) => lng >= _bW && lng <= _bE && lat >= _bS && lat <= _bN };
   const zoom        = map.getZoom();
   const currentHour = parseFloat(timeFromEl.value);
   const dateStr     = datePicker.value;
