@@ -4902,10 +4902,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // slide-up rule keys off it (body.panel-fullscreen-active) — reliable
         // and consistent with the other slide-up states.
         document.body.classList.toggle('panel-fullscreen-active', state === 'fullscreen');
-        // Persist user's last snap point (peek/expanded/fullscreen) so it
-        // restores on next session. 'hidden' is transient (covered by detail
-        // panel, profile sheet, etc.) and shouldn't be restored.
-        if (state === 'peek' || state === 'expanded' || state === 'fullscreen') {
+        // Persist the last snap point so it restores next session. 'hidden'
+        // AND 'fullscreen' are transient take-over states — don't persist them
+        // (we never want to LAND on a map-covering panel at load), so the saved
+        // value stays at the last peek/expanded.
+        if (state === 'peek' || state === 'expanded') {
           try { localStorage.setItem('solsteder.sheetSnap', state); } catch {}
         }
         _syncFtsPosition();
@@ -7966,7 +7967,10 @@ function _introRevealUI(search, brand, qcWrap, panel, opts) {
     let _savedSnap = 'expanded';
     try {
       const s = localStorage.getItem('solsteder.sheetSnap');
-      if (s === 'peek' || s === 'expanded' || s === 'fullscreen') _savedSnap = s;
+      // Never restore to fullscreen — landing on a map-covering panel at load
+      // is jarring (and this path bypasses _applyState's top-bar handling).
+      // Clamp to expanded.
+      if (s === 'peek' || s === 'expanded') _savedSnap = s;
     } catch {}
 
     panel.style.transition = 'none';
