@@ -2463,9 +2463,9 @@ function renderDateCalendar() {
       // threshold, so it's not fed into the day classification.)
       const sb  = summ.avgSunBlock ?? summ.avgCloud ?? 0;
       const dc  = (typeof wxClassify === 'function') ? wxClassify(sb, 0) : 'clear';
-      if (dc === 'clear')       cls += ' sun-high';
-      else if (dc === 'partly') cls += ' sun-mid';
-      else                      cls += ' sun-low';
+      if (dc === 'clear' || dc === 'clearSoft') cls += ' sun-high';
+      else if (dc === 'partly')                 cls += ' sun-mid';
+      else                                      cls += ' sun-low';
     } else {
       cls += ' no-data';
     }
@@ -2961,7 +2961,14 @@ function _closeQcPanel() {
     calFloat.style.left = '';
     calFloat.style.width = '';
   }
-  document.getElementById('ptb-cal-backdrop')?.remove();
+  // Fade the dim OUT (remove .open → CSS transitions background to transparent)
+  // then remove the node after the transition — an instant .remove() skipped
+  // the fade-out entirely.
+  const _calBd = document.getElementById('ptb-cal-backdrop');
+  if (_calBd) {
+    _calBd.classList.remove('open');
+    setTimeout(() => _calBd.remove(), 320);
+  }
   // Release the cal-open class — CSS animates the detail panel back up
   // and fades the FTS back in.
   document.body.classList.remove('cal-open');
@@ -3038,7 +3045,11 @@ function toggleQcPanel(section) {
     bd.className = 'invite-backdrop';
     bd.onclick = () => _closeQcPanel();
     document.body.appendChild(bd);
-    requestAnimationFrame(() => bd.classList.add('open'));
+    // Commit the initial transparent state (forced reflow) BEFORE adding .open
+    // so the 0.3s background transition actually fires — a bare rAF sometimes
+    // batched both into one paint, making the dim appear instantly.
+    void bd.offsetWidth;
+    bd.classList.add('open');
   }
   // Mark header date chip as active while picker is open
   if (USE_FLOATING_TIME_SLIDER) {
@@ -3101,9 +3112,9 @@ function _dcTileHtml(dStr, todayStr_, selected) {
     // don't align with the icons"). clear→high, partly→mid, overcast→low.
     const sb = summ.avgSunBlock ?? summ.avgCloud ?? 0;
     const dc = (typeof wxClassify === 'function') ? wxClassify(sb, 0) : 'clear';
-    if (dc === 'clear')       cls += ' sun-high';
-    else if (dc === 'partly') cls += ' sun-mid';
-    else                      cls += ' sun-low'; // overcast — dimmed
+    if (dc === 'clear' || dc === 'clearSoft') cls += ' sun-high';
+    else if (dc === 'partly')                 cls += ' sun-mid';
+    else                                      cls += ' sun-low'; // overcast — dimmed
   } else {
     cls += ' solar-only'; // beyond forecast window — solar data only
   }
@@ -3363,7 +3374,7 @@ function _firstSunWindowStartFor(dateStr) {
     const blocked = wx?.sunBlock ?? wx?.cloud;
     const cls = (blocked != null && typeof wxClassify === 'function')
       ? wxClassify(blocked, wx?.precip ?? 0) : null;
-    const isSun = cls === 'clear' || cls === 'partly';
+    const isSun = cls === 'clear' || cls === 'clearSoft' || cls === 'partly';
     if (isSun) {
       if (runStart == null) runStart = h;
       runLen++;
@@ -5070,27 +5081,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const beforeBCR = panelEl.getBoundingClientRect();
         const viewportH = window.innerHeight;
         const currentVisualBottom = viewportH - (beforeBCR.top + panelEl.offsetHeight);
-        // Pin the live VISUAL height too. Going to fullscreen the target height
-        // (app-h) is much taller than the current drag height; without pinning,
-        // clearing inline height let CSS jump straight to app-h while only
-        // `bottom` animated — the panel's top edge snapped up. Pinning the
-        // height and then clearing it makes CSS animate height → target.
-        const currentVisualHeight = beforeBCR.height;
         _applyState(target);
         panelEl.classList.remove('panel-dragging');
-        // Pin the current visual position via inline bottom + height (override
-        // the new class's values). Clear inline transform without snapping.
+        // Pin the current visual position via inline bottom (overrides the
+        // new class's bottom). Clear inline transform without snapping.
+        // NOTE: only `bottom` is pinned, not `height` — animating the panel's
+        // height re-composites its backdrop-filter and flashes the translucent
+        // navy panel background for a frame ("blue/transparent" flash). Bottom
+        // animation alone is filter-safe.
         panelEl.style.transition = 'none';
         panelEl.style.bottom    = currentVisualBottom + 'px';
-        panelEl.style.height    = currentVisualHeight + 'px';
         panelEl.style.transform = '';
+        panelEl.style.height    = '';
         // Force layout so the pinned position is the start of the transition.
         void panelEl.offsetHeight;
-        // Restore CSS transition + clear inline bottom/height — CSS new-state
-        // values take over, animating from the pinned position + size.
+        // Restore CSS transition + clear inline bottom — CSS new-state
+        // bottom takes over, animating from the pinned position.
         panelEl.style.transition = '';
         panelEl.style.bottom     = '';
-        panelEl.style.height     = '';
       }
 
       // Wire a swipe target: touchstart/move/end → panel drag state machine
@@ -5498,7 +5506,15 @@ document.addEventListener('DOMContentLoaded', () => {
           const dpScroll = document.getElementById('dp-scroll');
           const atTop = !dpScroll || dpScroll.scrollTop <= 0;
           const cy = e.touches[0].clientY;
-          if (atTop && cy > _dpContentStartY + 8 && !e.target.closest(_DP_INTERACTIVE) && !_ftsDragging) {
+          const dy = cy - _dpContentStartY;
+          // At scroll-top, a downward swipe dismisses; an UPWARD swipe pulls the
+          // panel up to fullscreen (you can't scroll up past the top anyway).
+          // This makes fullscreen reachable from the whole panel body, not just
+          // the small handle.
+          const dpFs = dpEl.classList.contains('dp-fullscreen');
+          if (atTop && Math.abs(dy) > 8 && !e.target.closest(_DP_INTERACTIVE) && !_ftsDragging) {
+            // Don't hijack an up-swipe when already fullscreen (let content scroll).
+            if (dy < 0 && dpFs) return;
             e.preventDefault();
             _beginDpDrag(cy, true);
           }

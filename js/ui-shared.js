@@ -476,16 +476,25 @@ function computeCityWideSunOutlook(dateStr, fromHour, sundownH) {
 // surface (thumb popup icon, FTS track segments, pin tier, list inclusion,
 // calendar strip) classifies through wxClass/wxClassify so the same hour can
 // never read "sunny" one place and "overcast" another. Tune here, nowhere else.
-const WX_CLEAR_MAX  = 0.40;  // blocked < this → 'clear'
-const WX_PARTLY_MAX = 0.70;  // blocked < this → 'partly'; ≥ → 'overcast'
-const WX_RAIN_MIN   = 0.30;  // precip > this  → 'rain' (overrides cloud)
+// THREE sunny tiers (clear · clearSoft · partly), then overcast, then rain —
+// matching the five weather TOKENS (weatherClear/ClearSoft/Partly/Overcast/Rain).
+// The overcast cutoff (0.85) is the "in sun" gate: blocked < 0.85 still counts
+// as sun reaching the venue (sun behind cloud). Lowering it emptied the map on
+// partly-cloudy days. Cutoffs follow the documented arc ramp (clear ≤20%,
+// mostly-sunny 20-50%, partly 50-85%, overcast ≥85%).
+const WX_CLEAR_MAX     = 0.20;  // blocked < this → 'clear' (full sun)
+const WX_CLEARSOFT_MAX = 0.50;  // blocked < this → 'clearSoft' (mostly sunny)
+const WX_PARTLY_MAX    = 0.85;  // blocked < this → 'partly'; ≥ → 'overcast'
+const WX_RAIN_MIN      = 0.30;  // precip  > this → 'rain' (overrides cloud)
 
-/** Classify a raw (blocked, precip) pair → 'rain'|'overcast'|'partly'|'clear'. */
+/** Classify a raw (blocked, precip) pair →
+ *  'rain'|'overcast'|'partly'|'clearSoft'|'clear'. */
 function wxClassify(blocked, precip) {
   if ((precip ?? 0) > WX_RAIN_MIN) return 'rain';
   const b = blocked ?? 0;
-  if (b >= WX_PARTLY_MAX) return 'overcast';
-  if (b >= WX_CLEAR_MAX)  return 'partly';
+  if (b >= WX_PARTLY_MAX)    return 'overcast';
+  if (b >= WX_CLEARSOFT_MAX) return 'partly';
+  if (b >= WX_CLEAR_MAX)     return 'clearSoft';
   return 'clear';
 }
 
@@ -496,11 +505,12 @@ function wxClass(dateStr, h) {
   return wxClassify(wx.sunBlock ?? wx.cloud ?? 0, wx.precip ?? 0);
 }
 
-/** True when the sky is sunny enough to count as "in the sun" (clear OR partly,
- *  not overcast/rain). This is the weather gate qualifyingWindows() applies. */
+/** True when the sky is sunny enough to count as "in the sun" (any of the three
+ *  sunny tiers, not overcast/rain). This is the weather gate qualifyingWindows
+ *  applies. */
 function wxIsSunny(dateStr, h) {
   const c = wxClass(dateStr, h);
-  return c === 'clear' || c === 'partly';
+  return c === 'clear' || c === 'clearSoft' || c === 'partly';
 }
 
 /**
@@ -532,18 +542,21 @@ function wxBucket(dateStr, h) {
 function wxColor(dateStr, h, bright) {
   // Single threshold set — band picked by the canonical wxClass (null → clear).
   const c = wxClass(dateStr, h);
-  // Harmonized with the cream+Delft palette: rain = Delft blue, overcast =
-  // warm grey, partly = soft honey, clear = honey. No more slate-blue.
+  // Harmonized with the cream+Delft palette and the five weather TOKENS:
+  // clear #F5C25E · clearSoft #E8B870 · partly #D5B068 · overcast #9A8E7E (warm
+  // grey) · rain #4A5E82 (Delft blue).
   if (bright) {
-    if (c === 'rain')     return 'rgba(74,94,130,0.30)';
-    if (c === 'overcast') return 'rgba(154,142,126,0.45)';
-    if (c === 'partly')   return 'rgba(213,176,104,0.70)';
+    if (c === 'rain')      return 'rgba(74,94,130,0.30)';
+    if (c === 'overcast')  return 'rgba(154,142,126,0.45)';
+    if (c === 'partly')    return 'rgba(213,176,104,0.70)';
+    if (c === 'clearSoft') return 'rgba(232,184,112,0.78)';
     return 'rgba(245,194,94,0.85)';
   } else {
     // Past arcs: dimmed versions of the same colors
-    if (c === 'rain')     return 'rgba(74,94,130,0.15)';
-    if (c === 'overcast') return 'rgba(154,142,126,0.22)';
-    if (c === 'partly')   return 'rgba(213,176,104,0.35)';
+    if (c === 'rain')      return 'rgba(74,94,130,0.15)';
+    if (c === 'overcast')  return 'rgba(154,142,126,0.22)';
+    if (c === 'partly')    return 'rgba(213,176,104,0.35)';
+    if (c === 'clearSoft') return 'rgba(232,184,112,0.38)';
     return 'rgba(245,194,94,0.40)';
   }
 }
@@ -683,23 +696,18 @@ function drawTimeline(ctx, opts) {
     if (sun.alt <= 0) continue;
     let color = TOKENS.weatherClear;
     if (hasWx) {
-      const wx   = getWeatherAt(dateStr, h + 0.5);
-      const rain = wx ? (wx.precip ?? wx.prec ?? 0) > 0.3 : false;
-      // Layer-aware sun-blocking: thin high cirrus shouldn't darken the
-      // ramp; thick low/mid cloud should. Fall back to total cloud when
-      // the slot lacks the layer breakdown.
-      const cf   = wx ? (wx.sunBlock ?? wx.cloud ?? 0) : 0;
-      // Cloud-fraction thresholds shifted out one notch from the previous
-      // 0.15/0.40/0.65 ramp. The old "overcast at ≥65% cloud" was visually
-      // aggressive — a sky with sun behind a layer of cloud (~0.7 cf) was
-      // rendering as the cool slate "overcast" band, contradicting reality.
-      // Meteorologically: clear ≤25%, partly 25-50%, mostly cloudy 50-75%,
-      // overcast ≥75%. The new bands track that more honestly.
-      if      (rain)       color = TOKENS.weatherRain;
-      else if (cf < 0.20)  color = TOKENS.weatherClear;
-      else if (cf < 0.50)  color = TOKENS.weatherClearSoft;
-      else if (cf < 0.75)  color = TOKENS.weatherPartly;
-      else                 color = TOKENS.weatherOvercast;
+      const wx = getWeatherAt(dateStr, h + 0.5);
+      // Classify through the canonical wxClassify (ui-shared) so this arc
+      // shares ONE threshold set + the five weather TOKENS with the FTS
+      // segments, pins, list and calendar — no more per-surface ramps.
+      const cls = (wx && typeof wxClassify === 'function')
+        ? wxClassify(wx.sunBlock ?? wx.cloud ?? 0, wx.precip ?? wx.prec ?? 0)
+        : 'clear';
+      color = cls === 'rain'      ? TOKENS.weatherRain
+            : cls === 'overcast'  ? TOKENS.weatherOvercast
+            : cls === 'partly'    ? TOKENS.weatherPartly
+            : cls === 'clearSoft' ? TOKENS.weatherClearSoft
+            :                       TOKENS.weatherClear;
     }
     const x1 = Math.round(timeToX(Math.max(h, minH)));
     const x2 = Math.round(timeToX(Math.min(h + 1, maxH)));
