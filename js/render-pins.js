@@ -1161,6 +1161,12 @@ let _labelMotionTarget = 1;
 // time the labels were fully drawn at the (potentially stale) cached
 // side and any reposition was visibly abrupt.
 let _needsLabelRescore = false;
+// True while the map is panning/zooming. Labels stay VISIBLE during motion
+// (tracking their pills at their cached anchors) instead of fading out; the
+// scoring / reprioritisation pass is deferred to settle (_needsLabelRescore).
+// Safer than the old fade-to-0: if this ever got stuck true, labels just stay
+// put rather than disappearing.
+let _mapMoving = false;
 
 function _stepLerp(s, key, target, rate) {
   const cur = s[key];
@@ -1208,28 +1214,26 @@ function _wireZoomGate() {
   if (_zoomCache._wired) return;
   _zoomCache._wired = true;
   if (typeof map === 'undefined' || !map) return;
-  // Helper: flip the label-motion target and nudge the animation loop
-  // so labels lerp smoothly even between map events (the lerp itself
-  // runs inside draw, which the map.on('move') hook already calls).
-  // When transitioning to target=1 (motion settled), arm a one-shot
-  // re-score so labels reposition while still invisible — not after
-  // they've already become visible at the stale cached side.
-  const _setLabelMotion = (target) => {
-    _labelMotionTarget = target;
-    if (target === 1) _needsLabelRescore = true;
+  // Motion gate: keep labels ON SCREEN during motion (cached anchors, tracking
+  // their pills) and re-score ONCE on settle. _mapMoving switches the draw loop
+  // to the cached-side path; _needsLabelRescore arms the single reprioritise
+  // pass when motion stops. Pan uses move/moveend so it also covers
+  // programmatic camera moves (flyTo, easeTo).
+  const _onMoveStart = () => { _mapMoving = true; _animDirty = true; _scheduleAnim(); };
+  const _onMoveEnd   = () => {
+    _mapMoving = false;
+    _needsLabelRescore = true;
     _animDirty = true;
     _scheduleAnim();
   };
-  map.on('zoomstart', () => { _zoomCache.active = true; _setLabelMotion(0); });
+  map.on('zoomstart', () => { _zoomCache.active = true; _onMoveStart(); });
   map.on('zoomend',   () => {
     _zoomCache.active    = false;
     _zoomCache.frozenIds = null;
-    _setLabelMotion(1);
+    _onMoveEnd();
   });
-  // Pan motion uses move/moveend rather than dragstart/dragend so the
-  // fade also covers programmatic camera moves (flyTo, easeTo).
-  map.on('movestart', () => _setLabelMotion(0));
-  map.on('moveend',   () => _setLabelMotion(1));
+  map.on('movestart', _onMoveStart);
+  map.on('moveend',   _onMoveEnd);
 }
 
 // ── Audit pins (admin) ──────────────────────────────────────────────────────
@@ -2058,8 +2062,12 @@ function draw() {
   // during fade-in BETWEEN the moveend rescore and full settle.
   const placedPillsGrid = new Map();
   const placedNamesGrid = new Map();
-  const _doScoring = _needsLabelRescore
-    || (_labelMotionAlpha > 0.98 && _labelMotionTarget === 1);
+  // Score (and reprioritise) only when settled: every frame the map isn't
+  // moving, plus the one-shot pass armed on settle. During motion we keep each
+  // label at its cached anchor (skipScoring) so it tracks its pill and stays
+  // visible — no collective fade-out. _labelMotionAlpha now stays at 1
+  // (nothing drives it to 0), so labelAlpha follows the pill morph only.
+  const _doScoring = _needsLabelRescore || !_mapMoving;
   if (_doScoring) for (const p of placedPills) _bucketRect(placedPillsGrid, p);
   // Skip the whole loop only when labels are fully invisible AND we're
   // not re-scoring on settle. Even at low motion alpha we still draw
