@@ -303,7 +303,7 @@
          C · Content panel (cream frosted)→ calendar, invite, accept/plan-preview,
               profile, search/bell dropdowns, sort. Predictable backdrop, so
               text = DARK (#111E38), muted = rgba(17,30,56,0.55). */
-    --content-bg:    rgba(255,242,235,0.50);   /* cream @ 50% */
+    --content-bg:    rgba(255,242,235,0.80);   /* cream @ 80% — 50% was too murky to read */
     --content-blur:  blur(6px);
     --content-text:  #111E38;
     --content-muted: rgba(17,30,56,0.55);
@@ -317,6 +317,16 @@
     --ctl-icon:      #FFF4E0;
     --ctl-raise:     0 2px 6px rgba(17,30,56,0.22);
     --ctl-press:     inset 0 2px 5px rgba(17,30,56,0.40);
+
+    /* Transparent glass control — a clear frosted bubble on a glass bar with a
+       DARK icon. For see-through utility controls (top-strip buttons, filter
+       pills). Reads as glass, lifted by a bright rim + soft shadow. */
+    --glassctl-bg:        rgba(255,250,244,0.28);
+    --glassctl-bg-hover:  rgba(255,250,244,0.50);
+    --glassctl-border:    1px solid rgba(255,255,255,0.45);
+    --glassctl-icon:      rgba(17,30,56,0.82);
+    --glassctl-raise:     0 1px 4px rgba(17,30,56,0.13);
+    --glassctl-press:     inset 0 2px 4px rgba(17,30,56,0.18);
 
     /* Drop shadow lifting a transparent floating bar off the cream map. */
     --panel-shadow:  0 4px 20px rgba(17,30,56,0.10);
@@ -501,7 +511,7 @@
   body[data-fx] .dp-card,
   body[data-fx] .dp-action-card,
   body[data-fx] .dpacc-action-card {
-    background: var(--card-fx-bg, transparent), rgba(17,30,56,0.78);
+    background: var(--card-fx-bg, transparent), rgba(17,30,56,1.00);
   }
   /* Primary action card keeps its solid honey accent even under the
      Lens-FX body treatment — the rule above otherwise clobbered the
@@ -1275,10 +1285,12 @@
     flex-shrink: 0;
     width: 38px; height: 38px;
     border-radius: 50%;
-    background: var(--ctl-bg);
-    border: none;
-    box-shadow: var(--ctl-raise);
-    color: var(--ctl-icon);
+    background: var(--glassctl-bg);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    border: var(--glassctl-border);
+    box-shadow: var(--glassctl-raise);
+    color: var(--glassctl-icon);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1287,13 +1299,14 @@
     position: relative;
     transition: color 120ms, background 120ms, box-shadow 120ms;
   }
-  #top-strip .ts-btn:hover { background: var(--ctl-bg-hover); }
-  #top-strip .ts-btn:active { background: var(--ctl-bg-hover); box-shadow: var(--ctl-press); }
+  #top-strip .ts-btn:hover { background: var(--glassctl-bg-hover); }
+  #top-strip .ts-btn:active { background: var(--glassctl-bg-hover); box-shadow: var(--glassctl-press); }
   #top-strip .ts-btn svg { width: 18px; height: 18px; }
   #top-strip .ts-btn.active {
-    background: var(--ctl-bg-hover);
-    box-shadow: var(--ctl-raise), inset 0 0 0 1.5px rgba(245,194,94,0.55);
-    color: var(--accent);
+    background: rgba(245,194,94,0.32);
+    border-color: rgba(245,194,94,0.55);
+    box-shadow: var(--glassctl-raise);
+    color: var(--accent-on);
   }
   #top-strip .ts-avatar {
     /* Same chrome as bell + search — token-based glass. The avatar image or
@@ -1597,12 +1610,12 @@
     height: 32px;
     padding: 0 12px;
     border-radius: 16px;
-    background: var(--glass-action-bg);
-    backdrop-filter: var(--glass-blur-action);
-    -webkit-backdrop-filter: var(--glass-blur-action);
-    border: 1px solid rgba(255,250,235,0.10);
-    box-shadow: 0 1px 4px rgba(17,30,56,0.18);
-    color: var(--text);
+    background: var(--glassctl-bg);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    border: var(--glassctl-border);
+    box-shadow: var(--glassctl-raise);
+    color: var(--glassctl-icon);
     font: 500 12px/1 'Inter', sans-serif;
     cursor: pointer;
     white-space: nowrap;
@@ -1619,12 +1632,12 @@
      on iOS Safari that otherwise leaves the accent color + border on a
      pill after a tap. */
   @media (hover: hover) and (pointer: fine) {
-    .panel-filter-pill:hover { color: var(--accent); border-color: rgba(245,194,94,0.32); }
+    .panel-filter-pill:hover { background: var(--glassctl-bg-hover); }
   }
   .panel-filter-pill.active {
-    background: rgba(245,194,94,0.18);
-    border-color: var(--accent);
-    color: var(--accent);
+    background: rgba(245,194,94,0.32);
+    border-color: rgba(245,194,94,0.55);
+    color: var(--accent-on);
   }
   /* Tactile press feedback that works on touch (the lens-fx tilt is barely
      visible under a finger). Quick scale-down then snap back. */
@@ -3808,7 +3821,7 @@
     background: none;
     border: none;
     border-radius: 8px;
-    color: rgba(213,196,171,0.72);
+    color: rgba(17,30,56,0.78);
     font-family: 'Inter', sans-serif;
     font-size: 14px;
     font-weight: 500;
@@ -3824,12 +3837,12 @@
     will-change: transform;
   }
   @media (hover: hover) and (pointer: fine) {
-    .sort-btn:hover:not(.active) { color: var(--muted); background: rgba(156,189,231,0.10); }
+    .sort-btn:hover:not(.active) { color: var(--content-text); background: rgba(17,30,56,0.06); }
   }
   .sort-btn.active {
-    background: rgba(245,194,94,0.18);
-    color: var(--accent);
-    font-weight: 600;
+    background: rgba(245,194,94,0.28);
+    color: var(--content-text);
+    font-weight: 700;
   }
   .sort-btn:active { transform: scale(0.97); }
   .sort-btn:focus { outline: none; }
@@ -3847,11 +3860,13 @@
     gap: 4px;
     height: 36px;
     padding: 0 12px;
-    background: var(--glass-action-bg);
-    border: var(--glass-border);
+    background: var(--glassctl-bg);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    border: var(--glassctl-border);
     border-radius: 10px;
-    box-shadow: var(--glass-inset);
-    color: var(--text);
+    box-shadow: var(--glassctl-raise);
+    color: var(--glassctl-icon);
     font-family: 'Inter', sans-serif;
     font-size: 13px;
     font-weight: 600;
@@ -3862,32 +3877,31 @@
     outline: none;
   }
   #sort-toggle-btn .sort-chevron {
-    color: var(--muted);
+    color: rgba(17,30,56,0.55);
     display: inline-block;
     transition: transform 0.18s ease;
   }
   /* Specificity note: the in-header rule above (#list-sun-header #sort-toggle-btn)
      has 2 IDs, so hover/open need to match or beat it. */
   #list-sun-header #sort-toggle-btn:hover {
-    border-color: rgba(155,169,188,0.42);
-    background: rgba(17,30,56,0.65);
+    background: var(--glassctl-bg-hover);
   }
   #list-sun-header #sort-toggle-btn.open {
-    border-color: rgba(245,194,94,0.45);
-    background: rgba(17,30,56,0.55);
-    color: var(--accent);
-    box-shadow: var(--glass-inset), inset 0 0 0 1px rgba(245,194,94,0.18);
+    border-color: rgba(245,194,94,0.55);
+    background: rgba(245,194,94,0.32);
+    color: var(--accent-on);
+    box-shadow: var(--glassctl-raise);
   }
-  #list-sun-header #sort-toggle-btn.open .sort-chevron { transform: rotate(180deg); color: var(--accent); }
+  #list-sun-header #sort-toggle-btn.open .sort-chevron { transform: rotate(180deg); color: var(--accent-on); }
   /* Keep the legacy non-header sort-toggle-btn hover (lower specificity is fine
      where the element isn't inside #list-sun-header). */
-  #sort-toggle-btn:hover { border-color: rgba(155,169,188,0.42); background: rgba(17,30,56,0.65); }
+  #sort-toggle-btn:hover { background: var(--glassctl-bg-hover); }
   #sort-toggle-btn.open  {
-    border-color: rgba(245,194,94,0.45);
-    background: rgba(17,30,56,0.55);
-    color: var(--accent);
+    border-color: rgba(245,194,94,0.55);
+    background: rgba(245,194,94,0.32);
+    color: var(--accent-on);
   }
-  #sort-toggle-btn.open .sort-chevron { transform: rotate(180deg); }
+  #sort-toggle-btn.open .sort-chevron { transform: rotate(180deg); color: var(--accent-on); }
 
   /* Legacy class — keep for any remaining references */
   .filter-toggle-btn {
@@ -7831,11 +7845,13 @@
     align-items: center;
     gap: 5px;
     padding: 10px 6px 8px;
-    background: var(--ctl-bg);
-    border: none;
+    background: var(--glassctl-bg);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    border: var(--glassctl-border);
     border-radius: 12px;
-    box-shadow: var(--ctl-raise);
-    color: var(--accent);
+    box-shadow: var(--glassctl-raise);
+    color: var(--glassctl-icon);
     font-size: 12px;
     font-weight: 500;
     font-family: 'Inter', sans-serif;
@@ -7845,9 +7861,9 @@
     text-align: center;
     transition: background 0.12s, box-shadow 0.12s;
   }
-  .dp-gm-chip:hover  { background: var(--ctl-bg-hover); }
-  .dp-gm-chip:active { background: var(--ctl-bg-hover); box-shadow: var(--ctl-press); }
-  .dp-gm-chip svg { stroke: var(--accent); flex-shrink: 0; }
+  .dp-gm-chip:hover  { background: var(--glassctl-bg-hover); }
+  .dp-gm-chip:active { background: var(--glassctl-bg-hover); box-shadow: var(--glassctl-press); }
+  .dp-gm-chip svg { stroke: var(--glassctl-icon); flex-shrink: 0; }
 
   .dp-actions {
     display: flex;
@@ -7859,24 +7875,25 @@
     font-weight: 500;
     padding: 7px 10px;
     border-radius: 12px;
-    border: none;
-    background: var(--ctl-bg);
-    box-shadow: var(--ctl-raise);
-    color: var(--accent);
+    border: var(--glassctl-border);
+    background: var(--glassctl-bg);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    box-shadow: var(--glassctl-raise);
+    color: var(--glassctl-icon);
     cursor: pointer;
     text-decoration: none;
     text-align: center;
     transition: background 0.12s, box-shadow 0.12s;
     font-family: 'Inter', sans-serif;
   }
-  .dp-action-btn:hover  { background: var(--ctl-bg-hover); }
-  .dp-action-btn:active { background: var(--ctl-bg-hover); box-shadow: var(--ctl-press); }
+  .dp-action-btn:hover  { background: var(--glassctl-bg-hover); }
+  .dp-action-btn:active { background: var(--glassctl-bg-hover); box-shadow: var(--glassctl-press); }
   .dp-action-btn.directions {
-    background: var(--ctl-bg);
-    border: none;
-    color: var(--accent);
+    background: var(--glassctl-bg);
+    color: var(--glassctl-icon);
   }
-  .dp-action-btn.directions:hover { background: var(--ctl-bg-hover); }
+  .dp-action-btn.directions:hover { background: var(--glassctl-bg-hover); }
 
   .dp-busy-row {
     display: flex;
