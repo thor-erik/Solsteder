@@ -1803,6 +1803,10 @@ map.on('pitch',   _updateZoomDebug);
     active = true;
     lastTime = 0;
     thumb.classList.add('active');
+    // Engage the pin renderer's motion gate so labels ride their pins (cached
+    // anchors) during the jog instead of re-scoring every frame — same as a
+    // pan/pinch. setZoom() doesn't reliably drive that gate, so do it here.
+    if (typeof window._setZoomJogActive === 'function') window._setZoomJogActive(true);
     const trackRect = track.getBoundingClientRect();
     const center    = trackRect.top + trackRect.height / 2;
     _setThumbPos((clientY - center) / MAX_PX);
@@ -1820,6 +1824,7 @@ map.on('pitch',   _updateZoomDebug);
     if (!active) return;
     active = false;
     if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    if (typeof window._setZoomJogActive === 'function') window._setZoomJogActive(false);
     _snapBack();
   }
 

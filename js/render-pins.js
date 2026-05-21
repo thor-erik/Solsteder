@@ -1198,6 +1198,20 @@ let _needsLabelRescore = false;
 // Safer than the old fade-to-0: if this ever got stuck true, labels just stay
 // put rather than disappearing.
 let _mapMoving = false;
+// The zoom-jog drives zoom via map.setZoom() in a RAF loop, which fires
+// move/zoom start+end EVERY frame. That would clear _mapMoving and re-score
+// labels each frame mid-jog (churn). The jog sets _zoomJogActive so the
+// per-frame moveend handler ignores it; the jog clears the gate on release.
+let _zoomJogActive = false;
+if (typeof window !== 'undefined') {
+  window._setZoomJogActive = (on) => {
+    _zoomJogActive = !!on;
+    _mapMoving = !!on;
+    if (!on) _needsLabelRescore = true; // reprioritise once when the jog stops
+    _animDirty = true;
+    _scheduleAnim();
+  };
+}
 
 function _stepLerp(s, key, target, rate) {
   const cur = s[key];
@@ -1252,6 +1266,9 @@ function _wireZoomGate() {
   // programmatic camera moves (flyTo, easeTo).
   const _onMoveStart = () => { _mapMoving = true; _animDirty = true; _scheduleAnim(); };
   const _onMoveEnd   = () => {
+    // During a zoom-jog, setZoom() fires moveend every frame — ignore it; the
+    // jog clears the gate explicitly on release (window._setZoomJogActive).
+    if (_zoomJogActive) return;
     _mapMoving = false;
     _needsLabelRescore = true;
     _animDirty = true;
