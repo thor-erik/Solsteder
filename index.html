@@ -121,7 +121,7 @@
 <script defer src="js/weather.js?v=20260519d"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260521c"></script>
-<script defer src="js/app.js?v=20260521x"></script>
+<script defer src="js/app.js?v=20260521y"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260519b"></script>
 <script defer src="js/render-seating.js?v=20260519b"></script>
@@ -1264,22 +1264,18 @@
      motion reads as "the bar leaves the screen" rather than "the bar
      fades to nothing while sitting in place." pointer-events:none keeps
      the (off-screen) bar from intercepting taps. */
-  /* The HALF-OPEN detail panel keeps the strip (the user scrubs date/time to
-     re-evaluate the venue). But a FULLSCREEN detail panel takes over the whole
-     screen, so the strip slides up then (body.dp-fullscreen-active), and back
-     when it eases down to half. Invite sheet stays hidden — plan is pinned. */
+  /* Detail panel intentionally NOT in this list — the user wants the strip to
+     stay so they can scrub the date/time and re-evaluate the same venue at
+     another moment. Invite sheet stays hidden because the plan is pinned to
+     its planned_at. */
   body.plan-preview-active #top-strip,
   body.post-accept-active #top-strip,
   body.profile-panel-open #top-strip,
   body.invite-sheet-open #top-strip,
-  body.panel-fullscreen-active #top-strip,
-  body.dp-fullscreen-active #top-strip,
   body.plan-preview-active #floating-brand,
   body.post-accept-active #floating-brand,
   body.profile-panel-open #floating-brand,
-  body.invite-sheet-open #floating-brand,
-  body.panel-fullscreen-active #floating-brand,
-  body.dp-fullscreen-active #floating-brand {
+  body.invite-sheet-open #floating-brand {
     transform: translateY(calc(-100% - env(safe-area-inset-top, 0px) - 14px));
     pointer-events: none;
   }
@@ -5370,10 +5366,7 @@
     #panel.is-sliding {
       backdrop-filter: none !important;
       -webkit-backdrop-filter: none !important;
-      /* Cream fallback matching the light frosted-glass resting look. Was a
-         dark navy rgba(17,30,56,0.55) — a dark-theme relic that flashed blue
-         mid-slide in the cream redesign. */
-      background: var(--content-bg) !important;
+      background: rgba(17,30,56,0.55) !important;
     }
   }
 
