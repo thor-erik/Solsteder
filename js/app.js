@@ -3829,6 +3829,7 @@ function openDetailPanel(v) {
 
   content.innerHTML = renderDetailPanelContent(v, datePicker.value, parseFloat(timeFromEl.value));
   dp.classList.remove('dp-fullscreen');
+  document.body.classList.remove('dp-fullscreen-active');
   dp.classList.add('open');
   // Seed the locate-button cycle to 'venue' — selectVenue runs _flyToVenue
   // before this, so the camera is currently framed on the venue. First
@@ -3934,6 +3935,7 @@ function closeDetailPanel(expandList = true) {
 
   const dp = document.getElementById('detail-panel');
   if (dp) dp.classList.remove('open', 'dp-fullscreen');
+  document.body.classList.remove('dp-fullscreen-active');
   // Drop the locate-button cycle state when leaving the venue context —
   // back to single-action 'fly to me' (default user icon).
   _setLocateBtnState(null);
@@ -4898,6 +4900,12 @@ document.addEventListener('DOMContentLoaded', () => {
           panelEl.classList.remove('mobile-expanded', 'mobile-fullscreen', 'mobile-hidden');
           requestAnimationFrame(_updatePeekHeight);
         }
+        // Mirror the fullscreen state onto a plain body class so the top-bar
+        // slide-up rule keys off it (body.panel-fullscreen-active) — reliable
+        // on iOS WebKit (a body:has() selector targeting a separate element
+        // didn't re-evaluate on the dynamic class change) and consistent with
+        // the other slide-up states.
+        document.body.classList.toggle('panel-fullscreen-active', state === 'fullscreen');
         // Persist user's last snap point (peek/expanded/fullscreen) so it
         // restores on next session. 'hidden' is transient (covered by detail
         // panel, profile sheet, etc.) and shouldn't be restored.
@@ -5398,12 +5406,22 @@ document.addEventListener('DOMContentLoaded', () => {
         if (_dpRafId) cancelAnimationFrame(_dpRafId);
         _dpRafId = requestAnimationFrame(() => {
           const dy = _dpLastFrameY - _dpY0;
-          // Detail panel: downward drags dismiss; upward drags get a soft
-          // resistance (rubber-band) since the panel no longer has a
-          // fullscreen state to grow into.
-          const clampedDy = dy < 0 ? Math.max(dy / 4, -40) : dy;
-          dpEl.style.transform = `translateY(${clampedDy}px)`;
-          dpEl.style.height = '';
+          const vh = (window.visualViewport?.height ?? window.innerHeight);
+          // Live-follow by growing/shrinking the (bottom-anchored) height so the
+          // panel reads as pulling up to fullscreen / easing back down.
+          if (_dpStartState === 'normal' && dy < 0) {
+            dpEl.style.transform = '';
+            dpEl.style.height = Math.min(vh, _dpInitH - dy) + 'px';   // pull up
+          } else if (_dpStartState === 'fullscreen' && dy > 0) {
+            const normalH = Math.round(0.58 * vh);
+            dpEl.style.transform = '';
+            dpEl.style.height = Math.max(normalH, _dpInitH - dy) + 'px'; // ease down
+          } else {
+            // normal+down → dismiss preview; fullscreen+up → soft resist.
+            const clampedDy = dy < 0 ? Math.max(dy / 4, -40) : dy;
+            dpEl.style.transform = `translateY(${clampedDy}px)`;
+            dpEl.style.height = '';
+          }
 
           // Anchor the FTS to the DP's top edge so it follows the drag.
           if (USE_FLOATING_TIME_SLIDER) {
@@ -5438,14 +5456,30 @@ document.addEventListener('DOMContentLoaded', () => {
         const velocity = dy / dt;
         const SWIPE_V  = 0.2, SAFE_DY = 40;
 
-        if (Math.abs(dy) <= SAFE_DY && Math.abs(velocity) < SWIPE_V) return; // safe zone
+        if (Math.abs(dy) <= SAFE_DY && Math.abs(velocity) < SWIPE_V) return; // safe zone → snap back
 
-        if (velocity < -SWIPE_V || dy < -SAFE_DY) {
-          // Detail panel no longer has a fullscreen state — upward swipe is a no-op,
-          // letting the panel snap back to its normal height. (User decision: the
-          // DP doesn't need a fullscreen mode; dragging up was overlapping the FTS.)
-        } else if (velocity > SWIPE_V || dy > SAFE_DY) {
-          closeDetailPanel(false);
+        const up   = (velocity < -SWIPE_V || dy < -SAFE_DY);
+        const down = (velocity >  SWIPE_V || dy >  SAFE_DY);
+        if (_dpStartState === 'normal') {
+          if (up) {
+            // Pull-to-fullscreen. body.dp-fullscreen-active slides the top bar
+            // up (CSS); _syncFtsPosition re-anchors the FTS to its fullscreen
+            // branch. _navPush lets the back button exit fullscreen.
+            dpEl.classList.add('dp-fullscreen');
+            document.body.classList.add('dp-fullscreen-active');
+            if (typeof _navPush === 'function') _navPush('dp-fullscreen');
+            _syncFtsPosition();
+          } else if (down) {
+            closeDetailPanel(false);
+          }
+        } else { // fullscreen
+          if (down) {
+            dpEl.classList.remove('dp-fullscreen');
+            document.body.classList.remove('dp-fullscreen-active');
+            if (typeof _navDropLayer === 'function') _navDropLayer('dp-fullscreen');
+            _syncFtsPosition();
+          }
+          // up → already fullscreen, no-op
         }
       }
 
@@ -6468,6 +6502,7 @@ async function _sdPickCandidate(encodedOrObj) {
 
   content.innerHTML = _renderCandidateLoadingPanel(c.name);
   dp.classList.remove('dp-fullscreen');
+  document.body.classList.remove('dp-fullscreen-active');
   dp.classList.add('open');
   if (isMobile()) {
     const panel = document.getElementById('panel');
@@ -8265,7 +8300,7 @@ window.addEventListener('popstate', () => {
 
   switch (layer) {
     case 'venue':         closeDetailPanel(true); break;
-    case 'dp-fullscreen': document.getElementById('detail-panel')?.classList.remove('dp-fullscreen'); _syncFtsPosition(); break;
+    case 'dp-fullscreen': document.getElementById('detail-panel')?.classList.remove('dp-fullscreen'); document.body.classList.remove('dp-fullscreen-active'); _syncFtsPosition(); break;
     case 'qc':            _closeQcPanel(); break;
     case 'sort':          _closeSortPanel(); break;
     case 'profile':       closeProfilePanel(); break;
