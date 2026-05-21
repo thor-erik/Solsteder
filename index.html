@@ -121,13 +121,13 @@
 <script defer src="js/weather.js?v=20260519d"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260521c"></script>
-<script defer src="js/app.js?v=20260521j"></script>
+<script defer src="js/app.js?v=20260521k"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260519b"></script>
 <script defer src="js/render-seating.js?v=20260519b"></script>
 <script defer src="js/render-editor.js?v=20260519b"></script>
-<script defer src="js/render-pins.js?v=20260521i"></script>
-<script defer src="js/ui-shared.js?v=20260521j"></script>
+<script defer src="js/render-pins.js?v=20260521k"></script>
+<script defer src="js/ui-shared.js?v=20260521k"></script>
 <script defer src="js/ui-list.js?v=20260521i"></script>
 <script defer src="js/admin-review.js?v=20260505a"></script>
 <script defer src="js/admin-audit.js?v=20260512a"></script>
@@ -1264,23 +1264,18 @@
      motion reads as "the bar leaves the screen" rather than "the bar
      fades to nothing while sitting in place." pointer-events:none keeps
      the (off-screen) bar from intercepting taps. */
-  /* The half-open detail panel intentionally KEEPS the strip — the user
-     scrubs date/time to re-evaluate the venue. But when the panel is pulled
-     to FULLSCREEN it should take over the whole screen, so the strip slides
-     up then (and slides back when the panel eases down to half). Invite sheet
-     stays hidden because the plan is pinned to its planned_at. */
+  /* Detail panel intentionally NOT in this list — the user wants the strip to
+     stay so they can scrub the date/time and re-evaluate the same venue at
+     another moment. Invite sheet stays hidden because the plan is pinned to
+     its planned_at. */
   body.plan-preview-active #top-strip,
   body.post-accept-active #top-strip,
   body.profile-panel-open #top-strip,
   body.invite-sheet-open #top-strip,
-  body:has(#detail-panel.dp-fullscreen) #top-strip,
-  body:has(#panel.mobile-fullscreen) #top-strip,
   body.plan-preview-active #floating-brand,
   body.post-accept-active #floating-brand,
   body.profile-panel-open #floating-brand,
-  body.invite-sheet-open #floating-brand,
-  body:has(#detail-panel.dp-fullscreen) #floating-brand,
-  body:has(#panel.mobile-fullscreen) #floating-brand {
+  body.invite-sheet-open #floating-brand {
     transform: translateY(calc(-100% - env(safe-area-inset-top, 0px) - 14px));
     pointer-events: none;
   }
@@ -5279,12 +5274,6 @@
     #panel:not(.mobile-expanded):not(.mobile-fullscreen):not(.mobile-hidden) .venue-section-header {
       display: none;
     }
-    /* During the peek↔expanded slide, keep the section headers hidden
-       regardless of the target state — letting their display toggle flip
-       mid-animation shoved the first cards down ~28px, so the slide read as
-       "jolt down, then continue up" (and the reverse). They reveal once the
-       slide settles (panel-animating cleared on transitionend). */
-    #panel.panel-animating .venue-section-header { display: none; }
 
     /* The unified day-header is visible in every panel state — peek
        mode included. Horizontal padding matches the mobile #venue-list
