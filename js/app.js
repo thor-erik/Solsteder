@@ -3649,31 +3649,78 @@ let _switchingVenue = false;
 // Uses easeTo (smooth interpolation) so the animation looks correct whether
 // the user is already zoomed in (pin click) or coming from overview (list click).
 function _flyToVenue(v) {
-  // Was 17. User feedback: zoom-in across detail / invite / accept feels
-  // too close. 16.75 keeps the venue and one ring of context in frame.
-  const targetZoom = 16.75;
-  const opts = { center: [v.lng, v.lat], zoom: targetZoom, pitch: 45, duration: 600 };
+  // Dynamic fit-to-bounds: frame the outdoor seating area + the venue's own
+  // building footprint, centered on the seating area. Large building → zooms
+  // out more; small café → closer (zoom derived from the geometry extent, not
+  // a fixed level). Falls back to a fixed, slightly zoomed-out level when no
+  // geometry is available.
+  const FALLBACK_ZOOM = 16.0;
+  const ZOOM_MIN = 15.0, ZOOM_MAX = 17.0;
 
+  // Padding reserves the (opaque) detail panel so the framed area lands in the
+  // visible strip — deliberately panel-aware (unlike the translucent list).
+  let padding;
   if (isMobile()) {
     const panelH = Math.round((window.visualViewport?.height ?? window.innerHeight) * 0.69);
-    opts.padding = { top: 0, bottom: panelH, left: 0, right: 0 };
+    padding = { top: 0, bottom: panelH, left: 0, right: 0 };
   } else {
-    // On desktop, if the detail panel is already open (venue switching), offset
-    // the camera so the venue isn't hidden behind the panel.
     const dp = document.getElementById('detail-panel');
-    const padLeft = (dp && dp.classList.contains('open'))
-      ? (dp.offsetLeft + dp.offsetWidth) : 0;
-    if (padLeft > 0) opts.padding = { left: padLeft, right: 0, top: 60, bottom: 0 };
+    const padLeft = (dp && dp.classList.contains('open')) ? (dp.offsetLeft + dp.offsetWidth) : 0;
+    padding = padLeft > 0 ? { left: padLeft, right: 0, top: 60, bottom: 0 }
+                          : { top: 60, bottom: 60, left: 40, right: 40 };
   }
 
+  // Bearing: face the seating area (wall bearing + 180). Only re-orient when
+  // the current bearing is far off, so small selections don't spin the map.
   const wallBearing   = v.wallSegment?.bearing ?? v.facing;
-  const targetBearing = (wallBearing + 180) % 360;
+  const targetBearing = (((wallBearing ?? 0) + 180) % 360);
   const curBearing    = ((map.getBearing() % 360) + 360) % 360;
   let   diff          = Math.abs(targetBearing - curBearing);
   if (diff > 180) diff = 360 - diff;
-  if (diff > 60) opts.bearing = targetBearing;
+  const bearing = (diff > 60) ? targetBearing : map.getBearing();
 
-  map.easeTo(opts);
+  // Assemble bounds from the seating polygon ([lat,lng] verts) + the venue's
+  // own building footprint ({lat,lon} nodes within ~60 m). Track the seating
+  // centroid as the preferred camera center.
+  let bounds = null, hasGeom = false, cLat = 0, cLng = 0, cN = 0;
+  const _ext = (lng, lat) => {
+    if (!bounds) bounds = new mapboxgl.LngLatBounds([lng, lat], [lng, lat]);
+    else bounds.extend([lng, lat]);
+  };
+  const seating = (typeof getSeatingPolygon === 'function') ? getSeatingPolygon(v, { includeAi: true }) : null;
+  if (Array.isArray(seating) && seating.length >= 3) {
+    for (const pt of seating) {
+      const lat = pt[0], lng = pt[1];
+      _ext(lng, lat); cLat += lat; cLng += lng; cN++; hasGeom = true;
+    }
+  }
+  if (Array.isArray(v.nearbyBuildings)) {
+    for (const b of v.nearbyBuildings) {
+      const nodes = b && b.geometry;
+      if (!Array.isArray(nodes) || nodes.length < 3) continue;
+      const aLat = nodes.reduce((s, n) => s + n.lat, 0) / nodes.length;
+      const aLon = nodes.reduce((s, n) => s + n.lon, 0) / nodes.length;
+      if (Math.hypot(aLat - v.lat, aLon - v.lng) > 60 / 111320) continue; // venue's own building only
+      for (const n of nodes) _ext(n.lon, n.lat);
+      hasGeom = true;
+    }
+  }
+
+  const center = (cN > 0) ? [cLng / cN, cLat / cN] : [v.lng, v.lat];
+
+  // Dynamic zoom from the extent; clamped so tiny terraces don't over-zoom and
+  // big buildings don't fly out too far.
+  let zoom = FALLBACK_ZOOM;
+  if (hasGeom && bounds && typeof map.cameraForBounds === 'function') {
+    try {
+      const cam = map.cameraForBounds(bounds, { padding, bearing, maxZoom: ZOOM_MAX });
+      if (cam && typeof cam.zoom === 'number') {
+        zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, cam.zoom));
+      }
+    } catch (e) { /* keep FALLBACK_ZOOM */ }
+  }
+
+  map.easeTo({ center, zoom, pitch: 45, bearing, padding, duration: 600 });
 }
 
 function selectVenue(id, flyTo) {
