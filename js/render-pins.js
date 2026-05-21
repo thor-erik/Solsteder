@@ -141,8 +141,11 @@ function _classifyPinUncached(v, dateStr, hour) {
   if (typeof qualifyingWindows === 'function' && typeof currentSunTable !== 'undefined' && currentSunTable) {
     const sundownH = (typeof findSunCrossingFromTable === 'function')
       ? (findSunCrossingFromTable(currentSunTable, false) ?? 22) : 22;
+    // Probe at the hour MIDPOINT (floor(h)+0.5), bit-identical to the list's
+    // wxLookup in ui-list.js, so a pin and its list row never disagree on
+    // which windows qualify. Both classify through the canonical wxBucket.
     const wxLookup = (h) => {
-      const b = (typeof wxBucket === 'function') ? wxBucket(dateStr, h) : null;
+      const b = (typeof wxBucket === 'function') ? wxBucket(dateStr, Math.floor(h) + 0.5) : null;
       return { rainy: b === 'regn', overcast: b === 'skyer' };
     };
     qual = qualifyingWindows(windows, wxLookup, {
@@ -910,14 +913,18 @@ function _forEachNearbyCell(grid, rect, fn) {
     }
   }
 }
-function _scoreAnchor(rect, pillsGrid, namesGrid, viewport) {
+// `relax` (free zone around the user's location, where pills are allowed to
+// overlap) converts hard overlap rejections into heavy penalties so a label
+// still lands at the least-bad anchor instead of every candidate tying at
+// -Infinity and the label vanishing. See the NEAR_USER_KM free-zone rule.
+function _scoreAnchor(rect, pillsGrid, namesGrid, viewport, relax) {
   let s = 100;
   const acx = rect.x + rect.w / 2;
   const acy = rect.y + rect.h / 2;
   let collided = false;
   _forEachNearbyCell(pillsGrid, rect, (p) => {
     if (collided) return;
-    if (_overlaps(rect, p, 0)) { collided = true; return; }
+    if (_overlaps(rect, p, 0)) { if (relax) { s -= 70; } else { collided = true; } return; }
     const px = p.x + p.w / 2, py = p.y + p.h / 2;
     const d  = Math.hypot(acx - px, acy - py);
     if (d < 70) s -= (70 - d) * 0.6;
@@ -925,7 +932,7 @@ function _scoreAnchor(rect, pillsGrid, namesGrid, viewport) {
   if (collided) return -Infinity;
   _forEachNearbyCell(namesGrid, rect, (n) => {
     if (collided) return;
-    if (_overlaps(rect, n, 1)) { collided = true; return; }
+    if (_overlaps(rect, n, 1)) { if (relax) { s -= 90; } else { collided = true; } return; }
     const nx = n.x + n.w / 2, ny = n.y + n.h / 2;
     const d  = Math.hypot(acx - nx, acy - ny);
     if (d < 70) s -= (70 - d) * 0.9;
@@ -1001,12 +1008,14 @@ function _drawName(ctx, pt, pillRect, name, secondary, placedPills, placedNames,
     const side = stickySide || 'right';
     const c = candidates.find(c => c.side === side) || candidates[0];
     best = { ...c, x: c.x, y: c.cy - labelH / 2, w: labelW, h: labelH };
-  } else {
-    let bestScore = opts.force ? -Infinity : 0;
+    // In the free zone (relaxCollision) penalties can push the best score
+    // negative, so accept the highest-scoring candidate regardless of sign —
+    // same as force — rather than dropping the label.
+    let bestScore = (opts.force || opts.relaxCollision) ? -Infinity : 0;
     best = null;
     for (const c of candidates) {
       const rect = { x: c.x, y: c.cy - labelH / 2, w: labelW, h: labelH };
-      let s = _scoreAnchor(rect, placedPills, placedNames, viewport);
+      let s = _scoreAnchor(rect, placedPills, placedNames, viewport, opts.relaxCollision);
       if (stickySide === c.side && s > -Infinity) s += NAME_ANCHOR_HYSTERESIS;
       if (s > bestScore) { bestScore = s; best = { ...c, ...rect }; }
     }
@@ -1162,6 +1171,37 @@ let _labelMotionTarget = 1;
 // side and any reposition was visibly abrupt.
 let _needsLabelRescore = false;
 
+// Map-motion state. The user wants currently-visible labels to STAY visible
+// while panning/zooming (tracking their pills), not fade out and pop back.
+// So during motion we keep the labels drawn at their cached anchors and skip
+// the per-frame collision scoring; a single re-score / reprioritise pass runs
+// on settle (_needsLabelRescore). `_zoomJogActive` is set by the zoom-jog drag
+// in app.js — map.setZoom() in its RAF loop doesn't reliably emit move
+// start/end, so the jog drives this gate explicitly (fixes "label-hide doesn't
+// apply to the zoom jog").
+let _mapMoving     = false;
+let _zoomJogActive = false;
+function _setMapMoving(on) {
+  if (on) {
+    _mapMoving = true;
+  } else {
+    // Ignore stray settle events fired mid-jog; the jog clears explicitly.
+    if (_zoomJogActive) return;
+    _mapMoving = false;
+    _needsLabelRescore = true;   // one reposition / reprioritise pass on settle
+  }
+  _animDirty = true;
+  _scheduleAnim();
+}
+window._setMapMoving = _setMapMoving;
+window._setZoomJogActive = (on) => {
+  _zoomJogActive = !!on;
+  _mapMoving = !!on;
+  if (!on) _needsLabelRescore = true;
+  _animDirty = true;
+  _scheduleAnim();
+};
+
 function _stepLerp(s, key, target, rate) {
   const cur = s[key];
   const d   = target - cur;
@@ -1208,28 +1248,18 @@ function _wireZoomGate() {
   if (_zoomCache._wired) return;
   _zoomCache._wired = true;
   if (typeof map === 'undefined' || !map) return;
-  // Helper: flip the label-motion target and nudge the animation loop
-  // so labels lerp smoothly even between map events (the lerp itself
-  // runs inside draw, which the map.on('move') hook already calls).
-  // When transitioning to target=1 (motion settled), arm a one-shot
-  // re-score so labels reposition while still invisible — not after
-  // they've already become visible at the stale cached side.
-  const _setLabelMotion = (target) => {
-    _labelMotionTarget = target;
-    if (target === 1) _needsLabelRescore = true;
-    _animDirty = true;
-    _scheduleAnim();
-  };
-  map.on('zoomstart', () => { _zoomCache.active = true; _setLabelMotion(0); });
+  // Motion gate: labels stay visible at cached anchors during motion and
+  // re-score once on settle (see _setMapMoving). Pan uses move/moveend rather
+  // than dragstart/dragend so it also covers programmatic camera moves
+  // (flyTo, easeTo).
+  map.on('zoomstart', () => { _zoomCache.active = true; _setMapMoving(true); });
   map.on('zoomend',   () => {
     _zoomCache.active    = false;
     _zoomCache.frozenIds = null;
-    _setLabelMotion(1);
+    _setMapMoving(false);
   });
-  // Pan motion uses move/moveend rather than dragstart/dragend so the
-  // fade also covers programmatic camera moves (flyTo, easeTo).
-  map.on('movestart', () => _setLabelMotion(0));
-  map.on('moveend',   () => _setLabelMotion(1));
+  map.on('movestart', () => _setMapMoving(true));
+  map.on('moveend',   () => _setMapMoving(false));
 }
 
 // ── Audit pins (admin) ──────────────────────────────────────────────────────
@@ -2004,28 +2034,16 @@ function draw() {
   //   2. friends going     → "Anna +N planlegger"
   //   3. zoom ≥ 16         → "X t sol"        (informational)
   //
-  // Motion fade: when the map is moving (pan/zoom), all labels fade out
-  // collectively at the pin-alpha rate (0.20). When the map settles,
-  // they fade back in. During motion the per-pin anchor scoring is
-  // skipped — we reuse the cached side from _lastNameAnchor and just
-  // track the pill position. That keeps the expensive _scoreAnchor
-  // calls out of the hot path while still drawing labels that follow
-  // their pins smoothly.
+  // Motion behaviour: labels stay VISIBLE during pan/zoom (they track their
+  // pills via the cached-anchor path below) instead of fading out and popping
+  // back — the user wants currently-visible labels not to disappear while
+  // moving. _labelMotionAlpha is kept (still multiplies the per-pin morph
+  // alpha so a label animating in doesn't snap to full), but it's no longer
+  // driven to 0 by motion; the lerp settles it to 1 and leaves it there.
   {
     const d = _labelMotionTarget - _labelMotionAlpha;
-    if (Math.abs(d) < 0.005) {
-      _labelMotionAlpha = _labelMotionTarget;
-    } else {
-      // Asymmetric lerp: fade-out at 0.20/frame (~80 ms to mostly invisible),
-      // fade-in at 0.08/frame (~250 ms to mostly full). The user reported
-      // labels "only fading out, never fading in" — same 0.20 rate in both
-      // directions made the fade-in snap back too fast to perceive as an
-      // animation (especially when motion was brief and alpha didn't drop
-      // far). Slower fade-in makes the return read as an actual reveal.
-      const rate = d > 0 ? 0.08 : 0.20;
-      _labelMotionAlpha += d * rate;
-      _animDirty = true;
-    }
+    if (Math.abs(d) < 0.005) _labelMotionAlpha = _labelMotionTarget;
+    else { _labelMotionAlpha += d * 0.20; _animDirty = true; }
   }
   // Spatial-hash placedPills (read by _scoreAnchor) and create the empty
   // names grid. Scoring runs:
@@ -2038,8 +2056,10 @@ function draw() {
   // during fade-in BETWEEN the moveend rescore and full settle.
   const placedPillsGrid = new Map();
   const placedNamesGrid = new Map();
-  const _doScoring = _needsLabelRescore
-    || (_labelMotionAlpha > 0.98 && _labelMotionTarget === 1);
+  // Score (and reposition) only when settled: every frame the map isn't
+  // moving, plus the one-shot re-score armed on settle. During motion we keep
+  // each label at its cached anchor (skipScoring) so it tracks its pill.
+  const _doScoring = _needsLabelRescore || !_mapMoving;
   if (_doScoring) for (const p of placedPills) _bucketRect(placedPillsGrid, p);
   // Skip the whole loop only when labels are fully invisible AND we're
   // not re-scoring on settle. Even at low motion alpha we still draw
@@ -2097,6 +2117,10 @@ function draw() {
         // to the cached anchor or falls back to 'right' for venues with
         // no prior anchor.
         skipScoring: !_doScoring,
+        // Free zone around the user's location: pills overlap there, so relax
+        // label collisions to the least-bad anchor instead of dropping labels
+        // (fixes labels flashing then vanishing near the geolocation dot).
+        relaxCollision: (typeof _kmFromUser === 'function') && _kmFromUser(v) < NEAR_USER_KM,
       },
     );
   }

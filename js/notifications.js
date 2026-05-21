@@ -827,10 +827,15 @@ function _evalBestSunWindow() {
     if (count > bestCount) { bestCount = count; bestHour = h; }
   }
   if (bestHour < 0 || bestCount < 15) return null; // not enough venues with sun
-  // Suppress when peak hour is mostly cloudy or wet (skip gating if no weather data)
-  if (typeof getWeatherAt === 'function') {
+  // Suppress when peak hour is overcast or wet — classified through the
+  // canonical wxClassify (ui-shared.js) so this shares one threshold set with
+  // the pins/list/FTS/calendar. (skip gating if no weather data)
+  if (typeof getWeatherAt === 'function' && typeof wxClassify === 'function') {
     const wx = getWeatherAt(dateStr, bestHour);
-    if (wx && ((wx.sunBlock ?? wx.cloud) > 0.65 || wx.precip >= 0.2)) return null;
+    if (wx) {
+      const c = wxClassify(wx.sunBlock ?? wx.cloud, wx.precip);
+      if (c === 'overcast' || c === 'rain') return null;
+    }
   }
   // Find the peak block (contiguous hours with same-ish count)
   let blockStart = bestHour, blockEnd = bestHour;

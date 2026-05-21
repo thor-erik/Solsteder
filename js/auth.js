@@ -426,6 +426,11 @@ function _updateUserIndicator() {
   };
   fill(btn);
   fill(tsBtn);
+  // Inbox/bell only makes sense when signed in — when logged out it just
+  // opened an empty dropdown. Toggle visibility here so it tracks every
+  // auth-state change (_updateUserIndicator runs on each).
+  const bellBtn = document.getElementById('ts-bell-btn');
+  if (bellBtn) bellBtn.style.display = _currentUser ? '' : 'none';
   _renderProfilePanel();
   // Pull recent notifications into the bell on auth-ready. Internally
   // gated by _bellHydrated so this is a no-op after the first run.

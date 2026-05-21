@@ -469,10 +469,45 @@ function computeCityWideSunOutlook(dateStr, fromHour, sundownH) {
   };
 }
 
-// ── Weather-aware arc color helper ────────────────────────────────────────────
+// ── Weather classification + arc color helpers ──────────────────────────────
+// ── Canonical sun/cloud thresholds — the ONLY place these numbers live ──────
+// `blocked` is the layer-aware sun-blocking fraction (0 = clear sky … 1 = fully
+// overcast). `precip` overrides cloud when it's actually raining. Every weather
+// surface (thumb popup icon, FTS track segments, pin tier, list inclusion,
+// calendar strip) classifies through wxClass/wxClassify so the same hour can
+// never read "sunny" one place and "overcast" another. Tune here, nowhere else.
+const WX_CLEAR_MAX  = 0.40;  // blocked < this → 'clear'
+const WX_PARTLY_MAX = 0.70;  // blocked < this → 'partly'; ≥ → 'overcast'
+const WX_RAIN_MIN   = 0.30;  // precip > this  → 'rain' (overrides cloud)
+
+/** Classify a raw (blocked, precip) pair → 'rain'|'overcast'|'partly'|'clear'. */
+function wxClassify(blocked, precip) {
+  if ((precip ?? 0) > WX_RAIN_MIN) return 'rain';
+  const b = blocked ?? 0;
+  if (b >= WX_PARTLY_MAX) return 'overcast';
+  if (b >= WX_CLEAR_MAX)  return 'partly';
+  return 'clear';
+}
+
+/** Classify the weather at a date/hour. Returns the class, or null if no data. */
+function wxClass(dateStr, h) {
+  const wx = (typeof getWeatherAt === 'function') ? getWeatherAt(dateStr, h) : null;
+  if (!wx) return null;
+  return wxClassify(wx.sunBlock ?? wx.cloud ?? 0, wx.precip ?? 0);
+}
+
+/** True when the sky is sunny enough to count as "in the sun" (clear OR partly,
+ *  not overcast/rain). This is the weather gate qualifyingWindows() applies. */
+function wxIsSunny(dateStr, h) {
+  const c = wxClass(dateStr, h);
+  return c === 'clear' || c === 'partly';
+}
+
 /**
- * Classify weather at a given hour into one of four buckets.
- * 'sol' = clear, 'skyer' = cloudy/overcast, 'regn' = raining.
+ * Classify weather at a given hour into the three legacy buckets used by the
+ * window gate + card pills. Now derived from the canonical wxClass so it shares
+ * one threshold set with every other surface.
+ * 'sol' = clear/partly, 'skyer' = overcast, 'regn' = raining.
  * 'skygge' is intentionally NOT decided here — it's a geometric state (no
  * direct sun on the venue) that the caller layers on top of this classification.
  * Returns null when weather data is unavailable.
@@ -483,16 +518,11 @@ function computeCityWideSunOutlook(dateStr, fromHour, sundownH) {
  *  - buildCardPills() in ui-list.js (to pick pill color)
  */
 function wxBucket(dateStr, h) {
-  const wx = (typeof getWeatherAt === 'function') ? getWeatherAt(dateStr, h) : null;
-  if (!wx) return null;
-  const precip   = wx.precip ?? 0;
-  // Use layer-aware sun-blocking fraction when available — total cloud over-
-  // counts thin high cirrus that lets plenty of sun through. Fall back to
-  // raw total for forecast slots that omit the layer breakdown.
-  const blocked  = wx.sunBlock ?? wx.cloud ?? 0;
-  if (precip > 0.3)   return 'regn';
-  if (blocked >= 0.85) return 'skyer';
-  return 'sol';
+  const c = wxClass(dateStr, h);
+  if (!c) return null;
+  if (c === 'rain')     return 'regn';
+  if (c === 'overcast') return 'skyer';
+  return 'sol'; // clear or partly
 }
 
 /**
@@ -500,26 +530,20 @@ function wxBucket(dateStr, h) {
  * bright=true → full opacity (future segments); false → dim (past segments).
  */
 function wxColor(dateStr, h, bright) {
-  const wx = (typeof getWeatherAt === 'function') ? getWeatherAt(dateStr, h) : null;
-  const precip  = wx?.precip ?? 0;
-  // Use layer-aware sun-blocking fraction — thin high cirrus doesn't darken
-  // the ramp; thick low/mid cloud does.
-  const blocked = wx?.sunBlock ?? wx?.cloud ?? 0;
-  const isRainy    = precip > 0.3;
-  const isOvercast = !isRainy && blocked > 0.65;
-  const isPartly   = !isRainy && !isOvercast && blocked > 0.38;
+  // Single threshold set — band picked by the canonical wxClass (null → clear).
+  const c = wxClass(dateStr, h);
   // Harmonized with the cream+Delft palette: rain = Delft blue, overcast =
   // warm grey, partly = soft honey, clear = honey. No more slate-blue.
   if (bright) {
-    if (isRainy)    return 'rgba(74,94,130,0.30)';
-    if (isOvercast) return 'rgba(154,142,126,0.45)';
-    if (isPartly)   return 'rgba(213,176,104,0.70)';
+    if (c === 'rain')     return 'rgba(74,94,130,0.30)';
+    if (c === 'overcast') return 'rgba(154,142,126,0.45)';
+    if (c === 'partly')   return 'rgba(213,176,104,0.70)';
     return 'rgba(245,194,94,0.85)';
   } else {
     // Past arcs: dimmed versions of the same colors
-    if (isRainy)    return 'rgba(74,94,130,0.15)';
-    if (isOvercast) return 'rgba(154,142,126,0.22)';
-    if (isPartly)   return 'rgba(213,176,104,0.35)';
+    if (c === 'rain')     return 'rgba(74,94,130,0.15)';
+    if (c === 'overcast') return 'rgba(154,142,126,0.22)';
+    if (c === 'partly')   return 'rgba(213,176,104,0.35)';
     return 'rgba(245,194,94,0.40)';
   }
 }

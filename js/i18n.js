@@ -143,10 +143,12 @@ const _STRINGS = {
     // sun-later venues in the venue-list). Phrased to describe the
     // venues in each section — "in sun at 14:00" reads as "[venues]
     // in sun at 14:00". CSS uppercases them visually.
-    section_sun_now:            'in sun now',
-    section_sun_later:          'in sun later',
-    section_sun_at:             'in sun at {time}',
-    section_sun_after:          'in sun after {time}',
+    section_sun_now:            'In sun now',
+    section_sun_later:          'In sun later',
+    section_sun_at:             'In sun at {time}',
+    section_sun_after:          'In sun after {time}',
+    section_friends:            'Friends',
+    section_friends_other:      'Other places',
 
     // City-wide sun outlook — full conversational sentences about the
     // day's sun pattern from the slider time forward. Now-state at the
@@ -675,10 +677,12 @@ const _STRINGS = {
     state_done:              'Ferdig',
     // ── Soft Zebra: section headers, pills, empty states ──────────────────────
     // In-list bucket section headers
-    section_sun_now:            'i sol nå',
-    section_sun_later:          'i sol senere',
-    section_sun_at:             'i sol kl {time}',
-    section_sun_after:          'i sol etter kl {time}',
+    section_sun_now:            'I sol nå',
+    section_sun_later:          'I sol senere',
+    section_sun_at:             'I sol kl. {time}',
+    section_sun_after:          'I sol etter kl. {time}',
+    section_friends:            'Venner',
+    section_friends_other:      'Andre steder',
 
     // City-wide sun outlook — full sentences
     outlook_now:                'nå',

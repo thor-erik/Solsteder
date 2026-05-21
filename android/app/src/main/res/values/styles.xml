@@ -13,6 +13,11 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
+        <!-- Light status bar = DARK system icons (battery/clock/wifi). The app
+             is a uniformly light (cream) theme over a light map, so the default
+             white icons were invisible. windowLightStatusBar makes them dark.
+             (Android API 23+; the S25 and all target devices qualify.) -->
+        <item name="android:windowLightStatusBar">true</item>
     </style>
 
 

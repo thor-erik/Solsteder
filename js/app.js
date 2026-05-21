@@ -1187,11 +1187,17 @@ function showFtsPopup(hour) {
   if (dateStr && typeof getWeatherAt === 'function') {
     const wx = getWeatherAt(dateStr, snappedHour);
     if (wx) {
-      const rain = (wx.precip ?? wx.prec ?? 0) > 0.3;
       const cf   = wx.sunBlock ?? wx.cloud ?? 0;
-      const wxKey = isClosed
-        ? 'closed'
-        : (rain ? 'rain' : (cf < 0.50 ? 'sun' : cf < 0.75 ? 'partly' : 'cloud'));
+      // Canonical classifier — shares one threshold set with the FTS segments,
+      // pins, list and calendar (wxClassify in ui-shared.js). Map its class onto
+      // this surface's glyph keys (clear→sun, overcast→cloud).
+      const cls = (typeof wxClassify === 'function')
+        ? wxClassify(cf, wx.precip ?? wx.prec ?? 0) : 'clear';
+      const wxKey = isClosed ? 'closed'
+        : cls === 'rain'     ? 'rain'
+        : cls === 'overcast' ? 'cloud'
+        : cls === 'partly'   ? 'partly'
+        : 'sun';
       if (wxIconEl) wxIconEl.innerHTML = (window.TIMELINE_EVENT_GLYPHS && window.TIMELINE_EVENT_GLYPHS[wxKey]) || '';
       if (tempEl)   tempEl.textContent = wx.temp != null ? Math.round(wx.temp) + '°' : '';
       if (windEl)   windEl.textContent = wx.wspd != null ? Math.round(wx.wspd) + ' m/s' : '';
@@ -1240,7 +1246,13 @@ function showFtsPopup(hour) {
   const LEFT_MARGIN  = 4;
   const RIGHT_MARGIN = _zjVisible ? 56 : 4;
 
-  const rawPct = (hour - MIN_H) / (MAX_H - MIN_H) * 100;
+  // Position uses the RAW drag hour (window._ftsRawHour, stashed per
+  // pointermove) — same source the thumb uses — so the popup glides smoothly
+  // under the thumb instead of stepping in 5-min jumps when a snapped-hour
+  // caller (update()) re-invokes showFtsPopup in the same frame. Falls back to
+  // the param for idle/release callers (raw is cleared on pointerup).
+  const posHour = (window._ftsRawHour != null) ? window._ftsRawHour : hour;
+  const rawPct = (posHour - MIN_H) / (MAX_H - MIN_H) * 100;
   // Match the thumb's visual clamp (cap radius, not thumb radius) so the
   // popup body lands directly over the thumb at all positions.
   const _thumbEl = document.getElementById('fts-thumb');
@@ -1636,7 +1648,10 @@ function locateUser() {
       // Below that line is occluded by the panel.
       if (r.top > 0 && r.top < window.innerHeight) panelTop = r.top;
     }
-    const occluded = Math.max(0, window.innerHeight - panelTop);
+    // Cap at the peek sliver — the translucent expanded list shouldn't push
+    // the user dot into the top strip; it lands just above the peek cards.
+    const occluded = Math.min(Math.max(0, window.innerHeight - panelTop),
+                              (typeof _peekOcclusionPx === 'function') ? _peekOcclusionPx() : 160);
     // Reserve 56px for the search bar at the top + safe-area
     padding = { top: 80, bottom: occluded + 16, left: 16, right: 16 };
   } else {
@@ -1797,6 +1812,12 @@ map.on('pitch',   _updateZoomDebug);
     active = true;
     lastTime = 0;
     thumb.classList.add('active');
+    // The jog drives zoom via map.setZoom() in a RAF loop, which doesn't
+    // reliably fire move/zoom start/end — tell the pin renderer we're in
+    // motion so labels behave the same as during a pan/pinch (stay put,
+    // re-score on release). Without this the label motion gate never engaged
+    // for the jog.
+    if (typeof window._setZoomJogActive === 'function') window._setZoomJogActive(true);
     const trackRect = track.getBoundingClientRect();
     const center    = trackRect.top + trackRect.height / 2;
     _setThumbPos((clientY - center) / MAX_PX);
@@ -1814,6 +1835,7 @@ map.on('pitch',   _updateZoomDebug);
     if (!active) return;
     active = false;
     if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    if (typeof window._setZoomJogActive === 'function') window._setZoomJogActive(false);
     _snapBack();
   }
 
@@ -2432,14 +2454,18 @@ function renderDateCalendar() {
     if (i === 0)        cls += ' today';
     if (dStr === selected) cls += ' selected';
     if (summ) {
-      // Classify on the SUNNIEST daytime hour, not the average. A day with
-      // one clear hour bracketed by cloud is still a "sun day" worth showing.
-      // Averaging would demote it to overcast even though the icon (avg-
-      // based) still shows partly sunny.
-      const sb = summ.minSunBlock ?? summ.avgSunBlock ?? summ.avgCloud;
-      if (sb < 0.30)      cls += ' sun-high';
-      else if (sb < 0.65) cls += ' sun-mid';
-      else                cls += ' sun-low';
+      // Classify the border on the SAME value the icon uses (avgSunBlock) and
+      // through the SAME canonical thresholds (wxClassify) — previously the
+      // border keyed off minSunBlock (sunniest hour) while the icon keyed off
+      // the average, so the tint and the glyph could disagree (the reported
+      // "borders don't align with the icons"). clear→high, partly→mid,
+      // overcast→low. (Daily totPrecip isn't comparable to the per-hour rain
+      // threshold, so it's not fed into the day classification.)
+      const sb  = summ.avgSunBlock ?? summ.avgCloud ?? 0;
+      const dc  = (typeof wxClassify === 'function') ? wxClassify(sb, 0) : 'clear';
+      if (dc === 'clear')       cls += ' sun-high';
+      else if (dc === 'partly') cls += ' sun-mid';
+      else                      cls += ' sun-low';
     } else {
       cls += ' no-data';
     }
@@ -2945,9 +2971,11 @@ function _closeQcPanel() {
     document.getElementById('fts')?.classList.remove('fts-cal-open');
     updateHeaderDateChip();
   }
-  // Restore panel state saved before calendar opened
-  if (_preCalPanelState && isMobile() && typeof window._applyMobilePanelState === 'function') {
-    window._applyMobilePanelState(_preCalPanelState);
+  // Restore panel state saved before calendar opened (the list was fully
+  // hidden while the calendar was up). Default to peek so it can never get
+  // stranded off-screen if the prior state wasn't captured.
+  if (isMobile() && typeof window._applyMobilePanelState === 'function') {
+    window._applyMobilePanelState(_preCalPanelState || 'peek');
     _preCalPanelState = null;
   }
 
@@ -3017,10 +3045,12 @@ function toggleQcPanel(section) {
     document.getElementById('header-date-chip')?.classList.add('active');
     document.getElementById('fts')?.classList.add('fts-cal-open');
   }
-  // On mobile, collapse list to peek so picker has room; restore on close
+  // On mobile, fully slide the list off-screen (not just to peek) so nothing
+  // shows behind the calendar sheet — the peek sliver was distracting.
+  // Restored to its prior state on close.
   if (isMobile() && typeof window._applyMobilePanelState === 'function') {
-    _preCalPanelState = window._currentMobilePanelState?.() ?? null;
-    if (_preCalPanelState !== 'peek') window._applyMobilePanelState('peek');
+    _preCalPanelState = window._currentMobilePanelState?.() ?? 'peek';
+    window._applyMobilePanelState('hidden');
   }
   panel.classList.add('open');
   document.getElementById('qc-date-section')?.classList.add('active');
@@ -3064,14 +3094,16 @@ function _dcTileHtml(dStr, todayStr_, selected) {
   if (dStr === todayStr_)  cls += ' today';
   if (dStr === selected)   cls += ' selected';
   if (hasForecast) {
-    // Classify on the SUNNIEST daytime hour, not the average. A day with
-    // one clear hour bracketed by cloud is still a "sun day" worth showing.
-    // Averaging would demote it to overcast even though the icon (avg-
-    // based) still shows partly sunny.
-    const sb = summ.minSunBlock ?? summ.avgSunBlock ?? summ.avgCloud;
-    if (sb < 0.30)      cls += ' sun-high';
-    else if (sb < 0.65) cls += ' sun-mid';
-    else                cls += ' sun-low'; // entirely overcast — dimmed
+    // Classify the border on the SAME value the icon uses (avgSunBlock) and
+    // through the SAME canonical thresholds (wxClassify) — previously the
+    // border keyed off minSunBlock (sunniest hour) while the icon keyed off
+    // the average, so the tint and the glyph disagreed (the reported "borders
+    // don't align with the icons"). clear→high, partly→mid, overcast→low.
+    const sb = summ.avgSunBlock ?? summ.avgCloud ?? 0;
+    const dc = (typeof wxClassify === 'function') ? wxClassify(sb, 0) : 'clear';
+    if (dc === 'clear')       cls += ' sun-high';
+    else if (dc === 'partly') cls += ' sun-mid';
+    else                      cls += ' sun-low'; // overcast — dimmed
   } else {
     cls += ' solar-only'; // beyond forecast window — solar data only
   }
@@ -3302,9 +3334,9 @@ function _earliestSunHourFor(dateStr) {
 /** Returns the hour where the first *useful* sun window of `dateStr`
  *  begins. Rules:
  *    - Walk [sunrise, sunset] hour-by-hour.
- *    - A "sun-touched" hour has sunBlock < 0.75 (matches drawTimeline's
- *      "not overcast" cutoff — slider lands where the canvas first looks
- *      sun-touched).
+ *    - A "sun-touched" hour is clear or partly (not overcast/rain) per the
+ *      canonical wxClassify — slider lands where the day first looks
+ *      sun-touched, sharing one threshold set with the rest of the app.
  *    - Require a contiguous run of MIN_USEFUL_HOURS sun-touched hours
  *      before counting it as a window — a single sunny hour wedged
  *      between cloudy ones isn't worth surfacing.
@@ -3329,7 +3361,9 @@ function _firstSunWindowStartFor(dateStr) {
   for (let h = Math.floor(sunrise); h <= endH; h++) {
     const wx = getWeatherAt(dateStr, h);
     const blocked = wx?.sunBlock ?? wx?.cloud;
-    const isSun = blocked != null && blocked < 0.75;
+    const cls = (blocked != null && typeof wxClassify === 'function')
+      ? wxClassify(blocked, wx?.precip ?? 0) : null;
+    const isSun = cls === 'clear' || cls === 'partly';
     if (isSun) {
       if (runStart == null) runStart = h;
       runLen++;
@@ -3625,31 +3659,79 @@ let _switchingVenue = false;
 // Uses easeTo (smooth interpolation) so the animation looks correct whether
 // the user is already zoomed in (pin click) or coming from overview (list click).
 function _flyToVenue(v) {
-  // Was 17. User feedback: zoom-in across detail / invite / accept feels
-  // too close. 16.75 keeps the venue and one ring of context in frame.
-  const targetZoom = 16.75;
-  const opts = { center: [v.lng, v.lat], zoom: targetZoom, pitch: 45, duration: 600 };
+  // Dynamic fit-to-bounds: frame the outdoor seating area together with the
+  // venue's own building footprint, centered on the seating area. A large
+  // building zooms out further; a small café zooms in closer (the zoom is
+  // derived from the geometry extent rather than a fixed level). Falls back to
+  // a fixed, slightly zoomed-out level when no geometry is available.
+  const FALLBACK_ZOOM = 16.0;
+  const ZOOM_MIN = 15.0, ZOOM_MAX = 17.0;
 
+  // Padding reserves the (opaque) detail panel so the framed area lands in the
+  // visible strip — this is deliberately panel-AWARE, unlike the translucent
+  // browsing list (see _panelAwarePadding).
+  let padding;
   if (isMobile()) {
     const panelH = Math.round((window.visualViewport?.height ?? window.innerHeight) * 0.69);
-    opts.padding = { top: 0, bottom: panelH, left: 0, right: 0 };
+    padding = { top: 0, bottom: panelH, left: 0, right: 0 };
   } else {
-    // On desktop, if the detail panel is already open (venue switching), offset
-    // the camera so the venue isn't hidden behind the panel.
     const dp = document.getElementById('detail-panel');
-    const padLeft = (dp && dp.classList.contains('open'))
-      ? (dp.offsetLeft + dp.offsetWidth) : 0;
-    if (padLeft > 0) opts.padding = { left: padLeft, right: 0, top: 60, bottom: 0 };
+    const padLeft = (dp && dp.classList.contains('open')) ? (dp.offsetLeft + dp.offsetWidth) : 0;
+    padding = padLeft > 0 ? { left: padLeft, right: 0, top: 60, bottom: 0 }
+                          : { top: 60, bottom: 60, left: 40, right: 40 };
   }
 
+  // Bearing: face the seating area (wall bearing + 180). Only re-orient when
+  // the current bearing is far off, so small selections don't spin the map.
   const wallBearing   = v.wallSegment?.bearing ?? v.facing;
-  const targetBearing = (wallBearing + 180) % 360;
+  const targetBearing = (((wallBearing ?? 0) + 180) % 360);
   const curBearing    = ((map.getBearing() % 360) + 360) % 360;
   let   diff          = Math.abs(targetBearing - curBearing);
   if (diff > 180) diff = 360 - diff;
-  if (diff > 60) opts.bearing = targetBearing;
+  const bearing = (diff > 60) ? targetBearing : map.getBearing();
 
-  map.easeTo(opts);
+  // Assemble bounds from the seating polygon ([lat,lng] verts) + the venue's
+  // own building footprint ({lat,lon} nodes within ~60 m). Track the seating
+  // centroid as the preferred camera center.
+  let bounds = null, hasGeom = false, cLat = 0, cLng = 0, cN = 0;
+  const _ext = (lng, lat) => {
+    if (!bounds) bounds = new mapboxgl.LngLatBounds([lng, lat], [lng, lat]);
+    else bounds.extend([lng, lat]);
+  };
+  const seating = (typeof getSeatingPolygon === 'function') ? getSeatingPolygon(v, { includeAi: true }) : null;
+  if (Array.isArray(seating) && seating.length >= 3) {
+    for (const pt of seating) {
+      const lat = pt[0], lng = pt[1];
+      _ext(lng, lat); cLat += lat; cLng += lng; cN++; hasGeom = true;
+    }
+  }
+  if (Array.isArray(v.nearbyBuildings)) {
+    for (const b of v.nearbyBuildings) {
+      const nodes = b && b.geometry;
+      if (!Array.isArray(nodes) || nodes.length < 3) continue;
+      const aLat = nodes.reduce((s, n) => s + n.lat, 0) / nodes.length;
+      const aLon = nodes.reduce((s, n) => s + n.lon, 0) / nodes.length;
+      if (Math.hypot(aLat - v.lat, aLon - v.lng) > 60 / 111320) continue; // venue's own building only
+      for (const n of nodes) _ext(n.lon, n.lat);
+      hasGeom = true;
+    }
+  }
+
+  const center = (cN > 0) ? [cLng / cN, cLat / cN] : [v.lng, v.lat];
+
+  // Dynamic zoom from the extent; clamped so tiny terraces don't over-zoom and
+  // big buildings don't fly out too far.
+  let zoom = FALLBACK_ZOOM;
+  if (hasGeom && bounds && typeof map.cameraForBounds === 'function') {
+    try {
+      const cam = map.cameraForBounds(bounds, { padding, bearing, maxZoom: ZOOM_MAX });
+      if (cam && typeof cam.zoom === 'number') {
+        zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, cam.zoom));
+      }
+    } catch (e) { /* keep FALLBACK_ZOOM */ }
+  }
+
+  map.easeTo({ center, zoom, pitch: 45, bearing, padding, duration: 600 });
 }
 
 function selectVenue(id, flyTo) {
@@ -4817,6 +4899,22 @@ document.addEventListener('DOMContentLoaded', () => {
         if (state === 'peek' || state === 'expanded' || state === 'fullscreen') {
           try { localStorage.setItem('solsteder.sheetSnap', state); } catch {}
         }
+        // Suppress the in-list section headers for the duration of the slide
+        // so their display toggle doesn't shift the list content mid-animation
+        // (the peek↔expanded "jolt"). Revealed when the bottom/height
+        // transition settles; setTimeout fallback covers no-transition cases.
+        panelEl.classList.add('panel-animating');
+        if (_panelAnimEnd) { clearTimeout(_panelAnimEnd._t); panelEl.removeEventListener('transitionend', _panelAnimEnd); }
+        _panelAnimEnd = (e) => {
+          if (e && e.target !== panelEl) return;
+          if (e && e.propertyName !== 'bottom' && e.propertyName !== 'height') return;
+          panelEl.classList.remove('panel-animating');
+          panelEl.removeEventListener('transitionend', _panelAnimEnd);
+          if (_panelAnimEnd) clearTimeout(_panelAnimEnd._t);
+          _panelAnimEnd = null;
+        };
+        panelEl.addEventListener('transitionend', _panelAnimEnd);
+        _panelAnimEnd._t = setTimeout(() => _panelAnimEnd && _panelAnimEnd(), 420);
         _syncFtsPosition();
       }
 
@@ -4828,6 +4926,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       let _dragInitH = 0; // panel height at drag start (px)
       let _dragRafId = null;
+      let _panelAnimEnd = null; // transitionend handler clearing .panel-animating
 
       // Upper bound for the FTS during a drag — the slider should never go
       // higher than its fullscreen rest (just below the chip row). Below
@@ -4971,20 +5070,27 @@ document.addEventListener('DOMContentLoaded', () => {
         const beforeBCR = panelEl.getBoundingClientRect();
         const viewportH = window.innerHeight;
         const currentVisualBottom = viewportH - (beforeBCR.top + panelEl.offsetHeight);
+        // Pin the live VISUAL height too. Going to fullscreen the target height
+        // (app-h) is much taller than the current drag height; without pinning,
+        // clearing inline height let CSS jump straight to app-h while only
+        // `bottom` animated — the panel's top edge snapped up. Pinning the
+        // height and then clearing it makes CSS animate height → target.
+        const currentVisualHeight = beforeBCR.height;
         _applyState(target);
         panelEl.classList.remove('panel-dragging');
-        // Pin the current visual position via inline bottom (overrides the
-        // new class's bottom). Clear inline transform without snapping.
+        // Pin the current visual position via inline bottom + height (override
+        // the new class's values). Clear inline transform without snapping.
         panelEl.style.transition = 'none';
         panelEl.style.bottom    = currentVisualBottom + 'px';
+        panelEl.style.height    = currentVisualHeight + 'px';
         panelEl.style.transform = '';
-        panelEl.style.height    = '';
         // Force layout so the pinned position is the start of the transition.
         void panelEl.offsetHeight;
-        // Restore CSS transition + clear inline bottom — CSS new-state
-        // bottom takes over, animating from the pinned position.
+        // Restore CSS transition + clear inline bottom/height — CSS new-state
+        // values take over, animating from the pinned position + size.
         panelEl.style.transition = '';
         panelEl.style.bottom     = '';
+        panelEl.style.height     = '';
       }
 
       // Wire a swipe target: touchstart/move/end → panel drag state machine
@@ -5287,12 +5393,24 @@ document.addEventListener('DOMContentLoaded', () => {
         if (_dpRafId) cancelAnimationFrame(_dpRafId);
         _dpRafId = requestAnimationFrame(() => {
           const dy = _dpLastFrameY - _dpY0;
-          // Detail panel: downward drags dismiss; upward drags get a soft
-          // resistance (rubber-band) since the panel no longer has a
-          // fullscreen state to grow into.
-          const clampedDy = dy < 0 ? Math.max(dy / 4, -40) : dy;
-          dpEl.style.transform = `translateY(${clampedDy}px)`;
-          dpEl.style.height = '';
+          const vh = (window.visualViewport?.height ?? window.innerHeight);
+          // Live-follow by growing/shrinking the (bottom-anchored) height so
+          // the panel reads as pulling up to fullscreen / settling back down.
+          if (_dpStartState === 'normal' && dy < 0) {
+            // Pulling up toward fullscreen.
+            dpEl.style.transform = '';
+            dpEl.style.height = Math.min(vh, _dpInitH - dy) + 'px';
+          } else if (_dpStartState === 'fullscreen' && dy > 0) {
+            // Easing back down from fullscreen; floor at the ~58svh normal height.
+            const normalH = Math.round(0.58 * vh);
+            dpEl.style.transform = '';
+            dpEl.style.height = Math.max(normalH, _dpInitH - dy) + 'px';
+          } else {
+            // normal + down → dismiss preview; fullscreen + up → soft resist.
+            const clampedDy = dy < 0 ? Math.max(dy / 4, -40) : dy;
+            dpEl.style.transform = `translateY(${clampedDy}px)`;
+            dpEl.style.height = '';
+          }
 
           // Anchor the FTS to the DP's top edge so it follows the drag.
           if (USE_FLOATING_TIME_SLIDER) {
@@ -5327,14 +5445,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const velocity = dy / dt;
         const SWIPE_V  = 0.2, SAFE_DY = 40;
 
-        if (Math.abs(dy) <= SAFE_DY && Math.abs(velocity) < SWIPE_V) return; // safe zone
+        if (Math.abs(dy) <= SAFE_DY && Math.abs(velocity) < SWIPE_V) return; // safe zone → snap back
 
-        if (velocity < -SWIPE_V || dy < -SAFE_DY) {
-          // Detail panel no longer has a fullscreen state — upward swipe is a no-op,
-          // letting the panel snap back to its normal height. (User decision: the
-          // DP doesn't need a fullscreen mode; dragging up was overlapping the FTS.)
-        } else if (velocity > SWIPE_V || dy > SAFE_DY) {
-          closeDetailPanel(false);
+        const up   = (velocity < -SWIPE_V || dy < -SAFE_DY);
+        const down = (velocity >  SWIPE_V || dy >  SAFE_DY);
+        if (_dpStartState === 'normal') {
+          if (up) {
+            // Pull-to-fullscreen. The top bar slides up via the CSS rule
+            // body:has(#detail-panel.dp-fullscreen) #top-strip. _syncFtsPosition
+            // re-anchors the FTS to its dp-fullscreen branch.
+            dpEl.classList.add('dp-fullscreen');
+            _navPush('dp-fullscreen');
+            _syncFtsPosition();
+          } else if (down) {
+            closeDetailPanel(false);
+          }
+        } else { // fullscreen
+          if (down) {
+            dpEl.classList.remove('dp-fullscreen');
+            _navDropLayer('dp-fullscreen');
+            _syncFtsPosition();
+          }
+          // up → already fullscreen, no-op
         }
       }
 
@@ -5407,6 +5539,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof drawAllCardTimelines === 'function') drawAllCardTimelines();
   });
   setTimeout(() => { _syncQcPanelHeight(); _updatePeekHeight(); }, 600);
+
+  // Re-anchor the FTS / panel when the visual viewport changes (soft keyboard
+  // open/close shrinks visualViewport.height without firing window 'resize').
+  // Without this the FTS + zoom-jog bottom anchors used a stale viewport and
+  // mispositioned when the search keyboard appeared.
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => {
+      _syncFtsPosition();
+    }, { passive: true });
+  }
 
   // Arc canvas drag + hover support
   const arcEl = document.getElementById('sun-curve');
@@ -5575,6 +5717,19 @@ function _autoFitToBatch(newVenues) {
 // Lifted from locateUser so other camera moves (the Avstand tracker, etc.)
 // can place the user dot in the *visible* area of the screen, not the
 // arithmetic center which is hidden behind the panel on mobile.
+// The venue-list panel is now translucent, so the map should fill the screen
+// behind it (pins visible through the glass) rather than framing everything in
+// the strip above an expanded/fullscreen list. Browsing camera moves therefore
+// reserve only the always-on-screen PEEK sliver, never the expanded height —
+// this also fixes the "map stays framed for an expanded list after you collapse
+// to peek, leaving the lower half empty" bug. (Venue-open framing is separate:
+// it reserves the opaque detail panel so the seating sits in view — see _flyToVenue.)
+function _peekOcclusionPx() {
+  const panelEl = document.getElementById('panel');
+  const raw = panelEl ? getComputedStyle(panelEl).getPropertyValue('--peek-h') : '';
+  const n = parseInt(raw, 10);
+  return Number.isFinite(n) ? n : 160;
+}
 function _panelAwarePadding() {
   if (!isMobile()) return { top: 96, bottom: 96, left: 16, right: 16 };
   const panelEl = document.getElementById('panel');
@@ -5583,7 +5738,8 @@ function _panelAwarePadding() {
     const r = panelEl.getBoundingClientRect();
     if (r.top > 0 && r.top < window.innerHeight) panelTop = r.top;
   }
-  const occluded = Math.max(0, window.innerHeight - panelTop);
+  // Cap at the peek sliver: treat the translucent expanded area as free.
+  const occluded = Math.min(Math.max(0, window.innerHeight - panelTop), _peekOcclusionPx());
   return { top: 80, bottom: occluded + 16, left: 16, right: 16 };
 }
 
@@ -6509,30 +6665,25 @@ window._passesActiveFilters = function(v) {
     if (typeof noiseScore !== 'function') return false;
     if (noiseScore(v) < 70) return false;
   }
-  if (f.friends) {
-    // Venue has SOMETHING happening with friends: checked-in friends, OR
-    // any non-cancelled plan at the venue (creator + accepted invitees
-    // both count as "friends going"). Includes the user's own plans
-    // since they likely want to surface those too.
-    let hasFriend = false;
-    if (typeof getFriendCheckinsForVenue === 'function') {
-      const checkins = getFriendCheckinsForVenue(v.id) || [];
-      if (checkins.length) hasFriend = true;
-    }
-    if (!hasFriend && typeof getPlansForVenue === 'function') {
-      const plans = getPlansForVenue(v.id) || [];
-      for (const p of plans) {
-        if (!p || p.cancelled_at) continue;
-        // Any non-cancelled plan at the venue qualifies — the user is
-        // going (creator), a friend invited them (accepted invite), or
-        // they're hosting friends. The pin renderer already gates on the
-        // same data set.
-        hasFriend = true; break;
-      }
-    }
-    if (!hasFriend) return false;
-  }
+  // NOTE: f.friends is intentionally NOT an exclusion. The "Venner" pill now
+  // *prioritises* friend venues to the top of the list (see renderList's
+  // friends repartition) rather than hiding everything else — the user still
+  // wants to see best-match venues below. On the map all pins stay visible;
+  // friend venues are already visually distinct (friend modules / pulse rings).
+  // venueHasFriends() below is the shared predicate.
   return true;
+};
+
+/** True when a venue has friends checked in OR a live (non-cancelled) plan.
+ *  Shared by the "Venner" list prioritisation. */
+window.venueHasFriends = function(v) {
+  if (typeof getFriendCheckinsForVenue === 'function'
+      && (getFriendCheckinsForVenue(v.id) || []).length) return true;
+  if (typeof getPlansForVenue === 'function') {
+    const plans = getPlansForVenue(v.id) || [];
+    if (plans.some(p => p && !p.cancelled_at)) return true;
+  }
+  return false;
 };
 
 function toggleListFilter(filter, btn) {
@@ -6676,6 +6827,10 @@ function _searchPhTick() {
 function _enterSearchSession() {
   if (_searchSessionActive) return;
   _searchSessionActive = true;
+  // Hide the zoom-jog while searching — the keyboard shrinks the viewport and
+  // the jog (anchored to the bottom) was re-anchoring up into the search bar.
+  // It's useless during a search anyway. CSS: body.search-active #zoom-jog.
+  document.body.classList.add('search-active');
   if (isMobile() && typeof window._applyMobilePanelState === 'function') {
     const cur = window._currentMobilePanelState?.() ?? null;
     _preSearchPanelState = cur;
@@ -6687,6 +6842,7 @@ function _enterSearchSession() {
 function _exitSearchSession() {
   if (!_searchSessionActive) return;
   _searchSessionActive = false;
+  document.body.classList.remove('search-active');
   if (_preSearchPanelState !== null) {
     const saved = _preSearchPanelState;
     _preSearchPanelState = null;

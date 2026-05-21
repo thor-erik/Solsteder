@@ -2065,7 +2065,13 @@ function _invFtsDetach() {
   if (popup) {
     popup.classList.remove('fts-popup-in-invite');
     popup.style.cssText = '';
-    if (popup.parentNode !== document.body) document.body.appendChild(popup);
+    // The popup lives INSIDE #fts-track — its `bottom: calc(100% + 6px)` is
+    // relative to the track. Re-appending it to <body> (the old behaviour)
+    // positioned it 6px above the full page height (off-screen) and detached
+    // it from the slider, so it vanished and stopped following the thumb after
+    // an invite round-trip. Restore it into the track instead.
+    const track = document.getElementById('fts-track');
+    if (track && popup.parentNode !== track) track.appendChild(popup);
   }
 }
 

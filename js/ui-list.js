@@ -618,9 +618,16 @@ function renderListPage(list, dateStr, fromHour, toHour, isPoint, reset) {
                         Math.abs(fromHour - currentHour()) > 5/60)
                     || dateStr > todayStr();
   const _auditList = typeof auditModeActive !== 'undefined' && auditModeActive;
+  // When the "Venner" filter has split the buckets into friends / everyone-else
+  // (and friends actually exist), relabel the two section headers accordingly.
+  const _friendsList = !_auditList && nowCount > 0
+    && !!(window._activeFilters && window._activeFilters.friends)
+    && _listBuckets.now.every(v => v._hasFriends);
   const nowHeaderTxt   = _auditList ? `Til vurdering · ${nowCount}`
+                                    : _friendsList ? t('section_friends')
                                     : (isFutureMode ? t('section_sun_at',    { time: formatHour(fromHour) }) : t('section_sun_now'));
   const laterHeaderTxt = _auditList ? `Vurdert · ${laterCount}`
+                                    : _friendsList ? t('section_friends_other')
                                     : (isFutureMode ? t('section_sun_after', { time: formatHour(fromHour) }) : t('section_sun_later'));
 
   let html = '';
@@ -915,9 +922,13 @@ function renderList() {
       ? score.distKm
       : (_matchRef ? _haversineKm(_matchRef, v) : 0);
     const _relevanceMin = _effSunMin - _distKm * 20;
+    // Friend presence (checked-in friends or a live plan) — drives the
+    // "Venner" filter's friends-on-top prioritisation.
+    const _hasFriends = (typeof window.venueHasFriends === 'function')
+      ? window.venueHasFriends(v) : false;
     // Pass raw windows through to renderCard so the v2 pill builder can
     // detect Åpner/Stenger binding-hours pills without recomputing.
-    return { ...v, sunInWin, isOpen, isOpeningSoon, isClosingSoon, score, _qual: qual, _rawWindows: rawWins, _relevanceMin };
+    return { ...v, sunInWin, isOpen, isOpeningSoon, isClosingSoon, score, _qual: qual, _rawWindows: rawWins, _relevanceMin, _hasFriends };
   });
 
   // Surfacing filter — qualifying windows + own-suggestion bypass + the
@@ -1121,6 +1132,23 @@ function renderList() {
     bucketLater.sort(comparator);
   }
   venues = [...bucketNow, ...bucketLater];
+
+  // ── "Venner" filter — friends on top, then best match ─────────────────────
+  // Repurpose the two-bucket section machinery (same trick as audit mode):
+  // friend venues become the top section, everyone else the section below a
+  // divider. Preserves the within-section sun/match order computed above.
+  // Skipped when no friends are out (the list just stays in normal order so
+  // the filter doesn't render an orphaned "Andre steder" header).
+  const _friendsFilterActive = !auditActive && !!(window._activeFilters && window._activeFilters.friends);
+  if (_friendsFilterActive) {
+    const _withF = venues.filter(v => v._hasFriends);
+    if (_withF.length) {
+      const _without = venues.filter(v => !v._hasFriends);
+      venues = [..._withF, ..._without];
+      bucketNow.length = 0;   bucketLater.length = 0;
+      bucketNow.push(..._withF);  bucketLater.push(..._without);
+    }
+  }
 
   // Audit mode override — admin walks the catalog systematically.
   // Two visual buckets: "To review" (top) and "Reviewed + Archived" (bottom).
