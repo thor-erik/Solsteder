@@ -4898,6 +4898,10 @@ document.addEventListener('DOMContentLoaded', () => {
           panelEl.classList.remove('mobile-expanded', 'mobile-fullscreen', 'mobile-hidden');
           requestAnimationFrame(_updatePeekHeight);
         }
+        // Mirror the fullscreen state onto a plain body class so the top-bar
+        // slide-up rule keys off it (body.panel-fullscreen-active) — reliable
+        // and consistent with the other slide-up states.
+        document.body.classList.toggle('panel-fullscreen-active', state === 'fullscreen');
         // Persist user's last snap point (peek/expanded/fullscreen) so it
         // restores on next session. 'hidden' is transient (covered by detail
         // panel, profile sheet, etc.) and shouldn't be restored.
