@@ -1276,13 +1276,22 @@
   body.post-accept-active #top-strip,
   body.profile-panel-open #top-strip,
   body.invite-sheet-open #top-strip,
-  body.panel-fullscreen-active #top-strip,
   body.plan-preview-active #floating-brand,
   body.post-accept-active #floating-brand,
   body.profile-panel-open #floating-brand,
-  body.invite-sheet-open #floating-brand,
-  body.panel-fullscreen-active #floating-brand {
+  body.invite-sheet-open #floating-brand {
     transform: translateY(calc(-100% - env(safe-area-inset-top, 0px) - 14px));
+    pointer-events: none;
+  }
+  /* Fullscreen panels (venue list / detail): FADE the top bar out instead of
+     sliding. The transform-slide reads as an instant vanish here because the
+     rising fullscreen panel covers the bar mid-slide; opacity is the reliable
+     path (it's the same transition the intro fade-in uses, which works). */
+  body.panel-fullscreen-active #top-strip,
+  body.dp-fullscreen-active #top-strip,
+  body.panel-fullscreen-active #floating-brand,
+  body.dp-fullscreen-active #floating-brand {
+    opacity: 0;
     pointer-events: none;
   }
   #top-strip .ts-left, #top-strip .ts-right {
