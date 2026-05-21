@@ -121,7 +121,7 @@
 <script defer src="js/weather.js?v=20260519d"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260521c"></script>
-<script defer src="js/app.js?v=20260521y"></script>
+<script defer src="js/app.js?v=20260521z"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260519b"></script>
 <script defer src="js/render-seating.js?v=20260519b"></script>
@@ -5363,10 +5363,14 @@
        darkened, then lightened. The fallback now sits near the glass
        baseline (≈0.55 alpha) so the swap is imperceptible while still
        buying us the blur-recompute escape during the transform. */
+    /* Keep the backdrop-filter (frosted glass) DURING slides. The old
+       optimisation dropped it + showed a flat fallback bg, but the resting
+       panel has an alpha-0 background — it's PURE blur — so no flat colour can
+       stand in for it: navy read as a blue flash, cream read as transparent.
+       Re-blurring the (static) map under the moving panel is cheap enough on
+       modern devices; end-to-end visual consistency matters more. */
     #panel.is-sliding {
-      backdrop-filter: none !important;
-      -webkit-backdrop-filter: none !important;
-      background: rgba(17,30,56,0.55) !important;
+      /* intentionally empty — panel keeps its .glass-panel frosted look */
     }
   }
 
