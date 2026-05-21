@@ -5186,6 +5186,13 @@ document.addEventListener('DOMContentLoaded', () => {
           _listWasScrolled = venueList.scrollTop > 0;
         }, { passive: true });
 
+        // Header drop-shadow on scroll — fades in once the list scrolls under
+        // the sticky header (replaces the old top fade mask).
+        venueList.addEventListener('scroll', () => {
+          const panel = document.getElementById('panel');
+          if (panel) panel.classList.toggle('is-scrolled', venueList.scrollTop > 0);
+        }, { passive: true });
+
         venueList.addEventListener('touchmove', e => {
           const cy = e.touches[0].clientY;
           if (venueList.scrollTop > 0) _listWasScrolled = true;

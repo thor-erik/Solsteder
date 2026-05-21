@@ -508,16 +508,18 @@ function wxColor(dateStr, h, bright) {
   const isRainy    = precip > 0.3;
   const isOvercast = !isRainy && blocked > 0.65;
   const isPartly   = !isRainy && !isOvercast && blocked > 0.38;
+  // Harmonized with the cream+Delft palette: rain = Delft blue, overcast =
+  // warm grey, partly = soft honey, clear = honey. No more slate-blue.
   if (bright) {
-    if (isRainy)    return 'rgba(156,189,231,0.25)';
-    if (isOvercast) return 'rgba(156,189,231,0.45)';
-    if (isPartly)   return 'rgba(156,189,231,0.70)';
+    if (isRainy)    return 'rgba(74,94,130,0.30)';
+    if (isOvercast) return 'rgba(154,142,126,0.45)';
+    if (isPartly)   return 'rgba(213,176,104,0.70)';
     return 'rgba(245,194,94,0.85)';
   } else {
     // Past arcs: dimmed versions of the same colors
-    if (isRainy)    return 'rgba(156,189,231,0.12)';
-    if (isOvercast) return 'rgba(156,189,231,0.22)';
-    if (isPartly)   return 'rgba(156,189,231,0.35)';
+    if (isRainy)    return 'rgba(74,94,130,0.15)';
+    if (isOvercast) return 'rgba(154,142,126,0.22)';
+    if (isPartly)   return 'rgba(213,176,104,0.35)';
     return 'rgba(245,194,94,0.40)';
   }
 }

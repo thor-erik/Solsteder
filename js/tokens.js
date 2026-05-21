@@ -35,8 +35,8 @@
     weatherClear:     '#F5C25E',
     weatherClearSoft: '#E8B870',
     weatherPartly:    '#D5B068',
-    weatherOvercast:  '#6F8092',
-    weatherRain:      '#4A6582',
+    weatherOvercast:  '#9A8E7E',
+    weatherRain:      '#4A5E82',
     weatherNight:     '#0F1B2A',
   };
 

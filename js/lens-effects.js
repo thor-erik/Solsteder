@@ -17,7 +17,9 @@
   // motion stack) when no flag present. Explicit overrides:
   //   ?fx=1   — alternate preset (polarized panel + clean card)
   //   ?fx=lab — interactive lab to swap effects live
-  const fx = params.get('fx') || '2';
+  // OFF by default — cream redesign is flat (no gradient/sheen overlays).
+  // Lens-FX (chromatic card, mirror-sky panel, cursor spotlight) is opt-in.
+  const fx = params.get('fx');
   if (fx !== '1' && fx !== '2' && fx !== 'lab') return;
 
   document.body.setAttribute('data-fx', fx);

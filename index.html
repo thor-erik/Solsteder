@@ -109,7 +109,7 @@
 </script>
 <script defer src="js/i18n.js?v=20260520b"></script>
 <script defer src="js/config.js?v=20260519s"></script>
-<script defer src="js/tokens.js?v=20260521d"></script>
+<script defer src="js/tokens.js?v=20260521e"></script>
 <script defer src="js/auth.js?v=20260520b"></script>
 
 <script defer src="js/login-carousel.js?v=20260428a"></script>
@@ -121,13 +121,13 @@
 <script defer src="js/weather.js?v=20260519d"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260521c"></script>
-<script defer src="js/app.js?v=20260521c"></script>
+<script defer src="js/app.js?v=20260521e"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260519b"></script>
 <script defer src="js/render-seating.js?v=20260519b"></script>
 <script defer src="js/render-editor.js?v=20260519b"></script>
-<script defer src="js/render-pins.js?v=20260521d"></script>
-<script defer src="js/ui-shared.js?v=20260519b"></script>
+<script defer src="js/render-pins.js?v=20260521e"></script>
+<script defer src="js/ui-shared.js?v=20260521e"></script>
 <script defer src="js/ui-list.js?v=20260520a"></script>
 <script defer src="js/admin-review.js?v=20260505a"></script>
 <script defer src="js/admin-audit.js?v=20260512a"></script>
@@ -138,7 +138,7 @@
 <script defer src="js/osm.js?v=20260519p"></script>
 <script defer src="js/notifications.js?v=20260520f"></script>
 <script defer src="js/push.js?v=20260518c"></script>
-<script defer src="js/lens-effects.js?v=20260515a"></script>
+<script defer src="js/lens-effects.js?v=20260521e"></script>
 <script defer src="js/init.js?v=20260427a"></script>
 <script>
   // Register the service worker at boot so offline support and the
@@ -212,8 +212,8 @@
     --weather-clear:      #F5C25E;   /* matches --accent — clear sun */
     --weather-clear-soft: #E8B870;   /* mostly clear — softer honey */
     --weather-partly:     #D5B068;   /* partly cloudy — clearly yellow (was reading too grey) */
-    --weather-overcast:   #6F8092;   /* overcast — distinctly cool blue-grey (deeper than partly) */
-    --weather-rain:       #4A6582;   /* rain (distinct, cool slate-blue) */
+    --weather-overcast:   #9A8E7E;   /* overcast — warm grey, harmonized with cream map */
+    --weather-rain:       #4A5E82;   /* rain — Delft-blue family (no longer slate) */
     --weather-night:      #0F1B2A;   /* deeper than --bg for visibility */
 
     /* Spacing — 4-base ladder. Published; not yet migrated. */
@@ -330,6 +330,11 @@
 
     /* Drop shadow lifting a transparent floating bar off the cream map. */
     --panel-shadow:  0 4px 20px rgba(17,30,56,0.10);
+    /* Upward shadow for bottom sheets (invite, accept, confirm). */
+    --sheet-shadow:  0 -8px 32px rgba(17,30,56,0.18);
+    /* Dark muted text for transparent (A) + cream (C) surfaces — replaces
+       --muted (#9BA9BC slate) which is illegible on light backgrounds. */
+    --ink-muted:     rgba(17,30,56,0.55);
 
     /* Card-pill subject colors — kept distinct from --muted/--accent so the
        "Skyer" (cool gray) and "Regn" (blue) pill text reads cleanly on glass.
@@ -1037,11 +1042,11 @@
     width: 34px;
     height: 92px;
     border-radius: 17px;
-    background: var(--glass-action-bg);
-    backdrop-filter: var(--glass-blur-action);
-    -webkit-backdrop-filter: var(--glass-blur-action);
-    border: var(--glass-border);
-    box-shadow: var(--glass-inset);
+    background: var(--glassctl-bg);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    border: var(--glassctl-border);
+    box-shadow: var(--glassctl-raise);
     position: relative;
     display: flex;
     flex-direction: column;
@@ -1053,7 +1058,7 @@
     font-size: 13px;
     font-weight: 700;
     line-height: 1;
-    color: rgba(156,189,231,0.55);
+    color: rgba(17,30,56,0.55);
     pointer-events: none;
     position: relative;
     z-index: 1;
@@ -1062,8 +1067,8 @@
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    background: rgba(156,189,231,0.25);
-    border: 1.5px solid rgba(156,189,231,0.45);
+    background: rgba(17,30,56,0.16);
+    border: 1.5px solid rgba(17,30,56,0.30);
     position: absolute;
     top: 50%;
     left: 50%;
@@ -1074,7 +1079,7 @@
   }
   .zj-thumb:active, .zj-thumb.active {
     cursor: grabbing;
-    background: rgba(156,189,231,0.4);
+    background: rgba(17,30,56,0.28);
   }
 
   /* ── Shared floating card base ────────────────────────────────────────────── */
@@ -1128,7 +1133,7 @@
   #search-icon svg {
     width: 18px;
     height: 18px;
-    color: var(--muted);
+    color: var(--ink-muted);
   }
   #floating-search #venue-search {
     background: transparent;
@@ -1136,13 +1141,11 @@
     padding: 0;
     width: 100%;
     font-size: 15px;
-    color: var(--text);
+    color: var(--panel-text);
   }
   #floating-search #venue-search:focus { border: none; outline: none; }
-  /* Brighter placeholder — opacity-dimmed cream reads more cleanly on
-     translucent slate than chromatic --muted. Per DESIGN.md principle 03. */
   #floating-search #venue-search::placeholder {
-    color: rgba(255, 244, 224, 0.55);
+    color: rgba(17,30,56,0.45);
     opacity: 1;
   }
 
@@ -1152,9 +1155,9 @@
     width: 32px;
     height: 32px;
     border: none;
-    background: rgba(255,242,235,0.1);
+    background: rgba(17,30,56,0.08);
     border-radius: 50%;
-    color: var(--muted);
+    color: var(--ink-muted);
     font-size: 14px;
     cursor: pointer;
     padding: 0;
@@ -1162,7 +1165,7 @@
     justify-content: center;
     transition: background 0.15s, color 0.15s;
   }
-  #search-clear-btn:hover { background: rgba(255,242,235,0.18); color: var(--text); }
+  #search-clear-btn:hover { background: rgba(17,30,56,0.14); color: var(--panel-text); }
   #floating-search.has-query #search-clear-btn { display: flex; }
 
 
@@ -1334,7 +1337,7 @@
   }
   #top-strip .ts-avatar .profile-anon {
     background: transparent;
-    color: var(--muted);
+    color: rgba(17,30,56,0.70);
     border: none;
   }
   #top-strip .ts-bell-dot {
@@ -1424,7 +1427,7 @@
      to text color + slight weight bump so it reads cleanly without
      visually competing with the date (which is the primary CTA). */
   #top-strip .ts-center .ts-temp {
-    color: var(--text);
+    color: var(--panel-text);
     font-weight: 600;
     /* Negative margin pulls the temp tight against the weather glyph —
        they read as one unit (icon + value), tighter than the row's
@@ -1588,6 +1591,14 @@
     gap: 8px;
     padding: 0 12px 4px;
     flex-shrink: 0;
+    position: relative;
+    z-index: 2;
+    transition: box-shadow 0.18s ease;
+  }
+  /* Drop shadow under the sticky header once the list scrolls (replaces the
+     old top fade mask). Toggled via #panel.is-scrolled from the scroll handler. */
+  #panel.is-scrolled #panel-actions {
+    box-shadow: 0 8px 10px -8px rgba(17,30,56,0.28);
   }
   #panel-actions .panel-actions-pills {
     flex: 1 1 0;
@@ -2036,7 +2047,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--muted);
+    color: var(--ink-muted);
   }
   .sd-row-icon .sd-icon {
     width: 16px;
@@ -2044,7 +2055,7 @@
   }
   .sd-row-name {
     font-size: 14px;
-    color: var(--text);
+    color: var(--panel-text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -2053,7 +2064,7 @@
   }
   .sd-row-area {
     font-size: 11px;
-    color: var(--muted);
+    color: var(--ink-muted);
     white-space: nowrap;
     flex-shrink: 0;
   }
@@ -2938,9 +2949,9 @@
     margin-top: 5px;
     width: 100%;
   }
-  .wx-temp-strip { color: var(--text); font-weight: 600; }
+  .wx-temp-strip { color: var(--panel-text); font-weight: 600; }
   .wx-sep   { color: rgba(156,189,231,0.25); }
-  .wx-wind  { color: rgba(156,189,231,0.55); }
+  .wx-wind  { color: var(--ink-muted); }
   .wx-rain  { color: #9CBDE7; }
   /* Wind direction is rendered as a rotating SVG (not a Unicode arrow)
      because the diagonal arrow codepoints (U+2196–U+2199) had no glyph
@@ -2990,12 +3001,12 @@
     background: var(--content-bg);
     backdrop-filter: var(--content-blur);
     -webkit-backdrop-filter: var(--content-blur);
-    border: var(--glass-border);
-    border-radius: 16px;
+    border: none;
+    border-radius: 14px;
+    box-shadow: 0 8px 32px rgba(17,30,56,0.18);
     padding: 10px 8px 8px;
     display: none;
     z-index: 960;
-    box-shadow: 0 12px 48px rgba(0,0,0,0.55);
   }
   #date-calendar.open { display: block; }
   .dc-grid {
@@ -3343,14 +3354,10 @@
     gap: 12px;
     padding: 12px 14px;
     margin-bottom: 0;
-    background: var(--glass-action-bg);
-    backdrop-filter: var(--glass-blur-action);
-    -webkit-backdrop-filter: var(--glass-blur-action);
-    border: 1px solid rgba(245,194,94,0.22);
+    background: #111E38;
+    border: 1px solid rgba(255,255,255,0.06);
     border-radius: 16px;  /* card-shape, matches venue cards / dp-cards */
-    box-shadow:
-      var(--glass-inset),
-      0 6px 18px rgba(0,0,0,0.28);
+    box-shadow: var(--panel-shadow);
     color: var(--text);
     font-family: 'Inter', sans-serif;
     font-size: 13px;
@@ -3637,6 +3644,7 @@
        inspector is ~340 px). Top-strip aligns to this same column. */
     width: 380px;
     border-radius: 16px;
+    box-shadow: var(--panel-shadow);
     display: flex;
     flex-direction: column;
     /* overflow:visible so the FTS scrub popup can extend above the
@@ -3800,7 +3808,7 @@
   #sort-panel {
     position: fixed;
     z-index: 1100;
-    border-radius: 12px;
+    border-radius: 14px;
     padding: 6px;
     display: none;
     flex-direction: column;
@@ -3808,7 +3816,7 @@
     background: var(--content-bg) !important;
     backdrop-filter: var(--content-blur);
     -webkit-backdrop-filter: var(--content-blur);
-    box-shadow: 0 8px 32px rgba(17,30,56,0.15);
+    box-shadow: 0 8px 32px rgba(17,30,56,0.18);
   }
   #sort-panel.open { display: flex; }
   .sort-backdrop {
@@ -5256,12 +5264,8 @@
          cover the last card during a slider drag. */
       padding: 12px 16px 88px;
       overscroll-behavior-y: none;
-      /* Smoother top fade — three-stop gradient with an intermediate
-         50%-opacity step gives a soft entry instead of the previous
-         hard cutoff at 16px. Reads as "cards melt into the header"
-         rather than "cards clipped behind a wall". */
-      -webkit-mask-image: linear-gradient(to bottom, transparent 0, rgba(0,0,0,0.55) 12px, black 24px, black 100%);
-      mask-image:         linear-gradient(to bottom, transparent 0, rgba(0,0,0,0.55) 12px, black 24px, black 100%);
+      /* No top mask — clean edge by default. A drop shadow under the sticky
+         header fades in on scroll (see #panel.is-scrolled rule). */
     }
 
     .venue-card {
@@ -7829,8 +7833,8 @@
   }
   .dp-address {
     font-size: 11px;
-    color: var(--muted);
-    opacity: 0.7;
+    color: var(--ink-muted);
+    opacity: 1;
     margin-bottom: 12px;
   }
   .dp-gm-actions {
@@ -8224,10 +8228,10 @@
     gap: 6px;
     padding: 6px 10px;
     border-radius: 999px;
-    background: var(--glass-action-bg);
-    border: var(--glass-border);
-    box-shadow: var(--glass-inset);
-    color: var(--text);
+    background: var(--glassctl-bg);
+    border: var(--glassctl-border);
+    box-shadow: var(--glassctl-raise);
+    color: var(--panel-text);
     font-size: 12px;
     font-weight: 500;
     line-height: 1;
@@ -8236,7 +8240,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: var(--muted);
+    color: var(--ink-muted);
     font-size: 14px;
   }
   .info-chip-text { font-variant-numeric: tabular-nums; }
@@ -8256,14 +8260,14 @@
     background: none;
     border: none;
     padding: 0;
-    color: var(--muted);
+    color: var(--ink-muted);
     font-size: 11px;
     font-weight: 500;
     cursor: pointer;
     font-family: inherit;
   }
-  .dp-footer-quiet .secondary-link:hover { color: var(--text); }
-  .dp-footer-sep { color: var(--muted); font-size: 11px; opacity: 0.6; }
+  .dp-footer-quiet .secondary-link:hover { color: var(--panel-text); }
+  .dp-footer-sep { color: var(--ink-muted); font-size: 11px; opacity: 0.6; }
 
   /* Merged header: back + title + fav/bell on one row */
   .detail-header-row {
@@ -8779,19 +8783,19 @@
   .secondary-link {
     font-size: 12px;
     font-weight: 500;
-    color: var(--muted);
+    color: var(--ink-muted);
     padding: 4px 0;
     background: none;
     border: none;
     cursor: pointer;
     font-family: 'Inter', sans-serif;
-    opacity: 0.75;
+    opacity: 1;
     transition: opacity 0.15s, color 0.15s;
   }
 
   .secondary-link:hover {
     opacity: 1;
-    color: var(--text);
+    color: var(--panel-text);
   }
 
   @media (max-width: 639px) {
@@ -9491,7 +9495,7 @@
     backdrop-filter: var(--glass-blur-panel);
     -webkit-backdrop-filter: var(--glass-blur-panel);
     border: none;
-    box-shadow: var(--glass-inset), 0 6px 24px rgba(0,0,0,0.50);
+    box-shadow: var(--sheet-shadow);
     display: flex;
     flex-direction: column;
     transform: translateY(100%);
@@ -9578,7 +9582,7 @@
   .dpinvite-eyebrow {
     font-size: 13px;
     font-weight: 500;
-    color: var(--muted);
+    color: var(--ink-muted);
     line-height: 1.25;
   }
   .dpinvite-moment-pin {
@@ -9599,7 +9603,7 @@
   .dpinvite-venue-line {
     font-size: 20px;
     font-weight: 700;
-    color: var(--text);
+    color: var(--panel-text);
     line-height: 1.18;
     letter-spacing: -0.01em;
     overflow: hidden;
@@ -9616,7 +9620,7 @@
     margin-top: 2px;
     font-size: 13px;
     font-weight: 500;
-    color: var(--muted);
+    color: var(--ink-muted);
     font-variant-numeric: tabular-nums;
     /* Whole-pill drop on overflow — see .dprcv-meta. _fitMetaPills hides
        trailing `.dpinvite-meta-item` pills + their preceding dot when
@@ -9634,14 +9638,14 @@
     /* Matches .dpinvite-eyebrow */
     font-size: 13px;
     font-weight: 500;
-    color: var(--muted);
+    color: var(--ink-muted);
     line-height: 1.25;
   }
   .dpinvite-moment-time {
     /* Matches .dpinvite-venue-line */
     font-size: 20px;
     font-weight: 700;
-    color: var(--text);
+    color: var(--panel-text);
     line-height: 1.18;
     margin-top: 2px;
     font-variant-numeric: tabular-nums;
@@ -9655,7 +9659,7 @@
     border: 0;
     cursor: pointer;
     background: rgba(245, 194, 94, 0.10);
-    color: var(--text);
+    color: var(--panel-text);
     font-size: 13px;
     /* Lighter weight per user feedback — heavy 700 read as a separate
        label instead of an inline meta affordance. 500 sits in line
@@ -9747,7 +9751,7 @@
   .dpinvite-friends-label {
     font-size: 11px;
     font-weight: 600;
-    color: var(--muted);
+    color: var(--ink-muted);
     letter-spacing: 0.4px;
     text-transform: uppercase;
     line-height: 1;
@@ -9848,7 +9852,7 @@
   .dpinvite-avatar-name {
     font-size: 11px;
     font-weight: 500;
-    color: var(--muted);
+    color: var(--ink-muted);
     line-height: 1.2;
     max-width: 52px;
     white-space: nowrap;
@@ -9874,8 +9878,8 @@
     align-items: center;
     gap: 6px;
   }
-  .dpinvite-empty-title { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.3; }
-  .dpinvite-empty-sub   { font-size: 12px; color: var(--muted); line-height: 1.4; max-width: 280px; }
+  .dpinvite-empty-title { font-size: 13px; font-weight: 600; color: var(--panel-text); line-height: 1.3; }
+  .dpinvite-empty-sub   { font-size: 12px; color: var(--ink-muted); line-height: 1.4; max-width: 280px; }
 
   /* Sticky CTA row — primary pill + circular companion (.s-circ / .s-sq).
      Uses margin-left on the companion (not `gap`) so the companion can
@@ -10088,7 +10092,7 @@
     background: var(--glass-panel-bg);
     backdrop-filter: blur(22px) brightness(0.92);
     -webkit-backdrop-filter: blur(22px) brightness(0.92);
-    box-shadow: var(--glass-inset), 0 -16px 40px rgba(0,0,0,0.55);
+    box-shadow: var(--sheet-shadow);
     color: var(--text);
     /* Match #panel.mobile-hidden's slide-down feel: cubic-bezier(0.32,
        0.72, 0, 1) for a smoother ease-out, +20 px extra throw past the
@@ -10209,7 +10213,7 @@
   .dprcv-eyebrow {
     font-size: 13px;
     font-weight: 500;
-    color: var(--muted);
+    color: var(--ink-muted);
     line-height: 1.25;
     /* Reserve the row height even when content collapses to &nbsp; so the
        venue + meta stay vertically aligned with the right-column "Meets at"
@@ -10217,7 +10221,7 @@
        in self-invite / race-condition cases. */
     min-height: calc(13px * 1.25);
   }
-  .dprcv-eyebrow strong { color: var(--text); font-weight: 700; }
+  .dprcv-eyebrow strong { color: var(--panel-text); font-weight: 700; }
   .dprcv-venue-row {
     display: flex;
     align-items: center;
@@ -10240,7 +10244,7 @@
   .dprcv-venue {
     font-size: 24px;
     font-weight: 700;
-    color: var(--text);
+    color: var(--panel-text);
     line-height: 1.15;
     letter-spacing: -0.01em;
     min-width: 0;
@@ -10261,7 +10265,7 @@
     margin-top: 4px;
     font-size: 13px;
     font-weight: 500;
-    color: var(--muted);
+    color: var(--ink-muted);
     font-variant-numeric: tabular-nums;
     line-height: 1.4;
     /* Whole-pill drop on overflow: _fitMetaPills (js/app.js) measures
@@ -10305,14 +10309,14 @@
     /* Matches .dprcv-eyebrow */
     font-size: 13px;
     font-weight: 500;
-    color: var(--muted);
+    color: var(--ink-muted);
     line-height: 1.25;
   }
   .dprcv-arrival-time {
     /* Matches .dprcv-venue */
     font-size: 24px;
     font-weight: 700;
-    color: var(--text);
+    color: var(--panel-text);
     line-height: 1.15;
     margin-top: 2px;
     font-variant-numeric: tabular-nums;
@@ -10322,7 +10326,7 @@
     /* Matches .dprcv-meta */
     font-size: 13px;
     font-weight: 500;
-    color: var(--muted);
+    color: var(--ink-muted);
     margin-top: 4px;
     letter-spacing: 0;
     line-height: 1.4;
@@ -10361,8 +10365,8 @@
   }
   .dprcv-sun-chip-glyph svg { width: 15px; height: 15px; display: block; }
   .dprcv-sun-chip-label { color: var(--accent); }
-  .dprcv-sun-chip-sep   { color: var(--muted); opacity: 0.6; font-weight: 500; }
-  .dprcv-sun-chip-detail { color: var(--text); opacity: 0.92; }
+  .dprcv-sun-chip-sep   { color: var(--ink-muted); opacity: 0.6; font-weight: 500; }
+  .dprcv-sun-chip-detail { color: var(--panel-text); opacity: 0.92; }
 
   /* Timeline wrapper — interactive canvas (paint via drawAllCardTimelines).
      Drag handlers in JS update timeFromEl, which re-fires the painter.
@@ -10506,13 +10510,13 @@
   .dprcv-att-line {
     font-size: 13px;
     font-weight: 600;
-    color: var(--text);
+    color: var(--panel-text);
     line-height: 1.3;
   }
   .dprcv-quote {
     font-size: 12px;
     font-weight: 500;
-    color: var(--muted);
+    color: var(--ink-muted);
     margin-top: 2px;
     line-height: 1.35;
     overflow: hidden;
@@ -10570,7 +10574,7 @@
     background: transparent;
     border: 0;
     box-shadow: none;
-    color: var(--muted);
+    color: var(--ink-muted);
     font-family: 'Inter', sans-serif;
     font-size: 13px;
     font-weight: 500;
@@ -10583,13 +10587,13 @@
   }
   .dprcv-cta-link svg { width: 13px; height: 13px; opacity: 0.7; }
   .dprcv-cta-link:hover {
-    color: var(--text);
-    background: rgba(255,244,224,0.06);
+    color: var(--panel-text);
+    background: rgba(17,30,56,0.06);
   }
   .dprcv-cta-link:active { transform: scale(0.97); }
-  .dprcv-cta-link.is-decline:hover { color: var(--text); }
+  .dprcv-cta-link.is-decline:hover { color: var(--panel-text); }
   .dprcv-cta-sep {
-    color: var(--muted);
+    color: var(--ink-muted);
     opacity: 0.4;
     font-size: 13px;
     user-select: none;
@@ -10673,20 +10677,20 @@
     align-items: center;
     gap: 10px;
     padding: 10px 16px;
-    border-top: 1px solid rgba(156,189,231,0.08);
+    border-top: 1px solid rgba(17,30,56,0.08);
   }
   .inbox-row-info { flex: 1; min-width: 0; }
   .inbox-row-title {
     font-size: 13px;
     font-weight: 600;
-    color: var(--text);
+    color: var(--panel-text);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
   .inbox-row-meta {
     font-size: 11px;
-    color: var(--muted);
+    color: var(--ink-muted);
     margin-top: 1px;
   }
   .inbox-row-actions {
@@ -10704,10 +10708,10 @@
     cursor: pointer;
   }
   .inbox-btn-preview {
-    background: rgba(156,189,231,0.14);
-    color: var(--text);
+    background: rgba(17,30,56,0.08);
+    color: var(--panel-text);
   }
-  .inbox-btn-preview:hover { background: rgba(156,189,231,0.24); }
+  .inbox-btn-preview:hover { background: rgba(17,30,56,0.14); }
   .inbox-btn-accept {
     background: var(--accent);
     color: var(--accent-on, #2a1a0c);
@@ -10715,9 +10719,9 @@
   .inbox-btn-accept:hover { opacity: 0.92; }
   .inbox-btn-decline {
     background: transparent;
-    color: var(--muted);
+    color: var(--ink-muted);
   }
-  .inbox-btn-decline:hover { color: var(--text); }
+  .inbox-btn-decline:hover { color: var(--panel-text); }
   /* Friend-add prompt banner inside the detail panel */
   .friend-prompt-banner {
     display: flex;
@@ -10729,7 +10733,7 @@
     background: rgba(245,194,94,0.13);
     border: 1px solid rgba(245,194,94,0.35);
     font-size: 13px;
-    color: var(--text);
+    color: var(--panel-text);
   }
   .friend-prompt-banner-text { flex: 1; line-height: 1.35; }
   .friend-prompt-banner-add,
@@ -10749,9 +10753,9 @@
   }
   .friend-prompt-banner-skip {
     background: transparent;
-    color: var(--muted);
+    color: var(--ink-muted);
   }
-  .friend-prompt-banner-skip:hover { color: var(--text); }
+  .friend-prompt-banner-skip:hover { color: var(--panel-text); }
 
   /* ── Accepted panel — sharing-system redesign (.dpacc-*) ─────────────────
      Replaces the sequential question carousel with parallel action cards
@@ -10800,7 +10804,7 @@
     backdrop-filter: var(--glass-blur-panel);
     -webkit-backdrop-filter: var(--glass-blur-panel);
     border-top: var(--glass-border);
-    box-shadow: var(--glass-inset), 0 -16px 40px rgba(0,0,0,0.55);
+    box-shadow: var(--sheet-shadow);
     transform: translateY(100%);
     transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
@@ -10871,7 +10875,7 @@
   .dpacc-eyebrow {
     font-size: 13px;
     font-weight: 500;
-    color: var(--muted);
+    color: var(--ink-muted);
     line-height: 1.25;
     /* Indent so the eyebrow aligns with the venue name, not the pin. */
     padding-left: 24px;
@@ -10897,7 +10901,7 @@
   .dpacc-venue {
     font-size: 22px;
     font-weight: 700;
-    color: var(--text);
+    color: var(--panel-text);
     line-height: 1.15;
     text-wrap: balance;
     letter-spacing: -0.01em;
@@ -10906,7 +10910,7 @@
   .dpacc-subtitle {
     font-size: 13px;
     font-weight: 500;
-    color: var(--muted);
+    color: var(--ink-muted);
     margin-top: 4px;
     /* Indent the subtitle past the pin so it aligns with the venue name,
        not the pin. Reads as a clean header block — pin = icon, name +
@@ -10930,7 +10934,7 @@
     gap: 4px;
     font-size: 12px;
     font-weight: 600;
-    color: var(--muted);
+    color: var(--ink-muted);
     background: transparent;
     border: none;
     cursor: pointer;
@@ -10943,7 +10947,7 @@
     margin-right: -2px;
   }
   .dpacc-change-rsvp svg { opacity: 0.85; }
-  .dpacc-change-rsvp:hover { color: var(--text); }
+  .dpacc-change-rsvp:hover { color: var(--panel-text); }
   .dpacc-change-rsvp:hover svg { opacity: 1; }
 
   /* Action carousel — horizontally scrolling tiles. Most use .card; the

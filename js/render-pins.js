@@ -689,6 +689,26 @@ function _pillWidth(ctx, time, friendCount) {
   return w;
 }
 
+// Clock glyph for opening-soon ghost pills — outline face + two hands.
+function _drawClockIcon(ctx, cx, cy, r, col) {
+  const rr = r * 0.74;
+  ctx.save();
+  ctx.strokeStyle = col;
+  ctx.lineWidth   = 1.4;
+  ctx.lineCap     = 'round';
+  ctx.lineJoin    = 'round';
+  ctx.beginPath();
+  ctx.arc(cx, cy, rr, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(cx, cy - rr * 0.55);
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(cx + rr * 0.42, cy + rr * 0.16);
+  ctx.stroke();
+  ctx.restore();
+}
+
 // ── Pill drawing ───────────────────────────────────────────────────────────────
 // Pill is positioned with its tail tip at pt. Body sits ABOVE the venue point.
 function _drawPill(ctx, pt, w, time, tier, opts) {
@@ -713,30 +733,44 @@ function _drawPill(ctx, pt, w, time, tier, opts) {
     ctx.closePath();
   }
 
-  // Drop shadow + body fill. Selected pills lift off the map (deeper shadow,
-  // larger offset) and switch the body fill to slate. Hover gets a smaller
-  // lift via opts.scale (set by the per-pin scale animation).
+  // Opening-soon (closed now, opens later): de-emphasized "ghost" pill —
+  // transparent body + dark hairline outline + reduced group opacity so it
+  // recedes vs the solid gold (sun) / blue (shade) pills. Selected still lifts.
+  const isGhost = !!opts.closedNow && !opts.selected;
+
+  // Group alpha for the ghost state — wraps the whole pill (body, dot, text).
+  ctx.save();
+  if (isGhost) ctx.globalAlpha = 0.72;
+
   const scale = opts.scale || 1.0;
   const shAlpha   = 0.18 + Math.max(0, scale - 1) * 0.60;
   const shBlur    = 6 + Math.max(0, scale - 1) * 18;
   const shOffsetY = 2 + Math.max(0, scale - 1) * 6;
 
-  ctx.save();
-  ctx.shadowColor   = `rgba(17,30,56,${shAlpha.toFixed(2)})`;
-  ctx.shadowBlur    = shBlur;
-  ctx.shadowOffsetY = shOffsetY;
-  pillPath();
-  // Pill fill: hero=Sunny golden, waiting/context=Jordy Blue, selected=dark Delft Blue
-  const unselectedFill = (tier === 'hero') ? '#F5C25E' : '#9CBDE7';
-  ctx.fillStyle = opts.selected ? (TOKENS.surface || '#111E38') : unselectedFill;
-  ctx.fill();
-  ctx.restore();
+  if (isGhost) {
+    // Outline-only — no fill, no drop shadow.
+    pillPath();
+    ctx.strokeStyle = _rgba(TOKENS.bg, 0.45);
+    ctx.lineWidth   = 1.25;
+    ctx.stroke();
+  } else {
+    ctx.save();
+    ctx.shadowColor   = `rgba(17,30,56,${shAlpha.toFixed(2)})`;
+    ctx.shadowBlur    = shBlur;
+    ctx.shadowOffsetY = shOffsetY;
+    pillPath();
+    // Pill fill: hero=Sunny golden, waiting/context=Jordy Blue, selected=dark Delft Blue
+    const unselectedFill = (tier === 'hero') ? '#F5C25E' : '#9CBDE7';
+    ctx.fillStyle = opts.selected ? (TOKENS.surface || '#111E38') : unselectedFill;
+    ctx.fill();
+    ctx.restore();
 
-  // Hairline border for definition
-  pillPath();
-  ctx.strokeStyle = opts.selected ? _rgba(TOKENS.text, 0.18) : _rgba(TOKENS.bg, 0.18);
-  ctx.lineWidth   = 1;
-  ctx.stroke();
+    // Hairline border for definition
+    pillPath();
+    ctx.strokeStyle = opts.selected ? _rgba(TOKENS.text, 0.18) : _rgba(TOKENS.bg, 0.18);
+    ctx.lineWidth   = 1;
+    ctx.stroke();
+  }
 
   // Hover outline — full --rain blue ring just outside the pill body. Skipped
   // when selected (selected has its own treatment via slate body + lift).
@@ -758,7 +792,11 @@ function _drawPill(ctx, pt, w, time, tier, opts) {
 
   ctx.save();
   ctx.shadowColor = 'transparent';
-  if (hasFriends) {
+  if (isGhost && !hasFriends && !opts.favorited) {
+    // Ghost: a dark clock glyph (outline) instead of a filled category dot —
+    // signals "opening later", not available now.
+    _drawClockIcon(ctx, moduleCx, moduleCy, CIRCLE_R, _rgba(TOKENS.bg, 0.80));
+  } else if (hasFriends) {
     _drawFriendModule(ctx, moduleCx, moduleCy, friends, dot.fill);
   } else if (opts.favorited) {
     // Favourited: the circle itself becomes a heart, filled with the same
@@ -778,7 +816,8 @@ function _drawPill(ctx, pt, w, time, tier, opts) {
   }
   ctx.restore();
 
-  // Time text — cream on selected (dark Delft Blue) pill, dark on Sunny/Jordy Blue pill.
+  // Time text — cream on selected (dark Delft Blue) pill; dark on Sunny/Jordy
+  // Blue pill; dark on the transparent ghost pill (opening-soon).
   if (time) {
     ctx.font         = '600 11px "Inter", system-ui, sans-serif';
     ctx.fillStyle    = opts.selected ? (TOKENS.text || '#FFF4E0') : _rgba(TOKENS.bg, 0.88);
@@ -787,6 +826,7 @@ function _drawPill(ctx, pt, w, time, tier, opts) {
     ctx.fillText(time, moduleCx + moduleW / 2 + CIRCLE_TIME_GAP, moduleCy + 0.5);
   }
 
+  ctx.restore();   // group alpha (ghost)
 }
 
 // Material Design heart icon — well-formed at small sizes, no hand-rolled
