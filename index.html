@@ -1237,7 +1237,11 @@
        top of the page. */
     left: 12px;
     right: 12px;
-    z-index: 900;
+    /* Above the fullscreen venue list (910) and fullscreen detail panel (920)
+       so the bar's slide-UP is actually visible — at z900 the panel painted
+       over it instantly (it "disappeared" with no animation). Still below the
+       bell dropdown (1050), calendar (1200) and toasts. */
+    z-index: 925;
     height: 46px;
     display: grid;
     grid-template-columns: auto 1fr auto;
