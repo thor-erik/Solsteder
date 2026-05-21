@@ -4912,9 +4912,10 @@ document.addEventListener('DOMContentLoaded', () => {
           panelEl.classList.remove('mobile-expanded', 'mobile-fullscreen', 'mobile-hidden');
           requestAnimationFrame(_updatePeekHeight);
         }
-        // (body.panel-fullscreen-active is kept in sync by a MutationObserver
-        // on #panel — see _syncPanelFullscreenBodyClass — so it's correct no
-        // matter which path changes the panel, not just this one.)
+        // Set the top-bar-slide body class immediately here (the drag path that
+        // reaches fullscreen), AND a MutationObserver on #panel keeps it in sync
+        // for every other path (and reliably CLEARS it so it can't stick).
+        document.body.classList.toggle('panel-fullscreen-active', state === 'fullscreen');
         // Persist the last snap point so it restores next session. 'hidden'
         // AND 'fullscreen' are transient take-over states — don't persist them
         // (we never want to LAND on a map-covering panel at load), so the saved
