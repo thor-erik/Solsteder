@@ -5074,20 +5074,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const beforeBCR = panelEl.getBoundingClientRect();
         const viewportH = window.innerHeight;
         const currentVisualBottom = viewportH - (beforeBCR.top + panelEl.offsetHeight);
+        // Pin the live VISUAL height too. Going to fullscreen the target height
+        // (app-h) is much taller than the drag height; clearing inline height
+        // let CSS jump straight to it (only `bottom` animated → top edge
+        // snapped). Pinning then clearing makes the height animate as well. The
+        // height transition flips on .is-sliding (cream fallback now, not navy)
+        // so the carry stays smooth and flash-free.
+        const currentVisualHeight = beforeBCR.height;
         _applyState(target);
         panelEl.classList.remove('panel-dragging');
-        // Pin the current visual position via inline bottom (overrides the
-        // new class's bottom). Clear inline transform without snapping.
+        // Pin the current visual position via inline bottom + height (override
+        // the new class's values). Clear inline transform without snapping.
         panelEl.style.transition = 'none';
         panelEl.style.bottom    = currentVisualBottom + 'px';
+        panelEl.style.height    = currentVisualHeight + 'px';
         panelEl.style.transform = '';
-        panelEl.style.height    = '';
         // Force layout so the pinned position is the start of the transition.
         void panelEl.offsetHeight;
-        // Restore CSS transition + clear inline bottom — CSS new-state
-        // bottom takes over, animating from the pinned position.
+        // Restore CSS transition + clear inline bottom/height — CSS new-state
+        // values take over, animating from the pinned position + size.
         panelEl.style.transition = '';
         panelEl.style.bottom     = '';
+        panelEl.style.height     = '';
       }
 
       // Wire a swipe target: touchstart/move/end → panel drag state machine

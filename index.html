@@ -121,7 +121,7 @@
 <script defer src="js/weather.js?v=20260519d"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260521c"></script>
-<script defer src="js/app.js?v=20260521v"></script>
+<script defer src="js/app.js?v=20260521w"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260519b"></script>
 <script defer src="js/render-seating.js?v=20260519b"></script>
@@ -1272,10 +1272,12 @@
   body.post-accept-active #top-strip,
   body.profile-panel-open #top-strip,
   body.invite-sheet-open #top-strip,
+  body:has(#panel.mobile-fullscreen) #top-strip,
   body.plan-preview-active #floating-brand,
   body.post-accept-active #floating-brand,
   body.profile-panel-open #floating-brand,
-  body.invite-sheet-open #floating-brand {
+  body.invite-sheet-open #floating-brand,
+  body:has(#panel.mobile-fullscreen) #floating-brand {
     transform: translateY(calc(-100% - env(safe-area-inset-top, 0px) - 14px));
     pointer-events: none;
   }
@@ -5366,7 +5368,10 @@
     #panel.is-sliding {
       backdrop-filter: none !important;
       -webkit-backdrop-filter: none !important;
-      background: rgba(17,30,56,0.55) !important;
+      /* Cream fallback matching the light frosted-glass resting look. Was a
+         dark navy rgba(17,30,56,0.55) — a dark-theme relic that flashed blue
+         mid-slide in the cream redesign. */
+      background: var(--content-bg) !important;
     }
   }
 
