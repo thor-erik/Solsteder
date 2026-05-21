@@ -3661,8 +3661,12 @@ function _flyToVenue(v) {
   // visible strip — deliberately panel-aware (unlike the translucent list).
   let padding;
   if (isMobile()) {
-    const panelH = Math.round((window.visualViewport?.height ?? window.innerHeight) * 0.69);
-    padding = { top: 0, bottom: panelH, left: 0, right: 0 };
+    // Reserve the ACTUAL half-open detail panel (58svh) plus a top inset for the
+    // top-strip — so the seating centres in the middle of the visible map strip
+    // rather than its top edge. (Was 0.69 + top:0, which over-reserved and
+    // parked the seating high.)
+    const vh = window.visualViewport?.height ?? window.innerHeight;
+    padding = { top: 80, bottom: Math.round(vh * 0.58), left: 0, right: 0 };
   } else {
     const dp = document.getElementById('detail-panel');
     const padLeft = (dp && dp.classList.contains('open')) ? (dp.offsetLeft + dp.offsetWidth) : 0;
@@ -3723,10 +3727,11 @@ function _flyToVenue(v) {
           [center[0] + hLng, center[1] + hLat]
         );
         const cam = map.cameraForBounds(sym, { padding, bearing, pitch: PITCH, maxZoom: ZOOM_MAX });
-        if (cam) {
-          if (cam.center) center = [cam.center.lng, cam.center.lat];
-          if (typeof cam.zoom === 'number') zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, cam.zoom));
-        }
+        // Take only the tilt-aware ZOOM. Keep the explicit seating centroid as
+        // the center — Mapbox places `center` at the padded-viewport optical
+        // centre at any pitch, whereas cam.center is shifted to frame the bounds
+        // in the tilted frustum (which pushed the seating toward the top).
+        if (cam && typeof cam.zoom === 'number') zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, cam.zoom));
       } catch (e) { /* keep centroid + FALLBACK_ZOOM */ }
     }
   }
