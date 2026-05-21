@@ -1642,7 +1642,10 @@ function locateUser() {
       // Below that line is occluded by the panel.
       if (r.top > 0 && r.top < window.innerHeight) panelTop = r.top;
     }
-    const occluded = Math.max(0, window.innerHeight - panelTop);
+    // Cap at the peek sliver (see _panelAwarePadding) so the translucent
+    // expanded list doesn't push the user dot up into the top strip.
+    const occluded = Math.min(Math.max(0, window.innerHeight - panelTop),
+                              (typeof _peekOcclusionPx === 'function') ? _peekOcclusionPx() : 160);
     // Reserve 56px for the search bar at the top + safe-area
     padding = { top: 80, bottom: occluded + 16, left: 16, right: 16 };
   } else {
@@ -5590,6 +5593,16 @@ function _autoFitToBatch(newVenues) {
   map.fitBounds(bounds, { padding: 60, duration: 600, maxZoom: 15 });
 }
 
+// Reserved peek sliver (the always-on-screen part of the list). Browsing
+// camera moves treat the translucent expanded/fullscreen list as free space —
+// pins fill the map behind the glass — and only avoid this small sliver.
+function _peekOcclusionPx() {
+  const panelEl = document.getElementById('panel');
+  const raw = panelEl ? getComputedStyle(panelEl).getPropertyValue('--peek-h') : '';
+  const n = parseInt(raw, 10);
+  return Number.isFinite(n) ? n : 160;
+}
+
 // Camera padding that respects the bottom panel covering part of the map.
 // Lifted from locateUser so other camera moves (the Avstand tracker, etc.)
 // can place the user dot in the *visible* area of the screen, not the
@@ -5602,7 +5615,10 @@ function _panelAwarePadding() {
     const r = panelEl.getBoundingClientRect();
     if (r.top > 0 && r.top < window.innerHeight) panelTop = r.top;
   }
-  const occluded = Math.max(0, window.innerHeight - panelTop);
+  // Cap at the peek sliver: the translucent expanded area counts as free, so
+  // venues spread across the whole map (visible behind the glass) instead of
+  // clustering above an expanded list and leaving the lower half empty on collapse.
+  const occluded = Math.min(Math.max(0, window.innerHeight - panelTop), _peekOcclusionPx());
   return { top: 80, bottom: occluded + 16, left: 16, right: 16 };
 }
 
