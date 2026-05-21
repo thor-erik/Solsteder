@@ -3679,20 +3679,16 @@ function _flyToVenue(v) {
   if (diff > 180) diff = 360 - diff;
   const bearing = (diff > 60) ? targetBearing : map.getBearing();
 
-  // Assemble bounds from the seating polygon ([lat,lng] verts) + the venue's
-  // own building footprint ({lat,lon} nodes within ~60 m). Track the seating
-  // centroid as the preferred camera center.
-  let bounds = null, hasGeom = false, cLat = 0, cLng = 0, cN = 0;
-  const _ext = (lng, lat) => {
-    if (!bounds) bounds = new mapboxgl.LngLatBounds([lng, lat], [lng, lat]);
-    else bounds.extend([lng, lat]);
-  };
+  const PITCH = 45;
+
+  // Collect the seating polygon verts ([lat,lng]) + the venue's own building
+  // footprint ({lat,lon} within ~60 m). The camera frames the SEATING; the
+  // building only informs the zoom.
+  const pts = []; // [lng, lat]
+  let cLat = 0, cLng = 0, cN = 0;
   const seating = (typeof getSeatingPolygon === 'function') ? getSeatingPolygon(v, { includeAi: true }) : null;
   if (Array.isArray(seating) && seating.length >= 3) {
-    for (const pt of seating) {
-      const lat = pt[0], lng = pt[1];
-      _ext(lng, lat); cLat += lat; cLng += lng; cN++; hasGeom = true;
-    }
+    for (const p of seating) { pts.push([p[1], p[0]]); cLat += p[0]; cLng += p[1]; cN++; }
   }
   if (Array.isArray(v.nearbyBuildings)) {
     for (const b of v.nearbyBuildings) {
@@ -3700,27 +3696,42 @@ function _flyToVenue(v) {
       if (!Array.isArray(nodes) || nodes.length < 3) continue;
       const aLat = nodes.reduce((s, n) => s + n.lat, 0) / nodes.length;
       const aLon = nodes.reduce((s, n) => s + n.lon, 0) / nodes.length;
-      if (Math.hypot(aLat - v.lat, aLon - v.lng) > 60 / 111320) continue; // venue's own building only
-      for (const n of nodes) _ext(n.lon, n.lat);
-      hasGeom = true;
+      if (Math.hypot(aLat - v.lat, aLon - v.lng) > 60 / 111320) continue; // own building only
+      for (const n of nodes) pts.push([n.lon, n.lat]);
     }
   }
 
-  const center = (cN > 0) ? [cLng / cN, cLat / cN] : [v.lng, v.lat];
+  let center = (cN > 0) ? [cLng / cN, cLat / cN] : [v.lng, v.lat];
+  let zoom   = FALLBACK_ZOOM;
 
-  // Dynamic zoom from the extent; clamped so tiny terraces don't over-zoom and
-  // big buildings don't fly out too far.
-  let zoom = FALLBACK_ZOOM;
-  if (hasGeom && bounds && typeof map.cameraForBounds === 'function') {
-    try {
-      const cam = map.cameraForBounds(bounds, { padding, bearing, maxZoom: ZOOM_MAX });
-      if (cam && typeof cam.zoom === 'number') {
-        zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, cam.zoom));
-      }
-    } catch (e) { /* keep FALLBACK_ZOOM */ }
+  // Frame from a bounds SYMMETRIC about the seating centroid (so the fit is
+  // centred on the seating, not pulled toward an off-to-one-side building),
+  // and crucially pass the SAME pitch + bearing to cameraForBounds so the fit
+  // accounts for the dramatic tilt — a tilted view shows more ground, which
+  // shifts both the zoom and the apparent centre. We then take the camera's
+  // tilt-aware center + zoom (v3 cameraForBounds is pitch-aware).
+  if (pts.length >= 3 && typeof map.cameraForBounds === 'function') {
+    let hLng = 0, hLat = 0;
+    for (const [lng, lat] of pts) {
+      hLng = Math.max(hLng, Math.abs(lng - center[0]));
+      hLat = Math.max(hLat, Math.abs(lat - center[1]));
+    }
+    if (hLng > 0 || hLat > 0) {
+      try {
+        const sym = new mapboxgl.LngLatBounds(
+          [center[0] - hLng, center[1] - hLat],
+          [center[0] + hLng, center[1] + hLat]
+        );
+        const cam = map.cameraForBounds(sym, { padding, bearing, pitch: PITCH, maxZoom: ZOOM_MAX });
+        if (cam) {
+          if (cam.center) center = [cam.center.lng, cam.center.lat];
+          if (typeof cam.zoom === 'number') zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, cam.zoom));
+        }
+      } catch (e) { /* keep centroid + FALLBACK_ZOOM */ }
+    }
   }
 
-  map.easeTo({ center, zoom, pitch: 45, bearing, padding, duration: 600 });
+  map.easeTo({ center, zoom, pitch: PITCH, bearing, padding, duration: 600 });
 }
 
 function selectVenue(id, flyTo) {
