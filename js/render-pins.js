@@ -990,7 +990,10 @@ function _drawName(ctx, pt, pillRect, name, secondary, placedPills, placedNames,
   // to absorb small collision deltas (~25 pts), small enough that an
   // actually off-viewport side still loses to a valid one (-100 pts).
   const stickySide = opts.venueId != null ? _lastNameAnchor.get(opts.venueId) : null;
-  const NAME_ANCHOR_HYSTERESIS = 25;
+  // Bumped 25 → 45: a side flip must be clearly better before it's taken, so
+  // the settle-time reprioritisation reshuffles labels less often. The flips
+  // that do happen are smoothed by the cross-fade below.
+  const NAME_ANCHOR_HYSTERESIS = 45;
 
   let best;
   // skipScoring path (map motion): re-use the cached side from a prior
@@ -1022,7 +1025,17 @@ function _drawName(ctx, pt, pillRect, name, secondary, placedPills, placedNames,
     }
     if (!best) return null;
     _bucketRect(placedNames, best);
-    if (opts.venueId != null) _lastNameAnchor.set(opts.venueId, best.side);
+    if (opts.venueId != null) {
+      // Arm a cross-fade if this settle-time re-score moved the label to a
+      // different side — so it dissolves to the new spot instead of teleporting.
+      if (stickySide && stickySide !== best.side) {
+        _labelSideTransition.set(opts.venueId, {
+          from: stickySide, to: best.side,
+          start: (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now(),
+        });
+      }
+      _lastNameAnchor.set(opts.venueId, best.side);
+    }
   }
   // Cache content for the fade-out pass in section 5 of draw() — when
   // the pin demotes and its label is no longer rendered here, that pass
@@ -1032,57 +1045,70 @@ function _drawName(ctx, pt, pillRect, name, secondary, placedPills, placedNames,
     _lastLabelInfo.set(opts.venueId, { name, secondary, side: best.side });
   }
 
-  ctx.textBaseline = 'middle';
-  ctx.textAlign    = 'left';
-  ctx.lineJoin     = 'round';
-  ctx.miterLimit   = 2;
-
-  const tx     = best.x + 1;
-  const nameY  = secondary ? best.cy - lineH / 2 : best.cy;
-  const secY   = best.cy + lineH / 2;
-
-  // Google-Maps-style label treatment: white text with a SOFT BLURRED
-  // halo (not a hard stroke). The halo is near-black to avoid the
-  // light-blue tint the previous slate halo created at the blurred
-  // edges (where opacity falls off, slate read as pale blue against
-  // warm map tiles). Three passes: two with shadow to intensify the
-  // blur, one crisp on top. Anchor alpha (opts.alpha) lets the label
-  // fade in/out with the pill morph.
+  // Google-Maps-style label treatment: white text with a SOFT BLURRED halo
+  // (not a hard stroke), near-black so the blurred edges don't tint blue.
+  // Anchor alpha (opts.alpha) lets the label fade with the pill morph.
   const LIGHT_FILL  = '#FFFFFF';
   const HALO_COLOR  = 'rgba(0, 0, 0, 1)';
   const labelAlpha  = opts.alpha != null ? opts.alpha : 1;
 
-  ctx.save();
-  ctx.globalAlpha = labelAlpha;
+  // Paint the label at a given anchor position + alpha. Factored out so a
+  // side-change cross-fade can paint the old and new positions at once.
+  const _paint = (anchorX, anchorCy, a) => {
+    if (a <= 0.01) return;
+    const tx    = anchorX + 1;
+    const nameY = secondary ? anchorCy - lineH / 2 : anchorCy;
+    const secY  = anchorCy + lineH / 2;
+    ctx.save();
+    ctx.globalAlpha  = a;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign    = 'left';
+    ctx.lineJoin     = 'round';
+    ctx.miterLimit   = 2;
+    // 4 stacked shadow passes compound the halo into a solid dark glow.
+    ctx.shadowColor   = HALO_COLOR;
+    ctx.shadowBlur    = 4;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+    ctx.fillStyle     = LIGHT_FILL;
+    ctx.font          = FONT_PRIMARY;
+    for (let i = 0; i < 4; i++) ctx.fillText(name, tx, nameY);
+    if (secondary) {
+      ctx.font = FONT_SECONDARY;
+      for (let i = 0; i < 4; i++) ctx.fillText(secondary, tx, secY);
+    }
+    // Crisp top pass, shadow off.
+    ctx.shadowBlur  = 0;
+    ctx.shadowColor = 'transparent';
+    ctx.font        = FONT_PRIMARY;
+    ctx.fillStyle   = LIGHT_FILL;
+    ctx.fillText(name, tx, nameY);
+    if (secondary) {
+      ctx.font      = FONT_SECONDARY;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
+      ctx.fillText(secondary, tx, secY);
+    }
+    ctx.restore();
+  };
 
-  // Stack 4 shadow passes so the halo compounds into a solid dark
-  // glow. Two passes weren't dark enough — blurred edges read as
-  // pale gray against warm map tiles. Four at full opacity gives
-  // Google Maps-grade legibility on any background.
-  ctx.shadowColor   = HALO_COLOR;
-  ctx.shadowBlur    = 4;
-  ctx.shadowOffsetX = 0;
-  ctx.shadowOffsetY = 0;
-  ctx.fillStyle     = LIGHT_FILL;
-  ctx.font          = FONT_PRIMARY;
-  for (let i = 0; i < 4; i++) ctx.fillText(name, tx, nameY);
-  if (secondary) {
-    ctx.font = FONT_SECONDARY;
-    for (let i = 0; i < 4; i++) ctx.fillText(secondary, tx, secY);
+  // Cross-fade an in-progress side change; otherwise paint once at `best`.
+  const trans = opts.venueId != null ? _labelSideTransition.get(opts.venueId) : null;
+  if (trans) {
+    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    const p = (now - trans.start) / LABEL_SIDE_FADE_MS;
+    if (p >= 1) {
+      _labelSideTransition.delete(opts.venueId);
+      _paint(best.x, best.cy, labelAlpha);
+    } else {
+      const fromC = candidates.find(c => c.side === trans.from) || best;
+      const toC   = candidates.find(c => c.side === trans.to)   || best;
+      _paint(fromC.x, fromC.cy, labelAlpha * (1 - p)); // old side fading out
+      _paint(toC.x,   toC.cy,   labelAlpha * p);       // new side fading in
+      _animDirty = true; // keep repainting until the dissolve finishes
+    }
+  } else {
+    _paint(best.x, best.cy, labelAlpha);
   }
-
-  // Final pass: crisp text on top, shadow disabled.
-  ctx.shadowBlur    = 0;
-  ctx.shadowColor   = 'transparent';
-  ctx.font          = FONT_PRIMARY;
-  ctx.fillStyle     = LIGHT_FILL;
-  ctx.fillText(name, tx, nameY);
-  if (secondary) {
-    ctx.font      = FONT_SECONDARY;
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
-    ctx.fillText(secondary, tx, secY);
-  }
-  ctx.restore();
 
   return best;
 }
@@ -1135,6 +1161,11 @@ const _lastNameAnchor = new Map();
 // 'top'|'bottom'); position is recomputed from current pillRect on each
 // fade-out frame so labels track the pin if the camera moves mid-fade.
 const _lastLabelInfo = new Map();
+// id → { from, to, start } — an in-progress anchor-side change. On settle the
+// re-score can pick a new side; rather than teleporting, we cross-fade the label
+// out at the old side and in at the new one over LABEL_SIDE_FADE_MS.
+const _labelSideTransition = new Map();
+const LABEL_SIDE_FADE_MS = 180;
 let   _animDirty = false;
 let   _animScheduled = false;
 // Set by map move/zoom events AND by _scheduleAnim. Consumed by the
