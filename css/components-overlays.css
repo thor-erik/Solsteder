@@ -907,11 +907,18 @@
     max-height: 92svh;
     height: auto;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    background: var(--glass-panel-bg);
-    backdrop-filter: var(--glass-blur-panel);
-    -webkit-backdrop-filter: var(--glass-blur-panel);
-    border: none;
+    /* Dark Delft sheet, mirroring #detail-panel for continuity (DEFERRED
+       sheet-treatment decision). Was a transparent legacy --glass-panel-bg
+       (rgba(...,0)) + blur — content floated washed-out over the map. Opaque
+       ⇒ no blur. Dark surface ⇒ flip the shell's ink text/icons to cream via
+       --panel-text / --ink-muted so the eyebrow, venue name, meta + the
+       dark-variant .s-circ / .g-rnd controls all read correctly. */
+    background: var(--blue-950);
+    border: 1px solid var(--line-d);
     box-shadow: var(--sheet-shadow);
+    color: var(--text);
+    --panel-text: var(--text);
+    --ink-muted: var(--muted);
     display: flex;
     flex-direction: column;
     transform: translateY(100%);
