@@ -1007,7 +1007,7 @@
     opacity: 0.9;
     display: inline-flex;
     align-items: center;
-    height: 20px;
+    height: 26px;
   }
   .dpinvite-moment-pin svg { display: block; }
   .dpinvite-moment .dpinvite-venue-row {
@@ -1017,11 +1017,11 @@
     margin-top: 2px;
   }
   .dpinvite-venue-line {
-    font-size: 20px;
-    font-weight: 700;
+    font-size: var(--text-display);
+    font-weight: var(--fw-display);
     color: var(--panel-text);
     line-height: 1.18;
-    letter-spacing: -0.01em;
+    letter-spacing: var(--tracking-display);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1059,13 +1059,13 @@
   }
   .dpinvite-moment-time {
     /* Matches .dpinvite-venue-line */
-    font-size: 20px;
-    font-weight: 700;
+    font-size: var(--text-display);
+    font-weight: var(--fw-display);
     color: var(--panel-text);
     line-height: 1.18;
     margin-top: 2px;
     font-variant-numeric: tabular-nums;
-    letter-spacing: -0.01em;
+    letter-spacing: var(--tracking-display);
   }
   /* Interactive day-button — taps open the date picker (toggleQcPanel('date')),
      mirroring the FTS top-bar date chip. Styled as a tappable pill with a
@@ -1649,20 +1649,20 @@
     color: var(--accent);
     opacity: 0.9;
     /* Match the venue text's cap-height. Without an explicit height
-       the 16x16 SVG floats relative to the 24 px title and reads as
-       'glued to the top'. line-height:1 + height:matching-cap pins
+       the 16x16 SVG floats relative to the Display-tier title and reads
+       as 'glued to the top'. line-height:1 + height:matching-cap pins
        the glyph to the text's vertical centre. */
-    height: 22px;
+    height: 26px;
     display: inline-flex;
     align-items: center;
   }
   .dprcv-venue-pin svg { display: block; }
   .dprcv-venue {
-    font-size: 24px;
-    font-weight: 700;
+    font-size: var(--text-display);
+    font-weight: var(--fw-display);
     color: var(--panel-text);
     line-height: 1.15;
-    letter-spacing: -0.01em;
+    letter-spacing: var(--tracking-display);
     min-width: 0;
     /* Truncate long names with ellipsis rather than wrap to a second
        line. With the tight right column on this header, wrapping
@@ -1730,13 +1730,13 @@
   }
   .dprcv-arrival-time {
     /* Matches .dprcv-venue */
-    font-size: 24px;
-    font-weight: 700;
+    font-size: var(--text-display);
+    font-weight: var(--fw-display);
     color: var(--panel-text);
     line-height: 1.15;
     margin-top: 2px;
     font-variant-numeric: tabular-nums;
-    letter-spacing: -0.01em;
+    letter-spacing: var(--tracking-display);
   }
   .dprcv-arrival-sub {
     /* Matches .dprcv-meta */
@@ -2309,18 +2309,18 @@
     flex-shrink: 0;
     color: var(--accent);
     opacity: 0.9;
-    height: 20px;
+    height: 26px;
     display: inline-flex;
     align-items: center;
   }
   .dpacc-venue-pin svg { display: block; }
   .dpacc-venue {
-    font-size: 22px;
-    font-weight: 700;
+    font-size: var(--text-display);
+    font-weight: var(--fw-display);
     color: var(--panel-text);
     line-height: 1.15;
     text-wrap: balance;
-    letter-spacing: -0.01em;
+    letter-spacing: var(--tracking-display);
     min-width: 0;
   }
   .dpacc-subtitle {
