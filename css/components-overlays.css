@@ -77,7 +77,7 @@
   }
   .dp-card.card-compact { padding-bottom: 12px; overflow: visible; }
   .dp-card.card-compact .card-fillbar { display: none; }
-  .dp-card:hover { background: var(--glass-card-bg); }   /* kill list-card hover */
+  .dp-card:hover { background: var(--surface-content); }   /* kill list-card hover */
   .dp-card .card-top { gap: 14px; align-items: flex-start; }
   .dp-card .card-left { min-width: 0; gap: 4px; }
   /* Title is the venue takeover — bumped from 18 → 22 so it reads as

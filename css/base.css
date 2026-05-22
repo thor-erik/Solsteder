@@ -461,12 +461,12 @@
   /* Card surface — thin alias of .glass-card + 12px radius for content
      blocks inside panels. */
   .card {
-    background: var(--glass-card-bg);
-    backdrop-filter: var(--glass-blur-card);
-    -webkit-backdrop-filter: var(--glass-blur-card);
-    border: var(--glass-border);
+    /* Content surface (DESIGN.md Phase 2.2). No backdrop-filter — content tiles
+       sit inside a panel that already blurs (Tier 2). */
+    background: var(--surface-content);
+    border: 1px solid var(--line-d);
     border-radius: 12px;
-    box-shadow: var(--glass-inset), 0 2px 8px rgba(0,0,0,0.35);
+    box-shadow: var(--shadow-1);
   }
 
   /* Hide horizontal scrollbars in carousels */

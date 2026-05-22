@@ -570,21 +570,19 @@
   }
 
   .venue-card {
-    background: var(--glass-card-bg);
+    /* Content surface (DESIGN.md Phase 2.2): opaque Delft 90% + dark hairline
+       + flat shadow-1. Was --glass-card-bg (100%) with raw rgba border. */
+    background: var(--surface-content);
     /* No backdrop-filter — cards sit inside #panel which already blurs.
        Removing per-card blur eliminates ~30 GPU compositing layers during scroll. */
-    border: 1px solid rgba(155,169,188,0.34);   /* clearer perimeter than var(--glass-border) at 0.22 */
+    border: 1px solid var(--line-d);
     border-radius: 12px;
     padding: 12px 14px;
     margin-bottom: 10px;
     cursor: pointer;
-    /* Layered shadow — 1px tight contact + 14px soft lift — for proper
-       elevation. Modern card convention (Linear / Apple / Stripe). */
-    box-shadow:
-      inset 0 1px 0 rgba(255,250,235,0.16),
-      inset 0 -1px 0 rgba(15,30,55,0.40),
-      0 1px 2px rgba(0,0,0,0.18),
-      0 4px 14px rgba(0,0,0,0.30);
+    /* Flat lift — shadow-1 token. The two glossy inset sheens are retired per
+       DESIGN.md flat-modern; the remaining two layers were already shadow-1. */
+    box-shadow: var(--shadow-1);
     transition: border-color 0.12s ease-out, background 0.12s ease-out, opacity 0.2s;
     position: relative;
     overflow: visible;
@@ -650,7 +648,7 @@
     /* Stay solid (was 0.72 → semi-transparent navy, which read as a "strange
        blue/transparent" card over the cream panel, esp. after the invite
        round-trip). Selection is signalled by the honey ::before ring below. */
-    background: var(--glass-card-bg);
+    background: var(--surface-content);
   }
   /* Selection outline that *emanates from the click position*. The lens-fx
      pointerdown handler in lens-effects.js sets --ripple-x / --ripple-y on
@@ -4717,10 +4715,10 @@
   /* ── Plans block — lives below the social card ────────────────────────── */
   .dp-plans-block {
     padding: 12px 14px;
-    background: var(--glass-card-bg);
-    border: var(--glass-border);
+    background: var(--surface-content);
+    border: 1px solid var(--line-d);
     border-radius: 14px;
-    box-shadow: var(--glass-inset);
+    box-shadow: var(--shadow-1);
   }
   .dp-plans-block .detail-plan-item:not(:first-of-type) {
     margin-top: 10px;
@@ -4731,10 +4729,10 @@
   /* ── Wind shelter section ─────────────────────────────────────────────── */
   .dp-shelter-section {
     padding: 12px 14px;
-    background: var(--glass-card-bg);
-    border: var(--glass-border);
+    background: var(--surface-content);
+    border: 1px solid var(--line-d);
     border-radius: 14px;
-    box-shadow: var(--glass-inset);
+    box-shadow: var(--shadow-1);
   }
   .dp-shelter-canvas {
     display: block;
