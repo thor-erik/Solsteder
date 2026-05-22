@@ -4120,6 +4120,15 @@
     bottom: 16px;
     width: 380px;  /* match the venue-list panel width */
     border-radius: 16px;
+    /* Sheet surface (DESIGN.md Phase 2.4): Jordy 25% + 4px frost + light
+       hairline + raised shadow-2 (a sheet sits over the map). Overrides the
+       shared .glass-panel class (id > class). Ink text is set in base.css; the
+       Delft content tiles inside keep their cream text. */
+    background: var(--surface-sheet);
+    backdrop-filter: var(--blur-surface);
+    -webkit-backdrop-filter: var(--blur-surface);
+    border: 1px solid var(--line-l);
+    box-shadow: var(--shadow-2);
     display: flex;
     flex-direction: column;
     overflow: hidden;
