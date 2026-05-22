@@ -325,10 +325,13 @@
     display: none;
     flex-direction: column;
     min-width: 160px;
-    background: var(--content-bg) !important;
-    backdrop-filter: var(--content-blur);
-    -webkit-backdrop-filter: var(--content-blur);
-    box-shadow: 0 8px 32px rgba(17,30,56,0.18);
+    /* Raised dropdown (DESIGN.md Phase 2.5): OPAQUE cream + light hairline +
+       shadow-2. Was --content-bg (cream 80%) — the translucency let the navy
+       cards bleed through (DESIGN-FIXES "dropdown bleed-through"). Opaque fixes
+       it; no backdrop-filter needed on an opaque surface. Ink text (base.css). */
+    background: var(--surface-raised) !important;
+    border: 1px solid var(--line-l);
+    box-shadow: var(--shadow-2);
   }
   #sort-panel.open { display: flex; }
   .sort-backdrop {
