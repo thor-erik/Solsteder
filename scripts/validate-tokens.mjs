@@ -1,24 +1,25 @@
 #!/usr/bin/env node
 // ─────────────────────────────────────────────────────────────────────────────
-// validate-tokens.mjs — design-token enforcement (MINIMAL stub)
+// validate-tokens.mjs — design-token enforcement
 //
-// Phase scope (per DESIGN-FIXES "Implementation plan"): this is the minimal
-// guardrail that must exist from the first commit of the design-system overhaul.
-// It flags ONE thing for now: raw hex colour literals that live OUTSIDE the
-// :root token-definition block. :root is where literals legitimately live;
-// every component should consume var(--token) instead (DESIGN.md → Color tokens).
+// Flags raw literals that should be design tokens, OUTSIDE the :root
+// token-definition block (:root is where literals legitimately live; every
+// component should consume var(--token) — DESIGN.md → Color/Type/Radius/Spacing).
 //
-// Phase 1 will EXTEND this to also flag rgba alphas, blur(), font-size,
-// border-radius, and padding/gap/margin — see the punch-list. Keep that in mind
-// before over-engineering here.
+// Categories (DESIGN-FIXES "Implementation plan" Phase 1):
+//   rawHexOutsideRoot — #rgb / #rgba / #rrggbb / #rrggbbaa colour literals
+//   rawAlpha          — rgba() / hsla() literals
+//   rawBlur           — blur() literals (use var(--blur-*))
+//   rawFontSize       — font-size with a raw px/rem/em length
+//   rawBorderRadius   — border-radius (any corner) with a raw length
+//   rawSpacing        — padding / margin / gap with a raw length
 //
-// Because the pre-migration codebase is intentionally dirty (the whole point of
-// Phase 2 is to migrate these literals away), a hard "zero hex" rule would fail
-// on master today. Instead we use a COUNT BASELINE: the build is green as long
-// as the number of raw-hex-outside-:root occurrences does not GROW. Migration
-// drives the count down; `--update` re-pins the baseline lower. This survives the
-// Phase −1 file split (line numbers and file boundaries move; the total doesn't)
-// and the Phase 0 token add (new literals go INSIDE :root, which is excluded).
+// COUNT BASELINE: the pre-migration tree is intentionally dirty (Phase 2
+// migrates these away). Rather than a hard zero rule, we pin a per-category
+// count in scripts/token-baseline.json and fail only when a category GROWS.
+// Migration drives counts down; `--update` re-pins them lower. This survives
+// the file split (line/file moves don't change totals) and the token add (new
+// literals go INSIDE :root, which is excluded).
 //
 // No dependencies — Node built-ins only (the repo has no runtime npm deps).
 // ─────────────────────────────────────────────────────────────────────────────
@@ -30,15 +31,14 @@ import { fileURLToPath } from 'node:url';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const BASELINE_PATH = join(ROOT, 'scripts', 'token-baseline.json');
 const UPDATE = process.argv.includes('--update');
+const VERBOSE = process.argv.includes('--list'); // print every hit, not just growth
 
 // ── File discovery ───────────────────────────────────────────────────────────
 // index.html (only its <style> blocks) + every css/*.css (whole file).
 function scanTargets() {
   const targets = [];
   const indexPath = join(ROOT, 'index.html');
-  if (existsSync(indexPath)) {
-    targets.push({ path: indexPath, kind: 'html' });
-  }
+  if (existsSync(indexPath)) targets.push({ path: indexPath, kind: 'html' });
   const cssDir = join(ROOT, 'css');
   if (existsSync(cssDir)) {
     for (const name of readdirSync(cssDir).sort()) {
@@ -68,15 +68,13 @@ function isolateStyle(text) {
     const close = m.index + m[0].length - '</style>'.length;
     keep.push([open, close]);
   }
-  if (keep.length === 0) return ' '.repeat(text.length); // no CSS here
-  // Blank everything not inside a kept range.
+  if (keep.length === 0) return ' '.repeat(text.length);
   let cursor = 0;
   for (const [open, close] of keep) {
     masked = blank(masked, cursor, open);
     cursor = close;
   }
-  masked = blank(masked, cursor, masked.length);
-  return masked;
+  return blank(masked, cursor, masked.length);
 }
 
 // Blank /* … */ comments.
@@ -89,37 +87,81 @@ function blankComments(text) {
 }
 
 // Blank any rule whose selector contains ":root" (token definitions + the
-// :root:has(...) keyboard override). Brace-matched so nested values are covered.
+// :root:has(...) keyboard override). Brace-matched.
 function blankRootBlocks(text) {
   let masked = text;
   const re = /:root[^{}]*\{/g;
   let m;
   while ((m = re.exec(text))) {
-    // Walk back to the start of the selector (after the previous } or ;).
     let selStart = m.index;
     while (selStart > 0 && !'};'.includes(text[selStart - 1])) selStart--;
-    // Match the body braces from the opening { at the end of m[0].
     let depth = 0;
     let i = m.index + m[0].length - 1; // position of '{'
     for (; i < text.length; i++) {
       if (text[i] === '{') depth++;
-      else if (text[i] === '}') {
-        depth--;
-        if (depth === 0) { i++; break; }
-      }
+      else if (text[i] === '}') { depth--; if (depth === 0) { i++; break; } }
     }
     masked = blank(masked, selStart, i);
   }
   return masked;
 }
 
-// ── Hex detection in declaration values ──────────────────────────────────────
-// Only look at values: a declaration value starts right after `{` or `;`, is
-// `prop: value`, and runs until the next `;`/`{`/`}`. This structurally excludes
-// selectors (incl. `#id` selectors and `:pseudo`), which never appear as
-// `{|;  prop : value`.
-const DECL_RE = /[{;]\s*[-a-zA-Z]+\s*:\s*([^;{}]+)/g;
-const HEX_RE = /#[0-9a-fA-F]{3,8}\b/g;
+// ── Per-category matchers ────────────────────────────────────────────────────
+// Each returns [{ text, rel }] where rel = offset of the match within `value`.
+function matchHex(prop, value) {
+  // Drop url(#fragment) SVG refs (clip/filter ids, not colours).
+  const cleaned = value.replace(/url\([^)]*\)/g, (s) => ' '.repeat(s.length));
+  const hits = [];
+  const re = /#[0-9a-fA-F]{3,8}\b/g;
+  let m;
+  while ((m = re.exec(cleaned))) {
+    const len = m[0].length - 1;
+    if ([3, 4, 6, 8].includes(len)) hits.push({ text: m[0], rel: m.index });
+  }
+  return hits;
+}
+
+function matchFunc(re) {
+  return (prop, value) => {
+    const hits = [];
+    let m;
+    re.lastIndex = 0;
+    while ((m = re.exec(value))) hits.push({ text: m[0], rel: m.index });
+    return hits;
+  };
+}
+
+// A raw length = a non-var px/rem/em number. Blank var(...) first so tokenized
+// values (and calc(var(--x))) don't count; a literal offset inside calc still does.
+function matchLength(prop, value) {
+  const cleaned = value.replace(/var\([^)]*\)/g, (s) => ' '.repeat(s.length));
+  const hits = [];
+  const re = /(?<![\w.])\d*\.?\d+(px|rem|em)\b/g;
+  let m;
+  while ((m = re.exec(cleaned))) {
+    // Ignore pure-zero lengths (0px / 0.0rem) — 0 is not a scale step.
+    if (/^0*\.?0+(px|rem|em)$/.test(m[0])) continue;
+    hits.push({ text: m[0], rel: m.index });
+  }
+  return hits;
+}
+
+const SPACING_PROP = /^(padding|margin|gap|row-gap|column-gap|grid-gap)$|^(padding|margin)-(top|right|bottom|left|inline|block)(-(start|end))?$/;
+const RADIUS_PROP = /^border-(top|bottom)-(left|right)-radius$|^border-(start|end)-(start|end)-radius$|^border-radius$/;
+
+const RULES = [
+  { key: 'rawHexOutsideRoot', label: 'raw hex colour',        run: (p, v) => matchHex(p, v) },
+  { key: 'rawAlpha',          label: 'rgba()/hsla()',          run: matchFunc(/\b(rgba|hsla)\(/g) },
+  { key: 'rawBlur',           label: 'blur()',                 run: matchFunc(/\bblur\(/g) },
+  { key: 'rawFontSize',       label: 'raw font-size',          run: (p, v) => (p === 'font-size' ? matchLength(p, v) : []) },
+  { key: 'rawBorderRadius',   label: 'raw border-radius',      run: (p, v) => (RADIUS_PROP.test(p) ? matchLength(p, v) : []) },
+  { key: 'rawSpacing',        label: 'raw padding/margin/gap',  run: (p, v) => (SPACING_PROP.test(p) ? matchLength(p, v) : []) },
+];
+
+// ── Declaration scan ─────────────────────────────────────────────────────────
+// A declaration value starts right after `{` or `;` as `prop: value`. This
+// structurally excludes selectors (incl. #id and :pseudo).
+const DECL_RE = /[{;]\s*(-?[-a-zA-Z]+)\s*:\s*([^;{}]+)/g;
 
 function lineOf(text, index) {
   let line = 1;
@@ -127,64 +169,71 @@ function lineOf(text, index) {
   return line;
 }
 
-function findRawHex(masked) {
-  const hits = [];
-  let d;
-  DECL_RE.lastIndex = 0;
-  while ((d = DECL_RE.exec(masked))) {
-    const value = d[1];
-    // Offset of the value group within `masked`.
-    const valueOffset = d.index + d[0].length - value.length;
-    // Drop url(#fragment) refs (SVG filter/clip ids that are not colours).
-    const cleaned = value.replace(/url\([^)]*\)/g, (s) => ' '.repeat(s.length));
-    let h;
-    HEX_RE.lastIndex = 0;
-    while ((h = HEX_RE.exec(cleaned))) {
-      // 3/4/6/8 hex digits are valid CSS colours; 5/7 are not — skip those.
-      const len = h[0].length - 1;
-      if (![3, 4, 6, 8].includes(len)) continue;
-      hits.push({ offset: valueOffset + h.index, hex: h[0] });
-    }
-  }
-  return hits;
-}
-
 // ── Run ──────────────────────────────────────────────────────────────────────
-const all = [];
+const hitsByRule = Object.fromEntries(RULES.map((r) => [r.key, []]));
+
 for (const { path, kind } of scanTargets()) {
   const raw = readFileSync(path, 'utf8');
   let masked = kind === 'html' ? isolateStyle(raw) : raw;
   masked = blankComments(masked);
   masked = blankRootBlocks(masked);
-  for (const hit of findRawHex(masked)) {
-    all.push({ file: relative(ROOT, path), line: lineOf(raw, hit.offset), hex: hit.hex });
+  let d;
+  DECL_RE.lastIndex = 0;
+  while ((d = DECL_RE.exec(masked))) {
+    const prop = d[1].toLowerCase();
+    const value = d[2];
+    const valueOffset = d.index + d[0].length - value.length;
+    for (const rule of RULES) {
+      for (const hit of rule.run(prop, value)) {
+        hitsByRule[rule.key].push({
+          file: relative(ROOT, path),
+          line: lineOf(raw, valueOffset + hit.rel),
+          text: hit.text,
+          prop,
+        });
+      }
+    }
   }
 }
 
-const count = all.length;
+const counts = Object.fromEntries(RULES.map((r) => [r.key, hitsByRule[r.key].length]));
 
 if (UPDATE) {
-  writeFileSync(BASELINE_PATH, JSON.stringify({ rawHexOutsideRoot: count }, null, 2) + '\n');
-  console.log(`token-baseline.json updated: rawHexOutsideRoot = ${count}`);
+  writeFileSync(BASELINE_PATH, JSON.stringify(counts, null, 2) + '\n');
+  console.log('token-baseline.json updated:');
+  for (const r of RULES) console.log(`  ${r.key} = ${counts[r.key]}`);
   process.exit(0);
 }
 
-const baseline = existsSync(BASELINE_PATH)
-  ? JSON.parse(readFileSync(BASELINE_PATH, 'utf8')).rawHexOutsideRoot ?? 0
-  : 0;
+const baseline = existsSync(BASELINE_PATH) ? JSON.parse(readFileSync(BASELINE_PATH, 'utf8')) : {};
 
-console.log(`validate-tokens: ${count} raw hex outside :root (baseline ${baseline})`);
+let failed = false;
+console.log('validate-tokens:');
+for (const r of RULES) {
+  const have = counts[r.key];
+  const base = baseline[r.key] ?? 0;
+  const mark = have > base ? '✗' : have < base ? '↓' : '·';
+  console.log(`  ${mark} ${r.label.padEnd(22)} ${have}  (baseline ${base})`);
+  if (have > base) {
+    failed = true;
+    console.error(`\n✗ ${r.label} grew by ${have - base} — must use var(--token):`);
+    for (const h of hitsByRule[r.key]) console.error(`    ${h.file}:${h.line}  ${h.prop}: …${h.text}`);
+  }
+}
 
-if (count > baseline) {
-  console.error(`\n✗ raw-hex count grew by ${count - baseline} — new colour literals must use var(--token):\n`);
-  for (const h of all) console.error(`  ${h.file}:${h.line}  ${h.hex}`);
-  console.error('\nMove the colour into a :root token and reference it via var(). If this is an intentional reduction elsewhere, run with --update.');
+if (VERBOSE && !failed) {
+  for (const r of RULES) {
+    if (!hitsByRule[r.key].length) continue;
+    console.log(`\n— ${r.label} (${hitsByRule[r.key].length}) —`);
+    for (const h of hitsByRule[r.key]) console.log(`    ${h.file}:${h.line}  ${h.prop}: …${h.text}`);
+  }
+}
+
+if (failed) {
+  console.error('\nMove the literal into a :root token and reference it via var(). For an intentional reduction elsewhere, run with --update.');
   process.exit(1);
 }
 
-if (count < baseline) {
-  console.log(`✓ down ${baseline - count} from baseline — run "node scripts/validate-tokens.mjs --update" to re-pin.`);
-} else {
-  console.log('✓ no new raw hex outside :root.');
-}
+const anyDown = RULES.some((r) => counts[r.key] < (baseline[r.key] ?? 0));
+console.log(anyDown ? '\n↓ some categories shrank — run "node scripts/validate-tokens.mjs --update" to re-pin.' : '\n✓ no new raw literals.');
 process.exit(0);
