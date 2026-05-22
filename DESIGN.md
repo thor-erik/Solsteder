@@ -15,12 +15,12 @@ This document is the **source of truth** for visual decisions. Before making UI 
 ## Seven principles
 
 1. **Lens metaphor is structural.** Translucent surfaces = lens. Solid surfaces = objects in the lens. Honey accent = sun coming through. Effects exist to reinforce this metaphor, not to decorate.
-2. **One accent per surface.** Honey is the "this matters" signal. Use it once per screen — primary CTA, "in sun" status, hero pin. Multiplied honey burns out.
-3. **Cohesive secondary text.** Secondary text = primary text at lower opacity, NOT a different hue. Use `rgba(255, 244, 224, 0.78)` over slate-grey `#9BA9BC`. Same hue family as the title.
-4. **Subtle static effects.** Mirror-sky and chromatic overlays exist to suggest lens optics — not to be seen. They should be barely perceptible at first glance.
+2. **Honey is the sun signal — and the one CTA per screen.** Honey = sun (data) and *may* repeat freely: sun should be visible everywhere (in-sun pills, sun-hours, the time slider). The single primary CTA per screen also uses honey but stays distinct by being **solid + elevated + on a dark surface** — it reads as *action*, not data. No second accent — a fifth hue is drift. If a CTA ever gets lost among in-sun honey, the fallback is a **Delft Blue** (dark) CTA, never a new colour.
+3. **Cohesive secondary text.** Secondary text = primary text at lower opacity, NOT a different hue. Use `rgba(255, 244, 224, 0.78)` over cool grey `#9BA9BC`. Same hue family as the title.
+4. **Flat surfaces, no optical overlays.** Surfaces are solid tints (blur is fine; gradient fills and the old mirror-sky / chromatic overlays are not). The lens metaphor is carried by colour and translucency, not by simulated optics.
 5. **Reactive motion.** Tilt + spotlight + rim + click ripple fire on hover/click only. Silent at rest. The single privileged ambient motion is the live "in sun now" pin pill.
-6. **Layered elevation.** Modern card convention: 1px tight contact shadow + 14px soft lift. Inset top sheen (warm cream at 0.16) + bottom shade (slate at 0.40). No single-layer drop shadows.
-7. **Warm-on-cool does the work.** Honey accents pop against slate. No need to multiply colors. A second accent is design drift.
+6. **Elevation via solid shadow, not sheen.** A flat drop shadow lifts a raised surface (1px tight contact + soft lift). The glossy inset sheen / bottom-shade is retired — flat surfaces don't fake depth with gradients.
+7. **Warm-on-cool does the work.** Honey accents pop against Delft Blue. No need to multiply colors. A second accent is design drift.
 
 ---
 
@@ -33,14 +33,14 @@ Defined in `:root` in `index.html`. Components must NOT reference primitives dir
 ```
 --coral-50..900    /* legacy primitive (semantic now points at honey) */
 --cream-50/100
---blue-200..950    /* legacy primitive (semantic now points at slate) */
+--blue-200..950    /* legacy primitive (semantic now points at Delft Blue) */
 --green/orange/red status scales
 --space-1..12   --radius-xs..xl   --text-xs..3xl
 --ease-standard   --dur-fast/base/slow
 --z-pins/canvas/controls/panel/modal/toast/...
 ```
 
-### Semantic layer (Slate + Honey brand)
+### Semantic layer (Delft Blue + Honey brand)
 
 What components consume. Updating these is how brand work happens.
 
@@ -52,24 +52,54 @@ What components consume. Updating these is how brand work happens.
 | `--accent-dim` | `rgba(245,194,94,0.16)` | Honey-tinted background for badges |
 | `--accent-border` | `rgba(245,194,94,0.42)` | Honey border on dim backgrounds |
 | `--text` | `#FFF4E0` | Warm cream — primary text |
-| `--muted` | `#9BA9BC` | Slate-grey — secondary cool text (use sparingly; cream-at-opacity is preferred) |
-| `--cool` | `#B5BCC8` | Brighter slate-grey — for cool weather chips |
-| `--rain` | `#6F8AA8` | Slate-blue — rain pills, water on map |
+| `--muted` | `#9BA9BC` | Cool grey — secondary cool text (use sparingly; cream-at-opacity is preferred) |
+| `--cool` | `#B5BCC8` | Brighter cool grey — for cool weather chips |
+| `--rain` | `#6F8AA8` | Cool blue — rain pills, water on map |
 
-**Two yellows, one rule.** The in-product accent is **Sunny `#F5C25E`** — every sun/discovery signal and the primary CTA. **Tangerine `#FFAF85` is mark-only** (the logo). Tangerine reads as sunset warmth rather than overhead sun and collided with selected-state pills, so it never appears in the UI; the swap to Sunny was a deliberate decision (recorded in the brand pack's `Sunny Color Study.html`). The brand-pack README still lists Tangerine as the accent — it predates this decision. **This table is canonical.**
+**One yellow.** Sunny `#F5C25E` is the sole accent — every sun/discovery signal, the primary CTA, and the logo mark. **The old palette is dead and must not appear anywhere:** Tangerine `#FFAF85`, Slate `#1A2C42`, and the legacy `--coral-*` / `--blue-*` primitives are all retired. The swap from Tangerine to Sunny was deliberate (Tangerine read as sunset warmth, not overhead sun, and collided with selected-state pills — recorded in the brand pack's `Sunny Color Study.html`). The brand-pack README and its mark art still show Tangerine; both predate the swap and are **stale**. This table is canonical.
 
-### Glass surfaces (component layer)
+### Surface system tokens (final · 2026-05-21)
 
 ```
---glass-panel-bg:  linear-gradient(135deg, rgba(26,44,66,0.36), rgba(58,92,130,0.22)), rgba(26,44,66,0.42);
---glass-card-bg:   linear-gradient(135deg, rgba(26,44,66,0.36), rgba(58,92,130,0.22)), rgba(26,44,66,0.78);
---glass-action-bg: linear-gradient(135deg, rgba(26,44,66,0.36), rgba(58,92,130,0.22)), rgba(26,44,66,0.45);
---glass-blur-panel: blur(16px) saturate(160%);
---glass-blur-card:  blur(12px) saturate(160%);
---glass-blur-action: blur(10px) saturate(160%);
---glass-border:     1px solid rgba(155,169,188,0.22);
---glass-inset:      inset 0 1px 0 rgba(255,244,224,0.14), inset 0 -1px 0 rgba(26,44,66,0.35);
+/* Surface fills — one per surface; colour is role-assigned, never dialed */
+--surface-chrome:  rgba(156,189,231,0.25);  /* Jordy 25% — chrome panel */
+--surface-sheet:   rgba(156,189,231,0.25);  /* Jordy 25% — sheet (raised by shadow) */
+--surface-content: rgba(17,30,56,0.90);     /* Delft Blue 90% — content card */
+--surface-modal:   rgba(17,30,56,0.90);     /* Delft Blue 90% — modal, cream text */
+--surface-raised:  #FFF2EB;                  /* Cream, opaque — dropdown / popover */
+--surface-control: rgba(156,189,231,0.01);  /* Jordy ~1% — outline-defined chip */
+--scrim:           rgba(17,30,56,0.55);      /* Delft Blue 55% — behind modals/sheets */
+
+/* Blur — small, subtle frost */
+--blur-control: blur(2px);
+--blur-surface: blur(4px);
+
+/* Shadow — flat lift; strength tracks elevation */
+--shadow-1: 0 1px 2px rgba(0,0,0,0.18), 0 4px 14px rgba(0,0,0,0.30);  /* resting: chrome panel, card */
+--shadow-2: 0 8px 28px rgba(0,0,0,0.40);                              /* raised: sheet, dropdown */
+--shadow-3: 0 16px 48px rgba(0,0,0,0.50);                             /* pop: modal */
+
+/* Borders — Jordy on DARK surfaces, Delft Blue on LIGHT; 1px hairline */
+--line-d-faint:  rgba(156,189,231,0.08);   /* divider on dark */
+--line-d:        rgba(156,189,231,0.18);   /* edge on dark (content card, modal) */
+--line-d-strong: rgba(156,189,231,0.30);
+--line-l-faint:  rgba(17,30,56,0.08);      /* divider on light */
+--line-l:        rgba(17,30,56,0.18);      /* edge on light (chrome, sheet, dropdown) */
+--line-l-strong: rgba(17,30,56,0.30);      /* control silhouette — outline chip on chrome */
+
+/* Element-opacity states (applied to the whole element) */
+--o-disabled:       0.40;
+--o-muted:          0.55;
+--o-secondary-text: 0.78;   /* cream secondary text */
+
+--glass-inset: 0 0 0 0 transparent;        /* glossy sheen retired (flat) */
 ```
+
+**Flat-modern surfaces.** Solid tints + blur — never gradient fills; the glossy inset sheen, mirror-sky and chromatic overlays are retired; motion (tilt/spotlight/ripple) unchanged.
+
+**Borders are the silhouette.** Every surface and control takes its edge from a `--line-*` token, never a raw rgba. Colour mirrors the world so the edge actually reads: **Jordy on dark surfaces, Delft Blue on light.** Strengths step faint (divider) → standard (surface edge) → strong (control silhouette). The surface control is intentionally near-fill-less (`--surface-control` ≈ 1%) and defined by `--line-l-strong` — an **outline chip**; selected/active swaps to a honey-dim fill + `--accent-border`.
+
+**Code follow-up:** these supersede `--glass-panel-bg` / `--glass-card-bg` / `--glass-action-bg` and the `--glass-blur-*` set. Repoint components to the `--surface-*` / `--blur-*` / `--shadow-*` / `--line-*` tokens in `:root`, and teach `validate-tokens.mjs` to flag raw alphas, `blur()`, and border rgba.
 
 ### Status
 
@@ -80,16 +110,95 @@ What components consume. Updating these is how brand work happens.
 
 ---
 
+## Typography
+
+One font — **Inter** — across the whole product (it's also the logo font). Voice comes from weight + tracking, not a second typeface. The **Display** tier reuses the logo treatment (Inter 900, tight `−0.03em`) so the app rhymes with the mark.
+
+| Role | Size | Weight | Tracking | Use |
+|---|---|---|---|---|
+| Display | 28 | 900 | −0.03em | detail title, sheet headline, sign-in |
+| Title | 22 | 700 | −0.01em | section / card titles |
+| Subtitle | 18 | 600 | normal | secondary headers |
+| Body | 15 | 400 | normal | primary reading text |
+| Label | 13 | 500 | normal | meta lines, chips, sun-hours |
+| Caption | 11 | 400 | normal | timestamps, fine print |
+
+- Line-height ~1.5 body, ~1.25 Title/Display.
+- **Inputs use 16px** (prevents iOS auto-zoom on focus).
+- **Tabular figures** (`font-variant-numeric: tabular-nums`) for times, sun-hours, temps, prices — numbers must not twitch.
+- Wire to the `--text-*` tokens (used 0× today) and migrate the 22 raw font-sizes onto these six roles. `validate-tokens.mjs` should flag raw `font-size`.
+
+---
+
+## Radius
+
+Five steps, snapped from the 20 raw values in use:
+
+| Token | Value | Use |
+|---|---|---|
+| `--radius-none` | 0 | flush edges |
+| `--radius-sm` | 8px | inputs, small controls |
+| `--radius-md` | 12px | cards, buttons |
+| `--radius-lg` | 20px | sheets, modals |
+| `--radius-pill` | 999px | chips, pills, honey CTA |
+
+Wire to `--radius-*` (used once today); migrate raw radii. `validate-tokens.mjs` flags raw `border-radius`.
+
+---
+
+## Spacing
+
+4px base with two fine sub-steps (2px, 6px) for the dense map UI. The old `--space-*` tokens went unused because they **omitted** 2px and 6px — the two most-used values (56× and 96×). Fixed by including them; everything else snaps to a step.
+
+| Token | Value | Use |
+|---|---|---|
+| `--space-2xs` | 2px | icon↔label, hairline insets |
+| `--space-xs` | 4px | tight intra-element |
+| `--space-sm` | 6px | dense chip padding, small gaps (the dense-UI half-step) |
+| `--space-md` | 8px | default gap |
+| `--space-lg` | 12px | card interior, comfortable gap |
+| `--space-xl` | 16px | roomy card / section padding |
+| `--space-2xl` | 24px | section spacing |
+| `--space-3xl` | 32px | major sections |
+| `--space-4xl` | 48px | screen-level rhythm |
+
+- **4px and 8px are the defaults; 2px / 6px are only for tight/dense contexts** (chips, glyph gaps) — don't pick between 4/6/8 arbitrarily.
+- **Eliminate 10px** (worst orphan, 61×): snap to 8 (tight) or 12 (roomy) by context.
+- Other orphans snap to nearest: 3→4, 5→6, 7→8, 9→8, 11/13/14→12, 18→16, 20→16 or 24, 22→24, 28→32, 30→32, 56→48.
+- Replaces the old `--space-1..12` tokens (used 0×). Migrate the 278 raw paddings; `validate-tokens.mjs` flags raw `padding` / `gap` / `margin` px.
+
+---
+
 ## Surface & elevation model
 
 The Six Tiers below describe *how* a surface is treated. This model describes *which* surface a thing gets and how surfaces stack. It is the higher-level rule; the tiers are its vocabulary. When in doubt, resolve here first, then pick the tier.
+
+### Surface glossary & recipe — vocabulary + final values
+
+Plain-language terms (used throughout this doc) mapped to what they are on screen, plus the **locked** recipe. Colour is role-assigned — only opacity / blur / shadow were dialed. `--line-*` / `--shadow-*` are the tokens defined above.
+
+| Surface | What it is in Shades | Fill (colour · opacity) | Blur | Border | Shadow · text |
+|---|---|---|---|---|---|
+| **Chrome panel** | Bottom list area, top bar, filter row | Jordy `#9CBDE7` · 25% | 4px | `--line-l` | `--shadow-1` · ink |
+| **Sheet** (slides up, drag-handle) | Venue detail, RSVP "Du er invitert til", Share, "Velg dato" | Jordy `#9CBDE7` · 25% | 4px | `--line-l` | `--shadow-2` · ink |
+| **Modal** (full-screen takeover) | Sign-in, friends popup | Delft Blue `#111E38` · 90% | 4px | — | `--shadow-3` + scrim · cream |
+| **Content card / tile** | Venue cards, "Sun until 17:05" block | Delft Blue `#111E38` · 90% | none | `--line-d` | `--shadow-1` · cream |
+| **Surface control** | Filter chips, +min nudges, sort + locate | Jordy · ~1% (outline) | 2px | `--line-l-strong` | — · ink · *selected → honey-dim + `--accent-border`* |
+| **Raised / dropdown** | Sort menu over the list | Cream `#FFF2EB` · 100% | none | `--line-l` | `--shadow-2` · ink |
+| **Scrim** | Dimming behind a modal/sheet | Delft Blue · 55% | none | — | — |
+| **Honey CTA** | Jeg blir med, Invite friends here, Share link | Honey `#F5C25E` · 100% | none | — | `--shadow-1` · `--accent-on` |
+| **Honey badge** | "+1h 35m" pill, score badge | Honey · 16% (`--accent-dim`) | none | `--accent-border` | — · honey |
+
+**Colour is role-assigned, not a knob.** Only opacity / blur / shadow were dialed; colour is fixed per surface. **Three surface colours, no fourth:** Jordy Blue for light chrome (chrome panel, sheet — also reads as a tinted sunglasses lens), Delft Blue for dark focus surfaces (content card, modal — cream text), Cream for opaque popovers (dropdowns). Text is **ink on light, cream on dark** (secondary at `0.78`). Accent is honey, once per screen; the one colour *state* is **selected/active = honey-dim** (`--accent-dim` + `--accent-border` + honey text). Status colours come from the status scale.
+
+**Shadow is the third elevation knob.** Flat-modern lifts surfaces with a solid drop shadow (principle 6), on a scale that tracks elevation: `--shadow-1` resting (chrome panel, card), `--shadow-2` raised (sheet, dropdown), `--shadow-3` pop (modal). A raised layer always casts a stronger shadow than what it covers. Bottom-anchored chrome panels cast their shadow **upward** onto the map. No inset sheens (retired).
 
 ### Two worlds: chrome vs content
 
 The lens metaphor (principle 1) is also the layout rule. Every surface is one of two things:
 
 - **Chrome — the lens you look *through*.** Light, translucent, floats over the map. Top bar, filter/sort chips, search, calendar and date sheets, login splash. Text is ink (`--panel-text` `#111E38`).
-- **Content — the objects you look *at*.** Slate, opaque, sits *in* the lens. Venue cards, detail tiles, the sun timeline, invite sheets. Text is cream (`--text`).
+- **Content — the objects you look *at*.** Delft Blue, opaque, sits *in* the lens. Venue cards, detail tiles, the sun timeline, invite sheets. Text is cream (`--text`).
 
 If a surface's treatment is unclear, ask the only question that matters: **is this chrome or content?** Everything else follows.
 
@@ -100,8 +209,8 @@ A control is **never the same surface as the thing it sits on** — it steps one
 | Control sits on… | Treatment |
 |---|---|
 | The **map** (chrome floating over it) | Light glass pill — pops against the map via scrim + shadow |
-| A **light / chrome panel** (calendar, sort, login) | Step to **slate (ink fill/outline)** or **honey** (primary). A light pill here is banned — zero contrast. |
-| A **slate / content surface** | **glass-action** (lighter slate) for secondary, **honey** for primary, **ghost** for tertiary |
+| A **light / chrome panel** (calendar, sort, login) | Step to **Delft Blue (ink fill/outline)** or **honey** (primary). A light pill here is banned — zero contrast. |
+| A **Delft Blue / content surface** | **glass-action** (lighter Delft Blue) for secondary, **honey** for primary, **ghost** for tertiary |
 
 "Lens-light button" is not a type you choose — it is simply what a control becomes when it floats over the map. Inside a panel, a control is always container-relative.
 
@@ -112,32 +221,50 @@ Every button is one of four roles, and colour carries exactly one meaning each. 
 | Role | Treatment | Rule |
 |---|---|---|
 | **Primary — "the decision"** | Tier 4 honey (`--accent` bg, `--accent-on` text) | **Exactly one per screen.** Two honey buttons = one is mislabelled. |
-| **Secondary — "supporting"** | Tier 3 glass (`--glass-action-bg`, `--text`, `--glass-border`) | Repeatable. The slate-grey-*filled* variant is retired — it competed with secondaries and read as disabled. |
+| **Secondary — "supporting"** | Tier 3 glass (`--glass-action-bg`, `--text`, `--glass-border`) | Repeatable. The cool grey-*filled* variant is retired — it competed with secondaries and read as disabled. |
 | **Tertiary — "low-stakes / dismiss"** | Ghost: transparent, `--muted` → `--text` on hover | Cancel, "Kommer senere", "Rediger informasjon". |
 | **Destructive** | Red (`--color-error`), text or outline only | "Avslå", delete. Visually separated from primary. |
 
 Selection chips (`+5 min`, intent filters, sort) are **not** buttons in this ladder — they share the Tier-3 selectable-chip style, never a bespoke grey fill.
+
+Buttons inside a **sheet / detail panel** are the same four roles — no special "detail-panel button" type. On the venue detail: "Invite friends here" = Primary, "Directions" = Secondary (must read lighter than the honey CTA, not full-width-prominent), the Share / Favorites / Alert row = Tertiary. `dp-action-cta` / `dpacc-action-primary` etc. are the per-flow drift to retire.
+
+### Component states
+
+One state model, applied to every interactive component — no per-flow variants. (The filters look inconsistent today because they lack this.)
+
+| State | Surface control (chip) | Button |
+|---|---|---|
+| Default | outline: `--surface-control` (~1%) + `--line-l-strong`, ink text | per role (honey CTA / glass secondary / ghost tertiary) |
+| Hover (desktop) | border darkens + faint fill | brightness up |
+| Pressed | scale 0.97 + fill flash (+ haptic on mobile) | scale 0.97 (+ haptic) |
+| **Selected / active** | **honey-dim fill + `--accent-border` + honey text** | — |
+| Focus | 2px focus ring (keyboard / switch-control) | 2px focus ring |
+| Disabled | `--o-disabled` (0.40), no pointer events | `--o-disabled`, no pointer |
+| Loading | — | spinner + disabled |
+
+The fix for the filters is the **outline-default → honey-dim-selected** pattern: every unselected chip is a clean outline (silhouette from `--line-l-strong`), every selected one fills honey-dim. Consistent silhouette, unmistakable selection.
 
 ### Backgrounds: steps, not new hues
 
 Stacking is expressed by **opacity + shadow + a hairline border — never a new colour.** A third hue dilutes warm-on-cool (principle 7); adding elevation steps *is* principle 6. Each world has a short tint ladder:
 
 - **Chrome:** chrome glass → *raised* light surface (more opaque + stronger shadow) for popovers/sheets.
-- **Content:** panel (42%) → card (**opaque**) → *raised* opaque slate for menus/modals.
+- **Content:** panel (42%) → card (**opaque**) → *raised* opaque Delft Blue for menus/modals.
 
 The only genuinely new token to add is a **scrim** (`--scrim`, dark veil) behind focus-stealing layers.
 
-### Content tiles are opaque slate — never translucent, never cream
+### Content tiles are opaque Delft Blue — never translucent, never cream
 
-Venue cards and detail tiles are **fully opaque slate**. Reasons, in priority order:
+Venue cards and detail tiles are **fully opaque Delft Blue**. Reasons, in priority order:
 
-1. **The honey signal needs a dark base.** Sun = honey is the whole product. `#F5C25E` on slate sings; on cream it is two warm tones at similar lightness — the sun-hours, progress bar, and badges drop from signal to barely-there.
-2. **Content = objects you look at.** Cream cards would make them chrome and break the model — and the ripple wouldn't stop at the list (detail tiles, invite sheets, timeline are all slate too).
+1. **The honey signal needs a dark base.** Sun = honey is the whole product. `#F5C25E` on Delft Blue sings; on cream it is two warm tones at similar lightness — the sun-hours, progress bar, and badges drop from signal to barely-there.
+2. **Content = objects you look at.** Cream cards would make them chrome and break the model — and the ripple wouldn't stop at the list (detail tiles, invite sheets, timeline are all Delft Blue too).
 3. **Photos & figure-ground.** Dark frames recede behind venue photos and separate hard from the light map; cream would need borders just to not vanish.
 
-Outdoor glare (a sun-app is used in bright light) argues for a light *map* and light *chrome* — which we have — with dark cards as the high-contrast results that punch through glare. If cards ever read as heavy, the lever is **opacity, spacing, and slate brightness — not switching to cream.**
+Outdoor glare (a sun-app is used in bright light) argues for a light *map* and light *chrome* — which we have — with dark cards as the high-contrast results that punch through glare. If cards ever read as heavy, the lever is **opacity, spacing, and Delft Blue brightness — not switching to cream.**
 
-> **Code follow-up:** retires the legacy `--glass-card-bg` 78% alpha — content resolves to full-opacity slate (`#111E38`).
+> **Code follow-up:** retires the legacy `--glass-card-bg` 78% alpha — content resolves to full-opacity Delft Blue (`#111E38`).
 
 ### Overlap & dropdowns
 
@@ -146,7 +273,7 @@ Outdoor glare (a sun-app is used in bright light) argues for a light *map* and l
 
 ### In three sentences
 
-Chrome is the lens (light, over the map); content is the objects (opaque slate). A control steps away from its container, never matches it. A raised layer goes opaque and casts a shadow the layer below doesn't.
+Chrome is the lens (light, over the map); content is the objects (opaque Delft Blue). A control steps away from its container, never matches it. A raised layer goes opaque and casts a shadow the layer below doesn't.
 
 ---
 
@@ -162,12 +289,12 @@ Every UI surface belongs to exactly **one** tier. The tier determines opacity, e
 ### Tier 1 · Lens panel
 **Role:** translucent container. The lens you look through.
 **Treatment:**
-- Background: `var(--glass-panel-bg)` (slate at 42% alpha)
-- Mirror-sky overlay applied via `body[data-fx]` rules (single soft cool highlight + deep shadow, 135deg)
+- Background: `var(--glass-panel-bg)` (Delft Blue at 42% alpha)
+- No optical overlay — the old mirror-sky gradient is retired. Flat solid tint + blur only.
 - Border: `var(--glass-border)`
 - Shadow: `var(--glass-inset)` + `0 6px 24px rgba(0,0,0,0.50)`
 - `backdrop-filter: var(--glass-blur-panel)`
-- Top-edge sheen via `::before`
+- (Top-edge sheen retired — flat; no `::before` highlight)
 
 **Motion:** none on container. Reactive elements inside.
 **Examples:** `#panel`, `#detail-panel`, `#search-dropdown`, `#sort-panel`, `#profile-panel`, modals, toasts, login splash.
@@ -199,10 +326,10 @@ Any panel that slides up from the bottom (`#detail-panel`, `.dpinvite-sheet`, `.
 ### Tier 2 · Lens object
 **Role:** solid content tile. An object resting in the lens.
 **Treatment:**
-- Background: `var(--glass-card-bg)` — **fully opaque slate** (`#111E38`). Content tiles are never translucent and never cream; see "Surface & elevation model → Content tiles are opaque slate". (The legacy 78% alpha is being retired in code.)
-- Chromatic overlay via `body[data-fx]` rule (warm/cool corner gradient — simulates lens dispersion)
+- Background: `var(--glass-card-bg)` — **fully opaque Delft Blue** (`#111E38`). Content tiles are never translucent and never cream; see "Surface & elevation model → Content tiles are opaque Delft Blue". (The legacy 78% alpha is being retired in code.)
+- No chromatic overlay — the old warm/cool gradient is retired. Solid opaque Delft Blue.
 - Border: `1px solid rgba(155,169,188,0.34)` (clearer than panel border)
-- Shadow: layered — `inset 0 1px 0 rgba(255,250,235,0.16)`, `inset 0 -1px 0 rgba(15,30,55,0.40)`, `0 1px 2px rgba(0,0,0,0.18)`, `0 4px 14px rgba(0,0,0,0.30)`
+- Shadow: flat drop only — `0 1px 2px rgba(0,0,0,0.18)`, `0 4px 14px rgba(0,0,0,0.30)` (the glossy inset sheens are retired)
 - Padding: `12px 14px`, internal `gap: 4px`
 - No `backdrop-filter` (sits inside panel which already blurs — saves GPU layers)
 
@@ -212,7 +339,7 @@ Any panel that slides up from the bottom (`#detail-panel`, `.dpinvite-sheet`, `.
 ### Tier 3 · Surface control
 **Role:** smaller interactive surface. Glass-action style.
 **Treatment:**
-- Background: `var(--glass-action-bg)` (slate at 45% alpha)
+- Background: `var(--glass-action-bg)` (Delft Blue at 45% alpha)
 - Border: `1px solid rgba(155,169,188,0.30)`
 - Shadow: `var(--glass-inset)` + `0 2px 8px rgba(0,0,0,0.30)`
 - Padding scales with content; pill (`var(--radius-pill)`) for buttons, `var(--radius-md)` for chips
@@ -270,12 +397,31 @@ All motion respects `prefers-reduced-motion` and suspends during scroll (200ms d
 
 ---
 
+## Icons
+
+**SVG only — never emoji.** Every icon is an inline SVG from a single pack. Emoji are font-dependent, render differently on every OS, can't be tokenised (colour / stroke / size), and break the flat-modern look. No emoji in chrome, labels, buttons, toasts — **or as fallbacks**.
+
+**Pack: Lucide** (ISC-licensed). One source of truth for every UI glyph. It is the maintained successor to Feather, already the style the hand-drawn icons were imitating, outline/stroke-based (the flat-modern register), and pairs naturally with Inter.
+
+**Drawing standard** — the fix for the current ten-stroke-width sprawl (2, 1.5, 1.8, 2.4, 2.2, 3, 2.5, 1.6, 1.2, 2.6 all in use):
+
+- 24×24 viewBox, `stroke-width: 2`, `stroke-linecap: round`, `stroke-linejoin: round`, no fill (outline).
+- Size via `width`/`height` (16 / 20 / 24) — **never** by changing stroke-width.
+- Colour via `currentColor` so icons inherit `--text` / `--muted` / `--accent` — never a hard-coded hex.
+- Outline is the default. Don't mix filled and outline at the same hierarchy level. Encode selection/active by **colour** (→ `--accent`), not by swapping to a filled icon.
+
+**Canvas glyphs** (map pins, weather, sun arc — `render-pins.js` / `render-arc.js`) can't import SVG directly, but must be redrawn to Lucide's metrics: same 2px-at-24 stroke ratio, round caps, outline. They read as one family even though the rendering path differs.
+
+**Subsetting:** copy only the SVG paths you use into the codebase — no runtime icon font or library dependency (keeps the no-build, CDN-free constraint).
+
+---
+
 ## Anti-patterns
 
 - ✗ Multiple Tier-4 honey CTAs in one screen — burns out the signal.
-- ✗ Tier-3 control with Tier-2 effects (chromatic, mirror) — too busy for small surfaces.
+- ✗ Tier-3 control with Tier-2 motion (tilt/parallax) — too heavy for small surfaces.
 - ✗ Tier-2 card with no border or shadow — loses silhouette, blends with panel.
-- ✗ Static text in slate-grey when the title is cream — breaks principle 03.
+- ✗ Static text in cool grey when the title is cream — breaks principle 03.
 - ✗ Continuous animation on more than ONE element per screen — Tier 5 ambient is privileged.
 - ✗ Raw hex colors in CSS (run `node scripts/validate-tokens.mjs` to catch).
 - ✗ Pure white `#FFFFFF` for text or fills — use `var(--text)` for warmth and consistency.
@@ -283,7 +429,9 @@ All motion respects `prefers-reduced-motion` and suspends during scroll (200ms d
 - ✗ A light control on a light panel (zero contrast) — a control must step away from its container. See "Surface & elevation model → Controls step away from their container".
 - ✗ Per-flow button classes (`dprcv-cta-primary`, `dpacc-action-primary`, `fts-popup-primary`…) — buttons are one of four roles; colour encodes role, not flow.
 - ✗ More than one Tier-4 honey button on a screen — honey means "the decision", once.
-- ✗ Translucent or cream content tiles — venue/detail tiles are opaque slate. Honey dies on cream.
+- ✗ Translucent or cream content tiles — venue/detail tiles are opaque Delft Blue. Honey dies on cream.
+- ✗ Gradient fills, glossy inset sheens, or mirror-sky / chromatic overlays — the look is flat: solid tints + blur. (Functional mask-fades, legibility scrims, and motion glints are not "fills" and are fine.)
+- ✗ Emoji anywhere in the UI — icons, labels, toasts, or SVG fallbacks. SVG from the icon pack only. See "Icons".
 - ✗ Stacking two translucent layers of the same world (dropdown over panel) and trusting `backdrop-filter` — the raised layer goes opaque + shadow.
 - ✗ Sizing a bottom sheet as a fraction of `var(--app-h)` (`calc(var(--app-h) * 0.X)`) — predates `svh` and ignores content. Use `Xsvh` for caps and `height: auto` for the half-open state. See "Tier 1 · Sheet contract".
 - ✗ `bottom: var(--app-bottom-inset)` / `bottom: env(safe-area-inset-bottom)` on a bottom sheet — both are legacy lifts. With `interactive-widget=resizes-content` in the viewport meta, `bottom: 0` is correct on every host.
@@ -329,10 +477,10 @@ Ask: which tier? If none fits, consider whether you actually need a new style or
 
 ## Status snapshot (2026-05-09)
 
-- Slate + Honey palette migrated through semantic + glass + canvas-bridge layers.
-- Mirror-sky panel + chromatic card lens FX wired into production (default-on; `?fx=lab` for tweaking).
+- Delft Blue + Honey palette migrated through semantic + glass + canvas-bridge layers.
+- ~~Mirror-sky panel + chromatic card lens FX wired into production.~~ **Retired** — the look is now flat (solid tints + blur). Reactive motion (tilt/spotlight/ripple) and `?fx=lab` remain.
 - Card silhouette polish (modern border + layered shadow + spacing) applied universally to `.venue-card` and detail-panel cards.
-- Modal backdrops unified to slate-tinted spec.
+- Modal backdrops unified to Delft Blue-tinted spec.
 - Validator clean (54 documented allowlist entries).
 - Component-to-tier audit complete — see `system.html`.
 

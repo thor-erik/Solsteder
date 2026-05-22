@@ -121,7 +121,7 @@
 <script defer src="js/weather.js?v=20260519d"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260521c"></script>
-<script defer src="js/app.js?v=20260522c"></script>
+<script defer src="js/app.js?v=20260522d"></script>
 <script defer src="js/render-helpers.js?v=20260505a"></script>
 <script defer src="js/render-arc.js?v=20260519b"></script>
 <script defer src="js/render-seating.js?v=20260519b"></script>
@@ -1237,11 +1237,8 @@
        top of the page. */
     left: 12px;
     right: 12px;
-    /* Above the fullscreen venue list (910) and fullscreen detail panel (920)
-       so the bar's slide-UP is actually visible — at z900 the panel painted
-       over it instantly (it "disappeared" with no animation). Still below the
-       bell dropdown (1050), calendar (1200) and toasts. */
-    z-index: 925;
+    /* Below the bell dropdown (1050), calendar (1200) and toasts. */
+    z-index: 900;
     height: 46px;
     display: grid;
     grid-template-columns: auto 1fr auto;
@@ -1281,20 +1278,6 @@
   body.profile-panel-open #floating-brand,
   body.invite-sheet-open #floating-brand {
     transform: translateY(calc(-100% - env(safe-area-inset-top, 0px) - 14px));
-    pointer-events: none;
-  }
-  /* Fullscreen panels (venue list / detail): FADE the top bar out instead of
-     sliding. The transform-slide reads as an instant vanish here because the
-     rising fullscreen panel covers the bar mid-slide; opacity is the reliable
-     path (it's the same transition the intro fade-in uses, which works). */
-  body.panel-fullscreen-active #top-strip,
-  body.dp-fullscreen-active #top-strip,
-  body.panel-fullscreen-active #floating-brand,
-  body.dp-fullscreen-active #floating-brand {
-    /* !important beats the inline opacity:1 the intro reveal (_slideIn) leaves
-       on #top-strip — without it the fade never applied and the bar stayed
-       visible over the fullscreen panel. Transitions via the base 0.22s. */
-    opacity: 0 !important;
     pointer-events: none;
   }
   #top-strip .ts-left, #top-strip .ts-right {

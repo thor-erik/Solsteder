@@ -3418,36 +3418,6 @@ function _updatePeekHeight() {
   panel.addEventListener('transitioncancel', clear);
 })();
 
-// Keep body.panel-fullscreen-active in lockstep with the panel's actual
-// mobile-fullscreen class — no matter which path sets/clears it (drag commit,
-// tap toggle, detail-close restore, intro restore, programmatic). The top-bar
-// slide-up rule keys off this body class; deriving it from reality (not from
-// one code path) prevents it getting stuck on and hiding the top bar.
-(function _syncPanelFullscreenBodyClass() {
-  const panel = document.getElementById('panel');
-  if (!panel) return;
-  // TEMP diagnostic badge — shows the panel's live state classes + whether the
-  // fullscreen body class is set. Remove once the fullscreen fade is sorted.
-  let _dbg = document.getElementById('_dbg-panel-state');
-  if (!_dbg) {
-    _dbg = document.createElement('div');
-    _dbg.id = '_dbg-panel-state';
-    _dbg.style.cssText = 'position:fixed;left:6px;bottom:6px;z-index:99999;'
-      + 'background:rgba(0,0,0,0.8);color:#0f0;font:11px/1.3 monospace;'
-      + 'padding:4px 6px;border-radius:6px;pointer-events:none;max-width:60vw;';
-    document.body.appendChild(_dbg);
-  }
-  const sync = () => {
-    const fs = panel.classList.contains('mobile-fullscreen');
-    document.body.classList.toggle('panel-fullscreen-active', fs);
-    const cls = Array.from(panel.classList).filter(c =>
-      c.startsWith('mobile-') || c === 'is-sliding' || c === 'panel-dragging').join(' ') || '(none)';
-    _dbg.textContent = `panel: ${cls} | body.fs=${document.body.classList.contains('panel-fullscreen-active')}`;
-  };
-  new MutationObserver(sync).observe(panel, { attributes: true, attributeFilter: ['class'] });
-  sync();
-})();
-
 // ── Venue peek: render actual first venue card into #venue-peek ──────────────
 function updateVenuePeek(venues) {
   const el = document.getElementById('venue-peek');
@@ -4928,12 +4898,6 @@ document.addEventListener('DOMContentLoaded', () => {
           panelEl.classList.remove('mobile-expanded', 'mobile-fullscreen', 'mobile-hidden');
           requestAnimationFrame(_updatePeekHeight);
         }
-        // NOTE: body.panel-fullscreen-active is set by the MutationObserver on
-        // #panel (see _syncPanelFullscreenBodyClass), NOT here. Toggling it
-        // synchronously in this commit path snapped the top-bar opacity with no
-        // fade — the FLIP below forces a reflow (void offsetHeight) that flushed
-        // the opacity change instantly. The observer fires async (after the
-        // reflow), so the opacity change animates via the 0.22s transition.
         // Persist the last snap point so it restores next session. 'hidden'
         // AND 'fullscreen' are transient take-over states — don't persist them
         // (we never want to LAND on a map-covering panel at load), so the saved

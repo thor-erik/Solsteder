@@ -8,7 +8,7 @@ Open `index.html` directly in a browser or serve statically.
 **Read `DESIGN.md` before any UI change.** It is the source of truth for visual decisions.
 
 Quick orientation:
-- Brand: **Shades** (sun-glasses + shadows double-entendre), **Slate + Honey** palette
+- Brand: **Shades** (sun-glasses + shadows double-entendre), **Delft Blue + Honey** palette
 - Every UI surface belongs to **one of six tiers** — Tier 0 (map), Tier 1 (lens panel), Tier 2 (lens object), Tier 3 (surface control), Tier 4 (honey CTA), Tier 5 (honey badge), Tier 6 (map canvas)
 - Tier determines opacity, effects, motion, and accent usage
 - Never reference raw hex in components — use `:root` semantic tokens (`--accent`, `--bg`, `--text`, `--muted`, etc.)
