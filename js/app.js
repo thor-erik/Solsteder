@@ -7502,7 +7502,17 @@ function _introCheckReady() {
           let plannedAt = null;
           if (d.t) {
             const m = String(d.t).match(/^(\d{4}-\d{2}-\d{2})T(\d{1,2}):(\d{1,2})/);
-            if (m) plannedAt = new Date(`${m[1]}T${m[2].padStart(2,'0')}:${m[3].padStart(2,'0')}:00`).toISOString();
+            if (m) {
+              // Carry-correct any minute >= 60 (older links minted "11:60"
+              // instead of "12:00") and clamp to 00:00–23:59, so a malformed
+              // timestamp can't yield an Invalid Date whose toISOString()
+              // throws and aborts the whole invite boot (empty-map symptom).
+              const total = Math.min(24 * 60 - 1, Math.max(0, (+m[2]) * 60 + (+m[3])));
+              const hh = String(Math.floor(total / 60)).padStart(2, '0');
+              const mm = String(total % 60).padStart(2, '0');
+              const dt = new Date(`${m[1]}T${hh}:${mm}:00`);
+              if (!isNaN(dt.getTime())) plannedAt = dt.toISOString();
+            }
           }
 
           // Mode: 'invite' when authenticated (Accept/Decline visible — they

@@ -1701,9 +1701,8 @@ function _openInviteSheet(venueId) {
       if (!user) return;
       const d = (typeof datePicker !== 'undefined') ? datePicker.value : curDate;
       const h = (typeof timeFromEl !== 'undefined') ? parseFloat(timeFromEl.value) : curHour;
-      const hInt = Math.floor(h);
-      const mInt = Math.round((h - hInt) * 60);
-      const timeVal = `${d}T${String(hInt).padStart(2,'0')}:${String(mInt).padStart(2,'0')}`;
+      const [hh, mm] = _hhmmFromHour(h);
+      const timeVal = `${d}T${hh}:${mm}`;
       const tokenData = { u: user.id, v: venueId, t: timeVal };
       if (sheet._planId) tokenData.p = sheet._planId;
       const token = btoa(JSON.stringify(tokenData));
@@ -2319,11 +2318,24 @@ function _getInviteDateTime() {
   return { d, h };
 }
 
+// Convert a fractional hour (e.g. 11.99) into a zero-padded ["HH","mm"] pair.
+// Round on TOTAL minutes so a fractional hour that rounds up carries into the
+// hour instead of producing minute 60 — e.g. 11.99 -> ["12","00"], never
+// "11:60". Minute 60 made an invalid ISO string ("…T11:60:00" -> Invalid Date),
+// which threw in toISOString() at both send and share-link open. Clamp to the
+// valid 00:00–23:59 range so a slider edge can never emit 24:00 either.
+function _hhmmFromHour(h) {
+  const total = Math.min(24 * 60 - 1, Math.max(0, Math.round(h * 60)));
+  return [
+    String(Math.floor(total / 60)).padStart(2, '0'),
+    String(total % 60).padStart(2, '0'),
+  ];
+}
+
 async function _sendInvite(venueId) {
   const { d, h } = _getInviteDateTime();
-  const hInt = Math.floor(h);
-  const mInt = Math.round((h - hInt) * 60);
-  const isoTime = new Date(`${d}T${String(hInt).padStart(2,'0')}:${String(mInt).padStart(2,'0')}:00`).toISOString();
+  const [hh, mm] = _hhmmFromHour(h);
+  const isoTime = new Date(`${d}T${hh}:${mm}:00`).toISOString();
 
   const selectedIds = Array.from(
     document.querySelectorAll('#invite-sheet .dpinvite-avatar[aria-checked="true"]')
@@ -2584,9 +2596,8 @@ function _prepareInvitePayload(venueId, overrides = {}) {
     }
   }
   if (d == null) ({ d, h } = _getInviteDateTime());
-  const hInt = Math.floor(h);
-  const mInt = Math.round((h - hInt) * 60);
-  const timeVal = `${d}T${String(hInt).padStart(2,'0')}:${String(mInt).padStart(2,'0')}`;
+  const [hh, mm] = _hhmmFromHour(h);
+  const timeVal = `${d}T${hh}:${mm}`;
   const user = typeof authCurrentUser === 'function' ? authCurrentUser() : null;
   if (!user) return null;
 
