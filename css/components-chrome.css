@@ -148,11 +148,13 @@
     gap: 6px;
     padding: 4px;
     border-radius: 23px;
-    background: var(--glass-panel-bg);
-    backdrop-filter: var(--glass-blur-panel);
-    -webkit-backdrop-filter: var(--glass-blur-panel);
-    border: var(--glass-border);
-    box-shadow: var(--panel-shadow);
+    /* Chrome surface (DESIGN.md Phase 2.1): Jordy 25% wash + 4px frost +
+       light hairline + flat shadow-1. Was the transparent --glass-panel-bg. */
+    background: var(--surface-chrome);
+    backdrop-filter: var(--blur-surface);
+    -webkit-backdrop-filter: var(--blur-surface);
+    border: 1px solid var(--line-l);
+    box-shadow: var(--shadow-1);
     container-type: inline-size;
     container-name: topstrip;
     /* Slide-up animation — when a takeover state (plan-preview, post-

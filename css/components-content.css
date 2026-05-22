@@ -148,7 +148,15 @@
        inspector is ~340 px). Top-strip aligns to this same column. */
     width: 380px;
     border-radius: 16px;
-    box-shadow: var(--panel-shadow);
+    /* Chrome surface (DESIGN.md Phase 2.1) — overrides the shared .glass-panel
+       class (id > class) so only #panel migrates, not other .glass-panel users.
+       Jordy 25% wash + 4px frost + light hairline + flat shadow-1. The mobile
+       bottom-sheet rule below keeps only the top border (l/r/b: none). */
+    background: var(--surface-chrome);
+    backdrop-filter: var(--blur-surface);
+    -webkit-backdrop-filter: var(--blur-surface);
+    border: 1px solid var(--line-l);
+    box-shadow: var(--shadow-1);
     display: flex;
     flex-direction: column;
     /* overflow:visible so the FTS scrub popup can extend above the
