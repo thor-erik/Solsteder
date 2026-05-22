@@ -2381,7 +2381,7 @@
     width: 110px;
     height: 96px;
     border-radius: var(--radius-md);
-    color: var(--text);
+    color: var(--panel-text);
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -2389,14 +2389,16 @@
     padding: 12px;
     cursor: pointer;
     font-family: 'Inter', sans-serif;
-    /* Secondary (Tier-3 glass) by default — same recipe as .s-rnd /
-       .dp-directions, which read clearly on the dark detail sheet. The
-       leading card overrides to honey via .dpacc-action-primary. Before
-       this the tiles were transparent/border:none, so the non-leading
-       actions had no surface at all and read as disabled (DESIGN-FIXES). */
-    border: var(--glass-border);
-    background: var(--glass-action-bg);
-    box-shadow: var(--glass-inset), 0 2px 8px rgba(0,0,0,0.35);
+    /* Secondary by default. The accepted panel is a LIGHT sheet, so use the
+       on-light secondary recipe (.on-light .s-rnd): transparent fill +
+       strong Delft outline + ink text, so the tile reads as a crisp
+       tappable silhouette with high-contrast dark text. The leading card
+       overrides to honey via .dpacc-action-primary. Before this the tiles
+       were transparent/border:none (no surface → looked disabled); a brief
+       dark-glass attempt muddied them with cream text on the light panel. */
+    border: 1px solid var(--line-l-strong);
+    background: transparent;
+    box-shadow: none;
     transition: transform 0.05s;
   }
   .dpacc-action-card:active { transform: scale(0.99); }
@@ -2457,10 +2459,10 @@
   .dpacc-action-icon {
     width: 30px; height: 30px;
     border-radius: var(--radius-sm);
-    background: rgba(156,189,231,0.10);
-    border: 1px solid rgba(156,189,231,0.16);
+    background: var(--line-l-faint);
+    border: 1px solid var(--line-l);
     display: flex; align-items: center; justify-content: center;
-    color: var(--muted);
+    color: var(--ink-muted);
   }
   .dpacc-action-primary .dpacc-action-icon {
     background: rgba(42,26,12,0.22);
@@ -2480,7 +2482,7 @@
   .dpacc-action-sub {
     font-size: 11px;
     font-weight: 500;
-    color: var(--muted);
+    color: var(--ink-muted);
     margin-top: 2px;
     font-variant-numeric: tabular-nums;
     overflow: hidden;
