@@ -2389,8 +2389,14 @@
     padding: 12px;
     cursor: pointer;
     font-family: 'Inter', sans-serif;
-    border: none;
-    background: transparent;
+    /* Secondary (Tier-3 glass) by default — same recipe as .s-rnd /
+       .dp-directions, which read clearly on the dark detail sheet. The
+       leading card overrides to honey via .dpacc-action-primary. Before
+       this the tiles were transparent/border:none, so the non-leading
+       actions had no surface at all and read as disabled (DESIGN-FIXES). */
+    border: var(--glass-border);
+    background: var(--glass-action-bg);
+    box-shadow: var(--glass-inset), 0 2px 8px rgba(0,0,0,0.35);
     transition: transform 0.05s;
   }
   .dpacc-action-card:active { transform: scale(0.99); }
@@ -2437,12 +2443,14 @@
      friend-card commit uses Web Animations API directly so it
      doesn't override these CSS transitions. */
   .dpacc-action-card {
-    transition: background 0.34s ease, color 0.34s ease, transform 0.05s;
+    transition: background 0.34s ease, color 0.34s ease, border-color 0.34s ease, transform 0.05s;
   }
-  /* Primary tile — solid accent, accent-on text */
+  /* Primary tile — solid accent, accent-on text. Drop the glass border so
+     the honey block reads clean (the base border is for the glass tiles). */
   .dpacc-action-primary {
     background: var(--accent);
     color: var(--accent-on, #2a1a0c);
+    border-color: transparent;
     box-shadow: 0 2px 8px rgba(0,0,0,0.35);
   }
   .dpacc-action-primary:hover { background: var(--accent-hover); }
