@@ -97,7 +97,7 @@ What components consume. Updating these is how brand work happens.
 
 **Flat-modern surfaces.** Solid tints + blur — never gradient fills; the glossy inset sheen, mirror-sky and chromatic overlays are retired; motion (tilt/spotlight/ripple) unchanged.
 
-**Borders are the silhouette.** Every surface and control takes its edge from a `--line-*` token, never a raw rgba. Colour mirrors the world so the edge actually reads: **Jordy on dark surfaces, Delft Blue on light.** Strengths step faint (divider) → standard (surface edge) → strong (control silhouette). The surface control is intentionally near-fill-less (`--surface-control` ≈ 1%) and defined by `--line-l-strong` — an **outline chip**; selected/active swaps to a honey-dim fill + `--accent-border`.
+**Borders are the silhouette.** Every surface and control takes its edge from a `--line-*` token, never a raw rgba. Colour mirrors the world so the edge actually reads: **Jordy on dark surfaces, Delft Blue on light.** Strengths step faint (divider) → standard (surface edge) → strong (control silhouette). The surface control is intentionally near-fill-less (`--surface-control` ≈ 1%) and defined by `--line-l-strong` — an **outline chip**; selected/active fills **Delft Blue (`--surface-content`) with cream text** (the "controls step to Delft Blue" rule — keeps honey for the sun signal + CTA only; honey-dim selected tested poorly on device).
 
 **Code follow-up:** these supersede `--glass-panel-bg` / `--glass-card-bg` / `--glass-action-bg` and the `--glass-blur-*` set. Repoint components to the `--surface-*` / `--blur-*` / `--shadow-*` / `--line-*` tokens in `:root`, and teach `validate-tokens.mjs` to flag raw alphas, `blur()`, and border rgba.
 
@@ -183,13 +183,13 @@ Plain-language terms (used throughout this doc) mapped to what they are on scree
 | **Sheet** (slides up, drag-handle) | Venue detail, RSVP "Du er invitert til", Share, "Velg dato" | Jordy `#9CBDE7` · 25% | 4px | `--line-l` | `--shadow-2` · ink |
 | **Modal** (full-screen takeover) | Sign-in, friends popup | Delft Blue `#111E38` · 90% | 4px | — | `--shadow-3` + scrim · cream |
 | **Content card / tile** | Venue cards, "Sun until 17:05" block | Delft Blue `#111E38` · 90% | none | `--line-d` | `--shadow-1` · cream |
-| **Surface control** | Filter chips, +min nudges, sort + locate | Jordy · ~1% (outline) | 2px | `--line-l-strong` | — · ink · *selected → honey-dim + `--accent-border`* |
+| **Surface control** | Filter chips, +min nudges, sort + locate | Jordy · ~1% (outline) | 2px | `--line-l-strong` | — · ink · *selected → Delft fill (`--surface-content`) + cream text* |
 | **Raised / dropdown** | Sort menu over the list | Cream `#FFF2EB` · 100% | none | `--line-l` | `--shadow-2` · ink |
 | **Scrim** | Dimming behind a modal/sheet | Delft Blue · 55% | none | — | — |
 | **Honey CTA** | Jeg blir med, Invite friends here, Share link | Honey `#F5C25E` · 100% | none | — | `--shadow-1` · `--accent-on` |
 | **Honey badge** | "+1h 35m" pill, score badge | Honey · 16% (`--accent-dim`) | none | `--accent-border` | — · honey |
 
-**Colour is role-assigned, not a knob.** Only opacity / blur / shadow were dialed; colour is fixed per surface. **Three surface colours, no fourth:** Jordy Blue for light chrome (chrome panel, sheet — also reads as a tinted sunglasses lens), Delft Blue for dark focus surfaces (content card, modal — cream text), Cream for opaque popovers (dropdowns). Text is **ink on light, cream on dark** (secondary at `0.78`). Accent is honey, once per screen; the one colour *state* is **selected/active = honey-dim** (`--accent-dim` + `--accent-border` + `--accent-on` ink text — honey-on-honey-dim tested too low-contrast on device). Status colours come from the status scale.
+**Colour is role-assigned, not a knob.** Only opacity / blur / shadow were dialed; colour is fixed per surface. **Three surface colours, no fourth:** Jordy Blue for light chrome (chrome panel, sheet — also reads as a tinted sunglasses lens), Delft Blue for dark focus surfaces (content card, modal — cream text), Cream for opaque popovers (dropdowns). Text is **ink on light, cream on dark** (secondary at `0.78`). Accent is honey, once per screen; the one colour *state* is **selected/active = Delft-blue fill** (`--surface-content` + cream `--text`) — controls step to Delft Blue when active, so honey stays reserved for the sun signal + CTA. Status colours come from the status scale.
 
 **Shadow is the third elevation knob.** Flat-modern lifts surfaces with a solid drop shadow (principle 6), on a scale that tracks elevation: `--shadow-1` resting (chrome panel, card), `--shadow-2` raised (sheet, dropdown), `--shadow-3` pop (modal). A raised layer always casts a stronger shadow than what it covers. Bottom-anchored chrome panels cast their shadow **upward** onto the map. No inset sheens (retired).
 
@@ -238,12 +238,12 @@ One state model, applied to every interactive component — no per-flow variants
 | Default | outline: `--surface-control` (~1%) + `--line-l-strong`, ink text | per role (honey CTA / glass secondary / ghost tertiary) |
 | Hover (desktop) | border darkens + faint fill | brightness up |
 | Pressed | scale 0.97 + fill flash (+ haptic on mobile) | scale 0.97 (+ haptic) |
-| **Selected / active** | **honey-dim fill + `--accent-border` + `--accent-on` ink text** | — |
+| **Selected / active** | **Delft-blue fill (`--surface-content`) + cream `--text`** | — |
 | Focus | 2px focus ring (keyboard / switch-control) | 2px focus ring |
 | Disabled | `--o-disabled` (0.40), no pointer events | `--o-disabled`, no pointer |
 | Loading | — | spinner + disabled |
 
-The fix for the filters is the **outline-default → honey-dim-selected** pattern: every unselected chip is a clean outline (silhouette from `--line-l-strong`), every selected one fills honey-dim. Consistent silhouette, unmistakable selection.
+The fix for the filters is the **outline-default → Delft-fill-selected** pattern: every unselected chip is a clean outline (silhouette from `--line-l-strong`), every selected one fills solid Delft Blue with cream text. Consistent silhouette, unmistakable selection — and no second accent.
 
 ### Backgrounds: steps, not new hues
 

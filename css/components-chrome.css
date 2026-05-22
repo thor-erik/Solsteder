@@ -551,7 +551,7 @@
     -webkit-tap-highlight-color: transparent;
     transform-origin: center;
     transition: background 120ms, border-color 120ms, color 120ms,
-                transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+                transform 0.1s ease-out;
     will-change: transform;
   }
   /* Hover scoped to pointer-fine devices — prevents sticky :hover state
@@ -561,12 +561,12 @@
     .panel-filter-pill:hover { background: var(--line-l-faint); }
   }
   .panel-filter-pill.active {
-    /* Honey-dim signal fill, but INK text (--accent-on), not honey text —
-       honey-on-honey-dim tested too low-contrast on device. Keeps the chip a
-       "signal" (not the solid honey CTA) while staying legible. */
-    background: var(--accent-dim);
-    border-color: var(--accent-border);
-    color: var(--accent-on);
+    /* Selected = solid Delft-blue chip + cream text — inverts from the light
+       outline (DESIGN.md "controls step to Delft Blue"). Reserves honey for the
+       sun signal + the one CTA. Honey-dim selected tested poorly on device. */
+    background: var(--surface-content);
+    border-color: transparent;
+    color: var(--text);
   }
   /* Tactile press feedback that works on touch (the lens-fx tilt is barely
      visible under a finger). Quick scale-down then snap back. */
