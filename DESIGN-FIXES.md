@@ -4,6 +4,33 @@ Running punch-list from the design-system review (started 2026-05-21). Living do
 
 Tags: `[BUG]` broken/incorrect · `[CONSISTENCY]` works but inconsistent · `[DESIGN]` judgment/opinion · `[EXTERNAL]` outside this repo · `[DOC ✓]` already fixed in DESIGN.md, code still pending.
 
+## Implementation plan (phased)
+
+For the code pass. Each phase = its own branch + Cloudflare preview, **landed and verified before the next**. Nearly all CSS is in one file (`index.html`'s `<style>`), so CSS work is **single-writer / sequential** — only separate-file work can run concurrently (emoji→SVG in the JS files, the locale fix, `validate-tokens.mjs`). DESIGN.md token values are canonical — use them exactly.
+
+**Phase −1 — Split the CSS** *(optional but recommended — pure mechanical, ZERO visual change; do it first or skip, never interleaved with migration).* Rationale: a 416KB single file is hard for an agent to edit precisely (burns context, mis-targets similar rules) and blocks parallelism; smaller files = surgical edits + isolated token source. Keep the split **coarse**:
+  - `css/tokens.css` — the whole token layer (minimum viable; do at least this).
+  - `css/base.css` — reset, body, map/canvas base.
+  - `css/components-*.css` — a handful by area (panels/sheets, cards, controls, detail…). Don't fragment into dozens.
+  - Keep a **small critical above-the-fold block inline** in `<head>` to preserve fast first paint (no FOUC).
+  - Pipeline touch-points (all required, or it ships broken / stale on iOS):
+    1. `index.html`: inline `<style>` → `<link rel="stylesheet" href="css/x.css?v=…">`.
+    2. A `?v=` cache-bust string per CSS file, bumped on every edit.
+    3. `sw.js`: add the CSS files to the pre-cache list + bump `CACHE_VERSION`.
+    4. `package.json` build cp-list: add `css/` so Capacitor's `www/` gets it (`cap-sync-check` guards it).
+    5. `_headers`: extend the long-immutable cache rule from `/js/*` to `/css/*`.
+  - Verify: byte-identical rendering before/after. Change no values here.
+
+**Phase 0 — Tokens into `:root`** (or `css/tokens.css` if split). Add every token from DESIGN.md (Surface system, Typography, Radius, Spacing). No migration, zero visual change.
+
+**Phase 1 — `validate-tokens.mjs`.** Extend to flag raw hex, rgba alphas, `blur()`, `font-size`, `border-radius`, `padding`/`gap`/`margin`. Makes migration enforceable.
+
+**Phase 2 — Migrate literals → tokens**, one category per phase (colour → opacity/blur → radius → spacing → type). App must look identical after each.
+
+**Phase 3 — Components, flow by flow.** Per-flow classes (`dprcv-*` / `dpacc-*` / `fts-*` / `dp-action-*`) → the 4 button roles + component-state matrix + surface recipe + outline chips. User-facing — preview each flow separately.
+
+**Phase 4 — Bugs.** Locale leak, login contrast, emoji→SVG, pair every `backdrop-filter` with `-webkit-`.
+
 ## High priority
 
 - [ ] `[BUG]` **Locale leaks across render paths.** Pre-login the UI is English; after sign-in the profile locale only re-renders *some* surfaces. Map pins, invite flow, and the time formatter go Norwegian while the list and detail panel stay English — the hour unit flips (`4h 10m` vs `4t 10m` vs `8t 40m`) between surfaces, sometimes in one string (`4t 10m left`). Fix: on `SIGNED_IN`, re-read locale on every render path — list (`ui-list.js`), detail (`ui-detail.js`), pins (`render-pins.js`), and the hour formatter. Confirm intended post-login default for a `no` profile.
