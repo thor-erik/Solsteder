@@ -173,6 +173,76 @@
     --cool: #B5BCC8;
     --rain: #6F8AA8;
 
+    /* ── DESIGN.md surface system + scales (final · 2026-05-21) ───────────────
+       Added in Phase 0 of the design-system overhaul. ADD-ONLY: NOTHING
+       consumes these yet — components are repointed surface-by-surface in
+       Phase 2, so this block is a zero-visual-change addition. Values are the
+       locked DESIGN.md spec — do NOT dial them here. The legacy --glass-*,
+       --space-1..12, --text-xs..3xl, --content-*, --ctl-*, --glassctl-* and
+       --radius-lg(16px) tokens stay until their consumers migrate away.
+       (--radius-lg becomes 20px in the Phase 2 radius pass; left at 16 here so
+       its current consumers don't shift.) */
+
+    /* Surface fills — one per surface; colour is role-assigned, never dialed. */
+    --surface-chrome:  rgba(156,189,231,0.25);  /* Jordy 25% — chrome panel */
+    --surface-sheet:   rgba(156,189,231,0.25);  /* Jordy 25% — sheet (raised by shadow) */
+    --surface-content: rgba(17,30,56,0.90);     /* Delft Blue 90% — content card */
+    --surface-modal:   rgba(17,30,56,0.90);     /* Delft Blue 90% — modal, cream text */
+    --surface-raised:  #FFF2EB;                  /* Cream, opaque — dropdown / popover */
+    --surface-control: rgba(156,189,231,0.01);  /* Jordy ~1% — outline-defined chip */
+    --scrim:           rgba(17,30,56,0.55);      /* Delft Blue 55% — behind modals/sheets */
+
+    /* Blur — small, subtle frost. */
+    --blur-control: blur(2px);
+    --blur-surface: blur(4px);
+
+    /* Shadow — flat lift; strength tracks elevation. */
+    --shadow-1: 0 1px 2px rgba(0,0,0,0.18), 0 4px 14px rgba(0,0,0,0.30);  /* resting: chrome panel, card */
+    --shadow-2: 0 8px 28px rgba(0,0,0,0.40);                              /* raised: sheet, dropdown */
+    --shadow-3: 0 16px 48px rgba(0,0,0,0.50);                             /* pop: modal */
+
+    /* Borders — Jordy on DARK surfaces, Delft Blue on LIGHT; compose `1px solid var(--line-*)`. */
+    --line-d-faint:  rgba(156,189,231,0.08);   /* divider on dark */
+    --line-d:        rgba(156,189,231,0.18);   /* edge on dark (content card, modal) */
+    --line-d-strong: rgba(156,189,231,0.30);
+    --line-l-faint:  rgba(17,30,56,0.08);      /* divider on light */
+    --line-l:        rgba(17,30,56,0.18);      /* edge on light (chrome, sheet, dropdown) */
+    --line-l-strong: rgba(17,30,56,0.30);      /* control silhouette — outline chip on chrome */
+
+    /* Element-opacity states (applied to the whole element). */
+    --o-disabled:       0.40;
+    --o-muted:          0.55;
+    --o-secondary-text: 0.78;   /* cream secondary text */
+
+    /* Radius — DESIGN.md set. --radius-sm/md/pill already match above; only
+       --radius-none is genuinely new. --radius-lg stays 16 here (→ 20 in Phase 2). */
+    --radius-none: 0;
+
+    /* Spacing — 4px base + 2px/6px fine sub-steps. New names; replaces the old
+       --space-1..12 (which omitted 2/6) once consumers migrate. */
+    --space-2xs: 2px;
+    --space-xs:  4px;
+    --space-sm:  6px;
+    --space-md:  8px;
+    --space-lg:  12px;
+    --space-xl:  16px;
+    --space-2xl: 24px;
+    --space-3xl: 32px;
+    --space-4xl: 48px;
+
+    /* Type — six roles (Inter). DESIGN.md specifies the role VALUES (size /
+       weight / tracking) but not variable names; these role-based names are a
+       Phase 0 proposal, wired in the Phase 2 type pass (rename then if desired).
+       Inputs 16px (prevents iOS auto-zoom). Tabular figures are applied per
+       element via `font-variant-numeric: tabular-nums`, not a custom property. */
+    --text-display:  28px;  --fw-display:  900;  --tracking-display: -0.03em;
+    --text-title:    22px;  --fw-title:    700;  --tracking-title:   -0.01em;
+    --text-subtitle: 18px;  --fw-subtitle: 600;  /* tracking: normal */
+    --text-body:     15px;  --fw-body:     400;  /* tracking: normal */
+    --text-label:    13px;  --fw-label:    500;  /* tracking: normal */
+    --text-caption:  11px;  --fw-caption:  400;  /* tracking: normal */
+    --text-input:    16px;
+
     /* ────────────────────────────────────────────────────────────────────
        VIEWPORT + SAFE-AREA TOKENS — read this before adding any panel
        ────────────────────────────────────────────────────────────────────
