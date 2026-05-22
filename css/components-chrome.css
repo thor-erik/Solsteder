@@ -534,12 +534,14 @@
     height: 32px;
     padding: 0 12px;
     border-radius: 16px;
-    background: var(--glassctl-bg);
-    backdrop-filter: blur(3px);
-    -webkit-backdrop-filter: blur(3px);
-    border: var(--glassctl-border);
-    box-shadow: var(--glassctl-raise);
-    color: var(--glassctl-icon);
+    /* Outline chip (DESIGN.md Phase 2.3): near-fill-less surface + dark
+       silhouette + ink text; selected → honey-dim (below). Was a cream
+       --glassctl frosted bubble. No shadow — outline chips read by edge. */
+    background: var(--surface-control);
+    backdrop-filter: var(--blur-control);
+    -webkit-backdrop-filter: var(--blur-control);
+    border: 1px solid var(--line-l-strong);
+    color: var(--panel-text);
     font: 500 12px/1 'Inter', sans-serif;
     cursor: pointer;
     white-space: nowrap;
@@ -556,12 +558,12 @@
      on iOS Safari that otherwise leaves the accent color + border on a
      pill after a tap. */
   @media (hover: hover) and (pointer: fine) {
-    .panel-filter-pill:hover { background: var(--glassctl-bg-hover); }
+    .panel-filter-pill:hover { background: var(--line-l-faint); }
   }
   .panel-filter-pill.active {
-    background: rgba(245,194,94,0.32);
-    border-color: rgba(245,194,94,0.55);
-    color: var(--accent-on);
+    background: var(--accent-dim);
+    border-color: var(--accent-border);
+    color: var(--accent);
   }
   /* Tactile press feedback that works on touch (the lens-fx tilt is barely
      visible under a finger). Quick scale-down then snap back. */
@@ -587,12 +589,12 @@
     flex-shrink: 0;
     width: 32px; height: 32px;
     border-radius: 50%;
-    background: var(--glassctl-bg);
-    backdrop-filter: blur(3px);
-    -webkit-backdrop-filter: blur(3px);
-    border: var(--glassctl-border);
-    box-shadow: var(--glassctl-raise);
-    color: var(--glassctl-icon);
+    /* Outline control (DESIGN.md Phase 2.3) — matches the filter chips. */
+    background: var(--surface-control);
+    backdrop-filter: var(--blur-control);
+    -webkit-backdrop-filter: var(--blur-control);
+    border: 1px solid var(--line-l-strong);
+    color: var(--panel-text);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -601,8 +603,8 @@
     -webkit-tap-highlight-color: transparent;
     transition: color 120ms, background 120ms, box-shadow 120ms;
   }
-  #panel-actions-sort:hover  { background: var(--glassctl-bg-hover); }
-  #panel-actions-sort:active { background: var(--glassctl-bg-hover); box-shadow: var(--glassctl-press); }
+  #panel-actions-sort:hover  { background: var(--line-l-faint); }
+  #panel-actions-sort:active { background: var(--line-l-faint); transform: scale(0.94); }
 
   /* ── Cold-link friend-invite welcome card ──────────────────────────────── */
   .friend-invite-welcome {
