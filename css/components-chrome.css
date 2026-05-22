@@ -711,13 +711,13 @@
     width: 380px;
     z-index: 1050;
     border-radius: 14px;
-    box-shadow: 0 8px 32px rgba(17,30,56,0.18);
+    box-shadow: var(--shadow-2);
+    border: 1px solid var(--line-l);
     overflow: hidden;
     display: none;
-    /* Content surface — cream frosted (Surface C). */
-    background: var(--content-bg) !important;
-    backdrop-filter: var(--content-blur);
-    -webkit-backdrop-filter: var(--content-blur);
+    /* Raised dropdown (DESIGN.md Phase 2.5): OPAQUE cream — fixes bleed-through
+       (was --content-bg 80%). No backdrop on an opaque surface. Ink text (base.css). */
+    background: var(--surface-raised) !important;
   }
 
   /* Bell dropdown — full-width below the top strip. Same legibility
@@ -734,14 +734,14 @@
     max-height: min(420px, calc(var(--app-h, 100svh) - var(--peek-h, 160px) - 80px));
     z-index: 1050;
     border-radius: 14px;
-    box-shadow: 0 8px 32px rgba(17,30,56,0.18);
+    box-shadow: var(--shadow-2);
+    border: 1px solid var(--line-l);
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     display: none;
-    background: var(--content-bg) !important;
-    backdrop-filter: var(--content-blur);
-    -webkit-backdrop-filter: var(--content-blur);
+    /* Raised dropdown (DESIGN.md Phase 2.5): OPAQUE cream — fixes bleed-through. */
+    background: var(--surface-raised) !important;
   }
   #bell-dropdown.open {
     display: block;
