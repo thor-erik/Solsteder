@@ -11,3 +11,5 @@ capacitor-cordova-ios-plugins
 # Generated Config files
 App/App/capacitor.config.json
 App/App/config.xml
+# Catch macOS duplicate variants (e.g. "config 2.xml") so a wildcard add can't track them
+App/App/config*.xml
