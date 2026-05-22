@@ -1912,7 +1912,10 @@
     justify-content: center;
     line-height: 1;
   }
-  #top-strip .ts-wx-icon .wx-sky-icon         { width: 17px; height: 17px; }
+  /* Top bar is now a light chrome surface (Phase 2.1), so its weather glyph
+     must be ink — not the cream/white .wx-sky-icon default, which is correct
+     only on the dark FTS/timeline surfaces. Scoped here so those stay cream. */
+  #top-strip .ts-wx-icon .wx-sky-icon         { width: 17px; height: 17px; color: var(--panel-text); filter: none; }
   #header-wx-chip #header-wx-icon .wx-sky-icon { width: 14px; height: 14px; }
   #date-wx-strip .wx-sky-icon                  { width: 13px; height: 13px; }
   /* Custom date calendar dropdown */
