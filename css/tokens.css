@@ -34,6 +34,9 @@
     --red-500:   #FF6B6B;
     --red-600:   #DC2626;
     --red-900:   #7F1D1D;
+    /* Semantic destructive role (DESIGN.md → Button roles). --red-600 reads
+       on light surfaces; add a dark-surface variant if a dark flow needs it. */
+    --color-error: var(--red-600);
 
     /* Weather palette — three sun bands (yellow gradient) + one cool grey
        overcast + rain + night. Aligned with Slate + Honey: clear sun =

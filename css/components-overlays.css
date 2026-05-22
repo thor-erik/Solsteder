@@ -1513,10 +1513,16 @@
     -webkit-overflow-scrolling: touch;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     background: var(--glass-panel-bg);
-    backdrop-filter: blur(22px) brightness(0.92);
-    -webkit-backdrop-filter: blur(22px) brightness(0.92);
+    /* Light frosted receive page (first impression) — was cream text on a
+       brightness(0.92)-dimmed frost, which read dark. Drop the dim + flip the
+       base text to ink so it reads light like the accept panel (.dpacc-panel).
+       Most child text already uses --panel-text / --ink-muted (ink); only this
+       base fallback colour was cream. */
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+    border-top: var(--glass-border);
     box-shadow: var(--sheet-shadow);
-    color: var(--text);
+    color: var(--panel-text);
     /* Match #panel.mobile-hidden's slide-down feel: cubic-bezier(0.32,
        0.72, 0, 1) for a smoother ease-out, +20 px extra throw past the
        viewport edge so the perceptible motion finishes before the
@@ -2014,7 +2020,10 @@
     background: rgba(17,30,56,0.06);
   }
   .dprcv-cta-link:active { transform: scale(0.97); }
-  .dprcv-cta-link.is-decline:hover { color: var(--panel-text); }
+  /* Decline = destructive role (DESIGN.md). Red text, separated from the
+     honey primary; keeps the shared faint hover background. */
+  .dprcv-cta-link.is-decline { color: var(--color-error); }
+  .dprcv-cta-link.is-decline:hover { color: var(--color-error); }
   .dprcv-cta-sep {
     color: var(--ink-muted);
     opacity: 0.4;
