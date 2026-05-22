@@ -1291,7 +1291,10 @@
   body.dp-fullscreen-active #top-strip,
   body.panel-fullscreen-active #floating-brand,
   body.dp-fullscreen-active #floating-brand {
-    opacity: 0;
+    /* !important beats the inline opacity:1 the intro reveal (_slideIn) leaves
+       on #top-strip — without it the fade never applied and the bar stayed
+       visible over the fullscreen panel. Transitions via the base 0.22s. */
+    opacity: 0 !important;
     pointer-events: none;
   }
   #top-strip .ts-left, #top-strip .ts-right {
