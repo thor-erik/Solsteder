@@ -1,3 +1,12 @@
+> # ⚠ SUPERSEDED — HISTORICAL ONLY
+> **Do not use this document for visual or feature decisions.**
+> It is written against the *old* visual language (Slate-42%, mirror-sky, chromatic,
+> sheen, coral/peach weather palette `#FFAF85`) — all retired in the flat-modern pass.
+> - Current visual source of truth: **`DESIGN.md`**
+> - Current execution plan: **`REMAINING-WORK.md`** (Phase 5+) and **`DESIGN-FIXES.md`** (issue tracker)
+> The only still-useful content below is the surface inventory, already de-staled into
+> the appendix of `REMAINING-WORK.md`. Kept for reference; not maintained.
+
 # Solsteder · Redesign Audit & Plan
 
 Generated against the new design system (`DESIGN.md` · `system.html`). Each surface is scored against:

@@ -1,3 +1,12 @@
+> # ⚠ SUPERSEDED — HISTORICAL ONLY
+> **Do not use this document for visual or feature decisions.**
+> The feature decisions below (saved venues, inbox/varsler, plan management, wind-shelter
+> row) are largely **already shipped** — `favorites`, `notifications`, `plans`,
+> `plan_invites` all exist per `CLAUDE.md`. The IA assessment reflects an earlier app state.
+> - Current visual source of truth: **`DESIGN.md`**
+> - Current execution plan: **`REMAINING-WORK.md`** (Phase 5+) and **`DESIGN-FIXES.md`** (issue tracker)
+> Kept for reference; not maintained.
+
 # Solsteder · Information Architecture Review
 
 A strategic look at what screens/features exist, their value, and what should change before the polish pass. Companion to `redesign-plan.md`. Polish work for any surface flagged here is gated on the IA decisions below.
