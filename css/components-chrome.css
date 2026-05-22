@@ -1152,6 +1152,11 @@
     height: var(--app-h, 100svh);
     max-height: var(--app-h, 100svh);
     border-radius: 0;
+    /* Modal surface (DESIGN.md Phase 2.5 + login-contrast bug fix): Delft 90%,
+       overriding the base panel's cream --content-bg. The login copy is cream
+       (--text) — on the old cream panel it was invisible; on Delft it reads.
+       Scoped to .logged-out so the logged-in settings panel stays cream/ink. */
+    background: var(--surface-modal);
     z-index: 9999;            /* above notifications (9998) */
     transform: translateX(0);
     opacity: 0;

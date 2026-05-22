@@ -2684,7 +2684,7 @@
     position: fixed;
     inset: 0;
     z-index: 2000;
-    background: rgba(0,0,0,0.5);
+    background: var(--scrim);
     display: none;
     align-items: center;
     justify-content: center;
@@ -2698,10 +2698,14 @@
     overflow-y: auto;
     padding: 20px;
     border-radius: 16px;
-    background: var(--glass-panel-bg, rgba(17,30,56,0.95));
-    border: 1px solid var(--border);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    /* Modal surface (DESIGN.md Phase 2.5): Delft 90% + dark hairline + pop
+       shadow-3, over the --scrim overlay. Was transparent --glass-panel-bg +
+       raw blur(20px). Cream text. */
+    background: var(--surface-modal);
+    border: 1px solid var(--line-d);
+    box-shadow: var(--shadow-3);
+    backdrop-filter: var(--blur-surface);
+    -webkit-backdrop-filter: var(--blur-surface);
   }
   .friends-modal-header {
     display: flex;
