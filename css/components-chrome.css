@@ -8,7 +8,7 @@
     height: 46px;
     box-sizing: border-box;
     padding: 0 6px 0 14px; /* tighter on the right so the avatar tucks in */
-    border-radius: 23px;   /* true pill — half of 46px height */
+    border-radius: var(--radius-pill);   /* true pill — half of 46px height */
     display: flex;
     align-items: center;
     gap: 8px;
@@ -147,7 +147,7 @@
     align-items: center;
     gap: 6px;
     padding: 4px;
-    border-radius: 23px;
+    border-radius: var(--radius-pill);
     /* Chrome surface (DESIGN.md Phase 2.1): Jordy 25% wash + 4px frost +
        light hairline + flat shadow-1. Was the transparent --glass-panel-bg. */
     background: var(--surface-chrome);
@@ -285,7 +285,7 @@
     font-weight: 600;
     padding: 6px 11px;
     margin: 0;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     cursor: pointer;
     background: var(--glassctl-bg);
     border: var(--glassctl-border);
@@ -380,7 +380,7 @@
     align-items: center;
     gap: 8px;
     padding: 0 6px 0 12px;
-    border-radius: 19px;
+    border-radius: var(--radius-lg);
     background: transparent;
     border: none;
     box-shadow: none;
@@ -535,7 +535,7 @@
     flex-shrink: 0;
     height: 32px;
     padding: 0 12px;
-    border-radius: 16px;
+    border-radius: var(--radius-lg);
     /* Outline chip (DESIGN.md Phase 2.3): near-fill-less surface + dark
        silhouette + ink text; selected → honey-dim (below). Was a cream
        --glassctl frosted bubble. No shadow — outline chips read by edge. */
@@ -631,7 +631,7 @@
   .fiw-card {
     width: min(360px, calc(100vw - 32px));
     padding: 28px 24px 20px;
-    border-radius: 20px;
+    border-radius: var(--radius-lg);
     text-align: center;
     transform: translateY(12px);
     transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
@@ -697,7 +697,7 @@
     font-weight: 500;
     color: var(--accent);
     white-space: nowrap;
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     transition: opacity 200ms ease-out;
   }
   #zoom-debug.hidden {
@@ -712,7 +712,7 @@
     left: 16px;
     width: 380px;
     z-index: 1050;
-    border-radius: 14px;
+    border-radius: var(--radius-md);
     box-shadow: var(--shadow-2);
     border: 1px solid var(--line-l);
     overflow: hidden;
@@ -735,7 +735,7 @@
        420px AND at the gap between the dropdown top and the peek panel top. */
     max-height: min(420px, calc(var(--app-h, 100svh) - var(--peek-h, 160px) - 80px));
     z-index: 1050;
-    border-radius: 14px;
+    border-radius: var(--radius-md);
     box-shadow: var(--shadow-2);
     border: 1px solid var(--line-l);
     overflow-y: auto;
@@ -892,7 +892,7 @@
     color: var(--text);
     font: 700 9px/1 'Inter', sans-serif;
     padding: 3px 5px;
-    border-radius: 9px;
+    border-radius: var(--radius-sm);
     border: 1.5px solid var(--panel);
     box-shadow: 0 0 0 1px rgba(155,169,188,0.30);
   }
@@ -929,7 +929,7 @@
     flex: 1 1 0;
     height: 32px;
     padding: 0 10px;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     border: none;
     cursor: pointer;
     font: 600 12px/1 'Inter', sans-serif;
@@ -1016,7 +1016,7 @@
     color: var(--panel-text);
     background: transparent;
     border: 1px solid var(--line-l-strong);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     padding: 4px 10px;
     cursor: pointer;
     font-family: 'Inter', sans-serif;
@@ -1048,7 +1048,7 @@
       transform: translateX(-50%) translateY(0);
     }
     #notif-toast {
-      border-radius: 16px;
+      border-radius: var(--radius-lg);
       margin-bottom: 0;
     }
     /* Move notification to very top during the accept / post-accept
@@ -1306,7 +1306,7 @@
     height: 46px;
     box-sizing: border-box;
     padding: 4px 14px;
-    border-radius: 23px;
+    border-radius: var(--radius-pill);
     background: var(--glass-panel-bg);
     backdrop-filter: var(--glass-blur-panel);
     -webkit-backdrop-filter: var(--glass-blur-panel);
@@ -1361,7 +1361,7 @@
   #fts-track {
     flex: 1 1 0; min-width: 0;
     height: 40px;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     overflow: visible;       /* let event icons + thumb glow extend beyond track */
     position: relative;
     cursor: ew-resize;
@@ -1627,7 +1627,7 @@
     backdrop-filter: var(--glass-blur-card);
     -webkit-backdrop-filter: var(--glass-blur-card);
     border: var(--glass-border);
-    border-radius: 10px;
+    border-radius: var(--radius-md);
     box-shadow:
       var(--glass-inset),
       0 6px 24px rgba(0,0,0,0.50);
@@ -1793,7 +1793,7 @@
   .fts-popup.fts-popup-expanded {
     padding: 10px 14px 9px;
     gap: 4px;
-    border-radius: 14px;
+    border-radius: var(--radius-md);
   }
   .fts-popup.fts-popup-expanded .fts-popup-time     { font-size: 20px; }
   .fts-popup.fts-popup-expanded .fts-popup-wx-icon svg { width: 20px; height: 20px; }
@@ -1848,7 +1848,7 @@
     backdrop-filter: var(--glass-blur-panel);
     -webkit-backdrop-filter: var(--glass-blur-panel);
     border: var(--glass-border);
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     padding: 6px 10px 8px;
   }
   #arc-date-nav {
@@ -1867,7 +1867,7 @@
     font-weight: 500;
     cursor: pointer;
     padding: 1px 6px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     transition: background 0.12s, color 0.12s;
     white-space: nowrap;
     min-width: 160px;
@@ -1944,7 +1944,7 @@
     backdrop-filter: var(--content-blur);
     -webkit-backdrop-filter: var(--content-blur);
     border: none;
-    border-radius: 14px;
+    border-radius: var(--radius-md);
     box-shadow: 0 8px 32px rgba(17,30,56,0.18);
     padding: 10px 8px 8px;
     display: none;
@@ -1966,7 +1966,7 @@
     align-items: center;
     gap: 1px;
     padding: 5px 2px 4px;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     border: var(--glass-border);
     background: var(--glass-card-bg);
     box-shadow: var(--glass-inset);
@@ -2034,7 +2034,7 @@
     width: 100%; margin-top: 7px; height: 44px; padding: 0 14px; box-sizing: border-box;
     background: var(--glass-action-bg);
     border: var(--glass-border);
-    border-radius: 12px; cursor: pointer;
+    border-radius: var(--radius-md); cursor: pointer;
     box-shadow: var(--glass-inset);
     font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
     color: var(--text);
@@ -2125,7 +2125,7 @@
     font-size: 11px;
     font-weight: 600;
     padding: 5px 10px;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     border: 1px solid transparent;
     letter-spacing: 0.02em;
   }
@@ -2141,7 +2141,7 @@
     display: inline-flex;
     align-items: center;
     gap: 3px;
-    border-radius: 4px;
+    border-radius: var(--radius-none);
     padding: 2px 7px;
     font-size: 11px;
     font-weight: 600;
@@ -2181,7 +2181,7 @@
   .day-nav-btn {
     background: rgba(156,189,231,0.12);
     border: 1px solid rgba(156,189,231,0.2);
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     color: var(--muted);
     font-family: 'Inter', sans-serif;
     font-size: 13px;
@@ -2210,7 +2210,7 @@
     background: var(--glass-panel-bg);
     border: 1px solid rgba(156,189,231,0.28);
     border-left: none;
-    border-radius: 0 10px 10px 0;
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
     color: rgba(156,189,231,0.55);
     font-size: 13px;
     cursor: pointer;
@@ -2238,7 +2238,7 @@
     font-weight: 600;
     letter-spacing: 0.04em;
     padding: 8px 18px;
-    border-radius: 20px;
+    border-radius: var(--radius-lg);
     pointer-events: none;
     opacity: 0;
     transition: opacity 0.3s ease, transform 0.3s ease;
@@ -2298,7 +2298,7 @@
     margin-bottom: 0;
     background: #111E38;
     border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 16px;  /* card-shape, matches venue cards / dp-cards */
+    border-radius: var(--radius-lg);  /* card-shape, matches venue cards / dp-cards */
     box-shadow: var(--panel-shadow);
     color: var(--text);
     font-family: 'Inter', sans-serif;
@@ -2350,7 +2350,7 @@
     height: 30px;
     padding: 0 14px;
     border: none;
-    border-radius: 999px;       /* full pill */
+    border-radius: var(--radius-pill);       /* full pill */
     background: var(--accent);  /* solid accent */
     color: var(--accent-on, #1a0e08);
     box-shadow: 0 2px 6px rgba(0,0,0,0.30);
@@ -2409,7 +2409,7 @@
     backdrop-filter: var(--glass-blur-panel);
     -webkit-backdrop-filter: var(--glass-blur-panel);
     border: var(--glass-border);
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     color: var(--text);
     box-shadow: var(--glass-inset), 0 8px 32px rgba(0,0,0,0.5);
     padding: 12px 16px;
@@ -2432,7 +2432,7 @@
   }
   .mapboxgl-popup-close-button:hover {
     background: rgba(255,255,255,0.08);
-    border-radius: 0 12px 0 0;
+    border-radius: 0 var(--radius-md) 0 0;
     color: var(--text);
   }
 
