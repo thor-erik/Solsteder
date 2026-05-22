@@ -4928,10 +4928,12 @@ document.addEventListener('DOMContentLoaded', () => {
           panelEl.classList.remove('mobile-expanded', 'mobile-fullscreen', 'mobile-hidden');
           requestAnimationFrame(_updatePeekHeight);
         }
-        // Set the top-bar-slide body class immediately here (the drag path that
-        // reaches fullscreen), AND a MutationObserver on #panel keeps it in sync
-        // for every other path (and reliably CLEARS it so it can't stick).
-        document.body.classList.toggle('panel-fullscreen-active', state === 'fullscreen');
+        // NOTE: body.panel-fullscreen-active is set by the MutationObserver on
+        // #panel (see _syncPanelFullscreenBodyClass), NOT here. Toggling it
+        // synchronously in this commit path snapped the top-bar opacity with no
+        // fade — the FLIP below forces a reflow (void offsetHeight) that flushed
+        // the opacity change instantly. The observer fires async (after the
+        // reflow), so the opacity change animates via the 0.22s transition.
         // Persist the last snap point so it restores next session. 'hidden'
         // AND 'fullscreen' are transient take-over states — don't persist them
         // (we never want to LAND on a map-covering panel at load), so the saved
