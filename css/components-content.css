@@ -4125,15 +4125,18 @@
     bottom: 16px;
     width: 380px;  /* match the venue-list panel width */
     border-radius: var(--radius-lg);
-    /* Sheet surface (DESIGN.md Phase 2.4): Jordy 25% + 4px frost + light
-       hairline + raised shadow-2 (a sheet sits over the map). Overrides the
-       shared .glass-panel class (id > class). Ink text is set in base.css; the
-       Delft content tiles inside keep their cream text. */
-    background: var(--surface-sheet);
-    backdrop-filter: var(--blur-surface);
-    -webkit-backdrop-filter: var(--blur-surface);
-    border: 1px solid var(--line-l);
+    /* EXPERIMENT (user): detail sheet as solid Delft Blue (was Jordy-25% light)
+       — fixes button/text visibility over the busy map, and the honey CTA gets
+       the dark surface it wants (principle 2). Dark surface ⇒ cream text: we
+       override --panel-text / --ink-muted on the panel so the shell's
+       ink-tinted text + icons flip to cream via the cascade (content cards
+       already use cream). Opaque ⇒ no blur. Controls inside use Jordy borders. */
+    background: var(--blue-950);   /* darker than the cards (#111E38) → figure-ground */
+    border: 1px solid var(--line-d);
     box-shadow: var(--shadow-2);
+    color: var(--text);
+    --panel-text: var(--text);
+    --ink-muted: var(--muted);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -4143,6 +4146,16 @@
     pointer-events: none;
     transition: transform 0.26s ease, opacity 0.26s ease, left 0.28s ease;
     contain: layout;
+  }
+  /* Content tiles must stand out from the darker (#0A1830) sheet — the card is
+     a key element. Solid Delft (#111E38, lighter than the sheet) + a crisp Jordy
+     edge (shadows don't show on dark, so the border carries the separation). */
+  #detail-panel .dp-card,
+  #detail-panel .venue-card,
+  #detail-panel .dp-plans-block,
+  #detail-panel .dp-shelter-section {
+    background: var(--panel);
+    border-color: var(--line-d-strong);
   }
   #detail-panel.open {
     transform: translateX(0);
@@ -4882,43 +4895,24 @@
     margin-bottom: 14px;
   }
 
-  /* Directions — Tier 3 glass pill. Invite-friends is the only honey CTA
-     in the panel; Directions stays prominent as a full-width row but in
-     the slate glass family so it doesn't compete for the honey channel.
-     Walk time inlined into the label so a single text run carries action
-     + cost. */
-  .dp-primary-cta {
-    width: 100%;
-    height: 46px;
-    border-radius: var(--radius-pill);
-    background: var(--glassctl-bg);
-    backdrop-filter: blur(3px);
-    -webkit-backdrop-filter: blur(3px);
-    border: var(--glassctl-border);
-    color: var(--panel-text);
-    font-family: 'Inter', sans-serif;
-    font-size: 14px;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    cursor: pointer;
+  /* Directions = the canonical Secondary role (.s-rnd) on a light surface
+     (.on-light → ink outline). Invite-friends is the screen's only honey CTA;
+     Directions reads lighter. This is just the layout modifier — full-width
+     pill matching the action-row rhythm; appearance comes from .s-rnd.on-light. */
+  /* Directions = Secondary on the dark Delft sheet: Jordy outline + cream
+     (overrides .s-rnd's dark glass fill, which would blend on solid Delft).
+     text-decoration:none — it's an <a>, not a <button>. */
+  .dp-directions {
+    width: 100%; height: 46px; border-radius: var(--radius-pill);
+    background: transparent;
+    border-color: var(--line-d-strong);
+    box-shadow: none;
+    color: var(--text);
     text-decoration: none;
-    white-space: nowrap;
-    box-shadow: var(--glassctl-raise);
-    transition: transform 120ms ease-out, background 120ms ease-out, box-shadow 120ms ease-out;
   }
-  .dp-primary-cta svg { width: 18px; height: 18px; stroke: currentColor; flex-shrink: 0; color: var(--panel-text); }
-  .dp-primary-cta-label { overflow: hidden; text-overflow: ellipsis; }
-  .dp-primary-cta:hover {
-    transform: translateY(-1px);
-    background: var(--glassctl-bg-hover);
-  }
-  .dp-primary-cta:active {
-    transform: translateY(1px);
-    box-shadow: var(--glassctl-press);
-  }
+  .dp-directions:hover { background: var(--line-d-faint); border-color: var(--line-d-strong); }
+  .dp-directions svg { width: 18px; height: 18px; flex-shrink: 0; }
+  .dp-directions-label { overflow: hidden; text-overflow: ellipsis; }
 
   /* Tier 3 secondary toggles — equal-weight peers in a single row. Each is
      a glass surface with stacked icon + label. Active state (heart, bell)
@@ -4937,12 +4931,12 @@
     height: 52px;
     padding: 0 6px;
     border-radius: var(--radius-md);
-    background: var(--glassctl-bg);
-    backdrop-filter: blur(3px);
-    -webkit-backdrop-filter: blur(3px);
-    border: var(--glassctl-border);
-    box-shadow: var(--glassctl-raise);
-    color: var(--glassctl-icon);
+    /* Tertiary toggles on the dark Delft sheet — Jordy outline + cream
+       (--panel-text is overridden to cream on #detail-panel). Stacked
+       icon+label kept; honey fills on active (below). */
+    background: transparent;
+    border: 1px solid var(--line-d-strong);
+    color: var(--panel-text);
     cursor: pointer;
     text-decoration: none;
     font-family: 'Inter', sans-serif;
@@ -4967,22 +4961,22 @@
     max-width: 100%;
   }
   .dp-secondary-btn:hover {
-    background: var(--glassctl-bg-hover);
+    background: var(--line-d-faint);
+    border-color: var(--line-d-strong);
     color: var(--panel-text);
   }
-  /* Active toggle state — decisive honey fill so "is it on?" is unambiguous. */
+  /* Active toggle state — a cool Jordy fill (NOT honey: honey is reserved for
+     the one Invite CTA per screen). "On" is signalled by the cool fill + the
+     filled icon (heart/bell go solid below). */
   .dp-secondary-btn.is-active {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: var(--accent-on, #2a1a0c);
-    box-shadow:
-      inset 0 1px 0 rgba(255,255,255,0.32),
-      0 2px 8px rgba(245,194,94,0.30);
+    background: var(--surface-chrome);
+    border-color: var(--line-d-strong);
+    color: var(--text);
   }
-  .dp-secondary-btn.is-active svg { color: var(--accent-on, #2a1a0c); fill: currentColor; }
+  .dp-secondary-btn.is-active svg { color: var(--text); fill: currentColor; }
   .dp-secondary-btn.is-active:hover {
-    background: var(--accent);
-    filter: brightness(1.06);
+    background: var(--surface-chrome);
+    border-color: var(--line-d-strong);
   }
 
   /* Legacy: keep .primary-action for backwards compat but hidden */

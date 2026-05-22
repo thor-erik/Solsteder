@@ -246,9 +246,9 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       ${_renderPlansBlock(v)}
 
       <div class="dp-actions">
-        <a class="dp-primary-cta" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(v.lat + ',' + v.lng)}&travelmode=walking" target="_blank" rel="noopener" aria-label="${t('directions')}${walkTime ? ' · ' + walkTime : ''}">
+        <a class="s-rnd dp-directions" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(v.lat + ',' + v.lng)}&travelmode=walking" target="_blank" rel="noopener" aria-label="${t('directions')}${walkTime ? ' · ' + walkTime : ''}">
           ${dirIcon}
-          <span class="dp-primary-cta-label">${t('directions')}${walkTime ? ' · ' + walkTime : ''}</span>
+          <span class="dp-directions-label">${t('directions')}${walkTime ? ' · ' + walkTime : ''}</span>
         </a>
         <div class="dp-secondary-row">
           <button class="dp-secondary-btn" title="${t('share')}" aria-label="${t('share')}" onclick="shareVenue(${v.id})">

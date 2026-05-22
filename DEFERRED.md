@@ -5,12 +5,23 @@ surface migration. Complements `DESIGN-FIXES.md` (issue tracker) and
 `REMAINING-WORK.md` (Phase 5+ sequence). Append as we go; don't delete resolved
 items — strike them through with the resolution so the trail stays.
 
-## To revisit (user-flagged)
+## Sheet treatments (user-decided, 2026-05-22)
 
-- **Detail sheet (and maybe all sheets / content) as Delft Blue 100% opacity.**
-  The user wants to try `#detail-panel` solid Delft 100% instead of the locked
-  Jordy-25% sheet. Parked for now. (May also inform the content-tile 90% question
-  below — same "how opaque should dark surfaces be" call.)
+DESIGN.md locked sheets as Jordy-25% (light), but on device the detail sheet's
+light-on-busy-map hurt button/text visibility. New direction:
+
+- **Detail panel → solid Delft Blue (dark).** Decided: good continuity since the
+  venue cards are the same family. Sheet is `--blue-950` (darker) so the cards
+  (`#111E38`) read as lighter, crisply-bordered raised tiles (the card is a key
+  element — must not blend). Shell text flips to cream via a `--panel-text` /
+  `--ink-muted` cascade override on `#detail-panel`. Controls use Jordy outlines;
+  toggle "active" is a cool Jordy fill + filled icon (NOT honey — honey stays the
+  one Invite CTA). **DESIGN.md surface-model update pending** once confirmed.
+- **Invite / Share panels → same dark Delft** as the detail panel (continuity).
+- **Accept panel (RSVP "Du er invitert til") → NOT the dark treatment.** It's a
+  first impression for many users — keep it distinct/lighter.
+- **Post-accept confirmation panel → continuity with the ACCEPT panel** (match
+  whatever the accept page gets, not the detail/invite dark treatment).
 
 ## Deferred within Phase 2 (surfaces)
 
@@ -73,14 +84,49 @@ back, do it in two steps:
    surface and ideally spot-checked on a device.** Never snap off-scale values
    app-wide in one pass.
 
+## Ideas / interaction concepts (parked)
+
+- **Invite-friends as an IN-PANEL page, not a separate sheet** (user idea, strong).
+  Instead of `.dpinvite-sheet` opening over everything, slide the detail content
+  left and bring the invite content in from the right (iOS-style push) with a
+  **back button** (button, not swipe — the mobile detail panel is already a
+  vertically-draggable sheet, so a horizontal swipe-back would fight that gesture).
+  Wins: spatial continuity (invite belongs to the venue), auto-solves the
+  "invite panel surface" question (it *is* the detail panel), kills the duplicated
+  `.dpinvite-sheet` container (Phase-3 consolidation spirit), native feel. Watch:
+  height transition (fixed panel height + internal scroll, animate X only),
+  two-level back/`popstate` wiring, focus management; bonus chance to fix the
+  mis-coupled invite nudge-grid. Scope: dedicated **interaction** phase (JS-heavy),
+  sim-tested. Applies to invite-CREATION from detail only — the RSVP/accept entry
+  stays a separate first-impression surface.
+
 ## Deferred polish / bugs
+
+- **Venue photo gallery has variable image sizes** (detail panel) — photos render
+  at inconsistent dimensions; needs a fixed aspect-ratio / uniform tile so the
+  gallery reads consistently. (Noted 2026-05-22.)
 
 - **Venue-list `cardIn` flash on filter change** — the pre-existing card-entrance
   animation re-fires whenever the filtered set changes (`ui-list.js`). Not from the
   migration. Tame separately (suppress on filter toggles, or swap for a light
   crossfade). User to pick the approach.
 - **Phase 3** — collapse per-flow button classes (`dprcv-*` / `dpacc-*` / `fts-*` /
-  `dp-action-*`) into the 4 button roles + state matrix.
+  `dp-action-*`) into the 4 button roles + state matrix. **Recon (done):**
+  - **Primary `.p-pill` is surface-neutral** (honey + `--accent-on`) and already used
+    in 8 places on both light and dark surfaces — no variant needed.
+  - **Secondary + tertiary must be surface-aware** (decided: build light/dark variants
+    first — cream text + glass fill on dark; ink text + outline on light, via an
+    `.on-light` context the user endorsed). `.s-pill`/`.s-rnd`/`.g-rnd` are barely used
+    today, so extending them is low-risk.
+  - **Detail action row mapping:** Invite (`.dp-invite-cta`) → `.p-pill`; Directions
+    (`.dp-primary-cta`, mis-named) → Secondary. BUT Share/Favorite/Alert
+    (`.dp-secondary-btn`) are a **stacked icon-over-label 3-col toggle grid — a
+    distinct component, NOT the generic ghost pill**; keep the component, adopt role
+    tokens/states (don't force into `.g-rnd`).
+  - `.dp-action-btn` / `.dp-gm-chip` / `.dp-gm-actions` are **dead CSS** (zero JS refs) —
+    delete during the detail-actions flow.
+  - These detail buttons still use the legacy `--glassctl-*` frosted-control fill on
+    what is now a light Jordy sheet — the role migration replaces that.
 - **Phase 4** — locale leak, login-splash contrast, emoji→SVG (Lucide), pair every
   `backdrop-filter` with `-webkit-`.
 

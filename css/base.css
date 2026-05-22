@@ -39,6 +39,11 @@
     background: #FFF2EB;
     color: var(--text);
     font-family: 'Inter', system-ui, sans-serif;
+    /* Tabular figures app-wide (DESIGN.md Typography) — times, sun-hours, temps,
+       prices, distances stay column-aligned and don't twitch as digits change
+       during time-scrub. Affects DOM text only; canvas-drawn numbers (pins, FTS,
+       arc) need their own fixed-width handling — noted as a follow-up. */
+    font-variant-numeric: tabular-nums;
     overflow: hidden;
   }
   /* Dark text catch-all for transparent bars (A) + cream content panels (C).
@@ -355,6 +360,26 @@
     transition: border-color 120ms ease-out, color 120ms ease-out, background 120ms ease-out;
   }
   .g-rnd:hover { border-color: rgba(156,189,231,0.45); color: var(--text); background: rgba(17,30,56,0.18); }
+
+  /* ── Surface-aware role variants ───────────────────────────────────────────
+     The role classes above are the DARK-surface treatment (cream text, glass
+     fill). On a LIGHT chrome/sheet/cream-dropdown a control must "step away"
+     to ink (DESIGN.md → "Controls step away from their container"). Put
+     `.on-light` on the button's container on light surfaces. Primary (.p-pill,
+     honey) and destructive are surface-neutral — no variant needed. */
+  .on-light .s-pill, .on-light .s-rnd {
+    background: transparent;
+    border: 1px solid var(--line-l-strong);
+    box-shadow: none;
+    color: var(--panel-text);
+  }
+  .on-light .s-pill .ico, .on-light .s-rnd .ico { color: var(--ink-muted); }
+  .on-light .s-pill:hover, .on-light .s-rnd:hover { background: var(--line-l-faint); border-color: var(--line-l-strong); }
+  .on-light .s-pill.is-selected, .on-light .s-rnd.is-selected {
+    background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent-on);
+  }
+  .on-light .g-rnd { border-color: var(--line-l); color: var(--ink-muted); }
+  .on-light .g-rnd:hover { border-color: var(--line-l-strong); color: var(--panel-text); background: var(--line-l-faint); }
 
   /* SQUARE · 48×48 r12 — companion icon button */
   .sq {
