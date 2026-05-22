@@ -1,0 +1,5099 @@
+  /* ── Mapbox nav controls — glass applied to the control group, not outer wrapper ── */
+  /* Attribution lives in this container; offset to clear #locate-btn (right: 16, bottom: 16, 34px) */
+  .mapboxgl-ctrl-bottom-right {
+    right: 56px;
+    bottom: 24px;
+  }
+  .mapboxgl-ctrl-group {
+    background: var(--glass-action-bg) !important;
+    backdrop-filter: var(--glass-blur-action) !important;
+    -webkit-backdrop-filter: var(--glass-blur-action) !important;
+    border: var(--glass-border) !important;
+    border-radius: 14px !important;
+    padding: 4px !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+  }
+  .mapboxgl-ctrl-group button {
+    width: 34px !important;
+    height: 34px !important;
+    border-radius: 50% !important;
+    background: rgba(17,30,56,0.5) !important;
+    border: 1px solid rgba(156,189,231,0.18) !important;
+    box-shadow: none !important;
+    transition: background 0.15s, border-color 0.15s !important;
+  }
+  .mapboxgl-ctrl-group button:hover {
+    background: rgba(24,52,95,0.85) !important;
+    border-color: rgba(245,194,94,0.35) !important;
+  }
+  /* Zoom + icon */
+  .mapboxgl-ctrl-zoom-in .mapboxgl-ctrl-icon {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'%3E%3Cpath d='M10 4v12M4 10h12' stroke='rgba(156,189,231,0.8)' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E") !important;
+    filter: none !important;
+  }
+  /* Zoom - icon */
+  .mapboxgl-ctrl-zoom-out .mapboxgl-ctrl-icon {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'%3E%3Cpath d='M4 10h12' stroke='rgba(156,189,231,0.8)' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E") !important;
+    filter: none !important;
+  }
+  /* Compass */
+  .mapboxgl-ctrl-compass .mapboxgl-ctrl-icon { filter: none !important; }
+  .mapboxgl-ctrl-compass-arrow { fill: rgba(156,189,231,0.7) !important; }
+  .mapboxgl-ctrl-compass-arrow path:first-child { fill: var(--accent) !important; }
+  /* Attribution — hidden until container hover */
+  .mapboxgl-ctrl-attrib {
+    background: transparent !important;
+    border: none !important;
+    opacity: 0 !important;
+    transition: opacity 0.2s !important;
+    margin-top: 2px !important;
+  }
+  .mapboxgl-ctrl-bottom-right:hover .mapboxgl-ctrl-attrib { opacity: 1 !important; }
+  .mapboxgl-ctrl-attrib-button {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 20px !important;
+    height: 20px !important;
+    border-radius: 50% !important;
+    background: rgba(17,30,56,0.72) !important;
+    border: 1px solid rgba(156,189,231,0.22) !important;
+    color: rgba(156,189,231,0.7) !important;
+    font-size: 10px !important;
+    cursor: pointer !important;
+  }
+  .mapboxgl-ctrl-attrib.mapboxgl-compact {
+    display: block !important;
+    min-width: 0 !important;
+  }
+
+  .popup-name {
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+
+  .popup-meta {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .popup-address {
+    font-size: 11px;
+    color: var(--muted);
+    opacity: 0.7;
+    margin-top: 2px;
+  }
+
+  .popup-status {
+    margin-top: 6px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .popup-status.sunny         { color: var(--accent); }
+  .popup-status.shaded        { color: var(--muted); }
+  .popup-status.opening-soon  { color: #9CBDE7; }
+
+  .popup-actions {
+    margin-top: 10px;
+    display: flex;
+    gap: 6px;
+  }
+
+  .popup-directions-btn, .popup-edit-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 11px;
+    font-family: inherit;
+    cursor: pointer;
+    text-decoration: none;
+  }
+
+  .popup-directions-btn {
+    background: rgba(156,189,231,0.12);
+    border: 1px solid rgba(156,189,231,0.3);
+    color: #9CBDE7;
+  }
+  .popup-directions-btn:hover { background: rgba(156,189,231,0.22); }
+
+  .popup-edit-btn {
+    background: rgba(245,194,94,0.12);
+    border: 1px solid rgba(245,194,94,0.3);
+    color: var(--accent);
+  }
+  .popup-edit-btn:hover { background: rgba(245,194,94,0.22); }
+
+  /* LEFT PANEL — venue list, floats below search bar */
+  #panel {
+    position: absolute;
+    top: 70px;      /* 16 search-top + 46 search-h + 8 gap */
+    left: 16px;
+    bottom: 16px;
+    /* Was 336 px — felt cramped for a venue card that holds a 64 px
+       thumbnail + title + sun-summary + meta. 380 px gives the cards
+       a comfortable reading width without pushing toward sidebar-as-
+       wall territory (Google Maps' sidebar is 408 px; Apple Maps
+       inspector is ~340 px). Top-strip aligns to this same column. */
+    width: 380px;
+    border-radius: 16px;
+    box-shadow: var(--panel-shadow);
+    display: flex;
+    flex-direction: column;
+    /* overflow:visible so the FTS scrub popup can extend above the
+       panel top during scrubbing. The venue list manages its own
+       overflow-y:auto for card scrolling. */
+    overflow: visible;
+    transition: top 0.3s ease, transform 0.28s ease, opacity 0.28s ease, height 0.3s ease, border-radius 0.3s ease;
+    /* z-index 901 so the FTS scrub popup (a child of #panel) can render
+       ABOVE the top-strip (z-index 900) when the expanded weather
+       popup overshoots into the strip's vertical band. #panel creates
+       a stacking context — children can't escape — so the only way
+       for the popup to clear the strip is for the whole panel column
+       to stack above it. Both surfaces are vertically separated
+       (panel top:70, strip top:14) so the swap has no visual impact
+       elsewhere. */
+    z-index: 901;
+  }
+
+  #panel-header {
+    padding: 0 14px;
+    flex-shrink: 0;
+    overflow: visible;
+    display: none;  /* MAP VIEW moved into #list-sun-header */
+  }
+
+  /* Brand logo (now in floating-brand) */
+  #brand-logo {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  #brand-logo img {
+    height: 32px;
+    width: auto;
+    object-fit: contain;
+    display: block;
+  }
+  #brand-name {
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  #sun-compass { display: block; cursor: default; border-radius: 50%; flex-shrink: 0; }
+
+  /* Controls (now in floating-bottom) */
+  #panel-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow: visible;
+  }
+
+  /* Search input */
+  #venue-search {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    padding: 0;
+    outline: none;
+  }
+  #venue-search::placeholder { color: var(--muted); opacity: 0.7; }
+
+  /* Intent shortcuts — segmented control row below the arc */
+  #time-presets-row {
+    position: relative;
+    display: flex;
+    gap: 2px;
+    padding: 3px;
+    margin-top: 8px;
+    background: rgba(156,189,231,0.08);
+    border: 1px solid rgba(156,189,231,0.14);
+    border-radius: 10px;
+  }
+  #intent-pill {
+    position: absolute;
+    background: var(--accent);
+    border-radius: 7px;
+    transition: left 0.22s cubic-bezier(0.34,1.56,0.64,1),
+                top  0.22s cubic-bezier(0.34,1.56,0.64,1),
+                width 0.22s cubic-bezier(0.34,1.56,0.64,1),
+                height 0.22s cubic-bezier(0.34,1.56,0.64,1);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .intent-btn {
+    position: relative;
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-radius: 7px;
+    color: rgba(156,189,231,0.78);
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 9px 4px;
+    cursor: pointer;
+    transition: color 0.15s;
+    white-space: nowrap;
+    z-index: 1;
+    text-align: center;
+  }
+  .intent-btn:hover:not(.active) { color: rgba(156,189,231,0.85); }
+  .intent-btn.active { color: #111E38; }
+
+  /* Area chips — hidden */
+  #area-chips { display: none; }
+  .area-chip {
+    background: rgba(156,189,231,0.1);
+    border: 1px solid rgba(156,189,231,0.18);
+    border-radius: 20px;
+    color: rgba(156,189,231,0.45);
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .area-chip:hover:not(.active) { color: rgba(156,189,231,0.8); border-color: rgba(156,189,231,0.35); }
+  .area-chip.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #111E38;
+  }
+
+  /* Venue list header: title (left) · panel toggle (right) */
+  /* Venue peek: mobile-only collapsed preview — hide on desktop */
+  #venue-peek { display: none; }
+
+  #venue-header {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;  /* toggle icon right-aligned, count hidden */
+    padding-bottom: 0;
+    gap: 8px;
+  }
+  /* Legacy sun-count duplicate — hide to avoid double header */
+  #venue-count { display: none; }
+  #venue-count.count-sunny { color: var(--accent); }
+  /* map-view-btn removed — viewport filter is always active */
+  #sort-row {
+    display: flex;
+    justify-content: flex-end;
+    padding: 4px 14px 4px;
+    flex-shrink: 0;
+  }
+  #sort-panel {
+    position: fixed;
+    z-index: 1100;
+    border-radius: 14px;
+    padding: 6px;
+    display: none;
+    flex-direction: column;
+    min-width: 160px;
+    background: var(--content-bg) !important;
+    backdrop-filter: var(--content-blur);
+    -webkit-backdrop-filter: var(--content-blur);
+    box-shadow: 0 8px 32px rgba(17,30,56,0.18);
+  }
+  #sort-panel.open { display: flex; }
+  .sort-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1099;
+    background: transparent;
+  }
+  .sort-btn {
+    background: none;
+    border: none;
+    border-radius: 8px;
+    color: rgba(17,30,56,0.78);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 11px 14px;
+    cursor: pointer;
+    transition: color 0.12s, background 0.12s,
+                transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    white-space: nowrap;
+    text-align: left;
+    width: 100%;
+    -webkit-tap-highlight-color: transparent;
+    transform-origin: center;
+    will-change: transform;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .sort-btn:hover:not(.active) { color: var(--content-text); background: rgba(17,30,56,0.06); }
+  }
+  .sort-btn.active {
+    background: rgba(245,194,94,0.28);
+    color: var(--content-text);
+    font-weight: 700;
+  }
+  .sort-btn:active { transform: scale(0.97); }
+  .sort-btn:focus { outline: none; }
+  .sort-btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  body[data-fx] .sort-btn.lens-fx-tilting {
+    transition: transform 0.05s linear, color 0.12s, background 0.12s;
+  }
+  /* Border-flash animation skipped — same reasoning as filter pills. */
+  #sort-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 36px;
+    padding: 0 12px;
+    background: var(--glassctl-bg);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    border: var(--glassctl-border);
+    border-radius: 10px;
+    box-shadow: var(--glassctl-raise);
+    color: var(--glassctl-icon);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: color 0.12s, border-color 0.12s, background 0.12s;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+  }
+  #sort-toggle-btn .sort-chevron {
+    color: rgba(17,30,56,0.55);
+    display: inline-block;
+    transition: transform 0.18s ease;
+  }
+  /* Specificity note: the in-header rule above (#list-sun-header #sort-toggle-btn)
+     has 2 IDs, so hover/open need to match or beat it. */
+  #list-sun-header #sort-toggle-btn:hover {
+    background: var(--glassctl-bg-hover);
+  }
+  #list-sun-header #sort-toggle-btn.open {
+    border-color: rgba(245,194,94,0.55);
+    background: rgba(245,194,94,0.32);
+    color: var(--accent-on);
+    box-shadow: var(--glassctl-raise);
+  }
+  #list-sun-header #sort-toggle-btn.open .sort-chevron { transform: rotate(180deg); color: var(--accent-on); }
+  /* Keep the legacy non-header sort-toggle-btn hover (lower specificity is fine
+     where the element isn't inside #list-sun-header). */
+  #sort-toggle-btn:hover { background: var(--glassctl-bg-hover); }
+  #sort-toggle-btn.open  {
+    border-color: rgba(245,194,94,0.55);
+    background: rgba(245,194,94,0.32);
+    color: var(--accent-on);
+  }
+  #sort-toggle-btn.open .sort-chevron { transform: rotate(180deg); color: var(--accent-on); }
+
+  /* Legacy class — keep for any remaining references */
+  .filter-toggle-btn {
+    background: none;
+    border: 1px solid rgba(156,189,231,0.2);
+    border-radius: 6px;
+    color: var(--muted);
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .filter-toggle-btn:hover:not(.active) { color: var(--text); }
+  .filter-toggle-btn.active {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* Venue list */
+  #venue-list {
+    flex: 1;
+    overflow-y: auto;
+    /* See --app-pad-b token (top of CSS). The scrollable list pads
+       its bottom so the last card scrolls up clear of the home-
+       indicator gesture zone / Safari URL-bar reserve. */
+    padding: 4px 14px var(--app-pad-b);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(245,194,94,0.2) transparent;
+  }
+
+  #venue-list::-webkit-scrollbar { width: 4px; }
+  #venue-list::-webkit-scrollbar-track { background: transparent; }
+  #venue-list::-webkit-scrollbar-thumb { background: rgba(245,194,94,0.2); border-radius: 2px; }
+
+  /* Section headers — "Sol nå · 8" / "Sol senere · 6". Always rendered, even
+     for empty buckets: the empty-section text inlines under the header. Hidden
+     during slider scrubs so the count doesn't flicker as venues cross the
+     bucket boundary. */
+  .venue-section-header {
+    /* No horizontal padding — the section header flush-aligns with the
+       venue cards' outer edges (cards span venue-list's inner width). */
+    padding: 4px 0 6px;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-muted);
+    text-transform: none;
+    letter-spacing: 0;
+    transition: opacity 200ms ease;
+  }
+  /* First section header sits closer to the day-header (no extra top
+     padding) since the bottom hairline already provides separation. */
+  #venue-list > .venue-section-header:first-child {
+    padding-top: 0;
+  }
+  .venue-section-header .section-count { opacity: 0.65; margin-left: 4px; }
+  .empty-section {
+    padding: 4px 4px 8px;
+    color: var(--muted);
+    font-size: 12px;
+    font-style: italic;
+    opacity: 0.7;
+  }
+  .empty-all {
+    padding: 32px 16px 24px;
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .empty-all-headline {
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+  .empty-all .btn-show-all { margin-top: 12px; }
+  .empty-all .btn-see-tomorrow { margin-top: 4px; }
+  /* Tertiary text-link "Vis alle steder" — visually subordinate to the
+     primary "Se i morgen" CTA above it. */
+  .empty-all-link {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    opacity: 0.75;
+    cursor: pointer;
+    padding: 6px 12px;
+    margin-top: 4px;
+  }
+  .empty-all-link:hover { opacity: 1; }
+  body.list-scrubbing .venue-section-header { opacity: 0; }
+  body.list-scrubbing .empty-section { opacity: 0; }
+
+  /* Pull-tab indicator: appears only when the in-viewport list is so short
+     it can't trigger natural scroll-pagination (fewer than ~5 venues). Tap
+     to load the next nearest batch. Visual is intentionally subtle — a thin
+     chevron + faint label, no button affordance — so it reads as a hint,
+     not a CTA. */
+  #list-expand-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    width: 100%;
+    margin: 8px 0 20px;
+    padding: 10px 12px;
+    background: transparent;
+    border: 0;
+    color: var(--muted);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 160ms ease, color 160ms ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #list-expand-tab:hover {
+    opacity: 1;
+    color: var(--accent);
+  }
+  #list-expand-tab .list-expand-label {
+    opacity: 0.85;
+  }
+
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes cardInDimmed {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 0.5; transform: translateY(0); }
+  }
+
+  .venue-card {
+    background: var(--glass-card-bg);
+    /* No backdrop-filter — cards sit inside #panel which already blurs.
+       Removing per-card blur eliminates ~30 GPU compositing layers during scroll. */
+    border: 1px solid rgba(155,169,188,0.34);   /* clearer perimeter than var(--glass-border) at 0.22 */
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    /* Layered shadow — 1px tight contact + 14px soft lift — for proper
+       elevation. Modern card convention (Linear / Apple / Stripe). */
+    box-shadow:
+      inset 0 1px 0 rgba(255,250,235,0.16),
+      inset 0 -1px 0 rgba(15,30,55,0.40),
+      0 1px 2px rgba(0,0,0,0.18),
+      0 4px 14px rgba(0,0,0,0.30);
+    transition: border-color 0.12s ease-out, background 0.12s ease-out, opacity 0.2s;
+    position: relative;
+    overflow: visible;
+    contain: layout style;
+    display: flex;
+    flex-direction: column;
+    /* Internal row gap — bumped from 3 to 4 for slightly more breathing.
+       Pills and timeline still get individual margin-top where needed. */
+    gap: 4px;
+  }
+  /* The closed-card variant is a single row, not the 3-row column. Override
+     the column flex so name + "opens at" badge sit side-by-side. */
+  .venue-card.closed-card { gap: 0; }
+  .venue-card.closed-card .closed-row { flex: 1; }
+  /* Content-change fade with stagger: cardIn fires when the venue list's
+     card SET changes (date change, sort change, panel open from hidden).
+     Slider-scrub re-renders keep [data-mounted] so the animation doesn't
+     re-fire on every tick — ui-list.js clears data-mounted only when the
+     content hash actually changes. Staggered nth-child delays give the
+     row a gentle cascade rather than all cards flashing in at once. */
+  #venue-list:not([data-mounted]) .venue-card {
+    animation: cardIn 0.32s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  }
+  #venue-list:not([data-mounted]) .venue-card:nth-child(1)  { animation-delay: 0ms; }
+  #venue-list:not([data-mounted]) .venue-card:nth-child(2)  { animation-delay: 30ms; }
+  #venue-list:not([data-mounted]) .venue-card:nth-child(3)  { animation-delay: 60ms; }
+  #venue-list:not([data-mounted]) .venue-card:nth-child(4)  { animation-delay: 90ms; }
+  #venue-list:not([data-mounted]) .venue-card:nth-child(5)  { animation-delay: 120ms; }
+  #venue-list:not([data-mounted]) .venue-card:nth-child(6)  { animation-delay: 150ms; }
+  #venue-list:not([data-mounted]) .venue-card:nth-child(7)  { animation-delay: 175ms; }
+  #venue-list:not([data-mounted]) .venue-card:nth-child(8)  { animation-delay: 200ms; }
+  #venue-list:not([data-mounted]) .venue-card:nth-child(9)  { animation-delay: 220ms; }
+  #venue-list:not([data-mounted]) .venue-card:nth-child(n+10) { animation-delay: 240ms; }
+
+  /* Hover only on devices with a real pointer. On iOS Safari :hover sticks
+     after a tap until the user taps elsewhere — that's the "blue box" the
+     user reported on the source card after the panel closes.
+     New: 1px lift + honey-tinted border + lifted shadow. Modern card-hover
+     convention (Stripe / Linear). */
+  .venue-card {
+    transition: border-color 0.15s ease-out, background 0.12s ease-out, opacity 0.2s,
+                transform 0.15s cubic-bezier(0.32, 0.72, 0, 1), box-shadow 0.15s ease-out;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .venue-card:hover {
+      border-color: rgba(245,194,94,0.42);
+      background: rgba(17,30,56,0.72);
+      transform: translateY(-1px);
+      box-shadow:
+        inset 0 1px 0 rgba(255,250,235,0.18),
+        inset 0 -1px 0 rgba(15,30,55,0.40),
+        0 2px 4px rgba(0,0,0,0.22),
+        0 10px 22px rgba(0,0,0,0.36);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .venue-card:hover { transform: none; }
+  }
+  /* Suppress the mobile browser's default tap-highlight overlay. */
+  .venue-card { -webkit-tap-highlight-color: transparent; }
+
+  .venue-card.selected {
+    /* Stay solid (was 0.72 → semi-transparent navy, which read as a "strange
+       blue/transparent" card over the cream panel, esp. after the invite
+       round-trip). Selection is signalled by the honey ::before ring below. */
+    background: var(--glass-card-bg);
+  }
+  /* Selection outline that *emanates from the click position*. The lens-fx
+     pointerdown handler in lens-effects.js sets --ripple-x / --ripple-y on
+     the card before selection runs. The pseudo-element below is a full
+     honey-accent border whose visibility is clipped by a circle that
+     starts at the click point with 0% radius and grows to 150% — so the
+     outline appears to "wipe" outward from where the user actually
+     touched, then settles into a static ring. */
+  .venue-card.selected::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border: 2px solid var(--accent);
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 3;
+    clip-path: circle(150% at var(--ripple-x, 50%) var(--ripple-y, 50%));
+    animation: card-select-emanate 520ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  @keyframes card-select-emanate {
+    0%   { clip-path: circle(0% at var(--ripple-x, 50%) var(--ripple-y, 50%)); opacity: 0.85; }
+    100% { clip-path: circle(150% at var(--ripple-x, 50%) var(--ripple-y, 50%)); opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .venue-card.selected::before { animation: none; clip-path: none; }
+  }
+
+  .venue-card.state-shadow .card-new-hero-main {
+    color: var(--text);
+    font-weight: 700;
+  }
+
+  .venue-card.state-rain .card-new-hero-main {
+    color: var(--text);
+    font-weight: 700;
+  }
+
+  .venue-card.state-done {
+    opacity: 0.48;
+  }
+
+  .venue-card.state-done .card-new-hero-main {
+    color: var(--muted);
+    font-weight: 700;
+  }
+
+  .venue-card.editing {
+    box-shadow: 0 0 0 2px rgba(245,194,94,0.55), 2px 4px 18px rgba(0,0,0,0.4);
+    border-left-color: var(--accent);
+    opacity: 1 !important;
+  }
+
+  /* Card top row: name+meta left, status right */
+  .card-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .card-left {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .card-right {
+    flex-shrink: 0;
+    min-width: 115px;
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+  }
+
+  .card-new-name {
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text);
+  }
+
+  .card-new-meta {
+    font-size: 11px;
+    font-weight: 500;
+    /* Use opacity-dimmed --text (warm cream) instead of cool slate-grey
+       so meta shares the same hue family as the title — more cohesive
+       and gives better effective contrast than a chromatic muted color. */
+    color: rgba(255, 244, 224, 0.78);
+    display: flex;
+    align-items: center;
+    gap: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.35;
+    letter-spacing: 0.005em;
+  }
+
+  .card-new-meta span {
+    display: inline;
+  }
+
+  .card-new-meta .card-meta-dot {
+    opacity: 0.4;
+    margin: 0 4px;
+  }
+
+  .card-new-hero-main {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    /* Letter-spacing 0 instead of -0.01em — tight tracking with heavy weight
+       in saturated honey was reading as a dense block. Slightly looser =
+       calmer without losing emphasis. */
+    letter-spacing: 0;
+  }
+
+  .card-new-hero-sub {
+    font-size: 11px;
+    font-weight: 500;
+    /* Match .card-new-meta — opacity-dimmed cream for cohesive secondary text. */
+    color: rgba(255, 244, 224, 0.78);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    line-height: 1.3;
+  }
+
+  /* ── New venue-card grid — 4 stacked blocks (name+duration / meta / pills /
+     full-width timeline). The compact card and tooltip still use the older
+     .card-top + .card-new-* classes; the main list card uses these. */
+  .card-row1 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .card-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .card-duration {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+  }
+  .card-duration .sun-glyph {
+    font-size: 13px;
+    line-height: 1;
+  }
+  .card-meta {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+  }
+  .card-meta span { display: inline; }
+  .card-meta .card-meta-dot { opacity: 0.4; margin: 0 4px; }
+  .card-meta .card-meta-opens { color: var(--muted); opacity: 0.85; }
+  /* Walking-person glyph on the walk-time meta. Plain inline element
+     (no flex wrapper) so the baseline stays aligned with the rest of
+     the meta row and the icon doesn't get clipped by the row's
+     overflow:hidden. vertical-align nudges the icon onto the text
+     middle; margin-right gives the digits a small gap. */
+  .card-meta .walk-glyph {
+    display: inline-block;
+    vertical-align: -2px;
+    margin-right: 3px;
+    opacity: 0.85;
+  }
+
+  .card-pills {
+    display: flex;
+    gap: 6px;
+    flex-wrap: nowrap;
+    min-width: 0;
+    margin: 4px 0;
+  }
+  .card-pill {
+    height: 26px;
+    padding: 0 11px;
+    border-radius: 13px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 1;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .card-pill.pill-sol {
+    background: var(--accent-dim);
+    border: 1px solid rgba(245,194,94,0.35);
+    color: var(--accent);
+  }
+  .card-pill.pill-skygge {
+    background: rgba(156,189,231,0.10);
+    border: 1px solid rgba(156,189,231,0.22);
+    color: var(--muted);
+  }
+  .card-pill.pill-skyer {
+    background: rgba(156,189,231,0.14);
+    border: 1px solid rgba(156,189,231,0.30);
+    color: var(--cool);
+  }
+  .card-pill.pill-regn {
+    background: rgba(96,140,200,0.18);
+    border: 1px solid rgba(96,140,200,0.40);
+    color: var(--rain);
+  }
+  /* Operational hours pills: neutral white-on-glass, distinct from the
+     subject-colored disruption pills above. Renders only when hours are
+     the binding constraint — see buildCardPillsV2 in ui-shared.js. */
+  .card-pill.pill-stenger,
+  .card-pill.pill-aapner {
+    background: rgba(255,242,235,0.10);
+    border: 1px solid rgba(255,242,235,0.18);
+    color: rgba(255,242,235,0.75);
+  }
+  /* Overflow / opportunity pill: sun-token, names additional later windows
+     ("+ X sol fra HH:MM" / "+ N sol senere") or pill-overflow ("+ N mer"). */
+  .card-pill.pill-overflow {
+    background: rgba(245,194,94,0.18);
+    border: 1px solid rgba(245,194,94,0.35);
+    color: var(--accent);
+  }
+
+  /* ── v2 list-card layout ──────────────────────────────────────────────
+     Applied via `.card-compact`. The detail panel uses `.card-rich` and
+     keeps its prior layout (timeline + labels). For the list variant:
+       • card-meta is a 1fr/auto grid: meta-text left, anchor right
+       • card-pills is always rendered (preserves card height)
+       • bottom 3px fill bar shows sun-fraction of remaining day */
+  .venue-card.card-compact {
+    /* Bar is flush bottom (3px tall); padding-bottom matches padding-top so
+       the visual breathing space above the name row equals the space below
+       the meta row. The card clips to its own rounded shape so the fill
+       bar's corners follow the 12px card-corner curve. */
+    padding-bottom: 12px;
+    overflow: hidden;
+  }
+  .venue-card.card-compact .card-meta {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 8px;
+  }
+  .venue-card.card-compact .card-meta-left {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .venue-card.card-compact .card-anchor {
+    justify-self: end;
+    flex-shrink: 0;
+    color: var(--muted);
+    /* Match the venue meta strength — sub-text but not so faint it falls
+       below the area · type · distance line on the same row. */
+    opacity: 0.92;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  /* v2 list cards let their height vary with pill count — no min-height
+     reservation. Cards with no pills collapse to row1 + meta + fill bar
+     and gain back the spacing they don't need. Pills sit on the right
+     so they read as a small status cluster anchored to the duration
+     column above, rather than competing with the venue name on the
+     left for visual start-of-row attention. */
+  .venue-card.card-compact .card-pills {
+    margin: 6px 0 2px;
+    justify-content: flex-end;
+  }
+  /* Pills get the 8px backdrop blur from --glass-blur-pill. Cards
+     don't blur (parent panel does), but pills sit on top of everything
+     and benefit from the subtle haze. */
+  .venue-card.card-compact .card-pill {
+    backdrop-filter: var(--glass-blur-pill);
+    -webkit-backdrop-filter: var(--glass-blur-pill);
+  }
+  /* ── Fill bar — flush against the card's bottom border ──
+     The card clips to its 12px corner radius, so the bar's bottom-left
+     and bottom-right corners follow the card's curve naturally. Track
+     spans the full width; fill is one contiguous level meter from the
+     left. */
+  .venue-card.card-compact .card-fillbar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    background: rgba(255,242,235,0.06);
+    pointer-events: none;
+  }
+  .venue-card.card-compact .card-fillbar-fill {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+  }
+
+  /* ── Card timeline — full-width strip + labels row at the bottom. ──
+     The block is inset by 18px on each side so the bar's start cap sits
+     under the center of the leftmost label and there's room for the
+     right-edge label to fit without clipping. */
+  .card-timeline-block {
+    margin-top: 6px;
+    padding: 0 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .card-timeline {
+    position: relative;
+    width: 100%;
+    height: 12px;
+  }
+  .card-timeline-labels {
+    position: relative;
+    height: 11px;
+    font-size: 9.5px;
+    font-weight: 500;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    line-height: 11px;
+    opacity: 0.8;
+  }
+  .tl-label {
+    position: absolute;
+    transform: translateX(-50%);
+    white-space: nowrap;
+  }
+  /* Highlight the current-time label so the user can read the bar's domain
+     start at a glance. Pill labels stay in --muted; sun pill keeps accent. */
+  .tl-label-current { color: var(--text); opacity: 0.9; }
+  .tl-label-sol     { color: var(--accent); opacity: 0.95; }
+
+  .timeline-track {
+    position: relative;
+    height: 12px;
+    background: rgba(156,189,231,0.08);
+    overflow: visible;
+  }
+  /* Canvas mini-timeline (and FTS canvas) — fills its container box.
+     The canvas's bitmap is set programmatically; the `width`/`height` props
+     here are CSS dimensions, the bitmap dpr-scales separately. */
+  .card-timeline-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: transparent; /* canvas paints the bg itself */
+  }
+
+  /* Weather segments — flat by default, track clips outer edges */
+  .timeline-track .wx {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border-radius: 0;
+  }
+
+  /* Shadow boundary caps — rounded ends at shadow gap edges */
+  .timeline-track .cap-l         { border-radius: 4px 0 0 4px; }
+  .timeline-track .cap-r         { border-radius: 0 4px 4px 0; }
+  .timeline-track .cap-l.cap-r   { border-radius: 4px; }
+
+  .card-emoji {
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .card-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+  }
+
+  .card-badge.sunny {
+    background: rgba(245,194,94,0.2);
+    color: var(--accent);
+  }
+
+  .card-badge.shaded {
+    background: rgba(138,154,176,0.15);
+    color: var(--muted);
+  }
+  .card-badge.opening-soon {
+    background: rgba(156,189,231,0.15);
+    color: #9CBDE7;
+  }
+  .card-badge.closing-soon {
+    background: rgba(255,140,60,0.15);
+    color: #ffaa55;
+  }
+  .card-badge.neutral {
+    background: rgba(138,154,176,0.15);
+    color: #9CBDE7;
+  }
+
+  .card-body {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  /* Score badge pill — unified style per design spec */
+  .card-sun-badge {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 4px;
+    white-space: nowrap;
+    background: var(--accent-dim);
+    color: var(--accent);
+  }
+  .card-sun-badge.tier-high,
+  .card-sun-badge.tier-mid,
+  .card-sun-badge.tier-low,
+  .card-sun-badge.tier-poor {
+    background: var(--accent-dim);
+    color: var(--accent);
+    border: none;
+    box-shadow: none;
+  }
+  /* Sun status line */
+  .card-sun-line {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+  }
+  .card-sun-line.sunny        { color: var(--accent); }
+  .card-sun-line.overcast     { color: rgba(165,170,178,0.85); }
+  .card-sun-line.rainy        { color: rgba(156,189,231,0.85); }
+  .card-sun-line.neutral      { color: rgba(165,170,178,0.85); }
+  .card-sun-line.muted        { color: var(--muted); opacity: 0.55; }
+  .card-sun-line.opening-soon { color: #9CBDE7; }
+  .card-sun-line.closing-soon { color: #ffaa55; }
+
+  .card-watch {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .card-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .card-top-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 6px;
+  }
+
+  /* ── Card sun row: dial + duration left, label+time pushed right ─────── */
+  .card-sun-row {
+    display: flex;
+    align-items: center;
+    position: relative;
+  }
+  .card-sun-row::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 10%;
+    height: 80%;
+    width: 1px;
+    background: rgba(156,189,231,0.15);
+    pointer-events: none;
+  }
+  /* Left half: dial + duration centered in available space */
+  .card-sun-left {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .card-dial-col {
+    flex-shrink: 0;
+  }
+  .card-dial {
+    display: block;
+    opacity: 0.92;
+    filter: drop-shadow(0 1px 3px rgba(0,0,0,0.35));
+  }
+  .card-sun-dur {
+    flex-shrink: 0;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+  }
+  .card-sun-dur.dur-sunny    { color: rgba(245,194,94,0.82); }
+  .card-sun-dur.dur-cloudy   { color: rgba(156,189,231,0.65); }
+  .card-sun-dur.dur-overcast { color: rgba(165,170,178,0.82); }
+  .card-sun-dur.dur-rainy    { color: rgba(156,189,231,0.82); }
+  /* Right block: left-aligned within its half */
+  .card-sun-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 2px;
+    min-width: 0;
+    padding-left: 8px;
+  }
+  .card-sun-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 9px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #9CBDE7;
+  }
+  .card-sun-info.sunny        .card-sun-label { color: rgba(245,194,94,0.65); }
+  .card-sun-info.overcast     .card-sun-label { color: rgba(165,170,178,0.65); }
+  .card-sun-info.rainy        .card-sun-label { color: rgba(156,189,231,0.65); }
+  .card-sun-info.neutral      .card-sun-label { color: rgba(165,170,178,0.65); }
+  .card-sun-info.opening-soon .card-sun-label { color: rgba(156,189,231,0.65); }
+  .card-sun-info.closing-soon .card-sun-label { color: rgba(255,170,85,0.65); }
+  .card-sun-time {
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    font-size: 24px;
+    color: #FFF2EB;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .card-sun-info.sunny    .card-sun-time { color: var(--accent); }
+  .card-sun-info.overcast .card-sun-time { color: rgba(165,170,178,0.9); }
+  .card-sun-info.rainy    .card-sun-time { color: rgba(156,189,231,0.9); }
+  .card-sun-info.neutral  .card-sun-time { color: rgba(165,170,178,0.9); }
+
+  .card-score-num {
+    flex-shrink: 0;
+    font-family: 'Inter', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    text-align: right;
+  }
+  .card-score-num span {
+    display: block;
+    font-family: 'Inter', sans-serif;
+    font-size: 8px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    opacity: 0.5;
+    margin-top: 1px;
+  }
+  .card-score-num.tier-high { color: var(--accent); }
+  .card-score-num.tier-mid  { color: rgba(156,189,231,0.8); }
+  .card-score-num.tier-low  { color: #a8a482; }
+  .card-score-num.tier-poor { color: #78a0d8; }
+
+  /* Bloom glow — radiates from the top-right corner, gold→blue by score */
+  .card-bloom {
+    position: absolute;
+    top: 0; right: 0;
+    width: 190px; height: 160px;
+    pointer-events: none;
+  }
+  .card-bloom.tier-high,
+  .card-bloom.tier-mid,
+  .card-bloom.tier-low,
+  .card-bloom.tier-poor { background: none; }
+
+  .card-dial-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(245,194,94,0.75);
+    letter-spacing: 0.1px;
+  }
+
+  /* ── Skeleton placeholder cards ──────────────────────────────────── */
+  /* Shown in two situations:
+     1. After-sunset / no-sun-left empty state — passive placeholder.
+     2. Time-slider scrub state — strong "list is being recomputed" signal,
+        replaces the real cards while the user drags the slider.
+     Layout mirrors the real .venue-card (card-row1 + card-meta + timeline
+     placeholder) so the swap doesn't reshape the list height. */
+  .venue-card.skeleton {
+    pointer-events: none;
+    animation: skeletonFadeIn 0.18s ease-out both,
+               skeletonPulse 1.4s ease-in-out 0.18s infinite;
+  }
+  @keyframes skeletonFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 0.55; }
+  }
+  @keyframes skeletonPulse {
+    0%, 100% { opacity: 0.42; }
+    50%      { opacity: 0.62; }
+  }
+  .skel {
+    background: rgba(156,189,231,0.22);
+    border-radius: 4px;
+  }
+  .skel-name {
+    height: 14px;
+    border-radius: 4px;
+  }
+  .skel-duration {
+    width: 46px;
+    height: 13px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .skel-meta {
+    height: 9px;
+    border-radius: 3px;
+  }
+  .skel-timeline {
+    width: 100%;
+    height: 12px;
+    margin-top: 6px;
+    border-radius: 2px;
+    background: rgba(156,189,231,0.10);
+  }
+
+  /* ── Arc frozen state (after sunset, today only) ──────────────────── */
+  .arc-frozen #bottom-arc-row  { pointer-events: none; opacity: 0.35; }
+  .arc-frozen #time-presets-row { pointer-events: none; opacity: 0.35; }
+
+  /* ── Expanded section (visible when .selected) ─────────────────────── */
+  .card-expanded {
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 0.22s ease, opacity 0.18s ease;
+  }
+
+  .venue-card.selected .card-expanded {
+    max-height: 120px;
+    opacity: 1;
+  }
+
+  .card-score-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    margin-bottom: 4px;
+  }
+
+  .score-detail-inline {
+    font-size: 11px;
+    color: var(--muted);
+    opacity: 0.8;
+  }
+
+  .card-address {
+    font-size: 11px;
+    color: var(--muted);
+    opacity: 0.7;
+    margin-bottom: 8px;
+  }
+
+  .card-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+    margin-bottom: 2px;
+  }
+
+  .card-action-btn {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(156,189,231,0.22);
+    background: rgba(156,189,231,0.1);
+    color: var(--text);
+    cursor: pointer;
+    text-decoration: none;
+    letter-spacing: 0.2px;
+    transition: background 0.12s;
+  }
+
+  .card-action-btn:hover {
+    background: rgba(156,189,231,0.2);
+  }
+
+  #hover-tooltip {
+    position: absolute;
+    z-index: 1100;
+    background: var(--glass-action-bg);
+    backdrop-filter: var(--glass-blur-action);
+    -webkit-backdrop-filter: var(--glass-blur-action);
+    border: var(--glass-border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    pointer-events: none;
+    display: none;
+    width: 220px;
+    box-shadow: var(--glass-inset), 0 4px 24px rgba(0,0,0,0.5);
+  }
+
+  #hover-tooltip.visible { display: block; }
+
+  .ht-name {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ht-meta {
+    font-size: 11px;
+    color: var(--muted);
+    display: flex;
+    gap: 5px;
+    align-items: center;
+  }
+
+  .ht-status {
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 4px;
+    display: flex;
+    gap: 6px;
+    align-items: baseline;
+  }
+  .ht-status-main { white-space: nowrap; }
+  .ht-status-sub  { font-weight: 500; opacity: 0.65; white-space: nowrap; }
+
+  .ht-status.state-sun    { color: var(--accent); }
+  .ht-status.state-shadow { color: rgba(165,170,178,0.9); }
+  .ht-status.state-rain   { color: rgba(156,189,231,0.9); }
+  .ht-status.state-done   { color: var(--muted); }
+
+  .ht-timeline { margin-top: 9px; }
+  /* Card timeline reused inside tooltip */
+  #hover-tooltip .card-timeline { margin-top: 6px; }
+
+  .ht-tl-track {
+    height: 5px;
+    background: rgba(156,189,231,0.2);
+    border-radius: 3px;
+    position: relative;
+    margin-bottom: 4px;
+    overflow: visible;
+  }
+
+  .ht-tl-seg {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    background: var(--accent);
+    border-radius: 3px;
+    opacity: 0.85;
+  }
+
+  .ht-tl-needle {
+    position: absolute;
+    top: -3px;
+    width: 2px;
+    height: 11px;
+    background: #fff;
+    border-radius: 1px;
+    transform: translateX(-50%);
+    box-shadow: 0 0 3px rgba(255,255,255,0.5);
+  }
+
+  .ht-tl-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    color: var(--muted);
+    opacity: 0.6;
+    margin-top: 2px;
+  }
+
+  #map-toast {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-8px);
+    z-index: 950;
+    background: var(--glass-action-bg);
+    backdrop-filter: var(--glass-blur-action);
+    -webkit-backdrop-filter: var(--glass-blur-action);
+    border: var(--glass-border);
+    border-radius: 12px;
+    box-shadow: var(--glass-inset), 0 4px 20px rgba(0,0,0,0.40);
+    padding: 8px 14px;
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  #map-toast.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  @keyframes toast-spin {
+    to { transform: rotate(360deg); }
+  }
+  #map-toast::before {
+    content: '';
+    width: 12px;
+    height: 12px;
+    border: 1.5px solid rgba(156,189,231,0.2);
+    border-top-color: rgba(245,194,94,0.7);
+    border-radius: 50%;
+    animation: toast-spin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+  #map-toast.done::before {
+    border: 1.5px solid rgba(100,255,180,0.5);
+    animation: none;
+  }
+
+  /* ── Mobile — bottom sheet ────────────────────────────────────────── */
+  @media (max-width: 639px) {
+    /* Hide brand logo — saves top-right space */
+    #floating-brand { display: none; }
+
+    #floating-search {
+      left: 6px;
+      right: 6px;
+      width: auto;
+      top: 12px;
+    }
+
+    /* Stage 4b-1: Profile panel uses the same bottom-sheet shape on mobile
+       as on desktop. No mobile-specific position override needed — base
+       rule handles it. */
+    /* Stage 4b-1: Sub-view header bar. No solid background or backdrop
+       blur — the sheet itself provides those; a second layer on top
+       reads as a separate slab. Just the close/back button + title
+       floating on the sheet glass. */
+    .profile-panel-mobile-bar {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      /* Top pad reserves the iOS safe area (notch / Dynamic Island)
+         plus the visual breathing room above the back button. */
+      padding: calc(env(safe-area-inset-top, 0px) + 12px) 12px 8px;
+      background: none;
+      border-bottom: none;
+    }
+    .profile-panel-mobile-back {
+      background: var(--glass-action-bg);
+      border: var(--glass-border);
+      box-shadow: var(--glass-inset);
+      border-radius: 50%;
+      width: 34px; height: 34px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .profile-panel-mobile-back:hover { background: rgba(155,169,188,0.22); }
+    .profile-panel-mobile-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+    /* Hide the bottom qc-wrap and other floating chrome while the panel is up */
+    body.profile-panel-open #qc-wrap,
+    body.profile-panel-open #floating-search,
+    body.profile-panel-open #floating-brand,
+    body.profile-panel-open #top-strip,
+    body.profile-panel-open #fts,
+    body.profile-panel-open #panel,
+    body.profile-panel-open #detail-panel {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    /* Logged-out: mobile typography overrides. Layout (flex, padding) lives in
+       the global #profile-panel.logged-out rules above. */
+    #profile-panel.logged-out .login-slide-icon { width: 72px; height: 72px; margin-bottom: 16px; }
+    #profile-panel.logged-out .login-slide-icon svg { width: 56px; height: 56px; }
+    #profile-panel.logged-out .login-hero-title {
+      font-size: 24px; max-width: 320px; margin: 0 auto 24px;
+    }
+    #profile-panel.logged-out .login-slide-title { font-size: 17px; margin-bottom: 8px; }
+    #profile-panel.logged-out .login-slide-body { max-width: 320px; font-size: 14px; }
+
+    #zoom-debug {
+      left: 6px;
+      right: 6px;
+      top: calc(12px + 46px + 8px + 50px);
+      transform: none;
+      width: auto;
+      text-align: center;
+    }
+
+    /* Venue list — peek state position driven by --peek-h CSS var.
+       Position-based animation (bottom + height) instead of transform.
+       Transform-based slides on iOS WebKit caused the panel's
+       backdrop-filter to drop for a few frames as the compositor layer
+       recomposited mid-animation — the visible "transparency flash" the
+       user reported. `bottom` and `height` are layout properties, not
+       compositor ones, so backdrop-filter stays stable across the slide.
+       Slightly more layout cost per frame but the slide is short and
+       the glass look stays consistent end-to-end. */
+    #panel {
+      position: fixed;
+      top: auto;
+      left: 0;
+      right: 0;
+      width: 100%;
+      /* 50% of the JS-tracked visible viewport — see --app-h. 50svh
+         is the fallback until the visualViewport probe runs. */
+      height: calc(var(--app-h, 100svh) * 0.5);
+      /* Negative bottom in peek state: the panel's bottom edge sits
+         (panel-height − peek-h) below the viewport bottom, so only
+         peek-h is visible. Equivalent to the old translateY rule. */
+      bottom: calc(var(--peek-h, 252px) - calc(var(--app-h, 100svh) * 0.5));
+      border-radius: 20px 20px 0 0;
+      border-left: none;
+      border-right: none;
+      border-bottom: none;
+      transition:
+        bottom 0.34s cubic-bezier(0.25, 0.9, 0.4, 1),
+        height 0.34s cubic-bezier(0.25, 0.9, 0.4, 1);
+    }
+
+    /* Expanded state — bottom 0 so the full 50svh panel is in view. */
+    #panel.mobile-expanded {
+      bottom: 0;
+      z-index: 910;  /* zoom-jog (900) sits behind list; locate-btn (920) stays on top */
+    }
+
+    /* Empty-state — when #venue-list contains only .empty-all, the
+       50svh-tall panel leaves a tall dark band below the content.
+       Shrink the panel to its natural content height so the map
+       shows through above the home-indicator zone. iOS 16.4+ +
+       Chrome 105+ have :has(); we already require those for push. */
+    #panel.mobile-expanded:has(#venue-list > .empty-all:only-child) {
+      height: auto;
+      max-height: calc(var(--app-h, 100svh) * 0.5);
+    }
+
+    /* Fully hidden (covered by detail panel) — slides down behind the morphed card.
+       Transition matches the panel morph (320ms) so list and detail move together. */
+    #panel.mobile-hidden {
+      /* Position-based slide-off (matches the new bottom-based animation
+         scheme). Bottom set so the entire panel sits BELOW the viewport
+         plus a 20 px buffer. */
+      bottom: calc(-1 * calc(var(--app-h, 100svh) * 0.5) - 20px) !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+      transition: bottom 0.32s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.22s ease !important;
+    }
+
+    #panel-toggle-icon { display: none; }
+
+    /* FTS — Stage 2b: inside #panel, flow-positioned. Mobile override
+       just resets any leftover fixed-position properties. */
+    body.fts #fts {
+      left: auto; right: auto; bottom: auto;
+      width: auto;
+      will-change: auto;
+    }
+
+
+    /* Locate button — sits ~6px above the panel top edge. FTS used to
+       float ABOVE the panel and locate-btn stacked above it; now FTS
+       lives inside the panel, so locate-btn just hugs the panel top.
+       Restore the 40 px touch target on mobile (desktop default is 34). */
+    #locate-btn {
+      width: 40px;
+      height: 40px;
+      bottom: calc(var(--peek-h, 252px) + 14px);
+      right: 12px;
+    }
+    #locate-btn .locate-icon { width: 20px; height: 20px; margin: -10px 0 0 -10px; }
+    body.fts #locate-btn { bottom: calc(var(--fts-bottom, 160px) + 6px); right: 12px; transition: bottom 0.34s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease; }
+
+    /* Zoom jog — stacked 10px above the 40px locate button. */
+    #zoom-jog { right: 12px; }
+    #zoom-jog { bottom: calc(var(--peek-h, 252px) + 14px + 40px + 10px); }
+    body.fts #zoom-jog { bottom: calc(var(--fts-bottom, 160px) + 6px + 40px + 10px); transition: bottom 0.34s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.25s ease; }
+    /* Hide the zoom-jog while the search keyboard is up — it was re-anchoring
+       into the search bar as the viewport shrank. */
+    body.search-active #zoom-jog { opacity: 0; pointer-events: none; }
+    /* Mobile: restore the larger touch-friendly zoom-jog (40×108 with 30 px thumb). */
+    .zj-track { width: 40px; height: 108px; border-radius: 20px; }
+    .zj-thumb { width: 30px; height: 30px; }
+
+    /* FTS thumb sized up on mobile (was 32, tried 40 — settled on 36px).
+       Balance: 36 is a comfortable touch target without feeling oversized
+       relative to the 40px FTS track. */
+    #fts-thumb { width: 36px; height: 36px; }
+
+    /* Handle: grabber pill only — Google-Maps-tight spacing so the
+       header content sits high in the panel.
+       Was 16/0/4 (20px total); now 8/0/4 (12px) — reclaims 8px for
+       the header content above. */
+    #panel-handle {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 8px 0 4px;
+      flex-shrink: 0;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    #panel-handle-pill {
+      width: 36px;
+      height: 4px;
+      background: rgba(17,30,56,0.22);
+      border-radius: 2px;
+    }
+
+    /* Venue peek: top of first card visible in collapsed state.
+       12px padding-top so the card body sits below the panel chrome
+       (handle + chip row above) instead of butting up against it.
+       Bottom fade signals there's more content below. */
+    #venue-peek {
+      flex-shrink: 0;
+      /* Top pad tightened — chip row that used to sit above is hidden;
+         the action row directly above already provides spacing. */
+      padding: 6px 14px 0;
+      overflow: hidden;
+      max-height: 104px;
+      /* Fade only the very bottom edge as a soft "more below" hint —
+         not the whole lower third (was 60→100). Keeps the card body
+         solid + readable, just feathers the cut. */
+      -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
+      mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
+    }
+
+    /* Hide peek when list is visible */
+    #panel.mobile-expanded #venue-peek,
+    #panel.mobile-fullscreen #venue-peek {
+      display: none;
+    }
+
+    /* Venue card inside peek inherits list card styles — disable interaction
+       so drag-to-expand works. The onclick won't fire thanks to pointer-events. */
+    #venue-peek .venue-card {
+      pointer-events: none;
+      margin-bottom: 0;
+    }
+
+    /* Hide venue-count and the now-empty venue-header row on mobile */
+    #venue-count { display: none; }
+    #venue-header { display: none; }
+
+    /* In peek mode, hide the in-list bucket section headers so the peek
+       height stays as low as possible — the user just needs to see the
+       first card or two. The headers re-appear once the panel expands. */
+    #panel:not(.mobile-expanded):not(.mobile-fullscreen):not(.mobile-hidden) .venue-section-header {
+      display: none;
+    }
+
+    /* The unified day-header is visible in every panel state — peek
+       mode included. Horizontal padding matches the mobile #venue-list
+       (16px) so the row 1 / row 2 content edges align with the venue
+       cards' outer edges below. */
+    #day-header { padding: 6px 16px 8px !important; }
+
+    #panel-header { padding-top: 0; }
+
+    #venue-list {
+      /* 12px top padding — smoother mask handles the entry fade. Bottom
+         padding 88px so the FTS popup (above-thumb tooltip) doesn't
+         cover the last card during a slider drag. */
+      padding: 12px 16px 88px;
+      overscroll-behavior-y: none;
+      /* No top mask — clean edge by default. A drop shadow under the sticky
+         header fades in on scroll (see #panel.is-scrolled rule). */
+    }
+
+    .venue-card {
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      border-radius: 14px;
+    }
+
+    .card-badge   { font-size: 11px; padding: 4px 11px; }
+    .area-chip    { font-size: 12px; padding: 6px 13px; }
+    .sort-btn     { font-size: 15px; padding: 12px 16px; }
+
+    .card-action-btn { font-size: 12px; padding: 8px 16px; }
+    .card-actions    { gap: 10px; }
+
+    .card-expanded { max-height: 0; }
+    .venue-card.selected .card-expanded { max-height: 160px; }
+
+    /* Hide Mapbox zoom/compass controls — gesture-only on mobile */
+    .mapboxgl-ctrl-bottom-right,
+    .mapboxgl-ctrl-bottom-left,
+    .mapboxgl-ctrl-top-right,
+    .mapboxgl-ctrl-top-left,
+    .mapboxgl-ctrl-group,
+    .mapboxgl-ctrl-attrib { display: none !important; }
+
+    /* Peek state: the visible portion (handle, sun-header, venue-peek) must
+       capture touch for drag-to-expand. touch-action: none tells the browser
+       not to handle pan gestures natively — our JS touchmove does it. */
+    #panel:not(.mobile-expanded):not(.mobile-hidden):not(.mobile-fullscreen) {
+      touch-action: none;
+    }
+
+    /* Fullscreen state: panel covers everything */
+    #panel.mobile-fullscreen {
+      bottom: 0;
+      height: var(--app-h, 100svh);
+      border-radius: 0;
+      z-index: 910;
+    }
+
+    /* Kill expensive effects while the user is actively dragging the panel */
+    #panel.panel-dragging {
+      transition: none !important;
+    }
+    #panel.panel-dragging .venue-card {
+      animation: none !important;
+      transition: none !important;
+    }
+
+    /* Containment isolates the panel's paint+layout from the rest of
+       the document so transforms don't trigger full-page repaints.
+       Big win on iOS Chrome PWA where panel sliding was visibly
+       laggy through backdrop-filter recompositing the map under it.
+
+       NOTE: `paint` containment clips children to the panel's box,
+       which crops the FTS scrub popup as the panel expands. Keep
+       layout+style (still cuts most of the recomposite cost) and
+       drop paint so the popup can hover above the panel top edge. */
+    #panel { contain: layout style; }
+
+    /* Drop backdrop-filter during slide animations. The blur effect
+       is what makes the panel "look like glass"; re-blurring at 60fps
+       while the underlying map scrolls is the actual cost. JS toggles
+       .is-sliding around the transition.
+
+       v2 swapped to a near-opaque rgba(17,30,56,0.95) fallback, which
+       was much darker than the resting glass and read as a visible
+       opacity *jump* at the start and end of the slide — the panel
+       darkened, then lightened. The fallback now sits near the glass
+       baseline (≈0.55 alpha) so the swap is imperceptible while still
+       buying us the blur-recompute escape during the transform. */
+    /* Keep the backdrop-filter (frosted glass) DURING slides. The old
+       optimisation dropped it + showed a flat fallback bg, but the resting
+       panel has an alpha-0 background — it's PURE blur — so no flat colour can
+       stand in for it: navy read as a blue flash, cream read as transparent.
+       Re-blurring the (static) map under the moving panel is cheap enough on
+       modern devices; end-to-end visual consistency matters more. */
+    #panel.is-sliding {
+      /* intentionally empty — panel keeps its .glass-panel frosted look */
+    }
+  }
+
+  /* ── Edit mode overlay — bottom-anchored sheet on every viewport ─────────── */
+  #edit-overlay {
+    position: fixed;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 920;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: min(480px, calc(100vw - 32px));
+    pointer-events: auto;
+  }
+
+  #edit-banner {
+    position: relative;
+    background: var(--glass-panel-bg);
+    backdrop-filter: var(--glass-blur-panel);
+    -webkit-backdrop-filter: var(--glass-blur-panel);
+    border: var(--glass-border);
+    border-radius: 18px;
+    padding: 6px 14px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-shadow: var(--glass-inset), 0 12px 36px rgba(0,0,0,0.55);
+    width: 100%;
+  }
+
+  /* Drag handle: always visible at the top of the panel */
+  .edit-grabber {
+    width: 36px;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(156,189,231,0.40);
+    margin: 4px auto 2px;
+    flex-shrink: 0;
+    display: block;
+  }
+
+  #edit-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-height: 24px;
+  }
+
+  #edit-title {
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--accent);
+    flex-shrink: 0;
+    letter-spacing: 0;
+  }
+
+  #edit-venue-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: #FFF2EB;
+    padding: 3px 10px;
+    background: rgba(156,189,231,0.12);
+    border-radius: 999px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 60%;
+    line-height: 1.3;
+  }
+
+  /* Tools row: AI helper chips — floats ABOVE the banner / FTS.
+     Default (FTS visible): chips sit 8px above the FTS pill (FTS pill height
+     ≈ 46px → 46 + 8 gap = 54px above the panel-top anchor in --fts-bottom).
+     Satellite on (FTS hidden): chips collapse onto --fts-bottom directly so
+     the gap to the panel matches the regular FTS→panel gap. */
+  #edit-tools-row {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(var(--fts-bottom, 240px) + 54px);
+    transition: bottom 0.22s ease, opacity 0.18s ease;
+    display: none;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    width: min(480px, calc(100vw - 32px));
+    z-index: 920;
+    pointer-events: auto;
+  }
+
+  body.edit-mode #edit-tools-row { display: flex; }
+  body.edit-mode.edit-satellite #edit-tools-row {
+    bottom: var(--fts-bottom, 240px);
+  }
+
+  .edit-chip {
+    background: rgba(17,30,56,0.55);
+    backdrop-filter: blur(10px) brightness(0.92);
+    -webkit-backdrop-filter: blur(10px) brightness(0.92);
+    border: 1px solid rgba(156,189,231,0.22);
+    border-radius: 999px;
+    color: #9CBDE7;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: color 0.12s, border-color 0.12s, background 0.12s;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+    line-height: 1;
+    height: 30px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.28);
+  }
+
+  .edit-chip:hover { color: #FFF2EB; border-color: rgba(156,189,231,0.40); }
+
+  .edit-chip.active {
+    color: var(--accent);
+    border-color: rgba(245,194,94,0.45);
+    background: rgba(245,194,94,0.12);
+  }
+
+  .edit-chip[hidden] { display: none; }
+
+  /* Type dropdown + map-mode toggle: both content-sized, type pinned left,
+     toggle pinned right (matches the chip rhythm — no stretched-pill empty
+     space). */
+  #edit-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: space-between;
+  }
+
+  #edit-type-dropdown {
+    position: relative;
+    flex: 0 0 auto;
+  }
+
+  .edit-type-trigger {
+    background: var(--glass-action-bg);
+    border: 1px solid rgba(156,189,231,0.18);
+    border-radius: 999px;
+    color: #FFF2EB;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 0 12px 0 16px;
+    height: 36px;
+    cursor: pointer;
+    outline: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: border-color 0.12s, background 0.12s;
+  }
+
+  .edit-type-trigger:hover { border-color: rgba(156,189,231,0.35); }
+  .edit-type-trigger[aria-expanded="true"] {
+    border-color: rgba(245,194,94,0.45);
+    color: var(--accent);
+  }
+  .edit-type-trigger svg { color: #9CBDE7; transition: transform 0.18s ease, color 0.12s; }
+  .edit-type-trigger[aria-expanded="true"] svg { transform: rotate(180deg); color: var(--accent); }
+
+  .edit-type-list {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 0;
+    width: max-content;
+    min-width: 100%;
+    background: rgba(17,30,56, 0.92);
+    backdrop-filter: blur(16px) brightness(0.92);
+    -webkit-backdrop-filter: blur(16px) brightness(0.92);
+    border: 1px solid rgba(156,189,231,0.22);
+    border-radius: 14px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.55);
+    margin: 0;
+    padding: 4px;
+    list-style: none;
+    z-index: 5;
+  }
+
+  .edit-type-list li {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: #FFF2EB;
+    padding: 9px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+    line-height: 1.2;
+  }
+
+  .edit-type-list li:hover { background: rgba(156,189,231,0.10); }
+  .edit-type-list li.active { color: var(--accent); background: rgba(245,194,94,0.08); }
+
+  /* ── Map-mode segmented switch (3D-kart ↔ Satellitt) ─────────────────────── */
+  .map-toggle {
+    position: relative;
+    flex: 0 0 auto;
+    background: var(--glass-action-bg);
+    border: 1px solid rgba(156,189,231,0.18);
+    border-radius: 999px;
+    height: 36px;
+    padding: 3px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: stretch;
+    overflow: hidden;
+    transition: border-color 0.12s;
+  }
+
+  .map-toggle:hover { border-color: rgba(156,189,231,0.35); }
+
+  .map-toggle .map-toggle-thumb {
+    position: absolute;
+    top: 3px;
+    bottom: 3px;
+    /* width set in JS based on the wider option so the thumb hugs the label */
+    width: var(--map-toggle-thumb-w, 50%);
+    left: var(--map-toggle-thumb-x, 3px);
+    border-radius: 999px;
+    background: rgba(245,194,94,0.14);
+    border: 1px solid rgba(245,194,94,0.45);
+    box-shadow: inset 0 1px 0 rgba(255,242,235,0.18);
+    transition: left 0.22s cubic-bezier(0.4, 0, 0.2, 1), width 0.22s ease;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .map-toggle .map-toggle-option {
+    position: relative;
+    z-index: 1;
+    padding: 0 14px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: #9CBDE7;
+    white-space: nowrap;
+    transition: color 0.18s ease;
+    user-select: none;
+  }
+
+  .map-toggle[aria-checked="true"]  .map-toggle-option[data-option="satellite"],
+  .map-toggle[aria-checked="false"] .map-toggle-option[data-option="map"] {
+    color: var(--accent);
+  }
+
+  /* ── Action row: vertical stack — primary pill on top, ghost link below ──── */
+  #edit-action-row {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    margin-top: 4px;
+  }
+
+  .primary-pill {
+    width: 100%;
+    height: 46px;
+    border-radius: 999px;
+    background: var(--accent);
+    color: #2A1A0C;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.12s, opacity 0.12s;
+    border: none;
+    line-height: 1;
+  }
+
+  .primary-pill:hover { background: var(--accent-hover); }
+  .primary-pill:active { background: var(--accent-active); }
+
+  .primary-pill[disabled] {
+    opacity: 0.40;
+    cursor: not-allowed;
+  }
+
+  /* No-changes state — render Send forslag button as a quiet ghost */
+  .primary-pill.is-no-changes {
+    background: transparent;
+    border: 1px solid rgba(156,189,231,0.22);
+    color: #9CBDE7;
+  }
+
+  .primary-pill.is-no-changes:hover {
+    border-color: rgba(156,189,231,0.35);
+    color: #FFF2EB;
+  }
+
+  /* Avbryt: text-link weight, never competes with the primary CTA */
+  .ghost-link {
+    background: transparent;
+    border: none;
+    color: rgba(156,189,231,0.75);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    height: 32px;
+    cursor: pointer;
+    padding: 0 16px;
+    align-self: center;
+    transition: color 0.12s;
+  }
+
+  .ghost-link:hover { color: #FFF2EB; }
+
+  /* Mobile: bottom sheet flush to viewport edges */
+  @media (max-width: 639px) {
+    #edit-overlay {
+      bottom: 0;
+      left: 0;
+      right: 0;
+      transform: none;
+      width: 100%;
+      padding: 0 0 env(safe-area-inset-bottom, 0);
+      gap: 8px;
+    }
+    #edit-tools-row { padding: 0 16px; }
+    #edit-banner {
+      border-radius: 22px 22px 0 0;
+      padding: 6px 16px 12px;
+      border-left: none;
+      border-right: none;
+      border-bottom: none;
+      gap: 10px;
+    }
+    .edit-type-list { padding: 4px; }
+  }
+
+  /* Edit-mode: locate-btn is hidden. The zoom-jog sits at the same vertical
+     anchor as the FTS pill / chips — i.e. FTS_GAP above the editor banner top —
+     on every viewport. (--edit-zoom-bottom is set by the ResizeObserver to
+     the banner top + FTS_GAP.) */
+  body.edit-mode #zoom-jog {
+    bottom: var(--edit-zoom-bottom, 240px);
+    transition: bottom 0.22s ease;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  /* FTS pill: sit just above the editor banner; hide entirely when satellite
+     is on (no shadows to scrub anyway). Match the banner's horizontal extent. */
+  body.edit-mode #fts {
+    bottom: var(--fts-bottom, 240px);
+    transition: bottom 0.22s ease, opacity 0.22s ease;
+  }
+  body.edit-mode.edit-satellite #fts {
+    opacity: 0;
+    pointer-events: none;
+  }
+  @media (max-width: 639px) {
+    body.edit-mode #fts {
+      left: 16px;
+      right: 16px;
+      width: auto;
+    }
+  }
+
+  /* Hide notifications and toasts during edit (single-task focus) */
+  body.edit-mode #notif-toast-wrap,
+  body.edit-mode #notif-toast,
+  body.edit-mode #app-toast {
+    display: none !important;
+  }
+
+
+  /* ── Profile panel additions ─────────────────────────────────────────────── */
+  .profile-panel-section {
+    border-top: 1px solid rgba(255,255,255,0.07);
+    padding: 8px 0;
+  }
+
+  .profile-admin-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    background: none;
+    border: none;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    padding: 8px 16px;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.12s;
+  }
+
+  .profile-admin-row:hover { background: rgba(255,255,255,0.05); }
+
+  /* ── Admin audit mode (polygon walk-through) ──────────────────────────────
+     Glass-lens surfaces on slate, single honey accent for active state.
+     Tokens: --glass-panel-bg, --glass-border, --glass-inset, --accent,
+             --accent-dim, --text, --muted, --red-500.
+     Audit and Review modes share .review-chip (retuned below).
+  ─────────────────────────────────────────────────────────────────────── */
+  #audit-mode-indicator {
+    position: fixed;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9000;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+  }
+  .audit-indicator-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px 6px 14px;
+    background: var(--glass-panel-bg);
+    backdrop-filter: var(--glass-blur-panel);
+    -webkit-backdrop-filter: var(--glass-blur-panel);
+    border: var(--glass-border);
+    border-radius: 999px;
+    box-shadow: var(--glass-inset), 0 8px 24px rgba(0,0,0,0.32);
+    flex-wrap: nowrap;
+    white-space: nowrap;
+  }
+  .audit-indicator-title {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--text);
+  }
+  #audit-indicator-count {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    margin-right: 2px;
+  }
+  .audit-indicator-divider {
+    width: 1px;
+    height: 16px;
+    background: rgba(155,169,188,0.22);
+    display: inline-block;
+    padding: 0;
+    opacity: 1;
+    margin: 0 2px;
+  }
+
+  /* Buttons + chips inside the indicator share the chip-pill rhythm
+     (smaller height to keep the bar compact). */
+  .audit-pill, .audit-submode-btn {
+    height: 28px;
+    padding: 0 12px;
+    border-radius: 999px;
+    font: 600 12px 'Inter', sans-serif;
+    color: var(--text);
+    background: var(--glass-action-bg);
+    border: var(--glass-border);
+    box-shadow: var(--glass-inset);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: border-color 120ms ease-out, background 120ms ease-out, color 120ms ease-out;
+    white-space: nowrap;
+  }
+  .audit-pill:hover, .audit-submode-btn:hover { border-color: rgba(156,189,231,0.32); }
+  .audit-pill.is-ghost {
+    background: transparent;
+    border-color: rgba(155,169,188,0.18);
+    color: var(--muted);
+    box-shadow: none;
+  }
+  .audit-pill.is-ghost:hover { color: var(--text); border-color: rgba(155,169,188,0.35); }
+
+  /* Sub-mode segmented control */
+  .audit-submode {
+    display: inline-flex;
+    gap: 2px;
+    padding: 2px;
+    border-radius: 999px;
+    background: rgba(15,27,42,0.40);
+    border: var(--glass-border);
+  }
+  .audit-submode-btn {
+    height: 24px;
+    padding: 0 10px;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    color: var(--muted);
+  }
+  .audit-submode-btn:hover { color: var(--text); border-color: transparent; }
+  .audit-submode-btn.active {
+    background: var(--accent-dim);
+    color: var(--accent);
+  }
+
+  /* Filter toggle — honey-dim when filters deviate from default. */
+  .audit-pill.has-active {
+    background: var(--accent-dim);
+    border-color: var(--accent-border);
+    color: var(--accent);
+  }
+  .audit-filter-toggle-badge {
+    background: var(--accent);
+    color: var(--accent-on);
+    border-radius: 999px;
+    padding: 0 5px;
+    font-size: 10px;
+    font-weight: 700;
+    min-width: 14px;
+    text-align: center;
+    display: none;
+    font-variant-numeric: tabular-nums;
+  }
+  .audit-pill.has-active .audit-filter-toggle-badge { display: inline-block; }
+
+  /* Filter popover panel — sits under the indicator like a dropdown. */
+  .audit-filter-panel {
+    margin-top: 8px;
+    padding: 12px;
+    width: min(440px, 92vw);
+    background: var(--glass-panel-bg);
+    backdrop-filter: var(--glass-blur-panel);
+    -webkit-backdrop-filter: var(--glass-blur-panel);
+    border: var(--glass-border);
+    border-radius: 14px;
+    box-shadow: var(--glass-inset), 0 12px 32px rgba(0,0,0,0.32);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .audit-filter-group { display: flex; flex-direction: column; gap: 6px; }
+  .audit-filter-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .audit-chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .audit-chip {
+    height: 26px;
+    padding: 0 10px;
+    border-radius: 999px;
+    font: 600 11px 'Inter', sans-serif;
+    color: var(--text);
+    background: var(--glass-action-bg);
+    border: var(--glass-border);
+    box-shadow: var(--glass-inset);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+    transition: border-color 120ms ease-out, background 120ms ease-out, color 120ms ease-out;
+  }
+  .audit-chip:hover { border-color: rgba(156,189,231,0.32); }
+  .audit-chip.active {
+    background: var(--accent-dim);
+    border-color: var(--accent-border);
+    color: var(--accent);
+  }
+  .audit-chip-count {
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    font-size: 10px;
+    font-weight: 700;
+  }
+  .audit-chip.active .audit-chip-count { color: rgba(245,194,94,0.75); }
+  .audit-filter-footer { display: flex; justify-content: flex-end; }
+
+  /* List-card state strips. Reviewed = honey-dim (positive but quiet);
+     archived = error-soft (subdued red tint, lower opacity). */
+  .venue-card.audit-reviewed { border-left: 3px solid var(--accent); }
+  .venue-card.audit-archived {
+    border-left: 3px solid var(--red-500);
+    opacity: 0.65;
+  }
+
+  /* Card action row + badge — single line, intrinsic widths so 3 buttons
+     fit on one row even in narrow cards. Smaller than indicator chips so
+     they recede inside the card. */
+  .audit-actions {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 6px;
+    padding: 8px 10px 10px;
+    align-items: center;
+    border-top: 1px solid rgba(155,169,188,0.10);
+  }
+  .audit-state-badge {
+    flex: 0 0 auto;
+    font: 700 10px 'Inter', sans-serif;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .venue-card.audit-archived .audit-state-badge {
+    background: rgba(255,107,107,0.18);
+    color: var(--red-500);
+  }
+  /* Action buttons. Primary = honey; secondaries = glass; destructive =
+     glass with error-tinted border. Edit-polygon is the rightmost item;
+     it gets the .audit-edit modifier so it can pin-right without flexing. */
+  .audit-action-btn {
+    flex: 0 0 auto;
+    height: 26px;
+    padding: 0 10px;
+    border-radius: 999px;
+    font: 700 11px 'Inter', sans-serif;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    background: var(--accent);
+    color: var(--accent-on);
+    border: none;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.28);
+    transition: background 120ms ease-out, color 120ms ease-out, border-color 120ms ease-out;
+    white-space: nowrap;
+  }
+  .audit-action-btn:hover { background: var(--accent-hover); }
+  .audit-action-btn.audit-undo {
+    background: var(--glass-action-bg);
+    color: var(--muted);
+    border: var(--glass-border);
+    box-shadow: var(--glass-inset);
+  }
+  .audit-action-btn.audit-undo:hover { color: var(--text); border-color: rgba(156,189,231,0.32); }
+  .audit-action-btn.audit-archive {
+    background: var(--glass-action-bg);
+    color: var(--red-500);
+    border: 1px solid rgba(255,107,107,0.28);
+    box-shadow: var(--glass-inset);
+  }
+  .audit-action-btn.audit-archive:hover { border-color: rgba(255,107,107,0.55); background: rgba(255,107,107,0.10); }
+  /* Push the rightmost button to the right edge of the card so Edit feels
+     spatially separate from the state action. */
+  .audit-actions > .audit-action-btn:last-child { margin-left: auto; }
+
+  /* Archive reason chooser — the audit-actions row morphs in place into
+     a list of reason chips. Allow wrap so all presets stay visible on
+     narrow cards; drop the right-edge margin so Cancel sits flush. */
+  .audit-actions.is-choosing-reason { flex-wrap: wrap; gap: 4px; }
+  .audit-actions.is-choosing-reason > .audit-action-btn:last-child { margin-left: auto; }
+  .audit-actions.is-choosing-reason .audit-state-badge {
+    color: var(--accent);
+    background: var(--accent-dim);
+    border: 1px solid var(--accent-border);
+  }
+
+  /* AI training-status chip — pinned next to the state badge so the admin
+     can read "polygon-decision + training-status" in one glance. Subtle
+     by design; the row's primary signal is still the action button. */
+  .audit-train-chip {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 999px;
+    font: 600 10px 'Inter', sans-serif;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    border: 1px solid transparent;
+  }
+  .audit-train-chip.is-trained {
+    color: var(--green-500);
+    background: rgba(100,255,180,0.10);
+    border-color: rgba(100,255,180,0.30);
+  }
+  .audit-train-chip.is-pending {
+    color: var(--accent);
+    background: var(--accent-dim);
+    border-color: var(--accent-border);
+  }
+
+  .review-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 4px 10px 0;
+  }
+  .review-chip {
+    display: inline-block;
+    background: var(--accent-dim);
+    color: var(--accent);
+    border: 1px solid var(--accent-border);
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+  .venue-card.review-flagged {
+    border-left: 3px solid var(--accent);
+  }
+  .profile-role-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 2px 7px;
+    border-radius: 5px;
+    text-transform: uppercase;
+    vertical-align: middle;
+    margin-left: 6px;
+  }
+
+  .profile-role-badge.admin {
+    background: rgba(245,194,94,0.18);
+    border: 1px solid rgba(245,194,94,0.45);
+    color: var(--accent);
+  }
+
+  .profile-role-badge.editor {
+    background: rgba(156,189,231,0.18);
+    border: 1px solid rgba(156,189,231,0.35);
+    color: #9CBDE7;
+  }
+
+  .pending-badge {
+    /* Honey-dim pill — matches the badge pattern across the redesign
+       (count badges on bell, friend requests, pending suggestions). */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent-dim);
+    color: var(--accent);
+    border: 1px solid var(--accent-border);
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 7px;
+    margin-left: auto;
+  }
+
+  /* ── Profile panel — settings + suggestions + privacy ───────────────────── */
+  .profile-settings-section { padding: 10px 0; }
+  .profile-section-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0 16px 6px;
+  }
+  .profile-pref-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 16px;
+    gap: 12px;
+  }
+  .profile-pref-label {
+    font-size: 13px;
+    color: var(--text);
+  }
+  /* Segmented control — single container with inset background, the
+     individual buttons sit inside without their own chrome. Active
+     button gets the honey-dim treatment. */
+  .profile-pref-pills {
+    display: inline-flex;
+    background: rgba(7,16,31,0.40);
+    border: 1px solid rgba(155,169,188,0.20);
+    border-radius: 10px;
+    padding: 2px;
+    gap: 0;
+  }
+  .pref-pill {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    min-width: 32px;
+    transition: background 0.12s, color 0.12s;
+  }
+  .pref-pill:hover { color: var(--text); }
+  .pref-pill.active {
+    background: var(--accent-dim);
+    color: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--accent-border);
+  }
+  .profile-pref-desc {
+    font-size: 11px;
+    color: var(--muted);
+    padding: 0 16px 4px;
+    opacity: 0.7;
+  }
+  .checkin-vis-row { padding: 3px 16px; }
+  .checkin-vis-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 26px;
+    padding: 0;
+  }
+  .checkin-vis-toggle svg { stroke: currentColor; }
+  .my-suggestion-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 16px;
+    gap: 8px;
+  }
+  .my-suggestion-info {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+  }
+  .my-suggestion-name {
+    font-size: 13px;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 140px;
+  }
+  .suggestion-status-badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 2px 6px;
+    border-radius: 5px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .suggestion-status-badge.pending  { background: rgba(245,194,94,0.12); color: var(--accent); border: 1px solid rgba(245,194,94,0.3); }
+  .suggestion-status-badge.approved { background: rgba(100,255,180,0.12); color: #64ffb4;       border: 1px solid rgba(100,255,180,0.3); }
+  .suggestion-status-badge.rejected { background: rgba(255,107,107,0.12); color: #ff6b6b;       border: 1px solid rgba(255,107,107,0.3); }
+  .suggestion-withdraw-btn {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid rgba(156,189,231,0.2);
+    border-radius: 6px;
+    padding: 3px 8px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: color 0.12s, border-color 0.12s;
+  }
+  .suggestion-withdraw-btn:hover { color: #ff6b6b; border-color: rgba(255,107,107,0.4); }
+  .profile-privacy-link {
+    display: block;
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted);
+    text-decoration: none;
+    padding: 6px 0 2px;
+    transition: color 0.12s;
+  }
+  .profile-privacy-link:hover { color: var(--text); }
+
+  /* ── Settings (grouped-list redesign) ────────────────────────────────────── */
+  .settings-root {
+    padding: 12px 12px calc(20px + env(safe-area-inset-bottom, 0px));
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .settings-group-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0 6px 6px;
+  }
+  /* Stage 4b-2: settings-group as a Tier 2 lens object (was --card-bg
+     legacy). Layered shadow gives it a card silhouette inside the
+     sheet without competing with the panel's own glass. */
+  .settings-group {
+    background: var(--glass-card-bg);
+    border: 1px solid rgba(155,169,188,0.22);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow:
+      inset 0 1px 0 rgba(255,250,235,0.10),
+      inset 0 -1px 0 rgba(15,30,55,0.30),
+      0 1px 2px rgba(0,0,0,0.18),
+      0 4px 14px rgba(0,0,0,0.22);
+  }
+  .settings-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    background: none;
+    border: none;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    text-align: left;
+    padding: 13px 14px;
+    min-height: 46px;
+    cursor: pointer;
+    transition: background 0.12s;
+    box-sizing: border-box;
+  }
+  .settings-row + .settings-row { border-top: 1px solid rgba(156,189,231,0.10); }
+  .settings-row:hover { background: rgba(255,255,255,0.04); }
+  .settings-row:disabled,
+  .settings-row.is-disabled { cursor: default; opacity: 0.55; }
+  .settings-row:disabled:hover,
+  .settings-row.is-disabled:hover { background: none; }
+  .settings-row__icon {
+    flex-shrink: 0;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+  }
+  .settings-row__label {
+    flex: 1 1 auto;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .settings-row__value {
+    color: var(--muted);
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .settings-row__chevron {
+    color: var(--muted);
+    flex-shrink: 0;
+    opacity: 0.7;
+  }
+  /* Stage 4b-2: destructive soft red (was bright #ff8a8a). Reads as
+     "danger" without yelling. */
+  .settings-row.destructive { color: #E47B7B; }
+  .settings-row.destructive .settings-row__icon,
+  .settings-row.destructive .settings-row__chevron { color: #E47B7B; }
+  .settings-row.destructive:hover { background: rgba(228,123,123,0.06); }
+
+  /* Identity card variant — full bleed within group */
+  /* Stage 4b-1: Hero identity — centered, 72px avatar, soft honey halo.
+     The wrapping .settings-identity-group has its card chrome stripped so
+     the hero floats free at the top of the sheet. */
+  .settings-identity-group {
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  /* .settings-root is a column flex container with overflow-y:auto. By
+     default flex items can shrink (flex-shrink:1); combined with
+     .settings-group's overflow:hidden, the identity group can collapse
+     to height:0 when total content exceeds the visible area — which
+     hides the hero. The other groups have min-height:46px rows that
+     keep them above 0. Lock children to their natural size and let the
+     container scroll. */
+  #profile-panel .settings-root > * { flex-shrink: 0; }
+  .settings-identity {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0;
+    padding: 22px 16px 26px;
+    background: none;
+    border: none;
+    width: 100%;
+    color: var(--text);
+    cursor: default;
+  }
+  .settings-identity__avatar,
+  .settings-identity__avatar-initials {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    object-fit: cover;
+    margin-bottom: 12px;
+    /* "Sun on you" halo — subtle honey glow + soft elevation. */
+    box-shadow:
+      inset 0 1px 0 rgba(255,250,235,0.16),
+      0 0 0 4px rgba(245,194,94,0.08),
+      0 0 24px rgba(245,194,94,0.08),
+      0 8px 24px rgba(0,0,0,0.40);
+    border: 1.5px solid rgba(155,169,188,0.30);
+  }
+  .settings-identity__avatar-initials {
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; font-weight: 700;
+    color: var(--accent-on);
+  }
+  .settings-identity__info {
+    min-width: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .settings-identity__name {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    line-height: 1.2;
+    max-width: 100%;
+  }
+  .settings-identity__email {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.2;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Inline pref row (segmented controls inside a settings-group) */
+  .settings-row.pref-row { cursor: default; }
+  .settings-row.pref-row:hover { background: none; }
+
+  /* Status pill — for "Coming soon" markers */
+  .settings-status-pill {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 3px 7px;
+    border-radius: 10px;
+    background: rgba(156,189,231,0.14);
+    color: var(--muted);
+    border: 1px solid rgba(156,189,231,0.22);
+    flex-shrink: 0;
+  }
+
+  /* Toggle switch — replaces eye icons in the redesign */
+  .toggle-switch {
+    position: relative;
+    width: 34px;
+    height: 20px;
+    border-radius: 10px;
+    background: rgba(156,189,231,0.22);
+    border: 1px solid rgba(156,189,231,0.28);
+    padding: 0;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.16s ease, border-color 0.16s ease;
+  }
+  .toggle-switch::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #FFF2EB;
+    transform: translateY(-50%);
+    transition: left 0.16s ease, background 0.16s ease, transform 90ms ease-out;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.35);
+  }
+  .toggle-switch.is-on {
+    background: var(--accent);
+    border-color: rgba(245,194,94,0.7);
+  }
+  .toggle-switch.is-on::after {
+    left: 17px;
+    background: #111E38;
+  }
+  .toggle-switch:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* Activity sub-panel rows reuse .inbox-row styling already defined */
+  .settings-subview {
+    /* Stage 4b-4: sub-view becomes the scroll container so the sticky
+       mobile bar stays in place at the top of the sheet while content
+       scrolls beneath. Matches .settings-root behavior. */
+    flex: 1 1 auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 12px 12px calc(20px + env(safe-area-inset-bottom, 0px));
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .settings-subview__empty {
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 32px 16px;
+    opacity: 0.7;
+  }
+
+  /* About row holds version text inline */
+  .settings-row__sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* ── Auth buttons ─────────────────────────────────────────────────────────── */
+  .login-gate {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 56px 24px 48px; text-align: center; gap: 14px;
+  }
+  .login-gate-title {
+    font-family: 'Newsreader', serif; font-size: 22px;
+    color: var(--text); font-weight: 400;
+  }
+  .login-gate-subtitle {
+    color: var(--muted); font-size: 13px; line-height: 1.6; max-width: 240px;
+  }
+  .login-gate-buttons {
+    display: flex; flex-direction: column; gap: 10px;
+    width: 100%; max-width: 280px; margin-top: 8px;
+  }
+  .auth-btn {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    width: 100%; border: none; border-radius: 8px;
+    padding: 11px 22px; font-family: 'Inter', sans-serif;
+    font-size: 14px; font-weight: 500; cursor: pointer;
+    transition: opacity 0.12s;
+  }
+  .auth-btn:hover { opacity: 0.85; }
+  .auth-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .auth-btn-google { background: #fff; color: #1f1f1f; }
+  .auth-btn-apple  { background: #000; color: #fff; }
+  .auth-btn-apple svg { width: 18px; height: 18px; }
+  .auth-btn-email  {
+    background: rgba(255,255,255,0.1); color: var(--text);
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+  .auth-divider {
+    display: flex; align-items: center; gap: 12px;
+    color: var(--muted); font-size: 12px; margin: 2px 0;
+  }
+  .auth-divider::before, .auth-divider::after {
+    content: ''; flex: 1; height: 1px;
+    background: rgba(255,255,255,0.1);
+  }
+  .auth-magic-link-form { display: flex; flex-direction: column; gap: 8px; }
+  .auth-magic-link-input {
+    width: 100%; box-sizing: border-box;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
+    color: var(--text); font-family: 'Inter', sans-serif; font-size: 13px;
+    padding: 10px 14px; outline: none;
+  }
+  .auth-magic-link-input:focus { border-color: rgba(156,189,231,0.5); }
+  .auth-magic-link-input::placeholder { color: var(--muted); }
+  /* Password input mirrors the email input visually; only visible when the
+     user explicitly tabs into it (still occupies layout space for the hint
+     line below). Optional — empty value means "use magic link". */
+  .auth-password-input {
+    width: 100%; box-sizing: border-box;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
+    color: var(--text); font-family: 'Inter', sans-serif; font-size: 13px;
+    padding: 10px 14px; outline: none;
+  }
+  .auth-password-input:focus { border-color: rgba(156,189,231,0.5); }
+  .auth-password-input::placeholder { color: var(--muted); }
+  .auth-password-hint {
+    font-size: 11px; line-height: 1.4; color: var(--muted);
+    text-align: center; padding: 0 4px;
+  }
+  .auth-magic-link-status {
+    font-size: 12px; line-height: 1.4; min-height: 17px; text-align: center;
+  }
+  .auth-magic-link-status.success { color: #64ffb4; }
+  .auth-magic-link-status.error   { color: #ff6b6b; }
+
+  /* Logged-out profile panel: hero + benefits carousel */
+  .login-hero { padding: 24px 20px 8px; text-align: center; }
+  .login-hero-title {
+    font-family: 'Newsreader', serif; font-size: 22px; font-weight: 400;
+    color: var(--text); line-height: 1.25; margin: 0 0 18px;
+  }
+  .login-carousel { position: relative; overflow: hidden; }
+  .login-carousel-track {
+    display: flex;
+    transition: transform 0.35s cubic-bezier(0.25, 0.9, 0.4, 1);
+    will-change: transform; touch-action: pan-y;
+  }
+  .login-slide {
+    flex: 0 0 100%; padding: 8px 16px 12px; box-sizing: border-box;
+    text-align: center;
+  }
+  .login-slide-icon {
+    width: 48px; height: 48px; margin: 0 auto 12px; color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .login-slide-icon svg { width: 36px; height: 36px; }
+  .login-slide-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .login-slide-body  {
+    font-size: 13px; line-height: 1.5; color: var(--muted);
+    max-width: 240px; margin: 0 auto;
+  }
+  .login-carousel-dots {
+    display: flex; gap: 6px; justify-content: center; padding: 14px 0 4px;
+  }
+  .login-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: rgba(255,255,255,0.2); border: none; padding: 0;
+    cursor: pointer; transition: background 0.2s, width 0.2s;
+  }
+  .login-dot.active { background: var(--accent); width: 18px; border-radius: 3px; }
+
+  .login-auth-section { padding: 8px 20px 12px; }
+  .login-auth-section .login-gate-buttons { max-width: none; margin-top: 0; }
+  .login-footer {
+    border-top: 1px solid rgba(255,255,255,0.07);
+    padding: 10px 0 4px; margin-top: 8px; text-align: center;
+  }
+  .login-close-btn {
+    position: absolute; top: 10px; right: 10px;
+    width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(255,255,255,0.06); border: none;
+    color: var(--muted); font-size: 22px; line-height: 1;
+    cursor: pointer; z-index: 2; display: none;
+    align-items: center; justify-content: center;
+  }
+  .login-close-btn:hover { background: rgba(255,255,255,0.12); color: var(--text); }
+
+  /* Candidate "Suggest venue" badge in search dropdown */
+  .sd-candidate-btn {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+    background: rgba(245,194,94,0.1);
+    border: 1px solid rgba(245,194,94,0.25);
+    border-radius: 12px;
+    padding: 3px 10px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    pointer-events: none; /* row handles click */
+  }
+  .sd-row-candidate:hover .sd-candidate-btn {
+    background: rgba(245,194,94,0.2);
+    border-color: rgba(245,194,94,0.4);
+  }
+
+  /* ── Venue selection modal (Google Places results) ──────────────────────────── */
+  .suggest-result-row {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(156,189,231,0.1);
+    cursor: pointer;
+    transition: background 150ms ease;
+  }
+  .suggest-result-row:last-child { border-bottom: none; }
+  .suggest-result-row:hover { background: rgba(245,194,94,0.08); }
+
+  .suggest-result-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .suggest-result-address {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* ── Candidate loading panel ──────────────────────────────────────────────── */
+  .candidate-loading-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 280px;
+    padding: 32px 24px;
+    text-align: center;
+  }
+  .candidate-loading-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 28px;
+  }
+  .candidate-loading-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid rgba(245,194,94,0.15);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: candidate-spin 0.8s linear infinite;
+    margin-bottom: 20px;
+  }
+  @keyframes candidate-spin {
+    to { transform: rotate(360deg); }
+  }
+  .candidate-loading-status {
+    font-size: 13px;
+    color: var(--muted);
+    transition: opacity 0.2s;
+  }
+
+  /* ── Geo search pin (address marker on map) ──────────────────────────────── */
+  .geo-pin {
+    cursor: pointer;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+    animation: geo-pin-drop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes geo-pin-drop {
+    0%   { transform: translateY(-20px); opacity: 0; }
+    100% { transform: translateY(0);     opacity: 1; }
+  }
+
+  /* ── Admin modals ─────────────────────────────────────────────────────────── */
+  .admin-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    padding: 16px;
+  }
+
+  .admin-modal-inner {
+    background: var(--panel-bg, #0d1f35);
+    border: 1px solid rgba(156,189,231,0.22);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 520px;
+    max-height: calc(var(--app-h, 100svh) * 0.8);
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.7);
+  }
+
+  .admin-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    flex-shrink: 0;
+  }
+
+  .admin-modal-title {
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .admin-modal-close {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background 0.12s;
+  }
+
+  .admin-modal-close:hover { background: rgba(255,255,255,0.08); color: var(--text); }
+
+  .admin-modal-body {
+    padding: 16px 20px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .admin-edit-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(156,189,231,0.15);
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 12px;
+    transition: opacity 0.3s;
+  }
+
+  .admin-edit-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+  }
+
+  .admin-edit-venue {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .admin-edit-meta {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .admin-edit-diff {
+    margin-bottom: 10px;
+  }
+
+  .admin-diff-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    flex-wrap: wrap;
+  }
+
+  .admin-diff-key   { color: var(--muted); min-width: 120px; }
+  .admin-diff-before { color: #ff8080; font-family: monospace; }
+  .admin-diff-arrow  { color: var(--muted); }
+  .admin-diff-after  { color: #64ffb4; font-family: monospace; }
+
+  .admin-edit-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .admin-approve-btn {
+    background: rgba(100,255,180,0.12);
+    border: 1px solid rgba(100,255,180,0.4);
+    border-radius: 7px;
+    color: #64ffb4;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .admin-approve-btn:hover { background: rgba(100,255,180,0.22); }
+
+  .admin-reject-btn {
+    background: rgba(255,107,107,0.12);
+    border: 1px solid rgba(255,107,107,0.35);
+    border-radius: 7px;
+    color: #ff6b6b;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .admin-reject-btn:hover { background: rgba(255,107,107,0.22); }
+
+  /* (Edit banner mobile layout merged into the main #edit-overlay rules above.) */
+
+  /* Timeline */
+  .card-timeline {
+    margin-top: 7px;
+  }
+
+  /* Now button */
+  #now-btn {
+    background: rgba(156,189,231,0.12);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    color: var(--muted);
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  #now-btn.active {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  #now-btn:hover:not(.active) {
+    border-color: rgba(245,194,94,0.4);
+    color: var(--text);
+  }
+
+  /* Dual range slider */
+  .time-range-wrap {
+    flex: 1;
+    position: relative;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    overflow: visible;
+  }
+  .time-range-track-bg {
+    position: absolute;
+    top: 8px;
+    left: 0; right: 0; height: 4px;
+    background: rgba(156,189,231,0.18);
+    border-radius: 2px;
+    pointer-events: none;
+  }
+  .time-range-wrap input[type=range] {
+    position: absolute;
+    width: 100%;
+    margin: 0;
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    pointer-events: none;
+    height: 20px;
+    outline: none;
+  }
+  .time-range-wrap input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid #0a1830;
+    cursor: pointer;
+    pointer-events: all;
+    box-shadow: 0 0 14px rgba(245,194,94,0.7);
+  }
+  .time-range-wrap input[type=range]::-moz-range-thumb {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid #0a1830;
+    cursor: pointer;
+    pointer-events: all;
+    box-shadow: 0 0 14px rgba(245,194,94,0.7);
+  }
+  .time-range-wrap input[type=range]:hover::-webkit-slider-thumb {
+    background: #FFCBAA;
+    box-shadow: 0 0 10px rgba(245,194,94,0.6);
+  }
+  .time-range-wrap.now-active input[type=range]::-webkit-slider-thumb {
+    background: #0a1830;
+    border-color: rgba(245,194,94,0.45);
+    box-shadow: none;
+    cursor: default;
+  }
+  .time-range-wrap.now-active input[type=range]:hover::-webkit-slider-thumb {
+    background: #0d1f40;
+    border-color: rgba(245,194,94,0.7);
+    box-shadow: 0 0 6px rgba(245,194,94,0.15);
+  }
+  .time-range-sun-bg {
+    position: absolute;
+    top: 8px;
+    height: 4px;
+    background: rgba(245,194,94,0.13);
+    border-radius: 2px;
+    pointer-events: none;
+  }
+  .time-display-row {
+    position: absolute;
+    top: 22px;
+    left: 0; right: 0;
+    height: 12px;
+  }
+  .time-display-row span {
+    position: absolute;
+    transform: translateX(-50%);
+    font-size: 9px;
+    color: var(--muted);
+    white-space: nowrap;
+    transition: left 0.05s;
+  }
+
+  /* "Try tomorrow" banner in venue list */
+  #no-sun-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(245,194,94,0.06);
+    border: 1px solid rgba(245,194,94,0.18);
+    border-radius: 10px;
+    padding: 9px 14px;
+    margin-bottom: 10px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  #no-sun-banner button {
+    background: rgba(245,194,94,0.15);
+    border: 1px solid rgba(245,194,94,0.35);
+    border-radius: 7px;
+    color: var(--accent);
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 11px;
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  #no-sun-banner button:hover { background: rgba(245,194,94,0.25); }
+
+  /* ── Venue suggestion ────────────────────────────────────────────────────── */
+  .suggest-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 28px 16px;
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+  }
+  .suggest-empty strong { color: var(--text); font-weight: 500; }
+  .suggest-btn {
+    background: rgba(156,189,231,0.1);
+    border: 1px solid rgba(156,189,231,0.2);
+    border-radius: 20px;
+    color: var(--muted);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    padding: 7px 16px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .suggest-btn:hover { background: rgba(156,189,231,0.18); color: var(--text); }
+  .suggest-btn-primary {
+    background: rgba(245,194,94,0.12);
+    border-color: rgba(245,194,94,0.25);
+    color: var(--accent);
+  }
+  .suggest-btn-primary:hover { background: rgba(245,194,94,0.22); color: var(--accent); }
+  .suggest-confirm {
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .suggest-confirm-name {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .suggest-confirm-address {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .suggest-confirm-prompt {
+    font-size: 13px;
+    color: var(--muted);
+    margin: 8px 0 4px;
+  }
+  .suggest-confirm-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .venue-card.closed-card {
+    padding: 8px 14px;
+    opacity: 0.5;
+    cursor: pointer;
+  }
+  .venue-card.closed-card:hover { opacity: 0.75; }
+  /* Hidden by default — closed-day venues were quiet noise at 0.4 opacity.
+     The toggle at the bottom of the list reveals them on demand. */
+  body:not(.show-closed) #venue-list .venue-card.closed-card { display: none; }
+
+  #closed-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    margin: 8px 0 24px;
+    padding: 10px 12px;
+    background: transparent;
+    border: 0;
+    color: var(--muted);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    opacity: 0.65;
+    transition: opacity 160ms ease, color 160ms ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #closed-toggle:hover { opacity: 1; color: var(--accent); }
+  body.show-closed #closed-toggle { display: none; }
+  .closed-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .closed-name {
+    font-size: 12px;
+    color: var(--muted);
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ── RIGHT DETAIL PANEL ───────────────────────────────────────────── */
+  /* ── Toast notice strip ─────────────────────────────────────────────── */
+  #qc-wrap {
+    position: absolute;
+    left: 16px;
+    top: 70px;     /* search top(16) + search height(46) + gap(8) */
+    width: 380px;
+    z-index: 820;
+    pointer-events: none;
+    transition: left 0.28s ease;
+  }
+  #qc-notice {
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+    padding: 2px 8px 0;
+    opacity: 0;
+    transition: opacity 0.4s;
+    pointer-events: none;
+  }
+  #qc-notice.visible { opacity: 1; }
+
+
+  /* ── Day header — unified 2-row composition.
+     Row 1: date · weather (context, smaller, muted)
+     Row 2: city-wide sun outlook (the answer, slightly larger, primary)
+     Bottom hairline separates the header from the list below so the
+     block reads as a contained title module, not text floating in space.
+     8pt vertical rhythm; tight typography scale (13 → 16) so the two
+     rows feel related, not jumbled. */
+  #day-header {
+    flex-shrink: 0;
+    padding: 12px 14px 12px;
+    border-bottom: 1px solid rgba(155,169,188,0.10);
+  }
+
+  /* Row 1 — flex row, plain text, sort pinned right. */
+  #list-sun-header.dh-row1 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 24px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(255, 244, 224, 0.62);
+    white-space: nowrap;
+    letter-spacing: 0.005em;
+  }
+  .dh-sep { opacity: 0.35; flex-shrink: 0; font-weight: 400; }
+
+  /* Date — tappable text. Calendar icon + label, transparent at rest
+     so it flows with the composition. Three feedback states:
+       hover (desktop):  bg + color shift to accent
+       :active (any):    deeper bg flash for tap-down confirmation
+       .active (state):  accent color while the date picker is open
+     -webkit-tap-highlight stays default so iOS adds its native flash
+     on top of our :active — belt and braces. */
+  #header-date-chip.dh-date {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    padding: 2px 4px;
+    margin: -2px -4px -2px -4px;
+    height: auto;
+    width: auto;
+    color: rgba(255, 244, 224, 0.85);
+    font: inherit;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: color 0.12s ease, background 0.12s ease;
+  }
+  #header-date-chip.dh-date:hover { color: var(--accent); background: rgba(255,242,235,0.05); }
+  #header-date-chip.dh-date:hover .chip-cal-icon { color: var(--accent); }
+  #header-date-chip.dh-date:active { background: rgba(255,242,235,0.12); color: var(--accent); }
+  #header-date-chip.dh-date:active .chip-cal-icon { color: var(--accent); }
+  #header-date-chip.dh-date.active { color: var(--accent); }
+  #header-date-chip.dh-date.active .chip-cal-icon { color: var(--accent); }
+  #header-date-chip.dh-date .chip-cal-icon {
+    color: rgba(255, 244, 224, 0.55);
+    flex-shrink: 0;
+    transition: color 0.12s ease;
+  }
+
+  /* Weather inline group — icon + temp · wind. */
+  #header-wx-chip.dh-weather {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    color: inherit;
+    font-weight: 500;
+    flex: 1;
+    min-width: 0;
+  }
+  #header-wx-chip.dh-weather #header-wx-icon {
+    font-size: 14px;
+    line-height: 1;
+    flex-shrink: 0;
+    opacity: 0.85;
+    display: inline-flex;
+    align-items: center;
+  }
+  #header-wx-chip.dh-weather #header-wx-temp {
+    color: rgba(255, 244, 224, 0.85);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  #header-wx-chip.dh-weather #header-wx-wind { font-variant-numeric: tabular-nums; }
+  #header-wx-chip.dh-weather .dh-sep-mid { opacity: 0.35; }
+  /* Wind hidden from the header — surfaced per-venue in the card and
+     detail panel where wind-shelter actually changes the recommendation.
+     At the day level it was reading as noise. JS still writes to these
+     spans (cheap, harmless); CSS hides them. */
+  #header-wx-chip.dh-weather #header-wx-wind,
+  #header-wx-chip.dh-weather .dh-sep-mid { display: none; }
+
+  /* Sort icon — must override the legacy #sort-toggle-btn glass-button
+     styling that's still in the cascade (specificity-wise the ID rule
+     above wins over .sort-icon-btn, hence #sort-toggle-btn here). */
+  .sort-icon-label-sr {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px; overflow: hidden;
+    clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+  }
+  #day-header #sort-toggle-btn,
+  #sort-toggle-btn.sort-icon-btn {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+    margin: 0;
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 8px;
+    flex-shrink: 0;
+    transition: background 0.12s ease, color 0.12s ease;
+  }
+  #day-header #sort-toggle-btn:hover,
+  #sort-toggle-btn.sort-icon-btn:hover  { background: rgba(255,242,235,0.06); border-color: transparent; }
+  /* Tap-down feedback for mobile (and desktop click). Stronger than
+     hover so the user sees their press register. */
+  #day-header #sort-toggle-btn:active,
+  #sort-toggle-btn.sort-icon-btn:active { background: rgba(255,242,235,0.14); }
+  #day-header #sort-toggle-btn.open,
+  #sort-toggle-btn.sort-icon-btn.open   { background: rgba(245,194,94,0.10); border-color: transparent; box-shadow: none; }
+  .sort-icon { color: rgba(255, 244, 224, 0.55); opacity: 1; transition: color 0.12s ease; }
+  #day-header #sort-toggle-btn:hover  .sort-icon { color: var(--accent); }
+  #day-header #sort-toggle-btn:active .sort-icon { color: var(--accent); }
+  #day-header #sort-toggle-btn.open   .sort-icon { color: var(--accent); }
+  #header-wx-chip .chip-dot { opacity: 0.55; }
+
+  /* Sort button — tappable, glass with chevron. Pinned to the right edge so
+     the date+weather pair sits flush at the left in any state. */
+  #list-sun-header #sort-toggle-btn {
+    margin-left: auto;
+    background: var(--glass-action-bg);
+    border: var(--glass-border);
+    border-radius: 10px;
+    box-shadow: var(--glass-inset);
+    transition: color 0.12s, border-color 0.12s, background 0.12s;
+  }
+  #list-sun-header #sort-toggle-btn .sort-chevron {
+    color: var(--muted);
+    transition: transform 0.18s ease;
+    flex-shrink: 0;
+  }
+
+  /* Very narrow viewports: drop the wind label so the chips don't crowd */
+  @media (max-width: 360px) {
+    #header-wx-chip .chip-dot,
+    #header-wx-chip #header-wx-wind { display: none; }
+  }
+
+  /* ── Sun-section bar: "Sun now — N places in the sun" ─────────────────
+     Two stacked text lines on a vertical translate track. JS toggles
+     .later on the bar to slide the second line into view (calendar-style). */
+  /* Sun outlook row — the "answer" line, plus the sort icon on the right.
+     Flex row so the sentence flows in the available width and the sort
+     button stays pinned right (its right edge aligns with the cards'
+     outer edges below). Wraps naturally if too long. Always present. */
+  #sun-section-bar.dh-outlook {
+    padding: 4px 0 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    min-width: 0;
+  }
+  #sun-section-bar.ssb-empty { display: none; }
+  .ssb-text {
+    flex: 1;
+    min-width: 0;
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.35;
+    color: var(--panel-text);
+    letter-spacing: -0.005em;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: break-word;
+    padding-top: 2px;        /* baseline-align with the centered sort icon */
+  }
+
+  /* Sort icon sits in this row now — small, right-aligned via the grid's
+     third column. Overrides the legacy #sort-toggle-btn glass-button
+     styling that's still loaded from the old chip-row context. */
+  #sun-section-bar #sort-toggle-btn {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    gap: 0;
+    justify-self: end;
+  }
+  #sun-section-bar #sort-toggle-btn:hover  { background: rgba(255,242,235,0.06); border-color: transparent; }
+  #sun-section-bar #sort-toggle-btn.open   { background: rgba(245,194,94,0.10); border-color: transparent; box-shadow: none; }
+  #sun-section-bar #sort-toggle-btn.open .sort-icon { color: var(--accent); opacity: 1; }
+
+  /* Empty-state CTA in the outlook row — shown when body.day-no-sun is
+     on (the day has no usable sun, so the header takes ownership of the
+     "Pick another day" decision instead of the list body duplicating
+     it). Replaces the sort button, since there's nothing to sort. */
+  #sun-empty-cta {
+    display: none;
+    align-items: center;
+    gap: 4px;
+    background: var(--glass-action-bg);
+    border: var(--glass-border);
+    border-radius: 999px;
+    box-shadow: var(--glass-inset);
+    padding: 6px 12px;
+    font: 600 12px/1 'Inter', sans-serif;
+    color: var(--accent);
+    cursor: pointer;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.12s, border-color 0.12s, transform 0.08s;
+  }
+  #sun-empty-cta:hover  { background: rgba(245,194,94,0.14); border-color: rgba(245,194,94,0.32); }
+  #sun-empty-cta:active { transform: scale(0.97); }
+  body.day-no-sun #sun-empty-cta   { display: inline-flex; }
+  body.day-no-sun #sort-toggle-btn { display: none; }
+
+  /* ── Calendar float — outside #panel, position: fixed so it escapes transforms ── */
+  #ptb-cal-float {
+    position: fixed;
+    z-index: 1200;  /* Above detail panel (810 desktop / 920 mobile) and FTS (925) */
+    display: none;
+    /* desktop: position + width set by JS to match FTS */
+    left: 16px;
+    width: 336px;
+    min-width: 300px;
+    max-width: 480px;
+    transition: left 0.28s ease;
+  }
+  #ptb-cal-float.open { display: block; }
+  /* Header + close button — hidden on desktop, shown on mobile */
+  #ptb-cal-header {
+    display: none;
+  }
+
+  /* ── Mobile: calendar as bottom-sheet ──────────────────────────────────── */
+  @media (max-width: 639px) {
+    /* Override display:none with a transform-based show/hide so we can animate */
+    #ptb-cal-float {
+      display: block !important; /* always in layout; visibility via transform+opacity */
+      left: 0;
+      right: 0;
+      width: auto;
+      top: auto;
+      bottom: 0;
+      /* The calendar is one of the few sheets where a deliberate fixed
+         beat (one month + peek of the next) matters more than content-fit.
+         Keep the 56svh cap — svh = stable visible viewport, never clipped
+         by browser chrome. */
+      max-height: 56svh;
+      /* Extra bottom room above var(--app-pad-b) (the home-indicator inset) so
+         the bottom-most button doesn't crowd the OS home bar. */
+      padding: 0 16px calc(var(--app-pad-b) + 14px);
+      box-sizing: border-box;
+      background: var(--glass-panel-bg);
+      backdrop-filter: var(--glass-blur-panel);
+      -webkit-backdrop-filter: var(--glass-blur-panel);
+      border-radius: 20px 20px 0 0;
+      border: 1px solid rgba(156,189,231,0.22);
+      border-bottom: none;
+      box-shadow: inset 0 1px 0 rgba(255,242,235,0.22), 0 -8px 40px rgba(0,0,0,0.50);
+      transform: translateY(100%);
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1), opacity 180ms ease-out;
+      z-index: 1200;  /* Above the mobile detail panel (920) */
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    #ptb-cal-float.open {
+      display: block !important;
+      transform: translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    /* Header row: title + close button — visible on mobile */
+    #ptb-cal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 0 10px;
+      flex-shrink: 0;
+    }
+    #ptb-cal-title {
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      /* The sheet background is transparent (blur-only), so over the light map
+         the cream title had no contrast — "white on transparent". A soft dark
+         halo (same technique as the map labels) restores legibility without
+         changing the cream type colour. */
+      text-shadow: 0 1px 3px rgba(17,30,56,0.55);
+    }
+    #ptb-cal-close {
+      background: rgba(156,189,231,0.12);
+      border: none;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--muted);
+      flex-shrink: 0;
+      transition: background 0.12s, color 0.12s;
+    }
+    #ptb-cal-close:hover { background: rgba(156,189,231,0.22); color: var(--text); }
+    /* Inner panel: no extra animation on mobile — the outer float handles reveal */
+    #ptb-cal-float #qc-panel {
+      overflow: visible;
+      max-height: none !important;
+      margin-top: 0;
+      transition: none;
+    }
+    #ptb-cal-float #qc-panel.open { max-height: none !important; }
+    #ptb-cal-float #qc-panel-inner {
+      background: transparent;
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      overflow: visible;
+      opacity: 1 !important;
+      pointer-events: auto !important;
+    }
+    #ptb-cal-float #qc-date-section {
+      padding: 0;
+      overflow: visible;
+      height: auto !important; /* override JS _syncQcPanelHeight inline height */
+    }
+    /* 10-day grid: 5 columns × 2 rows — all days visible at once, no scroll */
+    #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+      overflow: visible;
+    }
+    #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-tile {
+      justify-content: center;
+      border-radius: 10px;
+      gap: 3px;
+      padding: 8px 4px 6px;
+    }
+    #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-day  { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; }
+    #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-num  { font-size: 17px; font-weight: 700; line-height: 1; }
+    #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-icon { font-size: 15px; line-height: 1.2; }
+    #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-icon .wx-sky-icon { width: 18px; height: 18px; }
+    #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-temp { font-size: 10px; font-weight: 600; color: rgba(156,189,231,0.72); }
+    /* Month-view full calendar on mobile */
+    #ptb-cal-float #qc-cal .dc-cal-scroll { height: calc(var(--app-h, 100svh) * 0.55); }
+    #ptb-cal-float #qc-cal .dc-month-grid .dc-tile { height: 48px; }
+    #ptb-cal-float #qc-cal .dc-month-grid .dc-tile.solar-only { height: 48px; min-height: 48px; }
+  }
+
+  #qc-presets {
+    display: flex;
+    gap: 2px;
+    padding: 3px;
+    background: rgba(156, 189, 231, 0.08);
+    border: 1px solid rgba(156, 189, 231, 0.14);
+    border-radius: 10px;
+    position: relative;
+  }
+  .qc-preset-btn {
+    flex: 1;
+    background: rgba(17,30,56, 0.55);
+    border: 1px solid rgba(156, 189, 231, 0.22);
+    border-radius: 7px;
+    color: rgba(156, 189, 231, 0.65);
+    font-family: 'Inter', sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 5px 4px;
+    cursor: pointer;
+    transition: color 0.12s, background 0.12s, border-color 0.12s;
+    text-align: center;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+  }
+  .qc-preset-btn:hover:not(.active) {
+    color: rgba(156, 189, 231, 0.95);
+    background: rgba(24, 52, 95, 0.8);
+    border-color: rgba(245, 194, 94, 0.28);
+  }
+  .qc-preset-btn.active { background: var(--accent); color: #111E38; border-color: var(--accent); }
+
+  /* Calendar section inside the calendar float */
+  #qc-panel {
+    overflow: hidden;
+    max-height: 0;
+    margin-top: 8px;
+    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  #qc-panel.open {
+    max-height: var(--qc-panel-h, 290px);
+  }
+  #qc-panel-inner {
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--glass-panel-bg);
+    backdrop-filter: var(--glass-blur-panel);
+    -webkit-backdrop-filter: var(--glass-blur-panel);
+    border: var(--glass-border);
+    border-radius: 12px;
+    box-shadow: var(--glass-inset), 0 6px 24px rgba(0,0,0,0.50);
+    overflow: hidden;
+    opacity: 1;
+    transition: opacity 0.25s ease;
+  }
+  #qc-panel:not(.open) #qc-panel-inner {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+  }
+  #qc-date-section { display: none; padding: 8px; box-sizing: border-box; width: 100%; overflow: hidden; }
+  #qc-date-section.active { display: flex; flex-direction: column; }
+  #qc-cal { flex: 1; min-height: 0; display: flex; flex-direction: column; width: 100%; box-sizing: border-box; overflow: clip; }
+  #qc-panel.cal-expanded #qc-cal { overflow: clip; flex: 1; }
+  #qc-cal .dc-cal-scroll {
+    height: 390px; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    /* Soft bottom fade hints at more content without eating into the last row of tiles. */
+    mask-image: linear-gradient(to bottom, black 96%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 96%, transparent 100%);
+  }
+  #qc-cal .dc-cal-scroll::-webkit-scrollbar { display: none; }
+  #qc-cal .dc-grid:not(.dc-month-grid) { display: grid; grid-template-columns: repeat(7, 1fr); grid-auto-rows: auto; gap: 3px; width: 100%; box-sizing: border-box; }
+  #qc-cal .dc-grid:not(.dc-month-grid) .dc-tile  { padding: 4px 2px; gap: 2px; }
+  #qc-cal .dc-grid:not(.dc-month-grid) .dc-day   { font-size: 8px; }
+  #qc-cal .dc-grid:not(.dc-month-grid) .dc-num   { font-size: 15px; }
+  #qc-cal .dc-grid:not(.dc-month-grid) .dc-icon  { font-size: 17px; line-height: 1.1; }
+  #qc-cal .dc-grid:not(.dc-month-grid) .dc-icon .wx-sky-icon { width: 20px; height: 20px; }
+  #qc-cal .dc-month-grid .dc-icon .wx-sky-icon { width: 16px; height: 16px; }
+  #qc-cal .dc-grid:not(.dc-month-grid) .dc-temp  { font-size: 12px; font-weight: 700; color: rgba(156,189,231,0.72); }
+  /* Full-calendar month grid: 7 columns, 4px gap, 48px tiles */
+  #qc-cal .dc-month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; width: 100%; box-sizing: border-box; }
+  #qc-cal .dc-month-grid .dc-tile { padding: 4px 2px; gap: 2px; height: 44px; justify-content: center; }
+  #qc-cal .dc-month-grid .dc-tile.solar-only { height: 44px; min-height: 44px; }
+  #qc-cal .dc-month-grid .dc-num  { font-size: 15px; font-weight: 600; }
+  #qc-cal .dc-month-grid .dc-icon { font-size: 14px; line-height: 1.1; }
+  /* Weekday row: 7 columns matching day grid, sticky at scroll-area top */
+  #qc-cal .dc-weekday-row {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
+    height: 24px; align-items: center;
+    position: sticky; top: 0; z-index: 2;
+    background: rgba(17,30,56,0.85);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(156,189,231,0.12);
+    margin-bottom: 2px;
+  }
+  /* Month label: sticky just below weekday row, same backdrop */
+  #qc-cal .dc-month-row-label {
+    position: sticky; top: 26px; /* weekday row (24px) + bottom border (1px) + gap (1px) */
+    z-index: 1;
+    background: rgba(17,30,56,0.85);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    padding: 4px 2px;
+  }
+
+  /* Suppress venue card enter animation on map-pan re-renders */
+  #venue-list[data-no-anim] .venue-card { animation: none !important; }
+
+  /* Mobile overrides */
+  @media (max-width: 639px) {
+    #qc-wrap {
+      left: 12px;
+      right: 12px;
+      top: 68px;
+      width: auto;
+    }
+  }
+
+  #detail-panel {
+    position: absolute;
+    top: 70px;     /* align with list panel: 16 search-top + 46 search-h + 8 gap */
+    left: 412px;   /* 16 + 380 + 16 */
+    bottom: 16px;
+    width: 380px;  /* match the venue-list panel width */
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 810;
+    transform: translateX(-12px);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.26s ease, opacity 0.26s ease, left 0.28s ease;
+    contain: layout;
+  }
+  #detail-panel.open {
+    transform: translateX(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+  /* Desktop cal-open: don't slide the side panel away (it doesn't
+     visually overlap the FTS float anyway), but drop its z-index so
+     it can never sit in front of the calendar by accident. */
+  body.cal-open #detail-panel.open {
+    z-index: 700;
+  }
+  /* dp-content wraps the rendered content so dp-handle can sit above the scroll area */
+  #dp-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+  }
+  /* ── Venue photo gallery ────────────────────────────────────────────────── */
+  .dp-photos {
+    display: flex;
+    gap: 3px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin: -14px -16px 14px;
+    scroll-snap-type: x mandatory;
+    border-radius: 10px 10px 0 0;
+    overflow: hidden;         /* clip rounded corners */
+    overflow-x: auto;         /* re-enable horizontal scroll */
+    position: relative;
+    /* Browser claims horizontal pans for native scroll, so the detail
+       panel's drag handler never sees them (was sliding the panel up/
+       down on any minor vertical drift during a swipe). */
+    touch-action: pan-x;
+  }
+  /* Bevel: soft gradient at the top of the photo section, blending into the panel glass */
+  .dp-photos::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 22px;
+    background: linear-gradient(to bottom, rgba(14,26,52,0.55), transparent);
+    z-index: 2;
+    pointer-events: none;
+  }
+  .dp-photos::-webkit-scrollbar { display: none; }
+  .dp-photo {
+    width: 304px;  /* detail-panel width 336 - 32px horizontal padding */
+    height: 190px;
+    object-fit: cover;
+    flex-shrink: 0;
+    scroll-snap-align: start;
+    background: rgba(17,30,56,0.6);
+  }
+  .dp-photo:first-child:last-child {
+    width: 100%; /* single photo fills full width */
+  }
+
+  #dp-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    padding: 14px 16px 24px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(245,194,94,0.2) transparent;
+    contain: layout style;
+  }
+  #dp-scroll::-webkit-scrollbar { width: 4px; }
+  #dp-scroll::-webkit-scrollbar-track { background: transparent; }
+  #dp-scroll::-webkit-scrollbar-thumb { background: rgba(245,194,94,0.2); border-radius: 2px; }
+  .dp-header-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .dp-venue-name {
+    font-family: 'Inter', sans-serif;
+    font-style: normal;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    text-transform: none;
+    color: var(--panel-text);
+    line-height: 1.15;
+    flex: 1;
+    min-width: 0;
+  }
+  #dp-close-btn {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(17,30,56,0.08);
+    border: 1px solid rgba(17,30,56,0.18);
+    border-radius: 8px;
+    color: rgba(17,30,56,0.55);
+    font-size: 14px;
+    cursor: pointer;
+    margin-top: 2px;
+    transition: background 0.12s, color 0.12s;
+  }
+  #dp-close-btn:hover { background: rgba(17,30,56,0.14); color: var(--panel-text); }
+  .dp-close-back { display: none; }  /* shown on mobile only */
+  .dp-meta {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 10px;
+    opacity: 0.8;
+  }
+  .dp-limited-solar {
+    font-size: 11px;
+    color: var(--muted);
+    background: rgba(17,30,56,0.06);
+    border: 1px solid rgba(17,30,56,0.12);
+    border-radius: 8px;
+    padding: 7px 10px;
+    margin-bottom: 10px;
+    opacity: 0.8;
+  }
+  .dp-dial-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 8px 0 14px;
+  }
+  .dp-dial-svg {
+    width: 100%;
+    height: auto;
+    max-height: 200px;
+    filter: drop-shadow(0 2px 24px rgba(245,194,94,0.18));
+  }
+  .dp-sun-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 20px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+  }
+  .dp-sun-pill.sunny    { background: rgba(245,194,94,0.88); color: #111E38; }
+  .dp-sun-pill.overcast { background: rgba(165,170,178,0.18); color: rgba(165,170,178,0.9); border: 1px solid rgba(165,170,178,0.28); }
+  .dp-sun-pill.rainy    { background: rgba(156,189,231,0.18); color: rgba(156,189,231,0.9); border: 1px solid rgba(156,189,231,0.28); }
+  .dp-sun-pill.neutral  { background: rgba(245,194,94,0.12); color: var(--accent); border: 1px solid rgba(245,194,94,0.28); }
+  .dp-sun-pill.muted    { background: rgba(156,189,231,0.15); color: var(--muted); border: 1px solid rgba(156,189,231,0.22); }
+  /* Experience Index */
+  .dp-exp-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-top: 10px;
+    margin-bottom: 4px;
+  }
+  .dp-exp-label { font-size: 14px; font-weight: 400; color: #FFF2EB; }
+  .dp-exp-hint  { font-size: 12px; font-weight: 400; color: #9CBDE7; margin-top: 1px; }
+  .dp-exp-val   { font-family: 'Inter', sans-serif; font-style: italic; font-size: 16px; font-weight: 600; color: var(--accent); }
+  .dp-dial-svg.dp-dial-locked circle:first-of-type { stroke: rgba(245,194,94,0.22); }
+  .dp-exp-bar-wrap {
+    height: 1px;
+    background: rgba(156,189,231,0.15);
+    border-radius: 1px;
+    overflow: visible;
+    margin-bottom: 8px;
+  }
+  .dp-exp-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 1px;
+  }
+  .dp-score-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+  .dp-score-num {
+    font-family: 'Inter', sans-serif;
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .dp-score-num span {
+    display: block;
+    font-family: 'Inter', sans-serif;
+    font-size: 8px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    opacity: 0.5;
+    margin-top: 2px;
+  }
+  .dp-score-num.tier-high { color: var(--accent); }
+  .dp-score-num.tier-mid  { color: #7dd87d; }
+  .dp-score-num.tier-low  { color: #f0b46a; }
+  .dp-score-num.tier-poor { color: var(--muted); }
+  .dp-score-breakdown {
+    font-size: 11px;
+    color: var(--muted);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    opacity: 0.8;
+  }
+  .dp-section-label {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(17,30,56,0.45);
+    margin-bottom: 8px;
+    margin-top: 2px;
+  }
+  .dp-divider {
+    height: 1px;
+    background: rgba(17,30,56,0.10);
+    margin: 12px 0;
+  }
+  .dp-address {
+    font-size: 11px;
+    color: var(--ink-muted);
+    opacity: 1;
+    margin-bottom: 12px;
+  }
+  .dp-gm-actions {
+    display: flex;
+    gap: 6px;
+    margin: 12px 0;
+  }
+  .dp-gm-chip {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    padding: 10px 6px 8px;
+    background: var(--glassctl-bg);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    border: var(--glassctl-border);
+    border-radius: 12px;
+    box-shadow: var(--glassctl-raise);
+    color: var(--glassctl-icon);
+    font-size: 12px;
+    font-weight: 500;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: normal;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+    transition: background 0.12s, box-shadow 0.12s;
+  }
+  .dp-gm-chip:hover  { background: var(--glassctl-bg-hover); }
+  .dp-gm-chip:active { background: var(--glassctl-bg-hover); box-shadow: var(--glassctl-press); }
+  .dp-gm-chip svg { stroke: var(--glassctl-icon); flex-shrink: 0; }
+
+  .dp-actions {
+    display: flex;
+    gap: 6px;
+  }
+  .dp-action-btn {
+    flex: 1;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 7px 10px;
+    border-radius: 12px;
+    border: var(--glassctl-border);
+    background: var(--glassctl-bg);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    box-shadow: var(--glassctl-raise);
+    color: var(--glassctl-icon);
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+    transition: background 0.12s, box-shadow 0.12s;
+    font-family: 'Inter', sans-serif;
+  }
+  .dp-action-btn:hover  { background: var(--glassctl-bg-hover); }
+  .dp-action-btn:active { background: var(--glassctl-bg-hover); box-shadow: var(--glassctl-press); }
+  .dp-action-btn.directions {
+    background: var(--glassctl-bg);
+    color: var(--glassctl-icon);
+  }
+  .dp-action-btn.directions:hover { background: var(--glassctl-bg-hover); }
+
+  .dp-busy-row {
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+    margin-bottom: 6px;
+  }
+  .dp-busy-now {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .dp-busy-est {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(156,189,231,0.35);
+  }
+  .dp-busy-chart {
+    width: 100%;
+  }
+  .dp-busy-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    color: var(--muted);
+    opacity: 0.5;
+    margin-top: 4px;
+  }
+
+  /* Detail panel drag handle */
+  #dp-handle {
+    display: none; /* shown on mobile only */
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    padding: 16px 0 14px;
+    flex-shrink: 0;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+    position: relative;
+  }
+  #dp-handle-pill {
+    width: 36px;
+    height: 4px;
+    background: rgba(17,30,56,0.22);
+    border-radius: 2px;
+  }
+
+  /* Hide UI elements when detail panel is open on mobile */
+  .mobile-ui-hidden { display: none !important; }
+
+  /* ──── Detail panel — photo header with overlay ───────────────────────── */
+  /* The photo block is the venue takeover: a single rectangular frame with
+     the photo carousel filling it, a dark gradient over the bottom 55%, and
+     the venue name + meta laid on top in cream. Friend chip lives top-right.
+     Title moved here from the dp-card so identity reads with the photo. */
+  .detail-new-photos {
+    position: relative;
+    height: 200px;
+    border-radius: 14px;
+    margin-bottom: 14px;
+    overflow: hidden;
+    background: #2a3a5c;
+    flex-shrink: 0;
+    contain: layout style;
+  }
+  .detail-new-photos-scroll {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+  }
+  .detail-new-photos-scroll::-webkit-scrollbar { display: none; }
+  .detail-new-photos-scroll img {
+    height: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    object-fit: cover;
+    flex-shrink: 0;
+    scroll-snap-align: start;
+  }
+
+  /* Dark gradient over the bottom 55% so cream text stays readable on any
+     photo. Top half stays clear so the photo's atmosphere reads. */
+  .photo-overlay-grad {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      to bottom,
+      rgba(15,27,42,0) 0%,
+      rgba(15,27,42,0) 45%,
+      rgba(15,27,42,0.55) 78%,
+      rgba(15,27,42,0.88) 100%
+    );
+  }
+
+  /* Title + meta lockup, anchored to the bottom-left of the photo. */
+  .photo-overlay-header {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: 14px;
+    pointer-events: none;
+  }
+  .photo-overlay-title {
+    color: var(--text);
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.18;
+    letter-spacing: -0.012em;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.45);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .photo-overlay-meta {
+    color: rgba(255,244,224,0.78);
+    font-size: 12.5px;
+    font-weight: 500;
+    margin-top: 4px;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.45);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Friend-here chip — top-right of the photo. Honey-tinted glass capsule
+     with cream text. Compact (18px avatars + name + count). */
+  .detail-new-photos .photo-overlay-chip {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 9px 4px 4px;
+    border-radius: 999px;
+    background: rgba(245,194,94,0.22);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1px solid rgba(245,194,94,0.35);
+    color: var(--text);
+    font-size: 11.5px;
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.30);
+    pointer-events: auto;
+  }
+  .detail-new-photos .photo-overlay-chip .avatar-row { gap: -4px; }
+
+  /* No-photo empty state — same frame + overlay structure, with a soft
+     slate base + warm honey radial wash + centered camera icon. The title
+     overlay still renders so the venue still reads as primary. */
+  .detail-new-photos-empty {
+    background: rgba(17,30,56,0.85);
+  }
+  .detail-new-photos-empty-art {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    opacity: 0.55;
+    pointer-events: none;
+  }
+
+  /* Photo count indicator — top-left of the photo, only when multi-photo.
+     Compact "1 / 8" pill on glass. Static (not scroll-tracked) for now. */
+  .photo-overlay-count {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: rgba(15,27,42,0.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    color: rgba(255,244,224,0.92);
+    font-size: 11px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    pointer-events: none;
+  }
+
+  /* Friend chip — expand-on-tap. Default state shows the summary pill;
+     when .expanded, a panel below the summary lists every friend with
+     their check-in time. Scoped only to is-expandable (2+ friends). */
+  .detail-new-photos .photo-overlay-chip.is-expandable { cursor: pointer; }
+  .detail-new-photos .photo-overlay-chip-summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .detail-new-photos .photo-overlay-chip-list {
+    display: none;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255,244,224,0.18);
+    flex-direction: column;
+    gap: 6px;
+  }
+  .detail-new-photos .photo-overlay-chip.expanded {
+    align-items: flex-start;
+    padding: 8px 10px 9px;
+    border-radius: 12px;
+  }
+  .detail-new-photos .photo-overlay-chip.expanded .photo-overlay-chip-summary {
+    width: 100%;
+  }
+  .detail-new-photos .photo-overlay-chip.expanded .photo-overlay-chip-list {
+    display: flex;
+  }
+  .chip-list-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11.5px;
+    color: var(--text);
+  }
+  .chip-list-avatar {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+  }
+  .chip-list-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chip-list-time { color: rgba(255,244,224,0.65); font-size: 10.5px; font-weight: 500; flex-shrink: 0; }
+
+  /* ── Sun summary headline (the new dp-card content) ─────────────────────── */
+  .dp-card .dp-sun-headline {
+    color: var(--accent);
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.18;
+    letter-spacing: -0.012em;
+  }
+  .dp-card .dp-sun-sub {
+    color: rgba(255,244,224,0.72);
+    font-size: 13px;
+    font-weight: 500;
+    margin-top: 2px;
+    letter-spacing: 0.005em;
+  }
+  /* Shadow + done states tone the headline back so it reads as muted info,
+     not as a primary "sunny" cue. */
+  .dp-card.state-shadow .dp-sun-headline,
+  .dp-card.state-rain   .dp-sun-headline {
+    color: rgba(255,244,224,0.85);
+  }
+  .dp-card.state-done .dp-sun-headline {
+    color: rgba(255,244,224,0.65);
+  }
+  /* Spacing between the headline block and the pills row inside the card.
+     Was 12px — tightened to 8px so the card breathes less between rows. */
+  .dp-card .dp-sun-headline + .dp-sun-sub + .card-pills,
+  .dp-card .dp-sun-headline + .card-pills {
+    margin-top: 8px;
+  }
+
+  /* ── Section title (used by Avtaler + Le for vind) ─────────────────────── */
+  .dp-section { margin-top: 14px; }
+  .dp-section-title {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+  }
+
+  /* ── Plans block — lives below the social card ────────────────────────── */
+  .dp-plans-block {
+    padding: 12px 14px;
+    background: var(--glass-card-bg);
+    border: var(--glass-border);
+    border-radius: 14px;
+    box-shadow: var(--glass-inset);
+  }
+  .dp-plans-block .detail-plan-item:not(:first-of-type) {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(155,169,188,0.16);
+  }
+
+  /* ── Wind shelter section ─────────────────────────────────────────────── */
+  .dp-shelter-section {
+    padding: 12px 14px;
+    background: var(--glass-card-bg);
+    border: var(--glass-border);
+    border-radius: 14px;
+    box-shadow: var(--glass-inset);
+  }
+  .dp-shelter-canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 9 / 5;
+    border-radius: 10px;
+  }
+
+  /* ── Info row — adaptive: chips when ≤3 items, list when ≥4 ─────────── */
+  .info-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 14px;
+  }
+  .info-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: var(--glassctl-bg);
+    border: var(--glassctl-border);
+    box-shadow: var(--glassctl-raise);
+    color: var(--panel-text);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
+  }
+  .info-chip-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-muted);
+    font-size: 14px;
+  }
+  .info-chip-text { font-variant-numeric: tabular-nums; }
+
+  /* ── Footer toned down ─────────────────────────────────────────────────── */
+  .dp-footer-quiet {
+    margin-top: 18px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(155,169,188,0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    opacity: 0.55;
+  }
+  .dp-footer-quiet .secondary-link {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--ink-muted);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .dp-footer-quiet .secondary-link:hover { color: var(--panel-text); }
+  .dp-footer-sep { color: var(--ink-muted); font-size: 11px; opacity: 0.6; }
+
+  /* Merged header: back + title + fav/bell on one row */
+  .detail-header-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .detail-header-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .detail-new-title {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  .detail-new-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+  .detail-new-back {
+    padding: 6px 8px;
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .detail-new-back:hover { color: var(--text); }
+  .detail-header-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .dp-header-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    color: var(--muted);
+    line-height: 0;
+    opacity: 0.75;
+    transition: opacity 0.15s;
+  }
+  .dp-header-icon:hover { opacity: 1; }
+  .dp-header-icon.active { opacity: 1; }
+
+  /* ── Detail panel action row (directions + utilities) ────────────────────── */
+  /* Aligned with the Shades design system's "Secondary Square" spec:
+     48×48 rounded squares (radius 12), glass-action fill, --muted at rest,
+     --accent-dim background + --accent color when toggled on. The row
+     spans the full panel width — the two most-used utilities (directions,
+     share) flex to absorb extra space, while toggle-state squares
+     (heart, bell, optional phone/website) stay 48×48. The result lines
+     up flush with the Invite friends CTA above. */
+  /* ── Detail action area — two-row layout ──────────────────────────────────
+     Row 1: Directions = primary venue action, Tier 4 honey CTA full-width.
+     Row 2: Share / Save / Alert = peer secondary toggles, Tier 3 glass with
+            icon + small label so the user doesn't have to recognise glyphs
+            cold. */
+  .dp-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  /* Directions — Tier 3 glass pill. Invite-friends is the only honey CTA
+     in the panel; Directions stays prominent as a full-width row but in
+     the slate glass family so it doesn't compete for the honey channel.
+     Walk time inlined into the label so a single text run carries action
+     + cost. */
+  .dp-primary-cta {
+    width: 100%;
+    height: 46px;
+    border-radius: 999px;
+    background: var(--glassctl-bg);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    border: var(--glassctl-border);
+    color: var(--panel-text);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+    box-shadow: var(--glassctl-raise);
+    transition: transform 120ms ease-out, background 120ms ease-out, box-shadow 120ms ease-out;
+  }
+  .dp-primary-cta svg { width: 18px; height: 18px; stroke: currentColor; flex-shrink: 0; color: var(--panel-text); }
+  .dp-primary-cta-label { overflow: hidden; text-overflow: ellipsis; }
+  .dp-primary-cta:hover {
+    transform: translateY(-1px);
+    background: var(--glassctl-bg-hover);
+  }
+  .dp-primary-cta:active {
+    transform: translateY(1px);
+    box-shadow: var(--glassctl-press);
+  }
+
+  /* Tier 3 secondary toggles — equal-weight peers in a single row. Each is
+     a glass surface with stacked icon + label. Active state (heart, bell)
+     fills with honey for a decisive ON cue. */
+  .dp-secondary-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .dp-secondary-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    height: 52px;
+    padding: 0 6px;
+    border-radius: 12px;
+    background: var(--glassctl-bg);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    border: var(--glassctl-border);
+    box-shadow: var(--glassctl-raise);
+    color: var(--glassctl-icon);
+    cursor: pointer;
+    text-decoration: none;
+    font-family: 'Inter', sans-serif;
+    transition: all 120ms ease-out;
+  }
+  .dp-secondary-btn svg {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+    color: currentColor;
+    flex-shrink: 0;
+  }
+  .dp-secondary-label {
+    font-size: 10.5px;
+    font-weight: 600;
+    color: inherit;
+    line-height: 1;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+  .dp-secondary-btn:hover {
+    background: var(--glassctl-bg-hover);
+    color: var(--panel-text);
+  }
+  /* Active toggle state — decisive honey fill so "is it on?" is unambiguous. */
+  .dp-secondary-btn.is-active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-on, #2a1a0c);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.32),
+      0 2px 8px rgba(245,194,94,0.30);
+  }
+  .dp-secondary-btn.is-active svg { color: var(--accent-on, #2a1a0c); fill: currentColor; }
+  .dp-secondary-btn.is-active:hover {
+    background: var(--accent);
+    filter: brightness(1.06);
+  }
+
+  /* Legacy: keep .primary-action for backwards compat but hidden */
+  .primary-action {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+
+  .btn-primary {
+    flex: 1;
+    background: var(--accent);
+    color: #2a1a0a;
+    padding: 14px;
+    border-radius: 14px;
+    font-weight: 700;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: none;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .btn-primary:hover {
+    opacity: 0.9;
+  }
+
+  .btn-icon-sec {
+    width: 48px;
+    height: 48px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    cursor: pointer;
+    flex-shrink: 0;
+    text-decoration: none;
+  }
+
+  .btn-icon-sec:hover {
+    background: rgba(17,30,56,0.65);
+  }
+
+  .btn-icon-sec svg,
+  .btn-primary svg {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+    color: var(--accent);
+  }
+
+  /* ── Photo gallery wrapper + heart/bell overlay ──────────────────────── */
+  .detail-new-photos-wrap {
+    position: relative;
+  }
+  .dp-photo-actions {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 6px;
+    z-index: 3;
+  }
+  .dp-photo-actions .dp-header-icon {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: 50%;
+    background: rgba(14,26,52,0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(156,189,231,0.22);
+    color: var(--text);
+    opacity: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .dp-photo-actions .dp-header-icon svg { width: 18px; height: 18px; }
+
+  /* ── First-photo "friends here" chip overlay ─────────────────────────── */
+  /* Wrapper inherits the photo's flex-item geometry so the surrounding
+     scroller layout is unchanged; the chip absolute-positions inside. */
+  .dp-photo-wrap {
+    position: relative;
+    flex-shrink: 0;
+    height: 100%;
+    min-width: 240px;
+    max-width: 280px;
+    aspect-ratio: 4/3;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .dp-photo-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    /* Cancel the scroller-flex sizing — wrapper carries it. */
+    min-width: 0 !important;
+    max-width: none !important;
+    aspect-ratio: auto !important;
+    border-radius: inherit;
+  }
+  .photo-overlay-chip {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px 5px 5px;
+    border-radius: 999px;
+    background: rgba(14, 26, 52, 0.78);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(156, 189, 231, 0.25);
+    color: var(--text);
+    font-size: 11px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    pointer-events: none;
+  }
+  .photo-overlay-chip span { white-space: nowrap; }
+

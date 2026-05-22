@@ -1,0 +1,703 @@
+  /* ── Accessibility globals ────────────────────────────────────────────────── */
+  :focus-visible {
+    outline: 2px solid var(--accent) !important;
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+  /* Hit-area extensions: visuals stay 32–34 px, tap region reaches ~44 pt */
+  #search-clear-btn, #search-profile-btn { position: relative; }
+  #locate-btn::before {
+    content: ''; position: absolute; inset: -5px;
+  }
+  /* Search-bar buttons: fill the full 46 px card vertically; horizontal kept
+     small so adjacent pseudo-elements don't collide across the 8 px gap */
+  #search-clear-btn::before,
+  #search-profile-btn::before {
+    content: ''; position: absolute; inset: -7px -3px;
+  }
+  body.fts #fts-date-btn::before {
+    content: ''; position: absolute; inset: -5px;
+  }
+
+  html, body {
+    /* Robust viewport height across iOS Safari, iOS Chrome PWA,
+       Android Chrome, and desktop. --app-h is set from JS using
+       window.visualViewport.height (see _initViewportTracker in
+       app.js) — the only measurement that always equals the visible
+       area on every engine. 100svh is the fallback if JS hasn't run
+       yet. Don't switch to 100dvh / 100lvh / 100% — each one breaks
+       at least one platform. */
+    height: var(--app-h, 100svh);
+    /* Cream — matches map BG so the map loading flash is invisible */
+    background: #FFF2EB;
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    overflow: hidden;
+  }
+  /* Dark text catch-all for transparent bars (A) + cream content panels (C).
+     Both want dark text directly on the surface. NOT .dpinvite-sheet or
+     .dprcv-* — those are mixed surfaces (dark cards live inside them). */
+  #top-strip, #panel, #detail-panel,
+  #search-dropdown, #sort-panel, #bell-dropdown, #profile-panel, #date-calendar {
+    color: var(--panel-text, #111E38);
+  }
+
+  @supports not (backdrop-filter: blur(1px)) {
+    .glass-panel, .glass-card, .glass-action { background: rgba(17, 30, 56, 0.97) !important; }
+  }
+
+  /* ── Shades Glass — canonical class definitions ──────────────────────────── */
+  /* Apply these three classes (or the tokens below) to every glass surface.    */
+  /* Panels carry a ::before spec-highlight at the top edge; cards/actions skip */
+  /* it (too much shine at small sizes).                                         */
+  .glass-panel {
+    background: var(--glass-panel-bg);
+    backdrop-filter: var(--glass-blur-panel);
+    -webkit-backdrop-filter: var(--glass-blur-panel);
+    border: var(--glass-border);
+    box-shadow: 0 2px 16px rgba(17,30,56,0.06);
+    position: relative;
+  }
+  /* Removed cream-sheen pseudo-element — no longer meaningful on transparent surface */
+  .glass-panel::before { display: none; }
+  .glass-card {
+    background: var(--glass-card-bg);
+    backdrop-filter: var(--glass-blur-card);
+    -webkit-backdrop-filter: var(--glass-blur-card);
+    border: 1px solid rgba(255,250,235,0.10);  /* faint light rim on dark card */
+    box-shadow:
+      inset 0 1px 0 rgba(255,250,235,0.14),
+      0 2px 8px rgba(17,30,56,0.25);
+    position: relative;
+  }
+  .glass-action {
+    background: var(--glass-action-bg);
+    backdrop-filter: var(--glass-blur-action);
+    -webkit-backdrop-filter: var(--glass-blur-action);
+    border: 1px solid rgba(255,250,235,0.10);  /* faint light rim on dark control */
+    box-shadow: 0 2px 6px rgba(17,30,56,0.20);
+    position: relative;
+  }
+
+  /* ── Lens FX (experimental, gated by ?fx=...) ──────────────────────────────
+     Activates when js/lens-effects.js sets body[data-fx="..."]. Modes:
+       fx=1   — polarized panel + clean card (preset)
+       fx=2   — vignette panel + polarized card (preset)
+       fx=lab — interactive lab: floating control panel lets the user pick
+                panel + card static effect combinations live on the real app.
+     Motion stack (tilt + spotlight + rim + click hint) is shared across all
+     modes. All effects no-op when the flag is absent. */
+
+  /* The panel and card static effects are driven by CSS variables set by JS.
+     Each effect (polarized, vignette, mirror-sky, etc.) is just a gradient
+     value; JS swaps the value to swap the effect.
+
+     Applied to all Tier-1 lens panels — list panel, detail panel, search
+     dropdown, sort/profile/filter panels, login splash, modals. */
+  body[data-fx] #panel::after,
+  body[data-fx] #detail-panel::after,
+  body[data-fx] #search-dropdown::after,
+  body[data-fx] #sort-panel::after,
+  body[data-fx] #profile-panel::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 0;
+    background: var(--panel-fx-bg, transparent);
+    mix-blend-mode: var(--panel-fx-blend, normal);
+  }
+  /* Card lens overlay applied only in fx mode. The lens shimmer (chromatic /
+     polarized / mirror-soft) is layered ABOVE the slate base so it remains
+     visible even with cards at near-opaque baseline. Applied to Tier-2
+     lens objects: list cards, detail-panel content cards, action cards. */
+  body[data-fx] .venue-card,
+  body[data-fx] .dp-card,
+  body[data-fx] .dp-action-card,
+  body[data-fx] .dpacc-action-card {
+    background: var(--card-fx-bg, transparent), rgba(17,30,56,1.00);
+  }
+  /* Primary action card keeps its solid honey accent even under the
+     Lens-FX body treatment — the rule above otherwise clobbered the
+     'one Primary per screen' signal on the post-accept carousel. */
+  body[data-fx] .dpacc-action-card.dpacc-action-primary {
+    background: var(--accent);
+  }
+  /* Make sure panel content sits above the panel overlay */
+  body[data-fx] #panel > *,
+  body[data-fx] #detail-panel > *,
+  body[data-fx] #search-dropdown > *,
+  body[data-fx] #sort-panel > *,
+  body[data-fx] #profile-panel > * { position: relative; z-index: 1; }
+
+  /* Tilt: card-level transform with spring easing. JS sets the transform
+     during pointermove; the .lens-fx-tilting class swaps in a fast linear
+     transition while engaged so the card responds 1:1 to the cursor. */
+  body[data-fx] .venue-card {
+    transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+                border-color 0.12s ease-out, background 0.12s ease-out, opacity 0.2s;
+    will-change: transform;
+  }
+  /* Card content above the spotlight + rim pseudos so text isn't washed out
+     by mix-blend-mode: screen. */
+  body[data-fx] .venue-card > * {
+    position: relative;
+    z-index: 3;
+  }
+  body[data-fx] .venue-card.lens-fx-tilting {
+    transition: transform 0.05s linear,
+                border-color 0.12s ease-out, background 0.12s ease-out, opacity 0.2s;
+  }
+
+  /* Spotlight: cursor-tracked radial highlight on hover */
+  body[data-fx] .venue-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: radial-gradient(circle 200px at var(--mx, 50%) var(--my, 50%),
+                rgba(255,255,255,0.20), transparent 60%);
+    opacity: 0;
+    transition: opacity 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    mix-blend-mode: screen;
+    z-index: 2;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    body[data-fx] .venue-card:hover::after { opacity: 1; }
+  }
+
+  /* Rim light: frame edges brighten on the side facing the tilt direction.
+     Driven by --rim-{top,bottom,left,right} 0..1 values set by JS from tilt. */
+  body[data-fx] .venue-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 2;
+    box-shadow:
+      inset 0  1.5px 0 rgba(255,250,235, calc(0.50 * var(--rim-top, 0))),
+      inset 0 -1.5px 0 rgba(255,250,235, calc(0.50 * var(--rim-bottom, 0))),
+      inset  1.5px 0 0 rgba(255,250,235, calc(0.40 * var(--rim-left, 0))),
+      inset -1.5px 0 0 rgba(255,250,235, calc(0.40 * var(--rim-right, 0)));
+    transition: box-shadow 0.15s linear;
+  }
+
+  /* Click ripple → border flash (spotlight pseudo is taken). */
+  body[data-fx] .venue-card.lens-fx-rippling {
+    animation: lens-fx-click-hint 0.45s ease-out;
+  }
+  @keyframes lens-fx-click-hint {
+    0%   { border-color: rgba(255,250,235,0.85); }
+    100% { border-color: var(--border, rgba(156,189,231,0.18)); }
+  }
+
+  /* Reduced motion: keep static panel overlays, drop motion. */
+  @media (prefers-reduced-motion: reduce) {
+    body[data-fx] .venue-card { transform: none !important; transition: none; }
+    body[data-fx] .venue-card::after,
+    body[data-fx] .venue-card::before { display: none; }
+  }
+
+  /* ── Lens FX Lab — floating control panel (only on ?fx=lab) ────────────── */
+  .lens-fx-lab {
+    position: fixed;
+    right: 16px;
+    top: 80px;
+    z-index: 99999;
+    isolation: isolate;
+    pointer-events: auto;
+    background: rgba(17,30,56,0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(156,189,231,0.30);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-glass-lg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    user-select: none;
+    transition: width 0.3s var(--ease-emphasized), height 0.3s var(--ease-emphasized);
+  }
+  .lens-fx-lab * { pointer-events: auto; }
+  .lens-fx-lab.collapsed { width: 52px; height: 52px; overflow: hidden; }
+  .lens-fx-lab.expanded  { width: 280px; }
+  .lens-fx-lab-toggle {
+    width: 52px; height: 52px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-weight: 800; font-size: 12px; letter-spacing: 0.08em;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+  .lens-fx-lab.collapsed .lens-fx-lab-toggle { width: 100%; }
+  .lens-fx-lab-body {
+    padding: 4px 16px 16px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease-out, visibility 0s linear 0.2s;
+  }
+  .lens-fx-lab.expanded .lens-fx-lab-body {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.2s ease-out;
+  }
+  .lens-fx-lab-row { margin-top: 12px; }
+  .lens-fx-lab-label {
+    font-size: 10px; font-weight: 800; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin-bottom: 6px;
+  }
+  .lens-fx-lab-options {
+    display: flex; flex-wrap: wrap; gap: 4px;
+  }
+  .lens-fx-lab-options button {
+    font-family: inherit;
+    font-size: 11px; font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: rgba(17,30,56,0.45);
+    border: 1px solid rgba(156,189,231,0.22);
+    color: var(--cloud, #B5BCC8);
+    cursor: pointer;
+    pointer-events: auto;
+    user-select: none;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .lens-fx-lab-options button:hover {
+    color: var(--text);
+    border-color: rgba(156,189,231,0.40);
+  }
+  .lens-fx-lab-options button.active {
+    background: rgba(245,194,94,0.16);
+    border-color: rgba(245,194,94,0.46);
+    color: var(--accent);
+  }
+  .lens-fx-lab-hint {
+    font-size: 10.5px; color: var(--muted); margin-top: 12px;
+    line-height: 1.4; font-style: italic;
+  }
+  .lens-fx-lab-hint code {
+    font-family: 'Menlo', ui-monospace, monospace;
+    font-size: 10px;
+    color: var(--accent-light, var(--accent));
+    background: rgba(0,0,0,0.30);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* ── Button system — Solsteder primitives. ONE Primary per screen. ─────────
+     Compose with .glass-action / .glass-card surfaces (defined above). */
+
+  /* PRIMARY · Pill — solid accent, ONE per screen */
+  .p-pill {
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    height: 44px; padding: 0 20px; border-radius: 999px;
+    font-size: 14px; font-weight: 700; font-family: 'Inter', sans-serif;
+    border: none; cursor: pointer; white-space: nowrap;
+    background: var(--accent); color: var(--accent-on);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+    transition: background 120ms ease-out, box-shadow 120ms ease-out, transform 60ms ease-out;
+  }
+  .p-pill:hover:not([disabled]) { background: var(--accent-hover); box-shadow: 0 6px 24px rgba(0,0,0,0.50); }
+  .p-pill:active:not([disabled]) { background: var(--accent-active); transform: translateY(1px); box-shadow: none; }
+  .p-pill[disabled] { background: rgba(245,194,94,0.28); color: rgba(42,26,12,0.40); cursor: not-allowed; }
+
+  /* SECONDARY · Pill — uses existing --glass-action-bg / --glass-border. */
+  .s-pill {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    height: 44px; padding: 0 18px; border-radius: 999px;
+    font-size: 14px; font-weight: 600; font-family: 'Inter', sans-serif;
+    cursor: pointer; white-space: nowrap;
+    background: var(--glass-action-bg);
+    border: var(--glass-border);
+    box-shadow: var(--glass-inset), 0 2px 8px rgba(0,0,0,0.35);
+    color: var(--text);
+    transition: border-color 120ms ease-out, color 120ms ease-out;
+  }
+  .s-pill .ico { color: var(--muted); }
+  .s-pill:hover { border-color: rgba(156,189,231,0.32); }
+  .s-pill.is-selected { background: var(--accent-dim); border-color: rgba(245,194,94,0.35); color: var(--accent); }
+  .s-pill.is-selected .ico { color: var(--accent); }
+
+  /* SECONDARY · Rounded */
+  .s-rnd {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    height: 36px; padding: 0 14px; border-radius: 16px;
+    font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif;
+    cursor: pointer; white-space: nowrap;
+    background: var(--glass-action-bg);
+    border: var(--glass-border);
+    box-shadow: var(--glass-inset), 0 2px 8px rgba(0,0,0,0.35);
+    color: var(--text);
+    transition: border-color 120ms ease-out, color 120ms ease-out;
+  }
+  .s-rnd .ico { color: var(--muted); }
+  .s-rnd:hover { border-color: rgba(156,189,231,0.32); }
+  .s-rnd.is-selected { background: var(--accent-dim); border-color: rgba(245,194,94,0.35); color: var(--accent); }
+  .s-rnd.is-selected .ico { color: var(--accent); }
+
+  /* GHOST · Rounded */
+  .g-rnd {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    height: 36px; padding: 0 14px; border-radius: 16px;
+    font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif;
+    background: transparent; cursor: pointer; white-space: nowrap;
+    border: 1px solid rgba(156,189,231,0.28); color: var(--muted);
+    transition: border-color 120ms ease-out, color 120ms ease-out, background 120ms ease-out;
+  }
+  .g-rnd:hover { border-color: rgba(156,189,231,0.45); color: var(--text); background: rgba(17,30,56,0.18); }
+
+  /* SQUARE · 48×48 r12 — companion icon button */
+  .sq {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 48px; height: 48px; border-radius: 12px;
+    border: none; cursor: pointer;
+    transition: background 120ms ease-out, color 120ms ease-out, border-color 120ms ease-out;
+  }
+  .s-sq {
+    background: var(--glass-action-bg);
+    border: var(--glass-border);
+    box-shadow: var(--glass-inset), 0 2px 8px rgba(0,0,0,0.35);
+    color: var(--muted);
+  }
+  .s-sq:hover { color: var(--text); border-color: rgba(156,189,231,0.32); }
+  .p-sq {
+    background: var(--accent); color: var(--accent-on); box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+  }
+  .p-sq:hover { background: var(--accent-hover); }
+
+  /* CIRCLE · 44 — icon-only */
+  .s-circ {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 44px; height: 44px; border-radius: 50%;
+    background: var(--glass-action-bg);
+    border: var(--glass-border);
+    box-shadow: var(--glass-inset), 0 2px 8px rgba(0,0,0,0.35);
+    color: var(--muted); cursor: pointer;
+    transition: color 120ms ease-out, border-color 120ms ease-out;
+  }
+  .s-circ:hover { color: var(--text); border-color: rgba(156,189,231,0.32); }
+  .s-circ[hidden] { display: none; }
+
+  /* Chip pill — group / time selectors */
+  .chip-pill {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    height: 32px; padding: 0 12px; border-radius: 999px;
+    font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif;
+    background: var(--glass-action-bg);
+    border: var(--glass-border);
+    box-shadow: 0 2px 8px rgba(17,30,56,0.20);
+    color: var(--text);
+    cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    transition: border-color 120ms ease-out, color 120ms ease-out;
+  }
+  .chip-pill .count { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 11px; }
+  .chip-pill:hover { border-color: rgba(245,194,94,0.32); }
+  .chip-pill.is-selected { background: var(--accent-dim); border-color: rgba(245,194,94,0.35); color: var(--accent); }
+  .chip-pill.is-selected .count { color: rgba(245,194,94,0.7); }
+
+  /* ── Universal pressed-state polish ───────────────────────────────────────
+     The button audit found most secondary primitives had hover states but
+     no :active — tapping them on mobile felt unresponsive. Adding a
+     unified scale(0.97) + faint background tint for press feedback. The
+     transform transition is added to each primitive's existing transition
+     list so the press → release motion stays smooth.
+     .p-pill / .p-sq already have proper pressed states (translateY + bg
+     darken), so they're excluded. Buttons with stronger semantics
+     (Accept / Decline below) keep their own state stack. */
+  .s-pill, .s-rnd, .g-rnd, .chip-pill, .s-circ, .s-sq {
+    transition: border-color 120ms ease-out, color 120ms ease-out,
+                background 120ms ease-out, transform 90ms ease-out;
+  }
+  .s-pill:active, .s-rnd:active, .g-rnd:active,
+  .chip-pill:active, .s-circ:active, .s-sq:active {
+    transform: scale(0.97);
+  }
+  .p-sq:active { background: var(--accent-active); transform: translateY(1px); box-shadow: none; }
+
+  /* Accept / Decline plan-invite responses — v1 had zero hover or active
+     feedback, so they read like static text rather than interactive
+     buttons. Adding both states and a transition stack. */
+  .btn-accept {
+    transition: background 120ms ease-out, box-shadow 120ms ease-out, transform 90ms ease-out;
+  }
+  .btn-accept:hover {
+    background: rgba(245,194,94,0.22);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.28);
+  }
+  .btn-accept:active {
+    background: rgba(245,194,94,0.32);
+    transform: scale(0.97);
+    box-shadow: none;
+  }
+  .btn-decline {
+    transition: background 120ms ease-out, border-color 120ms ease-out, color 120ms ease-out, transform 90ms ease-out;
+  }
+  .btn-decline:hover {
+    background: rgba(17,30,56,0.45);
+    border-color: rgba(156,189,231,0.45);
+    color: var(--text);
+  }
+  .btn-decline:active {
+    transform: scale(0.97);
+  }
+
+  /* Toggle switch — v1 had no hover feedback, leaving the control
+     feeling dead until tapped. A subtle border lift on hover signals
+     interactivity without competing with the actual on/off state. */
+  .toggle-switch:hover { border-color: rgba(156,189,231,0.45); }
+  .toggle-switch.is-on:hover { border-color: rgba(245,194,94,0.85); }
+  .toggle-switch:active::after { transform: translateY(-50%) scale(1.15); }
+
+  /* Card surface — thin alias of .glass-card + 12px radius for content
+     blocks inside panels. */
+  .card {
+    background: var(--glass-card-bg);
+    backdrop-filter: var(--glass-blur-card);
+    -webkit-backdrop-filter: var(--glass-blur-card);
+    border: var(--glass-border);
+    border-radius: 12px;
+    box-shadow: var(--glass-inset), 0 2px 8px rgba(0,0,0,0.35);
+  }
+
+  /* Hide horizontal scrollbars in carousels */
+  .no-scrollbar { scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+
+  #app {
+    position: relative;
+    height: var(--app-h, 100svh);
+    overflow: hidden;
+  }
+
+  /* MAP — fills the entire viewport, sits behind all floating UI */
+  #map-container {
+    /* fixed so it's positioned to the layout viewport rather than the
+       containing block — on iOS Chrome PWA, the body can end above
+       the bottom system reservation and an absolute-inset-0 child
+       inherits that ceiling. fixed escapes it. */
+    position: fixed;
+    inset: 0;
+  }
+
+  #map {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Invite-loading gate (set in head): hides the map AND the canvas overlay
+     (pins) so the receiver doesn't see either the Oslo-fallback flash before
+     the takeover's jumpTo OR the orange pins drawn against an empty dark
+     background while Mapbox tiles for the dive view are still loading.
+     Removed in JS once the map fires 'idle' (tiles rendered for the current
+     view) — see ui-plan-preview.js openPlanPreview. */
+  html.invite-loading #map,
+  html.invite-loading #canvas-overlay {
+    visibility: hidden;
+  }
+
+  #canvas-overlay {
+    position: absolute;
+    top: 0; left: 0;
+    pointer-events: none;
+    z-index: 690;
+    /* No will-change here. iOS Safari GPU-rasterizes a will-change layer
+       at screen DPI rather than the canvas's full DPR, which blurs every
+       pixel of pin text + venue-name halos that we drew at 2× / 3×. The
+       canvas is never actually transformed, so the hint was buying a
+       blur for no benefit. */
+    touch-action: none; /* prevent browser-level pinch-zoom; Mapbox handles gestures */
+  }
+
+  /* ── User location dot ────────────────────────────────────────────────────── */
+  #user-location-dot {
+    position: absolute;
+    pointer-events: none;
+    z-index: 685;               /* below canvas-overlay (690): venue pins draw on top */
+    width: 14px;
+    height: 14px;
+    transform: translate(-50%, -50%);
+  }
+  .loc-pulse {
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(74,144,226,0.55);
+    animation: loc-pulse 2.4s ease-out infinite;
+  }
+  .loc-dot {
+    position: relative;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #4A90E2;
+    border: 2.5px solid rgba(255,255,255,0.95);
+    box-shadow: 0 1px 5px rgba(0,0,0,0.4), 0 0 10px rgba(74,144,226,0.45);
+  }
+  @keyframes loc-pulse {
+    0%   { transform: scale(1);   opacity: 0.9; }
+    70%  { transform: scale(3.2); opacity: 0; }
+    100% { transform: scale(3.2); opacity: 0; }
+  }
+
+  /* ── Locate-me button ──────────────────────────────────────────────────────── */
+  /* Sits at the right end of the FTS row (vertically aligned to its bottom). */
+  #locate-btn {
+    position: fixed;
+    /* Desktop default — tucked into the bottom-right corner.
+       Mobile (max-width 639px) overrides right + bottom + size below. */
+    right: 12px;
+    bottom: 12px;
+    z-index: 920;
+    /* 34px on pointer-fine devices reads as right-sized for a mouse;
+       mobile rule below pushes it back to 40px for touch. */
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border-radius: 50%;
+    /* Match the venue-list panel's glass instead of the more-solid action
+       token — user observed the button 'looks more blue than the
+       transparent gaussian background of the venue list panel.' Panel
+       tokens give a softer, more transparent feel for a standalone
+       floating button against the map. */
+    background: var(--glassctl-bg);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    border: var(--glassctl-border);
+    box-shadow: var(--panel-shadow);
+    color: rgba(17,30,56,0.70);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  /* Icon swap by cycle state — only one .locate-icon visible at a time.
+     Each class represents the CURRENT camera framing, but the icon shown
+     is the NEXT action (what tapping will do). v1 used display:none/block
+     which couldn't animate the swap; v2 stacks all three icons absolutely
+     in the same slot and crossfades via .is-active / .is-leaving classes
+     applied by _setLocateBtnState(state). Pattern is 'push down': the
+     departing icon slides DOWN out (translateY(100%)) while the new icon
+     enters from ABOVE (translateY(-100% → 0)). */
+  #locate-btn .locate-icon {
+    position: absolute;
+    /* v1 used inset:0 + display:flex on the SVG itself, which broke its
+       intrinsic sizing and pushed the glyph to the upper-left of the
+       button. Pin to centre via explicit size + margin offset. */
+    width: 18px;
+    height: 18px;
+    top: 50%;
+    left: 50%;
+    margin: -9px 0 0 -9px;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-100%);
+    transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.18s ease;
+  }
+  #locate-btn .locate-icon.is-active {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  #locate-btn .locate-icon.is-leaving {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  /* Hover keeps the glass background — only border + icon colour shift
+     so the tap target reads as 'available' without breaking the
+     transparent feel. v1 replaced background with a solid slate-blue,
+     which destroyed the glass illusion the moment the user hovered. */
+  #locate-btn:hover {
+    border-color: rgba(245,194,94,0.45);
+    color: rgba(245,194,94,0.95);
+  }
+  /* Active (mousedown / touch) — subtle press-down. The button briefly
+     scales down to confirm the tap; the absolute-positioned icons
+     scale with their parent which feels right (one unit, not parts). */
+  #locate-btn:active {
+    transform: scale(0.94);
+    transition: transform 0.1s ease;
+  }
+  /* Tracking — post-click state during the camera fly. Honey-accent
+     border + cool-blue icon for the 'I'm doing the thing now' beat.
+     Unchanged from v1 because the user explicitly liked this colour. */
+  #locate-btn.tracking {
+    border-color: rgba(74,144,226,0.7);
+    color: #4A90E2;
+  }
+
+  /* ── Zoom jog slider ──────────────────────────────────────────────────────── */
+  #zoom-jog {
+    position: fixed;
+    right: 12px;
+    /* Sits 8px above the 34px locate-btn on desktop (mobile rule below
+       restores the 40+10 stack). */
+    bottom: calc(12px + 34px + 8px);
+    z-index: 900;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    transition: opacity 0.25s ease;
+  }
+  .zj-track {
+    width: 34px;
+    height: 92px;
+    border-radius: 17px;
+    background: var(--glassctl-bg);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    border: var(--glassctl-border);
+    box-shadow: var(--panel-shadow);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0;
+  }
+  .zj-label {
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+    color: rgba(17,30,56,0.55);
+    pointer-events: none;
+    position: relative;
+    z-index: 1;
+  }
+  .zj-thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(17,30,56,0.16);
+    border: 1.5px solid rgba(17,30,56,0.30);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    transition: transform 0.25s cubic-bezier(0.25, 0.9, 0.4, 1), background 0.15s;
+    cursor: grab;
+    z-index: 2;
+  }
+  .zj-thumb:active, .zj-thumb.active {
+    cursor: grabbing;
+    background: rgba(17,30,56,0.28);
+  }
+
+  /* ── Shared floating card base ────────────────────────────────────────────── */
+  .floating-card {
+    background: var(--glass-panel-bg);
+    backdrop-filter: var(--glass-blur-panel);
+    -webkit-backdrop-filter: var(--glass-blur-panel);
+    border: var(--glass-border);
+    border-radius: 16px;
+    padding: 10px 14px;
+    box-shadow: var(--glass-inset), 0 6px 24px rgba(0,0,0,0.50);
+    position: relative;
+  }
+

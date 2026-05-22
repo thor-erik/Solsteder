@@ -1,0 +1,2418 @@
+  /* ── Top-left: search bar ──────────────────────────────────────────────────── */
+  #floating-search {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    z-index: 900;
+    width: 336px;
+    height: 46px;
+    box-sizing: border-box;
+    padding: 0 6px 0 14px; /* tighter on the right so the avatar tucks in */
+    border-radius: 23px;   /* true pill — half of 46px height */
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: border-color 0.15s, box-shadow 0.15s, opacity 200ms ease-out, transform 220ms ease-out;
+  }
+  #floating-search:hover {
+    border-color: rgba(245,194,94,0.32);
+    box-shadow: var(--glass-inset), 0 4px 20px rgba(0,0,0,0.30);
+  }
+  #floating-search:focus-within {
+    /* Honey border + subtle inner highlight — DESIGN.md tier-1/3 focus spec */
+    border-color: rgba(245,194,94,0.55);
+    box-shadow:
+      inset 0 0 0 1px rgba(245,194,94,0.18),
+      var(--glass-inset),
+      0 4px 20px rgba(0,0,0,0.30);
+  }
+  #search-icon {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #search-icon svg {
+    width: 18px;
+    height: 18px;
+    color: var(--ink-muted);
+  }
+  #floating-search #venue-search {
+    background: transparent;
+    border: none;
+    padding: 0;
+    width: 100%;
+    font-size: 15px;
+    color: var(--panel-text);
+  }
+  #floating-search #venue-search:focus { border: none; outline: none; }
+  #floating-search #venue-search::placeholder {
+    color: rgba(17,30,56,0.45);
+    opacity: 1;
+  }
+
+  #search-clear-btn {
+    display: none;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: rgba(17,30,56,0.08);
+    border-radius: 50%;
+    color: var(--ink-muted);
+    font-size: 14px;
+    cursor: pointer;
+    padding: 0;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, color 0.15s;
+  }
+  #search-clear-btn:hover { background: rgba(17,30,56,0.14); color: var(--panel-text); }
+  #floating-search.has-query #search-clear-btn { display: flex; }
+
+
+  #search-profile-btn {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: none;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.15s;
+  }
+  #search-profile-btn:hover { opacity: 0.8; }
+  #search-profile-btn img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: block;
+  }
+  #search-profile-btn .profile-initials {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: #000;
+  }
+  #search-profile-btn .profile-anon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(156,189,231,0.12);
+    border: 1.5px solid rgba(156,189,231,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+  }
+
+  /* ── Top strip (redesign — Stage 1a) ───────────────────────────────────
+     Three-zone layout: [avatar + bell] / [centered date + weather sentence]
+     / [search]. Replaces #floating-search; old bar hidden below. */
+  #floating-search { display: none !important; }
+
+  #top-strip {
+    position: absolute;
+    /* max() so each platform gets the spacing it needs:
+       - iOS PWA: env returns ~59px (Island + status bar), so top ≈
+         61px → tight under the Dynamic Island, as requested.
+       - Android PWA: env returns 0 (status bar painted by theme-
+         color, no inset), so the 14px floor kicks in → breathing
+         room under the system status bar.
+       - Browser: env returns 0 too, floor gives 14px. */
+    top: max(calc(env(safe-area-inset-top, 0px) + 2px), 14px);
+    /* Mobile (default): edge-to-edge with 12px breathing on both sides.
+       Desktop overrides below cap the width so the strip reads as a
+       discrete control surface, not a chrome bar that flies along the
+       top of the page. */
+    left: 12px;
+    right: 12px;
+    /* Below the bell dropdown (1050), calendar (1200) and toasts. */
+    z-index: 900;
+    height: 46px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 6px;
+    padding: 4px;
+    border-radius: 23px;
+    background: var(--glass-panel-bg);
+    backdrop-filter: var(--glass-blur-panel);
+    -webkit-backdrop-filter: var(--glass-blur-panel);
+    border: var(--glass-border);
+    box-shadow: var(--panel-shadow);
+    container-type: inline-size;
+    container-name: topstrip;
+    /* Slide-up animation — when a takeover state (plan-preview, post-
+       accept, profile panel, detail-panel open) hides the strip, it
+       translates up out of view rather than fading in place. Returns
+       on close with the same easing. */
+    transform: translateY(0);
+    transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.22s ease;
+    will-change: transform;
+  }
+  /* Slide-up hide states — keep opacity at 1 during the transform so the
+     motion reads as "the bar leaves the screen" rather than "the bar
+     fades to nothing while sitting in place." pointer-events:none keeps
+     the (off-screen) bar from intercepting taps. */
+  /* Detail panel intentionally NOT in this list — the user wants the strip to
+     stay so they can scrub the date/time and re-evaluate the same venue at
+     another moment. Invite sheet stays hidden because the plan is pinned to
+     its planned_at. */
+  body.plan-preview-active #top-strip,
+  body.post-accept-active #top-strip,
+  body.profile-panel-open #top-strip,
+  body.invite-sheet-open #top-strip,
+  body.plan-preview-active #floating-brand,
+  body.post-accept-active #floating-brand,
+  body.profile-panel-open #floating-brand,
+  body.invite-sheet-open #floating-brand {
+    transform: translateY(calc(-100% - env(safe-area-inset-top, 0px) - 14px));
+    pointer-events: none;
+  }
+  #top-strip .ts-left, #top-strip .ts-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  /* Glass-on-glass control pill — raised navy bubble on the transparent bar,
+     cream icon, presses in on :active (same language as the FTS thumb). */
+  #top-strip .ts-btn {
+    flex-shrink: 0;
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    background: var(--glassctl-bg);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    border: var(--glassctl-border);
+    box-shadow: var(--glassctl-raise);
+    color: var(--glassctl-icon);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    position: relative;
+    transition: color 120ms, background 120ms, box-shadow 120ms;
+  }
+  #top-strip .ts-btn:hover { background: var(--glassctl-bg-hover); }
+  #top-strip .ts-btn:active { background: var(--glassctl-bg-hover); box-shadow: var(--glassctl-press); }
+  #top-strip .ts-btn svg { width: 18px; height: 18px; }
+  #top-strip .ts-btn.active {
+    background: rgba(245,194,94,0.32);
+    border-color: rgba(245,194,94,0.55);
+    box-shadow: var(--glassctl-raise);
+    color: var(--accent-on);
+  }
+  #top-strip .ts-avatar {
+    /* Same chrome as bell + search — token-based glass. The avatar image or
+       anon icon inside provides differentiation, not the button background. */
+    color: var(--text);
+    font: 600 12px/1 'Inter', sans-serif;
+    overflow: hidden;
+  }
+  #top-strip .ts-avatar.active { box-shadow: 0 0 0 2px var(--accent-border, rgba(245,194,94,0.42)); }
+  #top-strip .ts-avatar img { width: 38px; height: 38px; border-radius: 50%; display: block; }
+  #top-strip .ts-avatar .profile-initials,
+  #top-strip .ts-avatar .profile-anon {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #top-strip .ts-avatar .profile-initials {
+    background: var(--accent);
+    color: var(--accent-on);
+    font-size: 14px;
+    font-weight: 700;
+  }
+  #top-strip .ts-avatar .profile-anon {
+    background: transparent;
+    color: rgba(17,30,56,0.70);
+    border: none;
+  }
+  #top-strip .ts-bell-dot {
+    position: absolute;
+    top: 7px; right: 7px;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--panel);
+  }
+
+  #top-strip .ts-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Tighter cluster: 4px between siblings reads as a single phrase;
+       the dot separators carry the visual break between temp / wind /
+       glyph groups, so the inter-sibling gap doesn't need to do that
+       work too. */
+    gap: 4px;
+    font: 500 13px/1 'Inter', sans-serif;
+    color: var(--text);
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    /* Vertical padding gives the date pill's box-shadow room inside this
+       overflow:hidden box (needed for the horizontal text clip) — without it
+       the shadow was cropped top & bottom. */
+    padding: 6px 4px;
+  }
+  /* Glass-on-glass pill, fully contained within the strip row (no negative
+     margins — those made the fill/border clip top & bottom). */
+  #top-strip .ts-date {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--panel-text);
+    font-weight: 600;
+    padding: 6px 11px;
+    margin: 0;
+    border-radius: 999px;
+    cursor: pointer;
+    background: var(--glassctl-bg);
+    border: var(--glassctl-border);
+    box-shadow: var(--glassctl-raise);
+    font-family: inherit;
+    font-size: inherit;
+    transition: background 120ms, color 120ms, border-color 120ms;
+  }
+  #top-strip .ts-date:hover {
+    background: var(--glassctl-bg-hover);
+    color: var(--panel-text);
+  }
+  #top-strip .ts-date.active {
+    background: rgba(245, 194, 94, 0.32);
+    border-color: rgba(245, 194, 94, 0.55);
+    color: var(--accent-on);
+  }
+  #top-strip .ts-date .ts-chev {
+    width: 11px; height: 11px;
+    color: var(--panel-text);
+    opacity: 0.7;
+    transition: transform 120ms, color 120ms, opacity 120ms;
+  }
+  #top-strip .ts-date:hover .ts-chev { opacity: 1; }
+  #top-strip .ts-date.active .ts-chev { color: var(--accent-on); opacity: 1; transform: rotate(180deg); }
+  #top-strip .ts-center .ts-dot { color: rgba(17,30,56,0.30); font-weight: 400; }
+  /* Date and weather icon read as a pair. Margin compensates for the
+     tighter date button right padding (5 → was 9, total -4 px) so the
+     chevron-to-icon visible gap stays roughly where it was. */
+  #top-strip .ts-center .ts-date + .ts-wx-icon { margin-left: 2px; }
+  /* Explicit emoji fallback fonts so iOS Safari resolves ☀️ ⛅ 🌤 ☁️ 🌧
+     to Apple Color Emoji even when the parent font-family ('Inter') has
+     no glyph for them. Without this list, iOS sometimes renders nothing.
+     line-height bumped from 1 → 1.2 so the emoji glyph isn't clipped by
+     the tight line-box. */
+  #top-strip .ts-center .ts-wx-icon {
+    font-size: 15px;
+    line-height: 1.2;
+    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+  }
+  #top-strip .ts-center .ts-meta { color: rgba(17,30,56,0.60); font-weight: 500; font-variant-numeric: tabular-nums; }
+  /* Temperature carries the most decision-load in the strip — bump
+     to text color + slight weight bump so it reads cleanly without
+     visually competing with the date (which is the primary CTA). */
+  #top-strip .ts-center .ts-temp {
+    color: var(--panel-text);
+    font-weight: 600;
+    /* Negative margin pulls the temp tight against the weather glyph —
+       they read as one unit (icon + value), tighter than the row's
+       default 4 px gap. */
+    margin-left: -2px;
+  }
+
+  /* Adaptive sentence — drop in priority order: wind → temp → glyph
+     (date stays always). Breakpoints are on container width, not viewport. */
+  @container topstrip (max-width: 340px) {
+    #top-strip .ts-wind, #top-strip .ts-wind-dot { display: none; }
+  }
+  @container topstrip (max-width: 290px) {
+    #top-strip .ts-temp, #top-strip .ts-temp-dot { display: none; }
+  }
+  @container topstrip (max-width: 240px) {
+    #top-strip .ts-wx-icon, #top-strip .ts-glyph-dot { display: none; }
+  }
+
+  /* Desktop: align with the venue-list panel column (380 px). The grid
+     uses `auto 1fr auto` so explicit width is required — max-content
+     would collapse the 1fr middle column. Container queries above drop
+     the wordmark (and ultimately the whole brand block) when this width
+     leaves the cluster cramped, so the row gracefully shrinks. */
+  @media (min-width: 640px) {
+    #top-strip {
+      left: 16px;
+      right: auto;
+      width: 380px;
+    }
+  }
+
+  /* .intro-hidden + .mobile-ui-hidden (display:none !important) already
+     hide #top-strip when the JS applies/removes those classes — same as
+     it does for #floating-search. No extra CSS needed. */
+
+  /* ── Top strip search mode (Stage 3) ───────────────────────────────────
+     Click search → strip cross-fades into a single search field. The
+     strip itself becomes the field — no pill-in-pill chrome, no border,
+     no inset shadow on the inner element. Cross-fade via opacity so the
+     transition feels smooth (display:none/flex would snap). */
+  #top-strip .ts-search-input {
+    position: absolute;
+    inset: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 6px 0 12px;
+    border-radius: 19px;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 160ms ease;
+  }
+  #top-strip .ts-search-input .ts-search-input-icon {
+    flex-shrink: 0;
+    width: 18px; height: 18px;
+    color: var(--muted);
+    display: inline-flex;
+  }
+  #top-strip .ts-search-input #venue-search {
+    flex: 1 1 auto;
+    min-width: 0;
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 0;
+    color: var(--text);
+    font: 500 14px/1 'Inter', sans-serif;
+  }
+  /* Suppress the global :focus-visible outline — the pill chrome itself
+     is a clear "this is active" signal; the honey ring on top is noise. */
+  #top-strip .ts-search-input #venue-search:focus,
+  #top-strip .ts-search-input #venue-search:focus-visible {
+    outline: none !important;
+    box-shadow: none;
+  }
+  #top-strip .ts-search-input #venue-search::placeholder {
+    color: rgba(255,244,224,0.55);
+  }
+  #top-strip .ts-search-input-close {
+    flex-shrink: 0;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,244,224,0.22);
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 120ms;
+  }
+  #top-strip .ts-search-input-close:hover {
+    background: rgba(255,244,224,0.32);
+  }
+
+  /* Cross-fade + slide. The right search button slides leftward as it
+     fades, so the user perceives the icon moving toward the search
+     field's leading-icon position. The input's own icon fades in on
+     a slight delay, landing where the slid button "arrived". */
+  #top-strip .ts-left,
+  #top-strip .ts-center {
+    transition: opacity 160ms ease, transform 200ms ease;
+  }
+  #top-strip .ts-right {
+    transition: transform 260ms cubic-bezier(0.2, 0.8, 0.3, 1),
+                opacity 200ms ease 40ms;
+  }
+  #top-strip .ts-search-input .ts-search-input-icon {
+    opacity: 0;
+    transition: opacity 200ms ease 120ms;
+  }
+  #top-strip.searching .ts-left,
+  #top-strip.searching .ts-center {
+    opacity: 0;
+    transform: translateX(-12px);
+    pointer-events: none;
+  }
+  #top-strip.searching .ts-right {
+    transform: translateX(-60px);
+    opacity: 0;
+  }
+  #top-strip.searching .ts-search-input { opacity: 1; pointer-events: auto; }
+  #top-strip.searching .ts-search-input .ts-search-input-icon { opacity: 1; }
+
+  /* Honey ring on the strip in search mode — signals "active". */
+  #top-strip {
+    transition:
+      box-shadow 220ms ease,
+      border-color 220ms ease;
+  }
+  #top-strip.searching {
+    border-color: rgba(245,194,94,0.35);
+    box-shadow:
+      var(--glass-inset),
+      0 6px 20px rgba(0,0,0,0.30),
+      0 0 0 1px rgba(245,194,94,0.28);
+  }
+
+  /* ── Panel header cleanup (Stage 2a) ──────────────────────────────────
+     The date chip + weather chip line and the prose sun-outlook line are
+     redundant with the new top strip (date + weather) and FTS (hourly
+     forecast). Hide the whole #day-header so the venue list starts cleanly.
+     Hidden, not removed: paint functions keep running without breaking. */
+  #day-header { display: none; }
+
+  /* ── Panel action row (Stage 2c) — filter pills + sort ────────────────
+     Sits above #venue-peek. Horizontally-scrolling pill row on the left,
+     sort button pinned right. Pills are tier-3 surface controls; active
+     state uses honey-dim like the bell badge. */
+  #panel-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* Symmetric vertical breathing room so the filter/sort pills' raised
+       box-shadow isn't cropped — was `0 12px 4px` (zero top), which clipped
+       the top of each pill's shadow against the header above. */
+    padding: 5px 12px 6px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 2;
+    transition: box-shadow 0.18s ease;
+  }
+  /* Drop shadow under the sticky header once the list scrolls (replaces the
+     old top fade mask). Toggled via #panel.is-scrolled from the scroll handler. */
+  #panel.is-scrolled #panel-actions {
+    box-shadow: 0 8px 10px -8px rgba(17,30,56,0.28);
+  }
+  #panel-actions .panel-actions-pills {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    gap: 6px;
+    /* overflow-x:auto forces overflow-y to clip (CSS coercion), which cropped
+       the pills' top/bottom box-shadow. Vertical padding gives the shadow room
+       inside the (clipped) scroller; negative margin keeps the row's net height
+       unchanged so the layout doesn't grow. */
+    padding: 6px 0;
+    margin: -6px 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    /* Soft fade-out at the right edge so the row reads as "scroll for
+       more" instead of "cut off by a hard line". 8px fade keeps the
+       pills fully visible until they're right at the edge.
+       Mask is on `mask-image` (and -webkit- for Safari/iOS Capacitor). */
+    -webkit-mask-image: linear-gradient(to right, black 0, black calc(100% - 16px), transparent 100%);
+    mask-image: linear-gradient(to right, black 0, black calc(100% - 16px), transparent 100%);
+  }
+  #panel-actions .panel-actions-pills::-webkit-scrollbar { display: none; }
+  .panel-filter-pill {
+    flex-shrink: 0;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 16px;
+    background: var(--glassctl-bg);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    border: var(--glassctl-border);
+    box-shadow: var(--glassctl-raise);
+    color: var(--glassctl-icon);
+    font: 500 12px/1 'Inter', sans-serif;
+    cursor: pointer;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    -webkit-tap-highlight-color: transparent;
+    transform-origin: center;
+    transition: background 120ms, border-color 120ms, color 120ms,
+                transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    will-change: transform;
+  }
+  /* Hover scoped to pointer-fine devices — prevents sticky :hover state
+     on iOS Safari that otherwise leaves the accent color + border on a
+     pill after a tap. */
+  @media (hover: hover) and (pointer: fine) {
+    .panel-filter-pill:hover { background: var(--glassctl-bg-hover); }
+  }
+  .panel-filter-pill.active {
+    background: rgba(245,194,94,0.32);
+    border-color: rgba(245,194,94,0.55);
+    color: var(--accent-on);
+  }
+  /* Tactile press feedback that works on touch (the lens-fx tilt is barely
+     visible under a finger). Quick scale-down then snap back. */
+  .panel-filter-pill:active { transform: scale(0.94); }
+  /* Clear residual mouse-focus ring after click; keyboard focus still shows. */
+  .panel-filter-pill:focus { outline: none; }
+  .panel-filter-pill:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  /* Press feedback (lens-fx) uses fast linear easing during tilt engagement. */
+  body[data-fx] .panel-filter-pill.lens-fx-tilting {
+    transition: transform 0.05s linear,
+                background 120ms, border-color 120ms, color 120ms;
+  }
+  /* No border-flash animation here — it reads as a slow lag on a control
+     this small. The :active scale + tilt are enough press feedback. */
+  /* Same glass-control family as the account/inbox/search buttons (.ts-btn)
+     and the filter pills (.panel-filter-pill) — just sized to the 32px row
+     height rather than the 38px top-strip buttons. Was a one-off
+     --glass-action-* + --muted look that read as a different component. */
+  #panel-actions-sort {
+    flex-shrink: 0;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--glassctl-bg);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    border: var(--glassctl-border);
+    box-shadow: var(--glassctl-raise);
+    color: var(--glassctl-icon);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 120ms, background 120ms, box-shadow 120ms;
+  }
+  #panel-actions-sort:hover  { background: var(--glassctl-bg-hover); }
+  #panel-actions-sort:active { background: var(--glassctl-bg-hover); box-shadow: var(--glassctl-press); }
+
+  /* ── Cold-link friend-invite welcome card ──────────────────────────────── */
+  .friend-invite-welcome {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 30, 55, 0.22);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.28s ease;
+  }
+  .friend-invite-welcome.show {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .fiw-card {
+    width: min(360px, calc(100vw - 32px));
+    padding: 28px 24px 20px;
+    border-radius: 20px;
+    text-align: center;
+    transform: translateY(12px);
+    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .friend-invite-welcome.show .fiw-card { transform: translateY(0); }
+  .fiw-icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 14px;
+    border-radius: 50%;
+    background: rgba(245, 194, 94, 0.18);
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .fiw-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.25;
+    margin-bottom: 8px;
+  }
+  .fiw-sub {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.4;
+    margin-bottom: 20px;
+  }
+  .fiw-cta { width: 100%; margin-bottom: 8px; }
+  .fiw-dismiss {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 8px 12px;
+    cursor: pointer;
+  }
+
+  /* ── Avatar badge dot (pending friend requests) ────────────────────────── */
+  #search-profile-btn.has-badge::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--bg);
+    pointer-events: none;
+  }
+
+  /* ── Zoom debug helper ───────────────────────────────────────────────────── */
+  #zoom-debug {
+    position: absolute;
+    top: calc(16px + 46px + 8px + 50px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 899;
+    padding: 8px 16px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--accent);
+    white-space: nowrap;
+    border-radius: 12px;
+    transition: opacity 200ms ease-out;
+  }
+  #zoom-debug.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* ── Search dropdown ─────────────────────────────────────────────────────── */
+  #search-dropdown {
+    position: absolute;
+    top: calc(16px + 46px + 6px);
+    left: 16px;
+    width: 380px;
+    z-index: 1050;
+    border-radius: 14px;
+    box-shadow: 0 8px 32px rgba(17,30,56,0.18);
+    overflow: hidden;
+    display: none;
+    /* Content surface — cream frosted (Surface C). */
+    background: var(--content-bg) !important;
+    backdrop-filter: var(--content-blur);
+    -webkit-backdrop-filter: var(--content-blur);
+  }
+
+  /* Bell dropdown — full-width below the top strip. Same legibility
+     treatment as the search dropdown. Capped at 60vh so it doesn't
+     dominate the screen; content scrolls inside. */
+  #bell-dropdown {
+    position: absolute;
+    top: calc(max(env(safe-area-inset-top, 0px) + 2px, 14px) + 46px + 8px);
+    left: 12px;
+    right: 12px;
+    width: auto;
+    /* Shorter, and never tall enough to overlap the venue-list peek: cap at
+       420px AND at the gap between the dropdown top and the peek panel top. */
+    max-height: min(420px, calc(var(--app-h, 100svh) - var(--peek-h, 160px) - 80px));
+    z-index: 1050;
+    border-radius: 14px;
+    box-shadow: 0 8px 32px rgba(17,30,56,0.18);
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    display: none;
+    background: var(--content-bg) !important;
+    backdrop-filter: var(--content-blur);
+    -webkit-backdrop-filter: var(--content-blur);
+  }
+  #bell-dropdown.open {
+    display: block;
+    box-shadow: 0 8px 32px rgba(17,30,56,0.18);
+  }
+  /* Rows clickable for nav-style notifications (check-ins, plans). */
+  .bd-row.bd-row--clickable {
+    cursor: pointer;
+    transition: background 120ms;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .bd-row.bd-row--clickable:hover { background: rgba(155,169,188,0.06); }
+  .bd-row.bd-row--clickable:active { background: rgba(155,169,188,0.14); }
+  /* Past-event invite row — the plan time has come and gone. Dimmed
+     to ~55% so the user sees at a glance it's expired, but stays
+     clickable so they can still open the (past-state) plan-preview
+     panel that shows what the day looked like. Avatar stays full-
+     opacity so faces remain recognizable. */
+  .bd-row.bd-row--past { opacity: 0.55; }
+  .bd-row.bd-row--past .bd-row__avatar,
+  .bd-row.bd-row--past .bd-row__lead { opacity: 1; }
+
+  /* Host quick-cancel button — small × in the row's right edge that
+     opens a two-tap "Avlys?" confirm. Only renders for inviter-side
+     rows whose plan is still active (host-side accepted/declined
+     responses + creator reminder). Pinned via flex on the parent
+     .bd-row; doesn't bubble taps to the row's own onclick. */
+  .bd-row__quick-cancel {
+    margin-left: auto;
+    align-self: flex-start;
+    margin-top: 14px;
+    margin-right: 8px;
+    flex-shrink: 0;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    border: 0;
+    background: rgba(155, 169, 188, 0.10);
+    color: var(--muted);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.14s ease, color 0.14s ease, width 0.14s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .bd-row__quick-cancel:hover {
+    background: rgba(255, 100, 100, 0.18);
+    color: #ff8c8c;
+  }
+  .bd-row__quick-cancel--armed {
+    width: auto;
+    padding: 0 10px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background: rgba(255, 100, 100, 0.22);
+    color: #ff8c8c;
+  }
+
+  /* Freshly-arrived row — entry animation when a new notification
+     lands while the inbox is already open (realtime accept/decline
+     pushes a new bell row at the top). Slides down from above the
+     viewport with a brief fade-in. Other rows reflow into their new
+     positions instantly (innerHTML rebuild) — a true FLIP "siblings
+     slide down" would require DOM-diffing the render path, deferred
+     for now since the new row's motion alone is the strong signal. */
+  @keyframes bd-row-arrive {
+    0%   { transform: translateY(-14px); opacity: 0; }
+    60%  { transform: translateY(0);     opacity: 1; }
+    100% { transform: translateY(0);     opacity: 1; }
+  }
+  .bd-row.bd-row--entering {
+    animation: bd-row-arrive 0.42s cubic-bezier(0.32, 0.72, 0, 1) both;
+    transform-origin: top center;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .bd-row.bd-row--entering { animation: none; }
+  }
+  /* New / unread indicator — small honey dot floating at the right edge */
+  .bd-row.bd-row--new { position: relative; }
+  .bd-row.bd-row--new::after {
+    content: '';
+    position: absolute;
+    top: 16px; right: 14px;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 6px rgba(245,194,94,0.55);
+  }
+  .bd-empty {
+    padding: 28px 16px;
+    text-align: center;
+    color: var(--muted);
+  }
+  .bd-empty .bd-empty-icon {
+    display: block;
+    margin: 0 auto 10px;
+    width: 32px; height: 32px;
+    opacity: 0.6;
+  }
+  .bd-empty .bd-empty-text {
+    font: 500 13px/1.4 'Inter', sans-serif;
+  }
+  .bd-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    border-top: 1px solid rgba(155,169,188,0.10);
+  }
+  .bd-row:first-of-type { border-top: none; }
+  /* Leading element — 32px slot. Avatar for friend events, line icon
+     for system events. Same width either way so all rows line up.
+     position:relative so the +1 badge can sit outside the avatar's
+     overflow-clipped circle. */
+  .bd-row__lead {
+    flex-shrink: 0;
+    position: relative;
+    width: 32px; height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .bd-row__avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: #44638C;
+    color: var(--text);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font: 600 13px/1 'Inter', sans-serif;
+    border: 1px solid rgba(155,169,188,0.22);
+    overflow: hidden;
+  }
+  .bd-row__avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  /* +1 badge — sibling of the avatar, anchored to the lead container
+     so it can render past the avatar's clipped circle. */
+  .bd-row__avatar-plus {
+    position: absolute;
+    right: -6px; bottom: -4px;
+    background: var(--panel);
+    color: var(--text);
+    font: 700 9px/1 'Inter', sans-serif;
+    padding: 3px 5px;
+    border-radius: 9px;
+    border: 1.5px solid var(--panel);
+    box-shadow: 0 0 0 1px rgba(155,169,188,0.30);
+  }
+  .bd-row__sys-icon {
+    color: var(--muted);
+    width: 20px; height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .bd-row__sys-icon svg { width: 18px; height: 18px; }
+  .bd-row__body {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .bd-row__msg {
+    font: 500 13px/1.35 'Inter', sans-serif;
+    color: var(--text);
+  }
+  .bd-row__msg strong { font-weight: 700; }
+  .bd-row__meta {
+    font: 500 11px/1 'Inter', sans-serif;
+    color: var(--muted);
+  }
+  .bd-row__actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .bd-action {
+    flex: 1 1 0;
+    height: 32px;
+    padding: 0 10px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font: 600 12px/1 'Inter', sans-serif;
+    transition: background 120ms, color 120ms, transform 80ms, filter 120ms;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .bd-action:active { transform: scale(0.97); }
+  .bd-action.primary {
+    background: var(--accent);
+    color: var(--accent-on);
+  }
+  .bd-action.primary:hover { filter: brightness(1.08); }
+  .bd-action.primary:active { filter: brightness(0.95); }
+  .bd-action.secondary {
+    background: rgba(155,169,188,0.14);
+    color: var(--text);
+  }
+  .bd-action.secondary:hover { background: rgba(155,169,188,0.22); }
+  .bd-action.secondary:active { background: rgba(155,169,188,0.30); }
+  #search-dropdown.open { display: block; }
+  .sd-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    transition: background 0.1s;
+    gap: 8px;
+  }
+  .sd-row:last-child { border-bottom: none; }
+  .sd-row:hover { background: rgba(245,194,94,0.12); }
+  .sd-row:active, .sd-row.sd-row-clicked {
+    background: rgba(245,194,94,0.28);
+    transform: scale(0.98);
+    transition: background 0.05s, transform 0.05s;
+  }
+  .sd-row-icon {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-muted);
+  }
+  .sd-row-icon .sd-icon {
+    width: 16px;
+    height: 16px;
+  }
+  .sd-row-name {
+    font-size: 14px;
+    color: var(--panel-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+  }
+  .sd-row-area {
+    font-size: 11px;
+    color: var(--ink-muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .sd-suggest-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    transition: background 0.1s;
+  }
+  .sd-suggest-row:hover { background: rgba(245,194,94,0.09); }
+  .sd-suggest-label {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .sd-suggest-btn {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    background: rgba(245,194,94,0.12);
+    border: 1px solid rgba(245,194,94,0.35);
+    border-radius: 8px;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    transition: background 0.15s;
+    flex-shrink: 0;
+  }
+  .sd-suggest-btn:hover { background: rgba(245,194,94,0.22); }
+  @media (max-width: 639px) {
+    #search-dropdown {
+      left: 6px;
+      right: 6px;
+      width: auto;
+    }
+    /* Mobile: position below search bar, centred + sized to content
+       so short messages don't get a wall of dead space on the right.
+       (v1 stretched left:6 right:6 — single-line toasts looked
+       hollow.) */
+    #notif-toast-wrap {
+      /* Mirror #top-strip's own offset (top + 46px height + 8px gap) so the
+         toast always clears the strip — on notched devices the strip is pushed
+         down by env(safe-area-inset-top), and the old fixed 66px overlapped it. */
+      top: calc(max(env(safe-area-inset-top, 0px) + 2px, 14px) + 46px + 8px);
+      left: 50%;
+      max-width: calc(100vw - 24px);
+      transform: translateX(-50%) translateY(-20px);
+      width: max-content;
+    }
+    #notif-toast-wrap.show {
+      transform: translateX(-50%) translateY(0);
+    }
+    #notif-toast {
+      border-radius: 16px;
+      margin-bottom: 0;
+    }
+    /* Move notification to very top during the accept / post-accept
+       takeover. #top-strip is hidden in those flows (see the
+       body.{plan-preview-active,post-accept-active} #top-strip rule
+       above), so the toast has no chrome to clear. detail-panel.open
+       was previously in this list, but it does NOT hide #top-strip —
+       the toast at top:12px overlapped the bell + profile bar. With
+       detail-panel.open removed here, the default mobile position
+       (top: calc(12px + 46px + 8px)) keeps the toast below the strip. */
+    body.plan-preview-active #notif-toast-wrap,
+    body.post-accept-active #notif-toast-wrap {
+      /* Strip is hidden in these flows, but still clear the notch/safe area. */
+      top: calc(env(safe-area-inset-top, 0px) + 12px);
+    }
+    /* Hide notif while either panel reaches fullscreen so it doesn't overlap
+       the content. Use opacity (not display:none) so a notification arriving
+       during fullscreen will fade in cleanly when the user collapses. */
+    body:has(#panel.mobile-fullscreen) #notif-toast-wrap,
+    body:has(#detail-panel.dp-fullscreen) #notif-toast-wrap {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+  }
+
+  /* ── Profile popover ──────────────────────────────────────────────────────── */
+  /* Stage 4b-1: Bottom sheet on both mobile and desktop — Tier 1 lens panel.
+     Slides up from below; rests just under the top strip. */
+  #profile-panel {
+    position: fixed;
+    top: 0;               /* full-screen takeover; sheet rises to the notch */
+    left: 0; right: 0; bottom: 0;
+    z-index: 1100;
+    border-radius: 0;
+    border-top: none;
+    background: var(--content-bg);
+    backdrop-filter: var(--content-blur);
+    -webkit-backdrop-filter: var(--content-blur);
+    box-shadow:
+      0 -8px 40px rgba(17,30,56,0.12);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    -webkit-overflow-scrolling: touch;
+    transform: translateY(100%);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.28s cubic-bezier(0.25, 0.9, 0.4, 1), opacity 0.22s ease;
+  }
+  /* Mirror-sky overlay — Tier 1 spec. Subtle warm/cool dispersion that's
+     barely perceptible at first glance. Lives on a pseudo-element so it
+     doesn't paint over the panel contents. */
+  #profile-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: none;
+    pointer-events: none;
+    z-index: 0;
+  }
+  #profile-panel > * { position: relative; z-index: 1; }
+  /* Inner scroll container — the panel itself is overflow:hidden so the
+     mirror-sky overlay doesn't smear. The settings-root wrapper handles
+     scrolling. iPhone home indicator: 24px of clearance above safe-area
+     so the bottom-most row (sign-out) sits clear of the gesture zone. */
+  #profile-panel .settings-root {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    /* See --app-pad-b token (top of CSS) — guaranteed-visible bottom
+       across all hosts including iOS Chrome WebView PWA. */
+    padding-bottom: var(--app-pad-b);
+  }
+
+  /* Sliding view container — used during drill-in / back navigation
+     between sub-views. Two pages stacked horizontally; transform on the
+     wrapper slides between them. After the transition completes, JS
+     re-renders in the canonical un-wrapped layout. */
+  #profile-panel .profile-pages {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: row;
+    width: 200%;
+    will-change: transform;
+  }
+  #profile-panel .profile-pages .profile-page {
+    flex: 0 0 50%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #profile-panel.open {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+  /* Logged-out (login) takes over the full viewport on every breakpoint so the
+     value-prop carousel + auth buttons get the user's full attention. */
+  #profile-panel.logged-out {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    width: 100%;
+    height: var(--app-h, 100svh);
+    max-height: var(--app-h, 100svh);
+    border-radius: 0;
+    z-index: 9999;            /* above notifications (9998) */
+    transform: translateX(0);
+    opacity: 0;
+    pointer-events: none;
+  }
+  #profile-panel.logged-out.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  #profile-panel.logged-out .login-close-btn { display: flex; }
+  /* Hero stretches to fill the fullscreen panel; auth section pins to the
+     bottom. Same flex split on desktop and mobile — typography overrides for
+     mobile live in the @media block below. */
+  #profile-panel.logged-out .login-hero {
+    flex: 1 1 auto;
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 32px 20px 8px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  #profile-panel.logged-out .login-auth-section {
+    flex: 0 0 auto;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    width: 100%;
+    box-sizing: border-box;
+  }
+  @media (min-width: 640px) {
+    /* Constrain hero/auth width on desktop so the carousel + buttons don't
+       stretch across a 1920px monitor. */
+    #profile-panel.logged-out .login-hero,
+    #profile-panel.logged-out .login-auth-section {
+      max-width: 480px;
+      margin: 0 auto;
+    }
+  }
+  /* When venue list slides off so the settings card can take its place — only
+     on desktop; mobile already covers the screen. */
+  @media (min-width: 640px) {
+    body.profile-panel-open #panel {
+      transform: translateX(calc(-100% - 24px));
+      opacity: 0;
+      pointer-events: none;
+    }
+  }
+  /* Mobile-only sticky header — hidden by default; the @media (max-width:639px)
+     rule below restores it when the panel goes full-screen. */
+  .profile-panel-mobile-bar { display: none; }
+  .profile-panel-header {
+    padding: 20px 20px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+  .profile-panel-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    object-fit: cover;
+  }
+  .profile-panel-avatar-initials {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 700;
+    color: #000;
+  }
+  .profile-panel-info { min-width: 0; }
+  .profile-panel-name {
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: #FFF2EB;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .profile-panel-email {
+    font-size: 13px;
+    font-weight: 400;
+    color: #9CBDE7;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .profile-panel-body { padding: 12px 0; }
+  .profile-panel-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px;
+    font-size: 14px;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .profile-panel-row:hover { background: rgba(255,255,255,0.05); }
+  .profile-panel-row svg { flex-shrink: 0; color: var(--muted); }
+  .profile-panel-footer {
+    border-top: 1px solid rgba(255,255,255,0.07);
+    padding: 12px 0 4px;
+  }
+  .profile-panel-signout {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #9CBDE7;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    font-family: 'Inter', sans-serif;
+  }
+  .profile-panel-signout:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+
+  /* ── Top-right brand card — desktop only ───────────────────────────────────
+     Sits as its own pill to the right of the top-strip. Same glass
+     tokens as #top-strip, same top-offset + height — the two surfaces
+     read as a single chrome plane interrupted by a clean visual gap,
+     not as "logo inside the toolbar".
+
+     Mobile rule below (line ~4815) hides this entirely; the top-strip's
+     avatar carries the identity at touch widths. */
+  #floating-brand {
+    position: absolute;
+    top: max(calc(env(safe-area-inset-top, 0px) + 2px), 14px);
+    right: 16px;
+    z-index: 900;
+    height: 46px;
+    box-sizing: border-box;
+    padding: 4px 14px;
+    border-radius: 23px;
+    background: var(--glass-panel-bg);
+    backdrop-filter: var(--glass-blur-panel);
+    -webkit-backdrop-filter: var(--glass-blur-panel);
+    border: var(--glass-border);
+    box-shadow: var(--glass-inset), 0 6px 20px rgba(0,0,0,0.30);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.22s ease;
+    will-change: transform;
+  }
+
+  /* ── Time slider — Stage 2b: child of #panel, normal flow ─────────────────
+     Was a position:fixed top-level element; now lives inside the panel
+     header (after #panel-handle). The date button is gone — the top
+     strip's date link is the only date picker entry point. */
+  #fts {
+    display: none;  /* hidden by default; shown by body.fts */
+  }
+  body.fts #fts {
+    display: flex;
+    position: relative;
+    /* Symmetric 6px gaps around the compact popup:
+         panel-top → 6px → popup-top → popup-body (24) → 6px (tail) → FTS-top
+       Total popup-area = 36px from panel-top. Handle takes 16px of that
+       in flow, so margin-top = 36 - 16 = 20px. Compact popup overlaps
+       the handle pill — accepted. Expanded popup overflows above the
+       panel via overflow:visible. */
+    /* Top margin tightened from 38 → 22 so the gap between the drag
+       handle and the unexpanded scrub popup roughly equals the gap
+       between the drag handle and the panel top edge. The compact
+       popup overlaps the handle pill area (z-index 10 keeps it on
+       top); expanded popup overshoots above the panel as before. */
+    margin: 20px 12px 10px;
+    height: 40px;
+    align-items: center;
+    gap: 8px;
+    padding: 0;
+    background: none;
+    border: none;
+    box-shadow: none;
+    transition: opacity 0.22s ease;
+  }
+  body.fts #fts-track {
+    transition: background 0.15s;
+  }
+
+  /* Slider track — canvas fills remaining width. Borderless. The
+     "indent" / recessed-channel cue is painted into the canvas itself
+     by drawTimeline's drawIndent option, since inset box-shadows
+     would otherwise sit behind the canvas child and never render. */
+  #fts-track {
+    flex: 1 1 0; min-width: 0;
+    height: 40px;
+    border-radius: 999px;
+    overflow: visible;       /* let event icons + thumb glow extend beyond track */
+    position: relative;
+    cursor: ew-resize;
+    touch-action: none;    /* prevent scroll during drag */
+    background: var(--glass-action-bg);
+    backdrop-filter: var(--glass-blur-action);
+    -webkit-backdrop-filter: var(--glass-blur-action);
+    border: 0;
+    box-shadow: none;
+  }
+  #fts-canvas {
+    display: block;
+    position: absolute;
+    top: -6px; left: 0;       /* 6px bleed top/bottom for thumb glow + scale */
+    width: 100%;
+    height: calc(100% + 12px); /* 38 + 12 = 50px total canvas */
+    pointer-events: none;      /* touch events go to track, not canvas */
+  }
+
+  /* ── Event row INSIDE the FTS bar ────────────────────────────────────────
+     Weather-state glyphs at transition hours, vertically centred in the
+     bar so each icon sits at the time it refers to. Ticks dropped — the
+     icon's position on the bar IS the connection. Dark drop-shadow halo
+     keeps icons legible across the full weather gradient (honey →
+     slate). Thumb (z-5) covers icons as it passes; acceptable since the
+     playhead is the dominant indicator during a scrub. */
+  #fts-events {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    left: 0; right: 0;
+    height: 14px;
+    pointer-events: none;
+    z-index: 3;
+  }
+  .fts-event {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    display: block;
+    color: rgba(255, 244, 224, 0.96);
+    filter: drop-shadow(0 0 2px rgba(15, 27, 42, 0.85))
+            drop-shadow(0 0 1px rgba(15, 27, 42, 0.85));
+    transition: left 320ms cubic-bezier(0.32, 0.72, 0, 1),
+                opacity 80ms linear;
+  }
+  /* Opacity is now driven inline (style.opacity) by _populateFtsEvents:
+     within-segment proximity fade — 0 directly under thumb, 1 at segment
+     edges, 1 in adjacent segments. */
+  .fts-event svg {
+    display: block;
+    width: 14px;
+    height: 14px;
+  }
+  /* Ticks no longer used — icons live on the bar itself. */
+  .fts-event-tick { display: none; }
+
+  /* ── FTS Thumb — lens-glass surface control, matched to #fts-date-btn ──
+     Shares the calendar button's glass vocabulary (--glass-action-bg /
+     --glass-border / --glass-inset) so the thumb reads as a tier-3
+     control flanking the track, not a one-off lens decoration. On
+     desktop drag the circle morphs to a thin playhead pill (6px wide),
+     letting the underlying sun/weather ramp stay readable while
+     scrubbing. Mobile keeps the circle — finger occludes the thumb
+     during drag so a thin needle adds no value. */
+  /* Rotating-arc glint on the rim. --glint-base-angle is the conic
+     gradient START — set by JS from the thumb's track position so the
+     bright arc tracks a fixed overhead-centre light source. --glint-
+     drift-angle is a small idle wobble. Effective angle = base + drift. */
+  @property --glint-base-angle  { syntax: '<angle>'; inherits: false; initial-value: -30deg; }
+  @property --glint-drift-angle { syntax: '<angle>'; inherits: false; initial-value: 0deg;   }
+
+  #fts-thumb {
+    position: absolute;
+    top: 50%;
+    left: 50%;               /* JS overrides on every frame */
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    /* pointer-events stays auto so e.target on a thumb-touch is the
+       thumb itself — the FTS pointerdown handler uses that to
+       distinguish "grab the thumb" from "drag the panel via FTS". */
+    z-index: 5;
+
+    --glint-base-angle: -30deg;
+    --glint-drift-angle: 0deg;
+    --glint-angle: calc(var(--glint-base-angle) + var(--glint-drift-angle));
+
+    background: var(--glass-action-bg);
+    backdrop-filter: var(--glass-blur-action);
+    -webkit-backdrop-filter: var(--glass-blur-action);
+
+    /* Dark subtle rim — reads against cream map without an
+       aggressive 'iOS knob' outline. */
+    border: 1px solid rgba(17,30,56,0.25);
+
+    /* Same elevation language as a venue card: top-light catch + bottom
+       inner shade + a tight contact shadow + soft lift. Plus an outer
+       dark hairline for silhouette readability on the lightest bands. */
+    box-shadow:
+      inset 0 1px 0 rgba(255,250,235,0.22),
+      inset 0 -1px 0 rgba(15,30,55,0.42),
+      0 0 0 0.5px rgba(15,27,42,0.50),
+      0 1px 2px rgba(0,0,0,0.28),
+      0 4px 10px rgba(0,0,0,0.32);
+
+    transform: translate(-50%, -50%);
+    transition:
+      transform     220ms cubic-bezier(0.32, 0.72, 0, 1),
+      width         180ms cubic-bezier(0.32, 0.72, 0, 1),
+      border-radius 180ms cubic-bezier(0.32, 0.72, 0, 1),
+      border-color  160ms ease,
+      box-shadow    220ms cubic-bezier(0.32, 0.72, 0, 1);
+    will-change: transform, width;
+
+    /* Idle: ±4° wobble of the bright-arc angle so the lens reads as a
+       living surface even when the slider is at rest. Paused during
+       active drag (see #fts-thumb.is-active below). */
+    animation: fts-thumb-glint-idle 6s ease-in-out infinite;
+  }
+
+  /* Rim glint — a 1.5 px ring around the thumb showing a conic-gradient
+     arc that peaks ~30° after --glint-angle. Drawn via the ring trick:
+     padded pseudo-element + mask:exclude subtracts the inner area so
+     only the padding-thick rim renders. The arc thus appears to
+     "rotate" around the thumb as the slider moves, tracking a fixed
+     sun overhead. */
+  #fts-thumb::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    padding: 1.5px;
+    background: conic-gradient(
+      from var(--glint-angle),
+      rgba(255,250,232,0)    0deg,
+      rgba(255,250,232,0)   10deg,
+      rgba(255,250,232,0.85) 30deg,
+      rgba(255,250,232,0)   75deg,
+      rgba(255,250,232,0)  360deg
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+            mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+            mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  @keyframes fts-thumb-glint-idle {
+    0%, 100% { --glint-drift-angle: -4deg; }
+    50%      { --glint-drift-angle:  4deg; }
+  }
+
+  /* Release bounce — applied for ~320 ms on pointerup/cancel. Quick
+     compress past 1.0 then a small overshoot before settling. Reads
+     as the lens 'springing back' from the press. */
+  #fts-thumb.is-releasing {
+    animation: fts-thumb-release 320ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
+  }
+  @keyframes fts-thumb-release {
+    0%   { transform: translate(-50%, -50%) scale(1.12); }
+    40%  { transform: translate(-50%, -50%) scale(0.94); }
+    72%  { transform: translate(-50%, -50%) scale(1.04); }
+    100% { transform: translate(-50%, -50%) scale(1.00); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #fts-thumb { animation: none; }
+    #fts-thumb.is-releasing { animation: none; transform: translate(-50%, -50%); }
+  }
+
+  /* Hover — slight scale, gentle rim warm-up. */
+  #fts-thumb.is-hover {
+    transform: translate(-50%, -50%) scale(1.06);
+    border-color: rgba(255,242,235,0.32);
+    box-shadow:
+      inset 0 1px 0 rgba(255,250,232,0.50),
+      inset 0 -1px 0 rgba(15,27,42,0.45),
+      0 0 0 0.5px rgba(15,27,42,0.55),
+      0 1px 2px rgba(0,0,0,0.32),
+      0 0 10px rgba(0,0,0,0.34);
+  }
+
+  /* Active (drag) — neutral lift: slightly larger, slightly brighter
+     rim, deeper drop shadow. No coloured aura; the bright arc on the
+     rim (rotating via JS) does the active-feel work without colour. */
+  #fts-thumb.is-active {
+    transform: translate(-50%, -50%) scale(1.12);
+    border-color: rgba(255,250,232,0.50);
+    animation-play-state: paused;
+    box-shadow:
+      inset 0 1px 0 rgba(255,250,232,0.55),
+      inset 0 -1px 0 rgba(15,27,42,0.55),
+      0 0 0 0.5px rgba(15,27,42,0.55),
+      0 2px 4px rgba(0,0,0,0.42),
+      0 0 14px rgba(0,0,0,0.40);
+  }
+
+  /* (Desktop circle→playhead morph removed — the compression read as a
+     stutter when scrubbing. Desktop now uses the mobile thumb design:
+     same circle, same scale on .is-active, same weather glyph inside.) */
+
+  /* Weather glyph inside the thumb. Centred via translate; the push-on-
+     scrub animation in _updateThumbWxIcon overrides transform when a new
+     icon enters or the old one exits. */
+  .fts-thumb-icon {
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: 14px; height: 14px;
+    pointer-events: none;
+    color: rgba(255, 244, 224, 0.96);
+    filter: drop-shadow(0 0 1.5px rgba(15, 27, 42, 0.7));
+    transition: transform 220ms cubic-bezier(0.32, 0.72, 0, 1),
+                opacity   220ms ease;
+  }
+  .fts-thumb-icon svg { width: 100%; height: 100%; display: block; }
+
+  @media (prefers-reduced-motion: reduce) {
+    #fts-thumb { transition: none; }
+    #fts-thumb.is-hover  { transform: translate(-50%, -50%); }
+    #fts-thumb.is-active {
+      transform: translate(-50%, -50%);
+      width: 32px;
+      border-radius: 50%;
+    }
+  }
+
+  /* Time label — floats above the thumb. Two states:
+     • compact (idle): just the time, glass pill so it's legible on every
+       map background (street, building, water);
+     • expanded (drag): time + weather icon on row 1, temp + wind on row 2.
+     Morph between the two via the same transitions on padding/border-radius/
+     gap; child rows fade their secondary line in/out. */
+  /* Popup body — used by BOTH the floating time slider (#fts-popup) and
+     the accept-panel timeline scrubber (.dprcv-timeline-scrubber-label).
+     Same Tier-2 slate-glass card surface, same compact↔expanded morph,
+     so the receiver gets one consistent 'time + weather' feedback element
+     across the app. The two callers differ only in:
+       - parent container (FTS-track vs scrubber wrapper)
+       - tail (FTS uses SVG #fts-popup-tail with computed polygons;
+         scrubber uses a CSS clip-path triangle, since it never clamps
+         against viewport edges)
+       - JS that drives the expanded toggle (FTS: pointerdown on thumb;
+         scrubber: pointerdown on the timeline canvas) */
+  .fts-popup {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;                /* FTS overrides via JS to follow thumb */
+    transform: translateX(-50%);
+    transform-origin: bottom center;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    padding: 4px 5px;
+    background: var(--glass-card-bg);
+    backdrop-filter: var(--glass-blur-card);
+    -webkit-backdrop-filter: var(--glass-blur-card);
+    border: var(--glass-border);
+    border-radius: 10px;
+    box-shadow:
+      var(--glass-inset),
+      0 6px 24px rgba(0,0,0,0.50);
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 1;
+    transition:
+      padding 0.18s cubic-bezier(0.32, 0.72, 0, 1),
+      gap 0.18s cubic-bezier(0.32, 0.72, 0, 1),
+      border-radius 0.18s cubic-bezier(0.32, 0.72, 0, 1),
+      bottom 0.18s ease,
+      top 0.18s ease;
+  }
+
+  /* Release bounce — matches the thumb's spring-back. Keyframe preserves
+     translateX(-50%) so the popup stays centred horizontally during the
+     scale wobble; transform-origin: bottom centre means the bounce
+     pivots from the tail anchor at the thumb. */
+  .fts-popup.is-releasing {
+    animation: fts-popup-release 320ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
+  }
+  @keyframes fts-popup-release {
+    0%   { transform: translateX(-50%) scale(1.00); }
+    40%  { transform: translateX(-50%) scale(0.94); }
+    72%  { transform: translateX(-50%) scale(1.03); }
+    100% { transform: translateX(-50%) scale(1.00); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .fts-popup.is-releasing { animation: none; }
+  }
+  /* Tail — SVG with dynamically computed polygon. The two shoulders sit
+     on the popup's bottom outline (riding up the rounded-corner curve
+     when the tail leans near the corner); the tip points at the thumb's
+     actual x even when the popup body is clamped against the viewport
+     edge. Geometry is recomputed in showFtsPopup whenever the thumb or
+     popup state changes. overflow:visible lets the tip render outside
+     the SVG bounds when the lean carries it past the popup edge. */
+  #fts-popup-tail {
+    display: block;
+    position: absolute;
+    left: 0;
+    bottom: -10px;
+    width: 100%;
+    height: 10px;
+    overflow: visible;
+    pointer-events: none;
+  }
+  /* Two layered polygons replicate --glass-card-bg's two stacked layers:
+     a base slate at 0.78 alpha, plus the same 135° blue-tint gradient
+     overlay the popup uses. Single-fill polygons came out a shade off
+     because the popup's gradient was missing. */
+  #fts-popup-tail polygon.tail-base    { fill: rgba(17,30,56,0.78); }
+  #fts-popup-tail polygon.tail-overlay { fill: url(#fts-tail-overlay); }
+  /* Hairline border on the slanted sides only — visually continues the
+     popup's --glass-border into the tail. */
+  #fts-popup-tail polyline {
+    fill: none;
+    stroke: rgba(155,169,188,0.22);
+    stroke-width: 1;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .fts-popup.fts-popup-below {
+    bottom: auto;
+    top: calc(100% + 6px);
+  }
+  .fts-popup.fts-popup-below::after {
+    bottom: auto; top: -6px;
+    clip-path: polygon(50% 0, 0 100%, 100% 100%);
+  }
+  .fts-popup-row { display: flex; align-items: center; gap: 6px; line-height: 1; }
+  /* Compact: a small gap so the time + weather glyph have breathing room.
+     Expanded opens further. Transitioned for the morph. */
+  .fts-popup-primary {
+    gap: 5px;
+    transition: gap 0.18s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  /* Secondary is fully removed from layout in compact (display: none).
+     The popup is a shrink-to-fit absolute box, so its width = widest
+     descendant's max-content. Leaving secondary as a 0-height row would
+     still let "15° · 4 m/s" claim its natural width and pad the compact
+     pill out to ~60px wide. */
+  .fts-popup-secondary {
+    display: none;
+    gap: 5px;
+    margin-top: 0;
+  }
+  .fts-popup.fts-popup-expanded .fts-popup-secondary {
+    display: flex;
+  }
+  .fts-popup-time {
+    font: 700 13px/1 'Inter', sans-serif;
+    /* Cream on the compact popup — neutral, polished. Honey/accent
+       only when the popup expands (drag) to mark the active state. */
+    color: rgba(255,244,224,0.95);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+    transition:
+      font-size 0.18s cubic-bezier(0.32, 0.72, 0, 1),
+      color    0.22s ease;
+  }
+  .fts-popup.fts-popup-expanded .fts-popup-time { color: var(--accent); }
+  /* Weather glyph — same SVG set as the accept-page TIMELINE_EVENT_GLYPHS.
+     Hidden in compact (the thumb itself / the in-bar weather row already
+     carries the current weather icon) — only shown in expanded during drag. */
+  .fts-popup-wx-icon {
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+    /* Inherit the unified white + drop-shadow glyph treatment so the
+       FTS popup weather icon matches the timeline / top-strip / date-strip. */
+    color: rgba(255, 244, 224, 0.92);
+    filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.35));
+    transition: opacity 0.14s ease;
+  }
+  .fts-popup:not(.fts-popup-expanded) .fts-popup-wx-icon { display: none; }
+  .fts-popup-wx-icon svg {
+    width: 13px;
+    height: 13px;
+    display: block;
+    transition: width 0.18s cubic-bezier(0.32, 0.72, 0, 1),
+                height 0.18s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .fts-popup-temp {
+    font: 600 10px/1 'Inter', sans-serif;
+    color: var(--text);
+    opacity: 0.9;
+    font-variant-numeric: tabular-nums;
+    transition: font-size 0.18s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .fts-dot {
+    font: 400 9px/1 'Inter', sans-serif;
+    color: var(--text);
+    opacity: 0.9;
+    transition: font-size 0.18s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .fts-popup-wind {
+    font: 600 10px/1 'Inter', sans-serif;
+    color: var(--text);
+    opacity: 0.9;
+    font-variant-numeric: tabular-nums;
+    transition: font-size 0.18s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  /* "Closed" replaces the temp + wind row when the selected venue is
+     closed at the current hour. */
+  .fts-popup-closed-label {
+    display: none;
+    font: 600 10px/1 'Inter', sans-serif;
+    color: var(--text);
+    opacity: 0.9;
+    transition: font-size 0.18s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .fts-popup.is-closed .fts-popup-temp,
+  .fts-popup.is-closed .fts-popup-wind,
+  .fts-popup.is-closed .fts-dot { display: none; }
+  .fts-popup.is-closed .fts-popup-closed-label { display: inline; }
+  .fts-popup.fts-popup-expanded .fts-popup-closed-label { font-size: 13px; }
+
+  /* Expanded state — applied while dragging. Pill grows to show the
+     weather row, secondary fades in, primary's icon slides into place.
+     Type and icon scale up alongside padding so the card reads as a
+     deliberately larger overlay during scrub, not just a wider compact pill. */
+  .fts-popup.fts-popup-expanded {
+    padding: 10px 14px 9px;
+    gap: 4px;
+    border-radius: 14px;
+  }
+  .fts-popup.fts-popup-expanded .fts-popup-time     { font-size: 20px; }
+  .fts-popup.fts-popup-expanded .fts-popup-wx-icon svg { width: 20px; height: 20px; }
+  .fts-popup.fts-popup-expanded .fts-popup-temp     { font-size: 13px; }
+  .fts-popup.fts-popup-expanded .fts-popup-wind     { font-size: 13px; }
+  .fts-popup.fts-popup-expanded .fts-dot            { font-size: 12px; }
+  .fts-popup.fts-popup-expanded .fts-popup-primary  { gap: 8px; }
+  .fts-popup.fts-popup-expanded .fts-popup-secondary {
+    margin-top: 2px;
+    gap: 6px;
+  }
+
+  /* When calendar picker is open: mark date button active, FTS stays fully visible */
+  #fts.fts-cal-open #fts-popup { opacity: 0; pointer-events: none; transition: opacity 180ms ease-out; }
+
+  /* Stage 2b: FTS lives inside the panel now, so the cards no longer need
+     bottom padding to clear a floating pill, the fullscreen header no
+     longer needs margin-bottom to reserve space, and the fullscreen
+     FTS no longer needs a right-edge override. Fullscreen handle slim
+     style is kept — it's about handle layout, not FTS. */
+  body.fts #panel.mobile-fullscreen #panel-handle {
+    height: calc(env(safe-area-inset-top, 0px) + 16px + 4px + 14px);
+    padding-top: calc(env(safe-area-inset-top, 0px) + 16px);
+    padding-bottom: 0;
+  }
+
+  /* ── Bottom-center: date pill + sun arc + intent presets ──────────────────── */
+  #floating-bottom {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 900;
+    width: 336px;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  #floating-bottom > * { pointer-events: all; width: 100%; }
+  #floating-bottom .floating-card { padding: 4px 8px 6px; }
+
+  /* Separate date navigation pill */
+  #floating-date {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    background: var(--glass-panel-bg);
+    backdrop-filter: var(--glass-blur-panel);
+    -webkit-backdrop-filter: var(--glass-blur-panel);
+    border: var(--glass-border);
+    border-radius: 12px;
+    padding: 6px 10px 8px;
+  }
+  #arc-date-nav {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  /* Date display button (replaces native input visually) */
+  #date-display-btn {
+    background: none;
+    border: none;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-style: normal;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 1px 6px;
+    border-radius: 6px;
+    transition: background 0.12s, color 0.12s;
+    white-space: nowrap;
+    min-width: 160px;
+    text-align: center;
+  }
+  #date-display-btn:hover { background: rgba(245,194,94,0.08); }
+  #date-display-btn.open  { color: var(--accent); }
+  /* Weather strip below date nav */
+  #date-wx-strip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    font-size: 11px;
+    color: rgba(156,189,231,0.65);
+    padding-top: 5px;
+    border-top: 1px solid rgba(156,189,231,0.15);
+    margin-top: 5px;
+    width: 100%;
+  }
+  .wx-temp-strip { color: var(--panel-text); font-weight: 600; }
+  .wx-sep   { color: rgba(156,189,231,0.25); }
+  .wx-wind  { color: var(--ink-muted); }
+  .wx-rain  { color: #9CBDE7; }
+  /* Wind direction is rendered as a rotating SVG (not a Unicode arrow)
+     because the diagonal arrow codepoints (U+2196–U+2199) had no glyph
+     in the iOS WKWebView font fallback chain and rendered as tofu. */
+  .wx-arrow {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    vertical-align: -1px;
+    transition: transform 0.25s ease-out;
+  }
+  #top-strip .ts-wind .wx-arrow { width: 11px; height: 11px; vertical-align: -1px; }
+  /* Sky-condition glyph rendered as inline colored SVG (sun + cloud
+     compositions). Same reason as .wx-arrow — iOS WKWebView tofu's the
+     U+1F324 / U+1F325 / U+1F327 emoji codepoints even with VS-16. The
+     containing span is a flex box so the SVG centers cleanly against
+     the surrounding text without relying on baseline math. */
+  .wx-sky-icon {
+    display: block;
+    width: 14px;
+    height: 14px;
+    /* Cream/white monochrome with the same drop-shadow backdrop the
+       timeline icons use (.dprcv-timeline-wx-icon). Unifies the FTS popup,
+       top-strip, header chip, date-strip, calendar grid and timeline so
+       the weather icon set reads as one family across the app. */
+    color: rgba(255, 244, 224, 0.92);
+    filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.35));
+  }
+  #top-strip .ts-wx-icon,
+  #header-wx-chip #header-wx-icon,
+  #date-wx-strip > span:first-child {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+  #top-strip .ts-wx-icon .wx-sky-icon         { width: 17px; height: 17px; }
+  #header-wx-chip #header-wx-icon .wx-sky-icon { width: 14px; height: 14px; }
+  #date-wx-strip .wx-sky-icon                  { width: 13px; height: 13px; }
+  /* Custom date calendar dropdown */
+  #date-calendar {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 380px;
+    background: var(--content-bg);
+    backdrop-filter: var(--content-blur);
+    -webkit-backdrop-filter: var(--content-blur);
+    border: none;
+    border-radius: 14px;
+    box-shadow: 0 8px 32px rgba(17,30,56,0.18);
+    padding: 10px 8px 8px;
+    display: none;
+    z-index: 960;
+  }
+  #date-calendar.open { display: block; }
+  .dc-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+  }
+  /* Calendar day tile — glass-card level (gradient + rim + top sheen). No backdrop-filter:
+     the parent sheet already paints a blur, and nesting another blur is wasted GPU work
+     (see DESIGN.md "Performance & accessibility rules"). Weather still lives in sub-elements
+     (glyph + temp) — background stays neutral so selection rings are unambiguous. */
+  .dc-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    padding: 5px 2px 4px;
+    border-radius: 8px;
+    border: var(--glass-border);
+    background: var(--glass-card-bg);
+    box-shadow: var(--glass-inset);
+    cursor: pointer;
+    transition: border-color 0.12s, box-shadow 0.12s;
+    font-family: 'Inter', sans-serif;
+    position: relative;
+  }
+  .dc-tile:hover:not(.no-data) {
+    border-color: rgba(245,194,94,0.3);
+  }
+  .dc-tile.today       { border-color: rgba(245,194,94,0.4); }
+  /* Selected: inset accent ring + subtle glow; keep glass top-sheen for continuity (no bg fill) */
+  .dc-tile.selected    { box-shadow: inset 0 0 0 2px var(--accent), inset 0 0 10px rgba(245,194,94,0.12), inset 0 1px 0 rgba(255,242,235,0.14) !important; border-color: transparent !important; }
+  /* Sun-touched days: tile fill stays the default glass card — only the
+     border picks up the honey accent. Keeps the selected-state inset ring
+     as the dominant "this is the picked day" signal (different geometry:
+     selected = inset 2px, sun-high/mid = outline border). */
+  .dc-tile.sun-high { border-color: var(--accent); }
+  .dc-tile.sun-mid  { border-color: rgba(245,194,94,0.45); }
+  .dc-tile.sun-high:hover:not(.no-data),
+  .dc-tile.sun-mid:hover:not(.no-data) { border-color: var(--accent); }
+  /* Truly overcast days: lightly faded to dissuade tap (informational, never
+     blocked). Keep opacity high enough that the tile doesn't read as broken
+     or disabled — just less inviting than a sun-touched day. */
+  .dc-tile.sun-low     { opacity: 0.75; }
+  .dc-tile.sun-low:hover:not(.no-data) { opacity: 1; }
+  .dc-tile.no-data     { opacity: 0.4; }
+  /* Beyond-horizon tiles: reduced-opacity glass with the same diagonal gradient — no dashed borders */
+  .dc-tile.solar-only  {
+    background: rgba(17,30,56,0.30);
+    border-color: rgba(17,30,56,0.18);
+    box-shadow: none;
+  }
+  .dc-tile.solar-only:hover:not(.no-data) { border-color: rgba(156,189,231,0.22); }
+  /* Past tiles: 0.45 opacity matches the time bar past-state rule */
+  .dc-tile-past        { opacity: 0.45; cursor: default; pointer-events: none; border-color: transparent; background: transparent; box-shadow: none; }
+  /* Today dot — 4px accent dot, absolutely positioned at bottom-center of tile */
+  .dc-today-dot {
+    position: absolute;
+    bottom: 3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  /* Overflow tiles: days from the previous month that share a row with the 1st of a new month */
+  .dc-tile-overflow    { opacity: 0.45; }
+  .dc-tile-empty       { border: none; background: transparent; pointer-events: none; }
+  .dc-day  { font-size: 7px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(156,189,231,0.4); line-height: 1; }
+  .dc-num  { font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.1; font-family: 'Inter', sans-serif; }
+  .dc-icon { font-size: 11px; line-height: 1.2; display: inline-flex; align-items: center; justify-content: center; }
+  /* SVG sky-icon (used in place of emoji for iOS glyph parity with the
+     top-bar / date-strip surfaces). Sizes scale with the .dc-icon
+     context (top-strip / mini-cal / month grid). */
+  .dc-icon .wx-sky-icon { width: 14px; height: 14px; }
+  .dc-temp { font-size: 8px; font-weight: 600; color: rgba(156,189,231,0.55); line-height: 1; }
+  .dc-tile.today .dc-day { color: rgba(245,194,94,0.75); }
+  .dc-tile.selected .dc-num { color: var(--accent); }
+
+  /* Mode-toggle buttons: glass-action flavor, no accent — secondary chrome */
+  .dc-expand-btn-wide {
+    width: 100%; margin-top: 7px; height: 44px; padding: 0 14px; box-sizing: border-box;
+    background: var(--glass-action-bg);
+    border: var(--glass-border);
+    border-radius: 12px; cursor: pointer;
+    box-shadow: var(--glass-inset);
+    font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
+    color: var(--text);
+    transition: background 0.12s, border-color 0.12s;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    flex-shrink: 0; -webkit-tap-highlight-color: transparent; outline: none;
+  }
+  .dc-expand-btn-wide:hover { background: rgba(17,30,56,0.55); border-color: rgba(156,189,231,0.28); }
+  .dc-expand-btn-wide:active { background: rgba(17,30,56,0.35); }
+  /* Trailing chevron inside mode-toggle buttons */
+  .dc-btn-chev { display: inline-block; color: var(--muted); flex-shrink: 0; }
+  .dc-btn-chev-up { transform: rotate(180deg); }
+  @keyframes dc-cal-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  .dc-cal-entering { animation: dc-cal-in 0.22s ease forwards; }
+
+  /* Weekday header row — 7 columns matching the day grid */
+  .dc-weekday-row {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    gap: 3px; flex-shrink: 0;
+  }
+  .dc-weekday {
+    font-family: 'Inter', sans-serif; font-size: 8px; font-weight: 700;
+    color: rgba(156,189,231,0.35); text-align: center; text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  /* Month label row — spans all 7 columns, sticky handled in #qc-cal scope */
+  .dc-month-row-label {
+    grid-column: 1 / -1;
+    font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 700;
+    color: rgba(156,189,231,0.55); text-transform: uppercase; letter-spacing: 0.09em;
+    padding: 4px 2px 2px;
+  }
+  /* Month grid — 7-column day grid, consistent cell sizing */
+  .dc-month-grid { grid-auto-rows: auto; }
+  .dc-month-grid .dc-tile { padding: 4px 1px; gap: 2px; height: 44px; box-sizing: border-box; justify-content: center; }
+  .dc-month-grid .dc-tile .dc-day  { display: none; }
+  .dc-month-grid .dc-tile .dc-num  { font-size: 15px; font-weight: 600; }
+  .dc-month-grid .dc-tile .dc-icon { font-size: 14px; line-height: 1.2; }
+  .dc-month-grid .dc-tile .dc-temp { display: none; }
+  /* Beyond-horizon tiles: same height, muted number only, no glyph */
+  .dc-month-grid .dc-tile.solar-only { height: 44px; min-height: 44px; }
+  .dc-month-grid .dc-tile.solar-only .dc-icon { display: none; }
+  .dc-month-grid .dc-tile.solar-only .dc-num  { color: var(--muted); font-size: 15px; font-weight: 500; }
+  .dc-month-grid .dc-tile-past { height: 44px; display: flex; align-items: center; justify-content: center; }
+  .dc-month-grid .dc-tile-past .dc-num { font-size: 15px; }
+  /* Forecast boundary note */
+  .dc-forecast-note {
+    margin-top: 5px; padding: 4px 6px; flex-shrink: 0;
+    font-family: 'Inter', sans-serif; font-size: 9px; font-weight: 500;
+    color: rgba(156,189,231,0.40); text-align: center; letter-spacing: 0.03em;
+  }
+
+  /* Sun arc canvas row */
+  #bottom-arc-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 8px 0 0;
+  }
+  #sun-curve {
+    flex: 1;
+    height: 88px;
+    display: block;
+    min-width: 0;
+    cursor: crosshair;
+  }
+
+  /* Wind shelter tags in venue cards */
+  .wind-tag {
+    cursor: default;
+    font-size: 12px;
+    line-height: 1;
+  }
+  .wind-tag.sheltered { color: #64ffb4; opacity: 0.85; }
+  .wind-tag.exposed   { color: #ffaa55; }
+
+  /* ── Environment section chips (noise + wind shelter) ──────────────────── */
+  .dp-env-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 2px;
+  }
+  .dp-env-chip {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    letter-spacing: 0.02em;
+  }
+  .dp-env-chip.noise-high { color: #ff8a8a; background: rgba(255,138,138,0.1); border-color: rgba(255,138,138,0.22); }
+  .dp-env-chip.noise-mid  { color: #f0b46a; background: rgba(240,180,106,0.1); border-color: rgba(240,180,106,0.22); }
+  .dp-env-chip.noise-low  { color: #7dd87d; background: rgba(125,216,125,0.1); border-color: rgba(125,216,125,0.22); }
+  .dp-env-chip.env-sheltered { color: #64ffb4; background: rgba(100,255,180,0.08); border-color: rgba(100,255,180,0.2); }
+  .dp-env-chip.env-partial   { color: #a8d8a8; background: rgba(168,216,168,0.08); border-color: rgba(168,216,168,0.18); }
+  .dp-env-chip.env-exposed   { color: #ffaa55; background: rgba(255,170,85,0.08);  border-color: rgba(255,170,85,0.2);  }
+
+  /* ── Score badge ──────────────────────────────────────────────────── */
+  .score-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    border-radius: 4px;
+    padding: 2px 7px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    background: var(--accent-dim);
+    color: var(--accent);
+    border: none;
+  }
+  /* All tiers use same pill style per spec */
+  .score-badge.tier-high,
+  .score-badge.tier-mid,
+  .score-badge.tier-low,
+  .score-badge.tier-poor { background: var(--accent-dim); color: var(--accent); }
+
+  .score-detail {
+    display: none; /* replaced by .score-detail-inline */
+    gap: 7px;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 1px;
+    flex-wrap: wrap;
+  }
+  .score-detail span { display: inline-flex; align-items: center; gap: 2px; }
+
+  .bottom-controls-row {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    padding-top: 10px;
+    border-top: 1px solid rgba(156,189,231,0.18);
+    margin-top: 10px;
+  }
+  .bottom-controls-row .control-row:first-child { flex-shrink: 0; }
+  .bottom-controls-row .control-row:last-child  { flex: 1; }
+
+  /* Day navigation buttons */
+  .day-nav-btn {
+    background: rgba(156,189,231,0.12);
+    border: 1px solid rgba(156,189,231,0.2);
+    border-radius: 6px;
+    color: var(--muted);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 3px 7px;
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.12s, border-color 0.12s;
+    flex-shrink: 0;
+  }
+  .day-nav-btn:hover { color: var(--accent); border-color: rgba(245,194,94,0.35); }
+
+  /* ── Panel toggle icon — inside sidebar panel header ──────────────────────── */
+  /* Hidden on desktop; shown on mobile via the @media block below */
+  #panel-handle { display: none; }
+
+  /* panel-toggle-icon removed — sidebar is always visible */
+
+  #panel-reveal-btn {
+    position: fixed;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 26px;
+    height: 52px;
+    background: var(--glass-panel-bg);
+    border: 1px solid rgba(156,189,231,0.28);
+    border-left: none;
+    border-radius: 0 10px 10px 0;
+    color: rgba(156,189,231,0.55);
+    font-size: 13px;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    transition: color 0.15s, background 0.15s;
+  }
+  #panel-reveal-btn:hover { color: var(--accent); background: rgba(24,52,95,0.95); }
+
+  #app-toast {
+    position: fixed;
+    bottom: 130px;
+    left: 50%;
+    transform: translateX(-50%) translateY(12px);
+    background: var(--glass-action-bg);
+    backdrop-filter: var(--glass-blur-action);
+    -webkit-backdrop-filter: var(--glass-blur-action);
+    border: var(--glass-border);
+    box-shadow: var(--glass-inset), 0 4px 20px rgba(0,0,0,0.50);
+    color: rgba(156,189,231,0.9);
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    padding: 8px 18px;
+    border-radius: 20px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    z-index: 9999;
+    white-space: nowrap;
+  }
+  #app-toast.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* SMART NOTIFICATION TOAST — now outside #panel so position:fixed works on all screens */
+  #notif-toast-wrap {
+    position: fixed;
+    z-index: 9998;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  #notif-toast-wrap.show {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  /* Swipe-dismiss: only transition opacity. Locks transform so removing .show
+     can't trigger the default upward-slide animation on top of the inner
+     toast's horizontal/upward fly-out. */
+  #notif-toast-wrap.swipe-dismissing {
+    transition: opacity 0.22s ease !important;
+    transform: translateY(0) !important;
+  }
+  /* Desktop: stacked above the panel, panel pushes down via --notif-h */
+  @media (min-width: 640px) {
+    #notif-toast-wrap {
+      top: 70px;            /* aligned with panel top */
+      left: 16px;           /* aligned with panel left */
+      width: 380px;         /* match panel width */
+      transform: translateY(-8px);
+    }
+    #notif-toast-wrap.show {
+      transform: translateY(0);
+    }
+    /* Push panel down so notif doesn't overlap the venue list */
+    body:has(#notif-toast-wrap.show) #panel {
+      top: calc(70px + var(--notif-h, 0px) + 8px);
+    }
+  }
+  /* Notification toast — rounded glass banner that wraps cleanly to 2
+     lines for longer messages. Same Tier-3 surface as before; the shape
+     change (pill → rounded rect) is what makes multi-line content read
+     as designed instead of a ballooning pill. Swipe up / left / right
+     to dismiss (handled in notifications.js). */
+  #notif-toast {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    margin-bottom: 0;
+    background: #111E38;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px;  /* card-shape, matches venue cards / dp-cards */
+    box-shadow: var(--panel-shadow);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    position: relative;
+    will-change: transform, opacity;
+    touch-action: pan-y;  /* swipe handler decides on horizontal */
+  }
+  /* Close X restored — v1 removed it in favour of swipe-only dismissal,
+     which left desktop users (no swipe gesture) and unfamiliar mobile
+     users with no clear way to dismiss. The button is small (16 px),
+     muted, and aria-labelled. Swipe still works. */
+  #notif-toast.notif-dragging { transition: none !important; }
+  #notif-toast.notif-dismissing {
+    transition: transform 0.22s ease-out, opacity 0.22s ease-out;
+    opacity: 0;
+  }
+  /* Explicit emoji fallback fonts so iOS WKWebView reaches Apple Color
+     Emoji for the toast icon (👋 📍 📅 etc.). Without this the parent
+     font-family ('Inter') has no glyph for emoji codepoints and they
+     render as tofu — even emoji-default codepoints. */
+  .notif-toast-icon {
+    font-size: 20px; flex-shrink: 0; line-height: 1; display: flex; align-items: center;
+    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+  }
+  .notif-toast-icon svg { width: 18px; height: 18px; display: block; }
+  .notif-toast-content { flex: 1; min-width: 0; cursor: pointer; }
+  /* Bolder + slightly bigger so notifications read as actionable
+     content, not whispered status text. Cap at 2 lines — long messages
+     truncate with ellipsis instead of growing the banner unboundedly. */
+  .notif-toast-body {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  /* CTA — primary pill (matches .p-pill design-system token, sized down for
+     the toast). Solid accent background reads unmistakably as clickable. */
+  .notif-toast-action {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 14px;
+    border: none;
+    border-radius: 999px;       /* full pill */
+    background: var(--accent);  /* solid accent */
+    color: var(--accent-on, #1a0e08);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.30);
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.12s ease-out, transform 0.06s ease-out, box-shadow 0.12s ease-out;
+  }
+  .notif-toast-action:hover { background: var(--accent-hover); box-shadow: 0 4px 12px rgba(0,0,0,0.40); }
+  .notif-toast-action:active { background: var(--accent-active); transform: translateY(1px); box-shadow: none; }
+  .notif-toast-close {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    opacity: 0.55;
+    border-radius: 50%;
+    transition: opacity 0.12s ease-out, background 0.12s ease-out, transform 90ms ease-out;
+  }
+  .notif-toast-close:hover { opacity: 1; background: rgba(255,242,235,0.08); }
+  .notif-toast-close:active { transform: scale(0.9); }
+
+  /* CONTROLS */
+  .control-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .control-label {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    width: 32px;
+    flex-shrink: 0;
+  }
+
+  /* POPUP */
+  .mapboxgl-popup {
+    z-index: 800;
+  }
+
+  .mapboxgl-popup-content {
+    background: var(--glass-panel-bg);
+    backdrop-filter: var(--glass-blur-panel);
+    -webkit-backdrop-filter: var(--glass-blur-panel);
+    border: var(--glass-border);
+    border-radius: 12px;
+    color: var(--text);
+    box-shadow: var(--glass-inset), 0 8px 32px rgba(0,0,0,0.5);
+    padding: 12px 16px;
+    max-width: 240px;
+    position: relative;
+  }
+
+  .mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip { border-top-color: rgba(17,30,56,0.55); }
+  .mapboxgl-popup-anchor-top    .mapboxgl-popup-tip { border-bottom-color: rgba(17,30,56,0.55); }
+  .mapboxgl-popup-anchor-left   .mapboxgl-popup-tip { border-right-color: rgba(17,30,56,0.55); }
+  .mapboxgl-popup-anchor-right  .mapboxgl-popup-tip { border-left-color: rgba(17,30,56,0.55); }
+
+  .mapboxgl-popup-close-button {
+    color: var(--muted);
+    font-size: 18px;
+    line-height: 1;
+    padding: 4px 8px;
+    background: none;
+    border: none;
+  }
+  .mapboxgl-popup-close-button:hover {
+    background: rgba(255,255,255,0.08);
+    border-radius: 0 12px 0 0;
+    color: var(--text);
+  }
+

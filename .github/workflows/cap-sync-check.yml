@@ -25,6 +25,7 @@ on:
       - 'manifest.json'
       - 'sw.js'
       - 'js/**'
+      - 'css/**'
       - 'data/**'
       - 'design/**'
       - 'favicon*'
@@ -40,6 +41,7 @@ on:
       - 'manifest.json'
       - 'sw.js'
       - 'js/**'
+      - 'css/**'
       - 'data/**'
       - 'design/**'
       - 'favicon*'
@@ -88,6 +90,16 @@ jobs:
           done
           # JS bundle parity
           for f in js/*.js; do
+            root_hash=$(shasum -a 256 "$f" | awk '{print $1}')
+            ios_hash=$(shasum -a 256 "ios/App/App/public/$f" 2>/dev/null | awk '{print $1}' || echo "MISSING")
+            if [ "$root_hash" != "$ios_hash" ]; then
+              echo "::error file=$f::iOS bundle missing/stale ($f)"
+              fail=1
+            fi
+          done
+          # CSS bundle parity
+          for f in css/*.css; do
+            [ -e "$f" ] || continue
             root_hash=$(shasum -a 256 "$f" | awk '{print $1}')
             ios_hash=$(shasum -a 256 "ios/App/App/public/$f" 2>/dev/null | awk '{print $1}' || echo "MISSING")
             if [ "$root_hash" != "$ios_hash" ]; then

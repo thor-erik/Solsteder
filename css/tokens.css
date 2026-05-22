@@ -1,0 +1,224 @@
+  :root {
+    /* ── PRIMITIVE TOKENS ─────────────────────────────────────────────────────
+       Raw scales. Components MUST NOT reference these directly — go through the
+       semantic layer below. Published here so palette work happens in one place. */
+
+    /* Coral (brand) */
+    --coral-50:  #FFE9D0;
+    --coral-100: #FFDDCA;
+    --coral-200: #FFCBAA;
+    --coral-300: #FFC49A;
+    --coral-400: #FFB186;
+    --coral-500: #FFAF85;  /* legacy primitive — unreferenced; --accent is the canonical brand accent */
+    --coral-600: #FF9966;
+    --coral-700: #F09060;
+    --coral-800: #E5754A;
+    --coral-900: #2A1A0C;  /* on-coral text */
+
+    /* Cream (warm neutral, paired with coral) */
+    --cream-50:  #FFF2EB;  /* on-dark text */
+    --cream-100: #DECCC0;
+
+    /* Blue (surfaces & cool accents) */
+    --blue-200:  #B8CFEE;  /* cool */
+    --blue-300:  #9CBDE7;  /* jordy / muted */
+    --blue-400:  #7FA5D9;  /* rain */
+    --blue-500:  #4A90E2;
+    --blue-700:  #204983;  /* glass gradient mid */
+    --blue-800:  #111E38;  /* surface */
+    --blue-900:  #111E38;  /* canvas */
+    --blue-950:  #0A1830;
+
+    /* Status (used ad-hoc today; tokenized for the next migration pass) */
+    --green-500: #64FFB4;
+    --red-500:   #FF6B6B;
+    --red-600:   #DC2626;
+    --red-900:   #7F1D1D;
+
+    /* Weather palette — three sun bands (yellow gradient) + one cool grey
+       overcast + rain + night. Aligned with Slate + Honey: clear sun =
+       honey, overcast = cool slate, rain = slate-blue. */
+    --weather-clear:      #F5C25E;   /* matches --accent — clear sun */
+    --weather-clear-soft: #E8B870;   /* mostly clear — softer honey */
+    --weather-partly:     #D5B068;   /* partly cloudy — clearly yellow (was reading too grey) */
+    --weather-overcast:   #9A8E7E;   /* overcast — warm grey, harmonized with cream map */
+    --weather-rain:       #4A5E82;   /* rain — Delft-blue family (no longer slate) */
+    --weather-night:      #0F1B2A;   /* deeper than --bg for visibility */
+
+    /* Spacing — 4-base ladder. Published; not yet migrated. */
+    --space-1:  4px;
+    --space-2:  8px;
+    --space-3:  12px;
+    --space-4:  16px;
+    --space-5:  20px;
+    --space-6:  24px;
+    --space-8:  32px;
+    --space-12: 48px;
+
+    /* Radius. Published; not yet migrated. */
+    --radius-xs:    4px;
+    --radius-sm:    8px;
+    --radius-md:    12px;
+    --radius-lg:    16px;
+    --radius-pill:  999px;
+    --radius-circle: 50%;
+
+    /* Type scale. Published; not yet migrated. */
+    --text-xs:  11px;
+    --text-sm:  12px;
+    --text-md:  13px;
+    --text-lg:  14px;
+    --text-xl:  16px;
+    --text-2xl: 20px;
+    --text-3xl: 24px;
+
+    /* Motion. Published; not yet migrated. */
+    --ease-standard:   cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-emphasized: cubic-bezier(0.32, 0.72, 0, 1);
+    --dur-fast: 120ms;
+    --dur-base: 180ms;
+    --dur-slow: 320ms;
+
+    /* ── SEMANTIC TOKENS ─────────────────────────────────────────────────────
+       What components consume. Components SHOULD reference these (or the
+       component-level tokens below), never the primitives directly.
+
+       Brand: Slate + Honey (experimental swap from Polynesian + Coral).
+       Primitive layer (--coral-*, --blue-*) intentionally unchanged so the
+       direct primitive consumers (e.g. tokens.js JS bridge) keep their
+       legacy values. Promote honey/slate to proper primitives once locked. */
+
+    --bg:         #111E38;                     /* Delft Blue (was #1A2C42 Slate) */
+    --panel-text: #111E38;                     /* dark text for transparent panel surfaces */
+    --panel:      #111E38;
+    --accent:        #F5C25E;                     /* honey gold (was --coral-500) */
+    --accent-hover:  #FAD17C;                     /* lighter honey for :hover */
+    --accent-active: #D9A845;                     /* darker honey for :active */
+    --accent-dim:    rgba(245,194,94,0.16);
+    --accent-on:     #2C1F02;                     /* warm dark, drawn ON --accent */
+    --text:       #FFF4E0;                     /* warm cream */
+    --muted:      #9BA9BC;                     /* cool grey (was Jordy blue) */
+    --card-bg:    rgba(17,30,56,0.40);
+    --border:     rgba(17,30,56,0.12);         /* dark subtle outline for cream map */
+    --pill-bg:    rgba(17,30,56,0.45);
+
+    /* Glass levels — cream-map recipe. FLAT solid fills only — no gradients,
+       no saturate (saturate amplified the map's pin colors into a blue cast).
+       Panel  = transparent lens (Tier 1), depth comes from a drop shadow.
+       Card   = fully opaque Delft Blue island (Tier 2).
+       Action = semi-dark raised pill for glass-on-glass controls (Tier 3). */
+    --glass-panel-bg:  rgba(17,30,56,0.00);
+    --glass-card-bg:   rgba(17,30,56,1.00);
+    --glass-action-bg: rgba(17,30,56,0.55);
+    --glass-blur-panel: blur(6px);
+    --glass-blur-card:  blur(6px);
+    --glass-blur-action: blur(8px);
+    --glass-blur-pill:  blur(8px);
+    --glass-border: 1px solid rgba(17,30,56,0.12);
+    --glass-border-light: 1px solid rgba(17,30,56,0.08);
+    /* Null inset — no sheen on transparent panels. Using a transparent shadow
+       rather than `none` so it remains valid in comma-separated box-shadow lists. */
+    --glass-inset: 0 0 0 0 transparent;
+
+    /* ── Cream-redesign surface system ──────────────────────────────────────
+       THREE surface roles. Every element belongs to exactly one. Text/icon
+       colour is determined by the role, not by the element:
+
+         A · Floating bar (transparent)  → #top-strip, #panel, #detail-panel,
+              FTS track. Backdrop = blurred map. Direct text = DARK (#111E38).
+              Controls sitting on it use the glass-on-glass pill below.
+         B · Card (opaque Delft Blue)     → .venue-card, .dp-card.
+              Text/icons = CREAM (--text). Never put dark text here.
+         C · Content panel (cream frosted)→ calendar, invite, accept/plan-preview,
+              profile, search/bell dropdowns, sort. Predictable backdrop, so
+              text = DARK (#111E38), muted = rgba(17,30,56,0.55). */
+    --content-bg:    rgba(255,242,235,0.80);   /* cream @ 80% — 50% was too murky to read */
+    --content-blur:  blur(6px);
+    --content-text:  #111E38;
+    --content-muted: rgba(17,30,56,0.55);
+
+    /* Glass-on-glass control pill — for controls on a transparent bar (Surface
+       A). Flat semi-dark fill that PROTRUDES via a drop shadow; presses IN via
+       an inset shadow on :active (same language as the FTS thumb). Icons/text
+       on these = CREAM. No gradients. */
+    --ctl-bg:        rgba(17,30,56,0.50);
+    --ctl-bg-hover:  rgba(17,30,56,0.62);
+    --ctl-icon:      #FFF4E0;
+    --ctl-raise:     0 2px 6px rgba(17,30,56,0.22);
+    --ctl-press:     inset 0 2px 5px rgba(17,30,56,0.40);
+
+    /* Transparent glass control — a clear frosted bubble on a glass bar with a
+       DARK icon. For see-through utility controls (top-strip buttons, filter
+       pills). Reads as glass, lifted by a bright rim + soft shadow. */
+    --glassctl-bg:        rgba(255,250,244,0.28);
+    --glassctl-bg-hover:  rgba(255,250,244,0.50);
+    --glassctl-border:    1px solid rgba(255,255,255,0.45);
+    --glassctl-icon:      rgba(17,30,56,0.82);
+    --glassctl-raise:     0 1px 4px rgba(17,30,56,0.13);
+    --glassctl-press:     inset 0 2px 4px rgba(17,30,56,0.18);
+
+    /* Drop shadow lifting a transparent floating bar off the cream map.
+       Two layers: a tight contact shadow + a soft ambient lift so panels
+       read as clearly floating, not flat. */
+    --panel-shadow:  0 2px 6px rgba(17,30,56,0.14), 0 10px 28px rgba(17,30,56,0.18);
+    /* Upward shadow for bottom sheets (invite, accept, confirm). */
+    --sheet-shadow:  0 -8px 32px rgba(17,30,56,0.18);
+    /* Dark muted text for transparent (A) + cream (C) surfaces — replaces
+       --muted (#9BA9BC slate) which is illegible on light backgrounds. */
+    --ink-muted:     rgba(17,30,56,0.55);
+
+    /* Card-pill subject colors — kept distinct from --muted/--accent so the
+       "Skyer" (cool gray) and "Regn" (blue) pill text reads cleanly on glass.
+       Slate-tuned: cool = lighter slate-grey, rain = mid slate-blue. */
+    --cool: #B5BCC8;
+    --rain: #6F8AA8;
+
+    /* ────────────────────────────────────────────────────────────────────
+       VIEWPORT + SAFE-AREA TOKENS — read this before adding any panel
+       ────────────────────────────────────────────────────────────────────
+       Standards-based (2026) cross-host adaptation. The runtime no longer
+       needs custom JS to figure out the visible viewport — modern CSS
+       primitives handle every host correctly. The contract:
+
+         1. <meta viewport> declares `viewport-fit=cover` (unlocks
+            env(safe-area-inset-*) on iOS) and `interactive-widget=
+            resizes-content` (Android keyboard now shrinks the layout
+            viewport — same as iOS — so svh/dvh/% all reflect it).
+         2. Bottom-anchored sheets use `bottom: 0` + `max-height: Xsvh`
+            (small viewport, never clipped by chrome) + `padding-bottom:
+            var(--app-pad-b)`.
+         3. `--app-pad-b` collapses while a form field is focused — see
+            the :has(:focus-visible) rule below — so the sheet hugs the
+            keyboard instead of leaving a stale safe-area gap above it.
+
+       --app-pad-b — `max(env(safe-area-inset-bottom), 12px)`.
+                     iOS PWA: env() ≈ 34px (home indicator). Android
+                     Chrome 135+ PWA: env() ≈ 24–48px (gesture chin —
+                     edge-to-edge migration now reports it). Older
+                     Android / desktop: env() = 0, falls back to 12px.
+                     This single signal is correct on every host — no
+                     more JS-tracked --app-bottom-inset hack required.
+
+       --app-h      — visualViewport.height in px (JS-tracked, 100svh
+                     fallback). Retained for legacy panel rules and the
+                     few JS measurements that need exact pixel math.
+                     New code should prefer `svh` directly. See JS
+                     viewport tracker block in <head>.
+
+       Drag-to-dismiss math (NOT layout) still uses window.visualViewport
+       in JS — that API is the only way to read pinch-zoom + keyboard
+       offsets for gesture handlers. Layout no longer needs it.
+    */
+    --app-pad-b: max(env(safe-area-inset-bottom, 0px), 12px);
+  }
+  /* Keyboard-open override — when a form field is focused, env(safe-
+     area-inset-bottom) doesn't change but the keyboard now overlaps the
+     home-indicator zone. The 34px (iOS) or ~30px (Android) inset becomes
+     dead space ABOVE the keyboard, leaving the sheet floating mid-screen.
+     Collapse to 8px so the sheet hugs the keyboard. (Webventures 2025
+     pattern, https://webventures.rejh.nl/blog/2025/safe-area-inset-
+     bottom-does-not-update/) */
+  :root:has(:is(input, textarea, [contenteditable]):focus-visible) {
+    --app-pad-b: 8px;
+  }
+

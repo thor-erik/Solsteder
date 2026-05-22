@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Solar-optimized venue finder for Oslo",
   "scripts": {
-    "build": "rm -rf www && mkdir -p www && cp -R index.html privacy.html terms.html manifest.json sw.js shades-logo.png shades-mark.svg favicon.ico favicon-16.png favicon-32.png favicon-48.png favicon-192.png apple-touch-icon.png apple-touch-icon-76x76.png apple-touch-icon-120x120.png apple-touch-icon-152x152.png apple-touch-icon-167x167.png js data design www/",
+    "build": "rm -rf www && mkdir -p www && cp -R index.html privacy.html terms.html manifest.json sw.js shades-logo.png shades-mark.svg favicon.ico favicon-16.png favicon-32.png favicon-48.png favicon-192.png apple-touch-icon.png apple-touch-icon-76x76.png apple-touch-icon-120x120.png apple-touch-icon-152x152.png apple-touch-icon-167x167.png js css data design www/",
     "cap:sync": "npm run build && npx cap sync",
     "cap:ios": "npm run cap:sync && npx cap open ios",
     "cap:android": "npm run cap:sync && npx cap open android"
