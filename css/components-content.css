@@ -1593,7 +1593,7 @@
     #profile-panel.logged-out .login-slide-icon { width: 72px; height: 72px; margin-bottom: 16px; }
     #profile-panel.logged-out .login-slide-icon svg { width: 56px; height: 56px; }
     #profile-panel.logged-out .login-hero-title {
-      font-size: 24px; max-width: 320px; margin: 0 auto 24px;
+      font-size: var(--text-display); max-width: 320px; margin: 0 auto 24px;
     }
     #profile-panel.logged-out .login-slide-title { font-size: 17px; margin-bottom: 8px; }
     #profile-panel.logged-out .login-slide-body { max-width: 320px; font-size: 14px; }
@@ -3073,8 +3073,11 @@
   /* Logged-out profile panel: hero + benefits carousel */
   .login-hero { padding: 24px 20px 8px; text-align: center; }
   .login-hero-title {
-    font-family: 'Newsreader', serif; font-size: 22px; font-weight: 400;
-    color: var(--text); line-height: 1.25; margin: 0 0 18px;
+    /* Display tier (DESIGN.md) — Inter 900 tight (the logo treatment), replacing
+       the off-system Newsreader serif (the product is one font: Inter). */
+    font-family: 'Inter', sans-serif; font-size: var(--text-display);
+    font-weight: var(--fw-display); letter-spacing: var(--tracking-display);
+    color: var(--text); line-height: 1.2; margin: 0 0 18px;
   }
   .login-carousel { position: relative; overflow: hidden; }
   .login-carousel-track {

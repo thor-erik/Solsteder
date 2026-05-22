@@ -84,10 +84,12 @@
      hierarchically primary in the detail context (vs the same renderer
      producing a list card at 16px elsewhere). */
   .dp-card .card-new-name {
-    font-size: 22px;
-    font-weight: 700;
-    line-height: 1.18;
-    letter-spacing: -0.012em;
+    /* Display tier (DESIGN.md) — the venue-takeover title, Inter 900 tight,
+       echoing the logo mark. */
+    font-size: var(--text-display);
+    font-weight: var(--fw-display);
+    line-height: 1.15;
+    letter-spacing: var(--tracking-display);
   }
   .dp-card .card-new-meta {
     font-size: 12.5px;
