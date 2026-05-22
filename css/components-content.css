@@ -3123,12 +3123,14 @@
   .login-close-btn:hover { background: rgba(255,255,255,0.12); color: var(--text); }
 
   /* Candidate "Suggest venue" badge in search dropdown */
+  /* Candidate badge ("Suggest venue" on a suggestable row). Was a honey pill —
+     dies on the cream dropdown. Ink outline, matching .sd-suggest-btn. */
   .sd-candidate-btn {
     font-size: 11px;
     font-weight: 600;
-    color: var(--accent);
-    background: rgba(245,194,94,0.1);
-    border: 1px solid rgba(245,194,94,0.25);
+    color: var(--panel-text);
+    background: transparent;
+    border: 1px solid var(--line-l-strong);
     border-radius: 12px;
     padding: 3px 10px;
     white-space: nowrap;
@@ -3136,8 +3138,8 @@
     pointer-events: none; /* row handles click */
   }
   .sd-row-candidate:hover .sd-candidate-btn {
-    background: rgba(245,194,94,0.2);
-    border-color: rgba(245,194,94,0.4);
+    background: var(--line-l-faint);
+    border-color: var(--line-l-strong);
   }
 
   /* ── Venue selection modal (Google Places results) ──────────────────────────── */

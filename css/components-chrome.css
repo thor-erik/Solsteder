@@ -391,7 +391,9 @@
   #top-strip .ts-search-input .ts-search-input-icon {
     flex-shrink: 0;
     width: 18px; height: 18px;
-    color: var(--muted);
+    /* Search mode lives inside the now-light Jordy chrome → ink, not the
+       cream/cool-grey that suited the old dark strip. */
+    color: var(--ink-muted);
     display: inline-flex;
   }
   #top-strip .ts-search-input #venue-search {
@@ -401,7 +403,7 @@
     border: none;
     outline: none;
     padding: 0;
-    color: var(--text);
+    color: var(--panel-text);
     font: 500 14px/1 'Inter', sans-serif;
   }
   /* Suppress the global :focus-visible outline — the pill chrome itself
@@ -412,15 +414,15 @@
     box-shadow: none;
   }
   #top-strip .ts-search-input #venue-search::placeholder {
-    color: rgba(255,244,224,0.55);
+    color: var(--ink-muted);
   }
   #top-strip .ts-search-input-close {
     flex-shrink: 0;
     width: 28px; height: 28px;
     border-radius: 50%;
     border: none;
-    background: rgba(255,244,224,0.22);
-    color: var(--text);
+    background: var(--line-l-faint);
+    color: var(--panel-text);
     font-size: 14px;
     font-weight: 500;
     line-height: 1;
@@ -432,7 +434,7 @@
     transition: background 120ms;
   }
   #top-strip .ts-search-input-close:hover {
-    background: rgba(255,244,224,0.32);
+    background: var(--line-l);
   }
 
   /* Cross-fade + slide. The right search button slides leftward as it
