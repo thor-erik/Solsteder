@@ -3426,8 +3426,24 @@ function _updatePeekHeight() {
 (function _syncPanelFullscreenBodyClass() {
   const panel = document.getElementById('panel');
   if (!panel) return;
-  const sync = () => document.body.classList.toggle(
-    'panel-fullscreen-active', panel.classList.contains('mobile-fullscreen'));
+  // TEMP diagnostic badge — shows the panel's live state classes + whether the
+  // fullscreen body class is set. Remove once the fullscreen fade is sorted.
+  let _dbg = document.getElementById('_dbg-panel-state');
+  if (!_dbg) {
+    _dbg = document.createElement('div');
+    _dbg.id = '_dbg-panel-state';
+    _dbg.style.cssText = 'position:fixed;left:6px;bottom:6px;z-index:99999;'
+      + 'background:rgba(0,0,0,0.8);color:#0f0;font:11px/1.3 monospace;'
+      + 'padding:4px 6px;border-radius:6px;pointer-events:none;max-width:60vw;';
+    document.body.appendChild(_dbg);
+  }
+  const sync = () => {
+    const fs = panel.classList.contains('mobile-fullscreen');
+    document.body.classList.toggle('panel-fullscreen-active', fs);
+    const cls = Array.from(panel.classList).filter(c =>
+      c.startsWith('mobile-') || c === 'is-sliding' || c === 'panel-dragging').join(' ') || '(none)';
+    _dbg.textContent = `panel: ${cls} | body.fs=${document.body.classList.contains('panel-fullscreen-active')}`;
+  };
   new MutationObserver(sync).observe(panel, { attributes: true, attributeFilter: ['class'] });
   sync();
 })();
