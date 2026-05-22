@@ -189,7 +189,7 @@ Plain-language terms (used throughout this doc) mapped to what they are on scree
 | **Honey CTA** | Jeg blir med, Invite friends here, Share link | Honey `#F5C25E` · 100% | none | — | `--shadow-1` · `--accent-on` |
 | **Honey badge** | "+1h 35m" pill, score badge | Honey · 16% (`--accent-dim`) | none | `--accent-border` | — · honey |
 
-**Colour is role-assigned, not a knob.** Only opacity / blur / shadow were dialed; colour is fixed per surface. **Three surface colours, no fourth:** Jordy Blue for light chrome (chrome panel, sheet — also reads as a tinted sunglasses lens), Delft Blue for dark focus surfaces (content card, modal — cream text), Cream for opaque popovers (dropdowns). Text is **ink on light, cream on dark** (secondary at `0.78`). Accent is honey, once per screen; the one colour *state* is **selected/active = honey-dim** (`--accent-dim` + `--accent-border` + honey text). Status colours come from the status scale.
+**Colour is role-assigned, not a knob.** Only opacity / blur / shadow were dialed; colour is fixed per surface. **Three surface colours, no fourth:** Jordy Blue for light chrome (chrome panel, sheet — also reads as a tinted sunglasses lens), Delft Blue for dark focus surfaces (content card, modal — cream text), Cream for opaque popovers (dropdowns). Text is **ink on light, cream on dark** (secondary at `0.78`). Accent is honey, once per screen; the one colour *state* is **selected/active = honey-dim** (`--accent-dim` + `--accent-border` + `--accent-on` ink text — honey-on-honey-dim tested too low-contrast on device). Status colours come from the status scale.
 
 **Shadow is the third elevation knob.** Flat-modern lifts surfaces with a solid drop shadow (principle 6), on a scale that tracks elevation: `--shadow-1` resting (chrome panel, card), `--shadow-2` raised (sheet, dropdown), `--shadow-3` pop (modal). A raised layer always casts a stronger shadow than what it covers. Bottom-anchored chrome panels cast their shadow **upward** onto the map. No inset sheens (retired).
 
@@ -238,7 +238,7 @@ One state model, applied to every interactive component — no per-flow variants
 | Default | outline: `--surface-control` (~1%) + `--line-l-strong`, ink text | per role (honey CTA / glass secondary / ghost tertiary) |
 | Hover (desktop) | border darkens + faint fill | brightness up |
 | Pressed | scale 0.97 + fill flash (+ haptic on mobile) | scale 0.97 (+ haptic) |
-| **Selected / active** | **honey-dim fill + `--accent-border` + honey text** | — |
+| **Selected / active** | **honey-dim fill + `--accent-border` + `--accent-on` ink text** | — |
 | Focus | 2px focus ring (keyboard / switch-control) | 2px focus ring |
 | Disabled | `--o-disabled` (0.40), no pointer events | `--o-disabled`, no pointer |
 | Loading | — | spinner + disabled |
