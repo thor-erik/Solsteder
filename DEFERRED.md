@@ -49,12 +49,29 @@ items — strike them through with the resolution so the trail stays.
   (`.dpacc-panel`) — mixed surfaces (dark cards inside), overlap Phase 3, and not
   preview-verifiable without login.
 
-## Remaining surface sub-phases (planned)
+## Remaining surface sub-phases
 
-- **Modals** (sign-in, friends) → `--surface-modal` + `--scrim` + `--shadow-3`.
-- **Raised / dropdown** (sort menu `#sort-panel`, bell dropdown) → `--surface-raised`
-  (opaque cream) + `--shadow-2` — also fixes DESIGN-FIXES "dropdown bleed-through".
-- **Cross-cutting passes**: radius (incl. `--radius-lg`→20), spacing, type.
+- ~~Modals (sign-in, friends) → `--surface-modal` + `--scrim` + `--shadow-3`.~~ DONE.
+- ~~Raised / dropdown (sort/search/bell) → opaque `--surface-raised` + `--shadow-2`.~~ DONE
+  (bleed-through fixed; content recoloured to ink).
+- ~~Radius pass — `--radius-lg`→20 + all 207 raw radii snapped to the 5-step scale.~~ DONE.
+- **Type pass** — wire `--text-*`/`--fw-*`/`--tracking-*` role tokens; migrate raw
+  font-sizes onto the six roles. (Lower layout risk than spacing.)
+
+### Spacing — its OWN dedicated phase, NOT a blanket snap (user-directed)
+
+The spacing migration is layout-affecting, shorthand-heavy (199 multi-value), and
+~300+ off-scale occurrences — too risky to blanket-sed like radius. When it comes
+back, do it in two steps:
+
+1. **Zero-risk first**: tokenize only the values ALREADY on the scale
+   (2/4/6/8/12/16/24/32/48 → `--space-*`), single-value and the on-scale parts of
+   shorthands. No layout change — just gets validator coverage.
+2. **Off-scale orphans surface-by-surface**: the off-scale values (esp. **10px ×93**,
+   which DESIGN.md says to kill → 8 or 12 *by context*; plus 14/5/20/18/etc.) get
+   resolved one surface at a time using `scripts/audit-layout.mjs`, **verified per
+   surface and ideally spot-checked on a device.** Never snap off-scale values
+   app-wide in one pass.
 
 ## Deferred polish / bugs
 
