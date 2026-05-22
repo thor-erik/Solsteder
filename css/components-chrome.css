@@ -837,7 +837,7 @@
   .bd-empty {
     padding: 28px 16px;
     text-align: center;
-    color: var(--muted);
+    color: var(--ink-muted);   /* dropdown is opaque cream → ink-muted, not cool-grey */
   }
   .bd-empty .bd-empty-icon {
     display: block;
@@ -895,7 +895,7 @@
     box-shadow: 0 0 0 1px rgba(155,169,188,0.30);
   }
   .bd-row__sys-icon {
-    color: var(--muted);
+    color: var(--panel-text);   /* legible symbol on opaque cream */
     width: 20px; height: 20px;
     display: inline-flex;
     align-items: center;
@@ -911,12 +911,12 @@
   }
   .bd-row__msg {
     font: 500 13px/1.35 'Inter', sans-serif;
-    color: var(--text);
+    color: var(--panel-text);   /* was cream (--text) — invisible on opaque cream */
   }
   .bd-row__msg strong { font-weight: 700; }
   .bd-row__meta {
     font: 500 11px/1 'Inter', sans-serif;
-    color: var(--muted);
+    color: var(--ink-muted);
   }
   .bd-row__actions {
     display: flex;
@@ -943,7 +943,7 @@
   .bd-action.primary:active { filter: brightness(0.95); }
   .bd-action.secondary {
     background: rgba(155,169,188,0.14);
-    color: var(--text);
+    color: var(--panel-text);
   }
   .bd-action.secondary:hover { background: rgba(155,169,188,0.22); }
   .bd-action.secondary:active { background: rgba(155,169,188,0.30); }
@@ -1000,17 +1000,20 @@
     padding: 10px 14px;
     transition: background 0.1s;
   }
-  .sd-suggest-row:hover { background: rgba(245,194,94,0.09); }
+  .sd-suggest-row:hover { background: var(--line-l-faint); }
   .sd-suggest-label {
     font-size: 13px;
-    color: var(--muted);
+    color: var(--ink-muted);
   }
+  /* Secondary action on a cream dropdown — ink outline, NOT a honey pill
+     (honey dies on cream, and "suggest a missing venue" is a low-stakes action,
+     not the screen's CTA). Steps to Delft/ink per "controls step away". */
   .sd-suggest-btn {
     font-size: 12px;
     font-weight: 600;
-    color: var(--accent);
-    background: rgba(245,194,94,0.12);
-    border: 1px solid rgba(245,194,94,0.35);
+    color: var(--panel-text);
+    background: transparent;
+    border: 1px solid var(--line-l-strong);
     border-radius: 8px;
     padding: 4px 10px;
     cursor: pointer;
@@ -1018,7 +1021,7 @@
     transition: background 0.15s;
     flex-shrink: 0;
   }
-  .sd-suggest-btn:hover { background: rgba(245,194,94,0.22); }
+  .sd-suggest-btn:hover { background: var(--line-l-faint); }
   @media (max-width: 639px) {
     #search-dropdown {
       left: 6px;
