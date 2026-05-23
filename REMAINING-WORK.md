@@ -77,6 +77,39 @@ Finishes the cleanup the foundation didn't cover. One or two previews.
   - Invite nudge-grid is coupled to "Jeg blir med" but logically belongs under
     "Kommer senere" — re-couple it. *(DESIGN-FIXES → mobile polish)*
 
+### Migration stragglers (carried from DEFERRED.md, 2026-05-24)
+
+Finishing the surface/component migration the foundation phases left:
+
+- **Remaining button-role flows.** Phase 3 collapsed inbox / RSVP-response / suggest / auth /
+  detail-action-row onto the role primitives. Still per-flow: the **accepted-plan carousel**
+  (`.dpacc-action-primary` ×9), the **FTS / time-slider popup** buttons (`.fts-popup-primary`
+  / `.fts-popup-secondary`), and the **RSVP decline link** (`.dprcv-cta-link` ×13;
+  `.dprcv-cta-primary` already composes `.p-pill`). Same treatment: 4 roles + state matrix.
+- **Surface stragglers.** `.settings-group` (login-gated, not on `--surface-content`),
+  `.intent-btn` (segmented control — tokenize raw colours / handle form), the **date calendar**
+  sheet (`#date-calendar` not on `--surface-sheet`), and the login-gated sheet *surfaces*
+  (RSVP/Share/Accepted — verify post-login).
+- **Content fill 90% vs "fully opaque" prose.** `--surface-content` = `rgba(17,30,56,0.90)`;
+  DESIGN.md prose says fully opaque. Decide + reconcile DESIGN.md.
+- **DESIGN.md surface-model update** documenting the shipped dark-Delft sheet direction
+  (detail/invite/share dark; accept/post-accept lighter) — was "pending" in DEFERRED.
+- **Venue photo gallery — uniform tile sizing.** Detail-panel photos render at inconsistent
+  dimensions; give a fixed aspect-ratio / uniform tile.
+- *(Optional control pass: `#locate-btn` / `.ts-btn` icon controls + the sort-button "darker"
+  perception — only if a control-styling pass is wanted.)*
+
+### Spacing pass — its OWN careful 2-step phase (NOT a blanket snap)
+
+Layout-affecting, shorthand-heavy, ~300+ off-scale occurrences originally. Validator now shows
+~50 raw spacing left (the on-scale step is largely done). Finish the rest in two steps:
+
+1. **Zero-risk:** tokenize values already on the scale (2/4/6/8/12/16/24/32/48 → `--space-*`),
+   single-value + the on-scale parts of shorthands. No layout change — just validator coverage.
+2. **Off-scale orphans surface-by-surface** (esp. **10px** → 8 or 12 *by context*; plus
+   14/5/20/18…) using `scripts/audit-layout.mjs`, verified per surface, device-spot-checked.
+   **Never snap off-scale values app-wide in one pass.**
+
 **Acceptance:** validator clean; no CLS on list load; one preview the user signs off.
 
 ---
@@ -161,6 +194,19 @@ Captured ideas (2026-05-23):
   release — if so it's a quick win that can be pulled earlier. The proper fix is the
   interruptible spring above: release continues the gesture's velocity instead of starting a
   fresh timed animation.
+- **Venue-list `cardIn` flash on filter change** (carried from DEFERRED.md). The card-entrance
+  animation re-fires whenever the filtered set changes (`ui-list.js`) — pre-existing, not from
+  the migration. Tame it (suppress on filter toggles, or a light crossfade). User picks the
+  approach. Related to the list re-render crossfade above.
+- **Invite-friends as an in-panel page, not a separate sheet** (carried from DEFERRED.md; strong
+  user idea). Slide the detail content left, bring the invite content in from the right (iOS
+  push) with a **back button** (button, not swipe — the mobile detail panel is already a
+  vertically-draggable sheet, so a horizontal swipe-back would fight it). Wins: spatial
+  continuity (invite belongs to the venue), kills the duplicated `.dpinvite-sheet`, native feel.
+  Watch: animate **X only** (fixed panel height + internal scroll), two-level back/`popstate`,
+  focus management; bonus chance to fix the mis-coupled invite nudge-grid. JS-heavy interaction
+  phase, sim-tested. Invite-**creation** from detail only — RSVP/accept stays a separate
+  first-impression surface.
 
 > **Map relight** is *also* a polish item but lives in **Phase 9** (the map workstream) so the
 > map is touched once. Don't start it here.
