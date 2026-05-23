@@ -64,7 +64,7 @@ const ABS_OVERLAP_PX   = 14;   // sanity overlap guard inside the free zone
 const MERGE_DIST   = 22;   // dots closer than this (real px) merge onto an anchor
 const UNMERGE_DIST = 30;   // hysteresis: a merged dot stays merged until this far
 let   _frameDots = [];          // collected each draw: { x, y, inSun, alpha, vid }
-const _dotDraw   = new Map();   // vid → { x, y }  drawn (lerped) position
+const _dotProg   = new Map();   // vid → merge progress 0..1 (0 = own real pos, 1 = on anchor)
 const _dotAnchor = new Map();   // vid → vid of the anchor it's merged onto (self if it IS one)
 
 // Cached per-venue distance from the user location. The cache is keyed by
@@ -1508,9 +1508,12 @@ function _getGoing(v, dateStr) {
 // their own target, and glide+fade out from under the anchor: the "explode".
 function _drawDots(placedPills, zoom) {
   const dots = _frameDots;
-  const anchors = [];   // { vid, x, y }
+  const byVid = new Map();
+  for (const d of dots) byVid.set(d.vid, d);
+  const anchors = [];   // { vid, x, y }  (x,y = live real positions this frame)
 
-  // 1) Assign each dot a target: an existing anchor (merge) or itself (anchor).
+  // 1) Merge decision: assign each dot an anchor (an earlier dot within range)
+  //    or make it its own anchor. Uses LIVE real positions + hysteresis.
   for (const d of dots) {
     const prevAnchor = _dotAnchor.get(d.vid);
     let best = null, bestDist = Infinity;
@@ -1521,54 +1524,57 @@ function _drawDots(placedPills, zoom) {
       const thresh = (a.vid === prevAnchor) ? UNMERGE_DIST : MERGE_DIST;
       if (dist < thresh && dist < bestDist) { best = a; bestDist = dist; }
     }
-    if (best) { d.tx = best.x; d.ty = best.y; d.anchorVid = best.vid; _dotAnchor.set(d.vid, best.vid); }
-    else      { d.tx = d.x;    d.ty = d.y;    d.anchorVid = d.vid;    _dotAnchor.set(d.vid, d.vid); anchors.push({ vid: d.vid, x: d.x, y: d.y }); }
+    if (best) { d.anchorVid = best.vid; _dotAnchor.set(d.vid, best.vid); }
+    else      { d.anchorVid = d.vid;    _dotAnchor.set(d.vid, d.vid); anchors.push({ vid: d.vid, x: d.x, y: d.y }); }
   }
 
-  // 2) Lerp every dot's drawn position toward its target (glide).
+  // 2) Animate only the merge PROGRESS scalar (0 = own real pos, 1 = on anchor).
+  //    Positions are recomputed live each frame from this scalar, so panning
+  //    has ZERO lag — only the merge/explode transition is smoothed.
   for (const d of dots) {
-    let p = _dotDraw.get(d.vid);
-    if (!p) { p = { x: d.tx, y: d.ty }; _dotDraw.set(d.vid, p); }
-    if (Math.abs(d.tx - p.x) > 0.3 || Math.abs(d.ty - p.y) > 0.3) {
-      p.x += (d.tx - p.x) * 0.22;
-      p.y += (d.ty - p.y) * 0.22;
-      _animDirty = true;
-    } else { p.x = d.tx; p.y = d.ty; }
-    d._p = p;
+    const tgt = (d.anchorVid !== d.vid) ? 1 : 0;
+    let prog = _dotProg.get(d.vid);
+    if (prog === undefined) prog = tgt;        // first sight: appear settled, don't glide
+    if (Math.abs(tgt - prog) > 0.004) { prog += (tgt - prog) * 0.22; _animDirty = true; }
+    else prog = tgt;
+    _dotProg.set(d.vid, prog);
+    d._prog = prog;
   }
 
-  // 3) Draw — one dot per venue, single size/type. A member fades by its
-  //    distance from its anchor's DRAWN position: stacked (dist→0) = invisible
-  //    (so a merged group reads as just the anchor); separated = full opacity.
+  // 3) Draw — one dot per venue, single size/type. Drawn pos = own real pos
+  //    pulled toward the anchor's real pos by progress. Members fade by their
+  //    separation from the anchor: stacked → invisible (group reads as one
+  //    dot), separated → full opacity.
   const r = (zoom >= 16 ? 6 : 5);
   for (const d of dots) {
-    const p = d._p;
+    const anchor = byVid.get(d.anchorVid);
+    const ax = anchor ? anchor.x : d.x, ay = anchor ? anchor.y : d.y;
+    const px = d.x + (ax - d.x) * d._prog;
+    const py = d.y + (ay - d.y) * d._prog;
     let a = d.alpha;
     if (d.anchorVid !== d.vid) {
-      const ap = _dotDraw.get(d.anchorVid);
-      const dist = ap ? Math.hypot(p.x - ap.x, p.y - ap.y) : 99;
-      a *= Math.max(0, Math.min(1, dist / 9));
+      a *= Math.max(0, Math.min(1, Math.hypot(px - ax, py - ay) / 9));
     }
     if (a < 0.03) continue;
     // Suppress dots sitting on a pill body (reads as an artefact).
     let overlaps = false;
     for (const pl of placedPills) {
-      if (p.x >= pl.x - 6 && p.x <= pl.x + pl.w + 6 && p.y >= pl.y - 6 && p.y <= pl.y + pl.h + 6) { overlaps = true; break; }
+      if (px >= pl.x - 6 && px <= pl.x + pl.w + 6 && py >= pl.y - 6 && py <= pl.y + pl.h + 6) { overlaps = true; break; }
     }
     if (overlaps) continue;
     const col = _dotMapColors(d.inSun ? 'hero' : 'context', false, false);
     ctx.save();
     ctx.globalAlpha = a;
-    ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+    ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI * 2);
     ctx.fillStyle = col.fill; ctx.fill();
-    ctx.beginPath(); ctx.arc(p.x, p.y, r - 0.5, 0, Math.PI * 2);
+    ctx.beginPath(); ctx.arc(px, py, r - 0.5, 0, Math.PI * 2);
     ctx.strokeStyle = col.ring; ctx.lineWidth = 1; ctx.stroke();
     ctx.restore();
   }
 
   // 4) Prune state for venues not present this frame (became pills / off-screen).
   const present = new Set(dots.map(d => d.vid));
-  for (const k of _dotDraw.keys())   if (!present.has(k)) _dotDraw.delete(k);
+  for (const k of _dotProg.keys())   if (!present.has(k)) _dotProg.delete(k);
   for (const k of _dotAnchor.keys()) if (!present.has(k)) _dotAnchor.delete(k);
 }
 
