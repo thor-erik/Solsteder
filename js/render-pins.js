@@ -1543,26 +1543,44 @@ function _drawDots(placedPills, placedNamesGrid, zoom, presentVids) {
     else      { d.anchorVid = d.vid;    d.aDist = 0; anchors.push({ vid: d.vid, x: d.x, y: d.y }); }
   }
 
-  const r    = (zoom >= 16 ? 6 : 5);
-  const RAMP = Math.max(1, DOT_SPREAD_PX - DOT_MERGE_PX);
+  // Two sizes: a lone / exploded dot is one venue (SMALL); a dot that's still
+  // hiding venues (a merged anchor) is the larger size (≈ today's dot). The
+  // anchor grows/shrinks smoothly with how absorbed its members are.
+  const R_SINGLE = zoom >= 16 ? 4.5 : 3.8;
+  const R_MERGED = zoom >= 16 ? 6   : 5;
+  const RAMP  = Math.max(1, DOT_SPREAD_PX - DOT_MERGE_PX);
+  const CLEAR = R_MERGED + R_SINGLE;     // a member must clear the (large) anchor
 
-  // Present dots — alpha = PRESENCE (vis) × FORM (d.alpha = 1−morph) × MERGE
-  // (sep). Three orthogonal factors, each owning one transition; they compose
-  // and never double-count, so pill↔dot, merge, and enter/leave move as one.
+  // 1) Position + per-member MERGE visibility (continuous from the LIVE
+  //    separation → zero pan lag; the explode glides with the zoom).
   for (const d of dots) {
-    const merged = d.anchorVid !== d.vid;
-    // MERGE position: continuous from the LIVE separation (no temporal smoothing
-    // → zero pan lag; the explode glides with the zoom). 1 = on anchor, 0 = own.
-    const prog = merged ? Math.max(0, Math.min(1, (DOT_SPREAD_PX - d.aDist) / RAMP)) : 0;
+    d._merged = d.anchorVid !== d.vid;
+    const prog = d._merged ? Math.max(0, Math.min(1, (DOT_SPREAD_PX - d.aDist) / RAMP)) : 0;
     const anchor = byVid.get(d.anchorVid);
     const ax = anchor ? anchor.x : d.x, ay = anchor ? anchor.y : d.y;
-    const px = d.x + (ax - d.x) * prog;
-    const py = d.y + (ay - d.y) * prog;
-    // MERGE visibility: a member is shown only once it has CLEARED the anchor
-    // (centre past 2·r = circles just touching), full past ~3.5·r — so two dots
-    // never show overlapping, and a merging dot just stays absorbed (no grow-in).
-    const merge = merged ? Math.max(0, Math.min(1, (Math.hypot(px - ax, py - ay) - 2 * r) / (1.5 * r))) : 1;
+    d._px = d.x + (ax - d.x) * prog;
+    d._py = d.y + (ay - d.y) * prog;
+    // Shown only once it has CLEARED the anchor (centres past R_MERGED+R_SINGLE
+    // = circles just touching) → two dots never show overlapping, and a merging
+    // dot just stays absorbed (no standalone grow-in then stack).
+    d._merge = d._merged ? Math.max(0, Math.min(1, (Math.hypot(d._px - ax, d._py - ay) - CLEAR) / (1.2 * R_SINGLE))) : 1;
+  }
 
+  // 2) Per-anchor "mergedness" — how absorbed its members still are (1 = fully
+  //    stacked, 0 = all exploded). Drives the anchor's SIZE so a dot hiding
+  //    venues reads larger and shrinks as the cluster explodes.
+  const anchorMerged = new Map();
+  for (const d of dots) {
+    if (!d._merged) continue;
+    anchorMerged.set(d.anchorVid, Math.max(anchorMerged.get(d.anchorVid) || 0, 1 - d._merge));
+  }
+
+  // 3) Draw — alpha = PRESENCE (vis) × FORM (d.alpha = 1−morph) × MERGE (d._merge).
+  //    Three orthogonal factors, each owning one transition; they compose and
+  //    never double-count, so pill↔dot, merge, and enter/leave move as one.
+  for (const d of dots) {
+    const dr = d._merged ? R_SINGLE
+             : (R_SINGLE + (R_MERGED - R_SINGLE) * (anchorMerged.get(d.vid) || 0));
     // PRESENCE: shared per-venue envelope (kept ≈1 while the venue is a pill OR
     // dot — see the pill pass below — so a demote does NOT re-fade in; only a
     // genuinely-new dot fades up here).
@@ -1570,17 +1588,17 @@ function _drawDots(placedPills, placedNamesGrid, zoom, presentVids) {
     let vis = prev ? prev.vis : 0;
     if (vis < 1) { vis = Math.min(1, vis + 0.12); _animDirty = true; }
 
-    let a = vis * d.alpha * merge;     // PRESENCE × FORM × MERGE
+    let a = vis * d.alpha * d._merge;     // PRESENCE × FORM × MERGE
     // A dot must never sit on a pill body OR a floating name label.
-    const dotRect = { x: px - r, y: py - r, w: 2 * r, h: 2 * r };
+    const dotRect = { x: d._px - dr, y: d._py - dr, w: 2 * dr, h: 2 * dr };
     let overlaps = false;
     for (const pl of placedPills) { if (_overlaps(dotRect, pl, 2)) { overlaps = true; break; } }
     if (!overlaps && placedNamesGrid) {
       _forEachNearbyCell(placedNamesGrid, dotRect, (n) => { if (_overlaps(dotRect, n, 2)) overlaps = true; });
     }
     if (overlaps) a = 0;
-    _markerVis.set(d.vid, { vis, lastA: a, px, py, inSun: d.inSun, wasDot: true });
-    if (a >= 0.03) _drawOneDot(px, py, r, d.inSun, a);
+    _markerVis.set(d.vid, { vis, lastA: a, px: d._px, py: d._py, inSun: d.inSun, wasDot: true, r: dr });
+    if (a >= 0.03) _drawOneDot(d._px, d._py, dr, d.inSun, a);
   }
 
   // Present PILLS — keep their presence envelope warm so a later demote to a
@@ -1606,7 +1624,7 @@ function _drawDots(placedPills, placedNamesGrid, zoom, presentVids) {
     m.lastA -= 0.12;
     if (m.lastA < 0.03) { _markerVis.delete(vid); continue; }
     _animDirty = true;
-    _drawOneDot(m.px, m.py, r, m.inSun, m.lastA);
+    _drawOneDot(m.px, m.py, m.r || 5, m.inSun, m.lastA);
   }
 }
 
