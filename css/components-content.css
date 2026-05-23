@@ -1768,6 +1768,12 @@
     #panel:not(.mobile-expanded):not(.mobile-fullscreen):not(.mobile-hidden) .venue-section-header {
       display: none;
     }
+    /* Also keep section headers hidden WHILE the panel is sliding, so the
+       "In sun at X" header doesn't pop into the layout mid-slide (the display
+       none→block toggle changed the list height during the transform → the
+       cards jittered). It reveals once the slide settles (is-sliding cleared
+       in _wirePanelSlideClass), when the panel is stationary. */
+    #panel.is-sliding .venue-section-header { display: none; }
 
     /* The unified day-header is visible in every panel state — peek
        mode included. Horizontal padding matches the mobile #venue-list
@@ -1778,10 +1784,11 @@
     #panel-header { padding-top: 0; }
 
     #venue-list {
-      /* 12px top padding — smoother mask handles the entry fade. Bottom
-         padding 88px so the FTS popup (above-thumb tooltip) doesn't
-         cover the last card during a slider drag. */
-      padding: var(--space-lg) var(--space-xl) 88px;
+      /* Tight top padding so the gap above the first "In sun at X" header
+         matches the ~8px header rhythm (was --space-lg/12px, which left a
+         too-large gap below the filter pills). Bottom padding 88px so the
+         FTS popup (above-thumb tooltip) doesn't cover the last card. */
+      padding: var(--space-2xs) var(--space-xl) 88px;
       overscroll-behavior-y: none;
       /* No top mask — clean edge by default. A drop shadow under the sticky
          header fades in on scroll (see #panel.is-scrolled rule). */
