@@ -3620,8 +3620,13 @@ function shareVenue(venueId) {
     navigator.share({ title: `${v.name} — ${v.area}`, text, url }).catch(() => {});
   } else {
     navigator.clipboard?.writeText(`${text}\n${url}`).then(() => {
+      // Confirm on whichever surface triggered the share. The list card swaps
+      // its whole button label; the detail panel has a dedicated label span
+      // (swapping the button's textContent there would drop the icon).
       const btn = document.querySelector(`.venue-card[data-vid="${venueId}"] .card-action-btn:last-child`);
       if (btn) { btn.textContent = t('copied'); setTimeout(() => btn.textContent = '⎘ ' + t('share'), 1500); }
+      const dpLabel = document.querySelector('#detail-panel .dp-secondary-btn .dp-secondary-label');
+      if (dpLabel) { const orig = dpLabel.textContent; dpLabel.textContent = t('copied'); setTimeout(() => { dpLabel.textContent = orig; }, 1500); }
     });
   }
 }

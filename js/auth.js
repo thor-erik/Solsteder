@@ -2869,10 +2869,18 @@ async function loadUserPreferences() {
   if (error || !data) return;
   // Cloud overrides local
   if (data.lang && typeof setPrefLang === 'function') {
+    const langChanged = localStorage.getItem('pref_lang') !== data.lang;
     localStorage.setItem('pref_lang', data.lang);
-    // Don't call setPrefLang to avoid recursive save — just apply
+    // Don't call setPrefLang (it would recursively save). Apply the same
+    // re-render it does, minus the save: the cloud lang can differ from the
+    // pre-login browser-default locale that the list / detail / pins already
+    // rendered in. The old code only refreshed the search placeholder, which
+    // left section headers ("In sun at"), the detail panel, and map pins in
+    // the pre-login language — the locale leak. update() re-renders every
+    // locale-dependent surface so they all switch together.
     const inp = document.getElementById('venue-search');
     if (inp) inp.placeholder = typeof t === 'function' ? t('search_placeholder') : '';
+    if (langChanged && typeof update === 'function') update();
   }
   if (data.temp_unit) {
     localStorage.setItem('pref_temp', data.temp_unit);

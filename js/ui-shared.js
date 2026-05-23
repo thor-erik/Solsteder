@@ -335,6 +335,10 @@ function getVenueHoursForDay(venue, dateStr) {
 function calcWalkTime(distanceMeters) {
   if (!distanceMeters) return null;
   const minutes = Math.round(distanceMeters / 80);
+  // Cap absurd distances (e.g. user location unknown → huge haversine, which
+  // produced "104207 min"). Beyond a ~3h walk it isn't a walkable venue, so
+  // show nothing rather than a nonsense estimate.
+  if (minutes > 180) return null;
   return minutes < 1 ? '< 1 min' : `${minutes} min`;
 }
 
