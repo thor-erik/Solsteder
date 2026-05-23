@@ -67,7 +67,11 @@ const ABS_OVERLAP_PX   = 14;   // sanity overlap guard inside the free zone
 const DOT_MERGE_PX  = 16;   // ≤ this real-px separation: dots fully merged onto the anchor
 const DOT_SPREAD_PX = 34;   // ≥ this: dots fully separate (own position)
 let   _frameDots = [];          // collected each draw: { x, y, inSun, alpha, vid }
-const _dotFade   = new Map();   // vid → 0..1 fade-in for dots that just became visible
+// Shared per-venue presence envelope — the single "is this marker on the map"
+// fade, used by BOTH pills and dots so a pill→dot demote doesn't re-fade in.
+// { vis, lastA, px, py, inSun, wasDot }. vis = presence 0..1; lastA = last
+// rendered dot alpha (so a departing dot fades from where it actually was).
+const _markerVis = new Map();
 
 // Cached per-venue distance from the user location. The cache is keyed by
 // venue.id; we detect userLocation moves by comparing the live ref against
@@ -1520,7 +1524,7 @@ function _drawOneDot(px, py, r, inSun, a) {
   ctx.restore();
 }
 
-function _drawDots(placedPills, placedNamesGrid, zoom) {
+function _drawDots(placedPills, placedNamesGrid, zoom, presentVids) {
   const dots = _frameDots;
   const byVid = new Map();
   for (const d of dots) byVid.set(d.vid, d);
@@ -1541,29 +1545,32 @@ function _drawDots(placedPills, placedNamesGrid, zoom) {
 
   const r    = (zoom >= 16 ? 6 : 5);
   const RAMP = Math.max(1, DOT_SPREAD_PX - DOT_MERGE_PX);
-  const seen = new Set();
 
-  // Present dots — fade IN, compute live merged position, draw.
+  // Present dots — alpha = PRESENCE (vis) × FORM (d.alpha = 1−morph) × MERGE
+  // (sep). Three orthogonal factors, each owning one transition; they compose
+  // and never double-count, so pill↔dot, merge, and enter/leave move as one.
   for (const d of dots) {
-    seen.add(d.vid);
     const merged = d.anchorVid !== d.vid;
-    // Continuous merge progress from the LIVE separation (no temporal smoothing
+    // MERGE position: continuous from the LIVE separation (no temporal smoothing
     // → zero pan lag; the explode glides with the zoom). 1 = on anchor, 0 = own.
     const prog = merged ? Math.max(0, Math.min(1, (DOT_SPREAD_PX - d.aDist) / RAMP)) : 0;
     const anchor = byVid.get(d.anchorVid);
     const ax = anchor ? anchor.x : d.x, ay = anchor ? anchor.y : d.y;
     const px = d.x + (ax - d.x) * prog;
     const py = d.y + (ay - d.y) * prog;
-    // Member visibility is tied to CLEARING the anchor so two dots never show
-    // overlapping: invisible until the member's centre is past 2·r (circles just
-    // touching), fading to full only once there's a real gap (~3.5·r).
-    const sep = merged ? Math.max(0, Math.min(1, (Math.hypot(px - ax, py - ay) - 2 * r) / (1.5 * r))) : 1;
+    // MERGE visibility: a member is shown only once it has CLEARED the anchor
+    // (centre past 2·r = circles just touching), full past ~3.5·r — so two dots
+    // never show overlapping, and a merging dot just stays absorbed (no grow-in).
+    const merge = merged ? Math.max(0, Math.min(1, (Math.hypot(px - ax, py - ay) - 2 * r) / (1.5 * r))) : 1;
 
-    let fe = _dotFade.get(d.vid);
-    let fadeIn = fe ? fe.fadeIn : 0;
-    if (fadeIn < 1) { fadeIn = Math.min(1, fadeIn + 0.12); _animDirty = true; }
+    // PRESENCE: shared per-venue envelope (kept ≈1 while the venue is a pill OR
+    // dot — see the pill pass below — so a demote does NOT re-fade in; only a
+    // genuinely-new dot fades up here).
+    const prev = _markerVis.get(d.vid);
+    let vis = prev ? prev.vis : 0;
+    if (vis < 1) { vis = Math.min(1, vis + 0.12); _animDirty = true; }
 
-    let a = d.alpha * fadeIn * sep;
+    let a = vis * d.alpha * merge;     // PRESENCE × FORM × MERGE
     // A dot must never sit on a pill body OR a floating name label.
     const dotRect = { x: px - r, y: py - r, w: 2 * r, h: 2 * r };
     let overlaps = false;
@@ -1572,19 +1579,34 @@ function _drawDots(placedPills, placedNamesGrid, zoom) {
       _forEachNearbyCell(placedNamesGrid, dotRect, (n) => { if (_overlaps(dotRect, n, 2)) overlaps = true; });
     }
     if (overlaps) a = 0;
-    // Remember last drawn alpha + position so a disappearing dot fades OUT from
-    // exactly where it was (a merged-invisible dot starts near 0 → no pop).
-    _dotFade.set(d.vid, { fadeIn, px, py, inSun: d.inSun, alpha: a });
+    _markerVis.set(d.vid, { vis, lastA: a, px, py, inSun: d.inSun, wasDot: true });
     if (a >= 0.03) _drawOneDot(px, py, r, d.inSun, a);
   }
 
-  // Departing dots — fade OUT at their last position, then drop.
-  for (const [vid, fe] of _dotFade) {
-    if (seen.has(vid)) continue;
-    fe.alpha -= 0.12;
-    if (fe.alpha < 0.03) { _dotFade.delete(vid); continue; }
+  // Present PILLS — keep their presence envelope warm so a later demote to a
+  // dot inherits vis≈1 and cross-fades via the morph instead of re-fading in.
+  // (Pills render via their own path + _pinState; vis here is just tracked.)
+  if (presentVids) {
+    for (const vid of presentVids) {
+      if (byVid.has(vid)) continue;   // already handled as a dot above
+      const prev = _markerVis.get(vid);
+      const vis = Math.min(1, (prev ? prev.vis : 0) + 0.12);
+      _markerVis.set(vid, { vis, lastA: 0,
+        px: prev ? prev.px : 0, py: prev ? prev.py : 0,
+        inSun: prev ? prev.inSun : false, wasDot: false });
+    }
+  }
+
+  // Departing markers — fade OUT. Only DOTS draw here (pills fade via _pinState),
+  // and a departing dot fades from its LAST rendered alpha, so a merged-invisible
+  // dot (lastA≈0) simply drops without a flash.
+  for (const [vid, m] of _markerVis) {
+    if (presentVids && presentVids.has(vid)) continue;
+    if (!m.wasDot) { _markerVis.delete(vid); continue; }
+    m.lastA -= 0.12;
+    if (m.lastA < 0.03) { _markerVis.delete(vid); continue; }
     _animDirty = true;
-    _drawOneDot(fe.px, fe.py, r, fe.inSun, fe.alpha);
+    _drawOneDot(m.px, m.py, r, m.inSun, m.lastA);
   }
 }
 
@@ -2279,7 +2301,13 @@ function draw() {
 
   // Merge / explode the dots collected during the loop (pills untouched).
   // Skipped in audit mode — audit pins are their own representation.
-  if (!isAuditMode) _drawDots(placedPills, placedNamesGrid, zoom);
+  // presentVids = every venue currently rendered (pill OR dot) — the shared
+  // presence set that keeps a venue's vis warm across a pill↔dot transition.
+  if (!isAuditMode) {
+    const presentVids = new Set();
+    for (const e of layout) if (e && e.v) presentVids.add(e.v.id);
+    _drawDots(placedPills, placedNamesGrid, zoom, presentVids);
+  }
 
   _lastLayout = layout;
   // Swap this frame's pilled-set into _lastPilledIds so the next
