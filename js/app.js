@@ -2162,6 +2162,15 @@ function _exitToExploreMode(opts) {
   if (typeof isMobile === 'function' && isMobile() && !opts.skipPanelSlide) {
     _slideUpVenueListToExpanded();
   }
+  // Cold invite-link entries skip the intro sequence, so the chrome keeps its
+  // boot-time `intro-hidden` (opacity:0) — the top bar never reappeared after
+  // the accept→confirm→close flow because nothing cleared it. Exiting to
+  // explore IS the normal app view, so reveal the full chrome set here.
+  // Idempotent: a no-op once the intro has already removed these classes.
+  if (typeof _revealCanvasAndChrome === 'function') { try { _revealCanvasAndChrome(); } catch (e) { /* ignore */ } }
+  ['top-strip', 'floating-brand', 'qc-wrap'].forEach((id) => {
+    document.getElementById(id)?.classList.remove('intro-hidden');
+  });
   const found = _findFirstSunDayAndHour();
   if (!found) return;
   // Sync date + time pickers — both dispatch the events the rest of the
