@@ -7,7 +7,7 @@
     width: 336px;
     height: 46px;
     box-sizing: border-box;
-    padding: 0 var(--space-sm) 0 14px; /* tighter on the right so the avatar tucks in */
+    padding: 0 var(--space-sm) 0 var(--space-lg); /* tighter on the right so the avatar tucks in */
     border-radius: var(--radius-pill);   /* true pill — half of 46px height */
     display: flex;
     align-items: center;
@@ -283,7 +283,7 @@
     gap: var(--space-xs);
     color: var(--panel-text);
     font-weight: 600;
-    padding: var(--space-sm) 11px;
+    padding: var(--space-sm) var(--space-lg);
     margin: 0;
     border-radius: var(--radius-pill);
     cursor: pointer;
@@ -498,7 +498,7 @@
     /* Symmetric vertical breathing room so the filter/sort pills' raised
        box-shadow isn't cropped — was `0 12px 4px` (zero top), which clipped
        the top of each pill's shadow against the header above. */
-    padding: 5px var(--space-lg) var(--space-sm);
+    padding: var(--space-xs) var(--space-lg) var(--space-sm);
     flex-shrink: 0;
     position: relative;
     z-index: 2;
@@ -630,7 +630,7 @@
   }
   .fiw-card {
     width: min(360px, calc(100vw - 32px));
-    padding: 28px var(--space-2xl) 20px;
+    padding: var(--space-2xl) var(--space-2xl) var(--space-xl);
     border-radius: var(--radius-lg);
     text-align: center;
     transform: translateY(12px);
@@ -640,7 +640,7 @@
   .fiw-icon {
     width: 56px;
     height: 56px;
-    margin: 0 auto 14px;
+    margin: 0 auto var(--space-lg);
     border-radius: 50%;
     background: rgba(245, 194, 94, 0.18);
     color: var(--accent);
@@ -659,7 +659,7 @@
     font-size: 14px;
     color: var(--muted);
     line-height: 1.4;
-    margin-bottom: 20px;
+    margin-bottom: var(--space-xl);
   }
   .fiw-cta { width: 100%; margin-bottom: var(--space-md); }
   .fiw-dismiss {
@@ -774,7 +774,7 @@
   .bd-row__quick-cancel {
     margin-left: auto;
     align-self: flex-start;
-    margin-top: 14px;
+    margin-top: var(--space-lg);
     margin-right: var(--space-md);
     flex-shrink: 0;
     width: 24px; height: 24px;
@@ -797,7 +797,7 @@
   }
   .bd-row__quick-cancel--armed {
     width: auto;
-    padding: 0 10px;
+    padding: 0 var(--space-md);
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.04em;
@@ -837,13 +837,13 @@
     box-shadow: 0 0 6px rgba(245,194,94,0.55);
   }
   .bd-empty {
-    padding: 28px var(--space-xl);
+    padding: var(--space-2xl) var(--space-xl);
     text-align: center;
     color: var(--ink-muted);   /* dropdown is opaque cream → ink-muted, not cool-grey */
   }
   .bd-empty .bd-empty-icon {
     display: block;
-    margin: 0 auto 10px;
+    margin: 0 auto var(--space-md);
     width: 32px; height: 32px;
     opacity: 0.6;
   }
@@ -854,7 +854,7 @@
     display: flex;
     align-items: flex-start;
     gap: var(--space-lg);
-    padding: var(--space-lg) 14px;
+    padding: var(--space-lg) var(--space-lg);
     border-top: 1px solid rgba(155,169,188,0.10);
   }
   .bd-row:first-of-type { border-top: none; }
@@ -891,7 +891,7 @@
     background: var(--panel);
     color: var(--text);
     font: 700 9px/1 'Inter', sans-serif;
-    padding: 3px 5px;
+    padding: var(--space-2xs) var(--space-xs);
     border-radius: var(--radius-sm);
     border: 1.5px solid var(--panel);
     box-shadow: 0 0 0 1px rgba(155,169,188,0.30);
@@ -928,7 +928,7 @@
   .bd-action {
     flex: 1 1 0;
     height: 32px;
-    padding: 0 10px;
+    padding: 0 var(--space-md);
     border-radius: var(--radius-sm);
     border: none;
     cursor: pointer;
@@ -954,7 +954,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 14px;
+    padding: var(--space-md) var(--space-lg);
     cursor: pointer;
     border-bottom: 1px solid rgba(255,255,255,0.05);
     transition: background 0.1s;
@@ -999,7 +999,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 14px;
+    padding: var(--space-md) var(--space-lg);
     transition: background 0.1s;
   }
   .sd-suggest-row:hover { background: var(--line-l-faint); }
@@ -1017,7 +1017,7 @@
     background: transparent;
     border: 1px solid var(--line-l-strong);
     border-radius: var(--radius-sm);
-    padding: var(--space-xs) 10px;
+    padding: var(--space-xs) var(--space-md);
     cursor: pointer;
     font-family: 'Inter', sans-serif;
     transition: background 0.15s;
@@ -1178,7 +1178,7 @@
   #profile-panel.logged-out .login-hero {
     flex: 1 1 auto;
     display: flex; flex-direction: column; justify-content: center;
-    padding: var(--space-3xl) 20px var(--space-md);
+    padding: var(--space-3xl) var(--space-xl) var(--space-md);
     width: 100%;
     box-sizing: border-box;
   }
@@ -1210,10 +1210,10 @@
      rule below restores it when the panel goes full-screen. */
   .profile-panel-mobile-bar { display: none; }
   .profile-panel-header {
-    padding: 20px 20px var(--space-xl);
+    padding: var(--space-xl) var(--space-xl) var(--space-xl);
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: var(--space-lg);
     border-bottom: 1px solid rgba(255,255,255,0.07);
   }
   .profile-panel-avatar {
@@ -1260,7 +1260,7 @@
     display: flex;
     align-items: center;
     gap: var(--space-lg);
-    padding: 10px 20px;
+    padding: var(--space-md) var(--space-xl);
     font-size: 14px;
     color: var(--text);
     cursor: pointer;
@@ -1276,7 +1276,7 @@
     display: flex;
     align-items: center;
     gap: var(--space-lg);
-    padding: 10px 20px;
+    padding: var(--space-md) var(--space-xl);
     font-size: 14px;
     font-weight: 500;
     color: #9CBDE7;
@@ -1305,7 +1305,7 @@
     z-index: 900;
     height: 46px;
     box-sizing: border-box;
-    padding: var(--space-xs) 14px;
+    padding: var(--space-xs) var(--space-lg);
     border-radius: var(--radius-pill);
     background: var(--glass-panel-bg);
     backdrop-filter: var(--glass-blur-panel);
@@ -1314,7 +1314,7 @@
     box-shadow: var(--glass-inset), 0 6px 20px rgba(0,0,0,0.30);
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--space-md);
     transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.22s ease;
     will-change: transform;
   }
@@ -1340,7 +1340,7 @@
        between the drag handle and the panel top edge. The compact
        popup overlaps the handle pill area (z-index 10 keeps it on
        top); expanded popup overshoots above the panel as before. */
-    margin: 20px var(--space-lg) 10px;
+    margin: var(--space-xl) var(--space-lg) var(--space-md);
     height: 40px;
     align-items: center;
     gap: var(--space-md);
@@ -1622,7 +1622,7 @@
     flex-direction: column;
     align-items: center;
     gap: 0;
-    padding: var(--space-xs) 5px;
+    padding: var(--space-xs) var(--space-xs);
     background: var(--glass-card-bg);
     backdrop-filter: var(--glass-blur-card);
     -webkit-backdrop-filter: var(--glass-blur-card);
@@ -1702,7 +1702,7 @@
   /* Compact: a small gap so the time + weather glyph have breathing room.
      Expanded opens further. Transitioned for the morph. */
   .fts-popup-primary {
-    gap: 5px;
+    gap: var(--space-xs);
     transition: gap 0.18s cubic-bezier(0.32, 0.72, 0, 1);
   }
   /* Secondary is fully removed from layout in compact (display: none).
@@ -1712,7 +1712,7 @@
      pill out to ~60px wide. */
   .fts-popup-secondary {
     display: none;
-    gap: 5px;
+    gap: var(--space-xs);
     margin-top: 0;
   }
   .fts-popup.fts-popup-expanded .fts-popup-secondary {
@@ -1791,7 +1791,7 @@
      Type and icon scale up alongside padding so the card reads as a
      deliberately larger overlay during scrub, not just a wider compact pill. */
   .fts-popup.fts-popup-expanded {
-    padding: 10px 14px 9px;
+    padding: var(--space-md) var(--space-lg) var(--space-md);
     gap: var(--space-xs);
     border-radius: var(--radius-md);
   }
@@ -1849,7 +1849,7 @@
     -webkit-backdrop-filter: var(--glass-blur-panel);
     border: var(--glass-border);
     border-radius: var(--radius-md);
-    padding: var(--space-sm) 10px var(--space-md);
+    padding: var(--space-sm) var(--space-md) var(--space-md);
   }
   #arc-date-nav {
     display: flex;
@@ -1880,12 +1880,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 7px;
+    gap: var(--space-sm);
     font-size: 11px;
     color: rgba(156,189,231,0.65);
-    padding-top: 5px;
+    padding-top: var(--space-xs);
     border-top: 1px solid rgba(156,189,231,0.15);
-    margin-top: 5px;
+    margin-top: var(--space-xs);
     width: 100%;
   }
   .wx-temp-strip { color: var(--panel-text); font-weight: 600; }
@@ -1946,7 +1946,7 @@
     border: none;
     border-radius: var(--radius-md);
     box-shadow: 0 8px 32px rgba(17,30,56,0.18);
-    padding: 10px var(--space-md) var(--space-md);
+    padding: var(--space-md) var(--space-md) var(--space-md);
     display: none;
     z-index: 960;
   }
@@ -1954,7 +1954,7 @@
   .dc-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 3px;
+    gap: var(--space-2xs);
   }
   /* Calendar day tile — glass-card level (gradient + rim + top sheen). No backdrop-filter:
      the parent sheet already paints a blur, and nesting another blur is wasted GPU work
@@ -1965,7 +1965,7 @@
     flex-direction: column;
     align-items: center;
     gap: 1px;
-    padding: 5px var(--space-2xs) var(--space-xs);
+    padding: var(--space-xs) var(--space-2xs) var(--space-xs);
     border-radius: var(--radius-sm);
     border: var(--glass-border);
     background: var(--glass-card-bg);
@@ -2031,7 +2031,7 @@
 
   /* Mode-toggle buttons: glass-action flavor, no accent — secondary chrome */
   .dc-expand-btn-wide {
-    width: 100%; margin-top: 7px; height: 44px; padding: 0 14px; box-sizing: border-box;
+    width: 100%; margin-top: var(--space-sm); height: 44px; padding: 0 var(--space-lg); box-sizing: border-box;
     background: var(--glass-action-bg);
     border: var(--glass-border);
     border-radius: var(--radius-md); cursor: pointer;
@@ -2056,7 +2056,7 @@
   /* Weekday header row — 7 columns matching the day grid */
   .dc-weekday-row {
     display: grid; grid-template-columns: repeat(7, 1fr);
-    gap: 3px; flex-shrink: 0;
+    gap: var(--space-2xs); flex-shrink: 0;
   }
   .dc-weekday {
     font-family: 'Inter', sans-serif; font-size: 8px; font-weight: 700;
@@ -2085,7 +2085,7 @@
   .dc-month-grid .dc-tile-past .dc-num { font-size: 15px; }
   /* Forecast boundary note */
   .dc-forecast-note {
-    margin-top: 5px; padding: var(--space-xs) var(--space-sm); flex-shrink: 0;
+    margin-top: var(--space-xs); padding: var(--space-xs) var(--space-sm); flex-shrink: 0;
     font-family: 'Inter', sans-serif; font-size: 9px; font-weight: 500;
     color: rgba(156,189,231,0.40); text-align: center; letter-spacing: 0.03em;
   }
@@ -2124,7 +2124,7 @@
   .dp-env-chip {
     font-size: 11px;
     font-weight: 600;
-    padding: 5px 10px;
+    padding: var(--space-xs) var(--space-md);
     border-radius: var(--radius-sm);
     border: 1px solid transparent;
     letter-spacing: 0.02em;
@@ -2140,9 +2140,9 @@
   .score-badge {
     display: inline-flex;
     align-items: center;
-    gap: 3px;
+    gap: var(--space-2xs);
     border-radius: var(--radius-none);
-    padding: var(--space-2xs) 7px;
+    padding: var(--space-2xs) var(--space-sm);
     font-size: 11px;
     font-weight: 600;
     white-space: nowrap;
@@ -2158,7 +2158,7 @@
 
   .score-detail {
     display: none; /* replaced by .score-detail-inline */
-    gap: 7px;
+    gap: var(--space-sm);
     font-size: 11px;
     color: var(--muted);
     margin-top: 1px;
@@ -2170,9 +2170,9 @@
     display: flex;
     gap: var(--space-xl);
     align-items: center;
-    padding-top: 10px;
+    padding-top: var(--space-md);
     border-top: 1px solid rgba(156,189,231,0.18);
-    margin-top: 10px;
+    margin-top: var(--space-md);
   }
   .bottom-controls-row .control-row:first-child { flex-shrink: 0; }
   .bottom-controls-row .control-row:last-child  { flex: 1; }
@@ -2186,7 +2186,7 @@
     font-family: 'Inter', sans-serif;
     font-size: 13px;
     font-weight: 600;
-    padding: 3px 7px;
+    padding: var(--space-2xs) var(--space-sm);
     cursor: pointer;
     line-height: 1;
     transition: color 0.12s, border-color 0.12s;
@@ -2237,7 +2237,7 @@
     font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.04em;
-    padding: var(--space-md) 18px;
+    padding: var(--space-md) var(--space-xl);
     border-radius: var(--radius-lg);
     pointer-events: none;
     opacity: 0;
@@ -2294,7 +2294,7 @@
     display: flex;
     align-items: center;
     gap: var(--space-lg);
-    padding: var(--space-lg) 14px;
+    padding: var(--space-lg) var(--space-lg);
     margin-bottom: 0;
     background: #111E38;
     border: 1px solid rgba(255,255,255,0.06);
@@ -2348,7 +2348,7 @@
     justify-content: center;
     gap: var(--space-sm);
     height: 30px;
-    padding: 0 14px;
+    padding: 0 var(--space-lg);
     border: none;
     border-radius: var(--radius-pill);       /* full pill */
     background: var(--accent);  /* solid accent */
@@ -2387,7 +2387,7 @@
   .control-row {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--space-md);
   }
 
   .control-label {

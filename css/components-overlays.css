@@ -3,7 +3,7 @@
     display: flex;
     align-items: center;
     gap: var(--space-lg);
-    padding: var(--space-lg) 14px;
+    padding: var(--space-lg) var(--space-lg);
     border-radius: var(--radius-md);
     background: rgba(17,30,56,0.42);
     border: 1px solid rgba(245,194,94,0.42);
@@ -70,7 +70,7 @@
     margin-bottom: var(--space-lg);
     /* Was 16/16/14 — tightened to 12/14/12 to cut the dead space the
        card was carrying without changing the visual hierarchy. */
-    padding: var(--space-lg) 14px var(--space-lg);
+    padding: var(--space-lg) var(--space-lg) var(--space-lg);
     animation: none;
     border-radius: var(--radius-md);
     overflow: visible;  /* re-allow timeline to render outside compact's clip */
@@ -78,7 +78,7 @@
   .dp-card.card-compact { padding-bottom: var(--space-lg); overflow: visible; }
   .dp-card.card-compact .card-fillbar { display: none; }
   .dp-card:hover { background: var(--surface-content); }   /* kill list-card hover */
-  .dp-card .card-top { gap: 14px; align-items: flex-start; }
+  .dp-card .card-top { gap: var(--space-lg); align-items: flex-start; }
   .dp-card .card-left { min-width: 0; gap: var(--space-xs); }
   /* Title is the venue takeover — bumped from 18 → 22 so it reads as
      hierarchically primary in the detail context (vs the same renderer
@@ -99,7 +99,7 @@
   .dp-card .card-right {
     min-width: 0;
     flex-shrink: 0;
-    gap: 3px;
+    gap: var(--space-2xs);
     align-items: flex-end;
   }
   .dp-card .card-new-hero-main {
@@ -123,7 +123,7 @@
      (card-top ~50 + card-timeline 8 + small margin + padding 18+14). */
   .dp-card-slot {
     height: 100px;
-    margin-bottom: 14px;
+    margin-bottom: var(--space-lg);
     position: relative;
   }
 
@@ -131,7 +131,7 @@
 
   /* Info rows (busyness, noise, hours) — open layout, no heavy box */
   .info-list {
-    margin-bottom: 14px;
+    margin-bottom: var(--space-lg);
   }
 
   .info-row {
@@ -190,9 +190,9 @@
   /* Footer buttons — text links, low visual weight */
   .secondary-row {
     display: flex;
-    gap: 18px;
+    gap: var(--space-xl);
     justify-content: center;
-    padding: 14px 0 var(--space-xl);
+    padding: var(--space-lg) 0 var(--space-xl);
     margin-top: var(--space-xs);
   }
 
@@ -320,7 +320,7 @@
       background: rgba(17,30,56,0.08);
       border: 1px solid rgba(17,30,56,0.18);
       border-radius: var(--radius-sm);
-      padding: 5px 10px;
+      padding: var(--space-xs) var(--space-md);
       width: auto;
       height: auto;
     }
@@ -452,7 +452,7 @@
     background: rgba(17,30,56,0.95);
     border: 1px solid var(--border);
     color: var(--text);
-    padding: var(--space-md) 18px;
+    padding: var(--space-md) var(--space-xl);
     border-radius: var(--radius-md);
     font-size: 13px;
     font-family: 'Inter', sans-serif;
@@ -471,7 +471,7 @@
   /* ── Social section (check-in, plans) ───────────────────────────────────── */
   /* No glass wrapper — sits directly on the panel so the dp-card stays the focal box. */
   .social-card {
-    margin-bottom: 14px;
+    margin-bottom: var(--space-lg);
     display: flex;
     flex-direction: column;
     gap: var(--space-sm);
@@ -498,7 +498,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 7px;
+    gap: var(--space-sm);
     cursor: pointer;
     box-shadow: 0 2px 8px rgba(0,0,0,0.35);
     transition: all 120ms ease-out;
@@ -569,17 +569,17 @@
     z-index: 10001;
     opacity: 0;
     transition: opacity 0.18s ease;
-    padding: 20px;
+    padding: var(--space-xl);
   }
   .plan-conflict-backdrop.open { opacity: 1; }
   .plan-conflict-dialog {
     width: 100%;
     max-width: 340px;
     border-radius: var(--radius-lg);
-    padding: 20px 18px var(--space-xl);
+    padding: var(--space-xl) var(--space-xl) var(--space-xl);
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: var(--space-lg);
     transform: translateY(8px) scale(0.98);
     transition: transform 0.22s ease;
   }
@@ -700,7 +700,7 @@
   /* Social form overlay (shown inside social card) */
   .social-form-overlay {
     border-top: 1px solid rgba(156,189,231,0.12);
-    padding-top: 10px;
+    padding-top: var(--space-md);
   }
   .social-form-inner {
     display: flex;
@@ -715,7 +715,7 @@
   }
   .social-form-input {
     width: 100%;
-    padding: var(--space-md) 10px;
+    padding: var(--space-md) var(--space-md);
     background: rgba(17,30,56,0.5);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
@@ -942,7 +942,7 @@
        now, so the handle just needs enough breathing room to be
        grippable, not to act as a chrome gap between the slider and
        the sheet's first line of content. */
-    padding: 10px 0 var(--space-md);
+    padding: var(--space-md) 0 var(--space-md);
     flex-shrink: 0;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
@@ -969,14 +969,14 @@
      scrubs the FTS inside the sheet. Same visual rhythm both sides:
      small label → bold primary → small meta. */
   .dpinvite-moment {
-    padding: var(--space-xs) 0 14px;
+    padding: var(--space-xs) 0 var(--space-lg);
     border-bottom: 1px solid rgba(156,189,231,0.10);
   }
   .dpinvite-moment-row {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 14px;
+    gap: var(--space-lg);
   }
   .dpinvite-moment-left {
     flex: 1;
@@ -1039,7 +1039,7 @@
     align-items: center;
     gap: var(--space-md);
     /* Align under the venue text (pin glyph 14 + 8 gap), not under the pin. */
-    padding-left: 22px;
+    padding-left: var(--space-2xl);
     margin-top: var(--space-2xs);
     font-size: 13px;
     font-weight: 500;
@@ -1134,7 +1134,7 @@
   .dpinvite-fts-slot {
     width: 100%;
     position: relative;
-    padding-top: 30px;
+    padding-top: var(--space-3xl);
     padding-bottom: var(--space-xs);
     margin-top: -22px;
   }
@@ -1144,10 +1144,10 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    padding: 0 18px 14px;
+    padding: 0 var(--space-xl) var(--space-lg);
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: var(--space-lg);
     -webkit-overflow-scrolling: touch;
   }
 
@@ -1201,7 +1201,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 5px;
+    gap: var(--space-xs);
     flex-shrink: 0;
     width: 48px;
     background: transparent;
@@ -1295,7 +1295,7 @@
      "Inviter" affordance to compete with it. */
   .dpinvite-empty-card {
     text-align: center;
-    padding: 14px var(--space-xs) var(--space-sm);
+    padding: var(--space-lg) var(--space-xs) var(--space-sm);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1323,7 +1323,7 @@
   .dpinvite-cta-row .s-circ {
     flex-shrink: 0;
     width: 44px;
-    margin-left: 10px;
+    margin-left: var(--space-md);
     opacity: 1;
     transform: scale(1);
     pointer-events: auto;
@@ -1501,7 +1501,7 @@
        standards-based bottom-content padding — env(safe-area-inset-
        bottom) with a 12px floor, collapses to 8px when a field is
        focused (keyboard up). */
-    padding: 0 18px var(--app-pad-b);
+    padding: 0 var(--space-xl) var(--app-pad-b);
     /* Sheet contract — svh is the stable smallest visible viewport.
        Never clipped by Safari's address bar. Shrinks correctly when
        the Android keyboard opens (interactive-widget=resizes-content
@@ -1537,14 +1537,14 @@
     will-change: transform;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: var(--space-md);
   }
   /* Drag handle wrapper — matches .pp-handle / #panel-handle / #dp-handle. */
   .dprcv-handle {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 10px 0 var(--space-xs);
+    padding: var(--space-md) 0 var(--space-xs);
     cursor: pointer;
     touch-action: none;
     flex-shrink: 0;
@@ -1572,8 +1572,8 @@
     pointer-events: auto;
     display: inline-flex;
     align-items: center;
-    gap: 10px;
-    padding: var(--space-sm) 14px var(--space-sm) var(--space-sm);
+    gap: var(--space-md);
+    padding: var(--space-sm) var(--space-lg) var(--space-sm) var(--space-sm);
     border-radius: var(--radius-pill);
   }
   .dprcv-top-pill-av {
@@ -1614,7 +1614,7 @@
     justify-content: space-between;
     /* 10 px (was 14) gives the meta line more horizontal room before
        truncation kicks in. */
-    gap: 10px;
+    gap: var(--space-md);
   }
   .dprcv-title-col {
     flex: 1;
@@ -1711,7 +1711,7 @@
   .dprcv-meta-dot {
     flex-shrink: 0;
     opacity: 0.5;
-    margin: 0 5px;
+    margin: 0 var(--space-xs);
   }
   .dprcv-meta-walk,
   .dpinvite-meta-walk {
@@ -1778,7 +1778,7 @@
     justify-content: center;
     gap: var(--space-sm);
     flex-wrap: wrap;
-    padding: 18px 0 0;
+    padding: var(--space-xl) 0 0;
     margin-top: var(--space-md);
     margin-bottom: -4px;
     border-top: 1px solid rgba(156,189,231,0.10);
@@ -1923,8 +1923,8 @@
   .dprcv-attendees {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px var(--space-lg);
+    gap: var(--space-md);
+    padding: var(--space-md) var(--space-lg);
   }
   .dprcv-att-stack {
     display: flex;
@@ -1980,7 +1980,7 @@
        with 0-inset gestures, "Coming later · Decline" was sitting flush
        against the OS handle. Add an explicit baseline so the secondary
        row has at least ~14 px of clearance regardless of platform inset. */
-    padding: var(--space-lg) 0 14px;
+    padding: var(--space-lg) 0 var(--space-lg);
     z-index: 2;
     display: flex;
     flex-direction: column;
@@ -1999,13 +1999,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+    gap: var(--space-md);
     margin-top: var(--space-sm);
   }
   .dprcv-cta-link {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: var(--space-xs);
     background: transparent;
     border: 0;
     box-shadow: none;
@@ -2101,20 +2101,20 @@
     cursor: pointer;
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: var(--space-xs);
   }
   .plan-preview-btn:hover { border-color: var(--accent); color: var(--accent); }
   /* Invitations inbox in the profile panel */
   .invitations-section { padding-bottom: var(--space-xs); }
   .invitations-section .profile-section-label-sub {
-    margin-top: 10px;
+    margin-top: var(--space-md);
     opacity: 0.85;
   }
   .inbox-row {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px var(--space-xl);
+    gap: var(--space-md);
+    padding: var(--space-md) var(--space-xl);
     border-top: 1px solid rgba(17,30,56,0.08);
   }
   .inbox-row-info { flex: 1; min-width: 0; }
@@ -2139,7 +2139,7 @@
   .inbox-btn {
     border: none;
     border-radius: var(--radius-pill);
-    padding: 5px 9px;
+    padding: var(--space-xs) var(--space-md);
     font-size: 11px;
     font-weight: 600;
     font-family: 'Inter', sans-serif;
@@ -2164,9 +2164,9 @@
   .friend-prompt-banner {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px var(--space-lg);
-    margin: 10px 0 var(--space-xs);
+    gap: var(--space-md);
+    padding: var(--space-md) var(--space-lg);
+    margin: var(--space-md) 0 var(--space-xs);
     border-radius: var(--radius-md);
     background: rgba(245,194,94,0.13);
     border: 1px solid rgba(245,194,94,0.35);
@@ -2232,7 +2232,7 @@
        = max(env(safe-area-inset-bottom), 12px), collapses to 8px when a
        form field is focused). svh cap keeps a sliver of map visible above
        the panel and never lets content push past the visible viewport. */
-    padding: 0 18px var(--app-pad-b);
+    padding: 0 var(--space-xl) var(--app-pad-b);
     max-height: 88svh;
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -2253,7 +2253,7 @@
   .dpacc-handle {
     display: flex;
     justify-content: center;
-    padding: 10px 0 var(--space-xs);
+    padding: var(--space-md) 0 var(--space-xs);
     flex-shrink: 0;
   }
   .dpacc-grabber {
@@ -2278,7 +2278,7 @@
     pointer-events: auto;
     display: inline-flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--space-md);
     padding: var(--space-md) var(--space-xl) var(--space-md) var(--space-md);
     background: var(--accent);
     color: var(--accent-on, #2a1a0c);
@@ -2392,7 +2392,7 @@
      primary tile uses solid --accent (one Primary per screen rule). */
   .dpacc-action-row {
     display: flex;
-    gap: 10px;
+    gap: var(--space-md);
     overflow-x: auto;
     padding: var(--space-xs) var(--space-2xs) var(--space-sm);
     margin: 0 -2px;
@@ -2519,7 +2519,7 @@
     display: flex;
     align-items: center;
     gap: var(--space-lg);
-    padding: var(--space-lg) 14px;
+    padding: var(--space-lg) var(--space-lg);
   }
   .dpacc-att-stack { display: flex; flex-shrink: 0; }
   .dpacc-att-stack > * + * { margin-left: -10px; }
@@ -2571,7 +2571,7 @@
     font-size: 13px;
     font-weight: 500;
     height: 36px;
-    padding: 0 14px;
+    padding: 0 var(--space-lg);
     border-radius: var(--radius-lg);
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
@@ -2597,7 +2597,7 @@
     color: var(--accent-on, #2a1a0c);
     font-size: 9px;
     font-weight: 700;
-    padding: 1px 5px;
+    padding: 1px var(--space-xs);
     border-radius: var(--radius-pill);
     line-height: 1.2;
     font-variant-numeric: tabular-nums;
@@ -2607,7 +2607,7 @@
   }
   /* Off-plan-arrival summary row in the inbox "Your plans" section */
   .inbox-row-arrivals {
-    margin-top: 3px;
+    margin-top: var(--space-2xs);
     font-size: 11px;
     color: var(--accent);
     font-variant-numeric: tabular-nums;
@@ -2722,7 +2722,7 @@
     display: none;
     align-items: center;
     justify-content: center;
-    padding: 20px;
+    padding: var(--space-xl);
   }
   .friends-modal-overlay.open { display: flex; }
   .friends-modal-card {
@@ -2730,7 +2730,7 @@
     max-width: 400px;
     max-height: calc(var(--app-h, 100svh) * 0.8);
     overflow-y: auto;
-    padding: 20px;
+    padding: var(--space-xl);
     border-radius: var(--radius-lg);
     /* Modal surface (DESIGN.md Phase 2.5): Delft 90% + dark hairline + pop
        shadow-3, over the --scrim overlay. Was transparent --glass-panel-bg +
@@ -2783,7 +2783,7 @@
   .friend-item-left {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--space-md);
     min-width: 0;
     flex: 1;
   }
@@ -2833,7 +2833,7 @@
   }
   .friends-search-input {
     flex: 1;
-    padding: var(--space-md) 10px;
+    padding: var(--space-md) var(--space-md);
     background: rgba(17,30,56,0.5);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
