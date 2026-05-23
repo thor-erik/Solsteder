@@ -51,6 +51,18 @@ const NEAR_USER_KM     = 0.4;
 const MIN_PILL_GAP_PX  = 80;
 const ABS_OVERLAP_PX   = 14;   // sanity overlap guard inside the free zone
 
+// ── Dot clustering ──────────────────────────────────────────────────────────
+// Pills are great as-is; the problem is too many DOTS on screen. So dots
+// (never pills) that fall in the same screen-grid cell collapse into one count
+// bubble. Sun-majority coloured: honey when most venues in the cell are in
+// sun, Delft Blue otherwise. Tapping a cluster zooms in so it splits apart.
+// Animated fade+scale in/out via _clusterState (same tempo as the pin lerps).
+const CLUSTER_CELL_PX = 56;   // screen grid cell; dots within a cell merge
+const CLUSTER_MIN     = 2;    // ≥ this many dots in a cell → a cluster bubble
+let   _frameDots     = [];    // collected each draw: { x, y, inSun, alpha }
+let   _frameClusters = [];    // drawn clusters this frame (for hit testing): { x, y, count, r }
+const _clusterState  = new Map();  // cellKey → { alpha, scale, target, x, y, count, sunMaj, r }
+
 // Cached per-venue distance from the user location. The cache is keyed by
 // venue.id; we detect userLocation moves by comparing the live ref against
 // the one captured at fill time and rebuild on miss. Venue coordinates are
@@ -1483,6 +1495,89 @@ function _getGoing(v, dateStr) {
     : [];
 }
 
+// ── Dot clustering pass ────────────────────────────────────────────────────
+// Buckets _frameDots into a screen grid. A cell with one dot draws a single
+// dot (overlap-suppressed against pills); a cell with ≥ CLUSTER_MIN draws one
+// count bubble. Sun-majority colour: honey when ≥ half the cell's venues are
+// in sun, Delft otherwise. Clusters fade + scale in (and out when their cell
+// empties on zoom-in) via _clusterState — same lerp tempo as the pins.
+function _drawDotClusters(placedPills, zoom) {
+  const cells = new Map();   // cellKey → { xs, ys, n, sun, aSum }
+  for (const d of _frameDots) {
+    const key = `${Math.floor(d.x / CLUSTER_CELL_PX)},${Math.floor(d.y / CLUSTER_CELL_PX)}`;
+    let c = cells.get(key);
+    if (!c) { c = { xs: 0, ys: 0, n: 0, sun: 0, aSum: 0 }; cells.set(key, c); }
+    c.xs += d.x; c.ys += d.y; c.n++; if (d.inSun) c.sun++; c.aSum += d.alpha;
+  }
+
+  const active = new Set();
+  for (const [key, c] of cells) {
+    const cx = c.xs / c.n, cy = c.ys / c.n;
+    if (c.n < CLUSTER_MIN) {
+      // Single dot — suppress if it would sit on a pill body (reads as artefact).
+      let overlaps = false;
+      for (const p of placedPills) {
+        if (cx >= p.x - 6 && cx <= p.x + p.w + 6 && cy >= p.y - 6 && cy <= p.y + p.h + 6) { overlaps = true; break; }
+      }
+      if (overlaps) continue;
+      const r   = (zoom >= 16 ? 6 : 5);
+      const col = _dotMapColors(c.sun > 0 ? 'hero' : 'context', false, false);
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, c.aSum / c.n);
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fillStyle = col.fill; ctx.fill();
+      ctx.beginPath(); ctx.arc(cx, cy, r - 0.5, 0, Math.PI * 2);
+      ctx.strokeStyle = col.ring; ctx.lineWidth = 1; ctx.stroke();
+      ctx.restore();
+      continue;
+    }
+    // Cluster bubble.
+    active.add(key);
+    const sunMaj = c.sun * 2 >= c.n;
+    const r = c.n >= 10 ? 17 : (c.n >= 5 ? 14 : 11);
+    let st = _clusterState.get(key);
+    if (!st) { st = { alpha: 0, scale: 0.6 }; _clusterState.set(key, st); }
+    st.x = cx; st.y = cy; st.count = c.n; st.sunMaj = sunMaj; st.r = r;
+    const aM = _stepLerp(st, 'alpha', 1, 0.18);
+    const sM = _stepLerp(st, 'scale', 1, 0.18);
+    if (aM || sM) _animDirty = true;
+    _drawClusterBubble(cx, cy, r * st.scale, c.n, sunMaj, st.alpha);
+    _frameClusters.push({ x: cx, y: cy, count: c.n, r });
+  }
+
+  // Fade OUT clusters whose cell emptied this frame (zoomed in → split apart).
+  for (const [key, st] of _clusterState) {
+    if (active.has(key)) continue;
+    const aM = _stepLerp(st, 'alpha', 0, 0.18);
+    _stepLerp(st, 'scale', 0.6, 0.18);
+    if (st.alpha < 0.03) { _clusterState.delete(key); continue; }
+    _animDirty = true;
+    _drawClusterBubble(st.x, st.y, st.r * st.scale, st.count, st.sunMaj, st.alpha);
+    _frameClusters.push({ x: st.x, y: st.y, count: st.count, r: st.r });
+  }
+}
+
+function _drawClusterBubble(cx, cy, r, count, sunMaj, alpha) {
+  const honey   = TOKENS.accent   || '#F5C25E';
+  const honeyOn = TOKENS.accentOn || '#2C1F02';
+  const delft   = TOKENS.bg       || '#111E38';
+  const cream   = TOKENS.text     || '#FFF4E0';
+  ctx.save();
+  ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = sunMaj ? honey : delft;
+  ctx.fill();
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.strokeStyle = sunMaj ? _rgba(honeyOn, 0.30) : _rgba(cream, 0.30);
+  ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.fillStyle = sunMaj ? honeyOn : cream;
+  ctx.font = `700 ${Math.round(r * 0.92)}px Inter, system-ui, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(String(count), cx, cy + 0.5);
+  ctx.restore();
+}
+
 // ── Main draw ─────────────────────────────────────────────────────────────────
 function draw() {
   // Boot gate — return without painting if the splash is still up. The
@@ -1490,6 +1585,8 @@ function draw() {
   // the moment the splash starts dismissing.
   if (!_bootDrawGateOpen) { _bootDrawDeferred = true; return; }
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  _frameDots = [];      // dots collected this frame, clustered after the loop
+  _frameClusters = [];  // cluster bubbles drawn this frame (for hit testing)
   const dpr = window.devicePixelRatio || 1;
   ctx.save();
   ctx.scale(dpr, dpr);
@@ -1756,21 +1853,10 @@ function draw() {
       // zoom ≥ 16, ~10px lower). Suppress when the dot would overlap
       // a placed pill body — dots stuck inside pills read as artefacts.
       const r = (zoom >= 16 ? 6 : 5);
-      let dotOverlaps = false;
-      for (const p of placedPills) {
-        if (pt.x >= p.x - r && pt.x <= p.x + p.w + r &&
-            pt.y >= p.y - r && pt.y <= p.y + p.h + r) { dotOverlaps = true; break; }
-      }
-      if (!dotOverlaps) {
-        const dot = _dotMapColors('context', false, !!cls.hasSunLaterToday);
-        ctx.save();
-        ctx.beginPath(); ctx.arc(pt.x, pt.y, r, 0, Math.PI * 2);
-        ctx.fillStyle   = dot.fill;
-        ctx.strokeStyle = dot.ring;
-        ctx.lineWidth   = 1;
-        ctx.fill(); ctx.stroke();
-        ctx.restore();
-      }
+      // Collect for the post-loop clustering pass — drawn there as a single
+      // dot (overlap-suppressed against pills) or merged into a count bubble.
+      // Context dots are never "in sun".
+      _frameDots.push({ x: pt.x, y: pt.y, inSun: false, alpha: 1 });
       layout.push({
         v, pt, classResult: cls, isDot: true,
         spr: { anchorX: 0, anchorY: 0, cssW: r * 2, cssH: r * 2, pillW: 0, pillH: 0, pillR: 0 },
@@ -1823,14 +1909,9 @@ function draw() {
       }
     }
     if (demote) {
-      // Suppress the dot if it would land on or near a placed pill body
-      // — dots stuck against pills read as artefacts. Pin still goes
+      // The demoted dot is collected for the clustering pass below (which
+      // handles pill-overlap suppression for single dots). Pin still goes
       // into _lastLayout so hit testing works.
-      let dotOverlaps = false;
-      for (const p of placedPills) {
-        if (pt.x >= p.x - 6 && pt.x <= p.x + p.w + 6 &&
-            pt.y >= p.y - 6 && pt.y <= p.y + p.h + 6) { dotOverlaps = true; break; }
-      }
       // Drive the morph target toward 0 (dot). The pill scales down as
       // it fades; the dot grows in at (1 - morph) so the two cross-fade
       // smoothly across the transition.
@@ -1861,18 +1942,10 @@ function draw() {
         ctx.restore();
       }
 
-      if (!dotOverlaps && dotAlpha > 0.04) {
-        const dot = _dotMapColors(tier, closedOpens, !!cls.hasSunLaterToday);
-        ctx.save();
-        ctx.globalAlpha = dotAlpha;
-        ctx.beginPath(); ctx.arc(pt.x, pt.y, 6, 0, Math.PI * 2);
-        ctx.fillStyle = dot.fill;
-        ctx.fill();
-        ctx.beginPath(); ctx.arc(pt.x, pt.y, 5.5, 0, Math.PI * 2);
-        ctx.strokeStyle = dot.ring;
-        ctx.lineWidth   = 1;
-        ctx.stroke();
-        ctx.restore();
+      // Collect the demoted dot for the clustering pass (drawn there once the
+      // pill has mostly shrunk away). "In sun" = currently-sunny hero tier.
+      if (dotAlpha > 0.04) {
+        _frameDots.push({ x: pt.x, y: pt.y, inSun: (tier === 'hero' && !closedOpens), alpha: dotAlpha });
       }
       layout.push({
         v, pt, classResult: cls, isDot: true,
@@ -2195,6 +2268,10 @@ function draw() {
     }
   }
 
+  // Cluster the dots collected during the loop (pills are never touched).
+  // Skipped in audit mode — audit pins are their own representation.
+  if (!isAuditMode) _drawDotClusters(placedPills, zoom);
+
   _lastLayout = layout;
   // Swap this frame's pilled-set into _lastPilledIds so the next
   // frame's priScore can apply the hysteresis bonus (keeps pins as
@@ -2249,6 +2326,15 @@ function hitTestDot(cx, cy) {
   for (const { v, pt, isDot } of _lastLayout) {
     if (!isDot) continue;
     if (Math.hypot(cx - pt.x, cy - pt.y) <= DOT_R + 8) return v;
+  }
+  return null;
+}
+
+// Cluster bubbles drawn this frame. Larger hit target than individual dots so
+// they take priority — a tap zooms in to split the cluster (handled in click).
+function hitTestCluster(cx, cy) {
+  for (const c of _frameClusters) {
+    if (Math.hypot(cx - c.x, cy - c.y) <= c.r + 6) return c;
   }
   return null;
 }
@@ -2493,6 +2579,14 @@ canvas.addEventListener('click', e => {
     const wallIdx = hitTestWall(cx, cy);
     if (wallIdx !== null && (!v?.terraceType || v.terraceType === 'street')
         && !v?.seatingPolygonOverride) selectWallByIdx(wallIdx);
+    return;
+  }
+  // Cluster tap → zoom in toward it so it splits apart (priority over dots).
+  const clu = hitTestCluster(cx, cy);
+  if (clu) {
+    e.stopPropagation();
+    const ll = map.unproject([clu.x, clu.y]);
+    map.easeTo({ center: ll, zoom: Math.min((map.getZoom() || 14) + 2, 18), duration: 450 });
     return;
   }
   const hit = hitTestVenue(cx, cy) || hitTestDot(cx, cy);
