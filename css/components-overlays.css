@@ -1523,6 +1523,9 @@
     border-top: var(--glass-border);
     box-shadow: var(--sheet-shadow);
     color: var(--panel-text);
+    /* Light frost ⇒ the destructive decline needs the darker red for contrast
+       (root --color-error is the dark-surface red-500). */
+    --color-error: var(--red-600);
     /* Match #panel.mobile-hidden's slide-down feel: cubic-bezier(0.32,
        0.72, 0, 1) for a smoother ease-out, +20 px extra throw past the
        viewport edge so the perceptible motion finishes before the
@@ -2820,7 +2823,7 @@
     opacity: 0.5;
     transition: opacity 0.15s;
   }
-  .btn-icon-sm:hover { opacity: 1; color: #ff6b6b; }
+  .btn-icon-sm:hover { opacity: 1; color: var(--color-error); }
 
   /* Add friend input */
   .friends-add-section { margin-top: 12px; }
@@ -2844,6 +2847,6 @@
     margin-top: 4px;
     min-height: 16px;
   }
-  .friend-add-result.success { color: #64ffb4; }
-  .friend-add-result.error { color: #ff6b6b; }
+  .friend-add-result.success { color: var(--color-success); }
+  .friend-add-result.error { color: var(--color-error); }
 

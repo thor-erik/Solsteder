@@ -2722,8 +2722,8 @@
     flex-shrink: 0;
   }
   .suggestion-status-badge.pending  { background: rgba(245,194,94,0.12); color: var(--accent); border: 1px solid rgba(245,194,94,0.3); }
-  .suggestion-status-badge.approved { background: rgba(100,255,180,0.12); color: #64ffb4;       border: 1px solid rgba(100,255,180,0.3); }
-  .suggestion-status-badge.rejected { background: rgba(255,107,107,0.12); color: #ff6b6b;       border: 1px solid rgba(255,107,107,0.3); }
+  .suggestion-status-badge.approved { background: rgba(100,255,180,0.12); color: var(--color-success);       border: 1px solid rgba(100,255,180,0.3); }
+  .suggestion-status-badge.rejected { background: rgba(255,107,107,0.12); color: var(--color-error);       border: 1px solid rgba(255,107,107,0.3); }
   .suggestion-withdraw-btn {
     font-family: 'Inter', sans-serif;
     font-size: 11px;
@@ -2737,7 +2737,7 @@
     flex-shrink: 0;
     transition: color 0.12s, border-color 0.12s;
   }
-  .suggestion-withdraw-btn:hover { color: #ff6b6b; border-color: rgba(255,107,107,0.4); }
+  .suggestion-withdraw-btn:hover { color: var(--color-error); border-color: rgba(255,107,107,0.4); }
   .profile-privacy-link {
     display: block;
     text-align: center;
@@ -3067,8 +3067,8 @@
   .auth-magic-link-status {
     font-size: 12px; line-height: 1.4; min-height: 17px; text-align: center;
   }
-  .auth-magic-link-status.success { color: #64ffb4; }
-  .auth-magic-link-status.error   { color: #ff6b6b; }
+  .auth-magic-link-status.success { color: var(--color-success); }
+  .auth-magic-link-status.error   { color: var(--color-error); }
 
   /* Logged-out profile panel: hero + benefits carousel */
   .login-hero { padding: 24px 20px 8px; text-align: center; }
@@ -3317,7 +3317,7 @@
   .admin-diff-key   { color: var(--muted); min-width: 120px; }
   .admin-diff-before { color: #ff8080; font-family: monospace; }
   .admin-diff-arrow  { color: var(--muted); }
-  .admin-diff-after  { color: #64ffb4; font-family: monospace; }
+  .admin-diff-after  { color: var(--color-success); font-family: monospace; }
 
   .admin-edit-actions {
     display: flex;
@@ -3328,7 +3328,7 @@
     background: rgba(100,255,180,0.12);
     border: 1px solid rgba(100,255,180,0.4);
     border-radius: var(--radius-sm);
-    color: #64ffb4;
+    color: var(--color-success);
     font-family: 'Inter', sans-serif;
     font-size: 12px;
     font-weight: 600;
@@ -3343,7 +3343,7 @@
     background: rgba(255,107,107,0.12);
     border: 1px solid rgba(255,107,107,0.35);
     border-radius: var(--radius-sm);
-    color: #ff6b6b;
+    color: var(--color-error);
     font-family: 'Inter', sans-serif;
     font-size: 12px;
     font-weight: 600;
