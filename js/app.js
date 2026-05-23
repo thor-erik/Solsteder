@@ -2168,9 +2168,26 @@ function _exitToExploreMode(opts) {
   // explore IS the normal app view, so reveal the full chrome set here.
   // Idempotent: a no-op once the intro has already removed these classes.
   if (typeof _revealCanvasAndChrome === 'function') { try { _revealCanvasAndChrome(); } catch (e) { /* ignore */ } }
-  ['top-strip', 'floating-brand', 'qc-wrap'].forEach((id) => {
+  ['floating-brand', 'qc-wrap'].forEach((id) => {
     document.getElementById(id)?.classList.remove('intro-hidden');
   });
+  // Top strip: slide it DOWN into place rather than pop in. Reuse the intro's
+  // gentle entrance (start just above the rest position, ease down). Use an
+  // explicit translateY(0) target — not '' — so it lands at rest even while a
+  // takeover body-class (e.g. post-accept-active) still pins the CSS transform
+  // off-screen during its 320ms slide-down. Inline styles are cleared once
+  // that's settled so future takeovers' transform-hide still works.
+  const _ts = document.getElementById('top-strip');
+  if (_ts && _ts.classList.contains('intro-hidden')) {
+    _ts.style.transition = 'none';
+    _ts.style.opacity = '1';
+    _ts.style.transform = 'translateY(-72px)';
+    _ts.classList.remove('intro-hidden');
+    _ts.getBoundingClientRect();
+    _ts.style.transition = 'transform 0.45s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.4s ease';
+    _ts.style.transform = 'translateY(0)';
+    setTimeout(() => { if (_ts) { _ts.style.transition = ''; _ts.style.transform = ''; } }, 500);
+  }
   const found = _findFirstSunDayAndHour();
   if (!found) return;
   // Sync date + time pickers — both dispatch the events the rest of the
