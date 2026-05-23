@@ -53,19 +53,21 @@ const ABS_OVERLAP_PX   = 14;   // sanity overlap guard inside the free zone
 
 // ── Dot clustering (merge / explode) ────────────────────────────────────────
 // Pills are great as-is; the problem is too many DOTS on screen. So dots
-// (never pills) that sit closer than MERGE_DIST screen-px collapse onto a
-// shared ANCHOR — they all target the same point, so they read as ONE dot.
-// Zoom in and, once they spread past the threshold, they "explode": each
-// glides out to its own position and fades in by distance from the anchor.
-// SAME dot size/type throughout — no count bubbles. It's jitter-free because
-// drawn positions LERP toward their target and members fade with distance
-// (nothing pops in/out), and hysteresis (UNMERGE_DIST > MERGE_DIST) stops the
-// merge/explode decision from flickering right at the threshold.
-const MERGE_DIST   = 22;   // dots closer than this (real px) merge onto an anchor
-const UNMERGE_DIST = 30;   // hysteresis: a merged dot stays merged until this far
+// (never pills) near each other collapse onto a shared ANCHOR — they target
+// the same point, so they read as ONE dot. Zoom in and they "explode": each
+// glides out to its own position. SAME dot size/type throughout — no bubbles.
+//
+// The merge is a CONTINUOUS RAMP, not a binary decision with a hysteresis gap:
+// a dot's "merge progress" is a smooth function of its LIVE distance to the
+// anchor — fully merged (on the anchor) at ≤ DOT_MERGE_PX, fully separate (own
+// position) at ≥ DOT_SPREAD_PX, interpolated between. Because progress tracks
+// the live distance it's symmetric (same at a given separation regardless of
+// zoom direction), needs no temporal smoothing (so panning has zero lag and
+// the explode glides with the zoom itself), and there's nothing to flicker.
+const DOT_MERGE_PX  = 16;   // ≤ this real-px separation: dots fully merged onto the anchor
+const DOT_SPREAD_PX = 34;   // ≥ this: dots fully separate (own position)
 let   _frameDots = [];          // collected each draw: { x, y, inSun, alpha, vid }
-const _dotProg   = new Map();   // vid → merge progress 0..1 (0 = own real pos, 1 = on anchor)
-const _dotAnchor = new Map();   // vid → vid of the anchor it's merged onto (self if it IS one)
+const _dotFade   = new Map();   // vid → 0..1 fade-in for dots that just became visible
 
 // Cached per-venue distance from the user location. The cache is keyed by
 // venue.id; we detect userLocation moves by comparing the live ref against
@@ -1501,81 +1503,84 @@ function _getGoing(v, dateStr) {
 
 // ── Dot merge / explode pass ────────────────────────────────────────────────
 // Greedy-merge the collected dots onto anchors (first dot in a neighbourhood
-// wins; later dots within MERGE_DIST target that anchor). Every dot still
-// renders — but a merged dot's TARGET is its anchor, so it glides onto the
-// anchor and fades out by distance (→ invisible when stacked = reads as one
-// dot). Zoom in, the anchor's neighbours spread past the threshold, flip to
-// their own target, and glide+fade out from under the anchor: the "explode".
+// wins; later dots within DOT_SPREAD_PX target that anchor). Every dot still
+// renders, but its drawn position = own real pos pulled toward the anchor by a
+// CONTINUOUS merge progress (a smooth function of the live separation: 1 at
+// ≤ DOT_MERGE_PX, 0 at ≥ DOT_SPREAD_PX). Merged dots fade by separation, so a
+// stacked group reads as ONE dot; zoom in and they glide+fade apart (explode).
+// Newly-visible dots fade IN; dots that disappear fade OUT at their last spot.
+function _drawOneDot(px, py, r, inSun, a) {
+  const col = _dotMapColors(inSun ? 'hero' : 'context', false, false);
+  ctx.save();
+  ctx.globalAlpha = Math.max(0, Math.min(1, a));
+  ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI * 2);
+  ctx.fillStyle = col.fill; ctx.fill();
+  ctx.beginPath(); ctx.arc(px, py, r - 0.5, 0, Math.PI * 2);
+  ctx.strokeStyle = col.ring; ctx.lineWidth = 1; ctx.stroke();
+  ctx.restore();
+}
+
 function _drawDots(placedPills, zoom) {
   const dots = _frameDots;
   const byVid = new Map();
   for (const d of dots) byVid.set(d.vid, d);
   const anchors = [];   // { vid, x, y }  (x,y = live real positions this frame)
 
-  // 1) Merge decision: assign each dot an anchor (an earlier dot within range)
-  //    or make it its own anchor. Uses LIVE real positions + hysteresis.
+  // Merge decision: nearest anchor within DOT_SPREAD_PX, else become an anchor.
+  // No hysteresis needed — progress = 0 exactly at DOT_SPREAD_PX, so a dot
+  // crossing the assignment boundary is already at its own position (seamless).
   for (const d of dots) {
-    const prevAnchor = _dotAnchor.get(d.vid);
     let best = null, bestDist = Infinity;
     for (const a of anchors) {
       const dist = Math.hypot(d.x - a.x, d.y - a.y);
-      // Hysteresis: a dot already merged onto THIS anchor keeps merging until
-      // it's UNMERGE_DIST away; a fresh dot only merges within MERGE_DIST.
-      const thresh = (a.vid === prevAnchor) ? UNMERGE_DIST : MERGE_DIST;
-      if (dist < thresh && dist < bestDist) { best = a; bestDist = dist; }
+      if (dist < DOT_SPREAD_PX && dist < bestDist) { best = a; bestDist = dist; }
     }
-    if (best) { d.anchorVid = best.vid; _dotAnchor.set(d.vid, best.vid); }
-    else      { d.anchorVid = d.vid;    _dotAnchor.set(d.vid, d.vid); anchors.push({ vid: d.vid, x: d.x, y: d.y }); }
+    if (best) { d.anchorVid = best.vid; d.aDist = bestDist; }
+    else      { d.anchorVid = d.vid;    d.aDist = 0; anchors.push({ vid: d.vid, x: d.x, y: d.y }); }
   }
 
-  // 2) Animate only the merge PROGRESS scalar (0 = own real pos, 1 = on anchor).
-  //    Positions are recomputed live each frame from this scalar, so panning
-  //    has ZERO lag — only the merge/explode transition is smoothed.
-  for (const d of dots) {
-    const tgt = (d.anchorVid !== d.vid) ? 1 : 0;
-    let prog = _dotProg.get(d.vid);
-    if (prog === undefined) prog = tgt;        // first sight: appear settled, don't glide
-    if (Math.abs(tgt - prog) > 0.004) { prog += (tgt - prog) * 0.22; _animDirty = true; }
-    else prog = tgt;
-    _dotProg.set(d.vid, prog);
-    d._prog = prog;
-  }
+  const r    = (zoom >= 16 ? 6 : 5);
+  const RAMP = Math.max(1, DOT_SPREAD_PX - DOT_MERGE_PX);
+  const seen = new Set();
 
-  // 3) Draw — one dot per venue, single size/type. Drawn pos = own real pos
-  //    pulled toward the anchor's real pos by progress. Members fade by their
-  //    separation from the anchor: stacked → invisible (group reads as one
-  //    dot), separated → full opacity.
-  const r = (zoom >= 16 ? 6 : 5);
+  // Present dots — fade IN, compute live merged position, draw.
   for (const d of dots) {
+    seen.add(d.vid);
+    const merged = d.anchorVid !== d.vid;
+    // Continuous merge progress from the LIVE separation (no temporal smoothing
+    // → zero pan lag; the explode glides with the zoom). 1 = on anchor, 0 = own.
+    const prog = merged ? Math.max(0, Math.min(1, (DOT_SPREAD_PX - d.aDist) / RAMP)) : 0;
     const anchor = byVid.get(d.anchorVid);
     const ax = anchor ? anchor.x : d.x, ay = anchor ? anchor.y : d.y;
-    const px = d.x + (ax - d.x) * d._prog;
-    const py = d.y + (ay - d.y) * d._prog;
-    let a = d.alpha;
-    if (d.anchorVid !== d.vid) {
-      a *= Math.max(0, Math.min(1, Math.hypot(px - ax, py - ay) / 9));
-    }
-    if (a < 0.03) continue;
-    // Suppress dots sitting on a pill body (reads as an artefact).
+    const px = d.x + (ax - d.x) * prog;
+    const py = d.y + (ay - d.y) * prog;
+    const sep = merged ? Math.max(0, Math.min(1, Math.hypot(px - ax, py - ay) / 9)) : 1;
+
+    let fe = _dotFade.get(d.vid);
+    let fadeIn = fe ? fe.fadeIn : 0;
+    if (fadeIn < 1) { fadeIn = Math.min(1, fadeIn + 0.12); _animDirty = true; }
+
+    let a = d.alpha * fadeIn * sep;
+    // Pill-overlap suppression (a dot on a pill body reads as an artefact).
     let overlaps = false;
     for (const pl of placedPills) {
       if (px >= pl.x - 6 && px <= pl.x + pl.w + 6 && py >= pl.y - 6 && py <= pl.y + pl.h + 6) { overlaps = true; break; }
     }
-    if (overlaps) continue;
-    const col = _dotMapColors(d.inSun ? 'hero' : 'context', false, false);
-    ctx.save();
-    ctx.globalAlpha = a;
-    ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI * 2);
-    ctx.fillStyle = col.fill; ctx.fill();
-    ctx.beginPath(); ctx.arc(px, py, r - 0.5, 0, Math.PI * 2);
-    ctx.strokeStyle = col.ring; ctx.lineWidth = 1; ctx.stroke();
-    ctx.restore();
+    if (overlaps) a = 0;
+    // Remember last drawn alpha + position so a disappearing dot fades OUT from
+    // exactly where it was (a merged-invisible dot starts near 0 → no pop).
+    _dotFade.set(d.vid, { fadeIn, px, py, inSun: d.inSun, alpha: a });
+    if (a >= 0.03) _drawOneDot(px, py, r, d.inSun, a);
   }
 
-  // 4) Prune state for venues not present this frame (became pills / off-screen).
-  const present = new Set(dots.map(d => d.vid));
-  for (const k of _dotProg.keys())   if (!present.has(k)) _dotProg.delete(k);
-  for (const k of _dotAnchor.keys()) if (!present.has(k)) _dotAnchor.delete(k);
+  // Departing dots — fade OUT at their last position, then drop.
+  for (const [vid, fe] of _dotFade) {
+    if (seen.has(vid)) continue;
+    fe.alpha -= 0.12;
+    if (fe.alpha < 0.03) { _dotFade.delete(vid); continue; }
+    _animDirty = true;
+    _drawOneDot(fe.px, fe.py, r, fe.inSun, fe.alpha);
+  }
 }
 
 // ── Main draw ─────────────────────────────────────────────────────────────────
