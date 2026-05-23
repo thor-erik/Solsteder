@@ -477,7 +477,13 @@
     color: var(--ink-muted);
     text-transform: none;
     letter-spacing: 0;
-    transition: opacity 200ms ease;
+    /* Animatable collapse: the peek / sliding states set max-height + padding
+       to 0 (see below). Revealing transitions max-height 0 → 40 (clamps at the
+       ~22px content) so the header grows in and PUSHES the list down, instead
+       of popping into place. max-height clamps a single-line label with room. */
+    overflow: hidden;
+    max-height: 40px;
+    transition: max-height 240ms ease, padding 240ms ease, opacity 200ms ease;
   }
   /* First section header sits closer to the day-header (no extra top
      padding) since the bottom hairline already provides separation. */
@@ -1765,15 +1771,18 @@
     /* In peek mode, hide the in-list bucket section headers so the peek
        height stays as low as possible — the user just needs to see the
        first card or two. The headers re-appear once the panel expands. */
-    #panel:not(.mobile-expanded):not(.mobile-fullscreen):not(.mobile-hidden) .venue-section-header {
-      display: none;
+    #panel:not(.mobile-expanded):not(.mobile-fullscreen):not(.mobile-hidden) .venue-section-header,
+    /* Also collapse section headers WHILE the panel is sliding, so the
+       "In sun at X" header doesn't change the list height mid-slide (the
+       toggle during the transform → the cards jittered). It animates open
+       once the slide settles (is-sliding cleared in _wirePanelSlideClass),
+       pushing the list down via the max-height transition above. */
+    #panel.is-sliding .venue-section-header {
+      max-height: 0;
+      opacity: 0;
+      padding-top: 0;
+      padding-bottom: 0;
     }
-    /* Also keep section headers hidden WHILE the panel is sliding, so the
-       "In sun at X" header doesn't pop into the layout mid-slide (the display
-       none→block toggle changed the list height during the transform → the
-       cards jittered). It reveals once the slide settles (is-sliding cleared
-       in _wirePanelSlideClass), when the panel is stationary. */
-    #panel.is-sliding .venue-section-header { display: none; }
 
     /* The unified day-header is visible in every panel state — peek
        mode included. Horizontal padding matches the mobile #venue-list
@@ -1792,6 +1801,12 @@
       overscroll-behavior-y: none;
       /* No top mask — clean edge by default. A drop shadow under the sticky
          header fades in on scroll (see #panel.is-scrolled rule). */
+    }
+    /* Peek: the section headers are collapsed, so the first CARD sits under the
+       filter pills. The tight 2px above is right for the expanded header, but
+       too cramped for the card in peek — give it a touch more breathing room. */
+    #panel:not(.mobile-expanded):not(.mobile-fullscreen):not(.mobile-hidden) #venue-list {
+      padding-top: var(--space-sm);
     }
 
     .venue-card {
