@@ -1175,7 +1175,15 @@ function _closePostAcceptPanel(opts = {}) {
   // path hand off to plan-preview-active without touching this class.
   if (!opts.skipBodyClassRemoval) {
     setTimeout(() => {
-      document.body.classList.remove('post-accept-active');
+      // Clear BOTH takeover classes. The accept flow reaches this panel from
+      // the plan-preview (plan-preview-active) and relies on closePlanPreview
+      // to drop that class — but closePlanPreview early-returns if the awaited
+      // respondToPlanInvite already tore down _planPreviewState (realtime/poll
+      // race), leaving plan-preview-active set. That kept body.plan-preview-
+      // active #top-strip matching, so the top bar never slid back down after
+      // closing the confirmation. Removing both here guarantees the chrome
+      // restores. (The change-response path skips this via skipBodyClassRemoval.)
+      document.body.classList.remove('post-accept-active', 'plan-preview-active');
       // Slide the venue list up from off-screen — same motion as the
       // page-load intro. Fires AFTER the body class is gone so the
       // panel is actually visible during the slide (opacity-0 mask
