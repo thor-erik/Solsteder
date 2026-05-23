@@ -2316,9 +2316,10 @@
     will-change: transform, opacity;
     touch-action: pan-y;  /* swipe handler decides on horizontal */
   }
-  /* "Shade" stripes — faint diagonal honey lines, like sun raked through a
-     venetian blind / the lens. Brand metaphor (Shades = lens + shadow). Kept
-     very low-contrast so it reads as texture, not noise; content sits above. */
+  /* "Shade" stripes — echo the logo mark exactly: cream slits cut across the
+     Delft disc at -45deg, slit 6.75 / period 15 (45% duty), from shades-mark.svg.
+     Cream (not honey — honey is the logo's sun arc), at low alpha so it reads as
+     texture behind the text. Content sits above (z-index below). */
   #notif-toast::before {
     content: '';
     position: absolute;
@@ -2327,11 +2328,11 @@
     pointer-events: none;
     z-index: 0;
     background: repeating-linear-gradient(
-      -50deg,
-      transparent 0,
-      transparent 9px,
-      rgba(245,194,94,0.06) 9px,
-      rgba(245,194,94,0.06) 10.5px
+      -45deg,
+      rgba(255,244,224,0.07) 0,
+      rgba(255,244,224,0.07) 6.75px,
+      transparent 6.75px,
+      transparent 15px
     );
   }
   #notif-toast > * { position: relative; z-index: 1; }
