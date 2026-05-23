@@ -1520,7 +1520,7 @@ function _drawOneDot(px, py, r, inSun, a) {
   ctx.restore();
 }
 
-function _drawDots(placedPills, zoom) {
+function _drawDots(placedPills, placedNamesGrid, zoom) {
   const dots = _frameDots;
   const byVid = new Map();
   for (const d of dots) byVid.set(d.vid, d);
@@ -1554,17 +1554,22 @@ function _drawDots(placedPills, zoom) {
     const ax = anchor ? anchor.x : d.x, ay = anchor ? anchor.y : d.y;
     const px = d.x + (ax - d.x) * prog;
     const py = d.y + (ay - d.y) * prog;
-    const sep = merged ? Math.max(0, Math.min(1, Math.hypot(px - ax, py - ay) / 9)) : 1;
+    // Member visibility is tied to CLEARING the anchor so two dots never show
+    // overlapping: invisible until the member's centre is past 2·r (circles just
+    // touching), fading to full only once there's a real gap (~3.5·r).
+    const sep = merged ? Math.max(0, Math.min(1, (Math.hypot(px - ax, py - ay) - 2 * r) / (1.5 * r))) : 1;
 
     let fe = _dotFade.get(d.vid);
     let fadeIn = fe ? fe.fadeIn : 0;
     if (fadeIn < 1) { fadeIn = Math.min(1, fadeIn + 0.12); _animDirty = true; }
 
     let a = d.alpha * fadeIn * sep;
-    // Pill-overlap suppression (a dot on a pill body reads as an artefact).
+    // A dot must never sit on a pill body OR a floating name label.
+    const dotRect = { x: px - r, y: py - r, w: 2 * r, h: 2 * r };
     let overlaps = false;
-    for (const pl of placedPills) {
-      if (px >= pl.x - 6 && px <= pl.x + pl.w + 6 && py >= pl.y - 6 && py <= pl.y + pl.h + 6) { overlaps = true; break; }
+    for (const pl of placedPills) { if (_overlaps(dotRect, pl, 2)) { overlaps = true; break; } }
+    if (!overlaps && placedNamesGrid) {
+      _forEachNearbyCell(placedNamesGrid, dotRect, (n) => { if (_overlaps(dotRect, n, 2)) overlaps = true; });
     }
     if (overlaps) a = 0;
     // Remember last drawn alpha + position so a disappearing dot fades OUT from
@@ -2274,7 +2279,7 @@ function draw() {
 
   // Merge / explode the dots collected during the loop (pills untouched).
   // Skipped in audit mode — audit pins are their own representation.
-  if (!isAuditMode) _drawDots(placedPills, zoom);
+  if (!isAuditMode) _drawDots(placedPills, placedNamesGrid, zoom);
 
   _lastLayout = layout;
   // Swap this frame's pilled-set into _lastPilledIds so the next
