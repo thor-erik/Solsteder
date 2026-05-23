@@ -40,6 +40,8 @@
        to --red-600 for contrast on its cream frost. */
     --color-error:   var(--red-500);
     --color-success: var(--green-500);
+    /* Faint red wash for the destructive role's hover fill (.d-pill). */
+    --color-error-dim: rgba(255,107,107,0.14);
 
     /* Weather palette — three sun bands (yellow gradient) + one cool grey
        overcast + rain + night. Aligned with Slate + Honey: clear sun =

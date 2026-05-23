@@ -361,6 +361,23 @@
   }
   .g-rnd:hover { border-color: rgba(156,189,231,0.45); color: var(--text); background: rgba(17,30,56,0.18); }
 
+  /* DESTRUCTIVE · Pill — red outline + red text, transparent fill. Never honey
+     (DESIGN.md: "Red, text or outline only. Visually separated from primary").
+     Surface-neutral: red reads on both dark and light. 44h matches the dense
+     list-row touch-target floor (Avslå on inbox / RSVP rows). */
+  .d-pill {
+    display: inline-flex; align-items: center; justify-content: center; gap: var(--space-sm);
+    height: 44px; padding: 0 var(--space-xl); border-radius: var(--radius-pill);
+    font-size: 14px; font-weight: 600; font-family: 'Inter', sans-serif;
+    cursor: pointer; white-space: nowrap;
+    background: transparent;
+    border: 1px solid var(--color-error);
+    color: var(--color-error);
+    transition: background 120ms ease-out, border-color 120ms ease-out, transform 90ms ease-out;
+  }
+  .d-pill:hover { background: var(--color-error-dim); }
+  .d-pill:active { transform: scale(0.97); }
+
   /* ── Surface-aware role variants ───────────────────────────────────────────
      The role classes above are the DARK-surface treatment (cream text, glass
      fill). On a LIGHT chrome/sheet/cream-dropdown a control must "step away"
@@ -448,33 +465,6 @@
     transform: scale(0.97);
   }
   .p-sq:active { background: var(--accent-active); transform: translateY(1px); box-shadow: none; }
-
-  /* Accept / Decline plan-invite responses — v1 had zero hover or active
-     feedback, so they read like static text rather than interactive
-     buttons. Adding both states and a transition stack. */
-  .btn-accept {
-    transition: background 120ms ease-out, box-shadow 120ms ease-out, transform 90ms ease-out;
-  }
-  .btn-accept:hover {
-    background: rgba(245,194,94,0.22);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.28);
-  }
-  .btn-accept:active {
-    background: rgba(245,194,94,0.32);
-    transform: scale(0.97);
-    box-shadow: none;
-  }
-  .btn-decline {
-    transition: background 120ms ease-out, border-color 120ms ease-out, color 120ms ease-out, transform 90ms ease-out;
-  }
-  .btn-decline:hover {
-    background: rgba(17,30,56,0.45);
-    border-color: rgba(156,189,231,0.45);
-    color: var(--text);
-  }
-  .btn-decline:active {
-    transform: scale(0.97);
-  }
 
   /* Toggle switch — v1 had no hover feedback, leaving the control
      feeling dead until tapped. A subtle border lift on hover signals

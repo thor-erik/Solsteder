@@ -99,7 +99,7 @@
 
   .popup-status.sunny         { color: var(--accent); }
   .popup-status.shaded        { color: var(--muted); }
-  .popup-status.opening-soon  { color: #9CBDE7; }
+  .popup-status.opening-soon  { color: var(--blue-300); }
 
   .popup-actions {
     margin-top: var(--space-md);
@@ -121,10 +121,13 @@
     text-decoration: none;
   }
 
+  /* Map-popup actions stay a compact floating-chrome context (12px icons) —
+     like .sd-suggest-btn, NOT migrated to the 44px role pills, which would
+     dominate the small bubble. Directions = jordy secondary, Edit = honey. */
   .popup-directions-btn {
     background: rgba(156,189,231,0.12);
     border: 1px solid rgba(156,189,231,0.3);
-    color: #9CBDE7;
+    color: var(--blue-300);
   }
   .popup-directions-btn:hover { background: rgba(156,189,231,0.22); }
 
@@ -3045,12 +3048,16 @@
   }
   .auth-btn:hover { opacity: 0.85; }
   .auth-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  /* Google/Apple keep their OAuth-mandated brand colours (white / black) and
+     the auth modal keeps the full-width rectangular OAuth-button shape for the
+     whole stack. The role is encoded by COLOUR: email = the honey Primary
+     ("the decision"); the two brand buttons read as the providers. */
   .auth-btn-google { background: #fff; color: #1f1f1f; }
   .auth-btn-apple  { background: #000; color: #fff; }
   .auth-btn-apple svg { width: 18px; height: 18px; }
   .auth-btn-email  {
-    background: rgba(255,255,255,0.1); color: var(--text);
-    border: 1px solid rgba(255,255,255,0.15);
+    background: var(--accent); color: var(--accent-on);
+    font-weight: 700;
   }
   .auth-divider {
     display: flex; align-items: center; gap: var(--space-lg);
@@ -3532,26 +3539,10 @@
     text-align: center;
   }
   .suggest-empty strong { color: var(--text); font-weight: 500; }
-  .suggest-btn {
-    background: rgba(156,189,231,0.1);
-    border: 1px solid rgba(156,189,231,0.2);
-    border-radius: var(--radius-lg);
-    color: var(--muted);
-    font-family: 'Inter', sans-serif;
-    font-size: 13px;
-    padding: var(--space-sm) var(--space-xl);
-    cursor: pointer;
-    transition: background 0.15s, color 0.15s;
-    text-decoration: none;
-    display: inline-block;
-  }
-  .suggest-btn:hover { background: rgba(156,189,231,0.18); color: var(--text); }
-  .suggest-btn-primary {
-    background: rgba(245,194,94,0.12);
-    border-color: rgba(245,194,94,0.25);
-    color: var(--accent);
-  }
-  .suggest-btn-primary:hover { background: rgba(245,194,94,0.22); color: var(--accent); }
+  /* Suggest-flow buttons now use role primitives — empty-state "suggest this
+     venue" = .s-pill (secondary), modal confirm = .p-pill (primary, hook class
+     .suggest-submit for the loading state), Cancel = .g-rnd (ghost). The
+     per-flow .suggest-btn / .suggest-btn-primary were retired in Phase 3. */
   .suggest-confirm {
     padding: var(--space-xl) var(--space-xl);
     display: flex;

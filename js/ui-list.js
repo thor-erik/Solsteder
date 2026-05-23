@@ -1207,7 +1207,7 @@ function renderList() {
       list.innerHTML = `
         <div class="suggest-empty">
           <span>${t('no_results_for')} "<strong>${searchQ}</strong>"</span>
-          <button class="suggest-btn" onclick="suggestVenueFlow(${JSON.stringify(searchQ)})">
+          <button class="s-pill" onclick="suggestVenueFlow(${JSON.stringify(searchQ)})">
             ${t('suggest_this_venue')}
           </button>
         </div>`;

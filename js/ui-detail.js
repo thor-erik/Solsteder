@@ -361,8 +361,8 @@ function _renderPlansBlock(v) {
       let actions = '';
       if (invite && invite.status === 'pending') {
         actions = `<div class="plan-actions">
-          <button class="btn-accept" onclick="respondToPlanInvite('${invite.id}','accepted')">${t('plan_accept')}</button>
-          <button class="btn-decline" onclick="respondToPlanInvite('${invite.id}','declined')">${t('plan_decline')}</button>
+          <button class="p-pill" onclick="respondToPlanInvite('${invite.id}','accepted')">${t('plan_accept')}</button>
+          <button class="d-pill" onclick="respondToPlanInvite('${invite.id}','declined')">${t('plan_decline')}</button>
         </div>`;
       } else if (invite) {
         actions = `<span class="plan-status">${t('plan_invite_' + invite.status)}</span>`;

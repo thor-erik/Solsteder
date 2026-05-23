@@ -7073,13 +7073,13 @@ function _renderSuggestConfirm({ name, address, lat, lng, osmId }) {
           Does this venue have outdoor seating (uteservering)?
         </p>
         ${loginHint}
-        <div style="display:flex;gap:8px">
+        <div style="display:flex;gap:8px;align-items:center">
           ${user
-            ? `<button class="suggest-btn suggest-btn-primary" style="flex:1" onclick="_submitSuggestion('${dataAttr}')">Yes, suggest it →</button>`
-            : `<a class="suggest-btn suggest-btn-primary" style="flex:1;text-align:center" href="${issueUrl}" target="_blank" rel="noopener"
+            ? `<button class="p-pill suggest-submit" style="flex:1" onclick="_submitSuggestion('${dataAttr}')">Yes, suggest it →</button>`
+            : `<a class="p-pill suggest-submit" style="flex:1" href="${issueUrl}" target="_blank" rel="noopener"
                  onclick="setTimeout(()=>document.getElementById('suggest-modal')?.remove(),300)">Yes, suggest it →</a>`
           }
-          <button class="suggest-btn" onclick="document.getElementById('suggest-modal').remove()">Cancel</button>
+          <button class="g-rnd" onclick="document.getElementById('suggest-modal').remove()">Cancel</button>
         </div>
       </div>
     </div>`;
@@ -7091,7 +7091,7 @@ async function _submitSuggestion(dataAttrEncoded) {
   const { name, address, lat, lng, osmId } = JSON.parse(decodeURIComponent(dataAttrEncoded));
 
   const modal = document.getElementById('suggest-modal');
-  const btn = modal?.querySelector('.suggest-btn-primary');
+  const btn = modal?.querySelector('.suggest-submit');
   if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
 
   const result = await submitVenueSuggestion({ name, address, lat, lng, osmId });

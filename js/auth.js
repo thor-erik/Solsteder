@@ -478,12 +478,12 @@ function _renderInvitationsSection() {
           <div class="inbox-row-info">
             <div class="inbox-row-title">${_esc(r.name || r.email)}</div>
           </div>
-          <div class="inbox-row-actions">
-            <button class="inbox-btn inbox-btn-accept"
+          <div class="inbox-row-actions on-light">
+            <button class="p-pill"
                     onclick="_handleAcceptFriendRequest('${_esc(r.friendshipId)}');_renderProfilePanel?.();">
               ${_esc(t('plan_accept'))}
             </button>
-            <button class="inbox-btn inbox-btn-decline"
+            <button class="d-pill"
                     onclick="_handleRejectFriendRequest('${_esc(r.friendshipId)}');_renderProfilePanel?.();">
               ${_esc(t('plan_decline'))}
             </button>
@@ -511,16 +511,16 @@ function _renderInvitationsSection() {
             <div class="inbox-row-title">${_esc(vName)}</div>
             <div class="inbox-row-meta">${_esc(creator)} · ${_esc(fmt(p.planned_at))}</div>
           </div>
-          <div class="inbox-row-actions">
-            <button class="inbox-btn inbox-btn-preview"
+          <div class="inbox-row-actions on-light">
+            <button class="g-rnd"
                     onclick="closeProfilePanel();openPlanPreview({venueId:${venueArg}, plannedAt:'${_esc(p.planned_at)}', inviteId:'${_esc(inv.id)}', inviterName:${inviterArg}, mode:'invite'})">
               ${_esc(t('preview_plan'))}
             </button>
-            <button class="inbox-btn inbox-btn-accept"
+            <button class="p-pill"
                     onclick="_handleInboxResponse('${_esc(inv.id)}','accepted', this)">
               ${_esc(t('plan_accept'))}
             </button>
-            <button class="inbox-btn inbox-btn-decline"
+            <button class="d-pill"
                     onclick="_handleInboxResponse('${_esc(inv.id)}','declined', this)">
               ${_esc(t('plan_decline'))}
             </button>
@@ -570,8 +570,8 @@ function _renderInvitationsSection() {
             <div class="inbox-row-meta">${_esc(fmt(p.planned_at))}${ratio ? ` · ${_esc(ratio)} ✓` : ''}</div>
             ${offPlanLine}
           </div>
-          <div class="inbox-row-actions">
-            <button class="inbox-btn inbox-btn-preview"
+          <div class="inbox-row-actions on-light">
+            <button class="g-rnd"
                     onclick="closeProfilePanel();openPlanPreview({venueId:${venueArg}, plannedAt:'${_esc(p.planned_at)}', mode:'preview'})">
               ${_esc(t('preview_plan'))}
             </button>
@@ -2302,7 +2302,7 @@ function _renderFriendsModal(modal) {
           ${avatar}
           <div class="friend-item-info"><div class="friend-item-name">${_esc(label)}</div></div>
           <div class="friend-item-actions">
-            <button class="btn-accept" onclick="_handleAcceptFriendRequest('${_esc(r.friendshipId)}')">${_esc(t('plan_accept'))}</button>
+            <button class="p-pill" onclick="_handleAcceptFriendRequest('${_esc(r.friendshipId)}')">${_esc(t('plan_accept'))}</button>
             <button class="btn-icon-sm friend-remove" onclick="_handleRejectFriendRequest('${_esc(r.friendshipId)}')" title="${_esc(t('friend_reject_title'))}">✕</button>
           </div>
         </div>`;

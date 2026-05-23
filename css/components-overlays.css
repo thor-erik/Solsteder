@@ -651,28 +651,11 @@
   .plan-when { font-size: 12px; color: var(--accent); font-weight: 600; }
   .plan-creator { font-size: 11px; color: var(--muted); }
   .plan-msg { font-size: 11px; color: var(--text); opacity: 0.7; }
-  .plan-actions { display: flex; gap: var(--space-sm); }
+  .plan-actions { display: flex; gap: var(--space-sm); align-items: center; }
   .plan-status { font-size: 11px; color: var(--muted); }
-  .btn-accept {
-    padding: var(--space-xs) var(--space-lg);
-    background: rgba(245,194,94,0.14);
-    border: 1px solid var(--accent);
-    border-radius: var(--radius-sm);
-    color: var(--accent);
-    font-size: 11px;
-    cursor: pointer;
-    font-family: 'Inter', sans-serif;
-  }
-  .btn-decline {
-    padding: var(--space-xs) var(--space-lg);
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    color: var(--muted);
-    font-size: 11px;
-    cursor: pointer;
-    font-family: 'Inter', sans-serif;
-  }
+  /* RSVP accept/decline now use the .p-pill / .d-pill role primitives
+     (base.css) — the per-flow .btn-accept/.btn-decline were retired in the
+     Phase 3 button consolidation. .plan-actions just lays them out. */
 
   /* Social form overlay (shown inside social card) */
   .social-form-overlay {
@@ -2087,14 +2070,19 @@
     margin-top: var(--space-md);
     opacity: 0.85;
   }
+  /* Stacked: info block on top, a full-width action row below. The action
+     buttons are role primitives at the 44px dense-row target (Preview = .g-rnd
+     ghost, Accept = .p-pill, Decline = .d-pill destructive), so three of them
+     need the full width rather than a cramped right-aligned cluster. */
   .inbox-row {
     display: flex;
-    align-items: center;
-    gap: var(--space-md);
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-sm);
     padding: var(--space-md) var(--space-xl);
     border-top: 1px solid rgba(17,30,56,0.08);
   }
-  .inbox-row-info { flex: 1; min-width: 0; }
+  .inbox-row-info { min-width: 0; }
   .inbox-row-title {
     font-size: 13px;
     font-weight: 600;
@@ -2108,35 +2096,13 @@
     color: var(--ink-muted);
     margin-top: 1px;
   }
+  /* Equal-width role buttons fill the row; height normalized to the 44px
+     dense-row floor (.g-rnd is 36 by default — lift it to match the pills). */
   .inbox-row-actions {
     display: flex;
-    gap: var(--space-xs);
-    flex-shrink: 0;
+    gap: var(--space-sm);
   }
-  .inbox-btn {
-    border: none;
-    border-radius: var(--radius-pill);
-    padding: var(--space-xs) var(--space-md);
-    font-size: 11px;
-    font-weight: 600;
-    font-family: 'Inter', sans-serif;
-    cursor: pointer;
-  }
-  .inbox-btn-preview {
-    background: rgba(17,30,56,0.08);
-    color: var(--panel-text);
-  }
-  .inbox-btn-preview:hover { background: rgba(17,30,56,0.14); }
-  .inbox-btn-accept {
-    background: var(--accent);
-    color: var(--accent-on, #2a1a0c);
-  }
-  .inbox-btn-accept:hover { opacity: 0.92; }
-  .inbox-btn-decline {
-    background: transparent;
-    color: var(--ink-muted);
-  }
-  .inbox-btn-decline:hover { color: var(--panel-text); }
+  .inbox-row-actions > * { flex: 1; height: 44px; }
   /* Friend-add prompt banner inside the detail panel */
   .friend-prompt-banner {
     display: flex;
