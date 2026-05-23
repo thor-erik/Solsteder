@@ -1528,6 +1528,12 @@ function _drawOneDot(px, py, r, inSun, a) {
   const col = _dotMapColors(inSun ? 'hero' : 'context', false, false);
   ctx.save();
   ctx.globalAlpha = Math.max(0, Math.min(1, a));
+  // Cream rim — keeps the dot legible on the dark 3D buildings (light-on-dark);
+  // on the cream map it blends away and the coloured core + edge carry it.
+  // Cheap: one extra fill, no shadowBlur.
+  ctx.beginPath(); ctx.arc(px, py, r + 1.2, 0, Math.PI * 2);
+  ctx.fillStyle = _rgba(TOKENS.text || '#FFF4E0', 0.9); ctx.fill();
+  // Coloured core (sun status) + its own edge ring (definition on the light map).
   ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI * 2);
   ctx.fillStyle = col.fill; ctx.fill();
   ctx.beginPath(); ctx.arc(px, py, r - 0.5, 0, Math.PI * 2);
