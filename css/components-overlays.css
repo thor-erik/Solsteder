@@ -182,7 +182,7 @@
 
   .info-value {
     color: var(--panel-text);
-    font-size: 13px;
+    font-size: var(--text-label);
     font-weight: 600;
     text-align: right;
   }
@@ -327,7 +327,7 @@
     #dp-close-btn::before { content: '‹'; font-size: 16px; line-height: 1; }
     .dp-close-x    { display: none; }
     .dp-close-back { display: inline; }
-    .dp-venue-name { font-size: 22px; }
+    .dp-venue-name { font-size: var(--text-title); }
     #dp-scroll { overflow-y: auto; }
   }
 
@@ -454,7 +454,7 @@
     color: var(--text);
     padding: var(--space-md) var(--space-xl);
     border-radius: var(--radius-md);
-    font-size: 13px;
+    font-size: var(--text-label);
     font-family: 'Inter', sans-serif;
     opacity: 0;
     pointer-events: none;
@@ -585,7 +585,7 @@
     line-height: 1.25;
   }
   .plan-conflict-body {
-    font-size: 13px;
+    font-size: var(--text-label);
     color: var(--muted);
     line-height: 1.45;
   }
@@ -602,7 +602,7 @@
     border: 1px solid rgba(156,189,231,0.22);
     background: rgba(17,30,56,0.30);
     color: var(--text);
-    font-size: 13px;
+    font-size: var(--text-label);
     font-weight: 600;
     font-family: 'Inter', sans-serif;
     cursor: pointer;
@@ -664,10 +664,10 @@
   }
   .plan-info { display: flex; flex-direction: column; gap: var(--space-2xs); }
   .plan-when { font-size: 12px; color: var(--accent); font-weight: 600; }
-  .plan-creator { font-size: 11px; color: var(--muted); }
-  .plan-msg { font-size: 11px; color: var(--text); opacity: 0.7; }
+  .plan-creator { font-size: var(--text-caption); color: var(--muted); }
+  .plan-msg { font-size: var(--text-caption); color: var(--text); opacity: 0.7; }
   .plan-actions { display: flex; gap: var(--space-sm); align-items: center; }
-  .plan-status { font-size: 11px; color: var(--muted); }
+  .plan-status { font-size: var(--text-caption); color: var(--muted); }
   /* RSVP accept/decline now use the .p-pill / .d-pill role primitives
      (base.css) — the per-flow .btn-accept/.btn-decline were retired in the
      Phase 3 button consolidation. .plan-actions just lays them out. */
@@ -683,7 +683,7 @@
     gap: var(--space-md);
   }
   .social-form-label {
-    font-size: 11px;
+    font-size: var(--text-caption);
     font-weight: 600;
     color: var(--muted);
     letter-spacing: 0.5px;
@@ -695,7 +695,7 @@
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     color: var(--text);
-    font-size: 13px;
+    font-size: var(--text-label);
     font-family: 'Inter', sans-serif;
     box-sizing: border-box;
   }
@@ -978,7 +978,7 @@
     gap: var(--space-xs);
   }
   .dpinvite-eyebrow {
-    font-size: 13px;
+    font-size: var(--text-label);
     font-weight: 500;
     color: var(--ink-muted);
     line-height: 1.25;
@@ -1016,7 +1016,7 @@
     /* Align under the venue text (pin glyph 14 + 8 gap), not under the pin. */
     padding-left: var(--space-2xl);
     margin-top: var(--space-2xs);
-    font-size: 13px;
+    font-size: var(--text-label);
     font-weight: 500;
     color: var(--ink-muted);
     font-variant-numeric: tabular-nums;
@@ -1034,7 +1034,7 @@
      between sending and receiving an invite sees a consistent shape. */
   .dpinvite-moment-label {
     /* Matches .dpinvite-eyebrow */
-    font-size: 13px;
+    font-size: var(--text-label);
     font-weight: 500;
     color: var(--ink-muted);
     line-height: 1.25;
@@ -1058,7 +1058,7 @@
     cursor: pointer;
     background: rgba(245, 194, 94, 0.10);
     color: var(--panel-text);
-    font-size: 13px;
+    font-size: var(--text-label);
     /* Lighter weight per user feedback — heavy 700 read as a separate
        label instead of an inline meta affordance. 500 sits in line
        with the rest of the meta row. */
@@ -1147,7 +1147,7 @@
   /* Compact "Send til" label above the avatar row — replaces the
      section title. Reads as a small eyebrow, not a question. */
   .dpinvite-friends-label {
-    font-size: 11px;
+    font-size: var(--text-caption);
     font-weight: 600;
     color: var(--ink-muted);
     letter-spacing: 0.4px;
@@ -1248,7 +1248,7 @@
   }
   .dpinvite-avatar[aria-checked="true"] .dpinvite-online-dot { display: none; }
   .dpinvite-avatar-name {
-    font-size: 11px;
+    font-size: var(--text-caption);
     font-weight: 500;
     color: var(--ink-muted);
     line-height: 1.2;
@@ -1276,7 +1276,7 @@
     align-items: center;
     gap: var(--space-sm);
   }
-  .dpinvite-empty-title { font-size: 13px; font-weight: 600; color: var(--panel-text); line-height: 1.3; }
+  .dpinvite-empty-title { font-size: var(--text-label); font-weight: 600; color: var(--panel-text); line-height: 1.3; }
   .dpinvite-empty-sub   { font-size: 12px; color: var(--ink-muted); line-height: 1.4; max-width: 280px; }
 
   /* Sticky CTA row — primary pill + circular companion (.s-circ / .s-sq).
@@ -1334,7 +1334,7 @@
     border: 0;
     box-shadow: none;
     color: var(--muted);
-    font-size: 13px;
+    font-size: var(--text-label);
     font-weight: 500;
     /* Matches .dprcv-cta-link in the accept panel (32 px tall, 8 px
        horizontal padding) so the two surfaces share a secondary-link
@@ -1558,16 +1558,16 @@
     overflow: hidden;
     display: flex; align-items: center; justify-content: center;
     color: #fff;
-    font-size: 13px;
+    font-size: var(--text-label);
     font-weight: 700;
   }
   .dprcv-top-pill-av img { width: 100%; height: 100%; object-fit: cover; }
   .dprcv-top-pill-name {
-    font-size: 13px; font-weight: 700; color: var(--text);
+    font-size: var(--text-label); font-weight: 700; color: var(--text);
     line-height: 1.2;
   }
   .dprcv-top-pill-sub {
-    font-size: 11px; font-weight: 500; color: var(--muted);
+    font-size: var(--text-caption); font-weight: 500; color: var(--muted);
     margin-left: var(--space-xs);
   }
 
@@ -1618,7 +1618,7 @@
     gap: var(--space-xs);
   }
   .dprcv-eyebrow {
-    font-size: 13px;
+    font-size: var(--text-label);
     font-weight: 500;
     color: var(--ink-muted);
     line-height: 1.25;
@@ -1670,7 +1670,7 @@
        venue name, not the pin. */
     padding-left: var(--space-2xl);
     margin-top: var(--space-xs);
-    font-size: 13px;
+    font-size: var(--text-label);
     font-weight: 500;
     color: var(--ink-muted);
     font-variant-numeric: tabular-nums;
@@ -1714,7 +1714,7 @@
      different typography. */
   .dprcv-hero-label {
     /* Matches .dprcv-eyebrow */
-    font-size: 13px;
+    font-size: var(--text-label);
     font-weight: 500;
     color: var(--ink-muted);
     line-height: 1.25;
@@ -1731,7 +1731,7 @@
   }
   .dprcv-arrival-sub {
     /* Matches .dprcv-meta */
-    font-size: 13px;
+    font-size: var(--text-label);
     font-weight: 500;
     color: var(--ink-muted);
     margin-top: var(--space-xs);
@@ -1918,7 +1918,7 @@
   }
   .dprcv-att-info { flex: 1; min-width: 0; }
   .dprcv-att-line {
-    font-size: 13px;
+    font-size: var(--text-label);
     font-weight: 600;
     color: var(--panel-text);
     line-height: 1.3;
@@ -1961,7 +1961,7 @@
     flex-direction: column;
     gap: var(--space-md);
   }
-  .dprcv-cta-primary { width: 100%; height: 52px; font-size: 15px; }
+  .dprcv-cta-primary { width: 100%; height: 52px; font-size: var(--text-body); }
 
   /* Secondary row — v1 had two equal-width .s-rnd / .g-rnd buttons that
      read as weighty alternatives to the primary CTA. The accept moment
@@ -1986,7 +1986,7 @@
     box-shadow: none;
     color: var(--ink-muted);
     font-family: 'Inter', sans-serif;
-    font-size: 13px;
+    font-size: var(--text-label);
     font-weight: 500;
     height: 32px;
     padding: 0 var(--space-md);
@@ -2008,7 +2008,7 @@
   .dprcv-cta-sep {
     color: var(--ink-muted);
     opacity: 0.4;
-    font-size: 13px;
+    font-size: var(--text-label);
     user-select: none;
     pointer-events: none;
   }
@@ -2099,7 +2099,7 @@
   }
   .inbox-row-info { min-width: 0; }
   .inbox-row-title {
-    font-size: 13px;
+    font-size: var(--text-label);
     font-weight: 600;
     color: var(--panel-text);
     overflow: hidden;
@@ -2107,7 +2107,7 @@
     white-space: nowrap;
   }
   .inbox-row-meta {
-    font-size: 11px;
+    font-size: var(--text-caption);
     color: var(--ink-muted);
     margin-top: 1px;
   }
@@ -2128,7 +2128,7 @@
     border-radius: var(--radius-md);
     background: rgba(245,194,94,0.13);
     border: 1px solid rgba(245,194,94,0.35);
-    font-size: 13px;
+    font-size: var(--text-label);
     color: var(--panel-text);
   }
   .friend-prompt-banner-text { flex: 1; line-height: 1.35; }
@@ -2242,7 +2242,7 @@
     color: var(--accent-on, #2a1a0c);
     border-radius: var(--radius-pill);
     box-shadow: 0 6px 20px rgba(255,140,80,0.30);
-    font-size: 13px;
+    font-size: var(--text-label);
     font-weight: 700;
     font-family: 'Inter', sans-serif;
   }
@@ -2269,7 +2269,7 @@
   /* Sentence-case eyebrow (was ALL CAPS in v1). Same design-language
      fix as the invite sheet + accept screen. */
   .dpacc-eyebrow {
-    font-size: 13px;
+    font-size: var(--text-label);
     font-weight: 500;
     color: var(--ink-muted);
     line-height: 1.25;
@@ -2304,7 +2304,7 @@
     min-width: 0;
   }
   .dpacc-subtitle {
-    font-size: 13px;
+    font-size: var(--text-label);
     font-weight: 500;
     color: var(--ink-muted);
     margin-top: var(--space-xs);
@@ -2460,7 +2460,7 @@
     max-width: 86px;
   }
   .dpacc-action-sub {
-    font-size: 11px;
+    font-size: var(--text-caption);
     font-weight: 500;
     color: var(--ink-muted);
     margin-top: var(--space-2xs);
@@ -2493,7 +2493,7 @@
   }
   .dpacc-att-info { flex: 1; min-width: 0; }
   .dpacc-att-count {
-    font-size: 13px;
+    font-size: var(--text-label);
     font-weight: 700;
     color: var(--text);
     line-height: 1.3;
@@ -2526,7 +2526,7 @@
     box-shadow: none;
     color: var(--muted);
     font-family: 'Inter', sans-serif;
-    font-size: 13px;
+    font-size: var(--text-label);
     font-weight: 500;
     height: 36px;
     padding: 0 var(--space-lg);
@@ -2566,7 +2566,7 @@
   /* Off-plan-arrival summary row in the inbox "Your plans" section */
   .inbox-row-arrivals {
     margin-top: var(--space-2xs);
-    font-size: 11px;
+    font-size: var(--text-caption);
     color: var(--accent);
     font-variant-numeric: tabular-nums;
     line-height: 1.3;
@@ -2714,12 +2714,12 @@
     background: none;
     border: none;
     color: var(--muted);
-    font-size: 18px;
+    font-size: var(--text-subtitle);
     cursor: pointer;
     padding: var(--space-xs);
   }
   .friends-section-label {
-    font-size: 11px;
+    font-size: var(--text-caption);
     color: var(--muted);
     font-weight: 600;
     text-transform: uppercase;
@@ -2727,7 +2727,7 @@
     margin: var(--space-lg) 0 var(--space-sm);
   }
   .friends-empty {
-    font-size: 13px;
+    font-size: var(--text-label);
     color: var(--muted);
     padding: var(--space-md) 0;
   }
@@ -2755,20 +2755,20 @@
     background: rgba(17,30,56,0.6);
     color: var(--muted);
     display: flex; align-items: center; justify-content: center;
-    font-size: 13px; font-weight: 600;
+    font-size: var(--text-label); font-weight: 600;
   }
   .friend-item-info {
     min-width: 0;
   }
   .friend-item-name {
-    font-size: 13px;
+    font-size: var(--text-label);
     color: var(--text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
   .friend-checkin-info {
-    font-size: 11px;
+    font-size: var(--text-caption);
     color: var(--accent);
   }
   .btn-icon-sm {
@@ -2796,7 +2796,7 @@
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     color: var(--text);
-    font-size: 13px;
+    font-size: var(--text-label);
     font-family: 'Inter', sans-serif;
   }
   .friends-search-input:focus { outline: none; border-color: var(--accent); }

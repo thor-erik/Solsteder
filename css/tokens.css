@@ -126,7 +126,6 @@
     --glass-border-light: 1px solid rgba(17,30,56,0.08);
     /* Null inset — no sheen on transparent panels. Using a transparent shadow
        rather than `none` so it remains valid in comma-separated box-shadow lists. */
-    --glass-inset: 0 0 0 0 transparent;
 
     /* ── Cream-redesign surface system ──────────────────────────────────────
        THREE surface roles. Every element belongs to exactly one. Text/icon

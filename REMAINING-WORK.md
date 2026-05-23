@@ -143,6 +143,25 @@ decoration. Priority order from DESIGN-FIXES → "Premium mobile polish":
   per flow (the six-glyph share variant is near overload). One canonical component + legend.
   *(DESIGN-FIXES → mobile polish)*
 
+Captured ideas (2026-05-23):
+
+- **Confirmation-page button entry — "rocks on ice."** Buttons slide in from the right; the
+  leading button hits the left padding and bounces like a heavy block, and the bounce
+  propagates through the adjacent buttons in sequence (a line of rocks sliding on ice into a
+  wall). Spring/physics motion. **Constraints:** buttons must be tappable immediately — the
+  animation decorates, never blocks input — and it collapses to a plain fade under
+  `prefers-reduced-motion`. Play it once per page entry, not on every re-render.
+- **Venue-list re-render without the jump.** Scrubbing time currently re-renders the whole
+  list with a visible jump. Target: animate only the card *contents* (crossfade the values),
+  not the layout. **Blocker:** cards have variable height (shadow-info cards are taller), so
+  this depends on the Phase 5 deterministic `.venue-card` min-height, and is eased by
+  compacting the shadow pills (Phase 8). Do min-height first → then the crossfade.
+- **Panel drag-release feels laggy.** Recurring complaint: releasing a panel drag to snap to
+  a new mode delays too much. First check if it's just a long `transition-duration`/easing on
+  release — if so it's a quick win that can be pulled earlier. The proper fix is the
+  interruptible spring above: release continues the gesture's velocity instead of starting a
+  fresh timed animation.
+
 > **Map relight** is *also* a polish item but lives in **Phase 9** (the map workstream) so the
 > map is touched once. Don't start it here.
 
@@ -160,7 +179,12 @@ ratio for perceptual parity per the brand pack). Placements, best first:
 - **Map building-shadow polygons** get a subtle diagonal-stripe fill instead of flat grey —
   the map reads in the brand language; converges with relight (Phase 9). Best idea on the list.
 - Sun bars / timelines: make the existing hatched shade rigorous — the *only* texture for shade.
-- In-shade pins: faint striped treatment vs the honey "in sun" pill.
+- In-shade pins / **compact shadow pills (idea, 2026-05-23):** replace the verbose shadow pill
+  with a compact form — diagonal-stripe background (= shade) + just the time, maybe the shadow
+  icon. Doubles as the in-shade treatment vs the honey "in sun" pill. **Two cautions:** stripe
+  at pill scale risks moiré + legibility loss — verify at real size with the stripe tokens
+  (angle/width/ratio) before shipping; and this reduces card-height variance, which directly
+  helps the Phase 7 list-refresh crossfade.
 - Loading / empty states: slow diagonal barber-pole shimmer.
 
 **Avoid:** striped dividers / backgrounds / "brand sticker" use (cheapens it); moiré +
