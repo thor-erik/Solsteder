@@ -3039,10 +3039,13 @@
     display: flex; flex-direction: column; gap: var(--space-md);
     width: 100%; max-width: 280px; margin-top: var(--space-md);
   }
+  /* All auth controls (Google / Apple / honey submit / the email input) share
+     one explicit 48px height so they read as a uniform stack — sizing by
+     padding let font/border differences make them look uneven. */
   .auth-btn {
     display: flex; align-items: center; justify-content: center; gap: var(--space-md);
-    width: 100%; border: none; border-radius: var(--radius-sm);
-    padding: var(--space-lg) var(--space-2xl); font-family: 'Inter', sans-serif;
+    width: 100%; height: 48px; border: none; border-radius: var(--radius-sm);
+    padding: 0 var(--space-2xl); font-family: 'Inter', sans-serif;
     font-size: 14px; font-weight: 500; cursor: pointer;
     transition: opacity 0.12s;
   }
@@ -3073,9 +3076,9 @@
     background: rgba(255,255,255,0.07);
     border: 1px solid rgba(255,255,255,0.15); border-radius: var(--radius-sm);
     color: var(--text); font-family: 'Inter', sans-serif; font-size: 16px;
-    /* Match the auth buttons' height (12px block padding) so the input + the
-       honey submit read as one pair; 16px font also blocks iOS zoom-on-focus. */
-    padding: var(--space-lg); outline: none;
+    /* 48px height matches the auth buttons exactly (uniform stack); 16px font
+       blocks iOS zoom-on-focus. */
+    height: 48px; padding: 0 var(--space-lg); outline: none;
   }
   .auth-magic-link-input:focus { border-color: rgba(156,189,231,0.5); }
   .auth-magic-link-input::placeholder { color: var(--muted); }
@@ -3087,7 +3090,7 @@
     background: rgba(255,255,255,0.07);
     border: 1px solid rgba(255,255,255,0.15); border-radius: var(--radius-sm);
     color: var(--text); font-family: 'Inter', sans-serif; font-size: 16px;
-    padding: var(--space-lg); outline: none;
+    height: 48px; padding: 0 var(--space-lg); outline: none;
   }
   .auth-password-input:focus { border-color: rgba(156,189,231,0.5); }
   .auth-password-input::placeholder { color: var(--muted); }
