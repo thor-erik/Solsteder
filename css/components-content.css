@@ -4867,7 +4867,9 @@
      (overrides .s-rnd's dark glass fill, which would blend on solid Delft).
      text-decoration:none — it's an <a>, not a <button>. */
   .dp-directions {
-    width: 100%; height: 48px; border-radius: var(--radius-pill);
+    /* height comes from .s-rnd (now 48px); width/radius are the full-width
+       pill adaptation. */
+    width: 100%; border-radius: var(--radius-pill);
     background: transparent;
     border-color: var(--line-d-strong);
     box-shadow: none;
