@@ -487,13 +487,9 @@
      inside the invite sheet's time picker (±30 min of now → presence flip). */
   .dp-invite-cta {
     width: 100%;
-    /* 48px = the app-wide action-button standard (Apple HIG ≥44 + Material
-       ≥48). Overrides .p-pill's canonical 44 for this full-size action row;
-       Directions + the Share/Fav/Alert tiles match. Temporary per-context
-       override — converges into the primitive once every flow is on 48. */
-    height: 48px;
-    /* overflow:hidden clips the sheen to the pill shape; position:relative is
-       the positioning context for the ::after sheen layer. */
+    /* Height comes from .p-pill (now the 48px standard). overflow:hidden clips
+       the sheen to the pill shape; position:relative is the positioning
+       context for the ::after sheen layer. */
     position: relative;
     overflow: hidden;
   }
@@ -536,6 +532,7 @@
   .dp-invite-cta.is-secondary {
     display: inline-flex; align-items: center; justify-content: center;
     gap: var(--space-sm);
+    height: 48px;  /* matches the 48px standard; no primitive on this variant */
     border-radius: var(--radius-pill);
     background: transparent;
     border: 1px solid var(--line-d-strong);
