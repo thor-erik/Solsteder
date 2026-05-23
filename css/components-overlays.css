@@ -529,6 +529,24 @@
      No per-flow override. */
   .dp-invite-cta svg { flex-shrink: 0; stroke: currentColor; }
 
+  /* Demoted to Secondary when the venue has a pending RSVP (the plans block's
+     honey "Accept" is then the screen's one Primary). Mirrors .dp-directions:
+     transparent + Jordy outline + cream on the dark Delft sheet, sheen off.
+     No .p-pill on the element, so this fully styles the button. */
+  .dp-invite-cta.is-secondary {
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: var(--space-sm);
+    border-radius: var(--radius-pill);
+    background: transparent;
+    border: 1px solid var(--line-d-strong);
+    color: var(--text);
+    font-size: 14px; font-weight: 600; font-family: 'Inter', sans-serif;
+    box-shadow: none;
+    transition: background 120ms ease-out, border-color 120ms ease-out;
+  }
+  .dp-invite-cta.is-secondary::after { display: none; }
+  .dp-invite-cta.is-secondary:hover { background: var(--line-d-faint); border-color: var(--line-d-strong); }
+
   /* ── Plan conflict confirm dialog ───────────────────────────────────────── */
   /* Sits above the invite sheet (z-index higher than .dpinvite-backdrop) when
      the user is about to create a plan within ±3h of an existing one. Three
