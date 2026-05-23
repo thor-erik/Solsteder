@@ -50,6 +50,12 @@
 const NEAR_USER_KM     = 0.4;
 const MIN_PILL_GAP_PX  = 80;
 const ABS_OVERLAP_PX   = 14;   // sanity overlap guard inside the free zone
+// Pill demote/promote HYSTERESIS: a pill stays a pill until it's clearly too
+// close (< DEMOTE), a dot promotes only with clear room (> PROMOTE). The dead
+// zone between them stops the pill↔dot decision flickering at the threshold
+// when pins are dense (the morph can't settle if the decision keeps flipping).
+const PILL_DEMOTE_GAP  = 70;
+const PILL_PROMOTE_GAP = 94;
 
 // ── Dot clustering (merge / explode) ────────────────────────────────────────
 // Pills are great as-is; the problem is too many DOTS on screen. So dots
@@ -72,6 +78,11 @@ let   _frameDots = [];          // collected each draw: { x, y, inSun, alpha, vi
 // { vis, lastA, px, py, inSun, wasDot }. vis = presence 0..1; lastA = last
 // rendered dot alpha (so a departing dot fades from where it actually was).
 const _markerVis = new Map();
+// Committed anchor per venue (vid → anchorVid). Carried frame-to-frame so a
+// cluster's anchor identity is STICKY: new dots join the existing anchor rather
+// than a new "nearest" one being picked each frame, so the merged dot doesn't
+// jump around (which was itself triggering further merges).
+const _dotAnchor = new Map();
 
 // Cached per-venue distance from the user location. The cache is keyed by
 // venue.id; we detect userLocation moves by comparing the live ref against
@@ -1530,18 +1541,42 @@ function _drawDots(placedPills, placedNamesGrid, zoom, presentVids) {
   for (const d of dots) byVid.set(d.vid, d);
   const anchors = [];   // { vid, x, y }  (x,y = live real positions this frame)
 
-  // Merge decision: nearest anchor within DOT_SPREAD_PX, else become an anchor.
-  // No hysteresis needed — progress = 0 exactly at DOT_SPREAD_PX, so a dot
-  // crossing the assignment boundary is already at its own position (seamless).
+  // Anchor assignment with COMMITTED-anchor hysteresis: a cluster's anchor is
+  // sticky (carried in _dotAnchor), so new dots join the EXISTING anchor rather
+  // than the merged dot jumping to whichever dot is greedily nearest each frame.
+  const anchorPos = new Map();   // anchorVid → { x, y } live pos of an anchor dot
+  const addAnchor = (d) => {
+    d.anchorVid = d.vid; d.aDist = 0;
+    anchorPos.set(d.vid, { x: d.x, y: d.y });
+    anchors.push({ vid: d.vid, x: d.x, y: d.y });
+  };
+  // Pass A — former anchors keep anchoring (stable identity). Two former anchors
+  // collapse into one only when now clearly overlapping (< DOT_MERGE_PX).
   for (const d of dots) {
-    let best = null, bestDist = Infinity;
-    for (const a of anchors) {
-      const dist = Math.hypot(d.x - a.x, d.y - a.y);
-      if (dist < DOT_SPREAD_PX && dist < bestDist) { best = a; bestDist = dist; }
-    }
-    if (best) { d.anchorVid = best.vid; d.aDist = bestDist; }
-    else      { d.anchorVid = d.vid;    d.aDist = 0; anchors.push({ vid: d.vid, x: d.x, y: d.y }); }
+    if (_dotAnchor.get(d.vid) !== d.vid) continue;     // was a member → Pass B
+    let abs = null, bd = Infinity;
+    for (const a of anchors) { const dd = Math.hypot(d.x - a.x, d.y - a.y); if (dd < DOT_MERGE_PX && dd < bd) { abs = a; bd = dd; } }
+    if (abs) { d.anchorVid = abs.vid; d.aDist = bd; }
+    else addAnchor(d);
   }
+  // Pass B — former members + brand-new dots. Keep the committed anchor if it's
+  // still present and in range (no churn); else nearest in range; else a new anchor.
+  for (const d of dots) {
+    if (d.anchorVid != null) continue;                 // already resolved in Pass A
+    const prev = _dotAnchor.get(d.vid);
+    if (prev != null && prev !== d.vid && anchorPos.has(prev)) {
+      const a = anchorPos.get(prev);
+      const dd = Math.hypot(d.x - a.x, d.y - a.y);
+      if (dd < DOT_SPREAD_PX) { d.anchorVid = prev; d.aDist = dd; continue; }
+    }
+    let best = null, bd = Infinity;
+    for (const a of anchors) { const dd = Math.hypot(d.x - a.x, d.y - a.y); if (dd < DOT_SPREAD_PX && dd < bd) { best = a; bd = dd; } }
+    if (best) { d.anchorVid = best.vid; d.aDist = bd; }
+    else addAnchor(d);
+  }
+  // Commit anchors for next frame; prune venues no longer present as dots.
+  for (const d of dots) _dotAnchor.set(d.vid, d.anchorVid);
+  { const present = new Set(dots.map((d) => d.vid)); for (const k of _dotAnchor.keys()) if (!present.has(k)) _dotAnchor.delete(k); }
 
   // Two sizes: a lone / exploded dot is one venue (SMALL); a dot that's still
   // hiding venues (a merged anchor) is the larger size (≈ today's dot). The
@@ -1950,7 +1985,11 @@ function draw() {
     let demote = false;
     if (v.id !== selectedId && !_friendVenueIds.has(v.id)) {
       const inFreeZone = _kmFromUser(v) < NEAR_USER_KM;
-      const minGap = inFreeZone ? ABS_OVERLAP_PX : MIN_PILL_GAP_PX;
+      // Hysteresis: a venue that was a pill last frame tolerates a SMALLER gap
+      // before demoting; a fresh candidate needs a LARGER clear gap to promote.
+      // The dead zone between stops pill↔dot flicker when pins are dense.
+      const minGap = inFreeZone ? ABS_OVERLAP_PX
+                   : (_lastPilledIds.has(v.id) ? PILL_DEMOTE_GAP : PILL_PROMOTE_GAP);
       for (const p of placedPills) {
         const dx = (pillRect.x + pillRect.w / 2) - (p.x + p.w / 2);
         const dy = (pillRect.y + pillRect.h / 2) - (p.y + p.h / 2);
