@@ -340,7 +340,7 @@ function _renderSocialSection(v) {
   const inviteSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 1 1 16 0z"/><circle cx="9.6" cy="9.5" r="1.6"/><circle cx="14.4" cy="9.5" r="1.6"/><path d="M7 13.5c.6-1.1 1.6-1.7 2.6-1.7M14.4 11.8c1 0 2 .6 2.6 1.7"/></svg>`;
   return `
     <div class="social-card">
-      <button class="dp-invite-cta" onclick="_openInviteSheet(${v.id})">
+      <button class="p-pill dp-invite-cta" onclick="_openInviteSheet(${v.id})">
         ${inviteSvg}
         <span>${t('invite_friends')}</span>
       </button>

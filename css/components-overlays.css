@@ -477,37 +477,21 @@
     gap: var(--space-sm);
   }
 
-  /* Primary CTA — Invite friends. Tracks the design-system Primary Pill spec
-     (44h, 999r, accent fill, 14/700, base shadow + hover lift). The full-
-     width treatment is the only adaptation: the canonical pill is inline,
-     but the detail panel uses the row exclusively for this single CTA, so
-     stretching to 100% reads as "this is THE action" without needing extra
-     visual weight. "I'm here" semantics live inside the invite sheet's time
-     picker (±30 min of now → message + presence flip). */
+  /* Primary CTA — Invite friends. Composes the canonical Primary role
+     (.p-pill: 44h, 999r, accent fill, 14/700, base shadow + canonical
+     hover/active). This class carries ONLY the two legitimate adaptations:
+     (1) full-width — the detail panel uses the row exclusively for this one
+     CTA, so 100% reads as "this is THE action"; (2) the shimmer sheen below.
+     Everything else (fill, height, radius, font, hover, active) is inherited
+     from .p-pill — no per-flow re-implementation. "I'm here" semantics live
+     inside the invite sheet's time picker (±30 min of now → presence flip). */
   .dp-invite-cta {
-    position: relative;
     width: 100%;
-    height: 44px;
-    border-radius: var(--radius-pill);
-    background: var(--accent);
-    border: none;
-    color: var(--accent-on, #2a1a0c);
-    font-size: 14px;
-    font-weight: 700;
-    font-family: 'Inter', sans-serif;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-sm);
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.35);
-    transition: all 120ms ease-out;
+    /* overflow:hidden clips the sheen to the pill shape; position:relative is
+       the positioning context for the ::after sheen layer. */
+    position: relative;
+    overflow: hidden;
   }
-  /* Sheen sweep — a soft diagonal light ray traverses the button left → right
-     in ~1.4s, then a long ~13s rest before the next sweep. Marks the CTA as
-     alive without competing with content. The button needs overflow:hidden
-     to clip the sheen to its shape. */
-  .dp-invite-cta { overflow: hidden; }
   .dp-invite-cta::after {
     content: '';
     position: absolute;
@@ -535,21 +519,9 @@
   @media (prefers-reduced-motion: reduce) {
     .dp-invite-cta::after { animation: none; }
   }
-  /* Brand-aligned hover/active: keep the honey base, lift the button
-     slightly with a deeper shadow + a soft accent glow. No off-brand
-     coral fallbacks. */
-  .dp-invite-cta:hover {
-    transform: translateY(-1px);
-    filter: brightness(1.06);
-    box-shadow:
-      0 8px 22px rgba(0,0,0,0.40),
-      0 2px 8px rgba(245,194,94,0.35);
-  }
-  .dp-invite-cta:active {
-    transform: translateY(1px);
-    filter: brightness(0.95);
-    box-shadow: 0 1px 4px rgba(0,0,0,0.30);
-  }
+  /* Hover / active come from .p-pill (canonical Primary state matrix —
+     accent-hover fill, deeper shadow; accent-active + translateY on press).
+     No per-flow override. */
   .dp-invite-cta svg { flex-shrink: 0; stroke: currentColor; }
 
   /* ── Plan conflict confirm dialog ───────────────────────────────────────── */
