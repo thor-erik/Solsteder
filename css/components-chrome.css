@@ -2312,9 +2312,29 @@
     font-family: 'Inter', sans-serif;
     font-size: 13px;
     position: relative;
+    overflow: hidden;  /* clip the shade stripes to the rounded card */
     will-change: transform, opacity;
     touch-action: pan-y;  /* swipe handler decides on horizontal */
   }
+  /* "Shade" stripes — faint diagonal honey lines, like sun raked through a
+     venetian blind / the lens. Brand metaphor (Shades = lens + shadow). Kept
+     very low-contrast so it reads as texture, not noise; content sits above. */
+  #notif-toast::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 0;
+    background: repeating-linear-gradient(
+      -50deg,
+      transparent 0,
+      transparent 9px,
+      rgba(245,194,94,0.06) 9px,
+      rgba(245,194,94,0.06) 10.5px
+    );
+  }
+  #notif-toast > * { position: relative; z-index: 1; }
   /* Close X restored — v1 removed it in favour of swipe-only dismissal,
      which left desktop users (no swipe gesture) and unfamiliar mobile
      users with no clear way to dismiss. The button is small (16 px),
