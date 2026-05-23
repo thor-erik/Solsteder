@@ -2316,10 +2316,10 @@
     will-change: transform, opacity;
     touch-action: pan-y;  /* swipe handler decides on horizontal */
   }
-  /* "Shade" stripes — echo the logo mark exactly: cream slits cut across the
-     Delft disc at -45deg, slit 6.75 / period 15 (45% duty), from shades-mark.svg.
-     Cream (not honey — honey is the logo's sun arc), at low alpha so it reads as
-     texture behind the text. Content sits above (z-index below). */
+  /* "Shade" stripes as a LEFT-EDGE corner mark — the logo's cream slits at
+     -45deg (slit 6.75 / period 15, from shades-mark.svg) confined to the icon
+     side and faded out by a horizontal mask, so the text body sits on clean
+     Delft. Cream, not honey (honey is the logo's sun arc). */
   #notif-toast::before {
     content: '';
     position: absolute;
@@ -2329,11 +2329,14 @@
     z-index: 0;
     background: repeating-linear-gradient(
       -45deg,
-      rgba(255,244,224,0.07) 0,
-      rgba(255,244,224,0.07) 6.75px,
+      rgba(255,244,224,0.10) 0,
+      rgba(255,244,224,0.10) 6.75px,
       transparent 6.75px,
       transparent 15px
     );
+    /* Solid on the icon side, faded to nothing before the text starts. */
+    -webkit-mask-image: linear-gradient(to right, black 0, black 50px, transparent 116px);
+    mask-image: linear-gradient(to right, black 0, black 50px, transparent 116px);
   }
   #notif-toast > * { position: relative; z-index: 1; }
   /* Close X restored — v1 removed it in favour of swipe-only dismissal,
