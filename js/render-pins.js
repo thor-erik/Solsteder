@@ -1146,28 +1146,32 @@ function _drawName(ctx, pt, pillRect, name, secondary, placedPills, placedNames,
   return best;
 }
 
-// ── Sun-hours summary line (used as secondary line at zoom ≥ 16) ──────────────
-// v1 hardcoded Norwegian ("5,3 t sol" / "45 min sol") and a comma decimal,
-// which surfaced as a mixed-locale bug when the rest of the UI ran in
-// English. v2 pulls the suffix from i18n and chooses the decimal
-// separator by language.
-function _sunHoursLine(v, dateStr) {
+// ── Sun-remaining line (secondary line at zoom ≥ 16) ──────────────────────────
+// Sun still to come from the currently-displayed (slider) time — "3.2h left" /
+// "40 min left". Complements the pill's window end-time ("til 18:40"); reads as
+// "how much sun if I go now", not the daily total (which includes sun already
+// past). Suffix + decimal separator come from i18n (no hardcoded Norwegian).
+function _sunRemainingLine(v, dateStr, currentHour) {
   if (typeof computeSunWindows !== 'function') return '';
   try {
     const { windows } = computeSunWindows(v, dateStr);
     if (!windows.length) return '';
-    const total = windows.reduce((s, w) => s + (w.end - w.start), 0);
-    if (total <= 0.05) return '';
-    const lang = (typeof prefLang === 'function') ? prefLang() : 'no';
-    if (total >= 1) {
-      const raw = total.toFixed(1);
-      const display = (lang === 'en') ? raw : raw.replace('.', ',');
-      return (typeof t === 'function') ? t('map_pin_sun_hours', { h: display })
-                                       : (display + ' t sol');
+    let remaining = 0;
+    for (const w of windows) {
+      const start = Math.max(w.start, currentHour);
+      if (w.end > start) remaining += w.end - start;
     }
-    const mins = String(Math.round(total * 60));
-    return (typeof t === 'function') ? t('map_pin_sun_minutes', { n: mins })
-                                     : (mins + ' min sol');
+    if (remaining <= 0.05) return '';
+    const lang = (typeof prefLang === 'function') ? prefLang() : 'no';
+    if (remaining >= 1) {
+      const raw = remaining.toFixed(1);
+      const display = (lang === 'en') ? raw : raw.replace('.', ',');
+      return (typeof t === 'function') ? t('map_pin_sun_left_hours', { h: display })
+                                       : (display + 't igjen');
+    }
+    const mins = String(Math.round(remaining * 60));
+    return (typeof t === 'function') ? t('map_pin_sun_left_minutes', { n: mins })
+                                     : (mins + ' min igjen');
   } catch { return ''; }
 }
 
@@ -2324,7 +2328,7 @@ function draw() {
               : t('map_pin_planning_many', { name: firstName, n: extra }))
           : (going.length === 1 ? `${firstName} planlegger` : `${firstName} +${extra} planlegger`);
       } else {
-        sec = _sunHoursLine(v, dateStr);
+        sec = _sunRemainingLine(v, dateStr, currentHour);
       }
     }
 
