@@ -317,7 +317,9 @@ function drawShelterDiagram(v, wx, canvas) {
   if (wx && shelter != null) {
     ctx.save();
     ctx.textBaseline = 'bottom';
-    const sLabel = shelter > 0.6 ? '🛡 Sheltered' : shelter > 0.3 ? '◑ Partial' : '💨 Exposed';
+    // Canvas text can't render SVG; the colour already encodes the state, so
+    // drop the emoji and keep clean labels (was 🛡/◑/💨).
+    const sLabel = shelter > 0.6 ? 'Sheltered' : shelter > 0.3 ? 'Partial' : 'Exposed';
     const sColor = shelter > 0.6 ? '#64ffb4' : shelter > 0.3 ? '#f0b46a' : '#ff8a8a';
     ctx.font = '700 10px Inter,sans-serif';
     ctx.fillStyle = sColor;

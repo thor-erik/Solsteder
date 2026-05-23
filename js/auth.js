@@ -2272,7 +2272,7 @@ function _renderFriendsModal(modal) {
           if (match) {
             const vName = typeof VENUES !== 'undefined' ? (VENUES.find(v => String(v.id) === vid)?.name || vid) : vid;
             const until = new Date(match.checkin.expires_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            checkinInfo = `<div class="friend-checkin-info">📍 ${_esc(vName)} · ${_esc(t('checked_in_until', { time: until }))}</div>`;
+            checkinInfo = `<div class="friend-checkin-info"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;flex-shrink:0" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg> ${_esc(vName)} · ${_esc(t('checked_in_until', { time: until }))}</div>`;
             break;
           }
         }

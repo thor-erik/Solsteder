@@ -1142,8 +1142,8 @@ function updateHeaderWxChip(hour) {
     // SVG glyphs (not emoji) — iOS WKWebView tofu's the cloud codepoints
     // even with VS-16. innerHTML is safe here: no user input flows in.
     iconEl.innerHTML = rain
-      ? (typeof rainIconSvg === 'function' ? rainIconSvg() : '🌧️')
-      : (typeof skyIconSvg === 'function' ? skyIconSvg(wx.sunBlock ?? wx.cloud ?? 0) : '☀️');
+      ? (typeof rainIconSvg === 'function' ? rainIconSvg() : '')
+      : (typeof skyIconSvg === 'function' ? skyIconSvg(wx.sunBlock ?? wx.cloud ?? 0) : '');
   }
   if (tempEl) tempEl.textContent = wx.temp != null ? Math.round(wx.temp) + '°' : '';
   if (windEl) windEl.textContent = wx.wspd != null ? Math.round(wx.wspd) + ' m/s' : '';
@@ -2408,7 +2408,7 @@ function updateDateWeatherStrip() {
   const skySvg  = (typeof skyIconSvg === 'function')
     ? skyIconSvg(wx.sunBlock ?? wx.cloud)
     : skyIcon(wx.sunBlock ?? wx.cloud);
-  const rainSvg = (typeof rainIconSvg === 'function') ? rainIconSvg() : '🌧️';
+  const rainSvg = (typeof rainIconSvg === 'function') ? rainIconSvg() : '';
   const rain    = wx.precip >= 0.2
     ? `<span class="wx-rain">${rainSvg} ${wx.precip.toFixed(1)}</span>`
     : '';
@@ -3569,7 +3569,7 @@ function popupSunLine(v) {
     const rem = curWin.end - hour;
     const h = Math.floor(rem), m = Math.round((rem - h) * 60);
     const dur = (h > 0 ? h + 'h ' : '') + (m > 0 ? m + 'm' : '');
-    return `<div class="popup-status sunny">☀️ In sun until ${formatHour(curWin.end)} · ${dur.trim()} left</div>`;
+    return `<div class="popup-status sunny"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg> In sun until ${formatHour(curWin.end)} · ${dur.trim()} left</div>`;
   }
 
   const next = windows.find(w => w.start > hour);

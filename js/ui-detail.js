@@ -25,10 +25,10 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
 
   const walkTime = typeof calcWalkTime === 'function' ? calcWalkTime(distMeters) : null;
 
-  const phoneIcon = typeof getMapsIcon === 'function' ? getMapsIcon('phone') : '📞';
-  const globeIcon = typeof getMapsIcon === 'function' ? getMapsIcon('globe') : '🌐';
-  const shareIcon = typeof getMapsIcon === 'function' ? getMapsIcon('share') : '↗';
-  const dirIcon = typeof getMapsIcon === 'function' ? getMapsIcon('directions') : '↗';
+  const phoneIcon = typeof getMapsIcon === 'function' ? getMapsIcon('phone') : '';
+  const globeIcon = typeof getMapsIcon === 'function' ? getMapsIcon('globe') : '';
+  const shareIcon = typeof getMapsIcon === 'function' ? getMapsIcon('share') : '';
+  const dirIcon = typeof getMapsIcon === 'function' ? getMapsIcon('directions') : '';
 
   // Sun section headline
   const state = typeof venueState === 'function' ? venueState(v, fromHour) :
@@ -57,11 +57,11 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
   // (when ≥4). Address always appears as the first item so the user knows
   // exactly where they're looking at.
   const infoItems = [];
-  const pinIcon   = typeof getMapsIcon === 'function' ? getMapsIcon('pin') : '📍';
-  const beerIcon  = typeof getMapsIcon === 'function' ? getMapsIcon('beer') : '🍺';
-  const peopleIcon = typeof getMapsIcon === 'function' ? getMapsIcon('people') : '👥';
-  const volumeIcon = typeof getMapsIcon === 'function' ? getMapsIcon('volume') : '🔊';
-  const clockIcon = typeof getMapsIcon === 'function' ? getMapsIcon('clock') : '🕐';
+  const pinIcon   = typeof getMapsIcon === 'function' ? getMapsIcon('pin') : '';
+  const beerIcon  = typeof getMapsIcon === 'function' ? getMapsIcon('beer') : '';
+  const peopleIcon = typeof getMapsIcon === 'function' ? getMapsIcon('people') : '';
+  const volumeIcon = typeof getMapsIcon === 'function' ? getMapsIcon('volume') : '';
+  const clockIcon = typeof getMapsIcon === 'function' ? getMapsIcon('clock') : '';
 
   if (v.address) {
     infoItems.push({ icon: pinIcon, strong: v.address, chipText: v.address });
