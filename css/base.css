@@ -245,7 +245,7 @@
   }
   .lens-fx-lab.collapsed .lens-fx-lab-toggle { width: 100%; }
   .lens-fx-lab-body {
-    padding: 4px 16px 16px;
+    padding: var(--space-xs) var(--space-xl) var(--space-xl);
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.2s ease-out, visibility 0s linear 0.2s;
@@ -255,14 +255,14 @@
     visibility: visible;
     transition: opacity 0.2s ease-out;
   }
-  .lens-fx-lab-row { margin-top: 12px; }
+  .lens-fx-lab-row { margin-top: var(--space-lg); }
   .lens-fx-lab-label {
     font-size: 10px; font-weight: 800; color: var(--muted);
     text-transform: uppercase; letter-spacing: 0.08em;
-    margin-bottom: 6px;
+    margin-bottom: var(--space-sm);
   }
   .lens-fx-lab-options {
-    display: flex; flex-wrap: wrap; gap: 4px;
+    display: flex; flex-wrap: wrap; gap: var(--space-xs);
   }
   .lens-fx-lab-options button {
     font-family: inherit;
@@ -287,7 +287,7 @@
     color: var(--accent);
   }
   .lens-fx-lab-hint {
-    font-size: 10.5px; color: var(--muted); margin-top: 12px;
+    font-size: 10.5px; color: var(--muted); margin-top: var(--space-lg);
     line-height: 1.4; font-style: italic;
   }
   .lens-fx-lab-hint code {
@@ -318,7 +318,7 @@
 
   /* SECONDARY · Pill — uses existing --glass-action-bg / --glass-border. */
   .s-pill {
-    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    display: inline-flex; align-items: center; justify-content: center; gap: var(--space-sm);
     height: 44px; padding: 0 18px; border-radius: var(--radius-pill);
     font-size: 14px; font-weight: 600; font-family: 'Inter', sans-serif;
     cursor: pointer; white-space: nowrap;
@@ -335,7 +335,7 @@
 
   /* SECONDARY · Rounded */
   .s-rnd {
-    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    display: inline-flex; align-items: center; justify-content: center; gap: var(--space-sm);
     height: 36px; padding: 0 14px; border-radius: var(--radius-lg);
     font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif;
     cursor: pointer; white-space: nowrap;
@@ -352,7 +352,7 @@
 
   /* GHOST · Rounded */
   .g-rnd {
-    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    display: inline-flex; align-items: center; justify-content: center; gap: var(--space-sm);
     height: 36px; padding: 0 14px; border-radius: var(--radius-lg);
     font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif;
     background: transparent; cursor: pointer; white-space: nowrap;
@@ -415,8 +415,8 @@
 
   /* Chip pill — group / time selectors */
   .chip-pill {
-    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-    height: 32px; padding: 0 12px; border-radius: var(--radius-pill);
+    display: inline-flex; align-items: center; justify-content: center; gap: var(--space-sm);
+    height: 32px; padding: 0 var(--space-lg); border-radius: var(--radius-pill);
     font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif;
     background: var(--glass-action-bg);
     border: var(--glass-border);
@@ -684,7 +684,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
-    padding: 6px 0;
+    padding: var(--space-sm) 0;
   }
   .zj-label {
     font-size: 13px;

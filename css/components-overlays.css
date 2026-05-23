@@ -2,8 +2,8 @@
   .friends-photo-chip-row {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 14px;
+    gap: var(--space-lg);
+    padding: var(--space-lg) 14px;
     border-radius: var(--radius-md);
     background: rgba(17,30,56,0.42);
     border: 1px solid rgba(245,194,94,0.42);
@@ -14,7 +14,7 @@
   .friends-photo-chip-row .chip-summary {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-lg);
     flex: 1;
     min-width: 0;
   }
@@ -34,7 +34,7 @@
     font-size: 12px;
     font-weight: 500;
     color: var(--accent);
-    margin-top: 2px;
+    margin-top: var(--space-2xs);
   }
 
   /* Avatar row used by both the photo chip and the friends card */
@@ -67,19 +67,19 @@
      anchor meta) plus the rich timeline bar at the bottom — no fill bar. */
   .dp-card {
     cursor: default;
-    margin-bottom: 12px;
+    margin-bottom: var(--space-lg);
     /* Was 16/16/14 — tightened to 12/14/12 to cut the dead space the
        card was carrying without changing the visual hierarchy. */
-    padding: 12px 14px 12px;
+    padding: var(--space-lg) 14px var(--space-lg);
     animation: none;
     border-radius: var(--radius-md);
     overflow: visible;  /* re-allow timeline to render outside compact's clip */
   }
-  .dp-card.card-compact { padding-bottom: 12px; overflow: visible; }
+  .dp-card.card-compact { padding-bottom: var(--space-lg); overflow: visible; }
   .dp-card.card-compact .card-fillbar { display: none; }
   .dp-card:hover { background: var(--surface-content); }   /* kill list-card hover */
   .dp-card .card-top { gap: 14px; align-items: flex-start; }
-  .dp-card .card-left { min-width: 0; gap: 4px; }
+  .dp-card .card-left { min-width: 0; gap: var(--space-xs); }
   /* Title is the venue takeover — bumped from 18 → 22 so it reads as
      hierarchically primary in the detail context (vs the same renderer
      producing a list card at 16px elsewhere). */
@@ -94,7 +94,7 @@
   .dp-card .card-new-meta {
     font-size: 12.5px;
     line-height: 1.4;
-    margin-top: 4px;
+    margin-top: var(--space-xs);
   }
   .dp-card .card-right {
     min-width: 0;
@@ -112,7 +112,7 @@
     margin-top: 1px;
   }
   /* Timeline block sits at the bottom — 8px gap below the pills row (was 12). */
-  .dp-card .card-timeline-block { margin-top: 8px; }
+  .dp-card .card-timeline-block { margin-top: var(--space-md); }
 
   /* dp-card timeline matches the list card's thin variant (8px). The tall
      38px treatment is gone now that the FTS pill is no longer reparented
@@ -137,8 +137,8 @@
   .info-row {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 8px 4px;
+    gap: var(--space-lg);
+    padding: var(--space-md) var(--space-xs);
     border-bottom: 1px solid rgba(17,30,56,0.08);
   }
 
@@ -177,7 +177,7 @@
   .info-label-sub {
     font-size: 12px;
     color: var(--ink-muted);
-    margin-top: 2px;
+    margin-top: var(--space-2xs);
   }
 
   .info-value {
@@ -192,15 +192,15 @@
     display: flex;
     gap: 18px;
     justify-content: center;
-    padding: 14px 0 16px;
-    margin-top: 4px;
+    padding: 14px 0 var(--space-xl);
+    margin-top: var(--space-xs);
   }
 
   .secondary-link {
     font-size: 12px;
     font-weight: 500;
     color: var(--ink-muted);
-    padding: 4px 0;
+    padding: var(--space-xs) 0;
     background: none;
     border: none;
     cursor: pointer;
@@ -298,7 +298,7 @@
 
     #dp-handle { display: flex; }
     #dp-scroll {
-      padding-top: 4px;
+      padding-top: var(--space-xs);
       /* Bottom padding clears the FTS slider so the last content row
          doesn't disappear behind it during drag. Reduced from 88px to
          48px — the popup-above-thumb's full 30px clearance was
@@ -306,14 +306,14 @@
          drag, not at scroll-rest. 48px = FTS height (40) + small
          buffer (8). User-reported "wasted space at scroll bottom"
          was this 88px floor. */
-      padding-bottom: 48px;
+      padding-bottom: var(--space-4xl);
     }
     .dp-photos { margin-top: 0; }
     /* Back button style on mobile: chevron + "Venues" */
     #dp-close-btn {
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: var(--space-xs);
       font-size: 12px;
       font-weight: 600;
       color: rgba(17,30,56,0.55);
@@ -344,7 +344,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 32px;
+    gap: var(--space-3xl);
     transition: background-color 0.5s ease;
     pointer-events: all;
     cursor: default;
@@ -434,7 +434,7 @@
   /* ── Favorites heart button (card) ──────────────────────────────────────── */
   /* Passive heart indicator on venue card name */
   .card-fav-heart {
-    margin-left: 4px;
+    margin-left: var(--space-xs);
     vertical-align: -1px;
     flex-shrink: 0;
   }
@@ -452,7 +452,7 @@
     background: rgba(17,30,56,0.95);
     border: 1px solid var(--border);
     color: var(--text);
-    padding: 8px 18px;
+    padding: var(--space-md) 18px;
     border-radius: var(--radius-md);
     font-size: 13px;
     font-family: 'Inter', sans-serif;
@@ -474,7 +474,7 @@
     margin-bottom: 14px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--space-sm);
   }
 
   /* Primary CTA — Invite friends. Tracks the design-system Primary Pill spec
@@ -576,7 +576,7 @@
     width: 100%;
     max-width: 340px;
     border-radius: var(--radius-lg);
-    padding: 20px 18px 16px;
+    padding: 20px 18px var(--space-xl);
     display: flex;
     flex-direction: column;
     gap: 14px;
@@ -600,8 +600,8 @@
   .plan-conflict-actions {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    margin-top: 4px;
+    gap: var(--space-md);
+    margin-top: var(--space-xs);
   }
   .plan-conflict-btn {
     width: 100%;
@@ -635,7 +635,7 @@
   .social-friends {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-md);
   }
   .social-friends-label {
     font-size: 12px;
@@ -667,17 +667,17 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 6px 0;
+    padding: var(--space-sm) 0;
     border-top: 1px solid rgba(156,189,231,0.08);
   }
-  .plan-info { display: flex; flex-direction: column; gap: 2px; }
+  .plan-info { display: flex; flex-direction: column; gap: var(--space-2xs); }
   .plan-when { font-size: 12px; color: var(--accent); font-weight: 600; }
   .plan-creator { font-size: 11px; color: var(--muted); }
   .plan-msg { font-size: 11px; color: var(--text); opacity: 0.7; }
-  .plan-actions { display: flex; gap: 6px; }
+  .plan-actions { display: flex; gap: var(--space-sm); }
   .plan-status { font-size: 11px; color: var(--muted); }
   .btn-accept {
-    padding: 4px 12px;
+    padding: var(--space-xs) var(--space-lg);
     background: rgba(245,194,94,0.14);
     border: 1px solid var(--accent);
     border-radius: var(--radius-sm);
@@ -687,7 +687,7 @@
     font-family: 'Inter', sans-serif;
   }
   .btn-decline {
-    padding: 4px 12px;
+    padding: var(--space-xs) var(--space-lg);
     background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
@@ -705,7 +705,7 @@
   .social-form-inner {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-md);
   }
   .social-form-label {
     font-size: 11px;
@@ -715,7 +715,7 @@
   }
   .social-form-input {
     width: 100%;
-    padding: 8px 10px;
+    padding: var(--space-md) 10px;
     background: rgba(17,30,56,0.5);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
@@ -727,11 +727,11 @@
   .social-form-input:focus { outline: none; border-color: var(--accent); }
   .social-form-actions {
     display: flex;
-    gap: 8px;
+    gap: var(--space-md);
   }
   .social-form-btn {
     flex: 1;
-    padding: 8px 12px;
+    padding: var(--space-md) var(--space-lg);
     border-radius: var(--radius-md);
     border: 1px solid rgba(156,189,231,0.20);
     background: rgba(17,30,56,0.30);
@@ -743,7 +743,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: var(--space-sm);
     transition: all 0.15s;
   }
   .social-form-btn:hover { border-color: var(--accent); color: var(--accent); }
@@ -758,30 +758,30 @@
   .plan-friends-list {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--space-xs);
     max-height: 120px;
     overflow-y: auto;
   }
   .plan-friend-check {
     font-size: 12px;
     color: var(--text);
-    display: flex; align-items: center; gap: 6px;
+    display: flex; align-items: center; gap: var(--space-sm);
     cursor: pointer;
   }
   .plan-friend-check input { accent-color: var(--accent); }
 
   /* Going friend picker */
   .going-friend-picker {
-    margin-top: 8px;
+    margin-top: var(--space-md);
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--space-sm);
   }
   .friends-empty {
     font-size: 12px;
     color: var(--muted);
     text-align: center;
-    padding: 8px;
+    padding: var(--space-md);
   }
   .friend-avatar-sm {
     width: 18px; height: 18px;
@@ -942,7 +942,7 @@
        now, so the handle just needs enough breathing room to be
        grippable, not to act as a chrome gap between the slider and
        the sheet's first line of content. */
-    padding: 10px 0 8px;
+    padding: 10px 0 var(--space-md);
     flex-shrink: 0;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
@@ -969,7 +969,7 @@
      scrubs the FTS inside the sheet. Same visual rhythm both sides:
      small label → bold primary → small meta. */
   .dpinvite-moment {
-    padding: 4px 0 14px;
+    padding: var(--space-xs) 0 14px;
     border-bottom: 1px solid rgba(156,189,231,0.10);
   }
   .dpinvite-moment-row {
@@ -983,7 +983,7 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--space-xs);
   }
   .dpinvite-moment-col {
     flex-shrink: 0;
@@ -1000,7 +1000,7 @@
        same inter-row spacing — without this, the right column's rows
        sat 4 px tighter than the left and the venue / time and meta /
        day-button baselines didn't line up. */
-    gap: 4px;
+    gap: var(--space-xs);
   }
   .dpinvite-eyebrow {
     font-size: 13px;
@@ -1020,8 +1020,8 @@
   .dpinvite-moment .dpinvite-venue-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-top: 2px;
+    gap: var(--space-md);
+    margin-top: var(--space-2xs);
   }
   .dpinvite-venue-line {
     font-size: var(--text-display);
@@ -1037,10 +1037,10 @@
   .dpinvite-meta {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-md);
     /* Align under the venue text (pin glyph 14 + 8 gap), not under the pin. */
     padding-left: 22px;
-    margin-top: 2px;
+    margin-top: var(--space-2xs);
     font-size: 13px;
     font-weight: 500;
     color: var(--ink-muted);
@@ -1070,7 +1070,7 @@
     font-weight: var(--fw-display);
     color: var(--panel-text);
     line-height: 1.18;
-    margin-top: 2px;
+    margin-top: var(--space-2xs);
     font-variant-numeric: tabular-nums;
     letter-spacing: var(--tracking-display);
   }
@@ -1092,7 +1092,7 @@
        — combined with the column's gap: 4, the day-button's BOX top
        lands at the same y as the meta-text top on the left, keeping
        the third-row baseline aligned across columns. */
-    margin-top: 2px;
+    margin-top: var(--space-2xs);
     /* Chevron moved BEFORE the text (flex-direction below stacks the
        SVG first), so the padding flips: tighter on the chevron side,
        looser on the text side. */
@@ -1107,7 +1107,7 @@
     /* Chevron rendered before the text in the markup (button structure
        updated alongside this rule). No row-reverse here — markup order
        is authoritative. */
-    gap: 4px;
+    gap: var(--space-xs);
     transition: background 0.14s ease, color 0.14s ease, transform 90ms ease-out;
     -webkit-tap-highlight-color: transparent;
   }
@@ -1135,7 +1135,7 @@
     width: 100%;
     position: relative;
     padding-top: 30px;
-    padding-bottom: 4px;
+    padding-bottom: var(--space-xs);
     margin-top: -22px;
   }
   .dpinvite-fts-slot:empty { display: none; }
@@ -1178,8 +1178,8 @@
     letter-spacing: 0.4px;
     text-transform: uppercase;
     line-height: 1;
-    margin-top: 2px;
-    margin-bottom: 8px;
+    margin-top: var(--space-2xs);
+    margin-bottom: var(--space-md);
   }
 
   /* Avatar row — horizontal scroll, multi-select, 40 px circles
@@ -1189,9 +1189,9 @@
      "share to these people" picker rather than a select-your-fighter
      screen. */
   .dpinvite-avatar-row {
-    display: flex; gap: 12px;
+    display: flex; gap: var(--space-lg);
     overflow-x: auto;
-    padding: 4px 2px;
+    padding: var(--space-xs) var(--space-2xs);
     margin: 0 -2px;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
@@ -1295,11 +1295,11 @@
      "Inviter" affordance to compete with it. */
   .dpinvite-empty-card {
     text-align: center;
-    padding: 14px 4px 6px;
+    padding: 14px var(--space-xs) var(--space-sm);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-sm);
   }
   .dpinvite-empty-title { font-size: 13px; font-weight: 600; color: var(--panel-text); line-height: 1.3; }
   .dpinvite-empty-sub   { font-size: 12px; color: var(--ink-muted); line-height: 1.4; max-width: 280px; }
@@ -1309,7 +1309,7 @@
      collapse cleanly to width:0 + margin:0 when no friends are selected. */
   .dpinvite-cta-row {
     display: flex;
-    margin-top: 4px;
+    margin-top: var(--space-xs);
     align-items: center;
   }
   .dpinvite-cta-row .p-pill { flex: 1; min-width: 0; height: 48px; }
@@ -1365,7 +1365,7 @@
        horizontal padding) so the two surfaces share a secondary-link
        cadence. */
     height: 32px;
-    padding: 0 8px;
+    padding: 0 var(--space-md);
     border-radius: var(--radius-lg);
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
@@ -1544,7 +1544,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 10px 0 4px;
+    padding: 10px 0 var(--space-xs);
     cursor: pointer;
     touch-action: none;
     flex-shrink: 0;
@@ -1573,7 +1573,7 @@
     display: inline-flex;
     align-items: center;
     gap: 10px;
-    padding: 6px 14px 6px 6px;
+    padding: var(--space-sm) 14px var(--space-sm) var(--space-sm);
     border-radius: var(--radius-pill);
   }
   .dprcv-top-pill-av {
@@ -1593,7 +1593,7 @@
   }
   .dprcv-top-pill-sub {
     font-size: 11px; font-weight: 500; color: var(--muted);
-    margin-left: 4px;
+    margin-left: var(--space-xs);
   }
 
   /* Title block — sentence-case eyebrow + venue name (with pin glyph) + meta.
@@ -1602,8 +1602,8 @@
   .dprcv-title-block {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    margin-top: 2px;
+    gap: var(--space-xs);
+    margin-top: var(--space-2xs);
   }
   /* Two-column header — left tells you WHAT (eyebrow + venue + meta),
      right tells you WHEN (Meeting label + time + day). Both columns share
@@ -1621,7 +1621,7 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--space-xs);
   }
   .dprcv-moment-col {
     flex-shrink: 0;
@@ -1640,7 +1640,7 @@
        inter-row spacing — without this, the right column's rows sat
        4 px tighter than the left and the venue / time and meta / sub
        baselines didn't line up. */
-    gap: 4px;
+    gap: var(--space-xs);
   }
   .dprcv-eyebrow {
     font-size: 13px;
@@ -1657,8 +1657,8 @@
   .dprcv-venue-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-top: 2px;
+    gap: var(--space-md);
+    margin-top: var(--space-2xs);
   }
   .dprcv-venue-pin {
     flex-shrink: 0;
@@ -1693,8 +1693,8 @@
     flex-wrap: nowrap;
     /* Indent past the pin (16 + 8 gap) so the meta line aligns with the
        venue name, not the pin. */
-    padding-left: 24px;
-    margin-top: 4px;
+    padding-left: var(--space-2xl);
+    margin-top: var(--space-xs);
     font-size: 13px;
     font-weight: 500;
     color: var(--ink-muted);
@@ -1717,7 +1717,7 @@
   .dpinvite-meta-walk {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--space-xs);
     vertical-align: middle;
   }
   .dprcv-meta-walk svg,
@@ -1729,7 +1729,7 @@
      wrapper just hosts the timeline now and intentionally adds no top
      padding so the chip + bar read as one connected unit. */
   .dprcv-hero {
-    padding: 0 0 4px;
+    padding: 0 0 var(--space-xs);
     display: flex;
     flex-direction: column;
   }
@@ -1750,7 +1750,7 @@
     font-weight: var(--fw-display);
     color: var(--panel-text);
     line-height: 1.15;
-    margin-top: 2px;
+    margin-top: var(--space-2xs);
     font-variant-numeric: tabular-nums;
     letter-spacing: var(--tracking-display);
   }
@@ -1759,7 +1759,7 @@
     font-size: 13px;
     font-weight: 500;
     color: var(--ink-muted);
-    margin-top: 4px;
+    margin-top: var(--space-xs);
     letter-spacing: 0;
     line-height: 1.4;
     font-variant-numeric: tabular-nums;
@@ -1776,10 +1776,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: var(--space-sm);
     flex-wrap: wrap;
     padding: 18px 0 0;
-    margin-top: 8px;
+    margin-top: var(--space-md);
     margin-bottom: -4px;
     border-top: 1px solid rgba(156,189,231,0.10);
     font-size: 14px;
@@ -1924,7 +1924,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 10px 12px;
+    padding: 10px var(--space-lg);
   }
   .dprcv-att-stack {
     display: flex;
@@ -1952,7 +1952,7 @@
     font-size: 12px;
     font-weight: 500;
     color: var(--ink-muted);
-    margin-top: 2px;
+    margin-top: var(--space-2xs);
     line-height: 1.35;
     overflow: hidden;
     display: -webkit-box;
@@ -1980,11 +1980,11 @@
        with 0-inset gestures, "Coming later · Decline" was sitting flush
        against the OS handle. Add an explicit baseline so the secondary
        row has at least ~14 px of clearance regardless of platform inset. */
-    padding: 12px 0 14px;
+    padding: var(--space-lg) 0 14px;
     z-index: 2;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-md);
   }
   .dprcv-cta-primary { width: 100%; height: 52px; font-size: 15px; }
 
@@ -2000,7 +2000,7 @@
     align-items: center;
     justify-content: center;
     gap: 10px;
-    margin-top: 6px;
+    margin-top: var(--space-sm);
   }
   .dprcv-cta-link {
     display: inline-flex;
@@ -2014,7 +2014,7 @@
     font-size: 13px;
     font-weight: 500;
     height: 32px;
-    padding: 0 8px;
+    padding: 0 var(--space-md);
     border-radius: var(--radius-lg);
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
@@ -2048,7 +2048,7 @@
   .pp-later-strip {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 6px;
+    gap: var(--space-sm);
     max-height: 0;
     padding: 0;
     opacity: 0;
@@ -2065,7 +2065,7 @@
   .pp-later-strip .pp-later-chip {
     width: 100%;
     height: 36px;
-    padding: 0 4px;
+    padding: 0 var(--space-xs);
     font-size: 12.5px;
     font-weight: 600;
     white-space: nowrap;
@@ -2082,15 +2082,15 @@
       margin-left: auto;
       margin-right: auto;
       border-radius: var(--radius-lg);
-      margin-bottom: 12px;
+      margin-bottom: var(--space-lg);
     }
     .dprcv-top-pill { left: 50%; right: auto; transform: translateX(-50%) translateY(-130%); }
     .dprcv-overlay.open .dprcv-top-pill { transform: translateX(-50%) translateY(0); }
   }
   /* Plan card "Preview" button reuses the existing social-btn appearance */
   .plan-preview-btn {
-    margin-top: 6px;
-    padding: 6px 12px;
+    margin-top: var(--space-sm);
+    padding: var(--space-sm) var(--space-lg);
     border-radius: var(--radius-pill);
     border: 1px solid rgba(156,189,231,0.22);
     background: rgba(156,189,231,0.10);
@@ -2105,7 +2105,7 @@
   }
   .plan-preview-btn:hover { border-color: var(--accent); color: var(--accent); }
   /* Invitations inbox in the profile panel */
-  .invitations-section { padding-bottom: 4px; }
+  .invitations-section { padding-bottom: var(--space-xs); }
   .invitations-section .profile-section-label-sub {
     margin-top: 10px;
     opacity: 0.85;
@@ -2114,7 +2114,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 10px 16px;
+    padding: 10px var(--space-xl);
     border-top: 1px solid rgba(17,30,56,0.08);
   }
   .inbox-row-info { flex: 1; min-width: 0; }
@@ -2133,7 +2133,7 @@
   }
   .inbox-row-actions {
     display: flex;
-    gap: 4px;
+    gap: var(--space-xs);
     flex-shrink: 0;
   }
   .inbox-btn {
@@ -2165,8 +2165,8 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 10px 12px;
-    margin: 10px 0 4px;
+    padding: 10px var(--space-lg);
+    margin: 10px 0 var(--space-xs);
     border-radius: var(--radius-md);
     background: rgba(245,194,94,0.13);
     border: 1px solid rgba(245,194,94,0.35);
@@ -2178,7 +2178,7 @@
   .friend-prompt-banner-skip {
     border: none;
     border-radius: var(--radius-pill);
-    padding: 6px 12px;
+    padding: var(--space-sm) var(--space-lg);
     font-family: 'Inter', sans-serif;
     font-size: 12px;
     font-weight: 600;
@@ -2247,13 +2247,13 @@
     transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: var(--space-lg);
   }
   .dpacc-panel.open { transform: translateY(0); }
   .dpacc-handle {
     display: flex;
     justify-content: center;
-    padding: 10px 0 4px;
+    padding: 10px 0 var(--space-xs);
     flex-shrink: 0;
   }
   .dpacc-grabber {
@@ -2279,7 +2279,7 @@
     display: inline-flex;
     align-items: center;
     gap: 10px;
-    padding: 8px 16px 8px 8px;
+    padding: var(--space-md) var(--space-xl) var(--space-md) var(--space-md);
     background: var(--accent);
     color: var(--accent-on, #2a1a0c);
     border-radius: var(--radius-pill);
@@ -2304,8 +2304,8 @@
      flex-start which floated it above the eyebrow). */
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    padding: 0 4px;
+    gap: var(--space-lg);
+    padding: 0 var(--space-xs);
   }
   .dpacc-header-text { flex: 1; min-width: 0; }
   /* Sentence-case eyebrow (was ALL CAPS in v1). Same design-language
@@ -2316,7 +2316,7 @@
     color: var(--ink-muted);
     line-height: 1.25;
     /* Indent so the eyebrow aligns with the venue name, not the pin. */
-    padding-left: 24px;
+    padding-left: var(--space-2xl);
   }
   /* Venue row — pin glyph + name. Pin nudged up to match the text's
      optical centre (pin glyph mass sits below its geometric centre
@@ -2324,8 +2324,8 @@
   .dpacc-venue-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-top: 6px;
+    gap: var(--space-md);
+    margin-top: var(--space-sm);
   }
   .dpacc-venue-pin {
     flex-shrink: 0;
@@ -2349,11 +2349,11 @@
     font-size: 13px;
     font-weight: 500;
     color: var(--ink-muted);
-    margin-top: 4px;
+    margin-top: var(--space-xs);
     /* Indent the subtitle past the pin so it aligns with the venue name,
        not the pin. Reads as a clean header block — pin = icon, name +
        subtitle = text column. Mirrors the accept-page header. */
-    padding-left: 24px;
+    padding-left: var(--space-2xl);
     font-variant-numeric: tabular-nums;
     line-height: 1.4;
   }
@@ -2364,19 +2364,19 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: var(--space-lg);
   }
   .dpacc-change-rsvp {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--space-xs);
     font-size: 12px;
     font-weight: 600;
     color: var(--ink-muted);
     background: transparent;
     border: none;
     cursor: pointer;
-    padding: 4px 0;
+    padding: var(--space-xs) 0;
     white-space: nowrap;
     font-family: 'Inter', sans-serif;
     transition: color 0.12s;
@@ -2394,7 +2394,7 @@
     display: flex;
     gap: 10px;
     overflow-x: auto;
-    padding: 4px 2px 6px;
+    padding: var(--space-xs) var(--space-2xs) var(--space-sm);
     margin: 0 -2px;
     -webkit-overflow-scrolling: touch;
   }
@@ -2408,7 +2408,7 @@
     flex-direction: column;
     align-items: flex-start;
     justify-content: space-between;
-    padding: 12px;
+    padding: var(--space-lg);
     cursor: pointer;
     font-family: 'Inter', sans-serif;
     /* Secondary by default. The accepted panel is a LIGHT sheet, so use the
@@ -2505,7 +2505,7 @@
     font-size: 11px;
     font-weight: 500;
     color: var(--ink-muted);
-    margin-top: 2px;
+    margin-top: var(--space-2xs);
     font-variant-numeric: tabular-nums;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -2518,8 +2518,8 @@
   .dpacc-attendees {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 14px;
+    gap: var(--space-lg);
+    padding: var(--space-lg) 14px;
   }
   .dpacc-att-stack { display: flex; flex-shrink: 0; }
   .dpacc-att-stack > * + * { margin-left: -10px; }
@@ -2544,7 +2544,7 @@
     font-size: 12px;
     font-weight: 500;
     color: var(--muted);
-    margin-top: 2px;
+    margin-top: var(--space-2xs);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -2559,7 +2559,7 @@
   .dpacc-close-row {
     display: flex;
     justify-content: center;
-    margin-top: 4px;
+    margin-top: var(--space-xs);
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
   .dpacc-close-link {
@@ -2623,7 +2623,7 @@
     color: var(--accent-on, #2a1a0c);
     font-size: 8.5px;
     font-weight: 700;
-    padding: 1px 4px;
+    padding: 1px var(--space-xs);
     border-radius: var(--radius-pill);
     line-height: 1.2;
     font-variant-numeric: tabular-nums;
@@ -2635,9 +2635,9 @@
   .plan-invitees {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-sm);
     flex-wrap: wrap;
-    margin-top: 6px;
+    margin-top: var(--space-sm);
   }
   .plan-invitee {
     position: relative;
@@ -2672,8 +2672,8 @@
   /* ── Card friend badges ─────────────────────────────────────────────────── */
   .card-friend-badge {
     display: inline-flex;
-    gap: 2px;
-    margin-left: 6px;
+    gap: var(--space-2xs);
+    margin-left: var(--space-sm);
     vertical-align: middle;
   }
   .card-friend-dot {
@@ -2694,8 +2694,8 @@
      border to distinguish "planned" from "here now" (orange). */
   .card-going-badge {
     display: inline-flex;
-    gap: 2px;
-    margin-left: 6px;
+    gap: var(--space-2xs);
+    margin-left: var(--space-sm);
     vertical-align: middle;
   }
   .card-going-dot {
@@ -2745,7 +2745,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 16px;
+    margin-bottom: var(--space-xl);
   }
   .friends-modal-header h3 {
     margin: 0;
@@ -2758,7 +2758,7 @@
     color: var(--muted);
     font-size: 18px;
     cursor: pointer;
-    padding: 4px;
+    padding: var(--space-xs);
   }
   .friends-section-label {
     font-size: 11px;
@@ -2766,18 +2766,18 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin: 12px 0 6px;
+    margin: var(--space-lg) 0 var(--space-sm);
   }
   .friends-empty {
     font-size: 13px;
     color: var(--muted);
-    padding: 8px 0;
+    padding: var(--space-md) 0;
   }
   .friend-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 0;
+    padding: var(--space-md) 0;
     border-bottom: 1px solid rgba(156,189,231,0.08);
   }
   .friend-item-left {
@@ -2819,21 +2819,21 @@
     color: var(--muted);
     cursor: pointer;
     font-size: 14px;
-    padding: 4px;
+    padding: var(--space-xs);
     opacity: 0.5;
     transition: opacity 0.15s;
   }
   .btn-icon-sm:hover { opacity: 1; color: var(--color-error); }
 
   /* Add friend input */
-  .friends-add-section { margin-top: 12px; }
+  .friends-add-section { margin-top: var(--space-lg); }
   .friends-add-row {
     display: flex;
-    gap: 6px;
+    gap: var(--space-sm);
   }
   .friends-search-input {
     flex: 1;
-    padding: 8px 10px;
+    padding: var(--space-md) 10px;
     background: rgba(17,30,56,0.5);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
@@ -2844,7 +2844,7 @@
   .friends-search-input:focus { outline: none; border-color: var(--accent); }
   .friend-add-result {
     font-size: 12px;
-    margin-top: 4px;
+    margin-top: var(--space-xs);
     min-height: 16px;
   }
   .friend-add-result.success { color: var(--color-success); }

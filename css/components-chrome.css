@@ -7,11 +7,11 @@
     width: 336px;
     height: 46px;
     box-sizing: border-box;
-    padding: 0 6px 0 14px; /* tighter on the right so the avatar tucks in */
+    padding: 0 var(--space-sm) 0 14px; /* tighter on the right so the avatar tucks in */
     border-radius: var(--radius-pill);   /* true pill — half of 46px height */
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-md);
     transition: border-color 0.15s, box-shadow 0.15s, opacity 200ms ease-out, transform 220ms ease-out;
   }
   #floating-search:hover {
@@ -145,8 +145,8 @@
     display: grid;
     grid-template-columns: auto 1fr auto;
     align-items: center;
-    gap: 6px;
-    padding: 4px;
+    gap: var(--space-sm);
+    padding: var(--space-xs);
     border-radius: var(--radius-pill);
     /* Chrome surface (DESIGN.md Phase 2.1): Jordy 25% wash + 4px frost +
        light hairline + flat shadow-1. Was the transparent --glass-panel-bg. */
@@ -187,7 +187,7 @@
   #top-strip .ts-left, #top-strip .ts-right {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-sm);
   }
   /* Glass-on-glass control pill — raised navy bubble on the transparent bar,
      cream icon, presses in on :active (same language as the FTS thumb). */
@@ -264,7 +264,7 @@
        the dot separators carry the visual break between temp / wind /
        glyph groups, so the inter-sibling gap doesn't need to do that
        work too. */
-    gap: 4px;
+    gap: var(--space-xs);
     font: 500 13px/1 'Inter', sans-serif;
     color: var(--text);
     min-width: 0;
@@ -280,10 +280,10 @@
   #top-strip .ts-date {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--space-xs);
     color: var(--panel-text);
     font-weight: 600;
-    padding: 6px 11px;
+    padding: var(--space-sm) 11px;
     margin: 0;
     border-radius: var(--radius-pill);
     cursor: pointer;
@@ -315,7 +315,7 @@
   /* Date and weather icon read as a pair. Margin compensates for the
      tighter date button right padding (5 → was 9, total -4 px) so the
      chevron-to-icon visible gap stays roughly where it was. */
-  #top-strip .ts-center .ts-date + .ts-wx-icon { margin-left: 2px; }
+  #top-strip .ts-center .ts-date + .ts-wx-icon { margin-left: var(--space-2xs); }
   /* Explicit emoji fallback fonts so iOS Safari resolves ☀️ ⛅ 🌤 ☁️ 🌧
      to Apple Color Emoji even when the parent font-family ('Inter') has
      no glyph for them. Without this list, iOS sometimes renders nothing.
@@ -378,8 +378,8 @@
     inset: 4px;
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 0 6px 0 12px;
+    gap: var(--space-md);
+    padding: 0 var(--space-sm) 0 var(--space-lg);
     border-radius: var(--radius-lg);
     background: transparent;
     border: none;
@@ -494,11 +494,11 @@
   #panel-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-md);
     /* Symmetric vertical breathing room so the filter/sort pills' raised
        box-shadow isn't cropped — was `0 12px 4px` (zero top), which clipped
        the top of each pill's shadow against the header above. */
-    padding: 5px 12px 6px;
+    padding: 5px var(--space-lg) var(--space-sm);
     flex-shrink: 0;
     position: relative;
     z-index: 2;
@@ -513,12 +513,12 @@
     flex: 1 1 0;
     min-width: 0;
     display: flex;
-    gap: 6px;
+    gap: var(--space-sm);
     /* overflow-x:auto forces overflow-y to clip (CSS coercion), which cropped
        the pills' top/bottom box-shadow. Vertical padding gives the shadow room
        inside the (clipped) scroller; negative margin keeps the row's net height
        unchanged so the layout doesn't grow. */
-    padding: 6px 0;
+    padding: var(--space-sm) 0;
     margin: -6px 0;
     overflow-x: auto;
     scrollbar-width: none;
@@ -534,7 +534,7 @@
   .panel-filter-pill {
     flex-shrink: 0;
     height: 32px;
-    padding: 0 12px;
+    padding: 0 var(--space-lg);
     border-radius: var(--radius-lg);
     /* Outline chip (DESIGN.md Phase 2.3): near-fill-less surface + dark
        silhouette + ink text; selected → honey-dim (below). Was a cream
@@ -549,7 +549,7 @@
     white-space: nowrap;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--space-xs);
     -webkit-tap-highlight-color: transparent;
     transform-origin: center;
     transition: background 120ms, border-color 120ms, color 120ms,
@@ -630,7 +630,7 @@
   }
   .fiw-card {
     width: min(360px, calc(100vw - 32px));
-    padding: 28px 24px 20px;
+    padding: 28px var(--space-2xl) 20px;
     border-radius: var(--radius-lg);
     text-align: center;
     transform: translateY(12px);
@@ -653,7 +653,7 @@
     font-weight: 700;
     color: var(--text);
     line-height: 1.25;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-md);
   }
   .fiw-sub {
     font-size: 14px;
@@ -661,13 +661,13 @@
     line-height: 1.4;
     margin-bottom: 20px;
   }
-  .fiw-cta { width: 100%; margin-bottom: 8px; }
+  .fiw-cta { width: 100%; margin-bottom: var(--space-md); }
   .fiw-dismiss {
     background: none;
     border: none;
     color: var(--muted);
     font-size: 13px;
-    padding: 8px 12px;
+    padding: var(--space-md) var(--space-lg);
     cursor: pointer;
   }
 
@@ -692,7 +692,7 @@
     left: 50%;
     transform: translateX(-50%);
     z-index: 899;
-    padding: 8px 16px;
+    padding: var(--space-md) var(--space-xl);
     font-size: 12px;
     font-weight: 500;
     color: var(--accent);
@@ -775,7 +775,7 @@
     margin-left: auto;
     align-self: flex-start;
     margin-top: 14px;
-    margin-right: 8px;
+    margin-right: var(--space-md);
     flex-shrink: 0;
     width: 24px; height: 24px;
     border-radius: 50%;
@@ -837,7 +837,7 @@
     box-shadow: 0 0 6px rgba(245,194,94,0.55);
   }
   .bd-empty {
-    padding: 28px 16px;
+    padding: 28px var(--space-xl);
     text-align: center;
     color: var(--ink-muted);   /* dropdown is opaque cream → ink-muted, not cool-grey */
   }
@@ -853,8 +853,8 @@
   .bd-row {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
-    padding: 12px 14px;
+    gap: var(--space-lg);
+    padding: var(--space-lg) 14px;
     border-top: 1px solid rgba(155,169,188,0.10);
   }
   .bd-row:first-of-type { border-top: none; }
@@ -909,7 +909,7 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--space-xs);
   }
   .bd-row__msg {
     font: 500 13px/1.35 'Inter', sans-serif;
@@ -922,8 +922,8 @@
   }
   .bd-row__actions {
     display: flex;
-    gap: 8px;
-    margin-top: 6px;
+    gap: var(--space-md);
+    margin-top: var(--space-sm);
   }
   .bd-action {
     flex: 1 1 0;
@@ -958,7 +958,7 @@
     cursor: pointer;
     border-bottom: 1px solid rgba(255,255,255,0.05);
     transition: background 0.1s;
-    gap: 8px;
+    gap: var(--space-md);
   }
   .sd-row:last-child { border-bottom: none; }
   .sd-row:hover { background: rgba(245,194,94,0.12); }
@@ -1017,7 +1017,7 @@
     background: transparent;
     border: 1px solid var(--line-l-strong);
     border-radius: var(--radius-sm);
-    padding: 4px 10px;
+    padding: var(--space-xs) 10px;
     cursor: pointer;
     font-family: 'Inter', sans-serif;
     transition: background 0.15s;
@@ -1178,7 +1178,7 @@
   #profile-panel.logged-out .login-hero {
     flex: 1 1 auto;
     display: flex; flex-direction: column; justify-content: center;
-    padding: 32px 20px 8px;
+    padding: var(--space-3xl) 20px var(--space-md);
     width: 100%;
     box-sizing: border-box;
   }
@@ -1210,7 +1210,7 @@
      rule below restores it when the panel goes full-screen. */
   .profile-panel-mobile-bar { display: none; }
   .profile-panel-header {
-    padding: 20px 20px 16px;
+    padding: 20px 20px var(--space-xl);
     display: flex;
     align-items: center;
     gap: 14px;
@@ -1250,16 +1250,16 @@
     font-size: 13px;
     font-weight: 400;
     color: #9CBDE7;
-    margin-top: 2px;
+    margin-top: var(--space-2xs);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .profile-panel-body { padding: 12px 0; }
+  .profile-panel-body { padding: var(--space-lg) 0; }
   .profile-panel-row {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-lg);
     padding: 10px 20px;
     font-size: 14px;
     color: var(--text);
@@ -1270,12 +1270,12 @@
   .profile-panel-row svg { flex-shrink: 0; color: var(--muted); }
   .profile-panel-footer {
     border-top: 1px solid rgba(255,255,255,0.07);
-    padding: 12px 0 4px;
+    padding: var(--space-lg) 0 var(--space-xs);
   }
   .profile-panel-signout {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-lg);
     padding: 10px 20px;
     font-size: 14px;
     font-weight: 500;
@@ -1305,7 +1305,7 @@
     z-index: 900;
     height: 46px;
     box-sizing: border-box;
-    padding: 4px 14px;
+    padding: var(--space-xs) 14px;
     border-radius: var(--radius-pill);
     background: var(--glass-panel-bg);
     backdrop-filter: var(--glass-blur-panel);
@@ -1340,10 +1340,10 @@
        between the drag handle and the panel top edge. The compact
        popup overlaps the handle pill area (z-index 10 keeps it on
        top); expanded popup overshoots above the panel as before. */
-    margin: 20px 12px 10px;
+    margin: 20px var(--space-lg) 10px;
     height: 40px;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-md);
     padding: 0;
     background: none;
     border: none;
@@ -1622,7 +1622,7 @@
     flex-direction: column;
     align-items: center;
     gap: 0;
-    padding: 4px 5px;
+    padding: var(--space-xs) 5px;
     background: var(--glass-card-bg);
     backdrop-filter: var(--glass-blur-card);
     -webkit-backdrop-filter: var(--glass-blur-card);
@@ -1698,7 +1698,7 @@
     bottom: auto; top: -6px;
     clip-path: polygon(50% 0, 0 100%, 100% 100%);
   }
-  .fts-popup-row { display: flex; align-items: center; gap: 6px; line-height: 1; }
+  .fts-popup-row { display: flex; align-items: center; gap: var(--space-sm); line-height: 1; }
   /* Compact: a small gap so the time + weather glyph have breathing room.
      Expanded opens further. Transitioned for the morph. */
   .fts-popup-primary {
@@ -1792,7 +1792,7 @@
      deliberately larger overlay during scrub, not just a wider compact pill. */
   .fts-popup.fts-popup-expanded {
     padding: 10px 14px 9px;
-    gap: 4px;
+    gap: var(--space-xs);
     border-radius: var(--radius-md);
   }
   .fts-popup.fts-popup-expanded .fts-popup-time     { font-size: 20px; }
@@ -1800,10 +1800,10 @@
   .fts-popup.fts-popup-expanded .fts-popup-temp     { font-size: 13px; }
   .fts-popup.fts-popup-expanded .fts-popup-wind     { font-size: 13px; }
   .fts-popup.fts-popup-expanded .fts-dot            { font-size: 12px; }
-  .fts-popup.fts-popup-expanded .fts-popup-primary  { gap: 8px; }
+  .fts-popup.fts-popup-expanded .fts-popup-primary  { gap: var(--space-md); }
   .fts-popup.fts-popup-expanded .fts-popup-secondary {
-    margin-top: 2px;
-    gap: 6px;
+    margin-top: var(--space-2xs);
+    gap: var(--space-sm);
   }
 
   /* When calendar picker is open: mark date button active, FTS stays fully visible */
@@ -1816,7 +1816,7 @@
      style is kept — it's about handle layout, not FTS. */
   body.fts #panel.mobile-fullscreen #panel-handle {
     height: calc(env(safe-area-inset-top, 0px) + 16px + 4px + 14px);
-    padding-top: calc(env(safe-area-inset-top, 0px) + 16px);
+    padding-top: calc(env(safe-area-inset-top, 0px) + var(--space-xl));
     padding-bottom: 0;
   }
 
@@ -1832,10 +1832,10 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-sm);
   }
   #floating-bottom > * { pointer-events: all; width: 100%; }
-  #floating-bottom .floating-card { padding: 4px 8px 6px; }
+  #floating-bottom .floating-card { padding: var(--space-xs) var(--space-md) var(--space-sm); }
 
   /* Separate date navigation pill */
   #floating-date {
@@ -1849,12 +1849,12 @@
     -webkit-backdrop-filter: var(--glass-blur-panel);
     border: var(--glass-border);
     border-radius: var(--radius-md);
-    padding: 6px 10px 8px;
+    padding: var(--space-sm) 10px var(--space-md);
   }
   #arc-date-nav {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-sm);
   }
   /* Date display button (replaces native input visually) */
   #date-display-btn {
@@ -1866,7 +1866,7 @@
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
-    padding: 1px 6px;
+    padding: 1px var(--space-sm);
     border-radius: var(--radius-sm);
     transition: background 0.12s, color 0.12s;
     white-space: nowrap;
@@ -1946,7 +1946,7 @@
     border: none;
     border-radius: var(--radius-md);
     box-shadow: 0 8px 32px rgba(17,30,56,0.18);
-    padding: 10px 8px 8px;
+    padding: 10px var(--space-md) var(--space-md);
     display: none;
     z-index: 960;
   }
@@ -1965,7 +1965,7 @@
     flex-direction: column;
     align-items: center;
     gap: 1px;
-    padding: 5px 2px 4px;
+    padding: 5px var(--space-2xs) var(--space-xs);
     border-radius: var(--radius-sm);
     border: var(--glass-border);
     background: var(--glass-card-bg);
@@ -2039,7 +2039,7 @@
     font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
     color: var(--text);
     transition: background 0.12s, border-color 0.12s;
-    display: flex; align-items: center; justify-content: center; gap: 6px;
+    display: flex; align-items: center; justify-content: center; gap: var(--space-sm);
     flex-shrink: 0; -webkit-tap-highlight-color: transparent; outline: none;
   }
   .dc-expand-btn-wide:hover { background: rgba(17,30,56,0.55); border-color: rgba(156,189,231,0.28); }
@@ -2068,11 +2068,11 @@
     grid-column: 1 / -1;
     font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 700;
     color: rgba(156,189,231,0.55); text-transform: uppercase; letter-spacing: 0.09em;
-    padding: 4px 2px 2px;
+    padding: var(--space-xs) var(--space-2xs) var(--space-2xs);
   }
   /* Month grid — 7-column day grid, consistent cell sizing */
   .dc-month-grid { grid-auto-rows: auto; }
-  .dc-month-grid .dc-tile { padding: 4px 1px; gap: 2px; height: 44px; box-sizing: border-box; justify-content: center; }
+  .dc-month-grid .dc-tile { padding: var(--space-xs) 1px; gap: var(--space-2xs); height: 44px; box-sizing: border-box; justify-content: center; }
   .dc-month-grid .dc-tile .dc-day  { display: none; }
   .dc-month-grid .dc-tile .dc-num  { font-size: 15px; font-weight: 600; }
   .dc-month-grid .dc-tile .dc-icon { font-size: 14px; line-height: 1.2; }
@@ -2085,7 +2085,7 @@
   .dc-month-grid .dc-tile-past .dc-num { font-size: 15px; }
   /* Forecast boundary note */
   .dc-forecast-note {
-    margin-top: 5px; padding: 4px 6px; flex-shrink: 0;
+    margin-top: 5px; padding: var(--space-xs) var(--space-sm); flex-shrink: 0;
     font-family: 'Inter', sans-serif; font-size: 9px; font-weight: 500;
     color: rgba(156,189,231,0.40); text-align: center; letter-spacing: 0.03em;
   }
@@ -2094,8 +2094,8 @@
   #bottom-arc-row {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin: 8px 0 0;
+    gap: var(--space-lg);
+    margin: var(--space-md) 0 0;
   }
   #sun-curve {
     flex: 1;
@@ -2117,9 +2117,9 @@
   /* ── Environment section chips (noise + wind shelter) ──────────────────── */
   .dp-env-row {
     display: flex;
-    gap: 6px;
+    gap: var(--space-sm);
     flex-wrap: wrap;
-    margin-top: 2px;
+    margin-top: var(--space-2xs);
   }
   .dp-env-chip {
     font-size: 11px;
@@ -2142,7 +2142,7 @@
     align-items: center;
     gap: 3px;
     border-radius: var(--radius-none);
-    padding: 2px 7px;
+    padding: var(--space-2xs) 7px;
     font-size: 11px;
     font-weight: 600;
     white-space: nowrap;
@@ -2164,11 +2164,11 @@
     margin-top: 1px;
     flex-wrap: wrap;
   }
-  .score-detail span { display: inline-flex; align-items: center; gap: 2px; }
+  .score-detail span { display: inline-flex; align-items: center; gap: var(--space-2xs); }
 
   .bottom-controls-row {
     display: flex;
-    gap: 16px;
+    gap: var(--space-xl);
     align-items: center;
     padding-top: 10px;
     border-top: 1px solid rgba(156,189,231,0.18);
@@ -2237,7 +2237,7 @@
     font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.04em;
-    padding: 8px 18px;
+    padding: var(--space-md) 18px;
     border-radius: var(--radius-lg);
     pointer-events: none;
     opacity: 0;
@@ -2293,8 +2293,8 @@
   #notif-toast {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 14px;
+    gap: var(--space-lg);
+    padding: var(--space-lg) 14px;
     margin-bottom: 0;
     background: #111E38;
     border: 1px solid rgba(255,255,255,0.06);
@@ -2346,7 +2346,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: var(--space-sm);
     height: 30px;
     padding: 0 14px;
     border: none;
@@ -2412,7 +2412,7 @@
     border-radius: var(--radius-md);
     color: var(--text);
     box-shadow: var(--glass-inset), 0 8px 32px rgba(0,0,0,0.5);
-    padding: 12px 16px;
+    padding: var(--space-lg) var(--space-xl);
     max-width: 240px;
     position: relative;
   }
@@ -2426,7 +2426,7 @@
     color: var(--muted);
     font-size: 18px;
     line-height: 1;
-    padding: 4px 8px;
+    padding: var(--space-xs) var(--space-md);
     background: none;
     border: none;
   }

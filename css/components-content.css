@@ -10,12 +10,12 @@
     -webkit-backdrop-filter: var(--glass-blur-action) !important;
     border: var(--glass-border) !important;
     border-radius: var(--radius-md) !important;
-    padding: 4px !important;
+    padding: var(--space-xs) !important;
     box-shadow: none !important;
     overflow: visible !important;
     display: flex !important;
     flex-direction: column !important;
-    gap: 4px !important;
+    gap: var(--space-xs) !important;
   }
   .mapboxgl-ctrl-group button {
     width: 34px !important;
@@ -50,7 +50,7 @@
     border: none !important;
     opacity: 0 !important;
     transition: opacity 0.2s !important;
-    margin-top: 2px !important;
+    margin-top: var(--space-2xs) !important;
   }
   .mapboxgl-ctrl-bottom-right:hover .mapboxgl-ctrl-attrib { opacity: 1 !important; }
   .mapboxgl-ctrl-attrib-button {
@@ -76,7 +76,7 @@
     font-size: 15px;
     font-weight: 600;
     color: var(--accent);
-    margin-bottom: 4px;
+    margin-bottom: var(--space-xs);
   }
 
   .popup-meta {
@@ -88,11 +88,11 @@
     font-size: 11px;
     color: var(--muted);
     opacity: 0.7;
-    margin-top: 2px;
+    margin-top: var(--space-2xs);
   }
 
   .popup-status {
-    margin-top: 6px;
+    margin-top: var(--space-sm);
     font-size: 12px;
     font-weight: 600;
   }
@@ -104,7 +104,7 @@
   .popup-actions {
     margin-top: 10px;
     display: flex;
-    gap: 6px;
+    gap: var(--space-sm);
   }
 
   .popup-directions-btn, .popup-edit-btn {
@@ -114,7 +114,7 @@
     justify-content: center;
     gap: 5px;
     border-radius: var(--radius-sm);
-    padding: 6px 10px;
+    padding: var(--space-sm) 10px;
     font-size: 11px;
     font-family: inherit;
     cursor: pointer;
@@ -210,7 +210,7 @@
   #panel-controls {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-md);
     overflow: visible;
   }
 
@@ -231,9 +231,9 @@
   #time-presets-row {
     position: relative;
     display: flex;
-    gap: 2px;
+    gap: var(--space-2xs);
     padding: 3px;
-    margin-top: 8px;
+    margin-top: var(--space-md);
     background: rgba(156,189,231,0.08);
     border: 1px solid rgba(156,189,231,0.14);
     border-radius: var(--radius-md);
@@ -261,7 +261,7 @@
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    padding: 9px 4px;
+    padding: 9px var(--space-xs);
     cursor: pointer;
     transition: color 0.15s;
     white-space: nowrap;
@@ -283,7 +283,7 @@
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    padding: 4px 12px;
+    padding: var(--space-xs) var(--space-lg);
     cursor: pointer;
     white-space: nowrap;
     flex-shrink: 0;
@@ -305,7 +305,7 @@
     align-items: center;
     justify-content: flex-end;  /* toggle icon right-aligned, count hidden */
     padding-bottom: 0;
-    gap: 8px;
+    gap: var(--space-md);
   }
   /* Legacy sun-count duplicate — hide to avoid double header */
   #venue-count { display: none; }
@@ -314,14 +314,14 @@
   #sort-row {
     display: flex;
     justify-content: flex-end;
-    padding: 4px 14px 4px;
+    padding: var(--space-xs) 14px var(--space-xs);
     flex-shrink: 0;
   }
   #sort-panel {
     position: fixed;
     z-index: 1100;
     border-radius: var(--radius-md);
-    padding: 6px;
+    padding: var(--space-sm);
     display: none;
     flex-direction: column;
     min-width: 160px;
@@ -380,9 +380,9 @@
   #sort-toggle-btn {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--space-xs);
     height: 36px;
-    padding: 0 12px;
+    padding: 0 var(--space-lg);
     background: var(--glassctl-bg);
     backdrop-filter: blur(3px);
     -webkit-backdrop-filter: blur(3px);
@@ -435,7 +435,7 @@
     font-family: 'Inter', sans-serif;
     font-size: 11px;
     font-weight: 500;
-    padding: 3px 8px;
+    padding: 3px var(--space-md);
     cursor: pointer;
     transition: all 0.15s;
     white-space: nowrap;
@@ -454,7 +454,7 @@
     /* See --app-pad-b token (top of CSS). The scrollable list pads
        its bottom so the last card scrolls up clear of the home-
        indicator gesture zone / Safari URL-bar reserve. */
-    padding: 4px 14px var(--app-pad-b);
+    padding: var(--space-xs) 14px var(--app-pad-b);
     scrollbar-width: thin;
     scrollbar-color: rgba(245,194,94,0.2) transparent;
   }
@@ -470,7 +470,7 @@
   .venue-section-header {
     /* No horizontal padding — the section header flush-aligns with the
        venue cards' outer edges (cards span venue-list's inner width). */
-    padding: 4px 0 6px;
+    padding: var(--space-xs) 0 var(--space-sm);
     font-family: 'Inter', sans-serif;
     font-size: 12px;
     font-weight: 600;
@@ -484,23 +484,23 @@
   #venue-list > .venue-section-header:first-child {
     padding-top: 0;
   }
-  .venue-section-header .section-count { opacity: 0.65; margin-left: 4px; }
+  .venue-section-header .section-count { opacity: 0.65; margin-left: var(--space-xs); }
   .empty-section {
-    padding: 4px 4px 8px;
+    padding: var(--space-xs) var(--space-xs) var(--space-md);
     color: var(--muted);
     font-size: 12px;
     font-style: italic;
     opacity: 0.7;
   }
   .empty-all {
-    padding: 32px 16px 24px;
+    padding: var(--space-3xl) var(--space-xl) var(--space-2xl);
     color: var(--muted);
     font-size: 13px;
     text-align: center;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-lg);
   }
   .empty-all-headline {
     color: var(--text);
@@ -508,8 +508,8 @@
     font-weight: 600;
     line-height: 1.3;
   }
-  .empty-all .btn-show-all { margin-top: 12px; }
-  .empty-all .btn-see-tomorrow { margin-top: 4px; }
+  .empty-all .btn-show-all { margin-top: var(--space-lg); }
+  .empty-all .btn-see-tomorrow { margin-top: var(--space-xs); }
   /* Tertiary text-link "Vis alle steder" — visually subordinate to the
      primary "Se i morgen" CTA above it. */
   .empty-all-link {
@@ -522,8 +522,8 @@
     text-underline-offset: 3px;
     opacity: 0.75;
     cursor: pointer;
-    padding: 6px 12px;
-    margin-top: 4px;
+    padding: var(--space-sm) var(--space-lg);
+    margin-top: var(--space-xs);
   }
   .empty-all-link:hover { opacity: 1; }
   body.list-scrubbing .venue-section-header { opacity: 0; }
@@ -539,10 +539,10 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: var(--space-xs);
     width: 100%;
-    margin: 8px 0 20px;
-    padding: 10px 12px;
+    margin: var(--space-md) 0 20px;
+    padding: 10px var(--space-lg);
     background: transparent;
     border: 0;
     color: var(--muted);
@@ -580,7 +580,7 @@
        Removing per-card blur eliminates ~30 GPU compositing layers during scroll. */
     border: 1px solid var(--line-d);
     border-radius: var(--radius-md);
-    padding: 12px 14px;
+    padding: var(--space-lg) 14px;
     margin-bottom: 10px;
     cursor: pointer;
     /* Flat lift — shadow-1 token. The two glossy inset sheens are retired per
@@ -594,7 +594,7 @@
     flex-direction: column;
     /* Internal row gap — bumped from 3 to 4 for slightly more breathing.
        Pills and timeline still get individual margin-top where needed. */
-    gap: 4px;
+    gap: var(--space-xs);
   }
   /* The closed-card variant is a single row, not the 3-row column. Override
      the column flex so name + "opens at" badge sit side-by-side. */
@@ -708,7 +708,7 @@
   .card-top {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
+    gap: var(--space-lg);
   }
 
   .card-left {
@@ -716,7 +716,7 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--space-2xs);
   }
 
   .card-right {
@@ -726,7 +726,7 @@
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 2px;
+    gap: var(--space-2xs);
   }
 
   .card-new-name {
@@ -762,7 +762,7 @@
 
   .card-new-meta .card-meta-dot {
     opacity: 0.4;
-    margin: 0 4px;
+    margin: 0 var(--space-xs);
   }
 
   .card-new-hero-main {
@@ -795,7 +795,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: var(--space-md);
   }
   .card-name {
     flex: 1;
@@ -809,13 +809,13 @@
     white-space: nowrap;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-sm);
   }
   .card-duration {
     flex-shrink: 0;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--space-xs);
     font-size: 14px;
     font-weight: 600;
     color: var(--accent);
@@ -840,7 +840,7 @@
     line-height: 1.3;
   }
   .card-meta span { display: inline; }
-  .card-meta .card-meta-dot { opacity: 0.4; margin: 0 4px; }
+  .card-meta .card-meta-dot { opacity: 0.4; margin: 0 var(--space-xs); }
   .card-meta .card-meta-opens { color: var(--muted); opacity: 0.85; }
   /* Walking-person glyph on the walk-time meta. Plain inline element
      (no flex wrapper) so the baseline stays aligned with the rest of
@@ -856,10 +856,10 @@
 
   .card-pills {
     display: flex;
-    gap: 6px;
+    gap: var(--space-sm);
     flex-wrap: nowrap;
     min-width: 0;
-    margin: 4px 0;
+    margin: var(--space-xs) 0;
   }
   .card-pill {
     height: 26px;
@@ -925,14 +925,14 @@
        the visual breathing space above the name row equals the space below
        the meta row. The card clips to its own rounded shape so the fill
        bar's corners follow the 12px card-corner curve. */
-    padding-bottom: 12px;
+    padding-bottom: var(--space-lg);
     overflow: hidden;
   }
   .venue-card.card-compact .card-meta {
     display: grid;
     grid-template-columns: 1fr auto;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-md);
   }
   .venue-card.card-compact .card-meta-left {
     min-width: 0;
@@ -957,7 +957,7 @@
      column above, rather than competing with the venue name on the
      left for visual start-of-row attention. */
   .venue-card.card-compact .card-pills {
-    margin: 6px 0 2px;
+    margin: var(--space-sm) 0 var(--space-2xs);
     justify-content: flex-end;
   }
   /* Pills get the 8px backdrop blur from --glass-blur-pill. Cards
@@ -992,11 +992,11 @@
      under the center of the leftmost label and there's room for the
      right-edge label to fit without clipping. */
   .card-timeline-block {
-    margin-top: 6px;
+    margin-top: var(--space-sm);
     padding: 0 18px;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--space-2xs);
   }
   .card-timeline {
     position: relative;
@@ -1060,7 +1060,7 @@
   .card-badge {
     font-size: 10px;
     font-weight: 700;
-    padding: 2px 8px;
+    padding: var(--space-2xs) var(--space-md);
     border-radius: var(--radius-md);
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -1099,7 +1099,7 @@
     flex-shrink: 0;
     font-size: 11px;
     font-weight: 600;
-    padding: 2px 7px;
+    padding: var(--space-2xs) 7px;
     border-radius: var(--radius-none);
     white-space: nowrap;
     background: var(--accent-dim);
@@ -1143,14 +1143,14 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--space-xs);
   }
 
   .card-top-row {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 6px;
+    gap: var(--space-sm);
   }
 
   /* ── Card sun row: dial + duration left, label+time pushed right ─────── */
@@ -1174,7 +1174,7 @@
     flex: 1;
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--space-xs);
   }
   .card-dial-col {
     flex-shrink: 0;
@@ -1202,9 +1202,9 @@
     flex-direction: column;
     align-items: flex-start;
     justify-content: center;
-    gap: 2px;
+    gap: var(--space-2xs);
     min-width: 0;
-    padding-left: 8px;
+    padding-left: var(--space-md);
   }
   .card-sun-label {
     font-family: 'Inter', sans-serif;
@@ -1318,7 +1318,7 @@
   .skel-timeline {
     width: 100%;
     height: 12px;
-    margin-top: 6px;
+    margin-top: var(--space-sm);
     border-radius: var(--radius-none);
     background: rgba(156,189,231,0.10);
   }
@@ -1343,9 +1343,9 @@
   .card-score-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-top: 8px;
-    margin-bottom: 4px;
+    gap: var(--space-md);
+    margin-top: var(--space-md);
+    margin-bottom: var(--space-xs);
   }
 
   .score-detail-inline {
@@ -1358,20 +1358,20 @@
     font-size: 11px;
     color: var(--muted);
     opacity: 0.7;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-md);
   }
 
   .card-actions {
     display: flex;
-    gap: 8px;
-    margin-top: 4px;
-    margin-bottom: 2px;
+    gap: var(--space-md);
+    margin-top: var(--space-xs);
+    margin-bottom: var(--space-2xs);
   }
 
   .card-action-btn {
     font-size: 11px;
     font-weight: 600;
-    padding: 4px 12px;
+    padding: var(--space-xs) var(--space-lg);
     border-radius: var(--radius-sm);
     border: 1px solid rgba(156,189,231,0.22);
     background: rgba(156,189,231,0.1);
@@ -1425,9 +1425,9 @@
   .ht-status {
     font-size: 11px;
     font-weight: 600;
-    margin-top: 4px;
+    margin-top: var(--space-xs);
     display: flex;
-    gap: 6px;
+    gap: var(--space-sm);
     align-items: baseline;
   }
   .ht-status-main { white-space: nowrap; }
@@ -1440,14 +1440,14 @@
 
   .ht-timeline { margin-top: 9px; }
   /* Card timeline reused inside tooltip */
-  #hover-tooltip .card-timeline { margin-top: 6px; }
+  #hover-tooltip .card-timeline { margin-top: var(--space-sm); }
 
   .ht-tl-track {
     height: 5px;
     background: rgba(156,189,231,0.2);
     border-radius: var(--radius-none);
     position: relative;
-    margin-bottom: 4px;
+    margin-bottom: var(--space-xs);
     overflow: visible;
   }
 
@@ -1477,7 +1477,7 @@
     font-size: 9px;
     color: var(--muted);
     opacity: 0.6;
-    margin-top: 2px;
+    margin-top: var(--space-2xs);
   }
 
   #map-toast {
@@ -1492,7 +1492,7 @@
     border: var(--glass-border);
     border-radius: var(--radius-md);
     box-shadow: var(--glass-inset), 0 4px 20px rgba(0,0,0,0.40);
-    padding: 8px 14px;
+    padding: var(--space-md) 14px;
     font-size: 12px;
     color: var(--muted);
     white-space: nowrap;
@@ -1501,7 +1501,7 @@
     transition: opacity 0.2s, transform 0.2s;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-md);
   }
   #map-toast.visible {
     opacity: 1;
@@ -1553,7 +1553,7 @@
       gap: 10px;
       /* Top pad reserves the iOS safe area (notch / Dynamic Island)
          plus the visual breathing room above the back button. */
-      padding: calc(env(safe-area-inset-top, 0px) + 12px) 12px 8px;
+      padding: calc(env(safe-area-inset-top, 0px) + var(--space-lg)) var(--space-lg) var(--space-md);
       background: none;
       border-bottom: none;
     }
@@ -1590,12 +1590,12 @@
 
     /* Logged-out: mobile typography overrides. Layout (flex, padding) lives in
        the global #profile-panel.logged-out rules above. */
-    #profile-panel.logged-out .login-slide-icon { width: 72px; height: 72px; margin-bottom: 16px; }
+    #profile-panel.logged-out .login-slide-icon { width: 72px; height: 72px; margin-bottom: var(--space-xl); }
     #profile-panel.logged-out .login-slide-icon svg { width: 56px; height: 56px; }
     #profile-panel.logged-out .login-hero-title {
-      font-size: var(--text-display); max-width: 320px; margin: 0 auto 24px;
+      font-size: var(--text-display); max-width: 320px; margin: 0 auto var(--space-2xl);
     }
-    #profile-panel.logged-out .login-slide-title { font-size: 17px; margin-bottom: 8px; }
+    #profile-panel.logged-out .login-slide-title { font-size: 17px; margin-bottom: var(--space-md); }
     #profile-panel.logged-out .login-slide-body { max-width: 320px; font-size: 14px; }
 
     #zoom-debug {
@@ -1714,7 +1714,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 8px 0 4px;
+      padding: var(--space-md) 0 var(--space-xs);
       flex-shrink: 0;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
@@ -1735,7 +1735,7 @@
       flex-shrink: 0;
       /* Top pad tightened — chip row that used to sit above is hidden;
          the action row directly above already provides spacing. */
-      padding: 6px 14px 0;
+      padding: var(--space-sm) 14px 0;
       overflow: hidden;
       max-height: 104px;
       /* Fade only the very bottom edge as a soft "more below" hint —
@@ -1773,7 +1773,7 @@
        mode included. Horizontal padding matches the mobile #venue-list
        (16px) so the row 1 / row 2 content edges align with the venue
        cards' outer edges below. */
-    #day-header { padding: 6px 16px 8px !important; }
+    #day-header { padding: var(--space-sm) var(--space-xl) var(--space-md) !important; }
 
     #panel-header { padding-top: 0; }
 
@@ -1781,23 +1781,23 @@
       /* 12px top padding — smoother mask handles the entry fade. Bottom
          padding 88px so the FTS popup (above-thumb tooltip) doesn't
          cover the last card during a slider drag. */
-      padding: 12px 16px 88px;
+      padding: var(--space-lg) var(--space-xl) 88px;
       overscroll-behavior-y: none;
       /* No top mask — clean edge by default. A drop shadow under the sticky
          header fades in on scroll (see #panel.is-scrolled rule). */
     }
 
     .venue-card {
-      padding: 14px 16px;
+      padding: 14px var(--space-xl);
       margin-bottom: 10px;
       border-radius: var(--radius-md);
     }
 
-    .card-badge   { font-size: 11px; padding: 4px 11px; }
-    .area-chip    { font-size: 12px; padding: 6px 13px; }
-    .sort-btn     { font-size: 15px; padding: 12px 16px; }
+    .card-badge   { font-size: 11px; padding: var(--space-xs) 11px; }
+    .area-chip    { font-size: 12px; padding: var(--space-sm) 13px; }
+    .sort-btn     { font-size: 15px; padding: var(--space-lg) var(--space-xl); }
 
-    .card-action-btn { font-size: 12px; padding: 8px 16px; }
+    .card-action-btn { font-size: 12px; padding: var(--space-md) var(--space-xl); }
     .card-actions    { gap: 10px; }
 
     .card-expanded { max-height: 0; }
@@ -1878,7 +1878,7 @@
     display: none;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-md);
     width: min(480px, calc(100vw - 32px));
     pointer-events: auto;
   }
@@ -1890,7 +1890,7 @@
     -webkit-backdrop-filter: var(--glass-blur-panel);
     border: var(--glass-border);
     border-radius: var(--radius-lg);
-    padding: 6px 14px 12px;
+    padding: var(--space-sm) 14px var(--space-lg);
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -1904,7 +1904,7 @@
     height: 4px;
     border-radius: var(--radius-pill);
     background: rgba(156,189,231,0.40);
-    margin: 4px auto 2px;
+    margin: var(--space-xs) auto var(--space-2xs);
     flex-shrink: 0;
     display: block;
   }
@@ -1954,7 +1954,7 @@
     transition: bottom 0.22s ease, opacity 0.18s ease;
     display: none;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: var(--space-sm);
     justify-content: center;
     width: min(480px, calc(100vw - 32px));
     z-index: 920;
@@ -1976,12 +1976,12 @@
     font-family: 'Inter', sans-serif;
     font-size: 12px;
     font-weight: 500;
-    padding: 6px 12px;
+    padding: var(--space-sm) var(--space-lg);
     cursor: pointer;
     transition: color 0.12s, border-color 0.12s, background 0.12s;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--space-xs);
     white-space: nowrap;
     line-height: 1;
     height: 30px;
@@ -2004,7 +2004,7 @@
   #edit-controls {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-md);
     justify-content: space-between;
   }
 
@@ -2021,13 +2021,13 @@
     font-family: 'Inter', sans-serif;
     font-size: 13px;
     font-weight: 500;
-    padding: 0 12px 0 16px;
+    padding: 0 var(--space-lg) 0 var(--space-xl);
     height: 36px;
     cursor: pointer;
     outline: none;
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-md);
     transition: border-color 0.12s, background 0.12s;
   }
 
@@ -2052,7 +2052,7 @@
     border-radius: var(--radius-md);
     box-shadow: 0 12px 40px rgba(0,0,0,0.55);
     margin: 0;
-    padding: 4px;
+    padding: var(--space-xs);
     list-style: none;
     z-index: 5;
   }
@@ -2133,8 +2133,8 @@
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    gap: 4px;
-    margin-top: 4px;
+    gap: var(--space-xs);
+    margin-top: var(--space-xs);
   }
 
   .primary-pill {
@@ -2182,7 +2182,7 @@
     font-weight: 500;
     height: 32px;
     cursor: pointer;
-    padding: 0 16px;
+    padding: 0 var(--space-xl);
     align-self: center;
     transition: color 0.12s;
   }
@@ -2198,18 +2198,18 @@
       transform: none;
       width: 100%;
       padding: 0 0 env(safe-area-inset-bottom, 0);
-      gap: 8px;
+      gap: var(--space-md);
     }
-    #edit-tools-row { padding: 0 16px; }
+    #edit-tools-row { padding: 0 var(--space-xl); }
     #edit-banner {
       border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-      padding: 6px 16px 12px;
+      padding: var(--space-sm) var(--space-xl) var(--space-lg);
       border-left: none;
       border-right: none;
       border-bottom: none;
       gap: 10px;
     }
-    .edit-type-list { padding: 4px; }
+    .edit-type-list { padding: var(--space-xs); }
   }
 
   /* Edit-mode: locate-btn is hidden. The zoom-jog sits at the same vertical
@@ -2252,7 +2252,7 @@
   /* ── Profile panel additions ─────────────────────────────────────────────── */
   .profile-panel-section {
     border-top: 1px solid rgba(255,255,255,0.07);
-    padding: 8px 0;
+    padding: var(--space-md) 0;
   }
 
   .profile-admin-row {
@@ -2265,7 +2265,7 @@
     color: var(--text);
     font-family: 'Inter', sans-serif;
     font-size: 13px;
-    padding: 8px 16px;
+    padding: var(--space-md) var(--space-xl);
     cursor: pointer;
     text-align: left;
     transition: background 0.12s;
@@ -2291,8 +2291,8 @@
   .audit-indicator-row {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 8px 6px 14px;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md) var(--space-sm) 14px;
     background: var(--glass-panel-bg);
     backdrop-filter: var(--glass-blur-panel);
     -webkit-backdrop-filter: var(--glass-blur-panel);
@@ -2313,7 +2313,7 @@
     font-weight: 600;
     color: var(--muted);
     font-variant-numeric: tabular-nums;
-    margin-right: 2px;
+    margin-right: var(--space-2xs);
   }
   .audit-indicator-divider {
     width: 1px;
@@ -2322,14 +2322,14 @@
     display: inline-block;
     padding: 0;
     opacity: 1;
-    margin: 0 2px;
+    margin: 0 var(--space-2xs);
   }
 
   /* Buttons + chips inside the indicator share the chip-pill rhythm
      (smaller height to keep the bar compact). */
   .audit-pill, .audit-submode-btn {
     height: 28px;
-    padding: 0 12px;
+    padding: 0 var(--space-lg);
     border-radius: var(--radius-pill);
     font: 600 12px 'Inter', sans-serif;
     color: var(--text);
@@ -2339,7 +2339,7 @@
     cursor: pointer;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-sm);
     transition: border-color 120ms ease-out, background 120ms ease-out, color 120ms ease-out;
     white-space: nowrap;
   }
@@ -2355,8 +2355,8 @@
   /* Sub-mode segmented control */
   .audit-submode {
     display: inline-flex;
-    gap: 2px;
-    padding: 2px;
+    gap: var(--space-2xs);
+    padding: var(--space-2xs);
     border-radius: var(--radius-pill);
     background: rgba(15,27,42,0.40);
     border: var(--glass-border);
@@ -2397,8 +2397,8 @@
 
   /* Filter popover panel — sits under the indicator like a dropdown. */
   .audit-filter-panel {
-    margin-top: 8px;
-    padding: 12px;
+    margin-top: var(--space-md);
+    padding: var(--space-lg);
     width: min(440px, 92vw);
     background: var(--glass-panel-bg);
     backdrop-filter: var(--glass-blur-panel);
@@ -2411,7 +2411,7 @@
     flex-direction: column;
     gap: 10px;
   }
-  .audit-filter-group { display: flex; flex-direction: column; gap: 6px; }
+  .audit-filter-group { display: flex; flex-direction: column; gap: var(--space-sm); }
   .audit-filter-label {
     font-size: 10px;
     font-weight: 700;
@@ -2419,7 +2419,7 @@
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }
-  .audit-chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .audit-chip-row { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
   .audit-chip {
     height: 26px;
     padding: 0 10px;
@@ -2465,8 +2465,8 @@
   .audit-actions {
     display: flex;
     flex-wrap: nowrap;
-    gap: 6px;
-    padding: 8px 10px 10px;
+    gap: var(--space-sm);
+    padding: var(--space-md) 10px 10px;
     align-items: center;
     border-top: 1px solid rgba(155,169,188,0.10);
   }
@@ -2475,7 +2475,7 @@
     font: 700 10px 'Inter', sans-serif;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    padding: 4px 8px;
+    padding: var(--space-xs) var(--space-md);
     border-radius: var(--radius-pill);
     background: var(--accent-dim);
     color: var(--accent);
@@ -2526,7 +2526,7 @@
   /* Archive reason chooser — the audit-actions row morphs in place into
      a list of reason chips. Allow wrap so all presets stay visible on
      narrow cards; drop the right-edge margin so Cancel sits flush. */
-  .audit-actions.is-choosing-reason { flex-wrap: wrap; gap: 4px; }
+  .audit-actions.is-choosing-reason { flex-wrap: wrap; gap: var(--space-xs); }
   .audit-actions.is-choosing-reason > .audit-action-btn:last-child { margin-left: auto; }
   .audit-actions.is-choosing-reason .audit-state-badge {
     color: var(--accent);
@@ -2541,9 +2541,9 @@
     flex: 0 0 auto;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--space-xs);
     height: 22px;
-    padding: 0 8px;
+    padding: 0 var(--space-md);
     border-radius: var(--radius-pill);
     font: 600 10px 'Inter', sans-serif;
     letter-spacing: 0.02em;
@@ -2564,8 +2564,8 @@
   .review-chips {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
-    padding: 4px 10px 0;
+    gap: var(--space-xs);
+    padding: var(--space-xs) 10px 0;
   }
   .review-chip {
     display: inline-block;
@@ -2573,7 +2573,7 @@
     color: var(--accent);
     border: 1px solid var(--accent-border);
     border-radius: var(--radius-pill);
-    padding: 2px 8px;
+    padding: var(--space-2xs) var(--space-md);
     font-size: 11px;
     font-weight: 600;
     line-height: 1.3;
@@ -2587,11 +2587,11 @@
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.04em;
-    padding: 2px 7px;
+    padding: var(--space-2xs) 7px;
     border-radius: var(--radius-sm);
     text-transform: uppercase;
     vertical-align: middle;
-    margin-left: 6px;
+    margin-left: var(--space-sm);
   }
 
   .profile-role-badge.admin {
@@ -2632,14 +2632,14 @@
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--muted);
-    padding: 0 16px 6px;
+    padding: 0 var(--space-xl) var(--space-sm);
   }
   .profile-pref-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 4px 16px;
-    gap: 12px;
+    padding: var(--space-xs) var(--space-xl);
+    gap: var(--space-lg);
   }
   .profile-pref-label {
     font-size: 13px;
@@ -2653,14 +2653,14 @@
     background: rgba(7,16,31,0.40);
     border: 1px solid rgba(155,169,188,0.20);
     border-radius: var(--radius-md);
-    padding: 2px;
+    padding: var(--space-2xs);
     gap: 0;
   }
   .pref-pill {
     font-family: 'Inter', sans-serif;
     font-size: 12px;
     font-weight: 600;
-    padding: 6px 10px;
+    padding: var(--space-sm) 10px;
     border-radius: var(--radius-sm);
     border: none;
     background: transparent;
@@ -2678,10 +2678,10 @@
   .profile-pref-desc {
     font-size: 11px;
     color: var(--muted);
-    padding: 0 16px 4px;
+    padding: 0 var(--space-xl) var(--space-xs);
     opacity: 0.7;
   }
-  .checkin-vis-row { padding: 3px 16px; }
+  .checkin-vis-row { padding: 3px var(--space-xl); }
   .checkin-vis-toggle {
     display: flex;
     align-items: center;
@@ -2695,8 +2695,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 5px 16px;
-    gap: 8px;
+    padding: 5px var(--space-xl);
+    gap: var(--space-md);
   }
   .my-suggestion-info {
     display: flex;
@@ -2716,7 +2716,7 @@
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.04em;
-    padding: 2px 6px;
+    padding: var(--space-2xs) var(--space-sm);
     border-radius: var(--radius-sm);
     white-space: nowrap;
     flex-shrink: 0;
@@ -2732,7 +2732,7 @@
     background: transparent;
     border: 1px solid rgba(156,189,231,0.2);
     border-radius: var(--radius-sm);
-    padding: 3px 8px;
+    padding: 3px var(--space-md);
     cursor: pointer;
     flex-shrink: 0;
     transition: color 0.12s, border-color 0.12s;
@@ -2744,14 +2744,14 @@
     font-size: 12px;
     color: var(--muted);
     text-decoration: none;
-    padding: 6px 0 2px;
+    padding: var(--space-sm) 0 var(--space-2xs);
     transition: color 0.12s;
   }
   .profile-privacy-link:hover { color: var(--text); }
 
   /* ── Settings (grouped-list redesign) ────────────────────────────────────── */
   .settings-root {
-    padding: 12px 12px calc(20px + env(safe-area-inset-bottom, 0px));
+    padding: var(--space-lg) var(--space-lg) calc(20px + env(safe-area-inset-bottom, 0px));
     display: flex;
     flex-direction: column;
     gap: 18px;
@@ -2762,7 +2762,7 @@
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--muted);
-    padding: 0 6px 6px;
+    padding: 0 var(--space-sm) var(--space-sm);
   }
   /* Stage 4b-2: settings-group as a Tier 2 lens object (was --card-bg
      legacy). Layered shadow gives it a card silhouette inside the
@@ -2781,7 +2781,7 @@
   .settings-row {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-lg);
     width: 100%;
     background: none;
     border: none;
@@ -2856,7 +2856,7 @@
     align-items: center;
     text-align: center;
     gap: 0;
-    padding: 22px 16px 26px;
+    padding: 22px var(--space-xl) 26px;
     background: none;
     border: none;
     width: 100%;
@@ -2869,7 +2869,7 @@
     border-radius: 50%;
     flex-shrink: 0;
     object-fit: cover;
-    margin-bottom: 12px;
+    margin-bottom: var(--space-lg);
     /* "Sun on you" halo — subtle honey glow + soft elevation. */
     box-shadow:
       inset 0 1px 0 rgba(255,250,235,0.16),
@@ -2890,7 +2890,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
+    gap: var(--space-xs);
   }
   .settings-identity__name {
     font-size: 18px;
@@ -2898,7 +2898,7 @@
     color: var(--text);
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-md);
     justify-content: center;
     line-height: 1.2;
     max-width: 100%;
@@ -2978,7 +2978,7 @@
     flex: 1 1 auto;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    padding: 12px 12px calc(20px + env(safe-area-inset-bottom, 0px));
+    padding: var(--space-lg) var(--space-lg) calc(20px + env(safe-area-inset-bottom, 0px));
     display: flex;
     flex-direction: column;
     gap: 14px;
@@ -2987,7 +2987,7 @@
     text-align: center;
     color: var(--muted);
     font-size: 13px;
-    padding: 32px 16px;
+    padding: var(--space-3xl) var(--space-xl);
     opacity: 0.7;
   }
 
@@ -2995,13 +2995,13 @@
   .settings-row__sub {
     font-size: 11px;
     color: var(--muted);
-    margin-top: 2px;
+    margin-top: var(--space-2xs);
   }
 
   /* ── Auth buttons ─────────────────────────────────────────────────────────── */
   .login-gate {
     display: flex; flex-direction: column; align-items: center;
-    justify-content: center; padding: 56px 24px 48px; text-align: center; gap: 14px;
+    justify-content: center; padding: 56px var(--space-2xl) var(--space-4xl); text-align: center; gap: 14px;
   }
   .login-gate-title {
     font-family: 'Newsreader', serif; font-size: 22px;
@@ -3012,7 +3012,7 @@
   }
   .login-gate-buttons {
     display: flex; flex-direction: column; gap: 10px;
-    width: 100%; max-width: 280px; margin-top: 8px;
+    width: 100%; max-width: 280px; margin-top: var(--space-md);
   }
   .auth-btn {
     display: flex; align-items: center; justify-content: center; gap: 10px;
@@ -3031,14 +3031,14 @@
     border: 1px solid rgba(255,255,255,0.15);
   }
   .auth-divider {
-    display: flex; align-items: center; gap: 12px;
-    color: var(--muted); font-size: 12px; margin: 2px 0;
+    display: flex; align-items: center; gap: var(--space-lg);
+    color: var(--muted); font-size: 12px; margin: var(--space-2xs) 0;
   }
   .auth-divider::before, .auth-divider::after {
     content: ''; flex: 1; height: 1px;
     background: rgba(255,255,255,0.1);
   }
-  .auth-magic-link-form { display: flex; flex-direction: column; gap: 8px; }
+  .auth-magic-link-form { display: flex; flex-direction: column; gap: var(--space-md); }
   .auth-magic-link-input {
     width: 100%; box-sizing: border-box;
     background: rgba(255,255,255,0.07);
@@ -3062,7 +3062,7 @@
   .auth-password-input::placeholder { color: var(--muted); }
   .auth-password-hint {
     font-size: 11px; line-height: 1.4; color: var(--muted);
-    text-align: center; padding: 0 4px;
+    text-align: center; padding: 0 var(--space-xs);
   }
   .auth-magic-link-status {
     font-size: 12px; line-height: 1.4; min-height: 17px; text-align: center;
@@ -3071,7 +3071,7 @@
   .auth-magic-link-status.error   { color: var(--color-error); }
 
   /* Logged-out profile panel: hero + benefits carousel */
-  .login-hero { padding: 24px 20px 8px; text-align: center; }
+  .login-hero { padding: var(--space-2xl) 20px var(--space-md); text-align: center; }
   .login-hero-title {
     /* Display tier (DESIGN.md) — Inter 900 tight (the logo treatment), replacing
        the off-system Newsreader serif (the product is one font: Inter). */
@@ -3086,21 +3086,21 @@
     will-change: transform; touch-action: pan-y;
   }
   .login-slide {
-    flex: 0 0 100%; padding: 8px 16px 12px; box-sizing: border-box;
+    flex: 0 0 100%; padding: var(--space-md) var(--space-xl) var(--space-lg); box-sizing: border-box;
     text-align: center;
   }
   .login-slide-icon {
-    width: 48px; height: 48px; margin: 0 auto 12px; color: var(--accent);
+    width: 48px; height: 48px; margin: 0 auto var(--space-lg); color: var(--accent);
     display: flex; align-items: center; justify-content: center;
   }
   .login-slide-icon svg { width: 36px; height: 36px; }
-  .login-slide-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .login-slide-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: var(--space-sm); }
   .login-slide-body  {
     font-size: 13px; line-height: 1.5; color: var(--muted);
     max-width: 240px; margin: 0 auto;
   }
   .login-carousel-dots {
-    display: flex; gap: 6px; justify-content: center; padding: 14px 0 4px;
+    display: flex; gap: var(--space-sm); justify-content: center; padding: 14px 0 var(--space-xs);
   }
   .login-dot {
     width: 6px; height: 6px; border-radius: 50%;
@@ -3109,11 +3109,11 @@
   }
   .login-dot.active { background: var(--accent); width: 18px; border-radius: var(--radius-none); }
 
-  .login-auth-section { padding: 8px 20px 12px; }
+  .login-auth-section { padding: var(--space-md) 20px var(--space-lg); }
   .login-auth-section .login-gate-buttons { max-width: none; margin-top: 0; }
   .login-footer {
     border-top: 1px solid rgba(255,255,255,0.07);
-    padding: 10px 0 4px; margin-top: 8px; text-align: center;
+    padding: 10px 0 var(--space-xs); margin-top: var(--space-md); text-align: center;
   }
   .login-close-btn {
     position: absolute; top: 10px; right: 10px;
@@ -3147,7 +3147,7 @@
 
   /* ── Venue selection modal (Google Places results) ──────────────────────────── */
   .suggest-result-row {
-    padding: 12px 16px;
+    padding: var(--space-lg) var(--space-xl);
     border-bottom: 1px solid rgba(156,189,231,0.1);
     cursor: pointer;
     transition: background 150ms ease;
@@ -3159,7 +3159,7 @@
     font-size: 14px;
     font-weight: 500;
     color: var(--text);
-    margin-bottom: 4px;
+    margin-bottom: var(--space-xs);
   }
 
   .suggest-result-address {
@@ -3174,7 +3174,7 @@
     align-items: center;
     justify-content: center;
     min-height: 280px;
-    padding: 32px 24px;
+    padding: var(--space-3xl) var(--space-2xl);
     text-align: center;
   }
   .candidate-loading-name {
@@ -3223,7 +3223,7 @@
     background: rgba(0,0,0,0.55);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
-    padding: 16px;
+    padding: var(--space-xl);
   }
 
   .admin-modal-inner {
@@ -3260,7 +3260,7 @@
     color: var(--muted);
     font-size: 16px;
     cursor: pointer;
-    padding: 4px 8px;
+    padding: var(--space-xs) var(--space-md);
     border-radius: var(--radius-sm);
     transition: background 0.12s;
   }
@@ -3268,7 +3268,7 @@
   .admin-modal-close:hover { background: rgba(255,255,255,0.08); color: var(--text); }
 
   .admin-modal-body {
-    padding: 16px 20px;
+    padding: var(--space-xl) 20px;
     overflow-y: auto;
     flex: 1;
   }
@@ -3278,7 +3278,7 @@
     border: 1px solid rgba(156,189,231,0.15);
     border-radius: var(--radius-md);
     padding: 14px;
-    margin-bottom: 12px;
+    margin-bottom: var(--space-lg);
     transition: opacity 0.3s;
   }
 
@@ -3286,7 +3286,7 @@
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-md);
   }
 
   .admin-edit-venue {
@@ -3307,7 +3307,7 @@
   .admin-diff-row {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-sm);
     font-size: 12px;
     padding: 3px 0;
     border-bottom: 1px solid rgba(255,255,255,0.04);
@@ -3321,7 +3321,7 @@
 
   .admin-edit-actions {
     display: flex;
-    gap: 8px;
+    gap: var(--space-md);
   }
 
   .admin-approve-btn {
@@ -3332,7 +3332,7 @@
     font-family: 'Inter', sans-serif;
     font-size: 12px;
     font-weight: 600;
-    padding: 6px 14px;
+    padding: var(--space-sm) 14px;
     cursor: pointer;
     transition: background 0.15s;
   }
@@ -3347,7 +3347,7 @@
     font-family: 'Inter', sans-serif;
     font-size: 12px;
     font-weight: 600;
-    padding: 6px 14px;
+    padding: var(--space-sm) 14px;
     cursor: pointer;
     transition: background 0.15s;
   }
@@ -3370,7 +3370,7 @@
     font-family: 'Inter', sans-serif;
     font-size: 11px;
     font-weight: 500;
-    padding: 4px 10px;
+    padding: var(--space-xs) 10px;
     cursor: pointer;
     transition: all 0.15s;
     white-space: nowrap;
@@ -3492,7 +3492,7 @@
     font-family: 'Inter', sans-serif;
     font-size: 11px;
     font-weight: 600;
-    padding: 4px 11px;
+    padding: var(--space-xs) 11px;
     cursor: pointer;
     transition: background 0.12s;
   }
@@ -3503,8 +3503,8 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
-    padding: 28px 16px;
+    gap: var(--space-lg);
+    padding: 28px var(--space-xl);
     color: var(--muted);
     font-size: 13px;
     text-align: center;
@@ -3517,7 +3517,7 @@
     color: var(--muted);
     font-family: 'Inter', sans-serif;
     font-size: 13px;
-    padding: 7px 16px;
+    padding: 7px var(--space-xl);
     cursor: pointer;
     transition: background 0.15s, color 0.15s;
     text-decoration: none;
@@ -3531,10 +3531,10 @@
   }
   .suggest-btn-primary:hover { background: rgba(245,194,94,0.22); color: var(--accent); }
   .suggest-confirm {
-    padding: 20px 16px;
+    padding: 20px var(--space-xl);
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--space-sm);
   }
   .suggest-confirm-name {
     font-size: 15px;
@@ -3544,21 +3544,21 @@
   .suggest-confirm-address {
     font-size: 12px;
     color: var(--muted);
-    margin-bottom: 4px;
+    margin-bottom: var(--space-xs);
   }
   .suggest-confirm-prompt {
     font-size: 13px;
     color: var(--muted);
-    margin: 8px 0 4px;
+    margin: var(--space-md) 0 var(--space-xs);
   }
   .suggest-confirm-actions {
     display: flex;
-    gap: 8px;
+    gap: var(--space-md);
     flex-wrap: wrap;
   }
 
   .venue-card.closed-card {
-    padding: 8px 14px;
+    padding: var(--space-md) 14px;
     opacity: 0.5;
     cursor: pointer;
   }
@@ -3571,10 +3571,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: var(--space-sm);
     width: 100%;
-    margin: 8px 0 24px;
-    padding: 10px 12px;
+    margin: var(--space-md) 0 var(--space-2xl);
+    padding: 10px var(--space-lg);
     background: transparent;
     border: 0;
     color: var(--muted);
@@ -3593,7 +3593,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: var(--space-md);
   }
   .closed-name {
     font-size: 12px;
@@ -3619,7 +3619,7 @@
     font-size: 11px;
     color: var(--muted);
     text-align: center;
-    padding: 2px 8px 0;
+    padding: var(--space-2xs) var(--space-md) 0;
     opacity: 0;
     transition: opacity 0.4s;
     pointer-events: none;
@@ -3636,7 +3636,7 @@
      rows feel related, not jumbled. */
   #day-header {
     flex-shrink: 0;
-    padding: 12px 14px 12px;
+    padding: var(--space-lg) 14px var(--space-lg);
     border-bottom: 1px solid rgba(155,169,188,0.10);
   }
 
@@ -3644,7 +3644,7 @@
   #list-sun-header.dh-row1 {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-md);
     min-height: 24px;
     font-family: 'Inter', sans-serif;
     font-size: 13px;
@@ -3666,7 +3666,7 @@
     background: transparent;
     border: 0;
     box-shadow: none;
-    padding: 2px 4px;
+    padding: var(--space-2xs) var(--space-xs);
     margin: -2px -4px -2px -4px;
     height: auto;
     width: auto;
@@ -3675,7 +3675,7 @@
     font-weight: 500;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-sm);
     cursor: pointer;
     border-radius: var(--radius-sm);
     transition: color 0.12s ease, background 0.12s ease;
@@ -3696,7 +3696,7 @@
   #header-wx-chip.dh-weather {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-sm);
     background: transparent;
     border: 0;
     padding: 0;
@@ -3797,10 +3797,10 @@
      button stays pinned right (its right edge aligns with the cards'
      outer edges below). Wraps naturally if too long. Always present. */
   #sun-section-bar.dh-outlook {
-    padding: 4px 0 0;
+    padding: var(--space-xs) 0 0;
     display: flex;
     align-items: flex-start;
-    gap: 8px;
+    gap: var(--space-md);
     min-width: 0;
   }
   #sun-section-bar.ssb-empty { display: none; }
@@ -3815,7 +3815,7 @@
     letter-spacing: -0.005em;
     font-variant-numeric: tabular-nums;
     overflow-wrap: break-word;
-    padding-top: 2px;        /* baseline-align with the centered sort icon */
+    padding-top: var(--space-2xs);        /* baseline-align with the centered sort icon */
   }
 
   /* Sort icon sits in this row now — small, right-aligned via the grid's
@@ -3843,12 +3843,12 @@
   #sun-empty-cta {
     display: none;
     align-items: center;
-    gap: 4px;
+    gap: var(--space-xs);
     background: var(--glass-action-bg);
     border: var(--glass-border);
     border-radius: var(--radius-pill);
     box-shadow: var(--glass-inset);
-    padding: 6px 12px;
+    padding: var(--space-sm) var(--space-lg);
     font: 600 12px/1 'Inter', sans-serif;
     color: var(--accent);
     cursor: pointer;
@@ -3896,7 +3896,7 @@
       max-height: 56svh;
       /* Extra bottom room above var(--app-pad-b) (the home-indicator inset) so
          the bottom-most button doesn't crowd the OS home bar. */
-      padding: 0 16px calc(var(--app-pad-b) + 14px);
+      padding: 0 var(--space-xl) calc(var(--app-pad-b) + 14px);
       box-sizing: border-box;
       background: var(--glass-panel-bg);
       backdrop-filter: var(--glass-blur-panel);
@@ -3924,7 +3924,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 16px 0 10px;
+      padding: var(--space-xl) 0 10px;
       flex-shrink: 0;
     }
     #ptb-cal-title {
@@ -3981,14 +3981,14 @@
     #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
-      gap: 6px;
+      gap: var(--space-sm);
       overflow: visible;
     }
     #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-tile {
       justify-content: center;
       border-radius: var(--radius-md);
       gap: 3px;
-      padding: 8px 4px 6px;
+      padding: var(--space-md) var(--space-xs) var(--space-sm);
     }
     #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-day  { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; }
     #ptb-cal-float #qc-cal .dc-grid:not(.dc-month-grid) .dc-num  { font-size: 17px; font-weight: 700; line-height: 1; }
@@ -4003,7 +4003,7 @@
 
   #qc-presets {
     display: flex;
-    gap: 2px;
+    gap: var(--space-2xs);
     padding: 3px;
     background: rgba(156, 189, 231, 0.08);
     border: 1px solid rgba(156, 189, 231, 0.14);
@@ -4021,7 +4021,7 @@
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    padding: 5px 4px;
+    padding: 5px var(--space-xs);
     cursor: pointer;
     transition: color 0.12s, background 0.12s, border-color 0.12s;
     text-align: center;
@@ -4039,7 +4039,7 @@
   #qc-panel {
     overflow: hidden;
     max-height: 0;
-    margin-top: 8px;
+    margin-top: var(--space-md);
     transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
   #qc-panel.open {
@@ -4063,7 +4063,7 @@
     transition: opacity 0.2s ease;
     pointer-events: none;
   }
-  #qc-date-section { display: none; padding: 8px; box-sizing: border-box; width: 100%; overflow: hidden; }
+  #qc-date-section { display: none; padding: var(--space-md); box-sizing: border-box; width: 100%; overflow: hidden; }
   #qc-date-section.active { display: flex; flex-direction: column; }
   #qc-cal { flex: 1; min-height: 0; display: flex; flex-direction: column; width: 100%; box-sizing: border-box; overflow: clip; }
   #qc-panel.cal-expanded #qc-cal { overflow: clip; flex: 1; }
@@ -4076,7 +4076,7 @@
   }
   #qc-cal .dc-cal-scroll::-webkit-scrollbar { display: none; }
   #qc-cal .dc-grid:not(.dc-month-grid) { display: grid; grid-template-columns: repeat(7, 1fr); grid-auto-rows: auto; gap: 3px; width: 100%; box-sizing: border-box; }
-  #qc-cal .dc-grid:not(.dc-month-grid) .dc-tile  { padding: 4px 2px; gap: 2px; }
+  #qc-cal .dc-grid:not(.dc-month-grid) .dc-tile  { padding: var(--space-xs) var(--space-2xs); gap: var(--space-2xs); }
   #qc-cal .dc-grid:not(.dc-month-grid) .dc-day   { font-size: 8px; }
   #qc-cal .dc-grid:not(.dc-month-grid) .dc-num   { font-size: 15px; }
   #qc-cal .dc-grid:not(.dc-month-grid) .dc-icon  { font-size: 17px; line-height: 1.1; }
@@ -4084,20 +4084,20 @@
   #qc-cal .dc-month-grid .dc-icon .wx-sky-icon { width: 16px; height: 16px; }
   #qc-cal .dc-grid:not(.dc-month-grid) .dc-temp  { font-size: 12px; font-weight: 700; color: rgba(156,189,231,0.72); }
   /* Full-calendar month grid: 7 columns, 4px gap, 48px tiles */
-  #qc-cal .dc-month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; width: 100%; box-sizing: border-box; }
-  #qc-cal .dc-month-grid .dc-tile { padding: 4px 2px; gap: 2px; height: 44px; justify-content: center; }
+  #qc-cal .dc-month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: var(--space-xs); width: 100%; box-sizing: border-box; }
+  #qc-cal .dc-month-grid .dc-tile { padding: var(--space-xs) var(--space-2xs); gap: var(--space-2xs); height: 44px; justify-content: center; }
   #qc-cal .dc-month-grid .dc-tile.solar-only { height: 44px; min-height: 44px; }
   #qc-cal .dc-month-grid .dc-num  { font-size: 15px; font-weight: 600; }
   #qc-cal .dc-month-grid .dc-icon { font-size: 14px; line-height: 1.1; }
   /* Weekday row: 7 columns matching day grid, sticky at scroll-area top */
   #qc-cal .dc-weekday-row {
-    display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: var(--space-xs);
     height: 24px; align-items: center;
     position: sticky; top: 0; z-index: 2;
     background: rgba(17,30,56,0.85);
     backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
     border-bottom: 1px solid rgba(156,189,231,0.12);
-    margin-bottom: 2px;
+    margin-bottom: var(--space-2xs);
   }
   /* Month label: sticky just below weekday row, same backdrop */
   #qc-cal .dc-month-row-label {
@@ -4105,7 +4105,7 @@
     z-index: 1;
     background: rgba(17,30,56,0.85);
     backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-    padding: 4px 2px;
+    padding: var(--space-xs) var(--space-2xs);
   }
 
   /* Suppress venue card enter animation on map-pan re-renders */
@@ -4225,7 +4225,7 @@
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
-    padding: 14px 16px 24px;
+    padding: 14px var(--space-xl) var(--space-2xl);
     scrollbar-width: thin;
     scrollbar-color: rgba(245,194,94,0.2) transparent;
     contain: layout style;
@@ -4237,8 +4237,8 @@
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 8px;
-    margin-bottom: 4px;
+    gap: var(--space-md);
+    margin-bottom: var(--space-xs);
   }
   .dp-venue-name {
     font-family: 'Inter', sans-serif;
@@ -4265,7 +4265,7 @@
     color: rgba(17,30,56,0.55);
     font-size: 14px;
     cursor: pointer;
-    margin-top: 2px;
+    margin-top: var(--space-2xs);
     transition: background 0.12s, color 0.12s;
   }
   #dp-close-btn:hover { background: rgba(17,30,56,0.14); color: var(--panel-text); }
@@ -4291,7 +4291,7 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
-    margin: 8px 0 14px;
+    margin: var(--space-md) 0 14px;
   }
   .dp-dial-svg {
     width: 100%;
@@ -4302,8 +4302,8 @@
   .dp-sun-pill {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 20px;
+    gap: var(--space-sm);
+    padding: var(--space-md) 20px;
     border-radius: var(--radius-pill);
     font-size: 11px;
     font-weight: 700;
@@ -4320,7 +4320,7 @@
     justify-content: space-between;
     align-items: baseline;
     margin-top: 10px;
-    margin-bottom: 4px;
+    margin-bottom: var(--space-xs);
   }
   .dp-exp-label { font-size: 14px; font-weight: 400; color: #FFF2EB; }
   .dp-exp-hint  { font-size: 12px; font-weight: 400; color: #9CBDE7; margin-top: 1px; }
@@ -4331,7 +4331,7 @@
     background: rgba(156,189,231,0.15);
     border-radius: var(--radius-none);
     overflow: visible;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-md);
   }
   .dp-exp-bar-fill {
     height: 100%;
@@ -4341,8 +4341,8 @@
   .dp-score-row {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 8px;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-md);
   }
   .dp-score-num {
     font-family: 'Inter', sans-serif;
@@ -4360,7 +4360,7 @@
     text-transform: uppercase;
     letter-spacing: 0.1em;
     opacity: 0.5;
-    margin-top: 2px;
+    margin-top: var(--space-2xs);
   }
   .dp-score-num.tier-high { color: var(--accent); }
   .dp-score-num.tier-mid  { color: #7dd87d; }
@@ -4380,30 +4380,30 @@
     text-transform: uppercase;
     letter-spacing: 0.1em;
     color: rgba(17,30,56,0.45);
-    margin-bottom: 8px;
-    margin-top: 2px;
+    margin-bottom: var(--space-md);
+    margin-top: var(--space-2xs);
   }
   .dp-divider {
     height: 1px;
     background: rgba(17,30,56,0.10);
-    margin: 12px 0;
+    margin: var(--space-lg) 0;
   }
   .dp-address {
     font-size: 11px;
     color: var(--ink-muted);
     opacity: 1;
-    margin-bottom: 12px;
+    margin-bottom: var(--space-lg);
   }
   .dp-actions {
     display: flex;
-    gap: 6px;
+    gap: var(--space-sm);
   }
 
   .dp-busy-row {
     display: flex;
     align-items: baseline;
     gap: 5px;
-    margin-bottom: 6px;
+    margin-bottom: var(--space-sm);
   }
   .dp-busy-now {
     font-size: 12px;
@@ -4426,7 +4426,7 @@
     font-size: 9px;
     color: var(--muted);
     opacity: 0.5;
-    margin-top: 4px;
+    margin-top: var(--space-xs);
   }
 
   /* Detail panel drag handle */
@@ -4435,7 +4435,7 @@
     flex-direction: column;
     align-items: center;
     gap: 5px;
-    padding: 16px 0 14px;
+    padding: var(--space-xl) 0 14px;
     flex-shrink: 0;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
@@ -4526,7 +4526,7 @@
     color: rgba(255,244,224,0.78);
     font-size: 12.5px;
     font-weight: 500;
-    margin-top: 4px;
+    margin-top: var(--space-xs);
     text-shadow: 0 1px 3px rgba(0,0,0,0.45);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -4541,8 +4541,8 @@
     right: 12px;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 4px 9px 4px 4px;
+    gap: var(--space-sm);
+    padding: var(--space-xs) 9px var(--space-xs) var(--space-xs);
     border-radius: var(--radius-pill);
     background: rgba(245,194,94,0.22);
     backdrop-filter: blur(6px);
@@ -4579,7 +4579,7 @@
     position: absolute;
     top: 12px;
     left: 12px;
-    padding: 3px 8px;
+    padding: 3px var(--space-md);
     border-radius: var(--radius-pill);
     background: rgba(15,27,42,0.55);
     backdrop-filter: blur(6px);
@@ -4599,19 +4599,19 @@
   .detail-new-photos .photo-overlay-chip-summary {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-sm);
   }
   .detail-new-photos .photo-overlay-chip-list {
     display: none;
-    margin-top: 8px;
-    padding-top: 8px;
+    margin-top: var(--space-md);
+    padding-top: var(--space-md);
     border-top: 1px solid rgba(255,244,224,0.18);
     flex-direction: column;
-    gap: 6px;
+    gap: var(--space-sm);
   }
   .detail-new-photos .photo-overlay-chip.expanded {
     align-items: flex-start;
-    padding: 8px 10px 9px;
+    padding: var(--space-md) 10px 9px;
     border-radius: var(--radius-md);
   }
   .detail-new-photos .photo-overlay-chip.expanded .photo-overlay-chip-summary {
@@ -4623,7 +4623,7 @@
   .chip-list-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-md);
     font-size: 11.5px;
     color: var(--text);
   }
@@ -4655,7 +4655,7 @@
     color: rgba(255,244,224,0.72);
     font-size: 13px;
     font-weight: 500;
-    margin-top: 2px;
+    margin-top: var(--space-2xs);
     letter-spacing: 0.005em;
   }
   /* Shadow + done states tone the headline back so it reads as muted info,
@@ -4671,7 +4671,7 @@
      Was 12px — tightened to 8px so the card breathes less between rows. */
   .dp-card .dp-sun-headline + .dp-sun-sub + .card-pills,
   .dp-card .dp-sun-headline + .card-pills {
-    margin-top: 8px;
+    margin-top: var(--space-md);
   }
 
   /* ── Section title (used by Avtaler + Le for vind) ─────────────────────── */
@@ -4682,12 +4682,12 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-md);
   }
 
   /* ── Plans block — lives below the social card ────────────────────────── */
   .dp-plans-block {
-    padding: 12px 14px;
+    padding: var(--space-lg) 14px;
     background: var(--surface-content);
     border: 1px solid var(--line-d);
     border-radius: var(--radius-md);
@@ -4701,7 +4701,7 @@
 
   /* ── Wind shelter section ─────────────────────────────────────────────── */
   .dp-shelter-section {
-    padding: 12px 14px;
+    padding: var(--space-lg) 14px;
     background: var(--surface-content);
     border: 1px solid var(--line-d);
     border-radius: var(--radius-md);
@@ -4719,14 +4719,14 @@
   .info-chips {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: var(--space-sm);
     margin-top: 14px;
   }
   .info-chip {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 10px;
+    gap: var(--space-sm);
+    padding: var(--space-sm) 10px;
     border-radius: var(--radius-pill);
     background: var(--glassctl-bg);
     border: var(--glassctl-border);
@@ -4748,12 +4748,12 @@
   /* ── Footer toned down ─────────────────────────────────────────────────── */
   .dp-footer-quiet {
     margin-top: 18px;
-    padding-top: 12px;
+    padding-top: var(--space-lg);
     border-top: 1px solid rgba(155,169,188,0.12);
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: var(--space-md);
     opacity: 0.55;
   }
   .dp-footer-quiet .secondary-link {
@@ -4773,7 +4773,7 @@
   .detail-header-row {
     display: flex;
     align-items: flex-start;
-    gap: 8px;
+    gap: var(--space-md);
     margin-bottom: 10px;
   }
   .detail-header-info {
@@ -4791,7 +4791,7 @@
     margin-top: 3px;
   }
   .detail-new-back {
-    padding: 6px 8px;
+    padding: var(--space-sm) var(--space-md);
     background: none;
     border: none;
     font-size: 18px;
@@ -4799,20 +4799,20 @@
     cursor: pointer;
     font-family: 'Inter', sans-serif;
     flex-shrink: 0;
-    margin-top: 2px;
+    margin-top: var(--space-2xs);
   }
   .detail-new-back:hover { color: var(--text); }
   .detail-header-actions {
     display: flex;
-    gap: 4px;
+    gap: var(--space-xs);
     flex-shrink: 0;
-    margin-top: 2px;
+    margin-top: var(--space-2xs);
   }
   .dp-header-icon {
     background: none;
     border: none;
     cursor: pointer;
-    padding: 6px;
+    padding: var(--space-sm);
     color: var(--muted);
     line-height: 0;
     opacity: 0.75;
@@ -4837,7 +4837,7 @@
   .dp-actions {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-md);
     margin-bottom: 14px;
   }
 
@@ -4866,7 +4866,7 @@
   .dp-secondary-row {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
+    gap: var(--space-sm);
   }
   .dp-secondary-btn {
     display: flex;
@@ -4875,7 +4875,7 @@
     justify-content: center;
     gap: 3px;
     height: 52px;
-    padding: 0 6px;
+    padding: 0 var(--space-sm);
     border-radius: var(--radius-md);
     /* Tertiary toggles on the dark Delft sheet — Jordy outline + cream
        (--panel-text is overridden to cream on #detail-panel). Stacked
@@ -4928,7 +4928,7 @@
   /* Legacy: keep .primary-action for backwards compat but hidden */
   .primary-action {
     display: flex;
-    gap: 8px;
+    gap: var(--space-md);
     margin-bottom: 18px;
   }
 
@@ -4943,7 +4943,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: var(--space-md);
     border: none;
     cursor: pointer;
     font-family: 'Inter', sans-serif;
@@ -4991,7 +4991,7 @@
     top: 8px;
     right: 8px;
     display: flex;
-    gap: 6px;
+    gap: var(--space-sm);
     z-index: 3;
   }
   .dp-photo-actions .dp-header-icon {
@@ -5042,7 +5042,7 @@
     z-index: 3;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-sm);
     padding: 5px 10px 5px 5px;
     border-radius: var(--radius-pill);
     background: rgba(14, 26, 52, 0.78);
