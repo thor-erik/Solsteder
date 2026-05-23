@@ -3072,8 +3072,10 @@
     width: 100%; box-sizing: border-box;
     background: rgba(255,255,255,0.07);
     border: 1px solid rgba(255,255,255,0.15); border-radius: var(--radius-sm);
-    color: var(--text); font-family: 'Inter', sans-serif; font-size: 13px;
-    padding: var(--space-md) var(--space-lg); outline: none;
+    color: var(--text); font-family: 'Inter', sans-serif; font-size: 16px;
+    /* Match the auth buttons' height (12px block padding) so the input + the
+       honey submit read as one pair; 16px font also blocks iOS zoom-on-focus. */
+    padding: var(--space-lg); outline: none;
   }
   .auth-magic-link-input:focus { border-color: rgba(156,189,231,0.5); }
   .auth-magic-link-input::placeholder { color: var(--muted); }
@@ -3084,8 +3086,8 @@
     width: 100%; box-sizing: border-box;
     background: rgba(255,255,255,0.07);
     border: 1px solid rgba(255,255,255,0.15); border-radius: var(--radius-sm);
-    color: var(--text); font-family: 'Inter', sans-serif; font-size: 13px;
-    padding: var(--space-md) var(--space-lg); outline: none;
+    color: var(--text); font-family: 'Inter', sans-serif; font-size: 16px;
+    padding: var(--space-lg); outline: none;
   }
   .auth-password-input:focus { border-color: rgba(156,189,231,0.5); }
   .auth-password-input::placeholder { color: var(--muted); }
@@ -3136,7 +3138,7 @@
     background: rgba(255,255,255,0.2); border: none; padding: 0;
     cursor: pointer; transition: background 0.2s, width 0.2s;
   }
-  .login-dot.active { background: var(--accent); width: 18px; border-radius: var(--radius-none); }
+  .login-dot.active { background: var(--accent); width: 18px; border-radius: var(--radius-pill); }
 
   .login-auth-section { padding: var(--space-md) var(--space-xl) var(--space-lg); }
   .login-auth-section .login-gate-buttons { max-width: none; margin-top: 0; }

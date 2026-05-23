@@ -1166,6 +1166,12 @@
     transform: translateX(0);
     opacity: 0;
     pointer-events: none;
+    /* Centre the carousel + sign-in as one cohesive group (no dead zone).
+       `safe` centring + overflow-y auto means tall content (small screens /
+       landscape) falls back to top-aligned and scrolls instead of clipping. */
+    justify-content: safe center;
+    gap: var(--space-xl);
+    overflow-y: auto;
   }
   #profile-panel.logged-out.open {
     opacity: 1;
@@ -1176,9 +1182,11 @@
      bottom. Same flex split on desktop and mobile — typography overrides for
      mobile live in the @media block below. */
   #profile-panel.logged-out .login-hero {
-    flex: 1 1 auto;
+    /* Natural height (not flex:1 stretch) so the container can centre hero +
+       auth together as a group rather than pinning auth to the very bottom. */
+    flex: 0 1 auto;
     display: flex; flex-direction: column; justify-content: center;
-    padding: var(--space-3xl) var(--space-xl) var(--space-md);
+    padding: var(--space-md) var(--space-xl);
     width: 100%;
     box-sizing: border-box;
   }
