@@ -1171,6 +1171,19 @@ function _sunHoursLine(v, dateStr) {
   } catch { return ''; }
 }
 
+// Terse pill time text, i18n'd (was hardcoded Norwegian "Åpner/til/fra").
+// Returns '' when no time label applies. Fallbacks keep NO if i18n is absent.
+function _pillTimeText(closedOpens, openHour, tier, cls) {
+  const T = (typeof t === 'function') ? t : null;
+  if (closedOpens && openHour != null)
+    return T ? T('map_pin_opens', { time: _fmtTime(openHour) }) : 'Åpner ' + _fmtTime(openHour);
+  if (tier === 'hero' && cls.endHour)
+    return T ? T('map_pin_until', { time: _fmtTime(cls.endHour) }) : 'til ' + _fmtTime(cls.endHour);
+  if (tier === 'waiting' && cls.nextStart != null)
+    return T ? T('map_pin_from', { time: _fmtTime(cls.nextStart) }) : 'fra ' + _fmtTime(cls.nextStart);
+  return '';
+}
+
 // ── Pin animation framework (alpha + scale + morph, smooth lerp) ─────────────
 // Per-pin state:
 //   alpha / scale       — pill body (existing fade/scale)
@@ -1703,10 +1716,7 @@ function draw() {
       // Build pill text exactly as the main pipeline would
       const closedOpens = !!cls.closedOpeningIntoSun;
       const openHour    = closedOpens ? (v.openingHours && v.openingHours.open) : null;
-      let time = '';
-      if (closedOpens && openHour != null) time = 'Åpner ' + _fmtTime(openHour);
-      else if (cls.tier === 'hero' && cls.endHour) time = 'til ' + _fmtTime(cls.endHour);
-      else if (cls.tier === 'waiting' && cls.nextStart != null) time = 'fra ' + _fmtTime(cls.nextStart);
+      let time = _pillTimeText(closedOpens, openHour, cls.tier, cls);
       const w = _pillWidth(ctx, time, friends.length);
       _drawPill(ctx, pt, w, time, cls.tier, {
         selected: false, hovered: false, closedNow: closedOpens,
@@ -1959,19 +1969,16 @@ function draw() {
     const closedOpens = !!cls.closedOpeningIntoSun;
     const openHour    = closedOpens ? (v.openingHours && v.openingHours.open) : null;
 
-    let time = '';
-    if (closedOpens && openHour != null) {
-      time = 'Åpner ' + _fmtTime(openHour);
-    } else if (tier === 'hero' && cls.endHour) {
-      time = 'til ' + _fmtTime(cls.endHour);
-    } else if (tier === 'waiting' && cls.nextStart != null) {
-      time = 'fra ' + _fmtTime(cls.nextStart);
-    } else if (hasFriends && typeof computeSunWindows === 'function') {
+    let time = _pillTimeText(closedOpens, openHour, tier, cls);
+    if (!time && hasFriends && typeof computeSunWindows === 'function') {
+      const noSun = (typeof t === 'function') ? t('map_pin_no_sun') : 'Ikke mer sol';
       try {
         const { windows } = computeSunWindows(v, dateStr);
         const next = windows.find(w => w.start > currentHour);
-        time = next ? 'fra ' + _fmtTime(next.start) : 'Ikke mer sol';
-      } catch { time = 'Ikke mer sol'; }
+        time = next
+          ? ((typeof t === 'function') ? t('map_pin_from', { time: _fmtTime(next.start) }) : 'fra ' + _fmtTime(next.start))
+          : noSun;
+      } catch { time = noSun; }
     }
 
     const w = _pillWidth(ctx, time, friends.length);
@@ -2300,16 +2307,25 @@ function draw() {
     const isFriend = entry._friends && entry._friends.length > 0;
     const going    = _getGoing(v, dateStr);
 
+    // Second row is a zoom>=16 (street-level) detail only — keeps the city
+    // view to name-only. All three variants share the one gate.
     let sec = '';
-    if (entry._closedOpens && entry._nextStart != null) {
-      sec = 'Sol fra ' + _fmtTime(entry._nextStart);
-    } else if (going.length > 0) {
-      const firstName = (going[0].user && going[0].user.name || '?').split(' ')[0];
-      sec = going.length === 1
-        ? `${firstName} planlegger`
-        : `${firstName} +${going.length - 1} planlegger`;
-    } else if (zoom >= 16) {
-      sec = _sunHoursLine(v, dateStr);
+    if (zoom >= 16) {
+      if (entry._closedOpens && entry._nextStart != null) {
+        sec = (typeof t === 'function')
+          ? t('map_pin_sun_from', { time: _fmtTime(entry._nextStart) })
+          : 'Sol fra ' + _fmtTime(entry._nextStart);
+      } else if (going.length > 0) {
+        const firstName = (going[0].user && going[0].user.name || '?').split(' ')[0];
+        const extra = going.length - 1;
+        sec = (typeof t === 'function')
+          ? (going.length === 1
+              ? t('map_pin_planning_one', { name: firstName })
+              : t('map_pin_planning_many', { name: firstName, n: extra }))
+          : (going.length === 1 ? `${firstName} planlegger` : `${firstName} +${extra} planlegger`);
+      } else {
+        sec = _sunHoursLine(v, dateStr);
+      }
     }
 
     // Label alpha follows the pill's morph — fades in only when the
