@@ -2060,23 +2060,25 @@
     border-color: transparent;
     color: var(--text);
   }
-  /* Custom ±5-min stepper — circle outline buttons (.s-circ register) + a
-     clear ink value between, centered on row 2. Light-surface controls. */
+  /* Custom ±5-min stepper — ONE integrated segmented pill: [ − │ value │ + ].
+     Single outline container with internal dividers so it reads as one control,
+     not a number floating between two buttons. Light-surface (ink + outline). */
   .pp-later-strip .pp-later-stepper {
     grid-column: 1 / -1;
     justify-self: center;
     display: inline-flex;
-    align-items: center;
-    gap: var(--space-md);
+    align-items: stretch;
     height: 36px;
+    background: var(--surface-control);
+    border: 1px solid var(--line-l-strong);
+    border-radius: var(--radius-pill);
+    overflow: hidden;
   }
   .pp-later-strip .pp-later-stepper[hidden] { display: none; }
   .pp-later-strip .pp-step-btn {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    border: 1px solid var(--line-l-strong);
-    background: var(--surface-control);
+    width: 40px;
+    border: none;
+    background: transparent;
     color: var(--panel-text);
     font-size: var(--text-subtitle);
     font-weight: 700;
@@ -2085,13 +2087,18 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    transition: background 120ms ease-out, transform 90ms ease-out;
+    transition: background 120ms ease-out;
   }
-  .pp-later-strip .pp-step-btn:hover { background: var(--line-l-faint); }
-  .pp-later-strip .pp-step-btn:active { transform: scale(0.94); }
+  .pp-later-strip .pp-step-btn:first-child { border-right: 1px solid var(--line-l); }
+  .pp-later-strip .pp-step-btn:last-child  { border-left: 1px solid var(--line-l); }
+  .pp-later-strip .pp-step-btn:hover  { background: var(--line-l-faint); }
+  .pp-later-strip .pp-step-btn:active { background: var(--line-l); }
   .pp-later-strip .pp-later-stepper-val {
-    min-width: 84px;
-    text-align: center;
+    min-width: 96px;
+    padding: 0 var(--space-md);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     font-size: var(--text-label);
     font-weight: 700;
     color: var(--panel-text);
