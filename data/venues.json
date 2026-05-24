@@ -150,7 +150,8 @@
         "close": 23
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Bjørvika"
   },
   {
     "id": 4,
@@ -199,7 +200,8 @@
       }
     },
     "hoursSource": "google",
-    "beerPrice": 132
+    "beerPrice": 132,
+    "areaFine": "Vika"
   },
   {
     "id": 5,
@@ -252,7 +254,8 @@
       }
     },
     "hoursSource": "google",
-    "beerPrice": 136
+    "beerPrice": 136,
+    "areaFine": "Uranienborg"
   },
   {
     "id": 6,
@@ -296,7 +299,8 @@
         "close": 24
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Filipstad"
   },
   {
     "id": 7,
@@ -349,7 +353,8 @@
       }
     },
     "hoursSource": "google",
-    "beerPrice": 136
+    "beerPrice": 136,
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 8,
@@ -402,7 +407,8 @@
         "close": 22
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Grønland"
   },
   {
     "id": 9,
@@ -450,7 +456,8 @@
         "close": 23
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 10,
@@ -498,7 +505,8 @@
         "close": 22
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 11,
@@ -551,7 +559,8 @@
       }
     },
     "hoursSource": "google",
-    "beerPrice": 136
+    "beerPrice": 136,
+    "areaFine": "Aker brygge"
   },
   {
     "id": 12,
@@ -600,7 +609,8 @@
       }
     },
     "hoursSource": "google",
-    "beerPrice": 129
+    "beerPrice": 129,
+    "areaFine": "Bjørvika"
   },
   {
     "id": 13,
@@ -649,7 +659,8 @@
       }
     },
     "hoursSource": "google",
-    "beerPrice": 112
+    "beerPrice": 112,
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 14,
@@ -698,7 +709,8 @@
       }
     },
     "hoursSource": "google",
-    "beerPrice": 115
+    "beerPrice": 115,
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 15,
@@ -743,7 +755,8 @@
     },
     "hoursSource": "google",
     "businessStatus": "OPERATIONAL",
-    "beerPrice": 150
+    "beerPrice": 150,
+    "areaFine": "Aker brygge"
   },
   {
     "id": 16,
@@ -791,7 +804,8 @@
         "close": 23.5
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 17,
@@ -844,7 +858,8 @@
       }
     },
     "hoursSource": "google",
-    "beerPrice": 136
+    "beerPrice": 136,
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 18,
@@ -896,7 +911,8 @@
         "close": 23
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 19,
@@ -940,7 +956,8 @@
         "close": 22
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 20,
@@ -961,7 +978,8 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJD8q5pBhvQUYRnfaG2QjLLzo",
     "facingSource": null,
-    "businessStatus": "OPERATIONAL"
+    "businessStatus": "OPERATIONAL",
+    "areaFine": "Bjørvika"
   },
   {
     "id": 21,
@@ -1061,7 +1079,8 @@
         "close": 22
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 23,
@@ -1114,7 +1133,8 @@
     },
     "hoursSource": "google",
     "businessStatus": "OPERATIONAL",
-    "beerPrice": 115
+    "beerPrice": 115,
+    "areaFine": "Vika"
   },
   {
     "id": 24,
@@ -1167,7 +1187,8 @@
     },
     "hoursSource": "google",
     "businessStatus": "OPERATIONAL",
-    "beerPrice": 143
+    "beerPrice": 143,
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 25,
@@ -1219,7 +1240,8 @@
         "close": 23
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Gamle Aker"
   },
   {
     "id": 26,
@@ -1272,7 +1294,8 @@
       }
     },
     "hoursSource": "google",
-    "beerPrice": 113
+    "beerPrice": 113,
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 27,
@@ -1294,7 +1317,8 @@
     "googlePlaceId": "ChIJYTFu6IZuQUYR6JHUhq9tXQ0",
     "facingSource": null,
     "businessStatus": "OPERATIONAL",
-    "beerPrice": 149
+    "beerPrice": 149,
+    "areaFine": "Vika"
   },
   {
     "id": 28,
@@ -1315,7 +1339,8 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJxTPmTuhvQUYRZMQnxQyvjEo",
     "facingSource": null,
-    "businessStatus": "OPERATIONAL"
+    "businessStatus": "OPERATIONAL",
+    "areaFine": "Gamle Aker"
   },
   {
     "id": 29,
@@ -1368,7 +1393,8 @@
       }
     },
     "hoursSource": "google",
-    "beerPrice": 143
+    "beerPrice": 143,
+    "areaFine": "Vika"
   },
   {
     "id": 30,
@@ -1417,7 +1443,8 @@
       }
     },
     "hoursSource": "google",
-    "beerPrice": 116
+    "beerPrice": 116,
+    "areaFine": "Gamle Aker"
   },
   {
     "id": 31,
@@ -1470,7 +1497,8 @@
     },
     "hoursSource": "google",
     "businessStatus": "OPERATIONAL",
-    "beerPrice": 145
+    "beerPrice": 145,
+    "areaFine": "Vika"
   },
   {
     "id": 32,
@@ -1523,7 +1551,8 @@
     },
     "hoursSource": "google",
     "businessStatus": "OPERATIONAL",
-    "beerPrice": 99
+    "beerPrice": 99,
+    "areaFine": "Gamle Aker"
   },
   {
     "id": 33,
@@ -1575,7 +1604,8 @@
         "close": 22
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Filipstad"
   },
   {
     "id": 34,
@@ -1624,7 +1654,8 @@
       }
     },
     "hoursSource": "google",
-    "beerPrice": 148
+    "beerPrice": 148,
+    "areaFine": "Bjørvika"
   },
   {
     "id": 35,
@@ -1729,7 +1760,8 @@
         "close": 23
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Aker brygge"
   },
   {
     "id": 37,
@@ -1773,7 +1805,8 @@
         "close": 23
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Filipstad"
   },
   {
     "id": 38,
@@ -1817,7 +1850,8 @@
         "close": 1
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Vika"
   },
   {
     "id": 39,
@@ -1843,7 +1877,8 @@
     "terraceDetachedLocation": {
       "lat": 59.9096272,
       "lng": 10.7278424
-    }
+    },
+    "areaFine": "Aker brygge"
   },
   {
     "id": 40,
@@ -1895,7 +1930,8 @@
         "close": 19
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Bjørvika"
   },
   {
     "id": 41,
@@ -1940,7 +1976,8 @@
       }
     },
     "hoursSource": "google",
-    "beerPrice": 99
+    "beerPrice": 99,
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 42,
@@ -1992,7 +2029,8 @@
       }
     },
     "hoursSource": "google",
-    "businessStatus": "OPERATIONAL"
+    "businessStatus": "OPERATIONAL",
+    "areaFine": "Aker brygge"
   },
   {
     "id": 43,
@@ -2066,7 +2104,8 @@
     "googlePlaceId": "ChIJPS6kjoxuQUYRiTPjAiosgHo",
     "facingSource": null,
     "businessStatus": "OPERATIONAL",
-    "beerPrice": 121
+    "beerPrice": 121,
+    "areaFine": "Sørenga"
   },
   {
     "id": 45,
@@ -2115,7 +2154,8 @@
       }
     },
     "hoursSource": "google",
-    "beerPrice": 125
+    "beerPrice": 125,
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 46,
@@ -2167,7 +2207,8 @@
         "close": 24
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 47,
@@ -2209,7 +2250,8 @@
       }
     },
     "hoursSource": "google",
-    "beerPrice": 140
+    "beerPrice": 140,
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 48,
@@ -2254,7 +2296,8 @@
       }
     },
     "hoursSource": "google",
-    "beerPrice": 97
+    "beerPrice": 97,
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 49,
@@ -2306,7 +2349,8 @@
       }
     },
     "hoursSource": "google",
-    "businessStatus": "OPERATIONAL"
+    "businessStatus": "OPERATIONAL",
+    "areaFine": "Bjørvika"
   },
   {
     "id": 50,
@@ -2359,7 +2403,8 @@
       }
     },
     "hoursSource": "google",
-    "beerPrice": 130
+    "beerPrice": 130,
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 51,
@@ -2411,7 +2456,8 @@
         "close": 18
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Grønland"
   },
   {
     "id": 52,
@@ -2459,7 +2505,8 @@
         "close": 24
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Grønland"
   },
   {
     "id": 53,
@@ -2511,7 +2558,8 @@
         "close": 22
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 54,
@@ -2564,7 +2612,8 @@
     },
     "hoursSource": "google",
     "businessStatus": "OPERATIONAL",
-    "beerPrice": 136
+    "beerPrice": 136,
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 55,
@@ -2664,7 +2713,8 @@
         "close": 18
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Vika"
   },
   {
     "id": 57,
@@ -2717,7 +2767,8 @@
       }
     },
     "hoursSource": "google",
-    "beerPrice": 132
+    "beerPrice": 132,
+    "areaFine": "Uranienborg"
   },
   {
     "id": 58,
@@ -2761,7 +2812,8 @@
         "close": 23
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Vika"
   },
   {
     "id": 59,
@@ -2782,7 +2834,8 @@
     "buildingOsmId": null,
     "googlePlaceId": "ChIJMdN_lH5tQUYRsZ-p2q9yxmc",
     "facingSource": null,
-    "businessStatus": "OPERATIONAL"
+    "businessStatus": "OPERATIONAL",
+    "areaFine": "Filipstad"
   },
   {
     "id": 60,
@@ -2835,7 +2888,8 @@
       }
     },
     "hoursSource": "google",
-    "beerPrice": 122
+    "beerPrice": 122,
+    "areaFine": "Grünerløkka"
   },
   {
     "id": 61,
@@ -2990,7 +3044,8 @@
       }
     },
     "hoursSource": "google",
-    "beerPrice": 122
+    "beerPrice": 122,
+    "areaFine": "Vika"
   },
   {
     "id": 64,
@@ -3096,7 +3151,8 @@
       }
     },
     "hoursSource": "google",
-    "beerPrice": 136
+    "beerPrice": 136,
+    "areaFine": "Uranienborg"
   },
   {
     "id": 66,
@@ -3149,7 +3205,8 @@
     },
     "hoursSource": "google",
     "businessStatus": "OPERATIONAL",
-    "beerPrice": 135
+    "beerPrice": 135,
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 67,
@@ -3202,7 +3259,8 @@
       }
     },
     "hoursSource": "google",
-    "beerPrice": 122
+    "beerPrice": 122,
+    "areaFine": "Gamle Aker"
   },
   {
     "id": 68,
@@ -3255,7 +3313,8 @@
       }
     },
     "hoursSource": "google",
-    "beerPrice": 120
+    "beerPrice": 120,
+    "areaFine": "Vika"
   },
   {
     "id": 69,
@@ -3355,7 +3414,8 @@
         "close": 23
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Dælenenga"
   },
   {
     "id": 71,
@@ -3448,7 +3508,8 @@
       }
     },
     "hoursSource": "google",
-    "businessStatus": "OPERATIONAL"
+    "businessStatus": "OPERATIONAL",
+    "areaFine": "Tøyen"
   },
   {
     "id": 73,
@@ -3488,7 +3549,8 @@
         "close": 23
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Sofienberg"
   },
   {
     "id": 74,
@@ -3541,7 +3603,8 @@
       }
     },
     "hoursSource": "google",
-    "beerPrice": 118
+    "beerPrice": 118,
+    "areaFine": "Sofienberg"
   },
   {
     "id": 75,
@@ -3701,7 +3764,8 @@
       }
     },
     "hoursSource": "google",
-    "beerPrice": 142
+    "beerPrice": 142,
+    "areaFine": "Grønland"
   },
   {
     "id": 78,
@@ -3754,7 +3818,8 @@
       }
     },
     "hoursSource": "google",
-    "beerPrice": 96
+    "beerPrice": 96,
+    "areaFine": "Grønland"
   },
   {
     "id": 79,
@@ -3852,7 +3917,8 @@
       }
     },
     "hoursSource": "google",
-    "beerPrice": 123
+    "beerPrice": 123,
+    "areaFine": "Bjørvika"
   },
   {
     "id": 81,
@@ -3904,7 +3970,8 @@
         "close": 19
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Gamle Aker"
   },
   {
     "id": 82,
@@ -3957,7 +4024,8 @@
       }
     },
     "hoursSource": "google",
-    "beerPrice": 105
+    "beerPrice": 105,
+    "areaFine": "Enerhaugen"
   },
   {
     "id": 83,
@@ -4116,7 +4184,8 @@
       }
     },
     "hoursSource": "google",
-    "beerPrice": 130
+    "beerPrice": 130,
+    "areaFine": "Filipstad"
   },
   {
     "id": 86,
@@ -4217,7 +4286,8 @@
         "close": 24
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Vika"
   },
   {
     "id": 88,
@@ -4478,7 +4548,8 @@
         "close": 17
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Uranienborg"
   },
   {
     "id": 93,
@@ -4530,7 +4601,8 @@
         "close": 18
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Uranienborg"
   },
   {
     "id": 94,
@@ -4636,7 +4708,8 @@
       }
     },
     "hoursSource": "google",
-    "beerPrice": 146
+    "beerPrice": 146,
+    "areaFine": "Skillebekk"
   },
   {
     "id": 96,
@@ -4741,7 +4814,8 @@
       }
     },
     "hoursSource": "google",
-    "beerPrice": 122
+    "beerPrice": 122,
+    "areaFine": "Vika"
   },
   {
     "id": 98,
@@ -4786,7 +4860,8 @@
         "close": 22
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 99,
@@ -4839,7 +4914,8 @@
       }
     },
     "hoursSource": "google",
-    "beerPrice": 135
+    "beerPrice": 135,
+    "areaFine": "Sørenga"
   },
   {
     "id": 100,
@@ -4892,7 +4968,8 @@
       }
     },
     "hoursSource": "google",
-    "beerPrice": 130
+    "beerPrice": 130,
+    "areaFine": "Sørenga"
   },
   {
     "id": 101,
@@ -4940,7 +5017,8 @@
         "close": 18
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Sørenga"
   },
   {
     "id": 102,
@@ -4988,7 +5066,8 @@
         "close": 23
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Bjørvika"
   },
   {
     "id": 103,
@@ -5040,7 +5119,8 @@
         "close": 0.5
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Sørenga"
   },
   {
     "id": 104,
@@ -5093,7 +5173,8 @@
     },
     "hoursSource": "google",
     "businessStatus": "OPERATIONAL",
-    "beerPrice": 143
+    "beerPrice": 143,
+    "areaFine": "Bjørvika"
   },
   {
     "id": 105,
@@ -5145,7 +5226,8 @@
         "close": 23.5
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Vika"
   },
   {
     "id": 106,
@@ -5197,7 +5279,8 @@
         "close": 23
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 107,
@@ -5250,7 +5333,8 @@
       }
     },
     "hoursSource": "google",
-    "beerPrice": 140
+    "beerPrice": 140,
+    "areaFine": "Bjørvika"
   },
   {
     "id": 108,
@@ -5354,7 +5438,8 @@
         "close": 18
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Enerhaugen"
   },
   {
     "id": 110,
@@ -5407,7 +5492,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 111,
@@ -5429,7 +5515,8 @@
     "googlePlaceId": "ChIJbZOS8b9vQUYRevPyTUXilPU",
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
-    "businessStatus": "CLOSED_TEMPORARILY"
+    "businessStatus": "CLOSED_TEMPORARILY",
+    "areaFine": "Vika"
   },
   {
     "id": 112,
@@ -5483,7 +5570,8 @@
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 140
+    "beerPrice": 140,
+    "areaFine": "Vika"
   },
   {
     "id": 113,
@@ -5537,7 +5625,8 @@
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 106
+    "beerPrice": 106,
+    "areaFine": "Vika"
   },
   {
     "id": 114,
@@ -5586,7 +5675,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Bislett"
   },
   {
     "id": 115,
@@ -5631,7 +5721,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Bislett"
   },
   {
     "id": 116,
@@ -5684,7 +5775,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Sofienberg"
   },
   {
     "id": 117,
@@ -5737,7 +5829,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Sofienberg"
   },
   {
     "id": 118,
@@ -5782,7 +5875,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Sofienberg"
   },
   {
     "id": 119,
@@ -5832,7 +5926,8 @@
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 140
+    "beerPrice": 140,
+    "areaFine": "Sofienberg"
   },
   {
     "id": 120,
@@ -5885,7 +5980,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Sofienberg"
   },
   {
     "id": 121,
@@ -5968,7 +6064,8 @@
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 120
+    "beerPrice": 120,
+    "areaFine": "Sofienberg"
   },
   {
     "id": 123,
@@ -6021,7 +6118,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Sofienberg"
   },
   {
     "id": 124,
@@ -6128,7 +6226,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Uranienborg"
   },
   {
     "id": 126,
@@ -6181,7 +6280,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Uranienborg"
   },
   {
     "id": 127,
@@ -6231,7 +6331,8 @@
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 98
+    "beerPrice": 98,
+    "areaFine": "Uranienborg"
   },
   {
     "id": 128,
@@ -6280,7 +6381,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Uranienborg"
   },
   {
     "id": 129,
@@ -6333,7 +6435,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Uranienborg"
   },
   {
     "id": 130,
@@ -6375,7 +6478,8 @@
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 178
+    "beerPrice": 178,
+    "areaFine": "Uranienborg"
   },
   {
     "id": 131,
@@ -6428,7 +6532,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Uranienborg"
   },
   {
     "id": 132,
@@ -6720,7 +6825,8 @@
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 148
+    "beerPrice": 148,
+    "areaFine": "Aker brygge"
   },
   {
     "id": 138,
@@ -6773,7 +6879,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Aker brygge"
   },
   {
     "id": 139,
@@ -6827,7 +6934,8 @@
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 128
+    "beerPrice": 128,
+    "areaFine": "Aker brygge"
   },
   {
     "id": 140,
@@ -6849,7 +6957,8 @@
     "googlePlaceId": "ChIJkYfnSWJvQUYR1GtHZ57kHnE",
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
-    "businessStatus": "CLOSED_TEMPORARILY"
+    "businessStatus": "CLOSED_TEMPORARILY",
+    "areaFine": "Aker brygge"
   },
   {
     "id": 141,
@@ -6902,7 +7011,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Aker brygge"
   },
   {
     "id": 142,
@@ -6955,7 +7065,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Bjørvika"
   },
   {
     "id": 143,
@@ -7008,7 +7119,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Bjørvika"
   },
   {
     "id": 144,
@@ -7061,7 +7173,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Bjørvika"
   },
   {
     "id": 145,
@@ -7115,7 +7228,8 @@
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 143
+    "beerPrice": 143,
+    "areaFine": "Bjørvika"
   },
   {
     "id": 146,
@@ -7169,7 +7283,8 @@
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 148
+    "beerPrice": 148,
+    "areaFine": "Bjørvika"
   },
   {
     "id": 147,
@@ -7222,7 +7337,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Dælenenga"
   },
   {
     "id": 148,
@@ -7275,7 +7391,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Dælenenga"
   },
   {
     "id": 149,
@@ -7328,7 +7445,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Torshov"
   },
   {
     "id": 150,
@@ -7381,7 +7499,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Dælenenga"
   },
   {
     "id": 151,
@@ -7434,7 +7553,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Dælenenga"
   },
   {
     "id": 152,
@@ -7616,7 +7736,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Ullevål"
   },
   {
     "id": 156,
@@ -7778,7 +7899,8 @@
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 99
+    "beerPrice": 99,
+    "areaFine": "Carl Berner"
   },
   {
     "id": 159,
@@ -7831,7 +7953,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Carl Berner"
   },
   {
     "id": 160,
@@ -7876,7 +7999,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Dælenenga"
   },
   {
     "id": 161,
@@ -7922,7 +8046,8 @@
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 132
+    "beerPrice": 132,
+    "areaFine": "Dælenenga"
   },
   {
     "id": 162,
@@ -7976,7 +8101,8 @@
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 117
+    "beerPrice": 117,
+    "areaFine": "Dælenenga"
   },
   {
     "id": 163,
@@ -8029,7 +8155,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Rosenhoff"
   },
   {
     "id": 164,
@@ -8082,7 +8209,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Løren"
   },
   {
     "id": 165,
@@ -8136,7 +8264,8 @@
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 108
+    "beerPrice": 108,
+    "areaFine": "Løren"
   },
   {
     "id": 166,
@@ -8181,7 +8310,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Løren"
   },
   {
     "id": 167,
@@ -8234,7 +8364,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Løren"
   },
   {
     "id": 168,
@@ -8287,7 +8418,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Løren"
   },
   {
     "id": 169,
@@ -8340,7 +8472,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Løren"
   },
   {
     "id": 170,
@@ -8448,7 +8581,8 @@
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 111
+    "beerPrice": 111,
+    "areaFine": "Løren"
   },
   {
     "id": 172,
@@ -8552,7 +8686,8 @@
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 155
+    "beerPrice": 155,
+    "areaFine": "Løren"
   },
   {
     "id": 174,
@@ -8606,7 +8741,8 @@
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 126
+    "beerPrice": 126,
+    "areaFine": "Abbediengen"
   },
   {
     "id": 175,
@@ -8655,7 +8791,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Abbediengen"
   },
   {
     "id": 176,
@@ -8708,7 +8845,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Sjølyst"
   },
   {
     "id": 177,
@@ -8783,7 +8921,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Bygdøy"
   },
   {
     "id": 179,
@@ -8836,7 +8975,8 @@
         "close": 21.5
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Bygdøy"
   },
   {
     "id": 180,
@@ -8869,7 +9009,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Bygdøy"
   },
   {
     "id": 181,
@@ -9010,7 +9151,8 @@
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 112
+    "beerPrice": 112,
+    "areaFine": "Valle"
   },
   {
     "id": 184,
@@ -9064,7 +9206,8 @@
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 131
+    "beerPrice": 131,
+    "areaFine": "Oppsal"
   },
   {
     "id": 185,
@@ -9114,7 +9257,8 @@
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 130
+    "beerPrice": 130,
+    "areaFine": "Oppsal"
   },
   {
     "id": 186,
@@ -9167,7 +9311,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Karlsrud"
   },
   {
     "id": 187,
@@ -9217,7 +9362,8 @@
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 89
+    "beerPrice": 89,
+    "areaFine": "Karlsrud"
   },
   {
     "id": 188,
@@ -9271,7 +9417,8 @@
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 136
+    "beerPrice": 136,
+    "areaFine": "Bjørvika"
   },
   {
     "id": 189,
@@ -9316,7 +9463,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 190,
@@ -9570,7 +9718,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Uranienborg"
   },
   {
     "id": 195,
@@ -9772,7 +9921,8 @@
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 116
+    "beerPrice": 116,
+    "areaFine": "Adamstuen"
   },
   {
     "id": 199,
@@ -9871,7 +10021,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Uranienborg"
   },
   {
     "id": 201,
@@ -10019,7 +10170,8 @@
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 132
+    "beerPrice": 132,
+    "areaFine": "Grünerløkka"
   },
   {
     "id": 204,
@@ -10064,7 +10216,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Skillebekk"
   },
   {
     "id": 205,
@@ -10209,7 +10362,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Skillebekk"
   },
   {
     "id": 208,
@@ -10317,7 +10471,8 @@
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 130
+    "beerPrice": 130,
+    "areaFine": "Filipstad"
   },
   {
     "id": 210,
@@ -10423,7 +10578,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Skillebekk"
   },
   {
     "id": 212,
@@ -10571,7 +10727,8 @@
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 132
+    "beerPrice": 132,
+    "areaFine": "Skillebekk"
   },
   {
     "id": 215,
@@ -10625,7 +10782,8 @@
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 141
+    "beerPrice": 141,
+    "areaFine": "Aker brygge"
   },
   {
     "id": 216,
@@ -10679,7 +10837,8 @@
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 128
+    "beerPrice": 128,
+    "areaFine": "Aker brygge"
   },
   {
     "id": 217,
@@ -10728,7 +10887,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Aker brygge"
   },
   {
     "id": 218,
@@ -10782,7 +10942,8 @@
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 162
+    "beerPrice": 162,
+    "areaFine": "Aker brygge"
   },
   {
     "id": 219,
@@ -10831,7 +10992,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Aker brygge"
   },
   {
     "id": 220,
@@ -10853,7 +11015,8 @@
     "googlePlaceId": "ChIJg2afGoFuQUYRxzRil8hmP0c",
     "facingSource": null,
     "discoverySignal": "uteservering",
-    "businessStatus": "OPERATIONAL"
+    "businessStatus": "OPERATIONAL",
+    "areaFine": "Aker brygge"
   },
   {
     "id": 221,
@@ -10907,7 +11070,8 @@
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 134
+    "beerPrice": 134,
+    "areaFine": "Aker brygge"
   },
   {
     "id": 222,
@@ -10961,7 +11125,8 @@
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 142
+    "beerPrice": 142,
+    "areaFine": "Torshov"
   },
   {
     "id": 223,
@@ -11014,7 +11179,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Torshov"
   },
   {
     "id": 224,
@@ -11068,7 +11234,8 @@
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 130
+    "beerPrice": 130,
+    "areaFine": "Sandaker"
   },
   {
     "id": 225,
@@ -11113,7 +11280,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Bjølsen"
   },
   {
     "id": 226,
@@ -11166,7 +11334,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Sandaker"
   },
   {
     "id": 227,
@@ -11211,7 +11380,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Torshov"
   },
   {
     "id": 228,
@@ -11264,7 +11434,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Bjølsen"
   },
   {
     "id": 229,
@@ -11318,7 +11489,8 @@
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 95
+    "beerPrice": 95,
+    "areaFine": "Torshov"
   },
   {
     "id": 230,
@@ -11372,7 +11544,8 @@
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 123
+    "beerPrice": 123,
+    "areaFine": "Bjølsen"
   },
   {
     "id": 232,
@@ -11584,7 +11757,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Bjølsen"
   },
   {
     "id": 236,
@@ -11944,7 +12118,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Storo"
   },
   {
     "id": 243,
@@ -12051,7 +12226,8 @@
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 116
+    "beerPrice": 116,
+    "areaFine": "Kampen"
   },
   {
     "id": 245,
@@ -12101,7 +12277,8 @@
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 102
+    "beerPrice": 102,
+    "areaFine": "Kampen"
   },
   {
     "id": 246,
@@ -12294,7 +12471,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kampen"
   },
   {
     "id": 250,
@@ -12348,7 +12526,8 @@
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 130
+    "beerPrice": 130,
+    "areaFine": "Carl Berner"
   },
   {
     "id": 251,
@@ -12454,7 +12633,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Carl Berner"
   },
   {
     "id": 253,
@@ -12508,7 +12688,8 @@
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 132
+    "beerPrice": 132,
+    "areaFine": "Hasle"
   },
   {
     "id": 254,
@@ -12562,7 +12743,8 @@
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 136
+    "beerPrice": 136,
+    "areaFine": "Løren"
   },
   {
     "id": 255,
@@ -12612,7 +12794,8 @@
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 109
+    "beerPrice": 109,
+    "areaFine": "Dælenenga"
   },
   {
     "id": 256,
@@ -12988,7 +13171,8 @@
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 123
+    "beerPrice": 123,
+    "areaFine": "Bislett"
   },
   {
     "id": 263,
@@ -13042,7 +13226,8 @@
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 137
+    "beerPrice": 137,
+    "areaFine": "Bislett"
   },
   {
     "id": 264,
@@ -13149,7 +13334,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Uranienborg"
   },
   {
     "id": 266,
@@ -13198,7 +13384,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Vinderen"
   },
   {
     "id": 267,
@@ -13364,7 +13551,8 @@
     "googlePlaceId": "ChIJrYyR4bJtQUYRNBDpxt-TEGc",
     "facingSource": null,
     "discoverySignal": "both",
-    "businessStatus": "OPERATIONAL"
+    "businessStatus": "OPERATIONAL",
+    "areaFine": "Sjølyst"
   },
   {
     "id": 271,
@@ -13417,7 +13605,8 @@
     "facingSource": null,
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Sjølyst"
   },
   {
     "id": 272,
@@ -13614,7 +13803,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Sollerud"
   },
   {
     "id": 276,
@@ -13721,7 +13911,8 @@
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 98
+    "beerPrice": 98,
+    "areaFine": "Sollerud"
   },
   {
     "id": 278,
@@ -13774,7 +13965,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Sollerud"
   },
   {
     "id": 279,
@@ -13932,7 +14124,8 @@
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 116
+    "beerPrice": 116,
+    "areaFine": "Vålerenga"
   },
   {
     "id": 282,
@@ -13986,7 +14179,8 @@
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 95
+    "beerPrice": 95,
+    "areaFine": "Ensjø"
   },
   {
     "id": 283,
@@ -14032,7 +14226,8 @@
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 98
+    "beerPrice": 98,
+    "areaFine": "Ensjø"
   },
   {
     "id": 284,
@@ -14078,7 +14273,8 @@
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 108
+    "beerPrice": 108,
+    "areaFine": "Ekebergskrenten"
   },
   {
     "id": 285,
@@ -14128,7 +14324,8 @@
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 98
+    "beerPrice": 98,
+    "areaFine": "Kværnerbyen"
   },
   {
     "id": 286,
@@ -14347,7 +14544,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "beerPrice": 125
+    "beerPrice": 125,
+    "areaFine": "Høyenhall"
   },
   {
     "id": 292,
@@ -14369,7 +14567,8 @@
     "googlePlaceId": "ChIJkR8qG4hlQUYREUsTigT9ZCM",
     "facingSource": null,
     "discoverySignal": "uteservering",
-    "businessStatus": "OPERATIONAL"
+    "businessStatus": "OPERATIONAL",
+    "areaFine": "Ulsrud"
   },
   {
     "id": 293,
@@ -14415,7 +14614,8 @@
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
     "beerPrice": 115,
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Ljabru"
   },
   {
     "id": 294,
@@ -14469,7 +14669,8 @@
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 140
+    "beerPrice": 140,
+    "areaFine": "Sæter"
   },
   {
     "id": 295,
@@ -14523,7 +14724,8 @@
     "discoverySignal": "both",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 109
+    "beerPrice": 109,
+    "areaFine": "Sæter"
   },
   {
     "id": 296,
@@ -14576,7 +14778,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Sæter"
   },
   {
     "id": 297,
@@ -14625,7 +14828,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Bjørvika"
   },
   {
     "id": 298,
@@ -14679,7 +14883,8 @@
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 145
+    "beerPrice": 145,
+    "areaFine": "Sørenga"
   },
   {
     "id": 299,
@@ -14733,7 +14938,8 @@
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
     "hoursSource": "google",
-    "beerPrice": 129
+    "beerPrice": 129,
+    "areaFine": "Sæter"
   },
   {
     "id": 300,
@@ -14782,7 +14988,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Skillebekk"
   },
   {
     "id": 301,
@@ -14835,7 +15042,8 @@
     "facingSource": null,
     "discoverySignal": "uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Sørenga"
   },
   {
     "id": 302,
@@ -14880,7 +15088,8 @@
         "close": 23
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 303,
@@ -14933,7 +15142,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 304,
@@ -14986,7 +15196,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 305,
@@ -15035,7 +15246,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 306,
@@ -15088,7 +15300,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 307,
@@ -15137,7 +15350,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 308,
@@ -15186,7 +15400,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Vika"
   },
   {
     "id": 309,
@@ -15208,7 +15423,8 @@
     "googlePlaceId": "ChIJCdRgmK9vQUYRiwL7dJDAvKI",
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
-    "businessStatus": "CLOSED_TEMPORARILY"
+    "businessStatus": "CLOSED_TEMPORARILY",
+    "areaFine": "Aker brygge"
   },
   {
     "id": 310,
@@ -15257,7 +15473,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Gamle Aker"
   },
   {
     "id": 311,
@@ -15302,7 +15519,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Gamle Aker"
   },
   {
     "id": 312,
@@ -15355,7 +15573,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Gamle Aker"
   },
   {
     "id": 313,
@@ -15400,7 +15619,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "CLOSED_TEMPORARILY",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Gamle Aker"
   },
   {
     "id": 314,
@@ -15441,7 +15661,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Gamle Aker"
   },
   {
     "id": 315,
@@ -15494,7 +15715,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Gamle Aker"
   },
   {
     "id": 316,
@@ -15543,7 +15765,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Gamle Aker"
   },
   {
     "id": 317,
@@ -15565,7 +15788,8 @@
     "googlePlaceId": "ChIJ3QtKuWVuQUYRAm0aiCczsmQ",
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
-    "businessStatus": "OPERATIONAL"
+    "businessStatus": "OPERATIONAL",
+    "areaFine": "Gamle Aker"
   },
   {
     "id": 318,
@@ -15614,7 +15838,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Gamle Aker"
   },
   {
     "id": 319,
@@ -15663,7 +15888,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Gamle Aker"
   },
   {
     "id": 320,
@@ -15716,7 +15942,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Gamle Aker"
   },
   {
     "id": 321,
@@ -15753,7 +15980,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Gamle Aker"
   },
   {
     "id": 322,
@@ -15806,7 +16034,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Enerhaugen"
   },
   {
     "id": 323,
@@ -15912,7 +16141,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Enerhaugen"
   },
   {
     "id": 325,
@@ -16206,7 +16436,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Rodeløkka"
   },
   {
     "id": 331,
@@ -16361,7 +16592,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Sofienberg"
   },
   {
     "id": 334,
@@ -16414,7 +16646,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Rodeløkka"
   },
   {
     "id": 335,
@@ -16467,7 +16700,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Uranienborg"
   },
   {
     "id": 336,
@@ -16520,7 +16754,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Uranienborg"
   },
   {
     "id": 337,
@@ -16569,7 +16804,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Uranienborg"
   },
   {
     "id": 338,
@@ -16667,7 +16903,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Torshov"
   },
   {
     "id": 340,
@@ -16720,7 +16957,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Torshov"
   },
   {
     "id": 341,
@@ -16773,7 +17011,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Torshov"
   },
   {
     "id": 342,
@@ -16826,7 +17065,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Torshov"
   },
   {
     "id": 343,
@@ -16879,7 +17119,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Torshov"
   },
   {
     "id": 344,
@@ -16932,7 +17173,8 @@
     "facingSource": null,
     "discoverySignal": "bakgård,outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Sandaker"
   },
   {
     "id": 345,
@@ -16981,7 +17223,8 @@
     "facingSource": null,
     "discoverySignal": "bakgård,outdoorSeating,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Sandaker"
   },
   {
     "id": 346,
@@ -17034,7 +17277,8 @@
     "facingSource": null,
     "discoverySignal": "bakgård,outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Storo"
   },
   {
     "id": 347,
@@ -17087,7 +17331,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Storo"
   },
   {
     "id": 348,
@@ -17140,7 +17385,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Storo"
   },
   {
     "id": 349,
@@ -17238,7 +17484,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Marienlyst"
   },
   {
     "id": 351,
@@ -17475,7 +17722,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Frogner"
   },
   {
     "id": 356,
@@ -17581,7 +17829,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Ensjø"
   },
   {
     "id": 358,
@@ -17634,7 +17883,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Vålerenga"
   },
   {
     "id": 359,
@@ -17687,7 +17937,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Ensjø"
   },
   {
     "id": 360,
@@ -17736,7 +17987,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kampen"
   },
   {
     "id": 361,
@@ -17789,7 +18041,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kampen"
   },
   {
     "id": 362,
@@ -17834,7 +18087,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating,terrasse",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Ullevål"
   },
   {
     "id": 363,
@@ -17887,7 +18141,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Ullevål"
   },
   {
     "id": 364,
@@ -18046,7 +18301,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Hovin"
   },
   {
     "id": 367,
@@ -18099,7 +18355,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Lille Tøyen hageby"
   },
   {
     "id": 368,
@@ -18152,7 +18409,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Løren"
   },
   {
     "id": 369,
@@ -18205,7 +18463,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Hasle"
   },
   {
     "id": 370,
@@ -18258,7 +18517,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Skillebekk"
   },
   {
     "id": 371,
@@ -18545,7 +18805,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Sørenga"
   },
   {
     "id": 377,
@@ -18598,7 +18859,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Sørenga"
   },
   {
     "id": 378,
@@ -18651,7 +18913,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Sørenga"
   },
   {
     "id": 379,
@@ -18704,7 +18967,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Bjørvika"
   },
   {
     "id": 380,
@@ -18757,7 +19021,8 @@
     "facingSource": null,
     "discoverySignal": "osm,outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Bjørvika"
   },
   {
     "id": 381,
@@ -18810,7 +19075,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Fossum"
   },
   {
     "id": 382,
@@ -18863,7 +19129,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Fossum"
   },
   {
     "id": 383,
@@ -18916,7 +19183,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Stovner"
   },
   {
     "id": 384,
@@ -18969,7 +19237,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Manglerud"
   },
   {
     "id": 385,
@@ -19022,7 +19291,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Manglerud"
   },
   {
     "id": 386,
@@ -19075,7 +19345,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Manglerud"
   },
   {
     "id": 387,
@@ -19128,7 +19399,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Bjerke"
   },
   {
     "id": 388,
@@ -19177,7 +19449,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Bjerke"
   },
   {
     "id": 389,
@@ -19230,7 +19503,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Årvoll"
   },
   {
     "id": 390,
@@ -19283,7 +19557,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Røa"
   },
   {
     "id": 391,
@@ -19336,7 +19611,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Røa"
   },
   {
     "id": 392,
@@ -19385,7 +19661,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Røa"
   },
   {
     "id": 393,
@@ -19438,7 +19715,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Lilleaker"
   },
   {
     "id": 394,
@@ -19491,7 +19769,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Holmlia"
   },
   {
     "id": 395,
@@ -19544,7 +19823,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Holmlia"
   },
   {
     "id": 396,
@@ -19597,7 +19877,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Prinsdal"
   },
   {
     "id": 397,
@@ -19650,7 +19931,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Sørenga"
   },
   {
     "id": 398,
@@ -19695,7 +19977,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Sørenga"
   },
   {
     "id": 399,
@@ -19748,7 +20031,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Sørenga"
   },
   {
     "id": 400,
@@ -19801,7 +20085,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Sørenga"
   },
   {
     "id": 401,
@@ -19846,7 +20131,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Gamlebyen"
   },
   {
     "id": 402,
@@ -19932,7 +20218,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Ekeberg"
   },
   {
     "id": 404,
@@ -19977,7 +20264,8 @@
     "facingSource": null,
     "discoverySignal": "bakgård,outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Etterstad"
   },
   {
     "id": 405,
@@ -20026,7 +20314,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Jordal"
   },
   {
     "id": 406,
@@ -20075,7 +20364,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Galgeberg"
   },
   {
     "id": 407,
@@ -20128,7 +20418,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Galgeberg"
   },
   {
     "id": 408,
@@ -20173,7 +20464,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Sæter"
   },
   {
     "id": 409,
@@ -20226,7 +20518,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Sæter"
   },
   {
     "id": 410,
@@ -20279,7 +20572,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Holtet"
   },
   {
     "id": 411,
@@ -20324,7 +20618,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Holtet"
   },
   {
     "id": 412,
@@ -20377,7 +20672,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Holtet"
   },
   {
     "id": 413,
@@ -20422,7 +20718,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Disen"
   },
   {
     "id": 414,
@@ -20475,7 +20772,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating,terrasse",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Disen"
   },
   {
     "id": 415,
@@ -20520,7 +20818,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Tonsen"
   },
   {
     "id": 416,
@@ -20573,7 +20872,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Haugerud"
   },
   {
     "id": 417,
@@ -20595,7 +20895,8 @@
     "googlePlaceId": "ChIJx3kScl5vQUYR5tyLDWFxhYE",
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
-    "businessStatus": "OPERATIONAL"
+    "businessStatus": "OPERATIONAL",
+    "areaFine": "Haugerud"
   },
   {
     "id": 418,
@@ -20644,7 +20945,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Breivoll"
   },
   {
     "id": 419,
@@ -20666,7 +20968,8 @@
     "googlePlaceId": "ChIJUxh0cZVvQUYRW2uXBdcyoPw",
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
-    "businessStatus": "OPERATIONAL"
+    "businessStatus": "OPERATIONAL",
+    "areaFine": "Alnabru"
   },
   {
     "id": 420,
@@ -20715,7 +21018,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Brekke"
   },
   {
     "id": 421,
@@ -20768,7 +21072,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Brekke"
   },
   {
     "id": 422,
@@ -20821,7 +21126,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Smestad"
   },
   {
     "id": 423,
@@ -20870,7 +21176,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Smestad"
   },
   {
     "id": 424,
@@ -20915,7 +21222,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating,takterrasse,terrasse",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Veitvet"
   },
   {
     "id": 425,
@@ -20968,7 +21276,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Vollebekk"
   },
   {
     "id": 426,
@@ -21074,7 +21383,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Ulven"
   },
   {
     "id": 428,
@@ -21119,7 +21429,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Ulven"
   },
   {
     "id": 429,
@@ -21141,7 +21452,8 @@
     "googlePlaceId": "ChIJDXNQy8NvQUYRFcolpcZ_NY4",
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
-    "businessStatus": "CLOSED_TEMPORARILY"
+    "businessStatus": "CLOSED_TEMPORARILY",
+    "areaFine": "Ulven"
   },
   {
     "id": 430,
@@ -21190,7 +21502,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Holmenkollen"
   },
   {
     "id": 431,
@@ -21349,7 +21662,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Storo"
   },
   {
     "id": 434,
@@ -21402,7 +21716,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Grefsen"
   },
   {
     "id": 435,
@@ -21455,7 +21770,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kalbakken"
   },
   {
     "id": 436,
@@ -21504,7 +21820,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kalbakken"
   },
   {
     "id": 437,
@@ -21590,7 +21907,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Skarpsno"
   },
   {
     "id": 439,
@@ -21643,7 +21961,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Vestli"
   },
   {
     "id": 440,
@@ -21696,7 +22015,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Romsås"
   },
   {
     "id": 441,
@@ -21745,7 +22065,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating,terrasse",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Voksen"
   },
   {
     "id": 442,
@@ -21847,7 +22168,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Tveita"
   },
   {
     "id": 444,
@@ -21896,7 +22218,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Tveita"
   },
   {
     "id": 445,
@@ -21949,7 +22272,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Berg"
   },
   {
     "id": 446,
@@ -22002,7 +22326,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Berg"
   },
   {
     "id": 447,
@@ -22055,7 +22380,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Sogn"
   },
   {
     "id": 448,
@@ -22292,7 +22618,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Nordtvet"
   },
   {
     "id": 453,
@@ -22341,7 +22668,8 @@
     "facingSource": null,
     "discoverySignal": "outdoorSeating",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Skullerud"
   },
   {
     "id": 454,
@@ -22394,7 +22722,8 @@
     "facingSource": null,
     "discoverySignal": "takterrasse,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 456,
@@ -22606,7 +22935,8 @@
     "facingSource": null,
     "discoverySignal": "terrasse,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Sandaker"
   },
   {
     "id": 480,
@@ -22628,7 +22958,8 @@
     "googlePlaceId": "ChIJs8tKUGxuQUYR_B0ZEKr2xjI",
     "facingSource": null,
     "discoverySignal": "bakgård,uteservering",
-    "businessStatus": "OPERATIONAL"
+    "businessStatus": "OPERATIONAL",
+    "areaFine": "Dælenenga"
   },
   {
     "id": 481,
@@ -22677,7 +23008,8 @@
     "facingSource": null,
     "discoverySignal": "terrasse,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Torshov"
   },
   {
     "id": 482,
@@ -22783,7 +23115,8 @@
     "facingSource": null,
     "discoverySignal": "bakgård,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Grünerløkka"
   },
   {
     "id": 486,
@@ -22828,7 +23161,8 @@
     "facingSource": null,
     "discoverySignal": "bakgård,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Sandaker"
   },
   {
     "id": 492,
@@ -23032,7 +23366,8 @@
     "facingSource": null,
     "discoverySignal": "terrasse,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Frøen"
   },
   {
     "id": 510,
@@ -23085,7 +23420,8 @@
     "facingSource": null,
     "discoverySignal": "bakgård,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Bislett"
   },
   {
     "id": 513,
@@ -23118,7 +23454,8 @@
     "facingSource": null,
     "discoverySignal": "bakgård,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Skillebekk"
   },
   {
     "id": 515,
@@ -23159,7 +23496,8 @@
     "facingSource": null,
     "discoverySignal": "takterrasse,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Skillebekk"
   },
   {
     "id": 517,
@@ -23204,7 +23542,8 @@
     "facingSource": null,
     "discoverySignal": "takterrasse,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Filipstad"
   },
   {
     "id": 518,
@@ -23253,7 +23592,8 @@
     "facingSource": null,
     "discoverySignal": "bakgård,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Filipstad"
   },
   {
     "id": 521,
@@ -23294,7 +23634,8 @@
     "facingSource": null,
     "discoverySignal": "bakgård,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Filipstad"
   },
   {
     "id": 522,
@@ -23335,7 +23676,8 @@
     "facingSource": null,
     "discoverySignal": "bakgård,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Uranienborg"
   },
   {
     "id": 525,
@@ -23357,7 +23699,8 @@
     "googlePlaceId": "ChIJq6pa2NRtQUYR55iwFxJ16NQ",
     "facingSource": null,
     "discoverySignal": "bakgård,takterrasse,uteservering",
-    "businessStatus": "OPERATIONAL"
+    "businessStatus": "OPERATIONAL",
+    "areaFine": "Filipstad"
   },
   {
     "id": 528,
@@ -23402,7 +23745,8 @@
     "facingSource": null,
     "discoverySignal": "takterrasse,terrasse,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Filipstad"
   },
   {
     "id": 529,
@@ -23439,7 +23783,8 @@
     "facingSource": null,
     "discoverySignal": "takterrasse,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Filipstad"
   },
   {
     "id": 531,
@@ -23541,7 +23886,8 @@
     "facingSource": null,
     "discoverySignal": "bakgård,terrasse,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kampen"
   },
   {
     "id": 536,
@@ -23594,7 +23940,8 @@
     "facingSource": null,
     "discoverySignal": "bakgård,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kampen"
   },
   {
     "id": 543,
@@ -23639,7 +23986,8 @@
     "facingSource": null,
     "discoverySignal": "terrasse,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Gamlebyen"
   },
   {
     "id": 546,
@@ -23692,7 +24040,8 @@
     "facingSource": null,
     "discoverySignal": "bakgård,terrasse,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Vinderen"
   },
   {
     "id": 548,
@@ -23745,7 +24094,8 @@
     "facingSource": null,
     "discoverySignal": "terrasse,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Sofienberg"
   },
   {
     "id": 557,
@@ -23798,7 +24148,8 @@
     "facingSource": null,
     "discoverySignal": "terrasse,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Sofienberg"
   },
   {
     "id": 559,
@@ -23851,7 +24202,8 @@
     "facingSource": null,
     "discoverySignal": "bakgård,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Filipstad"
   },
   {
     "id": 561,
@@ -23949,7 +24301,8 @@
     "facingSource": null,
     "discoverySignal": "bakgård,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Sjølyst"
   },
   {
     "id": 563,
@@ -23994,7 +24347,8 @@
     "facingSource": null,
     "discoverySignal": "bakgård,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Sjølyst"
   },
   {
     "id": 569,
@@ -24035,7 +24389,8 @@
     "facingSource": null,
     "discoverySignal": "bakgård,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Vika"
   },
   {
     "id": 574,
@@ -24137,7 +24492,8 @@
     "facingSource": null,
     "discoverySignal": "takterrasse,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Bjørvika"
   },
   {
     "id": 593,
@@ -24243,7 +24599,8 @@
     "facingSource": null,
     "discoverySignal": "terrasse,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Bjølsen"
   },
   {
     "id": 597,
@@ -24296,7 +24653,8 @@
     "facingSource": null,
     "discoverySignal": "bakgård,uteservering",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Skillebekk"
   },
   {
     "id": 599,
@@ -24371,7 +24729,8 @@
     "facingSource": null,
     "discoverySignal": "takterrasse,terrasse",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Vika"
   },
   {
     "id": 601,
@@ -24412,7 +24771,8 @@
     "facingSource": null,
     "discoverySignal": "takterrasse,terrasse",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 602,
@@ -24449,7 +24809,8 @@
     "facingSource": null,
     "discoverySignal": "takterrasse,terrasse",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 604,
@@ -24535,7 +24896,8 @@
     "facingSource": null,
     "discoverySignal": "bakgård,terrasse",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Vika"
   },
   {
     "id": 608,
@@ -24686,7 +25048,8 @@
     "facingSource": null,
     "discoverySignal": "bakgård,takterrasse,terrasse",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Vinderen"
   },
   {
     "id": 616,
@@ -24731,7 +25094,8 @@
     "facingSource": null,
     "discoverySignal": "takterrasse,terrasse",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Vika"
   },
   {
     "id": 620,
@@ -24780,7 +25144,8 @@
     "facingSource": null,
     "discoverySignal": "takterrasse,terrasse",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Vika"
   },
   {
     "id": 624,
@@ -24829,7 +25194,8 @@
     "facingSource": null,
     "discoverySignal": "takterrasse,terrasse",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kampen"
   },
   {
     "id": 628,
@@ -24870,7 +25236,8 @@
     "facingSource": null,
     "discoverySignal": "takterrasse,terrasse",
     "businessStatus": "OPERATIONAL",
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Vika"
   },
   {
     "id": 629,
@@ -24923,7 +25290,8 @@
         "close": 24
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Grünerløkka"
   },
   {
     "id": 630,
@@ -24976,7 +25344,8 @@
         "close": 24
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Torshov"
   },
   {
     "id": 631,
@@ -25029,7 +25398,8 @@
         "close": 3.5
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Gamle Aker"
   },
   {
     "id": 632,
@@ -25135,7 +25505,8 @@
         "close": 3.5
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 634,
@@ -25184,7 +25555,8 @@
         "close": 18
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 635,
@@ -25290,7 +25662,8 @@
         "close": 23
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Bjørvika"
   },
   {
     "id": 637,
@@ -25343,7 +25716,8 @@
         "close": 23.5
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Bjørvika"
   },
   {
     "id": 638,
@@ -25396,7 +25770,8 @@
         "close": 24
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Storo"
   },
   {
     "id": 639,
@@ -25449,7 +25824,8 @@
         "close": 18
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Uranienborg"
   },
   {
     "id": 640,
@@ -25498,7 +25874,8 @@
         "close": 18
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 641,
@@ -25551,7 +25928,8 @@
         "close": 18
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Uranienborg"
   },
   {
     "id": 642,
@@ -25600,7 +25978,8 @@
         "close": 18
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Vika"
   },
   {
     "id": 643,
@@ -25706,7 +26085,8 @@
         "close": 18
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Aker brygge"
   },
   {
     "id": 645,
@@ -25755,7 +26135,8 @@
         "close": 18
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 646,
@@ -25808,7 +26189,8 @@
         "close": 18
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Dælenenga"
   },
   {
     "id": 647,
@@ -25861,7 +26243,8 @@
         "close": 18
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Sofienberg"
   },
   {
     "id": 648,
@@ -25914,7 +26297,8 @@
         "close": 18
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Vika"
   },
   {
     "id": 649,
@@ -25967,7 +26351,8 @@
         "close": 18
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Vika"
   },
   {
     "id": 650,
@@ -26020,7 +26405,8 @@
         "close": 18
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Bjørvika"
   },
   {
     "id": 651,
@@ -26171,7 +26557,8 @@
         "close": 20
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Aker brygge"
   },
   {
     "id": 654,
@@ -26224,7 +26611,8 @@
         "close": 22
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Vika"
   },
   {
     "id": 655,
@@ -26277,7 +26665,8 @@
         "close": 20
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Uranienborg"
   },
   {
     "id": 656,
@@ -26330,7 +26719,8 @@
         "close": 18
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Filipstad"
   },
   {
     "id": 657,
@@ -26383,7 +26773,8 @@
         "close": 17
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Bjørvika"
   },
   {
     "id": 658,
@@ -26436,7 +26827,8 @@
         "close": 23
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 659,
@@ -26489,7 +26881,8 @@
         "close": 20
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Aker brygge"
   },
   {
     "id": 660,
@@ -26542,7 +26935,8 @@
         "close": 22
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Vika"
   },
   {
     "id": 661,
@@ -26595,7 +26989,8 @@
         "close": 24
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Vika"
   },
   {
     "id": 662,
@@ -26648,7 +27043,8 @@
         "close": 23
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Bjørvika"
   },
   {
     "id": 663,
@@ -26701,7 +27097,8 @@
         "close": 22
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Filipstad"
   },
   {
     "id": 664,
@@ -26750,7 +27147,8 @@
         "close": 17
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kvadraturen"
   },
   {
     "id": 665,
@@ -26803,6 +27201,7 @@
         "close": 1
       }
     },
-    "hoursSource": "google"
+    "hoursSource": "google",
+    "areaFine": "Kvadraturen"
   }
 ]

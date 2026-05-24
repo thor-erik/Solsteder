@@ -93,14 +93,20 @@ function _isGenericName(s) {
 function splitVenueName(v) {
   const full = ((v && v.name) || '').trim();
   const coarse = ((v && v.area) || '').trim();
-  const fine = _fineNeighborhood(full);
+  // Fine neighborhood: prefer the coordinate-derived `areaFine` (OSM suburb
+  // tier, with the venue's self-name winning on conflict — see
+  // scripts/assign-fine-areas.mjs), fall back to the name for venues the
+  // pipeline didn't cover. `areaFine` is only set when it differs from `area`.
+  const coordFine = ((v && v.areaFine) || '').trim();
+  const nameFine = _fineNeighborhood(full);
+  const fine = coordFine || nameFine;
   let name = full.replace(_DEPT_RX, '').trim();          // drop chain branch
   name = name.replace(/\s+[-–]\s+.+$/, '').trim();        // drop " - tail"
-  // Drop a trailing echo of the fine neighborhood or coarse area (optionally
-  // followed by "plass"/"brygge": "Frenchie Solli Plass" → "Frenchie") — but
-  // ONLY if what remains is a real name, not a bare cuisine word. "Sushi
-  // Tveita" stays "Sushi Tveita"; "Døgnvill Burger Bjørvika" → "Døgnvill Burger".
-  for (const loc of [fine, coarse]) {
+  // Drop a trailing echo of the neighborhood / coarse area (optionally followed
+  // by "plass"/"brygge": "Frenchie Solli Plass" → "Frenchie") — but ONLY if what
+  // remains is a real name, not a bare cuisine word. "Sushi Tveita" stays
+  // "Sushi Tveita"; "Døgnvill Burger Bjørvika" → "Døgnvill Burger".
+  for (const loc of [coordFine, nameFine, coarse]) {
     if (!loc) continue;
     const esc = loc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const stripped = name.replace(new RegExp('\\s+' + esc + '(\\s+(?:plass|brygge))?$', 'i'), '').trim();
