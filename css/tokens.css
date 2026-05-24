@@ -53,16 +53,8 @@
     --weather-rain:       #4A5E82;   /* rain — Delft-blue family (no longer slate) */
     --weather-night:      #0F1B2A;   /* deeper than --bg for visibility */
 
-    /* Spacing — legacy numeric ladder. 0 consumers; SUPERSEDED by the semantic
-       --space-* scale (2xs–4xl) below, which is what components use. Removal candidate. */
-    --space-1:  4px;
-    --space-2:  8px;
-    --space-3:  12px;
-    --space-4:  16px;
-    --space-5:  20px;
-    --space-6:  24px;
-    --space-8:  32px;
-    --space-12: 48px;
+    /* (Legacy numeric --space-1..12 ladder removed 2026-05-24 — 0 consumers,
+       superseded by the semantic --space-2xs…4xl scale below.) */
 
     /* Radius — MIGRATED: sm/md/lg/pill/none are consumed and border-radius is fully
        tokenized (0 raw). (--radius-xs / --radius-circle currently unused.) */
@@ -73,16 +65,9 @@
     --radius-pill:  999px;
     --radius-circle: 50%;
 
-    /* Type — legacy numeric scale. 0 consumers; SUPERSEDED by the semantic
-       --text-{display,title,subtitle,body,label,caption} roles below (which on-scale
-       font-sizes were aliased to). Removal candidate. */
-    --text-xs:  11px;
-    --text-sm:  12px;
-    --text-md:  13px;
-    --text-lg:  14px;
-    --text-xl:  16px;
-    --text-2xl: 20px;
-    --text-3xl: 24px;
+    /* (Legacy numeric --text-xs..3xl scale removed 2026-05-24 — 0 consumers,
+       superseded by the semantic --text-{display,title,subtitle,body,label,caption}
+       roles below.) */
 
     /* Motion — published; only --ease-emphasized consumed so far. Full wiring
        (duration/easing across transitions) is REMAINING-WORK Phase 6. */

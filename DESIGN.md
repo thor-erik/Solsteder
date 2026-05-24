@@ -254,9 +254,9 @@ Stacking is expressed by **opacity + shadow + a hairline border — never a new 
 
 The only genuinely new token to add is a **scrim** (`--scrim`, dark veil) behind focus-stealing layers.
 
-### Content tiles are opaque Delft Blue — never translucent, never cream
+### Content tiles are (near-)opaque Delft Blue — never cream
 
-Venue cards and detail tiles are **fully opaque Delft Blue**. Reasons, in priority order:
+Venue cards and detail tiles are **Delft Blue at 90%** (`--surface-content` = `rgba(17,30,56,0.90)`). Effectively opaque — the 10% is a faint depth cue over the map, not see-through translucency. Reasons, in priority order:
 
 1. **The honey signal needs a dark base.** Sun = honey is the whole product. `#F5C25E` on Delft Blue sings; on cream it is two warm tones at similar lightness — the sun-hours, progress bar, and badges drop from signal to barely-there.
 2. **Content = objects you look at.** Cream cards would make them chrome and break the model — and the ripple wouldn't stop at the list (detail tiles, invite sheets, timeline are all Delft Blue too).
@@ -264,7 +264,21 @@ Venue cards and detail tiles are **fully opaque Delft Blue**. Reasons, in priori
 
 Outdoor glare (a sun-app is used in bright light) argues for a light *map* and light *chrome* — which we have — with dark cards as the high-contrast results that punch through glare. If cards ever read as heavy, the lever is **opacity, spacing, and Delft Blue brightness — not switching to cream.**
 
-> **Code follow-up:** retires the legacy `--glass-card-bg` 78% alpha — content resolves to full-opacity Delft Blue (`#111E38`).
+> **Shipped:** the legacy `--glass-card-bg` 78% alpha is retired — content resolves to `--surface-content` (Delft Blue 90%).
+
+### Venue card anatomy (the deterministic 3-row list card · shipped 2026-05-24)
+
+The list card has a **fixed 3-row shape** so the skeleton matches it exactly (no CLS) and a future value-crossfade has a stable box. Built in `renderCard` (`js/ui-list.js`); name/area split in `splitVenueName` (`js/render-helpers.js`).
+
+| Row | Left | Right |
+|---|---|---|
+| 1 | venue name (cream, 700) | ☀ sun-hours (honey) |
+| 2 | **fine · coarse** location (fine 600, coarse muted) | "til HH:MM" anchor (close-aware) |
+| 3 | category glyph + label · walk · distance (muted) | sun footnote |
+| — | lifted sun-fill bar (in flow, not flush) | |
+
+- **Location model.** `area` = the coarse 21-area assignment (always present). `areaFine` = a fine neighborhood from coordinates (OSM `place=suburb` tier, nearest-node, with the venue's self-named neighborhood winning on conflict — `scripts/assign-fine-areas.mjs`). Row 2 shows `fine · coarse`; coarse-only when there's no distinct fine. Generic names ("Sushi Tveita") keep their name and just show the coarse area.
+- **Sun footnote (row 3 right).** A shade gap (shade glyph, muted: "16:15–17:15" / "N skygger") **or**, if none, a sun opportunity (honey, no glyph: "+2.5h fra 17:00") — an extra sun window later. Weather (rain/cloud) stays off cards; it's in the city-wide outlook line. Closing-time and sundown fold into the row-2 anchor; per-flow overflow/hours pills are retired here.
 
 ### Overlap & dropdowns
 
@@ -326,8 +340,8 @@ Any panel that slides up from the bottom (`#detail-panel`, `.dpinvite-sheet`, `.
 ### Tier 2 · Lens object
 **Role:** solid content tile. An object resting in the lens.
 **Treatment:**
-- Background: `var(--glass-card-bg)` — **fully opaque Delft Blue** (`#111E38`). Content tiles are never translucent and never cream; see "Surface & elevation model → Content tiles are opaque Delft Blue". (The legacy 78% alpha is being retired in code.)
-- No chromatic overlay — the old warm/cool gradient is retired. Solid opaque Delft Blue.
+- Background: `var(--surface-content)` — **Delft Blue at 90%** (`rgba(17,30,56,0.90)`, effectively opaque). Content tiles are never cream and never visibly translucent; see "Surface & elevation model → Content tiles are (near-)opaque Delft Blue". (The legacy `--glass-card-bg` 78% alpha is retired.)
+- No chromatic overlay — the old warm/cool gradient is retired. Solid Delft Blue.
 - Border: `1px solid rgba(155,169,188,0.34)` (clearer than panel border)
 - Shadow: flat drop only — `0 1px 2px rgba(0,0,0,0.18)`, `0 4px 14px rgba(0,0,0,0.30)` (the glossy inset sheens are retired)
 - Padding: `12px 14px`, internal `gap: 4px`
