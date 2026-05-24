@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Icon pack comparison — Shades</title>
+
+<!-- Real design tokens (so icons sit on the genuine surfaces) -->
+<link rel="stylesheet" href="css/tokens.css">
+
+<!-- Pack 2: Phosphor (web font — regular + fill + duotone weights) -->
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/duotone/style.css">
+
+<!-- Pack 3: Tabler (web font) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
+
+<style>
+  :root { --isz: 24px; --stroke: 2; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Inter', system-ui, sans-serif;
+    background: #0c1526;
+    color: var(--text);
+    padding: 0 0 80px;
+  }
+  header {
+    padding: 24px 28px 16px;
+    border-bottom: 1px solid var(--line-d, rgba(255,255,255,0.1));
+    position: sticky; top: 0; z-index: 10;
+    background: #0c1526ee; backdrop-filter: blur(8px);
+  }
+  h1 { font-size: 20px; font-weight: 800; margin: 0 0 4px; letter-spacing: -0.02em; }
+  .sub { font-size: 13px; color: var(--text-secondary); max-width: 70ch; line-height: 1.5; }
+  .controls { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 16px; align-items: center; }
+  .ctl { display: flex; align-items: center; gap: 8px; }
+  .ctl label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .seg { display: inline-flex; border: 1px solid var(--line-l-strong, rgba(255,255,255,0.2)); border-radius: 8px; overflow: hidden; }
+  .seg button {
+    border: 0; background: transparent; color: var(--text-secondary);
+    padding: 6px 12px; font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+  .seg button.on { background: var(--accent); color: var(--accent-on); font-weight: 600; }
+
+  .wrap { padding: 24px 28px; }
+  table { border-collapse: collapse; width: 100%; }
+  thead th {
+    position: sticky; top: 148px;
+    text-align: center; padding: 10px 8px; font-size: 13px; font-weight: 700;
+    background: #0c1526;
+  }
+  thead th .meta { display: block; font-size: 10px; font-weight: 400; color: var(--muted); margin-top: 2px; }
+  thead th:first-child { text-align: left; }
+  tbody td { padding: 0; text-align: center; vertical-align: middle; height: 64px; }
+  tbody td.concept { text-align: left; padding-left: 4px; font-size: 13px; color: var(--text-secondary); width: 160px; }
+  tbody td.concept small { display: block; color: var(--muted); font-size: 10px; }
+  tbody tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+
+  /* surface chips inside each cell */
+  .cell { display: inline-flex; align-items: center; justify-content: center; gap: 0; }
+  .surf { display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 10px; }
+  .surf.delft  { background: var(--surface-content); color: var(--text); }
+  .surf.cream  { background: var(--surface-raised);  color: var(--panel-text); }
+  .surf.map    { background: #2b3a52;                color: var(--text); }
+  /* "Busy" = worst-case variable background (FTS over map): water/park/sand/road/
+     building/lens colours all at once, so you can judge legibility on chaos. */
+  .surf.busy {
+    color: var(--text);
+    background:
+      repeating-linear-gradient(45deg,
+        #a7c7e0 0 14px, #b9d9a0 14px 28px, #ece0c0 28px 40px,
+        #f4f1ec 40px 48px, #d8d2c8 48px 62px, #6b8fb5 62px 76px);
+  }
+  .surf.delft.accent, .surf.cream.accent, .surf.map.accent, .surf.busy.accent { color: var(--accent); }
+  .surf.cream.accent { color: var(--accent-active); } /* honey legibility on cream */
+  /* Legibility halo (DESIGN.md sanctions scrims): a tight dark casing so an
+     outline glyph separates from ANY background. Toggleable in the lab. */
+  body.halo-on .cell svg, body.halo-on .cell i {
+    filter: drop-shadow(0 0 1.5px rgba(0,0,0,0.85)) drop-shadow(0 1px 1px rgba(0,0,0,0.5));
+  }
+  .surf.muted-c { color: var(--muted); }
+
+  /* icon sizing — SVG packs by width/height, font packs by font-size */
+  .cell svg { width: var(--isz); height: var(--isz); display: block; }
+  .cell i   { font-size: var(--isz); line-height: 1; }
+  .miss { color: #e0708a; font-size: 11px; opacity: 0.7; }
+
+  /* context strip */
+  .context { margin-top: 40px; }
+  .context h2 { font-size: 15px; margin: 0 0 12px; }
+  .ctx-grid { display: grid; grid-template-columns: 90px repeat(4, 1fr); gap: 12px; align-items: stretch; }
+  .ctx-grid .lbl { align-self: center; font-size: 12px; color: var(--muted); }
+  .ctx-card { background: var(--surface-content); border-radius: 14px; padding: 14px 16px; }
+  .ctx-inforow { display: flex; flex-direction: column; gap: 10px; }
+  .ctx-inforow .ir { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text); }
+  .ctx-inforow .ir svg { width: 18px; height: 18px; flex: 0 0 18px; color: var(--text-secondary); }
+  .ctx-inforow .ir i  { font-size: 18px; color: var(--text-secondary); }
+  .ctx-btnrow { display: flex; gap: 8px; margin-top: 14px; }
+  .ctx-btn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 38px; border-radius: 10px; font-size: 13px; font-weight: 600; }
+  .ctx-btn svg { width: 16px; height: 16px; }
+  .ctx-btn i { font-size: 16px; }
+  .ctx-btn.cta { background: var(--accent); color: var(--accent-on); }
+  .ctx-btn.ghost { background: var(--surface-control); border: 1px solid var(--line-l-strong); color: var(--text-secondary); }
+  .note { font-size: 12px; color: var(--muted); margin-top: 6px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Icon pack comparison</h1>
+  <div class="sub">The app's actual glyph inventory, rendered from each pack's <strong>real</strong> library (loaded from CDN — not hand-drawn), on the genuine Delft / cream / map surfaces. Toggle size, register, colour and surface, then judge by eye. Red <span class="miss">— missing</span> = that pack has no clean equivalent (coverage matters too).</div>
+  <div class="controls">
+    <div class="ctl"><label>Size</label>
+      <div class="seg" id="sizeSeg">
+        <button data-sz="16">16</button><button data-sz="20">20</button><button data-sz="24" class="on">24</button><button data-sz="32">32</button>
+      </div>
+    </div>
+    <div class="ctl"><label>Register</label>
+      <div class="seg" id="regSeg">
+        <button data-reg="outline" class="on">Outline</button><button data-reg="fill">Filled</button><button data-reg="duotone">Duotone</button>
+      </div>
+    </div>
+    <div class="ctl"><label>Colour</label>
+      <div class="seg" id="colSeg">
+        <button data-col="text" class="on">Cream</button><button data-col="accent">Honey</button><button data-col="muted-c">Muted</button>
+      </div>
+    </div>
+    <div class="ctl"><label>Surface</label>
+      <div class="seg" id="surfSeg">
+        <button data-surf="delft" class="on">Delft</button><button data-surf="cream">Cream</button><button data-surf="map">Map</button><button data-surf="busy">Busy</button>
+      </div>
+    </div>
+    <div class="ctl"><label>Lucide stroke</label>
+      <div class="seg" id="strokeSeg">
+        <button data-stroke="1.5">1.5</button><button data-stroke="2" class="on">2</button><button data-stroke="2.5">2.5</button>
+      </div>
+    </div>
+    <div class="ctl"><label>Halo</label>
+      <div class="seg" id="haloSeg">
+        <button data-halo="off" class="on">Off</button><button data-halo="on">Dark casing</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <table>
+    <thead><tr>
+      <th>App concept</th>
+      <th>Lucide<span class="meta">outline only · 2px round</span></th>
+      <th>Phosphor<span class="meta">regular/fill/duotone</span></th>
+      <th>Tabler<span class="meta">outline + filled</span></th>
+      <th>Heroicons<span class="meta">outline + solid</span></th>
+    </tr></thead>
+    <tbody id="grid"></tbody>
+  </table>
+
+  <div class="context">
+    <h2>In context — detail-panel info row + button row</h2>
+    <div class="ctx-grid" id="ctx"></div>
+    <div class="note">Same arrangement the app uses (clock/phone/globe/walk/pin info rows; check/X/send buttons), each column swapped to one pack at the current register.</div>
+  </div>
+
+  <div class="context">
+    <h2>Venue types</h2>
+    <table>
+      <thead><tr>
+        <th>Category</th>
+        <th>Lucide</th><th>Phosphor</th><th>Tabler</th><th>Heroicons</th>
+      </tr></thead>
+      <tbody id="venueGrid"></tbody>
+    </table>
+    <div class="note">List cards already use the <strong>Lucide</strong> column (utensils / coffee / wine / martini). Compare alternatives and pick per category — flip Register to see filled/duotone.</div>
+  </div>
+
+  <div class="context">
+    <h2>Weather</h2>
+    <table>
+      <thead><tr>
+        <th>Sky</th>
+        <th>Current<span class="meta">app · filled</span></th>
+        <th>Lucide</th><th>Phosphor</th><th>Tabler</th><th>Heroicons</th>
+      </tr></thead>
+      <tbody id="wxGrid"></tbody>
+    </table>
+    <div class="note"><strong>Current</strong> = the app's existing filled weather family (weather.js). Set Register → <strong>Filled</strong> or <strong>Duotone</strong> to compare Phosphor's filled/duotone weather against the current look. Note the coverage gaps (Heroicons has almost no weather).</div>
+  </div>
+</div>
+
+<!-- Pack 1: Lucide (JS, emits SVG) -->
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+
+<script>
+// ── App's real glyph inventory → per-pack icon names ────────────────────────
+// null = pack has no clean equivalent. {f:..} = filled/solid name override.
+const ICONS = [
+  // concept,            lucide,            phosphor,              tabler,            hero(24/outline)
+  ['Open hours (clock)', 'clock',           'clock',               'clock',           'clock'],
+  ['Phone',              'phone',           'phone',               'phone',           'phone'],
+  ['Website (globe)',    'globe',           'globe',               'world',           'globe-alt'],
+  ['People / busy',      'users',           'users',               'users',           'users'],
+  ['Walking time',       'footprints',      'person-simple-walk',  'walk',            null],
+  ['Directions',         'signpost',        'signpost',            'directions',      null],
+  ['Share',              'share-2',         'share-network',       'share',           'share'],
+  ['Map pin',            'map-pin',         'map-pin',             'map-pin',         'map-pin'],
+  ['Loudness (volume)',  'volume-2',        'speaker-high',        'volume',          'speaker-wave'],
+  ['Beer / bar',         'beer',            'beer-stein',          'beer',            null],
+  ['Sun',                'sun',             'sun',                 'sun',             'sun'],
+  ['Rain',               'cloud-rain',      'cloud-rain',          'cloud-rain',      null],
+  ['Wind',               'wind',            'wind',                'wind',            null],
+  ['Tip (lightbulb)',    'lightbulb',       'lightbulb',           'bulb',            'light-bulb'],
+  ['Moon (closed)',      'moon',            'moon',                'moon',            'moon'],
+  ['Favourite (heart)',  'heart',           'heart',               'heart',           'heart'],
+  ['Notifications',      'bell',            'bell',                'bell',            'bell'],
+  ['Search',             'search',          'magnifying-glass',    'search',          'magnifying-glass'],
+  ['Check / done',       'check',           'check',               'check',           'check'],
+  ['Close (x)',          'x',               'x',                   'x',               'x-mark'],
+  ['Send / invite',      'send',            'paper-plane-tilt',    'send',            'paper-airplane'],
+  ['Edit',               'square-pen',      'pencil-simple',       'pencil',          'pencil-square'],
+  ['Camera / photos',    'camera',          'camera',              'camera',          'camera'],
+  ['Inbox (empty bell)', 'inbox',           'tray',                'inbox',           'inbox'],
+  ['Visibility (eye)',   'eye',             'eye',                 'eye',             'eye'],
+  ['Info',               'info',            'info',                'info-circle',     'information-circle'],
+  ['Privacy (shield)',   'shield',          'shield',              'shield',          'shield-check'],
+  ['Help',               'circle-help',     'question',            'help',            'question-mark-circle'],
+  ['Sign out',           'log-out',         'sign-out',            'logout',          'arrow-right-on-rectangle'],
+  ['External link',      'external-link',   'arrow-square-out',    'external-link',   'arrow-top-right-on-square'],
+  ['Add (plus)',         'plus',            'plus',                'plus',            'plus'],
+  ['Chevron right',      'chevron-right',   'caret-right',         'chevron-right',   'chevron-right'],
+  ['Chevron down',       'chevron-down',    'caret-down',          'chevron-down',    'chevron-down'],
+];
+
+// ── Venue types → per-pack names (list cards already use the Lucide column) ──
+const VENUE = [
+  // concept,            lucide,             phosphor,         tabler,             hero
+  ['Restaurant ✓',       'utensils-crossed', 'fork-knife',     'tools-kitchen-2',  null],
+  ['Cafe',               'coffee',           'coffee',         'coffee',           null],
+  ['Bar / cocktail',     'martini',          'martini',        'martini',          null],
+  ['Wine bar',           'wine',             'wine',           'glass-full',       null],
+  ['Pub / beer',         'beer',             'beer-stein',     'beer',             null],
+  ['Generic venue',      'store',            'storefront',     'building-store',   'building-storefront'],
+];
+
+// ── Weather: the app's current FILLED glyphs (copied from weather.js) vs packs ─
+const WX_CUR = {
+  sun:    `<svg class="wx-sky-icon" viewBox="0 0 16 16"><circle cx="8" cy="8" r="3" fill="currentColor"/><g stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><line x1="8" y1="1.5" x2="8" y2="2.8"/><line x1="8" y1="13.2" x2="8" y2="14.5"/><line x1="1.5" y1="8" x2="2.8" y2="8"/><line x1="13.2" y1="8" x2="14.5" y2="8"/><line x1="3.3" y1="3.3" x2="4.2" y2="4.2"/><line x1="11.8" y1="11.8" x2="12.7" y2="12.7"/><line x1="3.3" y1="12.7" x2="4.2" y2="11.8"/><line x1="11.8" y1="4.2" x2="12.7" y2="3.3"/></g></svg>`,
+  partly: `<svg class="wx-sky-icon" viewBox="0 0 16 16"><circle cx="5.2" cy="5.2" r="2.4" fill="currentColor"/><g stroke="currentColor" stroke-width="1" stroke-linecap="round"><line x1="5.2" y1="0.8" x2="5.2" y2="1.7"/><line x1="0.8" y1="5.2" x2="1.7" y2="5.2"/><line x1="2" y1="2" x2="2.6" y2="2.6"/></g><path d="M5 13.6 Q3 13.6 3 12 Q3 10.4 4.7 10.4 Q5.2 8.4 7.7 8.4 Q10.3 8.4 10.8 10.4 Q12.6 10.4 12.6 12 Q12.6 13.6 10.8 13.6 Z" fill="currentColor"/></svg>`,
+  mostly: `<svg class="wx-sky-icon" viewBox="0 0 16 16"><circle cx="3.8" cy="4.4" r="1.6" fill="currentColor"/><path d="M3.5 12.6 Q1.5 12.6 1.5 11 Q1.5 9.3 3.4 9.3 Q3.9 7.2 6.6 7.2 Q9.4 7.2 9.9 9.3 Q11.8 9.3 11.8 11 Q11.8 12.6 9.9 12.6 Z" fill="currentColor"/></svg>`,
+  cloud:  `<svg class="wx-sky-icon" viewBox="0 0 16 16"><path d="M3.8 12 Q1.6 12 1.6 10.2 Q1.6 8.4 3.6 8.4 Q4.2 5.8 7.7 5.8 Q11.3 5.8 11.8 8.4 Q13.8 8.4 13.8 10.2 Q13.8 12 11.8 12 Z" fill="currentColor"/></svg>`,
+  rain:   `<svg class="wx-sky-icon" viewBox="0 0 16 16"><path d="M3.5 9.5 Q1.7 9.5 1.7 8 Q1.7 6.5 3.6 6.5 Q4 4.5 7 4.5 Q10 4.5 10.5 6.5 Q12.3 6.5 12.3 8 Q12.3 9.5 10.5 9.5 Z" fill="currentColor"/><g fill="currentColor"><ellipse cx="4.6" cy="12.3" rx="0.7" ry="1.4"/><ellipse cx="7" cy="13" rx="0.7" ry="1.4"/><ellipse cx="9.4" cy="12.3" rx="0.7" ry="1.4"/></g></svg>`,
+};
+const WEATHER = [
+  // concept,         current,  lucide,            phosphor,           tabler,         hero
+  ['Clear / sun',     'sun',    'sun',             'sun',              'sun',          'sun'],
+  ['Partly cloudy',   'partly', 'cloud-sun',       'cloud-sun',        'cloud',        null],
+  ['Mostly cloudy',   'mostly', 'cloudy',          'cloud',            'cloud',        'cloud'],
+  ['Overcast',        'cloud',  'cloud',           'cloud',            'cloud',        'cloud'],
+  ['Rain',            'rain',   'cloud-rain',      'cloud-rain',       'cloud-rain',   null],
+  ['Drizzle',         null,     'cloud-drizzle',   'cloud-rain',       'cloud-rain',   null],
+  ['Thunderstorm',    null,     'cloud-lightning', 'cloud-lightning',  'cloud-storm',  'bolt'],
+  ['Snow',            null,     'cloud-snow',      'cloud-snow',       'cloud-snow',   null],
+  ['Fog',             null,     'cloud-fog',       'cloud-fog',        'cloud-fog',    null],
+];
+
+const HERO_VER = '2.1.5';
+const state = { sz: 24, reg: 'outline', col: 'text', surf: 'delft', stroke: 2, halo: 'off' };
+
+// ── Renderers per pack ──────────────────────────────────────────────────────
+function lucideEl(name) {
+  if (!name) return missing();
+  const i = document.createElement('i');
+  i.setAttribute('data-lucide', name);
+  return i; // lucide.createIcons() swaps these for <svg> after mount
+}
+function phosphorEl(name) {
+  if (!name) return missing();
+  // Phosphor weight class REPLACES the base: 'ph'(regular) | 'ph-fill' | 'ph-duotone'
+  const weight = state.reg === 'fill' ? 'ph-fill' : state.reg === 'duotone' ? 'ph-duotone' : 'ph';
+  const i = document.createElement('i');
+  i.className = weight + ' ph-' + name;
+  return i;
+}
+function tablerEl(name) {
+  if (!name) return missing();
+  const i = document.createElement('i');
+  // Tabler has -filled variants for many glyphs; fall back to outline if absent.
+  const filled = (state.reg === 'fill');
+  i.className = 'ti ti-' + name + (filled ? '-filled' : '');
+  return i;
+}
+const heroCache = {};
+function heroEl(name) {
+  if (!name) return missing();
+  const span = document.createElement('span');
+  span.className = 'cell';
+  const solid = (state.reg === 'fill' || state.reg === 'duotone'); // hero has no duotone → use solid
+  const dir = solid ? 'solid' : 'outline';
+  const url = `https://cdn.jsdelivr.net/npm/heroicons@${HERO_VER}/24/${dir}/${name}.svg`;
+  const key = dir + '/' + name;
+  if (heroCache[key]) { span.innerHTML = heroCache[key]; }
+  else {
+    fetch(url).then(r => r.ok ? r.text() : Promise.reject()).then(svg => {
+      heroCache[key] = svg; span.innerHTML = svg;
+    }).catch(() => { span.innerHTML = '<span class="miss">— missing</span>'; });
+  }
+  return span;
+}
+function missing() { const s = document.createElement('span'); s.className = 'miss'; s.textContent = '—'; return s; }
+function currentEl(svg) { if (!svg) return missing(); const s = document.createElement('span'); s.innerHTML = svg; return s.firstChild; }
+
+function wrapSurface(node) {
+  const surf = document.createElement('span');
+  surf.className = 'surf ' + state.surf + ' ' + (state.col === 'accent' ? 'accent' : state.col === 'muted-c' ? 'muted-c' : '');
+  surf.appendChild(node);
+  return surf;
+}
+
+// ── Build grid ──────────────────────────────────────────────────────────────
+function render() {
+  document.documentElement.style.setProperty('--isz', state.sz + 'px');
+  document.body.classList.toggle('halo-on', state.halo === 'on');
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  for (const [concept, lu, ph, ta, he] of ICONS) {
+    const tr = document.createElement('tr');
+    const c0 = document.createElement('td'); c0.className = 'concept'; c0.innerHTML = concept;
+    tr.appendChild(c0);
+    const cells = [lucideEl(lu), phosphorEl(ph), tablerEl(ta), heroEl(he)];
+    for (const el of cells) {
+      const td = document.createElement('td');
+      const cell = document.createElement('span'); cell.className = 'cell';
+      cell.appendChild(el);
+      td.appendChild(wrapSurface(cell));
+      tr.appendChild(td);
+    }
+    grid.appendChild(tr);
+  }
+  buildTable('venueGrid', VENUE, false);
+  buildTable('wxGrid', WEATHER, true);
+  buildContext();
+  // Lucide swaps <i data-lucide> → <svg>; run after DOM insert.
+  if (window.lucide) lucide.createIcons({ attrs: { 'stroke-width': state.stroke, width: state.sz, height: state.sz } });
+}
+
+// Generic builder for the venue + weather tables. hasCurrent = leading
+// "Current (app)" column rendered from a raw SVG string.
+function buildTable(tbodyId, rows, hasCurrent) {
+  const tb = document.getElementById(tbodyId);
+  tb.innerHTML = '';
+  for (const row of rows) {
+    const concept = row[0];
+    const cur = hasCurrent ? row[1] : null;
+    const [lu, ph, ta, he] = row.slice(hasCurrent ? 2 : 1);
+    const tr = document.createElement('tr');
+    const c0 = document.createElement('td'); c0.className = 'concept'; c0.innerHTML = concept;
+    tr.appendChild(c0);
+    const els = [];
+    if (hasCurrent) els.push(currentEl(cur));
+    els.push(lucideEl(lu), phosphorEl(ph), tablerEl(ta), heroEl(he));
+    for (const el of els) {
+      const td = document.createElement('td');
+      const cell = document.createElement('span'); cell.className = 'cell';
+      cell.appendChild(el);
+      td.appendChild(wrapSurface(cell));
+      tr.appendChild(td);
+    }
+    tb.appendChild(tr);
+  }
+}
+
+// ── Context strip (info row + button row per pack) ──────────────────────────
+const PACK_FNS = { Lucide: lucideEl, Phosphor: phosphorEl, Tabler: tablerEl, Heroicons: heroEl };
+const PACK_NAMES = {
+  Lucide:    { clock:'clock', phone:'phone', globe:'globe', walk:'footprints', pin:'map-pin', check:'check', x:'x', send:'send' },
+  Phosphor:  { clock:'clock', phone:'phone', globe:'globe', walk:'person-simple-walk', pin:'map-pin', check:'check', x:'x', send:'paper-plane-tilt' },
+  Tabler:    { clock:'clock', phone:'phone', globe:'world', walk:'walk', pin:'map-pin', check:'check', x:'x', send:'send' },
+  Heroicons: { clock:'clock', phone:'phone', globe:'globe-alt', walk:null, pin:'map-pin', check:'check', x:'x-mark', send:'paper-airplane' },
+};
+function buildContext() {
+  const ctx = document.getElementById('ctx');
+  ctx.innerHTML = '<div class="lbl"></div>' +
+    Object.keys(PACK_FNS).map(p => `<div class="lbl" style="text-align:center;font-weight:700;color:var(--text)">${p}</div>`).join('');
+  // row label
+  ctx.insertAdjacentHTML('beforeend', '<div class="lbl">Info row<br>+ buttons</div>');
+  for (const pack of Object.keys(PACK_FNS)) {
+    const fn = PACK_FNS[pack], nm = PACK_NAMES[pack];
+    const card = document.createElement('div'); card.className = 'ctx-card';
+    const info = document.createElement('div'); info.className = 'ctx-inforow';
+    const rows = [['clock','Open til 22:00'],['walk','5 min walk'],['globe','Website'],['phone','+47 22 00 00']];
+    for (const [k, txt] of rows) {
+      const ir = document.createElement('div'); ir.className = 'ir';
+      ir.appendChild(fn(nm[k]));
+      const s = document.createElement('span'); s.textContent = txt; ir.appendChild(s);
+      info.appendChild(ir);
+    }
+    card.appendChild(info);
+    const btns = document.createElement('div'); btns.className = 'ctx-btnrow';
+    const cta = document.createElement('span'); cta.className = 'ctx-btn cta';
+    cta.appendChild(fn(nm.check)); cta.appendChild(document.createTextNode('Join'));
+    const ghost = document.createElement('span'); ghost.className = 'ctx-btn ghost';
+    ghost.appendChild(fn(nm.send)); ghost.appendChild(document.createTextNode('Invite'));
+    btns.appendChild(cta); btns.appendChild(ghost);
+    card.appendChild(btns);
+    ctx.appendChild(card);
+  }
+  if (window.lucide) setTimeout(() => lucide.createIcons({ attrs: { 'stroke-width': state.stroke, width: 18, height: 18 } }), 0);
+}
+
+// ── Controls ────────────────────────────────────────────────────────────────
+function wireSeg(id, key, cast = (v)=>v) {
+  document.getElementById(id).addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    [...e.currentTarget.children].forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    state[key] = cast(b.dataset[Object.keys(b.dataset)[0]]);
+    render();
+  });
+}
+wireSeg('sizeSeg', 'sz', Number);
+wireSeg('regSeg', 'reg');
+wireSeg('colSeg', 'col');
+wireSeg('surfSeg', 'surf');
+wireSeg('strokeSeg', 'stroke', Number);
+wireSeg('haloSeg', 'halo');
+
+render();
+</script>
+</body>
+</html>
