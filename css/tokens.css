@@ -198,6 +198,9 @@
     --shadow-1: 0 1px 2px rgba(0,0,0,0.18), 0 4px 14px rgba(0,0,0,0.30);  /* resting: chrome panel, card */
     --shadow-2: 0 8px 28px rgba(0,0,0,0.40);                              /* raised: sheet, dropdown */
     --shadow-3: 0 16px 48px rgba(0,0,0,0.50);                             /* pop: modal */
+    /* Legibility casing — tight dark halo (drop-shadow) so a thin outline glyph
+       stays readable over ANY background (weather over the map / FTS). */
+    --icon-casing: drop-shadow(0 0 1.5px rgba(0,0,0,0.85)) drop-shadow(0 1px 1px rgba(0,0,0,0.5));
 
     /* Borders — Jordy on DARK surfaces, Delft Blue on LIGHT; compose `1px solid var(--line-*)`. */
     --line-d-faint:  rgba(156,189,231,0.08);   /* divider on dark */

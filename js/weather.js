@@ -211,16 +211,19 @@ function skyIcon(cf) {
   return '☁\uFE0F';
 }
 
-/** Sky condition as inline SVG. Restored the 5-variant top-bar glyph set
- *  (Sun · SunSmallCloud · SunCloud · CloudSun · Cloud) — user reverted
- *  the timeline-style 3-variant unification. Sun + cloud silhouettes are
- *  now currentColor so the .wx-sky-icon CSS rule renders them white with
- *  the same drop-shadow backdrop the timeline glyphs use.
+/** Sky condition as inline SVG — genuine Lucide weather glyphs (outline,
+ *  24x24, stroke-width 2.5, round caps). Rendered cream with a dark
+ *  legibility casing via the .wx-sky-icon CSS rule so the thin strokes stay
+ *  legible over the map / FTS (any background). The 5 sky buckets map onto
+ *  4 distinct Lucide marks (sun · cloud-sun · cloudy · cloud); rain = cloud-rain.
  *
- *  TIMELINE_EVENT_GLYPHS in ui-plan-preview.js delegates to these shapes
+ *  TIMELINE_EVENT_GLYPHS in ui-plan-preview.js delegates to these names
  *  (sun → _wxSvgSun, partly → _wxSvgSunCloud, cloud → _wxSvgCloud,
- *  rain → _wxSvgRain) so the FTS popup / thumb / panel timelines now
- *  show the same detailed silhouettes the top bar uses. */
+ *  rain → _wxSvgRain), so all six names stay defined. */
+function _wxSvg(inner) {
+  return `<svg class="wx-sky-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
+}
+
 function skyIconSvg(cf) {
   if (cf < 0.15) return _wxSvgSun();
   if (cf < 0.40) return _wxSvgSunSmallCloud();
@@ -229,69 +232,29 @@ function skyIconSvg(cf) {
   return _wxSvgCloud();
 }
 
-/** Rain icon as inline SVG. Same currentColor + drop-shadow contract. */
+/** Rain icon as inline SVG. Same currentColor + casing contract. */
 function rainIconSvg() { return _wxSvgRain(); }
 
+// sun
 function _wxSvgSun() {
-  return `<svg class="wx-sky-icon" viewBox="0 0 16 16" aria-hidden="true">`
-    + `<circle cx="8" cy="8" r="3" fill="currentColor"/>`
-    + `<g stroke="currentColor" stroke-width="1.4" stroke-linecap="round">`
-    + `<line x1="8" y1="1.5" x2="8" y2="2.8"/>`
-    + `<line x1="8" y1="13.2" x2="8" y2="14.5"/>`
-    + `<line x1="1.5" y1="8" x2="2.8" y2="8"/>`
-    + `<line x1="13.2" y1="8" x2="14.5" y2="8"/>`
-    + `<line x1="3.3" y1="3.3" x2="4.2" y2="4.2"/>`
-    + `<line x1="11.8" y1="11.8" x2="12.7" y2="12.7"/>`
-    + `<line x1="3.3" y1="12.7" x2="4.2" y2="11.8"/>`
-    + `<line x1="11.8" y1="4.2" x2="12.7" y2="3.3"/>`
-    + `</g></svg>`;
+  return _wxSvg('<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>');
 }
-
-function _wxSvgSunSmallCloud() {
-  return `<svg class="wx-sky-icon" viewBox="0 0 16 16" aria-hidden="true">`
-    + `<circle cx="6" cy="6" r="2.5" fill="currentColor"/>`
-    + `<g stroke="currentColor" stroke-width="1.1" stroke-linecap="round">`
-    + `<line x1="6" y1="1.2" x2="6" y2="2.2"/>`
-    + `<line x1="1.2" y1="6" x2="2.2" y2="6"/>`
-    + `<line x1="2.6" y1="2.6" x2="3.2" y2="3.2"/>`
-    + `</g>`
-    + `<path d="M7.2 13.5 Q5.5 13.5 5.5 12 Q5.5 10.6 7 10.6 Q7.4 9 9.2 9 Q11 9 11.4 10.6 Q13 10.6 13 12 Q13 13.5 11.4 13.5 Z" fill="currentColor"/>`
-    + `</svg>`;
-}
-
+// mostly-sunny + partly both read as cloud-sun
+function _wxSvgSunSmallCloud() { return _wxSvgSunCloud(); }
 function _wxSvgSunCloud() {
-  return `<svg class="wx-sky-icon" viewBox="0 0 16 16" aria-hidden="true">`
-    + `<circle cx="5.2" cy="5.2" r="2.4" fill="currentColor"/>`
-    + `<g stroke="currentColor" stroke-width="1" stroke-linecap="round">`
-    + `<line x1="5.2" y1="0.8" x2="5.2" y2="1.7"/>`
-    + `<line x1="0.8" y1="5.2" x2="1.7" y2="5.2"/>`
-    + `<line x1="2" y1="2" x2="2.6" y2="2.6"/>`
-    + `</g>`
-    + `<path d="M5 13.6 Q3 13.6 3 12 Q3 10.4 4.7 10.4 Q5.2 8.4 7.7 8.4 Q10.3 8.4 10.8 10.4 Q12.6 10.4 12.6 12 Q12.6 13.6 10.8 13.6 Z" fill="currentColor"/>`
-    + `</svg>`;
+  return _wxSvg('<path d="M12 2v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="M20 12h2"/><path d="m19.07 4.93-1.41 1.41"/><path d="M15.947 12.65a4 4 0 0 0-5.925-4.128"/><path d="M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z"/>');
 }
-
+// mostly cloudy → cloudy (two clouds)
 function _wxSvgCloudSun() {
-  return `<svg class="wx-sky-icon" viewBox="0 0 16 16" aria-hidden="true">`
-    + `<circle cx="3.8" cy="4.4" r="1.6" fill="currentColor"/>`
-    + `<path d="M3.5 12.6 Q1.5 12.6 1.5 11 Q1.5 9.3 3.4 9.3 Q3.9 7.2 6.6 7.2 Q9.4 7.2 9.9 9.3 Q11.8 9.3 11.8 11 Q11.8 12.6 9.9 12.6 Z" fill="currentColor"/>`
-    + `</svg>`;
+  return _wxSvg('<path d="M17.5 12a1 1 0 1 1 0 9H9.006a7 7 0 1 1 6.702-9z"/><path d="M21.832 9A3 3 0 0 0 19 7h-2.207a5.5 5.5 0 0 0-10.72.61"/>');
 }
-
+// overcast → cloud
 function _wxSvgCloud() {
-  return `<svg class="wx-sky-icon" viewBox="0 0 16 16" aria-hidden="true">`
-    + `<path d="M3.8 12 Q1.6 12 1.6 10.2 Q1.6 8.4 3.6 8.4 Q4.2 5.8 7.7 5.8 Q11.3 5.8 11.8 8.4 Q13.8 8.4 13.8 10.2 Q13.8 12 11.8 12 Z" fill="currentColor"/>`
-    + `</svg>`;
+  return _wxSvg('<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>');
 }
-
+// rain → cloud-rain
 function _wxSvgRain() {
-  return `<svg class="wx-sky-icon" viewBox="0 0 16 16" aria-hidden="true">`
-    + `<path d="M3.5 9.5 Q1.7 9.5 1.7 8 Q1.7 6.5 3.6 6.5 Q4 4.5 7 4.5 Q10 4.5 10.5 6.5 Q12.3 6.5 12.3 8 Q12.3 9.5 10.5 9.5 Z" fill="currentColor"/>`
-    + `<g fill="currentColor">`
-    + `<ellipse cx="4.6" cy="12.3" rx="0.7" ry="1.4"/>`
-    + `<ellipse cx="7" cy="13" rx="0.7" ry="1.4"/>`
-    + `<ellipse cx="9.4" cy="12.3" rx="0.7" ry="1.4"/>`
-    + `</g></svg>`;
+  return _wxSvg('<path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M16 14v6"/><path d="M8 14v6"/><path d="M12 16v6"/>');
 }
 
 /** Short sky condition label. */

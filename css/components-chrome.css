@@ -1917,12 +1917,14 @@
     display: block;
     width: 14px;
     height: 14px;
-    /* Cream/white monochrome with the same drop-shadow backdrop the
-       timeline icons use (.dprcv-timeline-wx-icon). Unifies the FTS popup,
-       top-strip, header chip, date-strip, calendar grid and timeline so
-       the weather icon set reads as one family across the app. */
+    /* Cream outline Lucide weather glyphs. A tight 360° dark casing keeps the
+       thin strokes legible over ANY background — the FTS sits over the map,
+       so the glyph can land on water, park, sand, building or the lens tint.
+       (DESIGN.md sanctions legibility scrims; this is not a fill.) The light
+       top-strip overrides to ink + filter:none below. Unifies FTS popup,
+       header chip, date-strip, calendar grid and timeline as one family. */
     color: rgba(255, 244, 224, 0.92);
-    filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.35));
+    filter: var(--icon-casing);
   }
   #top-strip .ts-wx-icon,
   #header-wx-chip #header-wx-icon,
