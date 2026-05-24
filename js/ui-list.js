@@ -248,7 +248,7 @@ const SUN_GLYPH = '<svg class="sun-glyph" viewBox="0 0 24 24" width="13" height=
 // Walking-person glyph for the walk-time meta. Filled current-color so
 // it inherits the meta's --muted text color and stays visually neutral
 // next to the distance.
-const WALK_GLYPH = '<svg class="walk-glyph" viewBox="0 0 24 24" width="11" height="11" fill="currentColor" aria-hidden="true"><circle cx="13" cy="4" r="2"/><path d="M9.5 22l1.5-7-2-2v-5.5c0-.55.45-1 1-1h3.83c.43 0 .81.27.95.67L16 11l3 1.5-.45.9-3-1.4-1.5-3v3l2 2.5L15 22h-1.5l-1-6.5L11 13.5V22H9.5z"/></svg>';
+const WALK_GLYPH = '<svg class="walk-glyph" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0Z"/><path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z"/><path d="M16 17h4"/><path d="M4 13h4"/></svg>';
 
 // Row-3 category glyphs — Lucide outline (24 viewBox, stroke 2, round caps,
 // currentColor; DESIGN.md → Icons). Four marks cover the 11 CATEGORIES keys.

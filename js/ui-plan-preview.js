@@ -876,7 +876,7 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   // Material 'directions_walk' glyph — walking person mid-stride. Same
   // shape Google Maps + Apple Maps both use, so the metaphor is
   // immediately legible.
-  const walkSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7"/></svg>`;
+  const walkSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0Z"/><path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z"/><path d="M16 17h4"/><path d="M4 13h4"/></svg>`;
   // Walk chip drops the textual ' min walk' suffix in favour of a glyph
   // + the minute number. Less repetition with the unit and visually
   // anchors the chip as 'walking time' at a glance.
@@ -1863,8 +1863,8 @@ window.TIMELINE_EVENT_GLYPHS = {
   // Closed — moon-shape. Used on the FTS bar for time-of-day ranges
   // before a selected venue opens or after it closes; complements the
   // sun glyph naturally (Shades brand: sun ↔ moon).
-  closed: `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-    <path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.5 6.5 0 0 0 9.8 9.8z" opacity="0.92"/>
+  closed: `<svg class="wx-sky-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/>
   </svg>`,
 };
 /** Compute event timestamps (hour, type) for the accept-page timeline.

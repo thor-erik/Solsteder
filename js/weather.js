@@ -221,7 +221,7 @@ function skyIcon(cf) {
  *  (sun → _wxSvgSun, partly → _wxSvgSunCloud, cloud → _wxSvgCloud,
  *  rain → _wxSvgRain), so all six names stay defined. */
 function _wxSvg(inner) {
-  return `<svg class="wx-sky-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
+  return `<svg class="wx-sky-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
 }
 
 function skyIconSvg(cf) {
