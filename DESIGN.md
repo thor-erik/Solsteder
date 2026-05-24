@@ -424,7 +424,9 @@ All motion respects `prefers-reduced-motion` and suspends during scroll (200ms d
 - Colour via `currentColor` so icons inherit `--text` / `--muted` / `--accent` — never a hard-coded hex.
 - Outline is the default. Don't mix filled and outline at the same hierarchy level. Encode selection/active by **colour** (→ `--accent`), not by swapping to a filled icon.
 
-**Canvas glyphs** (map pins, weather, sun arc — `render-pins.js` / `render-arc.js`) can't import SVG directly, but must be redrawn to Lucide's metrics: same 2px-at-24 stroke ratio, round caps, outline. They read as one family even though the rendering path differs.
+**Weather glyphs** (`_wxSvg*` in `weather.js`: sun / cloud-sun / cloudy / cloud / cloud-rain) are genuine Lucide outline, but at **`stroke-width: 2.5`** (not 2) — the heavier weight survives small render sizes (13–20px). Because they sit over the map / FTS (any background colour), they carry a legibility casing: `filter: var(--icon-casing)` — a tight 360° dark halo. Casings are sanctioned ("legibility scrims … are not 'fills'"); the casing is dropped (`filter: none`) on the light top-strip, where the glyph goes ink. This 2.5 + casing is the one sanctioned deviation from the stroke-2 rule.
+
+**Canvas glyphs** (map pins, sun arc — `render-pins.js` / `render-arc.js`) can't import SVG directly, but must echo the Lucide marks' **shapes** (coffee / martini / cutlery for pin categories). At map-pin scale (~9px) outline is illegible, so pin glyphs are **filled silhouettes** of the matching Lucide mark — they read as one family by shape even though they're filled and the rendering path differs.
 
 **Subsetting:** copy only the SVG paths you use into the codebase — no runtime icon font or library dependency (keeps the no-build, CDN-free constraint).
 
