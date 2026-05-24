@@ -272,7 +272,7 @@
     /* Vertical padding gives the date pill's box-shadow room inside this
        overflow:hidden box (needed for the horizontal text clip) — without it
        the shadow was cropped top & bottom. */
-    padding: 6px 4px;
+    padding: var(--space-sm) var(--space-xs);
   }
   /* Glass-on-glass pill, fully contained within the strip row (no negative
      margins — those made the fill/border clip top & bottom). */
@@ -335,7 +335,7 @@
     /* Negative margin pulls the temp tight against the weather glyph —
        they read as one unit (icon + value), tighter than the row's
        default 4 px gap. */
-    margin-left: -2px;
+    margin-left: calc(var(--space-2xs) * -1);
   }
 
   /* Adaptive sentence — drop in priority order: wind → temp → glyph
@@ -517,7 +517,7 @@
        inside the (clipped) scroller; negative margin keeps the row's net height
        unchanged so the layout doesn't grow. */
     padding: var(--space-sm) 0;
-    margin: -6px 0;
+    margin: calc(var(--space-sm) * -1) 0;
     overflow-x: auto;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
@@ -1190,7 +1190,7 @@
   }
   #profile-panel.logged-out .login-auth-section {
     flex: 0 0 auto;
-    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    padding-bottom: max(var(--space-lg), env(safe-area-inset-bottom));
     width: 100%;
     box-sizing: border-box;
   }

@@ -42,7 +42,7 @@
   .avatar-row .avatar {
     border-radius: 50%;
     box-shadow: 0 0 0 2px rgba(17,30,56, 0.95);
-    margin-left: -6px;
+    margin-left: calc(var(--space-sm) * -1);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -53,7 +53,7 @@
     font-family: 'Inter', sans-serif;
   }
   .avatar-row .avatar:first-child { margin-left: 0; }
-  .avatar-row.sm .avatar { margin-left: -4px; }
+  .avatar-row.sm .avatar { margin-left: calc(var(--space-xs) * -1); }
   .avatar-row .avatar.avatar-overflow {
     background: #111E38;
     color: var(--text);
@@ -637,14 +637,14 @@
   }
   .social-friends-avatars {
     display: flex;
-    gap: -4px;
+    gap: calc(var(--space-xs) * -1);
   }
   .social-avatar {
     width: 26px; height: 26px;
     border-radius: 50%;
     object-fit: cover;
     border: 2px solid rgba(17,30,56,0.8);
-    margin-left: -6px;
+    margin-left: calc(var(--space-sm) * -1);
   }
   .social-avatar:first-child { margin-left: 0; }
   .social-avatar-init {
@@ -1071,7 +1071,7 @@
     /* Chevron moved BEFORE the text (flex-direction below stacks the
        SVG first), so the padding flips: tighter on the chevron side,
        looser on the text side. */
-    padding: 4px 9px 4px 6px;
+    padding: var(--space-xs) 9px var(--space-xs) var(--space-sm);
     border-radius: var(--radius-sm);
     letter-spacing: 0.01em;
     font-variant-numeric: tabular-nums;
@@ -1167,7 +1167,7 @@
     display: flex; gap: var(--space-lg);
     overflow-x: auto;
     padding: var(--space-xs) var(--space-2xs);
-    margin: 0 -2px;
+    margin: 0 calc(var(--space-2xs) * -1);
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
   }
@@ -1755,7 +1755,7 @@
     flex-wrap: wrap;
     padding: var(--space-xl) 0 0;
     margin-top: var(--space-md);
-    margin-bottom: -4px;
+    margin-bottom: calc(var(--space-xs) * -1);
     border-top: 1px solid rgba(156,189,231,0.10);
     font-size: 14px;
     font-weight: 700;
@@ -2034,7 +2034,7 @@
   }
   .pp-later-strip.open {
     max-height: 60px; /* single row of 36 px + padding */
-    padding: 12px 0 4px;
+    padding: var(--space-lg) 0 var(--space-xs);
     opacity: 1;
   }
   .pp-later-strip .pp-later-chip,
@@ -2411,7 +2411,7 @@
     transition: color 0.12s;
     /* Cancel any inherited padding-left from .dpacc-eyebrow's own
        indent rule (it lives inside .dpacc-eyebrow-row now). */
-    margin-right: -2px;
+    margin-right: calc(var(--space-2xs) * -1);
   }
   .dpacc-change-rsvp svg { opacity: 0.85; }
   .dpacc-change-rsvp:hover { color: var(--panel-text); }
@@ -2424,7 +2424,7 @@
     gap: var(--space-md);
     overflow-x: auto;
     padding: var(--space-xs) var(--space-2xs) var(--space-sm);
-    margin: 0 -2px;
+    margin: 0 calc(var(--space-2xs) * -1);
     -webkit-overflow-scrolling: touch;
   }
   .dpacc-action-card {

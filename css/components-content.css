@@ -3797,7 +3797,7 @@
     border: 0;
     box-shadow: none;
     padding: var(--space-2xs) var(--space-xs);
-    margin: -2px -4px -2px -4px;
+    margin: calc(var(--space-2xs) * -1) calc(var(--space-xs) * -1);
     height: auto;
     width: auto;
     color: rgba(255, 244, 224, 0.85);
@@ -4317,7 +4317,7 @@
     gap: var(--space-2xs);
     overflow-x: auto;
     scrollbar-width: none;
-    margin: -14px -16px var(--space-lg);
+    margin: -14px calc(var(--space-xl) * -1) var(--space-lg);
     scroll-snap-type: x mandatory;
     border-radius: var(--radius-md) var(--radius-md) 0 0;
     overflow: hidden;         /* clip rounded corners */
@@ -4686,7 +4686,7 @@
     box-shadow: 0 2px 6px rgba(0,0,0,0.30);
     pointer-events: auto;
   }
-  .detail-new-photos .photo-overlay-chip .avatar-row { gap: -4px; }
+  .detail-new-photos .photo-overlay-chip .avatar-row { gap: calc(var(--space-xs) * -1); }
 
   /* No-photo empty state — same frame + overlay structure, with a soft
      slate base + warm honey radial wash + centered camera icon. The title
