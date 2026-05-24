@@ -1945,12 +1945,13 @@
     left: 50%;
     transform: translateX(-50%);
     width: 380px;
-    background: var(--content-bg);
-    backdrop-filter: var(--content-blur);
-    -webkit-backdrop-filter: var(--content-blur);
-    border: none;
+    /* Desktop date dropdown → canonical raised/dropdown surface: opaque cream
+       + Delft hairline + shadow-2 (DESIGN.md "a raised layer goes opaque").
+       Was the cream-redesign leftover --content-bg (cream 80%) + blur. */
+    background: var(--surface-raised);
+    border: 1px solid var(--line-l);
     border-radius: var(--radius-md);
-    box-shadow: 0 8px 32px rgba(17,30,56,0.18);
+    box-shadow: var(--shadow-2);
     padding: var(--space-md) var(--space-md) var(--space-md);
     display: none;
     z-index: 960;
