@@ -962,20 +962,14 @@
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }
-  /* Deterministic card height (Phase 5e). Previously list cards let their
-     height vary with pill count (no reservation) — but that variance is the
-     CLS jump when the scrub skeleton swaps in/out, and it blocks the Phase 7
-     value-crossfade (which needs a stable box). Reserve one height that both
-     the pills and no-pills cards — and the skeleton, which inherits it — fill.
-     Value verified on the Cloudflare preview (fits row1 + meta + one pills row
-     + fill bar). Pills still sit on the right as a status cluster anchored to
-     the duration column. */
-  .venue-card.card-compact,
-  .venue-card.skeleton {
-    /* border-box so 104px is the TOTAL card height (padding included), not
-       content + 24px padding. No global box-sizing reset exists. */
+  /* Deterministic card height (Phase 5e + 3-row redesign). The list card and
+     its skeleton are both .card-3row, so one reservation keeps the scrub swap
+     jump-free and gives the Phase-7 value-crossfade a stable box. Fits row1 +
+     row2 + row3 + lifted fill bar; border-box so the value is the TOTAL height
+     (no global box-sizing reset). Value verified on the Cloudflare preview. */
+  .venue-card.card-3row {
     box-sizing: border-box;
-    min-height: 104px;
+    min-height: 92px;
   }
   .venue-card.card-compact .card-pills {
     margin: var(--space-sm) 0 var(--space-2xs);
@@ -999,13 +993,84 @@
     right: 0;
     bottom: 0;
     height: 3px;
-    background: rgba(255,242,235,0.06);
+    background: var(--fill-track);
     pointer-events: none;
   }
   .venue-card.card-compact .card-fillbar-fill {
     display: block;
     height: 100%;
     background: var(--accent);
+  }
+
+  /* ── 3-row deterministic list card ──────────────────────────────────────
+     row1 (name | sun+duration) reuses .card-row1/.card-name/.card-duration.
+     row2 = sub (dept/street/area) | anchor; row3 = meta cluster | shade event.
+     Both rows are 1fr/auto grids so the right column right-aligns and the left
+     ellipsizes. The fill bar lifts into flow (no longer flush to the border). */
+  .venue-card.card-3row { gap: var(--space-xs); }
+
+  .venue-card.card-3row .card-row2,
+  .venue-card.card-3row .card-row3 {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: baseline;
+    gap: var(--space-md);
+    font-size: var(--text-caption);
+  }
+  /* Row 2 left — dept/street (cream secondary) or area (weaker, muted) */
+  .venue-card.card-3row .card-sub {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-secondary);
+  }
+  .venue-card.card-3row .card-sub-muted { color: var(--muted); }
+
+  /* Row 3 left — category glyph + label · walk · distance(muted) */
+  .venue-card.card-3row .card-meta-left {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    color: var(--text-secondary);
+  }
+  .venue-card.card-3row .card-cat,
+  .venue-card.card-3row .card-walk {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    flex-shrink: 0;
+  }
+  .venue-card.card-3row .card-cat .cat-glyph,
+  .venue-card.card-3row .card-walk .walk-glyph { opacity: 0.85; }
+  .venue-card.card-3row .card-dist { color: var(--muted); flex-shrink: 0; }
+
+  /* Row 3 right — shade event, styled like the anchor (muted text, not a pill) */
+  .venue-card.card-3row .card-disrupt {
+    justify-self: end;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    color: var(--muted);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  /* Binding closing-time distinction on the row-2 anchor (subtle, no pill) */
+  .venue-card.card-3row .card-anchor-closes { font-style: italic; }
+
+  /* Lifted fill bar — into flow above the bottom padding, own rounded corners.
+     Overrides the absolute/flush .card-compact rule above (same specificity,
+     later in source). */
+  .venue-card.card-3row .card-fillbar {
+    position: static;
+    margin-top: var(--space-sm);
+    height: 3px;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
   }
 
   /* ── Card timeline — full-width strip + labels row at the bottom. ──
@@ -1342,6 +1407,10 @@
   }
   .skel-name {
     height: 14px;
+    border-radius: var(--radius-none);
+  }
+  .skel-sub {
+    height: 10px;
     border-radius: var(--radius-none);
   }
   .skel-duration {

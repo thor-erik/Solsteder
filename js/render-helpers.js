@@ -34,6 +34,69 @@ function shortName(name, maxLen = 14) {
   return result.length > maxLen ? result.slice(0, maxLen - 1) + '…' : result;
 }
 
+// ── Venue name split for the 3-row list card ──────────────────────────────────
+// Returns { name, sub, subMuted } for row-1 name + row-2 left:
+//   1. "<brand> avd|avdeling|dept <branch>"  → name=brand, sub=branch
+//   2. else street parsed from v.address      → sub=street
+//   3. else v.area (deduped vs name)          → sub=area, subMuted=true (weak)
+// Only avd/avdeling/dept split — NOT "på"/"i", which live inside real names
+// ("Anne på landet", "Jubel på Adamstuen").
+const _DEPT_RX = /\s+(?:avd|avdeling|dept)\.?\s+(.+)$/i;
+
+function _parseStreetFromAddress(address) {
+  if (!address) return '';
+  const segs = String(address).split(',').map(s => s.trim()).filter(Boolean);
+  // Prefer the comma-segment that ENDS in a house number ("Skovveien 8",
+  // "Vogts gate 50A", "…Vestlys plass 1"). Resolves comma-in-name addresses.
+  for (const s of segs) {
+    const m = s.match(/^(.*\D)\s+\d+[A-Za-z]?$/);
+    if (m) return m[1].trim();
+  }
+  // No house number anywhere: first digit-free segment (skips "0257 Oslo").
+  const nd = segs.find(s => !/\d/.test(s));
+  return (nd || segs[0] || '').trim();
+}
+
+function splitVenueName(v) {
+  const full = ((v && v.name) || '').trim();
+  const dept = full.match(_DEPT_RX);
+  if (dept) {
+    return { name: full.slice(0, dept.index).trim(), sub: dept[1].trim(), subMuted: false };
+  }
+  const street = _parseStreetFromAddress(v && v.address);
+  if (street) return { name: full, sub: street, subMuted: false };
+  // Area fallback — muted, and suppressed if it already ends the name.
+  const area = ((v && v.area) || '').trim();
+  if (area) {
+    const rx = new RegExp('\\s' + area.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i');
+    if (!rx.test(full)) return { name: full, sub: area, subMuted: true };
+  }
+  return { name: full, sub: '', subMuted: false };
+}
+
+// ── Shade glyph (brand mark: solid left semicircle + diagonal-striped right) ──
+// Shared by the list card (row-3 disruption) and the accept-page timeline
+// (TIMELINE_EVENT_GLYPHS.shade). Generated per call with a UNIQUE clipPath id
+// so injecting it into many cards never collides on a duplicate DOM id.
+let _shadeGlyphN = 0;
+function shadeGlyph(size = 14) {
+  const id = 'shclip' + (_shadeGlyphN++);
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <defs><clipPath id="${id}"><path d="M12 2 A10 10 0 0 1 12 22 Z"/></clipPath></defs>
+    <path d="M12 2 A10 10 0 0 0 12 22 Z"/>
+    <g clip-path="url(#${id})">
+      <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <g stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none">
+        <line x1="2" y1="20" x2="20" y2="2"/>
+        <line x1="6" y1="22" x2="22" y2="6"/>
+        <line x1="10" y1="24" x2="24" y2="10"/>
+        <line x1="14" y1="24" x2="24" y2="14"/>
+        <line x1="18" y1="24" x2="24" y2="18"/>
+      </g>
+    </g>
+  </svg>`;
+}
+
 // ── Clock time formatter ──────────────────────────────────────────────────────
 // Converts an hour-as-float (e.g. 15.75) to a clock string ("15:45").
 // Does NOT round to 5/15-minute intervals — showing 15:47 is more honest than 15:45.

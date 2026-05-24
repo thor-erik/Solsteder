@@ -232,6 +232,7 @@
        the diagonal stripe (stripe = shade, not loading). DESIGN-FIXES → Skeletons. */
     --skel-block: rgba(255,244,224,0.09);  /* placeholder block on the Delft skeleton card */
     --skel-sheen: rgba(255,244,224,0.06);  /* sweeping highlight mid-stop */
+    --fill-track: rgba(255,242,235,0.06);  /* card sun-fill bar track (cream wash on Delft) */
 
     /* Radius — DESIGN.md set. --radius-sm/md/pill already match above; only
        --radius-none is genuinely new. --radius-lg stays 16 here (→ 20 in Phase 2). */

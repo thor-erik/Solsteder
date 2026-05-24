@@ -17,20 +17,27 @@
 // .venue-card (row1 name + duration, meta line, mini-timeline) so the swap
 // doesn't reshape the list height.
 function renderSkeletonCards(container, n = 7) {
+  // Mirror the real 3-row card (row1 name+duration / row2 sub / row3 meta) +
+  // the lifted fill bar, so the skeleton footprint matches and the swap never
+  // reshapes the list. card-3row makes it inherit the same min-height + bar.
   const nameW = [60, 75, 48, 68, 52, 82, 44, 64, 58];
-  const metaW = [38, 52, 32, 46, 56, 28, 62, 44, 50];
+  const subW  = [40, 30, 52, 36, 44, 28, 48, 34, 42];
+  const metaW = [62, 70, 54, 66, 58, 72, 50, 64, 60];
   for (let i = 0; i < n; i++) {
     const card = document.createElement('div');
-    card.className = 'venue-card skeleton';
+    card.className = 'venue-card card-3row skeleton';
     card.innerHTML =
       '<div class="card-row1">' +
         `<div class="skel skel-name" style="width:${nameW[i % nameW.length]}%"></div>` +
         '<div class="skel skel-duration"></div>' +
       '</div>' +
-      '<div class="card-meta">' +
+      '<div class="card-row2">' +
+        `<div class="skel skel-sub" style="width:${subW[i % subW.length]}%"></div>` +
+      '</div>' +
+      '<div class="card-row3">' +
         `<div class="skel skel-meta" style="width:${metaW[i % metaW.length]}%"></div>` +
       '</div>' +
-      '<div class="skel skel-timeline"></div>';
+      '<div class="card-fillbar"></div>';
     container.appendChild(card);
   }
 }
@@ -243,6 +250,24 @@ const SUN_GLYPH = '<svg class="sun-glyph" viewBox="0 0 24 24" width="13" height=
 // next to the distance.
 const WALK_GLYPH = '<svg class="walk-glyph" viewBox="0 0 24 24" width="11" height="11" fill="currentColor" aria-hidden="true"><circle cx="13" cy="4" r="2"/><path d="M9.5 22l1.5-7-2-2v-5.5c0-.55.45-1 1-1h3.83c.43 0 .81.27.95.67L16 11l3 1.5-.45.9-3-1.4-1.5-3v3l2 2.5L15 22h-1.5l-1-6.5L11 13.5V22H9.5z"/></svg>';
 
+// Row-3 category glyphs — Lucide outline (24 viewBox, stroke 2, round caps,
+// currentColor; DESIGN.md → Icons). Four marks cover the 11 CATEGORIES keys.
+const _CAT_GLYPHS = {
+  utensils: '<path d="M3 2v7c0 1.1.9 2 2 2a2 2 0 0 0 2-2V2"/><path d="M5 2v20"/><path d="M21 15V2a5 5 0 0 0-3 5v6c0 1.1.9 2 2 2h1zm0 0v7"/>',
+  coffee:   '<path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><path d="M6 2v2"/><path d="M10 2v2"/><path d="M14 2v2"/>',
+  wine:     '<path d="M8 22h8"/><path d="M7 10h10"/><path d="M12 15v7"/><path d="M12 15a5 5 0 0 0 5-5c0-2-.5-4-1-8H8c-.5 4-1 6-1 8a5 5 0 0 0 5 5z"/>',
+  martini:  '<path d="M8 22h8"/><path d="M12 11v11"/><path d="m5 3 7 8 7-8z"/>',
+};
+function catGlyph(v) {
+  const c = v && v.category;
+  const key =
+    (c === 'cafe') ? 'coffee' :
+    (c === 'wine_bar') ? 'wine' :
+    (c === 'bar' || c === 'pub' || c === 'cocktail_bar' || c === 'beer_garden' || c === 'rooftop_bar') ? 'martini' :
+    'utensils'; // restaurant, fine_dining, bistro_bar, brasserie, courtyard, default
+  return `<svg class="cat-glyph" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${_CAT_GLYPHS[key]}</svg>`;
+}
+
 function _formatDurationFromMin(minutes) {
   if (!minutes || minutes <= 0) return '';
   const h = Math.floor(minutes / 60);
@@ -255,6 +280,29 @@ function _formatDurationFromMin(minutes) {
   if (h > 0)          return `${h}${hu}`;
   if (m > 0)          return `${m}m`;
   return `5m`;
+}
+
+// Row-3 right: shade-only disruption summary from the qualifying window's
+// gaps. 1 shade gap → "HH:MM–HH:MM"; ≥2 → "N skygger". Cloud/rain gaps are
+// filtered (the city-wide outlook line above the list carries weather).
+// Returns '' when there are no shade gaps.
+function _shadeSummary(qual) {
+  const w = qual && qual.earliest;
+  if (!w || !Array.isArray(w.gaps) || !w.gaps.length) return '';
+  const shade = w.gaps.filter(g => g.kind !== 'skyer' && g.kind !== 'regn');
+  if (!shade.length) return '';
+  const fmt = (typeof formatHour === 'function') ? formatHour : (h) => `${Math.floor(h)}:00`;
+  if (shade.length === 1) {
+    return t('card_shade_range', { start: fmt(shade[0].start), end: fmt(shade[0].end) });
+  }
+  return t('card_shade_count', { n: shade.length });
+}
+
+// Walk minutes from the card's distance (mirrors _dprcvWalkInfo: ~80 m/min,
+// 1-min floor). Returns null when the venue has no distance (no user location).
+function _cardWalkMin(s) {
+  if (!s || s.distKm == null) return null;
+  return Math.max(1, Math.round((s.distKm * 1000) / 80));
 }
 
 /**
@@ -333,18 +381,19 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
   // overflow / opportunity pill, capped at 3.
   const sundownH = (typeof currentSunTable !== 'undefined' && currentSunTable && typeof findSunCrossingFromTable === 'function')
     ? findSunCrossingFromTable(currentSunTable, false) : null;
+  // Raw (unclamped) windows — feed the v2 pills AND the binding-close check.
+  // When the geometric sun would have continued past the venue's closing time
+  // (binding-Stenger), the 3-row list card folds that into the row-2 anchor.
+  // Listed venues memoize on v._rawWindows; detail rebuild recomputes.
+  const rawWindows = (qual && qual.surfaced)
+    ? (v._rawWindows ?? (typeof computeSunWindows === 'function' ? computeSunWindows(v, dateStr).windows : []))
+    : [];
+  const geometricEndAfterClose = rawWindows.some(w => w.end > dayHours.close + 0.001);
   let pills = [];
   if (qual && qual.surfaced) {
     if (rich && !dpVariant && typeof buildCardPills === 'function') {
       pills = buildCardPills(v, qual, fromHour, sundownH, dateStr);
     } else if (typeof buildCardPillsV2 === 'function') {
-      // Detect whether the geometric sun would have continued past the venue's
-      // closing time (binding-Stenger condition) by re-asking computeSunWindows
-      // with no upper hour clamp. We already have the raw windows from the
-      // qualifying recompute above when v._qual is missing; the listed-venue
-      // path memoizes them on v._rawWindows for reuse.
-      const rawWindows = v._rawWindows ?? (typeof computeSunWindows === 'function' ? computeSunWindows(v, dateStr).windows : []);
-      const geometricEndAfterClose = rawWindows.some(w => w.end > dayHours.close + 0.001);
       const earliestRaw = rawWindows.find(w => w.end > qual.earliest.start - 0.001);
       const rawWindowStart = earliestRaw ? earliestRaw.start : qual.earliest.start;
       pills = buildCardPillsV2(v, qual, {
@@ -519,6 +568,46 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
         ${reviewChips}
         ${auditActionsHtml}
       </div>`;
+  }
+
+  // ── Compact LIST card — deterministic 3-row layout ──────────────────────
+  // row1: split name | sun + duration; row2: dept/street/area(muted) | anchor
+  // (close-aware); row3: cat · walk · distance(muted) | shade event; lifted
+  // fill bar. Fixed shape so the skeleton matches and the height never jumps.
+  if (!rich && !dpVariant) {
+    const idArg = (typeof v.id === 'number') ? v.id : `'${v.id}'`;
+    const esc = (typeof _esc === 'function') ? _esc : ((x) => x);
+    const nm = (typeof splitVenueName === 'function') ? splitVenueName(v) : { name: v.name, sub: v.area || '', subMuted: true };
+    const walkMin = _cardWalkMin(s);
+    const shadeStr = _shadeSummary(qual);
+    const anchor = (qual && qual.surfaced && typeof formatAnchor === 'function')
+      ? formatAnchor(qual, bucket, sundownH, dateStr) : '';
+    const closesBinding = !!(geometricEndAfterClose && qual && qual.earliest
+      && qual.earliest.end <= dayHours.close + 0.001);
+    return `
+    <div class="venue-card ${stateClass} card-compact card-3row ${v.id === selectedId ? 'selected' : ''}${flags ? ' review-flagged' : ''}${auditCardCls}"
+         data-vid="${v.id}" onclick="selectVenue(${idArg}, true)"
+         onmouseenter="setHoveredVenue(${idArg})" onmouseleave="setHoveredVenue(null)">
+      <div class="card-row1">
+        <div class="card-name">${esc(nm.name)}${favHeart}${friendBadge}${goingBadge}</div>
+        ${durationStr ? `<div class="card-duration">${SUN_GLYPH}${durationStr}</div>` : ''}
+      </div>
+      <div class="card-row2">
+        <span class="card-sub${nm.subMuted ? ' card-sub-muted' : ''}">${esc(nm.sub)}</span>
+        ${anchor ? `<span class="card-anchor${closesBinding ? ' card-anchor-closes' : ''}">${anchor}</span>` : ''}
+      </div>
+      <div class="card-row3">
+        <span class="card-meta-left">
+          <span class="card-cat">${catGlyph(v)}${esc(catLabel(v))}</span>
+          ${walkMin != null ? `<span class="card-meta-dot">·</span><span class="card-walk">${WALK_GLYPH}${walkMin} min</span>` : ''}
+          ${distStr ? `<span class="card-meta-dot">·</span><span class="card-dist">${esc(distStr)}</span>` : ''}
+        </span>
+        ${shadeStr ? `<span class="card-disrupt">${shadeGlyph()}${shadeStr}</span>` : ''}
+      </div>
+      ${reviewChips}
+      ${auditActionsHtml}
+      ${fillBarHtml}
+    </div>`;
   }
 
   return `

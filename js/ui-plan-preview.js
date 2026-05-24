@@ -1815,22 +1815,9 @@ window.TIMELINE_EVENT_GLYPHS = {
     <circle cx="12" cy="12" r="9"/>
     <polyline points="12 7 12 12 16 14"/>
   </svg>`,
-  shade: `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-    <defs>
-      <clipPath id="shade-clip-right"><path d="M12 2 A10 10 0 0 1 12 22 Z"/></clipPath>
-    </defs>
-    <path d="M12 2 A10 10 0 0 0 12 22 Z"/>
-    <g clip-path="url(#shade-clip-right)">
-      <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.5"/>
-      <g stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none">
-        <line x1="2" y1="20" x2="20" y2="2"/>
-        <line x1="6" y1="22" x2="22" y2="6"/>
-        <line x1="10" y1="24" x2="24" y2="10"/>
-        <line x1="14" y1="24" x2="24" y2="14"/>
-        <line x1="18" y1="24" x2="24" y2="18"/>
-      </g>
-    </g>
-  </svg>`,
+  // Brand shade mark — shared generator in render-helpers.js (unique clipPath
+  // id per call so it can repeat across list cards + this timeline safely).
+  shade: (typeof shadeGlyph === 'function') ? shadeGlyph() : '',
   // Weather glyphs delegate to the same _wxSvg* set the top-strip /
   // header / date-strip / calendar uses (defined in weather.js). User
   // feedback: FTS popup, thumb, and panel timelines should match the

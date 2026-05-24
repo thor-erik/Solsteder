@@ -192,6 +192,9 @@ const _STRINGS = {
     pill_overflow_one:         '+ {dur} sun from {time}',
     pill_overflow_many:        '+ {n} sun later',
     pill_more_count:           '+ {n} more',
+    // 3-row card row-3 shade summary (icon conveys "shade" — no state word).
+    card_shade_range:          '{start}–{end}',
+    card_shade_count:          '{n} shadows',
     // Short unit suffix for compact durations ("4h 30m"). Locale-aware so
     // Norwegian/Swedish/Danish render "4t 30m"; English renders "4h 30m".
     unit_h_short:              'h',
@@ -732,6 +735,9 @@ const _STRINGS = {
     pill_overflow_one:         '+ {dur} sol fra {time}',
     pill_overflow_many:        '+ {n} sol senere',
     pill_more_count:           '+ {n} mer',
+    // 3-row card row-3 shade summary (icon conveys "skygge" — no state word).
+    card_shade_range:          '{start}–{end}',
+    card_shade_count:          '{n} skygger',
     unit_h_short:              't',
     empty_no_sun_left:         'Ingen sol igjen i dag',
     empty_no_sun_day:          'Ingen sol denne dagen',
