@@ -570,8 +570,15 @@ function initFts() {
     _applyThumbTiltCss();
     _ftsTiltRaf = requestAnimationFrame(_ftsTiltStep);
   }
+  const _ftsTiltMq = window.matchMedia('(prefers-reduced-motion: reduce)');
   function _ftsTiltSetTarget(target) {
     window._ftsThumbTiltTar = target;
+    // Reduced motion: parallax/tilt is disabled (DESIGN.md) — snap, don't spring.
+    if (_ftsTiltMq.matches) {
+      window._ftsThumbTiltCur = { x: target.x, y: target.y };
+      _applyThumbTiltCss();
+      return;
+    }
     if (!_ftsTiltRaf) _ftsTiltRaf = requestAnimationFrame(_ftsTiltStep);
   }
   function _ftsThumbPosition() {

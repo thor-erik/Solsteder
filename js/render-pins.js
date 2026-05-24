@@ -651,7 +651,17 @@ const PULSE_STAGGER_MS  = 900;
 const PULSE_RING_COUNT  = 2;
 const PULSE_MAX_SCALE   = 2.4;
 
+// Reduced-motion: the pulse is a continuous ambient flourish — suppress it
+// entirely so the friend pill renders static. Cached + live-updated.
+let _pulseReduceMotion = false;
+try {
+  const _mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  _pulseReduceMotion = _mq.matches;
+  _mq.addEventListener('change', (e) => { _pulseReduceMotion = e.matches; });
+} catch {}
+
 function _drawPulseRings(ctx, modBounds, now, id) {
+  if (_pulseReduceMotion) return;
   let start = _pulseStart.get(id);
   if (start === undefined) { start = now; _pulseStart.set(id, start); }
   const cx = modBounds.x + modBounds.w / 2;
