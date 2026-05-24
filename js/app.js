@@ -3050,8 +3050,7 @@ function toggleQcPanel(section) {
       const r = anchor.getBoundingClientRect();
       calFloat.style.bottom = '';
       calFloat.style.top = (r.bottom + 8) + 'px';
-      // Match the venue-list panel: same width, same left edge — the calendar
-      // overlaps the list rather than floating as a narrow box.
+      // Match the venue-list panel: same width + left edge, overlapping the list.
       if (listPanel) {
         const pr = listPanel.getBoundingClientRect();
         calFloat.style.left = pr.left + 'px';

@@ -1973,21 +1973,20 @@
     gap: 1px;
     padding: var(--space-xs) var(--space-2xs) var(--space-xs);
     border-radius: var(--radius-sm);
-    /* Light/ink calendar tile on the cream surface (light everywhere). */
-    border: 1px solid var(--line-l);
-    background: transparent;
+    border: var(--glass-border);
+    background: var(--glass-card-bg);
     box-shadow: none;
     cursor: pointer;
-    transition: border-color 0.12s, box-shadow 0.12s, background 0.12s;
+    transition: border-color 0.12s, box-shadow 0.12s;
     font-family: 'Inter', sans-serif;
     position: relative;
   }
   .dc-tile:hover:not(.no-data) {
-    border-color: var(--accent-border);
+    border-color: rgba(245,194,94,0.3);
   }
-  .dc-tile.today       { border-color: var(--accent-border); }
-  /* Selected: honey-dim fill + accent ring (light-surface selected state). */
-  .dc-tile.selected    { background: var(--accent-dim); border-color: var(--accent) !important; }
+  .dc-tile.today       { border-color: rgba(245,194,94,0.4); }
+  /* Selected: inset accent ring + subtle glow; keep glass top-sheen for continuity (no bg fill) */
+  .dc-tile.selected    { box-shadow: inset 0 0 0 2px var(--accent), inset 0 0 10px rgba(245,194,94,0.12), inset 0 1px 0 rgba(255,242,235,0.14) !important; border-color: transparent !important; }
   /* Sun-touched days: tile fill stays the default glass card — only the
      border picks up the honey accent. Keeps the selected-state inset ring
      as the dominant "this is the picked day" signal (different geometry:
@@ -2004,11 +2003,11 @@
   .dc-tile.no-data     { opacity: 0.4; }
   /* Beyond-horizon tiles: reduced-opacity glass with the same diagonal gradient — no dashed borders */
   .dc-tile.solar-only  {
-    background: var(--line-l-faint);
-    border-color: var(--line-l-faint);
+    background: rgba(17,30,56,0.30);
+    border-color: rgba(17,30,56,0.18);
     box-shadow: none;
   }
-  .dc-tile.solar-only:hover:not(.no-data) { border-color: var(--line-l); }
+  .dc-tile.solar-only:hover:not(.no-data) { border-color: rgba(156,189,231,0.22); }
   /* Past tiles: 0.45 opacity matches the time bar past-state rule */
   .dc-tile-past        { opacity: 0.45; cursor: default; pointer-events: none; border-color: transparent; background: transparent; box-shadow: none; }
   /* Today dot — 4px accent dot, absolutely positioned at bottom-center of tile */
@@ -2025,34 +2024,34 @@
   /* Overflow tiles: days from the previous month that share a row with the 1st of a new month */
   .dc-tile-overflow    { opacity: 0.45; }
   .dc-tile-empty       { border: none; background: transparent; pointer-events: none; }
-  .dc-day  { font-size: 7px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-muted); line-height: 1; }
-  .dc-num  { font-size: 14px; font-weight: 700; color: var(--panel-text); line-height: 1.1; font-family: 'Inter', sans-serif; }
+  .dc-day  { font-size: 7px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(156,189,231,0.4); line-height: 1; }
+  .dc-num  { font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.1; font-family: 'Inter', sans-serif; }
   .dc-icon { font-size: var(--text-caption); line-height: 1.2; display: inline-flex; align-items: center; justify-content: center; }
   /* SVG sky-icon (used in place of emoji for iOS glyph parity with the
      top-bar / date-strip surfaces). Sizes scale with the .dc-icon
      context (top-strip / mini-cal / month grid). */
   .dc-icon .wx-sky-icon { width: 14px; height: 14px; }
-  .dc-temp { font-size: 8px; font-weight: 600; color: var(--ink-muted); line-height: 1; }
-  .dc-tile.today .dc-day { color: var(--accent-active); }
-  .dc-tile.selected .dc-num { color: var(--accent-on); }
+  .dc-temp { font-size: 8px; font-weight: 600; color: rgba(156,189,231,0.55); line-height: 1; }
+  .dc-tile.today .dc-day { color: rgba(245,194,94,0.75); }
+  .dc-tile.selected .dc-num { color: var(--accent); }
 
   /* Mode-toggle buttons: glass-action flavor, no accent — secondary chrome */
   .dc-expand-btn-wide {
     width: 100%; margin-top: var(--space-sm); height: 44px; padding: 0 var(--space-lg); box-sizing: border-box;
-    background: transparent;
-    border: 1px solid var(--line-l-strong);
+    background: var(--glass-action-bg);
+    border: var(--glass-border);
     border-radius: var(--radius-md); cursor: pointer;
     box-shadow: none;
     font-family: 'Inter', sans-serif; font-size: var(--text-label); font-weight: 600;
-    color: var(--panel-text);
+    color: var(--text);
     transition: background 0.12s, border-color 0.12s;
     display: flex; align-items: center; justify-content: center; gap: var(--space-sm);
     flex-shrink: 0; -webkit-tap-highlight-color: transparent; outline: none;
   }
-  .dc-expand-btn-wide:hover { background: var(--line-l-faint); border-color: var(--line-l-strong); }
-  .dc-expand-btn-wide:active { background: var(--line-l); }
+  .dc-expand-btn-wide:hover { background: rgba(17,30,56,0.55); border-color: rgba(156,189,231,0.28); }
+  .dc-expand-btn-wide:active { background: rgba(17,30,56,0.35); }
   /* Trailing chevron inside mode-toggle buttons */
-  .dc-btn-chev { display: inline-block; color: var(--ink-muted); flex-shrink: 0; }
+  .dc-btn-chev { display: inline-block; color: var(--muted); flex-shrink: 0; }
   .dc-btn-chev-up { transform: rotate(180deg); }
   @keyframes dc-cal-in {
     from { opacity: 0; }
@@ -2067,14 +2066,14 @@
   }
   .dc-weekday {
     font-family: 'Inter', sans-serif; font-size: 8px; font-weight: 700;
-    color: var(--ink-muted); text-align: center; text-transform: uppercase;
+    color: rgba(156,189,231,0.35); text-align: center; text-transform: uppercase;
     letter-spacing: 0.05em;
   }
   /* Month label row — spans all 7 columns, sticky handled in #qc-cal scope */
   .dc-month-row-label {
     grid-column: 1 / -1;
     font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 700;
-    color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.09em;
+    color: rgba(156,189,231,0.55); text-transform: uppercase; letter-spacing: 0.09em;
     padding: var(--space-xs) var(--space-2xs) var(--space-2xs);
   }
   /* Month grid — 7-column day grid, consistent cell sizing */
@@ -2094,7 +2093,7 @@
   .dc-forecast-note {
     margin-top: var(--space-xs); padding: var(--space-xs) var(--space-sm); flex-shrink: 0;
     font-family: 'Inter', sans-serif; font-size: 9px; font-weight: 500;
-    color: var(--ink-muted); text-align: center; letter-spacing: 0.03em;
+    color: rgba(156,189,231,0.40); text-align: center; letter-spacing: 0.03em;
   }
 
   /* Sun arc canvas row */
