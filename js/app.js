@@ -2696,7 +2696,7 @@ function setSortBy(sort) {
         _aTrack('geolocation_grant', { trigger: 'favorites_sort' });
         renderList();
       },
-      () => { _aTrack('geolocation_deny', { trigger: 'favorites_sort' }); }
+      () => { _aTrack('geolocation_deny', { trigger: 'favorites_sort' }); showToast(t('location_denied')); }
     );
     // Fall through — set sort immediately, re-render will happen again if location arrives
   } else if (sort === 'distance' && !userLocation) {
@@ -2708,7 +2708,7 @@ function setSortBy(sort) {
         updateSortBtns();
         renderList();
       },
-      () => { _aTrack('geolocation_deny', { trigger: 'distance_sort' }); }
+      () => { _aTrack('geolocation_deny', { trigger: 'distance_sort' }); showToast(t('location_denied')); }
     );
     return;
   }
@@ -2844,6 +2844,13 @@ function showToast(msg) {
   clearTimeout(t._tid);
   t._tid = setTimeout(() => t.classList.remove('visible'), 3500);
 }
+
+// Network resilience (Phase 6) — surface online/offline transitions via the
+// transient toast. Data is service-worker-cached, so offline still shows saved
+// venues; the toast just tells the user why things may be stale. (A persistent
+// banner is the spec'd upgrade.) Only fires on real transitions, not at boot.
+window.addEventListener('offline', () => { try { showToast(t('net_offline')); } catch {} });
+window.addEventListener('online',  () => { try { showToast(t('net_online'));  } catch {} });
 
 let _autoAdvancedAfterSunset = false;
 
