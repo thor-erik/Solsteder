@@ -4872,7 +4872,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: var(--ink-muted);
+    color: var(--text-secondary); /* cream — chip sits on the dark detail panel */
     font-size: 14px;
   }
   .info-chip-text { font-variant-numeric: tabular-nums; }

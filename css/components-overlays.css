@@ -152,7 +152,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: rgba(17,30,56,0.70);
+    color: var(--text-secondary); /* cream — the detail panel is dark Delft; ink was invisible */
     flex-shrink: 0;
     opacity: 1;
   }

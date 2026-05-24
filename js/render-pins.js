@@ -295,90 +295,45 @@ function _dotMapColors(tier, closed, hasSunLaterToday) {
 }
 
 // ── Vector category icons ─────────────────────────────────────────────────────
-// Filled silhouettes sized to fill the 20px dot (extents up to ±4.5). Colour
-// is tier-aware: dark warm brown on honey for hero (high contrast on light
-// background), white on the slate shadow capsules.
-function _drawCafeIcon(c, cx, cy, col) {
-  c.fillStyle   = col;
-  c.strokeStyle = col;
-  c.lineWidth   = 1.6;
-  c.lineCap     = 'round';
-  c.lineJoin    = 'round';
-  // Filled mug body — closed-top, slightly tapered
-  c.beginPath();
-  c.moveTo(cx - 3.6, cy - 3.0);
-  c.lineTo(cx + 1.8, cy - 3.0);
-  c.lineTo(cx + 1.8, cy + 2.8);
-  c.quadraticCurveTo(cx + 1.8, cy + 3.8, cx + 0.6, cy + 3.8);
-  c.lineTo(cx - 2.4, cy + 3.8);
-  c.quadraticCurveTo(cx - 3.6, cy + 3.8, cx - 3.6, cy + 2.8);
-  c.closePath();
-  c.fill();
-  // Handle (stroke arc)
-  c.beginPath();
-  c.arc(cx + 2.0, cy - 0.2, 1.9, -Math.PI / 2, Math.PI / 2);
-  c.lineWidth = 1.5;
-  c.stroke();
-  // Steam dot
-  c.beginPath();
-  c.arc(cx - 0.6, cy - 4.6, 0.7, 0, Math.PI * 2);
-  c.fill();
-}
-
-function _drawBarIcon(c, cx, cy, col) {
-  c.fillStyle = col;
-  // Bowl V (filled triangle, wide)
-  c.beginPath();
-  c.moveTo(cx - 4.2, cy - 3.6);
-  c.lineTo(cx + 4.2, cy - 3.6);
-  c.lineTo(cx,        cy + 0.8);
-  c.closePath();
-  c.fill();
-  // Stem
-  c.fillRect(cx - 0.6, cy + 0.7, 1.2, 2.6);
-  // Base
-  c.fillRect(cx - 2.6, cy + 3.0, 5.2, 1.2);
-  // Olive (small dot inside the bowl)
-  c.beginPath();
-  c.arc(cx + 1.4, cy - 2.2, 0.7, 0, Math.PI * 2);
-  c.fillStyle = col;
-  c.fill();
-}
-
-function _drawRestaurantIcon(c, cx, cy, col) {
-  c.fillStyle   = col;
-  c.strokeStyle = col;
-  c.lineCap     = 'round';
-  c.lineJoin    = 'round';
-  // Fork — shaft + 3 prongs, all filled
-  c.fillRect(cx - 3.4, cy - 1.0, 1.4, 5.6);          // shaft
-  c.fillRect(cx - 4.4, cy - 4.4, 0.9, 3.6);          // outer-left prong
-  c.fillRect(cx - 3.15, cy - 4.4, 0.9, 3.6);         // middle prong
-  c.fillRect(cx - 1.9,  cy - 4.4, 0.9, 3.6);         // outer-right prong
-  // Knife — tapered blade + filled handle
-  c.beginPath();
-  c.moveTo(cx + 1.8, cy - 4.4);
-  c.lineTo(cx + 3.8, cy - 4.4);
-  c.lineTo(cx + 3.4, cy - 0.6);
-  c.lineTo(cx + 2.4, cy - 0.6);
-  c.closePath();
-  c.fill();
-  c.fillRect(cx + 2.5, cy - 0.6, 1.2, 5.0);
-}
-
-function _drawDefaultIcon(c, cx, cy, col) {
-  c.fillStyle = col;
-  c.beginPath();
-  c.arc(cx, cy, 3.2, 0, Math.PI * 2);
-  c.fill();
+// Genuine Lucide path data (coffee / martini / utensils-crossed), stroked on
+// canvas at pin scale via Path2D — same marks as the list + detail panel, so
+// map and list read as one family. Colour is tier-aware: dark warm brown on
+// honey for hero (high contrast on light), cream on the slate shadow capsules.
+const _CAT_PIN_PATHS = {
+  cafe:       ['M17 8h1a4 4 0 1 1 0 8h-1', 'M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z', 'M6 2v2', 'M10 2v2', 'M14 2v2'],
+  bar:        ['M8 22h8', 'M12 11v11', 'm5 3 7 8 7-8z'],
+  restaurant: ['m16 2-2.3 2.3a3 3 0 0 0 0 4.2l1.8 1.8a3 3 0 0 0 4.2 0L22 8', 'M15 15 3.3 3.3a4.2 4.2 0 0 0 0 6l7.3 7.3c.7.7 2 .7 2.8 0L15 15Zm0 0 7 7', 'm2.1 21.8 6.4-6.3', 'm19 5-7 7'],
+};
+const _catPathCache = {};
+function _catPaths(category) {
+  if (!(category in _catPathCache)) {
+    const ds = _CAT_PIN_PATHS[category];
+    _catPathCache[category] = ds ? ds.map(d => new Path2D(d)) : null;
+  }
+  return _catPathCache[category];
 }
 
 function _drawCategoryIcon(ctx, cx, cy, category, color) {
-  const col = color || '#fff';
-  if (category === 'cafe')       return _drawCafeIcon(ctx, cx, cy, col);
-  if (category === 'bar')        return _drawBarIcon(ctx, cx, cy, col);
-  if (category === 'restaurant') return _drawRestaurantIcon(ctx, cx, cy, col);
-  return _drawDefaultIcon(ctx, cx, cy, col);
+  const col   = color || '#fff';
+  const paths = _catPaths(category);
+  if (!paths) {                              // fallback: simple dot
+    ctx.beginPath();
+    ctx.arc(cx, cy, 3.0, 0, Math.PI * 2);
+    ctx.fillStyle = col;
+    ctx.fill();
+    return;
+  }
+  const ICON = 13;                           // displayed icon box (px) in the ~20px dot
+  const s = ICON / 24;                        // Lucide is a 24-unit grid
+  ctx.save();
+  ctx.translate(cx - ICON / 2, cy - ICON / 2);
+  ctx.scale(s, s);
+  ctx.strokeStyle = col;
+  ctx.lineWidth   = 2.6;                      // ~1.4px rendered after scale
+  ctx.lineCap     = 'round';
+  ctx.lineJoin    = 'round';
+  for (const p of paths) ctx.stroke(p);
+  ctx.restore();
 }
 
 // ── Time formatting ────────────────────────────────────────────────────────────
