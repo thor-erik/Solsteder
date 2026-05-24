@@ -2802,6 +2802,15 @@ function _injectScrubSkeletons() {
   const list = document.getElementById('venue-list');
   if (!list || typeof renderSkeletonCards !== 'function') return;
   list.innerHTML = '';
+  // Reserve the leading section-header's box so the skeleton cards stay on the
+  // same axis as the real venue cards. The real list opens with a
+  // .venue-section-header ("N steder i solen"); wiping the list removed it and
+  // shifted the skeletons up. body.list-scrubbing fades it (opacity:0) but its
+  // height must remain — so render an empty placeholder header here.
+  const hdr = document.createElement('div');
+  hdr.className = 'venue-section-header';
+  hdr.innerHTML = '&nbsp;';
+  list.appendChild(hdr);
   renderSkeletonCards(list, 7);
 }
 
