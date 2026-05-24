@@ -1024,24 +1024,33 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     color: var(--text-secondary);
+    /* Heavier than the meta row — area is the venue's place identity, a step
+       below the name (700) and above the meta line (400). */
+    font-weight: 600;
   }
-  .venue-card.card-3row .card-sub-muted { color: var(--muted); }
 
-  /* Row 3 left — category glyph + label · walk · distance(muted) */
+  /* Row 3 left — category glyph + label · walk · distance(muted). Spacing
+     comes from the dot margins + a glyph↔label gap, not one flat gap (which
+     read cramped/uneven). */
   .venue-card.card-3row .card-meta-left {
     min-width: 0;
     overflow: hidden;
     white-space: nowrap;
     display: inline-flex;
     align-items: center;
-    gap: var(--space-2xs);
+    gap: 0;
     color: var(--text-secondary);
+  }
+  .venue-card.card-3row .card-meta-dot {
+    opacity: 0.4;
+    margin: 0 var(--space-sm);
+    flex-shrink: 0;
   }
   .venue-card.card-3row .card-cat,
   .venue-card.card-3row .card-walk {
     display: inline-flex;
     align-items: center;
-    gap: var(--space-2xs);
+    gap: var(--space-xs);
     flex-shrink: 0;
   }
   .venue-card.card-3row .card-cat .cat-glyph,

@@ -35,43 +35,30 @@ function shortName(name, maxLen = 14) {
 }
 
 // ── Venue name split for the 3-row list card ──────────────────────────────────
-// Returns { name, sub, subMuted } for row-1 name + row-2 left:
-//   1. "<brand> avd|avdeling|dept <branch>"  → name=brand, sub=branch
-//   2. else street parsed from v.address      → sub=street
-//   3. else v.area (deduped vs name)          → sub=area, subMuted=true (weak)
+// Returns { name, sub } — row-1 name + row-2 location.
+//   sub  = v.area (the clean area field; row 2 shows AREA, not street — most
+//          venue names carry no location, and where they do it's an area ~4:1).
+//          The area-data project will make v.area fine-grained + accurate; this
+//          card just trusts the field, so it improves automatically.
+//   name = the venue name with location noise that duplicates the area stripped:
+//          a chain branch ("… avd|avdeling|dept Skovveien"), a " - X" dash tail
+//          ("Castello Restaurant - Oslo"), and a trailing echo of the venue's
+//          own area ("Olivia Restaurant Tjuvholmen" → "Olivia Restaurant").
 // Only avd/avdeling/dept split — NOT "på"/"i", which live inside real names
 // ("Anne på landet", "Jubel på Adamstuen").
-const _DEPT_RX = /\s+(?:avd|avdeling|dept)\.?\s+(.+)$/i;
-
-function _parseStreetFromAddress(address) {
-  if (!address) return '';
-  const segs = String(address).split(',').map(s => s.trim()).filter(Boolean);
-  // Prefer the comma-segment that ENDS in a house number ("Skovveien 8",
-  // "Vogts gate 50A", "…Vestlys plass 1"). Resolves comma-in-name addresses.
-  for (const s of segs) {
-    const m = s.match(/^(.*\D)\s+\d+[A-Za-z]?$/);
-    if (m) return m[1].trim();
-  }
-  // No house number anywhere: first digit-free segment (skips "0257 Oslo").
-  const nd = segs.find(s => !/\d/.test(s));
-  return (nd || segs[0] || '').trim();
-}
+const _DEPT_RX = /\s+(?:avd|avdeling|dept)\.?\s+.+$/i;
 
 function splitVenueName(v) {
   const full = ((v && v.name) || '').trim();
-  const dept = full.match(_DEPT_RX);
-  if (dept) {
-    return { name: full.slice(0, dept.index).trim(), sub: dept[1].trim(), subMuted: false };
-  }
-  const street = _parseStreetFromAddress(v && v.address);
-  if (street) return { name: full, sub: street, subMuted: false };
-  // Area fallback — muted, and suppressed if it already ends the name.
   const area = ((v && v.area) || '').trim();
-  if (area) {
-    const rx = new RegExp('\\s' + area.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i');
-    if (!rx.test(full)) return { name: full, sub: area, subMuted: true };
+  let name = full.replace(_DEPT_RX, '').trim();          // drop chain branch
+  name = name.replace(/\s+[-–]\s+.+$/, '').trim();        // drop " - tail"
+  if (area) {                                             // drop trailing area echo
+    const rx = new RegExp('\\s+' + area.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i');
+    name = name.replace(rx, '').trim();
   }
-  return { name: full, sub: '', subMuted: false };
+  if (!name) name = full;                                  // never blank the name
+  return { name, sub: area };
 }
 
 // ── Shade glyph (brand mark: solid left semicircle + diagonal-striped right) ──
