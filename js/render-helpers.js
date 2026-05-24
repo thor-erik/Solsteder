@@ -69,6 +69,27 @@ function _fineNeighborhood(name) {
   return '';
 }
 
+// Cuisine/category descriptors — NOT a venue's identity on their own. If
+// stripping the neighborhood would leave only these, the neighborhood is part
+// of the real name ("Sushi Tveita", "VIN Bjørvika") and must be kept.
+const _GENERIC_WORDS = new Set([
+  'sushi', 'pizza', 'pizzeria', 'burger', 'burgers', 'ramen', 'kebab', 'kebabhus',
+  'grill', 'bbq', 'bar', 'pub', 'cafe', 'café', 'kafé', 'kaffe', 'kaffebar',
+  'restaurant', 'brasserie', 'bistro', 'tapas', 'thai', 'indian', 'kitchen',
+  'mat', 'mathall', 'deli', 'bakeri', 'bakery', 'wok', 'noodles', 'curry',
+  'taco', 'tacos', 'vin', 'vinbar', 'vinhus', 'gastropub', 'steakhouse',
+  'sushibar', 'espressobar', 'chicken', 'sports', 'sport',
+]);
+const _CONNECTOR_WORDS = new Set(['og', 'the', 'av', 'på', 'i', '&', '-', 'di', 'de', 'la', 'le']);
+
+function _isGenericName(s) {
+  const words = s.toLowerCase().split(/[\s\-–,&]+/)
+    .map(w => w.replace(/[.()'`’]/g, '')).filter(Boolean)
+    .filter(w => !_CONNECTOR_WORDS.has(w));
+  if (!words.length) return true;
+  return words.every(w => _GENERIC_WORDS.has(w));
+}
+
 function splitVenueName(v) {
   const full = ((v && v.name) || '').trim();
   const coarse = ((v && v.area) || '').trim();
@@ -76,14 +97,23 @@ function splitVenueName(v) {
   let name = full.replace(_DEPT_RX, '').trim();          // drop chain branch
   name = name.replace(/\s+[-–]\s+.+$/, '').trim();        // drop " - tail"
   // Drop a trailing echo of the fine neighborhood or coarse area (optionally
-  // followed by a "plass"/"brygge" qualifier: "Frenchie Solli Plass" → "Frenchie").
+  // followed by "plass"/"brygge": "Frenchie Solli Plass" → "Frenchie") — but
+  // ONLY if what remains is a real name, not a bare cuisine word. "Sushi
+  // Tveita" stays "Sushi Tveita"; "Døgnvill Burger Bjørvika" → "Døgnvill Burger".
   for (const loc of [fine, coarse]) {
     if (!loc) continue;
     const esc = loc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    name = name.replace(new RegExp('\\s+' + esc + '(\\s+(?:plass|brygge))?$', 'i'), '').trim();
+    const stripped = name.replace(new RegExp('\\s+' + esc + '(\\s+(?:plass|brygge))?$', 'i'), '').trim();
+    if (stripped && stripped !== name && !_isGenericName(stripped)) name = stripped;
   }
   if (!name) name = full;                                  // never blank the name
-  return { name, fine: (fine && fine.toLowerCase() !== coarse.toLowerCase()) ? fine : '', coarse };
+  // Suppress the fine neighborhood from row 2 when it's still in the row-1 name
+  // (the name owns it) — avoids showing e.g. "Tveita" twice.
+  const nameTokens = ' ' + name.toLowerCase().replace(/[-–,]/g, ' ').replace(/\s+/g, ' ') + ' ';
+  const fineEsc = fine.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const fineInName = fine && new RegExp('(^| )' + fineEsc + '( |$)').test(nameTokens);
+  const showFine = fine && !fineInName && fine.toLowerCase() !== coarse.toLowerCase();
+  return { name, fine: showFine ? fine : '', coarse };
 }
 
 // ── Shade glyph (brand mark: solid left semicircle + diagonal-striped right) ──
