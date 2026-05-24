@@ -1056,7 +1056,6 @@
     gap: var(--space-xs);
     flex-shrink: 0;
   }
-  .venue-card.card-3row .card-cat .cat-glyph,
   .venue-card.card-3row .card-walk .walk-glyph { opacity: 0.85; }
   .venue-card.card-3row .card-dist { color: var(--muted); flex-shrink: 0; }
 

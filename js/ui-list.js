@@ -250,23 +250,6 @@ const SUN_GLYPH = '<svg class="sun-glyph" viewBox="0 0 24 24" width="13" height=
 // next to the distance.
 const WALK_GLYPH = '<svg class="walk-glyph" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0Z"/><path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z"/><path d="M16 17h4"/><path d="M4 13h4"/></svg>';
 
-// Row-3 category glyphs — Lucide outline (24 viewBox, stroke 2, round caps,
-// currentColor; DESIGN.md → Icons). Four marks cover the 11 CATEGORIES keys.
-const _CAT_GLYPHS = {
-  utensils: '<path d="M3 2v7c0 1.1.9 2 2 2a2 2 0 0 0 2-2V2"/><path d="M5 2v20"/><path d="M21 15V2a5 5 0 0 0-3 5v6c0 1.1.9 2 2 2h1zm0 0v7"/>',
-  coffee:   '<path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><path d="M6 2v2"/><path d="M10 2v2"/><path d="M14 2v2"/>',
-  wine:     '<path d="M8 22h8"/><path d="M7 10h10"/><path d="M12 15v7"/><path d="M12 15a5 5 0 0 0 5-5c0-2-.5-4-1-8H8c-.5 4-1 6-1 8a5 5 0 0 0 5 5z"/>',
-  martini:  '<path d="M8 22h8"/><path d="M12 11v11"/><path d="m5 3 7 8 7-8z"/>',
-};
-function catGlyph(v) {
-  const c = v && v.category;
-  const key =
-    (c === 'cafe') ? 'coffee' :
-    (c === 'wine_bar') ? 'wine' :
-    (c === 'bar' || c === 'pub' || c === 'cocktail_bar' || c === 'beer_garden' || c === 'rooftop_bar') ? 'martini' :
-    'utensils'; // restaurant, fine_dining, bistro_bar, brasserie, courtyard, default
-  return `<svg class="cat-glyph" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${_CAT_GLYPHS[key]}</svg>`;
-}
 
 function _formatDurationFromMin(minutes) {
   if (!minutes || minutes <= 0) return '';
@@ -623,7 +606,7 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
       </div>
       <div class="card-row3">
         <span class="card-meta-left">
-          <span class="card-cat">${catGlyph(v)}${esc(catLabel(v))}</span>
+          <span class="card-cat">${esc(catLabel(v))}</span>
           ${walkMin != null ? `<span class="card-meta-dot">·</span><span class="card-walk">${WALK_GLYPH}${walkMin} min</span>` : ''}
           ${distStr ? `<span class="card-meta-dot">·</span><span class="card-dist">${esc(distStr)}</span>` : ''}
         </span>
