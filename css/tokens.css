@@ -53,7 +53,8 @@
     --weather-rain:       #4A5E82;   /* rain — Delft-blue family (no longer slate) */
     --weather-night:      #0F1B2A;   /* deeper than --bg for visibility */
 
-    /* Spacing — 4-base ladder. Published; not yet migrated. */
+    /* Spacing — legacy numeric ladder. 0 consumers; SUPERSEDED by the semantic
+       --space-* scale (2xs–4xl) below, which is what components use. Removal candidate. */
     --space-1:  4px;
     --space-2:  8px;
     --space-3:  12px;
@@ -63,7 +64,8 @@
     --space-8:  32px;
     --space-12: 48px;
 
-    /* Radius. Published; not yet migrated. */
+    /* Radius — MIGRATED: sm/md/lg/pill/none are consumed and border-radius is fully
+       tokenized (0 raw). (--radius-xs / --radius-circle currently unused.) */
     --radius-xs:    4px;
     --radius-sm:    8px;
     --radius-md:    12px;
@@ -71,7 +73,9 @@
     --radius-pill:  999px;
     --radius-circle: 50%;
 
-    /* Type scale. Published; not yet migrated. */
+    /* Type — legacy numeric scale. 0 consumers; SUPERSEDED by the semantic
+       --text-{display,title,subtitle,body,label,caption} roles below (which on-scale
+       font-sizes were aliased to). Removal candidate. */
     --text-xs:  11px;
     --text-sm:  12px;
     --text-md:  13px;
@@ -80,7 +84,8 @@
     --text-2xl: 20px;
     --text-3xl: 24px;
 
-    /* Motion. Published; not yet migrated. */
+    /* Motion — published; only --ease-emphasized consumed so far. Full wiring
+       (duration/easing across transitions) is REMAINING-WORK Phase 6. */
     --ease-standard:   cubic-bezier(0.4, 0, 0.2, 1);
     --ease-emphasized: cubic-bezier(0.32, 0.72, 0, 1);
     --dur-fast: 120ms;

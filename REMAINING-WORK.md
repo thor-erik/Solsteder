@@ -28,10 +28,20 @@ Their only lasting value is the surface inventory, de-staled into the appendix b
 ## Workflow (carried from CLAUDE.md Tier 2)
 
 - Each phase = its own branch + Cloudflare preview, **landed and verified before the next.**
-- Run `node scripts/validate-tokens.mjs` before merging. The baseline counts the literals
-  the foundation migration must still drive down (at last check: 934 raw spacing, 615 raw
-  alpha, 339 font-size, 207 border-radius, 129 hex-outside-root, 44 blur). A phase that
-  touches CSS should not raise these.
+- Run `node scripts/validate-tokens.mjs` before merging — it compares live counts to a
+  pinned baseline and fails if a CSS edit *raises* any category. **Current baseline
+  (2026-05-24): border-radius 0 · spacing 50 · font-size 165 · blur 34 · hex 112 · rgba 577.**
+  - *Drive-down* categories: **radius — done (0); spacing — ~done** (≈50 off-scale orphans,
+    Phase 5 spacing pass); **font-size — done by design** (on-scale aliased to role tokens;
+    the ~165 left are intentional off-scale micro-text, not pending).
+  - *Guardrail* categories (NOT a drive-to-zero target): **rgba 577 · hex 112 · blur 34** —
+    these include brand SVG fills (`#4285F4`, `#000`…), shadow alphas, and gradient sheens
+    that legitimately stay raw; no phase scoped tokenizing them all. The deferred glass-`*`
+    retirement would trim some rgba/blur. Treat these as "don't add new ones."
+  - Dead token blocks: `--space-1..12` and `--text-xs..3xl` have 0 consumers (superseded by
+    the semantic scales) — safe to delete in a cleanup.
+  - A CSS-touching phase must not *raise* any count; re-pin with `--update` only for an
+    intentional reduction.
 - Bump the `?v=` cache-bust string + `sw.js` `CACHE_VERSION` on any web-asset edit.
 - `npm run cap:sync` (Node 22) before any native release; `cap-sync-check.yml` guards the cp-list.
 - CSS now lives in five files (`tokens` / `base` / `components-chrome` / `components-content`
