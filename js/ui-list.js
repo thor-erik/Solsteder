@@ -577,7 +577,7 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
   if (!rich && !dpVariant) {
     const idArg = (typeof v.id === 'number') ? v.id : `'${v.id}'`;
     const esc = (typeof _esc === 'function') ? _esc : ((x) => x);
-    const nm = (typeof splitVenueName === 'function') ? splitVenueName(v) : { name: v.name, sub: v.area || '' };
+    const nm = (typeof splitVenueName === 'function') ? splitVenueName(v) : { name: v.name, fine: '', coarse: v.area || '' };
     const walkMin = _cardWalkMin(s);
     const shadeStr = _shadeSummary(qual);
     const anchor = (qual && qual.surfaced && typeof formatAnchor === 'function')
@@ -593,7 +593,9 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
         ${durationStr ? `<div class="card-duration">${SUN_GLYPH}${durationStr}</div>` : ''}
       </div>
       <div class="card-row2">
-        <span class="card-sub">${esc(nm.sub)}</span>
+        <span class="card-sub">${nm.fine
+          ? `<span class="card-sub-fine">${esc(nm.fine)}</span><span class="card-sub-sep">·</span><span class="card-sub-coarse">${esc(nm.coarse)}</span>`
+          : `<span class="card-sub-fine">${esc(nm.coarse)}</span>`}</span>
         ${anchor ? `<span class="card-anchor${closesBinding ? ' card-anchor-closes' : ''}">${anchor}</span>` : ''}
       </div>
       <div class="card-row3">

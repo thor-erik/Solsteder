@@ -35,30 +35,55 @@ function shortName(name, maxLen = 14) {
 }
 
 // ── Venue name split for the 3-row list card ──────────────────────────────────
-// Returns { name, sub } — row-1 name + row-2 location.
-//   sub  = v.area (the clean area field; row 2 shows AREA, not street — most
-//          venue names carry no location, and where they do it's an area ~4:1).
-//          The area-data project will make v.area fine-grained + accurate; this
-//          card just trusts the field, so it improves automatically.
-//   name = the venue name with location noise that duplicates the area stripped:
-//          a chain branch ("… avd|avdeling|dept Skovveien"), a " - X" dash tail
-//          ("Castello Restaurant - Oslo"), and a trailing echo of the venue's
-//          own area ("Olivia Restaurant Tjuvholmen" → "Olivia Restaurant").
+// Returns { name, fine, coarse } — row-1 name + row-2 location.
+//   coarse = v.area (the reliable, complete coarse-area assignment).
+//   fine   = a fine neighborhood the venue names itself with (Tveita, Bjørvika,
+//            Solli…) when present and finer than the coarse area, else ''.
+//   row 2 renders "fine · coarse" (fine prominent, coarse muted) when a fine
+//   neighborhood exists, else just the coarse area. We show BOTH rather than
+//   choosing — no toes stepped, and it can't mislabel.
+//   name = the venue name with location noise that duplicates the location
+//          stripped: a chain branch ("… avd|avdeling|dept Skovveien"), a " - X"
+//          dash tail ("Castello Restaurant - Oslo"), and a trailing echo of the
+//          fine neighborhood or coarse area ("Sushi Tveita" → "Sushi").
 // Only avd/avdeling/dept split — NOT "på"/"i", which live inside real names
 // ("Anne på landet", "Jubel på Adamstuen").
 const _DEPT_RX = /\s+(?:avd|avdeling|dept)\.?\s+.+$/i;
 
+// Fine Oslo neighborhoods that appear in venue names but aren't coarse areas.
+// Confirmed from the area-mismatch report (scripts/area-mismatch-report.mjs),
+// excluding the island/square/park sub-spots (Hovedøya/Rådhusplassen/
+// Frognerparken). Longest-first so multi-word hits ("Carl Berners plass") win.
+const FINE_NEIGHBORHOODS = [
+  'Carl Berners plass', 'Bjørvika', 'Sørenga', 'Manglerud', 'Fredensborg',
+  'Ullevål', 'Bjølsen', 'Frysja', 'Holtet', 'Tveita', 'Storo', 'Løren',
+  'Hasle', 'Solli', 'Vika',
+].sort((a, b) => b.length - a.length);
+
+function _fineNeighborhood(name) {
+  const hay = ' ' + name.toLowerCase().replace(/[-–,]/g, ' ').replace(/\s+/g, ' ') + ' ';
+  for (const g of FINE_NEIGHBORHOODS) {
+    const esc = g.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    if (new RegExp('(^| )' + esc + '( |$)').test(hay)) return g;
+  }
+  return '';
+}
+
 function splitVenueName(v) {
   const full = ((v && v.name) || '').trim();
-  const area = ((v && v.area) || '').trim();
+  const coarse = ((v && v.area) || '').trim();
+  const fine = _fineNeighborhood(full);
   let name = full.replace(_DEPT_RX, '').trim();          // drop chain branch
   name = name.replace(/\s+[-–]\s+.+$/, '').trim();        // drop " - tail"
-  if (area) {                                             // drop trailing area echo
-    const rx = new RegExp('\\s+' + area.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i');
-    name = name.replace(rx, '').trim();
+  // Drop a trailing echo of the fine neighborhood or coarse area (optionally
+  // followed by a "plass"/"brygge" qualifier: "Frenchie Solli Plass" → "Frenchie").
+  for (const loc of [fine, coarse]) {
+    if (!loc) continue;
+    const esc = loc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    name = name.replace(new RegExp('\\s+' + esc + '(\\s+(?:plass|brygge))?$', 'i'), '').trim();
   }
   if (!name) name = full;                                  // never blank the name
-  return { name, sub: area };
+  return { name, fine: (fine && fine.toLowerCase() !== coarse.toLowerCase()) ? fine : '', coarse };
 }
 
 // ── Shade glyph (brand mark: solid left semicircle + diagonal-striped right) ──

@@ -1024,10 +1024,13 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     color: var(--text-secondary);
-    /* Heavier than the meta row — area is the venue's place identity, a step
-       below the name (700) and above the meta line (400). */
-    font-weight: 600;
   }
+  /* "fine · coarse" — the fine neighborhood (or the coarse area when there's no
+     finer one) is the prominent place identity: heavier than the meta row, a
+     step below the name. The coarse area is muted context after the dot. */
+  .venue-card.card-3row .card-sub-fine { font-weight: 600; color: var(--text-secondary); }
+  .venue-card.card-3row .card-sub-coarse { font-weight: 400; color: var(--muted); }
+  .venue-card.card-3row .card-sub-sep { opacity: 0.4; margin: 0 var(--space-xs); }
 
   /* Row 3 left — category glyph + label · walk · distance(muted). Spacing
      comes from the dot margins + a glyph↔label gap, not one flat gap (which
