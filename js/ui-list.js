@@ -298,6 +298,22 @@ function _shadeSummary(qual) {
   return t('card_shade_count', { n: shade.length });
 }
 
+// Row-3 right (when there's no shade gap): a SUN OPPORTUNITY — an extra
+// qualifying sun window later in the day. 1 extra → "+1t fra 17:00"; ≥2 →
+// "+N sol senere". Not weather; the honey sun glyph marks it as "more sun".
+// Mirrors the overflow pill from buildCardPillsV2. Returns '' when none.
+function _sunOpportunity(qual) {
+  const extra = ((qual && qual.windows) || []).slice(1);
+  if (!extra.length) return '';
+  const fmt = (typeof formatHour === 'function') ? formatHour : (h) => `${Math.floor(h)}:00`;
+  if (extra.length === 1) {
+    const dur = (typeof _formatPillDur === 'function')
+      ? _formatPillDur(extra[0].durationMin) : _formatDurationFromMin(extra[0].durationMin);
+    return t('pill_overflow_one', { dur, time: fmt(extra[0].start) });
+  }
+  return t('pill_overflow_many', { n: extra.length });
+}
+
 // Walk minutes from the card's distance (mirrors _dprcvWalkInfo: ~80 m/min,
 // 1-min floor). Returns null when the venue has no distance (no user location).
 function _cardWalkMin(s) {
@@ -580,6 +596,8 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
     const nm = (typeof splitVenueName === 'function') ? splitVenueName(v) : { name: v.name, fine: '', coarse: v.area || '' };
     const walkMin = _cardWalkMin(s);
     const shadeStr = _shadeSummary(qual);
+    // Sun footnote: shade gap takes the slot; otherwise a sun opportunity.
+    const oppStr = shadeStr ? '' : _sunOpportunity(qual);
     const anchor = (qual && qual.surfaced && typeof formatAnchor === 'function')
       ? formatAnchor(qual, bucket, sundownH, dateStr) : '';
     const closesBinding = !!(geometricEndAfterClose && qual && qual.earliest
@@ -604,7 +622,9 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
           ${walkMin != null ? `<span class="card-meta-dot">·</span><span class="card-walk">${WALK_GLYPH}${walkMin} min</span>` : ''}
           ${distStr ? `<span class="card-meta-dot">·</span><span class="card-dist">${esc(distStr)}</span>` : ''}
         </span>
-        ${shadeStr ? `<span class="card-disrupt">${shadeGlyph()}${shadeStr}</span>` : ''}
+        ${shadeStr
+          ? `<span class="card-disrupt card-disrupt-shade">${shadeGlyph()}${shadeStr}</span>`
+          : (oppStr ? `<span class="card-disrupt card-disrupt-sun">${SUN_GLYPH}${oppStr}</span>` : '')}
       </div>
       ${reviewChips}
       ${auditActionsHtml}

@@ -1071,6 +1071,9 @@
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
   }
+  /* Shade gap = "less sun" → muted (default). Sun opportunity = "more sun
+     later" → honey, so the two read as opposite signals at a glance. */
+  .venue-card.card-3row .card-disrupt-sun { color: var(--accent); }
   /* Binding closing-time distinction on the row-2 anchor (subtle, no pill) */
   .venue-card.card-3row .card-anchor-closes { font-style: italic; }
 
