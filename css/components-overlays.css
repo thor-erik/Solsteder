@@ -2021,8 +2021,8 @@
      transition as the rest of the panel. v1 used display: none → grid
      which caused the panel to jump in height with no animation. */
   .pp-later-strip {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    display: flex;
+    align-items: center;
     gap: var(--space-sm);
     max-height: 0;
     padding: 0;
@@ -2033,24 +2033,30 @@
                 opacity 0.2s ease;
   }
   .pp-later-strip.open {
-    max-height: 100px; /* generous: two rows of 36 px + gap + padding */
+    max-height: 60px; /* single row of 36 px + padding */
     padding: 12px 0 4px;
     opacity: 1;
   }
   .pp-later-strip .pp-later-chip,
   .pp-later-strip .pp-later-custom {
-    width: 100%;
+    flex: 1 1 0;
+    min-width: 0;
     height: 36px;
     padding: 0 var(--space-xs);
     font-size: 12.5px;
     font-weight: 600;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     /* Light/chrome sheet → outline chip (step to ink), per the component-state
        matrix. Overrides the dark .chip-pill default. */
     background: var(--surface-control);
     border: 1px solid var(--line-l-strong);
     color: var(--panel-text);
     box-shadow: none;
+    /* Morph animation: Custom grows, presets shrink to fit. */
+    transition: flex-grow 0.30s cubic-bezier(0.32, 0.72, 0, 1),
+                background 0.18s ease-out, border-color 0.18s ease-out, color 0.18s ease-out;
   }
   /* Selected = Delft-blue fill + cream text. NOT honey — honey is reserved for
      the one CTA per screen ("Jeg blir med") + the sun signal (DESIGN.md). */
@@ -2060,26 +2066,34 @@
     border-color: transparent;
     color: var(--text);
   }
-  /* Custom ±5-min stepper — ONE integrated segmented pill: [ − │ value │ + ].
-     Single outline container with internal dividers so it reads as one control,
-     not a number floating between two buttons. Light-surface (ink + outline). */
-  .pp-later-strip .pp-later-stepper {
-    grid-column: 1 / -1;
-    justify-self: center;
-    display: inline-flex;
-    align-items: stretch;
-    height: 36px;
-    background: var(--surface-control);
-    border: 1px solid var(--line-l-strong);
-    border-radius: var(--radius-pill);
-    overflow: hidden;
+  /* ── Custom element: morphs in place from "Annet" chip → inline [− value +]
+     stepper. The label + stepper crossfade while the element widens (flex-grow)
+     and the presets shrink. One cohesive control on a single row. ── */
+  .pp-later-strip .pp-later-custom {
+    position: relative;
+    padding: 0;
+    cursor: pointer;
   }
-  .pp-later-strip .pp-later-stepper[hidden] { display: none; }
+  .pp-later-strip .pp-later-custom.is-active { flex-grow: 2.6; }
+  .pp-later-strip .pp-custom-label,
+  .pp-later-strip .pp-custom-stepper {
+    position: absolute;
+    inset: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.2s ease;
+  }
+  .pp-later-strip .pp-custom-stepper { opacity: 0; pointer-events: none; }
+  .pp-later-strip .pp-later-custom.is-active .pp-custom-label   { opacity: 0; pointer-events: none; }
+  .pp-later-strip .pp-later-custom.is-active .pp-custom-stepper { opacity: 1; pointer-events: auto; }
   .pp-later-strip .pp-step-btn {
     width: 40px;
+    align-self: stretch;
+    flex-shrink: 0;
     border: none;
     background: transparent;
-    color: var(--panel-text);
+    color: inherit;
     font-size: var(--text-subtitle);
     font-weight: 700;
     line-height: 1;
@@ -2089,20 +2103,23 @@
     justify-content: center;
     transition: background 120ms ease-out;
   }
-  .pp-later-strip .pp-step-btn:first-child { border-right: 1px solid var(--line-l); }
-  .pp-later-strip .pp-step-btn:last-child  { border-left: 1px solid var(--line-l); }
-  .pp-later-strip .pp-step-btn:hover  { background: var(--line-l-faint); }
-  .pp-later-strip .pp-step-btn:active { background: var(--line-l); }
+  /* Dividers in Jordy (the active Custom surface is Delft). */
+  .pp-later-strip .pp-step-btn:first-child { border-right: 1px solid var(--line-d); }
+  .pp-later-strip .pp-step-btn:last-child  { border-left: 1px solid var(--line-d); }
+  .pp-later-strip .pp-step-btn:hover  { background: var(--line-d-faint); }
   .pp-later-strip .pp-later-stepper-val {
-    min-width: 96px;
-    padding: 0 var(--space-md);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    flex: 1 1 auto;
+    text-align: center;
     font-size: var(--text-label);
     font-weight: 700;
-    color: var(--panel-text);
+    color: inherit;
     font-variant-numeric: tabular-nums;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pp-later-strip .pp-later-chip,
+    .pp-later-strip .pp-later-custom,
+    .pp-later-strip .pp-custom-label,
+    .pp-later-strip .pp-custom-stepper { transition: none; }
   }
 
   @media (min-width: 640px) {
