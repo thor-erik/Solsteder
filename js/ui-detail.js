@@ -78,12 +78,12 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
 
   const busynessNow = typeof getBusynessAt === 'function' ? getBusynessAt(v, dateStr, fromHour) : null;
   if (busynessNow != null) {
-    infoItems.push({
-      icon: peopleIcon,
-      strong: 'Travelt nå',
-      sub: `~${Math.round(busynessNow)}%`,
-      chipText: `~${Math.round(busynessNow)}% travelt`,
-    });
+    // Level word, not a "~71%" of an unclear base (false precision). Mirrors
+    // the noise row (label-only). busynessLabel → Rolig / … / Veldig travelt.
+    const busyWord = (typeof busynessLabel === 'function') ? busynessLabel(busynessNow) : null;
+    if (busyWord) {
+      infoItems.push({ icon: peopleIcon, strong: busyWord, chipText: busyWord });
+    }
   }
 
   const noiseScore = s?.noise != null ? s.noise : (v.noiseScore != null ? v.noiseScore * 100 : null);
