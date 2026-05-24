@@ -302,7 +302,7 @@ function _dotMapColors(tier, closed, hasSunLaterToday) {
 const _CAT_PIN_PATHS = {
   cafe:       ['M17 8h1a4 4 0 1 1 0 8h-1', 'M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z', 'M6 2v2', 'M10 2v2', 'M14 2v2'],
   bar:        ['M8 22h8', 'M12 11v11', 'm5 3 7 8 7-8z'],
-  restaurant: ['m16 2-2.3 2.3a3 3 0 0 0 0 4.2l1.8 1.8a3 3 0 0 0 4.2 0L22 8', 'M15 15 3.3 3.3a4.2 4.2 0 0 0 0 6l7.3 7.3c.7.7 2 .7 2.8 0L15 15Zm0 0 7 7', 'm2.1 21.8 6.4-6.3', 'm19 5-7 7'],
+  restaurant: ['M3 2v7c0 1.1.9 2 2 2a2 2 0 0 0 2-2V2', 'M5 2v20', 'M21 15V2a5 5 0 0 0-3 5v6c0 1.1.9 2 2 2h1zm0 0v7'],
 };
 const _catPathCache = {};
 function _catPaths(category) {

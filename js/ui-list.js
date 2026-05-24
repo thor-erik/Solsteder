@@ -253,7 +253,7 @@ const WALK_GLYPH = '<svg class="walk-glyph" viewBox="0 0 24 24" width="11" heigh
 // Row-3 category glyphs — Lucide outline (24 viewBox, stroke 2, round caps,
 // currentColor; DESIGN.md → Icons). Four marks cover the 11 CATEGORIES keys.
 const _CAT_GLYPHS = {
-  utensils: '<path d="m16 2-2.3 2.3a3 3 0 0 0 0 4.2l1.8 1.8a3 3 0 0 0 4.2 0L22 8"/><path d="M15 15 3.3 3.3a4.2 4.2 0 0 0 0 6l7.3 7.3c.7.7 2 .7 2.8 0L15 15Zm0 0 7 7"/><path d="m2.1 21.8 6.4-6.3"/><path d="m19 5-7 7"/>',  /* utensils-crossed */
+  utensils: '<path d="M3 2v7c0 1.1.9 2 2 2a2 2 0 0 0 2-2V2"/><path d="M5 2v20"/><path d="M21 15V2a5 5 0 0 0-3 5v6c0 1.1.9 2 2 2h1zm0 0v7"/>',
   coffee:   '<path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><path d="M6 2v2"/><path d="M10 2v2"/><path d="M14 2v2"/>',
   wine:     '<path d="M8 22h8"/><path d="M7 10h10"/><path d="M12 15v7"/><path d="M12 15a5 5 0 0 0 5-5c0-2-.5-4-1-8H8c-.5 4-1 6-1 8a5 5 0 0 0 5 5z"/>',
   martini:  '<path d="M8 22h8"/><path d="M12 11v11"/><path d="m5 3 7 8 7-8z"/>',
