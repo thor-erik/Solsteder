@@ -194,7 +194,7 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       </div>`
     : `<div class="detail-new-photos detail-new-photos-empty" role="img" aria-label="Ingen bilder">
         <div class="detail-new-photos-empty-art">
-          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
             <circle cx="12" cy="13" r="4"/>
           </svg>
@@ -214,7 +214,7 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
   const _alertLabelLong = typeof t === 'function' ? t('sun_alert_label') : 'Sol-varsel';
   const _alertLabelShort = typeof t === 'function' ? t('sun_alert_short') : 'Varsle';
   const heartBtn = `<button class="dp-secondary-btn${_favActive ? ' is-active' : ''}" onclick="toggleFavorite(${v.id}, event)" title="${_favLabel}" aria-label="${_favLabel}">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="${_favActive ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="${_favActive ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>
     <span class="dp-secondary-label">${_favLabel}</span>
   </button>`;
   const bellBtn = `<button class="dp-secondary-btn${_alertActive ? ' is-active' : ''}" onclick="toggleSunAlert(${v.id}, event)" title="${_alertLabelLong}" aria-label="${_alertLabelLong}">
@@ -926,7 +926,7 @@ function _openPostAcceptPanel(opts) {
   }
   const subtitle = [whenLabel, sunFragment].filter(Boolean).join(' · ') || venueName;
 
-  const checkSvg   = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+  const checkSvg   = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
   const safeName    = venueName.replace(/</g, '&lt;');
   const safeWhen    = (whenLabel || '').replace(/</g, '&lt;');
   const safeSubtitle = subtitle.replace(/</g, '&lt;');
@@ -997,7 +997,7 @@ function _openPostAcceptPanel(opts) {
           <div class="dpacc-eyebrow">${t('accepted_eyebrow')}</div>
           <button class="dpacc-change-rsvp" type="button" onclick="_reopenInviteFromAccept()">
             <span>${t('accepted_change_rsvp')}</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
         </div>
         <div class="dpacc-venue-row">
@@ -1379,7 +1379,7 @@ function _openInviteSheet(venueId) {
   // Inline SVG icon set used across the sheet.
   const pinSvg     = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
   const linkSvg    = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>`;
-  const checkSvgSm = `<svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 7 6 11 12 3"/></svg>`;
+  const checkSvgSm = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`;
 
   // Friend ids ordered by recent invite history. If there's no history, fall
   // back to the first 4 friends in the canonical list.
@@ -1490,7 +1490,7 @@ function _openInviteSheet(venueId) {
               <div class="dpinvite-moment-time" id="dpinvite-moment-time"></div>
               <button type="button" class="dpinvite-moment-sub" id="dpinvite-moment-sub"
                       aria-label="${t('invite_eyebrow_select_time')}">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
                 <span id="dpinvite-moment-sub-text"></span>
               </button>
             </div>
@@ -2162,7 +2162,7 @@ function _refreshInvitePrimaryCTA() {
 
   // SVG icons inlined here (same set used at sheet construction).
   const linkSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>`;
-  const sendSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>`;
+  const sendSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>`;
 
   // Mutate primary instantly. The companion's CSS transition (width,
   // margin-left, opacity, transform) handles the entrance/exit animation

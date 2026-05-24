@@ -609,10 +609,10 @@ function wxArcPaths(dateStr, wStart, wEnd, fromHour, arcPathFn, sw) {
 // ── Google Maps-style SVG icons for detail panel ────────────────────────────────
 /**
  * Returns Google Maps-style SVG icon as inline HTML.
- * Icons use thin strokes (1.5-2px), minimal geometry, 24x24 viewBox.
+ * Lucide drawing standard: 24x24 viewBox, stroke-width 2, round caps/joins.
  */
 function getMapsIcon(type) {
-  const strokeW = 1.5;
+  const strokeW = 2;
   const size = 24;
   const viewBox = `0 0 ${size} ${size}`;
 
