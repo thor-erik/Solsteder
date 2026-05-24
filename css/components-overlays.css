@@ -2895,3 +2895,22 @@
     outline: none;
   }
 
+  /* ── Touch-target hit-area expansion (Phase 6 · a11y) ─────────────────────
+     Standalone corner close buttons (<44px) get an invisible 44×44 centred
+     ::after hit area — pointer target only, zero visual change. Limited to
+     buttons whose only neighbours are non-interactive (title text), so the
+     enlarged area can't steal an adjacent control's clicks. ::before is in use
+     on these for the glyph, so ::after is free. Audit: scripts/touch-target-audit.mjs.
+     Row-adjacent controls (toast close/action, search clear/profile, bell-row
+     cancel) are NOT expanded here — overlap risk; verify on device first. */
+  #dp-close-btn, #ptb-cal-close { position: relative; }   /* .login-close-btn already absolute */
+  #dp-close-btn::after,
+  #ptb-cal-close::after,
+  .login-close-btn::after {
+    content: "";
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 44px; height: 44px;
+    transform: translate(-50%, -50%);
+  }
+
