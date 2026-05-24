@@ -1539,36 +1539,52 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     } else {
       const lang = (typeof prefLang === 'function') ? prefLang() : 'no';
       const hSuf = (lang === 'en') ? 'h' : 't';
-      const offsets = [
-        { m: 5,   label: '+5 min' },
-        { m: 10,  label: '+10 min' },
-        { m: 15,  label: '+15 min' },
-        { m: 30,  label: '+30 min' },
-        { m: 45,  label: '+45 min' },
-        { m: 60,  label: `+1${hSuf}` },
-        { m: 90,  label: `+1${hSuf} 30 min` },
-        { m: 120, label: `+2${hSuf}` },
-      ];
+      // 3 presets + a Custom ±5-min stepper (was 8 chips — choice overload).
+      const fmtOffset = (m) => {
+        if (m < 60) return `+${m} min`;
+        const h = Math.floor(m / 60), mm = m % 60;
+        return mm ? `+${h}${hSuf} ${mm} min` : `+${h}${hSuf}`;
+      };
+      const offsets = [{ m: 15 }, { m: 30 }, { m: 60 }];
+      const CUSTOM_MIN = 5, CUSTOM_MAX = 120, CUSTOM_STEP = 5;
+      let customMin = 45; // stepper start — between the presets and the +2h cap
       // Build the chip strip. Mounted as a sibling of the CTA row so
       // it can slide above it on toggle without disturbing layout.
       laterStrip = document.createElement('div');
       laterStrip.className = 'pp-later-strip';
-      laterStrip.innerHTML = offsets.map(o =>
-        `<button class="chip-pill pp-later-chip" data-offset-min="${o.m}" type="button">${o.label}</button>`
-      ).join('');
+      laterStrip.innerHTML =
+        offsets.map(o =>
+          `<button class="chip-pill pp-later-chip" data-offset-min="${o.m}" type="button">${fmtOffset(o.m)}</button>`
+        ).join('')
+        + `<button class="chip-pill pp-later-custom" type="button">${t('invite_later_custom')}</button>`
+        + `<div class="pp-later-stepper" hidden>`
+        +   `<button class="pp-step-btn" data-step="-1" type="button" aria-label="minus">−</button>`
+        +   `<span class="pp-later-stepper-val"></span>`
+        +   `<button class="pp-step-btn" data-step="1" type="button" aria-label="plus">+</button>`
+        + `</div>`;
       const ctaRow = el.querySelector('.dprcv-cta-row');
       if (ctaRow && ctaRow.parentNode) {
         ctaRow.parentNode.insertBefore(laterStrip, ctaRow);
       }
-      // Capture the suggest button's initial label text so 'tap again
-      // to deselect' can restore it. The label span is the second text
-      // node — querySelector('span') is robust to either layout.
       const labelSpan = suggestBtn.querySelector('span');
       const suggestDefaultLabel = labelSpan ? labelSpan.textContent : '';
-      // The hero label sits in .dprcv-hero-left → first .dprcv-hero-label.
       const heroLabelEl = el.querySelector('.dprcv-hero-left .dprcv-hero-label');
       const meetLabel   = t('invite_hero_meets');
       const comingLabel = t('invite_hero_coming');
+      const stepperEl  = laterStrip.querySelector('.pp-later-stepper');
+      const stepperVal = laterStrip.querySelector('.pp-later-stepper-val');
+      const customChip = laterStrip.querySelector('.pp-later-custom');
+      const clearSelection = () =>
+        laterStrip.querySelectorAll('.pp-later-chip, .pp-later-custom').forEach(c => c.classList.remove('is-selected'));
+      // Apply an arrival offset — shared by the presets and the custom stepper.
+      const applyOffset = (offsetMin, labelText) => {
+        arrivalHour = planHour + (offsetMin / 60);
+        arrivalSelected = true;
+        const lbl = el.querySelector('#pp-arrival-time');
+        if (lbl) lbl.textContent = formatHour(arrivalHour);
+        if (heroLabelEl) heroLabelEl.textContent = comingLabel;
+        if (labelSpan) labelSpan.textContent = labelText;
+      };
       const resetArrival = () => {
         arrivalHour = planHour;
         arrivalSelected = false;
@@ -1576,7 +1592,8 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
         if (lbl) lbl.textContent = planTimeStr;
         if (heroLabelEl) heroLabelEl.textContent = meetLabel;
         if (labelSpan) labelSpan.textContent = suggestDefaultLabel;
-        laterStrip.querySelectorAll('.pp-later-chip').forEach(c => c.classList.remove('is-selected'));
+        clearSelection();
+        stepperEl.hidden = true;
       };
       suggestBtn.onclick = (e) => {
         e.preventDefault();
@@ -1584,33 +1601,37 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
         laterStrip.classList.toggle('open');
       };
       laterStrip.addEventListener('click', (ev) => {
-        const chip = ev.target.closest('[data-offset-min]');
+        // Custom stepper − / + : dial the offset in 5-min steps, apply live.
+        const stepBtn = ev.target.closest('.pp-step-btn');
+        if (stepBtn) {
+          const dir = parseInt(stepBtn.dataset.step, 10);
+          customMin = Math.max(CUSTOM_MIN, Math.min(CUSTOM_MAX, customMin + dir * CUSTOM_STEP));
+          stepperVal.textContent = fmtOffset(customMin);
+          applyOffset(customMin, fmtOffset(customMin));
+          return;
+        }
+        // Custom chip: toggle the stepper; revealing it applies the current value.
+        if (ev.target.closest('.pp-later-custom')) {
+          if (!stepperEl.hidden) { stepperEl.hidden = true; return; }
+          stepperEl.hidden = false;
+          stepperVal.textContent = fmtOffset(customMin);
+          clearSelection();
+          customChip.classList.add('is-selected');
+          applyOffset(customMin, fmtOffset(customMin));
+          return;
+        }
+        const chip = ev.target.closest('.pp-later-chip');
         if (!chip) return;
-        // Tap-the-selected-chip-to-deselect: restores Meet at + plan time
-        // and clears the offset state. Without this, once a user picked
-        // a chip they had no way back to the original meet time.
+        // Tap the selected preset again → back to the original meet time.
         if (chip.classList.contains('is-selected')) {
           resetArrival();
           laterStrip.classList.remove('open');
           return;
         }
-        const offsetMin = parseInt(chip.dataset.offsetMin, 10);
-        arrivalHour = planHour + (offsetMin / 60);
-        arrivalSelected = true;
-        const lbl = el.querySelector('#pp-arrival-time');
-        if (lbl) lbl.textContent = formatHour(arrivalHour);
-        // Swap the hero label from 'Meet at' → 'Coming at' so the
-        // receiver-side wording reflects that they're arriving late
-        // relative to the meet time (and the inviter sees this too).
-        if (heroLabelEl) heroLabelEl.textContent = comingLabel;
-        // Mirror the chosen offset in the suggest button label so the
-        // user sees what's currently picked at a glance.
-        if (labelSpan) labelSpan.textContent = chip.textContent;
-        // Surface the active selection by keeping the chip accented —
-        // when the user re-opens the strip they can see which offset
-        // is currently applied at a glance.
-        laterStrip.querySelectorAll('.pp-later-chip').forEach(c => c.classList.remove('is-selected'));
+        applyOffset(parseInt(chip.dataset.offsetMin, 10), chip.textContent);
+        clearSelection();
         chip.classList.add('is-selected');
+        stepperEl.hidden = true;
         laterStrip.classList.remove('open');
       });
       // Outside-tap dismiss — chained into el._cleanup so closePlanPreview

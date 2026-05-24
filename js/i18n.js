@@ -408,6 +408,7 @@ const _STRINGS = {
     invite_hero_in_minutes:          'in {n} min',
     invite_hero_sent_ago:            'sent {ago}',
     invite_secondary_later:          'Coming later',
+    invite_later_custom:             'Custom',
     accepted_close:                  'Close',
     preview_share_onwards:           'Share onward',
     // Share composer (redesign)
@@ -949,6 +950,7 @@ const _STRINGS = {
     invite_hero_in_minutes:          'om {n} min',
     invite_hero_sent_ago:            'sendt {ago}',
     invite_secondary_later:          'Kommer senere',
+    invite_later_custom:             'Annet',
     accepted_close:                  'Lukk',
     preview_share_onwards:           'Del videre',
     // Share composer (redesign)

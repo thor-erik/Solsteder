@@ -2037,7 +2037,8 @@
     padding: 12px 0 4px;
     opacity: 1;
   }
-  .pp-later-strip .pp-later-chip {
+  .pp-later-strip .pp-later-chip,
+  .pp-later-strip .pp-later-custom {
     width: 100%;
     height: 36px;
     padding: 0 var(--space-xs);
@@ -2045,10 +2046,44 @@
     font-weight: 600;
     white-space: nowrap;
   }
-  .pp-later-strip .pp-later-chip.is-selected {
+  .pp-later-strip .pp-later-chip.is-selected,
+  .pp-later-strip .pp-later-custom.is-selected {
     background: var(--accent);
     color: var(--accent-on, #2a1a0c);
     border-color: transparent;
+  }
+  /* Custom ±5-min stepper — spans the grid on the second row when revealed. */
+  .pp-later-strip .pp-later-stepper {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-md);
+    height: 36px;
+  }
+  .pp-later-strip .pp-later-stepper[hidden] { display: none; }
+  .pp-later-strip .pp-step-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-md);
+    border: var(--glass-border);
+    background: var(--glass-action-bg);
+    color: var(--text);
+    font-size: var(--text-subtitle);
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .pp-later-strip .pp-step-btn:hover { border-color: var(--accent-border); }
+  .pp-later-strip .pp-later-stepper-val {
+    min-width: 84px;
+    text-align: center;
+    font-size: var(--text-label);
+    font-weight: 600;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
   }
 
   @media (min-width: 640px) {
