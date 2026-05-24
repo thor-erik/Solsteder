@@ -1893,7 +1893,7 @@
     margin-top: var(--space-xs);
     width: 100%;
   }
-  .wx-temp-strip { color: var(--panel-text); font-weight: 600; }
+  .wx-temp-strip { color: var(--panel-text); font-weight: 600; font-variant-numeric: tabular-nums; }
   .wx-sep   { color: rgba(156,189,231,0.25); }
   .wx-wind  { color: var(--ink-muted); }
   .wx-rain  { color: #9CBDE7; }
@@ -2154,6 +2154,7 @@
     background: var(--accent-dim);
     color: var(--accent);
     border: none;
+    font-variant-numeric: tabular-nums;
   }
   /* All tiers use same pill style per spec */
   .score-badge.tier-high,

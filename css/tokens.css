@@ -110,7 +110,8 @@
     --accent-dim:    rgba(245,194,94,0.16);
     --accent-on:     #2C1F02;                     /* warm dark, drawn ON --accent */
     --text:       #FFF4E0;                     /* warm cream */
-    --muted:      #9BA9BC;                     /* cool grey (was Jordy blue) */
+    --text-secondary: rgba(255,244,224,0.78);  /* cream @ 0.78 — secondary text on dark (DESIGN.md principle 3, same hue as --text) */
+    --muted:      #9BA9BC;                     /* cool grey (was Jordy blue) — cool-weather chips only; NOT secondary text */
     --card-bg:    rgba(17,30,56,0.40);
     --border:     rgba(17,30,56,0.12);         /* dark subtle outline for cream map */
     --pill-bg:    rgba(17,30,56,0.45);
@@ -225,6 +226,12 @@
     --o-disabled:       0.40;
     --o-muted:          0.55;
     --o-secondary-text: 0.78;   /* cream secondary text */
+
+    /* Skeleton loading — cream-at-low-opacity blocks read as *absence of
+       content* (not blue content); sheen is the moving highlight. Keep OUT
+       the diagonal stripe (stripe = shade, not loading). DESIGN-FIXES → Skeletons. */
+    --skel-block: rgba(255,244,224,0.09);  /* placeholder block on the Delft skeleton card */
+    --skel-sheen: rgba(255,244,224,0.06);  /* sweeping highlight mid-stop */
 
     /* Radius — DESIGN.md set. --radius-sm/md/pill already match above; only
        --radius-none is genuinely new. --radius-lg stays 16 here (→ 20 in Phase 2). */

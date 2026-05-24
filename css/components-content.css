@@ -604,6 +604,10 @@
     /* Internal row gap — bumped from 3 to 4 for slightly more breathing.
        Pills and timeline still get individual margin-top where needed. */
     gap: var(--space-xs);
+    /* Tabular figures so sun-hours / distances / times don't twitch as digits
+       change (DESIGN.md → Typography). Container-level: only affects digit
+       glyph width, harmless on labels. */
+    font-variant-numeric: tabular-nums;
   }
   /* The closed-card variant is a single row, not the 3-row column. Override
      the column flex so name + "opens at" badge sit side-by-side. */
@@ -640,14 +644,12 @@
   }
   @media (hover: hover) and (pointer: fine) {
     .venue-card:hover {
-      border-color: rgba(245,194,94,0.42);
+      border-color: var(--accent-border);
       background: rgba(17,30,56,0.72);
       transform: translateY(-1px);
-      box-shadow:
-        inset 0 1px 0 rgba(255,250,235,0.18),
-        inset 0 -1px 0 rgba(15,30,55,0.40),
-        0 2px 4px rgba(0,0,0,0.22),
-        0 10px 22px rgba(0,0,0,0.36);
+      /* Flat lift only — raised shadow token. The two glossy inset sheens are
+         retired per DESIGN.md principle 6 (elevation via solid shadow, not sheen). */
+      box-shadow: var(--shadow-2);
     }
   }
   @media (prefers-reduced-motion: reduce) {
@@ -751,10 +753,9 @@
   .card-new-meta {
     font-size: var(--text-caption);
     font-weight: 500;
-    /* Use opacity-dimmed --text (warm cream) instead of cool slate-grey
-       so meta shares the same hue family as the title — more cohesive
-       and gives better effective contrast than a chromatic muted color. */
-    color: rgba(255, 244, 224, 0.78);
+    /* Secondary text = cream-at-opacity, same hue as the cream title
+       (DESIGN.md principle 3) — was a raw rgba, now the --text-secondary token. */
+    color: var(--text-secondary);
     display: flex;
     align-items: center;
     gap: 0;
@@ -790,8 +791,8 @@
   .card-new-hero-sub {
     font-size: var(--text-caption);
     font-weight: 500;
-    /* Match .card-new-meta — opacity-dimmed cream for cohesive secondary text. */
-    color: rgba(255, 244, 224, 0.78);
+    /* Match .card-new-meta — cream secondary-text token for cohesive hue. */
+    color: var(--text-secondary);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
     line-height: 1.3;
@@ -839,7 +840,9 @@
   .card-meta {
     font-size: var(--text-caption);
     font-weight: 500;
-    color: var(--muted);
+    /* Secondary text = cream-at-opacity, same hue as the cream title
+       (DESIGN.md principle 3). Was --muted cool grey, which broke hue cohesion. */
+    color: var(--text-secondary);
     display: flex;
     align-items: center;
     gap: 0;
@@ -850,7 +853,7 @@
   }
   .card-meta span { display: inline; }
   .card-meta .card-meta-dot { opacity: 0.4; margin: 0 var(--space-xs); }
-  .card-meta .card-meta-opens { color: var(--muted); opacity: 0.85; }
+  .card-meta .card-meta-opens { color: var(--text-secondary); opacity: 0.85; }
   /* Walking-person glyph on the walk-time meta. Plain inline element
      (no flex wrapper) so the baseline stays aligned with the rest of
      the meta row and the icon doesn't get clipped by the row's
@@ -959,12 +962,21 @@
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }
-  /* v2 list cards let their height vary with pill count — no min-height
-     reservation. Cards with no pills collapse to row1 + meta + fill bar
-     and gain back the spacing they don't need. Pills sit on the right
-     so they read as a small status cluster anchored to the duration
-     column above, rather than competing with the venue name on the
-     left for visual start-of-row attention. */
+  /* Deterministic card height (Phase 5e). Previously list cards let their
+     height vary with pill count (no reservation) — but that variance is the
+     CLS jump when the scrub skeleton swaps in/out, and it blocks the Phase 7
+     value-crossfade (which needs a stable box). Reserve one height that both
+     the pills and no-pills cards — and the skeleton, which inherits it — fill.
+     Value verified on the Cloudflare preview (fits row1 + meta + one pills row
+     + fill bar). Pills still sit on the right as a status cluster anchored to
+     the duration column. */
+  .venue-card.card-compact,
+  .venue-card.skeleton {
+    /* border-box so 104px is the TOTAL card height (padding included), not
+       content + 24px padding. No global box-sizing reset exists. */
+    box-sizing: border-box;
+    min-height: 104px;
+  }
   .venue-card.card-compact .card-pills {
     margin: var(--space-sm) 0 var(--space-2xs);
     justify-content: flex-end;
@@ -1293,21 +1305,39 @@
         replaces the real cards while the user drags the slider.
      Layout mirrors the real .venue-card (card-row1 + card-meta + timeline
      placeholder) so the swap doesn't reshape the list height. */
+  /* Skeleton card keeps the same opaque Delft box as a real card (footprint
+     match — see the shared min-height below), but its blocks are cream-at-low-
+     opacity (absence of content) and the loading motion is a horizontal sheen
+     sweep, NOT a whole-card opacity pulse. Reduced-motion → static blocks. */
   .venue-card.skeleton {
     pointer-events: none;
-    animation: skeletonFadeIn 0.18s ease-out both,
-               skeletonPulse 1.4s ease-in-out 0.18s infinite;
+    overflow: hidden;          /* clip the sweeping sheen to the card */
+    animation: skeletonFadeIn 0.18s ease-out both;
   }
   @keyframes skeletonFadeIn {
     from { opacity: 0; }
-    to   { opacity: 0.55; }
+    to   { opacity: 1; }
   }
-  @keyframes skeletonPulse {
-    0%, 100% { opacity: 0.42; }
-    50%      { opacity: 0.62; }
+  .venue-card.skeleton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    /* Straight (non-diagonal) translucent sheen — diagonal would read as the
+       shade stripe, which means shade, not loading. */
+    background: linear-gradient(90deg, transparent 0%, var(--skel-sheen) 50%, transparent 100%);
+    transform: translateX(-100%);
+    animation: skeletonSheen 1.4s ease-in-out infinite;
+  }
+  @keyframes skeletonSheen {
+    from { transform: translateX(-100%); }
+    to   { transform: translateX(100%); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .venue-card.skeleton::after { animation: none; opacity: 0; }
   }
   .skel {
-    background: rgba(156,189,231,0.22);
+    background: var(--skel-block);
     border-radius: var(--radius-none);
   }
   .skel-name {
@@ -1329,7 +1359,7 @@
     height: 12px;
     margin-top: var(--space-sm);
     border-radius: var(--radius-none);
-    background: rgba(156,189,231,0.10);
+    background: var(--skel-block);
   }
 
   /* ── Arc frozen state (after sunset, today only) ──────────────────── */
@@ -4177,6 +4207,8 @@
   #detail-panel .dp-shelter-section {
     background: var(--panel);
     border-color: var(--line-d-strong);
+    /* Tabular figures — detail times / sun-hours / temps don't twitch. */
+    font-variant-numeric: tabular-nums;
   }
   #detail-panel.open {
     transform: translateX(0);
