@@ -25,6 +25,13 @@
   body.fts #fts-date-btn::before {
     content: ''; position: absolute; inset: -5px;
   }
+  /* Standalone corner close buttons → ~44 pt tap region via ::after (their
+     ::before holds the glyph). Only buttons whose neighbours are non-interactive,
+     so the enlarged area can't steal adjacent clicks. (Phase 6 · a11y) */
+  #dp-close-btn, #ptb-cal-close { position: relative; }
+  #dp-close-btn::after, #ptb-cal-close::after, .login-close-btn::after {
+    content: ''; position: absolute; inset: -8px;
+  }
 
   html, body {
     /* Robust viewport height across iOS Safari, iOS Chrome PWA,
