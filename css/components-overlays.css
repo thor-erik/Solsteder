@@ -2879,3 +2879,19 @@
   .friend-add-result.success { color: var(--color-success); }
   .friend-add-result.error { color: var(--color-error); }
 
+  /* ── Global keyboard focus ring (Phase 6 · a11y) ──────────────────────────
+     Honey 2px ring for keyboard / switch-control focus only (:focus-visible,
+     so mouse/touch clicks stay ringless). Declared in the last-loaded sheet so
+     it wins the cascade over the scattered single-class `outline: none`
+     suppressors; component-specific :focus-visible rings (same honey) still win
+     by specificity. Inputs that show focus via border-colour keep that. */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  /* Suppress the default ring for mouse/touch focus where a component zeroed
+     it intentionally — keyboard focus is covered by the rule above. */
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
