@@ -3041,12 +3041,22 @@ function toggleQcPanel(section) {
     const anchor = document.getElementById('ts-date-btn')
                 || document.getElementById('header-date-chip')
                 || document.getElementById('fts');
+    const listPanel = document.getElementById('panel');
     if (anchor) {
       const r = anchor.getBoundingClientRect();
       calFloat.style.bottom = '';
       calFloat.style.top = (r.bottom + 8) + 'px';
-      calFloat.style.left = Math.max(16, r.left) + 'px';
-      calFloat.style.width = '';  // fall back to CSS default
+      // Match the venue-list panel: same width, same left edge — the calendar
+      // overlaps the list rather than floating as a narrow box.
+      if (listPanel) {
+        const pr = listPanel.getBoundingClientRect();
+        calFloat.style.left = pr.left + 'px';
+        calFloat.style.width = pr.width + 'px';
+        calFloat.style.maxWidth = pr.width + 'px';
+      } else {
+        calFloat.style.left = Math.max(16, r.left) + 'px';
+        calFloat.style.width = '';
+      }
     }
   }
   calFloat?.classList.add('open');
