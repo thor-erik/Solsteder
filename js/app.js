@@ -3013,7 +3013,11 @@ function _closeQcPanel() {
   const cleanup = e => {
     if (e.propertyName !== 'max-height') return;
     panel.removeEventListener('transitionend', cleanup);
-    dateSection?.classList.remove('active');
+    // Guard against a fast close→open: if the panel was re-opened before this
+    // (close) transition ended, the listener fires on the OPEN's transitionend
+    // instead — don't strip the date section then, or the 2nd open shows only
+    // the collapsed panel border (the stray "line"). Only deactivate if closed.
+    if (!panel.classList.contains('open')) dateSection?.classList.remove('active');
   };
   panel.addEventListener('transitionend', cleanup);
   // Fallback: if panel has no transition (mobile override), clean up immediately
