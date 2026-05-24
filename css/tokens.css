@@ -162,8 +162,10 @@
     /* Upward shadow for bottom sheets (invite, accept, confirm). */
     --sheet-shadow:  0 -8px 32px rgba(17,30,56,0.18);
     /* Dark muted text for transparent (A) + cream (C) surfaces — replaces
-       --muted (#9BA9BC slate) which is illegible on light backgrounds. */
-    --ink-muted:     rgba(17,30,56,0.55);
+       --muted (#9BA9BC slate) which is illegible on light backgrounds.
+       0.70 (was 0.55) so it clears WCAG AA on the cream dropdown + Jordy-25%
+       chrome — measured in scripts/contrast-audit.mjs (Phase 6). */
+    --ink-muted:     rgba(17,30,56,0.70);
 
     /* Card-pill subject colors — kept distinct from --muted/--accent so the
        "Skyer" (cool gray) and "Regn" (blue) pill text reads cleanly on glass.
