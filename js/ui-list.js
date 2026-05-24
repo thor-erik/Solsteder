@@ -298,20 +298,25 @@ function _shadeSummary(qual) {
   return t('card_shade_count', { n: shade.length });
 }
 
+// Round a sun-window duration UP to the nearest half-hour: "2.5h" / "2h".
+function _approxHours(minutes) {
+  const h = Math.ceil((minutes || 0) / 30) / 2;
+  return (h % 1 === 0 ? `${h}` : h.toFixed(1)) + 'h';
+}
+
 // Row-3 right (when there's no shade gap): a SUN OPPORTUNITY — an extra
-// qualifying sun window later in the day. 1 extra → "+1t fra 17:00"; ≥2 →
-// "+N sol senere". Not weather; the honey sun glyph marks it as "more sun".
-// Mirrors the overflow pill from buildCardPillsV2. Returns '' when none.
+// qualifying sun window later in the day. 1 extra → "2.5h fra 17:00"; ≥2 →
+// "3h senere" (total extra sun). No glyph, no "sun" word; honey colour marks
+// it as "more sun". Not weather. Returns '' when none.
 function _sunOpportunity(qual) {
   const extra = ((qual && qual.windows) || []).slice(1);
   if (!extra.length) return '';
   const fmt = (typeof formatHour === 'function') ? formatHour : (h) => `${Math.floor(h)}:00`;
   if (extra.length === 1) {
-    const dur = (typeof _formatPillDur === 'function')
-      ? _formatPillDur(extra[0].durationMin) : _formatDurationFromMin(extra[0].durationMin);
-    return t('pill_overflow_one', { dur, time: fmt(extra[0].start) });
+    return t('card_opp_one', { dur: _approxHours(extra[0].durationMin), time: fmt(extra[0].start) });
   }
-  return t('pill_overflow_many', { n: extra.length });
+  const total = extra.reduce((a, w) => a + (w.durationMin || 0), 0);
+  return t('card_opp_many', { dur: _approxHours(total) });
 }
 
 // Walk minutes from the card's distance (mirrors _dprcvWalkInfo: ~80 m/min,
@@ -624,7 +629,7 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
         </span>
         ${shadeStr
           ? `<span class="card-disrupt card-disrupt-shade">${shadeGlyph()}${shadeStr}</span>`
-          : (oppStr ? `<span class="card-disrupt card-disrupt-sun">${SUN_GLYPH}${oppStr}</span>` : '')}
+          : (oppStr ? `<span class="card-disrupt card-disrupt-sun">${oppStr}</span>` : '')}
       </div>
       ${reviewChips}
       ${auditActionsHtml}

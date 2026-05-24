@@ -195,6 +195,9 @@ const _STRINGS = {
     // 3-row card row-3 shade summary (icon conveys "shade" — no state word).
     card_shade_range:          '{start}–{end}',
     card_shade_count:          '{n} shadows',
+    // 3-row card row-3 sun opportunity (extra sun later) — no glyph, no "sun".
+    card_opp_one:              '{dur} from {time}',
+    card_opp_many:             '{dur} later',
     // Short unit suffix for compact durations ("4h 30m"). Locale-aware so
     // Norwegian/Swedish/Danish render "4t 30m"; English renders "4h 30m".
     unit_h_short:              'h',
@@ -738,6 +741,9 @@ const _STRINGS = {
     // 3-row card row-3 shade summary (icon conveys "skygge" — no state word).
     card_shade_range:          '{start}–{end}',
     card_shade_count:          '{n} skygger',
+    // 3-row card row-3 sun opportunity (extra sun later) — no glyph, no "sol".
+    card_opp_one:              '{dur} fra {time}',
+    card_opp_many:             '{dur} senere',
     unit_h_short:              't',
     empty_no_sun_left:         'Ingen sol igjen i dag',
     empty_no_sun_day:          'Ingen sol denne dagen',
