@@ -5181,11 +5181,25 @@ document.addEventListener('DOMContentLoaded', () => {
         panelEl.style.transform = '';
         // Force layout so the pinned position is the start of the transition.
         void panelEl.offsetHeight;
-        // Restore CSS transition + clear inline bottom/height — CSS new-state
-        // values take over, animating from the pinned position + size.
-        panelEl.style.transition = '';
+        // Velocity-aware snap — continue the gesture instead of a fixed 340ms
+        // delay (the recurring "release feels laggy" complaint). A hard flick
+        // lands in ~170ms; a slow release settles in ~320ms. The emphasized
+        // curve front-loads so the panel leaps off the release point at once.
+        // Cleared after the snap so future programmatic state changes fall back
+        // to the CSS default transition.
+        const _snapDur = Math.round(Math.max(170, Math.min(320, 320 - Math.abs(velocity) * 80)));
+        panelEl.style.transition = `bottom ${_snapDur}ms var(--ease-emphasized), height ${_snapDur}ms var(--ease-emphasized)`;
         panelEl.style.bottom     = '';
         panelEl.style.height     = '';
+        const _clearSnap = (e) => {
+          // transitionend bubbles from children (cards, etc.) — only act on the
+          // panel's own bottom/height transition, or the timeout fallback (no e).
+          if (e && (e.target !== panelEl || (e.propertyName !== 'bottom' && e.propertyName !== 'height'))) return;
+          panelEl.style.transition = '';
+          panelEl.removeEventListener('transitionend', _clearSnap);
+        };
+        panelEl.addEventListener('transitionend', _clearSnap);
+        setTimeout(_clearSnap, _snapDur + 80);
       }
 
       // Wire a swipe target: touchstart/move/end → panel drag state machine
