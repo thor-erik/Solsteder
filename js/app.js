@@ -8081,16 +8081,17 @@ function _introRevealUI(search, brand, qcWrap, panel, opts) {
     // User feedback: "we're just missing the top bar" — the only piece
     // still revealing on the early panel-slide moment.
     if (topStrip) {
-      setTimeout(() => {
-        topStrip.style.transition = 'none';
-        topStrip.style.opacity = '1';
-        topStrip.style.transform = 'translateY(-72px)';
-        topStrip.classList.remove('intro-hidden');
-        topStrip.getBoundingClientRect();
-        topStrip.style.transition = 'transform 0.45s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.4s ease';
-        topStrip.style.transform = '';
-        setTimeout(() => { if (topStrip) topStrip.style.transition = ''; }, 500);
-      }, 600);
+      // Slide in SYNC with the panel. Was deferred 600 ms, which made the
+      // venue list arrive before the top bar (and pins settle before it);
+      // both now start together so they reach their final position as one.
+      topStrip.style.transition = 'none';
+      topStrip.style.opacity = '1';
+      topStrip.style.transform = 'translateY(-72px)';
+      topStrip.classList.remove('intro-hidden');
+      topStrip.getBoundingClientRect();
+      topStrip.style.transition = 'transform 0.45s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.4s ease';
+      topStrip.style.transform = '';
+      setTimeout(() => { if (topStrip) topStrip.style.transition = ''; }, 500);
     }
     // brand + qc-wrap reveal with the rest of the chrome. locate-btn and
     // zoom-jog are intentionally HELD until the panel reaches expanded

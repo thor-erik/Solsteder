@@ -331,7 +331,7 @@
   FRAMES['phase3-mid'] = interpFrames(FRAMES['solid-yellow'], FRAMES['static-logo'], 0.5);
 
   // ─── Phase durations ────────────────────────────────────────
-  const PHASE1_MS = 350;
+  const PHASE1_MS = 600;  // was 350 — too quick, read as a snap to the yellow circle
   const PHASE2_CYCLE_MS = 1400;  // was 2000 — snappier blinds loop (product tune)
   const PHASE2_HOLD_MS = 50;
   const PHASE2_HALF = PHASE2_CYCLE_MS / 2;
