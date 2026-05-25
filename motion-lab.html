@@ -37,7 +37,7 @@
   .dot { transition: left var(--d, 320ms) var(--e, ease); }
 
   /* ── Rocks on ice (staggered entry + primary-dismiss reflow) ─ */
-  .rocks { display: flex; align-items: center; max-width: 360px; background: var(--surface-content); padding: 16px; border-radius: 14px; overflow: hidden; }
+  .rocks { display: flex; align-items: center; min-height: 76px; max-width: 360px; background: var(--surface-content); padding: 16px; border-radius: 14px; overflow: hidden; }
   .rocks .rk {
     box-sizing: border-box; flex: 0 0 auto; height: 44px; padding: 0 18px; margin-right: 8px;
     border-radius: var(--radius-pill); border: 1px solid transparent; font: 600 14px Inter; cursor: pointer;
@@ -106,11 +106,7 @@
   <div id="tracks"></div>
 
   <h2>“Rocks on ice” — entry + primary-dismiss <button class="play" id="playRocks">Reset ▶</button></h2>
-  <div class="rocks" id="rocks">
-    <button class="rk cta" data-role="primary">Join</button>
-    <button class="rk ghost">Maybe</button>
-    <button class="rk ghost">Invite</button>
-  </div>
+  <div class="rocks" id="rocks"><!-- starts empty; entry injects + slides the buttons in --></div>
   <div class="note">Leftmost is <b>always primary</b> (honey). <b>Tap the honey button</b> → it collapses away; the next button slides left into its place <b>and morphs ghost → honey</b> as it arrives (keep tapping — it chains). Buttons stay tappable throughout. Entry plays once per page; everything degrades to a fade under reduced-motion.</div>
 
   <h2>Skeleton crossfade — list re-render on time-scrub <button class="play" id="playXf">Scrub ▶</button></h2>
@@ -195,7 +191,7 @@
   };
 
   // autoplay the curves once on load
-  setTimeout(playEase, 300); setTimeout(playRocks, 600);
+  setTimeout(playEase, 300); setTimeout(playRocks, 400);
 </script>
 </body>
 </html>
