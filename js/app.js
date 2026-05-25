@@ -8354,7 +8354,26 @@ function _skipIntro(seqId, opts) {
   let _loaderMapReady = false;  // tiles idle (or the 2.5 s cap fired)
   let _loaderBgFaded  = false;
   const shadesLoader = (!opts?.keepSplash) ? _mountShadesLoader() : null;
-  const _runViaLoader = () => {
+  // Per-session gate. The full launch animation plays on the first cold boot
+  // of a browser session (and on ?intro=1); later reloads in the same session
+  // get a quick static-logo → crossfade, escalating to the blinds loop only if
+  // loading is slow (>1.5 s). sessionStorage clears on a fresh app-open / new
+  // tab, so each launch shows the full animation exactly once.
+  let _splashFull = true;
+  if (!opts?.keepSplash) {
+    try {
+      const _shown  = sessionStorage.getItem('solsteder_splash_shown') === '1';
+      const _forced = new URLSearchParams(location.search).has('intro');
+      _splashFull = _forced || !_shown;
+      sessionStorage.setItem('solsteder_splash_shown', '1');
+    } catch (e) { _splashFull = true; }
+  }
+  const _loaderOnComplete = () => {
+    if (_introSeqId !== localSeq) return;
+    splash.classList.add('done');
+    _runSkipChoreography();
+  };
+  const _runFullLoader = () => {
     shadesLoader.start({
       isLoaded:   () => _loaderLoaded,
       isMapReady: () => {
@@ -8366,11 +8385,7 @@ function _skipIntro(seqId, opts) {
         }
         return _loaderMapReady;
       },
-      onComplete: () => {
-        if (_introSeqId !== localSeq) return;
-        splash.classList.add('done');
-        _runSkipChoreography();
-      },
+      onComplete: _loaderOnComplete,
     });
   };
   if (!opts?.keepSplash) {
@@ -8380,9 +8395,23 @@ function _skipIntro(seqId, opts) {
       _hideSplashInstantly();
       _runSkipChoreography();
     } else {
-      // Loader loops Phase 2 (blinds) during the worker + tile wait, then
-      // resolves + crossfades once the flags below flip.
-      if (shadesLoader) _runViaLoader();
+      // Drive the loader by gate mode. FULL: start the sequence now so the
+      // blinds loop runs during the wait. GATED: hold the static logo,
+      // escalating to the full loop only if loading is slow (>1.5 s) — a fast
+      // gated load gets a quick crossfade in _dismissOnce.
+      let _gatedCommitted = false;
+      let _gatedSlowTimer = null;
+      if (shadesLoader) {
+        if (_splashFull) {
+          _runFullLoader();
+        } else {
+          _gatedSlowTimer = setTimeout(() => {
+            if (_gatedCommitted) return;
+            _gatedCommitted = true;
+            _runFullLoader();   // slow gated load → show the blinds for feedback
+          }, 1500);
+        }
+      }
       // Dynamic hold: don't dismiss the splash until the worker has
       // delivered AND the map has reached idle (tiles loaded for the
       // current viewport). This is the "hold until performance is
@@ -8414,10 +8443,19 @@ function _skipIntro(seqId, opts) {
           _dismissed = true;
           if (_introSeqId !== localSeq) return;
           if (shadesLoader) {
-            // Hand off to the loader: flag map-ready so Phase 4 crossfades the
-            // SVG (and fades the cream backdrop), then onComplete runs the
-            // chrome slide-in. (Phase 3 resolve runs first if still pending.)
-            _loaderMapReady = true;
+            if (_splashFull || _gatedCommitted) {
+              // Full loader running (or escalated to on a slow load) → flag
+              // map-ready so its Phase 4 crossfades (Phase 3 resolve first if
+              // still pending), then onComplete runs the chrome slide-in.
+              _loaderMapReady = true;
+            } else {
+              // GATED + fast: skip intro/loop/resolve — quick crossfade only.
+              _gatedCommitted = true;
+              if (_gatedSlowTimer) clearTimeout(_gatedSlowTimer);
+              _loaderBgFaded = true;
+              splash.classList.add('bg-out');
+              shadesLoader.playPhase4(_loaderOnComplete);
+            }
           } else {
             requestAnimationFrame(() => requestAnimationFrame(() => {
               if (_introSeqId !== localSeq) return;
