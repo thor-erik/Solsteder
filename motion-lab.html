@@ -40,12 +40,16 @@
   .rocks { display: flex; align-items: center; max-width: 360px; background: var(--surface-content); padding: 16px; border-radius: 14px; overflow: hidden; }
   .rocks .rk {
     box-sizing: border-box; flex: 0 0 auto; height: 44px; padding: 0 18px; margin-right: 8px;
-    border-radius: var(--radius-pill); border: 0; font: 600 14px Inter; cursor: pointer;
+    border-radius: var(--radius-pill); border: 1px solid transparent; font: 600 14px Inter; cursor: pointer;
     white-space: nowrap; overflow: hidden;
+    /* colour morph when a secondary is promoted to primary (ghost → honey) */
+    transition: background-color var(--dur-base) var(--ease-standard),
+                color var(--dur-base) var(--ease-standard),
+                border-color var(--dur-base) var(--ease-standard);
   }
   .rocks .rk:last-child { margin-right: 0; }
   .rocks .rk.cta { background: var(--accent); color: var(--accent-on); }
-  .rocks .rk.ghost { background: var(--surface-control); border: 1px solid var(--line-d, rgba(156,189,231,.18)); color: var(--text); }
+  .rocks .rk.ghost { background: var(--surface-control); border-color: var(--line-d, rgba(156,189,231,.18)); color: var(--text); }
   .rocks .rk:active { transform: scale(.96); }
   /* entry — slide in from the right, gentle staggered overshoot (the "rocks") */
   .rocks.enter .rk { animation: rock-in var(--dur-slow) var(--ease-spring) backwards; }
@@ -107,7 +111,7 @@
     <button class="rk ghost">Maybe</button>
     <button class="rk ghost">Invite</button>
   </div>
-  <div class="note">Leftmost = <b>primary</b> (honey); the rest secondary. <b>Tap “Join”</b> → it collapses away and the others slide left to fill its place. Buttons stay tappable throughout (transform/width only). Entry plays once per page; both degrade to a fade under reduced-motion.</div>
+  <div class="note">Leftmost is <b>always primary</b> (honey). <b>Tap the honey button</b> → it collapses away; the next button slides left into its place <b>and morphs ghost → honey</b> as it arrives (keep tapping — it chains). Buttons stay tappable throughout. Entry plays once per page; everything degrades to a fade under reduced-motion.</div>
 
   <h2>Skeleton crossfade — list re-render on time-scrub <button class="play" id="playXf">Scrub ▶</button></h2>
   <div class="card" id="xfCard">
@@ -166,6 +170,10 @@
   rocks.addEventListener('click', (e) => {
     const b = e.target.closest('.rk');
     if (!b || b.dataset.role !== 'primary' || b.classList.contains('leaving')) return;
+    // Leftmost is ALWAYS primary: promote the next button now, so it morphs
+    // ghost → honey while it slides into the vacated spot.
+    const next = b.nextElementSibling;
+    if (next) { next.classList.remove('ghost'); next.classList.add('cta'); next.dataset.role = 'primary'; }
     b.style.width = b.offsetWidth + 'px';      // pin real width (no max-width dead-zone)
     void b.offsetWidth;                         // commit before transitioning to 0
     b.classList.add('leaving');
