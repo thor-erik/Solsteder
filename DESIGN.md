@@ -445,7 +445,7 @@ The audience is on phones — motion is touch-native craft + restraint, never de
 
 **Duration scale** (`:root`) — `--dur-fast 120ms` (micro-feedback: press, toggle, hover tint) · `--dur-base 180ms` (chips, fades, value crossfade) · `--dur-slow 320ms` (sheets, panel-mode changes) · **add** `--dur-slower 480ms` (full-screen / shared-element grows).
 
-**Easing scale** (`:root`) — `--ease-standard cubic-bezier(.4,0,.2,1)` (most) · **add** `--ease-decelerate cubic-bezier(0,0,.2,1)` (entrances) · `--ease-accelerate cubic-bezier(.4,0,1,1)` (exits) · `--ease-emphasized cubic-bezier(.32,.72,0,1)` (sheets/large moves — the signature) · **add** `--ease-spring cubic-bezier(.34,1.56,.64,1)` (overshoot/bounce; CSS approximation only — true spring physics is JS/gesture-driven).
+**Easing scale** (`:root`) — `--ease-standard cubic-bezier(.4,0,.2,1)` (most two-way micro) · **add** `--ease-decelerate cubic-bezier(.22,1,.36,1)` (entrances/fades — a long, smooth settle that reads premium, not Material's flat `(0,0,.2,1)`) · `--ease-accelerate cubic-bezier(.55,0,1,.45)` (exits) · `--ease-emphasized cubic-bezier(.32,.72,0,1)` (sheets/large moves — the signature) · **add** `--ease-spring cubic-bezier(.34,1.3,.64,1)` (gentle, *controlled* overshoot — not a cartoon bounce; CSS approximation only — true spring physics is JS/gesture-driven).
 
 **Use:** micro → fast/standard · values & chips → base/standard · sheets & panel modes → slow/emphasized · entrances with character → spring · gesture-following → **no CSS transition** (JS 1:1), release → velocity-continued spring.
 
@@ -453,7 +453,7 @@ The audience is on phones — motion is touch-native craft + restraint, never de
 - **Gesture-following + release.** While dragging a sheet/detail, transform follows the pointer 1:1 (no transition); on release, continue the gesture's *velocity* into a spring settle — not a fresh timed animation (this fixes the laggy drag-release). Interruptible (a new touch re-grabs); rubber-band resistance past edges.
 - **Shared-element continuity.** Pin tap → card grows from the pin's screen rect (FLIP). List card → expands into detail, not a slide-over.
 - **"Rocks on ice" button-row entry.** Confirmation buttons slide in from the right; the leading button hits the left padding and springs back, the bounce propagating through the row in sequence. **Constraints:** buttons tappable immediately (transform-only, `pointer-events` stay live — decorates, never blocks); plays **once per page entry**, not per re-render; collapses to a plain fade under reduced-motion.
-- **Value crossfade (list re-render).** Scrubbing time crossfades only the changed card *contents*, never the layout (relies on the deterministic `.venue-card` min-height — Phase 5, done). Suppress the `cardIn` entrance on filter toggles.
+- **Skeleton crossfade (list re-render).** The improved skeletons already keep the list from jumping on scrub; build on them. On re-render, each card's text/values **fade out into its skeleton** (the loading placeholder), then the new values fade in — a brief, honest loading beat, never a hard value swap or a layout jump. Relies on the deterministic `.venue-card` min-height + skeleton parity (Phase 5, done). Suppress the `cardIn` entrance on filter toggles.
 
 **Haptics** (`@capacitor/haptics`, no-op on web; add dep + `cap:sync`): selection tick per step while dragging the time scrubber (the signature moment) · soft impact on pin-select · success on RSVP. **Ticks/confirmations only — never ambient.**
 
