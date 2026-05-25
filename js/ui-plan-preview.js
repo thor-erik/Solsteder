@@ -1785,15 +1785,15 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
               offsetMin: _offMin,
               _enterAt: (typeof performance !== 'undefined' ? performance.now() : Date.now()),
             });
-            if (typeof map !== 'undefined' && map && typeof map.triggerRepaint === 'function') map.triggerRepaint();
+            if (typeof window._kickPinAnim === 'function') window._kickPinAnim();
           }
         }
       } catch (e) { /* non-fatal — the card just won't show you until reload */ }
       requestAnimationFrame(() => {
         _track.classList.add('show-confirm');
-        // One-shot honey gleam sweeping across the header as confirm lands.
-        const _tb = el.querySelector('.dprcv-title-block');
-        if (_tb) { _tb.classList.remove('is-confirming'); void _tb.offsetWidth; _tb.classList.add('is-confirming'); }
+        // One-shot diagonal honey gleam across the whole sheet as confirm lands.
+        const _sheet = el.querySelector('.dprcv-bottom');
+        if (_sheet) { _sheet.classList.remove('is-confirming'); void _sheet.offsetWidth; _sheet.classList.add('is-confirming'); }
       });
       return;
     }

@@ -663,10 +663,11 @@ function _drawInviteAvatarPin(ctx, pt, invitePin) {
   ctx.fillStyle = '#FAF1DD';
   ctx.fill();
 
-  // Keep painting while a row is still animating in.
-  if (_needsRepaint && typeof map !== 'undefined' && map && typeof map.triggerRepaint === 'function') {
-    map.triggerRepaint();
-  }
+  // Keep painting while a row is still animating in. Must go through the
+  // anim scheduler (sets _drawDirty) — a bare triggerRepaint() fires a
+  // 'render' the handler ignores when _drawDirty is false (idle map), which
+  // made the entrance update only when the camera happened to be moving.
+  if (_needsRepaint) { _animDirty = true; _scheduleAnim(); }
 }
 
 // ── Pulse rings (privileged ambient on friend pills) ──────────────────────────
@@ -1446,6 +1447,10 @@ function _releaseBootDrawGate() {
 }
 if (typeof window !== 'undefined') {
   window._releaseBootDrawGate = _releaseBootDrawGate;
+  // Kick the pin animation loop from outside render-pins (e.g. ui-plan-preview
+  // adds the receiver to the invite card on confirm). Goes through the anim
+  // scheduler so _drawDirty is set and the 'render' handler actually draws.
+  window._kickPinAnim = () => { _animDirty = true; _scheduleAnim(); };
   // Boot orchestrators (app.js _skipIntro etc.) check this to know whether
   // they're on the initial-load path (gate closed → wait for worker) vs a
   // mid-session call (gate open → hide splash instantly).

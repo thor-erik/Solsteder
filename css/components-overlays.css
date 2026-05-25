@@ -2019,10 +2019,10 @@
        the clip box (space-xl = 16px). Panes stay 100% wide so the slide aligns. */
     padding-inline: var(--space-xl);
   }
-  /* Cards anchor to the TOP of the region (right under the sun chip, where the
-     timeline sat) so the swap reads as "cards push the timeline out" rather
-     than the action block sliding down. */
-  .dprcv-confirm-pane { gap: var(--space-md); justify-content: flex-start; }
+  /* Cards + Close anchor to the BOTTOM, where the accept CTA + secondary row
+     sat — so the swap reads as the action block staying put (button → cards,
+     secondary row → Close) while the sun chip + timeline slide out above. */
+  .dprcv-confirm-pane { gap: var(--space-md); justify-content: flex-end; }
   .dprcv-action-track.show-confirm { transform: translateX(-100%); }
   /* rocks-on-ice — the confirm action cards land with a gentle staggered spring
      as the pane arrives (cards unchanged; entrance only). backwards fill holds
@@ -2050,26 +2050,29 @@
   .dprcv-eyebrow-check svg { width: 13px; height: 13px; }
   @keyframes dprcv-confirm-pop { 0% { transform: scale(0); opacity: 0; } 60% { opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
 
-  /* One-shot honey gleam sweeping across the header as the confirm pane lands. */
-  .dprcv-title-block { position: relative; }
-  .dprcv-title-block.is-confirming { overflow: hidden; }
-  .dprcv-title-block.is-confirming::after {
-    content: ''; position: absolute; inset: 0; pointer-events: none;
-    background: linear-gradient(100deg, transparent 35%, var(--accent) 50%, transparent 65%);
-    transform: translateX(-130%); opacity: 0; mix-blend-mode: screen;
-    animation: dprcv-confirm-sheen var(--dur-slower) var(--ease-decelerate) forwards;
+  /* One-shot large DIAGONAL honey gleam sweeping across the WHOLE sheet as the
+     confirm pane lands (skeleton-sheen energy, scaled up). The sheet is already
+     a containing block (transform when open) so the ::after anchors to it; the
+     wide diagonal band travels left→right and is clipped to the sheet's rounded
+     top. Screen blend keeps it a gleam over the frosted lens, not a wash. */
+  .dprcv-bottom.is-confirming::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 6;
+    border-radius: inherit;
+    background: linear-gradient(115deg, transparent 32%, var(--accent) 50%, transparent 68%);
+    transform: translateX(-120%); opacity: 0; mix-blend-mode: screen;
+    animation: dprcv-panel-sheen 720ms var(--ease-decelerate) forwards;
   }
-  @keyframes dprcv-confirm-sheen {
-    0% { transform: translateX(-130%); opacity: 0; }
-    25% { opacity: 0.45; }
-    100% { transform: translateX(130%); opacity: 0; }
+  @keyframes dprcv-panel-sheen {
+    0% { transform: translateX(-120%); opacity: 0; }
+    18% { opacity: 0.55; }
+    100% { transform: translateX(120%); opacity: 0; }
   }
 
   @media (prefers-reduced-motion: reduce) {
     .dprcv-action-track { transition: none; }
     .dprcv-action-track.show-confirm .dpacc-action-card { animation: none; }
     .dprcv-eyebrow-check { animation: none; }
-    .dprcv-title-block.is-confirming::after { animation: none; opacity: 0; }
+    .dprcv-bottom.is-confirming::after { animation: none; opacity: 0; }
   }
   .dprcv-cta-link {
     display: inline-flex;
