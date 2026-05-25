@@ -2034,11 +2034,12 @@
      button's bottom and the cards span up into the timeline zone. */
   .dprcv-confirm-pane { gap: var(--space-md); justify-content: flex-end; padding-bottom: var(--space-lg); }
   .dprcv-action-track.show-confirm { transform: translateX(-100%); }
-  /* Push the exiting accept pane the extra gutter-width past the clip so its
-     right edge clears the left shadow-gutter (otherwise a space-xl sliver of the
-     timeline/CTA lingers in the gutter after the slide settles). */
+  /* Push the exiting accept pane two gutter-widths past the clip: one gutter to
+     clear the pane edge, a second so the CTA's drop-shadow (which bleeds ~14px
+     past that edge) also clears the clip — otherwise the button's shadow lingers
+     in the left gutter on the confirm page. */
   .dprcv-action-track.show-confirm .dprcv-action-pane:not(.dprcv-confirm-pane) {
-    transform: translateX(calc(var(--space-xl) * -1));
+    transform: translateX(calc(var(--space-xl) * -2));
   }
   /* rocks-on-ice — the confirm action cards land with a gentle staggered spring
      as the pane arrives (cards unchanged; entrance only). backwards fill holds
