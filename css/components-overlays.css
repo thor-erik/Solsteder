@@ -1992,7 +1992,7 @@
     /* Inset so the primary CTA's box-shadow has room before the overflow clip
        (was cut at the left/right edge). Panes stay 100% wide (border-box) so
        the slide still aligns. */
-    padding-inline: 12px;
+    padding-inline: var(--space-lg);
   }
   .dprcv-confirm-pane { gap: var(--space-md); }
   .dprcv-action-track.show-confirm { transform: translateX(-100%); }
