@@ -501,40 +501,33 @@
     font-style: italic;
     opacity: 0.7;
   }
-  .empty-all {
-    padding: var(--space-3xl) var(--space-xl) var(--space-2xl);
-    color: var(--muted);
-    font-size: var(--text-label);
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--space-lg);
+  /* (.empty-all / .suggest-empty retired 2026-05-25 → canonical .empty-state below) */
+
+  /* ── Canonical empty state (DESIGN.md → "Empty-state anatomy") ─────────────
+     glyph · title · sub · ≤1 CTA · escape link. Surface-aware via the --ink
+     modifier (cream surfaces); default targets the dark Delft list/detail. */
+  .empty-state {
+    display: flex; flex-direction: column; align-items: center; text-align: center;
+    max-width: 300px; margin: 0 auto;
+    padding: var(--space-4xl) var(--space-2xl);
   }
-  .empty-all-headline {
-    color: var(--text);
-    font-size: 16px;
-    font-weight: 600;
-    line-height: 1.3;
+  .empty-state .es-glyph { margin-bottom: var(--space-md); color: var(--text-secondary); line-height: 0; }
+  .empty-state .es-glyph svg { width: 28px; height: 28px; }
+  .empty-state .es-title { font-size: var(--text-subtitle); font-weight: var(--fw-subtitle); line-height: 1.3; color: var(--text); }
+  .empty-state .es-sub { font-size: var(--text-caption); line-height: 1.45; margin-top: var(--space-2xs); color: var(--text-secondary); max-width: 32ch; }
+  .empty-state .es-cta-slot { margin-top: var(--space-lg); }
+  .empty-state .es-link {
+    margin-top: var(--space-md); background: none; border: 0; cursor: pointer;
+    font-size: var(--text-label); font-weight: 500; color: var(--muted);
+    text-decoration: underline; text-underline-offset: 3px;
   }
-  .empty-all .btn-show-all { margin-top: var(--space-lg); }
-  .empty-all .btn-see-tomorrow { margin-top: var(--space-xs); }
-  /* Tertiary text-link "Vis alle steder" — visually subordinate to the
-     primary "Se i morgen" CTA above it. */
-  .empty-all-link {
-    background: none;
-    border: none;
-    color: var(--muted);
-    font-size: var(--text-label);
-    font-weight: 500;
-    text-decoration: underline;
-    text-underline-offset: 3px;
-    opacity: 0.75;
-    cursor: pointer;
-    padding: var(--space-sm) var(--space-lg);
-    margin-top: var(--space-xs);
-  }
-  .empty-all-link:hover { opacity: 1; }
+  .empty-state .es-link:hover { color: var(--text); }
+  .empty-state--ink .es-title { color: var(--panel-text); }
+  .empty-state--ink .es-glyph,
+  .empty-state--ink .es-sub,
+  .empty-state--ink .es-link { color: var(--ink-muted); }
+  .empty-state--ink .es-link:hover { color: var(--panel-text); }
+
   body.list-scrubbing .venue-section-header { opacity: 0; }
   body.list-scrubbing .empty-section { opacity: 0; }
 
@@ -1766,12 +1759,12 @@
       z-index: 910;  /* zoom-jog (900) sits behind list; locate-btn (920) stays on top */
     }
 
-    /* Empty-state — when #venue-list contains only .empty-all, the
+    /* Empty-state — when #venue-list contains only the .empty-state block, the
        50svh-tall panel leaves a tall dark band below the content.
        Shrink the panel to its natural content height so the map
        shows through above the home-indicator zone. iOS 16.4+ +
        Chrome 105+ have :has(); we already require those for push. */
-    #panel.mobile-expanded:has(#venue-list > .empty-all:only-child) {
+    #panel.mobile-expanded:has(#venue-list > .empty-state:only-child) {
       height: auto;
       max-height: calc(var(--app-h, 100svh) * 0.5);
     }
@@ -3644,17 +3637,6 @@
   #no-sun-banner button:hover { background: rgba(245,194,94,0.25); }
 
   /* ── Venue suggestion ────────────────────────────────────────────────────── */
-  .suggest-empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--space-lg);
-    padding: var(--space-2xl) var(--space-xl);
-    color: var(--muted);
-    font-size: var(--text-label);
-    text-align: center;
-  }
-  .suggest-empty strong { color: var(--text); font-weight: 500; }
   /* Suggest-flow buttons now use role primitives — empty-state "suggest this
      venue" = .s-pill (secondary), modal confirm = .p-pill (primary, hook class
      .suggest-submit for the loading state), Cancel = .g-rnd (ghost). The

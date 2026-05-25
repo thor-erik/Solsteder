@@ -1412,11 +1412,13 @@ function _openInviteSheet(venueId) {
           <div class="dpinvite-avatar-row no-scrollbar" id="dpinvite-avatar-row">
             ${avatarsHtml}
           </div>
-        </div>` : `
+        </div>` : (typeof emptyState === 'function'
+        ? emptyState({ glyph: 'user-plus', title: t('invite_no_friends_title'), sub: t('invite_no_friends_sub'), ink: true })
+        : `
         <div class="dpinvite-empty-card">
           <div class="dpinvite-empty-title">${t('invite_no_friends_title')}</div>
           <div class="dpinvite-empty-sub">${t('invite_no_friends_sub')}</div>
-        </div>`;
+        </div>`);
 
   // CTA row — single .p-pill that morphs based on selection state, with an
   // .s-circ link companion that only appears when 1+ friends are picked.

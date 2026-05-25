@@ -628,6 +628,34 @@ function getMapsIcon(type) {
   return PATHS[type] ? wrap(PATHS[type]) : '';
 }
 
+// ── Canonical empty state (DESIGN.md → "Empty-state anatomy") ───────────────────
+// One pattern for every empty block: glyph · title · sub · ≤1 CTA · escape link.
+// Surface-aware: pass ink:true on cream surfaces (friends modal, settings); the
+// default is the dark Delft list/detail surface. CTA/link are passed as ready
+// HTML so each site keeps its own button wiring. Dynamic strings must be
+// escaped BY THE CALLER (titles may legitimately contain <strong>).
+const _ES_GLYPHS = {
+  search:       '<path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/>',
+  moon:         '<path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/>',
+  'cloud-rain': '<path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M16 14v6"/><path d="M8 14v6"/><path d="M12 16v6"/>',
+  users:        '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/>',
+  'user-plus':  '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/>',
+  inbox:        '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+};
+function emptyState(o) {
+  const g = o && _ES_GLYPHS[o.glyph];
+  const glyph = g
+    ? `<div class="es-glyph"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${g}</svg></div>`
+    : '';
+  return `<div class="empty-state${o.ink ? ' empty-state--ink' : ''}">`
+    + glyph
+    + `<div class="es-title">${o.title}</div>`
+    + (o.sub     ? `<div class="es-sub">${o.sub}</div>` : '')
+    + (o.ctaHtml ? `<div class="es-cta-slot">${o.ctaHtml}</div>` : '')
+    + (o.linkHtml || '')
+    + `</div>`;
+}
+
 // ── Shared timeline renderer ───────────────────────────────────────────────────
 //
 // Single canvas-based renderer used by BOTH the floating time slider (FTS) and

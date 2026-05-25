@@ -1303,13 +1303,11 @@ function renderList() {
   if (venues.length === 0) {
     if (_listObserver) { _listObserver.disconnect(); _listObserver = null; }
     if (searchQ) {
-      list.innerHTML = `
-        <div class="suggest-empty">
-          <span>${t('no_results_for')} "<strong>${searchQ}</strong>"</span>
-          <button class="s-pill" onclick="suggestVenueFlow(${JSON.stringify(searchQ)})">
-            ${t('suggest_this_venue')}
-          </button>
-        </div>`;
+      list.innerHTML = emptyState({
+        glyph: 'search',
+        title: `${t('no_results_for')} "<strong>${esc(searchQ)}</strong>"`,
+        ctaHtml: `<button class="s-pill" onclick="suggestVenueFlow(${JSON.stringify(searchQ)})">${t('suggest_this_venue')}</button>`,
+      });
     } else if (document.body.classList.contains('day-no-sun')) {
       // Header is showing the "no sun today" message + Tomorrow CTA.
       // Skip the duplicate .empty-all block — render skeleton cards
@@ -1344,11 +1342,11 @@ function renderList() {
       const headline = isCaseB
         ? (isToday ? t('empty_rain_today') : t('empty_rain_day'))
         : (isToday ? t('empty_no_sun_left') : t('empty_no_sun_day'));
-      list.innerHTML = `
-        <div class="empty-all">
-          <div class="empty-all-headline">${headline}</div>
-          <button class="p-pill btn-see-tomorrow" id="empty-state-pick-day" type="button">${t('cta_pick_another_day')}</button>
-        </div>`;
+      list.innerHTML = emptyState({
+        glyph: isCaseB ? 'cloud-rain' : 'moon',
+        title: headline,
+        ctaHtml: `<button class="p-pill" id="empty-state-pick-day" type="button">${t('cta_pick_another_day')}</button>`,
+      });
       // Attach click handler programmatically — inline onclick="toggleQcPanel('date')"
       // was reported as not firing in some cases; this is more robust.
       const _pickBtn = document.getElementById('empty-state-pick-day');

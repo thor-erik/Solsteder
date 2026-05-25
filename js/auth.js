@@ -2289,7 +2289,9 @@ function _renderFriendsModal(modal) {
           <button class="btn-icon-sm friend-remove" onclick="_confirmRemoveFriend('${_esc(f.friendshipId)}', ${labelArg})" title="${_esc(t('friend_remove_title'))}">✕</button>
         </div>`;
       }).join('')
-    : `<div class="friends-empty">${_esc(t('no_friends_yet'))}</div>`;
+    : (typeof emptyState === 'function'
+        ? emptyState({ glyph: 'users', title: _esc(t('no_friends_yet')), ink: true })
+        : `<div class="friends-empty">${_esc(t('no_friends_yet'))}</div>`);
 
   const pendingHtml = _pendingRequests.length
     ? `<div class="friends-section-label">${_esc(t('friend_requests'))} (${_pendingRequests.length})</div>` +
