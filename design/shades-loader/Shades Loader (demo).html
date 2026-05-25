@@ -1,0 +1,883 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Shades — Launch Animation</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ink:    #111E38;
+    --cream:  #FFF2EB;
+    --sun:    #F5C25E;
+    --muted:  #9CBDE7;
+    --accent: #FFAF85;
+    --rule:      rgba(17, 30, 56, 0.08);
+    --rule-dark: rgba(255, 242, 235, 0.10);
+  }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--cream);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "ss01" on, "cv11" on;
+  }
+  * { box-sizing: border-box; }
+  h1, h2, h3, h4, p { margin: 0; }
+
+  .page {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 56px 48px 96px;
+  }
+
+  /* ── Header ── */
+  .doc-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 24px;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 56px;
+  }
+  .eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: color-mix(in oklab, var(--ink) 55%, transparent);
+    margin-bottom: 12px;
+  }
+  .doc-header h1 {
+    font-size: 44px;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    line-height: 1.05;
+  }
+  .doc-header h1 em {
+    font-style: normal;
+    color: color-mix(in oklab, var(--ink) 55%, transparent);
+    font-weight: 600;
+  }
+  .doc-header .meta {
+    text-align: right;
+    font-size: 12px;
+    color: color-mix(in oklab, var(--ink) 60%, transparent);
+    line-height: 1.7;
+    font-variant-numeric: tabular-nums;
+  }
+  .doc-header .meta b { color: var(--ink); font-weight: 600; }
+
+  /* ── Section heads ── */
+  .section { margin-top: 72px; }
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    gap: 18px;
+    margin-bottom: 22px;
+  }
+  .section-head .num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    color: color-mix(in oklab, var(--ink) 50%, transparent);
+    padding-top: 4px;
+  }
+  .section-head h2 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+  }
+  .section-head .sub {
+    font-size: 13px;
+    color: color-mix(in oklab, var(--ink) 60%, transparent);
+    margin-left: auto;
+    max-width: 480px;
+    line-height: 1.5;
+    text-align: right;
+  }
+
+  /* ── Hero stage ── */
+  .stages {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  .stage {
+    position: relative;
+    border-radius: 14px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+    border: 1px solid var(--rule);
+    aspect-ratio: 1;
+  }
+  .stage[data-variant="light"] { background: var(--cream); }
+  .stage[data-variant="dark"]  { background: var(--ink); border-color: var(--rule-dark); }
+  .stage .stage-label {
+    position: absolute;
+    top: 18px; left: 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .stage[data-variant="light"] .stage-label { color: color-mix(in oklab, var(--ink) 55%, transparent); }
+  .stage[data-variant="dark"]  .stage-label { color: color-mix(in oklab, var(--cream) 55%, transparent); }
+  .stage .stage-host {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    z-index: 2;
+  }
+  .stage .phase-tag {
+    position: absolute;
+    bottom: 18px; left: 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+    padding: 4px 9px;
+    border-radius: 999px;
+    background: color-mix(in oklab, currentColor 8%, transparent);
+    z-index: 3;
+  }
+  .stage[data-variant="light"] .phase-tag { color: var(--ink); }
+  .stage[data-variant="dark"]  .phase-tag { color: var(--cream); background: rgba(255,242,235,0.12); }
+
+  /* Mock app view that lives behind the loader (for Phase 4 reveal) */
+  .stage .app-mock {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .app-mock .map-tile {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(135deg,
+        color-mix(in oklab, var(--muted) 22%, transparent) 0%,
+        color-mix(in oklab, var(--accent) 18%, transparent) 100%),
+      repeating-linear-gradient(45deg,
+        rgba(17, 30, 56, 0.04) 0 28px,
+        transparent 28px 56px);
+  }
+  .stage[data-variant="dark"] .app-mock .map-tile {
+    background:
+      linear-gradient(135deg,
+        rgba(156,189,231,0.18) 0%,
+        rgba(255,175,133,0.16) 100%),
+      repeating-linear-gradient(45deg,
+        rgba(255,242,235,0.04) 0 28px,
+        transparent 28px 56px);
+  }
+  .app-mock .map-pin {
+    position: absolute;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 25%, transparent);
+  }
+  .app-mock .app-pill {
+    position: absolute;
+    top: 24px; left: 50%; transform: translateX(-50%);
+    background: rgba(20, 46, 82, 0.55);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: var(--cream);
+    border: 1px solid rgba(156, 189, 231, 0.18);
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    white-space: nowrap;
+  }
+
+  /* ── Controls ── */
+  .controls {
+    margin-top: 22px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+  .controls .group {
+    display: flex;
+    gap: 4px;
+    padding: 5px;
+    background: color-mix(in oklab, var(--ink) 5%, transparent);
+    border-radius: 999px;
+  }
+  button.ctl {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    padding: 7px 13px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 120ms, color 120ms;
+    white-space: nowrap;
+  }
+  button.ctl:hover { background: color-mix(in oklab, var(--ink) 8%, transparent); }
+  button.ctl.primary {
+    background: var(--ink);
+    color: var(--cream);
+  }
+  button.ctl.primary:hover { background: color-mix(in oklab, var(--ink) 88%, black); }
+  button.ctl[aria-pressed="true"] {
+    background: var(--ink);
+    color: var(--cream);
+  }
+  .controls .signal-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-left: auto;
+    font-size: 11px;
+    color: color-mix(in oklab, var(--ink) 55%, transparent);
+  }
+  .controls .signal-row .lamp {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: color-mix(in oklab, var(--ink) 15%, transparent);
+    transition: background 200ms;
+  }
+  .controls .signal-row .lamp.on { background: #4cae6a; }
+  .controls .hint {
+    font-size: 12px;
+    color: color-mix(in oklab, var(--ink) 55%, transparent);
+    font-variant-numeric: tabular-nums;
+  }
+  .controls .hint kbd {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 5px;
+    background: color-mix(in oklab, var(--ink) 8%, transparent);
+    color: var(--ink);
+    border: 1px solid var(--rule);
+  }
+
+  /* ── Static frame grid (4 phases × 3 frames = 12 frames; arranged 4 rows of 3) ── */
+  .phase-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 22px;
+  }
+  .frame {
+    aspect-ratio: 1;
+    border-radius: 12px;
+    overflow: hidden;
+    padding: 5%;
+    border: 1px solid var(--rule);
+    position: relative;
+  }
+  .frame[data-variant="light"] { background: var(--cream); }
+  .frame[data-variant="dark"]  { background: var(--ink); border-color: var(--rule-dark); }
+  .frame .host { width: 100%; height: 100%; position: relative; z-index: 2;}
+  .frame .app-mock { position: absolute; inset: 0; z-index: 1; }
+
+  .phase-label-row {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-top: 36px;
+    margin-bottom: 14px;
+  }
+  .phase-label-row:first-of-type { margin-top: 0; }
+  .phase-label-row .phase-chip {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: var(--ink);
+    color: var(--cream);
+  }
+  .phase-label-row h3 {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.005em;
+  }
+  .phase-label-row .duration {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: color-mix(in oklab, var(--ink) 55%, transparent);
+    margin-left: auto;
+  }
+
+  .frame-caption {
+    position: absolute;
+    bottom: 12px;
+    left: 14px;
+    right: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: color-mix(in oklab, var(--ink) 55%, transparent);
+    z-index: 3;
+    pointer-events: none;
+  }
+  .frame[data-variant="dark"] .frame-caption {
+    color: color-mix(in oklab, var(--cream) 50%, transparent);
+  }
+  .frame-caption b {
+    display: block;
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: none;
+    letter-spacing: -0.005em;
+    margin-bottom: 1px;
+  }
+  .frame[data-variant="dark"] .frame-caption b { color: var(--cream); }
+
+  /* ── PWA splash mock ── */
+  .splash-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  .phone-stage {
+    aspect-ratio: 9 / 16;
+    max-height: 540px;
+    margin: 0 auto;
+    border-radius: 36px;
+    overflow: hidden;
+    position: relative;
+    padding: 0;
+    border: 1px solid var(--rule);
+    width: 100%;
+  }
+  .phone-stage[data-variant="light"] { background: var(--cream); }
+  .phone-stage[data-variant="dark"]  { background: var(--ink); border-color: var(--rule-dark); }
+  .phone-stage .splash-mark {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20% 22%;
+    z-index: 2;
+  }
+  .phone-stage .splash-mark .host {
+    width: 100%; height: 100%;
+  }
+  .phone-stage .notch {
+    position: absolute;
+    top: 14px; left: 50%;
+    transform: translateX(-50%);
+    width: 90px; height: 24px;
+    border-radius: 14px;
+    background: rgba(17,30,56,0.85);
+    z-index: 4;
+  }
+  .phone-stage .app-mock {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+  }
+
+  /* ── Phase notes ── */
+  .notes {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+    margin-top: 16px;
+  }
+  .note {
+    padding: 18px;
+    background: color-mix(in oklab, var(--ink) 3%, transparent);
+    border-radius: 12px;
+    border: 1px solid var(--rule);
+  }
+  .note h3 {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: -0.005em;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .note h3 .phase-chip {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--ink);
+    color: var(--cream);
+  }
+  .note p {
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: color-mix(in oklab, var(--ink) 75%, transparent);
+    text-wrap: pretty;
+  }
+  .note .meta-line {
+    margin-top: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    color: color-mix(in oklab, var(--ink) 55%, transparent);
+  }
+
+  @media (max-width: 880px) {
+    .page { padding: 32px 24px 64px; }
+    .doc-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+    .doc-header .meta { text-align: left; }
+    .doc-header h1 { font-size: 32px; }
+    .stages, .splash-row { grid-template-columns: 1fr; }
+    .section-head { flex-direction: column; align-items: flex-start; gap: 6px; }
+    .section-head .sub { text-align: left; margin-left: 0; }
+    .phase-grid { grid-template-columns: 1fr 1fr 1fr; }
+    .notes { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* App-mock background renders the same in static frames as in stages */
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="doc-header">
+    <div>
+      <div class="eyebrow">Shades · Brand Motion · Loader v3</div>
+      <h1>Launch animation <em>— four continuous phases</em></h1>
+    </div>
+    <div class="meta">
+      <div><b>Surface</b> · PWA splash, in-app loading, crossfade</div>
+      <div><b>Format</b> · SVG + vanilla JS, no deps</div>
+      <div><b>First frame</b> · Static logo (pixel-aligned splash)</div>
+    </div>
+  </header>
+
+  <!-- ───────────────────────────── -->
+  <section class="section">
+    <div class="section-head">
+      <span class="num">01</span>
+      <h2>Live animation</h2>
+      <div class="sub">
+        Drive the loader directly, or signal "loaded" / "map ready" to
+        watch the adaptive sequence flow phase to phase.
+      </div>
+    </div>
+
+    <div class="stages">
+      <div class="stage" data-variant="light">
+        <span class="stage-label">Light</span>
+        <div class="app-mock">
+          <div class="map-tile"></div>
+          <div class="map-pin" style="left: 32%; top: 38%;"></div>
+          <div class="map-pin" style="left: 58%; top: 52%;"></div>
+          <div class="map-pin" style="left: 71%; top: 31%;"></div>
+          <div class="map-pin" style="left: 44%; top: 66%;"></div>
+          <div class="app-pill">6 steder i solen</div>
+        </div>
+        <div class="stage-host" id="hero-light"></div>
+        <span class="phase-tag" id="tag-light">● Static logo</span>
+      </div>
+      <div class="stage" data-variant="dark">
+        <span class="stage-label">Dark</span>
+        <div class="app-mock">
+          <div class="map-tile"></div>
+          <div class="map-pin" style="left: 32%; top: 38%;"></div>
+          <div class="map-pin" style="left: 58%; top: 52%;"></div>
+          <div class="map-pin" style="left: 71%; top: 31%;"></div>
+          <div class="map-pin" style="left: 44%; top: 66%;"></div>
+          <div class="app-pill">6 steder i solen</div>
+        </div>
+        <div class="stage-host" id="hero-dark"></div>
+        <span class="phase-tag" id="tag-dark">● Static logo</span>
+      </div>
+    </div>
+
+    <div class="controls" id="hero-controls">
+      <button class="ctl primary" data-action="start">▶ Start sequence</button>
+      <div class="group">
+        <button class="ctl" data-action="signal-loaded">Signal · loaded</button>
+        <button class="ctl" data-action="signal-map">Signal · map ready</button>
+      </div>
+      <button class="ctl" data-action="reset">Reset</button>
+      <div class="signal-row">
+        <span>loaded</span> <span class="lamp" id="lamp-loaded"></span>
+        <span style="margin-left: 12px;">map ready</span> <span class="lamp" id="lamp-map"></span>
+      </div>
+    </div>
+    <div class="controls">
+      <span class="hint">Direct phase control:</span>
+      <div class="group">
+        <button class="ctl" data-action="P1">Phase 1 · intro</button>
+        <button class="ctl" data-action="P2-toggle" aria-pressed="false">Phase 2 · loop</button>
+        <button class="ctl" data-action="P3">Phase 3 · resolve</button>
+        <button class="ctl" data-action="P4">Phase 4 · crossfade</button>
+      </div>
+      <span class="hint" style="margin-left: 12px;"><kbd>Space</kbd> to start sequence</span>
+    </div>
+  </section>
+
+  <!-- ───────────────────────────── -->
+  <section class="section">
+    <div class="section-head">
+      <span class="num">02</span>
+      <h2>In context — PWA splash</h2>
+      <div class="sub">
+        First frame paints as the native splash. Then the intro reveals
+        the loop, the resolve lands the static logo, and the crossfade
+        hands off to the map view.
+      </div>
+    </div>
+    <div class="splash-row">
+      <div class="phone-stage" data-variant="light">
+        <div class="notch"></div>
+        <div class="app-mock">
+          <div class="map-tile"></div>
+          <div class="map-pin" style="left: 32%; top: 38%;"></div>
+          <div class="map-pin" style="left: 58%; top: 52%;"></div>
+          <div class="map-pin" style="left: 71%; top: 31%;"></div>
+          <div class="map-pin" style="left: 44%; top: 66%;"></div>
+          <div class="app-pill">6 steder i solen</div>
+        </div>
+        <div class="splash-mark"><div class="host" id="phone-light"></div></div>
+      </div>
+      <div class="phone-stage" data-variant="dark">
+        <div class="notch"></div>
+        <div class="app-mock">
+          <div class="map-tile"></div>
+          <div class="map-pin" style="left: 32%; top: 38%;"></div>
+          <div class="map-pin" style="left: 58%; top: 52%;"></div>
+          <div class="map-pin" style="left: 71%; top: 31%;"></div>
+          <div class="map-pin" style="left: 44%; top: 66%;"></div>
+          <div class="app-pill">6 steder i solen</div>
+        </div>
+        <div class="splash-mark"><div class="host" id="phone-dark"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────────────────── -->
+  <section class="section">
+    <div class="section-head">
+      <span class="num">03</span>
+      <h2>Static frames for review</h2>
+      <div class="sub">
+        Each phase decomposed into start · midpoint · end. Light variant on
+        cream; same set repeats below in dark.
+      </div>
+    </div>
+
+    <div id="frames-host-light"></div>
+    <div id="frames-host-dark" style="margin-top: 48px;"></div>
+  </section>
+
+  <!-- ───────────────────────────── -->
+  <section class="section">
+    <div class="section-head">
+      <span class="num">04</span>
+      <h2>Phase reference</h2>
+      <div class="sub">
+        Pixel-aligned start and end states; ease-out throughout for a
+        single, continuous motion read.
+      </div>
+    </div>
+    <div class="notes">
+      <div class="note">
+        <h3><span class="phase-chip">1</span> Intro</h3>
+        <p>
+          Plays the resolve in reverse. Sun rises out of the half-dome to
+          a full circle; shadow descends behind it and derotates from
+          diagonal to horizontal.
+        </p>
+        <div class="meta-line">~350 ms · ease-out</div>
+      </div>
+      <div class="note">
+        <h3><span class="phase-chip">2</span> Loading loop</h3>
+        <p>
+          Horizontal blinds in front of the full sun. Yellow → blue →
+          yellow per cycle, 50 ms holds at extremes. At every yellow
+          extreme, checks loading state; on completion, transitions
+          immediately to Phase 3.
+        </p>
+        <div class="meta-line">~2 s / cycle · ease-in-out · adaptive</div>
+      </div>
+      <div class="note">
+        <h3><span class="phase-chip">3</span> Resolve</h3>
+        <p>
+          Sun descends into the half-dome; shadow rises behind it and
+          rotates horizontal → diagonal. Lands precisely on the static
+          logo. No hold.
+        </p>
+        <div class="meta-line">~700 ms · ease-out</div>
+      </div>
+      <div class="note">
+        <h3><span class="phase-chip">4</span> Crossfade</h3>
+        <p>
+          Logo + wordmark fade out together; the map view fades in
+          underneath. Won't start until the map signals ready — the
+          crossfade reveals a finished view, not loading tiles.
+        </p>
+        <div class="meta-line">~300 ms · ease-out · gated on map-ready</div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script src="shades-loader.js?v=2"></script>
+<script>
+(function() {
+  // ── Live hero ────────────────────────────────────────────────
+  const heroLight  = createShadesLoader(document.getElementById('hero-light'),  { variant: 'light' });
+  const heroDark   = createShadesLoader(document.getElementById('hero-dark'),   { variant: 'dark'  });
+  const phoneLight = createShadesLoader(document.getElementById('phone-light'), { variant: 'light' });
+  const phoneDark  = createShadesLoader(document.getElementById('phone-dark'),  { variant: 'dark'  });
+
+  const tagL = document.getElementById('tag-light');
+  const tagD = document.getElementById('tag-dark');
+  const lampLoaded = document.getElementById('lamp-loaded');
+  const lampMap = document.getElementById('lamp-map');
+  const btnP2 = document.querySelector('[data-action="P2-toggle"]');
+
+  function setTag(text) { tagL.textContent = text; tagD.textContent = text; }
+  const allLoaders = [heroLight, heroDark, phoneLight, phoneDark];
+  const runAll = (fn) => allLoaders.forEach(fn);
+
+  let loadedFlag = false;
+  let mapReadyFlag = false;
+  let p2LoopActive = false;
+  let sequenceActive = false;
+
+  function refreshLamps() {
+    lampLoaded.classList.toggle('on', loadedFlag);
+    lampMap.classList.toggle('on', mapReadyFlag);
+  }
+
+  function actReset() {
+    loadedFlag = false;
+    mapReadyFlag = false;
+    p2LoopActive = false;
+    sequenceActive = false;
+    btnP2.setAttribute('aria-pressed', 'false');
+    refreshLamps();
+    setTag('● Static logo');
+    runAll(l => l.reset());
+  }
+
+  function actStart() {
+    actReset();
+    sequenceActive = true;
+    setTag('▸ Phase 1 · intro');
+    let p1Done = false;
+    let inLoop = false;
+    runAll(l => l.start({
+      isLoaded:   () => loadedFlag,
+      isMapReady: () => mapReadyFlag,
+      onComplete: () => {
+        sequenceActive = false;
+        setTag('■ App ready');
+      },
+    }));
+    // Light/cosmetic phase tag updates — track timing.
+    setTimeout(() => { if (sequenceActive) setTag('● Phase 2 · loading…'); }, 360);
+  }
+
+  function actSignalLoaded() {
+    loadedFlag = true;
+    refreshLamps();
+    runAll(l => l.signalLoaded());
+    if (sequenceActive) setTimeout(() => setTag('▸ Phase 3 · resolve'), 50);
+  }
+  function actSignalMap() {
+    mapReadyFlag = true;
+    refreshLamps();
+    runAll(l => l.signalMapReady());
+    if (sequenceActive) setTimeout(() => setTag('▸ Phase 4 · crossfade'), 50);
+  }
+
+  // ── Direct phase control ────────────────────────────────────
+  function actP1() {
+    sequenceActive = false; p2LoopActive = false;
+    btnP2.setAttribute('aria-pressed', 'false');
+    setTag('▸ Phase 1 · intro');
+    runAll(l => l.playPhase1(() => {}));
+    setTimeout(() => setTag('● Solid yellow'), 380);
+  }
+  function actP2Start() {
+    sequenceActive = false;
+    p2LoopActive = true;
+    btnP2.setAttribute('aria-pressed', 'true');
+    setTag('● Phase 2 · loop');
+    runAll(l => l.playPhase2());
+  }
+  function actP2Stop() {
+    p2LoopActive = false;
+    btnP2.setAttribute('aria-pressed', 'false');
+    runAll(l => l.stopPhase2());
+    setTag('— paused');
+  }
+  function actP3() {
+    sequenceActive = false; p2LoopActive = false;
+    btnP2.setAttribute('aria-pressed', 'false');
+    setTag('▸ Phase 3 · resolve');
+    runAll(l => l.playPhase3(() => {}));
+    setTimeout(() => setTag('● Static logo'), 720);
+  }
+  function actP4() {
+    sequenceActive = false; p2LoopActive = false;
+    btnP2.setAttribute('aria-pressed', 'false');
+    setTag('▸ Phase 4 · crossfade');
+    runAll(l => l.playPhase4(() => {}));
+    setTimeout(() => setTag('■ App visible'), 320);
+  }
+
+  // ── Wiring ──────────────────────────────────────────────────
+  document.getElementById('hero-controls').addEventListener('click', (ev) => {
+    const btn = ev.target.closest('button[data-action]');
+    if (!btn) return;
+    const a = btn.dataset.action;
+    if      (a === 'start')         actStart();
+    else if (a === 'signal-loaded') actSignalLoaded();
+    else if (a === 'signal-map')    actSignalMap();
+    else if (a === 'reset')         actReset();
+  });
+  document.querySelector('.controls + .controls').addEventListener('click', (ev) => {
+    const btn = ev.target.closest('button[data-action]');
+    if (!btn) return;
+    const a = btn.dataset.action;
+    if      (a === 'P1') actP1();
+    else if (a === 'P2-toggle') (p2LoopActive ? actP2Stop() : actP2Start());
+    else if (a === 'P3') actP3();
+    else if (a === 'P4') actP4();
+  });
+  window.addEventListener('keydown', (ev) => {
+    if (ev.code === 'Space' && !ev.target.matches('input,textarea')) {
+      ev.preventDefault(); actStart();
+    }
+  });
+
+  // ── Static frame grid ───────────────────────────────────────
+  // Each row = one phase: start · midpoint · end.
+  const PHASE_ROWS = [
+    {
+      chip: '1', name: 'Intro', duration: '350 ms · ease-out',
+      cells: [
+        { frame: 'static-logo',  title: 'Start',    cap: 'Static logo · first frame' },
+        { frame: 'phase1-mid',   title: 'Midpoint', cap: 'Sun rising · shadow derotating' },
+        { frame: 'solid-yellow', title: 'End',      cap: 'Solid yellow · shadow hidden' },
+      ],
+    },
+    {
+      chip: '2', name: 'Loading loop', duration: '2 s / cycle · holds at extremes',
+      cells: [
+        { frame: 'solid-yellow', title: 'Solid yellow', cap: 'Blinds open · 50 ms hold' },
+        { frame: 'striped-mid',  title: 'Striped',      cap: 'Blinds half-closed' },
+        { frame: 'solid-blue',   title: 'Solid blue',   cap: 'Blinds closed · 50 ms hold' },
+      ],
+    },
+    {
+      chip: '3', name: 'Resolve', duration: '700 ms · ease-out',
+      cells: [
+        { frame: 'solid-yellow', title: 'Start',    cap: 'Solid yellow handoff' },
+        { frame: 'phase3-mid',   title: 'Midpoint', cap: 'Sun setting · shadow rotating' },
+        { frame: 'static-logo',  title: 'End',      cap: 'Static logo · pixel match' },
+      ],
+    },
+    {
+      chip: '4', name: 'Crossfade', duration: '300 ms · gated on map-ready',
+      cells: [
+        { frame: 'static-logo', title: 'Start',    cap: 'Logo opaque · map hidden', mock: true },
+        { frame: 'phase4-mid',  title: 'Midpoint', cap: '50 % through · map showing', mock: true },
+        { frame: 'phase4-end',  title: 'End',      cap: 'Logo gone · app visible',   mock: true },
+      ],
+    },
+  ];
+
+  function appMockEl() {
+    const m = document.createElement('div');
+    m.className = 'app-mock';
+    m.innerHTML = `
+      <div class="map-tile"></div>
+      <div class="map-pin" style="left: 32%; top: 38%;"></div>
+      <div class="map-pin" style="left: 58%; top: 52%;"></div>
+      <div class="map-pin" style="left: 71%; top: 31%;"></div>
+      <div class="map-pin" style="left: 44%; top: 66%;"></div>
+      <div class="app-pill">6 steder i solen</div>
+    `;
+    return m;
+  }
+
+  function renderPhaseGrid(host, variant) {
+    PHASE_ROWS.forEach(row => {
+      const labelRow = document.createElement('div');
+      labelRow.className = 'phase-label-row';
+      labelRow.innerHTML = `
+        <span class="phase-chip">${row.chip}</span>
+        <h3>${row.name}</h3>
+        <span class="duration">${row.duration}</span>
+      `;
+      host.appendChild(labelRow);
+
+      const grid = document.createElement('div');
+      grid.className = 'phase-grid';
+      row.cells.forEach(cell => {
+        const cellEl = document.createElement('div');
+        cellEl.className = 'frame';
+        cellEl.dataset.variant = variant;
+        if (cell.mock) cellEl.appendChild(appMockEl());
+        const inner = document.createElement('div');
+        inner.className = 'host';
+        cellEl.appendChild(inner);
+        const caption = document.createElement('div');
+        caption.className = 'frame-caption';
+        caption.innerHTML = `<b>${cell.title}</b>${cell.cap}`;
+        cellEl.appendChild(caption);
+        grid.appendChild(cellEl);
+
+        const l = createShadesLoader(inner, { variant });
+        l.setStaticFrame(cell.frame);
+      });
+      host.appendChild(grid);
+    });
+  }
+
+  renderPhaseGrid(document.getElementById('frames-host-light'), 'light');
+  renderPhaseGrid(document.getElementById('frames-host-dark'),  'dark');
+
+  // ── Auto-start a demo run ───────────────────────────────────
+  setTimeout(() => {
+    actStart();
+    // Demo flow: loaded after ~2.5 s (mid Phase 2), map-ready 0.6 s later.
+    setTimeout(actSignalLoaded, 2500);
+    setTimeout(actSignalMap,    3500);
+  }, 600);
+})();
+</script>
+
+</body>
+</html>
