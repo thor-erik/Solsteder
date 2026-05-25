@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Accept → confirm push — Shades</title>
+<link rel="stylesheet" href="css/tokens.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: #243049; color: var(--text);
+         min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+  header { padding: 20px 24px 8px; text-align: center; max-width: 640px; }
+  h1 { font-size: 18px; font-weight: 800; margin: 0 0 4px; }
+  .sub { font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; }
+  .stage { margin-top: 18px; width: 100%; max-width: 460px; padding: 0 12px; }
+  .controls { display: flex; gap: 10px; justify-content: center; margin: 14px 0 28px; flex-wrap: wrap; }
+  .controls button { background: var(--surface-control); border: 1px solid var(--line-d, rgba(156,189,231,.25)); color: var(--text);
+                     border-radius: var(--radius-pill); padding: 7px 14px; font: 600 12.5px Inter; cursor: pointer; }
+
+  /* ── Sheet: fixed height (animate X only), matched panes in a track ─────── */
+  .sheet {
+    position: relative; overflow: hidden; height: 460px;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    background: var(--surface-raised); color: var(--panel-text);
+    box-shadow: var(--shadow-2);
+  }
+  .track { display: flex; height: 100%; transition: transform var(--dur-slow) var(--ease-emphasized); }
+  .track.show-confirm { transform: translateX(-100%); }
+  .pane { flex: 0 0 100%; height: 100%; padding: 16px 20px 20px; display: flex; flex-direction: column; }
+  .handle { width: 36px; height: 4px; border-radius: 2px; background: rgba(17,30,56,.22); margin: 0 auto 14px; }
+
+  .eyebrow { font-size: var(--text-caption); color: var(--ink-muted); }
+  .venue { font-size: var(--text-title); font-weight: 700; margin-top: 2px; }
+  .meets { font-size: var(--text-caption); color: var(--ink-muted); margin-top: 2px; }
+  .sun-chip { margin-top: 14px; align-self: flex-start; background: var(--accent-dim); color: var(--accent-active);
+              border: 1px solid var(--accent-border, rgba(245,194,94,.42)); border-radius: var(--radius-pill);
+              padding: 6px 12px; font: 700 12.5px Inter; }
+  .bar { margin-top: 16px; height: 40px; border-radius: var(--radius-md);
+         background: linear-gradient(90deg, #F5C25E 0 55%, #c9b48f 55% 72%, #6f7d96 72% 100%); }
+  .spacer { flex: 1; }
+
+  .footer { display: flex; flex-direction: column; gap: var(--space-md); }
+  .p-pill { height: 52px; border-radius: var(--radius-pill); border: 0; background: var(--accent); color: var(--accent-on);
+            font: 700 15px Inter; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .links { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: var(--text-label); color: var(--ink-muted); }
+  .links button { background: none; border: 0; color: var(--ink-muted); font: 500 13px Inter; cursor: pointer; }
+
+  /* Confirm pane */
+  .confirm-top { text-align: center; }
+  .confirm-check { width: 56px; height: 56px; border-radius: 50%; background: var(--accent); color: var(--accent-on);
+                   display: flex; align-items: center; justify-content: center; margin: 8px auto 12px; font-size: 28px; font-weight: 800; }
+  .confirm-h { font-size: var(--text-title); font-weight: 800; }
+  .confirm-meta { font-size: var(--text-body); color: var(--ink-muted); margin-top: 4px; }
+  .confirm-actions { display: flex; flex-direction: column; gap: var(--space-md); }
+  .c-btn { height: 48px; border-radius: var(--radius-pill); border: 1px solid var(--line-l-strong, rgba(17,30,56,.3));
+           background: var(--surface-control); color: var(--panel-text); font: 600 14px Inter; cursor: pointer;
+           display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .c-btn.cta { background: var(--accent); color: var(--accent-on); border-color: transparent; }
+
+  /* rocks-on-ice entrance for the confirm buttons — fire when the pane lands */
+  .track.show-confirm .c-btn { animation: rock-in var(--dur-slow) var(--ease-spring) both; }
+  .track.show-confirm .c-btn:nth-child(1) { animation-delay: 180ms; }
+  .track.show-confirm .c-btn:nth-child(2) { animation-delay: 250ms; }
+  .track.show-confirm .c-btn:nth-child(3) { animation-delay: 320ms; }
+  @keyframes rock-in { from { transform: translateX(44px); opacity: 0; } 60% { opacity: 1; } to { transform: translateX(0); opacity: 1; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .track { transition: none; }
+    .track.show-confirm .c-btn { animation: c-fade var(--dur-base) ease both; }
+    @keyframes c-fade { from { opacity: 0; } to { opacity: 1; } }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Accept → confirm push (proposed)</h1>
+  <div class="sub">One surface, fixed height: tap “I’m in” → the accept content slides left, the confirmation slides in from the right, and its buttons land with the rocks-on-ice spring. Reset slides back. (Mock with matched panes — proving the layout/feel before porting into the real overlay.)</div>
+</header>
+
+<div class="stage">
+  <div class="sheet">
+    <div class="track" id="track">
+      <!-- Pane 1: accept -->
+      <div class="pane">
+        <div class="handle"></div>
+        <div class="eyebrow">Anna invited you</div>
+        <div class="venue">Kafé Olsen</div>
+        <div class="meets">Sunday · meets at 17:00</div>
+        <div class="sun-chip">☀ Sun until 19:30</div>
+        <div class="bar"></div>
+        <div class="spacer"></div>
+        <div class="footer">
+          <button class="p-pill" id="imIn">✓ I’m in</button>
+          <div class="links"><button>Coming later</button><span>·</span><button>Decline</button></div>
+        </div>
+      </div>
+      <!-- Pane 2: confirm -->
+      <div class="pane">
+        <div class="handle"></div>
+        <div class="confirm-top">
+          <div class="confirm-check">✓</div>
+          <div class="confirm-h">You’re in!</div>
+          <div class="confirm-meta">Kafé Olsen · Sunday 17:00<br>Sun until 19:30</div>
+        </div>
+        <div class="spacer"></div>
+        <div class="confirm-actions">
+          <button class="c-btn cta">Add to calendar</button>
+          <button class="c-btn">Share with friends</button>
+          <button class="c-btn">Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <button id="play">▶ Accept (push)</button>
+  <button id="reset">↺ Reset</button>
+</div>
+
+<script>
+  const track = document.getElementById('track');
+  document.getElementById('imIn').onclick = () => track.classList.add('show-confirm');
+  document.getElementById('play').onclick  = () => track.classList.add('show-confirm');
+  document.getElementById('reset').onclick = () => track.classList.remove('show-confirm');
+</script>
+</body>
+</html>
