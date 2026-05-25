@@ -1734,6 +1734,7 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
         primary: i === 0,
       })).join('');
       _confirmPane.innerHTML =
+        `<div class="dprcv-confirm-title"><span>${t('accepted_eyebrow')}</span><span class="dprcv-confirm-title-check" aria-hidden="true">${checkSvg}</span></div>` +
         `<div class="dpacc-action-row no-scrollbar">${cardsHtml}</div>` +
         `<div class="dprcv-cta-row"><button class="dprcv-cta-link" id="pp-confirm-close" type="button"><span>${t('accepted_close')}</span></button></div>`;
       _confirmPane.setAttribute('aria-hidden', 'false');
@@ -1743,18 +1744,14 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
       if (_openCard) _openCard.onclick = () => { closePlanPreview({ keepCamera: true }); setTimeout(() => { if (typeof selectVenue === 'function') selectVenue(venue.id, true); }, 340); };
       const _ccBtn = _confirmPane.querySelector('#pp-confirm-close');
       if (_ccBtn) _ccBtn.onclick = () => closePlanPreview({ keepCamera: true });
-      // Eyebrow crossfades "Anna invites you to" → "✓ Confirmed" in place
-      // (header persists). The check springs in with the same pop the action
-      // cards use, marking the moment of commitment.
+      // Eyebrow crossfades "Anna invites you to" → "Going to" in place (header
+      // persists, now reading "Going to · Hanami"). The "Confirmed" success
+      // marker moves to a title above the action cards (see confirm pane).
       const _eb = el.querySelector('.dprcv-eyebrow');
       if (_eb) {
         _eb.style.transition = 'opacity var(--dur-base) var(--ease-standard)';
         _eb.style.opacity = '0';
-        setTimeout(() => {
-          _eb.classList.add('is-confirmed');
-          _eb.innerHTML = `<span>${t('accepted_eyebrow')}</span><span class="dprcv-eyebrow-check" aria-hidden="true">${checkSvg}</span>`;
-          _eb.style.opacity = '1';
-        }, 180);
+        setTimeout(() => { _eb.textContent = t('accepted_going_to'); _eb.style.opacity = '1'; }, 180);
       }
       // Right-column label crossfades "Join at" → "Meeting at" (the invite
       // becomes a commitment); time below it is unchanged.

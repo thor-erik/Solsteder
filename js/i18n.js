@@ -367,6 +367,7 @@ const _STRINGS = {
     with_inviter_label:      'with {name}',
     // Accepted panel (parallel-action redesign)
     accepted_eyebrow:                'Confirmed',
+    accepted_going_to:               'Going to',
     accepted_sees_pill:              "You're in — see you {time}",
     accepted_subtitle:               '{date} · {time} · sun until {sunUntil}',
     accepted_change_rsvp:            'Change response',
@@ -914,6 +915,7 @@ const _STRINGS = {
     with_inviter_label:      'med {name}',
     // Accepted panel (parallel-action redesign)
     accepted_eyebrow:                'Bekreftet',
+    accepted_going_to:               'Skal til',
     accepted_sees_pill:              'Du er med — sees {time}',
     accepted_subtitle:               '{date} · {time} · sol til {sunUntil}',
     accepted_change_rsvp:            'Endre svar',
@@ -1396,6 +1398,7 @@ const _STRINGS = {
     with_inviter_label:      'med {name}',
     // Accepted panel (parallel-action redesign)
     accepted_eyebrow:                'Bekräftat',
+    accepted_going_to:               'Ska till',
     accepted_sees_pill:              'Du är med — vi ses {time}',
     accepted_subtitle:               '{date} · {time} · sol till {sunUntil}',
     accepted_change_rsvp:            'Ändra svar',
@@ -1841,6 +1844,7 @@ const _STRINGS = {
     with_inviter_label:      'med {name}',
     // Accepted panel (parallel-action redesign)
     accepted_eyebrow:                'Bekræftet',
+    accepted_going_to:               'Skal til',
     accepted_sees_pill:              'Du er med — vi ses {time}',
     accepted_subtitle:               '{date} · {time} · sol til {sunUntil}',
     accepted_change_rsvp:            'Skift svar',

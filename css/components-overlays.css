@@ -2043,15 +2043,20 @@
      blur would exceed the space-xl shadow gutter and clip again. */
   .dprcv-footer-track .dprcv-cta-primary:hover:not([disabled]) { box-shadow: var(--shadow-1); }
 
-  /* Confirmed eyebrow — on accept the eyebrow becomes "✓ Confirmed"; the
-     success-status check springs in (honey stays reserved for the primary
-     action card). */
-  .dprcv-eyebrow.is-confirmed { display: flex; align-items: center; gap: var(--space-2xs); }
-  .dprcv-eyebrow-check {
+  /* "Confirmed" success title above the action cards (the eyebrow now reads
+     "Going to · <venue>"). Bold ink title + a success-status check that springs
+     in (honey stays reserved for the primary action card). Sits where the
+     timeline was, so it reads as the section header for the actions below. */
+  .dprcv-confirm-title {
+    display: flex; align-items: center; gap: var(--space-xs);
+    font-size: var(--text-body); font-weight: 700; color: var(--panel-text);
+    letter-spacing: -0.01em;
+  }
+  .dprcv-confirm-title-check {
     display: inline-flex; align-items: center; color: var(--color-success);
     animation: dprcv-confirm-pop var(--dur-slow) var(--ease-spring) both;
   }
-  .dprcv-eyebrow-check svg { width: 13px; height: 13px; }
+  .dprcv-confirm-title-check svg { width: 16px; height: 16px; }
   @keyframes dprcv-confirm-pop { 0% { transform: scale(0); opacity: 0; } 60% { opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
 
   /* One-shot large DIAGONAL honey gleam sweeping across the WHOLE sheet as the
@@ -2075,7 +2080,7 @@
   @media (prefers-reduced-motion: reduce) {
     .dprcv-action-track { transition: none; }
     .dprcv-action-track.show-confirm .dpacc-action-card { animation: none; }
-    .dprcv-eyebrow-check { animation: none; }
+    .dprcv-confirm-title-check { animation: none; }
     .dprcv-bottom.is-confirming::after { animation: none; opacity: 0; }
   }
   .dprcv-cta-link {
