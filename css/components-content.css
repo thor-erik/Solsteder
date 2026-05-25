@@ -531,12 +531,14 @@
   body.list-scrubbing .venue-section-header { opacity: 0; }
   body.list-scrubbing .empty-section { opacity: 0; }
 
-  /* Skeleton crossfade (Phase 7) — on scrub the real card values fade OUT, then
-     the skeletons dissolve IN (instead of a hard cut). Container-level opacity
-     fade; the swap + race guard live in _injectScrubSkeletons (app.js). */
-  #venue-list { transition: opacity var(--dur-fast) var(--ease-standard); }
-  #venue-list.list-xfading { opacity: 0; }
-  @media (prefers-reduced-motion: reduce) { #venue-list { transition: none; } }
+  /* Skeleton crossfade (Phase 7) — on scrub only the card CONTENTS fade out and
+     the skeleton content dissolves in; the card BOXES (Delft background) stay
+     put, since real + skeleton cards share the same .venue-card box. Fading the
+     direct children hides everything inside regardless of nesting. Swap + race
+     guard live in _injectScrubSkeletons (app.js). */
+  #venue-list .venue-card > * { transition: opacity var(--dur-fast) var(--ease-standard); }
+  #venue-list.list-xfading .venue-card > * { opacity: 0; }
+  @media (prefers-reduced-motion: reduce) { #venue-list .venue-card > * { transition: none; } }
 
   /* Pull-tab indicator: appears only when the in-viewport list is so short
      it can't trigger natural scroll-pagination (fewer than ~5 venues). Tap
