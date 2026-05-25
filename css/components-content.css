@@ -531,14 +531,18 @@
   body.list-scrubbing .venue-section-header { opacity: 0; }
   body.list-scrubbing .empty-section { opacity: 0; }
 
-  /* Skeleton crossfade (Phase 7) — on scrub only the card CONTENTS fade out and
-     the skeleton content dissolves in; the card BOXES (Delft background) stay
-     put, since real + skeleton cards share the same .venue-card box. Fading the
-     direct children hides everything inside regardless of nesting. Swap + race
-     guard live in _injectScrubSkeletons (app.js). */
-  #venue-list .venue-card > * { transition: opacity var(--dur-fast) var(--ease-standard); }
+  /* Skeleton crossfade (Phase 7) — on scrub only the card CONTENTS fade; the
+     BOXES stay put (real + skeleton share the same .venue-card box).
+     - The opacity transition is scoped to body.list-scrubbing so it never
+       touches the initial card mount (that was the page-load flash).
+     - The skeleton's own whole-card fade-in (skeletonFadeIn) is suppressed
+       during scrub, so the box appears solid instantly instead of fading in
+       (that was the flash when the skeletons showed up). Its ::after sheen
+       keeps animating. Swap + race guard live in _injectScrubSkeletons. */
+  body.list-scrubbing #venue-list .venue-card > * { transition: opacity var(--dur-fast) var(--ease-standard); }
   #venue-list.list-xfading .venue-card > * { opacity: 0; }
-  @media (prefers-reduced-motion: reduce) { #venue-list .venue-card > * { transition: none; } }
+  body.list-scrubbing .venue-card.skeleton { animation: none; }
+  @media (prefers-reduced-motion: reduce) { body.list-scrubbing #venue-list .venue-card > * { transition: none; } }
 
   /* Pull-tab indicator: appears only when the in-viewport list is so short
      it can't trigger natural scroll-pagination (fewer than ~5 venues). Tap
