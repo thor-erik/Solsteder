@@ -887,8 +887,10 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   // after layout) can drop whole trailing pills + their preceding dot
   // when the row overflows, instead of letting the browser ellipsise
   // a partial pill ("5 mi…").
+  // Area moves to its own row (row 3, like the venue card); the meta row
+  // (row 4) carries category · distance · walk only.
+  const areaHtml = venueArea ? venueArea.replace(/</g, '&lt;') : '';
   const metaParts = [
-    venueArea ? { html: venueArea.replace(/</g, '&lt;') } : null,
     venueCat  ? { html: venueCat.replace(/</g, '&lt;')  } : null,
     distMin && distMin.distLabel ? { html: distMin.distLabel.replace(/</g, '&lt;') } : null,
     distMin && distMin.walkMin != null
@@ -1230,12 +1232,14 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
             <div class="dprcv-venue-row">
               <span class="dprcv-venue">${venueDisplay}</span>
             </div>
-            ${metaHtml ? `<div class="dprcv-meta">${metaHtml}</div>` : ''}
+            <div class="dprcv-area">${areaHtml || '&nbsp;'}</div>
+            ${metaHtml ? `<div class="dprcv-meta">${metaHtml}</div>` : '<div class="dprcv-meta">&nbsp;</div>'}
           </div>
           <div class="dprcv-moment-col">
             <div class="dprcv-hero-label">${t('invite_hero_meets')}</div>
             <div class="dprcv-arrival-time" id="pp-arrival-time">${planTimeStr}</div>
-            ${arrivalSub ? `<div class="dprcv-arrival-sub">${arrivalSub}</div>` : ''}
+            <div class="dprcv-arrival-sub">${arrivalSub || '&nbsp;'}</div>
+            <div class="dprcv-moment-spacer" aria-hidden="true">&nbsp;</div>
           </div>
         </div>
       </div>
@@ -1335,6 +1339,13 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   const scrubberEl = el.querySelector('.dprcv-timeline-scrubber');
   const timelineEl = el.querySelector('.dprcv-timeline');
   if (weatherHost) {
+    // Re-populate when the forecast arrives (initWeather → update() doesn't
+    // touch this overlay). On a cold invite open weather may not be loaded yet,
+    // leaving the glyphs empty; this hook fills them once it lands.
+    window._refreshAcceptPageWeather = () => {
+      if (!weatherHost.isConnected) return;
+      try { _populateTimelineWeather(weatherHost, venue, dateStr, barMinH, barMaxH); } catch {}
+    };
     requestAnimationFrame(() => {
       try {
         _populateTimelineWeather(weatherHost, venue, dateStr, barMinH, barMaxH);

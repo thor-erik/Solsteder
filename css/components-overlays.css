@@ -1617,6 +1617,8 @@
        baselines didn't line up. */
     gap: var(--space-xs);
   }
+  /* Empty 4th row balancing the title-col's 4 rows (eyebrow / venue / area / meta). */
+  .dprcv-moment-spacer { font-size: var(--text-label); line-height: 1.4; min-height: calc(13px * 1.4); }
   .dprcv-eyebrow {
     font-size: var(--text-label);
     font-weight: 500;
@@ -1633,7 +1635,17 @@
     display: flex;
     align-items: center;
     gap: var(--space-md);
-    margin-top: var(--space-2xs);
+  }
+  /* Area row (row 3) — its own line under the venue name, like the venue card
+     (coarse area, slightly stronger than the meta). */
+  .dprcv-area {
+    font-size: var(--text-label);
+    font-weight: 600;
+    color: var(--panel-text);
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .dprcv-venue-pin {
     flex-shrink: 0;
@@ -1666,10 +1678,8 @@
     display: flex;
     align-items: center;
     flex-wrap: nowrap;
-    /* Indent past the pin (16 + 8 gap) so the meta line aligns with the
-       venue name, not the pin. */
-    padding-left: var(--space-2xl);
-    margin-top: var(--space-xs);
+    /* Pin removed — rows align under the venue name; spacing comes from the
+       title-col gap (card-like rhythm), no per-row margin. */
     font-size: var(--text-label);
     font-weight: 500;
     color: var(--ink-muted);

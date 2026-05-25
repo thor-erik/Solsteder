@@ -99,6 +99,9 @@ async function initWeather(lat = 59.9125, lng = 10.728) {
 
     // Re-render once data arrives (update() is defined in app.js)
     if (typeof update === 'function') update();
+    // Accept page (plan-preview) is a separate overlay update() doesn't touch —
+    // refresh its timeline weather glyphs now the forecast is in.
+    if (typeof window !== 'undefined' && typeof window._refreshAcceptPageWeather === 'function') window._refreshAcceptPageWeather();
     if (typeof _notifEvaluate === 'function') _notifEvaluate();
 
     // Defensive: explicitly refresh every surface that reads weather.
