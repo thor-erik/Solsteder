@@ -1733,37 +1733,7 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
         inviterId:   (fp && fp.inviterId)   || opts.inviterId   || null,
         primary: i === 0,
       })).join('');
-      // Presence "going" pill — the headline confirmation. Inviter shows as
-      // already-going; the current user's chip springs in and the count ticks
-      // up. In demo (no auth) "you" falls back to the localized "You" label.
-      const _me = (typeof authCurrentUser === 'function' && authCurrentUser()) || null;
-      const _meMeta = (_me && _me.user_metadata) || {};
-      const _meName = _meMeta.name || _meMeta.full_name || (_me && _me.email) || t('pp_you');
-      const _meAvatar = _meMeta.avatar_url || '';
-      const _going = [];
-      const _invName = (fp && fp.inviterName) || opts.inviterName || '';
-      if (_invName) _going.push({ name: _invName, avatar: '' });
-      const _avChip = (name, avatar, cls) => {
-        const initial = ((name || '?').trim().charAt(0) || '?').toUpperCase();
-        const inner = avatar
-          ? `<img src="${String(avatar).replace(/"/g, '&quot;')}" alt="" referrerpolicy="no-referrer">`
-          : initial.replace(/</g, '&lt;');
-        return `<span class="dprcv-going-av${cls || ''}" aria-hidden="true">${inner}</span>`;
-      };
-      const _goingTotal = _going.length + 1;
-      const goingHtml =
-        `<div class="dprcv-going">
-           <div class="dprcv-going-avatars">
-             ${_going.map(g => _avChip(g.name, g.avatar, '')).join('')}
-             ${_avChip(_meName, _meAvatar, ' dprcv-going-you')}
-           </div>
-           <span class="dprcv-going-meta">
-             <span class="dprcv-going-check" aria-hidden="true">${checkSvg}</span>
-             <span class="dprcv-going-count" data-total="${_goingTotal}">${t('pp_going_count', { n: _going.length >= 1 ? _going.length : _goingTotal })}</span>
-           </span>
-         </div>`;
       _confirmPane.innerHTML =
-        goingHtml +
         `<div class="dpacc-action-row no-scrollbar">${cardsHtml}</div>` +
         `<div class="dprcv-cta-row"><button class="dprcv-cta-link" id="pp-confirm-close" type="button"><span>${t('accepted_close')}</span></button></div>`;
       _confirmPane.setAttribute('aria-hidden', 'false');
@@ -1773,12 +1743,18 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
       if (_openCard) _openCard.onclick = () => { closePlanPreview({ keepCamera: true }); setTimeout(() => { if (typeof selectVenue === 'function') selectVenue(venue.id, true); }, 340); };
       const _ccBtn = _confirmPane.querySelector('#pp-confirm-close');
       if (_ccBtn) _ccBtn.onclick = () => closePlanPreview({ keepCamera: true });
-      // Eyebrow crossfades invited → confirmed in place (header persists).
+      // Eyebrow crossfades "Anna invites you to" → "✓ Confirmed" in place
+      // (header persists). The check springs in with the same pop the action
+      // cards use, marking the moment of commitment.
       const _eb = el.querySelector('.dprcv-eyebrow');
       if (_eb) {
         _eb.style.transition = 'opacity var(--dur-base) var(--ease-standard)';
         _eb.style.opacity = '0';
-        setTimeout(() => { _eb.textContent = t('accepted_eyebrow'); _eb.style.opacity = '1'; }, 180);
+        setTimeout(() => {
+          _eb.classList.add('is-confirmed');
+          _eb.innerHTML = `<span class="dprcv-eyebrow-check" aria-hidden="true">${checkSvg}</span><span>${t('accepted_eyebrow')}</span>`;
+          _eb.style.opacity = '1';
+        }, 180);
       }
       // Right-column label crossfades "Join at" → "Meeting at" (the invite
       // becomes a commitment); time below it is unchanged.
@@ -1793,16 +1769,6 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
         // One-shot honey gleam sweeping across the header as confirm lands.
         const _tb = el.querySelector('.dprcv-title-block');
         if (_tb) { _tb.classList.remove('is-confirming'); void _tb.offsetWidth; _tb.classList.add('is-confirming'); }
-        // "You" chip springs into the going pill; the count ticks up once it lands.
-        const _you = _confirmPane.querySelector('.dprcv-going-you');
-        if (_you) requestAnimationFrame(() => _you.classList.add('is-in'));
-        const _count = _confirmPane.querySelector('.dprcv-going-count');
-        if (_count && _going.length >= 1) {
-          setTimeout(() => {
-            _count.textContent = t('pp_going_count', { n: _goingTotal });
-            _count.classList.add('is-bumped');
-          }, 460);
-        }
       });
       return;
     }

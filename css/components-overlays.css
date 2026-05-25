@@ -1759,21 +1759,19 @@
   }
 
   /* Sun summary chip — single strip between header and bar. Form:
-     "Sol til 20:40 · ☀ 2t 40m · 21°". Generous room above (between the
-     section divider and chip text) so it reads as belonging to the
-     bar below; line-height 1 + negative margin-bottom pulls the chip
-     visually flush against the bar. The scrubber bubble overflows
-     briefly into this space during interaction — acceptable since
-     scrubbing is rare and the bubble is opaque slate-glass. */
+     "Sol til 20:40 · ☀ 2t 40m · 21°". Sits in the accept pane above the bar
+     (so it slides out with the timeline on confirm). Tight, deterministic
+     spacing: a small gap above (divider → chip) and below (chip → bar) so the
+     dark chip text never collides with the dark timeline canvas. */
   .dprcv-sun-chip {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: var(--space-sm);
     flex-wrap: wrap;
-    padding: var(--space-xl) 0 0;
-    margin-top: var(--space-md);
-    margin-bottom: calc(var(--space-xs) * -1);
+    padding: var(--space-md) 0 0;
+    margin-top: var(--space-sm);
+    margin-bottom: var(--space-sm);
     border-top: 1px solid rgba(156,189,231,0.10);
     font-size: 14px;
     font-weight: 700;
@@ -1999,17 +1997,11 @@
   /* ── Accept → confirm IN-SHEET push (Phase 7) ─────────────────────────────
      The venue header stays put; only the action region slides. Two panes in a
      horizontal track inside the footer; accept out left, confirm in from right. */
-  /* The track extends to the sheet's edge (negative margin cancels .dprcv-bottom's
-     space-xl padding) and re-pads by space-xl. Net effect: the pane content sits
-     at the SAME inset as the header (space-xl), so the timeline / sun chip / CTA
-     all line up with the venue name — while the space-xl gutter inside the clip
-     box catches the CTA's drop-shadow so overflow:hidden (needed for the slide)
-     doesn't cut it off. */
-  .dprcv-footer-track {
-    overflow: hidden;
-    margin-inline: calc(var(--space-xl) * -1);
-    padding-inline: var(--space-xl);
-  }
+  /* overflow:hidden clips the off-screen pane during the slide. The clip box
+     must coincide with the pane edges (no track padding) or a sliver of the
+     translated-out pane shows through — so the shadow gutter lives on the pane
+     (padding-inline) instead, inside the clip. */
+  .dprcv-footer-track { overflow: hidden; }
   /* The accept pane (timeline + CTA) is always mounted and is the taller of
      the two, so it drives the track height — which therefore stays CONSTANT
      across the accept↔confirm slide (the confirm pane's cards are shorter and
@@ -2021,9 +2013,11 @@
   .dprcv-action-pane {
     box-sizing: border-box; flex: 0 0 100%; min-width: 0;
     display: flex; flex-direction: column; justify-content: flex-end;
-    /* No inline padding — the shadow gutter lives on .dprcv-footer-track, so
-       the pane content aligns with the header. Panes stay 100% wide so the
-       translateX(-100%) slide aligns. */
+    /* Inline padding insets the WHOLE action region (sun chip + timeline + CTA,
+       and the confirm cards) by the same amount, so the timeline and the button
+       share one edge — and gives the CTA's --shadow-1 (14px blur) room inside
+       the clip box (space-xl = 16px). Panes stay 100% wide so the slide aligns. */
+    padding-inline: var(--space-xl);
   }
   /* Cards anchor to the TOP of the region (right under the sun chip, where the
      timeline sat) so the swap reads as "cards push the timeline out" rather
@@ -2045,35 +2039,16 @@
      blur would exceed the space-xl shadow gutter and clip again. */
   .dprcv-footer-track .dprcv-cta-primary:hover:not([disabled]) { box-shadow: var(--shadow-1); }
 
-  /* ── "Going" presence pill (confirm pane) ─────────────────────────────────
-     Inviter shown as already-going; the current user's chip springs in and the
-     count ticks up — the headline "you're now part of this" confirmation. */
-  .dprcv-going { display: flex; align-items: center; gap: var(--space-sm); }
-  .dprcv-going-avatars { display: flex; align-items: center; }
-  .dprcv-going-av {
-    width: 28px; height: 28px; border-radius: var(--radius-pill);
-    box-sizing: border-box; flex-shrink: 0; overflow: hidden;
-    display: inline-flex; align-items: center; justify-content: center;
-    font-size: var(--text-caption); font-weight: 700;
-    background: var(--surface-content); color: var(--text);
-    border: 2px solid var(--surface-raised);
-    margin-left: calc(var(--space-md) * -1);
+  /* Confirmed eyebrow — on accept the eyebrow becomes "✓ Confirmed"; the
+     success-status check springs in (honey stays reserved for the primary
+     action card). */
+  .dprcv-eyebrow.is-confirmed { display: flex; align-items: center; gap: var(--space-2xs); }
+  .dprcv-eyebrow-check {
+    display: inline-flex; align-items: center; color: var(--color-success);
+    animation: dprcv-confirm-pop var(--dur-slow) var(--ease-spring) both;
   }
-  .dprcv-going-av:first-child { margin-left: 0; }
-  .dprcv-going-av img { width: 100%; height: 100%; object-fit: cover; }
-  .dprcv-going-you { transform: scale(0); opacity: 0; }
-  .dprcv-going-you.is-in { animation: dprcv-going-pop var(--dur-slow) var(--ease-spring) both; }
-  @keyframes dprcv-going-pop { 0% { transform: scale(0); opacity: 0; } 60% { opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
-  .dprcv-going-meta {
-    display: inline-flex; align-items: center; gap: var(--space-2xs);
-    font-size: var(--text-label); font-weight: 600; color: var(--panel-text);
-  }
-  /* Success-status check (not honey — honey is spent on the primary card). */
-  .dprcv-going-check { display: inline-flex; align-items: center; color: var(--color-success); }
-  .dprcv-going-check svg { width: 14px; height: 14px; }
-  .dprcv-going-count { font-variant-numeric: tabular-nums; display: inline-block; }
-  .dprcv-going-count.is-bumped { animation: dprcv-count-bump var(--dur-base) var(--ease-spring); }
-  @keyframes dprcv-count-bump { 0% { transform: scale(1); } 45% { transform: scale(1.2); } 100% { transform: scale(1); } }
+  .dprcv-eyebrow-check svg { width: 13px; height: 13px; }
+  @keyframes dprcv-confirm-pop { 0% { transform: scale(0); opacity: 0; } 60% { opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
 
   /* One-shot honey gleam sweeping across the header as the confirm pane lands. */
   .dprcv-title-block { position: relative; }
@@ -2093,9 +2068,7 @@
   @media (prefers-reduced-motion: reduce) {
     .dprcv-action-track { transition: none; }
     .dprcv-action-track.show-confirm .dpacc-action-card { animation: none; }
-    .dprcv-going-you { transform: none; opacity: 1; }
-    .dprcv-going-you.is-in,
-    .dprcv-going-count.is-bumped { animation: none; }
+    .dprcv-eyebrow-check { animation: none; }
     .dprcv-title-block.is-confirming::after { animation: none; opacity: 0; }
   }
   .dprcv-cta-link {
