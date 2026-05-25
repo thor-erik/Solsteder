@@ -468,6 +468,19 @@ function _drawInviteAvatarPin(ctx, pt, invitePin) {
   const declined  = Array.isArray(invitePin.declined)  ? invitePin.declined  : [];
   if (!attendees.length && !declined.length) return; // nobody responded yet
 
+  // Entrance animation for a just-added attendee (the receiver, on confirm).
+  // Any attendee carrying `_enterAt` fades + slides in while its row height
+  // grows from 0, so the card expands by one row. We repaint until settled.
+  const _now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+  const ENTER_DUR = 360;
+  let _needsRepaint = false;
+  const _enterT = (a) => {
+    if (!a || !a._enterAt || _pulseReduceMotion) return 1;
+    const tt = Math.max(0, Math.min(1, (_now - a._enterAt) / ENTER_DUR));
+    if (tt < 1) _needsRepaint = true;
+    return 1 - Math.pow(1 - tt, 3); // ease-out cubic
+  };
+
   // Budget rows across accepted + declined. Accepted always get rendered
   // first; declined rows stack below a hairline separator. If the total
   // would overflow INVITE_MAX_ROWS, declined are trimmed first via a
@@ -492,7 +505,7 @@ function _drawInviteAvatarPin(ctx, pt, invitePin) {
   const rowDescriptors = visible.map(a => {
     const first = (a.name || '').trim().split(/\s+/)[0] || '?';
     const disc = _inviteOffsetLabel(a.offsetMin);
-    return { name: first, disc, declined: false, original: a };
+    return { name: first, disc, declined: false, original: a, enterT: _enterT(a) };
   });
   if (overflow > 0) {
     const moreLabel = (typeof t === 'function') ? t('pin_overflow_more', { count: overflow }) : `+${overflow} more`;
@@ -528,7 +541,10 @@ function _drawInviteAvatarPin(ctx, pt, invitePin) {
   const cardW = Math.max(INVITE_CARD_MIN_W, Math.min(INVITE_CARD_MAX_W, maxRowW));
 
   const headerH = headerTime ? INVITE_CARD_HEADER_H + INVITE_CARD_HEADER_GAP : 0;
-  const rowsH   = rowDescriptors.length * INVITE_CARD_ROW_H;
+  // Entering rows contribute a fraction of their height so the card grows
+  // smoothly as the new attendee slides in.
+  let rowsH = 0;
+  for (const r of rowDescriptors) rowsH += INVITE_CARD_ROW_H * (r.enterT != null ? r.enterT : 1);
   const cardH   = INVITE_CARD_PAD_Y * 2 + headerH + rowsH;
 
   const cardX = Math.round(pt.x - cardW / 2);
@@ -574,7 +590,14 @@ function _drawInviteAvatarPin(ctx, pt, invitePin) {
       ctx.stroke();
       drewDeclineSeparator = true;
     }
-    const rowCy = cursorY + INVITE_CARD_ROW_H / 2;
+    // Entering rows: scale the allocated height and fade + slide the content
+    // (starts 8px low, eases up into place).
+    const rEnterT = (r.enterT != null) ? r.enterT : 1;
+    const rh = INVITE_CARD_ROW_H * rEnterT;
+    const slideY = (rEnterT < 1) ? (1 - rEnterT) * 8 : 0;
+    const rowCy = cursorY + rh / 2 + slideY;
+    const _prevAlpha = ctx.globalAlpha;
+    if (rEnterT < 1) ctx.globalAlpha = _prevAlpha * rEnterT;
 
     if (r.isOverflow) {
       ctx.font         = INVITE_OVERFLOW_FONT;
@@ -624,7 +647,8 @@ function _drawInviteAvatarPin(ctx, pt, invitePin) {
       }
     }
 
-    cursorY += INVITE_CARD_ROW_H;
+    ctx.globalAlpha = _prevAlpha;
+    cursorY += rh;
   }
 
   // Tip — equilateral-ish triangle pointing from the card bottom centre to
@@ -638,6 +662,11 @@ function _drawInviteAvatarPin(ctx, pt, invitePin) {
   ctx.closePath();
   ctx.fillStyle = '#FAF1DD';
   ctx.fill();
+
+  // Keep painting while a row is still animating in.
+  if (_needsRepaint && typeof map !== 'undefined' && map && typeof map.triggerRepaint === 'function') {
+    map.triggerRepaint();
+  }
 }
 
 // ── Pulse rings (privileged ambient on friend pills) ──────────────────────────

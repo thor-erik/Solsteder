@@ -1764,6 +1764,31 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
         _hl.style.opacity = '0';
         setTimeout(() => { _hl.textContent = t('invite_pin_meeting_at'); _hl.style.opacity = '1'; }, 180);
       }
+      // Add yourself to the cream attendee card on the map (it excludes the
+      // receiver until they commit). Stamp _enterAt so the pin renderer
+      // fades + slides the new row in, then kick a repaint to start it.
+      try {
+        if (window._invitePin && Array.isArray(window._invitePin.attendees)) {
+          const _meU = (typeof authCurrentUser === 'function' && authCurrentUser()) || null;
+          const _meM = (_meU && _meU.user_metadata) || {};
+          const _myName = _meM.name || _meM.full_name || (_meU && _meU.email) || t('pp_you');
+          const _myId = (_meU && _meU.id) || 'you';
+          const _already = window._invitePin.attendees.some(a => a.id && String(a.id) === String(_myId));
+          if (!_already) {
+            let _offMin = 0;
+            if (arrivalIso && opts.plannedAt) {
+              _offMin = Math.round((new Date(arrivalIso).getTime() - new Date(opts.plannedAt).getTime()) / 60000);
+            }
+            window._invitePin.attendees.push({
+              id: _myId,
+              name: String(_myName).split('@')[0].split(' ')[0],
+              offsetMin: _offMin,
+              _enterAt: (typeof performance !== 'undefined' ? performance.now() : Date.now()),
+            });
+            if (typeof map !== 'undefined' && map && typeof map.triggerRepaint === 'function') map.triggerRepaint();
+          }
+        }
+      } catch (e) { /* non-fatal — the card just won't show you until reload */ }
       requestAnimationFrame(() => {
         _track.classList.add('show-confirm');
         // One-shot honey gleam sweeping across the header as confirm lands.
