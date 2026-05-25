@@ -1982,8 +1982,18 @@
      The venue header stays put; only the action region slides. Two panes in a
      horizontal track inside the footer; accept out left, confirm in from right. */
   .dprcv-footer-track { overflow: hidden; }
-  .dprcv-action-track { display: flex; transition: transform var(--dur-slow) var(--ease-emphasized); }
-  .dprcv-action-pane { flex: 0 0 100%; min-width: 0; display: flex; flex-direction: column; }
+  /* Reserve the taller (confirm) height up front so the panel height is
+     CONSTANT across accept↔confirm — no jump when the cards mount on accept.
+     (Card row 96px + close row ≈ 150; 152 clears it.) */
+  .dprcv-action-track { display: flex; min-height: 152px; transition: transform var(--dur-slow) var(--ease-emphasized); }
+  .dprcv-action-pane {
+    box-sizing: border-box; flex: 0 0 100%; min-width: 0;
+    display: flex; flex-direction: column; justify-content: flex-end;
+    /* Inset so the primary CTA's box-shadow has room before the overflow clip
+       (was cut at the left/right edge). Panes stay 100% wide (border-box) so
+       the slide still aligns. */
+    padding-inline: 12px;
+  }
   .dprcv-confirm-pane { gap: var(--space-md); }
   .dprcv-action-track.show-confirm { transform: translateX(-100%); }
   /* rocks-on-ice — the confirm action cards land with a gentle staggered spring
