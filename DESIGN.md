@@ -280,6 +280,36 @@ The list card has a **fixed 3-row shape** so the skeleton matches it exactly (no
 - **Location model.** `area` = the coarse 21-area assignment (always present). `areaFine` = a fine neighborhood from coordinates (OSM `place=suburb` tier, nearest-node, with the venue's self-named neighborhood winning on conflict — `scripts/assign-fine-areas.mjs`). Row 2 shows `fine · coarse`; coarse-only when there's no distinct fine. Generic names ("Sushi Tveita") keep their name and just show the coarse area.
 - **Sun footnote (row 3 right).** A shade gap (shade glyph, muted: "16:15–17:15" / "N skygger") **or**, if none, a sun opportunity (honey, no glyph: "+2.5h fra 17:00") — an extra sun window later. Weather (rain/cloud) stays off cards; it's in the city-wide outlook line. Closing-time and sundown fold into the row-2 anchor; per-flow overflow/hours pills are retired here.
 
+### Empty-state anatomy (canonical · spec 2026-05-25)
+
+One shared pattern (`.empty-state`) replaces the ~6 bespoke empty blocks today (search no-results, no-sun-left/rain, no-friends, invite-no-friends, settings-empty). The photo placeholder is **not** part of this — it's a separate "media-frame" variant that fills the image box. Centered column, surface-aware colour, fade-in only.
+
+Slots, top→bottom (all optional except the title):
+
+| Slot | Spec | When |
+|---|---|---|
+| **Glyph** | one Lucide outline, 28px, stroke 2, muted (`--text-secondary` on dark / `--ink-muted` on cream) | sets the subject; omit if the CTA already carries the meaning |
+| **Title** | `--text-subtitle`, 600, surface text colour | always — the one-line "why it's empty" |
+| **Subtitle** | `--text-caption`, secondary colour, ≤ 2 lines | optional explanation |
+| **Primary CTA** | **at most one**; honey *only* if it's the single screen action, else an outline/Delft pill | when there's a clear next step |
+| **Tertiary link** | ghost text link, `--muted` / `--ink-muted` | escape hatch (e.g. "Show all") |
+
+Rules:
+- **Surface-aware, never hardcoded.** Inherits its container's surface: dark (list/detail Delft) → cream title, secondary-cream sub, muted glyph; cream (friends modal, settings) → ink title, `--ink-muted` sub/glyph.
+- **One CTA max** — honey stays reserved for the single screen action (principle: one honey per screen).
+- Centered, `max-width ~300px`, generous vertical padding; rhythm from `--space-*` (glyph→title `--space-md`, title→sub `--space-2xs`, →CTA `--space-lg`).
+- **Motion:** fade-in only (covered by the reduced-motion baseline).
+
+Mapping the existing states onto the slots:
+
+| State | glyph | title | sub | CTA | link |
+|---|---|---|---|---|---|
+| search no-results | `search` | "No results for 'X'" | — | Suggest venue | — |
+| no-sun-left / rain | `moon` / `cloud-rain` | the headline | — | Pick another day | Show all |
+| no-friends | `users` | "No friends yet" | invite hint | Add friend | — |
+| invite-no-friends | `user-plus` | title | sub | (opens add) | — |
+| settings-empty | contextual | the label | — | — | — |
+
 ### Overlap & dropdowns
 
 1. **A raised layer goes opaque (or near) and casts a shadow the layer below doesn't.** Never stack two translucent layers of the same world and trust `backdrop-filter` — two blurs = mud (see the current sort dropdown, where content bleeds through). An opaque raised layer is also self-consistent regardless of what's beneath it.
