@@ -57,24 +57,17 @@
            display: flex; align-items: center; justify-content: center; gap: 8px; }
   .c-btn.cta { background: var(--accent); color: var(--accent-on); border-color: transparent; }
 
-  /* rocks-on-ice entrance for the confirm buttons — fire when the pane lands */
-  .track.show-confirm .c-btn { animation: rock-in var(--dur-slow) var(--ease-spring) both; }
-  .track.show-confirm .c-btn:nth-child(1) { animation-delay: 180ms; }
-  .track.show-confirm .c-btn:nth-child(2) { animation-delay: 250ms; }
-  .track.show-confirm .c-btn:nth-child(3) { animation-delay: 320ms; }
-  @keyframes rock-in { from { transform: translateX(44px); opacity: 0; } 60% { opacity: 1; } to { transform: translateX(0); opacity: 1; } }
-
+  /* The confirmation buttons are unchanged — they ride in with the pane as one
+     unit (no separate entrance). The only motion is the horizontal push. */
   @media (prefers-reduced-motion: reduce) {
     .track { transition: none; }
-    .track.show-confirm .c-btn { animation: c-fade var(--dur-base) ease both; }
-    @keyframes c-fade { from { opacity: 0; } to { opacity: 1; } }
   }
 </style>
 </head>
 <body>
 <header>
   <h1>Accept → confirm push (proposed)</h1>
-  <div class="sub">One surface, fixed height: tap “I’m in” → the accept content slides left, the confirmation slides in from the right, and its buttons land with the rocks-on-ice spring. Reset slides back. (Mock with matched panes — proving the layout/feel before porting into the real overlay.)</div>
+  <div class="sub">One surface, fixed height: tap “I’m in” → the accept content slides left, the confirmation slides in from the right as one unit (its buttons unchanged — no separate entrance). Reset slides back. The only motion is the horizontal push. (Matched-pane mock — proving the transition before porting into the real overlay, where the confirm pane is the existing post-accept content untouched.)</div>
 </header>
 
 <div class="stage">
