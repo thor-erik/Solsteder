@@ -439,6 +439,28 @@ Implementation in `js/lens-effects.js`. Activates by default (no flag needed). O
 
 All motion respects `prefers-reduced-motion` and suspends during scroll (200ms debounced).
 
+### Motion tokens & mobile interaction (Phase 7 · spec 2026-05-25)
+
+The audience is on phones — motion is touch-native craft + restraint, never decoration. Every motion ships with its `prefers-reduced-motion` fallback **in the same commit**; spring/gesture work is device-verified (the simulator can't confirm feel).
+
+**Duration scale** (`:root`) — `--dur-fast 120ms` (micro-feedback: press, toggle, hover tint) · `--dur-base 180ms` (chips, fades, value crossfade) · `--dur-slow 320ms` (sheets, panel-mode changes) · **add** `--dur-slower 480ms` (full-screen / shared-element grows).
+
+**Easing scale** (`:root`) — `--ease-standard cubic-bezier(.4,0,.2,1)` (most) · **add** `--ease-decelerate cubic-bezier(0,0,.2,1)` (entrances) · `--ease-accelerate cubic-bezier(.4,0,1,1)` (exits) · `--ease-emphasized cubic-bezier(.32,.72,0,1)` (sheets/large moves — the signature) · **add** `--ease-spring cubic-bezier(.34,1.56,.64,1)` (overshoot/bounce; CSS approximation only — true spring physics is JS/gesture-driven).
+
+**Use:** micro → fast/standard · values & chips → base/standard · sheets & panel modes → slow/emphasized · entrances with character → spring · gesture-following → **no CSS transition** (JS 1:1), release → velocity-continued spring.
+
+**Signature interactions:**
+- **Gesture-following + release.** While dragging a sheet/detail, transform follows the pointer 1:1 (no transition); on release, continue the gesture's *velocity* into a spring settle — not a fresh timed animation (this fixes the laggy drag-release). Interruptible (a new touch re-grabs); rubber-band resistance past edges.
+- **Shared-element continuity.** Pin tap → card grows from the pin's screen rect (FLIP). List card → expands into detail, not a slide-over.
+- **"Rocks on ice" button-row entry.** Confirmation buttons slide in from the right; the leading button hits the left padding and springs back, the bounce propagating through the row in sequence. **Constraints:** buttons tappable immediately (transform-only, `pointer-events` stay live — decorates, never blocks); plays **once per page entry**, not per re-render; collapses to a plain fade under reduced-motion.
+- **Value crossfade (list re-render).** Scrubbing time crossfades only the changed card *contents*, never the layout (relies on the deterministic `.venue-card` min-height — Phase 5, done). Suppress the `cardIn` entrance on filter toggles.
+
+**Haptics** (`@capacitor/haptics`, no-op on web; add dep + `cap:sync`): selection tick per step while dragging the time scrubber (the signature moment) · soft impact on pin-select · success on RSVP. **Ticks/confirmations only — never ambient.**
+
+**Reduced-motion contract:** the `base.css` baseline already neutralizes CSS transitions/animations; spring/gesture JS must check `matchMedia('(prefers-reduced-motion: reduce)')` and degrade to instant/fade (as the pulse rings + FTS tilt already do).
+
+**Build order** (each its own branch, device-verified): motion tokens → drag-release spring (quick win) → value crossfade → rocks-on-ice entry → shared-element grow → haptics.
+
 ---
 
 ## Icons

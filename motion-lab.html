@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Motion vocabulary — Shades</title>
+<link rel="stylesheet" href="css/tokens.css">
+<style>
+  :root {
+    /* Proposed Phase-7 motion tokens (mirror of the DESIGN.md spec) */
+    --dur-fast: 120ms; --dur-base: 180ms; --dur-slow: 320ms; --dur-slower: 480ms;
+    --ease-standard:   cubic-bezier(.4,0,.2,1);
+    --ease-decelerate: cubic-bezier(0,0,.2,1);
+    --ease-accelerate: cubic-bezier(.4,0,1,1);
+    --ease-emphasized: cubic-bezier(.32,.72,0,1);
+    --ease-spring:     cubic-bezier(.34,1.56,.64,1);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: #0c1526; color: var(--text); padding: 0 0 80px; }
+  header { padding: 24px 28px 16px; border-bottom: 1px solid rgba(255,255,255,.1); }
+  h1 { font-size: 20px; font-weight: 800; margin: 0 0 4px; }
+  h2 { font-size: 14px; margin: 28px 0 12px; color: var(--text); }
+  .sub { font-size: 13px; color: var(--text-secondary); max-width: 74ch; line-height: 1.5; }
+  .wrap { padding: 8px 28px; }
+  button.play { background: var(--accent); color: var(--accent-on); border: 0; border-radius: var(--radius-pill); padding: 8px 16px; font: 600 13px Inter; cursor: pointer; }
+  .seg { display: inline-flex; border: 1px solid rgba(255,255,255,.2); border-radius: 8px; overflow: hidden; margin-left: 12px; }
+  .seg button { border: 0; background: transparent; color: var(--text-secondary); padding: 6px 12px; font: 13px Inter; cursor: pointer; }
+  .seg button.on { background: var(--accent); color: var(--accent-on); font-weight: 600; }
+
+  /* ── Easing tracks ──────────────────────────────────────── */
+  .track { display: grid; grid-template-columns: 150px 1fr; align-items: center; gap: 16px; margin: 8px 0; }
+  .track .name { font-size: 12px; color: var(--text-secondary); }
+  .track .name b { color: var(--text); display: block; font-size: 13px; }
+  .rail { position: relative; height: 28px; background: rgba(255,255,255,.05); border-radius: 14px; }
+  .dot { position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); }
+  .run .dot { left: calc(100% - 25px); }
+  .dot { transition: left var(--d, 320ms) var(--e, ease); }
+
+  /* ── Rocks on ice ───────────────────────────────────────── */
+  .rocks { display: flex; gap: 8px; max-width: 360px; background: var(--surface-content); padding: 16px; border-radius: 14px; overflow: hidden; }
+  .rocks .rk { flex: 1; height: 44px; border-radius: var(--radius-pill); border: 0; font: 600 13px Inter; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .rocks .rk.cta { background: var(--accent); color: var(--accent-on); }
+  .rocks .rk.ghost { background: var(--surface-control); border: 1px solid var(--line-d, rgba(156,189,231,.18)); color: var(--text); }
+  .rocks.enter .rk { animation: rock-in var(--dur-slow) var(--ease-spring) both; }
+  .rocks.enter .rk:nth-child(1) { animation-delay: 0ms; }
+  .rocks.enter .rk:nth-child(2) { animation-delay: 70ms; }
+  .rocks.enter .rk:nth-child(3) { animation-delay: 140ms; }
+  @keyframes rock-in { from { transform: translateX(130%); } to { transform: translateX(0); } }
+  @media (prefers-reduced-motion: reduce) {
+    .rocks.enter .rk { animation: rock-fade var(--dur-base) ease both; }
+    @keyframes rock-fade { from { opacity: 0; } to { opacity: 1; } }
+  }
+
+  /* ── Value crossfade ────────────────────────────────────── */
+  .card { background: var(--surface-content); border-radius: 14px; padding: 14px 16px; max-width: 360px; }
+  .card .row1 { display: flex; justify-content: space-between; align-items: baseline; }
+  .card .vname { font-weight: 700; }
+  .card .vsun { color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .card .row2 { color: var(--text-secondary); font-size: 13px; margin-top: 4px; }
+  .xf { transition: opacity var(--dur-base) var(--ease-standard); }
+  .xf.out { opacity: 0; }
+  .note { font-size: 12px; color: var(--muted); margin-top: 8px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Motion vocabulary (proposed · Phase 7)</h1>
+  <div class="sub">The timing/easing token scale + two signature interactions, on desktop so you can sign off on the <em>feel direction</em>. Haptics + the 1:1 gesture-following sheet (drag-release spring) genuinely need a real device — those get device-verified at build time; this mock covers the curves and the entrance/crossfade.</div>
+</header>
+<div class="wrap">
+  <h2>Easing curves <button class="play" id="playEase">Play ▶</button>
+    <span class="seg" id="durSeg"><button data-d="120">fast</button><button data-d="180">base</button><button data-d="320" class="on">slow</button><button data-d="480">slower</button></span>
+  </h2>
+  <div id="tracks"></div>
+
+  <h2>“Rocks on ice” — confirmation button entry <button class="play" id="playRocks">Replay ▶</button></h2>
+  <div class="rocks" id="rocks">
+    <button class="rk ghost">Maybe</button>
+    <button class="rk ghost">Invite</button>
+    <button class="rk cta">Join</button>
+  </div>
+  <div class="note">Buttons are tappable the entire time (transform-only, pointer-events live). Plays once per page entry. Under reduced-motion it's a plain fade.</div>
+
+  <h2>Value crossfade — list re-render on time-scrub <button class="play" id="playXf">Scrub ▶</button></h2>
+  <div class="card">
+    <div class="row1"><span class="vname">Kafé Olsen</span><span class="vsun xf" id="xfSun">☀ 4h 15m</span></div>
+    <div class="row2">Grünerløkka · <span class="xf" id="xfAnchor">til 19:30</span></div>
+  </div>
+  <div class="note">Only the changed values crossfade; the card box never moves (relies on the deterministic min-height). The whole-list jump on scrub goes away.</div>
+</div>
+
+<script>
+  const EASINGS = [
+    ['standard', 'cubic-bezier(.4,0,.2,1)', '--ease-standard'],
+    ['decelerate', 'cubic-bezier(0,0,.2,1)', '--ease-decelerate'],
+    ['accelerate', 'cubic-bezier(.4,0,1,1)', '--ease-accelerate'],
+    ['emphasized', 'cubic-bezier(.32,.72,0,1)', '--ease-emphasized'],
+    ['spring (overshoot)', 'cubic-bezier(.34,1.56,.64,1)', '--ease-spring'],
+  ];
+  let dur = 320;
+  const tracks = document.getElementById('tracks');
+  EASINGS.forEach(([name, bez, varname]) => {
+    const t = document.createElement('div'); t.className = 'track';
+    t.innerHTML = `<div class="name"><b>${name}</b>${bez}</div><div class="rail"><div class="dot" style="--e:var(${varname})"></div></div>`;
+    tracks.appendChild(t);
+  });
+  function playEase() {
+    document.querySelectorAll('.rail').forEach(r => r.classList.remove('run'));
+    document.querySelectorAll('.dot').forEach(d => d.style.setProperty('--d', dur + 'ms'));
+    void document.body.offsetWidth;
+    requestAnimationFrame(() => document.querySelectorAll('.rail').forEach(r => r.classList.add('run')));
+  }
+  document.getElementById('playEase').onclick = playEase;
+  document.getElementById('durSeg').onclick = e => {
+    const b = e.target.closest('button'); if (!b) return;
+    [...e.currentTarget.children].forEach(x => x.classList.remove('on')); b.classList.add('on');
+    dur = +b.dataset.d; playEase();
+  };
+
+  const rocks = document.getElementById('rocks');
+  function playRocks() { rocks.classList.remove('enter'); void rocks.offsetWidth; rocks.classList.add('enter'); }
+  document.getElementById('playRocks').onclick = playRocks;
+
+  const SUN = ['☀ 4h 15m', '☀ 3h 50m', '☀ 2h 30m', '☀ 1h 05m'];
+  const ANC = ['til 19:30', 'til 19:05', 'til 17:45', 'til 16:20'];
+  let xi = 0;
+  document.getElementById('playXf').onclick = () => {
+    const s = document.getElementById('xfSun'), a = document.getElementById('xfAnchor');
+    s.classList.add('out'); a.classList.add('out');
+    setTimeout(() => { xi = (xi + 1) % SUN.length; s.textContent = SUN[xi]; a.textContent = ANC[xi]; s.classList.remove('out'); a.classList.remove('out'); }, 180);
+  };
+
+  // autoplay the curves once on load
+  setTimeout(playEase, 300); setTimeout(playRocks, 600);
+</script>
+</body>
+</html>
