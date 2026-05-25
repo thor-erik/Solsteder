@@ -2013,11 +2013,11 @@
   .dprcv-action-pane {
     box-sizing: border-box; flex: 0 0 100%; min-width: 0;
     display: flex; flex-direction: column; justify-content: flex-end;
-    /* Inline padding insets the WHOLE action region (sun chip + timeline + CTA,
-       and the confirm cards) by the same amount, so the timeline and the button
-       share one edge — and gives the CTA's --shadow-1 (14px blur) room inside
-       the clip box (space-xl = 16px). Panes stay 100% wide so the slide aligns. */
-    padding-inline: var(--space-xl);
+    /* No inline padding: the action region (sun chip / timeline / CTA, and the
+       confirm title / cards / Close) sits at the same inset as the header, so
+       everything left-aligns. The panes are full-width so the slide still clips
+       exactly at the pane edge (no sliver); the CTA reads as a full-width
+       button, showing its top/bottom shadow with sides flush to the edge. */
   }
   /* Cards + Close anchor to the BOTTOM, where the accept CTA + secondary row
      sat — so the swap reads as the action block staying put (button → cards,
