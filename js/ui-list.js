@@ -767,11 +767,14 @@ function renderListPage(list, dateStr, fromHour, toHour, isPoint, reset) {
       // First-ever mount: schedule the data-mounted flag for the next
       // frame so the initial cardIn cascade fires across the new cards.
       requestAnimationFrame(() => { list.dataset.mounted = '1'; });
-    } else if (contentChanged) {
+    } else if (contentChanged && !window._renderListSilent) {
       // Set actually changed (date / sort / filter / hidden→expanded
       // panel open). Re-fire the cardIn cascade by toggling
       // data-mounted off → on across two frames so CSS picks up the
       // animation restart on the new cards.
+      // _renderListSilent suppresses the re-fire for renders that correct
+      // values in place (e.g. the boot sun-worker result) — the cards are
+      // already on screen, so re-animating them reads as a flash.
       delete list.dataset.mounted;
       requestAnimationFrame(() => {
         requestAnimationFrame(() => { list.dataset.mounted = '1'; });

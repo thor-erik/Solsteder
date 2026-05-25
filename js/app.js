@@ -1501,7 +1501,13 @@ try {
     // Result: bar showed sunny while the polygon + scrubber label
     // (both reading the corrected cache) showed shade.
     draw();
-    renderList();
+    // The worker corrects an already-rendered card set (sync-fallback → precise
+    // windows). Render silently so the cardIn cascade doesn't re-fire — that
+    // re-animation was the "list flashes/updates a moment after load". The
+    // user-facing renders (date/sort/filter/scrub-release) animate via their
+    // own renderList calls; this correction just updates values in place.
+    window._renderListSilent = true;
+    try { renderList(); } finally { window._renderListSilent = false; }
     if (typeof drawAllCardTimelines === 'function') drawAllCardTimelines();
     // The accept page's in-bar weather row was populated once at initial
     // RAF against the sync-fallback windows; now that the worker has
