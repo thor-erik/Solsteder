@@ -1997,11 +1997,18 @@
   /* ── Accept → confirm IN-SHEET push (Phase 7) ─────────────────────────────
      The venue header stays put; only the action region slides. Two panes in a
      horizontal track inside the footer; accept out left, confirm in from right. */
-  /* overflow:hidden clips the off-screen pane during the slide. The clip box
-     must coincide with the pane edges (no track padding) or a sliver of the
-     translated-out pane shows through — so the shadow gutter lives on the pane
-     (padding-inline) instead, inside the clip. */
-  .dprcv-footer-track { overflow: hidden; }
+  /* overflow:hidden clips the off-screen pane during the slide. A space-xl
+     SHADOW GUTTER (negative margin + matching padding) extends the clip box
+     beyond the pane edges WITHOUT moving the content (it stays at the header
+     inset), so the CTA / card drop-shadows have room instead of being cut at
+     the edge. The exiting accept pane is pushed the extra gutter-width past
+     the clip (see .show-confirm rule) so no sliver of it remains. The confirm
+     pane is empty until accept, so its pre-accept gutter-sliver shows nothing. */
+  .dprcv-footer-track {
+    overflow: hidden;
+    margin-inline: calc(var(--space-xl) * -1);
+    padding-inline: var(--space-xl);
+  }
   /* The accept pane (timeline + CTA) is always mounted and is the taller of
      the two, so it drives the track height — which therefore stays CONSTANT
      across the accept↔confirm slide (the confirm pane's cards are shorter and
@@ -2013,11 +2020,10 @@
   .dprcv-action-pane {
     box-sizing: border-box; flex: 0 0 100%; min-width: 0;
     display: flex; flex-direction: column; justify-content: flex-end;
-    /* No inline padding: the action region (sun chip / timeline / CTA, and the
-       confirm title / cards / Close) sits at the same inset as the header, so
-       everything left-aligns. The panes are full-width so the slide still clips
-       exactly at the pane edge (no sliver); the CTA reads as a full-width
-       button, showing its top/bottom shadow with sides flush to the edge. */
+    /* No inline padding: content sits at the header inset (the shadow gutter is
+       on .dprcv-footer-track, outside the content). transition so the exiting
+       pane can animate its extra gutter-width push in sync with the track. */
+    transition: transform var(--dur-slow) var(--ease-emphasized);
   }
   /* Cards + Close anchor to the BOTTOM, where the accept CTA + secondary row
      sat — so the swap reads as the action block staying put (button → cards,
@@ -2028,6 +2034,12 @@
      button's bottom and the cards span up into the timeline zone. */
   .dprcv-confirm-pane { gap: var(--space-md); justify-content: flex-end; padding-bottom: var(--space-lg); }
   .dprcv-action-track.show-confirm { transform: translateX(-100%); }
+  /* Push the exiting accept pane the extra gutter-width past the clip so its
+     right edge clears the left shadow-gutter (otherwise a space-xl sliver of the
+     timeline/CTA lingers in the gutter after the slide settles). */
+  .dprcv-action-track.show-confirm .dprcv-action-pane:not(.dprcv-confirm-pane) {
+    transform: translateX(calc(var(--space-xl) * -1));
+  }
   /* rocks-on-ice — the confirm action cards land with a gentle staggered spring
      as the pane arrives (cards unchanged; entrance only). backwards fill holds
      the off-screen start during the stagger, releases after. */
@@ -2078,7 +2090,8 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .dprcv-action-track { transition: none; }
+    .dprcv-action-track,
+    .dprcv-action-pane { transition: none; }
     .dprcv-action-track.show-confirm .dpacc-action-card { animation: none; }
     .dprcv-confirm-title-check { animation: none; }
     .dprcv-bottom.is-confirming::after { animation: none; opacity: 0; }
@@ -2529,8 +2542,12 @@
     display: flex;
     gap: var(--space-md);
     overflow-x: auto;
-    padding: var(--space-xs) var(--space-2xs) var(--space-sm);
-    margin: 0 calc(var(--space-2xs) * -1);
+    /* Wider inline padding (with matching negative margin) so the row's
+       overflow clip doesn't cut the primary card's drop-shadow at the left/
+       right edge; the negative margin extends into the footer-track shadow
+       gutter, so cards still start at the header inset. */
+    padding: var(--space-xs) var(--space-md) var(--space-sm);
+    margin: 0 calc(var(--space-md) * -1);
     -webkit-overflow-scrolling: touch;
   }
   .dpacc-action-card {
