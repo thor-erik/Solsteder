@@ -2021,8 +2021,12 @@
   }
   /* Cards + Close anchor to the BOTTOM, where the accept CTA + secondary row
      sat — so the swap reads as the action block staying put (button → cards,
-     secondary row → Close) while the sun chip + timeline slide out above. */
-  .dprcv-confirm-pane { gap: var(--space-md); justify-content: flex-end; }
+     secondary row → Close) while the sun chip + timeline slide out above.
+     padding-bottom matches the accept footer's, so Close lands at the same
+     height as the "Coming later · Decline" row; because cards→Close uses the
+     same gap as CTA→secondary, the cards' bottom then aligns with the "I'm in"
+     button's bottom and the cards span up into the timeline zone. */
+  .dprcv-confirm-pane { gap: var(--space-md); justify-content: flex-end; padding-bottom: var(--space-lg); }
   .dprcv-action-track.show-confirm { transform: translateX(-100%); }
   /* rocks-on-ice — the confirm action cards land with a gentle staggered spring
      as the pane arrives (cards unchanged; entrance only). backwards fill holds
