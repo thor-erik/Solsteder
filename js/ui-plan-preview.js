@@ -1752,7 +1752,7 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
         _eb.style.opacity = '0';
         setTimeout(() => {
           _eb.classList.add('is-confirmed');
-          _eb.innerHTML = `<span class="dprcv-eyebrow-check" aria-hidden="true">${checkSvg}</span><span>${t('accepted_eyebrow')}</span>`;
+          _eb.innerHTML = `<span>${t('accepted_eyebrow')}</span><span class="dprcv-eyebrow-check" aria-hidden="true">${checkSvg}</span>`;
           _eb.style.opacity = '1';
         }, 180);
       }
