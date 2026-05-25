@@ -1066,19 +1066,24 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     const primaryLabel = isAnon ? t('plan_preview_anon_im_in') : t('plan_preview_im_in');
     const primaryIcon  = isAnon ? '' : checkSvg;
     ctaHtml = `
-      <div class="dprcv-footer">
-        <button class="p-pill dprcv-cta-primary" id="${acceptId}" type="button">
-          ${primaryIcon}
-          ${primaryLabel}
-        </button>
-        <div class="dprcv-cta-row">
-          <button class="dprcv-cta-link" id="pp-suggest" type="button">
-            ${editSvg}<span>${t('invite_secondary_later')}</span>
-          </button>
-          <span class="dprcv-cta-sep" aria-hidden="true">·</span>
-          <button class="dprcv-cta-link is-decline" id="${declineId}" type="button">
-            <span>${t('plan_decline')}</span>
-          </button>
+      <div class="dprcv-footer dprcv-footer-track">
+        <div class="dprcv-action-track" id="pp-action-track">
+          <div class="dprcv-action-pane">
+            <button class="p-pill dprcv-cta-primary" id="${acceptId}" type="button">
+              ${primaryIcon}
+              ${primaryLabel}
+            </button>
+            <div class="dprcv-cta-row">
+              <button class="dprcv-cta-link" id="pp-suggest" type="button">
+                ${editSvg}<span>${t('invite_secondary_later')}</span>
+              </button>
+              <span class="dprcv-cta-sep" aria-hidden="true">·</span>
+              <button class="dprcv-cta-link is-decline" id="${declineId}" type="button">
+                <span>${t('plan_decline')}</span>
+              </button>
+            </div>
+          </div>
+          <div class="dprcv-action-pane dprcv-confirm-pane" id="pp-confirm-pane" aria-hidden="true"></div>
         </div>
       </div>`;
   } else if (isPreview) {
@@ -1680,7 +1685,7 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
         arrivalIso = new Date(`${dateStr2}T${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:00`).toISOString();
       }
     }
-    if (typeof respondToPlanInvite === 'function' && opts.inviteId) {
+    if (!window._ppDemo && typeof respondToPlanInvite === 'function' && opts.inviteId) {
       try { await respondToPlanInvite(opts.inviteId, 'accepted', arrivalIso); }
       catch (e) { console.warn('[plan-preview] respondToPlanInvite(accepted) failed', opts.inviteId, e); }
     }
@@ -1695,6 +1700,49 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
       };
     }
     if (typeof _aTrack === 'function') _aTrack('plan_preview_accept', { venue_id: venue.id, has_invite_id: !!opts.inviteId, off_plan_time: !!arrivalIso });
+
+    // ── Accept → confirm as an IN-SHEET horizontal push (Phase 7) ───────────
+    // The venue header stays put; only the action region slides — accept CTA
+    // out left, the post-accept action cards in from the right (rocks-on-ice
+    // on the cards). Reuses the global _renderAcceptedActionCard so the cards
+    // (and their inline _acceptedActionClick handlers) are unchanged. Falls
+    // back to the old two-panel vertical crossover if the track isn't present.
+    const _track = el.querySelector('#pp-action-track');
+    const _confirmPane = el.querySelector('#pp-confirm-pane');
+    if (_track && _confirmPane && typeof _renderAcceptedActionCard === 'function') {
+      const fp = (typeof window !== 'undefined') ? window._pendingFriendPrompt : null;
+      const acts = [];
+      if (fp && fp.inviterId) acts.push('add_friend');
+      acts.push('share');
+      if (opts.plannedAt) acts.push('calendar');
+      if (typeof userLocation !== 'undefined' && userLocation) acts.push('directions');
+      acts.push('open');
+      const cardsHtml = acts.map((type, i) => _renderAcceptedActionCard(type, {
+        venueId: venue.id, venueName: venue.name, plannedAt: opts.plannedAt,
+        inviterName: (fp && fp.inviterName) || opts.inviterName || '',
+        inviterId:   (fp && fp.inviterId)   || opts.inviterId   || null,
+        primary: i === 0,
+      })).join('');
+      _confirmPane.innerHTML =
+        `<div class="dpacc-action-row no-scrollbar">${cardsHtml}</div>` +
+        `<div class="dprcv-cta-row"><button class="dprcv-cta-link" id="pp-confirm-close" type="button"><span>${t('accepted_close')}</span></button></div>`;
+      _confirmPane.setAttribute('aria-hidden', 'false');
+      // 'Open venue' used the separate panel's close; re-point it now there's
+      // no separate overlay (close the preview, then open the detail panel).
+      const _openCard = _confirmPane.querySelector('[data-action="open"]');
+      if (_openCard) _openCard.onclick = () => { closePlanPreview({ keepCamera: true }); setTimeout(() => { if (typeof selectVenue === 'function') selectVenue(venue.id, true); }, 340); };
+      const _ccBtn = _confirmPane.querySelector('#pp-confirm-close');
+      if (_ccBtn) _ccBtn.onclick = () => closePlanPreview({ keepCamera: true });
+      // Eyebrow crossfades invited → confirmed in place (header persists).
+      const _eb = el.querySelector('.dprcv-eyebrow');
+      if (_eb) {
+        _eb.style.transition = 'opacity var(--dur-base) var(--ease-standard)';
+        _eb.style.opacity = '0';
+        setTimeout(() => { _eb.textContent = t('accepted_eyebrow'); _eb.style.opacity = '1'; }, 180);
+      }
+      requestAnimationFrame(() => _track.classList.add('show-confirm'));
+      return;
+    }
 
     // Crossover slide — mirrors the venue-card → detail-panel transition:
     // accept panel slides DOWN, post-accept panel slides UP at the same
