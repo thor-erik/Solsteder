@@ -345,7 +345,9 @@
     align-items: center;
     justify-content: center;
     gap: var(--space-3xl);
-    transition: background-color 0.5s ease;
+    /* 0.3s matches the loader's Phase 4 crossfade (PHASE4_MS) so the cream
+       backdrop and the SVG fade out together; onComplete then sets .done. */
+    transition: background-color 0.3s ease;
     pointer-events: all;
     cursor: default;
   }
@@ -357,32 +359,28 @@
     pointer-events: none;
     visibility: hidden;
   }
-  #splash-logo {
-    width: 46vmin;
-    height: 46vmin;
-    transition: opacity 0.4s ease;
-  }
-  #splash-logo.fade-out {
-    opacity: 0;
-  }
+  /* Shades Loader mount — the 4-phase brand launch animation paints its SVG
+     here (createShadesLoader, js/shades-loader.js). The loader self-colors
+     (ink / cream / sun) and owns prefers-reduced-motion internally; this rule
+     only sizes + optically centres the mark within the cream #splash backdrop.
+     Phase 4 crossfades the SVG itself; .fade-out is the instant-hide fallback
+     used by the 12 s boot kill-switch and the already-warm boot path. */
   #splash-loader {
-    width: 28px;
-    height: 28px;
-    border: 2.5px solid rgba(245,194,94,0.3);
-    border-top-color: #F5C25E;
-    border-radius: 50%;
-    animation: splash-spin 0.8s linear infinite;
-    opacity: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     transition: opacity 0.3s ease;
   }
-  #splash-loader.visible {
-    opacity: 1;
+  #splash-loader svg {
+    width: auto;
+    height: 62vmin;
+    display: block;
+    /* The viewBox reserves an (empty) wordmark band below the mark when
+       showWordmark is false, so nudge down to optically centre the mark. */
+    transform: translateY(12%);
   }
   #splash-loader.fade-out {
     opacity: 0;
-  }
-  @keyframes splash-spin {
-    to { transform: rotate(360deg); }
   }
 
   /* Elements hidden during intro sequence */

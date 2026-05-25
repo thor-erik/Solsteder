@@ -121,7 +121,8 @@
 <script defer src="js/weather.js?v=20260525m"></script>
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260521c"></script>
-<script defer src="js/app.js?v=20260525za"></script>
+<script defer src="js/shades-loader.js?v=20260525a"></script>
+<script defer src="js/app.js?v=20260525zb"></script>
 <script defer src="js/render-helpers.js?v=20260524h"></script>
 <script defer src="js/render-arc.js?v=20260519b"></script>
 <script defer src="js/render-seating.js?v=20260519b"></script>
@@ -134,7 +135,7 @@
 <script defer src="js/ui-shelter.js?v=20260522zm"></script>
 <script defer src="js/render-wind.js?v=20260416b"></script>
 <script defer src="js/ui-detail.js?v=20260525l"></script>
-<script defer src="js/ui-plan-preview.js?v=20260525y"></script>
+<script defer src="js/ui-plan-preview.js?v=20260525z"></script>
 <script defer src="js/osm.js?v=20260519p"></script>
 <script defer src="js/notifications.js?v=20260524v"></script>
 <script defer src="js/push.js?v=20260518c"></script>
@@ -180,7 +181,7 @@
 <link rel="stylesheet" href="css/base.css?v=20260525o">
 <link rel="stylesheet" href="css/components-chrome.css?v=20260524v">
 <link rel="stylesheet" href="css/components-content.css?v=20260525g">
-<link rel="stylesheet" href="css/components-overlays.css?v=20260525z">
+<link rel="stylesheet" href="css/components-overlays.css?v=20260525za">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -239,7 +240,8 @@
 
   <!-- INTRO SPLASH — covers everything until geo + map are ready -->
   <div id="splash">
-    <img src="shades-mark.svg?v=20260519b" alt="Shades" id="splash-logo">
+    <!-- Shades Loader (4-phase brand launch animation) mounts its SVG here.
+         createShadesLoader paints the static-logo first frame synchronously. -->
     <div id="splash-loader"></div>
   </div>
 

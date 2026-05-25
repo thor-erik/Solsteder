@@ -300,31 +300,34 @@ function openPlanPreview(opts) {
     setTimeout(() => splash.classList.add('done'), 500);
   };
   if (!_skipDive) {
-    // Hold the splash until BOTH (a) the splash-min duration has
-    // elapsed AND (b) the worker has finished the precise sun windows
-    // (= body has .timeline-ready). Whichever lands second triggers
-    // the hide. v1 hid on min-duration only, so the user could see
-    // the sync-fallback bar briefly before the worker corrected it.
-    // 2.5 s safety cap so a broken / offline worker never strands the
-    // splash forever.
-    const _splashReleased = { value: false };
-    const _releaseSplash = () => {
-      if (_splashReleased.value) return;
-      _splashReleased.value = true;
-      // Release the boot draw gate AND reveal the canvas + chrome at
-      // the same moment we dismiss the splash. _skipIntro({keepSplash:
-      // true}) left the gate closed for this path; the plan-invite
-      // takeover needs the pin canvas visible so the inviter avatar
-      // pin shows. (Locate-me / zoom-jog visibility is then governed
-      // by body.plan-preview-active CSS rules.)
+    // The Shades Loader owns the invite splash too: it loops the blinds while
+    // we wait, resolves to the static logo once the worker delivers + the
+    // splash-min has elapsed, holds until the (pre-dive) map is idle, then
+    // Phase 4 crossfades it away — at which point we reveal the pin canvas and
+    // start the camera dive. The cold-start path skipped mounting the loader
+    // (keepSplash), so mount it here; _mountShadesLoader is idempotent.
+    //
+    // For an invite link the boot _introCenter is already the venue
+    // (app.js sets it from the shared venue), so the crossfade reveals the
+    // venue neighbourhood and the dive flies in from there — matching the
+    // "animation starts after the splash" intent.
+    const splashEl = document.getElementById('splash');
+    const loader = (typeof window._mountShadesLoader === 'function')
+      ? window._mountShadesLoader() : null;
+    let _invLoaded = false, _invMapReady = false, _invBgFaded = false;
+
+    const _revealGateAndCanvas = () => {
+      // _skipIntro({keepSplash:true}) left the boot draw gate closed; the
+      // plan-invite takeover needs the pin canvas visible so the inviter
+      // avatar pin shows. (Locate-me / zoom-jog visibility is governed by
+      // body.plan-preview-active CSS rules.)
       if (typeof window._revealCanvasAndChrome === 'function') {
         window._revealCanvasAndChrome();
       } else if (typeof window._releaseBootDrawGate === 'function') {
         window._releaseBootDrawGate();
       }
-      _hideInviteSplash();
-      setTimeout(_startDive, 200);
     };
+
     const _waitForTimelineReady = (maxMs) => new Promise(res => {
       if (document.body.classList.contains('timeline-ready')) return res();
       const start = performance.now();
@@ -335,30 +338,76 @@ function openPlanPreview(opts) {
       };
       tick();
     });
-    Promise.all([
+
+    // Loaded (Phase 3 resolve) once BOTH the splash-min has elapsed AND the
+    // worker has finished the precise sun windows. 2.5 s cap so a broken /
+    // offline worker never strands the splash.
+    const _whenLoaded = Promise.all([
       new Promise(r => setTimeout(r, Math.max(0, _splashWaitMs))),
       _waitForTimelineReady(2500),
-    ]).then(_releaseSplash);
-    // Reveal the map only after Mapbox is idle for the current view — i.e.
-    // the dive's tiles have rendered. Removing the gate sooner exposes the
-    // canvas-overlay pins drawn against a dark empty background (the bug
-    // shown in the screenshot). 1800ms fallback in case 'idle' never fires
-    // (offline / very slow connection). The class also hides #canvas-overlay
-    // (CSS rule in index.html) so pins don't leak through during the wait.
-    if (typeof map !== 'undefined' && map && typeof map.once === 'function') {
-      let revealed = false;
-      const reveal = () => {
-        if (revealed) return;
-        revealed = true;
+    ]);
+
+    if (loader) {
+      loader.start({
+        isLoaded:   () => _invLoaded,
+        isMapReady: () => {
+          // Polled only after Phase 3 resolves, so fading the cream backdrop
+          // here syncs it to the Phase 4 SVG crossfade.
+          if (_invMapReady && !_invBgFaded) {
+            _invBgFaded = true;
+            if (splashEl) splashEl.classList.add('bg-out');
+          }
+          return _invMapReady;
+        },
+        onComplete: () => {
+          _revealGateAndCanvas();
+          if (splashEl) splashEl.classList.add('done');
+          _startDive();
+        },
+      });
+      _whenLoaded.then(() => { _invLoaded = true; });
+      // Map-ready (Phase 4) once the pre-dive map is idle (tiles for the
+      // venue view loaded), 1800 ms fallback. Drops invite-loading so the pin
+      // canvas can show through the dive (it hides #canvas-overlay until then).
+      const _markMapReady = () => {
         document.documentElement.classList.remove('invite-loading');
-        // Splash hide is handled by the time-based SPLASH_MIN_MS branch
-        // above so the splash + camera dive are coordinated. This
-        // reveal handler only manages the pin canvas now.
+        _invMapReady = true;
       };
-      map.once('idle', reveal);
-      setTimeout(reveal, 1800);
+      if (typeof map !== 'undefined' && map && typeof map.once === 'function') {
+        if (map.loaded && map.loaded() && !map.isMoving()) {
+          _markMapReady();
+        } else {
+          let done = false;
+          const onceIdle = () => { if (done) return; done = true; _markMapReady(); };
+          map.once('idle', onceIdle);
+          setTimeout(onceIdle, 1800);
+        }
+      } else {
+        _markMapReady();
+      }
     } else {
-      document.documentElement.classList.remove('invite-loading');
+      // Fallback (loader script unavailable): original splash-release flow.
+      const _splashReleased = { value: false };
+      const _releaseSplash = () => {
+        if (_splashReleased.value) return;
+        _splashReleased.value = true;
+        _revealGateAndCanvas();
+        _hideInviteSplash();
+        setTimeout(_startDive, 200);
+      };
+      _whenLoaded.then(_releaseSplash);
+      if (typeof map !== 'undefined' && map && typeof map.once === 'function') {
+        let revealed = false;
+        const reveal = () => {
+          if (revealed) return;
+          revealed = true;
+          document.documentElement.classList.remove('invite-loading');
+        };
+        map.once('idle', reveal);
+        setTimeout(reveal, 1800);
+      } else {
+        document.documentElement.classList.remove('invite-loading');
+      }
     }
   }
 

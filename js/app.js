@@ -7989,6 +7989,27 @@ function _revealCanvasAndChrome() {
 }
 window._revealCanvasAndChrome = _revealCanvasAndChrome;
 
+// ── Shades Loader (splash) ────────────────────────────────────────────────
+// The 4-phase brand launch animation that doubles as the boot loading state
+// (js/shades-loader.js; design-of-record in design/shades-loader/). Mounts
+// into #splash-loader and paints the static-logo first frame synchronously on
+// construction. Idempotent — repeat calls return the existing instance, so
+// the cold-start and invite paths share one loader.
+let _shadesLoader = null;
+function _mountShadesLoader() {
+  if (_shadesLoader) return _shadesLoader;
+  const host = document.getElementById('splash-loader');
+  if (!host || typeof window.createShadesLoader !== 'function') return null;
+  try {
+    _shadesLoader = window.createShadesLoader(host, { variant: 'light', showWordmark: false });
+  } catch (e) {
+    console.warn('[boot] shades loader mount failed', e);
+    _shadesLoader = null;
+  }
+  return _shadesLoader;
+}
+window._mountShadesLoader = _mountShadesLoader;
+
 function _introRevealUI(search, brand, qcWrap, panel, opts) {
   const locateBtn   = document.getElementById('locate-btn');
   const zoomJog     = document.getElementById('zoom-jog');
@@ -8194,6 +8215,8 @@ function _skipIntro(seqId, opts) {
     } else if (typeof window._releaseBootDrawGate === 'function') {
       try { window._releaseBootDrawGate(); } catch (e) {}
     }
+    // Stop a stalled loader from animating behind the now-hidden splash.
+    try { _shadesLoader?.destroy(); _shadesLoader = null; } catch (e) {}
   }, 12000);
 
   const splash = document.getElementById('splash');
@@ -8317,6 +8340,35 @@ function _skipIntro(seqId, opts) {
   // keepSplash path: openPlanPreview's idle handler dismisses the splash
   // AND releases the gate — the skip-intro choreography is replaced by
   // the plan-preview overlay so we don't run our own dive on that path.
+  //
+  // Shades Loader wiring (cold-start). The loader owns the splash visual:
+  // intro → blinds loop (during the worker + tile wait) → resolve → Phase 4
+  // crossfade. Two flags map onto the existing readiness gates; onComplete
+  // runs the chrome slide-in. If the loader is unavailable (script failed to
+  // load), `loader` is null and every path falls back to the instant hide.
+  let _loaderLoaded   = false;  // worker delivered + venue list painted
+  let _loaderMapReady = false;  // tiles idle (or the 2.5 s cap fired)
+  let _loaderBgFaded  = false;
+  const shadesLoader = (!opts?.keepSplash) ? _mountShadesLoader() : null;
+  const _runViaLoader = () => {
+    shadesLoader.start({
+      isLoaded:   () => _loaderLoaded,
+      isMapReady: () => {
+        // Polled only after Phase 3 resolves, so adding bg-out here syncs the
+        // cream backdrop fade to the Phase 4 SVG crossfade.
+        if (_loaderMapReady && !_loaderBgFaded) {
+          _loaderBgFaded = true;
+          splash.classList.add('bg-out');
+        }
+        return _loaderMapReady;
+      },
+      onComplete: () => {
+        if (_introSeqId !== localSeq) return;
+        splash.classList.add('done');
+        _runSkipChoreography();
+      },
+    });
+  };
   if (!opts?.keepSplash) {
     const gateAlreadyOpen = typeof window._isBootDrawGateOpen === 'function'
       && window._isBootDrawGateOpen();
@@ -8324,6 +8376,9 @@ function _skipIntro(seqId, opts) {
       _hideSplashInstantly();
       _runSkipChoreography();
     } else {
+      // Loader loops Phase 2 (blinds) during the worker + tile wait, then
+      // resolves + crossfades once the flags below flip.
+      if (shadesLoader) _runViaLoader();
       // Dynamic hold: don't dismiss the splash until the worker has
       // delivered AND the map has reached idle (tiles loaded for the
       // current viewport). This is the "hold until performance is
@@ -8343,6 +8398,9 @@ function _skipIntro(seqId, opts) {
         if (typeof renderList === 'function') {
           try { renderList(); } catch (e) { console.warn('[boot] renderList threw', e); }
         }
+        // Worker delivered + list painted → let the loader resolve (Phase 3)
+        // at its next yellow extreme. No-op if the loader isn't running.
+        _loaderLoaded = true;
         // Wait for map.idle (tiles loaded for current view) before
         // dismissing. Cap at 2.5s so a slow / failed tile fetch can't
         // strand the splash. Whichever fires first dismisses.
@@ -8351,11 +8409,18 @@ function _skipIntro(seqId, opts) {
           if (_dismissed) return;
           _dismissed = true;
           if (_introSeqId !== localSeq) return;
-          requestAnimationFrame(() => requestAnimationFrame(() => {
-            if (_introSeqId !== localSeq) return;
-            _hideSplashInstantly();
-            _runSkipChoreography();
-          }));
+          if (shadesLoader) {
+            // Hand off to the loader: flag map-ready so Phase 4 crossfades the
+            // SVG (and fades the cream backdrop), then onComplete runs the
+            // chrome slide-in. (Phase 3 resolve runs first if still pending.)
+            _loaderMapReady = true;
+          } else {
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+              if (_introSeqId !== localSeq) return;
+              _hideSplashInstantly();
+              _runSkipChoreography();
+            }));
+          }
         };
         if (typeof map !== 'undefined' && map && typeof map.once === 'function') {
           if (map.loaded && map.loaded() && !map.isMoving()) {
