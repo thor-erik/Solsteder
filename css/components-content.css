@@ -531,6 +531,13 @@
   body.list-scrubbing .venue-section-header { opacity: 0; }
   body.list-scrubbing .empty-section { opacity: 0; }
 
+  /* Skeleton crossfade (Phase 7) — on scrub the real card values fade OUT, then
+     the skeletons dissolve IN (instead of a hard cut). Container-level opacity
+     fade; the swap + race guard live in _injectScrubSkeletons (app.js). */
+  #venue-list { transition: opacity var(--dur-fast) var(--ease-standard); }
+  #venue-list.list-xfading { opacity: 0; }
+  @media (prefers-reduced-motion: reduce) { #venue-list { transition: none; } }
+
   /* Pull-tab indicator: appears only when the in-viewport list is so short
      it can't trigger natural scroll-pagination (fewer than ~5 venues). Tap
      to load the next nearest batch. Visual is intentionally subtle — a thin

@@ -2770,12 +2770,15 @@ function scheduleRenderList() {
 
 function _runListRenderAndUnmark() {
   _renderListTimer = null;
+  // Cancel any pending skeleton-fade swap + ensure the list is visible, so the
+  // real render never lands while #venue-list is mid-fade (stuck-invisible guard).
+  clearTimeout(_scrubXfTimer); _scrubXfTimer = null;
   // Fade the new cards in: clearing data-mounted lets renderList's
   // initial-mount cardIn animation fire once for this batch (renderList
   // sets it back via rAF). Matches the strong skeleton-out / cards-in
   // signal the user expects on slider release.
   const list = document.getElementById('venue-list');
-  if (list) delete list.dataset.mounted;
+  if (list) { list.classList.remove('list-xfading'); delete list.dataset.mounted; }
   renderList();
   setTimeout(_syncQcPanelHeight, 80);
   requestAnimationFrame(() => {
@@ -2805,20 +2808,30 @@ function flushRenderListNow() {
 // have one wireframe style to maintain. The infinite-scroll observer
 // bound to the previous cards becomes inert once those nodes leave the
 // DOM; renderList rebinds it on the next real render.
+let _scrubXfTimer = null;
 function _injectScrubSkeletons() {
   const list = document.getElementById('venue-list');
   if (!list || typeof renderSkeletonCards !== 'function') return;
-  list.innerHTML = '';
-  // Reserve the leading section-header's box so the skeleton cards stay on the
-  // same axis as the real venue cards. The real list opens with a
-  // .venue-section-header ("N steder i solen"); wiping the list removed it and
-  // shifted the skeletons up. body.list-scrubbing fades it (opacity:0) but its
-  // height must remain — so render an empty placeholder header here.
-  const hdr = document.createElement('div');
-  hdr.className = 'venue-section-header';
-  hdr.innerHTML = '&nbsp;';
-  list.appendChild(hdr);
-  renderSkeletonCards(list, 7);
+  // Phase 7 skeleton crossfade: fade the real card values OUT first, then swap
+  // in the skeletons and dissolve them IN — instead of a hard cut. Runs once at
+  // scrub start (guarded by !list-scrubbing in the caller). The swap is deferred
+  // ~1 fade so the values visibly dissolve; guarded so a quick release that
+  // renders real cards first doesn't get clobbered by a late skeleton swap.
+  list.classList.add('list-xfading');                 // real values fade out
+  clearTimeout(_scrubXfTimer);
+  _scrubXfTimer = setTimeout(() => {
+    _scrubXfTimer = null;
+    if (!document.body.classList.contains('list-scrubbing')) { list.classList.remove('list-xfading'); return; }
+    list.innerHTML = '';
+    // Reserve the leading section-header's box so the skeleton cards stay on the
+    // same axis as the real venue cards (body.list-scrubbing fades it but keeps height).
+    const hdr = document.createElement('div');
+    hdr.className = 'venue-section-header';
+    hdr.innerHTML = '&nbsp;';
+    list.appendChild(hdr);
+    renderSkeletonCards(list, 7);
+    requestAnimationFrame(() => list.classList.remove('list-xfading'));  // skeletons dissolve in
+  }, 110);
 }
 
 // ── QC notice (below date/time picker) ───────────────────────────────────────
