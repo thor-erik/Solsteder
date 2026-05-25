@@ -561,7 +561,12 @@ function _planPreviewLocate() {
   }
 
   // 'dive' — same camera params as openPlanPreview's Phase 1 flyTo so
-  // the user gets the same orienting view they started with.
+  // the user gets the same orienting view they started with. Crucially this
+  // includes the SAME padding as the page-load dive (_startDive: top 16,
+  // left/right 0) — the shared `padding` above (top 96, left/right 24) is for
+  // the fit/user states and would frame the venue differently, so the return
+  // wouldn't match the view the panel opened with.
+  const divePadding = { top: 16, bottom: panelH, left: 0, right: 0 };
   const wallBearing   = venue.wallSegment?.bearing ?? venue.facing ?? 0;
   const targetBearing = (wallBearing + 180) % 360;
   try {
@@ -574,7 +579,7 @@ function _planPreviewLocate() {
       pitch: 58,
       bearing: targetBearing,
       duration: 700,
-      padding,
+      padding: divePadding,
     });
   } catch (e) { /* ignore */ }
 }
@@ -1475,6 +1480,19 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
           };
           const onCanvasUp = () => {
             if (labelEl) labelEl.classList.remove('fts-popup-expanded');
+            // Smooth snap-to (FTS parity): drop is-dragging so the CSS `left`
+            // transition re-engages, then snap the arrival to a 15-min grid.
+            // The pill + bubble glide onto the clean time instead of stopping
+            // dead wherever the finger lifted (the FTS spring-back-to-grid feel).
+            scrubberEl.classList.remove('is-dragging');
+            const h = parseFloat(timeFromEl.value);
+            if (Number.isFinite(h)) {
+              const snapped = Math.max(barMinH, Math.min(barMaxH, Math.round(h * 4) / 4));
+              if (Math.abs(snapped - h) > 1e-4) {
+                timeFromEl.value = snapped;
+                timeFromEl.dispatchEvent(new Event('input', { bubbles: true }));
+              }
+            }
           };
           if (ftsCanvas) {
             ftsCanvas.addEventListener('pointerdown', onCanvasDown);
