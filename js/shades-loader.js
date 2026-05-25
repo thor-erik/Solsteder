@@ -342,6 +342,11 @@
   function createShadesLoader(container, options = {}) {
     const variant = options.variant === 'dark' ? 'dark' : 'light';
     const showWordmark = options.showWordmark !== false;
+    // Product addition (not in the original design delivery): guarantee a
+    // minimum number of full Phase-2 blinds cycles even when loading finishes
+    // during the intro. The spec default is 0 (zero cycles on instant load);
+    // pass 1 so the signature blinds motion is always seen.
+    const minLoadingCycles = Math.max(0, options.minLoadingCycles || 0);
     const refs = buildSvg(variant, showWordmark);
     container.appendChild(refs.svg);
 
@@ -465,8 +470,10 @@
       });
 
       // Check for loading-complete at each yellow extreme. The yellow
-      // extreme is during [0, HOLD_MS) of each cycle.
-      if (cyclePos < PHASE2_HOLD_MS && checkLoaded()) {
+      // extreme is during [0, HOLD_MS) of each cycle. minLoadingCycles holds
+      // the loop for at least that many full cycles before allowing an exit,
+      // so the blinds are always seen even when loading is already done.
+      if (cyclePos < PHASE2_HOLD_MS && elapsed >= minLoadingCycles * PHASE2_CYCLE_MS && checkLoaded()) {
         phase = 'between';
         playPhase3(_sequenceContinuation);
         return;
@@ -570,7 +577,9 @@
       waitForMap();
     }
     function _afterPhase1() {
-      if (checkLoaded()) {
+      // minLoadingCycles forces the blinds loop even on instant loads; the
+      // gate in tickPhase2 then holds Phase 2 until that many cycles elapse.
+      if (checkLoaded() && minLoadingCycles <= 0) {
         playPhase3(_sequenceContinuation);
       } else {
         playPhase2();

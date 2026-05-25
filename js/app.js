@@ -8001,7 +8001,11 @@ function _mountShadesLoader() {
   const host = document.getElementById('splash-loader');
   if (!host || typeof window.createShadesLoader !== 'function') return null;
   try {
-    _shadesLoader = window.createShadesLoader(host, { variant: 'light', showWordmark: false });
+    _shadesLoader = window.createShadesLoader(host, {
+      variant: 'light',
+      showWordmark: false,
+      minLoadingCycles: 1,   // always show ≥1 blinds cycle, even on instant loads
+    });
   } catch (e) {
     console.warn('[boot] shades loader mount failed', e);
     _shadesLoader = null;
