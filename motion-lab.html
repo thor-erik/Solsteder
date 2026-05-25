@@ -36,19 +36,38 @@
   .run .dot { left: calc(100% - 25px); }
   .dot { transition: left var(--d, 320ms) var(--e, ease); }
 
-  /* ── Rocks on ice ───────────────────────────────────────── */
-  .rocks { display: flex; gap: 8px; max-width: 360px; background: var(--surface-content); padding: 16px; border-radius: 14px; overflow: hidden; }
-  .rocks .rk { flex: 1; height: 44px; border-radius: var(--radius-pill); border: 0; font: 600 13px Inter; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  /* ── Rocks on ice (staggered entry + primary-dismiss reflow) ─ */
+  .rocks { display: flex; align-items: center; max-width: 360px; background: var(--surface-content); padding: 16px; border-radius: 14px; overflow: hidden; }
+  .rocks .rk {
+    box-sizing: border-box; flex: 0 0 auto; height: 44px; padding: 0 18px; margin-right: 8px;
+    border-radius: var(--radius-pill); border: 0; font: 600 14px Inter; cursor: pointer;
+    white-space: nowrap; overflow: hidden;
+  }
+  .rocks .rk:last-child { margin-right: 0; }
   .rocks .rk.cta { background: var(--accent); color: var(--accent-on); }
   .rocks .rk.ghost { background: var(--surface-control); border: 1px solid var(--line-d, rgba(156,189,231,.18)); color: var(--text); }
-  .rocks.enter .rk { animation: rock-in var(--dur-slow) var(--ease-spring) both; }
+  .rocks .rk:active { transform: scale(.96); }
+  /* entry — slide in from the right, gentle staggered overshoot (the "rocks") */
+  .rocks.enter .rk { animation: rock-in var(--dur-slow) var(--ease-spring) backwards; }
   .rocks.enter .rk:nth-child(1) { animation-delay: 0ms; }
-  .rocks.enter .rk:nth-child(2) { animation-delay: 70ms; }
-  .rocks.enter .rk:nth-child(3) { animation-delay: 140ms; }
-  @keyframes rock-in { from { transform: translateX(130%); } to { transform: translateX(0); } }
+  .rocks.enter .rk:nth-child(2) { animation-delay: 65ms; }
+  .rocks.enter .rk:nth-child(3) { animation-delay: 130ms; }
+  @keyframes rock-in { from { transform: translateX(150%); opacity: 0; } 55% { opacity: 1; } to { transform: translateX(0); opacity: 1; } }
+  /* primary dismiss — collapse width/padding/margin to 0 so the rest slide left
+     to fill the vacated spot (layout-driven, smooth). Fades + shrinks as it goes. */
+  .rocks .rk.leaving {
+    pointer-events: none; opacity: 0; transform: scale(.8);
+    width: 0 !important; padding-left: 0; padding-right: 0; margin-right: 0;
+    transition: width var(--dur-slow) var(--ease-emphasized),
+                padding var(--dur-slow) var(--ease-emphasized),
+                margin var(--dur-slow) var(--ease-emphasized),
+                opacity var(--dur-base) var(--ease-standard),
+                transform var(--dur-base) var(--ease-standard);
+  }
   @media (prefers-reduced-motion: reduce) {
-    .rocks.enter .rk { animation: rock-fade var(--dur-base) ease both; }
+    .rocks.enter .rk { animation: rock-fade var(--dur-base) ease backwards; }
     @keyframes rock-fade { from { opacity: 0; } to { opacity: 1; } }
+    .rocks .rk.leaving { transition-duration: var(--dur-fast); }
   }
 
   /* ── Skeleton crossfade ─────────────────────────────────── */
@@ -82,13 +101,13 @@
   </h2>
   <div id="tracks"></div>
 
-  <h2>“Rocks on ice” — confirmation button entry <button class="play" id="playRocks">Replay ▶</button></h2>
+  <h2>“Rocks on ice” — entry + primary-dismiss <button class="play" id="playRocks">Reset ▶</button></h2>
   <div class="rocks" id="rocks">
+    <button class="rk cta" data-role="primary">Join</button>
     <button class="rk ghost">Maybe</button>
     <button class="rk ghost">Invite</button>
-    <button class="rk cta">Join</button>
   </div>
-  <div class="note">Buttons are tappable the entire time (transform-only, pointer-events live). Plays once per page entry. Under reduced-motion it's a plain fade.</div>
+  <div class="note">Leftmost = <b>primary</b> (honey); the rest secondary. <b>Tap “Join”</b> → it collapses away and the others slide left to fill its place. Buttons stay tappable throughout (transform/width only). Entry plays once per page; both degrade to a fade under reduced-motion.</div>
 
   <h2>Skeleton crossfade — list re-render on time-scrub <button class="play" id="playXf">Scrub ▶</button></h2>
   <div class="card" id="xfCard">
@@ -133,8 +152,25 @@
   };
 
   const rocks = document.getElementById('rocks');
-  function playRocks() { rocks.classList.remove('enter'); void rocks.offsetWidth; rocks.classList.add('enter'); }
+  const ROCKS_HTML =
+    '<button class="rk cta" data-role="primary">Join</button>' +
+    '<button class="rk ghost">Maybe</button>' +
+    '<button class="rk ghost">Invite</button>';
+  function playRocks() {
+    rocks.innerHTML = ROCKS_HTML;              // rebuild (restores a dismissed primary)
+    rocks.classList.remove('enter'); void rocks.offsetWidth; rocks.classList.add('enter');
+  }
   document.getElementById('playRocks').onclick = playRocks;
+  // Tap the primary → pin its current width, then collapse to 0 so the row reflows
+  // and the secondaries slide left into its place. Removed from DOM once collapsed.
+  rocks.addEventListener('click', (e) => {
+    const b = e.target.closest('.rk');
+    if (!b || b.dataset.role !== 'primary' || b.classList.contains('leaving')) return;
+    b.style.width = b.offsetWidth + 'px';      // pin real width (no max-width dead-zone)
+    void b.offsetWidth;                         // commit before transitioning to 0
+    b.classList.add('leaving');
+    b.addEventListener('transitionend', (ev) => { if (ev.propertyName === 'width') b.remove(); }, { once: true });
+  });
 
   const SUN = ['☀ 4h 15m', '☀ 3h 50m', '☀ 2h 30m', '☀ 1h 05m'];
   const ANC = ['til 19:30', 'til 19:05', 'til 17:45', 'til 16:20'];
