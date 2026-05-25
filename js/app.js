@@ -8081,16 +8081,20 @@ function _introRevealUI(search, brand, qcWrap, panel, opts) {
     // User feedback: "we're just missing the top bar" — the only piece
     // still revealing on the early panel-slide moment.
     if (topStrip) {
-      // Slide in SYNC with the panel. Was deferred 600 ms, which made the
-      // venue list arrive before the top bar (and pins settle before it);
-      // both now start together so they reach their final position as one.
+      // Slide DOWN via `top` (a layout property), NOT transform. iOS WKWebView
+      // drops backdrop-filter on a transformed element, so a translateY slide
+      // made the bar flash borderless/flat and "pop" to glass at the end. The
+      // panel slides the same way (bottom/height) for exactly this reason.
+      // Start fully above the top edge, then clear inline `top` so the CSS
+      // resting value (max(env...)) becomes the transition target. Synced with
+      // the panel slide so list + top bar reach their final positions as one.
       topStrip.style.transition = 'none';
       topStrip.style.opacity = '1';
-      topStrip.style.transform = 'translateY(-72px)';
+      topStrip.style.top = '-72px';
       topStrip.classList.remove('intro-hidden');
       topStrip.getBoundingClientRect();
-      topStrip.style.transition = 'transform 0.45s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.4s ease';
-      topStrip.style.transform = '';
+      topStrip.style.transition = 'top 0.45s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.4s ease';
+      topStrip.style.top = '';   // clear inline → CSS resting top animates in
       setTimeout(() => { if (topStrip) topStrip.style.transition = ''; }, 500);
     }
     // brand + qc-wrap reveal with the rest of the chrome. locate-btn and

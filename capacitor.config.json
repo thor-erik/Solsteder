@@ -2,10 +2,12 @@
   "appId": "app.findshades",
   "appName": "Shades",
   "webDir": "www",
+  "backgroundColor": "#FFF2EB",
   "server": {
     "allowNavigation": ["findshades.app", "*.supabase.co"]
   },
   "ios": {
-    "scheme": "Shades"
+    "scheme": "Shades",
+    "backgroundColor": "#FFF2EB"
   }
 }
