@@ -2822,6 +2822,9 @@ function _injectScrubSkeletons() {
   _scrubXfTimer = setTimeout(() => {
     _scrubXfTimer = null;
     if (!document.body.classList.contains('list-scrubbing')) { list.classList.remove('list-xfading'); return; }
+    // Match the skeleton count to the cards currently shown so the box count
+    // doesn't change — every visible venue card becomes a skeleton.
+    const n = list.querySelectorAll('.venue-card:not(.skeleton)').length || 7;
     list.innerHTML = '';
     // Reserve the leading section-header's box so the skeleton cards stay on the
     // same axis as the real venue cards (body.list-scrubbing fades it but keeps height).
@@ -2829,8 +2832,11 @@ function _injectScrubSkeletons() {
     hdr.className = 'venue-section-header';
     hdr.innerHTML = '&nbsp;';
     list.appendChild(hdr);
-    renderSkeletonCards(list, 7);
-    requestAnimationFrame(() => list.classList.remove('list-xfading'));  // skeletons dissolve in
+    renderSkeletonCards(list, n);
+    // Double-rAF: the freshly-mounted skeleton content inherits opacity:0 from
+    // .list-xfading; commit that frame BEFORE removing the class, or the
+    // transition is skipped and the skeletons flash in at full opacity.
+    requestAnimationFrame(() => requestAnimationFrame(() => list.classList.remove('list-xfading')));
   }, 110);
 }
 
