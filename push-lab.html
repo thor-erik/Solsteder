@@ -3,103 +3,110 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Accept → confirm push — Shades</title>
+<title>Accept → confirm · action-region slide — Shades</title>
 <link rel="stylesheet" href="css/tokens.css">
 <style>
   * { box-sizing: border-box; }
   body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: #243049; color: var(--text);
          min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
-  header { padding: 20px 24px 8px; text-align: center; max-width: 640px; }
-  h1 { font-size: 18px; font-weight: 800; margin: 0 0 4px; }
+  header.lab { padding: 18px 24px 6px; text-align: center; max-width: 640px; }
+  h1 { font-size: 17px; font-weight: 800; margin: 0 0 4px; }
   .sub { font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; }
-  .stage { margin-top: 18px; width: 100%; max-width: 460px; padding: 0 12px; }
-  .controls { display: flex; gap: 10px; justify-content: center; margin: 14px 0 28px; flex-wrap: wrap; }
+  .stage { margin-top: 16px; width: 100%; max-width: 460px; padding: 0 12px; }
+  .controls { display: flex; gap: 10px; justify-content: center; margin: 14px 0 28px; }
   .controls button { background: var(--surface-control); border: 1px solid var(--line-d, rgba(156,189,231,.25)); color: var(--text);
                      border-radius: var(--radius-pill); padding: 7px 14px; font: 600 12.5px Inter; cursor: pointer; }
 
-  /* ── Sheet: fixed height (animate X only), matched panes in a track ─────── */
-  .sheet {
-    position: relative; overflow: hidden; height: 460px;
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    background: var(--surface-raised); color: var(--panel-text);
-    box-shadow: var(--shadow-2);
-  }
-  .track { display: flex; height: 100%; transition: transform var(--dur-slow) var(--ease-emphasized); }
-  .track.show-confirm { transform: translateX(-100%); }
-  .pane { flex: 0 0 100%; height: 100%; padding: 16px 20px 20px; display: flex; flex-direction: column; }
-  .handle { width: 36px; height: 4px; border-radius: 2px; background: rgba(17,30,56,.22); margin: 0 auto 14px; }
+  .sheet { border-radius: var(--radius-lg) var(--radius-lg) 0 0; background: var(--surface-raised); color: var(--panel-text);
+           box-shadow: var(--shadow-2); padding: 14px 20px 20px; overflow: hidden; }
+  .grab { width: 36px; height: 4px; border-radius: 2px; background: rgba(17,30,56,.22); margin: 0 auto 12px; }
 
-  .eyebrow { font-size: var(--text-caption); color: var(--ink-muted); }
-  .venue { font-size: var(--text-title); font-weight: 700; margin-top: 2px; }
-  .meets { font-size: var(--text-caption); color: var(--ink-muted); margin-top: 2px; }
-  .sun-chip { margin-top: 14px; align-self: flex-start; background: var(--accent-dim); color: var(--accent-active);
-              border: 1px solid var(--accent-border, rgba(245,194,94,.42)); border-radius: var(--radius-pill);
-              padding: 6px 12px; font: 700 12.5px Inter; }
-  .bar { margin-top: 16px; height: 40px; border-radius: var(--radius-md);
-         background: linear-gradient(90deg, #F5C25E 0 55%, #c9b48f 55% 72%, #6f7d96 72% 100%); }
-  .spacer { flex: 1; }
+  /* ── Shared header (STATIC — never slides) ─────────────────────────────── */
+  .hd-eyebrow-row { display: flex; justify-content: space-between; align-items: baseline; }
+  .eyebrow { font-size: var(--text-caption); color: var(--ink-muted); transition: opacity var(--dur-base) var(--ease-standard); }
+  .status-right { font-size: var(--text-caption); color: var(--ink-muted); }
+  .venue-row { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+  .pin { color: var(--accent); display: flex; }
+  .venue { font-size: 30px; font-weight: 800; letter-spacing: -.02em; }
+  .meta { font-size: 13px; color: var(--ink-muted); margin-top: 2px; }
+  .sun-line { font-size: 14px; font-weight: 700; color: var(--panel-text); margin-top: 12px; text-align: center; }
+  .sun-line .dim { color: var(--ink-muted); font-weight: 600; }
+  .bar { margin-top: 10px; height: 40px; border-radius: var(--radius-md);
+         background: linear-gradient(90deg, #f0c97a 0 60%, #d8c79e 60% 78%, #b9ac90 78% 100%); }
 
-  .footer { display: flex; flex-direction: column; gap: var(--space-md); }
+  /* ── Action region (the ONLY thing that slides) ────────────────────────── */
+  .actions { margin-top: 16px; overflow: hidden; }
+  .action-track { display: flex; transition: transform var(--dur-slow) var(--ease-emphasized); }
+  .action-pane { flex: 0 0 100%; min-height: 150px; display: flex; flex-direction: column; justify-content: flex-end; }
+  .action-track.show-confirm { transform: translateX(-100%); }
+
+  /* accept pane */
   .p-pill { height: 52px; border-radius: var(--radius-pill); border: 0; background: var(--accent); color: var(--accent-on);
             font: 700 15px Inter; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
-  .links { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: var(--text-label); color: var(--ink-muted); }
-  .links button { background: none; border: 0; color: var(--ink-muted); font: 500 13px Inter; cursor: pointer; }
+  .links { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 14px; font-size: 13px; }
+  .links button { background: none; border: 0; font: 500 13px Inter; cursor: pointer; }
+  .links .later { color: var(--ink-muted); display: flex; align-items: center; gap: 5px; }
+  .links .decline { color: var(--color-error, #DC2626); }
+  .links .sep { color: var(--ink-muted); }
 
-  /* Confirm pane */
-  .confirm-top { text-align: center; }
-  .confirm-check { width: 56px; height: 56px; border-radius: 50%; background: var(--accent); color: var(--accent-on);
-                   display: flex; align-items: center; justify-content: center; margin: 8px auto 12px; font-size: 28px; font-weight: 800; }
-  .confirm-h { font-size: var(--text-title); font-weight: 800; }
-  .confirm-meta { font-size: var(--text-body); color: var(--ink-muted); margin-top: 4px; }
-  .confirm-actions { display: flex; flex-direction: column; gap: var(--space-md); }
-  .c-btn { height: 48px; border-radius: var(--radius-pill); border: 1px solid var(--line-l-strong, rgba(17,30,56,.3));
-           background: var(--surface-control); color: var(--panel-text); font: 600 14px Inter; cursor: pointer;
-           display: flex; align-items: center; justify-content: center; gap: 8px; }
-  .c-btn.cta { background: var(--accent); color: var(--accent-on); border-color: transparent; }
+  /* confirm pane — horizontal action-card carousel (current design, unchanged) */
+  .cards { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+  .cards::-webkit-scrollbar { display: none; }
+  .acard { flex: 0 0 132px; height: 112px; border-radius: var(--radius-md); padding: 12px;
+           background: var(--surface-control); border: 1px solid var(--line-l, rgba(17,30,56,.14));
+           display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; }
+  .acard.primary { background: var(--accent); border-color: transparent; }
+  .acard .ic { width: 40px; height: 40px; border-radius: 10px; background: rgba(17,30,56,.07);
+               display: flex; align-items: center; justify-content: center; color: var(--panel-text); }
+  .acard.primary .ic { background: rgba(44,31,2,.14); color: var(--accent-on); }
+  .acard .t { font-size: 14px; font-weight: 700; color: var(--panel-text); }
+  .acard .s { font-size: 12px; color: var(--ink-muted); }
+  .acard.primary .t { color: var(--accent-on); }
+  .acard.primary .s { color: rgba(44,31,2,.7); }
+  .lukk { text-align: center; color: var(--ink-muted); font: 500 14px Inter; margin-top: 16px; background: none; border: 0; cursor: pointer; width: 100%; }
 
-  /* The confirmation buttons are unchanged — they ride in with the pane as one
-     unit (no separate entrance). The only motion is the horizontal push. */
-  @media (prefers-reduced-motion: reduce) {
-    .track { transition: none; }
-  }
+  @media (prefers-reduced-motion: reduce) { .action-track, .eyebrow { transition: none; } }
 </style>
 </head>
 <body>
-<header>
-  <h1>Accept → confirm push (proposed)</h1>
-  <div class="sub">One surface, fixed height: tap “I’m in” → the accept content slides left, the confirmation slides in from the right as one unit (its buttons unchanged — no separate entrance). Reset slides back. The only motion is the horizontal push. (Matched-pane mock — proving the transition before porting into the real overlay, where the confirm pane is the existing post-accept content untouched.)</div>
+<header class="lab">
+  <h1>Accept → confirm — header stays, actions slide</h1>
+  <div class="sub">The venue header + sun row are <b>shared and static</b>. Tap “Jeg blir med” → only the <b>action region</b> slides: the accept CTA exits left, the confirmation action-cards (unchanged) slide in from the right. The eyebrow crossfades “invited → confirmed”. No pane-size mismatch — it’s one sheet, one persistent header.</div>
 </header>
 
 <div class="stage">
   <div class="sheet">
-    <div class="track" id="track">
-      <!-- Pane 1: accept -->
-      <div class="pane">
-        <div class="handle"></div>
-        <div class="eyebrow">Anna invited you</div>
-        <div class="venue">Kafé Olsen</div>
-        <div class="meets">Sunday · meets at 17:00</div>
-        <div class="sun-chip">☀ Sun until 19:30</div>
-        <div class="bar"></div>
-        <div class="spacer"></div>
-        <div class="footer">
-          <button class="p-pill" id="imIn">✓ I’m in</button>
-          <div class="links"><button>Coming later</button><span>·</span><button>Decline</button></div>
+    <div class="grab"></div>
+    <!-- STATIC shared header -->
+    <div class="hd-eyebrow-row">
+      <span class="eyebrow" id="eyebrow">Du er invitert til</span>
+      <span class="status-right" id="statusRight">Møtes 18:30</span>
+    </div>
+    <div class="venue-row">
+      <span class="pin" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg></span>
+      <span class="venue">Hanami</span>
+    </div>
+    <div class="meta">Tjuvholmen · Restaurant · 660 m · 8 min</div>
+    <div class="sun-line">Sol til 21:40 <span class="dim">· ☀ 3t 10m · 20°</span></div>
+    <div class="bar"></div>
+
+    <!-- SLIDING action region -->
+    <div class="actions">
+      <div class="action-track" id="track">
+        <!-- accept -->
+        <div class="action-pane">
+          <button class="p-pill" id="imIn">✓ Jeg blir med</button>
+          <div class="links"><span class="later">✏ Kommer senere</span><span class="sep">·</span><span class="decline">Avslå</span></div>
         </div>
-      </div>
-      <!-- Pane 2: confirm -->
-      <div class="pane">
-        <div class="handle"></div>
-        <div class="confirm-top">
-          <div class="confirm-check">✓</div>
-          <div class="confirm-h">You’re in!</div>
-          <div class="confirm-meta">Kafé Olsen · Sunday 17:00<br>Sun until 19:30</div>
-        </div>
-        <div class="spacer"></div>
-        <div class="confirm-actions">
-          <button class="c-btn cta">Add to calendar</button>
-          <button class="c-btn">Share with friends</button>
-          <button class="c-btn">Done</button>
+        <!-- confirm (current action-card carousel, unchanged) -->
+        <div class="action-pane">
+          <div class="cards">
+            <div class="acard primary"><div class="ic">⤴</div><div><div class="t">Del videre</div><div class="s">Inviter flere</div></div></div>
+            <div class="acard"><div class="ic">📅</div><div><div class="t">Kalender</div><div class="s">Legg til</div></div></div>
+            <div class="acard"><div class="ic">➤</div><div><div class="t">Veibeskrivelse</div><div class="s">8 min å gå</div></div></div>
+            <div class="acard"><div class="ic">⤢</div><div><div class="t">Åpne</div><div class="s">Detaljer</div></div></div>
+          </div>
+          <button class="lukk">Lukk</button>
         </div>
       </div>
     </div>
@@ -107,15 +114,27 @@
 </div>
 
 <div class="controls">
-  <button id="play">▶ Accept (push)</button>
+  <button id="play">▶ Jeg blir med</button>
   <button id="reset">↺ Reset</button>
 </div>
 
 <script>
   const track = document.getElementById('track');
-  document.getElementById('imIn').onclick = () => track.classList.add('show-confirm');
-  document.getElementById('play').onclick  = () => track.classList.add('show-confirm');
-  document.getElementById('reset').onclick = () => track.classList.remove('show-confirm');
+  const eyebrow = document.getElementById('eyebrow');
+  const statusRight = document.getElementById('statusRight');
+  function toConfirm() {
+    track.classList.add('show-confirm');
+    eyebrow.style.opacity = '0';
+    setTimeout(() => { eyebrow.textContent = 'Bekreftet'; statusRight.textContent = 'Endre svar ›'; eyebrow.style.opacity = '1'; }, 180);
+  }
+  function reset() {
+    track.classList.remove('show-confirm');
+    eyebrow.style.opacity = '0';
+    setTimeout(() => { eyebrow.textContent = 'Du er invitert til'; statusRight.textContent = 'Møtes 18:30'; eyebrow.style.opacity = '1'; }, 180);
+  }
+  document.getElementById('imIn').onclick = toConfirm;
+  document.getElementById('play').onclick = toConfirm;
+  document.getElementById('reset').onclick = reset;
 </script>
 </body>
 </html>
