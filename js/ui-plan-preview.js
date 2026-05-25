@@ -1204,7 +1204,6 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
   // Venue line — pin glyph + name·area (same anchor pattern as the
   // invite sheet's moment block). Dedup area when redundant with the
   // venue name (e.g. "Mamma Pizza Nydalen" + area "Nydalen").
-  const venuePinSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
   // Title shows venue name only — the neighbourhood appears in the meta
   // line below ('Grünerløkka · Restaurant · 1.9 km'), so duplicating it
   // here read as redundant.
@@ -1229,7 +1228,6 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
           <div class="dprcv-title-col">
             <div class="dprcv-eyebrow">${eyebrow || '&nbsp;'}</div>
             <div class="dprcv-venue-row">
-              <span class="dprcv-venue-pin" aria-hidden="true">${venuePinSvg}</span>
               <span class="dprcv-venue">${venueDisplay}</span>
             </div>
             ${metaHtml ? `<div class="dprcv-meta">${metaHtml}</div>` : ''}
