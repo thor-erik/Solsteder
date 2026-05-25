@@ -1068,24 +1068,19 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
     const primaryLabel = isAnon ? t('plan_preview_anon_im_in') : t('plan_preview_im_in');
     const primaryIcon  = isAnon ? '' : checkSvg;
     ctaHtml = `
-      <div class="dprcv-footer dprcv-footer-track">
-        <div class="dprcv-action-track" id="pp-action-track">
-          <div class="dprcv-action-pane">
-            <button class="p-pill dprcv-cta-primary" id="${acceptId}" type="button">
-              ${primaryIcon}
-              ${primaryLabel}
-            </button>
-            <div class="dprcv-cta-row">
-              <button class="dprcv-cta-link" id="pp-suggest" type="button">
-                ${editSvg}<span>${t('invite_secondary_later')}</span>
-              </button>
-              <span class="dprcv-cta-sep" aria-hidden="true">·</span>
-              <button class="dprcv-cta-link is-decline" id="${declineId}" type="button">
-                <span>${t('plan_decline')}</span>
-              </button>
-            </div>
-          </div>
-          <div class="dprcv-action-pane dprcv-confirm-pane" id="pp-confirm-pane" aria-hidden="true"></div>
+      <div class="dprcv-footer">
+        <button class="p-pill dprcv-cta-primary" id="${acceptId}" type="button">
+          ${primaryIcon}
+          ${primaryLabel}
+        </button>
+        <div class="dprcv-cta-row">
+          <button class="dprcv-cta-link" id="pp-suggest" type="button">
+            ${editSvg}<span>${t('invite_secondary_later')}</span>
+          </button>
+          <span class="dprcv-cta-sep" aria-hidden="true">·</span>
+          <button class="dprcv-cta-link is-decline" id="${declineId}" type="button">
+            <span>${t('plan_decline')}</span>
+          </button>
         </div>
       </div>`;
   } else if (isPreview) {
@@ -1244,6 +1239,8 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
         </div>
       </div>
       <div class="dprcv-sun-chip" aria-hidden="${sunChipHtml ? 'false' : 'true'}">${sunChipHtml}</div>
+      ${attendeesHtml}
+      <div class="dprcv-footer-track" id="pp-actions"><div class="dprcv-action-track" id="pp-action-track"><div class="dprcv-action-pane">
       <div class="dprcv-hero">
         <div class="dprcv-timeline">
           <!-- Weather row sits INSIDE the bar (overlayed on the canvas) —
@@ -1270,8 +1267,8 @@ function _ppBuildDom(venue, opts, { planHour, animateTo, dateStr }) {
           <canvas class="card-timeline-canvas dprcv-timeline-canvas" data-vid="${venue.id}" width="600" height="40"></canvas>
         </div>
       </div>
-      ${attendeesHtml}
       ${ctaHtml}
+      </div><div class="dprcv-action-pane dprcv-confirm-pane" id="pp-confirm-pane" aria-hidden="true"></div></div></div>
     </div>`;
 
   // Paint the canvas via the shared walker. Defer to the next frame so the

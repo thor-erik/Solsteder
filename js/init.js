@@ -21,6 +21,11 @@ loadVenues().then(async () => {
   // auth-gated accept→confirm slide is verifiable on a (logged-out) preview.
   if (/[?&]ppdemo=1\b/.test(location.search) && typeof openPlanPreview === 'function' && VENUES.length) {
     window._ppDemo = true;
+    // Seed a pending friend prompt so the confirm pane leads with the
+    // "Add Anna" card (leftmost = primary), before Share onward. The
+    // 'test-' prefix makes _commitFriendRequest a no-op (no DB write) so
+    // the slide-out + leader-promotion UX runs without a real friendship.
+    window._pendingFriendPrompt = { inviterId: 'test-ppdemo', inviterName: 'Anna' };
     const dv = VENUES.find(v => /hanami/i.test(v.name)) || VENUES[0];
     const when = new Date(Date.now() + 2 * 3600 * 1000).toISOString();
     setTimeout(() => openPlanPreview({ venueId: dv.id, plannedAt: when, inviteId: 'ppdemo', inviterId: 'ppdemo', inviterName: 'Anna', mode: 'invite' }), 700);

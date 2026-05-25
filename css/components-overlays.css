@@ -1714,7 +1714,15 @@
      wrapper just hosts the timeline now and intentionally adds no top
      padding so the chip + bar read as one connected unit. */
   .dprcv-hero {
-    padding: 0 0 var(--space-xs);
+    /* No padding of its own — the gap below the bar comes from the CTA
+       footer's padding-top (space-lg), kept tight so the action region's
+       height stays constant across the accept↔confirm slide. The negative
+       inline margin cancels the parent .dprcv-action-pane padding-inline so
+       the timeline bleeds back to the sheet's content edge (its original
+       width); the pane padding exists only to keep the CTA's drop-shadow
+       clear of the footer-track's overflow clip. */
+    padding: 0;
+    margin-inline: calc(var(--space-lg) * -1);
     display: flex;
     flex-direction: column;
   }
@@ -1730,23 +1738,26 @@
     line-height: 1.25;
   }
   .dprcv-arrival-time {
-    /* Matches .dprcv-venue */
+    /* Matches .dprcv-venue (row 2). No margin-top — both columns rely
+       solely on the shared flex `gap: space-xs`, so each right-column row
+       sits on the same baseline as its left-column counterpart. An extra
+       margin here pushed row 2 (and everything below) down out of step. */
     font-size: var(--text-display);
     font-weight: var(--fw-display);
     color: var(--panel-text);
     line-height: 1.15;
-    margin-top: var(--space-2xs);
     font-variant-numeric: tabular-nums;
     letter-spacing: var(--tracking-display);
   }
   .dprcv-arrival-sub {
-    /* Matches .dprcv-meta */
+    /* Row 3 — aligns with the left column's .dprcv-area, so it matches
+       area's line-height (1.3), not .dprcv-meta's (1.4), and carries no
+       margin-top (shared flex gap only). */
     font-size: var(--text-label);
     font-weight: 500;
     color: var(--ink-muted);
-    margin-top: var(--space-xs);
     letter-spacing: 0;
-    line-height: 1.4;
+    line-height: 1.3;
     font-variant-numeric: tabular-nums;
   }
 
@@ -1992,19 +2003,27 @@
      The venue header stays put; only the action region slides. Two panes in a
      horizontal track inside the footer; accept out left, confirm in from right. */
   .dprcv-footer-track { overflow: hidden; }
-  /* Reserve the taller (confirm) height up front so the panel height is
-     CONSTANT across accept↔confirm — no jump when the cards mount on accept.
-     (Card row 96px + close row ≈ 150; 152 clears it.) */
+  /* The accept pane (timeline + CTA) is always mounted and is the taller of
+     the two, so it drives the track height — which therefore stays CONSTANT
+     across the accept↔confirm slide (the confirm pane's cards are shorter and
+     never grow the track). min-height is just a floor for the pre-paint frame
+     before the timeline canvas has laid out. align-items defaults to stretch,
+     so the shorter confirm pane fills the full height and its
+     justify-content can position the cards within it. */
   .dprcv-action-track { display: flex; min-height: 152px; transition: transform var(--dur-slow) var(--ease-emphasized); }
   .dprcv-action-pane {
     box-sizing: border-box; flex: 0 0 100%; min-width: 0;
     display: flex; flex-direction: column; justify-content: flex-end;
     /* Inset so the primary CTA's box-shadow has room before the overflow clip
        (was cut at the left/right edge). Panes stay 100% wide (border-box) so
-       the slide still aligns. */
+       the slide still aligns. The timeline cancels this inset with a negative
+       margin (see .dprcv-hero) to keep its original full-bleed width. */
     padding-inline: var(--space-lg);
   }
-  .dprcv-confirm-pane { gap: var(--space-md); }
+  /* Cards anchor to the TOP of the region (right under the sun chip, where the
+     timeline sat) so the swap reads as "cards push the timeline out" rather
+     than the action block sliding down. */
+  .dprcv-confirm-pane { gap: var(--space-md); justify-content: flex-start; }
   .dprcv-action-track.show-confirm { transform: translateX(-100%); }
   /* rocks-on-ice — the confirm action cards land with a gentle staggered spring
      as the pane arrives (cards unchanged; entrance only). backwards fill holds
