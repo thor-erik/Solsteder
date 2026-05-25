@@ -1997,15 +1997,19 @@
   /* ── Accept → confirm IN-SHEET push (Phase 7) ─────────────────────────────
      The venue header stays put; only the action region slides. Two panes in a
      horizontal track inside the footer; accept out left, confirm in from right. */
-  /* overflow:hidden clips the off-screen pane during the slide. A space-xl
-     SHADOW GUTTER (negative margin + matching padding) extends the clip box
-     beyond the pane edges WITHOUT moving the content (it stays at the header
-     inset), so the CTA / card drop-shadows have room instead of being cut at
-     the edge. The exiting accept pane is pushed the extra gutter-width past
-     the clip (see .show-confirm rule) so no sliver of it remains. The confirm
-     pane is empty until accept, so its pre-accept gutter-sliver shows nothing. */
+  /* Clip the off-screen pane during the horizontal slide, but ONLY on the x
+     axis — overflow-y stays visible so the scrubber bubble (which pops up above
+     the bar) and the CTA's top/bottom shadow aren't cut off. overflow:clip (not
+     hidden) is what permits a per-axis pair without forcing the other to auto.
+     The space-xl horizontal SHADOW GUTTER (negative margin + matching padding)
+     extends the x-clip box beyond the pane edges WITHOUT moving content (stays
+     at the header inset), giving the CTA / card side shadows room. The exiting
+     accept pane is pushed the extra gutter-width past the clip (see .show-confirm)
+     so no sliver remains; the confirm pane is empty pre-accept so its sliver is blank. */
   .dprcv-footer-track {
-    overflow: hidden;
+    overflow: hidden; /* fallback for engines without overflow:clip */
+    overflow-x: clip;
+    overflow-y: visible;
     margin-inline: calc(var(--space-xl) * -1);
     padding-inline: var(--space-xl);
   }

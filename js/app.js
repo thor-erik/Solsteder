@@ -7739,6 +7739,17 @@ function _introCheckReady() {
 }
 
 function _runIntroSequence() {
+  // A plan-preview / post-accept / invite-sheet takeover owns the camera and
+  // splash. If one opened before the intro fired — e.g. the user granted
+  // geolocation AFTER the dive, which re-runs _introCheckReady() — skip the
+  // intro so its zoom-14 jump-to-user-location doesn't clobber the dive.
+  // _introRunning is already set by _introCheckReady, so this won't retry.
+  if (typeof document !== 'undefined' && (
+        document.body.classList.contains('plan-preview-active') ||
+        document.body.classList.contains('post-accept-active') ||
+        document.body.classList.contains('invite-sheet-open'))) {
+    return;
+  }
   const seqId  = ++_introSeqId;
   const splash = document.getElementById('splash');
   const canvas = document.getElementById('canvas-overlay');
