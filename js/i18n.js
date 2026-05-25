@@ -389,6 +389,8 @@ const _STRINGS = {
     // Invite-received hero
     invite_hero_meets:               'Join at',
     invite_pin_meeting_at:           'Meeting at',
+    pp_going_count:                  '{n} going',
+    pp_you:                          'You',
     invite_hero_coming:              'Coming at',
     invite_hero_sun_until:           'Sun until',
     invite_hero_remaining:           '{h}h {m}m of sun',
@@ -934,6 +936,8 @@ const _STRINGS = {
     // Invite-received hero
     invite_hero_meets:               'Bli med kl.',
     invite_pin_meeting_at:           'Møtes',
+    pp_going_count:                  '{n} blir med',
+    pp_you:                          'Du',
     invite_hero_coming:              'Kommer kl.',
     invite_hero_sun_until:           'Sol til',
     invite_hero_remaining:           '{h}t {m}m i sol',
@@ -1412,6 +1416,8 @@ const _STRINGS = {
     // Invite-received hero
     invite_hero_meets:               'Möts',
     invite_pin_meeting_at:           'Möts',
+    pp_going_count:                  '{n} kommer',
+    pp_you:                          'Du',
     invite_hero_coming:              'Kommer kl.',
     invite_hero_sun_until:           'Sol till',
     invite_hero_remaining:           '{h}t {m}m i sol',
@@ -1855,6 +1861,8 @@ const _STRINGS = {
     // Invite-received hero
     invite_hero_meets:               'Mødes',
     invite_pin_meeting_at:           'Mødes',
+    pp_going_count:                  '{n} kommer',
+    pp_you:                          'Dig',
     invite_hero_coming:              'Kommer kl.',
     invite_hero_sun_until:           'Sol til',
     invite_hero_remaining:           '{h}t {m}m i sol',

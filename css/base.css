@@ -316,10 +316,12 @@
     font-size: 14px; font-weight: 700; font-family: 'Inter', sans-serif;
     border: none; cursor: pointer; white-space: nowrap;
     background: var(--accent); color: var(--accent-on);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+    /* Flat lift per DESIGN.md (Honey CTA = --shadow-1 resting; raised on hover
+       casts the next step up). Was bespoke 0 2px 8px / 0 6px 24px alphas. */
+    box-shadow: var(--shadow-1);
     transition: background 120ms ease-out, box-shadow 120ms ease-out, transform 60ms ease-out;
   }
-  .p-pill:hover:not([disabled]) { background: var(--accent-hover); box-shadow: 0 6px 24px rgba(0,0,0,0.50); }
+  .p-pill:hover:not([disabled]) { background: var(--accent-hover); box-shadow: var(--shadow-2); }
   .p-pill:active:not([disabled]) { background: var(--accent-active); transform: translateY(1px); box-shadow: none; }
   .p-pill[disabled] { background: rgba(245,194,94,0.28); color: rgba(42,26,12,0.40); cursor: not-allowed; }
 
