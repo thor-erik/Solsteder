@@ -695,9 +695,9 @@
     position: relative;
     z-index: 1;
   }
-  /* Glass bead — same lens material + elevation as the FTS thumb (0% fill +
-     6px frost), so the two draggable thumbs read identically. Rim + inset +
-     contact shadows define the bead/grabbability at 0% fill. */
+  /* Flat thumb — defined by a SIMPLE border only (no bead shadow), kept on the
+     frost material (0% fill + 6px) so it stays in the track's family. Reads as
+     a clean ring rather than the FTS thumb's raised glass bead. */
   .zj-thumb {
     width: 24px;
     height: 24px;
@@ -706,20 +706,18 @@
     backdrop-filter: var(--glass-blur-panel);
     -webkit-backdrop-filter: var(--glass-blur-panel);
     border: var(--thumb-bead-border);
-    box-shadow: var(--thumb-bead-shadow);
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    transition: transform 0.25s cubic-bezier(0.25, 0.9, 0.4, 1), background 0.15s, box-shadow 0.15s;
+    transition: transform 0.25s cubic-bezier(0.25, 0.9, 0.4, 1), background 0.15s, border-color 0.15s;
     cursor: grab;
     z-index: 2;
   }
   .zj-thumb:active, .zj-thumb.active {
     cursor: grabbing;
-    /* Faint fill + tighter contact on grab — the bead "presses in". */
+    /* Faint fill on grab — the flat ring "fills in" slightly. */
     background: var(--thumb-bead-press-fill);
-    box-shadow: var(--thumb-bead-shadow-active);
   }
 
   /* ── Shared floating card base ────────────────────────────────────────────── */
