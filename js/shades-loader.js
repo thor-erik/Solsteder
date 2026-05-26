@@ -74,13 +74,16 @@
   const WORDMARK_Y = 252;       // baseline of "Shades" text
   const WORDMARK_SIZE = 32;     // px
 
-  // Horizontal blinds (Phase 2). 7 bars evenly spaced across the sun.
-  const N_BARS = 7;
-  const BAR_SPACING = (2 * R_SUN) / N_BARS;  // ≈ 27.14
-
   // Diagonal-stripe parameters for the shadow circle.
   const STRIPE_SPACING = 15;
   const STRIPE_INK_W   = 8;
+
+  // Horizontal blinds (Phase 2). Pitched to MATCH the shadow circle's stripe
+  // spacing so the loop reads at the same stripe width as the logo's striped
+  // element (was 7 chunky bars at ~27px pitch — visibly wider than the logo's
+  // 15px stripes). ~13 bars at ~14.6px pitch ≈ STRIPE_SPACING.
+  const N_BARS = Math.round((2 * R_SUN) / STRIPE_SPACING);  // ≈ 13
+  const BAR_SPACING = (2 * R_SUN) / N_BARS;                 // ≈ 14.6 ≈ STRIPE_SPACING
   // Final stripe angle in SVG rotation degrees. 135° produces the same
   // visual pattern as -45° (stripes 180°-symmetric) but reaching it
   // from 90° (horizontal, Phase 2 orientation) is a clean 45° sweep.
