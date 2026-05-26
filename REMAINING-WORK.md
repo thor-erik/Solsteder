@@ -25,6 +25,35 @@ decisions (saved venues, inbox, plan management, wind-shelter row) are largely *
 shipped** (`favorites` / `notifications` / `plans` / `plan_invites` exist per CLAUDE.md).
 Their only lasting value is the surface inventory, de-staled into the appendix below.
 
+## Recently completed (2026-05-26 session)
+
+Folded in from working sessions after this plan was first written:
+
+- **Phase 7 · Cold-start handoff — DONE & shipped.** The Shades Loader is wired
+  into the cold-start (`_skipIntro`) + invite boot paths: 4-phase intro→blinds→
+  resolve→crossfade, per-session gate, ≥1 blinds cycle, wordmark fade, render-
+  before-reveal map gate. Boot reveal reordered to **map → pins → UI**, and the
+  native (Android) Phase-1-behind-splash bug fixed (hold `_nativeSplashGone`
+  past the system-splash exit). iOS + Android cream splash parity. Dead sun-dial/
+  day-arc subsystem deleted.
+- **Glass-frost surface direction — DONE & shipped** (user-driven, adjacent to
+  Phase 5's "DESIGN.md surface-model update"). Venue list + top bar + floating
+  controls (locate-me, zoom-jog, FTS/zoom thumbs) moved to the accept-panel
+  pure-frost (`--glass-panel-bg` 0% Delft + `--glass-blur-frost` 22px; thumbs at
+  6px). Thumb material tokenized (`--thumb-bead-*`, `--thumb-flat-border`).
+  DESIGN.md updated ("Pure-frost floating surfaces").
+- **Native perf (partial).** MSAA `antialias:false` on native (big map-pan win);
+  panel drag-release **quick-win** velocity-snap shipped. **Still deferred** to a
+  native perf pass: the proper interruptible-spring fix + a confirmed one-frame
+  drag-release overshoot, and residual 3D/lighting/fog map-pan cost. See
+  `BACKLOG.md`.
+- **Repo moved off iCloud** (`~/Desktop` → `~/Developer/Solsteder`) — iCloud was
+  corrupting builds. And a Cloudflare Pages incident (corrupt content-hash blobs
+  on `ui-list.js` + `components-chrome.css`) was diagnosed + fixed.
+
+Still genuinely open in Phase 5/6 (mechanical + a11y): NOT verified done — treat
+the lists below as outstanding unless audited.
+
 ## Workflow (carried from CLAUDE.md Tier 2)
 
 - Each phase = its own branch + Cloudflare preview, **landed and verified before the next.**
@@ -178,8 +207,9 @@ decoration. Priority order from DESIGN-FIXES → "Premium mobile polish":
   mid-flight. Replace linear/ease with spring curves on sheets/transitions.
 - **Shared-element continuity.** Pin tap → card grows from the pin's location; list card →
   expands into detail (not a new screen sliding over). Strong premium signal for a map app.
-- **Cold-start handoff.** Wire the existing Shades Loader (in `index.html`) → smooth handoff
-  into the map. Skeleton shimmers, not spinners. Pixel-aligned icons on text baselines.
+- **Cold-start handoff. ✅ DONE (2026-05-26).** Shades Loader wired into cold-start +
+  invite boot; map→pins→UI reveal; native Phase-1 fix; cream splash parity. (See
+  "Recently completed" above.)
 - **Login as a brand moment** (beyond the Phase-4 contrast fix): solid Cream/Delft background
   + the stacked lockup + real Delft-blue text — legible *and* on-brand. *(DESIGN-FIXES → mobile polish)*
 - **Unify the sun/phase bar.** It carries time selection + sun/shade + weather and is cloned
