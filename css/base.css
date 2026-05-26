@@ -596,7 +596,7 @@
     -webkit-backdrop-filter: var(--glass-blur-frost);
     border: var(--glassctl-border);
     box-shadow: var(--panel-shadow);
-    color: rgba(17,30,56,0.70);
+    color: var(--ink-muted);
     cursor: pointer;
     transition: background 0.15s, border-color 0.15s, color 0.15s;
   }
@@ -690,7 +690,7 @@
     line-height: 1;
     /* Clear Delft ink — matches the locate-me icon so the control glyphs read
        consistently on the transparent frosted track (was 0.55, too muddy). */
-    color: rgba(17,30,56,0.70);
+    color: var(--ink-muted);
     pointer-events: none;
     position: relative;
     z-index: 1;
@@ -705,13 +705,8 @@
     background: var(--glass-panel-bg);
     backdrop-filter: var(--glass-blur-panel);
     -webkit-backdrop-filter: var(--glass-blur-panel);
-    border: 1px solid rgba(17,30,56,0.25);
-    box-shadow:
-      inset 0 1px 0 rgba(255,250,235,0.22),
-      inset 0 -1px 0 rgba(15,30,55,0.42),
-      0 0 0 0.5px rgba(15,27,42,0.50),
-      0 1px 2px rgba(0,0,0,0.28),
-      0 4px 10px rgba(0,0,0,0.32);
+    border: var(--thumb-bead-border);
+    box-shadow: var(--thumb-bead-shadow);
     position: absolute;
     top: 50%;
     left: 50%;
@@ -723,12 +718,8 @@
   .zj-thumb:active, .zj-thumb.active {
     cursor: grabbing;
     /* Faint fill + tighter contact on grab — the bead "presses in". */
-    background: rgba(17,30,56,0.12);
-    box-shadow:
-      inset 0 1px 0 rgba(255,250,235,0.18),
-      inset 0 -1px 2px rgba(15,30,55,0.50),
-      0 0 0 0.5px rgba(15,27,42,0.55),
-      0 1px 2px rgba(0,0,0,0.30);
+    background: var(--thumb-bead-press-fill);
+    box-shadow: var(--thumb-bead-shadow-active);
   }
 
   /* ── Shared floating card base ────────────────────────────────────────────── */
