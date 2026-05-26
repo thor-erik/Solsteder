@@ -1,3 +1,8 @@
+/* Content-hash bump 2026-05-26: Cloudflare Pages served a persistent HTTP 500
+   for this file's prior content hash — a corrupt blob in their content-addressed
+   asset store (the SAME hash 500'd across production + branch + preview deploys
+   while every other /js file returned 200). Altering the bytes mints a fresh
+   hash, sidestepping the bad blob. Safe to leave in place. */
 /**
  * ui-list.js — Venue list, venue cards, hover tooltip, and infinite scroll.
  * Depends on: computeSunWindows, formatHour, selectedId, nowMode, activeSortBy,
