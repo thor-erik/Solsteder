@@ -51,8 +51,10 @@ Folded in from working sessions after this plan was first written:
   corrupting builds. And a Cloudflare Pages incident (corrupt content-hash blobs
   on `ui-list.js` + `components-chrome.css`) was diagnosed + fixed.
 
-Still genuinely open in Phase 5/6 (mechanical + a11y): NOT verified done — treat
-the lists below as outstanding unless audited.
+**Phases 5 & 6 — believed complete (2026-05-26 user call).** Deferred to a single
+combined **final-check audit + performance audit** (run together near the end)
+rather than re-verified now. The Phase 5/6 detail below is kept for that audit's
+checklist; treat it as "spot-check, don't assume regressions."
 
 ## Workflow (carried from CLAUDE.md Tier 2)
 
