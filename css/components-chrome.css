@@ -151,11 +151,11 @@
     gap: var(--space-sm);
     padding: var(--space-xs);
     border-radius: var(--radius-pill);
-    /* Chrome surface (DESIGN.md Phase 2.1): Jordy 25% wash + 4px frost +
-       light hairline + flat shadow-1. Was the transparent --glass-panel-bg. */
-    background: var(--surface-chrome);
-    backdrop-filter: var(--blur-surface);
-    -webkit-backdrop-filter: var(--blur-surface);
+    /* Pure-frost glass — matches the accept panel + venue list (alpha-0 Delft
+       base + 22px frost), replacing the earlier Jordy 25% wash + 4px surface. */
+    background: var(--glass-panel-bg);
+    backdrop-filter: var(--glass-blur-frost);
+    -webkit-backdrop-filter: var(--glass-blur-frost);
     border: 1px solid var(--line-l);
     box-shadow: var(--shadow-1);
     container-type: inline-size;

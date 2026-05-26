@@ -120,6 +120,9 @@
     --glass-blur-card:  blur(6px);
     --glass-blur-action: blur(8px);
     --glass-blur-pill:  blur(8px);
+    /* Heavy "first-impression" frost — the accept panel + (now) the venue
+       list and top bar. Pure blur over an alpha-0 Delft base. */
+    --glass-blur-frost: blur(22px);
     --glass-border: 1px solid rgba(17,30,56,0.12);
     --glass-border-light: 1px solid rgba(17,30,56,0.08);
     /* Null inset — no sheen on transparent panels. Using a transparent shadow

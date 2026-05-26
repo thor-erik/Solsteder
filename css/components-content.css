@@ -151,13 +151,13 @@
        inspector is ~340 px). Top-strip aligns to this same column. */
     width: 380px;
     border-radius: var(--radius-lg);
-    /* Chrome surface (DESIGN.md Phase 2.1) — overrides the shared .glass-panel
-       class (id > class) so only #panel migrates, not other .glass-panel users.
-       Jordy 25% wash + 4px frost + light hairline + flat shadow-1. The mobile
+    /* Pure-frost glass — matches the accept panel (alpha-0 Delft base + heavy
+       22px frost), replacing the earlier Jordy 25% wash + 4px chrome surface.
+       The map shows through, blurred; cards sit opaque on top. The mobile
        bottom-sheet rule below keeps only the top border (l/r/b: none). */
-    background: var(--surface-chrome);
-    backdrop-filter: var(--blur-surface);
-    -webkit-backdrop-filter: var(--blur-surface);
+    background: var(--glass-panel-bg);
+    backdrop-filter: var(--glass-blur-frost);
+    -webkit-backdrop-filter: var(--glass-blur-frost);
     border: 1px solid var(--line-l);
     box-shadow: var(--shadow-1);
     display: flex;
