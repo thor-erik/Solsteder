@@ -209,6 +209,7 @@
        on-surface colour is cream; over the map we use the label treatment). */
     font-weight: 900;
     letter-spacing: -0.028em;
+    text-transform: lowercase;   /* experiment — "shades" all-lowercase */
     color: var(--label-text);
     text-shadow: var(--label-halo);
     line-height: 1;
