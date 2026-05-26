@@ -8488,17 +8488,17 @@ function _skipIntro(seqId, opts) {
           }
         };
         if (typeof map !== 'undefined' && map && typeof map.once === 'function') {
-          // 'idle' is the real "everything for this view is painted + faded"
-          // signal. map.loaded() can be true while tiles are still rendering,
-          // which made the crossfade reveal a half-painted map (#5). Always
-          // prefer 'idle'; for the already-settled case fall through via a
-          // short rAF + tile-fade settle. Generous 6 s cap (loader keeps
-          // looping until then); the 12 s kill-switch is the hard backstop.
-          map.once('idle', _dismissOnce);
-          if (map.loaded && map.loaded() && !map.isMoving()) {
-            requestAnimationFrame(() => requestAnimationFrame(() =>
-              setTimeout(_dismissOnce, 350)));   // let tiles finish fading in
-          }
+          // Wait for a genuine post-render 'idle' — the only signal that fires
+          // AFTER tiles are actually painted. map.loaded() and areTilesLoaded()
+          // both report true while tiles are still rendering, which revealed a
+          // blank map (#5). triggerRepaint forces a render→idle cycle so 'idle'
+          // still fires if the map settled before we subscribed; the loader
+          // keeps looping until it lands. 6 s cap; 12 s kill-switch backstops.
+          // 'idle' can fire as tiles paint top-first; give the progressive
+          // render a short settle so the crossfade reveals the WHOLE map, not
+          // a top-rendered / bottom-blank frame (#5).
+          map.once('idle', () => setTimeout(_dismissOnce, 450));
+          try { if (map.triggerRepaint) map.triggerRepaint(); } catch (e) {}
           setTimeout(_dismissOnce, 6000);
         } else {
           _dismissOnce();
