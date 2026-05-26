@@ -179,12 +179,17 @@
   body.plan-preview-active #top-strip,
   body.post-accept-active #top-strip,
   body.profile-panel-open #top-strip,
-  body.invite-sheet-open #top-strip,
+  body.invite-sheet-open #top-strip {
+    transform: translateY(calc(-100% - env(safe-area-inset-top, 0px) - 14px));
+    pointer-events: none;
+  }
+  /* Brand is now a bottom-anchored floating label — fade it out (not slide up)
+     when a full-screen overlay takes over the map. */
   body.plan-preview-active #floating-brand,
   body.post-accept-active #floating-brand,
   body.profile-panel-open #floating-brand,
   body.invite-sheet-open #floating-brand {
-    transform: translateY(calc(-100% - env(safe-area-inset-top, 0px) - 14px));
+    opacity: 0;
     pointer-events: none;
   }
   #top-strip .ts-left, #top-strip .ts-right {
@@ -1308,24 +1313,24 @@
 
      Mobile rule below (line ~4815) hides this entirely; the top-strip's
      avatar carries the identity at touch widths. */
+  /* Floating brand label — "exactly like Google Maps": a bare horizontal mark +
+     wordmark lockup over the map, no pill/border/shadow box. Desktop default:
+     bottom-left, aligned to the venue-list column's left edge. The mobile rule
+     (components-content.css) re-anchors it just above the bottom sheet and tracks
+     the sheet via --peek-h / --fts-bottom. pointer-events:none — it's a label,
+     so map gestures pass through. */
   #floating-brand {
     position: absolute;
-    top: max(calc(env(safe-area-inset-top, 0px) + 2px), 14px);
-    right: 16px;
+    left: 16px;
+    bottom: 16px;
     z-index: 900;
-    height: 46px;
-    box-sizing: border-box;
-    padding: var(--space-xs) var(--space-lg);
-    border-radius: var(--radius-pill);
-    background: var(--glass-panel-bg);
-    backdrop-filter: var(--glass-blur-panel);
-    -webkit-backdrop-filter: var(--glass-blur-panel);
-    border: var(--glass-border);
-    box-shadow: 0 6px 20px rgba(0,0,0,0.30);
     display: flex;
     align-items: center;
-    gap: var(--space-md);
-    transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.22s ease;
+    gap: var(--space-sm);
+    pointer-events: none;
+    transition: opacity 0.28s ease,
+                bottom 0.34s cubic-bezier(0.25, 0.9, 0.4, 1),
+                transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
     will-change: transform;
   }
 

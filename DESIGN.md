@@ -126,6 +126,27 @@ build on a physical S25; the gesture lag was MSAA/canvas draw, not the blur.
 This supersedes the "chrome panel = `--surface-chrome`" line for these specific
 surfaces only; Jordy-25% remains the token for any surface not listed here.
 
+### Brand lockup — floating label (spec · 2026-05-26)
+
+The `Shades` mark + wordmark is a **floating map label, "exactly like Google
+Maps"** — not a chrome pill. Horizontal lockup (mark + wordmark), **left-anchored
+and floating above the venue list**, over the map:
+
+- **No surface.** Bare lockup — no frosted pill, border, or shadow box. It reads
+  directly on the map like a pin label.
+- **Wordmark = white + label halo.** `#FFFFFF` text with the **same halo as the
+  floating venue name labels** (`--label-halo`: four stacked `0 0 4px rgba(0,0,0,1)`
+  text-shadows — the CSS mirror of render-pins' 4×-stacked canvas glow). Legible
+  over any map band. The mark keeps its colour with a soft drop-shadow.
+- **Anchored to the list, tracks the sheet.** Sits just above the venue-list top
+  edge, bottom-left. On mobile it follows the bottom sheet (peek/expanded) via the
+  same `--peek-h` / `--fts-bottom` vars + drag-tracking as `#locate-btn`.
+- **Fades out on fullscreen.** When the sheet goes expanded → fullscreen (map fully
+  covered) the lockup fades to 0 — nothing to float over. Visible in peek + expanded.
+
+Replaces the previous top-right frosted-pill brand card (and the mobile
+`display:none`).
+
 ### Status
 
 ```

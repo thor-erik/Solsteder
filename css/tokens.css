@@ -181,6 +181,12 @@
     /* Flat zoom-jog thumb — a simple ring (no bead shadow), so its border
        carries more weight than the shadow-backed bead rim above. */
     --thumb-flat-border:        1.5px solid rgba(17,30,56,0.40);
+    /* Floating-label halo — white text legible over any map band. CSS mirror
+       of render-pins' 4×-stacked canvas glow (the venue name labels). Used by
+       the brand wordmark; reuse for any DOM label floating over the map. */
+    --label-halo: 0 0 4px rgba(0,0,0,1), 0 0 4px rgba(0,0,0,1), 0 0 4px rgba(0,0,0,1), 0 0 4px rgba(0,0,0,1);
+    --label-text: #FFFFFF;                       /* pure white — matches render-pins LIGHT_FILL */
+    --label-mark-shadow: drop-shadow(0 1px 3px rgba(0,0,0,0.45));  /* soft lift for the mark over the map */
     /* Dark muted text for transparent (A) + cream (C) surfaces — replaces
        --muted (#9BA9BC slate) which is illegible on light backgrounds.
        0.70 (was 0.55) so it clears WCAG AA on the cream dropdown + Jordy-25%

@@ -196,13 +196,18 @@
     width: auto;
     object-fit: contain;
     display: block;
+    /* Soft lift so the mark reads over any map band (no pill behind it now). */
+    filter: var(--label-mark-shadow);
   }
   #brand-name {
     font-family: 'Inter', sans-serif;
     font-size: 16px;
     font-weight: 600;
     letter-spacing: -0.01em;
-    color: var(--text);
+    /* White wordmark + the floating-label halo — matches the map's venue name
+       labels so it reads over the map without a surface behind it. */
+    color: var(--label-text);
+    text-shadow: var(--label-halo);
     line-height: 1;
     flex-shrink: 0;
   }
@@ -1653,8 +1658,20 @@
 
   /* ── Mobile — bottom sheet ────────────────────────────────────────── */
   @media (max-width: 639px) {
-    /* Hide brand logo — saves top-right space */
-    #floating-brand { display: none; }
+    /* Brand floats bottom-left just above the venue-list sheet, mirroring
+       #locate-btn's sheet tracking (peek-h / fts-bottom + the drag handler).
+       Fades out at fullscreen (map fully covered). */
+    #floating-brand {
+      left: 12px;
+      right: auto;
+      bottom: calc(var(--peek-h, 252px) + 14px);
+    }
+    body.fts #floating-brand {
+      bottom: calc(var(--fts-bottom, 160px) + 6px);
+    }
+    body:has(#panel.mobile-fullscreen) #floating-brand {
+      opacity: 0;
+    }
 
     #floating-search {
       left: 6px;

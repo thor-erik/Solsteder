@@ -5065,6 +5065,7 @@ document.addEventListener('DOMContentLoaded', () => {
       let _ftsEl = null; // cache FTS element ref to avoid DOM lookup per frame
       let _locateEl = null; // cache locate button ref
       let _zoomJogEl = null; // cache zoom jog ref
+      let _brandEl = null; // cache floating-brand ref (tracks the sheet, left side)
       function _trackDrag(y) {
         if (!_dragActive) return;
         if (_dragRafId) cancelAnimationFrame(_dragRafId);
@@ -5112,6 +5113,13 @@ document.addEventListener('DOMContentLoaded', () => {
             _zoomJogEl.style.bottom = (locateBottom + 34 + 10) + 'px'; // above locate btn
             _zoomJogEl.style.opacity = String(1 - progress);
           }
+          // Brand label rides the same baseline as locate-me, on the LEFT, so it
+          // tracks the sheet top during the drag instead of lagging at its CSS bottom.
+          if (!_brandEl) _brandEl = document.getElementById('floating-brand');
+          if (_brandEl) {
+            _brandEl.style.transition = 'none';
+            _brandEl.style.bottom = locateBottom + 'px';
+          }
 
           _dragRafId = null;
         });
@@ -5151,6 +5159,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (_locateEl) { _locateEl.style.transition = ''; _locateEl.style.bottom = ''; _locateEl.style.opacity = ''; }
         if (!_zoomJogEl) _zoomJogEl = document.getElementById('zoom-jog');
         if (_zoomJogEl) { _zoomJogEl.style.transition = ''; _zoomJogEl.style.bottom = ''; _zoomJogEl.style.opacity = ''; }
+        if (!_brandEl) _brandEl = document.getElementById('floating-brand');
+        if (_brandEl) { _brandEl.style.transition = ''; _brandEl.style.bottom = ''; }
 
         // FLIP-style commit for the new bottom-based positioning. The panel
         // now uses `bottom` (layout, transitionable, backdrop-filter-safe)
@@ -8116,7 +8126,15 @@ function _introRevealUI(search, brand, qcWrap, panel, opts) {
     // of where its anchored left/right offset puts it.
     _slideIn(topStrip,  'translateX(calc(-100% - 32px))');
     _slideIn(panel,     'translateX(calc(-100% - 32px))');
-    _slideIn(brand,     'translateX(calc(100% + 32px))');
+    // Brand is a bottom-left floating map label now (not the old top-right card)
+    // — fade it in rather than slide from the right.
+    if (brand) {
+      brand.style.transition = 'opacity 0.5s ease';
+      requestAnimationFrame(() => {
+        brand.classList.remove('intro-hidden');
+        setTimeout(() => { if (brand) brand.style.transition = ''; }, 600);
+      });
+    }
     // qc-wrap is the toast strip — fade rather than slide so a queued
     // toast on app-start doesn't appear mid-flight.
     if (qcWrap) {
