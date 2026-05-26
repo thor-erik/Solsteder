@@ -8044,10 +8044,18 @@ function _mountShadesLoader() {
     console.warn('[boot] shades loader mount failed', e);
     _shadesLoader = null;
   }
-  // The static-logo first frame paints synchronously on mount. Hand off from
-  // the native splash on the next frame so cream + mark stays continuous
-  // (native static logo → web loader static frame) with no flash.
-  requestAnimationFrame(() => _hideNativeSplash());
+  // Hand off from the native splash only once BOTH: (a) the web frame is
+  // painted (this mount ran → a rAF confirms paint), and (b) iOS's app-open
+  // dim has lifted so the native splash is at FULL brightness. Handing off
+  // during the dim makes the switch from a dimmed native splash to the
+  // full-brightness web frame read as a jarring flash; handing off before
+  // first paint shows a black gap. Waiting out the dim from boot gives a
+  // full→full, painted handoff. The native launch screen simply shows for the
+  // normal app-open beat — no post-handoff static hold (Phase 1 fires right
+  // after via _nativeSplashGone).
+  const _DIM_CLEAR_MS = 480;  // ≈ iOS app-open animation; native is full-brightness past this
+  const _waitDim = Math.max(0, _DIM_CLEAR_MS - (performance.now() - _splashStart));
+  setTimeout(() => requestAnimationFrame(() => _hideNativeSplash()), _waitDim);
   return _shadesLoader;
 }
 window._mountShadesLoader = _mountShadesLoader;
