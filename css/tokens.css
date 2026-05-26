@@ -178,6 +178,9 @@
     --thumb-bead-shadow:        inset 0 1px 0 rgba(255,250,235,0.22), inset 0 -1px 0 rgba(15,30,55,0.42), 0 0 0 0.5px rgba(15,27,42,0.50), 0 1px 2px rgba(0,0,0,0.28), 0 4px 10px rgba(0,0,0,0.32);
     --thumb-bead-shadow-active: inset 0 1px 0 rgba(255,250,235,0.18), inset 0 -1px 2px rgba(15,30,55,0.50), 0 0 0 0.5px rgba(15,27,42,0.55), 0 1px 2px rgba(0,0,0,0.30);
     --thumb-bead-press-fill:    rgba(17,30,56,0.12);
+    /* Flat zoom-jog thumb — a simple ring (no bead shadow), so its border
+       carries more weight than the shadow-backed bead rim above. */
+    --thumb-flat-border:        1.5px solid rgba(17,30,56,0.40);
     /* Dark muted text for transparent (A) + cream (C) surfaces — replaces
        --muted (#9BA9BC slate) which is illegible on light backgrounds.
        0.70 (was 0.55) so it clears WCAG AA on the cream dropdown + Jordy-25%

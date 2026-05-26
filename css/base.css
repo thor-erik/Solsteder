@@ -705,7 +705,7 @@
     background: var(--glass-panel-bg);
     backdrop-filter: var(--glass-blur-panel);
     -webkit-backdrop-filter: var(--glass-blur-panel);
-    border: var(--thumb-bead-border);
+    border: var(--thumb-flat-border);
     position: absolute;
     top: 50%;
     left: 50%;

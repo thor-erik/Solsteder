@@ -101,6 +101,31 @@ What components consume. Updating these is how brand work happens.
 
 **Code follow-up:** these supersede `--glass-panel-bg` / `--glass-card-bg` / `--glass-action-bg` and the `--glass-blur-*` set. Repoint components to the `--surface-*` / `--blur-*` / `--shadow-*` / `--line-*` tokens in `:root`, and teach `validate-tokens.mjs` to flag raw alphas, `blur()`, and border rgba.
 
+### Pure-frost floating surfaces (update · 2026-05-26)
+
+The floating bars — venue list (`#panel`) + top bar (`#top-strip`) — and the
+floating controls (locate-me button, zoom-jog track, FTS + zoom-jog thumbs) use
+the **accept-panel pure-frost glass**, NOT the Jordy-25% `--surface-chrome`
+above. This is a deliberate reversal for these surfaces:
+
+- **Fill:** `--glass-panel-bg` — Delft Blue at **0% alpha** (a pure transparent
+  lens; the blurred map IS the surface). No colour wash.
+- **Blur:** `--glass-blur-frost` (**22px**) on the bars + the locate-me / zoom-jog
+  containers; `--glass-blur-panel` (6px) on the small thumbs (22px muddies a 32px
+  knob).
+- **Definition at 0% fill:** `--line-*` border + `--panel-shadow` (bars/buttons).
+- **Thumbs** are tokenized: `--thumb-bead-{border,shadow,shadow-active,press-fill}`
+  (FTS thumb = raised glass bead) and `--thumb-flat-border` (zoom-jog thumb = a
+  flat ring, no elevation). `+/-` labels + the locate-me icon use `--ink-muted`.
+
+**Why:** the venue list reading visually identical to the invite/accept panel
+unifies the whole app into one "lens" material (brand: Shades = sunglass lenses).
+Blur is **perf-neutral on native** — verified by an all-`backdrop-filter`-off
+build on a physical S25; the gesture lag was MSAA/canvas draw, not the blur.
+
+This supersedes the "chrome panel = `--surface-chrome`" line for these specific
+surfaces only; Jordy-25% remains the token for any surface not listed here.
+
 ### Status
 
 ```
