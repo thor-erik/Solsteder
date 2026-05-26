@@ -588,14 +588,12 @@
     height: 34px;
     padding: 0;
     border-radius: 50%;
-    /* Match the venue-list panel's glass instead of the more-solid action
-       token — user observed the button 'looks more blue than the
-       transparent gaussian background of the venue list panel.' Panel
-       tokens give a softer, more transparent feel for a standalone
-       floating button against the map. */
-    background: var(--glassctl-bg);
-    backdrop-filter: blur(3px);
-    -webkit-backdrop-filter: blur(3px);
+    /* Pure-frost glass — same material as the venue-list panel + top bar
+       (Delft 0% fill + 22px frost). The border + shadow below keep the disc
+       defined against the map at 0% fill. */
+    background: var(--glass-panel-bg);
+    backdrop-filter: var(--glass-blur-frost);
+    -webkit-backdrop-filter: var(--glass-blur-frost);
     border: var(--glassctl-border);
     box-shadow: var(--panel-shadow);
     color: rgba(17,30,56,0.70);
@@ -673,9 +671,10 @@
     width: 34px;
     height: 92px;
     border-radius: var(--radius-lg);
-    background: var(--glassctl-bg);
-    backdrop-filter: blur(3px);
-    -webkit-backdrop-filter: blur(3px);
+    /* Pure-frost glass — matched to the venue-list panel + locate-me button. */
+    background: var(--glass-panel-bg);
+    backdrop-filter: var(--glass-blur-frost);
+    -webkit-backdrop-filter: var(--glass-blur-frost);
     border: var(--glassctl-border);
     box-shadow: var(--panel-shadow);
     position: relative;

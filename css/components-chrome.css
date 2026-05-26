@@ -1464,9 +1464,12 @@
     --glint-drift-angle: 0deg;
     --glint-angle: calc(var(--glint-base-angle) + var(--glint-drift-angle));
 
-    background: var(--glass-action-bg);
-    backdrop-filter: var(--glass-blur-action);
-    -webkit-backdrop-filter: var(--glass-blur-action);
+    /* Pure-frost glass to match the panel + floating controls, but at a
+       lighter 6px blur (22px on a 32px knob muddies it). The rim + inset +
+       contact shadows below keep the bead defined/grabbable at 0% fill. */
+    background: var(--glass-panel-bg);
+    backdrop-filter: var(--glass-blur-panel);
+    -webkit-backdrop-filter: var(--glass-blur-panel);
 
     /* Dark subtle rim — reads against cream map without an
        aggressive 'iOS knob' outline. */
