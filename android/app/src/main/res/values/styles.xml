@@ -22,6 +22,13 @@
 
 
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+        <!-- Android 12+ SplashScreen API: cream background + the launcher icon
+             (Shades mark), auto-centred and system-sized small — matching the
+             iOS cream + small-mark splash. @capacitor/splash-screen holds this
+             until JS hands off to the web loader. The legacy full-screen
+             @drawable/splash is kept only for Android < 12. -->
+        <item name="windowSplashScreenBackground">@color/shades_cream</item>
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
         <item name="android:background">@drawable/splash</item>
     </style>
 </resources>
