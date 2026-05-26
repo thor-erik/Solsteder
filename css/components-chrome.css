@@ -1,3 +1,7 @@
+/* Content-hash bump 2026-05-26: Cloudflare Pages served a persistent HTTP 500
+   for this file's prior content hash (a corrupt blob in their content-addressed
+   asset store — same failure mode that hit js/ui-list.js). Altering the bytes
+   mints a fresh hash, sidestepping the bad blob. Safe to leave in place. */
   /* ── Top-left: search bar ──────────────────────────────────────────────────── */
   #floating-search {
     position: absolute;
