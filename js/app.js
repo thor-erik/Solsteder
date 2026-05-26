@@ -1566,7 +1566,11 @@ const map = new mapboxgl.Map({
   // intro settle. 14 keeps Aker brygge → Grünerløkka in frame.
   zoom: 14,
   pitch: 15,
-  antialias: true,
+  // MSAA is very expensive on native WebViews at device DPR (the S25's
+  // ~1440×3120 WebGL surface), and it's the dominant per-frame cost during
+  // map pan/zoom. Disable on native (Capacitor); keep on web/desktop where
+  // the GPU budget is ample and the smoother edges are worth it.
+  antialias: !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()),
   attributionControl: false,
 });
 
