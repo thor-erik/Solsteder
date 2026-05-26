@@ -688,28 +688,47 @@
     font-size: var(--text-label);
     font-weight: 700;
     line-height: 1;
-    color: rgba(17,30,56,0.55);
+    /* Clear Delft ink — matches the locate-me icon so the control glyphs read
+       consistently on the transparent frosted track (was 0.55, too muddy). */
+    color: rgba(17,30,56,0.70);
     pointer-events: none;
     position: relative;
     z-index: 1;
   }
+  /* Glass bead — same lens material + elevation as the FTS thumb (0% fill +
+     6px frost), so the two draggable thumbs read identically. Rim + inset +
+     contact shadows define the bead/grabbability at 0% fill. */
   .zj-thumb {
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    background: rgba(17,30,56,0.16);
-    border: 1.5px solid rgba(17,30,56,0.30);
+    background: var(--glass-panel-bg);
+    backdrop-filter: var(--glass-blur-panel);
+    -webkit-backdrop-filter: var(--glass-blur-panel);
+    border: 1px solid rgba(17,30,56,0.25);
+    box-shadow:
+      inset 0 1px 0 rgba(255,250,235,0.22),
+      inset 0 -1px 0 rgba(15,30,55,0.42),
+      0 0 0 0.5px rgba(15,27,42,0.50),
+      0 1px 2px rgba(0,0,0,0.28),
+      0 4px 10px rgba(0,0,0,0.32);
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    transition: transform 0.25s cubic-bezier(0.25, 0.9, 0.4, 1), background 0.15s;
+    transition: transform 0.25s cubic-bezier(0.25, 0.9, 0.4, 1), background 0.15s, box-shadow 0.15s;
     cursor: grab;
     z-index: 2;
   }
   .zj-thumb:active, .zj-thumb.active {
     cursor: grabbing;
-    background: rgba(17,30,56,0.28);
+    /* Faint fill + tighter contact on grab — the bead "presses in". */
+    background: rgba(17,30,56,0.12);
+    box-shadow:
+      inset 0 1px 0 rgba(255,250,235,0.18),
+      inset 0 -1px 2px rgba(15,30,55,0.50),
+      0 0 0 0.5px rgba(15,27,42,0.55),
+      0 1px 2px rgba(0,0,0,0.30);
   }
 
   /* ── Shared floating card base ────────────────────────────────────────────── */
