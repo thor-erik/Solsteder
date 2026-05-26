@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shadow Pill Stripes — lab · Shades</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  /* ── Lab chrome ─────────────────────────────────────────────────────────
+     Brand palette (kept inline so the lab is self-contained):
+       --ink   #111E38  Delft Blue
+       --cream #FFF2EB
+       --jordy #9CBDE7  Jordy Blue (shade pill)
+       --honey #F5C25E  Sunny gold (hero pill)
+     The PILL ITSELF is drawn on <canvas> using the exact geometry constants
+     from js/render-pins.js — only colour / stripe / outline / dot / background
+     are parameterised, so whatever you land here translates 1:1 into _drawPill.
+  ──────────────────────────────────────────────────────────────────────── */
+  :root {
+    --ink: #111E38; --cream: #FFF2EB; --jordy: #9CBDE7; --honey: #F5C25E;
+    --panel: #0c1526; --panel-2: #131f36;
+    --line: rgba(156,189,231,0.18);
+    --text: #e8eefb; --muted: #8da0c4;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--panel);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ── Control rail ── */
+  .rail {
+    background: var(--panel-2);
+    border-right: 1px solid var(--line);
+    overflow-y: auto;
+    padding: 18px 18px 60px;
+  }
+  .rail h1 { font-size: 17px; font-weight: 800; margin: 0 0 2px; letter-spacing: -0.02em; }
+  .rail .sub { font-size: 11.5px; color: var(--muted); line-height: 1.5; margin: 0 0 16px; }
+
+  fieldset {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 12px 14px;
+    margin: 0 0 14px;
+  }
+  legend {
+    font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--jordy); padding: 0 6px;
+  }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 9px 0; }
+  .row label { font-size: 12px; color: var(--text); flex: 0 0 auto; }
+  .row .val { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 42px; text-align: right; }
+  input[type=range] { flex: 1 1 auto; accent-color: var(--honey); }
+  /* Brand-palette swatch picker (replaces free <input type=color>) */
+  .swatch {
+    width: 34px; height: 24px; border-radius: 5px; padding: 0; cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.35); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.2);
+  }
+  .swatch:focus-visible { outline: 2px solid var(--honey); outline-offset: 1px; }
+  .palette-pop {
+    position: fixed; z-index: 100; background: var(--panel-2);
+    border: 1px solid var(--line); border-radius: 10px; padding: 10px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+    display: grid; grid-template-columns: repeat(6, 24px); gap: 6px; width: max-content;
+  }
+  .palette-pop[hidden] { display: none; }
+  .palette-pop .chip {
+    width: 24px; height: 24px; border-radius: 5px; cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.3); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.2);
+  }
+  .palette-pop .chip:hover { transform: scale(1.12); }
+  .palette-pop .chip.sel { outline: 2px solid var(--honey); outline-offset: 1px; }
+  input[type=text] {
+    flex: 1 1 auto; background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+    color: var(--text); font: inherit; font-size: 12px; padding: 5px 8px;
+  }
+  select {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+    color: var(--text); font: inherit; font-size: 12px; padding: 5px 8px;
+  }
+  .check { display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer; }
+  .check input { accent-color: var(--honey); width: 15px; height: 15px; }
+
+  .presetbar { display: flex; flex-wrap: wrap; gap: 6px; }
+  .presetbar button, .actions button {
+    border: 1px solid var(--line); background: var(--panel); color: var(--text);
+    border-radius: 7px; font: inherit; font-size: 11.5px; padding: 6px 10px; cursor: pointer;
+  }
+  .presetbar button:hover, .actions button:hover { border-color: var(--jordy); }
+  .actions { display: flex; gap: 8px; margin-top: 4px; }
+  .actions button.primary { background: var(--honey); color: #2a1a0c; font-weight: 700; border-color: var(--honey); }
+
+  /* ── Stage ── */
+  .stage { position: relative; overflow: hidden; }
+  .scroller { height: 100%; overflow-y: auto; }
+  .map {
+    position: relative; margin: 0; min-height: 100%;
+    background:
+      radial-gradient(120% 90% at 60% 30%, #c9bca0 0%, #a8987c 60%, #8b7c63 100%);
+  }
+  .map::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background:
+      repeating-linear-gradient(74deg, rgba(255,255,255,0.06) 0 2px, transparent 2px 90px),
+      repeating-linear-gradient(164deg, rgba(255,255,255,0.06) 0 2px, transparent 2px 110px),
+      repeating-linear-gradient(28deg, rgba(0,0,0,0.05) 0 1px, transparent 1px 50px);
+  }
+  #mainCanvas { position: relative; display: block; width: 100%; }
+  .bgtoggle {
+    position: absolute; top: 14px; right: 16px; z-index: 5;
+    display: flex; gap: 6px;
+  }
+  .bgtoggle button {
+    border: 1px solid rgba(17,30,56,0.25); background: rgba(255,255,255,0.55); color: #111E38;
+    border-radius: 7px; font: inherit; font-size: 11px; font-weight: 600; padding: 5px 10px; cursor: pointer;
+    backdrop-filter: blur(4px);
+  }
+  .bgtoggle button.on { background: #111E38; color: #FFF2EB; border-color: #111E38; }
+
+  .gallery {
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+    padding: 16px 20px 40px;
+  }
+  .gallery h2 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--jordy); margin: 0 0 4px; }
+  .gallery p { font-size: 11.5px; color: var(--muted); margin: 0 0 14px; max-width: 70ch; line-height: 1.5; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .gcell {
+    border: 1px solid var(--line); border-radius: 9px; padding: 8px; cursor: pointer;
+    background:
+      radial-gradient(120% 90% at 40% 30%, #c9bca0 0%, #a8987c 60%, #8b7c63 100%);
+    text-align: center; position: relative;
+  }
+  .gcell:hover { outline: 2px solid var(--honey); }
+  .gcell canvas { display: block; width: 100%; }
+  .gcell .name {
+    position: absolute; top: 6px; left: 8px; font-size: 10px; font-weight: 700;
+    color: var(--cream); text-shadow: 0 1px 2px rgba(17,30,56,0.6); letter-spacing: 0.02em;
+  }
+
+  #config {
+    width: 100%; min-height: 140px; margin-top: 8px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+    color: var(--muted); font-family: ui-monospace, Menlo, monospace; font-size: 11px;
+    padding: 10px; resize: vertical; white-space: pre;
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════ CONTROL RAIL ════════════════════ -->
+<div class="rail">
+  <h1>Shadow Pill Lab</h1>
+  <p class="sub">Pills drawn on canvas with the live <code>render-pins.js</code> geometry — layout &amp; size are locked. Tune only the look.</p>
+
+  <fieldset>
+    <legend>Presets</legend>
+    <div class="presetbar" id="presets"></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Pill background</legend>
+    <label class="check"><input type="checkbox" id="stripesOn" checked> Diagonal stripes</label>
+    <div class="row"><label>Base fill</label><button class="swatch" id="baseColor" data-color="#FFF2EB" title="Base fill"></button></div>
+    <div class="row"><label>Stripe color</label><button class="swatch" id="stripeColor" data-color="#111E38" title="Stripe color"></button></div>
+    <div class="row"><label>Stripe opacity</label><input type="range" id="stripeOpacity" min="0" max="1" step="0.05" value="1"><span class="val" data-for="stripeOpacity"></span></div>
+    <div class="row"><label>Angle</label><input type="range" id="angle" min="0" max="180" step="1" value="135"><span class="val" data-for="angle"></span></div>
+    <div class="row"><label>Period (px)</label><input type="range" id="period" min="3" max="20" step="0.5" value="7"><span class="val" data-for="period"></span></div>
+    <div class="row"><label>Fill ratio</label><input type="range" id="fillRatio" min="0.1" max="0.9" step="0.05" value="0.55"><span class="val" data-for="fillRatio"></span></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Border &amp; shadow</legend>
+    <div class="row"><label>Border color</label><button class="swatch" id="borderColor" data-color="#111E38" title="Border color"></button></div>
+    <div class="row"><label>Border opacity</label><input type="range" id="borderOpacity" min="0" max="1" step="0.02" value="0.18"><span class="val" data-for="borderOpacity"></span></div>
+    <div class="row"><label>Border width</label><input type="range" id="borderWidth" min="0" max="3" step="0.25" value="1"><span class="val" data-for="borderWidth"></span></div>
+    <label class="check"><input type="checkbox" id="shadowOn" checked> Drop shadow</label>
+    <div class="row"><label>Shadow blur</label><input type="range" id="shadowBlur" min="0" max="20" step="1" value="6"><span class="val" data-for="shadowBlur"></span></div>
+    <div class="row"><label>Shadow alpha</label><input type="range" id="shadowAlpha" min="0" max="0.6" step="0.02" value="0.18"><span class="val" data-for="shadowAlpha"></span></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Dot / glyph</legend>
+    <label class="check"><input type="checkbox" id="dotOn" checked> Show dot</label>
+    <div class="row"><label>Glyph</label>
+      <select id="glyphMode">
+        <option value="icon" selected>Category icon</option>
+        <option value="heart">Heart (favorited)</option>
+        <option value="clock">Clock (opening soon)</option>
+        <option value="none">Empty disc</option>
+      </select>
+    </div>
+    <div class="row"><label>Category</label>
+      <select id="category"><option value="cafe">Café</option><option value="bar" selected>Bar</option><option value="restaurant">Restaurant</option></select>
+    </div>
+    <div class="row"><label>Disc fill</label><button class="swatch" id="dotColor" data-color="#111E38" title="Disc fill"></button></div>
+    <div class="row"><label>Disc opacity</label><input type="range" id="dotOpacity" min="0" max="1" step="0.05" value="1"><span class="val" data-for="dotOpacity"></span></div>
+    <div class="row"><label>Icon color</label><button class="swatch" id="iconColor" data-color="#FFF2EB" title="Icon color"></button></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Time text</legend>
+    <div class="row"><label>Text</label><input type="text" id="timeText" value="fra 20:00"></div>
+    <div class="row"><label>Color</label><button class="swatch" id="textColor" data-color="#111E38" title="Text color"></button></div>
+    <div class="row"><label>Weight</label>
+      <select id="textWeight"><option>400</option><option>500</option><option selected>600</option><option>700</option></select>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Text legibility halo</legend>
+    <div class="row"><label>Backing</label>
+      <select id="backing">
+        <option value="none">None</option>
+        <option value="outline" selected>Outline only</option>
+        <option value="rect">Outline + rect</option>
+        <option value="dot">Outline + single dot</option>
+        <option value="dots">Outline + dot row</option>
+      </select>
+    </div>
+    <div class="row"><label>Halo width</label><input type="range" id="haloWidth" min="0" max="6" step="0.25" value="2.5"><span class="val" data-for="haloWidth"></span></div>
+    <div class="row"><label>Halo color</label><button class="swatch" id="haloColor" data-color="#FFF2EB" title="Halo color"></button></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Config readout</legend>
+    <div class="actions">
+      <button class="primary" id="copyBtn">Copy config</button>
+      <button id="resetBtn">Reset</button>
+    </div>
+    <textarea id="config" readonly></textarea>
+  </fieldset>
+</div>
+
+<!-- ════════════════════ STAGE ════════════════════ -->
+<div class="stage">
+  <div class="bgtoggle">
+    <button data-bg="map" class="on">Map</button>
+    <button data-bg="light">Light</button>
+    <button data-bg="dark">Dark</button>
+  </div>
+  <div class="scroller">
+    <div class="map" id="mapPlate">
+      <canvas id="mainCanvas"></canvas>
+    </div>
+    <div class="gallery">
+      <h2>Candidate gallery</h2>
+      <p>The original explorations, redrawn on canvas. Click any cell to load it into the controls and keep tuning.</p>
+      <div class="grid" id="gallery"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════════════
+   GEOMETRY — copied verbatim from js/render-pins.js. Do not change these;
+   they are what keeps the lab pill identical in layout/size to production.
+   ══════════════════════════════════════════════════════════════════════════ */
+const PILL_H = 26, PILL_R = 13, TAIL_H = 4, TAIL_HALF_W = 4;
+const CIRCLE_R = 10, PAD_L = 3, PAD_R = 9, CIRCLE_TIME_GAP = 5;
+const TIME_FONT_PX = 11;
+
+/* Lucide category paths (24-grid) — same marks as production. */
+const CAT_PATHS = {
+  cafe:       ['M17 8h1a4 4 0 1 1 0 8h-1','M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z','M6 2v2','M10 2v2','M14 2v2'],
+  bar:        ['M8 22h8','M12 11v11','m5 3 7 8 7-8z'],
+  restaurant: ['M3 2v7c0 1.1.9 2 2 2a2 2 0 0 0 2-2V2','M5 2v20','M21 15V2a5 5 0 0 0-3 5v6c0 1.1.9 2 2 2h1zm0 0v7'],
+};
+const _catCache = {};
+function catPaths(c){ if(!(c in _catCache)) _catCache[c] = (CAT_PATHS[c]||[]).map(d=>new Path2D(d)); return _catCache[c]; }
+const HEART = new Path2D('M 12 21.35 C 6.5 16 2 12.5 2 8.5 C 2 5.5 4.5 3 7.5 3 C 9.24 3 10.91 3.81 12 5.09 C 13.09 3.81 14.76 3 16.5 3 C 19.5 3 22 5.5 22 8.5 C 22 12.5 17.5 16 12 21.35 Z');
+
+function hexA(hex, a){
+  const h = hex.replace('#',''); const f = h.length===3 ? h.split('').map(c=>c+c).join('') : h;
+  const r=parseInt(f.slice(0,2),16),g=parseInt(f.slice(2,4),16),b=parseInt(f.slice(4,6),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   CORE — draw a single pill. pt = tail tip. opts = full look spec.
+   Mirrors _drawPill: same pillPath, same width formula, same module/text layout.
+   ══════════════════════════════════════════════════════════════════════════ */
+function pillWidth(ctx, time){
+  ctx.font = `600 ${TIME_FONT_PX}px "Inter", system-ui, sans-serif`;
+  const tw = time ? Math.ceil(ctx.measureText(time).width) : 0;
+  let w = PAD_L + CIRCLE_R*2;
+  if (tw) w += CIRCLE_TIME_GAP + tw;
+  w += PAD_R;
+  return w;
+}
+
+function drawPill(ctx, pt, o){
+  const time = o.timeText || '';
+  const w = pillWidth(ctx, time);
+  const x = pt.x - w/2;
+  const y = pt.y - PILL_H - TAIL_H;
+  const cx = pt.x;
+
+  function pillPath(){
+    ctx.beginPath();
+    ctx.moveTo(x+PILL_R, y);
+    ctx.lineTo(x+w-PILL_R, y);
+    ctx.arcTo(x+w, y, x+w, y+PILL_R, PILL_R);
+    ctx.lineTo(x+w, y+PILL_H-PILL_R);
+    ctx.arcTo(x+w, y+PILL_H, x+w-PILL_R, y+PILL_H, PILL_R);
+    ctx.lineTo(cx+TAIL_HALF_W, y+PILL_H);
+    ctx.lineTo(cx, y+PILL_H+TAIL_H);
+    ctx.lineTo(cx-TAIL_HALF_W, y+PILL_H);
+    ctx.lineTo(x+PILL_R, y+PILL_H);
+    ctx.arcTo(x, y+PILL_H, x, y+PILL_H-PILL_R, PILL_R);
+    ctx.lineTo(x, y+PILL_R);
+    ctx.arcTo(x, y, x+PILL_R, y, PILL_R);
+    ctx.closePath();
+  }
+
+  // ── Body (shadow + base + stripes) ──
+  ctx.save();
+  if (o.shadowOn){
+    ctx.save();
+    ctx.shadowColor = `rgba(17,30,56,${o.shadowAlpha})`;
+    ctx.shadowBlur = o.shadowBlur;
+    ctx.shadowOffsetY = 2;
+    pillPath(); ctx.fillStyle = o.baseColor; ctx.fill();
+    ctx.restore();
+  } else {
+    pillPath(); ctx.fillStyle = o.baseColor; ctx.fill();
+  }
+
+  if (o.stripesOn){
+    ctx.save();
+    pillPath(); ctx.clip();
+    ctx.globalAlpha = o.stripeOpacity;
+    ctx.translate(cx, y + PILL_H/2);
+    ctx.rotate(o.angle * Math.PI/180);
+    const diag = Math.hypot(w, PILL_H) + 4;
+    const inkW = o.period * o.fillRatio;
+    ctx.fillStyle = o.stripeColor;
+    for (let p = -diag; p <= diag; p += o.period) ctx.fillRect(p, -diag, inkW, diag*2);
+    ctx.restore();
+  }
+
+  // Border hairline
+  if (o.borderWidth > 0){
+    pillPath();
+    ctx.strokeStyle = hexA(o.borderColor, o.borderOpacity);
+    ctx.lineWidth = o.borderWidth;
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // ── Dot / glyph ──
+  const moduleCx = x + PAD_L + CIRCLE_R;
+  const moduleCy = y + PILL_H/2;
+  if (o.dotOn){
+    ctx.save();
+    if (o.glyphMode === 'heart'){
+      const size = CIRCLE_R*2 + 1, s = size/24;
+      ctx.translate(moduleCx - 12*s, moduleCy - 12*s - size*0.04); ctx.scale(s,s);
+      ctx.fillStyle = hexA(o.dotColor, o.dotOpacity); ctx.fill(HEART);
+    } else {
+      ctx.beginPath(); ctx.arc(moduleCx, moduleCy, CIRCLE_R, 0, Math.PI*2);
+      ctx.fillStyle = hexA(o.dotColor, o.dotOpacity); ctx.fill();
+      if (o.glyphMode === 'clock'){
+        const rr = CIRCLE_R*0.74;
+        ctx.strokeStyle = o.iconColor; ctx.lineWidth = 1.4; ctx.lineCap='round'; ctx.lineJoin='round';
+        ctx.beginPath(); ctx.arc(moduleCx, moduleCy, rr, 0, Math.PI*2); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(moduleCx, moduleCy); ctx.lineTo(moduleCx, moduleCy - rr*0.55);
+        ctx.moveTo(moduleCx, moduleCy); ctx.lineTo(moduleCx + rr*0.42, moduleCy + rr*0.16);
+        ctx.stroke();
+      } else if (o.glyphMode === 'icon'){
+        const ICON = 13, s = ICON/24;
+        ctx.translate(moduleCx - ICON/2, moduleCy - ICON/2); ctx.scale(s,s);
+        ctx.strokeStyle = o.iconColor; ctx.lineWidth = 2.6; ctx.lineCap='round'; ctx.lineJoin='round';
+        for (const p of catPaths(o.category)) ctx.stroke(p);
+      }
+    }
+    ctx.restore();
+  }
+
+  // ── Time text + legibility backing ──
+  if (time){
+    const tx = moduleCx + CIRCLE_R + CIRCLE_TIME_GAP;
+    const ty = moduleCy + 0.5;
+    ctx.save();
+    ctx.font = `${o.textWeight} ${TIME_FONT_PX}px "Inter", system-ui, sans-serif`;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+    const tw = ctx.measureText(time).width;
+
+    // Backing fills behind the text (drawn before halo + glyph text).
+    if (o.backing === 'rect'){
+      ctx.fillStyle = o.haloColor;
+      const pad = 2.5;
+      ctx.beginPath();
+      ctx.roundRect(tx - pad, ty - TIME_FONT_PX/2 - 1, tw + pad*2, TIME_FONT_PX + 2, 4);
+      ctx.fill();
+    } else if (o.backing === 'dot'){
+      ctx.fillStyle = o.haloColor;
+      ctx.beginPath(); ctx.arc(tx + tw/2, ty, 6, 0, Math.PI*2); ctx.fill();
+    } else if (o.backing === 'dots'){
+      ctx.fillStyle = o.haloColor;
+      for (let dx = 3; dx < tw; dx += 8){ ctx.beginPath(); ctx.arc(tx + dx, ty, 2.6, 0, Math.PI*2); ctx.fill(); }
+    }
+
+    // Halo (canvas equivalent of the text-shadow outline ring).
+    if (o.haloWidth > 0){
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = o.haloWidth * 2;   // stroke straddles the glyph edge
+      ctx.strokeStyle = o.haloColor;
+      ctx.strokeText(time, tx, ty);
+    }
+    ctx.fillStyle = o.textColor;
+    ctx.fillText(time, tx, ty);
+    ctx.restore();
+  }
+
+  return { w, x, y };
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   STATE + binding
+   ══════════════════════════════════════════════════════════════════════════ */
+const FIELDS = {
+  stripesOn:'checkbox', baseColor:'color', stripeColor:'color', stripeOpacity:'num', angle:'num', period:'num', fillRatio:'num',
+  borderColor:'color', borderOpacity:'num', borderWidth:'num', shadowOn:'checkbox', shadowBlur:'num', shadowAlpha:'num',
+  dotOn:'checkbox', glyphMode:'str', category:'str', dotColor:'color', dotOpacity:'num', iconColor:'color',
+  timeText:'str', textColor:'color', textWeight:'str',
+  backing:'str', haloWidth:'num', haloColor:'color',
+};
+function readState(){
+  const s = {};
+  for (const [k,t] of Object.entries(FIELDS)){
+    const el = document.getElementById(k);
+    s[k] = t==='checkbox' ? el.checked
+         : t==='num'      ? parseFloat(el.value)
+         : t==='color'    ? el.dataset.color
+         : el.value;
+  }
+  return s;
+}
+function applyState(s){
+  for (const [k,t] of Object.entries(FIELDS)){
+    if (!(k in s)) continue;
+    const el = document.getElementById(k);
+    if (t==='checkbox') el.checked = s[k];
+    else if (t==='color'){ el.dataset.color = s[k]; el.style.background = s[k]; }
+    else el.value = s[k];
+  }
+  render();
+}
+
+function readStateFromMarkup(){
+  const s={};
+  for(const [k,t] of Object.entries(FIELDS)){
+    const el=document.getElementById(k);
+    s[k]= t==='checkbox' ? el.checked
+        : t==='num'      ? parseFloat(el.value)
+        : t==='color'    ? el.dataset.color
+        : el.value;
+  }
+  return s;
+}
+// Paint each swatch from its data-color before first read.
+document.querySelectorAll('.swatch').forEach(b => { b.style.background = b.dataset.color; });
+const DEFAULTS = readStateFromMarkup();
+
+/* ── Brand-palette swatch picker ──────────────────────────────────────────
+   Curated from css/tokens.css: brand core + a few in-family complements.
+   No free colour entry — every fill stays inside the design language. */
+const PALETTE = [
+  { n:'Delft Blue',  h:'#111E38' },
+  { n:'Deep blue',   h:'#204983' },
+  { n:'Rain',        h:'#6F8AA8' },
+  { n:'Jordy Blue',  h:'#9CBDE7' },
+  { n:'Cool blue',   h:'#B8CFEE' },
+  { n:'Rain blue',   h:'#4A5E82' },
+  { n:'Honey',       h:'#F5C25E' },
+  { n:'Soft honey',  h:'#FAD17C' },
+  { n:'Coral',       h:'#FFAF85' },
+  { n:'Coral deep',  h:'#E5754A' },
+  { n:'Cream',       h:'#FFF2EB' },
+  { n:'Warm cream',  h:'#FFF4E0' },
+  { n:'White',       h:'#FFFFFF' },
+  { n:'On-coral ink',h:'#2C1F02' },
+  { n:'Overcast',    h:'#9A8E7E' },
+  { n:'Alert red',   h:'#FF6B6B' },
+];
+const pop = document.createElement('div');
+pop.className = 'palette-pop'; pop.hidden = true;
+document.body.appendChild(pop);
+let popTarget = null;
+PALETTE.forEach(c => {
+  const chip = document.createElement('button');
+  chip.className = 'chip'; chip.style.background = c.h; chip.title = `${c.n} · ${c.h}`;
+  chip.dataset.hex = c.h;
+  chip.onclick = (e) => {
+    e.stopPropagation();
+    if (popTarget){ popTarget.dataset.color = c.h; popTarget.style.background = c.h; render(); }
+    closePop();
+  };
+  pop.appendChild(chip);
+});
+function openPop(btn){
+  popTarget = btn;
+  const r = btn.getBoundingClientRect();
+  pop.hidden = false;
+  pop.style.left = Math.min(r.left, window.innerWidth - pop.offsetWidth - 8) + 'px';
+  // Flip above the swatch if it would overflow the viewport bottom.
+  const below = r.bottom + 6;
+  pop.style.top = (below + pop.offsetHeight > window.innerHeight - 8)
+    ? Math.max(8, r.top - pop.offsetHeight - 6) + 'px'
+    : below + 'px';
+  pop.querySelectorAll('.chip').forEach(ch => ch.classList.toggle('sel', ch.dataset.hex === btn.dataset.color));
+}
+function closePop(){ pop.hidden = true; popTarget = null; }
+document.querySelectorAll('.swatch').forEach(b => b.addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (popTarget === b) { closePop(); return; }
+  openPop(b);
+}));
+document.addEventListener('click', (e) => { if (!pop.hidden && !pop.contains(e.target)) closePop(); });
+window.addEventListener('scroll', closePop, true);
+
+/* ── Presets — the original candidates, expressed as look-specs ── */
+const PRESETS = {
+  'Stripe C (current)': { stripesOn:true, baseColor:'#FFF2EB', stripeColor:'#111E38', stripeOpacity:1, angle:45, period:7, fillRatio:0.55, dotColor:'#111E38', dotOpacity:1, iconColor:'#FFF2EB', textColor:'#111E38', backing:'outline', haloWidth:2.5, haloColor:'#FFF2EB', borderColor:'#111E38', borderOpacity:0.18 },
+  'A · rect + 3px':     { stripesOn:true, baseColor:'#FFF2EB', stripeColor:'#111E38', backing:'rect', haloWidth:3, haloColor:'#FFF2EB' },
+  'B · rect + 4px':     { stripesOn:true, baseColor:'#FFF2EB', stripeColor:'#111E38', backing:'rect', haloWidth:4, haloColor:'#FFF2EB' },
+  'D · single dot':     { stripesOn:true, baseColor:'#FFF2EB', stripeColor:'#111E38', backing:'dot', haloWidth:3, haloColor:'#FFF2EB' },
+  'E · dot row':        { stripesOn:true, baseColor:'#FFF2EB', stripeColor:'#111E38', backing:'dots', haloWidth:2.5, haloColor:'#FFF2EB' },
+  'M1 · Jordy stripes': { stripesOn:true, baseColor:'#FFF2EB', stripeColor:'#9CBDE7', backing:'outline', haloWidth:2.5 },
+  'M2 · ink @60%':      { stripesOn:true, baseColor:'#FFF2EB', stripeColor:'#111E38', stripeOpacity:0.6, backing:'outline', haloWidth:2.5 },
+  'M3 · ink @35%':      { stripesOn:true, baseColor:'#FFF2EB', stripeColor:'#111E38', stripeOpacity:0.35, backing:'outline', haloWidth:2.5 },
+  'M4 · thin':          { stripesOn:true, baseColor:'#FFF2EB', stripeColor:'#111E38', fillRatio:0.30, backing:'outline', haloWidth:2.5 },
+  'M5 · chunky':        { stripesOn:true, baseColor:'#FFF2EB', stripeColor:'#111E38', period:11, backing:'outline', haloWidth:2.5 },
+  'M6 · Jordy base':    { stripesOn:true, baseColor:'#9CBDE7', stripeColor:'#111E38', backing:'outline', haloWidth:2.5 },
+  'Hero (gold, no stripe)':  { stripesOn:false, baseColor:'#F5C25E', textColor:'#111E38', dotColor:'#111E38', iconColor:'#FFF2EB', backing:'none', haloWidth:0, borderOpacity:0.18 },
+  'Shade (jordy, no stripe)':{ stripesOn:false, baseColor:'#9CBDE7', textColor:'#111E38', dotColor:'#111E38', iconColor:'#FFF2EB', backing:'none', haloWidth:0 },
+  'Selected (dark)':         { stripesOn:false, baseColor:'#111E38', textColor:'#FFF4E0', dotColor:'#FFF4E0', iconColor:'#111E38', backing:'none', haloWidth:0, borderColor:'#FFF4E0', borderOpacity:0.18 },
+};
+const pbar = document.getElementById('presets');
+for (const name of Object.keys(PRESETS)){
+  const b = document.createElement('button'); b.textContent = name;
+  b.onclick = () => applyState({ ...DEFAULTS, ...PRESETS[name] });
+  pbar.appendChild(b);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   RENDER
+   ══════════════════════════════════════════════════════════════════════════ */
+let BG = 'map';
+const canvas = document.getElementById('mainCanvas');
+const ctx = canvas.getContext('2d');
+const dpr = Math.max(1, window.devicePixelRatio || 1);
+const CANVAS_H = 360;
+
+function paintBackdrop(c, W, H){
+  if (BG === 'light'){ c.fillStyle = '#FFF2EB'; c.fillRect(0,0,W,H); return; }
+  if (BG === 'dark'){ c.fillStyle = '#0c1526'; c.fillRect(0,0,W,H); return; }
+  const g = c.createRadialGradient(W*0.6, H*0.3, 0, W*0.6, H*0.3, W*0.9);
+  g.addColorStop(0,'#c9bca0'); g.addColorStop(0.6,'#a8987c'); g.addColorStop(1,'#8b7c63');
+  c.fillStyle = g; c.fillRect(0,0,W,H);
+}
+
+function render(){
+  const o = readState();
+  const W = canvas.clientWidth || 800;
+  canvas.width = W * dpr; canvas.height = CANVAS_H * dpr;
+  canvas.style.height = CANVAS_H + 'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,CANVAS_H);
+  paintBackdrop(ctx, W, CANVAS_H);
+
+  // Three pills in context: live spec, plus the unchanged sun + selected neighbours
+  // so the design can be judged against what sits next to it.
+  const sun  = { ...DEFAULTS, stripesOn:false, baseColor:'#F5C25E', textColor:'#111E38', dotColor:'#111E38', iconColor:'#FFF2EB', backing:'none', haloWidth:0, timeText:'til 21:40', category:'cafe' };
+  const sel  = { ...DEFAULTS, stripesOn:false, baseColor:'#111E38', textColor:'#FFF4E0', dotColor:'#FFF4E0', iconColor:'#111E38', backing:'none', haloWidth:0, borderColor:'#FFF4E0', timeText:'19:30', category:'restaurant' };
+
+  // Anchor positions across the plate.
+  drawLabel(ctx, W*0.50, 120, 'Vinland');
+  drawPill(ctx, { x: W*0.50, y: 120 }, o);
+
+  drawLabel(ctx, W*0.20, 250, 'Hummus & Wine');
+  drawPill(ctx, { x: W*0.20, y: 250 }, sun);
+
+  drawLabel(ctx, W*0.80, 240, 'Territoriet');
+  drawPill(ctx, { x: W*0.80, y: 240 }, sel);
+
+  // you-are-here dot
+  ctx.beginPath(); ctx.arc(W*0.55, 300, 7, 0, Math.PI*2);
+  ctx.fillStyle = '#2a8be8'; ctx.fill();
+  ctx.lineWidth = 3; ctx.strokeStyle = '#fff'; ctx.stroke();
+
+  document.getElementById('config').value = JSON.stringify(o, null, 2);
+  syncValLabels();
+}
+
+function drawLabel(c, cx, tipY, name){
+  c.save();
+  c.font = '700 14px "Inter", system-ui, sans-serif';
+  c.textAlign = 'center'; c.textBaseline = 'top';
+  c.shadowColor = 'rgba(17,30,56,0.55)'; c.shadowBlur = 6; c.shadowOffsetY = 1;
+  c.fillStyle = BG==='light' ? '#111E38' : '#FFF2EB';
+  c.fillText(name, cx, tipY + 6);
+  c.restore();
+}
+
+function syncValLabels(){
+  document.querySelectorAll('.val').forEach(span=>{
+    const el = document.getElementById(span.dataset.for);
+    if (el) span.textContent = el.value;
+  });
+}
+
+/* Gallery thumbnails */
+function buildGallery(){
+  const g = document.getElementById('gallery'); g.innerHTML = '';
+  for (const [name, spec] of Object.entries(PRESETS)){
+    const cell = document.createElement('div'); cell.className = 'gcell';
+    const nm = document.createElement('div'); nm.className = 'name'; nm.textContent = name.split(' ')[0];
+    const cv = document.createElement('canvas');
+    cell.appendChild(nm); cell.appendChild(cv);
+    cell.onclick = () => applyState({ ...DEFAULTS, ...spec });
+    g.appendChild(cell);
+    const cw = 150, ch = 64;
+    cv.width = cw*dpr; cv.height = ch*dpr; cv.style.height = ch+'px';
+    const cc = cv.getContext('2d'); cc.setTransform(dpr,0,0,dpr,0,0);
+    const gr = cc.createRadialGradient(cw*0.4,ch*0.3,0,cw*0.4,ch*0.3,cw*0.8);
+    gr.addColorStop(0,'#c9bca0'); gr.addColorStop(0.6,'#a8987c'); gr.addColorStop(1,'#8b7c63');
+    cc.fillStyle = gr; cc.fillRect(0,0,cw,ch);
+    drawPill(cc, { x: cw/2, y: ch/2 + 12 }, { ...DEFAULTS, ...spec });
+  }
+}
+
+/* ── Wire everything ── */
+document.querySelectorAll('.rail input, .rail select').forEach(el => el.addEventListener('input', render));
+document.querySelectorAll('.bgtoggle button').forEach(b => b.addEventListener('click', () => {
+  BG = b.dataset.bg;
+  document.querySelectorAll('.bgtoggle button').forEach(x=>x.classList.toggle('on', x===b));
+  render();
+}));
+document.getElementById('resetBtn').onclick = () => applyState(DEFAULTS);
+document.getElementById('copyBtn').onclick = () => {
+  navigator.clipboard.writeText(document.getElementById('config').value);
+  const b = document.getElementById('copyBtn'); const t = b.textContent;
+  b.textContent = 'Copied ✓'; setTimeout(()=>b.textContent=t, 1200);
+};
+window.addEventListener('resize', render);
+
+buildGallery();
+render();
+</script>
+</body>
+</html>

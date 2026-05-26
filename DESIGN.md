@@ -465,6 +465,18 @@ Any panel that slides up from the bottom (`#detail-panel`, `.dpinvite-sheet`, `.
 **Motion:** tap pulse + select ring + idle drift on the single live in-sun pin.
 **Examples:** `render-pins.js`, `render-arc.js`, `render-seating.js`.
 
+**Pin pill fills** (`_drawPill`, all share one geometry + a 2.5px border so every
+pill is the same size):
+- **Hero (in sun)** — solid honey (`--accent`), honey border.
+- **Shade (waiting / context)** — the **striped shade pin**: cream base
+  (`--text`) with Delft Blue (`--bg`) diagonal stripes at **135°**, 5.5px period,
+  50% ink fill — the logo's sunglasses-lens motif. Cream `@0.6` border; dot/heart
+  read solid Delft; time is 700 ink on a cream halo so the stripes show through
+  while staying legible. (Replaced the flat Jordy Blue fill — dialed in
+  `pill-lab.html`.)
+- **Selected** — solid Delft (`--surface`), Delft border.
+- **Opening-soon ghost** — outline-only, no fill (unchanged).
+
 ---
 
 ## Motion vocabulary

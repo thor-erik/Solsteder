@@ -779,6 +779,10 @@ function _drawPill(ctx, pt, w, time, tier, opts) {
   // transparent body + dark hairline outline + reduced group opacity so it
   // recedes vs the solid gold (sun) / blue (shade) pills. Selected still lifts.
   const isGhost = !!opts.closedNow && !opts.selected;
+  // Striped "shade" pin — cream base + Delft Blue diagonal stripes (the logo
+  // motif). Applies to open non-hero pills only: hero stays solid honey,
+  // selected stays solid Delft, ghost stays outline-only. See DESIGN.md.
+  const isStriped = !isGhost && !opts.selected && tier !== 'hero';
 
   // Group alpha for the ghost state — wraps the whole pill (body, dot, text).
   ctx.save();
@@ -796,21 +800,40 @@ function _drawPill(ctx, pt, w, time, tier, opts) {
     ctx.lineWidth   = 1.25;
     ctx.stroke();
   } else {
+    // Base fill, with the scale-aware drop shadow. hero = solid honey,
+    // selected = solid Delft, shade = cream base (stripes layered on next).
     ctx.save();
     ctx.shadowColor   = `rgba(17,30,56,${shAlpha.toFixed(2)})`;
     ctx.shadowBlur    = shBlur;
     ctx.shadowOffsetY = shOffsetY;
     pillPath();
-    // Pill fill: hero=Sunny golden, waiting/context=Jordy Blue, selected=dark Delft Blue
-    const unselectedFill = (tier === 'hero') ? '#F5C25E' : '#9CBDE7';
-    ctx.fillStyle = opts.selected ? (TOKENS.surface || '#111E38') : unselectedFill;
+    ctx.fillStyle = opts.selected ? (TOKENS.surface || '#111E38')
+                  : (tier === 'hero') ? (TOKENS.accent || '#F5C25E')
+                  : (TOKENS.text || '#FFF4E0');
     ctx.fill();
     ctx.restore();
 
-    // Hairline border for definition
+    // Diagonal stripes (shade pin only) — 135°, 5.5px period, 50% ink fill.
+    if (isStriped) {
+      ctx.save();
+      pillPath();
+      ctx.clip();
+      ctx.translate(cx, y + PILL_H / 2);
+      ctx.rotate(135 * Math.PI / 180);
+      const diag = Math.hypot(w, PILL_H) + 4;
+      const period = 5.5, inkW = period * 0.5;
+      ctx.fillStyle = TOKENS.bg || '#111E38';
+      for (let p = -diag; p <= diag; p += period) ctx.fillRect(p, -diag, inkW, diag * 2);
+      ctx.restore();
+    }
+
+    // 2.5px border — same width across every state so all pills are one size.
+    // shade = cream @0.6; hero/selected = own fill colour (size-only, no line).
     pillPath();
-    ctx.strokeStyle = opts.selected ? _rgba(TOKENS.text, 0.18) : _rgba(TOKENS.bg, 0.18);
-    ctx.lineWidth   = 1;
+    ctx.strokeStyle = isStriped   ? _rgba(TOKENS.text, 0.6)
+                    : opts.selected ? (TOKENS.surface || '#111E38')
+                    : (TOKENS.accent || '#F5C25E');
+    ctx.lineWidth   = 2.5;
     ctx.stroke();
   }
 
@@ -828,6 +851,9 @@ function _drawPill(ctx, pt, w, time, tier, opts) {
   const friends    = opts.friends || [];
   const hasFriends = friends.length > 0;
   const dot        = _dotColors(tier, opts.closedNow);
+  // Striped pin: dot/friend-capsule/heart read as solid Delft against the cream
+  // body + stripes (the tier-opacity nuance was for the old Jordy fill).
+  if (isStriped) dot.fill = TOKENS.bg || '#111E38';
   const moduleW    = hasFriends ? _friendModuleW(ctx, friends.length) : CIRCLE_R * 2;
   const moduleCx   = x + PAD_L + moduleW / 2;
   const moduleCy   = y + PILL_H / 2;
@@ -858,14 +884,27 @@ function _drawPill(ctx, pt, w, time, tier, opts) {
   }
   ctx.restore();
 
-  // Time text — cream on selected (dark Delft Blue) pill; dark on Sunny/Jordy
-  // Blue pill; dark on the transparent ghost pill (opening-soon).
+  // Time text — cream on selected (dark Delft Blue) pill; dark on Sunny/ghost
+  // pills. On the striped shade pill the stripes run under the text, so it's
+  // 700 ink on a cream halo (keeps the motif visible while staying legible).
   if (time) {
-    ctx.font         = '600 11px "Inter", system-ui, sans-serif';
-    ctx.fillStyle    = opts.selected ? (TOKENS.text || '#FFF4E0') : _rgba(TOKENS.bg, 0.88);
+    const tx = moduleCx + moduleW / 2 + CIRCLE_TIME_GAP;
+    const ty = moduleCy + 0.5;
     ctx.textBaseline = 'middle';
     ctx.textAlign    = 'left';
-    ctx.fillText(time, moduleCx + moduleW / 2 + CIRCLE_TIME_GAP, moduleCy + 0.5);
+    if (isStriped) {
+      ctx.font        = '700 11px "Inter", system-ui, sans-serif';
+      ctx.lineJoin    = 'round';
+      ctx.lineWidth   = 7;                         // 3.5px halo each side
+      ctx.strokeStyle = TOKENS.text || '#FFF4E0';
+      ctx.strokeText(time, tx, ty);
+      ctx.fillStyle   = TOKENS.bg || '#111E38';
+      ctx.fillText(time, tx, ty);
+    } else {
+      ctx.font      = '600 11px "Inter", system-ui, sans-serif';
+      ctx.fillStyle = opts.selected ? (TOKENS.text || '#FFF4E0') : _rgba(TOKENS.bg, 0.88);
+      ctx.fillText(time, tx, ty);
+    }
   }
 
   ctx.restore();   // group alpha (ghost)
