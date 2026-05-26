@@ -1406,12 +1406,16 @@
   .fts-event {
     position: absolute;
     top: 0;
-    transform: translateX(-50%);
+    left: 0;
     display: block;
     color: rgba(255, 244, 224, 0.96);
     filter: drop-shadow(0 0 2px rgba(15, 27, 42, 0.85))
             drop-shadow(0 0 1px rgba(15, 27, 42, 0.85));
-    transition: left 320ms cubic-bezier(0.32, 0.72, 0, 1),
+    /* Position via transform (compositor), NOT left (layout): iOS WebKit lagged
+       the drop-shadow filter during a `left` transition, so the shadow trailed
+       the icon as it relocated. Transform moves the element + its filter as one
+       composited layer. The px offset is set in _populateFtsEvents. */
+    transition: transform 320ms cubic-bezier(0.32, 0.72, 0, 1),
                 opacity 80ms linear;
   }
   /* Opacity is now driven inline (style.opacity) by _populateFtsEvents:

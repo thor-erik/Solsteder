@@ -891,6 +891,9 @@ function seeTomorrow() {
 function renderList() {
   const list = document.getElementById('venue-list');
   if (!currentSun) return;
+  // Boot-reveal skeleton hold: keep the skeletons until the choreography swaps
+  // them for real cards (window._revealSkeletonHold is cleared there).
+  if (window._revealSkeletonHold) return;
 
   const dateStr  = datePicker.value;
   const fromHour = parseFloat(timeFromEl.value);
@@ -1388,6 +1391,26 @@ function renderList() {
       sort: activeSortBy,
     });
   }, 2000);
+
+  // Periodic now-tick: animate the change with the scrub skeleton crossfade,
+  // but ONLY when the venue order actually changed (not on every silent 30 s
+  // tick). _nowTickRender is set by _nowModeTick; the sig compares the new
+  // order to what's on screen.
+  const _listSig = venues.map(v => v.id).join('|');
+  if (window._nowTickRender) {
+    window._nowTickRender = false;
+    if (window._lastListSig !== undefined && _listSig !== window._lastListSig
+        && !document.body.classList.contains('list-scrubbing')
+        && list.querySelector('.venue-card:not(.skeleton)')) {
+      window._lastListSig = _listSig;
+      document.body.classList.add('list-scrubbing');
+      if (typeof _injectScrubSkeletons === 'function') _injectScrubSkeletons();
+      // Hold the skeletons briefly, then re-render the real cards (cardIn).
+      if (typeof _runListRenderAndUnmark === 'function') setTimeout(_runListRenderAndUnmark, 540);
+      return;   // skip this paint; _runListRenderAndUnmark paints the real cards
+    }
+  }
+  window._lastListSig = _listSig;
 
   // ── Render first page, observer handles the rest ──────────────────────────
   _listFiltered = venues;

@@ -976,6 +976,11 @@ function _populateFtsEvents() {
     const x = ((e.hour - MIN_H_ARC) / (MAX_H_ARC - MIN_H_ARC)) * 100;
     return Math.max(2, Math.min(98, x));
   };
+  // Position via transform (px) so the drop-shadow filter follows on iOS (a
+  // `left` transition lagged it). translateX to the track-% position, then
+  // -50% to centre the glyph on it.
+  const hostW = host.clientWidth || host.getBoundingClientRect().width || 0;
+  const xFor = (e) => `translateX(${(pctFor(e) / 100 * hostW).toFixed(2)}px) translateX(-50%)`;
 
   // 4. Diff: if the segKey sequence matches the existing nodes, just
   //    update left:% (CSS transition slides them). Otherwise rebuild.
@@ -985,7 +990,7 @@ function _populateFtsEvents() {
 
   if (sameSequence) {
     events.forEach((e, i) => {
-      existing[i].style.left = pctFor(e) + '%';
+      existing[i].style.transform = xFor(e);
       existing[i].style.opacity = opacityFor(e);
     });
     return;
@@ -998,7 +1003,7 @@ function _populateFtsEvents() {
     const node = document.createElement('div');
     node.className = 'fts-event';
     node.dataset.key = e.segKey;
-    node.style.left  = pctFor(e) + '%';
+    node.style.transform = xFor(e);
     node.style.opacity = opacityFor(e);
     node.innerHTML   = glyph + '<div class="fts-event-tick"></div>';
     host.appendChild(node);
@@ -2321,7 +2326,7 @@ function toggleNowMode() {
     nowBtn.classList.add('active');
     timeRangeWrap.classList.add('now-active');
     applyNowTime();
-    nowInterval = setInterval(() => { if (nowMode) { applyNowTime(); update(); } }, 30000);
+    nowInterval = setInterval(_nowModeTick, 30000);
   }
   update();
 }
@@ -2331,13 +2336,24 @@ function applyNowTime() {
   updateRangeFill();
 }
 
+// Periodic "now" tick (every 30 s while nowMode). Re-renders as the clock
+// advances. _nowTickRender tells scheduleRenderList to render SILENTLY (no
+// per-tick fade) and tells renderList to play the skeleton crossfade ONLY when
+// the venue order actually changed — not on every silent tick.
+function _nowModeTick() {
+  if (!nowMode) return;
+  window._nowTickRender = true;
+  applyNowTime();
+  update();
+}
+
 function _activateNowMode() {
   if (nowMode) return;
   nowMode = true;
   nowBtn?.classList.add('active');
   timeRangeWrap?.classList.add('now-active');
   setActiveIntentBtn('now');
-  nowInterval = setInterval(() => { if (nowMode) { applyNowTime(); update(); } }, 30000);
+  nowInterval = setInterval(_nowModeTick, 30000);
 }
 
 // ── Intent shortcuts ──────────────────────────────────────────────────────────
@@ -2392,7 +2408,7 @@ function setIntent(intent) {
         nowMode = true;
         nowBtn?.classList.add('active');
         timeRangeWrap?.classList.add('now-active');
-        nowInterval = setInterval(() => { if (nowMode) { applyNowTime(); update(); } }, 30000);
+        nowInterval = setInterval(_nowModeTick, 30000);
       }
       animateToTime(Math.min(23, Math.max(4, currentHour())));
     } else {
@@ -2759,6 +2775,14 @@ function _aTrackTimeChange() {
 let _renderListTimer = null;
 function scheduleRenderList() {
   clearTimeout(_renderListTimer);
+  // Reveal skeleton hold: don't render real cards over the boot-reveal skeletons.
+  if (window._revealSkeletonHold) return;
+  // Periodic now-tick: render silently (no per-tick skeleton fade). renderList
+  // plays the skeleton crossfade itself, but only if the order actually changed.
+  if (window._nowTickRender) {
+    _renderListTimer = setTimeout(_runListRenderAndUnmark, 300);
+    return;
+  }
   // Mark scrubbing so the section divider fades out — prevents flicker as
   // venues cross sun-window boundaries during a drag. Kept on across
   // renderList so the new divider mounts hidden, then fades in on the next
@@ -8301,6 +8325,16 @@ function _skipIntro(seqId, opts) {
       canvas.style.opacity    = '0';
       canvas.style.transition = 'opacity 0.55s cubic-bezier(0.2, 0.8, 0.3, 1)';
     }
+    // The venue list slides in as SKELETONS, then the real cards fade in once
+    // the panel settles — same feel as a slider scrub-release, so the reveal
+    // never shows a hard pop of fully-formed cards.
+    const _vlist = document.getElementById('venue-list');
+    if (_vlist && typeof renderSkeletonCards === 'function') {
+      // Hold concurrent renders off the list so they don't clobber the
+      // skeletons before they're seen; released at the swap below.
+      window._revealSkeletonHold = true;
+      renderSkeletonCards(_vlist, 7);
+    }
     // UI slide-in + panel slides directly to EXPANDED (single stage; the
     // old peek → pause → expanded sequence felt like a hesitation).
     setTimeout(() => {
@@ -8316,6 +8350,15 @@ function _skipIntro(seqId, opts) {
       if (_introSeqId !== localSeq) return;
       _revealCanvasAndChrome();
     }, 550);
+    // Hold the skeletons a beat AFTER the panel has settled (so the wireframe
+    // is actually seen in view), then fade the real cards in (cardIn cascade).
+    setTimeout(() => {
+      window._revealSkeletonHold = false;
+      if (_introSeqId !== localSeq) return;
+      if (_vlist) delete _vlist.dataset.mounted;
+      if (typeof renderList === 'function') { try { renderList(); } catch (e) {} }
+    }, 1000);
+    setTimeout(() => { window._revealSkeletonHold = false; }, 4000);  // backstop release
     // Wrap-up
     setTimeout(() => {
       if (_introSeqId !== localSeq) return;
