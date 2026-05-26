@@ -23,7 +23,7 @@
     cream100:  '#DECCC0',
     // Delft Blue / surfaces
     bg:        '#111E38',  // Delft Blue (--bg)
-    deepBlue:  '#204983',  // glass-gradient-mid lens blue (--blue-700); striped shade pin
+    jordy:     '#9CBDE7',  // Jordy Blue (--blue-300); striped shade-pin stripes + border
     surface:   '#111E38',  // deep blue-800 (canvas card-surface)
     surfaceDeep: '#0A1830',
     muted:     '#9BA9BC',  // cool grey (--muted)
@@ -52,7 +52,7 @@
     text:        '--text',
     cream100:    '--cream-100',
     bg:          '--bg',
-    deepBlue:    '--blue-700',      // glass-gradient-mid primitive (direct consumer: striped pin)
+    jordy:       '--blue-300',      // Jordy Blue primitive (direct consumer: striped pin)
     surface:     '--blue-800',      // no slate-mid semantic yet
     surfaceDeep: '--blue-950',
     muted:       '--muted',
