@@ -365,21 +365,21 @@
      js/shades-loader.js). Self-colors (ink/cream/sun) + owns reduced-motion.
      This box is sized to land the SVG mark PIXEL-ALIGNED with the native iOS
      splash so the native→web hand-off is seamless. The native splash is the
-     Splash.imageset (cream + mark) shown scaleAspectFill, which on a portrait
-     screen is HEIGHT-driven — the mark scales with screen height. We replicate
-     that with vh units, derived from the 2732² asset (measured): sun baseline
-     at 65.30% of image height, sun ⌀ 36.31% of image width, mark centered.
-     Mapping the loader's viewBox (240×280, sun ⌀190u baseline at y=200) onto
-     that gives a box of 45.87vh × 53.52vh (aspect 240:280) with top at 27.07vh.
-     The loader sets the SVG to width/height:100% inline, so it fills this box
-     exactly (same aspect → no letterbox) and the mark lands on the native one.
-     .fade-out is the instant-hide fallback (12 s kill-switch / warm boot). */
+     Splash.imageset (cream + mark) shown scaleAspectFill, height-driven on
+     portrait (the mark scales with screen height). We replicate it with vh
+     units, derived from the shrunk native asset (mark ~30% screen width — the
+     small, centred size large apps use): sun baseline at 55.8% of image height,
+     sun ⌀ 13.85% of width, mark centred. Mapping the loader viewBox (240×280,
+     sun ⌀190u baseline at y=200) onto that gives a 17.5vh × 20.4vh box (aspect
+     240:280) with top at 41.2vh. The loader sets the SVG to width/height:100%
+     inline, so it fills this box exactly (no letterbox) and the mark lands on
+     the native one. .fade-out = instant-hide fallback. */
   #splash-loader {
     position: fixed;
-    top: 27.07vh;
+    top: 41.2vh;
     left: 50%;
-    width: 45.87vh;
-    height: 53.52vh;
+    width: 17.5vh;
+    height: 20.4vh;
     transform: translateX(-50%);
     transition: opacity 0.3s ease;
   }

@@ -226,6 +226,7 @@
         'font-size': WORDMARK_SIZE,
         'letter-spacing': '-0.03em',
         fill: textColor,
+        opacity: 0,   // hidden through intro + loop; fades in on Phase 3 (resolve)
       });
       wordmarkEl.textContent = 'Shades';
       svg.appendChild(wordmarkEl);
@@ -391,6 +392,8 @@
       isLoadedPoll = null;
       isMapReadyPoll = null;
       sequenceOnComplete = null;
+      // Wordmark starts hidden — it fades in only when the loop resolves.
+      if (refs.wordmarkEl) refs.wordmarkEl.setAttribute('opacity', 0);
       applyState(refs, FRAMES['static-logo']);
     }
 
@@ -519,6 +522,8 @@
         stripeAngle: lerp(a.stripeAngle, b.stripeAngle, e),
         barT: 0, opacity: 1,
       });
+      // Fade the wordmark in as the mark resolves (loop complete → static logo).
+      if (refs.wordmarkEl) refs.wordmarkEl.setAttribute('opacity', e.toFixed(3));
       if (t < 1) {
         rafId = requestAnimationFrame(tickPhase3);
       } else {

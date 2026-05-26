@@ -7956,6 +7956,32 @@ function _revealCanvasAndChrome() {
 }
 window._revealCanvasAndChrome = _revealCanvasAndChrome;
 
+// Run cb once the Mapbox map has gone "render-quiet" (no 'render' events for
+// ~300 ms) — i.e. it has finished painting all tiles for the current view.
+// Used to hold the chrome slide-in until the map is fully rendered, since the
+// slide animation otherwise starves the map's tile render (it only completes
+// after the slide ends). Falls back to a cap so a never-quiet map can't strand.
+function _afterMapQuiet(cb, capMs = 2500) {
+  if (typeof map === 'undefined' || !map || typeof map.on !== 'function') { cb(); return; }
+  let last = performance.now();
+  let done = false;
+  const onRender = () => { last = performance.now(); };
+  const finish = () => {
+    if (done) return; done = true;
+    try { map.off('render', onRender); } catch (e) {}
+    cb();
+  };
+  try { map.on('render', onRender); } catch (e) {}
+  const tick = () => {
+    if (done) return;
+    if (performance.now() - last > 300) finish();
+    else setTimeout(tick, 80);
+  };
+  try { if (map.triggerRepaint) map.triggerRepaint(); } catch (e) {}
+  setTimeout(tick, 120);
+  setTimeout(finish, capMs);
+}
+
 // ── Shades Loader (splash) ────────────────────────────────────────────────
 // The 4-phase brand launch animation that doubles as the boot loading state
 // (js/shades-loader.js; design-of-record in design/shades-loader/). Mounts
@@ -8004,7 +8030,7 @@ function _mountShadesLoader() {
   try {
     _shadesLoader = window.createShadesLoader(host, {
       variant: 'light',
-      showWordmark: false,
+      showWordmark: true,    // hidden through intro+loop; fades in on resolve
       minLoadingCycles: 1,   // always show ≥1 blinds cycle, even on instant loads
     });
   } catch (e) {
@@ -8325,47 +8351,39 @@ function _skipIntro(seqId, opts) {
       canvas.style.opacity    = '0';
       canvas.style.transition = 'opacity 0.55s cubic-bezier(0.2, 0.8, 0.3, 1)';
     }
-    // The venue list slides in as SKELETONS, then the real cards fade in once
-    // the panel settles — same feel as a slider scrub-release, so the reveal
-    // never shows a hard pop of fully-formed cards.
+    // List shows SKELETONS, held so concurrent renders can't clobber them.
     const _vlist = document.getElementById('venue-list');
     if (_vlist && typeof renderSkeletonCards === 'function') {
-      // Hold concurrent renders off the list so they don't clobber the
-      // skeletons before they're seen; released at the swap below.
       window._revealSkeletonHold = true;
       renderSkeletonCards(_vlist, 7);
     }
-    // UI slide-in + panel slides directly to EXPANDED (single stage; the
-    // old peek → pause → expanded sequence felt like a hesitation).
-    setTimeout(() => {
+    // Let the map FINISH rendering BEFORE sliding the chrome in — the slide
+    // animation starves Mapbox's tile render, so sliding first leaves the map
+    // half-painted (it only completes once the slide ends). Wait for the map to
+    // go render-quiet, then slide over a fully-painted map.
+    _afterMapQuiet(() => {
       if (_introSeqId !== localSeq) return;
+      // UI slide-in + panel slides directly to EXPANDED.
       _introRevealUI(search, brand, qcWrap, panel);
       if (panel && isMobileSkip) _syncFtsPosition();
-    }, 50);
-    // Reveal pin canvas + locate-me + zoom-jog AFTER the panel-slide
-    // settles (panel transition is 0.45s; small buffer added). Boot
-    // draw gate releases here so this is the first moment draw()
-    // actually paints to the canvas.
-    setTimeout(() => {
-      if (_introSeqId !== localSeq) return;
-      _revealCanvasAndChrome();
-    }, 550);
-    // Hold the skeletons a beat AFTER the panel has settled (so the wireframe
-    // is actually seen in view), then fade the real cards in (cardIn cascade).
-    setTimeout(() => {
-      window._revealSkeletonHold = false;
-      if (_introSeqId !== localSeq) return;
-      if (_vlist) delete _vlist.dataset.mounted;
-      if (typeof renderList === 'function') { try { renderList(); } catch (e) {} }
-    }, 1000);
-    setTimeout(() => { window._revealSkeletonHold = false; }, 4000);  // backstop release
-    // Wrap-up
-    setTimeout(() => {
-      if (_introSeqId !== localSeq) return;
-      if (_sharedVenueId) selectVenue(_sharedVenueId, true);
-      if (typeof _notifInit === 'function') _notifInit();
-      if (typeof pushInit === 'function') pushInit();
-    }, 1050);
+      // After the panel settles, reveal the pins AND swap skeletons → real
+      // cards at the SAME moment — so the list fills in as the pins appear.
+      setTimeout(() => {
+        if (_introSeqId !== localSeq) return;
+        _revealCanvasAndChrome();
+        window._revealSkeletonHold = false;
+        if (_vlist) delete _vlist.dataset.mounted;
+        if (typeof renderList === 'function') { try { renderList(); } catch (e) {} }
+      }, 550);
+      // Wrap-up
+      setTimeout(() => {
+        if (_introSeqId !== localSeq) return;
+        if (_sharedVenueId) selectVenue(_sharedVenueId, true);
+        if (typeof _notifInit === 'function') _notifInit();
+        if (typeof pushInit === 'function') pushInit();
+      }, 1050);
+    });
+    setTimeout(() => { window._revealSkeletonHold = false; }, 5000);  // backstop release
     if (document.documentElement.classList.contains('invite-loading')) {
       setTimeout(() => {
         document.documentElement.classList.remove('invite-loading');
