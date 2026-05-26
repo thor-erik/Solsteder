@@ -7997,13 +7997,31 @@ window._revealCanvasAndChrome = _revealCanvasAndChrome;
 // the cold-start and invite paths share one loader.
 let _shadesLoader = null;
 let _nativeSplashHidden = false;
+// Resolves once the native splash is FULLY hidden. The loader's Phase 1 (intro)
+// waits on this so it doesn't begin behind a still-fading native cover — that
+// made the intro look like it "started mid-Phase-1". On web (no Capacitor) it
+// resolves immediately so the animation starts without delay.
+let _nativeSplashGoneResolve;
+const _nativeSplashGone = new Promise(res => { _nativeSplashGoneResolve = res; });
+const _isNativePlatform = !!(typeof window !== 'undefined' && window.Capacitor
+  && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+if (!_isNativePlatform) _nativeSplashGoneResolve();
 // Hand off from the native Capacitor SplashScreen — which covers the WKWebView
 // through launch AND any stale prior-session snapshot (the "login flash") until
 // the web splash is painted — to the web splash. No-op on web (no Capacitor).
 function _hideNativeSplash() {
   if (_nativeSplashHidden) return;
   _nativeSplashHidden = true;
-  try { window.Capacitor?.Plugins?.SplashScreen?.hide({ fadeOutDuration: 200 }); } catch (e) {}
+  const ss = window.Capacitor?.Plugins?.SplashScreen;
+  if (ss?.hide) {
+    try {
+      const p = ss.hide({ fadeOutDuration: 200 });
+      if (p?.then) p.then(() => _nativeSplashGoneResolve()).catch(() => _nativeSplashGoneResolve());
+    } catch (e) { _nativeSplashGoneResolve(); }
+    setTimeout(() => _nativeSplashGoneResolve(), 600);  // safety — never strand the loader
+  } else {
+    _nativeSplashGoneResolve();
+  }
 }
 window._hideNativeSplash = _hideNativeSplash;
 function _mountShadesLoader() {
@@ -8397,18 +8415,24 @@ function _skipIntro(seqId, opts) {
     _runSkipChoreography();
   };
   const _runFullLoader = () => {
-    shadesLoader.start({
-      isLoaded:   () => _loaderLoaded,
-      isMapReady: () => {
-        // Polled only after Phase 3 resolves, so adding bg-out here syncs the
-        // cream backdrop fade to the Phase 4 SVG crossfade.
-        if (_loaderMapReady && !_loaderBgFaded) {
-          _loaderBgFaded = true;
-          splash.classList.add('bg-out');
-        }
-        return _loaderMapReady;
-      },
-      onComplete: _loaderOnComplete,
+    // Hold the (pixel-aligned) static frame until the native splash is fully
+    // gone, THEN start the intro — so Phase 1 is seen from frame one, not
+    // mid-rise behind a fading native cover.
+    _nativeSplashGone.then(() => {
+      if (_introSeqId !== localSeq || !shadesLoader) return;
+      shadesLoader.start({
+        isLoaded:   () => _loaderLoaded,
+        isMapReady: () => {
+          // Polled only after Phase 3 resolves, so adding bg-out here syncs the
+          // cream backdrop fade to the Phase 4 SVG crossfade.
+          if (_loaderMapReady && !_loaderBgFaded) {
+            _loaderBgFaded = true;
+            splash.classList.add('bg-out');
+          }
+          return _loaderMapReady;
+        },
+        onComplete: _loaderOnComplete,
+      });
     });
   };
   if (!opts?.keepSplash) {
@@ -8494,10 +8518,17 @@ function _skipIntro(seqId, opts) {
           // blank map (#5). triggerRepaint forces a render→idle cycle so 'idle'
           // still fires if the map settled before we subscribed; the loader
           // keeps looping until it lands. 6 s cap; 12 s kill-switch backstops.
-          // 'idle' can fire as tiles paint top-first; give the progressive
-          // render a short settle so the crossfade reveals the WHOLE map, not
-          // a top-rendered / bottom-blank frame (#5).
-          map.once('idle', () => setTimeout(_dismissOnce, 450));
+          // 'idle' can fire before the top-first progressive tile paint is
+          // done, so after idle POLL areTilesLoaded() until the whole view is
+          // loaded, then a short settle — the crossfade never reveals a
+          // half-painted map (#5). 6 s cap; 12 s kill-switch backstops.
+          const _revealWhenPainted = () => {
+            if (_dismissed) return;
+            const tilesUp = (typeof map.areTilesLoaded !== 'function') || map.areTilesLoaded();
+            if (tilesUp) setTimeout(_dismissOnce, 300);
+            else setTimeout(_revealWhenPainted, 120);
+          };
+          map.once('idle', _revealWhenPainted);
           try { if (map.triggerRepaint) map.triggerRepaint(); } catch (e) {}
           setTimeout(_dismissOnce, 6000);
         } else {
