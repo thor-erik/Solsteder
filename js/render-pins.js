@@ -822,15 +822,15 @@ function _drawPill(ctx, pt, w, time, tier, opts) {
       ctx.rotate(135 * Math.PI / 180);
       const diag = Math.hypot(w, PILL_H) + 4;
       const period = 5.5, inkW = period * 0.5;
-      ctx.fillStyle = TOKENS.bg || '#111E38';
+      ctx.fillStyle = TOKENS.deepBlue || '#204983';
       for (let p = -diag; p <= diag; p += period) ctx.fillRect(p, -diag, inkW, diag * 2);
       ctx.restore();
     }
 
     // 2.5px border — same width across every state so all pills are one size.
-    // shade = cream @0.6; hero/selected = own fill colour (size-only, no line).
+    // shade = deep blue @0.5; hero/selected = own fill colour (size-only, no line).
     pillPath();
-    ctx.strokeStyle = isStriped   ? _rgba(TOKENS.text, 0.6)
+    ctx.strokeStyle = isStriped   ? _rgba(TOKENS.deepBlue || '#204983', 0.5)
                     : opts.selected ? (TOKENS.surface || '#111E38')
                     : (TOKENS.accent || '#F5C25E');
     ctx.lineWidth   = 2.5;
@@ -851,9 +851,9 @@ function _drawPill(ctx, pt, w, time, tier, opts) {
   const friends    = opts.friends || [];
   const hasFriends = friends.length > 0;
   const dot        = _dotColors(tier, opts.closedNow);
-  // Striped pin: dot/friend-capsule/heart read as solid Delft against the cream
-  // body + stripes (the tier-opacity nuance was for the old Jordy fill).
-  if (isStriped) dot.fill = TOKENS.bg || '#111E38';
+  // Striped pin: dot/friend-capsule/heart read as solid deep blue against the
+  // cream body + stripes (the tier-opacity nuance was for the old Jordy fill).
+  if (isStriped) dot.fill = TOKENS.deepBlue || '#204983';
   const moduleW    = hasFriends ? _friendModuleW(ctx, friends.length) : CIRCLE_R * 2;
   const moduleCx   = x + PAD_L + moduleW / 2;
   const moduleCy   = y + PILL_H / 2;
@@ -898,7 +898,7 @@ function _drawPill(ctx, pt, w, time, tier, opts) {
       ctx.lineWidth   = 7;                         // 3.5px halo each side
       ctx.strokeStyle = TOKENS.text || '#FFF4E0';
       ctx.strokeText(time, tx, ty);
-      ctx.fillStyle   = TOKENS.bg || '#111E38';
+      ctx.fillStyle   = TOKENS.deepBlue || '#204983';
       ctx.fillText(time, tx, ty);
     } else {
       ctx.font      = '600 11px "Inter", system-ui, sans-serif';

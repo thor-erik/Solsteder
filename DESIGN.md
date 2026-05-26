@@ -469,9 +469,10 @@ Any panel that slides up from the bottom (`#detail-panel`, `.dpinvite-sheet`, `.
 pill is the same size):
 - **Hero (in sun)** — solid honey (`--accent`), honey border.
 - **Shade (waiting / context)** — the **striped shade pin**: cream base
-  (`--text`) with Delft Blue (`--bg`) diagonal stripes at **135°**, 5.5px period,
-  50% ink fill — the logo's sunglasses-lens motif. Cream `@0.6` border; dot/heart
-  read solid Delft; time is 700 ink on a cream halo so the stripes show through
+  (`--text`) with deep glass-mid blue (`--blue-700`, `#204983`) diagonal stripes
+  at **135°**, 5.5px period, 50% ink fill — the logo's sunglasses-lens motif (the
+  glass-gradient blue, not Delft). Deep-blue `@0.5` border; dot/heart read solid
+  deep blue; time is 700 deep-blue ink on a cream halo so the stripes show through
   while staying legible. (Replaced the flat Jordy Blue fill — dialed in
   `pill-lab.html`.)
 - **Selected** — solid Delft (`--surface`), Delft border.
