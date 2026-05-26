@@ -192,7 +192,9 @@
     flex-shrink: 0;
   }
   #brand-logo img {
-    height: 32px;
+    /* Sized close to the wordmark's height so the lockup reads balanced (was
+       32px — ~2.5× the cap height, top-heavy next to the 18px wordmark). */
+    height: 26px;
     width: auto;
     object-fit: contain;
     display: block;
