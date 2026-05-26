@@ -7996,10 +7996,23 @@ window._revealCanvasAndChrome = _revealCanvasAndChrome;
 // construction. Idempotent — repeat calls return the existing instance, so
 // the cold-start and invite paths share one loader.
 let _shadesLoader = null;
+let _nativeSplashHidden = false;
+// Hand off from the native Capacitor SplashScreen — which covers the WKWebView
+// through launch AND any stale prior-session snapshot (the "login flash") until
+// the web splash is painted — to the web splash. No-op on web (no Capacitor).
+function _hideNativeSplash() {
+  if (_nativeSplashHidden) return;
+  _nativeSplashHidden = true;
+  try { window.Capacitor?.Plugins?.SplashScreen?.hide({ fadeOutDuration: 200 }); } catch (e) {}
+}
+window._hideNativeSplash = _hideNativeSplash;
 function _mountShadesLoader() {
   if (_shadesLoader) return _shadesLoader;
   const host = document.getElementById('splash-loader');
-  if (!host || typeof window.createShadesLoader !== 'function') return null;
+  if (!host || typeof window.createShadesLoader !== 'function') {
+    _hideNativeSplash();   // still reveal the web splash if the loader is absent
+    return null;
+  }
   try {
     _shadesLoader = window.createShadesLoader(host, {
       variant: 'light',
@@ -8010,6 +8023,10 @@ function _mountShadesLoader() {
     console.warn('[boot] shades loader mount failed', e);
     _shadesLoader = null;
   }
+  // The static-logo first frame paints synchronously on mount. Hand off from
+  // the native splash on the next frame so cream + mark stays continuous
+  // (native static logo → web loader static frame) with no flash.
+  requestAnimationFrame(() => _hideNativeSplash());
   return _shadesLoader;
 }
 window._mountShadesLoader = _mountShadesLoader;
@@ -8226,6 +8243,7 @@ function _skipIntro(seqId, opts) {
     }
     // Stop a stalled loader from animating behind the now-hidden splash.
     try { _shadesLoader?.destroy(); _shadesLoader = null; } catch (e) {}
+    _hideNativeSplash();
   }, 12000);
 
   const splash = document.getElementById('splash');
@@ -8470,13 +8488,18 @@ function _skipIntro(seqId, opts) {
           }
         };
         if (typeof map !== 'undefined' && map && typeof map.once === 'function') {
+          // 'idle' is the real "everything for this view is painted + faded"
+          // signal. map.loaded() can be true while tiles are still rendering,
+          // which made the crossfade reveal a half-painted map (#5). Always
+          // prefer 'idle'; for the already-settled case fall through via a
+          // short rAF + tile-fade settle. Generous 6 s cap (loader keeps
+          // looping until then); the 12 s kill-switch is the hard backstop.
+          map.once('idle', _dismissOnce);
           if (map.loaded && map.loaded() && !map.isMoving()) {
-            // Already idle by the time worker resolved — dismiss now.
-            _dismissOnce();
-          } else {
-            map.once('idle', _dismissOnce);
-            setTimeout(_dismissOnce, 2500);
+            requestAnimationFrame(() => requestAnimationFrame(() =>
+              setTimeout(_dismissOnce, 350)));   // let tiles finish fading in
           }
+          setTimeout(_dismissOnce, 6000);
         } else {
           _dismissOnce();
         }

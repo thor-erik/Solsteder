@@ -9,5 +9,14 @@
   "ios": {
     "scheme": "Shades",
     "backgroundColor": "#FFF2EB"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": false,
+      "backgroundColor": "#FFF2EB",
+      "showSpinner": false,
+      "splashFullScreen": true,
+      "splashImmersive": true
+    }
   }
 }
