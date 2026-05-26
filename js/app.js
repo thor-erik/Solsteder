@@ -8014,10 +8014,18 @@ function _hideNativeSplash() {
       // Instant hide (no fade): the web static frame is pixel-aligned with the
       // native splash, so there's nothing to cross-fade — a fade only delayed
       // Phase 1 (perceived handoff lag).
-      const p = ss.hide({ fadeOutDuration: 0 });
-      if (p?.then) p.then(() => _nativeSplashGoneResolve()).catch(() => _nativeSplashGoneResolve());
-    } catch (e) { _nativeSplashGoneResolve(); }
-    setTimeout(() => _nativeSplashGoneResolve(), 350);  // safety — never strand the loader
+      ss.hide({ fadeOutDuration: 0 }).catch(() => {});
+    } catch (e) { /* fall through to the timed resolve below */ }
+    // Do NOT resolve on the hide() promise: on Android the system splash
+    // (Theme.SplashScreen) runs its OWN exit animation AFTER hide() resolves,
+    // so starting Phase 1 then plays the static→yellow rise behind the still-
+    // exiting cover — only its snap-to-yellow tail shows ("Phase 1 skipped").
+    // Wait a fixed buffer that clears the native exit so Phase 1 is seen from
+    // frame one. The web static frame is pixel-aligned with the native splash,
+    // so the buffer shows no seam (just the held static mark).
+    const _plat = window.Capacitor?.getPlatform?.();
+    const _exitBuf = _plat === 'android' ? 340 : 140;
+    setTimeout(() => _nativeSplashGoneResolve(), _exitBuf);
   } else {
     _nativeSplashGoneResolve();
   }
@@ -8370,27 +8378,36 @@ function _skipIntro(seqId, opts) {
     // animation starves Mapbox's tile render, so sliding first leaves the map
     // half-painted (it only completes once the slide ends). Wait for the map to
     // go render-quiet, then slide over a fully-painted map.
+    // Reveal order (ALL platforms): rendered map → pins → UI slide-in.
+    // The map finishes painting (above), THEN the pins fade in over it, THEN
+    // the chrome + venue panel slide in over the already-populated map.
+    // (Previously the chrome slid in first and pins appeared 550 ms later —
+    // reversed per product direction so the map's content reads before the
+    // UI arrives.) The list is swapped skeleton → real BEFORE the slide, while
+    // the panel is still off-screen, so it slides in showing real cards.
+    const _PIN_BEAT_MS = 450;  // pins visibly settle before the UI slides
     _afterMapQuiet(() => {
       if (_introSeqId !== localSeq) return;
-      // UI slide-in + panel slides directly to EXPANDED.
-      _introRevealUI(search, brand, qcWrap, panel);
-      if (panel && isMobileSkip) _syncFtsPosition();
-      // After the panel settles, reveal the pins AND swap skeletons → real
-      // cards at the SAME moment — so the list fills in as the pins appear.
+      // 1) Pins (+ locate-me / zoom-jog) fade in over the fully-rendered map.
+      _revealCanvasAndChrome();
+      // 2) Swap skeletons → real cards now, while the panel is still hidden,
+      //    so it slides in already populated (no skeleton flash).
+      window._revealSkeletonHold = false;
+      if (_vlist) delete _vlist.dataset.mounted;
+      if (typeof renderList === 'function') { try { renderList(); } catch (e) {} }
+      // 3) Then the chrome + panel (with real cards) slide in.
       setTimeout(() => {
         if (_introSeqId !== localSeq) return;
-        _revealCanvasAndChrome();
-        window._revealSkeletonHold = false;
-        if (_vlist) delete _vlist.dataset.mounted;
-        if (typeof renderList === 'function') { try { renderList(); } catch (e) {} }
-      }, 550);
-      // Wrap-up
+        _introRevealUI(search, brand, qcWrap, panel);
+        if (panel && isMobileSkip) _syncFtsPosition();
+      }, _PIN_BEAT_MS);
+      // Wrap-up (after the UI has slid in).
       setTimeout(() => {
         if (_introSeqId !== localSeq) return;
         if (_sharedVenueId) selectVenue(_sharedVenueId, true);
         if (typeof _notifInit === 'function') _notifInit();
         if (typeof pushInit === 'function') pushInit();
-      }, 1050);
+      }, _PIN_BEAT_MS + 1050);
     });
     setTimeout(() => { window._revealSkeletonHold = false; }, 5000);  // backstop release
     if (document.documentElement.classList.contains('invite-loading')) {
