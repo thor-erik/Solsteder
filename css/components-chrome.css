@@ -1313,16 +1313,15 @@
 
      Mobile rule below (line ~4815) hides this entirely; the top-strip's
      avatar carries the identity at touch widths. */
-  /* Floating brand label — "exactly like Google Maps": a bare horizontal mark +
-     wordmark lockup over the map, no pill/border/shadow box. Desktop default:
-     bottom-left, aligned to the venue-list column's left edge. The mobile rule
-     (components-content.css) re-anchors it just above the bottom sheet and tracks
-     the sheet via --peek-h / --fts-bottom. pointer-events:none — it's a label,
-     so map gestures pass through. */
+  /* Floating brand label — a bare horizontal mark + wordmark lockup over the
+     map, no pill/border/shadow box. Desktop: top-right corner (replaces the old
+     brand card). Mobile (components-content.css): re-anchored bottom-left,
+     floating just above the bottom sheet and tracking it via --peek-h /
+     --fts-bottom. pointer-events:none — it's a label, so map gestures pass through. */
   #floating-brand {
     position: absolute;
-    left: 16px;
-    bottom: 16px;
+    top: max(calc(env(safe-area-inset-top, 0px) + 2px), 14px);
+    right: 16px;
     z-index: 900;
     display: flex;
     align-items: flex-end;   /* wordmark baseline sits at the mark's bottom edge */

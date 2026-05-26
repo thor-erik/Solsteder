@@ -201,11 +201,12 @@
   }
   #brand-name {
     font-family: 'Inter', sans-serif;
-    font-size: 16px;
-    font-weight: 600;
-    letter-spacing: -0.01em;
-    /* White wordmark + the floating-label halo — matches the map's venue name
-       labels so it reads over the map without a surface behind it. */
+    font-size: 18px;
+    /* Official wordmark spec (brand pack): Inter 900, letter-spacing -5/180em.
+       White + the floating-label halo so it reads over the map (the brand's
+       on-surface colour is cream; over the map we use the label treatment). */
+    font-weight: 900;
+    letter-spacing: -0.028em;
     color: var(--label-text);
     text-shadow: var(--label-halo);
     line-height: 1;
@@ -1662,6 +1663,7 @@
        #locate-btn's sheet tracking (peek-h / fts-bottom + the drag handler).
        Fades out at fullscreen (map fully covered). */
     #floating-brand {
+      top: auto;
       left: 12px;
       right: auto;
       bottom: calc(var(--peek-h, 252px) + 14px);

@@ -128,24 +128,23 @@ surfaces only; Jordy-25% remains the token for any surface not listed here.
 
 ### Brand lockup — floating label (spec · 2026-05-26)
 
-The `Shades` mark + wordmark is a **floating map label, "exactly like Google
-Maps"** — not a chrome pill. Horizontal lockup (mark + wordmark), **left-anchored
-and floating above the venue list**, over the map:
+The `Shades` mark + wordmark is a **bare floating map label** — not a chrome pill.
+Horizontal lockup over the map:
 
-- **No surface.** Bare lockup — no frosted pill, border, or shadow box. It reads
-  directly on the map like a pin label.
-- **Wordmark = white + label halo.** `#FFFFFF` text with the **same halo as the
-  floating venue name labels** (`--label-halo`: four stacked `0 0 4px rgba(0,0,0,1)`
-  text-shadows — the CSS mirror of render-pins' 4×-stacked canvas glow). Legible
-  over any map band. The mark keeps its colour with a soft drop-shadow.
-- **Anchored to the list, tracks the sheet.** Sits just above the venue-list top
-  edge, bottom-left. On mobile it follows the bottom sheet (peek/expanded) via the
-  same `--peek-h` / `--fts-bottom` vars + drag-tracking as `#locate-btn`.
-- **Fades out on fullscreen.** When the sheet goes expanded → fullscreen (map fully
-  covered) the lockup fades to 0 — nothing to float over. Visible in peek + expanded.
-
-Replaces the previous top-right frosted-pill brand card (and the mobile
-`display:none`).
+- **Mark** = `shades-mark-bare.svg` — the brand mark with its cream `#FFF2EB`
+  background tile stripped and the viewBox cropped tight to the art (`25 18 190 182`)
+  so it bottom-aligns to the wordmark (no invisible-box padding). Soft
+  `--label-mark-shadow` lift.
+- **Wordmark** = the brand-pack spec: **Inter 900, letter-spacing −5/180em** (an
+  Inter-900 `@font-face` is loaded — the app otherwise tops out at 700). Over the
+  map it uses the floating-label treatment: white (`--label-text`) + `--label-halo`
+  (toned-down mirror of render-pins' canvas label glow), NOT the brand's on-surface
+  cream. `align-items: flex-end` sits the wordmark on the mark's baseline.
+- **No surface.** No frosted pill, border, or shadow box.
+- **Placement.** Desktop: top-right corner (replaces the old brand card). Mobile:
+  bottom-left, floating just above the venue-list sheet, tracking it via the same
+  `--peek-h` / `--fts-bottom` vars + drag-tracking as `#locate-btn`, and **fading
+  out at expanded → fullscreen** (map covered → nothing to float over).
 
 ### Status
 
