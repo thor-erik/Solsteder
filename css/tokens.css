@@ -184,9 +184,9 @@
     /* Floating-label halo — white text legible over any map band. CSS mirror
        of render-pins' 4×-stacked canvas glow (the venue name labels). Used by
        the brand wordmark; reuse for any DOM label floating over the map. */
-    --label-halo: 0 0 4px rgba(0,0,0,1), 0 0 4px rgba(0,0,0,1), 0 0 4px rgba(0,0,0,1), 0 0 4px rgba(0,0,0,1);
+    --label-halo: 0 0 3px rgba(0,0,0,0.60), 0 0 6px rgba(0,0,0,0.32);  /* softer than the canvas labels' 4× glow — toned down per review */
     --label-text: #FFFFFF;                       /* pure white — matches render-pins LIGHT_FILL */
-    --label-mark-shadow: drop-shadow(0 1px 3px rgba(0,0,0,0.45));  /* soft lift for the mark over the map */
+    --label-mark-shadow: drop-shadow(0 1px 2px rgba(0,0,0,0.28));  /* light lift for the mark over the map */
     /* Dark muted text for transparent (A) + cream (C) surfaces — replaces
        --muted (#9BA9BC slate) which is illegible on light backgrounds.
        0.70 (was 0.55) so it clears WCAG AA on the cream dropdown + Jordy-25%

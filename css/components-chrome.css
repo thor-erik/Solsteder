@@ -1325,7 +1325,7 @@
     bottom: 16px;
     z-index: 900;
     display: flex;
-    align-items: center;
+    align-items: flex-end;   /* wordmark baseline sits at the mark's bottom edge */
     gap: var(--space-sm);
     pointer-events: none;
     transition: opacity 0.28s ease,
