@@ -1,7 +1,7 @@
 // Design-token bridge for canvas/JS.
 //
 // Reads CSS custom properties from :root once at boot and exposes them as a
-// plain object so canvas drawing code (render-pins, render-arc, render-seating,
+// plain object so canvas drawing code (render-pins, render-seating,
 // render-editor, ui-shared, ui-detail) doesn't have to duplicate the palette.
 //
 // When a CSS token changes, the canvas tracks. When the JS-readable name needs

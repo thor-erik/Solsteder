@@ -207,7 +207,6 @@
     flex-shrink: 0;
   }
 
-  #sun-compass { display: block; cursor: default; border-radius: 50%; flex-shrink: 0; }
 
   /* Controls (now in floating-bottom) */
   #panel-controls {
@@ -1452,7 +1451,6 @@
   }
 
   /* ── Arc frozen state (after sunset, today only) ──────────────────── */
-  .arc-frozen #bottom-arc-row  { pointer-events: none; opacity: 0.35; }
   .arc-frozen #time-presets-row { pointer-events: none; opacity: 0.35; }
 
   /* ── Expanded section (visible when .selected) ─────────────────────── */

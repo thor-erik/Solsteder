@@ -109,7 +109,7 @@
 </script>
 <script defer src="js/i18n.js?v=20260525u"></script>
 <script defer src="js/config.js?v=20260519s"></script>
-<script defer src="js/tokens.js?v=20260521e"></script>
+<script defer src="js/tokens.js?v=20260526a"></script>
 <script defer src="js/auth.js?v=20260525b"></script>
 
 <script defer src="js/login-carousel.js?v=20260428a"></script>
@@ -122,12 +122,11 @@
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260521c"></script>
 <script defer src="js/shades-loader.js?v=20260525f"></script>
-<script defer src="js/app.js?v=20260525zp"></script>
+<script defer src="js/app.js?v=20260525zq"></script>
 <script defer src="js/render-helpers.js?v=20260524h"></script>
-<script defer src="js/render-arc.js?v=20260519b"></script>
 <script defer src="js/render-seating.js?v=20260519b"></script>
 <script defer src="js/render-editor.js?v=20260519b"></script>
-<script defer src="js/render-pins.js?v=20260525r"></script>
+<script defer src="js/render-pins.js?v=20260525s"></script>
 <script defer src="js/ui-shared.js?v=20260525b"></script>
 <script defer src="js/ui-list.js?v=20260525h"></script>
 <script defer src="js/admin-review.js?v=20260505a"></script>
@@ -179,8 +178,8 @@
 </style>
 <link rel="stylesheet" href="css/tokens.css?v=20260525c">
 <link rel="stylesheet" href="css/base.css?v=20260525o">
-<link rel="stylesheet" href="css/components-chrome.css?v=20260524v">
-<link rel="stylesheet" href="css/components-content.css?v=20260525g">
+<link rel="stylesheet" href="css/components-chrome.css?v=20260526a">
+<link rel="stylesheet" href="css/components-content.css?v=20260526a">
 <link rel="stylesheet" href="css/components-overlays.css?v=20260525zc">
 <script type="application/ld+json">
 {
@@ -411,7 +410,6 @@
   <div id="floating-brand" class="intro-hidden">
     <div id="brand-logo"><img src="design/logo-pack-svg/logo-color-2000w.svg" alt="Shades" width="32" height="32" loading="lazy"></div>
     <span id="brand-name">Shades</span>
-    <canvas id="sun-compass" width="36" height="36"></canvas>
   </div>
 
 
@@ -432,10 +430,6 @@
       <input type="date" id="date-picker" style="display:none">
     </div>
     <div class="floating-card">
-      <!-- Sun arc canvas -->
-      <div id="bottom-arc-row">
-        <canvas id="sun-curve" onclick="handleSunCurveClick(event)"></canvas>
-      </div>
       <!-- Row 3: time preset buttons aligned to arc -->
       <div id="time-presets-row">
         <div id="intent-pill"></div>

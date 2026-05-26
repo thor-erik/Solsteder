@@ -28,7 +28,6 @@
  *             editVertexMode (render-editor.js / app.js)
  *             drawSeatingAreas, drawShadowOverlay, shouldShowAtZoom
  *               (render-seating.js)
- *             drawSunCurve, drawSunCompass (render-arc.js)
  *             selectVenue, closeDetailPanel, setDetachedLocation,
  *             selectWallByIdx, saveFacingCache (app.js / ui.js)
  *             tooltip, buildTooltipContent (ui.js)
@@ -1420,8 +1419,6 @@ resizeCanvas();
 window.addEventListener('resize', () => {
   resizeCanvas();
   draw();
-  drawSunCurve(document.getElementById('sun-curve'));
-  drawSunCompass();
 });
 
 // Boot-time gate around draw(). The first paint over all visible venues

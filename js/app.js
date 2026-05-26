@@ -2918,38 +2918,12 @@ function advanceDay(delta, setHour) {
 }
 
 // ── Sun curve click → set time ────────────────────────────────────────────────
-// ── Arc canvas time interaction ───────────────────────────────────────────────
-let _arcDragging = false;
-
+// ── Time snapping (shared by the FTS + timelines) ─────────────────────────────
 function _clampHour(t) {
-  // Snap to 5-minute grid; floor at MIN_H_ARC (which is "now" on today).
+  // Snap to 5-minute grid; floor at MIN_H_ARC (the global day-domain floor).
   const snapped = Math.round(t * 12) / 12;
   return Math.max(MIN_H_ARC, Math.min(MAX_H_ARC, snapped));
 }
-
-function _arcSetTimeFromX(clientX) {
-  if (_timeAnimId) { cancelAnimationFrame(_timeAnimId); _timeAnimId = null; }
-  const canvasEl = document.getElementById('sun-curve');
-  if (!canvasEl) return;
-  const rect = canvasEl.getBoundingClientRect();
-  const t    = MIN_H_ARC + (clientX - rect.left - PAD_X_ARC) / (rect.width - PAD_X_ARC * 2) * (MAX_H_ARC - MIN_H_ARC);
-  const hour = _clampHour(t);
-  if (nowMode) {
-    nowMode = false;
-    nowBtn?.classList.remove('active');
-    timeRangeWrap?.classList.remove('now-active');
-    clearInterval(nowInterval); nowInterval = null;
-  }
-  setActiveIntentBtn(null);
-  // Haptic tick on each 15-min step boundary
-  const step = Math.round(hour * 4);
-  if (_lastSliderStep !== null && step !== _lastSliderStep) navigator.vibrate?.(6);
-  _lastSliderStep = step;
-  timeFromEl.value = hour;
-  update();
-}
-
-function handleSunCurveClick(e) { _arcSetTimeFromX(e.clientX); }
 
 function animateToTime(targetHour, durationMs) {
   const dur     = durationMs ?? TIME_ANIM_MS;
@@ -3608,8 +3582,6 @@ function update() {
   } else if (sunBg) { sunBg.style.display = 'none'; }
 
   draw();
-  drawSunCompass();
-  drawSunCurve(document.getElementById('sun-curve'));
   positionPresetButtons();
   scheduleRenderList();
   updatePopup();
@@ -4938,9 +4910,6 @@ function togglePanel() {
   const tid = setTimeout(redrawAfterTransition, 240);
 }
 
-// Show handle on mobile init
-let arcHoverH = null;
-
 document.addEventListener('DOMContentLoaded', () => {
   if (isMobile()) {
     const h       = document.getElementById('panel-handle');
@@ -5596,7 +5565,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Position preset buttons after layout settles, then again on resize
   setTimeout(positionPresetButtons, 80);
-  new ResizeObserver(() => positionPresetButtons()).observe(document.getElementById('sun-curve') ?? document.body);
+  new ResizeObserver(() => positionPresetButtons()).observe(document.body);
 
   // Push detail panel below qc-wrap only when panel is hidden (same left column).
   // When panel is visible, detail-panel is in the right column and unaffected.
@@ -5622,31 +5591,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof drawAllCardTimelines === 'function') drawAllCardTimelines();
   });
   setTimeout(() => { _syncQcPanelHeight(); _updatePeekHeight(); }, 600);
-
-  // Arc canvas drag + hover support
-  const arcEl = document.getElementById('sun-curve');
-  if (arcEl) {
-    arcEl.addEventListener('mousedown',  e => { _arcDragging = true;  _arcSetTimeFromX(e.clientX); });
-    arcEl.addEventListener('touchstart', e => { e.preventDefault(); _arcSetTimeFromX(e.touches[0].clientX); }, { passive: false });
-    arcEl.addEventListener('touchmove',  e => { e.preventDefault(); _arcSetTimeFromX(e.touches[0].clientX); }, { passive: false });
-    arcEl.addEventListener('mousemove',  e => {
-      if (_arcDragging) return; // dragging handled separately
-      const rect = arcEl.getBoundingClientRect();
-      const t = MIN_H_ARC + (e.clientX - rect.left - PAD_X_ARC) / (rect.width - PAD_X_ARC * 2) * (MAX_H_ARC - MIN_H_ARC);
-      arcHoverH = _clampHour(t);
-      drawSunCurve(arcEl);
-    });
-    arcEl.addEventListener('mouseleave', () => {
-      arcHoverH = null;
-      drawSunCurve(arcEl);
-    });
-  }
-  document.addEventListener('mousemove', e => {
-    if (_arcDragging) _arcSetTimeFromX(e.clientX);
-  });
-  document.addEventListener('mouseup', () => {
-    _arcDragging = false;
-  });
 
   // Close sort panel when clicking outside it. Two sort-button instances
   // live in the DOM (#sort-toggle-btn in the sun-section-bar header and
@@ -5942,11 +5886,10 @@ datePicker.addEventListener('change', () => {
   if (typeof _notifEvaluate === 'function') _notifEvaluate();
 });
 
-let _lastSliderStep = null;
 // rAF-coalesce slider input → update(). Touch input fires up to 60Hz, and
-// update() does heavy work (draw, drawSunCompass, drawSunCurve, drawFtsCanvas,
-// updateSunLighting). The gate ensures only the latest hour is processed per
-// frame; intermediate ticks coalesce into the next vsync.
+// update() does heavy work (draw, drawFtsCanvas, updateSunLighting). The gate
+// ensures only the latest hour is processed per frame; intermediate ticks
+// coalesce into the next vsync.
 let _sliderUpdateScheduled = false;
 function _scheduleSliderUpdate() {
   if (_sliderUpdateScheduled) return;
