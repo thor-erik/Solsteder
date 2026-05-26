@@ -345,9 +345,11 @@
     align-items: center;
     justify-content: center;
     gap: var(--space-3xl);
-    /* 0.3s matches the loader's Phase 4 crossfade (PHASE4_MS) so the cream
-       backdrop and the SVG fade out together; onComplete then sets .done. */
-    transition: background-color 0.3s ease;
+    /* Matches the loader's Phase 4 crossfade (PHASE4_MS=600) so the cream
+       backdrop and the SVG fade out together; onComplete then sets .done. The
+       longer fade also lets the map (which only develops tiles as the opaque
+       cover lifts) finish rendering while the fading cream still masks it. */
+    transition: background-color 0.6s ease;
     pointer-events: all;
     cursor: default;
   }

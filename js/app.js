@@ -8015,10 +8015,13 @@ function _hideNativeSplash() {
   const ss = window.Capacitor?.Plugins?.SplashScreen;
   if (ss?.hide) {
     try {
-      const p = ss.hide({ fadeOutDuration: 200 });
+      // Instant hide (no fade): the web static frame is pixel-aligned with the
+      // native splash, so there's nothing to cross-fade — a fade only delayed
+      // Phase 1 (perceived handoff lag).
+      const p = ss.hide({ fadeOutDuration: 0 });
       if (p?.then) p.then(() => _nativeSplashGoneResolve()).catch(() => _nativeSplashGoneResolve());
     } catch (e) { _nativeSplashGoneResolve(); }
-    setTimeout(() => _nativeSplashGoneResolve(), 600);  // safety — never strand the loader
+    setTimeout(() => _nativeSplashGoneResolve(), 350);  // safety — never strand the loader
   } else {
     _nativeSplashGoneResolve();
   }
@@ -8518,18 +8521,25 @@ function _skipIntro(seqId, opts) {
           // blank map (#5). triggerRepaint forces a render→idle cycle so 'idle'
           // still fires if the map settled before we subscribed; the loader
           // keeps looping until it lands. 6 s cap; 12 s kill-switch backstops.
-          // 'idle' can fire before the top-first progressive tile paint is
-          // done, so after idle POLL areTilesLoaded() until the whole view is
-          // loaded, then a short settle — the crossfade never reveals a
-          // half-painted map (#5). 6 s cap; 12 s kill-switch backstops.
-          const _revealWhenPainted = () => {
+          // The map engine pauses rendering/loading tiles for the fully-occluded
+          // canvas, then develops them only as the cover lifts — which reveals a
+          // half-painted map (#5). Actively KICK it with triggerRepaint until all
+          // tiles for the view are loaded, then a settle, so it's fully developed
+          // BEFORE the crossfade. 6 s cap; 12 s kill-switch backstops.
+          let _stable = 0;
+          const _kick = () => {
             if (_dismissed) return;
             const tilesUp = (typeof map.areTilesLoaded !== 'function') || map.areTilesLoaded();
-            if (tilesUp) setTimeout(_dismissOnce, 300);
-            else setTimeout(_revealWhenPainted, 120);
+            if (tilesUp) {
+              _stable++;
+              if (_stable >= 3) { setTimeout(_dismissOnce, 250); return; }  // loaded & stable
+            } else {
+              _stable = 0;
+            }
+            try { if (map.triggerRepaint) map.triggerRepaint(); } catch (e) {}
+            setTimeout(_kick, 100);
           };
-          map.once('idle', _revealWhenPainted);
-          try { if (map.triggerRepaint) map.triggerRepaint(); } catch (e) {}
+          _kick();
           setTimeout(_dismissOnce, 6000);
         } else {
           _dismissOnce();

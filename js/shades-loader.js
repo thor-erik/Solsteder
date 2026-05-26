@@ -340,7 +340,7 @@
   const PHASE2_HALF = PHASE2_CYCLE_MS / 2;
   const PHASE2_MOTION = PHASE2_HALF - PHASE2_HOLD_MS;
   const PHASE3_MS = 700;
-  const PHASE4_MS = 300;
+  const PHASE4_MS = 600;  // was 300 — longer crossfade lets the map finish
 
   function createShadesLoader(container, options = {}) {
     const variant = options.variant === 'dark' ? 'dark' : 'light';
