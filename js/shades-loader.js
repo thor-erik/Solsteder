@@ -71,8 +71,9 @@
   const SHADOW_YELLOW_CY = 105; // hidden behind sun
 
   const WORDMARK_X = CX;
-  const WORDMARK_Y = 252;       // baseline of "Shades" text
-  const WORDMARK_SIZE = 32;     // px
+  const WORDMARK_Y = 256;       // baseline of "Shades" text
+  const WORDMARK_SIZE = 50;     // px
+  const WORDMARK_WIDTH = R_SUN * 2;  // match the sun (yellow) circle diameter
 
   // Diagonal-stripe parameters for the shadow circle.
   const STRIPE_SPACING = 15;
@@ -226,6 +227,8 @@
         'font-size': WORDMARK_SIZE,
         'letter-spacing': '-0.03em',
         fill: textColor,
+        textLength: WORDMARK_WIDTH,        // force the wordmark to the sun's diameter
+        lengthAdjust: 'spacingAndGlyphs',
         opacity: 0,   // hidden through intro + loop; fades in on Phase 3 (resolve)
       });
       wordmarkEl.textContent = 'Shades';

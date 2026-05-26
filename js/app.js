@@ -7977,6 +7977,9 @@ function _afterMapQuiet(cb, capMs = 2500) {
     if (performance.now() - last > 300) finish();
     else setTimeout(tick, 80);
   };
+  // Force a full-viewport render cycle, then wait for it to settle — so quiet
+  // means "the WHOLE map is painted", not "the map isn't currently drawing".
+  try { if (map.resize) map.resize(); } catch (e) {}
   try { if (map.triggerRepaint) map.triggerRepaint(); } catch (e) {}
   setTimeout(tick, 120);
   setTimeout(finish, capMs);
@@ -8313,6 +8316,12 @@ function _skipIntro(seqId, opts) {
     }
   } catch (e) { console.warn('[boot] setPadding failed', e); }
   map.jumpTo({ center: _introCenter, zoom: 14, pitch: 15, bearing: 0 });
+  // Force the map to size to the full container and render its WHOLE viewport
+  // NOW, during the loading phase — otherwise it renders top-first and only
+  // completes the lower portion when the panel slide later triggers a resize,
+  // so the reveal shows a half-painted map. Doing it here (behind the splash,
+  // with the loop covering) lets the map finish before the chrome slides in.
+  try { if (map.resize) map.resize(); } catch (e) {}
 
   // Hide splash — unless opts.keepSplash is set (plan-invite path,
   // which lets openPlanPreview's map.once('idle') handler dismiss the
