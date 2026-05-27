@@ -126,6 +126,39 @@ build on a physical S25; the gesture lag was MSAA/canvas draw, not the blur.
 This supersedes the "chrome panel = `--surface-chrome`" line for these specific
 surfaces only; Jordy-25% remains the token for any surface not listed here.
 
+### Cream-frost content world (update · 2026-05-27)
+
+The content surfaces — the venue **detail panel**, the **invite** sheet, and
+the **accept/plan-preview** sheet — converge on ONE material: the pure-frost
+sheet the accept panel already uses, with cream cards stepping up off it. This
+is a deliberate reversal of the old "content = dark Delft Blue" rule below
+(`Content tiles are (near-)opaque Delft Blue`), made because the frost reads as
+more polished and unifies the whole app into one lens material (brand: Shades =
+sunglass lenses). It rolls out **panel-by-panel**, starting with the detail
+panel; surfaces not yet migrated (the venue-list cards, modals) stay Delft until
+their own pass.
+
+- **Sheet** (detail / invite / accept): `--glass-panel-bg` (transparent) +
+  `--glass-blur-panel` (6px) + `--glass-border` + `--sheet-shadow`. Text is
+  **ink** (`--panel-text` `#111E38`, muted `--ink-muted`). Identical recipe to
+  `.dpacc-panel`.
+- **Card on the sheet** (the venue card slot, plans block, info tiles):
+  `--card-cream-bg` (cream ~86%) + `--card-cream-blur` + `--card-cream-border`
+  + `--card-cream-shadow`. Text is ink. A translucent cream tile reads as a
+  raised object on the frost without going mud (it is mostly opaque, not a
+  second transparent blur).
+- **Honey on cream**: the old "honey dies on cream" objection is solved with
+  `--accent-casing` — a tight dark drop-shadow (the `--icon-casing` trick for
+  glyphs over the map, applied to honey fills/text). Honey CTAs keep their solid
+  fill + drop shadow (proven on the accept panel); small honey signals
+  (sun-hours, badges) add `--accent-casing` so they stay legible.
+
+**Why a light content world can work now:** the objection was lightness
+collision (honey ≈ cream). The casing restores separation, and the accept panel
+is the existing proof — it is a light frost sheet with a honey CTA and reads
+clean. The figure-ground argument for dark cards (photos, glare) is handled by
+the hero photo carrying its own dark gradient overlay, not by the card fill.
+
 ### Brand lockup — floating label (spec · 2026-05-26)
 
 The `Shades` mark + wordmark is a **bare floating map label** — not a chrome pill.
@@ -300,6 +333,13 @@ Stacking is expressed by **opacity + shadow + a hairline border — never a new 
 The only genuinely new token to add is a **scrim** (`--scrim`, dark veil) behind focus-stealing layers.
 
 ### Content tiles are (near-)opaque Delft Blue — never cream
+
+> **Superseded for the content sheets (2026-05-27).** The detail / invite /
+> accept sheets and the cards inside them now use the cream-frost world (see
+> "Cream-frost content world" above). This Delft-Blue rule still holds for the
+> venue-**list** cards and modals until their migration. The reasons below are
+> retained as the historical rationale and remain valid for the not-yet-migrated
+> surfaces.
 
 Venue cards and detail tiles are **Delft Blue at 90%** (`--surface-content` = `rgba(17,30,56,0.90)`). Effectively opaque — the 10% is a faint depth cue over the map, not see-through translucency. Reasons, in priority order:
 
@@ -554,7 +594,7 @@ The audience is on phones — motion is touch-native craft + restraint, never de
 - ✗ A light control on a light panel (zero contrast) — a control must step away from its container. See "Surface & elevation model → Controls step away from their container".
 - ✗ Per-flow button classes (`dprcv-cta-primary`, `dpacc-action-primary`, `fts-popup-primary`…) — buttons are one of four roles; colour encodes role, not flow.
 - ✗ More than one Tier-4 honey button on a screen — honey means "the decision", once.
-- ✗ Translucent or cream content tiles — venue/detail tiles are opaque Delft Blue. Honey dies on cream.
+- ✗ Translucent or cream content tiles on the venue **list** + modals — those stay opaque Delft Blue. (The detail / invite / accept sheets are the exception: they migrated to the cream-frost world on 2026-05-27, where honey survives on cream via `--accent-casing`. See "Cream-frost content world".)
 - ✗ Gradient fills, glossy inset sheens, or mirror-sky / chromatic overlays — the look is flat: solid tints + blur. (Functional mask-fades, legibility scrims, and motion glints are not "fills" and are fine.)
 - ✗ Emoji anywhere in the UI — icons, labels, toasts, or SVG fallbacks. SVG from the icon pack only. See "Icons".
 - ✗ Stacking two translucent layers of the same world (dropdown over panel) and trusting `backdrop-filter` — the raised layer goes opaque + shadow.

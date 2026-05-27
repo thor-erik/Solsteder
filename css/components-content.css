@@ -4619,18 +4619,17 @@
     bottom: 16px;
     width: 380px;  /* match the venue-list panel width */
     border-radius: var(--radius-lg);
-    /* EXPERIMENT (user): detail sheet as solid Delft Blue (was Jordy-25% light)
-       — fixes button/text visibility over the busy map, and the honey CTA gets
-       the dark surface it wants (principle 2). Dark surface ⇒ cream text: we
-       override --panel-text / --ink-muted on the panel so the shell's
-       ink-tinted text + icons flip to cream via the cascade (content cards
-       already use cream). Opaque ⇒ no blur. Controls inside use Jordy borders. */
-    background: var(--blue-950);   /* darker than the cards (#111E38) → figure-ground */
-    border: 1px solid var(--line-d);
-    box-shadow: var(--shadow-2);
-    color: var(--text);
-    --panel-text: var(--text);
-    --ink-muted: var(--muted);
+    /* Cream-frost content world (2026-05-27): the detail sheet is now pure-frost
+       — transparent fill + heavy blur over the map, ink text — matching the
+       venue-list panel + accept sheet. Cards inside step up as cream tiles
+       (#detail-panel .dp-card rule below). No --panel-text/--ink-muted override
+       any more: the shell's text falls back to the global ink values. */
+    background: var(--glass-panel-bg);
+    backdrop-filter: var(--glass-blur-frost);
+    -webkit-backdrop-filter: var(--glass-blur-frost);
+    border: var(--glass-border);
+    box-shadow: var(--panel-shadow);
+    color: var(--panel-text);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -4641,15 +4640,24 @@
     transition: transform 0.26s ease, opacity 0.26s ease, left 0.28s ease;
     contain: layout;
   }
-  /* Content tiles must stand out from the darker (#0A1830) sheet — the card is
-     a key element. Solid Delft (#111E38, lighter than the sheet) + a crisp Jordy
-     edge (shadows don't show on dark, so the border carries the separation). */
+  /* Cream-frost tile on the frost sheet (2026-05-27). The card is a translucent
+     cream tile lifted by a soft shadow. Flip the text tokens to INK within the
+     card scope so every --text / --text-secondary / --muted consumer (name,
+     meta, sub) reads dark; honey (--accent) stays honey and picks up a casing
+     where it's a signal (rules below). */
   #detail-panel .dp-card,
   #detail-panel .venue-card,
   #detail-panel .dp-plans-block,
   #detail-panel .dp-shelter-section {
-    background: var(--panel);
-    border-color: var(--line-d-strong);
+    background: var(--card-cream-bg);
+    backdrop-filter: var(--card-cream-blur);
+    -webkit-backdrop-filter: var(--card-cream-blur);
+    border: 1px solid var(--card-cream-border);
+    box-shadow: var(--card-cream-shadow);
+    --text: #111E38;
+    --text-secondary: rgba(17,30,56,0.64);
+    --muted: rgba(17,30,56,0.50);
+    color: #111E38;
     /* Tabular figures — detail times / sun-hours / temps don't twitch. */
     font-variant-numeric: tabular-nums;
   }
@@ -4952,7 +4960,11 @@
      Title moved here from the dp-card so identity reads with the photo. */
   .detail-new-photos {
     position: relative;
-    height: 200px;
+    /* Was a fixed 200px (cover-crop, height never varied by ratio). Shortened
+       to 168px so the hero reads as a band, not a block. Aspect-aware height
+       (let odd ratios "peek") needs JS per-image sizing — deferred; the
+       carousel needs a uniform frame height anyway. */
+    height: 168px;
     border-radius: var(--radius-md);
     margin-bottom: var(--space-lg);
     overflow: hidden;
@@ -5139,26 +5151,30 @@
   /* ── Sun summary headline (the new dp-card content) ─────────────────────── */
   .dp-card .dp-sun-headline {
     color: var(--accent);
+    /* Honey on the cream card — casing keeps the sun signal from washing out. */
+    filter: var(--accent-casing);
     font-size: var(--text-title);
     font-weight: 700;
     line-height: 1.18;
     letter-spacing: -0.012em;
   }
   .dp-card .dp-sun-sub {
-    color: rgba(255,244,224,0.72);
+    color: var(--text-secondary);  /* ink on the cream card (scoped token) */
     font-size: var(--text-label);
     font-weight: 500;
     margin-top: var(--space-2xs);
     letter-spacing: 0.005em;
   }
   /* Shadow + done states tone the headline back so it reads as muted info,
-     not as a primary "sunny" cue. */
+     not as a primary "sunny" cue. Ink (not honey) ⇒ no casing needed. */
   .dp-card.state-shadow .dp-sun-headline,
   .dp-card.state-rain   .dp-sun-headline {
-    color: rgba(255,244,224,0.85);
+    color: rgba(17,30,56,0.82);
+    filter: none;
   }
   .dp-card.state-done .dp-sun-headline {
-    color: rgba(255,244,224,0.65);
+    color: rgba(17,30,56,0.55);
+    filter: none;
   }
   /* Spacing between the headline block and the pills row inside the card.
      Was 12px — tightened to 8px so the card breathes less between rows. */
@@ -5170,7 +5186,7 @@
   /* ── Section title (used by Avtaler + Le for vind) ─────────────────────── */
   .dp-section { margin-top: var(--space-lg); }
   .dp-section-title {
-    color: var(--muted);
+    color: var(--ink-muted);  /* ink — section title sits on the frost sheet */
     font-size: var(--text-caption);
     font-weight: 600;
     text-transform: uppercase;
@@ -5189,7 +5205,14 @@
   .dp-plans-block .detail-plan-item:not(:first-of-type) {
     margin-top: var(--space-md);
     padding-top: var(--space-md);
-    border-top: 1px solid rgba(155,169,188,0.16);
+    border-top: 1px solid var(--line-l-faint);  /* ink divider on the cream plans tile */
+  }
+  /* Honey signals on the cream tiles pick up a casing so the sun colour
+     survives on a light base (DESIGN.md "Cream-frost content world"). */
+  #detail-panel .dp-plans-block .plan-when,
+  #detail-panel .dp-card .card-pill.pill-sol,
+  #detail-panel .dp-card .card-pill.pill-overflow {
+    filter: var(--accent-casing);
   }
 
   /* ── Wind shelter section ─────────────────────────────────────────────── */
@@ -5233,7 +5256,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: var(--text-secondary); /* cream — chip sits on the dark detail panel */
+    color: var(--ink-muted); /* ink — chip sits on the frost sheet */
     font-size: 14px;
   }
   .info-chip-text { font-variant-numeric: tabular-nums; }
@@ -5242,25 +5265,35 @@
   .dp-footer-quiet {
     margin-top: var(--space-xl);
     padding-top: var(--space-lg);
-    border-top: 1px solid rgba(155,169,188,0.12);
+    border-top: 1px solid var(--line-l-faint);  /* ink divider on the frost sheet */
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: var(--space-md);
-    opacity: 0.55;
+    gap: var(--space-lg);
+    /* Was opacity 0.55 (intentionally "quiet") — bumped so these stay
+       discoverable. Visibility now comes from a clear link treatment, not full
+       prominence. */
+    opacity: 1;
   }
   .dp-footer-quiet .secondary-link {
     background: none;
     border: none;
-    padding: 0;
+    padding: var(--space-2xs) 0;
     color: var(--ink-muted);
-    font-size: var(--text-caption);
-    font-weight: 500;
+    font-size: var(--text-label);
+    font-weight: 600;
     cursor: pointer;
     font-family: inherit;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-color: var(--line-l-strong);
+    transition: color 0.12s, text-decoration-color 0.12s;
   }
-  .dp-footer-quiet .secondary-link:hover { color: var(--panel-text); }
-  .dp-footer-sep { color: var(--ink-muted); font-size: var(--text-caption); opacity: 0.6; }
+  .dp-footer-quiet .secondary-link:hover {
+    color: var(--panel-text);
+    text-decoration-color: currentColor;
+  }
+  .dp-footer-sep { color: var(--ink-muted); font-size: var(--text-label); opacity: 0.5; }
 
   /* Merged header: back + title + fav/bell on one row */
   .detail-header-row {
@@ -5343,15 +5376,16 @@
      text-decoration:none — it's an <a>, not a <button>. */
   .dp-directions {
     /* height comes from .s-rnd (now 48px); width/radius are the full-width
-       pill adaptation. */
+       pill adaptation. On-light recipe (frost sheet): Delft outline + ink text,
+       matching the accept panel's secondary tiles. */
     width: 100%; border-radius: var(--radius-pill);
     background: transparent;
-    border-color: var(--line-d-strong);
+    border-color: var(--line-l-strong);
     box-shadow: none;
-    color: var(--text);
+    color: var(--panel-text);
     text-decoration: none;
   }
-  .dp-directions:hover { background: var(--line-d-faint); border-color: var(--line-d-strong); }
+  .dp-directions:hover { background: var(--line-l-faint); border-color: var(--line-l-strong); }
   .dp-directions svg { width: 18px; height: 18px; flex-shrink: 0; }
   .dp-directions-label { overflow: hidden; text-overflow: ellipsis; }
 
@@ -5372,11 +5406,11 @@
     height: 48px;
     padding: 0 var(--space-sm);
     border-radius: var(--radius-md);
-    /* Tertiary toggles on the dark Delft sheet — Jordy outline + cream
-       (--panel-text is overridden to cream on #detail-panel). Stacked
-       icon+label kept; honey fills on active (below). */
+    /* Tertiary toggles on the frost sheet — on-light recipe: Delft outline +
+       ink text (--panel-text is global ink now). Stacked icon+label kept;
+       cool fill on active (below). */
     background: transparent;
-    border: 1px solid var(--line-d-strong);
+    border: 1px solid var(--line-l-strong);
     color: var(--panel-text);
     cursor: pointer;
     text-decoration: none;
@@ -5402,22 +5436,22 @@
     max-width: 100%;
   }
   .dp-secondary-btn:hover {
-    background: var(--line-d-faint);
-    border-color: var(--line-d-strong);
+    background: var(--line-l-faint);
+    border-color: var(--line-l-strong);
     color: var(--panel-text);
   }
   /* Active toggle state — a cool Jordy fill (NOT honey: honey is reserved for
      the one Invite CTA per screen). "On" is signalled by the cool fill + the
-     filled icon (heart/bell go solid below). */
+     filled icon (heart/bell go solid below). Ink text on the light fill. */
   .dp-secondary-btn.is-active {
     background: var(--surface-chrome);
-    border-color: var(--line-d-strong);
-    color: var(--text);
+    border-color: var(--line-l-strong);
+    color: var(--panel-text);
   }
-  .dp-secondary-btn.is-active svg { color: var(--text); fill: currentColor; }
+  .dp-secondary-btn.is-active svg { color: var(--panel-text); fill: currentColor; }
   .dp-secondary-btn.is-active:hover {
     background: var(--surface-chrome);
-    border-color: var(--line-d-strong);
+    border-color: var(--line-l-strong);
   }
 
   /* Legacy: keep .primary-action for backwards compat but hidden */

@@ -230,6 +230,23 @@
        stays readable over ANY background (weather over the map / FTS). */
     --icon-casing: drop-shadow(0 0 1.5px rgba(0,0,0,0.85)) drop-shadow(0 1px 1px rgba(0,0,0,0.5));
 
+    /* ── Cream-frost content world (2026-05-27) ───────────────────────────────
+       The detail + invite + accept SHEETS are pure-frost (transparent fill +
+       blur, ink text — like .dpacc-panel). CARDS inside them step up off the
+       frost as a translucent CREAM tile (not the dark Delft of the old content
+       world). Rolling out panel-by-panel; the venue-list cards + modals stay
+       Delft until their own pass. See DESIGN.md "Cream-frost content world". */
+    --card-cream-bg:     rgba(255,247,240,0.86);  /* cream-frost card on a frost sheet */
+    --card-cream-blur:   blur(10px);
+    --card-cream-border: rgba(17,30,56,0.08);     /* faint Delft hairline on cream */
+    --card-cream-shadow: 0 1px 2px rgba(17,30,56,0.10), 0 8px 22px rgba(17,30,56,0.14);  /* soft lift off the frost */
+    /* Honey on a LIGHT surface. DESIGN.md's old rule was "honey dies on cream"
+       because honey + cream sit at similar lightness. The fix (user-confirmed):
+       a tight dark casing — the same trick --icon-casing uses for glyphs over
+       the map — applied to honey fills/text so the sun signal survives on
+       cream. Use --accent-casing on honey CTAs/badges/text that sit on cream. */
+    --accent-casing:     drop-shadow(0 1px 1.5px rgba(17,30,56,0.32));
+
     /* Borders — Jordy on DARK surfaces, Delft Blue on LIGHT; compose `1px solid var(--line-*)`. */
     --line-d-faint:  rgba(156,189,231,0.08);   /* divider on dark */
     --line-d:        rgba(156,189,231,0.18);   /* edge on dark (content card, modal) */
