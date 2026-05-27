@@ -961,15 +961,14 @@
   .venue-card .tl-label-sol {
     color: var(--text);
   }
-  /* EXCEPT the two sun-signal texts that must read as the sun: the sun-hours
-     ("☀ 5h 50m") and the "+Xh" opportunity. They stay honey, made legible on
-     cream by a soft dark bloom (gentler cousin of the map venue-label halo). */
+  /* EXCEPT the sun-signal texts that must read as the sun: the sun-hours
+     ("☀ 5h 50m") and the "+Xh" opportunity. They stay honey-warm via the
+     deeper amber gold --accent-on-light (legible on cream, flat — no bloom). */
   .venue-card .card-new-hero-main,
   .venue-card .card-duration,
   .venue-card .card-sun-dur,
   .venue-card .card-disrupt-sun {
-    color: var(--accent);
-    text-shadow: var(--accent-bloom);
+    color: var(--accent-on-light);
   }
   /* Hours pills were cream-text on a Delft card (invisible on cream) → a faint
      ink wash + ink text. */
@@ -1053,7 +1052,9 @@
   .venue-card.card-compact .card-fillbar-fill {
     display: block;
     height: 100%;
-    background: var(--accent);
+    /* The "% sun" bar — deeper amber so it reads on cream (matches the sun-hours
+       text), not the bright honey that washed out on the light card. */
+    background: var(--accent-on-light);
   }
 
   /* ── 3-row deterministic list card ──────────────────────────────────────
