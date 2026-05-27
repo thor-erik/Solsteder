@@ -446,10 +446,11 @@ function drawBuildingEditor() {
     return;
   }
 
-  // Street: wall arrows are the entry point for selecting which side(s) the
-  // terrace is on. Once an override polygon exists we hide the arrows so the
-  // canvas isn't cluttered.
-  if (terrType === 'street' && !v.seatingPolygonOverride) {
+  // Street: wall arrows are how you pick which building side(s) the terrace is
+  // on — and they stay available ALWAYS (even after edits), so you can always
+  // re-pick walls. (Type drives the model: street = walls; for a free-form
+  // shape, switch the type to Frittstående.)
+  if (terrType === 'street') {
     walls.forEach((wall, idx) => {
       const pa = map.project([wall.aLng, wall.aLat]);
       const pb = map.project([wall.bLng, wall.bLat]);
@@ -504,31 +505,27 @@ function drawBuildingEditor() {
       }
     });
 
-    // Wall-derived polygon preview (with corner + edge handles). When the user
-    // grabs any handle, bakeStreetPolygon() converts this into a real override.
-    const currentWalls = getTerraceWalls(v);
-    if (currentWalls.length > 0) {
-      const pxPerM  = pxPerMetre(v);
-      const depthPx = getEffectiveDepth(v) * pxPerM;
-      const trimmed = _applyTrimToWalls(v, currentWalls, pxPerM);
-      const polys = terracePolygons(v, trimmed, depthPx);
-      polys.forEach((poly, polyIdx) => {
-        // Outline only — no fill, so the satellite shows through. Dark
-        // under-stroke + tangerine over-stroke keeps the line crisp on any
-        // imagery.
-        ctx.beginPath();
-        poly.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
-        ctx.closePath();
-        ctx.strokeStyle = 'rgba(10,14,28,0.55)'; ctx.lineWidth = 4; ctx.stroke();
-        ctx.strokeStyle = 'rgba(245,194,94,0.95)'; ctx.lineWidth = 2; ctx.stroke();
-
-        // Only draw handles on the FIRST chain — bakeStreetPolygon picks chain 0.
-        // Other chains can be merged via the Slå sammen button.
-        if (polyIdx === 0) {
-          _drawPolygonHandlesPx(poly, /*activeKey*/ 'street-preview');
-        }
-      });
-      return;       // skip override drawing — preview owns this state
+    // Wall-derived polygon preview (with corner + edge handles) — shown until a
+    // manual override exists. Grabbing a handle bakes it into an override; once
+    // baked, the override polygon is drawn below instead (but the wall arrows
+    // above stay live, so a wall toggle re-derives — see selectWallByIdx).
+    if (!v.seatingPolygonOverride) {
+      const currentWalls = getTerraceWalls(v);
+      if (currentWalls.length > 0) {
+        const pxPerM  = pxPerMetre(v);
+        const depthPx = getEffectiveDepth(v) * pxPerM;
+        const trimmed = _applyTrimToWalls(v, currentWalls, pxPerM);
+        const polys = terracePolygons(v, trimmed, depthPx);
+        polys.forEach((poly, polyIdx) => {
+          ctx.beginPath();
+          poly.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+          ctx.closePath();
+          ctx.strokeStyle = 'rgba(10,14,28,0.55)'; ctx.lineWidth = 4; ctx.stroke();
+          ctx.strokeStyle = 'rgba(245,194,94,0.95)'; ctx.lineWidth = 2; ctx.stroke();
+          if (polyIdx === 0) _drawPolygonHandlesPx(poly, /*activeKey*/ 'street-preview');
+        });
+        return;       // skip override drawing — preview owns this state
+      }
     }
   }
 

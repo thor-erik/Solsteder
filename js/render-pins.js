@@ -2732,6 +2732,17 @@ canvas.addEventListener('click', e => {
     // Tap a polygon edge LINE (not a handle, and not after a drag) → remove
     // that wall segment by deleting its trailing vertex. deletePolygonVertex
     // already guards against dropping below 3 vertices.
+    // Street: a tap on a building wall toggles which side(s) the terrace is on.
+    // Always available (even with an override) and takes priority over polygon
+    // edge-delete, so you can always re-pick walls. selectWallByIdx re-derives.
+    const wallIdx = hitTestWall(cx, cy);
+    if (wallIdx !== null && (!v?.terraceType || v.terraceType === 'street')) {
+      selectWallByIdx(wallIdx);
+      return;
+    }
+
+    // Tap a polygon edge LINE (not a handle, not after a drag) → remove that
+    // wall segment. deletePolygonVertex guards against dropping below 3.
     if (!_polyDragMoved
         && typeof hitTestActivePolygonVertex === 'function'
         && hitTestActivePolygonVertex(cx, cy) === null
@@ -2749,10 +2760,6 @@ canvas.addEventListener('click', e => {
         return;
       }
     }
-
-    const wallIdx = hitTestWall(cx, cy);
-    if (wallIdx !== null && (!v?.terraceType || v.terraceType === 'street')
-        && !v?.seatingPolygonOverride) selectWallByIdx(wallIdx);
     return;
   }
   const hit = hitTestVenue(cx, cy) || hitTestDot(cx, cy);
@@ -3103,6 +3110,13 @@ if (_isTouchDevice) {
         return;
       }
 
+      // Street wall toggle — always available, priority over edge-delete.
+      const wallIdx = hitTestWall(cx, cy);
+      if (wallIdx !== null && (!v?.terraceType || v.terraceType === 'street')) {
+        selectWallByIdx(wallIdx);
+        return;
+      }
+
       // Tap a polygon edge LINE (not a handle, not after a drag) → remove
       // that wall segment. Mirrors the desktop click path.
       if (!_polyDragMoved
@@ -3121,10 +3135,6 @@ if (_isTouchDevice) {
           return;
         }
       }
-
-      const wallIdx = hitTestWall(cx, cy);
-      if (wallIdx !== null && (!v?.terraceType || v.terraceType === 'street')
-          && !v?.seatingPolygonOverride) selectWallByIdx(wallIdx);
       return;
     }
 

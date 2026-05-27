@@ -5059,13 +5059,23 @@ function selectWallByIdx(idx) {
     v.terraceWallIndices.push(idx);        // add
   }
 
+  // Street is wall-driven: re-picking walls rebuilds the polygon from
+  // walls + depth, so drop any baked free-vertex override and let it re-derive.
+  if (v.seatingPolygonOverride) {
+    v.seatingPolygonOverride = null;
+    if (typeof computeTerraceTestPoints === 'function') {
+      v.terraceTestPoints = computeTerraceTestPoints(v, null);
+    }
+  }
+
   // Primary wall = first selected; fallback to index 0
   const primaryIdx = v.terraceWallIndices[0] ?? 0;
   v.wallSegment    = v.wallNormals[primaryIdx];
   v.facing         = v.terraceWallIndices.length > 0 ? Math.round(v.wallSegment.bearing) : v.facing;
   v.facingSource   = 'manual';
 
-  saveFacingCache(v.id, v.facing, 'manual', v.terraceWallIndices, v.terraceDepth ?? 7);
+  saveFacingCache(v.id, v.facing, 'manual', v.terraceWallIndices, v.terraceDepth ?? 7,
+    null, v.terraceType, v.terraceDetachedLocation, v.terraceWallTrimStart, v.terraceWallTrimEnd, null);
   clearSpriteCache();
   sunWindowCache.clear();
   _setEditChanged();
