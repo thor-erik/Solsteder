@@ -122,15 +122,15 @@
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260521c"></script>
 <script defer src="js/shades-loader.js?v=20260526b"></script>
-<script defer src="js/app.js?v=20260526r"></script>
-<script defer src="js/render-helpers.js?v=20260524h"></script>
+<script defer src="js/app.js?v=20260527a"></script>
+<script defer src="js/render-helpers.js?v=20260527a"></script>
 <script defer src="js/render-seating.js?v=20260519b"></script>
-<script defer src="js/render-editor.js?v=20260519b"></script>
-<script defer src="js/render-pins.js?v=20260526a"></script>
+<script defer src="js/render-editor.js?v=20260527a"></script>
+<script defer src="js/render-pins.js?v=20260527a"></script>
 <script defer src="js/ui-shared.js?v=20260525b"></script>
-<script defer src="js/ui-list.js?v=20260526j"></script>
+<script defer src="js/ui-list.js?v=20260527a"></script>
 <script defer src="js/admin-review.js?v=20260505a"></script>
-<script defer src="js/admin-audit.js?v=20260512a"></script>
+<script defer src="js/admin-audit.js?v=20260527a"></script>
 <script defer src="js/ui-shelter.js?v=20260522zm"></script>
 <script defer src="js/render-wind.js?v=20260416b"></script>
 <script defer src="js/ui-detail.js?v=20260525l"></script>
@@ -180,9 +180,9 @@
 </style>
 <link rel="stylesheet" href="css/tokens.css?v=20260526s">
 <link rel="stylesheet" href="css/base.css?v=20260526q">
-<link rel="stylesheet" href="css/components-chrome.css?v=20260526t">
-<link rel="stylesheet" href="css/components-content.css?v=20260526w">
-<link rel="stylesheet" href="css/components-overlays.css?v=20260526i">
+<link rel="stylesheet" href="css/components-chrome.css?v=20260527a">
+<link rel="stylesheet" href="css/components-content.css?v=20260527a">
+<link rel="stylesheet" href="css/components-overlays.css?v=20260527a">
 
 <script type="application/ld+json">
 {
@@ -261,21 +261,35 @@
     <!-- HOVER TOOLTIP -->
     <div id="hover-tooltip"></div>
 
-    <!-- EDIT FACING OVERLAY -->
-    <!-- Tools row floats above the banner (and above the FTS when visible) -->
-    <div id="edit-tools-row">
-      <button id="edit-reset-ai-btn" class="edit-chip" onclick="resetEditPolygonToAI()" title="Tilbakestill til AI-detektert polygon" hidden>Tilbakestill</button>
-      <button id="edit-merge-btn" class="edit-chip" onclick="mergeEditPolygons()" title="Slå sammen polygoner" hidden>Slå sammen</button>
-      <button id="edit-add-vertex-btn" class="edit-chip" onclick="toggleEditVertexMode('add')" title="Legg til vinkel">＋ Vinkel</button>
-      <button id="edit-del-vertex-btn" class="edit-chip" onclick="toggleEditVertexMode('del')" title="Fjern vinkel">－ Vinkel</button>
+    <!-- EDIT-MODE TOP HEADER — overall audit progress + which venue you're on.
+         Shown only in audit edit mode (body.edit-mode.audit-mode). Gives the
+         reviewer their bearings: name · area · type, plus a completion bar. -->
+    <div id="edit-top" aria-live="polite">
+      <div id="edit-progress" role="progressbar" aria-label="Audit-fremdrift">
+        <span id="edit-progress-fill"></span>
+      </div>
+      <div id="edit-top-info">
+        <span id="edit-top-name">—</span>
+        <span id="edit-top-meta"></span>
+        <span id="edit-top-count"></span>
+      </div>
     </div>
 
+    <!-- EDIT FACING OVERLAY — all controls live inside the bottom sheet so
+         nothing floats over the polygon work area. -->
     <div id="edit-overlay">
       <div id="edit-banner">
         <div class="edit-grabber" aria-hidden="true"></div>
         <div id="edit-header-row">
           <div id="edit-title">Rediger uteservering</div>
           <div id="edit-venue-label">—</div>
+        </div>
+        <!-- Tools row: AI helper chips + vertex tools. In-flow inside the sheet. -->
+        <div id="edit-tools-row">
+          <button id="edit-reset-ai-btn" class="edit-chip" onclick="resetEditPolygonToAI()" title="Tilbakestill til AI-detektert polygon" hidden>Tilbakestill</button>
+          <button id="edit-merge-btn" class="edit-chip" onclick="mergeEditPolygons()" title="Slå sammen polygoner" hidden>Slå sammen</button>
+          <button id="edit-add-vertex-btn" class="edit-chip" onclick="toggleEditVertexMode('add')" title="Legg til vinkel">＋ Vinkel</button>
+          <button id="edit-del-vertex-btn" class="edit-chip" onclick="toggleEditVertexMode('del')" title="Fjern vinkel">－ Vinkel</button>
         </div>
         <div id="edit-controls">
           <div id="edit-type-dropdown">
@@ -574,24 +588,19 @@
     <!-- Action row — Stage 2c: filter pills (horizontal scroll) + sort.
          Pills are visual-only for now; clicks toggle the active class.
          Wiring to actual list/pin filtering happens in a follow-up. -->
+    <!-- Filters consolidated into one dropdown (over the list) to free vertical
+         space; sort stays its own icon button beside it. -->
     <div id="panel-actions">
-      <div class="panel-actions-pills">
-        <button class="panel-filter-pill" data-filter="cafe"
-                onclick="toggleListFilter('cafe', this)">Kafé</button>
-        <button class="panel-filter-pill" data-filter="restaurant"
-                onclick="toggleListFilter('restaurant', this)">Restaurant</button>
-        <button class="panel-filter-pill" data-filter="bar"
-                onclick="toggleListFilter('bar', this)">Bar</button>
-        <button class="panel-filter-pill" data-filter="sun2h"
-                onclick="toggleListFilter('sun2h', this)">2t+ sol</button>
-        <!-- Stille (noise) filter intentionally removed for now — venues.json
-             carries no noiseScore (the OSM-highway-proximity backfill
-             pipeline that populates it hasn't been run). Restore once the
-             column is populated; the JS filter implementation lives in
-             _passesActiveFilters and is currently dormant. -->
-        <button class="panel-filter-pill" data-filter="friends"
-                onclick="toggleListFilter('friends', this)">Venner</button>
-      </div>
+      <button id="panel-actions-filter" onclick="toggleFilterPanel()"
+              aria-label="Filtre" title="Filtre">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round"
+             stroke-linejoin="round" aria-hidden="true">
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+        </svg>
+        <span>Filtre</span>
+        <span id="filter-count-badge" class="filter-count-badge" hidden></span>
+      </button>
       <button id="panel-actions-sort" onclick="toggleSortPanel()"
               aria-label="Sortér" title="Sortér">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -623,6 +632,23 @@
     <button class="sort-btn"        data-sort="distance"  onclick="setSortBy('distance')">Avstand</button>
     <button class="sort-btn"        data-sort="beer"      onclick="setSortBy('beer')">Ølpris</button>
     <button class="sort-btn"        data-sort="favorites" onclick="setSortBy('favorites')">Favoritter</button>
+  </div>
+
+  <!-- Filter panel: fixed overlay, positioned by JS from the Filtre button.
+       Toggles reuse toggleListFilter / window._activeFilters. -->
+  <div id="filter-panel" class="glass-panel">
+    <div class="filter-panel-label">Type</div>
+    <div class="filter-panel-row">
+      <button class="filter-opt" data-filter="cafe"       onclick="toggleListFilter('cafe', this)">Kafé</button>
+      <button class="filter-opt" data-filter="restaurant" onclick="toggleListFilter('restaurant', this)">Restaurant</button>
+      <button class="filter-opt" data-filter="bar"        onclick="toggleListFilter('bar', this)">Bar</button>
+    </div>
+    <div class="filter-panel-label">Sol &amp; venner</div>
+    <div class="filter-panel-row">
+      <button class="filter-opt" data-filter="sun2h"   onclick="toggleListFilter('sun2h', this)">2t+ sol</button>
+      <button class="filter-opt" data-filter="friends" onclick="toggleListFilter('friends', this)">Venner</button>
+    </div>
+    <button class="filter-reset-btn" onclick="clearListFilters()">Nullstill</button>
   </div>
 
   <!-- (FTS markup moved inside #panel; see Stage 2b.) -->

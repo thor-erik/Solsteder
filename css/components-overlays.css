@@ -568,7 +568,8 @@
   .plan-conflict-backdrop.open { opacity: 1; }
   .plan-conflict-dialog {
     width: 100%;
-    max-width: 340px;
+    /* Keep a gutter on small phones so the dialog never touches the edges. */
+    max-width: min(340px, calc(100vw - 2 * var(--space-xl)));
     border-radius: var(--radius-lg);
     padding: var(--space-xl) var(--space-xl) var(--space-xl);
     display: flex;

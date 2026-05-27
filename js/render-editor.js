@@ -235,19 +235,28 @@ function hitTestActivePolygonEdgeAt(cx, cy, threshold = 12) {
 // ── Polygon mutations ────────────────────────────────────────────────────────
 
 /**
- * Returns true if the candidate polygon would overlap the venue's building
- * footprint AND the terrace type doesn't allow it. Rooftops sit on top of the
- * building, courtyards live inside a building (often surrounded by it), so
- * both are exempt. Street and detached terraces must stay outside the
- * building footprint — the editor silently rejects edits that would push them
- * inside, so the polygon "sticks" at the wall.
+ * Returns true if the candidate move would push the terrace FURTHER into the
+ * building than it already sits. Rooftops sit on top of the building and
+ * courtyards live inside it, so both are exempt. Street and detached terraces
+ * should stay outside the footprint — but a street terrace is extruded straight
+ * off the wall, so its wall-side vertices routinely land a hair inside after
+ * projection rounding. An absolute overlap test therefore rejected every drag
+ * (the wall-side vertices never leave), freezing the handles. Instead we count
+ * vertices inside the building before vs. after: the move is rejected only if it
+ * drives a *new* vertex inside, so the polygon "sticks" at the wall while
+ * staying freely draggable everywhere else.
  */
 function _editWouldViolateBuilding(v, candidate) {
   if (!v || !Array.isArray(candidate) || candidate.length < 3) return false;
   const type = v.terraceType ?? 'street';
   if (type === 'rooftop' || type === 'courtyard') return false;
-  if (typeof polygonOverlapsBuilding !== 'function') return false;
-  return polygonOverlapsBuilding(candidate, v.buildingGeometry);
+  if (typeof countVerticesInBuilding !== 'function') return false;
+  const bld = v.buildingGeometry;
+  if (!Array.isArray(bld) || bld.length < 3) return false;
+  const cur = getActivePolygon(v);
+  const baseInside = cur ? countVerticesInBuilding(cur.latlng, bld) : 0;
+  const candInside = countVerticesInBuilding(candidate, bld);
+  return candInside > baseInside;
 }
 
 function updatePolygonVertex(venueId, idx, lat, lng) {
@@ -392,9 +401,9 @@ function drawBuildingEditor() {
   const v = VENUES.find(x => x.id === editingVenueId);
   if (!v) return;
 
-  const _dpr = window.devicePixelRatio || 1;
-  ctx.fillStyle = 'rgba(10,14,28,0.58)';
-  ctx.fillRect(0, 0, canvas.width / _dpr, canvas.height / _dpr);
+  // No scrim: the editor works over untouched (bright) satellite imagery so
+  // the admin can read what's actually on the ground. Shapes are conveyed by
+  // crisp outlines + handles, never by dimming the map.
 
   if (!v.buildingGeometry || !v.wallNormals) {
     const pt = map.project([v.lng, v.lat]);
@@ -408,17 +417,20 @@ function drawBuildingEditor() {
   const nodes    = v.buildingGeometry, walls = v.wallNormals;
   const terrType = v.terraceType ?? 'street';
 
-  // Building polygon — always shown for context. Type drives the tint.
+  // Building polygon — always shown for context, as a crisp outline only (no
+  // fill) so the satellite imagery underneath stays fully legible. Type drives
+  // the stroke colour. A dark under-stroke keeps the line readable over both
+  // light and dark imagery.
   ctx.beginPath();
   nodes.forEach((n, i) => {
     const pt = map.project([n.lon, n.lat]);
     i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y);
   });
   ctx.closePath();
-  const bldFill = { rooftop: 'rgba(245,194,94,0.18)', courtyard: 'rgba(160,100,255,0.18)',
-                    detached: 'rgba(24,88,180,0.22)', street: 'rgba(24,88,180,0.45)' };
-  ctx.fillStyle = bldFill[terrType] ?? bldFill.street;
-  ctx.fill();
+  const bldStroke = { rooftop: 'rgba(245,194,94,0.95)', courtyard: 'rgba(192,122,255,0.95)',
+                      detached: 'rgba(120,180,255,0.95)', street: 'rgba(120,180,255,0.95)' };
+  ctx.strokeStyle = 'rgba(10,14,28,0.55)'; ctx.lineWidth = 3.5; ctx.stroke();
+  ctx.strokeStyle = bldStroke[terrType] ?? bldStroke.street; ctx.lineWidth = 1.5; ctx.stroke();
 
   // Rooftop: tint + label only — not editable
   if (terrType === 'rooftop') {
@@ -501,13 +513,14 @@ function drawBuildingEditor() {
       const trimmed = _applyTrimToWalls(v, currentWalls, pxPerM);
       const polys = terracePolygons(v, trimmed, depthPx);
       polys.forEach((poly, polyIdx) => {
-        // Outline + fill
+        // Outline only — no fill, so the satellite shows through. Dark
+        // under-stroke + tangerine over-stroke keeps the line crisp on any
+        // imagery.
         ctx.beginPath();
         poly.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
         ctx.closePath();
-        ctx.fillStyle = 'rgba(245,194,94,0.10)'; ctx.fill();
-        ctx.strokeStyle = 'rgba(245,194,94,0.55)'; ctx.lineWidth = 1.5;
-        ctx.stroke();
+        ctx.strokeStyle = 'rgba(10,14,28,0.55)'; ctx.lineWidth = 4; ctx.stroke();
+        ctx.strokeStyle = 'rgba(245,194,94,0.95)'; ctx.lineWidth = 2; ctx.stroke();
 
         // Only draw handles on the FIRST chain — bakeStreetPolygon picks chain 0.
         // Other chains can be merged via the Slå sammen button.
@@ -540,20 +553,18 @@ function drawBuildingEditor() {
 
 function _drawPolygonOutlinePx(px, key) {
   if (!Array.isArray(px) || px.length < 3) return;
-  const fillStyle = key === 'courtyard' ? 'rgba(192,122,255,0.10)'
-                  : key === 'detached'  ? 'rgba(245,194,94,0.10)'
-                  : key === 'ai'        ? 'rgba(168,230,197,0.10)'
-                  :                       'rgba(245,194,94,0.10)';
-  const strokeStyle = key === 'courtyard' ? 'rgba(192,122,255,0.85)'
-                    : key === 'detached'  ? 'rgba(245,194,94,0.85)'
-                    : key === 'ai'        ? 'rgba(168,230,197,0.85)'
-                    :                       'rgba(245,194,94,0.70)';
+  // Outline only — no fill, so the satellite imagery underneath stays fully
+  // legible. A dark under-stroke gives the coloured line contrast on bright
+  // imagery; the colour reads the terrace type.
+  const strokeStyle = key === 'courtyard' ? 'rgba(192,122,255,0.95)'
+                    : key === 'detached'  ? 'rgba(245,194,94,0.95)'
+                    : key === 'ai'        ? 'rgba(168,230,197,0.95)'
+                    :                       'rgba(245,194,94,0.95)';
   ctx.beginPath();
   px.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
   ctx.closePath();
-  ctx.fillStyle = fillStyle; ctx.fill();
-  ctx.strokeStyle = strokeStyle; ctx.lineWidth = 2;
-  ctx.stroke();
+  ctx.strokeStyle = 'rgba(10,14,28,0.55)'; ctx.lineWidth = 4.5; ctx.stroke();
+  ctx.strokeStyle = strokeStyle; ctx.lineWidth = 2; ctx.stroke();
 }
 
 function _drawPolygonHandlesPx(px, key) {

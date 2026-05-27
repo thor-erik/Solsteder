@@ -551,6 +551,9 @@ function _renderAuditFilterPanel() {
 function toggleAuditMode() {
   if (typeof authIsAdmin === 'function' && !authIsAdmin()) return;
   auditModeActive = !auditModeActive;
+  // Body hook so CSS can apply the denser audit-tool styling (compact cards,
+  // icon action row) without affecting the consumer venue list.
+  document.body.classList.toggle('audit-mode', auditModeActive);
   if (auditModeActive) {
     _auditCache   = _loadAudit();
     _archiveCache = _loadArchive();

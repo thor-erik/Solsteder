@@ -2577,6 +2577,12 @@ function _enableMapInteractions() {
   } catch (_) {}
 }
 
+// True once the active gesture actually moved a polygon handle/edge/body.
+// Lets a plain tap on an edge line delete that segment while a drag on the
+// same edge (which shifts it) does NOT also delete on the trailing click.
+// Reset at the start of every edit gesture (mousedown / touchstart).
+let _polyDragMoved = false;
+
 const _UI_OVERLAY_SELECTOR = '#qc-wrap, #panel, #floating-search, #top-strip, #search-dropdown, #bell-dropdown, #ptb-cal-float, ' +
   '#profile-panel, #search-wrap, #floating-date, #detail-panel, .mapboxgl-ctrl, .mapboxgl-popup, ' +
   '#locate-btn, #notif-toast, #fts, ' +
@@ -2610,6 +2616,7 @@ canvas.addEventListener('mousedown', e => {
   const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
   if (editingVenueId) {
     if (typeof editVertexMode !== 'undefined' && editVertexMode) return;
+    _polyDragMoved = false;     // fresh gesture — no movement yet
     const cornerIdx = (typeof hitTestActivePolygonVertex === 'function')
       ? hitTestActivePolygonVertex(cx, cy) : null;
     if (cornerIdx !== null) {
@@ -2722,6 +2729,27 @@ canvas.addEventListener('click', e => {
       return;
     }
 
+    // Tap a polygon edge LINE (not a handle, and not after a drag) → remove
+    // that wall segment by deleting its trailing vertex. deletePolygonVertex
+    // already guards against dropping below 3 vertices.
+    if (!_polyDragMoved
+        && typeof hitTestActivePolygonVertex === 'function'
+        && hitTestActivePolygonVertex(cx, cy) === null
+        && typeof hitTestActivePolygonEdgeAt === 'function') {
+      const eHit = hitTestActivePolygonEdgeAt(cx, cy, 12);
+      const ap   = (typeof getActivePolygon === 'function') ? getActivePolygon(v) : null;
+      if (eHit && ap && ap.latlng.length > 3) {
+        if (typeof deletePolygonVertex === 'function')
+          deletePolygonVertex(editingVenueId, (eHit.edgeIdx + 1) % ap.latlng.length);
+        if (typeof _setEditChanged === 'function') _setEditChanged();
+        sunWindowCache.clear();
+        dispatchToWorker(datePicker.value);
+        if (typeof _updateEditToolButtons === 'function') _updateEditToolButtons();
+        draw();
+        return;
+      }
+    }
+
     const wallIdx = hitTestWall(cx, cy);
     if (wallIdx !== null && (!v?.terraceType || v.terraceType === 'street')
         && !v?.seatingPolygonOverride) selectWallByIdx(wallIdx);
@@ -2748,6 +2776,7 @@ canvas.addEventListener('mousemove', e => {
     if (editDraggingPolyVertex && editPolyVertexIdx !== null) {
       const ll = map.unproject([cx, cy]);
       updatePolygonVertex(editingVenueId, editPolyVertexIdx, ll.lat, ll.lng);
+      _polyDragMoved = true;
       canvas.style.cursor = 'grabbing';
       draw();
       return;
@@ -2755,6 +2784,7 @@ canvas.addEventListener('mousemove', e => {
 
     if (editDraggingPolyEdge && editPolyEdgeIdx !== null) {
       shiftPolygonEdge(editingVenueId, editPolyEdgeIdx, cx, cy);
+      _polyDragMoved = true;
       canvas.style.cursor = 'grabbing';
       draw();
       return;
@@ -2762,6 +2792,7 @@ canvas.addEventListener('mousemove', e => {
 
     if (editDraggingPolyTranslate) {
       moveActivePolygonTo(cx, cy);
+      _polyDragMoved = true;
       canvas.style.cursor = 'grabbing';
       draw();
       return;
@@ -2913,6 +2944,7 @@ if (_isTouchDevice) {
     _touchStartX = t.clientX; _touchStartY = t.clientY;
 
     if (!editingVenueId) return;
+    _polyDragMoved = false;     // fresh gesture — no movement yet
     const rect = canvas.getBoundingClientRect();
     const cx = t.clientX - rect.left, cy = t.clientY - rect.top;
 
@@ -2979,16 +3011,19 @@ if (_isTouchDevice) {
     if (editDraggingPolyVertex && editPolyVertexIdx !== null) {
       const ll = map.unproject([cx, cy]);
       updatePolygonVertex(editingVenueId, editPolyVertexIdx, ll.lat, ll.lng);
+      _polyDragMoved = true;
       draw();
       e.preventDefault(); return;
     }
     if (editDraggingPolyEdge && editPolyEdgeIdx !== null) {
       shiftPolygonEdge(editingVenueId, editPolyEdgeIdx, cx, cy);
+      _polyDragMoved = true;
       draw();
       e.preventDefault(); return;
     }
     if (editDraggingPolyTranslate) {
       moveActivePolygonTo(cx, cy);
+      _polyDragMoved = true;
       draw();
       e.preventDefault(); return;
     }
@@ -3066,6 +3101,25 @@ if (_isTouchDevice) {
         if (typeof setEditVertexMode === 'function') setEditVertexMode(null);
         draw();
         return;
+      }
+
+      // Tap a polygon edge LINE (not a handle, not after a drag) → remove
+      // that wall segment. Mirrors the desktop click path.
+      if (!_polyDragMoved
+          && typeof hitTestActivePolygonVertex === 'function'
+          && hitTestActivePolygonVertex(cx, cy) === null
+          && typeof hitTestActivePolygonEdgeAt === 'function') {
+        const eHit = hitTestActivePolygonEdgeAt(cx, cy, 18);
+        const ap   = (typeof getActivePolygon === 'function') ? getActivePolygon(v) : null;
+        if (eHit && ap && ap.latlng.length > 3) {
+          deletePolygonVertex(editingVenueId, (eHit.edgeIdx + 1) % ap.latlng.length);
+          _setEditChanged();
+          sunWindowCache.clear();
+          dispatchToWorker(datePicker.value);
+          if (typeof _updateEditToolButtons === 'function') _updateEditToolButtons();
+          draw();
+          return;
+        }
       }
 
       const wallIdx = hitTestWall(cx, cy);

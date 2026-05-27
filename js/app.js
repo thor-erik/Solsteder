@@ -92,6 +92,7 @@ function _navIsLayerOpen(layer) {
     case 'dp-fullscreen': return !!document.getElementById('detail-panel')?.classList.contains('dp-fullscreen');
     case 'qc':            return _qcActiveSection != null;
     case 'sort':          return !!document.getElementById('sort-panel')?.classList.contains('open');
+    case 'filter':        return !!document.getElementById('filter-panel')?.classList.contains('open');
     case 'profile':       return !!document.getElementById('profile-panel')?.classList.contains('open');
     case 'friends':       return !!document.getElementById('friends-modal')?.classList.contains('open');
     case 'edit':          return editingVenueId != null;
@@ -2757,6 +2758,93 @@ function updateSortBtns() {
   if (labelEl) labelEl.textContent = labels[activeSortBy] ?? t('sort_match');
 }
 
+// ── Filter dropdown (over the venue list) ─────────────────────────────────────
+// Single "Filtre" button opens this panel; toggles inside reuse
+// toggleListFilter / window._activeFilters. Mirrors the sort-panel lifecycle
+// (nav layer, fixed positioning from the button, tap-blocking backdrop).
+function _activeFilterCount() {
+  const f = window._activeFilters || {};
+  let n = (f.categories ? f.categories.size : 0);
+  if (f.sun2h)   n++;
+  if (f.friends) n++;
+  if (f.quiet)   n++;
+  return n;
+}
+
+function _updateFilterBadge() {
+  const n   = _activeFilterCount();
+  const btn = document.getElementById('panel-actions-filter');
+  const bdg = document.getElementById('filter-count-badge');
+  if (btn) btn.classList.toggle('has-active', n > 0);
+  if (bdg) {
+    if (n > 0) { bdg.textContent = String(n); bdg.hidden = false; }
+    else       { bdg.textContent = '';        bdg.hidden = true; }
+  }
+}
+
+function _closeFilterPanel() {
+  if (!_navHandlingPop) _navDropLayer('filter');
+  document.getElementById('filter-panel')?.classList.remove('open');
+  document.getElementById('panel-actions-filter')?.classList.remove('open');
+  document.getElementById('filter-backdrop')?.remove();
+}
+
+function toggleFilterPanel() {
+  const panel = document.getElementById('filter-panel');
+  const btn   = document.getElementById('panel-actions-filter');
+  if (!panel || !btn) return;
+  if (panel.classList.contains('open')) { _closeFilterPanel(); return; }
+
+  // From peek, expand the list panel first so the dropdown anchors on a stable
+  // button position (mirrors toggleSortPanel).
+  const listPanel = document.getElementById('panel');
+  const inPeek = isMobile()
+    && listPanel
+    && !listPanel.classList.contains('mobile-expanded')
+    && !listPanel.classList.contains('mobile-fullscreen')
+    && !listPanel.classList.contains('mobile-hidden');
+  if (inPeek) {
+    listPanel.classList.add('mobile-expanded');
+    if (typeof _syncFtsPosition === 'function') _syncFtsPosition();
+    setTimeout(() => _openFilterPanelNow(), 360);
+    return;
+  }
+  _openFilterPanelNow();
+}
+
+function _openFilterPanelNow() {
+  const panel = document.getElementById('filter-panel');
+  const btn   = document.getElementById('panel-actions-filter');
+  if (!panel || !btn || panel.classList.contains('open')) return;
+  // Close the sort panel if it's open — only one dropdown at a time.
+  if (typeof _closeSortPanel === 'function') _closeSortPanel();
+  _navPush('filter');
+  panel.classList.add('open');
+  btn.classList.add('open');
+  const r = btn.getBoundingClientRect();
+  panel.style.top  = (r.bottom + 4) + 'px';
+  panel.style.left = r.left + 'px';
+  panel.style.transform = 'none';
+  if (!document.getElementById('filter-backdrop')) {
+    const bd = document.createElement('div');
+    bd.id = 'filter-backdrop';
+    bd.className = 'sort-backdrop';
+    bd.onclick = () => _closeFilterPanel();
+    document.body.appendChild(bd);
+  }
+}
+
+/** Clear every list filter and reset the panel toggles + badge. */
+function clearListFilters() {
+  const f = window._activeFilters;
+  if (f) { f.categories.clear(); f.sun2h = false; f.quiet = false; f.friends = false; }
+  document.querySelectorAll('#filter-panel .filter-opt').forEach(b => b.classList.remove('active'));
+  _updateFilterBadge();
+  if (typeof renderList === 'function') renderList();
+  if (typeof window.markPinLayoutStale === 'function') window.markPinLayoutStale();
+  if (typeof draw === 'function') draw();
+}
+
 // ── Debounced time change analytics ──────────────────────────────────────────
 let _aTimeChangeTimer = null;
 function _aTrackTimeChange() {
@@ -4365,13 +4453,9 @@ async function submitEditProposal(v, before, after) {
 function enterEditMode(venueId) {
   _aTrack('edit_mode_enter', { venue_id: venueId });
   if (typeof stopWindOverlay === 'function') stopWindOverlay();
-  editingVenueId = venueId;
-  editHoveredWallIdx = null;
   const v = VENUES.find(x => x.id === venueId);
   if (!v) return;
 
-  _editBeforeSnapshot = _venueEditSnapshot(v);
-  _editHasChanges = false;
   _navPush('edit');
 
   // body.edit-mode hides notifications + repositions zoom-jog/FTS via CSS.
@@ -4397,12 +4481,7 @@ function enterEditMode(venueId) {
   const _zj = document.getElementById('zoom-jog');
   _editPriorZoomHidden = !!_zj?.classList.contains('mobile-ui-hidden');
   _zj?.classList.remove('mobile-ui-hidden');
-  document.getElementById('edit-venue-label').textContent = v.name;
   _wireTypeDropdown();
-  const type = v.terraceType ?? 'street';
-  _syncTerraceTypeUI(type);
-  _updateEditActionBtn();
-  _updateEditToolButtons();
   _startEditBannerObserver();
   // Switch to satellite immediately — Mapbox handles the cross-fade for us.
   // (Replaces the previous map.once('moveend') deferral so the camera animates
@@ -4415,6 +4494,32 @@ function enterEditMode(venueId) {
   if (popup) { popup.remove(); popup = null; }
   tooltip.classList.remove('visible');
 
+  // Per-venue setup (also re-run on auto-advance to the next venue).
+  _loadVenueIntoEditor(venueId);
+}
+
+/** Load a venue into the (already-open) editor: snapshot, labels, camera,
+ *  audit-top header + progress. Reused by enterEditMode and the audit
+ *  auto-advance so walking the catalog never tears down the edit chrome. */
+function _loadVenueIntoEditor(venueId) {
+  const v = VENUES.find(x => x.id === venueId);
+  if (!v) return;
+  editingVenueId     = venueId;
+  editHoveredWallIdx = null;
+  if (typeof setEditVertexMode === 'function') setEditVertexMode(null);
+
+  _editBeforeSnapshot = _venueEditSnapshot(v);
+  _editHasChanges = false;
+
+  const lbl = document.getElementById('edit-venue-label');
+  if (lbl) lbl.textContent = v.name;
+  const type = v.terraceType ?? 'street';
+  _syncTerraceTypeUI(type);
+  _updateEditActionBtn();
+  _updateEditToolButtons();
+  _updateAuditEditTop(v);
+  _updateAuditProgress();
+
   if (v.buildingGeometry) {
     const lats = v.buildingGeometry.map(n => n.lat);
     const lons = v.buildingGeometry.map(n => n.lon);
@@ -4426,8 +4531,10 @@ function enterEditMode(venueId) {
     map.flyTo({ center: [v.lng, v.lat], zoom: 19, pitch: 0, duration: 900 });
   }
 
-  // Scroll to + highlight the venue card in the sidebar
+  // Scroll to + highlight the venue card in the sidebar (no-op while the panel
+  // is hidden during audit edit, but keeps non-audit edits anchored).
   setTimeout(() => {
+    document.querySelectorAll('.venue-card.editing').forEach(c => c.classList.remove('editing'));
     const card = document.querySelector(`.venue-card[data-vid="${venueId}"]`);
     if (card) {
       card.classList.add('editing');
@@ -4436,6 +4543,51 @@ function enterEditMode(venueId) {
   }, 200);
 
   draw();
+}
+
+/** Update the edit-mode top header (name · area · type) for bearings. */
+function _updateAuditEditTop(v) {
+  const nameEl = document.getElementById('edit-top-name');
+  const metaEl = document.getElementById('edit-top-meta');
+  if (nameEl) nameEl.textContent = v.name || '—';
+  if (metaEl) {
+    const parts = [v.area, (typeof catLabel === 'function' ? catLabel(v) : v.category)].filter(Boolean);
+    metaEl.textContent = parts.join(' · ');
+  }
+}
+
+/** Update the overall audit-completion progress bar + count. */
+function _updateAuditProgress() {
+  const fill  = document.getElementById('edit-progress-fill');
+  const count = document.getElementById('edit-top-count');
+  if (!fill && !count) return;
+  if (typeof auditTotalCount !== 'function') return;
+  const total    = auditTotalCount();
+  const archived = (typeof auditArchivedCount === 'function') ? auditArchivedCount() : 0;
+  const done     = (typeof auditReviewedCount === 'function') ? auditReviewedCount() : 0;
+  const denom    = Math.max(1, total - archived);
+  const pct      = Math.min(100, Math.round((done / denom) * 100));
+  if (fill)  fill.style.width = pct + '%';
+  if (count) count.textContent = `${done} / ${denom}`;
+}
+
+/** Next venue to audit after `afterId`, following the current list order
+ *  (_listFiltered = filtered+sorted audit list). Skips reviewed + archived;
+ *  wraps to the top; returns null when every venue is done. */
+function _nextUnreviewedVenueId(afterId) {
+  const list = (typeof _listFiltered !== 'undefined' && Array.isArray(_listFiltered) && _listFiltered.length)
+    ? _listFiltered : VENUES;
+  if (!list || !list.length) return null;
+  const needsReview = (v) => v
+    && !v.auditArchived
+    && !(typeof isVenueAudited === 'function' && isVenueAudited(v));
+  const startIdx = list.findIndex(v => v.id === afterId);
+  // Scan forward from after the current venue, then wrap around to the start.
+  for (let step = 1; step <= list.length; step++) {
+    const v = list[((startIdx >= 0 ? startIdx : 0) + step) % list.length];
+    if (needsReview(v)) return v.id;
+  }
+  return null;
 }
 
 let editSatelliteActive = false;
@@ -4652,13 +4804,58 @@ function confirmEditCorrect() {
   exitEditMode();
 }
 
-/** Single adaptive button handler: confirm (no changes) or save/submit (changes made). */
-function onEditActionBtn() {
-  if (_editHasChanges) {
-    exitEditMode();
+/** Commit the current venue for the audit walk-through (save a correction when
+ *  changed, else a confirmation) and tick the audit box — WITHOUT tearing down
+ *  the editor, so the caller can auto-advance to the next venue. */
+function _commitEditForAudit() {
+  if (!editingVenueId || !_editBeforeSnapshot) return;
+  const v = VENUES.find(x => x.id === editingVenueId);
+  if (!v) return;
+  const meta = { id: v.id, name: v.name, category: v.category,
+                 buildingNodeCount: v.buildingGeometry?.length ?? null };
+  const after = _venueEditSnapshot(v);
+  const changed = _editHasChanges && JSON.stringify(_editBeforeSnapshot) !== JSON.stringify(after);
+  if (changed) {
+    if (authCanDirectEdit()) {
+      saveCorrection('correction', { ...meta, before: _editBeforeSnapshot, after });
+      if (typeof markVenueAudited === 'function') markVenueAudited(v.id, 'edited');
+    } else {
+      submitEditProposal(v, _editBeforeSnapshot, after);
+      _applyVenueSnapshot(v, _editBeforeSnapshot);
+      sunWindowCache.clear();
+      dispatchToWorker(datePicker.value);
+    }
   } else {
-    confirmEditCorrect();
+    // markVenueAudited('good') already records a 'confirmed' correction —
+    // don't double-save here.
+    if (typeof markVenueAudited === 'function') markVenueAudited(v.id, 'good');
   }
+}
+
+/** Single adaptive button handler. In audit mode: commit + auto-advance to the
+ *  next unreviewed venue (fast catalog walk-through). Otherwise: confirm (no
+ *  changes) or save/submit (changes made) and close. */
+function onEditActionBtn() {
+  const auditing = (typeof auditModeActive !== 'undefined' && auditModeActive);
+  if (!auditing) {
+    if (_editHasChanges) exitEditMode();
+    else                 confirmEditCorrect();
+    return;
+  }
+  // Commit current venue, then jump straight to the next one to review.
+  _commitEditForAudit();
+  // Null the snapshot so exitEditMode (below / via back button) won't re-commit.
+  const currentId = editingVenueId;
+  _editBeforeSnapshot = null;
+  _editHasChanges = false;
+  const nextId = _nextUnreviewedVenueId(currentId);
+  if (nextId != null) {
+    _loadVenueIntoEditor(nextId);
+    return;
+  }
+  _updateAuditProgress();
+  if (typeof showMapToast === 'function') showMapToast('Alle steder gjennomgått 🎉', 2800);
+  exitEditMode();
 }
 
 function _setEditChanged() {
@@ -4673,10 +4870,14 @@ function _updateEditActionBtn() {
   // when nothing has been edited yet so it still looks distinct from Avbryt.
   btn.classList.add('primary-pill');
   btn.classList.toggle('is-no-changes', !_editHasChanges);
+  // In audit mode the button commits + jumps to the next venue, so the label
+  // signals the advance ("· neste").
+  const auditing = (typeof auditModeActive !== 'undefined' && auditModeActive);
+  const next = auditing ? ' · neste' : '';
   if (!_editHasChanges) {
-    btn.textContent = 'Ser bra ut';
+    btn.textContent = (auditing ? 'Bra' : 'Ser bra ut') + next;
   } else {
-    btn.textContent = authCanDirectEdit() ? 'Lagre' : 'Send forslag';
+    btn.textContent = (authCanDirectEdit() ? 'Lagre' : 'Send forslag') + next;
   }
 }
 
@@ -5644,6 +5845,14 @@ document.addEventListener('DOMContentLoaded', () => {
         && !btnB?.contains(e.target)
         && !panel?.contains(e.target)) {
       _closeSortPanel();
+    }
+    // Filter dropdown: same outside-click dismissal.
+    const fBtn   = document.getElementById('panel-actions-filter');
+    const fPanel = document.getElementById('filter-panel');
+    if (fPanel?.classList.contains('open')
+        && !fBtn?.contains(e.target)
+        && !fPanel?.contains(e.target)) {
+      _closeFilterPanel();
     }
     // Close date calendar when clicking outside it
     const cal       = document.getElementById('date-calendar');
@@ -6735,6 +6944,7 @@ function toggleListFilter(filter, btn) {
       f.categories.add(filter);
       btn?.classList.add('active');
     }
+    if (typeof _updateFilterBadge === 'function') _updateFilterBadge();
     if (typeof renderList === 'function') renderList();
     if (typeof window.markPinLayoutStale === 'function') window.markPinLayoutStale();
     if (typeof draw === 'function') draw();
@@ -6743,6 +6953,7 @@ function toggleListFilter(filter, btn) {
   if (filter === 'sun2h' || filter === 'quiet' || filter === 'friends') {
     f[filter] = !f[filter];
     btn?.classList.toggle('active', f[filter]);
+    if (typeof _updateFilterBadge === 'function') _updateFilterBadge();
     if (typeof renderList === 'function') renderList();
     if (typeof window.markPinLayoutStale === 'function') window.markPinLayoutStale();
     if (typeof draw === 'function') draw();
@@ -8633,6 +8844,7 @@ window.addEventListener('popstate', () => {
     case 'dp-fullscreen': document.getElementById('detail-panel')?.classList.remove('dp-fullscreen'); _syncFtsPosition(); break;
     case 'qc':            _closeQcPanel(); break;
     case 'sort':          _closeSortPanel(); break;
+    case 'filter':        _closeFilterPanel(); break;
     case 'profile':       closeProfilePanel(); break;
     case 'friends':       if (typeof closeFriendsModal === 'function') closeFriendsModal(); break;
     case 'edit':          exitEditMode(); break;

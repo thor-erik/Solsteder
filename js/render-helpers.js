@@ -332,6 +332,30 @@ function polygonOverlapsBuilding(polyLatLng, buildingNodes) {
   return false;
 }
 
+/**
+ * Count how many polygon vertices fall strictly inside the building footprint.
+ *
+ * The editor uses this for a *relative* overlap guard instead of the absolute
+ * polygonOverlapsBuilding test: a street terrace is extruded straight off the
+ * building wall, so its wall-side vertices routinely sit a hair inside the
+ * footprint after project→extrude→unproject rounding. The absolute test then
+ * rejected EVERY drag candidate (the wall-side vertices never leave), which
+ * froze the handles. Comparing candidate-inside vs current-inside lets the
+ * polygon keep its wall-flush vertices while still blocking moves that shove
+ * a *new* vertex into the building.
+ *
+ * polyLatLng:   [[lat, lng], ...]
+ * buildingNodes: [{lat, lon}, ...] (v.buildingGeometry node list)
+ */
+function countVerticesInBuilding(polyLatLng, buildingNodes) {
+  if (!Array.isArray(polyLatLng)   || polyLatLng.length   < 3) return 0;
+  if (!Array.isArray(buildingNodes) || buildingNodes.length < 3) return 0;
+  const bldg = buildingNodes.map(n => [n.lat, n.lon ?? n.lng]);
+  let n = 0;
+  for (const p of polyLatLng) if (_llPointInPolygon(p, bldg)) n++;
+  return n;
+}
+
 // ── Seating area shapes ────────────────────────────────────────────────────────
 const TERRACE_DEPTH_M = 5;  // metres outward from the terrace wall
 

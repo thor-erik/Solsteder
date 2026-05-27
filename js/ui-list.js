@@ -255,6 +255,18 @@ const SUN_GLYPH = '<svg class="sun-glyph" viewBox="0 0 24 24" width="13" height=
 // next to the distance.
 const WALK_GLYPH = '<svg class="walk-glyph" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0Z"/><path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z"/><path d="M16 17h4"/><path d="M4 13h4"/></svg>';
 
+// Audit-mode action-row icons (Lucide). Compact icon buttons replace the
+// text actions so more cards fit while walking the catalog. Each <button>
+// carries its own title + aria-label, so the glyphs need no inline text.
+const _AI_SVG = (paths) => `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
+const AUDIT_ICONS = {
+  good:    _AI_SVG('<path d="M20 6 9 17l-5-5"/>'),
+  archive: _AI_SVG('<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>'),
+  edit:    _AI_SVG('<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>'),
+  undo:    _AI_SVG('<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5 5.5 5.5 0 0 1-5.5 5.5H11"/>'),
+  restore: _AI_SVG('<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5 5.5 5.5 0 0 1-5.5 5.5H11"/>'),
+};
+
 
 function _formatDurationFromMin(minutes) {
   if (!minutes || minutes <= 0) return '';
@@ -523,30 +535,32 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
     const viaLabel  = entry?.via === 'edited' ? 'Edited ✓' : 'Looks good ✓';
     if (audited)  auditCardCls = ' audit-reviewed';
     if (archived) auditCardCls = ' audit-archived';
-    // Action order is fixed: state-badge / state-action · destructive · edit.
-    // Edit-polygon always sits rightmost, isolated from the primary action.
+    // Compact icon-button action row. Each control carries title + aria-label
+    // so the icon stays self-explanatory. Primary action (Mark good) is the
+    // honey CTA; destructive (Archive) and Edit are neutral surface controls.
+    const ICN = (typeof AUDIT_ICONS !== 'undefined') ? AUDIT_ICONS : {};
     if (archived) {
       const archReasonLabel = (typeof AUDIT_ARCHIVE_REASONS !== 'undefined'
         && v.auditArchiveReason && AUDIT_ARCHIVE_REASONS[v.auditArchiveReason])
         || 'Archived';
       const noteHint = v.auditArchiveNote ? ` · ${v.auditArchiveNote}` : '';
       auditActionsHtml = `<div class="audit-actions" onclick="event.stopPropagation()">
-        <span class="audit-state-badge" title="${noteHint ? v.auditArchiveNote : ''}">Archived · ${archReasonLabel}${noteHint && !v.auditArchiveNote ? '' : ''}</span>
-        <button class="audit-action-btn audit-undo" onclick="unarchiveVenue(${idArg})">Restore</button>
-        <button class="audit-action-btn audit-undo" onclick="enterEditMode(${idArg})">Edit</button>
+        <span class="audit-state-badge" title="${noteHint ? v.auditArchiveNote : ''}">Archived · ${archReasonLabel}</span>
+        <button class="audit-icon-btn" onclick="unarchiveVenue(${idArg})" title="Restore" aria-label="Restore">${ICN.restore || 'Restore'}</button>
+        <button class="audit-icon-btn" onclick="enterEditMode(${idArg})" title="Edit polygon" aria-label="Edit polygon">${ICN.edit || 'Edit'}</button>
       </div>`;
     } else if (audited) {
       auditActionsHtml = `<div class="audit-actions" onclick="event.stopPropagation()">
         <span class="audit-state-badge">${viaLabel}</span>
-        <button class="audit-action-btn audit-undo"    onclick="unmarkVenueAudited(${idArg})">Undo</button>
-        <button class="audit-action-btn audit-archive" onclick="beginArchiveVenue(${idArg})" title="Hide from users (with a reason)">Archive</button>
-        <button class="audit-action-btn audit-undo"    onclick="enterEditMode(${idArg})">Edit</button>
+        <button class="audit-icon-btn" onclick="unmarkVenueAudited(${idArg})" title="Undo" aria-label="Undo">${ICN.undo || 'Undo'}</button>
+        <button class="audit-icon-btn audit-archive" onclick="beginArchiveVenue(${idArg})" title="Archive (hide from users)" aria-label="Archive">${ICN.archive || 'Archive'}</button>
+        <button class="audit-icon-btn" onclick="enterEditMode(${idArg})" title="Edit polygon" aria-label="Edit polygon">${ICN.edit || 'Edit'}</button>
       </div>`;
     } else {
       auditActionsHtml = `<div class="audit-actions" onclick="event.stopPropagation()">
-        <button class="audit-action-btn"               onclick="markVenueAudited(${idArg},'good')">Mark good</button>
-        <button class="audit-action-btn audit-archive" onclick="beginArchiveVenue(${idArg})" title="Hide from users (with a reason)">Archive</button>
-        <button class="audit-action-btn audit-undo"    onclick="enterEditMode(${idArg})">Edit</button>
+        <button class="audit-icon-btn audit-good" onclick="markVenueAudited(${idArg},'good')" title="Mark good" aria-label="Mark good">${ICN.good || 'Mark good'}</button>
+        <button class="audit-icon-btn audit-archive" onclick="beginArchiveVenue(${idArg})" title="Archive (hide from users)" aria-label="Archive">${ICN.archive || 'Archive'}</button>
+        <button class="audit-icon-btn" onclick="enterEditMode(${idArg})" title="Edit polygon" aria-label="Edit polygon">${ICN.edit || 'Edit'}</button>
       </div>`;
     }
   }
