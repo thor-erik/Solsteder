@@ -1262,7 +1262,10 @@
     transition: color 0.15s, font-weight 0.15s;
   }
   .dpinvite-avatar[aria-checked="true"] .dpinvite-avatar-name {
-    color: var(--accent);
+    /* Selected name = ink + bold (was honey, which washed out on the cream
+       sheet). Selection is already signalled by the honey ring + check badge,
+       so the name just needs to go from muted → strong ink. */
+    color: var(--panel-text);
     font-weight: 700;
   }
 
