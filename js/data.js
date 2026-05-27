@@ -96,6 +96,11 @@ function saveCorrection(type, venueSnapshot) {
   corrections.push({ type, timestamp: new Date().toISOString(), ...venueSnapshot });
   try { localStorage.setItem(CORRECTIONS_KEY, JSON.stringify(corrections)); }
   catch (_) {}
+  // Mirror to the shared Supabase log (editor/admin only; no-op otherwise) so
+  // corrections survive across devices + admins and feed the training sync.
+  if (typeof auditStorePushCorrection === 'function') {
+    auditStorePushCorrection({ type, ...venueSnapshot });
+  }
 }
 
 /**

@@ -229,6 +229,7 @@ function auditMatchesFilter(v) {
 function markVenueAudited(venueId, via = 'good') {
   _auditCache.set(venueId, { at: new Date().toISOString(), via });
   _saveAudit();
+  if (typeof auditStoreSetState === 'function') auditStoreSetState(venueId, { status: 'reviewed', via });
   // "Looks good" is a positive training signal — the admin is confirming
   // that the venue's current geometry (AI-detected polygon, terrace walls,
   // facing, etc.) is correct. Record a saveCorrection of type 'confirmed'
@@ -258,6 +259,7 @@ function markVenueAudited(venueId, via = 'good') {
 function unmarkVenueAudited(venueId) {
   _auditCache.delete(venueId);
   _saveAudit();
+  if (typeof auditStoreSetState === 'function') auditStoreSetState(venueId, null);
   _updateAuditIndicator();
   if (typeof draw === 'function') draw();
   if (auditModeActive && typeof renderList === 'function') renderList();
@@ -294,6 +296,7 @@ function archiveVenue(venueId, reason = 'other', note = null) {
   if (note) entry.note = note.trim();
   _archiveCache.set(venueId, entry);
   _saveArchive();
+  if (typeof auditStoreSetState === 'function') auditStoreSetState(venueId, { status: 'archived', archive_reason: reason, archive_note: entry.note ?? null });
   v.auditArchived      = true;
   v.auditArchiveReason = reason;
   v.auditArchiveNote   = entry.note ?? null;
@@ -314,6 +317,7 @@ function unarchiveVenue(venueId) {
   const prev = _archiveCache.get(venueId) ?? null;
   _archiveCache.delete(venueId);
   _saveArchive();
+  if (typeof auditStoreSetState === 'function') auditStoreSetState(venueId, null);
   if (v) {
     v.auditArchived      = false;
     v.auditArchiveReason = null;
@@ -580,11 +584,16 @@ function toggleAuditMode() {
       refreshReviewFlags(datePicker.value);
     }
     _renderAuditFilterPanel();
+    // Pull shared audit state + latest polygons from Supabase (multi-admin
+    // continuity) and subscribe to live changes. Hydrate re-renders when done.
+    if (typeof auditStoreHydrate === 'function') auditStoreHydrate();
+    if (typeof auditStoreSubscribe === 'function') auditStoreSubscribe();
   } else {
     // Leaving audit — restore the styled map if a card-focus had switched it
     // to satellite, and clear the focus highlight.
     document.body.classList.remove('audit-shadows');
     if (typeof _resetAuditSatellite === 'function') _resetAuditSatellite();
+    if (typeof auditStoreUnsubscribe === 'function') auditStoreUnsubscribe();
   }
   _updateAuditIndicator();
   if (typeof draw === 'function') draw();
