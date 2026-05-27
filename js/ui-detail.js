@@ -133,14 +133,15 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
     }</div>`;
   }
 
-  // Footer toned down — secondary actions for rare admin paths. Smaller,
-  // dimmer, sits at the very bottom of the panel so it doesn't compete
-  // with venue content.
+  // Footer — community-correction links at the bottom of the panel. Reworded
+  // to a softer crowd-sourcing tone ("suggest a change" / "report a problem")
+  // and made discoverable (clear underlined links, see .dp-footer-quiet).
+  // TODO(i18n): these strings are hardcoded NO — wire to t() in a later pass.
   const footerHtml = `
     <div class="secondary-row dp-footer-quiet">
-      <button class="secondary-link" onclick="enterEditMode(${v.id})">Rediger informasjon</button>
+      <button class="secondary-link" onclick="enterEditMode(${v.id})">Foreslå en endring</button>
       <span class="dp-footer-sep">·</span>
-      <button class="secondary-link" onclick="alert('Rapportfunksjon kommer snart')">Rapporter feil</button>
+      <button class="secondary-link" onclick="alert('Vi jobber med en måte å melde fra om feil på.')">Meld fra om feil</button>
     </div>`;
 
   // Wind shelter — pinned for now. Wind direction + speed already render as
