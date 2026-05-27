@@ -5150,9 +5150,9 @@
 
   /* ── Sun summary headline (the new dp-card content) ─────────────────────── */
   .dp-card .dp-sun-headline {
-    color: var(--accent);
-    /* Honey on the cream card — casing keeps the sun signal from washing out. */
-    filter: var(--accent-casing);
+    /* Deeper amber gold — legible honey on the cream card (bright #F5C25E
+       washes out at cream's lightness; a colour shift reads crisp, not a glow). */
+    color: var(--accent-on-light);
     font-size: var(--text-title);
     font-weight: 700;
     line-height: 1.18;
@@ -5207,12 +5207,12 @@
     padding-top: var(--space-md);
     border-top: 1px solid var(--line-l-faint);  /* ink divider on the cream plans tile */
   }
-  /* Honey signals on the cream tiles pick up a casing so the sun colour
-     survives on a light base (DESIGN.md "Cream-frost content world"). */
+  /* Honey TEXT on the cream tiles uses the deeper amber gold so the sun signal
+     stays legible on a light base (DESIGN.md "Cream-frost content world"). */
   #detail-panel .dp-plans-block .plan-when,
   #detail-panel .dp-card .card-pill.pill-sol,
   #detail-panel .dp-card .card-pill.pill-overflow {
-    filter: var(--accent-casing);
+    color: var(--accent-on-light);
   }
 
   /* ── Wind shelter section ─────────────────────────────────────────────── */

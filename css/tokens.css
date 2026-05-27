@@ -240,9 +240,9 @@
        (dp-card, plans, info) — more opaque so dense text stays legible. BUTTON
        hue = the detail-panel action controls (directions/share/fav/bell), the
        lighter top-bar .ts-btn glass-control look (transparent + bright rim). */
-    --card-cream-bg:     rgba(255,250,244,0.55);  /* card fill — 55pct for text legibility */
+    --card-cream-bg:     rgba(253,244,234,0.70);  /* card fill (lab-tuned 2026-05-27) */
     --card-cream-blur:   blur(10px);
-    --card-cream-border: rgba(255,255,255,0.55);   /* bright lens rim */
+    --card-cream-border: rgba(255,255,255,0.87);   /* bright lens rim (lab-tuned) */
     --card-cream-shadow: 0 1px 2px rgba(17,30,56,0.10), 0 8px 22px rgba(17,30,56,0.14);  /* soft lift off the frost */
     /* BUTTON hue — mirrors the top-bar control (.ts-btn / --glassctl-*) but kept
        separate so tuning the detail buttons doesn't move the top bar. */
@@ -254,11 +254,14 @@
     --btn-glass-icon:      rgba(17,30,56,0.82);
     --btn-glass-raise:     0 1px 4px rgba(17,30,56,0.13);
     --btn-glass-press:     inset 0 2px 4px rgba(17,30,56,0.18);
-    /* Honey on a LIGHT surface. DESIGN.md's old rule was "honey dies on cream"
-       because honey + cream sit at similar lightness. The fix (user-confirmed):
-       a tight dark casing — the same trick --icon-casing uses for glyphs over
-       the map — applied to honey fills/text so the sun signal survives on
-       cream. Use --accent-casing on honey CTAs/badges/text that sit on cream. */
+    /* Honey on a LIGHT surface. The problem: honey + cream sit at the same
+       lightness, so #F5C25E washes out on cream. TWO tools:
+       · --accent-on-light — a DEEPER amber gold for honey TEXT / glyphs on a
+         light card. This is the primary fix (a colour shift reads crisp; a
+         drop-shadow on light text just looks blurry). Same hue, deeper value.
+       · --accent-casing — a tight dark drop-shadow, only for honey FILLS/icons
+         where the colour can't change (a solid honey CTA on light, a glyph). */
+    --accent-on-light:   #B8830C;
     --accent-casing:     drop-shadow(0 1px 1.5px rgba(17,30,56,0.32));
 
     /* Borders — Jordy on DARK surfaces, Delft Blue on LIGHT; compose `1px solid var(--line-*)`. */
