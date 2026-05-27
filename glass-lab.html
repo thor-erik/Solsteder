@@ -150,6 +150,12 @@
   .sh-iconink { color: #111E38; }
   .sh-iconink .sh-sun { color: #F5C25E; }
   .sh-amberchip { color: #B8830C; background: rgba(245,194,94,0.18); border: 1px solid rgba(245,194,94,0.45); padding: 3px 10px; border-radius: 8px; }
+  /* Outline / stroke family — paint-order:stroke fill keeps the honey fill clean
+     and puts the edge OUTSIDE the glyph (no glyph-thinning). */
+  .sh-stroke     { color: #F5C25E; -webkit-text-stroke: 2.4px rgba(17,30,56,0.50); paint-order: stroke fill; }
+  .sh-strokewarm { color: #F5C25E; -webkit-text-stroke: 2.4px #7E5305; paint-order: stroke fill; }
+  .sh-hardshadow { color: #F5C25E; text-shadow: 0 1px 0 rgba(17,30,56,0.55); }
+  .sh-honeychip  { color: #2C1F02; background: #F5C25E; padding: 3px 10px; border-radius: 8px; }
 
   /* Reference: the actual top-bar buttons, for side-by-side comparison */
   .topbar-ref { display: flex; align-items: center; gap: 12px; justify-content: center; padding: 4px 0; }
@@ -228,6 +234,10 @@
           <div class="sh-row"><span class="sh-val sh-chip">☀ 4h 55m</span><span class="sh-cap">4 · honey on dark chip</span></div>
           <div class="sh-row"><span class="sh-val sh-amberchip">☀ 4h 55m</span><span class="sh-cap">5 · amber on honey-dim chip</span></div>
           <div class="sh-row"><span class="sh-val sh-iconink"><span class="sh-sun">☀</span> 4h 55m</span><span class="sh-cap">6 · honey icon + ink number</span></div>
+          <div class="sh-row"><span class="sh-val sh-stroke">☀ 4h 55m</span><span class="sh-cap">7 · dark outline (stroke)</span></div>
+          <div class="sh-row"><span class="sh-val sh-strokewarm">☀ 4h 55m</span><span class="sh-cap">8 · warm amber outline</span></div>
+          <div class="sh-row"><span class="sh-val sh-hardshadow">☀ 4h 55m</span><span class="sh-cap">9 · hard 1px shadow (no blur)</span></div>
+          <div class="sh-row"><span class="sh-val sh-honeychip">☀ 4h 55m</span><span class="sh-cap">10 · solid honey chip, dark text</span></div>
         </div>
       </div>
 
