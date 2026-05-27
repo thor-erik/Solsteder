@@ -422,7 +422,10 @@ function _updateAuditIndicator() {
   if (!auditModeActive) { count.textContent = ''; return; }
   const total = auditTotalCount();
   const done  = auditReviewedCount();
-  count.textContent = `${done} / ${total - auditArchivedCount()}`;
+  const denom = Math.max(1, total - auditArchivedCount());
+  count.textContent = `${done} / ${denom}`;
+  const fill = document.getElementById('audit-progress-fill');
+  if (fill) fill.style.width = Math.min(100, Math.round((done / denom) * 100)) + '%';
 
   // Sub-mode segmented control
   const segShadows = document.getElementById('audit-mode-shadows');

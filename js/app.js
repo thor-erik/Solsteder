@@ -4590,6 +4590,52 @@ function _nextUnreviewedVenueId(afterId) {
   return null;
 }
 
+/** Previous venue in the current list order (for the editor "back" control). */
+function _prevVenueId(beforeId) {
+  const list = (typeof _listFiltered !== 'undefined' && Array.isArray(_listFiltered) && _listFiltered.length)
+    ? _listFiltered : VENUES;
+  if (!list || !list.length) return null;
+  const idx = list.findIndex(v => v.id === beforeId);
+  if (idx < 0) return list[0]?.id ?? null;
+  const prev = list[(idx - 1 + list.length) % list.length];
+  return prev ? prev.id : null;
+}
+
+/** Editor "back": jump to the previous venue without marking the current one. */
+function editGoBack() {
+  if (!editingVenueId) return;
+  const prevId = _prevVenueId(editingVenueId);
+  // Discard any in-progress changes on the current venue before leaving.
+  if (_editBeforeSnapshot) {
+    const v = VENUES.find(x => x.id === editingVenueId);
+    if (v) _applyVenueSnapshot(v, _editBeforeSnapshot);
+    sunWindowCache.clear();
+    dispatchToWorker(datePicker.value);
+  }
+  if (prevId != null) _loadVenueIntoEditor(prevId);
+}
+
+/** Editor "skip": advance to the next unreviewed venue without marking current.
+ *  Discards in-progress edits on the current venue (revert to its snapshot). */
+function editSkip() {
+  if (!editingVenueId) return;
+  if (_editBeforeSnapshot) {
+    const v = VENUES.find(x => x.id === editingVenueId);
+    if (v) _applyVenueSnapshot(v, _editBeforeSnapshot);
+    sunWindowCache.clear();
+    dispatchToWorker(datePicker.value);
+  }
+  const nextId = _nextUnreviewedVenueId(editingVenueId);
+  if (nextId != null) { _loadVenueIntoEditor(nextId); return; }
+  if (typeof showMapToast === 'function') showMapToast('Ingen flere å gå gjennom', 2200);
+}
+
+/** Collapse / expand the edit sheet (grabber tap) to free up the work area. */
+function toggleEditSheet() {
+  const ov = document.getElementById('edit-overlay');
+  if (ov) ov.classList.toggle('edit-collapsed');
+}
+
 let editSatelliteActive = false;
 
 function toggleEditSatellite() {
@@ -4869,10 +4915,11 @@ function _updateEditActionBtn() {
   // Single primary-pill style; switches text and a no-changes ghost variant
   // when nothing has been edited yet so it still looks distinct from Avbryt.
   btn.classList.add('primary-pill');
-  btn.classList.toggle('is-no-changes', !_editHasChanges);
-  // In audit mode the button commits + jumps to the next venue, so the label
-  // signals the advance ("· neste").
+  // In audit mode the action button is the screen's primary decision (commit +
+  // advance) — keep it honey (DESIGN.md: one honey CTA per screen). Outside
+  // audit, the no-changes confirm stays a quiet ghost.
   const auditing = (typeof auditModeActive !== 'undefined' && auditModeActive);
+  btn.classList.toggle('is-no-changes', !_editHasChanges && !auditing);
   const next = auditing ? ' · neste' : '';
   if (!_editHasChanges) {
     btn.textContent = (auditing ? 'Bra' : 'Ser bra ut') + next;

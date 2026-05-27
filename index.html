@@ -122,21 +122,21 @@
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260521c"></script>
 <script defer src="js/shades-loader.js?v=20260526b"></script>
-<script defer src="js/app.js?v=20260527a"></script>
+<script defer src="js/app.js?v=20260527b"></script>
 <script defer src="js/render-helpers.js?v=20260527a"></script>
 <script defer src="js/render-seating.js?v=20260519b"></script>
 <script defer src="js/render-editor.js?v=20260527a"></script>
 <script defer src="js/render-pins.js?v=20260527a"></script>
 <script defer src="js/ui-shared.js?v=20260525b"></script>
 <script defer src="js/ui-list.js?v=20260527a"></script>
-<script defer src="js/admin-review.js?v=20260505a"></script>
-<script defer src="js/admin-audit.js?v=20260527a"></script>
+<script defer src="js/admin-review.js?v=20260527b"></script>
+<script defer src="js/admin-audit.js?v=20260527b"></script>
 <script defer src="js/ui-shelter.js?v=20260522zm"></script>
 <script defer src="js/render-wind.js?v=20260416b"></script>
 <script defer src="js/ui-detail.js?v=20260525l"></script>
 <script defer src="js/ui-plan-preview.js?v=20260525z"></script>
 <script defer src="js/osm.js?v=20260519p"></script>
-<script defer src="js/notifications.js?v=20260524v"></script>
+<script defer src="js/notifications.js?v=20260527b"></script>
 <script defer src="js/push.js?v=20260518c"></script>
 <script defer src="js/lens-effects.js?v=20260521e"></script>
 <script defer src="js/init.js?v=20260525n"></script>
@@ -181,7 +181,7 @@
 <link rel="stylesheet" href="css/tokens.css?v=20260526s">
 <link rel="stylesheet" href="css/base.css?v=20260526q">
 <link rel="stylesheet" href="css/components-chrome.css?v=20260527a">
-<link rel="stylesheet" href="css/components-content.css?v=20260527a">
+<link rel="stylesheet" href="css/components-content.css?v=20260527b">
 <link rel="stylesheet" href="css/components-overlays.css?v=20260527a">
 
 <script type="application/ld+json">
@@ -224,18 +224,25 @@
   <!-- ADMIN: polygon audit mode indicator (shown only when auditModeActive) -->
   <div id="audit-mode-indicator" style="display:none">
     <div class="audit-indicator-row">
-      <span class="audit-indicator-title">Audit</span>
-      <span id="audit-indicator-count"></span>
-      <span class="audit-indicator-divider" aria-hidden="true"></span>
-      <div class="audit-submode" role="tablist" aria-label="Audit sub-mode">
-        <button id="audit-mode-shadows" type="button" class="audit-submode-btn" onclick="setAuditSubMode('shadows')" title="Show sun + shadow simulation">Shadows</button>
-        <button id="audit-mode-all"     type="button" class="audit-submode-btn" onclick="setAuditSubMode('all')"     title="Show every venue, ignore time">Show all</button>
+      <!-- Row 1: overall progress + reviewed count -->
+      <div class="audit-progress-line">
+        <span class="audit-indicator-title">Audit</span>
+        <div id="audit-progress" role="progressbar" aria-label="Audit-fremdrift">
+          <span id="audit-progress-fill"></span>
+        </div>
+        <span id="audit-indicator-count"></span>
       </div>
-      <button id="audit-filter-toggle" type="button" class="audit-pill" onclick="toggleAuditFilterPanel()" title="Filter venues">Filter<span id="audit-filter-toggle-badge" class="audit-filter-toggle-badge"></span></button>
-      <button id="audit-export-btn" type="button" class="audit-pill" onclick="auditExport()" title="Download all corrections as JSON for AI training. Each export stamps the included venues as 'trained' so the badge knows what is fresh vs. queued.">Export<span id="audit-export-count" class="audit-filter-toggle-badge"></span></button>
-      <span class="audit-indicator-divider" aria-hidden="true"></span>
-      <button type="button" class="audit-pill is-ghost" onclick="resetAuditProgress()" title="Reset all reviewed flags">Reset</button>
-      <button type="button" class="audit-pill is-ghost" onclick="toggleAuditMode()" title="Exit audit mode">Exit</button>
+      <!-- Row 2: controls -->
+      <div class="audit-controls-line">
+        <div class="audit-submode" role="tablist" aria-label="Audit sub-mode">
+          <button id="audit-mode-shadows" type="button" class="audit-submode-btn" onclick="setAuditSubMode('shadows')" title="Show sun + shadow simulation">Skygger</button>
+          <button id="audit-mode-all"     type="button" class="audit-submode-btn" onclick="setAuditSubMode('all')"     title="Show every venue, ignore time">Alle</button>
+        </div>
+        <button id="audit-filter-toggle" type="button" class="audit-pill" onclick="toggleAuditFilterPanel()" title="Filtrer steder">Filter<span id="audit-filter-toggle-badge" class="audit-filter-toggle-badge"></span></button>
+        <button id="audit-export-btn" type="button" class="audit-pill" onclick="auditExport()" title="Last ned alle rettelser som JSON for AI-trening.">Eksport<span id="audit-export-count" class="audit-filter-toggle-badge"></span></button>
+        <button type="button" class="audit-pill is-ghost" onclick="resetAuditProgress()" title="Nullstill alle gjennomgåtte">Nullstill</button>
+        <button type="button" class="audit-pill is-ghost" onclick="toggleAuditMode()" title="Avslutt audit">Lukk</button>
+      </div>
     </div>
     <div id="audit-filter-panel" class="audit-filter-panel" style="display:none"></div>
   </div>
@@ -265,13 +272,13 @@
          Shown only in audit edit mode (body.edit-mode.audit-mode). Gives the
          reviewer their bearings: name · area · type, plus a completion bar. -->
     <div id="edit-top" aria-live="polite">
+      <div id="edit-top-row1">
+        <span id="edit-top-name">—</span>
+        <span id="edit-top-count"></span>
+      </div>
+      <div id="edit-top-meta"></div>
       <div id="edit-progress" role="progressbar" aria-label="Audit-fremdrift">
         <span id="edit-progress-fill"></span>
-      </div>
-      <div id="edit-top-info">
-        <span id="edit-top-name">—</span>
-        <span id="edit-top-meta"></span>
-        <span id="edit-top-count"></span>
       </div>
     </div>
 
@@ -279,18 +286,9 @@
          nothing floats over the polygon work area. -->
     <div id="edit-overlay">
       <div id="edit-banner">
-        <div class="edit-grabber" aria-hidden="true"></div>
-        <div id="edit-header-row">
-          <div id="edit-title">Rediger uteservering</div>
-          <div id="edit-venue-label">—</div>
-        </div>
-        <!-- Tools row: AI helper chips + vertex tools. In-flow inside the sheet. -->
-        <div id="edit-tools-row">
-          <button id="edit-reset-ai-btn" class="edit-chip" onclick="resetEditPolygonToAI()" title="Tilbakestill til AI-detektert polygon" hidden>Tilbakestill</button>
-          <button id="edit-merge-btn" class="edit-chip" onclick="mergeEditPolygons()" title="Slå sammen polygoner" hidden>Slå sammen</button>
-          <button id="edit-add-vertex-btn" class="edit-chip" onclick="toggleEditVertexMode('add')" title="Legg til vinkel">＋ Vinkel</button>
-          <button id="edit-del-vertex-btn" class="edit-chip" onclick="toggleEditVertexMode('del')" title="Fjern vinkel">－ Vinkel</button>
-        </div>
+        <!-- Grabber doubles as a collapse toggle to free up the work area. -->
+        <button type="button" class="edit-grabber" id="edit-grabber" aria-label="Skjul/vis verktøy" onclick="toggleEditSheet()"></button>
+        <!-- Controls: type dropdown + map-mode toggle on one row. -->
         <div id="edit-controls">
           <div id="edit-type-dropdown">
             <button type="button" id="edit-type-trigger" class="edit-type-trigger" aria-haspopup="listbox" aria-expanded="false">
@@ -311,9 +309,28 @@
             <span class="map-toggle-option" data-option="satellite">Satellitt</span>
           </button>
         </div>
+        <!-- Tools row: vertex tools + AI helpers (secondary chips). -->
+        <div id="edit-tools-row">
+          <button id="edit-add-vertex-btn" class="edit-chip" onclick="toggleEditVertexMode('add')" title="Legg til vinkel">＋ Vinkel</button>
+          <button id="edit-del-vertex-btn" class="edit-chip" onclick="toggleEditVertexMode('del')" title="Fjern vinkel">－ Vinkel</button>
+          <button id="edit-reset-ai-btn" class="edit-chip" onclick="resetEditPolygonToAI()" title="Tilbakestill til AI-detektert polygon" hidden>Tilbakestill</button>
+          <button id="edit-merge-btn" class="edit-chip" onclick="mergeEditPolygons()" title="Slå sammen polygoner" hidden>Slå sammen</button>
+        </div>
+        <!-- Nav row: cancel (ghost) · back · skip (secondary). -->
+        <div id="edit-nav-row">
+          <button type="button" id="edit-cancel-btn" class="ghost-link" onclick="cancelEditMode()">Avbryt</button>
+          <button type="button" class="edit-nav-btn" onclick="editGoBack()" title="Forrige sted" aria-label="Forrige sted">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+            <span>Forrige</span>
+          </button>
+          <button type="button" class="edit-nav-btn" onclick="editSkip()" title="Hopp over (uten å markere)" aria-label="Hopp over">
+            <span>Hopp over</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+        <!-- Primary action (honey CTA): commit + advance. -->
         <div id="edit-action-row">
           <button id="edit-action-btn" class="primary-pill" onclick="onEditActionBtn()">Ser bra ut</button>
-          <button id="edit-cancel-btn" class="ghost-link" onclick="cancelEditMode()">Avbryt</button>
         </div>
       </div>
     </div>

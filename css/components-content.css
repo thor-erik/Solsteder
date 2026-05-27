@@ -2112,63 +2112,54 @@
     pointer-events: auto;
   }
 
+  /* Pure-frost glass — same surface as the venue list / top bar
+     (DESIGN.md "Pure-frost floating surfaces"): transparent Delft lens +
+     22px frost + hairline + panel shadow. No heavy black drop shadow. */
   #edit-banner {
     position: relative;
     background: var(--glass-panel-bg);
-    backdrop-filter: var(--glass-blur-panel);
-    -webkit-backdrop-filter: var(--glass-blur-panel);
+    backdrop-filter: var(--glass-blur-frost);
+    -webkit-backdrop-filter: var(--glass-blur-frost);
     border: var(--glass-border);
     border-radius: var(--radius-lg);
-    padding: var(--space-sm) var(--space-lg) var(--space-lg);
+    padding: var(--space-2xs) var(--space-lg) var(--space-lg);
     display: flex;
     flex-direction: column;
     gap: var(--space-md);
-    box-shadow: 0 12px 36px rgba(0,0,0,0.55);
+    box-shadow: var(--panel-shadow);
     width: 100%;
   }
 
-  /* Drag handle: always visible at the top of the panel */
+  /* Grabber doubles as a collapse toggle — a real button with a hit area. */
   .edit-grabber {
+    width: 44px;
+    height: 16px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    margin: 0 auto;
+    flex-shrink: 0;
+    display: block;
+    cursor: pointer;
+    position: relative;
+  }
+  .edit-grabber::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     width: 36px;
     height: 4px;
     border-radius: var(--radius-pill);
-    background: rgba(156,189,231,0.40);
-    margin: var(--space-xs) auto var(--space-2xs);
-    flex-shrink: 0;
-    display: block;
+    background: var(--line-d-strong);
   }
 
-  #edit-header-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-md);
-    min-height: 24px;
-  }
-
-  #edit-title {
-    font-family: 'Inter', sans-serif;
-    font-size: var(--text-body);
-    font-weight: 600;
-    color: var(--accent);
-    flex-shrink: 0;
-    letter-spacing: 0;
-  }
-
-  #edit-venue-label {
-    font-family: 'Inter', sans-serif;
-    font-size: var(--text-label);
-    font-weight: 500;
-    color: #FFF2EB;
-    padding: var(--space-2xs) var(--space-md);
-    background: rgba(156,189,231,0.12);
-    border-radius: var(--radius-pill);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 60%;
-    line-height: 1.3;
-  }
+  /* Collapsed: hide everything but the grabber + primary action to free the
+     work area. The grabber taps to expand again. */
+  #edit-overlay.edit-collapsed #edit-controls,
+  #edit-overlay.edit-collapsed #edit-tools-row,
+  #edit-overlay.edit-collapsed #edit-nav-row { display: none; }
 
   /* Tools row: AI helper chips + vertex tools. Lives IN-FLOW inside the edit
      sheet (no longer floats over the map work area). Hidden until the edit
@@ -2189,7 +2180,7 @@
     background: var(--glass-action-bg);
     border: 1px solid rgba(156,189,231,0.18);
     border-radius: var(--radius-pill);
-    color: #9CBDE7;
+    color: var(--text-secondary);
     font-family: 'Inter', sans-serif;
     font-size: 12px;
     font-weight: 500;
@@ -2204,7 +2195,7 @@
     height: 32px;
   }
 
-  .edit-chip:hover { color: #FFF2EB; border-color: rgba(156,189,231,0.40); }
+  .edit-chip:hover { color: var(--text); border-color: rgba(156,189,231,0.40); }
 
   .edit-chip.active {
     color: var(--accent);
@@ -2333,7 +2324,7 @@
     font-family: 'Inter', sans-serif;
     font-size: var(--text-label);
     font-weight: 500;
-    color: #9CBDE7;
+    color: var(--text-secondary);
     white-space: nowrap;
     transition: color 0.18s ease;
     user-select: none;
@@ -2345,27 +2336,51 @@
   }
 
   /* ── Action row: vertical stack — primary pill on top, ghost link below ──── */
+  /* Nav row: cancel (ghost, left) · back · skip (secondary glass, right). */
+  #edit-nav-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+  #edit-nav-row .ghost-link { margin-right: auto; padding-left: 0; }
+  .edit-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    height: 36px;
+    padding: 0 var(--space-lg);
+    border-radius: var(--radius-pill);
+    background: var(--glass-action-bg);
+    border: var(--glass-border);
+    color: var(--text);
+    font: 600 var(--text-label) 'Inter', sans-serif;
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .edit-nav-btn:hover  { background: rgba(156,189,231,0.14); }
+  .edit-nav-btn:active { transform: scale(0.97); }
+
   #edit-action-row {
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    gap: var(--space-xs);
-    margin-top: var(--space-xs);
   }
 
+  /* Primary CTA — Tier 4 honey, solid + elevated (DESIGN.md button roles). */
   .primary-pill {
     width: 100%;
-    height: 46px;
+    height: 48px;
     border-radius: var(--radius-pill);
     background: var(--accent);
-    color: #2A1A0C;
+    color: var(--accent-on);
     font-family: 'Inter', sans-serif;
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 15px;
+    font-weight: 700;
     cursor: pointer;
     transition: background 0.12s, opacity 0.12s;
     border: none;
     line-height: 1;
+    box-shadow: var(--shadow-1);
   }
 
   .primary-pill:hover { background: var(--accent-hover); }
@@ -2376,34 +2391,35 @@
     cursor: not-allowed;
   }
 
-  /* No-changes state — render Send forslag button as a quiet ghost */
+  /* No-changes state (non-audit only) — quiet secondary, cream-at-opacity text. */
   .primary-pill.is-no-changes {
-    background: transparent;
-    border: 1px solid rgba(156,189,231,0.22);
-    color: #9CBDE7;
+    background: var(--glass-action-bg);
+    border: var(--glass-border);
+    color: var(--text-secondary);
+    box-shadow: none;
   }
 
   .primary-pill.is-no-changes:hover {
-    border-color: rgba(156,189,231,0.35);
-    color: #FFF2EB;
+    color: var(--text);
+    background: rgba(156,189,231,0.14);
   }
 
-  /* Avbryt: text-link weight, never competes with the primary CTA */
+  /* Avbryt: tertiary ghost — never competes with the primary CTA. */
   .ghost-link {
     background: transparent;
     border: none;
-    color: rgba(156,189,231,0.75);
+    color: var(--text-secondary);
     font-family: 'Inter', sans-serif;
     font-size: var(--text-label);
     font-weight: 500;
-    height: 32px;
+    height: 36px;
     cursor: pointer;
-    padding: 0 var(--space-xl);
+    padding: 0 var(--space-lg);
     align-self: center;
     transition: color 0.12s;
   }
 
-  .ghost-link:hover { color: #FFF2EB; }
+  .ghost-link:hover { color: var(--text); }
 
   /* Mobile: bottom sheet flush to viewport edges */
   @media (max-width: 639px) {
@@ -2432,7 +2448,9 @@
      on every viewport. (--edit-zoom-bottom is set by the ResizeObserver to
      the banner top + FTS_GAP.) */
   body.edit-mode #zoom-jog {
-    bottom: var(--edit-zoom-bottom, 240px);
+    /* !important so the edit anchor wins over body.fts #zoom-jog (same
+       specificity, +56px offset) — otherwise the jog floats above the sheet. */
+    bottom: var(--edit-zoom-bottom, 240px) !important;
     transition: bottom 0.22s ease;
     opacity: 1 !important;
     pointer-events: auto !important;
@@ -2456,10 +2474,13 @@
     }
   }
 
-  /* Hide notifications and toasts during edit (single-task focus) */
+  /* Hide notifications and toasts during edit + audit (single-task focus) */
   body.edit-mode #notif-toast-wrap,
   body.edit-mode #notif-toast,
-  body.edit-mode #app-toast {
+  body.edit-mode #app-toast,
+  body.audit-mode #notif-toast-wrap,
+  body.audit-mode #notif-toast,
+  body.audit-mode #app-toast {
     display: none !important;
   }
 
@@ -2471,27 +2492,60 @@
   body.edit-mode.audit-mode #edit-top {
     display: flex;
     flex-direction: column;
-    gap: var(--space-xs);
+    gap: var(--space-sm);
     position: fixed;
     top: calc(max(env(safe-area-inset-top, 0px) + 2px, 12px));
     left: 50%;
     transform: translateX(-50%);
     width: min(440px, calc(100vw - 2 * var(--space-lg)));
     z-index: 9000;
-    padding: var(--space-sm) var(--space-lg);
+    padding: var(--space-md) var(--space-lg);
+    /* Pure-frost glass — same surface as the venue list / top bar. */
     background: var(--glass-panel-bg);
-    backdrop-filter: var(--glass-blur-panel);
-    -webkit-backdrop-filter: var(--glass-blur-panel);
+    backdrop-filter: var(--glass-blur-frost);
+    -webkit-backdrop-filter: var(--glass-blur-frost);
     border: var(--glass-border);
     border-radius: var(--radius-lg);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.32);
+    box-shadow: var(--panel-shadow);
     color: var(--text);
     font-family: 'Inter', sans-serif;
   }
+  #edit-top-row1 {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-md);
+    min-width: 0;
+  }
+  #edit-top-name {
+    font-size: var(--text-title);
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 1;
+    min-width: 0;
+  }
+  #edit-top-meta {
+    font-size: var(--text-label);
+    font-weight: 500;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #edit-top-count {
+    font-size: var(--text-label);
+    font-weight: 700;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+  }
   #edit-progress {
-    height: 4px;
+    height: 5px;
     border-radius: var(--radius-pill);
-    background: rgba(156,189,231,0.22);
+    background: var(--line-d);
     overflow: hidden;
   }
   #edit-progress-fill {
@@ -2501,39 +2555,6 @@
     border-radius: var(--radius-pill);
     background: var(--accent);
     transition: width 0.32s cubic-bezier(0.2, 0.8, 0.3, 1);
-  }
-  #edit-top-info {
-    display: flex;
-    align-items: baseline;
-    gap: var(--space-sm);
-    min-width: 0;
-  }
-  #edit-top-name {
-    font-size: var(--text-body);
-    font-weight: 700;
-    color: var(--text);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    flex-shrink: 1;
-  }
-  #edit-top-meta {
-    font-size: var(--text-label);
-    font-weight: 500;
-    color: var(--muted);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-  #edit-top-count {
-    font-size: var(--text-label);
-    font-weight: 600;
-    color: var(--accent);
-    font-variant-numeric: tabular-nums;
-    flex-shrink: 0;
-    margin-left: auto;
   }
 
 
@@ -2576,33 +2597,64 @@
     color: var(--text);
     font-family: 'Inter', sans-serif;
   }
+  /* Two stacked lines: progress + count (primary), then the controls.
+     Pure-frost glass to match the venue list / top bar. */
   .audit-indicator-row {
-    display: inline-flex;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-lg);
+    background: var(--glass-panel-bg);
+    backdrop-filter: var(--glass-blur-frost);
+    -webkit-backdrop-filter: var(--glass-blur-frost);
+    border: var(--glass-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--panel-shadow);
+  }
+  .audit-progress-line {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+  }
+  #audit-progress {
+    flex: 1 1 auto;
+    height: 5px;
+    border-radius: var(--radius-pill);
+    background: var(--line-d);
+    overflow: hidden;
+  }
+  #audit-progress-fill {
+    display: block;
+    height: 100%;
+    width: 0%;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+    transition: width 0.32s cubic-bezier(0.2, 0.8, 0.3, 1);
+  }
+  .audit-controls-line {
+    display: flex;
     align-items: center;
     gap: var(--space-sm);
-    padding: var(--space-sm) var(--space-md) var(--space-sm) var(--space-lg);
-    background: var(--glass-panel-bg);
-    backdrop-filter: var(--glass-blur-panel);
-    -webkit-backdrop-filter: var(--glass-blur-panel);
-    border: var(--glass-border);
-    border-radius: var(--radius-pill);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.32);
-    flex-wrap: nowrap;
-    white-space: nowrap;
+    flex-wrap: wrap;
   }
   .audit-indicator-title {
     font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.02em;
     color: var(--text);
+    flex-shrink: 0;
   }
   #audit-indicator-count {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--muted);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
     font-variant-numeric: tabular-nums;
-    margin-right: var(--space-2xs);
+    flex-shrink: 0;
   }
+  /* Kill the duplicate filter: the consumer Filtre/Sort row is not the audit
+     filter — hide it in audit mode so only the audit Filter (status/flags/
+     training) remains. */
+  body.audit-mode #panel-actions { display: none; }
   .audit-indicator-divider {
     width: 1px;
     height: 16px;
@@ -2707,11 +2759,11 @@
     padding: var(--space-lg);
     width: min(440px, 92vw);
     background: var(--glass-panel-bg);
-    backdrop-filter: var(--glass-blur-panel);
-    -webkit-backdrop-filter: var(--glass-blur-panel);
+    backdrop-filter: var(--glass-blur-frost);
+    -webkit-backdrop-filter: var(--glass-blur-frost);
     border: var(--glass-border);
     border-radius: var(--radius-md);
-    box-shadow: 0 12px 32px rgba(0,0,0,0.32);
+    box-shadow: var(--panel-shadow);
     color: var(--text);
     display: flex;
     flex-direction: column;
@@ -2721,7 +2773,7 @@
   .audit-filter-label {
     font-size: 10px;
     font-weight: 700;
-    color: var(--muted);
+    color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }
@@ -2929,8 +2981,18 @@
     gap: var(--space-2xs);
     margin-bottom: var(--space-sm);
   }
-  body.audit-mode .venue-card .card-row2,
-  body.audit-mode .venue-card .card-row3 { opacity: 0.85; }
+  /* Auditing a polygon doesn't need the sun story — strip sun-hours, the
+     close/sun anchor, walk time, distance, the shade footnote, and the fill
+     bar. Keep name + location + category (for bearings) + flags + actions. */
+  body.audit-mode .venue-card .card-duration,
+  body.audit-mode .venue-card .card-anchor,
+  body.audit-mode .venue-card .card-disrupt,
+  body.audit-mode .venue-card .card-walk,
+  body.audit-mode .venue-card .card-dist,
+  body.audit-mode .venue-card .card-fillbar { display: none; }
+  /* Collapse the dot separators left dangling once walk/dist are hidden. */
+  body.audit-mode .venue-card .card-row3 .card-meta-dot { display: none; }
+  body.audit-mode .venue-card .card-row2 { color: var(--text-secondary); }
   .venue-card.review-flagged {
     border-left: 3px solid var(--accent);
   }

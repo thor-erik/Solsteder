@@ -123,6 +123,11 @@ function _notifSaveSettings(settings) {
 
 function _notifEnqueue(notif) {
   if (_notifDismissed.has(notif.id)) return;
+  // Single-task focus: suppress ambient toasts entirely while the admin is in
+  // audit or polygon-edit mode. The bell inbox still records them server-side.
+  if (typeof document !== 'undefined' && document.body
+      && (document.body.classList.contains('audit-mode')
+          || document.body.classList.contains('edit-mode'))) return;
   // If a notif with the same id is already in the queue, REPLACE it
   // rather than drop the new one. Aggregating evaluators (e.g.
   // _evalInviteAccepted, _evalInviteDeclined) produce a fresher notif

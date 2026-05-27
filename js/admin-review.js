@@ -84,13 +84,15 @@ function venueReviewFlags(v) { return _reviewFlagsCache.get(v.id) ?? null; }
 function reviewFlagCount()   { return _reviewFlagsCache.size; }
 
 // ── Friendly labels for chips (consumed by ui-list.js + admin-audit.js) ──────
+// Concise, plain-language flags. Each names the suspected problem so the
+// reviewer knows why the venue surfaced, in as few words as possible.
 const REVIEW_FLAG_LABELS = {
-  'no-sun':                 '0h sun',
-  'low-sun':                '<1.5h sun',
-  'north-facing':           'facing N (auto)',
-  'points-in-building':     'test pts in wall',
-  'no-geometry':            'missing geometry',
-  'low-confidence-seating': 'low-conf seating',
-  'seating-not-visible':    'seating not visible',
+  'no-sun':                 'No sun',
+  'low-sun':                'Low sun',
+  'north-facing':           'Faces north',
+  'points-in-building':     'Inside building',
+  'no-geometry':            'No building',
+  'low-confidence-seating': 'Unsure area',
+  'seating-not-visible':    'Not visible',
 };
 function reviewFlagLabel(code) { return REVIEW_FLAG_LABELS[code] ?? code; }
