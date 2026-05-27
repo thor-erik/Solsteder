@@ -1429,23 +1429,20 @@ function _openInviteSheet(venueId) {
   // selection modes so desktop users have a reliable clipboard path
   // (macOS Safari's native share sheet doesn't include a Copy option).
   const copySvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+  // Primary CTA = a full-width pill the same size as the accept panel's "Jeg
+   // blir med" (the copy companion moved to the sub-row below — see body). The
+   // hasFriends primary still morphs share↔send via _refreshInvitePrimaryCTA.
   const ctaRow = hasFriends ? `
         <div class="dpinvite-cta-row">
           <button class="p-pill" id="invite-primary-btn" data-mode="share" onclick="_invitePrimaryClick(${venueId})">
             <span id="invite-primary-icon">${linkSvg}</span>
             <span id="invite-primary-label">${t('share_link')}</span>
           </button>
-          <button class="s-circ" id="invite-secondary-btn" type="button" onclick="_copyInviteLink(${venueId})" title="${t('copy_invite_link')}" aria-label="${t('copy_invite_link')}">
-            ${copySvg}
-          </button>
         </div>` : `
         <div class="dpinvite-cta-row">
-          <button class="p-pill" onclick="_shareInviteLink(${venueId})" style="flex:1">
+          <button class="p-pill" onclick="_shareInviteLink(${venueId})">
             ${linkSvg}
             <span>${t('share_link')}</span>
-          </button>
-          <button class="s-circ" type="button" onclick="_copyInviteLink(${venueId})" title="${t('copy_invite_link')}" aria-label="${t('copy_invite_link')}">
-            ${copySvg}
           </button>
         </div>`;
 
@@ -1519,8 +1516,11 @@ function _openInviteSheet(venueId) {
       </div>
       ${friendsBlock}
       ${ctaRow}
-      <div class="dpinvite-cancel-row">
-        <button class="g-rnd" type="button" onclick="_closeInviteSheet()">${t('invite_cancel')}</button>
+      <div class="dpinvite-subrow">
+        <button class="dpinvite-subaction" type="button" onclick="_copyInviteLink(${venueId})" aria-label="${t('copy_invite_link')}">
+          ${copySvg}<span>${t('copy_invite_link')}</span>
+        </button>
+        <button class="dpinvite-subaction" type="button" onclick="_closeInviteSheet()">${t('invite_cancel')}</button>
       </div>
     </div>`;
 

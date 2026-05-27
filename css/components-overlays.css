@@ -1291,6 +1291,36 @@
   }
   .dpinvite-cta-row .p-pill { flex: 1; min-width: 0; height: 48px; }
 
+  /* Sub-row under the main CTA — mirrors the accept panel's tertiary row:
+     copy-link on the left (where "Kommer senere" sits there), cancel on the
+     right. Both ghost text buttons so the honey CTA above stays the one
+     decision. */
+  .dpinvite-subrow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    margin-top: var(--space-sm);
+  }
+  .dpinvite-subaction {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    background: none;
+    border: 0;
+    padding: var(--space-sm) var(--space-xs);
+    color: var(--ink-muted);
+    font-family: 'Inter', sans-serif;
+    font-size: var(--text-label);
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.12s;
+  }
+  .dpinvite-subaction:hover { color: var(--panel-text); }
+  .dpinvite-subaction:active { transform: scale(0.97); }
+  .dpinvite-subaction svg { flex-shrink: 0; opacity: 0.85; }
+
   /* Companion .s-circ — animated entrance/exit by transitioning width,
      margin-left, opacity, and scale. The primary pill's flex:1 reflows
      in real time as the companion width animates, so the primary appears
