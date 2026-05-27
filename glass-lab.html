@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Glass Lab — Shades</title>
-<link rel="stylesheet" href="css/tokens.css?v=20260527n">
+<link rel="stylesheet" href="css/tokens.css?v=20260527p">
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; padding: 0; font-family: 'Inter', system-ui, sans-serif; }
@@ -138,6 +138,19 @@
   .btn-sq svg { width: 20px; height: 20px; stroke: currentColor; }
   .btn-sq span { font-size: 10.5px; font-weight: 600; }
 
+  /* ── Sun-hours legibility comparison (on the cream card) ── */
+  .sh-grid { display: flex; flex-direction: column; gap: 11px; }
+  .sh-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .sh-val { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .sh-cap { font-size: 11px; color: rgba(17,30,56,0.50); text-align: right; }
+  .sh-bloom  { color: #F5C25E; text-shadow: 0 0 2px rgba(17,30,56,0.45), 0 0 5px rgba(17,30,56,0.26); }
+  .sh-amber  { color: #B8830C; }
+  .sh-amber2 { color: #C2790B; }
+  .sh-chip   { color: #F5C25E; background: #16233F; padding: 3px 10px; border-radius: 8px; }
+  .sh-iconink { color: #111E38; }
+  .sh-iconink .sh-sun { color: #F5C25E; }
+  .sh-amberchip { color: #B8830C; background: rgba(245,194,94,0.18); border: 1px solid rgba(245,194,94,0.45); padding: 3px 10px; border-radius: 8px; }
+
   /* Reference: the actual top-bar buttons, for side-by-side comparison */
   .topbar-ref { display: flex; align-items: center; gap: 12px; justify-content: center; padding: 4px 0; }
   .ref-btn {
@@ -204,6 +217,18 @@
         <div class="btn-sq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg><span>Del</span></div>
         <div class="btn-sq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg><span>Favoritt</span></div>
         <div class="btn-sq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span>Varsle</span></div>
+      </div>
+
+      <div class="sheet-label">Sun-hours legibility — pick one</div>
+      <div class="card">
+        <div class="sh-grid">
+          <div class="sh-row"><span class="sh-val sh-bloom">☀ 4h 55m</span><span class="sh-cap">1 · honey + bloom (current)</span></div>
+          <div class="sh-row"><span class="sh-val sh-amber">☀ 4h 55m</span><span class="sh-cap">2 · deep amber, flat</span></div>
+          <div class="sh-row"><span class="sh-val sh-amber2">☀ 4h 55m</span><span class="sh-cap">3 · deeper amber/orange</span></div>
+          <div class="sh-row"><span class="sh-val sh-chip">☀ 4h 55m</span><span class="sh-cap">4 · honey on dark chip</span></div>
+          <div class="sh-row"><span class="sh-val sh-amberchip">☀ 4h 55m</span><span class="sh-cap">5 · amber on honey-dim chip</span></div>
+          <div class="sh-row"><span class="sh-val sh-iconink"><span class="sh-sun">☀</span> 4h 55m</span><span class="sh-cap">6 · honey icon + ink number</span></div>
+        </div>
       </div>
 
       <div class="sheet-label">Real top-bar buttons (reference)</div>
