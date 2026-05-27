@@ -12,6 +12,21 @@
 
 // ── Detail panel content ──────────────────────────────────────────────────────
 
+/** Single-photo hero: size the frame to the photo's own aspect ratio, clamped
+ *  to a [140, 200] px band. Wide shots get shorter (a band), tall/odd ratios cap
+ *  and peek (object-fit: cover) rather than hard-cropping a fixed 168px box.
+ *  Only wired for single-photo venues — carousels keep the uniform CSS height. */
+function _fitHeroPhoto(img) {
+  try {
+    const frame = img && img.closest('.detail-new-photos');
+    if (!frame || !img.naturalWidth || !img.naturalHeight) return;
+    const w = frame.clientWidth || 336;
+    const h = Math.max(140, Math.min(200, Math.round(w * img.naturalHeight / img.naturalWidth)));
+    frame.style.height = h + 'px';
+  } catch { /* leave the CSS default height */ }
+}
+if (typeof window !== 'undefined') window._fitHeroPhoto = _fitHeroPhoto;
+
 function renderDetailPanelContent(v, dateStr, fromHour) {
   const s = typeof computeVenueScore === 'function'
     ? computeVenueScore(v, dateStr, fromHour, typeof getWeatherAt === 'function' ? getWeatherAt(dateStr, fromHour) : null, userLocation)
@@ -186,10 +201,15 @@ function renderDetailPanelContent(v, dateStr, fromHour) {
       ${_metaLine ? `<div class="photo-overlay-meta">${_metaLine}</div>` : ''}
     </div>`;
 
+  // Aspect-aware hero: a single photo sizes its frame to its OWN ratio (within
+  // a band) so wide shots read as a band and odd/tall ratios cap + peek instead
+  // of hard-cropping. Multi-photo carousels keep the fixed CSS height (the
+  // carousel needs a uniform frame), so only the single case gets the onload.
+  const _singlePhoto = v.photoUrls?.length === 1;
   const photosHtml = v.photoUrls?.length
-    ? `<div class="detail-new-photos">
+    ? `<div class="detail-new-photos${_singlePhoto ? ' is-single' : ''}">
         <div class="detail-new-photos-scroll">${
-          v.photoUrls.map(url => `<img src="${url}" loading="lazy" alt="" onerror="this.remove()">`).join('')
+          v.photoUrls.map(url => `<img src="${url}" loading="lazy" alt="" onerror="this.remove()"${_singlePhoto ? ' onload="_fitHeroPhoto(this)"' : ''}>`).join('')
         }</div>
         ${photoOverlayHtml}
       </div>`
