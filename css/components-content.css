@@ -2094,43 +2094,43 @@
   /* Collapsed: hide the controls row, keep grabber + primary action. */
   #edit-overlay.edit-collapsed #edit-controls { display: none; }
 
-  /* Floating polygon-tool stack — vertical, on the right ABOVE the zoom jog,
-     same 34px width. Each button is its own cream-frost outlined disc (matches
-     the locate / zoom-jog family). */
+  /* Floating polygon-tool PILL — one vertical pill above the zoom jog, same
+     34px width + radius, cream-frost. Glyphs sit inside like the zoom-jog
+     labels (no per-icon squircles). Active vertex tool = honey glyph. */
   #edit-tools-float { display: none; }
   body.edit-mode #edit-tools-float {
     display: flex;
     flex-direction: column;
-    gap: var(--space-sm);
+    align-items: center;
     position: fixed;
     right: 12px;                                       /* align with the zoom jog */
-    bottom: calc(var(--edit-zoom-bottom, 240px) + 92px + var(--space-md));
+    bottom: calc(var(--edit-zoom-bottom, 240px) + 92px + var(--space-sm));
     z-index: 921;
-    transition: bottom 0.22s ease;
-  }
-  .edit-tool-icon {
     width: 34px;
-    height: 34px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    padding: var(--space-xs) 0;
     background: rgba(255,242,235,0.50);
     backdrop-filter: var(--glass-blur-frost);
     -webkit-backdrop-filter: var(--glass-blur-frost);
     border: 1px solid var(--line-l);
-    color: var(--content-text);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-lg);
     box-shadow: var(--panel-shadow);
+    transition: bottom 0.22s ease;
+  }
+  .edit-tool-icon {
+    width: 34px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--ink-muted);
     cursor: pointer;
-    transition: background 0.12s, color 0.12s, border-color 0.12s, transform 0.1s;
+    transition: color 0.12s, transform 0.1s;
   }
-  .edit-tool-icon:hover  { border-color: var(--line-l-strong); }
-  .edit-tool-icon:active { transform: scale(0.94); }
-  .edit-tool-icon.active {
-    background: var(--accent);
-    border-color: transparent;
-    color: var(--accent-on);
-  }
+  .edit-tool-icon:hover  { color: var(--content-text); }
+  .edit-tool-icon:active { transform: scale(0.9); }
+  .edit-tool-icon.active { color: var(--accent); }
   .edit-tool-icon[hidden] { display: none; }
 
   /* Tools row: AI helper chips + vertex tools. Lives IN-FLOW inside the edit
@@ -2452,6 +2452,15 @@
     }
   }
 
+  /* The brand lockup floats bottom-left over the map and collides with the
+     terrace-type dropdown (which opens upward from the sheet). Hide it while
+     editing. */
+  body.edit-mode #floating-brand { display: none; }
+
+  /* FTS scrubber in audit: shown only in Skygger (time-based shadow sim);
+     hidden in Alle (sun ignored). High specificity so it beats body.fts #fts. */
+  body.audit-mode:not(.audit-shadows):not(.edit-mode) #fts { display: none !important; }
+
   /* Hide notifications and toasts during edit + audit (single-task focus) */
   body.edit-mode #notif-toast-wrap,
   body.edit-mode #notif-toast,
@@ -2595,7 +2604,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-sm);
-    padding: var(--space-sm) var(--space-md) var(--space-md);
+    padding: var(--space-md) var(--space-lg);
     background: rgba(255,242,235,0.50);
     backdrop-filter: var(--glass-blur-frost);
     -webkit-backdrop-filter: var(--glass-blur-frost);
@@ -2668,7 +2677,7 @@
     flex-wrap: wrap;
     align-items: center;
     gap: var(--space-sm);
-    padding: var(--space-xs) var(--space-lg) var(--space-sm);
+    padding: var(--space-sm) var(--space-lg) var(--space-md);
     flex-shrink: 0;
   }
 
@@ -2993,24 +3002,27 @@
     background: rgba(255,242,235,0.50);
   }
 
-  /* ── Compact audit card — transparent row on the cream list ─────────────
+  /* ── Audit card — a real OPAQUE cream tile with shadow, on the cream list ──
      name + icon actions (row 1), location · category (row 2), flags (row 3).
      Clicking focuses the venue on satellite — selection = honey ring. */
   .venue-card.audit-card {
-    background: transparent;
-    box-shadow: none;
-    border: none;
-    border-bottom: 1px solid var(--line-l);
-    border-radius: 0;
-    padding: var(--space-md) var(--space-sm);
-    gap: var(--space-xs);
-    margin-bottom: 0;
+    background: var(--surface-raised);             /* opaque cream */
+    border: 1px solid var(--line-l);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-1);
+    padding: var(--space-lg);
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
     cursor: pointer;
+    transition: box-shadow 0.15s ease, transform 0.12s ease, border-color 0.15s ease;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .venue-card.audit-card:hover { box-shadow: var(--shadow-2); border-color: var(--line-l-strong); }
   }
   .audit-card .ac-top {
     display: flex;
     align-items: center;
-    gap: var(--space-sm);
+    gap: var(--space-md);
   }
   .audit-card .ac-name {
     flex: 1 1 auto;
@@ -3039,26 +3051,19 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .audit-card .review-chips { padding: 0; }
+  .audit-card .review-chips { padding: var(--space-2xs) 0 0; gap: var(--space-xs); }
   /* Flags = neutral ink-outline chips on cream (NOT honey — honey is the sun
      signal, not a flag). Reads as informational tags. */
   .audit-card .review-chip {
     background: var(--surface-control);
     border: 1px solid var(--line-l-strong);
     color: var(--content-text);
+    padding: var(--space-2xs) var(--space-md);
   }
-  .venue-card.audit-card:active { background: var(--line-l-faint); }
+  .venue-card.audit-card:active { transform: scale(0.99); }
   .venue-card.audit-card.audit-focus {
-    background: rgba(245,194,94,0.10);
-  }
-  .venue-card.audit-card.audit-focus::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border: 2px solid var(--accent);
-    border-radius: var(--radius-sm);
-    pointer-events: none;
-    z-index: 3;
+    border-color: transparent;
+    box-shadow: 0 0 0 2px var(--accent), var(--shadow-2);
   }
   /* Status chips on the cream card need DARK ink colours — the bright
      --green-500 / --red-500 are tuned for dark surfaces and wash out here. */
