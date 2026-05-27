@@ -1181,7 +1181,10 @@
   .card-timeline {
     position: relative;
     width: 100%;
-    height: 12px;
+    /* Thick bar (matches the accept-panel timeline's 48px) — the detail card
+       uses the same thick timeline, with its time labels kept above. Thick
+       enough for the recessed "inset" channel (drawTimeline drawIndent). */
+    height: 48px;
   }
   .card-timeline-labels {
     position: relative;

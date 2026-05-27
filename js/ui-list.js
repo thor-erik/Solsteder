@@ -236,6 +236,10 @@ function drawAllCardTimelines(root) {
       closeHour: isPlanPreviewCanvas ? null : (dayHours?.close ?? null),
       sunWindows: sunWindowsForShadow,
       drawSheen: false,
+      // Recessed-channel "inset" look — same as the FTS track, applied to both
+      // the detail card timeline and the accept-panel timeline (thick enough
+      // now that TRACK_H >= 16). drawTimeline gates it on height.
+      drawIndent: true,
       drawThumb: false,
     });
     ctx.restore();

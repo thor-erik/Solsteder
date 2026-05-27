@@ -878,25 +878,23 @@ function drawTimeline(ctx, opts) {
       const gx1 = Math.round(timeToX(Math.max(minH, gap.start)));
       const gx2 = Math.round(timeToX(Math.min(maxH, gap.end)));
       if (gx2 <= gx1) continue;
-      // Base dim under the stripes — softer than the solid past/closed dim.
-      ctx.fillStyle = 'rgba(15,27,42,0.32)';
-      ctx.fillRect(gx1, bleed, gx2 - gx1, TRACK_H);
-      // Diagonal slate stripes (45°, ~4px spacing) clipped to the gap rect.
+      // Brand "shade" motif — identical pattern to the striped shade PIN (the
+      // logo's sunglasses-lens hatch): cream base + Jordy diagonal bars at 135°,
+      // 5.5px period, 50% fill. One shade language for pins + both timelines +
+      // the FTS (every surface that runs drawTimeline). Replaces the old
+      // dark-slate 45°/1px strokes.
       ctx.save();
       ctx.beginPath();
       ctx.rect(gx1, bleed, gx2 - gx1, TRACK_H);
       ctx.clip();
-      ctx.strokeStyle = 'rgba(15,27,42,0.45)';
-      ctx.lineWidth   = 1;
-      ctx.beginPath();
-      const stripeSpacing = 4;
-      const startD = Math.floor(gx1 / stripeSpacing) * stripeSpacing - TRACK_H;
-      const endD   = gx2 + TRACK_H;
-      for (let d = startD; d <= endD; d += stripeSpacing) {
-        ctx.moveTo(d,             bleed);
-        ctx.lineTo(d + TRACK_H,   bleed + TRACK_H);
-      }
-      ctx.stroke();
+      ctx.fillStyle = _ftsRgba(TOKENS.text || '#FFF4E0', 0.90);
+      ctx.fillRect(gx1, bleed, gx2 - gx1, TRACK_H);
+      ctx.translate((gx1 + gx2) / 2, bleed + TRACK_H / 2);
+      ctx.rotate(135 * Math.PI / 180);
+      const diag = Math.hypot(gx2 - gx1, TRACK_H) + 4;
+      const period = 5.5, inkW = period * 0.5;
+      ctx.fillStyle = TOKENS.jordy || '#9CBDE7';
+      for (let p = -diag; p <= diag; p += period) ctx.fillRect(p, -diag, inkW, diag * 2);
       ctx.restore();
     }
   }
