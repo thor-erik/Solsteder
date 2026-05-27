@@ -1429,16 +1429,11 @@ function _openInviteSheet(venueId) {
   // selection modes so desktop users have a reliable clipboard path
   // (macOS Safari's native share sheet doesn't include a Copy option).
   const copySvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
-  // Primary CTA = a full-width pill the same size as the accept panel's "Jeg
-   // blir med" (the copy companion moved to the sub-row below — see body). The
-   // hasFriends primary still morphs share↔send via _refreshInvitePrimaryCTA.
-  const ctaRow = hasFriends ? `
-        <div class="dpinvite-cta-row">
-          <button class="p-pill" id="invite-primary-btn" data-mode="share" onclick="_invitePrimaryClick(${venueId})">
-            <span id="invite-primary-icon">${linkSvg}</span>
-            <span id="invite-primary-label">${t('share_link')}</span>
-          </button>
-        </div>` : `
+  // Social friend-picker removed from this panel for now — it returns in the
+  // dedicated two-step share panel (see plan). The interim invite/time-select
+  // sheet shares by link only: one static full-width "Del lenke" CTA (native
+  // share = other apps) with copy · cancel in the sub-row below.
+  const ctaRow = `
         <div class="dpinvite-cta-row">
           <button class="p-pill" onclick="_shareInviteLink(${venueId})">
             ${linkSvg}
@@ -1515,7 +1510,6 @@ function _openInviteSheet(venueId) {
         <div class="dpinvite-friends-label">${t('invite_eyebrow_select_time')}</div>
         <div class="dpinvite-fts-slot" id="dpinvite-fts-slot" aria-hidden="false"></div>
       </div>
-      ${friendsBlock}
       ${ctaRow}
       <div class="dprcv-cta-row">
         <button class="dprcv-cta-link" type="button" onclick="_copyInviteLink(${venueId})" aria-label="${t('copy_invite_link')}">
