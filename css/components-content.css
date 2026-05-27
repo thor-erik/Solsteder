@@ -2112,22 +2112,23 @@
     pointer-events: auto;
   }
 
-  /* Pure-frost glass — same surface as the venue list / top bar
-     (DESIGN.md "Pure-frost floating surfaces"): transparent Delft lens +
-     22px frost + hairline + panel shadow. No heavy black drop shadow. */
+  /* Cream surface (DESIGN.md "light/chrome panel") — opaque enough to read
+     over bright satellite imagery, with INK text + light-chrome controls.
+     The transparent frost was illegible over satellite. */
   #edit-banner {
     position: relative;
-    background: var(--glass-panel-bg);
-    backdrop-filter: var(--glass-blur-frost);
-    -webkit-backdrop-filter: var(--glass-blur-frost);
-    border: var(--glass-border);
+    background: rgba(255,242,235,0.95);
+    backdrop-filter: var(--blur-surface);
+    -webkit-backdrop-filter: var(--blur-surface);
+    border: 1px solid var(--line-l);
     border-radius: var(--radius-lg);
     padding: var(--space-2xs) var(--space-lg) var(--space-lg);
     display: flex;
     flex-direction: column;
     gap: var(--space-md);
-    box-shadow: var(--panel-shadow);
+    box-shadow: var(--shadow-2);
     width: 100%;
+    color: var(--content-text);
   }
 
   /* Grabber doubles as a collapse toggle — a real button with a hit area. */
@@ -2152,14 +2153,13 @@
     width: 36px;
     height: 4px;
     border-radius: var(--radius-pill);
-    background: var(--line-d-strong);
+    background: var(--line-l-strong);
   }
 
   /* Collapsed: hide everything but the grabber + primary action to free the
      work area. The grabber taps to expand again. */
   #edit-overlay.edit-collapsed #edit-controls,
-  #edit-overlay.edit-collapsed #edit-tools-row,
-  #edit-overlay.edit-collapsed #edit-nav-row { display: none; }
+  #edit-overlay.edit-collapsed #edit-tools-row { display: none; }
 
   /* Tools row: AI helper chips + vertex tools. Lives IN-FLOW inside the edit
      sheet (no longer floats over the map work area). Hidden until the edit
@@ -2176,11 +2176,13 @@
      it doesn't leave an empty gap in the sheet. */
   #edit-tools-row:not(:has(.edit-chip:not([hidden]))) { display: none; }
 
+  /* Light-chrome outline chip on the cream sheet: ink text, Delft silhouette;
+     active fills Delft Blue + cream (DESIGN.md "controls step to Delft Blue"). */
   .edit-chip {
-    background: var(--glass-action-bg);
-    border: 1px solid rgba(156,189,231,0.18);
+    background: var(--surface-control);
+    border: 1px solid var(--line-l-strong);
     border-radius: var(--radius-pill);
-    color: var(--text-secondary);
+    color: var(--content-text);
     font-family: 'Inter', sans-serif;
     font-size: 12px;
     font-weight: 500;
@@ -2195,12 +2197,13 @@
     height: 32px;
   }
 
-  .edit-chip:hover { color: var(--text); border-color: rgba(156,189,231,0.40); }
+  .edit-chip:hover { background: var(--line-l-faint); }
 
+  /* Active = Delft fill + cream text (controls step to Delft Blue). */
   .edit-chip.active {
-    color: var(--accent);
-    border-color: rgba(245,194,94,0.45);
-    background: rgba(245,194,94,0.12);
+    color: var(--text);
+    border-color: transparent;
+    background: var(--surface-content);
   }
 
   .edit-chip[hidden] { display: none; }
@@ -2221,14 +2224,14 @@
   }
 
   .edit-type-trigger {
-    background: var(--glass-action-bg);
-    border: 1px solid rgba(156,189,231,0.18);
+    background: var(--surface-control);
+    border: 1px solid var(--line-l-strong);
     border-radius: var(--radius-pill);
-    color: #FFF2EB;
+    color: var(--content-text);
     font-family: 'Inter', sans-serif;
     font-size: var(--text-label);
-    font-weight: 500;
-    padding: 0 var(--space-lg) 0 var(--space-xl);
+    font-weight: 600;
+    padding: 0 var(--space-lg);
     height: 36px;
     cursor: pointer;
     outline: none;
@@ -2238,13 +2241,13 @@
     transition: border-color 0.12s, background 0.12s;
   }
 
-  .edit-type-trigger:hover { border-color: rgba(156,189,231,0.35); }
+  .edit-type-trigger:hover { background: var(--line-l-faint); }
   .edit-type-trigger[aria-expanded="true"] {
-    border-color: rgba(245,194,94,0.45);
-    color: var(--accent);
+    border-color: var(--line-l-strong);
+    background: var(--line-l-faint);
   }
-  .edit-type-trigger svg { color: #9CBDE7; transition: transform 0.18s ease, color 0.12s; }
-  .edit-type-trigger[aria-expanded="true"] svg { transform: rotate(180deg); color: var(--accent); }
+  .edit-type-trigger svg { color: var(--ink-muted); transition: transform 0.18s ease; }
+  .edit-type-trigger[aria-expanded="true"] svg { transform: rotate(180deg); }
 
   .edit-type-list {
     position: absolute;
@@ -2283,8 +2286,8 @@
   .map-toggle {
     position: relative;
     flex: 0 0 auto;
-    background: var(--glass-action-bg);
-    border: 1px solid rgba(156,189,231,0.18);
+    background: var(--surface-control);
+    border: 1px solid var(--line-l-strong);
     border-radius: var(--radius-pill);
     height: 36px;
     padding: var(--space-2xs);
@@ -2323,8 +2326,8 @@
     justify-content: center;
     font-family: 'Inter', sans-serif;
     font-size: var(--text-label);
-    font-weight: 500;
-    color: var(--text-secondary);
+    font-weight: 600;
+    color: var(--ink-muted);
     white-space: nowrap;
     transition: color 0.18s ease;
     user-select: none;
@@ -2332,39 +2335,41 @@
 
   .map-toggle[aria-checked="true"]  .map-toggle-option[data-option="satellite"],
   .map-toggle[aria-checked="false"] .map-toggle-option[data-option="map"] {
-    color: var(--accent);
+    color: var(--content-text);
   }
 
   /* ── Action row: vertical stack — primary pill on top, ghost link below ──── */
   /* Nav row: cancel (ghost, left) · back · skip (secondary glass, right). */
-  #edit-nav-row {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-  }
-  #edit-nav-row .ghost-link { margin-right: auto; padding-left: 0; }
+  /* Secondary nav buttons on the cream sheet: light-chrome outline + ink.
+     Back is icon-only (square); skip carries a label. */
   .edit-nav-btn {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: var(--space-2xs);
-    height: 36px;
+    height: 48px;
     padding: 0 var(--space-lg);
     border-radius: var(--radius-pill);
-    background: var(--glass-action-bg);
-    border: var(--glass-border);
-    color: var(--text);
+    background: var(--surface-control);
+    border: 1px solid var(--line-l-strong);
+    color: var(--content-text);
     font: 600 var(--text-label) 'Inter', sans-serif;
     cursor: pointer;
-    transition: background 0.12s, border-color 0.12s;
+    flex-shrink: 0;
+    transition: background 0.12s, border-color 0.12s, transform 0.1s;
   }
-  .edit-nav-btn:hover  { background: rgba(156,189,231,0.14); }
-  .edit-nav-btn:active { transform: scale(0.97); }
+  .edit-nav-btn:hover  { background: var(--line-l-faint); }
+  .edit-nav-btn:active { transform: scale(0.96); }
 
+  /* Flow row: back (icon) · primary (flex, honey) · skip. */
   #edit-action-row {
     display: flex;
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-sm);
   }
+  #edit-action-row .primary-pill { flex: 1 1 auto; }
+  #edit-action-row .edit-nav-btn:first-child { width: 48px; padding: 0; }
 
   /* Primary CTA — Tier 4 honey, solid + elevated (DESIGN.md button roles). */
   .primary-pill {
@@ -2391,17 +2396,16 @@
     cursor: not-allowed;
   }
 
-  /* No-changes state (non-audit only) — quiet secondary, cream-at-opacity text. */
+  /* No-changes state (non-audit only) — quiet light-chrome outline on cream. */
   .primary-pill.is-no-changes {
-    background: var(--glass-action-bg);
-    border: var(--glass-border);
-    color: var(--text-secondary);
+    background: var(--surface-control);
+    border: 1px solid var(--line-l-strong);
+    color: var(--content-text);
     box-shadow: none;
   }
 
   .primary-pill.is-no-changes:hover {
-    color: var(--text);
-    background: rgba(156,189,231,0.14);
+    background: var(--line-l-faint);
   }
 
   /* Avbryt: tertiary ghost — never competes with the primary CTA. */
@@ -2500,37 +2504,36 @@
     width: min(440px, calc(100vw - 2 * var(--space-lg)));
     z-index: 9000;
     padding: var(--space-md) var(--space-lg);
-    /* Pure-frost glass — same surface as the venue list / top bar. */
-    background: var(--glass-panel-bg);
-    backdrop-filter: var(--glass-blur-frost);
-    -webkit-backdrop-filter: var(--glass-blur-frost);
-    border: var(--glass-border);
+    /* Cream surface + ink text — legible over bright satellite. */
+    background: rgba(255,242,235,0.95);
+    backdrop-filter: var(--blur-surface);
+    -webkit-backdrop-filter: var(--blur-surface);
+    border: 1px solid var(--line-l);
     border-radius: var(--radius-lg);
-    box-shadow: var(--panel-shadow);
-    color: var(--text);
+    box-shadow: var(--shadow-2);
+    color: var(--content-text);
     font-family: 'Inter', sans-serif;
   }
   #edit-top-row1 {
     display: flex;
-    align-items: baseline;
-    justify-content: space-between;
+    align-items: center;
     gap: var(--space-md);
     min-width: 0;
   }
   #edit-top-name {
     font-size: var(--text-title);
     font-weight: 700;
-    color: var(--text);
+    color: var(--content-text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    flex-shrink: 1;
+    flex: 1 1 auto;
     min-width: 0;
   }
   #edit-top-meta {
     font-size: var(--text-label);
     font-weight: 500;
-    color: var(--text-secondary);
+    color: var(--ink-muted);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -2538,14 +2541,29 @@
   #edit-top-count {
     font-size: var(--text-label);
     font-weight: 700;
-    color: var(--accent);
+    color: var(--content-text);
     font-variant-numeric: tabular-nums;
     flex-shrink: 0;
   }
+  #edit-close-btn {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--surface-control);
+    border: 1px solid var(--line-l-strong);
+    color: var(--content-text);
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  #edit-close-btn:hover { background: var(--line-l-faint); }
   #edit-progress {
     height: 5px;
     border-radius: var(--radius-pill);
-    background: var(--line-d);
+    background: var(--line-l);
     overflow: hidden;
   }
   #edit-progress-fill {
@@ -2597,24 +2615,18 @@
     color: var(--text);
     font-family: 'Inter', sans-serif;
   }
-  /* Two stacked lines: progress + count (primary), then the controls.
-     Pure-frost glass to match the venue list / top bar. */
+  /* Top bar = progress + count only. Single inline row, frost glass. */
   .audit-indicator-row {
     display: flex;
-    flex-direction: column;
-    gap: var(--space-sm);
-    padding: var(--space-md) var(--space-lg);
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-sm) var(--space-lg);
     background: var(--glass-panel-bg);
     backdrop-filter: var(--glass-blur-frost);
     -webkit-backdrop-filter: var(--glass-blur-frost);
     border: var(--glass-border);
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-pill);
     box-shadow: var(--panel-shadow);
-  }
-  .audit-progress-line {
-    display: flex;
-    align-items: center;
-    gap: var(--space-md);
   }
   #audit-progress {
     flex: 1 1 auto;
@@ -2631,12 +2643,6 @@
     background: var(--accent);
     transition: width 0.32s cubic-bezier(0.2, 0.8, 0.3, 1);
   }
-  .audit-controls-line {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    flex-wrap: wrap;
-  }
   .audit-indicator-title {
     font-size: 12px;
     font-weight: 700;
@@ -2651,22 +2657,21 @@
     font-variant-numeric: tabular-nums;
     flex-shrink: 0;
   }
-  /* Kill the duplicate filter: the consumer Filtre/Sort row is not the audit
-     filter — hide it in audit mode so only the audit Filter (status/flags/
-     training) remains. */
+
+  /* Audit toolbar docked below the FTS (replaces the consumer Filtre/Sort row
+     in audit mode). Holds every audit control. */
   body.audit-mode #panel-actions { display: none; }
-  .audit-indicator-divider {
-    width: 1px;
-    height: 16px;
-    background: rgba(155,169,188,0.22);
-    display: inline-block;
-    padding: 0;
-    opacity: 1;
-    margin: 0 var(--space-2xs);
+  #audit-controls { display: none; }
+  body.audit-mode #audit-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-xs) var(--space-lg) var(--space-sm);
+    flex-shrink: 0;
   }
 
-  /* Mobile: the bar can't fit on one line on a phone — let it span the
-     viewport (with gutters) and wrap so it never bleeds off-screen. */
+  /* Mobile: span the viewport with gutters so the top bar never bleeds. */
   @media (max-width: 639px) {
     #audit-mode-indicator {
       left: var(--space-md);
@@ -2674,13 +2679,6 @@
       transform: none;
       width: auto;
     }
-    .audit-indicator-row {
-      flex-wrap: wrap;
-      white-space: normal;
-      justify-content: center;
-      row-gap: var(--space-xs);
-    }
-    .audit-indicator-divider { display: none; }
   }
 
   /* Buttons + chips inside the indicator share the chip-pill rhythm
@@ -2809,13 +2807,10 @@
   .audit-chip.active .audit-chip-count { color: rgba(245,194,94,0.75); }
   .audit-filter-footer { display: flex; justify-content: flex-end; }
 
-  /* List-card state strips. Reviewed = honey-dim (positive but quiet);
-     archived = error-soft (subdued red tint, lower opacity). */
-  .venue-card.audit-reviewed { border-left: 3px solid var(--accent); }
-  .venue-card.audit-archived {
-    border-left: 3px solid var(--red-500);
-    opacity: 0.65;
-  }
+  /* Reviewed/archived state is shown by the action-row state badge, not a
+     left accent bar (the bar wasn't a design-system element). Archived stays
+     dimmed so done-and-hidden venues recede. */
+  .venue-card.audit-archived { opacity: 0.6; }
 
   /* Card action row + badge — single line, intrinsic widths so 3 buttons
      fit on one row even in narrow cards. Smaller than indicator chips so
@@ -2993,9 +2988,58 @@
   /* Collapse the dot separators left dangling once walk/dist are hidden. */
   body.audit-mode .venue-card .card-row3 .card-meta-dot { display: none; }
   body.audit-mode .venue-card .card-row2 { color: var(--text-secondary); }
-  .venue-card.review-flagged {
-    border-left: 3px solid var(--accent);
+
+  /* ── Compact audit card ────────────────────────────────────────────────
+     name + icon actions (row 1), location · category (row 2), flags (row 3).
+     Clicking focuses the venue on satellite — selection shown by a honey ring
+     (design-system selection), no left accent bar. */
+  .venue-card.audit-card {
+    padding: var(--space-md);
+    gap: var(--space-xs);
+    margin-bottom: var(--space-sm);
+    cursor: pointer;
   }
+  .audit-card .ac-top {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+  .audit-card .ac-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: var(--text-body);
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* Actions sit inline on the name row — drop the standalone-row chrome. */
+  .audit-card .audit-actions {
+    border-top: none;
+    margin-top: 0;
+    padding: 0;
+    flex: 0 0 auto;
+  }
+  .audit-card .ac-meta {
+    font-size: var(--text-caption);
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .audit-card .review-chips { padding: 0; }
+  .venue-card.audit-card:active { transform: scale(0.99); }
+  .venue-card.audit-card.audit-focus::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border: 2px solid var(--accent);
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 3;
+  }
+  /* (review-flagged left accent bar removed — flags read from the chips.) */
   .profile-role-badge {
     display: inline-flex;
     align-items: center;

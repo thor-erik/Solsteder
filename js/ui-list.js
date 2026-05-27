@@ -593,6 +593,29 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
       </div>`;
   }
 
+  // ── Compact AUDIT card — purpose-built for the catalog walk-through ──────
+  // Just what the reviewer needs: name + icon actions on one row, location +
+  // category on the next, then the flags. No sun story, no fill bar, no left
+  // accent bar. Clicking it focuses the venue on satellite (auditFocusVenue),
+  // it does NOT open the detail panel.
+  if (_auditHere && !rich && !dpVariant) {
+    const idArg = (typeof v.id === 'number') ? v.id : `'${v.id}'`;
+    const esc = (typeof _esc === 'function') ? _esc : ((x) => x);
+    const nm = (typeof splitVenueName === 'function') ? splitVenueName(v) : { name: v.name, fine: '', coarse: v.area || '' };
+    const loc = [nm.fine || nm.coarse, catLabel(v)].filter(Boolean).join(' · ');
+    const focused = (typeof window !== 'undefined' && window._auditFocusId === v.id) ? ' audit-focus' : '';
+    return `
+    <div class="venue-card audit-card${auditCardCls}${focused}"
+         data-vid="${v.id}" onclick="auditFocusVenue(${idArg})">
+      <div class="ac-top">
+        <div class="ac-name">${esc(nm.name)}</div>
+        ${auditActionsHtml}
+      </div>
+      ${loc ? `<div class="ac-meta">${esc(loc)}</div>` : ''}
+      ${reviewChips}
+    </div>`;
+  }
+
   // ── Compact LIST card — deterministic 3-row layout ──────────────────────
   // row1: split name | sun + duration; row2: dept/street/area(muted) | anchor
   // (close-aware); row3: cat · walk · distance(muted) | shade event; lifted

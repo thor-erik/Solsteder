@@ -570,6 +570,10 @@ function toggleAuditMode() {
       refreshReviewFlags(datePicker.value);
     }
     _renderAuditFilterPanel();
+  } else {
+    // Leaving audit — restore the styled map if a card-focus had switched it
+    // to satellite, and clear the focus highlight.
+    if (typeof _resetAuditSatellite === 'function') _resetAuditSatellite();
   }
   _updateAuditIndicator();
   if (typeof draw === 'function') draw();

@@ -4636,6 +4636,41 @@ function toggleEditSheet() {
   if (ov) ov.classList.toggle('edit-collapsed');
 }
 
+// ── Audit card click → focus on satellite (no detail panel, no edit) ─────────
+let _auditSatActive = false;
+/** Clicking an audit card pans the map to the venue and switches the base to
+ *  satellite — a quick look without opening the editor or a detail panel. The
+ *  venue list stays open; the card gets a selection border. */
+function auditFocusVenue(venueId) {
+  const v = VENUES.find(x => x.id === venueId);
+  if (!v || typeof map === 'undefined') return;
+  window._auditFocusId = venueId;
+  document.querySelectorAll('.venue-card.audit-focus').forEach(c => c.classList.remove('audit-focus'));
+  document.querySelector(`.venue-card[data-vid="${venueId}"]`)?.classList.add('audit-focus');
+  // Switch the base map to satellite once — the admin is reviewing imagery.
+  if (!_auditSatActive && map.setStyle) {
+    _auditSatActive = true;
+    try { map.setStyle('mapbox://styles/mapbox/satellite-streets-v12'); } catch (_) {}
+  }
+  if (v.buildingGeometry && v.buildingGeometry.length) {
+    const lats = v.buildingGeometry.map(n => n.lat), lons = v.buildingGeometry.map(n => n.lon);
+    map.fitBounds([[Math.min(...lons), Math.min(...lats)], [Math.max(...lons), Math.max(...lats)]],
+      { padding: 90, maxZoom: 19, pitch: 0, duration: 700 });
+  } else {
+    map.flyTo({ center: [v.lng, v.lat], zoom: 18.5, pitch: 0, duration: 700 });
+  }
+}
+
+/** Restore the styled (3D) map when leaving audit mode. Called from
+ *  toggleAuditMode's off-branch. */
+function _resetAuditSatellite() {
+  window._auditFocusId = null;
+  if (_auditSatActive && typeof map !== 'undefined' && map.setStyle && typeof buildShadeStyle === 'function') {
+    _auditSatActive = false;
+    try { map.setStyle(buildShadeStyle()); } catch (_) {}
+  }
+}
+
 let editSatelliteActive = false;
 
 function toggleEditSatellite() {
@@ -4827,6 +4862,9 @@ function exitEditMode() {
     editSatelliteActive = false;
     map.setStyle(buildShadeStyle());
   }
+  // The base is back on the shade style — let the next audit card click
+  // re-enable satellite preview.
+  _auditSatActive = false;
   map.easeTo({ pitch: 15, bearing: 0, duration: 500 });
   _syncFtsPosition();
   draw();

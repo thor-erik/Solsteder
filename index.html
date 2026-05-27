@@ -122,15 +122,15 @@
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260521c"></script>
 <script defer src="js/shades-loader.js?v=20260526b"></script>
-<script defer src="js/app.js?v=20260527b"></script>
+<script defer src="js/app.js?v=20260527c"></script>
 <script defer src="js/render-helpers.js?v=20260527a"></script>
 <script defer src="js/render-seating.js?v=20260519b"></script>
 <script defer src="js/render-editor.js?v=20260527a"></script>
 <script defer src="js/render-pins.js?v=20260527a"></script>
 <script defer src="js/ui-shared.js?v=20260525b"></script>
-<script defer src="js/ui-list.js?v=20260527a"></script>
+<script defer src="js/ui-list.js?v=20260527c"></script>
 <script defer src="js/admin-review.js?v=20260527b"></script>
-<script defer src="js/admin-audit.js?v=20260527b"></script>
+<script defer src="js/admin-audit.js?v=20260527c"></script>
 <script defer src="js/ui-shelter.js?v=20260522zm"></script>
 <script defer src="js/render-wind.js?v=20260416b"></script>
 <script defer src="js/ui-detail.js?v=20260525l"></script>
@@ -181,7 +181,7 @@
 <link rel="stylesheet" href="css/tokens.css?v=20260526s">
 <link rel="stylesheet" href="css/base.css?v=20260526q">
 <link rel="stylesheet" href="css/components-chrome.css?v=20260527a">
-<link rel="stylesheet" href="css/components-content.css?v=20260527b">
+<link rel="stylesheet" href="css/components-content.css?v=20260527c">
 <link rel="stylesheet" href="css/components-overlays.css?v=20260527a">
 
 <script type="application/ld+json">
@@ -222,29 +222,16 @@
 </noscript>
 <div id="app">
   <!-- ADMIN: polygon audit mode indicator (shown only when auditModeActive) -->
+  <!-- Top bar: nothing but overall progress + reviewed count. All controls
+       live in the audit toolbar below the FTS (inside #panel). -->
   <div id="audit-mode-indicator" style="display:none">
     <div class="audit-indicator-row">
-      <!-- Row 1: overall progress + reviewed count -->
-      <div class="audit-progress-line">
-        <span class="audit-indicator-title">Audit</span>
-        <div id="audit-progress" role="progressbar" aria-label="Audit-fremdrift">
-          <span id="audit-progress-fill"></span>
-        </div>
-        <span id="audit-indicator-count"></span>
+      <span class="audit-indicator-title">Audit</span>
+      <div id="audit-progress" role="progressbar" aria-label="Audit-fremdrift">
+        <span id="audit-progress-fill"></span>
       </div>
-      <!-- Row 2: controls -->
-      <div class="audit-controls-line">
-        <div class="audit-submode" role="tablist" aria-label="Audit sub-mode">
-          <button id="audit-mode-shadows" type="button" class="audit-submode-btn" onclick="setAuditSubMode('shadows')" title="Show sun + shadow simulation">Skygger</button>
-          <button id="audit-mode-all"     type="button" class="audit-submode-btn" onclick="setAuditSubMode('all')"     title="Show every venue, ignore time">Alle</button>
-        </div>
-        <button id="audit-filter-toggle" type="button" class="audit-pill" onclick="toggleAuditFilterPanel()" title="Filtrer steder">Filter<span id="audit-filter-toggle-badge" class="audit-filter-toggle-badge"></span></button>
-        <button id="audit-export-btn" type="button" class="audit-pill" onclick="auditExport()" title="Last ned alle rettelser som JSON for AI-trening.">Eksport<span id="audit-export-count" class="audit-filter-toggle-badge"></span></button>
-        <button type="button" class="audit-pill is-ghost" onclick="resetAuditProgress()" title="Nullstill alle gjennomgåtte">Nullstill</button>
-        <button type="button" class="audit-pill is-ghost" onclick="toggleAuditMode()" title="Avslutt audit">Lukk</button>
-      </div>
+      <span id="audit-indicator-count"></span>
     </div>
-    <div id="audit-filter-panel" class="audit-filter-panel" style="display:none"></div>
   </div>
 
   <!-- INTRO SPLASH — covers everything until geo + map are ready -->
@@ -275,6 +262,9 @@
       <div id="edit-top-row1">
         <span id="edit-top-name">—</span>
         <span id="edit-top-count"></span>
+        <button type="button" id="edit-close-btn" onclick="cancelEditMode()" aria-label="Avbryt redigering" title="Avbryt">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
       </div>
       <div id="edit-top-meta"></div>
       <div id="edit-progress" role="progressbar" aria-label="Audit-fremdrift">
@@ -288,7 +278,7 @@
       <div id="edit-banner">
         <!-- Grabber doubles as a collapse toggle to free up the work area. -->
         <button type="button" class="edit-grabber" id="edit-grabber" aria-label="Skjul/vis verktøy" onclick="toggleEditSheet()"></button>
-        <!-- Controls: type dropdown + map-mode toggle on one row. -->
+        <!-- Row 1 — "what am I looking at": terrace type + map mode. -->
         <div id="edit-controls">
           <div id="edit-type-dropdown">
             <button type="button" id="edit-type-trigger" class="edit-type-trigger" aria-haspopup="listbox" aria-expanded="false">
@@ -302,35 +292,29 @@
               <li role="option" data-value="detached">Frittstående</li>
             </ul>
           </div>
-          <!-- Map-mode toggle: Satellitt ↔ 3D-kart (segmented Shades-style switch) -->
           <button type="button" id="edit-map-toggle" class="map-toggle" role="switch" aria-checked="true" onclick="toggleEditSatellite()">
             <span class="map-toggle-thumb" aria-hidden="true"></span>
             <span class="map-toggle-option" data-option="map">3D-kart</span>
             <span class="map-toggle-option" data-option="satellite">Satellitt</span>
           </button>
         </div>
-        <!-- Tools row: vertex tools + AI helpers (secondary chips). -->
+        <!-- Row 2 — polygon editing tools. -->
         <div id="edit-tools-row">
           <button id="edit-add-vertex-btn" class="edit-chip" onclick="toggleEditVertexMode('add')" title="Legg til vinkel">＋ Vinkel</button>
           <button id="edit-del-vertex-btn" class="edit-chip" onclick="toggleEditVertexMode('del')" title="Fjern vinkel">－ Vinkel</button>
           <button id="edit-reset-ai-btn" class="edit-chip" onclick="resetEditPolygonToAI()" title="Tilbakestill til AI-detektert polygon" hidden>Tilbakestill</button>
           <button id="edit-merge-btn" class="edit-chip" onclick="mergeEditPolygons()" title="Slå sammen polygoner" hidden>Slå sammen</button>
         </div>
-        <!-- Nav row: cancel (ghost) · back · skip (secondary). -->
-        <div id="edit-nav-row">
-          <button type="button" id="edit-cancel-btn" class="ghost-link" onclick="cancelEditMode()">Avbryt</button>
+        <!-- Row 3 — flow: back · primary (commit+advance) · skip. -->
+        <div id="edit-action-row">
           <button type="button" class="edit-nav-btn" onclick="editGoBack()" title="Forrige sted" aria-label="Forrige sted">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
-            <span>Forrige</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
           </button>
+          <button id="edit-action-btn" class="primary-pill" onclick="onEditActionBtn()">Ser bra ut</button>
           <button type="button" class="edit-nav-btn" onclick="editSkip()" title="Hopp over (uten å markere)" aria-label="Hopp over">
             <span>Hopp over</span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
           </button>
-        </div>
-        <!-- Primary action (honey CTA): commit + advance. -->
-        <div id="edit-action-row">
-          <button id="edit-action-btn" class="primary-pill" onclick="onEditActionBtn()">Ser bra ut</button>
         </div>
       </div>
     </div>
@@ -631,6 +615,21 @@
         </svg>
       </button>
     </div>
+
+    <!-- Audit toolbar — shown only in audit mode, docked below the FTS/header
+         (in place of the consumer filter row). Holds every audit control;
+         the top bar is just progress. -->
+    <div id="audit-controls">
+      <div class="audit-submode" role="tablist" aria-label="Audit sub-mode">
+        <button id="audit-mode-shadows" type="button" class="audit-submode-btn" onclick="setAuditSubMode('shadows')" title="Vis sol + skyggesimulering">Skygger</button>
+        <button id="audit-mode-all"     type="button" class="audit-submode-btn" onclick="setAuditSubMode('all')"     title="Vis alle steder, ignorer tid">Alle</button>
+      </div>
+      <button id="audit-filter-toggle" type="button" class="audit-pill" onclick="toggleAuditFilterPanel()" title="Filtrer steder">Filter<span id="audit-filter-toggle-badge" class="audit-filter-toggle-badge"></span></button>
+      <button id="audit-export-btn" type="button" class="audit-pill" onclick="auditExport()" title="Last ned alle rettelser som JSON for AI-trening.">Eksport<span id="audit-export-count" class="audit-filter-toggle-badge"></span></button>
+      <button type="button" class="audit-pill is-ghost" onclick="resetAuditProgress()" title="Nullstill alle gjennomgåtte">Nullstill</button>
+      <button type="button" class="audit-pill is-ghost" onclick="toggleAuditMode()" title="Avslutt audit">Lukk</button>
+    </div>
+    <div id="audit-filter-panel" class="audit-filter-panel" style="display:none"></div>
 
     <!-- Venue peek: first card preview visible in collapsed state -->
     <div id="venue-peek"></div>
