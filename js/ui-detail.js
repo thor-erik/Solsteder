@@ -1462,8 +1462,9 @@ function _openInviteSheet(venueId) {
   // Each pill is wrapped in `.dpinvite-meta-item` so _fitMetaPills can
   // drop whole trailing pills + their preceding dot when the row
   // overflows instead of clipping mid-text.
+  // Area moves to its own line (.dpinvite-area) to mirror the accept/receive
+  // header; the meta row is category · distance · walk only.
   const _invMetaItems = [
-    dispArea  ? `<span class="dpinvite-meta-item">${String(dispArea).replace(/</g, '&lt;')}</span>` : '',
     _catLabel ? `<span class="dpinvite-meta-item">${String(_catLabel).replace(/</g, '&lt;')}</span>` : '',
     _walkInfo && _walkInfo.distLabel
       ? `<span class="dpinvite-meta-item">${String(_walkInfo.distLabel).replace(/</g, '&lt;')}</span>` : '',
@@ -1479,10 +1480,10 @@ function _openInviteSheet(venueId) {
             <div class="dpinvite-moment-left">
               <div class="dpinvite-eyebrow">${t('invite_eyebrow_invite_to')}</div>
               <div class="dpinvite-venue-row">
-                <span class="dpinvite-moment-pin" aria-hidden="true">${pinSvg}</span>
                 <span class="dpinvite-venue-line">${venueName}</span>
               </div>
-              ${_invMetaHtml ? `<div class="dpinvite-meta">${_invMetaHtml}</div>` : ''}
+              ${dispArea ? `<div class="dpinvite-area">${String(dispArea).replace(/</g, '&lt;')}</div>` : '<div class="dpinvite-area">&nbsp;</div>'}
+              ${_invMetaHtml ? `<div class="dpinvite-meta">${_invMetaHtml}</div>` : '<div class="dpinvite-meta">&nbsp;</div>'}
             </div>
             <div class="dpinvite-moment-col">
               <div class="dpinvite-moment-label" id="dpinvite-moment-label">${t('invite_hero_meets')}</div>
@@ -1516,11 +1517,12 @@ function _openInviteSheet(venueId) {
       </div>
       ${friendsBlock}
       ${ctaRow}
-      <div class="dpinvite-subrow">
-        <button class="dpinvite-subaction" type="button" onclick="_copyInviteLink(${venueId})" aria-label="${t('copy_invite_link')}">
+      <div class="dprcv-cta-row">
+        <button class="dprcv-cta-link" type="button" onclick="_copyInviteLink(${venueId})" aria-label="${t('copy_invite_link')}">
           ${copySvg}<span>${t('copy_invite_link')}</span>
         </button>
-        <button class="dpinvite-subaction" type="button" onclick="_closeInviteSheet()">${t('invite_cancel')}</button>
+        <span class="dprcv-cta-sep" aria-hidden="true">·</span>
+        <button class="dprcv-cta-link" type="button" onclick="_closeInviteSheet()">${t('invite_cancel')}</button>
       </div>
     </div>`;
 
