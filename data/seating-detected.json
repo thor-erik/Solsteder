@@ -6358,43 +6358,78 @@
     "141": {
       "polygon": [
         [
-          59.90952,
-          10.724346
+          59.90929863188373,
+          10.724110366983751
         ],
         [
-          59.90952,
-          10.724816
+          59.90927599135276,
+          10.724065311744482
         ],
         [
-          59.909352,
-          10.724816
+          59.909305964035894,
+          10.724003316102056
         ],
         [
-          59.909352,
-          10.724574
+          59.90933678213892,
+          10.723971093567314
         ],
         [
-          59.909305,
-          10.724574
+          59.90943529617874,
+          10.724182196321294
         ],
         [
-          59.909305,
-          10.724346
+          59.909371176610904,
+          10.724267358954421
         ]
       ],
-      "confidence": 0.65,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-10T22:35:46.700Z",
+      "detectedAt": "2026-05-27T21:12:25.816892+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "The terrace area in the upper-right of the image shows clearly visible outdoor furniture clusters (tables, chairs, umbrellas) on a sandy surface adjacent to the building structure, consistent with Eataly's outdoor dining area."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.90952,
+            10.724346
+          ],
+          [
+            59.90952,
+            10.724816
+          ],
+          [
+            59.909352,
+            10.724816
+          ],
+          [
+            59.909352,
+            10.724574
+          ],
+          [
+            59.909305,
+            10.724574
+          ],
+          [
+            59.909305,
+            10.724346
+          ]
+        ],
+        "confidence": 0.65,
+        "notVisible": false,
+        "reasoning": "The terrace area in the upper-right of the image shows clearly visible outdoor furniture clusters (tables, chairs, umbrellas) on a sandy surface adjacent to the building structure, consistent with Eataly's outdoor dining area.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-10T22:35:46.700Z"
+      }
     },
     "142": {
       "polygon": [
