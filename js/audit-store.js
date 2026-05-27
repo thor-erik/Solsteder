@@ -17,13 +17,29 @@
  * _archiveCache and the render/indicator functions — all share global scope.
  */
 
-let _auditStoreChannel = null;
+let _auditStoreChannel    = null;   // realtime: venue_audit_state changes
+let _auditStorePresence   = null;   // realtime presence: who's editing what
+const _editingByVenue     = new Map(); // venue_id(str) → editor name (excludes self)
 
 /** True only when a signed-in editor/admin + the supabase client are present. */
 function auditStoreActive() {
   return typeof _supabase !== 'undefined'
       && typeof authIsEditor === 'function' && authIsEditor()
       && typeof authCurrentUser === 'function' && !!authCurrentUser();
+}
+
+/** Display name for the current admin (for attribution + presence). */
+function _auditStoreUserName() {
+  const u = (typeof authCurrentUser === 'function') ? authCurrentUser() : null;
+  if (!u) return 'admin';
+  return (u.user_metadata && u.user_metadata.name)
+      || (u.email ? u.email.split('@')[0] : null)
+      || 'admin';
+}
+
+/** Name of the OTHER admin currently editing this venue, or null. */
+function auditEditingBy(venueId) {
+  return _editingByVenue.get(String(venueId)) ?? null;
 }
 
 // ── Writes ───────────────────────────────────────────────────────────────────
@@ -56,6 +72,13 @@ async function auditStorePushCorrection(rec) {
 async function auditStoreSetState(venueId, fields) {
   if (!auditStoreActive()) return;
   const vid = String(venueId);
+  const name = _auditStoreUserName();
+  // Patch the local cache's `by` synchronously so the card shows "Sist: <me>"
+  // on the immediate re-render (before the async upsert resolves).
+  if (fields && typeof _auditCache !== 'undefined') {
+    const e = (fields.status === 'reviewed') ? _auditCache.get(venueId) : _archiveCache?.get(venueId);
+    if (e) e.by = name;
+  }
   try {
     if (fields == null) {
       const { error } = await _supabase.from('venue_audit_state').delete().eq('venue_id', vid);
@@ -63,13 +86,14 @@ async function auditStoreSetState(venueId, fields) {
       return;
     }
     const row = {
-      venue_id:       vid,
-      status:         fields.status,
-      via:            fields.via ?? null,
-      archive_reason: fields.archive_reason ?? null,
-      archive_note:   fields.archive_note ?? null,
-      reviewed_by:    authCurrentUser().id,
-      updated_at:     new Date().toISOString(),
+      venue_id:        vid,
+      status:          fields.status,
+      via:             fields.via ?? null,
+      archive_reason:  fields.archive_reason ?? null,
+      archive_note:    fields.archive_note ?? null,
+      reviewed_by:     authCurrentUser().id,
+      reviewed_by_name: name,
+      updated_at:      new Date().toISOString(),
     };
     const { error } = await _supabase.from('venue_audit_state').upsert(row, { onConflict: 'venue_id' });
     if (error) console.warn('[audit-store] state upsert failed:', error.message);
@@ -85,7 +109,7 @@ async function auditStoreHydrate() {
   try {
     const { data: states, error: e1 } = await _supabase
       .from('venue_audit_state')
-      .select('venue_id, status, via, archive_reason, archive_note, updated_at');
+      .select('venue_id, status, via, archive_reason, archive_note, reviewed_by_name, updated_at');
     if (e1) console.warn('[audit-store] state load failed:', e1.message);
     else if (Array.isArray(states)) _auditApplyRemoteStates(states);
 
@@ -127,12 +151,12 @@ function _auditApplyRemoteStates(rows) {
     const key = v ? v.id : r.venue_id;
     if (r.status === 'archived') {
       if (typeof _archiveCache !== 'undefined') {
-        _archiveCache.set(key, { archivedAt: r.updated_at, reason: r.archive_reason, note: r.archive_note ?? undefined });
+        _archiveCache.set(key, { archivedAt: r.updated_at, reason: r.archive_reason, note: r.archive_note ?? undefined, by: r.reviewed_by_name ?? undefined });
       }
       if (typeof _auditCache !== 'undefined') _auditCache.delete(key);
       if (v) { v.auditArchived = true; v.auditArchiveReason = r.archive_reason; v.auditArchiveNote = r.archive_note ?? null; }
     } else if (r.status === 'reviewed') {
-      if (typeof _auditCache !== 'undefined') _auditCache.set(key, { at: r.updated_at, via: r.via ?? 'good' });
+      if (typeof _auditCache !== 'undefined') _auditCache.set(key, { at: r.updated_at, via: r.via ?? 'good', by: r.reviewed_by_name ?? undefined });
       if (typeof _archiveCache !== 'undefined') _archiveCache.delete(key);
       if (v) v.auditArchived = false;
     }
@@ -144,19 +168,68 @@ function _auditApplyRemoteStates(rows) {
 /** Subscribe to venue_audit_state changes so another admin's review/archive
  *  greys the card live. Idempotent. */
 function auditStoreSubscribe() {
-  if (!auditStoreActive() || _auditStoreChannel) return;
-  try {
-    _auditStoreChannel = _supabase
-      .channel('venue_audit_state_live')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'venue_audit_state' }, _onRemoteStateChange)
-      .subscribe();
-  } catch (e) { console.warn('[audit-store] subscribe threw:', e.message); }
+  if (!auditStoreActive()) return;
+  if (!_auditStoreChannel) {
+    try {
+      _auditStoreChannel = _supabase
+        .channel('venue_audit_state_live')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'venue_audit_state' }, _onRemoteStateChange)
+        .subscribe();
+    } catch (e) { console.warn('[audit-store] subscribe threw:', e.message); }
+  }
+  // Presence channel: broadcast which venue I'm editing; track everyone else's.
+  if (!_auditStorePresence) {
+    try {
+      const uid = authCurrentUser().id;
+      _auditStorePresence = _supabase.channel('audit_presence', { config: { presence: { key: uid } } });
+      _auditStorePresence
+        .on('presence', { event: 'sync' }, _onPresenceSync)
+        .subscribe(async (status) => {
+          if (status === 'SUBSCRIBED') {
+            try { await _auditStorePresence.track({ venue_id: null, name: _auditStoreUserName() }); } catch (_) {}
+          }
+        });
+    } catch (e) { console.warn('[audit-store] presence subscribe threw:', e.message); }
+  }
 }
 
 function auditStoreUnsubscribe() {
-  if (!_auditStoreChannel) return;
-  try { _supabase.removeChannel(_auditStoreChannel); } catch (_) {}
-  _auditStoreChannel = null;
+  if (_auditStoreChannel) {
+    try { _supabase.removeChannel(_auditStoreChannel); } catch (_) {}
+    _auditStoreChannel = null;
+  }
+  if (_auditStorePresence) {
+    try { _supabase.removeChannel(_auditStorePresence); } catch (_) {}
+    _auditStorePresence = null;
+  }
+  _editingByVenue.clear();
+}
+
+/** Tell other admins which venue I'm now editing (call on edit enter/advance). */
+function auditStorePresenceTrack(venueId) {
+  if (!_auditStorePresence) return;
+  try { _auditStorePresence.track({ venue_id: String(venueId), name: _auditStoreUserName() }); } catch (_) {}
+}
+/** I've stopped editing — clear my venue (call on edit exit). */
+function auditStorePresenceClear() {
+  if (!_auditStorePresence) return;
+  try { _auditStorePresence.track({ venue_id: null, name: _auditStoreUserName() }); } catch (_) {}
+}
+
+/** Rebuild _editingByVenue from presence state (excluding myself) + re-render. */
+function _onPresenceSync() {
+  if (!_auditStorePresence) return;
+  const selfId = (typeof authCurrentUser === 'function' && authCurrentUser()) ? authCurrentUser().id : null;
+  _editingByVenue.clear();
+  let state = {};
+  try { state = _auditStorePresence.presenceState() || {}; } catch (_) { state = {}; }
+  for (const [key, metas] of Object.entries(state)) {
+    if (key === selfId) continue;
+    for (const m of (metas || [])) {
+      if (m && m.venue_id != null) _editingByVenue.set(String(m.venue_id), m.name || 'En admin');
+    }
+  }
+  if (typeof auditModeActive !== 'undefined' && auditModeActive && typeof renderList === 'function') renderList();
 }
 
 function _onRemoteStateChange(payload) {

@@ -3066,6 +3066,40 @@
     color: var(--content-text);
     padding: var(--space-2xs) var(--space-md);
   }
+  /* AI-proposal badge — honey-dim, signals "AI picked this, not yet human-
+     reviewed" with its confidence. Honey is OK here: it IS a discovery signal. */
+  .audit-card .audit-ai-chip {
+    display: inline-block;
+    background: var(--accent-dim);
+    border: 1px solid var(--accent-border);
+    color: var(--content-text);
+    border-radius: var(--radius-pill);
+    padding: var(--space-2xs) var(--space-md);
+    font-size: var(--text-caption);
+    font-weight: 700;
+    line-height: 1.25;
+  }
+  /* Soft edit-lock: another admin is editing this venue right now. */
+  .venue-card.audit-card.audit-locked { opacity: 0.78; }
+  .audit-card .ac-lock {
+    font-size: var(--text-caption);
+    font-weight: 600;
+    color: #8A5A00;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2xs);
+  }
+  .audit-card .ac-lock::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #C0392B;
+  }
+  /* "Sist: <name>" — who last reviewed/edited. */
+  .audit-card .ac-by {
+    font-size: var(--text-caption);
+    color: var(--ink-muted);
+  }
   .venue-card.audit-card:active { transform: scale(0.99); }
   .venue-card.audit-card.audit-focus {
     border-color: transparent;

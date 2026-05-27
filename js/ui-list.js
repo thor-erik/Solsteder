@@ -508,21 +508,22 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
   const _auditActive = typeof auditModeActive !== 'undefined' && auditModeActive;
   const flags = (_auditActive && typeof venueReviewFlags === 'function')
     ? venueReviewFlags(v) : null;
-  const trainStatus = (_auditActive && typeof venueTrainingStatus === 'function')
-    ? venueTrainingStatus(v) : 'untrained';
-  if (flags || trainStatus !== 'untrained') {
+  // AI proposal awaiting human review → honey "AI · NN%" badge (confidence).
+  const _aiStatus = (_auditActive && typeof venueAiReviewStatus === 'function')
+    ? venueAiReviewStatus(v) : 'none';
+  if (flags || _aiStatus === 'ai-unreviewed') {
     const flagHtml = flags
       ? flags.map(c => `<span class="review-chip" data-flag="${c}">${
           typeof reviewFlagLabel === 'function' ? reviewFlagLabel(c) : c
         }</span>`).join('')
       : '';
-    const trainHtml = (trainStatus === 'untrained') ? '' :
-      `<span class="audit-train-chip is-${trainStatus}" title="${trainStatus === 'trained'
-        ? 'Included in a previous Export — already fed to AI training.'
-        : 'New corrections since last Export — queued for the next training pass.'}">${
-        trainStatus === 'trained' ? '✓ Trained' : '● Pending export'
-      }</span>`;
-    reviewChips = `<div class="review-chips">${flagHtml}${trainHtml}</div>`;
+    let aiHtml = '';
+    if (_aiStatus === 'ai-unreviewed') {
+      const conf = (typeof venueAiConfidence === 'function') ? venueAiConfidence(v) : null;
+      const pct  = conf != null ? ` · ${Math.round(conf * 100)}%` : '';
+      aiHtml = `<span class="audit-ai-chip" title="AI-proposed polygon, not yet human-reviewed. Approve to ship it, or Edit to correct.">AI${pct}</span>`;
+    }
+    reviewChips = `<div class="review-chips">${aiHtml}${flagHtml}</div>`;
   }
 
   // Admin audit-mode row: per-card status badge + Mark good / Edit / Archive.
@@ -604,15 +605,25 @@ function renderCard(v, dateStr, fromHour, toHour, isPoint, opts) {
     const nm = (typeof splitVenueName === 'function') ? splitVenueName(v) : { name: v.name, fine: '', coarse: v.area || '' };
     const loc = [nm.fine || nm.coarse, catLabel(v)].filter(Boolean).join(' · ');
     const focused = (typeof window !== 'undefined' && window._auditFocusId === v.id) ? ' audit-focus' : '';
+    // Live collaboration: another admin currently editing this venue.
+    const editingBy = (typeof auditEditingBy === 'function') ? auditEditingBy(v.id) : null;
+    const lockHtml = editingBy
+      ? `<div class="ac-lock" title="${esc(editingBy)} is editing this venue">${esc(editingBy)} redigerer…</div>` : '';
+    // Last reviewed/edited by whom (from shared audit state).
+    const _entry = (typeof venueAuditEntry === 'function') ? venueAuditEntry(v) : null;
+    const by = _entry?.by || (v.auditArchived && typeof venueArchiveEntry === 'function' ? venueArchiveEntry(v)?.by : null);
+    const byHtml = by ? `<div class="ac-by">Sist: ${esc(by)}</div>` : '';
     return `
-    <div class="venue-card audit-card${auditCardCls}${focused}"
+    <div class="venue-card audit-card${auditCardCls}${focused}${editingBy ? ' audit-locked' : ''}"
          data-vid="${v.id}" onclick="auditFocusVenue(${idArg})">
       <div class="ac-top">
         <div class="ac-name">${esc(nm.name)}</div>
         ${auditActionsHtml}
       </div>
       ${loc ? `<div class="ac-meta">${esc(loc)}</div>` : ''}
+      ${lockHtml}
       ${reviewChips}
+      ${byHtml}
     </div>`;
   }
 

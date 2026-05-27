@@ -21,9 +21,8 @@
 
 let auditModeActive  = false;
 let auditSubMode     = 'all';                       // 'all' (default) | 'shadows'
-let _auditCache      = new Map();                   // venueId → { at, via }
-let _archiveCache    = new Map();                   // venueId → { archivedAt, reason, note? }
-let _trainedCache    = new Map();                   // venueId → { exportedAt: ISO }
+let _auditCache      = new Map();                   // venueId → { at, via, by? }
+let _archiveCache    = new Map();                   // venueId → { archivedAt, reason, note?, by? }
 let _filterPanelOpen = false;
 
 // Archive-reason taxonomy. Each entry maps to a downstream rule for
@@ -55,12 +54,10 @@ const AUDIT_ARCHIVE_REASONS = {
 
 const AUDIT_KEY         = 'solsteder_audit_v1';
 const AUDIT_ARCHIVE_KEY = 'solsteder_audit_archive_v1';
-const AUDIT_TRAINED_KEY = 'solsteder_audit_trained_v1';
 
 // Status filter chips (multi-select OR). Default: show non-archived.
-// Training filters are additive — they layer on top of the status set.
-let auditFilters     = { unreviewed: true, reviewed: true, archived: false };
-let auditTrainFilter = 'all';   // 'all' | 'trained' | 'pending'
+let auditFilters  = { unreviewed: true, reviewed: true, archived: false };
+let auditAiFilter = 'all';   // 'all' | 'ai' (AI-proposed, not yet reviewed)
 // Per-flag filter chips (OR within flag set). Empty = no flag restriction.
 let auditFlagFilters = new Set();   // any of admin-review.js REVIEW_FLAG_LABELS keys
 
@@ -97,18 +94,6 @@ function _saveArchive() {
   for (const [k, v] of _archiveCache) obj[String(k)] = v;
   try { localStorage.setItem(AUDIT_ARCHIVE_KEY, JSON.stringify(obj)); } catch {}
 }
-function _loadTrained() {
-  try {
-    const raw = JSON.parse(localStorage.getItem(AUDIT_TRAINED_KEY) || '{}');
-    return new Map(Object.entries(raw).map(([k, v]) => [_coerceId(k), v]));
-  } catch { return new Map(); }
-}
-function _saveTrained() {
-  const obj = {};
-  for (const [k, v] of _trainedCache) obj[String(k)] = v;
-  try { localStorage.setItem(AUDIT_TRAINED_KEY, JSON.stringify(obj)); } catch {}
-}
-
 // ── Apply archive to VENUES on load ─────────────────────────────────────────
 // data.js calls this after VENUES is populated. Idempotent — re-running just
 // re-tags. Outside audit mode the rest of the app gates on `v.auditArchived`.
@@ -125,6 +110,7 @@ function applyAuditArchiveTags() {
 // ── Query ────────────────────────────────────────────────────────────────────
 function isVenueAudited(v)    { return v ? _auditCache.has(v.id) : false; }
 function venueAuditEntry(v)   { return v ? _auditCache.get(v.id) ?? null : null; }
+function venueArchiveEntry(v) { return v ? _archiveCache.get(v.id) ?? null : null; }
 function isVenueArchived(v)   { return !!(v && v.auditArchived); }
 function auditTotalCount()    { return (typeof VENUES === 'undefined') ? 0 : VENUES.length; }
 function auditReviewedCount() {
@@ -147,64 +133,41 @@ function auditFlaggedCount() {
   return n;
 }
 
-// ── Training-status tracking ────────────────────────────────────────────────
-// Each saveCorrection() writes a timestamped record to localStorage. A venue
-// is "trained" when every correction for it predates its last export to
-// JSON; "pending" when newer corrections have accumulated since the last
-// export; "untrained" when there are no corrections at all.
-//
-// The training cache is rebuilt per call (cheap — corrections log is small
-// relative to render cost). If this ever pages-out, memoize per-render.
-function _lastCorrectionAtByVenue() {
-  const out = new Map();
-  if (typeof loadCorrections !== 'function') return out;
-  for (const c of loadCorrections()) {
-    if (c.id == null) continue;
-    const t = c.timestamp;
-    if (!t) continue;
-    const prev = out.get(c.id);
-    if (!prev || prev < t) out.set(c.id, t);
-  }
-  return out;
+// ── AI-review status ──────────────────────────────────────────────────────
+// The AI is a PROPOSAL engine — its polygons never ship to users until a human
+// approves them. A venue is:
+//   'manual'        a human polygon is in place (shipped + locked) — reviewed.
+//   'ai-unreviewed' the AI proposed a polygon, no human override, not yet
+//                   reviewed/archived → needs a human to Approve / Edit / Reject.
+//   'none'          no AI polygon and no override (wall heuristic only).
+// "Approve" (mark good) on an ai-unreviewed venue promotes the AI polygon into
+// a shipped manual override (see markVenueAudited).
+function venueAiConfidence(v) {
+  return (v && typeof v.seatingPolygonAiConfidence === 'number') ? v.seatingPolygonAiConfidence : null;
 }
-let _lastCorrCache = null;
-let _lastCorrCacheStamp = 0;
-function _lastCorrectionAt(venueId) {
-  // Invalidate every 2s so we don't re-scan localStorage on every card render
-  // but still pick up new corrections within the session.
-  const now = Date.now();
-  if (!_lastCorrCache || (now - _lastCorrCacheStamp) > 2000) {
-    _lastCorrCache = _lastCorrectionAtByVenue();
-    _lastCorrCacheStamp = now;
-  }
-  return _lastCorrCache.get(venueId) ?? null;
+function venueHasAiProposal(v) {
+  return !!(v && Array.isArray(v.seatingPolygonAi) && v.seatingPolygonAi.length >= 3
+    && !v.seatingNotVisible
+    && (venueAiConfidence(v) ?? 0) >= 0.5);
 }
-function _invalidateCorrCache() { _lastCorrCache = null; }
-
-function venueTrainingStatus(v) {
-  if (!v) return 'untrained';
-  const lastT = _lastCorrectionAt(v.id);
-  if (!lastT) return 'untrained';
-  const entry = _trainedCache.get(v.id);
-  if (!entry) return 'pending';
-  return entry.exportedAt >= lastT ? 'trained' : 'pending';
+function venueAiReviewStatus(v) {
+  if (!v) return 'none';
+  if (Array.isArray(v.seatingPolygonOverride) && v.seatingPolygonOverride.length >= 3) return 'manual';
+  if (venueHasAiProposal(v) && !_auditCache.has(v.id) && !v.auditArchived) return 'ai-unreviewed';
+  return 'none';
 }
-function auditTrainedCount() {
+function auditAiUnreviewedCount() {
   if (typeof VENUES === 'undefined') return 0;
   let n = 0;
-  for (const v of VENUES) if (venueTrainingStatus(v) === 'trained') n++;
+  for (const v of VENUES) if (venueAiReviewStatus(v) === 'ai-unreviewed') n++;
   return n;
 }
-function auditPendingTrainingCount() {
-  if (typeof VENUES === 'undefined') return 0;
-  let n = 0;
-  for (const v of VENUES) if (venueTrainingStatus(v) === 'pending') n++;
-  return n;
-}
+// Kept (no-op) so any lingering callers don't throw mid-refactor.
+function _invalidateCorrCache() {}
 
 // Multi-select filter — venue passes if ANY active status chip matches AND
-// the active training filter accepts the venue AND, when flag chips are
-// active, the venue carries at least one selected flag.
+// (when the AI filter is on) it's an AI-unreviewed proposal AND, when flag
+// chips are active, the venue carries at least one selected flag.
 function auditMatchesFilter(v) {
   // Status chips (OR among checked):
   let statusMatch = false;
@@ -214,9 +177,8 @@ function auditMatchesFilter(v) {
   if (auditFilters.reviewed   && reviewed && !archived) statusMatch = true;
   if (auditFilters.unreviewed && !reviewed && !archived) statusMatch = true;
   if (!statusMatch) return false;
-  // Training filter (single-select):
-  if (auditTrainFilter === 'trained' && venueTrainingStatus(v) !== 'trained') return false;
-  if (auditTrainFilter === 'pending' && venueTrainingStatus(v) !== 'pending') return false;
+  // AI filter (single-select): only AI-proposed, not-yet-reviewed venues.
+  if (auditAiFilter === 'ai' && venueAiReviewStatus(v) !== 'ai-unreviewed') return false;
   // Flag chips (OR among checked). Empty = no restriction.
   if (auditFlagFilters.size === 0) return true;
   if (typeof venueReviewFlags !== 'function') return true;
@@ -227,6 +189,39 @@ function auditMatchesFilter(v) {
 
 // ── Mutations ────────────────────────────────────────────────────────────────
 function markVenueAudited(venueId, via = 'good') {
+  // Approve = promote: if the admin marks an AI-proposed venue "good" and there's
+  // no human override yet, bake the AI polygon into a shipped manual override so
+  // it reaches users + becomes a training positive (then it's locked from
+  // re-detection). Edits already bake their own override via exitEditMode.
+  if (via === 'good' && typeof VENUES !== 'undefined') {
+    const _v = VENUES.find(x => x.id === venueId);
+    if (_v && typeof venueAiReviewStatus === 'function' && venueAiReviewStatus(_v) === 'ai-unreviewed') {
+      const poly = _v.seatingPolygonAi;
+      _v.seatingPolygonOverride = poly;
+      if (typeof seatingPolygonTestPoints === 'function') {
+        const pts = seatingPolygonTestPoints(poly);
+        if (pts.length) _v.terraceTestPoints = pts;
+      }
+      if (typeof saveFacingCache === 'function') {
+        saveFacingCache(_v.id, _v.facing, _v.facingSource, _v.terraceWallIndices ?? [], _v.terraceDepth,
+          null, _v.terraceType, _v.terraceDetachedLocation, _v.terraceWallTrimStart, _v.terraceWallTrimEnd, poly);
+      }
+      if (typeof saveCorrection === 'function') {
+        saveCorrection('correction', {
+          id: venueId, name: _v.name, category: _v.category,
+          before: { seatingPolygonOverride: null },
+          after:  { seatingPolygonOverride: poly },
+          origin: 'ai-approved', autoState: 'ai-approved',
+          buildingNodeCount: _v.buildingGeometry?.length ?? null,
+        });
+      }
+      if (typeof sunWindowCache !== 'undefined' && sunWindowCache.clear) sunWindowCache.clear();
+      if (typeof dispatchToWorker === 'function' && typeof datePicker !== 'undefined') dispatchToWorker(datePicker.value);
+      // Approval baked a polygon → it's now a human edit, not a bare "looks
+      // good"; reclassify so the 'confirmed' branch below doesn't double-save.
+      via = 'edited';
+    }
+  }
   _auditCache.set(venueId, { at: new Date().toISOString(), via });
   _saveAudit();
   if (typeof auditStoreSetState === 'function') auditStoreSetState(venueId, { status: 'reviewed', via });
@@ -336,35 +331,9 @@ function unarchiveVenue(venueId) {
   if (typeof renderList === 'function') renderList();
 }
 
-// Export wrapper — invokes the existing exportCorrections() download AND
-// stamps every venue mentioned in the corrections log as trained-as-of-now,
-// so the audit can distinguish "fed to AI" from "still queued."
-function auditExport() {
-  if (typeof loadCorrections !== 'function') return;
-  const corrections = loadCorrections();
-  if (!corrections.length) {
-    alert('No corrections recorded yet — nothing to export.');
-    return;
-  }
-  const now = new Date().toISOString();
-  const ids = new Set();
-  for (const c of corrections) if (c.id != null) ids.add(c.id);
-  for (const id of ids) _trainedCache.set(id, { exportedAt: now });
-  _saveTrained();
-  _invalidateCorrCache();
-  if (typeof exportCorrections === 'function') exportCorrections();
-  _updateAuditIndicator();
-  if (typeof draw === 'function') draw();
-  if (typeof renderList === 'function') renderList();
-}
-
-function clearTrainingHistory() {
-  if (!confirm('Clear the training-export log?\n\nThis forgets which venues you have already exported. Audit + archive state are preserved.')) return;
-  _trainedCache.clear();
-  _saveTrained();
-  _updateAuditIndicator();
-  if (typeof renderList === 'function') renderList();
-}
+// (Manual Export + training-stamp tracking retired — corrections now sync to
+//  Supabase automatically and the seating-sync Action regenerates the training
+//  file. See scripts/sync-seating-from-supabase.mjs.)
 
 function resetAuditProgress() {
   if (!confirm('Reset polygon audit progress?\n\nThis clears the reviewed flag on every venue. Archive list is preserved.')) return;
@@ -401,9 +370,9 @@ function toggleAuditFilterPanel() {
   _filterPanelOpen = !_filterPanelOpen;
   _updateAuditIndicator();
 }
-function setAuditTrainFilter(mode) {
-  if (!['all', 'trained', 'pending'].includes(mode)) return;
-  auditTrainFilter = mode;
+function setAuditAiFilter(mode) {
+  if (!['all', 'ai'].includes(mode)) return;
+  auditAiFilter = mode;
   _updateAuditIndicator();
   if (typeof draw === 'function') draw();
   if (typeof renderList === 'function') renderList();
@@ -448,28 +417,16 @@ function _updateAuditIndicator() {
   const activeStatuses = Object.values(auditFilters).filter(Boolean).length;
   const filterBtn = document.getElementById('audit-filter-toggle');
   if (filterBtn) {
-    const flagN     = auditFlagFilters.size;
-    const trainRes  = auditTrainFilter !== 'all' ? 1 : 0;
-    const restricted = activeStatuses < 3 || flagN > 0 || trainRes > 0;
+    const flagN   = auditFlagFilters.size;
+    const aiRes   = auditAiFilter !== 'all' ? 1 : 0;
+    const restricted = activeStatuses < 3 || flagN > 0 || aiRes > 0;
     filterBtn.classList.toggle('has-active', restricted);
     const badge = document.getElementById('audit-filter-toggle-badge');
     if (badge) {
-      const n = (3 - activeStatuses) + flagN + trainRes;
+      const n = (3 - activeStatuses) + flagN + aiRes;
       badge.textContent = restricted ? n : '';
       badge.style.display = restricted ? '' : 'none';
     }
-  }
-
-  // Export-button badge — count of venues whose corrections are *new since*
-  // the last export. Drops to 0 once Export is clicked; bumps back up when
-  // the admin saves another edit.
-  const exportBtn   = document.getElementById('audit-export-btn');
-  const exportCount = document.getElementById('audit-export-count');
-  if (exportBtn && exportCount) {
-    _invalidateCorrCache();
-    const n = auditPendingTrainingCount();
-    exportCount.textContent = n > 0 ? n : '';
-    exportBtn.classList.toggle('has-active', n > 0);
   }
 
   // Status chip counts + active state
@@ -485,15 +442,13 @@ function _updateAuditIndicator() {
     const n = chip.querySelector('.audit-chip-count');
     if (n) n.textContent = statusCounts[key];
   }
-  // Training filter chips
-  for (const m of ['all', 'trained', 'pending']) {
-    const c = document.getElementById(`audit-train-chip-${m}`);
-    if (c) c.classList.toggle('active', auditTrainFilter === m);
+  // AI-review filter chips
+  for (const m of ['all', 'ai']) {
+    const c = document.getElementById(`audit-ai-chip-${m}`);
+    if (c) c.classList.toggle('active', auditAiFilter === m);
   }
-  const _tT = document.getElementById('audit-train-count-trained');
-  const _tP = document.getElementById('audit-train-count-pending');
-  if (_tT) _tT.textContent = auditTrainedCount();
-  if (_tP) _tP.textContent = auditPendingTrainingCount();
+  const _aiN = document.getElementById('audit-ai-count');
+  if (_aiN) _aiN.textContent = auditAiUnreviewedCount();
 
   // Flag chips
   if (typeof REVIEW_FLAG_LABELS !== 'undefined') {
@@ -540,11 +495,10 @@ function _renderAuditFilterPanel() {
       </div>
     </div>
     <div class="audit-filter-group">
-      <div class="audit-filter-label">AI training</div>
+      <div class="audit-filter-label">AI proposals</div>
       <div class="audit-chip-row">
-        <button class="audit-chip" id="audit-train-chip-all"     onclick="setAuditTrainFilter('all')">All</button>
-        <button class="audit-chip" id="audit-train-chip-trained" onclick="setAuditTrainFilter('trained')">Trained<span class="audit-chip-count" id="audit-train-count-trained">0</span></button>
-        <button class="audit-chip" id="audit-train-chip-pending" onclick="setAuditTrainFilter('pending')">Pending export<span class="audit-chip-count" id="audit-train-count-pending">0</span></button>
+        <button class="audit-chip" id="audit-ai-chip-all" onclick="setAuditAiFilter('all')">All</button>
+        <button class="audit-chip" id="audit-ai-chip-ai"  onclick="setAuditAiFilter('ai')">Needs review<span class="audit-chip-count" id="audit-ai-count">0</span></button>
       </div>
     </div>
     <div class="audit-filter-group">
@@ -556,7 +510,6 @@ function _renderAuditFilterPanel() {
       <div class="audit-chip-row">
         <button class="audit-chip" onclick="clearAuditFilters()" title="Restore all filters to default">Reset filters</button>
         <button class="audit-chip" onclick="resetAuditProgress()" title="Mark every venue as not-yet-reviewed">Reset review progress</button>
-        <button class="audit-chip" onclick="clearTrainingHistory()" title="Forget which venues you've already exported for training">Clear training log</button>
       </div>
     </div>`;
 }
@@ -574,10 +527,9 @@ function toggleAuditMode() {
     document.body.classList.remove('audit-shadows');
     _auditCache   = _loadAudit();
     _archiveCache = _loadArchive();
-    _trainedCache = _loadTrained();
     applyAuditArchiveTags();
     auditFilters    = { unreviewed: true, reviewed: true, archived: false };
-    auditTrainFilter = 'all';
+    auditAiFilter   = 'all';
     auditFlagFilters.clear();
     _filterPanelOpen = false;
     if (typeof refreshReviewFlags === 'function' && typeof datePicker !== 'undefined') {
@@ -605,4 +557,3 @@ function toggleAuditMode() {
 //     whether or not the admin opens audit mode this session). ───────────────
 _auditCache   = _loadAudit();
 _archiveCache = _loadArchive();
-_trainedCache = _loadTrained();

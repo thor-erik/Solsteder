@@ -122,16 +122,16 @@
 <script defer src="js/scoring.js?v=20260411b"></script>
 <script defer src="js/map-style.js?v=20260521c"></script>
 <script defer src="js/shades-loader.js?v=20260526b"></script>
-<script defer src="js/app.js?v=20260527g"></script>
+<script defer src="js/app.js?v=20260528b"></script>
 <script defer src="js/render-helpers.js?v=20260527a"></script>
 <script defer src="js/render-seating.js?v=20260519b"></script>
 <script defer src="js/render-editor.js?v=20260527a"></script>
 <script defer src="js/render-pins.js?v=20260527a"></script>
 <script defer src="js/ui-shared.js?v=20260525b"></script>
-<script defer src="js/ui-list.js?v=20260527d"></script>
+<script defer src="js/ui-list.js?v=20260528b"></script>
 <script defer src="js/admin-review.js?v=20260527b"></script>
-<script defer src="js/admin-audit.js?v=20260528a"></script>
-<script defer src="js/audit-store.js?v=20260528a"></script>
+<script defer src="js/admin-audit.js?v=20260528b"></script>
+<script defer src="js/audit-store.js?v=20260528b"></script>
 <script defer src="js/ui-shelter.js?v=20260522zm"></script>
 <script defer src="js/render-wind.js?v=20260416b"></script>
 <script defer src="js/ui-detail.js?v=20260525l"></script>
@@ -182,7 +182,7 @@
 <link rel="stylesheet" href="css/tokens.css?v=20260526s">
 <link rel="stylesheet" href="css/base.css?v=20260526q">
 <link rel="stylesheet" href="css/components-chrome.css?v=20260527e">
-<link rel="stylesheet" href="css/components-content.css?v=20260527g">
+<link rel="stylesheet" href="css/components-content.css?v=20260528b">
 <link rel="stylesheet" href="css/components-overlays.css?v=20260527a">
 
 <script type="application/ld+json">
@@ -646,10 +646,6 @@
       <button id="audit-filter-toggle" type="button" class="panel-filter-pill" onclick="toggleAuditFilterPanel()" title="Filtrer steder">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
         <span>Filter</span><span id="audit-filter-toggle-badge" class="audit-filter-toggle-badge"></span>
-      </button>
-      <button id="audit-export-btn" type="button" class="panel-filter-pill" onclick="auditExport()" title="Last ned alle rettelser som JSON for AI-trening.">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        <span>Eksport</span><span id="audit-export-count" class="audit-filter-toggle-badge"></span>
       </button>
     </div>
     <div id="audit-filter-panel" class="audit-filter-panel" style="display:none"></div>

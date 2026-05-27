@@ -4511,6 +4511,9 @@ function _loadVenueIntoEditor(venueId) {
   _editBeforeSnapshot = _venueEditSnapshot(v);
   _editHasChanges = false;
 
+  // Broadcast that I'm editing this venue (soft edit-lock for other admins).
+  if (typeof auditStorePresenceTrack === 'function') auditStorePresenceTrack(venueId);
+
   const lbl = document.getElementById('edit-venue-label');
   if (lbl) lbl.textContent = v.name;
   const type = v.terraceType ?? 'street';
@@ -4842,6 +4845,8 @@ function cancelEditMode() {
 
 function exitEditMode() {
   if (!_navHandlingPop) _navDropLayer('edit');
+  // Release the soft edit-lock so other admins can take this venue.
+  if (typeof auditStorePresenceClear === 'function') auditStorePresenceClear();
   // Detect and record corrections before clearing state
   if (editingVenueId && _editBeforeSnapshot) {
     const v    = VENUES.find(x => x.id === editingVenueId);
