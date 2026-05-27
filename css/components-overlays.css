@@ -983,6 +983,9 @@
     font-weight: 500;
     color: var(--ink-muted);
     line-height: 1.25;
+    /* Indent so the eyebrow aligns with the venue NAME, not the pin — matches
+       the accept panel's .dpacc-eyebrow exactly. */
+    padding-left: var(--space-2xl);
   }
   .dpinvite-moment-pin {
     flex-shrink: 0;
@@ -997,13 +1000,13 @@
     display: flex;
     align-items: center;
     gap: var(--space-md);
-    margin-top: var(--space-2xs);
+    margin-top: var(--space-sm);   /* matches .dpacc-venue-row */
   }
   .dpinvite-venue-line {
     font-size: var(--text-display);
     font-weight: var(--fw-display);
     color: var(--panel-text);
-    line-height: 1.18;
+    line-height: 1.15;             /* matches .dpacc-venue */
     letter-spacing: var(--tracking-display);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1016,10 +1019,11 @@
     gap: var(--space-md);
     /* Align under the venue text (pin glyph 14 + 8 gap), not under the pin. */
     padding-left: var(--space-2xl);
-    margin-top: var(--space-2xs);
+    margin-top: var(--space-xs);   /* matches .dpacc-subtitle */
     font-size: var(--text-label);
     font-weight: 500;
     color: var(--ink-muted);
+    line-height: 1.4;              /* matches .dpacc-subtitle */
     font-variant-numeric: tabular-nums;
     /* Whole-pill drop on overflow — see .dprcv-meta. _fitMetaPills hides
        trailing `.dpinvite-meta-item` pills + their preceding dot when
