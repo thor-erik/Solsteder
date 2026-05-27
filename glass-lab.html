@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Glass Lab — Shades</title>
+<link rel="stylesheet" href="css/tokens.css?v=20260527j">
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; font-family: 'Inter', system-ui, sans-serif; }
+  body {
+    /* Two independently-tunable glass materials, driven by the sliders.
+       Defaults mirror the current tokens (card = 55% glass, button = 28% top-bar control). */
+    --L-card-bg:     rgba(255,250,244,0.55);
+    --L-card-border: rgba(255,255,255,0.55);
+    --L-card-blur:   10px;
+    --L-btn-bg:      rgba(255,250,244,0.28);
+    --L-btn-border:  rgba(255,255,255,0.45);
+    --L-btn-blur:    8px;
+    color: #111E38;
+    min-height: 100vh;
+  }
+
+  /* ── Faux Oslo cream-map backdrop so the glass has something real to blur ── */
+  .stage {
+    position: relative;
+    min-height: 62vh;
+    padding: 22px 16px 30px;
+    overflow: hidden;
+    transition: background 0.2s;
+  }
+  .stage.bg-cream {
+    background:
+      linear-gradient(118deg, transparent 0 57%, #b9d2df 57% 70%, transparent 70%),
+      radial-gradient(circle at 18% 26%, #cfe0bd 0 9%, transparent 9.4%),
+      radial-gradient(circle at 78% 70%, #cfe0bd 0 13%, transparent 13.4%),
+      radial-gradient(circle at 60% 18%, #cfe0bd 0 6%, transparent 6.4%),
+      repeating-linear-gradient(34deg, transparent 0 42px, rgba(150,138,116,0.42) 42px 45px),
+      repeating-linear-gradient(-52deg, transparent 0 60px, rgba(150,138,116,0.30) 60px 62px),
+      #ece6d8;
+  }
+  .stage.bg-sat {
+    background:
+      linear-gradient(118deg, transparent 0 57%, #2c4a63 57% 70%, transparent 70%),
+      radial-gradient(circle at 18% 26%, #3e5a32 0 9%, transparent 9.4%),
+      radial-gradient(circle at 78% 70%, #45612f 0 13%, transparent 13.4%),
+      repeating-linear-gradient(34deg, transparent 0 42px, rgba(40,46,40,0.5) 42px 45px),
+      #5a5142;
+  }
+  .stage.bg-busy {
+    background:
+      radial-gradient(circle at 25% 30%, #f5c25e 0 5%, transparent 5.4%),
+      radial-gradient(circle at 70% 40%, #f5c25e 0 4%, transparent 4.4%),
+      radial-gradient(circle at 45% 70%, #9cbde7 0 6%, transparent 6.4%),
+      radial-gradient(circle at 85% 75%, #f5c25e 0 5%, transparent 5.4%),
+      repeating-linear-gradient(20deg, #e9e2d2 0 30px, #ded6c4 30px 60px),
+      #e6dfce;
+  }
+
+  /* The frost SHEET (transparent + heavy blur) — matches the detail/accept sheet. */
+  .sheet {
+    position: relative;
+    max-width: 380px;
+    margin: 0 auto;
+    border-radius: 20px;
+    padding: 16px;
+    background: rgba(17,30,56,0.00);
+    -webkit-backdrop-filter: blur(22px);
+    backdrop-filter: blur(22px);
+    border: 1px solid rgba(17,30,56,0.12);
+    box-shadow: 0 2px 6px rgba(17,30,56,0.14), 0 10px 28px rgba(17,30,56,0.18);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .sheet-label {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+    color: rgba(17,30,56,0.55); margin: 0 2px;
+  }
+
+  /* ── Sample CARD (uses the card hue) ── */
+  .card {
+    border-radius: 12px;
+    padding: 14px;
+    background: var(--L-card-bg);
+    -webkit-backdrop-filter: blur(var(--L-card-blur));
+    backdrop-filter: blur(var(--L-card-blur));
+    border: 1px solid var(--L-card-border);
+    box-shadow: 0 1px 2px rgba(17,30,56,0.10), 0 8px 22px rgba(17,30,56,0.14);
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .card-headline {
+    font-size: 22px; font-weight: 700; letter-spacing: -0.012em; color: #F5C25E;
+    filter: drop-shadow(0 1px 1.5px rgba(17,30,56,0.32));
+  }
+  .card-sub { font-size: 13px; font-weight: 500; color: rgba(17,30,56,0.64); }
+  .card-pills { display: flex; gap: 6px; }
+  .pill {
+    height: 26px; padding: 0 12px; border-radius: 12px; font-size: 12px; font-weight: 600;
+    display: inline-flex; align-items: center;
+  }
+  .pill-sol { background: rgba(245,194,94,0.16); border: 1px solid rgba(245,194,94,0.35); color: #F5C25E;
+              filter: drop-shadow(0 1px 1.5px rgba(17,30,56,0.32)); }
+  .pill-shade { background: rgba(17,30,56,0.06); border: 1px solid rgba(17,30,56,0.18); color: rgba(17,30,56,0.55); }
+  .card-timeline { height: 12px; border-radius: 6px; margin-top: 2px;
+    background: linear-gradient(90deg, #F5C25E 0 45%, rgba(17,30,56,0.18) 45% 62%, #F5C25E 62% 100%); }
+  .card-meta { font-size: 11px; color: rgba(17,30,56,0.55); }
+
+  /* ── Sample BUTTONS (use the button hue) ── */
+  .btn-directions {
+    width: 100%; height: 48px; border-radius: 999px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    background: var(--L-btn-bg);
+    -webkit-backdrop-filter: blur(var(--L-btn-blur));
+    backdrop-filter: blur(var(--L-btn-blur));
+    border: 1px solid var(--L-btn-border);
+    box-shadow: 0 1px 4px rgba(17,30,56,0.13);
+    color: rgba(17,30,56,0.82); font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  .btn-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .btn-sq {
+    height: 48px; border-radius: 12px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    background: var(--L-btn-bg);
+    -webkit-backdrop-filter: blur(var(--L-btn-blur));
+    backdrop-filter: blur(var(--L-btn-blur));
+    border: 1px solid var(--L-btn-border);
+    box-shadow: 0 1px 4px rgba(17,30,56,0.13);
+    color: rgba(17,30,56,0.82); cursor: pointer;
+  }
+  .btn-sq svg { width: 20px; height: 20px; stroke: currentColor; }
+  .btn-sq span { font-size: 10.5px; font-weight: 600; }
+
+  /* Reference: the actual top-bar buttons, for side-by-side comparison */
+  .topbar-ref { display: flex; align-items: center; gap: 12px; justify-content: center; padding: 4px 0; }
+  .ref-btn {
+    width: 44px; height: 44px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--glassctl-bg); border: var(--glassctl-border);
+    box-shadow: var(--glassctl-raise); color: var(--glassctl-icon);
+  }
+  .ref-btn svg { width: 18px; height: 18px; stroke: currentColor; }
+  .ref-pill {
+    height: 40px; padding: 0 16px; border-radius: 999px; display: inline-flex; align-items: center; gap: 6px;
+    background: var(--glassctl-bg); border: var(--glassctl-border); box-shadow: var(--glassctl-raise);
+    color: var(--glassctl-icon); font-size: 14px; font-weight: 700;
+  }
+
+  /* ── Controls panel ── */
+  .controls { background: #14213b; color: #FFF4E0; padding: 18px 16px 40px; }
+  .controls h2 { font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.6; margin: 18px 0 10px; font-weight: 700; }
+  .controls h2:first-child { margin-top: 0; }
+  .bg-switch { display: flex; gap: 8px; margin-bottom: 6px; }
+  .bg-switch button {
+    flex: 1; padding: 8px; border-radius: 8px; border: 1px solid rgba(156,189,231,0.3);
+    background: transparent; color: #FFF4E0; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;
+  }
+  .bg-switch button.on { background: #F5C25E; color: #2C1F02; border-color: transparent; }
+  .row { display: grid; grid-template-columns: 92px 1fr 52px; align-items: center; gap: 10px; margin-bottom: 9px; }
+  .row label { font-size: 12px; opacity: 0.85; }
+  .row input[type=range] { width: 100%; accent-color: #F5C25E; }
+  .row input[type=color] { width: 100%; height: 28px; border: none; background: none; padding: 0; cursor: pointer; }
+  .row .val { font-size: 11px; text-align: right; font-variant-numeric: tabular-nums; opacity: 0.8; }
+  .readout {
+    margin-top: 16px; background: #0a1830; border: 1px solid rgba(156,189,231,0.2); border-radius: 10px;
+    padding: 12px; font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; line-height: 1.7;
+    white-space: pre; overflow-x: auto; color: #cfe0bd;
+  }
+  .copy-btn {
+    margin-top: 10px; width: 100%; padding: 11px; border-radius: 999px; border: none;
+    background: #F5C25E; color: #2C1F02; font-weight: 700; font-size: 14px; cursor: pointer; font-family: inherit;
+  }
+  .hint { font-size: 12px; opacity: 0.55; margin: 4px 0 0; line-height: 1.5; }
+</style>
+</head>
+<body>
+  <div class="stage bg-cream" id="stage">
+    <div class="sheet">
+      <div class="sheet-label">Card hue</div>
+      <div class="card">
+        <div class="card-headline">Sol til 17:05</div>
+        <div class="card-sub">2t 15m igjen · sol nå</div>
+        <div class="card-pills">
+          <span class="pill pill-sol">☀ 5,2t</span>
+          <span class="pill pill-shade">Skygge 16:15</span>
+        </div>
+        <div class="card-timeline"></div>
+        <div class="card-meta">Grünerløkka · Restaurant · 450 m</div>
+      </div>
+
+      <div class="sheet-label">Button hue</div>
+      <button class="btn-directions">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+        Veibeskrivelse · 6 min
+      </button>
+      <div class="btn-row">
+        <div class="btn-sq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg><span>Del</span></div>
+        <div class="btn-sq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg><span>Favoritt</span></div>
+        <div class="btn-sq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span>Varsle</span></div>
+      </div>
+
+      <div class="sheet-label">Real top-bar buttons (reference)</div>
+      <div class="topbar-ref">
+        <div class="ref-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div>
+        <div class="ref-pill">Today ▾</div>
+        <div class="ref-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="bg-switch">
+      <button data-bg="bg-cream" class="on">Cream map</button>
+      <button data-bg="bg-sat">Satellite</button>
+      <button data-bg="bg-busy">Busy/pins</button>
+    </div>
+    <p class="hint">Tune both hues against each backdrop. The card needs to stay readable; the buttons should read as light glass bubbles. Copy the values and paste them back to me.</p>
+
+    <h2>Card hue</h2>
+    <div class="row"><label>Fill colour</label><input type="color" id="card-fill" value="#fffaf4"><span class="val" id="card-fill-v">#fffaf4</span></div>
+    <div class="row"><label>Fill opacity</label><input type="range" id="card-fill-a" min="0" max="1" step="0.01" value="0.55"><span class="val" id="card-fill-a-v">0.55</span></div>
+    <div class="row"><label>Rim colour</label><input type="color" id="card-rim" value="#ffffff"><span class="val" id="card-rim-v">#ffffff</span></div>
+    <div class="row"><label>Rim opacity</label><input type="range" id="card-rim-a" min="0" max="1" step="0.01" value="0.55"><span class="val" id="card-rim-a-v">0.55</span></div>
+    <div class="row"><label>Blur (px)</label><input type="range" id="card-blur" min="0" max="30" step="1" value="10"><span class="val" id="card-blur-v">10</span></div>
+
+    <h2>Button hue</h2>
+    <div class="row"><label>Fill colour</label><input type="color" id="btn-fill" value="#fffaf4"><span class="val" id="btn-fill-v">#fffaf4</span></div>
+    <div class="row"><label>Fill opacity</label><input type="range" id="btn-fill-a" min="0" max="1" step="0.01" value="0.28"><span class="val" id="btn-fill-a-v">0.28</span></div>
+    <div class="row"><label>Rim colour</label><input type="color" id="btn-rim" value="#ffffff"><span class="val" id="btn-rim-v">#ffffff</span></div>
+    <div class="row"><label>Rim opacity</label><input type="range" id="btn-rim-a" min="0" max="1" step="0.01" value="0.45"><span class="val" id="btn-rim-a-v">0.45</span></div>
+    <div class="row"><label>Blur (px)</label><input type="range" id="btn-blur" min="0" max="30" step="1" value="8"><span class="val" id="btn-blur-v">8</span></div>
+
+    <div class="readout" id="readout"></div>
+    <button class="copy-btn" id="copy">Copy token values</button>
+  </div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const body = document.body;
+
+  function hexToRgb(hex) {
+    const m = hex.replace('#','');
+    return [parseInt(m.slice(0,2),16), parseInt(m.slice(2,4),16), parseInt(m.slice(4,6),16)];
+  }
+  function rgba(hex, a) { const [r,g,b] = hexToRgb(hex); return `rgba(${r},${g},${b},${a})`; }
+
+  function read() {
+    const cf = $('card-fill').value, cfa = $('card-fill-a').value, cr = $('card-rim').value, cra = $('card-rim-a').value, cb = $('card-blur').value;
+    const bf = $('btn-fill').value,  bfa = $('btn-fill-a').value,  br = $('btn-rim').value,  bra = $('btn-rim-a').value,  bb = $('btn-blur').value;
+    // live previews
+    body.style.setProperty('--L-card-bg', rgba(cf, cfa));
+    body.style.setProperty('--L-card-border', rgba(cr, cra));
+    body.style.setProperty('--L-card-blur', cb + 'px');
+    body.style.setProperty('--L-btn-bg', rgba(bf, bfa));
+    body.style.setProperty('--L-btn-border', rgba(br, bra));
+    body.style.setProperty('--L-btn-blur', bb + 'px');
+    // value labels
+    $('card-fill-v').textContent = cf; $('card-fill-a-v').textContent = cfa; $('card-rim-v').textContent = cr; $('card-rim-a-v').textContent = cra; $('card-blur-v').textContent = cb;
+    $('btn-fill-v').textContent = bf; $('btn-fill-a-v').textContent = bfa; $('btn-rim-v').textContent = br; $('btn-rim-a-v').textContent = bra; $('btn-blur-v').textContent = bb;
+    // readout (the exact tokens.css block)
+    const out =
+`/* CARD hue */
+--card-cream-bg:     ${rgba(cf, cfa)};
+--card-cream-border: ${rgba(cr, cra)};
+--card-cream-blur:   blur(${cb}px);
+
+/* BUTTON hue */
+--btn-glass-bg:      ${rgba(bf, bfa)};
+--btn-glass-border:  ${rgba(br, bra)};
+--btn-glass-blur:    blur(${bb}px);`;
+    $('readout').textContent = out;
+    return out;
+  }
+
+  document.querySelectorAll('.controls input').forEach(el => el.addEventListener('input', read));
+  document.querySelectorAll('.bg-switch button').forEach(btn => btn.addEventListener('click', () => {
+    document.querySelectorAll('.bg-switch button').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    $('stage').className = 'stage ' + btn.dataset.bg;
+  }));
+  $('copy').addEventListener('click', () => {
+    navigator.clipboard?.writeText(read()).then(() => { $('copy').textContent = 'Copied ✓'; setTimeout(()=>$('copy').textContent='Copy token values', 1400); });
+  });
+  read();
+</script>
+</body>
+</html>

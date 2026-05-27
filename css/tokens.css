@@ -236,10 +236,24 @@
        frost as a translucent CREAM tile (not the dark Delft of the old content
        world). Rolling out panel-by-panel; the venue-list cards + modals stay
        Delft until their own pass. See DESIGN.md "Cream-frost content world". */
-    --card-cream-bg:     rgba(255,250,244,0.55);  /* glass-control material (like the top-bar .ts-btn) tuned up to 55pct for card text legibility */
+    /* TWO glass hues (tunable in glass-lab.html). CARD hue = content surfaces
+       (dp-card, plans, info) — more opaque so dense text stays legible. BUTTON
+       hue = the detail-panel action controls (directions/share/fav/bell), the
+       lighter top-bar .ts-btn glass-control look (transparent + bright rim). */
+    --card-cream-bg:     rgba(255,250,244,0.55);  /* card fill — 55pct for text legibility */
     --card-cream-blur:   blur(10px);
-    --card-cream-border: rgba(255,255,255,0.55);   /* bright lens rim, like the top-bar control edge */
+    --card-cream-border: rgba(255,255,255,0.55);   /* bright lens rim */
     --card-cream-shadow: 0 1px 2px rgba(17,30,56,0.10), 0 8px 22px rgba(17,30,56,0.14);  /* soft lift off the frost */
+    /* BUTTON hue — mirrors the top-bar control (.ts-btn / --glassctl-*) but kept
+       separate so tuning the detail buttons doesn't move the top bar. */
+    --btn-glass-bg:        rgba(255,250,244,0.28);
+    --btn-glass-bg-hover:  rgba(255,250,244,0.50);
+    --btn-glass-border:    rgba(255,255,255,0.45);
+    --btn-glass-border-active: rgba(255,255,255,0.78);  /* brighter rim on an active toggle (fav/bell on) */
+    --btn-glass-blur:      blur(8px);
+    --btn-glass-icon:      rgba(17,30,56,0.82);
+    --btn-glass-raise:     0 1px 4px rgba(17,30,56,0.13);
+    --btn-glass-press:     inset 0 2px 4px rgba(17,30,56,0.18);
     /* Honey on a LIGHT surface. DESIGN.md's old rule was "honey dies on cream"
        because honey + cream sit at similar lightness. The fix (user-confirmed):
        a tight dark casing — the same trick --icon-casing uses for glyphs over

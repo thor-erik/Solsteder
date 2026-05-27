@@ -5376,16 +5376,19 @@
      text-decoration:none — it's an <a>, not a <button>. */
   .dp-directions {
     /* height comes from .s-rnd (now 48px); width/radius are the full-width
-       pill adaptation. On-light recipe (frost sheet): Delft outline + ink text,
-       matching the accept panel's secondary tiles. */
+       pill adaptation. Glass-control material (button hue) — the top-bar
+       .ts-btn look: transparent warm-white glass + bright rim + ink. */
     width: 100%; border-radius: var(--radius-pill);
-    background: transparent;
-    border-color: var(--line-l-strong);
-    box-shadow: none;
-    color: var(--panel-text);
+    background: var(--btn-glass-bg);
+    -webkit-backdrop-filter: var(--btn-glass-blur);
+    backdrop-filter: var(--btn-glass-blur);
+    border-color: var(--btn-glass-border);
+    box-shadow: var(--btn-glass-raise);
+    color: var(--btn-glass-icon);
     text-decoration: none;
   }
-  .dp-directions:hover { background: var(--line-l-faint); border-color: var(--line-l-strong); }
+  .dp-directions:hover { background: var(--btn-glass-bg-hover); border-color: var(--btn-glass-border); }
+  .dp-directions:active { box-shadow: var(--btn-glass-press); }
   .dp-directions svg { width: 18px; height: 18px; flex-shrink: 0; }
   .dp-directions-label { overflow: hidden; text-overflow: ellipsis; }
 
@@ -5406,12 +5409,14 @@
     height: 48px;
     padding: 0 var(--space-sm);
     border-radius: var(--radius-md);
-    /* Tertiary toggles on the frost sheet — on-light recipe: Delft outline +
-       ink text (--panel-text is global ink now). Stacked icon+label kept;
-       cool fill on active (below). */
-    background: transparent;
-    border: 1px solid var(--line-l-strong);
-    color: var(--panel-text);
+    /* Glass-control material (button hue) — same top-bar .ts-btn look as the
+       directions pill: transparent warm-white glass + bright rim + ink.
+       Stacked icon+label kept; brighter glass + filled icon on active (below). */
+    background: var(--btn-glass-bg);
+    -webkit-backdrop-filter: var(--btn-glass-blur);
+    backdrop-filter: var(--btn-glass-blur);
+    border: 1px solid var(--btn-glass-border);
+    color: var(--btn-glass-icon);
     cursor: pointer;
     text-decoration: none;
     font-family: 'Inter', sans-serif;
@@ -5436,22 +5441,23 @@
     max-width: 100%;
   }
   .dp-secondary-btn:hover {
-    background: var(--line-l-faint);
-    border-color: var(--line-l-strong);
-    color: var(--panel-text);
+    background: var(--btn-glass-bg-hover);
+    border-color: var(--btn-glass-border);
+    color: var(--btn-glass-icon);
   }
-  /* Active toggle state — a cool Jordy fill (NOT honey: honey is reserved for
-     the one Invite CTA per screen). "On" is signalled by the cool fill + the
-     filled icon (heart/bell go solid below). Ink text on the light fill. */
+  .dp-secondary-btn:active { box-shadow: var(--btn-glass-press); }
+  /* Active toggle state — brighter glass + a brighter rim, and the icon goes
+     filled (heart/bell solid). NOT honey: honey stays reserved for the one
+     Invite CTA per screen; the filled glyph carries the "on" signal. */
   .dp-secondary-btn.is-active {
-    background: var(--surface-chrome);
-    border-color: var(--line-l-strong);
-    color: var(--panel-text);
+    background: var(--btn-glass-bg-hover);
+    border-color: var(--btn-glass-border-active);
+    color: var(--btn-glass-icon);
   }
-  .dp-secondary-btn.is-active svg { color: var(--panel-text); fill: currentColor; }
+  .dp-secondary-btn.is-active svg { color: var(--btn-glass-icon); fill: currentColor; }
   .dp-secondary-btn.is-active:hover {
-    background: var(--surface-chrome);
-    border-color: var(--line-l-strong);
+    background: var(--btn-glass-bg-hover);
+    border-color: var(--btn-glass-border-active);
   }
 
   /* Legacy: keep .primary-action for backwards compat but hidden */
