@@ -264,7 +264,7 @@
          drop-shadow on light text just looks blurry). Same hue, deeper value.
        · --accent-casing — a tight dark drop-shadow, only for honey FILLS/icons
          where the colour can't change (a solid honey CTA on light, a glyph). */
-    --accent-on-light:   #C2790B;
+    --accent-on-light:   #B8830C;
     --accent-casing:     drop-shadow(0 1px 1.5px rgba(17,30,56,0.32));
     /* Soft dark bloom for the few honey TEXTS that must stay honey on a light
        card (sun-hours, the "+Xh" opportunity) — a gentler, Delft-toned cousin of
