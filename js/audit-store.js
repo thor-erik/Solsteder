@@ -176,3 +176,38 @@ function _onRemoteStateChange(payload) {
   if (typeof draw === 'function') draw();
   if (typeof auditModeActive !== 'undefined' && auditModeActive && typeof renderList === 'function') renderList();
 }
+
+// ── One-time backfill ─────────────────────────────────────────────────────────
+
+/** Push this browser's local corrections + audit/archive state up to Supabase
+ *  once, so pre-existing work isn't lost in localStorage. Console-callable by
+ *  an admin: `await auditStoreImportLocal()`. Guarded by a localStorage flag so
+ *  it can't double-insert if re-run. */
+const _AUDIT_IMPORT_FLAG = 'solsteder_audit_imported_v1';
+async function auditStoreImportLocal() {
+  if (!auditStoreActive()) { console.warn('[audit-store] import: need a signed-in editor/admin.'); return; }
+  if (localStorage.getItem(_AUDIT_IMPORT_FLAG)) { console.warn('[audit-store] import already ran in this browser.'); return; }
+
+  let corr = 0, state = 0;
+  // 1. Corrections log → seating_corrections (chronological).
+  if (typeof loadCorrections === 'function') {
+    for (const c of loadCorrections()) { await auditStorePushCorrection(c); corr++; }
+  }
+  // 2. Reviewed/archived caches → venue_audit_state.
+  if (typeof _archiveCache !== 'undefined') {
+    for (const [vid, e] of _archiveCache) {
+      await auditStoreSetState(vid, { status: 'archived', archive_reason: e?.reason ?? 'other', archive_note: e?.note ?? null });
+      state++;
+    }
+  }
+  if (typeof _auditCache !== 'undefined') {
+    for (const [vid, e] of _auditCache) {
+      if (typeof _archiveCache !== 'undefined' && _archiveCache.has(vid)) continue; // archived wins
+      await auditStoreSetState(vid, { status: 'reviewed', via: e?.via ?? 'good' });
+      state++;
+    }
+  }
+  localStorage.setItem(_AUDIT_IMPORT_FLAG, new Date().toISOString());
+  console.log(`[audit-store] imported ${corr} correction(s) + ${state} state row(s) to Supabase.`);
+}
+if (typeof window !== 'undefined') window.auditStoreImportLocal = auditStoreImportLocal;
