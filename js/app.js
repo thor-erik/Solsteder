@@ -4636,6 +4636,21 @@ function toggleEditSheet() {
   if (ov) ov.classList.toggle('edit-collapsed');
 }
 
+/** Swipe DOWN on the edit-sheet grabber → exit the editor back to the list. */
+(function _wireEditGrabberSwipe() {
+  const g = document.getElementById('edit-grabber');
+  if (!g) return;
+  let startY = null;
+  g.addEventListener('touchstart', e => { startY = e.touches[0]?.clientY ?? null; }, { passive: true });
+  g.addEventListener('touchmove', e => {
+    if (startY == null) return;
+    const dy = (e.touches[0]?.clientY ?? startY) - startY;
+    if (dy > 40) { startY = null; if (typeof exitEditMode === 'function') exitEditMode(); }
+  }, { passive: true });
+  g.addEventListener('touchend',   () => { startY = null; }, { passive: true });
+  g.addEventListener('touchcancel', () => { startY = null; }, { passive: true });
+})();
+
 // ── Audit card click → focus on satellite (no detail panel, no edit) ─────────
 let _auditSatActive = false;
 /** Clicking an audit card pans the map to the venue and switches the base to

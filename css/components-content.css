@@ -351,71 +351,6 @@
     background: transparent;
   }
 
-  /* Filter dropdown — same raised opaque surface as the sort panel. */
-  #filter-panel {
-    position: fixed;
-    z-index: 1100;
-    border-radius: var(--radius-md);
-    padding: var(--space-md);
-    display: none;
-    flex-direction: column;
-    gap: var(--space-xs);
-    min-width: 180px;
-    max-width: min(280px, calc(100vw - 24px));
-    background: var(--surface-raised) !important;
-    border: 1px solid var(--line-l);
-    box-shadow: var(--shadow-2);
-  }
-  #filter-panel.open { display: flex; }
-  .filter-panel-label {
-    font: 700 10px 'Inter', sans-serif;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: rgba(17,30,56,0.55);
-    padding: var(--space-xs) var(--space-2xs) var(--space-2xs);
-  }
-  .filter-panel-label:not(:first-child) { margin-top: var(--space-xs); }
-  .filter-panel-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-xs);
-  }
-  .filter-opt {
-    height: 30px;
-    padding: 0 var(--space-lg);
-    border-radius: var(--radius-pill);
-    background: rgba(17,30,56,0.05);
-    border: 1px solid var(--line-l);
-    color: rgba(17,30,56,0.82);
-    font: 500 12px/1 'Inter', sans-serif;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    -webkit-tap-highlight-color: transparent;
-    transition: background 0.12s, color 0.12s, border-color 0.12s, transform 0.1s;
-  }
-  .filter-opt:active { transform: scale(0.96); }
-  .filter-opt:focus { outline: none; }
-  .filter-opt:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  /* Selected = solid Delft chip + cream text (DESIGN.md "controls step to
-     Delft Blue"; honey reserved for sun + the single CTA). */
-  .filter-opt.active {
-    background: var(--surface-content);
-    border-color: transparent;
-    color: var(--text);
-  }
-  .filter-reset-btn {
-    margin-top: var(--space-sm);
-    align-self: flex-start;
-    background: none;
-    border: none;
-    color: rgba(17,30,56,0.62);
-    font: 600 12px 'Inter', sans-serif;
-    cursor: pointer;
-    padding: var(--space-xs) var(--space-2xs);
-    border-radius: var(--radius-sm);
-  }
-  .filter-reset-btn:hover { color: var(--content-text); }
   .sort-btn {
     background: none;
     border: none;
@@ -2159,42 +2094,43 @@
   /* Collapsed: hide the controls row, keep grabber + primary action. */
   #edit-overlay.edit-collapsed #edit-controls { display: none; }
 
-  /* Floating polygon-tool stack — vertical, cream-frost, mirrors the zoom jog
-     on the opposite (left) side, anchored above the edit sheet. */
+  /* Floating polygon-tool stack — vertical, on the right ABOVE the zoom jog,
+     same 34px width. Each button is its own cream-frost outlined disc (matches
+     the locate / zoom-jog family). */
   #edit-tools-float { display: none; }
   body.edit-mode #edit-tools-float {
     display: flex;
     flex-direction: column;
-    gap: var(--space-2xs);
+    gap: var(--space-sm);
     position: fixed;
-    left: var(--space-md);
-    bottom: var(--edit-zoom-bottom, 240px);
+    right: 12px;                                       /* align with the zoom jog */
+    bottom: calc(var(--edit-zoom-bottom, 240px) + 92px + var(--space-md));
     z-index: 921;
-    padding: var(--space-2xs);
+    transition: bottom 0.22s ease;
+  }
+  .edit-tool-icon {
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     background: rgba(255,242,235,0.50);
     backdrop-filter: var(--glass-blur-frost);
     -webkit-backdrop-filter: var(--glass-blur-frost);
     border: 1px solid var(--line-l);
-    border-radius: var(--radius-pill);
-    box-shadow: var(--shadow-2);
-    transition: bottom 0.22s ease;
-  }
-  .edit-tool-icon {
-    width: 40px;
-    height: 40px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    background: transparent;
     color: var(--content-text);
-    border-radius: var(--radius-pill);
+    border-radius: var(--radius-md);
+    box-shadow: var(--panel-shadow);
     cursor: pointer;
-    transition: background 0.12s, color 0.12s, transform 0.1s;
+    transition: background 0.12s, color 0.12s, border-color 0.12s, transform 0.1s;
   }
-  .edit-tool-icon:hover { background: var(--line-l-faint); }
+  .edit-tool-icon:hover  { border-color: var(--line-l-strong); }
   .edit-tool-icon:active { transform: scale(0.94); }
-  .edit-tool-icon.active { background: var(--surface-content); color: var(--text); }
+  .edit-tool-icon.active {
+    background: var(--accent);
+    border-color: transparent;
+    color: var(--accent-on);
+  }
   .edit-tool-icon[hidden] { display: none; }
 
   /* Tools row: AI helper chips + vertex tools. Lives IN-FLOW inside the edit
@@ -2291,12 +2227,10 @@
     left: 0;
     width: max-content;
     min-width: 100%;
-    background: rgba(17,30,56, 0.92);
-    backdrop-filter: blur(16px) brightness(0.92);
-    -webkit-backdrop-filter: blur(16px) brightness(0.92);
-    border: 1px solid rgba(156,189,231,0.22);
+    background: var(--surface-raised);
+    border: 1px solid var(--line-l);
     border-radius: var(--radius-md);
-    box-shadow: 0 12px 40px rgba(0,0,0,0.55);
+    box-shadow: var(--shadow-2);
     margin: 0;
     padding: var(--space-xs);
     list-style: none;
@@ -2307,16 +2241,16 @@
     font-family: 'Inter', sans-serif;
     font-size: var(--text-label);
     font-weight: 500;
-    color: #FFF2EB;
+    color: var(--content-text);
     padding: var(--space-md) var(--space-lg);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-sm);
     cursor: pointer;
     transition: background 0.12s, color 0.12s;
     line-height: 1.2;
   }
 
-  .edit-type-list li:hover { background: rgba(156,189,231,0.10); }
-  .edit-type-list li.active { color: var(--accent); background: rgba(245,194,94,0.08); }
+  .edit-type-list li:hover { background: var(--line-l-faint); }
+  .edit-type-list li.active { color: var(--text); background: var(--surface-content); }
 
   /* ── Map-mode segmented switch (3D-kart ↔ Satellitt) ─────────────────────── */
   .map-toggle {
@@ -2901,33 +2835,36 @@
   /* Compact icon action buttons (audit tool). 32px touch targets; primary
      (Mark good) is the honey CTA, Archive is error-tinted, others neutral.
      Each carries its own title + aria-label so the glyph needs no text. */
+  /* Light-chrome icon buttons on the cream audit list. Mark-good = honey CTA;
+     archive = error outline; edit = neutral ink outline. */
   .audit-icon-btn {
     flex: 0 0 auto;
-    width: 32px;
-    height: 32px;
+    width: 34px;
+    height: 34px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border-radius: var(--radius-md);
-    background: var(--glass-action-bg);
-    color: var(--muted);
-    border: var(--glass-border);
+    background: var(--surface-control);
+    color: var(--content-text);
+    border: 1px solid var(--line-l-strong);
     cursor: pointer;
-    transition: background 120ms ease-out, color 120ms ease-out, border-color 120ms ease-out;
+    transition: background 120ms ease-out, color 120ms ease-out, border-color 120ms ease-out, transform 0.1s;
   }
-  .audit-icon-btn:hover { color: var(--text); border-color: rgba(156,189,231,0.32); }
+  .audit-icon-btn:hover  { background: var(--line-l-faint); }
+  .audit-icon-btn:active { transform: scale(0.94); }
   .audit-icon-btn.audit-good {
     background: var(--accent);
     color: var(--accent-on);
-    border: none;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.28);
+    border-color: transparent;
+    box-shadow: var(--shadow-1);
   }
   .audit-icon-btn.audit-good:hover { background: var(--accent-hover); }
   .audit-icon-btn.audit-archive {
     color: var(--red-500);
-    border: 1px solid rgba(255,107,107,0.28);
+    border-color: rgba(192,57,43,0.45);
   }
-  .audit-icon-btn.audit-archive:hover { border-color: rgba(255,107,107,0.55); background: rgba(255,107,107,0.10); }
+  .audit-icon-btn.audit-archive:hover { border-color: var(--red-500); background: rgba(192,57,43,0.08); }
   /* Edit (rightmost) pins to the card's right edge, spatially separate. */
   .audit-actions > .audit-icon-btn:last-child { margin-left: auto; }
   .audit-state-badge {
@@ -3039,37 +2976,35 @@
     line-height: 1.25;
   }
 
-  /* ── Audit-tool density ────────────────────────────────────────────────
-     Scoped to body.audit-mode so the consumer venue list is untouched. The
-     admin walks hundreds of cards, so trim padding + inter-row gap to fit
-     more per screen. The sun-narrative rows stay (useful context) but the
-     extra breathing room is removed. */
-  body.audit-mode .venue-card {
-    padding: var(--space-md);
-    gap: var(--space-2xs);
-    margin-bottom: var(--space-sm);
-  }
-  /* Auditing a polygon doesn't need the sun story — strip sun-hours, the
-     close/sun anchor, walk time, distance, the shade footnote, and the fill
-     bar. Keep name + location + category (for bearings) + flags + actions. */
-  body.audit-mode .venue-card .card-duration,
-  body.audit-mode .venue-card .card-anchor,
-  body.audit-mode .venue-card .card-disrupt,
-  body.audit-mode .venue-card .card-walk,
-  body.audit-mode .venue-card .card-dist,
-  body.audit-mode .venue-card .card-fillbar { display: none; }
-  /* Collapse the dot separators left dangling once walk/dist are hidden. */
-  body.audit-mode .venue-card .card-row3 .card-meta-dot { display: none; }
-  body.audit-mode .venue-card .card-row2 { color: var(--text-secondary); }
 
-  /* ── Compact audit card ────────────────────────────────────────────────
+  /* ── Unified cream-frost audit surface ─────────────────────────────────
+     The whole audit experience is one cream-frost (50% + 22px blur) surface:
+     the list panel, plus floating controls. Cards are transparent rows on it
+     with a hairline divider, so there's a single background — no dark tiles. */
+  body.audit-mode #panel {
+    background: rgba(255,242,235,0.50);
+    backdrop-filter: var(--glass-blur-frost);
+    -webkit-backdrop-filter: var(--glass-blur-frost);
+  }
+  /* Floating controls → cream-frost too (icons are already ink). */
+  body.audit-mode #locate-btn,
+  body.audit-mode .zj-track, body.edit-mode .zj-track,
+  body.audit-mode .zj-thumb, body.edit-mode .zj-thumb {
+    background: rgba(255,242,235,0.50);
+  }
+
+  /* ── Compact audit card — transparent row on the cream list ─────────────
      name + icon actions (row 1), location · category (row 2), flags (row 3).
-     Clicking focuses the venue on satellite — selection shown by a honey ring
-     (design-system selection), no left accent bar. */
+     Clicking focuses the venue on satellite — selection = honey ring. */
   .venue-card.audit-card {
-    padding: var(--space-md);
+    background: transparent;
+    box-shadow: none;
+    border: none;
+    border-bottom: 1px solid var(--line-l);
+    border-radius: 0;
+    padding: var(--space-md) var(--space-sm);
     gap: var(--space-xs);
-    margin-bottom: var(--space-sm);
+    margin-bottom: 0;
     cursor: pointer;
   }
   .audit-card .ac-top {
@@ -3082,37 +3017,70 @@
     min-width: 0;
     font-size: var(--text-body);
     font-weight: 700;
-    color: var(--text);
+    color: var(--content-text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  /* Actions sit inline on the name row — drop the standalone-row chrome. */
+  /* Actions sit inline on the name row — drop the standalone-row chrome and
+     the last-child margin so the icons read as one tight group. */
   .audit-card .audit-actions {
     border-top: none;
     margin-top: 0;
     padding: 0;
     flex: 0 0 auto;
+    gap: var(--space-xs);
   }
+  .audit-card .audit-actions > .audit-icon-btn:last-child { margin-left: 0; }
   .audit-card .ac-meta {
     font-size: var(--text-caption);
-    color: var(--text-secondary);
+    color: var(--ink-muted);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
   .audit-card .review-chips { padding: 0; }
-  .venue-card.audit-card:active { transform: scale(0.99); }
+  /* Flags = neutral ink-outline chips on cream (NOT honey — honey is the sun
+     signal, not a flag). Reads as informational tags. */
+  .audit-card .review-chip {
+    background: var(--surface-control);
+    border: 1px solid var(--line-l-strong);
+    color: var(--content-text);
+  }
+  .venue-card.audit-card:active { background: var(--line-l-faint); }
+  .venue-card.audit-card.audit-focus {
+    background: rgba(245,194,94,0.10);
+  }
   .venue-card.audit-card.audit-focus::before {
     content: '';
     position: absolute;
-    inset: -1px;
+    inset: 0;
     border: 2px solid var(--accent);
-    border-radius: inherit;
+    border-radius: var(--radius-sm);
     pointer-events: none;
     z-index: 3;
   }
-  /* (review-flagged left accent bar removed — flags read from the chips.) */
+  /* Status chips on the cream card need DARK ink colours — the bright
+     --green-500 / --red-500 are tuned for dark surfaces and wash out here. */
+  .audit-card .audit-train-chip.is-trained {
+    color: #0F7A4F;
+    background: rgba(15,122,79,0.10);
+    border-color: rgba(15,122,79,0.30);
+  }
+  .audit-card .audit-train-chip.is-pending {
+    color: #8A5A00;
+    background: rgba(138,90,0,0.10);
+    border-color: rgba(138,90,0,0.28);
+  }
+  .audit-card .audit-state-badge {
+    background: rgba(15,122,79,0.12);
+    color: #0F7A4F;
+  }
+  .venue-card.audit-archived.audit-card .audit-state-badge {
+    background: rgba(192,57,43,0.10);
+    color: #C0392B;
+  }
+  .audit-card .audit-icon-btn.audit-archive { color: #C0392B; }
   .profile-role-badge {
     display: inline-flex;
     align-items: center;
