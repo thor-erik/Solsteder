@@ -596,19 +596,34 @@
   }
 
   .venue-card {
-    /* Content surface (DESIGN.md Phase 2.2): opaque Delft 90% + dark hairline
-       + flat shadow-1. Was --glass-card-bg (100%) with raw rgba border. */
-    background: var(--surface-content);
-    /* No backdrop-filter — cards sit inside #panel which already blurs.
-       Removing per-card blur eliminates ~30 GPU compositing layers during scroll. */
-    border: 1px solid var(--line-d);
+    /* Cream-frost card (2026-05-27) — same material as the detail panel, so the
+       list and the detail sheet stop clashing. Translucent cream fill + bright
+       rim + ink text; the sun signal lives in fills (fillbar, sun pill), never
+       in coloured fonts. */
+    background: var(--card-cream-bg);
+    /* No backdrop-filter — cards sit inside #panel which already blurs (22px
+       frost). Per-card blur would re-add ~30 GPU compositing layers during
+       scroll (the Android perf regression we removed); the panel's frost is the
+       backdrop, the 0.70 cream fill is the card. */
+    border: 1px solid var(--card-cream-border);
+    /* Flip the text + subject tokens to INK within the card scope: name/meta/
+       sub use --text/--text-secondary/--muted; pills use --cool/--rain; the
+       fillbar track + skeleton blocks use --fill-track / --skel-*. Overriding
+       them here adapts all of those to cream in one place. */
+    --text: var(--content-text);
+    --text-secondary: var(--ink-muted);
+    --muted: var(--content-muted);
+    --cool: var(--content-muted);          /* was light grey #B5BCC8 — illegible on cream */
+    --rain: var(--rain-ink);               /* deeper rain blue, legible on cream */
+    --fill-track: var(--line-l-faint);     /* ink track behind the honey fill */
+    --skel-block: var(--line-l-faint);     /* ink skeleton blocks on cream */
+    --skel-sheen: var(--skel-sheen-light);
+    color: var(--content-text);
     border-radius: var(--radius-md);
     padding: var(--space-lg) var(--space-lg);
     margin-bottom: var(--space-md);
     cursor: pointer;
-    /* Flat lift — shadow-1 token. The two glossy inset sheens are retired per
-       DESIGN.md flat-modern; the remaining two layers were already shadow-1. */
-    box-shadow: var(--shadow-1);
+    box-shadow: var(--card-cream-shadow);
     transition: border-color 0.12s ease-out, background 0.12s ease-out, opacity 0.2s;
     position: relative;
     overflow: visible;
@@ -658,12 +673,12 @@
   }
   @media (hover: hover) and (pointer: fine) {
     .venue-card:hover {
-      border-color: var(--accent-border);
-      background: rgba(17,30,56,0.72);
+      border-color: var(--accent-border);  /* honey-tinted rim — warm hover affordance */
+      background: var(--card-cream-bg-hover);
       transform: translateY(-1px);
-      /* Flat lift only — raised shadow token. The two glossy inset sheens are
-         retired per DESIGN.md principle 6 (elevation via solid shadow, not sheen). */
-      box-shadow: var(--shadow-2);
+      /* Flat lift on cream — the floating-bar shadow reads better on light than
+         the dark --shadow-2. */
+      box-shadow: var(--panel-shadow);
     }
   }
   @media (prefers-reduced-motion: reduce) {
@@ -673,10 +688,9 @@
   .venue-card { -webkit-tap-highlight-color: transparent; }
 
   .venue-card.selected {
-    /* Stay solid (was 0.72 → semi-transparent navy, which read as a "strange
-       blue/transparent" card over the cream panel, esp. after the invite
-       round-trip). Selection is signalled by the honey ::before ring below. */
-    background: var(--surface-content);
+    /* Keep the cream card fill; selection is signalled by the honey ::before
+       ring below (honey ring on cream = a clean accent, no font colour needed). */
+    background: var(--card-cream-bg);
   }
   /* Selection outline that *emanates from the click position*. The lens-fx
      pointerdown handler in lens-effects.js sets --ripple-x / --ripple-y on
@@ -938,6 +952,26 @@
     background: rgba(245,194,94,0.18);
     border: 1px solid rgba(245,194,94,0.35);
     color: var(--accent);
+  }
+  /* No yellow fonts on the cream cards (2026-05-27): honey TEXT goes ink; the
+     honey FILLS (pill bg/border, fillbar, selection ring) stay honey. Scoped to
+     .venue-card so non-card honey text (score, edit-tool, popups) is untouched. */
+  .venue-card .card-pill.pill-sol,
+  .venue-card .card-pill.pill-overflow,
+  .venue-card .card-new-hero-main,
+  .venue-card .card-duration,
+  .venue-card .card-sun-dur,
+  .venue-card .card-disrupt-sun,
+  .venue-card .tl-label-sol {
+    color: var(--text);
+  }
+  /* Hours pills were cream-text on a Delft card (invisible on cream) → a faint
+     ink wash + ink text. */
+  .venue-card .card-pill.pill-stenger,
+  .venue-card .card-pill.pill-aapner {
+    background: var(--line-l-faint);
+    border-color: var(--line-l);
+    color: var(--text-secondary);
   }
 
   /* ── v2 list-card layout ──────────────────────────────────────────────

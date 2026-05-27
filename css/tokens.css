@@ -243,7 +243,10 @@
     --card-cream-bg:     rgba(253,244,234,0.70);  /* card fill (lab-tuned 2026-05-27) */
     --card-cream-blur:   blur(10px);
     --card-cream-border: rgba(255,255,255,0.87);   /* bright lens rim (lab-tuned) */
+    --card-cream-bg-hover: rgba(255,250,244,0.88);  /* brighter cream on list-card hover */
     --card-cream-shadow: 0 1px 2px rgba(17,30,56,0.10), 0 8px 22px rgba(17,30,56,0.14);  /* soft lift off the frost */
+    --rain-ink:          #3F6088;             /* deeper rain blue — legible as pill text on a cream card */
+    --skel-sheen-light:  rgba(17,30,56,0.05); /* skeleton sweep on a cream card */
     /* BUTTON hue — mirrors the top-bar control (.ts-btn / --glassctl-*) but kept
        separate so tuning the detail buttons doesn't move the top bar. */
     --btn-glass-bg:        rgba(255,250,244,0.28);
