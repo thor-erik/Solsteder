@@ -887,13 +887,17 @@ function drawTimeline(ctx, opts) {
       ctx.beginPath();
       ctx.rect(gx1, bleed, gx2 - gx1, TRACK_H);
       ctx.clip();
-      ctx.fillStyle = _ftsRgba(TOKENS.text || '#FFF4E0', 0.90);
-      ctx.fillRect(gx1, bleed, gx2 - gx1, TRACK_H);
+      // Dark diagonal hatch over the LIVE weather colour — NO base fill, so the
+      // gaps between bars stay transparent and the weather shows through (reads
+      // as a shadow cast over the bar, not a separate block). 135°, 5.5px
+      // period, 50% fill — same geometry as the striped shade pin, recoloured
+      // to dark Delft. Clipped to the gap rect inside the rounded track clip so
+      // it fits the bar exactly like the weather segments.
       ctx.translate((gx1 + gx2) / 2, bleed + TRACK_H / 2);
       ctx.rotate(135 * Math.PI / 180);
       const diag = Math.hypot(gx2 - gx1, TRACK_H) + 4;
       const period = 5.5, inkW = period * 0.5;
-      ctx.fillStyle = TOKENS.jordy || '#9CBDE7';
+      ctx.fillStyle = _ftsRgba(TOKENS.bg || '#111E38', 0.82);
       for (let p = -diag; p <= diag; p += period) ctx.fillRect(p, -diag, inkW, diag * 2);
       ctx.restore();
     }
