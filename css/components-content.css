@@ -976,6 +976,9 @@
     border: 1px solid var(--accent-border);
     padding: var(--space-2xs) var(--space-sm);
     border-radius: var(--radius-sm);
+    /* Pull the chip right by its own right padding so the TEXT aligns with the
+       right-aligned bare text below it (the chip bg just extends to the edge). */
+    margin-right: calc(var(--space-sm) * -1);
   }
   /* Hours pills were cream-text on a Delft card (invisible on cream) → a faint
      ink wash + ink text. */
@@ -1133,8 +1136,10 @@
     font-variant-numeric: tabular-nums;
   }
   /* Shade gap = "less sun" → muted (default). Sun opportunity = "more sun
-     later" → honey, so the two read as opposite signals at a glance. */
-  .venue-card.card-3row .card-disrupt-sun { color: var(--accent); }
+     later" → amber on the honey-dim chip (matches the sun-hours), so the two
+     read as opposite signals at a glance. (More specific than the chip rule
+     above, so the colour must be set here too.) */
+  .venue-card.card-3row .card-disrupt-sun { color: var(--accent-on-light); }
   /* Binding closing-time distinction on the row-2 anchor (subtle, no pill) */
   .venue-card.card-3row .card-anchor-closes { font-style: italic; }
 
