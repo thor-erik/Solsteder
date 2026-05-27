@@ -105,6 +105,13 @@
   .card-timeline { height: 12px; border-radius: 6px; margin-top: 2px;
     background: linear-gradient(90deg, #F5C25E 0 45%, rgba(17,30,56,0.18) 45% 62%, #F5C25E 62% 100%); }
   .card-meta { font-size: 11px; color: rgba(17,30,56,0.55); }
+  /* Dark card → cream text + honey pops with NO casing (auto-toggled by JS
+     when the card fill is dark, so dark fills can be judged honestly). */
+  .card.is-dark .card-headline { color: #F5C25E; filter: none; }
+  .card.is-dark .card-sub  { color: rgba(255,244,224,0.74); }
+  .card.is-dark .card-meta { color: rgba(255,244,224,0.58); }
+  .card.is-dark .pill-sol  { filter: none; }
+  .card.is-dark .pill-shade { background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.20); color: rgba(255,244,224,0.78); }
 
   /* ── Sample BUTTONS (use the button hue) ── */
   .btn-directions {
@@ -217,6 +224,11 @@
     <p class="hint">Tune both hues against each backdrop. The card needs to stay readable; the buttons should read as light glass bubbles. Copy the values and paste them back to me.</p>
 
     <h2>Card hue</h2>
+    <div class="bg-switch" style="margin-bottom:10px">
+      <button data-preset="cream">Light cream</button>
+      <button data-preset="espresso">Espresso</button>
+      <button data-preset="warmdelft">Warm Delft</button>
+    </div>
     <div class="row"><label>Fill colour</label><input type="color" id="card-fill" value="#fffaf4"><span class="val" id="card-fill-v">#fffaf4</span></div>
     <div class="row"><label>Fill opacity</label><input type="range" id="card-fill-a" min="0" max="1" step="0.01" value="0.55"><span class="val" id="card-fill-a-v">0.55</span></div>
     <div class="row"><label>Rim colour</label><input type="color" id="card-rim" value="#ffffff"><span class="val" id="card-rim-v">#ffffff</span></div>
@@ -257,9 +269,15 @@
     // value labels
     $('card-fill-v').textContent = cf; $('card-fill-a-v').textContent = cfa; $('card-rim-v').textContent = cr; $('card-rim-a-v').textContent = cra; $('card-blur-v').textContent = cb;
     $('btn-fill-v').textContent = bf; $('btn-fill-a-v').textContent = bfa; $('btn-rim-v').textContent = br; $('btn-rim-a-v').textContent = bra; $('btn-blur-v').textContent = bb;
+    // Dark vs light card → flip the sample card's text to cream (+ honey w/o
+    // casing) so dark fills render honestly. Perceptual luminance of the fill.
+    const [cr_, cg_, cb_] = hexToRgb(cf);
+    const lum = 0.299*cr_ + 0.587*cg_ + 0.114*cb_;
+    const darkCard = lum < 140;
+    document.querySelector('.card').classList.toggle('is-dark', darkCard);
     // readout (the exact tokens.css block)
     const out =
-`/* CARD hue */
+`/* CARD hue — text: ${darkCard ? 'CREAM (dark card)' : 'INK (light card)'} */
 --card-cream-bg:     ${rgba(cf, cfa)};
 --card-cream-border: ${rgba(cr, cra)};
 --card-cream-blur:   blur(${cb}px);
@@ -277,6 +295,18 @@
     document.querySelectorAll('.bg-switch button').forEach(b => b.classList.remove('on'));
     btn.classList.add('on');
     $('stage').className = 'stage ' + btn.dataset.bg;
+  }));
+  const PRESETS = {
+    cream:     { fill:'#fdf4ea', fa:'0.62', rim:'#ffffff', ra:'0.60', blur:'10' },
+    espresso:  { fill:'#3a2e24', fa:'0.88', rim:'#fff3e2', ra:'0.32', blur:'8'  },
+    warmdelft: { fill:'#1b2236', fa:'0.88', rim:'#b9d2df', ra:'0.22', blur:'8'  },
+  };
+  document.querySelectorAll('[data-preset]').forEach(b => b.addEventListener('click', () => {
+    const p = PRESETS[b.dataset.preset];
+    $('card-fill').value = p.fill; $('card-fill-a').value = p.fa;
+    $('card-rim').value = p.rim;   $('card-rim-a').value = p.ra;
+    $('card-blur').value = p.blur;
+    read();
   }));
   $('copy').addEventListener('click', () => {
     navigator.clipboard?.writeText(read()).then(() => { $('copy').textContent = 'Copied ✓'; setTimeout(()=>$('copy').textContent='Copy token values', 1400); });
