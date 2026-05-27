@@ -10113,47 +10113,74 @@
     "221": {
       "polygon": [
         [
-          59.91055,
-          10.72606
+          59.910570000000575,
+          10.726349999999712
         ],
         [
-          59.91052,
-          10.725971
+          59.9105330286242,
+          10.72641537298938
         ],
         [
-          59.910493,
-          10.725977
+          59.91043414403387,
+          10.726189770356939
         ],
         [
-          59.910466,
-          10.726031
-        ],
-        [
-          59.910466,
-          10.72617
-        ],
-        [
-          59.91049,
-          10.72617
-        ],
-        [
-          59.91055,
-          10.72605
+          59.91046695258072,
+          10.726124153400008
         ]
       ],
-      "confidence": 0.45,
+      "confidence": 1,
       "notVisible": false,
-      "detectedAt": "2026-05-10T22:19:56.288Z",
+      "detectedAt": "2026-05-27T18:47:43.69486+00:00",
       "model": "claude-sonnet-4-6",
       "promptHash": "78b11ecb",
-      "source": "ai",
+      "source": "manual",
       "snapshot": {
         "zoom": 19,
         "w": 640,
         "h": 640,
         "style": "mapbox/satellite-v9"
       },
-      "reasoning": "A narrow strip of raised wooden decking/platform is visible along the lower edge of the building footprint, adjacent to the building's south-west facade, which appears to be an outdoor seating area for the venue."
+      "reasoning": "supabase-sync",
+      "origin": "from-scratch",
+      "originalAi": {
+        "polygon": [
+          [
+            59.91055,
+            10.72606
+          ],
+          [
+            59.91052,
+            10.725971
+          ],
+          [
+            59.910493,
+            10.725977
+          ],
+          [
+            59.910466,
+            10.726031
+          ],
+          [
+            59.910466,
+            10.72617
+          ],
+          [
+            59.91049,
+            10.72617
+          ],
+          [
+            59.91055,
+            10.72605
+          ]
+        ],
+        "confidence": 0.45,
+        "notVisible": false,
+        "reasoning": "A narrow strip of raised wooden decking/platform is visible along the lower edge of the building footprint, adjacent to the building's south-west facade, which appears to be an outdoor seating area for the venue.",
+        "model": "claude-sonnet-4-6",
+        "promptHash": "78b11ecb",
+        "detectedAt": "2026-05-10T22:19:56.288Z"
+      }
     },
     "222": {
       "polygon": [
